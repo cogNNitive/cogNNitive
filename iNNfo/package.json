@@ -1,0 +1,33 @@
+{
+  "name": "@cognnitive/innfo",
+  "version": "0.2.4",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "npm --prefix packages/innfo-core run build && npm --prefix apps/innfo-editor run typecheck",
+    "test": "npm --prefix packages/innfo-core test && npm --prefix packages/innfo-mcp test && npm --prefix apps/innfo-editor test",
+    "test:coverage": "npm --prefix packages/innfo-core run test:coverage && npm --prefix packages/innfo-mcp run test:coverage && npm --prefix apps/innfo-editor run test:coverage",
+    "check:spec-version": "node scripts/check-spec-version.mjs",
+    "check:spec-urls": "node scripts/check-spec-version.mjs --check-urls",
+    "check:specs": "node scripts/check-spec-version.mjs --check-urls && node scripts/check-spec-version.mjs --inventory"
+  },
+  "optionalDependencies": {
+    "@rollup/rollup-linux-x64-gnu": "^4.0.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.4",
+    "eslint": "^9.39.4",
+    "eslint-config-prettier": "^9.1.2",
+    "eslint-plugin-vue": "^9.33.0",
+    "prettier": "^3.9.4",
+    "typescript-eslint": "^8.62.1",
+    "vue-eslint-parser": "^9.4.3"
+  }
+}

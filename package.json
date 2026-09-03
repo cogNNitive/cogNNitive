@@ -1,0 +1,14 @@
+﻿{
+  "name": "cognnitive",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "iNNfo/packages/*",
+    "iNNfo/apps/*"
+  ],
+  "scripts": {
+    "verify": "npm --prefix iNNfo run typecheck && npm --prefix iNNfo test",
+    "test": "npm --prefix iNNfo test",
+    "typecheck": "npm --prefix iNNfo run typecheck"
+  }
+}

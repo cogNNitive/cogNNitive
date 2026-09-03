@@ -1,0 +1,21 @@
+# AI Content Index — https://actionn.cognnitive.com/nn-design-presets
+site:
+  name: 'iNNfo'
+  url: 'https://innfo.cognnitive.com/'
+  description: 'The hub for the iNNfo ecosystem. Model, edit, and validate iNNfo knowledge models with the iNNfo Modeler, innfo-core, and an MCP server for AI agents.'
+  generator: 'https://actionn.cognnitive.com/nn-design-presets'
+  language: 'en'
+  updated: '2026-07-11'
+pages:
+  - path: '/'
+    title: 'iNNfo Ã¢â‚¬â€  the iNNfo modeling hub'
+    description: 'iNNfo is the hub for the iNNfo ecosystem. Model, edit, and validate iNNfo knowledge models with the iNNfo Modeler, innfo-core, and an MCP server for AI agents.'
+    last_modified: '2026-07-11'
+    format: markdown
+    url: 'https://innfo.cognnitive.com/index.md'
+  - path: '/about'
+    title: 'About Ã¢â‚¬â€ iNNfo'
+    description: 'Learn about iNNfo, the hub for the iNNfo ecosystem Ã¢â‚¬â€ the iNNfo Modeler, innfo-core, innfo-mcp, and the spec chain.'
+    last_modified: '2026-07-11'
+    format: markdown
+    url: 'https://innfo.cognnitive.com/about.md'

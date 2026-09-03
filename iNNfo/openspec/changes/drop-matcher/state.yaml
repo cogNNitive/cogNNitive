@@ -1,0 +1,14 @@
+id: drop-matcher
+name: Drop Custom Skill Matcher
+status: complete
+created: 2026-08-12
+artifact_store: openspec
+note: >
+  Low-risk route (openspec/config.yaml sdd_gate.low_risk_route): mechanical
+  removal of two dead files (agents/triggers.yaml, scripts/skill-matcher.mjs)
+  plus an AGENTS.md edit, already understood with a clear root cause — no
+  proposal/design/specs required by the lifecycle rules. All 5 tasks in
+  tasks.md are complete ([x]). This folder duplicates the already-archived
+  change openspec/changes/archive/2026-08-12-drop-matcher/ (identical intent,
+  proposal, and tasks) — kept here only to leave a well-formed, consistent
+  change record; no new archive action was taken as part of this cleanup.

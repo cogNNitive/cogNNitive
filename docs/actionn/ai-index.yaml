@@ -1,0 +1,45 @@
+# AI Content Index — https://actionn.cognnitive.com/nn-design-presets
+site:
+  name: "cogNNitive"
+  url: "https://actionn.cognnitive.com"
+  description: "AI Agent Skills ecosystem — modular skills that power AI agents with specialized capabilities"
+  generator: "https://actionn.cognnitive.com/nn-design-presets"
+  language: "en"
+  updated: "2026-06-27"
+pages:
+  - path: "/"
+    title: "cogNNitive — AI Agent Skills"
+    description: "Skills ecosystem for AI agents. Model Router, Skills Manager, traNNsform, and Design System."
+    last_modified: "2026-06-27"
+    format: markdown
+    url: "https://actionn.cognnitive.com/index.md"
+  - path: "/documentation/"
+    title: "cogNNitive — Documentation"
+    description: "Technical documentation for the cogNNitive skills ecosystem"
+    last_modified: "2026-06-27"
+    format: markdown
+    url: "https://actionn.cognnitive.com/documentation/README.md"
+  - path: "/documentation/skills/opencode-model-router"
+    title: "Model Router Skill"
+    description: "Evaluates AI model suitability for each task"
+    last_modified: "2026-06-27"
+    format: markdown
+    url: "https://actionn.cognnitive.com/documentation/skills/opencode-model-router.md"
+  - path: "/documentation/skills/skills-manager"
+    title: "Skills Manager Skill"
+    description: "Manages the lifecycle of repository skills"
+    last_modified: "2026-06-27"
+    format: markdown
+    url: "https://actionn.cognnitive.com/documentation/skills/skills-manager.md"
+  - path: "/documentation/skills/trannsform"
+    title: "traNNsform Skill"
+    description: "Document ingestion and transformation pipeline"
+    last_modified: "2026-06-27"
+    format: markdown
+    url: "https://actionn.cognnitive.com/documentation/skills/trannsform.md"
+  - path: "/documentation/skills/web-design-guide"
+    title: "Web Design Guide Skill"
+    description: "Light-mode design system with Morado Nazareno palette"
+    last_modified: "2026-06-27"
+    format: markdown
+    url: "https://actionn.cognnitive.com/documentation/skills/web-design-guide.md"

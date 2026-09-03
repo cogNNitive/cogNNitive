@@ -1,0 +1,16 @@
+{
+  "id": "projects-extension",
+  "name": "Projects Gantt Timeline Extension",
+  "version": "1.0.0",
+  "template": "projects",
+  "description": "Interactive Gantt Chart timeline view and task dependency visualizer for project models.",
+  "views": [
+    {
+      "id": "gantt-chart",
+      "viewType": "gantt-timeline",
+      "label": "Gantt Timeline Chart",
+      "icon": "calendar-range",
+      "targetConcept": "Task"
+    }
+  ]
+}

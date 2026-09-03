@@ -1,0 +1,34 @@
+﻿# openspec/config.yaml â€” SDD configuration for actioNN
+schema: spec-driven
+
+context: |
+  Tech stack: Markdown + YAML frontmatter skills ecosystem. Node.js 18+ for nn-trannsform CLI tool (mammoth, minimist, pdf-parse, prompts).
+  Architecture: Agent skill repository. Each skill is self-contained in skills/<name>/ with SKILL.md as the primary instruction contract. Repo also serves static docs site (Docsify).
+  Testing: No test runner, no linter, no type checker, no formatter. Strict TDD: disabled (skill repo â€” no application tests).
+  Conventions: English-only content, semantic versioning (V_x-y-z) in YAML frontmatter, AGENTS.md rules for skill versioning.
+
+rules:
+  proposal:
+    - Include affected SKILL.md files and cross-skill dependencies
+    - Consider junction/symlink implications for installed skills
+  specs:
+    - Use Given/When/Then for behavioral scenarios where applicable
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+    - Reference skill versioning convention from AGENTS.md
+  design:
+    - Document SKILL.md structure changes with frontmatter diff
+    - Note backward compatibility for installed junctions
+  tasks:
+    - Group by skill, use hierarchical numbering
+    - Keep tasks completable in one session
+  apply:
+    - Follow existing skill structural conventions (LLM-first format)
+    tdd: false
+    test_command: ""
+  verify:
+    test_command: ""
+    build_command: ""
+    coverage_threshold: 0
+  archive:
+    - Warn before merging destructive deltas
+    - Update .cogNNitive/skill-registry.md if skills changed

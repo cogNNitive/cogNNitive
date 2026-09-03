@@ -1,0 +1,60 @@
+schema: spec-driven
+strict_tdd: true
+
+context: |
+  Project: cogNNitive
+  Type: Multi-module ecosystem containing agent skills, documentation, and the iNNfo monorepo.
+  Modules:
+    - iNNfo: Monorepo with npm workspaces (innfo-core, innfo-mcp, innfo-editor). Stack: Vue 3, Vite, Tailwind CSS, TypeScript, ESM.
+    - actioNN: Agent skill ecosystem (Markdown + YAML frontmatter, Node.js scripts for nn-trannsform).
+    - eNNvironment: Ecosystem setup, manifest governance, and validation scripts.
+    - _NN: Artifacts and commercial web content store.
+    - Simulacro: Mock and sample workspace environment.
+
+testing:
+  strict_tdd: true
+  detected_at: '2026-09-02'
+  runner:
+    command: 'npm --prefix iNNfo run test'
+    framework: 'Vitest / Playwright / Node.js Test Runner'
+  layers:
+    unit:
+      available: true
+      tool: 'Vitest (iNNfo) / Node test runner (actioNN/skills/nn-trannsform, eNNvironment)'
+    integration:
+      available: true
+      tool: 'Vitest (iNNfo) / PowerShell integration tests (nn-trannsform)'
+    e2e:
+      available: true
+      tool: 'Playwright (apps/innfo-editor)'
+  coverage:
+    available: true
+    command: 'npm --prefix iNNfo run test:coverage'
+  quality:
+    linter:
+      available: true
+      command: 'npm --prefix iNNfo run lint'
+      fix_command: 'npm --prefix iNNfo run lint:fix'
+    typecheck:
+      available: true
+      command: 'npm --prefix iNNfo run typecheck'
+    formatter:
+      available: true
+      command: 'npm --prefix iNNfo run format:check'
+      fix_command: 'npm --prefix iNNfo run format'
+
+rules:
+  proposal:
+    - Describe the problem clearly across the affected cogNNitive ecosystem modules.
+    - Reference specific skills in actioNN, packages in iNNfo, or specifications affected.
+  specs:
+    - Use Given/When/Then for behavioral scenarios where applicable.
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY).
+    - Detail exact schema changes or skill triggers.
+  design:
+    - Document data structures, API/MCP contracts, and skill frontmatter diffs.
+    - Specify architecture seams, imports/exports, and package boundaries.
+  tasks:
+    - Group tasks by component/module with strict dependency ordering.
+    - Include TDD test-first steps before implementation tasks.
+    - Include lint, typecheck, format, and test verification tasks at each step.

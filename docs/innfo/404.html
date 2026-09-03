@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>cogNNitive — iNNfo</title>
+    <script>
+      (function() {
+        var path = window.location.pathname;
+        var search = window.location.search;
+        var hash = window.location.hash;
+        if (path.startsWith('/app')) {
+          var subpath = path.slice(4); // e.g. "/innfo-doc" or "/info-doc"
+          var target = '/app/?p=' + encodeURIComponent(subpath + search + hash);
+          window.location.replace(target);
+        } else {
+          window.location.replace('/');
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <p>Redirecting to cogNNitive...</p>
+  </body>
+</html>

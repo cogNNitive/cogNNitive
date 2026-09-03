@@ -1,0 +1,30 @@
+name: Canonical entry contract
+
+# Guards the single bootstrap entry point ("I want to use https://cognnitive.com/use"):
+#   1. consistency  — every page points at the SAME canonical string (offline, always blocking)
+#   2. manifest-live — https://cognnitive.com/use actually serves a bootstrap manifest
+#                      (stays RED until the gateway repo publishes /use — that's the deploy signal)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  consistency:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Check canonical phrase consistency (offline)
+        run: node scripts/check-canonical.js --offline
+
+  manifest-live:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Verify https://cognnitive.com/use serves a manifest
+        run: node scripts/check-canonical.js

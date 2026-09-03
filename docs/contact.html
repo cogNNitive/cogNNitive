@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact — cogNNitive</title>
+  <meta name="description" content="Get in touch with cogNNitive. Questions, ideas, or partnerships — send us a message and we'll get back to you.">
+  <meta name="generator" content="https://actionn.cognnitive.com/nn-design-presets">
+  <link rel="icon" type="image/svg+xml" href="logo.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "cogNNitive",
+    "url": "https://cognnitive.com/contact",
+    "description": "Knowledge Management made ridiculously simple for humans and AI.",
+    "author": { "@type": "Organization", "name": "cogNNitive" },
+    "inLanguage": "en",
+    "isAccessibleForFree": true
+  }
+  </script>
+  <style>
+    :root {
+      --canvas: #FFFFFF;
+      --canvas-inert: #FAFAFC;
+      --brand: #4D0E4E;
+      --brand-light: #6A1B6B;
+      --brand-subtle: #F6EEF6;
+      --border: #F2F2F7;
+      --ink: #111112;
+      --ink-muted: #636366;
+      --sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+      --mono: 'JetBrains Mono', monospace;
+      --max-w: 1200px;
+      --radius: 10px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--sans);
+      font-size: 16px;
+      line-height: 1.6;
+      color: var(--ink);
+      background: var(--canvas);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container { max-width: var(--max-w); margin: 0 auto; padding: 0 24px; }
+
+    /* Unified Header */
+    .header {
+      padding: 16px 0;
+      border-bottom: 1px solid var(--border);
+      background: var(--canvas);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-inner { display: flex; align-items: center; justify-content: space-between; }
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 800;
+      font-size: 20px;
+      color: var(--brand);
+      text-decoration: none;
+      letter-spacing: -0.02em;
+    }
+    .logo img { height: 28px; width: auto; }
+    .nav { display: flex; gap: 24px; align-items: center; }
+    .nav-link {
+      text-decoration: none;
+      color: var(--ink-muted);
+      font-size: 14px;
+      font-weight: 600;
+      transition: color 0.2s;
+    }
+    .nav-link:hover, .nav-link.active { color: var(--brand); }
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--brand);
+      color: #fff;
+      text-decoration: none;
+      padding: 10px 20px;
+      border-radius: var(--radius);
+      font-weight: 600;
+      font-size: 14px;
+      transition: background 0.2s;
+    }
+    .btn-primary:hover { background: var(--brand-light); }
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--canvas-inert);
+      color: var(--ink);
+      text-decoration: none;
+      padding: 10px 20px;
+      border-radius: var(--radius);
+      font-weight: 600;
+      font-size: 14px;
+      border: 1px solid var(--border);
+      transition: background 0.2s;
+    }
+    .btn-secondary:hover { background: var(--border); }
+
+    /* Hero Section */
+    .hero {
+      padding: 80px 0 60px;
+      text-align: center;
+      background: linear-gradient(180deg, var(--brand-subtle) 0%, var(--canvas) 100%);
+    }
+    .hero h1 {
+      font-size: 48px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      color: var(--ink);
+      max-width: 900px;
+      margin: 0 auto 20px;
+    }
+    .hero h1 .accent { color: var(--brand); }
+    .hero p {
+      font-size: 20px;
+      color: var(--ink-muted);
+      max-width: 680px;
+      margin: 0 auto 32px;
+    }
+    .hero-actions { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+
+    /* Sections General */
+    section { padding: 64px 0; border-bottom: 1px solid var(--border); }
+    .section-title { text-align: center; margin-bottom: 48px; }
+    .section-title h2 { font-size: 32px; font-weight: 800; letter-spacing: -0.02em; color: var(--ink); }
+    .section-title p { font-size: 16px; color: var(--ink-muted); margin-top: 8px; }
+
+    /* Pillars Grid */
+    .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; }
+    .card {
+      background: var(--canvas);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 32px;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(77, 14, 78, 0.06); }
+    .card-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 8px;
+      background: var(--brand-subtle);
+      color: var(--brand);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+    .card h3 { font-size: 20px; font-weight: 700; margin-bottom: 12px; }
+    .card p { font-size: 15px; color: var(--ink-muted); line-height: 1.5; }
+
+    /* Diagram Card Container */
+    .diagram-card {
+      background: var(--canvas-inert);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 32px;
+      max-width: 900px;
+      margin: 0 auto;
+      overflow-x: auto;
+    }
+    .mermaid { display: flex; justify-content: center; }
+
+    /* Benefits Grid (6 Key Benefits) */
+    .benefits-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; }
+    .benefit-item { display: flex; gap: 16px; padding: 24px; background: var(--canvas-inert); border: 1px solid var(--border); border-radius: var(--radius); }
+    .benefit-num {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--brand);
+      background: var(--brand-subtle);
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .benefit-content h4 { font-size: 17px; font-weight: 700; margin-bottom: 6px; }
+    .benefit-content p { font-size: 14px; color: var(--ink-muted); }
+
+    /* How to Use It (OpenCode Exclusive) */
+    .steps-wrapper { max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
+    .step-card { display: flex; align-items: flex-start; gap: 20px; background: var(--canvas); border: 1px solid var(--border); padding: 24px; border-radius: var(--radius); }
+    .step-badge { background: var(--brand); color: #fff; font-weight: 800; font-size: 14px; padding: 6px 14px; border-radius: 20px; flex-shrink: 0; }
+    .step-text h4 { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+    .step-text p { font-size: 15px; color: var(--ink-muted); margin-bottom: 12px; }
+    .code-box { background: var(--canvas-inert); border: 1px solid var(--border); padding: 10px 16px; border-radius: 6px; font-family: var(--mono); font-size: 14px; color: var(--brand); display: inline-block; }
+
+    /* Footer */
+    footer { padding: 48px 0; background: var(--canvas-inert); text-align: center; }
+    footer p { font-size: 14px; color: var(--ink-muted); }
+    footer a { color: var(--brand); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+  <!-- Unified Header -->
+  <header class="header">
+    <div class="container header-inner">
+      <a href="https://cognnitive.com" class="logo">
+        <img src="logo.svg" alt="cogNNitive Logo" />
+        <span>cogNNitive</span>
+      </a>
+      <nav class="nav">
+        <a href="https://cognnitive.com" class="nav-link active">cogNNitive</a>
+        <a href="https://innfo.cognnitive.com" class="nav-link">iNNfo</a>
+        <a href="https://actionn.cognnitive.com" class="nav-link">actioNN</a>
+        <a href="https://innfo.cognnitive.com/documentation/" class="nav-link">Docs</a>
+      </nav>
+      <div class="header-actions">
+        <a href="https://innfo.cognnitive.com/app/" class="btn-primary">Open App</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- Hero Section -->
+    <section class="hero">
+      <div class="container">
+        <h1>Let's Start Your <br><span class="accent">Innovation Journey</span></h1>
+        <p>Ready to take the first steps? Fill out the form below and we'll get back to you.</p>
+      </div>
+    </section>
+
+    <!-- Contact Form -->
+    <section>
+      <div class="container">
+        <div class="section-title">
+          <h2>Contact Us</h2>
+          <p>Tell us about your project and we'll get back to you within 24 business hours.</p>
+        </div>
+        <div class="diagram-card" style="max-width: 720px; background: var(--canvas);">
+          <iframe src="https://docs.google.com/forms/d/e/1FAIpQLSd3iO1V-pyaGNBC_ByddFuMJ1rkUAI2jT78--iqkG-rqXOrTA/viewform?embedded=true" title="Contact form" height="760" loading="lazy" style="display: block; width: 100%; border: 0;">Loading.</iframe>
+        </div>
+      </div>
+    </section>
+
+    <!-- Contact Cards -->
+    <section style="background: var(--canvas-inert);">
+      <div class="container">
+        <div class="section-title">
+          <h2>Other Ways to Reach Us</h2>
+          <p>Prefer email or a strategy call? Here are your options.</p>
+        </div>
+        <div class="grid-3">
+          <div class="card">
+            <div class="card-icon">📧</div>
+            <h3>Email Us</h3>
+            <p>Official communication channel — <a href="mailto:lucas@lucascervera.com" style="color: var(--brand); text-decoration: none;">lucas@lucascervera.com</a></p>
+          </div>
+          <div class="card">
+            <div class="card-icon">⏱️</div>
+            <h3>Response Time</h3>
+            <p>We typically reply within 24 business hours.</p>
+          </div>
+          <div class="card">
+            <div class="card-icon">💬</div>
+            <h3>Consultation</h3>
+            <p>Schedule a free initial 30-minute strategy call</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <p>&copy; 2026 cogNNitive. Open Source under MIT License. Built for <a href="https://opencode.ai">OpenCode</a>.</p>
+    </div>
+  </footer>
+
+</body>
+</html>

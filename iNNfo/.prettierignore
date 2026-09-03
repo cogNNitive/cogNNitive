@@ -1,0 +1,18 @@
+**/dist/**
+**/node_modules/**
+**/e2e-reports/**
+**/test-results/**
+**/*.snap
+package-lock.json
+packages/format-core/**
+packages/format-mcp/**
+archive/**
+Sandbox/**
+
+# Markdown is the iNNfo DSL — fixtures and snapshots must stay byte-exact.
+# Reformatting them would break the parser, golden, and smoke tests.
+**/*.md
+**/fixtures/**
+**/*.golden
+docs/app/**
+packages/innfo-mcp/bin/**

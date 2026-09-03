@@ -1,0 +1,13 @@
+﻿# Skill dependencies â€” installed by the agent on first use
+skills/*/node_modules/
+
+# SDD skill registry cache (regenerated on init)
+.cogNNitive/.skill-registry.cache.json
+.atl/.skill-registry.cache.json
+
+# MCP server bundle (downloaded from cogNNitive via update-mcp.js)
+scripts/bin/
+
+# Local tooling artifacts
+.playwright-mcp/
+

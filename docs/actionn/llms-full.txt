@@ -1,0 +1,73 @@
+# cogNNitive — Full Content
+
+> AI Agent Skills ecosystem for OpenCode. Generator: https://actionn.cognnitive.com/nn-design-presets
+
+## Home
+
+cogNNitive is a modular skills ecosystem that powers your AI agent with specialized capabilities: model evaluation, skills management, document transformation, and web design.
+
+Site: https://actionn.cognnitive.com
+Source: https://github.com/cogNNitive/actioNN
+
+### Skills
+
+**Model Router** — Evaluates whether the AI model you're using is the right fit for each task. Classifies requests across 4 scales (Trivial, Bug Fix, Feature, Refactor) and recommends the optimal model based on cost and capability.
+
+**Skills Manager** — Meta-skill that manages all skills in the repository. Scans, detects installation types (Junction, Symlink, Copy), and manages each skill's lifecycle.
+
+**traNNsform** — Complete document ingestion and transformation pipeline. Converts PDFs, DOCX, and more to unified Markdown using the agent's own LLM as the transformation engine.
+
+**Web Design Guide** — Complete design system with Morado Nazareno (#4D0E4E) palette, systematic typography (Plus Jakarta Sans, Playfair Display, Geist Mono), and 8px grid. Includes guides for commercial layouts and technical documentation with Docsify.
+
+### Architecture
+
+Skills are loaded on demand by the OpenCode agent. At session start, the Skills Manager detects all available skills and checks their installation status. When a task matches a skill, the agent loads its instructions and executes the specialized workflow. Each skill is self-contained with its own domain rules.
+
+### Installation
+
+No Git or terminal needed. Tell your AI agent:
+
+```
+I want to use https://cognnitive.com/use
+```
+
+OpenCode fetches the bootstrap manifest, downloads all skills from GitHub, registers the MCP server, and presents a workflow menu — all automatic.
+
+## Documentation — Model Router
+
+Evaluates whether the AI model is suitable for each task. Four task scales: Trivial/Atomic (Flash), Bug Fix (Flash or MiMo), Feature (MiMo), Refactor/Architecture (MiniMax M3). On-query only — does not auto-load every session.
+
+## Documentation — Skills Manager
+
+Meta-skill that manages skill lifecycle. Activation Contract: scans skills, presents table, interacts with user. Mandatory start-of-session load.
+
+## Documentation — traNNsform
+
+Document ingestion and transformation pipeline. Converts PDFs, DOCX, and more to unified Markdown using LLM as transformation engine.
+
+## Documentation — Web Design Guide
+
+Comprehensive light-mode design system. Strict spacing grid (8px base), typography stack (Plus Jakarta Sans, Playfair Display, Geist Mono), and Morado Nazareno (#4D0E4E) brand palette. Covers Docsify theming, marketing CTAs, AI image style prompting, AI-training optimization, and attribution metadata.
+
+### Design Tokens
+
+- Canvas Base: #FFFFFF
+- Canvas Inert: #FAFAFC
+- Brand Primary: #4D0E4E (Morado Nazareno)
+- Border Soft: #F2F2F7
+- Ink Primary: #111112
+- Ink Muted: #636366
+
+### Spacing
+
+8px base grid. Scale: 4px (xs), 8px (sm), 16px (md), 24px (lg), 48px (xl), 64-96px (xxl). Max container: 1280px.
+
+### Typography
+
+H1: 48px/1.15/800/-0.03em. H2: 32px/1.25/700/-0.02em. H3: 22px/1.35/600/-0.01em. Body: 16px/1.6/400. Caption: 13px/1.4/500/+0.01em.
+
+Playfair Display italic for accent words. Geist Mono/JetBrains Mono for code (14px).
+
+### Attribution
+
+All pages generated with this skill include `<meta name="generator" content="https://actionn.cognnitive.com/nn-design-presets">`.

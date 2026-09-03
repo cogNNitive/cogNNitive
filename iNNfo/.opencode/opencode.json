@@ -1,0 +1,21 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "innfo-mcp": {
+      "type": "local",
+      "enabled": true,
+      "command": ["node", "packages/innfo-mcp/bin/innfo-mcp.bundle.js"]
+    }
+  },
+  "watcher": {
+    "ignore": [
+      "**/node_modules/**",
+      "**/dist/**",
+      "**/build/**",
+      "**/target/**",
+      "**/.next/**",
+      "**/coverage/**",
+      "**/.git/**"
+    ]
+  }
+}

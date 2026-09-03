@@ -1,0 +1,35 @@
+node_modules/
+dist/
+coverage/
+docs/app/
+.env
+*.log
+*.tmp.*
+.playwright-mcp/
+/archive/*
+# Keep the one frozen spec the core test suite parses (index.test.ts) tracked,
+# so tests run in a clean CI checkout. The rest of archive/ stays ignored.
+!/archive/specs/
+/archive/specs/*
+!/archive/specs/FORMAT_V_0-1-0_FORMAT.md
+test-results/
+e2e-reports/
+# Generated Playwright screenshots / aria snapshots (test output)
+e2e-fixtures/
+# Local AI runtime state
+.atl/
+# Local Engram persistent-memory state (machine-specific)
+.engram/
+# Backup
+specs.bak/
+# Local scratch / demo artifacts
+temp_demo.tmp/
+scratch_*.mjs
+*.parse_test.js
+# Generated exports (AI agent output)
+traNNsform/outputs/*
+!/traNNsform/outputs/.gitkeep
+# Local Windows shortcut
+_NN.lnk
+# Local scratch / demo preview
+temp/

@@ -1,0 +1,16 @@
+{
+  "id": "procedures-extension",
+  "name": "Procedures Template Extension",
+  "version": "0.2.0",
+  "template": "procedures_V_0-2-0",
+  "description": "Interactive finite state machine (FSM) executor and visualizer for hierarchical Work procedure steps, RACI matrices, and artifact flows.",
+  "views": [
+    {
+      "id": "guided-procedure",
+      "viewType": "fsm-stepper",
+      "label": "Guided Procedure Execution",
+      "icon": "play-circle",
+      "targetConcept": "Work"
+    }
+  ]
+}

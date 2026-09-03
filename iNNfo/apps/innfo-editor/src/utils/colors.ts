@@ -1,0 +1,206 @@
+export interface ColorPalette {
+  /** Soft tinted background (used as the pill/instance fill) */
+  bg: string
+  /** Foreground text color in the tinted family */
+  text: string
+  /** Border in the tinted family */
+  border: string
+  /** Strong accent color (icons, dots, left bars) */
+  accent: string
+  /** Left accent bar color (border-l-*) */
+  borderLeft: string
+  hoverBg: string
+  hoverText: string
+  hoverBorder: string
+  /** Gradient start for accordion headers (from-{color}-50/50) */
+  gradient: string
+  /** Ring color for markers and focus states (ring-{color}-100) */
+  ring: string
+  /** Solid background for selected concept pills (dark enough for white text) */
+  selectedBg: string
+  /** 50%-opacity border, used by the "inherited" pill tier (e.g. Element) */
+  borderSoft: string
+  /** Firm (mid-strength) border, used by the "file reference" pill tier (e.g. Source/Artifact) */
+  borderFirm: string
+}
+
+/**
+ * Single source of truth for concept/instance color theming.
+ *
+ * All class strings are written as full literals so Tailwind's purge keeps them.
+ * Add a new color HERE ONLY — every consumer (pills, blocks, tree) derives from this.
+ */
+const PALETTES: Record<string, ColorPalette> = {
+  blue: {
+    bg: 'bg-blue-50',
+    text: 'text-blue-700',
+    border: 'border-blue-200',
+    accent: 'text-blue-600',
+    borderLeft: 'border-l-blue-600',
+    hoverBg: 'hover:bg-blue-50',
+    hoverText: 'hover:text-blue-700',
+    hoverBorder: 'hover:border-blue-200',
+    gradient: 'from-blue-50/50',
+    ring: 'ring-blue-100',
+    selectedBg: 'bg-blue-600',
+    borderSoft: 'border-blue-600/50',
+    borderFirm: 'border-blue-400',
+  },
+  green: {
+    bg: 'bg-emerald-50',
+    text: 'text-emerald-700',
+    border: 'border-emerald-200',
+    accent: 'text-emerald-600',
+    borderLeft: 'border-l-emerald-600',
+    hoverBg: 'hover:bg-emerald-50',
+    hoverText: 'hover:text-emerald-700',
+    hoverBorder: 'hover:border-emerald-200',
+    gradient: 'from-emerald-50/50',
+    ring: 'ring-emerald-100',
+    selectedBg: 'bg-emerald-600',
+    borderSoft: 'border-emerald-600/50',
+    borderFirm: 'border-emerald-400',
+  },
+  indigo: {
+    bg: 'bg-indigo-50',
+    text: 'text-indigo-700',
+    border: 'border-indigo-200',
+    accent: 'text-indigo-600',
+    borderLeft: 'border-l-indigo-600',
+    hoverBg: 'hover:bg-indigo-50',
+    hoverText: 'hover:text-indigo-700',
+    hoverBorder: 'hover:border-indigo-200',
+    gradient: 'from-indigo-50/50',
+    ring: 'ring-indigo-100',
+    selectedBg: 'bg-indigo-600',
+    borderSoft: 'border-indigo-600/50',
+    borderFirm: 'border-indigo-400',
+  },
+  orange: {
+    bg: 'bg-orange-50',
+    text: 'text-orange-700',
+    border: 'border-orange-200',
+    accent: 'text-orange-600',
+    borderLeft: 'border-l-orange-600',
+    hoverBg: 'hover:bg-orange-50',
+    hoverText: 'hover:text-orange-700',
+    hoverBorder: 'hover:border-orange-200',
+    gradient: 'from-orange-50/50',
+    ring: 'ring-orange-100',
+    selectedBg: 'bg-orange-600',
+    borderSoft: 'border-orange-600/50',
+    borderFirm: 'border-orange-400',
+  },
+  red: {
+    bg: 'bg-rose-50',
+    text: 'text-rose-700',
+    border: 'border-rose-200',
+    accent: 'text-rose-600',
+    borderLeft: 'border-l-rose-600',
+    hoverBg: 'hover:bg-rose-50',
+    hoverText: 'hover:text-rose-700',
+    hoverBorder: 'hover:border-rose-200',
+    gradient: 'from-rose-50/50',
+    ring: 'ring-rose-100',
+    selectedBg: 'bg-rose-600',
+    borderSoft: 'border-rose-600/50',
+    borderFirm: 'border-rose-400',
+  },
+  violet: {
+    bg: 'bg-violet-50',
+    text: 'text-violet-700',
+    border: 'border-violet-200',
+    accent: 'text-violet-600',
+    borderLeft: 'border-l-violet-600',
+    hoverBg: 'hover:bg-violet-50',
+    hoverText: 'hover:text-violet-700',
+    hoverBorder: 'hover:border-violet-200',
+    gradient: 'from-violet-50/50',
+    ring: 'ring-violet-100',
+    selectedBg: 'bg-violet-600',
+    borderSoft: 'border-violet-600/50',
+    borderFirm: 'border-violet-400',
+  },
+  amber: {
+    bg: 'bg-amber-50',
+    text: 'text-amber-700',
+    border: 'border-amber-200',
+    accent: 'text-amber-600',
+    borderLeft: 'border-l-amber-600',
+    hoverBg: 'hover:bg-amber-50',
+    hoverText: 'hover:text-amber-700',
+    hoverBorder: 'hover:border-amber-200',
+    gradient: 'from-amber-50/50',
+    ring: 'ring-amber-100',
+    selectedBg: 'bg-amber-600',
+    borderSoft: 'border-amber-600/50',
+    borderFirm: 'border-amber-400',
+  },
+  yellow: {
+    bg: 'bg-yellow-50',
+    text: 'text-yellow-700',
+    border: 'border-yellow-200',
+    accent: 'text-yellow-600',
+    borderLeft: 'border-l-yellow-600',
+    hoverBg: 'hover:bg-yellow-50',
+    hoverText: 'hover:text-yellow-700',
+    hoverBorder: 'hover:border-yellow-200',
+    gradient: 'from-yellow-50/50',
+    ring: 'ring-yellow-100',
+    selectedBg: 'bg-yellow-600',
+    borderSoft: 'border-yellow-600/50',
+    borderFirm: 'border-yellow-400',
+  },
+  /** Source: fixed neutral color for the "file reference" pill tier. */
+  slate: {
+    bg: 'bg-slate-50',
+    text: 'text-slate-700',
+    border: 'border-slate-200',
+    accent: 'text-slate-600',
+    borderLeft: 'border-l-slate-500',
+    hoverBg: 'hover:bg-slate-50',
+    hoverText: 'hover:text-slate-700',
+    hoverBorder: 'hover:border-slate-200',
+    gradient: 'from-slate-50/50',
+    ring: 'ring-slate-100',
+    selectedBg: 'bg-slate-600',
+    borderSoft: 'border-slate-600/50',
+    borderFirm: 'border-slate-400',
+  },
+  /** Artifact: fixed neutral "black" color for the "file reference" pill tier. */
+  black: {
+    bg: 'bg-slate-900/5',
+    text: 'text-slate-900',
+    border: 'border-slate-300',
+    accent: 'text-slate-900',
+    borderLeft: 'border-l-slate-900',
+    hoverBg: 'hover:bg-slate-900/5',
+    hoverText: 'hover:text-slate-900',
+    hoverBorder: 'hover:border-slate-400',
+    gradient: 'from-slate-900/5',
+    ring: 'ring-slate-300',
+    selectedBg: 'bg-slate-900',
+    borderSoft: 'border-slate-900/50',
+    borderFirm: 'border-slate-400',
+  },
+}
+
+const FALLBACK: ColorPalette = {
+  bg: 'bg-slate-50',
+  text: 'text-slate-700',
+  border: 'border-slate-200',
+  accent: 'text-slate-600',
+  borderLeft: 'border-l-slate-500',
+  hoverBg: 'hover:bg-slate-50',
+  hoverText: 'hover:text-slate-700',
+  hoverBorder: 'hover:border-slate-200',
+  gradient: 'from-slate-50/50',
+  ring: 'ring-slate-100',
+  selectedBg: 'bg-slate-600',
+  borderSoft: 'border-slate-600/50',
+  borderFirm: 'border-slate-400',
+}
+
+export const getColorClasses = (colorName: string | null | undefined): ColorPalette => {
+  return PALETTES[(colorName || '').toLowerCase()] || FALLBACK
+}

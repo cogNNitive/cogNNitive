@@ -1,0 +1,40 @@
+{
+  "name": "@cognnitive/innfo-mcp",
+  "version": "0.2.4",
+  "description": "MCP server wrapping @cognnitive/innfo-core â€” semantic iNNfo tools over stdio",
+  "type": "module",
+  "main": "./dist/server.js",
+  "types": "./dist/server.d.ts",
+  "bin": {
+    "innfo-mcp": "./dist/server.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/server.d.ts",
+      "import": "./dist/server.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "build:bundle": "tsup",
+    "deploy:cdn": "node -e \"const v=require('./package.json').version; const fs=require('fs'); const path=require('path'); const cdnDir=path.resolve(process.cwd(),'../../docs/cdn'); fs.cpSync(path.join(process.cwd(),'bin/innfo-mcp.bundle.js'), path.join(cdnDir,'innfo-mcp-v'+v+'.bundle.js')); fs.writeFileSync(path.join(cdnDir,'manifest.json'), JSON.stringify({latest:'v'+v,updated:new Date().toISOString().split('T')[0]},null,2)); console.log('CDN deployed: v'+v)\"",
+    "start": "node dist/server.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@cognnitive/innfo-core": "^0.2.4",
+    "@modelcontextprotocol/sdk": "^1.19.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.0",
+    "@vitest/coverage-v8": "^1.6.1",
+    "tsup": "^8.5.1",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0"
+  }
+}

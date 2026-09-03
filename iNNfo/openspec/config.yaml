@@ -1,0 +1,69 @@
+schema: spec-driven
+strict_tdd: true
+context: |
+  Project: iNNfo
+  Type: Monorepo with npm workspaces (packages/*, apps/*)
+  Stack: Vue 3, Vite, Tailwind CSS, TypeScript, ESM.
+  Components:
+    - packages/innfo-core: Core parser, model, IO drivers, and validator (Vitest).
+    - packages/innfo-mcp: Model Context Protocol (MCP) server wrapping core.
+    - apps/innfo-editor: Frontend Vue 3 editor (Vitest + Playwright).
+testing:
+  strict_tdd: true
+  detected_at: '2026-07-09'
+  runner:
+    command: 'npm run test'
+    framework: 'Vitest'
+  layers:
+    unit:
+      available: true
+      tool: 'Vitest'
+    integration:
+      available: true
+      tool: 'Vitest'
+    e2e:
+      available: true
+      tool: 'Playwright'
+  coverage:
+    available: true
+    command: 'npm run test:coverage'
+  quality:
+    linter:
+      available: true
+      command: 'npm run lint'
+    typecheck:
+      available: true
+      command: 'npm run typecheck'
+    formatter:
+      available: true
+      command: 'npm run format'
+rules:
+  proposal:
+    - Describe the problem clearly, referencing any relevant iNNfo specifications or version bounds.
+    - List target packages or apps affected.
+  specs:
+    - Describe functional scenarios clearly, specifying expected inputs and outputs.
+    - Keep test cases aligned with Vitest/Playwright capabilities.
+  design:
+    - Detail workspace organization changes if packages or apps are added.
+    - Specify code structure modifications, exports/imports in ESM, and build configurations if packages are updated.
+  tasks:
+    - Break down tasks by package/app (e.g., packages/innfo-core first, then apps/innfo-editor).
+    - Include lint, typecheck, format, and test verification tasks at each step.
+
+sdd_gate:
+  # Tamaño o riesgo NUNCA disparan por sí solos el ciclo completo. Solo
+  # ambigüedad real de diseño lo hace. strict_tdd sigue aplicando siempre,
+  # independientemente de esta gate — esto solo decide si se generan
+  # proposal/spec/design/tasks/verify-report, no si se escriben tests.
+  full_cycle_required_when:
+    - "El cambio introduce o modifica una decisión de arquitectura (patrón nuevo, límite de paquete, contrato público)."
+    - "Hay ambigüedad real: más de un approach viable y no está claro cuál conviene."
+    - "El cambio afecta contratos externos (MCP tools, spec/template schema, API pública de innfo-core)."
+  full_cycle_skippable_when:
+    - "Refactor mecánico sin cambio de comportamiento, ya cubierto por tests existentes."
+    - "Fix puntual con causa raíz clara."
+    - "Cambio de una sola capa, ya entendido, sin decisión de diseño pendiente."
+  low_risk_route:
+    process: "direct inline o delegated direct — sin proposal/spec/design/tasks."
+    verification: "tests + typecheck + lint pasando reemplaza el verify-report formal; sin hash pinning ni fases documentadas."
