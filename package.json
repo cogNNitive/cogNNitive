@@ -7,6 +7,7 @@
     "iNNfo/apps/*"
   ],
   "scripts": {
+    "build:docs": "node scripts/build-docs.mjs",
     "verify": "npm --prefix iNNfo run typecheck && npm --prefix iNNfo test",
     "test": "npm --prefix iNNfo test",
     "typecheck": "npm --prefix iNNfo run typecheck"

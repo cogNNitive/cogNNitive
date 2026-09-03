@@ -27,10 +27,16 @@ jobs:
         with:
           node-version: 20
 
+      - name: Install dependencies
+        run: npm ci
+
       - name: Run Deterministic Verification
         run: node scripts/verify.js
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build Docs & Bundles Gate
+        run: npm run build:docs
 
   deploy-pages:
     needs: verify
@@ -41,6 +47,17 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Docs & Bundles
+        run: npm run build:docs
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
