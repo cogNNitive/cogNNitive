@@ -5,9 +5,9 @@ import type { ModelRelationship } from '../../src/model/types'
 
 describe('BlockRelationships.vue — R-SC-03', () => {
   const rels: ModelRelationship[] = [
-    { targetId: 'Task/Review', label: 'depends_on', value: 'high' },
-    { targetId: 'Task/Approve', label: 'blocks', value: 'critical' },
-    { targetId: 'Note/Comment', label: 'references' },
+    { targetId: 'Task/Review', label: 'depends_on', value: 'high', origin: 'matrix' },
+    { targetId: 'Task/Approve', label: 'blocks', value: 'critical', origin: 'matrix' },
+    { targetId: 'Note/Comment', label: 'references', origin: 'matrix' },
   ]
 
   it('renders relationship rows with label, target, and value', () => {

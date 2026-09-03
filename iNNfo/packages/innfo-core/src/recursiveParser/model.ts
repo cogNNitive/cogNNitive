@@ -99,6 +99,7 @@ export function normalizeSingleModel(
         targetId: resolveGraphEdgeTarget(edge.target, refPath),
         label: edge.label,
         value: edge.weight,
+        origin: 'graph_edge',
       })
     }
   }

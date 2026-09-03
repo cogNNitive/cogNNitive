@@ -24,6 +24,24 @@
         <component :is="l.icon" class="w-3.5 h-3.5" />
         {{ l.label }}
       </button>
+
+      <!-- Origin legend -->
+      <div data-testid="origin-legend" class="hidden md:flex items-center gap-3 ml-2 border-l border-border pl-3">
+        <div
+          v-for="item in originLegend"
+          :key="item.origin"
+          class="flex items-center gap-1.5 text-xs text-muted-foreground"
+          :data-origin="item.origin"
+        >
+          <span
+            class="w-2 h-2 rounded-full shrink-0"
+            :style="{ backgroundColor: item.color }"
+          ></span>
+          <component :is="item.icon" class="w-3 h-3 shrink-0" />
+          <span class="text-[11px]">{{ item.label }}</span>
+        </div>
+      </div>
+
       <div class="flex-1"></div>
       <div v-if="selectedNode" class="flex items-center gap-1.5 mr-3 text-xs text-muted-foreground">
         <span class="font-medium">{{ selectedNode.label }}</span>
@@ -74,10 +92,17 @@
 
 <script setup lang="ts">
 import { ref, computed, toRef, onMounted, onUnmounted, watch, getCurrentInstance } from 'vue'
-import { GitFork, Share2 } from 'lucide-vue-next'
+import { GitFork, Share2, LayoutGrid, Tag, FileText } from 'lucide-vue-next'
 import { useModelStore } from '../../stores/modelStore'
-import { useGraphData } from './composables/useGraphData'
+import { useGraphData, ORIGIN_COLORS } from './composables/useGraphData'
 import { useGraphRenderer } from './composables/useGraphRenderer'
+
+const originLegend = [
+  { origin: 'matrix', label: 'Matrix', color: ORIGIN_COLORS.matrix, icon: LayoutGrid },
+  { origin: 'field', label: 'Field', color: ORIGIN_COLORS.field, icon: Tag },
+  { origin: 'mention', label: 'Mention', color: ORIGIN_COLORS.mention, icon: FileText },
+  { origin: 'graph_edge', label: 'Graph Edge', color: ORIGIN_COLORS.graph_edge, icon: Share2 },
+]
 
 const props = withDefaults(
   defineProps<{

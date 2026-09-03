@@ -77,8 +77,8 @@ watch(
 
 function isPathForModel(issuePath: string, modelPath: string): boolean {
   if (!issuePath || !modelPath) return false
-  const p1 = issuePath.replace(/\\/g, '/').toLowerCase()
-  const p2 = modelPath.replace(/\\/g, '/').toLowerCase()
+  const p1 = issuePath.split('#')[0].replace(/\\/g, '/').toLowerCase()
+  const p2 = modelPath.split('#')[0].replace(/\\/g, '/').toLowerCase()
   return p1 === p2 || p1.endsWith('/' + p2) || p2.endsWith('/' + p1)
 }
 
@@ -177,7 +177,7 @@ const allChecks = computed(() => {
           label: `Structure warning in ${issue.path.split('/').pop() || issue.path}`,
           description: issue.message,
           category: 'parser' as any,
-          severity: 'warning',
+          severity: (issue.severity ?? 'warning') as any,
           passed: false,
           message: issue.message,
         })
@@ -204,7 +204,7 @@ const allChecks = computed(() => {
           label: `Structure warning in ${issue.path.split('/').pop() || issue.path}`,
           description: issue.message,
           category: 'parser' as any,
-          severity: 'warning',
+          severity: (issue.severity ?? 'warning') as any,
           passed: false,
           message: issue.message,
         })

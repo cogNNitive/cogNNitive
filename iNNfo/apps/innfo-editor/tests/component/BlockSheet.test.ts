@@ -62,7 +62,7 @@ describe('BlockSheet.vue — Redesigned layout & assets', () => {
         name: 'Task1',
         parentId: 'Root',
         type: 'Task',
-        relationships: [{ label: 'depends_on', targetId: 'Root/Task2' }],
+        relationships: [{ label: 'depends_on', targetId: 'Root/Task2', origin: 'matrix' }],
       })
       modelStore.setGraph({ Root: root, 'Root/Task1': element }, ['Root'])
 

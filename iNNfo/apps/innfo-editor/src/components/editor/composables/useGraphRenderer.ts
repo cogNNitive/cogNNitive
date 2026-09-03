@@ -21,6 +21,20 @@ interface GraphRendererOptions {
   appContext?: any
 }
 
+function getOriginDasharray(origin?: string, type?: string): string {
+  if (type === 'taxonomy') return '4,3'
+  switch (origin) {
+    case 'mention':
+      return '6,4'
+    case 'graph_edge':
+      return '2,3'
+    case 'matrix':
+    case 'field':
+    default:
+      return 'none'
+  }
+}
+
 export function useGraphRenderer(options: GraphRendererOptions) {
   const {
     containerRef,
@@ -228,6 +242,7 @@ export function useGraphRenderer(options: GraphRendererOptions) {
         .attr('stroke-width', 1.5)
         .attr('stroke-opacity', 0.3)
         .attr('stroke-linecap', 'round')
+        .attr('stroke-dasharray', getOriginDasharray(e.origin, e.type))
         .attr('data-edge', '')
         .attr('data-source', e.source)
         .attr('data-target', e.target)
@@ -357,7 +372,7 @@ export function useGraphRenderer(options: GraphRendererOptions) {
       .attr('stroke', (d: any) => d.color)
       .attr('stroke-width', 2)
       .attr('stroke-opacity', 0.3)
-      .attr('stroke-dasharray', (d: any) => (d.type === 'taxonomy' ? '4,3' : 'none'))
+      .attr('stroke-dasharray', (d: any) => getOriginDasharray(d.origin, d.type))
 
     const linkLabel = edgeG
       .selectAll('text')

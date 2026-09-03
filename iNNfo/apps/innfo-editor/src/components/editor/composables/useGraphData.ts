@@ -3,6 +3,8 @@ import * as d3 from 'd3'
 import { useModelStore } from '../../../stores/modelStore'
 import { getConceptMeta, getHexColor as resolveHexColor } from '../../../composables/useConceptVisuals'
 
+import type { RelationshipOrigin } from '@cognnitive/innfo-core'
+
 export interface GNode {
   id: string
   label: string
@@ -11,12 +13,20 @@ export interface GNode {
   inst: boolean
 }
 
+export const ORIGIN_COLORS: Record<RelationshipOrigin, string> = {
+  matrix: '#3b82f6',
+  field: '#22c55e',
+  mention: '#f59e0b',
+  graph_edge: '#a855f7',
+}
+
 export interface GEdge {
   source: string
   target: string
   label: string
   type: string
   color: string
+  origin: RelationshipOrigin
 }
 
 export function useGraphData(localNodeId: Ref<string>) {
@@ -93,13 +103,15 @@ export function useGraphData(localNodeId: Ref<string>) {
           const sourceId = `inst:${node.id}`
           const targetId = `inst:${rel.targetId}`
           if (nodeSet.has(sourceId) && nodeSet.has(targetId)) {
-            const color = getConceptMeta(node.type).color || 'slate'
+            const origin = rel.origin ?? 'matrix'
+            const edgeColor = ORIGIN_COLORS[origin] ?? getHexColor(getConceptMeta(node.type).color || 'slate')
             result.push({
               source: sourceId,
               target: targetId,
               label: rel.label,
               type: rel.label,
-              color: getHexColor(color),
+              color: edgeColor,
+              origin,
             })
           }
         }

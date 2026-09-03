@@ -4,6 +4,7 @@ import type { IdentityRegistry } from '../identity'
 export interface ParseIssue {
   path: string
   message: string
+  severity?: 'info' | 'warning' | 'error'
 }
 
 export interface RecursiveParseResult {

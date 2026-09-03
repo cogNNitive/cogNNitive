@@ -9,6 +9,7 @@ import type {
 import { extractTemplateSchema } from '../schema'
 import { normalizeSeparators } from '../parser/slug'
 import type { ParseContext } from './types'
+import { addFieldAndMentionEdges } from './relationships'
 
 export function nowIso(): string {
   return new Date().toISOString()
@@ -198,10 +199,18 @@ export function normalizeElementsIntoGraph(
       const sourceId = resolveMatrixEndpoint(cell.row, matrix.name, 'row')
       const targetId = resolveMatrixEndpoint(cell.col, matrix.name, 'col')
       if (sourceId && targetId && ctx.nodes[sourceId]) {
-        ctx.nodes[sourceId].relationships.push({ targetId, label: matrix.name, value: cell.value })
+        ctx.nodes[sourceId].relationships.push({
+          targetId,
+          label: matrix.name,
+          value: cell.value,
+          origin: 'matrix',
+        })
       }
     }
   }
+
+  // Attach field and mention relationships (relationship-types)
+  addFieldAndMentionEdges(parsed, rootId, sourcePath, ctx, qualifiedIdByElementName, allElements)
 
   // Resolve asset paths for elements with asset-typed fields (FR-004)
   resolveElementAssets(parsed, rootId, sourcePath, ctx, qualifiedIdByElementName)

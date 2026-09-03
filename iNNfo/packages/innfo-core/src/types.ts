@@ -366,11 +366,14 @@ export interface FieldValue {
   provenance: Provenance
 }
 
+export type RelationshipOrigin = 'matrix' | 'field' | 'mention' | 'graph_edge'
+
 /** A normalized relationship edge stored on a node. */
 export interface ModelRelationship {
   targetId: string
   label: string
   value?: string | number
+  origin: RelationshipOrigin
 }
 
 /** A single concept declaration, as declared in a document's frontmatter `concepts:` list. */

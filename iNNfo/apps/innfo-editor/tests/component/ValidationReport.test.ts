@@ -111,4 +111,37 @@ describe('ValidationReport.vue', () => {
     expect(copiedText).toContain('Missing version field in frontmatter')
     expect(copiedText).toContain('## AI Task & Instructions')
   })
+
+  it('passes parser issue severity through or defaults to warning', () => {
+    const modelStore = useModelStore()
+    modelStore.rootIds = ['root-1']
+    modelStore.nodes = {
+      'root-1': {
+        id: 'root-1',
+        name: 'MyTestModel',
+        parentId: null,
+        childIds: [],
+        type: 'document',
+        fields: {},
+        markers: {},
+        relationships: [],
+        rawSections: {},
+        source: { path: 'models/my_test_model_NN.md' },
+      },
+    }
+    modelStore.parseIssues = [
+      { path: 'models/my_test_model_NN.md#Alpha', message: 'Warning message', severity: 'warning' },
+      { path: 'models/my_test_model_NN.md#Beta', message: 'Info message', severity: 'info' },
+      { path: 'models/my_test_model_NN.md#Gamma', message: 'Default message' },
+    ]
+
+    const wrapper = mount(ValidationReport, {
+      props: { report: sampleReport },
+    })
+
+    const text = wrapper.text()
+    expect(text).toContain('Warning message')
+    expect(text).toContain('Info message')
+    expect(text).toContain('Default message')
+  })
 })
