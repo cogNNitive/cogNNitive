@@ -7,7 +7,7 @@ To work with iNNfo models from your AI agent (OpenCode Desktop, Claude Code, etc
 1. **Install the actioNN bundle** in your OpenCode Desktop workspace:
 
    ```bash
-   git clone https://github.com/iNNfo/actioNN.git ~/.agents/skills/actioNN
+   git clone https://github.com/cogNNitive/cogNNitive.git ~/.agents/skills/cogNNitive
    ```
 
    Or via junction/symlink for live updates:

@@ -14,12 +14,11 @@ Estas preferencias se aplican a todos los cambios SDD en este proyecto a menos q
 
 For AI-assisted work with iNNfo models (create, edit, validate, transform), install the **actioNN suite**:
 
-```bash
-# Clone or junction actioNN into your OpenCode agents directory
-git clone https://github.com/iNNfo/actioNN.git ~/.agents/skills/actioNN
+# Clone or junction cogNNitive into your agents directory
+git clone https://github.com/cogNNitive/cogNNitive.git ~/.agents/skills/cogNNitive
 
 # Ensure the MCP server bundle is available
-cd ~/.agents/skills/actioNN
+cd ~/.agents/skills/cogNNitive/actioNN
 node scripts/update-mcp.js
 ```
 

@@ -46,6 +46,31 @@ export function deriveElementSlugs(
   }))
 }
 
+function splitTopLevelSections(text: string): string[] {
+  const lines = text.split('\n')
+  const sections: string[] = []
+  let currentLines: string[] = []
+  let inCodeFence = false
+
+  for (const line of lines) {
+    const trimmed = line.trim()
+    if (trimmed.startsWith('```') || trimmed.startsWith('~~~')) {
+      inCodeFence = !inCodeFence
+    }
+    if (!inCodeFence && /^#\s/.test(line)) {
+      if (currentLines.length > 0) {
+        sections.push(currentLines.join('\n'))
+        currentLines = []
+      }
+    }
+    currentLines.push(line)
+  }
+  if (currentLines.length > 0) {
+    sections.push(currentLines.join('\n'))
+  }
+  return sections
+}
+
 export function parseModel(content: string): ParsedModel {
   const normalizedContent = normalizeSource(content)
   const frontmatter = parseFrontmatter(normalizedContent)
@@ -56,7 +81,7 @@ export function parseModel(content: string): ParsedModel {
   const conceptTags: Record<string, string[]> = {}
 
   const body = normalizedContent.replace(YAML_BLOCK_RE, '').trim()
-  const sections = body.split(/(?=^#\s)/m)
+  const sections = splitTopLevelSections(body)
   const rawSections: Record<string, string> = {}
 
   for (const section of sections) {
@@ -68,7 +93,9 @@ export function parseModel(content: string): ParsedModel {
     const bodyContent = section.replace(/^#\s+.*$/m, '').trim()
 
     if (type === 'index') {
-      taxonomy = parseIndexBlock(bodyContent)
+      if (taxonomy.length === 0) {
+        taxonomy = parseIndexBlock(bodyContent)
+      }
     } else if (type === 'concept') {
       const parsed = parseConceptSection(name, bodyContent)
       if (parsed.elements.length > 0) {

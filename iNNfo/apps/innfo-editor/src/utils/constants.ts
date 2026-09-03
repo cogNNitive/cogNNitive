@@ -33,7 +33,7 @@ export const MARKER_CYCLE_COUNT = MAX_MARKER_SCORE + 1
  * vs. main-branch strategy to choose between (see `spec-versioning`, A4).
  */
 export function buildSpecificationUrl(version: string = DEFAULT_INNFO_VERSION): string {
-  return `https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/iNNfo_${version}_NN.md`
+  return `https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_${version}_NN.md`
 }
 
 /**
@@ -41,5 +41,5 @@ export function buildSpecificationUrl(version: string = DEFAULT_INNFO_VERSION): 
  * under its own `specs/templates/{name}/` folder alongside its samples.
  */
 export function buildTemplateUrl(name: string, version: string = DEFAULT_TEMPLATE_VERSION): string {
-  return `https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/templates/${name}/${name}_${version}_NN.md`
+  return `https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/${name}/${name}_${version}_NN.md`
 }

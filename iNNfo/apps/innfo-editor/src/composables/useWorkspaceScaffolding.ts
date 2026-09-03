@@ -81,7 +81,7 @@ git clone https://github.com/cogNNitive/actioNN.git
 
 The \`innfo-mcp\` server wraps \`@cognnitive/innfo-core\` and provides deterministic model validation, spec resolution, and semantic mutation tools. The agent MUST NOT hand-validate or hand-resolve spec chains when the MCP is available.
 
-**Recommended — zero-clone (CDN bootstrap).** You do NOT need to clone this repo. \`innfo-mcp\` is published as a single auto-updating bundle on the CDN (\`https://innfo.cognnitive.com/cdn/\`). Install the bootstrap script once — it downloads, caches, and auto-updates the bundle, with an offline fallback to the cached copy — then point your agent at it. Full per-platform steps and the script source: https://github.com/iNNfo/iNNfo/blob/main/docs/mcp-setup.md
+**Recommended — zero-clone (CDN bootstrap).** You do NOT need to clone this repo. `innfo-mcp` is published as a single auto-updating bundle on the CDN (`https://cognnitive.com/innfo/cdn/`). Install the bootstrap script once — it downloads, caches, and auto-updates the bundle, with an offline fallback to the cached copy — then point your agent at it. Full per-platform steps and the script source: https://github.com/cogNNitive/cogNNitive/blob/main/docs/innfo/mcp-setup.md
 
 - **macOS / Linux**: save \`bootstrap.sh\` into \`~/.cache/innfo-mcp/\` and run \`chmod +x\` on it.
 - **Windows**: save \`innfo-mcp.ps1\` and \`innfo-mcp.cmd\` into \`%USERPROFILE%\\.cache\\innfo-mcp\\\`.
