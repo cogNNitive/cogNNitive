@@ -4,8 +4,8 @@ description: Create or edit websites, add analytics, or add contact forms. Invok
 disable-model-invocation: true
 license: MIT
 compatibility: ">=1.0.0"
-version: "V_0-1-0"
-last_updated: 2026-07-21
+version: "V_0-2-0"
+last_updated: 2026-09-03
 metadata:
   source_type: original
 bundled_templates: []
@@ -18,7 +18,7 @@ Execute the canonical activation gate defined in `nn-preflight` (session greetin
 
 ---
 
-When activated, present the 4 branches below using the `question` tool. For design tokens, reference the `nn-design-presets` skill and its `presets/` directory.
+When activated, present the 5 branches below using the `question` tool. For design tokens, reference the `nn-design-presets` skill and its `presets/` directory.
 
 ---
 
@@ -35,6 +35,7 @@ Generate all files inside `docs/`:
 Ask about optional extras:
 - Docsify documentation site at `docs/documentation/`
 - Separate app at `docs/app/`
+- Interactive pipeline showcase (`components/interactive-showcase.md`)
 
 Then apply the selected design preset and requested components. End with deployment checklist.
 
@@ -51,6 +52,10 @@ Load `components/analytics.md` and follow its instructions. Ask for the Umami sc
 ### [d] Add contact — Google Form embed or external URL
 
 Load `components/contact.md` and follow its instructions. Ask which approach, then implement.
+
+### [e] Add interactive showcase — Quadratic-style animated pipeline & before/after comparison
+
+Load `components/interactive-showcase.md` and follow its instructions. Embed the 3-stage animated pipeline in the hero and/or the comparative paradigm section at the closing of the page.
 
 ---
 

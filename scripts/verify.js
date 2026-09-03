@@ -4,7 +4,7 @@
  * scripts/verify.js
  *
  * Deterministic workspace verification runner for cogNNitive tooling.
- * Enforces template inventory parity, scripts static type safety, and manifest validity.
+ * Enforces template inventory parity, scripts static type safety, orchestrator line-count limits, and manifest validity.
  */
 
 const { execSync } = require('child_process');
@@ -71,10 +71,38 @@ if (fs.existsSync(templatesDir) && fs.existsSync(sourceYamlPath)) {
   console.log(`▶ Template Inventory Guard: all ${diskFolders.length} template folders are registered in manifest.`);
 }
 
-// 2. Script static type checking
+// 2. Orchestrator Line-Count Guard: enforce strictly < 200 physical lines per orchestrator
+const ORCHESTRATORS = [
+  'scripts/manifest/validate-manifest.js',
+  'actioNN/scripts/skills-manager.js',
+  'actioNN/skills/nn-trannsform/scripts/scanner.js',
+  'actioNN/skills/nn-trannsform/scripts/provenance.js',
+];
+
+const MAX_LINES = 200;
+let lineCountFailed = false;
+
+for (const relPath of ORCHESTRATORS) {
+  const fullPath = path.join(__dirname, '..', relPath);
+  if (fs.existsSync(fullPath)) {
+    const lineCount = fs.readFileSync(fullPath, 'utf8').split('\n').length;
+    if (lineCount >= MAX_LINES) {
+      console.error(`❌ Line-Count Guard Violation: ${relPath} has ${lineCount} lines (limit: strictly < ${MAX_LINES}).`);
+      lineCountFailed = true;
+    } else {
+      console.log(`▶ Line-Count Guard: ${relPath} (${lineCount} lines < ${MAX_LINES}).`);
+    }
+  }
+}
+
+if (lineCountFailed) {
+  process.exit(1);
+}
+
+// 3. Script static type checking
 run('tsc --noEmit -p tsconfig.scripts.json', 'Typecheck Scripts');
 
-// 3. Manifest validation
+// 4. Manifest validation
 run('node scripts/manifest/validate-manifest.js --channel stable', 'Validate Stable Manifest');
 
 console.log('\n✅ [cogNNitive Verify] All deterministic pre-checks passed.');

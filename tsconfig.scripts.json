@@ -20,6 +20,7 @@
   "exclude": [
     "actioNN/scripts/bin/*.bundle.js",
     "node_modules",
-    "**/*.test.js"
+    "**/*.test.js",
+    "**/test-*.js"
   ]
 }
