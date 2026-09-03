@@ -37,6 +37,32 @@ Model Context Protocol (MCP) server wrapping `@cognnitive/innfo-core` for the `c
 
 ---
 
+## Versioned Tool Envelopes
+
+Every successful tool result is a **versioned machine envelope**. The payload keys are preserved at the top level alongside a `version` field of the form `innfo-<tool>@<major>`:
+
+```json
+{
+  "version": "innfo-validate-model@1",
+  "valid": true,
+  "errors": [],
+  "warnings": []
+}
+```
+
+Tools returning a list wrap it under a named key:
+
+```json
+{
+  "version": "innfo-list-models@1",
+  "models": [ { "id": "Ghostbusters_V_0-1-0_business_NN" } ]
+}
+```
+
+Consumers MUST check `version` before parsing a result. Optional fields may be added within a major version; a breaking shape or meaning change requires a new major (bumping the envelope contract in `@cognnitive/innfo-core`, `src/envelope.ts`). Helpers: `envelope(contract, payload)`, `envelopeList(contract, key, items)`, `envelopeVersion(contract, major)`.
+
+---
+
 ## Frontmatter Composition & `alias` Syntax
 
 When a Level-2 template composes peer templates via `includes`, explicit frontmatter `alias` maps resolve naming collisions prior to schema merging:

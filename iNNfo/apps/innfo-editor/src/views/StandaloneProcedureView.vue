@@ -17,12 +17,12 @@
       </div>
 
       <div class="flex items-center gap-3 text-xs">
-        <a
-          href="/app/workspace"
+        <router-link
+          to="/workspace"
           class="px-2.5 py-1 rounded text-2xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
         >
           Open Workspace Editor &rarr;
-        </a>
+        </router-link>
       </div>
     </header>
 

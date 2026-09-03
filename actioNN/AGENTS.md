@@ -5,11 +5,14 @@ When the user types **"I want to use https://cognnitive.com/use"** or similar bo
 
 1. Fetch the manifest at https://raw.githubusercontent.com/cogNNitive/eNNvironment/main/docs/use/manifest.md
 2. Parse the `agent-bootstrap:` block for skills to install
-3. Run `node scripts/skills-manager.js status` (from a cogNNitive checkout) to compare installed commits against the manifest pinned commits.
-4. Install missing skills with explicit consent (`node scripts/skills-manager.js install`).
-5. If any skill is outdated: show the diff preview and ask before running `node scripts/skills-manager.js update` — never silent updates, never claim "installed and up to date" without having run the check.
-6. For skills with `mcp[]`: download the bundle `url` into `~/.agents/mcp/{name}.bundle.js` and register in opencode.jsonc
-7. Present the `workflows[]` menu
+3. Ask the user for the target installation scope, suggesting their User Profile by default:
+   - **Global User Profile (Default/Recommended)**: `~/.agents/` (`%USERPROFILE%\.agents\` on Windows, `~/.agents/` on Linux/macOS).
+   - **Local Workspace**: Current repository directory (`./.agents/`).
+4. Run `node scripts/skills-manager.js status` (from a cogNNitive checkout) to compare installed commits against the manifest pinned commits.
+5. Install missing skills with explicit consent (`node scripts/skills-manager.js install`).
+6. If any skill is outdated: show the diff preview and ask before running `node scripts/skills-manager.js update` — never silent updates, never claim "installed and up to date" without having run the check.
+7. For skills with `mcp[]`: download the bundle `url` into target MCP directory (default: `~/.agents/mcp/{name}.bundle.js`) and register in agent MCP config (e.g. `opencode.jsonc`, `antigravity.json`, or workspace config).
+8. Present the `workflows[]` menu
 
 The URL in step 1 is the **canonical stable channel**. Use it unless the user
 explicitly asks for preview. A preview manifest is published alongside it at

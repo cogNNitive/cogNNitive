@@ -44,7 +44,7 @@ function serveLocalSpecs(): Plugin {
 }
 
 export default defineConfig({
-  base: '/app/',
+  base: process.env.VITE_BASE || '/innfo/app/',
   plugins: [vue(), serveLocalSpecs()],
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),

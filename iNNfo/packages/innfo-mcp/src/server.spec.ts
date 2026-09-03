@@ -157,8 +157,9 @@ describe('innfo-mcp server (dispatch/handler layer, real MCP client/server round
 
       const result = await client.callTool({ name: 'list_models', arguments: {} })
       expect(result.isError).toBeFalsy()
-      const models = JSON.parse(textOf(result as CallToolResult)) as Array<{ id: string }>
-      expect(models.map((m) => m.id)).toEqual([
+      const parsed = JSON.parse(textOf(result as CallToolResult))
+      expect(parsed.version).toBe('innfo-list-models@1')
+      expect(parsed.models.map((m: { id: string }) => m.id)).toEqual([
         'Alpha_V_1-0-0_business_NN',
         'Beta_V_1-0-0_business_NN',
       ])
@@ -170,8 +171,9 @@ describe('innfo-mcp server (dispatch/handler layer, real MCP client/server round
       await writeFile(join(otherRoot, 'Only_V_1-0-0_NN.md'), '', 'utf-8')
 
       const result = await client.callTool({ name: 'list_models', arguments: { root: otherRoot } })
-      const models = JSON.parse(textOf(result as CallToolResult)) as Array<{ id: string }>
-      expect(models.map((m) => m.id)).toEqual(['Only_V_1-0-0_NN'])
+      const parsed = JSON.parse(textOf(result as CallToolResult))
+      expect(parsed.version).toBe('innfo-list-models@1')
+      expect(parsed.models.map((m: { id: string }) => m.id)).toEqual(['Only_V_1-0-0_NN'])
     })
   })
 
@@ -193,6 +195,7 @@ describe('innfo-mcp server (dispatch/handler layer, real MCP client/server round
       const result = await client.callTool({ name: 'read_model', arguments: { id: 'Sample' } })
       expect(result.isError).toBeFalsy()
       const parsed = JSON.parse(textOf(result as CallToolResult))
+      expect(parsed.version).toBe('innfo-read-model@1')
       expect(parsed.frontmatter.title).toBe('Test')
     })
   })
@@ -273,6 +276,7 @@ describe('innfo-mcp server (dispatch/handler layer, real MCP client/server round
       })
       expect(result.isError).toBeFalsy()
       const parsed = JSON.parse(textOf(result as CallToolResult))
+      expect(parsed.version).toBe('innfo-validate-model@1')
       expect(parsed.valid).toBe(false)
       expect(
         parsed.errors.some((e: { message: string }) => /PARENT_RESOLUTION_FAILED/.test(e.message)),
@@ -458,11 +462,12 @@ describe('innfo-mcp server (dispatch/handler layer, real MCP client/server round
   })
 
   describe('list_templates and hydrate_template', () => {
-    it('list_templates returns array of available templates', async () => {
+    it('list_templates returns enveloped array of available templates', async () => {
       const result = await client.callTool({ name: 'list_templates', arguments: { root: rootDir } })
       expect(result.isError).toBeFalsy()
       const parsed = JSON.parse(textOf(result as CallToolResult))
-      expect(Array.isArray(parsed)).toBe(true)
+      expect(parsed.version).toBe('innfo-list-templates@1')
+      expect(Array.isArray(parsed.templates)).toBe(true)
     })
 
     it('hydrate_template returns error when template is missing', async () => {

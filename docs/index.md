@@ -6,7 +6,7 @@ description: Knowledge Management made ridiculously simple for humans and AI. Tu
 
 # Knowledge Management made ridiculously simple for humans and AI.
 
-Turn scattered documentation into living, structured knowledge that your team and your OpenCode AI agent understand.
+Turn scattered documentation into living, structured knowledge that your AI agent understands.
 
 - [Open iNNfo Modeler App](https://cognnitive.com/innfo/app/)
 - [Explore Agent Skills](https://cognnitive.com/actionn)
@@ -94,3 +94,18 @@ flowchart LR
 - **Anything Out (A)**: AI re-composes that knowledge into the new file you need — dashboard, summary, spec, or script. The color you choose.
 
 The cycle is fully reversible (**`A ⇄ K`**): inputs and outputs stay decoupled through a single semantic core, and every pass through the prism enriches the knowledge behind the file.
+
+---
+
+## What cogNNitive is NOT
+
+Clear boundaries keep the ecosystem honest, simple, and yours. If it isn't listed here, it isn't the product.
+
+- **Not a database**: Models are plain Markdown files in your own Git repository. No proprietary storage engine, no hidden silo, no lock-in.
+- **Not a hosted platform**: No mandatory cloud service or managed infrastructure that owns your knowledge. Everything runs locally or in your browser.
+- **Models never execute code**: `_NN.md` files are data, not programs — no macros, scripts, arbitrary commands, or auto-installed plugins. Opening a model never runs anything.
+- **Not a real-time collaboration platform**: No live multi-user editing, presence, or sync protocol. Collaboration is the engineering way: files in Git, branches, and reviews.
+- **Not a vector database / RAG platform**: It structures knowledge so retrieval works, but it does not store embeddings or manage retrieval infrastructure. Connect the vector tool of your choice.
+- **Not a document authoring suite**: It does not replace your wiki, CMS, or word processor. It organizes the knowledge those tools produce into validated, linked models.
+- **Not a universal format**: OKF-compatible and plain Markdown, but not the single format for all knowledge. Your source of truth stays yours.
+- **Not a one-shot AI converter**: The `A ⇄ K` cycle is reversible and iterative. A single unvalidated lossy conversion is not the product — living, validated models are.

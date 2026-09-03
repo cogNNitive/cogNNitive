@@ -13,6 +13,12 @@
  *   get_template  — retrieve a template (business/procedures/kb)
  *   validate_model— run innfo-core validator against a template
  *   apply_change  — apply an intent operation and re-validate
+ *
+ * Every tool result is a versioned machine envelope: the payload keys are
+ * preserved at the top level alongside a `version` field of the form
+ * `innfo-<tool>@<major>`. Consumers MUST check the version before parsing;
+ * optional fields may be added within a major, breaking shape or meaning
+ * changes require a new major (see packages/innfo-core/src/envelope.ts).
  */
 
 import { pathToFileURL } from 'node:url'
@@ -41,6 +47,7 @@ import {
   pruneOrphanedSpecs,
 } from './tools/mutate.js'
 import { findRepoRoot } from './tools/repo-root.js'
+import { envelope, envelopeList } from '@cognnitive/innfo-core'
 
 /**
  * Root directory for model scanning and `specs/` placement.
@@ -372,7 +379,7 @@ async function dispatchTool(name: string, args: Record<string, unknown>): Promis
 async function handleListModels(args: Record<string, unknown>): Promise<CallToolResult> {
   const root = (args.root as string) || ROOT_DIR
   const models = await listModels(root)
-  return textResult(JSON.stringify(models, null, 2))
+  return textResult(JSON.stringify(envelopeList('innfo-list-models', 'models', models), null, 2))
 }
 
 async function handleReadModel(args: Record<string, unknown>): Promise<CallToolResult> {
@@ -381,7 +388,7 @@ async function handleReadModel(args: Record<string, unknown>): Promise<CallToolR
   const root = (args.root as string) || ROOT_DIR
   const model = await readModel(root, id)
   if (!model) return errorResult(`Model not found: ${id}`)
-  return textResult(JSON.stringify(model, null, 2))
+  return textResult(JSON.stringify(envelope('innfo-read-model', model), null, 2))
 }
 
 async function handleGetSpec(args: Record<string, unknown>): Promise<CallToolResult> {
@@ -390,7 +397,7 @@ async function handleGetSpec(args: Record<string, unknown>): Promise<CallToolRes
   if (!url && !modelId) return errorResult('Provide either url or model_id')
   const result = await getSpec(ROOT_DIR, { url, modelId })
   if (!result.spec) return errorResult('Spec could not be resolved from the provided url/model_id')
-  return textResult(JSON.stringify(result, null, 2))
+  return textResult(JSON.stringify(envelope('innfo-get-spec', result), null, 2))
 }
 
 async function handleGetTemplate(args: Record<string, unknown>): Promise<CallToolResult> {
@@ -408,7 +415,7 @@ async function handleGetTemplate(args: Record<string, unknown>): Promise<CallToo
   }
 
   if (!template) return errorResult('Template could not be resolved from the provided url/model_id')
-  return textResult(JSON.stringify(template, null, 2))
+  return textResult(JSON.stringify(envelope('innfo-get-template', template), null, 2))
 }
 
 async function handleValidateModel(args: Record<string, unknown>): Promise<CallToolResult> {
@@ -418,7 +425,7 @@ async function handleValidateModel(args: Record<string, unknown>): Promise<CallT
   if (!id && !content) return errorResult('Provide either id or content')
   const root = (args.root as string) || ROOT_DIR
   const result = await validateModel(root, id, content, templateUrl)
-  return textResult(JSON.stringify(result, null, 2))
+  return textResult(JSON.stringify(envelope('innfo-validate-model', result), null, 2))
 }
 
 async function handleValidateModelUrl(args: Record<string, unknown>): Promise<CallToolResult> {
@@ -426,7 +433,7 @@ async function handleValidateModelUrl(args: Record<string, unknown>): Promise<Ca
   if (!modelUrl) return errorResult('Missing required argument: model_url')
   const templateUrl = args.template_url as string | undefined
   const result = await validateModelUrl(ROOT_DIR, modelUrl, templateUrl)
-  return textResult(JSON.stringify(result, null, 2))
+  return textResult(JSON.stringify(envelope('innfo-validate-model-url', result), null, 2))
 }
 
 async function handleApplyChange(args: Record<string, unknown>): Promise<CallToolResult> {
@@ -437,7 +444,7 @@ async function handleApplyChange(args: Record<string, unknown>): Promise<CallToo
     return errorResult('Missing required arguments: id, op, args')
   }
   const result = await applyChange(ROOT_DIR, id, op, opArgs)
-  return textResult(JSON.stringify(result, null, 2))
+  return textResult(JSON.stringify(envelope('innfo-apply-change', result), null, 2))
 }
 
 async function handleValidateTemplate(args: Record<string, unknown>): Promise<CallToolResult> {
@@ -447,7 +454,7 @@ async function handleValidateTemplate(args: Record<string, unknown>): Promise<Ca
   if (!id && !content) return errorResult('Provide either id or content')
   const root = (args.root as string) || ROOT_DIR
   const result = await validateTemplate(root, id, content, url)
-  return textResult(JSON.stringify(result, null, 2))
+  return textResult(JSON.stringify(envelope('innfo-validate-template', result), null, 2))
 }
 
 async function handleInitModel(args: Record<string, unknown>): Promise<CallToolResult> {
@@ -461,13 +468,13 @@ async function handleInitModel(args: Record<string, unknown>): Promise<CallToolR
     return errorResult('Missing required arguments: id, template_url, template_name')
   }
   const result = await initModel(root, id, { template_url, template_name, title, model_version })
-  return textResult(JSON.stringify(result, null, 2))
+  return textResult(JSON.stringify(envelope('innfo-init-model', result), null, 2))
 }
 
 async function handleListTemplates(args: Record<string, unknown>): Promise<CallToolResult> {
   const root = (args.root as string) || ROOT_DIR
   const templates = await listTemplates(root)
-  return textResult(JSON.stringify(templates, null, 2))
+  return textResult(JSON.stringify(envelopeList('innfo-list-templates', 'templates', templates), null, 2))
 }
 
 async function handleHydrateTemplate(args: Record<string, unknown>): Promise<CallToolResult> {
@@ -476,7 +483,7 @@ async function handleHydrateTemplate(args: Record<string, unknown>): Promise<Cal
   const root = (args.root as string) || ROOT_DIR
   const targetDir = args.target_dir as string | undefined
   const result = await hydrateTemplate(root, templateName, { targetDir })
-  return textResult(JSON.stringify(result, null, 2))
+  return textResult(JSON.stringify(envelope('innfo-hydrate-template', result), null, 2))
 }
 
 async function handlePruneOrphanedSpecs(args: Record<string, unknown>): Promise<CallToolResult> {
@@ -484,7 +491,7 @@ async function handlePruneOrphanedSpecs(args: Record<string, unknown>): Promise<
   const dry_run = args.dry_run !== undefined ? Boolean(args.dry_run) : true
   const backup = args.backup !== undefined ? Boolean(args.backup) : true
   const result = await pruneOrphanedSpecs(root, { dry_run, backup })
-  return textResult(JSON.stringify(result, null, 2))
+  return textResult(JSON.stringify(envelope('innfo-prune-orphaned-specs', result), null, 2))
 }
 
 async function handleListTemplateProcedures(
@@ -498,7 +505,7 @@ async function handleListTemplateProcedures(
     version: args.version as string | undefined,
     url: args.url as string | undefined,
   })
-  return textResult(JSON.stringify(result, null, 2))
+  return textResult(JSON.stringify(envelope('innfo-list-template-procedures', result), null, 2))
 }
 
 async function handleListTemplateSkills(args: Record<string, unknown>): Promise<CallToolResult> {
@@ -510,7 +517,7 @@ async function handleListTemplateSkills(args: Record<string, unknown>): Promise<
     version: args.version as string | undefined,
     url: args.url as string | undefined,
   })
-  return textResult(JSON.stringify(result, null, 2))
+  return textResult(JSON.stringify(envelope('innfo-list-template-skills', result), null, 2))
 }
 
 /* ── Response helpers ────────────────────────────────────────── */

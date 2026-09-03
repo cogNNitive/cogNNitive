@@ -38,7 +38,7 @@
           var p = params.get('p');
           if (p) {
             var decoded = decodeURIComponent(p);
-            var newUrl = '/app' + (decoded.startsWith('/') ? decoded : '/' + decoded);
+            var newUrl = '/innfo/app' + (decoded.startsWith('/') ? decoded : '/' + decoded);
             window.history.replaceState(null, '', newUrl);
           }
         }

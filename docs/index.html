@@ -350,22 +350,56 @@
       0%, 100% { opacity: 1; }
       50% { opacity: 0; }
     }
+    .source-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      max-width: 220px;
+    }
+    .thoughts-chip {
+      width: 100%;
+      background: var(--brand-subtle);
+      border: 1.5px solid rgba(77, 14, 78, 0.22);
+      border-radius: 10px;
+      padding: 6px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--brand);
+      box-shadow: 0 2px 6px rgba(77, 14, 78, 0.06);
+      transition: all 0.2s;
+    }
+    .thoughts-chip:hover {
+      border-color: var(--brand);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 10px rgba(77, 14, 78, 0.14);
+    }
+    .thoughts-chip svg {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+    }
     .source-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
+      gap: 6px;
       width: 100%;
       max-width: 220px;
     }
     .source-chip {
       background: #FFFFFF;
       border: 1px solid #E5E7EB;
-      border-radius: 10px;
-      padding: 8px 6px;
+      border-radius: 8px;
+      padding: 5px 4px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 4px;
+      gap: 3px;
       box-shadow: 0 2px 5px rgba(0,0,0,0.03);
       font-size: 10px;
       font-weight: 600;
@@ -588,7 +622,7 @@
           <span class="badge-pill">&#x2728; Living Knowledge Engine</span>
         </div>
         <h1>Knowledge Management <br><span class="accent">made ridiculously simple</span> for humans and AI.</h1>
-        <p>Turn scattered documentation into living, structured knowledge that your team and your OpenCode AI agent understand.</p>
+        <p>Turn scattered documentation into living, structured knowledge that your AI agent understands.</p>
         <div class="hero-actions">
           <a href="https://cognnitive.com/innfo/app/" class="btn-primary">Open iNNfo Modeler App &rarr;</a>
           <a href="https://cognnitive.com/actionn" class="btn-secondary">Explore Agent Skills</a>
@@ -604,36 +638,45 @@
               <!-- Step 1: Input -->
               <div class="flow-card">
                 <div class="flow-card-preview">
-                  <div class="source-grid">
-                    <div class="source-chip" title="Portable Document Format">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M9 15h6"/></svg>
-                      <span>PDF</span>
+                  <div class="source-wrapper">
+                    <div class="thoughts-chip" title="Conversational Thoughts &amp; Ideas">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-5.04z"></path>
+                        <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-5.04z"></path>
+                      </svg>
+                      <span>Thoughts &amp; Ideas</span>
                     </div>
-                    <div class="source-chip" title="Markdown Source">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 8v8l3-3 3 3V8"/><path d="M17 12l-2 2-2-2"/></svg>
-                      <span>Markdown</span>
-                    </div>
-                    <div class="source-chip" title="Word Documents">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M8 8l2 8 2-6 2 6 2-8"/></svg>
-                      <span>DOCX</span>
-                    </div>
-                    <div class="source-chip" title="Notion / Wikis">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="#6B7280" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
-                      <span>Notion</span>
-                    </div>
-                    <div class="source-chip" title="Spreadsheets">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
-                      <span>XLSX</span>
-                    </div>
-                    <div class="source-chip" title="OpenAPI / Specs">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M10 9l5 3-5 3V9z"/></svg>
-                      <span>OpenAPI</span>
+                    <div class="source-grid">
+                      <div class="source-chip" title="Portable Document Format">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M9 15h6"/></svg>
+                        <span>PDF</span>
+                      </div>
+                      <div class="source-chip" title="Markdown Source">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 8v8l3-3 3 3V8"/><path d="M17 12l-2 2-2-2"/></svg>
+                        <span>Markdown</span>
+                      </div>
+                      <div class="source-chip" title="Word Documents">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M8 8l2 8 2-6 2 6 2-8"/></svg>
+                        <span>DOCX</span>
+                      </div>
+                      <div class="source-chip" title="Notion / Wikis">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#6B7280" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+                        <span>Notion</span>
+                      </div>
+                      <div class="source-chip" title="Spreadsheets">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+                        <span>XLSX</span>
+                      </div>
+                      <div class="source-chip" title="OpenAPI / Specs">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M10 9l5 3-5 3V9z"/></svg>
+                        <span>OpenAPI</span>
+                      </div>
                     </div>
                   </div>
                 </div>
                 <div class="flow-card-body">
-                  <h3><span>1. Connect your docs</span></h3>
-                  <p>Drop raw PDFs, unorganized markdown files, spreadsheets, and team notes into your workspace.</p>
+                  <h3><span>1. Feed the knowledge base with your files and thoughts</span></h3>
+                  <p>Chat with the AI agent to capture your ideas and thoughts into the knowledge base, or feed it unstructured, narrative documents and files.</p>
                 </div>
               </div>
 
@@ -661,7 +704,7 @@
                 </div>
                 <div class="flow-card-body">
                   <h3><span>2. AI models &amp; validates</span></h3>
-                  <p>actioNN pipelines extract entities, enforce V_0-1-0 compliance, and verify bidirectional links.</p>
+                  <p>cogNNitive analyzes your files and thoughts to identify entities, concepts, and elements, structuring and storing them as models—either from domain templates or built from scratch.</p>
                 </div>
               </div>
 
@@ -697,8 +740,8 @@
                   </div>
                 </div>
                 <div class="flow-card-body">
-                  <h3><span>3. Query via MCP &amp; Canvas</span></h3>
-                  <p>Instant access in OpenCode AI agents, headless MCP queries, and visual editing in iNNfo Modeler.</p>
+                  <h3><span>3. Query &amp; generate artifacts</span></h3>
+                  <p>Query your knowledge base by chatting with an AI agent, or ask it to generate deliverables like presentations, web pages, and documents.</p>
                 </div>
               </div>
 
@@ -963,6 +1006,74 @@ mcp_tools: ["innfo_search", "innfo_trace_matrix"]
           </div>
         </div>
 
+      </div>
+    </section>
+
+    <!-- What cogNNitive is NOT (Non-Goals) -->
+    <section style="background: var(--canvas-inert);">
+      <div class="container">
+        <div class="section-title">
+          <h2>What cogNNitive is NOT</h2>
+          <p>Clear boundaries keep the ecosystem honest, simple, and yours. If it isn't listed here, it isn't the product.</p>
+        </div>
+        <div class="benefits-grid">
+          <div class="benefit-item">
+            <div class="benefit-num">&#x2716;</div>
+            <div class="benefit-content">
+              <h4>Not a database</h4>
+              <p>Models are plain Markdown files in your own Git repository. No proprietary storage engine, no hidden silo, no lock-in.</p>
+            </div>
+          </div>
+          <div class="benefit-item">
+            <div class="benefit-num">&#x2716;</div>
+            <div class="benefit-content">
+              <h4>Not a hosted platform</h4>
+              <p>No mandatory cloud service or managed infrastructure that owns your knowledge. Everything runs locally or in your browser.</p>
+            </div>
+          </div>
+          <div class="benefit-item">
+            <div class="benefit-num">&#x2716;</div>
+            <div class="benefit-content">
+              <h4>Models never execute code</h4>
+              <p><code style="font-family: var(--mono);">_NN.md</code> files are data, not programs — no macros, scripts, arbitrary commands, or auto-installed plugins. Opening a model never runs anything.</p>
+            </div>
+          </div>
+          <div class="benefit-item">
+            <div class="benefit-num">&#x2716;</div>
+            <div class="benefit-content">
+              <h4>Not a real-time collaboration platform</h4>
+              <p>No live multi-user editing, presence, or sync protocol. Collaboration is the engineering way: files in Git, branches, and reviews.</p>
+            </div>
+          </div>
+          <div class="benefit-item">
+            <div class="benefit-num">&#x2716;</div>
+            <div class="benefit-content">
+              <h4>Not a vector database / RAG platform</h4>
+              <p>It structures knowledge so retrieval works, but it does not store embeddings or manage retrieval infrastructure. Connect the vector tool of your choice.</p>
+            </div>
+          </div>
+          <div class="benefit-item">
+            <div class="benefit-num">&#x2716;</div>
+            <div class="benefit-content">
+              <h4>Not a document authoring suite</h4>
+              <p>It does not replace your wiki, CMS, or word processor. It organizes the knowledge those tools produce into validated, linked models.</p>
+            </div>
+          </div>
+          <div class="benefit-item">
+            <div class="benefit-num">&#x2716;</div>
+            <div class="benefit-content">
+              <h4>Not a universal format</h4>
+              <p>OKF-compatible and plain Markdown, but not the single format for all knowledge. Your source of truth stays yours.</p>
+            </div>
+          </div>
+          <div class="benefit-item">
+            <div class="benefit-num">&#x2716;</div>
+            <div class="benefit-content">
+              <h4>Not a one-shot AI converter</h4>
+              <p>The A &#8644; K cycle is reversible and iterative. A single unvalidated lossy conversion is not the product — living, validated models are.</p>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
   </main>
