@@ -65,3 +65,32 @@ flowchart TD
 1. **Open OpenCode Desktop**: Open OpenCode Desktop on your computer and open your project workspace folder.
 2. **Prompt Your Agent**: Tell your AI agent: `I want to use https://cognnitive.com/use`
 3. **Enjoy Living Knowledge**: OpenCode automatically installs the skills, configures tools, and presents your interactive workflow menu.
+
+---
+
+## The `A ⇄ K` Paradigm
+
+*Turn Anything into structured Knowledge, and back into Anything using AI.*
+
+```mermaid
+flowchart LR
+    A1["📄 Anything (A)\nWhite light — your original file"] -->|"A →"| Prism["📡 AI Prism\nThe intelligence loop"]
+    Prism --> K["🌈 Structured Knowledge (K)\nThe spectrum — entities, relations, metadata"]
+    K -->|"K →"| A2["🎨 Anything (A)\nA new ray — the file you choose"]
+
+    A2 -.->|"A ⇄ K\nvirtuous cycle"| A1
+
+    classDef a1 fill:#FAFAFC,stroke:#636366,color:#111112;
+    classDef k fill:#F6EEF6,stroke:#4D0E4E,color:#4D0E4E;
+    classDef a2 fill:#4D0E4E,stroke:#4D0E4E,color:#FFFFFF;
+
+    class A1 a1;
+    class Prism,K k;
+    class A2 a2;
+```
+
+- **Anything In (A)**: Any file you have — PDF, DOCX, meeting notes, spreadsheet, or raw text. This is your white light.
+- **The AI Prism (⇄)**: Not a shallow format converter. AI decomposes the original file into a structured knowledge layer — entities, relations, and metadata.
+- **Anything Out (A)**: AI re-composes that knowledge into the new file you need — dashboard, summary, spec, or script. The color you choose.
+
+The cycle is fully reversible (**`A ⇄ K`**): inputs and outputs stay decoupled through a single semantic core, and every pass through the prism enriches the knowledge behind the file.

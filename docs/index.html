@@ -410,6 +410,54 @@ flowchart TD
         </div>
       </div>
     </section>
+
+    <!-- The A ⇄ K Paradigm & The Prism -->
+    <section>
+      <div class="container">
+        <div class="section-title">
+          <h2>The <span style="font-family: var(--mono); color: var(--brand);">A &#8644; K</span> Paradigm</h2>
+          <p><em>Turn Anything into structured Knowledge, and back into Anything using AI.</em></p>
+        </div>
+        <div class="diagram-card">
+          <pre class="mermaid">
+flowchart LR
+    A1["&#x1F4C4; Anything (A)<br/>White light — your original file"] -->|"A &rarr;"| Prism["&#x1F4E1; AI Prism<br/>The intelligence loop"]
+    Prism --> K["&#x1F308; Structured Knowledge (K)<br/>The spectrum — entities, relations, metadata"]
+    K -->|"K &rarr;"| A2["&#x1F3A8; Anything (A)<br/>A new ray — the file you choose"]
+
+    A2 -.->|"A &#8644; K<br/>virtuous cycle"| A1
+
+    classDef a1 fill:#FAFAFC,stroke:#636366,color:#111112;
+    classDef k fill:#F6EEF6,stroke:#4D0E4E,color:#4D0E4E;
+    classDef a2 fill:#4D0E4E,stroke:#4D0E4E,color:#FFFFFF;
+
+    class A1 a1;
+    class Prism,K k;
+    class A2 a2;
+          </pre>
+        </div>
+        <div class="grid-3" style="margin-top: 32px;">
+          <div class="card">
+            <div class="card-icon">&#x1F4C4;</div>
+            <h3>Anything In (A)</h3>
+            <p>Any file you have: PDF, DOCX, meeting notes, spreadsheet, or raw text. This is your white light.</p>
+          </div>
+          <div class="card">
+            <div class="card-icon">&#x1F4E1;</div>
+            <h3>The AI Prism (&#8644;)</h3>
+            <p>Not a shallow format converter. AI decomposes the original file into a structured knowledge layer — entities, relations, and metadata.</p>
+          </div>
+          <div class="card">
+            <div class="card-icon">&#x1F3A8;</div>
+            <h3>Anything Out (A)</h3>
+            <p>AI re-composes that knowledge into the new file you need — dashboard, summary, spec, or script. The color you choose.</p>
+          </div>
+        </div>
+        <p style="text-align: center; max-width: 760px; margin: 40px auto 0; color: var(--ink-muted); font-size: 15px;">
+          The cycle is fully reversible (<span style="font-family: var(--mono); color: var(--brand);">A &#8644; K</span>): inputs and outputs stay decoupled through a single semantic core, and every pass through the prism enriches the knowledge behind the file.
+        </p>
+      </div>
+    </section>
   </main>
 
   <!-- Footer -->
