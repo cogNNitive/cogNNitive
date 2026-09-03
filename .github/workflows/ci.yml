@@ -28,7 +28,9 @@ jobs:
           node-version: 20
 
       - name: Install dependencies
-        run: npm --prefix iNNfo ci
+        run: |
+          npm ci
+          npm --prefix iNNfo ci
 
       - name: Run Deterministic Verification
         run: node scripts/verify.js
@@ -54,7 +56,9 @@ jobs:
           node-version: 20
 
       - name: Install dependencies
-        run: npm --prefix iNNfo ci
+        run: |
+          npm ci
+          npm --prefix iNNfo ci
 
       - name: Build Docs & Bundles
         run: npm run build:docs

@@ -8,8 +8,13 @@
   ],
   "scripts": {
     "build:docs": "node scripts/build-docs.mjs",
+    "typecheck:scripts": "tsc --noEmit -p tsconfig.scripts.json",
     "verify": "npm --prefix iNNfo run typecheck && npm --prefix iNNfo test",
     "test": "npm --prefix iNNfo test",
     "typecheck": "npm --prefix iNNfo run typecheck"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.9",
+    "typescript": "^5.9.3"
   }
 }

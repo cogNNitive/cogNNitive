@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "strict": true,
+    "noImplicitAny": false,
+    "strictNullChecks": false,
+    "useUnknownInCatchVariables": false,
+    "skipLibCheck": true
+  },
+  "include": [
+    "scripts/**/*",
+    "actioNN/scripts/**/*",
+    "actioNN/skills/nn-trannsform/scripts/**/*"
+  ],
+  "exclude": [
+    "actioNN/scripts/bin/*.bundle.js",
+    "node_modules",
+    "**/*.test.js"
+  ]
+}

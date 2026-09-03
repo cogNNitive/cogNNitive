@@ -301,7 +301,7 @@ async function run(argv, options = {}) {
   }
 
   const rendered = await renderManifest(source, channel, body, resolveRef);
-  if (rendered.error) {
+  if (typeof rendered !== 'string') {
     logError(`FAIL: ${rendered.error}`);
     return 2;
   }

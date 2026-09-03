@@ -31,6 +31,11 @@ const USER_AGENT = 'actioNN-Skills-Updater';
 // Focused YAML subset parser (same shapes as skills-manager.js).
 // ---------------------------------------------------------------------------
 
+/**
+ * Parses scalar YAML values (strings, booleans, null, arrays).
+ * @param {string} text
+ * @returns {any}
+ */
 function parseScalar(text) {
   const t = text.trim();
   if (t === '') return null;
@@ -49,6 +54,13 @@ function parseScalar(text) {
   return t;
 }
 
+/**
+ * Parses a single key-value mapping item.
+ * @param {Array<{ indent: number, text: string }>} lines
+ * @param {number} pos
+ * @param {number} indent
+ * @returns {[string | null, any, number]}
+ */
 function parseMappingItem(lines, pos, indent) {
   const line = lines[pos];
   const match = line.text.match(/^([A-Za-z0-9_.\-]+)\s*:\s*(.*)$/);
@@ -69,6 +81,13 @@ function parseMappingItem(lines, pos, indent) {
   return [key, value, next];
 }
 
+/**
+ * Parses a sequence of YAML items starting with '- '.
+ * @param {Array<{ indent: number, text: string }>} lines
+ * @param {number} pos
+ * @param {number} indent
+ * @returns {[any[], number]}
+ */
 function parseSequence(lines, pos, indent) {
   const arr = [];
   while (pos < lines.length && lines[pos].indent === indent && lines[pos].text.startsWith('- ')) {
@@ -115,6 +134,13 @@ function parseSequence(lines, pos, indent) {
   return [arr, pos];
 }
 
+/**
+ * Parses a YAML block (either sequence or mapping).
+ * @param {Array<{ indent: number, text: string }>} lines
+ * @param {number} pos
+ * @param {number} indent
+ * @returns {[any, number]}
+ */
 function parseBlock(lines, pos, indent) {
   if (pos >= lines.length) return [{}, pos];
   if (lines[pos].text.startsWith('- ')) {
@@ -130,6 +156,11 @@ function parseBlock(lines, pos, indent) {
   return [obj, pos];
 }
 
+/**
+ * Parses focused YAML document text into a dictionary.
+ * @param {string} text
+ * @returns {Record<string, any>}
+ */
 function parseFocusedYaml(text) {
   const lines = text.split(/\r?\n/)
     .map((raw) => ({ indent: raw.match(/^[ \t]*/)[0].length, text: raw.trim() }))
@@ -145,6 +176,11 @@ function parseFocusedYaml(text) {
   return result;
 }
 
+/**
+ * Extracts YAML frontmatter between --- delimiters.
+ * @param {string} text
+ * @returns {string}
+ */
 function parseFrontmatter(text) {
   const lines = text.split(/\r?\n/);
   const open = lines.findIndex(l => l.trim() === '---');
@@ -158,6 +194,11 @@ function parseFrontmatter(text) {
   return lines.slice(open + 1, close).join('\n');
 }
 
+/**
+ * Parses bootstrap manifest markdown text into structured manifest data.
+ * @param {string} text
+ * @returns {ToolManifest}
+ */
 function parseManifest(text) {
   const doc = parseFocusedYaml(parseFrontmatter(text));
   const bootstrap = doc['agent-bootstrap'];
@@ -184,11 +225,21 @@ function parseManifest(text) {
 // GitHub API helpers
 // ---------------------------------------------------------------------------
 
+/**
+ * Returns authorization headers if GitHub token is present.
+ * @returns {Record<string, string>}
+ */
 function authHeaders() {
   const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+/**
+ * Executes a GET request against GitHub REST API and parses JSON response.
+ * @template T
+ * @param {string} url
+ * @returns {Promise<ApiResponse<T>>}
+ */
 function apiRequest(url) {
   return new Promise((resolve) => {
     https.get(url, { headers: { 'User-Agent': USER_AGENT, ...authHeaders() } }, (res) => {
@@ -197,12 +248,17 @@ function apiRequest(url) {
       res.on('end', () => {
         let data = null;
         try { data = JSON.parse(body); } catch (err) { /* non-JSON body */ }
-        resolve({ status: res.statusCode, data });
+        resolve({ status: res.statusCode || 0, data });
       });
     }).on('error', (err) => resolve({ status: 0, data: null, error: err.message }));
   });
 }
 
+/**
+ * Fetches string content from a remote URL.
+ * @param {string} url
+ * @returns {Promise<string>}
+ */
 function fetchString(url) {
   return new Promise((resolve, reject) => {
     https.get(url, { headers: { 'User-Agent': USER_AGENT, ...authHeaders() } }, (res) => {
@@ -216,6 +272,11 @@ function fetchString(url) {
   });
 }
 
+/**
+ * Checks if an HTTP status code indicates rate limiting.
+ * @param {number} status
+ * @returns {boolean}
+ */
 function rateLimited(status) {
   return status === 403 || status === 429;
 }
@@ -226,6 +287,7 @@ const RATE_LIMIT_HINT = 'set GITHUB_TOKEN to raise the rate limit';
 // Channel policy — data, not branching. Adding a channel is adding a table row.
 // ---------------------------------------------------------------------------
 
+/** @type {Record<string, ChannelPolicy>} */
 const CHANNELS = {
   stable: {
     name: 'stable',
@@ -249,6 +311,12 @@ const TAG_SHAPE_RE = /^[a-z][a-z0-9-]*-v\d+\.\d+\.\d+$/;
 // Ref resolution and provenance
 // ---------------------------------------------------------------------------
 
+/**
+ * Resolves a git ref (tag or branch) to its commit SHA.
+ * @param {string} repo
+ * @param {string} ref
+ * @returns {Promise<ResolvedRef>}
+ */
 async function resolveRef(repo, ref) {
   const tagRes = await apiRequest(`https://api.github.com/repos/${repo}/git/ref/tags/${ref}`);
   if (tagRes.status === 200 && tagRes.data && tagRes.data.object) {
@@ -280,6 +348,11 @@ async function resolveRef(repo, ref) {
   return { error: `ref '${ref}' not found as a tag or branch in ${repo}` };
 }
 
+/**
+ * Checks whether a ref resolves to the expected commit SHA in the repo.
+ * @param {{ name: string, repo: string, ref: string, commit: string }} item
+ * @returns {Promise<RefResolutionResult>}
+ */
 async function checkRefResolvesInDeclaredRepo(item) {
   const resolved = await resolveRef(item.repo, item.ref);
   if (resolved.error) return { violation: `${item.name}: ${resolved.error}`, kind: null };
@@ -292,6 +365,11 @@ async function checkRefResolvesInDeclaredRepo(item) {
   return { violation: null, kind: resolved.kind };
 }
 
+/**
+ * Checks if a tag shape conforms to repository snapshot conventions.
+ * @param {{ name: string, ref: string }} entry
+ * @returns {string | null}
+ */
 function tagShapeViolation(entry) {
   if (!TAG_SHAPE_RE.test(entry.ref || '')) {
     return `${entry.name}: ref '${entry.ref}' does not match the repo-snapshot tag shape (expected e.g. 'skills-v1.0.0')`;
@@ -299,6 +377,13 @@ function tagShapeViolation(entry) {
   return null;
 }
 
+/**
+ * Validates resolved ref kind against channel policy requirements.
+ * @param {{ name: string, ref: string }} entry
+ * @param {'tag' | 'branch' | null} resolvedKind
+ * @param {ChannelPolicy} policy
+ * @returns {string | null}
+ */
 function refKindViolation(entry, resolvedKind, policy) {
   if (resolvedKind && resolvedKind !== policy.requiredRefKind) {
     return `${entry.name}: ref '${entry.ref}' resolves as a ${resolvedKind}, but the ${policy.name} channel requires a ${policy.requiredRefKind}`;
@@ -306,6 +391,12 @@ function refKindViolation(entry, resolvedKind, policy) {
   return null;
 }
 
+/**
+ * Checks release provenance verifying commit reachability from main.
+ * @param {string} repo
+ * @param {string} commit
+ * @returns {Promise<string | null>}
+ */
 async function checkReleaseProvenance(repo, commit) {
   const res = await apiRequest(`https://api.github.com/repos/${repo}/compare/main...${commit}`);
   if (res.status === 200 && res.data && res.data.status) {
@@ -322,6 +413,11 @@ async function checkReleaseProvenance(repo, commit) {
 // Validation
 // ---------------------------------------------------------------------------
 
+/**
+ * Validates presence of required fields and commit SHA formatting.
+ * @param {Record<string, any>} item
+ * @returns {string[]}
+ */
 function structuralViolations(item) {
   const violations = [];
   for (const field of ['name', 'repo', 'path', 'version', 'ref', 'commit']) {
@@ -333,6 +429,11 @@ function structuralViolations(item) {
   return violations;
 }
 
+/**
+ * Checks if the pinned commit exists in declared repository.
+ * @param {{ name: string, repo: string, commit: string }} item
+ * @returns {Promise<string | null>}
+ */
 async function checkCommitExists(item) {
   const res = await apiRequest(`https://api.github.com/repos/${item.repo}/commits/${item.commit}`);
   if (res.status === 200) return null;
@@ -348,6 +449,11 @@ async function checkCommitExists(item) {
   return `${item.name}: commit ${item.commit} does not exist in ${item.repo} (HTTP ${res.status || res.error || 'network error'})`;
 }
 
+/**
+ * Checks if SKILL.md exists in repo at path for the given commit.
+ * @param {ManifestSkill} skill
+ * @returns {Promise<string | null>}
+ */
 async function checkPathAtCommit(skill) {
   const url = `https://api.github.com/repos/${skill.repo}/contents/${skill.path}?ref=${skill.commit}`;
   const res = await apiRequest(url);
@@ -361,6 +467,11 @@ async function checkPathAtCommit(skill) {
   return `${skill.name}: path ${skill.path} not found at ${skill.commit} (HTTP ${res.status || res.error || 'network error'})`;
 }
 
+/**
+ * Verifies version parity between manifest and remote SKILL.md frontmatter.
+ * @param {ManifestSkill} skill
+ * @returns {Promise<string | { bundled_templates: any[] }>}
+ */
 async function checkVersionParity(skill) {
   const url = `https://raw.githubusercontent.com/${skill.repo}/${skill.commit}/${skill.path}/SKILL.md`;
   let text;
@@ -380,6 +491,12 @@ async function checkVersionParity(skill) {
   return { bundled_templates: meta.bundled_templates || [] };
 }
 
+/**
+ * Evaluates release provenance and git ref constraints for a manifest entry against channel policy.
+ * @param {ManifestSkill | ManifestTemplate | ManifestMcp} item
+ * @param {ChannelPolicy} policy
+ * @returns {Promise<string[]>}
+ */
 async function checkReleaseAndRefPolicy(item, policy) {
   const violations = [];
 
@@ -402,6 +519,11 @@ async function checkReleaseAndRefPolicy(item, policy) {
   return violations;
 }
 
+/**
+ * Checks that an MCP bundle URL is pinned to its commit SHA rather than floating on main.
+ * @param {ManifestMcp} entry
+ * @returns {Promise<string | null>}
+ */
 async function checkMcpUrlPinned(entry) {
   if (!entry.commit || !COMMIT_RE.test(entry.commit)) return null; // structural check already caught this
   if (/\/main\//.test(entry.url || '')) {
@@ -413,6 +535,12 @@ async function checkMcpUrlPinned(entry) {
   return null;
 }
 
+/**
+ * Validates an MCP server bundle entry against structural, existence, and channel policies.
+ * @param {ManifestMcp} entry
+ * @param {ChannelPolicy} policy
+ * @returns {Promise<string[]>}
+ */
 async function validateMcp(entry, policy) {
   const violations = structuralViolations(entry);
   if (violations.length > 0) return violations;
@@ -428,6 +556,12 @@ async function validateMcp(entry, policy) {
   return violations;
 }
 
+/**
+ * Validates a skill entry including structure, commit existence, ref policies, path, and version.
+ * @param {ManifestSkill} skill
+ * @param {ChannelPolicy} policy
+ * @returns {Promise<ValidationResult>}
+ */
 async function validateSkill(skill, policy) {
   const violations = structuralViolations(skill);
   let bundled_templates = [];
@@ -455,6 +589,12 @@ async function validateSkill(skill, policy) {
   return { violations, bundled_templates };
 }
 
+/**
+ * Validates a template entry against manifest policy rules and remote repo content.
+ * @param {ManifestTemplate} template
+ * @param {ChannelPolicy} policy
+ * @returns {Promise<string[]>}
+ */
 async function validateTemplate(template, policy) {
   const violations = structuralViolations(template);
   if (violations.length > 0) return violations;
@@ -501,6 +641,11 @@ async function validateTemplate(template, policy) {
 // Entry
 // ---------------------------------------------------------------------------
 
+/**
+ * Parses CLI command line arguments.
+ * @param {string[]} argv
+ * @returns {ManifestValidationArgs}
+ */
 function parseArgs(argv) {
   let repoRoot = null;
   let channel = null;
@@ -517,6 +662,12 @@ function parseArgs(argv) {
   return { repoRoot, channel };
 }
 
+/**
+ * Validates an entire channel manifest file against policy rules and closures.
+ * @param {string} repoRoot
+ * @param {string} channelName
+ * @returns {Promise<boolean>}
+ */
 async function validateChannel(repoRoot, channelName) {
   const policy = CHANNELS[channelName];
   const manifestFile = path.join(repoRoot, ...policy.file.split('/'));
@@ -593,6 +744,10 @@ async function validateChannel(repoRoot, channelName) {
   return true;
 }
 
+/**
+ * Main execution entry point for manifest validator.
+ * @returns {Promise<void>}
+ */
 async function main() {
   const { repoRoot: repoRootArg, channel: channelArg } = parseArgs(process.argv.slice(2));
   const repoRoot = repoRootArg ? path.resolve(repoRootArg) : process.cwd();

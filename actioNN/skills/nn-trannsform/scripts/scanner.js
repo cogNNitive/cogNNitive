@@ -29,13 +29,20 @@ const EXT_DEPS = {
 };
 
 /**
- * Compute SHA-256 hash of a file
+ * Compute SHA-256 hash of a file.
+ * @param {string} filePath
+ * @returns {string}
  */
 function computeFileHash(filePath) {
   const content = fs.readFileSync(filePath);
   return crypto.createHash('sha256').update(content).digest('hex');
 }
 
+/**
+ * Escapes characters for YAML double-quoted string values.
+ * @param {any} value
+ * @returns {string}
+ */
 function escapeYamlString(value) {
   return String(value)
     .replace(/\\/g, '\\\\')
@@ -49,6 +56,10 @@ function escapeYamlString(value) {
  * Schema (must match the iNNfo editor exactly — flat, no nesting):
  *   source_file, sha256, size_bytes, normalized_at, normalized_by
  * Optional (web-imported sources only): source_url, downloaded_at, title, description, author.
+ * @param {string} originalFilePath
+ * @param {string} relativeSourcePath
+ * @param {SourceFrontmatterExtra} [extra]
+ * @returns {string}
  */
 function generateSourceFrontmatter(originalFilePath, relativeSourcePath, extra = {}) {
   const hash = computeFileHash(originalFilePath);
@@ -77,6 +88,8 @@ function generateSourceFrontmatter(originalFilePath, relativeSourcePath, extra =
 /**
  * Read the sha256 field back out of an already-normalized markdown file's frontmatter.
  * Used to decide whether an expensive re-conversion can be skipped.
+ * @param {string} destPath
+ * @returns {string | null}
  */
 function readExistingSha256(destPath) {
   if (!fs.existsSync(destPath)) return null;
@@ -92,8 +105,11 @@ function readExistingSha256(destPath) {
 /**
  * Recursively walk sources/original (or any directory), returning files with
  * their path relative to the root — subfolders are preserved, never flattened.
+ * @param {string} originalDir
+ * @returns {ScannerWalkFile[]}
  */
 function walkOriginal(originalDir) {
+  /** @type {ScannerWalkFile[]} */
   const results = [];
   const walk = (dir, relDir) => {
     const entries = fs.readdirSync(dir, { withFileTypes: true });
@@ -118,8 +134,11 @@ function walkOriginal(originalDir) {
 
 /**
  * Detect available formats in a directory (recursive).
+ * @param {string} dir
+ * @returns {Record<string, number>}
  */
 function detectFormats(dir) {
+  /** @type {Record<string, number>} */
   const counts = {};
   if (!fs.existsSync(dir)) return counts;
 
@@ -143,6 +162,11 @@ function detectFormats(dir) {
   return counts;
 }
 
+/**
+ * Checks if an optional npm dependency is resolvable.
+ * @param {string} pkgName
+ * @returns {boolean}
+ */
 function isDepInstalled(pkgName) {
   try {
     require.resolve(pkgName, { paths: [__dirname] });
@@ -152,10 +176,19 @@ function isDepInstalled(pkgName) {
   }
 }
 
+/**
+ * Returns comma-separated list of supported extensions.
+ * @returns {string}
+ */
 function getSupportedFormats() {
   return Object.values(EXT_LABELS).map(l => `\`${l}\``).join(', ');
 }
 
+/**
+ * Strips leading frontmatter delimited by ---.
+ * @param {string} content
+ * @returns {string}
+ */
 function stripFrontmatter(content) {
   if (content.startsWith('---\n') || content.startsWith('---\r\n')) {
     const endIdx = content.indexOf('\n---', 3);
@@ -167,6 +200,8 @@ function stripFrontmatter(content) {
 /**
  * Zero-dependency HTML-to-plain-text conversion (simple string/regex based —
  * no cheerio/jsdom). Good enough for normalizing downloaded web pages.
+ * @param {string} html
+ * @returns {string}
  */
 function htmlToPlainText(html) {
   return html
@@ -189,6 +224,13 @@ function htmlToPlainText(html) {
     .trim();
 }
 
+/**
+ * Converts recognized plain text / structured formats directly to markdown content.
+ * @param {string} ext
+ * @param {string} filePath
+ * @param {string} baseName
+ * @returns {string}
+ */
 function convertOkFormat(ext, filePath, baseName) {
   const content = fs.readFileSync(filePath, 'utf8');
   switch (ext) {
@@ -207,12 +249,23 @@ function convertOkFormat(ext, filePath, baseName) {
   }
 }
 
+/**
+ * Converts DOCX file to markdown using mammoth.
+ * @param {string} filePath
+ * @returns {Promise<ScannerConversionResult>}
+ */
 async function convertDocx(filePath) {
   const mammoth = require('mammoth');
   const result = await mammoth.convertToMarkdown({ path: filePath });
   return { body: result.value };
 }
 
+/**
+ * Converts PDF file to markdown using pdf-parse with fallback placeholder.
+ * @param {string} filePath
+ * @param {string} baseName
+ * @returns {Promise<ScannerConversionResult>}
+ */
 async function convertPdf(filePath, baseName) {
   try {
     const pdfParse = require('pdf-parse');
@@ -227,6 +280,12 @@ async function convertPdf(filePath, baseName) {
   }
 }
 
+/**
+ * Converts spreadsheet workbook sheets into markdown tables using xlsx.
+ * @param {string} filePath
+ * @param {string} baseName
+ * @returns {ScannerConversionResult}
+ */
 function convertXlsx(filePath, baseName) {
   const XLSX = require('xlsx');
   const workbook = XLSX.readFile(filePath);
@@ -265,6 +324,12 @@ const PROMPT_CONVERTERS = {
   '.xls': convertXlsx,
 };
 
+/**
+ * Checks and installs optional package dependencies required for prompt formats.
+ * @param {string} ext
+ * @param {ScanOptions} options
+ * @returns {Promise<DependencyCheckResult>}
+ */
 async function ensureDependency(ext, options) {
   const dep = EXT_DEPS[ext];
   if (!dep || isDepInstalled(dep.pkg)) return { ok: true };
@@ -291,6 +356,11 @@ async function ensureDependency(ext, options) {
   }
 }
 
+/**
+ * Parses frontmatter key-value pairs from markdown text.
+ * @param {string} content
+ * @returns {SourceFrontmatterFields}
+ */
 function parseFrontmatterFields(content) {
   const fm = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
   if (!fm) return {};
@@ -310,6 +380,12 @@ function parseFrontmatterFields(content) {
   return fields;
 }
 
+/**
+ * Retrieves existing frontmatter fields from normalized destination file if present.
+ * @param {string} destPath
+ * @param {string} sourceFileField
+ * @returns {SourceFrontmatterFields}
+ */
 function getExistingFrontmatterFields(destPath, sourceFileField) {
   if (!fs.existsSync(destPath)) return {};
   try {
@@ -324,6 +400,17 @@ function getExistingFrontmatterFields(destPath, sourceFileField) {
   return {};
 }
 
+/**
+ * Processes native/text formats and writes normalized markdown files.
+ * @param {string} ext
+ * @param {string} absPath
+ * @param {string} sourceFileField
+ * @param {string} destPath
+ * @param {string} displayOutPath
+ * @param {boolean} isSelected
+ * @param {SourceFrontmatterExtra} extra
+ * @returns {ScannerProcessResult}
+ */
 function processOkFile(ext, absPath, sourceFileField, destPath, displayOutPath, isSelected, extra) {
   const format = ext === '.txt' ? 'Plain Text' : ext.substring(1).toUpperCase();
   if (!isSelected) {
@@ -358,6 +445,18 @@ function processOkFile(ext, absPath, sourceFileField, destPath, displayOutPath, 
   }
 }
 
+/**
+ * Handles binary document formats prompting for conversion consent and dependency checks.
+ * @param {string} ext
+ * @param {string} absPath
+ * @param {string} sourceFileField
+ * @param {string} destPath
+ * @param {string} displayOutPath
+ * @param {boolean} isSelected
+ * @param {ScanOptions} options
+ * @param {SourceFrontmatterExtra} extra
+ * @returns {Promise<ScannerProcessResult>}
+ */
 async function processPromptFile(ext, absPath, sourceFileField, destPath, displayOutPath, isSelected, options, extra) {
   const format = ext.substring(1).toUpperCase();
   if (!isSelected) {
@@ -427,10 +526,9 @@ async function processPromptFile(ext, absPath, sourceFileField, destPath, displa
 /**
  * Scan sources/original/ (recursively, subfolders preserved) and normalize
  * straight into sources/nn/, mirroring the same relative paths.
- *
- * options.webImportMeta: optional map of { "<relPath-posix-under-original>": { source_url, downloaded_at, title, description, author } }
- * for files that were downloaded via webImport.downloadToOriginal — merged into
- * that file's frontmatter when it is normalized.
+ * @param {string} projectDir
+ * @param {ScanOptions} [options]
+ * @returns {Promise<ScanSummary>}
  */
 async function scanAndProcess(projectDir, options = {}) {
   const originalDir = path.join(projectDir, 'sources', 'original');

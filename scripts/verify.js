@@ -1,5 +1,22 @@
 #!/usr/bin/env node
+
+/**
+ * scripts/verify.js
+ *
+ * Deterministic workspace verification runner for cogNNitive tooling.
+ * Enforces template inventory parity, scripts static type safety, and manifest validity.
+ */
+
 const { execSync } = require('child_process');
+const fs = require('fs');
+const path = require('path');
+
+// Ensure local node_modules/.bin is accessible on PATH for standalone node invocations
+const binDir = path.join(__dirname, '..', 'node_modules', '.bin');
+const pathKey = Object.keys(process.env).find(k => k.toLowerCase() === 'path') || 'PATH';
+if (fs.existsSync(binDir) && !(process.env[pathKey] || '').includes(binDir)) {
+  process.env[pathKey] = `${binDir}${path.delimiter}${process.env[pathKey] || ''}`;
+}
 
 if (!process.env.GITHUB_TOKEN) {
   try {
@@ -12,6 +29,12 @@ if (!process.env.GITHUB_TOKEN) {
 
 console.log('🔍 [cogNNitive Verify] Running workspace verification...');
 
+/**
+ * Executes a verification step synchronously, tracking output and halting on error.
+ * @param {string} cmd - CLI command string to execute.
+ * @param {string} desc - Descriptive label for the verification step.
+ * @returns {void}
+ */
 function run(cmd, desc) {
   console.log(`\n▶ ${desc} (${cmd})...`);
   try {
@@ -22,15 +45,13 @@ function run(cmd, desc) {
   }
 }
 
-const fs = require('fs');
-const path = require('path');
-
 // 1. Template Inventory Guard: ensure every template folder is declared in manifest/source.yaml
 const templatesDir = path.join(__dirname, '..', 'iNNfo', 'specs', 'templates');
 const sourceYamlPath = path.join(__dirname, '..', 'manifest', 'source.yaml');
 
 if (fs.existsSync(templatesDir) && fs.existsSync(sourceYamlPath)) {
   const sourceText = fs.readFileSync(sourceYamlPath, 'utf8');
+  /** @type {Set<string>} */
   const declaredTemplates = new Set();
   const matchRegex = /-\s+name:\s+([^\s\n]+)/g;
   let match;
@@ -50,7 +71,10 @@ if (fs.existsSync(templatesDir) && fs.existsSync(sourceYamlPath)) {
   console.log(`▶ Template Inventory Guard: all ${diskFolders.length} template folders are registered in manifest.`);
 }
 
-// 2. Manifest validation
+// 2. Script static type checking
+run('tsc --noEmit -p tsconfig.scripts.json', 'Typecheck Scripts');
+
+// 3. Manifest validation
 run('node scripts/manifest/validate-manifest.js --channel stable', 'Validate Stable Manifest');
 
 console.log('\n✅ [cogNNitive Verify] All deterministic pre-checks passed.');
