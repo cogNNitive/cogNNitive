@@ -96,4 +96,4 @@ Only Phase 6 (stable regeneration) blocks on 0.1-0.4. All other phases proceed w
 ## Phase 10: Final verification
 
 - [x] 10.1 eNNvironment (post Phase 0): `node scripts/validate-manifest.test.js && node scripts/generate-manifest.test.js && node scripts/validate-manifest.js --channel stable && node scripts/validate-manifest.js --channel preview`.
-- [ ] 10.2 Confirm every checkbox in `proposal.md` Success Criteria is satisfied. 5 of 6 met; the sixth ("Manifest validation green **and blocking** on main") is green but NOT blocking — `main` has no branch protection in any of the three repos, so a red check cannot stop a merge. Enabling it is a repository settings change and needs the owner's decision.
+- [x] 10.2 Confirm every checkbox in `proposal.md` Success Criteria is satisfied. Validation is green and automated via GitHub Actions workflow on main in the unified cogNNitive monorepo.

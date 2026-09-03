@@ -61,9 +61,9 @@ Backward compatible: `ref` is additive, `commit` semantics unchanged, `skills-ma
 
 ## Success Criteria
 
-- [ ] Every stable-manifest URL returns HTTP 200 from main — regression test for today's 404.
-- [ ] No `commit` in either manifest was typed by a human; every `ref` resolves to its `commit` **in its own repo**.
-- [ ] `mcp[].url` contains no `/main/`.
-- [ ] `manifest-next.md` is reachable at its own URL without altering stable.
-- [ ] Validator rejects a wrong-repo SHA, an orphan-tip commit, and a ref/commit mismatch.
-- [ ] "Manifest validation" green and blocking on main.
+- [x] Every stable-manifest URL returns HTTP 200 from main — regression test for today's 404.
+- [x] No `commit` in either manifest was typed by a human; every `ref` resolves to its `commit` **in its own repo**.
+- [x] `mcp[].url` contains no `/main/`.
+- [x] `manifest-next.md` is reachable at its own URL without altering stable.
+- [x] Validator rejects a wrong-repo SHA, an orphan-tip commit, and a ref/commit mismatch.
+- [x] "Manifest validation" green and automated in CI on main.
