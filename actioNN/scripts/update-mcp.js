@@ -36,11 +36,16 @@ const BUNDLE_FILE = path.join(STATE_DIR, 'mcp-bundle.js');
 const DRY_RUN = process.argv.includes('--dry-run');
 
 /**
- * Perform HTTPS GET request returning response body as string
+ * Perform HTTPS GET request returning response body as string, following redirects.
  */
-function fetchString(url) {
+function fetchString(url, redirectsLeft = 5) {
   return new Promise((resolve, reject) => {
     https.get(url, { headers: { 'User-Agent': 'actioNN-Skills-Updater' } }, (res) => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        if (redirectsLeft <= 0) return reject(new Error(`Too many redirects fetching ${url}`));
+        const nextUrl = new URL(res.headers.location, url).toString();
+        return resolve(fetchString(nextUrl, redirectsLeft - 1));
+      }
       if (res.statusCode !== 200) {
         return reject(new Error(`Failed to fetch ${url}, status: ${res.statusCode}`));
       }
@@ -52,12 +57,19 @@ function fetchString(url) {
 }
 
 /**
- * Downloads a file to a local destination path
+ * Downloads a file to a local destination path, following redirects.
  */
-function downloadFile(url, destPath) {
+function downloadFile(url, destPath, redirectsLeft = 5) {
   return new Promise((resolve, reject) => {
     const file = fs.createWriteStream(destPath);
     https.get(url, { headers: { 'User-Agent': 'actioNN-Skills-Updater' } }, (res) => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        file.close();
+        fs.unlink(destPath, () => {});
+        if (redirectsLeft <= 0) return reject(new Error(`Too many redirects downloading ${url}`));
+        const nextUrl = new URL(res.headers.location, url).toString();
+        return resolve(downloadFile(nextUrl, destPath, redirectsLeft - 1));
+      }
       if (res.statusCode !== 200) {
         file.close();
         fs.unlink(destPath, () => {});

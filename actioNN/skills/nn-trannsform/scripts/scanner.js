@@ -347,12 +347,16 @@ async function ensureDependency(ext, options) {
 
   try {
     const skillDir = path.resolve(__dirname, '..');
-    console.log(`Installing ${dep.pkg}...`);
-    execSync(`npm install ${dep.pkg}`, { cwd: skillDir, stdio: 'inherit' });
-    console.log(`${dep.pkg} installed.`);
+    console.log(`Installing optional dependency "${dep.pkg}" for ${ext}...`);
+    execSync(`npm install ${dep.pkg}`, { cwd: skillDir, stdio: 'pipe' });
+    console.log(`"${dep.pkg}" installed successfully.`);
     return { ok: true };
   } catch (err) {
-    return { ok: false, status: '❌ Error', reason: `Failed to install ${dep.pkg}: ${err.message}` };
+    return {
+      ok: false,
+      status: '⚠️ Skipped',
+      reason: `Could not automatically install "${dep.pkg}". To process "${ext}" files, run "npm install ${dep.pkg}" inside "${path.basename(path.resolve(__dirname, '..'))}" or convert files to markdown/plain text.`
+    };
   }
 }
 

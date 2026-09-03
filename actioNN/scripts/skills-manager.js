@@ -51,14 +51,14 @@ function requestFor(url) {
   return url.startsWith('https:') ? https.request : http.request;
 }
 
-/**
- * Perform an HTTP(S) GET returning the response body as a string.
- * @param {string} url
- * @returns {Promise<string>}
- */
-function fetchString(url) {
+function fetchString(url, redirectsLeft = 5) {
   return new Promise((resolve, reject) => {
     const req = requestFor(url)(url, { headers: { 'User-Agent': 'actioNN-Skills-Updater' } }, (res) => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        if (redirectsLeft <= 0) return reject(new Error(`Too many redirects fetching ${url}`));
+        const nextUrl = new URL(res.headers.location, url).toString();
+        return resolve(fetchString(nextUrl, redirectsLeft - 1));
+      }
       if (res.statusCode !== 200) {
         return reject(new Error(`Failed to fetch ${url}, status: ${res.statusCode}`));
       }
@@ -72,17 +72,25 @@ function fetchString(url) {
 }
 
 /**
- * Download a file to a local destination path.
+ * Download a file to a local destination path, following HTTP 3xx redirects.
  * @param {string} url
  * @param {string} destPath
+ * @param {number} [redirectsLeft=5]
  * @returns {Promise<void>}
  */
-function downloadFile(url, destPath) {
+function downloadFile(url, destPath, redirectsLeft = 5) {
   return new Promise((resolve, reject) => {
     const dir = path.dirname(destPath);
     fs.mkdirSync(dir, { recursive: true });
     const file = fs.createWriteStream(destPath);
     const req = requestFor(url)(url, { headers: { 'User-Agent': 'actioNN-Skills-Updater' } }, (res) => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        file.close();
+        fs.unlink(destPath, () => {});
+        if (redirectsLeft <= 0) return reject(new Error(`Too many redirects downloading ${url}`));
+        const nextUrl = new URL(res.headers.location, url).toString();
+        return resolve(downloadFile(nextUrl, destPath, redirectsLeft - 1));
+      }
       if (res.statusCode !== 200) {
         file.close();
         fs.unlink(destPath, () => {});
@@ -282,12 +290,29 @@ function replaceDirAtomic(src, dest) {
   fs.rmSync(staged, { recursive: true, force: true });
   fs.rmSync(backup, { recursive: true, force: true });
   fs.cpSync(src, staged, { recursive: true });
-  if (fs.existsSync(dest)) fs.renameSync(dest, backup);
+
+  const safeRename = (from, to) => {
+    try {
+      fs.renameSync(from, to);
+    } catch (err) {
+      if (err.code === 'EBUSY' || err.code === 'EPERM') {
+        throw new Error(
+          `Directory "${to}" is currently locked by another process (VS Code, terminal, or antivirus).\n` +
+          `Please close any open files or editors accessing that folder and retry.`
+        );
+      }
+      throw err;
+    }
+  };
+
+  if (fs.existsSync(dest)) safeRename(dest, backup);
   try {
-    fs.renameSync(staged, dest);
+    safeRename(staged, dest);
     fs.rmSync(backup, { recursive: true, force: true });
   } catch (err) {
-    if (fs.existsSync(backup) && !fs.existsSync(dest)) fs.renameSync(backup, dest);
+    if (fs.existsSync(backup) && !fs.existsSync(dest)) {
+      try { safeRename(backup, dest); } catch (_) {}
+    }
     throw err;
   }
 }
