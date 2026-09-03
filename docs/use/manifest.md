@@ -79,6 +79,54 @@ agent-bootstrap:
       version: "V_0-2-0"
       ref: "templates-v0.2.0"
       commit: "3bd4501e75915e8f2365fd7c547d9384a3e0c837"
+    - name: procedures
+      repo: cogNNitive/iNNfo
+      path: specs/templates/procedures/procedures_V_0-2-0_NN.md
+      version: "V_0-2-0"
+      ref: "templates-v0.2.0"
+      commit: "3bd4501e75915e8f2365fd7c547d9384a3e0c837"
+    - name: organization
+      repo: cogNNitive/iNNfo
+      path: specs/templates/organization/organization_V_0-2-0_NN.md
+      version: "V_0-2-0"
+      ref: "templates-v0.2.0"
+      commit: "3bd4501e75915e8f2365fd7c547d9384a3e0c837"
+    - name: business
+      repo: cogNNitive/iNNfo
+      path: specs/templates/business/business_V_0-2-0_NN.md
+      version: "V_0-2-0"
+      ref: "templates-v0.2.0"
+      commit: "3bd4501e75915e8f2365fd7c547d9384a3e0c837"
+    - name: business-model
+      repo: cogNNitive/iNNfo
+      path: specs/templates/business-model/business-model_V_0-1-0_NN.md
+      version: "V_0-2-0"
+      ref: "templates-v0.2.0"
+      commit: "3bd4501e75915e8f2365fd7c547d9384a3e0c837"
+    - name: analysis
+      repo: cogNNitive/iNNfo
+      path: specs/templates/analysis/analysis_V_0-1-0_NN.md
+      version: "V_0-2-0"
+      ref: "templates-v0.2.0"
+      commit: "3bd4501e75915e8f2365fd7c547d9384a3e0c837"
+    - name: innovation
+      repo: cogNNitive/iNNfo
+      path: specs/templates/innovation/innovation_V_0-2-0_NN.md
+      version: "V_0-2-0"
+      ref: "templates-v0.2.0"
+      commit: "3bd4501e75915e8f2365fd7c547d9384a3e0c837"
+    - name: blank
+      repo: cogNNitive/iNNfo
+      path: specs/templates/blank/blank_V_0-2-0_NN.md
+      version: "V_0-2-0"
+      ref: "templates-v0.2.0"
+      commit: "3bd4501e75915e8f2365fd7c547d9384a3e0c837"
+    - name: cogNNitive
+      repo: cogNNitive/iNNfo
+      path: specs/templates/cogNNitive/cogNNitive_V_0-2-0_NN.md
+      version: "V_0-2-0"
+      ref: "templates-v0.2.0"
+      commit: "3bd4501e75915e8f2365fd7c547d9384a3e0c837"
   workflows:
     - id: model
       label: Create an iNNfo model

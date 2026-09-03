@@ -56,6 +56,38 @@ templates:
     repo: cogNNitive/iNNfo
     path: specs/templates/projects/projects_V_0-2-0_NN.md
     version: "V_0-2-0"
+  - name: procedures
+    repo: cogNNitive/iNNfo
+    path: specs/templates/procedures/procedures_V_0-2-0_NN.md
+    version: "V_0-2-0"
+  - name: organization
+    repo: cogNNitive/iNNfo
+    path: specs/templates/organization/organization_V_0-2-0_NN.md
+    version: "V_0-2-0"
+  - name: business
+    repo: cogNNitive/iNNfo
+    path: specs/templates/business/business_V_0-2-0_NN.md
+    version: "V_0-2-0"
+  - name: business-model
+    repo: cogNNitive/iNNfo
+    path: specs/templates/business-model/business-model_V_0-1-0_NN.md
+    version: "V_0-2-0"
+  - name: analysis
+    repo: cogNNitive/iNNfo
+    path: specs/templates/analysis/analysis_V_0-1-0_NN.md
+    version: "V_0-2-0"
+  - name: innovation
+    repo: cogNNitive/iNNfo
+    path: specs/templates/innovation/innovation_V_0-2-0_NN.md
+    version: "V_0-2-0"
+  - name: blank
+    repo: cogNNitive/iNNfo
+    path: specs/templates/blank/blank_V_0-2-0_NN.md
+    version: "V_0-2-0"
+  - name: cogNNitive
+    repo: cogNNitive/iNNfo
+    path: specs/templates/cogNNitive/cogNNitive_V_0-2-0_NN.md
+    version: "V_0-2-0"
 
 workflows:
   - id: model
