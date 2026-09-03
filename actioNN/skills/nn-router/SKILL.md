@@ -1,9 +1,9 @@
 ---
 name: nn-router
-description: Central system governance, setup, environment readiness gate (Preflight), and skill router for cogNNitive. Triggers: NN, nn, /nn, /nn-router, router, bootstrap, setup, preflight, "I want to use https://cognnitive.com/use".
+description: Primary Front Controller, ecosystem entry point, system governance, setup, environment readiness gate (Preflight), and skill router for cogNNitive. Triggers: NN, nn, /nn, /nn-router, router, bootstrap, setup, preflight.
 disable-model-invocation: true
 version: "V_3-2-0"
-last_updated: 2026-08-02
+last_updated: 2026-09-03
 license: MIT
 compatibility: opencode, claude-code, cursor, any agent supporting skills
 metadata:
@@ -13,40 +13,19 @@ bundled_templates: []
 
 # nn System & Router
 
-Single entry point for system governance, setup, readiness checks, and routing in the cogNNitive ecosystem.
+Primary Front Controller and single entry point for system governance, setup, readiness checks, and routing in the cogNNitive ecosystem.
 
 ---
 
-## 0. MANDATORY ACTIVATION GATE (FIRST TURN - STRICT)
-
-Before answering ANY user question or executing ANY task in this conversation:
-
-1. **GREETING PROTOCOL**: Print as your VERY FIRST output line:
-   ```
-   🔧 You're using skill: nn-router (🧭)
-   ```
-   *(Session-scoped: print once at the start of the interaction).*
-
-2. **INTEGRITY & PREFLIGHT CHECK**:
-   Run the deterministic preflight check:
-   `node ~/.agents/skills/nn-preflight/scripts/preflight-check.js` (or `node skills/nn-preflight/scripts/preflight-check.js` if running from a local repository checkout).
-
-3. **OUTDATED / MISSING COMPONENTS GATE**:
-   - If the script exits with code `0`: All components are up-to-date. Proceed with routing.
-   - If the script exits with code `1`: Updates or missing components were detected.
-     **STOP immediately.** Show the report of outdated components and ask the user for confirmation:
-     *"⚠️ Se detectaron actualizaciones o componentes pendientes en el ecosistema cogNNitive:*
-      *[a] (Recomendado) Actualizar componentes ahora*
-      *[b] Continuar con la versión actual"*
-     Do NOT mutate files or update without the user's explicit consent. If the user chooses `[b]`, proceed with routing.
-   - If the script exits with code `2` (Runtime Blocker): STOP and notify the user that Node.js >= 18 is required.
+## 0. Activation Gate
+Execute the canonical activation gate defined in `nn-preflight` (session greeting + deterministic preflight integrity check).
 
 ---
 
 ## 1. Environment Readiness (Preflight Gate)
 
 Before launching any specialized workflow, `nn-router` verifies the environment:
-1. **Preflight Runner**: Ensures the Integrity & Preflight Check above passed.
+1. **Preflight Runner**: Ensures the Integrity & Preflight Check passed via `nn-preflight`.
 2. **Node.js**: Checks `node --version` (>= 18 required).
 3. **MCP Server**: Verifies `innfo-mcp` responsiveness via `innfo-mcp_list_models` (or resolves bundle at `~/.agents/mcp/innfo-mcp.bundle.js` or `.cogNNitive/mcp-bundle.js`).
 4. **Workspace Layout**: Ensures workspace contains standard folders (`sources/`, `models/`, `procedures/`, `artifacts/`, `index.md`). There is no `sources/raw/` — see `nn-preflight` and `nn-trannsform`.
@@ -62,18 +41,18 @@ Every agent interaction across the cogNNitive ecosystem MUST follow these strict
    - Always ask for confirmation before executing file movements or workspace restructures.
 
 2. **Recommended Option First**:
-   - In all decision menus or option lists presented to the user, option `[1]` or `[a]` MUST be labeled with the `(Recomendado)` or `(Recomendada)` prefix.
+   - In all decision menus or option lists presented to the user, option `[1]` or `[a]` MUST be labeled with the `(Recommended)` prefix.
 
 3. **Multi-Selection Clarification**:
    - Whenever options are not mutually exclusive, the agent MUST add the explicit notice:
-     *"Podés seleccionar una opción o una combinación (ej. A y B)"*.
+     `"You can select one option or a combination (e.g. A and B)"`.
 
 4. **Visual Component & Artifact Style Selection (`nn-design-presets` Activation)**:
    - Whenever generating any visual component, web interface, HTML dashboard companion, site page, or styled deliverable artifact, the agent MUST ask the user which visual design style / preset to apply before generation.
    - This prompt MUST load and activate the **`nn-design-presets`** skill to retrieve branding tokens (e.g. `morado-nazareno`).
 
 5. **Conversation Logging Protocol (MANDATORY)**:
-   - Every conversation using NN skills MUST save a transcript or markdown summary to `<workspace_root>/conversations/YYYY-MM-DD_<nombre_modelo>_<titulo_3_a_6_palabras>.md` (or `conversations/YYYY-MM-DD_<titulo_3_a_6_palabras>.md` if no model is active).
+   - Every conversation using NN skills MUST save a transcript or markdown summary to `<workspace_root>/conversations/YYYY-MM-DD_<model_name>_<title_3_to_6_words>.md` (or `conversations/YYYY-MM-DD_<title_3_to_6_words>.md` if no model is active).
 
 ---
 
@@ -106,4 +85,4 @@ The cogNNitive ecosystem is streamlined into 7 specialized skills:
 ## If the user doesn't know where to start
 
 Ask them to describe their current situation in one sentence, then recommend the
-single best-fit skill from the registry — do not dump the whole list. Always format the recommendation with `(Recomendado)` as option `[a]`.
+single best-fit skill from the registry — do not dump the whole list. Always format the recommendation with `(Recommended)` as option `[a]`.

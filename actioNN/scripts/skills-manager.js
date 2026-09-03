@@ -44,6 +44,8 @@ const LEGACY_STATE_FILE = path.join(os.homedir(), '.agents', 'skills-state.json'
 /**
  * Pick the built-in client matching the URL protocol. `http` is only used for
  * local manifest testing (SM_MANIFEST_URL); production URLs are https.
+ * @param {string} url
+ * @returns {typeof import('https').request | typeof import('http').request}
  */
 function requestFor(url) {
   return url.startsWith('https:') ? https.request : http.request;
@@ -51,6 +53,8 @@ function requestFor(url) {
 
 /**
  * Perform an HTTP(S) GET returning the response body as a string.
+ * @param {string} url
+ * @returns {Promise<string>}
  */
 function fetchString(url) {
   return new Promise((resolve, reject) => {
@@ -69,6 +73,9 @@ function fetchString(url) {
 
 /**
  * Download a file to a local destination path.
+ * @param {string} url
+ * @param {string} destPath
+ * @returns {Promise<void>}
  */
 function downloadFile(url, destPath) {
   return new Promise((resolve, reject) => {
@@ -98,6 +105,9 @@ function downloadFile(url, destPath) {
 
 /**
  * Fetch a URL and parse the response as JSON.
+ * @template T
+ * @param {string} url
+ * @returns {Promise<T>}
  */
 function fetchJson(url) {
   return fetchString(url).then(text => JSON.parse(text));
@@ -107,6 +117,11 @@ function fetchJson(url) {
 // Manifest parsing
 // ---------------------------------------------------------------------------
 
+/**
+ * Parses bootstrap manifest markdown text into structured data.
+ * @param {string} text
+ * @returns {ToolManifest}
+ */
 function parseManifest(text) {
   const doc = parseFocusedYaml(parseFrontmatter(text));
   const bootstrap = doc['agent-bootstrap'];
@@ -117,9 +132,13 @@ function parseManifest(text) {
     throw new Error('agent-bootstrap.skills is not a list');
   }
   const templates = Array.isArray(bootstrap.templates) ? bootstrap.templates : [];
+  const workflows = Array.isArray(bootstrap.workflows) ? bootstrap.workflows : [];
+  const mcp = Array.isArray(bootstrap.mcp) ? bootstrap.mcp : [];
   return {
     skills: bootstrap.skills,
     templates,
+    workflows,
+    mcp,
     version: bootstrap.version,
     entrypoint: bootstrap.entrypoint,
   };
@@ -129,10 +148,19 @@ function parseManifest(text) {
 // State file (~/.agents/bootstrap-state.json)
 // ---------------------------------------------------------------------------
 
+/**
+ * Initializes a new empty skill manager state structure.
+ * @returns {BootstrapState}
+ */
 function emptyState() {
   return { manifest: MANIFEST_URL, skills: {}, templates: {} };
 }
 
+/**
+ * Loads the current machine skill state from JSON file, supporting legacy migrations.
+ * @param {string} file
+ * @returns {BootstrapState}
+ */
 function loadState(file) {
   if (fs.existsSync(file)) {
     try {
@@ -169,6 +197,12 @@ function loadState(file) {
   return emptyState();
 }
 
+/**
+ * Persists skill manager state atomically to disk.
+ * @param {string} file
+ * @param {BootstrapState} state
+ * @returns {void}
+ */
 function saveState(file, state) {
   const dir = path.dirname(file);
   fs.mkdirSync(dir, { recursive: true });
@@ -181,10 +215,22 @@ function saveState(file, state) {
 // Tarball handling
 // ---------------------------------------------------------------------------
 
+/**
+ * Spawns tar command synchronously.
+ * @param {string[]} args
+ * @param {string} cwd
+ * @returns {import('child_process').SpawnSyncReturns<string>}
+ */
 function runTar(args, cwd) {
   return spawnSync('tar', args, { cwd, encoding: 'utf-8' });
 }
 
+/**
+ * Extracts a tarball archive to the destination directory.
+ * @param {string} tarFile
+ * @param {string} destDir
+ * @returns {void}
+ */
 function extractTarball(tarFile, destDir) {
   fs.mkdirSync(destDir, { recursive: true });
   const res = runTar(['-xzf', tarFile, '-C', destDir], destDir);
@@ -193,6 +239,11 @@ function extractTarball(tarFile, destDir) {
   }
 }
 
+/**
+ * Locates the single top-level directory unpacked inside an extracted tarball directory.
+ * @param {string} extractDir
+ * @returns {string}
+ */
 function findRepoRoot(extractDir) {
   const dirs = fs.readdirSync(extractDir, { withFileTypes: true })
     .filter(e => e.isDirectory())
@@ -203,6 +254,12 @@ function findRepoRoot(extractDir) {
   return path.join(extractDir, dirs[0]);
 }
 
+/**
+ * Copies directory contents atomically using staging directory.
+ * @param {string} src
+ * @param {string} dest
+ * @returns {void}
+ */
 function copyDirAtomic(src, dest) {
   const parent = path.dirname(dest);
   const staged = path.join(parent, `.${path.basename(dest)}.new-${process.pid}`);
@@ -211,6 +268,12 @@ function copyDirAtomic(src, dest) {
   fs.renameSync(staged, dest);
 }
 
+/**
+ * Atomically replaces destination directory using staged and backup copies.
+ * @param {string} src
+ * @param {string} dest
+ * @returns {void}
+ */
 function replaceDirAtomic(src, dest) {
   const parent = path.dirname(dest);
   const name = path.basename(dest);
@@ -233,6 +296,12 @@ function replaceDirAtomic(src, dest) {
 // Diff previews via GitHub compare API
 // ---------------------------------------------------------------------------
 
+/**
+ * Fetches concise summary of files changed between installed commit and target commit.
+ * @param {ManifestSkill | ManifestTemplate} item
+ * @param {string | undefined} installedCommit
+ * @returns {Promise<string>}
+ */
 async function fetchCompareSummary(item, installedCommit) {
   if (!installedCommit) return '(no installed commit recorded)';
   try {
@@ -253,6 +322,13 @@ async function fetchCompareSummary(item, installedCommit) {
 // Shared install/update routines
 // ---------------------------------------------------------------------------
 
+/**
+ * Installs or updates a skill from GitHub tarball at specified commit.
+ * @param {ManifestSkill} skill
+ * @param {string} skillsDir
+ * @param {BootstrapState} state
+ * @returns {Promise<void>}
+ */
 async function installSkillAtCommit(skill, skillsDir, state) {
   const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'actioNN-skills-'));
   try {
@@ -287,6 +363,13 @@ async function installSkillAtCommit(skill, skillsDir, state) {
   }
 }
 
+/**
+ * Installs or updates a template from GitHub at specified commit.
+ * @param {ManifestTemplate} template
+ * @param {string} templatesDir
+ * @param {BootstrapState} state
+ * @returns {Promise<void>}
+ */
 async function installTemplateAtCommit(template, templatesDir, state) {
   const isMdFile = template.path.endsWith('.md') || template.path.endsWith('.markdown');
   const fileName = template.name.endsWith('.md') ? template.name : `${template.name}.md`;
@@ -336,6 +419,11 @@ async function installTemplateAtCommit(template, templatesDir, state) {
 // Console helpers & Consent gate
 // ---------------------------------------------------------------------------
 
+/**
+ * Prints formatted status table to console.
+ * @param {StatusTableRow[]} rows
+ * @returns {void}
+ */
 function printStatusTable(rows) {
   const headers = ['Type', 'Name', 'Pinned', 'Installed', 'Status'];
   const cells = [headers, ...rows.map(r => [r.type, r.name, r.pinned, r.installed, r.status])];
@@ -346,6 +434,11 @@ function printStatusTable(rows) {
   for (const row of rows) console.log(format([row.type, row.name, row.pinned, row.installed, row.status]));
 }
 
+/**
+ * Prompts user for interactive input via readline.
+ * @param {string} promptText
+ * @returns {Promise<string>}
+ */
 function promptChoice(promptText) {
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
   return new Promise((resolve) => {
@@ -356,10 +449,23 @@ function promptChoice(promptText) {
   });
 }
 
+/**
+ * Checks if user answer represents positive consent.
+ * @param {string} answer
+ * @returns {boolean}
+ */
 function isConsent(answer) {
   return ['a', 'y', 'yes'].includes(answer);
 }
 
+/**
+ * Consent gate halting execution when non-interactive and unapproved.
+ * @param {string} label
+ * @param {string[]} names
+ * @param {string} menu
+ * @param {boolean} yes
+ * @returns {Promise<boolean>}
+ */
 async function consentOrAbort(label, names, menu, yes) {
   if (names.length === 0) return false;
   if (yes) return true;
@@ -380,6 +486,11 @@ async function consentOrAbort(label, names, menu, yes) {
 // Commands
 // ---------------------------------------------------------------------------
 
+/**
+ * Executes status command comparing installed commits against pinned commits.
+ * @param {SkillManagerArgs} args
+ * @returns {Promise<void>}
+ */
 async function cmdStatus(args) {
   const manifestRaw = await fetchString(MANIFEST_URL);
   const { skills, templates } = parseManifest(manifestRaw);
@@ -447,6 +558,11 @@ async function cmdStatus(args) {
   }
 }
 
+/**
+ * Executes install command installing missing skills and templates with consent.
+ * @param {SkillManagerArgs} args
+ * @returns {Promise<void>}
+ */
 async function cmdInstall(args) {
   const manifestRaw = await fetchString(MANIFEST_URL);
   const { skills, templates } = parseManifest(manifestRaw);
@@ -507,6 +623,11 @@ async function cmdInstall(args) {
   console.log(`\nInstalled ${toInstallSkills.length} skill(s) and ${toInstallTemplates.length} template(s).`);
 }
 
+/**
+ * Executes update command updating outdated skills and templates with consent.
+ * @param {SkillManagerArgs} args
+ * @returns {Promise<void>}
+ */
 async function cmdUpdate(args) {
   const manifestRaw = await fetchString(MANIFEST_URL);
   const { skills, templates } = parseManifest(manifestRaw);
@@ -582,6 +703,12 @@ async function cmdUpdate(args) {
   console.log(`\nUpdated ${selectedSkills.length} skill(s) and ${selectedTemplates.length} template(s).`);
 }
 
+/**
+ * Copies directory recursively skipping hidden files and node_modules.
+ * @param {string} src
+ * @param {string} dest
+ * @returns {void}
+ */
 function copyDirRecursive(src, dest) {
   if (!fs.existsSync(src)) return;
   const base = path.basename(src);
@@ -598,6 +725,11 @@ function copyDirRecursive(src, dest) {
   }
 }
 
+/**
+ * Synchronizes skills between local repository and global agent directory.
+ * @param {SkillManagerArgs} args
+ * @returns {Promise<void>}
+ */
 async function cmdSync(args) {
   const localSkillsDir = path.join(__dirname, '..', 'skills');
   const direction = args.direction || 'local-to-global';
@@ -645,6 +777,11 @@ async function cmdSync(args) {
 // CLI entry
 // ---------------------------------------------------------------------------
 
+/**
+ * Parses CLI command line arguments into structured SkillManagerArgs.
+ * @param {string[]} argv
+ * @returns {SkillManagerArgs}
+ */
 function parseArgs(argv) {
   const args = { positional: [], skillsDir: null, templatesDir: null, state: null, yes: false, direction: 'local-to-global' };
   for (let i = 0; i < argv.length; i++) {
@@ -676,6 +813,10 @@ function parseArgs(argv) {
   return args;
 }
 
+/**
+ * Displays usage and flag manual to console.
+ * @returns {void}
+ */
 function usage() {
   console.log(`Usage:
   node scripts/skills-manager.js status    [--skills-dir <dir>] [--templates-dir <dir>] [--state <file>]
@@ -700,6 +841,10 @@ Consent is mandatory. Without a TTY and without --yes, the script prints
 "needs decision: ..." and exits 2 without applying anything.`);
 }
 
+/**
+ * Main execution entry point for skills manager.
+ * @returns {Promise<void>}
+ */
 async function main() {
   let args;
   try {

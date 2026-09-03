@@ -4,7 +4,7 @@ Load this file when generating deliverables with citations in step §3c.
 
 Citations are rendered in a single pass directly from Level 3 model pointers (`sources:: [sources/nn/<path>.md#<slug>]`). No intermediate `<!-- cite: ... -->` HTML comments or `_draft.md` files are generated.
 
-## Format: Standard Markdown Footnotes (`[^1]`) *(Recomendado)*
+## Format: Standard Markdown Footnotes (`[^1]`) *(Recommended)*
 
 Native CommonMark and GitHub Flavored Markdown (GFM) footnotes. This is the primary recommended citation format.
 

@@ -311,8 +311,8 @@ function printHumanReport(results) {
   }
 
   console.log('\nDecision needed before continuing:');
-  console.log('  [a] (Recomendado) Actualizar componentes ahora (Update now)');
-  console.log('  [b] Continuar con la versión actual (Continue with current version)\n');
+  console.log('  [a] (Recommended) Update components now');
+  console.log('  [b] Continue with current version\n');
 }
 
 function getArg(flag) {

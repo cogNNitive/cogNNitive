@@ -1,7 +1,7 @@
 ---
 name: nn-innfo
 version: "V_0-1-1"
-last_updated: 2026-09-02
+last_updated: 2026-09-03
 metadata:
   source_type: "original"
   mcp: "innfo-mcp"
@@ -10,7 +10,7 @@ bundled_templates:
   - name: workspace_spec_NN
     path: templates/workspace_spec_NN.md
 description: |
-  MANDATORY trigger: MUST activate this skill whenever the user types "NN", "nn", or is creating, editing, validating, scaffolding, or discussing any iNNfo model, template, specialization, sample, or specification file. Includes the conversational Model Creation Wizard and Architecture Coach.
+  Domain skill for creating, editing, validating, scaffolding, or discussing iNNfo models, templates, specializations, samples, or specification files. Includes the conversational Model Creation Wizard and Architecture Coach. Triggers: innfo, iNNfo, /nn-innfo, model, template, *_NN.md, procedures_V_0-1-0_NN.md.
   This includes but is not limited to:
   - Creating a new model step-by-step using templates (Business, Procedures, Organization, Blank)
   - Creating or editing any file matching *_NN.md
@@ -18,46 +18,25 @@ description: |
   - Creating, editing, or modifying templates or specializations under docs/templates/
   - Discussing the iNNfo V_0-2-0 specification, meta-templates, primitives, matrices, or naming conventions
   - Any conversation about how iNNfo works, how to use it, or how to structure iNNfo files
-  - Executing procedures declared in a model (ejecutar procedimientos del modelo)
+  - Executing procedures declared in a model
 ---
 
 # iNNfo Skill
 
-## 0. MANDATORY ACTIVATION GATE (FIRST TURN - STRICT)
-
-Before answering ANY user question or executing ANY task in this conversation:
-
-1. **GREETING PROTOCOL**: Print as your VERY FIRST output line:
-   ```
-   🔧 You're using skill: nn-innfo (🔮)
-   ```
-   *(Session-scoped: print once at the start of the interaction).*
-
-2. **INTEGRITY & PREFLIGHT CHECK**:
-   Run the deterministic preflight check:
-   `node ~/.agents/skills/nn-preflight/scripts/preflight-check.js` (or `node skills/nn-preflight/scripts/preflight-check.js` if running from a local repository checkout).
-
-3. **OUTDATED / MISSING COMPONENTS GATE**:
-   - If the script exits with code `0`: All components are up-to-date. Proceed directly to the Entry Menu (§0a) or user request.
-   - If the script exits with code `1`: Updates or missing components were detected.
-     **STOP immediately.** Show the report of outdated components and ask the user for confirmation:
-     *"⚠️ Se detectaron actualizaciones o componentes pendientes en el ecosistema cogNNitive:*
-      *[a] (Recomendado) Actualizar componentes ahora*
-      *[b] Continuar con la versión actual"*
-     Do NOT mutate files or update without the user's explicit consent. If the user chooses `[b]`, proceed to the wizard.
-   - If the script exits with code `2` (Runtime Blocker): STOP and notify the user that Node.js >= 18 is required.
+## 0. Activation Gate
+Execute the canonical activation gate defined in `nn-preflight` (session greeting + deterministic preflight integrity check).
 
 ---
 
 ## Activation Contract
 
-Activates when the user's message is the standalone token `NN` (its own word or entire message — never a substring match inside another word), or when the user explicitly asks to:
+Activates when the user invokes `/nn-innfo`, mentions domain keywords `innfo`, `iNNfo`, `model`, `template`, references files matching `*_NN.md` or `procedures_V_0-1-0_NN.md`, or explicitly asks to:
 - Create a new model step-by-step using templates (Business, Procedures, Organization, Blank).
 - Create or edit any file matching `*_NN.md`.
 - Author or modify business models, procedure models, or any model following an iNNfo template.
 - Create, edit, or modify templates or specializations under `docs/templates/`.
 - Discuss the iNNfo V_0-2-0 specification, meta-templates, primitives, matrices, or naming conventions.
-- Execute procedures declared in a model (ejecutar procedimientos del modelo).
+- Execute procedures declared in a model.
 
 This skill guides LLMs and agents in authoring, creating from scratch (wizard), editing, auditing, and validating **iNNfo-compliant files** (V_0-2-0 Meta-template specification with unified `NN` syntax: `# NN`, `## NN`, and `key:: value`).
 
@@ -77,14 +56,14 @@ This skill guides LLMs and agents in authoring, creating from scratch (wizard), 
 
 When the skill is activated or the user is undecided about what to do, present the entry menu:
 
-- **[a] (Recomendado)** Create a new model (Wizard conversacional)
+- **[a] (Recommended)** Create a new model (Conversational Wizard)
 - **[b]** Edit / extend an existing model
 - **[c]** Validate a model with MCP
-- **[d] Analizar coherencia y solidez (Coach de Arquitectura)** — audit the model across formal, logical, semantic, and solidity layers (§8c)
-- **[x] Ejecutar un procedimiento del modelo** — lista los procedimientos declarados en el modelo y ejecuta el que elijas
+- **[d]** Analyze consistency and robustness (Architecture Coach) — audit the model across formal, logical, semantic, and solidity layers (§8c)
+- **[x]** Execute a model procedure — list procedures declared in the model and execute the chosen one
 - **[y]** Cancel / help
 
-*Nota: Podés seleccionar una opción o una combinación si aplica.*
+*Notice: You can select one option or a combination (e.g. A and B).*
 
 ### 0a-bis. Active Model Context & Selection Gate (MANDATORY for [b], [c], [d], [x])
 
@@ -93,118 +72,118 @@ Before executing options **[b]**, **[c]**, **[d]**, or **[x]**, the agent MUST e
 1. **Verify Session Context:** Check if a model is currently being edited/active in the session.
 2. **Dynamic Discovery:** If no model is active, call `innfo-mcp_list_models` to scan the workspace:
    - **If 0 models found:** Inform the user that no models exist in `models/` and suggest creating one (redirecting to option **[a]**).
-   - **If 1 model found:** Present it and ask for confirmation: *"Detecté un único modelo: `models/{ModelName}_NN.md`. ¿Querés trabajar con este?"*. Upon confirmation, set it as the active model (`active_model_path`) and proceed.
-   - **If multiple models found:** Present a numbered list of all models found and ask the user to select one: *"Detecté múltiples modelos. Por favor, seleccioná con cuál querés trabajar:"*. Set the selected file as `active_model_path` and proceed.
-3. **Session Persistence:** Once a model is selected or created, save its path in context. Subsequent actions (validation, edits, audits) MUST default to this active model. To switch models, the user can explicitly ask to "cambiar de modelo" or select the change option in the quick actions menu.
+   - **If 1 model found:** Present it and ask for confirmation: *"I detected a single model: `models/{ModelName}_NN.md`. Do you want to work with this one?"*. Upon confirmation, set it as the active model (`active_model_path`) and proceed.
+   - **If multiple models found:** Present a numbered list of all models found and ask the user to select one: *"Multiple models detected. Please select which one you want to work with:"*. Set the selected file as `active_model_path` and proceed.
+3. **Session Persistence:** Once a model is selected or created, save its path in context. Subsequent actions (validation, edits, audits) MUST default to this active model. To switch models, the user can explicitly ask to "switch model" or select the change option in the quick actions menu.
 
 ---
 
-### 0b. Descubrimiento Proactivo (Opción A)
+### 0b. Proactive Discovery (Option A)
 
 If the user wants to create a model but is unsure which template fits best:
 
 1. Ask 2-3 brief diagnostic questions:
-   - ¿El objetivo es estructurar un modelo de negocio/propuesta de valor, un proceso operativo paso a paso, o una estructura organizacional/equipo?
-   - ¿Contás con documentos fuente en `sources/nn/` para extraer información o partimos desde cero?
-2. Recommend the optimal template with a 1-sentence technical justification and mark option `[a]` with `(Recomendado)`.
+   - Is the goal to structure a business model / value proposition, a step-by-step operational process, or an organizational / team structure?
+   - Do you have source documents in `sources/nn/` to extract information from, or are we starting from scratch?
+2. Recommend the optimal template with a 1-sentence technical justification and mark option `[a]` with `(Recommended)`.
 
 ---
 
-### 0c. Model Creation Wizard: Fase A (Plantilla) + Fase B (Modelo)
+### 0c. Model Creation Wizard: Phase A (Template) + Phase B (Model)
 
 When the user asks to "create a new model", "start a model from scratch", or selects option [a]:
 
-La creación de **cualquier** modelo — con plantilla canónica, plantilla personalizada, o sin plantilla — sigue siempre dos fases separadas. Primero se diseña y aprueba la **Plantilla (Nivel 2)** (Fase A), después se diseña y aprueba el **Modelo (Nivel 3)** (Fase B). No se escribe ningún archivo hasta que el usuario confirma el plan de la fase correspondiente.
+Creating **any** model — with a canonical template, custom template, or without a template — always follows two separate phases. First, the **Template (Level 2)** is designed and approved (Phase A), then the **Model (Level 3)** is designed and approved (Phase B). No file is written until the user confirms the plan for the corresponding phase.
 
-#### Fase A — Diseño de Plantilla (Nivel 2)
+#### Phase A — Template Design (Level 2)
 
-**A1. Selección de base:**
-- **[a] (Recomendado)** Business Model 🏢
+**A1. Base Selection:**
+- **[a] (Recommended)** Business Model 🏢
 - **[b]** Procedures Model 📋
 - **[c]** Organization Model 👥
-- **[d]** Sin plantilla / diseño 100% desde cero
+- **[d]** Blank / 100% custom design from scratch
 - **[x]** Cancel
-*(Nota: Podés seleccionar una opción o una combinación si aplica)*.
+*(Notice: You can select one option or a combination (e.g. A and B))*.
 
-**A2a. Si se eligió una plantilla canónica ([a]/[b]/[c]):**
-Resolver la plantilla con `innfo-mcp_get_template` y mostrar un resumen informativo de los Concepts, Fields, Matrices y Markers que ya define. Luego ofrecer:
-- **[a] (Recomendado)** Usar la plantilla tal cual, sin modificar
-- **[b]** Personalizarla (crear especialización — ver §9)
-- **[x]** Cancelar
+**A2a. If a canonical template was selected ([a]/[b]/[c]):**
+Resolve the template with `innfo-mcp_get_template` and display an informative summary of the Concepts, Fields, Matrices, and Markers it already defines. Then offer:
+- **[a] (Recommended)** Use template as-is, without modifications
+- **[b]** Customize it (create specialization — see §9)
+- **[x]** Cancel
 
-> ⚠️ Si el usuario elige personalizar, advertir explícitamente: **no se recomienda modificar una plantilla canónica salvo que el motivo esté muy claro** — modificarla sin necesidad reduce la compatibilidad con el resto del ecosistema iNNfo que asume esa plantilla sin cambios.
+> ⚠️ If the user chooses to customize, warn explicitly: **modifying a canonical template is not recommended unless the reason is very clear** — modifying it unnecessarily reduces compatibility with the rest of the iNNfo ecosystem which assumes that template unchanged.
 
-**A2b. Si se eligió [d] Sin plantilla, o el usuario confirmó personalizar en A2a [b]:**
-Diseñar desde cero, en este orden, consultando `innfo-mcp_get_spec` para la gramática exacta de cada primitiva (nunca inventarla):
+**A2b. If [d] Blank was selected, or the user confirmed customization in A2a [b]:**
+Design from scratch, in this order, consulting `innfo-mcp_get_spec` for the exact grammar of each primitive (never invent it):
 
-1. **Concepts**: qué Concepts va a tener la plantilla (las categorías raíz del modelo).
-2. **Fields por Concept**, con su `type::` — aplicar la **Heurística de Tipos** (abajo) antes de asignar `string` a ningún campo.
-3. **Matrices**: qué relaciones entre Concepts ameritan una matriz — aplicar la **Heurística de Matrices** (abajo). Cada Matrix Definition puede declarar `values::` (conjunto de valores de celda permitidos), `widget::` (`boolean` | `cycle` | `scale` | `set` | `text`) y `widget_config::` (objeto JSON: `scale`→`{min,max,step}`, `cycle`→`{order}`, `set`→`{max_selections}`, `text`→`{max_length}`). `widget:: scale` sin `min`/`max` en `widget_config` es ERROR de validación.
-4. **Markers**: preguntar explícitamente — *"¿Esta plantilla necesita Markers (etiquetas/estados reutilizables, por ejemplo para celdas de matriz o para clasificar Elements transversalmente)? Si sí, ¿cuáles?"* No asumir que no hacen falta solo porque el usuario no los mencionó. Cada Marker Definition declara:
-   - `applies_to:: [Element]` (default), `[Concept]`, o `[Element, Concept]` — qué entidades pueden puntuarse. Puntuar una fila cuyo scope no está en `applies_to` es ERROR de validación.
-   - `values:: / widget:: / widget_config::` — mismo vocabulario que Matrix Definition (omitir `values` para un marker numérico libre acotado solo por `widget_config`).
-   - `symbol / icon / color / weight` — presentacionales; `weight` NO es un score.
-5. **`includes` (composición aditiva, opcional)**: si la plantilla debe reutilizar Concepts/Fields/Markers/Matrices de otras plantillas *pares*, declararlas en frontmatter como `includes:` con entradas `{ name, url }`. Es composición horizontal (plantilla ∪ plantilla), aditiva: NADA se override ni se elimina, y un choque de nombres entre dos fuentes es ERROR. Es un eje distinto de `parent_spec` (cadena vertical a L1) y de `specializes` (inerte). Ver §9.
+1. **Concepts**: which Concepts the template will have (the root categories of the model).
+2. **Fields per Concept**, with their `type::` — apply the **Type Heuristic** (below) before assigning `string` to any field.
+3. **Matrices**: which relationships between Concepts warrant a matrix — apply the **Matrix Heuristic** (below). Each Matrix Definition can declare `values::` (set of allowed cell values), `widget::` (`boolean` | `cycle` | `scale` | `set` | `text`), and `widget_config::` (JSON object: `scale`→`{min,max,step}`, `cycle`→`{order}`, `set`→`{max_selections}`, `text`→`{max_length}`). `widget:: scale` without `min`/`max` in `widget_config` is a validation ERROR.
+4. **Markers**: ask explicitly — *"Does this template need Markers (reusable tags/states, e.g. for matrix cells or cross-cutting Element classification)? If so, which ones?"* Do not assume they are not needed just because the user did not mention them. Each Marker Definition declares:
+   - `applies_to:: [Element]` (default), `[Concept]`, or `[Element, Concept]` — which entities can be scored. Scoring a row whose scope is not in `applies_to` is a validation ERROR.
+   - `values:: / widget:: / widget_config::` — same vocabulary as Matrix Definition (omit `values` for an open numeric marker bounded only by `widget_config`).
+   - `symbol / icon / color / weight` — presentational; `weight` is NOT a score.
+5. **`includes` (additive composition, optional)**: if the template should reuse Concepts/Fields/Markers/Matrices from other *peer* templates, declare them in frontmatter as `includes:` with entries `{ name, url }`. This is horizontal composition (template ∪ template), additive: NOTHING is overridden or deleted, and a name collision between two sources is an ERROR. This is a different axis from `parent_spec` (vertical chain to L1) and `specializes` (inert). See §9.
 
-##### Heurística de Tipos (String vs. Reference)
+##### Type Heuristic (String vs. Reference)
 
-Antes de asignar `type:: string` a un campo, preguntarse: **¿el valor de este campo identifica o apunta a otro Element o Concept del modelo (existente o por crear)?**
-- Si sí → `type:: reference`, nunca `string`.
-- Señal de alerta en el nombre del campo: `responsable::`, `cliente::`, `propietario::`, `categoría::`, `ubicación::`, `proveedor::`, `asignado_a::` y similares — nombres que apuntan a una entidad, no que describen un atributo propio del Element.
-- Si la entidad referenciada todavía no es un Concept/Element modelado, no lo escondas como `string`: proponé crear el Concept/Element correspondiente antes de tipar el campo.
+Before assigning `type:: string` to a field, ask: **does the value of this field identify or point to another Element or Concept in the model (existing or to be created)?**
+- If yes → `type:: reference`, never `string`.
+- Red flag in field name: `owner::`, `client::`, `lead::`, `category::`, `location::`, `vendor::`, `assigned_to::`, and similar — names that point to an entity, rather than describing an inherent attribute of the Element itself.
+- If the referenced entity is not yet a modeled Concept/Element, do not hide it as `string`: propose creating the corresponding Concept/Element before typing the field.
 
-##### Heurística de Matrices (Matrix vs. Reference)
+##### Matrix Heuristic (Matrix vs. Reference)
 
-- Relación 1:N sin atributos propios por cruce → alcanza con un `reference` field.
-- Relación N:M (ambos lados se repiten) → matrix.
-- Cualquier relación donde cada cruce necesita su propio estado/tipo/atributo (ej. `X` / `-` / `primary`) → matrix, típicamente con Markers.
-- Prueba rápida: si podés contar más de una vez el mismo Element de cada lado de la relación, es señal fuerte de matrix.
+- 1:N relationship with no cross-attributes → a `reference` field suffices.
+- N:M relationship (both sides repeat) → matrix.
+- Any relationship where each cross-point needs its own state/type/attribute (e.g. `X` / `-` / `primary`) → matrix, typically with Markers.
+- Quick test: if you can count the same Element more than once on each side of the relationship, it is a strong signal for a matrix.
 
-**A3. Plan Consolidado de Plantilla (gate obligatorio):**
-Antes de escribir el archivo de plantilla, presentar TODO junto en un solo bloque — Concepts, Fields con tipo, Matrices, Markers — y preguntar si se quiere modificar algo:
+**A3. Consolidated Template Plan (mandatory gate):**
+Before writing the template file, present EVERYTHING together in a single block — Concepts, Fields with types, Matrices, Markers — and ask if anything needs adjustment:
 
 ```markdown
-📋 Plan de Plantilla Propuesto:
+📋 Proposed Template Plan:
 - Concepts: Stakeholders, Segments, Offerings
 - Fields:
-  - Stakeholders: nombre (string), responsable (reference), presupuesto (number)
-  - Offerings: nombre (string), categoría (reference), precio (number)
-- Matrices: Stakeholders × Offerings (N:M, markers: interesado/comprador/descartado)
-- Markers: interesado, comprador, descartado
+  - Stakeholders: name (string), owner (reference), budget (number)
+  - Offerings: name (string), category (reference), price (number)
+- Matrices: Stakeholders × Offerings (N:M, markers: interested/buyer/dismissed)
+- Markers: interested, buyer, dismissed
 
-¿Confirmamos este diseño o querés ajustar algo antes de crear la plantilla?
-- [a] (Recomendado) Confirmar y crear la plantilla
-- [b] Ajustar Concepts/Fields/Matrices/Markers
-- [x] Cancelar
+Confirm this design, or would you like to adjust anything before creating the template?
+- [a] (Recommended) Confirm and create template
+- [b] Adjust Concepts/Fields/Matrices/Markers
+- [x] Cancel
 ```
 
-Recién al confirmar [a] se escribe el archivo de plantilla: `<Plantilla>_V_0-1-0_spec_NN.md` si es 100% nueva, o `<Modelo>_<Plantilla>_V_x-y-z_spec_NN.md` si especializa una base existente (ver §9).
+Only upon confirming [a] is the template file written: `<Template>_V_0-1-0_spec_NN.md` if completely new, or `<Model>_<Template>_V_x-y-z_spec_NN.md` if specializing an existing base (see §9).
 
 ---
 
-#### Fase B — Diseño de Modelo (Nivel 3)
+#### Phase B — Model Design (Level 3)
 
-Una vez aprobada (o confirmada tal cual) la plantilla de Fase A:
+Once the Phase A template is approved (or confirmed as-is):
 
-**B1. Plan de Elements y Cruces (gate obligatorio):**
-Presentar qué Elements se van a crear por cada Concept, y qué cruces de matriz van a completarse, ANTES de redactar contenido:
+**B1. Elements and Crossings Plan (mandatory gate):**
+Present what Elements will be created for each Concept, and what matrix crossings will be populated, BEFORE writing content:
 
 ```markdown
-📋 Plan de Modelo Propuesto:
-- Stakeholders: Cliente Enterprise, Cliente Piloto
-- Offerings: Plan Básico, Plan Premium
-- Matriz Stakeholders × Offerings: Cliente Enterprise↔Plan Premium (comprador), Cliente Piloto↔Plan Básico (interesado)
+📋 Proposed Model Plan:
+- Stakeholders: Enterprise Customer, Pilot Customer
+- Offerings: Basic Plan, Premium Plan
+- Matrix Stakeholders × Offerings: Enterprise Customer↔Premium Plan (buyer), Pilot Customer↔Basic Plan (interested)
 
-¿Confirmamos esta estructura o querés ajustar algún Element o cruce?
-- [a] (Recomendado) Confirmar y continuar
-- [b] Ajustar Elements o cruces
-- [x] Cancelar
+Confirm this structure, or would you like to adjust any Element or crossing?
+- [a] (Recommended) Confirm and continue
+- [b] Adjust Elements or crossings
+- [x] Cancel
 ```
 
-**B2. Modalidad de Co-creación (Incremental vs Batch)**:
-Con la estructura ya aprobada, ofrecer la modalidad de redacción:
-- **[a] (Recomendado) Co-creación Paso a Paso:** Interactuamos concepto por concepto, Element por Element.
-- **[b] Generación Completa:** El agente redacta el borrador completo en un solo archivo para posterior auditoría, respetando el plan ya aprobado en B1.
+**B2. Co-creation Mode (Incremental vs Batch)**:
+With structure approved, offer the drafting mode:
+- **[a] (Recommended) Step-by-Step Co-creation:** We interact concept by concept, Element by Element.
+- **[b] Full Generation:** The agent drafts the complete draft in a single file for subsequent audit, following the plan approved in B1.
 
 **B3. Model Naming & Scaffolding**:
 Prompt for `{ModelName}` and create `{ModelName}_V_0-1-0_{Template}_NN.md` with workspace structure (`models/`, `sources/nn/`, `procedures/`, `artifacts/`, `index.md`).
@@ -318,7 +297,7 @@ URLs estables de referencia (la versión va en el nombre del archivo — `main` 
 ## 5. Instrucciones de Operación y Flujo MCP
 
 1. Obtener la plantilla con `innfo-mcp_get_template({ url })`.
-2. Presentar los conceptos al usuario usando el formato con `[a] (Recomendado)`.
+2. Present concepts to the user using the format with `[a] (Recommended)`.
 3. Redactar el cuerpo usando la sintaxis unificada `# NN <Concept>`, `## NN <Concept>: <Element>`, `key:: value`.
 4. Validar el modelo con `innfo-mcp_validate_model({ content })`.
 5. **Pre-chequeo de cadena de padres (OBLIGATORIO antes de reportar listo):** resolver la cadena de padres con `innfo-mcp_get_template({ model_id })` (o `{ url }`) ANTES de declarar el modelo como listo. Si la plantilla NO se resuelve (`Template could not be resolved` / `PARENT_RESOLUTION_FAILED`):
@@ -338,17 +317,17 @@ innfo-mcp_apply_change({
   op: "bump_version",
   args: { 
     version: "V_0-5-0",
-    parent_version: "V_0-5-0" // Opcional: para re-versionar y renombrar la plantilla asociada
+    parent_version: "V_0-5-0" // Optional: to re-version and rename the associated template
   }
 })
 ```
 
-- **Comportamiento Automatizado**:
-  1. Actualiza `model_version` en el frontmatter y renombrará el archivo del modelo atómicamente.
-  2. Si se proporciona `parent_version`, renombrará físicamente el archivo local de la plantilla, actualizará su `spec_version` (en frontmatter), actualizará el `parent_spec.name`/`url` en el frontmatter del modelo, y copiará la plantilla renombrada al directorio `specs/`.
-  3. Actualiza de manera consistente las referencias en el `index.md` del workspace.
-  4. Todo se valida mediante pre-chequeo antes de efectuar cualquier escritura (si falla la validación, aborta sin escribir).
-- **Checklist manual restante**: Si la plantilla era remota, recordar subirla a su correspondiente servidor o repositorio.
+- **Automated Behavior**:
+  1. Updates `model_version` in the frontmatter and renames the model file atomically.
+  2. If `parent_version` is provided, physically renames the local template file, updates its `spec_version` (in frontmatter), updates `parent_spec.name`/`url` in the model frontmatter, and copies the renamed template to the `specs/` directory.
+  3. Consistently updates references in workspace `index.md`.
+  4. Everything is validated via pre-check before performing any write (if validation fails, aborts without writing).
+- **Remaining manual checklist**: If the template was remote, remember to push it to its corresponding server or repository.
 
 ---
 
@@ -382,9 +361,9 @@ Antes de ejecutar cualquier cambio o mutación en el modelo, el agente DEBE pres
 - Rationale: Almacenar el presupuesto asignado anualmente
 
 ¿Procedemos a aplicar esta modificación?
-- [a] (Recomendado) Confirmar y aplicar cambio
-- [b] Modificar tipo de dato o configuración
-- [x] Cancelar
+- [a] (Recommended) Confirm and apply change
+- [b] Modify data type or configuration
+- [x] Cancel
 ```
 
 Al confirmar el usuario, ejecutar la mutación vía `innfo-mcp_apply_change` y re-validar con `innfo-mcp_validate_model`.
@@ -416,10 +395,10 @@ Cuando el usuario elige la opción `[d]` (Analizar coherencia), el agente asume 
    - Impacto Funcional: Romperá los enlaces del árbol de navegación en iNNfo Modeler.
    - Solución sugerida: Crear el elemento `DirectorComercial` o corregir el nombre.
 
-¿Deseás que aplique la corrección recomendada automáticamente?
-- [a] (Recomendado) Aplicar corrección sugerida
-- [b] Ver detalle de otros hallazgos
-- [x] Ignorar por ahora
+Would you like me to apply the recommended fix automatically?
+- [a] (Recommended) Apply suggested fix
+- [b] View details of other findings
+- [x] Ignore for now
 ```
 
 ---
@@ -474,90 +453,90 @@ Una plantilla **composite** (la que declara `includes`) es la que el modelo nomb
 
 Tras editar un modelo:
 1. Ejecutar `innfo-mcp_validate_model()`.
-2. Presentar resultado y menú de versión:
-   - **[a] (Recomendado)** Incrementar Patch (`V_x-y-z+1`)
-   - **[b]** Mantener versión actual (`V_x-y-z`)
-   - **[c]** Incrementar Minor (`V_x-y+1-0`)
-   - **[x]** Cancelar
-3. Actualizar enlaces en `index.md` si cambia el nombre físico del archivo.
+2. Present result and version menu:
+   - **[a] (Recommended)** Bump Patch (`V_x-y-z+1`)
+   - **[b]** Keep current version (`V_x-y-z`)
+   - **[c]** Bump Minor (`V_x-y+1-0`)
+   - **[x]** Cancel
+3. Update links in `index.md` if the physical file name changes.
 
 ---
 
 ## 11. Decisión de Escalado de Arquitectura (1 a N Modelos)
 
-Cuando el proyecto escala a múltiples sub-modelos, presentar las **4 Alternativas Estructurales**:
+When the project scales to multiple sub-models, present the **4 Architectural Alternatives**:
 
 ```markdown
-💡 Selección de Arquitectura de Escalado (1 a N Modelos):
+💡 Architecture Scaling Selection (1 to N Models):
 
-  [a] (Recomendado) Opción 4: Híbrido Maestro Agregador con referencias `file_ref::`
-      - Archivos: `models/Master_V_0-1-0_NN.md` y `models/subsystems/`
-      - Código iNNfo: El modelo principal referencia subsistemas mediante `file_ref:: ./subsystems/auth_V_0-1-0_NN.md`
+  [a] (Recommended) Option 4: Hybrid Master Aggregator with `file_ref::` references
+      - Files: `models/Master_V_0-1-0_NN.md` and `models/subsystems/`
+      - iNNfo code: The main model references subsystems via `file_ref:: ./subsystems/auth_V_0-1-0_NN.md`
 
-  [b] Opción 1: Modelo Monolítico Único
-      - Archivo: `models/System_V_0-1-0_NN.md`
+  [b] Option 1: Single Monolithic Model
+      - File: `models/System_V_0-1-0_NN.md`
 
-  [c] Opción 2: Modelos Independientes en la misma carpeta
-      - Archivos: `models/DomainA_V_0-1-0_NN.md`, `models/DomainB_V_0-1-0_NN.md`
+  [c] Option 2: Independent Models in the same directory
+      - Files: `models/DomainA_V_0-1-0_NN.md`, `models/DomainB_V_0-1-0_NN.md`
 
-  [d] Opción 3: Híbrido Multi-Carpeta por Proyecto
-      - Archivos: `projects/domainA/models/index.md`, `projects/domainB/models/index.md`
+  [d] Option 3: Multi-Folder Hybrid per Project
+      - Files: `projects/domainA/models/index.md`, `projects/domainB/models/index.md`
 
-  [x] Cancelar
+  [x] Cancel
 
-*(Nota: Podés seleccionar una opción o una combinación si aplica)*
+*(Notice: You can select one option or a combination (e.g. A and B))*
 ```
 
 ---
 
 ## 12. Checklist de Expectativa Visual (App Verification)
 
-Al finalizar la creación o modificación de un modelo, el agente DEBE imprimir el Checklist Visual con enlaces profundos dinámicos en lugar del genérico `https://cognnitive.com/innfo/app/`.
+Upon completing the creation or modification of a model, the agent MUST print the Visual Checklist with dynamic deep links instead of the generic `https://cognnitive.com/innfo/app/`.
 
-### Instrucción de construcción de URLs profundas:
+### Deep URL construction instruction:
 - **Base URL**: `https://cognnitive.com/innfo/app/workspace?view=editor`
-- **Model Query Parameter**: `&model=<model_id>` (donde `<model_id>` es el identificador del modelo/nombre del archivo sin extensión, ej: `arenzano_V_1-2-0_business`).
-- **Concept Deep Link (Hash)**: `#@<ConceptName>` (URL-encoded si tiene espacios, ej: `#@Market%20trends`).
-- **Element Deep Link (Hash)**: `#<ConceptName>.<ElementName>` (ej: `#Productos.CogNNitive`).
+- **Model Query Parameter**: `&model=<model_id>` (where `<model_id>` is the model identifier/filename without extension, e.g. `arenzano_V_1-2-0_business`).
+- **Concept Deep Link (Hash)**: `#@<ConceptName>` (URL-encoded if containing spaces, e.g. `#@Market%20trends`).
+- **Element Deep Link (Hash)**: `#<ConceptName>.<ElementName>` (e.g. `#Products.CogNNitive`).
 
-Si hay un modelo activo en contexto, usá su `model_id` y mostrá los enlaces interactivos hacia sus partes principales.
+If there is an active model in context, use its `model_id` and show interactive links to its main sections.
 
-Ejemplo de checklist dinámico a generar:
+Example of dynamic checklist to generate:
 ```markdown
-📋 Checklist de Expectativa Visual en iNNfo Modeler (suponiendo que ya tenés el workspace abierto):
+📋 Visual Expectation Checklist in iNNfo Modeler (assuming workspace is already open):
 
-- [ ] 🌳 [**Árbol Lateral de Navegación**](https://cognnitive.com/innfo/app/workspace?view=editor&model=<model_id>):
-      Estructura jerárquica basada en `# NN index` con navegación fluida por conceptos y elementos.
-- [ ] 📋 [**Paneles de Campos por Concepto** (ej. <Concepto>)](https://cognnitive.com/innfo/app/workspace?view=editor&model=<model_id>#@<Concepto_url_encoded>):
-      Vista detallada renderizada para cada `key:: value` (propiedades, tipos y referencias).
-- [ ] 🎴 [**Tarjetas de Elementos** (ej. <Elemento>)](https://cognnitive.com/innfo/app/workspace?view=editor&model=<model_id>#<Concepto_url_encoded>.<Elemento_url_encoded>):
-      Tarjetas interactivas por cada bloque `## NN <Concept>: <Element>` mostrando metadatos y descripciones.
-- [ ] 📊 [**Tablas de Matrices Comparativas**](https://cognnitive.com/innfo/app/workspace?view=matrices&model=<model_id>):
-      Tablas N-a-M de relaciones e `item-markers matrix` renderizadas con celdas interactivas (`X` / `-`).
+- [ ] 🌳 [**Navigation Sidebar Tree**](https://cognnitive.com/innfo/app/workspace?view=editor&model=<model_id>):
+      Hierarchical structure based on `# NN index` with fluid navigation across concepts and elements.
+- [ ] 📋 [**Concept Field Panels** (e.g. <Concept>)](https://cognnitive.com/innfo/app/workspace?view=editor&model=<model_id>#@<Concept_url_encoded>):
+      Detailed view rendered for each `key:: value` (properties, types, and references).
+- [ ] 🎴 [**Element Cards** (e.g. <Element>)](https://cognnitive.com/innfo/app/workspace?view=editor&model=<model_id>#<Concept_url_encoded>.<Element_url_encoded>):
+      Interactive cards for each `## NN <Concept>: <Element>` block showing metadata and descriptions.
+- [ ] 📊 [**Comparative Matrix Tables**](https://cognnitive.com/innfo/app/workspace?view=matrices&model=<model_id>):
+      N-to-M relationship tables and `item-markers matrix` rendered with interactive cells (`X` / `-`).
 ```
 
 ---
 
 ## 13. Atajos de Navegación Contextual / Quick Actions (Opción E)
 
-Al concluir la generación o edición de un modelo, el agente DEBE incluir atajos lógicos según el contexto actual. Al finalizar la creación de un nuevo modelo, la primera opción DEBE ser la revisión guiada:
+Upon concluding the generation or editing of a model, the agent MUST include logical shortcuts based on current context. When finishing a new model, the first option MUST be guided review:
 
 ```markdown
-📌 Siguientes pasos sugeridos:
-- [a] (Recomendado) Revisión guiada de conceptos y elementos generados
-- [b] Ejecutar auditoría del Coach de Arquitectura ([d])
-- [c] Editar o agregar un nuevo concepto/elemento
-- [m] Cambiar de modelo activo (seleccionar otro modelo)
+📌 Suggested next steps:
+- [a] (Recommended) Guided review of generated concepts and elements
+- [b] Run Architecture Coach audit ([d])
+- [c] Edit or add a new concept/element
+- [m] Switch active model (select another model)
 ```
 
 **Dynamic Procedure Listing:**
 * **Only if** the active model actually contains declared procedures (e.g. sections `## NN Procedure: ...`), append the following block:
 ```markdown
-📌 Procedimientos disponibles en el modelo:
-- [p1] Ejecutar: <Procedimiento 1>
-- [pn] ... (si el modelo declara el procedimiento de master.html, aparecerá aquí como "Generar master.html")
+📌 Available procedures in model:
+- [p1] Execute: <Procedure 1>
+- [pn] ... (if the model declares master.html procedure, it will appear here as "Generate master.html")
 ```
-* If the model does not declare any procedures, omit the "Procedimientos disponibles en el modelo" block completely to avoid broken shortcuts or noise.
+* If the model does not declare any procedures, omit the "Available procedures in model" block completely to avoid broken shortcuts or noise.
 
 ---
 
@@ -577,8 +556,8 @@ El procedimiento de master.html (anteriormente showroom) es reconocible: si el u
 2. **Sintaxis Unificada NN:** Usar `# NN <Concept>`, `## NN <Concept>: <Element>`, `key:: value`. No usar viñetas obsoletas `_NN` ni bloques de código ````yaml`.
 3. **Proveniencia Opcional y Actualizada:** `sources::` es opcional y apunta a archivos en `sources/nn/` (admite lista `[a, b]` para múltiples valores; sin IDs `src-xxx` ni carpeta `raw/`).
 4. **Cero Mutación Unilateral:** Nunca renombrar ni mover archivos sin confirmación explícita.
-5. **Opción Recomendada Primero:** Prefijar la opción `[a]` con `(Recomendado)`.
-6. **Notación de Selección Múltiple:** Incluir *"Podés seleccionar una opción o una combinación"* cuando aplique.
+5. **Recommended Option First:** Always prefix option `[a]` with `(Recommended)`.
+6. **Multi-Selection Notice:** Include `"You can select one option or a combination (e.g. A and B)"` when applicable.
 7. **Preview de Cambios con Diff:** Mostrar resumen en lenguaje natural antes de aplicar cualquier mutación con el MCP.
 8. **Modo Coach de Arquitectura:** En la auditoría `[d]`, explicar riesgos de negocio/funcionales y ofrecer soluciones en 1 clic.
 9. **Atajos Contextuales:** Finalizar cada respuesta ofreciendo 2-3 acciones siguientes sugeridas (Quick Actions).

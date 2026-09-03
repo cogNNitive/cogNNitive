@@ -12,15 +12,57 @@ bundled_templates: []
 
 # nn-preflight
 
-## Activation Contract (MANDATORY)
+## Canonical Activation Gate Protocol (MANDATORY)
 
-When loaded, the agent MUST print exactly:
+Every cogNNitive skill MUST execute this canonical activation gate before answering ANY user question or executing ANY task in the session.
 
+### 1. Session Greeting Banner Protocol
+When activated, the agent MUST print as its VERY FIRST output line:
+```
+🔧 You're using skill: <skill-name> (<emoji>)
+```
+*(Session-scoped: print once per conversation at the start of interaction).*
+
+For `nn-preflight` itself, use:
 ```
 🔧 You're using skill: nn-preflight (🛡️)
 ```
 
-as its very first output — before any questions, analysis, or tool calls. Session-scoped: only once per conversation.
+### 2. Deterministic Integrity Runner
+Execute the deterministic preflight check:
+```bash
+node scripts/preflight-check.js
+```
+*(Fallback path: `node ~/.agents/skills/nn-preflight/scripts/preflight-check.js` or `node skills/nn-preflight/scripts/preflight-check.js`).*
+
+### 3. Exit Code Handling & Consent Gate
+Handle the runner process exit code deterministically:
+
+- **Exit code `0` (Success)**: All ecosystem components are installed and up-to-date. Proceed immediately with the skill's intended workflow or menu without user interruption.
+- **Exit code `1` (Warnings / Outdated Components)**: Updates or missing components were detected.
+  **HALT immediately.** Display the report of outdated/missing components and prompt the user for confirmation:
+  ```markdown
+  ⚠️ Updates or missing components were detected in the cogNNitive ecosystem:
+  [a] (Recommended) Update components now
+  [b] Continue with current version
+  ```
+  **Consent is mandatory**: Do NOT mutate files or update without explicit user consent. If the user selects `[b]`, proceed with the current version.
+- **Exit code `2` (Runtime Blocker)**: Halt and abort execution immediately. Inform the user that Node.js >= 18 is required.
+
+---
+
+## Consumer Skill Delegation
+
+All consumer skills (`nn-router`, `nn-innfo`, `nn-trannsform`, `nn-site-generator`, `nn-skills-lifecycle`, `nn-design-presets`) MUST delegate their activation gate in §0 to this canonical protocol using exactly:
+
+```markdown
+## 0. Activation Gate
+Execute the canonical activation gate defined in `nn-preflight` (session greeting + deterministic preflight integrity check).
+```
+
+Consumer skills MUST NOT duplicate script execution commands, file paths, or exit code conditional branching logic.
+
+---
 
 ## Role
 
@@ -30,7 +72,7 @@ Environment readiness gate for cogNNitive workflows. Runs deterministic checks a
 
 ## Tier 1 Checks (always run)
 
-1. **Preflight & Integrity Runner**: run `node scripts/preflight-check.js` (or `node ~/.agents/skills/nn-preflight/scripts/preflight-check.js`). Verifies Node.js >= 18, manifest reachability, installed skills vs pinned commits, MCP bundle availability, and templates. If exit code is `1`, report outdated/missing components and ask the user for confirmation.
+1. **Preflight & Integrity Runner**: run `node scripts/preflight-check.js` (or `node ~/.agents/skills/nn-preflight/scripts/preflight-check.js`). Verifies Node.js >= 18, manifest reachability, installed skills vs pinned commits, MCP bundle availability, and templates. If exit code is `1`, report outdated/missing components and prompt for confirmation per the Canonical Activation Gate protocol.
 2. **Node.js**: require >= 18.
 3. **innfo-mcp availability**: call `innfo-mcp_list_models`; if the MCP tool is unavailable, fall back to checking that the bundle exists at `~/.agents/mcp/innfo-mcp.bundle.js` or `.cogNNitive/mcp-bundle.js`.
 4. **Workspace layout**: verify the expected directories exist — `sources/`, `models/`, `procedures/`, `artifacts/`, `index.md` (as appropriate for the workflow; `nn-trannsform` projects use `sources/original/` and `sources/nn/`).

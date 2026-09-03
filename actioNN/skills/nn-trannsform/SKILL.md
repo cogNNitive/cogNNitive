@@ -17,38 +17,17 @@ bundled_templates: []
 
 # Skill: nn-trannsform
 
-## 0. MANDATORY ACTIVATION GATE (FIRST TURN - STRICT)
-
-Before answering ANY user question or executing ANY task in this conversation:
-
-1. **GREETING PROTOCOL**: Print as your VERY FIRST output line:
-   ```
-   🔧 You're using skill: nn-trannsform (🔄)
-   ```
-   *(Session-scoped: print once at the start of the interaction).*
-
-2. **INTEGRITY & PREFLIGHT CHECK**:
-   Run the deterministic preflight check:
-   `node ~/.agents/skills/nn-preflight/scripts/preflight-check.js` (or `node skills/nn-preflight/scripts/preflight-check.js` if running from a local repository checkout).
-
-3. **OUTDATED / MISSING COMPONENTS GATE**:
-   - If the script exits with code `0`: All components are up-to-date. Proceed with the workflow.
-   - If the script exits with code `1`: Updates or missing components were detected.
-     **STOP immediately.** Show the report of outdated components and ask the user for confirmation:
-     *"⚠️ Se detectaron actualizaciones o componentes pendientes en el ecosistema cogNNitive:*
-      *[a] (Recomendado) Actualizar componentes ahora*
-      *[b] Continuar con la versión actual"*
-     Do NOT mutate files or update without the user's explicit consent. If the user chooses `[b]`, proceed with the workflow.
-   - If the script exits with code `2` (Runtime Blocker): STOP and notify the user that Node.js >= 18 is required.
+## 0. Activation Gate
+Execute the canonical activation gate defined in `nn-preflight` (session greeting + deterministic preflight integrity check).
 
 ## System & UX Governance (MANDATORY)
 
 1. **Zero Unilateral Mutation (Consent First)**:
    - NEVER move, rename, or delete user files (e.g. moving PDFs into `sources/original/` or changing folder structure) without prior explicit confirmation from the user.
 2. **Recommended Option First**:
-   - In all decision menus, option `[a]` or `[1]` MUST carry the `(Recomendado)` or `(Recomendada)` prefix.
+   - In all decision menus, option `[a]` or `[1]` MUST carry the `(Recommended)` prefix.
 3. **Multi-Selection Clarification**:
-   - When choices are non-exclusive, include the notice: *"Podés seleccionar una opción o una combinación (ej. A y B)"*.
+   - When choices are non-exclusive, include the notice: `"You can select one option or a combination (e.g. A and B)"`.
 
 ## Preflight Gate (MANDATORY — run before any transformation)
 
@@ -179,12 +158,12 @@ Option selection format:
 
 ```
 Format: PDF (1 file)
-  [a] (Recomendado) Node.js (pdf-parse) — local processing, reproducible, no extra token cost
+  [a] (Recommended) Node.js (pdf-parse) — local processing, reproducible, no extra token cost
   [b] Agent-native — depends on model, variable token cost
   [c] Skip this format
 
 Which route do you prefer for PDF?
-(Nota: Podés seleccionar una opción o una combinación)
+(Notice: You can select one option or a combination (e.g. A and B))
 ```
 
 #### Quick text extraction (no ingestion)
@@ -207,11 +186,11 @@ When creating a new transformation, ask the user:
 
 **"What kind of template do you want to create?"**
 
-- **[a] (Recomendado)** iNNfo V_0-1-0 template — structured model with typed concepts, fields, markers, and matrices
+- **[a] (Recommended)** iNNfo V_0-1-0 template — structured model with typed concepts, fields, markers, and matrices
 - **[b]** Generic Markdown template — free-form document with narrative sections
 - **[x]** Cancel
 
-*(Nota: Podés seleccionar una opción o una combinación si aplica)*
+*(Notice: You can select one option or a combination (e.g. A and B))*
 
 #### 3b. Mandatory Provenance in Level 3 Models (Bloque 2)
 
@@ -237,8 +216,8 @@ Before generating the document, prompt the user:
 ```
 Select the citation and export format for the deliverable:
 
-  [a] (Recomendado) Standard Markdown Footnotes ([^1]) — clean superscript links with bottom references
-  [b] Sencillo — inline attribution (— Source: filename, section)
+  [a] (Recommended) Standard Markdown Footnotes ([^1]) — clean superscript links with bottom references
+  [b] Simple — inline attribution (— Source: filename, section)
   [c] APA 7th Edition — (Author, Year) in-text with trailing References
   [d] MLA 9th Edition — (Author, par. X) parenthetical with Works Cited
   [e] Chicago — Notes-Bibliography or Author-Date with Bibliography
@@ -293,7 +272,7 @@ When the user selects to execute a saved procedure from the `procedures/` direct
 
 At the end of transformation:
 1. Summarize adjustments made.
-2. Present options menu with `[a] (Recomendado)` prefix.
+2. Present options menu with `[a] (Recommended)` prefix.
 3. Offer to save the procedure of the session if a new sequence was executed.
 4. **Procedure updates**: If an existing procedure was executed and adaptations or improvements were introduced during the conversation, the agent MUST ask the user if they want to modify and update the original procedure file to incorporate these changes.
 5. Print **Visual Expectation Checklist** (§12 of `nn-innfo`) when iNNfo models were created/edited.
@@ -334,11 +313,11 @@ node scripts/batch-mapper.js --model <model-file-path> --src <project-dir>
 ## Core Rules
 
 1. **Zero Unilateral Mutation**: NEVER move, rename, or delete files in `sources/original/` (or any user file) without prior explicit confirmation.
-2. **Recommended Option First**: Always prefix option `[a]` with `(Recomendado)` or `(Recomendada)`.
-3. **Multi-Selection Notice**: Add *"Podés seleccionar una opción o una combinación"* when applicable.
+2. **Recommended Option First**: Always prefix option `[a]` with `(Recommended)`.
+3. **Multi-Selection Notice**: Add `"You can select one option or a combination (e.g. A and B)"` when applicable.
 4. **Mandatory Scanner Provenance**: Normalized Markdown in `sources/nn/` MUST include the flat scanner frontmatter (`source_file`, `sha256`, `size_bytes`, `normalized_at`, `normalized_by`, plus `source_url`/`downloaded_at`/`title`/`description`/`author` when applicable). No `source_id`/`src-NNN`.
 5. **Mandatory Model Provenance**: Level 3 elements MUST include `sources:: <path.md#L..-L..>` (or a list `sources:: [a, b]`) pointing directly at `sources/nn/` — no `src-NNN` IDs.
 6. **V_0-1-0 Compliance**: Target iNNfo V_0-1-0 meta-template specification and unified NN syntax (`# NN`, `## NN`, `key:: value`).
 7. **Saved Procedure Proactive Check**: When starting `nn-trannsform` or `nn-router`, check for existing procedures in `procedures/` and offer them as runnable options to the user before starting standard ingestion.
 7a. **Procedure Lineage (Manual for Now)**: The `# NN Sources` section of the provenance model auto-populates from `sources/nn/` on every `--scan`/`--import-url`/`--provenance` run. The `# NN Procedures` section is NOT yet auto-recorded by the pipeline — the agent must manually add `## NN Procedures:` entries for both scripted operations and non-scripted research/analysis steps (see §2d).
-8. **Descripción en Prosa en Modelos Nivel 3**: La descripción de un elemento en un modelo Nivel 3 NUNCA debe formatearse como un campo de propiedad `description::`. Debe escribirse siempre como texto libre en prosa Markdown debajo de la lista de campos `key:: value`, separado de estos por una línea en blanco.
+8. **Prose Description in Level 3 Models**: The description of an element in a Level 3 model must NEVER be formatted as a `description::` property field. It must always be written as free-form Markdown prose below the `key:: value` fields list, separated from them by a blank line.

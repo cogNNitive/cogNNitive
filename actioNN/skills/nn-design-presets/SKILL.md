@@ -12,29 +12,8 @@ bundled_templates: []
 
 # cogNNitive Design Presets
 
-## 0. MANDATORY ACTIVATION GATE (FIRST TURN - STRICT)
-
-Before answering ANY user question or executing ANY task in this conversation:
-
-1. **GREETING PROTOCOL**: Print as your VERY FIRST output line:
-   ```
-   🔧 You're using skill: nn-design-presets (🎨)
-   ```
-   *(Session-scoped: print once at the start of the interaction).*
-
-2. **INTEGRITY & PREFLIGHT CHECK**:
-   Run the deterministic preflight check:
-   `node ~/.agents/skills/nn-preflight/scripts/preflight-check.js` (or `node skills/nn-preflight/scripts/preflight-check.js` if running from a local repository checkout).
-
-3. **OUTDATED / MISSING COMPONENTS GATE**:
-   - If the script exits with code `0`: All components are up-to-date. Proceed with preset selection.
-   - If the script exits with code `1`: Updates or missing components were detected.
-     Show the report of outdated components and ask the user for confirmation:
-     *"⚠️ Se detectaron actualizaciones o componentes pendientes en el ecosistema cogNNitive:*
-      *[a] (Recomendado) Actualizar componentes ahora*
-      *[b] Continuar con la versión actual"*
-     Do NOT mutate files or update without the user's explicit consent.
-   - If the script exits with code `2` (Runtime Blocker): STOP and notify the user that Node.js >= 18 is required.
+## 0. Activation Gate
+Execute the canonical activation gate defined in `nn-preflight` (session greeting + deterministic preflight integrity check).
 
 ---
 
@@ -56,13 +35,13 @@ Before creating your interface, test and preview all 5 design styles in real tim
 
 Which visual design style would you like to apply to this artifact/component?
 
-  [a] (Recomendado) morado-nazareno — Brand classic: #4D0E4E primary, strict light mode, editorial serif + clean UI
+  [a] (Recommended) morado-nazareno — Brand classic: #4D0E4E primary, strict light mode, editorial serif + clean UI
   [b] sleek-dark — Modern dark tech mode: High-contrast dark (#090D16), cyan (#06B6D4) / violet (#8B5CF6) accents
   [c] glassmorphism — Ambient glass: Deep gradient backdrop, translucent panels, backdrop-filter blur, neon glow
   [d] neo-brutalism — Bold pop retro: Canary yellow (#FFE600), thick 3px black borders, hard 5px shadows, pop colors
   [e] nordic-warm-editorial — Organic luxury: Warm linen (#FDFBF7), forest green (#2D4A3E) & terracotta (#C85A32) accents
 
-*(Nota: Podés seleccionar una opción o una combinación)*
+*(Notice: You can select one option or a combination (e.g. A and B))*
 ```
 
 ---

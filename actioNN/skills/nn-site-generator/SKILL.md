@@ -13,29 +13,8 @@ bundled_templates: []
 
 # nn Site Generator
 
-## 0. MANDATORY ACTIVATION GATE (FIRST TURN - STRICT)
-
-Before answering ANY user question or executing ANY task in this conversation:
-
-1. **GREETING PROTOCOL**: Print as your VERY FIRST output line:
-   ```
-   🔧 You're using skill: nn-site-generator (🌐)
-   ```
-   *(Session-scoped: print once at the start of the interaction).*
-
-2. **INTEGRITY & PREFLIGHT CHECK**:
-   Run the deterministic preflight check:
-   `node ~/.agents/skills/nn-preflight/scripts/preflight-check.js` (or `node skills/nn-preflight/scripts/preflight-check.js` if running from a local repository checkout).
-
-3. **OUTDATED / MISSING COMPONENTS GATE**:
-   - If the script exits with code `0`: All components are up-to-date.
-   - If the script exits with code `1`: Updates or missing components were detected.
-     Show the report of outdated components and ask the user for confirmation:
-     *"⚠️ Se detectaron actualizaciones o componentes pendientes en el ecosistema cogNNitive:*
-      *[a] (Recomendado) Actualizar componentes ahora*
-      *[b] Continuar con la versión actual"*
-     Do NOT mutate files or update without the user's explicit consent.
-   - If the script exits with code `2` (Runtime Blocker): STOP and notify the user that Node.js >= 18 is required.
+## 0. Activation Gate
+Execute the canonical activation gate defined in `nn-preflight` (session greeting + deterministic preflight integrity check).
 
 ---
 
