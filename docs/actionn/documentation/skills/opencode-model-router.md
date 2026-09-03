@@ -1,8 +1,8 @@
 ---
 title: "Model Router — cogNNitive Skill"
 description: "Evaluates AI model suitability for each task across 4 task scales"
-html_url: https://actionn.cognnitive.com/docs/#/skills/opencode-model-router
-generator: https://actionn.cognnitive.com/nn-design-presets
+html_url: https://cognnitive.com/actionn/docs/#/skills/opencode-model-router
+generator: https://cognnitive.com/actionn/nn-design-presets
 ---
 
 # Model Router

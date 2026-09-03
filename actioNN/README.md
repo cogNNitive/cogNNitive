@@ -8,7 +8,7 @@
 
 actioNN is a collection of self-contained, domain-specialized skills that teach your AI agent to solve specific types of tasks — from model evaluation and document transformation to web design and skills lifecycle management. Each skill is an autonomous module with its own triggers, instructions, and behavior rules.
 
-[View site](https://actionn.cognnitive.com) · [Documentation](https://actionn.cognnitive.com/documentation/) · [Report issue](https://github.com/cogNNitive/actioNN/issues)
+[View site](https://cognnitive.com/actionn) · [Documentation](https://cognnitive.com/actionn/documentation/) · [Report issue](https://github.com/cogNNitive/actioNN/issues)
 
 ---
 

@@ -1,5 +1,5 @@
 * 🌐 **Ecosistema**: [cognnitive.com](https://cognnitive.com)
-* 📘 **iNNfo Specs & Engine**: [innfo.cognnitive.com](https://innfo.cognnitive.com/documentation/)
-* ⚡ **actioNN Skills Catalog**: [actionn.cognnitive.com](https://actionn.cognnitive.com/documentation/)
-* 🛠️ **iNNfo Modeler App**: [Abrir App](https://innfo.cognnitive.com/app/)
+* 📘 **iNNfo Specs & Engine**: [cognnitive.com/innfo](https://cognnitive.com/innfo/documentation/)
+* ⚡ **actioNN Skills Catalog**: [cognnitive.com/actionn](https://cognnitive.com/actionn/documentation/)
+* 🛠️ **iNNfo Modeler App**: [Abrir App](https://cognnitive.com/innfo/app/)
 * 🚀 **Bootstrap**: [Instalar en Agente](https://cognnitive.com/use)

@@ -94,15 +94,15 @@ level: 2
 title: "Composite Project Business"
 parent_spec:
   name: "iNNfo_V_0-2-0"
-  url: "https://innfo.cognnitive.com/specs/iNNfo_V_0-2-0_NN.md"
+  url: "https://cognnitive.com/innfo/specs/iNNfo_V_0-2-0_NN.md"
 includes:
   - name: "business"
-    url: "https://innfo.cognnitive.com/specs/templates/business/V_0-2-0/spec_NN.md"
+    url: "https://cognnitive.com/innfo/specs/templates/business/V_0-2-0/spec_NN.md"
     alias:
       concepts:
         "Task": "BusinessTask"
   - name: "projects"
-    url: "https://innfo.cognnitive.com/specs/templates/projects/V_0-2-0/spec_NN.md"
+    url: "https://cognnitive.com/innfo/specs/templates/projects/V_0-2-0/spec_NN.md"
     alias:
       concepts:
         "Task": "ProjectTask"

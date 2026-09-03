@@ -67,7 +67,7 @@ This skill guides LLMs and agents in authoring, creating from scratch (wizard), 
 > 1. `iNNfo` repository is the **Single Source of Truth** for all templates and specs. Do NOT duplicate template files across repositories.
 > 2. When resolving templates/specs without MCP: if a git fallback clone is required, the agent MUST clone into the system temporary directory (`$env:TEMP/innfo_tmp` or `~/.agents/tmp/`), read the required file, and **immediately delete the temporary folder**. The agent MUST NEVER clone git repositories or leave checkouts inside the user's workspace directory.
 > 3. **Windows Network Resilience**: In Windows environments, do NOT execute bare `curl` in PowerShell (which aliases to `Invoke-WebRequest` and fails SSL handshakes). Use `curl.exe` explicitly, Node.js native fetch (`node -e "fetch(...)"`), or git archive.
-> 4. **Web GUI & Preview Integration**: When asked to preview a model or element in Web GUI environments, prefer generating structured Markdown cards with interactive deep links (`https://innfo.cognnitive.com/app/workspace?view=editor&model={model_id}#{element_id}`) or inline SVG diagrams instead of un-sanitizable `<iframe>` tags.
+> 4. **Web GUI & Preview Integration**: When asked to preview a model or element in Web GUI environments, prefer generating structured Markdown cards with interactive deep links (`https://cognnitive.com/innfo/app/workspace?view=editor&model={model_id}#{element_id}`) or inline SVG diagrams instead of un-sanitizable `<iframe>` tags.
 
 ---
 
@@ -512,10 +512,10 @@ Cuando el proyecto escala a múltiples sub-modelos, presentar las **4 Alternativ
 
 ## 12. Checklist de Expectativa Visual (App Verification)
 
-Al finalizar la creación o modificación de un modelo, el agente DEBE imprimir el Checklist Visual con enlaces profundos dinámicos en lugar del genérico `https://innfo.cognnitive.com/app/`.
+Al finalizar la creación o modificación de un modelo, el agente DEBE imprimir el Checklist Visual con enlaces profundos dinámicos en lugar del genérico `https://cognnitive.com/innfo/app/`.
 
 ### Instrucción de construcción de URLs profundas:
-- **Base URL**: `https://innfo.cognnitive.com/app/workspace?view=editor`
+- **Base URL**: `https://cognnitive.com/innfo/app/workspace?view=editor`
 - **Model Query Parameter**: `&model=<model_id>` (donde `<model_id>` es el identificador del modelo/nombre del archivo sin extensión, ej: `arenzano_V_1-2-0_business`).
 - **Concept Deep Link (Hash)**: `#@<ConceptName>` (URL-encoded si tiene espacios, ej: `#@Market%20trends`).
 - **Element Deep Link (Hash)**: `#<ConceptName>.<ElementName>` (ej: `#Productos.CogNNitive`).
@@ -526,13 +526,13 @@ Ejemplo de checklist dinámico a generar:
 ```markdown
 📋 Checklist de Expectativa Visual en iNNfo Modeler (suponiendo que ya tenés el workspace abierto):
 
-- [ ] 🌳 [**Árbol Lateral de Navegación**](https://innfo.cognnitive.com/app/workspace?view=editor&model=<model_id>):
+- [ ] 🌳 [**Árbol Lateral de Navegación**](https://cognnitive.com/innfo/app/workspace?view=editor&model=<model_id>):
       Estructura jerárquica basada en `# NN index` con navegación fluida por conceptos y elementos.
-- [ ] 📋 [**Paneles de Campos por Concepto** (ej. <Concepto>)](https://innfo.cognnitive.com/app/workspace?view=editor&model=<model_id>#@<Concepto_url_encoded>):
+- [ ] 📋 [**Paneles de Campos por Concepto** (ej. <Concepto>)](https://cognnitive.com/innfo/app/workspace?view=editor&model=<model_id>#@<Concepto_url_encoded>):
       Vista detallada renderizada para cada `key:: value` (propiedades, tipos y referencias).
-- [ ] 🎴 [**Tarjetas de Elementos** (ej. <Elemento>)](https://innfo.cognnitive.com/app/workspace?view=editor&model=<model_id>#<Concepto_url_encoded>.<Elemento_url_encoded>):
+- [ ] 🎴 [**Tarjetas de Elementos** (ej. <Elemento>)](https://cognnitive.com/innfo/app/workspace?view=editor&model=<model_id>#<Concepto_url_encoded>.<Elemento_url_encoded>):
       Tarjetas interactivas por cada bloque `## NN <Concept>: <Element>` mostrando metadatos y descripciones.
-- [ ] 📊 [**Tablas de Matrices Comparativas**](https://innfo.cognnitive.com/app/workspace?view=matrices&model=<model_id>):
+- [ ] 📊 [**Tablas de Matrices Comparativas**](https://cognnitive.com/innfo/app/workspace?view=matrices&model=<model_id>):
       Tablas N-a-M de relaciones e `item-markers matrix` renderizadas con celdas interactivas (`X` / `-`).
 ```
 

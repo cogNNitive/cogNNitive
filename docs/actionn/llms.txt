@@ -2,13 +2,13 @@
 
 > AI Agent Skills ecosystem for OpenCode. Modular skills that power AI agents with specialized capabilities: model evaluation, skills management, document transformation, and web design.
 
-Generator: https://actionn.cognnitive.com/nn-design-presets
+Generator: https://cognnitive.com/actionn/nn-design-presets
 
 ## Pages
 
-- [Home](https://actionn.cognnitive.com/index.md): cogNNitive skills ecosystem landing page with skill cards, architecture overview, and installation instructions
-- [Documentation](https://actionn.cognnitive.com/documentation/README.md): Full documentation for all skills including Model Router, Skills Manager, traNNsform, and Web Design Guide
-- [Model Router](https://actionn.cognnitive.com/documentation/skills/opencode-model-router.md): Evaluates AI model suitability for each task across 4 task scales
-- [Skills Manager](https://actionn.cognnitive.com/documentation/skills/skills-manager.md): Meta-skill managing all repository skills lifecycle
-- [traNNsform](https://actionn.cognnitive.com/documentation/skills/trannsform.md): Document ingestion and transformation pipeline from PDF/DOCX to Markdown
-- [Web Design Guide](https://actionn.cognnitive.com/documentation/skills/web-design-guide.md): Light-mode design system with Morado Nazareno palette and 8px grid
+- [Home](https://cognnitive.com/actionn/index.md): cogNNitive skills ecosystem landing page with skill cards, architecture overview, and installation instructions
+- [Documentation](https://cognnitive.com/actionn/documentation/README.md): Full documentation for all skills including Model Router, Skills Manager, traNNsform, and Web Design Guide
+- [Model Router](https://cognnitive.com/actionn/documentation/skills/opencode-model-router.md): Evaluates AI model suitability for each task across 4 task scales
+- [Skills Manager](https://cognnitive.com/actionn/documentation/skills/skills-manager.md): Meta-skill managing all repository skills lifecycle
+- [traNNsform](https://cognnitive.com/actionn/documentation/skills/trannsform.md): Document ingestion and transformation pipeline from PDF/DOCX to Markdown
+- [Web Design Guide](https://cognnitive.com/actionn/documentation/skills/web-design-guide.md): Light-mode design system with Morado Nazareno palette and 8px grid

@@ -1,10 +1,10 @@
 # cogNNitive Web — Site Documentation
 
-This folder contains the source files for the [cogNNitive skills website](https://actionn.cognnitive.com), a static site generated using the [nn-design-presets](https://actionn.cognnitive.com/nn-design-presets) AI agent skill.
+This folder contains the source files for the [cogNNitive skills website](https://cognnitive.com/actionn), a static site generated using the [nn-design-presets](https://cognnitive.com/actionn/nn-design-presets) AI agent skill.
 
 ## Links
 
-- **Live site**: [https://actionn.cognnitive.com](https://actionn.cognnitive.com)
+- **Live site**: [https://cognnitive.com/actionn](https://cognnitive.com/actionn)
 - **GitHub repo**: [https://github.com/cogNNitive/actioNN](https://github.com/cogNNitive/actioNN)
 - **Web Design Guide skill**: `skills/nn-design-presets/SKILL.md`
 - **Umami dashboard**: [https://cloud.umami.is](https://cloud.umami.is)
@@ -44,7 +44,7 @@ docs/
 ├── favicon-32x32.png
 ├── apple-touch-icon.png
 ├── favicon.svg
-├── CNAME                   ← Custom domain: actionn.cognnitive.com
+├── CNAME                   ← Custom domain: cognnitive.com/actionn
 ├── robots.txt              ← AI crawler directives
 ├── sitemap.xml
 ├── llms.txt                ← LLM-friendly entry point
@@ -87,14 +87,14 @@ To point analytics to a different Umami project, get the new script tag from you
 
 ## Contact Section
 
-Every page includes a contact section. The current site uses a **URL-based contact** pointing to `https://actionn.cognnitive.com/contact?ref=actioNN`.
+Every page includes a contact section. The current site uses a **URL-based contact** pointing to `https://cognnitive.com/actionn/contact?ref=actioNN`.
 
 ### Option A: External URL (current)
 
 The contact section renders as a styled button linking to an external page:
 
 ```html
-<a href="https://actionn.cognnitive.com/contact?ref=actioNN" class="btn-primary">
+<a href="https://cognnitive.com/actionn/contact?ref=actioNN" class="btn-primary">
   Contact Us
 </a>
 ```
@@ -150,8 +150,8 @@ Every page follows the **Markdown twin pattern**: a `.md` source and an `.html` 
 ---
 title: Page Title
 description: Page description for SEO and AI crawlers
-html_url: https://actionn.cognnitive.com/path/to/page
-generator: https://actionn.cognnitive.com/nn-design-presets
+html_url: https://cognnitive.com/actionn/path/to/page
+generator: https://cognnitive.com/actionn/nn-design-presets
 ---
 
 # Page Title
@@ -213,7 +213,7 @@ The site deploys automatically via GitHub Pages whenever changes are pushed to t
 ### Configuration
 
 - **Settings > Pages > Source**: Deploy from branch `main`, folder `/docs`
-- **Custom domain**: `actionn.cognnitive.com` (set in `docs/CNAME` and DNS)
+- **Custom domain**: `cognnitive.com/actionn` (set in `docs/CNAME` and DNS)
 
 ### How to Deploy
 
@@ -232,12 +232,12 @@ git push origin main
 ```
 
 4. GitHub Actions builds and deploys automatically (usually 1-2 minutes)
-5. Visit [https://actionn.cognnitive.com](https://actionn.cognnitive.com) to confirm
+5. Visit [https://cognnitive.com/actionn](https://cognnitive.com/actionn) to confirm
 
 ### Verifying the Deployment
 
 - Check the **Environment** tab on the GitHub repo for deployment status
-- Or run: `curl -s -o /dev/null -w "%{http_code}" https://actionn.cognnitive.com` — should return `200`
+- Or run: `curl -s -o /dev/null -w "%{http_code}" https://cognnitive.com/actionn` — should return `200`
 
 ## Design Tokens
 

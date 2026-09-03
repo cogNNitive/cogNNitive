@@ -8,8 +8,8 @@ description: Knowledge Management made ridiculously simple for humans and AI. Tu
 
 Turn scattered documentation into living, structured knowledge that your team and your OpenCode AI agent understand.
 
-- [Open iNNfo Modeler App](https://innfo.cognnitive.com/app/)
-- [Explore Agent Skills](https://actionn.cognnitive.com)
+- [Open iNNfo Modeler App](https://cognnitive.com/innfo/app/)
+- [Explore Agent Skills](https://cognnitive.com/actionn)
 
 ---
 

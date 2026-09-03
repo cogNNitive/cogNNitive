@@ -6,7 +6,7 @@
  * Zero-dependency updater for the innfo-mcp server.
  *
  * Resolves the latest published version from iNNfo's production CDN manifest
- * (https://innfo.cognnitive.com/cdn/manifest.json — the same manifest
+ * (https://cognnitive.com/innfo/cdn/manifest.json — the same manifest
  * consumed by iNNfo/scripts/innfo-mcp.sh and innfo-mcp.ps1), compares it
  * against the version recorded in .cogNNitive/mcp-version.json, and downloads
  * the matching versioned bundle from that same CDN into .cogNNitive/mcp-bundle.js
@@ -25,8 +25,8 @@ const fs = require('fs');
 const path = require('path');
 const https = require('https');
 
-const MANIFEST_URL = 'https://innfo.cognnitive.com/cdn/manifest.json';
-const BUNDLE_URL_TEMPLATE = 'https://innfo.cognnitive.com/cdn/innfo-mcp-{version}.bundle.js';
+const MANIFEST_URL = 'https://cognnitive.com/innfo/cdn/manifest.json';
+const BUNDLE_URL_TEMPLATE = 'https://cognnitive.com/innfo/cdn/innfo-mcp-{version}.bundle.js';
 
 const ROOT_DIR = path.resolve(__dirname, '..');
 const STATE_DIR = path.join(ROOT_DIR, '.cogNNitive');

@@ -3,7 +3,7 @@ param()
 $CacheDir    = Join-Path $env:USERPROFILE ".cache\innfo-mcp"
 $VersionFile = Join-Path $CacheDir "current-version.txt"
 $BundleFile  = Join-Path $CacheDir "innfo-mcp.bundle.js"
-$ManifestUrl = "https://innfo.cognnitive.com/cdn/manifest.json"
+$ManifestUrl = "https://cognnitive.com/innfo/cdn/manifest.json"
 
 $null = New-Item -ItemType Directory -Path $CacheDir -Force
 
@@ -19,7 +19,7 @@ if ($latest) {
     $cached = if (Test-Path $VersionFile) { (Get-Content $VersionFile -Raw).Trim() } else { $null }
     if ($latest -ne $cached) {
         Write-Host "Downloading innfo-mcp $latest..."
-        $bundleUrl = "https://innfo.cognnitive.com/cdn/innfo-mcp-$latest.bundle.js"
+        $bundleUrl = "https://cognnitive.com/innfo/cdn/innfo-mcp-$latest.bundle.js"
         Invoke-WebRequest -Uri $bundleUrl -OutFile $BundleFile
         Set-Content -Path $VersionFile -Value $latest
         Write-Host "Done."

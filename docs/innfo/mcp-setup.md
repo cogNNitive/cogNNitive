@@ -4,7 +4,7 @@
 
 ## What is this
 
-innfo-mcp is an MCP server that provides semantic iNNfo tools (validate, list, read, apply changes). It's built as a single-file ESM bundle and served from `docs/cdn/` via GitHub Pages at `https://innfo.cognnitive.com/cdn/`.
+innfo-mcp is an MCP server that provides semantic iNNfo tools (validate, list, read, apply changes). It's built as a single-file ESM bundle and served from `docs/cdn/` via GitHub Pages at `https://cognnitive.com/innfo/cdn/`.
 
 ## Zero-clone setup (recommended)
 
@@ -32,7 +32,7 @@ set -e
 CACHE_DIR="${HOME}/.cache/innfo-mcp"
 VERSION_FILE="${CACHE_DIR}/current-version.txt"
 BUNDLE_FILE="${CACHE_DIR}/innfo-mcp.bundle.js"
-MANIFEST_URL="https://innfo.cognnitive.com/cdn/manifest.json"
+MANIFEST_URL="https://cognnitive.com/innfo/cdn/manifest.json"
 
 mkdir -p "${CACHE_DIR}"
 
@@ -50,7 +50,7 @@ if [ -n "${LATEST}" ]; then
     fi
     if [ "${LATEST}" != "${CACHED}" ]; then
         echo "Downloading innfo-mcp ${LATEST}..."
-        BUNDLE_URL="https://innfo.cognnitive.com/cdn/innfo-mcp-${LATEST}.bundle.js"
+        BUNDLE_URL="https://cognnitive.com/innfo/cdn/innfo-mcp-${LATEST}.bundle.js"
         if command -v curl >/dev/null 2>&1; then
             curl -sL "${BUNDLE_URL}" -o "${BUNDLE_FILE}"
         elif command -v wget >/dev/null 2>&1; then

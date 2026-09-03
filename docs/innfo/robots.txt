@@ -1,4 +1,4 @@
-﻿# AI Training & Grounding Ã¢â‚¬â€ https://actionn.cognnitive.com/nn-design-presets
+# AI Training & Grounding Ã¢â‚¬â€ https://cognnitive.com/actionn/nn-design-presets
 User-agent: GPTBot
 Allow: /
 
@@ -23,4 +23,4 @@ Allow: /
 # General crawlers
 User-agent: *
 Allow: /
-Sitemap: https://innfo.cognnitive.com/sitemap.xml
+Sitemap: https://cognnitive.com/innfo/sitemap.xml

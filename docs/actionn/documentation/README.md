@@ -1,8 +1,8 @@
 ---
 title: "cogNNitive — Documentation"
 description: "Technical documentation for the cogNNitive skills ecosystem"
-html_url: https://actionn.cognnitive.com/documentation/
-generator: https://actionn.cognnitive.com/nn-design-presets
+html_url: https://cognnitive.com/actionn/documentation/
+generator: https://cognnitive.com/actionn/nn-design-presets
 ---
 
 # cogNNitive — Documentation

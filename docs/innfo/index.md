@@ -7,8 +7,8 @@ description: "Model, edit, and validate knowledge models with the iNNfo Modeler 
 
 Model, edit, and query knowledge visually in your browser or conversationally with your OpenCode AI agent.
 
-- [Open iNNfo Modeler App](https://innfo.cognnitive.com/app/)
-- [Explore Documentation](https://innfo.cognnitive.com/documentation/)
+- [Open iNNfo Modeler App](https://cognnitive.com/innfo/app/)
+- [Explore Documentation](https://cognnitive.com/innfo/documentation/)
 
 ---
 

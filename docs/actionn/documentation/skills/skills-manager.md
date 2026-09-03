@@ -1,8 +1,8 @@
 ---
 title: "Skills Manager — cogNNitive Skill"
 description: "Skill that manages the install/update/audit lifecycle of cogNNitive skills"
-html_url: https://actionn.cognnitive.com/docs/#/skills/skills-manager
-generator: https://actionn.cognnitive.com/nn-design-presets
+html_url: https://cognnitive.com/actionn/docs/#/skills/skills-manager
+generator: https://cognnitive.com/actionn/nn-design-presets
 ---
 
 # Skills Manager

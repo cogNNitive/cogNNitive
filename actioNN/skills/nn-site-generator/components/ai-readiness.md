@@ -4,7 +4,7 @@
 
 Every page must include:
 ```html
-<meta name="generator" content="https://actionn.cognnitive.com/nn-design-presets">
+<meta name="generator" content="https://cognnitive.com/actionn/nn-design-presets">
 ```
 
 Footer visible credit: `Creado con <a href="{{SITE_URL}}">cogNNitive visual identity skill</a>` in `ink-muted` 13px.
@@ -39,7 +39,7 @@ Machine-readable manifest at site root:
 site:
   name: "{{SITE_NAME}}"
   url: "{{SITE_URL}}"
-  generator: "https://actionn.cognnitive.com/nn-design-presets"
+  generator: "https://cognnitive.com/actionn/nn-design-presets"
 pages:
   - path: "/"
     url: "{{SITE_URL}}/index.md"

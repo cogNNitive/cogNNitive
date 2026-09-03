@@ -16,7 +16,7 @@ Level 2 template YAML frontmatter MUST support an `alias` mapping block under `i
   ```yaml
   includes:
     - name: "business"
-      url: "https://innfo.cognnitive.com/specs/templates/business/V_0-2-0/spec_NN.md"
+      url: "https://cognnitive.com/innfo/specs/templates/business/V_0-2-0/spec_NN.md"
       alias:
         concepts:
           "Task": "BusinessTask"

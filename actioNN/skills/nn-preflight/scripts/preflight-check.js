@@ -33,7 +33,7 @@ const https = require('https');
 const { parseFocusedYaml, parseFrontmatter } = require('./lib/yaml-lite');
 
 const DEFAULT_MANIFEST_URL = process.env.SM_MANIFEST_URL ||
-  'https://raw.githubusercontent.com/cogNNitive/eNNvironment/main/docs/use/manifest.md';
+  'https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/docs/use/manifest.md';
 
 const DEFAULT_SKILLS_DIR = path.join(os.homedir(), '.agents', 'skills');
 const DEFAULT_TEMPLATES_DIR = path.join(os.homedir(), '.agents', 'templates');

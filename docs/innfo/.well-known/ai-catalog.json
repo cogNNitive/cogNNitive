@@ -5,6 +5,6 @@
   "description": "Central hub for the CogNNitive FORMAT ecosystem.",
   "generator": {
     "@type": "SoftwareApplication",
-    "url": "https://actionn.cognnitive.com/nn-design-presets"
+    "url": "https://cognnitive.com/actionn/nn-design-presets"
   }
 }

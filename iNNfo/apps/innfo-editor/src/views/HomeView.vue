@@ -194,7 +194,7 @@ const showWizard = ref(false)
 const folderBusy = ref(false)
 const folderInputRef = ref<HTMLInputElement | null>(null)
 
-const docsUrl = 'https://innfo.cognnitive.com/documentation/'
+const docsUrl = 'https://cognnitive.com/innfo/documentation/'
 
 async function openWorkspace(): Promise<void> {
   error.value = null

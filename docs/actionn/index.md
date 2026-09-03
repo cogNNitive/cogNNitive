@@ -7,8 +7,8 @@ description: "Modular skills ecosystem for AI agents in OpenCode. Model Router, 
 
 Teach your AI agent domain capabilities: model evaluation, skills management, document transformation, and web design.
 
-- [Open iNNfo Modeler App](https://innfo.cognnitive.com/app/)
-- [Explore Skills Documentation](https://actionn.cognnitive.com/documentation/)
+- [Open iNNfo Modeler App](https://cognnitive.com/innfo/app/)
+- [Explore Skills Documentation](https://cognnitive.com/actionn/documentation/)
 
 ---
 

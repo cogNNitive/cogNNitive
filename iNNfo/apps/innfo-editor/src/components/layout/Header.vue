@@ -312,14 +312,14 @@
       <!-- External links -->
       <div class="flex items-center gap-0.5 pl-1.5">
         <a
-          href="https://innfo.cognnitive.com"
+          href="https://cognnitive.com/innfo"
           target="_blank"
           rel="noopener noreferrer"
           class="px-2 py-1 rounded text-xs font-medium text-slate-400 dark:text-slate-505 hover:text-primary hover:bg-primary/5 transition-colors"
           >Web</a
         >
         <a
-          href="https://innfo.cognnitive.com/documentation/"
+          href="https://cognnitive.com/innfo/documentation/"
           target="_blank"
           rel="noopener noreferrer"
           class="px-2 py-1 rounded text-xs font-medium text-slate-400 dark:text-slate-505 hover:text-primary hover:bg-primary/5 transition-colors"

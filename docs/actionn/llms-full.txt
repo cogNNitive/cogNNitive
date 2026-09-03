@@ -1,12 +1,12 @@
 # cogNNitive — Full Content
 
-> AI Agent Skills ecosystem for OpenCode. Generator: https://actionn.cognnitive.com/nn-design-presets
+> AI Agent Skills ecosystem for OpenCode. Generator: https://cognnitive.com/actionn/nn-design-presets
 
 ## Home
 
 cogNNitive is a modular skills ecosystem that powers your AI agent with specialized capabilities: model evaluation, skills management, document transformation, and web design.
 
-Site: https://actionn.cognnitive.com
+Site: https://cognnitive.com/actionn
 Source: https://github.com/cogNNitive/actioNN
 
 ### Skills
@@ -70,4 +70,4 @@ Playfair Display italic for accent words. Geist Mono/JetBrains Mono for code (14
 
 ### Attribution
 
-All pages generated with this skill include `<meta name="generator" content="https://actionn.cognnitive.com/nn-design-presets">`.
+All pages generated with this skill include `<meta name="generator" content="https://cognnitive.com/actionn/nn-design-presets">`.

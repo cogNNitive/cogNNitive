@@ -1,8 +1,8 @@
 ---
 title: "cogNNitive — AI Agent Skills"
 description: "Skills ecosystem for AI agents. Model Router, Skills Manager, traNNsform, and Web Design Guide."
-html_url: https://actionn.cognnitive.com/
-generator: https://actionn.cognnitive.com/nn-design-presets
+html_url: https://cognnitive.com/actionn/
+generator: https://cognnitive.com/actionn/nn-design-presets
 ---
 
 # AI Agent Skills, Engineered for Any Agent
@@ -16,19 +16,19 @@ cogNNitive is a modular skills ecosystem that powers your AI agent with speciali
 
 ### Model Router
 Evaluates whether the AI model you're using is the right fit for each task. Classifies requests across 4 scales and recommends the optimal model based on cost and capability.
-[View documentation →](https://actionn.cognnitive.com/documentation/#/skills/opencode-model-router)
+[View documentation →](https://cognnitive.com/actionn/documentation/#/skills/opencode-model-router)
 
 ### Skills Manager
 Meta-skill that manages all skills in the repository. Scans, detects installation types (Junction, Symlink, Copy), and manages each skill's lifecycle.
-[View documentation →](https://actionn.cognnitive.com/documentation/#/skills/skills-manager)
+[View documentation →](https://cognnitive.com/actionn/documentation/#/skills/skills-manager)
 
 ### traNNsform
 Complete document ingestion and transformation pipeline. Converts PDFs, DOCX, and more to unified Markdown using the agent's own LLM as the transformation engine.
-[View documentation →](https://actionn.cognnitive.com/documentation/#/skills/trannsform)
+[View documentation →](https://cognnitive.com/actionn/documentation/#/skills/trannsform)
 
 ### Web Design Guide
 Complete design system with Morado Nazareno palette, systematic typography, and 8px grid. Includes guides for commercial layouts and technical documentation with Docsify.
-[View documentation →](https://actionn.cognnitive.com/documentation/#/skills/web-design-guide)
+[View documentation →](https://cognnitive.com/actionn/documentation/#/skills/web-design-guide)
 
 ## How it works
 
@@ -52,4 +52,4 @@ OpenCode fetches the bootstrap manifest, downloads all skills from GitHub, regis
 
 We'd love to hear from you. Questions, ideas, or feedback — reach out anytime.
 
-- [Contact Us](https://actionn.cognnitive.com/contact?ref=actioNN) — `https://actionn.cognnitive.com/contact?ref=actioNN`
+- [Contact Us](https://cognnitive.com/actionn/contact?ref=actioNN) — `https://cognnitive.com/actionn/contact?ref=actioNN`

@@ -1,6 +1,15 @@
 #!/usr/bin/env node
 const { execSync } = require('child_process');
 
+if (!process.env.GITHUB_TOKEN) {
+  try {
+    const token = execSync('gh auth token', { encoding: 'utf8' }).trim();
+    if (token) process.env.GITHUB_TOKEN = token;
+  } catch (_) {
+    // gh not installed or not logged in, fallback to unauthenticated
+  }
+}
+
 console.log('🔍 [cogNNitive Verify] Running workspace verification...');
 
 function run(cmd, desc) {

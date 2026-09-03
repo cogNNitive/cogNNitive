@@ -1,8 +1,8 @@
 ---
 title: "traNNsform — cogNNitive Skill"
 description: "Document ingestion and transformation pipeline from PDF/DOCX to unified Markdown"
-html_url: https://actionn.cognnitive.com/docs/#/skills/trannsform
-generator: https://actionn.cognnitive.com/nn-design-presets
+html_url: https://cognnitive.com/actionn/docs/#/skills/trannsform
+generator: https://cognnitive.com/actionn/nn-design-presets
 ---
 
 # traNNsform
