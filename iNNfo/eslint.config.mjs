@@ -13,19 +13,16 @@ import configPrettier from 'eslint-config-prettier'
  */
 export default tseslint.config(
   {
-    // Global ignores — build output, deps, test artifacts, and stale packages.
+    // Global ignores — build output, deps, test artifacts.
     ignores: [
       '**/dist/**',
       '**/node_modules/**',
       '**/e2e-reports/**',
       '**/test-results/**',
+      '**/playwright-report/**',
       '**/*.snap',
-      'packages/format-core/**',
-      'packages/format-mcp/**',
       'archive/**',
-      'Sandbox/**',
       // Published/built site output (bundled + minified) — not source.
-      'docs/app/**',
       '**/*.min.js',
       '**/*.bundle.js',
       'packages/innfo-mcp/bin/**',

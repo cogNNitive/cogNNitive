@@ -6,9 +6,15 @@
     "iNNfo/packages/*",
     "iNNfo/apps/*"
   ],
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "build:docs": "node scripts/build-docs.mjs",
     "typecheck:scripts": "tsc --noEmit -p tsconfig.scripts.json",
+    "lint": "npm --prefix iNNfo run lint",
+    "format": "npm --prefix iNNfo run format",
+    "format:check": "npm --prefix iNNfo run format:check",
     "verify": "npm --prefix iNNfo run typecheck && npm --prefix iNNfo test",
     "test": "npm --prefix iNNfo test",
     "typecheck": "npm --prefix iNNfo run typecheck"

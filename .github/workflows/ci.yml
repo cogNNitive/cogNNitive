@@ -17,6 +17,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # ── Workspace-level deterministic checks (template inventory, script
+  #    typecheck, manifest validity, docs build gate).
   verify:
     runs-on: ubuntu-latest
     steps:
@@ -40,8 +42,82 @@ jobs:
       - name: Build Docs & Bundles Gate
         run: npm run build:docs
 
+  # ── iNNfo quality gate: lint, typecheck, unit tests, app build. Previously
+  #    lived in iNNfo/.github/workflows/ci.yml, which GitHub Actions never ran
+  #    (only the repo-root .github/workflows/ is executed).
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm --prefix iNNfo ci
+
+      - name: Build core package
+        run: npm --prefix iNNfo/packages/innfo-core run build
+
+      - name: Lint
+        run: npm --prefix iNNfo run lint
+
+      - name: Format check (changed files)
+        if: github.event_name == 'pull_request'
+        working-directory: iNNfo
+        run: |
+          git fetch --no-tags --depth=1 origin ${{ github.base_ref }}
+          CHANGED=$(git diff --name-only --diff-filter=ACMR origin/${{ github.base_ref }}...HEAD \
+            -- '*.ts' '*.mts' '*.vue' '*.js' '*.mjs' '*.json' | sed -n 's#^iNNfo/##p' | tr '\n' ' ')
+          if [ -n "$CHANGED" ]; then
+            npx prettier --check --ignore-unknown $CHANGED
+          else
+            echo "No formattable iNNfo files changed."
+          fi
+
+      - name: Typecheck (app)
+        run: npm --prefix iNNfo/apps/innfo-editor run typecheck
+
+      - name: Unit tests (core)
+        run: npm --prefix iNNfo/packages/innfo-core test
+
+      - name: Unit tests (innfo-mcp)
+        run: npm --prefix iNNfo/packages/innfo-mcp test
+
+      - name: Unit tests (app)
+        run: npm --prefix iNNfo/apps/innfo-editor test
+
+      - name: Build app
+        run: npm --prefix iNNfo/apps/innfo-editor run build
+
+  # ── Every hardcoded raw.githubusercontent.com spec URL must resolve to a
+  #    file that exists; specs/ is immutable and filename-encoded.
+  spec-integrity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm --prefix iNNfo ci
+
+      - name: Check spec URLs resolve
+        run: npm --prefix iNNfo run check:spec-urls
+
+      - name: Spec version inventory (informational)
+        run: npm --prefix iNNfo run check:spec-version -- --inventory
+
   deploy-pages:
-    needs: verify
+    needs: [verify, quality, spec-integrity]
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment:
