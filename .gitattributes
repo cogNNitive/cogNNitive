@@ -1,0 +1,10 @@
+* text=auto eol=lf
+
+# Markdown is the iNNfo DSL — keep byte-exact, do not normalize.
+*.md text eol=lf
+
+# Binary
+*.png binary
+*.jpg binary
+*.svg text eol=lf
+*.bundle.js -diff
