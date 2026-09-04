@@ -2,13 +2,13 @@
 
 ## Purpose
 
-Keep `## NN ModelRef` entries in the workspace manifest additively synchronized with discovered Level-3 model files via a pure, ownership-marked reconciliation function, reachable from both the editor's filesystem watcher and an actioNN CLI command, without ever touching hand-authored entries or reordering the manifest.
+Keep `## NN ModelRef` entries in the workspace manifest additively synchronized with discovered Level-3 model files via a pure, ownership-marked reconciliation function, reachable from both the editor's save path and an `innfo-mcp` `sync_workspace_manifest` tool, without ever touching hand-authored entries or reordering the manifest.
 
 ## Requirements
 
 ### Requirement: Pure Additive Reconciliation Function
 
-`innfo-core` MUST expose a pure `reconcileManifest(manifestContent: string, discovered: DiscoveredModel[]) => { content: string; changes: ManifestChange[] }` in `src/workspace/reconcileManifest.ts`. It MUST perform no file I/O and MUST round-trip untouched entries byte-identically via the existing `rawSections`/`rawContent` serializer path.
+`innfo-core` MUST expose a pure `reconcileManifest(manifestContent: string, discovered: DiscoveredModel[]) => { content: string; changes: ManifestChange[] }` in `src/workspace/reconcileManifest.ts`. It MUST perform no file I/O. Because `ModelNode.rawSections` never carries element-bearing sections (a `# NN ModelRef` section, which contains elements, is never captured there — verified during design), it MUST round-trip untouched entries byte-identically by locating existing entries via a read-only parse and splicing only the changed spans into the original string, rather than re-serializing the whole document. When no change is needed for a given manifest, `reconcileManifest` MUST return the exact same string reference it was given (`result.content === manifestContent`), not merely an equal value.
 
 #### Scenario: Untouched entries round-trip byte-identically
 - GIVEN a manifest with a hand-authored `## 03 ModelRef: Legacy System` entry and a discovered set that already includes it
@@ -59,17 +59,17 @@ Reconciliation MUST match a discovered file to an existing `ModelRef` entry usin
 - WHEN `reconcileManifest()` matches discovered files to entries
 - THEN both normalize to the same key and are treated as the same model, avoiding a duplicate entry
 
-### Requirement: Editor and CLI Callers Over the Shared Pure Function
+### Requirement: Editor and MCP Tool Callers Over the Shared Pure Function
 
-Both `innfo-editor`'s filesystem watcher (on model file add/remove) and an actioNN CLI command MUST call `reconcileManifest()` and write the returned `content` back via the existing serializer. The CLI command MUST support a dry-run mode that reports `changes` without writing.
+Both `innfo-editor` and an `innfo-mcp` `sync_workspace_manifest` tool MUST call `reconcileManifest()` and write the returned `content` back to disk only when at least one non-`skipped-not-owned` change is present. There is no native filesystem-watch primitive available to the editor (the browser File System Access API exposes none), so the editor MUST trigger reconciliation from its own save path instead. The MCP tool MUST support a `dry_run` mode (default `true`) that reports `changes` (and a diff) without writing, and is the sanctioned headless/CLI-equivalent entry point — there is no separate actioNN binary for this.
 
-#### Scenario: Editor watcher triggers reconciliation on file add
-- GIVEN the editor's filesystem watcher detects a new Level-3 model file
-- WHEN the watcher fires
-- THEN it calls `reconcileManifest()` and persists the updated manifest content
+#### Scenario: Editor reconciles the manifest after saving a model file
+- GIVEN the editor saves a new Level-3 model file to disk
+- WHEN the save completes
+- THEN it calls `reconcileManifest()` and persists the updated manifest content only if a change was produced
 
-#### Scenario: CLI dry-run reports without writing
-- GIVEN the actioNN CLI command is invoked with a dry-run flag
+#### Scenario: MCP tool dry-run reports without writing
+- GIVEN `sync_workspace_manifest` is invoked with `dry_run: true` (the default)
 - WHEN it runs `reconcileManifest()` against the workspace
-- THEN it reports the computed `changes`
+- THEN it reports the computed `changes` and a diff
 - AND the manifest file on disk is not modified
