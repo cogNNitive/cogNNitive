@@ -10,154 +10,191 @@ export function parseYaml(yamlStr: string): Record<string, any> {
   }
 }
 
+/**
+ * The parsed frontmatter while it is still being normalized: a plain bag of
+ * `unknown` values. Each normalizer narrows the field(s) it owns and rewrites
+ * them into the canonical shape declared by `SpecFrontmatter`.
+ */
+type MutableFrontmatter = Record<string, unknown>
+
+/* ── narrowing helpers ─────────────────────────────────────────── */
+
+function asRecord(v: unknown): Record<string, unknown> | undefined {
+  return v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : undefined
+}
+
+/** `String(v ?? '')` — matches the historical coercion used by every list block. */
+function str(v: unknown): string {
+  return String(v ?? '')
+}
+
+/**
+ * Map an array-valued field entry-by-entry and drop the entries that map to
+ * `null`. Returns `undefined` (leave the field untouched) when `value` is not
+ * an array. Collapses the four near-identical `Array.isArray(x) ? x.map(...).filter(...)`
+ * blocks that `includes` / `procedures` / `skills` / `viewers` each repeated.
+ */
+function coerceList<T>(value: unknown, mapEntry: (entry: unknown) => T | null): T[] | undefined {
+  if (!Array.isArray(value)) return undefined
+  return value.map(mapEntry).filter((x): x is T => x !== null)
+}
+
+/**
+ * Pull `{ concepts?, fields? }` out of a raw `alias:` object. Matches the
+ * historical check: any non-null object value for `concepts` / `fields` is
+ * carried through verbatim.
+ */
+function normalizeAliasMap(raw: unknown): Record<string, unknown> {
+  const obj = asRecord(raw)
+  const aliasMap: Record<string, unknown> = {}
+  if (obj) {
+    if (obj.concepts && typeof obj.concepts === 'object') aliasMap.concepts = obj.concepts
+    if (obj.fields && typeof obj.fields === 'object') aliasMap.fields = obj.fields
+  }
+  return aliasMap
+}
+
+/* ── normalizers (each owns one field / legacy-name group) ─────── */
+
+/** `parent:` (string URL or legacy object) → `parent_spec: { url, name }`. */
+function normalizeParentSpec(fm: MutableFrontmatter): void {
+  if (!fm.parent || fm.parent_spec) return
+  if (typeof fm.parent === 'string') {
+    const url = fm.parent
+    const name =
+      url
+        .split(/[/\\]/)
+        .pop()
+        ?.replace(/\.(md|markdown)$/i, '')
+        .replace(/_(NN|FORMAT|F)$/i, '') || ''
+    fm.parent_spec = { url, name }
+  } else {
+    fm.parent_spec = fm.parent
+  }
+  delete fm.parent
+}
+
+/** Legacy FORMAT-era names: `specification_version|url` → `spec_version|url`. */
+function normalizeLegacyFieldNames(fm: MutableFrontmatter): void {
+  if (fm.specification_version && !fm.spec_version) fm.spec_version = fm.specification_version
+  if (fm.specification_url && !fm.spec_url) fm.spec_url = fm.specification_url
+}
+
+/**
+ * `includes:` — a bare string is shorthand for a name with no explicit URL
+ * (resolved locally by name); objects pass through with an optional `alias`.
+ */
+function normalizeIncludes(fm: MutableFrontmatter): void {
+  const out = coerceList(fm.includes, (entry) => {
+    if (typeof entry === 'string') {
+      const name = entry.replace(/\.(md|markdown)$/i, '').replace(/_(NN|FORMAT|F)$/i, '')
+      return name ? { name, url: '' } : null
+    }
+    const obj = asRecord(entry)
+    if (!obj) return null
+    const name = str(obj.name)
+    if (!name) return null
+    const res: Record<string, unknown> = { name, url: str(obj.url) }
+    if (obj.alias && typeof obj.alias === 'object') res.alias = normalizeAliasMap(obj.alias)
+    return res
+  })
+  if (out !== undefined) fm.includes = out
+}
+
+/** `procedures:` — `{ id, name, path, source_template? }`, dropped when `id` is empty. */
+function normalizeProcedures(fm: MutableFrontmatter): void {
+  const out = coerceList(fm.procedures, (p) => {
+    const obj = asRecord(p)
+    if (!obj) return null
+    const id = str(obj.id)
+    if (!id) return null
+    return {
+      id,
+      name: str(obj.name),
+      path: str(obj.path),
+      ...(obj.source_template ? { source_template: str(obj.source_template) } : {}),
+    }
+  })
+  if (out !== undefined) fm.procedures = out
+}
+
+/** `skills:` — `{ name, repo, path, source_template? }`, dropped when `name` is empty. */
+function normalizeSkills(fm: MutableFrontmatter): void {
+  const out = coerceList(fm.skills, (s) => {
+    const obj = asRecord(s)
+    if (!obj) return null
+    const name = str(obj.name)
+    if (!name) return null
+    return {
+      name,
+      repo: str(obj.repo),
+      path: str(obj.path),
+      ...(obj.source_template ? { source_template: str(obj.source_template) } : {}),
+    }
+  })
+  if (out !== undefined) fm.skills = out
+}
+
+/** `viewers:` — `{ id, view_type, ... }`, dropped when `id` or `view_type` is empty. */
+function normalizeViewers(fm: MutableFrontmatter): void {
+  const out = coerceList(fm.viewers, (v) => {
+    const obj = asRecord(v)
+    if (!obj) return null
+    const id = str(obj.id)
+    const viewType = str(obj.view_type ?? obj.type)
+    if (!id || !viewType) return null
+    return {
+      id,
+      view_type: viewType,
+      ...(obj.target_concept ? { target_concept: str(obj.target_concept) } : {}),
+      ...(obj.label ? { label: str(obj.label) } : {}),
+      ...(obj.icon ? { icon: str(obj.icon) } : {}),
+      ...(obj.description ? { description: str(obj.description) } : {}),
+      ...(obj.source_template ? { source_template: str(obj.source_template) } : {}),
+    }
+  })
+  if (out !== undefined) fm.viewers = out
+}
+
+/** Top-level `alias:` → `{ concepts?, fields? }`. */
+function normalizeTopLevelAlias(fm: MutableFrontmatter): void {
+  if (fm.alias && typeof fm.alias === 'object') fm.alias = normalizeAliasMap(fm.alias)
+}
+
+/**
+ * Legacy matrix reader tolerance (R-MM-08 / 4.5): `params: "a;b;c"` → `values`,
+ * and `widget` → `widgetType`. Mutates the matrix entries in place.
+ */
+function normalizeMatrices(fm: MutableFrontmatter): void {
+  if (!Array.isArray(fm.matrices)) return
+  for (const raw of fm.matrices) {
+    const m = asRecord(raw)
+    if (!m) continue
+    if (m.params && typeof m.params === 'string' && !m.values) {
+      m.values = m.params.split(';').map((s) => s.trim())
+    }
+    if (m.widget && !m.widgetType) {
+      m.widgetType = m.widget
+      delete m.widget
+    }
+  }
+}
+
+const NORMALIZERS: Array<(fm: MutableFrontmatter) => void> = [
+  normalizeParentSpec,
+  normalizeLegacyFieldNames,
+  normalizeIncludes,
+  normalizeProcedures,
+  normalizeSkills,
+  normalizeViewers,
+  normalizeTopLevelAlias,
+  normalizeMatrices,
+]
+
 export function parseFrontmatter(content: string): SpecFrontmatter | null {
   const match = normalizeSource(content).match(YAML_BLOCK_RE)
   if (!match) return null
-  const parsed = parseYaml(match[1])
-  // Normalize parent → parent_spec (supporting both new string URL and legacy parent object)
-  if ((parsed as any).parent && !(parsed as any).parent_spec) {
-    if (typeof (parsed as any).parent === 'string') {
-      const url = (parsed as any).parent
-      const name =
-        url
-          .split(/[/\\]/)
-          .pop()
-          ?.replace(/\.(md|markdown)$/i, '')
-          .replace(/_(NN|FORMAT|F)$/i, '') || ''
-      ;(parsed as any).parent_spec = { url, name }
-    } else {
-      ;(parsed as any).parent_spec = (parsed as any).parent
-    }
-    delete (parsed as any).parent
-  }
-  // Normalize legacy FORMAT-era field names (specification_* → spec_*)
-  if ((parsed as any).specification_version && !(parsed as any).spec_version) {
-    ;(parsed as any).spec_version = (parsed as any).specification_version
-  }
-  if ((parsed as any).specification_url && !(parsed as any).spec_url) {
-    ;(parsed as any).spec_url = (parsed as any).specification_url
-  }
-  // Normalize `includes` entries: a bare string is shorthand for a name with
-  // no explicit URL (resolved locally by name). Objects pass through with optional `alias`.
-  const includes = (parsed as any).includes
-  if (Array.isArray(includes)) {
-    ;(parsed as any).includes = includes
-      .map((entry: unknown) => {
-        if (typeof entry === 'string') {
-          const name = entry.replace(/\.(md|markdown)$/i, '').replace(/_(NN|FORMAT|F)$/i, '')
-          return { name, url: '' }
-        }
-        if (entry && typeof entry === 'object' && entry !== null) {
-          const e = entry as Record<string, unknown>
-          const res: any = { name: String(e.name ?? ''), url: String(e.url ?? '') }
-          if (e.alias && typeof e.alias === 'object' && e.alias !== null) {
-            const aliasObj = e.alias as Record<string, unknown>
-            const aliasMap: any = {}
-            if (aliasObj.concepts && typeof aliasObj.concepts === 'object') {
-              aliasMap.concepts = aliasObj.concepts
-            }
-            if (aliasObj.fields && typeof aliasObj.fields === 'object') {
-              aliasMap.fields = aliasObj.fields
-            }
-            res.alias = aliasMap
-          }
-          return res
-        }
-        return null
-      })
-      .filter((e: unknown): e is { name: string; url: string } => !!e && !!(e as any).name)
-  }
-  // Normalize `procedures` block
-  const procedures = (parsed as any).procedures
-  if (Array.isArray(procedures)) {
-    ;(parsed as any).procedures = procedures
-      .map((p: unknown) => {
-        if (p && typeof p === 'object' && p !== null) {
-          const obj = p as Record<string, unknown>
-          return {
-            id: String(obj.id ?? ''),
-            name: String(obj.name ?? ''),
-            path: String(obj.path ?? ''),
-            ...(obj.source_template ? { source_template: String(obj.source_template) } : {}),
-          }
-        }
-        return null
-      })
-      .filter(
-        (p: unknown): p is { id: string; name: string; path: string } => !!p && !!(p as any).id,
-      )
-  }
-  // Normalize `skills` block
-  const skills = (parsed as any).skills
-  if (Array.isArray(skills)) {
-    ;(parsed as any).skills = skills
-      .map((s: unknown) => {
-        if (s && typeof s === 'object' && s !== null) {
-          const obj = s as Record<string, unknown>
-          return {
-            name: String(obj.name ?? ''),
-            repo: String(obj.repo ?? ''),
-            path: String(obj.path ?? ''),
-            ...(obj.source_template ? { source_template: String(obj.source_template) } : {}),
-          }
-        }
-        return null
-      })
-      .filter(
-        (s: unknown): s is { name: string; repo: string; path: string } => !!s && !!(s as any).name,
-      )
-  }
-  // Normalize `viewers` block
-  const viewers = (parsed as any).viewers
-  if (Array.isArray(viewers)) {
-    ;(parsed as any).viewers = viewers
-      .map((v: unknown) => {
-        if (v && typeof v === 'object' && v !== null) {
-          const obj = v as Record<string, unknown>
-          const viewType = String(obj.view_type ?? obj.type ?? '')
-          return {
-            id: String(obj.id ?? ''),
-            view_type: viewType,
-            ...(obj.target_concept ? { target_concept: String(obj.target_concept) } : {}),
-            ...(obj.label ? { label: String(obj.label) } : {}),
-            ...(obj.icon ? { icon: String(obj.icon) } : {}),
-            ...(obj.description ? { description: String(obj.description) } : {}),
-            ...(obj.source_template ? { source_template: String(obj.source_template) } : {}),
-          }
-        }
-        return null
-      })
-      .filter(
-        (v: unknown): v is { id: string; view_type: string } =>
-          !!v && !!(v as any).id && !!(v as any).view_type,
-      )
-  }
-  // Normalize top-level `alias` block
-  const topAlias = (parsed as any).alias
-  if (topAlias && typeof topAlias === 'object' && topAlias !== null) {
-    const aliasObj = topAlias as Record<string, unknown>
-    const aliasMap: any = {}
-    if (aliasObj.concepts && typeof aliasObj.concepts === 'object') {
-      aliasMap.concepts = aliasObj.concepts
-    }
-    if (aliasObj.fields && typeof aliasObj.fields === 'object') {
-      aliasMap.fields = aliasObj.fields
-    }
-    ;(parsed as any).alias = aliasMap
-  }
-  // Normalize legacy matrix params → values (R-MM-08 / 4.5 reader tolerance)
-  const matrices = (parsed as any).matrices
-  if (Array.isArray(matrices)) {
-    for (const m of matrices) {
-      if (m.params && !m.values) {
-        m.values = m.params.split(';').map((s: string) => s.trim())
-      }
-      // R-MM-08 uses `widget`; the codebase uses `widgetType` (reader tolerance)
-      if (m.widget && !m.widgetType) {
-        m.widgetType = m.widget
-        delete m.widget
-      }
-    }
-  }
-  return parsed as SpecFrontmatter
+  const fm = parseYaml(match[1]) as MutableFrontmatter
+  for (const normalize of NORMALIZERS) normalize(fm)
+  return fm as SpecFrontmatter
 }
