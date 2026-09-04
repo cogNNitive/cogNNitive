@@ -47,6 +47,7 @@ import {
   pruneOrphanedSpecs,
 } from './tools/mutate.js'
 import { findRepoRoot } from './tools/repo-root.js'
+import { syncWorkspaceManifest } from './tools/workspace-sync.js'
 import { envelope, envelopeList } from '@cognnitive/innfo-core'
 
 /**
@@ -300,6 +301,21 @@ const toolDefinitions: Tool[] = [
     },
   },
   {
+    name: 'sync_workspace_manifest',
+    description:
+      'Reconcile the workspace manifest ## NN ModelRef entries against discovered Level-3 model files: additively appends new entries, archives entries whose file disappeared, and reactivates tool-owned entries whose file returned. Never touches hand-authored entries lacking the <!-- nn:auto --> ownership marker. Defaults to a dry run.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        root: { type: 'string', description: 'Optional workspace root directory override' },
+        dry_run: {
+          type: 'boolean',
+          description: 'Report computed changes/diff without writing (defaults to true)',
+        },
+      },
+    },
+  },
+  {
     name: 'list_template_procedures',
     description:
       'List all procedures defined in a template and its transitively included templates up to depth 10',
@@ -362,6 +378,8 @@ async function dispatchTool(name: string, args: Record<string, unknown>): Promis
         return await handleHydrateTemplate(args)
       case 'prune_orphaned_specs':
         return await handlePruneOrphanedSpecs(args)
+      case 'sync_workspace_manifest':
+        return await handleSyncWorkspaceManifest(args)
       case 'list_template_procedures':
         return await handleListTemplateProcedures(args)
       case 'list_template_skills':
@@ -492,6 +510,13 @@ async function handlePruneOrphanedSpecs(args: Record<string, unknown>): Promise<
   const backup = args.backup !== undefined ? Boolean(args.backup) : true
   const result = await pruneOrphanedSpecs(root, { dry_run, backup })
   return textResult(JSON.stringify(envelope('innfo-prune-orphaned-specs', result), null, 2))
+}
+
+async function handleSyncWorkspaceManifest(args: Record<string, unknown>): Promise<CallToolResult> {
+  const root = (args.root as string) || ROOT_DIR
+  const dry_run = args.dry_run !== undefined ? Boolean(args.dry_run) : true
+  const result = await syncWorkspaceManifest(root, { dry_run })
+  return textResult(JSON.stringify(envelope('innfo-sync-workspace-manifest', result), null, 2))
 }
 
 async function handleListTemplateProcedures(
