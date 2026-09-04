@@ -2,6 +2,8 @@ import type { ConceptField, ModelNode } from '../types'
 import type { RecursiveParseResult } from '../recursiveParser/types'
 import type { WorkspaceIndex } from '../recursiveParser/workspaceIndex'
 import type { ReferenceDiagnostic } from './references'
+import { normalizeSeparators } from '../parser/slug'
+import { stripMdSuffix } from '../recursiveParser/paths'
 
 /**
  * `[[Model Title :: Element Name]]` — the ONLY cross-model reference form
@@ -103,24 +105,196 @@ export function collectQualifiedReferenceCandidates(
   return candidates
 }
 
+/** Last path segment of a workspace-relative path, tolerating backslashes. Mirrors the private helper in `recursiveParser/workspaceIndex.ts` — kept local because this PR's file scope is `workspaceReferences.ts` only. */
+function basename(p: string): string {
+  const normalized = p.replace(/\\/g, '/')
+  const segments = normalized.split('/').filter(Boolean)
+  return segments[segments.length - 1] ?? normalized
+}
+
+/**
+ * Mirrors the `target_template` matcher already used for per-file `type::
+ * model` checks (`references.ts:189-198`): exact name, exact url, url
+ * suffix variants (`/<expected>`, `/<expected>.md`, `/<expected>_NN.md`),
+ * name suffix. The rules are replicated rather than imported because this
+ * PR's file scope does not touch `references.ts`.
+ */
+function matchesTargetTemplate(expectedTemplate: string, actual: { name?: string; url?: string }): boolean {
+  const expected = expectedTemplate.trim().toLowerCase()
+  const actualName = (actual.name ?? '').trim().toLowerCase()
+  const actualUrl = (actual.url ?? '').trim().toLowerCase()
+  return (
+    actualName === expected ||
+    actualUrl === expected ||
+    actualUrl.endsWith(`/${expected}`) ||
+    actualUrl.endsWith(`/${expected}.md`) ||
+    actualUrl.endsWith(`/${expected}_NN.md`) ||
+    actualName.endsWith(expected)
+  )
+}
+
+/** Builds the `elements.<Concept>.<Element>.fields.<field>` diagnostic path, prefixed by the referring model's file path so a workspace-scope diagnostic is attributable to a file. */
+function diagnosticPath(root: ModelNode, concept: string, element: ModelNode, fieldDef: ConceptField): string {
+  return `${root.source.path}#elements.${concept}.${element.name}.fields.${fieldDef.name}`
+}
+
+/** Node id -> source file path, falling back to the id itself when the node can't be found. */
+function pathForNodeId(id: string, result: RecursiveParseResult): string {
+  return result.nodes[id]?.source?.path ?? id
+}
+
+/**
+ * Resolution ladder (AD-05): `titleToNodeIds[t]` exact -> `fileNameToNodeIds[t]`
+ * exact -> `titleToNodeIds[normalizeSeparators(t)]` -> `fileNameToNodeIds[normalizeSeparators(t)]`.
+ * Stops at the first tier that produces any hit (whether 1 or many) — later
+ * tiers are only tried when the current tier is completely empty.
+ */
+function resolveTargetModel(
+  modelTitle: string,
+  index: WorkspaceIndex,
+): { nodeIds: string[]; exact: boolean } {
+  const lower = modelTitle.trim().toLowerCase()
+  const normalized = normalizeSeparators(lower)
+
+  const exactTitle = index.titleToNodeIds[lower] ?? []
+  if (exactTitle.length > 0) return { nodeIds: exactTitle, exact: true }
+
+  const exactFile = index.fileNameToNodeIds[lower] ?? []
+  if (exactFile.length > 0) return { nodeIds: exactFile, exact: true }
+
+  const normalizedTitle = index.titleToNodeIds[normalized] ?? []
+  if (normalizedTitle.length > 0) return { nodeIds: normalizedTitle, exact: false }
+
+  const normalizedFile = index.fileNameToNodeIds[normalized] ?? []
+  return { nodeIds: normalizedFile, exact: false }
+}
+
+/**
+ * When `index.missing` (paths referenced but never parsed, `ParseIssue` code
+ * `MODEL_NOT_FOUND`) contains a path whose basename matches the unresolved
+ * target, returns a hint sentence to append to the dangling-model error.
+ */
+function missingFileHint(modelTitle: string, index: WorkspaceIndex): string {
+  const target = normalizeSeparators(modelTitle.trim().toLowerCase())
+  const hasMatch = index.missing.some((missingPath) => {
+    const base = normalizeSeparators(stripMdSuffix(basename(missingPath)).toLowerCase())
+    return base === target
+  })
+  return hasMatch ? ' (a reference to that file exists but the file was not found)' : ''
+}
+
 /**
  * Runs the four ordered checks for a single qualified reference: target
  * model exists, target element exists, concept membership, template
- * membership (short-circuiting after check 1 or 2 fails).
+ * membership. Short-circuits after check 1 or 2 fails — checks 3 and 4 only
+ * run once the target model and element both resolved.
  *
- * STUBBED for this slice (R5 split seam, PR5a) — always returns `[]`.
- * PR5b implements the checks against `WorkspaceIndex.titleToNodeIds` /
- * `fileNameToNodeIds` / `nodeElementConcepts` / `nodeTemplate`, per
- * design.md §4 Slice 5.
+ * Severities are fixed by proposal decision 5: `error` for dangling
+ * model/element and ambiguity; `warning` for concept mismatch, template
+ * mismatch, and normalized-fallback matches.
+ *
+ * Duplicate-title errors are produced by `buildWorkspaceIndex` (PR4) and
+ * surfaced by hosts from `index.issues`; this function never re-emits them —
+ * it only reports *use-site* ambiguity (a specific reference resolving to
+ * more than one model).
  */
 function checkOne(
-  _root: ModelNode,
-  _element: ModelNode,
-  _concept: string,
-  _fieldDef: ConceptField,
-  _ref: QualifiedRef,
+  root: ModelNode,
+  element: ModelNode,
+  concept: string,
+  fieldDef: ConceptField,
+  ref: QualifiedRef,
+  index: WorkspaceIndex,
+  result: RecursiveParseResult,
 ): ReferenceDiagnostic[] {
-  return []
+  const diagnostics: ReferenceDiagnostic[] = []
+  const path = diagnosticPath(root, concept, element, fieldDef)
+
+  // Check 1: target model exists.
+  const { nodeIds, exact } = resolveTargetModel(ref.modelTitle, index)
+
+  if (nodeIds.length === 0) {
+    diagnostics.push({
+      path,
+      message: `Dangling cross-model reference: model "${ref.modelTitle}" is not present in this workspace${missingFileHint(ref.modelTitle, index)}`,
+      severity: 'error',
+    })
+    return diagnostics
+  }
+
+  if (nodeIds.length > 1) {
+    const paths = nodeIds.map((id) => pathForNodeId(id, result))
+    diagnostics.push({
+      path,
+      message: `Ambiguous cross-model reference: model title "${ref.modelTitle}" matches ${nodeIds.length} models (${paths.join(', ')})`,
+      severity: 'error',
+    })
+    return diagnostics
+  }
+
+  const targetId = nodeIds[0]
+
+  if (!exact) {
+    diagnostics.push({
+      path,
+      message: `Cross-model reference "${ref.raw}" matched model "${pathForNodeId(targetId, result)}" only after separator normalization`,
+      severity: 'warning',
+    })
+  }
+
+  // Check 2: target element exists.
+  const elementConceptsForTarget = index.nodeElementConcepts[targetId] ?? {}
+  const elementKey = ref.elementName.trim().toLowerCase()
+  const normalizedElementKey = normalizeSeparators(elementKey)
+  const exactOwners = elementConceptsForTarget[elementKey]
+  const normalizedOwners = elementConceptsForTarget[normalizedElementKey]
+  const owningConcepts = exactOwners ?? normalizedOwners
+
+  if (!owningConcepts) {
+    diagnostics.push({
+      path,
+      message: `Dangling cross-model reference: element "${ref.elementName}" does not exist in model "${ref.modelTitle}"`,
+      severity: 'error',
+    })
+    return diagnostics
+  }
+
+  if (!exactOwners) {
+    diagnostics.push({
+      path,
+      message: `Cross-model reference "${ref.raw}" matched element "${ref.elementName}" in model "${ref.modelTitle}" only after separator normalization`,
+      severity: 'warning',
+    })
+  }
+
+  // Check 3: concept membership.
+  if (fieldDef.target_concepts && fieldDef.target_concepts.length > 0) {
+    const allowed = fieldDef.target_concepts.map((c) => c.toLowerCase())
+    const allowedMatch = owningConcepts.some((c) => allowed.includes(c.toLowerCase()))
+    if (!allowedMatch) {
+      diagnostics.push({
+        path,
+        message: `Cross-model reference "${ref.raw}" in field "${fieldDef.name}" resolves to element "${ref.elementName}" in model "${ref.modelTitle}" but that element belongs to concept(s) "${owningConcepts.join(', ')}" which is not in target_concepts of the field`,
+        severity: 'warning',
+      })
+    }
+  }
+
+  // Check 4: template membership.
+  if (fieldDef.target_template) {
+    const actualTemplate = index.nodeTemplate[targetId]
+    const matches = actualTemplate ? matchesTargetTemplate(fieldDef.target_template, actualTemplate) : false
+    if (!matches) {
+      const actualLabel = actualTemplate?.name ?? actualTemplate?.url ?? 'unknown'
+      diagnostics.push({
+        path,
+        message: `Cross-model reference "${ref.raw}" in field "${fieldDef.name}" expects template "${fieldDef.target_template}", but model "${ref.modelTitle}" uses template "${actualLabel}"`,
+        severity: 'warning',
+      })
+    }
+  }
+
+  return diagnostics
 }
 
 /**
@@ -138,7 +312,15 @@ export function validateWorkspaceReferences(
   const diagnostics: ReferenceDiagnostic[] = []
   for (const candidate of collectQualifiedReferenceCandidates(result, index)) {
     diagnostics.push(
-      ...checkOne(candidate.root, candidate.element, candidate.concept, candidate.fieldDef, candidate.ref),
+      ...checkOne(
+        candidate.root,
+        candidate.element,
+        candidate.concept,
+        candidate.fieldDef,
+        candidate.ref,
+        index,
+        result,
+      ),
     )
   }
   return diagnostics
