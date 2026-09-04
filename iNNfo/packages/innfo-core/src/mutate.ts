@@ -325,10 +325,6 @@ function renameConcept(model: ParsedModel, args: Record<string, unknown>): Mutat
   return { success: true }
 }
 
-function escapeRegExp(str: string): string {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-}
-
 export function updateReferenceString(text: string, oldName: string, newName: string): string {
   if (!text || typeof text !== 'string') return text
   const oldSlug = slugify(oldName)
