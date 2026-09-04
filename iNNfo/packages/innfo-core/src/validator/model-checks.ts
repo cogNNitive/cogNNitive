@@ -1,11 +1,10 @@
 import type { Concept, Marker, MatrixDecl, ParsedModel } from '../types'
 import type { Diagnostics } from '../diagnostics'
 import { checkElementsAgainstSchema } from '../schema'
+import { RESERVED_CONCEPT_NAMES } from './constants'
 
 /** One element group as consumed by `checkElementsAgainstSchema`. */
 export type ElementGroup = [string, Array<{ name: string; fields: Record<string, unknown> }>]
-
-const RESERVED_CONCEPT_NAMES = new Set(['Concepts', 'Elements', 'Markers'])
 
 /**
  * Frontmatter-level invariants that do not need the resolved template:

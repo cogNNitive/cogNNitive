@@ -1,4 +1,31 @@
-export type ConceptType = 'text' | 'list' | 'category' | 'weight' | 'steps' | 'sequence' | 'model'
+/** Concept `type::` values. The `as const` array is the single source of
+ *  truth; `ConceptType` is derived from it so the two cannot drift. */
+export const CONCEPT_TYPES = [
+  'text',
+  'list',
+  'category',
+  'weight',
+  'steps',
+  'sequence',
+  'model',
+] as const
+export type ConceptType = (typeof CONCEPT_TYPES)[number]
+
+/** Field Definition `type::` values (single source of truth for `FieldType`). */
+export const FIELD_TYPES = [
+  'string',
+  'select',
+  'reference',
+  'image',
+  'file',
+  'video',
+  'audio',
+  'markdown_inline',
+  'markdown_file',
+  'model',
+] as const
+export type FieldType = (typeof FIELD_TYPES)[number]
+
 export type SpecLevel = 0 | 1 | 2 | 3
 
 export interface ParentRef {
@@ -59,17 +86,7 @@ export interface ReachabilityGraph {
 
 export interface ConceptField {
   name: string
-  type:
-    | 'string'
-    | 'select'
-    | 'reference'
-    | 'image'
-    | 'file'
-    | 'video'
-    | 'audio'
-    | 'markdown_inline'
-    | 'markdown_file'
-    | 'model'
+  type: FieldType
   options?: string[]
   target_concepts?: string[]
   target_template?: string

@@ -1,6 +1,6 @@
 import { ValidationCheck, ValidationReport } from '../types'
 import { parseModel } from '../parser'
-import { VERSION_RE, WIKILINK_RE, SECTION_NN_RE } from './constants'
+import { VERSION_RE, WIKILINK_RE, SECTION_NN_RE, RESERVED_CONCEPT_NAMES } from './constants'
 import { CONCEPT_DEFINITION } from '../schema'
 
 /**
@@ -25,7 +25,6 @@ export function validateFormatContent(
   // Level-2 templates declare concepts as `# NN Concept Definition` body
   // elements; there is no frontmatter `concepts` block anymore.
 
-  const RESERVED_CONCEPT_NAMES = new Set(['Concepts', 'Elements', 'Markers'])
   const reservedViolations: string[] = []
   for (const el of parsed.elements.get(CONCEPT_DEFINITION) ?? []) {
     if (RESERVED_CONCEPT_NAMES.has(el.name)) {
