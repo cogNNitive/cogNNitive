@@ -496,6 +496,130 @@ describe('recursiveParse (index.md-driven)', () => {
   })
 })
 
+describe('diamond vs cycle (ancestorKeys)', () => {
+  function makeWorkspaceRoot(wikilinks: string[]): string {
+    const items = wikilinks.map((w) => `[[${w}]]`).join('\n')
+    return `---\nspec_version: "V_0-1-2"\nlevel: 0\ntitle: "Workspace Root"\n---\n\n${items}\n`
+  }
+
+  it('diamond-no-issue-both-edges: a diamond reached via two independent parents links both edges and emits no issue', async () => {
+    const root = fakeDir('workspace', [
+      ['workspace_NN.md', fakeFile('workspace_NN.md', makeWorkspaceRoot(['x_NN.md', 'p_NN.md']))],
+      ['x_NN.md', fakeFile('x_NN.md', makeModel('X'))],
+      ['p_NN.md', fakeFile('p_NN.md', makeModel('P', '\n[[x_NN.md]]\n'))],
+    ])
+
+    const result = await recursiveParse(root)
+
+    const wNode = Object.values(result.nodes).find((n) => n.name === 'workspace')
+    const xNodes = Object.values(result.nodes).filter((n) => n.name === 'x')
+    const pNode = Object.values(result.nodes).find((n) => n.name === 'p')
+
+    expect(wNode).toBeDefined()
+    expect(pNode).toBeDefined()
+    expect(xNodes).toHaveLength(1)
+
+    const xNode = xNodes[0]
+    expect(result.issues.filter((i) => i.code === 'CYCLE_DETECTED')).toHaveLength(0)
+    expect(pNode!.childIds).toContain(xNode.id)
+    expect(wNode!.childIds).toContain(xNode.id)
+    expect(xNode.parentId).toBe(wNode!.id)
+  })
+
+  it('true-cycle-still-errors: a mutual reference through an ancestor chain is still flagged as a cycle', async () => {
+    const root = fakeDir('workspace', [
+      ['workspace_NN.md', fakeFile('workspace_NN.md', makeWorkspaceRoot(['a_NN.md']))],
+      ['a_NN.md', fakeFile('a_NN.md', makeModel('A', '\n[[b_NN.md]]\n'))],
+      ['b_NN.md', fakeFile('b_NN.md', makeModel('B', '\n[[a_NN.md]]\n'))],
+    ])
+
+    const result = await recursiveParse(root)
+
+    const cycleIssues = result.issues.filter((i) => i.code === 'CYCLE_DETECTED')
+    expect(cycleIssues).toHaveLength(1)
+    expect(cycleIssues[0].path).toContain('a_NN.md')
+  })
+
+  it('cycle-back-to-entrypoint: a reference chain looping back to the entrypoint is a cycle, proving ancestorKeys is seeded from it', async () => {
+    const root = fakeDir('workspace', [
+      ['workspace_NN.md', fakeFile('workspace_NN.md', makeWorkspaceRoot(['a_NN.md']))],
+      ['a_NN.md', fakeFile('a_NN.md', makeModel('A', '\n[[workspace_NN.md]]\n'))],
+    ])
+
+    const result = await recursiveParse(root)
+
+    const cycleIssues = result.issues.filter((i) => i.code === 'CYCLE_DETECTED')
+    expect(cycleIssues).toHaveLength(1)
+  })
+
+  it('self-ref-is-filtered-at-extraction: a model linking to itself produces no issue and no duplicate node', async () => {
+    const root = fakeDir('workspace', [
+      ['workspace_NN.md', fakeFile('workspace_NN.md', makeWorkspaceRoot(['a_NN.md']))],
+      ['a_NN.md', fakeFile('a_NN.md', makeModel('A', '\n[[./a_NN.md]]\n'))],
+    ])
+
+    const result = await recursiveParse(root)
+
+    expect(result.issues).toHaveLength(0)
+    const aNodes = Object.values(result.nodes).filter((n) => n.name === 'a')
+    expect(aNodes).toHaveLength(1)
+  })
+
+  it('max-depth-boundary-with-diamond: the first arrival sets depth; a second parent that also exceeds MAX_DEPTH is a silent no-op, not a second issue', async () => {
+    const entries: DirEntries = [
+      ['workspace_NN.md', fakeFile('workspace_NN.md', makeWorkspaceRoot(['level_1_NN.md']))],
+    ]
+    for (let i = 1; i <= 8; i++) {
+      entries.push([
+        `level_${i}_NN.md`,
+        fakeFile(`level_${i}_NN.md`, makeModel(`Level ${i}`, `\n[[level_${i + 1}_NN.md]]\n`)),
+      ])
+    }
+    entries.push([
+      'level_9_NN.md',
+      fakeFile(
+        'level_9_NN.md',
+        makeModel('Level 9', '\n[[level_10a_NN.md]]\n[[level_10b_NN.md]]\n'),
+      ),
+    ])
+    entries.push([
+      'level_10a_NN.md',
+      fakeFile('level_10a_NN.md', makeModel('Level 10a', '\n[[shared_11_NN.md]]\n')),
+    ])
+    entries.push([
+      'level_10b_NN.md',
+      fakeFile('level_10b_NN.md', makeModel('Level 10b', '\n[[shared_11_NN.md]]\n')),
+    ])
+    entries.push(['shared_11_NN.md', fakeFile('shared_11_NN.md', makeModel('Shared 11'))])
+
+    const root = fakeDir('workspace', entries)
+    const result = await recursiveParse(root)
+
+    const depthIssues = result.issues.filter((i) => i.code === 'DEPTH_LIMIT')
+    expect(depthIssues).toHaveLength(1)
+    expect(result.issues.filter((i) => i.code === 'CYCLE_DETECTED')).toHaveLength(0)
+    const sharedNode = Object.values(result.nodes).find((n) => n.name === 'shared_11')
+    expect(sharedNode).toBeUndefined()
+  })
+
+  it('diamond-does-not-reparent: a diamond edge never overwrites the primary parentId', async () => {
+    const root = fakeDir('workspace', [
+      ['workspace_NN.md', fakeFile('workspace_NN.md', makeWorkspaceRoot(['x_NN.md', 'p_NN.md']))],
+      ['x_NN.md', fakeFile('x_NN.md', makeModel('X'))],
+      ['p_NN.md', fakeFile('p_NN.md', makeModel('P', '\n[[x_NN.md]]\n'))],
+    ])
+
+    const result = await recursiveParse(root)
+
+    const wNode = Object.values(result.nodes).find((n) => n.name === 'workspace')
+    const xNode = Object.values(result.nodes).find((n) => n.name === 'x')
+    const pNode = Object.values(result.nodes).find((n) => n.name === 'p')
+
+    expect(pNode!.childIds).toContain(xNode!.id)
+    expect(xNode!.parentId).toBe(wNode!.id)
+  })
+})
+
 describe('normalizeSingleModel', () => {
   it('parses a single model file directly and returns normalized nodes and issues', () => {
     const modelContent = makeModel(
