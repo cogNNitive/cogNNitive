@@ -8,7 +8,7 @@ export function envelopeVersion(contract: string, major: number = ENVELOPE_MAJOR
   return `${contract}@${major}`
 }
 
-export function envelope<T extends Record<string, unknown>>(
+export function envelope<T extends object>(
   contract: string,
   payload: T,
 ): T & VersionedEnvelope {

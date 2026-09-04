@@ -83,6 +83,9 @@ jobs:
       - name: Typecheck (app)
         run: npm --prefix iNNfo/apps/innfo-editor run typecheck
 
+      - name: Typecheck (innfo-mcp)
+        run: npm --prefix iNNfo/packages/innfo-mcp run typecheck
+
       - name: Unit tests (core)
         run: npm --prefix iNNfo/packages/innfo-core test
 

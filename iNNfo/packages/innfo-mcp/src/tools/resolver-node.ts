@@ -1,4 +1,4 @@
-import { readdir, readFile, mkdir, writeFile, rename } from 'node:fs/promises'
+import { readdir, readFile, mkdir, writeFile, rename, rm } from 'node:fs/promises'
 import { join, basename, isAbsolute } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { homedir } from 'node:os'
