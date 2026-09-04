@@ -22,6 +22,7 @@
     "build:bundle": "tsup",
     "deploy:cdn": "node -e \"const v=require('./package.json').version; const fs=require('fs'); const path=require('path'); const cdnDir=path.resolve(process.cwd(),'../../../docs/innfo/cdn'); fs.cpSync(path.join(process.cwd(),'bin/innfo-mcp.bundle.js'), path.join(cdnDir,'innfo-mcp-v'+v+'.bundle.js')); fs.writeFileSync(path.join(cdnDir,'manifest.json'), JSON.stringify({latest:'v'+v,updated:new Date().toISOString().split('T')[0]},null,2)); console.log('CDN deployed: v'+v)\"",
     "start": "node dist/server.js",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
