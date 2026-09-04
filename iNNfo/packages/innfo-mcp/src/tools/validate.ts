@@ -1,6 +1,6 @@
-import { readFile } from 'node:fs/promises'
+import { readFile, readdir, stat } from 'node:fs/promises'
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
-import { basename, dirname, join } from 'node:path'
+import { basename, dirname, join, relative } from 'node:path'
 import {
   parseModel,
   validateDocument,
@@ -8,6 +8,9 @@ import {
   resolveTemplateSchema,
   SpecResolutionError,
   parseFrontmatter,
+  recursiveParse,
+  buildWorkspaceIndex,
+  validateWorkspaceReferences,
 } from '@cognnitive/innfo-core'
 import type {
   SpecDocument,
@@ -16,6 +19,9 @@ import type {
   SubmodelResolver,
   SpecCache,
   TemplateSchemaResolver,
+  DirectoryHandleLike,
+  FileHandleLike,
+  ReferenceDiagnostic,
 } from '@cognnitive/innfo-core'
 import { resolveTemplateWithCache, findModelFile, deriveNameFromUrl, getSpec } from './spec.js'
 import { buildIncludeContentMap } from './resolver-node.js'
@@ -122,6 +128,108 @@ export function buildTemplateSchemaResolverFromCache(
   }
 }
 
+/* ── Node-backed DirectoryHandleLike (workspace mode) ──────────── */
+
+/**
+ * Minimal `FileHandleLike` reading a single real file lazily (only when
+ * `getFile().text()` is actually awaited), backed by `node:fs/promises`.
+ */
+function createNodeFileHandle(filePath: string, name: string): FileHandleLike {
+  return {
+    kind: 'file',
+    name,
+    async getFile() {
+      const text = await readFile(filePath, 'utf-8')
+      return { text: async () => text }
+    },
+  }
+}
+
+/**
+ * Minimal `DirectoryHandleLike` backed by `node:fs/promises`, so
+ * `recursiveParse` can walk `rootDir` directly (no `ModelDriver`
+ * implementation needed — `recursiveParse` falls back to plain
+ * `DirectoryHandleLike` traversal whenever no driver is supplied).
+ */
+function createNodeDirectoryHandle(dirPath: string): DirectoryHandleLike {
+  return {
+    kind: 'directory',
+    name: basename(dirPath) || dirPath,
+    async *entries() {
+      let dirents
+      try {
+        dirents = await readdir(dirPath, { withFileTypes: true })
+      } catch {
+        return
+      }
+      for (const dirent of dirents) {
+        if (dirent.isDirectory()) {
+          yield [dirent.name, createNodeDirectoryHandle(join(dirPath, dirent.name))] as [
+            string,
+            DirectoryHandleLike,
+          ]
+        } else if (dirent.isFile()) {
+          yield [dirent.name, createNodeFileHandle(join(dirPath, dirent.name), dirent.name)] as [
+            string,
+            FileHandleLike,
+          ]
+        }
+      }
+    },
+    async getFileHandle(name: string) {
+      const filePath = join(dirPath, name)
+      try {
+        const stats = await stat(filePath)
+        if (!stats.isFile()) throw new Error('not a file')
+      } catch {
+        throw Object.assign(new Error(`file not found: ${name}`), { code: 'ENOENT' })
+      }
+      return createNodeFileHandle(filePath, name)
+    },
+    async getDirectoryHandle(name: string) {
+      const subPath = join(dirPath, name)
+      try {
+        const stats = await stat(subPath)
+        if (!stats.isDirectory()) throw new Error('not a directory')
+      } catch {
+        throw Object.assign(new Error(`directory not found: ${name}`), { code: 'ENOENT' })
+      }
+      return createNodeDirectoryHandle(subPath)
+    },
+  }
+}
+
+/**
+ * Workspace-scope cross-model validation (PR5a wiring; `checkOne` is
+ * stubbed to `[]` until PR5b, so this always resolves to `[]` today — the
+ * plumbing exists so PR5b only has to fill in `checkOne`'s body).
+ *
+ * Runs a Node-backed `recursiveParse` over the whole `rootDir`, threading
+ * the SAME synchronous template-schema resolver the per-file pass already
+ * warms via `resolveTemplateWithCache` (AD-04: absent/throwing resolver
+ * degrades a node to "no schema", never aborts the parse), builds the
+ * `WorkspaceIndex`, runs `validateWorkspaceReferences`, and returns only the
+ * diagnostics whose `path` names the requested model (by its
+ * workspace-relative path, forward-slashed) — never in place of the
+ * per-file `validateDocument`/`validateModel` pass above.
+ */
+async function runWorkspaceValidation(
+  rootDir: string,
+  resolvedModelPath: string,
+  cache: SpecCache | null,
+): Promise<ReferenceDiagnostic[]> {
+  const resolveSchema: TemplateSchemaResolver = buildTemplateSchemaResolverFromCache(cache)
+  const rootHandle = createNodeDirectoryHandle(rootDir)
+  const result = await recursiveParse(rootHandle, undefined, { resolveTemplateSchema: resolveSchema })
+  const index = buildWorkspaceIndex(result)
+  const diagnostics = validateWorkspaceReferences(result, index)
+
+  const relativeModelPath = relative(rootDir, resolvedModelPath).replace(/\\/g, '/')
+  return diagnostics.filter(
+    (diag) => diag.path.includes(relativeModelPath) || diag.path.includes(resolvedModelPath),
+  )
+}
+
 /* ── validate_model ──────────────────────────────────────────── */
 
 /**
@@ -133,6 +241,7 @@ export async function validateModel(
   id?: string,
   content?: string,
   templateUrl?: string,
+  workspace?: boolean,
 ): Promise<{
   valid: boolean
   errors: ValidationError[]
@@ -172,12 +281,14 @@ export async function validateModel(
   let template: SpecDocument | null = null
   let resolveInclude: (ref: { name: string; url: string }) => string | null = () => null
   let resolutionDetail: string | null = null
+  let specCache: SpecCache | null = null
   const parentRef = model.frontmatter.parent_spec
   try {
     if (parentRef?.url && parentRef?.name) {
       const resolved = await resolveTemplateWithCache(rootDir, parentRef.url, parentRef.name)
       template = resolved.template
       resolveInclude = resolved.resolveInclude
+      specCache = resolved.cache
     }
     if (!template && templateUrl) {
       const resolved = await resolveTemplateWithCache(
@@ -267,7 +378,27 @@ export async function validateModel(
     filePath: w.path.startsWith('parent') ? templatePath : modelPath,
   }))
 
-  return { valid: result.valid, errors, warnings: warningsWithFile }
+  // Workspace-scope cross-model validation (PR5a): purely additive, and a
+  // no-op today since `checkOne` is stubbed to `[]` (PR5b implements it).
+  // Default `false` ⇒ everything above this line is today's behavior,
+  // byte-for-byte, `valid` included. Requires `id` mode (a real file on
+  // disk) — inline `content` has no workspace position to scope
+  // diagnostics to.
+  let valid = result.valid
+  if (workspace && id && modelPath !== 'inline') {
+    const workspaceDiagnostics = await runWorkspaceValidation(rootDir, modelPath, specCache)
+    for (const diag of workspaceDiagnostics) {
+      const decorated = { path: diag.path, message: diag.message, severity: diag.severity, filePath: modelPath }
+      if (diag.severity === 'error') {
+        errors.push(decorated)
+        valid = false
+      } else {
+        warningsWithFile.push(decorated)
+      }
+    }
+  }
+
+  return { valid, errors, warnings: warningsWithFile }
 }
 
 /* ── validate_model_url ─────────────────────────────────────── */

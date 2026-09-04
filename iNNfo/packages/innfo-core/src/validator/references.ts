@@ -218,7 +218,12 @@ export function validateElementFieldReferences(
           }
 
           if (isCrossModel) {
-            // Bypass validation for cross-model / external submodel file references as they reside outside the current model
+            // Deliberate delegation, not an omission (AD-06): the qualified
+            // form `[[Model Title :: Element Name]]` is validated
+            // workspace-wide by validator/workspaceReferences.ts, which is
+            // the only pass that can see sibling models. This per-file
+            // validator stays graph-free by design and keeps bypassing any
+            // `::`/`[...]`-shaped value exactly as before.
             continue
           }
 

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import type { DirectoryHandleLike, FileHandleLike } from '../src/fs-types'
 import { recursiveParse, normalizeSingleModel } from '../src/recursiveParser'
+import { validateDocument } from '../src/validator'
 
 /* ── Fake handle helpers ─────────────────────────────────────── */
 
@@ -734,5 +735,61 @@ En España fallecieron 439.146 personas en 2024 (INE).
     expect(sourceNode).toBeDefined()
     expect(sourceNode!.relationships.length).toBeGreaterThan(0)
     expect(sourceNode!.relationships[0].label).toBe('revenue-roles matrix')
+  })
+})
+
+describe('AD-06: per-file validator still bypasses qualified cross-model refs', () => {
+  it('per-file-validator-still-bypasses-qualified: validateDocument emits no dangling-reference diagnostic for a qualified `[[A :: B]]` value', () => {
+    const templateDoc = {
+      name: 'person_spec_01',
+      level: 2 as const,
+      frontmatter: {
+        spec_version: 'V_1-0-0',
+        level: 2,
+        parent_spec: { name: 'iNNfo_V_0-1-0', url: 'https://example.com' },
+        title: 'Person Spec',
+      },
+      rawContent: `---
+spec_version: V_1-0-0
+level: 2
+parent_spec:
+  name: iNNfo_V_0-1-0
+  url: https://example.com
+title: Person Spec
+---
+# NN Concept Definition
+## NN Concept Definition: Person
+type:: text
+
+# NN Field Definition
+## NN Field Definition: contact
+concept:: Person
+type:: reference
+`,
+    }
+
+    const modelContent = `---
+spec_version: V_1-0-0
+level: 3
+parent_spec:
+  name: person_spec_01
+  url: https://example.com
+model_version: V_0-1-0
+title: Person Model
+---
+# NN Person
+## NN Person: Jane Doe
+contact:: [[Acme Org :: Jane Doe]]
+`
+
+    const res = validateDocument(modelContent, {
+      fileName: 'person_01.md',
+      template: templateDoc,
+    })
+
+    const danglingDiagnostics = [...res.errors, ...res.warnings].filter((d) =>
+      d.message.toLowerCase().includes('dangling'),
+    )
+    expect(danglingDiagnostics).toHaveLength(0)
   })
 })
