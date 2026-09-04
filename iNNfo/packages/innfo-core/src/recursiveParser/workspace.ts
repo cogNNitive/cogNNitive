@@ -87,6 +87,37 @@ async function resolveFileHandle(
   return current.getFileHandle(last)
 }
 
+/**
+ * Matches the opt-in overview-root entrypoint pattern from the `base_V_0-1-0`
+ * composite template (A2): any filename ending in `_base_<suffix>.md`, where
+ * `<suffix>` is the literal `NN` placeholder used by this project's template
+ * packages/samples (e.g. `Ghostbusters_V_0-1-0_base_NN.md`) or a real instance
+ * number in a deployed workspace (e.g. `acme_base_01.md`). Case-insensitive,
+ * `.md` suffix — same convention as `isWorkspaceManifest` below.
+ */
+const OVERVIEW_ROOT_RE = /_base_[a-z0-9]+\.md$/i
+
+function isOverviewRoot(name: string): boolean {
+  return OVERVIEW_ROOT_RE.test(name) && !isIgnoredPath(name)
+}
+
+function isWorkspaceManifest(name: string): boolean {
+  return (
+    name.toLowerCase().startsWith('workspace') &&
+    name.endsWith(INNFO_FILE_SUFFIX) &&
+    !isIgnoredPath(name)
+  )
+}
+
+/**
+ * Chooses the primary entrypoint filename from a flat list of candidate names.
+ * An overview root (A2) wins when one is present; otherwise falls back to
+ * today's `workspace*.md` selection, unchanged.
+ */
+function pickEntrypointName(names: string[]): string | null {
+  return names.find(isOverviewRoot) ?? names.find(isWorkspaceManifest) ?? null
+}
+
 async function findPrimaryWorkspaceFile(
   root: DirectoryHandleLike,
   driver?: ModelDriver,
@@ -94,9 +125,8 @@ async function findPrimaryWorkspaceFile(
   if (driver) {
     try {
       const children = await driver.listChildren('')
-      const workspaceEntry = children.find(
-        (c) => c.name.toLowerCase().startsWith('workspace') && c.name.endsWith(INNFO_FILE_SUFFIX),
-      )
+      const chosenName = pickEntrypointName(children.map((c) => c.name))
+      const workspaceEntry = chosenName ? children.find((c) => c.name === chosenName) : undefined
       if (workspaceEntry) {
         const parsed = await driver.readModel(workspaceEntry.uri || workspaceEntry.name)
         return {
@@ -118,21 +148,25 @@ async function findPrimaryWorkspaceFile(
     return null
   }
 
+  const fileNames: string[] = []
   for await (const [name, entry] of root.entries()) {
-    if (
-      entry.kind === 'file' &&
-      name.toLowerCase().startsWith('workspace') &&
-      name.endsWith(INNFO_FILE_SUFFIX) &&
-      !isIgnoredPath(name)
-    ) {
-      try {
-        const fileHandle = await root.getFileHandle(name)
-        const file = await fileHandle.getFile()
-        const content = await file.text()
-        return { path: name, name: stripMdSuffix(name), content }
-      } catch {
-        // continue
-      }
+    if (entry.kind === 'file') {
+      fileNames.push(name)
+    }
+  }
+
+  let candidates = fileNames
+  while (candidates.length > 0) {
+    const chosenName = pickEntrypointName(candidates)
+    if (!chosenName) break
+    try {
+      const fileHandle = await root.getFileHandle(chosenName)
+      const file = await fileHandle.getFile()
+      const content = await file.text()
+      return { path: chosenName, name: stripMdSuffix(chosenName), content }
+    } catch {
+      // Drop this candidate and try the next (mirrors the pre-A2 per-name loop).
+      candidates = candidates.filter((n) => n !== chosenName)
     }
   }
   return null

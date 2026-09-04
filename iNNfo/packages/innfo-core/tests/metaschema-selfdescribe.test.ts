@@ -224,4 +224,12 @@ describe('iNNfo_V_0-2-1 — metaschema still self-consistent (task G)', () => {
       expect(errors, `${rel}: ${JSON.stringify(errors)}`).toEqual([])
     }
   })
+
+  it('base_V_0-1-0 (PR6, new composite template) validates green against it', () => {
+    const errors = validateTemplateAgainstMetaschema(
+      readSpec('templates/base/base_V_0-1-0_spec_NN.md'),
+      iNNfoV21,
+    ).filter((d) => d.severity === 'error')
+    expect(errors, JSON.stringify(errors)).toEqual([])
+  })
 })
