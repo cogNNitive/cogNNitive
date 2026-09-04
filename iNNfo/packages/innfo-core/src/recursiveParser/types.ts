@@ -11,6 +11,8 @@ export interface RecursiveParseResult {
   nodes: Record<string, ModelNode>
   rootIds: string[]
   issues: ParseIssue[]
+  /** Workspace-relative path of the resolved entrypoint. Undefined on the root-scan fallback. */
+  entrypointPath?: string
 }
 
 export interface WorklistItem {

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import type { DirectoryHandleLike, FileHandleLike } from '../src/fs-types'
-import { recursiveParse, normalizeSingleModel } from '../src/recursiveParser'
+import { recursiveParse, normalizeSingleModel, readWorkspaceId } from '../src/recursiveParser'
 
 /* ── Fake handle helpers ─────────────────────────────────────── */
 
@@ -69,6 +69,12 @@ function makeIndex(wikilinks: string[]): string {
 function makeIndexWithMdLinks(links: string[]): string {
   const items = links.map((p) => `* [${p}](./${p})`).join('\n')
   return `---\nspec_version: "V_0-1-2"\nlevel: 0\ntitle: "Workspace Index"\n---\n\n# NN index\n\n${items}\n`
+}
+
+function makeWorkspaceEntrypoint(workspaceId?: string): string {
+  const fm: Record<string, unknown> = { ...BASE_FM, title: 'Root Workspace' }
+  if (workspaceId !== undefined) fm.workspace_id = workspaceId
+  return md(fm, '\n# NN index\n')
 }
 
 /* ── Tests ───────────────────────────────────────────────────── */
@@ -493,6 +499,28 @@ describe('recursiveParse (index.md-driven)', () => {
         .map((n) => n.name)
       expect(elementNames).toEqual(expect.arrayContaining(['Users', 'Orders']))
     })
+  })
+})
+
+describe('readWorkspaceId', () => {
+  it('workspace-id-read-from-entrypoint', async () => {
+    const root = fakeDir('workspace', [
+      ['workspace_01.md', fakeFile('workspace_01.md', makeWorkspaceEntrypoint('acme'))],
+    ])
+
+    const result = await recursiveParse(root)
+    expect(result.entrypointPath).toBe('workspace_01.md')
+    expect(readWorkspaceId(result)).toBe('acme')
+  })
+
+  it('workspace-id-absent-is-undefined', async () => {
+    const root = fakeDir('workspace', [
+      ['workspace_01.md', fakeFile('workspace_01.md', makeWorkspaceEntrypoint())],
+    ])
+
+    const result = await recursiveParse(root)
+    expect(result.issues).toHaveLength(0)
+    expect(readWorkspaceId(result)).toBeUndefined()
   })
 })
 
