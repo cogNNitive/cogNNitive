@@ -51,6 +51,13 @@ export {
   type RecursiveParseResult,
 } from './recursiveParser'
 export {
+  OWNERSHIP_MARKER,
+  reconcileManifest,
+  type DiscoveredModel,
+  type ManifestChange,
+} from './workspace/reconcileManifest'
+export { isReconcilableModel, type CandidateFile } from './workspace/discoverModels'
+export {
   getSpecForLevel,
   getTemplate,
   getFormatSpec,
