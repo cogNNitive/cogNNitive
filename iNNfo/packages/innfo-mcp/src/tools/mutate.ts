@@ -378,21 +378,38 @@ async function bumpVersion(
 
   model.frontmatter.model_version = next.version
 
-  // Verify git working tree cleanliness or backup consent before modifying specs
-  if (args.backup === true || args.prompt_backup === true) {
-    await createSpecsBackupZip(rootDir).catch(() => {})
-  } else {
+  // A pre-write backup is taken when the caller asked for one, or when the
+  // `specs/` tree has uncommitted changes. If a backup was judged necessary
+  // and then fails, abort the bump — do NOT rename/delete spec files without
+  // the safety net that was deemed required.
+  let backupNeeded = args.backup === true || args.prompt_backup === true
+  if (!backupNeeded) {
     try {
       const { execSync } = await import('node:child_process')
       const gitStatus = execSync('git status --porcelain specs', {
         cwd: rootDir,
         encoding: 'utf-8',
       })
-      if (gitStatus.trim() !== '') {
-        await createSpecsBackupZip(rootDir).catch(() => {})
-      }
+      backupNeeded = gitStatus.trim() !== ''
     } catch {
-      // Git status non-fatal
+      // git unavailable — no dirty-tree signal, so no auto-backup is taken.
+    }
+  }
+  if (backupNeeded) {
+    try {
+      await createSpecsBackupZip(rootDir)
+    } catch (err) {
+      return {
+        success: false,
+        errors: [
+          {
+            path: '',
+            message: `Pre-write specs backup failed — bump_version aborted before any file was changed: ${
+              err instanceof Error ? err.message : String(err)
+            }`,
+          },
+        ],
+      }
     }
   }
 
