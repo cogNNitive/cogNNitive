@@ -4,7 +4,7 @@
 
 | Field | Value |
 |-------|-------|
-| Estimated changed lines | PR1 ~120 · PR2 ~60 · PR3 ~200 · PR3b ~100 (audit, unestimated in design) · PR4 ~230 · PR5a ~190 · PR5b ~190 · PR6 ~300 · PR7 ~350 |
+| Estimated changed lines | PR1 ~120 · PR2 ~60 · PR3 ~200 · PR-G ~1030 (new file — full copy of `iNNfo_V_0-2-0_NN.md` plus ~40 additive lines; not a diff against an existing file, exclude from any existing-file 400-line budget check) · PR3b ~100 (audit, unestimated in design) · PR4 ~230 · PR5a ~190 · PR5b ~190 · PR6 ~300 · PR7 ~350 |
 | 400-line budget risk | Medium (PR7 closest to budget; PR5 pre-split was ~380, near budget — split at the `checkOne` seam per R5) |
 | Chained PRs recommended | Yes |
 | Suggested split | PR1 → PR2 (parallel) → PR3 → PR3b → PR4 → PR5a → PR5b → PR6 → PR7 |
@@ -24,7 +24,7 @@ Every PR merges to `main` independently (no tracker branch). Rollback is per-sli
 |---|---|---|---|---|
 | 1 | Diamond-vs-cycle fix (`ancestorKeys`) | PR1 | — | Unblocks everything creating diamonds |
 | 2 | `workspace_id` | PR2 | — | Independent, can land parallel to PR1 |
-| 3 | `type:: model` fields (`TemplateSchemaResolver`) | PR3 | 1 | Includes gated-text reference (code ships regardless) |
+| 3 | `type:: model` fields (`TemplateSchemaResolver`) | PR3 | 1 | Lands alongside task G (`iNNfo_V_0-2-1_NN.md` publish, unblocked) |
 | 3b | Editor tree-rendering diamond audit (R8) | PR3b | 1 | Must exist as a task, not silently dropped |
 | 4 | `buildWorkspaceIndex` | PR4 | 1, 3 | Pure module |
 | 5a | Cross-model validation — wiring + syntax | PR5a | 3, 4 | `checkOne` stubbed `[]` |
@@ -117,7 +117,7 @@ Files: `validator/workspaceReferences.ts` (new, skeleton), `validator/references
 
 **Depends on**: PR5a. **Satisfies**: `cross-model-reference-validation` (Target Model and Element Existence, Concept and Template Membership Checks, Workspace-Wide Model Title Uniqueness, Title Resolution).
 
-Files: `validator/workspaceReferences.ts` (implement `checkOne`), `tests/workspaceReferences.test.ts` (remaining cases). References the gated L1 text below.
+Files: `validator/workspaceReferences.ts` (implement `checkOne`), `tests/workspaceReferences.test.ts` (remaining cases). References the `iNNfo_V_0-2-1_NN.md` qualified-syntax text from task G (unblocked, not a dependency of this PR's code).
 
 - [ ] 5b.1 Implement `checkOne`'s four ordered checks (short-circuit after 1/2 fail): (1) target model exists — resolution ladder `titleToNodeIds` exact → `fileNameToNodeIds` exact → normalized title → normalized filename; 0 hits = error dangling, >1 hit = error ambiguous, normalized-only = warning; (2) target element exists via `nodeElementConcepts` + normalized-fallback warning; (3) concept membership vs `target_concepts` = warning; (4) template membership vs `target_template`, reusing the `references.ts:189-198` matcher = warning.
 - [ ] 5b.2 Wire the `missing`-hint: when `index.missing` contains a matching basename, append the hint sentence to the dangling-model error.
@@ -130,7 +130,7 @@ Files: `validator/workspaceReferences.ts` (implement `checkOne`), `tests/workspa
 
 Files: `iNNfo/specs/templates/base/base_V_0-1-0_spec_NN.md` (new) + `samples/` (3 new files), `innfo-core/src/recursiveParser/workspace.ts` (`findPrimaryWorkspaceFile`), `tests/recursive-parser.test.ts`, `tests/includes-composition.test.ts`.
 
-- [ ] 6.1 Author `base_V_0-1-0_spec_NN.md`: `includes: [workspace_V_0-2-0, cogNNitive_V_0-2-0]`; `Overview` concept with `manifest`/`provenance` `type:: model` fields (`target_template` pointers); prose sections — sanctioned-composer statement, `workspace_id` doc, title-uniqueness rule, overview-root pattern, adoption note. Does not touch either write-once template.
+- [ ] 6.1 Author `base_V_0-1-0_spec_NN.md`: `parent_spec` → `iNNfo_V_0-2-1` (task G; new template, points at the current spec — no existing template's `parent_spec` changes); `includes: [workspace_V_0-2-0, cogNNitive_V_0-2-0]`; `Overview` concept with `manifest`/`provenance` `type:: model` fields (`target_template` pointers); prose sections — sanctioned-composer statement, `workspace_id` doc, title-uniqueness rule, overview-root pattern, adoption note. Does not touch either write-once template.
 - [ ] 6.2 Author `samples/`: `Ghostbusters_V_0-1-0_base_NN.md` (overview root), `workspace_NN.md` (manifest sample), `Ghostbusters_cogNNitive_NN.md` (provenance sample).
 - [ ] 6.3 Implement `OVERVIEW_ROOT_RE`/`isOverviewRoot`/`isWorkspaceManifest`/`pickEntrypointName` in `workspace.ts`; apply in both the driver branch and handle branch of `findPrimaryWorkspaceFile`; leave `index.md` legacy and root-scan fallbacks untouched.
 - [ ] 6.4 Tests: `base-root-takes-precedence`, `no-base-root-unchanged`, `base-root-driver-path`, `base-root-in-ignored-dir-ignored`, `overview-root-children`, `base-composes-workspace-and-cognnitive` (in `tests/includes-composition.test.ts`); confirm `metaplantilla-specs.test.ts` and `metaschema-selfdescribe.test.ts` stay green with the new package.
@@ -149,15 +149,20 @@ Files: `innfo-core/src/workspace/reconcileManifest.ts` (new), `.../discoverModel
 - [ ] 7.6 actioNN: document "sync the workspace manifest" in `skills/nn-innfo/SKILL.md` as invoking `sync_workspace_manifest` via the existing MCP bridge, `dry_run: true` first, `false` only after diff review.
 - [ ] 7.7 Tests: `no-op-is-byte-identical`, `hand-authored-preserved-byte-identical`, `adds-new-model-at-end`, `archives-deleted-owned-entry`, `never-touches-unowned-entry`, `reactivates-only-tool-archives`, `path-matching-is-normalized`, `creates-section-when-absent`, `excludes-cognnitive-and-manifest`, `idempotent`, `round-trip-through-parser`.
 
-## GATED — L1 spec edit (`iNNfo_V_0-2-0_NN.md`)
+## G — Publish `iNNfo_V_0-2-1_NN.md` (L1 spec version bump)
 
-**STATUS: BLOCKED — requires explicit user sign-off before this task can start.** Not scheduled to happen automatically. Referenced by PR3 (`type:: model` normative text) and PR5b (`[[Model :: Element]]` normative text); neither PR's code depends on this text landing.
+**STATUS: UNBLOCKED.** User sign-off given explicitly ("if publishing `iNNfo_V_0-2-1_NN.md` is all it takes, go ahead") — see proposal.md's decisions table, row 8. `iNNfo_V_0-2-0_NN.md` is never touched; this is a new file, following the same version-bump convention already used for every L2 template (`cogNNitive_V_0-1-0` → `V_0-2-0`, `workspace_V_0-1-0_spec` → `V_0-2-0_spec`), applied at the L1 level for the first time. Referenced by PR3 (`type:: model` normative text) and PR5b (`[[Model :: Element]]` normative text); neither PR's code depends on this text landing, so PR3/PR5a/PR5b are not blocked on this task, but should land it alongside themselves (see notes below).
 
-- [ ] G.1 (on sign-off) Add `target_template` row to the Field Definition property table (`:117`).
-- [ ] G.2 (on sign-off) Add "Model Fields (`type:: model`)" paragraph after `:128`.
-- [ ] G.3 (on sign-off) Add Metaschema `## NN Field Definition: target_template` element (`:780+`).
-- [ ] G.4 (on sign-off) Add "Qualified Cross-Model References" paragraph after the slice-3 paragraph.
-- [ ] G.5 (on sign-off) Verify `metaschema-selfdescribe.test.ts` and `metaplantilla-specs.test.ts` stay green.
-- [ ] G.6 If sign-off is withheld: rely on `base_V_0-1-0_spec_NN.md` (already covers both items in PR6/PR5b) and open a separate `iNNfo_V_0-3-0` version-bump change instead.
+Files: `iNNfo/specs/iNNfo_V_0-2-0_NN.md` (read-only source), `iNNfo/specs/iNNfo_V_0-2-1_NN.md` (**new**, full copy + additive text).
 
-**Never edit** `workspace_V_0-2-0_spec_NN.md` or `cogNNitive_V_0-2-0_NN.md` in place — write-once, untouched throughout this change.
+- [ ] G.1 Copy `iNNfo_V_0-2-0_NN.md` verbatim to `iNNfo_V_0-2-1_NN.md`; bump frontmatter `spec_version`/self-identifying version fields to `V_0-2-1`. This is a new file (full-file line count), not a diff against `V_0-2-0` — do not budget it as a diff against the existing file when checking PR size.
+- [ ] G.2 In the copy: add a `target_template` row to the Field Definition property table (re-verified insertion point: after the existing rows ending `:117`, i.e. before the `Field Definition` code sample at `:119`; row numbers confirmed current as of this planning pass — re-check for drift at implementation time). The `model` field type is already listed in that same table (`:114`) and needs no change.
+- [ ] G.3 In the copy: add the "Model Fields (`type:: model`)" normative paragraph after the existing "Reference Fields" paragraph (re-verified: `:128`).
+- [ ] G.4 In the copy: add the "Qualified Cross-Model References" normative paragraph immediately after the slice-3 "Model Fields" paragraph added in G.3.
+- [ ] G.5 In the copy: add the Metaschema `## NN Field Definition: target_template` element, alongside the existing `## NN Field Definition: target_concepts` element (re-verified: `:819-822`); confirm no other Metaschema listing needs the same additive treatment (the `type` field's `options::` enum at `:811` already includes `model`, so no change needed there).
+- [ ] G.6 Verify `metaschema-selfdescribe.test.ts` and `metaplantilla-specs.test.ts` stay green against the new file (both tests need to pick up `V_0-2-1` — confirm they discover spec files by glob rather than a hardcoded version string; if hardcoded, add `V_0-2-1` explicitly).
+- [ ] G.7 New templates authored in this change SHOULD set `parent_spec` to `iNNfo_V_0-2-1` since they're new and can just point at the current spec: `base_V_0-1-0_spec_NN.md` (PR6) sets `parent_spec.name: "iNNfo_V_0-2-1"`. No existing L2 template's `parent_spec` needs to change — the parser/validator implement the `[[Model Title :: Element Name]]` syntax and `type:: model`/`target_template` handling regardless of which L1 version a template's frontmatter declares; this version bump gives the syntax a canonical normative home, it does not gate the code.
+
+**Sequencing note**: since G no longer blocks PR3/PR5a/PR5b's code, land G's file alongside PR3 (which is where the `type:: model` normative text is first referenced) or as its own small PR immediately before PR3 — either is acceptable; it does not need its own dependency-tracked slot in the Suggested Work Units table above since it carries no code.
+
+**Never edit** `iNNfo_V_0-2-0_NN.md`, `workspace_V_0-2-0_spec_NN.md`, or `cogNNitive_V_0-2-0_NN.md` in place — write-once, untouched throughout this change.

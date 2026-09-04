@@ -28,7 +28,7 @@ Reference case driving the design: a domain master model whose `Startup` concept
 - **Incremental / partial re-validation.** v1 re-runs the whole workspace pass on every save.
 - **Multi-valued `parentId` / full DAG node model (DP2/DP3).** v1 is DP1 + `WorkspaceIndex.extraParents`.
 - **Migrating cogNNitive `Models.model_ref` / `model_template` from `type:: string` to `type:: model`** (`cogNNitive_V_0-2-0_NN.md:105-110`) — deferred to a `V_0-3-0` follow-on per that spec's own caveat (`:245`).
-- **Editing published `V_0-2-0` templates in place.** `workspace_V_0-2-0_spec_NN.md` and `cogNNitive_V_0-2-0_NN.md` are write-once; new docs live in the `base` package or a version bump.
+- **Editing published `V_0-2-0` templates in place.** `iNNfo_V_0-2-0_NN.md`, `workspace_V_0-2-0_spec_NN.md`, and `cogNNitive_V_0-2-0_NN.md` are write-once; new docs live in the `base` package or a version bump (`iNNfo_V_0-2-1_NN.md`, see decisions table row 8).
 - **Claim-level provenance**, **cross-model matrices**, **`specializes` activation**, **editor multi-parent breadcrumb redesign**.
 
 ## Capabilities
@@ -78,6 +78,7 @@ Each resolves an open "how" question from the exploration using its own stated l
 | 5 | `references.ts` **fully ignores** qualified refs; the workspace pass **re-scans** raw field values. Title matching: exact, normalized fallback emits a warning. Both `title` and filename-derived name indexed, `title` preferred. **Typed fields only** — prose is not scanned in v1. Severities: dangling model/element and duplicate titles = **error**; concept/template mismatch = **warning**. | 5 |
 | 6 | `base` **does** declare `includes` (not an `Overview`-only template), so the overview root may inline manifest/provenance content. The `*_base_NN.md` pattern takes entrypoint precedence **only when present**. | 6 |
 | 7 | Autorregistro ships **both** callers (editor watch + actioNN CLI) in this change, over the shared pure function. Ownership is an **explicit `<!-- nn:auto -->` marker**, not inferred. `archived → active` flips only for tool-set archives. New entries append at the end. Concurrent editor+CLI writes are out of scope ("run one at a time"). | 7 |
+| 8 | The L1 spec gap (write-once convention blocking the `type:: model` / `[[Model :: Element]]` normative text) is resolved by **publishing a new version-bumped file `iNNfo_V_0-2-1_NN.md`**, not by editing `iNNfo_V_0-2-0_NN.md` in place — the same pattern already used for every L2 template version bump (`cogNNitive_V_0-1-0` → `V_0-2-0`, `workspace_V_0-1-0_spec` → `V_0-2-0_spec`), applied at the L1 level for the first time. `iNNfo_V_0-2-0_NN.md` itself is never touched. **User-decided explicitly**, not a default-leaning call: "if publishing `iNNfo_V_0-2-1_NN.md` is all it takes, go ahead." No existing L2 template's `parent_spec` needs to change for the feature to work at the code level — the parser/validator implement the syntax regardless of which L1 version a template declares. New templates authored in this change (`base_V_0-1-0_spec_NN.md`, PR6) SHOULD set `parent_spec` to `iNNfo_V_0-2-1` since they're new. | G |
 
 ## Affected Areas
 
@@ -93,8 +94,8 @@ Each resolves an open "how" question from the exploration using its own stated l
 | **innfo-editor** | model store, filesystem watcher, sidebar | Supply the template resolver, run the workspace pass after parse, call `reconcileManifest` on add/remove. |
 | **actioNN** | new CLI command (e.g. `nn workspace sync`) | Headless reconciliation with dry-run, for `nn-trannsform` and CI. |
 | **Specs (new)** | `iNNfo/specs/templates/base/base_V_0-1-0_spec_NN.md` + `samples/` | `Overview` concept, `includes` both peers, `workspace_id` documentation, title-uniqueness rule, adoption note. |
-| **Specs (edit, gated)** | `iNNfo/specs/iNNfo_V_0-2-0_NN.md` | Additive normative text for `type:: model` on fields (slice 3) and `[[Model Title :: Element Name]]` (slice 5). **Blocked on the write-once sign-off below.** |
-| **Specs (untouched)** | `workspace_V_0-2-0_spec_NN.md`, `cogNNitive_V_0-2-0_NN.md` | Write-once. Not edited anywhere in this change. |
+| **Specs (new)** | `iNNfo/specs/iNNfo_V_0-2-1_NN.md` | New version-bumped L1 spec file: full copy of `iNNfo_V_0-2-0_NN.md` plus additive normative text for `type:: model` on fields (slice 3) and `[[Model Title :: Element Name]]` (slice 5). **Unblocked — user sign-off given (decisions table row 8).** |
+| **Specs (untouched)** | `iNNfo_V_0-2-0_NN.md`, `workspace_V_0-2-0_spec_NN.md`, `cogNNitive_V_0-2-0_NN.md` | Write-once. Not edited anywhere in this change. |
 
 ## Delivery Plan
 
@@ -110,9 +111,9 @@ Each resolves an open "how" question from the exploration using its own stated l
 |---|---|---|---|---|
 | 1 | Diamond-vs-cycle fix + `ancestorKeys` + tests | — | Small | No spec change. Unblocks everything that creates diamonds. |
 | 2 | C2 `workspace_id` (frontmatter read + scaffold + doc note) | — | Tiny | Fully independent; can land in parallel with 1. |
-| 3 | C1 `type:: model` fields — `resolveTemplateSchema` injection + host resolvers | 1 | Medium | Includes the gated L1 clarification. |
+| 3 | C1 `type:: model` fields — `resolveTemplateSchema` injection + host resolvers | 1 | Medium | Lands alongside the `iNNfo_V_0-2-1_NN.md` publish (task G, unblocked). |
 | 4 | `WorkspaceIndex` type + `buildWorkspaceIndex` + tests | 1, 3 | Medium | Pure module, no host behavior change. |
-| 5 | Piece B cross-model validation pass + L1 syntax text | 3, 4 | Large | Split into 5a/5b if over budget. |
+| 5 | Piece B cross-model validation pass + L1 syntax text | 3, 4 | Large | Split into 5a/5b if over budget. `iNNfo_V_0-2-1_NN.md`'s qualified-syntax paragraph lands with task G (see slice 3 note), not gated here. |
 | 6 | A2 `base` template package + overview-root entrypoint | 3 | Medium | New spec package + sample + adoption doc. |
 | 7 | Autorregistro `reconcileManifest` + editor watcher + actioNN CLI | 1, 3, 4 (benefits from 5, 6) | Medium | Last: highest mutation risk, wants the rest proven. |
 
@@ -120,7 +121,7 @@ Each resolves an open "how" question from the exploration using its own stated l
 
 | Risk | Likelihood | Mitigation |
 |---|---|---|
-| **Editing the live L1 spec `iNNfo_V_0-2-0_NN.md`** (for `type:: model` on fields in slice 3 and `[[Model :: Element]]` in slice 5) brushes the write-once convention. It is an L1 spec, not a versioned template, and a prior change edited `iNNfo_V_0-1-0_NN.md` — but this is **not** being decided silently. | High impact | **BLOCKING: requires the user's explicit sign-off before slices 3 and 5 ship.** If sign-off is withheld, the fallback is to document both in `base_V_0-1-0_spec_NN.md` and open a separate `iNNfo_V_0-3-0` version bump. Any approved edit stays strictly additive. |
+| ~~Editing the live L1 spec `iNNfo_V_0-2-0_NN.md`~~ **RESOLVED**: the write-once convention is honored by **publishing `iNNfo_V_0-2-1_NN.md`** as a new file carrying `V_0-2-0`'s full content plus the additive `type:: model` (slice 3) and `[[Model :: Element]]` (slice 5) normative text — the same version-bump pattern already used for every L2 template. `iNNfo_V_0-2-0_NN.md` is never touched. | Resolved | **User sign-off given explicitly** (decisions table row 8): "if publishing `iNNfo_V_0-2-1_NN.md` is all it takes, go ahead." No PR is blocked on this; see tasks.md task G. |
 | Autorregistro auto-writing the manifest corrupts hand edits or breaks round-trip | Med | Pure function with exhaustive tests; explicit `<!-- nn:auto -->` ownership; never reorder or regroup; reuse the `rawSections`/`rawContent` serializer; CLI dry-run default. |
 | Diamond fix changes graph shape; editor/sidebar assume a single parent | Med | DP1 preserves `parentId` semantics; `extraParents` is additive metadata; add sidebar/breadcrumb regression tests. |
 | Editor cannot serve a **synchronous** template resolver at parse time | Med | Callback is optional — absent ⇒ today's behavior exactly; editor pre-resolves templates into a synchronously-servable cache. |
@@ -139,7 +140,7 @@ Each slice is a separate PR merged to `main` in order, so rollback is per-slice 
 - Slice 6 is opt-in: no `*_base_NN.md` file means no behavior change.
 - Slice 7 is the only mutating slice; besides revert, its writes are recoverable because reconciliation only touches `<!-- nn:auto -->`-marked entries and never deletes.
 
-No published `V_0-2-0` template file is modified, so no spec rollback is required. Any approved L1 spec edit is additive and revertible on its own.
+No published `V_0-2-0` template file is modified, so no spec rollback is required. `iNNfo_V_0-2-1_NN.md` is a new file; reverting it is a plain file deletion, not a spec rollback.
 
 ## Success Criteria
 

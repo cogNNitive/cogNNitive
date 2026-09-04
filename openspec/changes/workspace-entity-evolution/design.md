@@ -337,7 +337,7 @@ No code path in the repo creates `workspace_NN.md` today (verified: only spec te
 | innfo-editor | `src/stores/modelStore.ts` | modify | `parseFromHandle` at `:189-194` |
 | innfo-mcp | `src/tools/validate.ts` | modify | sync closure over `resolveTemplateWithCache` (`:137`) |
 | innfo-core tests | `tests/recursive-submodels.test.ts` | modify | C1 traversal cases |
-| Specs (gated) | `iNNfo/specs/iNNfo_V_0-2-0_NN.md` | modify | see §5 — **BLOCKED on sign-off** |
+| Specs (new) | `iNNfo/specs/iNNfo_V_0-2-1_NN.md` | **new** | see §5 — unblocked, task G |
 
 #### Interface changes
 
@@ -543,7 +543,7 @@ New `describe('buildWorkspaceIndex')` in `tests/workspace-taxonomy-submodels.tes
 | innfo-core tests | `tests/workspaceReferences.test.ts` | **new** |
 | innfo-editor | `src/stores/modelStore.ts` | modify — run the pass after `buildWorkspaceIndex` in `parseFromHandle` |
 | innfo-mcp | `src/tools/validate.ts` | modify — optional workspace mode on `validateModel` |
-| Specs (gated) | `iNNfo/specs/iNNfo_V_0-2-0_NN.md` | modify — see §5, **BLOCKED on sign-off** |
+| Specs (new) | `iNNfo/specs/iNNfo_V_0-2-1_NN.md` | **new** — see §5, unblocked, task G (same file as slice 3's addition; a single publish carries both) |
 
 #### Interface
 
@@ -667,12 +667,12 @@ Directory layout follows the existing convention (`analysis/`, `business/`, `org
 
 ```yaml
 ---
-spec_version: "V_0-2-0"
+spec_version: "V_0-2-1"
 spec_url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/templates/base/base_V_0-1-0_spec_NN.md"
 level: 2
 parent_spec:
-  name: "iNNfo_V_0-2-0"
-  url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/iNNfo_V_0-2-0_NN.md"
+  name: "iNNfo_V_0-2-1"
+  url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/iNNfo_V_0-2-1_NN.md"
 title: "Base Workspace Overview Template"
 template_version: "V_0-1-0"
 includes:
@@ -687,6 +687,8 @@ relationship_types:
   sequence: { enabled: false }
 ---
 ```
+
+`parent_spec` points at `iNNfo_V_0-2-1` rather than `V_0-2-0`: `base` is a brand-new template with no existing `V_0-2-0` deployments to preserve compatibility with, so it points at the current L1 spec (which, per §5, is `V_0-2-1` once task G lands) and gets the `type:: model`/`target_template` normative text natively. This is the only `parent_spec` change in the whole plan — `workspace_V_0-2-0_spec_NN.md` and `cogNNitive_V_0-2-0_NN.md` keep declaring `iNNfo_V_0-2-0` and are not migrated.
 
 Body, in the same order as `workspace_V_0-2-0_spec_NN.md` (`# NN index`, `# NN Concept Definition`, `# NN Field Definition`, prose):
 
@@ -921,33 +923,38 @@ Registered in `server.ts` alongside `prune_orphaned_specs` (`:283`), which is th
 
 ---
 
-## 5. Gated L1 Spec Edit — **NOT PRE-APPROVED**
+## 5. L1 Spec Version Bump — `iNNfo_V_0-2-1_NN.md` — **RESOLVED, UNBLOCKED**
 
-> **BLOCKING.** The proposal's risk table flags this as requiring the user's **explicit sign-off before slices 3 and 5 ship**. This section designs the edit so it is ready to apply the moment sign-off lands; it does **not** treat it as approved. If sign-off is withheld, the fallback (already stated in the proposal) is to document both items in `base_V_0-1-0_spec_NN.md` and open a separate `iNNfo_V_0-3-0` version bump — slices 3 and 5 ship their code either way, since neither depends on the spec text.
+> **Resolved.** The write-once concern this section originally gated on is resolved: instead of editing the live `iNNfo_V_0-2-0_NN.md` in place, this slice **publishes a new version-bumped file `iNNfo_V_0-2-0_NN.md` → `iNNfo_V_0-2-1_NN.md`**, following the exact pattern already used for every L2 template version bump in this repo (`cogNNitive_V_0-1-0_NN.md` → `cogNNitive_V_0-2-0_NN.md`, `workspace_V_0-1-0_spec_NN.md` → `workspace_V_0-2-0_spec_NN.md`), applied at the L1 level for the first time. **User sign-off given explicitly**: "if publishing `iNNfo_V_0-2-1_NN.md` is all it takes, go ahead" (recorded in proposal.md's decisions table, row 8). `iNNfo_V_0-2-0_NN.md` itself is never touched — this is not a workaround, it is the established convention correctly applied. Task G in tasks.md is unblocked; slices 3 and 5 no longer wait on it, though it should land alongside slice 3 (see tasks.md's sequencing note).
 
-Target: `iNNfo/specs/iNNfo_V_0-2-0_NN.md`. The edit is **strictly additive** — no existing line is altered or removed.
+Target: `iNNfo/specs/iNNfo_V_0-2-1_NN.md` (**new file**). Base content: a verbatim copy of `iNNfo_V_0-2-0_NN.md`, frontmatter version fields bumped to `V_0-2-1`. The additive text below is layered on top of that copy — it is additive *relative to `V_0-2-0`'s content*, not an in-place edit of any existing file.
 
-A verified gap worth surfacing to the sign-off conversation: `target_template` appears **nowhere** in `iNNfo_V_0-2-0_NN.md` (zero matches), although `model` *is* already in the Field Definition type table (`:114`) and `ConceptField.target_template` is implemented (`types.ts:92`) and extracted (`schema.ts:119`). The current-version L1 spec is therefore already out of alignment with the shipped implementation; the slice-3 addition closes a regression, it does not introduce a new concept.
+A verified gap worth carrying into the new file: `target_template` appears **nowhere** in `iNNfo_V_0-2-0_NN.md` (zero matches), although `model` *is* already in the Field Definition type table (`:114`) and `ConceptField.target_template` is implemented (`types.ts:92`) and extracted (`schema.ts:119`). `V_0-2-0`'s content is therefore already out of alignment with the shipped implementation; `V_0-2-1`'s addition closes that regression, it does not introduce a new concept.
+
+Insertion points, re-verified against the current tree during this planning pass (line numbers are for `iNNfo_V_0-2-0_NN.md`'s content as copied into `V_0-2-1`; re-check for drift again at implementation time):
 
 **Slice 3 addition** — three insertions:
 
-1. `:117` — one row appended to the Field Definition property table:
+1. After the existing Field Definition property table rows (`:111-117`) — one row appended, before the `Field Definition` code sample at `:119`:
    `| target_template | string | Required template name or URL for model fields |`
 2. After `:128` (immediately after the existing "Reference Fields" paragraph) — a new paragraph:
    > **Model Fields (`type:: model`).** A Field of any Concept MAY be declared `type:: model`. Its value is a workspace-relative path, a `./`-relative path, or a WikiLink wrapping either (`[[models/acme_business_NN.md]]`). When the Field declares `target_template`, the referenced model's `parent_spec` MUST identify that template. Model fields are followed during workspace traversal, so a model referenced by two parents appears once in the graph with both incoming edges — a diamond is not a cycle.
-3. Metaschema section (`:780+`, alongside `## NN Field Definition: target_concepts` at `:819`) — declare the element:
+3. Metaschema section, alongside the existing `## NN Field Definition: target_concepts` element (re-verified: `:819-822`) — declare the element:
    ```markdown
    ## NN Field Definition: target_template
    concept:: Field Definition
    type:: string
    description:: Required template name or URL for fields of type model.
    ```
+   No other Metaschema listing needs the same additive treatment: the `type` field's `options::` enum (`:811`) already includes `model`.
 
 **Slice 5 addition** — one insertion after the slice-3 "Model Fields" paragraph:
 
 > **Qualified Cross-Model References.** A `reference` or `model` Field MAY target an Element in another model in the same workspace using the qualified form `[[Model Title :: Element Name]]`. `Model Title` is the target model's frontmatter `title` (its filename without `.md` is accepted as a fallback) and MUST be unique within the workspace. `Element Name` is an Element name in that model. Positional or anchor forms (`path#slug`) are not defined. Cross-workspace references are not defined.
 
-`metaschema-selfdescribe.test.ts` and `metaplantilla-specs.test.ts` must both stay green after either insertion; the Metaschema declaration in item 3 is what keeps self-conformance valid.
+`metaschema-selfdescribe.test.ts` and `metaplantilla-specs.test.ts` must both stay green against the new `V_0-2-1` file; the Metaschema declaration in item 3 is what keeps self-conformance valid. Confirm both tests discover spec files rather than hardcoding a version string — if either hardcodes `V_0-2-0`, it needs an additive update to also cover `V_0-2-1`, tracked under task G.6.
+
+**No existing L2 template's `parent_spec` changes.** The parser and validator implement `type:: model`/`target_template` handling and the `[[Model Title :: Element Name]]` syntax regardless of which L1 version a template's frontmatter declares — this version bump gives the syntax a canonical normative home, it does not gate the code and does not force any migration. New templates authored in this change SHOULD point at the current spec: `base_V_0-1-0_spec_NN.md` (slice 6) sets `parent_spec.name: "iNNfo_V_0-2-1"` since it is new and has no reason to point at a stale version.
 
 ---
 
@@ -969,7 +976,7 @@ A verified gap worth surfacing to the sign-off conversation: `target_template` a
 | 3 | innfo-editor | `src/stores/modelStore.ts` | modify — warm cache + pass resolver |
 | 3 | innfo-mcp | `src/tools/validate.ts` | modify — sync closure over the template cache |
 | 3 | innfo-core tests | `tests/recursive-submodels.test.ts` | modify |
-| 3 | Specs (gated) | `iNNfo/specs/iNNfo_V_0-2-0_NN.md` | modify — §5, blocked |
+| G | Specs (new) | `iNNfo/specs/iNNfo_V_0-2-1_NN.md` | **new** — §5, unblocked; carries both slice 3's and slice 5's additive text |
 | 4 | innfo-core | `src/recursiveParser/workspaceIndex.ts` | **new** |
 | 4 | innfo-core | `src/recursiveParser/index.ts`, `src/index.ts` | modify — exports |
 | 4 | innfo-core tests | `tests/workspace-taxonomy-submodels.test.ts` | modify |
@@ -979,7 +986,6 @@ A verified gap worth surfacing to the sign-off conversation: `target_template` a
 | 5 | innfo-core tests | `tests/workspaceReferences.test.ts` | **new** |
 | 5 | innfo-editor | `src/stores/modelStore.ts` | modify — run the pass |
 | 5 | innfo-mcp | `src/tools/validate.ts`, `src/server.ts` | modify — workspace mode |
-| 5 | Specs (gated) | `iNNfo/specs/iNNfo_V_0-2-0_NN.md` | modify — §5, blocked |
 | 6 | Specs | `iNNfo/specs/templates/base/base_V_0-1-0_spec_NN.md` + `samples/` (3 files) | **new** |
 | 6 | innfo-core | `src/recursiveParser/workspace.ts` | modify — `pickEntrypointName` in both branches of `findPrimaryWorkspaceFile` |
 | 6 | innfo-core tests | `tests/recursive-parser.test.ts`, `tests/includes-composition.test.ts` | modify |
@@ -990,7 +996,7 @@ A verified gap worth surfacing to the sign-off conversation: `target_template` a
 | 7 | innfo-mcp | `src/tools/workspace-sync.ts` | **new** |
 | 7 | innfo-mcp | `src/server.ts` | modify — register `sync_workspace_manifest` |
 | 7 | actioNN | `skills/nn-innfo/SKILL.md` | modify — document the command |
-| — | Specs (untouched) | `workspace_V_0-2-0_spec_NN.md`, `cogNNitive_V_0-2-0_NN.md` | **write-once — not edited anywhere in this change** |
+| — | Specs (untouched) | `iNNfo_V_0-2-0_NN.md`, `workspace_V_0-2-0_spec_NN.md`, `cogNNitive_V_0-2-0_NN.md` | **write-once — not edited anywhere in this change** |
 
 ---
 
@@ -1008,7 +1014,7 @@ Each slice must prove it is additive before merging:
 | 6 | Workspaces without `*_base_NN.md` resolve identically | `no-base-root-unchanged` |
 | 7 | Only `<!-- nn:auto -->` entries are ever modified; nothing is deleted | `no-op-is-byte-identical`, `never-touches-unowned-entry` |
 
-Rollback is per-slice `git revert` in reverse dependency order (7 → 6 → 5 → 4 → 3 → 2 → 1). No published `V_0-2-0` template is modified, so no spec rollback is required; any approved L1 edit is additive and revertible on its own.
+Rollback is per-slice `git revert` in reverse dependency order (7 → 6 → 5 → 4 → 3 → 2 → 1). No published `V_0-2-0` template is modified, so no spec rollback is required; `iNNfo_V_0-2-1_NN.md` is a new file — its revert is a plain file deletion.
 
 ---
 
@@ -1016,7 +1022,7 @@ Rollback is per-slice `git revert` in reverse dependency order (7 → 6 → 5 �
 
 | # | Item | Why it matters | Resolution point |
 |---|---|---|---|
-| R1 | **L1 spec sign-off** for `iNNfo_V_0-2-0_NN.md` | §5 is designed but **not approved**. Slices 3 and 5 ship code regardless; only the normative text is gated. | Before slice 3 opens its PR |
+| R1 | ~~L1 spec sign-off~~ **RESOLVED** — `iNNfo_V_0-2-1_NN.md` publish approved | §5 is designed and **approved** (user sign-off, proposal.md decisions table row 8). Slices 3 and 5 ship code regardless; task G (the `V_0-2-1` publish) is unblocked and should land alongside slice 3. | Closed — no further action needed before slice 3 |
 | R2 | **Editor sync-resolver warm-up** (AD-04) | `warmTemplateCache` requires enumerating `parent_spec` names before the traversal that discovers most of them. First open may be partially cold. | Slice 3 implementation; acceptable because a cold cache === today's behavior |
 | R3 | **`rawSections` cannot back the round-trip** (AD-08) | Contradicts the proposal's stated mechanism. The design substitutes string splicing; if a reviewer prefers a serializer-based approach, the byte-stability success criterion cannot be met. | Slice 7 design review |
 | R4 | **actioNN delivery is an MCP tool, not `nn workspace sync`** (AD-09) | Deviates from the proposal's example command because no `nn` binary exists. Same capability, different surface. | Confirm with the user before slice 7 |
