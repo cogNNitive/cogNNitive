@@ -249,6 +249,7 @@ export const useModelStore = defineStore('model', {
           kind: kind ?? 'element',
           fields: {},
           markers: {},
+          tags: [],
           relationships: [],
           rawSections: {},
           source: { path: '' },

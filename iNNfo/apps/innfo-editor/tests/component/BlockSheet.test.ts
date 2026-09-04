@@ -241,4 +241,165 @@ describe('BlockSheet.vue — Redesigned layout & assets', () => {
       expect(textarea.element.value).toContain('Root')
     })
   })
+
+  describe('Tags viewing and authoring', () => {
+    it('renders element tags as chips in read mode', async () => {
+      const modelStore = useModelStore()
+      const root = makeNode('Root', { rawContent: '---\nspec_version: V_0-1-5\n---\n' })
+      const element = makeNode('Root/Task1', {
+        name: 'Task1',
+        parentId: 'Root',
+        type: 'Task',
+        tags: ['frontend', 'urgent'],
+      })
+      modelStore.setGraph({ Root: root, 'Root/Task1': element }, ['Root'])
+
+      const wrapper = mount(BlockSheet, {
+        props: {
+          block: {
+            id: 'Root/Task1',
+            name: 'Task1',
+            description: 'Task description',
+            tags: ['frontend', 'urgent'],
+          },
+          kind: 'instance',
+          conceptType: 'Task',
+          conceptName: 'Task',
+          collapsed: false,
+          isEditing: false,
+        },
+      })
+
+      const tagsSection = wrapper.find('[data-testid="block-sheet-tags-read"]')
+      expect(tagsSection.exists()).toBe(true)
+      expect(tagsSection.text()).toContain('#frontend')
+      expect(tagsSection.text()).toContain('#urgent')
+    })
+
+    it('does not render element tags section when tags are empty or undefined', async () => {
+      const modelStore = useModelStore()
+      const root = makeNode('Root', { rawContent: '---\nspec_version: V_0-1-5\n---\n' })
+      const element = makeNode('Root/Task1', {
+        name: 'Task1',
+        parentId: 'Root',
+        type: 'Task',
+        tags: [],
+      })
+      modelStore.setGraph({ Root: root, 'Root/Task1': element }, ['Root'])
+
+      const wrapper = mount(BlockSheet, {
+        props: {
+          block: {
+            id: 'Root/Task1',
+            name: 'Task1',
+            description: 'Task description',
+            tags: [],
+          },
+          kind: 'instance',
+          conceptType: 'Task',
+          conceptName: 'Task',
+          collapsed: false,
+          isEditing: false,
+        },
+      })
+
+      expect(wrapper.find('[data-testid="block-sheet-tags-read"]').exists()).toBe(false)
+    })
+
+    it('renders TagInput in edit mode and synchronizes tag additions to modelStore', async () => {
+      const modelStore = useModelStore()
+      const root = makeNode('Root', { rawContent: '---\nspec_version: V_0-1-5\n---\n' })
+      const element = makeNode('Root/Task1', {
+        name: 'Task1',
+        parentId: 'Root',
+        type: 'Task',
+        tags: ['existing'],
+      })
+      modelStore.setGraph({ Root: root, 'Root/Task1': element }, ['Root'])
+
+      const wrapper = mount(BlockSheet, {
+        props: {
+          block: {
+            id: 'Root/Task1',
+            name: 'Task1',
+            description: 'Task description',
+            tags: ['existing'],
+          },
+          kind: 'instance',
+          conceptType: 'Task',
+          conceptName: 'Task',
+          collapsed: false,
+          isEditing: true,
+        },
+      })
+
+      const editor = wrapper.find('[data-testid="block-sheet-tags-editor"]')
+      expect(editor.exists()).toBe(true)
+      expect(editor.text()).toContain('Tags')
+      expect(editor.text()).toContain('existing')
+
+      // Type a new tag and press Enter
+      const tagInput = editor.find('input')
+      await tagInput.setValue('new-tag')
+      await tagInput.trigger('keydown.enter')
+
+      const updatedNode = modelStore.getNode('Root/Task1')
+      expect(updatedNode?.tags).toEqual(['existing', 'new-tag'])
+      expect(modelStore.isDirty('Root/Task1')).toBe(true)
+    })
+
+    it('renders and allows editing concept tags', async () => {
+      const modelStore = useModelStore()
+      const root = makeNode('Root', {
+        rawContent: '---\nspec_version: V_0-1-5\n---\n',
+        conceptTags: { Task: ['strategy'] },
+      })
+      const concept = makeNode('Root/Task', {
+        name: 'Task',
+        parentId: 'Root',
+        type: 'Task',
+      })
+      modelStore.setGraph({ Root: root, 'Root/Task': concept }, ['Root'])
+
+      // Read mode test
+      const readWrapper = mount(BlockSheet, {
+        props: {
+          block: { id: 'Root/Task', name: 'Task', description: '' },
+          kind: 'concept',
+          conceptType: 'Task',
+          conceptName: 'Task',
+          collapsed: false,
+          isEditing: false,
+        },
+      })
+
+      const conceptTagsRead = readWrapper.find('[data-testid="concept-tags-read"]')
+      expect(conceptTagsRead.exists()).toBe(true)
+      expect(conceptTagsRead.text()).toContain('#strategy')
+
+      // Edit mode test
+      const editWrapper = mount(BlockSheet, {
+        props: {
+          block: { id: 'Root/Task', name: 'Task', description: '' },
+          kind: 'concept',
+          conceptType: 'Task',
+          conceptName: 'Task',
+          collapsed: false,
+          isEditing: true,
+        },
+      })
+
+      const conceptTagsEditor = editWrapper.find('[data-testid="concept-tags-editor"]')
+      expect(conceptTagsEditor.exists()).toBe(true)
+      expect(conceptTagsEditor.text()).toContain('strategy')
+
+      const input = conceptTagsEditor.find('input')
+      await input.setValue('priority')
+      await input.trigger('keydown.enter')
+
+      const updatedRoot = modelStore.getNode('Root')
+      expect(updatedRoot?.conceptTags?.Task).toEqual(['strategy', 'priority'])
+      expect(modelStore.isDirty('Root')).toBe(true)
+    })
+  })
 })

@@ -218,6 +218,14 @@
                 Prompt copied to clipboard!
               </div>
             </div>
+
+            <!-- Concept Tags Editor -->
+            <div class="mt-3 border-t border-amber-200 dark:border-amber-900/40 pt-3 flex flex-col gap-1.5" data-testid="concept-tags-editor">
+              <label class="text-xs font-bold text-amber-900 dark:text-amber-400 uppercase tracking-wide">
+                Concept Tags
+              </label>
+              <TagInput :model-value="localTags" @update:model-value="onConceptTagsUpdate" />
+            </div>
           </div>
 
           <div
@@ -236,6 +244,15 @@
                 :field-definition="field"
               />
             </div>
+          </div>
+
+          <!-- Element Tags Editor -->
+          <div v-if="!isConcept" class="flex flex-col gap-1.5" data-testid="block-sheet-tags-editor">
+            <label
+              class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500"
+              >Tags</label
+            >
+            <TagInput :model-value="localTags" @update:model-value="onTagsUpdate" />
           </div>
 
           <!-- Description / Details (WYSIWYG Markdown Editor) -->
@@ -262,6 +279,29 @@
               :concept-type="conceptType"
               :concept-fields="conceptFields"
             />
+
+            <!-- Concept Tags Read View -->
+            <div
+              v-if="currentTags && currentTags.length > 0"
+              data-testid="concept-tags-read"
+              class="border-t border-slate-200 dark:border-slate-700 pt-5"
+            >
+              <div
+                class="text-[11px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-3 flex items-center gap-2"
+              >
+                <span class="w-1.5 h-4 rounded-full bg-slate-400 shrink-0"></span>
+                Concept Tags
+              </div>
+              <div class="flex flex-wrap gap-1.5">
+                <span
+                  v-for="tag in currentTags"
+                  :key="tag"
+                  class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-700/60 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600"
+                >
+                  #{{ tag }}
+                </span>
+              </div>
+            </div>
 
             <div class="border-t border-slate-200 dark:border-slate-700 pt-5">
               <div
@@ -376,6 +416,29 @@
               </div>
             </div>
 
+            <!-- Element Tags Read View -->
+            <div
+              v-if="currentTags && currentTags.length > 0"
+              data-testid="block-sheet-tags-read"
+              class="border-t border-slate-200 dark:border-slate-700 pt-5"
+            >
+              <div
+                class="text-[11px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-3 flex items-center gap-2"
+              >
+                <span class="w-1.5 h-4 rounded-full bg-slate-400 shrink-0"></span>
+                Tags
+              </div>
+              <div class="flex flex-wrap gap-1.5">
+                <span
+                  v-for="tag in currentTags"
+                  :key="tag"
+                  class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-700/60 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600"
+                >
+                  #{{ tag }}
+                </span>
+              </div>
+            </div>
+
             <!-- Unified Connections & Relationships -->
             <div
               v-if="hasRelationships || (hasMatrices && block.id)"
@@ -437,13 +500,14 @@ import BlockRelationships from './BlockRelationships.vue'
 import BlockMatrixSummary from './BlockMatrixSummary.vue'
 import NodeMedia from './NodeMedia.vue'
 import ConceptTableView from './ConceptTableView.vue'
+import TagInput from '../ui/TagInput.vue'
 import { parseFrontmatter } from '@cognnitive/innfo-core'
 import { readMatrixDefsField } from '../../composables/useMatrixDefinitions'
 import { useBlockAssets } from './composables/useBlockAssets'
 
 const props = withDefaults(
   defineProps<{
-    block: { id?: string; name: string; description: string; fields?: Record<string, any> }
+    block: { id?: string; name: string; description: string; fields?: Record<string, any>; tags?: string[] }
     kind: BlockKind
     conceptType: string
     conceptName: string
@@ -663,6 +727,65 @@ const onConceptNameInput = (event: Event) => {
 }
 
 // ── Input handlers ──────────────────────────────────────────────
+
+// ── Tags ────────────────────────────────────────────────────────
+
+const currentTags = computed<string[]>(() => {
+  if (isConcept.value) {
+    if (!rootNodeId.value) return []
+    const root = modelStore.getNode(rootNodeId.value)
+    return root?.conceptTags?.[props.conceptName] ?? []
+  }
+  const node = nodeFromStore.value
+  return node?.tags ?? props.block.tags ?? []
+})
+
+const localTags = ref<string[]>([])
+
+watch(
+  [() => props.block.id, () => props.isEditing, currentTags],
+  () => {
+    localTags.value = [...(currentTags.value ?? [])]
+  },
+  { immediate: true, deep: true },
+)
+
+const onTagsUpdate = (newTags: string[]) => {
+  localTags.value = newTags
+  props.block.tags = newTags
+  if (props.block.id) {
+    const node = modelStore.getNode(props.block.id)
+    if (node) {
+      modelStore.upsertNode({
+        ...node,
+        tags: newTags,
+      })
+    }
+    modelStore.markDirty(props.block.id)
+    emit('change')
+  }
+}
+
+const onConceptTagsUpdate = (newTags: string[]) => {
+  localTags.value = newTags
+  if (rootNodeId.value) {
+    const root = modelStore.getNode(rootNodeId.value)
+    if (root) {
+      const conceptTags = { ...(root.conceptTags ?? {}) }
+      if (newTags.length > 0) {
+        conceptTags[props.conceptName] = newTags
+      } else {
+        delete conceptTags[props.conceptName]
+      }
+      modelStore.upsertNode({
+        ...root,
+        conceptTags,
+      })
+      modelStore.markDirty(root.id)
+      emit('change')
+    }
+  }
+}
 
 const localBlockName = ref(props.block.name)
 
