@@ -1,7 +1,7 @@
 {
   "name": "@cognnitive/innfo-mcp",
   "version": "0.2.4",
-  "description": "MCP server wrapping @cognnitive/innfo-core â€” semantic iNNfo tools over stdio",
+  "description": "MCP server wrapping @cognnitive/innfo-core - semantic iNNfo tools over stdio",
   "type": "module",
   "main": "./dist/server.js",
   "types": "./dist/server.d.ts",
