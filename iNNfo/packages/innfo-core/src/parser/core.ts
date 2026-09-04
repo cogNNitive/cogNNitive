@@ -73,7 +73,8 @@ function splitTopLevelSections(text: string): string[] {
 
 export function parseModel(content: string): ParsedModel {
   const normalizedContent = normalizeSource(content)
-  const frontmatter = parseFrontmatter(normalizedContent)
+  const parseWarnings: string[] = []
+  const frontmatter = parseFrontmatter(normalizedContent, (msg) => parseWarnings.push(msg))
   const elements = new ElementsMap()
   const matrices: MatrixData[] = []
   const nodeMarkers: Record<string, Record<string, number | string>> = {}
@@ -159,8 +160,8 @@ export function parseModel(content: string): ParsedModel {
       ? collisions.map((c) => ({ slug: c.slug, elements: c.elements, concept: c.concept }))
       : undefined
 
-  // FR-007: Warn about deprecated FOLDER mode
-  const parseWarnings: string[] = []
+  // FR-007: Warn about deprecated FOLDER mode. `parseWarnings` also already
+  // carries any frontmatter YAML parse error surfaced above.
   if (frontmatter?.mode === 'FOLDER') {
     parseWarnings.push(
       'FOLDER mode is removed in V_0-1-3. Use index.md-based workspace with single-file models.',
