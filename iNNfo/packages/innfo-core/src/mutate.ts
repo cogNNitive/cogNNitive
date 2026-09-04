@@ -7,14 +7,13 @@ import {
   MATRIX_DEFINITION,
 } from './schema'
 import { slugify } from './parser/slug'
+import { RESERVED_CONCEPT_NAMES } from './validator/constants'
 
 export interface MutationResult {
   success: boolean
   errors?: Array<{ path: string; message: string }>
   warnings?: Array<{ path: string; message: string }>
 }
-
-const RESERVED_CONCEPT_NAMES = new Set(['Concepts', 'Elements', 'Markers'])
 
 type RequireArgsResult =
   | { ok: true; values: Record<string, string> }
