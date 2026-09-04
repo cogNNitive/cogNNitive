@@ -178,6 +178,52 @@ agent-bootstrap:
     }
   }
 
+  // Test 4: BOM in state file is stripped and parsed correctly
+  {
+    const manifestContent = `---
+agent-bootstrap:
+  version: "2.0"
+  skills:
+    - name: nn-innfo
+      commit: "1111111111111111111111111111111111111111"
+      version: "V_0-1-0"
+  templates: []
+---
+`;
+    const server = await serveManifest(manifestContent);
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'preflight-bom-'));
+    try {
+      const skillsDir = path.join(tmpDir, 'skills');
+      const stateFile = path.join(tmpDir, 'bootstrap-state.json');
+
+      fs.mkdirSync(path.join(skillsDir, 'nn-innfo'), { recursive: true });
+      const stateWithBom = '\uFEFF' + JSON.stringify({
+        manifest: server.url,
+        skills: {
+          'nn-innfo': { commit: '1111111111111111111111111111111111111111', version: 'V_0-1-0' },
+        },
+      });
+      fs.writeFileSync(stateFile, stateWithBom, 'utf-8');
+
+      const res = await runScriptAsync([
+        '--json',
+        '--skills-dir', skillsDir,
+        '--state-file', stateFile,
+        '--manifest-url', server.url,
+      ]);
+
+      assert.strictEqual(res.status, 0, `Expected exit code 0 despite BOM in state file. Got: ${res.stderr || res.stdout}`);
+      const parsedRes = JSON.parse(res.stdout);
+      assert.strictEqual(parsedRes.status, 'OK');
+      assert.strictEqual(parsedRes.summary.skillsTotal, 1);
+      assert.strictEqual(parsedRes.summary.skillsOutdated, 0);
+      console.log('✔ BOM in state file is stripped and parsed correctly');
+    } finally {
+      await server.close();
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }
+
   console.log('All preflight-check unit tests passed successfully!\n');
 }
 

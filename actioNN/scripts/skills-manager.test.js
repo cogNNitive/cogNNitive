@@ -153,6 +153,66 @@ agent-bootstrap:
   }
 }
 
+// 5. Bootstrap command with --yes and custom scope
+{
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'actioNN-test-bootstrap-'));
+  const targetSkillsDir = path.join(tmpDir, 'skills');
+  const targetTemplatesDir = path.join(tmpDir, 'templates');
+  const targetMcpDir = path.join(tmpDir, 'mcp');
+  const targetStateFile = path.join(tmpDir, 'state.json');
+
+  const manifestFixture = `---
+agent-bootstrap:
+  version: "2.0"
+  skills: []
+  templates:
+    - name: workspace_spec_NN
+      repo: cogNNitive/iNNfo
+      path: specs/templates/workspace_spec_NN.md
+      version: "V_0-2-0"
+      commit: "3bd4501e75915e8f2365fd7c547d9384a3e0c837"
+  workflows:
+    - id: test-wf
+      label: Test Workflow
+      description: Just a test
+      skill: nn-innfo
+---
+# Manifest`;
+
+  const manifestServer = await serveManifestOnce(manifestFixture);
+
+  try {
+    const res = await spawnAsync(
+      [
+        managerScript,
+        'bootstrap',
+        '--skills-dir', targetSkillsDir,
+        '--templates-dir', targetTemplatesDir,
+        '--mcp-dir', targetMcpDir,
+        '--state', targetStateFile,
+        '--yes',
+      ],
+      {
+        env: { ...process.env, SM_MANIFEST_URL: manifestServer.url },
+      }
+    );
+
+    assert.strictEqual(res.status, 0, `Bootstrap command with --yes should succeed. Got: ${res.stderr || res.stdout}`);
+    assert(res.stdout.includes('Bootstrap completed successfully!'), 'Output confirms completion');
+    assert(res.stdout.includes('Test Workflow'), 'Output lists available workflows');
+
+    const stateContent = fs.readFileSync(targetStateFile, 'utf-8');
+    assert.strictEqual(stateContent.charCodeAt(0), 123, 'State file written without BOM');
+    const parsedState = JSON.parse(stateContent);
+    assert(parsedState.templates.workspace_spec_NN, 'State records bootstrapped template');
+
+    console.log('✔ Bootstrap command with --yes test passed');
+  } finally {
+    await manifestServer.close();
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+}
+
 console.log('All skills-manager unit tests passed successfully!');
 }
 

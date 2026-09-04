@@ -187,23 +187,27 @@ Invoke it with the canonical URL — it performs all of the above and hands over
 I want to use https://cognnitive.com/use
 ```
 
-## For opencode CLI / agents without `agent-web-bootstrap`
+## For AI Agents (OpenCode, Claude Code, Antigravity, Codex)
 
-If your agent does not have `agent-web-bootstrap` built in (e.g. opencode CLI, opencode TUI):
+When the user says:
+```
+I want to use https://cognnitive.com/use
+```
 
-1. Your `AGENTS.md` or `opencode.json` `instructions` field should include a rule like this:
+Execute the universal, deterministic bootstrap command directly:
 
-   ```
-   ## Bootstrap Rule
-   When user says "I want to use https://cognnitive.com/use":
-   1. Fetch this manifest (In Windows, use `curl.exe`, Node.js native `fetch`, or git into `$env:TEMP` / `~/.agents/tmp/` to avoid PowerShell `curl` SSL alias issues and workspace pollution).
-   2. Parse agent-bootstrap block for skills to install
-   3. Ask the user where to install (suggest by default their Windows/Linux user profile `~/.agents/`; alternative: current workspace `./.agents/`).
-   4. Download/extract each skill tarball to target skills directory (default: `~/.agents/skills/{name}/`).
-   5. For skills with mcp[]: download bundle to target mcp directory (default: `~/.agents/mcp/`) and register in agent MCP config.
-   6. Show workflow menu
-   ```
+```bash
+node actioNN/scripts/skills-manager.js bootstrap --yes
+```
 
-2. The canonical reference implementation lives in `cogNNitive/actioNN`'s `AGENTS.md` and `.opencode/opencode.json`.
+*(If running from within `actioNN/`, use `node scripts/skills-manager.js bootstrap --yes`. If outside a local checkout, clone to a temporary directory such as `$env:TEMP/cognnitive` or `~/.agents/tmp/` to run it, or invoke the pre-installed runner if available).*
 
-3. Without the rule above, the agent will not recognize the phrase — paste it into your `AGENTS.md` or global `~/.config/opencode/AGENTS.md`.
+This zero-touch command deterministically:
+1. Installs and verifies all manifest-pinned skills into `~/.agents/skills/` (or `./.agents/skills/` with `--scope workspace`).
+2. Installs and verifies all 10 Level 2 templates into `~/.agents/templates/` (or `./specs/templates/` with `--scope workspace`).
+3. Downloads the `innfo-mcp` bundle and its imported chunks into `~/.agents/mcp/` (or `./.agents/mcp/`).
+4. Auto-detects and registers the MCP server in the active agent's configuration (`opencode.json`, `~/.claude.json`, or `~/.gemini/antigravity.json`).
+5. Records the state cleanly in UTF-8 without BOM (`~/.agents/bootstrap-state.json`).
+6. Prints the ready workflow menu.
+
+Remind the user to restart their agent session if the MCP server was newly registered.
