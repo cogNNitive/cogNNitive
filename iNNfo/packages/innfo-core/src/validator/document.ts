@@ -1,6 +1,7 @@
 import type { SpecDocument, ValidationError, ValidationReport } from '../types'
 import type { IncludeResolver } from '../schema'
 import { parseModel } from '../parser'
+import { Diagnostics } from '../diagnostics'
 import { validateFormatContent } from './content'
 import { validateModel } from './model'
 import type { SubmodelResolver } from './references'
@@ -42,17 +43,15 @@ export function validateDocument(
 ): DocumentValidation {
   const format = validateFormatContent(content, opts.fileName, opts.expectedSpecVersion)
 
-  const errors: ValidationError[] = []
-  const warnings: ValidationError[] = []
+  const d = new Diagnostics()
 
   for (const check of format.checks) {
     if (check.passed || check.severity === 'info') continue
-    const entry: ValidationError = {
+    d.add({
       path: `format.${check.id}`,
       message: check.message ?? check.label,
       severity: check.severity === 'error' ? 'error' : 'warning',
-    }
-    ;(entry.severity === 'error' ? errors : warnings).push(entry)
+    })
   }
 
   let schema: DocumentValidation['schema'] = null
@@ -70,9 +69,9 @@ export function validateDocument(
       },
     )
     schema = result
-    errors.push(...result.errors)
-    warnings.push(...result.warnings)
+    d.errors.push(...result.errors)
+    d.warnings.push(...result.warnings)
   }
 
-  return { format, schema, errors, warnings, valid: errors.length === 0 }
+  return { format, schema, errors: d.errors, warnings: d.warnings, valid: d.valid }
 }
