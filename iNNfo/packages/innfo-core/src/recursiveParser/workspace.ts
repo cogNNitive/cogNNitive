@@ -2,10 +2,10 @@ import type { DirectoryHandleLike, FileHandleLike } from '../fs-types'
 import type { ModelDriver, ModelNode } from '../types'
 import type { TemplateSchema } from '../schema'
 import { IdentityRegistry } from '../identity'
-import type { ParseContext, RecursiveParseResult, WorklistItem } from './types'
+import type { ParseContext, RecursiveParseOptions, RecursiveParseResult, WorklistItem } from './types'
 import { stripMdSuffix, normalizePathKey, resolveSubmodelPath } from './paths'
 import { parseAndRegisterModel } from './model'
-import { parseModel } from '../parser'
+import { parseModel, parseFrontmatter } from '../parser'
 
 const INNFO_FILE_SUFFIX = '.md'
 const INDEX_MD = 'index.md'
@@ -261,12 +261,34 @@ function linkParentChild(
 }
 
 /**
+ * Resolves a node's composed template schema via the host-supplied
+ * `options.resolveTemplateSchema`, when one was supplied. A throwing or
+ * absent resolver degrades that node to today's behavior (no `type:: model`
+ * field following) instead of aborting the whole parse (AD-04).
+ */
+function schemaFor(
+  options: RecursiveParseOptions | undefined,
+  path: string,
+  name: string,
+  content: string,
+): TemplateSchema | undefined {
+  if (!options?.resolveTemplateSchema) return undefined
+  try {
+    const fm = (parseFrontmatter(content) ?? {}) as Record<string, unknown>
+    return options.resolveTemplateSchema({ path, name, content, frontmatter: fm }) ?? undefined
+  } catch {
+    return undefined
+  }
+}
+
+/**
  * Parses a workspace by reading `workspace_NN.md` (or matching `workspace_*_NN.md`)
  * as the primary entry point, falling back to legacy `index.md`, or a root directory scan.
  */
 export async function recursiveParse(
   root: DirectoryHandleLike,
   driver?: ModelDriver,
+  options?: RecursiveParseOptions,
 ): Promise<RecursiveParseResult> {
   const visitedPaths = new Set<string>()
   const ctx: ParseContext = {
@@ -367,7 +389,8 @@ export async function recursiveParse(
 
   // Step 3: Iterative worklist traversal
   const queue: WorklistItem[] = []
-  const initialRefs = extractSubmodelRefs(entrypointContent, entrypointPath)
+  const entrypointSchema = schemaFor(options, entrypointPath, primary?.name ?? '', entrypointContent)
+  const initialRefs = extractSubmodelRefs(entrypointContent, entrypointPath, entrypointSchema)
   const entrypointKey = normalizePathKey(entrypointPath)
   for (const ref of initialRefs) {
     queue.push({
@@ -445,8 +468,16 @@ export async function recursiveParse(
       childNode.author = item.author
     }
 
+    // C1: resolve this node's composed template schema (if a resolver was
+    // supplied) and stash it on the freshly linked child node immediately,
+    // reusing the childNode already returned by linkParentChild (no extra lookup).
+    const schema = schemaFor(options, resolvedPath, item.name, content)
+    if (childNode && schema) {
+      childNode.templateSchema = schema
+    }
+
     // Extract nested submodel references from this model
-    const nestedRefs = extractSubmodelRefs(content, resolvedPath)
+    const nestedRefs = extractSubmodelRefs(content, resolvedPath, schema)
     const nestedAncestorKeys = [...item.ancestorKeys, normKey]
     for (const nRef of nestedRefs) {
       queue.push({
