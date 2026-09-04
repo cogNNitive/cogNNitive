@@ -1,4 +1,5 @@
 import type { ParsedModel, ElementNode, TaxonomyEdge } from './types'
+import { ElementsMap } from './types'
 import {
   CONCEPT_DEFINITION,
   FIELD_DEFINITION,
@@ -63,7 +64,42 @@ function getModelWideElementNames(model: ParsedModel): Set<string> {
   return names
 }
 
+/**
+ * Deep-copy a ParsedModel. `elements` is an `ElementsMap` (a class), so it is
+ * rebuilt by hand; every other field is a plain object/array/string and clones
+ * with `structuredClone`.
+ */
+function cloneModel(model: ParsedModel): ParsedModel {
+  const { elements, ...rest } = model
+  const clonedElements = new ElementsMap()
+  for (const [key, nodes] of elements.entries()) {
+    clonedElements.set(key, nodes.map((node) => structuredClone(node)))
+  }
+  return { ...structuredClone(rest), elements: clonedElements }
+}
+
+/**
+ * Apply an intent-level mutation to `model`.
+ *
+ * The op runs against a deep copy; the caller's `model` is only updated (in
+ * place, so existing references stay valid) when the op reports `success`. A
+ * failed or throwing op therefore leaves `model` byte-identical to its
+ * pre-call state — no half-applied renames.
+ */
 export function applyMutation(
+  model: ParsedModel,
+  op: string,
+  args: Record<string, unknown>,
+): MutationResult {
+  const draft = cloneModel(model)
+  const result = runMutation(draft, op, args)
+  if (result.success) {
+    Object.assign(model, draft)
+  }
+  return result
+}
+
+function runMutation(
   model: ParsedModel,
   op: string,
   args: Record<string, unknown>,
