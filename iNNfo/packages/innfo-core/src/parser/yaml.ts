@@ -2,10 +2,20 @@ import { SpecFrontmatter } from '../types'
 import { parse as yamlParse } from 'yaml'
 import { normalizeSource, YAML_BLOCK_RE } from './markdown'
 
-export function parseYaml(yamlStr: string): Record<string, any> {
+/**
+ * Parse a YAML document. On a syntax error the result is still `{}` (callers
+ * downstream tolerate an empty frontmatter), but the error is no longer
+ * swallowed silently: it is reported through `onError` so the caller can
+ * surface it (e.g. `parseModel` pushes it onto `parseWarnings`).
+ */
+export function parseYaml(
+  yamlStr: string,
+  onError?: (message: string) => void,
+): Record<string, any> {
   try {
     return yamlParse(yamlStr) || {}
-  } catch (_err) {
+  } catch (err) {
+    onError?.(`Frontmatter YAML failed to parse: ${err instanceof Error ? err.message : String(err)}`)
     return {}
   }
 }
@@ -191,10 +201,13 @@ const NORMALIZERS: Array<(fm: MutableFrontmatter) => void> = [
   normalizeMatrices,
 ]
 
-export function parseFrontmatter(content: string): SpecFrontmatter | null {
+export function parseFrontmatter(
+  content: string,
+  onError?: (message: string) => void,
+): SpecFrontmatter | null {
   const match = normalizeSource(content).match(YAML_BLOCK_RE)
   if (!match) return null
-  const fm = parseYaml(match[1]) as MutableFrontmatter
+  const fm = parseYaml(match[1], onError) as MutableFrontmatter
   for (const normalize of NORMALIZERS) normalize(fm)
   return fm as SpecFrontmatter
 }
