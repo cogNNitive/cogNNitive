@@ -192,7 +192,7 @@ path:: ./service_a_01.md
 
       const cycleIssue = result.issues.find((i) => i.message.includes('Cycle detected'))
       expect(cycleIssue).toBeDefined()
-      expect(cycleIssue!.message).toContain('already loaded')
+      expect(cycleIssue!.message).toContain('is an ancestor on this branch')
 
       const nodeA = Object.values(result.nodes).find((n) => n.name === 'service_a_01')
       const nodeB = Object.values(result.nodes).find((n) => n.name === 'service_b_01')
@@ -260,13 +260,26 @@ title: Shared Database
       const root = createFakeDirectoryHandle(files)
       const result = await recursiveParse(root)
 
-      // Shared DB is in nodes
+      // Shared DB is in nodes, parsed exactly once
       const sharedNode = Object.values(result.nodes).find((n) => n.name === 'shared_db_01')
       expect(sharedNode).toBeDefined()
+      expect(Object.values(result.nodes).filter((n) => n.name === 'shared_db_01')).toHaveLength(1)
 
-      // The second visit records cycle/already loaded warning
-      const cycleIssue = result.issues.find((i) => i.message.includes('already loaded'))
-      expect(cycleIssue).toBeDefined()
+      // A diamond (two independent parents referencing one child) is not a cycle:
+      // no issue is emitted for the second incoming edge.
+      const cycleIssue = result.issues.find(
+        (i) => i.message.includes('Cycle detected') || i.message.includes('already loaded'),
+      )
+      expect(cycleIssue).toBeUndefined()
+
+      // Both parents link to the shared child (second edge is preserved, not dropped).
+      const service1 = Object.values(result.nodes).find((n) => n.name === 'service_1_01')
+      const service2 = Object.values(result.nodes).find((n) => n.name === 'service_2_01')
+      expect(service1!.childIds).toContain(sharedNode!.id)
+      expect(service2!.childIds).toContain(sharedNode!.id)
+
+      // parentId still single-valued: the first parent to reach it wins.
+      expect(sharedNode!.parentId).toBe(service1!.id)
     })
   })
 
