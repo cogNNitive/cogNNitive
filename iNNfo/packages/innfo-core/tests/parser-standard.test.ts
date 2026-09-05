@@ -174,4 +174,30 @@ This is an element with tags.
       'el-tag3',
     ])
   })
+
+  it('parses bracket-array tags:: syntax without leaking brackets', () => {
+    const modelContent = `---
+spec_version: "V_0-2-0"
+level: 3
+title: "Bracket Tags Model"
+---
+
+# NN Task
+tags:: [management, priority]
+
+## NN Task: Alpha
+tags:: [frontend, core]
+
+Alpha description.
+`
+    const parsed = parseModel(modelContent)
+
+    expect(parsed.conceptTags!['Task']).toEqual(['management', 'priority'])
+    expect(parsed.elements.get('Task')![0].tags).toEqual(['frontend', 'core'])
+
+    const serialized = serializeModel(parsed)
+    const reParsed = parseModel(serialized)
+    expect(reParsed.conceptTags!['Task']).toEqual(['management', 'priority'])
+    expect(reParsed.elements.get('Task')![0].tags).toEqual(['frontend', 'core'])
+  })
 })

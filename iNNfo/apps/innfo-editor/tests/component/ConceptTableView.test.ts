@@ -167,7 +167,7 @@ describe('ConceptTableView.vue — Reactivity and element addition', () => {
     })
 
     const cells = wrapper.findAll('tbody tr td')
-    expect(cells).toHaveLength(3)
+    expect(cells).toHaveLength(4)
 
     const descriptionCell = cells[1]
     expect(descriptionCell.classes()).toContain('cursor-zoom-in')
@@ -218,6 +218,88 @@ describe('ConceptTableView.vue — Reactivity and element addition', () => {
     expect(modelPill.attributes('title')).toBe('./models/proyectos/jose-luis-olmo-mora_V_0-1-0_business_NN.md')
     expect(modelPill.classes()).toContain('bg-primary/10')
     expect(modelPill.classes()).toContain('text-primary')
+  })
+
+  it('renders element tags as chips in the Tags column', async () => {
+    const modelStore = useModelStore()
+    const root = makeNode('Root', {
+      childIds: ['Root/ItemA', 'Root/ItemB'],
+    })
+    const itemA = makeNode('Root/ItemA', {
+      parentId: 'Root',
+      name: 'ItemA',
+      type: 'Problems',
+      kind: 'element',
+      tags: ['frontend', 'core'],
+    })
+    const itemB = makeNode('Root/ItemB', {
+      parentId: 'Root',
+      name: 'ItemB',
+      type: 'Problems',
+      kind: 'element',
+      tags: [],
+    })
+    modelStore.setGraph({ Root: root, 'Root/ItemA': itemA, 'Root/ItemB': itemB }, ['Root'])
+
+    const wrapper = mount(ConceptTableView, {
+      props: {
+        nodeId: 'virtual:Root:Problems',
+        conceptType: 'Problems',
+        conceptFields: [],
+      },
+    })
+
+    const headers = wrapper.findAll('thead th').map((th) => th.text())
+    expect(headers).toContain('Tags')
+
+    const tagChips = wrapper.findAll('tbody tr td span.inline-flex')
+    const chipTexts = tagChips.map((c) => c.text())
+    expect(chipTexts).toContain('#frontend')
+    expect(chipTexts).toContain('#core')
+
+    // ItemB has no tags: its Tags cell renders no chips
+    const rows = wrapper.findAll('tbody tr')
+    expect(rows).toHaveLength(2)
+    const itemATagsCell = rows[0].findAll('td')[1]
+    expect(itemATagsCell.text()).toContain('#frontend')
+    const itemBTagsCell = rows[1].findAll('td')[1]
+    expect(itemBTagsCell.text()).not.toContain('#')
+  })
+
+  it('updates element tags via TagInput in edit mode', async () => {
+    const modelStore = useModelStore()
+    const root = makeNode('Root', {
+      childIds: ['Root/ItemA'],
+    })
+    const itemA = makeNode('Root/ItemA', {
+      parentId: 'Root',
+      name: 'ItemA',
+      type: 'Problems',
+      kind: 'element',
+      tags: ['existing'],
+    })
+    modelStore.setGraph({ Root: root, 'Root/ItemA': itemA }, ['Root'])
+
+    const wrapper = mount(ConceptTableView, {
+      props: {
+        nodeId: 'virtual:Root:Problems',
+        conceptType: 'Problems',
+        conceptFields: [],
+      },
+    })
+
+    await wrapper.find('[data-testid="toggle-edit-btn"]').trigger('click')
+
+    const tagInput = wrapper.findComponent({ name: 'TagInput' })
+    expect(tagInput.exists()).toBe(true)
+    expect(tagInput.props('modelValue')).toEqual(['existing'])
+
+    const input = tagInput.find('input')
+    await input.setValue('new-tag')
+    await input.trigger('keydown.enter')
+
+    const updated = modelStore.getNode('Root/ItemA')
+    expect(updated?.tags).toEqual(['existing', 'new-tag'])
   })
 })
 

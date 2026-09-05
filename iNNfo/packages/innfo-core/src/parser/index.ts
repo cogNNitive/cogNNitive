@@ -13,6 +13,7 @@ export {
   parseConceptSection,
   parseMatrixSection,
   getSectionType,
+  parseTagList,
 } from './sections'
 export { serializeModel } from './serializer'
 export { parseModel, deriveElementSlugs } from './core'
