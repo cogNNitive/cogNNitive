@@ -60,7 +60,8 @@ Every project workspace MUST adhere to the following structure:
 │   └── nn/                # Normalized Markdown, mirroring the same subfolder structure
 │                          # as sources/original/ (e.g. sources/original/clientA/report.docx
 │                          # → sources/nn/clientA/report.md). Never flattened.
-├── assets/               # Materialized source copies grouped by slug (for attachments/media)
+├── assets/               # Binary / media attachments referenced by model elements
+│                          # (image/file/video/audio fields). Not a copy of sources/nn/.
 ├── models/               # Structured semantic iNNfo Level 3 models (*_NN.md)
 ├── procedures/           # Reusable transformation procedure specs (*_procedures_V_0-1-0_NN.md)
 ├── artifacts/            # All generated output — deliverables and validation

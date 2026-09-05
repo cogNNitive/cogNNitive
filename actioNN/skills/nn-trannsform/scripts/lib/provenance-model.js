@@ -147,31 +147,6 @@ function collectSources(mdDir) {
 }
 
 /**
- * Copies source markdown files to assets/<slug>/ dirs.
- * @param {string} projectDir
- * @param {Array<any>} sources
- * @returns {void}
- */
-function materializeAssets(projectDir, sources) {
-  const mdDir = path.join(projectDir, 'sources', 'nn');
-  const seenHashes = new Set();
-  for (const src of sources) {
-    if (src.raw_hash) {
-      if (seenHashes.has(src.raw_hash)) {
-        continue;
-      }
-      seenHashes.add(src.raw_hash);
-    }
-    const slug = slugify(src.name);
-    const destDir = path.join(projectDir, 'assets', slug);
-    fs.mkdirSync(destDir, { recursive: true });
-    const from = path.join(mdDir, src.mdFile);
-    const to = path.join(destDir, path.basename(src.mdFile));
-    if (fs.existsSync(from)) fs.copyFileSync(from, to);
-  }
-}
-
-/**
  * Recursively collect files with a given extension test under a directory,
  * returning POSIX-style paths relative to that directory.
  * @param {string} dir
@@ -629,7 +604,6 @@ module.exports = {
   collectSources,
   collectModels,
   collectArtifacts,
-  materializeAssets,
   renderSourcesSection,
   renderModelsSection,
   renderArtifactsSection,
