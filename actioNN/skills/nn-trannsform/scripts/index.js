@@ -5,13 +5,12 @@ const path = require('path');
 const minimist = require('minimist');
 const prompts = require('prompts');
 
-const { execSync } = require('child_process');
-
 const config = require('./config');
 const scanner = require('./scanner');
 const transformer = require('./transformer');
 const provenance = require('./provenance');
 const webImport = require('./webImport');
+const { bootstrapProject } = require('./lib/bootstrap');
 
 async function main() {
   const argv = minimist(process.argv.slice(2));
@@ -38,7 +37,10 @@ async function handleCliMode(argv) {
 
   if (argv.src && argv.dest && argv.name) {
     console.log(`Bootstrapping project "${argv.name}" at "${projectDir}"...`);
-    bootstrapProject(argv.src, argv.dest, argv.name);
+    const bootstrap = bootstrapProject(argv.src, argv.dest, argv.name);
+    console.log(`Copied ${bootstrap.copiedCount} file(s) to sources/original (subfolders preserved).`);
+    console.log(`Initialized cogNNitive provenance model at: ${bootstrap.provModelPath}`);
+    console.log(`\n📌 Place your files to import into: ${bootstrap.originalDir}\n`);
   }
 
   if (!fs.existsSync(projectDir)) {
@@ -216,62 +218,15 @@ async function runBootstrapperFlow() {
   const targetDest = answers.useSrcAsDest ? answers.src : answers.dest.replace(/^["']|["']$/g, '').trim();
 
   const projectDir = path.join(targetDest, answers.name);
-  bootstrapProject(answers.src, targetDest, answers.name);
+  const bootstrap = bootstrapProject(answers.src, targetDest, answers.name);
+  console.log(`Copied ${bootstrap.copiedCount} file(s) to sources/original (subfolders preserved).`);
+  console.log(`Initialized cogNNitive provenance model at: ${bootstrap.provModelPath}`);
 
   config.saveConfig({ lastProjectPath: projectDir });
 
   console.log(`Project successfully bootstrapped at: ${projectDir}\n`);
+  console.log(`\n📌 Place your files to import into: ${bootstrap.originalDir}\n`);
   return projectDir;
-}
-
-function bootstrapProject(srcDir, destParentDir, projectName) {
-  const projectDir = path.join(destParentDir, projectName);
-  const originalDir = path.join(projectDir, 'sources', 'original');
-
-  const dirs = [
-    path.join('sources', 'original'),
-    path.join('sources', 'nn'),
-    'models',
-    'procedures',
-    'artifacts',
-    path.join('artifacts', 'reports'),
-    'traNNsformations',
-  ];
-  fs.mkdirSync(projectDir, { recursive: true });
-  for (const d of dirs) fs.mkdirSync(path.join(projectDir, d), { recursive: true });
-
-  if (projectName.toLowerCase() === 'trannsform') {
-    const readmePath = path.join(projectDir, 'README.md');
-    const readmeContent = `# Transform
-
-Transform (traNNsform) is a tool to structure and process unstructured documents:
-1. Place files in \`sources/original/\`.
-2. Scan and normalize to \`sources/nn/\`.
-3. Track provenance with \`<Project>_V_0-1-0_cogNNitive_NN.md\`.
-`;
-    fs.writeFileSync(readmePath, readmeContent, 'utf8');
-  }
-
-  if (srcDir && fs.existsSync(srcDir) && srcDir !== originalDir) {
-    const files = fs.readdirSync(srcDir);
-    let copiedCount = 0;
-    for (const file of files) {
-      const srcFilePath = path.join(srcDir, file);
-      const destFilePath = path.join(originalDir, file);
-      try {
-        if (fs.statSync(srcFilePath).isFile()) {
-          fs.copyFileSync(srcFilePath, destFilePath);
-          copiedCount++;
-        }
-      } catch (err) {}
-    }
-    console.log(`Copied ${copiedCount} files to sources/original directory.`);
-  }
-
-  // Automatically initialize cogNNitive provenance model on bootstrap
-  const prov = provenance.buildProvenanceModel(projectDir, { projectName });
-  console.log(`Initialized cogNNitive provenance model at: ${prov.modelPath}`);
-  console.log(`\n📌 Place your files to import into: ${originalDir}\n`);
 }
 
 async function runProjectMenu(projectDir) {
