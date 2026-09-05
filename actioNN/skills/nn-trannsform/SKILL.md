@@ -82,7 +82,7 @@ node scripts/index.js --src "<source-folder>" --dest "<destination-parent-folder
 
 ---
 
-### 2. Capability Scan & Provenance Ingestion Protocol (MANDATORY)
+### 2. Capability Scan & Source Ingestion Protocol (MANDATORY)
 
 #### 2a-0. Ingest `sources/original/` to `sources/nn/`
 
@@ -90,12 +90,12 @@ node scripts/index.js --src "<source-folder>" --dest "<destination-parent-folder
 
 1. **Check if `sources/original/` exists** inside the project directory. If not, ask the user and create it: `mkdir sources/original`
 2. **Copy files into `sources/original/`** (preserve originals in-place; DO NOT move or delete user files without consent). The user may organize subfolders freely — the scanner mirrors that structure into `sources/nn/`.
-3. **Scanner Normalization with Provenance Frontmatter**:
+3. **Scanner Normalization with Origin-Metadata Frontmatter**:
    Every normalized file generated under `sources/nn/` MUST include the mandatory, flat scanner traceability frontmatter — this schema is exact and must match the iNNfo editor:
 
 ```yaml
 ---
-# 1. Ingestion Provenance
+# 1. Origin metadata (where this Source came from)
 source_file: "sources/original/interview_transcript.pdf"
 sha256: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 size_bytes: 1048576
@@ -117,8 +117,8 @@ canonical:
       year = {2026}
     }
 
-# 3. External References cited INSIDE this Document (Primary vs Secondary)
-references:
+# 3. External works this Source cites (Primary vs Secondary)
+cited_works:
   - id: "porter1985"
     citation: "Porter, M. E. (1985). Competitive Advantage."
     doi: "10.1002/smj.4250060308"
@@ -130,7 +130,7 @@ When the source was imported from the web (see §2c below), also include `source
 
 > **⚠️ Staging Buffer Rule (`sources/staging/`)**: Intermediate dumps from extraction tools (Whisper SRTs, raw OCR text) live temporarily in `sources/staging/`. This directory is strictly ignored by scanners, git, and models. `sources/staging/` is **NEVER a valid citation target**.
 
-> **⚠️ Traceability Requirement**: There is no `source_id`/`src-NNN` system. Downstream Level 3 models reference sources directly by filename via `sources:: <path>.md#<heading-slug>` (resolving relative to `sources/nn/`; multiple values use list syntax: `sources:: [a.md#intro, b.md#summary]`). Line numbers are prohibited; heading slugs are mandatory.
+> **⚠️ Citation Rule**: There is no `source_id`/`src-NNN` system. Downstream Level 3 models reference sources directly by filename via `sources:: <path>.md#<heading-slug>` (resolving relative to `sources/nn/`; multiple values use list syntax: `sources:: [a.md#intro, b.md#summary]`). Line numbers are prohibited; heading slugs are mandatory.
 
 #### 2b. Progressive Disclosure & Source Naming Convention
 
@@ -329,7 +329,7 @@ At the end of transformation:
 1. **Zero Unilateral Mutation**: NEVER move, rename, or delete files in `sources/original/` (or any user file) without prior explicit confirmation.
 2. **Recommended Option First**: Always prefix option `[a]` with `(Recommended)`.
 3. **Multi-Selection Notice**: Add `"You can select one option or a combination (e.g. A and B)"` when applicable.
-4. **Mandatory Scanner Provenance**: Normalized Markdown in `sources/nn/` MUST include scanner frontmatter (`source_file`, `sha256`, `size_bytes`, `normalized_at`, `normalized_by`, plus optional `staging_file`, `is_synthetic`, `canonical`, and `references`). No `source_id`/`src-NNN`.
+4. **Mandatory Scanner Provenance**: Normalized Markdown in `sources/nn/` MUST include scanner frontmatter (`source_file`, `sha256`, `size_bytes`, `normalized_at`, `normalized_by`, plus optional `staging_file`, `is_synthetic`, `canonical`, and `cited_works`). No `source_id`/`src-NNN`.
 5. **Mandatory Model Provenance**: Level 3 elements MUST include `sources:: <path.md#heading-slug>` (or a list `sources:: [a.md#slug, b.md#slug]`) resolving canonically against `sources/nn/` — no `src-NNN` IDs, no line-number ranges.
 6. **V_0-1-0 Compliance**: Target iNNfo V_0-1-0 meta-template specification and unified NN syntax (`# NN`, `## NN`, `key:: value`).
 7. **Saved Procedure Proactive Check**: When starting `nn-trannsform` or `nn-router`, check for existing procedures in `procedures/` and offer them as runnable options to the user before starting standard ingestion.

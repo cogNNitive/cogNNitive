@@ -1,139 +1,139 @@
-# Unified Citation, Traceability & Provenance Pipeline
+# Sources, Citations & Lineage
 
-The cogNNitive ecosystem implements a unified, end-to-end citation and traceability architecture spanning `actioNN` (agent tooling and document ingestion) and `iNNfo` (deterministic data models and visual tooling).
+The cogNNitive pipeline tracks where knowledge comes from with **three** words,
+one meaning each. Everything else ("provenance", "traceability", "grounding",
+"3-tier lineage") is retired in favour of these:
 
-This pipeline guarantees **complete lineage from raw unstructured input to final published artifact**, ensuring zero hallucinations, strict cryptographic verification, and adherence to the **Open Knowledge Format (OKF v0.1)** standard by Google Cloud.
+| Term | What it is |
+| :--- | :--- |
+| **Source** | A normalised Markdown file under `sources/nn/`, plus its **origin metadata** in the frontmatter (`source_file`, `sha256`, `size_bytes`, `normalized_at`, `normalized_by`, and, for web imports, `source_url` / `downloaded_at`). One Source per original file. |
+| **Citation** | A pointer from something to a Source section. Two altitudes: a **model citation** is `sources:: <path>.md#<heading-slug>` on a Level 3 element; an **artifact citation** is `[^1]` / APA / IEEE / … inside a generated deliverable. Same idea, different granularity. |
+| **Lineage** | The single generated record `<Project>_V_x-y-z_cogNNitive_NN.md` that says, for every Source, Model, Artifact and pipeline run in the workspace, what it derives from. |
+
+```
+sources/original/   ──►   sources/nn/        ──►   models/*_NN.md      ──►   artifacts/
+  (immutable            (Sources: normalised     (model Citations:          (deliverables +
+   originals)            + origin metadata)       sources:: [a.md#x])        artifact Citations)
+        └──────────────────────── recorded in the Lineage record ───────────────────────┘
+```
 
 ---
 
-## 1. Architectural Foundations: The 3-Tier Lineage
+## 1. Sources — ingestion & origin metadata
 
-Knowledge in cogNNitive moves through three distinct tiers, ensuring full provenance at every transformation step:
+`nn-trannsform` scans `sources/original/` (recursively, subfolders preserved),
+normalises each supported format to Markdown under the matching path in
+`sources/nn/`, and writes a flat, deterministic YAML frontmatter:
 
-```
-[ Raw Sources ] ──────────────────────┐
- (PDF, DOCX, XLS, SRT, CSV, Chat)     │ Tier 1: Ingestion & Normalization
-                                       ▼ (SHA-256 + Flat Frontmatter + OKF Manifest)
-                              [ sources/nn/ ]
-                                       │
-                                       │ Tier 2: Model Grounding
-                                       ▼ (sources:: [doc.md#slug] + canonical/references)
-                              [ *_NN.md Model ]
-                                       │
-                                       │ Tier 3: Artifact Synthesis
-                                       ▼ (Canonical inline ^[...] vs Clean Export + BibTeX)
-                              [ artifacts/ ]
-```
+- `sha256` of the **original** file's bytes — the change-detection key (git is
+  the history mechanism; there is no snapshot folder).
+- `source_file`, `size_bytes`, `normalized_at`, `normalized_by`.
+- `canonical:` — this document's own bibliographic identity (title, author,
+  year, DOI, a BibTeX block), when known.
+- `cited_works:` — the external works **this Source cites** (`id`, `citation`,
+  `doi`, `is_primary`). *Named `cited_works`, not `references`, so it does not
+  collide with the iNNfo `reference` field type, which is a cross-model link.*
+  `references:` is still accepted as a deprecated input alias.
 
-1. **Tier 1 — Source Ingestion (`sources/original/` & `sources/nn/`):**
-   - Raw input files are preserved immutably under `sources/original/`.
-   - The `nn-trannsform` scanner normalizes files to Markdown under `sources/nn/`, preserving folder hierarchies.
-   - Each normalized file receives a flat, deterministic YAML frontmatter with cryptographic hash (`sha256`), file size, and normalization timestamps.
-   - The scanner generates an **Open Knowledge Format (OKF v0.1)** compliant progressive-disclosure catalog at `sources/nn/index.md`.
-2. **Tier 2 — Model Grounding (`models/*_NN.md`):**
-   - Concepts, elements, and assertions in Level 3 models link directly to normalized sources via `sources:: [file.md#slug]` or `sources:: [subfolder/file.md#slug]`.
-   - The model frontmatter declares formal bibliographic metadata under `canonical:` (title, author, year, DOI, BibTeX) and `references:` (cited works and primary source flags).
-3. **Tier 3 — Downstream Synthesis (`artifacts/`):**
-   - High-level reports, executive dashboards, and academic papers synthesise information from the model.
-   - **Canonical View (`artifacts/canonical/`):** Retains full semantic inline citations (`^[source.md#slug]`) for auditability and verification.
-   - **Export View (`artifacts/exports/`):** Automatically compiles clean academic or corporate formats with numbered references (`[1]`, `[2]`) and companion `.bib` BibTeX files.
+A transient extraction buffer, `sources/staging/` (Whisper SRTs, raw OCR), is
+ignored by the scanner and git and is **never a valid Citation target**.
 
----
+### Supported formats
 
-## 2. Multimodal Ingestion & Progressive Disclosure
-
-### Supported Formats & Conversion Contracts
-
-| Format | Extension | Normalization Method | Semantic Output Structure |
+| Format | Extension | Converter | Output |
 | :--- | :--- | :--- | :--- |
-| **Subtitles / Transcripts** | `.srt`, `.vtt` | `convertSubtitles` | Sections chunked by timestamps into fluid paragraphs with `# H1` and `## NN Section` headings. |
-| **Tabular Datasets** | `.csv` | `convertCsv` | Extracts a formal `## NN Dataset Schema` with column datatypes and `## NN Summary Statistics` before data rows. |
-| **Conversational Chats** | `.json` | `convertChatJson` | Groups messages into chronological sections with participant headings and timestamps. |
-| **Word Documents** | `.docx` | `convertDocx` (mammoth) | Clean Markdown with preserved heading hierarchies and tables. |
-| **Workbooks & Spreadsheets** | `.xlsx`, `.xls` | `convertXlsx` (xlsx) | Multi-sheet Markdown tables with sheet names as section anchors. |
-| **PDF Documents** | `.pdf` | `convertPdf` (pdf-parse) | Extracted text structure with page metadata. |
-| **Plain Text / Markdown** | `.txt`, `.md` | `stripFrontmatter` | Preserves raw content, stripping conflicting third-party frontmatter. |
+| Subtitles / transcripts | `.srt`, `.vtt` | `convertSubtitles` | Timestamp-chunked paragraphs under `#`/`## NN` headings |
+| Tabular data | `.csv` | `convertCsv` | `# NN Dataset Schema` + `## NN Summary Statistics`, then rows |
+| Chat exports | `.json` | `convertChatJson` | Chronological sections with participant headings |
+| Word | `.docx` | `convertDocx` (mammoth) | Markdown, heading hierarchy + tables preserved |
+| Spreadsheets | `.xlsx`, `.xls` | `convertXlsx` (xlsx) | One Markdown table per sheet |
+| PDF | `.pdf` | `convertPdf` (pdf-parse) | Extracted text |
+| Text / Markdown | `.txt`, `.md`, `.html` | direct | Content preserved, third-party frontmatter stripped |
 
-### Progressive Disclosure (2-Tier Ingestion)
+### Progressive disclosure
 
-For massive documents (e.g. 500-page regulatory PDFs, transcripts of 40-hour workshops), `nn-trannsform` supports a 2-tier progressive disclosure pattern:
-- `{basename}_summary.md`: Lightweight semantic distillation for quick agent discovery, indexing, and high-level routing.
-- `{basename}_source.md`: Complete, verbatim normalized text with preserved anchors for deep citation extraction.
-
-### Transient Staging Buffer (`sources/staging/`)
-
-When agents perform automated web scraping, API pagination, or transient downloads:
-- Transient raw payloads are stored in `sources/staging/`.
-- **Isolation Guarantee:** `sources/staging/` is excluded from Git (`.gitignore`) and completely bypassed by `walkOriginal` during scanner runs.
-- Models never reference files inside `staging/`; only validated, curated sources in `sources/nn/` are eligible for citations.
+For very large Sources, `nn-trannsform` supports a two-tier split:
+`{basename}_summary.md` (a short semantic distillation for discovery) and
+`{basename}_source.md` (the complete normalised text with anchors for deep
+Citation).
 
 ---
 
-## 3. Path Ergonomics & Semantic Slugs
+## 2. Model Citations (`sources::`)
 
-### Short Path Resolution
+Level 3 model elements point at Sources with `sources::`:
 
-In `iNNfo` (both within `innfo-editor` and `@cognnitive/innfo-core`), source references are resolved with ergonomic relative path rules:
-- **Default Base:** Unqualified paths are automatically resolved relative to `sources/nn/`:
-  - `sources:: [report.md#financials]` resolves to `sources/nn/report.md` at heading slug `financials`.
-  - `sources:: [MAD-11 2026-07/tutorias.md#sheet1]` resolves to `sources/nn/MAD-11 2026-07/tutorias.md` at heading slug `sheet1`.
-- **Backward Compatibility:** Explicit paths like `sources:: [sources/nn/report.md#financials]` remain fully valid and supported.
-
-### Strict Prohibition of Line Numbers
-
-Line-number citations (e.g., `report.md#L45-L60`) are **strictly prohibited and rejected** by the parser and linter:
-- **Rationale:** Line numbers are brittle and transient. Any formatting change, lint pass, whitespace trim, or sentence addition invalidates line numbers, causing broken lineage.
-- **Enforcement:** Citations MUST use semantic heading slugs (`#heading-title`) or explicit HTML anchors (`<a id="anchor"></a>`), ensuring durable links that survive refactorings.
-
----
-
-## 4. Frontmatter Schema: Canonical & Bibliographic Metadata
-
-Models and synthesized documents declare machine-readable bibliographic identity in their frontmatter:
-
-```yaml
----
-level: 3
-parent_spec:
-  name: "business_V_0-1-0"
-  url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/templates/business/V_0-1-0/spec_NN.md"
-model_version: "V_1-0-0"
-title: "Quarterly Strategy & Operational Model"
-canonical:
-  title: "Q3 Strategic Roadmap and Financial Allocation"
-  author: "Lucas Rodríguez Cervera"
-  year: 2026
-  doi: "10.1000/182"
-  bibtex: "@article{rodriguez2026strategy, title={Q3 Strategic Roadmap}, author={Rodríguez Cervera, Lucas}, year={2026}}"
-references:
-  - id: "sec-filing-2026"
-    citation: "SEC. (2026). Form 10-Q Quarterly Report."
-    doi: "10.1000/183"
-    is_primary: true
-  - id: "market-survey"
-    citation: "Gartner. (2026). Enterprise AI Adoption Survey."
-    is_primary: false
----
+```markdown
+## NN Stakeholders: Enterprise Clients
+sources:: [interview.md#key-clients, notes/kickoff.md#priorities]
 ```
 
+Rules — enforced by `@cognnitive/innfo-core` (`parseSourceRef` /
+`validateWorkspaceSources`) and surfaced by the `innfo-mcp` `validate_model`
+tool in workspace mode, and in the editor:
+
+- **Unqualified paths resolve under `sources/nn/`** — `report.md#financials` →
+  `sources/nn/report.md`. An explicit `sources/nn/` prefix still works. A
+  `models/…` path is a cross-model reference.
+- **Heading-slug anchors only.** Line-range anchors (`#L12-L45`) and the legacy
+  `src-NNN` wrapper are rejected as an `error`; an anchor that matches no
+  heading in the target file is a `warning`.
+- **Element-level, not claim-level.** One `sources::` covers every field of the
+  element together. Per-claim Citation is an *artifact* concern (§4), never
+  inside a `*_NN.md`.
+- **Optional.** A greenfield / creative model needs no Citations; the agent only
+  suggests `sources::` when `sources/nn/` actually has files.
+
 ---
 
-## 5. Google Open Knowledge Format (OKF v0.1) Interoperability
+## 3. The Lineage record
 
-The cogNNitive pipeline aligns natively with the **Open Knowledge Format (OKF)** specification defined by Google Cloud:
+`buildProvenanceModel` (run on bootstrap and every `--scan` / `--import-url` /
+`--lineage`) keeps the Lineage record synced with the filesystem:
 
-1. **Progressive Disclosure Catalog (`sources/nn/index.md`):**
-   Conforms to OKF §6 and §9.3 by providing an explicit directory-level index with YAML frontmatter:
-   ```yaml
-   ---
-   type: "index"
-   title: "traNNsform Ingestion Manifest & Processing Log"
-   description: "Source documents registry and processing log for normalized knowledge assets"
-   tags: [sources, ingestion, manifest, okf, provenance]
-   timestamp: "2026-09-05T12:00:00Z"
-   ---
-   ```
-   AI agents can read this single manifest in milliseconds to survey all available sources, verify SHA-256 hashes, and assess data formats before deciding which files to load.
+| Section | Synced from | Semantics |
+| :--- | :--- | :--- |
+| `# NN Sources` | `sources/nn/` frontmatter | idempotent replace |
+| `# NN Models` | `models/*_NN.md` (`derived_from::` scraped from each model's `sources::`) | idempotent replace |
+| `# NN Artifacts` | `artifacts/` (`derived_from::` from frontmatter `model` + `model_version`, or an HTML `export-meta` block) | idempotent replace |
+| `# NN Procedures` | one entry appended per run (`--scan`, `--import-url`, `--apply`): `command`, `flags`, `run_at`, `inputs`, `outputs` | **append-only log** |
 
-2. **Permissive Consumption Compatibility:**
-   Any folder of cogNNitive models or normalized sources conforms to OKF bundle requirements and can be ingested directly by any OKF-compliant agent or toolchain without proprietary adapters.
+Removed files drop out of the three replaced sections; the Procedures log is
+never rewritten. Run `node scripts/index.js --check` to report drift — a model
+with no entry, an artifact citing a model/version that no longer exists, or a
+`sources::` that resolves nowhere; it exits non-zero on any such error.
+
+---
+
+## 4. Artifact Citations
+
+`nn-trannsform` derives deliverables in a single pass straight to
+`artifacts/[Deliverable_Name]_V_x-y-z.md` (validation reports go to the same
+folder, tagged `type: report` in frontmatter — there is no `exports/` or
+`reports/` subfolder). The citation style is chosen per deliverable:
+
+- `[a]` **Standard Markdown Footnotes** (`[^1]`) — the recommended default.
+- `[b]` Simple inline attribution — `— Source: <filename>, section <name>`.
+- `[c]`–`[g]` APA 7th / MLA 9th / Chicago / IEEE / Vancouver.
+- `[h]` BibTeX — a clean body plus a companion `.bib` file.
+- `[i]` No sources — a clean, unannotated deliverable.
+
+Claims are resolved from the model's `sources::` pointers. When a Source's
+`cited_works:` marks an external work `is_primary: true`, an APA rendering
+attributes it as *(Porter, 1985, as cited in Doe, 2026)* rather than falsely
+crediting the intermediate document.
+
+Full per-format rules: `actioNN/skills/nn-trannsform/citations.md`.
+
+---
+
+## Planned, not implemented
+
+The following appear in older design notes and are **not** part of the shipped
+pipeline. They are listed here only so nobody assumes the guarantee exists:
+
+- **Open Knowledge Format (OKF) / W3C PROV-O / RO-Crate emission.** The
+  `sources/nn/index.md` manifest is a plain ingestion log with YAML frontmatter;
+  nothing emits PROV-O or RO-Crate.
+- **A separate `artifacts/canonical/` view** with inline `^[...]` markers. Only
+  the single-pass `artifacts/` output described in §4 exists.

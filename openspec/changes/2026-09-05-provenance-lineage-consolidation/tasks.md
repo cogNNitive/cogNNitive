@@ -141,16 +141,16 @@ pass. Not started.
 
 ## PR 7 — `refactor: consolidate provenance vocabulary → Source/Citation/Lineage` ⏸ review
 
-- [ ] 7.1 Rebase on `main` (pick up `2026-09-05-documentation-v2-and-docsify-suite`
+- [x] 7.1 Rebase on `main` (pick up `2026-09-05-documentation-v2-and-docsify-suite`
       if it merged; coordinate the `citations-provenance.md` edit otherwise).
-- [ ] 7.2 Write `test/unit/test-cited-works-alias.js`: frontmatter with
+- [x] 7.2 Write `test/unit/test-cited-works-alias.js`: frontmatter with
       `references:` reads as `cited_works`; generator writes `cited_works:`. (RED)
-- [ ] 7.3 `scanner-core.js` `generateSourceFrontmatter`: emit `cited_works:`.
+- [x] 7.3 `scanner-core.js` `generateSourceFrontmatter`: emit `cited_works:`.
       `parseFrontmatterFields` / `parseSourceFrontmatter`: read both keys,
       `references` deprecated. (GREEN)
-- [ ] 7.4 Update `citations.md` "Primary vs. Secondary" prose and
+- [x] 7.4 Update `citations.md` "Primary vs. Secondary" prose and
       `docs/innfo/documentation/citations-provenance.md` §4 example to `cited_works:`.
-- [ ] 7.5 Rewrite `docs/innfo/documentation/citations-provenance.md` around
+- [x] 7.5 Rewrite `docs/innfo/documentation/citations-provenance.md` around
       Source / Citation / Lineage; delete `artifacts/canonical/`; move OKF /
       PROV-O / RO-Crate under "Planned, not implemented" or delete.
 - [ ] 7.6 `innfo-core/src/types.ts`: `FieldValue.provenance` → `editAttribution`;
@@ -162,9 +162,9 @@ pass. Not started.
       `SpecResolverService.ts` literal.
 - [ ] 7.8 Decide `schema.ts` merge-`Provenance` → `MergeOrigin` (rename or leave;
       internal-only). Record the decision in this file.
-- [ ] 7.9 Align `nn-trannsform/SKILL.md` + `nn-innfo/SKILL.md` wording to the
+- [x] 7.9 Align `nn-trannsform/SKILL.md` + `nn-innfo/SKILL.md` wording to the
       three terms; drop "traceability"/"grounding".
-- [ ] 7.10 `npm --prefix iNNfo run lint && format:check && verify`;
+- [x] 7.10 `npm --prefix iNNfo run lint && format:check && verify`;
       `node --test …/nn-trannsform/test/`; `npm run build:docs`.
 - [ ] 7.11 Commit. Open PR 7. **Pause for review.** Merge on approval + green.
 
