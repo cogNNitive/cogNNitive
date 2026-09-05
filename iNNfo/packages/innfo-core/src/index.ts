@@ -56,12 +56,16 @@ export {
   validateReferences,
   validateElementFieldReferences,
   validateTaxonomyHierarchy,
+  QUALIFIED_REF_RE,
+  parseQualifiedRef,
+  validateWorkspaceReferences,
 } from './validator'
 export type {
   ReferenceDiagnostic,
   DocumentValidation,
   SubmodelResolver,
   ValidateModelOptions,
+  QualifiedRef,
 } from './validator'
 
 export * from './identity'

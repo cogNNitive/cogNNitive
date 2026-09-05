@@ -152,6 +152,11 @@ const toolDefinitions: Tool[] = [
           description:
             'Optional explicit template URL when the model has no resolvable parent_spec.url',
         },
+        workspace: {
+          type: 'boolean',
+          description:
+            'Optional workspace-scope mode (default false = today\'s single-file behavior, unchanged). When true, also runs cross-model reference validation (qualified `[[Model Title :: Element Name]]` refs) across the whole workspace and merges diagnostics owned by this model. Requires `id` mode.',
+        },
       },
     },
   },
@@ -440,9 +445,10 @@ async function handleValidateModel(args: Record<string, unknown>): Promise<CallT
   const id = args.id as string | undefined
   const content = args.content as string | undefined
   const templateUrl = args.template_url as string | undefined
+  const workspace = args.workspace as boolean | undefined
   if (!id && !content) return errorResult('Provide either id or content')
   const root = (args.root as string) || ROOT_DIR
-  const result = await validateModel(root, id, content, templateUrl)
+  const result = await validateModel(root, id, content, templateUrl, workspace)
   return textResult(JSON.stringify(envelope('innfo-validate-model', result), null, 2))
 }
 
