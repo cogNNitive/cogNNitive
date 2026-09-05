@@ -55,10 +55,10 @@ If no `workspace_NN.md` or `workspace_*_NN.md` file exists at the root, the pars
 
 ### Requirement: Submodel Reference Extraction
 
-The parser MUST extract referenced submodels from both traditional markdown/wikilink syntax (`[[target.md]]`, `[label](target.md)`) AND structured `ModelRef` element properties (e.g. `path::` fields with `type:: model`).
+The parser MUST extract referenced submodels from both traditional markdown/wikilink syntax (`[[target.md]]`, `[label](target.md)`) AND structured `Models` element properties (e.g. `path::` fields with `type:: model`).
 
-#### Scenario: Submodels declared via ModelRef path fields
-- GIVEN a `workspace_01.md` containing `## 01 ModelRef: Core Engine` with `path:: models/core_engine_01.md`
+#### Scenario: Submodels declared via Models path fields
+- GIVEN a `workspace_01.md` containing `## 01 Models: Core Engine` with `path:: models/core_engine_01.md`
 - WHEN `recursiveParse()` processes the workspace entrypoint
 - THEN `models/core_engine_01.md` is queued and parsed as a submodel in the workspace graph
 
@@ -71,9 +71,9 @@ The parser MUST extract referenced submodels from both traditional markdown/wiki
 
 ### Requirement: Level 2 Workspace Template Definition
 
-A Level 2 workspace template (`workspace_spec_NN.md`) MUST be provided under `specs/templates/workspace_spec_NN.md`. It MUST define core workspace concept primitives including `Workspace` (`type:: text`), `ModelRef` (`type:: model`), `Folder` (`type:: category`), and `Asset` (`type:: list`), with standard properties (`path`, `template`, `status`).
+A Level 2 workspace template (`workspace_spec_NN.md`) MUST be provided under `specs/templates/workspace_spec_NN.md`. It MUST define core workspace concept primitives including `Workspace` (`type:: text`), `Models` (`type:: model`), `Folder` (`type:: category`), and `Asset` (`type:: list`), with standard properties (`path`, `template`, `status`).
 
 #### Scenario: Workspace model validates against workspace_spec_NN.md
 - GIVEN `workspace_01.md` declaring `parent_spec:: workspace_spec_01.md`
 - WHEN metamodel validation runs against `workspace_spec_01.md`
-- THEN `Workspace`, `ModelRef`, `Folder`, and `Asset` concept definitions are recognized as valid metamodel concepts
+- THEN `Workspace`, `Models`, `Folder`, and `Asset` concept definitions are recognized as valid metamodel concepts

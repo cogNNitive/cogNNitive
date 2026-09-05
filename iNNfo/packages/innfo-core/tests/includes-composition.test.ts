@@ -213,9 +213,15 @@ target:: B
 widget:: scale
 widget_config:: {"step": 2, "bogus": 1}
 `)
-    const diags = checkWidgetConfig([['Matrix Definition', parsed.elements.get('Matrix Definition') ?? []]])
-    expect(diags.some((d) => d.severity === 'error' && d.message.includes('widget_config.min'))).toBe(true)
-    expect(diags.some((d) => d.severity === 'error' && d.message.includes('widget_config.max'))).toBe(true)
+    const diags = checkWidgetConfig([
+      ['Matrix Definition', parsed.elements.get('Matrix Definition') ?? []],
+    ])
+    expect(
+      diags.some((d) => d.severity === 'error' && d.message.includes('widget_config.min')),
+    ).toBe(true)
+    expect(
+      diags.some((d) => d.severity === 'error' && d.message.includes('widget_config.max')),
+    ).toBe(true)
     expect(diags.some((d) => d.severity === 'warning' && d.message.includes('bogus'))).toBe(true)
   })
 })
@@ -312,7 +318,7 @@ describe('base_V_0-1-0 — composite template composition (PR6)', () => {
       'Artifacts',
       'Asset',
       'Folder',
-      'ModelRef',
+      'ModelRecords',
       'Models',
       'Overview',
       'Procedures',
@@ -331,13 +337,19 @@ describe('base_V_0-1-0 — composite template composition (PR6)', () => {
 describe('checkElementsAgainstSchema — shared property/enum pass', () => {
   it('warns on an undeclared property and errors on a bad enum value', () => {
     const concepts = [
-      { name: 'Task', type: 'list' as const, fields: [{ name: 'state', type: 'select' as const, options: ['a', 'b'] }] },
+      {
+        name: 'Task',
+        type: 'list' as const,
+        fields: [{ name: 'state', type: 'select' as const, options: ['a', 'b'] }],
+      },
     ]
     const diags = checkElementsAgainstSchema(
       [['Task', [{ name: 'T1', fields: { state: 'zzz', bogus: 1 } }]]],
       concepts,
     )
-    expect(diags.some((d) => d.severity === 'error' && d.message.includes('Invalid value "zzz"'))).toBe(true)
+    expect(
+      diags.some((d) => d.severity === 'error' && d.message.includes('Invalid value "zzz"')),
+    ).toBe(true)
     expect(diags.some((d) => d.severity === 'warning' && d.message.includes('bogus'))).toBe(true)
   })
 })

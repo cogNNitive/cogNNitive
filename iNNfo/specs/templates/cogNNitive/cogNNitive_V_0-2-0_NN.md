@@ -25,7 +25,7 @@ relationship_types:
 # NN index
 
 * [[Sources]]
-* [[Models]]
+* [[ModelRecords]]
 * [[Artifacts]]
 * [[Procedures]]
 
@@ -37,7 +37,7 @@ type:: list
 color:: teal
 weight:: 90
 
-## NN Concept Definition: Models
+## NN Concept Definition: ModelRecords
 icon:: boxes
 type:: list
 color:: teal
@@ -100,31 +100,31 @@ concept:: Sources
 type:: file
 description:: Optional copy of the original raw binary, retained for full reproducibility.
 
-<!-- Models: a level-3 domain model produced from sources -->
+<!-- ModelRecords: a level-3 domain model produced from sources -->
 
 ## NN Field Definition: model_ref
-concept:: Models
+concept:: ModelRecords
 type:: string
 description:: Link or path to the domain model file in the workspace (e.g. ./Business%20Plan_V_0-1-0_business_NN.md). See the cross-model note in the Specification section.
 
 ## NN Field Definition: model_template
-concept:: Models
+concept:: ModelRecords
 type:: string
 description:: The level-2 template the domain model conforms to (e.g. business, organization, procedures).
 
 ## NN Field Definition: model_version
-concept:: Models
+concept:: ModelRecords
 type:: string
 description:: Version of the produced domain model.
 
 ## NN Field Definition: derived_from
-concept:: Models
+concept:: ModelRecords
 type:: reference
 target_concepts:: [Sources]
 description:: The Sources this model was derived from (PROV wasDerivedFrom).
 
 ## NN Field Definition: generated_by
-concept:: Models
+concept:: ModelRecords
 type:: reference
 target_concepts:: [Procedures]
 description:: The Procedure run that produced this model (PROV wasGeneratedBy).
@@ -155,8 +155,8 @@ description:: Optional SHA-256 hash of the artifact for reproducibility.
 ## NN Field Definition: derived_from_inputs
 concept:: Artifacts
 type:: reference
-target_concepts:: [Sources, Models]
-description:: The immediate inputs this artifact was derived from — Sources and/or Models (PROV wasDerivedFrom).
+target_concepts:: [Sources, ModelRecords]
+description:: The immediate inputs this artifact was derived from — Sources and/or ModelRecords (PROV wasDerivedFrom).
 
 ## NN Field Definition: produced_by
 concept:: Artifacts
@@ -204,7 +204,7 @@ description:: Optional projection view of the `derived_from_inputs` references �
 
 ## Philosophy
 
-The cogNNitive template treats ingestion and generation as a lineage graph rather than a folder of loose files. It follows the W3C PROV model: **Sources**, **Models**, and **Artifacts** are entities; **Procedures** are activities; and derivation is recorded as explicit directed edges (`derived_from`, `generated_by`) rather than inferred from folder layout. This makes every generated deliverable auditable back to the exact raw inputs and the run that produced it.
+The cogNNitive template treats ingestion and generation as a lineage graph rather than a folder of loose files. It follows the W3C PROV model: **Sources**, **ModelRecords**, and **Artifacts** are entities; **Procedures** are activities; and derivation is recorded as explicit directed edges (`derived_from`, `generated_by`) rather than inferred from folder layout. This makes every generated deliverable auditable back to the exact raw inputs and the run that produced it.
 
 ## Objectives
 
@@ -223,26 +223,26 @@ The template instantiates the four root primitives of the Metaplantilla Nivel 1:
 | Concept | PROV role | Purpose |
 |---|---|---|
 | **Sources** | Entity | A raw input file ingested and normalized (hash, name, format, normalized content). |
-| **Models** | Entity | A level-3 domain model produced from Sources. |
-| **Artifacts** | Entity | A derivative deliverable (document, report, board, dataset) produced from Sources and/or Models. |
+| **ModelRecords** | Entity | A level-3 domain model produced from Sources. |
+| **Artifacts** | Entity | A derivative deliverable (document, report, board, dataset) produced from Sources and/or ModelRecords. |
 | **Procedures** | Activity | The transformation run that produced a Model or Artifact. |
 
 ### Lineage mechanism (why references, not matrices)
 
 Lineage is **sparse and directional**, so it is modeled with `reference` fields — the iNNfo analog of PROV `wasDerivedFrom` / `wasGeneratedBy` and OpenLineage `inputs` / `outputs`:
 
-- `Models.derived_from` → Sources
-- `Models.generated_by` → Procedures
-- `Artifacts.derived_from_inputs` → Sources and/or Models
+- `ModelRecords.derived_from` → Sources
+- `ModelRecords.generated_by` → Procedures
+- `Artifacts.derived_from_inputs` → Sources and/or ModelRecords
 - `Artifacts.produced_by` → Procedures
 
-Because Sources, Models, Artifacts, and Procedures all live in this one provenance model, these edges are **intra-model references**, which the engine validates today. Evaluable matrices are reserved for **dense N×M** relations within a model and there are **no cross-model matrices** in iNNfo; the optional `Artifact-Source Lineage` matrix is only a projection view of the reference fields.
+Because Sources, ModelRecords, Artifacts, and Procedures all live in this one provenance model, these edges are **intra-model references**, which the engine validates today. Evaluable matrices are reserved for **dense N×M** relations within a model and there are **no cross-model matrices** in iNNfo; the optional `Artifact-Source Lineage` matrix is only a projection view of the reference fields.
 
 The derivation graph is a **DAG, not a fixed chain**: an Artifact may derive from a Model, directly from Sources, or both. Do not assume a fixed `Source → Procedure → Model → Artifact` order — record each entity's immediate inputs and let the graph be what it is.
 
 ### Cross-model note (implementation caveat)
 
-`Models.model_ref` points at the actual domain model file. iNNfo supports qualified cross-workspace references (`Model :: Name`), but the reference **validator currently checks intra-model references only** — persisted cross-model reference validation is not yet implemented in `innfo-core`. Until it is, keep `model_ref` as a Markdown link / path (or the model `title`) rather than relying on a validated `Model :: Name` reference.
+`ModelRecords.model_ref` points at the actual domain model file. iNNfo supports qualified cross-workspace references (`Model :: Name`), but the reference **validator currently checks intra-model references only** — persisted cross-model reference validation is not yet implemented in `innfo-core`. Until it is, keep `model_ref` as a Markdown link / path (or the model `title`) rather than relying on a validated `Model :: Name` reference.
 
 ### Element / claim-level provenance
 
@@ -284,7 +284,7 @@ title: "<Workspace> Provenance"
 
 # NN index
 * [[Sources]]
-* [[Models]]
+* [[ModelRecords]]
 * [[Artifacts]]
 * [[Procedures]]
 
@@ -304,8 +304,8 @@ procedure_ref:: procedures/Document_Ingest_V_1-0-0_procedures_NN.md
 agent:: actioNN nn-trannsform
 run_at:: 2026-08-01T10:15:00Z
 
-# NN Models
-## NN Models: Acme Business Plan
+# NN ModelRecords
+## NN ModelRecords: Acme Business Plan
 model_ref:: ./Acme%20Business%20Plan_V_0-1-0_business_NN.md
 model_template:: business
 model_version:: V_0-1-0

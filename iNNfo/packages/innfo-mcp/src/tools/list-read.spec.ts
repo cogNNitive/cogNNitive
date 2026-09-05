@@ -53,7 +53,10 @@ describe('listModels', () => {
 
     const models = await listModels(rootDir)
 
-    expect(models.map((m) => m.id)).toEqual(['Alpha_V_1-0-0_business_NN', 'Beta_V_1-0-0_business_NN'])
+    expect(models.map((m) => m.id)).toEqual([
+      'Alpha_V_1-0-0_business_NN',
+      'Beta_V_1-0-0_business_NN',
+    ])
     expect(models[0].version).toBe('1-0-0')
   })
 
@@ -120,8 +123,8 @@ describe('readModel', () => {
       'title: "Root Workspace"',
       '---',
       '',
-      '# NN ModelRef',
-      '## NN ModelRef: Auth Subsystem',
+      '# NN Models',
+      '## NN Models: Auth Subsystem',
       'path:: models/auth_01.md',
       'type:: model',
       '',
@@ -133,7 +136,7 @@ describe('readModel', () => {
 
     const model = await readModel(rootDir, 'workspace')
     expect(model?.frontmatter.title).toBe('Root Workspace')
-    const modelRefs = model?.elements.get('ModelRef')
+    const modelRefs = model?.elements.get('Models')
     expect(modelRefs).toHaveLength(1)
     expect(modelRefs?.[0].fields['path']).toBe('models/auth_01.md')
   })

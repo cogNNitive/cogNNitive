@@ -5,6 +5,7 @@ import { nextTick } from 'vue'
 import Pill from '../../src/components/editor/Pill.vue'
 import { yiqLuminance, textColor } from '../../src/composables/useConceptVisuals'
 import { useUiStore } from '../../src/stores/uiStore'
+import { useModelStore } from '../../src/stores/modelStore'
 
 // ── Utility tests (A.6 — YIQ luminance & contrast) ──────────────
 
@@ -273,3 +274,50 @@ describe('Pill.vue — Shape & noWrap props', () => {
   })
 })
 
+describe('Pill.vue — Workspace tags circular badges', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('renders circular badges with icon and color for workspace-defined tags', () => {
+    const modelStore = useModelStore()
+    modelStore.nodes = {
+      tag1: {
+        id: 'tag1',
+        name: 'estrategia-soldadura',
+        type: 'Tag',
+        kind: 'element',
+        fields: {
+          color: { value: '#ea580c' },
+          icon: { value: 'flame' },
+          description: { value: 'Estrategia soldadura' },
+        },
+      } as any,
+    }
+
+    const wrapper = mount(Pill, {
+      props: {
+        name: 'Reja Pozuello',
+        tags: ['estrategia-soldadura'],
+      },
+    })
+
+    const badge = wrapper.find('[data-testid="pill-workspace-tag"]')
+    expect(badge.exists()).toBe(true)
+    const el = badge.element as HTMLElement
+    expect(el.style.backgroundColor).toBe('#ea580c')
+    expect(badge.attributes('title')).toBe('estrategia-soldadura: Estrategia soldadura')
+  })
+
+  it('does not render circular badges for ad-hoc tags without workspace definition', () => {
+    const wrapper = mount(Pill, {
+      props: {
+        name: 'Simple Node',
+        tags: ['adhoc-tag'],
+      },
+    })
+
+    const badge = wrapper.find('[data-testid="pill-workspace-tag"]')
+    expect(badge.exists()).toBe(false)
+  })
+})

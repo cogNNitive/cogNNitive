@@ -137,13 +137,13 @@ describe('collectQualifiedReferenceCandidates', () => {
   it('a `model`-typed field is collected the same as a `reference`-typed field', () => {
     const schema = makeSchema([
       {
-        name: 'ModelRef',
+        name: 'Models',
         type: 'model',
         fields: [{ name: 'manifest', type: 'model' }],
       },
     ])
     const { result } = makeRootAndElement({
-      elementType: 'ModelRef',
+      elementType: 'Models',
       fields: { manifest: '[[Acme Org :: Jane Doe]]' },
     })
     const index = emptyIndex({ nodeSchema: { 'root-1': schema } })
@@ -650,7 +650,7 @@ describe('validateWorkspaceReferences — checkOne', () => {
     })
     const referrerSchema = makeSchema([
       {
-        name: 'ModelRef',
+        name: 'Models',
         type: 'model',
         fields: [{ name: 'business_model', type: 'model', target_template: 'business_V_0-2-0' }],
       },
@@ -667,7 +667,7 @@ describe('validateWorkspaceReferences — checkOne', () => {
       name: 'Some Ref',
       parentId: 'referrer',
       parentPath: 'referrer.md',
-      elementType: 'ModelRef',
+      elementType: 'Models',
       fields: { business_model: '[[Business Co :: Jane Doe]]' },
     })
 

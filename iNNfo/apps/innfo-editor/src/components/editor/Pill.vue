@@ -56,6 +56,20 @@
           :interactive="false"
         />
       </span>
+
+      <!-- Active workspace tags, read-only, rendered inside the pill as circular badges like markers -->
+      <span v-if="activeWorkspaceTags.length > 0" class="flex items-center gap-1 shrink-0">
+        <span
+          v-for="tag in activeWorkspaceTags"
+          :key="tag.name"
+          class="w-4 h-4 rounded-full flex items-center justify-center shrink-0 border border-white/20 dark:border-slate-800/20 shadow-xs"
+          :style="{ backgroundColor: tag.color || '#64748b' }"
+          :title="tag.description ? `${tag.name}: ${tag.description}` : tag.name"
+          data-testid="pill-workspace-tag"
+        >
+          <IconRenderer :icon="tag.icon || 'tag'" custom-class="w-2.5 h-2.5 text-white" />
+        </span>
+      </span>
     </div>
 
     <!-- Info popup (only when blockId is provided) -->
@@ -114,6 +128,39 @@
                 >[[{{ field.value }}]]</span
               >
               <span v-else>{{ field.value }}</span>
+            </span>
+          </div>
+
+          <!-- Tags -->
+          <div v-if="nodeTags.length" class="flex flex-wrap gap-1.5 mb-2">
+            <span
+              v-for="t in nodeTags"
+              :key="t"
+              class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border shadow-xs"
+              :style="
+                modelStore.workspaceTagsMap[t.toLowerCase().trim()]?.color
+                  ? {
+                      borderColor:
+                        modelStore.workspaceTagsMap[t.toLowerCase().trim()]?.color + '55',
+                      backgroundColor:
+                        modelStore.workspaceTagsMap[t.toLowerCase().trim()]?.color + '15',
+                      color: modelStore.workspaceTagsMap[t.toLowerCase().trim()]?.color,
+                    }
+                  : {}
+              "
+              :class="
+                !modelStore.workspaceTagsMap[t.toLowerCase().trim()]?.color
+                  ? 'bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200/60 dark:border-slate-600'
+                  : ''
+              "
+              :title="modelStore.workspaceTagsMap[t.toLowerCase().trim()]?.description"
+            >
+              <IconRenderer
+                v-if="modelStore.workspaceTagsMap[t.toLowerCase().trim()]?.icon"
+                :icon="modelStore.workspaceTagsMap[t.toLowerCase().trim()]?.icon!"
+                custom-class="w-3 h-3"
+              />
+              <span>#{{ t }}</span>
             </span>
           </div>
 
@@ -204,6 +251,8 @@ const props = withDefaults(
     shape?: 'rounded' | 'pill'
     /** When true, prevents text wrapping and width-clamping (useful for rotated labels in table headers). */
     noWrap?: boolean
+    /** Explicit tags array. If omitted, resolved from blockId or nodeId in modelStore. */
+    tags?: string[]
   }>(),
   {
     selected: false,
@@ -216,6 +265,7 @@ const props = withDefaults(
     lines: 0,
     shape: 'rounded',
     noWrap: false,
+    tags: () => [],
   },
 )
 
@@ -326,6 +376,47 @@ const getMarkerScore = (markerName: string): number => {
 const activeMarkers = computed(() => {
   if (!props.blockId) return []
   return allMarkers.value.filter((m) => getMarkerScore(m.name) > 0)
+})
+
+// ── Workspace Tags ──────────────────────────────────────────────
+interface WorkspaceTagBadge {
+  name: string
+  icon?: string
+  color?: string
+  description?: string
+}
+
+const nodeTags = computed<string[]>(() => {
+  if (props.tags && Array.isArray(props.tags) && props.tags.length > 0) {
+    return props.tags
+  }
+  const targetId = props.blockId || props.nodeId
+  if (!targetId) return []
+  const node = modelStore.getNode(targetId)
+  if (node?.tags && Array.isArray(node.tags)) {
+    return node.tags
+  }
+  return []
+})
+
+const activeWorkspaceTags = computed<WorkspaceTagBadge[]>(() => {
+  const wsMap = modelStore.workspaceTagsMap
+  if (!wsMap || Object.keys(wsMap).length === 0) return []
+  const badges: WorkspaceTagBadge[] = []
+  for (const t of nodeTags.value) {
+    if (!t) continue
+    const key = t.toLowerCase().trim()
+    const meta = wsMap[key] || wsMap[t]
+    if (meta) {
+      badges.push({
+        name: t,
+        icon: meta.icon,
+        color: meta.color,
+        description: meta.description,
+      })
+    }
+  }
+  return badges
 })
 
 // ── Navigation ──────────────────────────────────────────────────

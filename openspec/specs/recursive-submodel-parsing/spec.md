@@ -107,7 +107,7 @@ The recursive parser MUST resolve submodel reference paths according to canonica
 ### Requirement: Generalized Submodel Reference Extraction
 
 The helper `extractSubmodelRefs` MUST extract submodel file references from:
-1. `ModelRef` concepts declaring `path::` or `file_ref::` properties.
+1. `Models` concepts declaring `path::` or `file_ref::` properties.
 2. Any domain concept element containing fields typed as `model` by its template schema.
 3. WikiLinks targeting markdown files (e.g. `[[models/subsystem_NN.md]]`).
 4. Markdown hyperlinks targeting markdown files (e.g. `[Auth Subsystem](models/subsystem_NN.md)`).

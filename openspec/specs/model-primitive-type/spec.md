@@ -33,7 +33,7 @@ The self-describing Metaschema within `iNNfo_V_0-1-0_NN.md` MUST include `'model
 In addition, `ConceptField` in `src/types.ts` MUST include an optional `target_template?: string` property. Schema extraction in `src/schema.ts` (`extractTemplateSchema`) MUST parse `target_template` from `el.fields['target_template']`, and template aliasing (`applyAliasToSchema`) and canonical hashing (`canonicalValue`) MUST preserve `target_template`.
 
 #### Scenario: Concept definition with model primitive
-- GIVEN a metamodel spec declaring `type:: model` for concept `ModelRef`
+- GIVEN a metamodel spec declaring `type:: model` for concept `Models`
 - WHEN `src/schema.ts` parses the concept schema
 - THEN the concept type is extracted as `'model'` without schema parse errors
 
@@ -156,11 +156,11 @@ Validators in `innfo-core` (`src/validator/constants.ts`, `content.ts`, `documen
 
 ### Requirement: `type:: model` Normative for Fields on Any Level-2 Concept
 
-The `model` field type MUST be valid on fields declared within any Level-2 template's concept, not limited to the `workspace.ModelRef` concept. Schema extraction, per-file reference validation, and traversal support for `type:: model` fields MUST apply uniformly regardless of which domain concept declares them.
+The `model` field type MUST be valid on fields declared within any Level-2 template's concept, not limited to the `workspace.Models` concept. Schema extraction, per-file reference validation, and traversal support for `type:: model` fields MUST apply uniformly regardless of which domain concept declares them.
 
 #### Scenario: Domain concept declares a type:: model field
 - GIVEN a domain Level-2 template `startup` whose `Startup` concept declares field `business_model` with `type:: model` and `target_template:: business_V_0-2-0`
 - WHEN `src/schema.ts` extracts the template schema
 - THEN `business_model` is recognized as a valid `model`-typed field on the `Startup` concept
-- AND per-file reference validation (`references.ts`) applies the same dangling-file and `target_template` checks used for `workspace.ModelRef`
+- AND per-file reference validation (`references.ts`) applies the same dangling-file and `target_template` checks used for `workspace.Models`
 

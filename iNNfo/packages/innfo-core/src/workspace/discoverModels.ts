@@ -32,7 +32,7 @@ function isCogNNitiveTemplate(name: string | undefined): boolean {
 
 /**
  * Discovery predicate for candidate Level-3 model files eligible to become
- * (or remain) `## NN ModelRef` entries in the workspace manifest.
+ * (or remain) `## NN Models` entries in the workspace manifest.
  *
  * Host-agnostic: callers supply their own file enumeration (editor:
  * `DirectoryHandleLike` walk; MCP: Node `fs`) and frontmatter parse, then

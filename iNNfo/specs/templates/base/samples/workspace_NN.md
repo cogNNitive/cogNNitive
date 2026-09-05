@@ -12,14 +12,14 @@ title: "Ghostbusters Workspace"
 
 # NN index
 * [[Workspace]]
-* [[ModelRef]]
+* [[Models]]
 
 # NN Workspace
 The Ghostbusters paranormal investigation and elimination business workspace.
 
-# NN ModelRef
+# NN Models
 
-## NN ModelRef: Ghostbusters Business Model
+## NN Models: Ghostbusters Business Model
 path:: Ghostbusters_V_0-1-0_business_NN.md
 template:: [[business_V_0-1-0]]
 status:: active

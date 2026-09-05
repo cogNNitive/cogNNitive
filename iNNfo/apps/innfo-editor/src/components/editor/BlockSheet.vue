@@ -26,9 +26,7 @@
           <span v-else class="font-bold text-2xl truncate" :class="[palette.text]">{{
             cleanConceptName
           }}</span>
-          <span class="font-normal text-sm opacity-80 shrink-0"
-            >({{ conceptType }})</span
-          >
+          <span class="font-normal text-sm opacity-80 shrink-0">({{ conceptType }})</span>
         </template>
         <template v-else>
           <IconRenderer
@@ -69,6 +67,21 @@
           :node-id="block.id"
           @change="$emit('change')"
         />
+        <span class="w-px h-3.5 bg-current/20 mx-0.5"></span>
+      </template>
+
+      <!-- Workspace-defined tags circular badges -->
+      <template v-if="activeWorkspaceTags.length > 0">
+        <span
+          v-for="tag in activeWorkspaceTags"
+          :key="tag.name"
+          class="w-5 h-5 rounded-full flex items-center justify-center shrink-0 border border-white/20 dark:border-slate-800/20 shadow-xs"
+          :style="{ backgroundColor: tag.color || '#64748b' }"
+          :title="tag.description ? `${tag.name}: ${tag.description}` : tag.name"
+          data-testid="block-sheet-workspace-tag"
+        >
+          <IconRenderer :icon="tag.icon || 'tag'" custom-class="w-3 h-3 text-white" />
+        </span>
         <span class="w-px h-3.5 bg-current/20 mx-0.5"></span>
       </template>
 
@@ -188,12 +201,22 @@
               These fields are inherited from the template and must be edited in the template.
             </div>
 
-            <div v-if="templateNode" class="mt-2 border-t border-amber-200 dark:border-amber-900/40 pt-3 flex flex-col gap-2 font-normal">
-              <div class="text-xs font-bold text-amber-900 dark:text-amber-400 uppercase tracking-wide">
+            <div
+              v-if="templateNode"
+              class="mt-2 border-t border-amber-200 dark:border-amber-900/40 pt-3 flex flex-col gap-2 font-normal"
+            >
+              <div
+                class="text-xs font-bold text-amber-900 dark:text-amber-400 uppercase tracking-wide"
+              >
                 OpenCode Prompt (AI Editor)
               </div>
               <p class="text-xs text-amber-700 dark:text-amber-500">
-                Copy and paste this prompt into OpenCode to ask the AI to perform modifications on the template file <code class="px-1 py-0.5 bg-amber-100 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded font-mono font-bold">{{ templateFilename }}</code>:
+                Copy and paste this prompt into OpenCode to ask the AI to perform modifications on
+                the template file
+                <code
+                  class="px-1 py-0.5 bg-amber-100 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded font-mono font-bold"
+                  >{{ templateFilename }}</code
+                >:
               </p>
 
               <div class="relative mt-1">
@@ -214,14 +237,22 @@
                 </button>
               </div>
 
-              <div v-if="copied" class="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold self-end transition-all">
+              <div
+                v-if="copied"
+                class="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold self-end transition-all"
+              >
                 Prompt copied to clipboard!
               </div>
             </div>
 
             <!-- Concept Tags Editor -->
-            <div class="mt-3 border-t border-amber-200 dark:border-amber-900/40 pt-3 flex flex-col gap-1.5" data-testid="concept-tags-editor">
-              <label class="text-xs font-bold text-amber-900 dark:text-amber-400 uppercase tracking-wide">
+            <div
+              class="mt-3 border-t border-amber-200 dark:border-amber-900/40 pt-3 flex flex-col gap-1.5"
+              data-testid="concept-tags-editor"
+            >
+              <label
+                class="text-xs font-bold text-amber-900 dark:text-amber-400 uppercase tracking-wide"
+              >
                 Concept Tags
               </label>
               <TagInput :model-value="localTags" @update:model-value="onConceptTagsUpdate" />
@@ -247,7 +278,11 @@
           </div>
 
           <!-- Element Tags Editor -->
-          <div v-if="!isConcept" class="flex flex-col gap-1.5" data-testid="block-sheet-tags-editor">
+          <div
+            v-if="!isConcept"
+            class="flex flex-col gap-1.5"
+            data-testid="block-sheet-tags-editor"
+          >
             <label
               class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500"
               >Tags</label
@@ -295,7 +330,9 @@
                 class="prose prose-slate max-w-none text-lg text-slate-600 dark:text-slate-300 leading-relaxed break-words bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-100 dark:border-slate-700"
                 v-html="renderedDescription"
               ></div>
-              <div v-else class="text-sm text-slate-400 dark:text-slate-500 italic">No description</div>
+              <div v-else class="text-sm text-slate-400 dark:text-slate-500 italic">
+                No description
+              </div>
             </div>
 
             <div class="border-t border-slate-200 dark:border-slate-700 pt-5">
@@ -438,7 +475,17 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { ChevronDown, ArrowUp, ArrowDown, Pencil, Check, Trash2, PlusCircle, X, Copy } from 'lucide-vue-next'
+import {
+  ChevronDown,
+  ArrowUp,
+  ArrowDown,
+  Pencil,
+  Check,
+  Trash2,
+  PlusCircle,
+  X,
+  Copy,
+} from 'lucide-vue-next'
 import IconRenderer from './IconRenderer.vue'
 import MarkerButton from './MarkerButton.vue'
 import WidgetField from '../../shared/widgets/WidgetField.vue'
@@ -468,7 +515,13 @@ import { useBlockAssets } from './composables/useBlockAssets'
 
 const props = withDefaults(
   defineProps<{
-    block: { id?: string; name: string; description: string; fields?: Record<string, any>; tags?: string[] }
+    block: {
+      id?: string
+      name: string
+      description: string
+      fields?: Record<string, any>
+      tags?: string[]
+    }
     kind: BlockKind
     conceptType: string
     conceptName: string
@@ -699,6 +752,26 @@ const currentTags = computed<string[]>(() => {
   }
   const node = nodeFromStore.value
   return node?.tags ?? props.block.tags ?? []
+})
+
+const activeWorkspaceTags = computed(() => {
+  const wsMap = modelStore.workspaceTagsMap
+  if (!wsMap || Object.keys(wsMap).length === 0) return []
+  const badges: { name: string; icon?: string; color?: string; description?: string }[] = []
+  for (const t of currentTags.value) {
+    if (!t) continue
+    const key = t.toLowerCase().trim()
+    const meta = wsMap[key] || wsMap[t]
+    if (meta) {
+      badges.push({
+        name: t,
+        icon: meta.icon,
+        color: meta.color,
+        description: meta.description,
+      })
+    }
+  }
+  return badges
 })
 
 const localTags = ref<string[]>([])

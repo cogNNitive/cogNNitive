@@ -17,7 +17,7 @@ function createFakeDirectoryHandle(files: Record<string, string>): DirectoryHand
     const handle: FileHandleLike = {
       kind: 'file',
       name: path.split('/').pop()!,
-      getFile: async () => ({ text: async () => content } as File),
+      getFile: async () => ({ text: async () => content }) as File,
     }
     fileHandles.set(path, handle)
   }
@@ -56,15 +56,25 @@ function createFakeDirectoryHandle(files: Record<string, string>): DirectoryHand
 describe('Recursive Submodels & Specification Alignment (Phase 4 innfo-core)', () => {
   describe('Path Resolution & Normalization', () => {
     it('normalizes Windows backslashes, collapses slashes and strips leading ./', () => {
-      expect(normalizePathKey('.\\models\\subsystems\\auth_NN.md')).toBe('models/subsystems/auth_nn.md')
-      expect(normalizePathKey('models//subsystems///auth_NN.md')).toBe('models/subsystems/auth_nn.md')
+      expect(normalizePathKey('.\\models\\subsystems\\auth_NN.md')).toBe(
+        'models/subsystems/auth_nn.md',
+      )
+      expect(normalizePathKey('models//subsystems///auth_NN.md')).toBe(
+        'models/subsystems/auth_nn.md',
+      )
       expect(normalizePathKey('./auth_NN.md')).toBe('auth_nn.md')
     })
 
     it('resolves relative paths with ./ and ../ relative to referring path directory', () => {
-      expect(resolveSubmodelPath('./tokens_NN.md', 'models/subsystems/auth_NN.md')).toBe('models/subsystems/tokens_NN.md')
-      expect(resolveSubmodelPath('../common/logger_NN.md', 'models/subsystems/auth_NN.md')).toBe('models/common/logger_NN.md')
-      expect(resolveSubmodelPath('[[../shared/config_NN.md]]', 'models/system_NN.md')).toBe('shared/config_NN.md')
+      expect(resolveSubmodelPath('./tokens_NN.md', 'models/subsystems/auth_NN.md')).toBe(
+        'models/subsystems/tokens_NN.md',
+      )
+      expect(resolveSubmodelPath('../common/logger_NN.md', 'models/subsystems/auth_NN.md')).toBe(
+        'models/common/logger_NN.md',
+      )
+      expect(resolveSubmodelPath('[[../shared/config_NN.md]]', 'models/system_NN.md')).toBe(
+        'shared/config_NN.md',
+      )
     })
 
     it('resolves canonical workspace-relative paths', () => {
@@ -85,8 +95,8 @@ parent_spec:
 model_version: V_0-1-0
 title: Root Workspace
 ---
-# NN ModelRef
-## NN ModelRef: System Service
+# NN Models
+## NN Models: System Service
 path:: models/system_01.md
 author:: architect@example.com
 `,
@@ -157,8 +167,8 @@ parent_spec:
 model_version: V_0-1-0
 title: Root
 ---
-# NN ModelRef
-## NN ModelRef: Service A
+# NN Models
+## NN Models: Service A
 path:: models/service_a_01.md
 `,
         'models/service_a_01.md': `---
@@ -170,8 +180,8 @@ parent_spec:
 model_version: V_0-1-0
 title: Service A
 ---
-# NN ModelRef
-## NN ModelRef: Service B
+# NN Models
+## NN Models: Service B
 path:: ./service_b_01.md
 `,
         'models/service_b_01.md': `---
@@ -183,8 +193,8 @@ parent_spec:
 model_version: V_0-1-0
 title: Service B
 ---
-# NN ModelRef
-## NN ModelRef: Back to Service A
+# NN Models
+## NN Models: Back to Service A
 path:: ./service_a_01.md
 `,
       }
@@ -213,10 +223,10 @@ parent_spec:
 model_version: V_0-1-0
 title: Root
 ---
-# NN ModelRef
-## NN ModelRef: Service 1
+# NN Models
+## NN Models: Service 1
 path:: ./service_1_01.md
-## NN ModelRef: Service 2
+## NN Models: Service 2
 path:: ./service_2_01.md
 `,
         'service_1_01.md': `---
@@ -228,8 +238,8 @@ parent_spec:
 model_version: V_0-1-0
 title: Service 1
 ---
-# NN ModelRef
-## NN ModelRef: Shared DB
+# NN Models
+## NN Models: Shared DB
 path:: ./shared_db_01.md
 `,
         'service_2_01.md': `---
@@ -241,8 +251,8 @@ parent_spec:
 model_version: V_0-1-0
 title: Service 2
 ---
-# NN ModelRef
-## NN ModelRef: Shared DB
+# NN Models
+## NN Models: Shared DB
 path:: ./shared_db_01.md
 `,
         'shared_db_01.md': `---
@@ -299,8 +309,8 @@ parent_spec:
 model_version: V_0-1-0
 title: Level 0
 ---
-# NN ModelRef
-## NN ModelRef: Next
+# NN Models
+## NN Models: Next
 path:: level_1_01.md
 `
       for (let i = 1; i <= 12; i++) {
@@ -313,8 +323,8 @@ parent_spec:
 model_version: V_0-1-0
 title: Level ${i}
 ---
-# NN ModelRef
-## NN ModelRef: Next
+# NN Models
+## NN Models: Next
 path:: level_${i + 1}_01.md
 `
       }
@@ -322,7 +332,9 @@ path:: level_${i + 1}_01.md
       const root = createFakeDirectoryHandle(files)
       const result = await recursiveParse(root)
 
-      const depthIssue = result.issues.find((i) => i.message.includes('Traversal depth limit exceeded'))
+      const depthIssue = result.issues.find((i) =>
+        i.message.includes('Traversal depth limit exceeded'),
+      )
       expect(depthIssue).toBeDefined()
       expect(depthIssue!.message).toContain(`MAX_DEPTH = ${MAX_DEPTH}`)
 
@@ -406,7 +418,9 @@ submodel_file:: [[models/nonexistent_payment_01.md]]
 
       // Validation is non-breaking (valid: true because warnings don't fail)
       expect(validation.valid).toBe(true)
-      const warning = validation.warnings.find((w) => w.message.includes('Dangling submodel reference'))
+      const warning = validation.warnings.find((w) =>
+        w.message.includes('Dangling submodel reference'),
+      )
       expect(warning).toBeDefined()
       expect(warning!.message).toContain('nonexistent_payment_01.md')
     })
@@ -427,7 +441,11 @@ submodel_file:: models/legacy_payment_01.md
 `
 
       const mockResolver: SubmodelResolver = () => {
-        return { exists: true, templateName: 'legacy_template_99', templateUrl: 'https://example.com/legacy.md' }
+        return {
+          exists: true,
+          templateName: 'legacy_template_99',
+          templateUrl: 'https://example.com/legacy.md',
+        }
       }
 
       const validation = validateDocument(content, {
@@ -437,7 +455,9 @@ submodel_file:: models/legacy_payment_01.md
       })
 
       expect(validation.valid).toBe(true)
-      const warning = validation.warnings.find((w) => w.message.includes('Submodel template mismatch'))
+      const warning = validation.warnings.find((w) =>
+        w.message.includes('Submodel template mismatch'),
+      )
       expect(warning).toBeDefined()
       expect(warning!.message).toContain('expects template "service_template_01"')
       expect(warning!.message).toContain('uses template "legacy_template_99"')
@@ -469,8 +489,8 @@ submodel_file:: [[models/payment_01.md]]
       })
 
       expect(validation.valid).toBe(true)
-      const submodelWarnings = validation.warnings.filter((w) =>
-        w.message.includes('submodel') || w.message.includes('Submodel'),
+      const submodelWarnings = validation.warnings.filter(
+        (w) => w.message.includes('submodel') || w.message.includes('Submodel'),
       )
       expect(submodelWarnings).toHaveLength(0)
     })
@@ -524,8 +544,8 @@ parent_spec:
 model_version: V_0-1-0
 title: Root Workspace
 ---
-# NN ModelRef
-## NN ModelRef: Acme Startup
+# NN Models
+## NN Models: Acme Startup
 path:: startups/acme_startup_01.md
 `
 
@@ -621,7 +641,7 @@ title: Acme Business Model
       expect(startupNodeWithout!.templateSchema).toBeUndefined()
     })
 
-    it('c1-resolver-throws-degrades: a throwing resolver degrades that node to today\'s behavior instead of aborting the parse', async () => {
+    it("c1-resolver-throws-degrades: a throwing resolver degrades that node to today's behavior instead of aborting the parse", async () => {
       const startupContentWithNotes = `${startupContent}
 ## NN Startup: Notes
 path:: startups/notes_01.md
@@ -662,7 +682,8 @@ title: Notes
       // the parse completed without escalating the resolver failure into an issue
       expect(
         result.issues.filter(
-          (i) => i.code === 'CYCLE_DETECTED' || i.code === 'DEPTH_LIMIT' || i.code === 'MODEL_NOT_FOUND',
+          (i) =>
+            i.code === 'CYCLE_DETECTED' || i.code === 'DEPTH_LIMIT' || i.code === 'MODEL_NOT_FOUND',
         ),
       ).toHaveLength(0)
     })
@@ -677,10 +698,10 @@ parent_spec:
 model_version: V_0-1-0
 title: Root Workspace
 ---
-# NN ModelRef
-## NN ModelRef: Acme Startup
+# NN Models
+## NN Models: Acme Startup
 path:: startups/acme_startup_01.md
-## NN ModelRef: Acme Business
+## NN Models: Acme Business
 path:: startups/acme_business_01.md
 `
       const diamondFiles: Record<string, string> = {

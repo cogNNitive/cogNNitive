@@ -13,7 +13,7 @@ title: "cogNNitive Documentation Workspace"
 # NN index
 
 * [[Workspace]]
-* [[ModelRef]]
+* [[Models]]
 * [[Folder]]
 * [[Asset]]
 * [[Tag]]
@@ -22,15 +22,15 @@ title: "cogNNitive Documentation Workspace"
 
 The authoritative documentation and web delivery workspace for the cogNNitive ecosystem, encompassing iNNfo specifications, actioNN agent skills, and hosted web applications.
 
-# NN ModelRef
+# NN Models
 
-## NN ModelRef: iNNfo Technical Documentation
+## NN Models: iNNfo Technical Documentation
 path:: innfo/documentation/documentation_NN.md
 template:: [[documentation_V_0-2-0]]
 status:: active
 author:: cogNNitive Maintainers
 
-## NN ModelRef: actioNN Agent Documentation
+## NN Models: actioNN Agent Documentation
 path:: actionn/documentation/documentation_NN.md
 template:: [[documentation_V_0-2-0]]
 status:: active

@@ -531,7 +531,7 @@ export interface ModelNode {
   sources?: SourceRef[]
   /**
    * Workspace-scoped author/owner of this model, propagated from the `author::`
-   * field on the workspace manifest's `## NN ModelRef:` entry. Not stored in the
+   * field on the workspace manifest's `## NN Models:` entry. Not stored in the
    * model file itself — it is metadata of the workspace that references it.
    * Present only on root nodes reached through a workspace manifest.
    */

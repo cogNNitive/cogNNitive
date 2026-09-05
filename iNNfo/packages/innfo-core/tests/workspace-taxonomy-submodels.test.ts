@@ -56,8 +56,8 @@ function createFakeDirectoryHandle(files: Record<string, string>): DirectoryHand
 }
 
 describe('Workspace Taxonomy and Submodels (Phase 1 innfo-core)', () => {
-  describe('4.1 Core Parser: Entrypoint resolution & ModelRef path extraction', () => {
-    it('loads primary workspace_01.md entrypoint and extracts ModelRef path submodels', async () => {
+  describe('4.1 Core Parser: Entrypoint resolution & Models path extraction', () => {
+    it('loads primary workspace_01.md entrypoint and extracts Models path submodels', async () => {
       const files: Record<string, string> = {
         'workspace_01.md': `---
 spec_version: V_1-0-0
@@ -71,9 +71,9 @@ title: Root Workspace
 > [!NOTE]
 > Workspace root document.
 
-# NN ModelRef
+# NN Models
 
-## NN ModelRef: Subsystem A
+## NN Models: Subsystem A
 path:: models/subsystem_a_01.md
 status:: active
 `,
@@ -176,20 +176,20 @@ title: Workspace Template
 ---
 # NN Concept Definition
 
-## NN Concept Definition: ModelRef
+## NN Concept Definition: Models
 type:: model
 description:: Submodel reference primitive.
 
 # NN Field Definition
 
 ## NN Field Definition: submodel_path
-concept:: ModelRef
+concept:: Models
 type:: model
 description:: Path to submodel file.
 `
 
       const schema = extractTemplateSchema(parseModel(templateContent))
-      const modelRefConcept = schema.concepts.find((c) => c.name === 'ModelRef')
+      const modelRefConcept = schema.concepts.find((c) => c.name === 'Models')
       expect(modelRefConcept).toBeDefined()
       expect(modelRefConcept?.type).toBe('model')
 
@@ -217,12 +217,12 @@ parent_spec:
 title: Workspace Spec
 ---
 # NN Concept Definition
-## NN Concept Definition: ModelRef
+## NN Concept Definition: Models
 type:: model
 
 # NN Field Definition
 ## NN Field Definition: path
-concept:: ModelRef
+concept:: Models
 type:: model
 `,
       }
@@ -239,8 +239,8 @@ title: Workspace Model
 > [!NOTE]
 > Workspace model.
 
-# NN ModelRef
-## NN ModelRef: Engine
+# NN Models
+## NN Models: Engine
 path:: models/engine_01.md
 `
 
@@ -330,12 +330,12 @@ parent_spec:
 model_version: V_0-1-0
 title: Root Workspace
 ---
-# NN ModelRef
+# NN Models
 
-## NN ModelRef: Model A
+## NN Models: Model A
 path:: model_a_01.md
 
-## NN ModelRef: Model B
+## NN Models: Model B
 path:: model_b_01.md
 `,
         'model_a_01.md': `---
@@ -359,8 +359,8 @@ parent_spec:
 model_version: V_0-1-0
 title: Model B
 ---
-# NN ModelRef
-## NN ModelRef: Model A ref
+# NN Models
+## NN Models: Model A ref
 path:: model_a_01.md
 `,
       }
@@ -401,12 +401,12 @@ parent_spec:
 model_version: V_0-1-0
 title: Root Workspace
 ---
-# NN ModelRef
+# NN Models
 
-## NN ModelRef: Model A
+## NN Models: Model A
 path:: model_a_01.md
 
-## NN ModelRef: Model B
+## NN Models: Model B
 path:: model_b_01.md
 `,
         'model_a_01.md': `---
@@ -476,12 +476,12 @@ parent_spec:
 model_version: V_0-1-0
 title: Root Workspace
 ---
-# NN ModelRef
+# NN Models
 
-## NN ModelRef: Org One
+## NN Models: Org One
 path:: org_one_01.md
 
-## NN ModelRef: Org Two
+## NN Models: Org Two
 path:: org_two_01.md
 `,
         'org_one_01.md': `---
@@ -603,12 +603,12 @@ parent_spec:
 model_version: V_0-1-0
 title: Root Workspace
 ---
-# NN ModelRef
+# NN Models
 
-## NN ModelRef: Model A
+## NN Models: Model A
 path:: model_a_01.md
 
-## NN ModelRef: Model B
+## NN Models: Model B
 path:: model_b_01.md
 `,
         'model_a_01.md': `---
@@ -632,8 +632,8 @@ parent_spec:
 model_version: V_0-1-0
 title: Model B
 ---
-# NN ModelRef
-## NN ModelRef: Model A ref
+# NN Models
+## NN Models: Model A ref
 path:: model_a_01.md
 `,
       }
@@ -661,9 +661,9 @@ parent_spec:
 model_version: V_0-1-0
 title: Root Workspace
 ---
-# NN ModelRef
+# NN Models
 
-## NN ModelRef: Ghost
+## NN Models: Ghost
 path:: ghost_business_01.md
 `,
       }
@@ -687,9 +687,9 @@ parent_spec:
 model_version: V_0-1-0
 title: Root Workspace
 ---
-# NN ModelRef
+# NN Models
 
-## NN ModelRef: Model A
+## NN Models: Model A
 path:: model_a_01.md
 `,
         'model_a_01.md': `---
@@ -798,9 +798,9 @@ model_version: V_0-1-0
 title: Root Workspace
 workspace_id: acme-portfolio
 ---
-# NN ModelRef
+# NN Models
 
-## NN ModelRef: Model A
+## NN Models: Model A
 path:: model_a_01.md
 `,
         'model_a_01.md': `---
@@ -835,9 +835,9 @@ parent_spec:
 model_version: V_0-1-0
 title: Root Workspace
 ---
-# NN ModelRef
+# NN Models
 
-## NN ModelRef: Model A
+## NN Models: Model A
 path:: model_a_01.md
 `,
         'model_a_01.md': `---
@@ -872,9 +872,9 @@ parent_spec:
 model_version: V_0-1-0
 title: Root Workspace
 ---
-# NN ModelRef
+# NN Models
 
-## NN ModelRef: Model A
+## NN Models: Model A
 path:: model_a_01.md
 `,
         'model_a_01.md': `---

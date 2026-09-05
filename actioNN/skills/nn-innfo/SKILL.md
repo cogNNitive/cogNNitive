@@ -238,7 +238,7 @@ The `innfo-mcp` server exposes 15 deterministic tools built on `@cognnitive/innf
 | `list_templates` | Lists Level 2 templates in the workspace, the global cache, and installed skills. |
 | `hydrate_template` | Atomically and immutably copies a Level 2 template into the workspace. |
 | `prune_orphaned_specs` | Analyzes reachability and purges orphaned specs with a zip backup. |
-| `sync_workspace_manifest` | Additively reconciles the `## NN ModelRef` entries of the manifest against the Level 3 models discovered on disk (`dry_run` defaults to `true`). See §14. |
+| `sync_workspace_manifest` | Additively reconciles the `## NN Models` entries of the manifest against the Level 3 models discovered on disk (`dry_run` defaults to `true`). See §14. |
 | `list_template_procedures` | Discovers SOP procedures transitively across the `includes` tree (depth 10). |
 | `list_template_skills` | Discovers agent skills transitively across the `includes` tree (depth 10). |
 
@@ -548,9 +548,9 @@ Upon concluding the generation or editing of a model, the agent MUST include log
 
 ## 14. Workspace Manifest Synchronization (Self-Registration)
 
-The workspace manifest (`workspace_NN.md`, section `# NN ModelRef`) can drift out of sync with the filesystem: a new Level 3 model is created and nobody adds its entry, or a file is deleted and the manifest entry keeps pointing at a model that no longer exists. The MCP's `sync_workspace_manifest` tool reconciles this additively, never destructively:
+The workspace manifest (`workspace_NN.md`, section `# NN Models`) can drift out of sync with the filesystem: a new Level 3 model is created and nobody adds its entry, or a file is deleted and the manifest entry keeps pointing at a model that no longer exists. The MCP's `sync_workspace_manifest` tool reconciles this additively, never destructively:
 
-- Adds a `## NN ModelRef: <name>` entry (marked with `<!-- nn:auto -->`) for every discovered Level 3 model not yet listed, always at the end of the `# NN ModelRef` section — never reordering or regrouping existing entries.
+- Adds a `## NN Models: <name>` entry (marked with `<!-- nn:auto -->`) for every discovered Level 3 model not yet listed, always at the end of the `# NN Models` section — never reordering or regrouping existing entries.
 - Sets `status:: archived` on an entry the tool itself created (identifiable by `<!-- nn:auto -->`) when its file no longer exists on disk — never deleting it.
 - Reactivates (`status:: active`) a previously archived tool-owned entry if its file reappears.
 - **Never modifies an entry without the `<!-- nn:auto -->` marker**, leaving it completely intact whether or not its file exists. Every hand-authored entry is untouchable by design.

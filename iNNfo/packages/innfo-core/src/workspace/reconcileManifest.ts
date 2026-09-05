@@ -6,7 +6,7 @@ export const OWNERSHIP_MARKER = '<!-- nn:auto -->'
 export interface DiscoveredModel {
   /** Workspace-relative path, exactly as it should be written into `path::`. */
   path: string
-  /** Element name for `## NN ModelRef: <name>` — derived from frontmatter `title`, else the filename. */
+  /** Element name for `## NN Models: <name>` — derived from frontmatter `title`, else the filename. */
   name: string
   /** Resolved `parent_spec.name`, written as `template:: [[<template>]]`. */
   template?: string
@@ -19,12 +19,12 @@ export interface ManifestChange {
   reason?: string
 }
 
-/** `# NN ModelRef` — the section header, exactly one `#`. */
-const SECTION_HEADER_RE = /^#\s+NN\s+ModelRef\s*$/
-/** Any level-1 heading (single `#`, not `##`) — terminates the ModelRef section. */
+/** `# NN Models` — the section header, exactly one `#`. */
+const SECTION_HEADER_RE = /^#\s+NN\s+Models\s*$/
+/** Any level-1 heading (single `#`, not `##`) — terminates the Models section. */
 const TOP_HEADER_RE = /^#(?!#)\s/
-/** `## NN ModelRef: <name>` — one entry heading. */
-const ENTRY_HEADER_RE = /^##\s+NN\s+ModelRef:\s*(.+?)\s*$/
+/** `## NN Models: <name>` — one entry heading. */
+const ENTRY_HEADER_RE = /^##\s+NN\s+Models:\s*(.+?)\s*$/
 
 interface LocatedEntry {
   name: string
@@ -61,7 +61,7 @@ function isFieldLine(line: string): boolean {
   return /^\s*[A-Za-z_][A-Za-z0-9_-]*::/.test(stripCR(line))
 }
 
-function findModelRefSection(lines: string[]): { headerIdx: number; endIdx: number } | null {
+function findModelsSection(lines: string[]): { headerIdx: number; endIdx: number } | null {
   const headerIdx = lines.findIndex((l) => SECTION_HEADER_RE.test(stripCR(l)))
   if (headerIdx === -1) return null
   let endIdx = lines.length
@@ -119,27 +119,27 @@ function locateEntries(
 }
 
 function buildEntryBlockLines(model: DiscoveredModel): string[] {
-  const block = [`## NN ModelRef: ${model.name}`, OWNERSHIP_MARKER, `path:: ${model.path}`]
+  const block = [`## NN Models: ${model.name}`, OWNERSHIP_MARKER, `path:: ${model.path}`]
   if (model.template) block.push(`template:: [[${model.template}]]`)
   block.push('status:: active')
   return block
 }
 
 /**
- * Pure, additive reconciliation of `## NN ModelRef` entries against discovered
+ * Pure, additive reconciliation of `## NN Models` entries against discovered
  * Level-3 model files. Never reorders, never regroups, never deletes.
  *
  * ROUND-TRIP GUARANTEE: `changes.length === 0` implies `content === manifestContent`
  * — the exact same string reference. Achieved by surgical splicing of the
  * original string, NOT by re-serializing (AD-08) — `rawSections` never
- * contains element-bearing sections like `# NN ModelRef`.
+ * contains element-bearing sections like `# NN Models`.
  */
 export function reconcileManifest(
   manifestContent: string,
   discovered: DiscoveredModel[],
 ): { content: string; changes: ManifestChange[] } {
   const lines = manifestContent.split('\n')
-  const section = findModelRefSection(lines)
+  const section = findModelsSection(lines)
   const entries = section ? locateEntries(lines, section) : []
 
   const discoveredByKey = new Map<string, DiscoveredModel>()
@@ -218,7 +218,7 @@ export function reconcileManifest(
     // Re-scan the (possibly status-edited) content: an insert-missing-status
     // edit may have shifted the section end by one or more lines.
     const rescanLines = content.split('\n')
-    const rescanSection = findModelRefSection(rescanLines)
+    const rescanSection = findModelsSection(rescanLines)
 
     if (rescanSection) {
       const insertIdx = rescanSection.endIdx
@@ -226,20 +226,24 @@ export function reconcileManifest(
       for (const d of toAdd) {
         blockLines.push('', ...buildEntryBlockLines(d))
       }
-      if (blockLines[0] === '' && insertIdx > 0 && stripCR(rescanLines[insertIdx - 1]).trim() === '') {
+      if (
+        blockLines[0] === '' &&
+        insertIdx > 0 &&
+        stripCR(rescanLines[insertIdx - 1]).trim() === ''
+      ) {
         blockLines.shift()
       }
       rescanLines.splice(insertIdx, 0, ...blockLines)
       content = rescanLines.join('\n')
     } else {
-      // No `# NN ModelRef` section at all: append the whole section at EOF,
+      // No `# NN Models` section at all: append the whole section at EOF,
       // preceded by exactly one blank line.
       let base = content
       if (base.length > 0) {
         if (!base.endsWith('\n')) base += '\n'
         base += '\n'
       }
-      const sectionLines = ['# NN ModelRef']
+      const sectionLines = ['# NN Models']
       for (const d of toAdd) {
         sectionLines.push('', ...buildEntryBlockLines(d))
       }

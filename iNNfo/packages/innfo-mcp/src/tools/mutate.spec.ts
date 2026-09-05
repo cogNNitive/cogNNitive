@@ -582,8 +582,8 @@ describe('mutate tools', () => {
         '  url: "https://example.com/business_V_0-2-0_NN.md"',
         '---',
         '',
-        '# NN ModelRef',
-        '## NN ModelRef: AuthSubsystem',
+        '# NN Models',
+        '## NN Models: AuthSubsystem',
         'path:: models/auth_01.md',
         '',
       ].join('\n')
@@ -599,21 +599,19 @@ describe('mutate tools', () => {
         '  url: "https://example.com/iNNfo_V_0-1-0_NN.md"',
         '---',
         '# NN Concept Definition',
-        '## NN Concept Definition: ModelRef',
+        '## NN Concept Definition: Models',
         'type:: model',
       ].join('\n')
       await writeFile(join(specsDir, 'business_V_0-2-0_NN.md'), templateContent, 'utf-8')
 
       const updateRes = await applyChange(rootDir, 'workspace_01', 'update_field', {
-        conceptName: 'ModelRef',
+        conceptName: 'Models',
         elementName: 'AuthSubsystem',
         fieldName: 'path',
         value: 'models/auth_v2.md',
       })
       expect(updateRes.success).toBe(true)
-      expect(updateRes.model?.elements.get('ModelRef')?.[0].fields['path']).toBe(
-        'models/auth_v2.md',
-      )
+      expect(updateRes.model?.elements.get('Models')?.[0].fields['path']).toBe('models/auth_v2.md')
     })
   })
 

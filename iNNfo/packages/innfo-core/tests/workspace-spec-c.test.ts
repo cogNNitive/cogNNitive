@@ -62,7 +62,7 @@ describe('Change C — workspace_spec_NN.md normalization', () => {
 })
 
 describe('Change C — workspace-scoped author:: propagation', () => {
-  it('attaches the manifest ModelRef author:: to each referenced model root node', async () => {
+  it('attaches the manifest Models author:: to each referenced model root node', async () => {
     const files: Record<string, string> = {
       'workspace_NN.md': `---
 spec_version: V_1-0-0
@@ -76,14 +76,14 @@ title: Demo Workspace
 > [!NOTE]
 > Workspace manifest.
 
-# NN ModelRef
+# NN Models
 
-## NN ModelRef: Alpha Model
+## NN Models: Alpha Model
 path:: alpha_NN.md
 status:: active
 author:: Ada Lovelace
 
-## NN ModelRef: Beta Model
+## NN Models: Beta Model
 path:: beta_NN.md
 status:: draft
 author:: Grace Hopper
@@ -124,7 +124,7 @@ title: Beta Model
     expect(beta!.author).toBe('Grace Hopper')
   })
 
-  it('leaves author undefined when the ModelRef entry carries none', async () => {
+  it('leaves author undefined when the Models entry carries none', async () => {
     const files: Record<string, string> = {
       'workspace_NN.md': `---
 spec_version: V_1-0-0
@@ -138,9 +138,9 @@ title: No-Author Workspace
 > [!NOTE]
 > Workspace manifest.
 
-# NN ModelRef
+# NN Models
 
-## NN ModelRef: Gamma Model
+## NN Models: Gamma Model
 path:: gamma_NN.md
 status:: active
 `,
