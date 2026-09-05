@@ -120,20 +120,20 @@ export function splitSourceFieldValue(value: unknown): string[] {
 }
 
 /**
- * Slugify one Markdown heading's text into a GitHub-style anchor slug.
+ * Slugify one Markdown heading's text into a GitHub-style anchor slug. THE
+ * single algorithm — `actioNN/skills/nn-trannsform/scripts/markdown-utils.js`
+ * mirrors it exactly (parity is asserted by that skill's `test-slug-parity.js`).
  *
- * PR 1 keeps the historical editor behaviour byte-for-byte: characters outside
- * `[a-z0-9-]` are dropped, NOT transliterated (so "Visión" → "visin"). PR 10 of
- * the provenance-lineage-consolidation change adds NFD accent transliteration.
- *
- * Steps: strip a leading `#` marker and `* _ \`` emphasis characters, trim,
- * lowercase, whitespace → `-`, drop non `[a-z0-9-]`, collapse repeated `-`,
- * trim leading/trailing `-`.
+ * Steps: strip a leading `#` marker and `* _ \`` emphasis characters,
+ * NFD-normalise and drop combining marks so accented letters transliterate
+ * ("Visión" → "vision", "Café" → "cafe"), trim, lowercase, whitespace → `-`,
+ * drop the remaining non `[a-z0-9-]`, collapse repeated `-`, trim leading /
+ * trailing `-`.
  */
 export function slugifyHeading(text: string): string {
   const stripped = text.replace(/^\s*#{1,6}\s*/, '').replace(/[*_`]/g, '')
-  const lowered = stripped.trim().toLowerCase()
-  const dashed = lowered.replace(/\s+/g, '-')
+  const transliterated = stripped.normalize('NFD').replace(/[̀-ͯ]/g, '')
+  const dashed = transliterated.trim().toLowerCase().replace(/\s+/g, '-')
   const filtered = dashed.replace(/[^a-z0-9-]/g, '')
   return filtered.replace(/-+/g, '-').replace(/^-+|-+$/g, '')
 }

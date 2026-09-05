@@ -77,9 +77,14 @@ describe('slugifyHeading', () => {
     expect(slugifyHeading('## **Q3** _Milestones_')).toBe('q3-milestones')
   })
 
-  it('drops characters outside [a-z0-9-] (no transliteration in PR 1)', () => {
-    // PR 1 keeps the current editor behaviour byte-for-byte; PR 10 changes this.
-    expect(slugifyHeading('Visión Estratégica')).toBe('visin-estratgica')
+  it('transliterates accented letters (NFD)', () => {
+    expect(slugifyHeading('Visión Estratégica')).toBe('vision-estrategica')
+    expect(slugifyHeading('Café résumé')).toBe('cafe-resume')
+    expect(slugifyHeading('métricas Q3 — año 2026')).toBe('metricas-q3-ano-2026')
+  })
+
+  it('still drops characters that have no ASCII transliteration', () => {
+    expect(slugifyHeading('Q3 → Q4 (100%)')).toBe('q3-q4-100')
   })
 
   it('collapses and trims dashes', () => {

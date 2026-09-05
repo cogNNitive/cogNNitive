@@ -78,17 +78,21 @@ function sanitizeMarkdownBody(content) {
 }
 
 /**
- * GitHub-compatible heading slug algorithm (as specified for this pipeline):
+ * GitHub-compatible heading slug algorithm. Mirrors, exactly,
+ * `@cognnitive/innfo-core`'s `slugifyHeading` (`src/sourceRef.ts`); the two are
+ * kept in lock-step and `test/unit/test-slug-parity.js` guards it:
  *   - Strip markdown emphasis/formatting characters (*, _, `, leading #).
+ *   - NFD-normalise and drop combining marks (Visión -> vision, Café -> cafe).
  *   - Trim and lowercase.
  *   - Replace runs of whitespace with a single '-'.
- *   - Remove any character that isn't [a-z0-9-].
+ *   - Remove any remaining character that isn't [a-z0-9-].
  *   - Collapse multiple consecutive '-' into one; trim leading/trailing '-'.
  */
 function slugifyHeading(text) {
   let s = String(text == null ? '' : text);
   s = s.replace(/^\s*#{1,6}\s*/, ''); // leading heading hashes
   s = s.replace(/[*_`]/g, ''); // emphasis/formatting characters
+  s = s.normalize('NFD').replace(/[̀-ͯ]/g, ''); // transliterate accents (Visión -> vision)
   s = s.trim().toLowerCase();
   s = s.replace(/\s+/g, '-');
   s = s.replace(/[^a-z0-9-]/g, '');

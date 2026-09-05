@@ -45,6 +45,11 @@ async function main() {
     totalPassed += noSpanishResult.passed;
     totalFailed += noSpanishResult.failed;
 
+    const slugParityTest = require('./unit/test-slug-parity');
+    const slugParityResult = await slugParityTest.run();
+    totalPassed += slugParityResult.passed;
+    totalFailed += slugParityResult.failed;
+
     const scannerTest = require('./unit/test-scanner');
     const scannerResult = await scannerTest.run();
     totalPassed += scannerResult.passed;
