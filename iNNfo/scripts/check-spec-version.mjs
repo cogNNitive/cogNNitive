@@ -64,14 +64,7 @@ const GITHUB_RAW_URL_RE =
 
 const LEGACY_SLUG_RE = /cogNNitive\/iNNfo(?![\w-])/g
 
-const ALLOWLISTED_EXACT_PATHS = new Set([
-  'manifest/source.yaml',
-  'docs/use/manifest.md',
-  'docs/use/manifest-next.md',
-  'scripts/manifest/validate-manifest.test.js',
-  'scripts/manifest/generate-manifest.test.js',
-  'actioNN/scripts/skills-manager.test.js',
-])
+const ALLOWLISTED_EXACT_PATHS = new Set([])
 
 const URL_CHECK_EXTENSIONS = new Set([
   '.ts',
@@ -261,7 +254,7 @@ function collectRepoFiles(dir, includeArchives) {
       if (st.isDirectory()) {
         if (!includeArchives && (entry === 'archive' || ARCHIVE_DIRS.has(entry))) continue
         if (rel === 'iNNfo/apps/innfo-editor/tests/fixtures/models') continue
-        if (rel.startsWith('openspec/changes/migrate-spec-hosting-to-monorepo')) continue
+        if (rel.startsWith('openspec/changes/')) continue
         files.push(...collectRepoFiles(full, includeArchives))
       } else {
         if (full.endsWith('.bundle.js')) continue

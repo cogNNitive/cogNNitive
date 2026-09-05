@@ -213,7 +213,7 @@ agent-bootstrap:
   const mod = freshValidatorModule();
   const item = {
     name: 'workspace_spec_NN',
-    repo: 'cogNNitive/iNNfo',
+    repo: 'cogNNitive/cogNNitive',
     commit: '3f1a9c2b8e4d6f0a1b2c3d4e5f60718293a4b5c6',
   };
 
@@ -222,7 +222,7 @@ agent-bootstrap:
     try {
       const violation = await mod.checkCommitExists(item);
       assert.notStrictEqual(violation, null, '422 should be reported as a violation');
-      assert.match(violation, /cogNNitive\/iNNfo/, 'violation must name the declared repo');
+      assert.match(violation, /cogNNitive\/cogNNitive/, 'violation must name the declared repo');
       assert.match(violation, /wrong repo/i, '422 violation must be distinguishable as a wrong-repo error');
     } finally {
       stub.restore();
@@ -280,7 +280,7 @@ agent-bootstrap:
     { status: 200, body: JSON.stringify({ object: { sha: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', type: 'commit' } }) },
   ]);
   try {
-    const result = await mod.resolveRef('cogNNitive/iNNfo', 'templates-v0.2.0');
+    const result = await mod.resolveRef('cogNNitive/cogNNitive', 'templates-v0.2.0');
     assert.strictEqual(result.sha, 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb');
     assert.strictEqual(result.kind, 'tag');
     assert.match(stub.urls()[1], /git\/tags\/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/, 'must peel via git/tags/{sha}');
@@ -315,7 +315,7 @@ agent-bootstrap:
     { status: 404, body: '{}' },
   ]);
   try {
-    const result = await mod.resolveRef('cogNNitive/iNNfo', 'does-not-exist');
+    const result = await mod.resolveRef('cogNNitive/cogNNitive', 'does-not-exist');
     assert.ok(result.error, 'unresolved ref must return an error');
   } finally {
     stub.restore();
@@ -347,7 +347,7 @@ agent-bootstrap:
   {
     const stub = stubHttpsGetSequence([{ status: 200, body: JSON.stringify({ status: 'ahead' }) }]);
     try {
-      const violation = await mod.checkReleaseProvenance('cogNNitive/iNNfo', 'deadbeef00000000000000000000000000000000');
+      const violation = await mod.checkReleaseProvenance('cogNNitive/cogNNitive', 'deadbeef00000000000000000000000000000000');
       assert.notStrictEqual(violation, null, 'ahead of main must fail release provenance');
     } finally {
       stub.restore();
@@ -356,7 +356,7 @@ agent-bootstrap:
   {
     const stub = stubHttpsGetSequence([{ status: 200, body: JSON.stringify({ status: 'identical' }) }]);
     try {
-      const violation = await mod.checkReleaseProvenance('cogNNitive/iNNfo', 'deadbeef00000000000000000000000000000000');
+      const violation = await mod.checkReleaseProvenance('cogNNitive/cogNNitive', 'deadbeef00000000000000000000000000000000');
       assert.strictEqual(violation, null, 'identical to main must pass release provenance');
     } finally {
       stub.restore();
@@ -365,7 +365,7 @@ agent-bootstrap:
   {
     const stub = stubHttpsGetSequence([{ status: 200, body: JSON.stringify({ status: 'behind' }) }]);
     try {
-      const violation = await mod.checkReleaseProvenance('cogNNitive/iNNfo', 'deadbeef00000000000000000000000000000000');
+      const violation = await mod.checkReleaseProvenance('cogNNitive/cogNNitive', 'deadbeef00000000000000000000000000000000');
       assert.strictEqual(violation, null, 'behind main must pass release provenance');
     } finally {
       stub.restore();
@@ -379,18 +379,17 @@ agent-bootstrap:
   const mod = freshValidatorModule();
   const pinned = {
     name: 'innfo-mcp',
-    repo: 'cogNNitive/iNNfo',
-    path: 'packages/innfo-mcp/bin/innfo-mcp.bundle.js',
+    repo: 'cogNNitive/cogNNitive',
+    path: 'iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js',
     ref: 'innfo-mcp-v0.2.1',
     commit: '3f1a9c2b8e4d6f0a1b2c3d4e5f60718293a4b5c6',
-    url: 'https://raw.githubusercontent.com/cogNNitive/iNNfo/3f1a9c2b8e4d6f0a1b2c3d4e5f60718293a4b5c6/packages/innfo-mcp/bin/innfo-mcp.bundle.js',
-  };
-  const unpinned = {
-    ...pinned,
-    url: 'https://raw.githubusercontent.com/cogNNitive/iNNfo/main/packages/innfo-mcp/bin/innfo-mcp.bundle.js',
+    url: 'https://raw.githubusercontent.com/cogNNitive/cogNNitive/3f1a9c2b8e4d6f0a1b2c3d4e5f60718293a4b5c6/iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js',
   };
   assert.strictEqual(await mod.checkMcpUrlPinned(pinned), null, 'commit-pinned mcp url must pass');
-  const violation = await mod.checkMcpUrlPinned(unpinned);
+  const violation = await mod.checkMcpUrlPinned(unpinned = {
+    ...pinned,
+    url: 'https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js',
+  });
   assert.notStrictEqual(violation, null, 'unpinned (/main/) mcp url must fail');
   assert.match(violation, /main/, 'violation should identify the unpinned branch segment');
   console.log('✔ mcp-url-pinned test passed');
