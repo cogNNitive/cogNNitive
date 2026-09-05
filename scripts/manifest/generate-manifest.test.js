@@ -28,22 +28,23 @@ const BASIC_SOURCE = `version: "2.0"
 entrypoint: "workspace_NN.md"
 skills:
   - name: nn-router
-    repo: cogNNitive/actioNN
-    path: skills/nn-router
+    repo: cogNNitive/cogNNitive
+    path: actioNN/skills/nn-router
     version: "3.2"
+    ref_key: skills
     description: Central system governance and skill router.
 templates: []
 workflows: []
 channels:
   stable:
     refs:
-      - key: cogNNitive/actioNN
-        repo: cogNNitive/actioNN
+      - key: skills
+        repo: cogNNitive/cogNNitive
         ref: skills-v1.0.0
   preview:
     refs:
-      - key: cogNNitive/actioNN
-        repo: cogNNitive/actioNN
+      - key: skills
+        repo: cogNNitive/cogNNitive
         ref: feat/innfo-v0-2-0-adoption
 `;
 
@@ -51,14 +52,15 @@ const MCP_SOURCE = `version: "2.0"
 entrypoint: "workspace_NN.md"
 skills:
   - name: nn-innfo
-    repo: cogNNitive/actioNN
-    path: skills/nn-innfo
+    repo: cogNNitive/cogNNitive
+    path: actioNN/skills/nn-innfo
     version: "V_0-1-0"
+    ref_key: skills
     description: Author and validate iNNfo models.
     mcp:
       - name: innfo-mcp
-        repo: cogNNitive/iNNfo
-        path: packages/innfo-mcp/bin/innfo-mcp.bundle.js
+        repo: cogNNitive/cogNNitive
+        path: iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js
         version: "0.2.1"
         ref_key: innfo-mcp
 templates: []
@@ -66,19 +68,19 @@ workflows: []
 channels:
   stable:
     refs:
-      - key: cogNNitive/actioNN
-        repo: cogNNitive/actioNN
+      - key: skills
+        repo: cogNNitive/cogNNitive
         ref: skills-v1.0.0
       - key: innfo-mcp
-        repo: cogNNitive/iNNfo
+        repo: cogNNitive/cogNNitive
         ref: innfo-mcp-v0.2.1
   preview:
     refs:
-      - key: cogNNitive/actioNN
-        repo: cogNNitive/actioNN
+      - key: skills
+        repo: cogNNitive/cogNNitive
         ref: feat/innfo-v0-2-0-adoption
       - key: innfo-mcp
-        repo: cogNNitive/iNNfo
+        repo: cogNNitive/cogNNitive
         ref: feat/business-template-decomposition
 `;
 
@@ -135,9 +137,10 @@ async function main() {
 entrypoint: "workspace_NN.md"
 skills:
   - name: nn-router
-    repo: cogNNitive/actioNN
-    path: skills/nn-router
+    repo: cogNNitive/cogNNitive
+    path: actioNN/skills/nn-router
     version: "3.2"
+    ref_key: skills
     note: provisional pin, re-check after next release
     description: Central system governance and skill router.
 templates: []
@@ -145,13 +148,13 @@ workflows: []
 channels:
   stable:
     refs:
-      - key: cogNNitive/actioNN
-        repo: cogNNitive/actioNN
+      - key: skills
+        repo: cogNNitive/cogNNitive
         ref: skills-v1.0.0
   preview:
     refs:
-      - key: cogNNitive/actioNN
-        repo: cogNNitive/actioNN
+      - key: skills
+        repo: cogNNitive/cogNNitive
         ref: feat/innfo-v0-2-0-adoption
 `;
     const source = mod.parseSourceYaml(sourceWithNote);

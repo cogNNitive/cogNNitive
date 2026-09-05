@@ -167,10 +167,10 @@ agent-bootstrap:
   skills: []
   templates:
     - name: workspace_spec_NN
-      repo: cogNNitive/iNNfo
-      path: specs/templates/workspace_spec_NN.md
+      repo: cogNNitive/cogNNitive
+      path: iNNfo/specs/templates/workspace_spec_NN.md
       version: "V_0-2-0"
-      commit: "3bd4501e75915e8f2365fd7c547d9384a3e0c837"
+      commit: "b9c58f97f21742692b7e00788776032b08407175"
   workflows:
     - id: test-wf
       label: Test Workflow
