@@ -1,6 +1,6 @@
 ---
 name: nn-innfo
-version: "V_0-1-2"
+version: "V_0-1-3"
 last_updated: 2026-09-05
 metadata:
   source_type: "original"
@@ -146,8 +146,8 @@ Before writing the template file, present EVERYTHING together in a single block 
 📋 Proposed Template Plan:
 - Concepts: Stakeholders, Segments, Offerings
 - Fields:
-  - Stakeholders: name (string), owner (reference), budget (number)
-  - Offerings: name (string), category (reference), price (number)
+  - Stakeholders: name (string), owner (reference), budget (string)
+  - Offerings: name (string), category (reference), price (string)
 - Matrices: Stakeholders × Offerings (N:M, markers: interested/buyer/dismissed)
 - Markers: interested, buyer, dismissed
 
@@ -284,14 +284,14 @@ URLs estables de referencia (la versión va en el nombre del archivo — `main` 
    - Las anclas deben ser **heading-slugs** de GitHub (ej: `#resumen-ejecutivo`, `#metricas-q3`).
    - Los rangos de líneas numéricos (`#L1-L10`) están **estrictamente prohibidos** por su fragilidad ante reformateos.
    - Toda ancla debe resolver contra un encabezado real del documento citado.
-5. **Un solo valor va sin corchetes.** Los corchetes `[...]` se usan ÚNICAMENTE cuando hay 2 o más referencias — no envuelvas un valor único en `[...]`, es ruido visual innecesario:
+5. **`sources::` SIEMPRE es una lista con corchetes `[...]`, incluso con una sola fuente.** El spec L1 exige `sources:: [sources/nn/<filename>#<heading-slug>, ...]` — MUST always be formatted as a list enclosed in brackets `[...]`, even when referencing a single source document. No existe sintaxis escalar ni omisión de corchetes para un solo valor (ver `iNNfo/specs/iNNfo_V_0-2-0_NN.md`). En campos `type:: reference`, la sintaxis WikiLink `[[...]]` es obligatoria de forma independiente (ver §8d y Core Rule 12):
    ```markdown
    ## NN Stakeholders: Cliente Enterprise
-   sources:: [entrevista_cliente_transcript.md#feedback-principal, notas_source.md#puntos-clave]
+   sources:: [sources/nn/entrevista_cliente_transcript.md#feedback-principal, sources/nn/notas_source.md#puntos-clave]
    relationship_model:: B2B Long-term
 
    ## NN Stakeholders: Cliente Piloto
-   sources: notas_source.md#puntos-clave
+   sources:: [sources/nn/notas_source.md#puntos-clave]
    relationship_model:: Trial
    ```
 6. **Granularidad: a nivel de elemento, no de afirmación individual.** `sources::` cubre el conjunto de fuentes que respaldan TODO el elemento (todos sus campos en conjunto) — no hay mecanismo de cita por campo o por frase dentro de un modelo de dominio. Si distintos campos de un mismo elemento vienen de fuentes distintas, listá la unión de todas en el único `sources::` del elemento. La cita a nivel de afirmación individual (mediante footnotes estándar `[^1]` o formatos bibliográficos) es un mecanismo aparte, usado solo dentro de artefactos generados a partir del modelo (ver `nn-trannsform/SKILL.md` §4) — nunca dentro de un `*_NN.md`.
@@ -353,7 +353,7 @@ Cuando se requiere renombrar un Concepto o Elemento:
 
 ## 8. Protocolo de Creación de Campos y Preview de Cambios (Opción D)
 
-Todo campo debe declarar un `type` explícito (`string`, `select`, `reference`, `markdown_inline`, `number`, `date`, `file`, `image`, `video`, `audio`).
+Todo campo debe declarar un `type` explícito (`string`, `select`, `reference`, `markdown_inline`, `markdown_file`, `image`, `file`, `video`, `audio`, `model`).
 
 > ⚠️ **Sintaxis de listas — NUNCA uses comillas sin corchetes.** Para cualquier campo con múltiples valores (`reference`, `sources::`, o cualquier otro tipo de lista), el único formato válido es `[a, b, c]` — sin comillas alrededor de cada valor. El formato `"a", "b"` (comillas individuales, sin corchetes envolventes) **corrompe el parseo silenciosamente**: el validador lo trata como un único string ilegible en vez de una lista, y termina reportando una referencia colgada genérica sin explicar la causa real. Si ves ese error y el campo tiene comillas sueltas sin `[...]`, la causa casi seguro es esta.
 

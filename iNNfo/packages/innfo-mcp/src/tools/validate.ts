@@ -34,6 +34,7 @@ function syncFindSubmodel(
   rootDir: string,
   cleanPath: string,
   referringDir?: string,
+  opts?: { includeSpecs?: boolean },
 ): string | null {
   const directCandidates = [
     join(rootDir, cleanPath),
@@ -68,17 +69,10 @@ function syncFindSubmodel(
           return join(dir, entry.name)
         }
         if (entry.isDirectory()) {
-          if (
-            ![
-              'node_modules',
-              '.git',
-              'dist',
-              '.spec-cache',
-              'specs',
-              'backups',
-              'archive',
-            ].includes(lower)
-          ) {
+          const skip = opts?.includeSpecs
+            ? ['node_modules', '.git', 'dist', '.spec-cache', 'backups', 'archive']
+            : ['node_modules', '.git', 'dist', '.spec-cache', 'specs', 'backups', 'archive']
+          if (!skip.includes(lower)) {
             subdirs.push(join(dir, entry.name))
           }
         }
@@ -505,7 +499,7 @@ export async function validateTemplate(
   if (content) {
     templateContent = content
   } else if (id) {
-    const filePath = await findModelFile(rootDir, id)
+    const filePath = await findModelFile(rootDir, id, { includeSpecs: true })
     if (!filePath) {
       return {
         valid: false,
@@ -615,7 +609,9 @@ export async function validateTemplate(
     }
   }
 
-  const templatePath = id ? ((await findModelFile(rootDir, id)) ?? id) : 'inline'
+  const templatePath = id
+    ? ((await findModelFile(rootDir, id, { includeSpecs: true })) ?? id)
+    : 'inline'
   const decoratedErrors = errors.map((e) => ({ ...e, filePath: templatePath }))
   const decoratedWarnings = warnings.map((w) => ({ ...w, filePath: templatePath }))
 

@@ -9,8 +9,9 @@ import {
   hydrateTemplate,
   listTemplateProcedures,
   listTemplateSkills,
+  findModelFile,
 } from './spec'
-import { validateModel } from './mutate'
+import { validateModel, validateTemplate } from './mutate'
 
 const rootDir = join(import.meta.dirname!, '..', '..', 'temp-test-spec')
 const specsDir = join(rootDir, 'specs')
@@ -330,5 +331,52 @@ describe('Spec Tools Integration (URL- and model-derived, no hardcoding)', () =>
 
     const procsRes = await listTemplateProcedures(rootDir, { template_name: 'main_tmpl_NN' })
     expect(procsRes.procedures.some((p) => p.id === 'proc-sec-v2')).toBe(true)
+  })
+
+  it('M1: findModelFile skips specs/ by default but descends with includeSpecs', async () => {
+    await writeFile(
+      join(specsDir, 'business_V_0-2-0_NN.md'),
+      [
+        '---',
+        'spec_version: "V_0-2-0"',
+        'level: 2',
+        'title: "Stored Business Template"',
+        'parent_spec:',
+        '  name: "iNNfo_V_0-1-0"',
+        '  url: "https://example.com/iNNfo_V_0-1-0_NN.md"',
+        '---',
+      ].join('\n'),
+      'utf-8',
+    )
+
+    const defaultMatch = await findModelFile(rootDir, 'business_V_0-2-0')
+    expect(defaultMatch).toBeNull()
+
+    const withSpecs = await findModelFile(rootDir, 'business_V_0-2-0', {
+      includeSpecs: true,
+    })
+    expect(withSpecs).toBe(join(specsDir, 'business_V_0-2-0_NN.md'))
+  })
+
+  it('M1: validateTemplate by id resolves a template stored under specs/', async () => {
+    await writeFile(
+      join(specsDir, 'business_V_0-2-0_NN.md'),
+      [
+        '---',
+        'spec_version: "V_0-2-0"',
+        'level: 2',
+        'title: "Stored Business Template"',
+        'parent_spec:',
+        '  name: "iNNfo_V_0-1-0"',
+        '  url: "https://example.com/iNNfo_V_0-1-0_NN.md"',
+        '---',
+      ].join('\n'),
+      'utf-8',
+    )
+    await stubSpecChain()
+
+    const result = await validateTemplate(rootDir, 'business_V_0-2-0')
+    expect(result.valid).toBe(true)
+    expect(result.errors).toHaveLength(0)
   })
 })

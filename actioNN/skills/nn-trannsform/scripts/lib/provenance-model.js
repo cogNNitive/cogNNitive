@@ -13,6 +13,24 @@ const DOC_NOTICE =
   '[cogNNitive](https://cognnitive.com/innfo/app/innfo-doc).';
 
 /**
+ * Allowed `source_format` values, mirroring the cogNNitive template's
+ * `source_format` Field Definition (type:: select). Values outside this set
+ * (html, htm, srt, vtt, xls, doc) are not declared and fail template
+ * conformance — map them to `md` since normalized artifacts are always
+ * Markdown.
+ */
+const SOURCE_FORMAT_OPTIONS = ['txt', 'md', 'csv', 'json', 'docx', 'pdf', 'xlsx'];
+
+/**
+ * Maps a raw source file extension to a declared `source_format` value.
+ * @param {string} ext Lowercased extension without the leading dot.
+ * @returns {string}
+ */
+function mapSourceFormat(ext) {
+  return SOURCE_FORMAT_OPTIONS.includes(ext) ? ext : 'md';
+}
+
+/**
  * Converts a filename or title into a URL/filesystem slug.
  * @param {string} name
  * @returns {string}
@@ -103,7 +121,7 @@ function collectSources(mdDir) {
       raw_filename: fmData.file,
       raw_hash: fmData.hash,
       size: fmData.size,
-      source_format: ext,
+      source_format: mapSourceFormat(ext),
       normalized_at: fmData.normalized_at,
       normalized_by: fmData.normalized_by,
       normalized_content: `sources/nn/${relFilePosix}`,
@@ -600,6 +618,8 @@ module.exports = {
   INNFO_URL,
   TEMPLATE_NAME,
   DOC_NOTICE,
+  SOURCE_FORMAT_OPTIONS,
+  mapSourceFormat,
   slugify,
   parseSourceFrontmatter,
   parseModelHeader,

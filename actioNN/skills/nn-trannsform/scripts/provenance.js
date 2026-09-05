@@ -79,6 +79,8 @@ module.exports = {
   collectModels: modelLib.collectModels,
   collectArtifacts: modelLib.collectArtifacts,
   slugify: modelLib.slugify,
+  SOURCE_FORMAT_OPTIONS: modelLib.SOURCE_FORMAT_OPTIONS,
+  mapSourceFormat: modelLib.mapSourceFormat,
   writeWorkspaceIndex: indexLib.writeWorkspaceIndex,
   listWorkspaceModels: indexLib.listWorkspaceModels,
 };

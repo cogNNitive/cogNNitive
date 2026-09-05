@@ -66,7 +66,11 @@ export { normalizeId }
  * `LC_programas_Tutorias_V_0-1-0_NN.md` instead of failing with
  * "Model not found".
  */
-export async function findModelFile(rootDir: string, id: string): Promise<string | null> {
+export async function findModelFile(
+  rootDir: string,
+  id: string,
+  opts?: { includeSpecs?: boolean },
+): Promise<string | null> {
   const cleanId = normalizeId(id)
   const searchDirs = [rootDir, join(rootDir, 'models')]
   for (const dir of searchDirs) {
@@ -105,7 +109,7 @@ export async function findModelFile(rootDir: string, id: string): Promise<string
   }
 
   // Recursive fallback across subdirectories
-  const recursiveMatch = await recursiveFindModel(rootDir, cleanId, id)
+  const recursiveMatch = await recursiveFindModel(rootDir, cleanId, id, 0, opts)
   if (recursiveMatch) return recursiveMatch
 
   return null
@@ -116,6 +120,7 @@ async function recursiveFindModel(
   cleanId: string,
   rawId: string,
   depth = 0,
+  opts?: { includeSpecs?: boolean },
 ): Promise<string | null> {
   if (depth > 8) return null
   const { readdir } = await import('node:fs/promises')
@@ -142,24 +147,17 @@ async function recursiveFindModel(
       return join(dir, entry.name)
     }
     if (entry.isDirectory()) {
-      if (
-        ![
-          'node_modules',
-          '.git',
-          'dist',
-          '.spec-cache',
-          'specs',
-          'backups',
-          'archive',
-        ].includes(nameLower)
-      ) {
+      const skip = opts?.includeSpecs
+        ? ['node_modules', '.git', 'dist', '.spec-cache', 'backups', 'archive']
+        : ['node_modules', '.git', 'dist', '.spec-cache', 'specs', 'backups', 'archive']
+      if (!skip.includes(nameLower)) {
         subdirs.push(join(dir, entry.name))
       }
     }
   }
 
   for (const subdir of subdirs) {
-    const found = await recursiveFindModel(subdir, cleanId, rawId, depth + 1)
+    const found = await recursiveFindModel(subdir, cleanId, rawId, depth + 1, opts)
     if (found) return found
   }
 

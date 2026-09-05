@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest'
 import { join } from 'node:path'
+import { readFile } from 'node:fs/promises'
 import { rm, mkdir, writeFile } from 'node:fs/promises'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js'
@@ -14,6 +15,10 @@ const specsDir = join(rootDir, 'specs')
 process.env.INNFO_MODELS_DIR = rootDir
 
 const { server } = await import('./server')
+
+const pkgVersion = JSON.parse(
+  await readFile(join(import.meta.dirname!, '..', 'package.json'), 'utf-8'),
+).version
 
 function textOf(result: CallToolResult): string {
   const first = result.content[0]
@@ -118,6 +123,13 @@ describe('innfo-mcp server (dispatch/handler layer, real MCP client/server round
 
   afterEach(async () => {
     await rm(rootDir, { recursive: true, force: true })
+  })
+
+  it('reports the package.json version in the initialize handshake', async () => {
+    const info = client.getServerVersion()
+    expect(info).toBeDefined()
+    expect(info?.version).toBe(pkgVersion)
+    expect(pkgVersion).toBe('0.2.4')
   })
 
   it('lists all 15 tools with names matching the dispatcher', async () => {

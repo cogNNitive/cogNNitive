@@ -44,6 +44,17 @@ function run() {
 
   const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'trannsform-prov-'));
   try {
+    // mapSourceFormat: in-set passthrough, unknown -> md
+    eq(provenance.mapSourceFormat('docx'), 'docx', 'mapSourceFormat passes declared extensions through');
+    eq(provenance.mapSourceFormat('html'), 'md', 'mapSourceFormat maps html to md (not declared)');
+    eq(provenance.mapSourceFormat('srt'), 'md', 'mapSourceFormat maps srt to md (not declared)');
+    eq(provenance.mapSourceFormat('htm'), 'md', 'mapSourceFormat maps htm to md (not declared)');
+    eq(provenance.mapSourceFormat('vtt'), 'md', 'mapSourceFormat maps vtt to md (not declared)');
+    eq(provenance.mapSourceFormat('xls'), 'md', 'mapSourceFormat maps xls to md (not declared)');
+    eq(provenance.mapSourceFormat('doc'), 'md', 'mapSourceFormat maps doc to md (not declared)');
+    eq(provenance.mapSourceFormat('md'), 'md', 'mapSourceFormat passes md through');
+    ok(Array.isArray(provenance.SOURCE_FORMAT_OPTIONS), 'SOURCE_FORMAT_OPTIONS exported as array');
+
     // slugify mirrors innfo-core
     eq(provenance.slugify('market-report.docx'), 'market-reportdocx', 'slugify strips dots');
     eq(provenance.slugify('Exec Summary'), 'exec-summary', 'slugify hyphenates spaces');
@@ -60,10 +71,14 @@ function run() {
       path.join(proj, 'sources', 'nn', 'team.md'),
       SRC_FM('sources/original/team.csv', 'bbb')
     );
+    fs.writeFileSync(
+      path.join(proj, 'sources', 'nn', 'webpage.md'),
+      SRC_FM('sources/original/webpage.html', 'ccc')
+    );
 
     const r1 = provenance.buildProvenanceModel(proj, { projectName: 'Acme' });
     eq(r1.created, true, 'model created on first run');
-    eq(r1.sourceCount, 2, 'two sources registered');
+    eq(r1.sourceCount, 3, 'three sources registered');
     ok(fs.existsSync(r1.modelPath), 'model file written');
     eq(path.basename(r1.modelPath), 'Acme_V_0-1-0_cogNNitive_NN.md', 'model file named after the cogNNitive template (not trannsform)');
 
@@ -71,6 +86,7 @@ function run() {
     ok(/parent_spec:\s*\n\s*name: "cogNNitive_V_0-1-0"/.test(model1), 'parent_spec points to the cogNNitive template');
     ok(/## NN Sources: market-report\.docx/.test(model1), 'source element present');
     ok(/source_format:: docx/.test(model1), 'source_format derived from extension');
+    ok(/source_format:: md/.test(model1), 'source_format html mapped to md (declared set only)');
     ok(/normalized_content:: sources\/nn\/clientA\/market-report\.md/.test(model1), 'normalized_content records the full sources/nn/ path, subfolders preserved');
     ok(!/source_id/.test(model1), 'provenance model never emits source_id');
     ok(!/src-\d{3}/.test(model1), 'provenance model never emits a src-NNN id');
@@ -94,7 +110,7 @@ function run() {
 
     const r2 = provenance.buildProvenanceModel(proj, { projectName: 'Acme' });
     eq(r2.created, false, 'model refreshed (not recreated) on second run');
-    eq(r2.sourceCount, 1, 'sources refreshed down to one');
+    eq(r2.sourceCount, 2, 'sources refreshed down to two');
     const model2 = fs.readFileSync(r2.modelPath, 'utf8');
     ok(!/## NN Models: Acme Plan/.test(model2), 'hand-added Models entry replaced by filesystem sync');
     ok(!/## NN Sources: team\.csv/.test(model2), 'dropped source removed from Sources');
