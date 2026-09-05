@@ -150,30 +150,30 @@ Ready-to-run sample transformation recipes and demonstrations.
 
 ## NN NavbarItem: Ecosystem
 label:: 🌐 **Ecosystem**: cognnitive.com
-url:: https://cognnitive.com
+url:: /
 order:: 1
 parent:: [[actioNN Documentation]]
 
 ## NN NavbarItem: iNNfo Specs
 label:: 📘 **iNNfo Specs & Engine**: cognnitive.com/innfo
-url:: https://cognnitive.com/innfo/documentation/
+url:: /innfo/documentation/
 order:: 2
 parent:: [[actioNN Documentation]]
 
 ## NN NavbarItem: actioNN Skills
 label:: ⚡ **actioNN Skills Catalog**: cognnitive.com/actionn
-url:: https://cognnitive.com/actionn/documentation/
+url:: /actionn/documentation/
 order:: 3
 parent:: [[actioNN Documentation]]
 
 ## NN NavbarItem: iNNfo Modeler App
 label:: 🛠️ **iNNfo Modeler App**: Open App
-url:: https://cognnitive.com/innfo/app/
+url:: /innfo/app/
 order:: 4
 parent:: [[actioNN Documentation]]
 
 ## NN NavbarItem: Bootstrap
 label:: 🚀 **Bootstrap**: Install in Agent
-url:: https://cognnitive.com/use
+url:: /use
 order:: 5
 parent:: [[actioNN Documentation]]
