@@ -19,7 +19,18 @@ const commands = require('./lib/skills-commands.js');
  * @returns {{ positional: string[], skillsDir: string | null, templatesDir: string | null, state: string | null, stateFile: string | null, yes: boolean, direction: string }}
  */
 function parseArgs(argv) {
-  const args = { positional: [], skillsDir: null, templatesDir: null, state: null, stateFile: null, yes: false, direction: 'local-to-global' };
+  const args = {
+    positional: [],
+    skillsDir: null,
+    templatesDir: null,
+    mcpDir: null,
+    state: null,
+    stateFile: null,
+    yes: false,
+    direction: 'local-to-global',
+    agent: 'auto',
+    scope: 'global',
+  };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === '--yes' || arg === '-y') {
@@ -31,13 +42,28 @@ function parseArgs(argv) {
       }
       args.direction = value;
       i++;
-    } else if (arg === '--skills-dir' || arg === '--templates-dir' || arg === '--state') {
+    } else if (arg === '--agent') {
+      const value = argv[i + 1];
+      if (value === undefined || value.startsWith('--')) {
+        throw new Error(`Option ${arg} requires a value`);
+      }
+      args.agent = value;
+      i++;
+    } else if (arg === '--scope') {
+      const value = argv[i + 1];
+      if (value === undefined || value.startsWith('--')) {
+        throw new Error(`Option ${arg} requires a value`);
+      }
+      args.scope = value;
+      i++;
+    } else if (arg === '--skills-dir' || arg === '--templates-dir' || arg === '--mcp-dir' || arg === '--state') {
       const value = argv[i + 1];
       if (value === undefined || value.startsWith('--')) {
         throw new Error(`Option ${arg} requires a value`);
       }
       if (arg === '--skills-dir') args.skillsDir = value;
       else if (arg === '--templates-dir') args.templatesDir = value;
+      else if (arg === '--mcp-dir') args.mcpDir = value;
       else args.state = value;
       i++;
     } else if (arg.startsWith('--')) {
@@ -55,20 +81,25 @@ function parseArgs(argv) {
  */
 function usage() {
   console.log(`Usage:
+  node scripts/skills-manager.js bootstrap [--scope <global|workspace>] [--agent <auto|opencode|claude|antigravity>] [--yes]
   node scripts/skills-manager.js status    [--skills-dir <dir>] [--templates-dir <dir>] [--state <file>]
   node scripts/skills-manager.js install   [--skills-dir <dir>] [--templates-dir <dir>] [--state <file>] [--yes]
   node scripts/skills-manager.js update    [item ...] [--skills-dir <dir>] [--templates-dir <dir>] [--state <file>] [--yes]
   node scripts/skills-manager.js sync      [--skills-dir <dir>] [--templates-dir <dir>] [--direction <local-to-global|global-to-local>] [--yes]
 
 Commands:
-  status   Compare installed commits (state file) against manifest pins.
-  install  Install missing skills and templates at their pinned commit.
-  update   Update outdated skills and templates at their pinned commit.
-  sync     Synchronize skill and template files between local repository and global agent directory.
+  bootstrap Full zero-touch ecosystem setup: skills, templates, MCP bundles, and agent registration.
+  status    Compare installed commits (state file) against manifest pins.
+  install   Install missing skills and templates at their pinned commit.
+  update    Update outdated skills and templates at their pinned commit.
+  sync      Synchronize skill and template files between local repository and global agent directory.
 
 Flags:
+  --scope <scope>        Installation scope: global (default, ~/.agents/) or workspace (./.agents/)
+  --agent <agent>        Target agent for MCP config: auto (default), opencode, claude, antigravity
   --skills-dir <dir>     Skills directory (default: ~/.agents/skills)
   --templates-dir <dir>  Templates directory (default: ~/.agents/templates)
+  --mcp-dir <dir>        MCP bundle directory (default: ~/.agents/mcp)
   --state <file>         State file (default: ~/.agents/bootstrap-state.json)
   --direction <dir>      Sync direction: local-to-global (default) or global-to-local
   --yes, -y              Skip the interactive consent prompt.
@@ -91,22 +122,31 @@ async function main() {
   }
 
   const command = args.positional.shift();
-  if (!command || !['status', 'install', 'update', 'sync'].includes(command)) {
+  if (!command || !['bootstrap', 'status', 'install', 'update', 'sync'].includes(command)) {
     usage();
     process.exit(1);
   }
 
+  const isWorkspaceScope = args.scope === 'workspace';
+  const defaultSkills = isWorkspaceScope ? './.agents/skills' : commands.DEFAULT_SKILLS_DIR;
+  const defaultTemplates = isWorkspaceScope ? './specs/templates' : commands.DEFAULT_TEMPLATES_DIR;
+  const defaultMcp = isWorkspaceScope ? './.agents/mcp' : commands.DEFAULT_MCP_DIR;
+  const defaultState = isWorkspaceScope ? './.agents/bootstrap-state.json' : commands.DEFAULT_STATE_FILE;
+
   const resolvedArgs = {
     positional: args.positional,
-    skillsDir: path.resolve(args.skillsDir || commands.DEFAULT_SKILLS_DIR),
-    templatesDir: path.resolve(args.templatesDir || commands.DEFAULT_TEMPLATES_DIR),
-    stateFile: path.resolve(args.state || commands.DEFAULT_STATE_FILE),
+    skillsDir: path.resolve(args.skillsDir || defaultSkills),
+    templatesDir: path.resolve(args.templatesDir || defaultTemplates),
+    mcpDir: path.resolve(args.mcpDir || defaultMcp),
+    stateFile: path.resolve(args.state || defaultState),
     yes: args.yes,
     direction: args.direction,
+    agent: args.agent,
   };
 
   try {
-    if (command === 'status') await commands.cmdStatus(resolvedArgs);
+    if (command === 'bootstrap') await commands.cmdBootstrap(resolvedArgs);
+    else if (command === 'status') await commands.cmdStatus(resolvedArgs);
     else if (command === 'install') await commands.cmdInstall(resolvedArgs);
     else if (command === 'update') await commands.cmdUpdate(resolvedArgs);
     else await commands.cmdSync(resolvedArgs);

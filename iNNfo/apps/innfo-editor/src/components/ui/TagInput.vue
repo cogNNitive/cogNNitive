@@ -2,9 +2,14 @@
 import { ref, computed } from 'vue'
 import { useModelStore } from '../../stores/modelStore'
 
-const props = defineProps<{
-  modelValue: string[]
-}>()
+const props = withDefaults(
+  defineProps<{
+    modelValue?: string[]
+  }>(),
+  {
+    modelValue: () => [],
+  },
+)
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: string[]): void

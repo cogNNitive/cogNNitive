@@ -70,7 +70,7 @@ function fetchString(url, timeoutMs = 6000) {
 function loadState(file) {
   if (fs.existsSync(file)) {
     try {
-      const data = JSON.parse(fs.readFileSync(file, 'utf-8'));
+      const data = JSON.parse(fs.readFileSync(file, 'utf-8').replace(/^\uFEFF/, ''));
       return {
         manifest: data.manifest || DEFAULT_MANIFEST_URL,
         skills: data.skills || {},
@@ -86,7 +86,7 @@ function loadState(file) {
   const legacyToUse = fs.existsSync(siblingLegacy) ? siblingLegacy : LEGACY_STATE_FILE;
   if (fs.existsSync(legacyToUse)) {
     try {
-      const legacyData = JSON.parse(fs.readFileSync(legacyToUse, 'utf-8'));
+      const legacyData = JSON.parse(fs.readFileSync(legacyToUse, 'utf-8').replace(/^\uFEFF/, ''));
       return {
         manifest: legacyData.manifest || DEFAULT_MANIFEST_URL,
         skills: legacyData.skills || {},

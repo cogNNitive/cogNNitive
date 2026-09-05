@@ -22,6 +22,7 @@ output:: [[Vault Containment Log]]
 output_status:: verified
 tool:: [[High-Voltage Subterranean Containment Grid]]
 scope:: internal
+tags:: [procedure, standard-protocol, core-workflow, containment]
 Standard operating procedure for responding to NYC spectral emergency calls, entrapping psychokinetic entities, and securing them inside the headquarters containment grid.
 
 ## NN Work: Emergency Call Triage
@@ -34,6 +35,7 @@ output:: [[Dispatch Ticket]]
 output_status:: verified
 tool:: [[Headquarters Dispatch Console]]
 scope:: internal
+tags:: [procedure, triage, dispatch, intake]
 Janine Melnitz logs incoming calls, confirms commercial billing terms, and dispatches the Ecto-1 field crew.
 
 ## NN Work: Site PKE Scanning
@@ -46,6 +48,7 @@ output:: [[PKE Survey Map]]
 output_status:: verified
 tool:: [[PKE Meter]]
 scope:: internal
+tags:: [procedure, field-recon, pke-scanning, telemetry]
 Dr. Egon Spengler scans the target location using the PKE Meter to measure psychokinetic energy intensity and locate spectral class-V entities.
 
 ## NN Work: Proton Stream Target Lock
@@ -58,6 +61,7 @@ output:: [[Class-V Entity Entrapment Beam]]
 output_status:: verified
 tool:: [[Proton Pack Particle Accelerator]]
 scope:: internal
+tags:: [procedure, frontline, particle-beam, high-voltage]
 Dr. Ray Stantz and Winston Zeddemore unholster particle throwers, fire proton streams, and hold the entity in a stable containment field.
 
 ## NN Work: Muon Trap Deployment
@@ -70,6 +74,7 @@ output:: [[Sealed Ghost Trap Unit]]
 output_status:: verified
 tool:: [[Muon Ghost Trap]]
 scope:: internal
+tags:: [procedure, trap-deployment, capture, muon]
 Dr. Peter Venkman slides the muon trap beneath the entrapped entity, steps on the foot pedal, and seals the entity inside the containment canister.
 
 ## NN Work: Subterranean Facility Transfer
@@ -82,6 +87,7 @@ output:: [[Vault Containment Log]]
 output_status:: verified
 tool:: [[High-Voltage Subterranean Containment Grid]]
 scope:: internal
+tags:: [procedure, facility-transfer, vault, permanent-containment]
 The crew returns to headquarters, inserts the sealed trap into the containment vault access port, and opens the deposit valve.
 
 ## NN Work: Subterranean Containment Grid Shutdown Recovery
@@ -94,6 +100,7 @@ output:: [[Restored High-Voltage Grid]]
 output_status:: verified
 tool:: [[Auxiliary Diesel Generator]]
 scope:: internal
+tags:: [procedure, emergency-recovery, backup-power, high-risk]
 Emergency protocol executed in the event of an external grid power failure or Municipal Environmental Protection Agency intervention.
 
 ## NN Work: Emergency Alarm Intercept
@@ -106,6 +113,7 @@ output:: [[System Fault Diagnostic]]
 output_status:: verified
 tool:: [[Grid Status Warning Panel]]
 scope:: internal
+tags:: [procedure, telemetry, alarm-intercept, safety]
 Detection of voltage drop in the subterranean vault, triggering immediate audio-visual alarms across headquarters.
 
 ## NN Work: Backup Generator Coupling
@@ -118,6 +126,7 @@ output:: [[Restored High-Voltage Grid]]
 output_status:: verified
 tool:: [[Auxiliary Diesel Generator]]
 scope:: internal
+tags:: [procedure, manual-override, diesel-coupling, power-restoration]
 Manual engagement of the auxiliary diesel power coupling to maintain grid containment pressure and prevent catastrophic spectral release.
 
 # NN Artifact

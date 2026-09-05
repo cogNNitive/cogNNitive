@@ -32,9 +32,12 @@ const {
   parseManifest,
 } = require('../../../scripts/lib/yaml-parser.js');
 
+const { registerMcpAuto } = require('./mcp-config-adapter.js');
+
 const DEFAULT_MANIFEST_URL = 'https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/docs/use/manifest.md';
 const DEFAULT_SKILLS_DIR = path.join(os.homedir(), '.agents', 'skills');
 const DEFAULT_TEMPLATES_DIR = path.join(os.homedir(), '.agents', 'templates');
+const DEFAULT_MCP_DIR = path.join(os.homedir(), '.agents', 'mcp');
 const DEFAULT_STATE_FILE = path.join(os.homedir(), '.agents', 'bootstrap-state.json');
 const LEGACY_STATE_FILE = path.join(os.homedir(), '.agents', 'skills-state.json');
 
@@ -64,22 +67,24 @@ function requestFor(url) {
  * @returns {{ manifest: string, skills: Record<string, any>, templates: Record<string, any> }}
  */
 function emptyState() {
-  return { manifest: getManifestUrl(), skills: {}, templates: {} };
+  return { manifest: getManifestUrl(), skills: {}, templates: {}, mcp: {} };
 }
 
 /**
  * Loads the current machine skill state from JSON file, supporting legacy migrations.
  * @param {string} file
- * @returns {{ manifest: string, skills: Record<string, any>, templates: Record<string, any> }}
+ * @returns {{ manifest: string, skills: Record<string, any>, templates: Record<string, any>, mcp: Record<string, any> }}
  */
 function loadState(file) {
   if (fs.existsSync(file)) {
     try {
-      const data = JSON.parse(fs.readFileSync(file, 'utf-8'));
+      const raw = fs.readFileSync(file, 'utf-8').replace(/^\uFEFF/, '');
+      const data = JSON.parse(raw);
       return {
         manifest: data.manifest || getManifestUrl(),
         skills: data.skills || {},
         templates: data.templates || {},
+        mcp: data.mcp || {},
       };
     } catch (err) {
       return emptyState();
@@ -92,11 +97,13 @@ function loadState(file) {
 
   if (fs.existsSync(legacyFileToUse)) {
     try {
-      const legacyData = JSON.parse(fs.readFileSync(legacyFileToUse, 'utf-8'));
+      const legacyRaw = fs.readFileSync(legacyFileToUse, 'utf-8').replace(/^\uFEFF/, '');
+      const legacyData = JSON.parse(legacyRaw);
       const state = {
         manifest: legacyData.manifest || getManifestUrl(),
         skills: legacyData.skills || {},
         templates: {},
+        mcp: {},
       };
       saveState(file, state);
       return state;
@@ -266,6 +273,43 @@ async function installTemplateAtCommit(template, templatesDir, state) {
     commit: template.commit,
     version: template.version,
     path: destPath,
+    updated_at: new Date().toISOString(),
+  };
+}
+
+/**
+ * Installs an MCP server bundle and its imported chunks from GitHub raw URL at specified commit.
+ * @param {object} mcp
+ * @param {string} mcpDir
+ * @param {object} state
+ * @returns {Promise<void>}
+ */
+async function installMcpAtCommit(mcp, mcpDir, state) {
+  fs.mkdirSync(mcpDir, { recursive: true });
+  const bundleDest = path.join(mcpDir, `${mcp.name}.bundle.js`);
+
+  await downloadFile(mcp.url, bundleDest);
+
+  if (fs.existsSync(bundleDest)) {
+    const bundleContent = fs.readFileSync(bundleDest, 'utf-8');
+    const chunkMatches = [...bundleContent.matchAll(/from\s*["']\.\/([^"']+\.js)["']/g)].map(m => m[1]);
+    const baseUrl = mcp.url.substring(0, mcp.url.lastIndexOf('/'));
+
+    for (const chunkFile of chunkMatches) {
+      const chunkDest = path.join(mcpDir, chunkFile);
+      const chunkUrl = `${baseUrl}/${chunkFile}`;
+      try {
+        await downloadFile(chunkUrl, chunkDest);
+      } catch (err) {
+        // Non-blocking for optional or conditional chunks
+      }
+    }
+  }
+
+  if (!state.mcp) state.mcp = {};
+  state.mcp[mcp.name] = {
+    commit: mcp.commit,
+    version: mcp.version,
     updated_at: new Date().toISOString(),
   };
 }
@@ -606,6 +650,128 @@ async function cmdSync(args) {
   console.log('\nSync completed successfully.');
 }
 
+/**
+ * Executes complete, deterministic bootstrap:
+ * 1. Installs/updates all manifest skills
+ * 2. Installs/updates all manifest templates (all 10 Level 2 templates)
+ * 3. Downloads all MCP bundles (e.g. innfo-mcp) and their imported chunks
+ * 4. Registers MCP server in the target agent's config (OpenCode, Claude, Antigravity, or auto)
+ * 5. Saves state file cleanly without BOM
+ * 6. Displays clean summary with available workflows
+ *
+ * @param {{
+ *   skillsDir: string,
+ *   templatesDir: string,
+ *   mcpDir?: string,
+ *   stateFile: string,
+ *   agent?: string,
+ *   yes: boolean,
+ *   manifestUrl?: string,
+ * }} args
+ * @returns {Promise<void>}
+ */
+async function cmdBootstrap(args) {
+  const url = args.manifestUrl || getManifestUrl();
+  console.log('=== cogNNitive Bootstrap ===');
+  console.log(`Fetching manifest from: ${url}`);
+  const manifestRaw = await fetchString(url);
+  const manifest = parseManifest(manifestRaw);
+  const state = loadState(args.stateFile);
+
+  const mcpDir = args.mcpDir || DEFAULT_MCP_DIR;
+  fs.mkdirSync(args.skillsDir, { recursive: true });
+  fs.mkdirSync(args.templatesDir, { recursive: true });
+  fs.mkdirSync(mcpDir, { recursive: true });
+
+  const names = [
+    ...manifest.skills.map(s => `skill:${s.name}`),
+    ...manifest.templates.map(t => `template:${t.name}`),
+  ];
+
+  const proceed = await consentOrAbort(
+    'bootstrap cogNNitive ecosystem',
+    names,
+    `Bootstrapping ${manifest.skills.length} skills, ${manifest.templates.length} templates, and MCP servers.\n\n[a] Bootstrap now (Recommended)\n[b] Cancel\n`,
+    args.yes
+  );
+  if (!proceed) return;
+
+  // 1. Skills
+  console.log(`\nInstalling/verifying ${manifest.skills.length} skill(s)...`);
+  for (const skill of manifest.skills) {
+    const entry = state.skills[skill.name];
+    const dirPresent = fs.existsSync(path.join(args.skillsDir, skill.name));
+    if (!dirPresent || !entry || entry.commit !== skill.commit) {
+      await installSkillAtCommit(skill, args.skillsDir, state);
+      console.log(`  ✓ skill ${skill.name} (${skill.version}) @ ${skill.commit.slice(0, 7)}`);
+    } else {
+      console.log(`  ✓ skill ${skill.name} (${skill.version}) up-to-date`);
+    }
+  }
+
+  // 2. Templates
+  console.log(`\nInstalling/verifying ${manifest.templates.length} template(s)...`);
+  for (const tmpl of manifest.templates) {
+    const fileName = tmpl.name.endsWith('.md') ? tmpl.name : `${tmpl.name}.md`;
+    const tmplPresent = fs.existsSync(path.join(args.templatesDir, fileName)) || fs.existsSync(path.join(args.templatesDir, tmpl.name));
+    const entry = state.templates[tmpl.name];
+    if (!tmplPresent || !entry || entry.commit !== tmpl.commit) {
+      await installTemplateAtCommit(tmpl, args.templatesDir, state);
+      console.log(`  ✓ template ${tmpl.name} (${tmpl.version}) @ ${tmpl.commit.slice(0, 7)}`);
+    } else {
+      console.log(`  ✓ template ${tmpl.name} (${tmpl.version}) up-to-date`);
+    }
+  }
+
+  // 3. MCP servers declared in skills or manifest
+  const mcpList = [];
+  for (const skill of manifest.skills) {
+    if (Array.isArray(skill.mcp)) {
+      mcpList.push(...skill.mcp);
+    }
+  }
+  if (Array.isArray(manifest.mcp)) {
+    mcpList.push(...manifest.mcp);
+  }
+
+  if (mcpList.length > 0) {
+    console.log(`\nInstalling/verifying ${mcpList.length} MCP server(s)...`);
+    for (const mcp of mcpList) {
+      const bundleDest = path.join(mcpDir, `${mcp.name}.bundle.js`);
+      const entry = state.mcp ? state.mcp[mcp.name] : null;
+      if (!fs.existsSync(bundleDest) || !entry || entry.commit !== mcp.commit) {
+        await installMcpAtCommit(mcp, mcpDir, state);
+        console.log(`  ✓ bundle ${mcp.name} (${mcp.version}) @ ${mcp.commit.slice(0, 7)}`);
+      } else {
+        console.log(`  ✓ bundle ${mcp.name} (${mcp.version}) up-to-date`);
+      }
+
+      // 4. Auto-register in agent config
+      const mcpRegistrations = registerMcpAuto({
+        bundlePath: bundleDest,
+        serverName: mcp.name,
+        targetAgent: args.agent,
+      });
+
+      for (const reg of mcpRegistrations) {
+        console.log(`  ✓ MCP registered for ${reg.agent}: ${reg.file} (${reg.updated ? 'configured' : 'already configured'})`);
+      }
+    }
+  }
+
+  // 5. Save state
+  saveState(args.stateFile, state);
+
+  // 6. Summary and workflows
+  console.log(`\nBootstrap completed successfully! All components up-to-date.`);
+  if (manifest.workflows && manifest.workflows.length > 0) {
+    console.log(`\nAvailable workflows:`);
+    manifest.workflows.forEach((wf, idx) => {
+      console.log(`  ${idx + 1}. ${wf.label} (${wf.skill}) — ${wf.description}`);
+    });
+  }
+}
+
 module.exports = {
   get MANIFEST_URL() {
     return getManifestUrl();
@@ -613,6 +779,7 @@ module.exports = {
   DEFAULT_MANIFEST_URL,
   DEFAULT_SKILLS_DIR,
   DEFAULT_TEMPLATES_DIR,
+  DEFAULT_MCP_DIR,
   DEFAULT_STATE_FILE,
   LEGACY_STATE_FILE,
   getManifestUrl,
@@ -633,6 +800,7 @@ module.exports = {
   fetchCompareSummary,
   installSkillAtCommit,
   installTemplateAtCommit,
+  installMcpAtCommit,
   printStatusTable,
   promptChoice,
   isConsent,
@@ -641,4 +809,5 @@ module.exports = {
   cmdInstall,
   cmdUpdate,
   cmdSync,
+  cmdBootstrap,
 };
