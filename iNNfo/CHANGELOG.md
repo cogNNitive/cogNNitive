@@ -1,5 +1,34 @@
 ﻿# Changelog
 
+## Unreleased (2026-09-05)
+
+### iNNfo L1 spec — `iNNfo_V_0-2-1` adopted
+- **`iNNfo_V_0-2-1` is now the adopted L1** (`status: "Stable"`,
+  `DEFAULT_INNFO_VERSION = 'V_0-2-1'`). `iNNfo_V_0-2-0_NN.md` stays frozen and
+  immutable (write-once, R-SV-02). The patch closes the V_0-2-0 regression where
+  `target_template` (documented in V_0-1-0) had been dropped from the Field
+  Definition property table and the metaschema.
+- **`target_template` documented for `type:: model` fields.** Field Definitions
+  of type `model` may declare `target_template` naming the template the
+  referenced submodel must conform to; validated by `innfo-core`
+  (`references.ts`).
+- **Model Fields (`type:: model`) normative paragraph.** Workspace-relative or
+  `./`-relative paths, WikiLink wrapping, and the `target_template` conformance
+  rule are now spelled out in the L1 spec.
+- **Qualified Cross-Model References.** A `reference` or `model` field MAY target
+  an element in another model via `[[Model Title :: Element Name]]`.
+
+### Templates
+- All `_V_0-2-0_` L2 templates migrated to `parent_spec: iNNfo_V_0-2-1` +
+  `spec_version: V_0-2-1` (filenames and `template_version` unchanged).
+- **`innovation`** gains `initiativeBusinessModel` — a `type:: model` field on
+  `Initiative` with `target_template: business`, so each initiative can carry its
+  own Business-template submodel.
+
+### Editor & Core
+- `DEFAULT_INNFO_VERSION` → `V_0-2-1`; serializer default `spec_version` → `V_0-2-1`;
+  `init-model` scaffolding writes `spec_version: V_0-2-1` + `spec_url` → V_0-2-1.
+
 ## Unreleased (2026-09-01)
 
 ### iNNfo L1 spec — `iNNfo_V_0-2-0` adopted

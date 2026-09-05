@@ -1,10 +1,10 @@
 ---
-spec_version: "V_0-2-0"
+spec_version: "V_0-2-1"
 spec_url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/templates/innovation/innovation_V_0-2-0_NN.md"
 level: 2
 parent_spec:
-  name: "iNNfo_V_0-2-0"
-  url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/iNNfo_V_0-2-0_NN.md"
+  name: "iNNfo_V_0-2-1"
+  url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/iNNfo_V_0-2-1_NN.md"
 template_version: "V_0-2-0"
 title: "Innovation Template"
 relationship_types:
@@ -277,6 +277,12 @@ type:: string
 concept:: Initiative
 type:: string
 
+## NN Field Definition: initiativeBusinessModel
+concept:: Initiative
+type:: model
+target_template:: business
+description:: Business model for this initiative, as a submodel conforming to the business template.
+
 # NN Marker Definition
 
 ## NN Marker Definition: priority
@@ -470,7 +476,7 @@ An active execution workstream that addresses an opportunity, with budget, resul
 
 ### Description
 
-An Initiative is the execution unit of the portfolio. It links to the opportunity it addresses and the person who manages it. It carries the problem, proposed solution, value proposition, solution hypothesis, goals, and a measurable objective, plus results, learnings, an explicit decision (e.g. Persevere / Pivot / Stop), next steps, budget, resources, and risks. Each initiative passes through the program's lifecycle stages.
+An Initiative is the execution unit of the portfolio. It links to the opportunity it addresses and the person who manages it. It carries the problem, proposed solution, value proposition, solution hypothesis, goals, and a measurable objective, plus results, learnings, an explicit decision (e.g. Persevere / Pivot / Stop), next steps, budget, resources, and risks. Each initiative passes through the program's lifecycle stages. An initiative may also reference a dedicated business model as a submodel via the `initiativeBusinessModel` field (`type:: model`, `target_template: business`), giving each initiative its own Business-template model for value proposition, segments, channels, and revenue.
 
 ### Methodologies
 

@@ -1,10 +1,10 @@
 ---
-spec_version: "V_0-2-0"
+spec_version: "V_0-2-1"
 spec_url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/templates/blank/blank_V_0-2-0_NN.md"
 level: 2
 parent_spec:
-  name: "iNNfo_V_0-2-0"
-  url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/iNNfo_V_0-2-0_NN.md"
+  name: "iNNfo_V_0-2-1"
+  url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/iNNfo_V_0-2-1_NN.md"
 template_version: "V_0-2-0"
 title: "Blank Template"
 relationship_types:
@@ -136,8 +136,8 @@ The Blank Template intentionally ships without a domain sample, because a blank 
 ```yaml
 # This template's parent:
 parent_spec:
-  name: "iNNfo_V_0-2-0"
-  url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/iNNfo_V_0-2-0_NN.md"
+  name: "iNNfo_V_0-2-1"
+  url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/iNNfo_V_0-2-1_NN.md"
 ```
 
 Models targeting this template set:

@@ -28,9 +28,9 @@ export function serializeModel(model: ParsedModel): string {
   lines.push('---')
   if (fm.level !== 3 || fm.spec_version) {
     // Fallback only reached for a non-level-3 doc that somehow lacks an
-    // explicit spec_version; track the adopted L1 (iNNfo_V_0-2-0), not the
+    // explicit spec_version; track the adopted L1 (iNNfo_V_0-2-1), not the
     // superseded one.
-    lines.push(`spec_version: "${fm.spec_version || 'V_0-2-0'}"`)
+    lines.push(`spec_version: "${fm.spec_version || 'V_0-2-1'}"`)
   }
   if (fm.spec_url) {
     lines.push(`spec_url: "${fm.spec_url}"`)

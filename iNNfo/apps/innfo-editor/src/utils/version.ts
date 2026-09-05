@@ -1,11 +1,11 @@
 /**
- * iNNfo versioning & file-naming helpers (iNNfo V_0-2-0 — "Identity & Naming").
+ * iNNfo versioning & file-naming helpers (iNNfo V_0-2-1 — "Identity & Naming").
  *
  * Every version string in the iNNfo ecosystem uses Semantic Versioning,
  * rendered with a `V_` prefix and hyphen separators instead of dots:
  *   V_MAJOR-MINOR-PATCH   (e.g. V_0-1-0)
  *
- * An iNNfo-compliant file name MUST end with `_NN.md` (iNNfo V_0-2-0 — "Identity & Naming"):
+ * An iNNfo-compliant file name MUST end with `_NN.md` (iNNfo V_0-2-1 — "Identity & Naming"):
  *   - Model document:    <ModelName>_V_x-y-z_<TemplateName>_NN.md
  *   - Template/Spec:     <Name>_V_x-y-z_NN.md
  *   - Old Model format:  <ModelName>_BM_V_x-y-z_NN.md
@@ -37,7 +37,7 @@ export function formatVersionString(v: SemVer): string {
 
 /**
  * Parses an iNNfo-compliant file name into its parts.
- * Returns null when the name does not match the iNNfo V_0-2-0 "Identity & Naming" convention.
+ * Returns null when the name does not match the iNNfo V_0-2-1 "Identity & Naming" convention.
  */
 export function parseFormatFilename(fileName: string): ParsedFormatName | null {
   // 1. Try New: <ModelName>_V_x-y-z_<TemplateName>_NN.md
@@ -74,7 +74,7 @@ export function parseFormatFilename(fileName: string): ParsedFormatName | null {
   return null
 }
 
-/** Builds an iNNfo-compliant file name from its parts (iNNfo V_0-2-0 — "Identity & Naming"). */
+/** Builds an iNNfo-compliant file name from its parts (iNNfo V_0-2-1 — "Identity & Naming"). */
 export function buildFormatFilename(
   baseName: string,
   templateName: string | undefined,
@@ -92,7 +92,7 @@ export function compareSemVer(a: SemVer, b: SemVer): number {
   return a.patch - b.patch
 }
 
-/** Returns a new SemVer with the requested level incremented (iNNfo V_0-2-0 — "Identity & Naming"). */
+/** Returns a new SemVer with the requested level incremented (iNNfo V_0-2-1 — "Identity & Naming"). */
 export function bumpVersion(v: SemVer, level: BumpLevel): SemVer {
   switch (level) {
     case 'major':

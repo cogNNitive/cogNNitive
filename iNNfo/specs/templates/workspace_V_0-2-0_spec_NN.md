@@ -1,10 +1,10 @@
 ---
-spec_version: "V_0-2-0"
+spec_version: "V_0-2-1"
 spec_url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/templates/workspace_V_0-2-0_spec_NN.md"
 level: 2
 parent_spec:
-  name: "iNNfo_V_0-2-0"
-  url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/iNNfo_V_0-2-0_NN.md"
+  name: "iNNfo_V_0-2-1"
+  url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/iNNfo_V_0-2-1_NN.md"
 title: "Workspace Specification Template"
 template_version: "V_0-2-0"
 relationship_types:

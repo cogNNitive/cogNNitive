@@ -211,7 +211,7 @@ async function finishWizard(): Promise<void> {
     if (templateChoice.value === 'blank') {
       const loader = useUrlDocLoader()
       const frontmatter = {
-        spec_version: 'V_0-2-0',
+        spec_version: 'V_0-2-1',
         model_version: 'V_0-1-0',
         title: name,
         template: { name: 'business', version: 'V_0-2-0' },

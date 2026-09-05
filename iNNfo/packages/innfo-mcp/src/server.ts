@@ -247,7 +247,7 @@ const toolDefinitions: Tool[] = [
         model_version: {
           type: 'string',
           description:
-            'Initial version of the model (e.g. V_0-1-0, defaults to V_0-1-0). The model is scaffolded against the adopted L1 spec iNNfo_V_0-2-0.',
+            'Initial version of the model (e.g. V_0-1-0, defaults to V_0-1-0). The model is scaffolded against the adopted L1 spec iNNfo_V_0-2-1.',
         },
         root: { type: 'string', description: 'Optional models root directory override' },
       },

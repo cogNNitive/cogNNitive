@@ -250,7 +250,7 @@
         >
           <span class="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
             <CheckCircle2 class="w-4 h-4 text-emerald-500" />
-            Trazabilidad verificada con especificación iNNfo V_0-2-0
+            Trazabilidad verificada con especificación iNNfo V_0-2-1
           </span>
           <button
             @click="close"
