@@ -129,7 +129,7 @@ describe('MCP — includes composition + init_model scaffolding', () => {
     expect(res.templateResolved).toBe(true)
     expect(res.scaffolded).toBe(true)
     const content = await readFile(res.filePath, 'utf-8')
-    expect(content).toContain('spec_version: "V_0-2-0"')
+    expect(content).toContain('spec_version: "V_0-2-1"')
     expect(content).toContain('# NN index')
     expect(content).toContain('* [[Overview]]')
     expect(content).toContain('* [[Item]]')
