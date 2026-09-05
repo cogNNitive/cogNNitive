@@ -75,8 +75,9 @@ async function scanAndProcess(projectDir, options = {}) {
 
   logs.push(`*   **${timestamp}:** Converted ${processedCount} file(s) to Markdown in \`sources/nn/\`, mirroring \`sources/original/\` subfolders.`);
 
-  // Build sources/nn/index.md manifest
-  let indexContent = `# traNNsform Ingestion Manifest & Processing Log\n\n`;
+  // Build sources/nn/index.md manifest with OKF v0.1 compliant frontmatter
+  let indexContent = `---\ntype: "index"\ntitle: "traNNsform Ingestion Manifest & Processing Log"\ndescription: "Source documents registry and processing log for normalized knowledge assets"\ntags: [sources, ingestion, manifest, okf, provenance]\ntimestamp: "${new Date().toISOString()}"\n---\n\n`;
+  indexContent += `# traNNsform Ingestion Manifest & Processing Log\n\n`;
   indexContent += `## Ingestion Status\n`;
   indexContent += `*   **Total Files Discovered:** ${totalDiscovered}\n`;
   indexContent += `*   **Processed successfully:** ${processedCount}\n`;

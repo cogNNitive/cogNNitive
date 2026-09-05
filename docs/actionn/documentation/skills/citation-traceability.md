@@ -1,31 +1,72 @@
-# Citation & Epistemic Traceability Pipeline
+# Citation & Traceability Skill Specification
 
-**Ecosystem Component**: `actioNN/nn-trannsform` & `iNNfo`  
-**Target Specifications**: W3C PROV-O, RO-Crate, APA 7th, CommonMark Footnotes  
+The `citation-traceability` subsystem governs how agent skills in `actioNN` ingest raw files, normalize content, maintain cryptographic integrity, and connect assertions in `iNNfo` models with verifiable provenance.
 
 ---
 
-## Overview
+## 1. Scanner Architecture & Ingestion Pipeline
 
-The cogNNitive Citation & Provenance pipeline ensures end-to-end mathematical and epistemic integrity across the transformation of unstructured inputs into domain models and deliverable artifacts.
+The `scanner.js` orchestrator discovers and transforms raw sources from `sources/original/` to `sources/nn/`:
 
-## Key Features
+1. **Discovery (`walkOriginal`):**
+   - Preserves complete folder and subfolder hierarchies.
+   - Skips `sources/staging/` buffer and dot-directories.
+2. **Deterministic Conversion (`scanner-converters.js`):**
+   - Subtitles (`.srt`, `.vtt`) parsed into timed sections.
+   - Tabular files (`.csv`) parsed into schema dictionaries and summaries.
+   - Chat histories (`.json`) formatted with speaker headers.
+   - Word (`.docx`), Excel (`.xlsx`), and PDF (`.pdf`) extracted via dedicated parsers.
+3. **Cryptographic Fingerprinting (`computeFileHash`):**
+   - Generates 64-character lowercase hexadecimal SHA-256 hash for every raw file.
+4. **OKF Manifest Generation (`sources/nn/index.md`):**
+   - Writes the ingestion manifest conforming to Google's **Open Knowledge Format (OKF v0.1)**.
 
-1. **Clean Path Ergonomics**:
-   - Level 3 models reference sources via `sources:: [report_source.md#heading-slug]` without verbose `sources/nn/` prefixes.
-   - The runtime resolver automatically resolves bare filenames against the workspace source collection (`sources/nn/`).
-2. **Transient Staging Buffer (`sources/staging/`)**:
-   - Isolates raw OCR and Whisper text dumps from the model reasoning space.
-   - Never exposed as valid citation targets.
-3. **Multi-Modal Semantic Normalization**:
-   - **SRT/VTT**: Subtitles are consolidated into coherent paragraphs with timestamp headings (`## NN Section: [00:01:30]`).
-   - **CSV/XLSX**: Massive tabular rows are transformed into a Data Dictionary and Statistical Summary (`## NN Dataset Schema`), avoiding LLM context blowup.
-   - **Chat Logs**: Grouped by discussion threads (`## NN Thread: [ts] Topic`).
-4. **Progressive Disclosure Contract**:
-   - **L1 Summary (`_summary.md`)**: Loaded by default (500–1,500 words) for broad reasoning.
-   - **L2 Full Source (`_source.md`)**: Inspected on-demand only when verifying specific citation anchors.
-5. **Primary vs. Secondary Citation Resolution**:
-   - The `references:` block in frontmatter identifies citations within sources (e.g. Porter 1985 cited inside an executive report).
-   - Prevents misattribution by producing accurate APA in-text secondary citations: *(Porter, 1985, as cited in Doe, 2026)*.
-6. **Anti-Autophagy Safeguard**:
-   - Re-ingested internal artifacts carry `is_synthetic: true` in frontmatter, preventing circular reasoning and synthetic data poisoning.
+```yaml
+---
+type: "index"
+title: "traNNsform Ingestion Manifest & Processing Log"
+description: "Source documents registry and processing log for normalized knowledge assets"
+tags: [sources, ingestion, manifest, okf, provenance]
+timestamp: "2026-09-05T12:00:00Z"
+---
+```
+
+---
+
+## 2. Clean Frontmatter Standards
+
+Every file normalized into `sources/nn/` contains strict, flat frontmatter:
+
+```yaml
+---
+source_file: "sources/original/reports/annual_2026.pdf"
+sha256: "4a8f9b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a"
+size_bytes: 524288
+normalized_at: "2026-09-05T10:00:00.000Z"
+normalized_by: "traNNsform v1.0.0"
+---
+```
+
+Optional metadata fields:
+- `source_url`: Original HTTP URL if imported via web downloader.
+- `downloaded_at`: Download timestamp.
+- `title`, `author`: Document authorship metadata.
+- `staging_file`: Relative path if pre-processed through staging.
+- `is_synthetic`: Boolean flag (`true` if AI-generated, `false` for verbatim conversions).
+
+---
+
+## 3. Reference Syntax & Anchor Discipline
+
+In models and skills:
+- **Valid:** `sources:: [executive_brief.md#key-metrics]`
+- **Valid:** `sources:: [subfolder/dataset.md#sheet1]`
+- **Invalid (Rejected):** `sources:: [report.md#L10-L25]` (Line numbers break easily and are forbidden).
+
+---
+
+## 4. Artifact Generation & BibTeX Compilation
+
+When producing final deliverables:
+- **Canonical View:** Writes reports with `^[source.md#slug]` citations for mathematical traceability.
+- **Export View:** Converts callouts to sequential bracketed markers (`[1]`, `[2]`), appends a formal `## References` section, and generates a standard `.bib` file for academic citation managers (Zotero, Mendeley, LaTeX).

@@ -958,6 +958,77 @@ flowchart LR
       </div>
     </section>
 
+    <!-- End-to-End Traceability & Verifiable Provenance Section -->
+    <section style="background: var(--canvas-inert); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+      <div class="container">
+        <div class="section-title">
+          <span class="badge-pill">&#x2728; Mathematical Traceability &amp; OKF Standard</span>
+          <h2>Every Insight Traceable. Zero Hallucinations.</h2>
+          <p>Transform scattered PDFs, subtitles, spreadsheets, and chats into verified semantic models &mdash; with cryptographic provenance and academic-grade citations.</p>
+        </div>
+
+        <div class="grid-3" style="margin-top: 40px;">
+          <!-- Card 1 -->
+          <div class="card" style="border: 1px solid rgba(77, 14, 78, 0.15); box-shadow: 0 8px 24px -10px rgba(77, 14, 78, 0.08);">
+            <div class="card-icon" style="background: var(--brand-subtle); color: var(--brand);">&#x1F50E;</div>
+            <h3 style="font-size: 18px; margin-bottom: 10px;">1. Multimodal Ingestion &amp; OKF Manifest</h3>
+            <p style="font-size: 14px; color: var(--ink-muted); line-height: 1.6;">
+              Normalize video/audio transcripts (<code style="font-family: var(--mono); font-size: 12px;">.srt/.vtt</code>), datasets with auto-generated data dictionaries (<code style="font-family: var(--mono); font-size: 12px;">.csv</code>), conversation logs, DOCX, workbooks, and PDFs with SHA-256 fingerprinting. Generates Google <strong>Open Knowledge Format (OKF v0.1)</strong> compliant progressive-disclosure catalogs (<code style="font-family: var(--mono); font-size: 12px;">index.md</code>).
+            </p>
+          </div>
+
+          <!-- Card 2 -->
+          <div class="card" style="border: 1px solid rgba(77, 14, 78, 0.15); box-shadow: 0 8px 24px -10px rgba(77, 14, 78, 0.08);">
+            <div class="card-icon" style="background: var(--brand-subtle); color: var(--brand);">&#x1F517;</div>
+            <h3 style="font-size: 18px; margin-bottom: 10px;">2. Semantic Slugs &amp; Short Paths</h3>
+            <p style="font-size: 14px; color: var(--ink-muted); line-height: 1.6;">
+              Models link assertions directly to sources using ergonomic relative syntax (<code style="font-family: var(--mono); font-size: 12px;">sources:: [report.md#financials]</code>). Volatile line numbers are strictly rejected in favor of permanent heading anchors that never break across edits or refactorings.
+            </p>
+          </div>
+
+          <!-- Card 3 -->
+          <div class="card" style="border: 1px solid rgba(77, 14, 78, 0.15); box-shadow: 0 8px 24px -10px rgba(77, 14, 78, 0.08);">
+            <div class="card-icon" style="background: var(--brand-subtle); color: var(--brand);">&#x1F4DA;</div>
+            <h3 style="font-size: 18px; margin-bottom: 10px;">3. Dual-Layer Artifacts &amp; BibTeX</h3>
+            <p style="font-size: 14px; color: var(--ink-muted); line-height: 1.6;">
+              Dual publishing at the touch of a button: <strong>Canonical Views</strong> with rich inline callouts (<code style="font-family: var(--mono); font-size: 12px;">^[source#slug]</code>) for internal auditing, and clean <strong>Export Views</strong> with numbered citations, formal reference lists, and companion <code style="font-family: var(--mono); font-size: 12px;">.bib</code> BibTeX files for executive stakeholders.
+            </p>
+          </div>
+        </div>
+
+        <div class="diagram-card" style="margin-top: 36px; padding: 24px; background: #FFFFFF; border: 1px solid var(--border); border-radius: 14px;">
+          <pre class="mermaid">
+flowchart LR
+    subgraph Sources["Multimodal Sources (OKF v0.1)"]
+        S1["&#x1F3A5; Video/Audio Subtitles (.srt, .vtt)"]
+        S2["&#x1F4CA; Data Dictionaries (.csv, .xlsx)"]
+        S3["&#x1F4D1; Documents &amp; Chats (.pdf, .docx, .json)"]
+    end
+
+    subgraph Model["iNNfo Living Model"]
+        M["&#x1F9E0; Concept &amp; Matrix Entities<br/><span style='font-size:11px;'>sources:: [source.md#slug]</span><br/><span style='font-size:11px;'>canonical: { doi, bibtex }</span>"]
+    end
+
+    subgraph Output["Downstream Synthesis"]
+        O1["&#x1F4C3; Canonical Artifact<br/><span style='font-size:11px;'>Inline Callouts ^[source#slug]</span>"]
+        O2["&#x1F393; Executive Export<br/><span style='font-size:11px;'>Numbered Citations + .bib</span>"]
+    end
+
+    Sources -->|"Cryptographic SHA-256 Ingestion"| M
+    M -->|"Traceable Projection"| Output
+
+    classDef s fill:#FAFAFC,stroke:#636366,color:#111112;
+    classDef m fill:#F6EEF6,stroke:#4D0E4E,color:#4D0E4E,font-weight:bold;
+    classDef o fill:#FFFFFF,stroke:#6A1B6B,color:#111112;
+
+    class S1,S2,S3 s;
+    class M m;
+    class O1,O2 o;
+          </pre>
+        </div>
+      </div>
+    </section>
+
     <!-- Quadratic-Inspired Comparative Section -->
     <section class="showcase-section">
       <div class="container">

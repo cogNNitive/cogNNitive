@@ -1,205 +1,139 @@
-# Unified Citation, Traceability & Provenance Architecture
+# Unified Citation, Traceability & Provenance Pipeline
 
-The **cogNNitive** citation, traceability, and provenance pipeline provides end-to-end deterministic epistemic traceability across all stages of knowledge transformation.
+The cogNNitive ecosystem implements a unified, end-to-end citation and traceability architecture spanning `actioNN` (agent tooling and document ingestion) and `iNNfo` (deterministic data models and visual tooling).
 
-Anchored in the **`A ⇄ K` Paradigm** (*Anything $\leftrightarrow$ Structured Knowledge through the AI Intelligence Loop*), it guarantees that every claim, metric, and entity attribute in domain models and generated deliverables can be verified back to an immutable, hash-anchored primary source.
+This pipeline guarantees **complete lineage from raw unstructured input to final published artifact**, ensuring zero hallucinations, strict cryptographic verification, and adherence to the **Open Knowledge Format (OKF v0.1)** standard by Google Cloud.
 
 ---
 
-## 1. The `A ⇄ K` Paradigm & Executive Flow
+## 1. Architectural Foundations: The 3-Tier Lineage
 
-```mermaid
-flowchart TD
-    subgraph Storage ["1. Storage & Ingestion"]
-        Raw["sources/original/<br/>Raw Media, PDF, CSV, DOCX"] -->|"Extraction / OCR / Whisper"| Staging["sources/staging/<br/>Transient Plaintext (Ignored by models)"]
-        Staging -->|"Semantic Normalization"| NN["sources/nn/<br/>Colección de Fuentes (Immutable MD)"]
-        Raw -->|"Direct Markdown / Text"| NN
-    end
+Knowledge in cogNNitive moves through three distinct tiers, ensuring full provenance at every transformation step:
 
-    subgraph Knowledge ["2. Structured Knowledge (iNNfo)"]
-        NN -->|"Pointers: [file.md#slug]"| Models["models/*_NN.md<br/>Level 3 Domain Models"]
-        Models -->|"Macro-Lineage Indexing"| ProvModel["[Project]_V_x-y-z_cogNNitive_NN.md<br/>W3C PROV Master Graph"]
-    end
-
-    subgraph Artifacts ["3. Generation & Delivery"]
-        Models -->|"Distillation & Synthesis"| ArtMD["artifacts/canonical/<br/>Normalized Deliverable (Embedded Lineage)"]
-        ArtMD -->|"View Compiler: Web"| OutWeb["Interactive HTML / UI Tooltips"]
-        ArtMD -->|"View Compiler: Paper"| OutPDF["Academic PDF (Footnotes / APA / IEEE)"]
-        ArtMD -->|"View Compiler: Clean"| OutClean["Unannotated Executive Doc"]
-        ArtMD -.->|"Re-ingestion with is_synthetic: true"| NN
-    end
+```
+[ Raw Sources ] ──────────────────────┐
+ (PDF, DOCX, XLS, SRT, CSV, Chat)     │ Tier 1: Ingestion & Normalization
+                                       ▼ (SHA-256 + Flat Frontmatter + OKF Manifest)
+                              [ sources/nn/ ]
+                                       │
+                                       │ Tier 2: Model Grounding
+                                       ▼ (sources:: [doc.md#slug] + canonical/references)
+                              [ *_NN.md Model ]
+                                       │
+                                       │ Tier 3: Artifact Synthesis
+                                       ▼ (Canonical inline ^[...] vs Clean Export + BibTeX)
+                              [ artifacts/ ]
 ```
 
-1. **Anything In ($A_1$)**: Unstructured, binary, or raw inputs (audio transcripts, PDFs, DOCX, CSV datasets, unstructured notes).
-2. **AI Prism / Intelligence Loop**: Deterministic normalization, schema profiling, and validation into typed models.
-3. **Structured Knowledge ($K$)**: Level 2 specifications and Level 3 domain models with explicit typed fields and matrices.
-4. **Anything Out ($A_2$)**: Multi-format synthesized deliverables (reports, interactive dashboards, academic articles, APIs).
-5. **Closed Feedback Loop ($A_2 \to A_1$)**: Deliverables re-enter the workspace orbit as citable, validated evidence for higher-order reasoning, while preventing *model collapse* through anti-autophagy flags.
+1. **Tier 1 — Source Ingestion (`sources/original/` & `sources/nn/`):**
+   - Raw input files are preserved immutably under `sources/original/`.
+   - The `nn-trannsform` scanner normalizes files to Markdown under `sources/nn/`, preserving folder hierarchies.
+   - Each normalized file receives a flat, deterministic YAML frontmatter with cryptographic hash (`sha256`), file size, and normalization timestamps.
+   - The scanner generates an **Open Knowledge Format (OKF v0.1)** compliant progressive-disclosure catalog at `sources/nn/index.md`.
+2. **Tier 2 — Model Grounding (`models/*_NN.md`):**
+   - Concepts, elements, and assertions in Level 3 models link directly to normalized sources via `sources:: [file.md#slug]` or `sources:: [subfolder/file.md#slug]`.
+   - The model frontmatter declares formal bibliographic metadata under `canonical:` (title, author, year, DOI, BibTeX) and `references:` (cited works and primary source flags).
+3. **Tier 3 — Downstream Synthesis (`artifacts/`):**
+   - High-level reports, executive dashboards, and academic papers synthesise information from the model.
+   - **Canonical View (`artifacts/canonical/`):** Retains full semantic inline citations (`^[source.md#slug]`) for auditability and verification.
+   - **Export View (`artifacts/exports/`):** Automatically compiles clean academic or corporate formats with numbered references (`[1]`, `[2]`) and companion `.bib` BibTeX files.
 
 ---
 
-## 2. Storage Topology & Directory Tiering
+## 2. Multimodal Ingestion & Progressive Disclosure
 
-```text
-project_root/
-├── sources/
-│   ├── original/              # Raw inputs (PDF, MP3, DOCX, CSV). Pristine, read-only.
-│   ├── staging/               # TRANSIENT intermediate dumps (OCR txt, Whisper SRT). Ignored by models.
-│   └── nn/                    # LA COLECCIÓN DE FUENTES. Immutable, normalized Markdown files.
-├── models/                    # Level 3 domain models (*_NN.md) adhering to Level 2 templates.
-├── procedures/                # Executable procedure specifications and scripts.
-├── artifacts/
-│   ├── canonical/             # Normalized Markdown deliverables with embedded lineage blocks.
-│   └── exports/               # Rendered target views (PDF, HTML dashboards, .bib files, clean docs).
-└── [Project]_V_x-y-z_cogNNitive_NN.md # Workspace Provenance Model (W3C PROV graph).
-```
+### Supported Formats & Conversion Contracts
 
-### The Staging Layer (`sources/staging/`)
-When extracting non-textual media (audio, video, OCR image scans), raw dumps can clutter the citable knowledge base.
-- **Pristine Origin**: The raw binary stays in `sources/original/`. Its SHA-256 is the root identity of the evidence.
-- **Transient Staging**: Extraction tools write intermediate text to `sources/staging/<basename>.txt` or `.srt`. This directory is gitignored.
-- **Agent Isolation**: AI Agents and Level 3 models **NEVER cite `sources/staging/`**. Citations must only target validated Markdown in `sources/nn/`.
+| Format | Extension | Normalization Method | Semantic Output Structure |
+| :--- | :--- | :--- | :--- |
+| **Subtitles / Transcripts** | `.srt`, `.vtt` | `convertSubtitles` | Sections chunked by timestamps into fluid paragraphs with `# H1` and `## NN Section` headings. |
+| **Tabular Datasets** | `.csv` | `convertCsv` | Extracts a formal `## NN Dataset Schema` with column datatypes and `## NN Summary Statistics` before data rows. |
+| **Conversational Chats** | `.json` | `convertChatJson` | Groups messages into chronological sections with participant headings and timestamps. |
+| **Word Documents** | `.docx` | `convertDocx` (mammoth) | Clean Markdown with preserved heading hierarchies and tables. |
+| **Workbooks & Spreadsheets** | `.xlsx`, `.xls` | `convertXlsx` (xlsx) | Multi-sheet Markdown tables with sheet names as section anchors. |
+| **PDF Documents** | `.pdf` | `convertPdf` (pdf-parse) | Extracted text structure with page metadata. |
+| **Plain Text / Markdown** | `.txt`, `.md` | `stripFrontmatter` | Preserves raw content, stripping conflicting third-party frontmatter. |
 
----
+### Progressive Disclosure (2-Tier Ingestion)
 
-## 3. Semantic Normalization by Input Modality
+For massive documents (e.g. 500-page regulatory PDFs, transcripts of 40-hour workshops), `nn-trannsform` supports a 2-tier progressive disclosure pattern:
+- `{basename}_summary.md`: Lightweight semantic distillation for quick agent discovery, indexing, and high-level routing.
+- `{basename}_source.md`: Complete, verbatim normalized text with preserved anchors for deep citation extraction.
 
-Normalizing documents into `sources/nn/` produces machine-navigable, human-readable Markdown:
+### Transient Staging Buffer (`sources/staging/`)
 
-| Modality | Ingestion Challenge | Agent Normalization Behavior | Heading Granularity |
-|---|---|---|---|
-| **Audio / Video (SRT/VTT)** | Fragmented cues, timestamp noise, disfluencies. | Group dialogue into grammatically fluid paragraphs. Cluster by speaker turn or topic shift. Preserve timestamp ranges. | `## NN Section: [00:04:15] Presupuesto Q3` |
-| **Chat Logs (Slack/Teams)** | Rapid replies, emoji noise, interleaved threads. | Group messages by conversation thread. Strip conversational filler. Synthesize core debate with speaker tags. | `## NN Thread: [2026-08-10] Definición de Arquitectura` |
-| **Slide Decks (PPTX/PDF)** | Isolated bullets, hidden speaker notes. | Unite titles, bullet points, and speaker notes into cohesive conceptual blocks. | `## NN Slide 04: Estrategia de Monetización` |
-| **Tabular Data (CSV/Excel)** | 10,000+ rows destroy LLM attention windows. | Generate **Data Dictionary + Statistical Profile**: column types, null counts, min/max/avg, and 15 sample rows. Raw CSV stays in `sources/original/`. | `## NN Dataset Schema: Métricas de Usuario`<br/>`## NN Summary Statistics` |
-| **Legal & Regulatory** | Nested strict legal hierarchy (Articles, Clauses). | Maintain legal numbering verbatim. Map articles directly to markdown headings. | `## NN Artículo 14: Cláusula de Confidencialidad` |
+When agents perform automated web scraping, API pagination, or transient downloads:
+- Transient raw payloads are stored in `sources/staging/`.
+- **Isolation Guarantee:** `sources/staging/` is excluded from Git (`.gitignore`) and completely bypassed by `walkOriginal` during scanner runs.
+- Models never reference files inside `staging/`; only validated, curated sources in `sources/nn/` are eligible for citations.
 
 ---
 
-## 4. Progressive Disclosure Contract (Anti-Degradation)
+## 3. Path Ergonomics & Semantic Slugs
 
-To eliminate the LLM *Lost in the Middle* phenomenon when processing massive sources:
+### Short Path Resolution
 
-```text
-[L1: Executive Overview]
-       sources/nn/Corporate_Strategy_summary.md (500–1,500 words)
-                     │
-                     │ (Trigger: Agent requires granular verification or citation)
-                     ▼
-[L2: Complete Evidence Base]
-       sources/nn/Corporate_Strategy_source.md (40,000 words with full headings)
-```
+In `iNNfo` (both within `innfo-editor` and `@cognnitive/innfo-core`), source references are resolved with ergonomic relative path rules:
+- **Default Base:** Unqualified paths are automatically resolved relative to `sources/nn/`:
+  - `sources:: [report.md#financials]` resolves to `sources/nn/report.md` at heading slug `financials`.
+  - `sources:: [MAD-11 2026-07/tutorias.md#sheet1]` resolves to `sources/nn/MAD-11 2026-07/tutorias.md` at heading slug `sheet1`.
+- **Backward Compatibility:** Explicit paths like `sources:: [sources/nn/report.md#financials]` remain fully valid and supported.
 
-- **Default Exploration (L1)**: When answering broad questions or designing models, agents load **only** `_summary.md`.
-- **Deep Anchor Drilling (L2)**: When citing a specific fact or metric, the agent performs a targeted read on `[Document]_source.md#<specific-heading-slug>`.
-- **Naming Conventions**:
-  - `_source.md`: Direct normalized representation of an original text document.
-  - `_transcript.md`: Normalized audio/video transcription.
-  - `_summary.md`: High-density semantic distillation (L1).
-  - `_schema.md`: Dataset profile and statistical summary for tabular data.
-  - `_synthetic.md`: An internal deliverable re-ingested as a source.
+### Strict Prohibition of Line Numbers
+
+Line-number citations (e.g., `report.md#L45-L60`) are **strictly prohibited and rejected** by the parser and linter:
+- **Rationale:** Line numbers are brittle and transient. Any formatting change, lint pass, whitespace trim, or sentence addition invalidates line numbers, causing broken lineage.
+- **Enforcement:** Citations MUST use semantic heading slugs (`#heading-title`) or explicit HTML anchors (`<a id="anchor"></a>`), ensuring durable links that survive refactorings.
 
 ---
 
-## 5. Frontmatter Schema & Primary Source Detection
+## 4. Frontmatter Schema: Canonical & Bibliographic Metadata
 
-Every source in `sources/nn/` carries bibliographic and physical provenance:
+Models and synthesized documents declare machine-readable bibliographic identity in their frontmatter:
 
 ```yaml
 ---
-# 1. Physical Ingestion Provenance
-source_file: "sources/original/interview_ceo.mp3"
-sha256: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-size_bytes: 45210982
-normalized_at: "2026-09-05T12:00:00Z"
-normalized_by: "traNNsform v1.0.0"
-staging_file: "sources/staging/interview_ceo.srt"     # Optional link to intermediate buffer
-is_synthetic: false                                   # Set to true ONLY if produced by an internal deliverable
-
-# 2. Canonical Identity of THIS Document (Self BibTeX & PID)
+level: 3
+parent_spec:
+  name: "business_V_0-1-0"
+  url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/templates/business/V_0-1-0/spec_NN.md"
+model_version: "V_1-0-0"
+title: "Quarterly Strategy & Operational Model"
 canonical:
-  title: "Strategic Vision and Market Positioning 2026"
-  author: "Jane Doe"
+  title: "Q3 Strategic Roadmap and Financial Allocation"
+  author: "Lucas Rodríguez Cervera"
   year: 2026
-  doi: "10.1145/3290605.3300233"
-  bibtex: |
-    @misc{doe2026strategic,
-      author = {Doe, Jane},
-      title = {Strategic Vision and Market Positioning 2026},
-      year = {2026},
-      howpublished = {Executive Briefing Series}
-    }
-
-# 3. External References cited INSIDE this Document (Detecting Secondary Citations)
+  doi: "10.1000/182"
+  bibtex: "@article{rodriguez2026strategy, title={Q3 Strategic Roadmap}, author={Rodríguez Cervera, Lucas}, year={2026}}"
 references:
-  - id: "porter1985"
-    citation: "Porter, M. E. (1985). Competitive Advantage."
-    doi: "10.1002/smj.4250060308"
+  - id: "sec-filing-2026"
+    citation: "SEC. (2026). Form 10-Q Quarterly Report."
+    doi: "10.1000/183"
     is_primary: true
+  - id: "market-survey"
+    citation: "Gartner. (2026). Enterprise AI Adoption Survey."
+    is_primary: false
 ---
 ```
 
-### Primary vs. Secondary Citation Resolution
-When an agent parses a statement in `Market_Report_source.md` where the author cites Porter (1985):
-- The agent inspects the `references:` block.
-- Instead of misattributing Porter's framework to the author of `Market_Report`, the citation compiler notes:
-  `(Porter, 1985, as cited in Doe, 2026)` or prompts the user to retrieve the primary source.
-- This prevents the "telephone game" and theoretical misattribution cascades.
-
 ---
 
-## 6. Granular Model Citations & Path Ergonomics
+## 5. Google Open Knowledge Format (OKF v0.1) Interoperability
 
-### Elimination of Redundant `sources/nn/` Prefixes
-In Level 3 domain models (`models/*_NN.md`), unqualified file paths resolve canonically against the *Colección de Fuentes* (`sources/nn/`):
+The cogNNitive pipeline aligns natively with the **Open Knowledge Format (OKF)** specification defined by Google Cloud:
 
-```markdown
-# NN Stakeholders
-
-## NN Stakeholders: Enterprise Clients
-priority:: High
-relationship_model:: B2B Long-term
-sources:: [report_source.md#key-metrics, interview_ceo_transcript.md#market-expansion]
-```
-
-### Resolution Rules:
-1. **Unqualified filenames** (e.g. `report_source.md#slug` or `clientA/report.md#slug`) resolve relative to `sources/nn/`.
-2. **Explicit `sources/nn/` prefix** continues to be supported for backwards compatibility.
-3. **Cross-model citations** use explicit namespace prefixes: `models/Finance_V_1-0-0_business_NN.md#revenue-forecast`.
-4. **Global Persistent Identifiers (PIDs)** use scheme prefixes: `doi:10.1145/3290605.3300233`.
-5. **Heading-Slug Anchors**: Every anchor MUST resolve to a GitHub-compatible heading slug (`#heading-slug`). Arbitrary line-number ranges (`#L1-L10`) are strictly prohibited due to formatting fragility.
-
----
-
-## 7. Provenance Architecture: Macro vs. Micro Lineage
-
-| Dimension | Scope | Storage Location | Responsibility |
-|---|---|---|---|
-| **Micro-Lineage** | Element & Claim | Field `sources::` in Level 3 Models | Identifies which source section justifies each entity attribute. |
-| **Macro-Lineage** | Entity & Workflow | `[Project]_V_x-y-z_cogNNitive_NN.md` | Tracks W3C PROV DAG across Sources, Models, Artifacts, and Procedures. |
-
-The central provenance model is an automatically indexed view rebuilt deterministically during scan, build, or audit routines to prevent drift.
-
----
-
-## 8. Artifact Generation & Delivery Views
-
-Deliverables are generated from models using the Model-View pattern:
-1. **Canonical Normalized Artifact (`artifacts/canonical/`)**: Markdown with embedded machine-readable lineage comments:
-   ```markdown
-   Enterprise adoption accelerated by 35% across Q3[^1].
-
-   <!-- lineage:
-     elements: ["Plan_Estrategico_V_1-0-0_business_NN.md#Clientes-Enterprise"]
-     sources: ["entrevista_ceo.md#nn-section-000001"]
-     generated_by: "cogNNitive Unified Pipeline"
-     timestamp: "2026-09-05T13:00:00Z"
-   -->
+1. **Progressive Disclosure Catalog (`sources/nn/index.md`):**
+   Conforms to OKF §6 and §9.3 by providing an explicit directory-level index with YAML frontmatter:
+   ```yaml
+   ---
+   type: "index"
+   title: "traNNsform Ingestion Manifest & Processing Log"
+   description: "Source documents registry and processing log for normalized knowledge assets"
+   tags: [sources, ingestion, manifest, okf, provenance]
+   timestamp: "2026-09-05T12:00:00Z"
+   ---
    ```
-2. **Target View Compilers (`artifacts/exports/`)**:
-   - **Footnotes (`[^1]`)**: CommonMark/GFM footnotes mapping to source headings.
-   - **Academic (APA 7th / IEEE / BibTeX)**: Formal author-date citations with primary vs. secondary resolution and companion `.bib` file.
-   - **Clean Executive**: Strips all citation markers, emitting unannotated prose.
+   AI agents can read this single manifest in milliseconds to survey all available sources, verify SHA-256 hashes, and assess data formats before deciding which files to load.
 
-### Anti-Autophagy Protocol (`is_synthetic: true`)
-When an internal deliverable is re-ingested into `sources/nn/` to complete the closed feedback loop, its frontmatter sets `is_synthetic: true`. Primary research agents prioritize `is_synthetic: false` sources to prevent recursive hallucination and model collapse.
+2. **Permissive Consumption Compatibility:**
+   Any folder of cogNNitive models or normalized sources conforms to OKF bundle requirements and can be ingested directly by any OKF-compliant agent or toolchain without proprietary adapters.

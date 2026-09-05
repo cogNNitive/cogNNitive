@@ -1,3 +1,11 @@
+---
+type: "index"
+title: "traNNsform Ingestion Manifest & Processing Log"
+description: "Source documents registry and processing log for normalized knowledge assets"
+tags: [sources, ingestion, manifest, okf, provenance]
+timestamp: "2026-09-05T12:00:00Z"
+---
+
 # traNNsform Ingestion Manifest & Processing Log
 
 ## Ingestion Status
