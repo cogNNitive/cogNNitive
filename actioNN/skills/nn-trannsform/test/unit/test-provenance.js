@@ -83,7 +83,8 @@ function run() {
     ok(/# NN index/.test(idx), 'semantic index has # NN index');
     ok(/Acme_V_0-1-0_cogNNitive_NN\.md/.test(idx), 'index links the provenance model');
 
-    // agent adds a Models element, then re-run preserves it and refreshes Sources
+    // The # NN Models section is filesystem-managed now: a hand-added entry is
+    // replaced on the next sync (there are no models/*_NN.md files here yet).
     const withModel = model1.replace(
       /# NN Models\n\n<!--[\s\S]*?-->\n/,
       '# NN Models\n\n## NN Models: Acme Plan\nmodel_template:: business\nsources:: [sources/nn/clientA/market-report.md]\n'
@@ -95,7 +96,7 @@ function run() {
     eq(r2.created, false, 'model refreshed (not recreated) on second run');
     eq(r2.sourceCount, 1, 'sources refreshed down to one');
     const model2 = fs.readFileSync(r2.modelPath, 'utf8');
-    ok(/## NN Models: Acme Plan/.test(model2), 'agent-added Models element preserved');
+    ok(!/## NN Models: Acme Plan/.test(model2), 'hand-added Models entry replaced by filesystem sync');
     ok(!/## NN Sources: team\.csv/.test(model2), 'dropped source removed from Sources');
 
     // --- P5: workspace index.md preserves existing entries, drops dangling, walks nested models/ ---

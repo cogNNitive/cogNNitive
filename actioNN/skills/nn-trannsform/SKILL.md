@@ -158,17 +158,23 @@ When the user pastes a URL in chat and wants it ingested:
 3. Confirm to the user that the file landed in `sources/original/`, then continue with the normal scan/normalize flow.
 4. Downloaded PDFs go through the same existing `.pdf` handling as a manually dropped PDF (pdf-parse, on-demand install); if pdf-parse's own `info.Title`/`info.Author` are available, they populate the same optional frontmatter keys.
 
-#### 2d. Procedure Lineage in the Provenance Model
+#### 2d. Lineage Record Filesystem Sync
 
-The `# NN Sources` section of the cogNNitive provenance model (`<Project>_V_0-1-0_cogNNitive_NN.md`) is **auto-populated** every time the provenance model is built or refreshed (bootstrap, `--scan`, `--import-url`, or the standalone `--provenance` flag) by scanning the scanner frontmatter of every file under `sources/nn/` — re-running the same command regenerates the section from the current state of `sources/nn/` rather than appending duplicate entries.
+The cogNNitive **lineage record** (`<Project>_V_0-1-0_cogNNitive_NN.md`) keeps three of its four sections in sync with the workspace filesystem on every build/refresh (bootstrap, `--scan`, `--import-url`, or the standalone `--lineage` / `--provenance` flag):
 
-The `# NN Procedures` section, by contrast, is currently scaffolded only as an **empty placeholder** (`<!-- Add one element per transformation run: ## NN Procedures: <run name> with procedure_ref, agent, run_at. -->`) when the provenance model is first created — the pipeline does not yet auto-record individual command runs (command/flags invoked, timestamp, Source/Artifact inputs and outputs) into it the way it does for Sources. Until that automation exists, the agent is responsible for manually adding `## NN Procedures:` entries — both for scripted pipeline operations (`--import-url`, `--scan`, template-apply) and for non-scripted research/analysis steps the agent performs itself. This is distinct from the `procedures/` directory (§6), which holds saved, user-authored orchestration specs for multi-step workflows.
+- **`# NN Sources`** — one entry per normalized file under `sources/nn/`, from its scanner frontmatter.
+- **`# NN Models`** — one entry per `models/*_NN.md`, with `model_ref`, `model_version`, `model_template`, and `derived_from::` scraped from that model's `sources::` Citations.
+- **`# NN Artifacts`** — one entry per file under `artifacts/`, with `derived_from::` read from the artifact's frontmatter (`model` + `model_version`) or an HTML `export-meta` block.
 
-<!-- Verified against scripts/provenance.js on 2026-08-24: buildProvenanceModel() auto-populates # NN Sources from sources/nn/ frontmatter on every rebuild, but never writes to # NN Procedures beyond the initial empty placeholder — no script in this skill calls it with command/flag/timestamp info. If auto-capture for Procedures is implemented later, update this section and Core Rule 7a to describe it as automatic again. -->
+All three use **idempotent replace**: re-running regenerates them from the current filesystem state, no duplicate entries, and removed files drop out.
 
-#### 2e. Binary / Batch Sources Not Covered by Auto-Capture
+- **`# NN Procedures`** is an **append-only run log**. Each pipeline run (`--scan`, `--import-url`, `--apply`) appends one `## NN Procedures:` entry (`command`, `flags`, `run_at`, `inputs`, `outputs`). A section refresh never removes existing procedure entries. The agent should still add `## NN Procedures:` entries by hand for **non-scripted** research/analysis steps it performs itself. This is distinct from the `procedures/` directory (§6), which holds saved, user-authored orchestration specs.
 
-Auto-capture (§2d) only covers the `# NN Sources` section, and only for files that went through the standard `nn-trannsform` scan pipeline. Two cases fall outside it and need EXPLICIT manual registration by the agent:
+Run `node scripts/index.js --check` to report drift between the lineage record and the filesystem (a model with no entry, an artifact citing a model/version that no longer exists, a `sources::` pointer that resolves nowhere); it exits non-zero when any such error is found.
+
+#### 2e. Binary / Batch Sources Not Covered by Auto-Sync
+
+The filesystem sync (§2d) covers files that went through the standard `nn-trannsform` scan pipeline (`# NN Sources`) or that exist as real files under `models/` / `artifacts/`. Two cases still need EXPLICIT manual registration by the agent:
 
 1. **Formats routed to "skip" in the capability matrix** (§2b, e.g. legacy `.doc`): before skipping, ask the user whether to register a minimal `## NN Sources:` entry anyway (file name, format, and a note that content wasn't extracted) so the file isn't silently untraceable. Do not skip in silence.
 2. **Large binary batches processed by a custom procedure outside the standard scan** (e.g. a photo-import workflow using Jimp/LLM Vision instead of `--scan`): once the procedure completes, the agent MUST register the batch in the provenance model — either as one aggregate `## NN Sources:` entry (folder path, file count, date range, e.g. "79 photos in `sources/original/photos/`, imported 2026-08-12") when per-file entries would be unwieldy, or as individual entries when the batch is small (roughly under 10 files). This registration is the agent's responsibility, NOT automatic — a custom procedure is by definition not covered by the standard scan pipeline in §2d.
@@ -326,5 +332,5 @@ At the end of transformation:
 5. **Mandatory Model Provenance**: Level 3 elements MUST include `sources:: <path.md#heading-slug>` (or a list `sources:: [a.md#slug, b.md#slug]`) resolving canonically against `sources/nn/` — no `src-NNN` IDs, no line-number ranges.
 6. **V_0-1-0 Compliance**: Target iNNfo V_0-1-0 meta-template specification and unified NN syntax (`# NN`, `## NN`, `key:: value`).
 7. **Saved Procedure Proactive Check**: When starting `nn-trannsform` or `nn-router`, check for existing procedures in `procedures/` and offer them as runnable options to the user before starting standard ingestion.
-7a. **Procedure Lineage (Manual for Now)**: The `# NN Sources` section of the provenance model auto-populates from `sources/nn/` on every `--scan`/`--import-url`/`--provenance` run. The `# NN Procedures` section is NOT yet auto-recorded by the pipeline — the agent must manually add `## NN Procedures:` entries for both scripted operations and non-scripted research/analysis steps (see §2d).
+7a. **Lineage Record Sync**: `# NN Sources`, `# NN Models` and `# NN Artifacts` re-sync from the filesystem (`sources/nn/`, `models/`, `artifacts/`) on every `--scan`/`--import-url`/`--lineage` run — idempotent replace, removed files drop out. `# NN Procedures` is an append-only log: scripted runs (`--scan`, `--import-url`, `--apply`) append their own entry; the agent still adds `## NN Procedures:` entries by hand for non-scripted research/analysis steps (see §2d). `node scripts/index.js --check` reports drift.
 8. **Prose Description in Level 3 Models**: The description of an element in a Level 3 model must NEVER be formatted as a `description::` property field. It must always be written as free-form Markdown prose below the `key:: value` fields list, separated from them by a blank line.

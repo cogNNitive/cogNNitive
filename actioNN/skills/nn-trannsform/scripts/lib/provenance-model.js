@@ -154,6 +154,166 @@ function materializeAssets(projectDir, sources) {
 }
 
 /**
+ * Recursively collect files with a given extension test under a directory,
+ * returning POSIX-style paths relative to that directory.
+ * @param {string} dir
+ * @param {(name: string) => boolean} matches
+ * @returns {string[]}
+ */
+function walkFiles(dir, matches) {
+  const results = [];
+  const walk = (d, rel) => {
+    if (!fs.existsSync(d)) return;
+    for (const entry of fs.readdirSync(d, { withFileTypes: true })) {
+      if (entry.name.startsWith('.')) continue;
+      const abs = path.join(d, entry.name);
+      const relPath = rel ? `${rel}/${entry.name}` : entry.name;
+      if (entry.isDirectory()) walk(abs, relPath);
+      else if (entry.isFile() && matches(entry.name)) results.push(relPath);
+    }
+  };
+  walk(dir, '');
+  return results.sort();
+}
+
+/**
+ * Reads `title`, `model_version`, and `parent_spec.name` from a Level 3 model's
+ * YAML frontmatter (regex — these scripts carry no YAML dependency).
+ * @param {string} content
+ * @returns {{ title: string | null, model_version: string | null, template: string | null }}
+ */
+function parseModelHeader(content) {
+  const fm = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  const block = fm ? fm[1] : '';
+  const flat = (key) => {
+    const m = block.match(new RegExp('^' + key + ':\\s*"?([^"\\n\\r]+)"?\\s*$', 'm'));
+    return m ? m[1].trim() : null;
+  };
+  const nested = block.match(/^parent_spec:\r?\n(?:\s+.*\r?\n?)*/m);
+  const templateName = nested ? (nested[0].match(/^\s+name:\s*"?([^"\n\r]+)"?/m) || [])[1] : null;
+  return {
+    title: flat('title'),
+    model_version: flat('model_version') || flat('model'),
+    template: templateName ? templateName.trim() : null,
+  };
+}
+
+/**
+ * Every distinct `sources::` value declared in a model body, in document order.
+ * Handles both the scalar form and the bracketed `[a, b]` list form.
+ * @param {string} content
+ * @returns {string[]}
+ */
+function scrapeSourceRefs(content) {
+  const refs = [];
+  const seen = new Set();
+  const re = /^\s*sources::\s*(.+?)\s*$/gm;
+  let m;
+  while ((m = re.exec(content)) !== null) {
+    let raw = m[1].trim();
+    const bracket = raw.match(/^\[(.*)\]$/s);
+    const parts = bracket ? bracket[1].split(',') : [raw];
+    for (const p of parts) {
+      const v = p.trim();
+      if (v && !seen.has(v)) {
+        seen.add(v);
+        refs.push(v);
+      }
+    }
+  }
+  return refs;
+}
+
+/**
+ * Enumerate `models/*_NN.md` and describe each for the lineage record's
+ * `# NN Models` section: title, ref, version, template, and the source
+ * Citations it derives from (scraped from its `sources::` fields).
+ * @param {string} projectDir
+ * @returns {Array<{ name: string, model_ref: string, model_version: string | null, model_template: string | null, derived_from: string[] }>}
+ */
+function collectModels(projectDir) {
+  const modelsDir = path.join(projectDir, 'models');
+  return walkFiles(modelsDir, (n) => n.endsWith('_NN.md')).map((rel) => {
+    const content = fs.readFileSync(path.join(modelsDir, rel), 'utf8');
+    const header = parseModelHeader(content);
+    const base = path.basename(rel).replace(/_NN\.md$/, '');
+    return {
+      name: header.title || base,
+      model_ref: `models/${rel}`,
+      model_version: header.model_version,
+      model_template: header.template,
+      derived_from: scrapeSourceRefs(content),
+    };
+  });
+}
+
+/**
+ * Read a source-model reference out of an artifact: from Markdown frontmatter
+ * (`model` / `model_name` + `model_version`) or from an HTML
+ * `<script id="export-meta" type="application/json">` block.
+ * @param {string} content
+ * @param {string} fileName
+ * @returns {{ model: string | null, model_version: string | null, format: string }}
+ */
+function parseArtifactMeta(content, fileName) {
+  const isHtml = /\.html?$/i.test(fileName);
+  if (isHtml) {
+    const block = content.match(
+      /<script[^>]+id=["']export-meta["'][^>]*>([\s\S]*?)<\/script>/i,
+    );
+    if (block) {
+      try {
+        const j = JSON.parse(block[1].trim());
+        return {
+          model: j.modelName || j.model || null,
+          model_version: j.modelVersion || j.model_version || null,
+          format: 'board',
+        };
+      } catch {
+        /* fall through */
+      }
+    }
+    return { model: null, model_version: null, format: 'board' };
+  }
+  const header = parseModelHeader(content);
+  const fm = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  const typeField = fm ? (fm[1].match(/^type:\s*"?([^"\n\r]+)"?/m) || [])[1] : null;
+  const modelName =
+    header.title ||
+    (fm ? (fm[1].match(/^model(?:_name)?:\s*"?([^"\n\r]+)"?/m) || [])[1] : null) ||
+    null;
+  return {
+    model: modelName ? modelName.trim() : null,
+    model_version: header.model_version,
+    format: (typeField && typeField.trim()) || 'document',
+  };
+}
+
+/**
+ * Enumerate files under `artifacts/` and describe each for the lineage
+ * record's `# NN Artifacts` section.
+ * @param {string} projectDir
+ * @returns {Array<{ name: string, artifact_ref: string, artifact_format: string, derived_from: string[], note: string | null }>}
+ */
+function collectArtifacts(projectDir) {
+  const artDir = path.join(projectDir, 'artifacts');
+  return walkFiles(artDir, (n) => /\.(md|html?|csv|json)$/i.test(n)).map((rel) => {
+    const content = fs.readFileSync(path.join(artDir, rel), 'utf8');
+    const meta = parseArtifactMeta(content, rel);
+    const derived = meta.model
+      ? [meta.model_version ? `${meta.model} ${meta.model_version}` : meta.model]
+      : [];
+    return {
+      name: path.basename(rel).replace(/\.[^.]+$/, ''),
+      artifact_ref: `artifacts/${rel}`,
+      artifact_format: meta.format,
+      derived_from: derived,
+      note: meta.model ? null : 'no source model reference found in this artifact',
+    };
+  });
+}
+
+/**
  * Formats NN Sources markdown section.
  * @param {Array<any>} sources
  * @returns {string}
@@ -187,6 +347,55 @@ function emptySection(concept, guidance) {
   return `# NN ${concept}\n\n<!-- ${guidance} -->\n`;
 }
 
+const MODELS_GUIDANCE =
+  'Auto-synced from models/ on every --scan/--import-url/--lineage. One element per Level 3 model.';
+const ARTIFACTS_GUIDANCE =
+  'Auto-synced from artifacts/ on every --scan/--import-url/--lineage. One element per generated deliverable.';
+const PROCEDURES_GUIDANCE =
+  'Append-only. One entry per pipeline run (--scan, --import-url, --apply). Never regenerated.';
+
+/**
+ * Formats the NN Models section from the models discovered under models/.
+ * @param {Array<any>} models
+ * @returns {string}
+ */
+function renderModelsSection(models) {
+  if (models.length === 0) return emptySection('Models', MODELS_GUIDANCE).replace(/\n$/, '');
+  let out = '# NN Models\n';
+  for (const m of models) {
+    out += `\n## NN Models: ${m.name}\n`;
+    out += `model_ref:: ${m.model_ref}\n`;
+    if (m.model_version) out += `model_version:: ${m.model_version}\n`;
+    if (m.model_template) out += `model_template:: ${m.model_template}\n`;
+    if (m.derived_from && m.derived_from.length > 0) {
+      out += `derived_from:: [${m.derived_from.join(', ')}]\n`;
+    }
+  }
+  return out;
+}
+
+/**
+ * Formats the NN Artifacts section from the files discovered under artifacts/.
+ * @param {Array<any>} artifacts
+ * @returns {string}
+ */
+function renderArtifactsSection(artifacts) {
+  if (artifacts.length === 0) {
+    return emptySection('Artifacts', ARTIFACTS_GUIDANCE).replace(/\n$/, '');
+  }
+  let out = '# NN Artifacts\n';
+  for (const a of artifacts) {
+    out += `\n## NN Artifacts: ${a.name}\n`;
+    out += `artifact_ref:: ${a.artifact_ref}\n`;
+    out += `artifact_format:: ${a.artifact_format}\n`;
+    if (a.derived_from && a.derived_from.length > 0) {
+      out += `derived_from:: [${a.derived_from.join(', ')}]\n`;
+    }
+    if (a.note) out += `note:: ${a.note}\n`;
+  }
+  return out;
+}
+
 /**
  * Splits document body into preamble and top-level # sections.
  * @param {string} body
@@ -212,12 +421,33 @@ function splitTopLevelSections(body) {
 }
 
 /**
- * Generates initial level-3 provenance model markdown document.
+ * @typedef {{ sources: Array<any>, models: Array<any>, artifacts: Array<any> }} LineageData
+ */
+
+/** Normalises the argument that used to be a bare `sources` array. */
+function toLineageData(data) {
+  if (Array.isArray(data)) return { sources: data, models: [], artifacts: [] };
+  return { sources: data.sources ?? [], models: data.models ?? [], artifacts: data.artifacts ?? [] };
+}
+
+/** The three filesystem-synced sections, in document order, keyed by heading. */
+function managedSections(data) {
+  const d = toLineageData(data);
+  return [
+    { re: /^# NN Sources\b/, render: () => renderSourcesSection(d.sources) },
+    { re: /^# NN Models\b/, render: () => renderModelsSection(d.models) },
+    { re: /^# NN Artifacts\b/, render: () => renderArtifactsSection(d.artifacts) },
+  ];
+}
+
+/**
+ * Generates the initial Level 3 lineage-record markdown document.
  * @param {string} title
- * @param {Array<any>} sources
+ * @param {LineageData | Array<any>} data
  * @returns {string}
  */
-function buildFreshModel(title, sources) {
+function buildFreshModel(title, data) {
+  const d = toLineageData(data);
   const frontmatter =
     '---\n' +
     'specification_version: "V_0-1-0"\n' +
@@ -233,61 +463,98 @@ function buildFreshModel(title, sources) {
   const index =
     '# NN index\n\n' +
     '* [[Sources]]\n' +
-    '* [[Procedures]]\n' +
     '* [[Models]]\n' +
-    '* [[Artifacts]]\n';
-
-  const procedures = emptySection(
-    'Procedures',
-    'Add one element per transformation run: ## NN Procedures: <run name> with procedure_ref, agent, run_at.'
-  );
-  const models = emptySection(
-    'Models',
-    'Add one element per domain model produced: ## NN Models: <title> with model_ref, model_template, model_version, derived_from:: [<sources>], generated_by:: [<procedure>].'
-  );
-  const artifacts = emptySection(
-    'Artifacts',
-    'Add one element per generated deliverable: ## NN Artifacts: <name> with artifact_format (document|report|board|dataset), location, derived_from_inputs:: [<sources and/or models>], produced_by:: [<procedure>].'
-  );
+    '* [[Artifacts]]\n' +
+    '* [[Procedures]]\n';
 
   return [
     frontmatter,
     DOC_NOTICE,
     index,
-    renderSourcesSection(sources),
-    procedures,
-    models,
-    artifacts,
+    renderSourcesSection(d.sources).replace(/\n+$/, '') + '\n',
+    renderModelsSection(d.models).replace(/\n+$/, '') + '\n',
+    renderArtifactsSection(d.artifacts).replace(/\n+$/, '') + '\n',
+    emptySection('Procedures', PROCEDURES_GUIDANCE),
   ].join('\n') + '\n';
 }
 
 /**
- * Refreshes the NN Sources section of an existing model while preserving other sections.
+ * Re-synchronises the three filesystem-owned sections (`# NN Sources`,
+ * `# NN Models`, `# NN Artifacts`) of an existing lineage record from the
+ * current workspace state. Every other section — `# NN index`, the append-only
+ * `# NN Procedures` log, any hand-authored block — is passed through untouched.
  * @param {string} existing
- * @param {Array<any>} sources
+ * @param {LineageData | Array<any>} data
  * @returns {string}
  */
-function refreshExistingModel(existing, sources) {
+function refreshExistingModel(existing, data) {
   const fmMatch = existing.match(/^(---\r?\n([\s\S]*?)\r?\n---(?:\r?\n)?)/);
   const frontmatter = fmMatch ? fmMatch[1] : '';
   const body = fmMatch ? existing.slice(frontmatter.length) : existing;
 
   const { preamble, blocks } = splitTopLevelSections(body);
-  const newSources = renderSourcesSection(sources).replace(/\n+$/, '') + '\n';
+  const managed = managedSections(data);
+  const rendered = managed.map((m) => m.render().replace(/\n+$/, '') + '\n');
+  const present = new Array(managed.length).fill(false);
 
-  let replaced = false;
   const rebuilt = blocks.map((b) => {
-    if (/^# NN Sources\b/.test(b.heading)) {
-      replaced = true;
-      return newSources;
+    const idx = managed.findIndex((m) => m.re.test(b.heading));
+    if (idx !== -1) {
+      present[idx] = true;
+      return rendered[idx];
     }
     return (b.heading + '\n' + b.lines.join('\n')).replace(/\n+$/, '') + '\n';
   });
 
-  if (!replaced) {
-    const idx = rebuilt.findIndex((s) => /^# NN index\b/.test(s));
-    if (idx >= 0) rebuilt.splice(idx + 1, 0, newSources);
-    else rebuilt.unshift(newSources);
+  // Insert any missing managed section just after `# NN index` (or at the top),
+  // keeping Sources → Models → Artifacts order.
+  const anchor = rebuilt.findIndex((s) => /^# NN index\b/.test(s));
+  let insertAt = anchor >= 0 ? anchor + 1 : 0;
+  for (let i = 0; i < managed.length; i++) {
+    if (present[i]) {
+      insertAt = rebuilt.findIndex((s) => managed[i].re.test(s)) + 1;
+      continue;
+    }
+    rebuilt.splice(insertAt, 0, rendered[i]);
+    insertAt++;
+  }
+
+  const notice = preamble.replace(/^\n+|\n+$/g, '');
+  return frontmatter + '\n' + notice + '\n\n' + rebuilt.join('\n') + '\n';
+}
+
+/**
+ * Append one `## NN Procedures:` entry to the lineage record's append-only
+ * `# NN Procedures` section. Creates the section if the record predates it.
+ * @param {string} existing full lineage-record content
+ * @param {{ command: string, flags?: string, runAt?: string, inputs?: string[], outputs?: string[] }} run
+ * @returns {string}
+ */
+function appendProcedureRun(existing, run) {
+  const runAt = run.runAt || new Date().toISOString();
+  const entry =
+    `\n## NN Procedures: ${run.command} @ ${runAt}\n` +
+    `command:: ${run.command}\n` +
+    (run.flags ? `flags:: ${run.flags}\n` : '') +
+    `run_at:: ${runAt}\n` +
+    (run.inputs && run.inputs.length ? `inputs:: [${run.inputs.join(', ')}]\n` : '') +
+    (run.outputs && run.outputs.length ? `outputs:: [${run.outputs.join(', ')}]\n` : '');
+
+  const fmMatch = existing.match(/^(---\r?\n[\s\S]*?\r?\n---(?:\r?\n)?)/);
+  const frontmatter = fmMatch ? fmMatch[1] : '';
+  const body = fmMatch ? existing.slice(frontmatter.length) : existing;
+  const { preamble, blocks } = splitTopLevelSections(body);
+
+  let found = false;
+  const rebuilt = blocks.map((b) => {
+    if (/^# NN Procedures\b/.test(b.heading)) {
+      found = true;
+      return (b.heading + '\n' + b.lines.join('\n')).replace(/\n+$/, '') + '\n' + entry;
+    }
+    return (b.heading + '\n' + b.lines.join('\n')).replace(/\n+$/, '') + '\n';
+  });
+  if (!found) {
+    rebuilt.push(emptySection('Procedures', PROCEDURES_GUIDANCE).replace(/\n$/, '') + entry);
   }
 
   const notice = preamble.replace(/^\n+|\n+$/g, '');
@@ -335,13 +602,21 @@ module.exports = {
   DOC_NOTICE,
   slugify,
   parseSourceFrontmatter,
+  parseModelHeader,
+  scrapeSourceRefs,
   walkMarkdown,
+  walkFiles,
   collectSources,
+  collectModels,
+  collectArtifacts,
   materializeAssets,
   renderSourcesSection,
+  renderModelsSection,
+  renderArtifactsSection,
   emptySection,
   splitTopLevelSections,
   buildFreshModel,
   refreshExistingModel,
+  appendProcedureRun,
   resolveLatestModelFile,
 };

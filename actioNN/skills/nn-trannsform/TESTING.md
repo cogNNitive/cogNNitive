@@ -17,7 +17,7 @@ npm run test:unit
 npm run test:integration
 ```
 
-Tests cover: config read/write/merge, format detection, file hashing, flat frontmatter generation (with mirrored subfolder output), dependency checking, HTML metadata extraction, recursive project bootstrap (subfolders preserved into `sources/original/`), and provenance model generation (slugify, source auto-population, asset materialization, semantic index, idempotent refresh with section preservation).
+Tests cover: config read/write/merge, format detection, file hashing, flat frontmatter generation (with mirrored subfolder output), dependency checking, HTML metadata extraction, recursive project bootstrap (subfolders preserved), lineage-record filesystem sync (# NN Models/# NN Artifacts from models/ + artifacts/, append-only # NN Procedures, --check drift), and provenance model generation (slugify, source auto-population, asset materialization, semantic index, idempotent refresh with section preservation).
 
 ## Manual Test Guide
 
