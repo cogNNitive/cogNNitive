@@ -14,3 +14,4 @@ export type { ParseIssue, RecursiveParseResult, WorklistItem, ParseContext } fro
 export { normalizeSingleModel } from './model'
 export { recursiveParse, extractSubmodelRefs, MAX_DEPTH } from './workspace'
 export type { ExtractedSubmodelRef } from './workspace'
+export { readWorkspaceId } from './workspaceId'

@@ -186,7 +186,7 @@ With structure approved, offer the drafting mode:
 - **[b] Full Generation:** The agent drafts the complete draft in a single file for subsequent audit, following the plan approved in B1.
 
 **B3. Model Naming & Scaffolding**:
-Prompt for `{ModelName}` and create `{ModelName}_V_0-1-0_{Template}_NN.md` with workspace structure (`models/`, `sources/nn/`, `procedures/`, `artifacts/`, `index.md`).
+Prompt for `{ModelName}` and create `{ModelName}_V_0-1-0_{Template}_NN.md` with workspace structure (`models/`, `sources/nn/`, `procedures/`, `artifacts/`, `index.md`). When creating a new workspace, emit `workspace_id: "<folder-slug>"` in the entrypoint's frontmatter (a stable slug derived from the workspace folder name, so the workspace keeps a correlatable identity across renames/moves). This field is optional and unvalidated — omit it for existing workspaces rather than retrofitting one.
 
 **B4. Validation & Visual Checklist**:
 Validate via `innfo-mcp_validate_model` and output the Visual Expectation Checklist (§12).
