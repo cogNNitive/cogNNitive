@@ -35,6 +35,11 @@ async function main() {
     totalPassed += configResult.passed;
     totalFailed += configResult.failed;
 
+    const bootstrapTest = require('./unit/test-bootstrap-recursive');
+    const bootstrapResult = await bootstrapTest.run();
+    totalPassed += bootstrapResult.passed;
+    totalFailed += bootstrapResult.failed;
+
     const scannerTest = require('./unit/test-scanner');
     const scannerResult = await scannerTest.run();
     totalPassed += scannerResult.passed;

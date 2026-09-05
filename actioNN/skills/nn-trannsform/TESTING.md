@@ -2,7 +2,7 @@
 
 ## Automated Tests (Zero-Dependency)
 
-Unit tests cover `config.js`, `scanner.js`, `provenance.js` and `webImport.js` using Node's built-in `assert`:
+Unit tests cover `config.js`, `scanner.js`, `provenance.js`, `webImport.js` and `lib/bootstrap.js` using Node's built-in `assert`:
 
 ```bash
 cd skills/nn-trannsform
@@ -17,7 +17,7 @@ npm run test:unit
 npm run test:integration
 ```
 
-Tests cover: config read/write/merge, format detection, file hashing, flat frontmatter generation (with mirrored subfolder output), dependency checking, HTML metadata extraction, and provenance model generation (slugify, source auto-population, asset materialization, semantic index, idempotent refresh with section preservation).
+Tests cover: config read/write/merge, format detection, file hashing, flat frontmatter generation (with mirrored subfolder output), dependency checking, HTML metadata extraction, recursive project bootstrap (subfolders preserved into `sources/original/`), and provenance model generation (slugify, source auto-population, asset materialization, semantic index, idempotent refresh with section preservation).
 
 ## Manual Test Guide
 

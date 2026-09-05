@@ -56,14 +56,16 @@ Delivery: 10 stacked PRs to `main`. Merge each only when `npm run verify` and
 
 ## PR 2 — `fix(nn-trannsform): recursive bootstrap copy preserves subfolders`
 
-- [ ] 2.1 Write `actioNN/skills/nn-trannsform/test/unit/test-bootstrap-recursive.js`:
+- [x] 2.1 Write `actioNN/skills/nn-trannsform/test/unit/test-bootstrap-recursive.js`:
       `--src` tree with `a.txt`, `sub/b.txt`, `sub/deep/c.txt` → all three land
       under `sources/original/` with structure preserved; count reported. (RED)
-- [ ] 2.2 Rework `bootstrapProject` in `scripts/index.js` to walk `srcDir`
-      recursively (reuse `scanner-core.walkOriginal` shape) and
-      `fs.mkdirSync(dirname, {recursive:true})` + `copyFileSync` per file. (GREEN)
-- [ ] 2.3 `node --test actioNN/skills/nn-trannsform/test/`. Update `TESTING.md`.
-- [ ] 2.4 Commit. Open PR 2. Merge on green.
+- [x] 2.2 Extract `bootstrapProject` to `scripts/lib/bootstrap.js` and rework it
+      to walk `srcDir` via `scanner-core.walkOriginal` (recursive, same ignore
+      rules) + `fs.mkdirSync(dirname,{recursive:true})` + `copyFileSync` per
+      file; returns `{copiedCount, originalDir, provModelPath}` so callers print.
+      Removed a dead `execSync` import from `index.js`. (GREEN)
+- [x] 2.3 `node --test actioNN/skills/nn-trannsform/test/`. Update `TESTING.md`.
+- [x] 2.4 Commit. Open PR 2. Merge on green.
 
 ## PR 3 — `chore(actioNN,openspec): translate remaining Spanish strings to English`
 
