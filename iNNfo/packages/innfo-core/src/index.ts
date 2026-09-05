@@ -59,6 +59,7 @@ export {
   QUALIFIED_REF_RE,
   parseQualifiedRef,
   validateWorkspaceReferences,
+  validateWorkspaceSources,
 } from './validator'
 export type {
   ReferenceDiagnostic,
@@ -66,16 +67,17 @@ export type {
   SubmodelResolver,
   ValidateModelOptions,
   QualifiedRef,
+  SourceResolver,
 } from './validator'
+
+export { parseSourceRef, slugifyHeading, extractHeadings, resolveHeadingSection } from './sourceRef'
+export type { SourceRef, HeadingInfo, ResolvedHeadingSection } from './sourceRef'
 
 export * from './identity'
 export * from './metamodel'
 export * from './recursiveParser'
 export * from './fs-types'
-export {
-  OWNERSHIP_MARKER,
-  reconcileManifest,
-} from './workspace/reconcileManifest'
+export { OWNERSHIP_MARKER, reconcileManifest } from './workspace/reconcileManifest'
 export type { DiscoveredModel, ManifestChange } from './workspace/reconcileManifest'
 export { isReconcilableModel } from './workspace/discoverModels'
 export type { CandidateFile } from './workspace/discoverModels'

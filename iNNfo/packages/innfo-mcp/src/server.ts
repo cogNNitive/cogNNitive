@@ -155,7 +155,7 @@ const toolDefinitions: Tool[] = [
         workspace: {
           type: 'boolean',
           description:
-            'Optional workspace-scope mode (default false = today\'s single-file behavior, unchanged). When true, also runs cross-model reference validation (qualified `[[Model Title :: Element Name]]` refs) across the whole workspace and merges diagnostics owned by this model. Requires `id` mode.',
+            "Optional workspace-scope mode (default false = today's single-file behavior, unchanged). When true, also runs cross-model reference validation (qualified `[[Model Title :: Element Name]]` refs) and `sources::` Citation validation (referenced file exists under sources/nn/, `#heading-slug` resolves, no line ranges) across the whole workspace, merging diagnostics owned by this model. Requires `id` mode.",
         },
       },
     },
@@ -498,7 +498,9 @@ async function handleInitModel(args: Record<string, unknown>): Promise<CallToolR
 async function handleListTemplates(args: Record<string, unknown>): Promise<CallToolResult> {
   const root = (args.root as string) || ROOT_DIR
   const templates = await listTemplates(root)
-  return textResult(JSON.stringify(envelopeList('innfo-list-templates', 'templates', templates), null, 2))
+  return textResult(
+    JSON.stringify(envelopeList('innfo-list-templates', 'templates', templates), null, 2),
+  )
 }
 
 async function handleHydrateTemplate(args: Record<string, unknown>): Promise<CallToolResult> {

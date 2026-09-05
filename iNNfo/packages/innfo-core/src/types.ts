@@ -1,4 +1,5 @@
 import type { TemplateSchema } from './schema'
+import type { SourceRef } from './sourceRef'
 
 /** Concept `type::` values. The `as const` array is the single source of
  *  truth; `ConceptType` is derived from it so the two cannot drift. */
@@ -385,7 +386,7 @@ export interface FieldValue {
   provenance: Provenance
 }
 
-export type RelationshipOrigin = 'matrix' | 'field' | 'mention' | 'graph_edge'
+export type RelationshipOrigin = 'matrix' | 'field' | 'mention' | 'graph_edge' | 'source'
 
 /** A normalized relationship edge stored on a node. */
 export interface ModelRelationship {
@@ -515,6 +516,15 @@ export interface ModelNode {
   sourceMode?: 'parsed' | 'structural'
   /** Relative paths of physical assets for this node. */
   assets?: string[]
+  /**
+   * Parsed source citations from this element's `sources::` field (a Citation
+   * pointing at a Source section under `sources/nn/`). Populated by
+   * `normalizeElementsIntoGraph` when the element declares a `sources`/`source`
+   * field. Each ref also produces a `relationships` entry with
+   * `origin: 'source'` whose `targetId` is the workspace-relative file path
+   * (Sources are not graph nodes — id-based edge resolvers skip these).
+   */
+  sources?: SourceRef[]
   /**
    * Workspace-scoped author/owner of this model, propagated from the `author::`
    * field on the workspace manifest's `## NN ModelRef:` entry. Not stored in the

@@ -13,40 +13,43 @@ Delivery: 10 stacked PRs to `main`. Merge each only when `npm run verify` and
 
 ## PR 1 — `feat(innfo-core,innfo-mcp): typed & validated source references`
 
-- [ ] 1.1 Write `iNNfo/packages/innfo-core/src/sourceRef.spec.ts`: bare-path
+- [x] 1.1 Write `iNNfo/packages/innfo-core/src/sourceRef.spec.ts`: bare-path
       resolution, `sources/nn/` prefix, `models/` prefix, `#L` rejection,
       `src-NNN` rejection, `sources/original/` rejection, `slugifyHeading`
       basic + duplicate disambiguation. (RED)
-- [ ] 1.2 Create `iNNfo/packages/innfo-core/src/sourceRef.ts` (`SourceRef`,
+- [x] 1.2 Create `iNNfo/packages/innfo-core/src/sourceRef.ts` (`SourceRef`,
       `parseSourceRef`, `slugifyHeading` **without** accent transliteration yet —
       byte-match the current editor behaviour so PR 1 stays non-breaking;
       transliteration is PR 10), `extractHeadings`, `HeadingInfo`. Export from
       `src/index.ts` and `src/browser.ts`. (GREEN)
-- [ ] 1.3 Write `src/recursiveParser/normalize.spec.ts` cases: element with
+- [x] 1.3 Write `tests/source-citations.test.ts` cases (unit-testing the exported
+      `attachSourceCitations`): element with
       `sources::` list → `node.sources` populated + `origin: "source"` edges;
       unparseable value → `node.sources` not populated. (RED)
-- [ ] 1.4 Extend `normalizeElementsIntoGraph` in `recursiveParser/normalize.ts`:
+- [x] 1.4 Extend `normalizeElementsIntoGraph` in `recursiveParser/normalize.ts`:
       recognise `sources`/`source` fields, attach `node.sources`, push
       `origin: "source"` relationships. Add `sources?: SourceRef[]` to
       `ModelNode` and `'source'` to `Relationship.origin` in `types.ts`. (GREEN)
-- [ ] 1.5 Audit every relationship-edge consumer (`innfo-core` +
+- [x] 1.5 Audit every relationship-edge consumer (`innfo-core` +
       `innfo-editor`) for `origin` switches; ensure `'source'` edges are skipped
       by node-id resolvers. Add a regression test.
-- [ ] 1.6 Write `src/validator/workspaceSources.spec.ts`: dangling file →
+- [x] 1.6 Write `tests/workspaceSources.test.ts`: dangling file →
       `error`; missing slug → `warning`; malformed (`#L`) → `error`; clean →
       no diagnostic. (RED)
-- [ ] 1.7 Create `src/validator/workspaceSources.ts` (`SourceResolver` type,
+- [x] 1.7 Create `src/validator/workspaceSources.ts` (`SourceResolver` type,
       `validateWorkspaceSources`). Wire into `validator/index.ts` exports. (GREEN)
-- [ ] 1.8 Write `iNNfo/packages/innfo-mcp/src/tools/validate.spec.ts` case:
+- [x] 1.8 Write `iNNfo/packages/innfo-mcp/test/validate-workspace-sources.test.ts`:
       workspace with a dangling `sources::` → response diagnostics include the
       `error`. (RED)
-- [ ] 1.9 In `innfo-mcp/src/tools/validate.ts`, build a disk-backed
+- [x] 1.9 In `innfo-mcp/src/tools/validate.ts`, build a disk-backed
       `SourceResolver` (read file, `extractHeadings().map(h => h.slug)`), call
       `validateWorkspaceSources`, merge diagnostics into the envelope. (GREEN)
-- [ ] 1.10 Replace `iNNfo/apps/innfo-editor/src/utils/sourceRef.ts` body with
-      `export * from '@cognnitive/innfo-core/sourceRef'` + `@deprecated` JSDoc.
-      Run editor unit + component tests.
-- [ ] 1.11 `npm --prefix iNNfo run lint && npm --prefix iNNfo run format:check &&
+- [x] 1.10 Replace `iNNfo/apps/innfo-editor/src/utils/sourceRef.ts` body with a
+      thin re-export/adapter over `@cognnitive/innfo-core` (the package exposes
+      no `/sourceRef` subpath, so re-export from the barrel; keep the
+      `ParsedSourceRef` `isValid` shape the widgets consume) + `@deprecated`
+      JSDoc. Editor unit + component tests green (591 pass).
+- [x] 1.11 `npm --prefix iNNfo run lint && npm --prefix iNNfo run format:check &&
       npm --prefix iNNfo run verify`. Fix fallout.
 - [ ] 1.12 Commit this change folder (`openspec/changes/2026-09-05-provenance-lineage-consolidation/`)
       together with the code. Open PR 1. Merge on green.

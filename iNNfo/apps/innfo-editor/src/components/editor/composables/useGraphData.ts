@@ -1,7 +1,10 @@
 import { computed, Ref } from 'vue'
 import * as d3 from 'd3'
 import { useModelStore } from '../../../stores/modelStore'
-import { getConceptMeta, getHexColor as resolveHexColor } from '../../../composables/useConceptVisuals'
+import {
+  getConceptMeta,
+  getHexColor as resolveHexColor,
+} from '../../../composables/useConceptVisuals'
 
 import type { RelationshipOrigin } from '@cognnitive/innfo-core'
 
@@ -18,6 +21,10 @@ export const ORIGIN_COLORS: Record<RelationshipOrigin, string> = {
   field: '#22c55e',
   mention: '#f59e0b',
   graph_edge: '#a855f7',
+  // `source` edges point at a `sources/nn/…` file path, not a graph node id, so
+  // they are filtered out before rendering (see `allEdges`); this entry only
+  // keeps the map exhaustive.
+  source: '#64748b',
 }
 
 export interface GEdge {
@@ -100,11 +107,14 @@ export function useGraphData(localNodeId: Ref<string>) {
     for (const node of Object.values(modelStore.nodes)) {
       if (node.relationships && node.relationships.length > 0) {
         for (const rel of node.relationships) {
+          // `source` edges target a `sources/nn/…` file, not a graph node.
+          if (rel.origin === 'source') continue
           const sourceId = `inst:${node.id}`
           const targetId = `inst:${rel.targetId}`
           if (nodeSet.has(sourceId) && nodeSet.has(targetId)) {
             const origin = rel.origin ?? 'matrix'
-            const edgeColor = ORIGIN_COLORS[origin] ?? getHexColor(getConceptMeta(node.type).color || 'slate')
+            const edgeColor =
+              ORIGIN_COLORS[origin] ?? getHexColor(getConceptMeta(node.type).color || 'slate')
             result.push({
               source: sourceId,
               target: targetId,
