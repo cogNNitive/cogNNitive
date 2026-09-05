@@ -16,7 +16,7 @@ function makeNode(id: string, fieldKey: string, value: unknown): ModelNode {
     fields: {
       [fieldKey]: {
         value,
-        provenance: {
+        editAttribution: {
           author: { kind: 'system', id: 'parser' },
           timestamp: '2024-01-01T00:00:00.000Z',
         },
@@ -58,7 +58,7 @@ describe('WidgetField: dispatches to ported widget or FallbackWidget (R15)', () 
     expect(wrapper.text()).toContain('Step 1')
   })
 
-  it('records provenance on the field when the user commits an edit (R16)', async () => {
+  it('records editAttribution on the field when the user commits an edit (R16)', async () => {
     const modelStore = useModelStore()
     modelStore.setGraph({ Root: makeNode('Root', 'summary', 'Hello') }, ['Root'])
 
@@ -70,10 +70,10 @@ describe('WidgetField: dispatches to ported widget or FallbackWidget (R15)', () 
 
     const node = modelStore.getNode('Root')!
     expect(node.fields.summary.value).toBe('Edited')
-    expect(node.fields.summary.provenance.author).toEqual({ kind: 'user', id: 'lucas' })
+    expect(node.fields.summary.editAttribution.author).toEqual({ kind: 'user', id: 'lucas' })
   })
 
-  it('records no new provenance beyond parse-time state when the node is only loaded, not edited (R16)', () => {
+  it('records no new editAttribution beyond parse-time state when the node is only loaded, not edited (R16)', () => {
     const modelStore = useModelStore()
     modelStore.setGraph({ Root: makeNode('Root', 'summary', 'Hello') }, ['Root'])
 
@@ -82,7 +82,7 @@ describe('WidgetField: dispatches to ported widget or FallbackWidget (R15)', () 
     })
 
     const node = modelStore.getNode('Root')!
-    expect(node.fields.summary.provenance.author).toEqual({ kind: 'system', id: 'parser' })
+    expect(node.fields.summary.editAttribution.author).toEqual({ kind: 'system', id: 'parser' })
     expect(modelStore.isDirty('Root')).toBe(false)
   })
 })

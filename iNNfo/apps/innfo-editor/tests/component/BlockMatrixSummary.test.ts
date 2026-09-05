@@ -39,7 +39,7 @@ ${matrices.map((m) => `  - name: ${m.name}\n    source: ${m.source}\n    target:
         key,
         {
           value: val.value,
-          provenance: {
+          editAttribution: {
             author: { kind: 'system', id: 'test' },
             timestamp: '2024-01-01T00:00:00.000Z',
           },

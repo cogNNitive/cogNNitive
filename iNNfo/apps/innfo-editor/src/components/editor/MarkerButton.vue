@@ -27,13 +27,9 @@
 import { computed } from 'vue'
 import MarkerTooltip from './MarkerTooltip.vue'
 import type { MarkerInfo } from './MarkerTooltip.vue'
-import {
-  getMarkerIcon,
-  getMarkerClasses,
-  getMarkerDefinition,
-} from './MarkerIcons'
+import { getMarkerIcon, getMarkerClasses, getMarkerDefinition } from './MarkerIcons'
 import { useModelStore } from '../../stores/modelStore'
-import { commitMarkerValue } from '../../shared/provenance'
+import { commitMarkerValue } from '../../shared/editAttribution'
 import { MARKER_CYCLE_COUNT } from '../../utils/constants'
 
 /**

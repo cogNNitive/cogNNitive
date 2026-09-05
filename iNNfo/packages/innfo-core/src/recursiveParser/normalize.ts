@@ -58,7 +58,7 @@ export function toFieldValues(fields: Record<string, unknown>): Record<string, F
   for (const [key, value] of Object.entries(fields)) {
     result[key] = {
       value,
-      provenance: { author: { kind: 'system', id: 'parser' }, timestamp: nowIso() },
+      editAttribution: { author: { kind: 'system', id: 'parser' }, timestamp: nowIso() },
     }
   }
   return result

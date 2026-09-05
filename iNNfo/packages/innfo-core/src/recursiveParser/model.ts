@@ -114,14 +114,14 @@ export function normalizeSingleModel(
   if (Array.isArray(fmMatrices) && fmMatrices.length > 0) {
     rootNode.fields['__matrix_defs'] = {
       value: fmMatrices.map((m: any) => normalizeMatrixDecl(m)),
-      provenance: { author: { kind: 'system', id: 'parser' }, timestamp: nowIso() },
+      editAttribution: { author: { kind: 'system', id: 'parser' }, timestamp: nowIso() },
     }
   } else if (parsed.matrices.length > 0) {
     rootNode.fields['__matrix_defs'] = {
       value: parsed.matrices.map((m) =>
         normalizeMatrixDecl({ name: m.name, source: m.source, target: m.target }),
       ),
-      provenance: { author: { kind: 'system', id: 'parser' }, timestamp: nowIso() },
+      editAttribution: { author: { kind: 'system', id: 'parser' }, timestamp: nowIso() },
     }
   }
 
@@ -132,7 +132,7 @@ export function normalizeSingleModel(
       if (cell.row && cell.col) {
         rootNode.fields[prefix + cell.row + '||' + cell.col] = {
           value: cell.value,
-          provenance: { author: { kind: 'system', id: 'parser' }, timestamp: nowIso() },
+          editAttribution: { author: { kind: 'system', id: 'parser' }, timestamp: nowIso() },
         }
       }
     }

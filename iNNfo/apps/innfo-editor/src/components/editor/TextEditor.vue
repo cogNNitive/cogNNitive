@@ -39,7 +39,7 @@
 import { ref, computed, watch } from 'vue'
 import { Save } from 'lucide-vue-next'
 import { useModelStore } from '../../stores/modelStore'
-import { commitFieldValue } from '../../shared/provenance'
+import { commitFieldValue } from '../../shared/editAttribution'
 
 const props = defineProps<{
   nodeId: string
@@ -108,7 +108,7 @@ const saveContent = () => {
       })
     }
   } else {
-    // Update the node's rawContent and stamp provenance
+    // Update the node's rawContent and stamp editAttribution
     modelStore.upsertNode({ ...node, rawContent: content })
     commitFieldValue(modelStore, props.nodeId, '_rawContent', content, {
       kind: 'user',

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useModelStore } from '../../stores/modelStore'
-import { commitFieldValue } from '../provenance'
+import { commitFieldValue } from '../editAttribution'
 import { resolveWidgetComponent, FallbackWidget } from './index'
 import { isImageFieldName, isImageFieldValue } from '../../utils/imageDetection'
 
@@ -9,7 +9,7 @@ import { isImageFieldName, isImageFieldValue } from '../../utils/imageDetection'
  * Binds one resolved field/marker to its widget: resolves the ported
  * component for `widgetType` via the registry, falling back to
  * `FallbackWidget` for any unported type (R15). Every commit from the
- * ported widget is stamped with provenance via `commitFieldValue` (R16).
+ * ported widget is stamped with editAttribution via `commitFieldValue` (R16).
  *
  * Enhanced in Phase 4 (rebuild-format-editor-ui) with:
  * - `fieldDefinition` prop for field-type widgets (options, target_concepts)

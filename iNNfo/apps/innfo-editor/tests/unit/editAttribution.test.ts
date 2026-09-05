@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useModelStore } from '../../src/stores/modelStore'
-import { commitFieldValue } from '../../src/shared/provenance'
+import { commitFieldValue } from '../../src/shared/editAttribution'
 import type { ModelNode } from '../../src/model/types'
 
 function makeNode(id: string): ModelNode {
@@ -20,12 +20,12 @@ function makeNode(id: string): ModelNode {
   }
 }
 
-describe('provenance-stamping commit hook (R16)', () => {
+describe('edit-attribution commit hook (R16)', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
   })
 
-  it('records provenance on the field when the user commits a new value', () => {
+  it('records editAttribution on the field when the user commits a new value', () => {
     const modelStore = useModelStore()
     modelStore.setGraph({ Root: makeNode('Root') }, ['Root'])
 
@@ -33,8 +33,8 @@ describe('provenance-stamping commit hook (R16)', () => {
 
     const node = modelStore.getNode('Root')!
     expect(node.fields.summary.value).toBe('Edited value')
-    expect(node.fields.summary.provenance.author).toEqual({ kind: 'user', id: 'lucas' })
-    expect(node.fields.summary.provenance.timestamp).toBeTruthy()
+    expect(node.fields.summary.editAttribution.author).toEqual({ kind: 'user', id: 'lucas' })
+    expect(node.fields.summary.editAttribution.timestamp).toBeTruthy()
   })
 
   it('marks the node dirty when a field is committed', () => {
@@ -46,21 +46,21 @@ describe('provenance-stamping commit hook (R16)', () => {
     expect(modelStore.isDirty('Root')).toBe(true)
   })
 
-  it('records no new provenance beyond parse-time state when no edit is made (loading a node)', () => {
+  it('records no new editAttribution beyond parse-time state when no edit is made (loading a node)', () => {
     const modelStore = useModelStore()
     const node = makeNode('Root')
     node.fields.summary = {
       value: 'Original',
-      provenance: {
+      editAttribution: {
         author: { kind: 'system', id: 'parser' },
         timestamp: '2024-01-01T00:00:00.000Z',
       },
     }
     modelStore.setGraph({ Root: node }, ['Root'])
 
-    // Simply reading the node (loading it into a form) must not mutate provenance.
+    // Simply reading the node (loading it into a form) must not mutate editAttribution.
     const read = modelStore.getNode('Root')!
-    expect(read.fields.summary.provenance.author).toEqual({ kind: 'system', id: 'parser' })
+    expect(read.fields.summary.editAttribution.author).toEqual({ kind: 'system', id: 'parser' })
     expect(modelStore.isDirty('Root')).toBe(false)
   })
 
@@ -73,7 +73,7 @@ describe('provenance-stamping commit hook (R16)', () => {
     commitFieldValue(modelStore, 'Root', 'summary', 'v1', { kind: 'user', id: 'lucas' })
 
     const node = modelStore.getNode('Root')!
-    expect(node.fields.summary.provenance.timestamp).toBe('2025-06-01T12:00:00.000Z')
+    expect(node.fields.summary.editAttribution.timestamp).toBe('2025-06-01T12:00:00.000Z')
 
     vi.useRealTimers()
   })
