@@ -314,4 +314,75 @@ parent_component:: C1
       expect(diags).toHaveLength(0)
     })
   })
+
+  describe('4.4 Diamond vs cycle: sidebar graph shape stability', () => {
+    it('sidebar-graph-shape-stable: a diamond workspace still yields exactly one root and every node reachable from it', async () => {
+      const files: Record<string, string> = {
+        'workspace_01.md': `---
+spec_version: V_1-0-0
+level: 3
+parent_spec:
+  name: workspace_spec_01
+  url: https://example.com/workspace_spec_01.md
+model_version: V_0-1-0
+title: Root Workspace
+---
+# NN ModelRef
+
+## NN ModelRef: Model A
+path:: model_a_01.md
+
+## NN ModelRef: Model B
+path:: model_b_01.md
+`,
+        'model_a_01.md': `---
+spec_version: V_1-0-0
+level: 3
+parent_spec:
+  name: spec_01
+  url: https://example.com/spec.md
+model_version: V_0-1-0
+title: Model A
+---
+# NN Components
+## NN Components: Widget
+`,
+        'model_b_01.md': `---
+spec_version: V_1-0-0
+level: 3
+parent_spec:
+  name: spec_01
+  url: https://example.com/spec.md
+model_version: V_0-1-0
+title: Model B
+---
+# NN ModelRef
+## NN ModelRef: Model A ref
+path:: model_a_01.md
+`,
+      }
+
+      const rootHandle = createFakeDirectoryHandle(files)
+      const result = await recursiveParse(rootHandle)
+
+      expect(result.rootIds).toHaveLength(1)
+      expect(result.issues.filter((i) => i.code === 'CYCLE_DETECTED')).toHaveLength(0)
+
+      const reachable = new Set<string>()
+      const stack = [...result.rootIds]
+      while (stack.length > 0) {
+        const id = stack.pop()!
+        if (reachable.has(id)) continue
+        reachable.add(id)
+        for (const childId of result.nodes[id]?.childIds ?? []) stack.push(childId)
+      }
+
+      const modelANode = Object.values(result.nodes).find((n) => n.name === 'model_a_01')
+      const modelBNode = Object.values(result.nodes).find((n) => n.name === 'model_b_01')
+      expect(modelANode).toBeDefined()
+      expect(modelBNode).toBeDefined()
+      expect(reachable.has(modelANode!.id)).toBe(true)
+      expect(reachable.has(modelBNode!.id)).toBe(true)
+    })
+  })
 })

@@ -5,6 +5,8 @@ export interface ParseIssue {
   path: string
   message: string
   severity?: 'info' | 'warning' | 'error'
+  /** Stable machine-readable discriminator. Additive; existing issues keep it undefined. */
+  code?: 'CYCLE_DETECTED' | 'DEPTH_LIMIT' | 'MODEL_NOT_FOUND'
 }
 
 export interface RecursiveParseResult {
@@ -21,6 +23,11 @@ export interface WorklistItem {
   referringPath: string
   depth: number
   author?: string
+  /**
+   * normalizePathKey chain from the entrypoint through `referringPath`, inclusive.
+   * Membership => true cycle. Non-membership + already parsed => diamond.
+   */
+  ancestorKeys: string[]
 }
 
 export interface ParseContext {

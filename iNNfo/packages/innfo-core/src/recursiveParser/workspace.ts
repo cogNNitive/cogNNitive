@@ -1,5 +1,5 @@
 import type { DirectoryHandleLike, FileHandleLike } from '../fs-types'
-import type { ModelDriver } from '../types'
+import type { ModelDriver, ModelNode } from '../types'
 import type { TemplateSchema } from '../schema'
 import { IdentityRegistry } from '../identity'
 import type { ParseContext, RecursiveParseResult, WorklistItem } from './types'
@@ -237,6 +237,30 @@ export function extractSubmodelRefs(
 }
 
 /**
+ * Links the referring model to the just-resolved child in the node graph.
+ * DP1: the FIRST parent wins `parentId`; every parent gets the child in `childIds`,
+ * so non-primary (diamond) edges are recoverable without a new ModelNode field (AD-02).
+ */
+function linkParentChild(
+  ctx: ParseContext,
+  referringPath: string,
+  childNormKey: string,
+): { parentNode?: ModelNode; childNode?: ModelNode } {
+  const referringNorm = normalizePathKey(resolveSubmodelPath(referringPath))
+  const byPath = (key: string) =>
+    Object.values(ctx.nodes).find(
+      (n) => n.kind === 'root' && (n.source?.path ? normalizePathKey(n.source.path) : '') === key,
+    )
+  const parentNode = byPath(referringNorm)
+  const childNode = byPath(childNormKey)
+  if (parentNode && childNode && childNode.id !== parentNode.id) {
+    if (childNode.parentId === null) childNode.parentId = parentNode.id // first parent wins
+    if (!parentNode.childIds.includes(childNode.id)) parentNode.childIds.push(childNode.id)
+  }
+  return { parentNode, childNode }
+}
+
+/**
  * Parses a workspace by reading `workspace_NN.md` (or matching `workspace_*_NN.md`)
  * as the primary entry point, falling back to legacy `index.md`, or a root directory scan.
  */
@@ -344,6 +368,7 @@ export async function recursiveParse(
   // Step 3: Iterative worklist traversal
   const queue: WorklistItem[] = []
   const initialRefs = extractSubmodelRefs(entrypointContent, entrypointPath)
+  const entrypointKey = normalizePathKey(entrypointPath)
   for (const ref of initialRefs) {
     queue.push({
       path: ref.path,
@@ -351,6 +376,7 @@ export async function recursiveParse(
       referringPath: entrypointPath,
       depth: 1,
       author: ref.author,
+      ancestorKeys: [entrypointKey],
     })
   }
 
@@ -359,11 +385,16 @@ export async function recursiveParse(
     const resolvedPath = resolveSubmodelPath(item.path, item.referringPath)
     const normKey = normalizePathKey(resolvedPath)
 
-    if (visitedPaths.has(normKey)) {
+    if (item.ancestorKeys.includes(normKey)) {
       ctx.issues.push({
         path: item.path,
-        message: `Cycle detected: "${item.path}" referenced from "${item.referringPath}" is already loaded`,
+        message: `Cycle detected: "${item.path}" referenced from "${item.referringPath}" is an ancestor on this branch`,
+        code: 'CYCLE_DETECTED',
       })
+      continue
+    }
+    if (visitedPaths.has(normKey)) {
+      linkParentChild(ctx, item.referringPath, normKey) // diamond: second edge, no issue
       continue
     }
 
@@ -373,6 +404,7 @@ export async function recursiveParse(
       ctx.issues.push({
         path: item.path,
         message: `Traversal depth limit exceeded (MAX_DEPTH = 10) while resolving submodel "${item.path}"`,
+        code: 'DEPTH_LIMIT',
       })
       continue
     }
@@ -392,6 +424,7 @@ export async function recursiveParse(
         ctx.issues.push({
           path: item.path,
           message: `Referenced model "${item.path}" not found — skipping`,
+          code: 'MODEL_NOT_FOUND',
         })
         continue
       }
@@ -405,24 +438,7 @@ export async function recursiveParse(
     await parseAndRegisterModel(content, resolvedPath, item.name, ctx, elementNameToModel)
 
     // Establish parent-child relationship in graph between referring model and this model
-    const referringNorm = normalizePathKey(resolveSubmodelPath(item.referringPath))
-    const parentNode = Object.values(ctx.nodes).find((n) => {
-      if (n.kind !== 'root') return false
-      const nPath = n.source?.path ? normalizePathKey(n.source.path) : ''
-      return nPath === referringNorm
-    })
-    const childNode = Object.values(ctx.nodes).find((n) => {
-      if (n.kind !== 'root') return false
-      const nPath = n.source?.path ? normalizePathKey(n.source.path) : ''
-      return nPath === normKey
-    })
-
-    if (parentNode && childNode && childNode.id !== parentNode.id) {
-      childNode.parentId = parentNode.id
-      if (!parentNode.childIds.includes(childNode.id)) {
-        parentNode.childIds.push(childNode.id)
-      }
-    }
+    const { childNode } = linkParentChild(ctx, item.referringPath, normKey)
 
     // Propagate workspace-scoped author from referring manifest
     if (item.author && childNode) {
@@ -431,6 +447,7 @@ export async function recursiveParse(
 
     // Extract nested submodel references from this model
     const nestedRefs = extractSubmodelRefs(content, resolvedPath)
+    const nestedAncestorKeys = [...item.ancestorKeys, normKey]
     for (const nRef of nestedRefs) {
       queue.push({
         path: nRef.path,
@@ -438,6 +455,7 @@ export async function recursiveParse(
         referringPath: resolvedPath,
         depth: item.depth + 1,
         author: nRef.author,
+        ancestorKeys: nestedAncestorKeys,
       })
     }
   }
