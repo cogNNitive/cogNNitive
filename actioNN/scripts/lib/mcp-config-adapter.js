@@ -51,6 +51,7 @@ function registerMcpForOpenCode({ configFile, serverName = 'innfo-mcp', bundlePa
     fs.mkdirSync(dir, { recursive: true });
   }
 
+  /** @type {Record<string, any>} */
   let config = {};
   if (fs.existsSync(configFile)) {
     try {
@@ -98,20 +99,22 @@ function registerMcpForOpenCode({ configFile, serverName = 'innfo-mcp', bundlePa
 }
 
 /**
- * Registers an MCP server in Claude Code configuration (~/.claude.json).
+ * Generic helper for agents using the standard mcpServers object format (Claude, Antigravity).
  * @param {{
+ *   agent: 'claude' | 'antigravity',
  *   configFile: string,
  *   serverName?: string,
  *   bundlePath: string,
  * }} options
- * @returns {{ agent: 'claude', file: string, updated: boolean }}
+ * @returns {{ agent: 'claude' | 'antigravity', file: string, updated: boolean }}
  */
-function registerMcpForClaude({ configFile, serverName = 'innfo-mcp', bundlePath }) {
+function registerMcpServersFormat({ agent, configFile, serverName = 'innfo-mcp', bundlePath }) {
   const dir = path.dirname(configFile);
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
 
+  /** @type {Record<string, any>} */
   let config = {};
   if (fs.existsSync(configFile)) {
     try {
@@ -137,7 +140,7 @@ function registerMcpForClaude({ configFile, serverName = 'innfo-mcp', bundlePath
     existing.args.length === 1 &&
     existing.args[0] === bundlePath
   ) {
-    return { agent: 'claude', file: configFile, updated: false };
+    return { agent, file: configFile, updated: false };
   }
 
   config.mcpServers[serverName] = {
@@ -146,7 +149,21 @@ function registerMcpForClaude({ configFile, serverName = 'innfo-mcp', bundlePath
   };
 
   writeJsonClean(configFile, config);
-  return { agent: 'claude', file: configFile, updated: true };
+  return { agent, file: configFile, updated: true };
+}
+
+/**
+ * Registers an MCP server in Claude Code configuration (~/.claude.json).
+ * @param {{
+ *   configFile: string,
+ *   serverName?: string,
+ *   bundlePath: string,
+ * }} options
+ * @returns {{ agent: 'claude', file: string, updated: boolean }}
+ */
+function registerMcpForClaude(options) {
+  const res = registerMcpServersFormat({ ...options, agent: 'claude' });
+  return { agent: 'claude', file: res.file, updated: res.updated };
 }
 
 /**
@@ -158,47 +175,9 @@ function registerMcpForClaude({ configFile, serverName = 'innfo-mcp', bundlePath
  * }} options
  * @returns {{ agent: 'antigravity', file: string, updated: boolean }}
  */
-function registerMcpForAntigravity({ configFile, serverName = 'innfo-mcp', bundlePath }) {
-  const dir = path.dirname(configFile);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-
-  let config = {};
-  if (fs.existsSync(configFile)) {
-    try {
-      config = readJsonClean(configFile);
-    } catch {
-      config = {};
-    }
-  }
-
-  if (!config || typeof config !== 'object' || Array.isArray(config)) {
-    config = {};
-  }
-
-  if (!config.mcpServers || typeof config.mcpServers !== 'object' || Array.isArray(config.mcpServers)) {
-    config.mcpServers = {};
-  }
-
-  const existing = config.mcpServers[serverName];
-  if (
-    existing &&
-    existing.command === 'node' &&
-    Array.isArray(existing.args) &&
-    existing.args.length === 1 &&
-    existing.args[0] === bundlePath
-  ) {
-    return { agent: 'antigravity', file: configFile, updated: false };
-  }
-
-  config.mcpServers[serverName] = {
-    command: 'node',
-    args: [bundlePath],
-  };
-
-  writeJsonClean(configFile, config);
-  return { agent: 'antigravity', file: configFile, updated: true };
+function registerMcpForAntigravity(options) {
+  const res = registerMcpServersFormat({ ...options, agent: 'antigravity' });
+  return { agent: 'antigravity', file: res.file, updated: res.updated };
 }
 
 /**

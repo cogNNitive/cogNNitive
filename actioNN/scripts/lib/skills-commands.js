@@ -64,7 +64,7 @@ function requestFor(url) {
 
 /**
  * Initializes a new empty skill manager state structure.
- * @returns {{ manifest: string, skills: Record<string, any>, templates: Record<string, any> }}
+ * @returns {{ manifest: string, skills: Record<string, any>, templates: Record<string, any>, mcp: Record<string, any> }}
  */
 function emptyState() {
   return { manifest: getManifestUrl(), skills: {}, templates: {}, mcp: {} };
@@ -430,7 +430,7 @@ async function cmdStatus(args) {
       else if (entry.commit === template.commit) status = 'up-to-date';
       else status = 'outdated';
     } else {
-      status = entry ? 'missing' : 'missing';
+      status = entry ? 'file-missing' : 'missing';
     }
     rows.push({
       type: 'template',
