@@ -91,8 +91,8 @@ function run() {
     ok(!/source_id/.test(model1), 'provenance model never emits source_id');
     ok(!/src-\d{3}/.test(model1), 'provenance model never emits a src-NNN id');
 
-    // assets materialized at assets/{slug}/{file}
-    ok(fs.existsSync(path.join(proj, 'assets', 'market-reportdocx', 'market-report.md')), 'asset copied to slug dir');
+    // The lineage build no longer duplicates the normalized .md corpus into assets/.
+    ok(!fs.existsSync(path.join(proj, 'assets', 'market-reportdocx', 'market-report.md')), 'normalized .md is NOT copied into assets/');
 
     // semantic index.md written at root
     const idx = fs.readFileSync(path.join(proj, 'index.md'), 'utf8');

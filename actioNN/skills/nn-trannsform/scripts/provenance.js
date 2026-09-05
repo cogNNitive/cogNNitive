@@ -36,7 +36,6 @@ function buildProvenanceModel(projectDir, options = {}) {
   const models = modelLib.collectModels(projectDir);
   const artifacts = modelLib.collectArtifacts(projectDir);
 
-  modelLib.materializeAssets(projectDir, sources);
 
   const { modelPath, created } = resolveModelPath(projectDir, projectName);
   const data = { sources, models, artifacts };

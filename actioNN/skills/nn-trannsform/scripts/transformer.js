@@ -38,10 +38,11 @@ function collectMarkdownFiles(mdDir) {
 }
 
 /**
- * Fallback heuristic transformer — used only when the agent cannot perform
- * the transformation directly (e.g. context too large).
- *
- * Reads individual markdown files from sources/nn/ and applies template structure.
+ * Mechanical fallback transformer — used only when the agent cannot perform
+ * the transformation itself (e.g. context too large). It does NOT interpret
+ * the template: it concatenates every normalized Source under the template's
+ * name so the agent (or user) has a single file to work from. The agent is
+ * expected to redo this properly.
  */
 async function applyTransformation(projectDir, templateName, options = {}) {
   const transDir = path.join(projectDir, 'traNNsformations');
@@ -90,38 +91,20 @@ async function applyTransformation(projectDir, templateName, options = {}) {
   };
 }
 
+/**
+ * Concatenate every normalized Source under the template name, unchanged.
+ * No structural interpretation — this is a placeholder for the agent to
+ * transform properly.
+ */
 function runHeuristicTransformation(templateName, sourceContent) {
-  const sections = sourceContent.split('---');
-  let result = `# Transformation Result: ${path.basename(templateName, '.md')}\n\n`;
-
-  let processedAny = false;
-  for (const sec of sections) {
-    const lines = sec.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-    const titleLine = lines.find(l => l.startsWith('# '));
-    if (titleLine) {
-      const name = titleLine.substring(2).trim();
-
-      const paragraphs = lines.filter(l => !l.startsWith('#') && !l.startsWith('---'));
-      const desc = paragraphs[0] || 'No description available.';
-      const hist = paragraphs[1] || 'No history available.';
-
-      result += `### ${name}\n`;
-      result += `**Description:** ${desc}\n\n`;
-      result += `**History:** ${hist}\n\n`;
-      result += `**Members:**\n`;
-      result += `| Member | Instrument |\n`;
-      result += `| --- | --- |\n`;
-      result += `| [Name] | [Instrument] |\n\n`;
-      result += `---\n\n`;
-      processedAny = true;
-    }
-  }
-
-  if (!processedAny) {
-    result += `*No structural headers or data found in input markdown files to transform.*\n`;
-  }
-
-  return result;
+  const name = path.basename(templateName, '.md');
+  return (
+    `# ${name} — mechanical fallback\n\n` +
+    `> Generated without agent interpretation: the normalized Sources below are ` +
+    `concatenated verbatim. Rework this into the "${name}" template structure.\n\n` +
+    sourceContent.trim() +
+    '\n'
+  );
 }
 
 function getFormattedTimestamp() {

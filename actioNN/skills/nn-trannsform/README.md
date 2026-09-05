@@ -42,12 +42,11 @@ nn-trannsform/
     scanner.js              Format detection, file conversion (txt, md, csv, json, html, docx, pdf, xlsx)
     extract.js              Quick text extraction (no ingestion) — prints a single file's plain text to stdout
     webImport.js            Downloads a URL straight into sources/original/ + HTML metadata extraction
-    transformer.js          Template listing and fallback heuristic transformation
-    provenance.js           Builds/refreshes the provenance model + semantic index.md
+    transformer.js          Template listing + a mechanical (verbatim-concat) fallback
+    provenance.js           Builds/refreshes the lineage record + semantic index.md
     config.js               Persistent config (last project path, default directories)
   examples/
-    raw/                    Sample source files (BeachBoys.txt, Beatles.txt, RollingStones.txt)
-    traNNsformations/       Sample transformation templates
+    workflows/              Sample multi-step transformation workflows
 ```
 
 ## How dependencies are resolved

@@ -170,27 +170,27 @@ pass. Not started.
 
 ## PR 8 — `chore(nn-trannsform): remove Beatles fixtures, gut heuristic transformer`
 
-- [ ] 8.1 Update `test.ps1` / `test/run.js` to drop assertions on the
+- [x] 8.1 Update `test.ps1` / `test/run.js` to drop assertions on the
       band-shaped transform output. (RED where they assert it)
-- [ ] 8.2 `git rm examples/raw/Beatles.txt examples/raw/BeachBoys.txt
+- [x] 8.2 `git rm examples/raw/Beatles.txt examples/raw/BeachBoys.txt
       examples/raw/RollingStones.txt`.
-- [ ] 8.3 Replace `runHeuristicTransformation` body with a plain passthrough
-      (concatenate each source under the template's headings) — or delete
-      `applyTransformation`'s fallback entirely and throw a clear
-      "agent must perform this transform" error. Record which in this file.
-- [ ] 8.4 Update `README.md` (`raw/` sample line) and `TESTING.md`.
-- [ ] 8.5 `node --test …/nn-trannsform/test/`; `test.ps1` if on Windows CI.
-- [ ] 8.6 Commit. Open PR 8. Merge on green.
+- [x] 8.3 `runHeuristicTransformation` now concatenates the normalized Sources
+      verbatim under a "mechanical fallback — rework this" banner (no fake
+      structure). `applyTransformation`'s fallback path kept.
+- [x] 8.4 Update `README.md` (`raw/` sample line) and `TESTING.md`.
+- [x] 8.5 `node --test …/nn-trannsform/test/`; `test.ps1` if on Windows CI.
+- [x] 8.6 Commit. Open PR 8. Merge on green.
 
 ## PR 9 — `chore(nn-trannsform): stop copying normalized .md into assets/`
 
-- [ ] 9.1 Update `test/unit/test-provenance.js`: after `buildProvenanceModel`,
+- [x] 9.1 Update `test/unit/test-provenance.js`: after `buildProvenanceModel`,
       `assets/<slug>/` contains media/binary only, no `*.md` copy. (RED)
-- [ ] 9.2 In `provenance-model.js` `materializeAssets`, drop the `.md` copy;
-      keep (or add) handling for real asset files referenced by elements. (GREEN)
-- [ ] 9.3 Update `nn-trannsform/SKILL.md` §1 layout note for `assets/`.
-- [ ] 9.4 `node --test …/nn-trannsform/test/`.
-- [ ] 9.5 Commit. Open PR 9. Merge on green.
+- [x] 9.2 `materializeAssets` deleted entirely (it only ever duplicated the .md
+      corpus) — function, export, and the call in provenance.js. `assets/` is
+      documented as binary/media only.
+- [x] 9.3 Update `nn-trannsform/SKILL.md` §1 layout note for `assets/`.
+- [x] 9.4 `node --test …/nn-trannsform/test/`.
+- [x] 9.5 Commit. Open PR 9. Merge on green.
 
 ## PR 10 — `refactor: unify slug algorithm with accent transliteration` ⏸ review
 
