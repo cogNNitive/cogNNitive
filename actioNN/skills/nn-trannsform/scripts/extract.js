@@ -89,7 +89,7 @@ async function main() {
   try {
     switch (format) {
       case 'doc':
-        throw new Error(".doc no soportado — convertirlo a .docx o usar el .txt");
+        throw new Error("Legacy .doc is not supported — convert it to .docx, or provide the .txt");
       case 'pdf': {
         const result = await scanner.convertPdf(filePath, baseName);
         if (result.partial) {

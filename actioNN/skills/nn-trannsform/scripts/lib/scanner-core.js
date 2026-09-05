@@ -311,7 +311,7 @@ async function processPromptFile(ext, absPath, sourceFileField, destPath, displa
   }
 
   if (ext === '.doc') {
-    return { format, status: '⚠️ Skipped', action: '.doc no soportado — convertirlo a .docx o usar el .txt', outcome: 'skipped' };
+    return { format, status: '⚠️ Skipped', action: 'Legacy .doc is not supported — convert it to .docx, or provide the .txt', outcome: 'skipped' };
   }
 
   const dep = await converters.ensureDependency(ext, options, EXT_DEPS);

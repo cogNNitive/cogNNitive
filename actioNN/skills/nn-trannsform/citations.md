@@ -26,7 +26,7 @@ The operational target for Q3 is 12,000 active units[^1].
 [^1]: Strategic Growth Plan (strategic_plan_source.md#q3-milestones), section Q3 Milestones.
 ```
 
-## Format: Sencillo — Verbatim Source Attribution
+## Format: Simple — Verbatim Source Attribution
 
 Render visible inline attribution directly after the cited claim.
 
