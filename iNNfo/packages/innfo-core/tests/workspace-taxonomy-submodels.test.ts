@@ -5,7 +5,9 @@ import {
   validateDocument,
   extractTemplateSchema,
   parseModel,
+  buildWorkspaceIndex,
 } from '../src/index'
+import type { TemplateSchema, ModelNode, RecursiveParseResult } from '../src/index'
 import { normalizeElementsIntoGraph } from '../src/recursiveParser/normalize'
 import type { DirectoryHandleLike, FileHandleLike } from '../src/fs-types'
 import type { ParseContext } from '../src/recursiveParser/types'
@@ -383,6 +385,504 @@ path:: model_a_01.md
       expect(modelBNode).toBeDefined()
       expect(reachable.has(modelANode!.id)).toBe(true)
       expect(reachable.has(modelBNode!.id)).toBe(true)
+    })
+  })
+
+  describe('buildWorkspaceIndex', () => {
+    it('index-basic-maps: a 3-model workspace populates pathToNodeId, titleToNodeIds, fileNameToNodeIds, nodeTemplate', async () => {
+      const files: Record<string, string> = {
+        'workspace_01.md': `---
+spec_version: V_1-0-0
+level: 3
+parent_spec:
+  name: workspace_spec_01
+  url: https://example.com/workspace_spec_01.md
+model_version: V_0-1-0
+title: Root Workspace
+---
+# NN ModelRef
+
+## NN ModelRef: Model A
+path:: model_a_01.md
+
+## NN ModelRef: Model B
+path:: model_b_01.md
+`,
+        'model_a_01.md': `---
+spec_version: V_1-0-0
+level: 3
+parent_spec:
+  name: spec_01
+  url: https://example.com/spec.md
+model_version: V_0-1-0
+title: Model A
+---
+# NN Components
+## NN Components: Widget
+`,
+        'model_b_01.md': `---
+spec_version: V_1-0-0
+level: 3
+parent_spec:
+  name: spec_01
+  url: https://example.com/spec.md
+model_version: V_0-1-0
+title: Model B
+---
+# NN Components
+## NN Components: Gadget
+`,
+      }
+
+      const rootHandle = createFakeDirectoryHandle(files)
+      const result = await recursiveParse(rootHandle)
+      const index = buildWorkspaceIndex(result)
+
+      const rootNode = Object.values(result.nodes).find((n) => n.name === 'workspace_01')!
+      const aNode = Object.values(result.nodes).find((n) => n.name === 'model_a_01')!
+      const bNode = Object.values(result.nodes).find((n) => n.name === 'model_b_01')!
+
+      expect(index.pathToNodeId['workspace_01.md']).toBe(rootNode.id)
+      expect(index.pathToNodeId['model_a_01.md']).toBe(aNode.id)
+      expect(index.pathToNodeId['model_b_01.md']).toBe(bNode.id)
+
+      expect(index.titleToNodeIds['root workspace']).toEqual([rootNode.id])
+      expect(index.titleToNodeIds['model a']).toEqual([aNode.id])
+      expect(index.titleToNodeIds['model b']).toEqual([bNode.id])
+
+      expect(index.fileNameToNodeIds['workspace_01']).toEqual([rootNode.id])
+      expect(index.fileNameToNodeIds['model_a_01']).toEqual([aNode.id])
+      expect(index.fileNameToNodeIds['model_b_01']).toEqual([bNode.id])
+
+      expect(index.nodeTemplate[rootNode.id]).toEqual({
+        name: 'workspace_spec_01',
+        url: 'https://example.com/workspace_spec_01.md',
+      })
+      expect(index.nodeTemplate[aNode.id]).toEqual({
+        name: 'spec_01',
+        url: 'https://example.com/spec.md',
+      })
+    })
+
+    it('index-duplicate-title-error: two models sharing a title are both indexed and flagged as an error issue', async () => {
+      const files: Record<string, string> = {
+        'workspace_01.md': `---
+spec_version: V_1-0-0
+level: 3
+parent_spec:
+  name: workspace_spec_01
+  url: https://example.com/workspace_spec_01.md
+model_version: V_0-1-0
+title: Root Workspace
+---
+# NN ModelRef
+
+## NN ModelRef: Org One
+path:: org_one_01.md
+
+## NN ModelRef: Org Two
+path:: org_two_01.md
+`,
+        'org_one_01.md': `---
+spec_version: V_1-0-0
+level: 3
+parent_spec:
+  name: spec_01
+  url: https://example.com/spec.md
+model_version: V_0-1-0
+title: Acme Org
+---
+# NN Components
+## NN Components: Widget
+`,
+        'org_two_01.md': `---
+spec_version: V_1-0-0
+level: 3
+parent_spec:
+  name: spec_01
+  url: https://example.com/spec.md
+model_version: V_0-1-0
+title: Acme Org
+---
+# NN Components
+## NN Components: Gadget
+`,
+      }
+
+      const rootHandle = createFakeDirectoryHandle(files)
+      const result = await recursiveParse(rootHandle)
+      const index = buildWorkspaceIndex(result)
+
+      const orgOneNode = Object.values(result.nodes).find((n) => n.name === 'org_one_01')!
+      const orgTwoNode = Object.values(result.nodes).find((n) => n.name === 'org_two_01')!
+
+      expect(index.titleToNodeIds['acme org']).toHaveLength(2)
+      expect(index.titleToNodeIds['acme org']).toEqual(
+        expect.arrayContaining([orgOneNode.id, orgTwoNode.id]),
+      )
+
+      const duplicateIssues = index.issues.filter((i) => i.message.includes('Duplicate model title'))
+      expect(duplicateIssues).toHaveLength(1)
+      expect(duplicateIssues[0].severity).toBe('error')
+      expect(duplicateIssues[0].message).toContain('org_one_01.md')
+      expect(duplicateIssues[0].message).toContain('org_two_01.md')
+    })
+
+    it('index-filename-repeat-is-not-an-error: same basename in different directories is ambiguity, not an error', () => {
+      // Two distinct root nodes deliberately share the same source basename
+      // (`biz_01.md`) under different directories, constructed directly
+      // against a synthetic RecursiveParseResult. Reaching this shape via
+      // recursiveParse() itself is blocked by an unrelated, pre-existing
+      // constraint: IdentityRegistry.register(null, name) throws
+      // DuplicateNameError for two root-level files that share a derived
+      // model name regardless of directory (identity.ts:30-32) — a parser
+      // limitation orthogonal to buildWorkspaceIndex's own derivation rules,
+      // which this test exercises directly.
+      const nodeA: ModelNode = {
+        id: 'biz-a',
+        name: 'biz_01',
+        parentId: null,
+        childIds: [],
+        type: 'document',
+        kind: 'root',
+        fields: { title: { value: 'Biz In A', provenance: { author: { kind: 'system', id: 'test' }, timestamp: '' } } },
+        markers: {},
+        relationships: [],
+        rawSections: {},
+        source: { path: 'a/biz_01.md' },
+      }
+      const nodeB: ModelNode = {
+        id: 'biz-b',
+        name: 'biz_01',
+        parentId: null,
+        childIds: [],
+        type: 'document',
+        kind: 'root',
+        fields: { title: { value: 'Biz In B', provenance: { author: { kind: 'system', id: 'test' }, timestamp: '' } } },
+        markers: {},
+        relationships: [],
+        rawSections: {},
+        source: { path: 'b/biz_01.md' },
+      }
+      const syntheticResult: RecursiveParseResult = {
+        nodes: { [nodeA.id]: nodeA, [nodeB.id]: nodeB },
+        rootIds: [nodeA.id, nodeB.id],
+        issues: [],
+      }
+
+      const index = buildWorkspaceIndex(syntheticResult)
+
+      expect(index.fileNameToNodeIds['biz_01']).toHaveLength(2)
+      expect(index.fileNameToNodeIds['biz_01']).toEqual(expect.arrayContaining([nodeA.id, nodeB.id]))
+      expect(index.issues).toHaveLength(0)
+    })
+
+    it('index-extra-parents-from-diamond: the second-encountered parent of a diamond child is surfaced in extraParents', async () => {
+      const files: Record<string, string> = {
+        'workspace_01.md': `---
+spec_version: V_1-0-0
+level: 3
+parent_spec:
+  name: workspace_spec_01
+  url: https://example.com/workspace_spec_01.md
+model_version: V_0-1-0
+title: Root Workspace
+---
+# NN ModelRef
+
+## NN ModelRef: Model A
+path:: model_a_01.md
+
+## NN ModelRef: Model B
+path:: model_b_01.md
+`,
+        'model_a_01.md': `---
+spec_version: V_1-0-0
+level: 3
+parent_spec:
+  name: spec_01
+  url: https://example.com/spec.md
+model_version: V_0-1-0
+title: Model A
+---
+# NN Components
+## NN Components: Widget
+`,
+        'model_b_01.md': `---
+spec_version: V_1-0-0
+level: 3
+parent_spec:
+  name: spec_01
+  url: https://example.com/spec.md
+model_version: V_0-1-0
+title: Model B
+---
+# NN ModelRef
+## NN ModelRef: Model A ref
+path:: model_a_01.md
+`,
+      }
+
+      const rootHandle = createFakeDirectoryHandle(files)
+      const result = await recursiveParse(rootHandle)
+      const index = buildWorkspaceIndex(result)
+
+      const rootNode = Object.values(result.nodes).find((n) => n.name === 'workspace_01')!
+      const modelANode = Object.values(result.nodes).find((n) => n.name === 'model_a_01')!
+      const modelBNode = Object.values(result.nodes).find((n) => n.name === 'model_b_01')!
+
+      expect(modelANode.parentId).toBe(rootNode.id)
+      expect(index.extraParents[modelANode.id]).toEqual([modelBNode.id])
+    })
+
+    it('index-missing-from-parse-issues: a referenced but unresolved path is surfaced in missing, de-duplicated', async () => {
+      const files: Record<string, string> = {
+        'workspace_01.md': `---
+spec_version: V_1-0-0
+level: 3
+parent_spec:
+  name: workspace_spec_01
+  url: https://example.com/workspace_spec_01.md
+model_version: V_0-1-0
+title: Root Workspace
+---
+# NN ModelRef
+
+## NN ModelRef: Ghost
+path:: ghost_business_01.md
+`,
+      }
+
+      const rootHandle = createFakeDirectoryHandle(files)
+      const result = await recursiveParse(rootHandle)
+      const index = buildWorkspaceIndex(result)
+
+      expect(result.issues.some((i) => i.code === 'MODEL_NOT_FOUND')).toBe(true)
+      expect(index.missing).toEqual(['ghost_business_01.md'])
+    })
+
+    it('index-node-schema-from-stash: a resolver supplied to recursiveParse stashes the schema, and buildWorkspaceIndex surfaces it without its own fallback resolver', async () => {
+      const files: Record<string, string> = {
+        'workspace_01.md': `---
+spec_version: V_1-0-0
+level: 3
+parent_spec:
+  name: workspace_spec_01
+  url: https://example.com/workspace_spec_01.md
+model_version: V_0-1-0
+title: Root Workspace
+---
+# NN ModelRef
+
+## NN ModelRef: Model A
+path:: model_a_01.md
+`,
+        'model_a_01.md': `---
+spec_version: V_1-0-0
+level: 3
+parent_spec:
+  name: spec_01
+  url: https://example.com/spec.md
+model_version: V_0-1-0
+title: Model A
+---
+# NN Components
+## NN Components: Widget
+`,
+      }
+
+      const composedSchema: TemplateSchema = {
+        concepts: [],
+        markers: [],
+        matrices: [],
+        taxonomy: [],
+      }
+
+      const rootHandle = createFakeDirectoryHandle(files)
+      const result = await recursiveParse(rootHandle, undefined, {
+        resolveTemplateSchema: () => composedSchema,
+      })
+      const index = buildWorkspaceIndex(result)
+
+      const modelANode = Object.values(result.nodes).find((n) => n.name === 'model_a_01')!
+      expect(index.nodeSchema[modelANode.id]).toBe(composedSchema)
+    })
+
+    it('index-node-schema-from-fallback-resolver: without a stashed schema, buildWorkspaceIndex falls back to its own resolveTemplateSchema argument', () => {
+      const fallbackSchema: TemplateSchema = {
+        concepts: [],
+        markers: [],
+        matrices: [],
+        taxonomy: [],
+      }
+
+      const rootNode: ModelNode = {
+        id: 'root-1',
+        name: 'workspace_01',
+        parentId: null,
+        childIds: [],
+        type: 'document',
+        kind: 'root',
+        fields: {},
+        markers: {},
+        relationships: [],
+        rawSections: {},
+        rawContent: '---\ntitle: Root Workspace\n---\n',
+        source: { path: 'workspace_01.md' },
+      }
+      const syntheticResult: RecursiveParseResult = {
+        nodes: { [rootNode.id]: rootNode },
+        rootIds: [rootNode.id],
+        issues: [],
+      }
+
+      const index = buildWorkspaceIndex(syntheticResult, () => fallbackSchema)
+
+      expect(index.nodeSchema[rootNode.id]).toBe(fallbackSchema)
+    })
+
+    it('index-element-concepts-normalized: an element name with a typographic dash resolves via both its exact and separator-normalized keys', async () => {
+      const files: Record<string, string> = {
+        'workspace_01.md': `---
+spec_version: V_1-0-0
+level: 3
+parent_spec:
+  name: workspace_spec_01
+  url: https://example.com/workspace_spec_01.md
+model_version: V_0-1-0
+title: Root Workspace
+---
+# NN Rooms
+
+## NN Rooms: Salón–Comedor
+description:: Living-dining room.
+`,
+      }
+
+      const rootHandle = createFakeDirectoryHandle(files)
+      const result = await recursiveParse(rootHandle)
+      const index = buildWorkspaceIndex(result)
+
+      const rootNode = Object.values(result.nodes).find((n) => n.name === 'workspace_01')!
+      const exactKey = 'salón–comedor'
+      const normalizedKey = 'salón-comedor'
+
+      expect(index.nodeElementConcepts[rootNode.id][exactKey]).toEqual(['Rooms'])
+      expect(index.nodeElementConcepts[rootNode.id][normalizedKey]).toEqual(['Rooms'])
+    })
+
+    it('index-workspace-id: the entrypoint frontmatter workspace_id is surfaced on the index', async () => {
+      const files: Record<string, string> = {
+        'workspace_01.md': `---
+spec_version: V_1-0-0
+level: 3
+parent_spec:
+  name: workspace_spec_01
+  url: https://example.com/workspace_spec_01.md
+model_version: V_0-1-0
+title: Root Workspace
+workspace_id: acme-portfolio
+---
+# NN ModelRef
+
+## NN ModelRef: Model A
+path:: model_a_01.md
+`,
+        'model_a_01.md': `---
+spec_version: V_1-0-0
+level: 3
+parent_spec:
+  name: spec_01
+  url: https://example.com/spec.md
+model_version: V_0-1-0
+title: Model A
+---
+# NN Components
+## NN Components: Widget
+`,
+      }
+
+      const rootHandle = createFakeDirectoryHandle(files)
+      const result = await recursiveParse(rootHandle)
+      const index = buildWorkspaceIndex(result)
+
+      expect(index.workspaceId).toBe('acme-portfolio')
+    })
+
+    it('index-workspace-id absent: an entrypoint without workspace_id leaves the field undefined', async () => {
+      const files: Record<string, string> = {
+        'workspace_01.md': `---
+spec_version: V_1-0-0
+level: 3
+parent_spec:
+  name: workspace_spec_01
+  url: https://example.com/workspace_spec_01.md
+model_version: V_0-1-0
+title: Root Workspace
+---
+# NN ModelRef
+
+## NN ModelRef: Model A
+path:: model_a_01.md
+`,
+        'model_a_01.md': `---
+spec_version: V_1-0-0
+level: 3
+parent_spec:
+  name: spec_01
+  url: https://example.com/spec.md
+model_version: V_0-1-0
+title: Model A
+---
+# NN Components
+## NN Components: Widget
+`,
+      }
+
+      const rootHandle = createFakeDirectoryHandle(files)
+      const result = await recursiveParse(rootHandle)
+      const index = buildWorkspaceIndex(result)
+
+      expect(index.workspaceId).toBeUndefined()
+    })
+
+    it('never mutates the result it derives from', async () => {
+      const files: Record<string, string> = {
+        'workspace_01.md': `---
+spec_version: V_1-0-0
+level: 3
+parent_spec:
+  name: workspace_spec_01
+  url: https://example.com/workspace_spec_01.md
+model_version: V_0-1-0
+title: Root Workspace
+---
+# NN ModelRef
+
+## NN ModelRef: Model A
+path:: model_a_01.md
+`,
+        'model_a_01.md': `---
+spec_version: V_1-0-0
+level: 3
+parent_spec:
+  name: spec_01
+  url: https://example.com/spec.md
+model_version: V_0-1-0
+title: Model A
+---
+# NN Components
+## NN Components: Widget
+`,
+      }
+
+      const rootHandle = createFakeDirectoryHandle(files)
+      const result = await recursiveParse(rootHandle)
+      const snapshot = JSON.parse(JSON.stringify(result))
+
+      buildWorkspaceIndex(result)
+
+      expect(JSON.parse(JSON.stringify(result))).toEqual(snapshot)
     })
   })
 })

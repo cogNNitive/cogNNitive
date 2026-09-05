@@ -2,9 +2,19 @@ import { defineStore } from 'pinia'
 import type { ModelNode } from '../model/types'
 import type { DirectoryHandleLike } from '../model/fs-types'
 import { recursiveParse } from '../model/recursiveParser'
-import { validateFormatContent, updateReferenceString } from '@cognnitive/innfo-core'
-import type { ModelDriver, ParseIssue, ValidationReport } from '@cognnitive/innfo-core'
-import { resolveParentSpecs } from '../services/SpecResolverService'
+import {
+  validateFormatContent,
+  updateReferenceString,
+  buildWorkspaceIndex,
+  validateWorkspaceReferences,
+} from '@cognnitive/innfo-core'
+import type {
+  ModelDriver,
+  ParseIssue,
+  ValidationReport,
+  ReferenceDiagnostic,
+} from '@cognnitive/innfo-core'
+import { resolveParentSpecs, warmTemplateCache } from '../services/SpecResolverService'
 
 import { useUiStore } from './uiStore'
 
@@ -187,10 +197,64 @@ export const useModelStore = defineStore('model', {
      * the call so workspaceStore.open() has a single integration point.
      */
     async parseFromHandle(handle: DirectoryHandleLike, driver?: ModelDriver): Promise<void> {
-      const result = await recursiveParse(handle, driver)
+      // C1: warm a synchronously-servable template cache BEFORE the parse so
+      // recursiveParse can follow `type:: model` fields (AD-04). A cold/partial
+      // cache is not an error — it degrades that node to today's traversal.
+      const templateCache = await warmTemplateCache(handle)
+      const result = await recursiveParse(handle, driver, {
+        resolveTemplateSchema: ({ frontmatter }) => {
+          const name = (frontmatter as { parent_spec?: { name?: string } } | undefined)?.parent_spec
+            ?.name
+          return name ? (templateCache.get(name.toLowerCase()) ?? null) : null
+        },
+      })
       await resolveParentSpecs(result.nodes, result.rootIds, handle, result.issues)
-      this.parseIssues = result.issues
+
+      // Cross-model validation (PR5a wiring, checkOne stubbed to [] until
+      // PR5b): the workspace index and qualified-ref pass run once per
+      // parse, after per-file parsing/spec-resolution settle, so sibling
+      // models are visible to `[[Model :: Element]]` lookups. v1 re-runs
+      // the whole pass on every save — incremental invalidation is out of
+      // scope (design.md Slice 5, "Host wiring").
+      const workspaceIndex = buildWorkspaceIndex(result)
+      const workspaceDiagnostics = validateWorkspaceReferences(result, workspaceIndex)
+
+      this.parseIssues = [...result.issues, ...workspaceIndex.issues]
       this.setGraph(result.nodes, result.rootIds)
+      this.mergeWorkspaceDiagnostics(workspaceDiagnostics)
+    },
+
+    /**
+     * Merges workspace-scope cross-model reference diagnostics
+     * (`validateWorkspaceReferences`) into the aggregate `validationReport`
+     * built by `validateModel()`. Runs after `setGraph` (which rebuilds the
+     * report from scratch) so these are never clobbered by the per-file pass.
+     */
+    mergeWorkspaceDiagnostics(diagnostics: ReferenceDiagnostic[]): void {
+      if (diagnostics.length === 0) return
+      if (!this.validationReport) {
+        this.validationReport = {
+          checks: [],
+          summary: { total: 0, passed: 0, errors: 0, warnings: 0 },
+        }
+      }
+      for (const diag of diagnostics) {
+        this.validationReport.checks.push({
+          id: `workspace-ref:${diag.path}`,
+          label: 'Cross-model reference',
+          description: 'Qualified cross-model reference checked against the workspace index',
+          category: 'body',
+          severity: diag.severity,
+          passed: false,
+          message: diag.message,
+        })
+        this.validationReport.summary.total += 1
+        if (diag.severity === 'error') {
+          this.validationReport.summary.errors += 1
+        } else {
+          this.validationReport.summary.warnings += 1
+        }
+      }
     },
 
     /**
