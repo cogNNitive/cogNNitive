@@ -171,7 +171,7 @@ function run() {
       const walkAfterStaging = scanner.walkOriginal(originalDir);
       assertTrue(!walkAfterStaging.some(f => f.relPath.includes('staging')), 'walkOriginal ignores staging directory');
 
-      // Test 13: generateSourceFrontmatter with extended metadata (canonical, references, is_synthetic, staging_file)
+      // Test 13: generateSourceFrontmatter with extended metadata (canonical, cited_works, is_synthetic, staging_file)
       const fmExtended = scanner.generateSourceFrontmatter(testFile, 'sources/original/interview.mp3', {
         staging_file: 'sources/staging/interview.srt',
         is_synthetic: false,
@@ -182,15 +182,21 @@ function run() {
           doi: '10.1145/3290605.3300233',
           bibtex: '@misc{doe2026,\n  title={Strategic Vision}\n}'
         },
-        references: [
+        cited_works: [
           { id: 'porter1985', citation: 'Porter (1985)', is_primary: true }
         ]
       });
       assertTrue(fmExtended.includes('staging_file: "sources/staging/interview.srt"'), 'frontmatter includes staging_file');
       assertTrue(fmExtended.includes('is_synthetic: false'), 'frontmatter includes is_synthetic: false');
       assertTrue(fmExtended.includes('canonical:\n  title: "Strategic Vision 2026"'), 'frontmatter includes canonical block');
-      assertTrue(fmExtended.includes('references:\n  - id: "porter1985"'), 'frontmatter includes references block');
-      assertTrue(fmExtended.includes('is_primary: true'), 'frontmatter references includes is_primary: true');
+      assertTrue(fmExtended.includes('cited_works:\n  - id: "porter1985"'), 'frontmatter includes cited_works block');
+      assertTrue(fmExtended.includes('is_primary: true'), 'frontmatter cited_works includes is_primary: true');
+
+      // Test 13b: `references` is still accepted as a deprecated input alias.
+      const fmAlias = scanner.generateSourceFrontmatter(testFile, 'sources/original/x.mp3', {
+        references: [{ id: 'legacy1', citation: 'Legacy (2020)' }]
+      });
+      assertTrue(fmAlias.includes('cited_works:\n  - id: "legacy1"'), 'deprecated `references` input still emits cited_works');
 
       // Test 14: semantic normalization converters (SRT & CSV)
       const converters = require('../../scripts/lib/scanner-converters');

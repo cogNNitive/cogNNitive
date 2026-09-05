@@ -58,8 +58,8 @@ The organization had 45 active members in 2023 (IF Narrative, 2024, section IOE.
 Generate a reference list at the end titled "References" with full entries per unique source.
 
 ### Primary vs. Secondary Citation Resolution
-When a source file in `sources/nn/` contains a `references:` block in its frontmatter (e.g. citing an external work like `porter1985` with `is_primary: true`):
-- Cross-reference the claim against the source document's `references:` metadata.
+When a source file in `sources/nn/` contains a `cited_works:` block in its frontmatter (e.g. citing an external work like `porter1985` with `is_primary: true`):
+- Cross-reference the claim against the source document's `cited_works:` metadata.
 - If the claim is an attribution of a third-party theory or finding (e.g. Porter's framework cited within a Market Report by Doe):
   Format in APA as: *(Porter, 1985, as cited in Doe, 2026)* or prompt to cite the primary work directly.
 - Avoid the "telephone game" by preventing false primary attribution to intermediate documents.

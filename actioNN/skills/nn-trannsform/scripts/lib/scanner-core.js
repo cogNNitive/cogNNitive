@@ -97,9 +97,17 @@ function generateSourceFrontmatter(originalFilePath, relativeSourcePath, extra =
     }
   }
 
-  if (Array.isArray(extra.references) && extra.references.length > 0) {
-    lines.push('references:');
-    for (const ref of extra.references) {
+  // External works this Source cites. `references` is accepted as a deprecated
+  // input alias; the emitted key is always `cited_works` (the iNNfo `reference`
+  // *field type* is a different concept — see docs/innfo/documentation/citations-provenance.md).
+  const citedWorks = Array.isArray(extra.cited_works)
+    ? extra.cited_works
+    : Array.isArray(extra.references)
+      ? extra.references
+      : null;
+  if (citedWorks && citedWorks.length > 0) {
+    lines.push('cited_works:');
+    for (const ref of citedWorks) {
       lines.push(`  - id: "${escapeYamlString(ref.id || '')}"`);
       if (ref.citation) lines.push(`    citation: "${escapeYamlString(ref.citation)}"`);
       if (ref.doi) lines.push(`    doi: "${escapeYamlString(ref.doi)}"`);
