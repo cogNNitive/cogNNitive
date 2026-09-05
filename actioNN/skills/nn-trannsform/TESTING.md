@@ -69,7 +69,7 @@ Luis,28,Technician
 > Using the nn-trannsform skill, bootstrap a project with the files in the current folder as source. Project name: "test-docs".
 
 **Expected result:**
-- ✅ OpenCode creates the structure `test-docs/sources/original/`, `test-docs/sources/nn/`, `test-docs/models/`, `test-docs/procedures/`, `test-docs/artifacts/`, `test-docs/artifacts/reports/`, `test-docs/traNNsformations/` (no `sources/raw/`)
+- ✅ OpenCode creates the structure `test-docs/sources/original/`, `test-docs/sources/nn/`, `test-docs/models/`, `test-docs/procedures/`, `test-docs/artifacts/`, `test-docs/traNNsformations/` (no `sources/raw/`)
 - ✅ Files are copied to `test-docs/sources/original/`
 - ✅ OpenCode reports no errors
 

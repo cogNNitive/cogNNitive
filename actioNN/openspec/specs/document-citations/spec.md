@@ -100,7 +100,7 @@ The system MUST directly format citations into the user-selected format during a
 | `[h]` | BibTeX export | No inline citations or HTML comments in document body; one `.bib` entry per unique `sources/nn/` path, saved as `[template-name]_V_x-y-z.bib` alongside the final document |
 | `[i]` | No sources | All citation markers and provenance attributions are omitted, producing clean unannotated text |
 
-The derived document MUST be output directly to `artifacts/exports/[Deliverable_Name]_V_x-y-z.md` without generating intermediate `_draft.md` files or `<!-- cite: ... -->` HTML comments.
+The derived document MUST be output directly to `artifacts/[Deliverable_Name]_V_x-y-z.md` without generating intermediate `_draft.md` files or `<!-- cite: ... -->` HTML comments.
 
 #### Scenarios
 

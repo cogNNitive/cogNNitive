@@ -13,7 +13,6 @@ const WORKSPACE_DIRS = [
   'models',
   'procedures',
   'artifacts',
-  path.join('artifacts', 'reports'),
   'traNNsformations',
 ];
 
