@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import type { DirectoryHandleLike, FileHandleLike } from '../src/fs-types'
+import type { ModelDriver } from '../src/types'
+import type { ParsedModel } from '../src/types'
+import type { TemplateSchema } from '../src/schema'
+import type { TemplateSchemaResolver } from '../src/recursiveParser/types'
 import { recursiveParse, normalizeSingleModel, readWorkspaceId } from '../src/recursiveParser'
 
 /* ── Fake handle helpers ─────────────────────────────────────── */
@@ -645,6 +649,172 @@ describe('diamond vs cycle (ancestorKeys)', () => {
 
     expect(pNode!.childIds).toContain(xNode!.id)
     expect(xNode!.parentId).toBe(wNode!.id)
+  })
+})
+
+describe('overview root entrypoint (OVERVIEW_ROOT_RE, PR6/A2)', () => {
+  function makeOverviewRoot(manifestRef: string, provenanceRef: string): string {
+    return `---\nspec_version: "V_0-1-2"\nlevel: 3\nmodel_version: "V_0-1-0"\ntitle: "Overview"\nparent_spec:\n  name: "base_V_0-1-0"\n  url: "https://example.test/base_V_0-1-0_spec_NN.md"\n---\n\n# NN Overview\n\n## NN Overview: Ghostbusters\nmanifest:: ${manifestRef}\nprovenance:: ${provenanceRef}\n`
+  }
+
+  function fakeParsedModel(content: string): ParsedModel {
+    return {
+      frontmatter: {} as ParsedModel['frontmatter'],
+      taxonomy: [],
+      elements: new Map(),
+      matrices: [],
+      nodeMarkers: {},
+      rawContent: content,
+    }
+  }
+
+  function fakeDriver(files: Record<string, string>): ModelDriver {
+    return {
+      async readModel(uri: string) {
+        const content = files[uri]
+        if (content === undefined) {
+          throw Object.assign(new Error('File not found'), { code: 'ENOENT' })
+        }
+        return fakeParsedModel(content)
+      },
+      async writeModel() {
+        throw new Error('not implemented in fakeDriver')
+      },
+      async listChildren(uri: string) {
+        if (uri !== '') return []
+        return Object.keys(files).map((name) => ({ name, uri: name, kind: 'element' as const }))
+      },
+      async listAssets() {
+        return []
+      },
+    }
+  }
+
+  const overviewRootSchema: TemplateSchema = {
+    concepts: [
+      {
+        name: 'Overview',
+        type: 'text',
+        fields: [
+          { name: 'manifest', type: 'model', target_template: 'workspace_V_0-2-0' },
+          { name: 'provenance', type: 'model', target_template: 'cogNNitive_V_0-2-0' },
+        ],
+      },
+    ],
+    markers: [],
+    matrices: [],
+    taxonomy: [],
+  }
+
+  const overviewRootResolver: TemplateSchemaResolver = ({ frontmatter }) => {
+    const name = (frontmatter as { parent_spec?: { name?: string } } | undefined)?.parent_spec
+      ?.name
+    return name === 'base_V_0-1-0' ? overviewRootSchema : null
+  }
+
+  it('base-root-takes-precedence: an overview root and a workspace manifest both exist — overview root wins', async () => {
+    const root = fakeDir('workspace', [
+      [
+        'gb_base_NN.md',
+        fakeFile('gb_base_NN.md', makeOverviewRoot('workspace_NN.md', 'gb_cognnitive_NN.md')),
+      ],
+      ['workspace_NN.md', fakeFile('workspace_NN.md', makeModel('Ghostbusters Workspace'))],
+    ])
+
+    const result = await recursiveParse(root, undefined, {
+      resolveTemplateSchema: overviewRootResolver,
+    })
+
+    const overviewNode = Object.values(result.nodes).find((n) => n.name === 'gb_base')
+    const manifestNode = Object.values(result.nodes).find((n) => n.name === 'workspace')
+    expect(overviewNode).toBeDefined()
+    expect(overviewNode!.parentId).toBeNull()
+    // the manifest is reached as the overview root's CHILD, not as a second root
+    expect(manifestNode).toBeDefined()
+    expect(manifestNode!.parentId).toBe(overviewNode!.id)
+    expect(result.rootIds).toHaveLength(1)
+    expect(result.rootIds[0]).toBe(overviewNode!.id)
+  })
+
+  it('no-base-root-unchanged: only workspace*.md exists — resolves exactly as before this capability existed', async () => {
+    const root = fakeDir('workspace', [
+      ['workspace_NN.md', fakeFile('workspace_NN.md', makeModel('Plain Workspace'))],
+    ])
+
+    const result = await recursiveParse(root)
+
+    expect(result.rootIds).toHaveLength(1)
+    const rootNode = result.nodes[result.rootIds[0]]
+    expect(rootNode.name).toBe('workspace')
+    expect(result.issues).toHaveLength(0)
+  })
+
+  it('base-root-driver-path: the same precedence holds via the ModelDriver code path', async () => {
+    const driver = fakeDriver({
+      'gb_base_NN.md': makeOverviewRoot('workspace_NN.md', 'gb_cognnitive_NN.md'),
+      'workspace_NN.md': makeModel('Ghostbusters Workspace'),
+    })
+    // The plain-handle root is irrelevant when a driver is supplied, but recursiveParse
+    // still requires one; an empty directory is sufficient since the driver serves reads.
+    const root = fakeDir('workspace', [])
+
+    const result = await recursiveParse(root, driver, {
+      resolveTemplateSchema: overviewRootResolver,
+    })
+
+    const overviewNode = Object.values(result.nodes).find((n) => n.name === 'gb_base')
+    const manifestNode = Object.values(result.nodes).find((n) => n.name === 'workspace')
+    expect(overviewNode).toBeDefined()
+    expect(overviewNode!.parentId).toBeNull()
+    expect(manifestNode).toBeDefined()
+    expect(manifestNode!.parentId).toBe(overviewNode!.id)
+    expect(result.rootIds).toHaveLength(1)
+  })
+
+  it('base-root-in-ignored-dir-ignored: an overview-root-shaped file nested under archive/ is not discovered as the entrypoint', async () => {
+    const archiveDir = fakeDir('archive', [
+      ['x_base_NN.md', fakeFile('x_base_NN.md', makeOverviewRoot('workspace_NN.md', 'x_cognnitive_NN.md'))],
+    ])
+    const root = fakeDir('workspace', [
+      ['archive', archiveDir],
+      ['workspace_NN.md', fakeFile('workspace_NN.md', makeModel('Plain Workspace'))],
+    ])
+
+    const result = await recursiveParse(root)
+
+    // The nested overview-root-shaped file never surfaces as a node at all —
+    // only the root-level workspace manifest is discovered as the entrypoint.
+    expect(Object.values(result.nodes).some((n) => n.name === 'x_base')).toBe(false)
+    expect(result.rootIds).toHaveLength(1)
+    expect(result.nodes[result.rootIds[0]].name).toBe('workspace')
+  })
+
+  it('overview-root-children: parsing an overview root reaches both its manifest and provenance children via type:: model traversal', async () => {
+    const root = fakeDir('workspace', [
+      [
+        'gb_base_NN.md',
+        fakeFile('gb_base_NN.md', makeOverviewRoot('workspace_NN.md', 'gb_cognnitive_NN.md')),
+      ],
+      ['workspace_NN.md', fakeFile('workspace_NN.md', makeModel('Ghostbusters Workspace'))],
+      ['gb_cognnitive_NN.md', fakeFile('gb_cognnitive_NN.md', makeModel('Ghostbusters Provenance'))],
+    ])
+
+    const result = await recursiveParse(root, undefined, {
+      resolveTemplateSchema: overviewRootResolver,
+    })
+
+    const overviewNode = Object.values(result.nodes).find((n) => n.name === 'gb_base')
+    const manifestNode = Object.values(result.nodes).find((n) => n.name === 'workspace')
+    const provenanceNode = Object.values(result.nodes).find((n) => n.name === 'gb_cognnitive')
+
+    expect(overviewNode).toBeDefined()
+    expect(manifestNode).toBeDefined()
+    expect(provenanceNode).toBeDefined()
+    expect(overviewNode!.childIds).toContain(manifestNode!.id)
+    expect(overviewNode!.childIds).toContain(provenanceNode!.id)
+    expect(manifestNode!.parentId).toBe(overviewNode!.id)
+    expect(provenanceNode!.parentId).toBe(overviewNode!.id)
+    expect(result.issues.filter((i) => i.code === 'CYCLE_DETECTED')).toHaveLength(0)
   })
 })
 
