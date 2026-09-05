@@ -123,13 +123,13 @@ order:: 20
 parent:: [[Guides]]
 description:: Graph relationships, bidirectional edges, and matrices in iNNfo.
 
-## NN Page: Citations & Provenance
-title:: Citations & Provenance
+## NN Page: Sources, Citations & Lineage
+title:: Sources, Citations & Lineage
 source:: citations-provenance.md
 route:: citations-provenance
 order:: 30
 parent:: [[Guides]]
-description:: Unified Citation, Traceability & Provenance Pipeline across sources, models, and artifacts.
+description:: How the pipeline tracks where knowledge comes from, with three terms — Source, Citation, Lineage.
 
 ## NN Page: Tags & Open Taxonomy
 title:: Tags & Open Taxonomy

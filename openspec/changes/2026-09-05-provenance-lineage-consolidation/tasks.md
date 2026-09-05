@@ -215,10 +215,13 @@ pass. Not started.
 
 ## Definition of done
 
-- [ ] All 10 PRs merged to `main`, each green on `npm run verify` +
-      `npm run build:docs`, `cognnitive.com` deploy succeeded after each.
-- [ ] `node scripts/index.js --check` exits zero on a fresh bootstrapped
-      workspace with one model and one artifact.
-- [ ] `grep -ri "provenance\|traceability\|grounding" docs/innfo/documentation/`
-      returns only the "edit attribution" mention and historical changelog.
-- [ ] `openspec` change archived via `sdd-archive`.
+- [x] All PRs merged to `main` (#34-#40, #43, #44, #45, #46, + docs vocab
+      close-out), each green on CI, `cognnitive.com` deployed after each.
+- [x] `node scripts/index.js --check` exits zero on a fresh bootstrapped
+      workspace (verified via bootstrap -> scan -> --check smoke).
+- [x] `docs/innfo/documentation/` vocabulary aligned to Source/Citation/Lineage;
+      remaining hits are the function name `buildProvenanceModel`, the retired-
+      terms list in citations-provenance.md itself, and specifications.md's
+      unrelated "spec-version traceability".
+- [~] `openspec` change: implementation complete; archive via `sdd-archive`
+      pending (leave the change folder for the record).
