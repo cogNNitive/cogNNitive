@@ -9,7 +9,7 @@ import { test, expect } from '@playwright/test'
 
 const MODEL = `---
 spec_version: "V_0-1-5"
-spec_url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/v0.1.5/specs/FORMAT_V_0-1-5_F.md"
+spec_url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/FORMAT_V_0-1-5_F.md"
 level: 3
 parent_spec:
   name: "business_V_0-1-1"

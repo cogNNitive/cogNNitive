@@ -139,8 +139,9 @@ Lo que hace que el código parezca escrito por **una sola cabeza**, no por diez.
       format-check de cambios, `vue-tsc --noEmit` del app, tests de `innfo-core` /
       `innfo-mcp` / app, y build del app. `deploy.yml` publica a GitHub Pages desde `main`.
 - [x] **Integridad de specs.** Job `spec-integrity` en CI: `npm run check:spec-urls`
-      falla si alguna URL `raw.githubusercontent.com/cogNNitive/iNNfo/...` hardcodeada
-      apunta a un archivo inexistente. `npm run check:spec-version -- --inventory` lista
+      falla si alguna URL `raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/...` hardcodeada
+      apunta a un archivo inexistente, o si queda alguna referencia residual al repositorio archivado.
+      `npm run check:spec-version -- --inventory` lista
       todas las versiones de spec presentes (informativo). Para barrer también los skills
       bundleados en `cogNNitive/actioNN`: `node scripts/check-spec-version.mjs
       --check-urls --with-skills`.

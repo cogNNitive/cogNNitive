@@ -1,10 +1,10 @@
 ---
 spec_version: "V_0-2-1"
-spec_url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/templates/innovation/innovation_V_0-2-0_NN.md"
+spec_url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/innovation/innovation_V_0-2-0_NN.md"
 level: 2
 parent_spec:
   name: "iNNfo_V_0-2-1"
-  url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/iNNfo_V_0-2-1_NN.md"
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-2-1_NN.md"
 template_version: "V_0-2-0"
 title: "Innovation Template"
 relationship_types:
@@ -383,7 +383,7 @@ To create an innovation portfolio model, create a level 3 FILE mode document wit
 level: 3
 parent_spec:
   name: "innovation_V_0-2-0"
-  url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/templates/innovation/innovation_V_0-2-0_NN.md"
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/innovation/innovation_V_0-2-0_NN.md"
 model_version: "V_1-0-0"
 title: "<Innovation Portfolio Title>"
 ---

@@ -56,6 +56,11 @@
               {{ field.name.replace(/_/g, ' ') }}
             </th>
             <th
+              class="sticky top-0 z-20 bg-slate-50 dark:bg-slate-800/95 text-left px-3 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 min-w-[160px]"
+            >
+              Tags
+            </th>
+            <th
               class="sticky top-0 z-20 bg-slate-50 dark:bg-slate-800/95 text-center px-3 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 min-w-[80px] w-[80px]"
             >
               Order
@@ -129,6 +134,19 @@
                 :readonly="!isEditMode"
               />
             </td>
+            <td class="px-3 py-2 text-sm text-slate-700 dark:text-slate-300">
+              <TagList
+                v-if="!isEditMode"
+                :tags="getTags(child)"
+                label="Tags"
+                compact
+              />
+              <TagInput
+                v-else
+                :model-value="getTags(child)"
+                @update:model-value="(tags) => updateTags(child, tags)"
+              />
+            </td>
             <td class="px-3 py-2 text-sm text-slate-700 dark:text-slate-300 text-center">
               <div class="flex items-center justify-center">
                 <span
@@ -145,7 +163,7 @@
           </tr>
           <tr v-if="children.length === 0">
             <td
-              :colspan="2 + (conceptFields?.length || 0)"
+              :colspan="3 + (conceptFields?.length || 0)"
               class="px-6 py-12 text-center text-sm text-slate-400 dark:text-slate-500 italic"
             >
               No elements for this concept.
@@ -182,6 +200,8 @@ import { useUiStore } from '../../stores/uiStore'
 import WidgetField from '../../shared/widgets/WidgetField.vue'
 import Pill from './Pill.vue'
 import FieldDetailModal from './FieldDetailModal.vue'
+import TagList from '../ui/TagList.vue'
+import TagInput from '../ui/TagInput.vue'
 import type { FieldValue } from '@cognnitive/innfo-core'
 
 const props = defineProps<{
@@ -268,6 +288,18 @@ function getRawFields(child: { fields?: Record<string, FieldValue | unknown> }):
 
 function getDescription(child: { rawSections?: Record<string, string> }): string {
   return child.rawSections?.description ?? ''
+}
+
+function getTags(child: { tags?: string[] }): string[] {
+  return child.tags ?? []
+}
+
+function updateTags(child: { id: string; tags?: string[] }, newTags: string[]): void {
+  const node = modelStore.getNode(child.id)
+  if (node) {
+    modelStore.upsertNode({ ...node, tags: newTags })
+    modelStore.markDirty(child.id)
+  }
 }
 
 const children = computed(() => {

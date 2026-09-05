@@ -68,6 +68,7 @@ import { useRoute } from 'vue-router'
 import { normalizeSingleModel } from '@cognnitive/innfo-core'
 import GuidedProcedureView from '../components/editor/GuidedProcedureView.vue'
 import { useStandaloneExtensionAdapter } from '../extensions/adapters/standaloneAdapter'
+import { REMOTE_SPEC_BASE } from '../config/samples'
 
 const route = useRoute()
 const loading = ref(true)
@@ -77,11 +78,11 @@ const standaloneAdapter = useStandaloneExtensionAdapter()
 
 const canonicalSampleMarkdown = `---
 specification_version: "V_0-2-1"
-specification_url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/iNNfo_V_0-2-1_NN.md"
+specification_url: "${REMOTE_SPEC_BASE}/iNNfo_V_0-2-1_NN.md"
 level: 3
 parent_spec:
   name: "procedures_V_0-2-0"
-  url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/templates/procedures/procedures_V_0-2-0_NN.md"
+  url: "${REMOTE_SPEC_BASE}/templates/procedures/procedures_V_0-2-0_NN.md"
 model_version: "V_0-2-0"
 title: "Code Review Process"
 ---

@@ -84,6 +84,24 @@ export function parsePropertyValue(raw: string): unknown {
   return value
 }
 
+/**
+ * Normalizes a `tags::` raw value into a list of lowercase, trimmed tags.
+ * Accepts both plain comma-separated lists (`a, b, c`) and bracket-array
+ * lists (`[a, b, c]`, as used by hand-authored samples). Empty values and
+ * empty array entries are dropped.
+ */
+export function parseTagList(raw: string): string[] {
+  let value = raw.trim()
+  if (value.startsWith('[') && value.endsWith(']')) {
+    value = value.slice(1, -1).trim()
+  }
+  if (value === '') return []
+  return value
+    .split(',')
+    .map((t) => t.trim().toLowerCase())
+    .filter(Boolean)
+}
+
 export interface ParsedConceptSection {
   /** Element instances parsed from `## NN` headings (empty for `text` concepts). */
   elements: ElementNode[]
@@ -129,10 +147,7 @@ export function parseConceptSection(conceptName: string, content: string): Parse
         if (prop[0] === 'slug') {
           current.slug = String(prop[1])
         } else if (prop[0] === 'tags') {
-          current.tags = String(prop[1])
-            .split(',')
-            .map((t) => t.trim().toLowerCase())
-            .filter(Boolean)
+          current.tags = parseTagList(String(prop[1]))
         } else {
           current.fields[prop[0]] = parsePropertyValue(prop[1])
         }
@@ -141,10 +156,7 @@ export function parseConceptSection(conceptName: string, content: string): Parse
     } else {
       const prop = parsePropertyLine(line)
       if (prop !== null && prop[0] === 'tags') {
-        conceptTags = String(prop[1])
-          .split(',')
-          .map((t) => t.trim().toLowerCase())
-          .filter(Boolean)
+        conceptTags = parseTagList(String(prop[1]))
         continue
       }
     }

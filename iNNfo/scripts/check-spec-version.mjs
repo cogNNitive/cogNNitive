@@ -20,8 +20,8 @@
 //   --check         â€” Exit code 1 if any references found (for CI/git hooks)
 //   --include-archives â€” Include archive/ and openspec/changes/archive/ in scan
 //   --inventory     â€” Print ALL spec versions found in the repo
-//   --check-urls    â€” Verify all hardcoded raw.githubusercontent.com URLs in source files point to existing files
-//   --with-skills [path] â€” Also scan a sibling skills tree (default: ../actioNN/skills,
+//   --check-urls    — Verify canonical raw.githubusercontent.com URLs point to existing files and fail on any legacy cogNNitive/iNNfo reference
+//   --with-skills [path] — Also scan a sibling skills tree (default: ../actioNN/skills,
 //                          ../../actioNN/skills). Lets the scan cover bundled skill
 //                          docs/templates that live in the cogNNitive/actioNN repo.
 //                          Silently skipped when the path does not exist (e.g. CI
@@ -29,18 +29,61 @@
 
 import { readFileSync, existsSync } from 'node:fs'
 import { readdirSync, statSync } from 'node:fs'
-import { join, relative, resolve, dirname } from 'node:path'
+import { join, relative, resolve, dirname, extname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-// â”€â”€ Config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Config ──────────────────────────────────────────────────────────
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const ARCHIVE_DIRS = new Set(['archive', 'node_modules', '.git', '.playwright-mcp', 'home-page'])
-const ACTIVE_IGNORE = new Set(['node_modules', '.git', '.playwright-mcp', 'home-page'])
+const REPO_ROOT = resolve(ROOT, '..')
+const INNFO_DIR = ROOT
+
+const ARCHIVE_DIRS = new Set([
+  'archive',
+  'node_modules',
+  '.git',
+  '.playwright-mcp',
+  'home-page',
+  'temp',
+  '.claude',
+  'dist',
+])
+const ACTIVE_IGNORE = new Set([
+  'node_modules',
+  '.git',
+  '.playwright-mcp',
+  'home-page',
+  'temp',
+  '.claude',
+  'dist',
+])
 
 const FORMAT_VERSION_RE = /V_\d+-\d+-\d+/g
 const GITHUB_RAW_URL_RE =
-  /https:\/\/raw\.githubusercontent\.com\/cogNNitive\/iNNfo\/(?:main|v[\d.]+)\/([^\s"')\]]+)/g
+  /https:\/\/raw\.githubusercontent\.com\/cogNNitive\/cogNNitive\/(?:main|v[\d.]+)\/iNNfo\/([^\s"')\]]+)/g
+
+const LEGACY_SLUG_RE = /cogNNitive\/iNNfo(?![\w-])/g
+
+const ALLOWLISTED_EXACT_PATHS = new Set([
+  'manifest/source.yaml',
+  'docs/use/manifest.md',
+  'docs/use/manifest-next.md',
+  'scripts/manifest/validate-manifest.test.js',
+  'scripts/manifest/generate-manifest.test.js',
+  'actioNN/scripts/skills-manager.test.js',
+])
+
+const URL_CHECK_EXTENSIONS = new Set([
+  '.ts',
+  '.vue',
+  '.md',
+  '.mjs',
+  '.js',
+  '.yaml',
+  '.yml',
+  '.json',
+  '.html',
+])
 
 // â”€â”€ File Collection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -203,13 +246,55 @@ function contentContainsVersion(content, version) {
   return re.test(content)
 }
 
-// â”€â”€ URL Integrity Check â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Repo-Wide URL & Legacy Integrity Check ──────────────────────────
+
+function collectRepoFiles(dir, includeArchives) {
+  const files = []
+
+  try {
+    const entries = readdirSync(dir)
+    for (const entry of entries) {
+      const full = join(dir, entry)
+      const st = statSync(full)
+      const rel = relative(REPO_ROOT, full).replace(/\\/g, '/')
+
+      if (st.isDirectory()) {
+        if (!includeArchives && (entry === 'archive' || ARCHIVE_DIRS.has(entry))) continue
+        if (rel === 'iNNfo/apps/innfo-editor/tests/fixtures/models') continue
+        if (rel.startsWith('openspec/changes/migrate-spec-hosting-to-monorepo')) continue
+        files.push(...collectRepoFiles(full, includeArchives))
+      } else {
+        if (full.endsWith('.bundle.js')) continue
+        if (rel === 'scripts/migrate-spec-urls.mjs') continue
+        if (rel === 'iNNfo/scripts/check-spec-version.mjs') continue
+        const ext = extname(entry)
+        if (URL_CHECK_EXTENSIONS.has(ext)) {
+          files.push(full)
+        }
+      }
+    }
+  } catch {
+    // permission denied or doesn't exist
+  }
+  return files
+}
+
+function isUrlResolutionTarget(rel) {
+  if (rel.endsWith('.test.ts') || rel.endsWith('.spec.ts') || rel.includes('/e2e/')) return false
+  if (rel.startsWith('docs/') && !rel.endsWith('_NN.md')) return false
+  if (rel.endsWith('.ts') || rel.endsWith('.vue')) return true
+  if (rel.endsWith('_NN.md')) return true
+  if (rel.includes('actioNN/skills/') && rel.endsWith('.md')) return true
+  return false
+}
 
 function scanUrls(files) {
   const broken = []
 
   for (const filePath of files) {
-    const rel = relative(ROOT, filePath)
+    const rel = relative(REPO_ROOT, filePath).replace(/\\/g, '/')
+    if (!isUrlResolutionTarget(rel)) continue
+
     let content
     try {
       content = readFileSync(filePath, 'utf-8')
@@ -226,7 +311,7 @@ function scanUrls(files) {
       if (match[0].includes('${')) continue
 
       const repoPath = match[1].replace(/\/+$/, '')
-      const localPath = join(ROOT, repoPath.replace(/\//g, '\\'))
+      const localPath = join(INNFO_DIR, repoPath.replace(/\//g, '\\'))
 
       if (!existsSync(localPath)) {
         // For FOLDER-mode samples, the URL points to the directory _NN.md
@@ -240,6 +325,38 @@ function scanUrls(files) {
   }
 
   return broken
+}
+
+function scanStrictLegacy(files) {
+  const violations = []
+  const warnings = []
+
+  for (const filePath of files) {
+    const rel = relative(REPO_ROOT, filePath).replace(/\\/g, '/')
+    let content
+    try {
+      content = readFileSync(filePath, 'utf-8')
+    } catch {
+      continue
+    }
+
+    if (!content.includes('cogNNitive/iNNfo')) continue
+
+    const lines = content.split(/\r?\n/)
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i]
+      if (LEGACY_SLUG_RE.test(line)) {
+        const lineNum = i + 1
+        if (ALLOWLISTED_EXACT_PATHS.has(rel)) {
+          warnings.push({ file: rel, line: lineNum, text: line.trim() })
+        } else {
+          violations.push({ file: rel, line: lineNum, text: line.trim() })
+        }
+      }
+    }
+  }
+
+  return { violations, warnings }
 }
 
 function printUrlResults(broken) {
@@ -503,17 +620,30 @@ function main() {
   }
 
   if (checkUrls) {
-    const sourceFiles = allFiles.filter((f) => {
-      if (f.endsWith('.test.ts') || f.endsWith('.spec.ts')) return false
-      if (f.endsWith('.ts') || f.endsWith('.vue')) return true
-      // Skill docs/templates carry hardcoded raw URLs in their frontmatter and
-      // fenced examples; scan them too when --with-skills brought them in.
-      const norm = f.replace(/\\/g, '/')
-      return f.endsWith('.md') && norm.includes('actioNN/skills/')
-    })
-    const broken = scanUrls(sourceFiles)
+    console.log(`\n  Checking spec URLs & legacy references across repository (${REPO_ROOT})...\n`)
+    const repoFiles = collectRepoFiles(REPO_ROOT, false)
+    const broken = scanUrls(repoFiles)
     printUrlResults(broken)
-    process.exit(broken.length > 0 ? 1 : 0)
+
+    const { violations, warnings } = scanStrictLegacy(repoFiles)
+    if (warnings.length > 0) {
+      console.log(`  Allowlisted legacy references (${warnings.length} occurrences tracked for Change 2):`)
+      for (const w of warnings) {
+        console.warn(`    [WARN] ${w.file}:${w.line}: ${w.text}`)
+      }
+      console.log()
+    }
+
+    if (violations.length > 0) {
+      console.error(`  [ERROR] Found ${violations.length} forbidden residual cogNNitive/iNNfo reference(s):`)
+      for (const v of violations) {
+        console.error(`    · ${v.file}:${v.line}: ${v.text}`)
+      }
+      console.log()
+    }
+
+    const failed = broken.length > 0 || violations.length > 0
+    process.exit(failed ? 1 : 0)
   }
 
   if (inventory) {

@@ -98,13 +98,13 @@ Every Level 2 template and Level 3 sample in `iNNfo/specs/templates/` MUST pass 
     ```yaml
     includes:
       - name: "business-model"
-        url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/templates/business-model/business-model_V_0-2-0_NN.md"
+        url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business-model/business-model_V_0-2-0_NN.md"
       - name: "analysis"
-        url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/templates/analysis/analysis_V_0-2-0_NN.md"
+        url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/analysis/analysis_V_0-2-0_NN.md"
       - name: "organization"
-        url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/templates/organization/organization_V_0-2-0_NN.md"
+        url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/organization/organization_V_0-2-0_NN.md"
       - name: "projects"
-        url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/templates/projects/projects_V_0-2-0_NN.md"
+        url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/projects/projects_V_0-2-0_NN.md"
     ```
 - **Standalone Domain Templates (`business-model`, `analysis`, `organization`, `projects`, `procedures`, `innovation`):**
   - Define their own domain concepts, fields, markers, and matrices.

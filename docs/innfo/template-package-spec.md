@@ -57,21 +57,21 @@ Template frontmatter in `spec_NN.md` declares metadata, additive `includes`, exp
 ```yaml
 ---
 level: 2
-spec_version: "V_0-2-0"
+spec_version: "V_0-2-1"
 title: "Composite Business & Project Spec"
 parent_spec:
-  name: "iNNfo_V_0-2-0"
-  url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/iNNfo_V_0-2-0_NN.md"
+  name: "iNNfo_V_0-2-1"
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-2-1_NN.md"
 includes:
   - name: "business"
-    url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/templates/business/V_0-2-0/spec_NN.md"
+    url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business/V_0-2-0/spec_NN.md"
     alias:
       concepts:
         "Task": "BusinessTask"
       fields:
         "Item.status": "Item.business_status"
   - name: "projects"
-    url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/templates/projects/V_0-2-0/spec_NN.md"
+    url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/projects/V_0-2-0/spec_NN.md"
     alias:
       concepts:
         "Task": "ProjectTask"

@@ -85,7 +85,7 @@ Some skills ship a copy of an iNNfo L2 template under `skills/<name>/templates/`
 - **Dynamic Skill Discovery**: `list_template_skills` returns all agent skills (`skills/`) declared transitively across composite template `includes` trees (up to depth 10).
 - **4-Tier Package Lookup**: `innfo-mcp` resolves templates checking `./specs/templates/<name>/<version>/`, flat `./templates/`, `~/.agents/templates/`, and `~/.agents/skills/*/templates/`.
 
-- The **canonical** file always lives in `cogNNitive/iNNfo` under `specs/templates/`.
+- The **canonical** file always lives in `cogNNitive/cogNNitive` under `iNNfo/specs/templates/`.
 - `eNNvironment/docs/use/manifest.md` pins template package dependencies (`version` + `commit`).
 
 ## Skill Registry — Regeneration

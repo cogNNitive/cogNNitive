@@ -17,7 +17,7 @@ The actioNN ecosystem provides 7 specialized, autonomous agent skills:
 | :--- | :--- | :--- | :--- |
 | **[`nn-router`](skills/nn-router.md)** | `V_3-2-0` | Primary Front Controller, system governance, setup, preflight gate & routing | `NN`, `nn`, `/nn`, `/nn-router`, `router`, `setup`, `preflight` |
 | **[`nn-preflight`](skills/nn-preflight.md)** | `V_0-1-0` | Environment readiness gate (Node.js >= 18, MCP availability, workspace layout) | `preflight`, `readiness`, `environment check`, `run Tier 1` |
-| **[`nn-innfo`](skills/nn-innfo.md)** | `V_0-1-0` | iNNfo model authoring, schema validation & conversational Model Creation Wizard (L2 &rarr; L3) | `NN`, `nn`, `model`, `wizard`, `template`, `innfo` |
+| **[`nn-innfo`](skills/nn-innfo.md)** | `V_0-1-2` | iNNfo model authoring, schema validation & conversational Model Creation Wizard (L2 &rarr; L3) | `NN`, `nn`, `model`, `wizard`, `template`, `innfo` |
 | **[`nn-trannsform`](skills/nn-trannsform.md)** | `V_2-0-0` | Multi-modal document ingestion (PDF, DOCX, XLSX), normalization & procedures | `trannsform`, `transform`, `workflow`, `pipeline`, `procedure` |
 | **[`nn-site-generator`](skills/nn-site-generator.md)** | `V_0-2-0` | Static website generation, markdown twin hydration & Docsify suites | `/nn-site-generator`, `generate site`, `create website` |
 | **[`nn-skills-lifecycle`](skills/nn-skills-lifecycle.md)** | `V_1-2-0` | Skill ecosystem lifecycle, manifest pinning & lockfile updates | `/nn-skills-lifecycle`, `install skill`, `update skills` |
