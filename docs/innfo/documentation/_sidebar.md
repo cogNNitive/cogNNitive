@@ -14,5 +14,5 @@
 - **Guides**
   - [Usage](usage)
   - [Relationships & Connections](relationships)
-  - [Citations & Provenance](citations-provenance)
+  - [Sources, Citations & Lineage](citations-provenance)
   - [Tags & Open Taxonomy](tags-and-taxonomy)

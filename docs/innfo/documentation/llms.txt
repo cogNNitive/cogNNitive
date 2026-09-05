@@ -13,5 +13,5 @@
 - [OKF Compatibility](ecosystem?id=open-knowledge-format-compatibility): Alignment and compatibility with the Open Knowledge Format standard.
 - [Usage](usage): Practical workflow examples and CLI usage.
 - [Relationships & Connections](relationships): Graph relationships, bidirectional edges, and matrices in iNNfo.
-- [Citations & Provenance](citations-provenance): Unified Citation, Traceability & Provenance Pipeline across sources, models, and artifacts.
+- [Sources, Citations & Lineage](citations-provenance): How the pipeline tracks where knowledge comes from, with three terms — Source, Citation, Lineage.
 - [Tags & Open Taxonomy](tags-and-taxonomy): Cross-cutting categorization, centralized workspace taxonomies, and multi-dimensional view filtering.
