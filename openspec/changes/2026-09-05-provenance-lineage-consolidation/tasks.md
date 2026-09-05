@@ -93,27 +93,27 @@ pass. Not started.
 
 ## PR 4 — `feat(nn-trannsform): lineage record full filesystem sync + --check`
 
-- [ ] 4.1 Write `test/unit/test-lineage-sync.js`: fixture workspace with 1 model
+- [x] 4.1 Write `test/unit/test-lineage-sync.js`: fixture workspace with 1 model
       + 1 artifact → `# NN Models` / `# NN Artifacts` populated with
       `derived_from`; idempotent re-run byte-identical; deleted model drops out;
       `# NN Procedures` preserved across refresh. (RED)
-- [ ] 4.2 Add `collectModels(projectDir)` and `collectArtifacts(projectDir)` to
+- [x] 4.2 Add `collectModels(projectDir)` and `collectArtifacts(projectDir)` to
       `scripts/lib/provenance-model.js`; render `# NN Models` / `# NN Artifacts`
       sections; change `refreshExistingModel` to replace
       Sources/Models/Artifacts but preserve Procedures. (GREEN)
-- [ ] 4.3 Write `test/unit/test-lineage-procedures.js`: `--scan` appends one
+- [x] 4.3 Write `test/unit/test-lineage-procedures.js`: `--scan` appends one
       `## NN Procedures:` entry with `command`/`flags`/`run_at`/`inputs`/`outputs`. (RED)
-- [ ] 4.4 Add `appendProcedureRun(projectDir, run)` to `provenance-model.js`;
+- [x] 4.4 Add `appendProcedureRun(projectDir, run)` to `provenance-model.js`;
       call it from `scripts/index.js` after `--scan`, `--import-url`, `--apply`. (GREEN)
-- [ ] 4.5 Write `test/unit/test-lineage-check.js`: model w/o entry → non-zero;
+- [x] 4.5 Write `test/unit/test-lineage-check.js`: model w/o entry → non-zero;
       artifact citing absent model version → non-zero; clean → zero. (RED)
-- [ ] 4.6 Add `scripts/lib/lineage-check.js` + `--check` handling in
+- [x] 4.6 Add `scripts/lib/lineage-check.js` + `--check` handling in
       `scripts/index.js`. (GREEN)
-- [ ] 4.7 Update `nn-trannsform/SKILL.md` §2d and Core Rule 7a: the sections are
+- [x] 4.7 Update `nn-trannsform/SKILL.md` §2d and Core Rule 7a: the sections are
       now auto-synced; remove the "manual for now" language and the stale
       `<!-- Verified … -->` comment.
-- [ ] 4.8 `node --test …/nn-trannsform/test/`. Update `TESTING.md`.
-- [ ] 4.9 Commit. Open PR 4. Merge on green.
+- [x] 4.8 `node --test …/nn-trannsform/test/`. Update `TESTING.md`.
+- [x] 4.9 Commit. Open PR 4. Merge on green.
 
 ## PR 5 — `refactor(nn-trannsform): flatten artifacts/ to a single directory` ⏸ review
 

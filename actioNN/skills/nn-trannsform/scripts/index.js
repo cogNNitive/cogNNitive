@@ -11,11 +11,21 @@ const transformer = require('./transformer');
 const provenance = require('./provenance');
 const webImport = require('./webImport');
 const { bootstrapProject } = require('./lib/bootstrap');
+const { checkLineage } = require('./lib/lineage-check');
 
 async function main() {
   const argv = minimist(process.argv.slice(2));
 
-  const hasArgs = argv.scan || argv.apply || argv.provenance || argv.src || argv.dest || argv.name || argv['import-url'];
+  const hasArgs =
+    argv.scan ||
+    argv.apply ||
+    argv.provenance ||
+    argv.lineage ||
+    argv.check ||
+    argv.src ||
+    argv.dest ||
+    argv.name ||
+    argv['import-url'];
 
   if (hasArgs) {
     await handleCliMode(argv);
@@ -47,6 +57,16 @@ async function handleCliMode(argv) {
     console.error(`Error: Project directory "${projectDir}" does not exist.`);
     console.error('Please specify valid --src, --dest and --name to bootstrap it first.');
     process.exit(1);
+  }
+
+  if (argv.check) {
+    const { errors, warnings } = checkLineage(projectDir);
+    for (const w of warnings) console.log(`⚠️  ${w}`);
+    for (const e of errors) console.error(`❌ ${e}`);
+    if (errors.length === 0 && warnings.length === 0) {
+      console.log('✅ Lineage record is in sync with the workspace filesystem.');
+    }
+    process.exit(errors.length > 0 ? 1 : 0);
   }
 
   let importResult = null;
@@ -90,12 +110,24 @@ async function handleCliMode(argv) {
     console.log(`Scan completed! Discovered: ${result.totalDiscovered}, Processed: ${result.processedCount}, Skipped: ${result.skippedCount}`);
 
     const prov = provenance.buildProvenanceModel(projectDir);
-    console.log(`cogNNitive Provenance model ${prov.created ? 'created' : 'refreshed'} with ${prov.sourceCount} source(s): ${prov.modelPath}`);
+    console.log(
+      `cogNNitive lineage record ${prov.created ? 'created' : 'refreshed'}: ` +
+        `${prov.sourceCount} source(s), ${prov.modelCount} model(s), ${prov.artifactCount} artifact(s) — ${prov.modelPath}`,
+    );
+    provenance.appendProcedureRun(projectDir, {
+      command: importResult ? 'import-url + scan' : 'scan',
+      flags: argv.formats ? `--formats ${argv.formats}` : undefined,
+      inputs: importResult ? [`sources/original/${importResult.relPath}`] : ['sources/original/'],
+      outputs: ['sources/nn/'],
+    });
   }
 
-  if (argv.provenance && !argv.scan) {
+  if ((argv.provenance || argv.lineage) && !argv.scan) {
     const prov = provenance.buildProvenanceModel(projectDir);
-    console.log(`cogNNitive Provenance model ${prov.created ? 'created' : 'refreshed'} with ${prov.sourceCount} source(s): ${prov.modelPath}`);
+    console.log(
+      `cogNNitive lineage record ${prov.created ? 'created' : 'refreshed'}: ` +
+        `${prov.sourceCount} source(s), ${prov.modelCount} model(s), ${prov.artifactCount} artifact(s) — ${prov.modelPath}`,
+    );
   }
 
   if (argv.apply) {
@@ -105,6 +137,12 @@ async function handleCliMode(argv) {
       const result = await transformer.applyTransformation(projectDir, templateName);
       console.log(`Transformation applied successfully!`);
       console.log(`Output saved to: ${result.outputPath}`);
+      provenance.buildProvenanceModel(projectDir);
+      provenance.appendProcedureRun(projectDir, {
+        command: `apply ${templateName}`,
+        inputs: ['sources/nn/', 'models/'],
+        outputs: [result.outputPath.replace(projectDir, '').replace(/^[\\/]/, '')],
+      });
     } catch (err) {
       console.error(`Error applying transformation: ${err.message}`);
       process.exit(1);
@@ -264,7 +302,15 @@ async function runProjectMenu(projectDir) {
     console.log(`Review the manifest log at: ${path.join(projectDir, 'sources', 'nn', 'index.md')}`);
 
     const prov = provenance.buildProvenanceModel(projectDir);
-    console.log(`cogNNitive Provenance model ${prov.created ? 'created' : 'refreshed'} with ${prov.sourceCount} source(s): ${prov.modelPath}\n`);
+    console.log(
+      `cogNNitive lineage record ${prov.created ? 'created' : 'refreshed'}: ` +
+        `${prov.sourceCount} source(s), ${prov.modelCount} model(s), ${prov.artifactCount} artifact(s) — ${prov.modelPath}\n`,
+    );
+    provenance.appendProcedureRun(projectDir, {
+      command: 'scan',
+      inputs: ['sources/original/'],
+      outputs: ['sources/nn/'],
+    });
 
     return runProjectMenu(projectDir);
   }

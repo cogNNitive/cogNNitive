@@ -55,6 +55,11 @@ async function main() {
     totalPassed += provenanceResult.passed;
     totalFailed += provenanceResult.failed;
 
+    const lineageSyncTest = require('./unit/test-lineage-sync');
+    const lineageSyncResult = await lineageSyncTest.run();
+    totalPassed += lineageSyncResult.passed;
+    totalFailed += lineageSyncResult.failed;
+
     const webImportTest = require('./unit/test-web-import');
     const webImportResult = await webImportTest.run();
     totalPassed += webImportResult.passed;

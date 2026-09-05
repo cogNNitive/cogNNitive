@@ -1,9 +1,12 @@
 /**
- * provenance.js — cogNNitive provenance model generator.
+ * provenance.js — cogNNitive lineage-record generator.
  *
- * Builds and refreshes an iNNfo level-3 provenance model that registers the
- * Sources ingested (and, once the agent adds them, the Models, Artifacts and
- * Procedures produced) as first-class iNNfo elements with explicit lineage.
+ * Builds and refreshes an iNNfo Level 3 lineage record that registers every
+ * Source ingested, every Model authored under `models/`, and every Artifact
+ * under `artifacts/` as first-class iNNfo elements with explicit derivation.
+ * The `# NN Sources`, `# NN Models` and `# NN Artifacts` sections are
+ * re-synced from the filesystem on every run; `# NN Procedures` is an
+ * append-only run log.
  *
  * Zero runtime dependencies (Node builtins only), mirroring scanner.js.
  */
@@ -13,44 +16,68 @@ const path = require('path');
 const modelLib = require('./lib/provenance-model');
 const indexLib = require('./lib/workspace-index');
 
+/** Resolve the lineage-record file path for a project (existing latest, or the V_0-1-0 default). */
+function resolveModelPath(projectDir, projectName) {
+  const bestFile = modelLib.resolveLatestModelFile(projectDir, projectName, indexLib.compareVersions);
+  return bestFile
+    ? { modelPath: path.join(projectDir, bestFile), created: false }
+    : { modelPath: path.join(projectDir, `${projectName}_V_0-1-0_cogNNitive_NN.md`), created: true };
+}
+
 /**
- * Build or refresh the cogNNitive provenance model for a project.
+ * Build or refresh the cogNNitive lineage record for a project.
  * @param {string} projectDir
  * @param {Record<string, any>} [options]
- * @returns {{ modelPath: string, sourceCount: number, created: boolean }}
+ * @returns {{ modelPath: string, sourceCount: number, modelCount: number, artifactCount: number, created: boolean }}
  */
 function buildProvenanceModel(projectDir, options = {}) {
   const projectName = options.projectName || path.basename(projectDir);
-  const mdDir = path.join(projectDir, 'sources', 'nn');
-  const sources = modelLib.collectSources(mdDir);
+  const sources = modelLib.collectSources(path.join(projectDir, 'sources', 'nn'));
+  const models = modelLib.collectModels(projectDir);
+  const artifacts = modelLib.collectArtifacts(projectDir);
 
   modelLib.materializeAssets(projectDir, sources);
 
-  const bestFile = modelLib.resolveLatestModelFile(projectDir, projectName, indexLib.compareVersions);
-
-  let modelPath;
-  let created;
-  if (bestFile) {
-    modelPath = path.join(projectDir, bestFile);
-    created = false;
-  } else {
-    modelPath = path.join(projectDir, `${projectName}_V_0-1-0_cogNNitive_NN.md`);
-    created = true;
-  }
-
+  const { modelPath, created } = resolveModelPath(projectDir, projectName);
+  const data = { sources, models, artifacts };
   const content = created
-    ? modelLib.buildFreshModel(projectName, sources)
-    : modelLib.refreshExistingModel(fs.readFileSync(modelPath, 'utf8'), sources);
+    ? modelLib.buildFreshModel(projectName, data)
+    : modelLib.refreshExistingModel(fs.readFileSync(modelPath, 'utf8'), data);
 
   fs.writeFileSync(modelPath, content, 'utf8');
   indexLib.writeWorkspaceIndex(projectDir);
 
-  return { modelPath, sourceCount: sources.length, created };
+  return {
+    modelPath,
+    sourceCount: sources.length,
+    modelCount: models.length,
+    artifactCount: artifacts.length,
+    created,
+  };
+}
+
+/**
+ * Append one run entry to the lineage record's `# NN Procedures` section.
+ * No-op (returns null) when no lineage record exists yet.
+ * @param {string} projectDir
+ * @param {{ command: string, flags?: string, runAt?: string, inputs?: string[], outputs?: string[] }} run
+ * @returns {{ modelPath: string } | null}
+ */
+function appendProcedureRun(projectDir, run) {
+  const projectName = path.basename(projectDir);
+  const { modelPath, created } = resolveModelPath(projectDir, projectName);
+  if (created && !fs.existsSync(modelPath)) return null;
+  const updated = modelLib.appendProcedureRun(fs.readFileSync(modelPath, 'utf8'), run);
+  fs.writeFileSync(modelPath, updated, 'utf8');
+  return { modelPath };
 }
 
 module.exports = {
   buildProvenanceModel,
+  appendProcedureRun,
   collectSources: modelLib.collectSources,
+  collectModels: modelLib.collectModels,
+  collectArtifacts: modelLib.collectArtifacts,
   slugify: modelLib.slugify,
   writeWorkspaceIndex: indexLib.writeWorkspaceIndex,
   listWorkspaceModels: indexLib.listWorkspaceModels,
@@ -64,13 +91,13 @@ if (require.main === module) {
       return null;
     }
   })();
-  const args = minimist
-    ? minimist(process.argv.slice(2))
-    : { src: process.argv[3] };
+  const args = minimist ? minimist(process.argv.slice(2)) : { src: process.argv[3] };
   const projectDir = args.src || process.cwd();
   const result = buildProvenanceModel(projectDir, { projectName: args.name });
   console.log(
-    `cogNNitive Provenance model ${result.created ? 'created' : 'refreshed'}: ${result.modelPath}`
+    `cogNNitive lineage record ${result.created ? 'created' : 'refreshed'}: ${result.modelPath}`,
   );
-  console.log(`Sources registered: ${result.sourceCount}`);
+  console.log(
+    `Registered ${result.sourceCount} source(s), ${result.modelCount} model(s), ${result.artifactCount} artifact(s).`,
+  );
 }
