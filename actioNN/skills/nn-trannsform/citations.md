@@ -125,7 +125,7 @@ Rules:
 
 ## Format: BibTeX — Export `.bib` File
 
-Generate the deliverable markdown body without inline citations or HTML comments, and create a companion `.bib` file alongside the deliverable (`artifacts/exports/[Deliverable_Name]_V_x-y-z.bib`) with one entry per unique source file in `sources/nn/`.
+Generate the deliverable markdown body without inline citations or HTML comments, and create a companion `.bib` file alongside the deliverable (`artifacts/[Deliverable_Name]_V_x-y-z.bib`) with one entry per unique source file in `sources/nn/`.
 
 Use this template for each entry. Fill placeholder fields from the source filename and frontmatter. The citation key is a slugified version of the `sources/nn/` path (slashes and dots become hyphens):
 
@@ -147,7 +147,7 @@ Rules:
   - Web pages: `@misc{<key>, author={...}, title={...}, year={...}, howpublished={\url{...}}}`
   - Articles: `@article{<key>, author={...}, title={...}, journal={...}, year={...}}`
 - The citation key MUST be derived deterministically from the `sources/nn/` path (e.g., `sources/nn/if-narrative-gv22bo-1.md` → `sources-nn-if-narrative-gv22bo-1-md`), never an arbitrary counter.
-- Save the output file as `artifacts/exports/[Deliverable_Name]_V_x-y-z.bib` alongside the exported markdown deliverable.
+- Save the output file as `artifacts/[Deliverable_Name]_V_x-y-z.bib` alongside the exported markdown deliverable.
 - Do NOT include HTML comments or visible citations in the main document body — produce a clean document.
 
 Example entry for a report source:
@@ -170,4 +170,4 @@ Rules:
 - Do not emit `[^N]` markers, `— Source:` strings, or bibliographic keys in the text body.
 - Do not append footnotes, References, Works Cited, or Bibliography sections.
 - Do not generate `.bib` companion files.
-- Deliverable is output as clean, presentation-ready markdown directly to `artifacts/exports/[Deliverable_Name]_V_x-y-z.md`.
+- Deliverable is output as clean, presentation-ready markdown directly to `artifacts/[Deliverable_Name]_V_x-y-z.md`.

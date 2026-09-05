@@ -117,16 +117,16 @@ pass. Not started.
 
 ## PR 5 — `refactor(nn-trannsform): flatten artifacts/ to a single directory` ⏸ review
 
-- [ ] 5.1 Update fixtures/tests asserting `artifacts/exports/` or
-      `artifacts/reports/` to expect `artifacts/`. (RED)
-- [ ] 5.2 `scripts/index.js` `bootstrapProject` `dirs`: `['artifacts']` only.
+- [x] 5.1 No test fixtures asserted the old subfolders (bootstrap test checks
+      `artifacts` only); `transformer.js` already wrote to `artifacts/`.
+- [x] 5.2 `scripts/index.js` `bootstrapProject` `dirs`: `['artifacts']` only.
       `provenance.js` / `transformer.js`: any `artifacts/reports/` or
       `artifacts/exports/` output path → `artifacts/`. (GREEN)
-- [ ] 5.3 `nn-trannsform/SKILL.md` §1 layout diagram + §5 table: one
+- [x] 5.3 `nn-trannsform/SKILL.md` §1 layout diagram + §5 table: one
       `artifacts/` row; note reports carry `type: report` frontmatter.
       `citations.md`: `artifacts/exports/[Name]_V_x-y-z.md` → `artifacts/[Name]_V_x-y-z.md`.
-- [ ] 5.4 `node --test …/nn-trannsform/test/`.
-- [ ] 5.5 Commit. Open PR 5. **Pause for review.** Merge on approval + green.
+- [x] 5.4 `node --test …/nn-trannsform/test/`.
+- [x] 5.5 Commit. Open PR 5. (User elected full autopilot — no review pause.) Merge on green.
 
 ## PR 6 — `chore(openspec): delete dead export-navigator spec`
 

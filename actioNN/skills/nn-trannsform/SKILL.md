@@ -63,9 +63,9 @@ Every project workspace MUST adhere to the following structure:
 ├── assets/               # Materialized source copies grouped by slug (for attachments/media)
 ├── models/               # Structured semantic iNNfo Level 3 models (*_NN.md)
 ├── procedures/           # Reusable transformation procedure specs (*_procedures_V_0-1-0_NN.md)
-├── artifacts/            # Derivative deliverables and generated output products
-│   ├── exports/          # Final deliverables (clean Markdown, HTML, PDF)
-│   └── reports/          # Validation reports and audit trails
+├── artifacts/            # All generated output — deliverables and validation
+│                          # reports alike (a report carries `type: report` in
+│                          # its frontmatter; no separate subfolder).
 └── index.md              # Semantic workspace index (# NN index)
 ```
 
@@ -276,7 +276,7 @@ Select the citation and export format for the deliverable:
 
 ### 4. Citation & Provenance Protocol
 
-Derived deliverables are generated in a single pass directly to `artifacts/exports/[Deliverable_Name]_V_x-y-z.md` without intermediate `_draft.md` files or non-standard `<!-- cite: ... -->` HTML comments:
+Derived deliverables are generated in a single pass directly to `artifacts/[Deliverable_Name]_V_x-y-z.md` without intermediate `_draft.md` files or non-standard `<!-- cite: ... -->` HTML comments:
 1. **Direct Formatting**: Apply the citation format selected in §3c directly during generation per rules in `citations.md`.
 2. **Provenance Traceability**: When citations are included (formats `[a]`–`[h]`), resolve claims directly from the Level 3 model's `sources::` pointers (`<path>.md#<heading-slug>`, resolving canonically against `sources/nn/`).
 3. **Clean Presentation**: Format `[i]` (No sources) produces presentation-ready deliverables omitting all citation markers and reference lists.
@@ -289,7 +289,8 @@ Derived deliverables are generated in a single pass directly to `artifacts/expor
 |------|------|---------|-------|
 | **Normalized Markdown** | `sources/nn/` | `sources/nn/clientA/doc1.md` | Ingested source with scanner frontmatter, mirrors `sources/original/` subfolders |
 | **Model** (`*_NN.md`) | `models/` | `models/Business_Plan_V_1-0-0_NN.md` | iNNfo Level 3 V_0-1-0 semantic models with `sources::` |
-| **Export Deliverable** | `artifacts/exports/` | `artifacts/exports/Executive_Summary_V_1-0-0.md` | Clean deliverable in user-selected citation format |
+| **Export Deliverable** | `artifacts/` | `artifacts/Executive_Summary_V_1-0-0.md` | Clean deliverable in user-selected citation format |
+| **Validation Report** | `artifacts/` | `artifacts/Ingest_Audit_V_1-0-0_report.md` | Carries `type: report` in frontmatter; same folder as deliverables |
 | **Procedure Spec** | `procedures/` | `procedures/Document_Ingest_V_1-0-0_procedures_NN.md` | Procedure spec compliant with `procedures_V_0-1-0_NN.md` |
 
 ---
