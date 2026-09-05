@@ -137,77 +137,190 @@
             </button>
           </div>
 
-          <!-- Tags Filter -->
-          <div class="px-0.5 mt-1 mb-2">
-            <span
-              class="text-2xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 block mb-1"
-            >
-              Etiquetas
-            </span>
-            <TagInput v-model="uiStore.selectedTagFilters" />
-          </div>
-
-          <!-- Concept Picklist Header: Title + Select All / Deselect All -->
-          <div v-if="availableConcepts.length > 0" class="flex items-center justify-between px-0.5">
-            <span
-              class="text-2xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500"
+          <!-- Tabs Header: Conceptos vs Etiquetas -->
+          <div class="flex items-center border-b border-slate-200 dark:border-slate-700/80 mb-2">
+            <button
+              type="button"
+              @click="uiStore.setSearchFilterTab('concepts')"
+              class="flex-1 py-1.5 text-center font-bold text-2xs uppercase tracking-wider transition-all border-b-2 cursor-pointer"
+              :class="
+                uiStore.searchFilterTab === 'concepts'
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+              "
+              data-testid="tab-concepts"
             >
               Conceptos ({{ selectedConceptCount }}/{{ availableConcepts.length }})
-            </span>
-            <div class="flex items-center gap-1.5">
-              <button
-                @click="uiStore.selectAllConcepts()"
-                class="text-2xs font-bold text-primary hover:underline px-1.5 py-0.5 rounded bg-primary/10 transition-colors cursor-pointer"
-                title="Seleccionar todos los conceptos"
-                data-testid="select-all-concepts-button"
-              >
-                Todas
-              </button>
-              <button
-                @click="uiStore.deselectAllConcepts()"
-                class="text-2xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 px-1.5 py-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
-                title="Deseleccionar todos los conceptos"
-                data-testid="deselect-all-concepts-button"
-              >
-                Ninguna
-              </button>
-            </div>
+            </button>
+            <button
+              type="button"
+              @click="uiStore.setSearchFilterTab('tags')"
+              class="flex-1 py-1.5 text-center font-bold text-2xs uppercase tracking-wider transition-all border-b-2 cursor-pointer"
+              :class="
+                uiStore.searchFilterTab === 'tags'
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+              "
+              data-testid="tab-tags"
+            >
+              Etiquetas ({{ selectedTagCount }}/{{ availableTags.length }})
+            </button>
           </div>
 
-          <!-- Vertical scrollable list of Pills -->
-          <div
-            v-if="availableConcepts.length > 0"
-            class="flex flex-col gap-1.5 max-h-60 overflow-y-auto pr-1 text-xs scrollbar-thin border-t border-slate-100 dark:border-slate-700/60 pt-2"
-            data-testid="header-concept-picklist"
-          >
-            <div
-              v-for="concept in availableConcepts"
-              :key="concept"
-              class="flex items-center gap-2 cursor-pointer p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors"
-              @click="uiStore.toggleConceptFilter(concept, availableConcepts)"
-            >
-              <input
-                type="checkbox"
-                :checked="uiStore.isConceptSelected(concept)"
-                class="w-3.5 h-3.5 rounded text-primary border-slate-300 focus:ring-primary cursor-pointer shrink-0"
-                @click.stop="uiStore.toggleConceptFilter(concept, availableConcepts)"
-              />
-              <Pill
-                :name="concept"
-                :concept-type="concept"
-                kind="concept"
-                :node-id="conceptMetaMap[concept]?.nodeId"
-                :icon="conceptMetaMap[concept]?.icon"
-                :color="conceptMetaMap[concept]?.color"
-                :interactive="false"
-                :selected="uiStore.isConceptSelected(concept)"
-                class="pointer-events-none flex-1 min-w-0"
-                :class="{
-                  'opacity-40 grayscale': !uiStore.isConceptSelected(concept),
-                }"
-              />
+          <!-- TAB 1: Conceptos -->
+          <template v-if="uiStore.searchFilterTab === 'concepts'">
+            <!-- Concept Picklist Header: Title + Select All / Deselect All -->
+            <div v-if="availableConcepts.length > 0" class="flex items-center justify-between px-0.5">
+              <span
+                class="text-2xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500"
+              >
+                Filtro por Concepto
+              </span>
+              <div class="flex items-center gap-1.5">
+                <button
+                  @click="uiStore.selectAllConcepts()"
+                  class="text-2xs font-bold text-primary hover:underline px-1.5 py-0.5 rounded bg-primary/10 transition-colors cursor-pointer"
+                  title="Seleccionar todos los conceptos"
+                  data-testid="select-all-concepts-button"
+                >
+                  Todas
+                </button>
+                <button
+                  @click="uiStore.deselectAllConcepts()"
+                  class="text-2xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 px-1.5 py-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                  title="Deseleccionar todos los conceptos"
+                  data-testid="deselect-all-concepts-button"
+                >
+                  Ninguna
+                </button>
+              </div>
             </div>
-          </div>
+
+            <!-- Vertical scrollable list of Pills -->
+            <div
+              v-if="availableConcepts.length > 0"
+              class="flex flex-col gap-1.5 max-h-60 overflow-y-auto pr-1 text-xs scrollbar-thin border-t border-slate-100 dark:border-slate-700/60 pt-2"
+              data-testid="header-concept-picklist"
+            >
+              <div
+                v-for="concept in availableConcepts"
+                :key="concept"
+                class="flex items-center gap-2 cursor-pointer p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors"
+                @click="uiStore.toggleConceptFilter(concept, availableConcepts)"
+              >
+                <input
+                  type="checkbox"
+                  :checked="uiStore.isConceptSelected(concept)"
+                  class="w-3.5 h-3.5 rounded text-primary border-slate-300 focus:ring-primary cursor-pointer shrink-0"
+                  @click.stop="uiStore.toggleConceptFilter(concept, availableConcepts)"
+                />
+                <Pill
+                  :name="concept"
+                  :concept-type="concept"
+                  kind="concept"
+                  :node-id="conceptMetaMap[concept]?.nodeId"
+                  :icon="conceptMetaMap[concept]?.icon"
+                  :color="conceptMetaMap[concept]?.color"
+                  :interactive="false"
+                  :selected="uiStore.isConceptSelected(concept)"
+                  class="pointer-events-none flex-1 min-w-0"
+                  :class="{
+                    'opacity-40 grayscale': !uiStore.isConceptSelected(concept),
+                  }"
+                />
+              </div>
+            </div>
+          </template>
+
+          <!-- TAB 2: Etiquetas -->
+          <template v-else-if="uiStore.searchFilterTab === 'tags'">
+            <!-- Tag Picklist Header: Title + Select All / Deselect All -->
+            <div v-if="availableTags.length > 0" class="flex items-center justify-between px-0.5">
+              <span
+                class="text-2xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500"
+              >
+                Filtro por Etiqueta
+              </span>
+              <div class="flex items-center gap-1.5">
+                <button
+                  @click="uiStore.selectAllTags(availableTags)"
+                  class="text-2xs font-bold text-primary hover:underline px-1.5 py-0.5 rounded bg-primary/10 transition-colors cursor-pointer"
+                  title="Seleccionar todas las etiquetas"
+                  data-testid="select-all-tags-button"
+                >
+                  Todas
+                </button>
+                <button
+                  @click="uiStore.deselectAllTags()"
+                  class="text-2xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 px-1.5 py-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                  title="Deseleccionar todas las etiquetas"
+                  data-testid="deselect-all-tags-button"
+                >
+                  Ninguna
+                </button>
+              </div>
+            </div>
+
+            <!-- Empty state if no tags -->
+            <div
+              v-if="availableTags.length === 0"
+              class="text-center py-6 text-slate-400 dark:text-slate-500 italic text-xs"
+            >
+              No hay etiquetas en este modelo ni workspace.
+            </div>
+
+            <!-- Vertical scrollable list of Tags -->
+            <div
+              v-else
+              class="flex flex-col gap-1.5 max-h-60 overflow-y-auto pr-1 text-xs scrollbar-thin border-t border-slate-100 dark:border-slate-700/60 pt-2"
+              data-testid="header-tag-picklist"
+            >
+              <div
+                v-for="tag in availableTags"
+                :key="tag"
+                class="flex items-center gap-2 cursor-pointer p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors"
+                @click="uiStore.toggleTagFilter(tag)"
+                :title="tagMetaMap[tag]?.description || `Etiqueta: ${tag}`"
+              >
+                <input
+                  type="checkbox"
+                  :checked="uiStore.isTagSelected(tag)"
+                  class="w-3.5 h-3.5 rounded text-primary border-slate-300 focus:ring-primary cursor-pointer shrink-0"
+                  @click.stop="uiStore.toggleTagFilter(tag)"
+                />
+                <div
+                  class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border flex-1 min-w-0 transition-opacity"
+                  :class="{
+                    'opacity-40 grayscale': !uiStore.isTagSelected(tag),
+                  }"
+                  :style="
+                    tagMetaMap[tag]?.color
+                      ? {
+                          borderColor: tagMetaMap[tag]!.color,
+                          color: tagMetaMap[tag]!.color,
+                          backgroundColor: `${tagMetaMap[tag]!.color}18`,
+                        }
+                      : {
+                          borderColor: 'var(--slate-300, #cbd5e1)',
+                          backgroundColor: 'rgba(148, 163, 184, 0.1)',
+                        }
+                  "
+                >
+                  <IconRenderer
+                    :icon="tagMetaMap[tag]?.icon || 'tag'"
+                    custom-class="w-3.5 h-3.5 shrink-0"
+                  />
+                  <span class="truncate font-mono text-2xs">{{ tag }}</span>
+                  <span
+                    v-if="tagMetaMap[tag]?.description"
+                    class="text-2xs text-slate-400 dark:text-slate-500 font-sans truncate ml-auto pl-1 max-w-[120px]"
+                  >
+                    {{ tagMetaMap[tag]!.description }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </template>
         </div>
       </div>
 
@@ -353,6 +466,7 @@ import { useUiStore } from '../../stores/uiStore'
 import { useToast } from '../../shared/useToast'
 import Pill from '../editor/Pill.vue'
 import TagInput from '../ui/TagInput.vue'
+import IconRenderer from '../editor/IconRenderer.vue'
 import { getConceptMeta } from '../../composables/useConceptVisuals'
 
 import { extensionRegistry } from '../../extensions/registry'
@@ -486,6 +600,36 @@ const conceptMetaMap = computed(() => {
 const selectedConceptCount = computed(() => {
   if (uiStore.isAllConceptsSelected) return availableConcepts.value.length
   return availableConcepts.value.filter((c) => uiStore.isConceptSelected(c)).length
+})
+
+const availableTags = computed(() => {
+  return modelStore.allTags
+})
+
+const tagMetaMap = computed(() => {
+  const map: Record<string, { icon?: string; color?: string; description?: string }> = {}
+  for (const node of Object.values(modelStore.nodes)) {
+    const isTagNode = node.type === 'Tag' || node.conceptBinding?.name === 'Tag'
+    if (isTagNode && node.name) {
+      const tagName = node.name.toLowerCase().trim()
+      const colorVal = (node.fields?.color as any)?.value ?? node.fields?.color
+      const iconVal = (node.fields?.icon as any)?.value ?? node.fields?.icon
+      const descVal =
+        (node.fields?.description as any)?.value ??
+        node.fields?.description ??
+        node.rawSections?.description
+      map[tagName] = {
+        color: typeof colorVal === 'string' ? colorVal : undefined,
+        icon: typeof iconVal === 'string' ? iconVal : undefined,
+        description: typeof descVal === 'string' ? descVal : undefined,
+      }
+    }
+  }
+  return map
+})
+
+const selectedTagCount = computed(() => {
+  return uiStore.selectedTagFilters.length
 })
 
 const searchContainerRef = ref<HTMLElement | null>(null)

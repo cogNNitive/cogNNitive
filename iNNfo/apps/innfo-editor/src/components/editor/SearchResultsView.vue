@@ -150,6 +150,12 @@ function handleNavigate(nodeId: string) {
           >
             Filtro: {{ uiStore.selectedConceptFilters.join(', ') }}
           </span>
+          <span
+            v-if="uiStore.selectedTagFilters.length > 0"
+            class="font-mono text-xs px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 ml-1"
+          >
+            Etiquetas: {{ uiStore.selectedTagFilters.join(', ') }}
+          </span>
         </h2>
       </div>
       <span class="text-xs text-slate-500 font-mono">

@@ -14,3 +14,4 @@
 - [Usage](usage): Practical workflow examples and CLI usage.
 - [Relationships & Connections](relationships): Graph relationships, bidirectional edges, and matrices in iNNfo.
 - [Citations & Provenance](citations-provenance): Unified Citation, Traceability & Provenance Pipeline across sources, models, and artifacts.
+- [Tags & Open Taxonomy](tags-and-taxonomy): Cross-cutting categorization, centralized workspace taxonomies, and multi-dimensional view filtering.

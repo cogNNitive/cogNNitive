@@ -317,6 +317,7 @@ describe('base_V_0-1-0 — composite template composition (PR6)', () => {
       'Overview',
       'Procedures',
       'Sources',
+      'Tag',
       'Workspace',
     ])
 

@@ -28,6 +28,7 @@ relationship_types:
 * [[ModelRef]]
 * [[Folder]]
 * [[Asset]]
+* [[Tag]]
 
 # NN Concept Definition
 
@@ -55,7 +56,28 @@ type:: list
 color:: grey
 weight:: 40
 
+## NN Concept Definition: Tag
+icon:: tag
+type:: category
+color:: indigo
+weight:: 50
+
 # NN Field Definition
+
+## NN Field Definition: color
+concept:: Tag
+type:: string
+description:: Hex color code (e.g. #10b981) or CSS token for tag badges and highlights.
+
+## NN Field Definition: icon
+concept:: Tag
+type:: string
+description:: Icon identifier (e.g. Lucide icon name) displayed with the tag badge.
+
+## NN Field Definition: description
+concept:: Tag
+type:: string
+description:: Semantic description, strategic intent, or scope of the tag.
 
 ## NN Field Definition: path
 concept:: ModelRef
@@ -88,7 +110,7 @@ A workspace manifest is an inventory, not a domain vocabulary. It answers "which
 
 Each `ModelRef` names one model file. Its `path` is resolved relative to the workspace root; its `template` records the level-2 template the referenced model conforms to; its `status` tracks the model's lifecycle within this workspace; its `author` records who owns the model here. The `author` is deliberately workspace-scoped — it is recorded on the manifest entry, never written into the referenced model file, so the same model stays portable across workspaces that may attribute it differently.
 
-`Folder` is a taxonomy-only grouping concept for organizing model references; `Asset` lists workspace-level attachments (shared images, exports, reference documents) that are not themselves iNNfo models.
+`Folder` is a taxonomy-only grouping concept for organizing model references; `Asset` lists workspace-level attachments (shared images, exports, reference documents) that are not themselves iNNfo models. `Tag` defines a centralized semantic catalog of taxonomy tags (with color, icon, and description) used by models across the workspace with open taxonomy and progressive enhancement.
 
 ## Objectives
 
@@ -96,6 +118,7 @@ Each `ModelRef` names one model file. Its `path` is resolved relative to the wor
 - Model each referenced model as a `ModelRef` element carrying `path`, `template`, `status`, and `author`.
 - Keep per-workspace metadata (notably `author`) out of the referenced model files so models stay portable.
 - Allow optional `Folder` grouping and workspace-level `Asset` listing.
+- Provide a centralized `Tag` catalog for semantic styling (color, icon, description) and cross-model filtering.
 
 ## Specification
 
@@ -107,6 +130,7 @@ Each `ModelRef` names one model file. Its `path` is resolved relative to the wor
 | **ModelRef** | `model` | One reference to a model file in the workspace, with its per-workspace metadata |
 | **Folder** | `category` | Taxonomy-only grouping of model references |
 | **Asset** | `list` | Workspace-level attachments that are not iNNfo models |
+| **Tag** | `category` | Centralized taxonomy and semantic tag definitions for models across the workspace |
 
 ### Fields
 
@@ -116,6 +140,9 @@ Each `ModelRef` names one model file. Its `path` is resolved relative to the wor
 | `template` | ModelRef | `reference` | The level-2 template the referenced model conforms to |
 | `status` | ModelRef | `select` (draft / active / archived) | Lifecycle status of the model within this workspace |
 | `author` | ModelRef | `string` | Author or owner of the model within this workspace (workspace-scoped) |
+| `color` | Tag | `string` | Hex color code or CSS token for tag badge styling |
+| `icon` | Tag | `string` | Lucide icon name displayed with tag badge |
+| `description` | Tag | `string` | Semantic scope or strategic definition of the tag |
 
 ### Relationship Types
 
