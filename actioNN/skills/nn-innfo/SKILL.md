@@ -43,7 +43,7 @@ This skill guides LLMs and agents in authoring, creating from scratch (wizard), 
 **Resolution, validation, and mutation are delegated to the `innfo-mcp` server** — a deterministic engine wrapping `@cognnitive/innfo-core`. The agent does NOT hand-resolve spec chains, hand-validate models, or guess syntax when the MCP is available. See §1 (MCP Operating Model) and §7 (Delegation Contract).
 
 > 🛡️ **Single Source of Truth & Zero Workspace Pollution**:
-> 1. `iNNfo` repository is the **Single Source of Truth** for all templates and specs. Do NOT duplicate template files across repositories.
+> 1. The `iNNfo` repository is the **Single Source of Truth** for all templates and specs. Do NOT duplicate template files across repositories.
 > 2. When resolving templates/specs without MCP: if a git fallback clone is required, the agent MUST clone into the system temporary directory (`$env:TEMP/innfo_tmp` or `~/.agents/tmp/`), read the required file, and **immediately delete the temporary folder**. The agent MUST NEVER clone git repositories or leave checkouts inside the user's workspace directory.
 > 3. **Windows Network Resilience**: In Windows environments, do NOT execute bare `curl` in PowerShell (which aliases to `Invoke-WebRequest` and fails SSL handshakes). Use `curl.exe` explicitly, Node.js native fetch (`node -e "fetch(...)"`), or git archive.
 > 4. **Web GUI & Preview Integration**: When asked to preview a model or element in Web GUI environments, prefer generating structured Markdown cards with interactive deep links (`https://cognnitive.com/innfo/app/workspace?view=editor&model={model_id}#{element_id}`) or inline SVG diagrams instead of un-sanitizable `<iframe>` tags.
@@ -208,114 +208,114 @@ as its very first output — before any questions, analysis, or tool calls. Sess
 ## Core Concepts & Single Source of Truth
 
 > [!NOTE]
-> **El servidor MCP (`innfo-mcp`) y las especificaciones canónicas son la ÚNICA fuente de verdad (SSOT) para la sintaxis y tipos de datos.** El agente NO duplica reglas gramaticales de memoria; las consulta dinámicamente vía MCP (`innfo-mcp_get_spec` / `innfo-mcp_get_template`).
+> **The MCP server (`innfo-mcp`) and the canonical specifications are the ONLY source of truth (SSOT) for syntax and data types.** The agent does NOT reproduce grammar rules from memory; it queries them dynamically via MCP (`innfo-mcp_get_spec` / `innfo-mcp_get_template`).
 
-### Resumen de Niveles iNNfo (V_0-2-0)
+### iNNfo Level Summary (V_0-2-0)
 
-| Nivel | Rol | Sintaxis y Estructura |
+| Level | Role | Syntax & Structure |
 |---|---|---|
-| **0** | Meta-especificación (`defiNNe`) | Define las meta-reglas de especificación. |
-| **1** | Especificación Concreta (`iNNfo`) | Metaplantilla Nivel 1. Define las 4 primitivas raíz (`Concept Definition`, `Field Definition`, `Matrix Definition`, `Marker Definition`). |
-| **2** | Plantilla (Template / Especialización) | Documento iNNfo con frontmatter ligero (`level: 2`). El cuerpo instancia las 4 primitivas raíz como elementos Markdown. **PROHIBIDO poner `concepts: []` o `fields: []` en el YAML frontmatter.** |
-| **3** | Modelo de Datos | Instancia los conceptos y campos definidos por su plantilla madre (`parent_spec`). |
+| **0** | Meta-specification (`defiNNe`) | Defines the meta-rules for specifications. |
+| **1** | Concrete Specification (`iNNfo`) | Level 1 meta-template. Defines the 4 root primitives (`Concept Definition`, `Field Definition`, `Matrix Definition`, `Marker Definition`). |
+| **2** | Template (Template / Specialization) | An iNNfo document with lightweight frontmatter (`level: 2`). The body instantiates the 4 root primitives as Markdown elements. **FORBIDDEN to put `concepts: []` or `fields: []` in the YAML frontmatter.** |
+| **3** | Data Model | Instantiates the concepts and fields defined by its parent template (`parent_spec`). |
 
 ---
 
 ## 1. MCP Operating Model
 
-El servidor `innfo-mcp` expone 15 herramientas deterministas basadas en `@cognnitive/innfo-core`.
+The `innfo-mcp` server exposes 15 deterministic tools built on `@cognnitive/innfo-core`.
 
-| Herramienta | Propósito |
+| Tool | Purpose |
 |---|---|
-| `list_models` | Escanea el directorio buscando modelos iNNfo válidos. |
-| `read_model` | Parsea un modelo a AST / JSON estructurado. |
-| `get_spec` | Resuelve dinámicamente la especificación Nivel 1. |
-| `get_template` | Resuelve dinámicamente la plantilla Nivel 2 y sus primitivas. |
-| `validate_model` | Ejecuta la validación sintáctica y de esquema determinista (con diagnostico `(searched: ...)` cuando la cadena de padres no resuelve). |
-| `validate_model_url` | Valida un modelo desde una URL sin escribirlo en disco. |
-| `validate_template` | Valida una plantilla Nivel 2 contra su especificación Nivel 1 madre. |
-| `apply_change` | Ejecuta mutaciones deterministas (agregar campo, renombrar, `bump_version`, etc.). |
-| `list_templates` | Lista plantillas Nivel 2 en workspace, caché global y skills instalados. |
-| `hydrate_template` | Copia de forma atómica e inmutable una plantilla Nivel 2 al workspace. |
-| `prune_orphaned_specs` | Analiza alcanzabilidad y purga specs huérfanas con respaldo en zip. |
-| `sync_workspace_manifest` | Reconcilia aditivamente las entradas `## NN ModelRef` del manifiesto contra los modelos Nivel 3 descubiertos en disco (`dry_run` por defecto `true`). Ver §14. |
-| `list_template_procedures` | Descubre procedimientos SOP transitivamente a través del árbol de `includes` (profundidad 10). |
-| `list_template_skills` | Descubre skills de agente transitivamente a través del árbol de `includes` (profundidad 10). |
+| `list_models` | Scans the directory for valid iNNfo models. |
+| `read_model` | Parses a model into a structured AST / JSON. |
+| `get_spec` | Dynamically resolves the Level 1 specification. |
+| `get_template` | Dynamically resolves the Level 2 template and its primitives. |
+| `validate_model` | Runs deterministic syntactic and schema validation (with a `(searched: ...)` diagnostic when the parent chain does not resolve). |
+| `validate_model_url` | Validates a model from a URL without writing it to disk. |
+| `validate_template` | Validates a Level 2 template against its parent Level 1 specification. |
+| `apply_change` | Runs deterministic mutations (add field, rename, `bump_version`, etc.). |
+| `list_templates` | Lists Level 2 templates in the workspace, the global cache, and installed skills. |
+| `hydrate_template` | Atomically and immutably copies a Level 2 template into the workspace. |
+| `prune_orphaned_specs` | Analyzes reachability and purges orphaned specs with a zip backup. |
+| `sync_workspace_manifest` | Additively reconciles the `## NN ModelRef` entries of the manifest against the Level 3 models discovered on disk (`dry_run` defaults to `true`). See §14. |
+| `list_template_procedures` | Discovers SOP procedures transitively across the `includes` tree (depth 10). |
+| `list_template_skills` | Discovers agent skills transitively across the `includes` tree (depth 10). |
 
-**Regla de Oro:** La URL de la especificación/plantilla siempre proviene de `parent_spec.url` o del usuario. Nunca hardcodear ni inventar URLs.
-
----
-
-## 2. Indicación Canónica de Especificaciones
-
-URLs estables de referencia (la versión va en el nombre del archivo — `main` ya está content-pinned):
-- **iNNfo (Nivel 1):** `https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-2-0_NN.md`
-- **Business (Nivel 2):** `https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business/business_V_0-2-0_NN.md`
-- **Procedures (Nivel 2):** `https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/procedures/procedures_V_0-2-0_NN.md`
-- **Organization (Nivel 2):** `https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/organization/organization_V_0-2-0_NN.md`
-
-### Regla de `parent_spec.url` en Modelos Nivel 3
-
-1. `parent_spec.url` de un modelo Nivel 3 debe ser una URL **ESTABLE (http/https)** que apunte a la plantilla Nivel 2, o un **path relativo al workspace** (ej. `specs/MiPlantilla_V_0-1-0_spec_NN.md`).
-2. **PROHIBIDO usar paths absolutos de Windows** (ej. `C:/Users/.../MiPlantilla_spec_NN.md`): rompen la resolución en el Modeler (fetch sobre ruta local) y en el MCP. El resolver de `innfo-mcp` (`resolver-node.ts`) busca la plantilla únicamente en `specs/` (recursivo) del workspace; la forma canónica es la URL http estable.
-3. Después de fijar `parent_spec.url`, verificar SIEMPRE la resolución (ver §5, pre-chequeo de cadena de padres) antes de dar por listo el modelo.
-4. **Los paths relativos se resuelven contra la raíz del servidor MCP** (la variable de entorno `INNFO_MODELS_DIR` o el cwd del proceso al iniciar el server), NO contra la carpeta del archivo del modelo. Por lo tanto, para validar un workspace con paths relativos, la raíz del MCP DEBE ser la raíz del workspace; los overrides `root:` solo aplican donde la herramienta los acepta (`validate_model` con `root`, `get_spec`/`get_template` con `url`).
-5. **El resolver AUTO-CACHEA cada padre resuelto** (local o remoto) en `<workspace>/specs/`, bajo el nombre de archivo canónico versionado del propio documento (write-once: si ya existe un archivo con ese nombre, nunca lo sobreescribe). No hay un directorio de caché separado — `specs/` es la única búsqueda local, recursiva, relativa al `root` del servidor MCP. (Nota: `.spec-cache/` y `.specs/` solo los escanea, como heurística adicional para un aviso de versión, el editor en el navegador — no forman parte de la resolución real del MCP; no copies archivos ahí esperando que el MCP los use.) Si una resolución falla, se debe verificar que el `root` del MCP apunte a la raíz del workspace para que resuelva los paths relativos correctamente. NUNCA copies archivos a mano en `specs/`, deja que el resolver los sincronice.
+**Golden Rule:** The specification/template URL always comes from `parent_spec.url` or from the user. Never hardcode or invent URLs.
 
 ---
 
-## 4. Protocolo de Proveniencia (`sources::`)
+## 2. Canonical Specification Reference
 
-1. **Carácter Opcional:** `sources::` es una propiedad de trazabilidad **OPCIONAL**. No invalida sintácticamente un modelo de Nivel 3 si no está presente.
-2. **Fuentes de Origen y Resolución de Rutas:** Las fuentes normalizadas se almacenan en la Colección de Fuentes (`sources/nn/`). **Toda ruta no calificada resuelve por defecto contra `sources/nn/`**, eliminando prefijos redundantes:
-   - Rutas relativas simples: `entrevista_cliente_transcript.md#feedback` resuelve canónicamente a `sources/nn/entrevista_cliente_transcript.md`.
-   - Subcarpetas: `interviews/interview_transcript.md#overview` resuelve a `sources/nn/interviews/interview_transcript.md`.
-   - El prefijo explícito `sources/nn/` continúa siendo tolerado por retrocompatibilidad.
-   - Citas entre modelos de dominio usan espacio de nombres explícito: `models/Finance_V_1-0-0_business_NN.md#revenue-forecast`.
-   - PIDs globales usan identificadores de esquema: `doi:10.1145/3290605.3300233`.
-3. **Aislamiento de Staging (`sources/staging/`):** La carpeta `sources/staging/` es un buffer transitorio de extracción (OCR, Whisper, etc.) y **NUNCA es un destino válido de citación**. Los modelos solo citan fuentes normalizadas en `sources/nn/`.
-4. **Gramática exacta y Anclas Estables:**
+Stable reference URLs (the version lives in the file name — `main` is already content-pinned):
+- **iNNfo (Level 1):** `https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-2-0_NN.md`
+- **Business (Level 2):** `https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business/business_V_0-2-0_NN.md`
+- **Procedures (Level 2):** `https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/procedures/procedures_V_0-2-0_NN.md`
+- **Organization (Level 2):** `https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/organization/organization_V_0-2-0_NN.md`
+
+### The `parent_spec.url` Rule for Level 3 Models
+
+1. A Level 3 model's `parent_spec.url` must be a **STABLE (http/https)** URL pointing at the Level 2 template, or a **workspace-relative path** (e.g. `specs/MyTemplate_V_0-1-0_spec_NN.md`).
+2. **FORBIDDEN: absolute Windows paths** (e.g. `C:/Users/.../MyTemplate_spec_NN.md`): they break resolution in the Modeler (fetch over a local path) and in the MCP. The `innfo-mcp` resolver (`resolver-node.ts`) looks for the template only under the workspace's `specs/` (recursively); the canonical form is the stable http URL.
+3. After setting `parent_spec.url`, ALWAYS verify resolution (see §5, parent-chain pre-check) before declaring the model done.
+4. **Relative paths resolve against the MCP server's root** (the `INNFO_MODELS_DIR` environment variable, or the process cwd when the server starts), NOT against the model file's own folder. Therefore, to validate a workspace with relative paths, the MCP root MUST be the workspace root; `root:` overrides only apply where the tool accepts them (`validate_model` with `root`, `get_spec`/`get_template` with `url`).
+5. **The resolver AUTO-CACHES every resolved parent** (local or remote) into `<workspace>/specs/`, under the document's own canonical versioned file name (write-once: if a file with that name already exists, it is never overwritten). There is no separate cache directory — `specs/` is the only local lookup, recursive, relative to the MCP server's `root`. (Note: `.spec-cache/` and `.specs/` are scanned only by the in-browser editor, as an extra heuristic for a version notice — they are not part of the MCP's real resolution; do not copy files there expecting the MCP to use them.) If a resolution fails, check that the MCP `root` points at the workspace root so relative paths resolve correctly. NEVER copy files into `specs/` by hand — let the resolver sync them.
+
+---
+
+## 4. Source Citation Protocol (`sources::`)
+
+1. **Optional:** `sources::` is an **OPTIONAL** traceability property. It does not syntactically invalidate a Level 3 model if absent.
+2. **Sources and Path Resolution:** Normalized sources live in the Source Collection (`sources/nn/`). **Every unqualified path resolves against `sources/nn/` by default**, removing redundant prefixes:
+   - Simple relative paths: `client_interview_transcript.md#feedback` resolves canonically to `sources/nn/client_interview_transcript.md`.
+   - Subfolders: `interviews/interview_transcript.md#overview` resolves to `sources/nn/interviews/interview_transcript.md`.
+   - The explicit `sources/nn/` prefix is still tolerated for backward compatibility.
+   - Citations between domain models use an explicit namespace: `models/Finance_V_1-0-0_business_NN.md#revenue-forecast`.
+   - Global PIDs use schema identifiers: `doi:10.1145/3290605.3300233`.
+3. **Staging Isolation (`sources/staging/`):** The `sources/staging/` folder is a transient extraction buffer (OCR, Whisper, etc.) and is **NEVER a valid citation target**. Models only cite normalized sources under `sources/nn/`.
+4. **Exact grammar and stable anchors:**
    ```
    sources:: <ref>
    sources:: [<ref>, <ref>, ...]
 
-   <ref>  ::= <ruta-relativa>.md( #<heading-slug> )?
+   <ref>  ::= <relative-path>.md( #<heading-slug> )?
    ```
-   - Las anclas deben ser **heading-slugs** de GitHub (ej: `#resumen-ejecutivo`, `#metricas-q3`).
-   - Los rangos de líneas numéricos (`#L1-L10`) están **estrictamente prohibidos** por su fragilidad ante reformateos.
-   - Toda ancla debe resolver contra un encabezado real del documento citado.
-5. **`sources::` SIEMPRE es una lista con corchetes `[...]`, incluso con una sola fuente.** El spec L1 exige `sources:: [sources/nn/<filename>#<heading-slug>, ...]` — MUST always be formatted as a list enclosed in brackets `[...]`, even when referencing a single source document. No existe sintaxis escalar ni omisión de corchetes para un solo valor (ver `iNNfo/specs/iNNfo_V_0-2-0_NN.md`). En campos `type:: reference`, la sintaxis WikiLink `[[...]]` es obligatoria de forma independiente (ver §8d y Core Rule 12):
+   - Anchors must be GitHub **heading-slugs** (e.g. `#executive-summary`, `#q3-metrics`).
+   - Numeric line ranges (`#L1-L10`) are **strictly forbidden** because they are fragile under reformatting.
+   - Every anchor must resolve to a real heading in the cited document.
+5. **`sources::` is ALWAYS a bracketed list `[...]`, even for a single source.** The L1 spec requires `sources:: [sources/nn/<filename>#<heading-slug>, ...]` — it MUST always be formatted as a list enclosed in brackets `[...]`, even when referencing a single source document. There is no scalar syntax and no bracket omission for a single value (see `iNNfo/specs/iNNfo_V_0-2-0_NN.md`). In `type:: reference` fields, the WikiLink syntax `[[...]]` is separately mandatory (see §8d and Core Rule 12):
    ```markdown
-   ## NN Stakeholders: Cliente Enterprise
-   sources:: [sources/nn/entrevista_cliente_transcript.md#feedback-principal, sources/nn/notas_source.md#puntos-clave]
+   ## NN Stakeholders: Enterprise Customer
+   sources:: [sources/nn/client_interview_transcript.md#key-feedback, sources/nn/notes_source.md#key-points]
    relationship_model:: B2B Long-term
 
-   ## NN Stakeholders: Cliente Piloto
-   sources:: [sources/nn/notas_source.md#puntos-clave]
+   ## NN Stakeholders: Pilot Customer
+   sources:: [sources/nn/notes_source.md#key-points]
    relationship_model:: Trial
    ```
-6. **Granularidad: a nivel de elemento, no de afirmación individual.** `sources::` cubre el conjunto de fuentes que respaldan TODO el elemento (todos sus campos en conjunto) — no hay mecanismo de cita por campo o por frase dentro de un modelo de dominio. Si distintos campos de un mismo elemento vienen de fuentes distintas, listá la unión de todas en el único `sources::` del elemento. La cita a nivel de afirmación individual (mediante footnotes estándar `[^1]` o formatos bibliográficos) es un mecanismo aparte, usado solo dentro de artefactos generados a partir del modelo (ver `nn-trannsform/SKILL.md` §4) — nunca dentro de un `*_NN.md`.
-7. **Sin duplicados ni referencias vacías.** No repitas la misma `<ref>` dos veces en la misma lista. Si no hay ninguna fuente real que citar, omití el campo entero — no escribas `sources:: []` ni un valor placeholder.
-8. **Instrucción Conversacional:** Si el proyecto cuenta con archivos en `sources/nn/`, el agente debe sugerir incluir `sources::`. Si es un modelo greenfield/creativo desde cero, el agente NO solicita ni exige proveniencia. En ambos casos aplica la regla general del skill: nunca inventés ni un `<ref>` ni un contenido que no esté verificablemente presente en el archivo citado.
+6. **Granularity: element-level, not individual-claim level.** `sources::` covers the set of sources backing the WHOLE element (all its fields together) — there is no per-field or per-sentence citation mechanism inside a domain model. If different fields of the same element come from different sources, list the union of them all in the element's single `sources::`. Claim-level citation (via standard `[^1]` footnotes or bibliographic formats) is a separate mechanism, used only inside artifacts generated from the model (see `nn-trannsform/SKILL.md` §4) — never inside a `*_NN.md`.
+7. **No duplicates or empty references.** Do not repeat the same `<ref>` twice in one list. If there is no real source to cite, omit the whole field — do not write `sources:: []` or a placeholder value.
+8. **Conversational instruction:** If the project has files under `sources/nn/`, the agent should suggest adding `sources::`. If it is a greenfield / creative model from scratch, the agent does NOT request or require citations. In both cases the skill's general rule applies: never invent a `<ref>` or content that is not verifiably present in the cited file.
 
 ---
 
-## 5. Instrucciones de Operación y Flujo MCP
+## 5. Operating Instructions & MCP Flow
 
-1. Obtener la plantilla con `innfo-mcp_get_template({ url })`.
+1. Get the template with `innfo-mcp_get_template({ url })`.
 2. Present concepts to the user using the format with `[a] (Recommended)`.
-3. Redactar el cuerpo usando la sintaxis unificada `# NN <Concept>`, `## NN <Concept>: <Element>`, `key:: value`.
-4. Validar el modelo con `innfo-mcp_validate_model({ content })`.
-5. **Pre-chequeo de cadena de padres (OBLIGATORIO antes de reportar listo):** resolver la cadena de padres con `innfo-mcp_get_template({ model_id })` (o `{ url }`) ANTES de declarar el modelo como listo. Si la plantilla NO se resuelve (`Template could not be resolved` / `PARENT_RESOLUTION_FAILED`):
-   - NO reportar el modelo como listo.
-   - Avisar que el template quedó sin resolver, mostrando el `parent_spec.url` problemático.
-   - Leer el nuevo diagnóstico accionable `(searched: ...)` que devuelven `validate_model` / `get_template`: lista los directorios donde el resolver buscó el padre. Si los directorios buscados se ven mal (por ej. no apuntan a la raíz del workspace), el problema es la **raíz del MCP** (`INNFO_MODELS_DIR` o cwd del server), no el modelo: corregir la raíz/URL y revalidar (ver §2, regla 4).
-   - Ofrecer corregirlo: URL estable http/https o path relativo al workspace (nunca path absoluto de Windows — ver §2).
-6. Al finalizar, mostrar el **Checklist de Expectativa Visual (§12)** y la sección de **Atajos de Navegación Contextual (§13)**.
+3. Draft the body using the unified syntax `# NN <Concept>`, `## NN <Concept>: <Element>`, `key:: value`.
+4. Validate the model with `innfo-mcp_validate_model({ content })`.
+5. **Parent-chain pre-check (MANDATORY before reporting done):** resolve the parent chain with `innfo-mcp_get_template({ model_id })` (or `{ url }`) BEFORE declaring the model done. If the template does NOT resolve (`Template could not be resolved` / `PARENT_RESOLUTION_FAILED`):
+   - Do NOT report the model as done.
+   - Warn that the template is unresolved, showing the problematic `parent_spec.url`.
+   - Read the new actionable `(searched: ...)` diagnostic returned by `validate_model` / `get_template`: it lists the directories the resolver searched for the parent. If the searched directories look wrong (e.g. they don't point at the workspace root), the problem is the **MCP root** (`INNFO_MODELS_DIR` or the server cwd), not the model: fix the root/URL and re-validate (see §2, rule 4).
+   - Offer to fix it: a stable http/https URL or a workspace-relative path (never an absolute Windows path — see §2).
+6. When finished, show the **Visual Expectation Checklist (§12)** and the **Contextual Navigation Shortcuts (§13)** section.
 
-#### Version bump atómico
+#### Atomic version bump
 
-Para subir la versión de un modelo Nivel 3 y su plantilla asociada (parent_spec), usar la operación `bump_version` del MCP — NO editar el frontmatter a mano:
+To raise the version of a Level 3 model and its associated template (parent_spec), use the MCP's `bump_version` operation — do NOT edit the frontmatter by hand:
 
 ```
 innfo-mcp_apply_change({
@@ -337,69 +337,69 @@ innfo-mcp_apply_change({
 
 ---
 
-## 6. Seguridad en Renombrados e Integridad Referencial
+## 6. Rename Safety & Referential Integrity
 
-Cuando se requiere renombrar un Concepto o Elemento:
-* **Delegación al MCP:** El agente NO realiza reemplazos manuales por búsqueda y sustitución a ciegas. Utiliza la herramienta `innfo-mcp_apply_change` con la operación de renombrado correspondiente (`rename_concept` o `rename_element`) para garantizar la actualización determinista de WikiLinks `[[Concepto]]`, matrices y referencias cruzadas.
-
----
-
-## 7. Contrato de Delegación y Fallback
-
-* **Con MCP disponible:** NUNCA resolver especificaciones a mano ni validar manualmente. Delegar en `innfo-mcp_get_spec`, `innfo-mcp_validate_model` y `innfo-mcp_apply_change`.
-* **Modo Fallback (Sin MCP):** Inspeccionar archivos locales en disco y validar que se cumpla la sintaxis `# NN`, `## NN`, `key:: value` y el frontmatter YAML ligero de Nivel 3.
+When a Concept or Element must be renamed:
+* **Delegate to the MCP:** The agent does NOT perform blind manual find-and-replace. It uses `innfo-mcp_apply_change` with the matching rename operation (`rename_concept` or `rename_element`) to guarantee deterministic updates of `[[Concept]]` WikiLinks, matrices, and cross-references.
 
 ---
 
-## 8. Protocolo de Creación de Campos y Preview de Cambios (Opción D)
+## 7. Delegation & Fallback Contract
 
-Todo campo debe declarar un `type` explícito (`string`, `select`, `reference`, `markdown_inline`, `markdown_file`, `image`, `file`, `video`, `audio`, `model`).
+* **With MCP available:** NEVER resolve specifications by hand or validate manually. Delegate to `innfo-mcp_get_spec`, `innfo-mcp_validate_model`, and `innfo-mcp_apply_change`.
+* **Fallback mode (no MCP):** Inspect local files on disk and check that the `# NN`, `## NN`, `key:: value` syntax and the lightweight Level 3 YAML frontmatter are respected.
 
-> ⚠️ **Sintaxis de listas — NUNCA uses comillas sin corchetes.** Para cualquier campo con múltiples valores (`reference`, `sources::`, o cualquier otro tipo de lista), el único formato válido es `[a, b, c]` — sin comillas alrededor de cada valor. El formato `"a", "b"` (comillas individuales, sin corchetes envolventes) **corrompe el parseo silenciosamente**: el validador lo trata como un único string ilegible en vez de una lista, y termina reportando una referencia colgada genérica sin explicar la causa real. Si ves ese error y el campo tiene comillas sueltas sin `[...]`, la causa casi seguro es esta.
+---
 
-### Preview de Cambios con Diff (Opción D)
-Antes de ejecutar cualquier cambio o mutación en el modelo, el agente DEBE presentar un breve resumen en lenguaje natural del cambio propuesto:
+## 8. Field Creation & Change-Preview Protocol (Option D)
+
+Every field must declare an explicit `type` (`string`, `select`, `reference`, `markdown_inline`, `markdown_file`, `image`, `file`, `video`, `audio`, `model`).
+
+> ⚠️ **List syntax — NEVER use quotes without brackets.** For any field with multiple values (`reference`, `sources::`, or any other list type), the only valid format is `[a, b, c]` — no quotes around each value. The format `"a", "b"` (individual quotes, no enclosing brackets) **corrupts parsing silently**: the validator treats it as a single unreadable string instead of a list, and ends up reporting a generic dangling reference without explaining the real cause. If you see that error and the field has loose quotes with no `[...]`, this is almost certainly the cause.
+
+### Change Preview with Diff (Option D)
+Before running any change or mutation on the model, the agent MUST present a short natural-language summary of the proposed change:
 
 ```markdown
-📋 Preview del Cambio Propuesto:
-- Concepto objetivo: Stakeholders
-- Campo nuevo: presupuesto (tipo: number)
-- Rationale: Almacenar el presupuesto asignado anualmente
+📋 Proposed Change Preview:
+- Target concept: Stakeholders
+- New field: budget (type: string)
+- Rationale: Store the annually allocated budget
 
-¿Procedemos a aplicar esta modificación?
+Shall we proceed with this modification?
 - [a] (Recommended) Confirm and apply change
 - [b] Modify data type or configuration
 - [x] Cancel
 ```
 
-Al confirmar el usuario, ejecutar la mutación vía `innfo-mcp_apply_change` y re-validar con `innfo-mcp_validate_model`.
+Once the user confirms, run the mutation via `innfo-mcp_apply_change` and re-validate with `innfo-mcp_validate_model`.
 
 ---
 
-## 8b. Protocolo de Campos de Activos e Imágenes
+## 8b. Asset & Image Field Protocol
 
-* **Tipo Explícito:** Usar siempre `type:: image` para rutas o URLs de imágenes (nunca `string`).
-* **Reglas de Especificación:** La regla de resolución de imagen principal (Rule 1) y la gramática del campo companion libre `<campo>_metadata` con citaciones CSL-JSON en una sola línea están normadas oficialmente en la Especificación Nivel 1 (`iNNfo_NN.md`).
-* **Interacción del Agente:** Si el usuario incluye imágenes o activos con información de atribución, el agente sugiere incluir el campo `<campo>_metadata` con la cita CSL-JSON correspondiente.
+* **Explicit type:** Always use `type:: image` for image paths or URLs (never `string`).
+* **Specification rules:** The primary image resolution rule (Rule 1) and the grammar of the free companion field `<field>_metadata` with single-line CSL-JSON citations are officially defined in the Level 1 Specification (`iNNfo_NN.md`).
+* **Agent interaction:** If the user includes images or assets with attribution information, the agent suggests adding the `<field>_metadata` field with the matching CSL-JSON citation.
 
 ---
 
-## 8c. Análisis de Coherencia y Solidez — Modo "Coach de Arquitectura" (Opción C)
+## 8c. Coherence & Solidity Analysis — "Architecture Coach" Mode (Option C)
 
-Cuando el usuario elige la opción `[d]` (Analizar coherencia), el agente asume el rol de **Coach de Arquitectura**:
+When the user picks option `[d]` (Analyze coherence), the agent takes the role of **Architecture Coach**:
 
-1. Carga el modelo (`read_model`) y su plantilla (`get_template`).
-2. Evalúa las 4 capas: **Corrección Formal**, **Coherencia Lógica**, **Coherencia Semántica** y **Solidez/Robustez**.
-3. **Presentación con Impacto Funcional (Coach Mode):**
-   No solo lista errores técnicos; explica el **riesgo de negocio/funcional** y ofrece la **solución en 1 clic**:
+1. Load the model (`read_model`) and its template (`get_template`).
+2. Evaluate the 4 layers: **Formal Correctness**, **Logical Coherence**, **Semantic Coherence**, and **Solidity/Robustness**.
+3. **Presentation with Functional Impact (Coach Mode):**
+   Do not just list technical errors; explain the **business/functional risk** and offer the **1-click fix**:
 
 ```markdown
-🧠 Diagnóstico del Coach de Arquitectura:
+🧠 Architecture Coach Diagnosis:
 
-1. ⚠️ [Coherencia Lógica] Referencia Rota
-   - Hallazgo: El elemento `Cliente Enterprise` referencia a `DirectorComercial` que no existe.
-   - Impacto Funcional: Romperá los enlaces del árbol de navegación en iNNfo Modeler.
-   - Solución sugerida: Crear el elemento `DirectorComercial` o corregir el nombre.
+1. ⚠️ [Logical Coherence] Broken Reference
+   - Finding: Element `Enterprise Customer` references `CommercialDirector`, which does not exist.
+   - Functional impact: It will break the navigation-tree links in iNNfo Modeler.
+   - Suggested fix: Create the `CommercialDirector` element or correct the name.
 
 Would you like me to apply the recommended fix automatically?
 - [a] (Recommended) Apply suggested fix
@@ -409,56 +409,56 @@ Would you like me to apply the recommended fix automatically?
 
 ---
 
-## 8d. Protocolo de Relaciones y Sintaxis WikiLink en Campos Referenciales
+## 8d. Relationship Protocol & WikiLink Syntax in Reference Fields
 
-Existen **4 formas formales de relación** en iNNfo (`hierarchy`, `evaluable_matrix`, `graph_edge`, `sequence`) y dos mecanismos de vinculación cruzada (campos `reference` y menciones contextuales):
+There are **4 formal relationship forms** in iNNfo (`hierarchy`, `evaluable_matrix`, `graph_edge`, `sequence`) and two cross-linking mechanisms (`reference` fields and contextual mentions):
 
-1. **Jerarquía Taxonómica (`hierarchy`)**: Se declara **únicamente** mediante el anidamiento de listas con WikiLinks en el `# NN index` (`* [[Padre]]` -> `  * [[Hijo]]`).
-2. **Campos Referenciales (`reference`)**: Cuando un campo tiene `type:: reference` en su definición de plantilla, su valor en el modelo Nivel 3 **DEBE encerrarse obligatoriamente entre corchetes WikiLink `[[...]]`** (ej. `location:: [[Salón-Comedor]]`). NUNCA escribir el valor como texto plano (`location:: Salón-Comedor`), ya que impide la detección del enlace entrante (*incoming reference*) en el editor.
-3. **Relaciones N-a-M Evaluables (`evaluable_matrix`)**: Se expresan en bloques `# NN matrices:` para relaciones complejas o puntuadas entre conceptos.
-4. **Menciones Contextuales**: Se escriben como WikiLinks `[[Elemento]]` dentro de la descripción en prosa Markdown.
+1. **Taxonomic hierarchy (`hierarchy`)**: Declared **only** via nested WikiLink lists in the `# NN index` (`* [[Parent]]` -> `  * [[Child]]`).
+2. **Reference fields (`reference`)**: When a field has `type:: reference` in its template definition, its value in the Level 3 model **MUST be enclosed in WikiLink brackets `[[...]]`** (e.g. `location:: [[Dining-Room]]`). NEVER write the value as plain text (`location:: Dining-Room`), because that prevents incoming-reference detection in the editor.
+3. **Evaluable N-to-M relationships (`evaluable_matrix`)**: Expressed in `# NN matrices:` blocks for complex or scored relationships between concepts.
+4. **Contextual mentions**: Written as WikiLinks `[[Element]]` inside the prose Markdown description.
 
-**Instrucción al Wizard / Co-creación**: Durante la creación o edición de un modelo, el agente DEBE orientar o consultar al usuario según cómo desee estructurar las relaciones (jerarquía en `# NN index`, campo referencial `[[...]]` o matriz N-a-M).
-
----
-
-## 8e. Protocolo de Etiquetas Libres (`tags::`)
-
-1. **Etiquetado Ad-hoc en Nivel 3**: Todo Elemento o Concepto en un modelo Nivel 3 puede declarar la propiedad `tags::` para categorización libre *on the fly* sin necesidad de modificar la plantilla Nivel 2 ni definir un `Marker Definition` previo.
-2. **Sintaxis de Listas**: Se escribe como una lista inline `tags:: [urgente, sprint-1, cliente-vip]` (o `tags:: urgente` para una sola etiqueta). Para múltiples valores, la sintaxis con corchetes `[...]` es OBLIGATORIA.
-3. **Uso por el Agente**: Cuando el usuario solicite "filtrá o actuá solo sobre los elementos con la etiqueta X", el agente DEBE inspeccionar los campos `tags::` de cada Element/Concept para restringir su alcance únicamente a las entidades coincidentes.
-4. **Coexistencia con Markers**: Los `tags::` son etiquetas livianas de texto plano. Si el usuario requiere icono, color, peso o participación en matrices comparativas, el tag se puede promover a un `Marker Definition` formal a Nivel 2.
+**Wizard / co-creation instruction**: During model creation or editing, the agent MUST guide or ask the user how they want to structure relationships (hierarchy in `# NN index`, a reference field `[[...]]`, or an N-to-M matrix).
 
 ---
 
-## 9. Estrategia de Especializaciones
+## 8e. Free-form Tag Protocol (`tags::`)
 
-Cuando un modelo requiere conceptos o campos personalizados fuera de la plantilla base:
-1. **NUNCA modificar** especificaciones publicadas en `specs/`.
-2. Crear un archivo de plantilla de especialización `<Modelo>_<Plantilla>_V_x-y-z_spec_NN.md` con `level: 2`.
-3. Apuntar la propiedad `parent_spec.url` del modelo Nivel 3 hacia el archivo de especialización.
-4. **El `index.md` del workspace lista SOLO modelos Nivel 3.** Un archivo `_spec_NN.md` (plantilla Nivel 2 / especialización) NO debe listarse como modelo en `index.md`: se resuelve como plantilla vía `parent_spec.url` y se renderiza como nodo `spec:`, nunca como modelo del árbol de navegación.
+1. **Ad-hoc tagging at Level 3**: Any Element or Concept in a Level 3 model may declare the `tags::` property for free-form categorization *on the fly*, without modifying the Level 2 template or predefining a `Marker Definition`.
+2. **List syntax**: Written as an inline list `tags:: [urgent, sprint-1, vip-client]` (or `tags:: urgent` for a single tag). For multiple values, the bracketed `[...]` syntax is MANDATORY.
+3. **Agent use**: When the user asks to "filter or act only on elements with tag X", the agent MUST inspect the `tags::` fields of each Element/Concept to restrict its scope to the matching entities only.
+4. **Coexistence with Markers**: `tags::` are lightweight plain-text labels. If the user needs an icon, color, weight, or participation in comparative matrices, the tag can be promoted to a formal Level 2 `Marker Definition`.
 
-> **Nota — Plantilla 100% nueva (sin base a especializar):** Cuando la Fase A (§0c) resulta en un diseño desde cero, sin ninguna plantilla canónica como base, el archivo se nombra `<Plantilla>_V_0-1-0_spec_NN.md` (sin prefijo `<Modelo>_`, porque no hay base que especializar). El resto del flujo —`parent_spec.url` del modelo Nivel 3, `index.md` listando solo modelos Nivel 3— aplica igual.
+---
 
-### 9-bis. `includes` vs. especialización
+## 9. Specialization Strategy
 
-Son mecanismos distintos:
+When a model needs custom concepts or fields beyond the base template:
+1. **NEVER modify** specifications published under `specs/`.
+2. Create a specialization template file `<Model>_<Template>_V_x-y-z_spec_NN.md` with `level: 2`.
+3. Point the Level 3 model's `parent_spec.url` at the specialization file.
+4. **The workspace `index.md` lists ONLY Level 3 models.** A `_spec_NN.md` file (Level 2 template / specialization) MUST NOT be listed as a model in `index.md`: it is resolved as a template via `parent_spec.url` and rendered as a `spec:` node, never as a model in the navigation tree.
 
-| | `includes` (composición) | Especialización (`parent_spec` a un `_spec_NN.md`) |
+> **Note — 100% new template (no base to specialize):** When Phase A (§0c) results in a from-scratch design, with no canonical template as a base, the file is named `<Template>_V_0-1-0_spec_NN.md` (without the `<Model>_` prefix, because there is no base to specialize). The rest of the flow — the Level 3 model's `parent_spec.url`, `index.md` listing only Level 3 models — applies the same.
+
+### 9-bis. `includes` vs. specialization
+
+They are distinct mechanisms:
+
+| | `includes` (composition) | Specialization (`parent_spec` pointing at a `_spec_NN.md`) |
 |---|---|---|
-| Qué hace | Une aditivamente Definitions de plantillas *pares* | El modelo apunta a una plantilla propia que reemplaza a la canónica |
-| Override | Prohibido (choque de nombres = ERROR) | La especialización redefine el cuerpo completo |
-| Cuándo | Necesitás combinar varias plantillas canónicas tal cual | Necesitás cambiar/extender una plantilla concreta para un modelo |
+| What it does | Additively unions Definitions from *peer* templates | The model points at its own template that replaces the canonical one |
+| Override | Forbidden (name collision = ERROR) | The specialization redefines the whole body |
+| When | You need to combine several canonical templates as-is | You need to change/extend a specific template for one model |
 
-Una plantilla **composite** (la que declara `includes`) es la que el modelo nombra en su `parent_spec`; las incluidas son plantillas standalone usadas como ingredientes, no una categoría inferior. `includes` solo es válido en Nivel 2 — un modelo Nivel 3 compone a través del `includes` de *su* plantilla, nunca del propio. Combinar `projects` + `organization` vía `includes` es ERROR mientras ambas declaren el Concept `Roles` (hay que renombrar en un lado).
+A **composite** template (the one that declares `includes`) is the one the model names in its `parent_spec`; the included ones are standalone templates used as ingredients, not a lower category. `includes` is valid only at Level 2 — a Level 3 model composes through *its* template's `includes`, never its own. Combining `projects` + `organization` via `includes` is an ERROR while both declare the Concept `Roles` (you must rename on one side).
 
 ---
 
-## 10. Validación y Versionado Post-Edición
+## 10. Post-Edit Validation & Versioning
 
-Tras editar un modelo:
-1. Ejecutar `innfo-mcp_validate_model()`.
+After editing a model:
+1. Run `innfo-mcp_validate_model()`.
 2. Present result and version menu:
    - **[a] (Recommended)** Bump Patch (`V_x-y-z+1`)
    - **[b]** Keep current version (`V_x-y-z`)
@@ -468,7 +468,7 @@ Tras editar un modelo:
 
 ---
 
-## 11. Decisión de Escalado de Arquitectura (1 a N Modelos)
+## 11. Architecture Scaling Decision (1 to N Models)
 
 When the project scales to multiple sub-models, present the **4 Architectural Alternatives**:
 
@@ -495,7 +495,7 @@ When the project scales to multiple sub-models, present the **4 Architectural Al
 
 ---
 
-## 12. Checklist de Expectativa Visual (App Verification)
+## 12. Visual Expectation Checklist (App Verification)
 
 Upon completing the creation or modification of a model, the agent MUST print the Visual Checklist with dynamic deep links instead of the generic `https://cognnitive.com/innfo/app/`.
 
@@ -523,7 +523,7 @@ Example of dynamic checklist to generate:
 
 ---
 
-## 13. Atajos de Navegación Contextual / Quick Actions (Opción E)
+## 13. Contextual Navigation Shortcuts / Quick Actions (Option E)
 
 Upon concluding the generation or editing of a model, the agent MUST include logical shortcuts based on current context. When finishing a new model, the first option MUST be guided review:
 
@@ -546,70 +546,70 @@ Upon concluding the generation or editing of a model, the agent MUST include log
 
 ---
 
-## 14. Sincronización del Manifiesto del Workspace (Autorregistro)
+## 14. Workspace Manifest Synchronization (Self-Registration)
 
-El manifiesto del workspace (`workspace_NN.md`, sección `# NN ModelRef`) puede desincronizarse del sistema de archivos: se crea un modelo Nivel 3 nuevo y nadie agrega su entrada, o se borra un archivo y la entrada del manifiesto queda apuntando a un modelo inexistente. La herramienta `sync_workspace_manifest` del MCP reconcilia esto de forma aditiva, nunca destructiva:
+The workspace manifest (`workspace_NN.md`, section `# NN ModelRef`) can drift out of sync with the filesystem: a new Level 3 model is created and nobody adds its entry, or a file is deleted and the manifest entry keeps pointing at a model that no longer exists. The MCP's `sync_workspace_manifest` tool reconciles this additively, never destructively:
 
-- Agrega una entrada `## NN ModelRef: <nombre>` (marcada con `<!-- nn:auto -->`) por cada modelo Nivel 3 descubierto que aún no está listado, siempre al final de la sección `# NN ModelRef` — nunca reordena ni reagrupa entradas existentes.
-- Pone `status:: archived` en una entrada que el propio tool creó (identificable por `<!-- nn:auto -->`) cuando su archivo ya no existe en disco — nunca la borra.
-- Reactiva (`status:: active`) una entrada propia previamente archivada si su archivo vuelve a aparecer.
-- **Nunca modifica una entrada sin el marcador `<!-- nn:auto -->`**, la deja completamente intacta, exista o no su archivo. Toda entrada escrita a mano por una persona es intocable por diseño.
-- Excluye del descubrimiento al propio manifiesto, a cualquier modelo cuya plantilla sea `cogNNitive` (en cualquier versión — son modelos de proveniencia, no referencias de navegación), y a todo lo que esté fuera del alcance de reconciliación (`backups/`, `archive/`, `specs/`).
+- Adds a `## NN ModelRef: <name>` entry (marked with `<!-- nn:auto -->`) for every discovered Level 3 model not yet listed, always at the end of the `# NN ModelRef` section — never reordering or regrouping existing entries.
+- Sets `status:: archived` on an entry the tool itself created (identifiable by `<!-- nn:auto -->`) when its file no longer exists on disk — never deleting it.
+- Reactivates (`status:: active`) a previously archived tool-owned entry if its file reappears.
+- **Never modifies an entry without the `<!-- nn:auto -->` marker**, leaving it completely intact whether or not its file exists. Every hand-authored entry is untouchable by design.
+- Excludes from discovery the manifest itself, any model whose template is `cogNNitive` (in any version — those are lineage records, not navigation references), and anything outside the reconciliation scope (`backups/`, `archive/`, `specs/`).
 
-**Protocolo de invocación (obligatorio — mismo patrón que el Preview de Cambios con Diff, §8):**
-1. Ejecutar primero con `dry_run: true` (valor por defecto) e inspeccionar `changes` y `diff` en la respuesta.
-2. Presentar al usuario un resumen en lenguaje natural de los cambios propuestos (cuántas entradas se agregarían, cuáles se archivarían/reactivarían) antes de escribir nada.
-3. Solo tras la confirmación explícita del usuario, invocar de nuevo con `dry_run: false` para persistir los cambios en disco.
+**Invocation protocol (mandatory — same pattern as the Change Preview with Diff, §8):**
+1. Run first with `dry_run: true` (the default) and inspect `changes` and `diff` in the response.
+2. Present the user a natural-language summary of the proposed changes (how many entries would be added, which would be archived/reactivated) before writing anything.
+3. Only after the user's explicit confirmation, call again with `dry_run: false` to persist the changes to disk.
 
 ```
 innfo-mcp_sync_workspace_manifest({ dry_run: true })
-// revisar result.changes / result.diff con el usuario antes de continuar
-innfo-mcp_sync_workspace_manifest({ dry_run: false }) // solo tras confirmación explícita
+// review result.changes / result.diff with the user before continuing
+innfo-mcp_sync_workspace_manifest({ dry_run: false }) // only after explicit confirmation
 ```
 
-Esta es la vía headless/CLI-equivalente para actioNN — no existe un binario `nn` separado; la sincronización siempre pasa por el bridge MCP existente (`innfo-mcp`), igual que cualquier otra herramienta de este skill.
+This is the headless / CLI-equivalent path for actioNN — there is no separate `nn` binary; synchronization always goes through the existing MCP bridge (`innfo-mcp`), like every other tool in this skill.
 
 ---
 
-## 15. Descubrimiento de Procedimientos y Skills del Modelo
+## 15. Model Procedure & Skill Discovery
 
-Los procedimientos ejecutables y skills de agente son contenido declarado dinámicamente en los modelos y plantillas (no un catálogo fijo del skill). Se descubren invocando las herramientas MCP `list_template_procedures` y `list_template_skills`, las cuales recorren transitivamente la jerarquía `parent_spec` y el árbol de composición `includes` hasta una profundidad de 10 niveles, deduplicando procedimientos por `id` y skills por `name`.
+Executable procedures and agent skills are content declared dynamically in models and templates (not a fixed catalog in the skill). They are discovered by calling the MCP tools `list_template_procedures` and `list_template_skills`, which transitively walk the `parent_spec` hierarchy and the `includes` composition tree to a depth of 10 levels, deduplicating procedures by `id` and skills by `name`.
 
-Además, los procedimientos se descubren consultando las secciones `## NN Procedure: ...` del modelo activo y la carpeta `procedures/` del workspace (`*_procedures_V_0-1-0_NN.md`).
+Additionally, procedures are discovered by reading the `## NN Procedure: ...` sections of the active model and the workspace's `procedures/` folder (`*_procedures_V_0-1-0_NN.md`).
 
-El procedimiento de master.html (anteriormente showroom) es reconocible: si el usuario solicita un "master.html", "master", "showroom", "galería" o "framework visual" de un modelo, se ofrece generarlo (sin modificar cómo se genera ni alterar el comportamiento del generador actual).
+The master.html procedure (formerly "showroom") is recognizable: if the user asks for a "master.html", "master", "showroom", "gallery", or "visual framework" of a model, offer to generate it (without changing how it is generated or altering the current generator's behavior).
 
 ---
 
 ## Core Rules
 
-1. **Meta-plantilla Estricta V_0-2-0:** Las plantillas Nivel 2 definen primitivas en el cuerpo (`# NN Concept Definition`). NUNCA colocar `concepts: [...]` o `fields: [...]` en el YAML frontmatter de Nivel 2.
-2. **Sintaxis Unificada NN:** Usar `# NN <Concept>`, `## NN <Concept>: <Element>`, `key:: value`. No usar viñetas obsoletas `_NN` ni bloques de código ````yaml`.
-3. **Proveniencia Opcional y Actualizada:** `sources::` es opcional; resuelve canónicamente contra la Colección de Fuentes (`sources/nn/`) sin requerir prefijo redundante, y ancla a heading-slugs (`#<slug>`), admitiendo listas `[a, b]` para múltiples fuentes (sin IDs `src-xxx`, sin rangos de línea `#L...`, ni buffer `sources/staging/`).
-4. **Cero Mutación Unilateral:** Nunca renombrar ni mover archivos sin confirmación explícita.
+1. **Strict V_0-2-0 Meta-template:** Level 2 templates define primitives in the body (`# NN Concept Definition`). NEVER put `concepts: [...]` or `fields: [...]` in the Level 2 YAML frontmatter.
+2. **Unified NN syntax:** Use `# NN <Concept>`, `## NN <Concept>: <Element>`, `key:: value`. Do not use obsolete `_NN` bullets or ````yaml` code blocks.
+3. **Optional, up-to-date Source Citations:** `sources::` is optional; it resolves canonically against the Source Collection (`sources/nn/`) without a redundant prefix, anchors to heading-slugs (`#<slug>`), and takes bracketed lists `[a, b]` for multiple sources (no `src-xxx` IDs, no `#L...` line ranges, no `sources/staging/` buffer).
+4. **Zero Unilateral Mutation:** Never rename or move files without explicit confirmation.
 5. **Recommended Option First:** Always prefix option `[a]` with `(Recommended)`.
 6. **Multi-Selection Notice:** Include `"You can select one option or a combination (e.g. A and B)"` when applicable.
-7. **Preview de Cambios con Diff:** Mostrar resumen en lenguaje natural antes de aplicar cualquier mutación con el MCP.
-8. **Modo Coach de Arquitectura:** En la auditoría `[d]`, explicar riesgos de negocio/funcionales y ofrecer soluciones en 1 clic.
-9. **Atajos Contextuales:** Finalizar cada respuesta ofreciendo 2-3 acciones siguientes sugeridas (Quick Actions).
-10. **Delegación Total al MCP:** Consultar tipos, esquemas y validación al servidor `innfo-mcp`; no adivinar ni duplicar la gramática.
-11. **Index Block Solo Concepts:** El `# NN index` lista SOLO Concepts (tipos declarados por la plantilla), NUNCA Elements (instancias de Concepts). Los Elements se declaran dentro de sus secciones de Concept con `## NN <Concept>: <Element>`. La relación Elements↔Concepts es por estructura de sección y campos `reference`, no por jerarquía en el index.
-12. **Sintaxis WikiLink Obligatoria en Referencias:** En todo campo referencial (`type:: reference`), el valor DEBE ser formateado usando la sintaxis WikiLink (`key:: [[Elemento]]`). Queda prohibido usar texto plano sin corchetes WikiLink.
-13. **Descripción de Elementos en Prosa:** La descripción/explicación de un elemento en un modelo Nivel 3 NUNCA debe escribirse como un campo de tipo `description::`. Debe ir siempre como texto libre en prosa Markdown debajo de la lista de campos `key:: value`, separada por una línea en blanco.
+7. **Change Preview with Diff:** Show a natural-language summary before applying any MCP mutation.
+8. **Architecture Coach Mode:** In the `[d]` audit, explain business/functional risks and offer 1-click fixes.
+9. **Contextual Shortcuts:** End every response by offering 2-3 suggested next actions (Quick Actions).
+10. **Full MCP Delegation:** Query types, schemas, and validation from the `innfo-mcp` server; do not guess or duplicate the grammar.
+11. **Index Block: Concepts only:** The `# NN index` lists ONLY Concepts (types declared by the template), NEVER Elements (instances of Concepts). Elements are declared inside their Concept sections with `## NN <Concept>: <Element>`. The Elements↔Concepts relationship is by section structure and `reference` fields, not by hierarchy in the index.
+12. **Mandatory WikiLink syntax in references:** In every reference field (`type:: reference`), the value MUST be formatted using WikiLink syntax (`key:: [[Element]]`). Plain text without WikiLink brackets is forbidden.
+13. **Element descriptions in prose:** The description/explanation of an element in a Level 3 model must NEVER be written as a `description::` field. It must always be free-form Markdown prose below the `key:: value` field list, separated by a blank line.
 14. **Active Model Selection Gate:** Never perform editing, validation, audits, or model procedure execution without a validated active model in context. Run workspace discovery first if none is set.
 15. **Dynamic Quick Actions:** Only list procedure shortcuts in next steps if the model contains declared procedures.
-16. **Etiquetas Libres (`tags::`)**: Todo Elemento o Concepto en un modelo Nivel 3 puede declarar `tags:: [tag1, tag2]` para categorización libre sin necesidad de modificar la plantilla Nivel 2. La sintaxis de múltiples etiquetas exige el uso de corchetes `[...]`. Los agentes deben usar este campo para filtrar y acotar acciones sobre elementos etiquetados.
+16. **Free-form Tags (`tags::`)**: Any Element or Concept in a Level 3 model may declare `tags:: [tag1, tag2]` for free-form categorization without modifying the Level 2 template. Multi-tag syntax requires brackets `[...]`. Agents should use this field to filter and scope actions to tagged elements.
 
 ---
 
-## Generación del Index Block
+## Generating the Index Block
 
-### Regla Fundamental
+### Fundamental Rule
 
-El `# NN index` define la jerarquía de **navegación** entre Concepts. Los Elements NO
-aparecen en el index — se descubren al expandir un Concept en el árbol lateral.
+The `# NN index` defines the **navigation** hierarchy between Concepts. Elements do NOT
+appear in the index — they are discovered by expanding a Concept in the sidebar tree.
 
-### Formato Correcto
+### Correct Format
 
 ```markdown
 # NN index
@@ -624,32 +624,32 @@ aparecen en el index — se descubren al expandir un Concept en el árbol latera
   * [[Costs]]
 ```
 
-### Formato INCORRECTO (mezcla Concepts y Elements)
+### INCORRECT Format (mixes Concepts and Elements)
 
 ```markdown
 # NN index
 * [[Market]]
-  * [[Stakeholders]]    ← Element, NO va en el index
-    * [[Juan Pérez]]    ← Element de Stakeholders, NO va en el index
-  * [[Segments]]        ← Element, NO va en el index
+  * [[Stakeholders]]    ← Element, does NOT belong in the index
+    * [[John Doe]]       ← Element of Stakeholders, does NOT belong in the index
+  * [[Segments]]        ← Element, does NOT belong in the index
 ```
 
-### Generación Automática
+### Automatic Generation
 
-Al crear o editar un modelo, el agente debe:
+When creating or editing a model, the agent must:
 
-1. **Leer la plantilla** (`get_template`) para obtener los Concepts definidos
-2. **Identificar los Concepts raíz** (primer nivel del index)
-3. **Identificar sub-Concepts** (si existen jerarquías en la plantilla)
-4. **Generar el index** listando SOLO Concepts, NO Elements
-5. **Validar** con `validate_model` que el index no contenga Elements
+1. **Read the template** (`get_template`) to obtain the defined Concepts
+2. **Identify root Concepts** (first level of the index)
+3. **Identify sub-Concepts** (if the template has hierarchies)
+4. **Generate the index** listing ONLY Concepts, NOT Elements
+5. **Validate** with `validate_model` that the index contains no Elements
 
-### Relación Elements↔Concepts
+### Elements↔Concepts Relationship
 
-Los Elements se relacionan con sus Concepts por:
+Elements relate to their Concepts by:
 
-1. **Estructura de sección:** `## NN <Concept>: <Element>` declara que Element pertenece a ese Concept
-2. **Campos reference:** `location:: [[Element Name]]` establece relaciones entre Elements
-3. **Matrices:** Las matrices cruzan Elements de distintos Concepts
+1. **Section structure:** `## NN <Concept>: <Element>` declares that Element belongs to that Concept
+2. **Reference fields:** `location:: [[Element Name]]` establishes relationships between Elements
+3. **Matrices:** Matrices cross Elements from different Concepts
 
-NUNCA por jerarquía en el index.
+NEVER by hierarchy in the index.
