@@ -19,8 +19,8 @@ describe('modelStore.renameElementNode propagation', () => {
           parentId: 'doc',
           childIds: [],
           fields: {
-            assignee: { value: 'Task Beta', provenance: { author: { kind: 'system', id: 'test' }, timestamp: '' } },
-            notes: { value: 'Refers to [[Task Beta|secondary task]]', provenance: { author: { kind: 'system', id: 'test' }, timestamp: '' } },
+            assignee: { value: 'Task Beta', editAttribution: { author: { kind: 'system', id: 'test' }, timestamp: '' } },
+            notes: { value: 'Refers to [[Task Beta|secondary task]]', editAttribution: { author: { kind: 'system', id: 'test' }, timestamp: '' } },
           },
           markers: {},
         },

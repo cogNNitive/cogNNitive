@@ -236,7 +236,7 @@ describe('workspaceStore.open()', () => {
           fields: {
             status: {
               value: 'Old Status',
-              provenance: { author: { kind: 'user', id: 'test' }, timestamp: '' },
+              editAttribution: { author: { kind: 'user', id: 'test' }, timestamp: '' },
             },
           },
           markers: {},
@@ -259,7 +259,7 @@ describe('workspaceStore.open()', () => {
     if (child) {
       child.fields['status'] = {
         value: 'New Status',
-        provenance: { author: { kind: 'user', id: 'test' }, timestamp: '' },
+        editAttribution: { author: { kind: 'user', id: 'test' }, timestamp: '' },
       }
     }
     modelStore.markDirty('child-1') // This should also mark the root node dirty

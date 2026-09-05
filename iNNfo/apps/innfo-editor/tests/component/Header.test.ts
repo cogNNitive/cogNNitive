@@ -18,7 +18,7 @@ function makeNode(id: string, fields: Record<string, any>): ModelNode {
         key,
         {
           value,
-          provenance: {
+          editAttribution: {
             author: { kind: 'system', id: 'parser' },
             timestamp: '2024-01-01T00:00:00.000Z',
           },

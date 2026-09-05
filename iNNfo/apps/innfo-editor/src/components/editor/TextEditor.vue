@@ -39,7 +39,7 @@
 import { ref, computed, watch } from 'vue'
 import { Save } from 'lucide-vue-next'
 import { useModelStore } from '../../stores/modelStore'
-import { commitFieldValue } from '../../shared/provenance'
+import { commitFieldValue } from '../../shared/editAttribution'
 
 const props = defineProps<{
   nodeId: string

@@ -24,11 +24,11 @@ describe('metamodelHelper', () => {
       fields: {
         probability: {
           value: 3,
-          provenance: { author: { kind: 'system', id: 'p' }, timestamp: '' },
+          editAttribution: { author: { kind: 'system', id: 'p' }, timestamp: '' },
         },
         custom_field: {
           value: 'custom',
-          provenance: { author: { kind: 'system', id: 'p' }, timestamp: '' },
+          editAttribution: { author: { kind: 'system', id: 'p' }, timestamp: '' },
         },
       },
       markers: {},

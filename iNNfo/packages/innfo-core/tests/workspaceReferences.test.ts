@@ -11,7 +11,7 @@ import type { ModelNode, Concept } from '../src/types'
 import type { TemplateSchema } from '../src/schema'
 
 function field(value: unknown): ModelNode['fields'][string] {
-  return { value, provenance: { author: { kind: 'system', id: 'test' }, timestamp: '' } }
+  return { value, editAttribution: { author: { kind: 'system', id: 'test' }, timestamp: '' } }
 }
 
 function makeSchema(concepts: Concept[]): TemplateSchema {

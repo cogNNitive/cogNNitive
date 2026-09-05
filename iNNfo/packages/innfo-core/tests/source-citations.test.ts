@@ -3,7 +3,7 @@ import { attachSourceCitations } from '../src/recursiveParser/normalize'
 import type { ModelNode } from '../src/types'
 
 function field(value: unknown): ModelNode['fields'][string] {
-  return { value, provenance: { author: { kind: 'system', id: 'test' }, timestamp: '' } }
+  return { value, editAttribution: { author: { kind: 'system', id: 'test' }, timestamp: '' } }
 }
 
 function elementNode(fields: Record<string, unknown>): ModelNode {

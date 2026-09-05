@@ -186,7 +186,7 @@
 import { computed } from 'vue'
 import { Trash2 } from 'lucide-vue-next'
 import { useModelStore } from '../../stores/modelStore'
-import { commitFieldValue } from '../../shared/provenance'
+import { commitFieldValue } from '../../shared/editAttribution'
 import { MATRIX_DEFS_KEY, extractMatrixDefs, type MatrixDef } from '../../composables/useMatrixDefinitions'
 
 const modelStore = useModelStore()

@@ -446,7 +446,7 @@ export async function resolveParentSpecs(
         if (needsTemplateDefs) {
           root.fields[MATRIX_DEFS_KEY] = {
             value: schema.matrices.map((m) => normalizeMatrixDecl(m as unknown as Record<string, unknown>)),
-            provenance: {
+            editAttribution: {
               author: { kind: 'system', id: 'parser' },
               timestamp: new Date().toISOString(),
             },

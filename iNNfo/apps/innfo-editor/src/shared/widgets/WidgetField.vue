@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useModelStore } from '../../stores/modelStore'
-import { commitFieldValue } from '../provenance'
+import { commitFieldValue } from '../editAttribution'
 import { resolveWidgetComponent, FallbackWidget } from './index'
 import { isImageFieldName, isImageFieldValue } from '../../utils/imageDetection'
 

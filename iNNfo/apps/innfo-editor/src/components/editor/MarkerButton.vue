@@ -33,7 +33,7 @@ import {
   getMarkerDefinition,
 } from './MarkerIcons'
 import { useModelStore } from '../../stores/modelStore'
-import { commitMarkerValue } from '../../shared/provenance'
+import { commitMarkerValue } from '../../shared/editAttribution'
 import { MARKER_CYCLE_COUNT } from '../../utils/constants'
 
 /**

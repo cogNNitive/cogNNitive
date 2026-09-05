@@ -374,8 +374,12 @@ export interface Author {
   id: string
 }
 
-/** Provenance stamp attached to every field write. */
-export interface Provenance {
+/**
+ * Edit-attribution stamp attached to every field write: who last set this
+ * value, and when. An editor-session concern — it is not serialised to the
+ * `*_NN.md` file and is unrelated to the workspace Lineage record.
+ */
+export interface EditAttribution {
   author: Author
   timestamp: string // ISO-8601
 }
@@ -383,7 +387,7 @@ export interface Provenance {
 /** A single field's value plus who set it and when. */
 export interface FieldValue {
   value: unknown
-  provenance: Provenance
+  editAttribution: EditAttribution
 }
 
 export type RelationshipOrigin = 'matrix' | 'field' | 'mention' | 'graph_edge' | 'source'
