@@ -133,6 +133,8 @@ When the source was imported from the web (see §2c below), also include `source
 
 > **⚠️ Citation Rule**: There is no `source_id`/`src-NNN` system. Downstream Level 3 models reference sources directly by filename via `sources:: <path>.md#<heading-slug>` (resolving relative to `sources/nn/`; multiple values use list syntax: `sources:: [a.md#intro, b.md#summary]`). Line numbers are prohibited; heading slugs are mandatory.
 
+> **Heading slugs transliterate accents** (`## Visión` → `#vision`, not `#visin`) — the same rule the iNNfo editor and `@cognnitive/innfo-core` use. A workspace created before this change must re-run `--scan` so its `sources/nn/` anchors (and any `sources::` pointing at accented headings) line up.
+
 #### 2b. Progressive Disclosure & Source Naming Convention
 
 To prevent LLM context degradation (*Lost in the Middle*) and maintain workspace clarity:

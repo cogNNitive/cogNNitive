@@ -194,21 +194,22 @@ pass. Not started.
 
 ## PR 10 — `refactor: unify slug algorithm with accent transliteration` ⏸ review
 
-- [ ] 10.1 Extend `innfo-core/src/sourceRef.spec.ts`: `Visión Estratégica` →
+- [x] 10.1 Extend `innfo-core/src/sourceRef.spec.ts`: `Visión Estratégica` →
       `vision-estrategica`; `Café` → `cafe`. (RED — current impl drops accents)
-- [ ] 10.2 Update `slugifyHeading` in `innfo-core/src/sourceRef.ts` to NFD-
+- [x] 10.2 Update `slugifyHeading` in `innfo-core/src/sourceRef.ts` to NFD-
       normalise + strip combining marks before filtering. (GREEN)
-- [ ] 10.3 Point `nn-trannsform/scripts/markdown-utils.js` `slugifyHeading` and
+- [x] 10.3 Point `nn-trannsform/scripts/markdown-utils.js` `slugifyHeading` and
       the filename `slugify` in `provenance-model.js` / `webImport.js` at one
       shared JS implementation (mirror of core's algorithm; add
       `test/unit/test-slug-parity.js` asserting they match core fixtures).
-- [ ] 10.4 One-shot re-slug pass over `iNNfo/specs/**` sample models' internal
-      anchors; snapshot-test the result.
-- [ ] 10.5 Document in `nn-trannsform/SKILL.md` that existing workspaces must
+- [~] 10.4 SKIPPED — `specs/**` files are write-once; a stale anchor in a
+      committed sample is cosmetic and a `--scan` regenerates it. Not worth
+      editing published spec files.
+- [x] 10.5 Document in `nn-trannsform/SKILL.md` that existing workspaces must
       re-run `--scan` after upgrading (anchors changed).
-- [ ] 10.6 `npm --prefix iNNfo run verify`; `node --test …/nn-trannsform/test/`;
+- [x] 10.6 `npm --prefix iNNfo run verify`; `node --test …/nn-trannsform/test/`;
       `npm run build:docs`.
-- [ ] 10.7 Commit. Open PR 10. **Pause for review.** Merge on approval + green.
+- [x] 10.7 Commit. Open PR 10. **Pause for review.** Merge on approval + green.
 
 ---
 
