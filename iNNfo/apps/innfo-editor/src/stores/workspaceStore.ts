@@ -13,6 +13,7 @@ import { IndexedDbWorkspaceRepository } from '../repositories/IndexedDbWorkspace
 import type { IWorkspaceRepository } from '../repositories/IWorkspaceRepository'
 import { parseFrontmatter } from '@cognnitive/innfo-core'
 import { useUrlDocLoader } from '../composables/useUrlDocLoader'
+import { reconcileWorkspaceManifest } from '../services/WorkspaceSyncService'
 import type { DirectoryHandleLike, FileHandleLike } from '../model/fs-types'
 import type { BumpLevel } from '../utils/version'
 import type { ModelDriver } from '@cognnitive/innfo-core'
@@ -487,6 +488,18 @@ export const useWorkspaceStore = defineStore('workspace', {
         // Clear dirty flags after successful write
         for (const id of Array.from(modelStore.dirtyIds)) {
           modelStore.clearDirty(id)
+        }
+
+        // Autorregistro (PR7): reconcile the workspace manifest against the
+        // current on-disk model set now that a write just happened — the
+        // closest add/remove-aware moment this app has (no native fs watcher
+        // exists yet). Never lets a reconciliation failure fail the save.
+        if (!this.driver) {
+          try {
+            await reconcileWorkspaceManifest(this.handle)
+          } catch (err) {
+            console.warn('Workspace manifest reconciliation skipped:', err)
+          }
         }
       } catch (err) {
         this.error = err instanceof Error ? err.message : String(err)
