@@ -248,6 +248,16 @@ async function validateMcp(entry, policy) {
   const urlViolation = await checkMcpUrlPinned(entry);
   if (urlViolation) violations.push(urlViolation);
 
+  const url = `https://api.github.com/repos/${entry.repo}/contents/${entry.path}?ref=${entry.commit}`;
+  const res = await apiRequest(url);
+  if (res.status !== 200) {
+    if (rateLimited(res.status)) {
+      violations.push(`${entry.name}: GitHub API rate limit hit (HTTP ${res.status}) while checking path; ${RATE_LIMIT_HINT}.`);
+    } else {
+      violations.push(`${entry.name}: path ${entry.path} not found at ${entry.commit} (HTTP ${res.status || res.error || 'network error'})`);
+    }
+  }
+
   return violations;
 }
 

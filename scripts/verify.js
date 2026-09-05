@@ -74,6 +74,7 @@ if (fs.existsSync(templatesDir) && fs.existsSync(sourceYamlPath)) {
 // 2. Orchestrator Line-Count Guard: enforce strictly < 200 physical lines per orchestrator
 const ORCHESTRATORS = [
   'scripts/manifest/validate-manifest.js',
+  'scripts/manifest/check-parity.js',
   'actioNN/scripts/skills-manager.js',
   'actioNN/skills/nn-trannsform/scripts/scanner.js',
   'actioNN/skills/nn-trannsform/scripts/provenance.js',
@@ -99,7 +100,10 @@ if (lineCountFailed) {
   process.exit(1);
 }
 
-// 3. Script static type checking
+// 3. Workspace Parity Guard: ensure all local skills, templates, and MCP bundles match manifest/source.yaml
+run('node scripts/manifest/check-parity.js', 'Check Workspace Parity');
+
+// 4. Script static type checking
 run('tsc --noEmit -p tsconfig.scripts.json', 'Typecheck Scripts');
 
 // 4. Manifest validation

@@ -395,6 +395,54 @@ agent-bootstrap:
   console.log('✔ mcp-url-pinned test passed');
 }
 
+// 14b. validateMcp: verifies commit existence, policy, url pin, and file existence at commit
+{
+  const mod = freshValidatorModule();
+  const entry = {
+    name: 'innfo-mcp',
+    repo: 'cogNNitive/cogNNitive',
+    path: 'iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js',
+    version: '0.2.4',
+    ref: 'innfo-mcp-v0.2.4',
+    commit: '3f1a9c2b8e4d6f0a1b2c3d4e5f60718293a4b5c6',
+    url: 'https://raw.githubusercontent.com/cogNNitive/cogNNitive/3f1a9c2b8e4d6f0a1b2c3d4e5f60718293a4b5c6/iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js',
+  };
+
+  // Passing case
+  {
+    const stub = stubHttpsGetSequence([
+      { status: 200, body: JSON.stringify({ sha: entry.commit }) }, // checkCommitExists
+      { status: 200, body: JSON.stringify({ object: { sha: entry.commit, type: 'commit' } }) }, // resolveRef
+      { status: 200, body: JSON.stringify({ status: 'identical' }) }, // checkReleaseProvenance
+      { status: 200, body: JSON.stringify({ name: 'innfo-mcp.bundle.js' }) }, // contents check
+    ]);
+    try {
+      const violations = await mod.validateMcp(entry, mod.CHANNELS.stable);
+      assert.deepStrictEqual(violations, [], `Valid MCP entry should have no violations. Got: ${JSON.stringify(violations)}`);
+      console.log('✔ validateMcp happy path test passed');
+    } finally {
+      stub.restore();
+    }
+  }
+
+  // Failing case: path not found at commit
+  {
+    const stub = stubHttpsGetSequence([
+      { status: 200, body: JSON.stringify({ sha: entry.commit }) }, // checkCommitExists
+      { status: 200, body: JSON.stringify({ object: { sha: entry.commit, type: 'commit' } }) }, // resolveRef
+      { status: 200, body: JSON.stringify({ status: 'identical' }) }, // checkReleaseProvenance
+      { status: 404, body: JSON.stringify({ message: 'Not Found' }) }, // contents check 404
+    ]);
+    try {
+      const violations = await mod.validateMcp(entry, mod.CHANNELS.stable);
+      assert.strictEqual(violations.some(v => v.includes('path iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js not found')), true);
+      console.log('✔ validateMcp missing path violation test passed');
+    } finally {
+      stub.restore();
+    }
+  }
+}
+
 // 15. --channel CLI flag selects a single channel file; unknown channel is rejected
 {
   const tmpDir = createTempManifestDir('---\nagent-bootstrap:\n  version: "2.0"\n  skills: []\n---\n# Manifest');

@@ -10,7 +10,6 @@ build/
 docs/innfo/app/assets/
 docs/innfo/app/index.html
 docs/innfo/cdn/*.bundle.js
-iNNfo/packages/innfo-mcp/bin/
 
 # Test reports & Coverage
 coverage/
