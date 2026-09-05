@@ -495,5 +495,5 @@ export async function recursiveParse(
     .filter((n) => n.parentId === null)
     .map((n) => n.id)
 
-  return { nodes: ctx.nodes, rootIds, issues: ctx.issues }
+  return { nodes: ctx.nodes, rootIds, issues: ctx.issues, entrypointPath }
 }
