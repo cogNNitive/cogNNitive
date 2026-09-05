@@ -1,0 +1,11 @@
+1
+00:00:01,000 --> 00:00:04,500
+Hola a todos. Bienvenidos a la revision de objetivos del tercer trimestre.
+
+2
+00:00:05,000 --> 00:00:08,200
+Este trimestre logramos un crecimiento del 35% en adopcion de clientes enterprise.
+
+3
+00:00:09,000 --> 00:00:13,000
+El principal motor fue la nueva plataforma de analitica predictiva.

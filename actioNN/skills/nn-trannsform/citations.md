@@ -2,7 +2,7 @@
 
 Load this file when generating deliverables with citations in step §3c.
 
-Citations are rendered in a single pass directly from Level 3 model pointers (`sources:: [sources/nn/<path>.md#<slug>]`). No intermediate `<!-- cite: ... -->` HTML comments or `_draft.md` files are generated.
+Citations are rendered in a single pass directly from Level 3 model pointers (`sources:: [<path>.md#<slug>]`). The base path resolves canonically against `sources/nn/` without requiring redundant prefixes. No intermediate `<!-- cite: ... -->` HTML comments or `_draft.md` files are generated.
 
 ## Format: Standard Markdown Footnotes (`[^1]`) *(Recommended)*
 
@@ -13,9 +13,9 @@ Rules:
 - Number footnote markers sequentially starting at `[^1]`, `[^2]`, etc., in order of appearance.
 - Append footnote definitions at the bottom of the document. Each definition maps the index to the source document and section anchor:
   ```markdown
-  [^N]: <Source Title or Filename> (sources/nn/<path>.md#<heading-slug>), section <section-name>.
+  [^N]: <Source Title or Filename> (<path>.md#<heading-slug>), section <section-name>.
   ```
-- Anchors MUST conform to Heading-Slug Anchor Derivation and resolve to a valid heading in `sources/nn/`.
+- Anchors MUST conform to Heading-Slug Anchor Derivation and resolve to a valid heading in the source document under `sources/nn/`.
 
 Example:
 ```markdown
@@ -23,7 +23,7 @@ The operational target for Q3 is 12,000 active units[^1].
 
 ...
 
-[^1]: Strategic Growth Plan (sources/nn/strategic_plan.md#q3-milestones), section Q3 Milestones.
+[^1]: Strategic Growth Plan (strategic_plan_source.md#q3-milestones), section Q3 Milestones.
 ```
 
 ## Format: Sencillo — Verbatim Source Attribution
@@ -56,6 +56,13 @@ The organization had 45 active members in 2023 (IF Narrative, 2024, section IOE.
 ```
 
 Generate a reference list at the end titled "References" with full entries per unique source.
+
+### Primary vs. Secondary Citation Resolution
+When a source file in `sources/nn/` contains a `references:` block in its frontmatter (e.g. citing an external work like `porter1985` with `is_primary: true`):
+- Cross-reference the claim against the source document's `references:` metadata.
+- If the claim is an attribution of a third-party theory or finding (e.g. Porter's framework cited within a Market Report by Doe):
+  Format in APA as: *(Porter, 1985, as cited in Doe, 2026)* or prompt to cite the primary work directly.
+- Avoid the "telephone game" by preventing false primary attribution to intermediate documents.
 
 ## Format: MLA 9th Edition — Parenthetical Citations
 
@@ -133,6 +140,7 @@ Use this template for each entry. Fill placeholder fields from the source filena
 ```
 
 Rules:
+- If the source frontmatter provides a `canonical.bibtex` block, emit that canonical BibTeX entry verbatim rather than re-synthesizing it.
 - One entry per unique source path under `sources/nn/` — reuse keys, do not duplicate.
 - Adapt entry type for non-report sources:
   - Interviews: `@misc{<key>, author={...}, title={...}, year={...}, howpublished={\url{...}}}`

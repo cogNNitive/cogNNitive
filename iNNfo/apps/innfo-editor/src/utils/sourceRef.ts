@@ -25,23 +25,51 @@ export function parseSourceRef(input: string): ParsedSourceRef {
 
   const clean = input.trim()
 
-  // Canonical pattern: sources/nn/path/file.ext#heading-slug
-  const canonicalRegex = /^(sources\/nn\/[^#]+?)(?:#([a-z0-9]+(?:-[a-z0-9]+)*))?$/
-  const match = clean.match(canonicalRegex)
-  if (!match) {
+  // Reject legacy line-range anchor format: #L13 or #L12-L45
+  if (/#L\d+(-L\d+)?$/i.test(clean)) {
     return { filePath: '', fileName: '', isValid: false }
   }
 
-  const filePath = match[1].trim()
-  const fileName = filePath.split(/[/\\]/).pop() || filePath
-  const slug = match[2] || undefined
-
-  return {
-    filePath,
-    fileName,
-    slug,
-    isValid: true,
+  // Reject src-NNN wrapper
+  if (/^src-\d+/i.test(clean)) {
+    return { filePath: '', fileName: '', isValid: false }
   }
+
+  // Explicit prefix: sources/nn/...
+  const explicitPrefixRegex = /^(sources\/nn\/[^#]+?)(?:#([a-z0-9]+(?:-[a-z0-9]+)*))?$/
+  const explicitMatch = clean.match(explicitPrefixRegex)
+  if (explicitMatch) {
+    const filePath = explicitMatch[1].trim()
+    const fileName = filePath.split(/[/\\]/).pop() || filePath
+    const slug = explicitMatch[2] || undefined
+    return { filePath, fileName, slug, isValid: true }
+  }
+
+  // Cross-domain model reference: models/...
+  const modelPrefixRegex = /^(models\/[^#]+?\.md)(?:#([a-z0-9]+(?:-[a-z0-9]+)*))?$/
+  const modelMatch = clean.match(modelPrefixRegex)
+  if (modelMatch) {
+    const filePath = modelMatch[1].trim()
+    const fileName = filePath.split(/[/\\]/).pop() || filePath
+    const slug = modelMatch[2] || undefined
+    return { filePath, fileName, slug, isValid: true }
+  }
+
+  // Unqualified source reference: <path>.md[#slug] (resolves relative to sources/nn/)
+  const unqualifiedRegex = /^((?!https?:\/\/)(?!\.\.?\/)[^#:]+?\.md)(?:#([a-z0-9]+(?:-[a-z0-9]+)*))?$/
+  const unqualifiedMatch = clean.match(unqualifiedRegex)
+  if (unqualifiedMatch) {
+    const rawPath = unqualifiedMatch[1].trim()
+    if (rawPath.startsWith('sources/original/')) {
+      return { filePath: '', fileName: '', isValid: false }
+    }
+    const filePath = `sources/nn/${rawPath}`
+    const fileName = rawPath.split(/[/\\]/).pop() || rawPath
+    const slug = unqualifiedMatch[2] || undefined
+    return { filePath, fileName, slug, isValid: true }
+  }
+
+  return { filePath: '', fileName: '', isValid: false }
 }
 
 /**

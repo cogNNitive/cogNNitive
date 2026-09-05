@@ -1,75 +1,70 @@
 ---
 title: "traNNsform — cogNNitive Skill"
-description: "Document ingestion and transformation pipeline from PDF/DOCX to unified Markdown"
+description: "Document ingestion, semantic normalization, and multi-step transformation pipeline"
 html_url: https://cognnitive.com/actionn/docs/#/skills/trannsform
 generator: https://cognnitive.com/actionn/nn-design-presets
 ---
 
 # traNNsform
 
-**Version**: 1.1 · **Installed**: 2026-06-27
+**Version**: 2.0.0 · **Architecture**: Unified Citation, Traceability & Provenance
 
 ## Purpose
 
-Unified document ingestion, template-based transformation, and multi-step procedure orchestrator (`procedures_V_0-1-0_NN.md`). Takes raw files in multiple formats, normalizes them to Markdown, and executes multi-step transformation procedures using the agent's LLM.
+Unified multi-modal document ingestion, semantic normalization, template-based transformation, and procedure orchestration. Ingests raw multi-format files, normalizes them into the immutable *Colección de Fuentes* (`sources/nn/`), and executes transformation procedures with end-to-end epistemic traceability.
 
-## Supported Formats
+## Supported Formats & Normalization Handlers
 
-| Format | Native Reading | Node.js Library |
-|---|---|---|
-| `txt` | ✅ | — |
-| `md` | ✅ | — |
-| `csv` / `json` | ✅ | — |
-| `pdf` | ⚠️ Model-dependent | `pdf-parse` |
-| `docx` | ❌ | `mammoth` |
-| `xlsx` | ❌ | `xlsx` |
+| Format | Native Reading | Node.js Converter | Semantic Normalization Output |
+|---|---|---|---|
+| `txt` / `md` | ✅ Direct read | — | Direct markdown with provenance frontmatter |
+| `srt` / `vtt` | ✅ Direct read | `convertSubtitles` | Fluent conversational paragraphs + `## NN Section: [timestamp]` |
+| `csv` | ✅ Direct read | `convertCsv` | Data Dictionary + Statistical Summary (`## NN Dataset Schema`) |
+| `json` (chat) | ✅ Direct read | `convertChatJson` | Thread-grouped discussions (`## NN Thread: [timestamp]`) |
+| `docx` | ❌ Binary | `mammoth` | Markdown with section headings |
+| `pdf` | ⚠️ Model-dependent | `pdf-parse` | Extracted text + metadata in frontmatter |
+| `xlsx` | ❌ Binary | `xlsx` | Per-sheet markdown tables with schema profiling |
 
 ## Canonical Workspace Layout
 
+```text
+[project-root]/
+├── sources/
+│   ├── original/              # Pristine raw source files (PDF, Word, CSV, MP3, SRT...)
+│   ├── staging/               # Transient intermediate dumps (OCR, Whisper SRT). Ignored by models.
+│   └── nn/                    # LA COLECCIÓN DE FUENTES. Normalized, immutable Markdown files.
+├── models/                    # Structured semantic iNNfo Level 3 models (*_NN.md)
+├── procedures/                # Transformation procedure specs (*_procedures_V_x-y-z_NN.md)
+├── artifacts/
+│   ├── canonical/             # Deliverables with embedded lineage comments
+│   └── exports/               # Exported deliverable views (Footnotes, APA, BibTeX, Clean)
+└── [Project]_V_x-y-z_cogNNitive_NN.md # Workspace Provenance Model (W3C PROV graph)
 ```
-[project-name]/
-├── raw/                 # Original user source files (PDFs, Word, CSV, TXT, Excel...)
-├── models/              # Structured semantic iNNfo Level 3 models (*_NN.md)
-├── procedures/          # Transformation procedure specs (*_procedures_V_x-y-z_NN.md)
-├── artifacts/           # Deliverables and generated outputs
-│   ├── exports/         # Final deliverables (clean Markdown, HTML, PDF)
-│   └── reports/         # Validation reports and audit trails
-└── index.md             # Semantic workspace index (# _NN index)
+
+## Two-Tier Progressive Disclosure Contract
+
+To prevent context window saturation (*Lost in the Middle*):
+- **Tier 1 (L1 - Executive Overview)**: `[Descriptor]_summary.md` (500–1,500 words). Loaded by default for broad discovery and scope.
+- **Tier 2 (L2 - Granular Evidence)**: `[Descriptor]_source.md` (complete text with explicit headings). Loaded only on-demand when verifying specific claims.
+
+## Source Naming Conventions
+
+- `_source.md`: Direct normalized representation of an original text document.
+- `_transcript.md`: Audio/video transcription normalized into coherent paragraphs.
+- `_summary.md`: High-density semantic distillation (L1).
+- `_schema.md`: Dataset profile and statistical summary for tabular data.
+- `_synthetic.md`: An internal deliverable re-ingested as a source (`is_synthetic: true`).
+
+## Citation & Provenance Syntax
+
+Level 3 domain models reference sources without redundant `sources/nn/` prefixes:
+
+```markdown
+## NN Stakeholders: Enterprise Clients
+priority:: High
+relationship_model:: B2B Long-term
+sources:: [interview_transcript.md#key-clients, report_source.md#market-metrics]
 ```
 
-## Workflow
-
-1. **Bootstrap**: Creates the standard workspace directory structure (`raw/`, `models/`, `procedures/`, `artifacts/`).
-2. **Scan & normalization**: Reads files from `raw/`, converts formats to Markdown, and unifies content in `md/_all.md`.
-3. **Diagnosis**: The agent presents a diagnostic panel for non-text formats.
-4. **Transformation & Orchestration**: The agent applies templates or executes multi-step procedures defined in `procedures_V_0-1-0_NN.md`.
-5. **Post-Transformation Feedback Protocol**: If transformation behavior was modified during the conversation, the agent prompts the user to save a new `procedures` spec, update the existing spec, or leave specs unchanged.
-
-## Included CLI
-
-The skill includes functional Node.js scripts:
-
-| Script | Lines | Function |
-|---|---|---|
-| `scripts/index.js` | 579 | Main CLI |
-| `scripts/scanner.js` | 340 | Scanning and format detection |
-| `scripts/transformer.js` | 168 | Fallback transformation (when the agent cannot process the entire context) |
-| `scripts/config.js` | 44 | Centralized configuration |
-
-> The main path is ALWAYS the agent's LLM. The CLI is fallback for very large contexts.
-
-## Files
-
-```
-skills/nn-trannsform/
-  SKILL.md
-  README.md
-  TESTING.md
-  package.json
-  scripts/
-    index.js
-    scanner.js
-    transformer.js
-    config.js
-  examples/
-```
+- **Heading Slugs Only**: Anchors MUST use stable GitHub-style heading slugs (`#heading-slug`). Line-number ranges (`#L1-L10`) are strictly prohibited.
+- **Staging Buffer Rule**: Files in `sources/staging/` are transient and MUST NEVER be cited in models.

@@ -267,31 +267,36 @@ URLs estables de referencia (la versión va en el nombre del archivo — `main` 
 ## 4. Protocolo de Proveniencia (`sources::`)
 
 1. **Carácter Opcional:** `sources::` es una propiedad de trazabilidad **OPCIONAL**. No invalida sintácticamente un modelo de Nivel 3 si no está presente.
-2. **Fuentes de Origen:** Las fuentes ingeridas se almacenan en la carpeta `sources/nn/` (mismas subcarpetas que `sources/original/`, sin aplanar). No existe carpeta `raw/` ni sistema de IDs `src-xxx`.
-3. **Gramática exacta:**
+2. **Fuentes de Origen y Resolución de Rutas:** Las fuentes normalizadas se almacenan en la Colección de Fuentes (`sources/nn/`). **Toda ruta no calificada resuelve por defecto contra `sources/nn/`**, eliminando prefijos redundantes:
+   - Rutas relativas simples: `entrevista_cliente_transcript.md#feedback` resuelve canónicamente a `sources/nn/entrevista_cliente_transcript.md`.
+   - Subcarpetas: `interviews/interview_transcript.md#overview` resuelve a `sources/nn/interviews/interview_transcript.md`.
+   - El prefijo explícito `sources/nn/` continúa siendo tolerado por retrocompatibilidad.
+   - Citas entre modelos de dominio usan espacio de nombres explícito: `models/Finance_V_1-0-0_business_NN.md#revenue-forecast`.
+   - PIDs globales usan identificadores de esquema: `doi:10.1145/3290605.3300233`.
+3. **Aislamiento de Staging (`sources/staging/`):** La carpeta `sources/staging/` es un buffer transitorio de extracción (OCR, Whisper, etc.) y **NUNCA es un destino válido de citación**. Los modelos solo citan fuentes normalizadas en `sources/nn/`.
+4. **Gramática exacta y Anclas Estables:**
    ```
    sources:: <ref>
    sources:: [<ref>, <ref>, ...]
 
-   <ref>  ::= sources/nn/<ruta-relativa>.md( #<ancla> )?
-   <ancla> ::= L<n> | L<n>-L<m>
+   <ref>  ::= <ruta-relativa>.md( #<heading-slug> )?
    ```
-   - `<ref>` es SIEMPRE una ruta que empieza con `sources/nn/` y termina en `.md` — es la misma ruta que el archivo normalizado, nunca una ruta a `sources/original/` ni al documento fuente sin normalizar.
-   - El ancla de línea es opcional. `L<n>` es una línea puntual, `L<n>-L<m>` un rango inclusive (ambos extremos incluidos), 1-indexado sobre el archivo `.md` citado — la misma numeración que ve un humano abriendo el archivo en un editor.
-   - Sin ancla, la cita apunta al archivo completo. **Preferí citar el archivo completo antes que inventar un rango de líneas que no verificaste** — nunca adivines números de línea.
-4. **Un solo valor va sin corchetes.** Los corchetes `[...]` se usan ÚNICAMENTE cuando hay 2 o más referencias — no envuelvas un valor único en `[...]`, es ruido visual innecesario:
+   - Las anclas deben ser **heading-slugs** de GitHub (ej: `#resumen-ejecutivo`, `#metricas-q3`).
+   - Los rangos de líneas numéricos (`#L1-L10`) están **estrictamente prohibidos** por su fragilidad ante reformateos.
+   - Toda ancla debe resolver contra un encabezado real del documento citado.
+5. **Un solo valor va sin corchetes.** Los corchetes `[...]` se usan ÚNICAMENTE cuando hay 2 o más referencias — no envuelvas un valor único en `[...]`, es ruido visual innecesario:
    ```markdown
    ## NN Stakeholders: Cliente Enterprise
-   sources:: [sources/nn/entrevista_cliente.md#L15-L30, sources/nn/notas.md#L4]
+   sources:: [entrevista_cliente_transcript.md#feedback-principal, notas_source.md#puntos-clave]
    relationship_model:: B2B Long-term
 
    ## NN Stakeholders: Cliente Piloto
-   sources:: sources/nn/notas.md#L20-L25
+   sources: notas_source.md#puntos-clave
    relationship_model:: Trial
    ```
-5. **Granularidad: a nivel de elemento, no de afirmación individual.** `sources::` cubre el conjunto de fuentes que respaldan TODO el elemento (todos sus campos en conjunto) — no hay mecanismo de cita por campo o por frase dentro de un modelo de dominio. Si distintos campos de un mismo elemento vienen de fuentes distintas, listá la unión de todas en el único `sources::` del elemento. La cita a nivel de afirmación individual (mediante footnotes estándar `[^1]` o formatos bibliográficos) es un mecanismo aparte, usado solo dentro de artefactos generados a partir del modelo (ver `nn-trannsform/SKILL.md` §4) — nunca dentro de un `*_NN.md`.
-6. **Sin duplicados ni referencias vacías.** No repitas la misma `<ref>` dos veces en la misma lista. Si no hay ninguna fuente real que citar, omití el campo entero — no escribas `sources:: []` ni un valor placeholder.
-7. **Instrucción Conversacional:** Si el proyecto cuenta con archivos en `sources/nn/`, el agente debe sugerir incluir `sources::`. Si es un modelo greenfield/creativo desde cero, el agente NO solicita ni exige proveniencia. En ambos casos aplica la regla general del skill: nunca inventés ni un `<ref>` ni un contenido que no esté verificablemente presente en el archivo citado.
+6. **Granularidad: a nivel de elemento, no de afirmación individual.** `sources::` cubre el conjunto de fuentes que respaldan TODO el elemento (todos sus campos en conjunto) — no hay mecanismo de cita por campo o por frase dentro de un modelo de dominio. Si distintos campos de un mismo elemento vienen de fuentes distintas, listá la unión de todas en el único `sources::` del elemento. La cita a nivel de afirmación individual (mediante footnotes estándar `[^1]` o formatos bibliográficos) es un mecanismo aparte, usado solo dentro de artefactos generados a partir del modelo (ver `nn-trannsform/SKILL.md` §4) — nunca dentro de un `*_NN.md`.
+7. **Sin duplicados ni referencias vacías.** No repitas la misma `<ref>` dos veces en la misma lista. Si no hay ninguna fuente real que citar, omití el campo entero — no escribas `sources:: []` ni un valor placeholder.
+8. **Instrucción Conversacional:** Si el proyecto cuenta con archivos en `sources/nn/`, el agente debe sugerir incluir `sources::`. Si es un modelo greenfield/creativo desde cero, el agente NO solicita ni exige proveniencia. En ambos casos aplica la regla general del skill: nunca inventés ni un `<ref>` ni un contenido que no esté verificablemente presente en el archivo citado.
 
 ---
 
@@ -580,7 +585,7 @@ El procedimiento de master.html (anteriormente showroom) es reconocible: si el u
 
 1. **Meta-plantilla Estricta V_0-2-0:** Las plantillas Nivel 2 definen primitivas en el cuerpo (`# NN Concept Definition`). NUNCA colocar `concepts: [...]` o `fields: [...]` en el YAML frontmatter de Nivel 2.
 2. **Sintaxis Unificada NN:** Usar `# NN <Concept>`, `## NN <Concept>: <Element>`, `key:: value`. No usar viñetas obsoletas `_NN` ni bloques de código ````yaml`.
-3. **Proveniencia Opcional y Actualizada:** `sources::` es opcional y apunta a archivos en `sources/nn/` (admite lista `[a, b]` para múltiples valores; sin IDs `src-xxx` ni carpeta `raw/`).
+3. **Proveniencia Opcional y Actualizada:** `sources::` es opcional; resuelve canónicamente contra la Colección de Fuentes (`sources/nn/`) sin requerir prefijo redundante, y ancla a heading-slugs (`#<slug>`), admitiendo listas `[a, b]` para múltiples fuentes (sin IDs `src-xxx`, sin rangos de línea `#L...`, ni buffer `sources/staging/`).
 4. **Cero Mutación Unilateral:** Nunca renombrar ni mover archivos sin confirmación explícita.
 5. **Recommended Option First:** Always prefix option `[a]` with `(Recommended)`.
 6. **Multi-Selection Notice:** Include `"You can select one option or a combination (e.g. A and B)"` when applicable.

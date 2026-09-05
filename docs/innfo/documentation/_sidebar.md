@@ -14,3 +14,4 @@
 - **Guides**
   - [Usage](usage)
   - [Relationships & Connections](relationships)
+  - [Citations & Provenance](citations-provenance)

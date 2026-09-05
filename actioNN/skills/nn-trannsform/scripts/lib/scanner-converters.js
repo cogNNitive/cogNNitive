@@ -42,6 +42,254 @@ function htmlToPlainText(html) {
 }
 
 /**
+ * Simple CSV line parser supporting quoted values.
+ * @param {string} line
+ * @returns {string[]}
+ */
+function parseCsvLine(line) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    if (char === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        current += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === ',' && !inQuotes) {
+      result.push(current.trim());
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  result.push(current.trim());
+  return result;
+}
+
+/**
+ * Converts CSV content into a Data Dictionary + Statistical Profile and sample rows.
+ * @param {string} content
+ * @param {string} baseName
+ * @returns {string}
+ */
+function convertCsv(content, baseName) {
+  const lines = content.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  if (lines.length === 0) {
+    return `# NN Dataset Schema: ${baseName}\n\n*Empty CSV dataset*\n`;
+  }
+
+  const headers = parseCsvLine(lines[0]);
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const row = parseCsvLine(lines[i]);
+    if (row.length === headers.length || row.some(cell => cell.length > 0)) {
+      rows.push(row);
+    }
+  }
+
+  // Column profiling
+  const colStats = headers.map((header, colIdx) => {
+    let nullCount = 0;
+    let numericCount = 0;
+    let numMin = Infinity;
+    let numMax = -Infinity;
+    let numSum = 0;
+    let dateCount = 0;
+
+    for (const row of rows) {
+      const val = row[colIdx];
+      if (val === undefined || val === '' || val === null) {
+        nullCount++;
+        continue;
+      }
+      const num = Number(val);
+      if (!isNaN(num) && val.trim() !== '') {
+        numericCount++;
+        numSum += num;
+        if (num < numMin) numMin = num;
+        if (num > numMax) numMax = num;
+      } else if (!isNaN(Date.parse(val)) && val.length >= 8) {
+        dateCount++;
+      }
+    }
+
+    const nonNullCount = rows.length - nullCount;
+    let inferredType = 'string';
+    let summaryMetrics = '-';
+
+    if (nonNullCount > 0 && numericCount / nonNullCount > 0.8) {
+      inferredType = Number.isInteger(numMin) && Number.isInteger(numMax) ? 'integer' : 'float';
+      const avg = (numSum / numericCount).toFixed(2);
+      summaryMetrics = `min: ${numMin}, max: ${numMax}, avg: ${avg}`;
+    } else if (nonNullCount > 0 && dateCount / nonNullCount > 0.8) {
+      inferredType = 'date';
+    }
+
+    return {
+      header: header || `Col_${colIdx + 1}`,
+      inferredType,
+      nullCount,
+      summaryMetrics,
+    };
+  });
+
+  let out = `# NN Dataset Schema: ${baseName}\n\n`;
+  out += '| Column | Inferred Type | Null Count | Summary Metrics |\n';
+  out += '|---|---|---|---|\n';
+  for (const col of colStats) {
+    out += `| ${col.header} | ${col.inferredType} | ${col.nullCount} | ${col.summaryMetrics} |\n`;
+  }
+
+  out += `\n## NN Summary Statistics\n\n`;
+  out += `- **Total Rows**: ${rows.length.toLocaleString()}\n`;
+  out += `- **Total Columns**: ${headers.length}\n`;
+  out += `- **Columns**: ${headers.join(', ')}\n\n`;
+
+  const sampleLimit = Math.min(rows.length, 15);
+  out += `## NN Sample Data (First ${sampleLimit} Rows)\n\n`;
+  out += `| ${headers.join(' | ')} |\n`;
+  out += `| ${headers.map(() => '---').join(' | ')} |\n`;
+  for (let i = 0; i < sampleLimit; i++) {
+    const row = rows[i];
+    const cells = headers.map((_, idx) => (row[idx] !== undefined ? row[idx].replace(/\|/g, '\\|') : ''));
+    out += `| ${cells.join(' | ')} |\n`;
+  }
+
+  return out;
+}
+
+/**
+ * Converts SRT / WebVTT subtitle streams into continuous coherent paragraphs.
+ * @param {string} content
+ * @param {string} baseName
+ * @returns {string}
+ */
+function convertSubtitles(content, baseName) {
+  const text = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  const lines = text.split('\n');
+  const cues = [];
+  let currentCue = null;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) {
+      if (currentCue && currentCue.text.length > 0) {
+        cues.push(currentCue);
+        currentCue = null;
+      }
+      continue;
+    }
+    const timeMatch = line.match(/^(\d{2}:\d{2}:\d{2}[,\.]\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}[,\.]\d{3})/);
+    if (timeMatch) {
+      if (currentCue && currentCue.text.length > 0) {
+        cues.push(currentCue);
+      }
+      currentCue = {
+        start: timeMatch[1].replace(',', '.'),
+        end: timeMatch[2].replace(',', '.'),
+        text: []
+      };
+      continue;
+    }
+    if (/^\d+$/.test(line) || line.startsWith('WEBVTT') || line.startsWith('NOTE')) {
+      continue;
+    }
+    if (currentCue) {
+      const cleanLine = line.replace(/<[^>]+>/g, '').trim();
+      if (cleanLine) currentCue.text.push(cleanLine);
+    }
+  }
+  if (currentCue && currentCue.text.length > 0) {
+    cues.push(currentCue);
+  }
+
+  if (cues.length === 0) {
+    return `# ${baseName}\n\n${content}\n`;
+  }
+
+  let out = `# ${baseName}\n\n`;
+  let currentSectionTime = cues[0].start.split('.')[0];
+  let sectionParagraphs = [];
+  let currentParagraph = [];
+
+  for (let i = 0; i < cues.length; i++) {
+    const cue = cues[i];
+    const cueText = cue.text.join(' ');
+
+    if (i > 0 && i % 15 === 0) {
+      if (currentParagraph.length > 0) {
+        sectionParagraphs.push(currentParagraph.join(' '));
+        currentParagraph = [];
+      }
+      out += `## NN Section: [${currentSectionTime}]\n\n`;
+      out += sectionParagraphs.join('\n\n') + '\n\n';
+      sectionParagraphs = [];
+      currentSectionTime = cue.start.split('.')[0];
+    }
+
+    if (/^[A-Z][a-zA-Z\s]{1,25}:/.test(cueText) && currentParagraph.length > 0) {
+      sectionParagraphs.push(currentParagraph.join(' '));
+      currentParagraph = [cueText];
+    } else {
+      currentParagraph.push(cueText);
+    }
+  }
+
+  if (currentParagraph.length > 0) {
+    sectionParagraphs.push(currentParagraph.join(' '));
+  }
+  if (sectionParagraphs.length > 0) {
+    out += `## NN Section: [${currentSectionTime}]\n\n`;
+    out += sectionParagraphs.join('\n\n') + '\n';
+  }
+
+  return out.trim() + '\n';
+}
+
+/**
+ * Converts chat message exports (Slack/Teams json) into structured discussion threads.
+ * @param {string} content
+ * @param {string} baseName
+ * @returns {string}
+ */
+function convertChatJson(content, baseName) {
+  try {
+    const parsed = JSON.parse(content);
+    const messages = Array.isArray(parsed) ? parsed : (Array.isArray(parsed.messages) ? parsed.messages : null);
+    if (!messages || messages.length === 0 || (!messages[0].text && !messages[0].message)) {
+      return `# ${baseName}\n\n\`\`\`json\n${content}\n\`\`\``;
+    }
+
+    // Group messages by thread_ts or date
+    const threads = new Map();
+    for (const msg of messages) {
+      const threadKey = msg.thread_ts || (msg.ts ? new Date(Number(msg.ts) * 1000).toISOString().split('T')[0] : 'General');
+      if (!threads.has(threadKey)) threads.set(threadKey, []);
+      threads.get(threadKey).push(msg);
+    }
+
+    let out = `# ${baseName}\n\n`;
+    for (const [threadId, threadMsgs] of threads.entries()) {
+      const topic = threadMsgs[0]?.topic || threadMsgs[0]?.text?.substring(0, 40) || threadId;
+      out += `## NN Thread: [${threadId}] ${topic}\n\n`;
+      for (const m of threadMsgs) {
+        const user = m.user_profile?.real_name || m.username || m.user || m.author || 'User';
+        const text = (m.text || m.message || '').replace(/\r?\n/g, ' ');
+        out += `- **${user}**: ${text}\n`;
+      }
+      out += '\n';
+    }
+    return out.trim() + '\n';
+  } catch {
+    return `# ${baseName}\n\n\`\`\`json\n${content}\n\`\`\``;
+  }
+}
+
+/**
  * Converts recognized plain text / structured formats directly to markdown content.
  * @param {string} ext
  * @param {string} filePath
@@ -54,9 +302,12 @@ function convertOkFormat(ext, filePath, baseName) {
     case '.md':
       return stripFrontmatter(content);
     case '.json':
-      return `# ${baseName}\n\n\`\`\`json\n${content}\n\`\`\``;
+      return convertChatJson(content, baseName);
     case '.csv':
-      return `# ${baseName}\n\n\`\`\`csv\n${content}\n\`\`\``;
+      return convertCsv(content, baseName);
+    case '.srt':
+    case '.vtt':
+      return convertSubtitles(content, baseName);
     case '.html':
     case '.htm':
       return `# ${baseName}\n\n${htmlToPlainText(content)}`;

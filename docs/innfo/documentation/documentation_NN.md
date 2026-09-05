@@ -112,3 +112,11 @@ route:: relationships
 order:: 20
 parent:: [[Guides]]
 description:: Graph relationships, bidirectional edges, and matrices in iNNfo.
+
+## NN Page: Citations & Provenance
+title:: Citations & Provenance
+source:: citations-provenance.md
+route:: citations-provenance
+order:: 30
+parent:: [[Guides]]
+description:: Unified Citation, Traceability & Provenance Pipeline across sources, models, and artifacts.

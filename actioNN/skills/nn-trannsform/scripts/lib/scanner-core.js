@@ -12,12 +12,13 @@ const TRANNNSFORM_VERSION = (() => {
 })();
 
 // Supported extensions by category
-const EXT_OK = ['.txt', '.md', '.csv', '.json', '.html', '.htm'];
+const EXT_OK = ['.txt', '.md', '.csv', '.json', '.html', '.htm', '.srt', '.vtt'];
 const EXT_PROMPT = ['.docx', '.pdf', '.xlsx', '.xls', '.doc'];
 const EXT_NO = ['.mp3', '.wav', '.png', '.jpg', '.jpeg', '.gif'];
 
 const EXT_LABELS = {
   '.txt': 'txt', '.md': 'md', '.csv': 'csv', '.json': 'json', '.html': 'html', '.htm': 'htm',
+  '.srt': 'srt', '.vtt': 'vtt',
   '.docx': 'docx', '.pdf': 'pdf', '.xlsx': 'xlsx', '.xls': 'xls', '.doc': 'doc'
 };
 
@@ -52,6 +53,7 @@ function escapeYamlString(value) {
 
 /**
  * Generate canonical flat YAML frontmatter for a normalized source file.
+ * Supports W3C PROV-O, RO-Crate and bibliographic metadata (Phase 2 & 3).
  * @param {string} originalFilePath
  * @param {string} relativeSourcePath
  * @param {Record<string, any>} [extra]
@@ -71,11 +73,39 @@ function generateSourceFrontmatter(originalFilePath, relativeSourcePath, extra =
     `normalized_by: "traNNsform v${TRANNNSFORM_VERSION}"`,
   ];
 
+  if (extra.staging_file) lines.push(`staging_file: "${escapeYamlString(extra.staging_file)}"`);
+  if (extra.is_synthetic !== undefined) lines.push(`is_synthetic: ${Boolean(extra.is_synthetic)}`);
+
   if (extra.source_url) lines.push(`source_url: "${escapeYamlString(extra.source_url)}"`);
   if (extra.downloaded_at) lines.push(`downloaded_at: "${escapeYamlString(extra.downloaded_at)}"`);
   if (extra.title) lines.push(`title: "${escapeYamlString(extra.title)}"`);
   if (extra.description) lines.push(`description: "${escapeYamlString(extra.description)}"`);
   if (extra.author) lines.push(`author: "${escapeYamlString(extra.author)}"`);
+
+  if (extra.canonical && typeof extra.canonical === 'object') {
+    lines.push('canonical:');
+    if (extra.canonical.title) lines.push(`  title: "${escapeYamlString(extra.canonical.title)}"`);
+    if (extra.canonical.author) lines.push(`  author: "${escapeYamlString(extra.canonical.author)}"`);
+    if (extra.canonical.year) lines.push(`  year: ${extra.canonical.year}`);
+    if (extra.canonical.doi) lines.push(`  doi: "${escapeYamlString(extra.canonical.doi)}"`);
+    if (extra.canonical.bibtex) {
+      lines.push('  bibtex: |');
+      const bibLines = extra.canonical.bibtex.trim().split(/\r?\n/);
+      for (const bl of bibLines) {
+        lines.push(`    ${bl}`);
+      }
+    }
+  }
+
+  if (Array.isArray(extra.references) && extra.references.length > 0) {
+    lines.push('references:');
+    for (const ref of extra.references) {
+      lines.push(`  - id: "${escapeYamlString(ref.id || '')}"`);
+      if (ref.citation) lines.push(`    citation: "${escapeYamlString(ref.citation)}"`);
+      if (ref.doi) lines.push(`    doi: "${escapeYamlString(ref.doi)}"`);
+      if (ref.is_primary !== undefined) lines.push(`    is_primary: ${Boolean(ref.is_primary)}`);
+    }
+  }
 
   lines.push('---', '', '');
   return lines.join('\n');
@@ -98,7 +128,7 @@ function readExistingSha256(destPath) {
 }
 
 /**
- * Recursively walk directory preserving subfolders.
+ * Recursively walk directory preserving subfolders (ignoring staging and hidden files).
  * @param {string} originalDir
  * @returns {Array<{ absPath: string, relPath: string }>}
  */
@@ -107,7 +137,12 @@ function walkOriginal(originalDir) {
   const walk = (dir, relDir) => {
     const entries = fs.readdirSync(dir, { withFileTypes: true });
     for (const entry of entries) {
-      if (entry.name.startsWith('.') || entry.name.startsWith('~$') || entry.name.toLowerCase() === 'desktop.ini') {
+      if (
+        entry.name.startsWith('.') ||
+        entry.name.startsWith('~$') ||
+        entry.name.toLowerCase() === 'desktop.ini' ||
+        entry.name.toLowerCase() === 'staging'
+      ) {
         continue;
       }
       const fullPath = path.join(dir, entry.name);
@@ -126,7 +161,7 @@ function walkOriginal(originalDir) {
 }
 
 /**
- * Detect available formats in a directory (recursive).
+ * Detect available formats in a directory (recursive, ignoring staging).
  * @param {string} dir
  * @returns {Record<string, number>}
  */
@@ -138,7 +173,12 @@ function detectFormats(dir) {
   const walk = (d) => {
     const entries = fs.readdirSync(d, { withFileTypes: true });
     for (const entry of entries) {
-      if (entry.name.startsWith('.') || entry.name.startsWith('~$') || entry.name.toLowerCase() === 'desktop.ini') {
+      if (
+        entry.name.startsWith('.') ||
+        entry.name.startsWith('~$') ||
+        entry.name.toLowerCase() === 'desktop.ini' ||
+        entry.name.toLowerCase() === 'staging'
+      ) {
         continue;
       }
       const full = path.join(d, entry.name);

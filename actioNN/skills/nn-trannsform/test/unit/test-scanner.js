@@ -159,6 +159,53 @@ function run() {
 
       assertTrue(!fs.existsSync(path.join(projDir, 'sources', 'raw')), 'sources/raw/ is never created by scanAndProcess');
 
+      // Test 11: EXT_LABELS contains .srt and .vtt
+      assertEqual(scanner.EXT_LABELS['.srt'], 'srt', 'EXT_LABELS .srt');
+      assertEqual(scanner.EXT_LABELS['.vtt'], 'vtt', 'EXT_LABELS .vtt');
+
+      // Test 12: staging directory is ignored in walkOriginal and detectFormats
+      const stagingDir = path.join(originalDir, 'staging');
+      fs.mkdirSync(stagingDir, { recursive: true });
+      fs.writeFileSync(path.join(stagingDir, 'intermediate.txt'), 'transient data');
+      const formatsAfterStaging = scanner.detectFormats(originalDir);
+      const walkAfterStaging = scanner.walkOriginal(originalDir);
+      assertTrue(!walkAfterStaging.some(f => f.relPath.includes('staging')), 'walkOriginal ignores staging directory');
+
+      // Test 13: generateSourceFrontmatter with extended metadata (canonical, references, is_synthetic, staging_file)
+      const fmExtended = scanner.generateSourceFrontmatter(testFile, 'sources/original/interview.mp3', {
+        staging_file: 'sources/staging/interview.srt',
+        is_synthetic: false,
+        canonical: {
+          title: 'Strategic Vision 2026',
+          author: 'Jane Doe',
+          year: 2026,
+          doi: '10.1145/3290605.3300233',
+          bibtex: '@misc{doe2026,\n  title={Strategic Vision}\n}'
+        },
+        references: [
+          { id: 'porter1985', citation: 'Porter (1985)', is_primary: true }
+        ]
+      });
+      assertTrue(fmExtended.includes('staging_file: "sources/staging/interview.srt"'), 'frontmatter includes staging_file');
+      assertTrue(fmExtended.includes('is_synthetic: false'), 'frontmatter includes is_synthetic: false');
+      assertTrue(fmExtended.includes('canonical:\n  title: "Strategic Vision 2026"'), 'frontmatter includes canonical block');
+      assertTrue(fmExtended.includes('references:\n  - id: "porter1985"'), 'frontmatter includes references block');
+      assertTrue(fmExtended.includes('is_primary: true'), 'frontmatter references includes is_primary: true');
+
+      // Test 14: semantic normalization converters (SRT & CSV)
+      const converters = require('../../scripts/lib/scanner-converters');
+      const srtSample = path.join(TEST_TEMP, 'sample.srt');
+      fs.writeFileSync(srtSample, '1\n00:00:01,000 --> 00:00:04,000\nHello team.\n\n2\n00:00:05,000 --> 00:00:09,000\nWelcome to Q3 review.\n', 'utf8');
+      const srtMd = converters.convertOkFormat('.srt', srtSample, 'interview_transcript');
+      assertTrue(srtMd.includes('## NN Section: [00:00:01]'), 'SRT converter generates ## NN Section with timestamp');
+      assertTrue(srtMd.includes('Hello team. Welcome to Q3 review.'), 'SRT converter groups subtitle lines into fluid paragraph');
+
+      const csvSample = path.join(TEST_TEMP, 'sample.csv');
+      fs.writeFileSync(csvSample, 'id,name,amount\n1,Alice,100\n2,Bob,200\n', 'utf8');
+      const csvMd = converters.convertOkFormat('.csv', csvSample, 'user_metrics');
+      assertTrue(csvMd.includes('# NN Dataset Schema: user_metrics'), 'CSV converter generates ## NN Dataset Schema');
+      assertTrue(csvMd.includes('## NN Summary Statistics'), 'CSV converter generates ## NN Summary Statistics');
+
       // Cleanup
       fs.rmSync(TEST_TEMP, { recursive: true, force: true });
       console.log(`\n  Scanner tests: ${passed} passed, ${failed} failed`);

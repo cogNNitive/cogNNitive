@@ -8,17 +8,17 @@ Single-pass, heading-anchored citation syntax and format selection for derived d
 
 ### Requirement: Source Reference Syntax (`sources::`)
 
-Every element in a Level 3 model MUST include explicit provenance via a `sources::` field pointing directly at one or more files in `sources/nn/`, anchored to a heading-slug. A single value MAY be written without brackets; multiple values MUST use iNNfo's generic list syntax.
+Every element in a Level 3 model MUST include explicit provenance via a `sources::` field pointing directly at one or more files in the Colección de Fuentes (`sources/nn/`), anchored to a heading-slug. Unqualified filenames (e.g. `interview_transcript.md#key-clients`) resolve canonically relative to `sources/nn/` without requiring redundant path prefixes. The explicit `sources/nn/` prefix remains supported for backward compatibility. A single value MAY be written without brackets; multiple values MUST use iNNfo's generic list syntax.
 
 #### Scenarios
 
 - GIVEN an element cites one source
 - WHEN writing its `sources::` field
-- THEN it MUST read `sources:: sources/nn/interview_transcript.md#key-clients`
+- THEN it MUST read `sources:: interview_transcript.md#key-clients` (or `sources:: sources/nn/interview_transcript.md#key-clients`)
 
 - GIVEN an element cites two sources
 - WHEN writing its `sources::` field
-- THEN it MUST read `sources:: [sources/nn/a.md#introduction, sources/nn/b.md#methodology]`
+- THEN it MUST read `sources:: [a.md#introduction, b.md#methodology]` (or `sources:: [sources/nn/a.md#introduction, sources/nn/b.md#methodology]`)
 
 - GIVEN any citation anywhere in the pipeline
 - THEN it MUST NOT use a `src-NNN` or other sequential `source_id`

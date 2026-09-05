@@ -29,6 +29,8 @@ playwright-report/
 **/.spec-cache/
 .atl/.skill-registry.cache.json
 .cogNNitive/.skill-registry.cache.json
+sources/staging/
+**/sources/staging/
 
 # Environment & Logs
 .env

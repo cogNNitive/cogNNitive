@@ -1,0 +1,6 @@
+cliente_id,segmento,unidades_activas,mrr_usd,fecha_alta
+101,Enterprise,120,45000,2025-01-15
+102,Enterprise,85,32000,2025-02-20
+103,Mid-Market,40,15000,2025-03-10
+104,Enterprise,210,78000,2025-04-05
+105,SMB,15,5500,2025-05-12

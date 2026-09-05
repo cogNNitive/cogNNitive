@@ -42,11 +42,27 @@ describe('parseSourceRef utility (sources/nn/ path format)', () => {
     expect(parseSourceRef('sources/nn/interviews/interview.md#L12-L45').isValid).toBe(false)
   })
 
-  it('rejects strings that do not carry the sources/nn/ prefix', () => {
+  it('parses unqualified source reference string resolving relative to sources/nn/', () => {
+    const res = parseSourceRef('The_Goonies.md#opening-scene')
+    expect(res.isValid).toBe(true)
+    expect(res.filePath).toBe('sources/nn/The_Goonies.md')
+    expect(res.fileName).toBe('The_Goonies.md')
+    expect(res.slug).toBe('opening-scene')
+  })
+
+  it('parses nested unqualified source reference', () => {
+    const res = parseSourceRef('interviews/interview.md#background')
+    expect(res.isValid).toBe(true)
+    expect(res.filePath).toBe('sources/nn/interviews/interview.md')
+    expect(res.fileName).toBe('interview.md')
+    expect(res.slug).toBe('background')
+  })
+
+  it('rejects invalid source strings', () => {
     expect(parseSourceRef('Just plain text').isValid).toBe(false)
-    expect(parseSourceRef('The_Goonies.md#opening-scene').isValid).toBe(false)
     expect(parseSourceRef('src-003 (sources/nn/The_Goonies.md#opening-scene)').isValid).toBe(false)
     expect(parseSourceRef('sources/original/The_Goonies.docx').isValid).toBe(false)
+    expect(parseSourceRef('../secret.md#heading').isValid).toBe(false)
   })
 
   it('rejects empty and non-string input', () => {

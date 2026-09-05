@@ -95,17 +95,55 @@ node scripts/index.js --src "<source-folder>" --dest "<destination-parent-folder
 
 ```yaml
 ---
+# 1. Ingestion Provenance
 source_file: "sources/original/interview_transcript.pdf"
 sha256: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 size_bytes: 1048576
 normalized_at: "2026-08-02T13:30:00Z"
 normalized_by: "traNNsform V_2-0-0"
+staging_file: "sources/staging/interview_transcript.srt" # Optional link to intermediate buffer
+is_synthetic: false                                     # Set to true ONLY if produced by an internal deliverable
+
+# 2. Canonical Identity of THIS Document (Self BibTeX & PID)
+canonical:
+  title: "Strategic Vision and Market Positioning 2026"
+  author: "Jane Doe"
+  year: 2026
+  doi: "10.1145/3290605.3300233"
+  bibtex: |
+    @misc{doe2026strategic,
+      author = {Doe, Jane},
+      title = {Strategic Vision and Market Positioning 2026},
+      year = {2026}
+    }
+
+# 3. External References cited INSIDE this Document (Primary vs Secondary)
+references:
+  - id: "porter1985"
+    citation: "Porter, M. E. (1985). Competitive Advantage."
+    doi: "10.1002/smj.4250060308"
+    is_primary: true
 ---
 ```
 
 When the source was imported from the web (see §2c below), also include `source_url` and `downloaded_at`, and — best-effort — `title`, `description`, `author` when discovered.
 
-> **⚠️ Traceability Requirement**: There is no `source_id`/`src-NNN` system. Downstream Level 3 models reference sources directly by path via `sources:: sources/nn/<path>.md#L<start>-L<end>` (multiple values use list syntax: `sources:: [sources/nn/a.md#L1-L10, sources/nn/b.md#L20]`). Skipping scanner frontmatter invalidates traceability.
+> **⚠️ Staging Buffer Rule (`sources/staging/`)**: Intermediate dumps from extraction tools (Whisper SRTs, raw OCR text) live temporarily in `sources/staging/`. This directory is strictly ignored by scanners, git, and models. `sources/staging/` is **NEVER a valid citation target**.
+
+> **⚠️ Traceability Requirement**: There is no `source_id`/`src-NNN` system. Downstream Level 3 models reference sources directly by filename via `sources:: <path>.md#<heading-slug>` (resolving relative to `sources/nn/`; multiple values use list syntax: `sources:: [a.md#intro, b.md#summary]`). Line numbers are prohibited; heading slugs are mandatory.
+
+#### 2b. Progressive Disclosure & Source Naming Convention
+
+To prevent LLM context degradation (*Lost in the Middle*) and maintain workspace clarity:
+1. **Two-Tier Progressive Disclosure Contract**:
+   - **Tier 1 (L1 - Executive Overview)**: `[Descriptor]_summary.md` (500–1,500 words). High-density semantic overview. Loaded by default for broad reasoning, discovery, and scope.
+   - **Tier 2 (L2 - Granular Evidence)**: `[Descriptor]_source.md` (complete text with explicit headings). Loaded only on-demand when the agent needs to verify a specific claim or citation anchor.
+2. **File Naming Suffixes (`sources/nn/`)**:
+   - `_source.md`: Direct normalized representation of an original text document.
+   - `_transcript.md`: Audio/video transcription normalized into coherent paragraphs.
+   - `_summary.md`: High-density semantic distillation of a massive source.
+   - `_schema.md`: Dataset profile and statistical summary for tabular data (CSV/Excel).
+   - `_synthetic.md`: An internal deliverable re-ingested as a source (`is_synthetic: true`).
 
 #### 2c. Importing from the Web (URL / online PDF)
 
@@ -197,17 +235,17 @@ When creating a new transformation, ask the user:
 When transforming normalized Markdown into an iNNfo Level 3 Model:
 - Frontmatter MUST use lightweight V_0-1-0 format (`level: 3`, `spec_version: "V_0-1-0"`, `parent_spec: { name, url }`).
 - Body MUST use unified NN syntax: `# NN <Concept>`, `## NN <Concept>: <Element>`, `key:: value`.
-- Every element MUST include explicit provenance pointers via `sources::`, which points directly at the file(s) in `sources/nn/` and accepts iNNfo's generic list syntax for multiple values:
+- Every element MUST include explicit provenance pointers via `sources::`. Unqualified filenames resolve canonically relative to `sources/nn/` (no redundant `sources/nn/` prefix required):
 
 ```markdown
 # NN Stakeholders
 
 ## NN Stakeholders: Enterprise Clients
-sources:: [sources/nn/interview_transcript.md#L45-L60, sources/nn/notes.md#L3-L8]
+sources:: [interview_transcript.md#key-clients, notes_source.md#stakeholder-priorities]
 relationship_model:: B2B Long-term
 ```
 
-A single value may be written without brackets: `sources:: sources/nn/interview_transcript.md#L45-L60`. There is no `src-NNN`/`source_id` system anywhere in this pipeline.
+A single value may be written without brackets: `sources:: interview_transcript.md#key-clients`. There is no `src-NNN`/`source_id` system anywhere in this pipeline, and line ranges (`#L1-L10`) are strictly prohibited in favor of stable GitHub-compatible heading slugs (`#heading-slug`).
 
 #### 3c. Citation Format Selection
 
@@ -234,7 +272,7 @@ Select the citation and export format for the deliverable:
 
 Derived deliverables are generated in a single pass directly to `artifacts/exports/[Deliverable_Name]_V_x-y-z.md` without intermediate `_draft.md` files or non-standard `<!-- cite: ... -->` HTML comments:
 1. **Direct Formatting**: Apply the citation format selected in §3c directly during generation per rules in `citations.md`.
-2. **Provenance Traceability**: When citations are included (formats `[a]`–`[h]`), resolve claims directly from the Level 3 model's `sources::` pointers (`sources/nn/<path>.md#<heading-slug>`).
+2. **Provenance Traceability**: When citations are included (formats `[a]`–`[h]`), resolve claims directly from the Level 3 model's `sources::` pointers (`<path>.md#<heading-slug>`, resolving canonically against `sources/nn/`).
 3. **Clean Presentation**: Format `[i]` (No sources) produces presentation-ready deliverables omitting all citation markers and reference lists.
 
 ---
@@ -277,46 +315,15 @@ At the end of transformation:
 4. **Procedure updates**: If an existing procedure was executed and adaptations or improvements were introduced during the conversation, the agent MUST ask the user if they want to modify and update the original procedure file to incorporate these changes.
 5. Print **Visual Expectation Checklist** (§12 of `nn-innfo`) when iNNfo models were created/edited.
 
----
 
-### 8. Entity Compilation & Batch Mapping (Optional CLI Tools)
-
-Two additional CLI scripts support pulling entities detected in normalized sources into a Level 3 model. They are optional — use them when the user wants to harvest `# NN Entities` mentions from `sources/nn/` instead of modeling manually.
-
-#### 8a. `llm-wiki-compiler.js` — Compile the entity index
-
-Deterministically scans every normalized file in `sources/nn/` for `# NN Entities` / `## NN Entities: <name>` sections, and consolidates them into a single WikiLink-style index.
-
-```bash
-node scripts/llm-wiki-compiler.js --compile --src "<project-dir>"
-node scripts/llm-wiki-compiler.js --list --src "<project-dir>"
-```
-
-- `--compile` writes/refreshes `sources/nn/entities.md` (a `# NN index` of `[[entity]]` links followed by a `# NN Entities` section listing each entity's `sources::` pointers back to `sources/nn/<file>.md`) and `resultados_objetos.json` at the project root (a map of original source filename → detected entity names, lowercased).
-- `--list` prints, as JSON, normalized files that still contain a pending `agent-query:` image marker without an `## AI Visual Extraction Report` — i.e. images awaiting agent-native visual extraction.
-
-#### 8b. `batch-mapper.js` — Import entities into a model
-
-Interactive CLI that reads the compiled `sources/nn/entities.md`, resolves the concepts (`# NN <Concept>`) of the active Level 3 model in `models/`, and lets the user pick which candidate entities to import.
-
-```bash
-node scripts/batch-mapper.js --model <model-file-path> --src <project-dir>
-```
-
-- If `--model` is omitted: if only one model exists in `models/`, it is automatically selected; if multiple exist, the script prompts the user interactively to select the target model from a list.
-- Requires `sources/nn/entities.md` to already exist — run `llm-wiki-compiler.js --compile` first.
-- Displays a table of candidates with a suggested concept (best-effort name match) and a suggested element name, then prompts for a selection (ranges like `1-3, 5` or `all`) and confirmation.
-- Appends each selected entity as a new `## NN <Concept>: <Element>` element under the matching concept section in the model file, tagged with `sources::` pointing back to its origin in `sources/nn/`.
-
----
 
 ## Core Rules
 
 1. **Zero Unilateral Mutation**: NEVER move, rename, or delete files in `sources/original/` (or any user file) without prior explicit confirmation.
 2. **Recommended Option First**: Always prefix option `[a]` with `(Recommended)`.
 3. **Multi-Selection Notice**: Add `"You can select one option or a combination (e.g. A and B)"` when applicable.
-4. **Mandatory Scanner Provenance**: Normalized Markdown in `sources/nn/` MUST include the flat scanner frontmatter (`source_file`, `sha256`, `size_bytes`, `normalized_at`, `normalized_by`, plus `source_url`/`downloaded_at`/`title`/`description`/`author` when applicable). No `source_id`/`src-NNN`.
-5. **Mandatory Model Provenance**: Level 3 elements MUST include `sources:: <path.md#L..-L..>` (or a list `sources:: [a, b]`) pointing directly at `sources/nn/` — no `src-NNN` IDs.
+4. **Mandatory Scanner Provenance**: Normalized Markdown in `sources/nn/` MUST include scanner frontmatter (`source_file`, `sha256`, `size_bytes`, `normalized_at`, `normalized_by`, plus optional `staging_file`, `is_synthetic`, `canonical`, and `references`). No `source_id`/`src-NNN`.
+5. **Mandatory Model Provenance**: Level 3 elements MUST include `sources:: <path.md#heading-slug>` (or a list `sources:: [a.md#slug, b.md#slug]`) resolving canonically against `sources/nn/` — no `src-NNN` IDs, no line-number ranges.
 6. **V_0-1-0 Compliance**: Target iNNfo V_0-1-0 meta-template specification and unified NN syntax (`# NN`, `## NN`, `key:: value`).
 7. **Saved Procedure Proactive Check**: When starting `nn-trannsform` or `nn-router`, check for existing procedures in `procedures/` and offer them as runnable options to the user before starting standard ingestion.
 7a. **Procedure Lineage (Manual for Now)**: The `# NN Sources` section of the provenance model auto-populates from `sources/nn/` on every `--scan`/`--import-url`/`--provenance` run. The `# NN Procedures` section is NOT yet auto-recorded by the pipeline — the agent must manually add `## NN Procedures:` entries for both scripted operations and non-scripted research/analysis steps (see §2d).
