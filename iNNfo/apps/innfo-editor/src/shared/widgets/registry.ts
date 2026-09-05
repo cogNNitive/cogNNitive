@@ -7,6 +7,7 @@ import FieldBoolean from './FieldBoolean.vue'
 import FieldNumber from './FieldNumber.vue'
 import FieldSelect from './FieldSelect.vue'
 import FieldReference from './FieldReference.vue'
+import FieldModel from './FieldModel.vue'
 import FieldAsset from './FieldAsset.vue'
 import DateWidget from './DateWidget.vue'
 import UrlWidget from './UrlWidget.vue'
@@ -85,7 +86,7 @@ export const UNIFIED_WIDGET_REGISTRY: Record<string, Component> = {
   number: FieldNumber,
   select: FieldSelect,
   reference: FieldReference,
-  model: FieldString,
+  model: FieldModel,
   // asset field-type widgets (FR-003)
   image: FieldAsset,
   image_url: FieldAsset,

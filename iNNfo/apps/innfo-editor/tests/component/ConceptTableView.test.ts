@@ -183,4 +183,41 @@ describe('ConceptTableView.vue — Reactivity and element addition', () => {
     expect(modal.props('fieldKey')).toBe('description')
     expect(modal.props('fieldType')).toBe('string')
   })
+
+  it('renders a model pillbadge in the corresponding table column for model-type fields', () => {
+    const modelStore = useModelStore()
+    const root = makeNode('Root', {
+      childIds: ['Root/Item1'],
+    })
+    const item1 = makeNode('Root/Item1', {
+      parentId: 'Root',
+      name: 'Proyecto de JOSÉ LUIS OLMO MORA',
+      type: 'Proyecto',
+      kind: 'element',
+      fields: {
+        business_model: {
+          value: './models/proyectos/jose-luis-olmo-mora_V_0-1-0_business_NN.md',
+        },
+      },
+    })
+    modelStore.setGraph({ Root: root, 'Root/Item1': item1 }, ['Root'])
+
+    const wrapper = mount(ConceptTableView, {
+      props: {
+        nodeId: 'virtual:Root:Proyecto',
+        conceptType: 'Proyecto',
+        conceptFields: [
+          { name: 'business_model', type: 'model' },
+        ],
+      },
+    })
+
+    const modelPill = wrapper.find('[data-testid="model-field-pill"]')
+    expect(modelPill.exists()).toBe(true)
+    expect(modelPill.text()).toBe('jose-luis-olmo-mora_V_0-1-0_business_NN.md')
+    expect(modelPill.attributes('title')).toBe('./models/proyectos/jose-luis-olmo-mora_V_0-1-0_business_NN.md')
+    expect(modelPill.classes()).toContain('bg-primary/10')
+    expect(modelPill.classes()).toContain('text-primary')
+  })
 })
+
