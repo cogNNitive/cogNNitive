@@ -1,21 +1,6 @@
 import type { Concept, ParsedModel, TaxonomyEdge } from '../types'
 import type { ReferenceDiagnostic } from './references'
-
-const IMPLICIT_REF_FIELDS = new Set(['location', 'room', 'component', 'parent_component'])
-
-/** Map from lowercased element name -> set of concept names containing it. */
-function conceptsByElementName(model: ParsedModel): Map<string, Set<string>> {
-  const map = new Map<string, Set<string>>()
-  for (const [conceptName, elements] of model.elements.entries()) {
-    for (const el of elements) {
-      const key = el.name.toLowerCase()
-      const set = map.get(key) ?? new Set<string>()
-      set.add(conceptName)
-      map.set(key, set)
-    }
-  }
-  return map
-}
+import { conceptsByElementName, IMPLICIT_REF_FIELDS } from './elementIndex'
 
 /**
  * Cross-checks the `# NN index` taxonomy (concept-to-concept nesting) against

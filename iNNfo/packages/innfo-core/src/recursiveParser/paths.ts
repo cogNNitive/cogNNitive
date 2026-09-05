@@ -53,6 +53,16 @@ export function resolveQualifiedIdToPath(qualifiedId: string, sourcePath: string
 }
 
 /**
+ * Returns the last path segment of a workspace-relative path (the filename),
+ * tolerating both `/` and `\` separators, empty segments, and `.` segments.
+ */
+export function basename(path: string): string {
+  const normalized = path.replace(/\\/g, '/')
+  const segments = normalized.split('/').filter((segment) => segment && segment !== '.')
+  return segments[segments.length - 1] ?? normalized
+}
+
+/**
  * Normalizes a path to a consistent, lowercased forward-slash key for tracking
  * visited files, map lookups, and cycle detection across Windows/POSIX environments.
  */

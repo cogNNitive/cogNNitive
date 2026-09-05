@@ -3,7 +3,8 @@ import type { RecursiveParseResult } from '../recursiveParser/types'
 import type { WorkspaceIndex } from '../recursiveParser/workspaceIndex'
 import type { ReferenceDiagnostic } from './references'
 import { normalizeSeparators } from '../parser/slug'
-import { stripMdSuffix } from '../recursiveParser/paths'
+import { stripMdSuffix, basename } from '../recursiveParser/paths'
+import { matchesTargetTemplate } from './templateMatching'
 
 /**
  * `[[Model Title :: Element Name]]` — the ONLY cross-model reference form
@@ -103,34 +104,6 @@ export function collectQualifiedReferenceCandidates(
   }
 
   return candidates
-}
-
-/** Last path segment of a workspace-relative path, tolerating backslashes. Mirrors the private helper in `recursiveParser/workspaceIndex.ts` — kept local because this PR's file scope is `workspaceReferences.ts` only. */
-function basename(p: string): string {
-  const normalized = p.replace(/\\/g, '/')
-  const segments = normalized.split('/').filter(Boolean)
-  return segments[segments.length - 1] ?? normalized
-}
-
-/**
- * Mirrors the `target_template` matcher already used for per-file `type::
- * model` checks (`references.ts:189-198`): exact name, exact url, url
- * suffix variants (`/<expected>`, `/<expected>.md`, `/<expected>_NN.md`),
- * name suffix. The rules are replicated rather than imported because this
- * PR's file scope does not touch `references.ts`.
- */
-function matchesTargetTemplate(expectedTemplate: string, actual: { name?: string; url?: string }): boolean {
-  const expected = expectedTemplate.trim().toLowerCase()
-  const actualName = (actual.name ?? '').trim().toLowerCase()
-  const actualUrl = (actual.url ?? '').trim().toLowerCase()
-  return (
-    actualName === expected ||
-    actualUrl === expected ||
-    actualUrl.endsWith(`/${expected}`) ||
-    actualUrl.endsWith(`/${expected}.md`) ||
-    actualUrl.endsWith(`/${expected}_NN.md`) ||
-    actualName.endsWith(expected)
-  )
 }
 
 /** Builds the `elements.<Concept>.<Element>.fields.<field>` diagnostic path, prefixed by the referring model's file path so a workspace-scope diagnostic is attributable to a file. */

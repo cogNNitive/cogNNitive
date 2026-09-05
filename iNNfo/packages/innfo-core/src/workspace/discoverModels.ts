@@ -1,5 +1,5 @@
 import { isIgnoredPath } from '../recursiveParser/workspace'
-import { normalizePathKey } from '../recursiveParser/paths'
+import { normalizePathKey, basename } from '../recursiveParser/paths'
 
 /**
  * A file candidate for manifest reconciliation, described by its
@@ -12,12 +12,6 @@ export interface CandidateFile {
 
 /** `<name>_NN.md` (case-insensitive), the iNNfo model filename convention. */
 const NN_FILENAME_RE = /_NN\.md$/i
-
-function basename(path: string): string {
-  const normalized = path.replace(/\\/g, '/')
-  const segments = normalized.split('/').filter(Boolean)
-  return segments[segments.length - 1] ?? normalized
-}
 
 /** Reads `frontmatter.parent_spec.name`, tolerating a bare-string `parent_spec`. */
 function parentSpecName(frontmatter: Record<string, unknown>): string | undefined {

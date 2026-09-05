@@ -1,7 +1,7 @@
 import type { TemplateSchema } from '../schema'
 import { normalizeSeparators } from '../parser/slug'
 import type { ParseIssue, RecursiveParseResult, TemplateSchemaResolver } from './types'
-import { normalizePathKey, stripMdSuffix } from './paths'
+import { normalizePathKey, stripMdSuffix, basename } from './paths'
 import { readWorkspaceId } from './workspaceId'
 
 export interface WorkspaceIndex {
@@ -28,12 +28,6 @@ export interface WorkspaceIndex {
   issues: ParseIssue[]
 }
 
-/** Last path segment of a workspace-relative path, tolerating backslashes. */
-function basename(p: string): string {
-  const normalized = p.replace(/\\/g, '/')
-  const segments = normalized.split('/').filter(Boolean)
-  return segments[segments.length - 1] ?? normalized
-}
 
 /**
  * Derives a pure, standalone view over a `RecursiveParseResult`: title,

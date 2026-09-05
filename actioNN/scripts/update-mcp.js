@@ -23,7 +23,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const https = require('https');
+const { fetchString, downloadFile } = require('../../scripts/lib/github-client.js');
 
 const MANIFEST_URL = 'https://cognnitive.com/innfo/cdn/manifest.json';
 const BUNDLE_URL_TEMPLATE = 'https://cognnitive.com/innfo/cdn/innfo-mcp-{version}.bundle.js';
@@ -34,59 +34,6 @@ const VERSION_FILE = path.join(STATE_DIR, 'mcp-version.json');
 const BUNDLE_FILE = path.join(STATE_DIR, 'mcp-bundle.js');
 
 const DRY_RUN = process.argv.includes('--dry-run');
-
-/**
- * Perform HTTPS GET request returning response body as string, following redirects.
- */
-function fetchString(url, redirectsLeft = 5) {
-  return new Promise((resolve, reject) => {
-    https.get(url, { headers: { 'User-Agent': 'actioNN-Skills-Updater' } }, (res) => {
-      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-        if (redirectsLeft <= 0) return reject(new Error(`Too many redirects fetching ${url}`));
-        const nextUrl = new URL(res.headers.location, url).toString();
-        return resolve(fetchString(nextUrl, redirectsLeft - 1));
-      }
-      if (res.statusCode !== 200) {
-        return reject(new Error(`Failed to fetch ${url}, status: ${res.statusCode}`));
-      }
-      let data = '';
-      res.on('data', chunk => data += chunk);
-      res.on('end', () => resolve(data));
-    }).on('error', reject);
-  });
-}
-
-/**
- * Downloads a file to a local destination path, following redirects.
- */
-function downloadFile(url, destPath, redirectsLeft = 5) {
-  return new Promise((resolve, reject) => {
-    const file = fs.createWriteStream(destPath);
-    https.get(url, { headers: { 'User-Agent': 'actioNN-Skills-Updater' } }, (res) => {
-      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-        file.close();
-        fs.unlink(destPath, () => {});
-        if (redirectsLeft <= 0) return reject(new Error(`Too many redirects downloading ${url}`));
-        const nextUrl = new URL(res.headers.location, url).toString();
-        return resolve(downloadFile(nextUrl, destPath, redirectsLeft - 1));
-      }
-      if (res.statusCode !== 200) {
-        file.close();
-        fs.unlink(destPath, () => {});
-        return reject(new Error(`Failed to download ${url}, status: ${res.statusCode}`));
-      }
-      res.pipe(file);
-      file.on('finish', () => {
-        file.close();
-        resolve();
-      });
-    }).on('error', (err) => {
-      file.close();
-      fs.unlink(destPath, () => {});
-      reject(err);
-    });
-  });
-}
 
 /**
  * Build the versioned bundle URL for a manifest "latest" value (e.g. "v0.2.1").

@@ -281,27 +281,7 @@
             />
 
             <!-- Concept Tags Read View -->
-            <div
-              v-if="currentTags && currentTags.length > 0"
-              data-testid="concept-tags-read"
-              class="border-t border-slate-200 dark:border-slate-700 pt-5"
-            >
-              <div
-                class="text-[11px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-3 flex items-center gap-2"
-              >
-                <span class="w-1.5 h-4 rounded-full bg-slate-400 shrink-0"></span>
-                Concept Tags
-              </div>
-              <div class="flex flex-wrap gap-1.5">
-                <span
-                  v-for="tag in currentTags"
-                  :key="tag"
-                  class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-700/60 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600"
-                >
-                  #{{ tag }}
-                </span>
-              </div>
-            </div>
+            <TagList :tags="currentTags" label="Concept Tags" data-testid="concept-tags-read" />
 
             <div class="border-t border-slate-200 dark:border-slate-700 pt-5">
               <div
@@ -417,27 +397,7 @@
             </div>
 
             <!-- Element Tags Read View -->
-            <div
-              v-if="currentTags && currentTags.length > 0"
-              data-testid="block-sheet-tags-read"
-              class="border-t border-slate-200 dark:border-slate-700 pt-5"
-            >
-              <div
-                class="text-[11px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-3 flex items-center gap-2"
-              >
-                <span class="w-1.5 h-4 rounded-full bg-slate-400 shrink-0"></span>
-                Tags
-              </div>
-              <div class="flex flex-wrap gap-1.5">
-                <span
-                  v-for="tag in currentTags"
-                  :key="tag"
-                  class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-700/60 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600"
-                >
-                  #{{ tag }}
-                </span>
-              </div>
-            </div>
+            <TagList :tags="currentTags" label="Tags" data-testid="block-sheet-tags-read" />
 
             <!-- Unified Connections & Relationships -->
             <div
@@ -501,6 +461,7 @@ import BlockMatrixSummary from './BlockMatrixSummary.vue'
 import NodeMedia from './NodeMedia.vue'
 import ConceptTableView from './ConceptTableView.vue'
 import TagInput from '../ui/TagInput.vue'
+import TagList from '../ui/TagList.vue'
 import { parseFrontmatter } from '@cognnitive/innfo-core'
 import { readMatrixDefsField } from '../../composables/useMatrixDefinitions'
 import { useBlockAssets } from './composables/useBlockAssets'

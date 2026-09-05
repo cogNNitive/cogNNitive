@@ -342,7 +342,7 @@ export async function validateModel(
   const result = { valid: doc.valid, errors: [...doc.errors], warnings: [...doc.warnings] }
   const warnings: ValidationError[] = [...result.warnings]
   if (!template) {
-    const parentUrl = (model.frontmatter as any)?.parent_spec?.url
+    const parentUrl = model.frontmatter?.parent_spec?.url
     if (parentUrl) {
       // The model declares a parent that could not be resolved — this is a
       // hard error, not a structural-only warning. coreValidate already emits

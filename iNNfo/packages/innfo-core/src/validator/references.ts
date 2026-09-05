@@ -1,5 +1,7 @@
 import type { Concept, ParsedModel } from '../types'
 import { normalizeSeparators } from '../parser/slug'
+import { conceptsByElementName, IMPLICIT_REF_FIELDS } from './elementIndex'
+import { matchesTargetTemplate } from './templateMatching'
 
 export interface ReferenceDiagnostic {
   path: string
@@ -59,20 +61,6 @@ function resolveElementName(
   const normalizedMatch = normalizedElementNames.get(normalizeSeparators(lower))
   if (normalizedMatch) return { found: true, exact: false, matchedName: normalizedMatch }
   return { found: false, exact: false }
-}
-
-/** Map from lowercased element name → set of concept names containing it. */
-function conceptsByElementName(model: ParsedModel): Map<string, Set<string>> {
-  const map = new Map<string, Set<string>>()
-  for (const [conceptName, elements] of model.elements.entries()) {
-    for (const el of elements) {
-      const key = el.name.toLowerCase()
-      const set = map.get(key) ?? new Set<string>()
-      set.add(conceptName)
-      map.set(key, set)
-    }
-  }
-  return map
 }
 
 /**
@@ -141,7 +129,6 @@ export function validateElementFieldReferences(
   const diagnostics: ReferenceDiagnostic[] = []
   const elementNames = collectElementNames(model)
   const conceptsByElement = conceptsByElementName(model)
-  const IMPLICIT_REF_FIELDS = new Set(['location', 'room', 'component', 'parent_component'])
 
   for (const [conceptName, elements] of model.elements.entries()) {
     const conceptDef = templateConcepts.find(
@@ -186,16 +173,10 @@ export function validateElementFieldReferences(
                     severity: 'warning',
                   })
                 } else if (fieldDef.target_template) {
-                  const expected = fieldDef.target_template.trim().toLowerCase()
-                  const actualName = (res.templateName ?? '').trim().toLowerCase()
-                  const actualUrl = (res.templateUrl ?? '').trim().toLowerCase()
-                  const matches =
-                    actualName === expected ||
-                    actualUrl === expected ||
-                    actualUrl.endsWith(`/${expected}`) ||
-                    actualUrl.endsWith(`/${expected}.md`) ||
-                    actualUrl.endsWith(`/${expected}_NN.md`) ||
-                    actualName.endsWith(expected)
+                  const matches = matchesTargetTemplate(fieldDef.target_template, {
+                    name: res.templateName,
+                    url: res.templateUrl,
+                  })
 
                   if (!matches) {
                     diagnostics.push({

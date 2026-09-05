@@ -3,7 +3,7 @@ import type { ModelDriver, ModelNode } from '../types'
 import type { TemplateSchema } from '../schema'
 import { IdentityRegistry } from '../identity'
 import type { ParseContext, RecursiveParseOptions, RecursiveParseResult, WorklistItem } from './types'
-import { stripMdSuffix, normalizePathKey, resolveSubmodelPath } from './paths'
+import { stripMdSuffix, normalizePathKey, resolveSubmodelPath, basename } from './paths'
 import { parseAndRegisterModel } from './model'
 import { parseModel, parseFrontmatter } from '../parser'
 
@@ -48,12 +48,6 @@ function pathSegments(refPath: string): string[] {
     .replace(/\\/g, '/')
     .split('/')
     .filter((p) => p && p !== '.')
-}
-
-/** Returns the last path segment of a workspace-relative reference (the filename). */
-function basenameOf(refPath: string): string {
-  const segments = pathSegments(refPath)
-  return segments[segments.length - 1] ?? refPath
 }
 
 /**
@@ -131,7 +125,7 @@ async function findPrimaryWorkspaceFile(
         const parsed = await driver.readModel(workspaceEntry.uri || workspaceEntry.name)
         return {
           path: workspaceEntry.uri || workspaceEntry.name,
-          name: stripMdSuffix(basenameOf(workspaceEntry.name)),
+          name: stripMdSuffix(basename(workspaceEntry.name)),
           content: parsed.rawContent,
         }
       }
@@ -199,7 +193,7 @@ export function extractSubmodelRefs(
     if (
       cleanTarget.endsWith(INNFO_FILE_SUFFIX) &&
       cleanTarget.toLowerCase() !== INDEX_MD &&
-      cleanTarget.toLowerCase() !== basenameOf(referringPath).toLowerCase() &&
+      cleanTarget.toLowerCase() !== basename(referringPath).toLowerCase() &&
       !isIgnoredPath(cleanTarget)
     ) {
       const cleanAuthor =
@@ -210,7 +204,7 @@ export function extractSubmodelRefs(
         !isIgnoredPath(resolved)
       ) {
         const ref: ExtractedSubmodelRef = {
-          name: stripMdSuffix(basenameOf(cleanTarget)),
+          name: stripMdSuffix(basename(cleanTarget)),
           path: cleanTarget,
           referringPath,
           author: cleanAuthor,
