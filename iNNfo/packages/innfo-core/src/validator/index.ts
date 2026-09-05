@@ -7,5 +7,11 @@ export { validateFormatSyntax } from './syntax'
 export { validateReferences, validateElementFieldReferences } from './references'
 export type { ReferenceDiagnostic, SubmodelResolver } from './references'
 export { validateTaxonomyHierarchy } from './hierarchy'
-export { QUALIFIED_REF_RE, parseQualifiedRef, validateWorkspaceReferences } from './workspaceReferences'
+export {
+  QUALIFIED_REF_RE,
+  parseQualifiedRef,
+  validateWorkspaceReferences,
+} from './workspaceReferences'
 export type { QualifiedRef } from './workspaceReferences'
+export { validateWorkspaceSources } from './workspaceSources'
+export type { SourceResolver } from './workspaceSources'

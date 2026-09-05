@@ -34,8 +34,12 @@ export {
   validateFormatContent,
   validateFormatSyntax,
   validateWorkspaceReferences,
+  validateWorkspaceSources,
 } from './validator'
-export type { DocumentValidation, ReferenceDiagnostic } from './validator'
+export type { DocumentValidation, ReferenceDiagnostic, SourceResolver } from './validator'
+
+export { parseSourceRef, slugifyHeading, extractHeadings, resolveHeadingSection } from './sourceRef'
+export type { SourceRef, HeadingInfo, ResolvedHeadingSection } from './sourceRef'
 export { applyMutation, updateReferenceString } from './mutate'
 export type { MutationResult } from './mutate'
 export { deriveMatrixWidgetType, normalizeMatrixDecl, scaleRangeFor } from './matrix'

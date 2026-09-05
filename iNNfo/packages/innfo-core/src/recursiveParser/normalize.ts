@@ -8,8 +8,37 @@ import type {
 } from '../types'
 import { extractTemplateSchema } from '../schema'
 import { normalizeSeparators } from '../parser/slug'
+import { parseSourceRef, splitSourceFieldValue, type SourceRef } from '../sourceRef'
 import type { ParseContext } from './types'
 import { addFieldAndMentionEdges } from './relationships'
+
+/** Field names (case-insensitive) whose value is a list of source Citations. */
+const SOURCE_FIELD_NAMES = new Set(['sources', 'source'])
+
+/**
+ * Reads a node's `sources`/`source` field, parses every value as a
+ * {@link SourceRef}, and — when at least one parses — attaches `node.sources`
+ * plus one `origin: 'source'` relationship per ref (targetId = the
+ * workspace-relative file path, since Sources are not graph nodes). Values that
+ * do not parse are left for the workspace source validator to report; they do
+ * not populate `node.sources`.
+ */
+export function attachSourceCitations(node: ModelNode): void {
+  for (const [fieldName, fv] of Object.entries(node.fields)) {
+    if (!SOURCE_FIELD_NAMES.has(fieldName.toLowerCase())) continue
+    const refs: SourceRef[] = []
+    for (const raw of splitSourceFieldValue(fv.value)) {
+      const ref = parseSourceRef(raw)
+      if (ref) refs.push(ref)
+    }
+    if (refs.length > 0) {
+      node.sources = refs
+      for (const ref of refs) {
+        node.relationships.push({ targetId: ref.filePath, label: fieldName, origin: 'source' })
+      }
+    }
+  }
+}
 
 export function nowIso(): string {
   return new Date().toISOString()
@@ -138,6 +167,7 @@ export function normalizeElementsIntoGraph(
         rawSections: el.description ? { description: el.description } : {},
         source: { path: sourcePath },
       }
+      attachSourceCitations(node)
       ctx.nodes[qualifiedId] = node
       const parent = ctx.nodes[parentQualifiedId]
       if (parent && !parent.childIds.includes(qualifiedId)) {

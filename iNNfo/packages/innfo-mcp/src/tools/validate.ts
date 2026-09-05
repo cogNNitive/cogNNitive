@@ -11,12 +11,15 @@ import {
   recursiveParse,
   buildWorkspaceIndex,
   validateWorkspaceReferences,
+  validateWorkspaceSources,
+  extractHeadings,
 } from '@cognnitive/innfo-core'
 import type {
   SpecDocument,
   ValidationError,
   ParsedModel,
   SubmodelResolver,
+  SourceResolver,
   SpecCache,
   TemplateSchemaResolver,
   DirectoryHandleLike,
@@ -27,7 +30,11 @@ import { resolveTemplateWithCache, findModelFile, deriveNameFromUrl, getSpec } f
 import { buildIncludeContentMap } from './resolver-node.js'
 import { loadModel } from './model-io.js'
 
-function syncFindSubmodel(rootDir: string, cleanPath: string, referringDir?: string): string | null {
+function syncFindSubmodel(
+  rootDir: string,
+  cleanPath: string,
+  referringDir?: string,
+): string | null {
   const directCandidates = [
     join(rootDir, cleanPath),
     referringDir ? join(referringDir, cleanPath) : null,
@@ -105,8 +112,7 @@ export function buildTemplateSchemaResolverFromCache(
 ): TemplateSchemaResolver {
   return ({ frontmatter }) => {
     if (!cache) return null
-    const name = (frontmatter as { parent_spec?: { name?: string } } | undefined)?.parent_spec
-      ?.name
+    const name = (frontmatter as { parent_spec?: { name?: string } } | undefined)?.parent_spec?.name
     if (!name) return null
     const doc =
       cache.specs.get(name) ??
@@ -220,9 +226,29 @@ async function runWorkspaceValidation(
 ): Promise<ReferenceDiagnostic[]> {
   const resolveSchema: TemplateSchemaResolver = buildTemplateSchemaResolverFromCache(cache)
   const rootHandle = createNodeDirectoryHandle(rootDir)
-  const result = await recursiveParse(rootHandle, undefined, { resolveTemplateSchema: resolveSchema })
+  const result = await recursiveParse(rootHandle, undefined, {
+    resolveTemplateSchema: resolveSchema,
+  })
   const index = buildWorkspaceIndex(result)
-  const diagnostics = validateWorkspaceReferences(result, index)
+
+  // Cross-model `[[Title :: Element]]` references + `sources::` Citations,
+  // the latter resolved against real files under the workspace root.
+  const resolveSource: SourceResolver = (refPath) => {
+    const abs = join(rootDir, refPath)
+    if (!existsSync(abs)) return { exists: false }
+    try {
+      return {
+        exists: true,
+        headings: extractHeadings(readFileSync(abs, 'utf-8')).map((h) => h.slug),
+      }
+    } catch {
+      return { exists: false }
+    }
+  }
+  const diagnostics = [
+    ...validateWorkspaceReferences(result, index),
+    ...validateWorkspaceSources(result, resolveSource),
+  ]
 
   const relativeModelPath = relative(rootDir, resolvedModelPath).replace(/\\/g, '/')
   return diagnostics.filter(
@@ -316,7 +342,10 @@ export async function validateModel(
 
   const resolveSubmodel: SubmodelResolver = (refPath: string) => {
     try {
-      const clean = refPath.replace(/^\[\[\s*/, '').replace(/\s*\]\]$/, '').trim()
+      const clean = refPath
+        .replace(/^\[\[\s*/, '')
+        .replace(/\s*\]\]$/, '')
+        .trim()
       const foundPath = syncFindSubmodel(rootDir, clean, referringDir)
       if (!foundPath) {
         return { exists: false }
@@ -388,7 +417,12 @@ export async function validateModel(
   if (workspace && id && modelPath !== 'inline') {
     const workspaceDiagnostics = await runWorkspaceValidation(rootDir, modelPath, specCache)
     for (const diag of workspaceDiagnostics) {
-      const decorated = { path: diag.path, message: diag.message, severity: diag.severity, filePath: modelPath }
+      const decorated = {
+        path: diag.path,
+        message: diag.message,
+        severity: diag.severity,
+        filePath: modelPath,
+      }
       if (diag.severity === 'error') {
         errors.push(decorated)
         valid = false
