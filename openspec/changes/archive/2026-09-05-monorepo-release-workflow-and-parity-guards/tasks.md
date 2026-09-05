@@ -14,5 +14,5 @@
 
 ## 4. Verification, Testing & Monorepo Gate
 - [x] 4.1 Run `npm test` across root and `scripts`. <!-- id: 4.1 -->
-- [ ] 4.2 Run `node scripts/verify.js` to verify all guards pass. <!-- id: 4.2 -->
-- [ ] 4.3 Verify `gentle-ai sdd-status` transitions to verify-ready. <!-- id: 4.3 -->
+- [x] 4.2 Run `node scripts/verify.js` to verify all guards pass. <!-- id: 4.2 -->
+- [x] 4.3 Verify `gentle-ai sdd-status` transitions to verify-ready. <!-- id: 4.3 -->
