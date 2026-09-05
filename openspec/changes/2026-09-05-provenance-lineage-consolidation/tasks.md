@@ -130,12 +130,14 @@ pass. Not started.
 
 ## PR 6 — `chore(openspec): delete dead export-navigator spec`
 
-- [ ] 6.1 `git rm iNNfo/openspec/specs/export-navigator/spec.md` and
-      `iNNfo/openspec/changes/archive/2026-07-11-export-navigator/` (recursive).
-- [ ] 6.2 Grep repo for `export-navigator` / `traNNsform/output` / `export-meta`
-      references in docs/specs; remove or redirect to `--check`.
-- [ ] 6.3 `npm --prefix iNNfo run verify` (spec inventory guards).
-- [ ] 6.4 Commit. Open PR 6. Merge on green.
+- [x] 6.1 `git rm -r iNNfo/openspec/specs/export-navigator/`. Kept the archived
+      change `changes/archive/2026-07-11-export-navigator/` — deleting archived
+      history is out of scope; the live capability spec was the problem.
+- [x] 6.2 No live (non-archive) `export-navigator` refs remain. `traNNsform/output/`
+      in `specs/file-system-ops` is the editor's own implemented workspace-init
+      dir (`initWorkspaceStructure`), a separate concern — left untouched.
+- [x] 6.3 `npm --prefix iNNfo run verify` (spec inventory guards).
+- [x] 6.4 Commit. Open PR 6. Merge on green.
 
 ## PR 7 — `refactor: consolidate provenance vocabulary → Source/Citation/Lineage` ⏸ review
 
