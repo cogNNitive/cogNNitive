@@ -69,20 +69,27 @@ Delivery: 10 stacked PRs to `main`. Merge each only when `npm run verify` and
 
 ## PR 3 — `chore(actioNN,openspec): translate remaining Spanish strings to English`
 
-- [ ] 3.1 Add `test/unit/test-no-spanish.js`: grep `scripts/**` for a Spanish
-      stop-word list (`soportado`, `convertirlo`, `Proveniencia`, …) → must be
-      empty. (RED for `.doc` message)
-- [ ] 3.2 Translate the `.doc` skip message in `scanner-core.js`
-      (`processPromptFile`). (GREEN)
-- [ ] 3.3 Translate `nn-innfo/SKILL.md` §4 "Protocolo de Proveniencia" and the
-      remaining Spanish blocks (approx. lines 267–299, 358, 588) to English,
-      keeping semantics identical.
-- [ ] 3.4 Translate the "Sencillo" format section and any Spanish prose in
-      `nn-trannsform/citations.md` to English.
-- [ ] 3.5 Grep `openspec/specs/**` and `iNNfo/openspec/specs/**` for Spanish;
-      translate any hits.
-- [ ] 3.6 `node --test …/nn-trannsform/test/`; skill markdown lint if present.
-- [ ] 3.7 Commit. Open PR 3. Merge on green.
+- [x] 3.1 Add `test/unit/test-no-spanish.js`: scans `scripts/**/*.js` for a
+      Spanish stop-word list → must be empty. Caught `.doc` message in both
+      `scanner-core.js` and `extract.js`.
+- [x] 3.2 Translate the `.doc` skip message in `scanner-core.js`
+      (`processPromptFile`) and the matching `throw` in `extract.js`.
+- [x] 3.4 Rename the "Sencillo" citation format to "Simple" in
+      `nn-trannsform/citations.md` (body was already English).
+- [x] 3.5 `actioNN/openspec/specs/document-citations/spec.md`: `Sencillo` →
+      `Simple`, `*(Recomendado)*` → `*(Recommended)*`. `nn-trannsform/SKILL.md`
+      is already English; `iNNfo/openspec/specs/**` had no Spanish.
+- [x] 3.6 `node test/run.js unit` — 125 pass; `node scripts/verify.js` passes.
+- [x] 3.7 Commit. Open PR 3. Merge on green.
+
+### PR 3b — `docs(nn-innfo): translate SKILL.md to English` (split out)
+
+`actioNN/skills/nn-innfo/SKILL.md` is ~half Spanish (130 of 655 lines carry
+Spanish, plus untagged prose). It is the operational contract an agent loads —
+a hurried translation silently changes agent behaviour, so it does not belong
+in an autopilot chore PR. Tracked here as its own focused PR: translate the
+whole file to English, semantics identical, section by section, with a review
+pass. Not started.
 
 ## PR 4 — `feat(nn-trannsform): lineage record full filesystem sync + --check`
 

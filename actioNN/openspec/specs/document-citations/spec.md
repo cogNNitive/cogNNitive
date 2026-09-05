@@ -90,8 +90,8 @@ The system MUST directly format citations into the user-selected format during a
 
 | Option | Format | Behavior |
 |---|---|---|
-| `[a]` | Standard Markdown Footnotes (`[^1]`) *(Recomendado)* | Inline `[^N]` markers referencing `[^N]: <Source> (sources/nn/<path>.md#<heading-slug>), section <section-name>` definitions appended at the bottom of the document |
-| `[b]` | Sencillo | Visible `— Source: <filename>, section <section-name>` text placed inline directly after cited claims; no HTML comments |
+| `[a]` | Standard Markdown Footnotes (`[^1]`) *(Recommended)* | Inline `[^N]` markers referencing `[^N]: <Source> (sources/nn/<path>.md#<heading-slug>), section <section-name>` definitions appended at the bottom of the document |
+| `[b]` | Simple | Visible `— Source: <filename>, section <section-name>` text placed inline directly after cited claims; no HTML comments |
 | `[c]` | APA 7th Edition | In-text `(Author, Year[, section name])`, organization name as author for organizational sources, filename stem fallback, end-of-sentence citations before the period, trailing "References" list |
 | `[d]` | MLA 9th Edition | Parenthetical `(Author Page)` or `(Author, par. X)`, filename stem as author fallback, trailing "Works Cited" list |
 | `[e]` | Chicago | Notes-bibliography (superscript + footnote) for narrative documents, or author-date `(Author Year, Page)` for citation-dense documents, trailing "Bibliography"/"References" |
@@ -111,8 +111,8 @@ The derived document MUST be output directly to `artifacts/exports/[Deliverable_
 - AND footnote definitions MUST be appended at the bottom pointing to `sources/nn/<path>.md#<heading-slug>`
 - AND no HTML comments (`<!-- cite: ... -->`) SHALL be present in the output
 
-##### Scenario: Export with Sencillo format
-- GIVEN the user selects `[b] Sencillo`
+##### Scenario: Export with Simple format
+- GIVEN the user selects `[b] Simple`
 - WHEN generating the export deliverable
 - THEN inline visible text `— Source: <filename>, section <section-name>` MUST be preserved
 - AND no HTML comments (`<!-- cite: ... -->`) SHALL be generated

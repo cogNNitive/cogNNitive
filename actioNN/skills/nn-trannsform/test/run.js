@@ -40,6 +40,11 @@ async function main() {
     totalPassed += bootstrapResult.passed;
     totalFailed += bootstrapResult.failed;
 
+    const noSpanishTest = require('./unit/test-no-spanish');
+    const noSpanishResult = await noSpanishTest.run();
+    totalPassed += noSpanishResult.passed;
+    totalFailed += noSpanishResult.failed;
+
     const scannerTest = require('./unit/test-scanner');
     const scannerResult = await scannerTest.run();
     totalPassed += scannerResult.passed;
