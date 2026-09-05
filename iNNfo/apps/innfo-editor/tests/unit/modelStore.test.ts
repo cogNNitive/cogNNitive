@@ -104,7 +104,7 @@ describe('modelStore', () => {
     const fakeTree = buildFakeTree('workspace', {
       'index.md': indexMd,
       'model_NN.md': modelMd,
-      'specs': {
+      specs: {
         'test-template_V_1-0-0_NN.md': specMd,
       },
     })
@@ -163,7 +163,10 @@ describe('modelStore', () => {
     // Run serialization on the root node using recursiveSerialize
     await recursiveSerialize(modelStore.nodes, new Set([rootId]))
     const serialized = rootNode!.rawContent ?? ''
-    console.log("SERIALIZED OUTPUT INDEX:\n", serialized.substring(serialized.indexOf('# NN index'), serialized.indexOf('# NN Problems')))
+    console.log(
+      'SERIALIZED OUTPUT INDEX:\n',
+      serialized.substring(serialized.indexOf('# NN index'), serialized.indexOf('# NN Problems')),
+    )
 
     expect(serialized).toContain('  * [[Problem One]]')
   })
@@ -207,7 +210,7 @@ describe('modelStore', () => {
     await recursiveSerialize(modelStore.nodes, new Set([rootId]))
     const serialized = modelStore.getNode(rootId)!.rawContent ?? ''
 
-    console.log("SERIALIZED MODEL WITH NEW ELEMENT:\n", serialized)
+    console.log('SERIALIZED MODEL WITH NEW ELEMENT:\n', serialized)
 
     expect(serialized).toContain('## NN Problems: Problem Two')
     expect(serialized).toContain('  * [[Problem Two]]')
@@ -291,5 +294,63 @@ describe('modelStore', () => {
 
     const masterNode = Object.values(modelStore.nodes).find((n) => n.name === 'model')
     expect(masterNode!.childIds).toContain(subNode!.id)
+  })
+
+  describe('scaffoldSubmodel', () => {
+    it('scaffolds Level 3 starter markdown content with valid YAML frontmatter', () => {
+      const modelStore = useModelStore()
+      const newId = modelStore.scaffoldSubmodel({
+        path: 'models/sub_business_NN.md',
+        template: 'business',
+        title: 'My Business Submodel',
+        modelVersion: '0.1.0',
+      })
+
+      const node = modelStore.getNode(newId)
+      expect(node).toBeDefined()
+      expect(node?.name).toBe('My Business Submodel')
+      expect(node?.kind).toBe('root')
+      expect(node?.rawContent).toContain('level: 3')
+      expect(node?.rawContent).toContain('parent_spec:')
+      expect(node?.rawContent).toContain('name: "business"')
+      expect(node?.rawContent).toContain('model_version: "0.1.0"')
+      expect(node?.rawContent).toContain('title: "My Business Submodel"')
+      expect(node?.rawContent).toContain('# NN Business Model')
+    })
+
+    it('normalizes backslashes to forward slashes in node id and source.path', () => {
+      const modelStore = useModelStore()
+      const newId = modelStore.scaffoldSubmodel({
+        path: 'models\\nested\\sub_business_NN.md',
+        template: 'business',
+      })
+
+      expect(newId).toBe('models/nested/sub_business_NN.md')
+      const node = modelStore.getNode(newId)
+      expect(node?.id).toBe('models/nested/sub_business_NN.md')
+      expect(node?.source.path).toBe('models/nested/sub_business_NN.md')
+    })
+
+    it('registers node in modelStore.nodes and appends id to modelStore.rootIds', () => {
+      const modelStore = useModelStore()
+      const newId = modelStore.scaffoldSubmodel({
+        path: 'models/another_NN.md',
+        template: 'procedures',
+      })
+
+      expect(modelStore.nodes[newId]).toBeDefined()
+      expect(modelStore.rootIds).toContain(newId)
+    })
+
+    it('marks the newly created submodel node as dirty', () => {
+      const modelStore = useModelStore()
+      const newId = modelStore.scaffoldSubmodel({
+        path: 'models/dirty_test_NN.md',
+        template: 'procedures',
+      })
+
+      expect(modelStore.isDirty(newId)).toBe(true)
+      expect(modelStore.dirtyIds.has(newId)).toBe(true)
+    })
   })
 })

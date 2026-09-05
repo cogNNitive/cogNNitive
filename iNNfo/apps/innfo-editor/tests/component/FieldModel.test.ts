@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
 import FieldModel from '../../src/shared/widgets/FieldModel.vue'
@@ -170,5 +170,176 @@ describe('FieldModel.vue', () => {
 
     expect(wrapper.emitted('update:modelValue')).toBeTruthy()
     expect(wrapper.emitted('update:modelValue')?.[0]).toEqual(['models/auth_01.md'])
+  })
+
+  describe('inline submodel creation', () => {
+    it('renders the creation button in edit mode (!readonly)', () => {
+      const wrapper = mount(FieldModel, {
+        props: {
+          modelValue: '',
+          readonly: false,
+        },
+      })
+
+      const btn = wrapper.find('[data-testid="create-submodel-button"]')
+      expect(btn.exists()).toBe(true)
+      expect(btn.text()).toContain('Create & bind new model')
+    })
+
+    it('renders target_template badge inside creation button when specified', () => {
+      const wrapper = mount(FieldModel, {
+        props: {
+          modelValue: '',
+          readonly: false,
+          fieldDefinition: {
+            name: 'business_model',
+            type: 'model',
+            target_template: 'business',
+          },
+        },
+      })
+
+      const btn = wrapper.find('[data-testid="create-submodel-button"]')
+      expect(btn.exists()).toBe(true)
+      expect(btn.text()).toContain('business')
+    })
+
+    it('does not render creation trigger in readonly mode', () => {
+      const wrapper = mount(FieldModel, {
+        props: {
+          modelValue: '',
+          readonly: true,
+          fieldDefinition: {
+            name: 'business_model',
+            type: 'model',
+            target_template: 'business',
+          },
+        },
+      })
+
+      expect(wrapper.find('[data-testid="create-submodel-button"]').exists()).toBe(false)
+    })
+
+    it('invokes window.prompt pre-filled with suggested path derived from parent model path and target_template', async () => {
+      const modelStore = useModelStore()
+      const rootNode = makeNode('models/Ghostbusters_V_0-2-0_innovation_NN.md', {
+        kind: 'root',
+        source: { path: 'models/Ghostbusters_V_0-2-0_innovation_NN.md' },
+      })
+      const elementNode = makeNode('models/Ghostbusters_V_0-2-0_innovation_NN.md/initiative_01', {
+        name: 'Municipal Franchise Expansion',
+        parentId: 'models/Ghostbusters_V_0-2-0_innovation_NN.md',
+        kind: 'element',
+      })
+      modelStore.setGraph(
+        {
+          [rootNode.id]: rootNode,
+          [elementNode.id]: elementNode,
+        },
+        [rootNode.id],
+      )
+
+      const promptSpy = vi.spyOn(window, 'prompt').mockReturnValue(null)
+
+      const wrapper = mount(FieldModel, {
+        props: {
+          modelValue: '',
+          readonly: false,
+          nodeId: elementNode.id,
+          fieldKey: 'business_model',
+          fieldDefinition: {
+            name: 'business_model',
+            type: 'model',
+            target_template: 'business',
+          },
+        },
+      })
+
+      await wrapper.find('[data-testid="create-submodel-button"]').trigger('click')
+
+      expect(promptSpy).toHaveBeenCalledWith(
+        expect.stringContaining('business'),
+        'models/Ghostbusters_V_0-2-0_business_NN.md',
+      )
+      promptSpy.mockRestore()
+    })
+
+    it('confirms prompt: invokes scaffoldSubmodel, emits update:modelValue, and calls uiStore.focusModel', async () => {
+      const modelStore = useModelStore()
+      const uiStore = useUiStore()
+      const rootNode = makeNode('models/Ghostbusters_V_0-2-0_innovation_NN.md', {
+        kind: 'root',
+        source: { path: 'models/Ghostbusters_V_0-2-0_innovation_NN.md' },
+      })
+      const elementNode = makeNode('models/Ghostbusters_V_0-2-0_innovation_NN.md/initiative_01', {
+        name: 'Municipal Franchise Expansion',
+        parentId: 'models/Ghostbusters_V_0-2-0_innovation_NN.md',
+        kind: 'element',
+      })
+      modelStore.setGraph(
+        {
+          [rootNode.id]: rootNode,
+          [elementNode.id]: elementNode,
+        },
+        [rootNode.id],
+      )
+
+      const promptSpy = vi
+        .spyOn(window, 'prompt')
+        .mockReturnValue('models/Ghostbusters_V_0-2-0_business_NN.md')
+      const focusSpy = vi.spyOn(uiStore, 'focusModel')
+
+      const wrapper = mount(FieldModel, {
+        props: {
+          modelValue: '',
+          readonly: false,
+          nodeId: elementNode.id,
+          fieldKey: 'business_model',
+          fieldDefinition: {
+            name: 'business_model',
+            type: 'model',
+            target_template: 'business',
+          },
+        },
+      })
+
+      await wrapper.find('[data-testid="create-submodel-button"]').trigger('click')
+
+      expect(modelStore.nodes['models/Ghostbusters_V_0-2-0_business_NN.md']).toBeDefined()
+      expect(wrapper.emitted('update:modelValue')?.[0]).toEqual([
+        'models/Ghostbusters_V_0-2-0_business_NN.md',
+      ])
+      expect(focusSpy).toHaveBeenCalledWith('models/Ghostbusters_V_0-2-0_business_NN.md')
+
+      promptSpy.mockRestore()
+      focusSpy.mockRestore()
+    })
+
+    it('cancelling prompt aborts creation without emitting or focusing', async () => {
+      const modelStore = useModelStore()
+      const uiStore = useUiStore()
+      const promptSpy = vi.spyOn(window, 'prompt').mockReturnValue(null)
+      const focusSpy = vi.spyOn(uiStore, 'focusModel')
+
+      const wrapper = mount(FieldModel, {
+        props: {
+          modelValue: '',
+          readonly: false,
+          fieldDefinition: {
+            name: 'business_model',
+            type: 'model',
+            target_template: 'business',
+          },
+        },
+      })
+
+      await wrapper.find('[data-testid="create-submodel-button"]').trigger('click')
+
+      expect(wrapper.emitted('update:modelValue')).toBeFalsy()
+      expect(focusSpy).not.toHaveBeenCalled()
+
+      promptSpy.mockRestore()
+      focusSpy.mockRestore()
+    })
   })
 })

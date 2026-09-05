@@ -12,14 +12,26 @@
  * `uiStore.focusModel(...)`.
  */
 import { ref, computed, watch } from 'vue'
-import { FileText } from 'lucide-vue-next'
+import { FileText, Plus } from 'lucide-vue-next'
 import { useModelStore } from '../../stores/modelStore'
 import { useUiStore } from '../../stores/uiStore'
+
+interface FieldDefinitionLike {
+  name: string
+  type: string
+  options?: string[]
+  target_concepts?: string[]
+  target_template?: string
+  [key: string]: unknown
+}
 
 const props = withDefaults(
   defineProps<{
     modelValue: string
     readonly?: boolean
+    nodeId?: string
+    fieldKey?: string
+    fieldDefinition?: FieldDefinitionLike
   }>(),
   { readonly: false },
 )
@@ -132,6 +144,47 @@ function onBlur(): void {
     emit('update:modelValue', query.value.trim())
   }, 150)
 }
+
+function deriveSuggestedPath(parentPath: string, template: string): string {
+  const dir = parentPath.includes('/')
+    ? parentPath.substring(0, parentPath.lastIndexOf('/') + 1)
+    : ''
+  const filename = parentPath.split('/').pop() || 'model_NN.md'
+  const stem = filename.replace(/_NN\.md$/i, '').replace(/\.md$/i, '')
+  const versionedMatch = stem.match(/^(.*_V[_-][0-9.-]+)_[a-zA-Z0-9-]+$/i)
+  if (versionedMatch) {
+    return `${dir}${versionedMatch[1]}_${template}_NN.md`
+  }
+  return `${dir}${stem}_${template}_NN.md`
+}
+
+async function handleCreateSubmodel(): Promise<void> {
+  const targetTemplate = props.fieldDefinition?.target_template || 'base'
+  const parentNode = props.nodeId ? modelStore.getNode(props.nodeId) : undefined
+  const parentRootId = props.nodeId ? modelStore.getModelRootForNode(props.nodeId) : undefined
+  const parentRootNode = parentRootId ? modelStore.getNode(parentRootId) : undefined
+  const parentPath = parentRootNode?.source?.path || 'models/model_NN.md'
+
+  const suggestedPath = deriveSuggestedPath(parentPath, targetTemplate)
+  const userPath = window.prompt(`Enter path for new submodel (${targetTemplate}):`, suggestedPath)
+  if (!userPath || !userPath.trim()) return
+
+  const cleanPath = userPath.trim().replace(/\\/g, '/')
+  const title = `${parentNode?.name || 'Submodel'} - ${targetTemplate}`
+
+  const newModelId = modelStore.scaffoldSubmodel({
+    path: cleanPath,
+    template: targetTemplate,
+    title,
+  })
+
+  // Bind path to field
+  emit('update:modelValue', cleanPath)
+  query.value = cleanPath
+
+  // Navigate to newly created submodel
+  uiStore.focusModel(newModelId)
+}
 </script>
 
 <template>
@@ -160,7 +213,10 @@ function onBlur(): void {
       @focus="showDropdown = true"
       @blur="onBlur"
     />
-    <ul v-if="!readonly && showDropdown && filteredSuggestions.length > 0" class="field-model-dropdown">
+    <ul
+      v-if="!readonly && showDropdown && filteredSuggestions.length > 0"
+      class="field-model-dropdown"
+    >
       <li
         v-for="suggestion in filteredSuggestions"
         :key="suggestion.id"
@@ -173,6 +229,24 @@ function onBlur(): void {
         </span>
       </li>
     </ul>
+
+    <div v-if="!readonly" class="flex items-center gap-2 mt-1">
+      <button
+        type="button"
+        class="text-xs text-primary hover:text-primary-700 dark:text-primary-400 font-medium inline-flex items-center gap-1 hover:underline cursor-pointer"
+        data-testid="create-submodel-button"
+        @click="handleCreateSubmodel"
+      >
+        <Plus class="w-3.5 h-3.5 shrink-0" />
+        <span>Create & bind new model</span>
+        <span
+          v-if="fieldDefinition?.target_template"
+          class="text-3xs px-1 py-0.2 rounded bg-primary/10 text-primary font-mono ml-0.5"
+        >
+          {{ fieldDefinition.target_template }}
+        </span>
+      </button>
+    </div>
   </div>
 </template>
 

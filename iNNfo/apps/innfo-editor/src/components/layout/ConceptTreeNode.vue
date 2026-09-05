@@ -89,24 +89,47 @@
       </template>
 
       <!-- Standard recursive children (no grouping) -->
-      <ConceptTreeNode
-        v-for="child in children"
-        v-else
-        :key="child.id"
-        :node-id="child.id"
-        :selected-id="selectedId"
-        :depth="(depth ?? 0) + 1"
-        :expanded-generation="expandedGeneration"
-        @select="(id: string) => $emit('select', id)"
-      />
+      <template v-else>
+        <ConceptTreeNode
+          v-for="child in children"
+          :key="child.id"
+          :node-id="child.id"
+          :selected-id="selectedId"
+          :depth="(depth ?? 0) + 1"
+          :expanded-generation="expandedGeneration"
+          @select="(id: string) => $emit('select', id)"
+        />
+      </template>
+
+      <!-- Nested Submodel Items -->
+      <div
+        v-for="sub in elementSubmodels"
+        :key="sub.submodelId"
+        class="flex items-center gap-1.5 px-2 py-1 rounded-md text-xs hover:bg-slate-100 dark:hover:bg-slate-800/60 cursor-pointer transition-colors group"
+        data-testid="nested-submodel-node"
+        @click.stop="uiStore.focusModel(sub.submodelId)"
+      >
+        <Boxes class="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+        <span class="font-medium text-slate-700 dark:text-slate-200 truncate flex-1">
+          {{ sub.submodelName }}
+        </span>
+        <span
+          v-if="sub.targetTemplate"
+          class="text-3xs px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 font-mono"
+          data-testid="nested-submodel-badge"
+        >
+          {{ sub.targetTemplate }}
+        </span>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { ChevronDown } from 'lucide-vue-next'
+import { ChevronDown, Boxes } from 'lucide-vue-next'
 import { useModelStore } from '../../stores/modelStore'
+import { useUiStore } from '../../stores/uiStore'
 import { useConceptVisuals, getHexColorMedium } from '../../composables/useConceptVisuals'
 import Pill from '../editor/Pill.vue'
 import VirtualGroupNode from './VirtualGroupNode.vue'
@@ -137,6 +160,7 @@ const emit = defineEmits<{
 }>()
 
 const modelStore = useModelStore()
+const uiStore = useUiStore()
 const visuals = useConceptVisuals()
 
 const isCollapsed = ref(false)
@@ -179,7 +203,63 @@ const children = computed<ModelNode[]>(() => {
   })
 })
 
-const hasChildren = computed(() => children.value.length > 0)
+interface ElementSubmodel {
+  fieldKey: string
+  submodelId: string
+  submodelName: string
+  targetTemplate?: string
+  path: string
+}
+
+const elementSubmodels = computed<ElementSubmodel[]>(() => {
+  const n = node.value
+  if (!n || n.kind !== 'element' || !n.fields) return []
+
+  const rootId = modelStore.getModelRootForNode(props.nodeId)
+  const rootNode = rootId ? modelStore.getNode(rootId) : null
+  const conceptDef = rootNode?.localMetamodel?.concepts?.find(
+    (c) => c.name.toLowerCase() === (n.type || '').toLowerCase(),
+  )
+
+  const result: ElementSubmodel[] = []
+
+  for (const [key, field] of Object.entries(n.fields)) {
+    if (!field?.value || typeof field.value !== 'string') continue
+    const fieldDef = conceptDef?.fields?.find((f: any) => f.name === key)
+    const isModelType = fieldDef?.type === 'model' || (field as any)?.type === 'model'
+    if (!isModelType) continue
+
+    const clean = field.value
+      .replace(/^\[\[\s*/, '')
+      .replace(/\s*\]\]$/, '')
+      .trim()
+    if (!clean) continue
+
+    const matchingNode = Object.values(modelStore.nodes).find((cand) => {
+      const p = cand.source?.path || ''
+      return (
+        cand.id.toLowerCase() === clean.toLowerCase() ||
+        cand.name.toLowerCase() === clean.toLowerCase() ||
+        p.toLowerCase() === clean.toLowerCase() ||
+        p.replace(/\.md$/i, '').toLowerCase().endsWith(clean.toLowerCase())
+      )
+    })
+
+    if (matchingNode) {
+      result.push({
+        fieldKey: key,
+        submodelId: matchingNode.id,
+        submodelName: matchingNode.name || clean.split('/').pop() || clean,
+        targetTemplate: fieldDef?.target_template,
+        path: matchingNode.source?.path || clean,
+      })
+    }
+  }
+
+  return result
+})
+
+const hasChildren = computed(() => children.value.length > 0 || elementSubmodels.value.length > 0)
 
 const instanceCount = computed(() => children.value.length)
 

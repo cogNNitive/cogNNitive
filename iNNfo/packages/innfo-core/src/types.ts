@@ -402,7 +402,13 @@ export interface MetamodelConcept {
   type: string
   color?: string
   weight?: number
-  fields?: { name: string; type: string; options?: string[]; target_concepts?: string[] }[]
+  fields?: {
+    name: string
+    type: string
+    options?: string[]
+    target_concepts?: string[]
+    target_template?: string
+  }[]
   tags?: string[]
 }
 

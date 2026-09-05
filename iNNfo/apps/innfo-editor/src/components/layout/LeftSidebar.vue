@@ -110,7 +110,9 @@
         data-testid="workspace-overview-panel"
       >
         <div class="flex items-center justify-between">
-          <span class="text-2xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+          <span
+            class="text-2xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500"
+          >
             Workspace Mode
           </span>
           <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-primary/10 text-primary">
@@ -185,10 +187,13 @@
               class="transition-transform duration-200 w-3 h-3 text-slate-400 dark:text-slate-500"
               :class="{ '-rotate-90': !isModelExpanded(rootId) }"
             />
-            <FileText class="w-3.5 h-3.5 shrink-0" :class="rootId === activeModelId ? 'text-primary' : 'text-slate-400 dark:text-slate-500'" />
-            <span class="truncate flex-1">{{
-              getModelName(rootId)
-            }}</span>
+            <FileText
+              class="w-3.5 h-3.5 shrink-0"
+              :class="
+                rootId === activeModelId ? 'text-primary' : 'text-slate-400 dark:text-slate-500'
+              "
+            />
+            <span class="truncate flex-1">{{ getModelName(rootId) }}</span>
           </div>
 
           <!-- Concepts under this Model -->
@@ -358,7 +363,9 @@ function getModelInfo(rootId: string): { baseName: string; version: SemVer } {
       const fm = parseFrontmatter(rootNode.rawContent) as any
       if (fm?.title) baseName = fm.title
       if (typeof fm?.model_version === 'string') {
-        const vMatch = fm.model_version.match(/(\d+)\.(\d+)\.(\d+)/) || fm.model_version.match(/(\d+)-(\d+)-(\d+)/)
+        const vMatch =
+          fm.model_version.match(/(\d+)\.(\d+)\.(\d+)/) ||
+          fm.model_version.match(/(\d+)-(\d+)-(\d+)/)
         if (vMatch) {
           version = { major: Number(vMatch[1]), minor: Number(vMatch[2]), patch: Number(vMatch[3]) }
         }
@@ -383,11 +390,63 @@ const breadcrumbs = computed(() => {
   return uiStore.resolveModelAncestry(modelId, modelStore.nodes)
 })
 
+const submodelParentMap = computed<Map<string, string>>(() => {
+  const map = new Map<string, string>()
+
+  for (const node of Object.values(modelStore.nodes)) {
+    if (node.kind !== 'element' || !node.fields) continue
+
+    // Resolve concept definition to identify type:: model fields
+    const rootId = modelStore.getModelRootForNode(node.id)
+    const rootNode = rootId ? modelStore.getNode(rootId) : null
+    const conceptDef = rootNode?.localMetamodel?.concepts?.find(
+      (c) => c.name.toLowerCase() === (node.type || '').toLowerCase(),
+    )
+
+    for (const [key, field] of Object.entries(node.fields)) {
+      if (!field?.value || typeof field.value !== 'string') continue
+      const fieldDef = conceptDef?.fields?.find((f: any) => f.name === key)
+      const isModelType = fieldDef?.type === 'model' || (field as any)?.type === 'model'
+      if (!isModelType) continue
+
+      const clean = field.value
+        .replace(/^\[\[\s*/, '')
+        .replace(/\s*\]\]$/, '')
+        .trim()
+      if (!clean) continue
+
+      // Match target node in modelStore
+      const targetNode = Object.values(modelStore.nodes).find((n) => {
+        const p = n.source?.path || ''
+        return (
+          n.id.toLowerCase() === clean.toLowerCase() ||
+          n.name.toLowerCase() === clean.toLowerCase() ||
+          p.toLowerCase() === clean.toLowerCase() ||
+          p.replace(/\.md$/i, '').toLowerCase().endsWith(clean.toLowerCase())
+        )
+      })
+
+      if (targetNode) {
+        map.set(targetNode.id, node.id)
+        if (targetNode.source?.path) {
+          map.set(targetNode.source.path, node.id)
+        }
+      } else {
+        map.set(clean, node.id)
+      }
+    }
+  }
+
+  return map
+})
+
 const visibleRootIds = computed(() => {
   const candidateNodes =
     modelStore.rootIds.length > 0
       ? modelStore.rootIds.map((id) => modelStore.getNode(id)).filter((n): n is ModelNode => !!n)
-      : Object.values(modelStore.nodes).filter((node) => node.kind === 'root' || node.parentId === null)
+      : Object.values(modelStore.nodes).filter(
+          (node) => node.kind === 'root' || node.parentId === null,
+        )
 
   const allModelRoots = candidateNodes.filter((node) => !isTemplateNode(node))
 
@@ -423,7 +482,14 @@ const visibleRootIds = computed(() => {
     return deduplicatedRoots.slice(0, 1)
   }
 
-  return deduplicatedRoots
+  // In Workspace Mode: exclude any root that is owned by an element
+  return deduplicatedRoots.filter((rootId) => {
+    const node = modelStore.getNode(rootId)
+    const path = node?.source?.path || ''
+    const isOwned =
+      submodelParentMap.value.has(rootId) || (path && submodelParentMap.value.has(path))
+    return !isOwned
+  })
 })
 
 function isModelRoot(node: ModelNode | undefined): boolean {
@@ -504,7 +570,8 @@ function handleClickGhost(conceptName: string, targetRootId?: string): void {
 }
 
 // Expand/collapse all + per-model expand state
-const { expandedGeneration, expandedModels, expandAll, collapseAll, toggleModel } = useTreeExpansion()
+const { expandedGeneration, expandedModels, expandAll, collapseAll, toggleModel } =
+  useTreeExpansion()
 
 // Selected node for highlighting — driven by uiStore in Phase 6
 const selectedId = computed(() => uiStore.selectedNodeId)
@@ -642,7 +709,14 @@ interface TreeGroupsInput {
 
 /** Builds the ordered concept tree (taxonomy + template fallback) shared by every tree-view caller. */
 function buildTreeGroups(input: TreeGroupsInput): TreeGroup[] {
-  const { taxonomyRoots, taxonomyChildren, childrenByType, templateByName, templateOrder, hasContent } = input
+  const {
+    taxonomyRoots,
+    taxonomyChildren,
+    childrenByType,
+    templateByName,
+    templateOrder,
+    hasContent,
+  } = input
   const seen = new Set<string>()
   const items: TreeGroup[] = []
 

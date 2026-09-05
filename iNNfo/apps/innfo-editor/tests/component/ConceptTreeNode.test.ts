@@ -1,9 +1,10 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { defineComponent } from 'vue'
 import { setActivePinia, createPinia } from 'pinia'
 import ConceptTreeNode from '../../src/components/layout/ConceptTreeNode.vue'
 import { useModelStore } from '../../src/stores/modelStore'
+import { useUiStore } from '../../src/stores/uiStore'
 import type { ModelNode } from '../../src/model/types'
 
 function makeNode(id: string, overrides: Partial<ModelNode> = {}): ModelNode {
@@ -285,5 +286,295 @@ describe('ConceptTreeNode.vue — Diamond child renders once (R8)', () => {
 
     expect(treeB.text()).toContain('DiamondChild')
     expect(treeA.text()).not.toContain('DiamondChild')
+  })
+
+  describe('Element-Owned Submodel Nesting (ADR-01/03 & Phase 3)', () => {
+    it('renders nested child submodel node when element has a type:: model field', () => {
+      const modelStore = useModelStore()
+      const rootNode = makeNode('models/Ghostbusters_V_0-2-0_innovation_NN.md', {
+        kind: 'root',
+        source: { path: 'models/Ghostbusters_V_0-2-0_innovation_NN.md' },
+        localMetamodel: {
+          concepts: [
+            {
+              name: 'Initiative',
+              type: 'group',
+              fields: [
+                {
+                  name: 'business_model',
+                  type: 'model',
+                  target_template: 'business',
+                },
+              ],
+            },
+          ],
+          markers: [],
+          relationshipTypes: [],
+        },
+      })
+      const elementNode = makeNode('models/Ghostbusters_V_0-2-0_innovation_NN.md/initiative_01', {
+        name: 'Municipal Franchise Expansion',
+        parentId: rootNode.id,
+        kind: 'element',
+        type: 'Initiative',
+        fields: {
+          business_model: {
+            value: '[[models/Ghostbusters_V_0-2-0_business_NN.md]]',
+          },
+        },
+      })
+      const submodelNode = makeNode('models/Ghostbusters_V_0-2-0_business_NN.md', {
+        name: 'Ghostbusters Inc. Municipal Franchise Business Model',
+        kind: 'root',
+        source: { path: 'models/Ghostbusters_V_0-2-0_business_NN.md' },
+      })
+
+      modelStore.setGraph(
+        {
+          [rootNode.id]: rootNode,
+          [elementNode.id]: elementNode,
+          [submodelNode.id]: submodelNode,
+        },
+        [rootNode.id, submodelNode.id],
+      )
+
+      const wrapper = mount(ConceptTreeNode, {
+        props: {
+          nodeId: elementNode.id,
+          selectedId: null,
+        },
+        attachTo: document.body,
+      })
+
+      const nested = wrapper.find('[data-testid="nested-submodel-node"]')
+      expect(nested.exists()).toBe(true)
+    })
+
+    it('displays submodel name, Boxes icon, and target_template badge', () => {
+      const modelStore = useModelStore()
+      const rootNode = makeNode('models/root_NN.md', {
+        kind: 'root',
+        source: { path: 'models/root_NN.md' },
+        localMetamodel: {
+          concepts: [
+            {
+              name: 'Initiative',
+              type: 'group',
+              fields: [
+                {
+                  name: 'business_model',
+                  type: 'model',
+                  target_template: 'business',
+                },
+              ],
+            },
+          ],
+          markers: [],
+          relationshipTypes: [],
+        },
+      })
+      const elementNode = makeNode('models/root_NN.md/elem_01', {
+        name: 'Initiative 1',
+        parentId: rootNode.id,
+        kind: 'element',
+        type: 'Initiative',
+        fields: {
+          business_model: {
+            value: 'models/sub_business_NN.md',
+          },
+        },
+      })
+      const submodelNode = makeNode('models/sub_business_NN.md', {
+        name: 'Sub Business Model',
+        kind: 'root',
+        source: { path: 'models/sub_business_NN.md' },
+      })
+
+      modelStore.setGraph(
+        {
+          [rootNode.id]: rootNode,
+          [elementNode.id]: elementNode,
+          [submodelNode.id]: submodelNode,
+        },
+        [rootNode.id, submodelNode.id],
+      )
+
+      const wrapper = mount(ConceptTreeNode, {
+        props: {
+          nodeId: elementNode.id,
+          selectedId: null,
+        },
+        attachTo: document.body,
+      })
+
+      const nested = wrapper.find('[data-testid="nested-submodel-node"]')
+      expect(nested.text()).toContain('Sub Business Model')
+      const badge = wrapper.find('[data-testid="nested-submodel-badge"]')
+      expect(badge.exists()).toBe(true)
+      expect(badge.text()).toBe('business')
+    })
+
+    it('clicking nested submodel node invokes uiStore.focusModel', async () => {
+      const modelStore = useModelStore()
+      const uiStore = useUiStore()
+      const focusSpy = vi.spyOn(uiStore, 'focusModel')
+
+      const rootNode = makeNode('models/root_NN.md', {
+        kind: 'root',
+        source: { path: 'models/root_NN.md' },
+        localMetamodel: {
+          concepts: [
+            {
+              name: 'Initiative',
+              type: 'group',
+              fields: [{ name: 'sub', type: 'model' }],
+            },
+          ],
+          markers: [],
+          relationshipTypes: [],
+        },
+      })
+      const elementNode = makeNode('models/root_NN.md/elem_01', {
+        name: 'Initiative 1',
+        parentId: rootNode.id,
+        kind: 'element',
+        type: 'Initiative',
+        fields: { sub: { value: 'models/sub_NN.md' } },
+      })
+      const submodelNode = makeNode('models/sub_NN.md', {
+        name: 'Sub Model',
+        kind: 'root',
+        source: { path: 'models/sub_NN.md' },
+      })
+
+      modelStore.setGraph(
+        {
+          [rootNode.id]: rootNode,
+          [elementNode.id]: elementNode,
+          [submodelNode.id]: submodelNode,
+        },
+        [rootNode.id, submodelNode.id],
+      )
+
+      const wrapper = mount(ConceptTreeNode, {
+        props: {
+          nodeId: elementNode.id,
+          selectedId: null,
+        },
+        attachTo: document.body,
+      })
+
+      const nested = wrapper.find('[data-testid="nested-submodel-node"]')
+      await nested.trigger('click')
+
+      expect(focusSpy).toHaveBeenCalledWith(submodelNode.id)
+      focusSpy.mockRestore()
+    })
+
+    it('collapsing parent element hides nested submodels', async () => {
+      const modelStore = useModelStore()
+      const rootNode = makeNode('models/root_NN.md', {
+        kind: 'root',
+        source: { path: 'models/root_NN.md' },
+        localMetamodel: {
+          concepts: [
+            {
+              name: 'Initiative',
+              type: 'group',
+              fields: [{ name: 'sub', type: 'model' }],
+            },
+          ],
+          markers: [],
+          relationshipTypes: [],
+        },
+      })
+      const elementNode = makeNode('models/root_NN.md/elem_01', {
+        name: 'Initiative 1',
+        parentId: rootNode.id,
+        kind: 'element',
+        type: 'Initiative',
+        fields: { sub: { value: 'models/sub_NN.md' } },
+      })
+      const submodelNode = makeNode('models/sub_NN.md', {
+        name: 'Sub Model',
+        kind: 'root',
+        source: { path: 'models/sub_NN.md' },
+      })
+
+      modelStore.setGraph(
+        {
+          [rootNode.id]: rootNode,
+          [elementNode.id]: elementNode,
+          [submodelNode.id]: submodelNode,
+        },
+        [rootNode.id, submodelNode.id],
+      )
+
+      const wrapper = mount(ConceptTreeNode, {
+        props: {
+          nodeId: elementNode.id,
+          selectedId: null,
+        },
+        attachTo: document.body,
+      })
+
+      expect(wrapper.find('[data-testid="nested-submodel-node"]').exists()).toBe(true)
+
+      // Click collapse button
+      const collapseBtn = wrapper.find('button[title="Collapse"]')
+      await collapseBtn.trigger('click')
+
+      expect(wrapper.find('[data-testid="nested-submodel-node"]').exists()).toBe(false)
+    })
+
+    it('empty or unresolved submodel references do not render phantom child nodes', () => {
+      const modelStore = useModelStore()
+      const rootNode = makeNode('models/root_NN.md', {
+        kind: 'root',
+        source: { path: 'models/root_NN.md' },
+        localMetamodel: {
+          concepts: [
+            {
+              name: 'Initiative',
+              type: 'group',
+              fields: [
+                { name: 'empty_sub', type: 'model' },
+                { name: 'missing_sub', type: 'model' },
+              ],
+            },
+          ],
+          markers: [],
+          relationshipTypes: [],
+        },
+      })
+      const elementNode = makeNode('models/root_NN.md/elem_01', {
+        name: 'Initiative 1',
+        parentId: rootNode.id,
+        kind: 'element',
+        type: 'Initiative',
+        fields: {
+          empty_sub: { value: '' },
+          missing_sub: { value: 'models/non_existent_NN.md' },
+        },
+      })
+
+      modelStore.setGraph(
+        {
+          [rootNode.id]: rootNode,
+          [elementNode.id]: elementNode,
+        },
+        [rootNode.id],
+      )
+
+      const wrapper = mount(ConceptTreeNode, {
+        props: {
+          nodeId: elementNode.id,
+          selectedId: null,
+        },
+        attachTo: document.body,
+      })
+
+      expect(wrapper.find('[data-testid="nested-submodel-node"]').exists()).toBe(false)
+    })
   })
 })

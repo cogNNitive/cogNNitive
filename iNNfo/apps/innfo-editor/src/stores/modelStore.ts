@@ -170,6 +170,55 @@ export const useModelStore = defineStore('model', {
       this.nodes[node.id] = node
     },
 
+    scaffoldSubmodel(options: {
+      path: string
+      template: string
+      title?: string
+      modelVersion?: string
+    }): string {
+      const normalizedPath = options.path.replace(/\\/g, '/').trim()
+      const id = normalizedPath
+      const title =
+        options.title || normalizedPath.split('/').pop()?.replace(/\.md$/i, '') || 'New Submodel'
+      const version = options.modelVersion || '0.1.0'
+
+      const content = [
+        '---',
+        'level: 3',
+        'parent_spec:',
+        `  name: "${options.template}"`,
+        `model_version: "${version}"`,
+        `title: "${title}"`,
+        '---',
+        '',
+        `# NN ${options.template.charAt(0).toUpperCase() + options.template.slice(1)} Model`,
+        '',
+      ].join('\n')
+
+      const newNode: ModelNode = {
+        id,
+        name: title,
+        kind: 'root',
+        type: options.template,
+        parentId: null,
+        childIds: [],
+        fields: {},
+        markers: {},
+        tags: [],
+        relationships: [],
+        source: { path: normalizedPath },
+        rawContent: content,
+        rawSections: {},
+      }
+
+      this.upsertNode(newNode)
+      if (!this.rootIds.includes(id)) {
+        this.rootIds.push(id)
+      }
+      this.markDirty(id)
+      return id
+    },
+
     markDirty(id: string): void {
       this.dirtyIds.add(id)
       const rootId = this.getModelRootForNode(id)
