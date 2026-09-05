@@ -19,7 +19,7 @@ function makeNode(id: string, fieldValues: Record<string, unknown>): ModelNode {
         key,
         {
           value,
-          provenance: {
+          editAttribution: {
             author: { kind: 'system', id: 'parser' },
             timestamp: '2024-01-01T00:00:00.000Z',
           },
@@ -188,7 +188,10 @@ describe('FieldViewer.vue — R-SC-06', () => {
     modelStore.setGraph(
       {
         Root: makeNode('Root', {
-          sources: ['sources/nn/The_Goonies.md#opening-scene', 'sources/nn/interviews/interview.md#background'],
+          sources: [
+            'sources/nn/The_Goonies.md#opening-scene',
+            'sources/nn/interviews/interview.md#background',
+          ],
         }),
       },
       ['Root'],

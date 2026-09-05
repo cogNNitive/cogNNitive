@@ -19,8 +19,14 @@ describe('modelStore.renameElementNode propagation', () => {
           parentId: 'doc',
           childIds: [],
           fields: {
-            assignee: { value: 'Task Beta', provenance: { author: { kind: 'system', id: 'test' }, timestamp: '' } },
-            notes: { value: 'Refers to [[Task Beta|secondary task]]', provenance: { author: { kind: 'system', id: 'test' }, timestamp: '' } },
+            assignee: {
+              value: 'Task Beta',
+              editAttribution: { author: { kind: 'system', id: 'test' }, timestamp: '' },
+            },
+            notes: {
+              value: 'Refers to [[Task Beta|secondary task]]',
+              editAttribution: { author: { kind: 'system', id: 'test' }, timestamp: '' },
+            },
           },
           markers: {},
         },
@@ -63,7 +69,8 @@ describe('modelStore.renameElementNode propagation', () => {
           markers: {},
           relationships: [],
           rawSections: {},
-          rawContent: '---\nspec_version: "V_0-1-1"\ntitle: "Doc"\n---\n# _NN Problems\n\n* _NN Problems: Task Beta\n  Initial description.\n',
+          rawContent:
+            '---\nspec_version: "V_0-1-1"\ntitle: "Doc"\n---\n# _NN Problems\n\n* _NN Problems: Task Beta\n  Initial description.\n',
           source: { path: 'doc.md' },
         },
         'doc/node1': {
@@ -99,10 +106,10 @@ describe('modelStore.renameElementNode propagation', () => {
 
     // 2. Serialize
     const { recursiveSerialize } = await import('../../src/model/recursiveSerializer')
-    
+
     // We don't pass a driver so it just updates rawContent in nodes and returns report
     const reports = await recursiveSerialize(store.nodes, store.dirtyIds)
-    
+
     expect(reports).toHaveLength(1)
     expect(reports[0].path).toBe('doc.md')
 
@@ -114,7 +121,7 @@ describe('modelStore.renameElementNode propagation', () => {
   it('updates selectedNodeId in uiStore if the renamed node is currently selected', () => {
     const store = useModelStore()
     const uiStore = useUiStore()
-    
+
     const rootId = 'doc'
     store.setGraph(
       {

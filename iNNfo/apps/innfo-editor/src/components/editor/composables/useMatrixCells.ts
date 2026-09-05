@@ -1,7 +1,7 @@
 import { computed, type ComputedRef, type Ref } from 'vue'
 import { normalizeSeparators, scaleRangeFor } from '@cognnitive/innfo-core'
 import { useModelStore } from '../../../stores/modelStore'
-import { commitFieldValue } from '../../../shared/provenance'
+import { commitFieldValue } from '../../../shared/editAttribution'
 import type { MatrixDef } from '../../../composables/useMatrixDefinitions'
 import type { ModelNode } from '../../../model/types'
 

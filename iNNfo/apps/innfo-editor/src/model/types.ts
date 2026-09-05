@@ -4,7 +4,7 @@
  */
 export type {
   Author,
-  Provenance,
+  EditAttribution,
   FieldValue,
   ModelRelationship,
   RelationshipOrigin,

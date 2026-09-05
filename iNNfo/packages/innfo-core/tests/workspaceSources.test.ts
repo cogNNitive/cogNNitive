@@ -4,7 +4,7 @@ import type { RecursiveParseResult } from '../src/recursiveParser/types'
 import type { ModelNode } from '../src/types'
 
 function field(value: unknown): ModelNode['fields'][string] {
-  return { value, provenance: { author: { kind: 'system', id: 'test' }, timestamp: '' } }
+  return { value, editAttribution: { author: { kind: 'system', id: 'test' }, timestamp: '' } }
 }
 
 function resultWith(sources: unknown, fieldName = 'sources'): RecursiveParseResult {

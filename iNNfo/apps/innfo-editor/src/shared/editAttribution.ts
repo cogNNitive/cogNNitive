@@ -8,12 +8,12 @@ function nowIso(): string {
 }
 
 /**
- * Provenance-stamping commit hook (R16): every widget commit calls this to
+ * Edit-attribution commit hook (R16): every widget commit calls this to
  * write `{ value, author, timestamp }` onto the field's `FieldValue` in
  * `modelStore` and marks the owning node dirty (so `recursiveSerialize`
  * picks it up on the next save). Reading/loading a node for display never
  * calls this — only an explicit user (or ai/system) commit does, so
- * provenance never advances beyond parse-time state without an edit.
+ * editAttribution never advances beyond parse-time state without an edit.
  */
 export function commitFieldValue(
   modelStore: ModelStore,
@@ -29,7 +29,7 @@ export function commitFieldValue(
 
   node.fields[fieldKey] = {
     value,
-    provenance: { author, timestamp: nowIso() },
+    editAttribution: { author, timestamp: nowIso() },
   }
   modelStore.markDirty(nodeId)
 }
@@ -37,7 +37,7 @@ export function commitFieldValue(
 /**
  * Same as `commitFieldValue` but for a node's `markers` (numeric/string
  * marker values from the item-markers matrix) — markers don't carry
- * per-value provenance in `ModelNode.markers` (it's a plain
+ * per-value edit-attribution in `ModelNode.markers` (it's a plain
  * `Record<string, number | string>`), so this only updates the value and
  * marks the node dirty.
  */

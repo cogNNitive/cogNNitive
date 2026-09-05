@@ -74,7 +74,10 @@ async function resolvePathInHandle(
   root: DirectoryHandleLike,
   relativePath: string,
 ): Promise<FileHandleLike | null> {
-  const segments = relativePath.replace(/\\/g, '/').split('/').filter((s) => s && s !== '.')
+  const segments = relativePath
+    .replace(/\\/g, '/')
+    .split('/')
+    .filter((s) => s && s !== '.')
   if (segments.length === 0) return null
   let current: DirectoryHandleLike = root
   for (let i = 0; i < segments.length - 1; i++) {
@@ -445,8 +448,10 @@ export async function resolveParentSpecs(
           existingDefs.some((d: any) => !d?.source || !d?.target)
         if (needsTemplateDefs) {
           root.fields[MATRIX_DEFS_KEY] = {
-            value: schema.matrices.map((m) => normalizeMatrixDecl(m as unknown as Record<string, unknown>)),
-            provenance: {
+            value: schema.matrices.map((m) =>
+              normalizeMatrixDecl(m as unknown as Record<string, unknown>),
+            ),
+            editAttribution: {
               author: { kind: 'system', id: 'parser' },
               timestamp: new Date().toISOString(),
             },

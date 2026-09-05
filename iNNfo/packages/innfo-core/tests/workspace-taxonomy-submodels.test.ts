@@ -19,7 +19,7 @@ function createFakeDirectoryHandle(files: Record<string, string>): DirectoryHand
     const handle: FileHandleLike = {
       kind: 'file',
       name: path.split('/').pop()!,
-      getFile: async () => ({ text: async () => content } as File),
+      getFile: async () => ({ text: async () => content }) as File,
     }
     fileHandles.set(path, handle)
   }
@@ -249,7 +249,12 @@ path:: models/engine_01.md
         template: templateDoc,
       })
 
-      expect(res.errors.filter((e) => e.message.includes('Invalid concept type') || e.message.includes('Dangling reference'))).toHaveLength(0)
+      expect(
+        res.errors.filter(
+          (e) =>
+            e.message.includes('Invalid concept type') || e.message.includes('Dangling reference'),
+        ),
+      ).toHaveLength(0)
     })
   })
 
@@ -274,9 +279,7 @@ title: Index-Free Model
       const parsed = parseModel(modelContent)
       expect(parsed.taxonomy).toHaveLength(0) // No # NN index section
 
-      const parentTemplateTaxonomy = [
-        { parent: 'Component', child: 'Subcomponent' },
-      ]
+      const parentTemplateTaxonomy = [{ parent: 'Component', child: 'Subcomponent' }]
 
       const ctx: ParseContext = { nodes: {}, identity: new IdentityRegistry(), issues: [] }
       normalizeElementsIntoGraph(parsed, 'root_1', 'model_01.md', ctx, parentTemplateTaxonomy)
@@ -308,9 +311,7 @@ parent_component:: C1
         { name: 'Subcomponent', type: 'weight' },
       ]
 
-      const templateTaxonomy = [
-        { parent: 'Component', child: 'Subcomponent' },
-      ]
+      const templateTaxonomy = [{ parent: 'Component', child: 'Subcomponent' }]
 
       const diags = validateTaxonomyHierarchy(parsedModel, templateConcepts, templateTaxonomy)
       expect(diags).toHaveLength(0)
@@ -521,7 +522,9 @@ title: Acme Org
         expect.arrayContaining([orgOneNode.id, orgTwoNode.id]),
       )
 
-      const duplicateIssues = index.issues.filter((i) => i.message.includes('Duplicate model title'))
+      const duplicateIssues = index.issues.filter((i) =>
+        i.message.includes('Duplicate model title'),
+      )
       expect(duplicateIssues).toHaveLength(1)
       expect(duplicateIssues[0].severity).toBe('error')
       expect(duplicateIssues[0].message).toContain('org_one_01.md')
@@ -545,7 +548,12 @@ title: Acme Org
         childIds: [],
         type: 'document',
         kind: 'root',
-        fields: { title: { value: 'Biz In A', provenance: { author: { kind: 'system', id: 'test' }, timestamp: '' } } },
+        fields: {
+          title: {
+            value: 'Biz In A',
+            editAttribution: { author: { kind: 'system', id: 'test' }, timestamp: '' },
+          },
+        },
         markers: {},
         relationships: [],
         rawSections: {},
@@ -558,7 +566,12 @@ title: Acme Org
         childIds: [],
         type: 'document',
         kind: 'root',
-        fields: { title: { value: 'Biz In B', provenance: { author: { kind: 'system', id: 'test' }, timestamp: '' } } },
+        fields: {
+          title: {
+            value: 'Biz In B',
+            editAttribution: { author: { kind: 'system', id: 'test' }, timestamp: '' },
+          },
+        },
         markers: {},
         relationships: [],
         rawSections: {},
@@ -573,7 +586,9 @@ title: Acme Org
       const index = buildWorkspaceIndex(syntheticResult)
 
       expect(index.fileNameToNodeIds['biz_01']).toHaveLength(2)
-      expect(index.fileNameToNodeIds['biz_01']).toEqual(expect.arrayContaining([nodeA.id, nodeB.id]))
+      expect(index.fileNameToNodeIds['biz_01']).toEqual(
+        expect.arrayContaining([nodeA.id, nodeB.id]),
+      )
       expect(index.issues).toHaveLength(0)
     })
 
