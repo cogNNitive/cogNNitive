@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
+import { defineComponent } from 'vue'
 import { setActivePinia, createPinia } from 'pinia'
 import ConceptTreeNode from '../../src/components/layout/ConceptTreeNode.vue'
 import { useModelStore } from '../../src/stores/modelStore'
@@ -211,5 +212,78 @@ describe('ConceptTreeNode.vue — BlockPill integration (R-TN-01)', () => {
     })
 
     expect(wrapper.text()).toContain('Empty')
+  })
+})
+
+describe('ConceptTreeNode.vue — Diamond child renders once (R8)', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  /**
+   * Mounts two sibling ConceptTreeNode subtrees inside labeled containers,
+   * simulating the sidebar rendering two parents that both reference the
+   * same diamond child via `childIds` (PR1's diamond-vs-cycle fix allows
+   * this — the child keeps a single primary `parentId`).
+   */
+  function mountTwoTrees(rootAId: string, rootBId: string) {
+    const TwoTrees = defineComponent({
+      components: { ConceptTreeNode },
+      template: `
+        <div>
+          <div data-testid="tree-a"><ConceptTreeNode :node-id="'${rootAId}'" :selected-id="null" /></div>
+          <div data-testid="tree-b"><ConceptTreeNode :node-id="'${rootBId}'" :selected-id="null" /></div>
+        </div>
+      `,
+    })
+    return mount(TwoTrees, { attachTo: document.body })
+  }
+
+  it('renders a diamond child only under its primary parent (ParentA), not under both', () => {
+    const modelStore = useModelStore()
+    modelStore.setGraph(
+      {
+        ParentA: makeNode('ParentA', { kind: 'concept', childIds: ['Diamond'] }),
+        ParentB: makeNode('ParentB', { kind: 'concept', childIds: ['Diamond'] }),
+        Diamond: makeNode('Diamond', {
+          parentId: 'ParentA',
+          kind: 'element',
+          name: 'DiamondChild',
+        }),
+      },
+      ['ParentA', 'ParentB'],
+    )
+
+    const wrapper = mountTwoTrees('ParentA', 'ParentB')
+
+    const treeA = wrapper.find('[data-testid="tree-a"]')
+    const treeB = wrapper.find('[data-testid="tree-b"]')
+
+    expect(treeA.text()).toContain('DiamondChild')
+    expect(treeB.text()).not.toContain('DiamondChild')
+  })
+
+  it('renders a diamond child only under its primary parent (ParentB) — triangulation with the opposite primary parent', () => {
+    const modelStore = useModelStore()
+    modelStore.setGraph(
+      {
+        ParentA: makeNode('ParentA', { kind: 'concept', childIds: ['Diamond'] }),
+        ParentB: makeNode('ParentB', { kind: 'concept', childIds: ['Diamond'] }),
+        Diamond: makeNode('Diamond', {
+          parentId: 'ParentB',
+          kind: 'element',
+          name: 'DiamondChild',
+        }),
+      },
+      ['ParentA', 'ParentB'],
+    )
+
+    const wrapper = mountTwoTrees('ParentA', 'ParentB')
+
+    const treeA = wrapper.find('[data-testid="tree-a"]')
+    const treeB = wrapper.find('[data-testid="tree-b"]')
+
+    expect(treeB.text()).toContain('DiamondChild')
+    expect(treeA.text()).not.toContain('DiamondChild')
   })
 })
