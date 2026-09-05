@@ -1,12 +1,15 @@
 # actioNN Agent Skills Documentation
-> Autonomous agent skills, transformation workflows, and design guides for AI pair programming.
+> Autonomous agent skills, deterministic statecharts, and transformation workflows for AI pair programming.
 
 ## Documentation Index
 
-- [Home](/documentation/): Overview of the actioNN skills catalog and setup guide.
-- [Model Router](skills/opencode-model-router.md): Evaluates whether the active AI model is suitable for the coding task.
-- [Skills Manager](skills/skills-manager.md): Manages skill lifecycles and Windows NTFS junction links.
-- [traNNsform](skills/trannsform.md): Document ingestion, normalization, and template transformation pipeline.
-- [Citation & Provenance](skills/citation-traceability.md): Full traceability and citation system across raw documents, models, and artifacts.
-- [Web Design Guide](skills/web-design-guide.md): Design tokens and light-mode Morado Nazareno guidelines.
-- [Sample ActioNNs](/samples/meeting-to-summary/): Ready-to-run sample transformation recipes and demonstrations.
+- [Home](README.md)
+- [Interaction Flows & Statechart](skills/interaction-flows.md)
+- [nn-router](skills/nn-router.md)
+- [nn-preflight](skills/nn-preflight.md)
+- [nn-innfo](skills/nn-innfo.md)
+- [nn-trannsform](skills/nn-trannsform.md)
+- [nn-site-generator](skills/nn-site-generator.md)
+- [nn-skills-lifecycle](skills/nn-skills-lifecycle.md)
+- [nn-design-presets](skills/nn-design-presets.md)
+- [Sample ActioNNs](sample-actionns.md)

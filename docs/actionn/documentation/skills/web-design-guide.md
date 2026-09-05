@@ -7,6 +7,9 @@ generator: https://cognnitive.com/actionn/nn-design-presets
 
 # Web Design Guide
 
+> [!NOTE]
+> **Canonical Notice**: This legacy guide has been superseded by the canonical design system specification: **[`nn-design-presets`](skills/nn-design-presets.md)**.
+
 ## Purpose
 
 Complete design system for **strict light mode** with Morado Nazareno palette, systematic typography, 8px grid, and specific guidelines for commercial layouts and technical documentation.

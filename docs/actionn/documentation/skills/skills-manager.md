@@ -7,6 +7,9 @@ generator: https://cognnitive.com/actionn/nn-design-presets
 
 # Skills Manager
 
+> [!NOTE]
+> **Canonical Notice**: This legacy page has been superseded by the canonical skill lifecycle documentation: **[`nn-skills-lifecycle`](skills/nn-skills-lifecycle.md)**.
+
 **Skill name**: `nn-skills-lifecycle` · **Version**: V_1-2-0 · **Updated**: 2026-08-26
 
 ## Purpose

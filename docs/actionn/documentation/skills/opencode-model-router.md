@@ -7,7 +7,10 @@ generator: https://cognnitive.com/actionn/nn-design-presets
 
 # Model Router
 
-**Version**: 1.0.0 · **Updated**: 2026-06-27
+> [!NOTE]
+> **Canonical Notice**: This legacy page has been superseded by the canonical Front Controller documentation: **[`nn-router`](skills/nn-router.md)**.
+
+**Version**: 1.0.0 (Legacy) · **Updated**: 2026-06-27
 
 ## Purpose
 

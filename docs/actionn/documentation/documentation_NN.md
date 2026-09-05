@@ -21,7 +21,7 @@ title: "actioNN Documentation Model"
 
 ## NN DocSite: actioNN Documentation
 site_title:: actioNN Agent Skills Documentation
-site_description:: Autonomous agent skills, transformation workflows, and design guides for AI pair programming.
+site_description:: Autonomous agent skills, deterministic statecharts, and transformation workflows for AI pair programming.
 base_path:: docs/actionn/documentation/
 site_logo:: favicon.svg
 repo_url:: https://github.com/cogNNitive/cogNNitive
@@ -29,12 +29,19 @@ nav_enabled:: true
 
 # NN Section
 
-## NN Section: Skills
+## NN Section: Architecture
+title:: Architecture & Flows
 section_order:: 1
 parent:: [[actioNN Documentation]]
 
-## NN Section: Samples
+## NN Section: Canonical Skills
+title:: Canonical Skills
 section_order:: 2
+parent:: [[actioNN Documentation]]
+
+## NN Section: Samples
+title:: Samples
+section_order:: 3
 parent:: [[actioNN Documentation]]
 
 # NN Page
@@ -42,63 +49,107 @@ parent:: [[actioNN Documentation]]
 ## NN Page: Home
 title:: Home
 source:: README.md
-route:: /documentation/
+route:: README.md
 order:: 1
 parent:: [[actioNN Documentation]]
-description:: Overview of the actioNN skills catalog and setup guide.
+tags:: [docs, home, overview]
 
-## NN Page: Model Router
-title:: Model Router
-source:: skills/opencode-model-router.md
-route:: skills/opencode-model-router.md
+Overview of the actioNN skills catalog, ecosystem philosophy, and agent setup guide.
+
+## NN Page: Interaction Flows
+title:: Interaction Flows & Statechart
+source:: skills/interaction-flows.md
+route:: skills/interaction-flows.md
 order:: 10
-parent:: [[Skills]]
-description:: Evaluates whether the active AI model is suitable for the coding task.
+parent:: [[Architecture]]
+tags:: [docs, architecture, fsm, statechart, mermaid]
 
-## NN Page: Skills Manager
-title:: Skills Manager
-source:: skills/skills-manager.md
-route:: skills/skills-manager.md
+Deterministic finite state machine, decision transition matrix, and governance paths across cogNNitive skills from the "nn" entry point.
+
+## NN Page: nn-router
+title:: nn-router
+source:: skills/nn-router.md
+route:: skills/nn-router.md
+order:: 10
+parent:: [[Canonical Skills]]
+tags:: [docs, skills, router, front-controller, governance]
+
+Primary Front Controller, ecosystem governance, activation preflight gate, and intent triage router.
+
+## NN Page: nn-preflight
+title:: nn-preflight
+source:: skills/nn-preflight.md
+route:: skills/nn-preflight.md
 order:: 20
-parent:: [[Skills]]
-description:: Manages skill lifecycles and Windows NTFS junction links.
+parent:: [[Canonical Skills]]
+tags:: [docs, skills, preflight, readiness, environment]
 
-## NN Page: traNNsform
-title:: traNNsform
-source:: skills/trannsform.md
-route:: skills/trannsform.md
+Environment readiness gate running deterministic Tier 1 and Tier 2 checks before specialized workflows execute.
+
+## NN Page: nn-innfo
+title:: nn-innfo
+source:: skills/nn-innfo.md
+route:: skills/nn-innfo.md
 order:: 30
-parent:: [[Skills]]
-description:: Document ingestion, normalization, and template transformation pipeline.
+parent:: [[Canonical Skills]]
+tags:: [docs, skills, innfo, modeling, wizard, mcp]
 
-## NN Page: Citation & Provenance
-title:: Citation & Provenance
-source:: skills/citation-traceability.md
-route:: skills/citation-traceability.md
+Semantic modeling assistant, schema validator, and conversational Model Creation Wizard (Template L2 to Model L3).
+
+## NN Page: nn-trannsform
+title:: nn-trannsform
+source:: skills/nn-trannsform.md
+route:: skills/nn-trannsform.md
 order:: 40
-parent:: [[Skills]]
-description:: Full traceability and citation system across raw documents, models, and artifacts.
+parent:: [[Canonical Skills]]
+tags:: [docs, skills, transform, ingestion, provenance]
 
-## NN Page: Web Design Guide
-title:: Web Design Guide
-source:: skills/web-design-guide.md
-route:: skills/web-design-guide.md
+Multi-modal document ingestion, Markdown normalization with scanner provenance, and multi-step procedure orchestration.
+
+## NN Page: nn-site-generator
+title:: nn-site-generator
+source:: skills/nn-site-generator.md
+route:: skills/nn-site-generator.md
 order:: 50
-parent:: [[Skills]]
-description:: Design tokens and light-mode Morado Nazareno guidelines.
+parent:: [[Canonical Skills]]
+tags:: [docs, skills, sitegen, web, docsify]
+
+Static website generator, layout hydrator, Umami analytics integrator, and Docsify suite scaffolder.
+
+## NN Page: nn-skills-lifecycle
+title:: nn-skills-lifecycle
+source:: skills/nn-skills-lifecycle.md
+route:: skills/nn-skills-lifecycle.md
+order:: 60
+parent:: [[Canonical Skills]]
+tags:: [docs, skills, lifecycle, manifest, steward]
+
+Skill lifecycle management, bootstrap manifest pinning, lockfile auditing, and synchronization.
+
+## NN Page: nn-design-presets
+title:: nn-design-presets
+source:: skills/nn-design-presets.md
+route:: skills/nn-design-presets.md
+order:: 70
+parent:: [[Canonical Skills]]
+tags:: [docs, skills, design, presets, morado-nazareno]
+
+Visual design system tokens, typography scales, 8px grid, and Docsify style presets for Morado Nazareno (#4D0E4E).
 
 ## NN Page: Sample ActioNNs
 title:: Sample ActioNNs
 source:: sample-actionns.md
-route:: /samples/meeting-to-summary/
+route:: sample-actionns.md
 order:: 10
 parent:: [[Samples]]
-description:: Ready-to-run sample transformation recipes and demonstrations.
+tags:: [docs, samples, recipes]
+
+Ready-to-run sample transformation recipes and demonstrations.
 
 # NN NavbarItem
 
-## NN NavbarItem: Ecosistema
-label:: 🌐 **Ecosistema**: cognnitive.com
+## NN NavbarItem: Ecosystem
+label:: 🌐 **Ecosystem**: cognnitive.com
 url:: https://cognnitive.com
 order:: 1
 parent:: [[actioNN Documentation]]
@@ -116,13 +167,13 @@ order:: 3
 parent:: [[actioNN Documentation]]
 
 ## NN NavbarItem: iNNfo Modeler App
-label:: 🛠️ **iNNfo Modeler App**: Abrir App
+label:: 🛠️ **iNNfo Modeler App**: Open App
 url:: https://cognnitive.com/innfo/app/
 order:: 4
 parent:: [[actioNN Documentation]]
 
 ## NN NavbarItem: Bootstrap
-label:: 🚀 **Bootstrap**: Instalar en Agente
+label:: 🚀 **Bootstrap**: Install in Agent
 url:: https://cognnitive.com/use
 order:: 5
 parent:: [[actioNN Documentation]]

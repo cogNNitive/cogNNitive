@@ -7,6 +7,9 @@ generator: https://cognnitive.com/actionn/nn-design-presets
 
 # traNNsform
 
+> [!NOTE]
+> **Canonical Notice**: Please refer to the updated canonical documentation at **[`nn-trannsform`](skills/nn-trannsform.md)**.
+
 **Version**: 2.0.0 · **Architecture**: Unified Citation, Traceability & Provenance
 
 ## Purpose

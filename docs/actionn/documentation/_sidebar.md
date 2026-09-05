@@ -1,11 +1,16 @@
-- [Home](/documentation/)
+- [Home](README.md)
 
-- **Skills**
-  - [Model Router](skills/opencode-model-router.md)
-  - [Skills Manager](skills/skills-manager.md)
-  - [traNNsform](skills/trannsform.md)
-  - [Citation & Provenance](skills/citation-traceability.md)
-  - [Web Design Guide](skills/web-design-guide.md)
+- **Architecture & Flows**
+  - [Interaction Flows & Statechart](skills/interaction-flows.md)
+
+- **Canonical Skills**
+  - [nn-router](skills/nn-router.md)
+  - [nn-preflight](skills/nn-preflight.md)
+  - [nn-innfo](skills/nn-innfo.md)
+  - [nn-trannsform](skills/nn-trannsform.md)
+  - [nn-site-generator](skills/nn-site-generator.md)
+  - [nn-skills-lifecycle](skills/nn-skills-lifecycle.md)
+  - [nn-design-presets](skills/nn-design-presets.md)
 
 - **Samples**
-  - [Sample ActioNNs](/samples/meeting-to-summary/)
+  - [Sample ActioNNs](sample-actionns.md)
