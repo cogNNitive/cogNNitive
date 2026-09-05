@@ -85,10 +85,15 @@ const manifest = {
 fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n', 'utf8');
 console.log(`✅ Updated docs/innfo/cdn/manifest.json (latest: v${version})`);
 
-// 4. Generate Docsify documentation sidebar from iNNfo model
+// 4. Generate Docsify documentation suites from iNNfo models
 run(
-  'node scripts/generate-docsify-sidebar.mjs docs/innfo/documentation/documentation_NN.md',
-  'Generate Docsify documentation sidebar from iNNfo model'
+  'node scripts/generate-docsify-suite.mjs docs/innfo/documentation/documentation_NN.md',
+  'Generate iNNfo Docsify documentation suite from iNNfo model'
+);
+run(
+  'node scripts/generate-docsify-suite.mjs docs/actionn/documentation/documentation_NN.md',
+  'Generate actioNN Docsify documentation suite from iNNfo model'
 );
 
 console.log('\n🎉 [cogNNitive Build Docs] All artifacts built and staged successfully.');
+

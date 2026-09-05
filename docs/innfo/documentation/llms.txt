@@ -1,0 +1,16 @@
+# iNNfo Technical Documentation
+> Specifications, core engine packages, visual modeler, and agent MCP integration.
+
+## Documentation Index
+
+- [Home](README): Documentation entry point and overview.
+- [innfo-editor](innfo-editor): Interactive browser-based graphical editor for iNNfo models.
+- [innfo-core](innfo-core): Core parser, resolver, validator, and AST engine.
+- [innfo-mcp](innfo-mcp): Model Context Protocol server exposing iNNfo capabilities to AI agents.
+- [OpenCode Agent](opencode-innfo-agent): Integration guide for OpenCode and Antigravity agent workflows.
+- [Ecosystem](ecosystem): Holistic view of cogNNitive ecosystem layers (iNNfo, actioNN, eNNvironment).
+- [Specifications](specifications): Formal specification of the iNNfo format and meta-template layers.
+- [OKF Compatibility](ecosystem?id=open-knowledge-format-compatibility): Alignment and compatibility with the Open Knowledge Format standard.
+- [Usage](usage): Practical workflow examples and CLI usage.
+- [Relationships & Connections](relationships): Graph relationships, bidirectional edges, and matrices in iNNfo.
+- [Citations & Provenance](citations-provenance): Unified Citation, Traceability & Provenance Pipeline across sources, models, and artifacts.

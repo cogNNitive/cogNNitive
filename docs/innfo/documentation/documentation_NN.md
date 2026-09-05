@@ -1,14 +1,21 @@
 ---
 level: 3
 parent_spec:
-  name: "documentation_V_0-1-0"
-  url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/templates/documentation/V_0-1-0/spec_NN.md"
-model_version: "V_0-1-0"
+  name: "documentation_V_0-2-0"
+  url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/templates/documentation/V_0-2-0/spec_NN.md"
+model_version: "V_0-2-0"
 title: "iNNfo Technical Documentation Model"
 ---
 
 > [!NOTE]
 > This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor or view and edit it with [cogNNitive](https://cognnitive.com/innfo/app/innfo-doc).
+
+# NN index
+
+* [[DocSite]]
+* [[Section]]
+* [[Page]]
+* [[NavbarItem]]
 
 # NN DocSite
 
@@ -16,6 +23,9 @@ title: "iNNfo Technical Documentation Model"
 site_title:: iNNfo Technical Documentation
 site_description:: Specifications, core engine packages, visual modeler, and agent MCP integration.
 base_path:: docs/innfo/documentation/
+site_logo:: favicon.svg
+repo_url:: https://github.com/cogNNitive/cogNNitive
+nav_enabled:: true
 
 # NN Section
 
@@ -120,3 +130,35 @@ route:: citations-provenance
 order:: 30
 parent:: [[Guides]]
 description:: Unified Citation, Traceability & Provenance Pipeline across sources, models, and artifacts.
+
+# NN NavbarItem
+
+## NN NavbarItem: Ecosistema
+label:: 🌐 **Ecosistema**: cognnitive.com
+url:: https://cognnitive.com
+order:: 1
+parent:: [[iNNfo Documentation]]
+
+## NN NavbarItem: iNNfo Specs
+label:: 📘 **iNNfo Specs & Engine**: cognnitive.com/innfo
+url:: https://cognnitive.com/innfo/documentation/
+order:: 2
+parent:: [[iNNfo Documentation]]
+
+## NN NavbarItem: actioNN Skills
+label:: ⚡ **actioNN Skills Catalog**: cognnitive.com/actionn
+url:: https://cognnitive.com/actionn/documentation/
+order:: 3
+parent:: [[iNNfo Documentation]]
+
+## NN NavbarItem: iNNfo Modeler App
+label:: 🛠️ **iNNfo Modeler App**: Abrir App
+url:: https://cognnitive.com/innfo/app/
+order:: 4
+parent:: [[iNNfo Documentation]]
+
+## NN NavbarItem: Bootstrap
+label:: 🚀 **Bootstrap**: Instalar en Agente
+url:: https://cognnitive.com/use
+order:: 5
+parent:: [[iNNfo Documentation]]
