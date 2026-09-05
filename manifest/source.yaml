@@ -88,6 +88,14 @@ templates:
     repo: cogNNitive/iNNfo
     path: specs/templates/cogNNitive/cogNNitive_V_0-2-0_NN.md
     version: "V_0-2-0"
+  - name: documentation
+    repo: cogNNitive/iNNfo
+    path: specs/templates/documentation/V_0-1-0/spec_NN.md
+    version: "V_0-2-0"
+  - name: base
+    repo: cogNNitive/iNNfo
+    path: specs/templates/base/base_V_0-1-0_spec_NN.md
+    version: "V_0-1-0"
 
 workflows:
   - id: model

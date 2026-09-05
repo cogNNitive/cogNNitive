@@ -120,7 +120,7 @@ describe('innfo-mcp server (dispatch/handler layer, real MCP client/server round
     await rm(rootDir, { recursive: true, force: true })
   })
 
-  it('lists all 14 tools with names matching the dispatcher', async () => {
+  it('lists all 15 tools with names matching the dispatcher', async () => {
     const { tools } = await client.listTools()
     const names = tools.map((t) => t.name).sort()
     expect(names).toEqual(
@@ -136,6 +136,7 @@ describe('innfo-mcp server (dispatch/handler layer, real MCP client/server round
         'list_templates',
         'prune_orphaned_specs',
         'read_model',
+        'sync_workspace_manifest',
         'validate_model',
         'validate_model_url',
         'validate_template',

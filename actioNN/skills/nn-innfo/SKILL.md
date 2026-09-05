@@ -1,7 +1,7 @@
 ---
 name: nn-innfo
-version: "V_0-1-1"
-last_updated: 2026-09-03
+version: "V_0-1-2"
+last_updated: 2026-09-05
 metadata:
   source_type: "original"
   mcp: "innfo-mcp"
@@ -186,7 +186,7 @@ With structure approved, offer the drafting mode:
 - **[b] Full Generation:** The agent drafts the complete draft in a single file for subsequent audit, following the plan approved in B1.
 
 **B3. Model Naming & Scaffolding**:
-Prompt for `{ModelName}` and create `{ModelName}_V_0-1-0_{Template}_NN.md` with workspace structure (`models/`, `sources/nn/`, `procedures/`, `artifacts/`, `index.md`).
+Prompt for `{ModelName}` and create `{ModelName}_V_0-1-0_{Template}_NN.md` with workspace structure (`models/`, `sources/nn/`, `procedures/`, `artifacts/`, `index.md`). When creating a new workspace, emit `workspace_id: "<folder-slug>"` in the entrypoint's frontmatter (a stable slug derived from the workspace folder name, so the workspace keeps a correlatable identity across renames/moves). This field is optional and unvalidated — omit it for existing workspaces rather than retrofitting one.
 
 **B4. Validation & Visual Checklist**:
 Validate via `innfo-mcp_validate_model` and output the Visual Expectation Checklist (§12).
@@ -223,7 +223,7 @@ as its very first output — before any questions, analysis, or tool calls. Sess
 
 ## 1. MCP Operating Model
 
-El servidor `innfo-mcp` expone 13 herramientas deterministas basadas en `@cognnitive/innfo-core`.
+El servidor `innfo-mcp` expone 15 herramientas deterministas basadas en `@cognnitive/innfo-core`.
 
 | Herramienta | Propósito |
 |---|---|
@@ -238,6 +238,7 @@ El servidor `innfo-mcp` expone 13 herramientas deterministas basadas en `@cognni
 | `list_templates` | Lista plantillas Nivel 2 en workspace, caché global y skills instalados. |
 | `hydrate_template` | Copia de forma atómica e inmutable una plantilla Nivel 2 al workspace. |
 | `prune_orphaned_specs` | Analiza alcanzabilidad y purga specs huérfanas con respaldo en zip. |
+| `sync_workspace_manifest` | Reconcilia aditivamente las entradas `## NN ModelRef` del manifiesto contra los modelos Nivel 3 descubiertos en disco (`dry_run` por defecto `true`). Ver §14. |
 | `list_template_procedures` | Descubre procedimientos SOP transitivamente a través del árbol de `includes` (profundidad 10). |
 | `list_template_skills` | Descubre skills de agente transitivamente a través del árbol de `includes` (profundidad 10). |
 
@@ -537,6 +538,31 @@ Upon concluding the generation or editing of a model, the agent MUST include log
 - [pn] ... (if the model declares master.html procedure, it will appear here as "Generate master.html")
 ```
 * If the model does not declare any procedures, omit the "Available procedures in model" block completely to avoid broken shortcuts or noise.
+
+---
+
+## 14. Sincronización del Manifiesto del Workspace (Autorregistro)
+
+El manifiesto del workspace (`workspace_NN.md`, sección `# NN ModelRef`) puede desincronizarse del sistema de archivos: se crea un modelo Nivel 3 nuevo y nadie agrega su entrada, o se borra un archivo y la entrada del manifiesto queda apuntando a un modelo inexistente. La herramienta `sync_workspace_manifest` del MCP reconcilia esto de forma aditiva, nunca destructiva:
+
+- Agrega una entrada `## NN ModelRef: <nombre>` (marcada con `<!-- nn:auto -->`) por cada modelo Nivel 3 descubierto que aún no está listado, siempre al final de la sección `# NN ModelRef` — nunca reordena ni reagrupa entradas existentes.
+- Pone `status:: archived` en una entrada que el propio tool creó (identificable por `<!-- nn:auto -->`) cuando su archivo ya no existe en disco — nunca la borra.
+- Reactiva (`status:: active`) una entrada propia previamente archivada si su archivo vuelve a aparecer.
+- **Nunca modifica una entrada sin el marcador `<!-- nn:auto -->`**, la deja completamente intacta, exista o no su archivo. Toda entrada escrita a mano por una persona es intocable por diseño.
+- Excluye del descubrimiento al propio manifiesto, a cualquier modelo cuya plantilla sea `cogNNitive` (en cualquier versión — son modelos de proveniencia, no referencias de navegación), y a todo lo que esté fuera del alcance de reconciliación (`backups/`, `archive/`, `specs/`).
+
+**Protocolo de invocación (obligatorio — mismo patrón que el Preview de Cambios con Diff, §8):**
+1. Ejecutar primero con `dry_run: true` (valor por defecto) e inspeccionar `changes` y `diff` en la respuesta.
+2. Presentar al usuario un resumen en lenguaje natural de los cambios propuestos (cuántas entradas se agregarían, cuáles se archivarían/reactivarían) antes de escribir nada.
+3. Solo tras la confirmación explícita del usuario, invocar de nuevo con `dry_run: false` para persistir los cambios en disco.
+
+```
+innfo-mcp_sync_workspace_manifest({ dry_run: true })
+// revisar result.changes / result.diff con el usuario antes de continuar
+innfo-mcp_sync_workspace_manifest({ dry_run: false }) // solo tras confirmación explícita
+```
+
+Esta es la vía headless/CLI-equivalente para actioNN — no existe un binario `nn` separado; la sincronización siempre pasa por el bridge MCP existente (`innfo-mcp`), igual que cualquier otra herramienta de este skill.
 
 ---
 
