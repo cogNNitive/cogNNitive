@@ -144,7 +144,10 @@ function serializeNodeContent(node: ModelNode): {
   }
 
   if (modelStore) {
+    const seen = new Set<string>()
     function collectElements(id: string) {
+      if (seen.has(id)) return
+      seen.add(id)
       const curr = modelStore.getNode(id)
       if (!curr) return
       if (curr.kind === 'element') {

@@ -1,7 +1,10 @@
 import { describe, it, expect } from 'vitest'
+import { setActivePinia, createPinia } from 'pinia'
 import { recursiveParse } from '../../src/model/recursiveParser'
 import { recursiveSerialize } from '../../src/model/recursiveSerializer'
+import { useModelStore } from '../../src/stores/modelStore'
 import { buildFakeTree, type FakeTree } from '../helpers/fakeFs'
+import type { ModelNode } from '../../src/model/types'
 import type { ParsedModel, ModelDriver } from '@cognnitive/innfo-core'
 
 const fileDocMd = `---
@@ -253,5 +256,94 @@ title: "Matrix Definitions Test"
     expect(writtenContent!).toContain('    params: "min:1;max:5"')
     expect(writtenContent!).toContain('    widget: "scale"')
     expect(writtenContent!).toContain('    description: "A scale matrix."')
+  })
+
+  it('does not duplicate an element reachable through two concept parents (diamond)', async () => {
+    setActivePinia(createPinia())
+    const modelStore = useModelStore()
+
+    const sharedElement: ModelNode = {
+      id: 'Root/Shared',
+      name: 'Shared Item',
+      parentId: 'ConceptA',
+      childIds: [],
+      type: 'Problems',
+      kind: 'element',
+      fields: {},
+      markers: {},
+      relationships: [],
+      rawSections: {},
+      source: { path: 'Doc_NN.md' },
+    }
+    const conceptA: ModelNode = {
+      id: 'ConceptA',
+      name: 'ConceptA',
+      parentId: 'Root',
+      childIds: ['Root/Shared'],
+      type: 'Problems',
+      kind: 'concept',
+      fields: {},
+      markers: {},
+      relationships: [],
+      rawSections: {},
+      source: { path: 'Doc_NN.md' },
+    }
+    const conceptB: ModelNode = {
+      id: 'ConceptB',
+      name: 'ConceptB',
+      parentId: 'Root',
+      // Diamond: the same element id is also reachable through ConceptB.
+      childIds: ['Root/Shared'],
+      type: 'Values',
+      kind: 'concept',
+      fields: {},
+      markers: {},
+      relationships: [],
+      rawSections: {},
+      source: { path: 'Doc_NN.md' },
+    }
+    const root: ModelNode = {
+      id: 'Root',
+      name: 'Doc',
+      parentId: null,
+      childIds: ['ConceptA', 'ConceptB'],
+      type: 'root',
+      kind: 'root',
+      fields: {},
+      markers: {},
+      relationships: [],
+      rawSections: {},
+      source: { path: 'Doc_NN.md' },
+      rawContent: fileDocMd,
+    }
+
+    const nodes: Record<string, ModelNode> = {
+      Root: root,
+      ConceptA: conceptA,
+      ConceptB: conceptB,
+      'Root/Shared': sharedElement,
+    }
+    modelStore.setGraph(nodes, ['Root'])
+
+    let writtenContent: string | null = null
+    const capturingDriver: ModelDriver = {
+      readModel: async () => {
+        throw new Error('not expected')
+      },
+      writeModel: async (_uri: string, model: ParsedModel) => {
+        writtenContent = model.rawContent
+      },
+      listChildren: async () => [],
+      listAssets: async () => [],
+    }
+
+    await recursiveSerialize(nodes, new Set(['Root']), capturingDriver)
+    expect(writtenContent).not.toBeNull()
+
+    // Count the element's own section header, not raw name occurrences —
+    // the name legitimately also appears once in the `# NN index` bullet
+    // list, so a bare substring count would over-report duplication.
+    const occurrences = writtenContent!.split('## NN Problems: Shared Item').length - 1
+    expect(occurrences).toBe(1)
   })
 })
