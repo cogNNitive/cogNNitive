@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { useModelStore } from '../../stores/modelStore'
+import IconRenderer from '../editor/IconRenderer.vue'
+
 withDefaults(
   defineProps<{
     tags: string[]
@@ -9,6 +12,8 @@ withDefaults(
     compact: false,
   },
 )
+
+const modelStore = useModelStore()
 </script>
 
 <template>
@@ -28,9 +33,30 @@ withDefaults(
       <span
         v-for="tag in tags"
         :key="tag"
-        class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-700/60 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600"
+        class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border transition-colors shadow-xs"
+        :style="
+          modelStore.workspaceTagsMap[tag.toLowerCase().trim()]?.color
+            ? {
+                borderColor: modelStore.workspaceTagsMap[tag.toLowerCase().trim()]?.color + '55',
+                backgroundColor:
+                  modelStore.workspaceTagsMap[tag.toLowerCase().trim()]?.color + '15',
+                color: modelStore.workspaceTagsMap[tag.toLowerCase().trim()]?.color,
+              }
+            : {}
+        "
+        :class="
+          !modelStore.workspaceTagsMap[tag.toLowerCase().trim()]?.color
+            ? 'bg-slate-100 dark:bg-slate-700/60 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600'
+            : ''
+        "
+        :title="modelStore.workspaceTagsMap[tag.toLowerCase().trim()]?.description"
       >
-        #{{ tag }}
+        <IconRenderer
+          v-if="modelStore.workspaceTagsMap[tag.toLowerCase().trim()]?.icon"
+          :icon="modelStore.workspaceTagsMap[tag.toLowerCase().trim()]?.icon!"
+          custom-class="w-3 h-3"
+        />
+        <span>#{{ tag }}</span>
       </span>
     </div>
   </div>

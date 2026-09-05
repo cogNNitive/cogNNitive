@@ -170,7 +170,10 @@
           <!-- TAB 1: Conceptos -->
           <template v-if="uiStore.searchFilterTab === 'concepts'">
             <!-- Concept Picklist Header: Title + Select All / Deselect All -->
-            <div v-if="availableConcepts.length > 0" class="flex items-center justify-between px-0.5">
+            <div
+              v-if="availableConcepts.length > 0"
+              class="flex items-center justify-between px-0.5"
+            >
               <span
                 class="text-2xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500"
               >
@@ -607,25 +610,7 @@ const availableTags = computed(() => {
 })
 
 const tagMetaMap = computed(() => {
-  const map: Record<string, { icon?: string; color?: string; description?: string }> = {}
-  for (const node of Object.values(modelStore.nodes)) {
-    const isTagNode = node.type === 'Tag' || node.conceptBinding?.name === 'Tag'
-    if (isTagNode && node.name) {
-      const tagName = node.name.toLowerCase().trim()
-      const colorVal = (node.fields?.color as any)?.value ?? node.fields?.color
-      const iconVal = (node.fields?.icon as any)?.value ?? node.fields?.icon
-      const descVal =
-        (node.fields?.description as any)?.value ??
-        node.fields?.description ??
-        node.rawSections?.description
-      map[tagName] = {
-        color: typeof colorVal === 'string' ? colorVal : undefined,
-        icon: typeof iconVal === 'string' ? iconVal : undefined,
-        description: typeof descVal === 'string' ? descVal : undefined,
-      }
-    }
-  }
-  return map
+  return modelStore.workspaceTagsMap
 })
 
 const selectedTagCount = computed(() => {

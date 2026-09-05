@@ -82,6 +82,40 @@ export const useModelStore = defineStore('model', {
     },
 
     /**
+     * Map of workspace-defined tags (from any Tag concept elements).
+     * Keys include both original name and lowercase name.
+     */
+    workspaceTagsMap: (
+      state,
+    ): Record<string, { name: string; icon?: string; color?: string; description?: string }> => {
+      const map: Record<
+        string,
+        { name: string; icon?: string; color?: string; description?: string }
+      > = {}
+      for (const node of Object.values(state.nodes)) {
+        const isTagNode = node.type === 'Tag' || node.conceptBinding?.name === 'Tag'
+        if (isTagNode && node.name) {
+          const rawName = node.name.trim()
+          const colorVal = (node.fields?.color as any)?.value ?? node.fields?.color
+          const iconVal = (node.fields?.icon as any)?.value ?? node.fields?.icon
+          const descVal =
+            (node.fields?.description as any)?.value ??
+            node.fields?.description ??
+            node.rawSections?.description
+          const entry = {
+            name: rawName,
+            color: typeof colorVal === 'string' ? colorVal : undefined,
+            icon: typeof iconVal === 'string' ? iconVal : undefined,
+            description: typeof descVal === 'string' ? descVal : undefined,
+          }
+          map[rawName] = entry
+          map[rawName.toLowerCase()] = entry
+        }
+      }
+      return map
+    },
+
+    /**
      * Returns the active model root node id or the first root node id as fallback.
      */
     activeNodeId: (state): string | null => {
