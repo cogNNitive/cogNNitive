@@ -38,11 +38,7 @@ describe('syncWorkspaceManifest', () => {
   })
 
   it('dry-run reports discovered model as an "added" change without writing the manifest', async () => {
-    await writeFile(
-      join(rootDir, 'workspace_NN.md'),
-      ['# NN ModelRef', ''].join('\n'),
-      'utf-8',
-    )
+    await writeFile(join(rootDir, 'workspace_NN.md'), ['# NN Models', ''].join('\n'), 'utf-8')
     await writeFile(join(rootDir, 'acme_business_NN.md'), modelFrontmatter(), 'utf-8')
 
     const before = await readFile(join(rootDir, 'workspace_NN.md'), 'utf-8')
@@ -61,27 +57,19 @@ describe('syncWorkspaceManifest', () => {
   })
 
   it('dry_run: false writes the reconciled content to disk', async () => {
-    await writeFile(
-      join(rootDir, 'workspace_NN.md'),
-      ['# NN ModelRef', ''].join('\n'),
-      'utf-8',
-    )
+    await writeFile(join(rootDir, 'workspace_NN.md'), ['# NN Models', ''].join('\n'), 'utf-8')
     await writeFile(join(rootDir, 'acme_business_NN.md'), modelFrontmatter(), 'utf-8')
 
     const result = await syncWorkspaceManifest(rootDir, { dry_run: false })
 
     expect(result.written).toBe(true)
     const after = await readFile(join(rootDir, 'workspace_NN.md'), 'utf-8')
-    expect(after).toContain('## NN ModelRef: Acme Business Model')
+    expect(after).toContain('## NN Models: Acme Business Model')
     expect(after).toContain('<!-- nn:auto -->')
   })
 
   it('defaults dry_run to true when omitted', async () => {
-    await writeFile(
-      join(rootDir, 'workspace_NN.md'),
-      ['# NN ModelRef', ''].join('\n'),
-      'utf-8',
-    )
+    await writeFile(join(rootDir, 'workspace_NN.md'), ['# NN Models', ''].join('\n'), 'utf-8')
     await writeFile(join(rootDir, 'acme_business_NN.md'), modelFrontmatter(), 'utf-8')
 
     const before = await readFile(join(rootDir, 'workspace_NN.md'), 'utf-8')
@@ -95,9 +83,9 @@ describe('syncWorkspaceManifest', () => {
 
   it('does not write when the only changes are skipped-not-owned', async () => {
     const manifestBody = [
-      '# NN ModelRef',
+      '# NN Models',
       '',
-      '## NN ModelRef: Manual Entry',
+      '## NN Models: Manual Entry',
       'path:: gone_NN.md',
       'status:: active',
       '',
@@ -120,11 +108,7 @@ describe('syncWorkspaceManifest', () => {
   })
 
   it('excludes cogNNitive-templated models and the manifest itself from discovery', async () => {
-    await writeFile(
-      join(rootDir, 'workspace_NN.md'),
-      ['# NN ModelRef', ''].join('\n'),
-      'utf-8',
-    )
+    await writeFile(join(rootDir, 'workspace_NN.md'), ['# NN Models', ''].join('\n'), 'utf-8')
     await writeFile(
       join(rootDir, 'acme_cogNNitive_NN.md'),
       ['---', 'level: 3', 'parent_spec:', '  name: "cogNNitive_V_0-2-0"', '---'].join('\n'),

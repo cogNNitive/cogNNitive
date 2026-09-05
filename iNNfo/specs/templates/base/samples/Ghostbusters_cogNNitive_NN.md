@@ -12,7 +12,7 @@ title: "Ghostbusters Provenance"
 
 # NN index
 * [[Sources]]
-* [[Models]]
+* [[ModelRecords]]
 * [[Procedures]]
 
 # NN Sources
@@ -31,8 +31,8 @@ procedure_ref:: procedures/Document_Ingest_V_1-0-0_procedures_NN.md
 agent:: actioNN nn-trannsform
 run_at:: 2026-08-01T09:05:00Z
 
-# NN Models
-## NN Models: Ghostbusters Business Model
+# NN ModelRecords
+## NN ModelRecords: Ghostbusters Business Model
 model_ref:: ./Ghostbusters_V_0-1-0_business_NN.md
 model_template:: business
 model_version:: V_0-1-0

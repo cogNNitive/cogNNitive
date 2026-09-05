@@ -315,7 +315,7 @@ const toolDefinitions: Tool[] = [
   {
     name: 'sync_workspace_manifest',
     description:
-      'Reconcile the workspace manifest ## NN ModelRef entries against discovered Level-3 model files: additively appends new entries, archives entries whose file disappeared, and reactivates tool-owned entries whose file returned. Never touches hand-authored entries lacking the <!-- nn:auto --> ownership marker. Defaults to a dry run.',
+      'Reconcile the workspace manifest ## NN Models entries against discovered Level-3 model files: additively appends new entries, archives entries whose file disappeared, and reactivates tool-owned entries whose file returned. Never touches hand-authored entries lacking the <!-- nn:auto --> ownership marker. Defaults to a dry run.',
     inputSchema: {
       type: 'object',
       properties: {

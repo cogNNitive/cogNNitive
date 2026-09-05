@@ -77,7 +77,7 @@ The `manifest` and `provenance` fields stay on two separate lanes rather than fo
 |---|---|---|
 | **Overview** | `text` | The composition root: one element carrying pointers to the workspace's manifest and provenance models |
 
-`base` also inherits, additively, every concept declared by its `includes` — `Workspace`, `ModelRef`, `Folder`, `Asset` (from `workspace_V_0-2-0`) and `Sources`, `Models`, `Artifacts`, `Procedures` (from `cogNNitive_V_0-2-0`). The two included schemas declare disjoint concept and field names, so composing both produces no `[COMPOSITION_COLLISION]` error.
+`base` also inherits, additively, every concept declared by its `includes` — `Workspace`, `Models`, `Folder`, `Asset` (from `workspace_V_0-2-0`) and `Sources`, `ModelRecords`, `Artifacts`, `Procedures` (from `cogNNitive_V_0-2-0`). The two included schemas declare disjoint concept and field names, so composing both produces no `[COMPOSITION_COLLISION]` error.
 
 ### Fields
 

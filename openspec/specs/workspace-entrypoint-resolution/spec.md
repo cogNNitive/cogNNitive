@@ -38,7 +38,7 @@ The parser MUST resolve and load the first matching spec template found in this 
 
 ### Requirement: Taxonomy Metamodel Validation and Unresolved Diagnostic Reporting
 
-`innfo-core` taxonomy validators MUST evaluate workspace entrypoint concept primitives (`Workspace`, `ModelRef`, `Folder`, `Asset`) and validation rules against the resolved Level 2 spec template regardless of its source location. If a declared spec template cannot be located in any search path, `innfo-core` MUST raise a structured template resolution error detailing all checked paths.
+`innfo-core` taxonomy validators MUST evaluate workspace entrypoint concept primitives (`Workspace`, `Models`, `Folder`, `Asset`) and validation rules against the resolved Level 2 spec template regardless of its source location. If a declared spec template cannot be located in any search path, `innfo-core` MUST raise a structured template resolution error detailing all checked paths.
 
 #### Scenario: Metamodel concepts validate against resolved skill-bundled template
 - GIVEN a workspace entrypoint referencing `parent_spec:: projects_V_0-1-0_NN.md`

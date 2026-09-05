@@ -23,7 +23,7 @@ function businessModel(title: string): string {
 describe('WorkspaceSyncService: enumerateReconcilableModels', () => {
   it('discovers a level-3 model and excludes the manifest and cogNNitive-templated files', async () => {
     const tree: FakeTree = {
-      'workspace_NN.md': ['# NN ModelRef', ''].join('\n'),
+      'workspace_NN.md': ['# NN Models', ''].join('\n'),
       'acme_business_NN.md': businessModel('Acme Business Model'),
       'acme_cogNNitive_NN.md': [
         '---',
@@ -46,7 +46,7 @@ describe('WorkspaceSyncService: enumerateReconcilableModels', () => {
 describe('WorkspaceSyncService: reconcileWorkspaceManifest', () => {
   it('writes the manifest back only when a mutating change was computed', async () => {
     const tree: FakeTree = {
-      'workspace_NN.md': ['# NN ModelRef', ''].join('\n'),
+      'workspace_NN.md': ['# NN Models', ''].join('\n'),
       'acme_business_NN.md': businessModel('Acme Business Model'),
     }
     const root = buildFakeTree('root', tree)
@@ -58,15 +58,15 @@ describe('WorkspaceSyncService: reconcileWorkspaceManifest', () => {
       { kind: 'added', path: 'acme_business_NN.md', name: 'Acme Business Model' },
     ])
     const written = readFakeTree(tree, 'workspace_NN.md')
-    expect(written).toContain('## NN ModelRef: Acme Business Model')
+    expect(written).toContain('## NN Models: Acme Business Model')
     expect(written).toContain(OWNERSHIP_MARKER)
   })
 
   it('does not write when nothing changed (no-op)', async () => {
     const manifest = [
-      '# NN ModelRef',
+      '# NN Models',
       '',
-      '## NN ModelRef: Acme Business Model',
+      '## NN Models: Acme Business Model',
       OWNERSHIP_MARKER,
       'path:: acme_business_NN.md',
       'template:: [[business_V_0-2-0]]',

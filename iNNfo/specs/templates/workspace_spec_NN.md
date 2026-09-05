@@ -25,7 +25,7 @@ relationship_types:
 # NN index
 
 * [[Workspace]]
-* [[ModelRef]]
+* [[Models]]
 * [[Folder]]
 * [[Asset]]
 * [[Tag]]
@@ -38,7 +38,7 @@ type:: text
 color:: blue
 weight:: 100
 
-## NN Concept Definition: ModelRef
+## NN Concept Definition: Models
 icon:: file-symlink
 type:: model
 color:: blue
@@ -80,23 +80,23 @@ type:: string
 description:: Semantic description, strategic intent, or scope of the tag.
 
 ## NN Field Definition: path
-concept:: ModelRef
-type:: string
+concept:: Models
+type:: model
 description:: Workspace-relative path to the referenced model file.
 
 ## NN Field Definition: template
-concept:: ModelRef
-type:: reference
+concept:: Models
+type:: string
 description:: The level-2 template the referenced model conforms to.
 
 ## NN Field Definition: status
-concept:: ModelRef
+concept:: Models
 type:: select
 options:: [draft, active, archived]
 description:: Lifecycle status of the model within this workspace.
 
 ## NN Field Definition: author
-concept:: ModelRef
+concept:: Models
 type:: string
 description:: Author or owner of the model within this workspace (workspace-scoped; not stored in the model file).
 
@@ -108,14 +108,14 @@ description:: Author or owner of the model within this workspace (workspace-scop
 
 A workspace manifest is an inventory, not a domain vocabulary. It answers "which models live in this workspace, where are their files, which template does each conform to, and who owns it here" — nothing about the subject matter the models describe. Because it is not a domain vocabulary, no domain template `includes` it; it stands alone as the schema for the `workspace_NN.md` entry-point document at a workspace root.
 
-Each `ModelRef` names one model file. Its `path` is resolved relative to the workspace root; its `template` records the level-2 template the referenced model conforms to; its `status` tracks the model's lifecycle within this workspace; its `author` records who owns the model here. The `author` is deliberately workspace-scoped — it is recorded on the manifest entry, never written into the referenced model file, so the same model stays portable across workspaces that may attribute it differently.
+Each `Models` element names one model file. Its `path` is resolved relative to the workspace root; its `template` records the level-2 template the referenced model conforms to; its `status` tracks the model's lifecycle within this workspace; its `author` records who owns the model here. The `author` is deliberately workspace-scoped — it is recorded on the manifest entry, never written into the referenced model file, so the same model stays portable across workspaces that may attribute it differently.
 
 `Folder` is a taxonomy-only grouping concept for organizing model references; `Asset` lists workspace-level attachments (shared images, exports, reference documents) that are not themselves iNNfo models. `Tag` defines a centralized semantic catalog of taxonomy tags (with color, icon, and description) used by models across the workspace with open taxonomy and progressive enhancement.
 
 ## Objectives
 
 - Give the workspace entry-point document (`workspace_NN.md`) a canonical level-2 schema in the unified `NN` syntax.
-- Model each referenced model as a `ModelRef` element carrying `path`, `template`, `status`, and `author`.
+- Model each referenced model as a `Models` element carrying `path`, `template`, `status`, and `author`.
 - Keep per-workspace metadata (notably `author`) out of the referenced model files so models stay portable.
 - Allow optional `Folder` grouping and workspace-level `Asset` listing.
 - Provide a centralized `Tag` catalog for semantic styling (color, icon, description) and cross-model filtering.
@@ -127,7 +127,7 @@ Each `ModelRef` names one model file. Its `path` is resolved relative to the wor
 | Concept | Type | Purpose |
 |---|---|---|
 | **Workspace** | `text` | Prose description of the workspace: its purpose, scope, and conventions |
-| **ModelRef** | `model` | One reference to a model file in the workspace, with its per-workspace metadata |
+| **Models** | `model` | One reference to a model file in the workspace, with its per-workspace metadata |
 | **Folder** | `category` | Taxonomy-only grouping of model references |
 | **Asset** | `list` | Workspace-level attachments that are not iNNfo models |
 | **Tag** | `category` | Centralized taxonomy and semantic tag definitions for models across the workspace |
@@ -136,10 +136,10 @@ Each `ModelRef` names one model file. Its `path` is resolved relative to the wor
 
 | Field | Concept | Type | Purpose |
 |---|---|---|---|
-| `path` | ModelRef | `string` | Workspace-relative path to the referenced model file |
-| `template` | ModelRef | `reference` | The level-2 template the referenced model conforms to |
-| `status` | ModelRef | `select` (draft / active / archived) | Lifecycle status of the model within this workspace |
-| `author` | ModelRef | `string` | Author or owner of the model within this workspace (workspace-scoped) |
+| `path` | Models | `model` | Workspace-relative path to the referenced model file |
+| `template` | Models | `string` | The level-2 template the referenced model conforms to |
+| `status` | Models | `select` (draft / active / archived) | Lifecycle status of the model within this workspace |
+| `author` | Models | `string` | Author or owner of the model within this workspace (workspace-scoped) |
 | `color` | Tag | `string` | Hex color code or CSS token for tag badge styling |
 | `icon` | Tag | `string` | Lucide icon name displayed with tag badge |
 | `description` | Tag | `string` | Semantic scope or strategic definition of the tag |
@@ -174,20 +174,20 @@ title: "<Workspace Name>"
 
 # NN index
 * [[Workspace]]
-* [[ModelRef]]
+* [[Models]]
 
 # NN Workspace
 Description of the workspace: its purpose, scope, and conventions.
 
-# NN ModelRef
+# NN Models
 
-## NN ModelRef: Business Model
+## NN Models: Business Model
 path:: Acme%20Business%20Model_V_0-1-0_business_NN.md
 template:: [[business_V_0-2-0]]
 status:: active
 author:: Ada Lovelace
 
-## NN ModelRef: Engineering Team
+## NN Models: Engineering Team
 path:: models/EngineeringTeam_V_0-2-0_organization_NN.md
 template:: [[organization_V_0-2-0]]
 status:: draft
@@ -196,7 +196,7 @@ author:: Grace Hopper
 
 The application resolves the `parent_spec` URL, downloads this template, and uses its
 Concept Definitions and Field Definitions to validate and render the workspace
-manifest. Each `## NN ModelRef:` entry's `path` is followed to load the referenced
+manifest. Each `## NN Models:` entry's `path` is followed to load the referenced
 model; its `author` is attached to that model's node for the current workspace only.
 
 ## Examples
@@ -207,15 +207,15 @@ A minimal two-model workspace manifest:
 # NN Workspace
 The Acme product workspace.
 
-# NN ModelRef
+# NN Models
 
-## NN ModelRef: Product Business Model
+## NN Models: Product Business Model
 path:: Acme_V_0-1-0_business_NN.md
 template:: [[business_V_0-2-0]]
 status:: active
 author:: Ada Lovelace
 
-## NN ModelRef: Release Plan
+## NN Models: Release Plan
 path:: models/Release_V_0-2-0_projects_NN.md
 template:: [[projects_V_0-2-0]]
 status:: draft
