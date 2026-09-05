@@ -752,7 +752,6 @@ watch(
 
 const onTagsUpdate = (newTags: string[]) => {
   localTags.value = newTags
-  props.block.tags = newTags
   if (props.block.id) {
     const node = modelStore.getNode(props.block.id)
     if (node) {

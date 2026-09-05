@@ -7,7 +7,12 @@ const rootDir = join(import.meta.dirname!, '..', '..', 'temp-test-resolver')
 const specsDir = join(rootDir, 'specs')
 
 describe('NodeSpecResolver', () => {
+  const origGlobal = process.env.INNFO_GLOBAL_DIR
+  const origSkills = process.env.INNFO_SKILLS_DIR
+
   beforeEach(async () => {
+    process.env.INNFO_GLOBAL_DIR = join(rootDir, 'isolated-global')
+    process.env.INNFO_SKILLS_DIR = join(rootDir, 'isolated-skills')
     // Reset/clean temp directory
     await rm(rootDir, { recursive: true, force: true })
     await mkdir(specsDir, { recursive: true })
@@ -15,6 +20,10 @@ describe('NodeSpecResolver', () => {
   })
 
   afterEach(async () => {
+    if (origGlobal !== undefined) process.env.INNFO_GLOBAL_DIR = origGlobal
+    else delete process.env.INNFO_GLOBAL_DIR
+    if (origSkills !== undefined) process.env.INNFO_SKILLS_DIR = origSkills
+    else delete process.env.INNFO_SKILLS_DIR
     await rm(rootDir, { recursive: true, force: true })
   })
 

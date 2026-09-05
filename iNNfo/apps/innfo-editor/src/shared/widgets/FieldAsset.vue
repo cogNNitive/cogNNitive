@@ -78,7 +78,6 @@ watch(
       return
     }
     if (!handle) {
-      console.log('[FieldAsset] no handle, using fallback path:', path)
       resolvedAssetUrl.value = path
       fileExists.value = true
       return
@@ -99,8 +98,6 @@ watch(
           .replace(/-+/g, '-')
           .replace(/^-+|-+$/g, '')
     }
-
-    console.log('[FieldAsset] resolving:', { path, nodeId: props.nodeId, nodeName: node?.name, slug })
 
     // Resolve directory containing the model file relative to workspace root
     async function getModelDirectoryHandle(rootHandle: any, modelPath: string): Promise<any> {
@@ -135,7 +132,6 @@ watch(
         blobUrlCache.set(path, url)
         resolvedAssetUrl.value = url
         fileExists.value = true
-        console.log('[FieldAsset] resolved via canonical path:', url)
         return
       } catch (err) {
         console.warn(`[FieldAsset] canonical path failed for slug="${slug}" path="${path}":`, err)
@@ -152,7 +148,6 @@ watch(
       blobUrlCache.set(path, url)
       resolvedAssetUrl.value = url
       fileExists.value = true
-      console.log('[FieldAsset] resolved via centralized assets path:', url)
       return
     } catch (err) {
       console.warn(`[FieldAsset] centralized path failed for path="${path}":`, err)
@@ -172,7 +167,6 @@ watch(
       blobUrlCache.set(path, url)
       resolvedAssetUrl.value = url
       fileExists.value = true
-      console.log('[FieldAsset] resolved via direct workspace path:', url)
       return
     } catch (err) {
       console.warn(`[FieldAsset] direct path failed for path="${path}":`, err)

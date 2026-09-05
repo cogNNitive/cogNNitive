@@ -271,7 +271,6 @@ function getDescription(child: { rawSections?: Record<string, string> }): string
 }
 
 const children = computed(() => {
-  console.log('ConceptTableView computed children: nodeId =', props.nodeId)
   const id = props.nodeId
   if (id.startsWith('virtual:')) {
     const parts = id.split(':')
@@ -279,7 +278,6 @@ const children = computed(() => {
     const conceptName = parts[2]
     const parentNode = modelStore.getNode(parentId)
     if (!parentNode) {
-      console.log('ConceptTableView computed children: parentNode not found for parentId =', parentId)
       return []
     }
     const result = parentNode.childIds
@@ -287,12 +285,9 @@ const children = computed(() => {
       .filter(
         (child): child is any => !!child && child.type === conceptName && child.kind === 'element',
       )
-    console.log('ConceptTableView computed children: mapped elements count =', result.length)
     return result
   }
-  const result = modelStore.getChildren(id)
-  console.log('ConceptTableView computed children: getChildren count =', result.length)
-  return result
+  return modelStore.getChildren(id)
 })
 
 function navigateTo(nodeId: string): void {
@@ -360,7 +355,6 @@ function addElement(): void {
     conceptName = parts[2]
   }
 
-  console.log('ConceptTableView addElement clicked. conceptName =', conceptName, 'nodeId =', props.nodeId)
   if (!conceptName) {
     console.error('ConceptTableView addElement: conceptName/conceptType is missing!')
     return
@@ -375,9 +369,7 @@ function addElement(): void {
     targetId = `${parentId}/${elementName}`
   }
 
-  console.log('ConceptTableView addElement: calling createChild with parentId =', parentId, 'elementName =', elementName, 'type =', conceptName)
   const newId = modelStore.createChild(parentId, elementName, conceptName, 'element')
-  console.log('ConceptTableView addElement: createChild returned =', newId)
   if (newId) {
     isEditMode.value = true
   }
