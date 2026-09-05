@@ -1,7 +1,7 @@
 import { parseFrontmatter, parseModel, validateModel } from '@cognnitive/innfo-core'
 import { normalizeMatrixDecl } from '@cognnitive/innfo-core'
 import { extractTemplateSchemaFromContent, resolveTemplateSchema } from '@cognnitive/innfo-core'
-import type { LocalMetamodel, ParentRef } from '@cognnitive/innfo-core'
+import type { LocalMetamodel, ParentRef, TemplateSchema } from '@cognnitive/innfo-core'
 import type { ModelNode } from '../model/types'
 import type { DirectoryHandleLike, FileHandleLike } from '../model/fs-types'
 import { MATRIX_DEFS_KEY } from '../composables/useMatrixDefinitions'
@@ -161,6 +161,161 @@ async function buildIncludeMap(
 }
 
 /**
+ * Resolves a single template's raw text, in the same order `resolveParentSpecs`
+ * has always used:
+ *   1. the workspace's `specs/` directory via the folder handle — matching
+ *      the parent name;
+ *   2. the `parent_spec.url` itself when it is a local/relative path
+ *      (resolved against the workspace handle instead of fetch());
+ *   3. dev-only `specs/templates/{name}/` fallback (served by vite);
+ *   4. network fetch, ONLY for http(s) URLs.
+ * Extracted so both `resolveParentSpecs` (the post-parse pass) and
+ * `warmTemplateCache` (the pre-parse warm-up, C1/AD-04) share one fetch path
+ * instead of drifting apart.
+ */
+async function fetchTemplateText(
+  parentName: string,
+  parentUrl: string | undefined,
+  handle?: DirectoryHandleLike,
+): Promise<{ text: string; specFilename: string } | null> {
+  let text = ''
+  let specFilename = ''
+
+  // 1. The workspace's `specs/` directory, matched by parent name. `specs/`
+  //    is normally ignored for parsing but is a legitimate place for
+  //    level-2 specialization templates (and where resolved templates get
+  //    persisted back to, see the caller's persistence step).
+  if (handle) {
+    try {
+      const dirHandle = await handle.getDirectoryHandle('specs')
+      const localResult = await findLocalSpecInHandle(dirHandle, parentName)
+      if (localResult) {
+        text = localResult.content
+        specFilename = `specs/${localResult.filename}`
+      }
+    } catch {
+      // specs/ not present in this workspace
+    }
+  }
+
+  // 2. The URL itself when it is a local/relative path — resolve it against
+  //    the workspace handle instead of fetch() (which fails for local paths).
+  if (!text && handle && parentUrl && !isHttpUrl(parentUrl)) {
+    const urlName = basenameOfUrl(parentUrl)
+    const relative = stripLocalUrlPrefix(parentUrl)
+    try {
+      const direct = await resolvePathInHandle(handle, relative)
+      if (direct) {
+        const file = await direct.getFile()
+        text = await file.text()
+        specFilename = relative
+      }
+    } catch {
+      // direct path not present — fall through to the basename directory search
+    }
+    if (!text) {
+      for (const dirName of ['', 'specs']) {
+        if (text) break
+        try {
+          const base = dirName ? await handle.getDirectoryHandle(dirName) : handle
+          const byName = await findLocalSpecInHandle(base, urlName)
+          if (byName) {
+            text = byName.content
+            specFilename = dirName ? `${dirName}/${byName.filename}` : byName.filename
+          }
+        } catch {
+          // directory not present
+        }
+      }
+    }
+  }
+
+  if (!text) {
+    const devLocal = await tryBundledTemplate(parentName)
+    if (devLocal) {
+      text = devLocal
+      specFilename = `spec:${parentName}`
+    }
+  }
+
+  if (!text && parentUrl) {
+    try {
+      const resp = await fetch(parentUrl)
+      if (!resp.ok) {
+        console.warn(`[template] Failed to fetch parent spec "${parentUrl}": HTTP ${resp.status}`)
+      } else {
+        text = await resp.text()
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      console.warn(`[template] Failed to resolve parent spec "${parentUrl}": ${message}`)
+    }
+  }
+
+  return text ? { text, specFilename } : null
+}
+
+/**
+ * Pre-parse warm-up (C1/AD-04): resolves and composes every template a
+ * SYNCHRONOUS `resolveTemplateSchema` callback might be asked for during
+ * `recursiveParse`, into a `lowercased parent_spec.name -> composed TemplateSchema`
+ * map. Seeded from `seed` (typically the entrypoint's own `parent_spec`) plus
+ * any `parent_spec` discovered on a shallow (root-level only) pass over the
+ * handle — a workspace with deeper `type:: model` targets simply warms fewer
+ * entries, which is the "cold cache" path AD-04 explicitly allows: it degrades
+ * to today's traversal for that node rather than erroring.
+ */
+export async function warmTemplateCache(
+  handle?: DirectoryHandleLike,
+  seed?: Array<{ name: string; url?: string }>,
+): Promise<Map<string, TemplateSchema>> {
+  const cache = new Map<string, TemplateSchema>()
+  if (!handle) return cache
+
+  const refs = new Map<string, { name: string; url?: string }>()
+  for (const s of seed ?? []) {
+    if (s?.name) refs.set(s.name.toLowerCase(), s)
+  }
+
+  try {
+    for await (const [name, entry] of handle.entries()) {
+      if (entry.kind !== 'file' || !name.toLowerCase().endsWith('.md')) continue
+      try {
+        const file = await (entry as FileHandleLike).getFile()
+        const text = await file.text()
+        const fm = parseFrontmatter(text) as SpecFrontmatter | null
+        const parentName = fm?.parent_spec?.name
+        const parentUrl = fm?.parent_spec?.url
+        if (parentName && !refs.has(parentName.toLowerCase())) {
+          refs.set(parentName.toLowerCase(), { name: parentName, url: parentUrl })
+        }
+      } catch {
+        // unreadable file — skip, best-effort shallow pass
+      }
+    }
+  } catch {
+    // handle without entries() — seed-only warm-up
+  }
+
+  for (const ref of refs.values()) {
+    try {
+      const resolved = await fetchTemplateText(ref.name, ref.url, handle)
+      if (!resolved) continue
+      const includeMap = await buildIncludeMap(resolved.text, handle)
+      const resolveInclude = (r: { name: string }) => includeMap.get(r.name) ?? null
+      const schema = includeMap.size
+        ? resolveTemplateSchema(resolved.text, resolveInclude).schema
+        : extractTemplateSchemaFromContent(resolved.text)
+      cache.set(ref.name.toLowerCase(), schema)
+    } catch {
+      // best-effort warm-up; a miss here just means a colder cache for this node
+    }
+  }
+
+  return cache
+}
+
+/**
  * Resolves parent_spec URLs for level-3 models and injects template concepts as
  * synthetic root nodes so concept colors can be located without relying on
  * co-location. Mutates `nodes`/`rootIds` in place.
@@ -209,79 +364,9 @@ export async function resolveParentSpecs(
     })
     if (existingPeer) continue
 
-    let text = ''
-    let specFilename = ''
-
-    // 1. The workspace's `specs/` directory, matched by parent name. `specs/`
-    //    is normally ignored for parsing but is a legitimate place for
-    //    level-2 specialization templates (and where resolved templates get
-    //    persisted back to, see step below).
-    if (handle) {
-      try {
-        const dirHandle = await handle.getDirectoryHandle('specs')
-        const localResult = await findLocalSpecInHandle(dirHandle, parentName)
-        if (localResult) {
-          text = localResult.content
-          specFilename = `specs/${localResult.filename}`
-        }
-      } catch {
-        // specs/ not present in this workspace
-      }
-    }
-
-    // 2. The URL itself when it is a local/relative path — resolve it against
-    //    the workspace handle instead of fetch() (which fails for local paths).
-    if (!text && handle && !isHttpUrl(parentUrl)) {
-      const urlName = basenameOfUrl(parentUrl)
-      const relative = stripLocalUrlPrefix(parentUrl)
-      try {
-        const direct = await resolvePathInHandle(handle, relative)
-        if (direct) {
-          const file = await direct.getFile()
-          text = await file.text()
-          specFilename = relative
-        }
-      } catch {
-        // direct path not present — fall through to the basename directory search
-      }
-      if (!text) {
-        for (const dirName of ['', 'specs']) {
-          if (text) break
-          try {
-            const base = dirName ? await handle.getDirectoryHandle(dirName) : handle
-            const byName = await findLocalSpecInHandle(base, urlName)
-            if (byName) {
-              text = byName.content
-              specFilename = dirName ? `${dirName}/${byName.filename}` : byName.filename
-            }
-          } catch {
-            // directory not present
-          }
-        }
-      }
-    }
-
-    if (!text) {
-      const devLocal = await tryBundledTemplate(parentName)
-      if (devLocal) {
-        text = devLocal
-        specFilename = `spec:${parentName}`
-      }
-    }
-
-    if (!text && parentUrl) {
-      try {
-        const resp = await fetch(parentUrl)
-        if (!resp.ok) {
-          console.warn(`[template] Failed to fetch parent spec "${parentUrl}": HTTP ${resp.status}`)
-        } else {
-          text = await resp.text()
-        }
-      } catch (err) {
-        const message = err instanceof Error ? err.message : String(err)
-        console.warn(`[template] Failed to resolve parent spec "${parentUrl}": ${message}`)
-      }
-    }
+    const fetched = await fetchTemplateText(parentName, parentUrl, handle)
+    const text = fetched?.text ?? ''
+    const specFilename = fetched?.specFilename ?? ''
 
     // Persist resolved templates to specs/ when a handle is available.
     // Write-once: specs/ content is immutable by convention, so an existing

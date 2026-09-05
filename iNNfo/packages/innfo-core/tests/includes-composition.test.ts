@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import {
   resolveTemplateSchema,
   checkWidgetConfig,
@@ -282,6 +284,46 @@ parent_spec:
     // the element-scoped row still lands on the element
     const t1 = Object.values(nodes).find((n) => n.name === 'T1')!
     expect(t1.markers).toEqual({ complexity: 'low' })
+  })
+})
+
+describe('base_V_0-1-0 — composite template composition (PR6)', () => {
+  const specsRoot = join(import.meta.dirname!, '..', '..', '..', 'specs')
+  const readSpec = (p: string): string => readFileSync(join(specsRoot, p), 'utf-8')
+
+  it('base-composes-workspace-and-cognnitive: resolving base_V_0-1-0 unions both peers with no collisions', () => {
+    const baseContent = readSpec('templates/base/base_V_0-1-0_spec_NN.md')
+    const workspaceContent = readSpec('templates/workspace_V_0-2-0_spec_NN.md')
+    const cognnitiveContent = readSpec('templates/cogNNitive/cogNNitive_V_0-2-0_NN.md')
+
+    const lookup = (name: string): string | null => {
+      const m: Record<string, string> = {
+        'workspace_v_0-2-0': workspaceContent,
+        'cognnitive_v_0-2-0': cognnitiveContent,
+      }
+      return m[name.toLowerCase()] ?? null
+    }
+
+    const { schema, errors } = resolveTemplateSchema(baseContent, (ref) => lookup(ref.name))
+
+    expect(errors.filter((e) => e.message.includes('COMPOSITION_COLLISION'))).toEqual([])
+    expect(errors).toEqual([])
+    expect(schema.concepts.map((c) => c.name).sort()).toEqual([
+      'Artifacts',
+      'Asset',
+      'Folder',
+      'ModelRef',
+      'Models',
+      'Overview',
+      'Procedures',
+      'Sources',
+      'Workspace',
+    ])
+
+    const overview = schema.concepts.find((c) => c.name === 'Overview')!
+    expect(overview.fields?.map((f) => f.name).sort()).toEqual(['manifest', 'provenance'])
+    expect(overview.fields?.find((f) => f.name === 'manifest')?.type).toBe('model')
+    expect(overview.fields?.find((f) => f.name === 'provenance')?.type).toBe('model')
   })
 })
 

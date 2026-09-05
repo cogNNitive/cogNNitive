@@ -155,7 +155,15 @@ const node = computed<ModelNode | undefined>(() => modelStore.getNode(props.node
 
 const children = computed<ModelNode[]>(() => {
   const astKids = modelStore.getChildren(props.nodeId)
-  if (astKids.length > 0) return astKids
+  if (astKids.length > 0) {
+    // R8 (PR1 diamond-vs-cycle fix): a child referenced by more than one
+    // parent now legitimately appears in every referring parent's
+    // `childIds`, but keeps a single primary `parentId` (first parent
+    // wins). Only render it once, under that primary parent — otherwise
+    // this recursive walk would render the same node under every parent
+    // that lists it.
+    return astKids.filter((child) => child.parentId === props.nodeId)
+  }
 
   const thisName = node.value?.name
   if (!thisName) return []

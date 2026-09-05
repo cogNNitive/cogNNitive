@@ -176,3 +176,60 @@ describe('iNNfo_V_0-2-0 — metaschema still self-consistent', () => {
     }
   })
 })
+
+describe('iNNfo_V_0-2-1 — metaschema still self-consistent (task G)', () => {
+  const iNNfoV21 = readSpec('iNNfo_V_0-2-1_NN.md')
+
+  it('carries a resolvable metaschema block describing the four root primitives', () => {
+    const meta = extractMetaschema(iNNfoV21)
+    expect(meta).not.toBeNull()
+    const names = extractTemplateSchemaFromContent(meta!)
+      .concepts.map((c) => c.name)
+      .sort()
+    expect(names).toEqual([
+      'Concept Definition',
+      'Field Definition',
+      'Marker Definition',
+      'Matrix Definition',
+    ])
+  })
+
+  it('declares target_template on Field Definition — closes the V_0-2-0 regression (design.md §5)', () => {
+    const meta = extractMetaschema(iNNfoV21)!
+    const schema = extractTemplateSchemaFromContent(meta)
+    const targetTemplateField = schema.concepts
+      .find((c) => c.name === 'Field Definition')!
+      .fields!.find((f) => f.name === 'target_template')
+    expect(targetTemplateField).toBeDefined()
+    expect(targetTemplateField?.type).toBe('string')
+  })
+
+  it('the metaschema validates against itself (bootstrap axiom)', () => {
+    const meta = extractMetaschema(iNNfoV21)!
+    const asTemplate = ['---', 'level: 2', 'title: Metaschema', '---', '', meta, ''].join('\n')
+    const diags = validateTemplateAgainstMetaschema(asTemplate, iNNfoV21)
+    expect(diags.filter((d) => d.severity === 'error')).toEqual([])
+  })
+
+  it('every shipped V_0-1-0 template still validates green against it', () => {
+    for (const rel of [
+      'templates/blank/blank_V_0-1-0_NN.md',
+      'templates/business/business_V_0-1-0_NN.md',
+      'templates/organization/organization_V_0-1-0_NN.md',
+      'templates/projects/projects_V_0-1-0_NN.md',
+    ]) {
+      const errors = validateTemplateAgainstMetaschema(readSpec(rel), iNNfoV21).filter(
+        (d) => d.severity === 'error',
+      )
+      expect(errors, `${rel}: ${JSON.stringify(errors)}`).toEqual([])
+    }
+  })
+
+  it('base_V_0-1-0 (PR6, new composite template) validates green against it', () => {
+    const errors = validateTemplateAgainstMetaschema(
+      readSpec('templates/base/base_V_0-1-0_spec_NN.md'),
+      iNNfoV21,
+    ).filter((d) => d.severity === 'error')
+    expect(errors, JSON.stringify(errors)).toEqual([])
+  })
+})

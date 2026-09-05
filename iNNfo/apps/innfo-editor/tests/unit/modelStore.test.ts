@@ -212,4 +212,84 @@ describe('modelStore', () => {
     expect(serialized).toContain('## NN Problems: Problem Two')
     expect(serialized).toContain('  * [[Problem Two]]')
   })
+
+  it('C1: follows a type:: model field via the warmed template cache during parseFromHandle', async () => {
+    const { buildFakeTree } = await import('../helpers/fakeFs')
+
+    const indexMd = '# NN index\n* [[model_NN.md]]'
+    const modelMd = [
+      '---',
+      'spec_version: "V_0-1-1"',
+      'level: 3',
+      'parent_spec:',
+      '  name: "test-template_V_1-0-0"',
+      '  url: "https://example.com/network-fallback-url-should-not-be-called"',
+      'model_version: "V_0-0-1"',
+      'title: "My Model"',
+      '---',
+      '',
+      '# NN index',
+      '* [[Market]]',
+      '',
+      '# NN Market',
+      '## NN Market: Test Market',
+      'submodel_ref:: sub_model_NN.md',
+    ].join('\n')
+
+    const specMd = [
+      '---',
+      'specification_version: "V_1-0-0"',
+      'specification_url: "https://example.com/test-template"',
+      'level: 2',
+      'title: "Test Template"',
+      '---',
+      '',
+      '# NN Concept Definition',
+      '',
+      '## NN Concept Definition: Market',
+      'type:: weight',
+      'color:: blue',
+      '',
+      '# NN Field Definition',
+      '',
+      '## NN Field Definition: submodel_ref',
+      'concept:: Market',
+      'type:: model',
+      'target_template:: sub_template',
+    ].join('\n')
+
+    const subModelMd = [
+      '---',
+      'spec_version: "V_0-1-1"',
+      'level: 3',
+      'model_version: "V_0-0-1"',
+      'title: "Sub Model"',
+      '---',
+      '',
+      '# NN index',
+      '* [[Notes]]',
+      '',
+      '# NN Notes',
+      '## NN Notes: Entry',
+    ].join('\n')
+
+    const fakeTree = buildFakeTree('workspace', {
+      'index.md': indexMd,
+      'model_NN.md': modelMd,
+      'sub_model_NN.md': subModelMd,
+      specs: {
+        'test-template_V_1-0-0_NN.md': specMd,
+      },
+    })
+
+    const modelStore = useModelStore()
+    await modelStore.parseFromHandle(fakeTree)
+
+    // stripMdSuffix drops the trailing `_NN` — 'sub_model_NN.md' becomes 'sub_model'.
+    const subNode = Object.values(modelStore.nodes).find((n) => n.name === 'sub_model')
+    expect(subNode).toBeDefined()
+
+    const masterNode = Object.values(modelStore.nodes).find((n) => n.name === 'model')
+    expect(masterNode!.childIds).toContain(subNode!.id)
+  })
 })

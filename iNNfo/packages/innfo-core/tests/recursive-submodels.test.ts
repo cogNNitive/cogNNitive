@@ -8,6 +8,8 @@ import {
 } from '../src/index'
 import type { DirectoryHandleLike, FileHandleLike } from '../src/fs-types'
 import type { SubmodelResolver } from '../src/validator'
+import type { TemplateSchemaResolver } from '../src/recursiveParser/types'
+import type { TemplateSchema } from '../src/schema'
 
 function createFakeDirectoryHandle(files: Record<string, string>): DirectoryHandleLike {
   const fileHandles = new Map<string, FileHandleLike>()
@@ -192,7 +194,7 @@ path:: ./service_a_01.md
 
       const cycleIssue = result.issues.find((i) => i.message.includes('Cycle detected'))
       expect(cycleIssue).toBeDefined()
-      expect(cycleIssue!.message).toContain('already loaded')
+      expect(cycleIssue!.message).toContain('is an ancestor on this branch')
 
       const nodeA = Object.values(result.nodes).find((n) => n.name === 'service_a_01')
       const nodeB = Object.values(result.nodes).find((n) => n.name === 'service_b_01')
@@ -260,13 +262,26 @@ title: Shared Database
       const root = createFakeDirectoryHandle(files)
       const result = await recursiveParse(root)
 
-      // Shared DB is in nodes
+      // Shared DB is in nodes, parsed exactly once
       const sharedNode = Object.values(result.nodes).find((n) => n.name === 'shared_db_01')
       expect(sharedNode).toBeDefined()
+      expect(Object.values(result.nodes).filter((n) => n.name === 'shared_db_01')).toHaveLength(1)
 
-      // The second visit records cycle/already loaded warning
-      const cycleIssue = result.issues.find((i) => i.message.includes('already loaded'))
-      expect(cycleIssue).toBeDefined()
+      // A diamond (two independent parents referencing one child) is not a cycle:
+      // no issue is emitted for the second incoming edge.
+      const cycleIssue = result.issues.find(
+        (i) => i.message.includes('Cycle detected') || i.message.includes('already loaded'),
+      )
+      expect(cycleIssue).toBeUndefined()
+
+      // Both parents link to the shared child (second edge is preserved, not dropped).
+      const service1 = Object.values(result.nodes).find((n) => n.name === 'service_1_01')
+      const service2 = Object.values(result.nodes).find((n) => n.name === 'service_2_01')
+      expect(service1!.childIds).toContain(sharedNode!.id)
+      expect(service2!.childIds).toContain(sharedNode!.id)
+
+      // parentId still single-valued: the first parent to reach it wins.
+      expect(sharedNode!.parentId).toBe(service1!.id)
     })
   })
 
@@ -458,6 +473,235 @@ submodel_file:: [[models/payment_01.md]]
         w.message.includes('submodel') || w.message.includes('Submodel'),
       )
       expect(submodelWarnings).toHaveLength(0)
+    })
+  })
+
+  describe('C1 — type:: model field traversal (RecursiveParseOptions.resolveTemplateSchema)', () => {
+    const startupSchema: TemplateSchema = {
+      concepts: [
+        {
+          name: 'Startup',
+          type: 'text',
+          fields: [{ name: 'business_model', type: 'model', target_template: 'business_V_0-1-0' }],
+        },
+      ],
+      markers: [],
+      matrices: [],
+      taxonomy: [],
+    }
+
+    /** Simulates the POST-includes composed schema: `business_model` is only
+     *  present because it was merged in from an included peer template — the
+     *  template's OWN concept declares no fields of its own. */
+    const composedStartupSchema: TemplateSchema = {
+      concepts: [
+        {
+          name: 'Startup',
+          type: 'text',
+          fields: [{ name: 'business_model', type: 'model', target_template: 'business_V_0-1-0' }],
+        },
+      ],
+      markers: [],
+      matrices: [],
+      taxonomy: [],
+    }
+
+    function makeResolver(templatesByName: Record<string, TemplateSchema>): TemplateSchemaResolver {
+      return ({ frontmatter }) => {
+        const name = (frontmatter as { parent_spec?: { name?: string } } | undefined)?.parent_spec
+          ?.name
+        if (!name) return null
+        return templatesByName[name] ?? null
+      }
+    }
+
+    const workspaceContent = `---
+spec_version: V_1-0-0
+level: 3
+parent_spec:
+  name: workspace_spec
+  url: https://example.com/spec.md
+model_version: V_0-1-0
+title: Root Workspace
+---
+# NN ModelRef
+## NN ModelRef: Acme Startup
+path:: startups/acme_startup_01.md
+`
+
+    const startupContent = `---
+spec_version: V_1-0-0
+level: 3
+parent_spec:
+  name: startup_V_0-1-0
+  url: https://example.com/startup.md
+model_version: V_0-1-0
+title: Acme Startup
+---
+# NN Startup
+## NN Startup: Acme
+business_model:: startups/acme_business_01.md
+`
+
+    const businessContent = `---
+spec_version: V_1-0-0
+level: 3
+parent_spec:
+  name: business_V_0-1-0
+  url: https://example.com/business.md
+model_version: V_0-1-0
+title: Acme Business Model
+---
+# NN Business
+## NN Business: Overview
+`
+
+    const files: Record<string, string> = {
+      'workspace_01.md': workspaceContent,
+      'startups/acme_startup_01.md': startupContent,
+      'startups/acme_business_01.md': businessContent,
+    }
+
+    it('c1-model-field-followed: a type:: model field is extracted and enqueued when a resolver is supplied', async () => {
+      const root = createFakeDirectoryHandle(files)
+      const result = await recursiveParse(root, undefined, {
+        resolveTemplateSchema: makeResolver({ 'startup_V_0-1-0': startupSchema }),
+      })
+
+      const startupNode = Object.values(result.nodes).find((n) => n.name === 'acme_startup_01')
+      const businessNode = Object.values(result.nodes).find((n) => n.name === 'acme_business_01')
+      expect(startupNode).toBeDefined()
+      expect(businessNode).toBeDefined()
+      expect(startupNode!.childIds).toContain(businessNode!.id)
+      expect(businessNode!.parentId).toBe(startupNode!.id)
+      expect(result.issues.filter((i) => i.code === 'CYCLE_DETECTED')).toHaveLength(0)
+    })
+
+    it('c1-included-model-field-followed: a model field inherited via the composed (includes-merged) schema is still followed', async () => {
+      const root = createFakeDirectoryHandle(files)
+      const result = await recursiveParse(root, undefined, {
+        resolveTemplateSchema: makeResolver({ 'startup_V_0-1-0': composedStartupSchema }),
+      })
+
+      const startupNode = Object.values(result.nodes).find((n) => n.name === 'acme_startup_01')
+      const businessNode = Object.values(result.nodes).find((n) => n.name === 'acme_business_01')
+      expect(businessNode).toBeDefined()
+      expect(startupNode!.childIds).toContain(businessNode!.id)
+    })
+
+    it('c1-no-callback-is-today: without a resolver, the type:: model field is NOT followed (backward-compatible)', async () => {
+      const root = createFakeDirectoryHandle(files)
+      const result = await recursiveParse(root)
+
+      const startupNode = Object.values(result.nodes).find((n) => n.name === 'acme_startup_01')
+      const businessNode = Object.values(result.nodes).find((n) => n.name === 'acme_business_01')
+      expect(startupNode).toBeDefined()
+      expect(businessNode).toBeUndefined()
+      // childIds still holds the model's own element node(s) — only the
+      // submodel-graph edge (a second root node) is what stays absent.
+      expect(startupNode!.childIds.every((id) => !id.endsWith('acme_business_01'))).toBe(true)
+      expect(result.issues).toHaveLength(0)
+    })
+
+    it('c1-schema-stashed-on-node: the composed schema is stashed on ModelNode.templateSchema only when a resolver is supplied', async () => {
+      const withResolver = await recursiveParse(createFakeDirectoryHandle(files), undefined, {
+        resolveTemplateSchema: makeResolver({ 'startup_V_0-1-0': startupSchema }),
+      })
+      const startupNodeWith = Object.values(withResolver.nodes).find(
+        (n) => n.name === 'acme_startup_01',
+      )
+      expect(startupNodeWith!.templateSchema).toBeDefined()
+      expect(startupNodeWith!.templateSchema!.concepts[0]!.name).toBe('Startup')
+      expect(startupNodeWith!.templateSchema!.concepts[0]!.fields?.[0]!.name).toBe('business_model')
+
+      const withoutResolver = await recursiveParse(createFakeDirectoryHandle(files))
+      const startupNodeWithout = Object.values(withoutResolver.nodes).find(
+        (n) => n.name === 'acme_startup_01',
+      )
+      expect(startupNodeWithout!.templateSchema).toBeUndefined()
+    })
+
+    it('c1-resolver-throws-degrades: a throwing resolver degrades that node to today\'s behavior instead of aborting the parse', async () => {
+      const startupContentWithNotes = `${startupContent}
+## NN Startup: Notes
+path:: startups/notes_01.md
+`
+      const throwingFiles: Record<string, string> = {
+        ...files,
+        'startups/acme_startup_01.md': startupContentWithNotes,
+        'startups/notes_01.md': `---
+spec_version: V_1-0-0
+level: 3
+parent_spec:
+  name: notes_V_0-1-0
+  url: https://example.com/notes.md
+model_version: V_0-1-0
+title: Notes
+---
+# NN Notes
+## NN Notes: Entry
+`,
+      }
+      const throwingResolver: TemplateSchemaResolver = () => {
+        throw new Error('host resolver boom')
+      }
+
+      const root = createFakeDirectoryHandle(throwingFiles)
+      const result = await recursiveParse(root, undefined, {
+        resolveTemplateSchema: throwingResolver,
+      })
+
+      // bare path:: field extraction is unaffected by the throwing resolver
+      const notesNode = Object.values(result.nodes).find((n) => n.name === 'notes_01')
+      expect(notesNode).toBeDefined()
+
+      // the type:: model field was not followed — schema resolution failed for that node
+      const businessNode = Object.values(result.nodes).find((n) => n.name === 'acme_business_01')
+      expect(businessNode).toBeUndefined()
+
+      // the parse completed without escalating the resolver failure into an issue
+      expect(
+        result.issues.filter(
+          (i) => i.code === 'CYCLE_DETECTED' || i.code === 'DEPTH_LIMIT' || i.code === 'MODEL_NOT_FOUND',
+        ),
+      ).toHaveLength(0)
+    })
+
+    it('c1-diamond-from-model-field: a model reached both directly and via a type:: model field is one node with two parent edges, not a cycle', async () => {
+      const diamondWorkspaceContent = `---
+spec_version: V_1-0-0
+level: 3
+parent_spec:
+  name: workspace_spec
+  url: https://example.com/spec.md
+model_version: V_0-1-0
+title: Root Workspace
+---
+# NN ModelRef
+## NN ModelRef: Acme Startup
+path:: startups/acme_startup_01.md
+## NN ModelRef: Acme Business
+path:: startups/acme_business_01.md
+`
+      const diamondFiles: Record<string, string> = {
+        ...files,
+        'workspace_01.md': diamondWorkspaceContent,
+      }
+      const root = createFakeDirectoryHandle(diamondFiles)
+      const result = await recursiveParse(root, undefined, {
+        resolveTemplateSchema: makeResolver({ 'startup_V_0-1-0': startupSchema }),
+      })
+
+      const businessNodes = Object.values(result.nodes).filter((n) => n.name === 'acme_business_01')
+      expect(businessNodes).toHaveLength(1)
+      const businessNode = businessNodes[0]!
+
+      const workspaceNode = Object.values(result.nodes).find((n) => n.name === 'workspace_01')
+      const startupNode = Object.values(result.nodes).find((n) => n.name === 'acme_startup_01')
+      expect(workspaceNode!.childIds).toContain(businessNode.id)
+      expect(startupNode!.childIds).toContain(businessNode.id)
+      expect(businessNode.parentId).toBe(workspaceNode!.id)
+      expect(result.issues.filter((i) => i.code === 'CYCLE_DETECTED')).toHaveLength(0)
     })
   })
 })

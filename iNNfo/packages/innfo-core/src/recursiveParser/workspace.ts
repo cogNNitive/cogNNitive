@@ -1,11 +1,11 @@
 import type { DirectoryHandleLike, FileHandleLike } from '../fs-types'
-import type { ModelDriver } from '../types'
+import type { ModelDriver, ModelNode } from '../types'
 import type { TemplateSchema } from '../schema'
 import { IdentityRegistry } from '../identity'
-import type { ParseContext, RecursiveParseResult, WorklistItem } from './types'
+import type { ParseContext, RecursiveParseOptions, RecursiveParseResult, WorklistItem } from './types'
 import { stripMdSuffix, normalizePathKey, resolveSubmodelPath } from './paths'
 import { parseAndRegisterModel } from './model'
-import { parseModel } from '../parser'
+import { parseModel, parseFrontmatter } from '../parser'
 
 const INNFO_FILE_SUFFIX = '.md'
 const INDEX_MD = 'index.md'
@@ -87,6 +87,37 @@ async function resolveFileHandle(
   return current.getFileHandle(last)
 }
 
+/**
+ * Matches the opt-in overview-root entrypoint pattern from the `base_V_0-1-0`
+ * composite template (A2): any filename ending in `_base_<suffix>.md`, where
+ * `<suffix>` is the literal `NN` placeholder used by this project's template
+ * packages/samples (e.g. `Ghostbusters_V_0-1-0_base_NN.md`) or a real instance
+ * number in a deployed workspace (e.g. `acme_base_01.md`). Case-insensitive,
+ * `.md` suffix — same convention as `isWorkspaceManifest` below.
+ */
+const OVERVIEW_ROOT_RE = /_base_[a-z0-9]+\.md$/i
+
+function isOverviewRoot(name: string): boolean {
+  return OVERVIEW_ROOT_RE.test(name) && !isIgnoredPath(name)
+}
+
+function isWorkspaceManifest(name: string): boolean {
+  return (
+    name.toLowerCase().startsWith('workspace') &&
+    name.endsWith(INNFO_FILE_SUFFIX) &&
+    !isIgnoredPath(name)
+  )
+}
+
+/**
+ * Chooses the primary entrypoint filename from a flat list of candidate names.
+ * An overview root (A2) wins when one is present; otherwise falls back to
+ * today's `workspace*.md` selection, unchanged.
+ */
+function pickEntrypointName(names: string[]): string | null {
+  return names.find(isOverviewRoot) ?? names.find(isWorkspaceManifest) ?? null
+}
+
 async function findPrimaryWorkspaceFile(
   root: DirectoryHandleLike,
   driver?: ModelDriver,
@@ -94,9 +125,8 @@ async function findPrimaryWorkspaceFile(
   if (driver) {
     try {
       const children = await driver.listChildren('')
-      const workspaceEntry = children.find(
-        (c) => c.name.toLowerCase().startsWith('workspace') && c.name.endsWith(INNFO_FILE_SUFFIX),
-      )
+      const chosenName = pickEntrypointName(children.map((c) => c.name))
+      const workspaceEntry = chosenName ? children.find((c) => c.name === chosenName) : undefined
       if (workspaceEntry) {
         const parsed = await driver.readModel(workspaceEntry.uri || workspaceEntry.name)
         return {
@@ -118,21 +148,25 @@ async function findPrimaryWorkspaceFile(
     return null
   }
 
+  const fileNames: string[] = []
   for await (const [name, entry] of root.entries()) {
-    if (
-      entry.kind === 'file' &&
-      name.toLowerCase().startsWith('workspace') &&
-      name.endsWith(INNFO_FILE_SUFFIX) &&
-      !isIgnoredPath(name)
-    ) {
-      try {
-        const fileHandle = await root.getFileHandle(name)
-        const file = await fileHandle.getFile()
-        const content = await file.text()
-        return { path: name, name: stripMdSuffix(name), content }
-      } catch {
-        // continue
-      }
+    if (entry.kind === 'file') {
+      fileNames.push(name)
+    }
+  }
+
+  let candidates = fileNames
+  while (candidates.length > 0) {
+    const chosenName = pickEntrypointName(candidates)
+    if (!chosenName) break
+    try {
+      const fileHandle = await root.getFileHandle(chosenName)
+      const file = await fileHandle.getFile()
+      const content = await file.text()
+      return { path: chosenName, name: stripMdSuffix(chosenName), content }
+    } catch {
+      // Drop this candidate and try the next (mirrors the pre-A2 per-name loop).
+      candidates = candidates.filter((n) => n !== chosenName)
     }
   }
   return null
@@ -237,12 +271,58 @@ export function extractSubmodelRefs(
 }
 
 /**
+ * Links the referring model to the just-resolved child in the node graph.
+ * DP1: the FIRST parent wins `parentId`; every parent gets the child in `childIds`,
+ * so non-primary (diamond) edges are recoverable without a new ModelNode field (AD-02).
+ */
+function linkParentChild(
+  ctx: ParseContext,
+  referringPath: string,
+  childNormKey: string,
+): { parentNode?: ModelNode; childNode?: ModelNode } {
+  const referringNorm = normalizePathKey(resolveSubmodelPath(referringPath))
+  const byPath = (key: string) =>
+    Object.values(ctx.nodes).find(
+      (n) => n.kind === 'root' && (n.source?.path ? normalizePathKey(n.source.path) : '') === key,
+    )
+  const parentNode = byPath(referringNorm)
+  const childNode = byPath(childNormKey)
+  if (parentNode && childNode && childNode.id !== parentNode.id) {
+    if (childNode.parentId === null) childNode.parentId = parentNode.id // first parent wins
+    if (!parentNode.childIds.includes(childNode.id)) parentNode.childIds.push(childNode.id)
+  }
+  return { parentNode, childNode }
+}
+
+/**
+ * Resolves a node's composed template schema via the host-supplied
+ * `options.resolveTemplateSchema`, when one was supplied. A throwing or
+ * absent resolver degrades that node to today's behavior (no `type:: model`
+ * field following) instead of aborting the whole parse (AD-04).
+ */
+function schemaFor(
+  options: RecursiveParseOptions | undefined,
+  path: string,
+  name: string,
+  content: string,
+): TemplateSchema | undefined {
+  if (!options?.resolveTemplateSchema) return undefined
+  try {
+    const fm = (parseFrontmatter(content) ?? {}) as Record<string, unknown>
+    return options.resolveTemplateSchema({ path, name, content, frontmatter: fm }) ?? undefined
+  } catch {
+    return undefined
+  }
+}
+
+/**
  * Parses a workspace by reading `workspace_NN.md` (or matching `workspace_*_NN.md`)
  * as the primary entry point, falling back to legacy `index.md`, or a root directory scan.
  */
 export async function recursiveParse(
   root: DirectoryHandleLike,
   driver?: ModelDriver,
+  options?: RecursiveParseOptions,
 ): Promise<RecursiveParseResult> {
   const visitedPaths = new Set<string>()
   const ctx: ParseContext = {
@@ -343,7 +423,9 @@ export async function recursiveParse(
 
   // Step 3: Iterative worklist traversal
   const queue: WorklistItem[] = []
-  const initialRefs = extractSubmodelRefs(entrypointContent, entrypointPath)
+  const entrypointSchema = schemaFor(options, entrypointPath, primary?.name ?? '', entrypointContent)
+  const initialRefs = extractSubmodelRefs(entrypointContent, entrypointPath, entrypointSchema)
+  const entrypointKey = normalizePathKey(entrypointPath)
   for (const ref of initialRefs) {
     queue.push({
       path: ref.path,
@@ -351,6 +433,7 @@ export async function recursiveParse(
       referringPath: entrypointPath,
       depth: 1,
       author: ref.author,
+      ancestorKeys: [entrypointKey],
     })
   }
 
@@ -359,11 +442,16 @@ export async function recursiveParse(
     const resolvedPath = resolveSubmodelPath(item.path, item.referringPath)
     const normKey = normalizePathKey(resolvedPath)
 
-    if (visitedPaths.has(normKey)) {
+    if (item.ancestorKeys.includes(normKey)) {
       ctx.issues.push({
         path: item.path,
-        message: `Cycle detected: "${item.path}" referenced from "${item.referringPath}" is already loaded`,
+        message: `Cycle detected: "${item.path}" referenced from "${item.referringPath}" is an ancestor on this branch`,
+        code: 'CYCLE_DETECTED',
       })
+      continue
+    }
+    if (visitedPaths.has(normKey)) {
+      linkParentChild(ctx, item.referringPath, normKey) // diamond: second edge, no issue
       continue
     }
 
@@ -373,6 +461,7 @@ export async function recursiveParse(
       ctx.issues.push({
         path: item.path,
         message: `Traversal depth limit exceeded (MAX_DEPTH = 10) while resolving submodel "${item.path}"`,
+        code: 'DEPTH_LIMIT',
       })
       continue
     }
@@ -392,6 +481,7 @@ export async function recursiveParse(
         ctx.issues.push({
           path: item.path,
           message: `Referenced model "${item.path}" not found — skipping`,
+          code: 'MODEL_NOT_FOUND',
         })
         continue
       }
@@ -405,32 +495,24 @@ export async function recursiveParse(
     await parseAndRegisterModel(content, resolvedPath, item.name, ctx, elementNameToModel)
 
     // Establish parent-child relationship in graph between referring model and this model
-    const referringNorm = normalizePathKey(resolveSubmodelPath(item.referringPath))
-    const parentNode = Object.values(ctx.nodes).find((n) => {
-      if (n.kind !== 'root') return false
-      const nPath = n.source?.path ? normalizePathKey(n.source.path) : ''
-      return nPath === referringNorm
-    })
-    const childNode = Object.values(ctx.nodes).find((n) => {
-      if (n.kind !== 'root') return false
-      const nPath = n.source?.path ? normalizePathKey(n.source.path) : ''
-      return nPath === normKey
-    })
-
-    if (parentNode && childNode && childNode.id !== parentNode.id) {
-      childNode.parentId = parentNode.id
-      if (!parentNode.childIds.includes(childNode.id)) {
-        parentNode.childIds.push(childNode.id)
-      }
-    }
+    const { childNode } = linkParentChild(ctx, item.referringPath, normKey)
 
     // Propagate workspace-scoped author from referring manifest
     if (item.author && childNode) {
       childNode.author = item.author
     }
 
+    // C1: resolve this node's composed template schema (if a resolver was
+    // supplied) and stash it on the freshly linked child node immediately,
+    // reusing the childNode already returned by linkParentChild (no extra lookup).
+    const schema = schemaFor(options, resolvedPath, item.name, content)
+    if (childNode && schema) {
+      childNode.templateSchema = schema
+    }
+
     // Extract nested submodel references from this model
-    const nestedRefs = extractSubmodelRefs(content, resolvedPath)
+    const nestedRefs = extractSubmodelRefs(content, resolvedPath, schema)
+    const nestedAncestorKeys = [...item.ancestorKeys, normKey]
     for (const nRef of nestedRefs) {
       queue.push({
         path: nRef.path,
@@ -438,6 +520,7 @@ export async function recursiveParse(
         referringPath: resolvedPath,
         depth: item.depth + 1,
         author: nRef.author,
+        ancestorKeys: nestedAncestorKeys,
       })
     }
   }
@@ -446,5 +529,5 @@ export async function recursiveParse(
     .filter((n) => n.parentId === null)
     .map((n) => n.id)
 
-  return { nodes: ctx.nodes, rootIds, issues: ctx.issues }
+  return { nodes: ctx.nodes, rootIds, issues: ctx.issues, entrypointPath }
 }

@@ -1,3 +1,5 @@
+import type { TemplateSchema } from './schema'
+
 /** Concept `type::` values. The `as const` array is the single source of
  *  truth; `ConceptType` is derived from it so the two cannot drift. */
 export const CONCEPT_TYPES = [
@@ -451,6 +453,13 @@ export interface ModelNode {
    * re-resolving. Present only on document roots.
    */
   schemaValidation?: { errors: ValidationError[]; warnings: ValidationError[] }
+  /**
+   * Composed (includes-merged) level-2 template schema for this model, stashed by
+   * `recursiveParse` when a `resolveTemplateSchema` option was supplied, so
+   * `buildWorkspaceIndex` and the workspace validation pass never re-resolve.
+   * Present only on document roots. Undefined when no resolver was supplied.
+   */
+  templateSchema?: TemplateSchema
   relationships: ModelRelationship[]
   rawSections: Record<string, string> // round-trip fidelity
   /**

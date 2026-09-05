@@ -56,18 +56,29 @@ export {
   validateReferences,
   validateElementFieldReferences,
   validateTaxonomyHierarchy,
+  QUALIFIED_REF_RE,
+  parseQualifiedRef,
+  validateWorkspaceReferences,
 } from './validator'
 export type {
   ReferenceDiagnostic,
   DocumentValidation,
   SubmodelResolver,
   ValidateModelOptions,
+  QualifiedRef,
 } from './validator'
 
 export * from './identity'
 export * from './metamodel'
 export * from './recursiveParser'
 export * from './fs-types'
+export {
+  OWNERSHIP_MARKER,
+  reconcileManifest,
+} from './workspace/reconcileManifest'
+export type { DiscoveredModel, ManifestChange } from './workspace/reconcileManifest'
+export { isReconcilableModel } from './workspace/discoverModels'
+export type { CandidateFile } from './workspace/discoverModels'
 export { listModels, resolveSpecVersionFromFilename } from './helpers'
 export type { ModelInfo } from './helpers'
 export { applyMutation, updateReferenceString } from './mutate'

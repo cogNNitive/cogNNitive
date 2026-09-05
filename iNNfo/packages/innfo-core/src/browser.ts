@@ -33,8 +33,9 @@ export {
   validateDocument,
   validateFormatContent,
   validateFormatSyntax,
+  validateWorkspaceReferences,
 } from './validator'
-export type { DocumentValidation } from './validator'
+export type { DocumentValidation, ReferenceDiagnostic } from './validator'
 export { applyMutation, updateReferenceString } from './mutate'
 export type { MutationResult } from './mutate'
 export { deriveMatrixWidgetType, normalizeMatrixDecl, scaleRangeFor } from './matrix'
@@ -47,9 +48,18 @@ export {
   normalizeSingleModel,
   resolveGraphEdgeTarget,
   resolveQualifiedIdToPath,
+  buildWorkspaceIndex,
   type ParseIssue,
   type RecursiveParseResult,
+  type WorkspaceIndex,
 } from './recursiveParser'
+export {
+  OWNERSHIP_MARKER,
+  reconcileManifest,
+  type DiscoveredModel,
+  type ManifestChange,
+} from './workspace/reconcileManifest'
+export { isReconcilableModel, type CandidateFile } from './workspace/discoverModels'
 export {
   getSpecForLevel,
   getTemplate,
