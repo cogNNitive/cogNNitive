@@ -9,11 +9,11 @@ const _MOCK_MINI_TEST: Record<string, any> = {
   'index.md': '# _NN index\n\n* [[HolaMundo_V_0-0-1_business_NN.md]]\n',
   'HolaMundo_V_0-0-1_business_NN.md': `---
 spec_version: "V_0-1-5"
-spec_url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/v0.1.5/specs/FORMAT_V_0-1-5_F.md"
+spec_url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/FORMAT_V_0-1-5_F.md"
 level: 3
 parent_spec:
   name: "business_V_0-1-1"
-  url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/v0.1.1/specs/business_V_0-1-1_FORMAT.md"
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/business_V_0-1-1_FORMAT.md"
 model_version: "V_0-0-1"
 title: "Hola Mundo — CogNNitive Test"
 ---
@@ -77,11 +77,11 @@ async function injectMiniTestMock(page: any, context: any) {
       'index.md': '# _NN index\n\n* [[HolaMundo_V_0-0-1_business_NN.md]]\n',
       'HolaMundo_V_0-0-1_business_NN.md': `---
 spec_version: "V_0-1-5"
-spec_url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/v0.1.5/specs/FORMAT_V_0-1-5_F.md"
+spec_url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/FORMAT_V_0-1-5_F.md"
 level: 3
 parent_spec:
   name: "business_V_0-1-1"
-  url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/v0.1.1/specs/business_V_0-1-1_FORMAT.md"
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/business_V_0-1-1_FORMAT.md"
 model_version: "V_0-0-1"
 title: "Hola Mundo — CogNNitive Test"
 ---

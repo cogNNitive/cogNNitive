@@ -10,7 +10,8 @@
  * Callers build `${SAMPLE_BASE}/{templateName}/samples/{file}`, matching the
  * `specs/templates/{name}/samples/` layout (see `spec-versioning`, R-SV-01).
  */
-const REMOTE_SAMPLE_BASE = 'https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/templates'
+export const REMOTE_SPEC_BASE = 'https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs'
+const REMOTE_SAMPLE_BASE = `${REMOTE_SPEC_BASE}/templates`
 
 export const SAMPLE_BASE: string = import.meta.env.DEV ? '/specs/templates' : REMOTE_SAMPLE_BASE
 

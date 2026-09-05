@@ -1,6 +1,6 @@
 ---
 spec_version: "V_0-1-0"
-spec_url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/defiNNe_V_0-1-0_NN.md"
+spec_url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/defiNNe_V_0-1-0_NN.md"
 level: 0
 title: "defiNNe — The Definition of Definitions"
 description: "Meta-specification for the CogNNitive ecosystem. Defines the structure, versioning, normative language, terminology discipline, and dependency resolution for all derived specifications."
@@ -155,7 +155,7 @@ No `parent` or `parent_spec`.
 spec_version: "V_x-y-z"
 spec_url: "<immutable-URL>"
 level: 1
-parent: "https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/defiNNe_V_0-1-0_NN.md"
+parent: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/defiNNe_V_0-1-0_NN.md"
 title: "..."
 description: "..."
 ---
@@ -170,7 +170,7 @@ spec_url: "<immutable-URL>"
 level: 2
 parent_spec:
   name: "iNNfo_V_0-1-0"
-  url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/iNNfo_V_0-1-0_NN.md"
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-1-0_NN.md"
 title: "..."
 template_version: "V_x-y-z"
 includes:                        # OPTIONAL — additive schema composition
@@ -348,15 +348,15 @@ From the sample model `specs/templates/business/samples/Ghostbusters_V_0-1-0_bus
 # Ghostbusters (level 3)
 parent_spec:
   name: "business_V_0-1-0"
-  url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/templates/business/business_V_0-1-0_NN.md"
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business/business_V_0-1-0_NN.md"
 
 # business_V_0-1-0 (level 2)
 parent_spec:
   name: "iNNfo_V_0-1-0"
-  url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/iNNfo_V_0-1-0_NN.md"
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-1-0_NN.md"
 
 # iNNfo_V_0-1-0 (level 1)
-parent: "https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/defiNNe_V_0-1-0_NN.md"
+parent: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/defiNNe_V_0-1-0_NN.md"
 
 # defiNNe_V_0-1-0 (level 0) — this document
 # No parent — root of the chain

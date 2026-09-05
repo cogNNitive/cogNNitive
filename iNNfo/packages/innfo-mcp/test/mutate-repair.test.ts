@@ -19,7 +19,7 @@ describe('MCP model repair tools', () => {
     const res = await initModel(tempDir, 'arenzano_residential_V_0-5-1_residential', {
       template_name: 'residential_V_0-2-0',
       template_url:
-        'https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/latest/level2/residential/residential_NN.md',
+        'https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/latest/level2/residential/residential_NN.md',
       title: 'Arenzano Residential',
       model_version: 'V_0-5-1',
     })
@@ -39,7 +39,7 @@ describe('MCP model repair tools', () => {
     const res = await initModel(tempDir, 'broken_model', {
       template_name: 'business_V_0-2-0',
       template_url:
-        'https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/latest/level2/business/business_NN.md',
+        'https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/latest/level2/business/business_NN.md',
     })
 
     expect(res.success).toBe(true)

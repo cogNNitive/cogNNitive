@@ -1,4 +1,4 @@
-﻿# Specifications
+# Specifications
 
 The cogNNitive ecosystem defines four specification levels. Each level builds on the one below it.
 
@@ -12,40 +12,41 @@ lists the current file for each spec.
 
 | Spec | Source |
 |------|--------|
-| **defiNNe** V 0.1.0 | [`specs/defiNNe_V_0-1-0_NN.md`](https://github.com/iNNfo/iNNfo/blob/main/specs/defiNNe_V_0-1-0_NN.md) |
+| **defiNNe** V 0.1.0 | [`specs/defiNNe_V_0-1-0_NN.md`](https://github.com/cogNNitive/cogNNitive/blob/main/iNNfo/specs/defiNNe_V_0-1-0_NN.md) |
 
 ## Level 1 — Central specification
 
 The **iNNfo** specification. Every model is a single `_NN.md` document with optional structural children — concepts, elements, fields, markers, and matrices.
 
 The `status` frontmatter field on a spec file uses the `defiNNe` vocabulary
-`Draft | Stable | Deprecated`. `iNNfo_V_0-2-0` is the adopted L1 (`status: "Stable"`).
+`Draft | Stable | Deprecated`. `iNNfo_V_0-2-1` is the adopted L1 (`status: "Stable"`).
 The **adopted** version is defined by `DEFAULT_INNFO_VERSION` in
 `apps/innfo-editor/src/utils/constants.ts`, not by mutating older spec files:
-`iNNfo_V_0-1-0_NN.md` is immutable (`spec-versioning` R-SV-02) and keeps whatever
-`status` it was published with; it is simply no longer the default, and stays
-resolvable forever for models authored against it.
+`iNNfo_V_0-2-0_NN.md` and `iNNfo_V_0-1-0_NN.md` are immutable (`spec-versioning` R-SV-02) and keep whatever
+`status` they were published with; they are simply no longer the default, and stay
+resolvable forever for models authored against them.
 
 | Spec | Role | Source |
 |------|------|--------|
-| **iNNfo** V 0.2.0 | Adopted (`status: "Stable"`) | [`specs/iNNfo_V_0-2-0_NN.md`](https://github.com/iNNfo/iNNfo/blob/main/specs/iNNfo_V_0-2-0_NN.md) |
-| iNNfo V 0.1.0 | Superseded — frozen, still resolvable | [`specs/iNNfo_V_0-1-0_NN.md`](https://github.com/iNNfo/iNNfo/blob/main/specs/iNNfo_V_0-1-0_NN.md) |
+| **iNNfo** V 0.2.1 | Adopted (`status: "Stable"`) | [`specs/iNNfo_V_0-2-1_NN.md`](https://github.com/cogNNitive/cogNNitive/blob/main/iNNfo/specs/iNNfo_V_0-2-1_NN.md) |
+| iNNfo V 0.2.0 | Superseded — frozen, still resolvable | [`specs/iNNfo_V_0-2-0_NN.md`](https://github.com/cogNNitive/cogNNitive/blob/main/iNNfo/specs/iNNfo_V_0-2-0_NN.md) |
+| iNNfo V 0.1.0 | Superseded — frozen, still resolvable | [`specs/iNNfo_V_0-1-0_NN.md`](https://github.com/cogNNitive/cogNNitive/blob/main/iNNfo/specs/iNNfo_V_0-1-0_NN.md) |
 
 ## Level 2 — Templates
 
-Domain-specific templates. Each declares concepts, markers, matrices, and relationship types for a specific domain, and its own `template_version` (independent of `spec_version`, which tracks L1 compliance). All templates are L1-compliant with `iNNfo_V_0-2-0`. `business_V_0-2-0` is a pure composite that `includes` `business-model` + `analysis`; `analysis` and `business-model` are first-revision templates carved out of the former monolithic `business` template, so they carry `spec_version: V_0-2-0` with `template_version: V_0-1-0`.
+Domain-specific templates. Each declares concepts, markers, matrices, and relationship types for a specific domain, and its own `template_version` (independent of `spec_version`, which tracks L1 compliance). All templates are L1-compliant with `iNNfo_V_0-2-1`. `business_V_0-2-0` is a pure composite that `includes` `business-model` + `analysis`; `analysis` and `business-model` are first-revision templates carved out of the former monolithic `business` template, so they carry `spec_version: V_0-2-0` with `template_version: V_0-1-0`.
 
 | Template | `template_version` | Source |
 |----------|--------------------|--------|
-| **Blank** | V_0-2-0 | [`specs/templates/blank/blank_V_0-2-0_NN.md`](https://github.com/iNNfo/iNNfo/blob/main/specs/templates/blank/blank_V_0-2-0_NN.md) |
-| **Business** (composite) | V_0-2-0 | [`specs/templates/business/business_V_0-2-0_NN.md`](https://github.com/iNNfo/iNNfo/blob/main/specs/templates/business/business_V_0-2-0_NN.md) |
-| **Business Model** | V_0-1-0 | [`specs/templates/business-model/business-model_V_0-1-0_NN.md`](https://github.com/iNNfo/iNNfo/blob/main/specs/templates/business-model/business-model_V_0-1-0_NN.md) |
-| **Analysis** | V_0-1-0 | [`specs/templates/analysis/analysis_V_0-1-0_NN.md`](https://github.com/iNNfo/iNNfo/blob/main/specs/templates/analysis/analysis_V_0-1-0_NN.md) |
-| **Innovation** | V_0-2-0 | [`specs/templates/innovation/innovation_V_0-2-0_NN.md`](https://github.com/iNNfo/iNNfo/blob/main/specs/templates/innovation/innovation_V_0-2-0_NN.md) |
-| **cogNNitive** | V_0-2-0 | [`specs/templates/cogNNitive/cogNNitive_V_0-2-0_NN.md`](https://github.com/iNNfo/iNNfo/blob/main/specs/templates/cogNNitive/cogNNitive_V_0-2-0_NN.md) |
-| **Organization** | V_0-2-0 | [`specs/templates/organization/organization_V_0-2-0_NN.md`](https://github.com/iNNfo/iNNfo/blob/main/specs/templates/organization/organization_V_0-2-0_NN.md) |
-| **Procedures** | V_0-2-0 | [`specs/templates/procedures/procedures_V_0-2-0_NN.md`](https://github.com/iNNfo/iNNfo/blob/main/specs/templates/procedures/procedures_V_0-2-0_NN.md) |
-| **Projects** | V_0-2-0 | [`specs/templates/projects/projects_V_0-2-0_NN.md`](https://github.com/iNNfo/iNNfo/blob/main/specs/templates/projects/projects_V_0-2-0_NN.md) |
+| **Blank** | V_0-2-0 | [`specs/templates/blank/blank_V_0-2-0_NN.md`](https://github.com/cogNNitive/cogNNitive/blob/main/iNNfo/specs/templates/blank/blank_V_0-2-0_NN.md) |
+| **Business** (composite) | V_0-2-0 | [`specs/templates/business/business_V_0-2-0_NN.md`](https://github.com/cogNNitive/cogNNitive/blob/main/iNNfo/specs/templates/business/business_V_0-2-0_NN.md) |
+| **Business Model** | V_0-1-0 | [`specs/templates/business-model/business-model_V_0-1-0_NN.md`](https://github.com/cogNNitive/cogNNitive/blob/main/iNNfo/specs/templates/business-model/business-model_V_0-1-0_NN.md) |
+| **Analysis** | V_0-1-0 | [`specs/templates/analysis/analysis_V_0-1-0_NN.md`](https://github.com/cogNNitive/cogNNitive/blob/main/iNNfo/specs/templates/analysis/analysis_V_0-1-0_NN.md) |
+| **Innovation** | V_0-2-0 | [`specs/templates/innovation/innovation_V_0-2-0_NN.md`](https://github.com/cogNNitive/cogNNitive/blob/main/iNNfo/specs/templates/innovation/innovation_V_0-2-0_NN.md) |
+| **cogNNitive** | V_0-2-0 | [`specs/templates/cogNNitive/cogNNitive_V_0-2-0_NN.md`](https://github.com/cogNNitive/cogNNitive/blob/main/iNNfo/specs/templates/cogNNitive/cogNNitive_V_0-2-0_NN.md) |
+| **Organization** | V_0-2-0 | [`specs/templates/organization/organization_V_0-2-0_NN.md`](https://github.com/cogNNitive/cogNNitive/blob/main/iNNfo/specs/templates/organization/organization_V_0-2-0_NN.md) |
+| **Procedures** | V_0-2-0 | [`specs/templates/procedures/procedures_V_0-2-0_NN.md`](https://github.com/cogNNitive/cogNNitive/blob/main/iNNfo/specs/templates/procedures/procedures_V_0-2-0_NN.md) |
+| **Projects** | V_0-2-0 | [`specs/templates/projects/projects_V_0-2-0_NN.md`](https://github.com/cogNNitive/cogNNitive/blob/main/iNNfo/specs/templates/projects/projects_V_0-2-0_NN.md) |
 
 Each template's `_V_0-1-0_` file (where one existed) stays frozen and resolvable for models still pinned to it.
 
@@ -55,13 +56,13 @@ Concrete data instances. Lightweight — just data and a parent pointer to their
 
 | Model | Template | Source |
 |-------|----------|--------|
-| **Ghostbusters** | business V_0-2-0 | [`specs/templates/business/samples/Ghostbusters_V_0-2-0_business_NN.md`](https://github.com/cogNNitive/iNNfo/blob/main/specs/templates/business/samples/Ghostbusters_V_0-2-0_business_NN.md) |
-| **Ghostbusters** | business V_0-1-0 | [`specs/templates/business/samples/Ghostbusters_V_0-1-0_business_NN.md`](https://github.com/cogNNitive/iNNfo/blob/main/specs/templates/business/samples/Ghostbusters_V_0-1-0_business_NN.md) |
-| **Ghostbusters** | analysis V_0-2-0 | [`specs/templates/analysis/samples/Ghostbusters_V_0-2-0_analysis_NN.md`](https://github.com/cogNNitive/iNNfo/blob/main/specs/templates/analysis/samples/Ghostbusters_V_0-2-0_analysis_NN.md) |
-| **Ghostbusters** | innovation V_0-2-0 | [`specs/templates/innovation/samples/Ghostbusters_V_0-2-0_innovation_NN.md`](https://github.com/cogNNitive/iNNfo/blob/main/specs/templates/innovation/samples/Ghostbusters_V_0-2-0_innovation_NN.md) |
-| **Ghostbusters** | organization V_0-2-0 | [`specs/templates/organization/samples/Ghostbusters_V_0-2-0_organization_NN.md`](https://github.com/cogNNitive/iNNfo/blob/main/specs/templates/organization/samples/Ghostbusters_V_0-2-0_organization_NN.md) |
-| **Ghostbusters** | procedures V_0-2-0 | [`specs/templates/procedures/samples/Ghostbusters_V_0-2-0_procedures_NN.md`](https://github.com/cogNNitive/iNNfo/blob/main/specs/templates/procedures/samples/Ghostbusters_V_0-2-0_procedures_NN.md) |
-| **Ghostbusters** | projects V_0-2-0 | [`specs/templates/projects/samples/Ghostbusters_V_0-2-0_projects_NN.md`](https://github.com/cogNNitive/iNNfo/blob/main/specs/templates/projects/samples/Ghostbusters_V_0-2-0_projects_NN.md) |
+| **Ghostbusters** | business V_0-2-0 | [`specs/templates/business/samples/Ghostbusters_V_0-2-0_business_NN.md`](https://github.com/cogNNitive/cogNNitive/blob/main/iNNfo/specs/templates/business/samples/Ghostbusters_V_0-2-0_business_NN.md) |
+| **Ghostbusters** | business V_0-1-0 | [`specs/templates/business/samples/Ghostbusters_V_0-1-0_business_NN.md`](https://github.com/cogNNitive/cogNNitive/blob/main/iNNfo/specs/templates/business/samples/Ghostbusters_V_0-1-0_business_NN.md) |
+| **Ghostbusters** | analysis V_0-2-0 | [`specs/templates/analysis/samples/Ghostbusters_V_0-2-0_analysis_NN.md`](https://github.com/cogNNitive/cogNNitive/blob/main/iNNfo/specs/templates/analysis/samples/Ghostbusters_V_0-2-0_analysis_NN.md) |
+| **Ghostbusters** | innovation V_0-2-0 | [`specs/templates/innovation/samples/Ghostbusters_V_0-2-0_innovation_NN.md`](https://github.com/cogNNitive/cogNNitive/blob/main/iNNfo/specs/templates/innovation/samples/Ghostbusters_V_0-2-0_innovation_NN.md) |
+| **Ghostbusters** | organization V_0-2-0 | [`specs/templates/organization/samples/Ghostbusters_V_0-2-0_organization_NN.md`](https://github.com/cogNNitive/cogNNitive/blob/main/iNNfo/specs/templates/organization/samples/Ghostbusters_V_0-2-0_organization_NN.md) |
+| **Ghostbusters** | procedures V_0-2-0 | [`specs/templates/procedures/samples/Ghostbusters_V_0-2-0_procedures_NN.md`](https://github.com/cogNNitive/cogNNitive/blob/main/iNNfo/specs/templates/procedures/samples/Ghostbusters_V_0-2-0_procedures_NN.md) |
+| **Ghostbusters** | projects V_0-2-0 | [`specs/templates/projects/samples/Ghostbusters_V_0-2-0_projects_NN.md`](https://github.com/cogNNitive/cogNNitive/blob/main/iNNfo/specs/templates/projects/samples/Ghostbusters_V_0-2-0_projects_NN.md) |
 
 ## Traceability & change propagation
 

@@ -16,7 +16,7 @@ spec_version: "V_0-1-5"
 level: 3
 parent_spec:
   name: "business_V_0-1-1"
-  url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/v0.1.0/level2/business/business_V_0-1-1_NN.md"
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/v0.1.0/level2/business/business_V_0-1-1_NN.md"
 model_version: "V_0-1-2"
 title: "Ghostbusters"
 ---
@@ -53,7 +53,7 @@ spec_version: "V_0-1-5"
 level: 3
 parent_spec:
   name: "iNNfo_V_0-1-0"
-  url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/v0.1.0/level1/iNNfo_V_0-1-0_NN.md"
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/v0.1.0/level1/iNNfo_V_0-1-0_NN.md"
 title: "Business Template"
 model_version: "V_0-1-1"
 concepts:
@@ -134,7 +134,7 @@ spec_version: "V_0-1-5"
 level: 3
 parent_spec:
   name: "business_V_0-1-1"
-  url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/v0.1.0/level2/business/business_V_0-1-1_NN.md"
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/v0.1.0/level2/business/business_V_0-1-1_NN.md"
 model_version: "V_0-1-2"
 title: "Ghostbusters"
 ---
@@ -170,7 +170,7 @@ spec_version: "V_0-1-5"
 level: 3
 parent_spec:
   name: "iNNfo_V_0-1-0"
-  url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/v0.1.0/level1/iNNfo_V_0-1-0_NN.md"
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/v0.1.0/level1/iNNfo_V_0-1-0_NN.md"
 title: "Business Template"
 model_version: "V_0-1-1"
 concepts:

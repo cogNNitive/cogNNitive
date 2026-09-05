@@ -238,6 +238,6 @@ This rebuilds the bundle and copies it to `docs/cdn/innfo-mcp-<version>.bundle.j
 ## Related
 
 - `packages/innfo-mcp/` — server source code
-- `docs/cdn/innfo-mcp-v0.2.1.bundle.js` — current published bundle
+- `docs/cdn/innfo-mcp-v0.2.4.bundle.js` — current published bundle
 - `scripts/innfo-mcp.cmd` — Windows bootstrap script (in repo)
 - `scripts/innfo-mcp.sh` — Unix bootstrap script (in repo)

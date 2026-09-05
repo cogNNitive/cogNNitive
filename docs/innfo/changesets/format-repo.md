@@ -1,6 +1,6 @@
-﻿# Architecture Decision: file-format
+# Architecture Decision: file-format
 
-> **Status**: Executed Ã¢â‚¬” 2026-07-01
+> **Status**: Executed — 2026-07-01
 > **Supersedes**: Original FORMAT repo changeset
 
 The old `innV0/FORMAT` repo is archived. A new clean repo `innV0/file-format` was created as the canonical home for the FILE mode editor.
@@ -26,14 +26,14 @@ The old `innV0/FORMAT` repo is archived. A new clean repo `innV0/file-format` wa
 ## Relationship
 
 ```
-file-format/         Ã¢” Â this repo (Vue 3 SPA)
-iNNfo/          Ã¢” Â sibling dir: specs + format-core library
+file-format/         ├── this repo (Vue 3 SPA)
+iNNfo/               └── sibling dir: specs + format-core library
 ```
 
 ## Spec resolution chain
 
 ```
-FORMAT spec  Ã¢” ’ iNNfo/specs/FORMAT_V_0-1-0_FORMAT.md
-Parent       Ã¢” ’ iNNfo/specs/defiNNe_V_0-1-0_FORMAT.md
-Templates    Ã¢” ’ iNNfo/specs/{business,procedures}_V_0-1-0_FORMAT.md
+FORMAT spec  → iNNfo/specs/FORMAT_V_0-1-0_FORMAT.md
+Parent       → iNNfo/specs/defiNNe_V_0-1-0_FORMAT.md
+Templates    → iNNfo/specs/{business,procedures}_V_0-1-0_FORMAT.md
 ```

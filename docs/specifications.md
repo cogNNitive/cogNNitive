@@ -17,7 +17,7 @@ La arquitectura iNNfo define cuatro niveles jerárquicos e inmutables:
 | Nivel | Rol | Documento Principal | Propósito y Sintaxis |
 |---|---|---|---|
 | **Nivel 0** | Meta-especificación | `defiNNe` (`defiNNe_V_0-1-0_NN.md`) | Define las meta-reglas del ecosistema, control de versiones (SemVer) y vocabulario RFC 2119. |
-| **Nivel 1** | Especificación Concreta | `iNNfo` (`iNNfo_V_0-2-0_NN.md`) | Especificación adoptada y Metaplantilla Nivel 1. Define la sintaxis `NN` (`# NN`, `## NN`, `key:: value`) y las 4 Primitivas Raíz (`Concept Definition`, `Field Definition`, `Matrix Definition`, `Marker Definition`). |
+| **Nivel 1** | Especificación Concreta | `iNNfo` (`iNNfo_V_0-2-1_NN.md`) | Especificación adoptada y Metaplantilla Nivel 1. Define la sintaxis `NN` (`# NN`, `## NN`, `key:: value`) y las 4 Primitivas Raíz (`Concept Definition`, `Field Definition`, `Matrix Definition`, `Marker Definition`). |
 | **Nivel 2** | Plantillas (Templates / Especializaciones) | `business`, `procedures`, `organization`, etc. | Instancia las 4 Primitivas Raíz para dominios específicos. Declara esquemas reutilizables y dependencias de composición (`includes`). |
 | **Nivel 3** | Modelos de Datos | Archivos `*_NN.md` de dominio | Instancias concretas de datos y conceptos. Son documentos ultra livianos (*lean models*) que contienen datos y un puntero de resolución (`parent_spec`). |
 
@@ -64,9 +64,9 @@ En plantillas de Nivel 2, la composición de plantillas se realiza mediante la p
 ```yaml
 includes:
   - name: "business-model"
-    url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/templates/business-model/business-model_V_0-1-0_NN.md"
+    url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business-model/business-model_V_0-1-0_NN.md"
   - name: "analysis"
-    url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/templates/analysis/analysis_V_0-1-0_NN.md"
+    url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/analysis/analysis_V_0-1-0_NN.md"
 ```
 
 ### ¿Por qué vive en el Front Matter?
@@ -108,5 +108,5 @@ Esta problemática ha sido validada empíricamente en el ecosistema de herramien
 
 ## Enlaces Relacionados
 
-- [Documentación del Motor iNNfo](https://github.com/cogNNitive/iNNfo/blob/main/docs/documentation/specifications.md)
-- [Especificación iNNfo V_0-2-0](https://github.com/cogNNitive/iNNfo/blob/main/specs/iNNfo_V_0-2-0_NN.md)
+- [Documentación del Motor iNNfo](https://github.com/cogNNitive/cogNNitive/blob/main/iNNfo/docs/documentation/specifications.md)
+- [Especificación iNNfo V_0-2-1](https://github.com/cogNNitive/cogNNitive/blob/main/iNNfo/specs/iNNfo_V_0-2-1_NN.md)

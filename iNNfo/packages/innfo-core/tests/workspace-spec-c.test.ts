@@ -69,7 +69,7 @@ spec_version: V_1-0-0
 level: 3
 parent_spec:
   name: workspace_spec
-  url: https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/templates/workspace_spec_NN.md
+  url: https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/workspace_spec_NN.md
 model_version: V_0-1-0
 title: Demo Workspace
 ---

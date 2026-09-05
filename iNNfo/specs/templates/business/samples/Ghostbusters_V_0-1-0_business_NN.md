@@ -2,7 +2,7 @@
 level: 3
 parent_spec:
   name: "business_V_0-1-0"
-  url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/templates/business/business_V_0-1-0_NN.md"
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business/business_V_0-1-0_NN.md"
 model_version: "V_0-1-0"
 title: "Ghostbusters"
 ---
@@ -668,7 +668,7 @@ instructions:: |
   1. Read [[Journey]] and [[Emotions]] for the Customer Journey Emotion Map timeline.
   2. Map [[Problems]] and [[Value propositions]] in the Solution Fit Flow Sankey.
   3. Map [[Profiles]] (Nancy) and [[Behaviors]] for the Buyer Persona Card columns.
-  Use the reference layout from `https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/templates/business/samples/master.html` (which has all CSS and SVGs inline) as the base design. Inject the actual L3 model values into the SVG elements.
+  Use the reference layout from `https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business/samples/master.html` (which has all CSS and SVGs inline) as the base design. Inject the actual L3 model values into the SVG elements.
 
 # NN matrices: journey map
 

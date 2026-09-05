@@ -246,12 +246,12 @@
 
               <span class="font-sans font-medium text-slate-400">Remote URL:</span>
               <a
-                :href="`https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/iNNfo_${formatVersion}_NN.md`"
+                :href="`${REMOTE_SPEC_BASE}/iNNfo_${formatVersion}_NN.md`"
                 target="_blank"
                 rel="noopener noreferrer"
                 class="text-primary hover:underline break-all select-all font-semibold"
               >
-                https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/iNNfo_{{ formatVersion }}_NN.md
+                {{ REMOTE_SPEC_BASE }}/iNNfo_{{ formatVersion }}_NN.md
               </a>
               
               <span class="font-sans font-medium text-slate-400">Local Path:</span>
@@ -554,6 +554,7 @@ import { useToast } from '../../shared/useToast'
 import { useModelFrontmatter } from './composables/useModelFrontmatter'
 import { useVersionBump } from './composables/useVersionBump'
 import { useTemplateVersionNotice } from '../../composables/useTemplateVersionNotice'
+import { REMOTE_SPEC_BASE } from '../../config/samples'
 
 const props = defineProps<{
   rootNodeId: string

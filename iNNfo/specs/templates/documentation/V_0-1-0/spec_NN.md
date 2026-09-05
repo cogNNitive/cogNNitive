@@ -1,10 +1,10 @@
 ---
 spec_version: "V_0-2-0"
-spec_url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/templates/documentation/V_0-1-0/spec_NN.md"
+spec_url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/documentation/V_0-1-0/spec_NN.md"
 level: 2
 parent_spec:
   name: "iNNfo_V_0-2-0"
-  url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/iNNfo_V_0-2-0_NN.md"
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-2-0_NN.md"
 title: "Documentation Specification Template"
 template_version: "V_0-1-0"
 relationship_types:

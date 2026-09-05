@@ -2,9 +2,9 @@ const fs = require('fs');
 const path = require('path');
 
 const TEMPLATE_URL =
-  'https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/templates/cogNNitive/cogNNitive_V_0-1-0_NN.md';
+  'https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/cogNNitive/cogNNitive_V_0-1-0_NN.md';
 const INNFO_URL =
-  'https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/iNNfo_V_0-1-0_NN.md';
+  'https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-1-0_NN.md';
 const TEMPLATE_NAME = 'cogNNitive_V_0-1-0';
 
 const DOC_NOTICE =

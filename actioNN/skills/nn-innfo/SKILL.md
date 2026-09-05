@@ -249,10 +249,10 @@ El servidor `innfo-mcp` expone 15 herramientas deterministas basadas en `@cognni
 ## 2. Indicación Canónica de Especificaciones
 
 URLs estables de referencia (la versión va en el nombre del archivo — `main` ya está content-pinned):
-- **iNNfo (Nivel 1):** `https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/iNNfo_V_0-2-0_NN.md`
-- **Business (Nivel 2):** `https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/templates/business/business_V_0-2-0_NN.md`
-- **Procedures (Nivel 2):** `https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/templates/procedures/procedures_V_0-2-0_NN.md`
-- **Organization (Nivel 2):** `https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/templates/organization/organization_V_0-2-0_NN.md`
+- **iNNfo (Nivel 1):** `https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-2-0_NN.md`
+- **Business (Nivel 2):** `https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business/business_V_0-2-0_NN.md`
+- **Procedures (Nivel 2):** `https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/procedures/procedures_V_0-2-0_NN.md`
+- **Organization (Nivel 2):** `https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/organization/organization_V_0-2-0_NN.md`
 
 ### Regla de `parent_spec.url` en Modelos Nivel 3
 

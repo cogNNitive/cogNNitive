@@ -62,7 +62,7 @@ When a concept field definition declares `target_template` and the referenced su
 - THEN no template mismatch diagnostic is emitted
 
 #### Scenario: Submodel matches declared target_template by URL
-- GIVEN a field definition with `target_template:: https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/templates/procedures/procedures_V_0-1-0_NN.md`
+- GIVEN a field definition with `target_template:: https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/procedures/procedures_V_0-1-0_NN.md`
 - AND the referenced submodel file declares `parent_spec.url` matching that URL
 - WHEN validation executes
 - THEN no template mismatch diagnostic is emitted

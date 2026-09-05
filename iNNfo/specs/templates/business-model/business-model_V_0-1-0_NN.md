@@ -1,17 +1,17 @@
 ---
 spec_version: "V_0-2-0"
-spec_url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/templates/business-model/business-model_V_0-1-0_NN.md"
+spec_url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business-model/business-model_V_0-1-0_NN.md"
 level: 2
 parent_spec:
   name: "iNNfo_V_0-2-0"
-  url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/iNNfo_V_0-2-0_NN.md"
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-2-0_NN.md"
 template_version: "V_0-1-0"
 title: "Business Model Template"
 includes:
   - name: "organization"
-    url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/templates/organization/organization_V_0-2-0_NN.md"
+    url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/organization/organization_V_0-2-0_NN.md"
   - name: "projects"
-    url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/templates/projects/projects_V_0-2-0_NN.md"
+    url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/projects/projects_V_0-2-0_NN.md"
 relationship_types:
   hierarchy:
     enabled: true
@@ -811,7 +811,7 @@ To create a business model, create a level 3 FILE mode document with:
 level: 3
 parent_spec:
   name: "business-model_V_0-1-0"
-  url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/templates/business-model/business-model_V_0-1-0_NN.md"
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business-model/business-model_V_0-1-0_NN.md"
 model_version: "V_x-y-z"
 title: "<Your Business Name>"
 ---
@@ -857,7 +857,7 @@ This template has no sample of its own — its concepts are exercised by the
 # This template's parent:
 parent_spec:
   name: "iNNfo_V_0-2-0"
-  url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/iNNfo_V_0-2-0_NN.md"
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-2-0_NN.md"
 
 # This template's includes:
 includes:

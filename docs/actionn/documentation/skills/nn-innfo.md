@@ -7,7 +7,7 @@ generator: https://cognnitive.com/actionn/nn-design-presets
 
 # nn-innfo
 
-**Skill**: `nn-innfo` · **Version**: `V_0-1-0` · **Role**: Semantic Modeling & Architecture Coach
+**Skill**: `nn-innfo` · **Version**: `V_0-1-2` · **Role**: Semantic Modeling & Architecture Coach
 
 Guides LLMs and agents in authoring, scaffolding, editing, auditing, and validating **iNNfo-compliant files** (V_0-1-0 Meta-template specification with unified `NN` syntax: `# NN`, `## NN`, and `key:: value`).
 
