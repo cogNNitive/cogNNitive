@@ -2,6 +2,7 @@ import type { TemplateSchema } from '../schema'
 import { normalizeSeparators } from '../parser/slug'
 import type { ParseIssue, RecursiveParseResult, TemplateSchemaResolver } from './types'
 import { normalizePathKey, stripMdSuffix } from './paths'
+import { readWorkspaceId } from './workspaceId'
 
 export interface WorkspaceIndex {
   /** normalizePathKey(path) -> root node id */
@@ -32,35 +33,6 @@ function basename(p: string): string {
   const normalized = p.replace(/\\/g, '/')
   const segments = normalized.split('/').filter(Boolean)
   return segments[segments.length - 1] ?? normalized
-}
-
-/**
- * Minimal inline reimplementation of PR2's `readWorkspaceId(result)`.
- *
- * PR2 (workspace_id) is a sibling branch, not yet merged into this branch's
- * ancestry. Its `readWorkspaceId` reads `result.entrypointPath` — a field
- * this branch's `RecursiveParseResult` does not have — to identify exactly
- * which root node is the workspace entrypoint before reading its
- * `workspace_id` frontmatter field.
- *
- * As a narrow, self-contained substitute for this slice, the entrypoint is
- * approximated as the sole node with `parentId === null`: in every
- * `recursiveParse` traversal that reaches the worklist loop, that is
- * precisely the node `findPrimaryWorkspaceFile` (or the `index.md`
- * fallback) parsed first — every other node ends up linked as someone's
- * child. This intentionally returns `undefined` for the root-directory-scan
- * fallback (multiple standalone roots, no defined entrypoint), which is
- * consistent with "exactly one document... MAY declare workspace_id".
- *
- * TODO(reconcile at merge with PR2): once `entrypointPath` lands on
- * `RecursiveParseResult`, replace this with the real `readWorkspaceId`
- * import from `./workspaceId` and delete this function.
- */
-function readWorkspaceIdInline(result: RecursiveParseResult): string | undefined {
-  if (result.rootIds.length !== 1) return undefined
-  const entrypoint = result.nodes[result.rootIds[0]]
-  const value = entrypoint?.fields['workspace_id']?.value
-  return typeof value === 'string' && value.trim() !== '' ? value : undefined
 }
 
 /**
@@ -197,7 +169,7 @@ export function buildWorkspaceIndex(
     nodeSchema,
     extraParents,
     missing: [...missingSet],
-    workspaceId: readWorkspaceIdInline(result),
+    workspaceId: readWorkspaceId(result),
     issues,
   }
 }
