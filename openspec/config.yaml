@@ -42,6 +42,10 @@ testing:
       available: true
       command: 'npm --prefix iNNfo run format:check'
       fix_command: 'npm --prefix iNNfo run format'
+      # INFORMATIONAL — legacy gate. The repo carries ~236 pre-existing
+      # prettier-dirty files (baseline) and `format:check` is NOT wired into
+      # CI (CI runs `verify` + `quality` only). Do not block on or report
+      # this gate; only ensure a change introduces zero NEW drift.
 
 rules:
   proposal:
