@@ -211,14 +211,35 @@ export function useGraphRenderer(options: GraphRendererOptions) {
       colInst.set(cname, positions)
     })
 
-    // ── Draw flow lines (edges) between instances ──
+    // ── Compute depth sets for selection highlighting and expand icons ──
+    const selRoots = getSelectionRoots()
+    let depthShown = new Set<string>()
+    let collapsible = new Set<string>()
+    if (selRoots.length > 0) {
+      const ds = computeDepthSets(selRoots)
+      depthShown = ds.shown
+      collapsible = ds.collapsible
+    }
+
+    // ── SVG defs for linear gradients ──
+    let defs = svg.select<SVGDefsElement>('defs')
+    if (defs.empty()) {
+      defs = svg.insert('defs', ':first-child')
+    }
+
+    // ── Draw flow lines (edges) between instances with Bézier curves & gradients ──
+    const linkGen = d3
+      .linkHorizontal<any, [number, number]>()
+      .source((d) => d.source)
+      .target((d) => d.target)
+
     primaryEdges.forEach((e) => {
       const s = instPos.get(e.source),
         t = instPos.get(e.target)
       if (!s || !t) return
       
       // Determine direction to avoid lines crossing through cards
-      let sx, tx
+      let sx: number, tx: number
       if (s.x < t.x) {
         sx = s.x + s.w
         tx = t.x
@@ -232,33 +253,90 @@ export function useGraphRenderer(options: GraphRendererOptions) {
 
       const sy = s.y + s.h / 2
       const ty = t.y + t.h / 2
-      const mx = (sx + tx) / 2
+
+      let pathD: string | null = ''
+      if (s.x === t.x) {
+        // Same column: arch outwards to the right
+        const loopOffset = 45
+        pathD = `M ${sx} ${sy} C ${sx + loopOffset} ${sy}, ${tx + loopOffset} ${ty}, ${tx} ${ty}`
+      } else {
+        pathD = linkGen({
+          source: [sx, sy],
+          target: [tx, ty],
+        })
+      }
+
+      // Source and Target concept colors for gradient
+      const sNode = displayNodes.value.find((n) => n.id === e.source)
+      const tNode = displayNodes.value.find((n) => n.id === e.target)
+      const sColor = sNode ? getHexColor(sNode.concept) : e.color
+      const tColor = tNode ? getHexColor(tNode.concept) : e.color
+
+      let strokeColor = e.color
+      if (sColor && tColor) {
+        const gradId = `edge-grad-${e.source.replace(/[^a-zA-Z0-9_-]/g, '_')}-${e.target.replace(/[^a-zA-Z0-9_-]/g, '_')}`
+        if (defs.select(`#${gradId}`).empty()) {
+          const grad = defs
+            .append('linearGradient')
+            .attr('id', gradId)
+            .attr('gradientUnits', 'userSpaceOnUse')
+            .attr('x1', sx)
+            .attr('y1', sy)
+            .attr('x2', tx)
+            .attr('y2', ty)
+
+          grad
+            .append('stop')
+            .attr('offset', '0%')
+            .attr('stop-color', sColor)
+            .attr('stop-opacity', 0.65)
+
+          grad
+            .append('stop')
+            .attr('offset', '100%')
+            .attr('stop-color', tColor)
+            .attr('stop-opacity', 0.65)
+        }
+        strokeColor = `url(#${gradId})`
+      }
       
-      root
+      const path = root
         .append('path')
-        .attr('d', `M ${sx} ${sy} H ${mx} V ${ty} H ${tx}`)
+        .attr('d', pathD || '')
         .attr('fill', 'none')
-        .attr('stroke', e.color)
-        .attr('stroke-width', 1.5)
-        .attr('stroke-opacity', 0.3)
+        .attr('stroke', strokeColor)
+        .attr('stroke-width', 2)
+        .attr('stroke-opacity', 0.45)
         .attr('stroke-linecap', 'round')
         .attr('stroke-dasharray', getOriginDasharray(e.origin, e.type))
         .attr('data-edge', '')
         .attr('data-source', e.source)
         .attr('data-target', e.target)
-        .append('title')
-        .text(`${e.label} (${e.type})`)
-    })
+        .style('transition', 'stroke-opacity 0.2s ease, stroke-width 0.2s ease')
 
-    // ── Compute depth sets for selection highlighting and expand icons ──
-    const selRoots = getSelectionRoots()
-    let depthShown = new Set<string>()
-    let collapsible = new Set<string>()
-    if (selRoots.length > 0) {
-      const ds = computeDepthSets(selRoots)
-      depthShown = ds.shown
-      collapsible = ds.collapsible
-    }
+      path.append('title').text(`${e.label} (${e.type})`)
+
+      path
+        .on('mouseenter', function () {
+          d3.select(this)
+            .raise()
+            .attr('stroke-opacity', 0.95)
+            .attr('stroke-width', 3)
+        })
+        .on('mouseleave', function () {
+          const isSelected = selectedNodeId.value
+          if (isSelected) {
+            const isConnected = depthShown.has(e.source) && depthShown.has(e.target)
+            d3.select(this)
+              .attr('stroke-opacity', isConnected ? 0.8 : 0.05)
+              .attr('stroke-width', isConnected ? 2.5 : 1.5)
+          } else {
+            d3.select(this)
+              .attr('stroke-opacity', 0.45)
+              .attr('stroke-width', 2)
+          }
+        })
+    })
 
     // ── Draw concept column headers and instance nodes ──
     conceptOrder.forEach((cname, ci) => {

@@ -17,45 +17,86 @@ Ghostbusters is a professional paranormal investigation and elimination service 
 # NN Stakeholders
 
 ## NN Stakeholders: Ghostbusters Founders (Venkman, Stantz, Spengler)
+relationship_model:: Co-founders & Equity Partners
+tags:: [internal, executive, equity, founders]
 Co-founders and principal operators. They hold equal equity, bring complementary expertise (leadership, engineering, theoretical physics), and are the public face of the brand.
+
 ## NN Stakeholders: Winston Zeddemore
+relationship_model:: Salaried Field Operator
+tags:: [internal, operations, field, operator]
 Fourth team member, hired as field operator. Brings military experience and a pragmatic perspective. Salaried employee with equity participation.
+
 ## NN Stakeholders: Janine Melnitz
+relationship_model:: Office Manager & Dispatcher
+tags:: [internal, administration, dispatch, operations]
 Office manager and first point of contact. Handles scheduling, billing, and client intake.
+
 ## NN Stakeholders: Dana Barrett
+relationship_model:: Anchor Commercial Client
+tags:: [external, client, residential, vip]
 High-profile client. Her apartment haunting at 550 Central Park West was the catalyst that validated the business model.
+
 ## NN Stakeholders: Mayor of New York City
+relationship_model:: Municipal Sponsor & Civic Authority
+tags:: [external, municipal, government, sponsor]
 Government stakeholder who initially suppresses the Ghostbusters but later relies on them during the Gozer crisis.
+
 ## NN Stakeholders: EPA (Walter Peck)
+relationship_model:: Regulatory Oversight & Adversary
+tags:: [external, regulatory, oversight, antagonist]
 Regulatory antagonist. Represents the risk of government interference with untested technology.
+
 ## NN Stakeholders: Gozer the Gozerian
+relationship_model:: Extradimensional Threat
+tags:: [external, existential-threat, supernatural]
 Existential threat — the entity whose invasion validated the Ghostbusters' technology at the highest possible stakes.
 
 # NN Segments
 
 ## NN Segments: Residential Hauntings
+tags:: [b2c, residential, emergency, high-emotion]
 Homeowners and apartment dwellers experiencing paranormal activity. High emotional distress, willing to pay premium for rapid response.
+
 ## NN Segments: Commercial Properties
+tags:: [b2b, commercial, retainer, property-management]
 Businesses with supernatural disturbances threatening operations. Larger contracts, ongoing maintenance relationships possible.
+
 ## NN Segments: Government & Institutional
+tags:: [b2g, institutional, high-value, municipal]
 City, state, or federal agencies dealing with paranormal threats. High-value contracts, bureaucratic procurement.
+
 ## NN Segments: Emergency / Crisis Response
+tags:: [crisis, rapid-response, premium, high-stakes]
 Immediate, high-stakes situations involving mass hauntings or interdimensional events. Premium pricing.
 
 # NN Profiles
 
 ## NN Profiles: Distressed Homeowner
+relationship_type:: Dedicated Personal Support
+persona_notes:: Terrified urban resident seeking immediate paranormal relief, reassurance, and rapid bedroom/hallway clearance.
+tags:: [residential, panicked, urgent]
 Middle-class NYC resident experiencing unexplained phenomena. Panicked, skeptical, desperate. Needs reassurance and fast action.
+
 ## NN Profiles: Property Manager
+relationship_type:: Commercial Contract Management
+persona_notes:: Pragmatic facility executive prioritizing tenant retention, asset protection, and zero public panic.
+tags:: [commercial, pragmatic, b2b]
 Pragmatic, cost-conscious, concerned about tenant complaints and property value.
+
 ## NN Profiles: City Official
+relationship_type:: Bureaucratic Liaison
+persona_notes:: Risk-averse municipal bureaucrat needing official safety sign-offs, containment guarantees, and political cover.
+tags:: [government, bureaucratic, risk-averse]
 Bureaucratic, image-conscious, needs political cover before engaging unconventional services.
 
 # NN Persona
 
 ## NN Persona: Nancy the Homeowner
+tags:: [persona, residential, queens, homeowner]
 34-year-old teacher from Queens. Lives alone in a pre-war walk-up. Recently divorced, already on edge. Noticed objects moving at night, cold spots in the hallway. Found old newspaper clippings about the previous tenant who "went mad." Googled "paranormal investigator NYC" at 2 AM. Budget is tight but she cannot sleep another night.
+
 ## NN Persona: Carl the Property Manager
+tags:: [persona, commercial, midtown, property-manager]
 52-year-old managing a Midtown commercial building. Tenants are complaining about flickering lights, slamming doors, and a foul smell on the 7th floor. His boss wants it fixed yesterday. Carl does not believe in ghosts but he believes in lease renewals. Needs a discreet, professional solution with minimal media attention.
 
 # NN Segmentation
@@ -94,10 +135,18 @@ Potential future competitors if the government develops its own paranormal respo
 # NN Roles
 
 ## NN Roles: Field Operator
+scope:: internal
+tags:: [operations, frontline, field-unit, proton-certified]
 Front-line ghost capture and containment. Requires Proton Pack certification and at least 50 logged captures.
+
 ## NN Roles: Research Scientist
+scope:: internal
+tags:: [research, ecto-physics, r-and-d, hardware]
 Analysis of entity types, PKE readings, and containment protocols. Develops new trapping methodologies.
+
 ## NN Roles: Dispatch Coordinator
+scope:: internal
+tags:: [intake, communications, logistics, triage]
 Manages incoming calls, prioritizes responses, routes teams based on entity classification and location.
 
 # NN Problems
@@ -250,10 +299,21 @@ Ghostbusters charges a flat fee per call-out plus variable costs. Residential se
 # NN Offerings
 
 ## NN Offerings: Ghostbusters: The Video Game
+pricing_model:: Licensing Royalty (15% net sales)
+components_list:: Game Engine Integration, Voice Acting, Story Campaign, Spectral Physics Simulator
+tags:: [licensing, digital, brand-equity, media]
 Official video game tie-in that generates licensing revenue and brand awareness.
+
 ## NN Offerings: Merchandise Line
+pricing_model:: Unit Retail Margin (60%)
+components_list:: T-shirts, Proton Pack Replicas, Ghost Traps, Ecto-1 Diecast Models, Ectoplasm Slime
+tags:: [retail, physical, merchandising, brand]
 T-shirts, Proton Pack replicas, and ghost figures sold through the website and at events.
+
 ## NN Offerings: Training Workshops
+pricing_model:: Fixed Per Seat ($2,500/seat)
+components_list:: 2-Day Theory, PKE Calibration, Live Capture Drill, Certified Elimination Operator Diploma
+tags:: [education, certification, b2b, workforce]
 2-day certification course for aspiring paranormal technicians ($2,500/person).
 
 # NN Brochure
@@ -466,6 +526,7 @@ position_ref:: [[Staff Scientist]]
 compensation:: Equal partner equity share (25%), $75,000 base salary, full laboratory access.
 contributions:: Invented the Proton Pack, PKE Meter, and Containment Grid; leads theoretical ecto-physics research.
 image:: assets/people/egon_spengler.png
+tags:: [founder, partner, r-and-d, physics, core-team]
 Dr. Egon Spengler is the chief intellectual architect of Ghostbusters Inc., specializing in quantum ecto-physics and high-energy particle containment.
 
 ## NN Person: Dr. Peter Venkman
@@ -473,6 +534,7 @@ position_ref:: [[Lead Field Operator]]
 compensation:: Equal partner equity share (25%), $75,000 base salary, commercial bonus commissions.
 contributions:: Leads client negotiations, marketing, press relations, and operational decision-making.
 image:: assets/people/peter_venkman.png
+tags:: [founder, partner, commercial, press, core-team]
 Dr. Peter Venkman brings psychological insight, commercial charisma, and public leadership to the firm's business operations.
 
 ## NN Person: Dr. Raymond Stantz
@@ -480,6 +542,7 @@ position_ref:: [[Staff Scientist]]
 compensation:: Equal partner equity share (25%), $75,000 base salary, equipment trade access.
 contributions:: Co-developed the Proton Pack, maintains Ecto-1, and conducts field entrapment operations.
 image:: assets/people/raymond_stantz.png
+tags:: [founder, partner, engineering, occult-studies, core-team]
 Dr. Ray Stantz combines deep enthusiasm for occult history with practical mechanical and engineering expertise.
 
 ## NN Person: Winston Zeddemore
@@ -487,6 +550,7 @@ position_ref:: [[Lead Field Operator]]
 compensation:: $60,000 base salary, overtime hazard pay ($500 per captured class-V entity), healthcare benefits.
 contributions:: Operates heavy field hardware, manages Ecto-1 driving duties, and executes frontline captures.
 image:: assets/people/winston_zeddemore.png
+tags:: [partner, field-operations, heavy-equipment, veteran, core-team]
 Winston Zeddemore joined the team during peak NYC spectral activity, providing steady discipline and reliable execution under pressure.
 
 ## NN Person: Janine Melnitz
@@ -494,29 +558,56 @@ position_ref:: [[Dispatch Manager]]
 compensation:: $48,000 base salary, full health insurance, overtime dispatch bonuses.
 contributions:: Handles emergency intake calls, manages billing and legal notices, and monitors the containment grid warning alarms.
 image:: assets/people/janine_melnitz.png
+tags:: [operations, dispatch, administration, legal-intake]
 Janine Melnitz commands headquarters administration, maintaining operational focus during high-stress outbreak spikes.
 
 # NN Project
 
 ## NN Project: NYC Coverage Expansion
+tags:: [expansion, municipal, multi-borough, scaling]
 Extend guaranteed sub-30-minute response radius from Manhattan to all boroughs.
 
 # NN Phases
 
 ## NN Phases: Phase 1 — Brooklyn Coverage
+phase_status:: completed
+start_date:: "2026-04-01"
+end_date:: "2026-06-30"
+tags:: [expansion, brooklyn, satellite-office]
 Establish satellite dispatch in Brooklyn. Hire and train 2 new teams. Target: Q2.
+
 ## NN Phases: Phase 2 — Queens & Bronx
+phase_status:: in_progress
+start_date:: "2026-07-01"
+end_date:: "2026-09-30"
+tags:: [expansion, queens, bronx, recruitment]
 Mirror Brooklyn model. Target: Q3.
+
 ## NN Phases: Phase 3 — Staten Island & Long Island
+phase_status:: not_started
+start_date:: "2026-10-01"
+end_date:: "2026-12-31"
+tags:: [expansion, long-island, on-call]
 Lower-density coverage with on-call teams. Target: Q4.
 
 # NN Milestone
 
-## NN Milestone: Milestone: Brooklyn Dispatch Active
+## NN Milestone: Brooklyn Dispatch Active
+target_date:: "2026-06-30"
+milestone_status:: achieved
+tags:: [milestone, operations, brooklyn]
 Satellite office opened. 2 teams operational. 15-minute response time achieved.
-## NN Milestone: Milestone: 1,000th Entity Contained
+
+## NN Milestone: 1,000th Entity Contained
+target_date:: "2026-09-15"
+milestone_status:: in_progress
+tags:: [milestone, validation, metrics, insurance]
 Statistical significance for insurance data. Enables better premium negotiation with partners.
-## NN Milestone: Milestone: First Regional Replication
+
+## NN Milestone: First Regional Replication
+target_date:: "2026-12-15"
+milestone_status:: planned
+tags:: [milestone, franchise, replication]
 Boston or Philadelphia satellite launched. Validates the expansion playbook.
 
 # NN Metrics
@@ -630,20 +721,50 @@ Ghostbusters operates in a unique market with no direct competition but signific
 
 # NN Assumptions
 
-## NN Assumptions: Paranormal threats are real and measurable.
-## NN Assumptions: Clients will pay premium prices for containment services.
-## NN Assumptions: Municipal governments will tolerate unlicensed paranormal operations.
-## NN Assumptions: The containment unit will not reach critical mass.
+## NN Assumptions: Paranormal threats are real and measurable
+tags:: [core-belief, foundational, science]
+PKE activity can be quantified, categorized, and contained using electromagnetic particle beams.
+
+## NN Assumptions: Clients will pay premium prices for containment services
+tags:: [commercial, pricing, demand]
+Severe emotional distress and asset depreciation incentivize clients to accept premium incident fees.
+
+## NN Assumptions: Municipal governments will tolerate unlicensed paranormal operations
+tags:: [regulatory, civic, political]
+Civic necessity during crisis events supersedes strict statutory compliance in the short term.
+
+## NN Assumptions: The containment unit will not reach critical mass
+tags:: [facility, physics, safety]
+Subterranean vault grid storage capacity can accommodate entity intake through controlled ionization cycles.
 
 # NN Risks
 
 ## NN Risks: Technology Failure
+impact:: critical
+probability:: low
+mitigation:: Triple-redundant containment barriers, fail-safe magnetic seals, and routine accelerator cycle checks.
+tags:: [hardware, containment, critical-risk]
 Proton pack malfunction or containment unit breach could cause catastrophic damage.
+
 ## NN Risks: Regulatory Shutdown
+impact:: high
+probability:: medium
+mitigation:: Proactive municipal liaison, third-party radiation safety certifications, and emergency service MOU with City Hall.
+tags:: [regulatory, epa, compliance]
 EPA or city government could revoke operating permits due to safety concerns.
+
 ## NN Risks: Reputation Crisis
+impact:: high
+probability:: low
+mitigation:: Comprehensive incident reports, public relations disclosure protocols, and satisfaction guarantees.
+tags:: [brand, pr, reputation]
 A single high-profile failure could destroy the brand's credibility.
+
 ## NN Risks: Liability Exposure
+impact:: high
+probability:: medium
+mitigation:: $10M umbrella commercial liability coverage and signed pre-service client damage waivers.
+tags:: [legal, liability, insurance]
 Property damage or personal injury during operations could result in lawsuits beyond insurance coverage.
 
 # NN Suggestions

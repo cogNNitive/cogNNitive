@@ -7,12 +7,13 @@ This document records the official compliance audit status for all iNNfo Level 2
 ## 1. Compliance Criteria Key
 
 - **C1:** Grammar & Frontmatter (`level: 2`, no forbidden YAML keys)
-- **C2:** `# NN index` Block Purity (Concepts only in WikiLinks)
+- **C2:** `# NN index` Block Purity (Concepts only in WikiLinks; omitted in L3)
 - **C3:** Typed Reference Fields (`type:: reference` & WikiLink syntax)
 - **C4:** Unified Sample Universe (Ghostbusters Inc.)
-- **C5:** Proper Prose vs. Property Scoping
+- **C5:** Proper Prose vs. Property Scoping (Descriptions in prose Markdown)
 - **C6:** Comprehensive Concept Descriptions for UI Sidebar
 - **C7:** 100% English Technical Copy
+- **C8:** 100% Field & Marker Exhaustiveness (All fields populated, item-markers matrices included)
 
 ---
 
@@ -47,12 +48,13 @@ This document records the official compliance audit status for all iNNfo Level 2
 
 ## 3. Level 3 Canonical Samples Audit & Alignment Status
 
-| Category | Sample File | Model Version | C4 (Ghostbusters) | Status | Planned Action |
-|---|---|:---:|:---:|:---:|---|
-| **Business** | `Ghostbusters_V_0-1-0_business_NN.md` | `V_0-1-0` | ✅ | `PASSED` | Retain as V1 sample |
-| **Business** | `Ghostbusters_V_0-2-0_business_NN.md` | `V_0-2-0` | ✅ | `PASSED` | Master Ghostbusters sample |
-| **Analysis** | `Ghostbusters_V_0-2-0_analysis_NN.md` | `V_0-2-0` | ✅ | `PASSED` | Created canonical Ghostbusters risk & business analysis sample |
-| **Innovation** | `Ghostbusters_V_0-2-0_innovation_NN.md` | `V_0-2-0` | ✅ | `PASSED` | Created canonical Ghostbusters R&D innovation portfolio sample |
-| **Organization** | `Ghostbusters_V_0-2-0_organization_NN.md` | `V_0-2-0` | ✅ | `PASSED` | Created canonical Ghostbusters org sample |
-| **Procedures** | `Ghostbusters_V_0-2-0_procedures_NN.md` | `V_0-2-0` | ✅ | `PASSED` | Created canonical Ghostbusters containment procedure sample |
-| **Projects** | `Ghostbusters_V_0-2-0_projects_NN.md` | `V_0-2-0` | ✅ | `PASSED` | Created canonical Ghostbusters containment upgrade project sample |
+| Category | Sample File | Model Version | C2 | C4 | C5 | C8 (Exhaustiveness) | Status | Notes |
+|---|---|:---:|:---:|:---:|:---:|:---:|:---:|---|
+| **Business** | `Ghostbusters_V_0-1-0_business_NN.md` | `V_0-1-0` | ✅ | ✅ | ✅ | ⚠️ | `PASSED` | Retained V1 legacy sample |
+| **Business** | `Ghostbusters_V_0-2-0_business_NN.md` | `V_0-2-0` | ✅ | ✅ | ✅ | ✅ | `PASSED` | Enriched with typed fields, tags & item-markers matrix |
+| **Analysis** | `Ghostbusters_V_0-2-0_analysis_NN.md` | `V_0-2-0` | ✅ | ✅ | ✅ | ✅ | `PASSED` | Enriched with tags & 5-dimension item-markers matrix |
+| **Innovation** | `Ghostbusters_V_0-2-0_innovation_NN.md` | `V_0-2-1` | ✅ | ✅ | ✅ | ✅ | `PASSED` | Removed index block, unindented props, added tags & marker matrix |
+| **Organization** | `Ghostbusters_V_0-2-0_organization_NN.md` | `V_0-2-0` | ✅ | ✅ | ✅ | ✅ | `PASSED` | Enriched with tags & complexity item-markers matrix |
+| **Procedures** | `Ghostbusters_V_0-2-0_procedures_NN.md` | `V_0-2-0` | ✅ | ✅ | ✅ | ✅ | `PASSED` | Enriched with step tags & cross-referenced matrices |
+| **Projects** | `Ghostbusters_V_0-2-0_projects_NN.md` | `V_0-2-0` | ✅ | ✅ | ✅ | ✅ | `PASSED` | Enriched with tags & health item-markers matrix |
+| **Documentation** | `Ghostbusters_V_0-1-0_documentation_NN.md` | `V_0-1-0` | ✅ | ✅ | ✅ | ✅ | `PASSED` | Converted description:: property to Markdown prose + tags |
