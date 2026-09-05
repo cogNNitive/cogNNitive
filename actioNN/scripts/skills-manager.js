@@ -16,7 +16,7 @@ const commands = require('./lib/skills-commands.js');
 /**
  * Parses CLI command line arguments into structured SkillManagerArgs.
  * @param {string[]} argv
- * @returns {{ positional: string[], skillsDir: string | null, templatesDir: string | null, state: string | null, stateFile: string | null, yes: boolean, direction: string }}
+ * @returns {{ positional: string[], skillsDir: string | null, templatesDir: string | null, mcpDir: string | null, state: string | null, stateFile: string | null, yes: boolean, direction: string, agent: string, scope: string }}
  */
 function parseArgs(argv) {
   const args = {
