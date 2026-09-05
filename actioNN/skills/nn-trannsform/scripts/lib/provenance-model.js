@@ -110,6 +110,21 @@ function collectSources(mdDir) {
       mdFile: relFile,
     });
   }
+
+  // Disambiguate duplicate source names by prepending parent directory
+  const nameCounts = {};
+  for (const s of sources) {
+    nameCounts[s.name] = (nameCounts[s.name] || 0) + 1;
+  }
+  for (const s of sources) {
+    if (nameCounts[s.name] > 1) {
+      const parentDir = path.dirname(s.mdFile);
+      if (parentDir && parentDir !== '.') {
+        s.name = `${parentDir.replace(/\\/g, '/')} ${s.name}`;
+      }
+    }
+  }
+
   return sources;
 }
 

@@ -188,6 +188,11 @@ export function extractSubmodelRefs(
 
   const addRef = (target: string, author?: string) => {
     let cleanTarget = target.trim()
+    try {
+      cleanTarget = decodeURIComponent(cleanTarget)
+    } catch {
+      // keep raw target if malformed
+    }
     if (cleanTarget.startsWith('[[') && cleanTarget.endsWith(']]')) {
       cleanTarget = cleanTarget.slice(2, -2).trim()
     }
