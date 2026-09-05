@@ -4,7 +4,7 @@ import type { DirectoryHandleLike } from '../model/fs-types'
 import { recursiveParse } from '../model/recursiveParser'
 import { validateFormatContent, updateReferenceString } from '@cognnitive/innfo-core'
 import type { ModelDriver, ParseIssue, ValidationReport } from '@cognnitive/innfo-core'
-import { resolveParentSpecs } from '../services/SpecResolverService'
+import { resolveParentSpecs, warmTemplateCache } from '../services/SpecResolverService'
 
 import { useUiStore } from './uiStore'
 
@@ -187,7 +187,17 @@ export const useModelStore = defineStore('model', {
      * the call so workspaceStore.open() has a single integration point.
      */
     async parseFromHandle(handle: DirectoryHandleLike, driver?: ModelDriver): Promise<void> {
-      const result = await recursiveParse(handle, driver)
+      // C1: warm a synchronously-servable template cache BEFORE the parse so
+      // recursiveParse can follow `type:: model` fields (AD-04). A cold/partial
+      // cache is not an error — it degrades that node to today's traversal.
+      const templateCache = await warmTemplateCache(handle)
+      const result = await recursiveParse(handle, driver, {
+        resolveTemplateSchema: ({ frontmatter }) => {
+          const name = (frontmatter as { parent_spec?: { name?: string } } | undefined)?.parent_spec
+            ?.name
+          return name ? (templateCache.get(name.toLowerCase()) ?? null) : null
+        },
+      })
       await resolveParentSpecs(result.nodes, result.rootIds, handle, result.issues)
       this.parseIssues = result.issues
       this.setGraph(result.nodes, result.rootIds)

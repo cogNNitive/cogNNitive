@@ -14,6 +14,8 @@ import type {
   ValidationError,
   ParsedModel,
   SubmodelResolver,
+  SpecCache,
+  TemplateSchemaResolver,
 } from '@cognnitive/innfo-core'
 import { resolveTemplateWithCache, findModelFile, deriveNameFromUrl, getSpec } from './spec.js'
 import { buildIncludeContentMap } from './resolver-node.js'
@@ -79,6 +81,45 @@ function syncFindSubmodel(rootDir: string, cleanPath: string, referringDir?: str
   }
 
   return searchDirSync(rootDir)
+}
+
+/**
+ * Builds a SYNCHRONOUS `TemplateSchemaResolver` (innfo-core's C1 callback
+ * type, `recursiveParser/types.ts`) reading from an already-resolved
+ * `SpecCache` (produced by `resolveTemplateWithCache`). Every template named
+ * by a node's `parent_spec.name` — plus everything on its `includes` chain —
+ * is already present in `cache.specs`, so no I/O happens at call time.
+ *
+ * Not wired into `validateModel` in this slice (C1/PR3): the workspace-mode
+ * entry point that calls `recursiveParse` with this resolver is a later
+ * slice (PR5a). `validateModel`'s single-file behavior is unchanged here.
+ */
+export function buildTemplateSchemaResolverFromCache(
+  cache: SpecCache | null,
+): TemplateSchemaResolver {
+  return ({ frontmatter }) => {
+    if (!cache) return null
+    const name = (frontmatter as { parent_spec?: { name?: string } } | undefined)?.parent_spec
+      ?.name
+    if (!name) return null
+    const doc =
+      cache.specs.get(name) ??
+      [...cache.specs.values()].find((d) => d.name.toLowerCase() === name.toLowerCase())
+    if (!doc) return null
+    const resolveInclude = (ref: { name: string; url: string }): string | null => {
+      const direct = cache.specs.get(ref.name)
+      if (direct) return direct.rawContent
+      for (const d of cache.specs.values()) {
+        if (d.name.toLowerCase() === ref.name.toLowerCase()) return d.rawContent
+      }
+      return null
+    }
+    try {
+      return resolveTemplateSchema(doc.rawContent, resolveInclude).schema
+    } catch {
+      return null
+    }
+  }
 }
 
 /* ── validate_model ──────────────────────────────────────────── */
