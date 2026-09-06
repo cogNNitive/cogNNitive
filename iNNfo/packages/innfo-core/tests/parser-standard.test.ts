@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseModel, parseYaml, serializeModel } from '../src/parser'
+import { parseModel, parseYaml, serializeModel, parseMarkdownTable, parseTableRow } from '../src/parser'
 
 describe('Standardised Parser (TDD)', () => {
   it('parses complex nested frontmatter with standard YAML features', () => {
@@ -199,5 +199,28 @@ Alpha description.
     const reParsed = parseModel(serialized)
     expect(reParsed.conceptTags!['Task']).toEqual(['management', 'priority'])
     expect(reParsed.elements.get('Task')![0].tags).toEqual(['frontend', 'core'])
+  })
+
+  it('parses tables with optional leading and trailing delimiters (PR7 / C6)', () => {
+    const t1 = '| a | b |\n| :--- | :---: |\n| 1 | 2 |'
+    const t2 = 'a | b\n:--- | :---:\n1 | 2'
+    const t3 = '| a | b\n| :--- | :---:\n| 1 | 2'
+    const t4 = 'a | b |\n:--- | :---: |\n1 | 2 |'
+
+    const res1 = parseMarkdownTable(t1)
+    const res2 = parseMarkdownTable(t2)
+    const res3 = parseMarkdownTable(t3)
+    const res4 = parseMarkdownTable(t4)
+
+    expect(res1).toEqual([{ a: '1', b: '2' }])
+    expect(res2).toEqual(res1)
+    expect(res3).toEqual(res1)
+    expect(res4).toEqual(res1)
+
+    // parseTableRow direct checks
+    expect(parseTableRow('| a | b |')).toEqual(['a', 'b'])
+    expect(parseTableRow('a | b')).toEqual(['a', 'b'])
+    expect(parseTableRow('| a | b')).toEqual(['a', 'b'])
+    expect(parseTableRow('a | b |')).toEqual(['a', 'b'])
   })
 })
