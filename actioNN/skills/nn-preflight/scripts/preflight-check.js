@@ -30,6 +30,7 @@ const os = require('os');
 const path = require('path');
 const http = require('http');
 const https = require('https');
+const crypto = require('crypto');
 const { parseFocusedYaml, parseFrontmatter } = require('./lib/yaml-lite');
 
 const DEFAULT_MANIFEST_URL = process.env.SM_MANIFEST_URL ||
@@ -114,6 +115,101 @@ function parseManifest(text) {
   };
 }
 
+/* ── Workspace spec freshness scan (--workspace-dir) ───────────────── */
+
+const SPEC_SKIP_DIRS = new Set(['node_modules', '.git', 'dist', '.spec-cache', 'backups', 'archive']);
+
+function sha256(text) {
+  return crypto.createHash('sha256').update(text, 'utf-8').digest('hex');
+}
+
+/** Node native fetch with an AbortController timeout (mirrors `fetchString`). */
+async function fetchWithTimeout(url, timeoutMs = 6000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const resp = await fetch(url, { signal: controller.signal });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status} while fetching ${url}`);
+    return await resp.text();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** Recursive `.md` walk of `<workspace>/specs/`, skipping staging and cache dirs. */
+function walkSpecs(dir, files) {
+  let entries;
+  try {
+    entries = fs.readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return;
+  }
+  for (const entry of entries) {
+    if (entry.isDirectory()) {
+      if (entry.name.startsWith('.staging-')) continue;
+      if (SPEC_SKIP_DIRS.has(entry.name)) continue;
+      walkSpecs(path.join(dir, entry.name), files);
+    } else if (entry.isFile() && entry.name.endsWith('.md')) {
+      files.push(path.join(dir, entry.name));
+    }
+  }
+}
+
+/**
+ * Content-hash freshness scan of a workspace's `specs/` tree against each
+ * file's canonical remote (`spec_url`, fallback `parent_spec.url`). Files
+ * without a resolvable URL are skipped silently; unreachable remotes are
+ * recorded as `offline` (warning only, never a blocker).
+ */
+async function scanWorkspaceSpecs(workspaceDir) {
+  const files = [];
+  walkSpecs(path.join(workspaceDir, 'specs'), files);
+
+  let stale = 0;
+  let fresh = 0;
+  let offline = 0;
+  const items = [];
+
+  for (const file of files) {
+    let content;
+    try {
+      content = fs.readFileSync(file, 'utf-8');
+    } catch {
+      continue;
+    }
+    let fm;
+    try {
+      fm = parseFocusedYaml(parseFrontmatter(content));
+    } catch {
+      continue; // no frontmatter → not an iNNfo spec, skip silently
+    }
+    const url = fm.spec_url || (fm.parent_spec && fm.parent_spec.url);
+    if (!url) continue;
+
+    const relPath = path.relative(workspaceDir, file).replace(/\\/g, '/');
+    const localHash = sha256(content);
+    let status;
+    let detail;
+    try {
+      const remote = await fetchWithTimeout(url);
+      status = sha256(remote) === localHash ? 'fresh' : 'stale';
+    } catch (err) {
+      status = 'offline';
+      detail = err.message;
+    }
+
+    if (status === 'stale') stale++;
+    else if (status === 'fresh') fresh++;
+    else offline++;
+
+    const item = { type: 'spec-freshness', name: relPath, url, status };
+    if (detail) item.detail = detail;
+    items.push(item);
+  }
+
+  return { stale, fresh, offline, items };
+}
+
 async function runCheck(options = {}) {
   const isJson = options.json || process.argv.includes('--json');
   const manifestUrl = options.manifestUrl || process.env.SM_MANIFEST_URL || DEFAULT_MANIFEST_URL;
@@ -121,6 +217,7 @@ async function runCheck(options = {}) {
   const templatesDir = options.templatesDir || DEFAULT_TEMPLATES_DIR;
   const mcpDir = options.mcpDir || DEFAULT_MCP_DIR;
   const stateFile = options.stateFile || DEFAULT_STATE_FILE;
+  const workspaceDir = options.workspaceDir || null;
 
   const results = {
     timestamp: new Date().toISOString(),
@@ -146,6 +243,9 @@ async function runCheck(options = {}) {
       templatesTotal: 0,
       templatesOutdated: 0,
       templatesMissing: 0,
+      specsStale: 0,
+      specsFresh: 0,
+      specsOffline: 0,
     },
     items: [],
   };
@@ -164,6 +264,17 @@ async function runCheck(options = {}) {
     return results;
   }
 
+  // 1b. Workspace spec freshness scan (opt-in via --workspace-dir). Runs
+  // before the manifest fetch so the manifest-offline early return below can
+  // still fold staleness into ACTION_REQUIRED / exit 1.
+  if (workspaceDir) {
+    const specResults = await scanWorkspaceSpecs(workspaceDir);
+    results.summary.specsStale = specResults.stale;
+    results.summary.specsFresh = specResults.fresh;
+    results.summary.specsOffline = specResults.offline;
+    results.items.push(...specResults.items);
+  }
+
   // 2. Fetch Manifest
   let manifest;
   try {
@@ -178,7 +289,12 @@ async function runCheck(options = {}) {
       status: 'warning',
       detail: `Could not verify remote manifest (${err.message}). Using local state offline.`,
     });
-    // Offline mode: do not block if local files exist
+    // Offline mode: do not block if local files exist — but stale workspace
+    // specs are still a hard failure and must not be masked by the early return.
+    if (results.summary.specsStale > 0) {
+      results.status = 'ACTION_REQUIRED';
+      results.exitCode = 1;
+    }
     return results;
   }
 
@@ -272,8 +388,9 @@ async function runCheck(options = {}) {
   const hasMissing = results.summary.skillsMissing > 0 ||
                      results.summary.mcpMissing > 0 ||
                      results.summary.templatesMissing > 0;
+  const hasStaleSpecs = results.summary.specsStale > 0;
 
-  if (hasOutdated || hasMissing) {
+  if (hasOutdated || hasMissing || hasStaleSpecs) {
     results.status = 'ACTION_REQUIRED';
     results.exitCode = 1;
   } else {
@@ -288,6 +405,17 @@ function printHumanReport(results) {
   console.log('=== cogNNitive Environment & Integrity Gate ===');
   console.log(`Node.js: v${results.node.version} (${results.node.ok ? 'OK' : 'BLOCKER'})`);
 
+  if (results.summary.specsStale > 0) {
+    console.log(`\n⚠️  Stale workspace spec(s) detected (${results.summary.specsStale}):`);
+    for (const item of results.items) {
+      if (item.type === 'spec-freshness' && item.status === 'stale') {
+        console.log(`  - [STALE] ${item.name}`);
+        console.log(`    canonical: ${item.url}`);
+      }
+    }
+    console.log('  Remediation: delete/replace the local cached copy under specs/ and re-resolve from the canonical URL.\n');
+  }
+
   if (!results.manifest.reachable) {
     console.log(`⚠️  Remote manifest unreachable: ${results.manifest.error}`);
     console.log('Operating in offline cache mode.\n');
@@ -301,7 +429,7 @@ function printHumanReport(results) {
 
   console.log(`Status: ⚠️  UPDATES OR MISSING COMPONENTS DETECTED\n`);
 
-  const pending = results.items.filter(i => i.status === 'outdated' || i.status === 'missing');
+  const pending = results.items.filter(i => i.status === 'outdated' || i.status === 'missing' || i.status === 'stale');
   console.log('Detected items needing attention:');
   for (const item of pending) {
     const detail = item.status === 'outdated'
@@ -327,6 +455,7 @@ async function main() {
   const templatesDir = getArg('--templates-dir');
   const mcpDir = getArg('--mcp-dir');
   const stateFile = getArg('--state-file');
+  const workspaceDir = getArg('--workspace-dir');
 
   try {
     const results = await runCheck({
@@ -336,6 +465,7 @@ async function main() {
       templatesDir,
       mcpDir,
       stateFile,
+      workspaceDir,
     });
     if (isJson) {
       console.log(JSON.stringify(results, null, 2));

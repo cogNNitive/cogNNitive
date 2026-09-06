@@ -17,7 +17,7 @@ describe('buildTemplateSchemaResolverFromCache', () => {
     await rm(rootDir, { recursive: true, force: true })
   })
 
-  it('resolves a node\'s composed template schema synchronously from an already-warmed SpecCache, without I/O at call time', async () => {
+  it("resolves a node's composed template schema synchronously from an already-warmed SpecCache, without I/O at call time", async () => {
     const templateContent = [
       '---',
       'spec_version: "V_0-1-1"',
@@ -57,7 +57,7 @@ describe('buildTemplateSchemaResolverFromCache', () => {
     expect(schema!.concepts[0]!.fields?.[0]!.type).toBe('model')
   })
 
-  it('returns null when the node\'s parent_spec.name is not present in the cache (unknown template)', async () => {
+  it("returns null when the node's parent_spec.name is not present in the cache (unknown template)", async () => {
     const templateContent = [
       '---',
       'spec_version: "V_0-1-1"',
@@ -140,8 +140,19 @@ describe('validateModel workspace mode (PR5a wiring)', () => {
     ].join('\n')
     await writeFile(join(rootDir, 'startup_01_NN.md'), modelContent, 'utf-8')
 
-    const withoutWorkspace = await validateModel(rootDir, 'startup_01')
-    const withWorkspace = await validateModel(rootDir, 'startup_01', undefined, undefined, true)
+    const withoutWorkspace = await validateModel(
+      rootDir,
+      'startup_01',
+      undefined,
+      undefined,
+      false,
+      {
+        checkFreshness: false,
+      },
+    )
+    const withWorkspace = await validateModel(rootDir, 'startup_01', undefined, undefined, true, {
+      checkFreshness: false,
+    })
 
     // Real assertion: the Node-driver traversal actually ran (it would throw
     // on a broken driver implementation instead of resolving).

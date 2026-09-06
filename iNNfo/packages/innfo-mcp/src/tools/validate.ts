@@ -28,6 +28,7 @@ import type {
 } from '@cognnitive/innfo-core'
 import { resolveTemplateWithCache, findModelFile, deriveNameFromUrl, getSpec } from './spec.js'
 import { buildIncludeContentMap } from './resolver-node.js'
+import type { FreshnessResult } from './resolver-node.js'
 import { loadModel } from './model-io.js'
 
 function syncFindSubmodel(
@@ -262,11 +263,13 @@ export async function validateModel(
   content?: string,
   templateUrl?: string,
   workspace?: boolean,
+  options: { checkFreshness?: boolean } = {},
 ): Promise<{
   valid: boolean
   errors: ValidationError[]
   warnings: ValidationError[]
 }> {
+  const checkFreshness = options.checkFreshness ?? true
   let model: ParsedModel
 
   if (content) {
@@ -302,22 +305,28 @@ export async function validateModel(
   let resolveInclude: (ref: { name: string; url: string }) => string | null = () => null
   let resolutionDetail: string | null = null
   let specCache: SpecCache | null = null
+  let freshness: FreshnessResult | null = null
   const parentRef = model.frontmatter.parent_spec
   try {
     if (parentRef?.url && parentRef?.name) {
-      const resolved = await resolveTemplateWithCache(rootDir, parentRef.url, parentRef.name)
+      const resolved = await resolveTemplateWithCache(rootDir, parentRef.url, parentRef.name, {
+        checkFreshness,
+      })
       template = resolved.template
       resolveInclude = resolved.resolveInclude
       specCache = resolved.cache
+      freshness = resolved.freshness
     }
     if (!template && templateUrl) {
       const resolved = await resolveTemplateWithCache(
         rootDir,
         templateUrl,
         deriveNameFromUrl(templateUrl),
+        { checkFreshness },
       )
       template = resolved.template
       resolveInclude = resolved.resolveInclude
+      freshness = resolved.freshness
     }
   } catch (err) {
     if (
@@ -385,6 +394,18 @@ export async function validateModel(
         severity: 'warning',
       })
     }
+  }
+
+  // Staleness provenance: when the resolved template came from the local cache
+  // and its content hash differs from the canonical remote, surface a warning
+  // (never an error) — the failure mode must be loud, not silent, but a stale
+  // cache must not downgrade `valid`.
+  if (checkFreshness && freshness?.verdict === 'stale') {
+    warnings.push({
+      path: 'parent_spec',
+      message: `[TEMPLATE_CACHE_STALE] Local template cache for "${freshness.name}" differs from the canonical remote "${freshness.url}". Delete/replace the local copy under specs/ and re-validate.`,
+      severity: 'warning',
+    })
   }
 
   // D8: Decorate errors and warnings with originating file path

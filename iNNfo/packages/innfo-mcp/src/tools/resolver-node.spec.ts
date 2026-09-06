@@ -456,4 +456,143 @@ describe('NodeSpecResolver', () => {
       expect(map.get('security_v_1-0-0')).toBeDefined()
     })
   })
+
+  describe('Freshness check (D2, opt-in)', () => {
+    const remoteUrl = 'https://example.com/business_V_0-1-1_NN.md'
+    const localContent = [
+      '---',
+      'spec_version: "V_0-1-1"',
+      'level: 2',
+      'title: "Local Business Spec"',
+      '---',
+      'Local Content',
+    ].join('\n')
+
+    it('marks a local-tier doc stale when the remote content differs (fetch called once)', async () => {
+      await writeFile(join(specsDir, 'business_V_0-1-1_NN.md'), localContent, 'utf-8')
+      const remoteContent = localContent.replace('Local Content', 'Remote Content')
+      const fetchSpy = vi
+        .spyOn(global, 'fetch')
+        .mockImplementation(() =>
+          Promise.resolve({ ok: true, text: () => Promise.resolve(remoteContent) } as Response),
+        )
+
+      const result = await resolveParentChainNode(rootDir, remoteUrl, 'business_V_0-1-1', {
+        checkFreshness: true,
+      })
+
+      expect(fetchSpy).toHaveBeenCalledTimes(1)
+      const verdict = result.freshness?.get('business_V_0-1-1')
+      expect(verdict).toEqual({ name: 'business_V_0-1-1', url: remoteUrl, verdict: 'stale' })
+      expect(result.specs.get('business_V_0-1-1')?.frontmatter.title).toBe('Local Business Spec')
+    })
+
+    it('marks a local-tier doc fresh when the remote content matches', async () => {
+      await writeFile(join(specsDir, 'business_V_0-1-1_NN.md'), localContent, 'utf-8')
+      const fetchSpy = vi
+        .spyOn(global, 'fetch')
+        .mockImplementation(() =>
+          Promise.resolve({ ok: true, text: () => Promise.resolve(localContent) } as Response),
+        )
+
+      const result = await resolveParentChainNode(rootDir, remoteUrl, 'business_V_0-1-1', {
+        checkFreshness: true,
+      })
+
+      expect(fetchSpy).toHaveBeenCalledTimes(1)
+      expect(result.freshness?.get('business_V_0-1-1')?.verdict).toBe('fresh')
+    })
+
+    it('records unknown and still resolves when the freshness fetch rejects', async () => {
+      await writeFile(join(specsDir, 'business_V_0-1-1_NN.md'), localContent, 'utf-8')
+      const fetchSpy = vi.spyOn(global, 'fetch').mockRejectedValue(new Error('network disabled'))
+
+      const result = await resolveParentChainNode(rootDir, remoteUrl, 'business_V_0-1-1', {
+        checkFreshness: true,
+      })
+
+      expect(fetchSpy).toHaveBeenCalledTimes(1)
+      expect(result.freshness?.get('business_V_0-1-1')?.verdict).toBe('unknown')
+      expect(result.specs.get('business_V_0-1-1')).toBeDefined()
+    })
+
+    it('does not run a freshness check when content resolved from the network tier', async () => {
+      const remoteContent = [
+        '---',
+        'spec_version: "V_0-1-1"',
+        'level: 2',
+        'title: "Remote Business Spec"',
+        '---',
+        'Remote Content',
+      ].join('\n')
+      const fetchSpy = vi
+        .spyOn(global, 'fetch')
+        .mockImplementation(() =>
+          Promise.resolve({ ok: true, text: () => Promise.resolve(remoteContent) } as Response),
+        )
+
+      const result = await resolveParentChainNode(rootDir, remoteUrl, 'business_V_0-1-1', {
+        checkFreshness: true,
+      })
+
+      // The single fetch is the network resolution itself — no second fetch.
+      expect(fetchSpy).toHaveBeenCalledTimes(1)
+      expect(result.freshness?.size ?? 0).toBe(0)
+    })
+
+    it('does not run a freshness check for a step-0 local path URL', async () => {
+      const localPath = join(specsDir, 'business_V_0-1-1_NN.md')
+      await writeFile(localPath, localContent, 'utf-8')
+      const fetchSpy = vi.spyOn(global, 'fetch')
+
+      const result = await resolveParentChainNode(rootDir, localPath, 'business_V_0-1-1', {
+        checkFreshness: true,
+      })
+
+      expect(fetchSpy).not.toHaveBeenCalled()
+      expect(result.freshness?.size ?? 0).toBe(0)
+    })
+
+    it('records freshness only for the top document (depth 0), not chain parents', async () => {
+      await writeFile(
+        join(specsDir, 'iNNfo_V_0-2-0_NN.md'),
+        [
+          '---',
+          'spec_version: "V_0-2-0"',
+          'level: 1',
+          'title: "iNNfo Spec"',
+          '---',
+          'Spec Content',
+        ].join('\n'),
+        'utf-8',
+      )
+      const templateWithParent = [
+        '---',
+        'spec_version: "V_0-1-1"',
+        'level: 2',
+        'title: "Business Template"',
+        'parent_spec:',
+        '  name: iNNfo_V_0-2-0',
+        '  url: https://example.com/iNNfo_V_0-2-0_NN.md',
+        '---',
+        'Template Content',
+      ].join('\n')
+      await writeFile(join(specsDir, 'business_V_0-1-1_NN.md'), templateWithParent, 'utf-8')
+
+      const fetchSpy = vi
+        .spyOn(global, 'fetch')
+        .mockImplementation(() =>
+          Promise.resolve({ ok: true, text: () => Promise.resolve('changed') } as Response),
+        )
+
+      const result = await resolveParentChainNode(rootDir, remoteUrl, 'business_V_0-1-1', {
+        checkFreshness: true,
+      })
+
+      expect(fetchSpy).toHaveBeenCalledTimes(1)
+      expect(result.freshness?.size).toBe(1)
+      expect(result.freshness?.get('business_V_0-1-1')?.verdict).toBe('stale')
+      expect(result.freshness?.has('iNNfo_V_0-2-0')).toBe(false)
+    })
+  })
 })

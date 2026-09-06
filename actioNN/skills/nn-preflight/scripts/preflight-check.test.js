@@ -31,6 +31,30 @@ function serveManifest(content) {
   });
 }
 
+/** Serve different content per URL path (used for workspace spec freshness scenarios). */
+function serveRoutes(routes) {
+  return new Promise((resolve) => {
+    const server = http.createServer((req, res) => {
+      const route = routes[req.url];
+      if (route === undefined) {
+        res.writeHead(404);
+        res.end('not found');
+        return;
+      }
+      res.writeHead(200, { 'Content-Type': 'text/markdown' });
+      res.end(route);
+    });
+    server.listen(0, '127.0.0.1', () => {
+      const { port } = server.address();
+      resolve({
+        url: `http://127.0.0.1:${port}`,
+        routes,
+        close: () => new Promise((r) => server.close(r)),
+      });
+    });
+  });
+}
+
 function runScriptAsync(args, env = {}) {
   return new Promise((resolve) => {
     const child = spawn('node', [preflightScript, ...args], { env: { ...process.env, ...env } });
@@ -218,6 +242,186 @@ agent-bootstrap:
       assert.strictEqual(parsedRes.summary.skillsTotal, 1);
       assert.strictEqual(parsedRes.summary.skillsOutdated, 0);
       console.log('✔ BOM in state file is stripped and parsed correctly');
+    } finally {
+      await server.close();
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }
+
+  // Test 5: Workspace scan — stale spec blocks preflight (exit 1 + ACTION_REQUIRED)
+  {
+    const emptyManifest = `---
+agent-bootstrap:
+  version: "2.0"
+  skills: []
+  templates: []
+---
+`;
+    const server = await serveRoutes({
+      '/manifest.md': emptyManifest,
+      '/spec.md': '# REMOTE CONTENT\n',
+    });
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'preflight-ws-stale-'));
+    try {
+      const workspaceDir = path.join(tmpDir, 'ws');
+      fs.mkdirSync(path.join(workspaceDir, 'specs'), { recursive: true });
+      fs.writeFileSync(
+        path.join(workspaceDir, 'specs', 'workspace_V_0-2-0_spec_NN.md'),
+        `---\nspec_url: "${server.url}/spec.md"\n---\n# LOCAL CONTENT\n`,
+        'utf-8',
+      );
+
+      const res = await runScriptAsync([
+        '--json',
+        '--workspace-dir', workspaceDir,
+        '--manifest-url', `${server.url}/manifest.md`,
+      ]);
+
+      assert.strictEqual(res.status, 1, `Stale spec must exit 1. Got: ${res.stdout} ${res.stderr}`);
+      const parsedRes = JSON.parse(res.stdout);
+      assert.strictEqual(parsedRes.status, 'ACTION_REQUIRED');
+      assert.strictEqual(parsedRes.summary.specsStale, 1);
+      assert.strictEqual(parsedRes.summary.specsFresh, 0);
+      const item = parsedRes.items.find((i) => i.type === 'spec-freshness');
+      assert.ok(item, 'a spec-freshness item must be reported');
+      assert.strictEqual(item.status, 'stale');
+      assert.ok(item.name.includes('workspace_V_0-2-0_spec_NN.md'), 'item names the local file');
+      assert.ok(item.url.includes('/spec.md'), 'item carries the canonical remote URL');
+      console.log('✔ Stale workspace spec triggers exit 1 + ACTION_REQUIRED');
+    } finally {
+      await server.close();
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }
+
+  // Test 6: Workspace scan — all-fresh specs pass (exit 0)
+  {
+    const emptyManifest = `---
+agent-bootstrap:
+  version: "2.0"
+  skills: []
+  templates: []
+---
+`;
+    const localContent = `---\nspec_url: "${''}"\n---\n# IDENTICAL CONTENT\n`;
+    const server = await serveRoutes({
+      '/manifest.md': emptyManifest,
+      '/spec.md': localContent,
+    });
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'preflight-ws-fresh-'));
+    try {
+      const workspaceDir = path.join(tmpDir, 'ws');
+      fs.mkdirSync(path.join(workspaceDir, 'specs'), { recursive: true });
+      // The served copy and the local copy MUST be byte-identical (same URL line).
+      const specContent = localContent.replace('""', `"${server.url}/spec.md"`);
+      fs.writeFileSync(
+        path.join(workspaceDir, 'specs', 'workspace_V_0-2-0_spec_NN.md'),
+        specContent,
+        'utf-8',
+      );
+      // Re-serve the exact local bytes so both hashes match.
+      server.routes['/spec.md'] = specContent;
+
+      const res = await runScriptAsync([
+        '--json',
+        '--workspace-dir', workspaceDir,
+        '--manifest-url', `${server.url}/manifest.md`,
+      ]);
+
+      assert.strictEqual(res.status, 0, `Fresh spec must exit 0. Got: ${res.stdout} ${res.stderr}`);
+      const parsedRes = JSON.parse(res.stdout);
+      assert.strictEqual(parsedRes.status, 'OK');
+      assert.strictEqual(parsedRes.summary.specsStale, 0);
+      assert.strictEqual(parsedRes.summary.specsFresh, 1);
+      console.log('✔ All-fresh workspace specs pass preflight');
+    } finally {
+      await server.close();
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }
+
+  // Test 7: Workspace scan — spec without a canonical URL is skipped silently
+  {
+    const emptyManifest = `---
+agent-bootstrap:
+  version: "2.0"
+  skills: []
+  templates: []
+---
+`;
+    const server = await serveManifest(emptyManifest);
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'preflight-ws-nourl-'));
+    try {
+      const workspaceDir = path.join(tmpDir, 'ws');
+      fs.mkdirSync(path.join(workspaceDir, 'specs'), { recursive: true });
+      fs.writeFileSync(
+        path.join(workspaceDir, 'specs', 'orphan_NN.md'),
+        '---\ntitle: "No URL"\n---\n',
+        'utf-8',
+      );
+
+      const res = await runScriptAsync([
+        '--json',
+        '--workspace-dir', workspaceDir,
+        '--manifest-url', server.url,
+      ]);
+
+      assert.strictEqual(res.status, 0, `No-URL spec must not block. Got: ${res.stdout} ${res.stderr}`);
+      const parsedRes = JSON.parse(res.stdout);
+      assert.strictEqual(parsedRes.summary.specsStale, 0);
+      assert.strictEqual(parsedRes.summary.specsFresh, 0);
+      assert.strictEqual(parsedRes.summary.specsOffline, 0);
+      assert.strictEqual(
+        parsedRes.items.filter((i) => i.type === 'spec-freshness').length,
+        0,
+        'no spec-freshness item for a file without a canonical URL',
+      );
+      console.log('✔ Spec without canonical URL is skipped silently');
+    } finally {
+      await server.close();
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }
+
+  // Test 8: No --workspace-dir → staleness fields default to zero (global-env audit unchanged)
+  {
+    const manifestContent = `---
+agent-bootstrap:
+  version: "2.0"
+  skills:
+    - name: nn-innfo
+      commit: "1111111111111111111111111111111111111111"
+      version: "V_0-1-0"
+  templates: []
+---
+`;
+    const server = await serveManifest(manifestContent);
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'preflight-ws-none-'));
+    try {
+      const skillsDir = path.join(tmpDir, 'skills');
+      const stateFile = path.join(tmpDir, 'bootstrap-state.json');
+      fs.mkdirSync(path.join(skillsDir, 'nn-innfo'), { recursive: true });
+      fs.writeFileSync(stateFile, JSON.stringify({
+        manifest: server.url,
+        skills: {
+          'nn-innfo': { commit: '1111111111111111111111111111111111111111', version: 'V_0-1-0' },
+        },
+      }));
+
+      const res = await runScriptAsync([
+        '--json',
+        '--skills-dir', skillsDir,
+        '--state-file', stateFile,
+        '--manifest-url', server.url,
+      ]);
+
+      assert.strictEqual(res.status, 0, `No-flag run must stay exit 0. Got: ${res.stdout} ${res.stderr}`);
+      const parsedRes = JSON.parse(res.stdout);
+      assert.strictEqual(parsedRes.status, 'OK');
+      assert.strictEqual(parsedRes.summary.specsStale, 0);
+      assert.strictEqual(parsedRes.summary.specsFresh, 0);
+      assert.strictEqual(parsedRes.summary.specsOffline, 0);
+      console.log('✔ No --workspace-dir run leaves global-env audit unchanged');
     } finally {
       await server.close();
       fs.rmSync(tmpDir, { recursive: true, force: true });

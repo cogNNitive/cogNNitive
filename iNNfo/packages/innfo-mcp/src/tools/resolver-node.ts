@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { readdir, readFile, mkdir, writeFile, rename, rm } from 'node:fs/promises'
 import { join, basename, isAbsolute } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -9,6 +10,22 @@ import type {
   ResolverOptions,
   ResolvedTemplatePackage,
 } from '@cognnitive/innfo-core'
+
+export type FreshnessVerdict = 'fresh' | 'stale' | 'unknown'
+
+export interface FreshnessResult {
+  name: string
+  url: string
+  verdict: FreshnessVerdict
+}
+
+export type ResolverOptionsWithFreshness = ResolverOptions & {
+  globalDir?: string
+  skillsDir?: string
+  checkFreshness?: boolean
+}
+
+export type ResolvedCache = SpecCache & { freshness?: Map<string, FreshnessResult> }
 
 export function isLocalPath(url: string): boolean {
   if (!url) return false
@@ -80,6 +97,29 @@ async function download(url: string, timeout: number): Promise<string> {
     return await resp.text()
   } finally {
     clearTimeout(timer)
+  }
+}
+
+function sha256(content: string): string {
+  return createHash('sha256').update(content, 'utf-8').digest('hex')
+}
+
+/**
+ * Compare the content hash of a locally cached spec against its canonical
+ * remote. Read-only: never writes back to `specs/`. Any failure (network,
+ * timeout, HTTP error) degrades to `unknown` — freshness must never fail
+ * resolution.
+ */
+async function freshnessVerdict(
+  url: string,
+  localContent: string,
+  timeout: number,
+): Promise<FreshnessVerdict> {
+  try {
+    const remote = await download(url, timeout)
+    return sha256(localContent) === sha256(remote) ? 'fresh' : 'stale'
+  } catch {
+    return 'unknown'
   }
 }
 
@@ -514,13 +554,14 @@ export async function resolveParentChainNode(
   rootDir: string,
   parentUrl: string,
   parentName: string,
-  options: ResolverOptions & { globalDir?: string; skillsDir?: string } = {},
-): Promise<SpecCache> {
+  options: ResolverOptionsWithFreshness = {},
+): Promise<ResolvedCache> {
   const maxDepth = options.maxDepth ?? MAX_DEPTH_DEFAULT
   const timeout = options.timeout ?? 10000
   const specsDir = join(rootDir, 'specs')
   const specs = new Map<string, SpecDocument>()
   const chain: string[] = []
+  const freshness = new Map<string, FreshnessResult>()
 
   let currentUrl: string | undefined = parentUrl
   let currentName: string | undefined = parentName
@@ -530,6 +571,7 @@ export async function resolveParentChainNode(
 
   while (currentUrl && currentName && depth < maxDepth) {
     let content: string | null = null
+    let resolvedFromLocalTier = false
     const attempted: string[] = []
 
     // 0. If currentUrl is a local file path or file:// URI, read directly via readFile
@@ -551,6 +593,7 @@ export async function resolveParentChainNode(
       const pkg = await resolveTemplatePackage(rootDir, currentName, undefined, options)
       if (pkg) {
         content = await readFile(pkg.specFilePath, 'utf-8')
+        resolvedFromLocalTier = true
       }
     }
 
@@ -597,6 +640,22 @@ export async function resolveParentChainNode(
     specs.set(currentName, doc)
     chain.push(currentName)
 
+    // Opt-in freshness: compare the requested template (depth 0) that came
+    // from a LOCAL tier against its canonical remote. Chain parents are never
+    // checked; network-resolved and local-path docs are not compared.
+    if (
+      options.checkFreshness === true &&
+      depth === 0 &&
+      resolvedFromLocalTier &&
+      /^https?:\/\//i.test(currentUrl)
+    ) {
+      freshness.set(currentName, {
+        name: currentName,
+        url: currentUrl,
+        verdict: await freshnessVerdict(currentUrl, content, timeout),
+      })
+    }
+
     currentName = doc.parentName
     currentUrl = doc.parentUrl
     depth++
@@ -612,7 +671,9 @@ export async function resolveParentChainNode(
   // unresolvable include is left out and surfaces later as a validation error.
   await resolveIncludesInto(specs, specsDir, timeout)
 
-  return { specs, chain }
+  const result: ResolvedCache = { specs, chain }
+  if (options.checkFreshness === true) result.freshness = freshness
+  return result
 }
 
 /** Resolve one spec's raw content: local specs dir first, 4-tier package resolver second, then network. */
