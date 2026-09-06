@@ -27,6 +27,9 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
   },
+  "engines": {
+    "node": ">=20.15"
+  },
   "dependencies": {
     "@cognnitive/innfo-core": "^0.2.5",
     "@modelcontextprotocol/sdk": "^1.19.0"
