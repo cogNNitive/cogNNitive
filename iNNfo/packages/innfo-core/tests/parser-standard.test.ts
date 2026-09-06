@@ -135,6 +135,58 @@ En España fallecieron 439.146 personas en 2024 (INE).
     expect(serialized).toContain('**TAM:** ~500.000 procesos de reparto anuales.')
   })
 
+  it('keeps bullet lines as element prose in `description` (C4)', () => {
+    const modelContent = `---
+spec_version: "V_0-2-0"
+level: 3
+model_version: "V_1-0-0"
+title: "Bullet Prose"
+---
+
+# NN Stakeholders
+
+## NN Stakeholders: Customer
+
+importance:: "high"
+
+- one
+- two
+`
+    const model = parseModel(modelContent)
+    const customer = model.elements.get('Stakeholders')![0]
+    expect(customer.description).toContain('- one')
+    expect(customer.description).toContain('- two')
+    expect(customer.fields.importance).toBe('high')
+
+    const serialized = serializeModel(model)
+    expect(serialized).toContain('- one')
+    expect(serialized).toContain('- two')
+
+    const reparsed = parseModel(serialized)
+    expect(reparsed.elements.get('Stakeholders')![0].description).toContain('- one')
+  })
+
+  it('keeps a `key:: value` line right after the header as a field, not prose (C4)', () => {
+    const modelContent = `---
+spec_version: "V_0-2-0"
+level: 3
+model_version: "V_1-0-0"
+title: "Field vs Prose"
+---
+
+# NN Stakeholders
+
+## NN Stakeholders: Customer
+
+category:: priority
+- note
+`
+    const model = parseModel(modelContent)
+    const customer = model.elements.get('Stakeholders')![0]
+    expect(customer.fields.category).toBe('priority')
+    expect(customer.description).toContain('- note')
+  })
+
   it('parses tags:: property correctly and normalizes them', () => {
     const modelContent = `---
 spec_version: "V_0-2-0"

@@ -161,12 +161,14 @@ export function parseConceptSection(conceptName: string, content: string): Parse
       }
     }
 
-    if (!line.trim().startsWith('*') && !line.trim().startsWith('-')) {
-      if (seenElement) {
-        descriptionLines.push(line)
-      } else {
-        leadingLines.push(line)
-      }
+    // Element prose: keep every non-field, non-heading line, including Markdown
+    // bullet lines (`-`/`*`) — they are prose, not structural delimiters. The
+    // serializer re-emits `description` verbatim, so the round-trip holds once
+    // the parser stops dropping them.
+    if (seenElement) {
+      descriptionLines.push(line)
+    } else {
+      leadingLines.push(line)
     }
   }
 
