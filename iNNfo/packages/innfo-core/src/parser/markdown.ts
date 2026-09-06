@@ -4,10 +4,20 @@ export const WIKILINK_RE = /\[\[([^\]]+)\]\]/g
 /** Normalize raw source before pattern matching. Called once at every public
  *  parse entry point so downstream regexes and `split('\n')` calls see a
  *  canonical form: LF line endings (a trailing `\r` breaks `$`-anchored
- *  bullet/section patterns on CRLF-saved files). */
+ *  bullet/section patterns on CRLF-saved files) and no leading UTF-8 BOM
+ *  (`\uFEFF`, which defeats every `^---` frontmatter anchor). */
 export function normalizeSource(text: string): string {
   // CRLF/CR → LF so `$`-anchored patterns work on Windows-saved files.
-  return text.replace(/\r\n?/g, '\n')
+  // BOM → strip so `^---` frontmatter anchors match on BOM-saved files.
+  return text.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n')
+}
+
+/** Strip the leading YAML frontmatter block from a raw document (BOM/CRLF
+ *  normalized first), returning the body text. Shared by the parser, the
+ *  validator's format checks, and the recursive workspace walker so all three
+ *  agree on where the frontmatter ends. */
+export function stripFrontmatter(raw: string): string {
+  return normalizeSource(raw).replace(YAML_BLOCK_RE, '')
 }
 
 export function parseMarkdownTable(md: string): Record<string, string>[] {

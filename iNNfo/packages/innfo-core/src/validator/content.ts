@@ -1,5 +1,5 @@
 import { ValidationCheck, ValidationReport } from '../types'
-import { parseModel } from '../parser'
+import { parseModel, stripFrontmatter } from '../parser'
 import { VERSION_RE, WIKILINK_RE, SECTION_NN_RE, RESERVED_CONCEPT_NAMES } from './constants'
 import { CONCEPT_DEFINITION } from '../schema'
 
@@ -248,7 +248,7 @@ export function validateFormatContent(
 
   // ── Body syntax ────────────────────────────────────────────────
 
-  const body = content.replace(/^---[\s\S]*?---\n?/, '').trim()
+  const body = stripFrontmatter(content).trim()
   const hasBody = body.length > 0
 
   // 7. Document notice
