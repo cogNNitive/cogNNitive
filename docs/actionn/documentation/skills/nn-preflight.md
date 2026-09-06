@@ -7,7 +7,7 @@ generator: https://cognnitive.com/actionn/nn-design-presets
 
 # nn-preflight
 
-**Skill**: `nn-preflight` · **Version**: `V_0-1-0` · **Role**: Environment Readiness Gate
+**Skill**: `nn-preflight` · **Version**: `V_0-1-1` · **Role**: Environment Readiness Gate
 
 Environment readiness gate for cogNNitive workflows. Runs Tier 1 checks (Node.js >= 18, `innfo-mcp` availability, workspace layout) and optional Tier 2 checks (iNNfo output workspace structure, semantic source validation), then reports blockers, warnings, and verified status.
 
@@ -60,6 +60,14 @@ node scripts/preflight-check.js
 ### Tier 2 Checks (iNNfo Output Workflows)
 1. **Model Workspace Structure**: Verifies `models/` holds valid `*_NN.md` models and `index.md` contains `# NN index`.
 2. **Semantic Link Validation**: Verifies that every source path cited in `sources:: [...]` physically exists in `sources/nn/`.
+
+### Tier 3 Checks (Workspace Template Upgrades — Informational)
+1. **Template upgrade detection**: when `--workspace-dir` is provided and the workspace
+   contains Level-3 models, classifies each model's pinned template against the committed
+   Level-2 template catalog (`iNNfo/specs/templates/catalog.json`). Reports `current` /
+   `upgrade-available` (with `major`/`minor`/`patch` gap) / `ahead` / `unlisted`. Available
+   upgrades are informational and never flip the exit code. Offline catalog → non-blocking
+   `offline` notice. Migration is handled by `nn-upgrade`.
 
 ---
 

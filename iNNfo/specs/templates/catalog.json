@@ -1,0 +1,224 @@
+{
+  "generator": "scripts/template-catalog.mjs",
+  "templates": {
+    "analysis": {
+      "name": "analysis",
+      "adopted": "V_0-2-0",
+      "versions": [
+        {
+          "template_version": "V_0-1-0",
+          "spec_version": "V_0-2-0",
+          "title": "Analysis Template",
+          "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/analysis/analysis_V_0-1-0_NN.md"
+        },
+        {
+          "template_version": "V_0-2-0",
+          "spec_version": "V_0-2-1",
+          "title": "Analysis Template",
+          "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/analysis/analysis_V_0-2-0_NN.md"
+        }
+      ]
+    },
+    "base": {
+      "name": "base",
+      "adopted": "V_0-1-0",
+      "versions": [
+        {
+          "template_version": "V_0-1-0",
+          "spec_version": "V_0-1-0",
+          "title": "Base Workspace Overview Template",
+          "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/base/base_V_0-1-0_spec_NN.md"
+        }
+      ]
+    },
+    "blank": {
+      "name": "blank",
+      "adopted": "V_0-2-0",
+      "versions": [
+        {
+          "template_version": "V_0-1-0",
+          "spec_version": "V_0-1-0",
+          "title": "Blank Template",
+          "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/blank/blank_V_0-1-0_NN.md"
+        },
+        {
+          "template_version": "V_0-2-0",
+          "spec_version": "V_0-2-1",
+          "title": "Blank Template",
+          "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/blank/blank_V_0-2-0_NN.md"
+        }
+      ]
+    },
+    "business": {
+      "name": "business",
+      "adopted": "V_0-2-0",
+      "versions": [
+        {
+          "template_version": "V_0-1-0",
+          "spec_version": "V_0-1-0",
+          "title": "Business Template",
+          "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business/business_V_0-1-0_NN.md"
+        },
+        {
+          "template_version": "V_0-2-0",
+          "spec_version": "V_0-2-1",
+          "title": "Business Template",
+          "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business/business_V_0-2-0_NN.md"
+        }
+      ]
+    },
+    "business-model": {
+      "name": "business-model",
+      "adopted": "V_0-2-0",
+      "versions": [
+        {
+          "template_version": "V_0-1-0",
+          "spec_version": "V_0-2-0",
+          "title": "Business Model Template",
+          "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business-model/business-model_V_0-1-0_NN.md"
+        },
+        {
+          "template_version": "V_0-2-0",
+          "spec_version": "V_0-2-1",
+          "title": "Business Model Template",
+          "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business-model/business-model_V_0-2-0_NN.md"
+        }
+      ]
+    },
+    "cogNNitive": {
+      "name": "cogNNitive",
+      "adopted": "V_0-2-0",
+      "versions": [
+        {
+          "template_version": "V_0-1-0",
+          "spec_version": "V_0-1-0",
+          "title": "cogNNitive Template",
+          "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/cogNNitive/cogNNitive_V_0-1-0_NN.md"
+        },
+        {
+          "template_version": "V_0-2-0",
+          "spec_version": "V_0-2-1",
+          "title": "cogNNitive Template",
+          "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/cogNNitive/cogNNitive_V_0-2-0_NN.md"
+        }
+      ]
+    },
+    "documentation": {
+      "name": "documentation",
+      "adopted": "V_0-2-0",
+      "versions": [
+        {
+          "template_version": "V_0-1-0",
+          "spec_version": "V_0-2-0",
+          "title": "Documentation Specification Template",
+          "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/documentation/V_0-1-0/spec_NN.md"
+        },
+        {
+          "template_version": "V_0-2-0",
+          "spec_version": "V_0-2-0",
+          "title": "Documentation Specification Template",
+          "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/documentation/V_0-2-0/spec_NN.md"
+        }
+      ]
+    },
+    "innovation": {
+      "name": "innovation",
+      "adopted": "V_0-2-0",
+      "versions": [
+        {
+          "template_version": "V_0-1-0",
+          "spec_version": "V_0-1-0",
+          "title": "Innovation Template",
+          "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/innovation/innovation_V_0-1-0_NN.md"
+        },
+        {
+          "template_version": "V_0-2-0",
+          "spec_version": "V_0-2-1",
+          "title": "Innovation Template",
+          "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/innovation/innovation_V_0-2-0_NN.md"
+        }
+      ]
+    },
+    "organization": {
+      "name": "organization",
+      "adopted": "V_0-2-0",
+      "versions": [
+        {
+          "template_version": "V_0-1-0",
+          "spec_version": "V_0-1-0",
+          "title": "Organization Template",
+          "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/organization/organization_V_0-1-0_NN.md"
+        },
+        {
+          "template_version": "V_0-2-0",
+          "spec_version": "V_0-2-1",
+          "title": "Organization Template",
+          "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/organization/organization_V_0-2-0_NN.md"
+        }
+      ]
+    },
+    "procedures": {
+      "name": "procedures",
+      "adopted": "V_0-2-0",
+      "versions": [
+        {
+          "template_version": "V_0-1-0",
+          "spec_version": "V_0-1-0",
+          "title": "Procedures Template",
+          "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/procedures/procedures_V_0-1-0_NN.md"
+        },
+        {
+          "template_version": "V_0-2-0",
+          "spec_version": "V_0-2-1",
+          "title": "Procedures Template",
+          "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/procedures/procedures_V_0-2-0_NN.md"
+        }
+      ]
+    },
+    "projects": {
+      "name": "projects",
+      "adopted": "V_0-2-0",
+      "versions": [
+        {
+          "template_version": "V_0-1-0",
+          "spec_version": "V_0-1-0",
+          "title": "Projects Template",
+          "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/projects/projects_V_0-1-0_NN.md"
+        },
+        {
+          "template_version": "V_0-2-0",
+          "spec_version": "V_0-2-1",
+          "title": "Projects Template",
+          "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/projects/projects_V_0-2-0_NN.md"
+        }
+      ]
+    },
+    "workspace": {
+      "name": "workspace",
+      "adopted": "V_0-3-0",
+      "versions": [
+        {
+          "template_version": "V_0-1-0",
+          "spec_version": "V_0-1-0",
+          "title": "Workspace Specification Template",
+          "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/workspace_V_0-1-0_spec_NN.md"
+        },
+        {
+          "template_version": "V_0-2-0",
+          "spec_version": "V_0-2-1",
+          "title": "Workspace Specification Template",
+          "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/workspace_V_0-2-0_spec_NN.md"
+        },
+        {
+          "template_version": "V_0-3-0",
+          "spec_version": "V_0-2-1",
+          "title": "Workspace Specification Template",
+          "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/workspace_V_0-3-0_spec_NN.md"
+        }
+      ]
+    }
+  },
+  "warnings": [
+    "skipped (no version in path): workspace_spec_NN.md"
+  ]
+}

@@ -32,6 +32,7 @@ const http = require('http');
 const https = require('https');
 const crypto = require('crypto');
 const { parseFocusedYaml, parseFrontmatter } = require('./lib/yaml-lite');
+const { discoverModels, scanWorkspaceUpgrades } = require('./upgrade-check');
 
 const DEFAULT_MANIFEST_URL = process.env.SM_MANIFEST_URL ||
   'https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/docs/use/manifest.md';
@@ -41,6 +42,13 @@ const DEFAULT_TEMPLATES_DIR = path.join(os.homedir(), '.agents', 'templates');
 const DEFAULT_MCP_DIR = path.join(os.homedir(), '.agents', 'mcp');
 const DEFAULT_STATE_FILE = path.join(os.homedir(), '.agents', 'bootstrap-state.json');
 const LEGACY_STATE_FILE = path.join(os.homedir(), '.agents', 'skills-state.json');
+
+/**
+ * Canonical Level-2 template catalog. Wired in as a Tier-3 workspace check:
+ * an available template upgrade is informational and never blocks.
+ */
+const DEFAULT_TEMPLATE_CATALOG_URL =
+  'https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/catalog.json';
 
 function requestFor(url) {
   return url.startsWith('https:') ? https.request : http.request;
@@ -420,6 +428,7 @@ async function runCheck(options = {}) {
   const mcpDir = options.mcpDir || DEFAULT_MCP_DIR;
   const stateFile = options.stateFile || DEFAULT_STATE_FILE;
   const workspaceDir = options.workspaceDir || null;
+  const templateCatalogUrl = options.templateCatalogUrl || null;
 
   const results = {
     timestamp: new Date().toISOString(),
@@ -452,6 +461,13 @@ async function runCheck(options = {}) {
       sourcesNormalized: 0,
       sourcesUnnormalized: 0,
       sourcesDangling: 0,
+      templateModelsScanned: 0,
+      templateUpgradesAvailable: 0,
+      templateModelsCurrent: 0,
+      templateModelsAhead: 0,
+      templateModelsUnlisted: 0,
+      templateModelsUnpinned: 0,
+      templateCatalogOffline: 0,
     },
     sources_integrity: {
       ok: true,
@@ -497,6 +513,34 @@ async function runCheck(options = {}) {
     results.summary.sourcesDangling = sourceResults.dangling;
     results.sources_integrity = sourceResults.sources_integrity;
     results.items.push(...sourceResults.items);
+
+    // Tier 3 — workspace template upgrade detection (read-only, informational).
+    // Only queries the catalog when the workspace actually contains Level-3 models.
+    if (discoverModels(workspaceDir).length > 0) {
+      const catalogUrl = options.templateCatalogUrl || DEFAULT_TEMPLATE_CATALOG_URL;
+      let catalog = null;
+      try {
+        catalog = JSON.parse(await fetchWithTimeout(catalogUrl, 4000));
+      } catch (err) {
+        results.summary.templateCatalogOffline = 1;
+        results.items.push({
+          type: 'template-catalog',
+          name: 'catalog.json',
+          status: 'offline',
+          detail: `Template catalog unreachable (${err.message}); upgrade detection skipped.`,
+        });
+      }
+      if (catalog) {
+        const upgrade = scanWorkspaceUpgrades(workspaceDir, catalog);
+        results.summary.templateModelsScanned = upgrade.summary.modelsScanned;
+        results.summary.templateUpgradesAvailable = upgrade.summary.upgradeAvailable;
+        results.summary.templateModelsCurrent = upgrade.summary.current;
+        results.summary.templateModelsAhead = upgrade.summary.ahead;
+        results.summary.templateModelsUnlisted = upgrade.summary.unlisted;
+        results.summary.templateModelsUnpinned = upgrade.summary.unpinned;
+        results.items.push(...upgrade.items);
+      }
+    }
   }
 
   // 2. Fetch Manifest
@@ -661,6 +705,20 @@ function printHumanReport(results) {
     console.log('  Remediation: Run `node scripts/index.js --scan` (nn-trannsform --scan) to synchronize sources.\n');
   }
 
+  if (results.summary.templateUpgradesAvailable > 0) {
+    console.log(`\n🆙  Workspace template upgrade(s) available (${results.summary.templateUpgradesAvailable}):`);
+    for (const item of results.items) {
+      if (item.type === 'template-upgrade' && item.status === 'upgrade-available') {
+        console.log(`  - ${item.name}: ${item.template} ${item.pinned} -> ${item.adopted} (${item.kind})`);
+      }
+    }
+    console.log('  Invoke the nn-upgrade skill to migrate with backup and re-validation (or continue as-is).\n');
+  }
+
+  if (results.summary.templateCatalogOffline > 0) {
+    console.log('ℹ️  Template catalog offline — workspace template upgrade detection skipped (non-blocking).\n');
+  }
+
   if (!results.manifest.reachable) {
     console.log(`⚠️  Remote manifest unreachable: ${results.manifest.error}`);
     console.log('Operating in offline cache mode.\n');
@@ -716,6 +774,7 @@ async function main() {
   const mcpDir = getArg('--mcp-dir');
   const stateFile = getArg('--state-file');
   const workspaceDir = getArg('--workspace-dir');
+  const templateCatalogUrl = getArg('--template-catalog-url');
 
   try {
     const results = await runCheck({
@@ -726,6 +785,7 @@ async function main() {
       mcpDir,
       stateFile,
       workspaceDir,
+      templateCatalogUrl,
     });
     if (isJson) {
       console.log(JSON.stringify(results, null, 2));
