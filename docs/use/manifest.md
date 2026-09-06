@@ -40,10 +40,10 @@ agent-bootstrap:
     - name: nn-preflight
       repo: cogNNitive/cogNNitive
       path: actioNN/skills/nn-preflight
-      version: "V_0-1-1"
+      version: "V_0-1-2"
       ref: "skills-v1.1.5"
       commit: "b305982a81bbc15a184563e71f6bd79a15596e02"
-      description: Environment readiness gate (Tier 1/Tier 2) and canonical skill-location reference.
+      description: Environment readiness gate (Tier 1/Tier 2/Tier 3) and canonical skill-location reference.
     - name: nn-site-generator
       repo: cogNNitive/cogNNitive
       path: actioNN/skills/nn-site-generator

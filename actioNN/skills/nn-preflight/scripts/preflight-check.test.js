@@ -693,6 +693,100 @@ agent-bootstrap:
     }
   }
 
+  // Test 16: Tier 3 — upgrade-available model is reported without blocking (exit 0)
+  {
+    const emptyManifest = `---
+agent-bootstrap:
+  version: "2.0"
+  skills: []
+  templates: []
+---
+`;
+    const catalog = JSON.stringify({
+      templates: {
+        business: {
+          name: 'business',
+          adopted: 'V_0-2-0',
+          versions: [{ template_version: 'V_0-1-0' }, { template_version: 'V_0-2-0' }],
+        },
+      },
+    });
+    const server = await serveRoutes({
+      '/manifest.md': emptyManifest,
+      '/catalog.json': catalog,
+    });
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'preflight-tier3-'));
+    try {
+      const ws = path.join(tmpDir, 'ws');
+      fs.mkdirSync(path.join(ws, 'models'), { recursive: true });
+      fs.writeFileSync(
+        path.join(ws, 'models', 'Old_V_0-1-0_business_NN.md'),
+        '---\nlevel: 3\nparent_spec:\n  name: "business_V_0-1-0"\n  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business/business_V_0-1-0_NN.md"\nmodel_version: "V_0-1-0"\n---\n',
+        'utf-8',
+      );
+
+      const res = await runScriptAsync([
+        '--json',
+        '--workspace-dir', ws,
+        '--manifest-url', `${server.url}/manifest.md`,
+        '--template-catalog-url', `${server.url}/catalog.json`,
+      ]);
+
+      assert.strictEqual(res.status, 0, `Upgrade-available must not block. Got: ${res.stdout} ${res.stderr}`);
+      const parsedRes = JSON.parse(res.stdout);
+      assert.strictEqual(parsedRes.status, 'OK');
+      assert.strictEqual(parsedRes.summary.templateModelsScanned, 1);
+      assert.strictEqual(parsedRes.summary.templateUpgradesAvailable, 1);
+      const item = parsedRes.items.find((i) => i.type === 'template-upgrade');
+      assert.ok(item, 'a template-upgrade item must be reported');
+      assert.strictEqual(item.status, 'upgrade-available');
+      assert.strictEqual(item.kind, 'minor');
+      console.log('✔ Tier 3 reports upgrade-available without flipping exit code');
+    } finally {
+      await server.close();
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }
+
+  // Test 17: Tier 3 — offline catalog degrades to a non-blocking notice
+  {
+    const emptyManifest = `---
+agent-bootstrap:
+  version: "2.0"
+  skills: []
+  templates: []
+---
+`;
+    const server = await serveRoutes({ '/manifest.md': emptyManifest });
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'preflight-tier3-offline-'));
+    try {
+      const ws = path.join(tmpDir, 'ws');
+      fs.mkdirSync(path.join(ws, 'models'), { recursive: true });
+      fs.writeFileSync(
+        path.join(ws, 'models', 'Old_V_0-1-0_business_NN.md'),
+        '---\nlevel: 3\nparent_spec:\n  name: "business_V_0-1-0"\n  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business/business_V_0-1-0_NN.md"\nmodel_version: "V_0-1-0"\n---\n',
+        'utf-8',
+      );
+
+      const res = await runScriptAsync([
+        '--json',
+        '--workspace-dir', ws,
+        '--manifest-url', `${server.url}/manifest.md`,
+        '--template-catalog-url', `${server.url}/catalog.json`,
+      ]);
+
+      assert.strictEqual(res.status, 0, `Offline catalog must not block. Got: ${res.stdout} ${res.stderr}`);
+      const parsedRes = JSON.parse(res.stdout);
+      assert.strictEqual(parsedRes.status, 'OK');
+      assert.strictEqual(parsedRes.summary.templateCatalogOffline, 1);
+      assert.ok(parsedRes.items.some((i) => i.type === 'template-catalog' && i.status === 'offline'));
+      console.log('✔ Tier 3 degrades to an offline notice without blocking');
+    } finally {
+      await server.close();
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }
+
   console.log('All preflight-check unit tests passed successfully!\n');
 }
 
