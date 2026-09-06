@@ -40,13 +40,13 @@ Chain strategy: feature-branch-chain
 
 ## Phase 2: Source Normalization & JSON Converters
 
-- [ ] 2.1 RED: Add unit tests in `actioNN/skills/nn-trannsform/test/unit/test-scanner.js` for multi-source walking, JSON dataset conversion, and `is_synthetic` flags.
-- [ ] 2.2 GREEN: Remove legacy `convertChatJson` in `actioNN/skills/nn-trannsform/scripts/lib/scanner-converters.js`; add structured JSON table and code block converter.
-- [ ] 2.3 GREEN: Update `actioNN/skills/nn-trannsform/scripts/lib/scanner-core.js` (`walkSourceTrees`) and `scanner.js` to scan `sources/import/`, `sources/conversations/`, `sources/export/` with legacy fallback.
-- [ ] 2.4 GREEN: Support `_source.md` and `_summary.md` normalization with `conversation_format` metadata and `is_synthetic: true` on promoted exports.
-- [ ] 2.5 GREEN: Update `actioNN/skills/nn-trannsform/scripts/lib/bootstrap.js` and `test-bootstrap-recursive.js` for new directory structure.
-- [ ] 2.6 GREEN: Update `actioNN/skills/nn-trannsform/scripts/lib/provenance-model.js` and `lineage-check.js` to scan `export/` while keeping `# NN Artifacts` header.
-- [ ] 2.7 GREEN: Update `transformer.js` and `webImport.js` target paths to `export/` and `sources/import/`.
+- [x] 2.1 RED: Add unit tests in `actioNN/skills/nn-trannsform/test/unit/test-scanner.js` for multi-source walking, JSON dataset conversion, and `is_synthetic` flags.
+- [x] 2.2 GREEN: Remove legacy `convertChatJson` in `actioNN/skills/nn-trannsform/scripts/lib/scanner-converters.js`; add structured JSON table and code block converter.
+- [x] 2.3 GREEN: Update `actioNN/skills/nn-trannsform/scripts/lib/scanner-core.js` (`walkSourceTrees`) and `scanner.js` to scan `sources/import/`, `sources/conversations/`, `sources/export/` with legacy fallback.
+- [x] 2.4 GREEN: Support `_source.md` and `_summary.md` normalization with `conversation_format` metadata and `is_synthetic: true` on promoted exports.
+- [x] 2.5 GREEN: Update `actioNN/skills/nn-trannsform/scripts/lib/bootstrap.js` and `test-bootstrap-recursive.js` for new directory structure.
+- [x] 2.6 GREEN: Update `actioNN/skills/nn-trannsform/scripts/lib/provenance-model.js` and `lineage-check.js` to scan `export/` while keeping `# NN Artifacts` header.
+- [x] 2.7 GREEN: Update `transformer.js` and `webImport.js` target paths to `export/` and `sources/import/`.
 
 ---
 

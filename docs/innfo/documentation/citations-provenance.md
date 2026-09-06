@@ -11,9 +11,9 @@ one meaning each. Everything else ("provenance", "traceability", "grounding",
 | **Lineage** | The single generated record `<Project>_V_x-y-z_cogNNitive_NN.md` that says, for every Source, Model, Artifact and pipeline run in the workspace, what it derives from. |
 
 ```
-sources/original/   ──►   sources/nn/        ──►   models/*_NN.md      ──►   artifacts/
-  (immutable            (Sources: normalised     (model Citations:          (deliverables +
-   originals)            + origin metadata)       sources:: [a.md#x])        artifact Citations)
+sources/import/        ──►   sources/nn/        ──►   models/*_NN.md      ──►   export/
+sources/conversations/       (Sources: normalised     (model Citations:          (deliverables +
+sources/export/               + origin metadata)       sources:: [a.md#x])        artifact Citations)
         └──────────────────────── recorded in the Lineage record ───────────────────────┘
 ```
 
@@ -21,13 +21,15 @@ sources/original/   ──►   sources/nn/        ──►   models/*_NN.md   
 
 ## 1. Sources — ingestion & origin metadata
 
-`nn-trannsform` scans `sources/original/` (recursively, subfolders preserved),
+`nn-trannsform` scans active source subtrees (`sources/import/` with fallback to `sources/original/`, `sources/conversations/`, and `sources/export/`),
 normalises each supported format to Markdown under the matching path in
 `sources/nn/`, and writes a flat, deterministic YAML frontmatter:
 
 - `sha256` of the **original** file's bytes — the change-detection key (git is
   the history mechanism; there is no snapshot folder).
 - `source_file`, `size_bytes`, `normalized_at`, `normalized_by`.
+- `is_synthetic:` — set to `true` on promoted deliverables under `sources/export/`.
+- `conversation_format:` / `source_type:` — set on promoted transcripts under `sources/conversations/`.
 - `canonical:` — this document's own bibliographic identity (title, author,
   year, DOI, a BibTeX block), when known.
 - `cited_works:` — the external works **this Source cites** (`id`, `citation`,
@@ -44,7 +46,7 @@ ignored by the scanner and git and is **never a valid Citation target**.
 | :--- | :--- | :--- | :--- |
 | Subtitles / transcripts | `.srt`, `.vtt` | `convertSubtitles` | Timestamp-chunked paragraphs under `#`/`## NN` headings |
 | Tabular data | `.csv` | `convertCsv` | `# NN Dataset Schema` + `## NN Summary Statistics`, then rows |
-| Chat exports | `.json` | `convertChatJson` | Chronological sections with participant headings |
+| Data / structured records | `.json` | `convertJson` | `# NN Dataset Schema` profile for arrays of objects; fenced json block for general objects |
 | Word | `.docx` | `convertDocx` (mammoth) | Markdown, heading hierarchy + tables preserved |
 | Spreadsheets | `.xlsx`, `.xls` | `convertXlsx` (xlsx) | One Markdown table per sheet |
 | PDF | `.pdf` | `convertPdf` (pdf-parse) | Extracted text |
@@ -95,7 +97,7 @@ tool in workspace mode, and in the editor:
 | :--- | :--- | :--- |
 | `# NN Sources` | `sources/nn/` frontmatter | idempotent replace |
 | `# NN Models` | `models/*_NN.md` (`derived_from::` scraped from each model's `sources::`) | idempotent replace |
-| `# NN Artifacts` | `artifacts/` (`derived_from::` from frontmatter `model` + `model_version`, or an HTML `export-meta` block) | idempotent replace |
+| `# NN Artifacts` | `export/` (with fallback to `artifacts/`) (`derived_from::` from frontmatter `model` + `model_version`, or an HTML `export-meta` block) | idempotent replace |
 | `# NN Procedures` | one entry appended per run (`--scan`, `--import-url`, `--apply`): `command`, `flags`, `run_at`, `inputs`, `outputs` | **append-only log** |
 
 Removed files drop out of the three replaced sections; the Procedures log is
@@ -108,8 +110,8 @@ with no entry, an artifact citing a model/version that no longer exists, or a
 ## 4. Artifact Citations
 
 `nn-trannsform` derives deliverables in a single pass straight to
-`artifacts/[Deliverable_Name]_V_x-y-z.md` (validation reports go to the same
-folder, tagged `type: report` in frontmatter — there is no `exports/` or
+`export/[Deliverable_Name]_V_x-y-z.md` (legacy `artifacts/` accepted as fallback;
+validation reports go to the same folder, tagged `type: report` in frontmatter — there is no `exports/` or
 `reports/` subfolder). The citation style is chosen per deliverable:
 
 - `[a]` **Standard Markdown Footnotes** (`[^1]`) — the recommended default.

@@ -4,26 +4,31 @@ const core = require('./lib/scanner-core');
 const converters = require('./lib/scanner-converters');
 
 /**
- * Scan sources/original/ (recursively, subfolders preserved) and normalize
- * straight into sources/nn/, mirroring the same relative paths.
+ * Scan active source trees (sources/import/, sources/conversations/, sources/export/,
+ * with legacy fallback to sources/original/) and normalize straight into sources/nn/,
+ * mirroring the source subtree structure.
  * @param {string} projectDir
  * @param {Record<string, any>} [options]
  * @returns {Promise<{ totalDiscovered: number, processedCount: number, skippedCount: number, registry: Array<any> }>}
  */
 async function scanAndProcess(projectDir, options = {}) {
-  const originalDir = path.join(projectDir, 'sources', 'original');
-  const nnDir = path.join(projectDir, 'sources', 'nn');
+  const sourcesDir = path.join(projectDir, 'sources');
+  const importDir = path.join(sourcesDir, 'import');
+  const originalDir = path.join(sourcesDir, 'original');
+  const nnDir = path.join(sourcesDir, 'nn');
   const indexFile = path.join(nnDir, 'index.md');
 
-  fs.mkdirSync(originalDir, { recursive: true });
+  if (!fs.existsSync(importDir) && !fs.existsSync(originalDir)) {
+    fs.mkdirSync(importDir, { recursive: true });
+  }
   fs.mkdirSync(nnDir, { recursive: true });
 
   const logs = [];
   const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
-  logs.push(`*   **${timestamp}:** Scan initiated in \`${originalDir}\`.`);
+  logs.push(`*   **${timestamp}:** Scan initiated across active source trees in \`${sourcesDir}\`.`);
 
-  const files = core.walkOriginal(originalDir);
-  logs.push(`*   **${timestamp}:** Discovered ${files.length} file(s) in \`sources/original/\` (subfolders preserved).`);
+  const files = core.walkSourceTrees(projectDir);
+  logs.push(`*   **${timestamp}:** Discovered ${files.length} file(s) across active source trees.`);
 
   const webImportMeta = options.webImportMeta || {};
 
@@ -32,19 +37,28 @@ async function scanAndProcess(projectDir, options = {}) {
   let processedCount = 0;
   let skippedCount = 0;
 
-  for (const { absPath, relPath } of files) {
+  for (const item of files) {
+    const { absPath, relPath, sourceFileField, destRelPath, isSynthetic, tree } = item;
     const stat = fs.statSync(absPath);
     const ext = path.extname(relPath).toLowerCase();
-    const relDir = path.dirname(relPath);
-    const baseName = path.basename(relPath, ext);
-    const outRelDir = relDir === '.' ? '' : relDir;
-    const displayOutPath = (outRelDir ? path.join(outRelDir, `${baseName}.md`) : `${baseName}.md`).replace(/\\/g, '/');
-    const destPath = path.join(nnDir, displayOutPath);
+    const destPath = path.join(nnDir, destRelPath);
+    const displayOutPath = destRelPath.replace(/\\/g, '/');
 
     const relPathPosix = relPath.replace(/\\/g, '/');
-    const sourceFileField = `sources/original/${relPathPosix}`;
     const isSelected = !options.formats || options.formats.includes(ext);
-    const extra = webImportMeta[relPathPosix] || {};
+    const extra = { ...(webImportMeta[sourceFileField] || webImportMeta[relPathPosix] || {}) };
+    extra.is_synthetic = isSynthetic;
+
+    if (tree === 'conversations') {
+      const baseName = path.basename(relPath, ext);
+      if (baseName.endsWith('_source')) {
+        extra.conversation_format = 'full';
+        extra.source_type = 'conversation_transcript';
+      } else if (baseName.endsWith('_summary')) {
+        extra.conversation_format = 'summary';
+        extra.source_type = 'conversation_summary';
+      }
+    }
 
     let entry;
     if (core.EXT_OK.includes(ext)) {
@@ -73,7 +87,7 @@ async function scanAndProcess(projectDir, options = {}) {
     });
   }
 
-  logs.push(`*   **${timestamp}:** Converted ${processedCount} file(s) to Markdown in \`sources/nn/\`, mirroring \`sources/original/\` subfolders.`);
+  logs.push(`*   **${timestamp}:** Converted ${processedCount} file(s) to Markdown in \`sources/nn/\`, mirroring active source subtrees.`);
 
   // Build sources/nn/index.md manifest with OKF v0.1 compliant frontmatter
   let indexContent = `---\ntype: "index"\ntitle: "traNNsform Ingestion Manifest & Processing Log"\ndescription: "Source documents registry and processing log for normalized knowledge assets"\ntags: [sources, ingestion, manifest, okf, provenance]\ntimestamp: "${new Date().toISOString()}"\n---\n\n`;
@@ -112,6 +126,7 @@ module.exports = {
   computeFileHash: core.computeFileHash,
   generateSourceFrontmatter: core.generateSourceFrontmatter,
   walkOriginal: core.walkOriginal,
+  walkSourceTrees: core.walkSourceTrees,
   convertPdf: converters.convertPdf,
   convertDocx: converters.convertDocx,
   convertXlsx: converters.convertXlsx,

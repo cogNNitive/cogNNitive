@@ -8,18 +8,21 @@ const provenance = require('../provenance');
  * @type {string[]}
  */
 const WORKSPACE_DIRS = [
-  path.join('sources', 'original'),
+  path.join('sources', 'import'),
+  path.join('sources', 'conversations'),
+  path.join('sources', 'export'),
   path.join('sources', 'nn'),
+  'conversations',
+  'export',
   'models',
   'procedures',
-  'artifacts',
   'traNNsformations',
 ];
 
 const TRANNSFORM_README = `# Transform
 
 Transform (traNNsform) is a tool to structure and process unstructured documents:
-1. Place files in \`sources/original/\`.
+1. Place files in \`sources/import/\`.
 2. Scan and normalize to \`sources/nn/\`.
 3. Track provenance with \`<Project>_V_0-1-0_cogNNitive_NN.md\`.
 `;
@@ -27,7 +30,7 @@ Transform (traNNsform) is a tool to structure and process unstructured documents
 /**
  * Bootstrap a new traNNsform project workspace.
  *
- * Copies every file under `srcDir` into `sources/original/` **recursively,
+ * Copies every file under `srcDir` into `sources/import/` **recursively,
  * preserving the subfolder structure** (previously a flat `readdirSync` that
  * silently skipped anything below the top level). Reuses
  * `scanner-core.walkOriginal`, so the same ignore rules apply (dotfiles,
@@ -36,11 +39,11 @@ Transform (traNNsform) is a tool to structure and process unstructured documents
  * @param {string} srcDir Directory of files to import (copied, never moved).
  * @param {string} destParentDir Parent directory the project folder is created in.
  * @param {string} projectName Project folder name.
- * @returns {{ projectDir: string, originalDir: string, copiedCount: number, provModelPath: string }}
+ * @returns {{ projectDir: string, importDir: string, originalDir: string, copiedCount: number, provModelPath: string }}
  */
 function bootstrapProject(srcDir, destParentDir, projectName) {
   const projectDir = path.join(destParentDir, projectName);
-  const originalDir = path.join(projectDir, 'sources', 'original');
+  const importDir = path.join(projectDir, 'sources', 'import');
 
   fs.mkdirSync(projectDir, { recursive: true });
   for (const d of WORKSPACE_DIRS) fs.mkdirSync(path.join(projectDir, d), { recursive: true });
@@ -53,10 +56,10 @@ function bootstrapProject(srcDir, destParentDir, projectName) {
   if (
     srcDir &&
     fs.existsSync(srcDir) &&
-    path.resolve(srcDir) !== path.resolve(originalDir)
+    path.resolve(srcDir) !== path.resolve(importDir)
   ) {
     for (const { absPath, relPath } of core.walkOriginal(srcDir)) {
-      const destPath = path.join(originalDir, relPath);
+      const destPath = path.join(importDir, relPath);
       fs.mkdirSync(path.dirname(destPath), { recursive: true });
       fs.copyFileSync(absPath, destPath);
       copiedCount++;
@@ -65,7 +68,7 @@ function bootstrapProject(srcDir, destParentDir, projectName) {
 
   const prov = provenance.buildProvenanceModel(projectDir, { projectName });
 
-  return { projectDir, originalDir, copiedCount, provModelPath: prov.modelPath };
+  return { projectDir, importDir, originalDir: importDir, copiedCount, provModelPath: prov.modelPath };
 }
 
 module.exports = { bootstrapProject, WORKSPACE_DIRS };

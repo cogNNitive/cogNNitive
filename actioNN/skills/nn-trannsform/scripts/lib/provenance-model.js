@@ -50,7 +50,7 @@ function slugify(name) {
 /**
  * Parses flat frontmatter from normalized markdown source.
  * @param {string} content
- * @returns {{ file: string, hash: string | null, size: string | null, normalized_at: string | null, normalized_by: string | null } | null}
+ * @returns {{ file: string, hash: string | null, size: string | null, normalized_at: string | null, normalized_by: string | null, is_synthetic?: boolean, derived_from?: string[] | null } | null}
  */
 function parseSourceFrontmatter(content) {
   const fm = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
@@ -62,12 +62,27 @@ function parseSourceFrontmatter(content) {
   };
   const file = get('source_file');
   if (!file) return null;
+
+  const isSyntheticMatch = block.match(/^\s*is_synthetic:\s*(true|false)\s*$/m);
+  const isSynthetic = isSyntheticMatch ? isSyntheticMatch[1] === 'true' : false;
+
+  const derivedFromMatch = block.match(/^\s*derived_from:\s*\[(.*)\]\s*$/m);
+  let derivedFrom = null;
+  if (derivedFromMatch) {
+    derivedFrom = derivedFromMatch[1]
+      .split(',')
+      .map((s) => s.trim().replace(/^"|"$/g, ''))
+      .filter(Boolean);
+  }
+
   return {
     file,
     hash: get('sha256'),
     size: get('size_bytes'),
     normalized_at: get('normalized_at'),
     normalized_by: get('normalized_by'),
+    is_synthetic: isSynthetic,
+    derived_from: derivedFrom,
   };
 }
 
@@ -126,6 +141,8 @@ function collectSources(mdDir) {
       normalized_by: fmData.normalized_by,
       normalized_content: `sources/nn/${relFilePosix}`,
       mdFile: relFile,
+      is_synthetic: fmData.is_synthetic,
+      derived_from: fmData.derived_from,
     });
   }
 
@@ -283,13 +300,24 @@ function parseArtifactMeta(content, fileName) {
 }
 
 /**
- * Enumerate files under `artifacts/` and describe each for the lineage
+ * Enumerate files under `export/` (with fallback to deprecated `artifacts/`) and describe each for the lineage
  * record's `# NN Artifacts` section.
  * @param {string} projectDir
  * @returns {Array<{ name: string, artifact_ref: string, artifact_format: string, derived_from: string[], note: string | null }>}
  */
 function collectArtifacts(projectDir) {
-  const artDir = path.join(projectDir, 'artifacts');
+  const exportDir = path.join(projectDir, 'export');
+  const legacyArtDir = path.join(projectDir, 'artifacts');
+
+  let artDir = exportDir;
+  let dirPrefix = 'export';
+
+  if (!fs.existsSync(exportDir) && fs.existsSync(legacyArtDir)) {
+    console.warn("[DEPRECATION] 'artifacts/' is deprecated; migrate folder to 'export/'");
+    artDir = legacyArtDir;
+    dirPrefix = 'artifacts';
+  }
+
   return walkFiles(artDir, (n) => /\.(md|html?|csv|json)$/i.test(n)).map((rel) => {
     const content = fs.readFileSync(path.join(artDir, rel), 'utf8');
     const meta = parseArtifactMeta(content, rel);
@@ -298,7 +326,7 @@ function collectArtifacts(projectDir) {
       : [];
     return {
       name: path.basename(rel).replace(/\.[^.]+$/, ''),
-      artifact_ref: `artifacts/${rel}`,
+      artifact_ref: `${dirPrefix}/${rel}`,
       artifact_format: meta.format,
       derived_from: derived,
       note: meta.model ? null : 'no source model reference found in this artifact',
@@ -314,7 +342,7 @@ function collectArtifacts(projectDir) {
 function renderSourcesSection(sources) {
   let out = '# NN Sources\n';
   if (sources.length === 0) {
-    out += '\n<!-- No sources ingested yet. Place files in sources/original and run a scan. -->\n';
+    out += '\n<!-- No sources ingested yet. Place files in sources/import and run a scan. -->\n';
     return out;
   }
   for (const s of sources) {
@@ -323,6 +351,10 @@ function renderSourcesSection(sources) {
     if (s.raw_hash) out += `raw_hash:: ${s.raw_hash}\n`;
     if (s.size) out += `size:: ${s.size}\n`;
     if (s.source_format) out += `source_format:: ${s.source_format}\n`;
+    if (s.is_synthetic) out += `is_synthetic:: true\n`;
+    if (s.derived_from && s.derived_from.length > 0) {
+      out += `derived_from:: [${s.derived_from.join(', ')}]\n`;
+    }
     if (s.normalized_at) out += `normalized_at:: ${s.normalized_at}\n`;
     if (s.normalized_by) out += `normalized_by:: ${s.normalized_by}\n`;
     out += `normalized_content:: ${s.normalized_content}\n`;
@@ -343,7 +375,7 @@ function emptySection(concept, guidance) {
 const MODELS_GUIDANCE =
   'Auto-synced from models/ on every --scan/--import-url/--lineage. One element per Level 3 model.';
 const ARTIFACTS_GUIDANCE =
-  'Auto-synced from artifacts/ on every --scan/--import-url/--lineage. One element per generated deliverable.';
+  'Auto-synced from export/ on every --scan/--import-url/--lineage. One element per generated deliverable.';
 const PROCEDURES_GUIDANCE =
   'Append-only. One entry per pipeline run (--scan, --import-url, --apply). Never regenerated.';
 

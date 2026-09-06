@@ -48,9 +48,9 @@ async function handleCliMode(argv) {
   if (argv.src && argv.dest && argv.name) {
     console.log(`Bootstrapping project "${argv.name}" at "${projectDir}"...`);
     const bootstrap = bootstrapProject(argv.src, argv.dest, argv.name);
-    console.log(`Copied ${bootstrap.copiedCount} file(s) to sources/original (subfolders preserved).`);
+    console.log(`Copied ${bootstrap.copiedCount} file(s) to sources/import (subfolders preserved).`);
     console.log(`Initialized cogNNitive provenance model at: ${bootstrap.provModelPath}`);
-    console.log(`\n📌 Place your files to import into: ${bootstrap.originalDir}\n`);
+    console.log(`\n📌 Place your files to import into: ${bootstrap.importDir || bootstrap.originalDir}\n`);
   }
 
   if (!fs.existsSync(projectDir)) {
@@ -71,12 +71,15 @@ async function handleCliMode(argv) {
 
   let importResult = null;
   if (argv['import-url']) {
-    const originalDir = path.join(projectDir, 'sources', 'original');
-    fs.mkdirSync(originalDir, { recursive: true });
-    console.log(`Downloading "${argv['import-url']}" into sources/original/...`);
+    const importDir = path.join(projectDir, 'sources', 'import');
+    const legacyDir = path.join(projectDir, 'sources', 'original');
+    const targetDir = fs.existsSync(legacyDir) && !fs.existsSync(importDir) ? legacyDir : importDir;
+    fs.mkdirSync(targetDir, { recursive: true });
+    const targetLabel = path.relative(projectDir, targetDir).replace(/\\/g, '/');
+    console.log(`Downloading "${argv['import-url']}" into ${targetLabel}/...`);
     try {
-      importResult = await webImport.downloadToOriginal(argv['import-url'], originalDir);
-      console.log(`Downloaded to: sources/original/${importResult.relPath}`);
+      importResult = await webImport.downloadToImport(argv['import-url'], targetDir);
+      console.log(`Downloaded to: ${targetLabel}/${importResult.relPath}`);
     } catch (err) {
       console.error(`Error downloading URL: ${err.message}`);
       process.exit(1);
@@ -89,11 +92,8 @@ async function handleCliMode(argv) {
     const scanOptions = { autoAcceptPrompt: true };
 
     if (argv.formats) {
-      const originalDir = path.join(projectDir, 'sources', 'original');
-      if (fs.existsSync(originalDir)) {
-        const selected = argv.formats.split(',').map(f => '.' + f.trim().replace(/^\./, ''));
-        scanOptions.formats = selected;
-      }
+      const selected = argv.formats.split(',').map(f => '.' + f.trim().replace(/^\./, ''));
+      scanOptions.formats = selected;
     }
 
     if (importResult) {
@@ -117,7 +117,7 @@ async function handleCliMode(argv) {
     provenance.appendProcedureRun(projectDir, {
       command: importResult ? 'import-url + scan' : 'scan',
       flags: argv.formats ? `--formats ${argv.formats}` : undefined,
-      inputs: importResult ? [`sources/original/${importResult.relPath}`] : ['sources/original/'],
+      inputs: importResult ? [`sources/import/${importResult.relPath}`] : ['sources/import/'],
       outputs: ['sources/nn/'],
     });
   }
@@ -155,7 +155,7 @@ async function handleInteractiveMode() {
 
   let projectDir = getActiveProjectDir();
   let projectExists = fs.existsSync(projectDir) &&
-    fs.existsSync(path.join(projectDir, 'sources', 'original'));
+    (fs.existsSync(path.join(projectDir, 'sources', 'import')) || fs.existsSync(path.join(projectDir, 'sources', 'original')));
 
   const choices = [];
   if (projectExists) {
@@ -257,13 +257,13 @@ async function runBootstrapperFlow() {
 
   const projectDir = path.join(targetDest, answers.name);
   const bootstrap = bootstrapProject(answers.src, targetDest, answers.name);
-  console.log(`Copied ${bootstrap.copiedCount} file(s) to sources/original (subfolders preserved).`);
+  console.log(`Copied ${bootstrap.copiedCount} file(s) to sources/import (subfolders preserved).`);
   console.log(`Initialized cogNNitive provenance model at: ${bootstrap.provModelPath}`);
 
   config.saveConfig({ lastProjectPath: projectDir });
 
   console.log(`Project successfully bootstrapped at: ${projectDir}\n`);
-  console.log(`\n📌 Place your files to import into: ${bootstrap.originalDir}\n`);
+  console.log(`\n📌 Place your files to import into: ${bootstrap.importDir || bootstrap.originalDir}\n`);
   return projectDir;
 }
 
@@ -276,7 +276,7 @@ async function runProjectMenu(projectDir) {
     name: 'action',
     message: 'Select an action:',
     choices: [
-      { title: 'Scan and process original files in sources/original', value: 'scan' },
+      { title: 'Scan and process source files in sources/import (and active source trees)', value: 'scan' },
       { title: 'Apply template transformation', value: 'transform' },
       { title: 'Create new transformation template', value: 'create_template' },
       { title: 'Back to main menu', value: 'back' }

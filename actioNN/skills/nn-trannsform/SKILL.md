@@ -23,7 +23,7 @@ Execute the canonical activation gate defined in `nn-preflight` (session greetin
 ## System & UX Governance (MANDATORY)
 
 1. **Zero Unilateral Mutation (Consent First)**:
-   - NEVER move, rename, or delete user files (e.g. moving PDFs into `sources/original/` or changing folder structure) without prior explicit confirmation from the user.
+   - NEVER move, rename, or delete user files (e.g. moving PDFs into `sources/import/` or changing folder structure) without prior explicit confirmation from the user.
 2. **Recommended Option First**:
    - In all decision menus, option `[a]` or `[1]` MUST carry the `(Recommended)` prefix.
 3. **Multi-Selection Clarification**:
@@ -55,18 +55,18 @@ Every project workspace MUST adhere to the following structure:
 ```
 [project-name]/
 ├── sources/
-│   ├── original/         # User's dropbox — untouched by the tool. NEVER move/rename/delete.
-│   │                      # The user may organize subfolders however they like.
-│   └── nn/                # Normalized Markdown, mirroring the same subfolder structure
-│                          # as sources/original/ (e.g. sources/original/clientA/report.docx
-│                          # → sources/nn/clientA/report.md). Never flattened.
+│   ├── import/           # External raw files (PDF, DOCX, CSV, TXT, JSON, HTML). Legacy sources/original/ supported via fallback.
+│   ├── conversations/    # Promoted transcripts (*_summary.md or *_source.md).
+│   ├── export/           # Promoted deliverables re-entering pipeline (is_synthetic: true).
+│   └── nn/               # Normalized Markdown, mirroring the source subtrees
+│                         # (e.g. sources/import/clientA/report.docx -> sources/nn/import/clientA/report.md).
+├── conversations/        # Workspace root: raw session interaction transcripts (YYYY-MM-DD_<slug>.md).
+├── export/               # Generated deliverables, reports, and dashboards (legacy artifacts/ supported via fallback).
 ├── assets/               # Binary / media attachments referenced by model elements
-│                          # (image/file/video/audio fields). Not a copy of sources/nn/.
+│                         # (image/file/video/audio fields). Not a copy of sources/nn/.
 ├── models/               # Structured semantic iNNfo Level 3 models (*_NN.md)
 ├── procedures/           # Reusable transformation procedure specs (*_procedures_V_0-1-0_NN.md)
-├── artifacts/            # All generated output — deliverables and validation
-│                          # reports alike (a report carries `type: report` in
-│                          # its frontmatter; no separate subfolder).
+├── traNNsformations/     # Transformation templates applied to sources
 └── index.md              # Semantic workspace index (# NN index)
 ```
 
@@ -74,7 +74,7 @@ Every project workspace MUST adhere to the following structure:
 > **Workspace index.md Format**: The workspace `index.md` file (in the project root) uses standard Markdown links (`* [label](target.md)`), unlike the internal `# NN index` block of Level 3 models which uses WikiLinks (`* [[Concept]]`). When regenerated, the tool preserves existing custom/unknown lines, filters out duplicate or dangling links, and keeps the highest version if multiple versions of the same model base exist.
 
 
-There is no `sources/raw/` — the scanner reads directly from `sources/original/` and writes directly to `sources/nn/`. Change detection uses the sha256 of the original file's content (recorded in the normalized frontmatter); git, which already versions the workspace, is the history/versioning mechanism — no separate snapshot folder is needed.
+There is no `sources/raw/` — the scanner reads directly from active source subtrees (`sources/import/`, `sources/conversations/`, `sources/export/`, with fallback to `sources/original/`) and writes directly to `sources/nn/`. Change detection uses the sha256 of the source file's content (recorded in the normalized frontmatter); git, which already versions the workspace, is the history/versioning mechanism — no separate snapshot folder is needed.
 
 Then run:
 ```bash
@@ -85,19 +85,19 @@ node scripts/index.js --src "<source-folder>" --dest "<destination-parent-folder
 
 ### 2. Capability Scan & Source Ingestion Protocol (MANDATORY)
 
-#### 2a-0. Ingest `sources/original/` to `sources/nn/`
+#### 2a-0. Ingest `sources/import/` to `sources/nn/`
 
-**All files live in `sources/original/` — the user's dropbox. The tool never moves, renames, or deletes anything there; it only reads.**
+**Primary raw files live in `sources/import/` (or legacy `sources/original/`). The tool never moves, renames, or deletes anything there; it only reads.**
 
-1. **Check if `sources/original/` exists** inside the project directory. If not, ask the user and create it: `mkdir sources/original`
-2. **Copy files into `sources/original/`** (preserve originals in-place; DO NOT move or delete user files without consent). The user may organize subfolders freely — the scanner mirrors that structure into `sources/nn/`.
+1. **Check if `sources/import/` exists** inside the project directory. If not (and no `sources/original/` exists), ask the user and create it: `mkdir sources/import`
+2. **Copy files into `sources/import/`** (preserve originals in-place; DO NOT move or delete user files without consent). The user may organize subfolders freely — the scanner mirrors that structure into `sources/nn/`.
 3. **Scanner Normalization with Origin-Metadata Frontmatter**:
    Every normalized file generated under `sources/nn/` MUST include the mandatory, flat scanner traceability frontmatter — this schema is exact and must match the iNNfo editor:
 
 ```yaml
 ---
 # 1. Origin metadata (where this Source came from)
-source_file: "sources/original/interview_transcript.pdf"
+source_file: "sources/import/interview_transcript.pdf"
 sha256: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 size_bytes: 1048576
 normalized_at: "2026-08-02T13:30:00Z"
@@ -153,21 +153,21 @@ To prevent LLM context degradation (*Lost in the Middle*) and maintain workspace
 When the user pastes a URL in chat and wants it ingested:
 
 1. Confirm the URL and target project with the user (Zero Unilateral Mutation still applies).
-2. Run the download step, which saves the resource directly into `sources/original/` (same dropbox as manually-dropped files — no separate branch in the pipeline):
+2. Run the download step, which saves the resource directly into `sources/import/` (or legacy `sources/original/` — same dropbox as manually-dropped files):
    ```bash
    node scripts/index.js --import-url "<url>" --scan --src "<project-dir>"
    ```
-   `--import-url` downloads the resource (content type decides the extension, from the response's `Content-Type` header or the URL as fallback), saves it under `sources/original/`, and — chained with `--scan` — immediately normalizes it into `sources/nn/` with `source_url`/`downloaded_at` (and, for HTML pages, best-effort `title`/`description`/`author` scraped from `<title>`, Open Graph tags, meta tags, and JSON-LD) merged into its frontmatter.
-3. Confirm to the user that the file landed in `sources/original/`, then continue with the normal scan/normalize flow.
+   `--import-url` downloads the resource (content type decides the extension, from the response's `Content-Type` header or the URL as fallback), saves it under `sources/import/`, and — chained with `--scan` — immediately normalizes it into `sources/nn/` with `source_url`/`downloaded_at` (and, for HTML pages, best-effort `title`/`description`/`author` scraped from `<title>`, Open Graph tags, meta tags, and JSON-LD) merged into its frontmatter.
+3. Confirm to the user that the file landed in `sources/import/`, then continue with the normal scan/normalize flow.
 4. Downloaded PDFs go through the same existing `.pdf` handling as a manually dropped PDF (pdf-parse, on-demand install); if pdf-parse's own `info.Title`/`info.Author` are available, they populate the same optional frontmatter keys.
 
 #### 2d. Lineage Record Filesystem Sync
 
 The cogNNitive **lineage record** (`<Project>_V_0-1-0_cogNNitive_NN.md`) keeps three of its four sections in sync with the workspace filesystem on every build/refresh (bootstrap, `--scan`, `--import-url`, or the standalone `--lineage` / `--provenance` flag):
 
-- **`# NN Sources`** — one entry per normalized file under `sources/nn/`, from its scanner frontmatter.
+- **`# NN Sources`** — one entry per normalized file under `sources/nn/`, from its scanner frontmatter (including `is_synthetic: true` for promoted deliverables).
 - **`# NN Models`** — one entry per `models/*_NN.md`, with `model_ref`, `model_version`, `model_template`, and `derived_from::` scraped from that model's `sources::` Citations.
-- **`# NN Artifacts`** — one entry per file under `artifacts/`, with `derived_from::` read from the artifact's frontmatter (`model` + `model_version`) or an HTML `export-meta` block.
+- **`# NN Artifacts`** — one entry per deliverable file under `export/` (with fallback to `artifacts/`), with `derived_from::` read from the artifact's frontmatter (`model` + `model_version`) or an HTML `export-meta` block. Note: the concept name `# NN Artifacts` remains identical in Level 2 and Level 3 lineage records.
 
 All three use **idempotent replace**: re-running regenerates them from the current filesystem state, no duplicate entries, and removed files drop out.
 
@@ -279,7 +279,7 @@ Select the citation and export format for the deliverable:
 
 ### 4. Citation & Provenance Protocol
 
-Derived deliverables are generated in a single pass directly to `artifacts/[Deliverable_Name]_V_x-y-z.md` without intermediate `_draft.md` files or non-standard `<!-- cite: ... -->` HTML comments:
+Derived deliverables are generated in a single pass directly to `export/[Deliverable_Name]_V_x-y-z.md` (or legacy `artifacts/` if existing) without intermediate `_draft.md` files or non-standard `<!-- cite: ... -->` HTML comments:
 1. **Direct Formatting**: Apply the citation format selected in §3c directly during generation per rules in `citations.md`.
 2. **Provenance Traceability**: When citations are included (formats `[a]`–`[h]`), resolve claims directly from the Level 3 model's `sources::` pointers (`<path>.md#<heading-slug>`, resolving canonically against `sources/nn/`).
 3. **Clean Presentation**: Format `[i]` (No sources) produces presentation-ready deliverables omitting all citation markers and reference lists.
@@ -290,10 +290,10 @@ Derived deliverables are generated in a single pass directly to `artifacts/[Deli
 
 | Entity Type | Target Directory | Example File Path | Notes |
 |------|------|---------|-------|
-| **Normalized Markdown** | `sources/nn/` | `sources/nn/clientA/doc1.md` | Ingested source with scanner frontmatter, mirrors `sources/original/` subfolders |
+| **Normalized Markdown** | `sources/nn/` | `sources/nn/import/clientA/doc1.md` | Ingested source with scanner frontmatter, mirrors active source subtrees |
 | **Model** (`*_NN.md`) | `models/` | `models/Business_Plan_V_1-0-0_NN.md` | iNNfo Level 3 V_0-1-0 semantic models with `sources::` |
-| **Export Deliverable** | `artifacts/` | `artifacts/Executive_Summary_V_1-0-0.md` | Clean deliverable in user-selected citation format |
-| **Validation Report** | `artifacts/` | `artifacts/Ingest_Audit_V_1-0-0_report.md` | Carries `type: report` in frontmatter; same folder as deliverables |
+| **Export Deliverable** | `export/` | `export/Executive_Summary_V_1-0-0.md` | Clean deliverable in user-selected citation format (legacy `artifacts/` alias supported) |
+| **Validation Report** | `export/` | `export/Ingest_Audit_V_1-0-0_report.md` | Carries `type: report` in frontmatter; same folder as deliverables |
 | **Procedure Spec** | `procedures/` | `procedures/Document_Ingest_V_1-0-0_procedures_NN.md` | Procedure spec compliant with `procedures_V_0-1-0_NN.md` |
 
 ---
@@ -329,12 +329,12 @@ At the end of transformation:
 
 ## Core Rules
 
-1. **Zero Unilateral Mutation**: NEVER move, rename, or delete files in `sources/original/` (or any user file) without prior explicit confirmation.
+1. **Zero Unilateral Mutation**: NEVER move, rename, or delete files in `sources/import/` (or any user file) without prior explicit confirmation.
 2. **Recommended Option First**: Always prefix option `[a]` with `(Recommended)`.
 3. **Multi-Selection Notice**: Add `"You can select one option or a combination (e.g. A and B)"` when applicable.
 4. **Mandatory Scanner Provenance**: Normalized Markdown in `sources/nn/` MUST include scanner frontmatter (`source_file`, `sha256`, `size_bytes`, `normalized_at`, `normalized_by`, plus optional `staging_file`, `is_synthetic`, `canonical`, and `cited_works`). No `source_id`/`src-NNN`.
 5. **Mandatory Model Provenance**: Level 3 elements MUST include `sources:: <path.md#heading-slug>` (or a list `sources:: [a.md#slug, b.md#slug]`) resolving canonically against `sources/nn/` — no `src-NNN` IDs, no line-number ranges.
 6. **V_0-1-0 Compliance**: Target iNNfo V_0-1-0 meta-template specification and unified NN syntax (`# NN`, `## NN`, `key:: value`).
 7. **Saved Procedure Proactive Check**: When starting `nn-trannsform` or `nn-router`, check for existing procedures in `procedures/` and offer them as runnable options to the user before starting standard ingestion.
-7a. **Lineage Record Sync**: `# NN Sources`, `# NN Models` and `# NN Artifacts` re-sync from the filesystem (`sources/nn/`, `models/`, `artifacts/`) on every `--scan`/`--import-url`/`--lineage` run — idempotent replace, removed files drop out. `# NN Procedures` is an append-only log: scripted runs (`--scan`, `--import-url`, `--apply`) append their own entry; the agent still adds `## NN Procedures:` entries by hand for non-scripted research/analysis steps (see §2d). `node scripts/index.js --check` reports drift.
+7a. **Lineage Record Sync**: `# NN Sources`, `# NN Models` and `# NN Artifacts` re-sync from the filesystem (`sources/nn/`, `models/`, `export/`, fallback `artifacts/`) on every `--scan`/`--import-url`/`--lineage` run — idempotent replace, removed files drop out. `# NN Procedures` is an append-only log: scripted runs (`--scan`, `--import-url`, `--apply`) append their own entry; the agent still adds `## NN Procedures:` entries by hand for non-scripted research/analysis steps (see §2d). `node scripts/index.js --check` reports drift.
 8. **Prose Description in Level 3 Models**: The description of an element in a Level 3 model must NEVER be formatted as a `description::` property field. It must always be written as free-form Markdown prose below the `key:: value` fields list, separated from them by a blank line.
