@@ -22,6 +22,10 @@ export default defineConfig([
     dts: false,
     noExternal: [/.*/],
     minify: true,
+    // The distributed bundle is copied as a single file to docs/innfo/cdn/ by
+    // scripts/build-docs.mjs and `deploy:cdn`; code-splitting would emit
+    // sibling chunk-*.js the CDN never publishes, breaking the install.
+    splitting: false,
     // Single-file ESM bundle: inlined CJS deps (MCP SDK, ajv) perform dynamic
     // `require` of Node builtins. ESM has no `require`, so provide one via
     // createRequire — otherwise the bundle throws at load ("Dynamic require of
