@@ -34,6 +34,14 @@ const DEFAULT_OUT = path.join(DEFAULT_ROOT, 'catalog.json');
 
 const SKIP_DIRS = new Set(['samples', 'node_modules', '.git', 'dist', '.spec-cache', 'backups', 'archive']);
 
+/**
+ * Retired templates that are frozen byte-identical for legacy resolution but no
+ * longer part of ACTIVE distribution. They are emitted under a top-level
+ * `frozen` object and dropped from `templates` (so nn-preflight upgrade-check —
+ * which reads only `catalog.templates` — gives them no upgrade notices).
+ */
+const FROZEN_NAMES = ['cogNNitive', 'base'];
+
 function parseFrontmatter(text) {
   const m = text.match(/^---\r?\n([\s\S]*?)\r?\n---/);
   if (!m) return {};
@@ -127,18 +135,25 @@ function generate(rootDir) {
   }
 
   const templates = {};
+  const frozen = {};
   for (const [name, versions] of byName.entries()) {
     versions.sort((a, b) => compareVersions(a.template_version, b.template_version));
-    templates[name] = {
+    const entry = {
       name,
       adopted: versions[versions.length - 1].template_version,
       versions,
     };
+    if (FROZEN_NAMES.includes(name)) {
+      frozen[name] = entry;
+    } else {
+      templates[name] = entry;
+    }
   }
 
   return {
     generator: 'scripts/template-catalog.mjs',
     templates: Object.fromEntries(Object.keys(templates).sort().map((k) => [k, templates[k]])),
+    frozen: Object.fromEntries(Object.keys(frozen).sort().map((k) => [k, frozen[k]])),
     warnings,
   };
 }

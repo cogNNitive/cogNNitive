@@ -2,10 +2,10 @@ const fs = require('fs');
 const path = require('path');
 
 const TEMPLATE_URL =
-  'https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/cogNNitive/cogNNitive_V_0-2-0_NN.md';
+  'https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/workspace_V_0-3-0_spec_NN.md';
 const INNFO_URL =
   'https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-2-1_NN.md';
-const TEMPLATE_NAME = 'cogNNitive_V_0-2-0';
+const TEMPLATE_NAME = 'workspace_V_0-3-0_spec_NN';
 
 const DOC_NOTICE =
   '> [!NOTE]\n> This is an **iNNfo document** — a plain-text Markdown file. ' +
@@ -701,7 +701,7 @@ function appendProcedureRun(existing, run) {
 function resolveLatestModelFile(projectDir, projectName, compareVersions) {
   const files = fs.existsSync(projectDir) ? fs.readdirSync(projectDir) : [];
   const prefix = `${projectName}_V_`;
-  const suffix = `_cogNNitive_NN.md`;
+  const suffix = `_workspace_NN.md`;
 
   let bestFile = null;
   let bestVersion = [-1, -1, -1];

@@ -168,7 +168,7 @@ propagación*). El procedimiento mecánico de un bump vive en el skill
       y actualizá cada archivo que la liste (docs, samples, skills, fixtures).
 - [ ] **URLs vivas.** `npm run check:spec-urls` en verde.
 - [ ] **Skills en sync.** Si tocaste una L2 que `cogNNitive/actioNN` bundlea (hoy
-      `workspace_spec_NN`), sincronizá la copia bundleada desde la canónica de `iNNfo`.
+      `workspace_V_0-3-0_spec_NN`), sincronizá la copia bundleada desde la canónica de `iNNfo`.
 
 ---
 

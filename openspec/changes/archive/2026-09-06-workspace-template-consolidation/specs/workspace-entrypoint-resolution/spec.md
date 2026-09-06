@@ -1,10 +1,6 @@
-# Workspace Entrypoint & Multi-Store Template Resolution
+# Delta for Workspace Entrypoint & Multi-Store Template Resolution
 
-## Purpose
-
-Establish dynamic multi-location Level 2 spec template resolution in `innfo-core` and `innfo-mcp`, enabling workspace parsers and taxonomy validators to locate referenced spec templates across workspace local `./templates/`, global user environments (`~/.agents/templates/`), and installed skill template directories (`~/.agents/skills/*/templates/`), while exposing MCP tools for listing and hydrating workspace templates.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Multi-Store Spec Template Precedence and Resolution
 
@@ -14,6 +10,7 @@ When resolving Level 2 spec templates referenced in workspace entrypoints (e.g. 
 3. Installed skill template directories (`~/.agents/skills/*/templates/`)
 
 The parser MUST resolve and load the first matching spec template found in this precedence order. The unversioned alias `workspace_spec_NN.md` is retired: it MUST NOT be distributed by any store; resolution targets for the workspace family MUST use versioned names such as `workspace_V_0-3-0_spec_NN.md`. Legacy workspaces that already carry a local alias copy MAY still resolve it.
+(Previously: `workspace_spec_NN.md` was the canonical referenced name across all stores.)
 
 #### Scenario: Template resolved from local workspace directory
 - GIVEN a workspace containing `./templates/workspace_V_0-3-0_spec_NN.md`
@@ -40,30 +37,10 @@ The parser MUST resolve and load the first matching spec template found in this 
 - WHEN `innfo-core` resolves `workspace_V_0-3-0_spec_NN.md`
 - THEN the canonical copy is loaded from the skill tier
 
----
-
-### Requirement: Taxonomy Metamodel Validation and Unresolved Diagnostic Reporting
-
-`innfo-core` taxonomy validators MUST evaluate workspace entrypoint concept primitives (`Workspace`, `Models`, `Folder`, `Asset`) and validation rules against the resolved Level 2 spec template regardless of its source location. If a declared spec template cannot be located in any search path, `innfo-core` MUST raise a structured template resolution error detailing all checked paths.
-
-#### Scenario: Metamodel concepts validate against resolved skill-bundled template
-- GIVEN a workspace entrypoint referencing `parent_spec:: projects_V_0-1-0_NN.md`
-- AND `projects_V_0-1-0_NN.md` is resolved from an installed skill directory
-- WHEN taxonomy validation executes on the workspace model graph
-- THEN concepts and properties declared in `projects_V_0-1-0_NN.md` are correctly validated
-
-#### Scenario: Unresolved template reports full path search diagnostics
-- GIVEN a workspace entrypoint referencing `parent_spec:: non_existent_spec_NN.md`
-- AND `non_existent_spec_NN.md` does NOT exist in local `./templates/`, global `~/.agents/templates/`, or any installed skill `templates/` folder
-- WHEN `innfo-core` executes template resolution
-- THEN parsing fails with an `UnresolvedTemplateError`
-- AND the error message explicitly enumerates all checked search paths
-
----
-
 ### Requirement: MCP Template Discovery and Workspace Hydration Tools
 
 `innfo-mcp` MUST expose tools to list available Level 2 spec templates across all resolution stores and hydrate selected templates into an active workspace's `./templates/` directory. Hydration of the canonical workspace template MUST use the full versioned stem `workspace_V_0-3-0_spec_NN`; the bare stem `workspace_V_0-3-0` MUST NOT be used as a hydration name because it does not resolve.
+(Previously: hydration examples used unversioned names such as `workspace_spec_NN`.)
 
 #### Scenario: Listing templates via MCP tool
 - GIVEN available templates present in `./templates/`, `~/.agents/templates/`, and `~/.agents/skills/*/templates/`
@@ -82,7 +59,7 @@ The parser MUST resolve and load the first matching spec template found in this 
 - THEN the versioned file is copied into the workspace's `./templates/` directory
 - AND an invocation with the bare stem `workspace_V_0-3-0` does not silently resolve to the versioned file
 
----
+## ADDED Requirements
 
 ### Requirement: Wizard Model Workflow Binds to the Canonical Versioned Template
 

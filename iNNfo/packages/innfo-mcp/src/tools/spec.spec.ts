@@ -215,17 +215,17 @@ describe('Spec Tools Integration (URL- and model-derived, no hardcoding)', () =>
     await mkdir(globalDir, { recursive: true })
 
     await writeFile(
-      join(globalDir, 'workspace_spec_NN.md'),
+      join(globalDir, 'workspace_V_0-3-0_spec_NN.md'),
       '# NN concept: Workspace\n* type:: text',
     )
 
-    const res = await hydrateTemplate(rootDir, 'workspace_spec_NN', { globalDir, skillsDir })
+    const res = await hydrateTemplate(rootDir, 'workspace_V_0-3-0_spec_NN', { globalDir, skillsDir })
 
     expect(res.success).toBe(true)
-    expect(res.templateName).toBe('workspace_spec_NN')
+    expect(res.templateName).toBe('workspace_V_0-3-0_spec_NN')
     expect(res.source).toBe('global')
 
-    const targetFile = join(rootDir, 'templates', 'workspace_spec_NN.md')
+    const targetFile = join(rootDir, 'templates', 'workspace_V_0-3-0_spec_NN.md')
     const { stat: statFs } = await import('node:fs/promises')
     const st = await statFs(targetFile)
     expect(st.isFile()).toBe(true)

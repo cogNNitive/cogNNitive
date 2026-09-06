@@ -1,14 +1,11 @@
-# Base Composite Template
+# Delta for Base Composite Template
 
-## Purpose
-
-Define a new Level-2 composite template package `base_V_0-1-0` that composes `workspace_V_0-2-0` and `cogNNitive_V_0-2-0` via `includes`, providing an opt-in overview-root document pattern that makes the inventory manifest and the provenance model siblings under one parsed parent, without altering either published template.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: `base` Package Composition
 
 The `base_V_0-1-0` Level-2 template is **frozen and legacy**. It SHALL remain byte-identical on disk and MUST NOT be edited. It is no longer part of ACTIVE distribution: the catalog and manifest MUST NOT advertise it, and new Level-3 models MUST NOT adopt it. For backward compatibility, existing workspaces conforming to `base_V_0-1-0` MUST still parse: `resolveTemplateSchema()` SHALL continue to compose `includes: [workspace_V_0-2-0, cogNNitive_V_0-2-0]` with the `Overview` concept (`manifest` → `workspace_V_0-2-0`, `provenance` → `cogNNitive_V_0-2-0`) exactly as before, and MUST NOT modify either included template in place.
+(Previously: `base_V_0-1-0` was an ACTIVE, sanctioned composite template available for new adoption.)
 
 #### Scenario: Frozen base template still composes both peers for legacy workspaces
 - GIVEN a legacy workspace already conforming to `base_V_0-1-0`
@@ -27,11 +24,10 @@ The `base_V_0-1-0` Level-2 template is **frozen and legacy**. It SHALL remain by
 - THEN it is empty
 - AND the file is absent from every ACTIVE `templates:` distribution list
 
----
-
 ### Requirement: Opt-In Overview-Root Entrypoint Pattern
 
 The `*_base_NN.md` overview-root pattern is **legacy and deprecated**. A Level-3 model conforming to `base_V_0-1-0` MAY still act as the workspace's overview root for backward compatibility; when such a file is present at the workspace root, it MUST still be discovered as the primary entrypoint ahead of `workspace*.md` (per the `workspace-entrypoint` capability). New workspaces MUST NOT adopt this pattern: the canonical entry template is the fused `workspace_V_0-3-0_spec_NN.md`. Workspaces that never adopted this pattern MUST remain byte-for-byte unaffected.
+(Previously: the overview-root pattern was the current opt-in entrypoint recommendation.)
 
 #### Scenario: Legacy overview root composes manifest and provenance as children
 - GIVEN `acme_base_01.md` conforming to `base_V_0-1-0` with `manifest:: [[workspace_01.md]]` and `provenance:: [[acme_cogNNitive_01.md]]`
@@ -43,18 +39,17 @@ The `*_base_NN.md` overview-root pattern is **legacy and deprecated**. A Level-3
 - WHEN the workspace is parsed
 - THEN parsing behaves identically to before this capability existed
 
----
-
 ### Requirement: `base` as the Sanctioned Composer of `workspace`
 
 The claim that `base_V_0-1-0` is the one sanctioned composer of `workspace_V_0-2-0` via `includes` is retained as a **historical legacy note** only. Going forward, the canonical workspace entry template is the fused `workspace_V_0-3-0_spec_NN.md`, which is self-contained and MUST NOT be composed via `includes` by `base` or any other package.
+(Previously: `base` was the live, sanctioned composer exception documented in `workspace_V_0-2-0_spec_NN.md`.)
 
 #### Scenario: Legacy note documents the historical exception
 - GIVEN the published note in `workspace_V_0-2-0_spec_NN.md` that no domain template `includes` it
 - WHEN `base_V_0-1-0_spec_NN.md` is read
 - THEN it documents that `base` was a structural exception to that note, now superseded by the fused `workspace_V_0-3-0` template
 
----
+## ADDED Requirements
 
 ### Requirement: Retired Templates Move to a Frozen Distribution Partition
 

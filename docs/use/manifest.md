@@ -28,7 +28,7 @@ agent-bootstrap:
       ref: "skills-v1.2.0"
       commit: "73cbc64e3227b0ddf590f85fc19295ee6d049de6"
       description: Author, edit, and validate iNNfo models with built-in step-by-step Model Creation Wizard.
-      templates: [workspace_spec_NN]
+      templates: [workspace_V_0-3-0_spec_NN]
       mcp:
         - name: innfo-mcp
           repo: cogNNitive/cogNNitive
@@ -75,10 +75,10 @@ agent-bootstrap:
       requires: [nn-preflight]
       description: Audit, update, and maintain cogNNitive skills.
   templates:
-    - name: workspace_spec_NN
+    - name: workspace
       repo: cogNNitive/cogNNitive
-      path: iNNfo/specs/templates/workspace_spec_NN.md
-      version: "V_0-2-0"
+      path: iNNfo/specs/templates/workspace_V_0-3-0_spec_NN.md
+      version: "V_0-2-1"
       ref: "templates-v0.2.1"
       commit: "b305982a81bbc15a184563e71f6bd79a15596e02"
     - name: projects
@@ -129,22 +129,10 @@ agent-bootstrap:
       version: "V_0-2-1"
       ref: "templates-v0.2.1"
       commit: "b305982a81bbc15a184563e71f6bd79a15596e02"
-    - name: cogNNitive
-      repo: cogNNitive/cogNNitive
-      path: iNNfo/specs/templates/cogNNitive/cogNNitive_V_0-2-0_NN.md
-      version: "V_0-2-1"
-      ref: "templates-v0.2.1"
-      commit: "b305982a81bbc15a184563e71f6bd79a15596e02"
     - name: documentation
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/documentation/V_0-1-0/spec_NN.md
       version: "V_0-2-0"
-      ref: "templates-v0.2.1"
-      commit: "b305982a81bbc15a184563e71f6bd79a15596e02"
-    - name: base
-      repo: cogNNitive/cogNNitive
-      path: iNNfo/specs/templates/base/base_V_0-1-0_spec_NN.md
-      version: "V_0-1-0"
       ref: "templates-v0.2.1"
       commit: "b305982a81bbc15a184563e71f6bd79a15596e02"
   workflows:
@@ -152,7 +140,7 @@ agent-bootstrap:
       label: Create an iNNfo model
       description: Turn an idea, document, or dataset into a validated structured model.
       skill: nn-innfo
-      template: workspace_spec_NN
+      template: workspace_V_0-3-0_spec_NN
     - id: transform
       label: Transform a document
       description: Normalize a PDF/DOCX/XLSX into clean Markdown, or export to HTML.
