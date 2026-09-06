@@ -1,6 +1,6 @@
 ---
 name: nn-innfo
-version: "V_0-1-3"
+version: "V_0-2-0"
 last_updated: 2026-09-06
 metadata:
   source_type: "original"

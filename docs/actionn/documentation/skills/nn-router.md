@@ -7,7 +7,7 @@ generator: https://cognnitive.com/actionn/nn-design-presets
 
 # nn System & Router
 
-**Skill**: `nn-router` · **Version**: `V_3-2-0` · **Role**: Primary Front Controller & Governance
+**Skill**: `nn-router` · **Version**: `V_3-3-0` · **Role**: Primary Front Controller & Governance
 
 Primary Front Controller and single entry point for system governance, setup, environment readiness checks, and routing across the **cogNNitive** ecosystem.
 

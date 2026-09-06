@@ -7,7 +7,7 @@ generator: https://cognnitive.com/actionn/nn-design-presets
 
 # nn-preflight
 
-**Skill**: `nn-preflight` · **Version**: `V_0-1-1` · **Role**: Environment Readiness Gate
+**Skill**: `nn-preflight` · **Version**: `V_0-2-0` · **Role**: Environment Readiness Gate
 
 Environment readiness gate for cogNNitive workflows. Runs Tier 1 checks (Node.js >= 18, `innfo-mcp` availability, workspace layout) and optional Tier 2 checks (iNNfo output workspace structure, semantic source validation), then reports blockers, warnings, and verified status.
 
