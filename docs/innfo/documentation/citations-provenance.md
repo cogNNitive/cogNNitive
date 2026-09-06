@@ -25,8 +25,9 @@ sources/export/               + origin metadata)       sources:: [a.md#x])      
 normalises each supported format to Markdown under the matching path in
 `sources/nn/`, and writes a flat, deterministic YAML frontmatter:
 
-- `sha256` of the **original** file's bytes — the change-detection key (git is
-  the history mechanism; there is no snapshot folder).
+- `sha256` of the **original** file's bytes — the change-detection key. Git is
+  the *repo-wide* history mechanism; per-source snapshots live in
+  `sources/archive/` (see §5).
 - `source_file`, `size_bytes`, `normalized_at`, `normalized_by`.
 - `is_synthetic:` — set to `true` on promoted deliverables under `sources/export/`.
 - `conversation_format:` / `source_type:` — set on promoted transcripts under `sources/conversations/`.
@@ -139,3 +140,133 @@ pipeline. They are listed here only so nobody assumes the guarantee exists:
   nothing emits PROV-O or RO-Crate.
 - **A separate `artifacts/canonical/` view** with inline `^[...]` markers. Only
   the single-pass `artifacts/` output described in §4 exists.
+
+---
+
+## 5. Versioning: Git vs. the native semantic-versioning system
+
+cogNNitive carries **two** versioning mechanisms that answer different
+questions. They are **complementary, not substitutive** — understand the role
+of each before relying on one for the other's job.
+
+### Git / GitHub — repo-wide history and release anchors
+
+Git records the state of the **whole repository** at any commit: branches,
+merges, diffs, collaboration, and a remote backup on GitHub. It operates at the
+granularity of the *tree* and of *commits*. It is the copy-of-record, the
+global rollback mechanism, and the only mechanism that gives you **shared,
+collaborative** history across machines and people.
+
+Git also anchors **releases**: every published distribution gets a tag
+(`innfo-mcp-v0.2.5`, `skills-v1.1.5`, `templates-v0.2.1`, `v0.2.5`), so a
+version number always resolves to a specific point in history.
+
+### The native semantic-versioning system — reference contracts
+
+Every iNNfo artifact carries its version **in the filename and in the
+frontmatter**, following the SemVer `V_MAJOR-MINOR-PATCH` convention defined at
+Level 0 (`defiNNe`). The version *is* the identity of the artifact, and
+versioned artifacts are **write-once**: you never edit a published
+`V_0-2-0` in place — you create a new `V_0-2-1` file. This is what makes
+references resolvable and auditable without consulting git history:
+
+| Level | Artifact | Version identity |
+| :--- | :--- | :--- |
+| 0 | `defiNNe` | meta-spec; defines the versioning conventions themselves |
+| 1 | Specifications | `iNNfo_V_0-1-0_NN.md`, `iNNfo_V_0-2-0_NN.md`, `iNNfo_V_0-2-1_NN.md` — `spec_version` in frontmatter |
+| 2 | Templates | `business_V_0-2-0_NN.md` — `template_version` + `spec_version` in frontmatter; the template catalog (`catalog.json`) tracks every `versions[]` and the `adopted` one |
+| 3 | Models | `<Name>_V_<x-y-z>_<template>_NN.md` — `model_version` in frontmatter; `parent_spec.url` pins the exact template version it conforms to |
+| — | Sources | `sources/archive/<basename>/V<N>/<basename>.md` — per-source snapshots (see below) |
+
+The same pattern extends to the **distribution layer**: the MCP server ships as
+versioned bundles (`docs/innfo/cdn/innfo-mcp-v0.2.5.bundle.js`) and the CDN
+`manifest.json` records `latest`. The resolver caches every resolved parent
+under `specs/` **write-once** — if the versioned filename already exists it is
+never overwritten, so a locally cached template is byte-identical to the
+published one for that version.
+
+The whole chain is *content-pinned by name*: a model's `parent_spec.url`
+points at `…/business_V_0-2-0_NN.md`, which stays valid no matter how many
+commits happen afterwards — the file at that version is never mutated.
+
+### Native source archive — per-source lineage inside the workspace
+
+The source-versioning archive (change `2026-09-06-source-versioning-archive`)
+gives every **source** its own sequential version history **inside the
+workspace**, independent of whether you ever commit. When a scan detects that a
+source changed (its `sha256` differs from the active file), the scanner copies
+the previous normalised version to `sources/archive/<basename>/V<N>/<basename>.md`
+(semver `V1`, `V2`, …), hash-idempotent so no duplicate snapshots are ever
+written. The Lineage record's `# NN Sources` carries the chain:
+`version::`, `archive_path::`, `superseded_by::`.
+
+```
+sources/original/   ──►   sources/nn/            ──►   models/*_NN.md
+  (immutable               (active Source,              (Citations)
+   dropbox)                 changed in place)
+        │  change detected
+        └──────────────────────────────────────►  sources/archive/
+        snapshot of previous normalized version      <basename>/V<N>/
+```
+
+The archive answers: *"what exact version of a source did model X see at time
+T?"* — auditability **per source**, even if no commit was ever made. `sources/archive/`
+is excluded from every scanner walk and is **not** a default Citation target
+(unqualified `sources::` resolves under `sources/nn/` only).
+
+### Where they overlap — and the rule that keeps them apart
+
+The overlap is **real**: the same files (templates, specs, models) are versioned
+by both systems, and both speak SemVer — native `V_0-2-0` (underscores) vs. git
+tags `v0.2.5` (dots). The bootstrap manifest itself records both on the same
+entry (`version: "V_3-2-0"` next to `ref: "skills-v1.1.5"` and the `commit`
+hash). That duality is the system working as designed.
+
+| Concern | Git | Native semver |
+| :--- | :--- | :--- |
+| Granularity | whole repo / commit | per artifact (spec, template, model, source) |
+| History mechanism | SHA object graph + tags | version-in-filename + write-once files |
+| What a version means | a point in repo history | the immutable identity of the artifact |
+| Requires a commit? | yes, per change | no — version exists in the file itself |
+| Enforces immutability? | no | yes (write-once, by convention + validation) |
+| Shared / collaborative? | yes (remote + branches) | no, per-artifact |
+| Answers | how is / was the whole tree? | what exact version does this artifact / model / reference point to? |
+
+They are **not** substitutes, for two reasons:
+
+1. **Git does not enforce the write-once contract.** You *can* commit an edit
+   to `business_V_0-2-0_NN.md` in place — Git has no opinion about that. The
+   native versioning discipline (new version file, never mutate a published
+   one) is exactly the guarantee Git cannot give; it is enforced by convention
+   and by validation, not by the VCS.
+2. **Native semver does not give you history or collaboration.** The version in
+   the filename tells you *what* an artifact is, not *how it changed* or *who
+   worked on it*. Only Git answers that.
+
+The natural handshake between them:
+
+- **Git transports and anchors.** The stable `raw.githubusercontent.com`
+  URLs, the release tags, and the commit history are Git's job.
+- **Native semver is the reference contract.** Models pin templates, templates
+  pin specs, exports pin sources — each by an immutable version that must stay
+  stable regardless of commit activity.
+- **Releases couple them.** The release flow bumps the native version,
+  regenerates the bundle/manifest, and creates the git tag — one release, two
+  representations of the same version.
+
+**Convention (the single source of truth):**
+
+- **Git = history, collaboration and release anchors.** For branches, diff
+  review, rollback, and shipping a versioned tag.
+- **Native semver = the identity and the write-once contract.** For references
+  that must resolve and stay valid (`parent_spec.url`, `sources::`, catalog
+  entries) independent of commits.
+- **Never edit a published versioned artifact in place.** When a spec,
+  template, model or source changes, create its next version (or let the
+  archive snapshot it) instead of rewriting the published file — otherwise the
+  "immutable version" promise breaks even though git is healthy.
+
+When both are present, version the whole repo with Git and let the native
+semver carry the per-artifact identity and the per-source archive carry the
+lineage; the archive tree is deliberately invisible to the scanner and to
+citations, so the two coexist without polluting the pipeline.
