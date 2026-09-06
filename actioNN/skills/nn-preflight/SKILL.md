@@ -1,6 +1,6 @@
 ---
 name: nn-preflight
-description: Environment readiness and integrity gate for cogNNitive workflows. Runs Tier 1 checks (Node.js >= 18, innfo-mcp availability, workspace layout, source integrity audit across sources/import/, sources/conversations/, sources/export/) and optional Tier 2 checks (iNNfo output workspace structure, semantic link validation), then reports blockers/warnings/ok. Also provides the canonical skill-location reference used by nn-skills-lifecycle. Triggers: preflight, readiness, environment check, "run Tier 1".
+description: Environment readiness and integrity gate for cogNNitive workflows. Runs Tier 1 checks (Node.js >= 18, innfo-mcp availability, workspace layout, source integrity audit across sources/import/, sources/conversations/, sources/export/) and optional Tier 2 checks (iNNfo output workspace structure, semantic link validation), plus a Tier 3 workspace template upgrade scan (catalog-backed, read-only, non-blocking). Then reports blockers/warnings/ok. Also provides the canonical skill-location reference used by nn-skills-lifecycle. Triggers: preflight, readiness, environment check, "run Tier 1".
 version: "V_0-1-1"
 last_updated: 2026-09-06
 metadata:
@@ -82,6 +82,10 @@ Environment readiness gate for cogNNitive workflows. Runs deterministic checks a
 5. **iNNfo output workspace structure**: for Level 3 model workflows, verify `models/` holds `*_NN.md` files (note that `list_models` recursively scans both the workspace root and the `models/` subdirectory to find all models) and that `index.md` exists with `# NN index` as the entry point.
 6. **Semantic link validation (sources)**: parse all Level 3 model files and verify that every file path listed in the `sources:: [...]` metadata array exists physically in the workspace. Report any missing or dangling sources as warnings.
 7. **Workspace Source Integrity Audit (`scanWorkspaceSources`)**: when `--workspace-dir` is provided, discovers files across `sources/import/`, `sources/conversations/`, and `sources/export/` (or legacy `sources/original/`), verifies that every source file has an up-to-date normalized counterpart in `sources/nn/` matching its content SHA-256 hash, and verifies that no dangling references exist in `sources/nn/`. Any unnormalized or stale source is reported as a non-blocking actionable warning recommending `node scripts/index.js --scan`. Emits structured `sources_integrity` payload in `--json` mode.
+
+## Tier 3 Checks (workspace template upgrades — informational)
+
+8. **Workspace template upgrade detection (`scanWorkspaceUpgrades` via `scripts/upgrade-check.js`)**: when `--workspace-dir` is provided and the workspace contains Level-3 models, fetches the committed Level-2 template catalog (`iNNfo/specs/templates/catalog.json`, override with `--template-catalog-url`) and classifies each model's pinned `parent_spec` template against the catalog's `adopted` version — `current`, `upgrade-available` (with `major`/`minor`/`patch` gap), `ahead`, or `unlisted`. Available upgrades are **informational**: they are reported as `template-upgrade` items with `summary.templateUpgrades*` counts and NEVER flip the exit code to a blocker. If the catalog is unreachable, the scan degrades to a non-blocking `offline` notice (`summary.templateCatalogOffline`). Emits `template-upgrade` items in `--json` mode. Migration is handled by the `nn-upgrade` skill, never by preflight.
 
 ---
 
