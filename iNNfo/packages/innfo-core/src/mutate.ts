@@ -1,5 +1,6 @@
 import type { ParsedModel, ElementNode, TaxonomyEdge } from './types'
 import { ElementsMap } from './types'
+import type { TemplateSchema } from './schema'
 import {
   CONCEPT_DEFINITION,
   FIELD_DEFINITION,
@@ -89,9 +90,10 @@ export function applyMutation(
   model: ParsedModel,
   op: string,
   args: Record<string, unknown>,
+  schema?: TemplateSchema,
 ): MutationResult {
   const draft = cloneModel(model)
-  const result = runMutation(draft, op, args)
+  const result = runMutation(draft, op, args, schema)
   if (result.success) {
     Object.assign(model, draft)
   }
@@ -102,6 +104,7 @@ function runMutation(
   model: ParsedModel,
   op: string,
   args: Record<string, unknown>,
+  schema?: TemplateSchema,
 ): MutationResult {
   try {
     switch (op) {
@@ -120,7 +123,7 @@ function runMutation(
       case 'rename_concept':
         return renameConcept(model, args)
       case 'rename_element':
-        return renameElement(model, args)
+        return renameElement(model, args, schema)
       case 'generate_index':
         return generateIndex(model, args)
       default:
@@ -391,6 +394,16 @@ export function updateReferenceString(text: string, oldName: string, newName: st
   }
 
   // Case 3: Embedded wikilinks: [[Target]] or [[Target|Alias]] or [[Qualified Target]]
+  return updateWikiLinks(text, oldName, newName)
+}
+
+/** Rewrite only `[[...]]` wikilink references (Case 3 of `updateReferenceString`),
+ *  leaving bare string values untouched. Used by the schema-aware rename pass
+ *  for fields the parent template does NOT declare as `type:: reference`. */
+export function updateWikiLinks(text: string, oldName: string, newName: string): string {
+  if (!text || typeof text !== 'string') return text
+  const oldSlug = slugify(oldName)
+
   return text.replace(/\[\[\s*([^\|]+?)(\s*\|[^\]]+)?\s*\]\]/gi, (match, target, alias) => {
     const trimmedTarget = target.trim()
 
@@ -416,7 +429,26 @@ export function updateReferenceString(text: string, oldName: string, newName: st
   })
 }
 
-function renameElement(model: ParsedModel, args: Record<string, unknown>): MutationResult {
+/** Which field names does the schema declare as `type:: reference` (or
+ *  `type:: model`) for each concept? Used to gate the rename rewrite. */
+function referenceFieldsByConcept(schema: TemplateSchema | undefined): Map<string, Set<string>> {
+  const map = new Map<string, Set<string>>()
+  if (!schema) return map
+  for (const concept of schema.concepts) {
+    const refs = new Set<string>()
+    for (const f of concept.fields ?? []) {
+      if (f.type === 'reference' || f.type === 'model') refs.add(f.name.toLowerCase())
+    }
+    map.set(concept.name.toLowerCase(), refs)
+  }
+  return map
+}
+
+function renameElement(
+  model: ParsedModel,
+  args: Record<string, unknown>,
+  schema?: TemplateSchema,
+): MutationResult {
   const req = requireArgs(args, ['conceptName', 'elementName', 'newName'])
   if (!req.ok) return req.result
   const { conceptName, elementName, newName } = req.values
@@ -464,17 +496,27 @@ function renameElement(model: ParsedModel, args: Record<string, unknown>): Mutat
     }
   }
 
-  // Rewrite references in element fields, description, and relationships
+  // Rewrite references in element fields, description, and relationships.
+  // Schema-aware: a string field is only rewritten as a scalar reference when
+  // the parent template declares it `type:: reference` (or `type:: model`);
+  // otherwise only embedded `[[...]]` wikilinks are rewritten, never a bare
+  // slug-matching string (which would clobber plain data like `category:: cost`).
+  const refsByConcept = referenceFieldsByConcept(schema)
+
   for (const [, elements] of model.elements.entries()) {
     for (const el of elements) {
       // 1. Fields
       if (el.fields) {
+        const conceptRefs = refsByConcept.get(el.type.toLowerCase())
         for (const [fKey, fVal] of Object.entries(el.fields)) {
+          const isRefField = conceptRefs?.has(fKey.toLowerCase()) ?? false
+          const rewrite = (s: string): string =>
+            isRefField ? updateReferenceString(s, elementName, newName) : updateWikiLinks(s, elementName, newName)
           if (typeof fVal === 'string') {
-            el.fields[fKey] = updateReferenceString(fVal, elementName, newName)
+            el.fields[fKey] = rewrite(fVal)
           } else if (Array.isArray(fVal)) {
             el.fields[fKey] = fVal.map((item) =>
-              typeof item === 'string' ? updateReferenceString(item, elementName, newName) : item,
+              typeof item === 'string' ? rewrite(item) : item,
             )
           }
         }
@@ -482,7 +524,7 @@ function renameElement(model: ParsedModel, args: Record<string, unknown>): Mutat
 
       // 2. Description
       if (el.description && typeof el.description === 'string') {
-        el.description = updateReferenceString(el.description, elementName, newName)
+        el.description = updateWikiLinks(el.description, elementName, newName)
       }
 
       // 3. Relationships array (if present)
@@ -500,7 +542,7 @@ function renameElement(model: ParsedModel, args: Record<string, unknown>): Mutat
   if (model.rawSections) {
     for (const [sKey, sVal] of Object.entries(model.rawSections)) {
       if (typeof sVal === 'string') {
-        model.rawSections[sKey] = updateReferenceString(sVal, elementName, newName)
+        model.rawSections[sKey] = updateWikiLinks(sVal, elementName, newName)
       }
     }
   }

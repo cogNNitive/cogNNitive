@@ -7,7 +7,7 @@ import {
   applyMutation as coreApplyMutation,
   resolveTemplateSchema,
 } from '@cognnitive/innfo-core'
-import type { SpecDocument, ParsedModel } from '@cognnitive/innfo-core'
+import type { SpecDocument, ParsedModel, TemplateSchema } from '@cognnitive/innfo-core'
 import { findModelFile } from './spec.js'
 import { isLocalPath, toLocalFilePath, saveSpecOnce } from './resolver-node.js'
 import { createSpecsBackupZip } from './spec-backup.js'
@@ -318,8 +318,28 @@ export async function applyChange(
     }
   }
 
-  // Apply the mutation via the core enforcement engine (R-IE-01)
-  const mutationResult = coreApplyMutation(model, op, args as unknown as Record<string, unknown>)
+  // Apply the mutation via the core enforcement engine (R-IE-01). For
+  // `rename_element`, pass the resolved parent-template schema so the
+  // reference rewrite is gated on `type:: reference` fields (C3): plain
+  // string fields are never rewritten as bare scalars.
+  let renameSchema: TemplateSchema | undefined
+  if (op === 'rename_element') {
+    try {
+      const { template: schemaTemplate, resolveInclude: schemaInclude } =
+        await resolveTemplateForModel(rootDir, model)
+      if (schemaTemplate) {
+        renameSchema = resolveTemplateSchema(schemaTemplate.rawContent, schemaInclude).schema
+      }
+    } catch {
+      renameSchema = undefined
+    }
+  }
+  const mutationResult = coreApplyMutation(
+    model,
+    op,
+    args as unknown as Record<string, unknown>,
+    renameSchema,
+  )
   if (!mutationResult.success) {
     return mutationResult
   }
