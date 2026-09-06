@@ -13,7 +13,7 @@ export function normalizeSource(text: string): string {
 export function parseMarkdownTable(md: string): Record<string, string>[] {
   const lines = normalizeSource(md)
     .split('\n')
-    .filter((l) => l.trim().startsWith('|'))
+    .filter((l) => /(^|[^\\])\|/.test(l.trim()))
   if (lines.length < 2) return []
   const header = parseTableRow(lines[0])
   if (lines.length < 3) return []
@@ -28,8 +28,11 @@ export function parseMarkdownTable(md: string): Record<string, string>[] {
 }
 
 export function parseTableRow(line: string): string[] {
-  return line
-    .split('|')
-    .filter((_, i, a) => i > 0 && i < a.length - 1)
-    .map((c) => c.trim())
+  const trimmed = line.trim()
+  const hasLeading = trimmed.startsWith('|')
+  const hasTrailing = /(^|[^\\])\|$/.test(trimmed)
+  const parts = line.split('|')
+  const start = hasLeading ? 1 : 0
+  const end = hasTrailing ? parts.length - 1 : parts.length
+  return parts.slice(start, end).map((c) => c.trim())
 }
