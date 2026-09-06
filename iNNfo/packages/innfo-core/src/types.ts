@@ -303,6 +303,10 @@ export interface ValidationError {
   path: string
   message: string
   severity: 'error' | 'warning'
+  code?: string
+  promptHint?: string
+  meta?: Record<string, unknown>
+  filePath?: string
 }
 
 export interface ValidationResult {
@@ -318,10 +322,13 @@ export interface ValidationCheck {
   id: string
   label: string
   description: string
-  category: 'frontmatter' | 'body' | 'convention'
+  category: 'frontmatter' | 'body' | 'convention' | 'governance'
   severity: 'error' | 'warning' | 'info'
   passed: boolean
   message?: string
+  code?: string
+  promptHint?: string
+  meta?: Record<string, unknown>
 }
 
 export interface ValidationSummary {

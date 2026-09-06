@@ -55,4 +55,20 @@ describe('Diagnostics accumulator', () => {
     expect(d.errors).toHaveLength(2)
     expect(d.warnings).toHaveLength(1)
   })
+
+  it('supports code, promptHint, and meta in warnings and errors', () => {
+    const d = new Diagnostics().warn('parent_spec', 'Stale template cache', {
+      code: 'TEMPLATE_CACHE_STALE',
+      promptHint: 'Actualizá la plantilla en specs/',
+      meta: { canonicalUrl: 'https://example.com/spec.md' },
+    })
+    expect(d.warnings[0]).toMatchObject({
+      path: 'parent_spec',
+      message: 'Stale template cache',
+      severity: 'warning',
+      code: 'TEMPLATE_CACHE_STALE',
+      promptHint: 'Actualizá la plantilla en specs/',
+      meta: { canonicalUrl: 'https://example.com/spec.md' },
+    })
+  })
 })

@@ -153,4 +153,44 @@ describe('ValidationReport.vue', () => {
     expect(text).toContain('Info message')
     expect(text).toContain('Default message')
   })
+
+  it('renders copy prompt button for checks with promptHint and copies on click', async () => {
+    const reportWithPromptHint: ValidationReportType = {
+      checks: [
+        {
+          id: 'check-governance-1',
+          label: 'Template Cache Freshness',
+          description: 'Checks if local template in specs/ is fresh.',
+          category: 'governance',
+          severity: 'warning',
+          passed: false,
+          code: 'TEMPLATE_CACHE_STALE',
+          message: 'Template cache differs from remote',
+          promptHint: 'Actualizá la plantilla en specs/ con la versión canónica',
+        },
+      ],
+      summary: {
+        total: 1,
+        passed: 0,
+        errors: 0,
+        warnings: 1,
+      },
+    }
+
+    const wrapper = mount(ValidationReport, {
+      props: { report: reportWithPromptHint },
+    })
+
+    expect(wrapper.text()).toContain('Governance & Freshness')
+    expect(wrapper.text()).toContain('Template Cache Freshness')
+
+    const copyBtn = wrapper.find('[data-testid="copy-prompt-hint-button"]')
+    expect(copyBtn.exists()).toBe(true)
+    expect(copyBtn.text()).toContain('Copiar prompt para Agente')
+
+    await copyBtn.trigger('click')
+
+    expect(writeTextMock).toHaveBeenCalledWith('Actualizá la plantilla en specs/ con la versión canónica')
+    expect(copyBtn.text()).toContain('Prompt Copiado!')
+  })
 })

@@ -28,14 +28,14 @@ export class Diagnostics {
   }
 
   /** Record an error at `path`. */
-  error(path: string, message: string): this {
-    this._errors.push({ path, message, severity: 'error' })
+  error(path: string, message: string, extra?: Partial<ValidationError>): this {
+    this._errors.push({ path, message, severity: 'error', ...extra })
     return this
   }
 
   /** Record a warning at `path`. */
-  warn(path: string, message: string): this {
-    this._warnings.push({ path, message, severity: 'warning' })
+  warn(path: string, message: string, extra?: Partial<ValidationError>): this {
+    this._warnings.push({ path, message, severity: 'warning', ...extra })
     return this
   }
 
