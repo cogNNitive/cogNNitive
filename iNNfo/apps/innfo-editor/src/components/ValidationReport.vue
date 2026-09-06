@@ -135,6 +135,7 @@ const categories = [
   { key: 'frontmatter', label: 'Frontmatter' },
   { key: 'body', label: 'Body Syntax' },
   { key: 'convention', label: 'Conventions' },
+  { key: 'governance', label: 'Governance & Freshness' },
 ] as const
 
 const collapsed = ref<Record<string, boolean>>({
@@ -142,6 +143,7 @@ const collapsed = ref<Record<string, boolean>>({
   frontmatter: false,
   body: false,
   convention: false,
+  governance: false,
 })
 
 function toggle(cat: string) {
@@ -465,6 +467,7 @@ function formatAiPrompt(): string {
         lines.push(`### ${i + 1}. [${type}] ${check.label} (Category: \`${check.category}\`)`)
         if (check.description) lines.push(`- **Description:** ${check.description}`)
         if (check.message) lines.push(`- **Details / Message:** \`${check.message}\``)
+        if (check.promptHint) lines.push(`- **Remediation Hint:** ${check.promptHint}`)
         lines.push('')
       })
     } else {
@@ -519,6 +522,7 @@ function formatAiPrompt(): string {
           lines.push(`#### ${count++}. [${type}] ${check.label} (Category: \`${check.category}\`)`)
           if (check.description) lines.push(`- **Description:** ${check.description}`)
           if (check.message) lines.push(`- **Details / Message:** \`${check.message}\``)
+          if (check.promptHint) lines.push(`- **Remediation Hint:** ${check.promptHint}`)
           lines.push('')
         })
       }
@@ -548,6 +552,18 @@ function copyAiPrompt(): void {
 
   const text = formatAiPrompt()
   copyToClipboard(text)
+}
+
+const copiedPromptCheckId = ref<string | null>(null)
+let promptCheckTimer: ReturnType<typeof setTimeout> | undefined
+
+function copyPromptHint(checkId: string, promptHint: string): void {
+  copiedPromptCheckId.value = checkId
+  clearTimeout(promptCheckTimer)
+  promptCheckTimer = setTimeout(() => {
+    copiedPromptCheckId.value = null
+  }, 2000)
+  copyToClipboard(promptHint)
 }
 
 function copyToClipboard(text: string): void {
@@ -748,6 +764,20 @@ function copyToClipboard(text: string): void {
                   >
                     {{ check.message }}
                   </div>
+                  <div
+                    v-if="!check.passed && check.promptHint"
+                    class="mt-2 flex items-center gap-2"
+                  >
+                    <button
+                      type="button"
+                      data-testid="copy-prompt-hint-button"
+                      class="inline-flex items-center gap-1.5 px-2.5 py-1 text-2xs font-semibold rounded-md border border-amber-300 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors cursor-pointer"
+                      @click="copyPromptHint(check.id, check.promptHint)"
+                    >
+                      <Sparkles class="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                      <span>{{ copiedPromptCheckId === check.id ? 'Prompt Copiado!' : 'Copiar prompt para Agente' }}</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -822,6 +852,20 @@ function copyToClipboard(text: string): void {
                 class="mt-2 p-2.5 rounded-md font-mono text-xs bg-slate-900 dark:bg-slate-950 text-red-300 border border-slate-800 overflow-x-auto whitespace-pre-wrap leading-relaxed select-all"
               >
                 {{ check.message }}
+              </div>
+              <div
+                v-if="!check.passed && check.promptHint"
+                class="mt-2.5 flex items-center gap-2"
+              >
+                <button
+                  type="button"
+                  data-testid="copy-prompt-hint-button"
+                  class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md border border-amber-300 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors cursor-pointer"
+                  @click="copyPromptHint(check.id, check.promptHint)"
+                >
+                  <Sparkles class="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                  <span>{{ copiedPromptCheckId === check.id ? 'Prompt Copiado!' : 'Copiar prompt para Agente' }}</span>
+                </button>
               </div>
             </div>
           </div>
