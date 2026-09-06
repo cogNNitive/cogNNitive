@@ -120,8 +120,9 @@
         <div class="flex items-center gap-1.5 shrink-0">
           <!-- Save -->
           <button
-            @click.stop="$emit('edit-toggle')"
+            @click.stop="handleSaveClick"
             class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-md transition-all flex items-center gap-1.5 cursor-pointer"
+            data-testid="block-sheet-save-button"
           >
             <Check class="w-4 h-4" />
             Save
@@ -786,6 +787,7 @@ watch(
 
 const onTagsUpdate = (newTags: string[]) => {
   localTags.value = newTags
+  props.block.tags = newTags
   if (props.block.id) {
     const node = modelStore.getNode(props.block.id)
     if (node) {
@@ -795,6 +797,9 @@ const onTagsUpdate = (newTags: string[]) => {
       })
     }
     modelStore.markDirty(props.block.id)
+    if (rootNodeId.value) {
+      modelStore.markDirty(rootNodeId.value)
+    }
     emit('change')
   }
 }
@@ -861,6 +866,35 @@ const onNameChange = () => {
 
 const onNameInput = (event: Event) => {
   localBlockName.value = (event.target as HTMLInputElement).value
+}
+
+const handleSaveClick = async () => {
+  onNameChange()
+  if (!isConcept.value && props.block.id) {
+    const node = modelStore.getNode(props.block.id)
+    if (node) {
+      modelStore.upsertNode({
+        ...node,
+        tags: [...localTags.value],
+      })
+      props.block.tags = [...localTags.value]
+    }
+    modelStore.markDirty(props.block.id)
+    if (rootNodeId.value) {
+      modelStore.markDirty(rootNodeId.value)
+    }
+  }
+  emit('change')
+  emit('edit-toggle')
+
+  const ws = useWorkspaceStore()
+  if (ws.hasHandle) {
+    try {
+      await ws.saveActiveFile()
+    } catch (err) {
+      console.error('Auto-save on block save failed:', err)
+    }
+  }
 }
 
 watch(

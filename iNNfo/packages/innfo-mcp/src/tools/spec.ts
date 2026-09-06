@@ -39,6 +39,7 @@ import {
   toLocalFilePath,
   parseSpecName,
 } from './resolver-node.js'
+import type { FreshnessResult, ResolvedCache } from './resolver-node.js'
 
 /**
  * Derive a chain-start name from a spec/template URL.
@@ -265,14 +266,16 @@ export async function resolveTemplateWithCache(
   rootDir: string,
   url: string,
   name: string,
+  options?: { checkFreshness?: boolean },
 ): Promise<{
   template: SpecDocument | null
   cache: SpecCache | null
   resolveInclude: (ref: { name: string; url: string }) => string | null
+  freshness: FreshnessResult | null
 }> {
-  let cache: SpecCache | null = null
+  let cache: ResolvedCache | null = null
   try {
-    cache = await resolveParentChainNode(rootDir, url, name)
+    cache = await resolveParentChainNode(rootDir, url, name, options)
   } catch (err) {
     if (
       err instanceof Error &&
@@ -292,7 +295,8 @@ export async function resolveTemplateWithCache(
     }
     return null
   }
-  return { template, cache, resolveInclude }
+  const freshness = cache?.freshness?.get(name) ?? null
+  return { template, cache, resolveInclude, freshness }
 }
 
 /**

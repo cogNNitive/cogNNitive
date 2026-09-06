@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useModelStore } from '../../stores/modelStore'
+import IconRenderer from '../editor/IconRenderer.vue'
 
 const props = withDefaults(
   defineProps<{
@@ -23,32 +24,37 @@ const isFocused = ref(false)
 
 const filteredTags = computed(() => {
   const query = inputValue.value.toLowerCase().trim()
-  const unselected = availableTags.value.filter((tag) => !props.modelValue.includes(tag))
+  const lowerSelected = (props.modelValue ?? []).map((t) => t.toLowerCase())
+  const unselected = availableTags.value.filter((tag) => !lowerSelected.includes(tag.toLowerCase()))
   if (!query) return unselected
   return unselected.filter((tag) => tag.toLowerCase().includes(query))
 })
 
 function addTag(tag: string) {
   const cleanTag = tag.trim().toLowerCase()
-  if (cleanTag && !props.modelValue.includes(cleanTag)) {
-    emit('update:modelValue', [...props.modelValue, cleanTag])
+  const lowerSelected = (props.modelValue ?? []).map((t) => t.toLowerCase())
+  if (cleanTag && !lowerSelected.includes(cleanTag)) {
+    emit('update:modelValue', [...(props.modelValue ?? []), cleanTag])
   }
   inputValue.value = ''
 }
 
 function removeTag(index: number) {
-  const newTags = [...props.modelValue]
+  const newTags = [...(props.modelValue ?? [])]
   newTags.splice(index, 1)
   emit('update:modelValue', newTags)
 }
 
 function handleEnter() {
-  if (inputValue.value) {
+  if (inputValue.value.trim()) {
     addTag(inputValue.value)
   }
 }
 
 function handleBlur() {
+  if (inputValue.value.trim()) {
+    addTag(inputValue.value)
+  }
   setTimeout(() => {
     isFocused.value = false
   }, 200)
@@ -58,9 +64,29 @@ function handleBlur() {
 <template>
   <div class="tag-input-container">
     <div class="tags-wrapper">
-      <span v-for="(tag, index) in modelValue" :key="tag" class="tag-chip">
-        {{ tag }}
-        <button @click.prevent="removeTag(index)" class="tag-remove">&times;</button>
+      <span
+        v-for="(tag, index) in modelValue"
+        :key="tag"
+        class="tag-chip"
+        :style="
+          modelStore.workspaceTagsMap[tag.toLowerCase()]?.color
+            ? {
+                backgroundColor: modelStore.workspaceTagsMap[tag.toLowerCase()]?.color,
+                color: '#ffffff',
+              }
+            : {}
+        "
+        :title="modelStore.workspaceTagsMap[tag.toLowerCase()]?.description"
+      >
+        <IconRenderer
+          v-if="modelStore.workspaceTagsMap[tag.toLowerCase()]?.icon"
+          :icon="modelStore.workspaceTagsMap[tag.toLowerCase()]?.icon!"
+          custom-class="w-3 h-3 text-white mr-1 shrink-0"
+        />
+        <span>{{ tag }}</span>
+        <button @click.prevent="removeTag(index)" class="tag-remove" aria-label="Remove tag">
+          &times;
+        </button>
       </span>
       <input
         type="text"
@@ -74,8 +100,32 @@ function handleBlur() {
     </div>
 
     <ul v-if="isFocused && filteredTags.length > 0" class="tag-dropdown">
-      <li v-for="tag in filteredTags" :key="tag" @click="addTag(tag)" class="tag-option">
-        {{ tag }}
+      <li
+        v-for="tag in filteredTags"
+        :key="tag"
+        @mousedown.prevent="addTag(tag)"
+        @click.stop="addTag(tag)"
+        class="tag-option flex items-center gap-2"
+      >
+        <span
+          v-if="modelStore.workspaceTagsMap[tag.toLowerCase()]?.icon"
+          class="w-4 h-4 rounded-full flex items-center justify-center shrink-0"
+          :style="{
+            backgroundColor: modelStore.workspaceTagsMap[tag.toLowerCase()]?.color || '#64748b',
+          }"
+        >
+          <IconRenderer
+            :icon="modelStore.workspaceTagsMap[tag.toLowerCase()]?.icon!"
+            custom-class="w-2.5 h-2.5 text-white"
+          />
+        </span>
+        <span class="font-medium text-xs">{{ tag }}</span>
+        <span
+          v-if="modelStore.workspaceTagsMap[tag.toLowerCase()]?.description"
+          class="text-2xs text-slate-400 dark:text-slate-500 truncate ml-auto"
+        >
+          {{ modelStore.workspaceTagsMap[tag.toLowerCase()]?.description }}
+        </span>
       </li>
     </ul>
   </div>

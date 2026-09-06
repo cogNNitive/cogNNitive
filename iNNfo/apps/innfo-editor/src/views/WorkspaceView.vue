@@ -1,5 +1,13 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, defineAsyncComponent, type Component, watch } from 'vue'
+import {
+  ref,
+  computed,
+  onMounted,
+  onUnmounted,
+  defineAsyncComponent,
+  type Component,
+  watch,
+} from 'vue'
 import { useRouter } from 'vue-router'
 import Header from '../components/layout/Header.vue'
 import SampleBanner from '../components/layout/SampleBanner.vue'
@@ -37,7 +45,9 @@ const MetamatrixConfig = defineAsyncComponent(
   () => import('../components/editor/MetamatrixConfig.vue'),
 )
 const ModelInfoPanel = defineAsyncComponent(() => import('../components/editor/ModelInfoPanel.vue'))
-const AiWorkflowPanel = defineAsyncComponent(() => import('../components/editor/AiWorkflowPanel.vue'))
+const AiWorkflowPanel = defineAsyncComponent(
+  () => import('../components/editor/AiWorkflowPanel.vue'),
+)
 const GuidedProcedureView = defineAsyncComponent(
   () => import('../components/editor/GuidedProcedureView.vue'),
 )
@@ -47,8 +57,6 @@ const ProjectGanttView = defineAsyncComponent(
 const SearchResultsView = defineAsyncComponent(
   () => import('../components/editor/SearchResultsView.vue'),
 )
-
-
 
 const router = useRouter()
 const workspaceStore = useWorkspaceStore()
@@ -159,7 +167,8 @@ const inferTypeFromValue = (key: string, val: any): string => {
   if (isImageFieldName(key)) return 'image'
   const rawType = typeof val
   if (rawType === 'boolean') return 'boolean'
-  if (rawType === 'number') return Number.isInteger(val) && val >= 1 && val <= 5 ? 'rating' : 'number'
+  if (rawType === 'number')
+    return Number.isInteger(val) && val >= 1 && val <= 5 ? 'rating' : 'number'
   if (rawType === 'string') {
     if (/^#[0-9a-fA-F]{6}$/.test(val)) return 'color'
     if (isImageFieldValue(key, val)) return 'image'
@@ -173,7 +182,11 @@ const getConceptFieldsForNode = (node: ModelNode) => {
   const isElement = node.kind === 'element' || (node.kind !== 'concept' && node.kind !== 'root')
   const conceptName = isElement ? node.type : (node.conceptBinding?.name ?? node.name)
   let metamodelFields = metamodelStore.getConceptFields(conceptName)
-  if ((!metamodelFields || metamodelFields.length === 0) && node.type && node.type !== conceptName) {
+  if (
+    (!metamodelFields || metamodelFields.length === 0) &&
+    node.type &&
+    node.type !== conceptName
+  ) {
     metamodelFields = metamodelStore.getConceptFields(node.type)
   }
   if (!metamodelFields) {
@@ -223,7 +236,11 @@ const conceptBlock = computed(() => {
   const isElement = node.kind === 'element' || (node.kind !== 'concept' && node.kind !== 'root')
   const conceptName = isElement ? node.type : (node.conceptBinding?.name ?? node.name)
   let metamodelFields = metamodelStore.getConceptFields(conceptName)
-  if ((!metamodelFields || metamodelFields.length === 0) && node.type && node.type !== conceptName) {
+  if (
+    (!metamodelFields || metamodelFields.length === 0) &&
+    node.type &&
+    node.type !== conceptName
+  ) {
     metamodelFields = metamodelStore.getConceptFields(node.type)
   }
   if (!metamodelFields) {
@@ -246,6 +263,7 @@ const conceptBlock = computed(() => {
     name: node.name,
     description: node.rawSections?.description || '',
     fields,
+    tags: node.tags ?? [],
   }
 })
 
@@ -262,6 +280,7 @@ const childItems = computed(() => {
       fields: Object.fromEntries(
         Object.entries(n.fields ?? {}).map(([k, fv]) => [k, (fv as any).value]),
       ),
+      tags: n.tags ?? [],
     }))
 })
 
@@ -355,10 +374,7 @@ const activeEditorEvents = computed(() => {
 
 function onSelectNode(nodeId: string): void {
   uiStore.selectNode(nodeId)
-  if (
-    uiStore.activeView === 'matrices' ||
-    uiStore.activeView === 'info'
-  ) {
+  if (uiStore.activeView === 'matrices' || uiStore.activeView === 'info') {
     uiStore.setActiveView('editor')
   }
   // Selecting a node in the sidebar must show it in the central panel
@@ -587,15 +603,11 @@ onUnmounted(() => {
 
         <!-- ── Editor View ── -->
         <template v-else-if="uiStore.activeView === 'editor'">
-
           <div
             v-if="selectedNodeId && !uiStore.showValidationReport"
             class="flex-1 p-4 overflow-y-auto"
           >
-            <ModelDashboard
-              v-if="isRootNode"
-              :root-node-id="selectedNodeId"
-            />
+            <ModelDashboard v-if="isRootNode" :root-node-id="selectedNodeId" />
             <component
               v-else
               :is="activeEditorComponent"

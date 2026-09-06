@@ -77,6 +77,11 @@ export const useModelStore = defineStore('model', {
             }
           }
         }
+        // Also include workspace-defined Tag concept elements
+        const isTagNode = node.type === 'Tag' || node.conceptBinding?.name === 'Tag'
+        if (isTagNode && node.name) {
+          tagsSet.add(node.name.trim().toLowerCase())
+        }
       }
       return Array.from(tagsSet).sort()
     },

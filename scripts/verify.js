@@ -115,4 +115,13 @@ run('node scripts/manifest/validate-manifest.js --channel stable', 'Validate Sta
 //    the preview doc pins main's HEAD SHA and legitimately drifts every commit.
 run('node scripts/manifest/generate-manifest.js --channel stable --check', 'Check Stable Manifest Doc Fresh');
 
+// 7. Test Template Immutability Guard
+run('node scripts/guard-template-immutability.test.js', 'Test Template Immutability Guard');
+
+// 8. Template Immutability Guard (against real git state)
+run('node scripts/guard-template-immutability.js', 'Template Immutability Guard');
+
+// 9. Test Preflight Workspace Freshness
+run('node actioNN/skills/nn-preflight/scripts/preflight-check.test.js', 'Test Preflight Workspace Freshness');
+
 console.log('\n✅ [cogNNitive Verify] All deterministic pre-checks passed.');
