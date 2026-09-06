@@ -18,8 +18,8 @@ Strict TDD and contract verification across `innfo-core`, `innfo-editor`, and `i
 
 - [x] Update `src/components/ValidationReport.vue`:
   - [x] Support rendering `category === 'governance'` with appropriate icon/label.
-  - [x] Render *"Copiar prompt para Agente de IA"* button when `check.promptHint` is present.
-  - [x] Implement clipboard copy feedback (`copiedPromptCheckId` reactive state).
+  - [x] Render *"Copy prompt for AI Agent"* button when `check.promptHint` is present.
+  - [x] Implement clipboard copy feedback (`copiedPromptCheckId` reactive state, "Copied!").
   - [x] Ensure no file-writing or network-overwriting logic exists for template freshness.
 - [x] Component/unit test (`tests/component/ValidationReport.test.ts`):
   - [x] Verify button renders for checks with `promptHint`.

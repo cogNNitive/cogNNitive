@@ -775,7 +775,7 @@ function copyToClipboard(text: string): void {
                       @click="copyPromptHint(check.id, check.promptHint)"
                     >
                       <Sparkles class="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                      <span>{{ copiedPromptCheckId === check.id ? 'Prompt Copiado!' : 'Copiar prompt para Agente' }}</span>
+                      <span>{{ copiedPromptCheckId === check.id ? 'Copied!' : 'Copy prompt for AI Agent' }}</span>
                     </button>
                   </div>
                 </div>
@@ -864,7 +864,7 @@ function copyToClipboard(text: string): void {
                   @click="copyPromptHint(check.id, check.promptHint)"
                 >
                   <Sparkles class="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                  <span>{{ copiedPromptCheckId === check.id ? 'Prompt Copiado!' : 'Copiar prompt para Agente' }}</span>
+                  <span>{{ copiedPromptCheckId === check.id ? 'Copied!' : 'Copy prompt for AI Agent' }}</span>
                 </button>
               </div>
             </div>
