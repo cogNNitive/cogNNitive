@@ -1,7 +1,7 @@
 ---
 name: nn-innfo
-version: "V_0-1-3"
-last_updated: 2026-09-05
+version: "V_0-2-0"
+last_updated: 2026-09-06
 metadata:
   source_type: "original"
   mcp: "innfo-mcp"
@@ -23,8 +23,14 @@ description: |
 
 # iNNfo Skill
 
-## 0. Activation Gate
-Execute the canonical activation gate defined in `nn-preflight` (session greeting + deterministic preflight integrity check).
+## 0. Activation Gate & Conversation Lifecycle Gate
+1. **Activation Gate**: Execute the canonical activation gate defined in `nn-preflight` (session greeting + deterministic preflight integrity check).
+2. **Conversation Lifecycle Gate**: Follow `nn-router` Rule 5:
+   - Silently reserve `conversations/YYYY-MM-DD_HHmmss.md` upon session start (`status: in_progress`).
+   - Upon session exit or wizard completion:
+     - Discard trivial sessions (<2 turns, 0 workspace mutations).
+     - For non-trivial sessions, present 3 suggested titles (`[1] (Recommended)`), finalize frontmatter (`status: completed`), and rename to `conversations/YYYY-MM-DD_<slug>.md`.
+     - Prompt for promotion to `sources/conversations/` (`[full]`, `[summary]`, `[both]`, `[none]`) for ingestion into the workspace knowledge graph and model citations (`sources:: [conversations/<file>.md#<anchor>]`).
 
 ---
 
@@ -502,6 +508,7 @@ Upon completing the creation or modification of a model, the agent MUST print th
 ### Deep URL construction instruction:
 - **Base URL**: `https://cognnitive.com/innfo/app/workspace?view=editor`
 - **Model Query Parameter**: `&model=<model_id>` (where `<model_id>` is the model identifier/filename without extension, e.g. `arenzano_V_1-2-0_business`).
+- **Workspace Query Parameter** (optional): `&ws=<workspace_folder_name>` — the root folder name of the workspace where the model lives (e.g. `rejas_rehabilitacion`). Include it whenever the workspace folder is known: it lets the editor reopen the correct workspace from the recent list instead of the most recently opened one. Links to models living in different workspaces MUST each carry their own `&ws=`. When the folder name is unknown, omit `&ws=` — the editor then resolves the model across the user's recently opened workspaces.
 - **Concept Deep Link (Hash)**: `#@<ConceptName>` (URL-encoded if containing spaces, e.g. `#@Market%20trends`).
 - **Element Deep Link (Hash)**: `#<ConceptName>.<ElementName>` (e.g. `#Products.CogNNitive`).
 
@@ -511,13 +518,13 @@ Example of dynamic checklist to generate:
 ```markdown
 📋 Visual Expectation Checklist in iNNfo Modeler (assuming workspace is already open):
 
-- [ ] 🌳 [**Navigation Sidebar Tree**](https://cognnitive.com/innfo/app/workspace?view=editor&model=<model_id>):
+- [ ] 🌳 [**Navigation Sidebar Tree**](https://cognnitive.com/innfo/app/workspace?view=editor&model=<model_id>&ws=<workspace_folder_name>):
       Hierarchical structure based on `# NN index` with fluid navigation across concepts and elements.
-- [ ] 📋 [**Concept Field Panels** (e.g. <Concept>)](https://cognnitive.com/innfo/app/workspace?view=editor&model=<model_id>#@<Concept_url_encoded>):
+- [ ] 📋 [**Concept Field Panels** (e.g. <Concept>)](https://cognnitive.com/innfo/app/workspace?view=editor&model=<model_id>&ws=<workspace_folder_name>#@<Concept_url_encoded>):
       Detailed view rendered for each `key:: value` (properties, types, and references).
-- [ ] 🎴 [**Element Cards** (e.g. <Element>)](https://cognnitive.com/innfo/app/workspace?view=editor&model=<model_id>#<Concept_url_encoded>.<Element_url_encoded>):
+- [ ] 🎴 [**Element Cards** (e.g. <Element>)](https://cognnitive.com/innfo/app/workspace?view=editor&model=<model_id>&ws=<workspace_folder_name>#<Concept_url_encoded>.<Element_url_encoded>):
       Interactive cards for each `## NN <Concept>: <Element>` block showing metadata and descriptions.
-- [ ] 📊 [**Comparative Matrix Tables**](https://cognnitive.com/innfo/app/workspace?view=matrices&model=<model_id>):
+- [ ] 📊 [**Comparative Matrix Tables**](https://cognnitive.com/innfo/app/workspace?view=matrices&model=<model_id>&ws=<workspace_folder_name>):
       N-to-M relationship tables and `item-markers matrix` rendered with interactive cells (`X` / `-`).
 ```
 

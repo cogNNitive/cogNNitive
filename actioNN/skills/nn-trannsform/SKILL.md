@@ -179,10 +179,27 @@ Run `node scripts/index.js --check` to report drift between the lineage record a
 
 The filesystem sync (§2d) covers files that went through the standard `nn-trannsform` scan pipeline (`# NN Sources`) or that exist as real files under `models/` / `artifacts/`. Two cases still need EXPLICIT manual registration by the agent:
 
-1. **Formats routed to "skip" in the capability matrix** (§2b, e.g. legacy `.doc`): before skipping, ask the user whether to register a minimal `## NN Sources:` entry anyway (file name, format, and a note that content wasn't extracted) so the file isn't silently untraceable. Do not skip in silence.
-2. **Large binary batches processed by a custom procedure outside the standard scan** (e.g. a photo-import workflow using Jimp/LLM Vision instead of `--scan`): once the procedure completes, the agent MUST register the batch in the provenance model — either as one aggregate `## NN Sources:` entry (folder path, file count, date range, e.g. "79 photos in `sources/original/photos/`, imported 2026-08-12") when per-file entries would be unwieldy, or as individual entries when the batch is small (roughly under 10 files). This registration is the agent's responsibility, NOT automatic — a custom procedure is by definition not covered by the standard scan pipeline in §2d.
+1. **Formats routed to "skip" in the capability matrix** (§2g, e.g. legacy `.doc`): before skipping, ask the user whether to register a minimal `## NN Sources:` entry anyway (file name, format, and a note that content wasn't extracted) so the file isn't silently untraceable. Do not skip in silence.
+2. **Large binary batches processed by a custom procedure outside the standard scan** (e.g. a photo-import workflow using Jimp/LLM Vision instead of `--scan`): once the procedure completes, the agent MUST register the batch in the provenance model — either as one aggregate `## NN Sources:` entry (folder path, file count, date range, e.g. "79 photos in `sources/import/photos/`, imported 2026-08-12") when per-file entries would be unwieldy, or as individual entries when the batch is small (roughly under 10 files). This registration is the agent's responsibility, NOT automatic — a custom procedure is by definition not covered by the standard scan pipeline in §2d.
 
-#### 2b. Capability Assessment — Decision Matrix
+#### 2f. Conversation Transcripts & Knowledge Promotion Protocol
+
+Interaction dialogues are first-class source streams. The transcript lifecycle follows:
+1. **Silent Reservation**: When an interactive session begins, immediately allocate `conversations/YYYY-MM-DD_HHmmss.md` with initial frontmatter (`status: in_progress`, `turns: 0`, `mutations: false`).
+2. **Trivial Discard Filter**: Upon session exit, if `turns < 2` AND `mutations === false`, delete the reserved transcript automatically to prevent workspace clutter.
+3. **Title Suggestions & Renaming**: For non-trivial sessions, present 3 suggested title options with `[1] (Recommended) <slug>` plus a manual entry option. Update frontmatter (`status: completed`, `ended_at: <ISO>`) and rename the file to `conversations/YYYY-MM-DD_<slug>.md`.
+4. **Promotion to Knowledge Sources (`sources/conversations/`)**: Prompt the user whether to promote the transcript into the workspace knowledge graph:
+   - `[1] (Recommended) Executive Summary`: Generates `sources/conversations/<session-slug>_summary.md` capturing key decisions, action items, and architecture rationale.
+   - `[2] Full Transcript`: Promotes verbatim dialogue turns to `sources/conversations/<session-slug>_source.md`.
+   - `[3] Both`: Emits both summary and full transcript into `sources/conversations/`.
+   - `[4] None`: Retains transcript in `conversations/` only without promotion.
+5. **Scanner Normalization**: Promoted transcripts link to their origin (`origin_transcript: conversations/...`) and are normalized into `sources/nn/conversations/` with `conversation_format: "summary" | "full"` and `is_synthetic: false`. Downstream models cite these sources using `sources:: [conversations/<file>.md#<anchor>]`.
+6. **CLI Promotion**:
+   ```bash
+   node scripts/index.js --promote-conv "conversations/YYYY-MM-DD_<slug>.md" --format summary
+   ```
+
+#### 2g. Capability Assessment — Decision Matrix
 
 Present the diagnostic panel:
 

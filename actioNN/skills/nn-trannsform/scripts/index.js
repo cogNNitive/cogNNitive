@@ -12,6 +12,7 @@ const provenance = require('./provenance');
 const webImport = require('./webImport');
 const { bootstrapProject } = require('./lib/bootstrap');
 const { checkLineage } = require('./lib/lineage-check');
+const { promoteConversation, PROMOTION_OPTIONS } = require('./lib/conversations');
 
 async function main() {
   const argv = minimist(process.argv.slice(2));
@@ -25,7 +26,9 @@ async function main() {
     argv.src ||
     argv.dest ||
     argv.name ||
-    argv['import-url'];
+    argv['import-url'] ||
+    argv['promote-conv'] ||
+    argv['promote-conversation'];
 
   if (hasArgs) {
     await handleCliMode(argv);
@@ -145,6 +148,27 @@ async function handleCliMode(argv) {
       });
     } catch (err) {
       console.error(`Error applying transformation: ${err.message}`);
+      process.exit(1);
+    }
+  }
+
+  if (argv['promote-conv'] || argv['promote-conversation']) {
+    const sessionTarget = argv['promote-conv'] || argv['promote-conversation'];
+    const sessionFile = path.isAbsolute(sessionTarget) ? sessionTarget : path.join(projectDir, sessionTarget);
+    const format = argv.format || 'summary';
+    const slug = argv.slug || undefined;
+
+    console.log(`Promoting conversation transcript "${path.basename(sessionFile)}" with format "${format}"...`);
+    try {
+      const result = await promoteConversation({
+        workspaceRoot: projectDir,
+        sessionFile,
+        titleSlug: slug,
+        format,
+      });
+      console.log(`Promotion complete! Promoted ${result.promotedFiles.length} file(s) to sources/conversations/ and normalized to sources/nn/conversations/.`);
+    } catch (err) {
+      console.error(`Error promoting conversation: ${err.message}`);
       process.exit(1);
     }
   }
@@ -277,6 +301,7 @@ async function runProjectMenu(projectDir) {
     message: 'Select an action:',
     choices: [
       { title: 'Scan and process source files in sources/import (and active source trees)', value: 'scan' },
+      { title: 'Promote conversation transcript to sources/conversations', value: 'promote_conv' },
       { title: 'Apply template transformation', value: 'transform' },
       { title: 'Create new transformation template', value: 'create_template' },
       { title: 'Back to main menu', value: 'back' }
@@ -292,9 +317,13 @@ async function runProjectMenu(projectDir) {
     return runProjectMenu(projectDir);
   }
 
+  if (response.action === 'promote_conv') {
+    await runPromoteConversationFlow(projectDir);
+    return runProjectMenu(projectDir);
+  }
+
   if (response.action === 'scan') {
-    // Scan sources/original directly, normalizing straight into sources/nn
-    console.log('\nScanning sources/original directory...');
+    console.log('\nScanning active source directories (sources/import, sources/conversations, sources/export)...');
     const result = await scanner.scanAndProcess(projectDir, { autoAcceptPrompt: true });
     console.log('\n=== Ingestion Manifest Created ===');
     console.log(`Processed: ${result.processedCount} files successfully.`);
@@ -308,7 +337,7 @@ async function runProjectMenu(projectDir) {
     );
     provenance.appendProcedureRun(projectDir, {
       command: 'scan',
-      inputs: ['sources/original/'],
+      inputs: ['sources/import/', 'sources/conversations/', 'sources/export/'],
       outputs: ['sources/nn/'],
     });
 
@@ -344,6 +373,46 @@ async function runProjectMenu(projectDir) {
 
     return runProjectMenu(projectDir);
   }
+}
+
+async function runPromoteConversationFlow(projectDir) {
+  const convDir = path.join(projectDir, 'conversations');
+  if (!fs.existsSync(convDir)) {
+    console.log('\nNo conversations/ directory found in project.');
+    return;
+  }
+  const files = fs.readdirSync(convDir).filter(f => f.endsWith('.md'));
+  if (files.length === 0) {
+    console.log('\nNo conversation transcript files found in conversations/.');
+    return;
+  }
+
+  const fileResp = await prompts({
+    type: 'select',
+    name: 'sessionFile',
+    message: 'Select conversation transcript to promote:',
+    choices: files.map(f => ({ title: f, value: f })),
+  });
+  if (!fileResp.sessionFile) return;
+
+  const promoResp = await prompts({
+    type: 'select',
+    name: 'format',
+    message: 'Select promotion format altitude:',
+    choices: PROMOTION_OPTIONS.map(o => ({ title: o.title, value: o.value })),
+  });
+  if (!promoResp.format || promoResp.format === 'none') {
+    console.log('Promotion cancelled or format none selected.');
+    return;
+  }
+
+  const sessionAbsPath = path.join(convDir, fileResp.sessionFile);
+  const result = await promoteConversation({
+    workspaceRoot: projectDir,
+    sessionFile: sessionAbsPath,
+    format: promoResp.format,
+  });
+  console.log(`\nPromoted ${result.promotedFiles.length} file(s) into sources/conversations/ and normalized into sources/nn/conversations/.`);
 }
 
 async function runCreateTemplateFlow(projectDir) {

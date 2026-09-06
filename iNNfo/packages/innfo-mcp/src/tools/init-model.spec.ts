@@ -159,7 +159,7 @@ describe('initModel', () => {
     expect(resQuotes.success).toBe(true)
     const onDiskQuotes = await readFile(resQuotes.filePath, 'utf-8')
     const parsedQuotes = parseModel(onDiskQuotes)
-    expect(parsedQuotes.frontmatter.title).toBe('The "Real" Deal')
+    expect(parsedQuotes.frontmatter?.title).toBe('The "Real" Deal')
 
     // Test newline in title
     const resNewlines = await initModel(rootDir, 'NewlineModel', {
