@@ -7,7 +7,7 @@
     "iNNfo/apps/*"
   ],
   "engines": {
-    "node": ">=20"
+    "node": ">=20.15"
   },
   "scripts": {
     "build:docs": "node scripts/build-docs.mjs",

@@ -1,0 +1,102 @@
+# Tasks: Integrity Audit Follow-ups (2026-09-06)
+
+Source: deferred backlog of `2026-09-06-integrity-audit-fixes` (17 findings).
+Chain: stacked to `main`, safest first (security jumps the queue).
+TDD strict for every `innfo-core` / `innfo-mcp` item — failing test in the same PR.
+
+Per-PR gate: `node scripts/verify.js` + `npm --prefix iNNfo test` green;
+editor PRs also `npm --prefix iNNfo/apps/innfo-editor run build`.
+
+---
+
+## Wave 1 — innfo-mcp + scripts
+
+### PR1 · M5 — `sources::` path traversal (SECURITY)
+- [ ] Test: model citing `../x.md`, `/etc/hosts`, `..\\..\\x` → source unresolved, no `readFileSync` on the outside path (fs spy)
+- [ ] Test: `models/Other_NN.md#h` and `sub/dir/note.md#h` still resolve
+- [ ] `validate.ts` `resolveSource` — `resolve()` + `relative()` containment check against `rootDir`
+- [ ] Security note in the PR body; request explicit review
+
+### PR2 · M7 + M8 — guard laxness
+- [ ] Test (`check-parity.test.js`): body-only `V_x-y-z` (in a `parent_spec` URL) → no spurious mismatch
+- [ ] `check-parity.js:92` — drop the body-wide `V_` scan; version from frontmatter or filename only
+- [ ] Test: unregistered `specs/templates/<name>/` whose name equals a skill/mcp/workflow `name:` → `verify.js` fails
+- [ ] `verify.js:56` — slice `source.yaml` to the `templates:` block before the `- name:` scan
+
+### PR3 · M3 — `crc32` runtime floor
+- [ ] `package.json` `engines.node` → `">=20.15"`
+- [ ] `spec-backup.ts` `buildZipArchive` — guard `typeof crc32 !== 'function'` with a clear message
+- [ ] Test: guard message thrown when `crc32` is stubbed `undefined`
+
+### PR4 · M4 — workspace recursion ignore list
+- [ ] Test (`validate.ts` spec): `node_modules/*.md` in the workspace is not parsed / not in diagnostics
+- [ ] Hoist the `:74-75` ignore set to a module constant
+- [ ] `createNodeDirectoryHandle` — optional `ignore: Set<string>`; generator skips `ignore.has(name)`
+- [ ] `runWorkspaceValidation` (`:223`) passes the ignore set
+
+### PR5 · M1 — frontmatter injection in `init_model`
+- [ ] Test: `init_model({ title: 'The "Real" Deal' })` and `title: 'a\nb'` → written frontmatter round-trips
+- [ ] Test: invalid template → no file written
+- [ ] `init-model.ts` — YAML-safe frontmatter emit (yaml serializer / escape helper)
+- [ ] Validate the rendered doc before the write; on failure return diagnostics, touch no disk (or `.tmp` + `rename`)
+
+---
+
+## Wave 2 — innfo-core
+
+### PR6 · C1 — UTF-8 BOM strips frontmatter
+- [ ] Tests (`tests/bom.test.ts`): `parseModel`, `validateFormatContent`, `normalizeSingleModel`, `recursiveParse` — BOM input == no-BOM input
+- [ ] `normalizeSource` — strip leading `﻿`
+- [ ] Route `validator/content.ts` and `recursiveParser/workspace.ts` frontmatter strips through `normalizeSource` / a shared `stripFrontmatter` (folds in REFACTOR #13)
+- [ ] Full `innfo-core` suite green
+
+### PR7 · C6 — GFM table delimiters optional
+- [ ] Tests: `| a | b |`, `a | b`, `| a | b`, `a | b |` → identical cells; separator row recognised in every shape
+- [ ] `parseMarkdownTable:16` — accept a row if it contains an unescaped `|`
+- [ ] `parseTableRow:30` — drop leading/trailing empty segment only when the line had that delimiter
+
+### PR8 · C4 — element-prose bullet lines
+- [ ] Tests: element body `- one / - two` → `description` keeps both; `parseModel(serializeModel(m))` stable; a `key:: value` after the header is still a field
+- [ ] `sections.ts:164` — exclude a line from the description only if it is a field / `## NN` header / `# NN index` bullet, not for any `-`/`*`
+- [ ] Full suite green; `rawSections` / `text`-concept path unaffected
+
+### PR9 · C3 — schema-aware `rename_element`
+- [ ] Test (`rename-propagation.test.ts`): `Cost`→`Expense` rewrites `parent_cost:: [[Cost]]`, leaves `category:: cost`; no-schema model → only `[[...]]`/index/matrix refs rewritten
+- [ ] Plumb the resolved template schema into `renameElement` (wire `resolveTemplateSchema` for this path if missing)
+- [ ] `updateReferenceString` string-field pass gated on `type: 'reference'`; WikiLink/matrix/index refs unchanged
+
+---
+
+## Wave 3 — innfo-editor
+
+### PR10 · E1 + E2 — matrix cell identity
+- [ ] Test (`useMatrixCells.test.ts`): two `Review` nodes under different parents → two independent cells; row name with `::` → distribution count == rendered cells
+- [ ] `MatricesGrid.vue` — rows/columns carry `{ id, name }`; cell key uses stable id
+- [ ] `useMatrixCells.ts` `valueDistribution` — use `matrixCellKey()` exactly as get/set
+- [ ] Confirm on-disk `row||col` key format unchanged (display name still serialized)
+
+### PR11 · E3 + E4 + E5 + E6 — graph lifecycle & blobs  (split E5+E6 → PR11b if oversized)
+- [ ] Test: `useGraphRenderer` teardown — `vueRender(null, …)` count == mount count across two `render()` passes
+- [ ] Test: `useBlockAssets` — same path, changed size → cache miss; `Pill` unmount → `revokeObjectURL` called
+- [ ] E3 `GraphViewer.vue` — watch a structural signature (edges + field revision), not node count
+- [ ] E4 `useGraphRenderer.ts` — track mounted Pills; `vueRender(null, container)` each before `render()` clears the SVG; same in `onUnmounted`
+- [ ] E5 `Pill.vue` — `revokeObjectURL` on replace and on unmount
+- [ ] E6 `useBlockAssets.ts` — cache key includes size+mtime, or `clearBlockAssetCache()` on workspace load
+
+### PR12 · E7 — `useHashSync` router state
+- [ ] Test (`useHashSync.test.ts`, mocked `location`/`history`): A→B→C then Back to `#B` → one history entry per nav, no duplicate push, forward history preserved
+- [ ] `syncStoreToHash` — `return` if the target hash equals `window.location.hash` (no-op push guard)
+
+---
+
+## Chain hygiene
+- [ ] Rebase each PR onto `main` as its predecessor merges
+- [ ] Never `--delete-branch` an intermediate PR in the stack
+- [ ] Each `innfo-core`/`innfo-mcp` PR: TDD strict, failing test first, same PR
+- [ ] Editor build stays green (pre-existing 1.3 MB chunk warning is not a regression)
+
+## Not in this chain
+REFACTOR/SMELL only: `content.ts` size, `schema.ts` size, `spec.ts`⇄`list-read.ts`
+circular import, `reachability.ts` in-loop `getMarkdownFiles`, editor `as any`
+density. Independent cleanup, not gated here (PR6 already does the
+frontmatter-strip consolidation).

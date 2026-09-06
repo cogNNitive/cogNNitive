@@ -1,6 +1,6 @@
 import { readFile, readdir, stat } from 'node:fs/promises'
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
-import { basename, dirname, join, relative } from 'node:path'
+import { basename, dirname, join, relative, resolve, isAbsolute } from 'node:path'
 import {
   parseModel,
   validateDocument,
@@ -30,6 +30,25 @@ import { resolveTemplateWithCache, findModelFile, deriveNameFromUrl, getSpec } f
 import { buildIncludeContentMap } from './resolver-node.js'
 import type { FreshnessResult } from './resolver-node.js'
 import { loadModel } from './model-io.js'
+
+export const DEFAULT_WORKSPACE_IGNORE: Set<string> = new Set([
+  'node_modules',
+  '.git',
+  'dist',
+  '.spec-cache',
+  'specs',
+  'backups',
+  'archive',
+])
+
+export const DEFAULT_WORKSPACE_IGNORE_WITH_SPECS: Set<string> = new Set([
+  'node_modules',
+  '.git',
+  'dist',
+  '.spec-cache',
+  'backups',
+  'archive',
+])
 
 function syncFindSubmodel(
   rootDir: string,
@@ -71,9 +90,9 @@ function syncFindSubmodel(
         }
         if (entry.isDirectory()) {
           const skip = opts?.includeSpecs
-            ? ['node_modules', '.git', 'dist', '.spec-cache', 'backups', 'archive']
-            : ['node_modules', '.git', 'dist', '.spec-cache', 'specs', 'backups', 'archive']
-          if (!skip.includes(lower)) {
+            ? DEFAULT_WORKSPACE_IGNORE_WITH_SPECS
+            : DEFAULT_WORKSPACE_IGNORE
+          if (!skip.has(lower)) {
             subdirs.push(join(dir, entry.name))
           }
         }
@@ -152,7 +171,10 @@ function createNodeFileHandle(filePath: string, name: string): FileHandleLike {
  * implementation needed — `recursiveParse` falls back to plain
  * `DirectoryHandleLike` traversal whenever no driver is supplied).
  */
-function createNodeDirectoryHandle(dirPath: string): DirectoryHandleLike {
+export function createNodeDirectoryHandle(
+  dirPath: string,
+  ignore?: Set<string>,
+): DirectoryHandleLike {
   return {
     kind: 'directory',
     name: basename(dirPath) || dirPath,
@@ -164,8 +186,9 @@ function createNodeDirectoryHandle(dirPath: string): DirectoryHandleLike {
         return
       }
       for (const dirent of dirents) {
+        if (ignore && ignore.has(dirent.name)) continue
         if (dirent.isDirectory()) {
-          yield [dirent.name, createNodeDirectoryHandle(join(dirPath, dirent.name))] as [
+          yield [dirent.name, createNodeDirectoryHandle(join(dirPath, dirent.name), ignore)] as [
             string,
             DirectoryHandleLike,
           ]
@@ -188,6 +211,9 @@ function createNodeDirectoryHandle(dirPath: string): DirectoryHandleLike {
       return createNodeFileHandle(filePath, name)
     },
     async getDirectoryHandle(name: string) {
+      if (ignore && ignore.has(name)) {
+        throw Object.assign(new Error(`directory ignored: ${name}`), { code: 'ENOENT' })
+      }
       const subPath = join(dirPath, name)
       try {
         const stats = await stat(subPath)
@@ -195,7 +221,7 @@ function createNodeDirectoryHandle(dirPath: string): DirectoryHandleLike {
       } catch {
         throw Object.assign(new Error(`directory not found: ${name}`), { code: 'ENOENT' })
       }
-      return createNodeDirectoryHandle(subPath)
+      return createNodeDirectoryHandle(subPath, ignore)
     },
   }
 }
@@ -220,7 +246,7 @@ async function runWorkspaceValidation(
   cache: SpecCache | null,
 ): Promise<ReferenceDiagnostic[]> {
   const resolveSchema: TemplateSchemaResolver = buildTemplateSchemaResolverFromCache(cache)
-  const rootHandle = createNodeDirectoryHandle(rootDir)
+  const rootHandle = createNodeDirectoryHandle(rootDir, DEFAULT_WORKSPACE_IGNORE)
   const result = await recursiveParse(rootHandle, undefined, {
     resolveTemplateSchema: resolveSchema,
   })
@@ -229,7 +255,11 @@ async function runWorkspaceValidation(
   // Cross-model `[[Title :: Element]]` references + `sources::` Citations,
   // the latter resolved against real files under the workspace root.
   const resolveSource: SourceResolver = (refPath) => {
-    const abs = join(rootDir, refPath)
+    const abs = resolve(rootDir, refPath)
+    const rel = relative(rootDir, abs)
+    if (rel === '' || rel.startsWith('..') || isAbsolute(rel)) {
+      return { exists: false }
+    }
     if (!existsSync(abs)) return { exists: false }
     try {
       return {
