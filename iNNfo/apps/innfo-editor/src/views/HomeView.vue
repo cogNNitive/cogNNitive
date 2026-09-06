@@ -32,6 +32,7 @@ import { resolveParentSpecs } from '../services/SpecResolverService'
 import { useToast } from '../shared/useToast'
 import SetupWizard from '../components/layout/SetupWizard.vue'
 import { SAMPLE_BASE } from '../config/samples'
+import { modelStemMatches } from '../utils/modelMatching'
 
 const router = useRouter()
 const route = useRoute()
@@ -103,16 +104,17 @@ onMounted(async () => {
     router.replace({ query: {} })
   }
 
-  // Auto-reopen most recent workspace if deep link parameters are present
+  // Auto-reopen the workspace that contains the deep-linked model, or the one
+  // hinted via &ws= when provided. Falls back to the most recent workspace
+  // when the model cannot be located in any previously opened folder.
   if (route.query.model && history.value.length > 0) {
-    const entry = history.value[0]
-    try {
-      const handle = await getStoredHandle(entry.handleKey)
-      if (handle) {
-        const status = await (
-          handle as unknown as { queryPermission?: (opts: { mode: string }) => Promise<string> }
-        ).queryPermission?.({ mode: 'read' })
-        if (status === 'granted') {
+    const modelId = typeof route.query.model === 'string' ? route.query.model : undefined
+    const wsHint = typeof route.query.ws === 'string' ? route.query.ws : undefined
+    const entry = await resolveWorkspaceForDeepLink(history.value, modelId, wsHint)
+    if (entry) {
+      try {
+        const handle = await getStoredHandle(entry.handleKey)
+        if (handle) {
           await workspace.open(handle, { force: true })
           await router.push({
             path: '/workspace',
@@ -120,12 +122,69 @@ onMounted(async () => {
             hash: route.hash,
           })
         }
+      } catch (e) {
+        console.warn('Failed to auto-reopen workspace:', e)
       }
-    } catch (e) {
-      console.warn('Failed to auto-reopen workspace:', e)
     }
   }
 })
+
+/**
+ * Picks the workspace entry a deep link (`?view=editor&model=<id>[&ws=<hint>]`)
+ * should reopen. Priority: explicit `&ws=` hint, then the most recent entry
+ * whose folder actually contains a model matching the deep-linked id. Falls
+ * back to the most recent entry when nothing matches.
+ */
+async function resolveWorkspaceForDeepLink(
+  entries: FolderHistoryEntry[],
+  modelId?: string,
+  wsHint?: string,
+): Promise<FolderHistoryEntry | null> {
+  if (wsHint) {
+    const hinted = entries.find(
+      (e) => e.handleKey === wsHint || e.name.toLowerCase() === wsHint.toLowerCase(),
+    )
+    if (hinted && (await isWorkspaceOpenable(hinted))) return hinted
+  }
+
+  if (modelId) {
+    for (const entry of entries) {
+      if (!(await isWorkspaceOpenable(entry))) continue
+      const handle = await getStoredHandle(entry.handleKey)
+      if (handle && (await folderContainsModel(handle, modelId))) return entry
+    }
+  }
+
+  return entries[0] ?? null
+}
+
+async function isWorkspaceOpenable(entry: FolderHistoryEntry): Promise<boolean> {
+  if (!entry.handleKey) return false
+  const handle = await getStoredHandle(entry.handleKey)
+  if (!handle) return false
+  const status = await (
+    handle as unknown as { queryPermission?: (opts: { mode: string }) => Promise<string> }
+  ).queryPermission?.({ mode: 'read' })
+  return status === 'granted'
+}
+
+async function folderContainsModel(root: DirectoryHandleLike, modelId: string): Promise<boolean> {
+  let found = false
+  const visit = async (dir: DirectoryHandleLike, depth: number): Promise<void> => {
+    if (found || depth > 10) return
+    for await (const [name, child] of dir.entries()) {
+      if (found) return
+      if (child.kind === 'directory') {
+        await visit(child, depth + 1)
+      } else if (modelStemMatches(name, modelId)) {
+        found = true
+        return
+      }
+    }
+  }
+  await visit(root, 0)
+  return found
+}
 
 watch(
   () => workspace.emptyFolderError,
