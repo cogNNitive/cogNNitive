@@ -2,7 +2,7 @@
 name: nn-router
 description: Primary Front Controller, ecosystem entry point, system governance, setup, environment readiness gate (Preflight), and skill router for cogNNitive. Triggers: NN, nn, /nn, /nn-router, router, bootstrap, setup, preflight.
 disable-model-invocation: true
-version: "V_3-2-0"
+version: "V_3-3-0"
 last_updated: 2026-09-03
 license: MIT
 compatibility: opencode, claude-code, cursor, any agent supporting skills
