@@ -9,61 +9,69 @@ agent-bootstrap:
     - name: nn-router
       repo: cogNNitive/cogNNitive
       path: actioNN/skills/nn-router
-      version: "V_3-2-0"
+      version: "V_3-3-0"
       ref: "main"
-      commit: "2f1128d57fa1529754a20be1c3674ae6a7d8062d"
+      commit: "d1f1bb8b848f89a28c41eccc302beacd7151fda5"
       description: Central system governance, setup, environment readiness gate (Preflight), and skill router.
     - name: nn-trannsform
       repo: cogNNitive/cogNNitive
       path: actioNN/skills/nn-trannsform
-      version: "V_2-0-0"
+      version: "V_3-0-0"
       ref: "main"
-      commit: "2f1128d57fa1529754a20be1c3674ae6a7d8062d"
+      commit: "d1f1bb8b848f89a28c41eccc302beacd7151fda5"
       requires: [nn-innfo, nn-preflight]
       description: Ingest documents (PDF, DOCX, XLSX), transform using templates, and execute multi-step procedures (procedures_V_0-1-0_NN.md).
     - name: nn-innfo
       repo: cogNNitive/cogNNitive
       path: actioNN/skills/nn-innfo
-      version: "V_0-1-3"
+      version: "V_0-2-0"
       ref: "main"
-      commit: "2f1128d57fa1529754a20be1c3674ae6a7d8062d"
+      commit: "d1f1bb8b848f89a28c41eccc302beacd7151fda5"
       description: Author, edit, and validate iNNfo models with built-in step-by-step Model Creation Wizard.
       templates: [workspace_spec_NN]
       mcp:
         - name: innfo-mcp
           repo: cogNNitive/cogNNitive
           path: iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js
-          version: "0.2.5"
+          version: "0.3.0"
           ref: "main"
-          commit: "2f1128d57fa1529754a20be1c3674ae6a7d8062d"
-          url: https://raw.githubusercontent.com/cogNNitive/cogNNitive/2f1128d57fa1529754a20be1c3674ae6a7d8062d/iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js
+          commit: "d1f1bb8b848f89a28c41eccc302beacd7151fda5"
+          url: https://raw.githubusercontent.com/cogNNitive/cogNNitive/d1f1bb8b848f89a28c41eccc302beacd7151fda5/iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js
     - name: nn-preflight
       repo: cogNNitive/cogNNitive
       path: actioNN/skills/nn-preflight
-      version: "V_0-1-1"
+      version: "V_0-2-0"
       ref: "main"
-      commit: "2f1128d57fa1529754a20be1c3674ae6a7d8062d"
-      description: Environment readiness gate (Tier 1/Tier 2) and canonical skill-location reference.
+      commit: "d1f1bb8b848f89a28c41eccc302beacd7151fda5"
+      description: Environment readiness gate (Tier 1/Tier 2/Tier 3) and canonical skill-location reference.
+    - name: nn-upgrade
+      repo: cogNNitive/cogNNitive
+      path: actioNN/skills/nn-upgrade
+      version: "V_0-1-0"
+      ref: "main"
+      commit: "d1f1bb8b848f89a28c41eccc302beacd7151fda5"
+      requires: [nn-preflight]
+      description: Guided, consent-gated migration of a workspace to the latest adopted iNNfo Level-2 templates.
     - name: nn-site-generator
       repo: cogNNitive/cogNNitive
       path: actioNN/skills/nn-site-generator
       version: "V_0-2-0"
       ref: "main"
-      commit: "2f1128d57fa1529754a20be1c3674ae6a7d8062d"
+      commit: "d1f1bb8b848f89a28c41eccc302beacd7151fda5"
       description: Create or edit websites, add analytics, add contact forms.
     - name: nn-design-presets
       repo: cogNNitive/cogNNitive
       path: actioNN/skills/nn-design-presets
       version: "V_1-2-0"
       ref: "main"
-      commit: "2f1128d57fa1529754a20be1c3674ae6a7d8062d"
+      commit: "d1f1bb8b848f89a28c41eccc302beacd7151fda5"
       description: cogNNitive visual design presets — palettes, typography, spacing.
     - name: nn-skills-lifecycle
       repo: cogNNitive/cogNNitive
       path: actioNN/skills/nn-skills-lifecycle
       version: "V_1-2-0"
       ref: "main"
-      commit: "2f1128d57fa1529754a20be1c3674ae6a7d8062d"
+      commit: "d1f1bb8b848f89a28c41eccc302beacd7151fda5"
       requires: [nn-preflight]
       description: Audit, update, and maintain cogNNitive skills.
   templates:
@@ -72,73 +80,73 @@ agent-bootstrap:
       path: iNNfo/specs/templates/workspace_spec_NN.md
       version: "V_0-2-0"
       ref: "main"
-      commit: "2f1128d57fa1529754a20be1c3674ae6a7d8062d"
+      commit: "d1f1bb8b848f89a28c41eccc302beacd7151fda5"
     - name: projects
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/projects/projects_V_0-2-0_NN.md
       version: "V_0-2-1"
       ref: "main"
-      commit: "2f1128d57fa1529754a20be1c3674ae6a7d8062d"
+      commit: "d1f1bb8b848f89a28c41eccc302beacd7151fda5"
     - name: procedures
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/procedures/procedures_V_0-2-0_NN.md
       version: "V_0-2-1"
       ref: "main"
-      commit: "2f1128d57fa1529754a20be1c3674ae6a7d8062d"
+      commit: "d1f1bb8b848f89a28c41eccc302beacd7151fda5"
     - name: organization
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/organization/organization_V_0-2-0_NN.md
       version: "V_0-2-1"
       ref: "main"
-      commit: "2f1128d57fa1529754a20be1c3674ae6a7d8062d"
+      commit: "d1f1bb8b848f89a28c41eccc302beacd7151fda5"
     - name: business
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/business/business_V_0-2-0_NN.md
       version: "V_0-2-1"
       ref: "main"
-      commit: "2f1128d57fa1529754a20be1c3674ae6a7d8062d"
+      commit: "d1f1bb8b848f89a28c41eccc302beacd7151fda5"
     - name: business-model
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/business-model/business-model_V_0-1-0_NN.md
       version: "V_0-2-0"
       ref: "main"
-      commit: "2f1128d57fa1529754a20be1c3674ae6a7d8062d"
+      commit: "d1f1bb8b848f89a28c41eccc302beacd7151fda5"
     - name: analysis
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/analysis/analysis_V_0-1-0_NN.md
       version: "V_0-2-0"
       ref: "main"
-      commit: "2f1128d57fa1529754a20be1c3674ae6a7d8062d"
+      commit: "d1f1bb8b848f89a28c41eccc302beacd7151fda5"
     - name: innovation
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/innovation/innovation_V_0-2-0_NN.md
       version: "V_0-2-1"
       ref: "main"
-      commit: "2f1128d57fa1529754a20be1c3674ae6a7d8062d"
+      commit: "d1f1bb8b848f89a28c41eccc302beacd7151fda5"
     - name: blank
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/blank/blank_V_0-2-0_NN.md
       version: "V_0-2-1"
       ref: "main"
-      commit: "2f1128d57fa1529754a20be1c3674ae6a7d8062d"
+      commit: "d1f1bb8b848f89a28c41eccc302beacd7151fda5"
     - name: cogNNitive
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/cogNNitive/cogNNitive_V_0-2-0_NN.md
       version: "V_0-2-1"
       ref: "main"
-      commit: "2f1128d57fa1529754a20be1c3674ae6a7d8062d"
+      commit: "d1f1bb8b848f89a28c41eccc302beacd7151fda5"
     - name: documentation
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/documentation/V_0-1-0/spec_NN.md
       version: "V_0-2-0"
       ref: "main"
-      commit: "2f1128d57fa1529754a20be1c3674ae6a7d8062d"
+      commit: "d1f1bb8b848f89a28c41eccc302beacd7151fda5"
     - name: base
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/base/base_V_0-1-0_spec_NN.md
       version: "V_0-1-0"
       ref: "main"
-      commit: "2f1128d57fa1529754a20be1c3674ae6a7d8062d"
+      commit: "d1f1bb8b848f89a28c41eccc302beacd7151fda5"
   workflows:
     - id: model
       label: Create an iNNfo model
