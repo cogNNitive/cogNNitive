@@ -1,9 +1,10 @@
-# Verification Report: Source Versioning & Archive (2026-09-06)
+# Verify Report: Source Versioning & Archive (2026-09-06)
 
-**Change Root:** `openspec/changes/2026-09-06-source-versioning-archive`  
-**Date:** 2026-09-06  
-**Status:** **PASSED**  
-**Verdict:** **APPROVED**
+Phase: sdd-verify
+Date: 2026-09-06
+Verdict: **PASS**
+Mode: Strict TDD
+Change: 2026-09-06-source-versioning-archive
 
 ---
 
@@ -90,4 +91,6 @@ MUST remain byte-identical and untouched.
 
 The implementation in commit `b6640b4` completely fulfills all requirements and scenarios across both specifications without regressions.
 
-**Final Verdict:** **PASSED (Ready for archive / release)**
+## Verdict
+
+**PASS** — All requirements and test scenarios verified. Ready for archive.
