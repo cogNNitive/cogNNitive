@@ -76,3 +76,23 @@ export function findMatchingModelNode(
 
   return undefined
 }
+
+/**
+ * Returns true when a model file name corresponds to a model id under the
+ * same basename/suffix semantics used by findMatchingModelNode. Used to
+ * decide which workspace folder contains a model without parsing it
+ * (deep-link workspace resolution).
+ */
+export function modelStemMatches(fileName: string, modelId: string): boolean {
+  const fileStem = fileName
+    .replace(/_NN\.md$/i, '')
+    .replace(/\.md$/i, '')
+    .toLowerCase()
+  const target = extractModelBasename(modelId)
+    .replace(/_NN\.md$/i, '')
+    .replace(/\.md$/i, '')
+    .toLowerCase()
+  if (!fileStem || !target) return false
+  if (fileStem === target) return true
+  return fileStem.endsWith(`_${target}`)
+}

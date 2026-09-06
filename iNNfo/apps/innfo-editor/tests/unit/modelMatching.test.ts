@@ -3,6 +3,7 @@ import {
   normalizeModelPath,
   extractModelBasename,
   findMatchingModelNode,
+  modelStemMatches,
 } from '../../src/utils/modelMatching'
 import type { ModelNode } from '../../src/model/types'
 
@@ -61,5 +62,24 @@ describe('modelMatching utility', () => {
     const node = makeNode('models/foo.md', 'models/foo.md', 'Foo Model')
     const match = findMatchingModelNode([node], '[[models/foo.md]]')
     expect(match).toBeDefined()
+  })
+
+  it('modelStemMatches matches full stem, _NN suffix and submodel suffix', () => {
+    expect(
+      modelStemMatches('rehabilitacion_reja_pozuello_V_0-1-0_rejas_rehabilitacion_NN.md', 'rehabilitacion_reja_pozuello_V_0-1-0_rejas_rehabilitacion'),
+    ).toBe(true)
+    expect(
+      modelStemMatches('rejas_rehabilitacion_NN.md', 'rejas_rehabilitacion'),
+    ).toBe(true)
+    expect(
+      modelStemMatches('models/rehabilitacion_reja_pozuello_V_0-1-0_rejas_rehabilitacion_NN.md', 'rejas_rehabilitacion'),
+    ).toBe(true)
+  })
+
+  it('modelStemMatches rejects unrelated files and empty targets', () => {
+    expect(modelStemMatches('ghostbusters_V_0-2-0_business_NN.md', 'rejas_rehabilitacion')).toBe(false)
+    expect(modelStemMatches('not_a_model.txt', 'rejas_rehabilitacion')).toBe(false)
+    expect(modelStemMatches('rejas_rehabilitacion_NN.md', '')).toBe(false)
+    expect(modelStemMatches('rejas_rehabilitacion_NN.md', '  ')).toBe(false)
   })
 })
