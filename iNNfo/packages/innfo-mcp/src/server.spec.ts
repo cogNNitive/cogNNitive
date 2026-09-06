@@ -129,7 +129,6 @@ describe('innfo-mcp server (dispatch/handler layer, real MCP client/server round
     const info = client.getServerVersion()
     expect(info).toBeDefined()
     expect(info?.version).toBe(pkgVersion)
-    expect(pkgVersion).toBe('0.2.4')
   })
 
   it('lists all 15 tools with names matching the dispatcher', async () => {
