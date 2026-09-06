@@ -16,4 +16,6 @@ const result = spawnSync('node', [suiteScript, ...suiteArgs], {
   cwd: process.cwd(),
 });
 
-process.exit(result.status ?? 0);
+// A signal-killed child has `status === null`; treat that as failure rather
+// than reporting success (matches scripts/skills-manager.js).
+process.exit(result.status !== null ? result.status : 1);

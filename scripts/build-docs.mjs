@@ -77,6 +77,21 @@ const targetBundle = path.join(cdnDir, `innfo-mcp-v${version}.bundle.js`);
 fs.copyFileSync(srcBundle, targetBundle);
 console.log(`✅ Copied MCP bundle to docs/innfo/cdn/innfo-mcp-v${version}.bundle.js`);
 
+// The CDN bundle must be a single self-contained file: only innfo-mcp.bundle.js
+// is published to docs/innfo/cdn/, never any sibling chunk. A code-split build
+// would emit `import ... from "./chunk-XXXX.js"` and silently ship a broken
+// bundle (the chunk name is a per-build content hash). Fail loudly instead.
+const stagedBundle = fs.readFileSync(targetBundle, 'utf8');
+const splitImport = stagedBundle.match(/from\s*['"]\.\/(chunk|spec)-[^'"]+['"]/);
+if (splitImport) {
+  console.error(
+    `❌ MCP bundle is code-split (${splitImport[0]}). ` +
+      `docs/innfo/cdn/ only publishes innfo-mcp.bundle.js, so this would break the install. ` +
+      `Set splitting:false on the bin config in iNNfo/packages/innfo-mcp/tsup.config.ts.`
+  );
+  process.exit(1);
+}
+
 const manifestPath = path.join(cdnDir, 'manifest.json');
 const manifest = {
   latest: `v${version}`,

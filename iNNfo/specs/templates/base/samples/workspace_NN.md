@@ -21,6 +21,6 @@ The Ghostbusters paranormal investigation and elimination business workspace.
 
 ## NN Models: Ghostbusters Business Model
 path:: Ghostbusters_V_0-1-0_business_NN.md
-template:: [[business_V_0-1-0]]
+template:: business_V_0-1-0
 status:: active
 author:: Ray Stantz

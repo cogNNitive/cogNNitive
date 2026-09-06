@@ -35,13 +35,19 @@ export function printTaxonomyNode(
   allEdges: TaxonomyEdge[],
   lines: string[],
   depth: number,
+  ancestors: ReadonlySet<string> = new Set(),
 ): void {
   if (name !== '') {
+    // Stop when a node is its own ancestor: the taxonomy contains a cycle and
+    // recursing would overflow the stack. Tracked per branch, so a diamond
+    // (one child shared by two parents) still renders under both parents.
+    if (ancestors.has(name)) return
     const indent = '  '.repeat(depth)
     lines.push(`${indent}* [[${name}]]`)
   }
+  const nextAncestors = name === '' ? ancestors : new Set([...ancestors, name])
   const children = allEdges.filter((e) => e.parent === name)
   for (const child of children) {
-    printTaxonomyNode(child.child, allEdges, lines, depth + 1)
+    printTaxonomyNode(child.child, allEdges, lines, depth + 1, nextAncestors)
   }
 }

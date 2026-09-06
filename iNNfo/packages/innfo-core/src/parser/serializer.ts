@@ -55,10 +55,9 @@ export function serializeModel(model: ParsedModel): string {
     const val = (fm as any).template
     lines.push(yamlStringify({ template: val }).trim())
   }
-  if ((fm as any).parent !== undefined) {
-    const val = (fm as any).parent
-    lines.push(yamlStringify({ parent: val }).trim())
-  }
+  // `parent` is already emitted above, in the `else if` paired with
+  // `parent_spec`. A second unconditional emit here produced a duplicate
+  // `parent:` key (invalid YAML) whenever the frontmatter carried `parent`.
   if ((fm as any).last_saved !== undefined) {
     lines.push(`last_saved: "${(fm as any).last_saved}"`)
   }

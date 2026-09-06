@@ -96,14 +96,26 @@ async function resolvePathInHandle(
 async function tryBundledTemplate(parentName: string): Promise<string | null> {
   const slug = parentName.replace(/_V_\d+-\d+-\d+$/, '')
   if (!slug || slug === parentName) return null
-  const localUrl = `/specs/templates/${slug}/${parentName}_NN.md`
+  const isRootSpec = slug === 'iNNfo' || slug === 'defiNNe'
+  const localUrl = isRootSpec
+    ? `/specs/${parentName}_NN.md`
+    : `/specs/templates/${slug}/${parentName}_NN.md`
   try {
     const resp = await fetch(localUrl)
-    if (!resp.ok) return null
-    return await resp.text()
+    if (resp.ok) return await resp.text()
   } catch {
-    return null
+    // ignore
   }
+  const fallbackUrl = isRootSpec
+    ? `/specs/templates/${slug}/${parentName}_NN.md`
+    : `/specs/${parentName}_NN.md`
+  try {
+    const resp = await fetch(fallbackUrl)
+    if (resp.ok) return await resp.text()
+  } catch {
+    // ignore
+  }
+  return null
 }
 
 /** Resolve one `includes` ref's raw text: workspace `specs/` by name, then the

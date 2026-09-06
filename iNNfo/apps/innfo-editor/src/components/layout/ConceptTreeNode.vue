@@ -58,6 +58,18 @@
       >
         {{ node.kind }}
       </span>
+
+      <!-- Quick open model action button -->
+      <button
+        v-if="directModelTarget"
+        type="button"
+        class="p-0.5 rounded text-slate-400 hover:text-primary hover:bg-slate-200 dark:hover:bg-slate-700 transition-all shrink-0 cursor-pointer"
+        :title="`Open model: ${directModelTarget.name}`"
+        data-testid="tree-node-open-model"
+        @click.stop="handleOpenModel(directModelTarget)"
+      >
+        <ArrowUpRight class="w-3.5 h-3.5" />
+      </button>
     </div>
 
     <!-- ── Children (recursive, with optional virtual grouping) ── -->
@@ -107,7 +119,7 @@
         :key="sub.submodelId"
         class="flex items-center gap-1.5 px-2 py-1 rounded-md text-xs hover:bg-slate-100 dark:hover:bg-slate-800/60 cursor-pointer transition-colors group"
         data-testid="nested-submodel-node"
-        @click.stop="uiStore.focusModel(sub.submodelId)"
+        @click.stop="handleOpenModel({ modelId: sub.submodelId, name: sub.submodelName })"
       >
         <Boxes class="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
         <span class="font-medium text-slate-700 dark:text-slate-200 truncate flex-1">
@@ -127,10 +139,16 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { ChevronDown, Boxes } from 'lucide-vue-next'
+import { ChevronDown, Boxes, ArrowUpRight } from 'lucide-vue-next'
 import { useModelStore } from '../../stores/modelStore'
 import { useUiStore } from '../../stores/uiStore'
 import { useConceptVisuals, getHexColorMedium } from '../../composables/useConceptVisuals'
+import { resolveEffectiveMetamodel } from '../../model/metamodel'
+import {
+  findMatchingModelNode,
+  normalizeModelPath,
+  extractModelBasename,
+} from '../../utils/modelMatching'
 import Pill from '../editor/Pill.vue'
 import VirtualGroupNode from './VirtualGroupNode.vue'
 import type { ModelNode } from '../../model/types'
@@ -211,45 +229,88 @@ interface ElementSubmodel {
   path: string
 }
 
+function resolveConceptForNode(n: ModelNode | undefined): any {
+  if (!n) return undefined
+  const nType = (n.type || '').toLowerCase()
+  const nTypeBase = nType.replace(/s$/, '')
+
+  const rootId = modelStore.getModelRootForNode(props.nodeId)
+  let concepts: any[] = []
+  if (rootId) {
+    const rootNode = modelStore.getNode(rootId)
+    if (rootNode?.localMetamodel?.concepts?.length) {
+      concepts = rootNode.localMetamodel.concepts
+    } else {
+      try {
+        const effective = resolveEffectiveMetamodel(rootId, modelStore.nodes, modelStore.rootIds)
+        if (effective?.concepts?.length) {
+          concepts = effective.concepts
+        }
+      } catch {
+        // silent
+      }
+    }
+  }
+
+  if (concepts.length === 0) {
+    for (const rid of modelStore.rootIds) {
+      const r = modelStore.getNode(rid)
+      if (r?.localMetamodel?.concepts?.length) {
+        concepts.push(...r.localMetamodel.concepts)
+      }
+    }
+  }
+
+  return concepts.find((c) => {
+    const cName = (c.name || '').toLowerCase()
+    return cName === nType || cName.replace(/s$/, '') === nTypeBase
+  })
+}
+
+function isModelFieldEntry(key: string, fieldVal: string, conceptDef: any, nType: string): boolean {
+  if (!fieldVal) return false
+  const fieldDef = conceptDef?.fields?.find((f: any) => f.name === key)
+  if (fieldDef?.type === 'model') return true
+
+  const isModelConcept =
+    conceptDef?.type === 'model' ||
+    nType.startsWith('model') ||
+    nType.startsWith('submodel')
+
+  if (isModelConcept && (key === 'path' || key === 'submodel' || key === 'model')) {
+    return true
+  }
+
+  if (key === 'path' && fieldVal.trim().endsWith('.md')) {
+    return true
+  }
+
+  return false
+}
+
 const elementSubmodels = computed<ElementSubmodel[]>(() => {
   const n = node.value
   if (!n || n.kind !== 'element' || !n.fields) return []
 
-  const rootId = modelStore.getModelRootForNode(props.nodeId)
-  const rootNode = rootId ? modelStore.getNode(rootId) : null
-  const conceptDef = rootNode?.localMetamodel?.concepts?.find(
-    (c) => c.name.toLowerCase() === (n.type || '').toLowerCase(),
-  )
-
+  const nType = (n.type || '').toLowerCase()
+  const conceptDef = resolveConceptForNode(n)
   const result: ElementSubmodel[] = []
 
   for (const [key, field] of Object.entries(n.fields)) {
     if (!field?.value || typeof field.value !== 'string') continue
-    const fieldDef = conceptDef?.fields?.find((f: any) => f.name === key)
-    const isModelType = fieldDef?.type === 'model' || (field as any)?.type === 'model'
-    if (!isModelType) continue
+    if (!isModelFieldEntry(key, field.value, conceptDef, nType)) continue
 
-    const clean = field.value
-      .replace(/^\[\[\s*/, '')
-      .replace(/\s*\]\]$/, '')
-      .trim()
+    const clean = normalizeModelPath(field.value)
     if (!clean) continue
 
-    const matchingNode = Object.values(modelStore.nodes).find((cand) => {
-      const p = cand.source?.path || ''
-      return (
-        cand.id.toLowerCase() === clean.toLowerCase() ||
-        cand.name.toLowerCase() === clean.toLowerCase() ||
-        p.toLowerCase() === clean.toLowerCase() ||
-        p.replace(/\.md$/i, '').toLowerCase().endsWith(clean.toLowerCase())
-      )
-    })
+    const matchingNode = findMatchingModelNode(modelStore.nodes, clean)
+    const fieldDef = conceptDef?.fields?.find((f: any) => f.name === key)
 
     if (matchingNode) {
       result.push({
         fieldKey: key,
         submodelId: matchingNode.id,
-        submodelName: matchingNode.name || clean.split('/').pop() || clean,
+        submodelName: matchingNode.name || extractModelBasename(clean) || clean,
         targetTemplate: fieldDef?.target_template,
         path: matchingNode.source?.path || clean,
       })
@@ -258,6 +319,51 @@ const elementSubmodels = computed<ElementSubmodel[]>(() => {
 
   return result
 })
+
+const directModelTarget = computed<{ modelId: string; name: string } | undefined>(() => {
+  if (elementSubmodels.value.length > 0) {
+    const sub = elementSubmodels.value[0]
+    return {
+      modelId: sub.submodelId,
+      name: sub.submodelName,
+    }
+  }
+
+  const n = node.value
+  if (!n || n.kind !== 'element' || !n.fields) return undefined
+
+  const nType = (n.type || '').toLowerCase()
+  const conceptDef = resolveConceptForNode(n)
+
+  for (const [key, field] of Object.entries(n.fields)) {
+    if (!field?.value || typeof field.value !== 'string') continue
+    if (!isModelFieldEntry(key, field.value, conceptDef, nType)) continue
+
+    const clean = normalizeModelPath(field.value)
+    if (!clean) continue
+
+    const match = findMatchingModelNode(modelStore.nodes, clean)
+    if (match) {
+      return {
+        modelId: match.id,
+        name: match.name || match.id,
+      }
+    }
+    return {
+      modelId: clean,
+      name: extractModelBasename(clean) || clean,
+    }
+  }
+  return undefined
+})
+
+function handleOpenModel(target: { modelId: string; name: string }): void {
+  const match = findMatchingModelNode(modelStore.nodes, target.modelId)
+  const resolvedId = match ? match.id : target.modelId
+  uiStore.focusModel(resolvedId)
+  uiStore.selectNode(resolvedId)
+  uiStore.setActiveView('editor')
+}
 
 const hasChildren = computed(() => children.value.length > 0 || elementSubmodels.value.length > 0)
 

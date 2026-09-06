@@ -576,5 +576,109 @@ describe('ConceptTreeNode.vue — Diamond child renders once (R8)', () => {
 
       expect(wrapper.find('[data-testid="nested-submodel-node"]').exists()).toBe(false)
     })
+
+    it('renders quick open model action button on node row and triggers focusModel on click', async () => {
+      const modelStore = useModelStore()
+      const uiStore = useUiStore()
+      const focusSpy = vi.spyOn(uiStore, 'focusModel')
+
+      const rootNode = makeNode('models/root_NN.md', {
+        kind: 'root',
+        source: { path: 'models/root_NN.md' },
+        localMetamodel: {
+          concepts: [
+            {
+              name: 'Models',
+              type: 'model',
+              fields: [{ name: 'path', type: 'model' }],
+            },
+          ],
+          markers: [],
+          relationshipTypes: [],
+        },
+      })
+      const elementNode = makeNode('models/root_NN.md/elem_01', {
+        name: 'Diagnóstico y Especificación Técnica',
+        parentId: rootNode.id,
+        kind: 'element',
+        type: 'Models',
+        fields: {
+          path: { value: 'models/rehabilitacion_reja_pozuelo_V_0-1-0_rejas_rehabilitacion_NN.md' },
+        },
+      })
+      const targetModel = makeNode('models/rehabilitacion_reja_pozuelo_V_0-1-0_rejas_rehabilitacion_NN.md', {
+        name: 'Rehabilitación Reja Pozuelo',
+        kind: 'root',
+        source: { path: 'models/rehabilitacion_reja_pozuelo_V_0-1-0_rejas_rehabilitacion_NN.md' },
+      })
+
+      modelStore.setGraph(
+        {
+          [rootNode.id]: rootNode,
+          [elementNode.id]: elementNode,
+          [targetModel.id]: targetModel,
+        },
+        [rootNode.id, targetModel.id],
+      )
+
+      const wrapper = mount(ConceptTreeNode, {
+        props: {
+          nodeId: elementNode.id,
+          selectedId: null,
+        },
+        attachTo: document.body,
+      })
+
+      const openBtn = wrapper.find('[data-testid="tree-node-open-model"]')
+      expect(openBtn.exists()).toBe(true)
+
+      await openBtn.trigger('click')
+      expect(focusSpy).toHaveBeenCalledWith(targetModel.id)
+    })
+
+    it('renders quick open model button on Level-3 workspace element without localMetamodel', async () => {
+      const modelStore = useModelStore()
+      const uiStore = useUiStore()
+      const focusSpy = vi.spyOn(uiStore, 'focusModel')
+      const selectSpy = vi.spyOn(uiStore, 'selectNode')
+      const viewSpy = vi.spyOn(uiStore, 'setActiveView')
+
+      const workspaceRoot = makeNode('workspace_NN.md', {
+        kind: 'root',
+        source: { path: 'workspace_NN.md' },
+      })
+      const elementNode = makeNode('workspace_NN.md/elem_01', {
+        name: 'Diagnóstico y Especificación Técnica',
+        parentId: workspaceRoot.id,
+        kind: 'element',
+        type: 'Models',
+        fields: {
+          path: { value: 'models/rehabilitacion_reja_pozuello_V_0-1-0_rejas_rehabilitacion_NN.md' },
+        },
+      })
+      modelStore.setGraph(
+        {
+          [workspaceRoot.id]: workspaceRoot,
+          [elementNode.id]: elementNode,
+        },
+        [workspaceRoot.id],
+      )
+
+      const wrapper = mount(ConceptTreeNode, {
+        props: {
+          nodeId: elementNode.id,
+          selectedId: null,
+        },
+        attachTo: document.body,
+      })
+
+      const openBtn = wrapper.find('[data-testid="tree-node-open-model"]')
+      expect(openBtn.exists()).toBe(true)
+      await openBtn.trigger('click')
+      expect(focusSpy).toHaveBeenCalledWith('models/rehabilitacion_reja_pozuello_V_0-1-0_rejas_rehabilitacion_NN.md')
+      expect(selectSpy).toHaveBeenCalledWith('models/rehabilitacion_reja_pozuello_V_0-1-0_rejas_rehabilitacion_NN.md')
+      expect(viewSpy).toHaveBeenCalledWith('editor')
+    })
   })
 })
+

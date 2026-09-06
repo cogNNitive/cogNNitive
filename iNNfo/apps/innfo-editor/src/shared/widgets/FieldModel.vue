@@ -15,6 +15,7 @@ import { ref, computed, watch } from 'vue'
 import { FileText, Plus } from 'lucide-vue-next'
 import { useModelStore } from '../../stores/modelStore'
 import { useUiStore } from '../../stores/uiStore'
+import { findMatchingModelNode } from '../../utils/modelMatching'
 
 interface FieldDefinitionLike {
   name: string
@@ -75,9 +76,10 @@ interface ModelSuggestion {
 
 const availableModels = computed<ModelSuggestion[]>(() => {
   const suggestions: ModelSuggestion[] = []
-  for (const rootId of modelStore.rootIds) {
-    const node = modelStore.nodes[rootId]
-    if (!node) continue
+  const allRoots = Object.values(modelStore.nodes).filter(
+    (n) => (n.kind === 'root' || n.parentId === null) && !n.id.startsWith('spec:'),
+  )
+  for (const node of allRoots) {
     const path = node.source?.path || ''
     suggestions.push({
       id: node.id,
@@ -105,22 +107,11 @@ function handlePillClick(): void {
   const clean = cleanValue(props.modelValue || '')
   if (!clean) return
 
-  const matchingNode = Object.values(modelStore.nodes).find((n) => {
-    const path = n.source?.path || ''
-    const nodeBasename = path.split('/').pop()?.split('\\').pop()?.replace(/\.md$/i, '') || ''
-    return (
-      n.id.toLowerCase() === clean.toLowerCase() ||
-      n.name.toLowerCase() === clean.toLowerCase() ||
-      path.toLowerCase() === clean.toLowerCase() ||
-      nodeBasename.toLowerCase() === clean.toLowerCase()
-    )
-  })
-
-  if (matchingNode) {
-    uiStore.focusModel(matchingNode.id)
-  } else {
-    uiStore.focusModel(clean)
-  }
+  const matchingNode = findMatchingModelNode(modelStore.nodes, clean)
+  const resolvedId = matchingNode ? matchingNode.id : clean
+  uiStore.focusModel(resolvedId)
+  uiStore.selectNode(resolvedId)
+  uiStore.setActiveView('editor')
 }
 
 function onInput(event: Event): void {
