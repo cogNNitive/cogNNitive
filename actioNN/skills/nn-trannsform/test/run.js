@@ -69,6 +69,11 @@ async function main() {
     const webImportResult = await webImportTest.run();
     totalPassed += webImportResult.passed;
     totalFailed += webImportResult.failed;
+
+    const convLifecycleTest = require('./unit/test-conversations-lifecycle');
+    const convLifecycleResult = await convLifecycleTest.run();
+    totalPassed += convLifecycleResult.passed;
+    totalFailed += convLifecycleResult.failed;
   }
 
   if (mode === 'all' || mode === 'integration') {

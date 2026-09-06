@@ -75,6 +75,14 @@ function generateSourceFrontmatter(originalFilePath, relativeSourcePath, extra =
 
   if (extra.staging_file) lines.push(`staging_file: "${escapeYamlString(extra.staging_file)}"`);
   if (extra.is_synthetic !== undefined) lines.push(`is_synthetic: ${Boolean(extra.is_synthetic)}`);
+  if (extra.source_type) lines.push(`source_type: "${escapeYamlString(extra.source_type)}"`);
+  if (extra.conversation_format) lines.push(`conversation_format: "${escapeYamlString(extra.conversation_format)}"`);
+  if (extra.session_id) lines.push(`session_id: "${escapeYamlString(extra.session_id)}"`);
+  if (extra.origin_transcript) lines.push(`origin_transcript: "${escapeYamlString(extra.origin_transcript)}"`);
+  if (extra.derived_from) {
+    const df = Array.isArray(extra.derived_from) ? extra.derived_from : [extra.derived_from];
+    lines.push(`derived_from: [${df.join(', ')}]`);
+  }
 
   if (extra.source_url) lines.push(`source_url: "${escapeYamlString(extra.source_url)}"`);
   if (extra.downloaded_at) lines.push(`downloaded_at: "${escapeYamlString(extra.downloaded_at)}"`);
@@ -166,6 +174,93 @@ function walkOriginal(originalDir) {
 
   if (fs.existsSync(originalDir)) walk(originalDir, '');
   return results.sort((a, b) => a.relPath.localeCompare(b.relPath));
+}
+
+/**
+ * Recursively walk all active source subtrees:
+ * - sources/import/ (or legacy sources/original/)
+ * - sources/conversations/
+ * - sources/export/
+ *
+ * @param {string} projectOrSourcesDir
+ * @returns {Array<{ tree: string, absPath: string, relPath: string, sourceFileField: string, destRelPath: string, isSynthetic: boolean }>}
+ */
+function walkSourceTrees(projectOrSourcesDir) {
+  let sourcesDir = projectOrSourcesDir;
+  if (path.basename(projectOrSourcesDir) !== 'sources' && fs.existsSync(path.join(projectOrSourcesDir, 'sources'))) {
+    sourcesDir = path.join(projectOrSourcesDir, 'sources');
+  }
+
+  const importDir = path.join(sourcesDir, 'import');
+  const originalDir = path.join(sourcesDir, 'original');
+  const convDir = path.join(sourcesDir, 'conversations');
+  const exportDir = path.join(sourcesDir, 'export');
+
+  const items = [];
+
+  // 1. Ingestion subtree: sources/import/ with legacy fallback to sources/original/
+  if (fs.existsSync(importDir)) {
+    const files = walkOriginal(importDir);
+    for (const f of files) {
+      const relPosix = f.relPath.replace(/\\/g, '/');
+      items.push({
+        tree: 'import',
+        absPath: f.absPath,
+        relPath: f.relPath,
+        sourceFileField: `sources/import/${relPosix}`,
+        destRelPath: `import/${relPosix.replace(/\.[^.]+$/, '.md')}`,
+        isSynthetic: false,
+      });
+    }
+  } else if (fs.existsSync(originalDir)) {
+    console.warn("[DEPRECATION] 'sources/original/' is deprecated; migrate folder to 'sources/import/'");
+    const files = walkOriginal(originalDir);
+    for (const f of files) {
+      const relPosix = f.relPath.replace(/\\/g, '/');
+      items.push({
+        tree: 'original',
+        absPath: f.absPath,
+        relPath: f.relPath,
+        sourceFileField: `sources/original/${relPosix}`,
+        destRelPath: relPosix.replace(/\.[^.]+$/, '.md'),
+        isSynthetic: false,
+      });
+    }
+  }
+
+  // 2. Conversations subtree: sources/conversations/
+  if (fs.existsSync(convDir)) {
+    const files = walkOriginal(convDir);
+    for (const f of files) {
+      const relPosix = f.relPath.replace(/\\/g, '/');
+      items.push({
+        tree: 'conversations',
+        absPath: f.absPath,
+        relPath: f.relPath,
+        sourceFileField: `sources/conversations/${relPosix}`,
+        destRelPath: `conversations/${relPosix.replace(/\.[^.]+$/, '.md')}`,
+        isSynthetic: false,
+      });
+    }
+  }
+
+  // 3. Synthetic exports subtree: sources/export/
+  if (fs.existsSync(exportDir)) {
+    const files = walkOriginal(exportDir);
+    for (const f of files) {
+      const relPosix = f.relPath.replace(/\\/g, '/');
+      items.push({
+        tree: 'export',
+        absPath: f.absPath,
+        relPath: f.relPath,
+        sourceFileField: `sources/export/${relPosix}`,
+        destRelPath: `export/${relPosix.replace(/\.[^.]+$/, '.md')}`,
+        isSynthetic: true,
+      });
+    }
+  }
+
+  return items.sort((a, b) => a.sourceFileField.localeCompare(b.sourceFileField));
 }
 
 /**
@@ -283,13 +378,39 @@ function processOkFile(ext, absPath, sourceFileField, destPath, displayOutPath, 
     const baseName = path.basename(displayOutPath, '.md');
     const body = converters.convertOkFormat(ext, absPath, baseName);
 
+    let incomingFields = {};
+    if (ext === '.md') {
+      try {
+        const rawContent = fs.readFileSync(absPath, 'utf8');
+        incomingFields = parseFrontmatterFields(rawContent);
+      } catch {}
+    }
+
+    let derivedFrom = extra.derived_from;
+    if (!derivedFrom && incomingFields.derived_from) {
+      if (incomingFields.derived_from.startsWith('[') && incomingFields.derived_from.endsWith(']')) {
+        derivedFrom = incomingFields.derived_from.slice(1, -1).split(',').map(s => s.trim().replace(/^"|"$/g, '')).filter(Boolean);
+      } else {
+        derivedFrom = [incomingFields.derived_from];
+      }
+    }
+
     const existingFields = getExistingFrontmatterFields(destPath, sourceFileField);
     const finalExtra = {
-      source_url: extra.source_url || existingFields.source_url,
-      downloaded_at: extra.downloaded_at || existingFields.downloaded_at,
-      title: extra.title || existingFields.title,
-      description: extra.description || existingFields.description,
-      author: extra.author || existingFields.author
+      staging_file: extra.staging_file || incomingFields.staging_file || existingFields.staging_file,
+      is_synthetic: extra.is_synthetic !== undefined ? extra.is_synthetic : (incomingFields.is_synthetic !== undefined ? (incomingFields.is_synthetic === 'true' || incomingFields.is_synthetic === true) : (existingFields.is_synthetic !== undefined ? existingFields.is_synthetic === 'true' : undefined)),
+      source_type: extra.source_type || incomingFields.source_type || existingFields.source_type,
+      conversation_format: extra.conversation_format || incomingFields.conversation_format || existingFields.conversation_format,
+      session_id: extra.session_id || incomingFields.session_id || existingFields.session_id,
+      origin_transcript: extra.origin_transcript || incomingFields.origin_transcript || existingFields.origin_transcript,
+      derived_from: derivedFrom,
+      source_url: extra.source_url || incomingFields.source_url || existingFields.source_url,
+      downloaded_at: extra.downloaded_at || incomingFields.downloaded_at || existingFields.downloaded_at,
+      title: extra.title || incomingFields.title || existingFields.title,
+      description: extra.description || incomingFields.description || existingFields.description,
+      author: extra.author || incomingFields.author || existingFields.author,
+      canonical: extra.canonical,
+      cited_works: extra.cited_works,
     };
 
     fs.mkdirSync(path.dirname(destPath), { recursive: true });
@@ -353,11 +474,20 @@ async function processPromptFile(ext, absPath, sourceFileField, destPath, displa
 
     const existingFields = getExistingFrontmatterFields(destPath, sourceFileField);
     const finalExtra = {
+      staging_file: extra.staging_file || existingFields.staging_file,
+      is_synthetic: extra.is_synthetic !== undefined ? extra.is_synthetic : (existingFields.is_synthetic !== undefined ? existingFields.is_synthetic === 'true' : undefined),
+      source_type: extra.source_type || existingFields.source_type,
+      conversation_format: extra.conversation_format || existingFields.conversation_format,
+      session_id: extra.session_id || existingFields.session_id,
+      origin_transcript: extra.origin_transcript || existingFields.origin_transcript,
+      derived_from: extra.derived_from,
       source_url: mergedExtra.source_url || existingFields.source_url,
       downloaded_at: mergedExtra.downloaded_at || existingFields.downloaded_at,
       title: mergedExtra.title || existingFields.title,
       description: mergedExtra.description || existingFields.description,
-      author: mergedExtra.author || existingFields.author
+      author: mergedExtra.author || existingFields.author,
+      canonical: extra.canonical,
+      cited_works: extra.cited_works,
     };
 
     fs.mkdirSync(path.dirname(destPath), { recursive: true });
@@ -383,6 +513,7 @@ module.exports = {
   generateSourceFrontmatter,
   readExistingSha256,
   walkOriginal,
+  walkSourceTrees,
   detectFormats,
   getSupportedFormats,
   parseFrontmatterFields,

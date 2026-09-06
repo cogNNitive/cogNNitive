@@ -1,6 +1,6 @@
 ---
 name: nn-preflight
-description: Environment readiness gate for cogNNitive workflows. Runs Tier 1 checks (Node.js >= 18, innfo-mcp availability, workspace layout) and optional Tier 2 checks (iNNfo output workspace structure), then reports blockers/warnings/ok. Also provides the canonical skill-location reference used by nn-skills-lifecycle. Triggers: preflight, readiness, environment check, "run Tier 1".
+description: Environment readiness and integrity gate for cogNNitive workflows. Runs Tier 1 checks (Node.js >= 18, innfo-mcp availability, workspace layout, source integrity audit across sources/import/, sources/conversations/, sources/export/) and optional Tier 2 checks (iNNfo output workspace structure, semantic link validation), then reports blockers/warnings/ok. Also provides the canonical skill-location reference used by nn-skills-lifecycle. Triggers: preflight, readiness, environment check, "run Tier 1".
 version: "V_0-1-1"
 last_updated: 2026-09-06
 metadata:
@@ -39,8 +39,8 @@ node scripts/preflight-check.js
 Handle the runner process exit code deterministically:
 
 - **Exit code `0` (Success)**: All ecosystem components are installed and up-to-date. Proceed immediately with the skill's intended workflow or menu without user interruption.
-- **Exit code `1` (Warnings / Outdated Components)**: Updates or missing components were detected.
-  **HALT immediately.** Display the report of outdated/missing components and prompt the user for confirmation:
+- **Exit code `1` (Warnings / Outdated Components / Unnormalized Sources)**: Updates, missing components, or unnormalized/dangling sources were detected.
+  **HALT immediately.** Display the report of outdated/missing components or source integrity warnings and prompt the user for confirmation:
   ```markdown
   ⚠️ Updates or missing components were detected in the cogNNitive ecosystem:
   [a] (Recommended) Update components now
@@ -72,15 +72,16 @@ Environment readiness gate for cogNNitive workflows. Runs deterministic checks a
 
 ## Tier 1 Checks (always run)
 
-1. **Preflight & Integrity Runner**: run `node scripts/preflight-check.js` (or `node ~/.agents/skills/nn-preflight/scripts/preflight-check.js`). Verifies Node.js >= 18, manifest reachability, installed skills vs pinned commits, MCP bundle availability, and templates. If exit code is `1`, report outdated/missing components and prompt for confirmation per the Canonical Activation Gate protocol.
+1. **Preflight & Integrity Runner**: run `node scripts/preflight-check.js` (or `node ~/.agents/skills/nn-preflight/scripts/preflight-check.js`). When `--workspace-dir <dir>` is passed, audits workspace spec freshness and executes the Universal Source Integrity Audit across `sources/import/`, `sources/conversations/`, and `sources/export/` (with legacy `sources/original/` fallback) against `sources/nn/`. Verifies Node.js >= 18, manifest reachability, installed skills vs pinned commits, MCP bundle availability, and templates. If exit code is `1`, report outdated/missing components or unnormalized/dangling sources and prompt for confirmation per the Canonical Activation Gate protocol.
 2. **Node.js**: require >= 18.
 3. **innfo-mcp availability**: call `innfo-mcp_list_models`; if the MCP tool is unavailable, fall back to checking that the bundle exists at `~/.agents/mcp/innfo-mcp.bundle.js` or `.cogNNitive/mcp-bundle.js`.
-4. **Workspace layout**: verify the expected directories exist — `sources/`, `models/`, `procedures/`, `artifacts/`, `index.md` (as appropriate for the workflow; `nn-trannsform` projects use `sources/original/` and `sources/nn/`).
+4. **Workspace layout**: verify the expected directories exist — `sources/` (`sources/import/`, `sources/conversations/`, `sources/export/`, `sources/nn/`), `conversations/`, `export/`, `models/`, `procedures/`, `index.md` (legacy workspaces using `sources/original/` and `artifacts/` are supported via backward-compatible fallbacks).
 
 ## Tier 2 Checks (optional — only for iNNfo output workflows)
 
-4. **iNNfo output workspace structure**: for Level 3 model workflows, verify `models/` holds `*_NN.md` files (note that `list_models` recursively scans both the workspace root and the `models/` subdirectory to find all models) and that `index.md` exists with `# NN index` as the entry point.
-5. **Semantic link validation (sources)**: parse all Level 3 model files and verify that every file path listed in the `sources:: [...]` metadata array exists physically in the workspace. Report any missing or dangling sources as warnings.
+5. **iNNfo output workspace structure**: for Level 3 model workflows, verify `models/` holds `*_NN.md` files (note that `list_models` recursively scans both the workspace root and the `models/` subdirectory to find all models) and that `index.md` exists with `# NN index` as the entry point.
+6. **Semantic link validation (sources)**: parse all Level 3 model files and verify that every file path listed in the `sources:: [...]` metadata array exists physically in the workspace. Report any missing or dangling sources as warnings.
+7. **Workspace Source Integrity Audit (`scanWorkspaceSources`)**: when `--workspace-dir` is provided, discovers files across `sources/import/`, `sources/conversations/`, and `sources/export/` (or legacy `sources/original/`), verifies that every source file has an up-to-date normalized counterpart in `sources/nn/` matching its content SHA-256 hash, and verifies that no dangling references exist in `sources/nn/`. Any unnormalized or stale source is reported as a non-blocking actionable warning recommending `node scripts/index.js --scan`. Emits structured `sources_integrity` payload in `--json` mode.
 
 ---
 

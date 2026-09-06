@@ -141,8 +141,8 @@ function extractHtmlMetadata(html) {
 }
 
 /**
- * Download `url` straight into `originalDir` (sources/original/), the same
- * dropbox the user drags manually-collected files into. The extension is
+ * Download `url` straight into `targetDir` (sources/import/, with fallback to sources/original/),
+ * the same dropbox the user drags manually-collected files into. The extension is
  * decided from the response's Content-Type header, falling back to the URL's
  * own extension.
  *
@@ -151,7 +151,7 @@ function extractHtmlMetadata(html) {
  * scanner.scanAndProcess's `webImportMeta` option so it ends up in the
  * normalized frontmatter.
  */
-async function downloadToOriginal(url, originalDir, options = {}) {
+async function downloadToImport(url, targetDir, options = {}) {
   if (typeof fetch !== 'function') {
     throw new Error('Native fetch is not available in this Node.js runtime (requires Node 18+).');
   }
@@ -166,7 +166,7 @@ async function downloadToOriginal(url, originalDir, options = {}) {
   const buffer = Buffer.from(await response.arrayBuffer());
 
   const subdir = options.subdir || '';
-  const destDir = subdir ? path.join(originalDir, subdir) : originalDir;
+  const destDir = subdir ? path.join(targetDir, subdir) : targetDir;
   fs.mkdirSync(destDir, { recursive: true });
 
   const filename = options.filename || sanitizeFilenameFromUrl(url, ext);
@@ -174,7 +174,7 @@ async function downloadToOriginal(url, originalDir, options = {}) {
   fs.writeFileSync(destPath, buffer);
 
   const downloadedAt = new Date().toISOString();
-  const relPath = path.relative(originalDir, destPath).replace(/\\/g, '/');
+  const relPath = path.relative(targetDir, destPath).replace(/\\/g, '/');
 
   const result = {
     relPath,
@@ -192,7 +192,10 @@ async function downloadToOriginal(url, originalDir, options = {}) {
   return result;
 }
 
+const downloadToOriginal = downloadToImport;
+
 module.exports = {
+  downloadToImport,
   downloadToOriginal,
   extractHtmlMetadata,
   extFromContentType,

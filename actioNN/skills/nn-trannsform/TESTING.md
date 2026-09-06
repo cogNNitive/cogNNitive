@@ -2,7 +2,7 @@
 
 ## Automated Tests (Zero-Dependency)
 
-Unit tests cover `config.js`, `scanner.js`, `provenance.js`, `webImport.js` and `lib/bootstrap.js` using Node's built-in `assert`:
+Unit tests cover `config.js`, `scanner.js`, `provenance.js`, `webImport.js`, `lib/bootstrap.js`, and `lib/conversations.js` using Node's built-in `assert`:
 
 ```bash
 cd skills/nn-trannsform
@@ -17,7 +17,7 @@ npm run test:unit
 npm run test:integration
 ```
 
-Tests cover: config read/write/merge, format detection, file hashing, flat frontmatter generation (with mirrored subfolder output), dependency checking, HTML metadata extraction, recursive project bootstrap (subfolders preserved), lineage-record filesystem sync (# NN Models/# NN Artifacts from models/ + artifacts/, append-only # NN Procedures, --check drift), and provenance model generation (slugify, source auto-population, asset materialization, semantic index, idempotent refresh with section preservation).
+Tests cover: config read/write/merge, format detection, file hashing, flat frontmatter generation (with mirrored subfolder output), dependency checking, HTML metadata extraction, recursive project bootstrap (subfolders preserved), lineage-record filesystem sync (# NN Models/# NN Artifacts from models/ + export/, append-only # NN Procedures, --check drift), provenance model generation, and conversation lifecycle (silent reservation, trivial discard, title suggestions, promotion to sources/conversations/ and normalization to sources/nn/conversations/).
 
 ## Manual Test Guide
 
@@ -69,8 +69,8 @@ Luis,28,Technician
 > Using the nn-trannsform skill, bootstrap a project with the files in the current folder as source. Project name: "test-docs".
 
 **Expected result:**
-- ✅ OpenCode creates the structure `test-docs/sources/original/`, `test-docs/sources/nn/`, `test-docs/models/`, `test-docs/procedures/`, `test-docs/artifacts/`, `test-docs/traNNsformations/` (no `sources/raw/`)
-- ✅ Files are copied to `test-docs/sources/original/`
+- ✅ OpenCode creates the structure `test-docs/sources/import/`, `test-docs/sources/conversations/`, `test-docs/sources/export/`, `test-docs/conversations/`, `test-docs/sources/nn/`, `test-docs/models/`, `test-docs/procedures/`, `test-docs/export/`, `test-docs/traNNsformations/`
+- ✅ Files are copied to `test-docs/sources/import/`
 - ✅ OpenCode reports no errors
 
 ---
@@ -87,9 +87,9 @@ Luis,28,Technician
 - ✅ `test-docs/sources/nn/index.md` (ingestion manifest) is created
 - ✅ `test-docs/index.md` (semantic `# NN index`) is created
 - ✅ `test-docs/<name>_V_0-1-0_cogNNitive_NN.md` (provenance model) is created with the Sources populated
-- ✅ `test-docs/sources/nn/report.md` is created with the txt content, with flat frontmatter (`source_file`, `sha256`, `size_bytes`, `normalized_at`, `normalized_by`)
-- ✅ `test-docs/sources/nn/data.md` is created with the csv content
-- ✅ If the source files live in subfolders under `sources/original/`, the same subfolders appear under `sources/nn/`
+- ✅ `test-docs/sources/nn/import/report.md` is created with the txt content, with flat frontmatter (`source_file`, `sha256`, `size_bytes`, `normalized_at`, `normalized_by`)
+- ✅ `test-docs/sources/nn/import/data.md` is created with the csv content
+- ✅ If the source files live in subfolders under `sources/import/`, the same subfolders appear under `sources/nn/import/`
 
 ---
 
@@ -104,7 +104,7 @@ Luis,28,Technician
 - ✅ You choose "Create new" (or "Summary" if offered)
 - ✅ OpenCode asks if you want draft or final version
 - ✅ You choose "Draft"
-- ✅ OpenCode generates a file `artifacts/[name]_draft.md`
+- ✅ OpenCode generates a file `export/[name]_draft.md`
 - ✅ The draft includes the header `# DRAFT FOR REVIEW — NOT FINAL VERSION`
 - ✅ The draft includes source citations (e.g., `— Source: informe.txt`)
 - ✅ If unsure about any data, it includes markers like `[unconfirmed data — review]`
@@ -120,7 +120,7 @@ Luis,28,Technician
 **Expected result:**
 - ✅ OpenCode asks if you want to include source references
 - ✅ You answer yes (or no)
-- ✅ OpenCode generates `artifacts/[name]_v_0-1-0.md`
+- ✅ OpenCode generates `export/[name]_v_0-1-0.md`
 - ✅ The file has NO draft markers or annotations
 - ✅ (Optional) Includes source references if you said yes
 
@@ -144,7 +144,7 @@ If you have a docx or pdf file in the source folder, when running the scan:
 
 **Expected result:**
 - ✅ OpenCode runs the command
-- ✅ `artifacts/Generic_Normalizer_[timestamp].md` is generated
+- ✅ `export/Generic_Normalizer_[timestamp].md` is generated
 
 ---
 
@@ -156,10 +156,23 @@ If you have a docx or pdf file in the source folder, when running the scan:
 
 **Expected result:**
 - ✅ OpenCode runs `node scripts/index.js --import-url "<url>" --scan --src test-docs`
-- ✅ The downloaded file appears under `test-docs/sources/original/` (extension inferred from `Content-Type`, falling back to the URL)
+- ✅ The downloaded file appears under `test-docs/sources/import/` (extension inferred from `Content-Type`, falling back to the URL)
 - ✅ After the scan, the corresponding file in `test-docs/sources/nn/` includes `source_url` and `downloaded_at` in its frontmatter
 - ✅ For an HTML page, `title`/`description`/`author` appear in the frontmatter when discoverable
 - ✅ For a PDF, the existing `.pdf` handling (pdf-parse) runs and, if present, `info.Title`/`info.Author` populate `title`/`author`
+
+---
+
+## Test 9: Conversation lifecycle & promotion
+
+**Instruction for OpenCode:**
+
+> Promote the active conversation transcript to sources/conversations as an executive summary.
+
+**Expected result:**
+- ✅ Transcript is saved under `conversations/YYYY-MM-DD_<slug>.md`
+- ✅ Executive summary is generated at `sources/conversations/YYYY-MM-DD_<slug>_summary.md`
+- ✅ Scan normalizes it to `sources/nn/conversations/YYYY-MM-DD_<slug>_summary.md` with `conversation_format: summary`
 
 ---
 

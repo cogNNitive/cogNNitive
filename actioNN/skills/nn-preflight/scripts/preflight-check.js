@@ -210,6 +210,208 @@ async function scanWorkspaceSpecs(workspaceDir) {
   return { stale, fresh, offline, items };
 }
 
+/* ── Workspace source integrity scan (--workspace-dir) ─────────────── */
+
+const SOURCE_SKIP_DIRS = new Set(['node_modules', '.git', 'dist', '.spec-cache', 'backups', 'archive', 'staging']);
+
+function walkSourceDir(dir, onFile) {
+  let entries;
+  try {
+    entries = fs.readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return;
+  }
+  for (const entry of entries) {
+    if (entry.name.startsWith('.') || entry.name.startsWith('~$') || entry.name === 'desktop.ini') {
+      continue;
+    }
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      if (entry.name.startsWith('.staging-')) continue;
+      if (SOURCE_SKIP_DIRS.has(entry.name)) continue;
+      walkSourceDir(fullPath, onFile);
+    } else if (entry.isFile()) {
+      onFile(fullPath, entry.name);
+    }
+  }
+}
+
+/**
+ * Universal source integrity audit across sources/import/, sources/conversations/,
+ * sources/export/, and legacy sources/original/ against sources/nn/.
+ */
+function scanWorkspaceSources(workspaceDir) {
+  const sourcesDir = path.join(workspaceDir, 'sources');
+  const nnDir = path.join(sourcesDir, 'nn');
+
+  const subtrees = {
+    import: { total: 0, normalized: 0, unnormalized: 0 },
+    export: { total: 0, normalized: 0, unnormalized: 0 },
+    conversations: { total: 0, normalized: 0, unnormalized: 0 },
+  };
+
+  const unnormalizedList = [];
+  const orphanedList = [];
+  const items = [];
+  let totalCount = 0;
+  let normalizedCount = 0;
+  let unnormalizedCount = 0;
+  let danglingCount = 0;
+
+  // 1. Discover all normalized Markdown files in sources/nn/ (excluding index.md)
+  const nnFiles = [];
+  if (fs.existsSync(nnDir)) {
+    walkSourceDir(nnDir, (filePath, name) => {
+      if (name.endsWith('.md')) {
+        const relToNn = path.relative(nnDir, filePath).replace(/\\/g, '/');
+        if (relToNn !== 'index.md') {
+          nnFiles.push(filePath);
+        }
+      }
+    });
+  }
+
+  // 2. Parse frontmatter and map source_file -> normalized file & hash
+  const sourceIndex = new Map();
+
+  for (const nnFile of nnFiles) {
+    const relNnPath = path.relative(workspaceDir, nnFile).replace(/\\/g, '/');
+    let content;
+    try {
+      content = fs.readFileSync(nnFile, 'utf-8');
+    } catch {
+      continue;
+    }
+    let fm;
+    try {
+      fm = parseFocusedYaml(parseFrontmatter(content)) || {};
+    } catch {
+      fm = {};
+    }
+
+    const rawRef = fm.source_file || fm.file;
+    const storedHash = (fm.sha256 || fm.hash || '').trim();
+
+    if (!rawRef) {
+      danglingCount++;
+      orphanedList.push({ path: relNnPath, missing_source: 'missing_source_file_field' });
+      items.push({
+        type: 'source-integrity',
+        name: relNnPath,
+        status: 'dangling',
+        detail: 'Normalized file missing source_file field in frontmatter',
+      });
+      continue;
+    }
+
+    const normRawRef = String(rawRef).replace(/\\/g, '/');
+    const candidatePaths = [
+      path.resolve(workspaceDir, normRawRef),
+      path.resolve(workspaceDir, 'sources', normRawRef),
+      path.resolve(path.dirname(nnFile), normRawRef),
+    ];
+
+    let resolvedRawPath = null;
+    for (const cand of candidatePaths) {
+      if (fs.existsSync(cand) && fs.statSync(cand).isFile()) {
+        resolvedRawPath = cand;
+        break;
+      }
+    }
+
+    if (!resolvedRawPath) {
+      danglingCount++;
+      orphanedList.push({ path: relNnPath, missing_source: normRawRef });
+      items.push({
+        type: 'source-integrity',
+        name: relNnPath,
+        status: 'dangling',
+        detail: `Referenced source file does not exist: ${normRawRef}`,
+      });
+    } else {
+      const relSource = path.relative(workspaceDir, resolvedRawPath).replace(/\\/g, '/');
+      const entry = { nnPath: relNnPath, storedHash };
+      sourceIndex.set(relSource, entry);
+      sourceIndex.set(normRawRef, entry);
+    }
+  }
+
+  // 3. Scan active source trees (import, conversations, export, original)
+  const sourceTreesToCheck = [
+    { name: 'import', dir: path.join(sourcesDir, 'import') },
+    { name: 'conversations', dir: path.join(sourcesDir, 'conversations') },
+    { name: 'export', dir: path.join(sourcesDir, 'export') },
+    { name: 'original', dir: path.join(sourcesDir, 'original') },
+  ];
+
+  for (const tree of sourceTreesToCheck) {
+    if (!fs.existsSync(tree.dir)) continue;
+
+    if (!subtrees[tree.name]) {
+      subtrees[tree.name] = { total: 0, normalized: 0, unnormalized: 0 };
+    }
+
+    const treeFiles = [];
+    walkSourceDir(tree.dir, (filePath) => {
+      treeFiles.push(filePath);
+    });
+
+    for (const file of treeFiles) {
+      const relPath = path.relative(workspaceDir, file).replace(/\\/g, '/');
+      subtrees[tree.name].total++;
+      totalCount++;
+
+      let currentHash = null;
+      try {
+        const buf = fs.readFileSync(file);
+        currentHash = crypto.createHash('sha256').update(buf).digest('hex');
+      } catch {
+        // cannot read file
+      }
+
+      const match = sourceIndex.get(relPath);
+      if (!match) {
+        unnormalizedCount++;
+        subtrees[tree.name].unnormalized++;
+        unnormalizedList.push({ path: relPath, subtree: tree.name, reason: 'missing' });
+        items.push({
+          type: 'source-integrity',
+          name: relPath,
+          status: 'unnormalized',
+          detail: 'Source has not been normalized into sources/nn/. Run `node scripts/index.js --scan`.',
+        });
+      } else if (match.storedHash !== currentHash) {
+        unnormalizedCount++;
+        subtrees[tree.name].unnormalized++;
+        unnormalizedList.push({ path: relPath, subtree: tree.name, reason: 'hash_mismatch' });
+        items.push({
+          type: 'source-integrity',
+          name: relPath,
+          status: 'stale',
+          detail: 'Source content has changed since normalization. Run `node scripts/index.js --scan`.',
+        });
+      } else {
+        normalizedCount++;
+        subtrees[tree.name].normalized++;
+      }
+    }
+  }
+
+  return {
+    total: totalCount,
+    normalized: normalizedCount,
+    unnormalized: unnormalizedCount,
+    dangling: danglingCount,
+    sources_integrity: {
+      ok: unnormalizedCount === 0 && danglingCount === 0,
+      subtrees,
+      unnormalized: unnormalizedList,
+      orphaned: orphanedList,
+    },
+    items,
+  };
+}
+
 async function runCheck(options = {}) {
   const isJson = options.json || process.argv.includes('--json');
   const manifestUrl = options.manifestUrl || process.env.SM_MANIFEST_URL || DEFAULT_MANIFEST_URL;
@@ -246,6 +448,20 @@ async function runCheck(options = {}) {
       specsStale: 0,
       specsFresh: 0,
       specsOffline: 0,
+      sourcesTotal: 0,
+      sourcesNormalized: 0,
+      sourcesUnnormalized: 0,
+      sourcesDangling: 0,
+    },
+    sources_integrity: {
+      ok: true,
+      subtrees: {
+        import: { total: 0, normalized: 0, unnormalized: 0 },
+        export: { total: 0, normalized: 0, unnormalized: 0 },
+        conversations: { total: 0, normalized: 0, unnormalized: 0 },
+      },
+      unnormalized: [],
+      orphaned: [],
     },
     items: [],
   };
@@ -264,15 +480,23 @@ async function runCheck(options = {}) {
     return results;
   }
 
-  // 1b. Workspace spec freshness scan (opt-in via --workspace-dir). Runs
+  // 1b. Workspace scans (opt-in via --workspace-dir). Runs
   // before the manifest fetch so the manifest-offline early return below can
-  // still fold staleness into ACTION_REQUIRED / exit 1.
+  // still fold staleness or unnormalized sources into ACTION_REQUIRED / exit 1.
   if (workspaceDir) {
     const specResults = await scanWorkspaceSpecs(workspaceDir);
     results.summary.specsStale = specResults.stale;
     results.summary.specsFresh = specResults.fresh;
     results.summary.specsOffline = specResults.offline;
     results.items.push(...specResults.items);
+
+    const sourceResults = scanWorkspaceSources(workspaceDir);
+    results.summary.sourcesTotal = sourceResults.total;
+    results.summary.sourcesNormalized = sourceResults.normalized;
+    results.summary.sourcesUnnormalized = sourceResults.unnormalized;
+    results.summary.sourcesDangling = sourceResults.dangling;
+    results.sources_integrity = sourceResults.sources_integrity;
+    results.items.push(...sourceResults.items);
   }
 
   // 2. Fetch Manifest
@@ -290,8 +514,8 @@ async function runCheck(options = {}) {
       detail: `Could not verify remote manifest (${err.message}). Using local state offline.`,
     });
     // Offline mode: do not block if local files exist — but stale workspace
-    // specs are still a hard failure and must not be masked by the early return.
-    if (results.summary.specsStale > 0) {
+    // specs or unnormalized sources are still a hard failure and must not be masked by the early return.
+    if (results.summary.specsStale > 0 || results.summary.sourcesUnnormalized > 0 || results.summary.sourcesDangling > 0) {
       results.status = 'ACTION_REQUIRED';
       results.exitCode = 1;
     }
@@ -389,8 +613,10 @@ async function runCheck(options = {}) {
                      results.summary.mcpMissing > 0 ||
                      results.summary.templatesMissing > 0;
   const hasStaleSpecs = results.summary.specsStale > 0;
+  const hasSourceIssues = results.summary.sourcesUnnormalized > 0 ||
+                          results.summary.sourcesDangling > 0;
 
-  if (hasOutdated || hasMissing || hasStaleSpecs) {
+  if (hasOutdated || hasMissing || hasStaleSpecs || hasSourceIssues) {
     results.status = 'ACTION_REQUIRED';
     results.exitCode = 1;
   } else {
@@ -416,6 +642,25 @@ function printHumanReport(results) {
     console.log('  Remediation: delete/replace the local cached copy under specs/ and re-resolve from the canonical URL.\n');
   }
 
+  if (results.summary.sourcesUnnormalized > 0 || results.summary.sourcesDangling > 0) {
+    console.log(`\n⚠️  Workspace source integrity issue(s) detected:`);
+    for (const item of results.items) {
+      if (item.type === 'source-integrity') {
+        if (item.status === 'unnormalized') {
+          console.log(`  - [UNNORMALIZED] ${item.name}`);
+          console.log(`    ${item.detail || 'Source has not been normalized into sources/nn/.'}`);
+        } else if (item.status === 'stale') {
+          console.log(`  - [STALE] ${item.name}`);
+          console.log(`    ${item.detail || 'Source content has changed since normalization.'}`);
+        } else if (item.status === 'dangling') {
+          console.log(`  - [DANGLING] ${item.name}`);
+          console.log(`    ${item.detail || 'Normalized source references missing file.'}`);
+        }
+      }
+    }
+    console.log('  Remediation: Run `node scripts/index.js --scan` (nn-trannsform --scan) to synchronize sources.\n');
+  }
+
   if (!results.manifest.reachable) {
     console.log(`⚠️  Remote manifest unreachable: ${results.manifest.error}`);
     console.log('Operating in offline cache mode.\n');
@@ -423,18 +668,33 @@ function printHumanReport(results) {
   }
 
   if (results.status === 'OK') {
-    console.log(`Status: OK — All ${results.summary.skillsTotal} skills, ${results.summary.mcpTotal} MCP servers, and ${results.summary.templatesTotal} templates are up-to-date.\n`);
+    let msg = `Status: OK — All ${results.summary.skillsTotal} skills, ${results.summary.mcpTotal} MCP servers, and ${results.summary.templatesTotal} templates are up-to-date.`;
+    if (results.summary.sourcesTotal > 0) {
+      msg += ` All ${results.summary.sourcesTotal} sources normalized and verified.`;
+    }
+    console.log(`${msg}\n`);
     return;
   }
 
   console.log(`Status: ⚠️  UPDATES OR MISSING COMPONENTS DETECTED\n`);
 
-  const pending = results.items.filter(i => i.status === 'outdated' || i.status === 'missing' || i.status === 'stale');
+  const pending = results.items.filter(i =>
+    i.status === 'outdated' ||
+    i.status === 'missing' ||
+    i.status === 'stale' ||
+    i.status === 'unnormalized' ||
+    i.status === 'dangling'
+  );
   console.log('Detected items needing attention:');
   for (const item of pending) {
-    const detail = item.status === 'outdated'
-      ? `(installed: ${item.installedCommit || item.installedVersion || 'unknown'} -> pinned: ${item.pinnedCommit || item.version})`
-      : '(not installed)';
+    let detail;
+    if (item.type === 'source-integrity') {
+      detail = item.detail ? `(${item.detail})` : `(${item.status})`;
+    } else if (item.status === 'outdated') {
+      detail = `(installed: ${item.installedCommit || item.installedVersion || 'unknown'} -> pinned: ${item.pinnedCommit || item.version})`;
+    } else {
+      detail = '(not installed)';
+    }
     console.log(`  - [${item.status.toUpperCase()}] ${item.type} "${item.name}" ${detail}`);
   }
 
@@ -491,4 +751,5 @@ module.exports = {
   runCheck,
   parseManifest,
   loadState,
+  scanWorkspaceSources,
 };

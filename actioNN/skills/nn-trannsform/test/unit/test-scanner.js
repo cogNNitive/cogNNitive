@@ -212,10 +212,96 @@ function run() {
       assertTrue(csvMd.includes('# NN Dataset Schema: user_metrics'), 'CSV converter generates ## NN Dataset Schema');
       assertTrue(csvMd.includes('## NN Summary Statistics'), 'CSV converter generates ## NN Summary Statistics');
 
-      // Cleanup
-      fs.rmSync(TEST_TEMP, { recursive: true, force: true });
-      console.log(`\n  Scanner tests: ${passed} passed, ${failed} failed`);
-      return { passed, failed };
+      // Test 15: JSON converter without Slack heuristics & removal of convertChatJson
+      assertEqual(typeof converters.convertChatJson, 'undefined', 'convertChatJson is removed from converters');
+      const jsonArraySample = path.join(TEST_TEMP, 'customers.json');
+      fs.writeFileSync(jsonArraySample, JSON.stringify([
+        { id: 1, name: 'Alice', active: true, score: 95.5 },
+        { id: 2, name: 'Bob', active: false, score: 80.0 }
+      ], null, 2), 'utf8');
+      const jsonArrayMd = converters.convertOkFormat('.json', jsonArraySample, 'customers');
+      assertTrue(jsonArrayMd.includes('# NN Dataset Schema: customers'), 'JSON array converter outputs ## NN Dataset Schema');
+      assertTrue(jsonArrayMd.includes('| Column | Inferred Type | Null Count | Summary Metrics |'), 'JSON array converter includes data dictionary table');
+      assertTrue(jsonArrayMd.includes('## NN Summary Statistics'), 'JSON array converter includes summary statistics');
+      assertTrue(!jsonArrayMd.includes('## NN Thread'), 'JSON array does not output Slack thread headers');
+
+      const jsonObjSample = path.join(TEST_TEMP, 'config.json');
+      fs.writeFileSync(jsonObjSample, JSON.stringify({ service: 'auth', port: 8080 }, null, 2), 'utf8');
+      const jsonObjMd = converters.convertOkFormat('.json', jsonObjSample, 'config');
+      assertTrue(jsonObjMd.includes('```json'), 'Generic JSON object converter renders fenced json block');
+      assertTrue(jsonObjMd.includes('"service": "auth"'), 'Generic JSON object preserves payload content');
+      assertTrue(!jsonObjMd.includes('## NN Thread'), 'Generic JSON does not output Slack thread headers');
+
+      // Test 16: Multi-source walking and normalization in scanAndProcess
+      const multiProj = path.join(TEST_TEMP, 'multi-source-project');
+      const importDir = path.join(multiProj, 'sources', 'import');
+      const convDir = path.join(multiProj, 'sources', 'conversations');
+      const expDir = path.join(multiProj, 'sources', 'export');
+      fs.mkdirSync(path.join(importDir, 'docs'), { recursive: true });
+      fs.mkdirSync(convDir, { recursive: true });
+      fs.mkdirSync(expDir, { recursive: true });
+
+      fs.writeFileSync(path.join(importDir, 'docs', 'guide.txt'), 'User guide content.', 'utf8');
+      fs.writeFileSync(path.join(convDir, '2026-09-06_arch_source.md'), '---\nsession_id: "sess-123"\norigin_transcript: "conversations/2026-09-06_arch.md"\n---\n\n**User**: How should we structure sources?\n\n**Assistant**: Use import, conversations, export.', 'utf8');
+      fs.writeFileSync(path.join(convDir, '2026-09-06_arch_summary.md'), '---\nsession_id: "sess-123"\norigin_transcript: "conversations/2026-09-06_arch.md"\n---\n\n# Executive Summary\n\n## Key Topics\nSources restructuring.\n\n## Decisions\nUse import, conversations, export.\n', 'utf8');
+      fs.writeFileSync(path.join(expDir, 'roadmap.md'), '---\nderived_from: ["Strategy_V_1-0-0_NN.md"]\n---\n\n# Strategic Roadmap\n', 'utf8');
+
+      return scanner.scanAndProcess(multiProj, { autoAcceptPrompt: true }).then((multiResult) => {
+        const nnDir = path.join(multiProj, 'sources', 'nn');
+        assertEqual(multiResult.totalDiscovered, 4, 'scanAndProcess discovers all files across import, conversations, and export');
+        assertEqual(multiResult.processedCount, 4, 'scanAndProcess processes all 4 files across subtrees');
+
+        // Verify mirrored paths
+        assertTrue(fs.existsSync(path.join(nnDir, 'import', 'docs', 'guide.md')), 'sources/import/docs/guide.txt normalized to sources/nn/import/docs/guide.md');
+        assertTrue(fs.existsSync(path.join(nnDir, 'conversations', '2026-09-06_arch_source.md')), 'conversation transcript normalized under sources/nn/conversations/');
+        assertTrue(fs.existsSync(path.join(nnDir, 'conversations', '2026-09-06_arch_summary.md')), 'conversation summary normalized under sources/nn/conversations/');
+        assertTrue(fs.existsSync(path.join(nnDir, 'export', 'roadmap.md')), 'promoted export normalized under sources/nn/export/');
+
+        // Verify import frontmatter
+        const guideFm = fs.readFileSync(path.join(nnDir, 'import', 'docs', 'guide.md'), 'utf8');
+        assertTrue(guideFm.includes('source_file: "sources/import/docs/guide.txt"'), 'import file records source_file');
+        assertTrue(guideFm.includes('is_synthetic: false'), 'import file is_synthetic is false');
+
+        // Verify conversation transcript frontmatter & body
+        const sourceFm = fs.readFileSync(path.join(nnDir, 'conversations', '2026-09-06_arch_source.md'), 'utf8');
+        assertTrue(sourceFm.includes('source_file: "sources/conversations/2026-09-06_arch_source.md"'), 'transcript records source_file');
+        assertTrue(sourceFm.includes('conversation_format: "full"'), 'transcript records conversation_format: "full"');
+        assertTrue(sourceFm.includes('source_type: "conversation_transcript"'), 'transcript records source_type: "conversation_transcript"');
+        assertTrue(sourceFm.includes('session_id: "sess-123"'), 'transcript preserves session_id');
+        assertTrue(sourceFm.includes('**User**: How should we structure sources?'), 'transcript preserves dialogue structure');
+
+        // Verify conversation summary frontmatter
+        const summaryFm = fs.readFileSync(path.join(nnDir, 'conversations', '2026-09-06_arch_summary.md'), 'utf8');
+        assertTrue(summaryFm.includes('source_file: "sources/conversations/2026-09-06_arch_summary.md"'), 'summary records source_file');
+        assertTrue(summaryFm.includes('conversation_format: "summary"'), 'summary records conversation_format: "summary"');
+        assertTrue(summaryFm.includes('source_type: "conversation_summary"'), 'summary records source_type: "conversation_summary"');
+        assertTrue(summaryFm.includes('session_id: "sess-123"'), 'summary preserves session_id');
+
+        // Verify promoted export frontmatter
+        const expFm = fs.readFileSync(path.join(nnDir, 'export', 'roadmap.md'), 'utf8');
+        assertTrue(expFm.includes('source_file: "sources/export/roadmap.md"'), 'export records source_file');
+        assertTrue(expFm.includes('is_synthetic: true'), 'promoted deliverable has is_synthetic: true');
+        assertTrue(expFm.includes('derived_from: [Strategy_V_1-0-0_NN.md]') || expFm.includes('derived_from: ["Strategy_V_1-0-0_NN.md"]'), 'promoted deliverable retains derived_from');
+
+        // Test 17: Legacy fallback resolution (sources/original/ when sources/import/ does not exist)
+        const legacyProj = path.join(TEST_TEMP, 'legacy-project');
+        const legacyOrigDir = path.join(legacyProj, 'sources', 'original');
+        fs.mkdirSync(legacyOrigDir, { recursive: true });
+        fs.writeFileSync(path.join(legacyOrigDir, 'legacy_note.txt'), 'Legacy content.', 'utf8');
+
+        return scanner.scanAndProcess(legacyProj, { autoAcceptPrompt: true }).then((legacyResult) => {
+          assertEqual(legacyResult.totalDiscovered, 1, 'legacy scan discovers file in sources/original');
+          const legacyNnFile = path.join(legacyProj, 'sources', 'nn', 'legacy_note.md');
+          assertTrue(fs.existsSync(legacyNnFile), 'legacy file normalized to sources/nn/legacy_note.md');
+          const legacyContent = fs.readFileSync(legacyNnFile, 'utf8');
+          assertTrue(legacyContent.includes('source_file: "sources/original/legacy_note.txt"'), 'legacy source_file preserved');
+
+          // Cleanup
+          fs.rmSync(TEST_TEMP, { recursive: true, force: true });
+          console.log(`\n  Scanner tests: ${passed} passed, ${failed} failed`);
+          return { passed, failed };
+        });
+      });
     });
   } catch (e) {
     fs.rmSync(TEST_TEMP, { recursive: true, force: true });

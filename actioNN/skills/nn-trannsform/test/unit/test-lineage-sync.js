@@ -100,6 +100,24 @@ function run() {
     fs.rmSync(path.join(proj, 'artifacts', 'Exec_Summary_V_1-0-0.md'));
     provenance.buildProvenanceModel(proj, { projectName: 'Acme' });
     ok(checkLineage(proj).errors.length === 0, '--check clean on a synced workspace');
+
+    // Test export/ promotion & is_synthetic in # NN Sources
+    fs.mkdirSync(path.join(proj, 'export'), { recursive: true });
+    fs.writeFileSync(
+      path.join(proj, 'export', 'Proposal_V_1-0-0.md'),
+      '---\nmodel: "Business Plan"\nmodel_version: "V_1-0-0"\ntype: "proposal"\n---\n\n# Proposal\n',
+    );
+    fs.mkdirSync(path.join(proj, 'sources', 'nn', 'export'), { recursive: true });
+    fs.writeFileSync(
+      path.join(proj, 'sources', 'nn', 'export', 'synthetic_brief.md'),
+      '---\nsource_file: "sources/export/synthetic_brief.md"\nsha256: "b"\nsize_bytes: 2\nis_synthetic: true\nderived_from: [Plan_V_1-0-0_NN.md]\nnormalized_at: "y"\nnormalized_by: "t"\n---\n\n# Brief\n',
+    );
+    provenance.buildProvenanceModel(proj, { projectName: 'Acme' });
+    const mExport = fs.readFileSync(r1.modelPath, 'utf8');
+    ok(/## NN Artifacts: Proposal_V_1-0-0/.test(mExport), 'deliverable in export/ rendered under # NN Artifacts');
+    ok(/artifact_ref:: export\/Proposal_V_1-0-0\.md/.test(mExport), 'artifact_ref points to export/');
+    ok(/is_synthetic:: true/.test(mExport), '# NN Sources includes is_synthetic:: true for synthetic source');
+    ok(/derived_from:: \[Plan_V_1-0-0_NN\.md\]/.test(mExport), '# NN Sources includes derived_from for synthetic source');
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });
   }

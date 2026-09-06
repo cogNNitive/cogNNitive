@@ -49,7 +49,9 @@ async function applyTransformation(projectDir, templateName, options = {}) {
   const mdDir = path.join(projectDir, 'sources', 'nn');
 
   const cleanTemplateName = path.basename(templateName, '.md').replace(/\s+/g, '_');
-  const outputDir = path.join(projectDir, 'artifacts');
+  const exportDir = path.join(projectDir, 'export');
+  const legacyArtDir = path.join(projectDir, 'artifacts');
+  const outputDir = fs.existsSync(legacyArtDir) && !fs.existsSync(exportDir) ? legacyArtDir : exportDir;
 
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true });

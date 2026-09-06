@@ -28,7 +28,7 @@ Before launching any specialized workflow, `nn-router` verifies the environment:
 1. **Preflight Runner**: Ensures the Integrity & Preflight Check passed via `nn-preflight`.
 2. **Node.js**: Checks `node --version` (>= 18 required).
 3. **MCP Server**: Verifies `innfo-mcp` responsiveness via `innfo-mcp_list_models` (or resolves bundle at `~/.agents/mcp/innfo-mcp.bundle.js` or `.cogNNitive/mcp-bundle.js`).
-4. **Workspace Layout**: Ensures workspace contains standard folders (`sources/`, `models/`, `procedures/`, `artifacts/`, `index.md`). There is no `sources/raw/` — see `nn-preflight` and `nn-trannsform`.
+4. **Workspace Layout**: Ensures workspace contains standard folders (`sources/`, `models/`, `procedures/`, `export/`, `conversations/`, `index.md`). Ingestion branches are `sources/import/`, `sources/conversations/`, and `sources/export/` normalized into `sources/nn/` (legacy `sources/original/` and `artifacts/` supported via non-breaking fallback).
 
 ---
 
@@ -37,7 +37,7 @@ Before launching any specialized workflow, `nn-router` verifies the environment:
 Every agent interaction across the cogNNitive ecosystem MUST follow these strict UX and governance rules:
 
 1. **Zero Unilateral Mutation (Consent First)**:
-   - Prohibit moving, renaming, or deleting user files (e.g. moving raw PDFs to `sources/original/` or restructuring user directories) without prior explicit confirmation from the user.
+   - Prohibit moving, renaming, or deleting user files (e.g. moving raw PDFs to `sources/import/` or restructuring user directories) without prior explicit confirmation from the user.
    - Always ask for confirmation before executing file movements or workspace restructures.
 
 2. **Recommended Option First**:
@@ -51,8 +51,16 @@ Every agent interaction across the cogNNitive ecosystem MUST follow these strict
    - Whenever generating any visual component, web interface, HTML dashboard companion, site page, or styled deliverable artifact, the agent MUST ask the user which visual design style / preset to apply before generation.
    - This prompt MUST load and activate the **`nn-design-presets`** skill to retrieve branding tokens (e.g. `morado-nazareno`).
 
-5. **Conversation Logging Protocol (MANDATORY)**:
-   - Every conversation using NN skills MUST save a transcript or markdown summary to `<workspace_root>/conversations/YYYY-MM-DD_<model_name>_<title_3_to_6_words>.md` (or `conversations/YYYY-MM-DD_<title_3_to_6_words>.md` if no model is active).
+5. **Conversations as Reference & Source Protocol (MANDATORY)**:
+   - **Silent Reservation**: When an interactive session begins, immediately allocate `conversations/YYYY-MM-DD_HHmmss.md` with initial frontmatter (`status: in_progress`, `turns: 0`, `mutations: false`) without interrupting the user.
+   - **Trivial Discard Filter**: Upon session exit or completion, if `turns < 2` AND `mutations === false` (no files created/modified), silently delete the reserved transcript file from disk.
+   - **Post-Session Title Suggestions**: For non-trivial sessions, present 3 suggested title options with `[1] (Recommended) <title>` plus a manual entry option. Finalize frontmatter (`status: completed`, `ended_at: ISO_8601`) and rename the file to `conversations/YYYY-MM-DD_<slug>.md`.
+   - **Promotion Prompt**: Prompt the user to promote the conversation transcript into workspace knowledge sources (`sources/conversations/`):
+     - `[1] (Recommended) Executive Summary`: Saves key decisions and action items to `sources/conversations/<session-slug>_summary.md`.
+     - `[2] Full Transcript`: Saves verbatim dialogue turns to `sources/conversations/<session-slug>_source.md`.
+     - `[3] Both`: Emits both `_summary.md` and `_source.md`.
+     - `[4] None`: Leaves transcript in `conversations/` only.
+     Promoted sources link back via `origin_transcript: conversations/...` and are normalized into `sources/nn/conversations/` via `nn-trannsform` scanner for citation by models (`sources:: [conversations/<file>.md#<anchor>]`).
 
 ---
 

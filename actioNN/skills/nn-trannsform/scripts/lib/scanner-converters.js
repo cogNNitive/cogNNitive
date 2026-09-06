@@ -251,41 +251,111 @@ function convertSubtitles(content, baseName) {
 }
 
 /**
- * Converts chat message exports (Slack/Teams json) into structured discussion threads.
+ * Converts JSON content into structured markdown dataset schema profile or formatted code block.
+ * Removes legacy Slack/Teams chat heuristics.
  * @param {string} content
  * @param {string} baseName
  * @returns {string}
  */
-function convertChatJson(content, baseName) {
+function convertJson(content, baseName) {
   try {
     const parsed = JSON.parse(content);
-    const messages = Array.isArray(parsed) ? parsed : (Array.isArray(parsed.messages) ? parsed.messages : null);
-    if (!messages || messages.length === 0 || (!messages[0].text && !messages[0].message)) {
-      return `# ${baseName}\n\n\`\`\`json\n${content}\n\`\`\``;
-    }
-
-    // Group messages by thread_ts or date
-    const threads = new Map();
-    for (const msg of messages) {
-      const threadKey = msg.thread_ts || (msg.ts ? new Date(Number(msg.ts) * 1000).toISOString().split('T')[0] : 'General');
-      if (!threads.has(threadKey)) threads.set(threadKey, []);
-      threads.get(threadKey).push(msg);
-    }
-
-    let out = `# ${baseName}\n\n`;
-    for (const [threadId, threadMsgs] of threads.entries()) {
-      const topic = threadMsgs[0]?.topic || threadMsgs[0]?.text?.substring(0, 40) || threadId;
-      out += `## NN Thread: [${threadId}] ${topic}\n\n`;
-      for (const m of threadMsgs) {
-        const user = m.user_profile?.real_name || m.username || m.user || m.author || 'User';
-        const text = (m.text || m.message || '').replace(/\r?\n/g, ' ');
-        out += `- **${user}**: ${text}\n`;
+    if (Array.isArray(parsed)) {
+      if (parsed.length === 0) {
+        return `# NN Dataset Schema: ${baseName}\n\n*Empty JSON dataset*\n`;
       }
-      out += '\n';
+      if (typeof parsed[0] === 'object' && parsed[0] !== null) {
+        // Uniform array of objects -> Profile as dataset
+        const headerSet = new Set();
+        for (const item of parsed) {
+          if (item && typeof item === 'object') {
+            for (const k of Object.keys(item)) headerSet.add(k);
+          }
+        }
+        const headers = Array.from(headerSet);
+
+        // Column profiling
+        const colStats = headers.map((header) => {
+          let nullCount = 0;
+          let numericCount = 0;
+          let numMin = Infinity;
+          let numMax = -Infinity;
+          let numSum = 0;
+          let dateCount = 0;
+
+          for (const row of parsed) {
+            const val = row[header];
+            if (val === undefined || val === null || val === '') {
+              nullCount++;
+              continue;
+            }
+            const num = Number(val);
+            if (typeof val === 'number' || (!isNaN(num) && typeof val !== 'boolean')) {
+              numericCount++;
+              numSum += num;
+              if (num < numMin) numMin = num;
+              if (num > numMax) numMax = num;
+            } else if (typeof val === 'string' && !isNaN(Date.parse(val)) && val.length >= 8) {
+              dateCount++;
+            }
+          }
+
+          const nonNullCount = parsed.length - nullCount;
+          let inferredType = 'string';
+          let summaryMetrics = '-';
+
+          if (nonNullCount > 0 && numericCount / nonNullCount > 0.8) {
+            inferredType = Number.isInteger(numMin) && Number.isInteger(numMax) ? 'integer' : 'float';
+            const avg = (numSum / numericCount).toFixed(2);
+            summaryMetrics = `min: ${numMin}, max: ${numMax}, avg: ${avg}`;
+          } else if (nonNullCount > 0 && dateCount / nonNullCount > 0.8) {
+            inferredType = 'date';
+          } else if (nonNullCount > 0 && parsed.every(r => r[header] === undefined || r[header] === null || typeof r[header] === 'boolean')) {
+            inferredType = 'boolean';
+          }
+
+          return {
+            header,
+            inferredType,
+            nullCount,
+            summaryMetrics,
+          };
+        });
+
+        let out = `# NN Dataset Schema: ${baseName}\n\n`;
+        out += '| Column | Inferred Type | Null Count | Summary Metrics |\n';
+        out += '|---|---|---|---|\n';
+        for (const col of colStats) {
+          out += `| ${col.header} | ${col.inferredType} | ${col.nullCount} | ${col.summaryMetrics} |\n`;
+        }
+
+        out += `\n## NN Summary Statistics\n\n`;
+        out += `- **Total Rows**: ${parsed.length.toLocaleString()}\n`;
+        out += `- **Total Columns**: ${headers.length}\n`;
+        out += `- **Columns**: ${headers.join(', ')}\n\n`;
+
+        const sampleLimit = Math.min(parsed.length, 15);
+        out += `## NN Sample Data (First ${sampleLimit} Rows)\n\n`;
+        out += `| ${headers.join(' | ')} |\n`;
+        out += `| ${headers.map(() => '---').join(' | ')} |\n`;
+        for (let i = 0; i < sampleLimit; i++) {
+          const row = parsed[i];
+          const cells = headers.map((h) => {
+            const val = row[h];
+            if (val === undefined || val === null) return '';
+            if (typeof val === 'object') return JSON.stringify(val).replace(/\|/g, '\\|');
+            return String(val).replace(/\|/g, '\\|');
+          });
+          out += `| ${cells.join(' | ')} |\n`;
+        }
+        return out;
+      }
     }
-    return out.trim() + '\n';
+
+    // General JSON object or primitives array -> fenced json code block with metadata header
+    return `# ${baseName}\n\n\`\`\`json\n${JSON.stringify(parsed, null, 2)}\n\`\`\`\n`;
   } catch {
-    return `# ${baseName}\n\n\`\`\`json\n${content}\n\`\`\``;
+    return `# ${baseName}\n\n\`\`\`json\n${content.trim()}\n\`\`\`\n`;
   }
 }
 
@@ -302,7 +372,7 @@ function convertOkFormat(ext, filePath, baseName) {
     case '.md':
       return stripFrontmatter(content);
     case '.json':
-      return convertChatJson(content, baseName);
+      return convertJson(content, baseName);
     case '.csv':
       return convertCsv(content, baseName);
     case '.srt':

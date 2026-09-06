@@ -41,29 +41,40 @@ function run() {
     fs.writeFileSync(path.join(srcDir, 'staging', 'scratch.txt'), 'x');
 
     const result = bootstrapProject(srcDir, destParent, 'Proj');
-    const orig = path.join(destParent, 'Proj', 'sources', 'original');
+    const importDir = path.join(destParent, 'Proj', 'sources', 'import');
 
     check(result.copiedCount === 4, `copiedCount is 4 (got ${result.copiedCount})`);
-    check(fs.existsSync(path.join(orig, 'top.txt')), 'top-level file copied');
+    check(fs.existsSync(path.join(importDir, 'top.txt')), 'top-level file copied');
     check(
-      fs.existsSync(path.join(orig, 'clientA', 'report.md')),
+      fs.existsSync(path.join(importDir, 'clientA', 'report.md')),
       'subfolder file copied with structure preserved',
     );
     check(
-      fs.existsSync(path.join(orig, 'clientA', 'deep', 'notes.txt')),
+      fs.existsSync(path.join(importDir, 'clientA', 'deep', 'notes.txt')),
       'nested subfolder file copied',
     );
-    check(fs.existsSync(path.join(orig, 'clientB', 'memo.md')), 'sibling subfolder file copied');
-    check(!fs.existsSync(path.join(orig, '.DS_Store')), 'dotfile not copied');
-    check(!fs.existsSync(path.join(orig, 'staging')), 'staging/ not copied');
+    check(fs.existsSync(path.join(importDir, 'clientB', 'memo.md')), 'sibling subfolder file copied');
+    check(!fs.existsSync(path.join(importDir, '.DS_Store')), 'dotfile not copied');
+    check(!fs.existsSync(path.join(importDir, 'staging')), 'staging/ not copied');
 
-    // Standard workspace layout still created.
-    for (const d of ['models', 'procedures', 'artifacts', path.join('sources', 'nn')]) {
+    // Standard workspace layout created with updated conventions
+    for (const d of [
+      'models',
+      'procedures',
+      'export',
+      'conversations',
+      path.join('sources', 'import'),
+      path.join('sources', 'conversations'),
+      path.join('sources', 'export'),
+      path.join('sources', 'nn'),
+    ]) {
       check(
         fs.existsSync(path.join(destParent, 'Proj', d)),
         `workspace dir ${d} created`,
       );
     }
+    check(!fs.existsSync(path.join(destParent, 'Proj', 'artifacts')), 'deprecated artifacts/ not created');
+    check(!fs.existsSync(path.join(destParent, 'Proj', 'sources', 'original')), 'deprecated sources/original/ not created');
     check(fs.existsSync(result.provModelPath), 'provenance model initialized');
 
     // No source dir → no crash, zero copied.
