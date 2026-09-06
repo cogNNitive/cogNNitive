@@ -49,8 +49,7 @@ function run(cmd, desc) {
 const templatesDir = path.join(__dirname, '..', 'iNNfo', 'specs', 'templates');
 const sourceYamlPath = path.join(__dirname, '..', 'manifest', 'source.yaml');
 
-if (fs.existsSync(templatesDir) && fs.existsSync(sourceYamlPath)) {
-  const sourceText = fs.readFileSync(sourceYamlPath, 'utf8');
+function extractDeclaredTemplates(sourceText) {
   /** @type {Set<string>} */
   const declaredTemplates = new Set();
   const matchRegex = /-\s+name:\s+([^\s\n]+)/g;
@@ -58,13 +57,27 @@ if (fs.existsSync(templatesDir) && fs.existsSync(sourceYamlPath)) {
   while ((match = matchRegex.exec(sourceText)) !== null) {
     declaredTemplates.add(match[1]);
   }
+  return declaredTemplates;
+}
 
-  const diskFolders = fs.readdirSync(templatesDir, { withFileTypes: true })
+function checkTemplateInventory(tmplDir, srcPath) {
+  if (!fs.existsSync(tmplDir) || !fs.existsSync(srcPath)) {
+    return { ok: true, missing: [], diskFolders: [] };
+  }
+  const sourceText = fs.readFileSync(srcPath, 'utf8');
+  const declaredTemplates = extractDeclaredTemplates(sourceText);
+
+  const diskFolders = fs.readdirSync(tmplDir, { withFileTypes: true })
     .filter(d => d.isDirectory() && d.name !== 'assets')
     .map(d => d.name);
 
   const missing = diskFolders.filter(name => !declaredTemplates.has(name));
-  if (missing.length > 0) {
+  return { ok: missing.length === 0, missing, diskFolders };
+}
+
+if (fs.existsSync(templatesDir) && fs.existsSync(sourceYamlPath)) {
+  const { ok, missing, diskFolders } = checkTemplateInventory(templatesDir, sourceYamlPath);
+  if (!ok) {
     console.error(`❌ Template Inventory Mismatch! Folders exist in specs/templates/ but are missing from manifest/source.yaml: ${missing.join(', ')}`);
     process.exit(1);
   }

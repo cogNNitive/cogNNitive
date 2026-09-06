@@ -89,8 +89,8 @@ function checkWorkspaceParity(repoRoot = process.cwd()) {
       // ignore
     }
     if (declared === undefined || declared === null) {
-      const match = text.match(/V_\d+-\d+-\d+/i) || text.match(/version:\s*["']?([^"'\r\n]+)/i);
-      if (match) declared = match[1] || match[0];
+      const fnMatch = path.basename(tmplPath).match(/V_\d+-\d+-\d+/i);
+      if (fnMatch) declared = fnMatch[0];
     }
     if (declared === undefined || declared === null) {
       errors.push(`Template '${template.name}': no version declared in ${tmplPath}`);

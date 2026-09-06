@@ -1,6 +1,6 @@
 import { readFile, readdir, stat } from 'node:fs/promises'
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
-import { basename, dirname, join, relative } from 'node:path'
+import { basename, dirname, join, relative, resolve, isAbsolute } from 'node:path'
 import {
   parseModel,
   validateDocument,
@@ -229,7 +229,11 @@ async function runWorkspaceValidation(
   // Cross-model `[[Title :: Element]]` references + `sources::` Citations,
   // the latter resolved against real files under the workspace root.
   const resolveSource: SourceResolver = (refPath) => {
-    const abs = join(rootDir, refPath)
+    const abs = resolve(rootDir, refPath)
+    const rel = relative(rootDir, abs)
+    if (rel === '' || rel.startsWith('..') || isAbsolute(rel)) {
+      return { exists: false }
+    }
     if (!existsSync(abs)) return { exists: false }
     try {
       return {

@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { join } from 'node:path'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { join, relative, isAbsolute, resolve } from 'node:path'
 import { rm, mkdir, writeFile } from 'node:fs/promises'
 import { validateModel } from '../src/tools/validate.js'
 
@@ -85,9 +85,18 @@ describe('validate_model workspace mode — sources:: Citations', () => {
   })
 
   it('rejects path traversal attempts without reading outside files', async () => {
+<<<<<<< Updated upstream
     const fs = await import('node:fs')
     const readSpy = vi.spyOn(fs, 'readFileSync')
 
+=======
+    const fs = (await import('node:fs')).default
+    const readSpy = vi.spyOn(fs, 'readFileSync')
+
+    const outsidePath = join(rootDir, '..', 'temp-test-outside.md')
+    await writeFile(outsidePath, '# Secret\nleaked', 'utf-8')
+
+>>>>>>> Stashed changes
     const TRAVERSAL_MODEL = `---
 specification_version: "V_0-1-0"
 level: 3
@@ -105,6 +114,7 @@ title: "Traversal"
 # NN Escaper
 
 ## NN Escaper: Rogue
+<<<<<<< Updated upstream
 sources:: [../outside.md#secret, /etc/hosts#h, ..\\..\\escape.md#h]
 `
     await writeFile(join(rootDir, 'models', 'Traversal_V_1-0-0_NN.md'), TRAVERSAL_MODEL, 'utf-8')
@@ -131,6 +141,44 @@ sources:: [../outside.md#secret, /etc/hosts#h, ..\\..\\escape.md#h]
     await mkdir(join(rootDir, 'sub', 'dir'), { recursive: true })
     const SUB_NOTE = `---
 source_file: "sub/dir/note.txt"
+=======
+sources:: [sources/nn/../../../temp-test-outside.md#secret, sources/nn/../../../../etc/hosts.md#h, models/../../escape.md#h]
+`
+    await writeFile(join(rootDir, 'models', 'Traversal_V_1-0-0_NN.md'), TRAVERSAL_MODEL, 'utf-8')
+    await writeFile(
+      join(rootDir, 'index.md'),
+      INDEX + '\n* [Traversal](./models/Traversal_V_1-0-0_NN.md)\n',
+      'utf-8',
+    )
+
+    try {
+      const result = await validateModel(rootDir, 'Traversal_V_1-0-0_NN', undefined, undefined, true)
+
+      // Check that readFileSync was never called on any path outside rootDir
+      for (const call of readSpy.mock.calls) {
+        const calledPath = String(call[0])
+        const resolvedCallPath = resolve(calledPath)
+        const rel = relative(rootDir, resolvedCallPath)
+        const escapes = rel === '' || rel.startsWith('..') || isAbsolute(rel)
+        expect(escapes, `readFileSync was called on escaped path: ${calledPath}`).toBe(false)
+      }
+
+      // Traversal citations must be reported as errors/unresolved
+      const outsideDangling = [...result.errors, ...result.warnings].find((d) =>
+        d.message.includes('temp-test-outside.md'),
+      )
+      expect(outsideDangling).toBeDefined()
+      expect(outsideDangling!.severity).toBe('error')
+    } finally {
+      await rm(outsidePath, { force: true })
+    }
+  })
+
+  it('resolves valid in-workspace cross-model and subfolder citations', async () => {
+    await mkdir(join(rootDir, 'sources', 'nn', 'sub', 'dir'), { recursive: true })
+    const SUB_NOTE = `---
+source_file: "sources/original/sub/dir/note.txt"
+>>>>>>> Stashed changes
 sha256: "0"
 ---
 
@@ -152,7 +200,11 @@ title: "Other"
 
 Other doc text.
 `
+<<<<<<< Updated upstream
     await writeFile(join(rootDir, 'sub', 'dir', 'note.md'), SUB_NOTE, 'utf-8')
+=======
+    await writeFile(join(rootDir, 'sources', 'nn', 'sub', 'dir', 'note.md'), SUB_NOTE, 'utf-8')
+>>>>>>> Stashed changes
     await writeFile(join(rootDir, 'models', 'Other_NN.md'), OTHER_MODEL, 'utf-8')
 
     const VALID_CITATIONS_MODEL = `---
@@ -179,6 +231,15 @@ sources:: [sub/dir/note.md#subheading, models/Other_NN.md#otherheading]
       VALID_CITATIONS_MODEL,
       'utf-8',
     )
+<<<<<<< Updated upstream
+=======
+    await writeFile(
+      join(rootDir, 'index.md'),
+      INDEX +
+        '\n* [ValidCitations](./models/ValidCitations_V_1-0-0_NN.md)\n* [Other](./models/Other_NN.md)\n',
+      'utf-8',
+    )
+>>>>>>> Stashed changes
 
     const result = await validateModel(
       rootDir,
