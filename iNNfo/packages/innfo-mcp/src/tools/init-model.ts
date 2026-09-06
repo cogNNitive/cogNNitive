@@ -1,6 +1,6 @@
 import { readFile, writeFile, stat } from 'node:fs/promises'
 import { basename, join } from 'node:path'
-import { resolveTemplateSchema, validateDocument } from '@cognnitive/innfo-core'
+import { resolveTemplateSchema, validateDocument, validateTemplateAgainstMetaschema } from '@cognnitive/innfo-core'
 import type { SpecDocument, ValidationError } from '@cognnitive/innfo-core'
 import { resolveTemplateWithCache, findModelFile, normalizeId } from './spec.js'
 
@@ -130,19 +130,31 @@ export async function initModel(
   let scaffolded = false
   let template: SpecDocument | null = null
   let resolveInclude: (ref: { name: string; url: string }) => string | null = () => null
+  const templateErrors: string[] = []
   try {
     const resolved = await resolveTemplateWithCache(rootDir, args.template_url, args.template_name)
     template = resolved.template
     resolveInclude = resolved.resolveInclude
     if (resolved.template) {
       templateResolved = true
+      const metaResult = validateTemplateAgainstMetaschema(resolved.template)
+      console.error('META_RESULT:', metaResult)
+      if (!metaResult.valid) {
+        for (const e of metaResult.errors) {
+          templateErrors.push(`${e.path}: ${e.message}`)
+          warnings.push(`${e.path}: ${e.message}`)
+        }
+      }
       const hasConceptSections = /^#\s+NN\s+(?!index\b)\S/im.test(body)
       if (!hasConceptSections) {
         const composed = resolveTemplateSchema(
           resolved.template.rawContent,
           resolved.resolveInclude,
         )
-        for (const e of composed.errors) warnings.push(`${e.path}: ${e.message}`)
+        for (const e of composed.errors) {
+          templateErrors.push(`${e.path}: ${e.message}`)
+          warnings.push(`${e.path}: ${e.message}`)
+        }
         const scaffold = scaffoldBodyFromSchema(composed.schema)
         body = body ? `${scaffold}\n${body}` : scaffold
         scaffolded = true
@@ -166,27 +178,52 @@ export async function initModel(
   const modelVersion = args.model_version || 'V_0-1-0'
   const title = args.title || cleanId
 
-  const frontmatter = `---
-spec_version: "V_0-2-1"
-spec_url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-2-1_NN.md"
-level: 3
-parent_spec:
-  name: "${args.template_name}"
-  url: "${args.template_url}"
-model_version: "${modelVersion}"
-title: "${title}"
----`
+  const esc = (s: string) => JSON.stringify(s)
+  const frontmatter = [
+    '---',
+    'spec_version: "V_0-2-1"',
+    'spec_url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-2-1_NN.md"',
+    'level: 3',
+    'parent_spec:',
+    `  name: ${esc(args.template_name)}`,
+    `  url: ${esc(args.template_url)}`,
+    `model_version: ${esc(modelVersion)}`,
+    `title: ${esc(title)}`,
+    '---',
+  ].join('\n')
 
   const newContent = frontmatter + '\n\n' + body.trim() + '\n'
-  await writeFile(filePath, newContent, 'utf-8')
 
-  // Validate what we just wrote (hygiene + schema) so the caller does not have
-  // to make a second round-trip.
+  // Validate before write (hygiene + schema) so invalid models are never written to disk.
   const doc = validateDocument(newContent, {
     fileName: basename(filePath),
     template,
     resolveInclude,
   })
+
+  console.error('NEW_CONTENT:\n' + newContent)
+  // If template is invalid or document validation fails, abort without touching disk.
+  if (templateErrors.length > 0 || (templateResolved && !doc.valid)) {
+    console.error('FAILED IN INIT_MODEL:', { templateErrors, docErrors: doc.errors })
+    return {
+      success: false,
+      templateResolved,
+      scaffolded: false,
+      warnings,
+      filePath,
+      content: newContent,
+      validation: {
+        valid: false,
+        errors: [
+          ...doc.errors,
+          ...templateErrors.map((m) => ({ path: 'template', message: m, severity: 'error' as const })),
+        ],
+        warnings: doc.warnings,
+      },
+    }
+  }
+
+  await writeFile(filePath, newContent, 'utf-8')
 
   return {
     success: true,

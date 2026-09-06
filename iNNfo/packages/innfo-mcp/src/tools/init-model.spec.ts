@@ -145,4 +145,68 @@ describe('initModel', () => {
     const onDisk = await readFile(filePath, 'utf-8')
     expect(onDisk).toBe(result.content)
   })
+
+  it('escapes quotes and newlines in frontmatter title properly and roundtrips', async () => {
+    await stubBusinessTemplate()
+    const { parseModel } = await import('@cognnitive/innfo-core')
+
+    // Test quotes in title
+    const resQuotes = await initModel(rootDir, 'QuotesModel', {
+      template_url: TEMPLATE_URL,
+      template_name: TEMPLATE_NAME,
+      title: 'The "Real" Deal',
+    })
+    expect(resQuotes.success).toBe(true)
+    const onDiskQuotes = await readFile(resQuotes.filePath, 'utf-8')
+    const parsedQuotes = parseModel(onDiskQuotes)
+    expect(parsedQuotes.frontmatter.title).toBe('The "Real" Deal')
+
+    // Test newline in title
+    const resNewlines = await initModel(rootDir, 'NewlineModel', {
+      template_url: TEMPLATE_URL,
+      template_name: TEMPLATE_NAME,
+      title: 'Line1\nLine2',
+    })
+    expect(resNewlines.success).toBe(true)
+    const onDiskNewlines = await readFile(resNewlines.filePath, 'utf-8')
+    const parsedNewlines = parseModel(onDiskNewlines)
+    expect(parsedNewlines.frontmatter.title).toBe('Line1\nLine2')
+  })
+
+  it('does not write file to disk if document validation fails', async () => {
+    const { existsSync } = await import('node:fs')
+    // Stub an invalid template that produces fatal validation errors
+    await writeFile(
+      join(specsDir, 'broken_V_0-2-0_NN.md'),
+      [
+        '---',
+        'spec_version: "V_0-2-0"',
+        'level: 2',
+        'title: "Broken Template"',
+        'parent_spec:',
+        '  name: "iNNfo_V_0-1-0"',
+        '  url: "https://example.com/iNNfo_V_0-1-0_NN.md"',
+        '---',
+        '',
+        '# NN Concept Definition',
+        '## NN Concept Definition: Broken',
+        'type:: unknown_invalid_type',
+        '',
+      ].join('\n'),
+      'utf-8',
+    )
+    await stubSpecChain()
+
+    const targetFile = join(rootDir, 'ShouldNotExist_NN.md')
+
+    // If validation fails prior to write, file should not exist on disk
+    const result = await initModel(rootDir, 'ShouldNotExist', {
+      template_url: 'https://example.com/broken_V_0-2-0_NN.md',
+      template_name: 'broken_V_0-2-0',
+    })
+
+    if (!result.validation.valid) {
+      expect(existsSync(targetFile)).toBe(false)
+    }
+  })
 })

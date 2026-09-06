@@ -2,7 +2,7 @@
 level: 3
 parent_spec:
   name: "workspace_spec"
-  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/workspace_V_0-2-0_spec_NN.md"
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/workspace_V_0-3-0_spec_NN.md"
 model_version: "V_0-1-0"
 title: "cogNNitive Documentation Workspace"
 ---
@@ -14,8 +14,6 @@ title: "cogNNitive Documentation Workspace"
 
 * [[Workspace]]
 * [[Models]]
-* [[Folder]]
-* [[Asset]]
 * [[Tag]]
 
 # NN Workspace
@@ -35,31 +33,6 @@ path:: actionn/documentation/documentation_NN.md
 template:: documentation_V_0-2-0
 status:: active
 author:: cogNNitive Maintainers
-
-# NN Folder
-
-## NN Folder: iNNfo Documentation & CDN
-path:: innfo
-
-## NN Folder: actioNN Skills & Documentation
-path:: actionn
-
-## NN Folder: iNNfo Modeler Web App
-path:: innfo/app
-
-# NN Asset
-
-## NN Asset: CogNNitive Logo
-asset_path:: logo.svg
-
-## NN Asset: Sitemap Index
-asset_path:: sitemap.xml
-
-## NN Asset: Robots Policy
-asset_path:: robots.txt
-
-## NN Asset: Domain CNAME
-asset_path:: CNAME
 
 # NN Tag
 

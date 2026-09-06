@@ -71,9 +71,9 @@ The parser MUST extract referenced submodels from both traditional markdown/wiki
 
 ### Requirement: Level 2 Workspace Template Definition
 
-A Level 2 workspace template (`workspace_spec_NN.md`) MUST be provided under `specs/templates/workspace_spec_NN.md`. It MUST define core workspace concept primitives including `Workspace` (`type:: text`), `Models` (`type:: model`), `Folder` (`type:: category`), and `Asset` (`type:: list`), with standard properties (`path`, `template`, `status`).
+A Level 2 workspace template (`workspace_spec_NN.md`) MUST be provided under `specs/templates/workspace_spec_NN.md`. It MUST define core workspace concept primitives including `Workspace` (`type:: text`), `Models` (`type:: model`), and `Tag` (`type:: category`), with standard properties (`path`, `template`, `status`).
 
 #### Scenario: Workspace model validates against workspace_spec_NN.md
 - GIVEN `workspace_01.md` declaring `parent_spec:: workspace_spec_01.md`
 - WHEN metamodel validation runs against `workspace_spec_01.md`
-- THEN `Workspace`, `Models`, `Folder`, and `Asset` concept definitions are recognized as valid metamodel concepts
+- THEN `Workspace`, `Models`, and `Tag` concept definitions are recognized as valid metamodel concepts

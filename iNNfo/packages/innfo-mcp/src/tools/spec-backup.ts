@@ -18,6 +18,9 @@ interface ZipEntryInput {
 }
 
 function buildZipArchive(entries: ZipEntryInput[]): Buffer {
+  if (typeof crc32 !== 'function') {
+    throw new Error('Node >= 20.15 required for spec backups (node:zlib.crc32)')
+  }
   const localHeaders: Buffer[] = []
   const cdHeaders: Buffer[] = []
   let currentOffset = 0
