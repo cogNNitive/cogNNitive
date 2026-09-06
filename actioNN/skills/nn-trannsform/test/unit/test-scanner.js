@@ -296,10 +296,118 @@ function run() {
           const legacyContent = fs.readFileSync(legacyNnFile, 'utf8');
           assertTrue(legacyContent.includes('source_file: "sources/original/legacy_note.txt"'), 'legacy source_file preserved');
 
-          // Cleanup
-          fs.rmSync(TEST_TEMP, { recursive: true, force: true });
-          console.log(`\n  Scanner tests: ${passed} passed, ${failed} failed`);
-          return { passed, failed };
+          // Test 18: Snapshot-on-change, hash-idempotency, version counter, and walk exclusion
+          const snapProj = path.join(TEST_TEMP, 'snap-project');
+          const snapImportDir = path.join(snapProj, 'sources', 'import');
+          fs.mkdirSync(snapImportDir, { recursive: true });
+          const snapTxtFile = path.join(snapImportDir, 'doc.txt');
+          fs.writeFileSync(snapTxtFile, 'Initial content v1.', 'utf8');
+
+          return scanner.scanAndProcess(snapProj, { autoAcceptPrompt: true }).then((r1) => {
+            const nnDoc = path.join(snapProj, 'sources', 'nn', 'import', 'doc.md');
+            assertTrue(fs.existsSync(nnDoc), 'initial scan created sources/nn/import/doc.md');
+            const v1Fm = fs.readFileSync(nnDoc, 'utf8');
+            const hashMatch1 = v1Fm.match(/sha256: "([a-f0-9]+)"/);
+            assertTrue(Boolean(hashMatch1), 'v1 has sha256 in frontmatter');
+            const hash1 = hashMatch1 ? hashMatch1[1] : '';
+            const archiveDocV1 = path.join(snapProj, 'sources', 'archive', 'doc', 'V1', 'doc.md');
+            assertTrue(!fs.existsSync(archiveDocV1), 'no archive created on initial scan');
+
+            // Mutate source file to trigger snapshot-on-change
+            fs.writeFileSync(snapTxtFile, 'Modified content v2 with more details.', 'utf8');
+            return scanner.scanAndProcess(snapProj, { autoAcceptPrompt: true }).then((r2) => {
+              assertTrue(fs.existsSync(archiveDocV1), 'snapshot-on-change created sources/archive/doc/V1/doc.md');
+              const archivedContent = fs.readFileSync(archiveDocV1, 'utf8');
+              assertTrue(archivedContent.includes(`sha256: "${hash1}"`), 'archived snapshot preserves old sha256 in frontmatter');
+              assertTrue(archivedContent.includes('Initial content v1.'), 'archived snapshot preserves old content');
+
+              const v2Fm = fs.readFileSync(nnDoc, 'utf8');
+              const hashMatch2 = v2Fm.match(/sha256: "([a-f0-9]+)"/);
+              const hash2 = hashMatch2 ? hashMatch2[1] : '';
+              assertTrue(hash2 !== hash1, 'active file reflects new sha256');
+              assertTrue(v2Fm.includes('Modified content v2 with more details.'), 'active file has new content');
+
+              // Registry entry reports archive action
+              const regEntry = r2.registry.find((e) => e.name.includes('doc.txt'));
+              assertTrue(Boolean(regEntry && regEntry.action.includes('Archived V1 then converted')), 'registry action reports Archived V1 then converted');
+
+              // Re-scan with no change: hash-idempotency, creates no V2
+              return scanner.scanAndProcess(snapProj, { autoAcceptPrompt: true }).then((r3) => {
+                const archiveDocV2 = path.join(snapProj, 'sources', 'archive', 'doc', 'V2', 'doc.md');
+                assertTrue(!fs.existsSync(archiveDocV2), 're-scan with no change creates no duplicate V2');
+
+                // Mutate again -> version counter increments to V2
+                fs.writeFileSync(snapTxtFile, 'Modified content v3 even more changes.', 'utf8');
+                return scanner.scanAndProcess(snapProj, { autoAcceptPrompt: true }).then((r4) => {
+                  assertTrue(fs.existsSync(archiveDocV2), 'second modification increments version counter to V2');
+                  const archivedV2Content = fs.readFileSync(archiveDocV2, 'utf8');
+                  assertTrue(archivedV2Content.includes(`sha256: "${hash2}"`), 'V2 snapshot preserves v2 sha256');
+
+                  // Walk exclusion: sources/archive/ is ignored by detectFormats and walkOriginal
+                  const detectedDirectArchive = scanner.detectFormats(path.join(snapProj, 'sources', 'archive'));
+                  assertEqual(Object.keys(detectedDirectArchive).length, 0, 'detectFormats on archive dir returns empty');
+
+                  const walkDirectArchive = scanner.walkOriginal(path.join(snapProj, 'sources', 'archive'));
+                  assertEqual(walkDirectArchive.length, 0, 'walkOriginal on archive dir returns empty');
+
+                  const testDirWithArchive = path.join(TEST_TEMP, 'archive-walk-test');
+                  fs.mkdirSync(path.join(testDirWithArchive, 'archive', 'doc', 'V1'), { recursive: true });
+                  fs.writeFileSync(path.join(testDirWithArchive, 'archive', 'doc', 'V1', 'doc.md'), 'archived');
+                  fs.writeFileSync(path.join(testDirWithArchive, 'active.txt'), 'active');
+
+                  const detectedWithArchive = scanner.detectFormats(testDirWithArchive);
+                  assertEqual(detectedWithArchive['.txt'], 1, 'detectFormats finds active.txt');
+                  assertEqual(detectedWithArchive['.md'], undefined, 'detectFormats ignores archive/ subtree');
+
+                  const walkedWithArchive = scanner.walkOriginal(testDirWithArchive);
+                  assertEqual(walkedWithArchive.length, 1, 'walkOriginal returns only 1 file');
+                  assertEqual(walkedWithArchive[0].relPath, 'active.txt', 'walkOriginal ignores archive/ subtree');
+
+                  // Test 19: Orphan detection and consent
+                  const orphanProj = path.join(TEST_TEMP, 'orphan-project');
+                  const orphanImportDir = path.join(orphanProj, 'sources', 'import');
+                  fs.mkdirSync(orphanImportDir, { recursive: true });
+                  const orphanItemFile = path.join(orphanImportDir, 'orphan_item.txt');
+                  fs.writeFileSync(orphanItemFile, 'To be deleted later.', 'utf8');
+
+                  return scanner.scanAndProcess(orphanProj, { autoAcceptPrompt: true }).then(() => {
+                    const orphanNnFile = path.join(orphanProj, 'sources', 'nn', 'import', 'orphan_item.md');
+                    assertTrue(fs.existsSync(orphanNnFile), 'initial orphan file normalized in sources/nn/');
+
+                    // Delete the original source file
+                    fs.unlinkSync(orphanItemFile);
+
+                    // Subtest 19A: Non-interactive CLI mode (--scan, autoAcceptPrompt: true)
+                    // Orphaned source MUST NOT be unilaterally deleted or archived
+                    return scanner.scanAndProcess(orphanProj, { autoAcceptPrompt: true }).then((nonIntResult) => {
+                      assertTrue(fs.existsSync(orphanNnFile), 'non-interactive scan does not unilaterally remove orphaned source');
+                      const orphanArchive = path.join(orphanProj, 'sources', 'archive', 'orphan_item');
+                      assertTrue(!fs.existsSync(orphanArchive), 'non-interactive scan does not automatically archive orphaned source');
+                      assertTrue(Boolean(nonIntResult.orphans && nonIntResult.orphans.length > 0), 'non-interactive scan reports orphaned sources');
+
+                      // Subtest 19B: Orphan consent 'b' (Keep as active)
+                      return scanner.scanAndProcess(orphanProj, { orphanConsent: async () => 'b' }).then(() => {
+                        assertTrue(fs.existsSync(orphanNnFile), 'consent "b" (keep) retains file in sources/nn/');
+                        assertTrue(!fs.existsSync(orphanArchive), 'consent "b" creates no archive');
+
+                        // Subtest 19C: Orphan consent 'a' (Archive & remove)
+                        return scanner.scanAndProcess(orphanProj, { orphanConsent: async () => 'a' }).then(() => {
+                          const archivedOrphanV1 = path.join(orphanProj, 'sources', 'archive', 'orphan_item', 'V1', 'orphan_item.md');
+                          assertTrue(fs.existsSync(archivedOrphanV1), 'consent "a" archives the deleted source to V1');
+                          assertTrue(!fs.existsSync(orphanNnFile), 'consent "a" removes orphaned file from sources/nn/');
+
+                          // Cleanup
+                          fs.rmSync(TEST_TEMP, { recursive: true, force: true });
+                          console.log(`\n  Scanner tests: ${passed} passed, ${failed} failed`);
+                          return { passed, failed };
+                        });
+                      });
+                    });
+                  });
+                });
+              });
+            });
+          });
         });
       });
     });

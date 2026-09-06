@@ -9,7 +9,7 @@ const converters = require('./lib/scanner-converters');
  * mirroring the source subtree structure.
  * @param {string} projectDir
  * @param {Record<string, any>} [options]
- * @returns {Promise<{ totalDiscovered: number, processedCount: number, skippedCount: number, registry: Array<any> }>}
+ * @returns {Promise<{ totalDiscovered: number, processedCount: number, skippedCount: number, registry: Array<any>, orphans?: Array<any> }>}
  */
 async function scanAndProcess(projectDir, options = {}) {
   const sourcesDir = path.join(projectDir, 'sources');
@@ -89,6 +89,30 @@ async function scanAndProcess(projectDir, options = {}) {
 
   logs.push(`*   **${timestamp}:** Converted ${processedCount} file(s) to Markdown in \`sources/nn/\`, mirroring active source subtrees.`);
 
+  // Orphan detection after normalization
+  const orphans = core.findOrphanSources(projectDir);
+  for (const orphan of orphans) {
+    let consent = null;
+    if (typeof options.orphanConsent === 'function') {
+      consent = await options.orphanConsent(orphan);
+    } else if (typeof options.orphanConsent === 'string') {
+      consent = options.orphanConsent;
+    }
+
+    if (consent === 'a' || consent === 'archive') {
+      core.archiveSourceSnapshot(null, orphan.nnPath, orphan.nnPath, orphan.baseName);
+      if (fs.existsSync(orphan.nnPath)) fs.unlinkSync(orphan.nnPath);
+      logs.push(`*   **${timestamp}:** Orphaned source \`${orphan.sourceFile}\` archived and removed from \`sources/nn/\` after consent.`);
+    } else if (consent === 'b' || consent === 'keep') {
+      logs.push(`*   **${timestamp}:** Orphaned source \`${orphan.sourceFile}\` kept active in \`sources/nn/\` after consent.`);
+    } else if (!options.orphanConsent) {
+      console.warn(`⚠️  Warning: Orphaned source in \`sources/nn/${orphan.relPath}\` — origin \`${orphan.sourceFile}\` no longer exists on disk. Preserved active (Zero Unilateral Mutation).`);
+      logs.push(`*   **${timestamp}:** Warning: Orphaned source \`${orphan.sourceFile}\` origin missing on disk; preserved active.`);
+    } else {
+      logs.push(`*   **${timestamp}:** Orphaned source \`${orphan.sourceFile}\` skipped.`);
+    }
+  }
+
   // Build sources/nn/index.md manifest with OKF v0.1 compliant frontmatter
   let indexContent = `---\ntype: "index"\ntitle: "traNNsform Ingestion Manifest & Processing Log"\ndescription: "Source documents registry and processing log for normalized knowledge assets"\ntags: [sources, ingestion, manifest, okf, provenance]\ntimestamp: "${new Date().toISOString()}"\n---\n\n`;
   indexContent += `# traNNsform Ingestion Manifest & Processing Log\n\n`;
@@ -114,7 +138,8 @@ async function scanAndProcess(projectDir, options = {}) {
     totalDiscovered,
     processedCount,
     skippedCount,
-    registry
+    registry,
+    orphans
   };
 }
 
@@ -125,6 +150,8 @@ module.exports = {
   getSupportedFormats: core.getSupportedFormats,
   computeFileHash: core.computeFileHash,
   generateSourceFrontmatter: core.generateSourceFrontmatter,
+  archiveSourceSnapshot: core.archiveSourceSnapshot,
+  findOrphanSources: core.findOrphanSources,
   walkOriginal: core.walkOriginal,
   walkSourceTrees: core.walkSourceTrees,
   convertPdf: converters.convertPdf,
