@@ -220,7 +220,7 @@ describe('FieldModel.vue', () => {
       expect(wrapper.find('[data-testid="create-submodel-button"]').exists()).toBe(false)
     })
 
-    it('invokes window.prompt pre-filled with suggested path derived from parent model path and target_template', async () => {
+    it('invokes window.prompt pre-filled with suggested path derived from parent model path, concept, element, and target_template', async () => {
       const modelStore = useModelStore()
       const rootNode = makeNode('models/Ghostbusters_V_0-2-0_innovation_NN.md', {
         kind: 'root',
@@ -230,6 +230,7 @@ describe('FieldModel.vue', () => {
         name: 'Municipal Franchise Expansion',
         parentId: 'models/Ghostbusters_V_0-2-0_innovation_NN.md',
         kind: 'element',
+        type: 'initiatives',
       })
       modelStore.setGraph(
         {
@@ -259,7 +260,121 @@ describe('FieldModel.vue', () => {
 
       expect(promptSpy).toHaveBeenCalledWith(
         expect.stringContaining('business'),
-        'models/Ghostbusters_V_0-2-0_business_NN.md',
+        'models/Ghostbusters_V_0-2-0/initiatives/municipal-franchise-expansion/business_01.md',
+      )
+      promptSpy.mockRestore()
+    })
+
+    it('generates distinct non-colliding suggested paths for sibling elements under the same concept', async () => {
+      const modelStore = useModelStore()
+      const rootNode = makeNode('models/Ghostbusters_V_0-2-0_innovation_NN.md', {
+        kind: 'root',
+        source: { path: 'models/Ghostbusters_V_0-2-0_innovation_NN.md' },
+      })
+      const conceptNode = makeNode('models/Ghostbusters_V_0-2-0_innovation_NN.md/initiatives', {
+        name: 'initiatives',
+        kind: 'concept',
+        parentId: rootNode.id,
+      })
+      const alphaNode = makeNode('models/Ghostbusters_V_0-2-0_innovation_NN.md/alpha', {
+        name: 'Alpha',
+        parentId: conceptNode.id,
+        kind: 'element',
+      })
+      const betaNode = makeNode('models/Ghostbusters_V_0-2-0_innovation_NN.md/beta', {
+        name: 'Beta',
+        parentId: conceptNode.id,
+        kind: 'element',
+      })
+      modelStore.setGraph(
+        {
+          [rootNode.id]: rootNode,
+          [conceptNode.id]: conceptNode,
+          [alphaNode.id]: alphaNode,
+          [betaNode.id]: betaNode,
+        },
+        [rootNode.id],
+      )
+
+      const promptSpy = vi.spyOn(window, 'prompt').mockReturnValue(null)
+
+      const wrapperAlpha = mount(FieldModel, {
+        props: {
+          modelValue: '',
+          readonly: false,
+          nodeId: alphaNode.id,
+          fieldKey: 'business_model',
+          fieldDefinition: {
+            name: 'business_model',
+            type: 'model',
+            target_template: 'business',
+          },
+        },
+      })
+      await wrapperAlpha.find('[data-testid="create-submodel-button"]').trigger('click')
+
+      expect(promptSpy).toHaveBeenLastCalledWith(
+        expect.stringContaining('business'),
+        'models/Ghostbusters_V_0-2-0/initiatives/alpha/business_01.md',
+      )
+
+      const wrapperBeta = mount(FieldModel, {
+        props: {
+          modelValue: '',
+          readonly: false,
+          nodeId: betaNode.id,
+          fieldKey: 'business_model',
+          fieldDefinition: {
+            name: 'business_model',
+            type: 'model',
+            target_template: 'business',
+          },
+        },
+      })
+      await wrapperBeta.find('[data-testid="create-submodel-button"]').trigger('click')
+
+      expect(promptSpy).toHaveBeenLastCalledWith(
+        expect.stringContaining('business'),
+        'models/Ghostbusters_V_0-2-0/initiatives/beta/business_01.md',
+      )
+
+      promptSpy.mockRestore()
+    })
+
+    it('falls back to flat path when field is rendered without element/concept ancestry', async () => {
+      const modelStore = useModelStore()
+      const rootNode = makeNode('models/Company_NN.md', {
+        kind: 'root',
+        source: { path: 'models/Company_NN.md' },
+      })
+      modelStore.setGraph(
+        {
+          [rootNode.id]: rootNode,
+        },
+        [rootNode.id],
+      )
+
+      const promptSpy = vi.spyOn(window, 'prompt').mockReturnValue(null)
+
+      const wrapper = mount(FieldModel, {
+        props: {
+          modelValue: '',
+          readonly: false,
+          nodeId: rootNode.id,
+          fieldKey: 'architecture_model',
+          fieldDefinition: {
+            name: 'architecture_model',
+            type: 'model',
+            target_template: 'architecture',
+          },
+        },
+      })
+
+      await wrapper.find('[data-testid="create-submodel-button"]').trigger('click')
+
+      expect(promptSpy).toHaveBeenCalledWith(
+        expect.stringContaining('architecture'),
+        'models/Company_architecture_01.md',
       )
       promptSpy.mockRestore()
     })
@@ -275,6 +390,7 @@ describe('FieldModel.vue', () => {
         name: 'Municipal Franchise Expansion',
         parentId: 'models/Ghostbusters_V_0-2-0_innovation_NN.md',
         kind: 'element',
+        type: 'initiatives',
       })
       modelStore.setGraph(
         {
@@ -286,7 +402,9 @@ describe('FieldModel.vue', () => {
 
       const promptSpy = vi
         .spyOn(window, 'prompt')
-        .mockReturnValue('models/Ghostbusters_V_0-2-0_business_NN.md')
+        .mockReturnValue(
+          'models/Ghostbusters_V_0-2-0/initiatives/municipal-franchise-expansion/business_01.md',
+        )
       const focusSpy = vi.spyOn(uiStore, 'focusModel')
 
       const wrapper = mount(FieldModel, {
@@ -305,11 +423,17 @@ describe('FieldModel.vue', () => {
 
       await wrapper.find('[data-testid="create-submodel-button"]').trigger('click')
 
-      expect(modelStore.nodes['models/Ghostbusters_V_0-2-0_business_NN.md']).toBeDefined()
+      expect(
+        modelStore.nodes[
+          'models/Ghostbusters_V_0-2-0/initiatives/municipal-franchise-expansion/business_01.md'
+        ],
+      ).toBeDefined()
       expect(wrapper.emitted('update:modelValue')?.[0]).toEqual([
-        'models/Ghostbusters_V_0-2-0_business_NN.md',
+        'models/Ghostbusters_V_0-2-0/initiatives/municipal-franchise-expansion/business_01.md',
       ])
-      expect(focusSpy).toHaveBeenCalledWith('models/Ghostbusters_V_0-2-0_business_NN.md')
+      expect(focusSpy).toHaveBeenCalledWith(
+        'models/Ghostbusters_V_0-2-0/initiatives/municipal-franchise-expansion/business_01.md',
+      )
 
       promptSpy.mockRestore()
       focusSpy.mockRestore()
