@@ -1,3 +1,15 @@
+<!--
+  Sync reconciliation (PR #62): the delta specs from two archived changes were
+  checked against this living spec and required no edit.
+  - migrate-spec-hosting-to-monorepo (## MODIFIED "Target Template Submodel
+    Matching"): already reflected here — the "Submodel matches declared
+    target_template by URL" scenario below already uses the canonical
+    cogNNitive/cogNNitive/main/iNNfo/specs/ URL.
+  - 2026-09-02-submodels-recursive-and-spec-alignment: older delta with the same
+    four requirements but the pre-monorepo raw URL; this spec is a strict
+    superset and supersedes it.
+-->
+
 # Submodel Conformance & Reference Validation
 
 ## Purpose
