@@ -5,41 +5,64 @@ Branch: `fix/integrity-audit-blockers`.
 
 ## Implemented in this change
 
+Branch `fix/integrity-audit-blockers`, pushed. Commits: `9640c53` (SDD),
+`d7f33b8` (C2/C5), `b510e6c` (B1 tsup), `a083258` (B1 guard + B2 verify + M12),
+`647628a` (B2 manifest docs), `b16c976` (nn-dev-check-integrity skill).
+
 ### B1 — Single-file MCP bundle
-- [ ] `iNNfo/packages/innfo-mcp/tsup.config.ts` — add `splitting: false` to the `bin` config
-- [ ] Rebuild `innfo-mcp`; `git rm` `bin/chunk-*.js` + `bin/spec-*.js`; commit the single `bin/innfo-mcp.bundle.js`
-- [ ] `scripts/build-docs.mjs` — after the CDN copy, fail the build if the bundle has a `./chunk-*` / `./spec-*` relative import
-- [ ] Verify: `npm --prefix iNNfo/packages/innfo-mcp run build` then `grep -c 'from"./chunk' bin/innfo-mcp.bundle.js` == 0
-- [ ] Verify: `npm run build:docs` still passes
+- [x] `iNNfo/packages/innfo-mcp/tsup.config.ts` — `splitting: false` on the `bin` config
+- [x] Rebuilt; removed `bin/chunk-TUGFFZUN.js` + `bin/spec-6OLHQBHO.js`; committed the single 500 KB `bin/innfo-mcp.bundle.js`
+- [x] `scripts/build-docs.mjs` — guard: fails the build on a `./chunk-*` / `./spec-*` import in the staged bundle
+- [x] Verified: rebuilt bundle has 0 chunk imports
+- [x] Verified: `npm run build:docs` passes (guard green)
 
 ### B2 — Regenerate distribution manifests
-- [ ] `node scripts/manifest/generate-manifest.js --channel stable`
-- [ ] `node scripts/manifest/generate-manifest.js --channel preview`
-- [ ] Commit `docs/use/manifest.md` + `docs/use/manifest-next.md`
-- [ ] `scripts/verify.js` — add `generate-manifest.js --channel stable --check` step
-- [ ] Verify: `node scripts/verify.js` passes
+- [x] `generate-manifest.js --channel stable` + `--channel preview`
+- [x] Committed `docs/use/manifest.md` + `docs/use/manifest-next.md` (nn-innfo V_0-1-2 → V_0-1-3)
+- [x] `scripts/verify.js` — added `generate-manifest.js --channel stable --check` (step 6); fixed the duplicate `// 4.` numbering
+- [~] `node scripts/verify.js` — **still red at the pre-existing step 5** (`validate-manifest.js`), see below. Step 6 (my addition) passes.
 
 ### C2 — Taxonomy cycle guard (TDD)
-- [ ] Write `tests/taxonomy-serialize-guards.test.ts` cases 1–3 (fail first)
-- [ ] `src/parser/taxonomy.ts` — add per-branch `ancestors` guard to `printTaxonomyNode`
-- [ ] Verify: new tests green, no diamond-behaviour regression
+- [x] `tests/taxonomy-serialize-guards.test.ts` cases 1–3 written (red first)
+- [x] `src/parser/taxonomy.ts` — per-branch `ancestors` guard in `printTaxonomyNode`
+- [x] Green; diamond case (2) confirms shared-child rendering unchanged
 
 ### C5 — Duplicate `parent:` key (TDD)
-- [ ] Add `tests/taxonomy-serialize-guards.test.ts` case 4 (fail first)
-- [ ] `src/parser/serializer.ts` — delete the unconditional second `parent:` emit
-- [ ] Verify: new test green
+- [x] `tests/taxonomy-serialize-guards.test.ts` case 4 (red first)
+- [x] `src/parser/serializer.ts` — removed the unconditional second `parent:` emit
+- [x] Green
 
 ### M12 — Signal exit code
-- [ ] `scripts/generate-docsify-sidebar.mjs:19` — `result.status !== null ? result.status : 1`
+- [x] `scripts/generate-docsify-sidebar.mjs` — `result.status !== null ? result.status : 1`
 
 ### Change-wide verification
-- [ ] `npm --prefix iNNfo/packages/innfo-core test`
-- [ ] `npm --prefix iNNfo/packages/innfo-mcp test`
-- [ ] `npm --prefix iNNfo/apps/innfo-editor test`
-- [ ] `node scripts/verify.js`
-- [ ] `npm run build:docs`
-- [ ] `npm --prefix iNNfo run lint` (0 errors)
-- [ ] Working tree carries only intended changes (no `.atl/skill-registry.md`, no `conversations/`)
+- [x] `innfo-core` tests — 398 pass (+4 new)
+- [x] `innfo-mcp` tests — 168 pass
+- [x] `innfo-editor` tests — 595 pass (2 pre-existing skips)
+- [~] `node scripts/verify.js` — red at pre-existing step 5 only (see Blocker below)
+- [x] `npm run build:docs` — passes
+- [x] `npm --prefix iNNfo run lint` — 0 errors (477 → 475 warnings)
+- [x] Prettier (CI mirror, changed `iNNfo/` files) — clean
+- [x] Working tree carries only intended changes; `.atl/skill-registry.md` + `conversations/` left untouched
+
+## Blocker — needs a release action (not in this change's authority)
+
+`scripts/verify.js` step 5 (`validate-manifest.js --channel stable`, pre-existing)
+fails: `manifest/source.yaml` declares `nn-innfo` `V_0-1-3` but
+`channels.stable.refs` pins tag `skills-v1.1.3` (`b9c58f9`) whose tree has the
+skill at `V_0-1-2`. Latent on `main` since `e7cbe6e`; CI green there was GitHub
+raw caching (the check is non-deterministic).
+
+To clear (all 7 skill versions at `deefc86` already match `source.yaml`):
+```
+git tag skills-v1.1.4 deefc86
+git push origin skills-v1.1.4          # <- tag push blocked for the agent
+# then, on this branch:
+#   manifest/source.yaml channels.stable.refs: skills-v1.1.3 -> skills-v1.1.4
+#   node scripts/manifest/generate-manifest.js --channel stable
+#   node scripts/manifest/generate-manifest.js --channel preview
+#   node scripts/verify.js   # -> green
+```
 
 ## Deferred — separate changes / issues (NOT in this PR)
 
