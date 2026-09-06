@@ -80,10 +80,10 @@ function run() {
     eq(r1.created, true, 'model created on first run');
     eq(r1.sourceCount, 3, 'three sources registered');
     ok(fs.existsSync(r1.modelPath), 'model file written');
-    eq(path.basename(r1.modelPath), 'Acme_V_0-2-0_cogNNitive_NN.md', 'model file named after the cogNNitive template (not trannsform)');
+    eq(path.basename(r1.modelPath), 'Acme_V_0-2-0_workspace_NN.md', 'model file named after the workspace template (not trannsform)');
 
     const model1 = fs.readFileSync(r1.modelPath, 'utf8');
-    ok(/parent_spec:\s*\n\s*name: "cogNNitive_V_0-2-0"/.test(model1), 'parent_spec points to the cogNNitive template');
+    ok(/parent_spec:\s*\n\s*name: "workspace_V_0-3-0_spec_NN"/.test(model1), 'parent_spec points to the workspace template');
     ok(/## NN Sources: market-report\.docx/.test(model1), 'source element present');
     ok(/source_format:: docx/.test(model1), 'source_format derived from extension');
     ok(/source_format:: md/.test(model1), 'source_format html mapped to md (declared set only)');
@@ -97,7 +97,7 @@ function run() {
     // semantic index.md written at root
     const idx = fs.readFileSync(path.join(proj, 'index.md'), 'utf8');
     ok(/# NN index/.test(idx), 'semantic index has # NN index');
-    ok(/Acme_V_0-2-0_cogNNitive_NN\.md/.test(idx), 'index links the provenance model');
+    ok(/Acme_V_0-2-0_workspace_NN\.md/.test(idx), 'index links the provenance model');
 
     // The # NN Models section is filesystem-managed now: a hand-added entry is
     // replaced on the next sync (there are no models/*_NN.md files here yet).
@@ -139,7 +139,7 @@ function run() {
     eq(r3.created, false, 'model refreshed again on third run');
     const idx3 = fs.readFileSync(idxPath, 'utf8');
     ok(idx3.includes('* [My Custom](models/Custom_Model_V_2-0-0_NN.md)'), 'existing index entry preserved with its original label');
-    ok(idx3.includes('Acme_V_0-2-0_cogNNitive_NN.md'), 'discovered provenance model link kept after regeneration');
+    ok(idx3.includes('Acme_V_0-2-0_workspace_NN.md'), 'discovered provenance model link kept after regeneration');
     ok(idx3.includes('models/sub/Deep_Model_V_1-0-0_NN.md'), 'nested model under models/sub/ included in index');
     ok(!/Gone/.test(idx3), 'dangling index entry (target removed) dropped');
     ok(logs.some((l) => /regenerated.*dropped 1 dangling/.test(l)), 'regeneration logged the dropped dangling entry');
@@ -148,7 +148,7 @@ function run() {
     const nested = provenance.listWorkspaceModels(proj);
     ok(nested.includes('./models/sub/Deep_Model_V_1-0-0_NN.md'), 'listWorkspaceModels is recursive into models/sub/');
     ok(nested.includes('./models/Custom_Model_V_2-0-0_NN.md'), 'listWorkspaceModels includes top-level models/');
-    ok(nested.includes('./Acme_V_0-2-0_cogNNitive_NN.md'), 'listWorkspaceModels keeps root files prefixed ./');
+    ok(nested.includes('./Acme_V_0-2-0_workspace_NN.md'), 'listWorkspaceModels keeps root files prefixed ./');
 
     fs.rmSync(TMP, { recursive: true, force: true });
     console.log(`\n  Provenance tests: ${passed} passed, ${failed} failed`);

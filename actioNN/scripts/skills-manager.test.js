@@ -146,7 +146,7 @@ agent-bootstrap:
     });
     assert.strictEqual(res.status, 0, `Sync command with --yes should succeed. Got: ${res.stderr || res.stdout}`);
     assert(fs.existsSync(path.join(targetSkillsDir, 'nn-innfo')), 'nn-innfo skill should be synchronized to destination');
-    assert(fs.existsSync(path.join(targetSkillsDir, 'nn-innfo', 'templates', 'workspace_spec_NN.md')), 'Bundled template workspace_spec_NN.md should be synchronized');
+    assert(fs.existsSync(path.join(targetSkillsDir, 'nn-innfo', 'templates', 'workspace_V_0-3-0_spec_NN.md')), 'Bundled template workspace_V_0-3-0_spec_NN.md should be synchronized');
     console.log('✔ Skill & bundled template sync test passed');
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
@@ -166,11 +166,11 @@ agent-bootstrap:
   version: "2.0"
   skills: []
   templates:
-    - name: workspace_spec_NN
+    - name: workspace
       repo: cogNNitive/cogNNitive
-      path: iNNfo/specs/templates/workspace_spec_NN.md
-      version: "V_0-2-0"
-      commit: "b9c58f97f21742692b7e00788776032b08407175"
+      path: iNNfo/specs/templates/workspace_V_0-3-0_spec_NN.md
+      version: "V_0-2-1"
+      commit: "27c79dc8c32375cd5db66e0782253716030e468c"
   workflows:
     - id: test-wf
       label: Test Workflow
@@ -204,7 +204,7 @@ agent-bootstrap:
     const stateContent = fs.readFileSync(targetStateFile, 'utf-8');
     assert.strictEqual(stateContent.charCodeAt(0), 123, 'State file written without BOM');
     const parsedState = JSON.parse(stateContent);
-    assert(parsedState.templates.workspace_spec_NN, 'State records bootstrapped template');
+    assert(parsedState.templates.workspace, 'State records bootstrapped template');
 
     console.log('✔ Bootstrap command with --yes test passed');
   } finally {

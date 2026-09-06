@@ -27,6 +27,8 @@ function fixtureTree() {
   fs.mkdirSync(path.join(t, 'business'), { recursive: true });
   fs.mkdirSync(path.join(t, 'business', 'samples'), { recursive: true });
   fs.mkdirSync(path.join(t, 'documentation', 'V_0-1-0'), { recursive: true });
+  fs.mkdirSync(path.join(t, 'cogNNitive'), { recursive: true });
+  fs.mkdirSync(path.join(t, 'base'), { recursive: true });
 
   const spec = (url, level, tv) => `---\nspec_version: "V_0-2-1"\nlevel: ${level}\nspec_url: "${url}"\ntemplate_version: "${tv}"\ntitle: "T"\n---\n`;
   fs.writeFileSync(path.join(t, 'business', 'business_V_0-1-0_NN.md'), spec('https://x/business_V_0-1-0_NN.md', 2, 'V_0-1-0'));
@@ -37,6 +39,9 @@ function fixtureTree() {
   fs.writeFileSync(path.join(t, 'documentation', 'V_0-1-0', 'spec_NN.md'), spec('https://x/documentation/V_0-1-0/spec_NN.md', 2, 'V_0-1-0'));
   // unversioned transitional file — must be skipped, not crash
   fs.writeFileSync(path.join(t, 'workspace_spec_NN.md'), spec('https://x/workspace_spec_NN.md', 2, 'V_0-2-0'));
+  // frozen lineage templates — cogNNitive + base must land in `frozen`, not `templates`
+  fs.writeFileSync(path.join(t, 'cogNNitive', 'cogNNitive_V_0-2-0_NN.md'), spec('https://x/cogNNitive/cogNNitive_V_0-2-0_NN.md', 2, 'V_0-2-0'));
+  fs.writeFileSync(path.join(t, 'base', 'base_V_0-1-0_spec_NN.md'), spec('https://x/base/base_V_0-1-0_spec_NN.md', 2, 'V_0-1-0'));
   return root;
 }
 
@@ -69,6 +74,19 @@ async function runTests() {
 
       assert.ok(!('workspace_spec_NN' in catalog.templates), 'unversioned file skipped');
       console.log('✔ generator emits correct catalog (versions, adopted, level-3 excluded, package layout)');
+    }
+
+    // Test 1a: frozen partition — cogNNitive + base under `frozen`, absent from `templates`
+    {
+      const catalog = JSON.parse(fs.readFileSync(out, 'utf-8'));
+      assert.ok('frozen' in catalog, 'catalog carries a top-level frozen partition');
+      assert.ok('cogNNitive' in catalog.frozen, 'cogNNitive recorded under frozen');
+      assert.ok('base' in catalog.frozen, 'base recorded under frozen');
+      assert.ok(!('cogNNitive' in catalog.templates), 'cogNNitive dropped from templates');
+      assert.ok(!('base' in catalog.templates), 'base dropped from templates');
+      assert.strictEqual(catalog.frozen.cogNNitive.adopted, 'V_0-2-0', 'frozen cogNNitive adopted version preserved');
+      assert.strictEqual(catalog.frozen.base.adopted, 'V_0-1-0', 'frozen base adopted version preserved');
+      console.log('✔ frozen partition emits cogNNitive + base and drops them from templates');
     }
 
     // Test 2: --check passes on a fresh catalog

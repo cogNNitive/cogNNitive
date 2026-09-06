@@ -30,12 +30,14 @@ if (!process.env.GITHUB_TOKEN) {
 function extractDeclaredTemplates(sourceText) {
   /** @type {Set<string>} */
   const declaredTemplates = new Set();
-  const templatesMatch = sourceText.match(/(?:^|\n)templates:\s*\r?\n([\s\S]*?)(?=\r?\n[a-z_]+:|$)/);
-  const templatesBlock = templatesMatch ? templatesMatch[1] : '';
   const matchRegex = /-\s+name:\s+([^\s\n]+)/g;
-  let match;
-  while ((match = matchRegex.exec(templatesBlock)) !== null) {
-    declaredTemplates.add(match[1]);
+  for (const block of ['templates:', 'frozen_templates:']) {
+    const templatesMatch = sourceText.match(new RegExp(`(?:^|\\n)${block}\\s*\\r?\\n([\\s\\S]*?)(?=\\r?\\n[a-z_]+:|$)`));
+    const templatesBlock = templatesMatch ? templatesMatch[1] : '';
+    let match;
+    while ((match = matchRegex.exec(templatesBlock)) !== null) {
+      declaredTemplates.add(match[1]);
+    }
   }
   return declaredTemplates;
 }

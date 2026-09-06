@@ -25,9 +25,14 @@ function parentSpecName(frontmatter: Record<string, unknown>): string | undefine
   return undefined
 }
 
-/** Matches `cogNNitive`, `cogNNitive_V_0-1-0`, `cogNNitive_V_0-2-0`, etc. (any version). */
+/**
+ * Matches lineage-record templates: `cogNNitive`, `cogNNitive_V_0-1-0`,
+ * `workspace`, `workspace_V_0-2-0`, `workspace_V_0-3-0_spec_NN`, etc.
+ * (any version, any suffix). These are non-navigation records — they must
+ * never surface as manifest reconciliation candidates.
+ */
 function isCogNNitiveTemplate(name: string | undefined): boolean {
-  return typeof name === 'string' && /^cognnitive(_|$)/i.test(name.trim())
+  return typeof name === 'string' && /^(cognnitive|workspace)(_|$)/i.test(name.trim())
 }
 
 /**

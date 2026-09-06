@@ -7,8 +7,8 @@ metadata:
   mcp: "innfo-mcp"
 license: MIT
 bundled_templates:
-  - name: workspace_spec_NN
-    path: templates/workspace_spec_NN.md
+  - name: workspace_V_0-3-0_spec_NN
+    path: templates/workspace_V_0-3-0_spec_NN.md
 description: |
   Domain skill for creating, editing, validating, scaffolding, or discussing iNNfo models, templates, specializations, samples, or specification files. Includes the conversational Model Creation Wizard and Architecture Coach. Triggers: innfo, iNNfo, /nn-innfo, model, template, *_NN.md, procedures_V_0-1-0_NN.md.
   This includes but is not limited to:
@@ -561,7 +561,7 @@ The workspace manifest (`workspace_NN.md`, section `# NN Models`) can drift out 
 - Sets `status:: archived` on an entry the tool itself created (identifiable by `<!-- nn:auto -->`) when its file no longer exists on disk — never deleting it.
 - Reactivates (`status:: active`) a previously archived tool-owned entry if its file reappears.
 - **Never modifies an entry without the `<!-- nn:auto -->` marker**, leaving it completely intact whether or not its file exists. Every hand-authored entry is untouchable by design.
-- Excludes from discovery the manifest itself, any model whose template is `cogNNitive` (in any version — those are lineage records, not navigation references), and anything outside the reconciliation scope (`backups/`, `archive/`, `specs/`).
+- Excludes from discovery the manifest itself, any model whose template is `cogNNitive` or `workspace` (in any version — those are lineage records, not navigation references), and anything outside the reconciliation scope (`backups/`, `archive/`, `specs/`).
 
 **Invocation protocol (mandatory — same pattern as the Change Preview with Diff, §8):**
 1. Run first with `dry_run: true` (the default) and inspect `changes` and `diff` in the response.

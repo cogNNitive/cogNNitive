@@ -29,8 +29,8 @@ This document records the official compliance audit status for all iNNfo Level 2
 | `business_V_0-2-0_NN.md` | `V_0-2-0` | 2026-09-02 | ✅ | ✅ | ✅ | N/A | ✅ | ⚠️ | ✅ | `IN_PROGRESS` | Pure composite umbrella template |
 | `business-model_V_0-1-0_NN.md` | `V_0-1-0` | 2026-09-02 | ✅ | ✅ | ✅ | N/A | ✅ | ⚠️ | ✅ | `IN_PROGRESS` | Removed includes; standalone core |
 | `business-model_V_0-2-0_NN.md` | `V_0-2-0` | 2026-09-02 | ✅ | ✅ | ✅ | N/A | ✅ | ⚠️ | ✅ | `IN_PROGRESS` | Standalone core domain model |
-| `cogNNitive_V_0-1-0_NN.md` | `V_0-1-0` | 2026-09-02 | ✅ | ✅ | ✅ | N/A | ✅ | ⚠️ | ✅ | `PENDING` | System meta-template |
-| `cogNNitive_V_0-2-0_NN.md` | `V_0-2-0` | 2026-09-02 | ✅ | ✅ | ✅ | N/A | ✅ | ⚠️ | ✅ | `PENDING` | System meta-template |
+| `cogNNitive_V_0-1-0_NN.md` | `V_0-1-0` | 2026-09-06 | ✅ | ✅ | ✅ | N/A | ✅ | ⚠️ | ✅ | `FROZEN` | Frozen byte-identical; legacy resolution only |
+| `cogNNitive_V_0-2-0_NN.md` | `V_0-2-0` | 2026-09-06 | ✅ | ✅ | ✅ | N/A | ✅ | ⚠️ | ✅ | `FROZEN` | Frozen byte-identical; legacy resolution only |
 | `analysis_V_0-1-0_NN.md` | `V_0-1-0` | 2026-09-02 | ✅ | ✅ | ✅ | N/A | ✅ | ✅ | ✅ | `PASSED` | Audited against V1 spec |
 | `analysis_V_0-2-0_NN.md` | `V_0-2-0` | 2026-09-02 | ✅ | ✅ | ✅ | N/A | ✅ | ✅ | ✅ | `PASSED` | 100% compliant with Ghostbusters sample |
 | `innovation_V_0-1-0_NN.md` | `V_0-1-0` | 2026-09-02 | ✅ | ✅ | ✅ | N/A | ✅ | ✅ | ✅ | `PASSED` | Audited against V1 spec |
@@ -43,6 +43,8 @@ This document records the official compliance audit status for all iNNfo Level 2
 | `projects_V_0-2-0_NN.md` | `V_0-2-0` | 2026-09-02 | ✅ | ✅ | ✅ | N/A | ✅ | ✅ | ✅ | `PASSED` | 100% compliant with Ghostbusters sample |
 | `workspace_V_0-1-0_spec_NN.md`| `V_0-1-0` | 2026-09-02 | ✅ | ✅ | ✅ | N/A | ✅ | ✅ | ✅ | `PASSED` | Versioned file created |
 | `workspace_V_0-2-0_spec_NN.md`| `V_0-2-0` | 2026-09-02 | ✅ | ✅ | ✅ | N/A | ✅ | ✅ | ✅ | `PASSED` | Versioned file created |
+| `workspace_V_0-3-0_spec_NN.md`| `V_0-3-0` | 2026-09-06 | ✅ | ✅ | ✅ | N/A | ✅ | ✅ | ✅ | `PASSED` | Canonical fused workspace entry template |
+| `base_V_0-1-0_spec_NN.md` | `V_0-1-0` | 2026-09-06 | ✅ | ✅ | ✅ | N/A | ✅ | ✅ | ✅ | `FROZEN` | Frozen byte-identical; legacy composite only |
 
 ---
 

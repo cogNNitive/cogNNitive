@@ -1,5 +1,5 @@
 /**
- * provenance.js — cogNNitive lineage-record generator.
+ * provenance.js — workspace lineage-record generator.
  *
  * Builds and refreshes an iNNfo Level 3 lineage record that registers every
  * Source ingested, every Model authored under `models/`, and every Artifact
@@ -21,11 +21,11 @@ function resolveModelPath(projectDir, projectName) {
   const bestFile = modelLib.resolveLatestModelFile(projectDir, projectName, indexLib.compareVersions);
   return bestFile
     ? { modelPath: path.join(projectDir, bestFile), created: false }
-    : { modelPath: path.join(projectDir, `${projectName}_V_0-2-0_cogNNitive_NN.md`), created: true };
+    : { modelPath: path.join(projectDir, `${projectName}_V_0-2-0_workspace_NN.md`), created: true };
 }
 
 /**
- * Build or refresh the cogNNitive lineage record for a project.
+ * Build or refresh the workspace lineage record for a project.
  * @param {string} projectDir
  * @param {Record<string, any>} [options]
  * @returns {{ modelPath: string, sourceCount: number, modelCount: number, artifactCount: number, created: boolean }}
@@ -98,7 +98,7 @@ if (require.main === module) {
   const projectDir = args.src || process.cwd();
   const result = buildProvenanceModel(projectDir, { projectName: args.name });
   console.log(
-    `cogNNitive lineage record ${result.created ? 'created' : 'refreshed'}: ${result.modelPath}`,
+    `workspace lineage record ${result.created ? 'created' : 'refreshed'}: ${result.modelPath}`,
   );
   console.log(
     `Registered ${result.sourceCount} source(s), ${result.modelCount} model(s), ${result.artifactCount} artifact(s).`,

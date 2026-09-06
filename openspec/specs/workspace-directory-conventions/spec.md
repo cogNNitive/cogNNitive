@@ -29,7 +29,7 @@ All cogNNitive tooling (including `nn-trannsform`, `nn-preflight`, and web impor
 
 Generated deliverables (such as compiled Markdown documents, HTML presentations, diagrams, data exports, and generated site assets) MUST be written to `export/` at the workspace root. The directory `artifacts/` is deprecated.
 
-The conceptual model in Level-2 specification `cogNNitive_V_0-2-0` SHALL continue to use the concept name `Artifacts`, while the physical filesystem mapping MUST resolve to `export/`. Tooling MUST accept `artifacts/` as a backward-compatible alias when reading existing project workspaces.
+The conceptual model in the canonical Level-2 template `workspace_V_0-3-0_spec_NN.md` SHALL use the concept name `Artifacts`, while the physical filesystem mapping MUST resolve to `export/`. The frozen legacy template `cogNNitive_V_0-2-0_NN.md` retains the same `Artifacts` concept for backward compatibility. Tooling MUST accept `artifacts/` as a backward-compatible alias when reading existing project workspaces.
 
 #### Scenario: Deliverable generation targets export/
 - GIVEN a procedure generating a client-facing proposal or site package

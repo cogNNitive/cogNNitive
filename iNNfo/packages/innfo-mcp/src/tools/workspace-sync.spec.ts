@@ -118,6 +118,18 @@ describe('syncWorkspaceManifest', () => {
     const result = await syncWorkspaceManifest(rootDir, { dry_run: true })
     expect(result.changes).toEqual([])
   })
+
+  it('excludes workspace-conforming lineage records from discovery', async () => {
+    await writeFile(join(rootDir, 'workspace_NN.md'), ['# NN Models', ''].join('\n'), 'utf-8')
+    await writeFile(
+      join(rootDir, 'acme_V_0-2-0_workspace_NN.md'),
+      ['---', 'level: 3', 'parent_spec:', '  name: "workspace_V_0-3-0_spec_NN"', '---'].join('\n'),
+      'utf-8',
+    )
+
+    const result = await syncWorkspaceManifest(rootDir, { dry_run: true })
+    expect(result.changes).toEqual([])
+  })
 })
 
 describe('buildUnifiedDiff', () => {
