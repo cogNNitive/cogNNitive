@@ -1,10 +1,11 @@
-import { ParsedModel, SpecDocument, ValidationResult } from '../types'
+import { ParsedModel, SpecDocument, ValidationCheck, ValidationResult, ValidationSummary } from '../types'
 import { resolveTemplateSchema } from '../schema'
 import type { IncludeResolver } from '../schema'
 import { Diagnostics } from '../diagnostics'
 import { validateReferences, validateElementFieldReferences } from './references'
 import type { SubmodelResolver } from './references'
 import { validateTaxonomyHierarchy } from './hierarchy'
+import { computeSha256 } from './crypto'
 import {
   checkFrontmatterInvariants,
   checkTemplateDocumentation,
@@ -18,6 +19,71 @@ export interface ValidateModelOptions {
   resolveInclude?: IncludeResolver
   resolveSubmodel?: SubmodelResolver
   referringPath?: string
+  checkFreshness?: boolean
+  remoteContent?: string | null
+  canonicalUrl?: string
+  fetchRemoteTemplate?: (url: string) => Promise<string | null> | string | null
+  freshness?: {
+    verdict: 'fresh' | 'stale' | 'unknown'
+    url?: string
+    name?: string
+    localHash?: string
+    remoteHash?: string
+  } | null
+}
+
+function buildReportMetadata(
+  res: { valid: boolean; errors: any[]; warnings: any[] },
+  templateName?: string,
+): { checks: ValidationCheck[]; summary: ValidationSummary } {
+  const checks: ValidationCheck[] = [
+    ...res.errors.map((e) => ({
+      id: e.code || e.path || 'error',
+      label: e.path || 'Validation error',
+      description: e.message,
+      category: (e.code === 'TEMPLATE_CACHE_STALE' ? 'governance' : 'convention') as
+        | 'governance'
+        | 'convention',
+      severity: 'error' as const,
+      passed: false,
+      message: e.message,
+      code: e.code,
+      promptHint: e.promptHint,
+      meta: e.meta,
+    })),
+    ...res.warnings.map((w) => ({
+      id:
+        w.code === 'TEMPLATE_CACHE_STALE'
+          ? `template-freshness-${templateName ?? 'spec'}`
+          : w.code || w.path || 'warning',
+      label:
+        w.code === 'TEMPLATE_CACHE_STALE'
+          ? 'Template Cache Freshness'
+          : w.path || 'Validation warning',
+      description:
+        w.code === 'TEMPLATE_CACHE_STALE'
+          ? 'Verifies that local cached template in specs/ matches canonical remote upstream.'
+          : w.message,
+      category: (w.code === 'TEMPLATE_CACHE_STALE' ? 'governance' : 'convention') as
+        | 'governance'
+        | 'convention',
+      severity: 'warning' as const,
+      passed: false,
+      message: w.message,
+      code: w.code,
+      promptHint: w.promptHint,
+      meta: w.meta,
+    })),
+  ]
+  return {
+    checks,
+    summary: {
+      total: checks.length,
+      passed: 0,
+      errors: res.errors.length,
+      warnings: res.warnings.length,
+    },
+  }
 }
 
 /**
@@ -54,7 +120,9 @@ export function validateModel(
       'parent',
       '[PARENT_RESOLUTION_FAILED] Parent specification template could not be resolved or loaded',
     )
-    return d.result()
+    const res = d.result()
+    const { checks, summary } = buildReportMetadata(res)
+    return { ...res, checks, summary }
   }
 
   // Level-2 templates declare their schema as `… Definition` body elements;
@@ -92,5 +160,70 @@ export function validateModel(
     d.addAsWarning(diag)
   }
 
-  return d.result()
+  // Template freshness diagnostic (governance)
+  if (opts.checkFreshness) {
+    const parentRef = model.frontmatter?.parent_spec
+    const canonicalUrl =
+      opts.canonicalUrl ||
+      (typeof parentRef === 'object' && parentRef ? parentRef.url : undefined) ||
+      ''
+    const templateName =
+      (typeof parentRef === 'object' && parentRef ? parentRef.name : undefined) ||
+      template.name ||
+      'template'
+
+    let isStale = false
+    let localHash = ''
+    let remoteHash = ''
+
+    if (opts.freshness) {
+      if (opts.freshness.verdict === 'stale') {
+        isStale = true
+        localHash = opts.freshness.localHash || ''
+        remoteHash = opts.freshness.remoteHash || ''
+      }
+    } else if (opts.remoteContent !== undefined) {
+      if (opts.remoteContent !== null) {
+        localHash = computeSha256(template.rawContent || '')
+        remoteHash = computeSha256(opts.remoteContent)
+        if (localHash !== remoteHash) {
+          isStale = true
+        }
+      }
+    } else if (opts.fetchRemoteTemplate && canonicalUrl) {
+      try {
+        const fetched = opts.fetchRemoteTemplate(canonicalUrl)
+        if (typeof fetched === 'string') {
+          localHash = computeSha256(template.rawContent || '')
+          remoteHash = computeSha256(fetched)
+          if (localHash !== remoteHash) {
+            isStale = true
+          }
+        }
+      } catch {
+        // Offline / unreachable network falls back gracefully without failing validation
+      }
+    }
+
+    if (isStale) {
+      d.warn(
+        'parent_spec',
+        `Cached template specs/templates/${templateName}_NN.md differs from canonical remote upstream.`,
+        {
+          code: 'TEMPLATE_CACHE_STALE',
+          promptHint: `Update the template under specs/ with the canonical remote version "${canonicalUrl}" and re-validate the model.`,
+          meta: {
+            canonicalUrl,
+            localHash,
+            remoteHash,
+            templateName,
+          },
+        },
+      )
+    }
+  }
+
+  const res = d.result()
+  const { checks, summary } = buildReportMetadata(res, template.name)
+  return { ...res, checks, summary }
 }

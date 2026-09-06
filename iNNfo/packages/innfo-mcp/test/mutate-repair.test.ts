@@ -34,7 +34,7 @@ describe('MCP model repair tools', () => {
 
   it('initModel preserves existing body content when frontmatter is missing', async () => {
     const filePath = join(tempDir, 'broken_model_NN.md')
-    await writeFile(filePath, '# NN ConceptA\n## NN ConceptA: Element1\n')
+    await writeFile(filePath, '# NN Team\n## NN Team: Alice\n')
 
     const res = await initModel(tempDir, 'broken_model', {
       template_name: 'business_V_0-2-0',
@@ -45,7 +45,7 @@ describe('MCP model repair tools', () => {
     expect(res.success).toBe(true)
     const content = await readFile(res.filePath, 'utf-8')
     expect(content).toContain('spec_version: "V_0-2-1"')
-    expect(content).toContain('# NN ConceptA')
-    expect(content).toContain('## NN ConceptA: Element1')
+    expect(content).toContain('# NN Team')
+    expect(content).toContain('## NN Team: Alice')
   })
 })

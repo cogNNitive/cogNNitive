@@ -435,7 +435,7 @@ export async function validateModel(
       path: 'parent_spec',
       code: 'TEMPLATE_CACHE_STALE',
       message: `[TEMPLATE_CACHE_STALE] Local template cache for "${freshness.name}" differs from the canonical remote "${freshness.url}". Delete/replace the local copy under specs/ and re-validate.`,
-      promptHint: `Actualizá la plantilla en specs/ con la versión canónica remota "${freshness.url}" y re-validá el modelo.`,
+      promptHint: `Update the template under specs/ with the canonical remote version "${freshness.url}" and re-validate the model.`,
       meta: {
         canonicalUrl: freshness.url,
         templateName: freshness.name,

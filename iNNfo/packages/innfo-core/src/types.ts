@@ -313,6 +313,8 @@ export interface ValidationResult {
   valid: boolean
   errors: ValidationError[]
   warnings: ValidationError[]
+  checks?: ValidationCheck[]
+  summary?: ValidationSummary
 }
 
 /* ── Validation check types (from app validator) ── */

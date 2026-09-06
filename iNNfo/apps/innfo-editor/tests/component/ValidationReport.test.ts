@@ -166,7 +166,7 @@ describe('ValidationReport.vue', () => {
           passed: false,
           code: 'TEMPLATE_CACHE_STALE',
           message: 'Template cache differs from remote',
-          promptHint: 'Actualizá la plantilla en specs/ con la versión canónica',
+          promptHint: 'Update the template under specs/ with the canonical remote version and re-validate',
         },
       ],
       summary: {
@@ -186,11 +186,41 @@ describe('ValidationReport.vue', () => {
 
     const copyBtn = wrapper.find('[data-testid="copy-prompt-hint-button"]')
     expect(copyBtn.exists()).toBe(true)
-    expect(copyBtn.text()).toContain('Copiar prompt para Agente')
+    expect(copyBtn.text()).toContain('Copy prompt for AI Agent')
 
     await copyBtn.trigger('click')
 
-    expect(writeTextMock).toHaveBeenCalledWith('Actualizá la plantilla en specs/ con la versión canónica')
-    expect(copyBtn.text()).toContain('Prompt Copiado!')
+    expect(writeTextMock).toHaveBeenCalledWith('Update the template under specs/ with the canonical remote version and re-validate')
+    expect(copyBtn.text()).toContain('Copied!')
+  })
+
+  it('does not render copy prompt button when check has no promptHint', () => {
+    const reportWithoutPromptHint: ValidationReportType = {
+      checks: [
+        {
+          id: 'check-governance-2',
+          label: 'Template Cache Freshness',
+          description: 'Checks if local template in specs/ is fresh.',
+          category: 'governance',
+          severity: 'warning',
+          passed: false,
+          code: 'TEMPLATE_CACHE_STALE',
+          message: 'Template cache differs from remote',
+        },
+      ],
+      summary: {
+        total: 1,
+        passed: 0,
+        errors: 0,
+        warnings: 1,
+      },
+    }
+
+    const wrapper = mount(ValidationReport, {
+      props: { report: reportWithoutPromptHint },
+    })
+
+    const copyBtn = wrapper.find('[data-testid="copy-prompt-hint-button"]')
+    expect(copyBtn.exists()).toBe(false)
   })
 })
