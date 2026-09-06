@@ -1,6 +1,6 @@
 import { readFile, writeFile, stat } from 'node:fs/promises'
 import { basename, join } from 'node:path'
-import { resolveTemplateSchema, validateDocument, validateTemplateAgainstMetaschema } from '@cognnitive/innfo-core'
+import { resolveTemplateSchema, validateDocument } from '@cognnitive/innfo-core'
 import type { SpecDocument, ValidationError } from '@cognnitive/innfo-core'
 import { resolveTemplateWithCache, findModelFile, normalizeId } from './spec.js'
 
@@ -137,14 +137,6 @@ export async function initModel(
     resolveInclude = resolved.resolveInclude
     if (resolved.template) {
       templateResolved = true
-      const metaResult = validateTemplateAgainstMetaschema(resolved.template)
-      console.error('META_RESULT:', metaResult)
-      if (!metaResult.valid) {
-        for (const e of metaResult.errors) {
-          templateErrors.push(`${e.path}: ${e.message}`)
-          warnings.push(`${e.path}: ${e.message}`)
-        }
-      }
       const hasConceptSections = /^#\s+NN\s+(?!index\b)\S/im.test(body)
       if (!hasConceptSections) {
         const composed = resolveTemplateSchema(
@@ -201,10 +193,8 @@ export async function initModel(
     resolveInclude,
   })
 
-  console.error('NEW_CONTENT:\n' + newContent)
   // If template is invalid or document validation fails, abort without touching disk.
   if (templateErrors.length > 0 || (templateResolved && !doc.valid)) {
-    console.error('FAILED IN INIT_MODEL:', { templateErrors, docErrors: doc.errors })
     return {
       success: false,
       templateResolved,
