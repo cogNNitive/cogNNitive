@@ -106,7 +106,13 @@ run('node scripts/manifest/check-parity.js', 'Check Workspace Parity');
 // 4. Script static type checking
 run('tsc --noEmit -p tsconfig.scripts.json', 'Typecheck Scripts');
 
-// 4. Manifest validation
+// 5. Manifest validation
 run('node scripts/manifest/validate-manifest.js --channel stable', 'Validate Stable Manifest');
+
+// 6. Rendered stable manifest doc must be in sync with manifest/source.yaml.
+//    `generate-manifest.js` is a pure function of its inputs (no timestamp), so
+//    --check is a true staleness signal. Only the stable channel is guarded —
+//    the preview doc pins main's HEAD SHA and legitimately drifts every commit.
+run('node scripts/manifest/generate-manifest.js --channel stable --check', 'Check Stable Manifest Doc Fresh');
 
 console.log('\n✅ [cogNNitive Verify] All deterministic pre-checks passed.');
