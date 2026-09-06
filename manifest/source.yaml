@@ -26,12 +26,12 @@ skills:
       - name: innfo-mcp
         repo: cogNNitive/cogNNitive
         path: iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js
-        version: "0.2.4"
+        version: "0.2.5"
         ref_key: innfo-mcp
   - name: nn-preflight
     repo: cogNNitive/cogNNitive
     path: actioNN/skills/nn-preflight
-    version: "V_0-1-0"
+    version: "V_0-1-1"
     ref_key: skills
     description: Environment readiness gate (Tier 1/Tier 2) and canonical skill-location reference.
   - name: nn-site-generator
@@ -143,13 +143,13 @@ channels:
     refs:
       - key: skills
         repo: cogNNitive/cogNNitive
-        ref: skills-v1.1.4
+        ref: skills-v1.1.5
       - key: templates
         repo: cogNNitive/cogNNitive
-        ref: templates-v0.2.0
+        ref: templates-v0.2.1
       - key: innfo-mcp
         repo: cogNNitive/cogNNitive
-        ref: innfo-mcp-v0.2.4
+        ref: innfo-mcp-v0.2.5
   preview:
     refs:
       - key: skills

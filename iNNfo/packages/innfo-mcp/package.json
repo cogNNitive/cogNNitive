@@ -1,6 +1,6 @@
 {
   "name": "@cognnitive/innfo-mcp",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "MCP server wrapping @cognnitive/innfo-core - semantic iNNfo tools over stdio",
   "type": "module",
   "main": "./dist/server.js",
@@ -28,7 +28,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@cognnitive/innfo-core": "^0.2.4",
+    "@cognnitive/innfo-core": "^0.2.5",
     "@modelcontextprotocol/sdk": "^1.19.0"
   },
   "devDependencies": {
