@@ -3,6 +3,7 @@ import { mount } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
 import Header from '../../src/components/layout/Header.vue'
 import { useModelStore } from '../../src/stores/modelStore'
+import { useUiStore } from '../../src/stores/uiStore'
 import type { ModelNode } from '../../src/model/types'
 import pkg from '../../package.json'
 
@@ -84,5 +85,114 @@ describe('Header.vue', () => {
     const valButton = wrapper.find('button[title*="Model is incorrect"]')
     expect(valButton.exists()).toBe(true)
     expect(valButton.classes()).toContain('animate-header-blink')
+  })
+
+  describe('Search & Filter wrapper status badges', () => {
+    function setupModelWithNodes() {
+      const modelStore = useModelStore()
+      const uiStore = useUiStore()
+
+      modelStore.rootIds = ['Root']
+      modelStore.nodes = {
+        Root: makeNode('Root', {
+          spec_version: 'V_0-1-0',
+          title: 'Test Model',
+        }),
+        'concept-1': {
+          ...makeNode('concept-1', {}),
+          kind: 'concept',
+          name: 'Task',
+          type: 'concept',
+        },
+        'concept-2': {
+          ...makeNode('concept-2', {}),
+          kind: 'concept',
+          name: 'Note',
+          type: 'concept',
+        },
+        'tag-node-1': {
+          ...makeNode('tag-node-1', {
+            color: '#ef4444',
+            icon: 'alert-circle',
+            description: 'Urgent tag',
+          }),
+          kind: 'element',
+          name: 'urgent',
+          type: 'Tag',
+        },
+        'node-elem': {
+          ...makeNode('node-elem', {}),
+          kind: 'element',
+          name: 'Element 1',
+          tags: ['urgent', 'secondary-tag'],
+        },
+      }
+      return { modelStore, uiStore }
+    }
+
+    it('renders Concepts All and Tags All when all are selected', () => {
+      const { uiStore, modelStore } = setupModelWithNodes()
+      uiStore.selectedConceptFilters = ['all']
+      uiStore.selectedTagFilters = [...modelStore.allTags]
+
+      const wrapper = mount(Header)
+      const conceptBadge = wrapper.find('[data-testid="header-concept-status-badge"]')
+      const tagBadge = wrapper.find('[data-testid="header-tag-status-badge"]')
+
+      expect(conceptBadge.exists()).toBe(true)
+      expect(conceptBadge.text()).toBe('Concepts All')
+      expect(tagBadge.exists()).toBe(true)
+      expect(tagBadge.text()).toBe('Tags All')
+      // When all tags are selected, primary tag badges should NOT be rendered
+      expect(wrapper.findAll('[data-testid="header-primary-tag-badge"]')).toHaveLength(0)
+    })
+
+    it('renders partial count for concepts when not all are selected', () => {
+      const { uiStore } = setupModelWithNodes()
+      uiStore.selectedConceptFilters = ['Task']
+
+      const wrapper = mount(Header)
+      const conceptBadge = wrapper.find('[data-testid="header-concept-status-badge"]')
+      expect(conceptBadge.text()).toBe('1 Concepts')
+    })
+
+    it('renders primary tag badge and Tags some when a primary tag is selected partially', () => {
+      const { uiStore } = setupModelWithNodes()
+      // Select only the workspace primary tag 'urgent'
+      uiStore.selectedTagFilters = ['urgent']
+
+      const wrapper = mount(Header)
+      const tagBadge = wrapper.find('[data-testid="header-tag-status-badge"]')
+      expect(tagBadge.text()).toBe('Tags some')
+
+      const primaryBadges = wrapper.findAll('[data-testid="header-primary-tag-badge"]')
+      expect(primaryBadges).toHaveLength(1)
+      expect(primaryBadges[0].text()).toContain('urgent')
+    })
+
+    it('renders count of tags when partial tags are selected without primary tags', () => {
+      const { uiStore } = setupModelWithNodes()
+      // Select only 'secondary-tag' which is not in workspaceTagsMap
+      uiStore.selectedTagFilters = ['secondary-tag']
+
+      const wrapper = mount(Header)
+      const tagBadge = wrapper.find('[data-testid="header-tag-status-badge"]')
+      expect(tagBadge.text()).toBe('1 Tags')
+
+      const primaryBadges = wrapper.findAll('[data-testid="header-primary-tag-badge"]')
+      expect(primaryBadges).toHaveLength(0)
+    })
+
+    it('toggles search popup when clicking anywhere in the wrapper', async () => {
+      setupModelWithNodes()
+      const wrapper = mount(Header)
+      const searchWrapper = wrapper.find('[data-testid="header-search-button"]')
+
+      expect(wrapper.find('[data-testid="header-search-popup"]').exists()).toBe(false)
+      await searchWrapper.trigger('click')
+      expect(wrapper.find('[data-testid="header-search-popup"]').exists()).toBe(true)
+      await searchWrapper.trigger('click')
+      expect(wrapper.find('[data-testid="header-search-popup"]').exists()).toBe(false)
+    })
   })
 })

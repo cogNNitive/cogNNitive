@@ -89,16 +89,71 @@
 
     <!-- Right Section Actions -->
     <div class="flex items-center gap-2.5 shrink-0">
-      <!-- Search Button & Floating Search Popup -->
+      <!-- Search Button & Floating Search Popup Wrapper -->
       <div v-if="hasRootNode" class="relative" ref="searchContainerRef">
         <button
           @click="uiStore.toggleSearchOpen()"
-          class="p-1.5 rounded-md text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
-          :class="uiStore.isSearchOpen ? 'bg-primary/10 text-primary ring-1 ring-primary/20' : ''"
+          class="inline-flex items-center gap-2 px-2.5 py-1 rounded-md text-slate-600 dark:text-slate-300 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer border border-slate-200/80 dark:border-slate-700/80 bg-slate-50/70 dark:bg-slate-800/70"
+          :class="uiStore.isSearchOpen ? 'bg-primary/10 text-primary ring-1 ring-primary/20 border-primary/30' : ''"
           title="Buscar conceptos o elementos"
           data-testid="header-search-button"
         >
-          <Search class="w-4 h-4" />
+          <Search
+            class="w-4 h-4 shrink-0 text-slate-500 dark:text-slate-400"
+            :class="{ 'text-primary': uiStore.isSearchOpen }"
+          />
+
+          <!-- Concepts status badge -->
+          <span
+            class="inline-flex items-center px-1.5 py-0.5 rounded text-2xs font-mono font-semibold"
+            :class="
+              uiStore.isAllConceptsSelected
+                ? 'bg-slate-200/70 dark:bg-slate-700/80 text-slate-600 dark:text-slate-300'
+                : 'bg-primary/15 text-primary dark:text-primary-300 ring-1 ring-primary/25'
+            "
+            data-testid="header-concept-status-badge"
+          >
+            {{ conceptStatusText }}
+          </span>
+
+          <!-- Workspace primary tags badges (shown only if not all tags are selected) -->
+          <template v-if="!isAllTagsSelected && selectedPrimaryTags.length > 0">
+            <span
+              v-for="tag in selectedPrimaryTags"
+              :key="tag.name"
+              class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-2xs font-mono font-medium border shrink-0"
+              :style="
+                tag.color
+                  ? {
+                      borderColor: tag.color,
+                      color: tag.color,
+                      backgroundColor: `${tag.color}18`,
+                    }
+                  : {
+                      borderColor: 'var(--slate-300, #cbd5e1)',
+                      backgroundColor: 'rgba(148, 163, 184, 0.1)',
+                    }
+              "
+              :title="tag.description || `Etiqueta primaria: ${tag.name}`"
+              data-testid="header-primary-tag-badge"
+            >
+              <IconRenderer :icon="tag.icon || 'tag'" custom-class="w-3 h-3 shrink-0" />
+              <span>{{ tag.name }}</span>
+            </span>
+          </template>
+
+          <!-- Tags status badge -->
+          <span
+            class="inline-flex items-center px-1.5 py-0.5 rounded text-2xs font-mono font-semibold"
+            :class="
+              isAllTagsSelected
+                ? 'bg-slate-200/70 dark:bg-slate-700/80 text-slate-600 dark:text-slate-300'
+                : 'bg-primary/15 text-primary dark:text-primary-300 ring-1 ring-primary/25'
+            "
+            data-testid="header-tag-status-badge"
+          >
+            {{ tagStatusText }}
+          </span>
         </button>
 
         <!-- Floating Search Popup Dropdown over Header -->
@@ -615,6 +670,48 @@ const tagMetaMap = computed(() => {
 
 const selectedTagCount = computed(() => {
   return uiStore.selectedTagFilters.length
+})
+
+const isAllTagsSelected = computed(() => {
+  return availableTags.value.length > 0 && selectedTagCount.value === availableTags.value.length
+})
+
+const selectedPrimaryTags = computed<
+  Array<{ name: string; icon?: string; color?: string; description?: string }>
+>(() => {
+  const wsMap = modelStore.workspaceTagsMap
+  if (!wsMap || isAllTagsSelected.value) return []
+  const result: Array<{ name: string; icon?: string; color?: string; description?: string }> = []
+  for (const tag of uiStore.selectedTagFilters) {
+    const key = tag.toLowerCase().trim()
+    const meta = wsMap[key] || wsMap[tag]
+    if (meta) {
+      result.push({
+        name: meta.name || tag,
+        icon: meta.icon,
+        color: meta.color,
+        description: meta.description,
+      })
+    }
+  }
+  return result
+})
+
+const conceptStatusText = computed(() => {
+  if (uiStore.isAllConceptsSelected) {
+    return 'Concepts All'
+  }
+  return `${selectedConceptCount.value} Concepts`
+})
+
+const tagStatusText = computed(() => {
+  if (isAllTagsSelected.value) {
+    return 'Tags All'
+  }
+  if (selectedPrimaryTags.value.length > 0) {
+    return 'Tags some'
+  }
+  return `${selectedTagCount.value} Tags`
 })
 
 const searchContainerRef = ref<HTMLElement | null>(null)
