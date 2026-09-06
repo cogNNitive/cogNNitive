@@ -16,6 +16,7 @@ import { FileText, Plus } from 'lucide-vue-next'
 import { useModelStore } from '../../stores/modelStore'
 import { useUiStore } from '../../stores/uiStore'
 import { findMatchingModelNode } from '../../utils/modelMatching'
+import { deriveSuggestedSubmodelPath, slugify } from '../../utils/submodelPath'
 
 interface FieldDefinitionLike {
   name: string
@@ -136,32 +137,47 @@ function onBlur(): void {
   }, 150)
 }
 
-function deriveSuggestedPath(parentPath: string, template: string): string {
-  const dir = parentPath.includes('/')
-    ? parentPath.substring(0, parentPath.lastIndexOf('/') + 1)
-    : ''
-  const filename = parentPath.split('/').pop() || 'model_NN.md'
-  const stem = filename.replace(/_NN\.md$/i, '').replace(/\.md$/i, '')
-  const versionedMatch = stem.match(/^(.*_V[_-][0-9.-]+)_[a-zA-Z0-9-]+$/i)
-  if (versionedMatch) {
-    return `${dir}${versionedMatch[1]}_${template}_NN.md`
-  }
-  return `${dir}${stem}_${template}_NN.md`
-}
-
 async function handleCreateSubmodel(): Promise<void> {
   const targetTemplate = props.fieldDefinition?.target_template || 'base'
-  const parentNode = props.nodeId ? modelStore.getNode(props.nodeId) : undefined
+  const targetNode = props.nodeId ? modelStore.getNode(props.nodeId) : undefined
+  const isElement = targetNode?.kind === 'element'
+  const elementSlug = isElement
+    ? targetNode?.slug || (targetNode?.name ? slugify(targetNode.name) : undefined)
+    : undefined
+
+  let conceptName = targetNode?.conceptBinding?.name
+  if (!conceptName && targetNode?.parentId) {
+    const parentNode = modelStore.getNode(targetNode.parentId)
+    if (parentNode?.kind === 'concept') {
+      conceptName = parentNode.conceptBinding?.name || parentNode.name
+    }
+  }
+  if (
+    !conceptName &&
+    isElement &&
+    targetNode?.type &&
+    targetNode.type !== 'text'
+  ) {
+    conceptName = targetNode.type
+  }
+  const conceptSlug = conceptName ? slugify(conceptName) : undefined
+
   const parentRootId = props.nodeId ? modelStore.getModelRootForNode(props.nodeId) : undefined
   const parentRootNode = parentRootId ? modelStore.getNode(parentRootId) : undefined
   const parentPath = parentRootNode?.source?.path || 'models/model_NN.md'
 
-  const suggestedPath = deriveSuggestedPath(parentPath, targetTemplate)
+  const suggestedPath = deriveSuggestedSubmodelPath({
+    parentPath,
+    conceptSlug,
+    elementSlug,
+    fieldName: props.fieldKey,
+    targetTemplate,
+  })
   const userPath = window.prompt(`Enter path for new submodel (${targetTemplate}):`, suggestedPath)
   if (!userPath || !userPath.trim()) return
 
   const cleanPath = userPath.trim().replace(/\\/g, '/')
-  const title = `${parentNode?.name || 'Submodel'} - ${targetTemplate}`
+  const title = `${targetNode?.name || 'Submodel'} - ${targetTemplate}`
 
   const newModelId = modelStore.scaffoldSubmodel({
     path: cleanPath,
