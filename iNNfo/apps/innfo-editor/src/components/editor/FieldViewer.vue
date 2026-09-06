@@ -136,25 +136,16 @@ import Pill from './Pill.vue'
 import FileRefPill from './FileRefPill.vue'
 import { parseSourceRef } from '../../utils/sourceRef'
 import { isImageFieldValue } from '../../utils/imageDetection'
+import { findMatchingModelNode } from '../../utils/modelMatching'
 
 function handleModelPillClick(val: unknown): void {
   if (!val || typeof val !== 'string') return
   const clean = val.replace(/^\[\[\s*/, '').replace(/\s*\]\]$/, '').trim()
-  const matchingNode = Object.values(modelStore.nodes).find((n) => {
-    const path = n.source?.path || ''
-    const baseName = path.split('/').pop()?.split('\\').pop()?.replace(/\.md$/i, '') || ''
-    return (
-      n.id.toLowerCase() === clean.toLowerCase() ||
-      n.name.toLowerCase() === clean.toLowerCase() ||
-      path.toLowerCase() === clean.toLowerCase() ||
-      baseName.toLowerCase() === clean.toLowerCase()
-    )
-  })
-  if (matchingNode) {
-    uiStore.focusModel(matchingNode.id)
-  } else {
-    uiStore.focusModel(clean)
-  }
+  const matchingNode = findMatchingModelNode(modelStore.nodes, clean)
+  const resolvedId = matchingNode ? matchingNode.id : clean
+  uiStore.focusModel(resolvedId)
+  uiStore.selectNode(resolvedId)
+  uiStore.setActiveView('editor')
 }
 
 function cleanReferenceName(val: unknown): string {

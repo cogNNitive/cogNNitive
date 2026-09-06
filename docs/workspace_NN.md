@@ -26,13 +26,13 @@ The authoritative documentation and web delivery workspace for the cogNNitive ec
 
 ## NN Models: iNNfo Technical Documentation
 path:: innfo/documentation/documentation_NN.md
-template:: [[documentation_V_0-2-0]]
+template:: documentation_V_0-2-0
 status:: active
 author:: cogNNitive Maintainers
 
 ## NN Models: actioNN Agent Documentation
 path:: actionn/documentation/documentation_NN.md
-template:: [[documentation_V_0-2-0]]
+template:: documentation_V_0-2-0
 status:: active
 author:: cogNNitive Maintainers
 

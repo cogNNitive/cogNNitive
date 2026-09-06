@@ -317,6 +317,7 @@ import VirtualGroupNode, { type TreeGroup } from './VirtualGroupNode.vue'
 import WorkspaceExplorer from './WorkspaceExplorer.vue'
 import MatrixPill from '../editor/MatrixPill.vue'
 import Pill from '../editor/Pill.vue'
+import { findMatchingModelNode } from '../../utils/modelMatching'
 
 const emit = defineEmits<{
   'select-node': [nodeId: string]
@@ -416,15 +417,7 @@ const submodelParentMap = computed<Map<string, string>>(() => {
       if (!clean) continue
 
       // Match target node in modelStore
-      const targetNode = Object.values(modelStore.nodes).find((n) => {
-        const p = n.source?.path || ''
-        return (
-          n.id.toLowerCase() === clean.toLowerCase() ||
-          n.name.toLowerCase() === clean.toLowerCase() ||
-          p.toLowerCase() === clean.toLowerCase() ||
-          p.replace(/\.md$/i, '').toLowerCase().endsWith(clean.toLowerCase())
-        )
-      })
+      const targetNode = findMatchingModelNode(modelStore.nodes, clean)
 
       if (targetNode) {
         map.set(targetNode.id, node.id)
@@ -440,15 +433,13 @@ const submodelParentMap = computed<Map<string, string>>(() => {
   return map
 })
 
-const visibleRootIds = computed(() => {
-  const candidateNodes =
-    modelStore.rootIds.length > 0
-      ? modelStore.rootIds.map((id) => modelStore.getNode(id)).filter((n): n is ModelNode => !!n)
-      : Object.values(modelStore.nodes).filter(
-          (node) => node.kind === 'root' || node.parentId === null,
-        )
+function isModelRoot(node: ModelNode | undefined): boolean {
+  if (!node || isTemplateNode(node)) return false
+  return node.kind === 'root' || node.parentId === null || modelStore.rootIds.includes(node.id)
+}
 
-  const allModelRoots = candidateNodes.filter((node) => !isTemplateNode(node))
+const visibleRootIds = computed(() => {
+  const allModelRoots = Object.values(modelStore.nodes).filter(isModelRoot)
 
   // Group by baseName -> keep highest version
   const bestByBaseName = new Map<string, { id: string; version: SemVer }>()
@@ -469,15 +460,8 @@ const visibleRootIds = computed(() => {
       return [focused]
     }
     if (focused) {
-      const match = deduplicatedRoots.find((id) => {
-        const node = modelStore.getNode(id)
-        if (id.toLowerCase() === focused.toLowerCase()) return true
-        if (node?.name?.toLowerCase() === focused.toLowerCase()) return true
-        if (node?.source?.path?.toLowerCase() === focused.toLowerCase()) return true
-        const baseName = node?.source?.path?.split('/').pop()?.replace(/\.md$/i, '')
-        return baseName?.toLowerCase() === focused.toLowerCase()
-      })
-      if (match) return [match]
+      const match = findMatchingModelNode(allModelRoots, focused)
+      if (match) return [match.id]
     }
     return deduplicatedRoots.slice(0, 1)
   }
@@ -491,11 +475,6 @@ const visibleRootIds = computed(() => {
     return !isOwned
   })
 })
-
-function isModelRoot(node: ModelNode | undefined): boolean {
-  if (!node || isTemplateNode(node)) return false
-  return node.kind === 'root' || node.parentId === null || modelStore.rootIds.includes(node.id)
-}
 
 const totalModelCount = computed(() => {
   return Object.values(modelStore.nodes).filter(isModelRoot).length

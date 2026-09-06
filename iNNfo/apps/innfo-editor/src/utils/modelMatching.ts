@@ -1,0 +1,78 @@
+import type { ModelNode } from '../model/types'
+
+/**
+ * Normalizes a model path or reference by stripping enclosing double brackets,
+ * trimming, and normalizing backslashes to forward slashes.
+ */
+export function normalizeModelPath(raw: string): string {
+  if (!raw) return ''
+  return raw
+    .trim()
+    .replace(/^\[{2}\s*/, '')
+    .replace(/\s*\]{2}$/, '')
+    .trim()
+    .replace(/\\/g, '/')
+}
+
+/**
+ * Extracts the model filename without extension from a path or identifier.
+ */
+export function extractModelBasename(raw: string): string {
+  const norm = normalizeModelPath(raw)
+  const filename = norm.split('/').pop() || norm
+  return filename.replace(/\.md$/i, '')
+}
+
+/**
+ * Finds a matching ModelNode in a collection of nodes by comparing ID, name,
+ * source path, or basename, handling cross-platform slash differences and .md extensions.
+ */
+export function findMatchingModelNode(
+  nodes: Record<string, ModelNode | undefined> | Array<ModelNode | undefined>,
+  target: string | null | undefined,
+): ModelNode | undefined {
+  if (!target || typeof target !== 'string') return undefined
+
+  const cleanTarget = normalizeModelPath(target).toLowerCase()
+  if (!cleanTarget) return undefined
+  const targetBase = extractModelBasename(cleanTarget).toLowerCase()
+
+  const list = Array.isArray(nodes) ? nodes : Object.values(nodes)
+
+  // 1. Exact ID, name, or normalized source path match
+  for (const n of list) {
+    if (!n) continue
+    if (n.id.toLowerCase() === cleanTarget) return n
+    if (n.name.toLowerCase() === cleanTarget) return n
+    const nodePath = normalizeModelPath(n.source?.path || '').toLowerCase()
+    if (nodePath && nodePath === cleanTarget) return n
+  }
+
+  // 2. Basename match (e.g. "rejas_rehabilitacion" matching "models/rejas_rehabilitacion_NN.md")
+  if (targetBase) {
+    for (const n of list) {
+      if (!n) continue
+      const nodePath = normalizeModelPath(n.source?.path || '').toLowerCase()
+      const nodeBase = extractModelBasename(nodePath || n.name || n.id).toLowerCase()
+      if (nodeBase && nodeBase === targetBase) return n
+      if (n.name.toLowerCase() === targetBase) return n
+      if (n.id.toLowerCase() === targetBase) return n
+    }
+  }
+
+  // 3. Suffix match (e.g. target is "models/foo.md" and nodePath is "foo.md" or vice versa)
+  for (const n of list) {
+    if (!n) continue
+    const nodePath = normalizeModelPath(n.source?.path || '').toLowerCase()
+    if (
+      nodePath &&
+      (nodePath.endsWith('/' + cleanTarget) ||
+        cleanTarget.endsWith('/' + nodePath) ||
+        (targetBase && nodePath.replace(/\.md$/i, '').endsWith(targetBase)))
+    ) {
+      return n
+    }
+  }
+
+  return undefined
+}
