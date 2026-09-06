@@ -118,6 +118,90 @@ function run() {
     ok(/artifact_ref:: export\/Proposal_V_1-0-0\.md/.test(mExport), 'artifact_ref points to export/');
     ok(/is_synthetic:: true/.test(mExport), '# NN Sources includes is_synthetic:: true for synthetic source');
     ok(/derived_from:: \[Plan_V_1-0-0_NN\.md\]/.test(mExport), '# NN Sources includes derived_from for synthetic source');
+
+    // Test 2.1: Lineage version metadata on active and archived sources
+    // Create an archive snapshot for report: sources/archive/report/V1/report.md
+    fs.mkdirSync(path.join(proj, 'sources', 'archive', 'report', 'V1'), { recursive: true });
+    fs.writeFileSync(
+      path.join(proj, 'sources', 'archive', 'report', 'V1', 'report.md'),
+      '---\nsource_file: "sources/original/report.pdf"\nsha256: "v1hash"\nsize_bytes: 100\nnormalized_at: "2026-09-01T00:00:00Z"\nnormalized_by: "traNNsform v1.0.0"\n---\n\n# Old Report\n',
+    );
+    // Active file in sources/nn/report.md is at V2
+    fs.writeFileSync(
+      path.join(proj, 'sources', 'nn', 'report.md'),
+      '---\nsource_file: "sources/original/report.pdf"\nsha256: "v2hash"\nsize_bytes: 150\nnormalized_at: "2026-09-06T00:00:00Z"\nnormalized_by: "traNNsform v1.0.0"\n---\n\n# Current Report\n',
+    );
+
+    provenance.buildProvenanceModel(proj, { projectName: 'Acme' });
+    const mVersions = fs.readFileSync(r1.modelPath, 'utf8');
+
+    // Assert active element carries version:: V2 and archive_path::
+    ok(/## NN Sources: report\.pdf\r?\n/.test(mVersions), 'active element header has raw basename');
+    ok(/version:: V2/.test(mVersions), 'active element carries version:: V2');
+    ok(/archive_path:: sources\/archive\/report\/V1\/report\.md/.test(mVersions), 'active element carries archive_path::');
+
+    // Assert archived element carries status:: archived, version:: V1, superseded_by::
+    ok(/## NN Sources: report\.pdf V1\r?\n/.test(mVersions), 'archived element header has version suffix');
+    ok(/status:: archived/.test(mVersions), 'archived element carries status:: archived');
+    ok(/normalized_content:: sources\/archive\/report\/V1\/report\.md/.test(mVersions), 'archived element points to archive snapshot');
+    ok(/superseded_by:: report\.pdf V2/.test(mVersions), 'archived element has superseded_by:: report.pdf V2');
+
+    // Idempotent refresh is byte-identical
+    const rIdemp = provenance.buildProvenanceModel(proj, { projectName: 'Acme' });
+    const mIdemp = fs.readFileSync(rIdemp.modelPath, 'utf8');
+    ok(mVersions === mIdemp, 'lineage model with version metadata is byte-identical on idempotent re-run');
+
+    // Test 2.2: --check archive diagnostics
+    // Subtest 2.2A: Clean archive check passes
+    const checkClean = checkLineage(proj);
+    ok(checkClean.errors.length === 0, '--check clean with valid archive and active sources');
+
+    // Subtest 2.2B: Unlisted snapshot on disk triggers error
+    fs.mkdirSync(path.join(proj, 'sources', 'archive', 'report', 'V2'), { recursive: true });
+    fs.writeFileSync(
+      path.join(proj, 'sources', 'archive', 'report', 'V2', 'report.md'),
+      '---\nsource_file: "sources/original/report.pdf"\nsha256: "v2snapshot"\nsize_bytes: 120\n---\n# Unlisted\n',
+    );
+    const checkUnlisted = checkLineage(proj);
+    ok(checkUnlisted.errors.some((e) => /unlisted|sources\/archive\/report\/V2/i.test(e)), '--check flags unlisted archive snapshot');
+    fs.rmSync(path.join(proj, 'sources', 'archive', 'report', 'V2'), { recursive: true, force: true });
+
+    // Subtest 2.2C: Dangling archive_path triggers error
+    const modelWithDangling = mVersions.replace(
+      'archive_path:: sources/archive/report/V1/report.md',
+      'archive_path:: sources/archive/report/V99/report.md',
+    );
+    fs.writeFileSync(r1.modelPath, modelWithDangling);
+    const checkDanglingArchive = checkLineage(proj);
+    ok(checkDanglingArchive.errors.some((e) => /dangling|archive_path|V99/i.test(e)), '--check flags dangling archive_path');
+
+    // Subtest 2.2D: Dangling superseded_by triggers error
+    const modelWithDanglingSup = mVersions.replace(
+      'superseded_by:: report.pdf V2',
+      'superseded_by:: nonexistent_source.csv V99',
+    );
+    fs.writeFileSync(r1.modelPath, modelWithDanglingSup);
+    const checkDanglingSup = checkLineage(proj);
+    ok(checkDanglingSup.errors.some((e) => /superseded_by|nonexistent_source/i.test(e)), '--check flags dangling superseded_by');
+
+    // Subtest 2.2E: Hash mismatch triggers error
+    const modelWithHashMismatch = mVersions.replace(
+      'raw_hash:: v1hash',
+      'raw_hash:: tampered_wrong_hash',
+    );
+    fs.writeFileSync(r1.modelPath, modelWithHashMismatch);
+    const checkHashMismatch = checkLineage(proj);
+    ok(checkHashMismatch.errors.some((e) => /mismatch|hash/i.test(e)), '--check flags archived element hash mismatch');
+
+    // Restore valid lineage record
+    fs.writeFileSync(r1.modelPath, mVersions);
+
+    // Subtest 2.2F: Orphan chain directory triggers warning
+    fs.mkdirSync(path.join(proj, 'sources', 'archive', 'abandoned_chain', 'V1'), { recursive: true });
+    const checkOrphanChain = checkLineage(proj);
+    ok(checkOrphanChain.warnings.some((w) => /orphan.*abandoned_chain/i.test(w)), '--check reports warning for orphan archive chain');
+    ok(checkOrphanChain.errors.filter(e => !/abandoned_chain/i.test(e)).length === 0, 'orphan chain does not generate error for itself');
+    fs.rmSync(path.join(proj, 'sources', 'archive', 'abandoned_chain'), { recursive: true, force: true });
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });
   }

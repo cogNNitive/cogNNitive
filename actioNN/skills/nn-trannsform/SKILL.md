@@ -58,6 +58,7 @@ Every project workspace MUST adhere to the following structure:
 │   ├── import/           # External raw files (PDF, DOCX, CSV, TXT, JSON, HTML). Legacy sources/original/ supported via fallback.
 │   ├── conversations/    # Promoted transcripts (*_summary.md or *_source.md).
 │   ├── export/           # Promoted deliverables re-entering pipeline (is_synthetic: true).
+│   ├── archive/          # Version store for past normalized snapshots (sources/archive/<basename>/V<N>/<basename>.md).
 │   └── nn/               # Normalized Markdown, mirroring the source subtrees
 │                         # (e.g. sources/import/clientA/report.docx -> sources/nn/import/clientA/report.md).
 ├── conversations/        # Workspace root: raw session interaction transcripts (YYYY-MM-DD_<slug>.md).
@@ -74,7 +75,7 @@ Every project workspace MUST adhere to the following structure:
 > **Workspace index.md Format**: The workspace `index.md` file (in the project root) uses standard Markdown links (`* [label](target.md)`), unlike the internal `# NN index` block of Level 3 models which uses WikiLinks (`* [[Concept]]`). When regenerated, the tool preserves existing custom/unknown lines, filters out duplicate or dangling links, and keeps the highest version if multiple versions of the same model base exist.
 
 
-There is no `sources/raw/` — the scanner reads directly from active source subtrees (`sources/import/`, `sources/conversations/`, `sources/export/`, with fallback to `sources/original/`) and writes directly to `sources/nn/`. Change detection uses the sha256 of the source file's content (recorded in the normalized frontmatter); git, which already versions the workspace, is the history/versioning mechanism — no separate snapshot folder is needed.
+There is no `sources/raw/` — the scanner reads directly from active source subtrees (`sources/import/`, `sources/conversations/`, `sources/export/`, with fallback to `sources/original/`) and writes directly to `sources/nn/`. Change detection uses the sha256 of the source file's content (recorded in the normalized frontmatter). When a source changes, `sources/archive/<basename>/V<N>/<basename>.md` preserves the previous normalized version before overwrite (snapshot-on-change, hash-idempotent). `sources/archive/` is excluded from every scanner walk and is not a default citation target (unqualified `sources::` paths resolve under `sources/nn/` only). When an original file disappears from disk, orphaned sources are archived and removed only with explicit user consent (`[a] Archive & remove`, `[b] Keep`, `[c] Skip`); in non-interactive CLI mode (`--scan`), they are reported as warnings and never mutated automatically (Zero Unilateral Mutation).
 
 Then run:
 ```bash
@@ -163,9 +164,9 @@ When the user pastes a URL in chat and wants it ingested:
 
 #### 2d. Lineage Record Filesystem Sync
 
-The cogNNitive **lineage record** (`<Project>_V_0-1-0_cogNNitive_NN.md`) keeps three of its four sections in sync with the workspace filesystem on every build/refresh (bootstrap, `--scan`, `--import-url`, or the standalone `--lineage` / `--provenance` flag):
+The cogNNitive **lineage record** (`<Project>_V_0-2-0_cogNNitive_NN.md`, or `<Project>_V_0-1-0_cogNNitive_NN.md` on older workspaces) keeps three of its four sections in sync with the workspace filesystem on every build/refresh (bootstrap, `--scan`, `--import-url`, or the standalone `--lineage` / `--provenance` flag):
 
-- **`# NN Sources`** — one entry per normalized file under `sources/nn/`, from its scanner frontmatter (including `is_synthetic: true` for promoted deliverables).
+- **`# NN Sources`** — one entry per active normalized file under `sources/nn/` (carrying `version::` and `archive_path::` when snapshots exist), plus one entry per archived snapshot under `sources/archive/` (carrying `status:: archived`, `version::`, and `superseded_by::` when superseded). Synthetic sources retain `is_synthetic: true`.
 - **`# NN Models`** — one entry per `models/*_NN.md`, with `model_ref`, `model_version`, `model_template`, and `derived_from::` scraped from that model's `sources::` Citations.
 - **`# NN Artifacts`** — one entry per deliverable file under `export/` (with fallback to `artifacts/`), with `derived_from::` read from the artifact's frontmatter (`model` + `model_version`) or an HTML `export-meta` block. Note: the concept name `# NN Artifacts` remains identical in Level 2 and Level 3 lineage records.
 
@@ -173,7 +174,13 @@ All three use **idempotent replace**: re-running regenerates them from the curre
 
 - **`# NN Procedures`** is an **append-only run log**. Each pipeline run (`--scan`, `--import-url`, `--apply`) appends one `## NN Procedures:` entry (`command`, `flags`, `run_at`, `inputs`, `outputs`). A section refresh never removes existing procedure entries. The agent should still add `## NN Procedures:` entries by hand for **non-scripted** research/analysis steps it performs itself. This is distinct from the `procedures/` directory (§6), which holds saved, user-authored orchestration specs.
 
-Run `node scripts/index.js --check` to report drift between the lineage record and the filesystem (a model with no entry, an artifact citing a model/version that no longer exists, a `sources::` pointer that resolves nowhere); it exits non-zero when any such error is found.
+Run `node scripts/index.js --check` to report drift between the lineage record and the filesystem. It flags:
+1. Missing models (`models/*_NN.md` without entry) or dangling `derived_from` / `sources::` references;
+2. Unlisted snapshots (`sources/archive/**` file with no `status:: archived` lineage element);
+3. Dangling archive pointers (`archive_path::` or `superseded_by::` that does not resolve);
+4. Hash mismatches (archived element `raw_hash` differs from snapshot frontmatter `sha256`);
+5. Orphan archive chains (warning: archive directory with neither an active source nor an archived lineage element).
+It exits non-zero when any error is found.
 
 #### 2e. Binary / Batch Sources Not Covered by Auto-Sync
 

@@ -16,12 +16,12 @@ const path = require('path');
 const modelLib = require('./lib/provenance-model');
 const indexLib = require('./lib/workspace-index');
 
-/** Resolve the lineage-record file path for a project (existing latest, or the V_0-1-0 default). */
+/** Resolve the lineage-record file path for a project (existing latest, or the V_0-2-0 default). */
 function resolveModelPath(projectDir, projectName) {
   const bestFile = modelLib.resolveLatestModelFile(projectDir, projectName, indexLib.compareVersions);
   return bestFile
     ? { modelPath: path.join(projectDir, bestFile), created: false }
-    : { modelPath: path.join(projectDir, `${projectName}_V_0-1-0_cogNNitive_NN.md`), created: true };
+    : { modelPath: path.join(projectDir, `${projectName}_V_0-2-0_cogNNitive_NN.md`), created: true };
 }
 
 /**
@@ -32,10 +32,11 @@ function resolveModelPath(projectDir, projectName) {
  */
 function buildProvenanceModel(projectDir, options = {}) {
   const projectName = options.projectName || path.basename(projectDir);
-  const sources = modelLib.collectSources(path.join(projectDir, 'sources', 'nn'));
+  const activeSources = modelLib.collectSources(path.join(projectDir, 'sources', 'nn'));
+  const archivedSources = modelLib.collectArchivedSources(projectDir, activeSources);
+  const sources = [...activeSources, ...archivedSources].sort((a, b) => a.name.localeCompare(b.name));
   const models = modelLib.collectModels(projectDir);
   const artifacts = modelLib.collectArtifacts(projectDir);
-
 
   const { modelPath, created } = resolveModelPath(projectDir, projectName);
   const data = { sources, models, artifacts };
@@ -75,6 +76,7 @@ module.exports = {
   buildProvenanceModel,
   appendProcedureRun,
   collectSources: modelLib.collectSources,
+  collectArchivedSources: modelLib.collectArchivedSources,
   collectModels: modelLib.collectModels,
   collectArtifacts: modelLib.collectArtifacts,
   slugify: modelLib.slugify,

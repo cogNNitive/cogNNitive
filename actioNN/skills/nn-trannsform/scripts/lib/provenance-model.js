@@ -2,10 +2,10 @@ const fs = require('fs');
 const path = require('path');
 
 const TEMPLATE_URL =
-  'https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/cogNNitive/cogNNitive_V_0-1-0_NN.md';
+  'https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/cogNNitive/cogNNitive_V_0-2-0_NN.md';
 const INNFO_URL =
-  'https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-1-0_NN.md';
-const TEMPLATE_NAME = 'cogNNitive_V_0-1-0';
+  'https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-2-1_NN.md';
+const TEMPLATE_NAME = 'cogNNitive_V_0-2-0';
 
 const DOC_NOTICE =
   '> [!NOTE]\n> This is an **iNNfo document** — a plain-text Markdown file. ' +
@@ -97,6 +97,13 @@ function walkMarkdown(mdDir) {
     if (!fs.existsSync(dir)) return;
     const entries = fs.readdirSync(dir, { withFileTypes: true });
     for (const entry of entries) {
+      if (
+        entry.name.startsWith('.') ||
+        entry.name.toLowerCase() === 'staging' ||
+        entry.name.toLowerCase() === 'archive'
+      ) {
+        continue;
+      }
       const abs = path.join(dir, entry.name);
       const relPath = rel ? path.join(rel, entry.name) : entry.name;
       if (entry.isDirectory()) {
@@ -114,7 +121,7 @@ function walkMarkdown(mdDir) {
 /**
  * Collects normalized sources from sources/nn/.
  * @param {string} mdDir
- * @returns {Array<{ name: string, raw_filename: string, raw_hash: string | null, size: string | null, source_format: string, normalized_at: string | null, normalized_by: string | null, normalized_content: string, mdFile: string }>}
+ * @returns {Array<{ name: string, raw_filename: string, raw_hash: string | null, size: string | null, source_format: string, normalized_at: string | null, normalized_by: string | null, normalized_content: string, mdFile: string, is_synthetic: boolean, derived_from: string[] | null, version: string, archive_path: string | null }>}
  */
 function collectSources(mdDir) {
   const sources = [];
@@ -143,6 +150,8 @@ function collectSources(mdDir) {
       mdFile: relFile,
       is_synthetic: fmData.is_synthetic,
       derived_from: fmData.derived_from,
+      version: 'V1',
+      archive_path: null,
     });
   }
 
@@ -160,7 +169,99 @@ function collectSources(mdDir) {
     }
   }
 
+  // Populate version and archive_path from sources/archive/
+  const parentSources = path.resolve(mdDir, '..');
+  const archiveDir = path.join(parentSources, 'archive');
+
+  for (const s of sources) {
+    const base = path.basename(s.mdFile, '.md');
+    const baseArchiveDir = path.join(archiveDir, base);
+    if (fs.existsSync(baseArchiveDir)) {
+      const vDirs = fs.readdirSync(baseArchiveDir, { withFileTypes: true })
+        .filter(d => d.isDirectory() && /^V\d+$/.test(d.name));
+      const vNums = vDirs.map(d => parseInt(d.name.replace(/^V/, ''), 10)).filter(n => !isNaN(n));
+      if (vNums.length > 0) {
+        const maxN = Math.max(...vNums);
+        s.version = `V${maxN + 1}`;
+        s.archive_path = `sources/archive/${base}/V${maxN}/${base}.md`;
+        continue;
+      }
+    }
+    s.version = 'V1';
+    s.archive_path = null;
+  }
+
   return sources;
+}
+
+/**
+ * Recursively collects archived sources from sources/archive/.
+ * Each archived snapshot gets status:: archived, version:: V<N>, and superseded_by:: if applicable.
+ * @param {string} projectDir
+ * @param {Array<any>} [activeSources]
+ * @returns {Array<any>}
+ */
+function collectArchivedSources(projectDir, activeSources = []) {
+  const sourcesDir = path.basename(projectDir) === 'sources' ? projectDir : path.join(projectDir, 'sources');
+  const archiveDir = path.join(sourcesDir, 'archive');
+  const archived = [];
+  if (!fs.existsSync(archiveDir)) return archived;
+
+  const baseDirs = fs.readdirSync(archiveDir, { withFileTypes: true })
+    .filter(d => d.isDirectory() && !d.name.startsWith('.'));
+
+  for (const bDir of baseDirs) {
+    const base = bDir.name;
+    const baseDirPath = path.join(archiveDir, base);
+    const vDirs = fs.readdirSync(baseDirPath, { withFileTypes: true })
+      .filter(d => d.isDirectory() && /^V\d+$/.test(d.name));
+
+    const vInfos = [];
+    for (const vd of vDirs) {
+      const vNum = parseInt(vd.name.replace(/^V/, ''), 10);
+      const snapFile = path.join(baseDirPath, vd.name, `${base}.md`);
+      if (!fs.existsSync(snapFile)) continue;
+      const content = fs.readFileSync(snapFile, 'utf8');
+      const fmData = parseSourceFrontmatter(content);
+      if (!fmData) continue;
+      vInfos.push({ vNum, vName: vd.name, snapFile, fmData });
+    }
+
+    vInfos.sort((a, b) => a.vNum - b.vNum);
+    const maxArchived = vInfos.length > 0 ? Math.max(...vInfos.map(v => v.vNum)) : 0;
+    const hasActive = (activeSources || []).some(s => path.basename(s.mdFile, '.md') === base);
+
+    for (const vi of vInfos) {
+      const rawBase = path.basename(vi.fmData.file);
+      const ext = path.extname(rawBase).replace(/^\./, '').toLowerCase();
+      let supersededBy = null;
+      if (hasActive) {
+        supersededBy = `${rawBase} V${vi.vNum + 1}`;
+      } else {
+        if (vi.vNum < maxArchived) {
+          supersededBy = `${rawBase} V${vi.vNum + 1}`;
+        }
+      }
+
+      archived.push({
+        name: `${rawBase} ${vi.vName}`,
+        raw_filename: vi.fmData.file,
+        raw_hash: vi.fmData.hash,
+        size: vi.fmData.size,
+        source_format: mapSourceFormat(ext),
+        normalized_at: vi.fmData.normalized_at,
+        normalized_by: vi.fmData.normalized_by,
+        normalized_content: `sources/archive/${base}/${vi.vName}/${base}.md`,
+        status: 'archived',
+        version: vi.vName,
+        superseded_by: supersededBy,
+        base,
+        versionNum: vi.vNum,
+      });
+    }
+  }
+
+  return archived;
 }
 
 /**
@@ -358,6 +459,10 @@ function renderSourcesSection(sources) {
     if (s.normalized_at) out += `normalized_at:: ${s.normalized_at}\n`;
     if (s.normalized_by) out += `normalized_by:: ${s.normalized_by}\n`;
     out += `normalized_content:: ${s.normalized_content}\n`;
+    if (s.status) out += `status:: ${s.status}\n`;
+    if (s.version) out += `version:: ${s.version}\n`;
+    if (s.archive_path) out += `archive_path:: ${s.archive_path}\n`;
+    if (s.superseded_by) out += `superseded_by:: ${s.superseded_by}\n`;
   }
   return out;
 }
@@ -475,13 +580,13 @@ function buildFreshModel(title, data) {
   const d = toLineageData(data);
   const frontmatter =
     '---\n' +
-    'specification_version: "V_0-1-0"\n' +
+    'specification_version: "V_0-2-1"\n' +
     `specification_url: "${INNFO_URL}"\n` +
     'level: 3\n' +
     'parent_spec:\n' +
     `  name: "${TEMPLATE_NAME}"\n` +
     `  url: "${TEMPLATE_URL}"\n` +
-    'model_version: "V_0-1-0"\n' +
+    'model_version: "V_0-2-0"\n' +
     `title: "${title} Provenance"\n` +
     '---\n';
 
@@ -634,6 +739,7 @@ module.exports = {
   walkMarkdown,
   walkFiles,
   collectSources,
+  collectArchivedSources,
   collectModels,
   collectArtifacts,
   renderSourcesSection,

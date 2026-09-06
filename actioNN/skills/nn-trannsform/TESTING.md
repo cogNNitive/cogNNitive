@@ -17,7 +17,7 @@ npm run test:unit
 npm run test:integration
 ```
 
-Tests cover: config read/write/merge, format detection, file hashing, flat frontmatter generation (with mirrored subfolder output), dependency checking, HTML metadata extraction, recursive project bootstrap (subfolders preserved), lineage-record filesystem sync (# NN Models/# NN Artifacts from models/ + export/, append-only # NN Procedures, --check drift), provenance model generation, and conversation lifecycle (silent reservation, trivial discard, title suggestions, promotion to sources/conversations/ and normalization to sources/nn/conversations/).
+Tests cover: config read/write/merge, format detection, file hashing, flat frontmatter generation (with mirrored subfolder output), dependency checking, HTML metadata extraction, recursive project bootstrap (subfolders preserved), lineage-record filesystem sync (# NN Models/# NN Artifacts from models/ + export/, append-only # NN Procedures, --check drift and archive validation), provenance model generation, source versioning archive snapshots (`sources/archive/`), and conversation lifecycle (silent reservation, trivial discard, title suggestions, promotion to sources/conversations/ and normalization to sources/nn/conversations/).
 
 ## Manual Test Guide
 
@@ -86,7 +86,7 @@ Luis,28,Technician
 - ✅ Summary appears: "Discovered: X, Processed: Y, Skipped: Z"
 - ✅ `test-docs/sources/nn/index.md` (ingestion manifest) is created
 - ✅ `test-docs/index.md` (semantic `# NN index`) is created
-- ✅ `test-docs/<name>_V_0-1-0_cogNNitive_NN.md` (provenance model) is created with the Sources populated
+- ✅ `test-docs/<name>_V_0-2-0_cogNNitive_NN.md` (provenance model) is created with the Sources populated
 - ✅ `test-docs/sources/nn/import/report.md` is created with the txt content, with flat frontmatter (`source_file`, `sha256`, `size_bytes`, `normalized_at`, `normalized_by`)
 - ✅ `test-docs/sources/nn/import/data.md` is created with the csv content
 - ✅ If the source files live in subfolders under `sources/import/`, the same subfolders appear under `sources/nn/import/`

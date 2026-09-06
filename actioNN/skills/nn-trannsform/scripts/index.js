@@ -324,7 +324,20 @@ async function runProjectMenu(projectDir) {
 
   if (response.action === 'scan') {
     console.log('\nScanning active source directories (sources/import, sources/conversations, sources/export)...');
-    const result = await scanner.scanAndProcess(projectDir, { autoAcceptPrompt: true });
+    const orphanConsent = async (orphan) => {
+      const resp = await prompts({
+        type: 'select',
+        name: 'choice',
+        message: `Orphaned source detected: "${orphan.sourceFile}" no longer exists on disk. How would you like to handle it?`,
+        choices: [
+          { title: '[a] (Recommended) Archive & remove from active set', value: 'a' },
+          { title: '[b] Keep as active', value: 'b' },
+          { title: '[c] Skip for this run', value: 'c' },
+        ],
+      });
+      return resp.choice || 'c';
+    };
+    const result = await scanner.scanAndProcess(projectDir, { autoAcceptPrompt: true, orphanConsent });
     console.log('\n=== Ingestion Manifest Created ===');
     console.log(`Processed: ${result.processedCount} files successfully.`);
     console.log(`Skipped/Needs Review: ${result.skippedCount} files.`);

@@ -66,6 +66,108 @@ function checkLineage(projectDir) {
     }
   }
 
+  // 4. Archive checks
+  const archiveDir = path.join(projectDir, 'sources', 'archive');
+  const sourceBlocks = record.split(/^## NN Sources:/m).slice(1);
+  const parsedSources = sourceBlocks.map((blk) => {
+    const lines = blk.split(/\r?\n/);
+    const name = lines[0].trim();
+    const getField = (f) => {
+      const m = blk.match(new RegExp(`^${f}::\\s*(.+?)\\s*$`, 'm'));
+      return m ? m[1].trim() : null;
+    };
+    return {
+      name,
+      status: getField('status'),
+      version: getField('version'),
+      archive_path: getField('archive_path'),
+      superseded_by: getField('superseded_by'),
+      raw_hash: getField('raw_hash'),
+      normalized_content: getField('normalized_content'),
+    };
+  });
+
+  if (fs.existsSync(archiveDir)) {
+    // 4.1 Unlisted snapshot: every sources/archive/** file must have a matching status:: archived lineage element
+    const snapshotFiles = [];
+    const walkArchive = (d, rel) => {
+      for (const ent of fs.readdirSync(d, { withFileTypes: true })) {
+        if (ent.name.startsWith('.')) continue;
+        const abs = path.join(d, ent.name);
+        const relPath = rel ? `${rel}/${ent.name}` : ent.name;
+        if (ent.isDirectory()) walkArchive(abs, relPath);
+        else if (ent.isFile() && ent.name.endsWith('.md')) snapshotFiles.push(relPath);
+      }
+    };
+    walkArchive(archiveDir, '');
+
+    for (const snap of snapshotFiles) {
+      const snapPosix = snap.replace(/\\/g, '/');
+      const expectedNormContent = `sources/archive/${snapPosix}`;
+      const found = parsedSources.some(
+        (s) => s.status === 'archived' && s.normalized_content === expectedNormContent
+      );
+      if (!found) {
+        errors.push(`Unlisted snapshot: "sources/archive/${snapPosix}" has no status:: archived element in the lineage record.`);
+      }
+    }
+
+    // 4.4 Orphan chain: chain dir with neither an active source nor an archived element -> warning
+    const chainDirs = fs.readdirSync(archiveDir, { withFileTypes: true })
+      .filter((d) => d.isDirectory() && !d.name.startsWith('.'));
+    for (const cd of chainDirs) {
+      const chainBase = cd.name;
+      const hasActiveSource = fs.existsSync(nnDir) && modelLib.walkMarkdown(nnDir).some(
+        (rel) => path.basename(rel, '.md') === chainBase
+      );
+      const hasArchivedElement = parsedSources.some(
+        (s) => s.status === 'archived' && (s.name === chainBase || s.name.startsWith(`${chainBase} `) || (s.normalized_content && s.normalized_content.includes(`/archive/${chainBase}/`)))
+      );
+      if (!hasActiveSource && !hasArchivedElement) {
+        warnings.push(`Orphan archive chain directory: "sources/archive/${chainBase}" has neither an active source nor an archived lineage element.`);
+      }
+    }
+  }
+
+  // 4.2 Dangling archive_path / superseded_by
+  for (const s of parsedSources) {
+    if (s.archive_path) {
+      const targetAbs = path.join(projectDir, s.archive_path);
+      if (!fs.existsSync(targetAbs)) {
+        errors.push(`Dangling archive_path: "${s.archive_path}" in element "${s.name}" does not resolve on disk.`);
+      }
+    }
+    if (s.superseded_by) {
+      const targetName = s.superseded_by;
+      const targetElementExists = parsedSources.some(
+        (other) => other.name === targetName || (other.version && `${other.name} ${other.version}` === targetName)
+      );
+      if (!targetElementExists) {
+        errors.push(`Dangling superseded_by: "${targetName}" in element "${s.name}" does not resolve to any active or archived source.`);
+      }
+    }
+  }
+
+  // 4.3 Hash mismatch: archived element raw_hash vs snapshot frontmatter sha256
+  for (const s of parsedSources) {
+    if (s.status === 'archived' && s.normalized_content && s.raw_hash) {
+      const targetAbs = path.join(projectDir, s.normalized_content);
+      if (fs.existsSync(targetAbs)) {
+        try {
+          const content = fs.readFileSync(targetAbs, 'utf8');
+          const fm = modelLib.parseSourceFrontmatter(content);
+          if (fm && fm.hash && fm.hash !== s.raw_hash) {
+            errors.push(
+              `Hash mismatch: archived element "${s.name}" raw_hash "${s.raw_hash}" does not match snapshot frontmatter sha256 "${fm.hash}".`
+            );
+          }
+        } catch {
+          // File read error caught elsewhere if needed
+        }
+      }
+    }
+  }
+
   return { errors, warnings };
 }
 

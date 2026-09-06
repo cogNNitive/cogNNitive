@@ -150,6 +150,10 @@ function readExistingSha256(destPath) {
  */
 function walkOriginal(originalDir) {
   const results = [];
+  if (!fs.existsSync(originalDir)) return results;
+  const base = path.basename(originalDir).toLowerCase();
+  if (base === 'staging' || base === 'archive') return results;
+
   const walk = (dir, relDir) => {
     const entries = fs.readdirSync(dir, { withFileTypes: true });
     for (const entry of entries) {
@@ -157,7 +161,8 @@ function walkOriginal(originalDir) {
         entry.name.startsWith('.') ||
         entry.name.startsWith('~$') ||
         entry.name.toLowerCase() === 'desktop.ini' ||
-        entry.name.toLowerCase() === 'staging'
+        entry.name.toLowerCase() === 'staging' ||
+        entry.name.toLowerCase() === 'archive'
       ) {
         continue;
       }
@@ -272,6 +277,8 @@ function detectFormats(dir) {
   /** @type {Record<string, number>} */
   const counts = {};
   if (!fs.existsSync(dir)) return counts;
+  const base = path.basename(dir).toLowerCase();
+  if (base === 'staging' || base === 'archive') return counts;
 
   const walk = (d) => {
     const entries = fs.readdirSync(d, { withFileTypes: true });
@@ -280,7 +287,8 @@ function detectFormats(dir) {
         entry.name.startsWith('.') ||
         entry.name.startsWith('~$') ||
         entry.name.toLowerCase() === 'desktop.ini' ||
-        entry.name.toLowerCase() === 'staging'
+        entry.name.toLowerCase() === 'staging' ||
+        entry.name.toLowerCase() === 'archive'
       ) {
         continue;
       }
@@ -352,6 +360,143 @@ function getExistingFrontmatterFields(destPath, sourceFileField) {
 }
 
 /**
+ * Takes a snapshot of an active normalized source file into sources/archive/<basename>/V<N>/<basename>.md.
+ * Hash-idempotent: skips snapshot if one with the same sha256 already exists in the archive.
+ *
+ * @param {string} absPath Absolute path of the raw source file
+ * @param {string} nnPath Active normalized file path in sources/nn/
+ * @param {string} destPath Target destination (or same as nnPath)
+ * @param {string} [basename] Source basename without extension
+ * @returns {{ archived: boolean, skipped?: boolean, version?: string, archivePath?: string }}
+ */
+function archiveSourceSnapshot(absPath, nnPath, destPath, basename) {
+  const activeFile = [nnPath, destPath, absPath].find(p => p && typeof p === 'string' && fs.existsSync(p) && p.endsWith('.md'));
+  if (!activeFile) {
+    return { archived: false };
+  }
+
+  const base = basename || path.basename(activeFile, '.md');
+
+  // Find sources/ root directory from activeFile
+  let cur = path.dirname(activeFile);
+  let sourcesDir = null;
+  while (cur) {
+    if (path.basename(cur).toLowerCase() === 'sources') {
+      sourcesDir = cur;
+      break;
+    }
+    const parent = path.dirname(cur);
+    if (parent === cur) break;
+    cur = parent;
+  }
+  if (!sourcesDir) {
+    return { archived: false };
+  }
+
+  const archiveBaseDir = path.join(sourcesDir, 'archive', base);
+  const activeContent = fs.readFileSync(activeFile, 'utf8');
+  const activeFm = parseFrontmatterFields(activeContent);
+  const activeHash = activeFm.sha256 || computeFileHash(activeFile);
+
+  // Check existing snapshots in sources/archive/<base>/
+  let maxVersion = 0;
+  if (fs.existsSync(archiveBaseDir)) {
+    const entries = fs.readdirSync(archiveBaseDir, { withFileTypes: true });
+    for (const ent of entries) {
+      if (!ent.isDirectory()) continue;
+      const vMatch = ent.name.match(/^V(\d+)$/);
+      if (!vMatch) continue;
+      const vNum = parseInt(vMatch[1], 10);
+      if (vNum > maxVersion) maxVersion = vNum;
+
+      // Check hash for idempotency
+      const snapshotFile = path.join(archiveBaseDir, ent.name, `${base}.md`);
+      if (fs.existsSync(snapshotFile)) {
+        const snapContent = fs.readFileSync(snapshotFile, 'utf8');
+        const snapFm = parseFrontmatterFields(snapContent);
+        if (snapFm.sha256 === activeHash) {
+          return {
+            archived: false,
+            skipped: true,
+            version: ent.name,
+            archivePath: `sources/archive/${base}/${ent.name}/${base}.md`
+          };
+        }
+      }
+    }
+  }
+
+  const nextVersionNum = maxVersion + 1;
+  const nextVersion = `V${nextVersionNum}`;
+  const targetDir = path.join(archiveBaseDir, nextVersion);
+  fs.mkdirSync(targetDir, { recursive: true });
+
+  const targetPath = path.join(targetDir, `${base}.md`);
+  fs.copyFileSync(activeFile, targetPath);
+
+  const archivePath = `sources/archive/${base}/${nextVersion}/${base}.md`;
+  return {
+    archived: true,
+    version: nextVersion,
+    archivePath
+  };
+}
+
+/**
+ * Recursively find orphaned normalized markdown files under sources/nn/.
+ * An orphan is a file whose frontmatter source_file does not exist on disk relative to projectDir.
+ * Excludes index.md, staging, and archive.
+ *
+ * @param {string} projectDir
+ * @returns {Array<{ nnPath: string, relPath: string, baseName: string, sourceFile: string, sha256: string | null }>}
+ */
+function findOrphanSources(projectDir) {
+  const nnDir = path.join(projectDir, 'sources', 'nn');
+  const orphans = [];
+  if (!fs.existsSync(nnDir)) return orphans;
+
+  const walk = (dir, rel) => {
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    for (const ent of entries) {
+      if (
+        ent.name.startsWith('.') ||
+        ent.name.startsWith('~$') ||
+        ent.name.toLowerCase() === 'desktop.ini' ||
+        ent.name.toLowerCase() === 'staging' ||
+        ent.name.toLowerCase() === 'archive'
+      ) {
+        continue;
+      }
+      const abs = path.join(dir, ent.name);
+      const relPath = rel ? path.join(rel, ent.name) : ent.name;
+      if (ent.isDirectory()) {
+        walk(abs, relPath);
+      } else if (ent.isFile() && ent.name.endsWith('.md')) {
+        if (relPath === 'index.md') continue;
+        const content = fs.readFileSync(abs, 'utf8');
+        const fm = parseFrontmatterFields(content);
+        if (fm.source_file) {
+          const originalOnDisk = path.join(projectDir, fm.source_file);
+          if (!fs.existsSync(originalOnDisk)) {
+            const baseName = path.basename(ent.name, '.md');
+            orphans.push({
+              nnPath: abs,
+              relPath: relPath.replace(/\\/g, '/'),
+              baseName,
+              sourceFile: fm.source_file,
+              sha256: fm.sha256 || null,
+            });
+          }
+        }
+      }
+    }
+  };
+
+  walk(nnDir, '');
+  return orphans.sort((a, b) => a.relPath.localeCompare(b.relPath));
+}
+
+/**
  * Processes native/text formats and writes normalized markdown files.
  * @param {string} ext
  * @param {string} absPath
@@ -376,6 +521,11 @@ function processOkFile(ext, absPath, sourceFileField, destPath, displayOutPath, 
 
   try {
     const baseName = path.basename(displayOutPath, '.md');
+    let snapshot = null;
+    if (existingHash && existingHash !== newHash) {
+      snapshot = archiveSourceSnapshot(absPath, destPath, destPath, baseName);
+    }
+
     const body = converters.convertOkFormat(ext, absPath, baseName);
 
     let incomingFields = {};
@@ -415,7 +565,10 @@ function processOkFile(ext, absPath, sourceFileField, destPath, displayOutPath, 
 
     fs.mkdirSync(path.dirname(destPath), { recursive: true });
     fs.writeFileSync(destPath, generateSourceFrontmatter(absPath, sourceFileField, finalExtra) + body, 'utf8');
-    return { format, status: '✅ Processed', action: `Converted to markdown at \`sources/nn/${displayOutPath}\``, outcome: 'processed' };
+    const actionText = (snapshot && snapshot.archived)
+      ? `Archived ${snapshot.version} then converted`
+      : `Converted to markdown at \`sources/nn/${displayOutPath}\``;
+    return { format, status: '✅ Processed', action: actionText, outcome: 'processed' };
   } catch (err) {
     return { format, status: '❌ Error', action: `Failed to process: ${err.message}`, outcome: 'skipped' };
   }
@@ -464,6 +617,11 @@ async function processPromptFile(ext, absPath, sourceFileField, destPath, displa
 
   try {
     const baseName = path.basename(displayOutPath, '.md');
+    let snapshot = null;
+    if (existingHash && existingHash !== newHash) {
+      snapshot = archiveSourceSnapshot(absPath, destPath, destPath, baseName);
+    }
+
     const result = await converters.PROMPT_CONVERTERS[ext](absPath, baseName);
 
     const mergedExtra = { ...extra };
@@ -495,7 +653,10 @@ async function processPromptFile(ext, absPath, sourceFileField, destPath, displa
     if (result.partial) {
       return { format, status: '✅ Processed (Partial)', action: `Created placeholder markdown at \`sources/nn/${displayOutPath}\`. PDF parsing failed: ${result.note}`, outcome: 'processed' };
     }
-    return { format, status: '✅ Processed', action: `Converted ${format} to markdown at \`sources/nn/${displayOutPath}\``, outcome: 'processed' };
+    const actionText = (snapshot && snapshot.archived)
+      ? `Archived ${snapshot.version} then converted`
+      : `Converted ${format} to markdown at \`sources/nn/${displayOutPath}\``;
+    return { format, status: '✅ Processed', action: actionText, outcome: 'processed' };
   } catch (err) {
     return { format, status: '❌ Error', action: `Failed to convert: ${err.message}`, outcome: 'skipped' };
   }
@@ -512,6 +673,8 @@ module.exports = {
   escapeYamlString,
   generateSourceFrontmatter,
   readExistingSha256,
+  archiveSourceSnapshot,
+  findOrphanSources,
   walkOriginal,
   walkSourceTrees,
   detectFormats,

@@ -96,15 +96,18 @@ tool in workspace mode, and in the editor:
 
 | Section | Synced from | Semantics |
 | :--- | :--- | :--- |
-| `# NN Sources` | `sources/nn/` frontmatter | idempotent replace |
+| `# NN Sources` | `sources/nn/` and `sources/archive/` frontmatter (active sources carry `version::` and `archive_path::`; archived sources carry `status:: archived`, `version::`, and `superseded_by::`) | idempotent replace |
 | `# NN Models` | `models/*_NN.md` (`derived_from::` scraped from each model's `sources::`) | idempotent replace |
 | `# NN Artifacts` | `export/` (with fallback to `artifacts/`) (`derived_from::` from frontmatter `model` + `model_version`, or an HTML `export-meta` block) | idempotent replace |
 | `# NN Procedures` | one entry appended per run (`--scan`, `--import-url`, `--apply`): `command`, `flags`, `run_at`, `inputs`, `outputs` | **append-only log** |
 
 Removed files drop out of the three replaced sections; the Procedures log is
 never rewritten. Run `node scripts/index.js --check` to report drift — a model
-with no entry, an artifact citing a model/version that no longer exists, or a
-`sources::` that resolves nowhere; it exits non-zero on any such error.
+with no entry, an artifact citing a model/version that no longer exists, a
+`sources::` that resolves nowhere, an unlisted snapshot under `sources/archive/`,
+a dangling `archive_path::` or `superseded_by::` pointer, a hash mismatch
+between an archived element and its snapshot, or an orphan archive chain (warning);
+it exits non-zero on any error.
 
 ---
 
