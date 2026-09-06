@@ -71,16 +71,7 @@ function run(cmd, desc) {
 function runVerification() {
   console.log('🔍 [cogNNitive Verify] Running workspace verification...');
 
-<<<<<<< Updated upstream
-function extractDeclaredTemplates(sourceText) {
-  /** @type {Set<string>} */
-  const declaredTemplates = new Set();
-  const matchRegex = /-\s+name:\s+([^\s\n]+)/g;
-  let match;
-  while ((match = matchRegex.exec(sourceText)) !== null) {
-    declaredTemplates.add(match[1]);
-=======
-  // 1. Template Inventory Guard: ensure every template folder is declared in manifest/source.yaml
+// 1. Template Inventory Guard: ensure every template folder is declared in manifest/source.yaml
   const templatesDir = path.join(__dirname, '..', 'iNNfo', 'specs', 'templates');
   const sourceYamlPath = path.join(__dirname, '..', 'manifest', 'source.yaml');
 
@@ -91,36 +82,8 @@ function extractDeclaredTemplates(sourceText) {
       process.exit(1);
     }
     console.log(`▶ Template Inventory Guard: all ${diskFolders.length} template folders are registered in manifest.`);
->>>>>>> Stashed changes
   }
-  return declaredTemplates;
-}
 
-<<<<<<< Updated upstream
-function checkTemplateInventory(tmplDir, srcPath) {
-  if (!fs.existsSync(tmplDir) || !fs.existsSync(srcPath)) {
-    return { ok: true, missing: [], diskFolders: [] };
-  }
-  const sourceText = fs.readFileSync(srcPath, 'utf8');
-  const declaredTemplates = extractDeclaredTemplates(sourceText);
-
-  const diskFolders = fs.readdirSync(tmplDir, { withFileTypes: true })
-    .filter(d => d.isDirectory() && d.name !== 'assets')
-    .map(d => d.name);
-
-  const missing = diskFolders.filter(name => !declaredTemplates.has(name));
-  return { ok: missing.length === 0, missing, diskFolders };
-}
-
-if (fs.existsSync(templatesDir) && fs.existsSync(sourceYamlPath)) {
-  const { ok, missing, diskFolders } = checkTemplateInventory(templatesDir, sourceYamlPath);
-  if (!ok) {
-    console.error(`❌ Template Inventory Mismatch! Folders exist in specs/templates/ but are missing from manifest/source.yaml: ${missing.join(', ')}`);
-    process.exit(1);
-  }
-  console.log(`▶ Template Inventory Guard: all ${diskFolders.length} template folders are registered in manifest.`);
-}
-=======
   // 2. Orchestrator Line-Count Guard: enforce strictly < 200 physical lines per orchestrator
   const ORCHESTRATORS = [
     'scripts/manifest/validate-manifest.js',
@@ -132,7 +95,6 @@ if (fs.existsSync(templatesDir) && fs.existsSync(sourceYamlPath)) {
 
   const MAX_LINES = 200;
   let lineCountFailed = false;
->>>>>>> Stashed changes
 
   for (const relPath of ORCHESTRATORS) {
     const fullPath = path.join(__dirname, '..', relPath);
