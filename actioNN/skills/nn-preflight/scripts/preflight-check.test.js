@@ -11,7 +11,8 @@ const path = require('path');
 const http = require('http');
 const assert = require('assert');
 const { spawn } = require('child_process');
-const { parseManifest } = require('./preflight-check');
+const crypto = require('crypto');
+const { parseManifest, scanWorkspaceSources } = require('./preflight-check');
 
 const preflightScript = path.join(__dirname, 'preflight-check.js');
 
@@ -422,6 +423,270 @@ agent-bootstrap:
       assert.strictEqual(parsedRes.summary.specsFresh, 0);
       assert.strictEqual(parsedRes.summary.specsOffline, 0);
       console.log('✔ No --workspace-dir run leaves global-env audit unchanged');
+    } finally {
+      await server.close();
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }
+
+  // Test 9: scanWorkspaceSources — Clean Workspace Baseline
+  {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'preflight-sources-clean-'));
+    try {
+      const ws = path.join(tmpDir, 'ws');
+      const importDir = path.join(ws, 'sources', 'import');
+      const convDir = path.join(ws, 'sources', 'conversations');
+      const exportDir = path.join(ws, 'sources', 'export');
+      const nnImportDir = path.join(ws, 'sources', 'nn', 'import');
+      const nnConvDir = path.join(ws, 'sources', 'nn', 'conversations');
+      const nnExportDir = path.join(ws, 'sources', 'nn', 'export');
+
+      fs.mkdirSync(importDir, { recursive: true });
+      fs.mkdirSync(convDir, { recursive: true });
+      fs.mkdirSync(exportDir, { recursive: true });
+      fs.mkdirSync(nnImportDir, { recursive: true });
+      fs.mkdirSync(nnConvDir, { recursive: true });
+      fs.mkdirSync(nnExportDir, { recursive: true });
+
+      const doc1Content = 'Sample import content';
+      const doc1Hash = crypto.createHash('sha256').update(doc1Content).digest('hex');
+      fs.writeFileSync(path.join(importDir, 'doc1.txt'), doc1Content);
+      fs.writeFileSync(
+        path.join(nnImportDir, 'doc1.md'),
+        `---\nsource_file: "sources/import/doc1.txt"\nsha256: "${doc1Hash}"\n---\n# doc1\n`,
+      );
+
+      const conv1Content = '# Conversation summary';
+      const conv1Hash = crypto.createHash('sha256').update(conv1Content).digest('hex');
+      fs.writeFileSync(path.join(convDir, 'session_summary.md'), conv1Content);
+      fs.writeFileSync(
+        path.join(nnConvDir, 'session_summary.md'),
+        `---\nsource_file: "sources/conversations/session_summary.md"\nsha256: "${conv1Hash}"\nconversation_format: "summary"\n---\n# session summary\n`,
+      );
+
+      const export1Content = 'Deliverable CSV data';
+      const export1Hash = crypto.createHash('sha256').update(export1Content).digest('hex');
+      fs.writeFileSync(path.join(exportDir, 'data.csv'), export1Content);
+      fs.writeFileSync(
+        path.join(nnExportDir, 'data.md'),
+        `---\nsource_file: "sources/export/data.csv"\nsha256: "${export1Hash}"\nis_synthetic: true\n---\n# data\n`,
+      );
+
+      // Ingestion manifest index.md in sources/nn/ must be ignored as a source
+      fs.writeFileSync(path.join(ws, 'sources', 'nn', 'index.md'), '# Ingestion Manifest\n');
+
+      const res = scanWorkspaceSources(ws);
+      assert.strictEqual(res.total, 3, 'Total sources should be 3');
+      assert.strictEqual(res.normalized, 3, 'Normalized sources should be 3');
+      assert.strictEqual(res.unnormalized, 0, 'Unnormalized sources should be 0');
+      assert.strictEqual(res.dangling, 0, 'Dangling sources should be 0');
+      assert.strictEqual(res.sources_integrity.ok, true, 'sources_integrity.ok should be true');
+      assert.strictEqual(res.sources_integrity.unnormalized.length, 0);
+      assert.strictEqual(res.sources_integrity.orphaned.length, 0);
+      assert.strictEqual(res.sources_integrity.subtrees.import.total, 1);
+      assert.strictEqual(res.sources_integrity.subtrees.conversations.total, 1);
+      assert.strictEqual(res.sources_integrity.subtrees.export.total, 1);
+      console.log('✔ scanWorkspaceSources passes clean workspace baseline across import, conversations, export');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }
+
+  // Test 10: scanWorkspaceSources — Unnormalized detection across subtrees
+  {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'preflight-sources-unnorm-'));
+    try {
+      const ws = path.join(tmpDir, 'ws');
+      fs.mkdirSync(path.join(ws, 'sources', 'import'), { recursive: true });
+      fs.mkdirSync(path.join(ws, 'sources', 'conversations'), { recursive: true });
+      fs.mkdirSync(path.join(ws, 'sources', 'export'), { recursive: true });
+      fs.mkdirSync(path.join(ws, 'sources', 'nn'), { recursive: true });
+
+      fs.writeFileSync(path.join(ws, 'sources', 'import', 'doc.pdf'), 'PDF bytes');
+      fs.writeFileSync(path.join(ws, 'sources', 'conversations', 'chat_summary.md'), 'chat summary');
+      fs.writeFileSync(path.join(ws, 'sources', 'export', 'report.md'), 'report deliverable');
+
+      const res = scanWorkspaceSources(ws);
+      assert.strictEqual(res.total, 3);
+      assert.strictEqual(res.normalized, 0);
+      assert.strictEqual(res.unnormalized, 3);
+      assert.strictEqual(res.sources_integrity.ok, false);
+      assert.strictEqual(res.sources_integrity.unnormalized.length, 3);
+
+      const unnormPaths = res.sources_integrity.unnormalized.map(u => u.path);
+      assert.ok(unnormPaths.some(p => p.includes('doc.pdf')));
+      assert.ok(unnormPaths.some(p => p.includes('chat_summary.md')));
+      assert.ok(unnormPaths.some(p => p.includes('report.md')));
+      assert.ok(res.sources_integrity.unnormalized.every(u => u.reason === 'missing'));
+      console.log('✔ scanWorkspaceSources detects unnormalized files across all subtrees');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }
+
+  // Test 11: scanWorkspaceSources — Stale hash detection
+  {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'preflight-sources-stale-'));
+    try {
+      const ws = path.join(tmpDir, 'ws');
+      fs.mkdirSync(path.join(ws, 'sources', 'import'), { recursive: true });
+      fs.mkdirSync(path.join(ws, 'sources', 'nn', 'import'), { recursive: true });
+
+      // Raw source has updated content
+      fs.writeFileSync(path.join(ws, 'sources', 'import', 'doc.txt'), 'Modified Content Version 2');
+
+      // Normalized frontmatter holds stale hash
+      const oldHash = crypto.createHash('sha256').update('Original Content Version 1').digest('hex');
+      fs.writeFileSync(
+        path.join(ws, 'sources', 'nn', 'import', 'doc.md'),
+        `---\nsource_file: "sources/import/doc.txt"\nsha256: "${oldHash}"\n---\n# doc\n`,
+      );
+
+      const res = scanWorkspaceSources(ws);
+      assert.strictEqual(res.total, 1);
+      assert.strictEqual(res.unnormalized, 1);
+      assert.strictEqual(res.sources_integrity.ok, false);
+      assert.strictEqual(res.sources_integrity.unnormalized.length, 1);
+      assert.strictEqual(res.sources_integrity.unnormalized[0].reason, 'hash_mismatch');
+      assert.ok(res.items.some(i => i.status === 'stale' && i.name.includes('doc.txt')));
+      console.log('✔ scanWorkspaceSources detects stale source hash drift');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }
+
+  // Test 12: scanWorkspaceSources — Dangling normalized reference detection
+  {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'preflight-sources-dangling-'));
+    try {
+      const ws = path.join(tmpDir, 'ws');
+      fs.mkdirSync(path.join(ws, 'sources', 'nn', 'import'), { recursive: true });
+
+      // Normalized file points to missing raw source file
+      fs.writeFileSync(
+        path.join(ws, 'sources', 'nn', 'import', 'orphan.md'),
+        `---\nsource_file: "sources/import/deleted.pdf"\nsha256: "abcdef123456"\n---\n# orphan\n`,
+      );
+
+      const res = scanWorkspaceSources(ws);
+      assert.strictEqual(res.dangling, 1);
+      assert.strictEqual(res.sources_integrity.ok, false);
+      assert.strictEqual(res.sources_integrity.orphaned.length, 1);
+      assert.strictEqual(res.sources_integrity.orphaned[0].missing_source, 'sources/import/deleted.pdf');
+      assert.ok(res.items.some(i => i.status === 'dangling'));
+      console.log('✔ scanWorkspaceSources detects dangling references in sources/nn/');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }
+
+  // Test 13: scanWorkspaceSources — Legacy alias sources/original/ fallback
+  {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'preflight-sources-legacy-'));
+    try {
+      const ws = path.join(tmpDir, 'ws');
+      const originalDir = path.join(ws, 'sources', 'original');
+      const nnDir = path.join(ws, 'sources', 'nn');
+      fs.mkdirSync(originalDir, { recursive: true });
+      fs.mkdirSync(nnDir, { recursive: true });
+
+      const content = 'Legacy original document';
+      const hash = crypto.createHash('sha256').update(content).digest('hex');
+      fs.writeFileSync(path.join(originalDir, 'legacy.txt'), content);
+      fs.writeFileSync(
+        path.join(nnDir, 'legacy.md'),
+        `---\nsource_file: "sources/original/legacy.txt"\nsha256: "${hash}"\n---\n# legacy\n`,
+      );
+
+      const res = scanWorkspaceSources(ws);
+      assert.strictEqual(res.total, 1);
+      assert.strictEqual(res.normalized, 1);
+      assert.strictEqual(res.unnormalized, 0);
+      assert.strictEqual(res.dangling, 0);
+      assert.strictEqual(res.sources_integrity.ok, true);
+      console.log('✔ scanWorkspaceSources supports legacy alias sources/original/ cleanly');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }
+
+  // Test 14: CLI integration — Unnormalized source triggers exit code 1 + ACTION_REQUIRED
+  {
+    const emptyManifest = `---
+agent-bootstrap:
+  version: "2.0"
+  skills: []
+  templates: []
+---
+`;
+    const server = await serveManifest(emptyManifest);
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'preflight-cli-unnorm-'));
+    try {
+      const ws = path.join(tmpDir, 'ws');
+      fs.mkdirSync(path.join(ws, 'sources', 'import'), { recursive: true });
+      fs.writeFileSync(path.join(ws, 'sources', 'import', 'contract.pdf'), 'contract bytes');
+
+      const res = await runScriptAsync([
+        '--json',
+        '--workspace-dir', ws,
+        '--manifest-url', server.url,
+      ]);
+
+      assert.strictEqual(res.status, 1, `Unnormalized source must exit 1. Got: ${res.stdout} ${res.stderr}`);
+      const parsedRes = JSON.parse(res.stdout);
+      assert.strictEqual(parsedRes.status, 'ACTION_REQUIRED');
+      assert.strictEqual(parsedRes.summary.sourcesTotal, 1);
+      assert.strictEqual(parsedRes.summary.sourcesUnnormalized, 1);
+      assert.strictEqual(parsedRes.sources_integrity.ok, false);
+      assert.strictEqual(parsedRes.sources_integrity.unnormalized.length, 1);
+      assert.strictEqual(parsedRes.sources_integrity.unnormalized[0].reason, 'missing');
+      console.log('✔ CLI preflight with unnormalized sources exits 1 with ACTION_REQUIRED and sources_integrity');
+    } finally {
+      await server.close();
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }
+
+  // Test 15: CLI integration — Fully normalized workspace exits 0 + OK
+  {
+    const emptyManifest = `---
+agent-bootstrap:
+  version: "2.0"
+  skills: []
+  templates: []
+---
+`;
+    const server = await serveManifest(emptyManifest);
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'preflight-cli-clean-'));
+    try {
+      const ws = path.join(tmpDir, 'ws');
+      fs.mkdirSync(path.join(ws, 'sources', 'import'), { recursive: true });
+      fs.mkdirSync(path.join(ws, 'sources', 'nn', 'import'), { recursive: true });
+
+      const content = 'clean file';
+      const hash = crypto.createHash('sha256').update(content).digest('hex');
+      fs.writeFileSync(path.join(ws, 'sources', 'import', 'doc.txt'), content);
+      fs.writeFileSync(
+        path.join(ws, 'sources', 'nn', 'import', 'doc.md'),
+        `---\nsource_file: "sources/import/doc.txt"\nsha256: "${hash}"\n---\n# doc\n`,
+      );
+
+      const res = await runScriptAsync([
+        '--json',
+        '--workspace-dir', ws,
+        '--manifest-url', server.url,
+      ]);
+
+      assert.strictEqual(res.status, 0, `Clean sources must exit 0. Got: ${res.stdout} ${res.stderr}`);
+      const parsedRes = JSON.parse(res.stdout);
+      assert.strictEqual(parsedRes.status, 'OK');
+      assert.strictEqual(parsedRes.summary.sourcesTotal, 1);
+      assert.strictEqual(parsedRes.summary.sourcesNormalized, 1);
+      assert.strictEqual(parsedRes.summary.sourcesUnnormalized, 0);
+      assert.strictEqual(parsedRes.summary.sourcesDangling, 0);
+      assert.strictEqual(parsedRes.sources_integrity.ok, true);
+      assert.strictEqual(parsedRes.sources_integrity.unnormalized.length, 0);
+      console.log('✔ CLI preflight with normalized workspace exits 0 and reports sources_integrity.ok === true');
     } finally {
       await server.close();
       fs.rmSync(tmpDir, { recursive: true, force: true });

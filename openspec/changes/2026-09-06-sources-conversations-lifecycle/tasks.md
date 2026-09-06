@@ -31,10 +31,10 @@ Chain strategy: feature-branch-chain
 
 ## Phase 1: Preflight Source Integrity Audit
 
-- [ ] 1.1 RED: Add tests in `actioNN/skills/nn-preflight/scripts/preflight-check.test.js` for `scanWorkspaceSources` (unnormalized, stale hash, dangling references, legacy aliases).
-- [ ] 1.2 GREEN: Implement `scanWorkspaceSources` in `actioNN/skills/nn-preflight/scripts/preflight-check.js` inspecting `sources/import/`, `sources/conversations/`, and `sources/export/` against `sources/nn/`.
-- [ ] 1.3 GREEN: Wire source integrity metrics into `--json` envelope and human report warnings.
-- [ ] 1.4 Update `actioNN/skills/nn-preflight/SKILL.md` documenting source integrity checks.
+- [x] 1.1 RED: Add tests in `actioNN/skills/nn-preflight/scripts/preflight-check.test.js` for `scanWorkspaceSources` (unnormalized, stale hash, dangling references, legacy aliases).
+- [x] 1.2 GREEN: Implement `scanWorkspaceSources` in `actioNN/skills/nn-preflight/scripts/preflight-check.js` inspecting `sources/import/`, `sources/conversations/`, and `sources/export/` against `sources/nn/`.
+- [x] 1.3 GREEN: Wire source integrity metrics into `--json` envelope and human report warnings.
+- [x] 1.4 Update `actioNN/skills/nn-preflight/SKILL.md` documenting source integrity checks.
 
 ---
 
