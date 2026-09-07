@@ -214,8 +214,19 @@ describe('validator', () => {
     '',
   ].join('\n')
 
-  const bizTemplateContent = readSpec('templates/business/business_V_0-1-0_NN.md')
+  const bizTemplateContent = readSpec('templates/business/spec_NN.md')
   const bizTemplateFm = parseFrontmatter(bizTemplateContent)!
+
+  // Canonical `business` is a composition shell — its schema is resolved from
+  // the four decomposed templates it `includes`.
+  const bizIncludes: Record<string, string> = {
+    'business-model': readSpec('templates/business-model/spec_NN.md'),
+    analysis: readSpec('templates/analysis/spec_NN.md'),
+    organization: readSpec('templates/organization/spec_NN.md'),
+    projects: readSpec('templates/projects/spec_NN.md'),
+  }
+  const resolveBizInclude = (ref: { name: string }): string | null =>
+    bizIncludes[ref.name.toLowerCase()] ?? null
 
   it('validates a model against the migrated business template', () => {
     const model = parseModel(validModelContent)
@@ -230,6 +241,7 @@ describe('validator', () => {
         rawContent: bizTemplateContent,
       },
       null,
+      resolveBizInclude,
     )
 
     expect(result.valid).toBe(true)

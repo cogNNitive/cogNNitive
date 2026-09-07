@@ -1,6 +1,6 @@
 ---
 spec_version: "V_0-2-1"
-spec_url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business/business_V_0-2-1_NN.md"
+spec_url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business/spec_NN.md"
 level: 2
 parent_spec:
   name: "iNNfo_V_0-2-1"
@@ -9,13 +9,13 @@ template_version: "V_0-2-1"
 title: "Business Template"
 includes:
   - name: "business-model"
-    url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business-model/business-model_V_0-2-0_NN.md"
+    url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business-model/spec_NN.md"
   - name: "analysis"
-    url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/analysis/analysis_V_0-2-0_NN.md"
+    url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/analysis/spec_NN.md"
   - name: "organization"
-    url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/organization/organization_V_0-2-0_NN.md"
+    url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/organization/spec_NN.md"
   - name: "projects"
-    url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/projects/projects_V_0-2-0_NN.md"
+    url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/projects/spec_NN.md"
 relationship_types:
   hierarchy:
     enabled: true
@@ -112,7 +112,7 @@ To create a business model, create a level 3 FILE mode document with:
 level: 3
 parent_spec:
   name: "business_V_0-2-1"
-  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business/business_V_0-2-1_NN.md"
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business/spec_NN.md"
 model_version: "V_x-y-z"
 title: "<Your Business Name>"
 ---
@@ -153,7 +153,7 @@ The official sample for this template is
 # From the Ghostbusters V_0-2-1 sample:
 parent_spec:
   name: "business_V_0-2-1"
-  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business/business_V_0-2-1_NN.md"
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business/spec_NN.md"
 
 # This template's parent:
 parent_spec:
