@@ -83,7 +83,7 @@ const samples: ExampleModel[] = [
     description:
       'Business model for a fictional ghost-catching franchise: SWOT, risks, market segments, finance, legal, and operations.',
     templateName: 'business',
-    url: `${SAMPLE_BASE}/business/samples/Ghostbusters_V_0-2-0_business_NN.md`,
+    url: `${SAMPLE_BASE}/business/samples/Ghostbusters_V_0-2-1_business_NN.md`,
   },
   {
     id: 'sample-organization',
