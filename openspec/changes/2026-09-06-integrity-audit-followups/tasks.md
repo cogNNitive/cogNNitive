@@ -70,10 +70,10 @@ editor PRs also `npm --prefix iNNfo/apps/innfo-editor run build`.
 ## Wave 3 — innfo-editor
 
 ### PR10 · E1 + E2 — matrix cell identity
-- [ ] Test (`useMatrixCells.test.ts`): two `Review` nodes under different parents → two independent cells; row name with `::` → distribution count == rendered cells
-- [ ] `MatricesGrid.vue` — rows/columns carry `{ id, name }`; cell key uses stable id
-- [ ] `useMatrixCells.ts` `valueDistribution` — use `matrixCellKey()` exactly as get/set
-- [ ] Confirm on-disk `row||col` key format unchanged (display name still serialized)
+- [x] Test (`useMatrixCells.test.ts`): two `Review` nodes under different parents → two independent cells; row name with `::` → distribution count == rendered cells
+- [x] `MatricesGrid.vue` — rows/columns carry `{ id, name }`; cell key uses stable id
+- [x] `useMatrixCells.ts` `valueDistribution` — use `matrixCellKey()` exactly as get/set
+- [x] Confirm on-disk `row||col` key format unchanged (display name still serialized)
 
 ### PR11 · E3 + E4 + E5 + E6 — graph lifecycle & blobs  (split E5+E6 → PR11b if oversized)
 - [ ] Test: `useGraphRenderer` teardown — `vueRender(null, …)` count == mount count across two `render()` passes
