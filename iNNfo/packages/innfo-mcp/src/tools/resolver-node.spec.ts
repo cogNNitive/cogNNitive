@@ -455,12 +455,17 @@ describe('NodeSpecResolver', () => {
 
       expect(await readFile(join(pkgPath, 'spec_NN.md'), 'utf-8')).toContain('# Doc')
       // backward-compatible alias
-      expect(await readFile(join(pkgPath, 'documentation_V_0-2-0_NN.md'), 'utf-8')).toContain('# Doc')
+      expect(await readFile(join(pkgPath, 'documentation_V_0-2-0_NN.md'), 'utf-8')).toContain(
+        '# Doc',
+      )
       expect(
         await readFile(join(pkgPath, 'procedures', 'generate_docsify_suite_NN.md'), 'utf-8'),
       ).toContain('# Procedure')
       expect(
-        await readFile(join(pkgPath, 'samples', 'Ghostbusters_V_0-2-0_documentation_NN.md'), 'utf-8'),
+        await readFile(
+          join(pkgPath, 'samples', 'Ghostbusters_V_0-2-0_documentation_NN.md'),
+          'utf-8',
+        ),
       ).toContain('# Sample')
       expect(await readFile(join(pkgPath, 'assets', 'master.html'), 'utf-8')).toContain('doctype')
     })
@@ -623,7 +628,9 @@ describe('NodeSpecResolver', () => {
 })
 
 describe('fetchTemplatePackageFromRemote', () => {
-  afterEach(() => vi.restoreAllMocks())
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
 
   /**
    * Route a mocked `fetch` by URL. `raw` maps a raw.githubusercontent.com URL
@@ -669,7 +676,10 @@ describe('fetchTemplatePackageFromRemote', () => {
         '/business/assets/master.html': '<!doctype html>',
       },
       {
-        'iNNfo/specs/templates/business/procedures': [file('compile_NN.md'), { name: 'sub', type: 'dir', path: 'sub' }],
+        'iNNfo/specs/templates/business/procedures': [
+          file('compile_NN.md'),
+          { name: 'sub', type: 'dir', path: 'sub' },
+        ],
         'iNNfo/specs/templates/business/samples': [file('Ghostbusters_business_NN.md')],
         'iNNfo/specs/templates/business/assets': [file('master.html')],
       },
@@ -691,12 +701,17 @@ describe('fetchTemplatePackageFromRemote', () => {
     expect(urls).toContain(
       'https://raw.githubusercontent.com/cogNNitive/cogNNitive/templates-v0.2.0/iNNfo/specs/templates/analysis/spec_NN.md',
     )
-    expect(urls.some((u) => u.includes('api.github.com') && u.includes('ref=templates-v0.2.0'))).toBe(true)
+    expect(
+      urls.some((u) => u.includes('api.github.com') && u.includes('ref=templates-v0.2.0')),
+    ).toBe(true)
   })
 
   it('uses workspace_spec_NN.md and the templates root for base "workspace"', async () => {
     const spy = mockFetch({ '/templates/workspace_spec_NN.md': '# Workspace' }, {})
-    const pkg = await fetchTemplatePackageFromRemote('workspace', 'V_0-3-0', { repo: 'org/repo', ref: 'templates-v0.3.0' })
+    const pkg = await fetchTemplatePackageFromRemote('workspace', 'V_0-3-0', {
+      repo: 'org/repo',
+      ref: 'templates-v0.3.0',
+    })
 
     expect(pkg.spec).toBe('# Workspace')
     expect(spy.mock.calls.map((c) => String(c[0]))).toContain(
