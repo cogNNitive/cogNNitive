@@ -6,6 +6,7 @@ import {
   validateModel as coreValidate,
   applyMutation as coreApplyMutation,
   resolveTemplateSchema,
+  buildAgentModificationBlock,
 } from '@cognnitive/innfo-core'
 import type { SpecDocument, ParsedModel, TemplateSchema } from '@cognnitive/innfo-core'
 import { findModelFile } from './spec.js'
@@ -19,6 +20,22 @@ export interface ApplyChangeResult {
   newPath?: string
   errors?: Array<{ path: string; message: string }>
   warnings?: Array<{ path: string; message: string }>
+  /**
+   * Agent Modification provenance block for a SUCCESSFUL mutation — the
+   * canonical `## NN Agent Modification` block the agent pastes verbatim into
+   * its reply. Absent on every failure. Optional and backward-compatible.
+   */
+  modification?: string
+}
+
+/** Read the optional provenance context the caller threaded through `args`. */
+function modificationContext(args: Record<string, unknown>): {
+  rationale?: string
+  approvedBy?: 'user' | 'agent'
+} {
+  const rationale = typeof args.rationale === 'string' ? args.rationale : undefined
+  const approvedBy = args.approved_by === 'user' ? 'user' : undefined
+  return { rationale, approvedBy }
 }
 
 /** Matches the `_V_<major>-<minor>-<patch>_` segment in iNNfo filenames. */
@@ -78,7 +95,9 @@ async function bumpVersion(
   filePath: string,
   model: ParsedModel,
   args: Record<string, unknown>,
+  id: string,
 ): Promise<ApplyChangeResult> {
+  const prevVersion = String(model.frontmatter.model_version ?? '')
   const next = computeNewVersion(model.frontmatter.model_version, args)
   if (!next) {
     return {
@@ -270,6 +289,13 @@ async function bumpVersion(
     model,
     newPath,
     warnings: validationResult.warnings,
+    modification:
+      buildAgentModificationBlock('bump_version', args, {
+        model: id,
+        modelVersion: next.version,
+        versionTransition: { from: prevVersion, to: next.version },
+        ...modificationContext(args),
+      }) ?? undefined,
   }
 }
 
@@ -297,7 +323,7 @@ export async function applyChange(
   }
 
   if (op === 'bump_version') {
-    return bumpVersion(rootDir, filePath, model, args)
+    return bumpVersion(rootDir, filePath, model, args, id)
   }
 
   if (op === 'generate_index') {
@@ -401,5 +427,11 @@ export async function applyChange(
     success: true,
     model,
     warnings: validationResult.warnings,
+    modification:
+      buildAgentModificationBlock(op, args, {
+        model: id,
+        modelVersion: String(model.frontmatter.model_version ?? ''),
+        ...modificationContext(args),
+      }) ?? undefined,
   }
 }
