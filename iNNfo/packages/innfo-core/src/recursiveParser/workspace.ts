@@ -5,7 +5,7 @@ import { IdentityRegistry } from '../identity'
 import type { ParseContext, RecursiveParseOptions, RecursiveParseResult, WorklistItem } from './types'
 import { stripMdSuffix, normalizePathKey, resolveSubmodelPath, basename } from './paths'
 import { parseAndRegisterModel } from './model'
-import { parseModel, parseFrontmatter } from '../parser'
+import { parseModel, parseFrontmatter, stripFrontmatter } from '../parser'
 
 const INNFO_FILE_SUFFIX = '.md'
 const INDEX_MD = 'index.md'
@@ -253,7 +253,7 @@ export function extractSubmodelRefs(
   }
 
   // 2. Extract Wikilinks: [[target.md]]
-  const body = content.replace(/^---[\s\S]*?---\n?/, '').trim()
+  const body = stripFrontmatter(content).trim()
   const wikilinkRegex = /\[\[([^\]]+)\]\]/g
   let match: RegExpExecArray | null
   while ((match = wikilinkRegex.exec(body)) !== null) {

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { parseModel, serializeModel, applyMutation } from '../src'
 import { updateReferenceString } from '../src/mutate'
+import type { TemplateSchema } from '../src/schema'
 
 describe('updateReferenceString unit tests', () => {
   it('updates exact scalar reference match', () => {
@@ -55,7 +56,24 @@ related:: ["Task Two", "[[Task Two|second]]"]
 description:: Second task
 `
 
-  it('propagates rename_element across fields, description, and list references', () => {
+  const taskSchema: TemplateSchema = {
+    concepts: [
+      {
+        name: 'Task',
+        type: 'text',
+        fields: [
+          { name: 'description', type: 'markdown_inline' },
+          { name: 'assignee', type: 'reference' },
+          { name: 'related', type: 'reference' },
+        ],
+      },
+    ],
+    markers: [],
+    matrices: [],
+    taxonomy: [],
+  }
+
+  it('without a schema, rewrites only wikilinks / index / matrix refs, never bare strings', () => {
     const model = parseModel(sampleModelMarkdown)
     const taskTwoBefore = model.elements.get('Task')?.find((e) => e.name === 'Task Two')
     if (taskTwoBefore) {
@@ -72,11 +90,82 @@ description:: Second task
 
     const taskOne = model.elements.get('Task')?.find((e) => e.name === 'Task One')
     expect(taskOne).toBeDefined()
+    // Bare string field left untouched without schema evidence
+    expect(taskOne?.fields['assignee']).toBe('Task Two')
+    // Wikilink array entry rewritten, bare array entry untouched
+    expect(taskOne?.fields['related']).toEqual(['Task Two', '[[Renamed Task Two|second]]'])
+
+    const serialized = serializeModel(model)
+    expect(serialized).toContain('[[Renamed Task Two]]')
+    expect(serialized).toContain('assignee:: "Task Two"')
+  })
+
+  it('with a schema, rewrites only `type: reference` fields plus wikilinks; plain fields untouched', () => {
+    const model = parseModel(sampleModelMarkdown)
+
+    const result = applyMutation(model, 'rename_element', {
+      conceptName: 'Task',
+      elementName: 'Task Two',
+      newName: 'Renamed Task Two',
+    }, taskSchema)
+
+    expect(result.success).toBe(true)
+
+    const taskOne = model.elements.get('Task')?.find((e) => e.name === 'Task One')
+    expect(taskOne).toBeDefined()
     expect(taskOne?.fields['assignee']).toBe('Renamed Task Two')
     expect(taskOne?.fields['related']).toEqual(['Renamed Task Two', '[[Renamed Task Two|second]]'])
+    expect(taskOne?.fields['description']).toBe(
+      'Task description referencing [[Renamed Task Two]]',
+    )
 
     const serialized = serializeModel(model)
     expect(serialized).toContain('[[Renamed Task Two]]')
     expect(serialized).toContain('assignee:: "Renamed Task Two"')
+  })
+
+  it('schema-aware rename: a plain slug-matching string field is NOT rewritten', () => {
+    const modelMarkdown = `---
+specification_version: "V_0-3-0"
+level: 3
+model_version: "V_1-0-0"
+title: "Cost Model"
+---
+
+# NN Finance
+
+## NN Finance: Cost
+category:: cost
+parent_cost:: [[Cost]]
+`
+
+    const financeSchema: TemplateSchema = {
+      concepts: [
+        {
+          name: 'Finance',
+          type: 'text',
+          fields: [
+            { name: 'category', type: 'string' },
+            { name: 'parent_cost', type: 'reference' },
+          ],
+        },
+      ],
+      markers: [],
+      matrices: [],
+      taxonomy: [],
+    }
+
+    const model = parseModel(modelMarkdown)
+    const result = applyMutation(model, 'rename_element', {
+      conceptName: 'Finance',
+      elementName: 'Cost',
+      newName: 'Expense',
+    }, financeSchema)
+
+    expect(result.success).toBe(true)
+    const cost = model.elements.get('Finance')?.find((e) => e.name === 'Expense')
+    expect(cost).toBeDefined()
+    expect(cost?.fields['category']).toBe('cost')
+    expect(cost?.fields['parent_cost']).toBe('[[Expense]]')
   })
 })
