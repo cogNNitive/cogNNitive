@@ -145,7 +145,6 @@ describe('innfo-mcp server (dispatch/handler layer, real MCP client/server round
         'list_template_procedures',
         'list_template_skills',
         'list_templates',
-        'prune_orphaned_specs',
         'read_model',
         'sync_workspace_manifest',
         'validate_model',

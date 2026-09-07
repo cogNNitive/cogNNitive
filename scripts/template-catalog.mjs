@@ -9,9 +9,13 @@
  *
  * Discovery rules:
  *   - Walks the templates tree for level-2 documents only (skips samples/).
- *   - Canonical name + version come from the filename (<name>_V_x-y-z..._NN.md)
- *     or from the <name>/V_x-y-z/spec_NN.md package layout.
- *   - `adopted` is the highest published template_version for each name.
+ *   - Canonical name comes from the containing directory (`<name>/spec_NN.md`),
+ *     or from the bare filename for the root workspace spec (`workspace_spec_NN.md`).
+ *   - Version is the authoritative frontmatter `template_version` (`V_x-y-z` or
+ *     dotted `x.y.z`), NOT the filename — filenames are canonical/unversioned.
+ *   - `adopted` is the highest `template_version` discovered for each name. On
+ *     `main` only the current canonical spec is on disk, so `versions` carries a
+ *     single entry; historical versions live in immutable `templates-v*` tags.
  *
  * Usage:
  *   node scripts/template-catalog.mjs [--check] [--root <dir>] [--out <file>]
@@ -56,7 +60,7 @@ function parseFrontmatter(text) {
 }
 
 function parseSemVer(v) {
-  const m = String(v).match(/V_(\d+)-(\d+)-(\d+)/i);
+  const m = String(v).match(/(\d+)[-_.](\d+)[-_.](\d+)/);
   if (!m) return null;
   return { major: Number(m[1]), minor: Number(m[2]), patch: Number(m[3]) };
 }
@@ -68,16 +72,24 @@ function compareVersions(a, b) {
   return (va.major - vb.major) || (va.minor - vb.minor) || (va.patch - vb.patch);
 }
 
-function versionFromFilename(basename) {
-  const m = basename.match(/^(.+?)_V_(\d+)-(\d+)-(\d+)(?:_spec)?_NN\.md$/i);
-  if (m) return { name: m[1], version: `V_${m[2]}-${m[3]}-${m[4]}` };
-  return null;
+/** Canonical `V_x-y-z` token from an authoritative `template_version` value. */
+function normalizeTemplateVersion(raw) {
+  const sv = parseSemVer(raw);
+  return sv ? `V_${sv.major}-${sv.minor}-${sv.patch}` : null;
 }
 
-function versionFromPackageDir(relPath) {
-  const m = relPath.match(/^([^/\\]+)[/\\]V_(\d+)-(\d+)-(\d+)[/\\]spec_NN\.md$/i);
-  if (m) return { name: m[1], version: `V_${m[2]}-${m[3]}-${m[4]}` };
-  return null;
+/**
+ * Canonical template name for a level-2 spec path:
+ *   `<name>/spec_NN.md`      -> `<name>`  (subdirectory templates)
+ *   `workspace_spec_NN.md`   -> `workspace` (root workspace spec)
+ */
+function nameFromPath(relPosix) {
+  const parts = relPosix.split('/');
+  if (parts.length > 1) return parts[parts.length - 2];
+  return parts[0]
+    .replace(/\.(md|markdown)$/i, '')
+    .replace(/_(NN|FORMAT|F)$/i, '')
+    .replace(/_spec$/i, '');
 }
 
 function walk(rootDir, rel, files) {
@@ -115,19 +127,19 @@ function generate(rootDir) {
     const fm = parseFrontmatter(content);
     if (fm.level !== '2' && fm.level !== 2) continue;
 
-    const basename = path.basename(rel);
-    const fromName = versionFromFilename(basename) || versionFromPackageDir(rel.replace(/\\/g, '/'));
-    if (!fromName) {
-      warnings.push(`skipped (no version in path): ${rel}`);
+    const relPosix = rel.replace(/\\/g, '/');
+    const name = nameFromPath(relPosix);
+    const version = normalizeTemplateVersion(fm.template_version);
+    if (!version) {
+      warnings.push(`skipped (no parseable template_version): ${relPosix}`);
       continue;
     }
 
-    const relPosix = rel.replace(/\\/g, '/');
     const url = fm.spec_url || `https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/${relPosix}`;
 
-    if (!byName.has(fromName.name)) byName.set(fromName.name, []);
-    byName.get(fromName.name).push({
-      template_version: fromName.version,
+    if (!byName.has(name)) byName.set(name, []);
+    byName.get(name).push({
+      template_version: version,
       spec_version: fm.spec_version || null,
       title: fm.title || null,
       url,

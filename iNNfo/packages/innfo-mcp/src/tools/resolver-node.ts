@@ -464,17 +464,51 @@ export async function resolveTemplatePackage(
 }
 
 /**
- * Write-once atomic package hydration:
- * Creates staging directory `specs/templates/<base>/.staging-<pid>-<time>/`,
- * populates `spec_NN.md`, then atomically renames to `specs/templates/<base>/V_<version>/`.
- * If target package directory already exists, preserves existing contents without overwriting.
+ * A complete template package: the primary Level 2 specification plus the
+ * accompanying SOP procedures, sample models, and static layout assets, each as
+ * a `relativeFilePath -> fileContent` dictionary.
+ */
+export interface TemplatePackagePayload {
+  spec: string
+  procedures?: Record<string, string>
+  samples?: Record<string, string>
+  assets?: Record<string, string>
+}
+
+async function writeStagedTree(
+  stagingDir: string,
+  subdir: string,
+  files: Record<string, string> | undefined,
+): Promise<void> {
+  if (!files) return
+  for (const [rel, content] of Object.entries(files)) {
+    const dest = join(stagingDir, subdir, rel)
+    await mkdir(join(dest, '..'), { recursive: true })
+    await writeFile(dest, content, 'utf-8')
+  }
+}
+
+/**
+ * Write-once atomic package hydration.
+ *
+ * Creates a staging directory `specs/templates/<base>/.staging-<pid>-<time>/`,
+ * writes the canonical `spec_NN.md`, a backward-compatible alias
+ * `<base>_V_<version>_NN.md`, and any `procedures/`, `samples/` and `assets/`
+ * carried by a full package payload, then atomically renames the staging
+ * directory to `specs/templates/<base>/V_<version>/`. If the target package
+ * directory already exists and is non-empty it is treated as immutable and left
+ * untouched.
+ *
+ * `payload` accepts either a bare spec string (spec-only hydration) or a full
+ * {@link TemplatePackagePayload}.
  */
 export async function hydrateTemplatePackageAtomically(
   rootDir: string,
   base: string,
   version: string,
-  content: string,
+  payload: string | TemplatePackagePayload,
 ): Promise<string> {
+  const pkg: TemplatePackagePayload = typeof payload === 'string' ? { spec: payload } : payload
   const verSegment = `V_${normalizeVersion(version).replace(/\./g, '-')}`
   const targetPkgDir = join(rootDir, 'specs', 'templates', base, verSegment)
 
@@ -495,18 +529,20 @@ export async function hydrateTemplatePackageAtomically(
   await mkdir(stagingDir, { recursive: true })
 
   const specFileName = 'spec_NN.md'
-  await writeFile(join(stagingDir, specFileName), content, 'utf-8')
   const namedFileName = `${base}_${verSegment}_NN.md`
-  await writeFile(join(stagingDir, namedFileName), content, 'utf-8')
+  await writeFile(join(stagingDir, specFileName), pkg.spec, 'utf-8')
+  await writeFile(join(stagingDir, namedFileName), pkg.spec, 'utf-8')
+  await writeStagedTree(stagingDir, 'procedures', pkg.procedures)
+  await writeStagedTree(stagingDir, 'samples', pkg.samples)
+  await writeStagedTree(stagingDir, 'assets', pkg.assets)
 
   try {
     await rename(stagingDir, targetPkgDir)
   } catch {
     try {
-      const { copyFile: copyF } = await import('node:fs/promises')
+      const { cp } = await import('node:fs/promises')
       await mkdir(targetPkgDir, { recursive: true })
-      await copyF(join(stagingDir, specFileName), join(targetPkgDir, specFileName))
-      await copyF(join(stagingDir, namedFileName), join(targetPkgDir, namedFileName))
+      await cp(stagingDir, targetPkgDir, { recursive: true })
       await rm(stagingDir, { recursive: true, force: true }).catch(() => {})
     } catch {
       // Ignore fallback issues
@@ -514,6 +550,60 @@ export async function hydrateTemplatePackageAtomically(
   }
 
   return targetPkgDir
+}
+
+/**
+ * Fetch a complete template package from a tag-pinned GitHub release.
+ *
+ * `spec_NN.md` is fetched from the raw host at `<ref>`; `procedures/`,
+ * `samples/` and `assets/` are enumerated via the GitHub contents API at the
+ * same `ref` and each entry raw-fetched. Any missing subdirectory is simply
+ * absent from the returned payload; a failure to fetch the primary spec throws.
+ *
+ * `repo` defaults to `cogNNitive/cogNNitive` and `ref` to `templates-v<version>`.
+ */
+export async function fetchTemplatePackageFromRemote(
+  base: string,
+  version: string,
+  options: { repo?: string; ref?: string; timeout?: number } = {},
+): Promise<TemplatePackagePayload> {
+  const repo = options.repo ?? 'cogNNitive/cogNNitive'
+  const ref = options.ref ?? `templates-v${normalizeVersion(version)}`
+  const timeout = options.timeout ?? 10000
+  const dirInRepo =
+    base === 'workspace' ? 'iNNfo/specs/templates' : `iNNfo/specs/templates/${base}`
+  const specName = base === 'workspace' ? 'workspace_spec_NN.md' : 'spec_NN.md'
+  const rawBase = `https://raw.githubusercontent.com/${repo}/${ref}/${dirInRepo}`
+
+  const spec = await download(`${rawBase}/${specName}`, timeout)
+
+  const fetchSubdir = async (name: string): Promise<Record<string, string> | undefined> => {
+    let entries: Array<{ name: string; type: string; path: string }>
+    try {
+      const apiUrl = `https://api.github.com/repos/${repo}/contents/${dirInRepo}/${name}?ref=${encodeURIComponent(ref)}`
+      const listing = JSON.parse(await download(apiUrl, timeout))
+      entries = Array.isArray(listing) ? listing : []
+    } catch {
+      return undefined
+    }
+    const out: Record<string, string> = {}
+    for (const entry of entries) {
+      if (entry.type !== 'file') continue
+      try {
+        out[entry.name] = await download(`${rawBase}/${name}/${entry.name}`, timeout)
+      } catch {
+        // skip an unfetchable asset — the package hydrates without it
+      }
+    }
+    return Object.keys(out).length > 0 ? out : undefined
+  }
+
+  return {
+    spec,
+    procedures: await fetchSubdir('procedures'),
+    samples: await fetchSubdir('samples'),
+    assets: await fetchSubdir('assets'),
+  }
 }
 
 /**
@@ -604,7 +694,19 @@ export async function resolveParentChainNode(
         content = await download(currentUrl, timeout)
         const fmVer = versionFromFrontmatter(content) || '0.1.0'
         const baseName = parseSpecName(currentName).base
-        await hydrateTemplatePackageAtomically(rootDir, baseName, fmVer, content)
+        // Best-effort: pull the full package (procedures/samples/assets) from the
+        // tag-pinned release so agents have execution context offline. Falls
+        // back to spec-only hydration if the tag/API is unreachable.
+        let payload: string | TemplatePackagePayload = content
+        const tagMatch = currentUrl.match(/raw\.githubusercontent\.com\/([^/]+\/[^/]+)\/([^/]+)\//)
+        if (tagMatch && /^(templates-v|v)\d/.test(tagMatch[2])) {
+          payload = await fetchTemplatePackageFromRemote(baseName, fmVer, {
+            repo: tagMatch[1],
+            ref: tagMatch[2],
+            timeout,
+          }).catch(() => content as string)
+        }
+        await hydrateTemplatePackageAtomically(rootDir, baseName, fmVer, payload)
         const specName = canonicalSpecFilename(currentName, content)
         await saveSpecOnce(specsDir, `${specName}_NN.md`, content)
       } catch {

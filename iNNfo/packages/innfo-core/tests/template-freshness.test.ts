@@ -12,7 +12,7 @@ describe('Template Freshness Diagnostic in innfo-core validateModel (Phase 1)', 
     'title: "Freshness Test Model"',
     'parent_spec:',
     '  name: "business_V_0-2-0"',
-    '  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business/business_V_0-2-0_NN.md"',
+    '  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business/spec_NN.md"',
     '---',
     '',
     '# NN index',
@@ -68,7 +68,7 @@ describe('Template Freshness Diagnostic in innfo-core validateModel (Phase 1)', 
     expect(stalenessCheck?.promptHint).toBeDefined()
     expect(stalenessCheck?.promptHint).toContain('specs/')
     expect(stalenessCheck?.meta?.canonicalUrl).toBe(
-      'https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business/business_V_0-2-0_NN.md',
+      'https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business/spec_NN.md',
     )
     expect(stalenessCheck?.meta?.localHash).toBeDefined()
     expect(stalenessCheck?.meta?.remoteHash).toBeDefined()

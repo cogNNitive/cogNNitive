@@ -11,11 +11,11 @@ import {
 const specsRoot = join(import.meta.dirname!, '..', '..', '..', 'specs')
 const readSpec = (p: string): string => readFileSync(join(specsRoot, p), 'utf-8')
 
-const BUSINESS_MODEL = readSpec('templates/business-model/business-model_V_0-2-0_NN.md')
-const ANALYSIS = readSpec('templates/analysis/analysis_V_0-2-0_NN.md')
-const ORG_V2 = readSpec('templates/organization/organization_V_0-2-0_NN.md')
-const PROJECTS_V2 = readSpec('templates/projects/projects_V_0-2-0_NN.md')
-const BUSINESS_V2 = readSpec('templates/business/business_V_0-2-0_NN.md')
+const BUSINESS_MODEL = readSpec('templates/business-model/spec_NN.md')
+const ANALYSIS = readSpec('templates/analysis/spec_NN.md')
+const ORG_V2 = readSpec('templates/organization/spec_NN.md')
+const PROJECTS_V2 = readSpec('templates/projects/spec_NN.md')
+const BUSINESS_V2 = readSpec('templates/business/spec_NN.md')
 const INNFO_V2 = readSpec('iNNfo_V_0-2-0_NN.md')
 
 /** Resolve an `includes` entry by (lowercased) name from the four decomposed templates on disk. */

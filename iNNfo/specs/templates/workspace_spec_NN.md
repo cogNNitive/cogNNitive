@@ -1,6 +1,6 @@
 ---
 spec_version: "V_0-2-1"
-spec_url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/workspace_V_0-3-0_spec_NN.md"
+spec_url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/workspace_spec_NN.md"
 level: 2
 parent_spec:
   name: "iNNfo_V_0-2-1"
@@ -320,7 +320,7 @@ Legacy taxonomy-only grouping (`Folder`) and unstructured attachment listings (`
 level: 3
 parent_spec:
   name: "workspace_spec"
-  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/workspace_V_0-3-0_spec_NN.md"
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/workspace_spec_NN.md"
 model_version: "V_0-1-0"
 title: "<Workspace Name>"
 ---

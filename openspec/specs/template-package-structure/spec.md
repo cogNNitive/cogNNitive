@@ -2,19 +2,33 @@
 
 ## Purpose
 
-Standardize template packaging into versioned directory structures (`specs/templates/<name>/<version>/`), establish multi-tier resolution precedence across workspace and global locations, and implement atomic, immutable hydration for local template caches.
+Standardize template packaging into canonical unversioned files in source control (`main`), hydrate complete packages into versioned local workspace directories (`specs/templates/<name>/<version>/`), establish multi-tier resolution precedence across workspace and global locations, and implement atomic, immutable hydration for local template caches.
 
 ## Requirements
 
-### Requirement: Standardized Package Directory Layout
+### Requirement: Canonical Source Layout (repository `main`)
 
-Template packages MUST follow a standardized directory structure located under `specs/templates/<template-name>/<version>/`. Each template package directory MUST contain a canonical Level 2 specification file (`spec_NN.md` or `<name>_V_<version>_NN.md`), and MAY include `samples/` containing sample Level 3 models, `procedures/` containing Standard Operating Procedure specifications, and `skills/` containing agent skill manifests.
+Template packages in the source repository MUST use canonical unversioned filenames under `iNNfo/specs/templates/<template-name>/`:
+- The primary Level 2 specification MUST be named `spec_NN.md` (the root workspace template is `workspace_spec_NN.md`).
+- `procedures/`, `samples/`, and `assets/` (static layouts / media, e.g. `assets/master.html`) MUST also use unversioned filenames; `skills/` MAY carry agent skill manifests.
+- Source paths MUST NOT encode a semantic version. The authoritative version MUST be declared in frontmatter as `template_version` (`V_x-y-z` or dotted `x.y.z`).
 
-#### Scenario: Validating standardized package directory structure
-- GIVEN a template package for `business` version `V_0-2-0`
-- WHEN the template package is stored at `specs/templates/business/V_0-2-0/`
+#### Scenario: Canonical source template on `main`
+- GIVEN the `business` template on `main`
+- WHEN it is stored at `iNNfo/specs/templates/business/spec_NN.md`
+- THEN the file carries `template_version` in its frontmatter
+- AND no `_V_x-y-z_` token appears in the path
+
+### Requirement: Standardized Hydrated Package Directory Layout
+
+When hydrated into a local workspace or global user cache, template packages MUST be written into a versioned directory `specs/templates/<template-name>/<version>/` containing the canonical package assets (`spec_NN.md`, and — when present upstream — `procedures/`, `samples/`, `assets/`, `skills/`). A backward-compatible alias `<name>_V_<version>_NN.md` MUST accompany `spec_NN.md` so parsed legacy references (`parent_spec: "<name>_V_<version>"`) resolve.
+
+#### Scenario: Validating hydrated package directory structure
+- GIVEN a hydrated template package for `business` version `V_0-2-1`
+- WHEN the package is stored at `specs/templates/business/V_0-2-1/`
 - THEN `spec_NN.md` is present as the main Level 2 template specification
-- AND subdirectories `samples/`, `procedures/`, and `skills/` store optional package assets
+- AND the backward-compatible alias `business_V_0-2-1_NN.md` is present alongside it
+- AND subdirectories `samples/`, `procedures/`, and `assets/` store any upstream package assets
 
 #### Scenario: Backward-compatible resolution of legacy flat templates
 - GIVEN a workspace containing a flat template file at `./templates/business_V_0-1-0_NN.md`

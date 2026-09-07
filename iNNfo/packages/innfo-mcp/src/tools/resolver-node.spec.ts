@@ -1,7 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { join } from 'node:path'
 import { rm, mkdir, writeFile, readFile, readdir } from 'node:fs/promises'
-import { resolveParentChainNode, saveSpecOnce } from './resolver-node'
+import {
+  resolveParentChainNode,
+  saveSpecOnce,
+  fetchTemplatePackageFromRemote,
+} from './resolver-node'
 
 const rootDir = join(import.meta.dirname!, '..', '..', 'temp-test-resolver')
 const specsDir = join(rootDir, 'specs')
@@ -440,6 +444,27 @@ describe('NodeSpecResolver', () => {
       expect(await readFile(join(pkgPath, 'spec_NN.md'), 'utf-8')).toBe('Content V1')
     })
 
+    it('hydrateTemplatePackageAtomically writes a full package payload (spec + alias + procedures + samples + assets)', async () => {
+      const { hydrateTemplatePackageAtomically } = await import('./resolver-node')
+      const pkgPath = await hydrateTemplatePackageAtomically(rootDir, 'documentation', 'V_0-2-0', {
+        spec: '---\ntemplate_version: "V_0-2-0"\n---\n# Doc\n',
+        procedures: { 'generate_docsify_suite_NN.md': '# Procedure\n' },
+        samples: { 'Ghostbusters_V_0-2-0_documentation_NN.md': '# Sample\n' },
+        assets: { 'master.html': '<!doctype html>' },
+      })
+
+      expect(await readFile(join(pkgPath, 'spec_NN.md'), 'utf-8')).toContain('# Doc')
+      // backward-compatible alias
+      expect(await readFile(join(pkgPath, 'documentation_V_0-2-0_NN.md'), 'utf-8')).toContain('# Doc')
+      expect(
+        await readFile(join(pkgPath, 'procedures', 'generate_docsify_suite_NN.md'), 'utf-8'),
+      ).toContain('# Procedure')
+      expect(
+        await readFile(join(pkgPath, 'samples', 'Ghostbusters_V_0-2-0_documentation_NN.md'), 'utf-8'),
+      ).toContain('# Sample')
+      expect(await readFile(join(pkgPath, 'assets', 'master.html'), 'utf-8')).toContain('doctype')
+    })
+
     it('W-01: buildIncludeContentMap normalizes case lookup for frontmatter includes', async () => {
       const { buildIncludeContentMap } = await import('./resolver-node')
 
@@ -594,5 +619,124 @@ describe('NodeSpecResolver', () => {
       expect(result.freshness?.get('business_V_0-1-1')?.verdict).toBe('stale')
       expect(result.freshness?.has('iNNfo_V_0-2-0')).toBe(false)
     })
+  })
+})
+
+describe('fetchTemplatePackageFromRemote', () => {
+  afterEach(() => vi.restoreAllMocks())
+
+  /**
+   * Route a mocked `fetch` by URL. `raw` maps a raw.githubusercontent.com URL
+   * (or suffix) to body-or-404; `api` maps a GitHub contents-API dir path to a
+   * listing array (or 404). Anything unmatched is a 404.
+   */
+  function mockFetch(raw: Record<string, string | null>, api: Record<string, unknown[] | null>) {
+    return vi.spyOn(global, 'fetch').mockImplementation((input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url.startsWith('https://api.github.com/')) {
+        for (const [key, listing] of Object.entries(api)) {
+          if (url.includes(key)) {
+            return Promise.resolve(
+              listing === null
+                ? ({ ok: false, status: 404, statusText: 'Not Found' } as Response)
+                : ({ ok: true, text: () => Promise.resolve(JSON.stringify(listing)) } as Response),
+            )
+          }
+        }
+        return Promise.resolve({ ok: false, status: 404, statusText: 'Not Found' } as Response)
+      }
+      for (const [key, body] of Object.entries(raw)) {
+        if (url.endsWith(key)) {
+          return Promise.resolve(
+            body === null
+              ? ({ ok: false, status: 404, statusText: 'Not Found' } as Response)
+              : ({ ok: true, text: () => Promise.resolve(body) } as Response),
+          )
+        }
+      }
+      return Promise.resolve({ ok: false, status: 404, statusText: 'Not Found' } as Response)
+    })
+  }
+
+  const file = (name: string) => ({ name, type: 'file', path: name })
+
+  it('assembles a full package: spec + procedures + samples + assets from the tag ref', async () => {
+    mockFetch(
+      {
+        '/business/spec_NN.md': '# Business spec',
+        '/business/procedures/compile_NN.md': '# Compile procedure',
+        '/business/samples/Ghostbusters_business_NN.md': '# Sample',
+        '/business/assets/master.html': '<!doctype html>',
+      },
+      {
+        'iNNfo/specs/templates/business/procedures': [file('compile_NN.md'), { name: 'sub', type: 'dir', path: 'sub' }],
+        'iNNfo/specs/templates/business/samples': [file('Ghostbusters_business_NN.md')],
+        'iNNfo/specs/templates/business/assets': [file('master.html')],
+      },
+    )
+
+    const pkg = await fetchTemplatePackageFromRemote('business', 'V_0-2-1')
+
+    expect(pkg.spec).toBe('# Business spec')
+    expect(pkg.procedures).toEqual({ 'compile_NN.md': '# Compile procedure' }) // the sub-dir entry is skipped
+    expect(pkg.samples).toEqual({ 'Ghostbusters_business_NN.md': '# Sample' })
+    expect(pkg.assets).toEqual({ 'master.html': '<!doctype html>' })
+  })
+
+  it('defaults ref to `templates-v<version>` and hits raw + contents API at that ref', async () => {
+    const spy = mockFetch({ '/analysis/spec_NN.md': '# Analysis' }, {})
+    await fetchTemplatePackageFromRemote('analysis', '0.2.0')
+
+    const urls = spy.mock.calls.map((c) => String(c[0]))
+    expect(urls).toContain(
+      'https://raw.githubusercontent.com/cogNNitive/cogNNitive/templates-v0.2.0/iNNfo/specs/templates/analysis/spec_NN.md',
+    )
+    expect(urls.some((u) => u.includes('api.github.com') && u.includes('ref=templates-v0.2.0'))).toBe(true)
+  })
+
+  it('uses workspace_spec_NN.md and the templates root for base "workspace"', async () => {
+    const spy = mockFetch({ '/templates/workspace_spec_NN.md': '# Workspace' }, {})
+    const pkg = await fetchTemplatePackageFromRemote('workspace', 'V_0-3-0', { repo: 'org/repo', ref: 'templates-v0.3.0' })
+
+    expect(pkg.spec).toBe('# Workspace')
+    expect(spy.mock.calls.map((c) => String(c[0]))).toContain(
+      'https://raw.githubusercontent.com/org/repo/templates-v0.3.0/iNNfo/specs/templates/workspace_spec_NN.md',
+    )
+  })
+
+  it('leaves a subdirectory undefined when its contents-API listing 404s', async () => {
+    mockFetch(
+      { '/business/spec_NN.md': '# spec' },
+      {
+        'business/procedures': null,
+        'business/samples': null,
+        'business/assets': null,
+      },
+    )
+
+    const pkg = await fetchTemplatePackageFromRemote('business', 'V_0-2-1')
+    expect(pkg.spec).toBe('# spec')
+    expect(pkg.procedures).toBeUndefined()
+    expect(pkg.samples).toBeUndefined()
+    expect(pkg.assets).toBeUndefined()
+  })
+
+  it('skips an individual asset that 404s but keeps the rest of the subdirectory', async () => {
+    mockFetch(
+      {
+        '/business/spec_NN.md': '# spec',
+        '/business/procedures/ok_NN.md': '# ok',
+        '/business/procedures/broken_NN.md': null,
+      },
+      { 'business/procedures': [file('ok_NN.md'), file('broken_NN.md')] },
+    )
+
+    const pkg = await fetchTemplatePackageFromRemote('business', 'V_0-2-1')
+    expect(pkg.procedures).toEqual({ 'ok_NN.md': '# ok' })
+  })
+
+  it('throws when the primary spec cannot be fetched', async () => {
+    mockFetch({ '/business/spec_NN.md': null }, {})
+    await expect(fetchTemplatePackageFromRemote('business', 'V_0-2-1')).rejects.toThrow()
   })
 })

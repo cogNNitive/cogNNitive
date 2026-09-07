@@ -1,11 +1,11 @@
 ---
-spec_version: "V_0-2-0"
-spec_url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/analysis/analysis_V_0-1-0_NN.md"
+spec_version: "V_0-2-1"
+spec_url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/analysis/spec_NN.md"
 level: 2
 parent_spec:
-  name: "iNNfo_V_0-2-0"
-  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-2-0_NN.md"
-template_version: "V_0-1-0"
+  name: "iNNfo_V_0-2-1"
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-2-1_NN.md"
+template_version: "V_0-2-0"
 title: "Analysis Template"
 relationship_types:
   hierarchy:
@@ -27,7 +27,6 @@ relationship_types:
 * [[Analysis]]
   * [[Assumptions]]
   * [[Risks]]
-  * [[SWOT]]
   * [[Keys]]
   * [[Suggestions]]
 * [[Validation]]
@@ -59,12 +58,6 @@ icon:: messages-square
 type:: weight
 color:: red
 weight:: 30
-
-## NN Concept Definition: SWOT
-icon:: layout-grid
-type:: text
-color:: red
-weight:: 10
 
 ## NN Concept Definition: Keys
 icon:: key-round
@@ -220,7 +213,7 @@ To create an analysis model, create a level 3 FILE mode document with:
 level: 3
 parent_spec:
   name: "analysis_V_0-1-0"
-  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/analysis/analysis_V_0-1-0_NN.md"
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/analysis/spec_NN.md"
 model_version: "V_x-y-z"
 title: "<Analysis Name>"
 ---
@@ -276,8 +269,7 @@ Strengths, weaknesses, opportunities, threats.
 
 ### Canonical Sample
 
-No sample ships for this template version. The canonical sample lives with the
-current template version, at `specs/templates/analysis/samples/Ghostbusters_V_0-2-0_analysis_NN.md`.
+The official sample for this template is at `specs/templates/analysis/samples/Ghostbusters_V_0-2-0_analysis_NN.md`. It exercises Assumptions, Risks, SWOT, Keys, Coherence, and Experiments and both matrices.
 
 # Concept Guidance Documentation
 
@@ -412,130 +404,26 @@ Monte Carlo Simulation is a computerized mathematical technique that allows peop
 ## Suggestions
 
 ### Summary
-*No summary provided.*
+Actionable improvement proposals and strategic recommendations resulting from the strategic analysis.
 
 ### Description
-*No description provided.*
-
-### Methodologies
-*No methodologies provided.*
-
-### Prompts
-`Based on our current analysis, suggest three improvements to strengthen our value proposition.`
-`What process optimizations could enhance operational efficiency?`
-`Suggest cost-effective marketing tactics to increase brand awareness.`
-`Recommend strategies to improve customer retention and reduce churn.`
-`Provide suggestions to refine our pricing model for better margins.`
-
----
-
-## SWOT
-
-### Summary
-The SWOT analysis provides a comprehensive overview of the company’s current strategic position by identifying its internal strengths and weaknesses, as well as external opportunities and threats.
-
-### Description
-The SWOT analysis provides a comprehensive overview of the company’s current strategic position by identifying its internal strengths and weaknesses, as well as external opportunities and threats. Key strengths may include a strong brand reputation, innovative technology, or a highly skilled workforce. Conversely, weaknesses might involve limited market presence, high operational costs, or dependency on key suppliers. The goal of this analysis is to capitalize on strengths while addressing and mitigating weaknesses.
-
-On the external side, the opportunities identified could range from emerging market trends and new customer segments to potential strategic partnerships. Threats may include increased competition, regulatory challenges, or economic downturns. This section helps to develop a strategic plan that leverages strengths to seize opportunities while creating defensive strategies to protect against potential threats, ensuring the business remains resilient and adaptable in a dynamic market environment.
-In the context of business design, storytelling can take many forms. It could be the brand's founding story that illustrates its mission and values, customer success stories that demonstrate the value of its products or services, or future-oriented stories that paint a vision of what the brand aims to achieve.
-
-### Methodologies
-**Brand Storytelling Framework**
-This tool helps businesses to craft a compelling narrative that communicates their brand's purpose, values, and mission. It includes elements such as the brand's history, vision, mission, values, personality, and customer promise. The framework guides businesses in telling their story in a way that resonates with their target audience and differentiates them from their competitors.
-
-**Hero's Journey**
-The Hero's Journey, or the Monomyth, is a narrative pattern identified by Joseph Campbell that appears in drama, storytelling, myth, religious ritual, and psychological development. It describes the typical adventure of the archetype known as The Hero, the person who goes out and achieves great deeds on behalf of the group, tribe, or civilization. Businesses can use this pattern to structure their brand storytelling, positioning their customers as the heroes and themselves as the guides.
-
-**StoryBrand Framework**
-Developed by Donald Miller, the StoryBrand Framework is a 7-part storytelling tool that helps businesses clarify their brand message. It guides businesses in creating a story where the customer is the hero, the business is the guide, and the product or service is the tool that helps the hero overcome their problem and achieve their goal.
-
-**Transmedia Storytelling**
-This approach involves creating and sharing a narrative across multiple platforms and formats, using the benefits of each to enhance the overall storytelling. It allows businesses to engage with their audience in a variety of ways and to communicate their brand's purpose, values, and mission in a more immersive and interactive manner.
-
-**Narrative Transportation Theory**
-This theory suggests that when people lose themselves in a story, their attitudes and intentions change to reflect that story. Businesses can use this theory to create compelling brand stories that 'transport' their audience and influence their perceptions and behaviors.
-
-**Emotional Branding**
-Developed by Marc Gobé, this approach focuses on building brands that appeal directly to a consumer's emotional state, needs and aspirations. Emotional branding involves creating a story that will resonate with target customers on an emotional level, helping to build strong and lasting relationships.
-
-### Prompts
-`List our top 3 strengths and describe how we can capitalize on them.`
-`Identify our top 3 weaknesses and propose actions to address them.`
-`Highlight 3 external opportunities and outline how to pursue them.`
-`Point out 3 threats and recommend mitigation strategies.`
-`How can we integrate SWOT findings into our strategic planning process?`
-
----
+Suggestions are concrete improvement proposals identified during the model analysis phase. They target operational bottlenecks, value proposition enhancements, or cost optimizations to increase business model resilience.
 
 ## Keys
 
 ### Summary
-*No summary provided.*
+Key success factors, critical capabilities, and core competencies required for business model execution.
 
 ### Description
-*No description provided.*
-
-### Methodologies
-*No methodologies provided.*
-
-### Prompts
-`Define the key success factors critical to our market entry and growth.`
-`What capabilities must we develop to achieve our strategic objectives?`
-`Identify the key metrics that serve as leading indicators of our success.`
-`Which partnerships are essential to unlock growth opportunities?`
-`Which organizational competencies are crucial to sustain performance over time?`
-
----
-
-## Validation
-
-### Summary
-The process of testing and verifying the assumptions and hypotheses underlying a business model.
-
-### Description
-"Validation" in business modeling refers to the process of testing and verifying the assumptions and hypotheses that underpin a business model. This process is essential in ensuring that the business model is based on accurate and realistic assumptions, and that it is capable of delivering the expected results.
-
-During the validation phase, the risks, assumptions and hypotheses of the business model are put to the test. This could involve conducting market research to validate customer segments and value propositions, running financial simulations to verify revenue streams and cost structures, or carrying out pilot projects to test key activities and partnerships.
-
-For example, a company might validate its business model by launching a minimum viable product (MVP) to a small segment of its target market. The feedback and data gathered from this MVP launch can then be used to validate or invalidate the assumptions about the product's market fit, pricing strategy, and customer acquisition channels. If the assumptions are validated, the company can proceed with confidence. If they are invalidated, the company can pivot and adjust its business model based on the new insights.
-
-The validation phase is not only about confirming the viability of a business model, but also about learning and adapting. It allows businesses to learn from their mistakes, adapt their strategies, and continuously improve their business models.
-
-In essence, "Validation" in business modeling is about ensuring that a business model is grounded in reality and capable of delivering success. It is a critical aspect of business design, as it directly impacts the ability of a business to survive, thrive, and grow in a competitive market.
-
-### Methodologies
-**Lean Startup Methodology**
-Developed by Eric Ries, the Lean Startup Methodology emphasizes the importance of validating business models through a build-measure-learn feedback loop. This involves creating a minimum viable product (MVP), measuring how it performs in the market, and learning from the results to iterate or pivot the business model.
-**Business Model Canvas**
-The Business Model Canvas, while not specifically focused on validation, can be used as a tool for this purpose. By mapping out the key components of a business model, it allows for a comprehensive view that can be used to identify assumptions and hypotheses that need to be tested.
-**Customer Development**
-This methodology, developed by Steve Blank, is focused on understanding customer needs and validating business model assumptions through customer interaction. It involves four steps: customer discovery, customer validation, customer creation, and company building.
-**Experiment Board**
-The Experiment Board is a tool developed by Javelin that helps entrepreneurs to validate their business ideas. It guides them through the process of identifying their riskiest assumptions, designing experiments to test these assumptions, and interpreting the results.
-**Value Proposition Design**
-This tool, also developed by Alexander Osterwalder, is focused on designing and testing value propositions. It can be used to validate the value proposition component of a business model by helping to understand the fit between the product or service and customer needs.
-**Pivot or Persevere**
-This is a decision-making process used in the Lean Startup Methodology. After a cycle of building, measuring, and learning, entrepreneurs need to decide whether to pivot (make a fundamental change to the business model) or persevere (keep testing the current business model). This decision is based on the validation (or lack thereof) of the business model's assumptions.
-**Assumption Mapping**
-This tool, developed by David J Bland, helps teams to identify and test their riskiest assumptions. It involves creating a map of assumptions, categorizing them based on their risk and uncertainty, and then designing experiments to test the riskiest assumptions.
-
-### Prompts
-`Outline a validation plan including customer interviews, surveys, and prototype testing.`
-`Which MVP features should we test first to validate our value proposition?`
-`How can we measure product-market fit, and which indicators will we use?`
-`Design an A/B test to validate pricing or messaging assumptions.`
-`What criteria will determine when validation is sufficient to scale the business?`
-
----
+Keys represent the critical capabilities, resources, and operational milestones that determine the success or failure of the venture. They serve as leading indicators of strategic performance.
 
 ## Coherence
 
 ### Summary
-*No summary provided.*
+Internal consistency checks evaluating how well business model components reinforce each other.
 
 ### Description
-*No description provided.*
+Coherence evaluates the structural alignment between value propositions, customer segments, operational activities, and cost/revenue structures, ensuring no contradictory incentives exist.
 
 ### Methodologies
 *No methodologies provided.*
@@ -585,3 +473,4 @@ Growth Hacking is a marketing strategy that focuses on rapid experimentation acr
 `Plan a pilot program to evaluate operational feasibility in a small market.`
 `What metrics will measure experiment success, and how will we collect the data?`
 `How should we iterate on the experiment based on initial results?`
+
