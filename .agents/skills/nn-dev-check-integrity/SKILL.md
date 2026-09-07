@@ -77,8 +77,12 @@ Presets:  [a] Todo   ·   [d] Post-cambio (0 1 2 3 4 6 7)   ·   [p] Pre-push (d
 Podés marcar números sueltos, ej. "0 1 2 6".  ·  [x] Cancelar
 ```
 
+⚡ **Fast Deterministic CLI**:
+- Preset `[d]` (Post-cambio gate): `npm run check:integrity` (or `node scripts/check-integrity.js`)
+- Preset `[p]` (Pre-push gate with CI mirror): `node scripts/check-integrity.js --pre-push`
+
 If the maintainer types a preset letter, expand it to its number set and confirm the
-list before running.
+list before running. In automated environments, run the CLI directly.
 
 ---
 

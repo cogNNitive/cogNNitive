@@ -148,5 +148,6 @@ if (require.main === module) {
 
 module.exports = {
   checkTemplateInventory,
+  runVerification,
   extractDeclaredTemplates,
 };

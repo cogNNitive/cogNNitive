@@ -17,7 +17,8 @@
     "format:check": "npm --prefix iNNfo run format:check",
     "verify": "npm --prefix iNNfo run typecheck && npm --prefix iNNfo test",
     "test": "npm --prefix iNNfo test",
-    "typecheck": "npm --prefix iNNfo run typecheck"
+    "typecheck": "npm --prefix iNNfo run typecheck",
+    "check:integrity": "node scripts/check-integrity.js"
   },
   "devDependencies": {
     "@types/node": "^22.13.9",
