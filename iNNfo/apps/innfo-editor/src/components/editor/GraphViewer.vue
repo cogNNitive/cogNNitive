@@ -167,6 +167,7 @@ const {
   navigateToNode,
   stopSimulation,
   disconnectResizeObserver,
+  dispose,
 } = useGraphRenderer({
   containerRef,
   svgRef,
@@ -189,9 +190,16 @@ const modelStore = useModelStore()
 
 watch(currentLayout, () => render())
 
-// Watch modelStore.nodes for reactivity (re-render on graph changes)
+// Watch modelStore structure for reactivity (re-render on graph changes).
+// A structural signature of the visible edges (not just the node count) so a
+// new edge/relationship with the same node count still triggers a render (E3).
+const graphSignature = computed(() =>
+  displayEdges.value
+    .map((e) => `${e.source}|${e.target}|${e.label}`)
+    .join('~'),
+)
 watch(
-  () => Object.keys(modelStore.nodes).length,
+  [() => Object.keys(modelStore.nodes).length, graphSignature],
   () => {
     initConceptColors()
     render()
@@ -271,8 +279,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-  stopSimulation()
-  disconnectResizeObserver()
+  dispose()
   window.removeEventListener('keydown', onKeyDown)
 })
 </script>

@@ -78,10 +78,10 @@ editor PRs also `npm --prefix iNNfo/apps/innfo-editor run build`.
 ### PR11 · E3 + E4 + E5 + E6 — graph lifecycle & blobs  (split E5+E6 → PR11b if oversized)
 - [ ] Test: `useGraphRenderer` teardown — `vueRender(null, …)` count == mount count across two `render()` passes
 - [ ] Test: `useBlockAssets` — same path, changed size → cache miss; `Pill` unmount → `revokeObjectURL` called
-- [ ] E3 `GraphViewer.vue` — watch a structural signature (edges + field revision), not node count
-- [ ] E4 `useGraphRenderer.ts` — track mounted Pills; `vueRender(null, container)` each before `render()` clears the SVG; same in `onUnmounted`
-- [ ] E5 `Pill.vue` — `revokeObjectURL` on replace and on unmount
-- [ ] E6 `useBlockAssets.ts` — cache key includes size+mtime, or `clearBlockAssetCache()` on workspace load
+- [x] E3 `GraphViewer.vue` — watch a structural signature (edges + field revision), not node count
+- [x] E4 `useGraphRenderer.ts` — track mounted Pills; `vueRender(null, container)` each before `render()` clears the SVG; same in `onUnmounted`
+- [x] E5 `Pill.vue` — `revokeObjectURL` on replace and on unmount
+- [x] E6 `useBlockAssets.ts` — cache key includes size+mtime, or `clearBlockAssetCache()` on workspace load
 
 ### PR12 · E7 — `useHashSync` router state
 - [ ] Test (`useHashSync.test.ts`, mocked `location`/`history`): A→B→C then Back to `#B` → one history entry per nav, no duplicate push, forward history preserved

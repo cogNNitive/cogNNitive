@@ -199,7 +199,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, onUnmounted } from 'vue'
 import { Info, X, ArrowUpRight } from 'lucide-vue-next'
 import IconRenderer from './IconRenderer.vue'
 import MarkerButton from './MarkerButton.vue'
@@ -432,6 +432,16 @@ const navigateToBlock = () => {
 // in template declaration order. There is NO value-guessing, NO
 // folder-scan fallback, and NO name-based heuristic.
 const thumbnailUrl = ref('')
+// Object URL created for the thumbnail; revoked on replace and on unmount so
+// replaced on-disk assets never keep showing the stale blob (E5).
+let thumbnailObjectUrl: string | null = null
+
+function releaseThumbnailUrl() {
+  if (thumbnailObjectUrl) {
+    URL.revokeObjectURL(thumbnailObjectUrl)
+    thumbnailObjectUrl = null
+  }
+}
 
 function getTemplateImageValue(fieldsRecord: Record<string, any> | undefined): string | null {
   if (!props.conceptFields?.length || !fieldsRecord) return null
@@ -449,6 +459,7 @@ watch(
   [() => props.blockId, () => props.fields],
   async () => {
     thumbnailUrl.value = ''
+    releaseThumbnailUrl()
 
     const node = props.blockId ? modelStore.getNode(props.blockId) : null
     const explicitImg = getTemplateImageValue(node?.fields || props.fields)
@@ -488,11 +499,17 @@ async function resolveThumbnailUrlPath(relativePath: string): Promise<string | n
     }
     const fh = await current.getFileHandle(parts[parts.length - 1])
     const file = await fh.getFile()
-    return URL.createObjectURL(file)
+    releaseThumbnailUrl()
+    thumbnailObjectUrl = URL.createObjectURL(file)
+    return thumbnailObjectUrl
   } catch {
     return relativePath
   }
 }
+
+onUnmounted(() => {
+  releaseThumbnailUrl()
+})
 
 function onThumbnailError(e: Event) {
   const target = e.target as HTMLImageElement
