@@ -30,6 +30,10 @@ procedures:
   - id: "compile-strategic-master"
     name: "Compile Strategic Master"
     path: "procedures/compile_strategic_master_NN.md"
+assets:
+  - id: "master-layout"
+    name: "Strategic Master HTML Layout"
+    path: "assets/master.html"
 ---
 
 > [!NOTE]
