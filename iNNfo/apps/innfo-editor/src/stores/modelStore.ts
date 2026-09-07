@@ -1,6 +1,15 @@
 import { defineStore } from 'pinia'
-import type { ModelNode } from '../model/types'
+import type { ModelNode, ModelRelationship } from '../model/types'
 import type { DirectoryHandleLike } from '../model/fs-types'
+
+export interface SourceCitation {
+  nodeId: string
+  nodeName: string
+  conceptType: string
+  modelPath: string
+  headingSlug?: string
+  relationships: ModelRelationship[]
+}
 import { recursiveParse } from '../model/recursiveParser'
 import {
   validateFormatContent,
@@ -134,6 +143,42 @@ export const useModelStore = defineStore('model', {
       }
       return state.rootIds.find((id) => !id.startsWith('spec:')) ?? state.rootIds[0] ?? null
     },
+
+    /**
+     * Finds all model elements that cite a given source path in their `sources::` field.
+     */
+    getSourceCitations:
+      (state) =>
+      (sourcePath: string): SourceCitation[] => {
+        if (!sourcePath) return []
+        const normalizedTarget = sourcePath.replace(/\\/g, '/').toLowerCase()
+        const results: SourceCitation[] = []
+
+        for (const node of Object.values(state.nodes)) {
+          if (!node.sources || !Array.isArray(node.sources)) continue
+
+          for (const ref of node.sources) {
+            const normalizedRef = (ref.filePath ?? '').replace(/\\/g, '/').toLowerCase()
+            const isMatch =
+              normalizedRef === normalizedTarget ||
+              normalizedTarget.endsWith('/' + normalizedRef) ||
+              normalizedRef.endsWith('/' + normalizedTarget)
+
+            if (isMatch) {
+              results.push({
+                nodeId: node.id,
+                nodeName: node.name,
+                conceptType: node.type,
+                modelPath: node.source?.path ?? '',
+                headingSlug: ref.slug,
+                relationships: node.relationships ?? [],
+              })
+              break
+            }
+          }
+        }
+        return results
+      },
   },
   actions: {
     /** Replaces the whole graph (used by a fresh recursive parse). */

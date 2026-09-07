@@ -45,9 +45,9 @@
               </p>
             </div>
 
-            <!-- Toggle Mode (only if Markdown) -->
+            <!-- Toggle Mode (only if Markdown or source) -->
             <div
-              v-if="isMarkdown"
+              v-if="isMarkdown || kind === 'source'"
               class="flex items-center gap-1 p-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg text-2xs ml-4 shrink-0"
             >
               <button
@@ -71,6 +71,18 @@
                 "
               >
                 Código
+              </button>
+              <button
+                @click="viewMode = 'lineage'"
+                class="px-2.5 py-1 rounded-md font-semibold transition-all cursor-pointer flex items-center gap-1"
+                :class="
+                  viewMode === 'lineage'
+                    ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-2xs font-bold'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                "
+              >
+                <GitFork class="w-3 h-3" />
+                Linaje
               </button>
             </div>
           </div>
@@ -171,7 +183,9 @@
           :class="[
             viewMode === 'preview' && isMarkdown
               ? 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 p-8 max-w-none'
-              : 'font-mono text-xs leading-relaxed bg-slate-900 text-slate-100 dark:bg-slate-950',
+              : viewMode === 'lineage'
+                ? 'bg-slate-50 dark:bg-slate-900/60 p-6'
+                : 'font-mono text-xs leading-relaxed bg-slate-900 text-slate-100 dark:bg-slate-950',
           ]"
         >
           <div
@@ -222,6 +236,22 @@
             class="markdown-body"
             v-html="formattedHtml"
           ></div>
+
+          <!-- Lineage Mode (Mermaid) -->
+          <div
+            v-else-if="viewMode === 'lineage'"
+            class="flex flex-col items-center justify-center min-h-[300px] w-full"
+          >
+            <div
+              v-if="!lineageMermaidCode"
+              class="text-center text-slate-400 py-12 text-xs font-sans"
+            >
+              No hay información de linaje disponible para este archivo.
+            </div>
+            <div v-else class="w-full flex justify-center overflow-x-auto py-4">
+              <MermaidWidget :model-value="lineageMermaidCode" readonly />
+            </div>
+          </div>
 
           <!-- Code / Text Line-by-Line Mode -->
           <div v-else class="space-y-1">
@@ -277,8 +307,11 @@ import {
   Clock,
   CheckCircle2,
   ExternalLink,
+  GitFork,
 } from 'lucide-vue-next'
 import { useWorkspaceStore } from '../../stores/workspaceStore'
+import { useModelStore } from '../../stores/modelStore'
+import MermaidWidget from '../../shared/widgets/MermaidWidget.vue'
 import { resolveHeadingSection } from '../../utils/sourceRef'
 import { parseFrontmatter } from '@cognnitive/innfo-core'
 import { renderMarkdown } from '../../utils/markdown'
@@ -296,6 +329,7 @@ const emit = defineEmits<{
 }>()
 
 const workspaceStore = useWorkspaceStore()
+const modelStore = useModelStore()
 
 const KIND_META = {
   source: {
@@ -364,8 +398,82 @@ const metadata = ref<{
 }>({})
 const openOriginalError = ref<string | null>(null)
 
-const viewMode = ref<'preview' | 'code'>('preview')
+const viewMode = ref<'preview' | 'code' | 'lineage'>('preview')
 const objectUrl = ref('')
+
+const lineageMermaidCode = computed(() => {
+  if (props.kind !== 'source' && !isMarkdown.value) return ''
+
+  // 1. Upstream node (Original source file from frontmatter)
+  const upFile = metadata.value.source_file
+  const upHash = metadata.value.sha256 ? metadata.value.sha256.substring(0, 8) + '...' : ''
+
+  // 2. Focal node (Current source)
+  const focalTitle = props.fileName + (props.slug ? ' (#' + props.slug + ')' : '')
+
+  // 3. Downstream citations from modelStore
+  const citations = modelStore.getSourceCitations(props.filePath)
+
+  // Build Mermaid graph LR lines
+  const chartLines: string[] = ['graph LR']
+
+  // Sanitizer for Mermaid labels
+  const sanitize = (text: string) => text.replace(/["\n\r\[\]\(\)\{\}]/g, ' ').trim()
+
+  chartLines.push(`  FOCAL["🔍 ${sanitize(focalTitle)}"]:::focal`)
+
+  if (upFile) {
+    const upLabel = `📄 ${sanitize(upFile)}${upHash ? ` [${upHash}]` : ''}`
+    chartLines.push(`  UP["${upLabel}"]:::upstream`)
+    chartLines.push(`  UP -->|normalizado| FOCAL`)
+  }
+
+  if (citations.length === 0) {
+    chartLines.push(`  EMPTY["(Sin citaciones en modelos)"]:::emptyNode`)
+    chartLines.push(`  FOCAL -.-> EMPTY`)
+  } else {
+    // Group citations by nodeId to avoid duplicate nodes
+    const seenNodes = new Set<string>()
+    const seenEdges = new Set<string>()
+
+    citations.forEach((c, idx) => {
+      const nodeId = `N_${idx}`
+      const nodeLabel = `🧩 ${sanitize(c.conceptType)}: ${sanitize(c.nodeName)}`
+      if (!seenNodes.has(c.nodeId)) {
+        seenNodes.add(c.nodeId)
+        chartLines.push(`  ${nodeId}["${nodeLabel}"]:::modelNode`)
+      }
+
+      const edgeKey = `FOCAL->${nodeId}`
+      if (!seenEdges.has(edgeKey)) {
+        seenEdges.add(edgeKey)
+        const edgeLabel = c.headingSlug ? `cita #${sanitize(c.headingSlug)}` : 'cita'
+        chartLines.push(`  FOCAL -->|${edgeLabel}| ${nodeId}`)
+      }
+
+      // Outstream relationships from this citing element
+      const outRels = (c.relationships ?? []).filter((r) => r.origin !== 'source')
+      outRels.slice(0, 3).forEach((rel, rIdx) => {
+        const targetNode = modelStore.getNode(rel.targetId)
+        const targetName = targetNode?.name ?? rel.targetId
+        const targetType = targetNode?.type ?? 'Elemento'
+        const targetId = `R_${idx}_${rIdx}`
+        const targetLabel = `🔗 ${sanitize(targetType)}: ${sanitize(targetName)}`
+        chartLines.push(`  ${targetId}["${targetLabel}"]:::relNode`)
+        chartLines.push(`  ${nodeId} -.->|${sanitize(rel.label || 'rel')}| ${targetId}`)
+      })
+    })
+  }
+
+  // Styling
+  chartLines.push('  classDef focal fill:#eef2ff,stroke:#6366f1,stroke-width:2px,font-weight:bold;')
+  chartLines.push('  classDef upstream fill:#f8fafc,stroke:#94a3b8,stroke-width:1px,stroke-dasharray: 4 4;')
+  chartLines.push('  classDef modelNode fill:#f0fdf4,stroke:#22c55e,stroke-width:1.5px;')
+  chartLines.push('  classDef relNode fill:#fdf4ff,stroke:#d946ef,stroke-width:1px;')
+  chartLines.push('  classDef emptyNode fill:#f1f5f9,stroke:#cbd5e1,stroke-width:1px,stroke-dasharray: 3 3;')
+
+  return chartLines.join('\n')
+})
 
 const extension = computed(() => {
   const parts = props.fileName.split('.')

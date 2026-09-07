@@ -3,6 +3,7 @@ import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import FilePreviewModal from '../../src/components/editor/FilePreviewModal.vue'
 import { useWorkspaceStore } from '../../src/stores/workspaceStore'
+import { useModelStore } from '../../src/stores/modelStore'
 import { parseSourceRef } from '../../src/utils/sourceRef'
 import { buildFakeTree, type FakeTree } from '../helpers/fakeFs'
 
