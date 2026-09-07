@@ -174,12 +174,12 @@
                   <Pill
                     kind="instance"
                     :concept-type="activeMatrix.target"
-                    :name="columns[vCol.index]"
+                    :name="columns[vCol.index].name"
                     :interactive="true"
-                    :block-id="resolveBlockId(columns[vCol.index], activeMatrix.target)"
-                    :node-id="resolveBlockId(columns[vCol.index], activeMatrix.target)"
-                    :description="getNodeDescription(columns[vCol.index])"
-                    :fields="getNodeFields(columns[vCol.index])"
+                    :block-id="columns[vCol.index].id"
+                    :node-id="columns[vCol.index].id"
+                    :description="getNodeDescription(columns[vCol.index].id)"
+                    :fields="getNodeFields(columns[vCol.index].id)"
                     :concept-fields="getConceptFields(activeMatrix.target)"
                     hide-empty
                     shape="pill"
@@ -218,12 +218,12 @@
                 <Pill
                   kind="instance"
                   :concept-type="activeMatrix.source"
-                  :name="rows[vRow.index]"
+                  :name="rows[vRow.index].name"
                   :interactive="true"
-                  :block-id="resolveBlockId(rows[vRow.index], activeMatrix.source)"
-                  :node-id="resolveBlockId(rows[vRow.index], activeMatrix.source)"
-                  :description="getNodeDescription(rows[vRow.index])"
-                  :fields="getNodeFields(rows[vRow.index])"
+                  :block-id="rows[vRow.index].id"
+                  :node-id="rows[vRow.index].id"
+                  :description="getNodeDescription(rows[vRow.index].id)"
+                  :fields="getNodeFields(rows[vRow.index].id)"
                   :concept-fields="getConceptFields(activeMatrix.source)"
                   hide-empty
                   :full-width="true"
@@ -260,7 +260,7 @@
                   v-for="vCol in colVirtualizer.getVirtualItems()"
                   :key="'bc-' + String(vRow.key) + '-' + String(vCol.key)"
                   class="absolute flex items-center justify-center px-2 py-2 border-r border-b border-slate-100 dark:border-slate-800"
-                  :class="getHeatmapClasses(rows[vRow.index], columns[vCol.index])"
+                  :class="getHeatmapClasses(rows[vRow.index].id, columns[vCol.index].id)"
                   :style="{
                     left: 0,
                     width: colWidth + 'px',
@@ -276,14 +276,14 @@
                     <input
                       type="checkbox"
                       :checked="
-                        getVal(rows[vRow.index], columns[vCol.index]) !== '-' &&
-                        getVal(rows[vRow.index], columns[vCol.index]) !== '' &&
-                        getVal(rows[vRow.index], columns[vCol.index]) !== false
+                        getVal(rows[vRow.index].id, columns[vCol.index].id) !== '-' &&
+                        getVal(rows[vRow.index].id, columns[vCol.index].id) !== '' &&
+                        getVal(rows[vRow.index].id, columns[vCol.index].id) !== false
                       "
                       @change="
                         setVal(
-                          rows[vRow.index],
-                          columns[vCol.index],
+                          rows[vRow.index].id,
+                          columns[vCol.index].id,
                           ($event.target as HTMLInputElement).checked ? 'X' : '-',
                         )
                       "
@@ -294,16 +294,16 @@
                   <!-- 2. Widget Cycle Buttons -->
                   <button
                     v-else-if="activeMatrix.widgetType === 'cycle'"
-                    @click="rotateCycle(rows[vRow.index], columns[vCol.index])"
+                    @click="rotateCycle(rows[vRow.index].id, columns[vCol.index].id)"
                     :class="[
-                      getCycleBgColor(getVal(rows[vRow.index], columns[vCol.index])),
+                      getCycleBgColor(getVal(rows[vRow.index].id, columns[vCol.index].id)),
                       'px-2 py-1 rounded border text-xs font-bold w-full transition-all cursor-pointer',
                     ]"
                   >
                     {{
-                      getVal(rows[vRow.index], columns[vCol.index]) === '-'
+                      getVal(rows[vRow.index].id, columns[vCol.index].id) === '-'
                         ? ''
-                        : getVal(rows[vRow.index], columns[vCol.index])
+                        : getVal(rows[vRow.index].id, columns[vCol.index].id)
                     }}
                   </button>
 
@@ -311,14 +311,14 @@
                   <select
                     v-else-if="activeMatrix.widgetType === 'scale'"
                     :value="
-                      getVal(rows[vRow.index], columns[vCol.index]) === '-'
+                      getVal(rows[vRow.index].id, columns[vCol.index].id) === '-'
                         ? ''
-                        : getVal(rows[vRow.index], columns[vCol.index])
+                        : getVal(rows[vRow.index].id, columns[vCol.index].id)
                     "
                     @change="
                       setVal(
-                        rows[vRow.index],
-                        columns[vCol.index],
+                        rows[vRow.index].id,
+                        columns[vCol.index].id,
                         ($event.target as HTMLSelectElement).value || '-',
                       )
                     "
@@ -326,10 +326,10 @@
                   >
                     <option value="">-</option>
                     <option
-                      v-if="isOutOfSetValue(getVal(rows[vRow.index], columns[vCol.index]))"
-                      :value="String(getVal(rows[vRow.index], columns[vCol.index]))"
+                      v-if="isOutOfSetValue(getVal(rows[vRow.index].id, columns[vCol.index].id))"
+                      :value="String(getVal(rows[vRow.index].id, columns[vCol.index].id))"
                     >
-                      {{ getVal(rows[vRow.index], columns[vCol.index]) }}
+                      {{ getVal(rows[vRow.index].id, columns[vCol.index].id) }}
                     </option>
                     <option v-for="num in scaleRange" :key="num" :value="num">{{ num }}</option>
                   </select>
@@ -338,14 +338,14 @@
                   <select
                     v-else-if="activeMatrix.widgetType === 'set'"
                     :value="
-                      getVal(rows[vRow.index], columns[vCol.index]) === '-'
+                      getVal(rows[vRow.index].id, columns[vCol.index].id) === '-'
                         ? ''
-                        : getVal(rows[vRow.index], columns[vCol.index])
+                        : getVal(rows[vRow.index].id, columns[vCol.index].id)
                     "
                     @change="
                       setVal(
-                        rows[vRow.index],
-                        columns[vCol.index],
+                        rows[vRow.index].id,
+                        columns[vCol.index].id,
                         ($event.target as HTMLSelectElement).value || '-',
                       )
                     "
@@ -353,10 +353,10 @@
                   >
                     <option value="">-</option>
                     <option
-                      v-if="isOutOfSetValue(getVal(rows[vRow.index], columns[vCol.index]))"
-                      :value="String(getVal(rows[vRow.index], columns[vCol.index]))"
+                      v-if="isOutOfSetValue(getVal(rows[vRow.index].id, columns[vCol.index].id))"
+                      :value="String(getVal(rows[vRow.index].id, columns[vCol.index].id))"
                     >
-                      {{ getVal(rows[vRow.index], columns[vCol.index]) }}
+                      {{ getVal(rows[vRow.index].id, columns[vCol.index].id) }}
                     </option>
                     <option v-for="opt in getSetOptionsList()" :key="opt" :value="opt">
                       {{ opt }}
@@ -369,14 +369,14 @@
                     type="text"
                     :maxlength="textMaxLength"
                     :value="
-                      getVal(rows[vRow.index], columns[vCol.index]) === '-'
+                      getVal(rows[vRow.index].id, columns[vCol.index].id) === '-'
                         ? ''
-                        : getVal(rows[vRow.index], columns[vCol.index])
+                        : getVal(rows[vRow.index].id, columns[vCol.index].id)
                     "
                     @input="
                       setVal(
-                        rows[vRow.index],
-                        columns[vCol.index],
+                        rows[vRow.index].id,
+                        columns[vCol.index].id,
                         ($event.target as HTMLInputElement).value || '-',
                       )
                     "
@@ -494,12 +494,15 @@ const activeMatrix = computed(() => {
 })
 
 // ── Derive rows/cols from modelStore nodes by concept type ──
+// Rows/columns carry `{ id, name }`: the cell key uses the stable node id so
+// that two same-named elements in different parents resolve to independent
+// cells (E1). Display (Pill, labels) uses `.name`.
 const rows = computed(() => {
   if (!activeMatrix.value) return []
   const source = activeMatrix.value.source
   return Object.values(modelStore.nodes)
     .filter((n) => n.type === source)
-    .map((n) => n.name)
+    .map((n) => ({ id: n.id, name: n.name }))
 })
 
 const columns = computed(() => {
@@ -507,7 +510,7 @@ const columns = computed(() => {
   const target = activeMatrix.value.target
   return Object.values(modelStore.nodes)
     .filter((n) => n.type === target)
-    .map((n) => n.name)
+    .map((n) => ({ id: n.id, name: n.name }))
 })
 
 // ── Column width from params (default 120px) ──
@@ -528,8 +531,8 @@ const textMaxLength = computed(() => {
 
 // ── Adaptive header height: sized so the widest rotated column pill fits ──
 const headerHeight = computed(() => {
-  const longest = columns.value.reduce((a, b) => (b.length > a.length ? b : a), '')
-  const estPillWidth = longest.length * 6.6 + 34
+  const longest = columns.value.reduce((a, b) => (b.name.length > a.name.length ? b : a), columns.value[0] ?? { name: '' })
+  const estPillWidth = longest.name.length * 6.6 + 34
   const needed = Math.ceil((estPillWidth + 26) / Math.SQRT2) + 12
   return Math.min(Math.max(needed, 72), 200)
 })
@@ -623,22 +626,17 @@ function getHeatmapClasses(row: string, col: string): string {
   return getHeatmapClassesForValue(getVal(row, col))
 }
 
-const resolveBlockId = (name: string, _conceptType: string): string | undefined => {
-  const node = Object.values(modelStore.nodes).find((n) => n.name === name)
-  return node?.id
-}
-
 // ── Node + concept metadata for header pills ───────────────────
 
-const getNodeByName = (name: string) => Object.values(modelStore.nodes).find((n) => n.name === name)
+const getNodeById = (id: string) => modelStore.nodes[id]
 
-const getNodeDescription = (name: string): string => {
-  return getNodeByName(name)?.rawSections?.description ?? ''
+const getNodeDescription = (id: string): string => {
+  return getNodeById(id)?.rawSections?.description ?? ''
 }
 
 /** Unwraps FieldValue entries into plain values for the Pill popup. */
-const getNodeFields = (name: string): Record<string, any> => {
-  const node = getNodeByName(name)
+const getNodeFields = (id: string): Record<string, any> => {
+  const node = getNodeById(id)
   const out: Record<string, any> = {}
   if (node?.fields) {
     for (const [k, v] of Object.entries(node.fields)) {

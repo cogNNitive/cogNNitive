@@ -70,22 +70,22 @@ editor PRs also `npm --prefix iNNfo/apps/innfo-editor run build`.
 ## Wave 3 — innfo-editor
 
 ### PR10 · E1 + E2 — matrix cell identity
-- [ ] Test (`useMatrixCells.test.ts`): two `Review` nodes under different parents → two independent cells; row name with `::` → distribution count == rendered cells
-- [ ] `MatricesGrid.vue` — rows/columns carry `{ id, name }`; cell key uses stable id
-- [ ] `useMatrixCells.ts` `valueDistribution` — use `matrixCellKey()` exactly as get/set
-- [ ] Confirm on-disk `row||col` key format unchanged (display name still serialized)
+- [x] Test (`useMatrixCells.test.ts`): two `Review` nodes under different parents → two independent cells; row name with `::` → distribution count == rendered cells
+- [x] `MatricesGrid.vue` — rows/columns carry `{ id, name }`; cell key uses stable id
+- [x] `useMatrixCells.ts` `valueDistribution` — use `matrixCellKey()` exactly as get/set
+- [x] Confirm on-disk `row||col` key format unchanged (display name still serialized)
 
 ### PR11 · E3 + E4 + E5 + E6 — graph lifecycle & blobs  (split E5+E6 → PR11b if oversized)
 - [ ] Test: `useGraphRenderer` teardown — `vueRender(null, …)` count == mount count across two `render()` passes
 - [ ] Test: `useBlockAssets` — same path, changed size → cache miss; `Pill` unmount → `revokeObjectURL` called
-- [ ] E3 `GraphViewer.vue` — watch a structural signature (edges + field revision), not node count
-- [ ] E4 `useGraphRenderer.ts` — track mounted Pills; `vueRender(null, container)` each before `render()` clears the SVG; same in `onUnmounted`
-- [ ] E5 `Pill.vue` — `revokeObjectURL` on replace and on unmount
-- [ ] E6 `useBlockAssets.ts` — cache key includes size+mtime, or `clearBlockAssetCache()` on workspace load
+- [x] E3 `GraphViewer.vue` — watch a structural signature (edges + field revision), not node count
+- [x] E4 `useGraphRenderer.ts` — track mounted Pills; `vueRender(null, container)` each before `render()` clears the SVG; same in `onUnmounted`
+- [x] E5 `Pill.vue` — `revokeObjectURL` on replace and on unmount
+- [x] E6 `useBlockAssets.ts` — cache key includes size+mtime, or `clearBlockAssetCache()` on workspace load
 
 ### PR12 · E7 — `useHashSync` router state
-- [ ] Test (`useHashSync.test.ts`, mocked `location`/`history`): A→B→C then Back to `#B` → one history entry per nav, no duplicate push, forward history preserved
-- [ ] `syncStoreToHash` — `return` if the target hash equals `window.location.hash` (no-op push guard)
+- [x] Test (`useHashSync.test.ts`, mocked `location`/`history`): A→B→C then Back to `#B` → one history entry per nav, no duplicate push, forward history preserved
+- [x] `syncStoreToHash` — `return` if the target hash equals `window.location.hash` (no-op push guard)
 
 ---
 

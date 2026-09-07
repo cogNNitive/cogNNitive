@@ -18,11 +18,48 @@ export interface WriteReport {
 }
 
 /**
- * Synchronizes matrix cell values stored in `node.fields` (key format: `matrixName||row||col`)
- * into `parsed.matrices` so they are correctly serialized by `serializeModel`.
+ * Synchronizes matrix cell values stored in `node.fields` (key format:
+ * `matrixName||<rowId>||<colId>`, where row/col are the stable qualified
+ * element ids — see `normalizeSingleModel` in innfo-core) into
+ * `parsed.matrices` so they are correctly serialized by `serializeModel`.
+ * The on-disk `row||col` display names are resolved back from the ids so the
+ * serialized matrix table keeps the display-name format (E1, option B: the
+ * in-memory lookup is id-based, the persisted key is name-based).
+ *
+ * @param nodes Optional full node map (id → node) used to resolve ids back to
+ *   display names. Falls back to the active Pinia model store, then to the raw
+ *   key segment (legacy display-name keys or nodes no longer in the graph).
  */
-export function syncMatrixFieldsToParsedModel(node: ModelNode, parsed: ParsedModel): void {
+export function syncMatrixFieldsToParsedModel(
+  node: ModelNode,
+  parsed: ParsedModel,
+  nodes?: Record<string, ModelNode>,
+): void {
   if (!node.fields) return
+
+  // Resolve qualified element ids back to display names for the on-disk cells.
+  const idToName = new Map<string, string>()
+  if (nodes) {
+    for (const n of Object.values(nodes)) {
+      if (n && typeof n.id === 'string' && typeof n.name === 'string') {
+        idToName.set(n.id, n.name)
+      }
+    }
+  } else {
+    try {
+      const pinia = getActivePinia()
+      if (pinia) {
+        const modelStore = useModelStore(pinia)
+        for (const n of Object.values(modelStore.nodes)) {
+          if (n && typeof n.id === 'string' && typeof n.name === 'string') {
+            idToName.set(n.id, n.name)
+          }
+        }
+      }
+    } catch {
+      // Pinia not active — fall back to raw keys (already display names)
+    }
+  }
 
   // Group matrix cell values by matrixName and track which matrices have keys in node.fields
   const cellsByMatrix = new Map<string, Map<string, string>>()
@@ -39,7 +76,11 @@ export function syncMatrixFieldsToParsedModel(node: ModelNode, parsed: ParsedMod
         if (!cellsByMatrix.has(matrixName)) {
           cellsByMatrix.set(matrixName, new Map())
         }
-        cellsByMatrix.get(matrixName)!.set(`${row}||${col}`, String(rawVal))
+        // Resolve id → display name; fall back to the raw key segment (a
+        // legacy display-name key or a node no longer in the graph).
+        const rowName = idToName.get(row) ?? row
+        const colName = idToName.get(col) ?? col
+        cellsByMatrix.get(matrixName)!.set(`${rowName}||${colName}`, String(rawVal))
       }
     }
   }
@@ -121,7 +162,10 @@ export function syncMatrixFieldsToParsedModel(node: ModelNode, parsed: ParsedMod
  * - 'exact': rawContent was preserved (no edit, byte-identical write)
  * - 'canonical': content was re-serialized through serializeModel (lossy path)
  */
-function serializeNodeContent(node: ModelNode): {
+function serializeNodeContent(
+  node: ModelNode,
+  nodes?: Record<string, ModelNode>,
+): {
   content: string
   fidelity: 'exact' | 'canonical'
 } {
@@ -273,7 +317,7 @@ function serializeNodeContent(node: ModelNode): {
   }
 
   // Apply matrix cell edits from node.fields into parsed.matrices
-  syncMatrixFieldsToParsedModel(node, parsed)
+  syncMatrixFieldsToParsedModel(node, parsed, nodes)
 
   const serialized = serializeModel(parsed)
   const fidelity: 'exact' | 'canonical' = serialized === node.rawContent ? 'exact' : 'canonical'
@@ -301,7 +345,7 @@ export async function recursiveSerialize(
   for (const node of Object.values(nodes)) {
     if (!dirtyIds.has(node.id) || node.rawContent === undefined) continue
 
-    const { content, fidelity } = serializeNodeContent(node)
+    const { content, fidelity } = serializeNodeContent(node, nodes)
 
     if (driver) {
       const parsed = parseModel(content)

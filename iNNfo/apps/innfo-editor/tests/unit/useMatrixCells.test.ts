@@ -81,7 +81,83 @@ describe('useMatrixCells', () => {
     const rootNode = ref<ModelNode | null>(root)
     const { valueDistribution } = useMatrixCells(activeMatrix, rootNode, () => {})
 
-    expect(valueDistribution(['Src0'], ['Tgt0', 'Tgt1', 'Tgt2'])).toEqual({ X: 2, '-': 1 })
+    expect(
+      valueDistribution(
+        [{ id: 'Src0', name: 'Src0' }],
+        [
+          { id: 'Tgt0', name: 'Tgt0' },
+          { id: 'Tgt1', name: 'Tgt1' },
+          { id: 'Tgt2', name: 'Tgt2' },
+        ],
+      ),
+    ).toEqual({ X: 2, '-': 1 })
+  })
+
+  it('valueDistribution uses the exact matrixCellKey() normalization get/set use (E2)', () => {
+    const modelStore = useModelStore()
+    const root = makeNode('Root')
+    modelStore.setGraph({ Root: root }, ['Root'])
+
+    const activeMatrix = ref<MatrixDef | null>(MATRIX)
+    const rootNode = ref<ModelNode | null>(root)
+    const { setVal, valueDistribution } = useMatrixCells(activeMatrix, rootNode, () => {})
+
+    // setVal stores under the matrixCellKey-normalized form: `–` → `-`.
+    setVal('Src–A', 'Tgt–B', 'X')
+    setVal('Src–A', 'Tgt–C', 'X')
+
+    expect(Object.keys(root.fields)).toContain('M1||Src-A||Tgt-B')
+
+    // Distribution must use the same normalized key so badge counts agree
+    // with the visible cells, even when the display name keeps the `–`.
+    expect(
+      valueDistribution(
+        [{ id: 'Src–A', name: 'Src–A' }],
+        [
+          { id: 'Tgt–B', name: 'Tgt–B' },
+          { id: 'Tgt–C', name: 'Tgt–C' },
+          { id: 'Tgt–D', name: 'Tgt–D' },
+        ],
+      ),
+    ).toEqual({ X: 2, '-': 1 })
+  })
+
+  it('keys cells by the stable node id, so same-named elements in different parents are independent cells (E1)', () => {
+    const modelStore = useModelStore()
+    const root = makeNode('Root')
+    modelStore.setGraph({ Root: root }, ['Root'])
+
+    const activeMatrix = ref<MatrixDef | null>(MATRIX)
+    const rootNode = ref<ModelNode | null>(root)
+    const { matrixCellKey, setVal, getVal, valueDistribution } = useMatrixCells(
+      activeMatrix,
+      rootNode,
+      () => {},
+    )
+
+    // Two elements with the SAME display name ("Review") under different
+    // parents: rows/cols carry {id, name}; the cell key uses the id.
+    const rowA = { id: 'doc/Projects/Review', name: 'Review' }
+    const rowB = { id: 'doc/Initiatives/Review', name: 'Review' }
+    const col = { id: 'doc/Projects/Task', name: 'Task' }
+
+    setVal(rowA.id, col.id, 'X')
+    setVal(rowB.id, col.id, 'Y')
+
+    expect(matrixCellKey(rowA.id, col.id)).not.toBe(matrixCellKey(rowB.id, col.id))
+    expect(getVal(rowA.id, col.id)).toBe('X')
+    expect(getVal(rowB.id, col.id)).toBe('Y')
+
+    // Distribution counts by id, not by display name: two Review rows.
+    expect(
+      valueDistribution(
+        [
+          { id: rowA.id, name: rowA.name },
+          { id: rowB.id, name: rowB.name },
+        ],
+        [{ id: col.id, name: col.name }],
+      ),
+    ).toEqual({ X: 1, Y: 1 })
   })
 
   it('getSetOptionsList reads declared "values", falling back to parsing "params"', () => {

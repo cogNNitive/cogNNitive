@@ -37,9 +37,6 @@ export function useBlockAssets(
       return relativePath
     }
 
-    const cached = blobUrlCache.get(relativePath)
-    if (cached) return cached
-
     const ws = useWorkspaceStore()
     const handle = ws.handle
     if (!handle) return relativePath
@@ -73,6 +70,18 @@ export function useBlockAssets(
       return current
     }
 
+    // Cache the blob URL keyed by path + size + mtime so a replaced on-disk
+    // asset (same path, changed content) misses the cache and shows the new
+    // file instead of a stale blob (E6).
+    const cacheWithStats = (file: File): string => {
+      const key = `${relativePath}:${file.size}:${file.lastModified}`
+      const existing = blobUrlCache.get(key)
+      if (existing) return existing
+      const url = URL.createObjectURL(file)
+      blobUrlCache.set(key, url)
+      return url
+    }
+
     try {
       const modelDirHandle = modelPath ? await getModelDirectoryHandle(handle, modelPath) : handle
 
@@ -84,9 +93,7 @@ export function useBlockAssets(
             const slugDir = await assetsDir.getDirectoryHandle(slug)
             const fh = await slugDir.getFileHandle(relativePath)
             const file = await fh.getFile()
-            const url = URL.createObjectURL(file)
-            blobUrlCache.set(relativePath, url)
-            return url
+            return cacheWithStats(file)
           } catch {
             // fallback
           }
@@ -96,9 +103,7 @@ export function useBlockAssets(
           const assetsDir = await modelDirHandle.getDirectoryHandle('assets')
           const fh = await assetsDir.getFileHandle(relativePath)
           const file = await fh.getFile()
-          const url = URL.createObjectURL(file)
-          blobUrlCache.set(relativePath, url)
-          return url
+          return cacheWithStats(file)
         } catch {
           // fallback
         }
@@ -111,9 +116,7 @@ export function useBlockAssets(
       }
       const fh = await current.getFileHandle(parts[parts.length - 1])
       const file = await fh.getFile()
-      const url = URL.createObjectURL(file)
-      blobUrlCache.set(relativePath, url)
-      return url
+      return cacheWithStats(file)
     } catch {
       return relativePath
     }

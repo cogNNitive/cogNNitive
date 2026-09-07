@@ -9,12 +9,20 @@ export interface UseMatrixCells {
   matrixCellKey(row: string, col: string): string
   getVal(row: string, col: string): string | number | boolean
   setVal(row: string, col: string, value: string | number | boolean): void
-  valueDistribution(rows: string[], cols: string[]): Record<string, number>
+  valueDistribution(rows: CellEndpoint[], cols: CellEndpoint[]): Record<string, number>
   getSetOptionsList(): string[]
   isOutOfSetValue(value: string | number | boolean): boolean
   rotateCycle(row: string, col: string): void
   /** Numeric range for the 'scale' widget; also template-bound in MatricesGrid.vue's <select>. */
   scaleRange: ComputedRef<number[]>
+}
+
+/** A matrix row/column endpoint: the stable node id used for cell keys plus
+ *  the display name shown in the grid. See E1 (same-named elements in
+ *  different parents must resolve to independent cells). */
+export interface CellEndpoint {
+  id: string
+  name: string
 }
 
 /**
@@ -58,13 +66,12 @@ export function useMatrixCells(
     onChange(key, value)
   }
 
-  function valueDistribution(rows: string[], cols: string[]): Record<string, number> {
+  function valueDistribution(rows: CellEndpoint[], cols: CellEndpoint[]): Record<string, number> {
     if (!activeMatrix.value || !rows.length || !cols.length) return {}
     const counts: Record<string, number> = {}
-    const prefix = activeMatrix.value.name + '||'
     for (const row of rows) {
       for (const col of cols) {
-        const key = `${prefix}${row}||${col}`
+        const key = matrixCellKey(row.id, col.id)
         let val: unknown
         for (const id of modelStore.rootIds) {
           const r = modelStore.getNode(id)

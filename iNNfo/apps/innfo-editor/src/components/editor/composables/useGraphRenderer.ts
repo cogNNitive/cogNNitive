@@ -1,4 +1,4 @@
-import { Ref, h, render as vueRender } from 'vue'
+import { h, render as vueRender, type Ref, type VNode } from 'vue'
 import * as d3 from 'd3'
 import { GNode, GEdge } from './useGraphData'
 import Pill from '../Pill.vue'
@@ -58,6 +58,18 @@ export function useGraphRenderer(options: GraphRendererOptions) {
   let svg: d3.Selection<SVGSVGElement, unknown, null, undefined>
   let root: d3.Selection<SVGGElement, unknown, null, undefined>
   let sim: d3.Simulation<any, any> | null = null
+  // Every Pill mounted via `vueRender(vnode, container)` is tracked here so the
+  // next `render()` (and the component's `onUnmounted`) can unmount it with
+  // `vueRender(null, container)` — without this, each re-render leaks one live
+  // Pill (with deep watchers) per node (E4).
+  const mountedPills: Array<{ container: HTMLDivElement; vnode: VNode }> = []
+
+  /** Unmount every tracked Pill, clearing the array. Safe to call multiple times. */
+  function unmountPills() {
+    for (const { container } of mountedPills.splice(0)) {
+      vueRender(null, container)
+    }
+  }
   let forceLinkSel: d3.Selection<any, any, any, any> | null = null
   let forceNodeSel: d3.Selection<any, any, any, any> | null = null
   let forceEdgeG: d3.Selection<any, any, any, any> | null = null
@@ -394,6 +406,7 @@ export function useGraphRenderer(options: GraphRendererOptions) {
           vnode.appContext = appContext
         }
         vueRender(vnode, container)
+        mountedPills.push({ container, vnode })
 
         const fo = g.append('foreignObject')
           .attr('x', x)
@@ -483,6 +496,7 @@ export function useGraphRenderer(options: GraphRendererOptions) {
         vnode.appContext = appContext
       }
       vueRender(vnode, container)
+      mountedPills.push({ container, vnode })
 
       const fo = g.append('foreignObject')
         .attr('width', 200)
@@ -651,6 +665,7 @@ export function useGraphRenderer(options: GraphRendererOptions) {
 
   function render() {
     if (!svgRef.value) return
+    unmountPills()
     svg.selectAll('*').remove()
     root = svg.append('g')
     if (displayNodes.value.length === 0) return
@@ -691,6 +706,13 @@ export function useGraphRenderer(options: GraphRendererOptions) {
     if (resizeObs) resizeObs.disconnect()
   }
 
+  /** Full teardown: unmount every mounted Pill and release D3 state. */
+  function dispose() {
+    unmountPills()
+    stopSimulation()
+    disconnectResizeObserver()
+  }
+
   return {
     initSvg,
     render,
@@ -702,5 +724,6 @@ export function useGraphRenderer(options: GraphRendererOptions) {
     navigateToNode,
     stopSimulation,
     disconnectResizeObserver,
+    dispose,
   }
 }
