@@ -440,6 +440,27 @@ describe('NodeSpecResolver', () => {
       expect(await readFile(join(pkgPath, 'spec_NN.md'), 'utf-8')).toBe('Content V1')
     })
 
+    it('hydrateTemplatePackageAtomically writes a full package payload (spec + alias + procedures + samples + assets)', async () => {
+      const { hydrateTemplatePackageAtomically } = await import('./resolver-node')
+      const pkgPath = await hydrateTemplatePackageAtomically(rootDir, 'documentation', 'V_0-2-0', {
+        spec: '---\ntemplate_version: "V_0-2-0"\n---\n# Doc\n',
+        procedures: { 'generate_docsify_suite_NN.md': '# Procedure\n' },
+        samples: { 'Ghostbusters_V_0-2-0_documentation_NN.md': '# Sample\n' },
+        assets: { 'master.html': '<!doctype html>' },
+      })
+
+      expect(await readFile(join(pkgPath, 'spec_NN.md'), 'utf-8')).toContain('# Doc')
+      // backward-compatible alias
+      expect(await readFile(join(pkgPath, 'documentation_V_0-2-0_NN.md'), 'utf-8')).toContain('# Doc')
+      expect(
+        await readFile(join(pkgPath, 'procedures', 'generate_docsify_suite_NN.md'), 'utf-8'),
+      ).toContain('# Procedure')
+      expect(
+        await readFile(join(pkgPath, 'samples', 'Ghostbusters_V_0-2-0_documentation_NN.md'), 'utf-8'),
+      ).toContain('# Sample')
+      expect(await readFile(join(pkgPath, 'assets', 'master.html'), 'utf-8')).toContain('doctype')
+    })
+
     it('W-01: buildIncludeContentMap normalizes case lookup for frontmatter includes', async () => {
       const { buildIncludeContentMap } = await import('./resolver-node')
 

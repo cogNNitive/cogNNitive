@@ -29,11 +29,10 @@ Model Context Protocol (MCP) server wrapping `@cognnitive/innfo-core` for the `c
 
 ### Maintenance & Safety Tools
 
-- **`prune_orphaned_specs`**: Constructs a workspace reference reachability graph over L3 models, workspace templates, and entrypoint manifests to identify unused/orphaned spec files.
-  - Arguments:
-    - `dry_run` (`boolean`, default: `true`): Reports orphan candidates without modifying disk.
-    - `backup` (`boolean`, default: `true`): Packages candidate specs into `.backup/specs_<timestamp>.zip` prior to removal.
-    - `root` (`string`): Workspace root directory override.
+_`prune_orphaned_specs` was retired by `canonical-template-package-distribution`:_
+_workspace template caches are now isolated versioned package directories_
+_(`specs/templates/<name>/<version>/`) hydrated write-once from immutable release_
+_tags, so reachability pruning of orphaned spec files is no longer needed._
 
 ---
 
