@@ -27,74 +27,50 @@ Generate a single HTML dashboard compiling the strategic diagrams based on the a
 ## NN Work: Load Reference Layout
 parent:: [[Compile Strategic Master]]
 step_type:: task
-next:: [[Map Journey and Emotions]]
+next:: [[Extract Model Strategic Data]]
 condition:: Procedure starts
 input:: [[Master HTML Reference Layout]]
 output:: [[Loaded Reference Layout]]
 output_status:: verified
 tool:: [[AI Agent]]
 scope:: internal
-Fetch the reference layout from `https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business/samples/master.html` (all CSS and SVGs inline) as the base design.
+Load the reference dashboard layout from `../assets/master.html` (all CSS, structure, and baseline visualization components self-contained).
 
-## NN Work: Map Journey and Emotions
+## NN Work: Extract Model Strategic Data
 parent:: [[Compile Strategic Master]]
 step_type:: task
-next:: [[Map Problems and Value Propositions]]
+next:: [[Inject Model Data Slot]]
 condition:: Reference layout is loaded
 input:: [[Active Business Model]]
-output:: [[Customer Journey Emotion Map]]
+output:: [[Structured Strategic Data]]
 output_status:: verified
 tool:: [[AI Agent]]
 scope:: internal
-Read [[Journey]] and [[Emotions]] elements to build the Customer Journey Emotion Map timeline in the reference layout.
+Extract strategic elements from the active L3 business model (including [[Journey]], [[Emotions]], [[Problems]], [[Value propositions]], [[Profiles]], [[Behaviors]], [[Finance]], and [[Team]]) into a structured JSON payload conforming to the dashboard data schema.
 
-## NN Work: Map Problems and Value Propositions
-parent:: [[Compile Strategic Master]]
-step_type:: task
-next:: [[Map Profiles and Behaviors]]
-condition:: Journey map is complete
-input:: [[Active Business Model]]
-output:: [[Solution Fit Flow Sankey]]
-output_status:: verified
-tool:: [[AI Agent]]
-scope:: internal
-Map [[Problems]] and [[Value propositions]] elements into the Solution Fit Flow Sankey diagram.
-
-## NN Work: Map Profiles and Behaviors
-parent:: [[Compile Strategic Master]]
-step_type:: task
-next:: [[Inject Values into SVG Elements]]
-condition:: Solution fit map is complete
-input:: [[Active Business Model]]
-output:: [[Buyer Persona Cards]]
-output_status:: verified
-tool:: [[AI Agent]]
-scope:: internal
-Map [[Profiles]] and [[Behaviors]] elements into the Buyer Persona Card columns of the reference layout.
-
-## NN Work: Inject Values into SVG Elements
+## NN Work: Inject Model Data Slot
 parent:: [[Compile Strategic Master]]
 step_type:: task
 next:: [[Verify Output]]
-condition:: All diagram maps are complete
-input:: [[Loaded Reference Layout]]
+condition:: Strategic data extraction complete
+input:: [[Structured Strategic Data]]
 output:: [[Strategic Master HTML]]
 output_status:: verified
 tool:: [[AI Agent]]
 scope:: internal
-Inject the actual L3 model values into the SVG elements of the loaded reference layout.
+Inject the extracted model data JSON into the `<script id="innfo-model-data" type="application/json">` data slot of the loaded reference layout, and save the deliverable.
 
 ## NN Work: Verify Output
 parent:: [[Compile Strategic Master]]
 step_type:: task
 next:: -
-condition:: All values injected
+condition:: Data slot injected
 input:: [[Strategic Master HTML]]
 output:: [[Verified Strategic Master]]
 output_status:: verified
 tool:: [[AI Agent]]
 scope:: internal
-Verify the generated dashboard compiles all 25 strategic diagrams with the model data correctly injected and no broken or empty sections.
+Verify the generated dashboard compiles all 25 strategic diagrams with the model data correctly bound in the data slot and no broken or empty sections.
 
 # NN Tools
 
@@ -112,32 +88,22 @@ The active L3 business model conforming to business_V_0-2-0, source of all data 
 ## NN Artifact: Master HTML Reference Layout
 type:: asset
 format:: html
-The static reference dashboard at `iNNfo/specs/templates/business/samples/master.html` with all CSS and SVGs inline.
+The static reference dashboard at `../assets/master.html` with inline styling and responsive visual components.
 
 ## NN Artifact: Loaded Reference Layout
 type:: data
 format:: html
 In-memory copy of the reference layout ready for value injection.
 
-## NN Artifact: Customer Journey Emotion Map
-type:: diagram
-format:: svg
-Timeline derived from [[Journey]] and [[Emotions]] elements.
-
-## NN Artifact: Solution Fit Flow Sankey
-type:: diagram
-format:: svg
-Sankey mapping [[Problems]] to [[Value propositions]].
-
-## NN Artifact: Buyer Persona Cards
-type:: diagram
-format:: svg
-Card columns derived from [[Profiles]] and [[Behaviors]] elements.
+## NN Artifact: Structured Strategic Data
+type:: data
+format:: json
+Normalized JSON payload extracted from the L3 model ready for injection into the dashboard data slot.
 
 ## NN Artifact: Strategic Master HTML
 type:: deliverable
 format:: html
-The generated single-file dashboard with all 25 strategic diagrams.
+The generated single-file dashboard with the model data slot populated.
 
 ## NN Artifact: Verified Strategic Master
 type:: report
