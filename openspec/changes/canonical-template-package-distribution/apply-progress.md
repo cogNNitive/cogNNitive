@@ -36,10 +36,44 @@ Phase 6 verification runs what it can; a fully green `verify.js` is blocked unti
     exemption, `--diff-file` + `--base-root` for git-free tests
   - test suite rewritten (11 cases); passes; guard passes against real repo state vs `origin/main`
   - `verify.js` needs no change — guard runs bare in its pipeline
-- [ ] Phase 5 — OpenSpec specs  ← next
-- [ ] Phase 2 — Resolver & full-package hydration + retire `prune_orphaned_specs`
-- [~] Phase 4 — Manifest paths done (Phase 1 commit); `channels.stable.refs` NOT bumped by design
-- [ ] Phase 6 — Integration verification (best effort)
+- [x] Phase 5 — OpenSpec specs — commit `37d6764`
+  - new living spec `openspec/specs/template-release-tagging/spec.md` (CI-safe: no `cogNNitive/iNNfo` literal)
+  - `template-package-structure`: canonical source layout vs versioned hydrated layout
+  - `template-version-pruning` + `template-immutability-guard`: RETIRED banners
+  - 3 stale `documentation/V_0-2-0/spec_NN.md` raw URLs repointed → `check:spec-urls` clean on clean checkout
+- [x] Phase 2 — Resolver & full-package hydration + retire `prune_orphaned_specs` — commit `27997f6`
+  - `hydrateTemplatePackageAtomically(payload: string | TemplatePackagePayload)` — spec + alias + procedures/ + samples/ + assets/ into write-once staging→rename
+  - new `fetchTemplatePackageFromRemote` (raw spec + GitHub contents-API subdir enumeration at a tag ref); wired best-effort into the resolver network branch — NETWORK-UNTESTED here
+  - `findSpecInPackageDir` already canonical-first — unchanged
+  - `prune_orphaned_specs` MCP tool removed (def/case/handler/import/spec/README); `reachability.ts` lib fn kept
+  - new payload-form hydration unit test; mcp bundle rebuilt
+- [~] Phase 4 — Manifest **paths** done in Phase 1 commit; `channels.stable.refs` NOT bumped (by agreed cut)
+- [~] Phase 6 — Local verification GREEN (see below); network `validate-manifest --channel stable` blocked (see Known-blocked)
+
+## Final local verification (all GREEN)
+
+- `npm --prefix iNNfo/packages/innfo-core test` → 414 pass, 1 skip
+- `npm --prefix iNNfo/packages/innfo-mcp test` → 185 pass
+- `npm --prefix iNNfo run test` (workspace) → 630 pass, 2 skip
+- `node scripts/template-catalog.test.mjs`, `node scripts/guard-template-immutability.test.js` → pass
+- `node scripts/guard-template-immutability.js` (vs origin/main) → pass
+- `node scripts/manifest/check-parity.js` → pass
+- `node scripts/verify-inventory.test.js`, preflight/upgrade-check tests → pass
+- `npx tsc --noEmit -p tsconfig.scripts.json` → pass
+- `npm --prefix iNNfo run check:spec-urls` / `check:spec-version --inventory` → pass on clean checkout
+  (local run also flags `.worktrees/` — gitignored, not seen by CI)
+
+## Commits on `feat/canonical-template-package-distribution`
+
+`8fe698c` P1 · `d47f7bf` P3 · `37d6764` P5 · `27997f6` P2  (base `0148b61`)
+
+## Concurrency incident
+
+A parallel session checked out `chore/landing-hero-copy-update` from this branch's tip mid-run
+and my P3 commit initially landed there. Recovered: P3 cherry-picked onto the feat branch
+(`d47f7bf`), `chore/landing-hero-copy-update` reset back to its own commit `0a96166`.
+That branch still has P1 (`8fe698c`) as an ancestor — its owner branched from the wrong base;
+not rebased here.
 
 ## Known-blocked (by design, per agreed cut)
 
