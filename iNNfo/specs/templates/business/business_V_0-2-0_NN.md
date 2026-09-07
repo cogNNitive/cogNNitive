@@ -26,6 +26,10 @@ relationship_types:
     enabled: false
   sequence:
     enabled: true
+procedures:
+  - id: "compile-strategic-master"
+    name: "Compile Strategic Master"
+    path: "procedures/compile_strategic_master_NN.md"
 ---
 
 > [!NOTE]
