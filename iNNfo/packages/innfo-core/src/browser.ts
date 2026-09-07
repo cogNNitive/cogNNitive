@@ -67,6 +67,35 @@ export {
 } from './workspace/reconcileManifest'
 export { isReconcilableModel, type CandidateFile } from './workspace/discoverModels'
 export {
+  parseSemVer,
+  compareVersions,
+  gapKind,
+  parsePinnedUrl,
+  classifyAgainstCatalog,
+  type SemVerTriple,
+  type VersionStatus,
+  type VersionGap,
+  type VersionClassification,
+  type TemplateCatalog,
+  type TemplateCatalogEntry,
+  type TemplateCatalogVersion,
+} from './workspace/integrity/versionStatus'
+export {
+  buildWorkspaceIntegrityReport,
+  summarizeWorkspaceIntegrity,
+  type WorkspaceIntegrityPorts,
+  type WorkspaceModelRef,
+  type IntegrityDiagnostic,
+  type TemplateResolutionResult,
+  type ModelIntegrityReport,
+  type WorkspaceIntegrityReport,
+  type WorkspaceIntegrityAggregate,
+  type BuildWorkspaceIntegrityOptions,
+  type CatalogSource,
+  type FreshnessField,
+  type TemplateResolution,
+} from './workspace/integrity/report'
+export {
   getSpecForLevel,
   getTemplate,
   getFormatSpec,
