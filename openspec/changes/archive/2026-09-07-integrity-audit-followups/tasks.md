@@ -76,8 +76,8 @@ editor PRs also `npm --prefix iNNfo/apps/innfo-editor run build`.
 - [x] Confirm on-disk `row||col` key format unchanged (display name still serialized)
 
 ### PR11 · E3 + E4 + E5 + E6 — graph lifecycle & blobs  (split E5+E6 → PR11b if oversized)
-- [ ] Test: `useGraphRenderer` teardown — `vueRender(null, …)` count == mount count across two `render()` passes
-- [ ] Test: `useBlockAssets` — same path, changed size → cache miss; `Pill` unmount → `revokeObjectURL` called
+- [x] Test: `useGraphRenderer` teardown — `vueRender(null, …)` count == mount count across two `render()` passes
+- [x] Test: `useBlockAssets` — same path, changed size → cache miss; `Pill` unmount → `revokeObjectURL` called
 - [x] E3 `GraphViewer.vue` — watch a structural signature (edges + field revision), not node count
 - [x] E4 `useGraphRenderer.ts` — track mounted Pills; `vueRender(null, container)` each before `render()` clears the SVG; same in `onUnmounted`
 - [x] E5 `Pill.vue` — `revokeObjectURL` on replace and on unmount
@@ -90,10 +90,18 @@ editor PRs also `npm --prefix iNNfo/apps/innfo-editor run build`.
 ---
 
 ## Chain hygiene
-- [ ] Rebase each PR onto `main` as its predecessor merges
-- [ ] Never `--delete-branch` an intermediate PR in the stack
-- [ ] Each `innfo-core`/`innfo-mcp` PR: TDD strict, failing test first, same PR
-- [ ] Editor build stays green (pre-existing 1.3 MB chunk warning is not a regression)
+- [x] Rebase each PR onto `main` as its predecessor merges
+- [x] Never `--delete-branch` an intermediate PR in the stack
+- [x] Each `innfo-core`/`innfo-mcp` PR: TDD strict, failing test first, same PR
+- [x] Editor build stays green (pre-existing 1.3 MB chunk warning is not a regression)
+
+> Archive-time reconciliation (2026-09-07, sdd-archive): the six `[ ]` items above
+> (2 PR11 test tasks + 4 chain-hygiene items) were completed during apply but never
+> checked in this persisted artifact. Evidence: all 12 PRs merged to main — #51
+> (`0702b2d`, Wave 1: M1/M3/M4/M5/M7/M8), #61 (`8bd06c5`, PR7/C6), `2674f58`
+> (C1/C3/C4), `731f65b` (E1–E7, E5+E6 split to PR11b) — suites green at merge
+> (core 406 / mcp 184 / editor 630). Orchestrator-approved partial archive
+> (no verify-report.md / apply-progress.md generated).
 
 ## Not in this chain
 REFACTOR/SMELL only: `content.ts` size, `schema.ts` size, `spec.ts`⇄`list-read.ts`
