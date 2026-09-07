@@ -246,7 +246,7 @@ export function getStarterByTemplate(tpl: TemplateChoice) {
     {
       id: 'starter-business',
       templateName: 'business',
-      url: `${SAMPLE_BASE}/business/samples/Ghostbusters_V_0-2-0_business_NN.md`,
+      url: `${SAMPLE_BASE}/business/samples/Ghostbusters_V_0-2-1_business_NN.md`,
     },
     {
       id: 'starter-procedures',

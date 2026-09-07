@@ -39,7 +39,7 @@
     },
     "business": {
       "name": "business",
-      "adopted": "V_0-2-0",
+      "adopted": "V_0-2-1",
       "versions": [
         {
           "template_version": "V_0-1-0",
@@ -52,6 +52,12 @@
           "spec_version": "V_0-2-1",
           "title": "Business Template",
           "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business/business_V_0-2-0_NN.md"
+        },
+        {
+          "template_version": "V_0-2-1",
+          "spec_version": "V_0-2-1",
+          "title": "Business Template",
+          "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business/business_V_0-2-1_NN.md"
         }
       ]
     },

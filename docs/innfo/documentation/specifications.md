@@ -39,7 +39,7 @@ Domain-specific templates. Each declares concepts, markers, matrices, and relati
 | Template | `template_version` | Source |
 |----------|--------------------|--------|
 | **Blank** | V_0-2-0 | [`specs/templates/blank/blank_V_0-2-0_NN.md`](https://github.com/cogNNitive/cogNNitive/blob/main/iNNfo/specs/templates/blank/blank_V_0-2-0_NN.md) |
-| **Business** (composite) | V_0-2-0 | [`specs/templates/business/business_V_0-2-0_NN.md`](https://github.com/cogNNitive/cogNNitive/blob/main/iNNfo/specs/templates/business/business_V_0-2-0_NN.md) |
+| **Business** (composite) | V_0-2-1 | [`specs/templates/business/business_V_0-2-1_NN.md`](https://github.com/cogNNitive/cogNNitive/blob/main/iNNfo/specs/templates/business/business_V_0-2-1_NN.md) |
 | **Business Model** | V_0-1-0 | [`specs/templates/business-model/business-model_V_0-1-0_NN.md`](https://github.com/cogNNitive/cogNNitive/blob/main/iNNfo/specs/templates/business-model/business-model_V_0-1-0_NN.md) |
 | **Analysis** | V_0-1-0 | [`specs/templates/analysis/analysis_V_0-1-0_NN.md`](https://github.com/cogNNitive/cogNNitive/blob/main/iNNfo/specs/templates/analysis/analysis_V_0-1-0_NN.md) |
 | **Innovation** | V_0-2-0 | [`specs/templates/innovation/innovation_V_0-2-0_NN.md`](https://github.com/cogNNitive/cogNNitive/blob/main/iNNfo/specs/templates/innovation/innovation_V_0-2-0_NN.md) |
@@ -56,6 +56,7 @@ Concrete data instances. Lightweight — just data and a parent pointer to their
 
 | Model | Template | Source |
 |-------|----------|--------|
+| **Ghostbusters** | business V_0-2-1 | [`specs/templates/business/samples/Ghostbusters_V_0-2-1_business_NN.md`](https://github.com/cogNNitive/cogNNitive/blob/main/iNNfo/specs/templates/business/samples/Ghostbusters_V_0-2-1_business_NN.md) |
 | **Ghostbusters** | business V_0-2-0 | [`specs/templates/business/samples/Ghostbusters_V_0-2-0_business_NN.md`](https://github.com/cogNNitive/cogNNitive/blob/main/iNNfo/specs/templates/business/samples/Ghostbusters_V_0-2-0_business_NN.md) |
 | **Ghostbusters** | business V_0-1-0 | [`specs/templates/business/samples/Ghostbusters_V_0-1-0_business_NN.md`](https://github.com/cogNNitive/cogNNitive/blob/main/iNNfo/specs/templates/business/samples/Ghostbusters_V_0-1-0_business_NN.md) |
 | **Ghostbusters** | analysis V_0-2-0 | [`specs/templates/analysis/samples/Ghostbusters_V_0-2-0_analysis_NN.md`](https://github.com/cogNNitive/cogNNitive/blob/main/iNNfo/specs/templates/analysis/samples/Ghostbusters_V_0-2-0_analysis_NN.md) |

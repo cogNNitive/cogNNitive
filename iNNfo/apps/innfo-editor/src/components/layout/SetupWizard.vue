@@ -50,7 +50,7 @@ const samples: SampleInfo[] = [
     templateLabel: 'Business',
     sampleName: 'Ghostbusters',
     description: 'Ghost-catching franchise: SWOT, risks, market, finance, legal, and operations.',
-    url: `${SAMPLE_BASE}/business/samples/Ghostbusters_V_0-2-0_business_NN.md`,
+    url: `${SAMPLE_BASE}/business/samples/Ghostbusters_V_0-2-1_business_NN.md`,
   },
   {
     id: 'sample-procedures',

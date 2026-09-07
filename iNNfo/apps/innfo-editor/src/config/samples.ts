@@ -32,7 +32,7 @@ export const SAMPLE_BASE: string = import.meta.env.DEV ? '/specs/templates' : RE
 export const SHIPPED_TEMPLATE_VERSIONS: Record<string, string> = {
   analysis: 'V_0-2-0',
   blank: 'V_0-2-0',
-  business: 'V_0-2-0',
+  business: 'V_0-2-1',
   'business-model': 'V_0-2-0',
   cogNNitive: 'V_0-2-0',
   innovation: 'V_0-2-0',

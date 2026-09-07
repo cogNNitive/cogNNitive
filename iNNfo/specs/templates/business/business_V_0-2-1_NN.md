@@ -1,11 +1,11 @@
 ---
 spec_version: "V_0-2-1"
-spec_url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business/business_V_0-2-0_NN.md"
+spec_url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business/business_V_0-2-1_NN.md"
 level: 2
 parent_spec:
   name: "iNNfo_V_0-2-1"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-2-1_NN.md"
-template_version: "V_0-2-0"
+template_version: "V_0-2-1"
 title: "Business Template"
 includes:
   - name: "business-model"
@@ -26,6 +26,10 @@ relationship_types:
     enabled: false
   sequence:
     enabled: true
+procedures:
+  - id: "compile-strategic-master"
+    name: "Compile Strategic Master"
+    path: "procedures/compile_strategic_master_NN.md"
 ---
 
 > [!NOTE]
@@ -107,8 +111,8 @@ To create a business model, create a level 3 FILE mode document with:
 ---
 level: 3
 parent_spec:
-  name: "business_V_0-2-0"
-  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business/business_V_0-2-0_NN.md"
+  name: "business_V_0-2-1"
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business/business_V_0-2-1_NN.md"
 model_version: "V_x-y-z"
 title: "<Your Business Name>"
 ---
@@ -139,18 +143,17 @@ Concept / Field / Marker / Matrix Definition to validate and render the model.
 ### Canonical Sample
 
 The official sample for this template is
-`specs/templates/business/samples/Ghostbusters_V_0-2-0_business_NN.md`. It is the
-`business_V_0-1-0` Ghostbusters sample re-pointed at this umbrella, with concept
-headings updated for the renames the decomposition introduced (`Persons` →
-`Person`, `Positions` → `Position`, `Milestones` → `Milestone`).
+`specs/templates/business/samples/Ghostbusters_V_0-2-1_business_NN.md`. It is the
+`business_V_0-2-0` Ghostbusters sample re-pointed at this version, which adds the
+`Compile Strategic Master` procedure (see `procedures/compile_strategic_master_NN.md`).
 
 ## Parent Chain
 
 ```yaml
-# From the Ghostbusters V_0-2-0 sample:
+# From the Ghostbusters V_0-2-1 sample:
 parent_spec:
-  name: "business_V_0-2-0"
-  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business/business_V_0-2-0_NN.md"
+  name: "business_V_0-2-1"
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business/business_V_0-2-1_NN.md"
 
 # This template's parent:
 parent_spec:
