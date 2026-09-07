@@ -2,13 +2,14 @@
 
 ## Pre-flight / confirm before starting (open questions — do NOT silently resolve)
 
-- [ ] **(a) Canonical catalog URL.** Slice 3 publishes `docs/innfo/templates/catalog.json` and slice 4
-  fetches `https://cognnitive.com/innfo/templates/catalog.json`. Confirm whether `iNNfo/specs/` is
-  mirrored to `cogNNitive/iNNfo` `specs/` on `main` so the `raw.githubusercontent.com` fallback
-  (AD-3 tier 2) actually resolves. If not, the raw fallback URL must be re-pointed before slice 3.
-- [ ] **(b) `nn-innfo` SKILL.md §1 drift.** It says "13 herramientas" and lists `prune_orphaned_specs`,
-  but `server.ts` registers 14 and has no such case. Slice 4 fixes the count + documents
-  `check_workspace`; confirm `prune_orphaned_specs` was intentionally retired (out of scope — flag only).
+- [x] **(a) Canonical catalog URL.** RESOLVED (orchestrator pre-flight): there is NO `cogNNitive/iNNfo`
+  mirror repo. Canonical template/catalog serving is raw from the monorepo —
+  `https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/<path>` (the exact
+  pattern `scripts/template-catalog.mjs:138` already emits). Catalog canonical URL is therefore
+  `.../main/iNNfo/specs/templates/catalog.json`. The `docs/`/cognnitive.com same-origin copy (AD-3) is a
+  slice-3 concern. Slice 1: `parsePinnedUrl` / `parseSemVer` fixtures use this URL shape.
+- [x] **(b) `nn-innfo` SKILL.md §1 drift.** RESOLVED (orchestrator pre-flight): OUT OF SCOPE for this
+  change. Tool-count / `prune_orphaned_specs` drift is not touched. Deferred to a follow-up.
 - [ ] **(c) `cross-model-reference-validation` delta.** Confirm AD-4's `collectWorkspaceDiagnostics` /
   `filterDiagnosticsForModel` split fully covers the "diagnostics no longer filtered to one model"
   need, or whether a standalone `cross-model-reference-validation` delta spec is still required.
@@ -47,22 +48,45 @@ Dependency graph: `PR1 ─┬─► PR2` and `PR1 ─┴─► PR3 ─► PR4`.
 
 Depends on: nothing. Blocks: slices 2, 3, 4. Est. ~380 lines (≈260 src + 120 test) — under 800, over the 400 SDD default → `size:exception`.
 
-- [ ] 1.1 RED — `src/workspace/integrity/versionStatus.spec.ts`: table-driven tests for `parseSemVer`,
+> Orchestrator scope note: the esbuild-to-CJS script + `verify.js` drift guard (Work Unit 1 in the
+> forecast table) were pulled into this slice. The `upgrade-check.js` delegation, catalog publication
+> in `build-docs.mjs`, and the `preflight-check.js` URL change stay in Slice 3 (tasks 3.4, 3.6, 3.7).
+
+- [x] 1.1 RED — `src/workspace/integrity/versionStatus.spec.ts`: table-driven tests for `parseSemVer`,
   `compareVersions`, `gapKind`, `parsePinnedUrl` (flat + package layouts) and `classifyAgainstCatalog`
   across all six statuses; lift fixtures from `upgrade-check.test.js` for provable parity. Fails (no module).
-- [ ] 1.2 GREEN — Create `src/workspace/integrity/versionStatus.ts`: port the 5 pure fns from
+  → 27 tests, confirmed RED (module load failure) then GREEN.
+- [x] 1.2 GREEN — Create `src/workspace/integrity/versionStatus.ts`: port the 5 pure fns from
   `upgrade-check.js:37-215` + `VersionStatus` / `VersionGap` / `VersionClassification` types. `unknown`
-  is reachable only when `catalog === null`; the 5 published values keep exact CLI parity.
-- [ ] 1.3 RED — `src/workspace/integrity/report.spec.ts` with hand-written fake ports: all ports present;
+  is reachable only when `catalog === null`; the 5 published values keep exact CLI parity. `VersionGap`
+  gains the additive `'none'` literal (spec vocabulary) alongside `null` (unparseable).
+- [x] 1.3 RED — `src/workspace/integrity/report.spec.ts` with hand-written fake ports: all ports present;
   optional ports omitted → `not-checked`; `catalog: null` → `offline`; throwing ports never reject the
-  pass; freshness dedup by URL + concurrency cap (default 4). Fails (no builder).
-- [ ] 1.4 GREEN — Create `src/workspace/integrity/report.ts`: AD-1 port interfaces, `ModelIntegrityReport`
+  pass; freshness dedup by URL + concurrency cap (default 4). Fails (no builder). → 17 tests, RED then GREEN.
+- [x] 1.4 GREEN — Create `src/workspace/integrity/report.ts`: AD-1 port interfaces, `ModelIntegrityReport`
   / `WorkspaceIntegrityReport` / `WorkspaceIntegrityAggregate` types, `buildWorkspaceIntegrityReport(ports, options)`,
   pure `summarizeWorkspaceIntegrity(models)`. No `node:fs` / `fetch` / `path`; dedup + concurrency cap live in the builder.
-- [ ] 1.5 GREEN — Export both modules from `src/index.ts` AND `src/browser.ts`.
-- [ ] 1.6 REFACTOR — De-dup shared semver helpers; assert no `node:*` import reaches `browser.ts`.
-- [ ] 1.7 Verify — `npm --prefix iNNfo/packages/innfo-core run build`; `npm --prefix iNNfo test`;
-  `npm --prefix iNNfo run typecheck`; `npm --prefix iNNfo run lint`; `node scripts/verify.js`.
+  `FreshnessField` gains the additive `'offline'` value (spec vocabulary).
+- [x] 1.5 GREEN — Export both modules from `src/index.ts` AND `src/browser.ts`.
+- [x] 1.6 REFACTOR — Semver helpers already single-source in `versionStatus.ts` (no duplication introduced);
+  added `src/workspace/integrity/purity.spec.ts` statically asserting no `node:*` / `require` / `fetch`
+  import reaches the browser-exported modules.
+- [x] 1.7 Verify — `npm --prefix iNNfo/packages/innfo-core run build` ✅; core suite 471 pass / 1 skip ✅;
+  `npm --prefix iNNfo run typecheck` ✅; `npm --prefix iNNfo run lint` ✅ (0 errors, 488 pre-existing warnings);
+  mcp 195 pass ✅; editor 630 pass / 2 skip ✅. `node scripts/verify.js` — BLOCKED at the pre-existing
+  "Validate Stable Manifest" step (stable manifest pinned to tag `ff7a4bd`; identical failure on
+  `origin/main`; documented in MEMORY.md "verify.js stable-manifest step blocked until tag cut"). The new
+  step 11 drift guard passes in isolation and is covered by `scripts/build-preflight-primitives.test.mjs`.
+
+### Slice 1 — added by orchestrator scope note (esbuild + drift guard)
+
+- [x] S1.8 RED — `scripts/build-preflight-primitives.test.mjs`: render mode emits a requireable CJS bundle
+  with the ported primitives; `--check` exits 0 in sync, 1 on drift; committed artifact matches source. RED then GREEN.
+- [x] S1.9 GREEN — Create `scripts/build-preflight-primitives.mjs`: esbuild (hoisted via `tsup`)
+  `--bundle --format=cjs --platform=neutral` from `versionStatus.ts` →
+  `actioNN/skills/nn-preflight/scripts/lib/version-status.generated.cjs`; `--check` mirrors `template-catalog.mjs`.
+- [x] S1.10 GREEN — Commit the generated `version-status.generated.cjs` (machine-produced, review-exempt).
+- [x] S1.11 GREEN — `scripts/verify.js`: run `node scripts/build-preflight-primitives.mjs --check` (step 11).
 
 Boundary — Start: no integrity module in core. Finish: core exports builder + primitives, fully
 unit-tested, `dist/` rebuilt, no consumer wired. Verify: core suite + typecheck + lint + `verify.js` green.
