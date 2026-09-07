@@ -1,7 +1,7 @@
 ---
 name: nn-innfo
-version: "V_0-2-0"
-last_updated: 2026-09-06
+version: "V_0-3-0"
+last_updated: 2026-09-07
 metadata:
   source_type: "original"
   mcp: "innfo-mcp"
@@ -30,7 +30,7 @@ description: |
    - Upon session exit or wizard completion:
      - Discard trivial sessions (<2 turns, 0 workspace mutations).
      - For non-trivial sessions, present 3 suggested titles (`[1] (Recommended)`), finalize frontmatter (`status: completed`), and rename to `conversations/YYYY-MM-DD_<slug>.md`.
-     - Prompt for promotion to `sources/conversations/` (`[full]`, `[summary]`, `[both]`, `[none]`) for ingestion into the workspace knowledge graph and model citations (`sources:: [conversations/<file>.md#<anchor>]`).
+     - Prompt for promotion to `sources/conversations/` (`[full]`, `[none]` — the raw transcript is always registered in `conversations/`; `_source.md` promotion is optional) for ingestion into the workspace knowledge graph and model citations (`sources:: [conversations/<file>.md#<anchor>]`).
 
 ---
 
@@ -277,7 +277,8 @@ Stable reference URLs (the version lives in the file name — `main` is already 
    - Simple relative paths: `client_interview_transcript.md#feedback` resolves canonically to `sources/nn/client_interview_transcript.md`.
    - Subfolders: `interviews/interview_transcript.md#overview` resolves to `sources/nn/interviews/interview_transcript.md`.
    - The explicit `sources/nn/` prefix is still tolerated for backward compatibility.
-   - Citations between domain models use an explicit namespace: `models/Finance_V_1-0-0_business_NN.md#revenue-forecast`.
+   - **A Model is a first-class Source.** `models/<path>.md#<heading-slug>` is a valid citation target with the identical `<path>.md#<slug>` syntax as a Source — the parser (`parseSourceRef`) and validator already resolve it. Citing a Model element chains provenance: `artifact → models/x.md#element-a → sources/nn/1.md#section`. Model paths are always explicit (`models/…`); only unqualified paths default to `sources/nn/`.
+   - **Heading-level convention (authoring rule).** So model-heading slugs are stable and meaningful: `# NN <Concept>` (H1 = Concept), `## NN <Concept>: <Element>` (H2 = Element), and `###`+ only inside an element's description/prose — never as standalone structural blocks. The slug algorithm is level-agnostic; this is discipline, not validation.
    - Global PIDs use schema identifiers: `doi:10.1145/3290605.3300233`.
 3. **Staging Isolation (`sources/staging/`):** The `sources/staging/` folder is a transient extraction buffer (OCR, Whisper, etc.) and is **NEVER a valid citation target**. Models only cite normalized sources under `sources/nn/`.
 4. **Exact grammar and stable anchors:**
@@ -318,6 +319,15 @@ Stable reference URLs (the version lives in the file name — `main` is already 
    - Read the new actionable `(searched: ...)` diagnostic returned by `validate_model` / `get_template`: it lists the directories the resolver searched for the parent. If the searched directories look wrong (e.g. they don't point at the workspace root), the problem is the **MCP root** (`INNFO_MODELS_DIR` or the server cwd), not the model: fix the root/URL and re-validate (see §2, rule 4).
    - Offer to fix it: a stable http/https URL or a workspace-relative path (never an absolute Windows path — see §2).
 6. When finished, show the **Visual Expectation Checklist (§12)** and the **Contextual Navigation Shortcuts (§13)** section.
+
+#### Agent Modification provenance (MANDATORY on every successful `apply_change`)
+
+Whenever an `innfo-mcp_apply_change` call returns `success: true` **and** a `modification` field, you MUST paste that block **verbatim** into your reply, under its own `## NN Agent Modification: <slug>` heading exactly as returned (the block already opens with that heading — reproduce it, do not re-slug it). This makes the synthetic reasoning addressable by heading-slug, so a promoted `_source.md` transcript can be cited via `sources:: [conversations/<session-slug>_source.md#<slug>]`.
+
+- The returned block carries `rationale:: _`. Replace `_` with your concrete reasoning for the change **at paste time** — the pasted block MUST NOT keep an unfilled `rationale:: _`.
+- Pass `rationale` (and, when the user explicitly authorized the change, `approved_by: "user"`) in the `apply_change` `args` so the block is populated at the source: `args: { …, rationale: "why", approved_by: "user" }`.
+- On a **failed** mutation (`success: false`, no `modification`), do NOT fabricate a block.
+- One heading per successful change; do not merge multiple modifications under one heading.
 
 #### Atomic version bump
 
@@ -378,7 +388,7 @@ Shall we proceed with this modification?
 - [x] Cancel
 ```
 
-Once the user confirms, run the mutation via `innfo-mcp_apply_change` and re-validate with `innfo-mcp_validate_model`.
+Once the user confirms, run the mutation via `innfo-mcp_apply_change` and re-validate with `innfo-mcp_validate_model`. Feed the "Rationale" line from this preview into `apply_change` as `args.rationale`, and — since the user just confirmed — pass `args.approved_by: "user"`. Then paste the returned `modification` block verbatim per §5 (Agent Modification provenance).
 
 ---
 

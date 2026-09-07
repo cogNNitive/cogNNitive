@@ -193,7 +193,7 @@ const toolDefinitions: Tool[] = [
         args: {
           type: 'object',
           description:
-            'Operation-specific arguments. For update_field: { conceptName, elementName, fieldName, value } (overwrites a field on an existing element). For generate_index: { taxonomy? } (rebuilds the model taxonomy from present concepts). For bump_version: { version: "V_0-5-0" } (explicit) or { bump: "major" | "minor" | "patch" } (increment from the current model_version, default patch).',
+            'Operation-specific arguments. For update_field: { conceptName, elementName, fieldName, value } (overwrites a field on an existing element). For generate_index: { taxonomy? } (rebuilds the model taxonomy from present concepts). For bump_version: { version: "V_0-5-0" } (explicit) or { bump: "major" | "minor" | "patch" } (increment from the current model_version, default patch). Any op also accepts optional { rationale: string, approved_by: "user" | "agent" } (default "agent"), echoed into the Agent Modification provenance block returned on success.',
         },
       },
       required: ['id', 'op', 'args'],

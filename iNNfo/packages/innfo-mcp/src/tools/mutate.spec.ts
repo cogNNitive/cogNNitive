@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { join } from 'node:path'
 import { rm, mkdir, writeFile, readFile } from 'node:fs/promises'
 import { validateModel, validateModelUrl, applyChange, validateTemplate } from './mutate'
+import { buildAgentModificationBlock } from '@cognnitive/innfo-core'
 
 const rootDir = join(import.meta.dirname!, '..', '..', 'temp-test-mutate')
 const specsDir = join(rootDir, 'specs')
@@ -326,6 +327,92 @@ describe('mutate tools', () => {
       expect(result.errors?.some((e) => /not defined in template/.test(e.message))).toBe(true)
       const onDisk = await readFile(filePath, 'utf-8')
       expect(onDisk).toBe(MUTABLE_MODEL_CONTENT)
+    })
+
+    describe('modification block (agent provenance)', () => {
+      it('carries a modification block on a successful general mutation, matching the builder output', async () => {
+        await stubBusinessTemplate()
+        const filePath = join(rootDir, 'Mutable_NN.md')
+        await writeFile(filePath, MUTABLE_MODEL_CONTENT, 'utf-8')
+
+        const result = await applyChange(rootDir, 'Mutable', 'add_element', {
+          conceptName: 'Work',
+          elementName: 'Review',
+          description: 'Code review step.',
+        })
+
+        expect(result.success).toBe(true)
+        expect(typeof result.modification).toBe('string')
+        expect(result.modification).toContain(
+          'scope:: add_element concept "Work" element "Review"',
+        )
+        expect(result.modification).toContain('model:: Mutable')
+        expect(result.modification).toContain('rationale:: _')
+
+        const expected = buildAgentModificationBlock(
+          'add_element',
+          { conceptName: 'Work', elementName: 'Review', description: 'Code review step.' },
+          {
+            model: 'Mutable',
+            modelVersion: result.model!.frontmatter.model_version as string,
+            timestamp: result.modification!.match(/timestamp:: (.*)/)![1],
+          },
+        )
+        expect(result.modification).toBe(expected)
+      })
+
+      it('flows args.rationale and args.approved_by into the block', async () => {
+        await stubBusinessTemplate()
+        await writeFile(join(rootDir, 'Mutable_NN.md'), MUTABLE_MODEL_CONTENT, 'utf-8')
+
+        const result = await applyChange(rootDir, 'Mutable', 'add_element', {
+          conceptName: 'Work',
+          elementName: 'Review',
+          rationale: 'the reviewer role was missing',
+          approved_by: 'user',
+        })
+
+        expect(result.success).toBe(true)
+        expect(result.modification).toContain('rationale:: the reviewer role was missing')
+        expect(result.modification).toContain('approved_by:: user')
+      })
+
+      it('carries a bump_version block that states the version transition', async () => {
+        await stubBusinessTemplate()
+        await writeFile(join(rootDir, 'Versioned_V_0-0-1_NN.md'), MUTABLE_MODEL_CONTENT, 'utf-8')
+
+        const result = await applyChange(rootDir, 'Versioned_V_0-0-1', 'bump_version', {
+          version: 'V_0-5-0',
+        })
+
+        expect(result.success).toBe(true)
+        expect(result.modification).toContain('scope:: bump_version "V_0-0-1" → "V_0-5-0"')
+        expect(result.modification).toContain('version_transition:: V_0-0-1 → V_0-5-0')
+        expect(result.modification).toContain('model_version:: V_0-5-0')
+      })
+
+      it('omits the modification block on every failure path', async () => {
+        await stubBusinessTemplate()
+        await writeFile(join(rootDir, 'Mutable_NN.md'), MUTABLE_MODEL_CONTENT, 'utf-8')
+        await writeFile(join(rootDir, 'Versioned_V_0-0-1_NN.md'), MUTABLE_MODEL_CONTENT, 'utf-8')
+
+        const dup = await applyChange(rootDir, 'Mutable', 'add_element', {
+          conceptName: 'Work',
+          elementName: 'Triage',
+        })
+        expect(dup.success).toBe(false)
+        expect(dup.modification).toBeUndefined()
+
+        const badOp = await applyChange(rootDir, 'Mutable', 'not_a_real_op', {})
+        expect(badOp.success).toBe(false)
+        expect(badOp.modification).toBeUndefined()
+
+        const badVersion = await applyChange(rootDir, 'Versioned_V_0-0-1', 'bump_version', {
+          version: 'banana',
+        })
+        expect(badVersion.success).toBe(false)
+        expect(badVersion.modification).toBeUndefined()
+      })
     })
 
     it('bump_version with an explicit version renames the file and updates frontmatter', async () => {

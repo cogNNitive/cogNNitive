@@ -1,7 +1,8 @@
 ---
 name: nn-trannsform
 description: "Bootstrap projects, scan raw documents, normalize them to Markdown with mandatory provenance frontmatter, apply V_0-1-0 template-based transformations, and execute multi-step transformation procedures compliant with procedures_V_0-1-0_NN.md. Includes document ingestion, format conversion (txt, md, csv, json, docx, pdf, xlsx), procedure orchestration, and export generation. Triggers: trannsform, transform, workflow, pipeline, procedure, normalize, scan documents, document ingestion, document transformation, document processing, markdown conversion, project bootstrap"
-version: "V_3-0-0"
+version: "V_3-1-0"
+last_updated: 2026-09-07
 empty_sections_mode: "ask-per-section"
 license: MIT
 metadata:
@@ -56,7 +57,7 @@ Every project workspace MUST adhere to the following structure:
 [project-name]/
 ├── sources/
 │   ├── import/           # External raw files (PDF, DOCX, CSV, TXT, JSON, HTML). Legacy sources/original/ supported via fallback.
-│   ├── conversations/    # Promoted transcripts (*_summary.md or *_source.md).
+│   ├── conversations/    # Promoted transcripts (*_source.md — full transcript only).
 │   ├── export/           # Promoted deliverables re-entering pipeline (is_synthetic: true).
 │   ├── archive/          # Version store for past normalized snapshots (sources/archive/<basename>/V<N>/<basename>.md).
 │   └── nn/               # Normalized Markdown, mirroring the source subtrees
@@ -195,16 +196,16 @@ Interaction dialogues are first-class source streams. The transcript lifecycle f
 1. **Silent Reservation**: When an interactive session begins, immediately allocate `conversations/YYYY-MM-DD_HHmmss.md` with initial frontmatter (`status: in_progress`, `turns: 0`, `mutations: false`).
 2. **Trivial Discard Filter**: Upon session exit, if `turns < 2` AND `mutations === false`, delete the reserved transcript automatically to prevent workspace clutter.
 3. **Title Suggestions & Renaming**: For non-trivial sessions, present 3 suggested title options with `[1] (Recommended) <slug>` plus a manual entry option. Update frontmatter (`status: completed`, `ended_at: <ISO>`) and rename the file to `conversations/YYYY-MM-DD_<slug>.md`.
-4. **Promotion to Knowledge Sources (`sources/conversations/`)**: Prompt the user whether to promote the transcript into the workspace knowledge graph:
-   - `[1] (Recommended) Executive Summary`: Generates `sources/conversations/<session-slug>_summary.md` capturing key decisions, action items, and architecture rationale.
-   - `[2] Full Transcript`: Promotes verbatim dialogue turns to `sources/conversations/<session-slug>_source.md`.
-   - `[3] Both`: Emits both summary and full transcript into `sources/conversations/`.
-   - `[4] None`: Retains transcript in `conversations/` only without promotion.
-5. **Scanner Normalization**: Promoted transcripts link to their origin (`origin_transcript: conversations/...`) and are normalized into `sources/nn/conversations/` with `conversation_format: "summary" | "full"` and `is_synthetic: false`. Downstream models cite these sources using `sources:: [conversations/<file>.md#<anchor>]`.
+4. **Promotion to Knowledge Sources (`sources/conversations/`)**: The raw transcript is **always** registered in `conversations/`. Promotion to a normalized source is optional — prompt the user with two choices only:
+   - `[full] (Recommended) Full Transcript`: Promotes verbatim dialogue turns to `sources/conversations/<session-slug>_source.md`.
+   - `[none]`: Keeps the transcript in `conversations/` only, without promotion.
+   - `_summary.md` promotion is **retired** — there is no executive-summary option and no `_summary.md` is produced.
+5. **Scanner Normalization**: Promoted transcripts link to their origin (`origin_transcript: conversations/...`) and are normalized into `sources/nn/conversations/` with `conversation_format: "full"` and `is_synthetic: false`. Downstream models cite these sources using `sources:: [conversations/<file>.md#<anchor>]`.
 6. **CLI Promotion**:
    ```bash
-   node scripts/index.js --promote-conv "conversations/YYYY-MM-DD_<slug>.md" --format summary
+   node scripts/index.js --promote-conv "conversations/YYYY-MM-DD_<slug>.md" --format full
    ```
+7. **Agent Modification provenance**: When an agent turn in the transcript pasted a `## NN Agent Modification: <slug>` block (per `nn-innfo` §5), that heading survives promotion into the `_source.md` and is citeable by heading-slug: `sources:: [conversations/<session-slug>_source.md#<slug>]`. This is how synthetic agent reasoning enters the workspace provenance graph.
 
 #### 2g. Capability Assessment — Decision Matrix
 

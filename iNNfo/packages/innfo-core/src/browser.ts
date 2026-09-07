@@ -42,6 +42,8 @@ export { parseSourceRef, slugifyHeading, extractHeadings, resolveHeadingSection 
 export type { SourceRef, HeadingInfo, ResolvedHeadingSection } from './sourceRef'
 export { applyMutation, updateReferenceString } from './mutate'
 export type { MutationResult } from './mutate'
+export { buildAgentModificationBlock } from './agentModification'
+export type { AgentModificationContext } from './agentModification'
 export { deriveMatrixWidgetType, normalizeMatrixDecl, scaleRangeFor } from './matrix'
 export type { MatrixWidgetType } from './matrix'
 export * from './identity'
