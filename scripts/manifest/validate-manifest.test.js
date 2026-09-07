@@ -456,6 +456,219 @@ agent-bootstrap:
   }
 }
 
+// Template pin <-> main coherence gate (checkTemplateMainCoherence)
+
+// 16. Identical pinned and main content: no coherence violation; fetch order is
+//     pinned commit first, then main.
+{
+  const mod = freshValidatorModule();
+  const template = {
+    name: 'workspace',
+    repo: 'cogNNitive/cogNNitive',
+    path: 'iNNfo/specs/templates/workspace_V_0-3-0_spec_NN.md',
+    version: 'V_0-2-1',
+    ref: 'templates-v0.2.3',
+    commit: '3f1a9c2b8e4d6f0a1b2c3d4e5f60718293a4b5c6',
+  };
+  const body = '---\nversion: "V_0-2-1"\n---\n# Workspace Template\n';
+  const stub = stubHttpsGetSequence([
+    { status: 200, body }, // pinned commit
+    { status: 200, body }, // main
+  ]);
+  try {
+    const violations = await mod.checkTemplateMainCoherence(template);
+    assert.deepStrictEqual(violations, [], `Identical pin/main must be coherent. Got: ${JSON.stringify(violations)}`);
+    assert.match(stub.urls()[0], new RegExp(`/${template.commit}/`), 'first fetch must be the pinned commit');
+    assert.match(stub.urls()[1], /\/main\//, 'second fetch must be main');
+  } finally {
+    stub.restore();
+  }
+  console.log('✔ template main coherence (identical) test passed');
+}
+
+// 17. main-ahead drift: pinned body differs from main body -> one violation
+//     naming the path, the pinned commit, and both revisions.
+{
+  const mod = freshValidatorModule();
+  const template = {
+    name: 'workspace',
+    repo: 'cogNNitive/cogNNitive',
+    path: 'iNNfo/specs/templates/workspace_V_0-3-0_spec_NN.md',
+    version: 'V_0-2-1',
+    ref: 'templates-v0.2.3',
+    commit: '3f1a9c2b8e4d6f0a1b2c3d4e5f60718293a4b5c6',
+  };
+  const pinBody = '---\nversion: "V_0-2-1"\n---\n# Workspace Template (pinned)\n';
+  const mainBody = '---\nversion: "V_0-2-1"\n---\n# Workspace Template (unreleased main work)\n';
+  const stub = stubHttpsGetSequence([
+    { status: 200, body: pinBody },
+    { status: 200, body: mainBody },
+  ]);
+  try {
+    const violations = await mod.checkTemplateMainCoherence(template);
+    assert.strictEqual(violations.length, 1, `main-ahead drift must yield exactly 1 violation. Got: ${JSON.stringify(violations)}`);
+    const violation = violations[0];
+    assert.ok(violation.includes(template.path), 'violation must name the template path');
+    assert.ok(violation.includes(template.commit), 'violation must name the pinned commit');
+    assert.ok(violation.includes('main'), 'violation must name the main revision');
+    assert.ok(violation.includes(template.repo), 'violation must name the repo');
+  } finally {
+    stub.restore();
+  }
+  console.log('✔ template main coherence (main-ahead drift) test passed');
+}
+
+// 18. tag-ahead drift: main body differs from pinned body (reverse fixture) ->
+//     one violation with the same direction-agnostic message shape.
+{
+  const mod = freshValidatorModule();
+  const template = {
+    name: 'workspace',
+    repo: 'cogNNitive/cogNNitive',
+    path: 'iNNfo/specs/templates/workspace_V_0-3-0_spec_NN.md',
+    version: 'V_0-2-1',
+    ref: 'templates-v0.2.3',
+    commit: '3f1a9c2b8e4d6f0a1b2c3d4e5f60718293a4b5c6',
+  };
+  const pinBody = '---\nversion: "V_0-2-1"\n---\n# Workspace Template (unreleased main work)\n';
+  const mainBody = '---\nversion: "V_0-2-1"\n---\n# Workspace Template (pinned)\n';
+  const stub = stubHttpsGetSequence([
+    { status: 200, body: pinBody },
+    { status: 200, body: mainBody },
+  ]);
+  try {
+    const violations = await mod.checkTemplateMainCoherence(template);
+    assert.strictEqual(violations.length, 1, `tag-ahead drift must yield exactly 1 violation. Got: ${JSON.stringify(violations)}`);
+    const violation = violations[0];
+    assert.ok(violation.includes(template.path), 'violation must name the template path');
+    assert.ok(violation.includes(template.commit), 'violation must name the pinned commit');
+    assert.ok(violation.includes('main'), 'violation must name the main revision');
+    assert.ok(violation.includes(template.repo), 'violation must name the repo');
+  } finally {
+    stub.restore();
+  }
+  console.log('✔ template main coherence (tag-ahead drift) test passed');
+}
+
+// 19. Rate limit on the main fetch (403): violation carries RATE_LIMIT_HINT and
+//     the rule never throws.
+{
+  const mod = freshValidatorModule();
+  const template = {
+    name: 'workspace',
+    repo: 'cogNNitive/cogNNitive',
+    path: 'iNNfo/specs/templates/workspace_V_0-3-0_spec_NN.md',
+    version: 'V_0-2-1',
+    ref: 'templates-v0.2.3',
+    commit: '3f1a9c2b8e4d6f0a1b2c3d4e5f60718293a4b5c6',
+  };
+  const stub = stubHttpsGetSequence([
+    { status: 200, body: '---\nversion: "V_0-2-1"\n---\n# Workspace Template\n' },
+    { status: 403, body: 'rate limited' },
+  ]);
+  try {
+    const violations = await mod.checkTemplateMainCoherence(template);
+    assert.strictEqual(violations.length, 1, `rate limit must yield exactly 1 violation. Got: ${JSON.stringify(violations)}`);
+    assert.match(violations[0], /set GITHUB_TOKEN to raise the rate limit/, 'rate-limited fetch must append RATE_LIMIT_HINT');
+  } finally {
+    stub.restore();
+  }
+  console.log('✔ template main coherence (rate limit) test passed');
+}
+
+// 20. CRLF + BOM on the pinned body, plain LF on main: normalized equality, so
+//     no violation (whitespace/BOM-only diffs must not trip the gate).
+{
+  const mod = freshValidatorModule();
+  const template = {
+    name: 'workspace',
+    repo: 'cogNNitive/cogNNitive',
+    path: 'iNNfo/specs/templates/workspace_V_0-3-0_spec_NN.md',
+    version: 'V_0-2-1',
+    ref: 'templates-v0.2.3',
+    commit: '3f1a9c2b8e4d6f0a1b2c3d4e5f60718293a4b5c6',
+  };
+  const crlfBomBody = '\uFEFF---\r\nversion: "V_0-2-1"\r\n---\r\n# Workspace Template\r\n';
+  const lfBody = '---\nversion: "V_0-2-1"\n---\n# Workspace Template\n';
+  const stub = stubHttpsGetSequence([
+    { status: 200, body: crlfBomBody },
+    { status: 200, body: lfBody },
+  ]);
+  try {
+    const violations = await mod.checkTemplateMainCoherence(template);
+    assert.deepStrictEqual(violations, [], `CRLF/BOM-only difference must normalize to coherence. Got: ${JSON.stringify(violations)}`);
+  } finally {
+    stub.restore();
+  }
+  console.log('✔ template main coherence (CRLF/BOM normalization) test passed');
+}
+
+// 21. Preview channel: validateTemplate with the preview policy must NOT run the
+//     coherence gate (no /main/ fetch, no coherence violation).
+{
+  const mod = freshValidatorModule();
+  const template = {
+    name: 'workspace',
+    repo: 'cogNNitive/cogNNitive',
+    path: 'iNNfo/specs/templates/workspace_V_0-3-0_spec_NN.md',
+    version: 'V_0-2-1',
+    ref: 'feat/innfo-v0-2-0-adoption',
+    commit: '3f1a9c2b8e4d6f0a1b2c3d4e5f60718293a4b5c6',
+  };
+  const stub = stubHttpsGetSequence([
+    { status: 200, body: JSON.stringify({ sha: template.commit }) }, // checkCommitExists
+    { status: 404, body: JSON.stringify({ message: 'Not Found' }) }, // resolveRef tag miss
+    { status: 200, body: JSON.stringify({ ref: 'refs/heads/feat/innfo-v0-2-0-adoption', object: { sha: template.commit, type: 'commit' } }) }, // resolveRef branch
+    { status: 200, body: JSON.stringify({ name: 'workspace_V_0-3-0_spec_NN.md' }) }, // contents@commit
+    { status: 200, body: '---\nversion: "V_0-2-1"\n---\n# Workspace Template\n' }, // version parity raw
+  ]);
+  try {
+    const violations = await mod.validateTemplate(template, mod.CHANNELS.preview);
+    assert.deepStrictEqual(violations, [], `Preview template must validate cleanly. Got: ${JSON.stringify(violations)}`);
+    assert.ok(!stub.urls().some((u) => /\/main\//.test(u)), 'preview must never fetch the /main/ URL');
+  } finally {
+    stub.restore();
+  }
+  console.log('✔ template main coherence (preview not evaluated) test passed');
+}
+
+// 22. Stable wiring end-to-end: full stable sequence with identical bodies ->
+//     validateTemplate returns [] AND both coherence raw URLs (pin + main) are
+//     fetched, proving the gate runs on the stable channel.
+{
+  const mod = freshValidatorModule();
+  const template = {
+    name: 'workspace',
+    repo: 'cogNNitive/cogNNitive',
+    path: 'iNNfo/specs/templates/workspace_V_0-3-0_spec_NN.md',
+    version: 'V_0-2-1',
+    ref: 'templates-v0.2.3',
+    commit: '3f1a9c2b8e4d6f0a1b2c3d4e5f60718293a4b5c6',
+  };
+  const body = '---\nversion: "V_0-2-1"\n---\n# Workspace Template\n';
+  const stub = stubHttpsGetSequence([
+    { status: 200, body: JSON.stringify({ sha: template.commit }) }, // checkCommitExists
+    { status: 200, body: JSON.stringify({ object: { sha: template.commit, type: 'commit' } }) }, // resolveRef tag
+    { status: 200, body: JSON.stringify({ status: 'identical' }) }, // checkReleaseProvenance
+    { status: 200, body: JSON.stringify({ name: 'workspace_V_0-3-0_spec_NN.md' }) }, // contents@commit
+    { status: 200, body }, // version parity raw
+    { status: 200, body }, // coherence pin fetch
+    { status: 200, body }, // coherence main fetch
+  ]);
+  try {
+    const violations = await mod.validateTemplate(template, mod.CHANNELS.stable);
+    assert.deepStrictEqual(violations, [], `Stable template with coherent pin/main must pass. Got: ${JSON.stringify(violations)}`);
+    const urls = stub.urls();
+    const pinUrl = `https://raw.githubusercontent.com/${template.repo}/${template.commit}/${template.path}`;
+    const mainUrl = `https://raw.githubusercontent.com/${template.repo}/main/${template.path}`;
+    assert.ok(urls.includes(pinUrl), 'coherence pin fetch must run on stable');
+    assert.ok(urls.includes(mainUrl), 'coherence main fetch must run on stable');
+  } finally {
+    stub.restore();
+  }
+  console.log('✔ template main coherence (stable wiring) test passed');
+}
+
 console.log('All validate-manifest unit tests passed successfully!');
 }
 

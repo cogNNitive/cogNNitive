@@ -215,6 +215,65 @@ async function checkVersionParity(skill) {
 }
 
 /**
+ * Strips a leading UTF-8 BOM and converts CRLF to LF. Zero dependencies.
+ * @param {string} text
+ * @returns {string}
+ */
+function normalizeTemplateText(text) {
+  return text.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n');
+}
+
+/**
+ * Builds a fetch-failure violation for one side of the pin<->main comparison,
+ * appending RATE_LIMIT_HINT when the error carries a rate-limit status.
+ * @param {{ name: string, path: string }} template
+ * @param {string} revision - 'main' or the pinned commit.
+ * @param {string} message - The underlying error message.
+ * @returns {string}
+ */
+function coherenceFetchViolation(template, revision, message) {
+  let violation = `${template.name}: could not fetch ${template.path} at ${revision} (${message})`;
+  if (/status:\s*(403|429)/.test(message)) violation += `; ${RATE_LIMIT_HINT}`;
+  return violation;
+}
+
+/**
+ * Compares a template's content at its pinned commit with the same path on main.
+ * Coherence means the normalized texts are equal; drift in either direction and
+ * fetch failures become violations — the rule never throws (fail closed).
+ * @param {{ name: string, repo: string, path: string, commit: string, ref?: string }} template
+ * @returns {Promise<string[]>} empty array = pinned content is coherent with main
+ */
+async function checkTemplateMainCoherence(template) {
+  const violations = [];
+  const pinUrl = `https://raw.githubusercontent.com/${template.repo}/${template.commit}/${template.path}`;
+  const mainUrl = `https://raw.githubusercontent.com/${template.repo}/main/${template.path}`;
+
+  let pinnedText = null;
+  try {
+    pinnedText = await fetchString(pinUrl);
+  } catch (err) {
+    violations.push(coherenceFetchViolation(template, template.commit, err.message));
+  }
+
+  let mainText = null;
+  try {
+    mainText = await fetchString(mainUrl);
+  } catch (err) {
+    violations.push(coherenceFetchViolation(template, 'main', err.message));
+  }
+
+  if (pinnedText !== null && mainText !== null &&
+      normalizeTemplateText(pinnedText) !== normalizeTemplateText(mainText)) {
+    violations.push(
+      `${template.name}: content at ${template.path} differs between pinned commit ${template.commit} and main in ${template.repo} — pin is not coherent with main (reconcile the release with main before shipping)`
+    );
+  }
+
+  return violations;
+}
+
+/**
  * Checks that an MCP bundle URL is pinned to its commit SHA rather than floating on main.
  * @param {{ name: string, commit?: string, url?: string }} entry
  * @returns {Promise<string | null>}
@@ -349,6 +408,13 @@ async function validateTemplate(template, policy) {
     violations.push(`${template.name}: could not fetch template at ${template.commit} (${err.message})`);
   }
 
+  // Stable-channel templates must stay coherent with main: the content pinned by
+  // the release must equal the content at the same path on main (normalized).
+  // preview pins main and is gated out by requireProvenance === false.
+  if (policy.requireProvenance) {
+    violations.push(...await checkTemplateMainCoherence(template));
+  }
+
   return violations;
 }
 
@@ -458,6 +524,7 @@ module.exports = {
   checkPathAtCommit,
   checkVersionParity,
   checkMcpUrlPinned,
+  checkTemplateMainCoherence,
   validateMcp,
   validateSkill,
   validateTemplate,
