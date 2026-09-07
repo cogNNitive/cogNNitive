@@ -1,11 +1,11 @@
 ---
-spec_version: "V_0-2-1"
+spec_version: "V_0-2-2"
 spec_url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business/spec_NN.md"
 level: 2
 parent_spec:
   name: "iNNfo_V_0-2-1"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-2-1_NN.md"
-template_version: "V_0-2-1"
+template_version: "V_0-2-2"
 title: "Business Template"
 includes:
   - name: "business-model"
@@ -30,10 +30,16 @@ procedures:
   - id: "compile-strategic-master"
     name: "Compile Strategic Master"
     path: "procedures/compile_strategic_master_NN.md"
+  - id: "compile-model-viewer"
+    name: "Compile Model Viewer"
+    path: "procedures/compile_model_viewer_NN.md"
 assets:
   - id: "master-layout"
     name: "Strategic Master HTML Layout"
     path: "assets/master.html"
+  - id: "model-viewer-shell"
+    name: "Model Viewer HTML Layout"
+    path: "assets/model_viewer.html"
 ---
 
 > [!NOTE]
@@ -147,9 +153,13 @@ Concept / Field / Marker / Matrix Definition to validate and render the model.
 ### Canonical Sample
 
 The official sample for this template is
-`specs/templates/business/samples/Ghostbusters_V_0-2-1_business_NN.md`. It is the
-`business_V_0-2-0` Ghostbusters sample re-pointed at this version, which adds the
-`Compile Strategic Master` procedure (see `procedures/compile_strategic_master_NN.md`).
+`specs/templates/business/samples/Ghostbusters_V_0-2-1_business_NN.md` (a
+`business_V_0-2-2` re-point is pending). `V_0-2-1` added the `Compile Strategic
+Master` procedure; `V_0-2-2` adds `Compile Model Viewer`
+(`procedures/compile_model_viewer_NN.md`), which fills the template-agnostic
+consultation shell at `assets/model_viewer.html` with the resolved schema and
+serialized model data — a single offline, read-only page for browsing any model
+built on this template.
 
 ## Parent Chain
 
