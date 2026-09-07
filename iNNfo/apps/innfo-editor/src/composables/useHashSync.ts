@@ -155,7 +155,17 @@ export function useHashSync(): void {
       return
     }
 
-    window.history.pushState(null, '', `#${hash}`)
+    // No-op push guard (E7): if the target hash already equals the current
+    // one, pushing again would add a duplicate history entry — a back/forward
+    // navigation to the same node would then re-push `#sameHash` in a microtask
+    // after `syncHashToStore` cleared `updating`.
+    const targetHash = `#${hash}`
+    if (window.location.hash === targetHash) {
+      updating = false
+      return
+    }
+
+    window.history.pushState(null, '', targetHash)
     updating = false
   }
 

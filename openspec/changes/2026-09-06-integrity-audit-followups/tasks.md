@@ -84,8 +84,8 @@ editor PRs also `npm --prefix iNNfo/apps/innfo-editor run build`.
 - [x] E6 `useBlockAssets.ts` — cache key includes size+mtime, or `clearBlockAssetCache()` on workspace load
 
 ### PR12 · E7 — `useHashSync` router state
-- [ ] Test (`useHashSync.test.ts`, mocked `location`/`history`): A→B→C then Back to `#B` → one history entry per nav, no duplicate push, forward history preserved
-- [ ] `syncStoreToHash` — `return` if the target hash equals `window.location.hash` (no-op push guard)
+- [x] Test (`useHashSync.test.ts`, mocked `location`/`history`): A→B→C then Back to `#B` → one history entry per nav, no duplicate push, forward history preserved
+- [x] `syncStoreToHash` — `return` if the target hash equals `window.location.hash` (no-op push guard)
 
 ---
 
