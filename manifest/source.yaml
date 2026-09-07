@@ -84,7 +84,7 @@ templates:
     ref_key: templates
   - name: business
     repo: cogNNitive/cogNNitive
-    path: iNNfo/specs/templates/business/business_V_0-2-0_NN.md
+    path: iNNfo/specs/templates/business/business_V_0-2-1_NN.md
     version: "V_0-2-1"
     ref_key: templates
   - name: business-model
@@ -159,7 +159,7 @@ channels:
         ref: skills-v1.2.1
       - key: templates
         repo: cogNNitive/cogNNitive
-        ref: templates-v0.2.3
+        ref: templates-v0.2.4
       - key: innfo-mcp
         repo: cogNNitive/cogNNitive
         ref: innfo-mcp-v0.3.1
