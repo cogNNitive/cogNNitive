@@ -1,6 +1,6 @@
 ---
 spec_version: "V_0-1-0"
-spec_url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/base/base_V_0-1-0_spec_NN.md"
+spec_url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/base/spec_NN.md"
 level: 2
 parent_spec:
   name: "iNNfo_V_0-2-1"
@@ -9,9 +9,9 @@ title: "Base Workspace Overview Template"
 template_version: "V_0-1-0"
 includes:
   - name: "workspace_V_0-2-0"
-    url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/workspace_V_0-2-0_spec_NN.md"
+    url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/workspace_spec_NN.md"
   - name: "cogNNitive_V_0-2-0"
-    url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/cogNNitive/cogNNitive_V_0-2-0_NN.md"
+    url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/cogNNitive/spec_NN.md"
 relationship_types:
   hierarchy:
     enabled: true
@@ -59,7 +59,7 @@ description:: The cogNNitive provenance model for this workspace.
 
 ## Philosophy
 
-`base` is **the one sanctioned composer of `workspace`**. `workspace_V_0-2-0_spec_NN.md` states, in its own Philosophy section, that "no domain template `includes` it; it stands alone as the schema for the `workspace_NN.md` entry-point document at a workspace root." That statement is still true of every domain template (`business`, `organization`, `procedures`, `projects`, `analysis`, `innovation`, `blank`) — none of them, and none that come after them, should `includes: [workspace_V_0-2-0]`. `base` is the deliberate, structural exception: it is not a domain vocabulary describing subject matter, it is a composition root whose only job is to give the inventory manifest (`workspace`) and the provenance/lineage record (`cogNNitive`) one shared parent document, so an application can open a single file and reach both. Composing `workspace` here does not license any other template to do the same.
+`base` is **the one sanctioned composer of `workspace`**. `workspace_spec_NN.md` states, in its own Philosophy section, that "no domain template `includes` it; it stands alone as the schema for the `workspace_NN.md` entry-point document at a workspace root." That statement is still true of every domain template (`business`, `organization`, `procedures`, `projects`, `analysis`, `innovation`, `blank`) — none of them, and none that come after them, should `includes: [workspace_V_0-2-0]`. `base` is the deliberate, structural exception: it is not a domain vocabulary describing subject matter, it is a composition root whose only job is to give the inventory manifest (`workspace`) and the provenance/lineage record (`cogNNitive`) one shared parent document, so an application can open a single file and reach both. Composing `workspace` here does not license any other template to do the same.
 
 The `manifest` and `provenance` fields stay on two separate lanes rather than folding one into the other: the workspace manifest answers "which models live here and who owns them," the cogNNitive model answers "where did each of those models come from." A hard merge of the two concepts was considered and rejected — they answer different questions and evolve independently.
 
@@ -67,7 +67,7 @@ The `manifest` and `provenance` fields stay on two separate lanes rather than fo
 
 - Give workspaces that want one an overview-root document that composes the inventory manifest and the provenance model as siblings, without altering either published template.
 - Declare `base` as the one sanctioned exception to `workspace`'s "no domain template includes it" rule, and say so explicitly so the rule is never read as accidentally violated.
-- Document `workspace_id`, the model title-uniqueness rule, the overview-root entrypoint pattern, and how an existing workspace opts in — all in one place, since `workspace_V_0-2-0_spec_NN.md` and `cogNNitive_V_0-2-0_NN.md` are both write-once and cannot carry this text themselves.
+- Document `workspace_id`, the model title-uniqueness rule, the overview-root entrypoint pattern, and how an existing workspace opts in — all in one place, since `workspace_spec_NN.md` and `spec_NN.md` are both write-once and cannot carry this text themselves.
 
 ## Specification
 
@@ -90,7 +90,7 @@ Both fields are declared `type:: model`: the parser follows them during workspac
 
 ### Workspace Identity (`workspace_id`)
 
-The workspace entrypoint document — whichever file `findPrimaryWorkspaceFile` resolves, a plain `workspace*.md` manifest or, when present, an overview root conforming to this template — MAY declare an optional `workspace_id` frontmatter field: a stable slug identifying the workspace (e.g. `workspace_id: "acme"`). Exactly one workspace document should declare it. It is optional in v1: its absence produces no error or warning, and `innfo-core` does not enforce uniqueness of `workspace_id` across workspaces. This field is documented here, rather than in `workspace_V_0-2-0_spec_NN.md`, because that template is write-once.
+The workspace entrypoint document — whichever file `findPrimaryWorkspaceFile` resolves, a plain `workspace*.md` manifest or, when present, an overview root conforming to this template — MAY declare an optional `workspace_id` frontmatter field: a stable slug identifying the workspace (e.g. `workspace_id: "acme"`). Exactly one workspace document should declare it. It is optional in v1: its absence produces no error or warning, and `innfo-core` does not enforce uniqueness of `workspace_id` across workspaces. This field is documented here, rather than in `workspace_spec_NN.md`, because that template is write-once.
 
 ### Model Title Uniqueness
 
@@ -124,7 +124,7 @@ To create an overview root, place a `<name>_base_NN.md` at the workspace root:
 level: 3
 parent_spec:
   name: "base_V_0-1-0"
-  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/base/base_V_0-1-0_spec_NN.md"
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/base/spec_NN.md"
 model_version: "V_x-y-z"
 title: "<Workspace Name> Overview"
 workspace_id: "<workspace-slug>"

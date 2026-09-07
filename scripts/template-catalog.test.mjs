@@ -26,22 +26,32 @@ function fixtureTree() {
   const t = path.join(root, 'templates');
   fs.mkdirSync(path.join(t, 'business'), { recursive: true });
   fs.mkdirSync(path.join(t, 'business', 'samples'), { recursive: true });
-  fs.mkdirSync(path.join(t, 'documentation', 'V_0-1-0'), { recursive: true });
+  fs.mkdirSync(path.join(t, 'documentation'), { recursive: true });
+  fs.mkdirSync(path.join(t, 'draft'), { recursive: true });
   fs.mkdirSync(path.join(t, 'cogNNitive'), { recursive: true });
   fs.mkdirSync(path.join(t, 'base'), { recursive: true });
 
-  const spec = (url, level, tv) => `---\nspec_version: "V_0-2-1"\nlevel: ${level}\nspec_url: "${url}"\ntemplate_version: "${tv}"\ntitle: "T"\n---\n`;
-  fs.writeFileSync(path.join(t, 'business', 'business_V_0-1-0_NN.md'), spec('https://x/business_V_0-1-0_NN.md', 2, 'V_0-1-0'));
-  fs.writeFileSync(path.join(t, 'business', 'business_V_0-2-0_NN.md'), spec('https://x/business_V_0-2-0_NN.md', 2, 'V_0-2-0'));
+  const spec = (url, level, tv) =>
+    `---\nspec_version: "V_0-2-1"\nlevel: ${level}\nspec_url: "${url}"\n` +
+    (tv == null ? '' : `template_version: "${tv}"\n`) +
+    `title: "T"\n---\n`;
+
+  // Canonical unversioned filenames; version is the authoritative frontmatter
+  // `template_version`, not the path.
+  fs.writeFileSync(path.join(t, 'business', 'spec_NN.md'), spec('https://x/business/spec_NN.md', 2, 'V_0-2-1'));
+  // a leftover historical file in the same dir still aggregates by frontmatter version
+  fs.writeFileSync(path.join(t, 'business', 'business_V_0-1-0_NN.md'), spec('https://x/business/business_V_0-1-0_NN.md', 2, 'V_0-1-0'));
   // sample model (level 3) must be excluded
   fs.writeFileSync(path.join(t, 'business', 'samples', 'Ghostbusters_V_0-2-0_business_NN.md'), spec('https://x/Ghostbusters_V_0-2-0_business_NN.md', 3, 'V_0-2-0'));
-  // package layout (spec_NN.md under <name>/V_x-y-z/)
-  fs.writeFileSync(path.join(t, 'documentation', 'V_0-1-0', 'spec_NN.md'), spec('https://x/documentation/V_0-1-0/spec_NN.md', 2, 'V_0-1-0'));
-  // unversioned transitional file — must be skipped, not crash
-  fs.writeFileSync(path.join(t, 'workspace_spec_NN.md'), spec('https://x/workspace_spec_NN.md', 2, 'V_0-2-0'));
+  // flat canonical subdir template
+  fs.writeFileSync(path.join(t, 'documentation', 'spec_NN.md'), spec('https://x/documentation/spec_NN.md', 2, 'V_0-2-0'));
+  // root workspace spec — canonical bare filename, discovered as `workspace`
+  fs.writeFileSync(path.join(t, 'workspace_spec_NN.md'), spec('https://x/workspace_spec_NN.md', 2, 'V_0-3-0'));
+  // level-2 template with no frontmatter template_version — skipped with a warning
+  fs.writeFileSync(path.join(t, 'draft', 'spec_NN.md'), spec('https://x/draft/spec_NN.md', 2, null));
   // frozen lineage templates — cogNNitive + base must land in `frozen`, not `templates`
-  fs.writeFileSync(path.join(t, 'cogNNitive', 'cogNNitive_V_0-2-0_NN.md'), spec('https://x/cogNNitive/cogNNitive_V_0-2-0_NN.md', 2, 'V_0-2-0'));
-  fs.writeFileSync(path.join(t, 'base', 'base_V_0-1-0_spec_NN.md'), spec('https://x/base/base_V_0-1-0_spec_NN.md', 2, 'V_0-1-0'));
+  fs.writeFileSync(path.join(t, 'cogNNitive', 'spec_NN.md'), spec('https://x/cogNNitive/spec_NN.md', 2, 'V_0-2-0'));
+  fs.writeFileSync(path.join(t, 'base', 'spec_NN.md'), spec('https://x/base/spec_NN.md', 2, 'V_0-1-0'));
   return root;
 }
 
@@ -59,21 +69,28 @@ async function runTests() {
 
       assert.deepStrictEqual(
         catalog.templates.business.versions.map((v) => v.template_version),
-        ['V_0-1-0', 'V_0-2-0'],
-        'business versions sorted ascending',
+        ['V_0-1-0', 'V_0-2-1'],
+        'business versions come from frontmatter template_version, sorted ascending',
       );
-      assert.strictEqual(catalog.templates.business.adopted, 'V_0-2-0', 'adopted = highest version');
-      assert.strictEqual(catalog.templates.business.versions[1].url, 'https://x/business_V_0-2-0_NN.md');
+      assert.strictEqual(catalog.templates.business.adopted, 'V_0-2-1', 'adopted = highest version');
+      assert.strictEqual(catalog.templates.business.versions[1].url, 'https://x/business/spec_NN.md');
       assert.strictEqual(catalog.templates.business.versions.length, 2, 'level-3 sample excluded');
 
       assert.deepStrictEqual(
         catalog.templates.documentation.versions.map((v) => v.template_version),
-        ['V_0-1-0'],
-        'package layout parsed',
+        ['V_0-2-0'],
+        'flat canonical subdir template discovered by frontmatter version',
       );
 
-      assert.ok(!('workspace_spec_NN' in catalog.templates), 'unversioned file skipped');
-      console.log('✔ generator emits correct catalog (versions, adopted, level-3 excluded, package layout)');
+      assert.ok('workspace' in catalog.templates, 'root workspace_spec_NN.md discovered as workspace');
+      assert.strictEqual(catalog.templates.workspace.adopted, 'V_0-3-0');
+
+      assert.ok(!('draft' in catalog.templates), 'level-2 file without template_version is not catalogued');
+      assert.ok(
+        catalog.warnings.some((w) => w.includes('draft/spec_NN.md')),
+        'missing template_version produces a warning',
+      );
+      console.log('✔ generator emits correct catalog (frontmatter versions, adopted, level-3 excluded, canonical names)');
     }
 
     // Test 1a: frozen partition — cogNNitive + base under `frozen`, absent from `templates`

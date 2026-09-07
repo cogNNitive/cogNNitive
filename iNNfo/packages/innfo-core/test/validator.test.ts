@@ -71,19 +71,30 @@ describe('parent spec resolution failure diagnostics', () => {
   it('validates the official Ghostbusters sample successfully against the updated Business template', async () => {
     const fs = await import('fs')
     const path = await import('path')
-    const modelContent = fs.readFileSync(path.join(import.meta.dirname, '../../../specs/templates/business/samples/Ghostbusters_V_0-1-0_business_NN.md'), 'utf8')
-    const templateContent = fs.readFileSync(path.join(import.meta.dirname, '../../../specs/templates/business/business_V_0-1-0_NN.md'), 'utf8')
+    const tpl = (p: string) =>
+      fs.readFileSync(path.join(import.meta.dirname, '../../../specs/templates/', p), 'utf8')
+    const modelContent = tpl('business/samples/Ghostbusters_V_0-2-1_business_NN.md')
+    const templateContent = tpl('business/spec_NN.md')
 
+    // Canonical `business` composes its schema from the four templates it includes.
+    const includes: Record<string, string> = {
+      'business-model': tpl('business-model/spec_NN.md'),
+      analysis: tpl('analysis/spec_NN.md'),
+      organization: tpl('organization/spec_NN.md'),
+      projects: tpl('projects/spec_NN.md'),
+    }
+    const resolveInclude = (ref: { name: string }): string | null =>
+      includes[ref.name.toLowerCase()] ?? null
 
     const model = parseModel(modelContent)
     const mockTemplate = {
-      name: 'business_V_0-1-0',
+      name: 'business_V_0-2-1',
       level: 2 as const,
       frontmatter: model.frontmatter,
       rawContent: templateContent,
     }
 
-    const result = validateModel(model, mockTemplate, null)
+    const result = validateModel(model, mockTemplate, null, resolveInclude)
     const undefinedConceptErrors = result.errors.filter((e) => e.message.includes('is not defined in template'))
     expect(undefinedConceptErrors).toEqual([])
   })

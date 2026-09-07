@@ -11,9 +11,10 @@ import {
  * Disk-integrity guard for design.md D3 / O3: the bundled
  * `SHIPPED_TEMPLATE_VERSIONS` fallback map MUST stay in lock-step with the
  * `template_version` frontmatter of the files actually shipped under
- * `specs/templates/{slug}/`. `workspace_spec_NN.md` is deliberately absent —
- * its filename carries no `_V_x-y-z_` segment, so it can never be resolved by
- * `parseVersionedFilename`.
+ * `specs/templates/{slug}/`. Templates now use canonical unversioned filenames
+ * (`spec_NN.md`), so the authoritative version is the frontmatter, never the
+ * filename. The root `workspace_spec_NN.md` is deliberately out of scope — this
+ * guard only walks `{slug}/` subdirectories.
  */
 const templatesDir = join(import.meta.dirname!, '..', '..', '..', '..', 'specs', 'templates')
 
@@ -25,7 +26,8 @@ function frontmatterTemplateVersion(absPath: string): string | null {
 
 function versionedFilesForSlug(slug: string): string[] {
   return readdirSync(join(templatesDir, slug)).filter(
-    (name) => parseVersionedFilename(name)?.slug === slug,
+    (name) =>
+      name === 'spec_NN.md' || parseVersionedFilename(name)?.slug === slug,
   )
 }
 

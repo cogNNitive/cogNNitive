@@ -40,36 +40,32 @@ describe('Metaplantilla Nivel 1 (specs/)', () => {
     expect(content).toContain('## NN <Concept>: <Element>')
   })
 
-  it('business template exposes its schema as body elements, not frontmatter blocks', () => {
-    const content = readSpec('templates/business/business_V_0-1-0_NN.md')
+  it('business template is a composition shell over the decomposed templates', () => {
+    // Canonical `business` (V_0-2-x) is no longer a monolith: it `includes`
+    // business-model + analysis + organization + projects and keeps only a few
+    // demonstrative body elements of its own. Full composed-schema coverage
+    // lives in business-decomposition-v2.test.ts.
+    const content = readSpec('templates/business/spec_NN.md')
     const fm = parseFrontmatter(content)!
     expect(fm.level).toBe(2)
     expect(fm.concepts).toBeUndefined()
     expect(fm.markers).toBeUndefined()
     expect(fm.matrices).toBeUndefined()
 
+    expect((fm.includes ?? []).map((i: { name: string }) => i.name).sort()).toEqual([
+      'analysis',
+      'business-model',
+      'organization',
+      'projects',
+    ])
+
+    // Without resolving `includes`, the shell contributes no schema of its own.
     const schema = extractTemplateSchemaFromContent(content)
-    expect(schema.concepts.length).toBe(80)
-    expect(schema.markers.length).toBe(5)
-    expect(schema.matrices.length).toBe(13)
-
-    const businessSummary = schema.concepts.find((c) => c.name === 'Business summary')!
-    expect(businessSummary.type).toBe('text')
-    expect(businessSummary.icon).toBe('file-text')
-
-    const stakeholders = schema.concepts.find((c) => c.name === 'Stakeholders')!
-    expect(stakeholders.type).toBe('weight')
-    expect(stakeholders.fields!.map((f) => f.name)).toEqual(['relationship_model'])
-    expect(stakeholders.fields![0].type).toBe('string')
-
-    const offerings = schema.concepts.find((c) => c.name === 'Offerings')!
-    const offeringFields = offerings.fields!.map((f) => f.name)
-    expect(offeringFields).toEqual(['pricing_model', 'brochure_file', 'components_list'])
-    expect(offerings.fields!.find((f) => f.name === 'brochure_file')!.type).toBe('file')
+    expect(schema.concepts).toEqual([])
   })
 
   it('procedures template schema extracts concepts, fields, markers, matrices', () => {
-    const content = readSpec('templates/procedures/procedures_V_0-1-0_NN.md')
+    const content = readSpec('templates/procedures/spec_NN.md')
     const schema = extractTemplateSchemaFromContent(content)
     expect(schema.concepts.map((c) => c.name)).toEqual(['Work', 'Artifact', 'Tools', 'Roles'])
     const work = schema.concepts.find((c) => c.name === 'Work')!
@@ -98,27 +94,36 @@ describe('Metaplantilla Nivel 1 (specs/)', () => {
   })
 
   it('organization template schema extracts concepts, fields, markers, matrices', () => {
-    const content = readSpec('templates/organization/organization_V_0-1-0_NN.md')
+    const content = readSpec('templates/organization/spec_NN.md')
     const schema = extractTemplateSchemaFromContent(content)
-    expect(schema.concepts.map((c) => c.name)).toEqual(['Organization', 'Roles', 'Position', 'Person'])
+    expect(schema.concepts.map((c) => c.name)).toEqual([
+      'Organization',
+      'Roles',
+      'Functions',
+      'Position',
+      'Person',
+      'Skills',
+    ])
     const roles = schema.concepts.find((c) => c.name === 'Roles')!
     expect(roles.fields!.map((f) => f.name)).toEqual(['scope'])
     expect(schema.matrices.map((m) => m.name)).toEqual([
       'positions-roles matrix',
       'persons-positions matrix',
+      'Functions-Positions Matrix',
     ])
   })
 
   it('projects template schema extracts concepts, fields, markers, matrices', () => {
-    const content = readSpec('templates/projects/projects_V_0-1-0_NN.md')
+    const content = readSpec('templates/projects/spec_NN.md')
     const schema = extractTemplateSchemaFromContent(content)
     expect(schema.concepts.map((c) => c.name)).toEqual([
       'Project',
       'Milestone',
+      'Phases',
       'Deliverable',
       'Task',
       'Risk',
-      'Roles',
+      'Project roles',
     ])
     const task = schema.concepts.find((c) => c.name === 'Task')!
     expect(task.fields!.map((f) => f.name)).toEqual([
@@ -140,7 +145,7 @@ describe('Metaplantilla Nivel 1 (specs/)', () => {
   })
 
   it('validates a unified-syntax model against the migrated procedures template', () => {
-    const templateContent = readSpec('templates/procedures/procedures_V_0-1-0_NN.md')
+    const templateContent = readSpec('templates/procedures/spec_NN.md')
     const templateDoc: SpecDocument = {
       name: 'procedures_V_0-3-0',
       level: 2,
@@ -192,11 +197,13 @@ Reviews the pull request.
   })
 
   it('still parses the migrated templates with the unified parser', () => {
+    // `business` is excluded: canonical business is a composition shell whose
+    // schema comes entirely from `includes`, so it has no metaschema-primitive
+    // body elements of its own.
     for (const p of [
-      'templates/business/business_V_0-1-0_NN.md',
-      'templates/organization/organization_V_0-1-0_NN.md',
-      'templates/procedures/procedures_V_0-1-0_NN.md',
-      'templates/projects/projects_V_0-1-0_NN.md',
+      'templates/organization/spec_NN.md',
+      'templates/procedures/spec_NN.md',
+      'templates/projects/spec_NN.md',
     ]) {
       const parsed = parseModel(readSpec(p))
       expect(parsed.elements.has('Concept Definition')).toBe(true)
@@ -207,7 +214,7 @@ Reviews the pull request.
   })
 
   it('parseModel + extractTemplateSchema agree with extractTemplateSchemaFromContent', () => {
-    const content = readSpec('templates/business/business_V_0-1-0_NN.md')
+    const content = readSpec('templates/business/spec_NN.md')
     const direct = extractTemplateSchema(parseModel(content))
     const fromContent = extractTemplateSchemaFromContent(content)
     expect(direct.concepts.length).toBe(fromContent.concepts.length)

@@ -31,14 +31,17 @@ export const SAMPLE_BASE: string = import.meta.env.DEV ? '/specs/templates' : RE
  */
 export const SHIPPED_TEMPLATE_VERSIONS: Record<string, string> = {
   analysis: 'V_0-2-0',
+  base: 'V_0-1-0',
   blank: 'V_0-2-0',
   business: 'V_0-2-1',
   'business-model': 'V_0-2-0',
   cogNNitive: 'V_0-2-0',
+  documentation: 'V_0-2-0',
   innovation: 'V_0-2-0',
   organization: 'V_0-2-0',
   procedures: 'V_0-2-0',
   projects: 'V_0-2-0',
-  // workspace_spec is intentionally omitted: its filename carries no
-  // `_V_x-y-z_` segment, so `parseVersionedFilename` can never resolve it.
+  // workspace_spec is intentionally omitted: this map is keyed by the
+  // `{slug}/` subdirectories, and the root `workspace_spec_NN.md` lives one
+  // level up.
 }

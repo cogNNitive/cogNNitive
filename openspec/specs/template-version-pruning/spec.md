@@ -1,5 +1,11 @@
 # Template Version Pruning & Safety Backups
 
+> **Status: RETIRED** — superseded by `canonical-template-package-distribution`.
+> Canonical unversioned source files plus immutable tag-hydrated, write-once
+> workspace package directories (`specs/templates/<name>/<version>/`) replace
+> reachability analysis and orphaned-spec pruning. The `prune_orphaned_specs`
+> MCP tool is removed. The requirements below are kept for historical record.
+
 ## Purpose
 
 Establish reference reachability analysis across workspace models, mandate interactive safety backup consent and git working tree integrity checks during template version migrations (`bump_version`), and provide a safe orphaned spec pruning mechanism (`prune_orphaned_specs` MCP tool).

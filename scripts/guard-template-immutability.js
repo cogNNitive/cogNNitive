@@ -3,23 +3,41 @@
 /**
  * scripts/guard-template-immutability.js
  *
- * Zero-dependency template immutability guard for iNNfo versioned templates.
+ * Zero-dependency template versioning guard for canonical iNNfo templates.
  *
- * Versioned templates (`iNNfo/specs/templates/*_V_<x-y-z>*.md`) are
- * write-once: a content change MUST ship as a `template_version` bump plus a
- * new versioned filename. In-place edits (git status `M`) and added templates
- * whose frontmatter `template_version` disagrees with the filename version
- * fail the guard.
+ * Templates now ship under canonical unversioned paths
+ * (`iNNfo/specs/templates/<name>/spec_NN.md`, `workspace_spec_NN.md`). The
+ * authoritative version is the frontmatter `template_version`, never the
+ * filename. This guard enforces that any *content* change to a canonical
+ * template is accompanied by a strictly increasing `template_version`
+ * relative to the base branch:
+ *
+ *   - status M (modified): base `template_version` is read via
+ *     `git show <base>:<path>`. If the body changed and the working
+ *     `template_version` is not > the base version (semver), fail.
+ *   - status A (added): the new file MUST declare a valid semver
+ *     `template_version` in frontmatter (no filename token required).
+ *   - status R (rename): validated as M against the OLD path's base content;
+ *     a pure rename with no content change passes. A rename from a *versioned*
+ *     legacy filename (`<name>_V_x-y-z_...`) to the canonical filename is the
+ *     one-time path migration — it only has to carry a valid `template_version`,
+ *     not increment one.
+ *   - status D (deleted): always passes (history lives in git tags).
+ *   - non-template files and files under samples/ or assets/: ignored.
  *
  * Usage:
- *   node scripts/guard-template-immutability.js [--diff-file <path>] [--root <path>] [--staged]
+ *   node scripts/guard-template-immutability.js [--base <ref>] [--staged]
+ *                                               [--root <path>]
+ *                                               [--diff-file <path> [--base-root <path>]]
  *
- * Diff source (default): `git diff --name-status HEAD -- <root>`.
- *   --staged    → `git diff --cached --name-status -- <root>` instead.
- *   --diff-file → read fixture lines in `git diff --name-status` format
- *                 (`<STATUS>\t<path>`, renames `R<score>\t<old>\t<new>`) from
- *                 a file instead of invoking git — enables plain-node tests.
- *   --root      → templates directory (default: <repo>/iNNfo/specs/templates).
+ *   --base       base ref to diff against (default: origin/main if it resolves,
+ *                otherwise HEAD).
+ *   --staged     diff the index instead of the working tree.
+ *   --root       templates directory (default: <repo>/iNNfo/specs/templates).
+ *   --diff-file  read `git diff --name-status` lines from a file instead of
+ *                invoking git — enables plain-node tests. Working-tree content
+ *                is read from disk (under --root); base content for M/R entries
+ *                is read from --base-root (a mirror tree of the base revision).
  *
  * Exit 0 when no violations, exit 1 otherwise (every violation is printed).
  */
@@ -36,23 +54,46 @@ function getArg(flag) {
   return idx !== -1 && idx + 1 < process.argv.length ? process.argv[idx + 1] : null;
 }
 
+/** Normalize `V_0-2-1` / `"0.2.1"` / `v0_2_1` to a dotted `0.2.1`. */
 function normalizeVersion(v) {
-  return String(v).replace(/^[vV]_?/, '').replace(/[_-]/g, '.').trim();
+  return String(v).trim().replace(/^["']|["']$/g, '').replace(/^[vV]_?/, '').replace(/[_-]/g, '.').trim();
 }
 
-/** Extract the version embedded in a versioned template filename (`_V_<x-y-z>`). */
-function versionFromFilename(basename) {
-  const m = basename.match(/_V_([0-9]+(?:[-_.][0-9]+){2})/i);
-  return m ? normalizeVersion(m[1]) : null;
+/** Parse a dotted/loose semver into a [major, minor, patch] tuple, or null. */
+function semver(v) {
+  const m = normalizeVersion(v).match(/^(\d+)\.(\d+)\.(\d+)/);
+  return m ? [Number(m[1]), Number(m[2]), Number(m[3])] : null;
 }
 
-/** Versioned template filter: `_V_<digits>-<digits>-<digits>` basename + `.md`, outside samples/ and assets/. */
-function isVersionedTemplate(relPath) {
-  if (!/\.md$/i.test(relPath)) return false;
-  if (!/_V_[0-9]+(?:-[0-9]+){2}/i.test(path.basename(relPath))) return false;
-  const normalized = relPath.replace(/\\/g, '/');
-  if (normalized.includes('/samples/') || normalized.includes('/assets/')) return false;
-  return true;
+/** > 0 if a > b, < 0 if a < b, 0 if equal. Returns NaN if either is unparseable. */
+function compareSemver(a, b) {
+  const sa = semver(a);
+  const sb = semver(b);
+  if (!sa || !sb) return NaN;
+  for (let i = 0; i < 3; i++) {
+    if (sa[i] !== sb[i]) return sa[i] - sb[i];
+  }
+  return 0;
+}
+
+/** Extract the frontmatter `template_version` from raw file content, or null. */
+function templateVersionOf(content) {
+  try {
+    const fm = parseFocusedYaml(parseFrontmatter(content));
+    return fm && fm.template_version != null ? String(fm.template_version) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Canonical template filter: a markdown file directly under a template dir, outside samples/ and assets/. */
+function isCanonicalTemplate(relPath) {
+  const p = relPath.replace(/\\/g, '/');
+  if (!/\.md$/i.test(p)) return false;
+  if (p.includes('/samples/') || p.includes('/assets/') || p.includes('/procedures/')) return false;
+  const base = path.basename(p);
+  // Level-2 template specs: `spec_NN.md`, `<name>_spec_NN.md`, `<name>_NN.md`.
+  return /^(spec_NN|.*_spec_NN|.*_NN)\.md$/i.test(base);
 }
 
 function isUnderRoot(filePath, root) {
@@ -61,72 +102,165 @@ function isUnderRoot(filePath, root) {
   return abs === rootNorm || abs.startsWith(rootNorm + path.sep);
 }
 
-/** Parse `git diff --name-status` lines into `{ status, path }` (new path for renames). */
+/** Parse `git diff --name-status` lines. Renames -> `{ status:'R', target, oldPath }`. */
 function parseDiffLine(line) {
-  const tokens = line.split('\t');
+  const tokens = line.split('\t').filter((t) => t.length > 0);
   if (tokens.length < 2) return null;
-  const status = tokens[0];
-  const target = tokens[tokens.length - 1]; // renames: `R<score>\t<old>\t<new>` → new = last token
-  return { status: status.charAt(0), target };
+  const status = tokens[0].charAt(0);
+  if (status === 'R' || status === 'C') {
+    return { status: 'R', oldPath: tokens[1], target: tokens[2] ?? tokens[1] };
+  }
+  return { status, target: tokens[tokens.length - 1], oldPath: null };
 }
 
-function diffLinesFromGit(root, staged) {
-  const flag = staged ? '--cached' : 'HEAD';
-  const out = execSync(`git diff --name-status ${flag} -- "${root}"`, {
+/** Resolve the base ref: explicit --base, else origin/main if it resolves, else HEAD. */
+function resolveBase() {
+  const explicit = getArg('--base');
+  if (explicit) return explicit;
+  try {
+    execSync('git rev-parse --verify --quiet origin/main', { stdio: ['ignore', 'ignore', 'ignore'] });
+    return 'origin/main';
+  } catch {
+    return 'HEAD';
+  }
+}
+
+function diffLinesFromGit(base, root, staged) {
+  const range = staged ? `--cached ${base}` : base;
+  const out = execSync(`git diff --name-status ${range} -- "${root}"`, {
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'ignore'],
   });
   return out.split(/\r?\n/).filter(Boolean);
 }
 
-function diffLinesFromFile(file) {
-  return fs.readFileSync(file, 'utf-8').split(/\r?\n/).filter(Boolean);
+/** Path of `relPath` relative to the first `templates/` segment (posix). */
+function underTemplates(relPath) {
+  const p = relPath.replace(/\\/g, '/');
+  const i = p.indexOf('templates/');
+  return i === -1 ? path.basename(p) : p.slice(i + 'templates/'.length);
+}
+
+function readWorkingContent(relOrAbs) {
+  const abs = path.isAbsolute(relOrAbs) ? relOrAbs : path.resolve(process.cwd(), relOrAbs);
+  try {
+    return fs.readFileSync(abs, 'utf-8');
+  } catch {
+    return null;
+  }
+}
+
+function readBaseContent(relPath, base, baseRoot) {
+  if (baseRoot) {
+    // Test mode: base revision mirrored under <baseRoot> (a `templates/` tree).
+    try {
+      return fs.readFileSync(path.join(baseRoot, underTemplates(relPath)), 'utf-8');
+    } catch {
+      return null;
+    }
+  }
+  try {
+    return execSync(`git show "${base}:${relPath}"`, {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * A rename from a legacy versioned template location — either a
+ * `<name>_V_x-y-z_...md` filename or a `<name>/V_x-y-z/spec_NN.md` package
+ * directory — to the canonical filename. This is the one-time path migration.
+ */
+function isCanonicalMigrationRename(status, oldPath, target) {
+  if (status !== 'R' || !oldPath) return false;
+  const old = oldPath.replace(/\\/g, '/');
+  const oldIsVersioned =
+    /_V_[0-9]+(?:[-_.][0-9]+){2}/i.test(path.basename(old)) ||
+    /\/V_[0-9]+(?:[-_.][0-9]+){2}\//i.test(old);
+  const newIsCanonical = /^(spec_NN|workspace_spec_NN)\.md$/i.test(path.basename(target));
+  return oldIsVersioned && newIsCanonical;
+}
+
+function checkModified(relPath, baseContent, workingContent, errors, migrationRename) {
+  if (workingContent == null) return;
+
+  const workV = templateVersionOf(workingContent);
+  if (!workV || !semver(workV)) {
+    errors.push(
+      `ERROR: ${relPath} was modified but declares no valid frontmatter template_version (got "${workV ?? 'missing'}").`,
+    );
+    return;
+  }
+
+  // The canonical path migration only has to carry a valid version.
+  if (migrationRename) return;
+
+  if (baseContent == null) return; // no base to compare against -> don't block
+  if (baseContent === workingContent) return; // no content change
+
+  const baseV = templateVersionOf(baseContent);
+  if (!baseV || !semver(baseV)) {
+    // Base had no parseable version (e.g. legacy) — any valid new version is fine.
+    return;
+  }
+  if (compareSemver(workV, baseV) <= 0) {
+    errors.push(
+      `ERROR: canonical template ${relPath} was modified without incrementing frontmatter ` +
+        `template_version (base: "${baseV}", current: "${workV}"). Bump template_version on every content change.`,
+    );
+  }
+}
+
+function checkAdded(relPath, workingContent, errors) {
+  const workV = workingContent == null ? null : templateVersionOf(workingContent);
+  if (!workV || !semver(workV)) {
+    errors.push(
+      `ERROR: new template ${relPath} declares no valid semver frontmatter template_version (got "${workV ?? 'missing'}").`,
+    );
+  }
 }
 
 function main() {
   const root = getArg('--root') || DEFAULT_ROOT;
   const diffFile = getArg('--diff-file');
+  const baseRoot = getArg('--base-root');
   const staged = process.argv.includes('--staged');
+  const base = diffFile ? (getArg('--base') || 'BASE') : resolveBase();
 
-  const lines = diffFile ? diffLinesFromFile(diffFile) : diffLinesFromGit(root, staged);
+  const lines = diffFile
+    ? fs.readFileSync(diffFile, 'utf-8').split(/\r?\n/).filter(Boolean)
+    : diffLinesFromGit(base, root, staged);
 
   const errors = [];
   for (const line of lines) {
     const parsed = parseDiffLine(line);
     if (!parsed) continue;
-    const { status, target } = parsed;
+    const { status, target, oldPath } = parsed;
     if (!isUnderRoot(target, root)) continue;
-    if (!isVersionedTemplate(target)) continue;
+    if (!isCanonicalTemplate(target)) continue;
 
-    if (status === 'M') {
-      errors.push(
-        `ERROR: Versioned template mutated in place: ${target}. Content changes to a versioned template MUST be delivered as a template_version bump plus a new versioned filename (e.g. *_V_<x-y-z>_*.md); never edit an existing versioned template in place.`,
-      );
+    if (status === 'D') continue;
+
+    if (status === 'A') {
+      checkAdded(target, readWorkingContent(target), errors);
       continue;
     }
 
-    if (status === 'A') {
-      const absPath = path.isAbsolute(target)
-        ? target
-        : path.resolve(process.cwd(), target);
-      let declaredRaw = null;
-      try {
-        const content = fs.readFileSync(absPath, 'utf-8');
-        const fm = parseFocusedYaml(parseFrontmatter(content));
-        declaredRaw = fm.template_version != null ? String(fm.template_version) : null;
-      } catch {
-        declaredRaw = null;
-      }
-      const declared = declaredRaw ? normalizeVersion(declaredRaw) : null;
-      const versionMatch = path.basename(target).match(/_V_([^_]+)/i);
-      const filenameToken = versionMatch ? `_V_${versionMatch[1]}` : null;
-      const filenameVersion = versionMatch ? normalizeVersion(versionMatch[1]) : null;
-      if (!filenameVersion || declared !== filenameVersion) {
-        errors.push(
-          `ERROR: template_version mismatch in ${target}: frontmatter declares "${declaredRaw ?? 'missing'}" but the filename declares "${filenameToken ?? 'missing'}". The frontmatter template_version MUST match the version embedded in the filename.`,
-        );
-      }
-    }
+    // M or R (rename): compare working content against base content of the
+    // pre-change path.
+    const basePath = status === 'R' && oldPath ? oldPath : target;
+    const baseContent = readBaseContent(basePath, base, baseRoot);
+    const workingContent = readWorkingContent(target);
+    checkModified(
+      target,
+      baseContent,
+      workingContent,
+      errors,
+      isCanonicalMigrationRename(status, oldPath, target),
+    );
   }
 
   if (errors.length > 0) {
@@ -134,7 +268,7 @@ function main() {
     for (const err of errors) console.log(`  ${err}`);
     process.exit(1);
   }
-  console.log('Template immutability guard: OK — no versioned template violations.');
+  console.log('Template immutability guard: OK — every changed canonical template bumps template_version.');
   process.exit(0);
 }
 

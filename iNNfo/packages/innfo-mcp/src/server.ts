@@ -45,7 +45,6 @@ import {
   applyChange,
   validateTemplate,
   initModel,
-  pruneOrphanedSpecs,
 } from './tools/mutate.js'
 import { findRepoRoot } from './tools/repo-root.js'
 import { syncWorkspaceManifest } from './tools/workspace-sync.js'
@@ -293,26 +292,6 @@ const toolDefinitions: Tool[] = [
     },
   },
   {
-    name: 'prune_orphaned_specs',
-    description:
-      'Analyze reference reachability across models, templates, and entrypoints and safely prune orphaned specs with automatic backup archive generation',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        dry_run: {
-          type: 'boolean',
-          description: 'Report orphaned candidates without deleting (defaults to true)',
-        },
-        backup: {
-          type: 'boolean',
-          description:
-            'Create a zip archive snapshot in .backup/ before deletion (defaults to true)',
-        },
-        root: { type: 'string', description: 'Optional workspace root directory override' },
-      },
-    },
-  },
-  {
     name: 'sync_workspace_manifest',
     description:
       'Reconcile the workspace manifest ## NN Models entries against discovered Level-3 model files: additively appends new entries, archives entries whose file disappeared, and reactivates tool-owned entries whose file returned. Never touches hand-authored entries lacking the <!-- nn:auto --> ownership marker. Defaults to a dry run.',
@@ -388,8 +367,6 @@ async function dispatchTool(name: string, args: Record<string, unknown>): Promis
         return await handleListTemplates(args)
       case 'hydrate_template':
         return await handleHydrateTemplate(args)
-      case 'prune_orphaned_specs':
-        return await handlePruneOrphanedSpecs(args)
       case 'sync_workspace_manifest':
         return await handleSyncWorkspaceManifest(args)
       case 'list_template_procedures':
@@ -517,14 +494,6 @@ async function handleHydrateTemplate(args: Record<string, unknown>): Promise<Cal
   const targetDir = args.target_dir as string | undefined
   const result = await hydrateTemplate(root, templateName, { targetDir })
   return textResult(JSON.stringify(envelope('innfo-hydrate-template', result), null, 2))
-}
-
-async function handlePruneOrphanedSpecs(args: Record<string, unknown>): Promise<CallToolResult> {
-  const root = (args.root as string) || ROOT_DIR
-  const dry_run = args.dry_run !== undefined ? Boolean(args.dry_run) : true
-  const backup = args.backup !== undefined ? Boolean(args.backup) : true
-  const result = await pruneOrphanedSpecs(root, { dry_run, backup })
-  return textResult(JSON.stringify(envelope('innfo-prune-orphaned-specs', result), null, 2))
 }
 
 async function handleSyncWorkspaceManifest(args: Record<string, unknown>): Promise<CallToolResult> {

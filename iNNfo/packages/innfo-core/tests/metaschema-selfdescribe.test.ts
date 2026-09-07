@@ -68,13 +68,13 @@ describe('Metaschema (Self-Description)', () => {
 
   it('every shipped template validates green against the metaschema', () => {
     const templates = [
-      'templates/blank/blank_V_0-1-0_NN.md',
-      'templates/business/business_V_0-1-0_NN.md',
-      'templates/cogNNitive/cogNNitive_V_0-1-0_NN.md',
-      'templates/innovation/innovation_V_0-1-0_NN.md',
-      'templates/organization/organization_V_0-1-0_NN.md',
-      'templates/procedures/procedures_V_0-1-0_NN.md',
-      'templates/projects/projects_V_0-1-0_NN.md',
+      'templates/blank/spec_NN.md',
+      'templates/business/spec_NN.md',
+      'templates/cogNNitive/spec_NN.md',
+      'templates/innovation/spec_NN.md',
+      'templates/organization/spec_NN.md',
+      'templates/procedures/spec_NN.md',
+      'templates/projects/spec_NN.md',
     ]
     for (const rel of templates) {
       const diags = validateTemplateAgainstMetaschema(readSpec(rel), iNNfo)
@@ -164,10 +164,10 @@ describe('iNNfo_V_0-2-0 — metaschema still self-consistent', () => {
 
   it('every shipped V_0-1-0 template still validates green against it', () => {
     for (const rel of [
-      'templates/blank/blank_V_0-1-0_NN.md',
-      'templates/business/business_V_0-1-0_NN.md',
-      'templates/organization/organization_V_0-1-0_NN.md',
-      'templates/projects/projects_V_0-1-0_NN.md',
+      'templates/blank/spec_NN.md',
+      'templates/business/spec_NN.md',
+      'templates/organization/spec_NN.md',
+      'templates/projects/spec_NN.md',
     ]) {
       const errors = validateTemplateAgainstMetaschema(readSpec(rel), iNNfoV2).filter(
         (d) => d.severity === 'error',
@@ -213,10 +213,10 @@ describe('iNNfo_V_0-2-1 — metaschema still self-consistent (task G)', () => {
 
   it('every shipped V_0-1-0 template still validates green against it', () => {
     for (const rel of [
-      'templates/blank/blank_V_0-1-0_NN.md',
-      'templates/business/business_V_0-1-0_NN.md',
-      'templates/organization/organization_V_0-1-0_NN.md',
-      'templates/projects/projects_V_0-1-0_NN.md',
+      'templates/blank/spec_NN.md',
+      'templates/business/spec_NN.md',
+      'templates/organization/spec_NN.md',
+      'templates/projects/spec_NN.md',
     ]) {
       const errors = validateTemplateAgainstMetaschema(readSpec(rel), iNNfoV21).filter(
         (d) => d.severity === 'error',
@@ -227,7 +227,7 @@ describe('iNNfo_V_0-2-1 — metaschema still self-consistent (task G)', () => {
 
   it('base_V_0-1-0 (PR6, new composite template) validates green against it', () => {
     const errors = validateTemplateAgainstMetaschema(
-      readSpec('templates/base/base_V_0-1-0_spec_NN.md'),
+      readSpec('templates/base/spec_NN.md'),
       iNNfoV21,
     ).filter((d) => d.severity === 'error')
     expect(errors, JSON.stringify(errors)).toEqual([])
