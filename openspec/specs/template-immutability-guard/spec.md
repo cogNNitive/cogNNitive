@@ -1,5 +1,13 @@
 # Template Immutability Guard
 
+> **Status: RETIRED / REPLACED** — the file-cloning guard below is superseded by
+> `canonical-template-package-distribution`. Templates now ship under canonical
+> unversioned filenames; `scripts/guard-template-immutability.js` no longer
+> blocks in-place edits — it validates that any content change to a canonical
+> template increments the frontmatter `template_version` against the base ref,
+> and exempts the one-time legacy→canonical migration rename. The requirements
+> below describe the retired behavior and are kept for historical record.
+
 ## Purpose
 
 Enforce immutability of versioned iNNfo templates (`iNNfo/specs/templates/*_V_*.md`). A zero-dependency Node script (`scripts/guard-template-immutability.js`) errors on in-place modification (`M`) of a versioned template, cross-checks the frontmatter `template_version` against the filename version for added (`A`) templates, permits renames and deletions, supports fixture-driven runs without a real git repository, and is wired into `scripts/verify.js` as a verification step.
