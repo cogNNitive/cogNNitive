@@ -814,19 +814,6 @@ Pilot a 3-month Brooklyn dispatch trial to validate response time, volume, and u
 ## NN Experiments: Franchise Interest Survey
 Survey 50 paranormal enthusiast groups to gauge interest in a licensed operator model.
 
-# NN Procedure
-
-## NN Procedure: Compile Strategic Master
-target_artifact:: "temp/master.html"
-trigger_command:: "/generate-master"
-instructions:: |
-  Generate a single HTML dashboard compiling the 25 strategic diagrams based on the active L3 business model data.
-  Follow these visual mapping rules:
-  1. Read [[Journey]] and [[Emotions]] for the Customer Journey Emotion Map timeline.
-  2. Map [[Problems]] and [[Value propositions]] in the Solution Fit Flow Sankey.
-  3. Map [[Profiles]] (Nancy) and [[Behaviors]] for the Buyer Persona Card columns.
-  Use the reference layout from `https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business/samples/master.html` (which has all CSS and SVGs inline) as the base design. Inject the actual L3 model values into the SVG elements.
-
 # NN matrices: journey map
 
 | Journey \ Emotions | Relief | Fear | Gratitude |
