@@ -2,7 +2,17 @@
 
 Load this file when generating deliverables with citations in step §3c.
 
-Citations are rendered in a single pass directly from Level 3 model pointers (`sources:: [<path>.md#<slug>]`). The base path resolves canonically against `sources/nn/` without requiring redundant prefixes. No intermediate `<!-- cite: ... -->` HTML comments or `_draft.md` files are generated.
+Citations are rendered in a single pass directly from Level 3 model pointers (`sources:: [<path>.md#<slug>]`). No intermediate `<!-- cite: ... -->` HTML comments or `_draft.md` files are generated.
+
+## Citation targets: Sources and Models
+
+A `<ref>` is `<path>.md#<heading-slug>`. It resolves canonically as:
+- **Sources** live under `sources/nn/`. An **unqualified** path resolves there by default (`interview.md#feedback` → `sources/nn/interview.md#feedback`); the explicit `sources/nn/` prefix is still tolerated.
+- **Models** are a first-class citation target under the explicit `models/` namespace: `models/Finance_V_1-0-0_business_NN.md#revenue-forecast`. Same `<path>.md#<slug>` syntax; the parser and workspace-source validator already resolve it.
+
+**Artifact → model → source chain.** A deliverable MAY cite a Model element directly (`models/x.md#element-a`). That element carries its own `sources::` pointing at `sources/nn/…`, so provenance stays fully traceable end to end: *artifact → `models/x.md#element-a` → `sources/nn/1.md#section`*. Cite the Model when the claim is the model's own synthesized position; cite the Source when the claim is a raw fact.
+
+**Heading-level convention (authoring rule).** For Model-element anchors to be stable and meaningful: `# NN <Concept>` (H1 = Concept), `## NN <Concept>: <Element>` (H2 = Element), `###`+ only inside an element's prose. The slug algorithm is level-agnostic — this is authorial discipline, not a validation gate.
 
 ## Format: Standard Markdown Footnotes (`[^1]`) *(Recommended)*
 

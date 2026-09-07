@@ -92,12 +92,11 @@ async function run() {
 
     console.log('--- Test 4: Interactive Promotion Prompt Contract ---');
     assertTrue(Array.isArray(conv.PROMOTION_OPTIONS), 'PROMOTION_OPTIONS is an array');
-    assertEqual(conv.PROMOTION_OPTIONS.length, 4, 'PROMOTION_OPTIONS has 4 choices');
+    assertEqual(conv.PROMOTION_OPTIONS.length, 2, 'PROMOTION_OPTIONS has 2 choices ([full], [none])');
     const optionValues = conv.PROMOTION_OPTIONS.map(o => o.value);
-    assertTrue(optionValues.includes('summary'), 'has summary option');
-    assertTrue(optionValues.includes('full'), 'has full option');
-    assertTrue(optionValues.includes('both'), 'has both option');
-    assertTrue(optionValues.includes('none'), 'has none option');
+    assertEqual(optionValues.join(','), 'full,none', 'options are exactly [full, none] in order');
+    assertFalse(optionValues.includes('summary'), 'summary option removed');
+    assertFalse(optionValues.includes('both'), 'both option removed');
     assertTrue(conv.PROMOTION_OPTIONS[0].title.includes('(Recommended)'), 'first option has (Recommended) label');
 
     console.log('--- Test 5: Finalizing Session Title and Renaming ---');
@@ -115,6 +114,7 @@ async function run() {
     assertTrue(finalContent.includes('ended_at: "2026-09-06T12:30:00.000Z"'), 'frontmatter ended_at is updated');
 
     console.log('--- Test 6: Promote Conversation to Sources ---');
+    // `_summary.md` is retired: `summary`/`both` promote nothing.
     const summaryPromo = await conv.promoteConversation({
       workspaceRoot: TEST_TEMP,
       sessionFile: finalSession.filePath,
@@ -122,16 +122,19 @@ async function run() {
       format: 'summary',
       summaryContent: '## Executive Summary\nKey decisions: use JWT.',
     });
-    assertEqual(summaryPromo.format, 'summary', 'promoted format is summary');
-    const sourceSummaryFile = path.join(TEST_TEMP, 'sources', 'conversations', '2026-09-06_api-gateway-refactor_summary.md');
-    assertTrue(fs.existsSync(sourceSummaryFile), 'source summary markdown created in sources/conversations/');
-    const sourceSummaryContent = fs.readFileSync(sourceSummaryFile, 'utf8');
-    assertTrue(sourceSummaryContent.includes('origin_transcript: conversations/2026-09-06_api-gateway-refactor.md'), 'origin_transcript links to conversation');
-    const nnSummaryFile = path.join(TEST_TEMP, 'sources', 'nn', 'conversations', '2026-09-06_api-gateway-refactor_summary.md');
-    assertTrue(fs.existsSync(nnSummaryFile), 'normalized summary file created in sources/nn/conversations/');
-    const nnSummaryContent = fs.readFileSync(nnSummaryFile, 'utf8');
-    assertTrue(nnSummaryContent.includes('conversation_format: "summary"'), 'normalized frontmatter has conversation_format summary');
-    assertTrue(nnSummaryContent.includes('is_synthetic: false'), 'normalized conversation is not synthetic');
+    assertEqual(summaryPromo.promotedFiles.length, 0, 'summary format promotes nothing (retired)');
+    assertFalse(
+      fs.existsSync(path.join(TEST_TEMP, 'sources', 'conversations', '2026-09-06_api-gateway-refactor_summary.md')),
+      'no _summary.md is written',
+    );
+
+    const bothPromo = await conv.promoteConversation({
+      workspaceRoot: TEST_TEMP,
+      sessionFile: finalSession.filePath,
+      titleSlug: '2026-09-06_api-gateway-refactor',
+      format: 'both',
+    });
+    assertEqual(bothPromo.promotedFiles.length, 0, 'both format promotes nothing (retired)');
 
     const fullPromo = await conv.promoteConversation({
       workspaceRoot: TEST_TEMP,
@@ -140,6 +143,7 @@ async function run() {
       format: 'full',
     });
     assertEqual(fullPromo.format, 'full', 'promoted format is full');
+    assertEqual(fullPromo.promotedFiles.length, 1, 'full promotes exactly the _source.md transcript');
     const sourceFullFile = path.join(TEST_TEMP, 'sources', 'conversations', '2026-09-06_api-gateway-refactor_source.md');
     assertTrue(fs.existsSync(sourceFullFile), 'source full transcript created in sources/conversations/');
     const nnFullFile = path.join(TEST_TEMP, 'sources', 'nn', 'conversations', '2026-09-06_api-gateway-refactor_source.md');
@@ -170,12 +174,12 @@ async function run() {
       indexScript,
       '--src', cliTestDir,
       '--promote-conv', 'conversations/2026-09-06_cli-test.md',
-      '--format', 'summary',
-      '--slug', 'cli-summary-slug',
+      '--format', 'full',
+      '--slug', 'cli-full-slug',
     ], { encoding: 'utf8' });
 
     assertEqual(cliRun.status, 0, 'CLI --promote-conv exits with code 0');
-    assertTrue(fs.existsSync(path.join(cliTestDir, 'sources', 'conversations', 'cli-summary-slug_summary.md')), 'CLI promoted summary file created');
+    assertTrue(fs.existsSync(path.join(cliTestDir, 'sources', 'conversations', 'cli-full-slug_source.md')), 'CLI promoted _source.md file created');
     fs.rmSync(cliTestDir, { recursive: true, force: true });
 
     fs.rmSync(TEST_TEMP, { recursive: true, force: true });

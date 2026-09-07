@@ -140,10 +140,8 @@ function generateTitleSuggestions(contextOrFirstPrompt) {
  * Standard Promotion Prompt Options Contract.
  */
 const PROMOTION_OPTIONS = [
-  { title: '[1] (Recommended) Executive Summary (_summary.md)', value: 'summary', description: 'Generates executive summary of decisions and actions' },
-  { title: '[2] Full Transcript (_source.md)', value: 'full', description: 'Preserves complete dialogue turns' },
-  { title: '[3] Both Summary and Transcript', value: 'both', description: 'Promotes both summary and full transcript' },
-  { title: '[4] None (keep in conversations/ only)', value: 'none', description: 'Retains transcript without promoting to sources' },
+  { title: '[full] (Recommended) Full Transcript (_source.md)', value: 'full', description: 'Promotes the complete transcript to sources/conversations/ and normalizes it' },
+  { title: '[none] None (keep in conversations/ only)', value: 'none', description: 'Leaves the raw transcript registered in conversations/ without promoting to sources' },
 ];
 
 /**
@@ -228,7 +226,7 @@ async function promoteConversation({
   workspaceRoot,
   sessionFile,
   titleSlug = undefined,
-  format = 'summary',
+  format = 'full',
   summaryContent = undefined,
   fullContent = undefined,
 }) {
@@ -251,35 +249,10 @@ async function promoteConversation({
 
   const promotedFiles = [];
 
-  if (format === 'summary' || format === 'both') {
-    const summaryFileName = `${slug}_summary.md`;
-    const summaryFilePath = path.join(convDir, summaryFileName);
-
-    const body = summaryContent || [
-      `# Executive Summary: ${slug}`,
-      '',
-      '## Key Decisions & Architecture Rationale',
-      '- Architecture decisions formalized in session.',
-      '',
-      '## Action Items & Deliverables',
-      '- See session transcript for step-by-step logs.',
-      '',
-    ].join('\n');
-
-    const fileContent = [
-      '---',
-      `origin_transcript: ${relSessionTranscript}`,
-      'source_type: conversation_summary',
-      '---',
-      '',
-      body,
-    ].join('\n');
-
-    fs.writeFileSync(summaryFilePath, fileContent, 'utf8');
-    promotedFiles.push(summaryFilePath);
-  }
-
-  if (format === 'full' || format === 'both') {
+  // `_summary.md` promotion is retired: the raw transcript is always registered
+  // in conversations/, and the only promotion target is the full `_source.md`.
+  // `summary` / `both` are accepted but no longer produce a file.
+  if (format === 'full') {
     const fullFileName = `${slug}_source.md`;
     const fullFilePath = path.join(convDir, fullFileName);
 

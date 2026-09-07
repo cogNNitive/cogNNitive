@@ -11,14 +11,14 @@ skills:
   - name: nn-trannsform
     repo: cogNNitive/cogNNitive
     path: actioNN/skills/nn-trannsform
-    version: "V_3-0-0"
+    version: "V_3-1-0"
     ref_key: skills
     requires: [nn-innfo, nn-preflight]
     description: Ingest documents (PDF, DOCX, XLSX), transform using templates, and execute multi-step procedures (procedures_V_0-1-0_NN.md).
   - name: nn-innfo
     repo: cogNNitive/cogNNitive
     path: actioNN/skills/nn-innfo
-    version: "V_0-2-0"
+    version: "V_0-3-0"
     ref_key: skills
     description: Author, edit, and validate iNNfo models with built-in step-by-step Model Creation Wizard.
     templates: [workspace_V_0-3-0_spec_NN]
