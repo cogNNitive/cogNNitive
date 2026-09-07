@@ -39,7 +39,7 @@ When template staleness is detected during model validation (via `checkFreshness
 
 ### Requirement: Web Editor Displays Warning Without Mutating Files
 
-The web application ([`innfo-editor`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/apps/innfo-editor)) MUST NOT attempt to download, overwrite, or mutate workspace files when a `TEMPLATE_CACHE_STALE` warning is encountered.
+The web application (`innfo-editor`) MUST NOT attempt to download, overwrite, or mutate workspace files when a `TEMPLATE_CACHE_STALE` warning is encountered.
 1. The warning MUST be visible within the `ValidationReport` panel.
 2. The UI MUST provide a *"Copy prompt for AI Agent"* action button whenever a check includes a `promptHint`.
 3. Clicking the button MUST copy `promptHint` to the system clipboard and display temporary visual feedback (`Copied!`).

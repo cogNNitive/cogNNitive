@@ -10,7 +10,6 @@
   - [nn-trannsform](skills/nn-trannsform.md)
   - [nn-site-generator](skills/nn-site-generator.md)
   - [nn-skills-lifecycle](skills/nn-skills-lifecycle.md)
-  - [nn-upgrade](skills/nn-upgrade.md)
   - [nn-design-presets](skills/nn-design-presets.md)
 
 - **Samples**
