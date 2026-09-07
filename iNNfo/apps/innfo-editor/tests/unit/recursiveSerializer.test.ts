@@ -165,9 +165,13 @@ matrices:
     const parsed = await recursiveParse(root)
 
     const docNode = Object.values(parsed.nodes).find((n) => n.name === 'Doc')!
+    const problem1 = Object.values(parsed.nodes).find((n) => n.name === 'Problem 1')!
+    const valueA = Object.values(parsed.nodes).find((n) => n.name === 'Value A')!
 
-    // Simulate user editing a cell in MatricesGrid (writing to node.fields)
-    docNode.fields['Problems-Values Matrix||Problem 1||Value A'] = { value: 'X' }
+    // Simulate user editing a cell in MatricesGrid. The in-memory cell key is
+    // id-based (`matrixName||<rowId>||<colId>`, E1); the serializer resolves
+    // ids back to display names for the on-disk matrix table.
+    docNode.fields[`Problems-Values Matrix||${problem1.id}||${valueA.id}`] = { value: 'X' }
 
     let writtenContent: string | null = null
     const capturingDriver: ModelDriver = {
@@ -186,13 +190,19 @@ matrices:
     expect(writtenContent!).toContain('# NN matrices: Problems-Values Matrix')
     expect(writtenContent!).toContain('| Problem 1 | X |')
 
-    // Re-parse the written content and verify the cell is restored into node.fields
+    // Re-parse the written content and verify the cell is restored into
+    // node.fields under the id-based key.
     const tree2: FakeTree = { 'index.md': indexMd, 'Doc_NN.md': writtenContent! }
     const root2 = buildFakeTree('workspace', tree2)
     const secondParse = await recursiveParse(root2)
     const reparsedDocNode = Object.values(secondParse.nodes).find((n) => n.name === 'Doc')!
+    const reparsedProblem1 = Object.values(secondParse.nodes).find((n) => n.name === 'Problem 1')!
+    const reparsedValueA = Object.values(secondParse.nodes).find((n) => n.name === 'Value A')!
 
-    expect(reparsedDocNode.fields['Problems-Values Matrix||Problem 1||Value A']?.value).toBe('X')
+    expect(
+      reparsedDocNode.fields[`Problems-Values Matrix||${reparsedProblem1.id}||${reparsedValueA.id}`]
+        ?.value,
+    ).toBe('X')
   })
 
   it('persists dynamic relational matrix definitions from node.fields to serialized markdown', async () => {

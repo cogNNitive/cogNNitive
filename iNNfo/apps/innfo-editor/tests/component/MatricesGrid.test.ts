@@ -104,7 +104,7 @@ function setupStoreWithCellValues() {
   for (let r = 0; r < 10; r++) {
     for (let c = 0; c < 5; c++) {
       const val = (r + c) % 2 === 0 ? 'X' : '-'
-      root.fields[`M1||Src${r}||Tgt${c}`] = { value: val }
+      root.fields[`M1||src-${r}||tgt-${c}`] = { value: val }
     }
   }
 }
@@ -141,7 +141,7 @@ function setupBigStore(rowsCount = 100, colsCount = 100) {
   const root = nodes[ROOT_ID]
   for (let r = 0; r < 10; r++) {
     for (let c = 0; c < 10; c++) {
-      root.fields[`BigMatrix||Src${r}||Tgt${c}`] = { value: 'X' }
+      root.fields[`BigMatrix||src-${r}||tgt-${c}`] = { value: 'X' }
     }
   }
   modelStore.setGraph(nodes as any, [ROOT_ID])
@@ -369,7 +369,7 @@ describe('R-MV-05: Cell editing in virtualised cells', () => {
 
     const modelStore = useModelStore()
     const root = modelStore.getNode(ROOT_ID)!
-    const cellKey = Object.keys(root.fields).find((k) => k.startsWith('M1||Src0||Tgt0'))
+    const cellKey = Object.keys(root.fields).find((k) => k.startsWith('M1||src-0||tgt-0'))
     expect(cellKey).toBeTruthy()
     if (cellKey) {
       expect(root.fields[cellKey]?.value).toBe('X')
@@ -448,12 +448,12 @@ describe('R-MV-07: No changes to matrix field/export structure', () => {
     setActivePinia(createPinia())
   })
 
-  it('preserves cell storage format (MatrixName||Row||Col)', () => {
+  it('preserves cell storage format (MatrixName||<rowId>||<colId>, E1)', () => {
     setupStoreWithCellValues()
     const modelStore = useModelStore()
     const root = modelStore.getNode(ROOT_ID)!
     const cellKey = Object.keys(root.fields).find((k) => k.startsWith('M1||'))
-    expect(cellKey).toMatch(/^M1\|\|Src\d\|\|Tgt\d$/)
+    expect(cellKey).toMatch(/^M1\|\|src-\d\|\|tgt-\d$/)
   })
 
   it('preserves __matrix_defs array structure', () => {

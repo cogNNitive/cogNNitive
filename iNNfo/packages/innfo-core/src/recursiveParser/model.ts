@@ -125,19 +125,6 @@ export function normalizeSingleModel(
     }
   }
 
-  // Store matrix cell values as root node fields for MatricesGrid
-  for (const matrix of parsed.matrices) {
-    const prefix = matrix.name + '||'
-    for (const cell of matrix.cells) {
-      if (cell.row && cell.col) {
-        rootNode.fields[prefix + cell.row + '||' + cell.col] = {
-          value: cell.value,
-          editAttribution: { author: { kind: 'system', id: 'parser' }, timestamp: nowIso() },
-        }
-      }
-    }
-  }
-
   ctx.nodes[qualifiedId] = rootNode
 
   // Surface slug collisions as warnings (R-IE-05)
@@ -152,6 +139,32 @@ export function normalizeSingleModel(
 
   // Normalize in-file elements
   normalizeElementsIntoGraph(parsed, qualifiedId, refPath, ctx)
+
+  // Store matrix cell values as root node fields for MatricesGrid. Keys use the
+  // stable qualified element id (`matrixName||<rowId>||<colId>`) so that two
+  // same-named elements in different parents (different models in a workspace)
+  // resolve to independent cells — display names would collapse them (E1).
+  const idByElementName = new Map<string, string>()
+  for (const node of Object.values(ctx.nodes)) {
+    if (node.kind === 'element' && node.name) {
+      idByElementName.set(node.name, node.id)
+    }
+  }
+  for (const matrix of parsed.matrices) {
+    const prefix = matrix.name + '||'
+    for (const cell of matrix.cells) {
+      if (cell.row && cell.col) {
+        const rowId = idByElementName.get(cell.row)
+        const colId = idByElementName.get(cell.col)
+        if (rowId && colId) {
+          rootNode.fields[prefix + rowId + '||' + colId] = {
+            value: cell.value,
+            editAttribution: { author: { kind: 'system', id: 'parser' }, timestamp: nowIso() },
+          }
+        }
+      }
+    }
+  }
 
   return { nodes: ctx.nodes, issues: ctx.issues }
 }
