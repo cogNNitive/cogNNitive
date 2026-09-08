@@ -5,6 +5,7 @@ import { useModelStore } from '../../stores/modelStore'
 import { useUiStore } from '../../stores/uiStore'
 import { Sparkles, Layout, Database, FileText, ArrowRight } from 'lucide-vue-next'
 import { parseFrontmatter } from '@cognnitive/innfo-core'
+import WorkspaceIntegrityNotice from './WorkspaceIntegrityNotice.vue'
 
 const workspaceStore = useWorkspaceStore()
 const modelStore = useModelStore()
@@ -47,6 +48,9 @@ function selectAIGuide(): void {
 
 <template>
   <div class="flex-1 p-6 md:p-10 max-w-5xl mx-auto space-y-10">
+    <!-- Workspace integrity report (AD-6): passive, dismissible, three bands -->
+    <WorkspaceIntegrityNotice :report="workspaceStore.integrityReport" />
+
     <!-- Header -->
     <div class="text-center space-y-3">
       <div class="inline-flex px-3 py-1 rounded-full text-xs font-semibold bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-800/30">

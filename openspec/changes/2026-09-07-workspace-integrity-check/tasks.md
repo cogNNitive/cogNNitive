@@ -177,27 +177,27 @@ Upgrade Detection Scan (one implementation, no private copy).
 
 Depends on: slices 1 and 3 (canonical catalog URL from AD-3). Est. ~330 lines.
 
-- [ ] 4.0 Rebuild core: `npm --prefix iNNfo/packages/innfo-core run build`.
-- [ ] 4.1 RED — store test: `open()` never awaits the check; a rejecting check does not set `error`;
+- [x] 4.0 Rebuild core: `npm --prefix iNNfo/packages/innfo-core run build`.
+- [x] 4.1 RED — store test: `open()` never awaits the check; a rejecting check does not set `error`;
   `reset()` clears `integrityReport` / `integrityRunning`.
-- [ ] 4.2 GREEN — Create `src/services/workspaceIntegrityPorts.ts`: 3 of 5 ports — `discoverModels` from
+- [x] 4.2 GREEN — Create `src/services/workspaceIntegrityPorts.ts`: 3 of 5 ports — `discoverModels` from
   `modelStore.nodes`, `validateAll` in-memory over parsed roots, `fetchCatalog` same-origin
   `fetch(CATALOG_URL)` 2.5 s timeout; omit `resolveTemplate` + `checkFreshness` → `not-checked`.
-- [ ] 4.3 GREEN — `workspaceStore.ts`: add `integrityReport` / `integrityRunning` state, `_runIntegrityCheck()`,
+- [x] 4.3 GREEN — `workspaceStore.ts`: add `integrityReport` / `integrityRunning` state, `_runIntegrityCheck()`,
   `void this._runIntegrityCheck().catch(() => {})` immediately after `this.hasParsed = true` (L149),
   clear both in `reset()`.
-- [ ] 4.4 RED — component test: three visually distinct bands (invalid / informational / cannot-determine);
+- [x] 4.4 RED — component test: three visually distinct bands (invalid / informational / cannot-determine);
   `unknown` ≠ `invalid`; passive + dismissible; renders `not-checked` distinctly.
-- [ ] 4.5 GREEN — Create `src/components/layout/WorkspaceIntegrityNotice.vue`: three bands per Resolved
+- [x] 4.5 GREEN — Create `src/components/layout/WorkspaceIntegrityNotice.vue`: three bands per Resolved
   Decision 5, mirroring the `useTemplateVersionNotice` / `ModelInfoPanel.vue:316` badge + copyable
   `innfo:` prompt pattern. Only the invalid band uses the error treatment.
-- [ ] 4.6 GREEN — Mount the notice in `WorkspaceDashboard.vue`.
-- [ ] 4.7 GREEN — `actioNN/skills/nn-innfo/SKILL.md`: document `check_workspace` in §1 and the
+- [x] 4.6 GREEN — Mount the notice in `WorkspaceDashboard.vue`.
+- [x] 4.7 GREEN — `actioNN/skills/nn-innfo/SKILL.md`: document `check_workspace` in §1 and the
   workspace-open flow; fix the stale tool count. Flag the `prune_orphaned_specs` drift per pre-flight (b) —
   do NOT silently resolve it.
-- [ ] 4.8 REFACTOR — Assert no FS/Node import reaches the browser bundle; `not-checked` / `offline`
+- [x] 4.8 REFACTOR — Assert no FS/Node import reaches the browser bundle; `not-checked` / `offline`
   fields render visually distinct from "invalid".
-- [ ] 4.9 Verify — rebuild core → `npm --prefix iNNfo test` → `npm --prefix iNNfo run typecheck` →
+- [x] 4.9 Verify — rebuild core → `npm --prefix iNNfo test` → `npm --prefix iNNfo run typecheck` →
   `lint` → `npm --prefix iNNfo/apps/innfo-editor run build` → `node scripts/verify.js`.
 
 Boundary — Start: `workspaceStore` has zero integrity hooks. Finish: report produced fire-and-forget on
