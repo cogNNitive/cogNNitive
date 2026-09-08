@@ -167,12 +167,12 @@ If you have a docx or pdf file in the source folder, when running the scan:
 
 **Instruction for OpenCode:**
 
-> Promote the active conversation transcript to sources/conversations as an executive summary.
+> Promote the active conversation transcript to sources/conversations as a full transcript.
 
 **Expected result:**
 - ✅ Transcript is saved under `conversations/YYYY-MM-DD_<slug>.md`
-- ✅ Executive summary is generated at `sources/conversations/YYYY-MM-DD_<slug>_summary.md`
-- ✅ Scan normalizes it to `sources/nn/conversations/YYYY-MM-DD_<slug>_summary.md` with `conversation_format: summary`
+- ✅ Full transcript is generated at `sources/conversations/YYYY-MM-DD_<slug>_source.md`
+- ✅ Scan normalizes it to `sources/nn/conversations/YYYY-MM-DD_<slug>_source.md` with `source_type: conversation_transcript`
 
 ---
 

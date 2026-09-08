@@ -55,11 +55,10 @@ Every agent interaction across the cogNNitive ecosystem MUST follow these strict
    - **Silent Reservation**: When an interactive session begins, immediately allocate `conversations/YYYY-MM-DD_HHmmss.md` with initial frontmatter (`status: in_progress`, `turns: 0`, `mutations: false`) without interrupting the user.
    - **Trivial Discard Filter**: Upon session exit or completion, if `turns < 2` AND `mutations === false` (no files created/modified), silently delete the reserved transcript file from disk.
    - **Post-Session Title Suggestions**: For non-trivial sessions, present 3 suggested title options with `[1] (Recommended) <title>` plus a manual entry option. Finalize frontmatter (`status: completed`, `ended_at: ISO_8601`) and rename the file to `conversations/YYYY-MM-DD_<slug>.md`.
-   - **Promotion Prompt**: Prompt the user to promote the conversation transcript into workspace knowledge sources (`sources/conversations/`):
-     - `[1] (Recommended) Executive Summary`: Saves key decisions and action items to `sources/conversations/<session-slug>_summary.md`.
-     - `[2] Full Transcript`: Saves verbatim dialogue turns to `sources/conversations/<session-slug>_source.md`.
-     - `[3] Both`: Emits both `_summary.md` and `_source.md`.
-     - `[4] None`: Leaves transcript in `conversations/` only.
+    - **Promotion Prompt**: Prompt the user to promote the conversation transcript into workspace knowledge sources (`sources/conversations/`):
+      - `[full] (Recommended) Full Transcript`: Promotes the verbatim dialogue to `sources/conversations/<session-slug>_source.md`.
+      - `[none]`: Leaves transcript in `conversations/` only.
+      No executive-summary (`_summary.md`) or combined option is offered; `_summary.md` files are not produced by the standard promotion flow.
      Promoted sources link back via `origin_transcript: conversations/...` and are normalized into `sources/nn/conversations/` via `nn-trannsform` scanner for citation by models (`sources:: [conversations/<file>.md#<anchor>]`).
 
 ---
