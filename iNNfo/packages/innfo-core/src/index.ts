@@ -81,6 +81,39 @@ export { OWNERSHIP_MARKER, reconcileManifest } from './workspace/reconcileManife
 export type { DiscoveredModel, ManifestChange } from './workspace/reconcileManifest'
 export { isReconcilableModel } from './workspace/discoverModels'
 export type { CandidateFile } from './workspace/discoverModels'
+export {
+  parseSemVer,
+  compareVersions,
+  gapKind,
+  parsePinnedUrl,
+  classifyAgainstCatalog,
+} from './workspace/integrity/versionStatus'
+export type {
+  SemVerTriple,
+  VersionStatus,
+  VersionGap,
+  VersionClassification,
+  TemplateCatalog,
+  TemplateCatalogEntry,
+  TemplateCatalogVersion,
+} from './workspace/integrity/versionStatus'
+export {
+  buildWorkspaceIntegrityReport,
+  summarizeWorkspaceIntegrity,
+} from './workspace/integrity/report'
+export type {
+  WorkspaceIntegrityPorts,
+  WorkspaceModelRef,
+  IntegrityDiagnostic,
+  TemplateResolutionResult,
+  ModelIntegrityReport,
+  WorkspaceIntegrityReport,
+  WorkspaceIntegrityAggregate,
+  BuildWorkspaceIntegrityOptions,
+  CatalogSource,
+  FreshnessField,
+  TemplateResolution,
+} from './workspace/integrity/report'
 export { listModels, resolveSpecVersionFromFilename } from './helpers'
 export type { ModelInfo } from './helpers'
 export { applyMutation, updateReferenceString, updateWikiLinks } from './mutate'

@@ -139,6 +139,11 @@ function runVerification() {
   // 10. Test Preflight Workspace Freshness
   run('node actioNN/skills/nn-preflight/scripts/preflight-check.test.js', 'Test Preflight Workspace Freshness');
 
+  // 11. Preflight Primitives Drift Guard: the committed version-status.generated.cjs
+  //     must match the innfo-core source it is bundled from (single classifier, no
+  //     hand-maintained copy).
+  run('node scripts/build-preflight-primitives.mjs --check', 'Check Preflight Primitives Bundle Fresh');
+
   console.log('\n✅ [cogNNitive Verify] All deterministic pre-checks passed.');
 }
 
