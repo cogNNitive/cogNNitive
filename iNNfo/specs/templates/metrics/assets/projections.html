@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Projections — Metrics Template Layout</title>
+<!--
+  Projections HTML Layout (metrics template asset: projections-layout).
+
+  Reference shell for the Create Projections procedure. Instantiate per model:
+  1. Snapshot the L3 metrics model into MODEL_DATA (see MODEL_DATA.template.json).
+  2. Rewrite FORMULAS (one function per formula row, keyed by row id) and
+     DEPS (mirror of each row's dependsOn ids).
+  3. Adjust section groups, icons, colors and scenarios.
+  4. Verify with scripts/verify.harness.js (zero pageerrors required).
+
+  Architecture: MODEL_DATA (data) + FORMULAS (logic) + DEPS (graph) = render().
+  Pinned CDNs: Tailwind Play, uPlot 1.6.32, Lucide 1.42.0, Inter + JetBrains Mono.
+  Gotchas: Tailwind Play does not process theme() inside plain <style> (use
+  literal values); its preflight forces svg to block (set icons inline-block);
+  uPlot initial data must carry as many series as opts.series and setData takes
+  a flat array [xs, ...series].
+-->
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/uplot@1.6.32/dist/uPlot.min.css" />
+<script src="https://cdn.jsdelivr.net/npm/uplot@1.6.32/dist/uPlot.iife.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lucide@1.42.0/dist/umd/lucide.min.js"></script>
+<style>
+  body { font-family: Inter, system-ui, sans-serif; }
+  .mono { font-family: "JetBrains Mono", ui-monospace, monospace; }
+  svg.lucide { display: inline-block; vertical-align: -0.125em; }
+  .pill-editable { background: #dbeafe; color: #1d4ed8; }
+  .pill-computed { background: #f1f5f9; color: #475569; }
+</style>
+</head>
+<body class="bg-slate-50 text-slate-900">
+<header class="flex items-center gap-3 px-4 py-3 bg-white border-b">
+  <h1 class="text-lg font-semibold">Projections</h1>
+  <span id="fresh" class="mono text-xs px-2 py-0.5 rounded-full bg-slate-100">NO-DATA</span>
+  <button id="export" class="ml-auto text-sm px-3 py-1.5 rounded bg-blue-600 text-white">Export CSV</button>
+</header>
+<main class="p-4">
+  <table class="w-full text-sm">
+    <thead><tr class="text-left text-slate-500">
+      <th>Metric</th><th>Value</th><th>Unit</th>
+    </tr></thead>
+    <tbody id="body"></tbody>
+  </table>
+  <section class="grid gap-4 mt-4">
+    <div id="chartFlow"></div>
+    <div id="chartIncome"></div>
+    <div id="chartNet"></div>
+  </section>
+</main>
+<script id="innfo-model-data" type="application/json">
+{
+  "meta": { "model": "", "model_version": "V_0-1-0", "source_model": "", "generated_at": "", "months": 12 },
+  "rows": []
+}
+</script>
+<script>
+/* MODEL_DATA: single snapshot point. Replace the JSON above per model. */
+const MODEL_DATA = JSON.parse(document.getElementById('innfo-model-data').textContent);
+/* DEPS: id -> [dependency ids], mirrored from each row's dependsOn. */
+const DEPS = {};
+/* FORMULAS: id -> (rows, month) => number. One function per formula row. */
+const FORMULAS = {};
+
+function render() {
+  const body = document.getElementById('body');
+  body.innerHTML = '';
+  for (const r of MODEL_DATA.rows) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td>' + r.label + '</td>'
+      + '<td class="mono">' + (r.base != null ? r.base : '=') + '</td>'
+      + '<td>' + (r.metricUnit || r.unidad || '') + '</td>';
+    body.appendChild(tr);
+  }
+  document.getElementById('fresh').textContent =
+    (MODEL_DATA.meta.model || 'NO-MODEL') + ' @ ' + (MODEL_DATA.meta.generated_at || 'NO-DATE');
+  if (window.lucide) lucide.createIcons();
+}
+document.getElementById('export').addEventListener('click', () => {
+  const m = MODEL_DATA.meta;
+  const head = ['# projections export', '# model: ' + m.model, '# version: ' + m.model_version,
+    '# source: ' + m.source_model, '# generated: ' + m.generated_at,
+    '# exported: ' + new Date().toISOString()].join('\n');
+  const blob = new Blob([head + '\n'], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'projections_export.csv';
+  a.click();
+});
+render();
+</script>
+</body>
+</html>
