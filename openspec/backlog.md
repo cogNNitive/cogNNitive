@@ -400,6 +400,18 @@ behaviour change; covered by existing component tests.
 
 ---
 
+## 19. `refactor/shared-decomposed-fixtures` — single resolver map for decomposed template tests
+
+**Why:** four core test files hardcode their own `business-model/analysis/organization/projects(+metrics)` include-resolver maps (`business-decomposition-v2.test.ts`, `index.test.ts`, `test/validator.test.ts`, plus the includes list in `metaplantilla-specs.test.ts`). Attaching `metrics` to business (2026-09-08) broke 5 tests because none of the four maps was updated — the failure mode is always "N maps, N-1 updated".
+
+**Approach:** one shared helper (e.g. `tests/fixtures/decomposed.ts`) exporting `decomposedTemplates()` (`Record<string,string>` read from disk) consumed by all four files; the metaplantilla includes-list expectation derives from the same source. Behaviour-preserving; the metrics attachment becomes the first regression test.
+
+**Size:** small — one helper + 4 call-site swaps, no behaviour change.
+
+**Suggested trigger:** `/sdd-new shared-decomposed-fixtures`.
+
+---
+
 ## 17. `chore/mcp-coverage-debt` — MCP package below the 90%/95%/85% coverage gates
 
 **Why:** `innfo-mcp` coverage (verified 2026-09-08) sits at ~87% lines / ~77% branches vs
