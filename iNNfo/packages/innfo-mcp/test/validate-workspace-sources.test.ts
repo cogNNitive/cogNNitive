@@ -61,7 +61,7 @@ describe('validate_model workspace mode — sources:: Citations', () => {
     await rm(rootDir, { recursive: true, force: true })
   })
 
-  it('reports a dangling sources:: file as an error and leaves a resolvable one clean', async () => {
+  it('reports a dangling sources:: file as an error; a resolvable legacy ref warns deprecation only', async () => {
     const result = await validateModel(rootDir, 'Plan_V_1-0-0_NN', undefined, undefined, true)
 
     const dangling = [...result.errors, ...result.warnings].find(
@@ -70,10 +70,11 @@ describe('validate_model workspace mode — sources:: Citations', () => {
     expect(dangling).toBeDefined()
     expect(dangling!.severity).toBe('error')
 
-    const falsePositive = [...result.errors, ...result.warnings].find((d) =>
+    const legacy = [...result.errors, ...result.warnings].filter((d) =>
       d.message.includes('present.md'),
     )
-    expect(falsePositive).toBeUndefined()
+    expect(legacy).toHaveLength(1)
+    expect(legacy[0].severity).toBe('warning')
   })
 
   it('does not run source validation in single-file (non-workspace) mode', async () => {

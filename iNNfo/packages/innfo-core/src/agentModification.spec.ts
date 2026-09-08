@@ -19,15 +19,31 @@ function fields(block: string): Array<[string, string]> {
 
 describe('buildAgentModificationBlock', () => {
   it('is deterministic: identical (op, args, ctx) yields an identical block', () => {
-    const a = buildAgentModificationBlock('add_field', { conceptName: 'Stakeholders', fieldName: 'budget' }, CTX)
-    const b = buildAgentModificationBlock('add_field', { conceptName: 'Stakeholders', fieldName: 'budget' }, CTX)
+    const a = buildAgentModificationBlock(
+      'add_field',
+      { conceptName: 'Stakeholders', fieldName: 'budget' },
+      CTX,
+    )
+    const b = buildAgentModificationBlock(
+      'add_field',
+      { conceptName: 'Stakeholders', fieldName: 'budget' },
+      CTX,
+    )
     expect(a).toBe(b)
     expect(a).not.toBeNull()
   })
 
   it('only the timestamp may differ when ctx.timestamp is not pinned', () => {
-    const a = buildAgentModificationBlock('add_concept', { conceptName: 'Risks' }, { ...CTX, timestamp: undefined })!
-    const b = buildAgentModificationBlock('add_concept', { conceptName: 'Risks' }, { ...CTX, timestamp: undefined })!
+    const a = buildAgentModificationBlock(
+      'add_concept',
+      { conceptName: 'Risks' },
+      { ...CTX, timestamp: undefined },
+    )!
+    const b = buildAgentModificationBlock(
+      'add_concept',
+      { conceptName: 'Risks' },
+      { ...CTX, timestamp: undefined },
+    )!
     const strip = (s: string) => s.replace(/^timestamp:: .*$/m, 'timestamp:: <t>')
     expect(strip(a)).toBe(strip(b))
   })
@@ -85,7 +101,11 @@ describe('buildAgentModificationBlock', () => {
       'approved_by:: agent',
     )
     expect(
-      buildAgentModificationBlock('add_concept', { conceptName: 'R' }, { ...CTX, approvedBy: 'user' })!,
+      buildAgentModificationBlock(
+        'add_concept',
+        { conceptName: 'R' },
+        { ...CTX, approvedBy: 'user' },
+      )!,
     ).toContain('approved_by:: user')
   })
 
@@ -101,24 +121,36 @@ describe('buildAgentModificationBlock', () => {
       'add_field concept "Stakeholders" field "budget"',
     )
     expect(
-      scopeOf('update_field', { conceptName: 'Stakeholders', elementName: 'City Hall', fieldName: 'budget' }),
+      scopeOf('update_field', {
+        conceptName: 'Stakeholders',
+        elementName: 'City Hall',
+        fieldName: 'budget',
+      }),
     ).toBe('update_field concept "Stakeholders" element "City Hall" field "budget"')
-    expect(scopeOf('remove_element', { conceptName: 'Stakeholders', elementName: 'City Hall' })).toBe(
-      'remove_element concept "Stakeholders" element "City Hall"',
-    )
+    expect(
+      scopeOf('remove_element', { conceptName: 'Stakeholders', elementName: 'City Hall' }),
+    ).toBe('remove_element concept "Stakeholders" element "City Hall"')
     expect(scopeOf('rename_concept', { conceptName: 'Risks', newName: 'Threats' })).toBe(
       'rename_concept "Risks" → "Threats"',
     )
     expect(
-      scopeOf('rename_element', { conceptName: 'Stakeholders', elementName: 'City Hall', newName: 'Town Hall' }),
+      scopeOf('rename_element', {
+        conceptName: 'Stakeholders',
+        elementName: 'City Hall',
+        newName: 'Town Hall',
+      }),
     ).toBe('rename_element concept "Stakeholders" element "City Hall" → "Town Hall"')
     expect(scopeOf('generate_index', {})).toBe('generate_index taxonomy')
     expect(scopeOf('set_marker', { markerName: 'priority' })).toBe('set_marker "priority"')
     expect(
-      scopeOf('bump_version', { version: 'V_0-2-0' }, {
-        ...CTX,
-        versionTransition: { from: 'V_0-1-0', to: 'V_0-2-0' },
-      }),
+      scopeOf(
+        'bump_version',
+        { version: 'V_0-2-0' },
+        {
+          ...CTX,
+          versionTransition: { from: 'V_0-1-0', to: 'V_0-2-0' },
+        },
+      ),
     ).toBe('bump_version "V_0-1-0" → "V_0-2-0"')
   })
 
@@ -127,15 +159,21 @@ describe('buildAgentModificationBlock', () => {
     expect(buildAgentModificationBlock('teleport_model', {}, CTX)).toBeNull()
   })
 
-  it('heading slug is slugifyHeading of the full heading text and round-trips through extractHeadings', () => {
+  it('heading slug keeps the Concept--Element boundary and round-trips through extractHeadings', () => {
     const scope = 'add_field concept "Stakeholders" field "budget"'
-    const block = buildAgentModificationBlock('add_field', { conceptName: 'Stakeholders', fieldName: 'budget' }, CTX)!
+    const block = buildAgentModificationBlock(
+      'add_field',
+      { conceptName: 'Stakeholders', fieldName: 'budget' },
+      CTX,
+    )!
     const firstHeading = block.split('\n').find((l) => l.startsWith('## '))!
     expect(firstHeading).toBe(`## NN Agent Modification: ${slugifyHeading(scope)}`)
 
     const [h] = extractHeadings(block)
     expect(h.level).toBe(2)
-    expect(h.slug).toBe(slugifyHeading(`NN Agent Modification: ${slugifyHeading(scope)}`))
+    expect(h.concept).toBe('NN Agent Modification')
+    expect(h.element).toBe(slugifyHeading(scope))
+    expect(h.slug).toBe(`nn-agent-modification--${slugifyHeading(scope)}`)
   })
 
   it('performs no I/O and does not touch its args object', () => {

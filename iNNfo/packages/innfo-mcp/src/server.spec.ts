@@ -131,7 +131,7 @@ describe('innfo-mcp server (dispatch/handler layer, real MCP client/server round
     expect(info?.version).toBe(pkgVersion)
   })
 
-  it('lists all 15 tools with names matching the dispatcher', async () => {
+  it('lists all 16 tools with names matching the dispatcher', async () => {
     const { tools } = await client.listTools()
     const names = tools.map((t) => t.name).sort()
     expect(names).toEqual(
@@ -146,6 +146,7 @@ describe('innfo-mcp server (dispatch/handler layer, real MCP client/server round
         'list_template_procedures',
         'list_template_skills',
         'list_templates',
+        'query_units',
         'read_model',
         'sync_workspace_manifest',
         'validate_model',

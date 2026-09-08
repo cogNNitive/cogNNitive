@@ -1,4 +1,22 @@
 /**
+ * NFC-normalize text (single canonical form regardless of authoring OS/editor:
+ * macOS NFD filenames vs Linux/Windows NFC, composed vs decomposed input).
+ * Use before any comparison, hashing, or slug derivation.
+ */
+export function nfc(text: string): string {
+  return text.normalize('NFC')
+}
+
+/**
+ * Transliterate Latin diacritics to ASCII base letters (NFD + strip combining
+ * marks U+0300-U+036F). Non-Latin scripts have no decomposition and pass through
+ * untouched — callers decide whether to keep or drop them.
+ */
+export function stripCombiningMarks(text: string): string {
+  return text.normalize('NFD').replace(/[̀-ͯ]/g, '')
+}
+
+/**
  * Derive a URL-safe slug from a name string:
  * - NFKD transliteration of diacritics
  * - lowercase

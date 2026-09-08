@@ -157,7 +157,11 @@ describe('collectWorkspaceDiagnostics / filterDiagnosticsForModel (AD-4 split)',
     const diagnostics = [
       { path: alphaPath, message: 'alpha diag', severity: 'error' as const },
       { path: betaPath, message: 'beta diag', severity: 'warning' as const },
-      { path: `${alphaPath}#elements.Roles.RoleA.fields.linked`, message: 'alpha ref', severity: 'error' as const },
+      {
+        path: `${alphaPath}#elements.Roles.RoleA.fields.linked`,
+        message: 'alpha ref',
+        severity: 'error' as const,
+      },
     ]
     const filtered = filterDiagnosticsForModel(diagnostics, rootDir, alphaPath)
     expect(filtered.map((d) => d.message)).toEqual(['alpha diag', 'alpha ref'])
@@ -168,7 +172,11 @@ describe('collectWorkspaceDiagnostics / filterDiagnosticsForModel (AD-4 split)',
     const relative = alphaPath.replace(rootDir + '\\', '').replace(/\\/g, '/')
     const diagnostics = [
       { path: relative, message: 'relative diag', severity: 'warning' as const },
-      { path: `${relative}#elements.Roles.RoleA.fields.linked`, message: 'relative ref', severity: 'error' as const },
+      {
+        path: `${relative}#elements.Roles.RoleA.fields.linked`,
+        message: 'relative ref',
+        severity: 'error' as const,
+      },
     ]
     expect(filterDiagnosticsForModel(diagnostics, rootDir, alphaPath)).toHaveLength(2)
   })
@@ -200,11 +208,75 @@ describe('collectWorkspaceDiagnostics / filterDiagnosticsForModel (AD-4 split)',
 
   it('validateModel(workspace: true) composes the split and still filters to the requested model', async () => {
     await writeWorkspace()
-    const alpha = await validateModel(rootDir, 'alpha_V_0-1-0_linked_test', undefined, undefined, true)
-    const beta = await validateModel(rootDir, 'beta_V_0-1-0_linked_test', undefined, undefined, true)
-    const alphaOwned = alpha.errors.some((e) => e.message.includes('Dangling cross-model reference'))
+    const alpha = await validateModel(
+      rootDir,
+      'alpha_V_0-1-0_linked_test',
+      undefined,
+      undefined,
+      true,
+    )
+    const beta = await validateModel(
+      rootDir,
+      'beta_V_0-1-0_linked_test',
+      undefined,
+      undefined,
+      true,
+    )
+    const alphaOwned = alpha.errors.some((e) =>
+      e.message.includes('Dangling cross-model reference'),
+    )
     const betaOwned = beta.errors.some((e) => e.message.includes('Dangling cross-model reference'))
     expect(alphaOwned).toBe(true)
     expect(betaOwned).toBe(false)
+  })
+
+  describe('knowledge-unit pointers in workspace mode', () => {
+    async function writeUnitWorkspace(): Promise<void> {
+      await mkdir(modelsDir, { recursive: true })
+      await mkdir(join(rootDir, 'sources', 'nn'), { recursive: true })
+      await writeFile(
+        join(rootDir, 'sources', 'nn', 'metricas_q3.csv'),
+        'cliente_id,segmento\n101,Enterprise\n102,SMB\n',
+        'utf-8',
+      )
+      await writeFile(
+        join(modelsDir, 'gamma_V_0-1-0_linked_test_NN.md'),
+        modelContent(
+          'Gamma',
+          '## NN Roles: RoleC\nsources:: metricas_q3.csv@999\n\n## NN Roles: RoleD\nsources:: metricas_q3.csv@101\n',
+        ),
+        'utf-8',
+      )
+      await writeFile(
+        join(rootDir, 'workspace_01.md'),
+        [
+          '---',
+          'spec_version: "V_0-1-0"',
+          'level: 3',
+          'model_version: "V_0-0-1"',
+          'title: "Unit Workspace"',
+          'parent_spec:',
+          '  name: "linked_test_V_0-1-0"',
+          '  url: "https://example.com/linked_test_V_0-1-0_NN.md"',
+          '---',
+          '',
+          '# NN Models',
+          '## NN Models: Gamma',
+          'path:: models/gamma_V_0-1-0_linked_test_NN.md',
+          '',
+        ].join('\n'),
+        'utf-8',
+      )
+    }
+
+    it('surfaces an unknown CSV row-id error while valid pointers stay silent', async () => {
+      await writeUnitWorkspace()
+      const diagnostics = await collectWorkspaceDiagnostics(rootDir, buildCache())
+      const rowErr = diagnostics.find((d) => d.message.includes('@999'))
+      expect(rowErr).toBeDefined()
+      expect(rowErr!.severity).toBe('error')
+      const validRef = diagnostics.find((d) => d.message.includes('@101'))
+      expect(validRef).toBeUndefined()
+    })
   })
 })

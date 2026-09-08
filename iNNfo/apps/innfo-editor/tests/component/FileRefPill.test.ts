@@ -2,7 +2,12 @@ import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia } from 'pinia'
 import FileRefPill from '../../src/components/editor/FileRefPill.vue'
-import { parseSourceRef, slugifyHeading, extractHeadings, resolveHeadingSection } from '../../src/utils/sourceRef'
+import {
+  parseSourceRef,
+  slugifyHeading,
+  extractHeadings,
+  resolveHeadingSection,
+} from '../../src/utils/sourceRef'
 
 describe('parseSourceRef utility (sources/nn/ path format)', () => {
   it('parses canonical source reference string with a heading-slug anchor', () => {
@@ -136,5 +141,66 @@ describe('FileRefPill component (kind="source")', () => {
     expect(wrapper.text()).toContain('Una_noche_en_la_ópera.md')
     expect(wrapper.text()).toContain('#overview')
     expect(wrapper.text()).not.toContain('src-')
+  })
+})
+
+describe('parseForPill (knowledge-unit pointers)', () => {
+  it('parses a CSV cell pointer with unit, subunits, and canonical form', async () => {
+    const { parseForPill } = await import('../../src/utils/sourceRef')
+    const p = parseForPill('sources/nn/metricas_q3.csv@104&mrr_usd')
+    expect(p).not.toBeNull()
+    expect(p).toMatchObject({
+      filePath: 'sources/nn/metricas_q3.csv',
+      fileName: 'metricas_q3.csv',
+      unit: { kind: 'row', id: '104' },
+      subunits: ['mrr_usd'],
+      canonical: 'sources/nn/metricas_q3.csv@104&mrr_usd',
+      isValid: true,
+    })
+  })
+
+  it('parses a Markdown field pointer', async () => {
+    const { parseForPill } = await import('../../src/utils/sourceRef')
+    const p = parseForPill('models/G.md@## NN Person: Dr. Egon Spengler&compensation')
+    expect(p?.unit).toMatchObject({ kind: 'header', level: 2 })
+    expect(p?.subunits).toEqual(['compensation'])
+  })
+
+  it('keeps legacy #slug references valid without unit data', async () => {
+    const { parseForPill } = await import('../../src/utils/sourceRef')
+    const p = parseForPill('sources/nn/report.md#overview')
+    expect(p).toMatchObject({ filePath: 'sources/nn/report.md', slug: 'overview', isValid: true })
+    expect(p?.unit).toBeUndefined()
+  })
+
+  it('returns null for non-references', async () => {
+    const { parseForPill } = await import('../../src/utils/sourceRef')
+    expect(parseForPill('Just plain text')).toBeNull()
+    expect(parseForPill('')).toBeNull()
+  })
+})
+
+describe('FileRefPill with knowledge units', () => {
+  it('renders file@unit label and forwards unit props to the modal', async () => {
+    const { parseForPill } = await import('../../src/utils/sourceRef')
+    const FilePreviewModal = (await import('../../src/components/editor/FilePreviewModal.vue'))
+      .default
+    const p = parseForPill('sources/nn/metricas_q3.csv@104&mrr_usd')!
+    const wrapper = mount(FileRefPill, {
+      props: {
+        kind: 'source',
+        filePath: p.filePath,
+        fileName: p.fileName,
+        unit: p.unit,
+        subunits: p.subunits,
+      },
+      global: {
+        plugins: [createPinia()],
+      },
+    })
+    expect(wrapper.text()).toContain('metricas_q3.csv@104&mrr_usd')
+    const modal = wrapper.findComponent(FilePreviewModal)
+    expect(modal.props('unit')).toMatchObject({ kind: 'row', id: '104' })
+    expect(modal.props('subunits')).toEqual(['mrr_usd'])
   })
 })

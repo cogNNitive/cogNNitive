@@ -249,7 +249,8 @@ export async function collectWorkspaceDiagnostics(
   const index = buildWorkspaceIndex(result)
 
   // Cross-model `[[Title :: Element]]` references + `sources::` Citations,
-  // the latter resolved against real files under the workspace root.
+  // the latter resolved against real files under the workspace root. One read
+  // per file: content backs headings AND the unit checks (rows/columns/fields).
   const resolveSource: SourceResolver = (refPath) => {
     const abs = resolve(rootDir, refPath)
     const rel = relative(rootDir, abs)
@@ -258,9 +259,11 @@ export async function collectWorkspaceDiagnostics(
     }
     if (!existsSync(abs)) return { exists: false }
     try {
+      const content = readFileSync(abs, 'utf-8')
       return {
         exists: true,
-        headings: extractHeadings(readFileSync(abs, 'utf-8')).map((h) => h.slug),
+        headings: extractHeadings(content).map((h) => h.slug),
+        content,
       }
     } catch {
       return { exists: false }

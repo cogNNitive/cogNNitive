@@ -26,7 +26,7 @@ skills:
       - name: innfo-mcp
         repo: cogNNitive/cogNNitive
         path: iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js
-        version: "0.3.2"
+        version: "0.5.0"
         ref_key: innfo-mcp
   - name: nn-preflight
     repo: cogNNitive/cogNNitive
@@ -167,7 +167,7 @@ channels:
         ref: templates-v0.3.1
       - key: innfo-mcp
         repo: cogNNitive/cogNNitive
-        ref: innfo-mcp-v0.3.2
+        ref: innfo-mcp-v0.5.0
   preview:
     refs:
       - key: skills

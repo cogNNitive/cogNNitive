@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import FileRefPill from '../../components/editor/FileRefPill.vue'
-import { parseSourceRef } from '../../utils/sourceRef'
+import { parseForPill, type KnowledgeUnit } from '../../utils/sourceRef'
 
 /**
  * Renders a string field as a text input or FileRefPill if it matches a canonical source reference.
@@ -28,13 +28,25 @@ defineEmits<{
 }>()
 
 function isSourceRef(val: unknown): boolean {
-  if (typeof val !== 'string') return false
-  return parseSourceRef(val).isValid
+  return parseForPill(val) !== null
 }
 
-function toFileRef(val: string): { filePath: string; fileName: string; slug?: string } {
-  const { filePath, fileName, slug } = parseSourceRef(val)
-  return { filePath, fileName, slug }
+function toFileRef(val: string): {
+  filePath: string
+  fileName: string
+  slug?: string
+  unit?: KnowledgeUnit
+  subunits?: string[]
+} {
+  const parsed = parseForPill(val)
+  if (!parsed) return { filePath: '', fileName: '' }
+  return {
+    filePath: parsed.filePath,
+    fileName: parsed.fileName,
+    slug: parsed.slug,
+    unit: parsed.unit,
+    subunits: parsed.subunits,
+  }
 }
 
 const editableValue = computed(() =>
@@ -51,7 +63,11 @@ const editableValue = computed(() =>
       </template>
     </div>
     <template v-else>
-      <FileRefPill v-if="isSourceRef(modelValue)" kind="source" v-bind="toFileRef(modelValue as string)" />
+      <FileRefPill
+        v-if="isSourceRef(modelValue)"
+        kind="source"
+        v-bind="toFileRef(modelValue as string)"
+      />
       <span v-else class="field-string-readonly">{{ modelValue || '—' }}</span>
     </template>
   </template>

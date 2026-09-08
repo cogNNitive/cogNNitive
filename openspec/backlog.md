@@ -319,3 +319,117 @@ compliance and sample-universe rules as other templates.
 extension of the workflow template if the standalone route is not chosen.
 
 **Suggested trigger:** `/sdd-explore video-generator-template`.
+
+---
+
+## 12. `refactor/mcp-tool-registry` — declarative MCP tool registration
+
+**Why:** adding `query_units` touches three places per tool (`toolDefinitions`, dispatch
+`switch`, handler) plus a brittle tool-count assertion in `server.spec.ts`. Every new
+tool repeats the pattern and risks drift.
+
+**Approach:** single table `{ name, definition, handler }` driving definitions, dispatch,
+and count. Mechanical, no behaviour change. Deferred from the KU-query change (out of its
+250-line slice).
+
+**Size:** small — one file (`server.ts`) + spec count update.
+
+**Suggested trigger:** `/sdd-new mcp-tool-registry`.
+
+---
+
+## 13. `refactor/unified-diagnostics-collector` — merge validate + check_workspace collection
+
+**Why:** `collectWorkspaceDiagnostics` (`validate.ts`) and `validateAll`
+(`check-workspace.ts`) duplicate parse→filter→merge logic; the KU changes add a third
+consumer shape (`KU_*`, `?`-rule). Drift risk grows with each validation feature.
+
+**Approach:** extract one parameterized collect+filter routine shared by both tools.
+Behaviour-preserving; the KU validator rule set becomes the first consumer test.
+
+**Size:** medium — two tool modules + shared helper + tests.
+
+**Suggested trigger:** `/sdd-new unified-diagnostics-collector`.
+
+---
+
+## 14. `chore/cdn-bundle-ci` — build + verify the MCP CDN bundle in CI
+
+**Why:** `docs/innfo/cdn/` bundles are rebuilt by hand (`build-docs.mjs` + `deploy:cdn`
+inline script with a fragile `bin/` path); staleness already bit once (missing v0.3.2
+bundle). The version-square gates releases, but nothing produces the artifact automatically.
+
+**Approach:** CI job that builds the bundle, rewrites `manifest.json`, and runs the
+square check. No behaviour change to the MCP itself.
+
+**Size:** small — workflow + script hardening.
+
+**Suggested trigger:** `/sdd-new cdn-bundle-ci`.
+
+---
+
+## 15. `refactor/trannsform-slug-codegen` — generate the trannsform slug mirror from core
+
+**Why:** `nn-trannsform`'s `markdown-utils.js` must mirror core's slug functions by hand
+with a parity test as the only guard — verified 2026-09-08 that runtime import is NOT
+viable (CJS zero-dep portable skill vs ESM-only core with sync consumers). Hand-mirroring
+will drift again on the next slug change.
+
+**Approach:** build-time codegen: emit the JS mirror from the TS source during the
+release build; parity test asserts the checked-in file matches generated output. Runtime
+stays dependency-free.
+
+**Size:** small-medium — codegen script + build wiring + parity assertion flip.
+
+**Suggested trigger:** `/sdd-new trannsform-slug-codegen`.
+
+---
+
+## 16. `refactor/editor-readtext-helper` — extract `workspaceStore.readText(path)`
+
+**Why:** file-handle traversal (~20 lines) is duplicated across `FilePreviewModal`
+(`loadFileContent`, `openOriginalFile`) and `WorkspaceExplorer`; the KU-URI Slice 3 adds
+more reads (CSV preview). Found during KU-URI deep-impact analysis.
+
+**Approach:** single async helper on the workspace store; modal/explorer call it. No
+behaviour change; covered by existing component tests.
+
+**Size:** small.
+
+**Suggested trigger:** `/sdd-new editor-readtext-helper`.
+
+---
+
+## 17. `chore/mcp-coverage-debt` — MCP package below the 90%/95%/85% coverage gates
+
+**Why:** `innfo-mcp` coverage (verified 2026-09-08) sits at ~87% lines / ~77% branches vs
+gates 90/95/85. Lowest files, all untouched by recent work: `apply-change.ts` (71%),
+`reachability.ts` (80%), `spec.ts` (81%), `init-model.ts` (82%), `resolver-node.ts`
+(89%). The gate fails on `main`-era code, blocking any release that requires green
+coverage. (Core is at ~94%, editor green.)
+
+**Approach:** per-file test backfill, lowest-first; no behaviour change. Keep new-code
+coverage at 100% in the meantime (the KU changes held that bar).
+
+**Size:** medium — test-only, splittable per file.
+
+**Suggested trigger:** `/sdd-new mcp-coverage-debt`.
+
+---
+
+## 18. `chore/workspace-kb-perf-limits` — probe performance limits with the workspace knowledge-base test
+
+**Why:** the SIM workspace (`temp/sim-workspace/`, see `temp/sim-ku-plan.md`) exercises
+integrity, KU-URI (`@`/`&`), KU-query (`?`), and editor flows on a small fixture set.
+Its scaling limits are unknown — large CSVs, many models, deep `sources/` trees, and
+concurrent `check_workspace` / `validate` calls have never been stress-tested.
+
+**Approach:** build a perf harness over the SIM workspace (disposable, untracked):
+1. Scale dimensions separately — row count per CSV, file count, model size, query fan-out.
+2. Measure `check_workspace`, `validate`, `query_units`, and editor preview latency vs size.
+3. Record the breaking points (timeouts, memory, false `KU_*` errors) and set pragmatic
+   limits / warnings before hardening.
+
+**Size:** small-medium — harness + measurements + documented limits; no behaviour change.
+
+**Suggested trigger:** `/sdd-explore workspace-kb-perf-limits`.
