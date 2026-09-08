@@ -108,9 +108,10 @@ function sha256(content: string): string {
  * Compare the content hash of a locally cached spec against its canonical
  * remote. Read-only: never writes back to `specs/`. Any failure (network,
  * timeout, HTTP error) degrades to `unknown` — freshness must never fail
- * resolution.
+ * resolution. Exported so the workspace integrity check can compute
+ * per-template freshness for `check_workspace` (AD-5 step 6).
  */
-async function freshnessVerdict(
+export async function freshnessVerdict(
   url: string,
   localContent: string,
   timeout: number,

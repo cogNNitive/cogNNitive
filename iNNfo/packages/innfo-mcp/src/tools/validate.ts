@@ -227,22 +227,18 @@ export function createNodeDirectoryHandle(
 }
 
 /**
- * Workspace-scope cross-model validation (PR5a wiring; `checkOne` is
- * stubbed to `[]` until PR5b, so this always resolves to `[]` today — the
- * plumbing exists so PR5b only has to fill in `checkOne`'s body).
- *
- * Runs a Node-backed `recursiveParse` over the whole `rootDir`, threading
- * the SAME synchronous template-schema resolver the per-file pass already
- * warms via `resolveTemplateWithCache` (AD-04: absent/throwing resolver
- * degrades a node to "no schema", never aborts the parse), builds the
- * `WorkspaceIndex`, runs `validateWorkspaceReferences`, and returns only the
- * diagnostics whose `path` names the requested model (by its
- * workspace-relative path, forward-slashed) — never in place of the
- * per-file `validateDocument`/`validateModel` pass above.
+ * Workspace-scope cross-model validation. Collects the UNFILTERED
+ * diagnostics for the whole tree — one Node-backed `recursiveParse` over
+ * `rootDir`, threading the SAME synchronous template-schema resolver the
+ * per-file pass already warms via `resolveTemplateWithCache` (AD-04: an
+ * absent/throwing resolver degrades a node to "no schema", never aborts the
+ * parse), then `buildWorkspaceIndex` + `validateWorkspaceReferences` +
+ * `validateWorkspaceSources`. `check_workspace` calls this once with a merged
+ * `SpecCache` and filters per model; `validateModel`'s `workspace: true` path
+ * composes it with `filterDiagnosticsForModel` for byte-identical output.
  */
-async function runWorkspaceValidation(
+export async function collectWorkspaceDiagnostics(
   rootDir: string,
-  resolvedModelPath: string,
   cache: SpecCache | null,
 ): Promise<ReferenceDiagnostic[]> {
   const resolveSchema: TemplateSchemaResolver = buildTemplateSchemaResolverFromCache(cache)
@@ -270,14 +266,33 @@ async function runWorkspaceValidation(
       return { exists: false }
     }
   }
-  const diagnostics = [
+  return [
     ...validateWorkspaceReferences(result, index),
     ...validateWorkspaceSources(result, resolveSource),
   ]
+}
 
+/** Pure. Diagnostics whose `path` names `resolvedModelPath`. */
+export function filterDiagnosticsForModel(
+  diagnostics: ReferenceDiagnostic[],
+  rootDir: string,
+  resolvedModelPath: string,
+): ReferenceDiagnostic[] {
   const relativeModelPath = relative(rootDir, resolvedModelPath).replace(/\\/g, '/')
   return diagnostics.filter(
     (diag) => diag.path.includes(relativeModelPath) || diag.path.includes(resolvedModelPath),
+  )
+}
+
+async function runWorkspaceValidation(
+  rootDir: string,
+  resolvedModelPath: string,
+  cache: SpecCache | null,
+): Promise<ReferenceDiagnostic[]> {
+  return filterDiagnosticsForModel(
+    await collectWorkspaceDiagnostics(rootDir, cache),
+    rootDir,
+    resolvedModelPath,
   )
 }
 
@@ -458,8 +473,7 @@ export async function validateModel(
     filePath: w.path.startsWith('parent') ? templatePath : modelPath,
   }))
 
-  // Workspace-scope cross-model validation (PR5a): purely additive, and a
-  // no-op today since `checkOne` is stubbed to `[]` (PR5b implements it).
+  // Workspace-scope cross-model validation (PR5a wiring): purely additive.
   // Default `false` ⇒ everything above this line is today's behavior,
   // byte-for-byte, `valid` included. Requires `id` mode (a real file on
   // disk) — inline `content` has no workspace position to scope
