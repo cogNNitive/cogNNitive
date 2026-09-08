@@ -85,7 +85,7 @@ templates:
   - name: business
     repo: cogNNitive/cogNNitive
     path: iNNfo/specs/templates/business/spec_NN.md
-    version: "V_0-2-2"
+    version: "V_0-2-3"
     ref_key: templates
   - name: business-model
     repo: cogNNitive/cogNNitive

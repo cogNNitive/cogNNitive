@@ -1,11 +1,11 @@
 ---
-spec_version: "V_0-2-2"
+spec_version: "V_0-2-3"
 spec_url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business/spec_NN.md"
 level: 2
 parent_spec:
   name: "iNNfo_V_0-2-1"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-2-1_NN.md"
-template_version: "V_0-2-2"
+template_version: "V_0-2-3"
 title: "Business Template"
 includes:
   - name: "business-model"
@@ -153,20 +153,22 @@ Concept / Field / Marker / Matrix Definition to validate and render the model.
 ### Canonical Sample
 
 The official sample for this template is
-`specs/templates/business/samples/Ghostbusters_V_0-2-1_business_NN.md` (a
-`business_V_0-2-2` re-point is pending). `V_0-2-1` added the `Compile Strategic
-Master` procedure; `V_0-2-2` adds `Compile Model Viewer`
-(`procedures/compile_model_viewer_NN.md`), which fills the template-agnostic
-consultation shell at `assets/model_viewer.html` with the resolved schema and
-serialized model data — a single offline, read-only page for browsing any model
-built on this template.
+`specs/templates/business/samples/Ghostbusters_V_0-2-3_business_NN.md` — the
+`V_0-2-1` Ghostbusters sample re-pointed at this version.
+`Ghostbusters_V_0-2-1_business_NN.md` is kept for consumers still pinned to
+`V_0-2-1`. `V_0-2-1` added the `Compile Strategic Master` procedure; `V_0-2-2`
+added `Compile Model Viewer` (`procedures/compile_model_viewer_NN.md`), which
+fills the template-agnostic consultation shell at `assets/model_viewer.html`
+with the resolved schema and serialized model data — a single offline,
+read-only page for browsing any model built on this template. `V_0-2-3` is a
+docs-and-sample patch that finalizes that work.
 
 ## Parent Chain
 
 ```yaml
-# From the Ghostbusters V_0-2-1 sample:
+# From the Ghostbusters V_0-2-3 sample:
 parent_spec:
-  name: "business_V_0-2-1"
+  name: "business_V_0-2-3"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business/spec_NN.md"
 
 # This template's parent:
