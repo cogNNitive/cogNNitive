@@ -115,7 +115,7 @@ templates:
   - name: metrics
     repo: cogNNitive/cogNNitive
     path: iNNfo/specs/templates/metrics/spec_NN.md
-    version: "V_0-1-0"
+    version: "V_0-2-1"
     ref_key: templates
 
 # Retired templates kept byte-identical on disk for legacy resolution. They are

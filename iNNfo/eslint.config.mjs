@@ -80,10 +80,15 @@ export default tseslint.config(
   },
 
   {
-    // Node-context config and script files.
-    files: ['**/*.config.{js,ts}', 'scripts/**/*.{js,mjs,ts}', '**/*.mjs'],
+    // Node-context config and script files (including template harness
+    // scripts under specs/, e.g. metrics verify.harness.js).
+    files: ['**/*.config.{js,ts}', 'scripts/**/*.{js,mjs,ts}', 'specs/**/scripts/**/*.js', '**/*.mjs'],
     languageOptions: {
-      globals: { process: 'readonly', __dirname: 'readonly', console: 'readonly' },
+      globals: { process: 'readonly', __dirname: 'readonly', console: 'readonly', require: 'readonly', module: 'readonly' },
+    },
+    rules: {
+      // CJS require() is legitimate in Node harness scripts.
+      '@typescript-eslint/no-require-imports': 'off',
     },
   },
 
