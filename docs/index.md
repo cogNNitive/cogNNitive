@@ -13,6 +13,10 @@ Turn scattered documentation into living, structured knowledge that your AI agen
 
 ---
 
+## Turn 💡 ideas 📄 documents 📰 information 📊 data 📁 files 📽️ slides ✉️ emails 📅 meetings 🌐 webs 📝 articles 📕 PDFs 🚀 ANYTHING! into actionable knowledge using AI
+
+---
+
 ## What is cogNNitive?
 
 An open, unified ecosystem designed to make documentation readable and editable by humans and AI.

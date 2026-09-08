@@ -114,7 +114,7 @@
 
     /* Hero Section */
     .hero {
-      padding: 80px 0 60px;
+      padding: 40px 0 60px;
       text-align: center;
       background: linear-gradient(180deg, var(--brand-subtle) 0%, var(--canvas) 100%);
     }
@@ -602,6 +602,52 @@
       gap: 8px;
       font-weight: 500;
     }
+
+    /* Mid-Hero: Turn Anything into Knowledge */
+    .mid-hero {
+      padding: 28px 0 20px;
+      text-align: center;
+      background: var(--brand-subtle);
+      border-bottom: none;
+    }
+    .mid-hero-statement {
+      font-size: 20px;
+      font-weight: 400;
+      letter-spacing: normal;
+      line-height: 1.6;
+      color: var(--ink-muted);
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .mid-hero-rotator {
+      display: inline-grid;
+      color: var(--brand);
+      padding: 0 12px;
+      margin: 0 6px;
+      vertical-align: baseline;
+      text-align: center;
+    }
+    .mid-hero-rotator > span {
+      grid-area: 1 / 1;
+      white-space: nowrap;
+      opacity: 0;
+      transform: translateY(10px);
+      filter: blur(4px);
+      transition: opacity 0.25s ease, transform 0.25s ease, filter 0.25s ease;
+    }
+    .mid-hero-rotator > span.active {
+      opacity: 1;
+      transform: none;
+      filter: none;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .mid-hero-rotator > span { transition: none; }
+    }
+    @media (max-width: 640px) {
+      .mid-hero-statement { font-size: 18px; }
+      .mid-hero-rotator { max-width: 100%; }
+      .mid-hero-rotator > span { white-space: normal; }
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
   <script>
@@ -632,6 +678,13 @@
   </header>
 
   <main>
+    <!-- Mid-Hero: Turn Anything into Knowledge -->
+    <section class="mid-hero" aria-label="Turn anything into actionable knowledge">
+      <div class="container">
+        <p class="mid-hero-statement">Turn <span id="mid-hero-rotator" class="mid-hero-rotator" aria-live="polite"><span class="active">💡 ideas</span><span aria-hidden="true">📄 documents</span><span aria-hidden="true">📰 information</span><span aria-hidden="true">📊 data</span><span aria-hidden="true">📁 files</span><span aria-hidden="true">📽️ slides</span><span aria-hidden="true">✉️ emails</span><span aria-hidden="true">📅 meetings</span><span aria-hidden="true">🌐 webs</span><span aria-hidden="true">📝 articles</span><span aria-hidden="true">📕 PDFs</span><span aria-hidden="true">🚀 ANYTHING!</span></span> into actionable knowledge using AI</p>
+      </div>
+    </section>
+
     <!-- Hero Section -->
     <section class="hero">
       <div class="container">
@@ -1169,6 +1222,24 @@ mcp_tools: ["innfo_search", "innfo_trace_matrix"]
       <p>&copy; 2026 cogNNitive. Open Source under MIT License. Built for <a href="https://opencode.ai">OpenCode</a>.</p>
     </div>
   </footer>
+
+  <script>
+    (function() {
+      var el = document.getElementById("mid-hero-rotator");
+      if (!el) return;
+      var words = el.querySelectorAll("span");
+      if (!words.length) return;
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      var i = 0;
+      setInterval(function() {
+        words[i].classList.remove("active");
+        words[i].setAttribute("aria-hidden", "true");
+        i = (i + 1) % words.length;
+        words[i].classList.add("active");
+        words[i].removeAttribute("aria-hidden");
+      }, 2200);
+    })();
+  </script>
 
 </body>
 </html>
