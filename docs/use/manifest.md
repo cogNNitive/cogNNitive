@@ -33,10 +33,10 @@ agent-bootstrap:
         - name: innfo-mcp
           repo: cogNNitive/cogNNitive
           path: iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js
-          version: "0.3.1"
-          ref: "innfo-mcp-v0.3.1"
-          commit: "65251c2b6525fe4a5dbd2a6bb0fa86e83479297b"
-          url: https://raw.githubusercontent.com/cogNNitive/cogNNitive/65251c2b6525fe4a5dbd2a6bb0fa86e83479297b/iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js
+          version: "0.3.2"
+          ref: "innfo-mcp-v0.3.2"
+          commit: "6db53035ac60739bb9aaabcba886febfdbb713d4"
+          url: https://raw.githubusercontent.com/cogNNitive/cogNNitive/6db53035ac60739bb9aaabcba886febfdbb713d4/iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js
     - name: nn-preflight
       repo: cogNNitive/cogNNitive
       path: actioNN/skills/nn-preflight
@@ -79,62 +79,62 @@ agent-bootstrap:
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/workspace_spec_NN.md
       version: "V_0-2-1"
-      ref: "templates-v0.3.0"
-      commit: "2295fbb468ec4307096509ee7ba0859117f30fa5"
+      ref: "templates-v0.3.1"
+      commit: "6db53035ac60739bb9aaabcba886febfdbb713d4"
     - name: projects
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/projects/spec_NN.md
       version: "V_0-2-1"
-      ref: "templates-v0.3.0"
-      commit: "2295fbb468ec4307096509ee7ba0859117f30fa5"
+      ref: "templates-v0.3.1"
+      commit: "6db53035ac60739bb9aaabcba886febfdbb713d4"
     - name: procedures
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/procedures/spec_NN.md
       version: "V_0-2-1"
-      ref: "templates-v0.3.0"
-      commit: "2295fbb468ec4307096509ee7ba0859117f30fa5"
+      ref: "templates-v0.3.1"
+      commit: "6db53035ac60739bb9aaabcba886febfdbb713d4"
     - name: organization
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/organization/spec_NN.md
       version: "V_0-2-1"
-      ref: "templates-v0.3.0"
-      commit: "2295fbb468ec4307096509ee7ba0859117f30fa5"
+      ref: "templates-v0.3.1"
+      commit: "6db53035ac60739bb9aaabcba886febfdbb713d4"
     - name: business
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/business/spec_NN.md
-      version: "V_0-2-1"
-      ref: "templates-v0.3.0"
-      commit: "2295fbb468ec4307096509ee7ba0859117f30fa5"
+      version: "V_0-2-2"
+      ref: "templates-v0.3.1"
+      commit: "6db53035ac60739bb9aaabcba886febfdbb713d4"
     - name: business-model
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/business-model/spec_NN.md
       version: "V_0-2-1"
-      ref: "templates-v0.3.0"
-      commit: "2295fbb468ec4307096509ee7ba0859117f30fa5"
+      ref: "templates-v0.3.1"
+      commit: "6db53035ac60739bb9aaabcba886febfdbb713d4"
     - name: analysis
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/analysis/spec_NN.md
       version: "V_0-2-1"
-      ref: "templates-v0.3.0"
-      commit: "2295fbb468ec4307096509ee7ba0859117f30fa5"
+      ref: "templates-v0.3.1"
+      commit: "6db53035ac60739bb9aaabcba886febfdbb713d4"
     - name: innovation
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/innovation/spec_NN.md
       version: "V_0-2-1"
-      ref: "templates-v0.3.0"
-      commit: "2295fbb468ec4307096509ee7ba0859117f30fa5"
+      ref: "templates-v0.3.1"
+      commit: "6db53035ac60739bb9aaabcba886febfdbb713d4"
     - name: blank
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/blank/spec_NN.md
       version: "V_0-2-1"
-      ref: "templates-v0.3.0"
-      commit: "2295fbb468ec4307096509ee7ba0859117f30fa5"
+      ref: "templates-v0.3.1"
+      commit: "6db53035ac60739bb9aaabcba886febfdbb713d4"
     - name: documentation
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/documentation/spec_NN.md
       version: "V_0-2-0"
-      ref: "templates-v0.3.0"
-      commit: "2295fbb468ec4307096509ee7ba0859117f30fa5"
+      ref: "templates-v0.3.1"
+      commit: "6db53035ac60739bb9aaabcba886febfdbb713d4"
   workflows:
     - id: model
       label: Create an iNNfo model
