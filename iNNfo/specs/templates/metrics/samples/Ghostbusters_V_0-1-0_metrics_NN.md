@@ -14,56 +14,86 @@ title: "Ghostbusters Containment Revenue Projection"
 
 ## NN Metrics: Monthly Net Result
 metricValue:: <calculated>
-metricFormula:: monthly containment revenue - monthly operating subtotal - monthly spectral tax
+metricFormula:: monthly containment revenue - monthly direct costs - monthly operating subtotal
 dependsOn:: [[Monthly Containment Revenue]]
 metricType:: result
 metricUnit:: USD/month
 evolution:: [[Fixed Evolution]]
 
+Monthly bottom line. Year 1 baseline resolves near break-even against the $1.2M revenue base.
+
 ## NN Metrics: Monthly Containment Revenue
 metricValue:: <calculated>
-metricFormula:: billable containments x average containment fee - platform commission
-dependsOn:: [[Billable Containments]]
+metricFormula:: monthly incidents x average fee per incident
+dependsOn:: [[Monthly Incidents]]
 metricType:: revenue
 metricUnit:: USD/month
 evolution:: [[Compound 5 Evolution]]
 
+Anchored on Year 1 actuals: 240 incidents at $5,000 average fee ($1.2M/year, ~$100,000/month).
+
+## NN Metrics: Monthly Direct Costs
+metricValue:: <calculated>
+metricFormula:: monthly incidents x direct cost per incident
+dependsOn:: [[Monthly Incidents]]
+metricType:: expense
+metricUnit:: USD/month
+evolution:: [[Fixed Evolution]]
+
+Unit economics: $1,800 direct cost per incident (labor + equipment + fuel), 64% gross margin.
+
 ## NN Metrics: Monthly Operating Subtotal
 metricValue:: <calculated>
-metricFormula:: proton packs upkeep + trap maintenance + Ecto-1 fuel
-dependsOn:: [[Proton Packs Upkeep]]
+metricFormula:: monthly payroll + equipment maintenance + facility operations + insurance + Ecto-1 operations
+dependsOn:: [[Monthly Payroll]]
 metricType:: expense
 metricUnit:: USD/month
 evolution:: [[Fixed Evolution]]
 
-## NN Metrics: Monthly Spectral Tax
-metricValue:: <calculated>
-metricFormula:: 21% x monthly gross containment income
-dependsOn:: [[Monthly Containment Revenue]]
-metricType:: tax
-metricUnit:: USD/month
-evolution:: [[Fixed Evolution]]
-
-## NN Metrics: Proton Packs Upkeep
-metricValue:: 400
-metricFormula:: <fixed monthly>
+## NN Metrics: Monthly Payroll
+metricValue:: 35000
+metricFormula:: <fixed monthly slice of $420,000/year>
 metricType:: expense
 metricUnit:: USD/month
 evolution:: [[Fixed Evolution]]
 
-## NN Metrics: Trap Maintenance
-metricValue:: 175
-metricFormula:: <fixed monthly>
+4 full-time operators + 1 office manager.
+
+## NN Metrics: Equipment Maintenance
+metricValue:: 7083
+metricFormula:: <fixed monthly slice of $85,000/year>
 metricType:: expense
 metricUnit:: USD/month
 evolution:: [[Fixed Evolution]]
 
-## NN Metrics: Ecto-1 Fuel
-metricValue:: 120
-metricFormula:: <variable with mileage>
+Proton Pack calibration, trap refurbishment, PKE meter replacement.
+
+## NN Metrics: Facility Operations
+metricValue:: 10000
+metricFormula:: <fixed monthly slice of $120,000/year>
+metricType:: expense
+metricUnit:: USD/month
+evolution:: [[Fixed Evolution]]
+
+Firehouse lease, utilities, containment grid power.
+
+## NN Metrics: Monthly Insurance
+metricValue:: 7917
+metricFormula:: <fixed monthly slice of $95,000/year>
+metricType:: expense
+metricUnit:: USD/month
+evolution:: [[Fixed Evolution]]
+
+Liability insurance, legal retainers, regulatory compliance.
+
+## NN Metrics: Ecto-1 Operations
+metricValue:: 2083
+metricFormula:: <fixed monthly slice of $25,000/year>
 metricType:: expense
 metricUnit:: USD/month
 evolution:: [[Additive 5 Evolution]]
+
+Ecto-1 fuel, maintenance, insurance. Grows with mileage.
 
 ## NN Metrics: Vault Expansion Capex
 metricValue:: 25000
@@ -74,25 +104,33 @@ evolution:: [[Fixed Evolution]]
 
 # NN Variables
 
-## NN Variables: Billable Containments
-variableValue:: 30
-variableType:: days
-variableUnit:: containments
+## NN Variables: Monthly Incidents
+variableValue:: 20
+variableType:: count
+variableUnit:: incidents
 
-## NN Variables: Average Containment Fee
-variableValue:: 700
-variableType:: rate
-variableUnit:: USD/containment
+Year 1 pace: 240 incidents resolved.
 
-## NN Variables: Platform Commission Pct
-variableValue:: 15
+## NN Variables: Average Fee Per Incident
+variableValue:: 5000
 variableType:: fee
-variableUnit:: "%"
+variableUnit:: USD/incident
+
+Blended residential call-out average.
+
+## NN Variables: Direct Cost Per Incident
+variableValue:: 1800
+variableType:: cost
+variableUnit:: USD/incident
+
+Labor + equipment + fuel per incident.
 
 ## NN Variables: Monthly Growth Pct
 variableValue:: 5
 variableType:: growth
 variableUnit:: "%"
+
+Compounding driver toward the $2.8M Year 2 projection.
 
 # NN Evolution
 
@@ -110,44 +148,52 @@ evolutionFactor:: 5
 
 # NN Scenario
 
-## NN Scenario: Commercial Blitz Scenario
+## NN Scenario: Year 1 Baseline
 scenarioMonths:: 12
-scenarioNotes:: High-demand commercial season with maximum billable containments.
+scenarioNotes:: Actuals: $1.2M revenue on 240 incidents. Near break-even after direct costs and overhead.
 
-## NN Scenario: Steady Retainer Scenario
-scenarioMonths:: 12
-scenarioNotes:: Municipal retainer baseline with stable monthly containment volume.
+## NN Scenario: Regional Expansion
+scenarioMonths:: 36
+scenarioNotes:: NYC coverage plus 3-city expansion driving toward $2.8M Year 2 and $5.5M Year 3.
 
 # NN matrices: metrics-dependencies matrix
-| Metrics \ Metrics | Monthly Net Result | Monthly Containment Revenue | Monthly Operating Subtotal | Monthly Spectral Tax |
+| Metrics \ Metrics | Monthly Net Result | Monthly Containment Revenue | Monthly Direct Costs | Monthly Operating Subtotal |
 | :--- | :---: | :---: | :---: | :---: |
-| Monthly Containment Revenue | DependsOn | - | - | DependsOn |
+| Monthly Containment Revenue | DependsOn | - | - | - |
+| Monthly Direct Costs | DependsOn | - | - | - |
 | Monthly Operating Subtotal | DependsOn | - | - | - |
-| Monthly Spectral Tax | DependsOn | - | - | - |
+| Monthly Payroll | - | - | - | DependsOn |
+| Equipment Maintenance | - | - | - | DependsOn |
+| Facility Operations | - | - | - | DependsOn |
+| Monthly Insurance | - | - | - | DependsOn |
+| Ecto-1 Operations | - | - | - | DependsOn |
 
 # NN matrices: metric-variables matrix
-| Metrics \ Variables | Billable Containments | Average Containment Fee | Platform Commission Pct |
-| :--- | :---: | :---: | :---: |
-| Monthly Containment Revenue | Uses | Uses | Uses |
+| Metrics \ Variables | Monthly Incidents | Average Fee Per Incident | Direct Cost Per Incident | Monthly Growth Pct |
+| :--- | :---: | :---: | :---: | :---: |
+| Monthly Containment Revenue | Uses | Uses | - | - |
+| Monthly Direct Costs | Uses | - | Uses | - |
 
 # NN matrices: scenario-metrics matrix
 | Scenario \ Metrics | Monthly Net Result | Monthly Containment Revenue | Vault Expansion Capex |
 | :--- | :---: | :---: | :---: |
-| Commercial Blitz Scenario | Includes | Includes | Includes |
-| Steady Retainer Scenario | Includes | Includes | - |
+| Year 1 Baseline | Includes | Includes | - |
+| Regional Expansion | Includes | Includes | Includes |
 
 # NN matrices: item-markers matrix
 | Item \ Marker | is_variable | is_formula | is_derived |
 | :--- | :---: | :---: | :---: |
-| Billable Containments | X | - | - |
-| Average Containment Fee | X | - | - |
-| Platform Commission Pct | X | - | - |
+| Monthly Incidents | X | - | - |
+| Average Fee Per Incident | X | - | - |
+| Direct Cost Per Incident | X | - | - |
 | Monthly Growth Pct | X | - | - |
-| Proton Packs Upkeep | X | - | - |
-| Trap Maintenance | X | - | - |
-| Ecto-1 Fuel | X | - | - |
+| Monthly Payroll | X | - | - |
+| Equipment Maintenance | X | - | - |
+| Facility Operations | X | - | - |
+| Monthly Insurance | X | - | - |
+| Ecto-1 Operations | X | - | - |
 | Vault Expansion Capex | X | - | - |
 | Monthly Net Result | - | X | - |
 | Monthly Containment Revenue | - | X | - |
+| Monthly Direct Costs | - | X | - |
 | Monthly Operating Subtotal | - | X | - |
-| Monthly Spectral Tax | - | X | - |

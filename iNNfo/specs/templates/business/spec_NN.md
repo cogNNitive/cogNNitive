@@ -1,11 +1,11 @@
 ---
-spec_version: "V_0-2-3"
+spec_version: "V_0-2-4"
 spec_url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business/spec_NN.md"
 level: 2
 parent_spec:
   name: "iNNfo_V_0-2-1"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-2-1_NN.md"
-template_version: "V_0-2-3"
+template_version: "V_0-2-4"
 title: "Business Template"
 includes:
   - name: "business-model"
@@ -16,6 +16,8 @@ includes:
     url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/organization/spec_NN.md"
   - name: "projects"
     url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/projects/spec_NN.md"
+  - name: "metrics"
+    url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/metrics/spec_NN.md"
 relationship_types:
   hierarchy:
     enabled: true
@@ -45,6 +47,15 @@ assets:
 > [!NOTE]
 > This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor or view and edit it with [cogNNitive](https://cognnitive.com/innfo/app/innfo-doc).
 
+# NN Matrix Definition
+
+## NN Matrix Definition: Metrics-Organizational goals Matrix
+source:: Metrics
+target:: Organizational goals
+values:: [Max, Very High, High, Slightly High, Neutral, Slightly Low, Low, Very Low, Min]
+widget:: set
+description:: Scores how directly each Metric tracks each Organizational goal.
+
 # Business Template
 
 ## The complete business-modeling template — the descriptive model core plus its analysis layer, reusing the shared organization and projects vocabularies
@@ -57,9 +68,11 @@ rests on, the risks it runs, the coherence of its parts, the experiments that tu
 belief into evidence — **plus** the reusable vocabularies for how people are
 organized and how initiatives are planned and delivered.
 
-This template is a **pure composite**. It declares no Concept, Field, Marker, or
-Matrix Definitions of its own. Its entire schema is the additive union of the
-templates it `includes`:
+This template is a **near-pure composite**. Almost its entire schema is the additive union of the
+templates it `includes`. It declares exactly one Matrix Definition of its own —
+`Metrics-Organizational goals Matrix` — because that relationship spans two
+included templates (`metrics` rows × `business-model` goals) and therefore
+belongs to neither ingredient alone:
 
 - **`business-model`** — the descriptive core: market, value propositions,
   solutions, marketing, team narrative, business idea and objectives, operations,
@@ -75,6 +88,11 @@ templates it `includes`:
 - **`projects`** (via `business-model`) — `Project`, `Phases`, `Milestone`,
   `Deliverable`, `Task`, `Risk`, `Project roles`, plus the task-roles,
   task-deliverables, and risks-milestones matrices and the `health` marker.
+- **`metrics`** — the quantified layer: `Metrics` (typed rows with formulas and
+  dependencies), `Variables`, `Evolution`, `Scenario`, with the
+  metrics-dependencies, metric-variables, and scenario-metrics matrices and the
+  `is_variable` / `is_formula` / `is_derived` markers. Its `Create Projections`
+  procedure compiles any metrics model into a standalone Projections dashboard.
 
 `business-model` and `analysis` each declare the same five markers — `importance`,
 `completion`, `certainty`, `priority`, `rating` — with **identical bodies**. Under
@@ -88,19 +106,22 @@ business vocabulary, kept in sync across the two halves.
 1. Give business-model authors one `parent_spec` that resolves the full descriptive + analytical + organizational + project vocabulary.
 2. Keep the descriptive core (`business-model`) and the review layer (`analysis`) independently reusable and independently versioned.
 3. Reuse `organization` and `projects` rather than duplicating human-structure and project-planning concepts.
-4. Compose without collisions — every shared Definition is declared identically across sources.
+4. Attach the quantified layer (`metrics`) so revenue, cost, and projection rows live in the same model as the narrative — with goal tracking (`Metrics-Organizational goals`) declared on the composite, where both endpoints meet.
+5. Compose without collisions — every shared Definition is declared identically across sources.
 
 ## Specification
 
-This template instantiates none of the four root primitives directly. Resolving it
-yields the union of its included templates' Definitions:
+This template declares one Matrix Definition of its own and resolves the rest
+from its included templates' Definitions:
 
 | Contributed by | Concepts | Markers | Matrices |
 |---|---|---|---|
-| `business-model` | Business summary, Market, Stakeholders, Segments, Profiles, Persona, Segmentation, Market trends, Market size, Competition, Problems, Value propositions, Messages, Channels, Perceptions, Emotions, Behaviors, Journey, Solutions, Offerings, Products and services, Features, Components, Roadmap, Marketing, Branding, Media plan, Communication, Pitch, Web, Storytelling, Presentations, Team, Business idea, Inspiration, Opportunity, Business objectives, Mission, Vision, Organizational values, Organizational goals, Operations, Activities, Resources, Metrics, Finance, Revenue, Costs, Unit economics, Funding sources, Shareholders, Projections, Legal, Legal issues, Contracts, Challenges, Unfair advantage, Goals, Misc, Procedure | importance, completion, certainty, priority, rating | Journey map, Segmentation-Profiles, Problems-Value propositions, Value propositions-Messages, Messages-Channels, Metrics-Organizational goals, Features-Milestone, Organizational values-Organizational goals, Activities-Resources, Problems-Competition |
+| `business-model` | Business summary, Market, Stakeholders, Segments, Profiles, Persona, Segmentation, Market trends, Market size, Competition, Problems, Value propositions, Messages, Channels, Perceptions, Emotions, Behaviors, Journey, Solutions, Offerings, Products and services, Features, Components, Roadmap, Marketing, Branding, Media plan, Communication, Pitch, Web, Storytelling, Presentations, Team, Business idea, Inspiration, Opportunity, Business objectives, Mission, Vision, Organizational values, Organizational goals, Operations, Activities, Resources, Finance, Revenue, Costs, Unit economics, Funding sources, Shareholders, Projections, Legal, Legal issues, Contracts, Challenges, Unfair advantage, Goals, Misc, Procedure | importance, completion, certainty, priority, rating | Journey map, Segmentation-Profiles, Problems-Value propositions, Value propositions-Messages, Messages-Channels, Features-Milestone, Organizational values-Organizational goals, Activities-Resources, Problems-Competition |
 | `analysis` | Analysis, Assumptions, Risks, Suggestions, SWOT, Keys, Validation, Coherence, Experiments | importance, completion, certainty, priority, rating *(identical → merged)* | Assumptions-Risks, Experiments-Assumptions |
 | `organization` (transitive) | Organization, Roles, Functions, Position, Person, Skills | complexity | positions-roles, persons-positions, Functions-Positions |
 | `projects` (transitive) | Project, Phases, Milestone, Deliverable, Task, Risk, Project roles | health | task-roles, task-deliverables, risks-milestones |
+| `metrics` | Metrics, Variables, Evolution, Scenario | is_variable, is_formula, is_derived | metrics-dependencies, metric-variables, scenario-metrics |
+| `business` (own) | — | — | Metrics-Organizational goals |
 
 ### Relationship Types
 
@@ -161,7 +182,13 @@ added `Compile Model Viewer` (`procedures/compile_model_viewer_NN.md`), which
 fills the template-agnostic consultation shell at `assets/model_viewer.html`
 with the resolved schema and serialized model data — a single offline,
 read-only page for browsing any model built on this template. `V_0-2-3` is a
-docs-and-sample patch that finalizes that work.
+docs-and-sample patch that finalizes that work. `V_0-2-4` attaches the `metrics`
+template (quantified rows, variables, scenarios, `Create Projections`
+procedure) and moves the `Metrics-Organizational goals` matrix onto the
+composite, where both endpoints meet. The `V_0-2-3` Ghostbusters sample is
+kept as the canonical sample: its prose-only `Metrics` elements and its
+`metrics-organizational goals` block resolve unchanged against the new
+composition.
 
 ## Parent Chain
 
@@ -180,4 +207,5 @@ parent_spec:
 includes:
   - name: "business-model"   # → includes organization, projects
   - name: "analysis"
+  - name: "metrics"
 ```
