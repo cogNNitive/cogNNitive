@@ -4,7 +4,7 @@ title: cogNNitive — Knowledge Management Made Ridiculously Simple
 description: Knowledge Management made ridiculously simple for humans and AI. Turn scattered documentation into living, structured knowledge.
 ---
 
-# Knowledge Management made ridiculously simple for humans and AI.
+# Living Knowledge Base powered by humans using AI.
 
 Turn scattered documentation into living, structured knowledge that your AI agent understands.
 
