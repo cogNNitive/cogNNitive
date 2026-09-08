@@ -33,7 +33,7 @@ export const SHIPPED_TEMPLATE_VERSIONS: Record<string, string> = {
   analysis: 'V_0-2-0',
   base: 'V_0-1-0',
   blank: 'V_0-2-0',
-  business: 'V_0-2-2',
+  business: 'V_0-2-3',
   'business-model': 'V_0-2-0',
   cogNNitive: 'V_0-2-0',
   documentation: 'V_0-2-0',
