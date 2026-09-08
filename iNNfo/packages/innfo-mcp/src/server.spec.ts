@@ -137,6 +137,7 @@ describe('innfo-mcp server (dispatch/handler layer, real MCP client/server round
     expect(names).toEqual(
       [
         'apply_change',
+        'check_workspace',
         'get_spec',
         'get_template',
         'hydrate_template',

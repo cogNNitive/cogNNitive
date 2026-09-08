@@ -46,6 +46,7 @@ import {
   validateTemplate,
   initModel,
 } from './tools/mutate.js'
+import { checkWorkspace } from './tools/check-workspace.js'
 import { findRepoRoot } from './tools/repo-root.js'
 import { syncWorkspaceManifest } from './tools/workspace-sync.js'
 import { envelope, envelopeList } from '@cognnitive/innfo-core'
@@ -307,6 +308,30 @@ const toolDefinitions: Tool[] = [
     },
   },
   {
+    name: 'check_workspace',
+    description:
+      'Run one consolidated workspace integrity pass over every Level-3 model: validate each against its template and traceability, self-heal missing template packages/specs (write-once hydration), classify each pinned template version against the published catalog, and return one report with a per-model status and a workspace aggregate. Non-blocking and informational — validation failures never fail the tool.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        root: {
+          type: 'string',
+          description: 'Optional workspace root directory override (default: server root)',
+        },
+        summary_only: {
+          type: 'boolean',
+          description:
+            'Omit clean models; return the aggregate plus failing/upgrade-available models only (capped at 25). Default false.',
+        },
+        offline: {
+          type: 'boolean',
+          description:
+            'Skip all network: no catalog fetch, no hydration, no freshness. Default false.',
+        },
+      },
+    },
+  },
+  {
     name: 'list_template_procedures',
     description:
       'List all procedures defined in a template and its transitively included templates up to depth 10',
@@ -369,6 +394,8 @@ async function dispatchTool(name: string, args: Record<string, unknown>): Promis
         return await handleHydrateTemplate(args)
       case 'sync_workspace_manifest':
         return await handleSyncWorkspaceManifest(args)
+      case 'check_workspace':
+        return await handleCheckWorkspace(args)
       case 'list_template_procedures':
         return await handleListTemplateProcedures(args)
       case 'list_template_skills':
@@ -501,6 +528,15 @@ async function handleSyncWorkspaceManifest(args: Record<string, unknown>): Promi
   const dry_run = args.dry_run !== undefined ? Boolean(args.dry_run) : true
   const result = await syncWorkspaceManifest(root, { dry_run })
   return textResult(JSON.stringify(envelope('innfo-sync-workspace-manifest', result), null, 2))
+}
+
+async function handleCheckWorkspace(args: Record<string, unknown>): Promise<CallToolResult> {
+  const root = (args.root as string) || ROOT_DIR
+  const report = await checkWorkspace(root, {
+    summaryOnly: Boolean(args.summary_only),
+    offline: Boolean(args.offline),
+  })
+  return textResult(JSON.stringify(envelope('innfo-check-workspace', report), null, 2))
 }
 
 async function handleListTemplateProcedures(
