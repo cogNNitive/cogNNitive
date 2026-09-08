@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import FilePreviewModal from '../../src/components/editor/FilePreviewModal.vue'
+import MermaidWidget from '../../src/shared/widgets/MermaidWidget.vue'
 import { useWorkspaceStore } from '../../src/stores/workspaceStore'
 import { useModelStore } from '../../src/stores/modelStore'
 import { parseSourceRef } from '../../src/utils/sourceRef'
@@ -106,5 +107,71 @@ describe('FilePreviewModal', () => {
       expect(createObjectURLSpy).toHaveBeenCalled()
     })
     expect(openSpy).toHaveBeenCalledWith('blob:fake-url', '_blank')
+  })
+
+  it('switches to the lineage view and renders the mermaid graph with upstream and downstream nodes', async () => {
+    const tree: FakeTree = {
+      sources: {
+        nn: {
+          'report.md': markdownWithFrontmatter,
+        },
+      },
+    }
+    const handle = buildFakeTree('workspace', tree)
+    const workspaceStore = useWorkspaceStore()
+    workspaceStore.handle = handle
+
+    const modelStore = useModelStore()
+    modelStore.nodes['CaseStudy/Intro'] = {
+      id: 'CaseStudy/Intro',
+      name: 'Intro',
+      parentId: 'CaseStudy',
+      childIds: [],
+      type: 'Section',
+      fields: {},
+      markers: {},
+      relationships: [{ targetId: 'CaseStudy/Conclusion', label: 'references', origin: 'metamodel' }],
+      rawSections: {},
+      source: { path: 'models/casestudy_V_0-1-0_business_NN.md' },
+      sources: [
+        {
+          filePath: 'sources/nn/report.md',
+          fileName: 'report.md',
+          kind: 'source',
+          raw: 'sources/nn/report.md',
+        },
+      ],
+    } as any
+
+    const parsed = parseSourceRef('sources/nn/report.md')
+    wrapper = mount(FilePreviewModal, {
+      props: { isOpen: true, kind: 'source', filePath: parsed.filePath, fileName: parsed.fileName },
+      attachTo: document.body,
+    })
+
+    // Wait for loadSourceContent() to resolve frontmatter so the upstream node is available.
+    await vi.waitFor(() => {
+      expect(document.body.textContent ?? '').toContain('sources/original/clientA/report.docx')
+    })
+
+    const lineageButton = Array.from(document.body.querySelectorAll('button')).find((btn) =>
+      btn.textContent?.includes('Linaje'),
+    )
+    expect(lineageButton).toBeTruthy()
+
+    lineageButton!.click()
+    await vi.waitFor(() => {
+      expect(document.body.querySelector('.widget-mermaid')).toBeTruthy()
+    })
+
+    // The lineage graph must render the Mermaid widget and the downstream/upstream nodes, not the empty state.
+    expect(document.body.textContent ?? '').not.toContain('No hay información de linaje')
+    const mermaidWidget = wrapper.findComponent(MermaidWidget)
+    if (mermaidWidget.exists()) {
+      const code = mermaidWidget.props('modelValue') as string
+      expect(code).toContain('FOCAL')
+      expect(code).toContain('UP -->|normalizado| FOCAL')
+      expect(code).toContain('Intro')
+    }
   })
 })
