@@ -1,12 +1,12 @@
 ---
 layout: default
-title: cogNNitive — Knowledge Management Made Ridiculously Simple
-description: Knowledge Management made ridiculously simple for humans and AI. Turn scattered documentation into living, structured knowledge.
+title: cogNNitive — Knowledge Evolution Framework
+description: Leverage ideas, information and data scattered through brains and computer files into a living knowledge base powered by AI that constantly evolves.
 ---
 
-# Living Knowledge Base powered by humans using AI.
+# Knowledge Evolution Framework
 
-Turn scattered documentation into living, structured knowledge that your AI agent understands.
+Leverage ideas, information and data scattered through brains and computer files into a **living knowledge base powered by AI** that constantly evolves, maximizing value provided.
 
 - [Open iNNfo Modeler App](https://cognnitive.com/innfo/app/)
 - [Explore Agent Skills](https://cognnitive.com/actionn)
@@ -113,3 +113,13 @@ Clear boundaries keep the ecosystem honest, simple, and yours. If it isn't liste
 - **Not a document authoring suite**: It does not replace your wiki, CMS, or word processor. It organizes the knowledge those tools produce into validated, linked models.
 - **Not a universal format**: OKF-compatible and plain Markdown, but not the single format for all knowledge. Your source of truth stays yours.
 - **Not a one-shot AI converter**: The `A ⇄ K` cycle is reversible and iterative. A single unvalidated lossy conversion is not the product — living, validated models are.
+
+---
+
+## Knowledge Evolution Framework
+
+Three words that define how cogNNitive turns scattered inputs into living information.
+
+- **Knowledge**: The ideas in your team's brains and the data in your computer files — files, docs, chats, sheets — captured and structured so humans and AI agents can understand, query, and reuse it.
+- **Evolution**: Knowledge is never frozen. Every pass validates, enriches, and updates it, so information stays living, constantly evolving instead of going stale.
+- **Framework**: A set of processes and tools — iNNfo models, actioNN agent skills, and the Modeler app — that guide knowledge from scattered input to verified, traceable output, maximizing value provided.
