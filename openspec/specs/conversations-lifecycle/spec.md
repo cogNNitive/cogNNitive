@@ -3,9 +3,7 @@
 ## Purpose
 
 Define the full lifecycle of an interactive cogNNitive session transcript: silent reservation of a timestamped file in `conversations/` at session start, automatic discard of trivial sessions, post-session title suggestion and rename, and an interactive prompt to promote the finalized transcript into `sources/conversations/` as a verbatim source, an executive summary, both, or neither.
-
 ## Requirements
-
 ### Requirement: Silent Session Transcript Reservation
 
 When an interactive cogNNitive session is initialized, the system MUST immediately allocate a session transcript file at `conversations/YYYY-MM-DD_HHmmss.md` (where `YYYY-MM-DD_HHmmss` corresponds to the session start local timestamp). The file MUST be created silently without prompting the user, initialized with standard frontmatter metadata:
@@ -72,19 +70,21 @@ Upon conclusion of a non-trivial session, the agent MUST present 3 suggested tit
 
 ### Requirement: Interactive Transcript Promotion Prompt
 
-After titling a concluded non-trivial session, the agent MUST prompt the user whether to promote the conversation transcript into the workspace knowledge sources (`sources/conversations/`). The prompt MUST offer four options:
+After titling a concluded non-trivial session, the agent MUST prompt the user whether to promote the conversation transcript into the workspace knowledge sources (`sources/conversations/`). The prompt MUST offer two options:
 - `[full]`: Promotes the full verbatim transcript to `sources/conversations/<session-slug>_source.md`.
-- `[summary]`: Generates an executive summary containing key decisions, action items, and architecture rationale, saved to `sources/conversations/<session-slug>_summary.md`.
-- `[both]`: Emits both `_source.md` and `_summary.md` into `sources/conversations/`.
 - `[none]`: Leaves the transcript solely in `conversations/` without source promotion.
+
+The prompt MUST NOT offer an executive-summary option (`[summary]`) or a combined option (`[both]`): `_summary.md` files are no longer produced by the standard promotion flow. The raw transcript in `conversations/` MUST always be registered regardless of the choice; promotion to `_source.md` is optional and occurs only on the user's choice.
 
 Promoted files in `sources/conversations/` MUST include frontmatter linking them to `origin_transcript: conversations/YYYY-MM-DD_<slug>.md`.
 
-#### Scenario: User promotes transcript as summary
+(Previously: the prompt offered four options — `[full]`, `[summary]`, `[both]`, `[none]` — and could emit an executive summary `_summary.md`.)
+
+#### Scenario: User promotes transcript as source
 - GIVEN a finalized transcript `conversations/2026-09-06_api-gateway.md`
-- WHEN prompted for promotion and the user selects `[summary]`
-- THEN `sources/conversations/2026-09-06_api-gateway_summary.md` is generated
-- AND it contains an executive summary with key decisions and frontmatter `origin_transcript: conversations/2026-09-06_api-gateway.md`
+- WHEN prompted for promotion and the user selects `[full]`
+- THEN `sources/conversations/2026-09-06_api-gateway_source.md` is generated
+- AND it contains the verbatim transcript and frontmatter `origin_transcript: conversations/2026-09-06_api-gateway.md`
 - AND `conversations/2026-09-06_api-gateway.md` remains intact in `conversations/`
 
 #### Scenario: User declines promotion
@@ -92,3 +92,10 @@ Promoted files in `sources/conversations/` MUST include frontmatter linking them
 - WHEN prompted for promotion and the user selects `[none]`
 - THEN no file is written to `sources/conversations/`
 - AND `conversations/2026-09-06_api-gateway.md` remains in `conversations/`
+
+#### Scenario: Summary options are no longer offered
+- GIVEN a concluded non-trivial session ready for the promotion prompt
+- WHEN the agent presents the promotion options
+- THEN only `[full]` and `[none]` are offered
+- AND no `[summary]` or `[both]` option is presented and no `_summary.md` file is written for any selection
+

@@ -5,9 +5,7 @@
 Extend the `nn-trannsform` normalization scanner to cover every active source subtree — `sources/import/`, `sources/export/`, and `sources/conversations/` — emitting canonical Markdown under `sources/nn/` with the subtree structure mirrored. Conversation transcripts and summaries are normalized with distinct `source_type` frontmatter and their `origin_transcript:` link preserved; deliverables promoted back into `sources/export/` are ingested as synthetic sources (`is_synthetic: true`, retained `derived_from:`); the ad-hoc Slack/Teams JSON parser is removed in favour of the canonical conversation lifecycle.
 
 > Sync note: the source change (`2026-09-06-sources-conversations-lifecycle`) authored these as `## MODIFIED Requirements` against a pre-monorepo base spec that was never carried into this `openspec/specs/` tree. They are transcribed here as the current requirement state.
-
 ## Requirements
-
 ### Requirement: Multi-Subtree Normalization Scanning
 
 The normalization scanner (`nn-trannsform` / `scanAndProcess`) MUST recursively scan all active source subtrees:
@@ -17,19 +15,25 @@ The normalization scanner (`nn-trannsform` / `scanAndProcess`) MUST recursively 
 
 The scanner MUST normalize discovered files into canonical Markdown representations under `sources/nn/`. The output path structure within `sources/nn/` MUST mirror the subtree structure (e.g., `sources/nn/import/...`, `sources/nn/export/...`, `sources/nn/conversations/...` or preserve distinct non-colliding relative paths).
 
+(Previously: identical — only the scenario's conversation example file is updated to the transcript form now produced by the standard flow.)
+
 #### Scenario: Normalization across multiple source subtrees
-- GIVEN `sources/import/guide.pdf`, `sources/export/whitepaper.md`, and `sources/conversations/meeting_summary.md` exist in the workspace
+- GIVEN `sources/import/guide.pdf`, `sources/export/whitepaper.md`, and `sources/conversations/meeting_source.md` exist in the workspace
 - WHEN `scanAndProcess` runs
 - THEN `sources/nn/` receives normalized files corresponding to all three inputs
 - AND each normalized file records its originating path in its frontmatter `file:` field
 
+---
+
 ### Requirement: Conversation Transcript and Summary Normalization
 
-Files promoted from `conversations/` into `sources/conversations/` MUST be processed according to their filename suffixes:
+Files promoted from `conversations/` into `sources/conversations/` by the standard promotion flow MUST be treated as verbatim transcripts, and the pipeline MUST NOT require an executive-summary `_summary.md` normalization path in the standard flow (see `conversations-lifecycle`):
 1. Files ending with `_source.md`: The normalizer MUST treat the file as a verbatim transcript. It MUST preserve dialogue structure, speaker labels, and timestamps, and generate normalized Markdown with frontmatter `source_type: conversation_transcript`.
-2. Files ending with `_summary.md`: The normalizer MUST validate and structure the executive summary into standardized sections (Key Topics, Decisions, Action Items, References) and generate normalized Markdown with frontmatter `source_type: conversation_summary`.
+2. The standard flow MUST NOT emit `_summary.md` files, and the pipeline MUST NOT require a `_summary.md` normalization branch for the standard flow.
 
-Both formats MUST preserve the `origin_transcript:` reference pointing to the raw file in `conversations/`.
+Transcript promotions MUST preserve the `origin_transcript:` reference pointing to the raw file in `conversations/`.
+
+(Previously: the requirement also mandated validating and structuring `_summary.md` executive summaries into standardized sections with `source_type: conversation_summary`, including a scenario normalizing a summary file.)
 
 #### Scenario: Normalizing a conversation transcript file
 - GIVEN `sources/conversations/2026-09-06_auth_architecture_source.md`
@@ -38,11 +42,11 @@ Both formats MUST preserve the `origin_transcript:` reference pointing to the ra
 - AND its frontmatter specifies `source_type: conversation_transcript`
 - AND its dialogue turn structure is preserved
 
-#### Scenario: Normalizing a conversation summary file
-- GIVEN `sources/conversations/2026-09-06_auth_architecture_summary.md`
+#### Scenario: Summary files are not part of the standard flow
+- GIVEN a conversation promoted only as `sources/conversations/2026-09-06_auth_architecture_source.md`
 - WHEN normalization runs
-- THEN the normalized file in `sources/nn/conversations/2026-09-06_auth_architecture_summary.md` is generated
-- AND its frontmatter specifies `source_type: conversation_summary`
+- THEN the transcript is normalized with `source_type: conversation_transcript`
+- AND no `_summary.md` counterpart is generated or required by the pipeline
 
 ### Requirement: Synthetic Deliverable Ingestion
 
@@ -74,3 +78,4 @@ Ingestion of `.json` files in `sources/import/` SHALL treat JSON as structured d
 - GIVEN a team interaction transcript
 - WHEN captured and imported into the workspace
 - THEN it is routed through `conversations/` and normalized under `sources/conversations/` rather than relying on legacy Slack JSON parsers
+
