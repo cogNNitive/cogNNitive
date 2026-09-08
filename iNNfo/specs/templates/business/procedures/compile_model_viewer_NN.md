@@ -95,7 +95,7 @@ LLM agent (e.g. OpenCode Desktop) that resolves the schema, serializes the model
 ## NN Artifact: Active Model
 type:: spec
 format:: markdown
-The active level 3 model conforming to `business_V_0-2-2` (or any template that adopts this procedure), source of all data to serialize.
+The active level 3 model conforming to `business_V_0-2-3` (or any template that adopts this procedure), source of all data to serialize.
 
 ## NN Artifact: Model Viewer Reference Shell
 type:: asset
@@ -132,7 +132,7 @@ type:: spec
 format:: json
 ```json
 {
-  "template": { "name": "business_V_0-2-2", "version": "V_0-2-2", "url": "https://raw.githubusercontent.com/..." },
+  "template": { "name": "business_V_0-2-3", "version": "V_0-2-3", "url": "https://raw.githubusercontent.com/..." },
   "concepts": [
     { "name": "Problems", "icon": "alert-triangle", "color": "red", "weight": 90, "type": "list" }
   ],
@@ -155,7 +155,7 @@ format:: json
 {
   "meta": {
     "title": "Ghostbusters",
-    "template": "business_V_0-2-2",
+    "template": "business_V_0-2-3",
     "modelVersion": "V_0-2-1",
     "sourceUrl": "https://raw.githubusercontent.com/...",
     "generated": "2026-09-07T20:00:00Z"

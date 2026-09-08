@@ -1,5 +1,28 @@
 ﻿# Changelog
 
+## Unreleased (2026-09-08)
+
+### Templates — `business` `V_0-2-1` → `V_0-2-3`
+
+- **`V_0-2-2` — new procedure `compile-model-viewer`**
+  (`procedures/compile_model_viewer_NN.md`), alongside `compile-strategic-master`.
+  It resolves the model's schema (`parent_spec` + transitive `includes`),
+  serializes the model to JSON, and writes two blocks — `#innfo-schema` and
+  `#innfo-model` — into a template-agnostic reference shell. The agent authors
+  no markup.
+- **`V_0-2-2` — new asset `assets/model_viewer.html`** — a single
+  self-contained consultation page: inline CSS, inline vanilla-JS renderer,
+  left rail of concepts, expandable element cards (fields, marker chips,
+  description), in-page relationship links, matrix grids, and a live text
+  filter. Offline, read-only. Registered in `spec_NN.md` `assets:` as
+  `model-viewer-shell`.
+- **`V_0-2-3` — docs-and-sample patch.** Adds
+  `samples/Ghostbusters_V_0-2-3_business_NN.md` (the `V_0-2-1` sample re-pointed
+  at this version; `Ghostbusters_V_0-2-1_business_NN.md` retained for consumers
+  still pinned to `V_0-2-1`) and finalizes the Canonical Sample docs in
+  `spec_NN.md`.
+- `manifest/source.yaml` `business` version tracks each bump.
+
 ## Unreleased (2026-09-05)
 
 ### iNNfo L1 spec — `iNNfo_V_0-2-1` adopted

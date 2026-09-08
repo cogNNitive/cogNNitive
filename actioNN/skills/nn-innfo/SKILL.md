@@ -238,6 +238,7 @@ The `innfo-mcp` server exposes 15 deterministic tools built on `@cognnitive/innf
 | `get_spec` | Dynamically resolves the Level 1 specification. |
 | `get_template` | Dynamically resolves the Level 2 template and its primitives. |
 | `validate_model` | Runs deterministic syntactic and schema validation (with a `(searched: ...)` diagnostic when the parent chain does not resolve). |
+| `check_workspace` | Runs one consolidated workspace integrity pass over every Level-3 model: validates each against its template and traceability, self-heals missing template packages/specs (write-once hydration), classifies each pinned template version against the published catalog, and returns one report with a per-model status and a workspace aggregate. Non-blocking and informational — validation failures never fail the tool. Accepts `root`, `summary_only` (aggregate + failing/upgrade-available models only, capped at 25), and `offline`. The editor runs the same pass on workspace open. |
 | `validate_model_url` | Validates a model from a URL without writing it to disk. |
 | `validate_template` | Validates a Level 2 template against its parent Level 1 specification. |
 | `apply_change` | Runs deterministic mutations (add field, rename, `bump_version`, etc.). |

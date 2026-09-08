@@ -23,7 +23,7 @@ The scanner MUST normalize discovered files into canonical Markdown representati
 
 ### Requirement: Conversation Transcript and Summary Normalization
 
-Files promoted from `conversations/` into `sources/conversations/` by the standard promotion flow are verbatim transcripts; the pipeline no longer needs to handle an executive-summary `_summary.md` path in the standard flow (see `conversations-lifecycle`):
+Files promoted from `conversations/` into `sources/conversations/` by the standard promotion flow MUST be treated as verbatim transcripts, and the pipeline MUST NOT require an executive-summary `_summary.md` normalization path in the standard flow (see `conversations-lifecycle`):
 1. Files ending with `_source.md`: The normalizer MUST treat the file as a verbatim transcript. It MUST preserve dialogue structure, speaker labels, and timestamps, and generate normalized Markdown with frontmatter `source_type: conversation_transcript`.
 2. The standard flow MUST NOT emit `_summary.md` files, and the pipeline MUST NOT require a `_summary.md` normalization branch for the standard flow.
 

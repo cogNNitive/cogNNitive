@@ -1,14 +1,14 @@
 # Apply Progress — Workspace Integrity Check
 
 **Change:** `2026-09-07-workspace-integrity-check`
-**Slice:** 1 of 4 — `innfo-core` primitives + report builder (+ orchestrator-scoped esbuild/drift-guard)
+**Slice:** 1–4 of 4 — `innfo-core` primitives + report builder (+ orchestrator-scoped esbuild/drift-guard); `innfo-mcp` `check_workspace`; catalog publication + preflight delegation; `innfo-editor` wiring + UI + docs
 **Mode:** Strict TDD
-**Branch:** `feat/workspace-integrity-check-core`
-**Delivery:** chained PR slice (`size:exception` — ~380 src+test lines, over the 400 SDD default, under the repo 800 budget)
+**Branch:** `dev` (single integration branch; slices 2–4 committed directly per `nn-dev-development` v0.2.0)
+**Delivery:** batched merge to `main` via `nn-dev-check-integrity` + `nn-dev-release`
 
 ## Status
 
-Slice 1 COMPLETE. Ready for Slice 2 (`innfo-mcp` `check_workspace`).
+ALL 4 SLICES COMPLETE on `dev` (commits `a64f835`, `fec2932`, `ca3d2d1`, `4170421` + doc syncs `a8014c6`, `caba3ba`, `cf2b8d2`). Ready for the batched merge to `main`.
 
 ## What landed
 
@@ -117,3 +117,79 @@ No PR opened — orchestrator handles PR creation.
   regenerated `.cjs` or `verify.js` step 11 / the `.test.mjs` will fail.
 - Pre-existing blocker unchanged: `node scripts/verify.js` stops at "Validate Stable Manifest"
   regardless of this work. Slice 2/3 verification should run the same individual commands used here.
+
+## Slices 2–4 — what landed
+
+### Slice 2 (`innfo-mcp` `check_workspace`) — commit `a64f835` + `fec2932`
+- AD-4 split in `validate.ts`: `collectWorkspaceDiagnostics(rootDir, cache)` (unfiltered, ONE
+  `recursiveParse`) + pure `filterDiagnosticsForModel(diags, rootDir, resolvedModelPath)`.
+  `runWorkspaceValidation` is their 2-line composition — `validateModel(workspace: true)` output
+  byte-for-byte identical. Stale `checkOne`-stubbed comment deleted (false since PR5a `eda7dac`).
+- `freshnessVerdict` exported from `resolver-node.ts` (visibility-only).
+- New `tools/check-workspace.ts`: 5 Node ports sharing a per-call context — `discoverModels`
+  (level-3 only), `validateAll` (self-heal resolution first → merged first-wins `SpecCache` → ONE
+  `collectWorkspaceDiagnostics` → per-model filter + single-file `validateModel(workspace=false,
+  checkFreshness=false)`), `fetchCatalog` (`resolveCatalog`: Pages → raw → in-repo → offline, AD-3),
+  `resolveTemplate` (4-tier resolve / write-once hydrate → resolved|hydrated|unresolved),
+  `checkFreshness` (wraps `freshnessVerdict`). `summary_only` trims models to failing /
+  upgrade-available, cap 25, `truncated: true`; `aggregate` stays full.
+- Registered in `server.ts` (15 tools; `server.spec.ts` tool-list updated).
+- W1 folded: `gap` spec vocabulary widened to `same`/`null` (code-side fix impossible —
+  `upgrade-check.test.js` locks `gapKind(...) === 'same'` for slice-3 delegation parity).
+
+### Slice 3 (catalog publication + preflight delegation) — commit `ca3d2d1`
+- `build-docs.mjs` stages `docs/innfo/templates/catalog.json` (same-origin canonical URL, AD-3 tier 1).
+- `upgrade-check.js`: 5 private fns deleted; classification delegates to the committed
+  `version-status.generated.cjs` (`classifyAgainstCatalog`); item shape (`kind` for
+  upgrade-available) preserved. `preflight-check.js` catalog: Pages first, raw fallback, offline degrade.
+- `verify.js` (W2/W3): preflight test + `build-preflight-primitives.test.mjs` +
+  `build-preflight-primitives.mjs --check` + `template-catalog.mjs --check` all run BEFORE the
+  stable-manifest halt (drift guards reachable in CI). The new catalog guard immediately caught a
+  real drift (business V_0-2-1 → V_0-2-3 from concurrent template work) — catalog regenerated.
+- `nn-dev-check-integrity` Group 7 drift list gains `docs/innfo/templates/catalog.json`.
+- Generated artifacts committed: regenerated `catalog.json`, rebuilt MCP bundle (now contains
+  `check_workspace`), CDN manifest v0.3.1 → v0.3.2.
+
+### Slice 4 (`innfo-editor` wiring + UI + docs) — commit `4170421`
+- `workspaceStore.open()`: `void this._runIntegrityCheck().catch(() => {})` after `hasParsed = true`;
+  `integrityReport` / `integrityRunning` state, cleared in `reset()`. The check never sets `error`,
+  never blocks `open()`, never rejects into it.
+- `src/services/workspaceIntegrityPorts.ts`: 3 of 5 ports — `discoverModels` (modelStore.nodes),
+  `validateAll` (in-memory over parsed roots), `fetchCatalog` (same-origin `CATALOG_URL`, 2.5 s
+  timeout); `resolveTemplate` / `checkFreshness` omitted → `not-checked` (Resolved Decision 4).
+- `src/components/layout/WorkspaceIntegrityNotice.vue`: three visually distinct bands
+  (invalid / informational / cannot-determine) per Resolved Decision 5 + copyable `innfo:` prompt;
+  mounted in `WorkspaceDashboard.vue`.
+- `nn-innfo` SKILL.md §1: `check_workspace` documented (15-tool table). `prune_orphaned_specs`
+  drift FLAGGED per pre-flight (b) — not silently resolved.
+- Tests: `workspaceStore-integrity.test.ts` (3), `WorkspaceIntegrityNotice.test.ts` (6).
+
+### TDD cycle evidence (slices 2–4)
+| Task | Test File | Layer | RED → GREEN |
+|---|---|---|---|
+| 2.1/2.2 | `validate.spec.ts` (6) | Unit+integration | module missing → split implemented |
+| 2.5/2.6/2.7 | `check-workspace.spec.ts` (8) | Integration (mkdtemp, network stubbed) | tool missing → Node ports + registration |
+| 4.1/4.3 | `workspaceStore-integrity.test.ts` (3) | Unit (store) | state missing → wired |
+| 4.4/4.5 | `WorkspaceIntegrityNotice.test.ts` (6) | Component | component missing → 3 bands |
+
+### Verification results (slices 2–4)
+- `npm --prefix iNNfo/packages/innfo-core run build` → exit 0.
+- `npm --prefix iNNfo test` → core 40 files / mcp 23 files / editor 90 files (1 skipped) — all green.
+- `npm --prefix iNNfo run typecheck` → exit 0.
+- `npm --prefix iNNfo run lint` → 494 warnings, 0 errors — all pre-existing; new files contribute 0.
+- `npm --prefix iNNfo/apps/innfo-editor run build` → exit 0.
+- `node scripts/build-preflight-primitives.mjs --check` / `.test.mjs` / `template-catalog.mjs --check`
+  → all green.
+- `node actioNN/skills/nn-preflight/scripts/{preflight-check,upgrade-check}.test.js` → all green.
+- `node scripts/verify.js` → now runs through steps 1–6 (preflight + primitives + catalog guards all
+  PASS), then halts at "Validate Stable Manifest": `business: version mismatch — manifest 'V_0-2-3'
+  vs template 'V_0-2-2'`. Root cause: the concurrent session's template bump `1f0c15b` set
+  `source.yaml` to V_0-2-3 but no new `templates-v` tag was cut, so the stable manifest (pinned to
+  released commit `6db5303` / templates-v0.3.1) still has V_0-2-2. PRE-EXISTING, not caused by this
+  work (identical state at `4b2be05`). Resolves at the next tag cut (documented in MEMORY.md).
+
+### Incidental fixes on `dev` (not slice deliverables)
+- `a8014c6` — `SHIPPED_TEMPLATE_VERSIONS.business` → V_0-2-3 (editor suite was red after the
+  concurrent template bump; disk-integrity guard test enforces lock-step).
+- `cf2b8d2` — regenerated `docs/use/manifest.md` (business V_0-2-2 → V_0-2-3), keeping the
+  generated-artifact drift check green.

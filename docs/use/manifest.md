@@ -102,7 +102,7 @@ agent-bootstrap:
     - name: business
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/business/spec_NN.md
-      version: "V_0-2-2"
+      version: "V_0-2-3"
       ref: "templates-v0.3.1"
       commit: "6db53035ac60739bb9aaabcba886febfdbb713d4"
     - name: business-model

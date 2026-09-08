@@ -46,8 +46,14 @@ const LEGACY_STATE_FILE = path.join(os.homedir(), '.agents', 'skills-state.json'
 /**
  * Canonical Level-2 template catalog. Wired in as a Tier-3 workspace check:
  * an available template upgrade is informational and never blocks.
+ *
+ * Resolution is remote-first (AD-3): the Pages copy is canonical
+ * (same-origin for the editor), the raw.githubusercontent copy is the
+ * fallback. When both fail, upgrade detection degrades to offline.
  */
 const DEFAULT_TEMPLATE_CATALOG_URL =
+  'https://cognnitive.com/innfo/templates/catalog.json';
+const FALLBACK_TEMPLATE_CATALOG_URL =
   'https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/catalog.json';
 
 function requestFor(url) {
@@ -517,17 +523,25 @@ async function runCheck(options = {}) {
     // Tier 3 — workspace template upgrade detection (read-only, informational).
     // Only queries the catalog when the workspace actually contains Level-3 models.
     if (discoverModels(workspaceDir).length > 0) {
-      const catalogUrl = options.templateCatalogUrl || DEFAULT_TEMPLATE_CATALOG_URL;
+      const catalogUrls = options.templateCatalogUrl
+        ? [options.templateCatalogUrl]
+        : [DEFAULT_TEMPLATE_CATALOG_URL, FALLBACK_TEMPLATE_CATALOG_URL];
       let catalog = null;
-      try {
-        catalog = JSON.parse(await fetchWithTimeout(catalogUrl, 4000));
-      } catch (err) {
+      for (const catalogUrl of catalogUrls) {
+        try {
+          catalog = JSON.parse(await fetchWithTimeout(catalogUrl, 4000));
+          break;
+        } catch {
+          // try the next catalog URL
+        }
+      }
+      if (!catalog) {
         results.summary.templateCatalogOffline = 1;
         results.items.push({
           type: 'template-catalog',
           name: 'catalog.json',
           status: 'offline',
-          detail: `Template catalog unreachable (${err.message}); upgrade detection skipped.`,
+          detail: `Template catalog unreachable (${catalogUrls.join(' / ')}); upgrade detection skipped.`,
         });
       }
       if (catalog) {

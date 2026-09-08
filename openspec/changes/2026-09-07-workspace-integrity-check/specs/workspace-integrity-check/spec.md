@@ -42,7 +42,10 @@ For every Level-3 model discovered in the workspace, the report MUST include a r
 object with: `path`, `template`, `pinnedVersion`, `versionStatus`, `gap`,
 `templateResolved`, `freshness`, `errors[]`, and `warnings[]`. `versionStatus` MUST use
 the shared vocabulary (`current`, `upgrade-available`, `ahead`, `unlisted`, `unpinned`,
-or `unknown`); `gap` MUST be one of `major`, `minor`, `patch`, or `none`. `errors[]` and
+or `unknown`); `gap` MUST be one of `major`, `minor`, `patch`, `none`, `same`, or
+`null` — `none` when no meaningful comparison exists (unpinned / unlisted / offline),
+`same` when the pinned version equals the adopted version, the bump kind when an
+upgrade is available, and `null` when a version is unparseable. `errors[]` and
 `warnings[]` MUST carry the model's validation diagnostics and its cross-model
 traceability diagnostics, unfiltered.
 
@@ -68,7 +71,7 @@ traceability diagnostics, unfiltered.
 
 The report MUST include a workspace-level aggregate with: a count of models per
 `versionStatus`, a count of models with validation errors, `catalogSource` (how the
-published catalog was resolved, e.g. `remote`, `in-repo`, or `none`), and `offline`
+published catalog was resolved: `remote`, `in-repo`, or `offline`), and `offline`
 (boolean, true when the catalog and/or freshness remotes were unreachable).
 
 #### Scenario: Aggregate counts per status

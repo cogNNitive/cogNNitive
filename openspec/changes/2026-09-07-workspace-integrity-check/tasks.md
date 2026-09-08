@@ -10,11 +10,12 @@
   slice-3 concern. Slice 1: `parsePinnedUrl` / `parseSemVer` fixtures use this URL shape.
 - [x] **(b) `nn-innfo` SKILL.md §1 drift.** RESOLVED (orchestrator pre-flight): OUT OF SCOPE for this
   change. Tool-count / `prune_orphaned_specs` drift is not touched. Deferred to a follow-up.
-- [ ] **(c) `cross-model-reference-validation` delta.** Confirm AD-4's `collectWorkspaceDiagnostics` /
-  `filterDiagnosticsForModel` split fully covers the "diagnostics no longer filtered to one model"
-  need, or whether a standalone `cross-model-reference-validation` delta spec is still required.
-- [ ] **(b2) Catalog `--check` in CI.** Design open question: wire `scripts/template-catalog.mjs --check`
-  into `verify.js` alongside the primitives drift guard in slice 3, or defer to a follow-up.
+- [x] **(c) `cross-model-reference-validation` delta.** RESOLVED (slice 2 apply): AD-4's
+  `collectWorkspaceDiagnostics` / `filterDiagnosticsForModel` split fully covers the
+  "diagnostics no longer filtered to one model" need; no standalone delta spec is required.
+- [x] **(b2) Catalog `--check` in CI.** RESOLVED (slice 3 apply): `scripts/template-catalog.mjs --check`
+  is wired into `verify.js` alongside the primitives drift guard. It immediately caught a real drift
+  (business V_0-2-1 → V_0-2-3 from the concurrent template work).
 
 ## Review Workload Forecast
 
@@ -103,28 +104,28 @@ Depends on: slice 1 (`innfo-core` `dist/` built and consumed). Blocks: nothing d
 lines — under 800, over 400 SDD default. May sub-split: **2a** = `validate.ts` refactor (2.0–2.4),
 **2b** = new tool (2.5–2.9), if the diff exceeds ~450 lines.
 
-- [ ] 2.0 Rebuild core first: `npm --prefix iNNfo/packages/innfo-core run build` (stale `dist/` surfaces
+- [x] 2.0 Rebuild core first: `npm --prefix iNNfo/packages/innfo-core run build` (stale `dist/` surfaces
   as `<fn> is not a function` and looks like an integration bug).
-- [ ] 2.1 RED — `validate.spec.ts`: `filterDiagnosticsForModel` (pure) + `collectWorkspaceDiagnostics`
+- [x] 2.1 RED — `validate.spec.ts`: `filterDiagnosticsForModel` (pure) + `collectWorkspaceDiagnostics`
   on a `mkdtemp` fixture workspace, asserting ONE `recursiveParse`.
-- [ ] 2.2 GREEN — Split `validate.ts:243` into `collectWorkspaceDiagnostics(rootDir, cache)` + pure
+- [x] 2.2 GREEN — Split `validate.ts:243` into `collectWorkspaceDiagnostics(rootDir, cache)` + pure
   `filterDiagnosticsForModel(diags, rootDir, resolvedModelPath)`; rewrite `runWorkspaceValidation` as the
   2-line composition. Delete the stale L229-242 comment; replace with an accurate one.
-- [ ] 2.3 REGRESSION — Existing `validate_model` suite (both `workspace` modes) passes untouched;
+- [x] 2.3 REGRESSION — Existing `validate_model` suite (both `workspace` modes) passes untouched;
   `workspace: true` output byte-for-byte identical.
-- [ ] 2.4 GREEN — Export `freshnessVerdict` from `resolver-node.ts` (visibility-only change).
-- [ ] 2.5 RED — `check-workspace.spec.ts` (mkdtemp, network stubbed): self-heals a missing template
+- [x] 2.4 GREEN — Export `freshnessVerdict` from `resolver-node.ts` (visibility-only change).
+- [x] 2.5 RED — `check-workspace.spec.ts` (mkdtemp, network stubbed): self-heals a missing template
   package → `hydrated`, existing `specs/` bytes untouched; `offline: true` → full local validation with
   `unknown` / `offline`; `summary_only: true` trims `models` (cap 25, `truncated: true`) but not `aggregate`.
-- [ ] 2.6 GREEN — Create `tools/check-workspace.ts`: Node ports (`discoverModels` `level === 3`;
+- [x] 2.6 GREEN — Create `tools/check-workspace.ts`: Node ports (`discoverModels` `level === 3`;
   `validateAll` via `collectWorkspaceDiagnostics` + merged first-wins `SpecCache`; `fetchCatalog`;
   `resolveTemplate` via `resolveParentChainNode(..., { checkFreshness: false })`; `checkFreshness` via
   `freshnessVerdict`), executing AD-5 steps 1–6 (self-heal → collect → validate+filter → classify → dedup freshness).
-- [ ] 2.7 GREEN — Register in `server.ts`: `toolDefinitions` entry + `inputSchema` (`root`,
+- [x] 2.7 GREEN — Register in `server.ts`: `toolDefinitions` entry + `inputSchema` (`root`,
   `summary_only`, `offline`) + `case 'check_workspace'` returning `envelope('innfo-check-workspace', report)`.
-- [ ] 2.8 REFACTOR — Per-model `TEMPLATE_CACHE_STALE` warnings preserve `code` / `message` / `promptHint`
+- [x] 2.8 REFACTOR — Per-model `TEMPLATE_CACHE_STALE` warnings preserve `code` / `message` / `promptHint`
   / canonical URL; warnings never mark a model or the pass failed.
-- [ ] 2.9 Verify — rebuild core → `npm --prefix iNNfo test` → `npm --prefix iNNfo run typecheck` →
+- [x] 2.9 Verify — rebuild core → `npm --prefix iNNfo test` → `npm --prefix iNNfo run typecheck` →
   `lint` → `node scripts/verify.js`.
 
 Boundary — Start: no `check_workspace`; `runWorkspaceValidation` monolithic; stale comment present.
@@ -142,26 +143,26 @@ Per-Model Field; `template-freshness-diagnostic` §MCP Server Parity (`check_wor
 Depends on: slice 1 (`versionStatus.ts` is the esbuild input). Blocks: slice 4 (canonical catalog URL).
 Est. ~180 hand-written + ~120 generated.
 
-- [ ] 3.1 RED — node test: `scripts/build-preflight-primitives.mjs --check` exits 1 on drift, 0 when the
+- [x] 3.1 RED — node test: `scripts/build-preflight-primitives.mjs --check` exits 1 on drift, 0 when the
   committed artifact matches the rendered bundle.
-- [ ] 3.2 GREEN — Create `scripts/build-preflight-primitives.mjs`: esbuild (via hoisted `tsup`)
+- [x] 3.2 GREEN — Create `scripts/build-preflight-primitives.mjs`: esbuild (via hoisted `tsup`)
   `--bundle --format=cjs --platform=neutral` from `innfo-core/src/workspace/integrity/versionStatus.ts` →
   `actioNN/skills/nn-preflight/scripts/lib/version-status.generated.cjs`; `--check` mirrors `template-catalog.mjs`.
-- [ ] 3.3 GREEN — Commit the generated `version-status.generated.cjs`; mark it review-exempt in the PR body.
-- [ ] 3.4 GREEN — `upgrade-check.js`: delete the 5 private fns + the L143-215 decision tree; `require`
+- [x] 3.3 GREEN — Commit the generated `version-status.generated.cjs`; mark it review-exempt in the PR body.
+- [x] 3.4 GREEN — `upgrade-check.js`: delete the 5 private fns + the L143-215 decision tree; `require`
   the generated module; `scanWorkspaceUpgrades` calls `classifyAgainstCatalog` per model. Keep
   `discoverModels` fs orchestration in the CLI.
-- [ ] 3.5 REGRESSION — `upgrade-check.test.js` passes unchanged against the delegated implementation.
-- [ ] 3.6 GREEN — `scripts/build-docs.mjs`: add a step adjacent to CDN-bundle staging — run
+- [x] 3.5 REGRESSION — `upgrade-check.test.js` passes unchanged against the delegated implementation.
+- [x] 3.6 GREEN — `scripts/build-docs.mjs`: add a step adjacent to CDN-bundle staging — run
   `node scripts/template-catalog.mjs`, copy the result to `docs/innfo/templates/catalog.json`.
-- [ ] 3.7 GREEN — `preflight-check.js`: prefer `https://cognnitive.com/innfo/templates/catalog.json`,
+- [x] 3.7 GREEN — `preflight-check.js`: prefer `https://cognnitive.com/innfo/templates/catalog.json`,
   keep the `raw.githubusercontent.com/.../main/iNNfo/specs/templates/catalog.json` fallback
   (remote-first, 2.5 s timeout → local → offline). Gated on pre-flight (a).
-- [ ] 3.8 GREEN — `scripts/verify.js`: run `node scripts/build-preflight-primitives.mjs --check`;
+- [x] 3.8 GREEN — `scripts/verify.js`: run `node scripts/build-preflight-primitives.mjs --check`;
   add `node scripts/template-catalog.mjs --check` if pre-flight (b2) confirms it belongs here.
-- [ ] 3.9 GREEN — Add `docs/innfo/templates/catalog.json` to the `nn-dev-check-integrity` Group 7
+- [x] 3.9 GREEN — Add `docs/innfo/templates/catalog.json` to the `nn-dev-check-integrity` Group 7
   generated-artifact drift list.
-- [ ] 3.10 Verify — `node scripts/verify.js`; `node scripts/build-docs.mjs` then
+- [x] 3.10 Verify — `node scripts/verify.js`; `node scripts/build-docs.mjs` then
   `git status --porcelain -- docs/` clean; `node actioNN/skills/nn-preflight/scripts/upgrade-check.test.js`.
 
 Boundary — Start: two classifiers (`upgrade-check.js` private copy), no published catalog. Finish: one
@@ -176,27 +177,27 @@ Upgrade Detection Scan (one implementation, no private copy).
 
 Depends on: slices 1 and 3 (canonical catalog URL from AD-3). Est. ~330 lines.
 
-- [ ] 4.0 Rebuild core: `npm --prefix iNNfo/packages/innfo-core run build`.
-- [ ] 4.1 RED — store test: `open()` never awaits the check; a rejecting check does not set `error`;
+- [x] 4.0 Rebuild core: `npm --prefix iNNfo/packages/innfo-core run build`.
+- [x] 4.1 RED — store test: `open()` never awaits the check; a rejecting check does not set `error`;
   `reset()` clears `integrityReport` / `integrityRunning`.
-- [ ] 4.2 GREEN — Create `src/services/workspaceIntegrityPorts.ts`: 3 of 5 ports — `discoverModels` from
+- [x] 4.2 GREEN — Create `src/services/workspaceIntegrityPorts.ts`: 3 of 5 ports — `discoverModels` from
   `modelStore.nodes`, `validateAll` in-memory over parsed roots, `fetchCatalog` same-origin
   `fetch(CATALOG_URL)` 2.5 s timeout; omit `resolveTemplate` + `checkFreshness` → `not-checked`.
-- [ ] 4.3 GREEN — `workspaceStore.ts`: add `integrityReport` / `integrityRunning` state, `_runIntegrityCheck()`,
+- [x] 4.3 GREEN — `workspaceStore.ts`: add `integrityReport` / `integrityRunning` state, `_runIntegrityCheck()`,
   `void this._runIntegrityCheck().catch(() => {})` immediately after `this.hasParsed = true` (L149),
   clear both in `reset()`.
-- [ ] 4.4 RED — component test: three visually distinct bands (invalid / informational / cannot-determine);
+- [x] 4.4 RED — component test: three visually distinct bands (invalid / informational / cannot-determine);
   `unknown` ≠ `invalid`; passive + dismissible; renders `not-checked` distinctly.
-- [ ] 4.5 GREEN — Create `src/components/layout/WorkspaceIntegrityNotice.vue`: three bands per Resolved
+- [x] 4.5 GREEN — Create `src/components/layout/WorkspaceIntegrityNotice.vue`: three bands per Resolved
   Decision 5, mirroring the `useTemplateVersionNotice` / `ModelInfoPanel.vue:316` badge + copyable
   `innfo:` prompt pattern. Only the invalid band uses the error treatment.
-- [ ] 4.6 GREEN — Mount the notice in `WorkspaceDashboard.vue`.
-- [ ] 4.7 GREEN — `actioNN/skills/nn-innfo/SKILL.md`: document `check_workspace` in §1 and the
+- [x] 4.6 GREEN — Mount the notice in `WorkspaceDashboard.vue`.
+- [x] 4.7 GREEN — `actioNN/skills/nn-innfo/SKILL.md`: document `check_workspace` in §1 and the
   workspace-open flow; fix the stale tool count. Flag the `prune_orphaned_specs` drift per pre-flight (b) —
   do NOT silently resolve it.
-- [ ] 4.8 REFACTOR — Assert no FS/Node import reaches the browser bundle; `not-checked` / `offline`
+- [x] 4.8 REFACTOR — Assert no FS/Node import reaches the browser bundle; `not-checked` / `offline`
   fields render visually distinct from "invalid".
-- [ ] 4.9 Verify — rebuild core → `npm --prefix iNNfo test` → `npm --prefix iNNfo run typecheck` →
+- [x] 4.9 Verify — rebuild core → `npm --prefix iNNfo test` → `npm --prefix iNNfo run typecheck` →
   `lint` → `npm --prefix iNNfo/apps/innfo-editor run build` → `node scripts/verify.js`.
 
 Boundary — Start: `workspaceStore` has zero integrity hooks. Finish: report produced fire-and-forget on

@@ -12,8 +12,10 @@ import { buildSpecificationUrl } from '../utils/constants'
 import { IndexedDbWorkspaceRepository } from '../repositories/IndexedDbWorkspaceRepository'
 import type { IWorkspaceRepository } from '../repositories/IWorkspaceRepository'
 import { parseFrontmatter } from '@cognnitive/innfo-core'
+import type { WorkspaceIntegrityReport } from '@cognnitive/innfo-core'
 import { useUrlDocLoader } from '../composables/useUrlDocLoader'
 import { reconcileWorkspaceManifest } from '../services/WorkspaceSyncService'
+import { createWorkspaceIntegrityPorts } from '../services/workspaceIntegrityPorts'
 import type { DirectoryHandleLike, FileHandleLike } from '../model/fs-types'
 import type { BumpLevel } from '../utils/version'
 import type { ModelDriver } from '@cognnitive/innfo-core'
@@ -41,6 +43,10 @@ export interface WorkspaceState {
   sampleTemplateName: string
   /** Set by open() when folder contains zero _NN.md model files. */
   emptyFolderError: boolean
+  /** Workspace integrity report, produced fire-and-forget on open() (AD-6). */
+  integrityReport: WorkspaceIntegrityReport | null
+  /** True while the non-blocking integrity check is in flight. */
+  integrityRunning: boolean
 }
 
 async function resolveFileHandleForWrite(
@@ -96,6 +102,8 @@ export const useWorkspaceStore = defineStore('workspace', {
     isSampleSession: false,
     sampleTemplateName: '',
     emptyFolderError: false,
+    integrityReport: null,
+    integrityRunning: false,
   }),
   actions: {
     /**
@@ -154,6 +162,11 @@ export const useWorkspaceStore = defineStore('workspace', {
         uiStore.setActiveView('editor')
         uiStore.selectNode(null)
 
+        // Fire-and-forget workspace integrity check (AD-6): never blocks the
+        // first paint, never rejects into open(), catalog-only on open
+        // (Resolved Decision 4).
+        void this._runIntegrityCheck().catch(() => {})
+
         // Persist session state after successful parse
         const rootId = modelStore.rootIds[0]
         if (rootId) {
@@ -168,6 +181,29 @@ export const useWorkspaceStore = defineStore('workspace', {
         throw err
       } finally {
         this.isParsing = false
+      }
+    },
+
+    /**
+     * Runs the workspace integrity check against the in-memory graph and the
+     * same-origin template catalog. Non-blocking and informational: a failure
+     * of any port (or of the whole pass) clears the report and is swallowed —
+     * it must never set `error` or prevent editing. Catalog-only on open
+     * (Resolved Decision 4): resolveTemplate/checkFreshness are omitted, so
+     * those fields render as `not-checked`.
+     */
+    async _runIntegrityCheck(): Promise<void> {
+      if (this.integrityRunning) return
+      this.integrityRunning = true
+      try {
+        const { buildWorkspaceIntegrityReport } = await import('@cognnitive/innfo-core')
+        const report = await buildWorkspaceIntegrityReport(createWorkspaceIntegrityPorts())
+        this.integrityReport = report
+      } catch (err) {
+        console.warn('[integrity] Workspace integrity check failed:', err)
+        this.integrityReport = null
+      } finally {
+        this.integrityRunning = false
       }
     },
 
@@ -305,6 +341,8 @@ export const useWorkspaceStore = defineStore('workspace', {
       this.isSampleSession = false
       this.sampleTemplateName = ''
       this.emptyFolderError = false
+      this.integrityReport = null
+      this.integrityRunning = false
     },
 
     /**

@@ -26,56 +26,21 @@
 const fs = require('fs');
 const path = require('path');
 const { parseFrontmatter, parseFocusedYaml } = require('./lib/yaml-lite');
+// Single classifier for the whole ecosystem: the primitives are bundled from
+// innfo-core (AD-2) by scripts/build-preflight-primitives.mjs and drift-guarded
+// by scripts/verify.js step 11. No private copy may live here.
+const {
+  parseSemVer,
+  gapKind,
+  compareVersions,
+  parsePinnedUrl,
+  classifyAgainstCatalog,
+} = require('./lib/version-status.generated.cjs');
 
 const SCAN_SKIP_DIRS = new Set([
   '.git', '.backup', '.spec-cache', 'node_modules', 'dist', 'backups', 'archive',
   'sources', 'conversations', 'export', 'artifacts', 'procedures', 'specs', 'templates',
 ]);
-
-const VERSION_RE = /V_(\d+)-(\d+)-(\d+)/i;
-
-function parseSemVer(v) {
-  const m = String(v).match(VERSION_RE);
-  if (!m) return null;
-  return { major: Number(m[1]), minor: Number(m[2]), patch: Number(m[3]) };
-}
-
-/**
- * Gap between two template versions as the SemVer bump of `adopted` over `pinned`.
- * Returns 'same' | 'major' | 'minor' | 'patch' | null (unparseable).
- */
-function gapKind(pinned, adopted) {
-  const a = parseSemVer(pinned);
-  const b = parseSemVer(adopted);
-  if (!a || !b) return null;
-  if (a.major === b.major && a.minor === b.minor && a.patch === b.patch) return 'same';
-  if (a.major !== b.major) return 'major';
-  if (a.minor !== b.minor) return 'minor';
-  return 'patch';
-}
-
-/** Numeric comparison: -1 | 0 | 1. */
-function compareVersions(a, b) {
-  const va = parseSemVer(a);
-  const vb = parseSemVer(b);
-  if (!va || !vb) return 0;
-  return (va.major - vb.major) || (va.minor - vb.minor) || (va.patch - vb.patch);
-}
-
-/**
- * Extract { name, version } from a canonical template URL.
- * Handles both the flat layout (<name>_V_x-y-z..._NN.md) and the package
- * layout (<name>/V_x-y-z/spec_NN.md). Returns null when the URL does not
- * pin a versioned canonical template (e.g. a local specialization).
- */
-function parsePinnedUrl(url) {
-  const basename = String(url).split('/').pop().replace(/\.md$/i, '');
-  const flat = basename.match(/^(.+?)_V_(\d+)-(\d+)-(\d+)(?:_spec)?_NN$/i);
-  if (flat) return { name: flat[1], version: `V_${flat[2]}-${flat[3]}-${flat[4]}` };
-  const pkg = String(url).match(/templates\/([^/]+)\/V_(\d+)-(\d+)-(\d+)\/spec_NN\.md/i);
-  if (pkg) return { name: pkg[1], version: `V_${pkg[2]}-${pkg[3]}-${pkg[4]}` };
-  return null;
-}
 
 /** Recursive `*_NN.md` walk of the workspace, skipping noise/staging dirs. */
 function walkModels(dir, files) {
@@ -127,6 +92,12 @@ function discoverModels(workspaceDir) {
 /**
  * Classify every workspace model against the catalog.
  * `catalog` shape: { templates: { <name>: { name, adopted, versions: [{template_version}] } } }
+ *
+ * Classification delegates to the shared `classifyAgainstCatalog` primitive
+ * (bundled from innfo-core) so the CLI, `innfo-mcp` check_workspace, and the
+ * editor all agree on one model's status. The `kind` field (bump gap) is
+ * surfaced only for `upgrade-available` items, matching the pre-delegation
+ * item shape.
  */
 function scanWorkspaceUpgrades(workspaceDir, catalog) {
   const models = discoverModels(workspaceDir);
@@ -141,76 +112,25 @@ function scanWorkspaceUpgrades(workspaceDir, catalog) {
   };
 
   for (const model of models) {
-    if (!model.parentUrl) {
-      summary.unpinned++;
-      items.push({ type: 'template-upgrade', name: model.rel, status: 'unpinned', template: null, detail: 'No parent_spec.url' });
-      continue;
-    }
+    const cls = classifyAgainstCatalog(model.parentUrl, catalog);
 
-    const pinned = parsePinnedUrl(model.parentUrl);
-    if (!pinned) {
-      summary.unlisted++;
-      items.push({
-        type: 'template-upgrade', name: model.rel, status: 'unlisted', template: null,
-        pinned: null, url: model.parentUrl, detail: 'Not a versioned canonical template URL',
-      });
-      continue;
-    }
-
-    const entry = catalog && catalog.templates && catalog.templates[pinned.name];
-    if (!entry) {
-      summary.unlisted++;
-      items.push({
-        type: 'template-upgrade', name: model.rel, status: 'unlisted', template: pinned.name,
-        pinned: pinned.version, url: model.parentUrl, detail: 'Template not in catalog',
-      });
-      continue;
-    }
-
-    const known = entry.versions.some((v) => v.template_version === pinned.version);
-    if (!known && compareVersions(pinned.version, entry.adopted) > 0) {
-      summary.ahead++;
-      items.push({
-        type: 'template-upgrade', name: model.rel, status: 'ahead', template: pinned.name,
-        pinned: pinned.version, adopted: entry.adopted, url: model.parentUrl,
-        detail: 'Model is ahead of the catalog adopted version',
-      });
-      continue;
-    }
-    if (!known) {
-      summary.unlisted++;
-      items.push({
-        type: 'template-upgrade', name: model.rel, status: 'unlisted', template: pinned.name,
-        pinned: pinned.version, adopted: entry.adopted, url: model.parentUrl,
-        detail: 'Version not in catalog',
-      });
-      continue;
-    }
-
-    const kind = gapKind(pinned.version, entry.adopted);
-    const cmp = compareVersions(pinned.version, entry.adopted);
-    let status;
-    if (kind === 'same') status = 'current';
-    else if (cmp < 0) status = 'upgrade-available';
-    else if (cmp > 0) status = 'ahead';
-    else status = 'unlisted';
-
-    if (status === 'current') summary.current++;
-    else if (status === 'upgrade-available') summary.upgradeAvailable++;
-    else if (status === 'ahead') summary.ahead++;
-    else summary.unlisted++;
+    if (cls.status === 'current') summary.current++;
+    else if (cls.status === 'upgrade-available') summary.upgradeAvailable++;
+    else if (cls.status === 'ahead') summary.ahead++;
+    else if (cls.status === 'unlisted') summary.unlisted++;
+    else if (cls.status === 'unpinned') summary.unpinned++;
 
     const item = {
       type: 'template-upgrade',
       name: model.rel,
-      status,
-      template: pinned.name,
-      pinned: pinned.version,
-      adopted: entry.adopted,
+      status: cls.status,
+      template: cls.template,
+      pinned: cls.pinned,
+      adopted: cls.adopted,
       url: model.parentUrl,
     };
-    if (status === 'upgrade-available') item.kind = kind;
-    if (status === 'ahead') item.detail = 'Model is ahead of the catalog adopted version';
+    if (cls.status === 'upgrade-available') item.kind = cls.gap;
+    if (cls.detail) item.detail = cls.detail;
     items.push(item);
   }
 
