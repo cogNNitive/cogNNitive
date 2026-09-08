@@ -21,7 +21,7 @@ skills:
     version: "V_0-4-0"
     ref_key: skills
     description: Author, edit, and validate iNNfo models with built-in step-by-step Model Creation Wizard.
-    templates: [workspace_spec_NN]
+    templates: [workspace]
     mcp:
       - name: innfo-mcp
         repo: cogNNitive/cogNNitive
@@ -139,7 +139,7 @@ workflows:
     label: Create an iNNfo model
     description: Turn an idea, document, or dataset into a validated structured model.
     skill: nn-innfo
-    template: workspace_spec_NN
+    template: workspace
   - id: transform
     label: Transform a document
     description: Normalize a PDF/DOCX/XLSX into clean Markdown, or export to HTML.
@@ -164,10 +164,10 @@ channels:
         ref: skills-v1.3.0
       - key: templates
         repo: cogNNitive/cogNNitive
-        ref: templates-v0.3.1
+        ref: templates-v0.4.0
       - key: innfo-mcp
         repo: cogNNitive/cogNNitive
-        ref: innfo-mcp-v0.5.0
+        ref: innfo-mcp-v0.4.0
   preview:
     refs:
       - key: skills
