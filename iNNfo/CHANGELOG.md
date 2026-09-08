@@ -1,22 +1,50 @@
 ﻿# Changelog
 
-## Unreleased (2026-09-08)
+## v0.4.0 (2026-09-08)
 
-### Templates — `business` `V_0-2-1` → `V_0-2-3`
+### iNNfo Suite — workspace integrity check (one pass, two surfaces)
+- **`innfo-mcp` new tool `check_workspace`** — one consolidated workspace
+  integrity pass over every Level-3 model: validates each against its template
+  and traceability (one `recursiveParse`, merged `SpecCache`), self-heals
+  missing template packages/specs via write-once hydration
+  (`resolved` / `hydrated` / `unresolved`), classifies each pinned template
+  version against the published catalog (`current` / `upgrade-available` /
+  `ahead` / `unlisted` / `unpinned`), and computes per-template byte-hash
+  freshness (deduplicated by URL, concurrency-capped). Non-blocking and
+  informational — validation failures never fail the tool. `summary_only`
+  trims the per-model list (cap 25) while the aggregate stays full.
+- **`innfo-editor` workspace-open integrity report** — `workspaceStore.open()`
+  runs the same pass fire-and-forget (never blocks, never fails opening) using
+  browser ports: catalog-only on open (Resolved Decision 4; per-template
+  freshness renders as `not-checked`). New passive, dismissible
+  `WorkspaceIntegrityNotice` with three visually distinct bands (invalid /
+  informational / cannot-determine), so "cannot determine" never renders as
+  "invalid".
+- **Shared classifier, one implementation** — the version-status primitives
+  (`parseSemVer`, `gapKind`, `compareVersions`, `parsePinnedUrl`,
+  `classifyAgainstCatalog`) live in `innfo-core` and are consumed by the
+  preflight CLI (via the committed `version-status.generated.cjs`), by
+  `check_workspace`, and by the editor.
+- **Template catalog published** — `docs/innfo/templates/catalog.json`
+  (same-origin canonical URL) staged by `build-docs.mjs`; `preflight-check.js`
+  and `check_workspace` resolve it remote-first (Pages → raw → in-repo →
+  offline). Drift-guarded in `scripts/verify.js`.
 
-- **`V_0-2-2` — new procedure `compile-model-viewer`**
+### Templates - `business` `V_0-2-1`  `V_0-2-3`
+
+- **`V_0-2-2` - new procedure `compile-model-viewer`**
   (`procedures/compile_model_viewer_NN.md`), alongside `compile-strategic-master`.
   It resolves the model's schema (`parent_spec` + transitive `includes`),
-  serializes the model to JSON, and writes two blocks — `#innfo-schema` and
-  `#innfo-model` — into a template-agnostic reference shell. The agent authors
+  serializes the model to JSON, and writes two blocks - `#innfo-schema` and
+  `#innfo-model` - into a template-agnostic reference shell. The agent authors
   no markup.
-- **`V_0-2-2` — new asset `assets/model_viewer.html`** — a single
+- **`V_0-2-2` - new asset `assets/model_viewer.html`** - a single
   self-contained consultation page: inline CSS, inline vanilla-JS renderer,
   left rail of concepts, expandable element cards (fields, marker chips,
   description), in-page relationship links, matrix grids, and a live text
   filter. Offline, read-only. Registered in `spec_NN.md` `assets:` as
   `model-viewer-shell`.
-- **`V_0-2-3` — docs-and-sample patch.** Adds
+- **`V_0-2-3` - docs-and-sample patch.** Adds
   `samples/Ghostbusters_V_0-2-3_business_NN.md` (the `V_0-2-1` sample re-pointed
   at this version; `Ghostbusters_V_0-2-1_business_NN.md` retained for consumers
   still pinned to `V_0-2-1`) and finalizes the Canonical Sample docs in
