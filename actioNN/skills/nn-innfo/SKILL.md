@@ -1,7 +1,7 @@
 ---
 name: nn-innfo
-version: "V_0-3-0"
-last_updated: 2026-09-07
+version: "V_0-4-0"
+last_updated: 2026-09-08
 metadata:
   source_type: "original"
   mcp: "innfo-mcp"
@@ -12,7 +12,7 @@ bundled_templates:
 description: |
   Domain skill for creating, editing, validating, scaffolding, or discussing iNNfo models, templates, specializations, samples, or specification files. Includes the conversational Model Creation Wizard and Architecture Coach. Triggers: innfo, iNNfo, /nn-innfo, model, template, *_NN.md, procedures_V_0-1-0_NN.md.
   This includes but is not limited to:
-  - Creating a new model step-by-step using templates (Business, Procedures, Organization, Blank)
+  - Creating a new model step-by-step using templates (Business, Procedures, Organization, Metrics, Blank)
   - Creating or editing any file matching *_NN.md
   - Authoring or modifying business models, procedure models, or any model following an iNNfo template
   - Creating, editing, or modifying templates or specializations under docs/templates/
@@ -37,7 +37,7 @@ description: |
 ## Activation Contract
 
 Activates when the user invokes `/nn-innfo`, mentions domain keywords `innfo`, `iNNfo`, `model`, `template`, references files matching `*_NN.md` or `procedures_V_0-1-0_NN.md`, or explicitly asks to:
-- Create a new model step-by-step using templates (Business, Procedures, Organization, Blank).
+- Create a new model step-by-step using templates (Business, Procedures, Organization, Metrics, Blank).
 - Create or edit any file matching `*_NN.md`.
 - Author or modify business models, procedure models, or any model following an iNNfo template.
 - Create, edit, or modify templates or specializations under `docs/templates/`.
@@ -89,7 +89,7 @@ Before executing options **[b]**, **[c]**, **[d]**, or **[x]**, the agent MUST e
 If the user wants to create a model but is unsure which template fits best:
 
 1. Ask 2-3 brief diagnostic questions:
-   - Is the goal to structure a business model / value proposition, a step-by-step operational process, or an organizational / team structure?
+   - Is the goal to structure a business model / value proposition, a step-by-step operational process, an organizational / team structure, or a quantified metrics / projections model?
    - Do you have source documents in `sources/nn/` to extract information from, or are we starting from scratch?
 2. Recommend the optimal template with a 1-sentence technical justification and mark option `[a]` with `(Recommended)`.
 
@@ -107,11 +107,12 @@ Creating **any** model — with a canonical template, custom template, or withou
 - **[a] (Recommended)** Business Model 🏢
 - **[b]** Procedures Model 📋
 - **[c]** Organization Model 👥
-- **[d]** Blank / 100% custom design from scratch
+- **[d]** Metrics Model 📊
+- **[e]** Blank / 100% custom design from scratch
 - **[x]** Cancel
 *(Notice: You can select one option or a combination (e.g. A and B))*.
 
-**A2a. If a canonical template was selected ([a]/[b]/[c]):**
+**A2a. If a canonical template was selected ([a]/[b]/[c]/[d]):**
 Resolve the template with `innfo-mcp_get_template` and display an informative summary of the Concepts, Fields, Matrices, and Markers it already defines. Then offer:
 - **[a] (Recommended)** Use template as-is, without modifications
 - **[b]** Customize it (create specialization — see §9)
@@ -119,7 +120,7 @@ Resolve the template with `innfo-mcp_get_template` and display an informative su
 
 > ⚠️ If the user chooses to customize, warn explicitly: **modifying a canonical template is not recommended unless the reason is very clear** — modifying it unnecessarily reduces compatibility with the rest of the iNNfo ecosystem which assumes that template unchanged.
 
-**A2b. If [d] Blank was selected, or the user confirmed customization in A2a [b]:**
+**A2b. If [e] Blank was selected, or the user confirmed customization in A2a [b]:**
 Design from scratch, in this order, consulting `innfo-mcp_get_spec` for the exact grammar of each primitive (never invent it):
 
 1. **Concepts**: which Concepts the template will have (the root categories of the model).
