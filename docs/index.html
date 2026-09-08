@@ -350,6 +350,23 @@
       0%, 100% { opacity: 1; }
       50% { opacity: 0; }
     }
+    .heartbeat-word {
+      display: inline-block;
+      color: var(--brand);
+      font-weight: 700;
+      transform-origin: center;
+      animation: heartbeat 1.8s ease-in-out infinite;
+    }
+    @keyframes heartbeat {
+      0%, 100% { transform: scale(1); }
+      14% { transform: scale(1.3); }
+      28% { transform: scale(1); }
+      42% { transform: scale(1.3); }
+      70% { transform: scale(1); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .heartbeat-word { animation: none; }
+    }
     .source-wrapper {
       display: flex;
       flex-direction: column;
@@ -622,7 +639,7 @@
           <span class="badge-pill">&#x2728; Living Knowledge Engine</span>
         </div>
         <h1>Knowledge Management <br><span class="accent">made ridiculously simple</span> for humans and AI.</h1>
-        <p>Turn scattered documentation into living, structured knowledge that your AI agent understands.</p>
+        <p>Turn scattered documentation into <span class="heartbeat-word">living</span>, structured knowledge that your AI agent understands.</p>
         <div class="hero-actions">
           <a href="https://cognnitive.com/innfo/app/" class="btn-primary">Open iNNfo Modeler App &rarr;</a>
           <a href="https://cognnitive.com/actionn" class="btn-secondary">Explore Agent Skills</a>
