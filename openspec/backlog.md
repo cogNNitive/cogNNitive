@@ -219,3 +219,103 @@ auto-migration; consent + backup + re-validation gates from the parent change st
 
 **Suggested trigger:** `/sdd-explore local-specialization-migration` when the workspace
 upgrade flow ships.
+
+---
+
+## 9. `feat/massive-renaming-app` — mass rename of application elements for cognitive simplicity, including `template` → `app`
+
+**Type:** functional
+
+**Why:** the application's naming vocabulary is cognitively heavier than it needs to be.
+In particular, the Level 2 concept currently called **template** (the iNNfo `_spec_NN.md`
+schemas that Level 3 models pin via `parent_spec`) should be renamed to **app** throughout
+the product. This is part of a broader desire to mass-rename the application's elements so
+the surface is cognitively simpler and more consistent for users.
+
+**Behaviour (as requested):**
+1. **Rename `template` → `app`** — replace the term "template" with "app" across the
+   user-facing and conceptual vocabulary for the Level 2 concept. Includes the catalog /
+   manifest distribution, editor labels and navigation, docs, and skill copy (e.g.
+   `nn-innfo`, `nn-trannsform`, `nn-template-audit` trigger language), while keeping any
+   internal identifiers / canonical file names stable where renaming them would break
+   resolution (explicitly decide per surface, not blindly).
+2. **Mass rename of remaining application elements** — audit the full element vocabulary
+   (concepts, fields, labels, concepts names, UI copy) and propose a renamed, simpler,
+   more consistent surface.
+
+**Approach (open):** precedent exists in `2026-09-06_workspace-models-rename.md`
+(concept rename `Models` → `ModelRecords` with composition-collision and provenance
+guards). A similar rename audit is needed here, but at product-vocabulary scale rather
+than a single concept. The `template` → `app` rename has two surfaces with different
+risk: the *conceptual/user-facing* vocabulary (safe to rename) and the *mechanical
+identifiers* (`_spec_NN.md`, `parent_spec.url`, catalog entries, template registry in
+`scripts/template-catalog.mjs` and `manifest/source.yaml`) where renaming breaks
+resolution and pinning — these likely need an alias/migration layer or a coordinated
+version bump, not a blind find-and-replace.
+
+**Size:** large — touches product vocabulary, editor UI, docs, skills, and the
+template/app distribution and resolution machinery. Do NOT attempt as one change; split
+into a user-facing vocabulary pass (low risk) and a mechanical identifier migration (high
+risk, needs alias/versioning strategy).
+
+**Suggested trigger:** `/sdd-explore massive-renaming-app` — the `template` → `app`
+rename and the general element rename should be scoped separately in the exploration.
+
+---
+
+## 10. `feat/repository-template` — new "repositorio" template for managing a GitHub repository's state, releases, and changes
+
+**Type:** functional
+
+**Why:** there is no Level 2 template for modelling a GitHub repository lifecycle. A
+maintainer wants a template called **repositorio** whose job is to manage the *state* of a
+repository, its *releases*, and its *changes* — giving a structured place to track where
+a repo is, what has shipped, and what is in flight.
+
+**Behaviour (as requested):**
+1. A new Level 2 template named **repositorio** (the template's own name is
+   "repositorio").
+2. It models a GitHub repository's lifecycle: **estado** (current state), **releases**
+   (shipped versions / tags), and **cambios** (changes / PRs / commits in flight).
+
+**Approach (open):** a new standalone Level 2 template under
+`iNNfo/specs/templates/repositorio/` (mirroring the structure of `projects`,
+`procedures`, `analysis`, etc.), with concepts for repository state, releases, and
+changes, plus a canonical Ghostbusters Inc. sample and a cross-reference entry from the
+business composite if in scope. Follows the `nn-template-audit` 7 compliance criteria and
+100% English content rule; whether the canonical template name stays Spanish ("repositorio")
+as requested or is anglicised for the artifact layer is an explicit decision to confirm
+before authoring.
+
+**Size:** medium — one new standalone template package + sample + catalog / manifest
+registration + audit pass.
+
+**Suggested trigger:** `/sdd-explore repository-template`.
+
+---
+
+## 11. `feat/video-generator-template` — new template for a video generator
+
+**Type:** functional
+
+**Why:** the application has no template purpose-built for driving a video generator.
+Existing workflow samples (`docs/actionn/templates/workflow/`, e.g. `video-processing`)
+and `nn-trannsform` examples (`paper-to-youtube`) touch video script generation ad hoc,
+but there is no dedicated Level 2 template that models the inputs and outputs of a video
+generation pipeline.
+
+**Behaviour (as requested):** a new template that represents a **video generator** —
+modelling the pipeline that turns a source (paper, meeting transcript, raw footage) into a
+video (script, storyboard, AnyDeo script, final asset), reusing the existing
+video/transcript/script primitives and workflow patterns already in the repo.
+
+**Approach (open):** decide whether this is a standalone Level 2 template or a
+specialization / workflow variant reusing `docs/actionn/templates/workflow/`. It should
+cover the input sources (PDF, transcript, footage), the intermediate models (narrative,
+script), and the generated outputs (AnyDeo script, video asset), following the same
+compliance and sample-universe rules as other templates.
+
+**Size:** medium — new template + sample + catalog / manifest registration, or an
+extension of the workflow template if the standalone route is not chosen.
+
+**Suggested trigger:** `/sdd-explore video-generator-template`.
