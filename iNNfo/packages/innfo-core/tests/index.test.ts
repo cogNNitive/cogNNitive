@@ -218,12 +218,13 @@ describe('validator', () => {
   const bizTemplateFm = parseFrontmatter(bizTemplateContent)!
 
   // Canonical `business` is a composition shell — its schema is resolved from
-  // the four decomposed templates it `includes`.
+  // the five decomposed templates it `includes`.
   const bizIncludes: Record<string, string> = {
     'business-model': readSpec('templates/business-model/spec_NN.md'),
     analysis: readSpec('templates/analysis/spec_NN.md'),
     organization: readSpec('templates/organization/spec_NN.md'),
     projects: readSpec('templates/projects/spec_NN.md'),
+    metrics: readSpec('templates/metrics/spec_NN.md'),
   }
   const resolveBizInclude = (ref: { name: string }): string | null =>
     bizIncludes[ref.name.toLowerCase()] ?? null

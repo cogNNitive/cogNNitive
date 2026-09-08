@@ -15,15 +15,17 @@ const BUSINESS_MODEL = readSpec('templates/business-model/spec_NN.md')
 const ANALYSIS = readSpec('templates/analysis/spec_NN.md')
 const ORG_V2 = readSpec('templates/organization/spec_NN.md')
 const PROJECTS_V2 = readSpec('templates/projects/spec_NN.md')
+const METRICS = readSpec('templates/metrics/spec_NN.md')
 const BUSINESS_V2 = readSpec('templates/business/spec_NN.md')
 const INNFO_V2 = readSpec('iNNfo_V_0-2-0_NN.md')
 
-/** Resolve an `includes` entry by (lowercased) name from the four decomposed templates on disk. */
+/** Resolve an `includes` entry by (lowercased) name from the five decomposed templates on disk. */
 const byName: Record<string, string> = {
   'business-model': BUSINESS_MODEL,
   analysis: ANALYSIS,
   organization: ORG_V2,
   projects: PROJECTS_V2,
+  metrics: METRICS,
 }
 const resolver = (ref: { name: string }): string | null => byName[ref.name.toLowerCase()] ?? null
 
@@ -192,7 +194,7 @@ describe('business_V_0-2-0 — umbrella composite (D1 marker dedup)', () => {
     )
   })
 
-  it('unions concepts from all four templates', () => {
+  it('unions concepts from all five templates', () => {
     const { schema } = resolveTemplateSchema(BUSINESS_V2, resolver)
     const names = new Set(schema.concepts.map((c) => c.name))
     for (const n of [
@@ -207,6 +209,7 @@ describe('business_V_0-2-0 — umbrella composite (D1 marker dedup)', () => {
       'Project',
       'Phases',
       'Project roles', // projects
+      'Metrics', // metrics
     ]) {
       expect(names.has(n), `expected umbrella concept ${n}`).toBe(true)
     }
