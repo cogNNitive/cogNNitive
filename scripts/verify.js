@@ -121,28 +121,38 @@ function runVerification() {
   // 4. Script static type checking
   run('tsc --noEmit -p tsconfig.scripts.json', 'Typecheck Scripts');
 
-  // 5. Manifest validation
-  run('node scripts/manifest/validate-manifest.js --channel stable', 'Validate Stable Manifest');
-
-  // 6. Rendered stable manifest doc must be in sync with manifest/source.yaml.
-  run('node scripts/manifest/generate-manifest.js --channel stable --check', 'Check Stable Manifest Doc Fresh');
-
-  // 7. Test Template Inventory Guard
-  run('node scripts/verify-inventory.test.js', 'Test Template Inventory Guard');
-
-  // 8. Test Template Immutability Guard
-  run('node scripts/guard-template-immutability.test.js', 'Test Template Immutability Guard');
-
-  // 9. Template Immutability Guard (against real git state)
-  run('node scripts/guard-template-immutability.js', 'Template Immutability Guard');
-
-  // 10. Test Preflight Workspace Freshness
+  // 5. Preflight workspace freshness + the single-classifier drift guards. These
+  //    run BEFORE the stable-manifest validation (step 6) because that step
+  //    currently halts on pre-existing pinned-tag drift — the guards here must
+  //    stay reachable in CI (W2/W3 from the slice-1 verify report).
   run('node actioNN/skills/nn-preflight/scripts/preflight-check.test.js', 'Test Preflight Workspace Freshness');
 
-  // 11. Preflight Primitives Drift Guard: the committed version-status.generated.cjs
-  //     must match the innfo-core source it is bundled from (single classifier, no
-  //     hand-maintained copy).
+  // 6. Preflight Primitives Drift Guard: the committed version-status.generated.cjs
+  //    must match the innfo-core source it is bundled from (single classifier, no
+  //    hand-maintained copy). Plus its own unit tests, wired here so the drift
+  //    guard has automated teeth.
+  run('node scripts/build-preflight-primitives.test.mjs', 'Test Preflight Primitives Build');
   run('node scripts/build-preflight-primitives.mjs --check', 'Check Preflight Primitives Bundle Fresh');
+
+  // 7. Template Catalog Drift Guard: the committed iNNfo/specs/templates/catalog.json
+  //    must match the on-disk templates tree (workspace-template-upgrade, shared
+  //    classifier input for check_workspace and the preflight CLI).
+  run('node scripts/template-catalog.mjs --check', 'Check Template Catalog Fresh');
+
+  // 8. Manifest validation
+  run('node scripts/manifest/validate-manifest.js --channel stable', 'Validate Stable Manifest');
+
+  // 9. Rendered stable manifest doc must be in sync with manifest/source.yaml.
+  run('node scripts/manifest/generate-manifest.js --channel stable --check', 'Check Stable Manifest Doc Fresh');
+
+  // 10. Test Template Inventory Guard
+  run('node scripts/verify-inventory.test.js', 'Test Template Inventory Guard');
+
+  // 11. Test Template Immutability Guard
+  run('node scripts/guard-template-immutability.test.js', 'Test Template Immutability Guard');
+
+  // 12. Template Immutability Guard (against real git state)
+  run('node scripts/guard-template-immutability.js', 'Template Immutability Guard');
 
   console.log('\n✅ [cogNNitive Verify] All deterministic pre-checks passed.');
 }

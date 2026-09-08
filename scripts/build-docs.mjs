@@ -100,6 +100,20 @@ const manifest = {
 fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n', 'utf8');
 console.log(`✅ Updated docs/innfo/cdn/manifest.json (latest: v${version})`);
 
+// 3b. Stage the Level-2 template catalog so it is reachable at a canonical
+// same-origin URL for the browser editor and non-monorepo workspaces (AD-3,
+// tier 1): https://cognnitive.com/innfo/templates/catalog.json
+console.log('\n▶ Staging template catalog into docs/innfo/templates/catalog.json...');
+const catalogSrc = path.join(repoRoot, 'iNNfo', 'specs', 'templates', 'catalog.json');
+const catalogTargetDir = path.join(repoRoot, 'docs', 'innfo', 'templates');
+if (!fs.existsSync(catalogSrc)) {
+  console.error(`❌ Template catalog not found at: ${catalogSrc}. Run scripts/template-catalog.mjs first.`);
+  process.exit(1);
+}
+fs.mkdirSync(catalogTargetDir, { recursive: true });
+fs.copyFileSync(catalogSrc, path.join(catalogTargetDir, 'catalog.json'));
+console.log('✅ Staged docs/innfo/templates/catalog.json');
+
 // 4. Generate Docsify documentation suites from iNNfo models
 run(
   'node scripts/generate-docsify-suite.mjs docs/innfo/documentation/documentation_NN.md',

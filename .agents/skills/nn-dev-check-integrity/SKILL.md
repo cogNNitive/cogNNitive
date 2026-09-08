@@ -241,8 +241,9 @@ node scripts/manifest/generate-manifest.js --channel preview
 git status --porcelain -- docs/
 ```
 - ❌ `git diff` is non-empty for any generated path after regeneration:
-  `docs/innfo/app/`, `docs/_sidebar.md`, `docs/_navbar.md`, `docs/llms.txt`,
-  `docs/ai-index.yaml`, `docs/use/manifest.md`, `docs/use/manifest-next.md`.
+  `docs/innfo/app/`, `docs/innfo/templates/catalog.json`, `docs/_sidebar.md`,
+  `docs/_navbar.md`, `docs/llms.txt`, `docs/ai-index.yaml`, `docs/use/manifest.md`,
+  `docs/use/manifest-next.md`.
 - ⚠️ the diff bumps a `version` / `spec_version` but `CHANGELOG.md` has no new entry.
 - ⚠️ hardcoded facts in `*/SKILL.md` and `docs/**` that drifted — MCP tool count
   ("N herramientas" vs. the real count in `server.ts` / `nn-innfo` §1), version strings
