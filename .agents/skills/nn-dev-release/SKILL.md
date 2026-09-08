@@ -1,6 +1,6 @@
 ---
 name: nn-dev-release
-version: "2.0.0"
+version: "2.1.0"
 description: Internal developer skill for cogNNitive maintainers. Manages monorepo git status, gate checks, version bumping, release tagging, manifest generation, and distribution validation.
 ---
 
@@ -29,7 +29,10 @@ When this skill is loaded or activated, the agent MUST print as its very first l
 
 ## 0. Entry Menu
 
-When activated, present the following interactive menu:
+Present the following interactive menu **only when the task is ambiguous**
+(multiple plausible options). When the maintainer already approved a specific
+task (audit, sync, release, validate), skip the menu and run that option
+directly — presenting it anyway is noise:
 
 ```markdown
 🛠️ cogNNitive — Developer Release & Workflow Manager
@@ -40,6 +43,11 @@ When activated, present the following interactive menu:
 - [d] Validar publicación del Manifest (Ejecutar validate-manifest.js con GITHUB_TOKEN)
 - [x] Cancelar
 ```
+
+Before creating any PR (`gh pr create`), always run
+`gh pr list --head <head> --base <base>` first — an open PR for the same
+branch pair already exists more often than not (expediente 2026-09-08: PR #83
+dev→main was open and nearly duplicated).
 
 ---
 
@@ -94,6 +102,18 @@ Present a consolidated summary table with:
 
 ### Option [c]: Ejecutar Release completo (Bump de versión + Tags + Manifest + Push)
 
+0. **Clean tree + release order (mandatory preconditions)**:
+   - `generate-manifest.js` reads versions off the working-tree files, so a
+     dirty tree contaminates the pin (expediente 2026-09-08: an uncommitted
+     0.5.0 bump leaked into `source.yaml`). Before step 6, `git status
+     --porcelain` must show no modifications under `iNNfo/**/package.json`
+     (and ideally a fully clean tree); if dirty, commit or stash first.
+   - Release order is **merge → tag → pin**: the stable channel only accepts
+     pins whose commits are reachable from `main` (the validator rejects
+     "diverged" tips). Tagging `dev`-only commits first leaves stable red
+     until the `dev`→`main` merge lands — so merge first (or tag commits
+     already on `main`), then pin.
+
 1. **Confirm Version Bump Scope**:
    Prompt the developer to select which subsystem is releasing:
    - `iNNfo Suite` (`v<A.B.C>` & `innfo-mcp-v<A.B.C>`)
@@ -122,13 +142,14 @@ Present a consolidated summary table with:
    - Update component `version:` field.
    - Update `channels.stable.refs` with the new tag names (`skills-v<X.Y.Z>`, `innfo-mcp-v<A.B.C>`, or `templates-v<T.U.V>`).
 
-4. **Verify Local Parity & Commit**:
-   ```powershell
-   node scripts/manifest/check-parity.js
-   git add -A
-   git commit -m "chore(release): bump <subsystem> to <version>"
-   git push origin main
-   ```
+4. **Verify Local Parity & Commit** (precise staging only — never `git add -A`,
+   per `nn-dev-development` rule 6; a concurrent agent's files may be in the tree):
+    ```powershell
+    node scripts/manifest/check-parity.js
+    git add <only-the-intended-files>
+    git commit -m "chore(release): bump <subsystem> to <version>"
+    git push origin main
+    ```
 
 5. **Create & Push Git Tags**:
    - For `iNNfo`:

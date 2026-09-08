@@ -1,6 +1,6 @@
 ---
 name: nn-dev-development
-version: "0.2.0"
+version: "0.2.1"
 description: Internal developer skill for cogNNitive maintainers. Guards the shared working tree against concurrent AI agents and enforces single-branch (dev) hygiene with batched merges to main. On session start it detects other agent processes (Claude Code, Cursor, OpenCode, Copilot, etc.), checks whether origin/main advanced, and reports worktree/stash/HEAD state. Before any write to a repository file it confirms the change belongs on the shared dev branch (one-time consent per session), then re-checks the tree before each chunk and, when HEAD/branch was moved by a concurrent agent, runs the safe stash-switch-pop recovery protocol. At session close it reports what is on dev vs origin/main, flags ghost branches whose content already landed in main, and hands off to nn-dev-check-integrity + nn-dev-release for the batched merge to main. Trigger: any development session, concurrency check, branch decision, working-tree guard, session start.
 ---
 
@@ -95,6 +95,7 @@ git rev-parse HEAD                      # what this session is on
 git fetch origin
 git log --oneline -1 origin/main        # has main moved since we started?
 git log --oneline -3 origin/dev         # where is dev relative to main?
+git rev-list --left-right --count origin/main...dev  # divergence: <main-only> <dev-only>
 git stash list                          # foreign stashes?
 git branch --show-current               # explicit branch name
 ```
@@ -127,7 +128,8 @@ wrong (see the ❌ rules in `nn-dev-check-integrity` Group 0):
 - Branch: main (behind origin/main by 2) · worktrees: <none | 1>
 - Stashes: <none | 1 uncommitted-...>
 - Modified/untracked paths: <list — flag any you did NOT expect>
-- origin/main vs origin/dev: <in sync | main behind dev by N | dev behind main by N>
+- origin/main vs origin/dev: <in sync | dev ahead N, behind M (from rev-list counts)>
+- Divergence read: <if dev behind main by M> expect merge conflicts in <overlapping paths>; reconcile main→dev BEFORE building release pins on top.
 ```
 
 - ❌ if the current branch / HEAD is not what the maintainer expects, or a stash they do
@@ -139,6 +141,22 @@ wrong (see the ❌ rules in `nn-dev-check-integrity` Group 0):
   into `main` that you planned to deliver. Rebase/reconcile before building on top.
 - If another agent process is actively holding the tree, state it plainly and, only if
   the maintainer asks, pause.
+
+### 1e. Stale WIP vs foreign agent (disambiguation)
+
+A dirty tree with no known session behind it is **ambiguous**: it can be the
+maintainer's own in-flight work from another session (expediente 2026-09-08: an
+uncommitted 0.5.0 version bump first read as interference, then landed cleanly)
+or a sibling agent's live edits. Do NOT assume interference:
+
+1. Report the dirty paths with `git diff --stat` and ask the maintainer one
+   question: "yours from another session, or foreign?"
+2. If it is theirs: continue; never revert or stage it without consent.
+3. If foreign and active: pause writes that touch those paths.
+
+Prevention (convention, not enforcement): work that survives more than one
+session gets a `wip:` commit on `dev` instead of living as a dirty tree.
+A committed `wip:` is attributable; a dirty tree is not.
 
 ---
 
@@ -345,3 +363,7 @@ no per-change PR to open; `main` absorbs the batch instead.
 9. **Read-only inspection** — this skill detects and asks; it never moves, renames, or
    deletes user files, and it never stages/commits anything on its own.
 10. **Monorepo scope** — `D:\Users\lucas\Documents\GitHub\cogNNitive` only.
+11. **Disposable scratch lives in `temp/`** — simulation workspaces, ad-hoc scripts,
+   and throwaway fixtures go under the repo-root `temp/` directory (gitignored,
+   never committed, deleted after the run). Never scatter `*_tmp`, `scratch/`, or
+   fixture copies beside real source.
