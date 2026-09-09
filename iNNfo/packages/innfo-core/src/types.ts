@@ -302,7 +302,7 @@ export interface SpecDocument {
 export interface ValidationError {
   path: string
   message: string
-  severity: 'error' | 'warning'
+  severity: 'error' | 'warning' | 'info'
   code?: string
   promptHint?: string
   meta?: Record<string, unknown>

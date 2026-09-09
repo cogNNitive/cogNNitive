@@ -139,6 +139,14 @@ order:: 40
 parent:: [[Guides]]
 description:: Cross-cutting categorization, centralized workspace taxonomies, and multi-dimensional view filtering.
 
+## NN Page: Collaboration with Git
+title:: Collaboration with Git
+source:: collaboration-git.md
+route:: collaboration-git
+order:: 50
+parent:: [[Guides]]
+description:: Gated workspace-to-Git review workflow with private defaults, branch-per-change PR gates, version map, and offline backup.
+
 # NN NavbarItem
 
 ## NN NavbarItem: Ecosistema

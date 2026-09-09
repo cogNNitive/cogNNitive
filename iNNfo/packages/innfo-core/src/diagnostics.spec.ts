@@ -56,6 +56,80 @@ describe('Diagnostics accumulator', () => {
     expect(d.warnings).toHaveLength(1)
   })
 
+  it('info() records an informational diagnostic without affecting validity', () => {
+    const d = new Diagnostics()
+    d.info('format.bom', 'File starts with a byte-order mark; stripped before parsing')
+    expect(d.errors).toEqual([])
+    expect(d.warnings).toEqual([
+      {
+        path: 'format.bom',
+        message: 'File starts with a byte-order mark; stripped before parsing',
+        severity: 'info',
+      },
+    ])
+    expect(d.valid).toBe(true)
+  })
+
+  it('info() preserves code, promptHint, and meta', () => {
+    const d = new Diagnostics().info('format.bom', 'BOM stripped', {
+      code: 'BOM_WARNING',
+      promptHint: 'Save the file as UTF-8 without BOM.',
+      meta: { stripped: true },
+    })
+    expect(d.warnings[0]).toMatchObject({
+      path: 'format.bom',
+      severity: 'info',
+      code: 'BOM_WARNING',
+      promptHint: 'Save the file as UTF-8 without BOM.',
+      meta: { stripped: true },
+    })
+    expect(d.valid).toBe(true)
+  })
+
+  it('add() routes info severity to warnings preserving severity and validity', () => {
+    const d = new Diagnostics()
+    d.add({ path: 'a', message: 'notice', severity: 'info' })
+    d.add({ path: 'b', message: 'boom', severity: 'error' })
+    expect(d.errors.map((e) => e.path)).toEqual(['b'])
+    expect(d.warnings).toEqual([{ path: 'a', message: 'notice', severity: 'info' }])
+    expect(d.valid).toBe(false)
+  })
+
+  it('addAll routes info diagnostics to warnings without affecting validity alone', () => {
+    const d = new Diagnostics()
+    d.addAll([
+      { path: 'a', message: 'notice-1', severity: 'info' },
+      { path: 'b', message: 'notice-2', severity: 'info' },
+    ])
+    expect(d.errors).toEqual([])
+    expect(d.warnings.map((w) => w.severity)).toEqual(['info', 'info'])
+    expect(d.valid).toBe(true)
+  })
+
+  it('addAsWarning preserves code, promptHint, and meta', () => {
+    const d = new Diagnostics()
+    d.addAsWarning({
+      path: 'matrices.M',
+      message: 'label drifted',
+      severity: 'error',
+      code: 'MATRIX_LABEL_DRIFT',
+      promptHint: 'Rename the label to match the template.',
+      meta: { matrix: 'M' },
+    })
+    expect(d.errors).toEqual([])
+    expect(d.warnings).toEqual([
+      {
+        path: 'matrices.M',
+        message: 'label drifted',
+        severity: 'warning',
+        code: 'MATRIX_LABEL_DRIFT',
+        promptHint: 'Rename the label to match the template.',
+        meta: { matrix: 'M' },
+      },
+    ])
+    expect(d.valid).toBe(true)
+  })
+
   it('supports code, promptHint, and meta in warnings and errors', () => {
     const d = new Diagnostics().warn('parent_spec', 'Stale template cache', {
       code: 'TEMPLATE_CACHE_STALE',

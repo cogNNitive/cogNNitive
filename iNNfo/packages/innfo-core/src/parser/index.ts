@@ -2,7 +2,14 @@ export { slugify } from './slug'
 export { uniqueSlugify } from './slug'
 export { normalizeSeparators } from './slug'
 export { parseYaml, parseFrontmatter } from './yaml'
-export { normalizeSource, stripFrontmatter, parseMarkdownTable, parseTableRow } from './markdown'
+export {
+  normalizeSource,
+  stripFrontmatter,
+  parseMarkdownTable,
+  parseTableRow,
+  hasBom,
+  BOM_CHAR,
+} from './markdown'
 export { parseIndexBlock, printTaxonomyNode } from './taxonomy'
 export {
   sectionName,

@@ -1,0 +1,821 @@
+{
+  "version": 1,
+  "backlog": "https://github.com/cogNNitive/cogNNitive/issues",
+  "entries": [
+    {
+      "path": "business_V_0-2-3_NN.md",
+      "code": "",
+      "fingerprint": "business_V_0-2-3_NN.md::parent.includes.Concept.Metrics::::[COMPOSITION_COLLISION] Concept Definition \"Metrics\" collision detected between included templates \"Business Model Template\" and \"Metrics Template\". Use frontmatter `alias` to resolve collisions."
+    },
+    {
+      "path": "docs/actionn/templates/workflow/V_0-1-0/samples/example_V_1-0-0_workflow_NN.md",
+      "code": "",
+      "fingerprint": "docs/actionn/templates/workflow/V_0-1-0/samples/example_V_1-0-0_workflow_NN.md::elements.ArtifactType::::Slug collision: \"anydeo-script\" is shared by elements: AnyDeo Script. Element names must be unique across the whole model"
+    },
+    {
+      "path": "docs/innfo/app/starter/Business_V_1-0-0_starter_NN.md",
+      "code": "",
+      "fingerprint": "docs/innfo/app/starter/Business_V_1-0-0_starter_NN.md::format.body-concept-sections::::No concept sections found (body is empty or malformed)"
+    },
+    {
+      "path": "docs/innfo/app/starter/Business_V_1-0-0_starter_NN.md",
+      "code": "",
+      "fingerprint": "docs/innfo/app/starter/Business_V_1-0-0_starter_NN.md::format.body-element-markers::::No NN element markers found"
+    },
+    {
+      "path": "docs/innfo/app/starter/Organization_V_1-0-0_starter_NN.md",
+      "code": "",
+      "fingerprint": "docs/innfo/app/starter/Organization_V_1-0-0_starter_NN.md::format.body-concept-sections::::No concept sections found (body is empty or malformed)"
+    },
+    {
+      "path": "docs/innfo/app/starter/Organization_V_1-0-0_starter_NN.md",
+      "code": "",
+      "fingerprint": "docs/innfo/app/starter/Organization_V_1-0-0_starter_NN.md::format.body-element-markers::::No NN element markers found"
+    },
+    {
+      "path": "docs/innfo/app/starter/Procedures_V_1-0-0_starter_NN.md",
+      "code": "",
+      "fingerprint": "docs/innfo/app/starter/Procedures_V_1-0-0_starter_NN.md::format.body-concept-sections::::No concept sections found (body is empty or malformed)"
+    },
+    {
+      "path": "docs/innfo/app/starter/Procedures_V_1-0-0_starter_NN.md",
+      "code": "",
+      "fingerprint": "docs/innfo/app/starter/Procedures_V_1-0-0_starter_NN.md::format.body-element-markers::::No NN element markers found"
+    },
+    {
+      "path": "docs/innfo/app/starter/Sandbox_V_1-0-0_starter_NN.md",
+      "code": "",
+      "fingerprint": "docs/innfo/app/starter/Sandbox_V_1-0-0_starter_NN.md::format.body-concept-sections::::No concept sections found (body is empty or malformed)"
+    },
+    {
+      "path": "docs/innfo/app/starter/Sandbox_V_1-0-0_starter_NN.md",
+      "code": "",
+      "fingerprint": "docs/innfo/app/starter/Sandbox_V_1-0-0_starter_NN.md::format.body-element-markers::::No NN element markers found"
+    },
+    {
+      "path": "docs/innfo/app/starter/Sandbox_V_1-0-0_starter_NN.md",
+      "code": "",
+      "fingerprint": "docs/innfo/app/starter/Sandbox_V_1-0-0_starter_NN.md::format.fm-no-inline-schema::::Inline schema fields (matrices, concepts, markers, relationship_types) found in frontmatter. Move them to the template."
+    },
+    {
+      "path": "docs/innfo/app/starter/Sandbox_V_1-0-0_starter_NN.md",
+      "code": "",
+      "fingerprint": "docs/innfo/app/starter/Sandbox_V_1-0-0_starter_NN.md::format.fm-parent::::Missing parent_spec field"
+    },
+    {
+      "path": "docs/innfo/app/starter/Sandbox_V_1-0-0_starter_NN.md",
+      "code": "",
+      "fingerprint": "docs/innfo/app/starter/Sandbox_V_1-0-0_starter_NN.md::frontmatter.parent_spec::::Missing parent_spec"
+    },
+    {
+      "path": "docs/innfo/app/starter/Sandbox_V_1-0-0_starter_NN.md",
+      "code": "",
+      "fingerprint": "docs/innfo/app/starter/Sandbox_V_1-0-0_starter_NN.md::frontmatter::::Level 3 models MUST NOT declare schema components (matrices, concepts, markers, relationship_types) in their frontmatter. Move them to the template."
+    },
+    {
+      "path": "docs/workspace_NN.md",
+      "code": "",
+      "fingerprint": "docs/workspace_NN.md::elements.Models::::Concept \"Models\" is not defined in template"
+    },
+    {
+      "path": "docs/workspace_NN.md",
+      "code": "",
+      "fingerprint": "docs/workspace_NN.md::elements.Tag::::Concept \"Tag\" is not defined in template"
+    },
+    {
+      "path": "iNNfo/apps/innfo-editor/src/ai-guide/procedure_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/apps/innfo-editor/src/ai-guide/procedure_NN.md::format.body-concept-sections::::No concept sections found (body is empty or malformed)"
+    },
+    {
+      "path": "iNNfo/apps/innfo-editor/src/ai-guide/procedure_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/apps/innfo-editor/src/ai-guide/procedure_NN.md::format.body-element-markers::::No NN element markers found"
+    },
+    {
+      "path": "iNNfo/specs/defiNNe_V_0-1-0_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/defiNNe_V_0-1-0_NN.md::format.body-concept-sections::::No concept sections found (body is empty or malformed)"
+    },
+    {
+      "path": "iNNfo/specs/defiNNe_V_0-1-0_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/defiNNe_V_0-1-0_NN.md::format.body-element-markers::::No NN element markers found"
+    },
+    {
+      "path": "iNNfo/specs/defiNNe_V_0-1-0_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/defiNNe_V_0-1-0_NN.md::format.fm-level::::Expected level 3, got 0"
+    },
+    {
+      "path": "iNNfo/specs/defiNNe_V_0-1-0_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/defiNNe_V_0-1-0_NN.md::format.fm-parent::::Missing parent_spec field"
+    },
+    {
+      "path": "iNNfo/specs/defiNNe_V_0-1-0_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/defiNNe_V_0-1-0_NN.md::format.fm-version::::Missing model_version"
+    },
+    {
+      "path": "iNNfo/specs/iNNfo_V_0-1-0_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/iNNfo_V_0-1-0_NN.md::format.body-element-markers::::26 bullet(s) look like elements but must use ## NN headings: - Plain text ΓÇö `relationship_model:: Dedicated` - Quoted text ΓÇö `brand_name:: \"Acme Inc.\"` - Numbers ΓÇö `weight:: 90`"
+    },
+    {
+      "path": "iNNfo/specs/iNNfo_V_0-1-0_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/iNNfo_V_0-1-0_NN.md::format.fm-level::::Expected level 3, got 1"
+    },
+    {
+      "path": "iNNfo/specs/iNNfo_V_0-1-0_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/iNNfo_V_0-1-0_NN.md::format.fm-version::::Missing model_version"
+    },
+    {
+      "path": "iNNfo/specs/iNNfo_V_0-2-0_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/iNNfo_V_0-2-0_NN.md::format.body-element-markers::::26 bullet(s) look like elements but must use ## NN headings: - Plain text ΓÇö `relationship_model:: Dedicated` - Quoted text ΓÇö `brand_name:: \"Acme Inc.\"` - Numbers ΓÇö `weight:: 90`"
+    },
+    {
+      "path": "iNNfo/specs/iNNfo_V_0-2-0_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/iNNfo_V_0-2-0_NN.md::format.fm-level::::Expected level 3, got 1"
+    },
+    {
+      "path": "iNNfo/specs/iNNfo_V_0-2-0_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/iNNfo_V_0-2-0_NN.md::format.fm-version::::Missing model_version"
+    },
+    {
+      "path": "iNNfo/specs/iNNfo_V_0-2-1_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/iNNfo_V_0-2-1_NN.md::format.body-element-markers::::26 bullet(s) look like elements but must use ## NN headings: - Plain text ΓÇö `relationship_model:: Dedicated` - Quoted text ΓÇö `brand_name:: \"Acme Inc.\"` - Numbers ΓÇö `weight:: 90`"
+    },
+    {
+      "path": "iNNfo/specs/iNNfo_V_0-2-1_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/iNNfo_V_0-2-1_NN.md::format.fm-level::::Expected level 3, got 1"
+    },
+    {
+      "path": "iNNfo/specs/iNNfo_V_0-2-1_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/iNNfo_V_0-2-1_NN.md::format.fm-version::::Missing model_version"
+    },
+    {
+      "path": "iNNfo/specs/templates/base/samples/Ghostbusters_cogNNitive_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/base/samples/Ghostbusters_cogNNitive_NN.md::elements.ModelRecords::::Concept \"ModelRecords\" is not defined in template"
+    },
+    {
+      "path": "iNNfo/specs/templates/base/samples/workspace_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/base/samples/workspace_NN.md::elements.Models::::Concept \"Models\" is not defined in template"
+    },
+    {
+      "path": "iNNfo/specs/templates/base/spec_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/base/spec_NN.md::includes.Concept.Artifacts::::[COMPOSITION_COLLISION] Concept Definition \"Artifacts\" collision detected between included templates \"Workspace Specification Template\" and \"cogNNitive Template\". Use frontmatter `alias` to resolve collisions."
+    },
+    {
+      "path": "iNNfo/specs/templates/base/spec_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/base/spec_NN.md::includes.Concept.Models::::[COMPOSITION_COLLISION] Concept Definition \"Models\" collision detected between included templates \"Workspace Specification Template\" and \"cogNNitive Template\". Use frontmatter `alias` to resolve collisions."
+    },
+    {
+      "path": "iNNfo/specs/templates/base/spec_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/base/spec_NN.md::includes.Concept.Procedures::::[COMPOSITION_COLLISION] Concept Definition \"Procedures\" collision detected between included templates \"Workspace Specification Template\" and \"cogNNitive Template\". Use frontmatter `alias` to resolve collisions."
+    },
+    {
+      "path": "iNNfo/specs/templates/base/spec_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/base/spec_NN.md::includes.Concept.Sources::::[COMPOSITION_COLLISION] Concept Definition \"Sources\" collision detected between included templates \"Workspace Specification Template\" and \"cogNNitive Template\". Use frontmatter `alias` to resolve collisions."
+    },
+    {
+      "path": "iNNfo/specs/templates/base/spec_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/base/spec_NN.md::includes.Matrix.Artifact-Source Lineage::::[COMPOSITION_COLLISION] Matrix Definition \"Artifact-Source Lineage\" collision detected between included templates \"Workspace Specification Template\" and \"cogNNitive Template\". Use frontmatter `alias` to resolve collisions."
+    },
+    {
+      "path": "iNNfo/specs/templates/business-model/spec_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/business-model/spec_NN.md::includes.Concept.Compensations::::Concept Definition \"Compensations\" is declared with different bodies by both \"Organization Template\" and \"Business Model Template\" ΓÇö `includes` composition is additive and MUST NOT redeclare a Definition differently"
+    },
+    {
+      "path": "iNNfo/specs/templates/business-model/spec_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/business-model/spec_NN.md::includes.Concept.Contributions::::Concept Definition \"Contributions\" is declared with different bodies by both \"Organization Template\" and \"Business Model Template\" ΓÇö `includes` composition is additive and MUST NOT redeclare a Definition differently"
+    },
+    {
+      "path": "iNNfo/specs/templates/business/samples/Ghostbusters_V_0-1-0_business_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/business/samples/Ghostbusters_V_0-1-0_business_NN.md::elements.Activities::::Slug collision: \"public-relations\" is shared by elements: Public Relations. Element names must be unique across the whole model"
+    },
+    {
+      "path": "iNNfo/specs/templates/business/samples/Ghostbusters_V_0-1-0_business_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/business/samples/Ghostbusters_V_0-1-0_business_NN.md::elements.Costs::::Slug collision: \"equipment-maintenance\" is shared by elements: Equipment Maintenance. Element names must be unique across the whole model"
+    },
+    {
+      "path": "iNNfo/specs/templates/business/samples/Ghostbusters_V_0-1-0_business_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/business/samples/Ghostbusters_V_0-1-0_business_NN.md::elements.Shareholders::::Slug collision: \"winston-zeddemore\" is shared by elements: Winston Zeddemore. Element names must be unique across the whole model"
+    },
+    {
+      "path": "iNNfo/specs/templates/business/samples/Ghostbusters_V_0-2-0_business_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/business/samples/Ghostbusters_V_0-2-0_business_NN.md::elements.Activities::::Slug collision: \"public-relations\" is shared by elements: Public Relations. Element names must be unique across the whole model"
+    },
+    {
+      "path": "iNNfo/specs/templates/business/samples/Ghostbusters_V_0-2-0_business_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/business/samples/Ghostbusters_V_0-2-0_business_NN.md::elements.Coherence::::Slug collision: \"revenue-cost-structure\" is shared by elements: Revenue & Cost Structure, Revenue Γåö Cost Structure. Element names must be unique across the whole model"
+    },
+    {
+      "path": "iNNfo/specs/templates/business/samples/Ghostbusters_V_0-2-0_business_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/business/samples/Ghostbusters_V_0-2-0_business_NN.md::elements.Costs::::Slug collision: \"equipment-maintenance\" is shared by elements: Equipment Maintenance. Element names must be unique across the whole model"
+    },
+    {
+      "path": "iNNfo/specs/templates/business/samples/Ghostbusters_V_0-2-0_business_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/business/samples/Ghostbusters_V_0-2-0_business_NN.md::elements.Person::::Slug collision: \"janine-melnitz\" is shared by elements: Janine Melnitz. Element names must be unique across the whole model"
+    },
+    {
+      "path": "iNNfo/specs/templates/business/samples/Ghostbusters_V_0-2-0_business_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/business/samples/Ghostbusters_V_0-2-0_business_NN.md::elements.Person::::Slug collision: \"winston-zeddemore\" is shared by elements: Winston Zeddemore. Element names must be unique across the whole model"
+    },
+    {
+      "path": "iNNfo/specs/templates/business/samples/Ghostbusters_V_0-2-0_business_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/business/samples/Ghostbusters_V_0-2-0_business_NN.md::elements.Shareholders::::Slug collision: \"dr-egon-spengler\" is shared by elements: Dr. Egon Spengler. Element names must be unique across the whole model"
+    },
+    {
+      "path": "iNNfo/specs/templates/business/samples/Ghostbusters_V_0-2-0_business_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/business/samples/Ghostbusters_V_0-2-0_business_NN.md::elements.Shareholders::::Slug collision: \"dr-peter-venkman\" is shared by elements: Dr. Peter Venkman. Element names must be unique across the whole model"
+    },
+    {
+      "path": "iNNfo/specs/templates/business/samples/Ghostbusters_V_0-2-0_business_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/business/samples/Ghostbusters_V_0-2-0_business_NN.md::elements.Shareholders::::Slug collision: \"dr-raymond-stantz\" is shared by elements: Dr. Raymond Stantz. Element names must be unique across the whole model"
+    },
+    {
+      "path": "iNNfo/specs/templates/business/samples/Ghostbusters_V_0-2-1_business_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/business/samples/Ghostbusters_V_0-2-1_business_NN.md::elements.Activities::::Slug collision: \"public-relations\" is shared by elements: Public Relations. Element names must be unique across the whole model"
+    },
+    {
+      "path": "iNNfo/specs/templates/business/samples/Ghostbusters_V_0-2-1_business_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/business/samples/Ghostbusters_V_0-2-1_business_NN.md::elements.Coherence::::Slug collision: \"revenue-cost-structure\" is shared by elements: Revenue & Cost Structure, Revenue Γåö Cost Structure. Element names must be unique across the whole model"
+    },
+    {
+      "path": "iNNfo/specs/templates/business/samples/Ghostbusters_V_0-2-1_business_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/business/samples/Ghostbusters_V_0-2-1_business_NN.md::elements.Costs::::Slug collision: \"equipment-maintenance\" is shared by elements: Equipment Maintenance. Element names must be unique across the whole model"
+    },
+    {
+      "path": "iNNfo/specs/templates/business/samples/Ghostbusters_V_0-2-1_business_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/business/samples/Ghostbusters_V_0-2-1_business_NN.md::elements.Person::::Slug collision: \"janine-melnitz\" is shared by elements: Janine Melnitz. Element names must be unique across the whole model"
+    },
+    {
+      "path": "iNNfo/specs/templates/business/samples/Ghostbusters_V_0-2-1_business_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/business/samples/Ghostbusters_V_0-2-1_business_NN.md::elements.Person::::Slug collision: \"winston-zeddemore\" is shared by elements: Winston Zeddemore. Element names must be unique across the whole model"
+    },
+    {
+      "path": "iNNfo/specs/templates/business/samples/Ghostbusters_V_0-2-1_business_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/business/samples/Ghostbusters_V_0-2-1_business_NN.md::elements.Shareholders::::Slug collision: \"dr-egon-spengler\" is shared by elements: Dr. Egon Spengler. Element names must be unique across the whole model"
+    },
+    {
+      "path": "iNNfo/specs/templates/business/samples/Ghostbusters_V_0-2-1_business_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/business/samples/Ghostbusters_V_0-2-1_business_NN.md::elements.Shareholders::::Slug collision: \"dr-peter-venkman\" is shared by elements: Dr. Peter Venkman. Element names must be unique across the whole model"
+    },
+    {
+      "path": "iNNfo/specs/templates/business/samples/Ghostbusters_V_0-2-1_business_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/business/samples/Ghostbusters_V_0-2-1_business_NN.md::elements.Shareholders::::Slug collision: \"dr-raymond-stantz\" is shared by elements: Dr. Raymond Stantz. Element names must be unique across the whole model"
+    },
+    {
+      "path": "iNNfo/specs/templates/business/samples/Ghostbusters_V_0-2-3_business_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/business/samples/Ghostbusters_V_0-2-3_business_NN.md::elements.Activities::::Slug collision: \"public-relations\" is shared by elements: Public Relations. Element names must be unique across the whole model"
+    },
+    {
+      "path": "iNNfo/specs/templates/business/samples/Ghostbusters_V_0-2-3_business_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/business/samples/Ghostbusters_V_0-2-3_business_NN.md::elements.Coherence::::Slug collision: \"revenue-cost-structure\" is shared by elements: Revenue & Cost Structure, Revenue Γåö Cost Structure. Element names must be unique across the whole model"
+    },
+    {
+      "path": "iNNfo/specs/templates/business/samples/Ghostbusters_V_0-2-3_business_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/business/samples/Ghostbusters_V_0-2-3_business_NN.md::elements.Costs::::Slug collision: \"equipment-maintenance\" is shared by elements: Equipment Maintenance. Element names must be unique across the whole model"
+    },
+    {
+      "path": "iNNfo/specs/templates/business/samples/Ghostbusters_V_0-2-3_business_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/business/samples/Ghostbusters_V_0-2-3_business_NN.md::elements.Person::::Slug collision: \"janine-melnitz\" is shared by elements: Janine Melnitz. Element names must be unique across the whole model"
+    },
+    {
+      "path": "iNNfo/specs/templates/business/samples/Ghostbusters_V_0-2-3_business_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/business/samples/Ghostbusters_V_0-2-3_business_NN.md::elements.Person::::Slug collision: \"winston-zeddemore\" is shared by elements: Winston Zeddemore. Element names must be unique across the whole model"
+    },
+    {
+      "path": "iNNfo/specs/templates/business/samples/Ghostbusters_V_0-2-3_business_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/business/samples/Ghostbusters_V_0-2-3_business_NN.md::elements.Shareholders::::Slug collision: \"dr-egon-spengler\" is shared by elements: Dr. Egon Spengler. Element names must be unique across the whole model"
+    },
+    {
+      "path": "iNNfo/specs/templates/business/samples/Ghostbusters_V_0-2-3_business_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/business/samples/Ghostbusters_V_0-2-3_business_NN.md::elements.Shareholders::::Slug collision: \"dr-peter-venkman\" is shared by elements: Dr. Peter Venkman. Element names must be unique across the whole model"
+    },
+    {
+      "path": "iNNfo/specs/templates/business/samples/Ghostbusters_V_0-2-3_business_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/business/samples/Ghostbusters_V_0-2-3_business_NN.md::elements.Shareholders::::Slug collision: \"dr-raymond-stantz\" is shared by elements: Dr. Raymond Stantz. Element names must be unique across the whole model"
+    },
+    {
+      "path": "iNNfo/specs/templates/business/spec_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/business/spec_NN.md::includes.Concept.Metrics::::[COMPOSITION_COLLISION] Concept Definition \"Metrics\" collision detected between included templates \"Business Model Template\" and \"Metrics Template\". Use frontmatter `alias` to resolve collisions."
+    },
+    {
+      "path": "iNNfo/specs/templates/documentation/procedures/generate_docsify_suite_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/documentation/procedures/generate_docsify_suite_NN.md::elements.Work.Audit Source Markdown Files.fields.tool::::Dangling reference: field \"tool\" value \"[[Docsify Suite Generator Script]]\" does not match any element name"
+    },
+    {
+      "path": "iNNfo/specs/templates/documentation/procedures/generate_docsify_suite_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/documentation/procedures/generate_docsify_suite_NN.md::elements.Work.Compile AI Summary and Index.fields.tool::::Dangling reference: field \"tool\" value \"[[Docsify Suite Generator Script]]\" does not match any element name"
+    },
+    {
+      "path": "iNNfo/specs/templates/documentation/procedures/generate_docsify_suite_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/documentation/procedures/generate_docsify_suite_NN.md::elements.Work.Compile Navbar Markdown.fields.tool::::Dangling reference: field \"tool\" value \"[[Docsify Suite Generator Script]]\" does not match any element name"
+    },
+    {
+      "path": "iNNfo/specs/templates/documentation/procedures/generate_docsify_suite_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/documentation/procedures/generate_docsify_suite_NN.md::elements.Work.Compile Sidebar Markdown.fields.tool::::Dangling reference: field \"tool\" value \"[[Docsify Suite Generator Script]]\" does not match any element name"
+    },
+    {
+      "path": "iNNfo/specs/templates/documentation/procedures/generate_docsify_suite_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/documentation/procedures/generate_docsify_suite_NN.md::elements.Work.Generate Complete Docsify Suite.fields.tool::::Dangling reference: field \"tool\" value \"[[Docsify Suite Generator Script]]\" does not match any element name"
+    },
+    {
+      "path": "iNNfo/specs/templates/documentation/procedures/generate_docsify_suite_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/documentation/procedures/generate_docsify_suite_NN.md::elements.Work.Verify Documentation Model.fields.tool::::Dangling reference: field \"tool\" value \"[[iNNfo Core Validator]]\" does not match any element name"
+    },
+    {
+      "path": "iNNfo/specs/templates/documentation/procedures/generate_docsify_suite_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/documentation/procedures/generate_docsify_suite_NN.md::elements.Work.Verify Output Suite.fields.tool::::Dangling reference: field \"tool\" value \"[[Docsify Runtime Checker]]\" does not match any element name"
+    },
+    {
+      "path": "iNNfo/specs/templates/procedures/samples/specs/defiNNe_V_0-1-0_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/procedures/samples/specs/defiNNe_V_0-1-0_NN.md::format.body-concept-sections::::No concept sections found (body is empty or malformed)"
+    },
+    {
+      "path": "iNNfo/specs/templates/procedures/samples/specs/defiNNe_V_0-1-0_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/procedures/samples/specs/defiNNe_V_0-1-0_NN.md::format.body-element-markers::::No NN element markers found"
+    },
+    {
+      "path": "iNNfo/specs/templates/procedures/samples/specs/defiNNe_V_0-1-0_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/procedures/samples/specs/defiNNe_V_0-1-0_NN.md::format.fm-level::::Expected level 3, got 0"
+    },
+    {
+      "path": "iNNfo/specs/templates/procedures/samples/specs/defiNNe_V_0-1-0_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/procedures/samples/specs/defiNNe_V_0-1-0_NN.md::format.fm-parent::::Missing parent_spec field"
+    },
+    {
+      "path": "iNNfo/specs/templates/procedures/samples/specs/defiNNe_V_0-1-0_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/procedures/samples/specs/defiNNe_V_0-1-0_NN.md::format.fm-version::::Missing model_version"
+    },
+    {
+      "path": "iNNfo/specs/templates/procedures/samples/specs/iNNfo_V_0-2-0_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/procedures/samples/specs/iNNfo_V_0-2-0_NN.md::format.body-element-markers::::26 bullet(s) look like elements but must use ## NN headings: - Plain text ΓÇö `relationship_model:: Dedicated` - Quoted text ΓÇö `brand_name:: \"Acme Inc.\"` - Numbers ΓÇö `weight:: 90`"
+    },
+    {
+      "path": "iNNfo/specs/templates/procedures/samples/specs/iNNfo_V_0-2-0_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/procedures/samples/specs/iNNfo_V_0-2-0_NN.md::format.fm-level::::Expected level 3, got 1"
+    },
+    {
+      "path": "iNNfo/specs/templates/procedures/samples/specs/iNNfo_V_0-2-0_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/procedures/samples/specs/iNNfo_V_0-2-0_NN.md::format.fm-version::::Missing model_version"
+    },
+    {
+      "path": "iNNfo/specs/templates/procedures/samples/specs/templates/definne/V_0-1-0/definne_V_0-1-0_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/procedures/samples/specs/templates/definne/V_0-1-0/definne_V_0-1-0_NN.md::format.body-concept-sections::::No concept sections found (body is empty or malformed)"
+    },
+    {
+      "path": "iNNfo/specs/templates/procedures/samples/specs/templates/definne/V_0-1-0/definne_V_0-1-0_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/procedures/samples/specs/templates/definne/V_0-1-0/definne_V_0-1-0_NN.md::format.body-element-markers::::No NN element markers found"
+    },
+    {
+      "path": "iNNfo/specs/templates/procedures/samples/specs/templates/definne/V_0-1-0/definne_V_0-1-0_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/procedures/samples/specs/templates/definne/V_0-1-0/definne_V_0-1-0_NN.md::format.fm-level::::Expected level 3, got 0"
+    },
+    {
+      "path": "iNNfo/specs/templates/procedures/samples/specs/templates/definne/V_0-1-0/definne_V_0-1-0_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/procedures/samples/specs/templates/definne/V_0-1-0/definne_V_0-1-0_NN.md::format.fm-parent::::Missing parent_spec field"
+    },
+    {
+      "path": "iNNfo/specs/templates/procedures/samples/specs/templates/definne/V_0-1-0/definne_V_0-1-0_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/procedures/samples/specs/templates/definne/V_0-1-0/definne_V_0-1-0_NN.md::format.fm-version::::Missing model_version"
+    },
+    {
+      "path": "iNNfo/specs/templates/procedures/samples/specs/templates/definne/V_0-1-0/spec_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/procedures/samples/specs/templates/definne/V_0-1-0/spec_NN.md::format.body-concept-sections::::No concept sections found (body is empty or malformed)"
+    },
+    {
+      "path": "iNNfo/specs/templates/procedures/samples/specs/templates/definne/V_0-1-0/spec_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/procedures/samples/specs/templates/definne/V_0-1-0/spec_NN.md::format.body-element-markers::::No NN element markers found"
+    },
+    {
+      "path": "iNNfo/specs/templates/procedures/samples/specs/templates/definne/V_0-1-0/spec_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/procedures/samples/specs/templates/definne/V_0-1-0/spec_NN.md::format.fm-level::::Expected level 3, got 0"
+    },
+    {
+      "path": "iNNfo/specs/templates/procedures/samples/specs/templates/definne/V_0-1-0/spec_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/procedures/samples/specs/templates/definne/V_0-1-0/spec_NN.md::format.fm-parent::::Missing parent_spec field"
+    },
+    {
+      "path": "iNNfo/specs/templates/procedures/samples/specs/templates/definne/V_0-1-0/spec_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/procedures/samples/specs/templates/definne/V_0-1-0/spec_NN.md::format.fm-version::::Missing model_version"
+    },
+    {
+      "path": "iNNfo/specs/templates/procedures/samples/specs/templates/innfo/V_0-2-0/innfo_V_0-2-0_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/procedures/samples/specs/templates/innfo/V_0-2-0/innfo_V_0-2-0_NN.md::format.body-element-markers::::26 bullet(s) look like elements but must use ## NN headings: - Plain text ΓÇö `relationship_model:: Dedicated` - Quoted text ΓÇö `brand_name:: \"Acme Inc.\"` - Numbers ΓÇö `weight:: 90`"
+    },
+    {
+      "path": "iNNfo/specs/templates/procedures/samples/specs/templates/innfo/V_0-2-0/innfo_V_0-2-0_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/procedures/samples/specs/templates/innfo/V_0-2-0/innfo_V_0-2-0_NN.md::format.fm-level::::Expected level 3, got 1"
+    },
+    {
+      "path": "iNNfo/specs/templates/procedures/samples/specs/templates/innfo/V_0-2-0/innfo_V_0-2-0_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/procedures/samples/specs/templates/innfo/V_0-2-0/innfo_V_0-2-0_NN.md::format.fm-version::::Missing model_version"
+    },
+    {
+      "path": "iNNfo/specs/templates/procedures/samples/specs/templates/innfo/V_0-2-0/spec_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/procedures/samples/specs/templates/innfo/V_0-2-0/spec_NN.md::format.body-element-markers::::26 bullet(s) look like elements but must use ## NN headings: - Plain text ΓÇö `relationship_model:: Dedicated` - Quoted text ΓÇö `brand_name:: \"Acme Inc.\"` - Numbers ΓÇö `weight:: 90`"
+    },
+    {
+      "path": "iNNfo/specs/templates/procedures/samples/specs/templates/innfo/V_0-2-0/spec_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/procedures/samples/specs/templates/innfo/V_0-2-0/spec_NN.md::format.fm-level::::Expected level 3, got 1"
+    },
+    {
+      "path": "iNNfo/specs/templates/procedures/samples/specs/templates/innfo/V_0-2-0/spec_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/procedures/samples/specs/templates/innfo/V_0-2-0/spec_NN.md::format.fm-version::::Missing model_version"
+    },
+    {
+      "path": "iNNfo/specs/templates/videoscript/procedures/specs/defiNNe_V_0-1-0_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/videoscript/procedures/specs/defiNNe_V_0-1-0_NN.md::format.body-concept-sections::::No concept sections found (body is empty or malformed)"
+    },
+    {
+      "path": "iNNfo/specs/templates/videoscript/procedures/specs/defiNNe_V_0-1-0_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/videoscript/procedures/specs/defiNNe_V_0-1-0_NN.md::format.body-element-markers::::No NN element markers found"
+    },
+    {
+      "path": "iNNfo/specs/templates/videoscript/procedures/specs/defiNNe_V_0-1-0_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/videoscript/procedures/specs/defiNNe_V_0-1-0_NN.md::format.fm-level::::Expected level 3, got 0"
+    },
+    {
+      "path": "iNNfo/specs/templates/videoscript/procedures/specs/defiNNe_V_0-1-0_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/videoscript/procedures/specs/defiNNe_V_0-1-0_NN.md::format.fm-parent::::Missing parent_spec field"
+    },
+    {
+      "path": "iNNfo/specs/templates/videoscript/procedures/specs/defiNNe_V_0-1-0_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/videoscript/procedures/specs/defiNNe_V_0-1-0_NN.md::format.fm-version::::Missing model_version"
+    },
+    {
+      "path": "iNNfo/specs/templates/videoscript/procedures/specs/iNNfo_V_0-2-0_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/videoscript/procedures/specs/iNNfo_V_0-2-0_NN.md::format.body-element-markers::::26 bullet(s) look like elements but must use ## NN headings: - Plain text ΓÇö `relationship_model:: Dedicated` - Quoted text ΓÇö `brand_name:: \"Acme Inc.\"` - Numbers ΓÇö `weight:: 90`"
+    },
+    {
+      "path": "iNNfo/specs/templates/videoscript/procedures/specs/iNNfo_V_0-2-0_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/videoscript/procedures/specs/iNNfo_V_0-2-0_NN.md::format.fm-level::::Expected level 3, got 1"
+    },
+    {
+      "path": "iNNfo/specs/templates/videoscript/procedures/specs/iNNfo_V_0-2-0_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/videoscript/procedures/specs/iNNfo_V_0-2-0_NN.md::format.fm-version::::Missing model_version"
+    },
+    {
+      "path": "iNNfo/specs/templates/videoscript/procedures/specs/templates/definne/V_0-1-0/definne_V_0-1-0_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/videoscript/procedures/specs/templates/definne/V_0-1-0/definne_V_0-1-0_NN.md::format.body-concept-sections::::No concept sections found (body is empty or malformed)"
+    },
+    {
+      "path": "iNNfo/specs/templates/videoscript/procedures/specs/templates/definne/V_0-1-0/definne_V_0-1-0_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/videoscript/procedures/specs/templates/definne/V_0-1-0/definne_V_0-1-0_NN.md::format.body-element-markers::::No NN element markers found"
+    },
+    {
+      "path": "iNNfo/specs/templates/videoscript/procedures/specs/templates/definne/V_0-1-0/definne_V_0-1-0_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/videoscript/procedures/specs/templates/definne/V_0-1-0/definne_V_0-1-0_NN.md::format.fm-level::::Expected level 3, got 0"
+    },
+    {
+      "path": "iNNfo/specs/templates/videoscript/procedures/specs/templates/definne/V_0-1-0/definne_V_0-1-0_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/videoscript/procedures/specs/templates/definne/V_0-1-0/definne_V_0-1-0_NN.md::format.fm-parent::::Missing parent_spec field"
+    },
+    {
+      "path": "iNNfo/specs/templates/videoscript/procedures/specs/templates/definne/V_0-1-0/definne_V_0-1-0_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/videoscript/procedures/specs/templates/definne/V_0-1-0/definne_V_0-1-0_NN.md::format.fm-version::::Missing model_version"
+    },
+    {
+      "path": "iNNfo/specs/templates/videoscript/procedures/specs/templates/definne/V_0-1-0/spec_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/videoscript/procedures/specs/templates/definne/V_0-1-0/spec_NN.md::format.body-concept-sections::::No concept sections found (body is empty or malformed)"
+    },
+    {
+      "path": "iNNfo/specs/templates/videoscript/procedures/specs/templates/definne/V_0-1-0/spec_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/videoscript/procedures/specs/templates/definne/V_0-1-0/spec_NN.md::format.body-element-markers::::No NN element markers found"
+    },
+    {
+      "path": "iNNfo/specs/templates/videoscript/procedures/specs/templates/definne/V_0-1-0/spec_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/videoscript/procedures/specs/templates/definne/V_0-1-0/spec_NN.md::format.fm-level::::Expected level 3, got 0"
+    },
+    {
+      "path": "iNNfo/specs/templates/videoscript/procedures/specs/templates/definne/V_0-1-0/spec_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/videoscript/procedures/specs/templates/definne/V_0-1-0/spec_NN.md::format.fm-parent::::Missing parent_spec field"
+    },
+    {
+      "path": "iNNfo/specs/templates/videoscript/procedures/specs/templates/definne/V_0-1-0/spec_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/videoscript/procedures/specs/templates/definne/V_0-1-0/spec_NN.md::format.fm-version::::Missing model_version"
+    },
+    {
+      "path": "iNNfo/specs/templates/videoscript/procedures/specs/templates/innfo/V_0-2-0/innfo_V_0-2-0_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/videoscript/procedures/specs/templates/innfo/V_0-2-0/innfo_V_0-2-0_NN.md::format.body-element-markers::::26 bullet(s) look like elements but must use ## NN headings: - Plain text ΓÇö `relationship_model:: Dedicated` - Quoted text ΓÇö `brand_name:: \"Acme Inc.\"` - Numbers ΓÇö `weight:: 90`"
+    },
+    {
+      "path": "iNNfo/specs/templates/videoscript/procedures/specs/templates/innfo/V_0-2-0/innfo_V_0-2-0_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/videoscript/procedures/specs/templates/innfo/V_0-2-0/innfo_V_0-2-0_NN.md::format.fm-level::::Expected level 3, got 1"
+    },
+    {
+      "path": "iNNfo/specs/templates/videoscript/procedures/specs/templates/innfo/V_0-2-0/innfo_V_0-2-0_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/videoscript/procedures/specs/templates/innfo/V_0-2-0/innfo_V_0-2-0_NN.md::format.fm-version::::Missing model_version"
+    },
+    {
+      "path": "iNNfo/specs/templates/videoscript/procedures/specs/templates/innfo/V_0-2-0/spec_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/videoscript/procedures/specs/templates/innfo/V_0-2-0/spec_NN.md::format.body-element-markers::::26 bullet(s) look like elements but must use ## NN headings: - Plain text ΓÇö `relationship_model:: Dedicated` - Quoted text ΓÇö `brand_name:: \"Acme Inc.\"` - Numbers ΓÇö `weight:: 90`"
+    },
+    {
+      "path": "iNNfo/specs/templates/videoscript/procedures/specs/templates/innfo/V_0-2-0/spec_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/videoscript/procedures/specs/templates/innfo/V_0-2-0/spec_NN.md::format.fm-level::::Expected level 3, got 1"
+    },
+    {
+      "path": "iNNfo/specs/templates/videoscript/procedures/specs/templates/innfo/V_0-2-0/spec_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/videoscript/procedures/specs/templates/innfo/V_0-2-0/spec_NN.md::format.fm-version::::Missing model_version"
+    },
+    {
+      "path": "iNNfo/specs/templates/videoscript/specs/defiNNe_V_0-1-0_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/videoscript/specs/defiNNe_V_0-1-0_NN.md::format.body-concept-sections::::No concept sections found (body is empty or malformed)"
+    },
+    {
+      "path": "iNNfo/specs/templates/videoscript/specs/defiNNe_V_0-1-0_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/videoscript/specs/defiNNe_V_0-1-0_NN.md::format.body-element-markers::::No NN element markers found"
+    },
+    {
+      "path": "iNNfo/specs/templates/videoscript/specs/defiNNe_V_0-1-0_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/videoscript/specs/defiNNe_V_0-1-0_NN.md::format.fm-level::::Expected level 3, got 0"
+    },
+    {
+      "path": "iNNfo/specs/templates/videoscript/specs/defiNNe_V_0-1-0_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/videoscript/specs/defiNNe_V_0-1-0_NN.md::format.fm-parent::::Missing parent_spec field"
+    },
+    {
+      "path": "iNNfo/specs/templates/videoscript/specs/defiNNe_V_0-1-0_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/videoscript/specs/defiNNe_V_0-1-0_NN.md::format.fm-version::::Missing model_version"
+    },
+    {
+      "path": "iNNfo/specs/templates/videoscript/specs/iNNfo_V_0-2-1_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/videoscript/specs/iNNfo_V_0-2-1_NN.md::format.body-element-markers::::26 bullet(s) look like elements but must use ## NN headings: - Plain text ΓÇö `relationship_model:: Dedicated` - Quoted text ΓÇö `brand_name:: \"Acme Inc.\"` - Numbers ΓÇö `weight:: 90`"
+    },
+    {
+      "path": "iNNfo/specs/templates/videoscript/specs/iNNfo_V_0-2-1_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/videoscript/specs/iNNfo_V_0-2-1_NN.md::format.fm-level::::Expected level 3, got 1"
+    },
+    {
+      "path": "iNNfo/specs/templates/videoscript/specs/iNNfo_V_0-2-1_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/videoscript/specs/iNNfo_V_0-2-1_NN.md::format.fm-version::::Missing model_version"
+    },
+    {
+      "path": "iNNfo/specs/templates/videoscript/specs/templates/definne/V_0-1-0/definne_V_0-1-0_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/videoscript/specs/templates/definne/V_0-1-0/definne_V_0-1-0_NN.md::format.body-concept-sections::::No concept sections found (body is empty or malformed)"
+    },
+    {
+      "path": "iNNfo/specs/templates/videoscript/specs/templates/definne/V_0-1-0/definne_V_0-1-0_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/videoscript/specs/templates/definne/V_0-1-0/definne_V_0-1-0_NN.md::format.body-element-markers::::No NN element markers found"
+    },
+    {
+      "path": "iNNfo/specs/templates/videoscript/specs/templates/definne/V_0-1-0/definne_V_0-1-0_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/videoscript/specs/templates/definne/V_0-1-0/definne_V_0-1-0_NN.md::format.fm-level::::Expected level 3, got 0"
+    },
+    {
+      "path": "iNNfo/specs/templates/videoscript/specs/templates/definne/V_0-1-0/definne_V_0-1-0_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/videoscript/specs/templates/definne/V_0-1-0/definne_V_0-1-0_NN.md::format.fm-parent::::Missing parent_spec field"
+    },
+    {
+      "path": "iNNfo/specs/templates/videoscript/specs/templates/definne/V_0-1-0/definne_V_0-1-0_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/videoscript/specs/templates/definne/V_0-1-0/definne_V_0-1-0_NN.md::format.fm-version::::Missing model_version"
+    },
+    {
+      "path": "iNNfo/specs/templates/videoscript/specs/templates/definne/V_0-1-0/spec_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/videoscript/specs/templates/definne/V_0-1-0/spec_NN.md::format.body-concept-sections::::No concept sections found (body is empty or malformed)"
+    },
+    {
+      "path": "iNNfo/specs/templates/videoscript/specs/templates/definne/V_0-1-0/spec_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/videoscript/specs/templates/definne/V_0-1-0/spec_NN.md::format.body-element-markers::::No NN element markers found"
+    },
+    {
+      "path": "iNNfo/specs/templates/videoscript/specs/templates/definne/V_0-1-0/spec_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/videoscript/specs/templates/definne/V_0-1-0/spec_NN.md::format.fm-level::::Expected level 3, got 0"
+    },
+    {
+      "path": "iNNfo/specs/templates/videoscript/specs/templates/definne/V_0-1-0/spec_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/videoscript/specs/templates/definne/V_0-1-0/spec_NN.md::format.fm-parent::::Missing parent_spec field"
+    },
+    {
+      "path": "iNNfo/specs/templates/videoscript/specs/templates/definne/V_0-1-0/spec_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/videoscript/specs/templates/definne/V_0-1-0/spec_NN.md::format.fm-version::::Missing model_version"
+    },
+    {
+      "path": "iNNfo/specs/templates/videoscript/specs/templates/innfo/V_0-2-1/innfo_V_0-2-1_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/videoscript/specs/templates/innfo/V_0-2-1/innfo_V_0-2-1_NN.md::format.body-element-markers::::26 bullet(s) look like elements but must use ## NN headings: - Plain text ΓÇö `relationship_model:: Dedicated` - Quoted text ΓÇö `brand_name:: \"Acme Inc.\"` - Numbers ΓÇö `weight:: 90`"
+    },
+    {
+      "path": "iNNfo/specs/templates/videoscript/specs/templates/innfo/V_0-2-1/innfo_V_0-2-1_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/videoscript/specs/templates/innfo/V_0-2-1/innfo_V_0-2-1_NN.md::format.fm-level::::Expected level 3, got 1"
+    },
+    {
+      "path": "iNNfo/specs/templates/videoscript/specs/templates/innfo/V_0-2-1/innfo_V_0-2-1_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/videoscript/specs/templates/innfo/V_0-2-1/innfo_V_0-2-1_NN.md::format.fm-version::::Missing model_version"
+    },
+    {
+      "path": "iNNfo/specs/templates/videoscript/specs/templates/innfo/V_0-2-1/spec_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/videoscript/specs/templates/innfo/V_0-2-1/spec_NN.md::format.body-element-markers::::26 bullet(s) look like elements but must use ## NN headings: - Plain text ΓÇö `relationship_model:: Dedicated` - Quoted text ΓÇö `brand_name:: \"Acme Inc.\"` - Numbers ΓÇö `weight:: 90`"
+    },
+    {
+      "path": "iNNfo/specs/templates/videoscript/specs/templates/innfo/V_0-2-1/spec_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/videoscript/specs/templates/innfo/V_0-2-1/spec_NN.md::format.fm-level::::Expected level 3, got 1"
+    },
+    {
+      "path": "iNNfo/specs/templates/videoscript/specs/templates/innfo/V_0-2-1/spec_NN.md",
+      "code": "",
+      "fingerprint": "iNNfo/specs/templates/videoscript/specs/templates/innfo/V_0-2-1/spec_NN.md::format.fm-version::::Missing model_version"
+    },
+    {
+      "path": "parent_spec",
+      "code": "",
+      "fingerprint": "parent_spec::parent::::[PARENT_RESOLUTION_FAILED] Parent specification template could not be resolved or loaded"
+    },
+    {
+      "path": "parent_spec",
+      "code": "",
+      "fingerprint": "parent_spec::parent_spec::::[PARENT_RESOLUTION_FAILED] Parent template could not be resolved from parent_spec.url \"https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/base/base_V_0-1-0_spec_NN.md\" (searched: ./specs, network) Detail: Failed to resolve parent \"base_V_0-1-0\" from \"https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/base/base_V_0-1-0_spec_NN.md\". Attempted: 4-tier package resolver for \"base_V_0-1-0\" in \"specs\"; temp cache dir \"C:\\Users\\lucas\\AppData\\Local\\Temp\\innfo-specs\"; network url \"https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/base/base_V_0-1-0_spec_NN.md\""
+    },
+    {
+      "path": "parent_spec",
+      "code": "",
+      "fingerprint": "parent_spec::parent_spec::::[PARENT_RESOLUTION_FAILED] Parent template could not be resolved from parent_spec.url \"https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business/business_V_0-1-0_NN.md\" (searched: ./specs, network) Detail: Failed to resolve parent \"business_V_0-1-0\" from \"https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business/business_V_0-1-0_NN.md\". Attempted: 4-tier package resolver for \"business_V_0-1-0\" in \"specs\"; temp cache dir \"C:\\Users\\lucas\\AppData\\Local\\Temp\\innfo-specs\"; network url \"https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business/business_V_0-1-0_NN.md\""
+    },
+    {
+      "path": "parent_spec",
+      "code": "",
+      "fingerprint": "parent_spec::parent_spec::::[PARENT_RESOLUTION_FAILED] Parent template could not be resolved from parent_spec.url \"https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business/business_V_0-2-1_NN.md\" (searched: ./specs, network) Detail: Failed to resolve parent \"business_V_0-2-1\" from \"https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business/business_V_0-2-1_NN.md\". Attempted: 4-tier package resolver for \"business_V_0-2-1\" in \"specs\"; temp cache dir \"C:\\Users\\lucas\\AppData\\Local\\Temp\\innfo-specs\"; network url \"https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business/business_V_0-2-1_NN.md\""
+    },
+    {
+      "path": "parent_spec",
+      "code": "",
+      "fingerprint": "parent_spec::parent_spec::::[PARENT_RESOLUTION_FAILED] Parent template could not be resolved from parent_spec.url \"https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/procedures/procedures_V_0-1-0_NN.md\" (searched: ./specs, network) Detail: Failed to resolve parent \"procedures_V_0-1-0\" from \"https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/procedures/procedures_V_0-1-0_NN.md\". Attempted: 4-tier package resolver for \"procedures_V_0-1-0\" in \"specs\"; temp cache dir \"C:\\Users\\lucas\\AppData\\Local\\Temp\\innfo-specs\"; network url \"https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/procedures/procedures_V_0-1-0_NN.md\""
+    },
+    {
+      "path": "parent_spec",
+      "code": "",
+      "fingerprint": "parent_spec::parent_spec::::[PARENT_RESOLUTION_FAILED] Parent template could not be resolved from parent_spec.url \"https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/videoscript/spec_NN.md\" (searched: ./specs, network) Detail: Failed to resolve parent \"videoscript_V_0-1-0\" from \"https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/videoscript/spec_NN.md\". Attempted: 4-tier package resolver for \"videoscript_V_0-1-0\" in \"specs\"; temp cache dir \"C:\\Users\\lucas\\AppData\\Local\\Temp\\innfo-specs\"; network url \"https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/videoscript/spec_NN.md\""
+    },
+    {
+      "path": "parent_spec",
+      "code": "",
+      "fingerprint": "parent_spec::parent_spec::::[PARENT_RESOLUTION_FAILED] Parent template could not be resolved from parent_spec.url \"https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/specs/v0.1.0/level2/business/business_V_0-1-1_NN.md\" (searched: ./specs, network) Detail: Failed to resolve parent \"business_V_0-1-1\" from \"https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/specs/v0.1.0/level2/business/business_V_0-1-1_NN.md\". Attempted: 4-tier package resolver for \"business_V_0-1-1\" in \"specs\"; temp cache dir \"C:\\Users\\lucas\\AppData\\Local\\Temp\\innfo-specs\"; network url \"https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/specs/v0.1.0/level2/business/business_V_0-1-1_NN.md\""
+    },
+    {
+      "path": "specs/defiNNe_V_0-1-0_NN.md",
+      "code": "",
+      "fingerprint": "specs/defiNNe_V_0-1-0_NN.md::format.body-concept-sections::::No concept sections found (body is empty or malformed)"
+    },
+    {
+      "path": "specs/defiNNe_V_0-1-0_NN.md",
+      "code": "",
+      "fingerprint": "specs/defiNNe_V_0-1-0_NN.md::format.body-element-markers::::No NN element markers found"
+    },
+    {
+      "path": "specs/defiNNe_V_0-1-0_NN.md",
+      "code": "",
+      "fingerprint": "specs/defiNNe_V_0-1-0_NN.md::format.fm-level::::Expected level 3, got 0"
+    },
+    {
+      "path": "specs/defiNNe_V_0-1-0_NN.md",
+      "code": "",
+      "fingerprint": "specs/defiNNe_V_0-1-0_NN.md::format.fm-parent::::Missing parent_spec field"
+    },
+    {
+      "path": "specs/defiNNe_V_0-1-0_NN.md",
+      "code": "",
+      "fingerprint": "specs/defiNNe_V_0-1-0_NN.md::format.fm-version::::Missing model_version"
+    },
+    {
+      "path": "specs/iNNfo_V_0-2-0_NN.md",
+      "code": "",
+      "fingerprint": "specs/iNNfo_V_0-2-0_NN.md::format.body-element-markers::::26 bullet(s) look like elements but must use ## NN headings: - Plain text ΓÇö `relationship_model:: Dedicated` - Quoted text ΓÇö `brand_name:: \"Acme Inc.\"` - Numbers ΓÇö `weight:: 90`"
+    },
+    {
+      "path": "specs/iNNfo_V_0-2-0_NN.md",
+      "code": "",
+      "fingerprint": "specs/iNNfo_V_0-2-0_NN.md::format.fm-level::::Expected level 3, got 1"
+    },
+    {
+      "path": "specs/iNNfo_V_0-2-0_NN.md",
+      "code": "",
+      "fingerprint": "specs/iNNfo_V_0-2-0_NN.md::format.fm-version::::Missing model_version"
+    }
+  ]
+}

@@ -680,3 +680,79 @@ describe('validateWorkspaceReferences — checkOne', () => {
     expect(diagnostics[0].message).toContain('procedures_V_0-2-0')
   })
 })
+
+describe('validateWorkspaceReferences — canonical multivalue syntax (validator-robustness Unit 2)', () => {
+  function twoPersonWorkspace(fieldValue: unknown): {
+    result: RecursiveParseResult
+    index: WorkspaceIndex
+  } {
+    const targetSchema = makeSchema([{ name: 'Person', type: 'text', fields: [] }])
+    const referrerSchema = makeSchema([
+      { name: 'Team', type: 'text', fields: [{ name: 'members', type: 'reference' }] },
+    ])
+    const target = makeRoot({
+      id: 'target',
+      path: 'acme_org.md',
+      title: 'Acme Org',
+      templateSchema: targetSchema,
+      childIds: ['jane', 'john'],
+    })
+    const jane = makeElement({
+      id: 'jane',
+      name: 'Jane Doe',
+      parentId: 'target',
+      parentPath: 'acme_org.md',
+      elementType: 'Person',
+    })
+    const john = makeElement({
+      id: 'john',
+      name: 'John Smith',
+      parentId: 'target',
+      parentPath: 'acme_org.md',
+      elementType: 'Person',
+    })
+    const referrer = makeRoot({
+      id: 'referrer',
+      path: 'referrer.md',
+      title: 'Referrer',
+      templateSchema: referrerSchema,
+      childIds: ['team-elem'],
+    })
+    const teamElem = makeElement({
+      id: 'team-elem',
+      name: 'Core Team',
+      parentId: 'referrer',
+      parentPath: 'referrer.md',
+      elementType: 'Team',
+      fields: { members: fieldValue },
+    })
+    return workspace([target, jane, john, referrer, teamElem])
+  }
+
+  it('Canonical multivalue accepted: YAML sequence of qualified refs resolves clean', () => {
+    const { result, index } = twoPersonWorkspace([
+      '[[Acme Org :: Jane Doe]]',
+      '[[Acme Org :: John Smith]]',
+    ])
+    expect(index.issues).toHaveLength(0)
+    expect(validateWorkspaceReferences(result, index)).toEqual([])
+  })
+
+  it('Canonical multivalue accepted: newline-separated qualified refs resolve clean', () => {
+    const { result, index } = twoPersonWorkspace(
+      '[[Acme Org :: Jane Doe]]\n[[Acme Org :: John Smith]]',
+    )
+    expect(collectQualifiedReferenceCandidates(result, index)).toHaveLength(2)
+    expect(validateWorkspaceReferences(result, index)).toEqual([])
+  })
+
+  it('Non-canonical fails with code and migration hint: comma-joined refs', () => {
+    const { result, index } = twoPersonWorkspace(
+      '[[Acme Org :: Jane Doe]], [[Acme Org :: John Smith]]',
+    )
+    const diagnostics = validateWorkspaceReferences(result, index)
+    expect(diagnostics).toHaveLength(1)
+    expect(diagnostics[0].code).toBe('MULTIVALUE_SYNTAX')
+    expect(diagnostics[0].promptHint).toContain('[[Acme Org :: Jane Doe]]')
+  })
+})

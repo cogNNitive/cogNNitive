@@ -184,6 +184,16 @@ export async function readParentSpecUrl(
 }
 
 /**
+ * Cache options for template/spec resolution: fetched content lands in the OS
+ * temp cache by default; `inPlace: true` restores in-tree `specs/` writes.
+ */
+export interface ResolveCacheOptions {
+  checkFreshness?: boolean
+  cacheDir?: string
+  inPlace?: boolean
+}
+
+/**
  * Get the iNNfo specification (level-1) for a spec/template URL or a model.
  *
  * @param opts.url     Explicit spec/template URL to resolve from.
@@ -194,6 +204,7 @@ export async function readParentSpecUrl(
 export async function getSpec(
   rootDir: string,
   opts: { url?: string; modelId?: string },
+  cacheOpts?: ResolveCacheOptions,
 ): Promise<{ spec: SpecDocument | null; specCache: SpecCache | null }> {
   let url = opts.url
   let name: string | undefined
@@ -210,7 +221,7 @@ export async function getSpec(
   if (!name) name = deriveNameFromUrl(url)
 
   try {
-    const cache = await resolveParentChainNode(rootDir, url, name)
+    const cache = await resolveParentChainNode(rootDir, url, name, cacheOpts)
     // get_spec always returns the level-1 iNNfo spec from the resolved chain,
     // falling back to the requested document when no level-1 is present.
     const spec = getFormatSpec(cache) ?? cache.specs.get(name) ?? null
@@ -234,9 +245,10 @@ export async function getTemplateFromUrl(
   rootDir: string,
   url: string,
   name: string,
+  cacheOpts?: ResolveCacheOptions,
 ): Promise<SpecDocument | null> {
   try {
-    const cache = await resolveParentChainNode(rootDir, url, name)
+    const cache = await resolveParentChainNode(rootDir, url, name, cacheOpts)
     // Prefer a level-2/3 template from the walked chain; fall back to
     // whatever was resolved for the requested name itself (e.g. a level-1
     // spec requested directly) — it's already in `cache.specs`, no need to
@@ -266,7 +278,7 @@ export async function resolveTemplateWithCache(
   rootDir: string,
   url: string,
   name: string,
-  options?: { checkFreshness?: boolean },
+  options?: ResolveCacheOptions,
 ): Promise<{
   template: SpecDocument | null
   cache: SpecCache | null
@@ -306,10 +318,11 @@ export async function resolveTemplateWithCache(
 export async function getTemplateFromModel(
   rootDir: string,
   modelId: string,
+  cacheOpts?: ResolveCacheOptions,
 ): Promise<SpecDocument | null> {
   const parent = await readParentSpecUrl(rootDir, modelId)
   if (!parent) return null
-  return getTemplateFromUrl(rootDir, parent.url, parent.name)
+  return getTemplateFromUrl(rootDir, parent.url, parent.name, cacheOpts)
 }
 
 export interface DiscoveredTemplate {

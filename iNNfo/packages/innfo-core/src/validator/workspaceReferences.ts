@@ -21,6 +21,32 @@ export interface QualifiedRef {
 }
 
 /**
+ * Stable code for non-canonical multivalue reference syntax. Frozen once
+ * shipped: baseline fingerprints and tests assert this string, not prose.
+ */
+export const MULTIVALUE_SYNTAX_CODE = 'MULTIVALUE_SYNTAX'
+
+/**
+ * Splits one raw field value into its canonical multivalue tokens: a YAML
+ * sequence already arrives as an array (one token per item); a scalar holds
+ * one `[[Model Title :: Element Name]]` per line (newline-separated). Commas
+ * NEVER split — `[[A :: x]], [[B :: y]]` is the observed footgun and fails
+ * with `MULTIVALUE_SYNTAX` instead of resolving silently.
+ */
+export function splitCanonicalMultivalue(value: string): string[] {
+  return value
+    .split(/\r?\n/)
+    .map((token) => token.trim())
+    .filter((token) => token.length > 0)
+}
+
+/** True when a scalar value comma-joins two `[[...]]` references on one line
+ *  (e.g. `[[A :: x]], [[B :: y]]`) — the non-canonical multivalue form. */
+export function isCommaJoinedMultivalue(value: string): boolean {
+  return /\]\]\s*,\s*\[\[/.test(value)
+}
+
+/**
  * Parses a single field value as a qualified cross-model reference.
  * Returns `null` for anything else (unqualified `[[Element]]`, positional
  * `path#slug` syntax, bare text, etc.) — those stay the per-file validator's
@@ -59,21 +85,27 @@ function findRootAncestor(result: RecursiveParseResult, node: ModelNode): ModelN
   return current
 }
 
+/** A `reference`/`model` typed field value on an element node, with everything
+ *  workspace-scope passes need: the owning document root, the element, its
+ *  concept name, the template field definition, and the raw stored value. */
+interface TypedFieldValue {
+  root: ModelNode
+  element: ModelNode
+  concept: string
+  fieldDef: ConceptField
+  raw: unknown
+}
+
 /**
- * AD-07: re-scans the values `normalizeElementsIntoGraph` already
- * materialized on `ModelNode.fields` — zero additional parses. Iterates
- * every element node, resolves its owning document root and the root's
- * stashed/resolved `TemplateSchema` (`index.nodeSchema`), and collects every
- * `reference`/`model` typed field value that parses as a qualified
- * cross-model reference (typed fields only, v1 — prose and untyped fields
- * are never scanned).
+ * Iterates every `reference`/`model` typed field value on every element node
+ * whose document root has a resolvable template schema — the shared traversal
+ * for candidate collection and multivalue-syntax validation, so both passes
+ * agree on which values are in scope.
  */
-export function collectQualifiedReferenceCandidates(
+function* iterateTypedFieldValues(
   result: RecursiveParseResult,
   index: WorkspaceIndex,
-): QualifiedRefCandidate[] {
-  const candidates: QualifiedRefCandidate[] = []
-
+): Generator<TypedFieldValue> {
   for (const node of Object.values(result.nodes)) {
     if (node.kind !== 'element') continue
 
@@ -94,12 +126,34 @@ export function collectQualifiedReferenceCandidates(
       const raw = fieldValue.value
       if (raw === undefined || raw === null || raw === '') continue
 
-      const values = Array.isArray(raw) ? raw : [raw]
-      for (const v of values) {
-        const ref = parseQualifiedRef(String(v))
-        if (!ref) continue // unqualified => the per-file validator's job (AD-06)
-        candidates.push({ root, element: node, concept, fieldDef, ref })
-      }
+      yield { root, element: node, concept, fieldDef, raw }
+    }
+  }
+}
+
+/**
+ * AD-07: re-scans the values `normalizeElementsIntoGraph` already
+ * materialized on `ModelNode.fields` — zero additional parses. Iterates
+ * every element node, resolves its owning document root and the root's
+ * stashed/resolved `TemplateSchema` (`index.nodeSchema`), and collects every
+ * `reference`/`model` typed field value that parses as a qualified
+ * cross-model reference (typed fields only, v1 — prose and untyped fields
+ * are never scanned).
+ */
+export function collectQualifiedReferenceCandidates(
+  result: RecursiveParseResult,
+  index: WorkspaceIndex,
+): QualifiedRefCandidate[] {
+  const candidates: QualifiedRefCandidate[] = []
+
+  for (const { root, element, concept, fieldDef, raw } of iterateTypedFieldValues(result, index)) {
+    const values = Array.isArray(raw)
+      ? raw.flatMap((v) => splitCanonicalMultivalue(String(v)))
+      : splitCanonicalMultivalue(String(raw))
+    for (const v of values) {
+      const ref = parseQualifiedRef(String(v))
+      if (!ref) continue // unqualified => the per-file validator's job (AD-06)
+      candidates.push({ root, element, concept, fieldDef, ref })
     }
   }
 
@@ -271,6 +325,41 @@ function checkOne(
 }
 
 /**
+ * Reports one `MULTIVALUE_SYNTAX` error per reference/`model` typed field
+ * value that comma-joins qualified references (`[[A :: x]], [[B :: y]]`).
+ * The hint migrates to the canonical form with the actual values, one per
+ * line. Runs before resolution: a non-canonical value never resolves, so no
+ * dangling/ambiguity noise is emitted alongside the syntax error.
+ */
+export function validateMultivalueSyntax(
+  result: RecursiveParseResult,
+  index: WorkspaceIndex,
+): ReferenceDiagnostic[] {
+  const diagnostics: ReferenceDiagnostic[] = []
+
+  for (const { root, element, concept, fieldDef, raw } of iterateTypedFieldValues(result, index)) {
+    const scalars = Array.isArray(raw) ? raw.map(String) : [String(raw)]
+    for (const scalar of scalars) {
+      if (!isCommaJoinedMultivalue(scalar)) continue
+      const tokens = scalar
+        .split(/\s*,\s*(?=\[\[)/)
+        .map((token) => token.trim())
+        .filter((token) => token.length > 0)
+      diagnostics.push({
+        path: diagnosticPath(root, concept, element, fieldDef),
+        message: `Non-canonical multivalue reference syntax in field "${fieldDef.name}": comma-joined values are not resolved; use a YAML sequence or one [[Model Title :: Element Name]] per line`,
+        severity: 'error',
+        code: MULTIVALUE_SYNTAX_CODE,
+        promptHint: `Replace the comma-joined value with one reference per line or a YAML sequence, e.g.:\n${tokens.join('\n')}`,
+        meta: { field: fieldDef.name, tokenCount: tokens.length },
+      })
+    }
+  }
+
+  return diagnostics
+}
+
+/**
  * Validates every qualified cross-model reference (`[[Model Title ::
  * Element Name]]`) found in `reference`/`model` typed element fields across
  * the whole parsed workspace. Must run after the host's own
@@ -282,7 +371,7 @@ export function validateWorkspaceReferences(
   result: RecursiveParseResult,
   index: WorkspaceIndex,
 ): ReferenceDiagnostic[] {
-  const diagnostics: ReferenceDiagnostic[] = []
+  const diagnostics: ReferenceDiagnostic[] = [...validateMultivalueSyntax(result, index)]
   for (const candidate of collectQualifiedReferenceCandidates(result, index)) {
     diagnostics.push(
       ...checkOne(

@@ -5,7 +5,7 @@ level: 2
 parent_spec:
   name: "iNNfo_V_0-2-1"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-2-1_NN.md"
-template_version: "V_0-1-0"
+template_version: "V_0-2-0"
 title: "Metrics Template"
 relationship_types:
   hierarchy:
@@ -136,6 +136,12 @@ concept:: Scenario
 type:: string
 description:: Projection horizon in months covered by this scenario.
 
+## NN Field Definition: scenarioType
+concept:: Scenario
+type:: select
+options:: [historical, projection]
+description:: Whether the scenario consolidates measured past data, projects future data, or (when a model carries both scenarios) anchors projections on actuals.
+
 ## NN Field Definition: scenarioNotes
 concept:: Scenario
 type:: string
@@ -195,6 +201,7 @@ re-snapshotting one JSON block, never rewriting the dashboard.
 ## Objectives
 
 - Model any quantified domain (rental yield, SaaS revenue, project costs) as typed metric rows with explicit dependencies.
+- Consolidate measured history and future projection in one table: `historical` scenarios anchor the sheet on actuals, `projection` scenarios extend it.
 - Keep input variables, evolution rules, and scenarios as first-class concepts instead of spreadsheet folklore.
 - Score rows with `is_variable` / `is_formula` / `is_derived` markers so the artifact knows what is editable, computed, or artifact-invented help.
 - Generate the `Projections` HTML dashboard deterministically via the embedded `create-projections` procedure.
@@ -208,7 +215,7 @@ re-snapshotting one JSON block, never rewriting the dashboard.
 | **Metrics** | `list` | Quantified rows: results, revenues, expenses, taxes, investments (via `metricType`) |
 | **Variables** | `list` | Editable input variables (rates, occupancies, fees, growth) |
 | **Evolution** | `list` | Monthly evolution rules (fixed, compound, additive) |
-| **Scenario** | `list` | Projection scenarios selecting horizon and participating rows |
+| **Scenario** | `list` | Historical or projection scenarios selecting horizon and participating rows |
 
 ### Markers
 
@@ -350,13 +357,21 @@ corresponding factor.
 
 ### Summary
 
-A projection scenario selecting horizon and participating rows.
+A historical or projection scenario selecting horizon and participating rows.
 
 ### Description
 
-Named scenarios (e.g. short-stay, monthly, hybrid) with a month horizon and
-notes on assumptions. The scenario-metrics matrix declares which metric rows
-each scenario includes.
+Named scenarios (e.g. short-stay, monthly, hybrid) with a month horizon,
+a `scenarioType` (`historical` for measured past data, `projection` for
+future data), and notes on assumptions. The scenario-metrics matrix declares
+which metric rows each scenario includes. Historical rows carry verbatim
+`history` values in the artifact MODEL_DATA; the dashboard renders them
+distinctly from computed months.
+
+NOTE — V_0-1-0 scope: the artifact renders one neutral flow (actuals +
+projection). Scenario variants (optimistic/pessimistic) are modeled as
+ordinary variant rows through Metrics/Variables; side-by-side comparison
+is backlog (`feature/metrics-scenario-compare`).
 
 ### Methodologies
 

@@ -101,6 +101,7 @@ const MUTABLE_MODEL_CONTENT = [
 
 describe('innfo-mcp server (dispatch/handler layer, real MCP client/server round-trip)', () => {
   let client: Client
+  const origCache = process.env.INNFO_CACHE_DIR
 
   beforeAll(async () => {
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
@@ -113,6 +114,9 @@ describe('innfo-mcp server (dispatch/handler layer, real MCP client/server round
   })
 
   beforeEach(async () => {
+    // Hermetic temp cache: the OS temp dir is shared across test files/runs,
+    // so resolution here must never see entries fetched by other suites.
+    process.env.INNFO_CACHE_DIR = join(rootDir, 'isolated-cache')
     await rm(rootDir, { recursive: true, force: true })
     await mkdir(specsDir, { recursive: true })
     vi.restoreAllMocks()
@@ -122,6 +126,8 @@ describe('innfo-mcp server (dispatch/handler layer, real MCP client/server round
   })
 
   afterEach(async () => {
+    if (origCache !== undefined) process.env.INNFO_CACHE_DIR = origCache
+    else delete process.env.INNFO_CACHE_DIR
     await rm(rootDir, { recursive: true, force: true })
   })
 
@@ -471,6 +477,52 @@ describe('innfo-mcp server (dispatch/handler layer, real MCP client/server round
       const parsed = JSON.parse(textOf(result as CallToolResult))
       expect(parsed.success).toBe(true)
       expect(parsed.filePath).toContain('test_model_NN.md')
+    })
+  })
+
+  describe('intent passthrough (llm-context-efficiency Phase 2)', () => {
+    it('exposes optional intent/override_intent on budgeted tools', async () => {
+      const { tools } = await client.listTools()
+      for (const name of ['read_model', 'query_units', 'validate_model']) {
+        const tool = tools.find((t) => t.name === name)
+        expect(tool).toBeDefined()
+        const props = (tool!.inputSchema as { properties: Record<string, unknown> }).properties
+        expect(props['intent']).toBeDefined()
+        expect(props['override_intent']).toBeDefined()
+      }
+    })
+
+    it('declared intent governs without changing behavior: read_model with intent matches bare call', async () => {
+      await writeFile(join(rootDir, 'Sample_NN.md'), MUTABLE_MODEL_CONTENT, 'utf-8')
+      const bare = await client.callTool({ name: 'read_model', arguments: { id: 'Sample' } })
+      const declared = await client.callTool({
+        name: 'read_model',
+        arguments: { id: 'Sample', intent: 'surgical' },
+      })
+      expect(declared.isError).toBeFalsy()
+      expect(textOf(declared as CallToolResult)).toBe(textOf(bare as CallToolResult))
+    })
+
+    it('operator override is accepted: read_model with intent + override_intent matches bare call', async () => {
+      await writeFile(join(rootDir, 'Sample_NN.md'), MUTABLE_MODEL_CONTENT, 'utf-8')
+      const bare = await client.callTool({ name: 'read_model', arguments: { id: 'Sample' } })
+      const overridden = await client.callTool({
+        name: 'read_model',
+        arguments: { id: 'Sample', intent: 'surgical', override_intent: 'verify' },
+      })
+      expect(overridden.isError).toBeFalsy()
+      expect(textOf(overridden as CallToolResult)).toBe(textOf(bare as CallToolResult))
+    })
+
+    it('validate_model with a verify intent still returns the validation envelope', async () => {
+      const result = await client.callTool({
+        name: 'validate_model',
+        arguments: { content: MUTABLE_MODEL_CONTENT, intent: 'verify' },
+      })
+      expect(result.isError).toBeFalsy()
+      const parsed = JSON.parse(textOf(result as CallToolResult))
+      expect(parsed.version).toBe('innfo-validate-model@1')
+      expect(parsed.valid).toBe(false)
     })
   })
 

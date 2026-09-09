@@ -16,3 +16,4 @@
   - [Relationships & Connections](relationships)
   - [Sources, Citations & Lineage](citations-provenance)
   - [Tags & Open Taxonomy](tags-and-taxonomy)
+  - [Collaboration with Git](collaboration-git)

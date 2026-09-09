@@ -445,3 +445,130 @@ concurrent `check_workspace` / `validate` calls have never been stress-tested.
 **Size:** small-medium — harness + measurements + documented limits; no behaviour change.
 
 **Suggested trigger:** `/sdd-explore workspace-kb-perf-limits`.
+
+---
+
+## 20. `feature/metrics-scenario-compare` � side-by-side scenario comparison in Projections artifacts
+
+**Why:** the Metrics template models scenarios (historical/projection, neutral/optimistic/pessimistic) but the Projections artifact deliberately renders a single neutral flow (see `iNNfo/specs/templates/metrics/spec_NN.md`, Scenario guidance). Comparing variants today means editing variables by hand.
+
+**Approach:** implement variants as ordinary variant rows through the Metrics/Variables mechanism (increment factors on variables, computed variant metrics) � no parallel MODEL_DATA snapshots. Then add comparison UI on top: per-variant series in charts (Actual/Projection split already exists for pinning), variant cards, and a CSV that exports all variants. Scenario selector/dimming must NOT return; selection stays model-side.
+
+**Size:** small-medium � engine charts/cards/CSV extension + procedure text + smoke probes; no spec change expected.
+
+**Suggested trigger:** `/sdd-new metrics-scenario-compare`.
+
+
+---
+
+## 21. `refactor/console-domain-renderers` - migrate projections + strategic-master inline code to console renderers (deferred, special cases)
+
+**Deferred from the innfo-console cycle (2026-09-09).** The model-viewer renderer
+was extracted (`console/render-model-viewer.js`, UMD `window.InnfoModelViewer`,
+commit `d2fac2e`); the two assets below were deliberately left inline.
+
+**Scope decision (2026-09-09, maintainer):** the generic console template
+(blueprint + shared runtime + per-template renderers) must NOT be overloaded to
+fit projections 100% - projections is a special case and stays bespoke. Same
+for the strategic master. When this item is taken, extend the renderer pattern
+to them; do not bend the generic template around their needs.
+
+**Contract note:** `file://` double-click means no server / no build / no
+`fetch()` / no modules - CDN `<script src>` tags are the *primary* loading path
+(jsDelivr pin + raw mirror + vendored fallback, see
+`console/artifact_blueprint.html`). Online CDN use is expected; "offline" only
+ever meant "no local server". So projections' CDN deps are contract-compliant -
+robustness (vendored fallbacks), not compliance, is the only CDN concern.
+
+**Why per asset:**
+
+- *projections* (`metrics/assets/projections.html`, 41KB): ~28KB inline metrics
+  engine (~24 functions: per-row scaling, compact formatting, real vs projected
+  months, history/peak flags, growth overrides with reset, uPlot series
+  builders) plus CDN tailwind Play + lucide + uPlot. Moving the JS 1:1 to a file
+  changes nothing functional - the weight just relocates and the engine is
+  metrics-only (no cross-template reuse). The real work is a packaging decision:
+  vendor the chart/icon deps and replace tailwind Play with owned CSS, or
+  document the CDN-online requirement and keep the bespoke renderer as the
+  metrics special case.
+- *strategic master* (`business/assets/master.html`, 103KB): only ~1.6KB of
+  inline JS (paints title/version from the `innfo-model-data` slot). The ~94KB
+  bulk is 25 static framework sections (Sankey, Canvas, SWOT, PESTEL, Porter,
+  BCG, Gantt...) with Ghostbusters sample content. There is almost no code to
+  extract - thinning it means *building* a data-driven dashboard renderer plus
+  slot contracts for 25 frameworks that do not exist today. That is a feature
+  build, not a move.
+
+**Approach (open):** `/sdd-explore` first. Likely two independent slices with
+different shapes: (a) projections packaging (vendor vs document-online,
+renderer stays metrics-specific under `console/` pins); (b) master data-driven
+redesign (slot contracts per framework + renderer + procedure rewrite) versus
+freezing master as a reference sample and exempting it from the thin-shell
+rule (adjust `console-thinning` expectations + document the deviation, as was
+done for the seam-only thinning).
+
+**Size:** large if both slices go data-driven - do NOT attempt as one change;
+each slice needs its own spec. Small if the outcome is freeze + document.
+
+**Guard:** any data-driven rewrite must keep the E2E equivalence bar set by
+`e2e/17-model-viewer-renderer.spec.ts` (new shell renders identical DOM to the
+original) - no silent visual regressions across 25 frameworks.
+
+**Suggested trigger:** `/sdd-explore console-domain-renderers`.
+
+---
+
+## 22. `chore/innfo-console-remainder` - batch-commit, push, and release the remaining innfo-console work
+
+**Context (2026-09-09 evening).** The innfo-console follow-up chain landed 4
+commits on `dev` (`b4cbe77` E2E + export fix, `01406a7` videoscript map key,
+`d2fac2e` viewer renderer extraction, `b65f968` backlog item 21) plus an E2E
+addendum next to the archived verify-report. Everything below is still open and
+was deliberately NOT touched for the reasons given.
+
+**1. Uncommitted prior-batch files (needs an owning review + batch commit).**
+From the archived `innfo-console-feedback-loop` change, still in the tree:
+tracked-modified scanner feedback branch
+(`actioNN/skills/nn-trannsform/scripts/` + unit test), master/projections seam
+edits + their compile procedures, `source-normalization-pipeline/spec.md`;
+untracked `apply_feedback_NN.md` (business + metrics), console blueprint +
+schema, `openspec/specs/innfo-console-*`, the 5 `console-*.test.ts` units,
+the archive dir itself. Why not committed with the chain: the tracked files may
+carry concurrent sibling edits on top (a sibling session is actively committing
+to `dev`), so a blind batch commit would misattribute foreign work. The
+untracked files alone are incoherent without their tracked counterparts
+(e.g. thinning tests assert seams living in uncommitted asset edits). Action:
+owner re-verifies each path is theirs, then one batch commit.
+
+**2. Sibling/concurrent dirt (do NOT touch).** Untracked
+`videoscript/`, `robustness-coda/`, validator leftovers,
+`.agents/skills/nn-usage-audit/`, `dev/`, `specs/`; modified
+`docs/innfo/*`, `innfo-mcp.bundle.js`; deleted `temp/` fixtures. None of
+it belongs to innfo-console. Coordinate with the owning sessions before any
+tree-wide operation (notably `git add -A`, renormalize, or stash-all, which
+would sweep foreign files in).
+
+**3. Push + release (needs explicit maintainer go).** `dev` is ahead of
+`origin/dev` with mixed authorship. Pushing is safe only after (1) resolves,
+then the batched merge path applies: `nn-dev-check-integrity`, then
+`nn-dev-release` for `dev -> main`. No push and no merge to `main` without
+request - standing rule.
+
+**Size:** small once (1) is reviewed - the commands are trivial, the judgment
+(attribution + timing vs sibling work) is the actual task.
+
+**Suggested trigger:** maintainer decision in chat, not an SDD cycle.
+
+---
+
+## 23. `robustness-coda` — 5 leftover pins from validator-robustness + llm-efficiency verifies
+
+**Context (2026-09-09 night).** Both SDD cycles closed (proposal → specs → design → tasks → apply → verify-report → archive; PASS WITH WARNINGS, zero critical). The verifies left 5 honest gaps, planned as coda through tasks (6 flat tasks, single commit-sized unit, ~80–150 lines): (1) explicit empty `procedures:` block key + test, (2) F2 info→warning demotion pin test, (3) stable misuse-class codes + fix-examples, (4) core barrel export replacing the `validate.ts` baseline mirror (byte-identical fingerprints), (5) queue confirm-path automated test. Artifacts: `openspec/changes/robustness-coda/` (proposal + 4 delta specs + tasks, all uncommitted working-tree state).
+
+**Why not applied:** the `sdd-apply` executor delegation was interrupted 3 times at the mechanism level (long-runner cancellation — proposal/specs/tasks delegations all succeeded fast, so it is NOT a problem with this change). Resume with `/sdd-apply` on the 6 tasks, or inline.
+
+**Precondition — coordinate first:** a sibling session has since modified exactly this coda's target files (`iNNfo/specs/templates/organization/spec_NN.md`, `innfo-core/src/index.ts`, `validator/model-checks.ts`, `innfo-mcp validate.ts` + specs). Re-verify each path is free of foreign work (or reconcile) before editing; do NOT layer on sibling dirt. Follows the same rule as item 22.
+
+**Size:** tiny — 5 RED→GREEN pins + verification. Risk Low.
+
+**Suggested trigger:** `/sdd-apply robustness-coda` (or inline) once the tree is quiet.

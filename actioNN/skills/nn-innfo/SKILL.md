@@ -113,7 +113,7 @@ Creating **any** model — with a canonical template, custom template, or withou
 *(Notice: You can select one option or a combination (e.g. A and B))*.
 
 **A2a. If a canonical template was selected ([a]/[b]/[c]/[d]):**
-Resolve the template with `innfo-mcp_get_template` and display an informative summary of the Concepts, Fields, Matrices, and Markers it already defines. Then offer:
+Resolve the template with `innfo-mcp_get_template` and display an informative summary of the Concepts, Fields, Matrices, and Markers it already defines. Then discover its procedures with `innfo-mcp_list_template_procedures`: if the template declares an explicit empty procedures block, announce it — *"This template declares no executable procedures yet."* — instead of silently presenting a template with nothing executable. Then offer:
 - **[a] (Recommended)** Use template as-is, without modifications
 - **[b]** Customize it (create specialization — see §9)
 - **[x]** Cancel
@@ -326,6 +326,15 @@ Stable reference URLs (the version lives in the file name — `main` is already 
    - Read the new actionable `(searched: ...)` diagnostic returned by `validate_model` / `get_template`: it lists the directories the resolver searched for the parent. If the searched directories look wrong (e.g. they don't point at the workspace root), the problem is the **MCP root** (`INNFO_MODELS_DIR` or the server cwd), not the model: fix the root/URL and re-validate (see §2, rule 4).
    - Offer to fix it: a stable http/https URL or a workspace-relative path (never an absolute Windows path — see §2).
 6. When finished, show the **Visual Expectation Checklist (§12)** and the **Contextual Navigation Shortcuts (§13)** section.
+
+#### Canonical `.md` write path (MANDATORY)
+
+Every skill-driven `.md` write (new model, template, specialization, or full-file rewrite) MUST go through a single canonical path so files validate cleanly:
+
+1. **Preferred:** scaffold via `innfo-mcp_init_model` (frontmatter version inferred from the resolved parent — never hand-written), then apply content with `innfo-mcp_apply_change` or a documented file-write tool.
+2. **Encoding:** UTF-8 without BOM, LF line endings, exactly one trailing newline.
+3. **FORBIDDEN:** shell `echo` / `printf` redirection for file writes — they mangle encodings, join lines, and drop trailing newlines.
+4. **Verify:** accented characters MUST round-trip byte-identical; re-validate with `innfo-mcp_validate_model` — no encoding or line-joining diagnostics may appear.
 
 #### Agent Modification provenance (MANDATORY on every successful `apply_change`)
 
@@ -602,6 +611,50 @@ Executable procedures and agent skills are content declared dynamically in model
 Additionally, procedures are discovered by reading the `## NN Procedure: ...` sections of the active model and the workspace's `procedures/` folder (`*_procedures_V_0-1-0_NN.md`).
 
 The master.html procedure (formerly "showroom") is recognizable: if the user asks for a "master.html", "master", "showroom", "gallery", or "visual framework" of a model, offer to generate it (without changing how it is generated or altering the current generator's behavior).
+
+---
+
+## 16. Context Efficiency: Intent, Slices, Budgets
+
+Every automated call declares its context budget and intent class. Nothing travels "just in case". Diagnostic codes are defined by `validator-robustness` (referenced, not re-specified).
+
+### 16a. Intent declaration (`intent:`)
+
+Each call MUST declare exactly one intent — `coach`, `surgical`, `verify`, or `match`:
+
+```yaml
+intent: surgical   # coach | surgical | match | verify; omit = current behavior
+override_intent: verify  # always wins when present
+```
+
+1. An undeclared intent MUST default to current behavior (no-op) — omission never breaks a call.
+2. A manual override MUST always be available and MUST take precedence over the declared intent. When the declared intent proves wrong mid-task, the operator overrides it and execution continues under the override rules.
+3. Work spanning two intents MUST declare the broader (more expensive) intent.
+
+### 16b. Slice-first reads for surgical work
+
+Surgical work (few elements of one concept) MUST read bounded slices through existing query units and MUST NOT include whole files. No included unit SHALL exceed 150 lines without an explicit slice or recorded override:
+
+1. Assemble surgical context as one concept slice plus schema excerpt: `read_model` with `concept` + `element` + `max_lines` (default 150), and `query_units` with capped projections. A unit over 150 lines included whole, without slice or override, is a caller violation — not a server error.
+2. When the needed context spans the cap, record a manual `override_reason` alongside the call; the wider unit MAY then be included.
+3. Honor the `truncated` flag: when set, the slice is partial — narrow the query instead of widening the read.
+
+### 16c. Differential verify prompts
+
+`verify` prompts MUST carry only outcome data and MUST NOT embed full logs or rendered artifacts; full logs remain on disk by path reference:
+
+1. Build the prompt from `validate_model(baseline_path)` as `{ exit, new_errors, verdict, log_path }` — exit status plus errors new against the baseline only.
+2. A clean run carries the verdict only; historical errors are never re-explained.
+
+### 16d. Per-intent budgets and measurement
+
+| Intent | Budget rule |
+|---|---|
+| `coach` | SHALL be few calls but MAY consume up to half the session budget |
+| `surgical` / `verify` | SHALL form the majority of calls at a fraction of the cost each |
+| `match` | MUST NOT carry raw sources |
+
+Each session MUST record per-intent call and token counts via the `usage-counters.js` convention: caller-side JSONL append of `{ ts, intent, inputTokens, outputTokens }`, defaulting to the OS temp directory (session-scoped, never the workspace tree — an explicit workspace path is opt-in only). One promotion per change MUST be benchmarked before versus after, recording per-intent call/token totals and the measured reduction.
 
 ---
 

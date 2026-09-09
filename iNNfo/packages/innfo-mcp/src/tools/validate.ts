@@ -13,6 +13,10 @@ import {
   validateWorkspaceReferences,
   validateWorkspaceSources,
   extractHeadings,
+  loadBaseline,
+  fingerprint,
+  diffNewOnly,
+  normalizeBaselinePath,
 } from '@cognnitive/innfo-core'
 import type {
   SpecDocument,
@@ -25,6 +29,9 @@ import type {
   DirectoryHandleLike,
   FileHandleLike,
   ReferenceDiagnostic,
+  ValidationBaseline,
+  BaselineEntry,
+  BaselineDiff,
 } from '@cognnitive/innfo-core'
 import { resolveTemplateWithCache, findModelFile, deriveNameFromUrl, getSpec } from './spec.js'
 import { buildIncludeContentMap } from './resolver-node.js'
@@ -302,6 +309,30 @@ async function runWorkspaceValidation(
 /* ── validate_model ──────────────────────────────────────────── */
 
 /**
+ * Differential validation against a versioned known-errors baseline.
+ *
+ * Single shared implementation: re-exported from `@cognnitive/innfo-core`
+ * (`innfo-core/src/validator/baseline.ts`, exposed through the core barrel).
+ * This module keeps the exported names so existing import sites are
+ * untouched; the algorithm is core's, so fingerprints match core-generated
+ * baselines byte-for-byte by construction.
+ */
+export { loadBaseline, fingerprint, diffNewOnly, normalizeBaselinePath }
+export type { ValidationBaseline, BaselineEntry, BaselineDiff }
+
+/** Read a baseline file; a missing file means full output (`null`). */
+async function loadBaselineFile(baselinePath: string): Promise<ValidationBaseline | null> {
+  let raw: string
+  try {
+    raw = await readFile(baselinePath, 'utf-8')
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException)?.code === 'ENOENT') return null
+    throw err
+  }
+  return loadBaseline(raw)
+}
+
+/**
  * Validate a model against its template.
  * Provide either `id` (reads from disk) or `content` (inline raw text).
  */
@@ -311,11 +342,20 @@ export async function validateModel(
   content?: string,
   templateUrl?: string,
   workspace?: boolean,
-  options: { checkFreshness?: boolean } = {},
+  options: {
+    checkFreshness?: boolean
+    baselinePath?: string
+    cacheDir?: string
+    inPlace?: boolean
+  } = {},
 ): Promise<{
   valid: boolean
   errors: ValidationError[]
   warnings: ValidationError[]
+  suppressedCount: number
+  staleEntries: BaselineEntry[]
+  backlog: string | null
+  summary: string | null
 }> {
   const checkFreshness = options.checkFreshness ?? true
   let model: ParsedModel
@@ -329,6 +369,10 @@ export async function validateModel(
         valid: false,
         errors: [{ path: '', message: `Model not found: ${id}`, severity: 'error' }],
         warnings: [],
+        suppressedCount: 0,
+        staleEntries: [],
+        backlog: null,
+        summary: null,
       }
     }
     model = await loadModel(filePath)
@@ -337,12 +381,17 @@ export async function validateModel(
       valid: false,
       errors: [{ path: '', message: 'Provide either id or content', severity: 'error' }],
       warnings: [],
+      suppressedCount: 0,
+      staleEntries: [],
+      backlog: null,
+      summary: null,
     }
   }
 
   // D1: Auto-detect Level 2 templates and delegate to validateTemplate
   if (model.frontmatter.level === 2) {
-    return validateTemplate(rootDir, id, content, templateUrl)
+    const delegated = await validateTemplate(rootDir, id, content, templateUrl)
+    return { ...delegated, suppressedCount: 0, staleEntries: [], backlog: null, summary: null }
   }
 
   // Resolve the template only from the model's parent_spec.url, or from an
@@ -359,6 +408,8 @@ export async function validateModel(
     if (parentRef?.url && parentRef?.name) {
       const resolved = await resolveTemplateWithCache(rootDir, parentRef.url, parentRef.name, {
         checkFreshness,
+        cacheDir: options.cacheDir,
+        inPlace: options.inPlace,
       })
       template = resolved.template
       resolveInclude = resolved.resolveInclude
@@ -370,7 +421,7 @@ export async function validateModel(
         rootDir,
         templateUrl,
         deriveNameFromUrl(templateUrl),
-        { checkFreshness },
+        { checkFreshness, cacheDir: options.cacheDir, inPlace: options.inPlace },
       )
       template = resolved.template
       resolveInclude = resolved.resolveInclude
@@ -500,7 +551,51 @@ export async function validateModel(
     }
   }
 
-  return { valid, errors, warnings: warningsWithFile }
+  // Differential validation (validation-baseline-differential): with a
+  // baseline configured, only NEW errors surface in the main output. Known
+  // errors are hidden and counted with a backlog link; stale entries are
+  // reported as info without failing validation. No baseline (missing file
+  // or no `baselinePath`) means full output.
+  let surfacedErrors: ValidationError[] = errors
+  let suppressedCount = 0
+  let staleEntries: BaselineEntry[] = []
+  let backlog: string | null = null
+  let summary: string | null = null
+  if (options.baselinePath) {
+    const baseline = await loadBaselineFile(options.baselinePath)
+    if (baseline) {
+      backlog = baseline.backlog
+      const diff = diffNewOnly(surfacedErrors, baseline)
+      surfacedErrors = diff.newErrors
+      suppressedCount = diff.suppressedCount
+      staleEntries = diff.staleEntries
+      if (staleEntries.length > 0) {
+        warningsWithFile.push({
+          path: 'baseline',
+          message: `[BASELINE_STALE] ${staleEntries.length} baseline ${staleEntries.length === 1 ? 'entry matches' : 'entries match'} no current error; prune ${staleEntries.length === 1 ? 'it' : 'them'} or keep ${staleEntries.length === 1 ? 'it' : 'them'} as backlog.`,
+          code: 'BASELINE_STALE',
+          severity: 'info',
+          filePath: options.baselinePath,
+        })
+      }
+      summary =
+        `Suppressed ${suppressedCount} known error(s) (backlog: ${backlog}).` +
+        (staleEntries.length > 0
+          ? ` ${staleEntries.length} stale baseline entr(ies) reported.`
+          : '')
+      valid = surfacedErrors.length === 0
+    }
+  }
+
+  return {
+    valid,
+    errors: surfacedErrors,
+    warnings: warningsWithFile,
+    suppressedCount,
+    staleEntries,
+    backlog,
+    summary,
+  }
 }
 
 /* ── validate_model_url ─────────────────────────────────────── */

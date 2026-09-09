@@ -26,6 +26,10 @@ playwright-report/
 **/.playwright-mcp/
 .spec-cache/
 **/.spec-cache/
+# Misdirected spec-resolution cache (belongs in .spec-cache/): resolver writes a
+# bare specs/ dir relative to cwd. Never the real spec trees (iNNfo/specs/, openspec/specs/).
+/specs/
+iNNfo/specs/templates/**/specs/
 .atl/.skill-registry.cache.json
 .cogNNitive/.skill-registry.cache.json
 sources/staging/

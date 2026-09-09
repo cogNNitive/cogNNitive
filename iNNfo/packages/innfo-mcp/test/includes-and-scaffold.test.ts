@@ -14,15 +14,21 @@ const L1 = readFileSync(
 describe('MCP — includes composition + init_model scaffolding', () => {
   let root: string
   let specsDir: string
+  const origCache = process.env.INNFO_CACHE_DIR
 
   beforeEach(async () => {
     root = await mkdtemp(join(tmpdir(), 'innfo-mcp-inc-'))
     specsDir = join(root, 'specs')
     await mkdir(specsDir, { recursive: true })
     await writeFile(join(specsDir, 'iNNfo_V_0-1-0_NN.md'), L1)
+    // Hermetic temp cache: file:// template saves must never leak into the
+    // shared OS temp cache seen by other suites.
+    process.env.INNFO_CACHE_DIR = join(root, 'isolated-cache')
   })
 
   afterEach(async () => {
+    if (origCache !== undefined) process.env.INNFO_CACHE_DIR = origCache
+    else delete process.env.INNFO_CACHE_DIR
     await rm(root, { recursive: true, force: true })
   })
 
@@ -129,7 +135,10 @@ describe('MCP — includes composition + init_model scaffolding', () => {
     expect(res.templateResolved).toBe(true)
     expect(res.scaffolded).toBe(true)
     const content = await readFile(res.filePath, 'utf-8')
-    expect(content).toContain('spec_version: "V_0-2-1"')
+    // Version-aware scaffold (validator-robustness): frontmatter versions are
+    // inferred from the resolved parent template (stamped V_0-1-0 above).
+    expect(content).toContain('spec_version: "V_0-1-0"')
+    expect(content).toContain('model_version: "V_0-1-0"')
     expect(content).toContain('# NN index')
     expect(content).toContain('* [[Overview]]')
     expect(content).toContain('* [[Item]]')

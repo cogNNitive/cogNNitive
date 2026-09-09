@@ -1,10 +1,29 @@
-import type { SpecDocument, ValidationError, ValidationReport } from '../types'
+import type { SpecDocument, ValidationCheck, ValidationError, ValidationReport } from '../types'
 import type { IncludeResolver } from '../schema'
 import { parseModel } from '../parser'
+import { hasBom } from '../parser/markdown'
 import { Diagnostics } from '../diagnostics'
 import { validateFormatContent } from './content'
 import { validateModel } from './model'
 import type { SubmodelResolver } from './references'
+
+/**
+ * Map one hygiene check to a flat diagnostic. Passed checks (any severity)
+ * produce no diagnostic; failed checks keep their severity — including
+ * `info`, which is reported but never affects validity — plus any stable
+ * code, fix hint, and metadata the check carries.
+ */
+export function formatCheckToDiagnostic(check: ValidationCheck): ValidationError | null {
+  if (check.passed) return null
+  return {
+    path: `format.${check.id}`,
+    message: check.message ?? check.label,
+    severity: check.severity,
+    code: check.code,
+    promptHint: check.promptHint,
+    meta: check.meta,
+  }
+}
 
 export interface DocumentValidation {
   /** Document hygiene: frontmatter keys, body structure, naming conventions. */
@@ -45,13 +64,20 @@ export function validateDocument(
 
   const d = new Diagnostics()
 
-  for (const check of format.checks) {
-    if (check.passed || check.severity === 'info') continue
-    d.add({
-      path: `format.${check.id}`,
-      message: check.message ?? check.label,
-      severity: check.severity === 'error' ? 'error' : 'warning',
+  // BOM tolerance (model-scaffold-robustness): the parser strips a leading
+  // BOM before matching frontmatter, so parsing succeeds; surface a
+  // non-blocking `info` notice so encoding rot stays visible. Never an error.
+  if (hasBom(content)) {
+    d.info('format.bom', 'File starts with a byte-order mark; stripped before parsing.', {
+      code: 'BOM_WARNING',
+      promptHint: 'Save the file as UTF-8 without BOM.',
+      meta: { stripped: true },
     })
+  }
+
+  for (const check of format.checks) {
+    const diag = formatCheckToDiagnostic(check)
+    if (diag) d.add(diag)
   }
 
   let schema: DocumentValidation['schema'] = null

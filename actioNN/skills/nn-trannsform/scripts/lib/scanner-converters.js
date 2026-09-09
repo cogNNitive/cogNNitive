@@ -251,6 +251,107 @@ function convertSubtitles(content, baseName) {
 }
 
 /**
+ * Detects reviewer-feedback JSON by its canonical drop zone
+ * (sources/import/feedback/ with legacy sources/original/feedback/ support).
+ * @param {string} filePath
+ * @returns {boolean}
+ */
+function isFeedbackJsonPath(filePath) {
+  const normalized = String(filePath || '').replace(/\\/g, '/');
+  return /(^|\/)(import|original)\/feedback\//.test(normalized);
+}
+
+const FEEDBACK_ITEM_KINDS = ['correction', 'comment', 'new', 'delete'];
+const FEEDBACK_ITEM_STATUSES = ['pending', 'applied', 'rejected'];
+
+/**
+ * Validates a parsed reviewer-feedback payload against the innfo-console
+ * feedback contract (mirrors iNNfo/specs/templates/console/feedback.schema.json).
+ * Unknown draft fields are ignored. Throws naming the offending item id.
+ * @param {any} parsed
+ * @returns {{ meta: Record<string, any>, items: Array<Record<string, any>> }}
+ */
+function validateFeedbackJson(parsed) {
+  const fail = (msg) => {
+    throw new Error(`feedback: ${msg}`);
+  };
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    fail('document must be an object with meta and items');
+  }
+  const meta = parsed.meta;
+  if (!meta || typeof meta !== 'object') fail('meta: required object is missing');
+  for (const field of ['source_model', 'artifact', 'artifact_version', 'author', 'viewer']) {
+    if (!meta[field] || typeof meta[field] !== 'string') fail(`meta.${field}: required non-empty string is missing`);
+  }
+  if (!/^V_\d+-\d+-\d+$/.test(String(meta.source_model_version || ''))) {
+    fail(`meta.source_model_version: must match V_x-y-z (got ${meta.source_model_version})`);
+  }
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:?\d{2})$/.test(String(meta.exported_at || ''))) {
+    fail(`meta.exported_at: must be ISO-8601 with seconds (got ${meta.exported_at})`);
+  }
+  const slug = meta.feedback_slug || meta.session_label;
+  if (typeof slug !== 'string' || slug.trim() === '') fail('meta.feedback_slug: required slug is missing');
+  if (!Array.isArray(parsed.items)) fail('items: required array is missing');
+
+  for (let i = 0; i < parsed.items.length; i++) {
+    const item = parsed.items[i];
+    const where = item && typeof item.id === 'string' ? item.id : `#${i}`;
+    if (!item || typeof item !== 'object') fail(`${where}: must be an object`);
+    if (!/^fb-\d{3,}$/.test(String(item.id || ''))) fail(`${where}: id must match fb-NNN (got ${item.id})`);
+    if (!FEEDBACK_ITEM_KINDS.includes(item.kind)) {
+      fail(`${where}: kind must be one of ${FEEDBACK_ITEM_KINDS.join('|')} (got ${item.kind})`);
+    }
+    if (!item.target || typeof item.target !== 'object' || Object.keys(item.target).length === 0) {
+      fail(`${where}: target must be a non-empty object`);
+    }
+    if (!FEEDBACK_ITEM_STATUSES.includes(item.status)) {
+      fail(`${where}: status must be one of ${FEEDBACK_ITEM_STATUSES.join('|')} (got ${item.status})`);
+    }
+  }
+  return { meta, items: parsed.items };
+}
+
+/**
+ * Converts reviewer-feedback JSON into citable markdown: one ## NN Meta
+ * section plus one ### heading per item so each item is addressable via
+ * sources:: <file>.md#<fb-NNN>.
+ * @param {string} content
+ * @param {string} baseName
+ * @returns {string}
+ */
+function convertFeedbackJson(content, baseName) {
+  let parsed;
+  try {
+    parsed = JSON.parse(content);
+  } catch (err) {
+    throw new Error(`feedback: invalid JSON in ${baseName} (${err.message})`);
+  }
+  const { meta, items } = validateFeedbackJson(parsed);
+
+  let out = `# NN Feedback: ${baseName}\n\n`;
+  out += `## NN Meta\n\n`;
+  out += `- **Source Model**: ${meta.source_model} (${meta.source_model_version})\n`;
+  out += `- **Artifact**: ${meta.artifact} (v${meta.artifact_version})\n`;
+  out += `- **Exported At**: ${meta.exported_at}\n`;
+  out += `- **Author**: ${meta.author}\n`;
+  out += `- **Slug**: ${meta.feedback_slug || meta.session_label}\n`;
+  out += `- **Viewer**: ${meta.viewer}\n\n`;
+
+  out += `## NN Items (${items.length})\n\n`;
+  for (const item of items) {
+    out += `### ${item.id} (${item.kind}, ${item.status})\n\n`;
+    const target = item.target || {};
+    const targetBits = Object.keys(target).map((k) => `${k}: ${target[k]}`);
+    if (targetBits.length > 0) out += `- **Target**: ${targetBits.join('; ')}\n`;
+    if (item.original !== undefined) out += `- **Original**: ${String(item.original)}\n`;
+    if (item.proposed !== undefined) out += `- **Proposed**: ${String(item.proposed)}\n`;
+    if (item.comment) out += `- **Comment**: ${item.comment}\n`;
+    out += `\n`;
+  }
+  return out;
+}
+
+/**
  * Converts JSON content into structured markdown dataset schema profile or formatted code block.
  * Removes legacy Slack/Teams chat heuristics.
  * @param {string} content
@@ -372,6 +473,7 @@ function convertOkFormat(ext, filePath, baseName) {
     case '.md':
       return stripFrontmatter(content);
     case '.json':
+      if (isFeedbackJsonPath(filePath)) return convertFeedbackJson(content, baseName);
       return convertJson(content, baseName);
     case '.csv':
       return convertCsv(content, baseName);
@@ -521,6 +623,10 @@ async function ensureDependency(ext, options, extDeps, skillDir) {
 module.exports = {
   stripFrontmatter,
   htmlToPlainText,
+  convertJson,
+  convertFeedbackJson,
+  validateFeedbackJson,
+  isFeedbackJsonPath,
   convertOkFormat,
   convertDocx,
   convertPdf,

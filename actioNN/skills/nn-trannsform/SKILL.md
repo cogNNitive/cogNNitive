@@ -137,6 +137,15 @@ When the source was imported from the web (see §2c below), also include `source
 
 > **Heading slugs transliterate accents** (`## Visión` → `#vision`, not `#visin`) — the same rule the iNNfo editor and `@cognnitive/innfo-core` use. A workspace created before this change must re-run `--scan` so its `sources/nn/` anchors (and any `sources::` pointing at accented headings) line up.
 
+#### 2a-1. Reviewer Feedback Ingestion (`sources/import/feedback/`)
+
+Reviewer consoles export structured feedback JSON (see `iNNfo/specs/templates/console/feedback.schema.json`). The drop zone is `sources/import/feedback/` (legacy `sources/original/feedback/` supported). Files MUST be named `{PrimaryModel}_V_{version}_{slug}_feedback_{YYYYMMDD-HHMMSS}.json`.
+
+1. **Routing**: during `--scan`, `.json` files under `import/feedback/` (or `original/feedback/`) route to `convertFeedbackJson`, NOT the generic structured-data `convertJson` branch. Every other `sources/import/` JSON file keeps the generic path. The legacy Slack/Teams heuristic parser (`convertChatJson`) is removed — chat transcripts ingest via the `conversations/` lifecycle, never via `.json` heuristics.
+2. **Validation**: each payload validates against the feedback contract (`meta` with `source_model`, `source_model_version` as `V_x-y-z`, `artifact`, `artifact_version`, `exported_at` ISO-8601 with seconds, `author`, `feedback_slug`, `viewer`; items with `id` as `fb-NNN`, `kind` as `correction|comment|new|delete`, non-empty `target`, `status` as `pending|applied|rejected`). Unknown draft fields are ignored. A file failing validation is **skipped and reported in the registry — the run never aborts**.
+3. **Frontmatter contract**: normalized feedback lands mirrored at `sources/nn/import/feedback/<name>.md` with the standard origin frontmatter (`source_file` pointing at the `sources/import/feedback/` origin, `sha256`, `size_bytes`, `normalized_at`, `normalized_by`) **plus** `source_type: "feedback"` and `is_synthetic: true`.
+4. **Citation**: the normalized body renders one `### <fb-NNN> (<kind>, <status>)` heading per item, so agents cite items directly: `sources:: import/feedback/<file>.md#fb-001`. Downstream, the template `apply_feedback_NN.md` procedure carries accepted items back into the model (staleness check, diff preview, `apply_change` per item, `validate_model`, single patch bump, stable-name console regeneration).
+
 #### 2b. Progressive Disclosure & Source Naming Convention
 
 To prevent LLM context degradation (*Lost in the Middle*) and maintain workspace clarity:
@@ -302,6 +311,23 @@ Select the citation and export format for the deliverable:
 
 ---
 
+#### 3d. Scored Source-to-Element Matching + Review Queue
+
+When normalized sources must be mapped to Level 3 model elements (`sources::`), score deterministically first and spend LLM attention on doubtful pairs only:
+
+1. **Score outside the hot loop**: run `scorePairs(sources, elements, { threshold })` from `scripts/lib/score-matcher.js` over every normalized source against the candidate elements. Scoring is a pure token-set similarity — zero LLM calls, zero context cost. `DEFAULT_THRESHOLD = 0.7`; change it only with measured fixture evidence showing systematic misclassification.
+2. **Link confident pairs automatically**: every pair scoring at or above threshold links immediately; record `{ sourceId, elementId, score }` alongside the element's `sources::` pointer.
+3. **Queue everything else — never silently exclude**: a source scoring below threshold for every element enters the review queue as `{ sourceId, candidates, reason, status: pending }` (`reason` is `below-threshold`, `no-overlap`, or `no-elements`; at most 3 top candidates). An unmatched source is queued, never dropped.
+4. **Review doubtful pairs with the user**: present queued pairs top-candidates-first and confirm or reject each one:
+   - `[a] (Recommended) Confirm link` — record the link together with the decision.
+   - `[b] Reject link` — record the rejection; the source stays traceable, never silently excluded.
+   - Undecided pairs stay `pending` across sessions — ending a review session never treats them as excluded.
+
+   (Notice: You can select one option or a combination (e.g. A and B) when several pairs are confirmed in one pass.)
+5. **Record the cost**: bulk scoring is deterministic (no LLM call to record); each LLM review turn is recorded as one `match`-intent call via the `usage-counters.js` convention (`scripts/lib/usage-counters.js`, JSONL append, OS temp directory by default). `match` calls MUST NOT carry raw sources — candidates only.
+
+---
+
 ### 4. Citation & Provenance Protocol
 
 Derived deliverables are generated in a single pass directly to `export/[Deliverable_Name]_V_x-y-z.md` (or legacy `artifacts/` if existing) without intermediate `_draft.md` files or non-standard `<!-- cite: ... -->` HTML comments:
@@ -363,3 +389,4 @@ At the end of transformation:
 7. **Saved Procedure Proactive Check**: When starting `nn-trannsform` or `nn-router`, check for existing procedures in `procedures/` and offer them as runnable options to the user before starting standard ingestion.
 7a. **Lineage Record Sync**: `# NN Sources`, `# NN Models` and `# NN Artifacts` re-sync from the filesystem (`sources/nn/`, `models/`, `export/`, fallback `artifacts/`) on every `--scan`/`--import-url`/`--lineage` run — idempotent replace, removed files drop out. `# NN Procedures` is an append-only log: scripted runs (`--scan`, `--import-url`, `--apply`) append their own entry; the agent still adds `## NN Procedures:` entries by hand for non-scripted research/analysis steps (see §2d). `node scripts/index.js --check` reports drift.
 8. **Prose Description in Level 3 Models**: The description of an element in a Level 3 model must NEVER be formatted as a `description::` property field. It must always be written as free-form Markdown prose below the `key:: value` fields list, separated from them by a blank line.
+9. **Scored Matching, Never Silent Exclusion**: normalized sources map to model elements through `scorePairs` (`scripts/lib/score-matcher.js`, threshold 0.7); below-threshold pairs enter the review queue with a recorded decision, and undecided pairs stay queued across sessions.

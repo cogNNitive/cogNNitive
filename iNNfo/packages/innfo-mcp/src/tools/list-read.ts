@@ -9,8 +9,37 @@
 
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { listModels as coreListModels, parseModel } from '@cognnitive/innfo-core'
+import { listModels as coreListModels, parseModel, ElementsMap } from '@cognnitive/innfo-core'
 import type { ModelInfo, ParsedModel } from '@cognnitive/innfo-core'
+
+/**
+ * Default line cap for surgical slice reads (llm-context-efficiency).
+ * A slice larger than this is truncated unless the caller records an
+ * explicit `override_reason`. Observed artifacts reach ~600 lines while
+ * surgical edits touch tens of lines; 150 fits one concept slice plus
+ * schema excerpt with margin.
+ */
+export const SLICE_LINE_CAP = 150
+
+/** Bounded slice-read options for `readModel` (all optional, no-op when omitted). */
+export interface ReadModelSliceOptions {
+  /** Concept to slice (e.g. `Models`); when omitted the whole model is returned. */
+  concept?: string
+  /** Element within the concept to slice (requires `concept` for scoped reads). */
+  element?: string
+  /** Line cap for the returned `rawContent` (default {@link SLICE_LINE_CAP}). */
+  max_lines?: number
+  /** Recorded reason for exceeding the cap; bypasses truncation. */
+  override_reason?: string
+}
+
+/** A parsed model with slice metadata for budgeted surgical reads. */
+export type SlicedModel = ParsedModel & {
+  /** True when `rawContent` was cut to the line cap. */
+  truncated: boolean
+  /** Echo of `override_reason` when the cap was bypassed. */
+  overrideRecorded?: string
+}
 
 /**
  * Normalize a model ID by stripping trailing file extensions (.md, .markdown) and redundant _NN suffixes.
@@ -62,16 +91,167 @@ export async function listModels(rootDir: string): Promise<ModelInfo[]> {
  * `<cleanId>_NN.md`, `<cleanId>.md`, `<cleanId>`, `<id>` and `<id>.md`.
  *
  * Returns null if the file doesn't exist or can't be parsed.
+ *
+ * Slice reads (llm-context-efficiency): pass `{ concept }` to return only
+ * that concept's elements, `{ concept, element }` for a single element, and
+ * `{ max_lines }` (default 150) to cap `rawContent` lines. Slices larger
+ * than the cap are truncated with `truncated: true` unless the caller
+ * records `{ override_reason }`, which bypasses the cap and echoes the
+ * reason in `overrideRecorded`. Omitting all options preserves the legacy
+ * behavior (whole model, `truncated: false`). A unit over the cap returned
+ * without a slice or override is a caller violation, never a server error.
  */
-export async function readModel(rootDir: string, id: string): Promise<ParsedModel | null> {
+export async function readModel(
+  rootDir: string,
+  id: string,
+  options?: ReadModelSliceOptions,
+): Promise<SlicedModel | null> {
   const { findModelFile } = await import('./spec.js')
   const filePath = await findModelFile(rootDir, id)
   if (!filePath) return null
   try {
     const content = await readFile(filePath, 'utf-8')
-    return parseModel(content)
+    const model = parseModel(content)
+    return applySlice(model, options)
   } catch {
     return null
   }
 }
 
+/**
+ * Apply bounded slice options to an already-parsed model (pure).
+ * Extracts the requested concept/element section from `rawContent`,
+ * filters `elements` to the slice, and enforces the line cap.
+ */
+export function applySlice(model: ParsedModel, options?: ReadModelSliceOptions): SlicedModel {
+  const sliced = model as SlicedModel
+  const concept = options?.concept?.trim() || undefined
+  const element = options?.element?.trim() || undefined
+  const override = options?.override_reason?.trim() || undefined
+  const rawMax = options?.max_lines
+  const maxLines =
+    rawMax !== undefined && Number.isInteger(rawMax) && rawMax > 0 ? rawMax : SLICE_LINE_CAP
+  const wantsSlice = concept !== undefined || element !== undefined || rawMax !== undefined
+
+  if (!wantsSlice) {
+    sliced.truncated = false
+    return sliced
+  }
+
+  const filtered = new ElementsMap()
+  let section: string | null = null
+  if (concept !== undefined) {
+    const nodes = model.elements.get(concept) ?? []
+    const scoped =
+      element !== undefined
+        ? nodes.filter((n) => n.name.toLowerCase() === element.toLowerCase())
+        : nodes
+    filtered.set(conceptKey(model, concept), scoped)
+    section = extractSection(model.rawContent, concept, element) ?? renderSlice(concept, scoped)
+  } else if (element !== undefined) {
+    for (const [key, nodes] of model.elements.entries()) {
+      const scoped = nodes.filter((n) => n.name.toLowerCase() === element.toLowerCase())
+      if (scoped.length > 0) {
+        filtered.set(key, scoped)
+        section ??= extractSection(model.rawContent, key, element)
+      }
+    }
+    section ??= renderSlice(element, [])
+  } else {
+    for (const [key, nodes] of model.elements.entries()) filtered.set(key, nodes)
+    section = model.rawContent
+  }
+
+  const raw = section ?? model.rawContent
+  if (override) {
+    sliced.elements = filtered
+    sliced.rawContent = raw
+    sliced.truncated = false
+    sliced.overrideRecorded = override
+    return sliced
+  }
+  const lines = raw.split('\n')
+  if (lines.length > maxLines) {
+    sliced.elements = filtered
+    sliced.rawContent = lines.slice(0, maxLines).join('\n')
+    sliced.truncated = true
+    return sliced
+  }
+  sliced.elements = filtered
+  sliced.rawContent = raw
+  sliced.truncated = false
+  return sliced
+}
+
+/** Preserve the model's canonical concept key casing when filtering. */
+function conceptKey(model: ParsedModel, concept: string): string {
+  for (const key of model.elements.keys()) {
+    if (key.toLowerCase() === concept.toLowerCase()) return key
+  }
+  return concept
+}
+
+/** Match a `# NN <concept>` section heading line (case-insensitive). */
+function isConceptHeading(line: string, concept: string): boolean {
+  return new RegExp(`^#\\s+NN\\s+${escapeRegExp(concept)}\\s*$`, 'i').test(line.trim())
+}
+
+/** Match a `## NN <concept>: <element>` element heading line (case-insensitive). */
+function isElementHeading(line: string, concept: string, element: string): boolean {
+  return new RegExp(
+    `^##\\s+NN\\s+${escapeRegExp(concept)}\\s*:\\s*${escapeRegExp(element)}\\s*$`,
+    'i',
+  ).test(line.trim())
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+/**
+ * Extract a concept (or single-element) section from raw markdown,
+ * bounded by the next same-level heading. Returns null when the
+ * headings are not found so the caller can fall back to rendering.
+ */
+export function extractSection(
+  rawContent: string,
+  concept: string,
+  element?: string,
+): string | null {
+  const lines = rawContent.split('\n')
+  const start = lines.findIndex((l) => isConceptHeading(l, concept))
+  if (start === -1) return null
+  let end = lines.length
+  for (let i = start + 1; i < lines.length; i++) {
+    if (/^#\s+NN\s+/i.test(lines[i].trim())) {
+      end = i
+      break
+    }
+  }
+  if (element === undefined) return lines.slice(start, end).join('\n')
+  const elStart = lines.findIndex(
+    (l, i) => i >= start && i < end && isElementHeading(l, concept, element),
+  )
+  if (elStart === -1) return null
+  let elEnd = end
+  for (let i = elStart + 1; i < end; i++) {
+    if (/^#{1,2}\s+NN\s+/i.test(lines[i].trim())) {
+      elEnd = i
+      break
+    }
+  }
+  return lines.slice(elStart, elEnd).join('\n')
+}
+
+/** Deterministic fallback rendering when raw headings are unavailable. */
+function renderSlice(
+  concept: string,
+  nodes: Array<{ name: string; fields: Record<string, unknown> }>,
+): string {
+  const lines = [`# NN ${concept}`]
+  for (const node of nodes) {
+    lines.push(`## NN ${concept}: ${node.name}`)
+    for (const [key, value] of Object.entries(node.fields)) lines.push(`${key}:: ${value}`)
+  }
+  return lines.join('\n')
+}

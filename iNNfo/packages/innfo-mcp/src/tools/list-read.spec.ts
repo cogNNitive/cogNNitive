@@ -141,3 +141,65 @@ describe('readModel', () => {
     expect(modelRefs?.[0].fields['path']).toBe('models/auth_01.md')
   })
 })
+
+describe('readModel slices (llm-context-efficiency)', () => {
+  const sliceRoot = join(import.meta.dirname!, '..', '..', 'temp-test-list-read-slice')
+
+  function buildSlicedModelContent(): string {
+    const lines = [
+      '---',
+      'spec_version: "V_0-2-0"',
+      'level: 3',
+      'title: "Sliced Model"',
+      '---',
+      '',
+      '# NN Alpha',
+      '## NN Alpha: First',
+      'field_a:: one',
+    ]
+    for (let i = 1; i <= 200; i++) lines.push(`note_${i}:: value ${i}`)
+    lines.push('', '# NN Beta', '## NN Beta: Second', 'field_b:: two')
+    return lines.join('\n')
+  }
+
+  beforeEach(async () => {
+    await rm(sliceRoot, { recursive: true, force: true })
+    await mkdir(sliceRoot, { recursive: true })
+    await writeFile(join(sliceRoot, 'Sliced_NN.md'), buildSlicedModelContent(), 'utf-8')
+  })
+
+  afterEach(async () => {
+    await rm(sliceRoot, { recursive: true, force: true })
+  })
+
+  it('surgical edit reads slices only: concept slice stays within the cap', async () => {
+    const sliced = await readModel(sliceRoot, 'Sliced', { concept: 'Beta' })
+    expect(sliced).not.toBeNull()
+    expect(sliced?.elements.has('Beta')).toBe(true)
+    expect(sliced?.elements.has('Alpha')).toBe(false)
+    const lineCount = (sliced?.rawContent ?? '').split('\n').length
+    expect(lineCount).toBeLessThanOrEqual(150)
+    expect(sliced?.truncated).toBe(false)
+  })
+
+  it('caps enforced: oversized slice truncates at max_lines with truncated=true', async () => {
+    const sliced = await readModel(sliceRoot, 'Sliced', { concept: 'Alpha', max_lines: 150 })
+    expect(sliced).not.toBeNull()
+    const lineCount = (sliced?.rawContent ?? '').split('\n').length
+    expect(lineCount).toBeLessThanOrEqual(150)
+    expect(sliced?.truncated).toBe(true)
+  })
+
+  it('override for wide context: override_reason includes the wider unit and records the override', async () => {
+    const sliced = await readModel(sliceRoot, 'Sliced', {
+      concept: 'Alpha',
+      override_reason: 'Need full concept for migration audit',
+    })
+    expect(sliced).not.toBeNull()
+    expect(sliced?.elements.has('Alpha')).toBe(true)
+    const lineCount = (sliced?.rawContent ?? '').split('\n').length
+    expect(lineCount).toBeGreaterThan(150)
+    expect(sliced?.truncated).toBe(false)
+    expect(sliced?.overrideRecorded).toBe('Need full concept for migration audit')
+  })
+})

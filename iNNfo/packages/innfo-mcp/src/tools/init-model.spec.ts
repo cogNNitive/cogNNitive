@@ -59,7 +59,12 @@ async function stubBusinessTemplate() {
 }
 
 describe('initModel', () => {
+  const origCache = process.env.INNFO_CACHE_DIR
+
   beforeEach(async () => {
+    // Hermetic temp cache: the OS temp dir is shared across test files/runs,
+    // so resolution here must never see entries fetched by other suites.
+    process.env.INNFO_CACHE_DIR = join(rootDir, 'isolated-cache')
     await rm(rootDir, { recursive: true, force: true })
     await mkdir(specsDir, { recursive: true })
     vi.restoreAllMocks()
@@ -67,6 +72,8 @@ describe('initModel', () => {
   })
 
   afterEach(async () => {
+    if (origCache !== undefined) process.env.INNFO_CACHE_DIR = origCache
+    else delete process.env.INNFO_CACHE_DIR
     await rm(rootDir, { recursive: true, force: true })
   })
 
@@ -171,6 +178,107 @@ describe('initModel', () => {
     const onDiskNewlines = await readFile(resNewlines.filePath, 'utf-8')
     const parsedNewlines = parseModel(onDiskNewlines)
     expect(parsedNewlines.frontmatter.title).toBe('Line1\nLine2')
+  })
+
+  /** Write a second level-2 template at a DIFFERENT spec_version so inference
+   * triangulation can prove the emitted version comes from the resolved parent
+   * (not a hardcoded constant). */
+  async function stubBusinessTemplateV010() {
+    await writeFile(
+      join(specsDir, 'business_V_0-1-0_NN.md'),
+      [
+        '---',
+        'spec_version: "V_0-1-0"',
+        'level: 2',
+        'title: "Local Business Template V010"',
+        'parent_spec:',
+        '  name: "iNNfo_V_0-1-0"',
+        '  url: "https://example.com/iNNfo_V_0-1-0_NN.md"',
+        '---',
+        '',
+        '# NN Concept Definition',
+        '',
+        '## NN Concept Definition: Work',
+        'type:: list',
+        '',
+      ].join('\n'),
+      'utf-8',
+    )
+    await stubSpecChain()
+  }
+
+  describe('version-aware frontmatter (validator-robustness 4.1)', () => {
+    it('Version inferred: frontmatter carries the resolved parent spec_version with no override', async () => {
+      await stubBusinessTemplate()
+
+      const result = await initModel(rootDir, 'Inferred', {
+        template_url: TEMPLATE_URL,
+        template_name: TEMPLATE_NAME,
+      })
+
+      expect(result.success).toBe(true)
+      expect(result.templateResolved).toBe(true)
+      expect(result.content).toContain('spec_version: "V_0-2-0"')
+      expect(result.content).toContain('model_version: "V_0-2-0"')
+    })
+
+    it('Version inferred (triangulation): a different parent version yields that version, not a constant', async () => {
+      await stubBusinessTemplateV010()
+
+      const result = await initModel(rootDir, 'InferredOld', {
+        template_url: 'https://example.com/business_V_0-1-0_NN.md',
+        template_name: 'business_V_0-1-0',
+      })
+
+      expect(result.success).toBe(true)
+      expect(result.templateResolved).toBe(true)
+      expect(result.content).toContain('spec_version: "V_0-1-0"')
+      expect(result.content).toContain('model_version: "V_0-1-0"')
+    })
+
+    it('Override wins: explicit model_version is used when the parent cannot be resolved', async () => {
+      const result = await initModel(rootDir, 'OverrideOnly', {
+        template_url: TEMPLATE_URL,
+        template_name: TEMPLATE_NAME,
+        model_version: 'V_0-3-0',
+      })
+
+      expect(result.success).toBe(true)
+      expect(result.templateResolved).toBe(false)
+      expect(result.content).toContain('model_version: "V_0-3-0"')
+      // No parent to infer from: the L1 default still applies to spec_version.
+      expect(result.content).toContain('spec_version: "V_0-2-1"')
+    })
+
+    it('Override wins (triangulation): a matching explicit version is accepted and carried', async () => {
+      await stubBusinessTemplate()
+
+      const result = await initModel(rootDir, 'OverrideMatch', {
+        template_url: TEMPLATE_URL,
+        template_name: TEMPLATE_NAME,
+        model_version: 'V_0-2-0',
+      })
+
+      expect(result.success).toBe(true)
+      expect(result.content).toContain('model_version: "V_0-2-0"')
+    })
+
+    it('Mismatch refused: a differing explicit version fails with VERSION_MISMATCH and writes nothing', async () => {
+      const { existsSync } = await import('node:fs')
+      await stubBusinessTemplate()
+
+      const result = await initModel(rootDir, 'Mismatch', {
+        template_url: TEMPLATE_URL,
+        template_name: TEMPLATE_NAME,
+        model_version: 'V_9-9-9',
+      })
+
+      expect(result.success).toBe(false)
+      expect(result.templateResolved).toBe(true)
+      expect(result.validation.valid).toBe(false)
+      expect(result.validation.errors.some((e) => e.code === 'VERSION_MISMATCH')).toBe(true)
+      expect(existsSync(join(rootDir, 'Mismatch_NN.md'))).toBe(false)
+    })
   })
 
   it('does not write file to disk if document validation fails', async () => {

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { parseModel, serializeModel } from '../src/parser'
 import { validateFormatContent } from '../src/validator'
+import { validateDocument } from '../src/validator/document'
 import { normalizeSingleModel, recursiveParse } from '../src/recursiveParser'
 import type { DirectoryHandleLike, FileHandleLike } from '../src/fs-types'
 
@@ -87,5 +88,29 @@ describe('UTF-8 BOM frontmatter tolerance (C1)', () => {
     const bom = await recursiveParse(makeFakeFs(BOM + modelContent))
     expect(bom.issues).toEqual(plain.issues)
     expect(Object.keys(bom.nodes).sort()).toEqual(Object.keys(plain.nodes).sort())
+  })
+})
+
+describe('BOM warning diagnostic (validator-robustness Unit 2)', () => {
+  it('BOM warns with a stable info code without affecting validity', () => {
+    const result = validateDocument(BOM + modelContent, {
+      fileName: 'Company_V_0-1-0_business_NN.md',
+    })
+    const bomWarnings = [...result.errors, ...result.warnings].filter(
+      (d) => d.code === 'BOM_WARNING',
+    )
+    expect(bomWarnings).toHaveLength(1)
+    expect(bomWarnings[0].severity).toBe('info')
+    expect(bomWarnings[0].promptHint).toContain('BOM')
+    expect(result.valid).toBe(result.errors.length === 0)
+  })
+
+  it('No BOM, no warning', () => {
+    const result = validateDocument(modelContent, {
+      fileName: 'Company_V_0-1-0_business_NN.md',
+    })
+    expect([...result.errors, ...result.warnings].filter((d) => d.code === 'BOM_WARNING')).toEqual(
+      [],
+    )
   })
 })

@@ -40,6 +40,16 @@ export class Diagnostics {
   }
 
   /**
+   * Record an informational notice at `path`. Informational diagnostics live
+   * in the warnings bucket but keep `severity: 'info'` so reporters can
+   * distinguish them; they never affect `valid`.
+   */
+  info(path: string, message: string, extra?: Partial<ValidationError>): this {
+    this._warnings.push({ path, message, severity: 'info', ...extra })
+    return this
+  }
+
+  /**
    * Force a diagnostic into the warnings bucket regardless of its `severity`.
    * For checks that are intentionally non-blocking (e.g. matrix label drift),
    * where the underlying diagnostic may still carry `severity: 'error'`.
@@ -47,7 +57,7 @@ export class Diagnostics {
   addAsWarning(
     diag: Omit<ValidationError, 'severity'> & { severity?: ValidationError['severity'] },
   ): this {
-    this._warnings.push({ path: diag.path, message: diag.message, severity: 'warning' })
+    this._warnings.push({ ...diag, severity: 'warning' })
     return this
   }
 

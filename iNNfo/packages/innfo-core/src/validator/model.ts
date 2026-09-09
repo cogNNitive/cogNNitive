@@ -1,4 +1,11 @@
-import { ParsedModel, SpecDocument, ValidationCheck, ValidationResult, ValidationSummary } from '../types'
+import {
+  ParsedModel,
+  SpecDocument,
+  ValidationCheck,
+  ValidationError,
+  ValidationResult,
+  ValidationSummary,
+} from '../types'
 import { resolveTemplateSchema } from '../schema'
 import type { IncludeResolver } from '../schema'
 import { Diagnostics } from '../diagnostics'
@@ -32,6 +39,35 @@ export interface ValidateModelOptions {
   } | null
 }
 
+/**
+ * Map one warnings-bucket diagnostic to its report check. `info` severity is
+ * preserved so informational notices stay distinguishable downstream; they
+ * never affect validity because they live outside the errors bucket.
+ */
+export function reportCheckFromWarning(w: ValidationError, templateName?: string): ValidationCheck {
+  return {
+    id:
+      w.code === 'TEMPLATE_CACHE_STALE'
+        ? `template-freshness-${templateName ?? 'spec'}`
+        : w.code || w.path || 'warning',
+    label:
+      w.code === 'TEMPLATE_CACHE_STALE'
+        ? 'Template Cache Freshness'
+        : w.path || 'Validation warning',
+    description:
+      w.code === 'TEMPLATE_CACHE_STALE'
+        ? 'Verifies that local cached template in specs/ matches canonical remote upstream.'
+        : w.message,
+    category: (w.code === 'TEMPLATE_CACHE_STALE' ? 'governance' : 'convention') as 'governance' | 'convention',
+    severity: w.severity === 'info' ? 'info' : 'warning',
+    passed: false,
+    message: w.message,
+    code: w.code,
+    promptHint: w.promptHint,
+    meta: w.meta,
+  }
+}
+
 function buildReportMetadata(
   res: { valid: boolean; errors: any[]; warnings: any[] },
   templateName?: string,
@@ -51,29 +87,7 @@ function buildReportMetadata(
       promptHint: e.promptHint,
       meta: e.meta,
     })),
-    ...res.warnings.map((w) => ({
-      id:
-        w.code === 'TEMPLATE_CACHE_STALE'
-          ? `template-freshness-${templateName ?? 'spec'}`
-          : w.code || w.path || 'warning',
-      label:
-        w.code === 'TEMPLATE_CACHE_STALE'
-          ? 'Template Cache Freshness'
-          : w.path || 'Validation warning',
-      description:
-        w.code === 'TEMPLATE_CACHE_STALE'
-          ? 'Verifies that local cached template in specs/ matches canonical remote upstream.'
-          : w.message,
-      category: (w.code === 'TEMPLATE_CACHE_STALE' ? 'governance' : 'convention') as
-        | 'governance'
-        | 'convention',
-      severity: 'warning' as const,
-      passed: false,
-      message: w.message,
-      code: w.code,
-      promptHint: w.promptHint,
-      meta: w.meta,
-    })),
+    ...res.warnings.map((w) => reportCheckFromWarning(w, templateName)),
   ]
   return {
     checks,
