@@ -5,9 +5,11 @@
     "source_model": "models/<source-figures>_NN.md",
     "generated_at": "YYYY-MM-DD",
     "months": 12,
+    "historyMonths": 2,
     "slug": "<csv-filename-base>",
     "title": "<dashboard title>",
-    "scenarios": [{ "id": "base", "label": "Base scenario" }],
+    "startMonth": 3,
+    "startYear": 2026,
     "charts": [{ "id": "flow", "label": "Cumulative" }, { "id": "net", "label": "Net result" }],
     "chartHeight": 190
   },

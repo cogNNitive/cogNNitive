@@ -445,3 +445,16 @@ concurrent `check_workspace` / `validate` calls have never been stress-tested.
 **Size:** small-medium â€” harness + measurements + documented limits; no behaviour change.
 
 **Suggested trigger:** `/sdd-explore workspace-kb-perf-limits`.
+
+---
+
+## 20. `feature/metrics-scenario-compare` — side-by-side scenario comparison in Projections artifacts
+
+**Why:** the Metrics template models scenarios (historical/projection, neutral/optimistic/pessimistic) but the Projections artifact deliberately renders a single neutral flow (see `iNNfo/specs/templates/metrics/spec_NN.md`, Scenario guidance). Comparing variants today means editing variables by hand.
+
+**Approach:** implement variants as ordinary variant rows through the Metrics/Variables mechanism (increment factors on variables, computed variant metrics) — no parallel MODEL_DATA snapshots. Then add comparison UI on top: per-variant series in charts (Actual/Projection split already exists for pinning), variant cards, and a CSV that exports all variants. Scenario selector/dimming must NOT return; selection stays model-side.
+
+**Size:** small-medium — engine charts/cards/CSV extension + procedure text + smoke probes; no spec change expected.
+
+**Suggested trigger:** `/sdd-new metrics-scenario-compare`.
+

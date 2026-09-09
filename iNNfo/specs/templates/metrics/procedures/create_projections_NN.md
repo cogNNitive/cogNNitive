@@ -65,7 +65,7 @@ input:: [[Metrics Model]]
 output:: [[Model Data Block]]
 output_status:: verified
 tool:: [[AI Agent]]
-Copy values (metricValue), units (metricUnit, variableUnit) and verbatim formula text (metricFormula) from the Level 3 model into the artifact MODEL_DATA block. Each row declares source "model" (verbatim) or "derived" (artifact-invented help). Rows with measured past carry history: [v0, v1, ...] so the sheet renders actuals distinctly from computed months. Record meta: model, model_version, source_model, generated_at, months, scenarios, charts, slug, title.
+Copy values (metricValue), units (metricUnit, variableUnit) and verbatim formula text (metricFormula) from the Level 3 model into the artifact MODEL_DATA block. Each row declares source "model" (verbatim) or "derived" (artifact-invented help). Rows with measured past carry history: [v0, v1, ...] so the sheet renders actuals distinctly from computed months. Record meta: model, model_version, source_model, generated_at, months, historyMonths (leading actuals columns), charts, slug, title, startMonth/startYear (first projection month). Scenario variants live in the model as variant rows; the artifact renders the single neutral flow.
 
 ## NN Work: Map Dependency Graph
 parent:: [[Create Projections]]
@@ -87,7 +87,7 @@ input:: [[Model Data Block]]
 output:: [[Projections HTML]]
 output_status:: draft
 tool:: [[Tailwind Play CDN]]
-Single-page structure from the Projections Layout asset: parameter topbar, cards per scenario, collapsible tabbed charts, spreadsheet, Export CSV. Calculation logic lives in FORMULAS, strictly separated from data. Pinned CDNs: Tailwind Play, uPlot 1.6.32 (dist/uPlot.iife.min.js), Lucide 1.42.0, Inter + JetBrains Mono.
+Single-page structure from the Projections Layout asset: parameter topbar, result summary cards, collapsible tabbed charts, spreadsheet, Export CSV. Calculation logic lives in FORMULAS, strictly separated from data. Pinned CDNs: Tailwind Play, uPlot 1.6.32 (dist/uPlot.iife.min.js), Lucide 1.42.0, Inter + JetBrains Mono.
 
 ## NN Work: Apply Visual System
 parent:: [[Create Projections]]
@@ -109,7 +109,7 @@ input:: [[Projections HTML]]
 output:: [[Exported CSV]]
 output_status:: verified
 tool:: [[AI Agent]]
-Export button capturing live state (overrides, evolutions, scenario) with ; separator and dot decimals. Includes 7 # traceability lines (model, model_version, source_model, generated_at, exported_at ISO, scenario, start) and filename projections_{version}_{timestamp}.csv.
+Export button capturing live state (overrides, evolutions) with ; separator and dot decimals. Includes 6 # traceability lines (model, model_version, source_model, generated_at, exported_at ISO, start) plus a Kind row (Actual/Projection) and filename projections_{version}_{timestamp}.csv.
 
 ## NN Work: Verify In Browser
 parent:: [[Create Projections]]

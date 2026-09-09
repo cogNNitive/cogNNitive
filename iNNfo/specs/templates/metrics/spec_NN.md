@@ -368,6 +368,11 @@ which metric rows each scenario includes. Historical rows carry verbatim
 `history` values in the artifact MODEL_DATA; the dashboard renders them
 distinctly from computed months.
 
+NOTE — V_0-1-0 scope: the artifact renders one neutral flow (actuals +
+projection). Scenario variants (optimistic/pessimistic) are modeled as
+ordinary variant rows through Metrics/Variables; side-by-side comparison
+is backlog (`feature/metrics-scenario-compare`).
+
 ### Methodologies
 
 *No methodologies provided.*

@@ -10,10 +10,10 @@
 
   Full dashboard engine ported from the reference instance. Instantiate per model:
   1. Snapshot the L3 metrics model into MODEL_DATA (see MODEL_DATA.template.json).
-     Required meta: model, model_version, source_model, generated_at, months,
-     scenarios: [{id, label}]. Rows carry metricType (result/revenue/expense/
+     Required meta: model, model_version, source_model, generated_at, months.
+     Rows carry metricType (result/revenue/expense/
      tax/investment); variables use variable:true + base + metricUnit.
-  2. Rewrite the PER-MODEL slots below: FORMULAS, DEPS, SCEN_SERIES, CARDS,
+  2. Rewrite the PER-MODEL slots below: FORMULAS, DEPS, SERIES,
      SEASON. Everything else is generic engine (render, charts, CSV, pills,
      Metric focus, heat scales, growth UI).
   3. Extend GRP_PILL/GRP_ICON if the model introduces new section groups
@@ -41,6 +41,8 @@
   table{border-collapse:collapse;font-size:12.5px;white-space:nowrap;width:max-content}
   thead th{position:sticky;top:0;z-index:10;background:hsl(240 4.8% 95.9%);font-size:11px;font-weight:600;color:hsl(240 3.8% 46.1%);border:1px solid #e4e4e7;padding:6px 8px;text-align:left}
   thead th.mid{background:hsl(214 100% 96.7%)}
+  thead th.histhead{background:hsl(152 76% 95%);color:hsl(162 63% 30%)}
+  thead th.projhead{background:hsl(214 100% 96.7%);color:hsl(221 83% 40%)}
   tbody td{border:1px solid #e4e4e7;padding:4px 6px;text-align:left;font-family:"JetBrains Mono",monospace;font-size:12px;background:#fff}
   tbody td.rowid{font-family:Inter,system-ui,sans-serif;color:hsl(240 3.8% 46.1%);text-align:left;background:hsl(240 4.8% 95.9%);position:sticky;left:0;z-index:5;width:38px;padding:0 0 0 8px}
   /* Unit column: sticky, offset set by JS after measuring the metric column */
@@ -74,7 +76,7 @@
 <div class="max-w-[1440px] mx-auto px-4 sm:px-6 pb-10">
 
   <!-- Top bar: editing parameters -->
-  <!-- PER-MODEL: adjust the title block; the scenario <select> is filled from meta.scenarios by JS. -->
+  <!-- PER-MODEL: adjust the title block. -->
   <div class="sticky top-0 z-50 bg-background/95 backdrop-blur border-b border-border">
     <div class="max-w-[1440px] mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-end gap-3">
       <div class="text-[15px] font-semibold tracking-tight mr-2">Projections <span class="text-muted-foreground font-normal" id="doctitle">· Metrics Template</span></div>
@@ -86,14 +88,22 @@
         <span class="block text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Start year</span>
         <select id="startYear" class="h-8 rounded-md border border-input bg-background px-2 text-[12.5px] focus:outline-none focus:ring-2 focus:ring-ring"></select>
       </label>
-      <label class="block">
-        <span class="block text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Active scenario</span>
-        <select id="scenario" class="h-8 rounded-md border border-input bg-background px-2 text-[12.5px] focus:outline-none focus:ring-2 focus:ring-ring"></select>
-      </label>
       <button id="reset" class="ml-auto h-8 rounded-md bg-brand text-white px-4 text-[12.5px] font-semibold hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-ring">Reset</button>
       <button id="export" class="h-8 rounded-md border border-input bg-background px-4 text-[12.5px] font-semibold hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring">Export CSV</button>
     </div>
   </div>
+
+  <!-- Reset confirmation -->
+  <dialog id="resetDialog" class="rounded-lg border border-border bg-card shadow-sm p-0" style="max-width:min(92vw,26rem)">
+    <div class="p-4">
+      <h3 class="text-sm font-semibold">Reset sheet?</h3>
+      <p class="text-[12.5px] text-muted-foreground mt-1">Clears edited values and restores growth rules to the snapshot defaults.</p>
+      <div class="mt-4 flex justify-end gap-2">
+        <button id="resetCancel" class="h-8 rounded-md border border-input bg-background px-4 text-[12.5px] font-semibold hover:bg-muted">Cancel</button>
+        <button id="resetConfirm" class="h-8 rounded-md bg-brand text-white px-4 text-[12.5px] font-semibold hover:opacity-90">Reset</button>
+      </div>
+    </div>
+  </dialog>
 
   <header class="pt-6 pb-2 flex flex-wrap items-end gap-3">
     <div>
@@ -111,14 +121,14 @@
     <span><span class="inline-block w-[11px] h-[11px] rounded-[3px] mr-1.5 align-[-1px] border border-border bg-[#fff]" style="border-left:2px solid hsl(160 84% 39%)"></span>Actual (measured)</span>
   </div>
 
-  <!-- Scenario comparison -->
+  <!-- Summary cards (one per result row) -->
   <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5 mt-4" id="cards"></div>
 
   <!-- Charts: tabbed + collapsible + sticky, selection survives re-renders.
        Click any metric header to pin it: the active chart then shows that
-       metric's history + projection per scenario. Chips toggle Actuals /
+       metric's history + projection. Chips toggle Actuals /
        Projection / Both (legend labels also toggle series natively). -->
-  <!-- PER-MODEL: chart tabs come from meta.charts [{id, label}]; series from SCEN_SERIES. -->
+  <!-- PER-MODEL: chart tabs come from meta.charts [{id, label}]; series from SERIES. -->
   <section class="mt-6" id="chartsWrap" style="position:sticky;top:58px;z-index:40;background:#fff">
     <div class="rounded-lg border border-border bg-card shadow-sm">
       <div class="flex flex-wrap items-center gap-2 px-4 pt-3 pb-2">
@@ -174,10 +184,17 @@
    values for the first months (from historical scenarios); the engine
    renders them as actuals and computes the remaining months.
    Required meta: model, model_version, source_model,
-   generated_at, months, scenarios: [{id, label}]. Optional meta:
+   generated_at, months.
+   historyMonths (default 0): leading columns rendered as actuals with
+   real month names; later columns render as M1.. with the future month
+   in parentheses. Optional meta:
    charts: [{id, label}] (defaults to cumulative/result/income trio),
-   startMonth (1-12), startYear, slug (CSV filename base), title,
+   startMonth (1-12, first PROJECTION month), startYear,
+   slug (CSV filename base), title,
    chartHeight (chart px height, default 190), footer (HTML).
+   Scenario variants (optimistic/pessimistic) are modeled as ordinary
+   variant rows through the Metrics/Variables mechanism — the artifact
+   renders one neutral flow; side-by-side comparison is backlog.
    Calculation LOGIC lives in FORMULAS below (not in the JSON).
    ===================================================================== */
 const MODEL_DATA = {
@@ -186,8 +203,7 @@ const MODEL_DATA = {
     "model_version": "V_0-1-0",
     "source_model": "",
     "generated_at": "",
-    "months": 12,
-    "scenarios": [{ "id": "base", "label": "Base scenario" }]
+    "months": 12
   },
   "rows": []
 };
@@ -201,11 +217,10 @@ const FORMULAS = {};
    (row ids). Drives the Metric focus selector. */
 const DEPS = {};
 
-/* PER-MODEL slot: per-scenario monthly series for charts and cards.
-   SCEN_SERIES[chartId](scenarioId) => (m) => number.
-   Chart ids default to ["flow", "income", "net"]; override via
-   meta.charts. Keep every series pure in (scenario, month). */
-const SCEN_SERIES = {};
+/* PER-MODEL slot: monthly series per chart for cards and charts.
+   SERIES[chartId](m) => number. Chart ids default to ["flow", "income",
+   "net"]; override via meta.charts. Keep every series pure in month. */
+const SERIES = {};
 
 /* PER-MODEL slot: seasonality masks over real months (1-12).
    Return false across the board when the model has no seasonality. */
@@ -231,7 +246,6 @@ const FALLBACK_PILL = { solid: "bg-slate-600", hex: "#94a3b8" };
 const FALLBACK_ICON = "box";
 
 const N = MODEL_DATA.meta.months;
-const SCEN = Object.fromEntries((MODEL_DATA.meta.scenarios || [{ id: "base", label: "Base scenario" }]).map((s) => [s.id, s.label]));
 const CHARTS = MODEL_DATA.meta.charts || [
   { id: "flow", label: "Cumulative" },
   { id: "income", label: "Income" },
@@ -288,12 +302,17 @@ function fmtCompact(v) {
 const cfg = {
   startMonth: MODEL_DATA.meta.startMonth || 1,
   startYear: MODEL_DATA.meta.startYear || 2026,
-  scenario: (MODEL_DATA.meta.scenarios && MODEL_DATA.meta.scenarios[0] && MODEL_DATA.meta.scenarios[0].id) || "base"
+  historyMonths: MODEL_DATA.meta.historyMonths || 0
 };
-function realMonth(m) { return ((cfg.startMonth - 1 + m) % 12) + 1; }
+/* Timeline: columns 0..H-1 are measured history ending right before the
+   start month; columns H.. are M1.. projections. */
+function realMonth(m) { return ((cfg.startMonth - 1 + (m - cfg.historyMonths)) % 12 + 12) % 12 + 1; }
+function realYear(m) { return cfg.startYear + Math.floor((cfg.startMonth - 1 + (m - cfg.historyMonths)) / 12); }
+function isHistCol(m) { return m < cfg.historyMonths; }
 function isHigh(m) { return SEASON.isHigh(realMonth(m)); }
 function isPeak(m) { return SEASON.isPeak(realMonth(m)); }
-function monthLabel(m) { m = Math.round(m); const rm = realMonth(m); const y = cfg.startYear + Math.floor((cfg.startMonth - 1 + m) / 12); return MONTH_NAMES[rm - 1] + " " + y; }
+function monthLabel(m) { m = Math.round(m); return MONTH_NAMES[realMonth(m) - 1] + " " + realYear(m); }
+function projLabel(m) { return "M" + (m - cfg.historyMonths + 1); }
 
 /* Monthly evolution rules mirror the model Evolution concept
    (evolutionType: fixed | compound | additive). */
@@ -332,27 +351,33 @@ function isActual(id, m) {
   return !row.variable && Array.isArray(row.history) && m < row.history.length && row.history[m] !== null;
 }
 function resetOverrides() { Object.keys(overrides).forEach(k => delete overrides[k]); }
+/* Snapshot growth defaults at load so Reset restores them, not just overrides. */
+const initGrowth = {};
+rows.forEach(r => { initGrowth[r.id] = Object.assign({}, r.growth); });
+function resetAll() {
+  resetOverrides();
+  rows.forEach(r => { r.growth = Object.assign({}, initGrowth[r.id]); });
+  render();
+}
 
-/* ---- Per-scenario series (charts + cards), via the SCEN_SERIES slot ---- */
+/* ---- Monthly series (charts + cards), via the SERIES slot ---- */
 function arr(fn) { const a = new Array(N); for (let m = 0; m < N; m++) a[m] = Math.round(fn(m)); return a; }
-const seriesFor = (chartId, scen) => arr((m) => SCEN_SERIES[chartId](scen, m));
+const seriesFor = (chartId) => arr((m) => SERIES[chartId](m));
 
 /* ---- uPlot ---- */
 const charts = {};
 const CHART_H = MODEL_DATA.meta.chartHeight || 190;
 function chartSeries(chartId) {
-  /* Pinned metric: one Actual + one Projection series per scenario from the
-     row's own history + computed months. Otherwise the per-model slot. */
+  /* Pinned metric: one Actual + one Projection series from the row's own
+     history + computed months. Otherwise the per-model SERIES slot. */
   if (ui.pinned && rowById[ui.pinned]) {
     const id = ui.pinned;
-    const out = [];
-    Object.keys(SCEN).forEach((k, i) => {
-      out.push({ key: k, kind: "actual", label: SCEN[k] + " actual", stroke: CHART_COLORS[i % CHART_COLORS.length], dash: [], width: 2 });
-      out.push({ key: k, kind: "proj", label: SCEN[k] + " proj.", stroke: CHART_COLORS[i % CHART_COLORS.length], dash: [6, 4], width: 2 });
-    });
-    return out;
+    return [
+      { kind: "actual", label: rowById[id].label + " actual", stroke: CHART_COLORS[0], dash: [], width: 2 },
+      { kind: "proj", label: rowById[id].label + " proj.", stroke: CHART_COLORS[0], dash: [6, 4], width: 2 }
+    ];
   }
-  return Object.keys(SCEN).map((k, i) => ({ key: k, kind: "slot", label: SCEN[k], stroke: CHART_COLORS[i % CHART_COLORS.length], dash: [], width: 2 }));
+  return [{ kind: "slot", label: CHARTS.find(c => c.id === chartId).label, stroke: CHART_COLORS[1], dash: [], width: 2 }];
 }
 function seriesValues(chartId, s) {
   const xs = Array.from({ length: N }, (_, i) => i);
@@ -363,7 +388,7 @@ function seriesValues(chartId, s) {
     if (s.kind === "actual") return ui.showActual ? actual : xs.map(() => null);
     return ui.showProj ? proj : xs.map(() => null);
   }
-  return seriesFor(chartId, s.key);
+  return seriesFor(chartId);
 }
 function mkChart(chartId) {
   const el = document.getElementById(chartId);
@@ -386,7 +411,7 @@ function mkChart(chartId) {
   charts[chartId]._defs = defs;
 }
 function shapeKey(chartId) {
-  return (ui.pinned || "-") + "|" + chartId + "|" + Object.keys(SCEN).join(",");
+  return (ui.pinned || "-") + "|" + chartId;
 }
 function updateCharts() {
   if (!ui.chartsOpen) return;
@@ -472,9 +497,6 @@ selMonth.value = cfg.startMonth;
 const selYear = document.getElementById("startYear");
 for (let y = 2026; y <= 2030; y++) selYear.add(new Option(y, y));
 selYear.value = cfg.startYear;
-const selScen = document.getElementById("scenario");
-(MODEL_DATA.meta.scenarios || [{ id: "base", label: "Base scenario" }]).forEach(s => selScen.add(new Option(s.label, s.id)));
-selScen.value = cfg.scenario;
 
 /* Metric focus selector (options grouped by sheet section) */
 const focusSel = document.getElementById("focus");
@@ -483,18 +505,19 @@ focusSel.add(new Option("All metrics", ""));
 
 selMonth.onchange = () => { cfg.startMonth = +selMonth.value; render(); };
 selYear.onchange = () => { cfg.startYear = +selYear.value; render(); };
-document.getElementById("scenario").onchange = e => { cfg.scenario = e.target.value; render(); };
-document.getElementById("reset").onclick = () => { resetOverrides(); render(); };
+document.getElementById("reset").onclick = () => { document.getElementById("resetDialog").showModal(); };
+document.getElementById("resetCancel").onclick = () => { document.getElementById("resetDialog").close(); };
+document.getElementById("resetConfirm").onclick = () => { document.getElementById("resetDialog").close(); resetAll(); };
 focusSel.onchange = () => render();
 
-/* Export current sheet state to CSV (semicolon-separated, dot decimals).
-   Includes model version + timestamps so the file is traceable. */
+/* Export LIVE sheet state to CSV (semicolon-separated, dot decimals):
+   current overrides and growth rules. A Kind row marks Actual vs
+   Projection months. */
 function exportCSV() {
   const meta = MODEL_DATA.meta;
   const now = new Date();
   const p2 = n => String(n).padStart(2, "0");
   const stamp = `${now.getFullYear()}${p2(now.getMonth() + 1)}${p2(now.getDate())}-${p2(now.getHours())}${p2(now.getMinutes())}${p2(now.getSeconds())}`;
-  const scenName = SCEN[cfg.scenario] || cfg.scenario;
   const q = v => { v = String(v); return /[;"\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
   const L = [
     ["# model", meta.model].map(q).join(";"),
@@ -502,11 +525,11 @@ function exportCSV() {
     ["# source_model", meta.source_model].map(q).join(";"),
     ["# generated_at", meta.generated_at].map(q).join(";"),
     ["# exported_at", now.toISOString()].map(q).join(";"),
-    ["# scenario", scenName].map(q).join(";"),
-    ["# start", monthLabel(0)].map(q).join(";")
+    ["# start", monthLabel(cfg.historyMonths)].map(q).join(";")
   ];
-  const head = ["Metric", "Unit"]; for (let m = 0; m < N; m++) head.push("M" + (m + 1) + " " + monthLabel(m));
+  const head = ["Metric", "Unit"]; for (let m = 0; m < N; m++) head.push(isHistCol(m) ? monthLabel(m) : projLabel(m) + " " + monthLabel(m));
   L.push(head.map(q).join(";"));
+  L.push(["Kind", ""].concat(Array.from({ length: N }, (_, m) => isHistCol(m) ? "Actual" : "Projection")).map(q).join(";"));
   for (const row of rows) {
     const cells = [row.label, rowUnit(row)];
     for (let m = 0; m < N; m++) {
@@ -541,7 +564,12 @@ function buildHead() {
   const head = document.getElementById("head");
   let h = "<tr><th>#</th><th>Metric</th><th class='unithead'>Unit</th>";
   for (let m = 0; m < N; m++) {
-    h += `<th class="${isHigh(m) ? 'mid' : ''}" title="Month ${m + 1} · ${monthLabel(m)}">M${m + 1}</th>`;
+    if (isHistCol(m)) {
+      h += `<th class="histhead" title="Actual · ${monthLabel(m)}">${monthLabel(m)}</th>`;
+    } else {
+      const hl = isHigh(m) ? "mid " : "";
+      h += `<th class="${hl}projhead" title="Projection ${projLabel(m)} · ${monthLabel(m)}">${projLabel(m)} <span style="font-weight:400">(${MONTH_NAMES[realMonth(m) - 1]})</span></th>`;
+    }
   }
   head.innerHTML = h + "</tr>";
 }
@@ -587,18 +615,15 @@ function sectionPill(label, solid, hex, icon, count) {
     (count === undefined ? "" : `<span class="text-2xs px-1.5 py-0.5 rounded-full font-medium tabular-nums ml-1.5" style="background:${hex}18;color:${hex}">${count}</span>`);
 }
 
-/* PER-MODEL slot: scenario cards. Default implementation totals every
-   result row per scenario over the horizon; override for domain cards
-   (payback markers, per-program breakdowns). CARDS(scenId) => HTML. */
+/* Summary cards: one per result row with its horizon total. Override
+   for domain cards (payback markers, per-program breakdowns). */
 function renderCards() {
   const cards = document.getElementById("cards");
-  const serie = SCEN_SERIES[CHARTS[0].id];
-  cards.innerHTML = Object.keys(SCEN).map(key => {
-    const active = cfg.scenario === key;
+  cards.innerHTML = rows.filter(r => !r.variable && r.metricType === "result").map(r => {
     let tot = 0;
-    for (let m = 0; m < N; m++) tot += serie(key, m);
-    return `<div class="rounded-lg border ${active ? 'border-brand ring-1 ring-brand' : 'border-border'} bg-card shadow-sm p-3.5">
-      <h3 class="text-[11px] uppercase tracking-wide font-semibold text-muted-foreground mb-1.5"><i data-lucide="layers" class="ico"></i>${SCEN[key]}</h3>
+    for (let m = 0; m < N; m++) tot += rowValue(r.id, m);
+    return `<div class="rounded-lg border border-border bg-card shadow-sm p-3.5">
+      <h3 class="text-[11px] uppercase tracking-wide font-semibold text-muted-foreground mb-1.5"><i data-lucide="layers" class="ico"></i>${r.label}</h3>
       <div class="font-mono text-[19px] font-bold leading-tight">${esc(tot)}</div>
       <div class="text-[11.5px] text-muted-foreground mt-1">${N}m total · Net <b class="${tot >= 0 ? 'text-green-600' : 'text-red-600'}">${esc(tot)}</b></div></div>`;
   }).join("");
