@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { join } from 'node:path'
 import { rm, mkdir, writeFile, readFile, readdir } from 'node:fs/promises'
-import { checkWorkspace, resolveCatalog } from './check-workspace'
+import { checkWorkspace, resolveCatalog, toIntegrityDiagnostics } from './check-workspace'
 
 const rootDir = join(import.meta.dirname!, '..', '..', 'temp-test-check-workspace')
 const specsDir = join(rootDir, 'specs')
@@ -265,4 +265,46 @@ describe('checkWorkspace (AD-5)', () => {
     expect(report.models.length).toBeGreaterThan(0)
     expect(report.models.every((m) => m.errors.length > 0 || m.versionStatus === 'upgrade-available')).toBe(true)
   }, 30000)
+})
+
+describe('toIntegrityDiagnostics info demotion (robustness-coda 1.4)', () => {
+  it('demotes info to warning with code, message, and fix hint intact', () => {
+    const out = toIntegrityDiagnostics([
+      {
+        path: 'parent_spec',
+        message: 'Local template cache differs from the canonical remote',
+        severity: 'info',
+        code: 'TEMPLATE_CACHE_STALE',
+      },
+    ])
+    expect(out).toHaveLength(1)
+    expect(out[0].severity).toBe('warning')
+    expect(out[0].path).toBe('parent_spec')
+    expect(out[0].message).toBe('Local template cache differs from the canonical remote')
+    expect(out[0].code).toBe('TEMPLATE_CACHE_STALE')
+  })
+
+  it('preserves the fix hint through the demotion (triangulation)', () => {
+    const diags = toIntegrityDiagnostics([
+      {
+        path: 'elements.Docs.Guide.fields.submodel',
+        message: 'Dangling submodel reference',
+        severity: 'info',
+        code: 'SUBMODEL_NOT_FOUND',
+      },
+    ])
+    expect(diags[0].severity).toBe('warning')
+    expect(diags[0].code).toBe('SUBMODEL_NOT_FOUND')
+    expect(diags[0].message).toBe('Dangling submodel reference')
+  })
+
+  it('passes warnings and errors through untouched', () => {
+    const out = toIntegrityDiagnostics([
+      { path: 'a', message: 'warn-msg', severity: 'warning', code: 'W_CODE' },
+      { path: 'b', message: 'err-msg', severity: 'error', code: 'E_CODE' },
+    ])
+    expect(out.map((d) => d.severity)).toEqual(['warning', 'error'])
+    expect(out.map((d) => d.code)).toEqual(['W_CODE', 'E_CODE'])
+    expect(out.map((d) => d.message)).toEqual(['warn-msg', 'err-msg'])
+  })
 })

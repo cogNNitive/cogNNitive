@@ -175,7 +175,7 @@ async function resolveTemplateForModel(
   }
 }
 
-function toIntegrityDiagnostics(
+export function toIntegrityDiagnostics(
   diags: Array<{ path: string; message: string; severity: 'error' | 'warning' | 'info'; code?: string }>,
 ): IntegrityDiagnostic[] {
   // The workspace report has no `info` bucket: non-blocking notices surface

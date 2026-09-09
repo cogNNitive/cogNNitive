@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import { rm, mkdir, writeFile } from 'node:fs/promises'
 import { parseFrontmatter } from '@cognnitive/innfo-core'
 import type { SpecCache } from '@cognnitive/innfo-core'
-import { collectWorkspaceDiagnostics, filterDiagnosticsForModel } from './validate'
+import { collectWorkspaceDiagnostics, filterDiagnosticsForModel, fingerprint } from './validate'
 import { validateModel } from './mutate'
 
 vi.mock('@cognnitive/innfo-core', async (importOriginal) => {
@@ -281,17 +281,6 @@ describe('collectWorkspaceDiagnostics / filterDiagnosticsForModel (AD-4 split)',
   })
 })
 
-/**
- * Local mirror of `fingerprint()` from
- * `innfo-core/src/validator/baseline.ts` (not exported through the core
- * barrel, so the spec pins the wire format here instead of importing it).
- * Format: `filePath::path::code::normalized message`, slash-normalized.
- */
-function fp(e: { filePath?: string; path: string; code?: string; message: string }): string {
-  const file = (e.filePath ?? '').replace(/\\/g, '/')
-  return `${file}::${e.path}::${e.code ?? ''}::${e.message.trim().replace(/\s+/g, ' ')}`
-}
-
 const MISSING_PARENT_CONTENT = [
   '---',
   'level: 3',
@@ -375,7 +364,7 @@ describe('baseline differential MCP plumbing (validator-robustness 4.3)', () => 
         entries: before.errors.map((e) => ({
           path: e.filePath ?? '',
           code: e.code ?? '',
-          fingerprint: fp(e),
+          fingerprint: fingerprint(e),
         })),
       }),
       'utf-8',
@@ -425,5 +414,33 @@ describe('baseline differential MCP plumbing (validator-robustness 4.3)', () => 
     const bom = result.warnings.find((w) => w.code === 'BOM_WARNING')
     expect(bom).toBeDefined()
     expect(bom!.severity).toBe('info')
+  })
+})
+
+describe('baseline single shared implementation (robustness-coda 1.3)', () => {
+  it('consumers share one implementation with the core barrel', async () => {
+    const core = await import('@cognnitive/innfo-core')
+    const mcp = await import('./validate')
+    expect(typeof core.fingerprint).toBe('function')
+    expect(mcp.fingerprint).toBe(core.fingerprint)
+    expect(mcp.loadBaseline).toBe(core.loadBaseline)
+    expect(mcp.diffNewOnly).toBe(core.diffNewOnly)
+    expect(mcp.normalizeBaselinePath).toBe(core.normalizeBaselinePath)
+  })
+
+  it('fingerprints are byte-identical after consolidation', async () => {
+    const core = await import('@cognnitive/innfo-core')
+    const mcp = await import('./validate')
+    const diag = {
+      path: 'elements.Task',
+      message: 'Concept  "Task"  is not defined in template',
+      severity: 'error' as const,
+      code: 'UNKNOWN_CONCEPT',
+      filePath: 'models\\team_NN.md',
+    }
+    expect(mcp.fingerprint(diag)).toBe(core.fingerprint(diag))
+    expect(mcp.fingerprint(diag)).toBe(
+      'models/team_NN.md::elements.Task::UNKNOWN_CONCEPT::Concept "Task" is not defined in template',
+    )
   })
 })
