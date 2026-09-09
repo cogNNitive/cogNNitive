@@ -29,6 +29,7 @@ function emptyIntentTally() {
 }
 
 function emptyTally() {
+  /** @type {Record<string, { calls: number, inputTokens: number, outputTokens: number, totalTokens: number }>} */
   const tally = {};
   for (const intent of VALID_INTENTS) tally[intent] = emptyIntentTally();
   return tally;
@@ -100,7 +101,7 @@ function recordUsage(filePath, entry) {
 /**
  * Read all usage records from a JSONL file; missing file yields [].
  * @param {string} filePath
- * @returns {Array<Record<string, any>>}
+ * @returns {Array<{ intent: string, inputTokens: number, outputTokens: number }>}
  */
 function readUsages(filePath) {
   if (!fs.existsSync(filePath)) return [];

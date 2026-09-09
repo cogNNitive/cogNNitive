@@ -396,10 +396,70 @@ function run() {
                           assertTrue(fs.existsSync(archivedOrphanV1), 'consent "a" archives the deleted source to V1');
                           assertTrue(!fs.existsSync(orphanNnFile), 'consent "a" removes orphaned file from sources/nn/');
 
-                          // Cleanup
-                          fs.rmSync(TEST_TEMP, { recursive: true, force: true });
-                          console.log(`\n  Scanner tests: ${passed} passed, ${failed} failed`);
-                          return { passed, failed };
+                          // Test 20: Feedback JSON ingestion branch (innfo-console feedback loop)
+                          const feedbackProj = path.join(TEST_TEMP, 'feedback-project');
+                          const feedbackDir = path.join(feedbackProj, 'sources', 'import', 'feedback');
+                          fs.mkdirSync(feedbackDir, { recursive: true });
+                          const validFeedbackDoc = {
+                            meta: {
+                              source_model: 'Ghostbusters',
+                              source_model_version: 'V_0-2-1',
+                              artifact: 'Ghostbusters_V_0-2-1_console.html',
+                              artifact_version: '0.1.0',
+                              exported_at: '2026-09-09T12:00:00Z',
+                              author: 'Reviewer',
+                              feedback_slug: 'round-2',
+                              viewer: 'innfo-console/0.1.0'
+                            },
+                            items: [
+                              { id: 'fb-001', kind: 'correction', target: { concept: 'Problems', element: 'Paranormal Infestation', field: 'severity' }, original: 'low', proposed: 'high', status: 'pending' }
+                            ]
+                          };
+                          const feedbackFile = path.join(feedbackDir, 'Ghostbusters_V_0-2-1_round-2_feedback_20260909-120000.json');
+                          fs.writeFileSync(feedbackFile, JSON.stringify(validFeedbackDoc), 'utf8');
+                          const invalidFeedbackFile = path.join(feedbackDir, 'Broken_V_0-2-1_x_feedback_20260909-120000.json');
+                          fs.writeFileSync(invalidFeedbackFile, JSON.stringify({ meta: {}, items: [{ id: 'bad', kind: 'rewrite', target: {}, status: 'pending' }] }), 'utf8');
+                          const genericJsonFile = path.join(feedbackProj, 'sources', 'import', 'config.json');
+                          fs.writeFileSync(genericJsonFile, JSON.stringify({ key: 'value' }), 'utf8');
+
+                          assertEqual(typeof scanner.convertFeedbackJson, 'function', 'convertFeedbackJson is exported from scanner');
+                          assertEqual(typeof scanner.convertChatJson, 'undefined', 'legacy convertChatJson stays removed');
+                          if (typeof scanner.convertFeedbackJson === 'function') {
+                            const fbBody = scanner.convertOkFormat('.json', feedbackFile, 'Ghostbusters_V_0-2-1_round-2_feedback_20260909-120000');
+                            assertTrue(fbBody.includes('fb-001'), 'import/feedback JSON routes to the feedback branch');
+                            let threw = false;
+                            try {
+                              scanner.convertOkFormat('.json', invalidFeedbackFile, 'Broken_V_0-2-1_x_feedback_20260909-120000');
+                            } catch (err) {
+                              threw = true;
+                              assertTrue(String((err && err.message) || err).includes('feedback'), 'invalid feedback error names the feedback contract');
+                            }
+                            assertTrue(threw, 'invalid feedback JSON throws so the scan skips-and-reports');
+                            const genericBody = scanner.convertOkFormat('.json', genericJsonFile, 'config');
+                            assertTrue(!genericBody.includes('fb-001'), 'non-feedback JSON bypasses the feedback branch');
+                          } else {
+                            assertTrue(false, 'feedback branch missing — convertFeedbackJson not exported (RED)');
+                          }
+
+                          return scanner.scanAndProcess(feedbackProj, { autoAcceptPrompt: true }).then((fbResult) => {
+                            const normalizedFeedback = path.join(feedbackProj, 'sources', 'nn', 'import', 'feedback', 'Ghostbusters_V_0-2-1_round-2_feedback_20260909-120000.md');
+                            assertTrue(fs.existsSync(normalizedFeedback), 'valid feedback normalizes into sources/nn/import/feedback/');
+                            const fbContent = fs.readFileSync(normalizedFeedback, 'utf8');
+                            assertTrue(fbContent.includes('source_type: "feedback"'), 'feedback frontmatter carries source_type: feedback');
+                            assertTrue(fbContent.includes('is_synthetic: true'), 'feedback frontmatter carries is_synthetic: true');
+                            assertTrue(fbContent.includes('fb-001'), 'normalized feedback cites its items');
+                            const invalidEntry = fbResult.registry.find((e) => e.name.includes('Broken_V_0-2-1'));
+                            assertTrue(Boolean(invalidEntry), 'invalid feedback appears in the registry report');
+                            assertTrue(!/Processed/.test(invalidEntry ? invalidEntry.status : ''), 'invalid feedback is skipped, not processed');
+                            const genericNn = path.join(feedbackProj, 'sources', 'nn', 'import', 'config.md');
+                            assertTrue(fs.existsSync(genericNn), 'generic JSON still normalizes');
+                            assertTrue(!fs.readFileSync(genericNn, 'utf8').includes('source_type: "feedback"'), 'generic JSON is not tagged as feedback');
+                          }).then(() => {
+                            // Cleanup
+                            fs.rmSync(TEST_TEMP, { recursive: true, force: true });
+                            console.log(`\n  Scanner tests: ${passed} passed, ${failed} failed`);
+                            return { passed, failed };
+                          });
                         });
                       });
                     });

@@ -513,6 +513,12 @@ function processOkFile(ext, absPath, sourceFileField, destPath, displayOutPath, 
     return { format, status: '⚠️ Skipped', action: `Format ${EXT_LABELS[ext]} excluded by user selection.`, outcome: 'skipped' };
   }
 
+  // Reviewer-feedback drop zone: sources/import/feedback/ (legacy sources/original/feedback/).
+  // Feedback docs always normalize as synthetic feedback sources; invalid JSON throws
+  // inside convertOkFormat and is caught below so the run skips-and-reports the file.
+  const feedbackRelPosix = String(sourceFileField || '').replace(/\\/g, '/');
+  const isFeedbackDoc = ext === '.json' && /(^|\/)(import|original)\/feedback\//.test(feedbackRelPosix);
+
   const newHash = computeFileHash(absPath);
   const existingHash = readExistingSha256(destPath);
   if (existingHash && existingHash === newHash) {
@@ -548,8 +554,8 @@ function processOkFile(ext, absPath, sourceFileField, destPath, displayOutPath, 
     const existingFields = getExistingFrontmatterFields(destPath, sourceFileField);
     const finalExtra = {
       staging_file: extra.staging_file || incomingFields.staging_file || existingFields.staging_file,
-      is_synthetic: extra.is_synthetic !== undefined ? extra.is_synthetic : (incomingFields.is_synthetic !== undefined ? (incomingFields.is_synthetic === 'true' || incomingFields.is_synthetic === true) : (existingFields.is_synthetic !== undefined ? existingFields.is_synthetic === 'true' : undefined)),
-      source_type: extra.source_type || incomingFields.source_type || existingFields.source_type,
+      is_synthetic: isFeedbackDoc ? true : (extra.is_synthetic !== undefined ? extra.is_synthetic : (incomingFields.is_synthetic !== undefined ? (incomingFields.is_synthetic === 'true' || incomingFields.is_synthetic === true) : (existingFields.is_synthetic !== undefined ? existingFields.is_synthetic === 'true' : undefined))),
+      source_type: isFeedbackDoc ? 'feedback' : (extra.source_type || incomingFields.source_type || existingFields.source_type),
       conversation_format: extra.conversation_format || incomingFields.conversation_format || existingFields.conversation_format,
       session_id: extra.session_id || incomingFields.session_id || existingFields.session_id,
       origin_transcript: extra.origin_transcript || incomingFields.origin_transcript || existingFields.origin_transcript,
