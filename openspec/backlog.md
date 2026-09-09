@@ -515,3 +515,46 @@ each slice needs its own spec. Small if the outcome is freeze + document.
 original) - no silent visual regressions across 25 frameworks.
 
 **Suggested trigger:** `/sdd-explore console-domain-renderers`.
+
+---
+
+## 22. `chore/innfo-console-remainder` - batch-commit, push, and release the remaining innfo-console work
+
+**Context (2026-09-09 evening).** The innfo-console follow-up chain landed 4
+commits on `dev` (`b4cbe77` E2E + export fix, `01406a7` videoscript map key,
+`d2fac2e` viewer renderer extraction, `b65f968` backlog item 21) plus an E2E
+addendum next to the archived verify-report. Everything below is still open and
+was deliberately NOT touched for the reasons given.
+
+**1. Uncommitted prior-batch files (needs an owning review + batch commit).**
+From the archived `innfo-console-feedback-loop` change, still in the tree:
+tracked-modified scanner feedback branch
+(`actioNN/skills/nn-trannsform/scripts/` + unit test), master/projections seam
+edits + their compile procedures, `source-normalization-pipeline/spec.md`;
+untracked `apply_feedback_NN.md` (business + metrics), console blueprint +
+schema, `openspec/specs/innfo-console-*`, the 5 `console-*.test.ts` units,
+the archive dir itself. Why not committed with the chain: the tracked files may
+carry concurrent sibling edits on top (a sibling session is actively committing
+to `dev`), so a blind batch commit would misattribute foreign work. The
+untracked files alone are incoherent without their tracked counterparts
+(e.g. thinning tests assert seams living in uncommitted asset edits). Action:
+owner re-verifies each path is theirs, then one batch commit.
+
+**2. Sibling/concurrent dirt (do NOT touch).** Untracked
+`videoscript/`, `robustness-coda/`, validator leftovers,
+`.agents/skills/nn-usage-audit/`, `dev/`, `specs/`; modified
+`docs/innfo/*`, `innfo-mcp.bundle.js`; deleted `temp/` fixtures. None of
+it belongs to innfo-console. Coordinate with the owning sessions before any
+tree-wide operation (notably `git add -A`, renormalize, or stash-all, which
+would sweep foreign files in).
+
+**3. Push + release (needs explicit maintainer go).** `dev` is ahead of
+`origin/dev` with mixed authorship. Pushing is safe only after (1) resolves,
+then the batched merge path applies: `nn-dev-check-integrity`, then
+`nn-dev-release` for `dev -> main`. No push and no merge to `main` without
+request - standing rule.
+
+**Size:** small once (1) is reviewed - the commands are trivial, the judgment
+(attribution + timing vs sibling work) is the actual task.
+
+**Suggested trigger:** maintainer decision in chat, not an SDD cycle.
