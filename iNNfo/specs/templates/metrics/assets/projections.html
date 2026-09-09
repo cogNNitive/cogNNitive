@@ -1,96 +1,703 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Projections — Metrics Template Layout</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="data:,">
+<title>Projections — Metrics Template</title>
 <!--
   Projections HTML Layout (metrics template asset: projections-layout).
 
-  Reference shell for the Create Projections procedure. Instantiate per model:
+  Full dashboard engine ported from the reference instance. Instantiate per model:
   1. Snapshot the L3 metrics model into MODEL_DATA (see MODEL_DATA.template.json).
-  2. Rewrite FORMULAS (one function per formula row, keyed by row id) and
-     DEPS (mirror of each row's dependsOn ids).
-  3. Adjust section groups, icons, colors and scenarios.
+     Required meta: model, model_version, source_model, generated_at, months,
+     scenarios: [{id, label}]. Rows carry metricType (result/revenue/expense/
+     tax/investment); variables use variable:true + base + metricUnit.
+  2. Rewrite the PER-MODEL slots below: FORMULAS, DEPS, SCEN_SERIES, CARDS,
+     SEASON. Everything else is generic engine (render, charts, CSV, pills,
+     Metric focus, heat scales, growth UI).
+  3. Extend GRP_PILL/GRP_ICON if the model introduces new section groups
+     (unknown groups fall back to slate).
   4. Verify with scripts/verify.harness.js (zero pageerrors required).
 
-  Architecture: MODEL_DATA (data) + FORMULAS (logic) + DEPS (graph) = render().
   Pinned CDNs: Tailwind Play, uPlot 1.6.32, Lucide 1.42.0, Inter + JetBrains Mono.
   Gotchas: Tailwind Play does not process theme() inside plain <style> (use
-  literal values); its preflight forces svg to block (set icons inline-block);
+  literal values); its preflight forces svg to block (icons use inline-block);
   uPlot initial data must carry as many series as opts.series and setData takes
   a flat array [xs, ...series].
 -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/uplot@1.6.32/dist/uPlot.min.css">
 <script src="https://cdn.tailwindcss.com"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/uplot@1.6.32/dist/uPlot.min.css" />
-<script src="https://cdn.jsdelivr.net/npm/uplot@1.6.32/dist/uPlot.iife.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/lucide@1.42.0/dist/umd/lucide.min.js"></script>
+<script>tailwind.config={theme:{extend:{fontSize:{'2xs':['0.6875rem',{lineHeight:'0.9375rem'}],xs:['0.875rem',{lineHeight:'1.25rem'}],sm:['1rem',{lineHeight:'1.5rem'}]},colors:{background:'hsl(0 0% 100%)',foreground:'hsl(240 10% 3.9%)',card:'hsl(0 0% 100%)',border:'hsl(240 5.9% 90%)',input:'hsl(240 5.9% 90%)',ring:'hsl(240 5.9% 90%)',muted:{DEFAULT:'hsl(240 4.8% 95.9%)',foreground:'hsl(240 3.8% 46.1%)'},brand:{DEFAULT:'hsl(291 66% 18%)',light:'hsl(291 66% 97%)'}},fontFamily:{sans:['Inter','Geist','system-ui','sans-serif'],mono:['"JetBrains Mono"','monospace']},borderRadius:{lg:'0.5rem',md:'calc(0.5rem - 2px)',sm:'calc(0.5rem - 4px)'}}}}</script>
 <style>
-  body { font-family: Inter, system-ui, sans-serif; }
-  .mono { font-family: "JetBrains Mono", ui-monospace, monospace; }
-  svg.lucide { display: inline-block; vertical-align: -0.125em; }
-  .pill-editable { background: #dbeafe; color: #1d4ed8; }
-  .pill-computed { background: #f1f5f9; color: #475569; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Inter,system-ui,sans-serif;background:#fff;color:#09090b}
+  .ico{display:inline-block;width:14px;height:14px;vertical-align:-2px;margin-right:6px}
+  /* ---- Spreadsheet: everything left-aligned ---- */
+  .sheet{max-height:74vh;overflow:auto}
+  table{border-collapse:collapse;font-size:12.5px;white-space:nowrap;width:max-content}
+  thead th{position:sticky;top:0;z-index:10;background:hsl(240 4.8% 95.9%);font-size:11px;font-weight:600;color:hsl(240 3.8% 46.1%);border:1px solid #e4e4e7;padding:6px 8px;text-align:left}
+  thead th.mid{background:hsl(214 100% 96.7%)}
+  tbody td{border:1px solid #e4e4e7;padding:4px 6px;text-align:left;font-family:"JetBrains Mono",monospace;font-size:12px;background:#fff}
+  tbody td.rowid{font-family:Inter,system-ui,sans-serif;color:hsl(240 3.8% 46.1%);text-align:left;background:hsl(240 4.8% 95.9%);position:sticky;left:0;z-index:5;width:38px;padding:0 0 0 8px}
+  /* Unit column: sticky, offset set by JS after measuring the metric column */
+  thead th.unithead{text-align:left;min-width:64px}
+  tbody td.unitcol{font-family:Inter,system-ui,sans-serif;font-size:11px;color:hsl(240 3.8% 46.1%);background:#fff;border:1px solid #e4e4e7;padding:3px 8px;white-space:nowrap;position:sticky;z-index:5}
+  tbody th.metric{position:sticky;left:38px;z-index:6;background:#fff;text-align:left;border:1px solid #e4e4e7;padding:3px 8px;min-width:340px;font-weight:500;font-family:Inter,system-ui,sans-serif;font-size:12.5px;white-space:nowrap}
+  tbody th.metric .grow{display:inline-flex;gap:4px;align-items:center;margin-left:8px;vertical-align:middle}
+  tbody th.metric .grow select{font-family:Inter,system-ui,sans-serif;font-size:10px;padding:0 2px;border:1px solid #BFDBFE;border-radius:4px;background:#EFF6FF;color:#1D4ED8;width:88px}
+  tbody th.metric .grow input{font-family:"JetBrains Mono",monospace;font-size:10px;padding:0 3px;border:1px solid #BFDBFE;border-radius:4px;background:#EFF6FF;color:#1D4ED8;width:42px;text-align:left}
+  tbody th.metric .grow input:disabled{background:#F4F4F5;border-color:#e4e4e7;color:#A1A1AA}
+  tr.section td{background:hsl(240 4.8% 95.9%);border:1px solid #e4e4e7;padding:6px 10px}
+  /* Value cells: blue = user-editable, grey = auto-calculated */
+  tbody td.calc{background:#F4F4F5}
+  tbody td.hist{background:#fff;border-left:2px solid hsl(160 84% 39%)}
+  tr.res td.calc{color:hsl(142 71% 32%);font-weight:700}
+  tr.res th.metric .name{color:hsl(142 71% 32%)}
+  tr.var td{background:hsl(214 100% 97%)}
+  tr.var td input{font-family:"JetBrains Mono",monospace;font-size:12px;color:hsl(221 83% 53%);border:none;border-radius:2px;background:transparent;padding:0;width:auto;min-width:0;text-align:left}
+  tr.var td input:hover{outline:1px solid hsl(214 100% 90%)}
+  tr.var td input:focus{outline:2px solid hsl(221 83% 53%);background:#fff}
+  tr.var th.metric .name{color:hsl(221 83% 53%);font-weight:600}
+  tbody td.pay{background:hsl(291 66% 18%);color:#fff;font-weight:800}
+  /* Marker glyph read-only (mirrors MarkerButton interactive=false in the app) */
+  .mkv{display:inline-block;width:14px;height:14px;vertical-align:-2px;margin-right:6px}
+  .uplot{width:100%!important}
+  .uplot canvas{width:100%!important}
 </style>
 </head>
-<body class="bg-slate-50 text-slate-900">
-<header class="flex items-center gap-3 px-4 py-3 bg-white border-b">
-  <h1 class="text-lg font-semibold">Projections</h1>
-  <span id="fresh" class="mono text-xs px-2 py-0.5 rounded-full bg-slate-100">NO-DATA</span>
-  <button id="export" class="ml-auto text-sm px-3 py-1.5 rounded bg-blue-600 text-white">Export CSV</button>
-</header>
-<main class="p-4">
-  <table class="w-full text-sm">
-    <thead><tr class="text-left text-slate-500">
-      <th>Metric</th><th>Value</th><th>Unit</th>
-    </tr></thead>
-    <tbody id="body"></tbody>
-  </table>
-  <section class="grid gap-4 mt-4">
-    <div id="chartFlow"></div>
-    <div id="chartIncome"></div>
-    <div id="chartNet"></div>
+<body class="min-h-screen antialiased">
+
+<div class="max-w-[1440px] mx-auto px-4 sm:px-6 pb-10">
+
+  <!-- Top bar: editing parameters -->
+  <!-- PER-MODEL: adjust the title block; the scenario <select> is filled from meta.scenarios by JS. -->
+  <div class="sticky top-0 z-50 bg-background/95 backdrop-blur border-b border-border">
+    <div class="max-w-[1440px] mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-end gap-3">
+      <div class="text-[15px] font-semibold tracking-tight mr-2">Projections <span class="text-muted-foreground font-normal" id="doctitle">· Metrics Template</span></div>
+      <label class="block">
+        <span class="block text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Start month</span>
+        <select id="startMonth" class="h-8 rounded-md border border-input bg-background px-2 text-[12.5px] focus:outline-none focus:ring-2 focus:ring-ring"></select>
+      </label>
+      <label class="block">
+        <span class="block text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Start year</span>
+        <select id="startYear" class="h-8 rounded-md border border-input bg-background px-2 text-[12.5px] focus:outline-none focus:ring-2 focus:ring-ring"></select>
+      </label>
+      <label class="block">
+        <span class="block text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Active scenario</span>
+        <select id="scenario" class="h-8 rounded-md border border-input bg-background px-2 text-[12.5px] focus:outline-none focus:ring-2 focus:ring-ring"></select>
+      </label>
+      <button id="reset" class="ml-auto h-8 rounded-md bg-brand text-white px-4 text-[12.5px] font-semibold hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-ring">Reset</button>
+      <button id="export" class="h-8 rounded-md border border-input bg-background px-4 text-[12.5px] font-semibold hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring">Export CSV</button>
+    </div>
+  </div>
+
+  <header class="pt-6 pb-2 flex flex-wrap items-end gap-3">
+    <div>
+      <h1 class="text-xl font-semibold tracking-tight">Projections <span class="text-brand" id="docname">· Metrics Template</span></h1>
+      <p class="text-[12.5px] text-muted-foreground mt-1">Results on top, breakdown below. <b class="text-blue-600">Blue</b> = editable · <b>Grey</b> = calculated. Units in the Unit column; large figures use k/m. Each row has its monthly evolution rule (fixed / compound % / +delta).</p>
+    </div>
+    <span id="fresh" class="ml-auto inline-flex items-center rounded-full px-2 py-0.5 text-2xs font-medium bg-muted text-muted-foreground border border-border" title=""></span>
+  </header>
+
+  <div class="flex flex-wrap gap-x-5 gap-y-1 text-[12px] text-muted-foreground my-3">
+    <span><i data-lucide="edit" class="ico" style="color:#2563eb"></i>Editable variable</span>
+    <span><i data-lucide="calculator" class="ico" style="color:#059669"></i>Result (formula)</span>
+    <span><i data-lucide="sparkles" class="ico" style="color:#9333ea"></i>Derived helper</span>
+    <span><span class="inline-block w-[11px] h-[11px] rounded-[3px] mr-1.5 align-[-1px] border border-border bg-[#F4F4F5]"></span>Calculated</span>
+    <span><span class="inline-block w-[11px] h-[11px] rounded-[3px] mr-1.5 align-[-1px] border border-border bg-[#fff]" style="border-left:2px solid hsl(160 84% 39%)"></span>Actual (measured)</span>
+  </div>
+
+  <!-- Scenario comparison -->
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5 mt-4" id="cards"></div>
+
+  <!-- Charts: tabbed + collapsible + sticky, selection survives re-renders.
+       Click any metric header to pin it: the active chart then shows that
+       metric's history + projection per scenario. Chips toggle Actuals /
+       Projection / Both (legend labels also toggle series natively). -->
+  <!-- PER-MODEL: chart tabs come from meta.charts [{id, label}]; series from SCEN_SERIES. -->
+  <section class="mt-6" id="chartsWrap" style="position:sticky;top:58px;z-index:40;background:#fff">
+    <div class="rounded-lg border border-border bg-card shadow-sm">
+      <div class="flex flex-wrap items-center gap-2 px-4 pt-3 pb-2">
+        <h3 class="text-[11px] uppercase tracking-wide font-semibold text-muted-foreground mr-1"><i data-lucide="chart-column" class="ico"></i>Charts</h3>
+        <div class="inline-flex h-8 items-center justify-center rounded-lg bg-muted p-1" role="tablist" id="charttabs"></div>
+        <div class="inline-flex h-8 items-center justify-center rounded-lg bg-muted p-1" id="modechips">
+          <button data-showmode="both" role="tab">Both</button>
+          <button data-showmode="actual" role="tab">Actuals</button>
+          <button data-showmode="proj" role="tab">Projection</button>
+        </div>
+        <span id="pinlabel" class="text-[11px] text-muted-foreground"></span>
+        <button id="chartsToggle" aria-expanded="true" title="Collapse / expand charts" class="ml-auto inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-muted text-muted-foreground transition-transform"><i data-lucide="chevron-down" style="width:16px;height:16px"></i></button>
+      </div>
+      <div id="chartsBody" class="px-4 pb-4"></div>
+    </div>
   </section>
-</main>
-<script id="innfo-model-data" type="application/json">
-{
-  "meta": { "model": "", "model_version": "V_0-1-0", "source_model": "", "generated_at": "", "months": 12 },
-  "rows": []
-}
-</script>
+
+  <!-- Metric focus -->
+  <div class="mt-6 mb-2 flex flex-wrap items-end gap-3">
+    <label class="block">
+      <span class="block text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Metric focus</span>
+      <select id="focus" class="h-8 rounded-md border border-input bg-background px-2 text-[12.5px] focus:outline-none focus:ring-2 focus:ring-ring"></select>
+    </label>
+    <p class="text-[11.5px] text-muted-foreground pb-1.5">Shows the metric, its dependents, its direct dependencies and its base inputs.</p>
+  </div>
+
+  <!-- Spreadsheet -->
+  <div class="sheet rounded-lg border border-border bg-card shadow-sm">
+    <table id="planilla">
+      <thead id="head"></thead>
+      <tbody id="body"></tbody>
+    </table>
+  </div>
+
+  <footer class="mt-5 text-[11.5px] text-muted-foreground" id="docfoot">
+    Snapshot of the model — if the model changes, regenerate the MODEL_DATA block (version + timestamp in the badge above).
+  </footer>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/lucide@1.42.0/dist/umd/lucide.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/uplot@1.6.32/dist/uPlot.iife.min.js"></script>
 <script>
-/* MODEL_DATA: single snapshot point. Replace the JSON above per model. */
-const MODEL_DATA = JSON.parse(document.getElementById('innfo-model-data').textContent);
-/* DEPS: id -> [dependency ids], mirrored from each row's dependsOn. */
-const DEPS = {};
-/* FORMULAS: id -> (rows, month) => number. One function per formula row. */
+"use strict";
+/* =====================================================================
+   MODEL_DATA — the SINGLE point to update when the model changes.
+   Pure data snapshot (JSON): values, units and formula texts come from
+   the L3 metrics model (metricValue/metricFormula/metricUnit fields).
+   source: "model" = copied verbatim from the model,
+           "derived" = helper row invented by this artifact (not in model).
+   metricType mirrors the model metricType (result/revenue/expense/tax/
+   investment). Rows may carry history: [v0, v1, ...] — verbatim measured
+   values for the first months (from historical scenarios); the engine
+   renders them as actuals and computes the remaining months.
+   Required meta: model, model_version, source_model,
+   generated_at, months, scenarios: [{id, label}]. Optional meta:
+   charts: [{id, label}] (defaults to cumulative/result/income trio),
+   startMonth (1-12), startYear, slug (CSV filename base), title,
+   chartHeight (chart px height, default 190), footer (HTML).
+   Calculation LOGIC lives in FORMULAS below (not in the JSON).
+   ===================================================================== */
+const MODEL_DATA = {
+  "meta": {
+    "model": "",
+    "model_version": "V_0-1-0",
+    "source_model": "",
+    "generated_at": "",
+    "months": 12,
+    "scenarios": [{ "id": "base", "label": "Base scenario" }]
+  },
+  "rows": []
+};
+
+/* PER-MODEL slot: one function per formula row, keyed by row id.
+   Signature: (m) => number, where m is the zero-based month.
+   Read other rows only through rowValue(id, month). */
 const FORMULAS = {};
 
-function render() {
-  const body = document.getElementById('body');
-  body.innerHTML = '';
-  for (const r of MODEL_DATA.rows) {
-    const tr = document.createElement('tr');
-    tr.innerHTML = '<td>' + r.label + '</td>'
-      + '<td class="mono">' + (r.base != null ? r.base : '=') + '</td>'
-      + '<td>' + (r.metricUnit || r.unidad || '') + '</td>';
-    body.appendChild(tr);
-  }
-  document.getElementById('fresh').textContent =
-    (MODEL_DATA.meta.model || 'NO-MODEL') + ' @ ' + (MODEL_DATA.meta.generated_at || 'NO-DATE');
-  if (window.lucide) lucide.createIcons();
+/* PER-MODEL slot: dependency graph — mirrors dependsOn:: in the model
+   (row ids). Drives the Metric focus selector. */
+const DEPS = {};
+
+/* PER-MODEL slot: per-scenario monthly series for charts and cards.
+   SCEN_SERIES[chartId](scenarioId) => (m) => number.
+   Chart ids default to ["flow", "income", "net"]; override via
+   meta.charts. Keep every series pure in (scenario, month). */
+const SCEN_SERIES = {};
+
+/* PER-MODEL slot: seasonality masks over real months (1-12).
+   Return false across the board when the model has no seasonality. */
+const SEASON = {
+  isHigh: (m) => false,
+  isPeak: (m) => false
+};
+
+/* PER-MODEL: section groups for pills. Unknown groups fall back to slate —
+   extend the maps when the model introduces new groups. Keys are matched
+   by prefix so "REVENUES · Short stay" inherits REVENUES. */
+const GRP_ICON = { RESULTS: "bar-chart-3", REVENUES: "coins", EXPENSES: "receipt", TAXES: "scale", INVESTMENTS: "hammer", PROGRAMS: "layers", VARIABLES: "settings-2" };
+const GRP_PILL = {
+  RESULTS: { solid: "bg-emerald-600", hex: "#22c55e" },
+  REVENUES: { solid: "bg-blue-600", hex: "#3b82f6" },
+  EXPENSES: { solid: "bg-orange-600", hex: "#f97316" },
+  TAXES: { solid: "bg-rose-600", hex: "#ef4444" },
+  INVESTMENTS: { solid: "bg-amber-700", hex: "#b45309" },
+  PROGRAMS: { solid: "bg-blue-600", hex: "#3b82f6" },
+  VARIABLES: { solid: "bg-blue-600", hex: "#3b82f6" }
+};
+const FALLBACK_PILL = { solid: "bg-slate-600", hex: "#94a3b8" };
+const FALLBACK_ICON = "box";
+
+const N = MODEL_DATA.meta.months;
+const SCEN = Object.fromEntries((MODEL_DATA.meta.scenarios || [{ id: "base", label: "Base scenario" }]).map((s) => [s.id, s.label]));
+const CHARTS = MODEL_DATA.meta.charts || [
+  { id: "flow", label: "Cumulative" },
+  { id: "income", label: "Income" },
+  { id: "net", label: "Net result" }
+];
+const CHART_COLORS = ["hsl(222 47% 11%)", "hsl(221 83% 53%)", "hsl(160 84% 39%)", "hsl(25 95% 53%)", "hsl(291 66% 40%)"];
+const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const esc = n => n.toLocaleString("en-US", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
+/* Per-metric color syntax (heat scale over the row's own [min,max] range):
+     colors: { min, mid, max } — text color for the lowest / middle / highest
+     value of the metric; cells in between interpolate linearly (RGB).
+     Omit `colors` → DEFAULT_SCALE. (Future: model fields color_min/mid/max.) */
+const DEFAULT_SCALE = { min: "#3b82f6", mid: "#1d4ed8", max: "#172554" };
+function hexRgb(h) { h = h.replace("#", ""); return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)]; }
+function mix(a, b, t) { const A = hexRgb(a), B = hexRgb(b); return "rgb(" + Math.round(A[0] + (B[0] - A[0]) * t) + "," + Math.round(A[1] + (B[1] - A[1]) * t) + "," + Math.round(A[2] + (B[2] - A[2]) * t) + ")"; }
+function rowMinMax(id) {
+  let mn = Infinity, mx = -Infinity;
+  for (let m = 0; m < N; m++) { const v = rowValue(id, m); if (typeof v === "number" && isFinite(v)) { if (v < mn) mn = v; if (v > mx) mx = v; } }
+  return mn === Infinity ? null : [mn, mx];
 }
-document.getElementById('export').addEventListener('click', () => {
-  const m = MODEL_DATA.meta;
-  const head = ['# projections export', '# model: ' + m.model, '# version: ' + m.model_version,
-    '# source: ' + m.source_model, '# generated: ' + m.generated_at,
-    '# exported: ' + new Date().toISOString()].join('\n');
-  const blob = new Blob([head + '\n'], { type: 'text/csv' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'projections_export.csv';
-  a.click();
+function valStyle(row, v, mm) {
+  if (typeof v != "number" || !isFinite(v) || !mm) return "";
+  const sc = row.colors || DEFAULT_SCALE;
+  const mn = mm[0], mx = mm[1];
+  if (mx === mn) return "color:" + sc.mid;
+  const mid = (mn + mx) / 2;
+  const c = v <= mid ? mix(sc.min, sc.mid, (v - mn) / (mid - mn)) : mix(sc.mid, sc.max, (v - mid) / (mx - mid));
+  return "color:" + c;
+}
+/* Compact display: bare scaled figures in cells, unit once in the row header.
+   Scale (k/m) chosen per metric from its own max abs value. */
+function rowScale(id) {
+  let mx = 0;
+  for (let m = 0; m < N; m++) { const v = rowValue(id, m); if (typeof v === "number" && isFinite(v)) { const a = Math.abs(v); if (a > mx) mx = a; } }
+  return mx >= 1e6 ? "m" : mx >= 1e3 ? "k" : "";
+}
+function rowUnit(row) {
+  const sc = rowScale(row.id);
+  const u = row.metricUnit || "EUR";
+  return sc ? u + " " + sc : u;
+}
+function fmtCompact(v) {
+  if (v === null || v === undefined || (typeof v === "number" && !isFinite(v))) return "—";
+  const a = Math.abs(v); let d = v, s = "";
+  if (a >= 1e6) { d = v / 1e6; s = "m"; } else if (a >= 1e3) { d = v / 1e3; s = "k"; }
+  const ad = Math.abs(d); let t;
+  if (s) t = ad >= 100 ? String(Math.round(d)) : ad >= 10 ? d.toFixed(1) : d.toFixed(2);
+  else t = Number.isInteger(d) ? String(d) : ad >= 100 ? d.toFixed(1) : ad >= 10 ? d.toFixed(2) : String(Math.round(d * 1000) / 1000);
+  if (t.indexOf(".") !== -1) t = t.replace(/\.?0+$/, "");
+  if (t === "-0") t = "0";
+  return t + s;
+}
+
+const cfg = {
+  startMonth: MODEL_DATA.meta.startMonth || 1,
+  startYear: MODEL_DATA.meta.startYear || 2026,
+  scenario: (MODEL_DATA.meta.scenarios && MODEL_DATA.meta.scenarios[0] && MODEL_DATA.meta.scenarios[0].id) || "base"
+};
+function realMonth(m) { return ((cfg.startMonth - 1 + m) % 12) + 1; }
+function isHigh(m) { return SEASON.isHigh(realMonth(m)); }
+function isPeak(m) { return SEASON.isPeak(realMonth(m)); }
+function monthLabel(m) { m = Math.round(m); const rm = realMonth(m); const y = cfg.startYear + Math.floor((cfg.startMonth - 1 + m) / 12); return MONTH_NAMES[rm - 1] + " " + y; }
+
+/* Monthly evolution rules mirror the model Evolution concept
+   (evolutionType: fixed | compound | additive). */
+function applyGrowth(row, m, base) {
+  const g = row.growth || { mode: "fixed", factor: 0 };
+  if (g.mode === "compound" && g.factor) return base * Math.pow(1 + g.factor / 100, m);
+  if (g.mode === "additive" && g.factor) return base + g.factor * m;
+  return base;
+}
+
+/* Merge data + logic. desc = model formula text (tooltip). */
+const rows = MODEL_DATA.rows.map(r => Object.assign({ growth: { mode: "fixed", factor: 0 }, desc: r.formula || "" }, r,
+  r.variable ? {} : { fn: FORMULAS[r.id] }));
+
+const rowById = Object.fromEntries(rows.map(r => [r.id, r]));
+const overrides = {};
+const memo = {};
+
+function rowValue(id, m) {
+  const key = id + "|" + m;
+  if (memo[key] !== undefined) return memo[key];
+  const row = rowById[id];
+  let base;
+  if (row.variable) {
+    const baseVal = (overrides[id] && overrides[id][m] !== undefined) ? overrides[id][m] : (row.base || 0);
+    base = applyGrowth(row, m, baseVal);
+  } else if (Array.isArray(row.history) && m < row.history.length && row.history[m] !== null) {
+    base = row.history[m];
+  } else {
+    base = applyGrowth(row, m, row.fn(m));
+  }
+  memo[key] = base; return base;
+}
+function isActual(id, m) {
+  const row = rowById[id];
+  return !row.variable && Array.isArray(row.history) && m < row.history.length && row.history[m] !== null;
+}
+function resetOverrides() { Object.keys(overrides).forEach(k => delete overrides[k]); }
+
+/* ---- Per-scenario series (charts + cards), via the SCEN_SERIES slot ---- */
+function arr(fn) { const a = new Array(N); for (let m = 0; m < N; m++) a[m] = Math.round(fn(m)); return a; }
+const seriesFor = (chartId, scen) => arr((m) => SCEN_SERIES[chartId](scen, m));
+
+/* ---- uPlot ---- */
+const charts = {};
+const CHART_H = MODEL_DATA.meta.chartHeight || 190;
+function chartSeries(chartId) {
+  /* Pinned metric: one Actual + one Projection series per scenario from the
+     row's own history + computed months. Otherwise the per-model slot. */
+  if (ui.pinned && rowById[ui.pinned]) {
+    const id = ui.pinned;
+    const out = [];
+    Object.keys(SCEN).forEach((k, i) => {
+      out.push({ key: k, kind: "actual", label: SCEN[k] + " actual", stroke: CHART_COLORS[i % CHART_COLORS.length], dash: [], width: 2 });
+      out.push({ key: k, kind: "proj", label: SCEN[k] + " proj.", stroke: CHART_COLORS[i % CHART_COLORS.length], dash: [6, 4], width: 2 });
+    });
+    return out;
+  }
+  return Object.keys(SCEN).map((k, i) => ({ key: k, kind: "slot", label: SCEN[k], stroke: CHART_COLORS[i % CHART_COLORS.length], dash: [], width: 2 }));
+}
+function seriesValues(chartId, s) {
+  const xs = Array.from({ length: N }, (_, i) => i);
+  if (ui.pinned && rowById[ui.pinned]) {
+    const id = ui.pinned;
+    const actual = xs.map(m => (isActual(id, m) ? rowValue(id, m) : null));
+    const proj = xs.map(m => (isActual(id, m) ? null : rowValue(id, m)));
+    if (s.kind === "actual") return ui.showActual ? actual : xs.map(() => null);
+    return ui.showProj ? proj : xs.map(() => null);
+  }
+  return seriesFor(chartId, s.key);
+}
+function mkChart(chartId) {
+  const el = document.getElementById(chartId);
+  const defs = chartSeries(chartId);
+  const series = [{ label: "Month", value: (u, v) => v == null ? "—" : monthLabel(v) }];
+  defs.forEach(s => series.push({ label: s.label, stroke: s.stroke, width: s.width, dash: s.dash, points: { show: s.kind === "actual" }, value: (u, v) => v === null ? "—" : esc(v) }));
+  charts[chartId] = new uPlot({
+    width: el.clientWidth || 600,
+    height: CHART_H,
+    legend: { show: true, live: true },
+    scales: { x: { time: false }, y: {} },
+    series,
+    axes: [
+      { stroke: "hsl(240 3.8% 46.1%)", grid: { stroke: "hsl(240 5.9% 90%)" }, ticks: { stroke: "hsl(240 5.9% 90%)" }, values: (self, ticks) => ticks.map(v => monthLabel(v)), size: 54 },
+      { stroke: "hsl(240 3.8% 46.1%)", grid: { stroke: "hsl(240 5.9% 90%)" }, ticks: { stroke: "hsl(240 5.9% 90%)" }, size: 64 }
+    ],
+    cursor: { x: true, y: false },
+  }, [[]].concat(defs.map(() => [])), el);
+  charts[chartId]._shape = shapeKey(chartId);
+  charts[chartId]._defs = defs;
+}
+function shapeKey(chartId) {
+  return (ui.pinned || "-") + "|" + chartId + "|" + Object.keys(SCEN).join(",");
+}
+function updateCharts() {
+  if (!ui.chartsOpen) return;
+  const xs = Array.from({ length: N }, (_, i) => i);
+  const elId = ui.chartTab;
+  const el = document.getElementById(elId);
+  if (charts[elId] && charts[elId]._shape !== shapeKey(elId)) { charts[elId].destroy(); delete charts[elId]; }
+  if (!charts[elId]) mkChart(elId);
+  const defs = charts[elId]._defs;
+  charts[elId].setData([xs].concat(defs.map(s => seriesValues(elId, s))));
+  const w = el.clientWidth;
+  if (w && w !== charts[elId].width) charts[elId].setSize({ width: w, height: CHART_H });
+}
+/* Tabs + collapse + pin + mode state lives outside render() so it survives recalculations */
+const ui = { chartTab: CHARTS[0].id, chartsOpen: true, pinned: null, showActual: true, showProj: true };
+function paintTabs() {
+  document.querySelectorAll("[data-charttab]").forEach(b => {
+    const on = b.dataset.charttab === ui.chartTab;
+    b.className = "rounded-md px-3 py-1 text-xs font-medium transition-colors " + (on ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground");
+  });
+  document.querySelectorAll("[data-showmode]").forEach(b => {
+    const on = b.dataset.showmode === (ui.showActual && ui.showProj ? "both" : ui.showActual ? "actual" : "proj");
+    b.className = "rounded-md px-3 py-1 text-xs font-medium transition-colors " + (on ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground");
+  });
+  document.getElementById("pinlabel").textContent = ui.pinned && rowById[ui.pinned] ? "📌 " + rowById[ui.pinned].label + " (click header again to unpin)" : "";
+}
+document.querySelectorAll("[data-showmode]").forEach(b => {
+  b.onclick = () => {
+    const m = b.dataset.showmode;
+    ui.showActual = m === "both" || m === "actual";
+    ui.showProj = m === "both" || m === "proj";
+    paintTabs(); updateCharts();
+  };
 });
+/* Click a metric header to pin it on the chart (ignores the growth controls). */
+document.getElementById("body").addEventListener("click", e => {
+  if (e.target.closest("select,input")) return;
+  const th = e.target.closest("th.metric");
+  if (!th || !th.parentElement.id || !th.parentElement.id.startsWith("row-")) return;
+  const id = th.parentElement.id.slice(4);
+  ui.pinned = ui.pinned === id ? null : id;
+  paintTabs(); updateCharts();
+});
+function buildTabs() {
+  const wrap = document.getElementById("charttabs");
+  wrap.innerHTML = "";
+  const body = document.getElementById("chartsBody");
+  body.innerHTML = "";
+  CHARTS.forEach((c, i) => {
+    const b = document.createElement("button");
+    b.dataset.charttab = c.id; b.setAttribute("role", "tab"); b.textContent = c.label;
+    wrap.appendChild(b);
+    const d = document.createElement("div");
+    d.id = c.id; if (i > 0) d.className = "hidden";
+    body.appendChild(d);
+  });
+  document.querySelectorAll("[data-charttab]").forEach(b => {
+    b.onclick = () => {
+      ui.chartTab = b.dataset.charttab;
+      CHARTS.forEach(c => document.getElementById(c.id).classList.toggle("hidden", c.id !== ui.chartTab));
+      paintTabs(); updateCharts();
+    };
+  });
+}
+document.getElementById("chartsToggle").onclick = () => {
+  ui.chartsOpen = !ui.chartsOpen;
+  document.getElementById("chartsBody").classList.toggle("hidden", !ui.chartsOpen);
+  const t = document.getElementById("chartsToggle");
+  t.setAttribute("aria-expanded", ui.chartsOpen);
+  t.style.transform = ui.chartsOpen ? "" : "rotate(-90deg)";
+  if (ui.chartsOpen) updateCharts();
+};
+window.addEventListener("resize", () => {
+  for (const elId in charts) {
+    const w = document.getElementById(elId).clientWidth;
+    if (w && w !== charts[elId].width) charts[elId].setSize({ width: w, height: CHART_H });
+  }
+});
+
+const selMonth = document.getElementById("startMonth");
+MONTH_NAMES.forEach((n, i) => selMonth.add(new Option(n, i + 1)));
+selMonth.value = cfg.startMonth;
+const selYear = document.getElementById("startYear");
+for (let y = 2026; y <= 2030; y++) selYear.add(new Option(y, y));
+selYear.value = cfg.startYear;
+const selScen = document.getElementById("scenario");
+(MODEL_DATA.meta.scenarios || [{ id: "base", label: "Base scenario" }]).forEach(s => selScen.add(new Option(s.label, s.id)));
+selScen.value = cfg.scenario;
+
+/* Metric focus selector (options grouped by sheet section) */
+const focusSel = document.getElementById("focus");
+focusSel.add(new Option("All metrics", ""));
+{ const og = {}; rows.forEach(r => { if (!og[r.grp]) { og[r.grp] = document.createElement("optgroup"); og[r.grp].label = r.grp; focusSel.add(og[r.grp]); } og[r.grp].appendChild(new Option(r.label, r.id)); }); }
+
+selMonth.onchange = () => { cfg.startMonth = +selMonth.value; render(); };
+selYear.onchange = () => { cfg.startYear = +selYear.value; render(); };
+document.getElementById("scenario").onchange = e => { cfg.scenario = e.target.value; render(); };
+document.getElementById("reset").onclick = () => { resetOverrides(); render(); };
+focusSel.onchange = () => render();
+
+/* Export current sheet state to CSV (semicolon-separated, dot decimals).
+   Includes model version + timestamps so the file is traceable. */
+function exportCSV() {
+  const meta = MODEL_DATA.meta;
+  const now = new Date();
+  const p2 = n => String(n).padStart(2, "0");
+  const stamp = `${now.getFullYear()}${p2(now.getMonth() + 1)}${p2(now.getDate())}-${p2(now.getHours())}${p2(now.getMinutes())}${p2(now.getSeconds())}`;
+  const scenName = SCEN[cfg.scenario] || cfg.scenario;
+  const q = v => { v = String(v); return /[;"\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+  const L = [
+    ["# model", meta.model].map(q).join(";"),
+    ["# model_version", meta.model_version].map(q).join(";"),
+    ["# source_model", meta.source_model].map(q).join(";"),
+    ["# generated_at", meta.generated_at].map(q).join(";"),
+    ["# exported_at", now.toISOString()].map(q).join(";"),
+    ["# scenario", scenName].map(q).join(";"),
+    ["# start", monthLabel(0)].map(q).join(";")
+  ];
+  const head = ["Metric", "Unit"]; for (let m = 0; m < N; m++) head.push("M" + (m + 1) + " " + monthLabel(m));
+  L.push(head.map(q).join(";"));
+  for (const row of rows) {
+    const cells = [row.label, rowUnit(row)];
+    for (let m = 0; m < N; m++) {
+      const v = rowValue(row.id, m);
+      let c;
+      if (row.fmt) c = row.fmt(v, m);
+      else c = (v === null || v === undefined || !isFinite(v)) ? "" : (Math.round(v * 100) / 100);
+      cells.push(c);
+    }
+    L.push(cells.map(q).join(";"));
+  }
+  const blob = new Blob([L.join("\n")], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `${meta.slug || "projections"}_${meta.model_version.replace(/-/g, "")}_${stamp}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+document.getElementById("export").onclick = exportCSV;
+
+/* Freshness badge — always reflects the embedded snapshot */
+document.getElementById("fresh").textContent = `Data · ${MODEL_DATA.meta.model_version} · ${MODEL_DATA.meta.generated_at}`;
+document.getElementById("fresh").title = `${MODEL_DATA.meta.model} ← ${MODEL_DATA.meta.source_model}`;
+if (MODEL_DATA.meta.title) {
+  document.getElementById("doctitle").textContent = "· " + MODEL_DATA.meta.title;
+  document.getElementById("docname").textContent = "· " + MODEL_DATA.meta.title;
+  document.title = "Projections — " + MODEL_DATA.meta.title;
+}
+if (MODEL_DATA.meta.footer) document.getElementById("docfoot").innerHTML = MODEL_DATA.meta.footer;
+
+function buildHead() {
+  const head = document.getElementById("head");
+  let h = "<tr><th>#</th><th>Metric</th><th class='unithead'>Unit</th>";
+  for (let m = 0; m < N; m++) {
+    h += `<th class="${isHigh(m) ? 'mid' : ''}" title="Month ${m + 1} · ${monthLabel(m)}">M${m + 1}</th>`;
+  }
+  head.innerHTML = h + "</tr>";
+}
+
+function render() { resetMemo(); buildHead(); renderCards(); updateCharts(); renderBody(); if (window.lucide) lucide.createIcons(); fixMarkerTitles(); syncSticky(); }
+/* createIcons() swaps <i data-lucide> for <svg> and drops the title —
+   re-attach marker names as native SVG <title> tooltips. */
+function fixMarkerTitles() {
+  document.querySelectorAll("svg.mkv[data-mname]").forEach(s => {
+    if (s.querySelector("title")) return;
+    const t = document.createElementNS("http://www.w3.org/2000/svg", "title");
+    t.textContent = s.dataset.mname;
+    s.prepend(t);
+  });
+}
+/* Uniform metric width + sticky offset for the unit column.
+   Runs AFTER createIcons (svg swap changes widths) and on font load. */
+function syncSticky() {
+  const mths = [...document.querySelectorAll("#body th.metric")];
+  if (!mths.length) return;
+  const mw = Math.ceil(Math.max(...mths.map(el => el.getBoundingClientRect().width)));
+  mths.forEach(el => { el.style.width = mw + "px"; el.style.minWidth = mw + "px"; });
+  document.querySelectorAll("#planilla td.unitcol").forEach(el => { el.style.left = (38 + mw) + "px"; });
+}
+window.addEventListener("load", () => syncSticky());
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => syncSticky());
+/* Pills mirror Pill.vue kind=concept in the app (apps/innfo-editor).
+   Literal palette from utils/colors.ts. NOTE: the app has no purple/teal
+   palette (getColorClasses falls back to slate) — replicate that fallback
+   on purpose instead of inventing new colors. */
+const grpCount = {}; rows.forEach(r => { grpCount[r.grp] = (grpCount[r.grp] || 0) + 1; });
+/* Marker per row from the model item-markers matrix (X = active, read-only):
+   is_variable (editable input), is_formula (computed), is_derived (helper). */
+const rowMarker = r => r.variable
+  ? { icon: "edit", name: "is_variable", color: "#2563eb" }
+  : r.source === "derived"
+    ? { icon: "sparkles", name: "is_derived", color: "#9333ea" }
+    : { icon: "calculator", name: "is_formula", color: "#059669" };
+function resetMemo() { Object.keys(memo).forEach(k => delete memo[k]); }
+
+function sectionPill(label, solid, hex, icon, count) {
+  return `<span class="inline-flex items-center max-w-full px-2 py-1.5 text-xs gap-1 rounded-lg font-normal whitespace-normal break-words select-none ${solid} text-white border border-transparent"><i data-lucide="${icon}" class="w-3.5 h-3.5"></i><span>${label}</span></span>` +
+    (count === undefined ? "" : `<span class="text-2xs px-1.5 py-0.5 rounded-full font-medium tabular-nums ml-1.5" style="background:${hex}18;color:${hex}">${count}</span>`);
+}
+
+/* PER-MODEL slot: scenario cards. Default implementation totals every
+   result row per scenario over the horizon; override for domain cards
+   (payback markers, per-program breakdowns). CARDS(scenId) => HTML. */
+function renderCards() {
+  const cards = document.getElementById("cards");
+  const serie = SCEN_SERIES[CHARTS[0].id];
+  cards.innerHTML = Object.keys(SCEN).map(key => {
+    const active = cfg.scenario === key;
+    let tot = 0;
+    for (let m = 0; m < N; m++) tot += serie(key, m);
+    return `<div class="rounded-lg border ${active ? 'border-brand ring-1 ring-brand' : 'border-border'} bg-card shadow-sm p-3.5">
+      <h3 class="text-[11px] uppercase tracking-wide font-semibold text-muted-foreground mb-1.5"><i data-lucide="layers" class="ico"></i>${SCEN[key]}</h3>
+      <div class="font-mono text-[19px] font-bold leading-tight">${esc(tot)}</div>
+      <div class="text-[11.5px] text-muted-foreground mt-1">${N}m total · Net <b class="${tot >= 0 ? 'text-green-600' : 'text-red-600'}">${esc(tot)}</b></div></div>`;
+  }).join("");
+}
+
+/* Metric focus plan: focus metric, direct dependents, direct dependencies, transitive base inputs */
+function focusPlan() {
+  const id = focusSel.value;
+  if (!id || !rowById[id]) return null;
+  const deps = DEPS[id] || [];
+  const dependents = rows.filter(r => (DEPS[r.id] || []).includes(id)).map(r => r.id);
+  const seen = new Set([id, ...dependents, ...deps]);
+  const leaves = [];
+  const walk = x => {
+    (DEPS[x] || []).forEach(d => {
+      if ((DEPS[d] || []).length === 0) { if (!seen.has(d)) { seen.add(d); leaves.push(d); } }
+      else { if (!seen.has(d)) seen.add(d); walk(d); }
+    });
+  };
+  walk(id);
+  return [
+    { title: "Metric", icon: "crosshair", ids: [id] },
+    { title: "Dependent metrics", icon: "arrow-up-right", ids: dependents },
+    { title: "Direct dependencies", icon: "arrow-down-right", ids: deps },
+    { title: "Base inputs", icon: "filter", ids: leaves }
+  ].filter(g => g.ids.length);
+}
+
+function rowHtml(row, rownum, mmCache) {
+  const isVar = !!row.variable;
+  const mm = mmCache ? mmCache[row.id] : null;
+  let h = `<tr class="${((row.cls || "") + " " + (isVar ? "var" : "")).trim()}" id="row-${row.id}">`;
+  h += `<td class="rowid">${rownum}</td>`;
+  const g = row.growth || { mode: "fixed", factor: 0 };
+  const mk = rowMarker(row);
+  const un = rowUnit(row);
+  h += `<th class="metric"><i data-lucide="${mk.icon}" class="mkv" data-mname="${mk.name}" style="color:${mk.color}"></i><span class="name" title="${row.desc || ''}">${row.label}</span><span class="grow">
+    <select data-grow="${row.id}" title="Monthly evolution rule (from model Evolution)">
+      <option value="fixed" ${g.mode === "fixed" ? "selected" : ""}>Fixed</option>
+      <option value="compound" ${g.mode === "compound" ? "selected" : ""}>% comp.</option>
+      <option value="additive" ${g.mode === "additive" ? "selected" : ""}>+delta</option>
+    </select>
+    <input type="number" step="any" data-gfactor="${row.id}" value="${g.factor}" ${g.mode === "fixed" ? "disabled" : ""} title="Monthly factor: % for compound, units for additive (only when rule is not fixed)"></span></th><td class="unitcol" title="Unit of this metric">${un}</td>`;
+  for (let m = 0; m < N; m++) {
+    const v = rowValue(row.id, m);
+    if (isVar) {
+      const ov = (overrides[row.id] && overrides[row.id][m] !== undefined);
+      const disp = ov ? String(overrides[row.id][m]) : fmtInput(v);
+      const sz = Math.min(10, Math.max(3, disp.length + 1));
+      h += `<td class="num"><input data-var="${row.id}" data-m="${m}" size="${sz}" value="${disp}" ${ov ? 'style="background:#DBEAFE"' : ''}></td>`;
+    } else {
+      const actual = isActual(row.id, m);
+      h += `<td class="calc${actual ? " hist" : ""}"${actual ? ' title="Actual (measured)"' : ""} style="${valStyle(row, v, mm)}">${row.fmt ? row.fmt(v, m) : fmtCell(v, row)}</td>`;
+    }
+  }
+  return h + "</tr>";
+}
+
+function renderBody() {
+  const body = document.getElementById("body");
+  const plan = focusPlan();
+  const mmCache = {}; for (const r of rows) mmCache[r.id] = rowMinMax(r.id);
+  let html = "", rownum = 0;
+  if (plan) {
+    for (const g of plan) {
+      html += `<tr class="section"><td colspan="${N + 3}">${sectionPill(g.title, "bg-slate-600", "#94a3b8", g.icon, g.ids.length)}</td></tr>`;
+      for (const id of g.ids) { rownum++; html += rowHtml(rowById[id], rownum, mmCache); }
+    }
+  } else {
+    const order = []; rows.forEach(r => { if (!order.includes(r.grp)) order.push(r.grp); });
+    for (const grp of order) {
+      const gk = Object.keys(GRP_ICON).find(k => grp.startsWith(k));
+      const gp = (gk && GRP_PILL[gk]) || FALLBACK_PILL;
+      const gi = (gk && GRP_ICON[gk]) || FALLBACK_ICON;
+      html += `<tr class="section"><td colspan="${N + 3}">${sectionPill(grp, gp.solid, gp.hex, gi, grpCount[grp])}</td></tr>`;
+      for (const row of rows.filter(r => r.grp === grp)) { rownum++; html += rowHtml(row, rownum, mmCache); }
+    }
+  }
+  body.innerHTML = html;
+  syncSticky();
+  document.querySelectorAll("[data-grow]").forEach(sel => { sel.onchange = e => { const r = rowById[sel.dataset.grow]; if (!r.growth) r.growth = { mode: "fixed", factor: 0 }; r.growth.mode = sel.value; render(); }; });
+  document.querySelectorAll("[data-gfactor]").forEach(inp => { inp.onchange = e => { const r = rowById[inp.dataset.gfactor]; if (!r.growth) r.growth = { mode: "fixed", factor: 0 }; r.growth.factor = parseFloat(inp.value) || 0; render(); }; });
+  document.querySelectorAll("[data-var]").forEach(inp => {
+    inp.onchange = e => {
+      const id = inp.dataset.var, m = +inp.dataset.m;
+      if (!overrides[id]) overrides[id] = {};
+      overrides[id][m] = parseFloat(inp.value) || 0;
+      render();
+    };
+  });
+}
+
+function fmtInput(v) { return (Math.round(v * 100) / 100).toString(); }
+function fmtCell(v, row) {
+  return fmtCompact(v);
+}
+
+buildTabs();
+paintTabs();
 render();
 </script>
 </body>

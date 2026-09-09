@@ -16,23 +16,56 @@ title: "Create Projections Procedure"
 step_type:: task
 parent:: -
 next:: -
-condition:: Active L3 metrics model loaded
-input:: [[Metrics Model]]
+condition:: Workspace models available
+input:: [[Source Workspace Models]]
 output:: [[Projections HTML]]
 output_status:: verified
 tool:: [[AI Agent]]
-Generate a standalone Projections dashboard from the active L3 metrics model: snapshot its rows into MODEL_DATA, mirror dependencies into DEPS, bind FORMULAS logic, apply the visual system, and verify headless with zero page errors.
+Generate a standalone Projections dashboard from a workspace: analyze its models, agree a metric plan with the user, build (or complete) the L3 metrics model, snapshot its rows into MODEL_DATA, mirror dependencies into DEPS, bind FORMULAS logic, apply the visual system, and verify headless with zero page errors.
+
+## NN Work: Analyze Workspace Models
+parent:: [[Create Projections]]
+step_type:: task
+next:: [[Confirm Metric Plan]]
+condition:: Procedure starts
+input:: [[Source Workspace Models]]
+output:: [[Metric Plan]]
+output_status:: draft
+tool:: [[AI Agent]]
+Read the workspace index and its L3 models plus normalized sources. Extract every quantifiable fact (amounts, rates, counts, periods, horizons) and map each to proposed Metrics / Variables / Evolution / Scenario rows with per-row source references. Consolidate measured historical series (past months with actual values, typed as historical scenarios) alongside projection assumptions. Flag figures that are missing, ambiguous, or contradictory as open questions instead of inventing them.
+
+## NN Work: Confirm Metric Plan
+parent:: [[Create Projections]]
+step_type:: decision
+next:: [[Build Metrics Model]]
+condition:: Metric plan drafted
+input:: [[Metric Plan]]
+output:: [[Metric Plan]]
+output_status:: approved
+tool:: [[AI Agent]]
+Present the proposed rows, their source traceability, and the open questions. Proceed only with explicit user approval; adjust scope, row set, or horizons on request.
+
+## NN Work: Build Metrics Model
+parent:: [[Create Projections]]
+step_type:: task
+next:: [[Extract Model Snapshot]]
+condition:: Metric plan approved
+input:: [[Metric Plan]]
+output:: [[Metrics Model]]
+output_status:: verified
+tool:: [[AI Agent]]
+Create the L3 metrics model from the approved plan (Metrics with metricType, Variables, Evolution rules, Scenarios, dependsOn references, evaluable matrices, is_variable / is_formula / is_derived markers). If a Metrics model already exists, review and complete it instead of creating a new one.
 
 ## NN Work: Extract Model Snapshot
 parent:: [[Create Projections]]
 step_type:: task
 next:: [[Map Dependency Graph]]
-condition:: Procedure starts
+condition:: Metrics model verified
 input:: [[Metrics Model]]
 output:: [[Model Data Block]]
 output_status:: verified
 tool:: [[AI Agent]]
-Copy values (metricValue), units (metricUnit, variableUnit) and verbatim formula text (metricFormula) from the Level 3 model into the artifact MODEL_DATA block. Each row declares source "model" (verbatim) or "derived" (artifact-invented help). Record meta: model, model_version, source_model, generated_at, months.
+Copy values (metricValue), units (metricUnit, variableUnit) and verbatim formula text (metricFormula) from the Level 3 model into the artifact MODEL_DATA block. Each row declares source "model" (verbatim) or "derived" (artifact-invented help). Rows with measured past carry history: [v0, v1, ...] so the sheet renders actuals distinctly from computed months. Record meta: model, model_version, source_model, generated_at, months, scenarios, charts, slug, title.
 
 ## NN Work: Map Dependency Graph
 parent:: [[Create Projections]]
@@ -102,6 +135,12 @@ If the model changed: bump model_version in frontmatter, new generated_at, regen
 
 # NN Artifact
 
+## NN Artifact: Source Workspace Models
+The workspace index plus the L3 models and normalized sources under analysis (figures, rates, periods).
+
+## NN Artifact: Metric Plan
+Proposed Metrics / Variables / Evolution / Scenario rows with per-row source traceability and open questions. Approved by the user before modeling.
+
 ## NN Artifact: Metrics Model
 The Level 3 metrics model file with metric rows, formulas, dependencies and markers.
 
@@ -155,6 +194,9 @@ User responsible for providing the model, reviewing artifact aesthetics, and app
 # NN matrices: work-roles matrix
 | Work \ Roles | Agent | User |
 | :--- | :--- | :--- |
+| Analyze Workspace Models | Responsible | Consulted |
+| Confirm Metric Plan | Responsible | Accountable |
+| Build Metrics Model | Responsible | Accountable |
 | Extract Model Snapshot | Responsible | Accountable |
 | Map Dependency Graph | Responsible | Informed |
 | Build Master HTML | Responsible | Informed |
@@ -166,6 +208,9 @@ User responsible for providing the model, reviewing artifact aesthetics, and app
 # NN matrices: work-tools matrix
 | Work \ Tools | AI Agent | Tailwind Play CDN | uPlot 1.6.32 | Lucide 1.42.0 | Verify Harness |
 | :--- | :---: | :---: | :---: | :---: | :---: |
+| Analyze Workspace Models | Uses | - | - | - | - |
+| Confirm Metric Plan | Uses | - | - | - | - |
+| Build Metrics Model | Uses | - | - | - | - |
 | Extract Model Snapshot | Uses | - | - | - | - |
 | Map Dependency Graph | Uses | - | - | - | - |
 | Build Master HTML | Uses | Uses | Uses | Uses | - |
@@ -175,12 +220,15 @@ User responsible for providing the model, reviewing artifact aesthetics, and app
 | Version And Archive | Uses | - | - | - | - |
 
 # NN matrices: work-artifacts matrix
-| Work \ Artifact | Metrics Model | Model Data Block | Projections Layout | Projections HTML | Exported CSV | Verification Report |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| Extract Model Snapshot | Reviews | Creates | - | - | - | - |
-| Map Dependency Graph | Reviews | Modifies | - | - | - | - |
-| Build Master HTML | - | Reviews | Reviews | Creates | - | - |
-| Apply Visual System | - | - | Reviews | Modifies | - | - |
-| Implement CSV Export | - | - | - | Modifies | Creates | - |
-| Verify In Browser | - | - | - | Reviews | Reviews | Creates |
-| Version And Archive | - | Reviews | - | Modifies | - | Reviews |
+| Work \ Artifact | Source Workspace Models | Metric Plan | Metrics Model | Model Data Block | Projections Layout | Projections HTML | Exported CSV | Verification Report |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| Analyze Workspace Models | Reviews | Creates | - | - | - | - | - | - |
+| Confirm Metric Plan | - | Reviews | - | - | - | - | - | - |
+| Build Metrics Model | - | Reviews | Creates | - | - | - | - | - |
+| Extract Model Snapshot | - | - | Reviews | Creates | - | - | - | - |
+| Map Dependency Graph | - | - | Reviews | Modifies | - | - | - | - |
+| Build Master HTML | - | - | - | Reviews | Reviews | Creates | - | - |
+| Apply Visual System | - | - | - | - | Reviews | Modifies | - | - |
+| Implement CSV Export | - | - | - | - | - | Modifies | Creates | - |
+| Verify In Browser | - | - | - | - | - | Reviews | Reviews | Creates |
+| Version And Archive | - | - | - | Reviews | - | Modifies | - | Reviews |
