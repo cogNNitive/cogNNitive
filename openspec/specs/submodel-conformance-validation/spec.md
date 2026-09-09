@@ -45,46 +45,40 @@ When no resolver is supplied, validators MUST continue to skip external filesyst
 
 ### Requirement: Submodel File Existence Validation with Warning Severity
 
-When a field has `type:: model` and contains a file path, the validator MUST strip any WikiLink delimiters (`[[...]]`), normalize the path, and query the resolver for file existence. If the file does not exist (`exists === false`), the validator MUST emit a diagnostic with severity `WARNING` and path `elements.<Concept>.<Element>.fields.<field>`. It MUST NOT emit an `ERROR` diagnostic.
+For `type:: model` fields holding a path, the validator MUST strip WikiLink delimiters, normalize, and query the resolver. Missing files MUST yield `WARNING` at `elements.<Concept>.<Element>.fields.<field>` — never `ERROR` — with a stable per-rule code and inline fix hint.
+(Previously: warning with no stable code or fix hint.)
 
-#### Scenario: Missing submodel reference emits warning diagnostic
-- GIVEN a model element referencing submodel `models/missing_subsystem_NN.md` in a `model`-typed field
-- AND the resolver reports `{ exists: false }`
+#### Scenario: Missing submodel warns
+- GIVEN a `model` path the resolver reports missing
 - WHEN `validateFieldReferences()` executes
-- THEN a diagnostic with severity `'warning'` is emitted:
-  `Dangling submodel reference: field "submodel" references file "models/missing_subsystem_NN.md" which does not exist`
-- AND validation succeeds with `valid: true` (non-breaking warning)
+- THEN a coded `'warning'` with path-fix hint is emitted and `valid` stays true
 
-#### Scenario: Existing submodel reference passes validation
-- GIVEN a model element referencing `models/auth_NN.md`
-- AND the resolver reports `{ exists: true }`
+#### Scenario: Existing submodel passes
+- GIVEN `models/auth_NN.md` with the resolver reporting `{ exists: true }`
 - WHEN `validateFieldReferences()` executes
-- THEN no dangling submodel reference diagnostic is produced
+- THEN no dangling-reference diagnostic is produced
 
 ---
 
 ### Requirement: Target Template Conformance Verification
 
-When a concept field definition declares `target_template` and the referenced submodel file exists, the validator MUST compare `target_template` against the resolved submodel's template identity (`templateName` or `templateUrl`). If the resolved submodel's template does not match `target_template` (by name or stable URL), the validator MUST emit a diagnostic with severity `WARNING`.
+With declared `target_template` and an existing submodel, the validator MUST compare template identity and MUST warn on mismatch, attaching a stable per-rule code and inline fix hint.
+(Previously: warning with no stable code or fix hint.)
 
-#### Scenario: Submodel matches declared target_template by name
-- GIVEN a field definition with `type:: model` and `target_template:: procedures`
-- AND the referenced submodel file exists and declares `parent_spec.name: procedures`
+#### Scenario: Match by name passes
+- GIVEN `target_template:: procedures` plus a file declaring `parent_spec.name: procedures`
 - WHEN validation executes
-- THEN no template mismatch diagnostic is emitted
+- THEN no mismatch diagnostic is emitted
 
-#### Scenario: Submodel matches declared target_template by URL
-- GIVEN a field definition with `target_template:: https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/procedures/procedures_V_0-1-0_NN.md`
-- AND the referenced submodel file declares `parent_spec.url` matching that URL
+#### Scenario: Match by URL passes
+- GIVEN the canonical procedures `target_template` URL plus a matching `parent_spec.url`
 - WHEN validation executes
-- THEN no template mismatch diagnostic is emitted
+- THEN no mismatch diagnostic is emitted
 
-#### Scenario: Submodel template mismatches declared target_template
-- GIVEN a field definition with `target_template:: business`
-- AND the referenced submodel file declares `parent_spec.name: procedures`
+#### Scenario: Mismatch warns with code and hint
+- GIVEN `target_template:: business` plus a file declaring `parent_spec.name: procedures`
 - WHEN validation executes
-- THEN a diagnostic with severity `'warning'` is emitted:
-  `Submodel template mismatch: field "submodel" expects template "business", but referenced file "models/proc_NN.md" uses template "procedures"`
+- THEN a coded `'warning'` naming both templates is emitted with a declaration-fix hint
 
 ---
 
@@ -97,3 +91,19 @@ The `innfo-mcp` server tools (`validate_model`, `read_model`) MUST wire synchron
 - WHEN the tool executes validation
 - THEN the response includes the non-breaking `WARNING` diagnostic identifying the missing submodel path
 - AND the tool reports overall validation status as valid with warnings
+
+---
+
+### Requirement: Actionable Diagnostic Severity and Clarity
+
+Informational notices MUST use `info` severity, which MUST NEVER affect validity. Misplaced-field diagnostics MUST name the violated class — valid type in wrong location vs reserved field misused as normal — with an inline fix example per class.
+
+#### Scenario: Info keeps validity
+- GIVEN an informational-only condition
+- WHEN validation runs
+- THEN `info` is reported and validity holds
+
+#### Scenario: Both misuse classes distinguished
+- GIVEN a valid level-1 type in the wrong location plus a reserved level-3 field used as normal
+- WHEN validation runs
+- THEN each diagnostic names its class rule with a fix example

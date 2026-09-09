@@ -66,7 +66,7 @@ When deliverables are promoted from `export/` into `sources/export/` to serve as
 
 The ad-hoc Slack and Microsoft Teams JSON conversion logic in `scanner-converters.js` (`convertChatJson`) MUST be removed.
 
-Ingestion of `.json` files in `sources/import/` SHALL treat JSON as structured data schemas or raw key-value payloads rather than heuristic message threads. Ingestion of interactive discussion and meeting transcripts MUST be handled via the canonical conversation lifecycle (`conversations/` and `sources/conversations/`).
+Ingestion of `.json` files in `sources/import/` SHALL treat JSON as structured data schemas or raw key-value payloads rather than heuristic message threads, EXCEPT `sources/import/feedback/*.json`, which MUST route to the feedback ingestion branch (see Requirement: Feedback JSON Ingestion). Ingestion of interactive discussion and meeting transcripts MUST be handled via the canonical conversation lifecycle (`conversations/` and `sources/conversations/`).
 
 #### Scenario: JSON file processed without Slack heuristic
 - GIVEN a JSON configuration or data file `sources/import/config.json`
@@ -78,4 +78,62 @@ Ingestion of `.json` files in `sources/import/` SHALL treat JSON as structured d
 - GIVEN a team interaction transcript
 - WHEN captured and imported into the workspace
 - THEN it is routed through `conversations/` and normalized under `sources/conversations/` rather than relying on legacy Slack JSON parsers
+
+#### Scenario: Feedback JSON bypasses the generic branch
+- GIVEN `sources/import/feedback/x_feedback_20260909-120000.json`
+- WHEN `convertOkFormat` is invoked for `.json`
+- THEN the file routes to feedback ingestion, not the generic structured-data path
+
+### Requirement: Feedback JSON Ingestion
+
+The normalization scanner (`nn-trannsform --scan`) MUST ingest `sources/import/feedback/*.json` conforming to the `innfo-console-feedback` schema into canonical Markdown under `sources/nn/` (mirrored path). Emitted frontmatter MUST include `file:` (origin path), `source_type: feedback`, and `is_synthetic: true`. Normalized feedback MUST be citable via `sources::` per `document-citations`, using Source/Citation/Lineage vocabulary per `provenance-vocabulary`.
+
+#### Scenario: Feedback scan to sources/nn
+- GIVEN `sources/import/feedback/Client_V_0-2-0_round-2_feedback_20260909-120000.json`
+- WHEN `nn-trannsform --scan` runs
+- THEN `sources/nn/import/feedback/` gains the normalized file with `is_synthetic: true`
+- AND its items are addressable via `sources::`
+
+#### Scenario: Invalid feedback skipped with report
+- GIVEN a feedback JSON failing schema validation
+- WHEN the scan runs
+- THEN the file is skipped and reported without aborting the run
+
+---
+
+### Requirement: Scored Source-to-Element Matching
+
+Normalized sources MUST be matched to model elements with a recorded score per
+pair. Pairs at or above the match threshold link automatically; pairs below it
+MUST NOT link silently. Scoring MUST run outside the hot reasoning loop, so
+reviewer attention is spent on doubtful pairs only.
+
+#### Scenario: Confident pairs link automatically
+- GIVEN normalized sources and model elements
+- WHEN scoring completes
+- THEN each pair carries a recorded score
+- AND pairs at or above threshold link automatically
+
+#### Scenario: Unmatched source is queued, never dropped
+- GIVEN a source scoring below threshold for every element
+- WHEN matching completes
+- THEN the source is queued for review
+- AND it is NOT silently excluded
+
+### Requirement: Doubtful-Pair Review Queue
+
+Every doubtful or unmatched pair MUST enter a review queue. Reviewers confirm
+or reject each queued pair, and no source SHALL be dropped without a recorded
+decision. Undecided pairs remain queued across sessions.
+
+#### Scenario: Reviewer confirms a doubtful pair
+- GIVEN doubtful pairs waiting in the queue
+- WHEN a reviewer confirms one
+- THEN the link is recorded together with the decision
+
+#### Scenario: Undecided pairs stay queued
+- GIVEN a review session ending with pairs undecided
+- WHEN the queue is inspected
+- THEN undecided pairs remain queued
+- AND none are treated as excluded
 
