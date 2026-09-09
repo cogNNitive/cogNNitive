@@ -50,7 +50,7 @@ Chain strategy: pending
 
 ## Phase 4: Skill text + benchmark
 
-- [ ] 4.1 Update `nn-innfo/SKILL.md`: `intent:` field, slice-first, differential-verify, budgets.
-- [ ] 4.2 Update `nn-trannsform/SKILL.md`: scored pipeline step + review-queue procedure ("Reviewer confirms a doubtful pair", "Undecided pairs stay queued").
-- [ ] 4.3 Run one-promotion before-vs-after benchmark; record per-intent calls/tokens + measured reduction.
-- [ ] 4.4 Final verify: `test|lint|typecheck` green; zero NEW prettier drift (format:check NOT a gate).
+- [x] 4.1 Update `nn-innfo/SKILL.md`: `intent:` field, slice-first, differential-verify, budgets.
+- [x] 4.2 Update `nn-trannsform/SKILL.md`: scored pipeline step + review-queue procedure ("Reviewer confirms a doubtful pair", "Undecided pairs stay queued").
+- [x] 4.3 Run one-promotion before-vs-after benchmark; record per-intent calls/tokens + measured reduction.
+- [x] 4.4 Final verify: `test|lint|typecheck` green; zero NEW prettier drift (format:check NOT a gate).

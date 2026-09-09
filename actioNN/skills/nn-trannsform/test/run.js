@@ -74,6 +74,16 @@ async function main() {
     const convLifecycleResult = await convLifecycleTest.run();
     totalPassed += convLifecycleResult.passed;
     totalFailed += convLifecycleResult.failed;
+
+    const usageCountersTest = require('./unit/test-usage-counters');
+    const usageCountersResult = await usageCountersTest.run();
+    totalPassed += usageCountersResult.passed;
+    totalFailed += usageCountersResult.failed;
+
+    const scoreMatcherTest = require('./unit/test-score-matcher');
+    const scoreMatcherResult = await scoreMatcherTest.run();
+    totalPassed += scoreMatcherResult.passed;
+    totalFailed += scoreMatcherResult.failed;
   }
 
   if (mode === 'all' || mode === 'integration') {

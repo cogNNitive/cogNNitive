@@ -614,6 +614,50 @@ The master.html procedure (formerly "showroom") is recognizable: if the user ask
 
 ---
 
+## 16. Context Efficiency: Intent, Slices, Budgets
+
+Every automated call declares its context budget and intent class. Nothing travels "just in case". Diagnostic codes are defined by `validator-robustness` (referenced, not re-specified).
+
+### 16a. Intent declaration (`intent:`)
+
+Each call MUST declare exactly one intent — `coach`, `surgical`, `verify`, or `match`:
+
+```yaml
+intent: surgical   # coach | surgical | match | verify; omit = current behavior
+override_intent: verify  # always wins when present
+```
+
+1. An undeclared intent MUST default to current behavior (no-op) — omission never breaks a call.
+2. A manual override MUST always be available and MUST take precedence over the declared intent. When the declared intent proves wrong mid-task, the operator overrides it and execution continues under the override rules.
+3. Work spanning two intents MUST declare the broader (more expensive) intent.
+
+### 16b. Slice-first reads for surgical work
+
+Surgical work (few elements of one concept) MUST read bounded slices through existing query units and MUST NOT include whole files. No included unit SHALL exceed 150 lines without an explicit slice or recorded override:
+
+1. Assemble surgical context as one concept slice plus schema excerpt: `read_model` with `concept` + `element` + `max_lines` (default 150), and `query_units` with capped projections. A unit over 150 lines included whole, without slice or override, is a caller violation — not a server error.
+2. When the needed context spans the cap, record a manual `override_reason` alongside the call; the wider unit MAY then be included.
+3. Honor the `truncated` flag: when set, the slice is partial — narrow the query instead of widening the read.
+
+### 16c. Differential verify prompts
+
+`verify` prompts MUST carry only outcome data and MUST NOT embed full logs or rendered artifacts; full logs remain on disk by path reference:
+
+1. Build the prompt from `validate_model(baseline_path)` as `{ exit, new_errors, verdict, log_path }` — exit status plus errors new against the baseline only.
+2. A clean run carries the verdict only; historical errors are never re-explained.
+
+### 16d. Per-intent budgets and measurement
+
+| Intent | Budget rule |
+|---|---|
+| `coach` | SHALL be few calls but MAY consume up to half the session budget |
+| `surgical` / `verify` | SHALL form the majority of calls at a fraction of the cost each |
+| `match` | MUST NOT carry raw sources |
+
+Each session MUST record per-intent call and token counts via the `usage-counters.js` convention: caller-side JSONL append of `{ ts, intent, inputTokens, outputTokens }`, defaulting to the OS temp directory (session-scoped, never the workspace tree — an explicit workspace path is opt-in only). One promotion per change MUST be benchmarked before versus after, recording per-intent call/token totals and the measured reduction.
+
+---
+
 ## Core Rules
 
 1. **Strict V_0-2-0 Meta-template:** Level 2 templates define primitives in the body (`# NN Concept Definition`). NEVER put `concepts: [...]` or `fields: [...]` in the Level 2 YAML frontmatter.
