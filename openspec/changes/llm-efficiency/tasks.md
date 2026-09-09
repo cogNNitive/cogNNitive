@@ -41,12 +41,12 @@ Chain strategy: pending
 
 ## Phase 3: Counters + scorer
 
-- [ ] 3.1 Decide counter JSONL location (workspace `.cogNNitive/` vs temp); must not pollute tree; record choice.
-- [ ] 3.2 RED: failing node-runner tests for `usage-counters.js` append + per-intent tallies ("Budget concentrated in few coach calls", "Before-vs-after benchmark recorded").
-- [ ] 3.3 GREEN + REFACTOR: create `nn-trannsform/scripts/lib/usage-counters.js` (dependency-free JSONL append).
-- [ ] 3.4 RED: failing node-runner tests for `scorePairs` threshold + never-drop ("Confident pairs link automatically", "Unmatched source is queued, never dropped").
-- [ ] 3.5 GREEN + REFACTOR: create `nn-trannsform/scripts/lib/score-matcher.js` with `threshold=0.7`; calibrate on fixtures, change only with evidence.
-- [ ] 3.6 Verify: `test|lint|typecheck` green; zero NEW prettier drift (format:check NOT a gate).
+- [x] 3.1 Decide counter JSONL location (workspace `.cogNNitive/` vs temp); must not pollute tree; record choice.
+- [x] 3.2 RED: failing node-runner tests for `usage-counters.js` append + per-intent tallies ("Budget concentrated in few coach calls", "Before-vs-after benchmark recorded").
+- [x] 3.3 GREEN + REFACTOR: create `nn-trannsform/scripts/lib/usage-counters.js` (dependency-free JSONL append).
+- [x] 3.4 RED: failing node-runner tests for `scorePairs` threshold + never-drop ("Confident pairs link automatically", "Unmatched source is queued, never dropped").
+- [x] 3.5 GREEN + REFACTOR: create `nn-trannsform/scripts/lib/score-matcher.js` with `threshold=0.7`; calibrate on fixtures, change only with evidence.
+- [x] 3.6 Verify: `test|lint|typecheck` green; zero NEW prettier drift (format:check NOT a gate).
 
 ## Phase 4: Skill text + benchmark
 
