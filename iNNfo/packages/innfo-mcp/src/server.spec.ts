@@ -480,6 +480,52 @@ describe('innfo-mcp server (dispatch/handler layer, real MCP client/server round
     })
   })
 
+  describe('intent passthrough (llm-context-efficiency Phase 2)', () => {
+    it('exposes optional intent/override_intent on budgeted tools', async () => {
+      const { tools } = await client.listTools()
+      for (const name of ['read_model', 'query_units', 'validate_model']) {
+        const tool = tools.find((t) => t.name === name)
+        expect(tool).toBeDefined()
+        const props = (tool!.inputSchema as { properties: Record<string, unknown> }).properties
+        expect(props['intent']).toBeDefined()
+        expect(props['override_intent']).toBeDefined()
+      }
+    })
+
+    it('declared intent governs without changing behavior: read_model with intent matches bare call', async () => {
+      await writeFile(join(rootDir, 'Sample_NN.md'), MUTABLE_MODEL_CONTENT, 'utf-8')
+      const bare = await client.callTool({ name: 'read_model', arguments: { id: 'Sample' } })
+      const declared = await client.callTool({
+        name: 'read_model',
+        arguments: { id: 'Sample', intent: 'surgical' },
+      })
+      expect(declared.isError).toBeFalsy()
+      expect(textOf(declared as CallToolResult)).toBe(textOf(bare as CallToolResult))
+    })
+
+    it('operator override is accepted: read_model with intent + override_intent matches bare call', async () => {
+      await writeFile(join(rootDir, 'Sample_NN.md'), MUTABLE_MODEL_CONTENT, 'utf-8')
+      const bare = await client.callTool({ name: 'read_model', arguments: { id: 'Sample' } })
+      const overridden = await client.callTool({
+        name: 'read_model',
+        arguments: { id: 'Sample', intent: 'surgical', override_intent: 'verify' },
+      })
+      expect(overridden.isError).toBeFalsy()
+      expect(textOf(overridden as CallToolResult)).toBe(textOf(bare as CallToolResult))
+    })
+
+    it('validate_model with a verify intent still returns the validation envelope', async () => {
+      const result = await client.callTool({
+        name: 'validate_model',
+        arguments: { content: MUTABLE_MODEL_CONTENT, intent: 'verify' },
+      })
+      expect(result.isError).toBeFalsy()
+      const parsed = JSON.parse(textOf(result as CallToolResult))
+      expect(parsed.version).toBe('innfo-validate-model@1')
+      expect(parsed.valid).toBe(false)
+    })
+  })
+
   describe('list_templates and hydrate_template', () => {
     it('list_templates returns enveloped array of available templates', async () => {
       const result = await client.callTool({ name: 'list_templates', arguments: { root: rootDir } })

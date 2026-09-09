@@ -35,9 +35,9 @@ Chain strategy: pending
 
 ## Phase 2: Intent router + verify prompts
 
-- [ ] 2.1 RED: failing tests for optional `intent:` no-op default + override precedence ("Declared intent governs the call", "Operator overrides a wrong intent", "Call spanning two intents").
-- [ ] 2.2 GREEN: add `intent:/override_intent:` passthrough in `server.ts`; caller-side verify builder `{exit,new_errors,verdict,log_path}` for "Re-validation carries new errors only" + "Clean run carries the verdict only"; `validate.ts` thin/none.
-- [ ] 2.3 REFACTOR + verify: `test|lint|typecheck` green; zero NEW prettier drift (format:check NOT a gate).
+- [x] 2.1 RED: failing tests for optional `intent:` no-op default + override precedence ("Declared intent governs the call", "Operator overrides a wrong intent", "Call spanning two intents").
+- [x] 2.2 GREEN: add `intent:/override_intent:` passthrough in `server.ts`; caller-side verify builder `{exit,new_errors,verdict,log_path}` for "Re-validation carries new errors only" + "Clean run carries the verdict only"; `validate.ts` thin/none.
+- [x] 2.3 REFACTOR + verify: `test|lint|typecheck` green; zero NEW prettier drift (format:check NOT a gate).
 
 ## Phase 3: Counters + scorer
 

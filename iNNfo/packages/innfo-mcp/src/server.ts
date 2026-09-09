@@ -119,6 +119,16 @@ const toolDefinitions: Tool[] = [
           type: 'string',
           description: 'Recorded reason to bypass the line cap for wide context',
         },
+        intent: {
+          type: 'string',
+          description:
+            'Optional intent class for this call (coach, surgical, verify, or match); omit for current behavior (no-op default)',
+        },
+        override_intent: {
+          type: 'string',
+          description:
+            'Manual intent override; takes precedence over intent when present (same values)',
+        },
       },
       required: ['id'],
     },
@@ -202,6 +212,16 @@ const toolDefinitions: Tool[] = [
           type: 'boolean',
           description:
             "Optional workspace-scope mode (default false = today's single-file behavior, unchanged). When true, also runs cross-model reference validation (qualified `[[Model Title :: Element Name]]` refs) and `sources::` Citation validation (referenced file exists under sources/nn/, `#heading-slug` resolves, no line ranges) across the whole workspace, merging diagnostics owned by this model. Requires `id` mode.",
+        },
+        intent: {
+          type: 'string',
+          description:
+            'Optional intent class for this call (coach, surgical, verify, or match); omit for current behavior (no-op default)',
+        },
+        override_intent: {
+          type: 'string',
+          description:
+            'Manual intent override; takes precedence over intent when present (same values)',
         },
       },
     },
@@ -393,6 +413,16 @@ const toolDefinitions: Tool[] = [
         max_values_chars: {
           type: 'number',
           description: 'Optional cap on total projected value characters',
+        },
+        intent: {
+          type: 'string',
+          description:
+            'Optional intent class for this call (coach, surgical, verify, or match); omit for current behavior (no-op default)',
+        },
+        override_intent: {
+          type: 'string',
+          description:
+            'Manual intent override; takes precedence over intent when present (same values)',
         },
       },
       required: ['query'],
