@@ -17,7 +17,10 @@ export function checkFrontmatterInvariants(model: ParsedModel, d: Diagnostics): 
   if (!fm.level) {
     d.error('frontmatter.level', 'Missing level')
   } else if (fm.level !== 3 && fm.level !== 2) {
-    d.error('frontmatter.level', `Expected level 2 or 3 for model/template validation, got ${fm.level}`)
+    d.error(
+      'frontmatter.level',
+      `Expected level 2 or 3 for model/template validation, got ${fm.level}`,
+    )
   }
 
   if (!fm.parent_spec) {
@@ -37,6 +40,11 @@ export function checkFrontmatterInvariants(model: ParsedModel, d: Diagnostics): 
       d.error(
         'frontmatter',
         'Level 3 models MUST NOT declare schema components (matrices, concepts, markers, relationship_types) in their frontmatter. Move them to the template.',
+        {
+          code: 'L3_SCHEMA_COMPONENTS',
+          promptHint:
+            'Move the schema components from the model frontmatter into the parent template (e.g. declare the matrix under "# NN Matrix Definition" in the level-2 template); level-3 models must not declare schema components.',
+        },
       )
     }
   }
@@ -55,6 +63,10 @@ export function checkFrontmatterInvariants(model: ParsedModel, d: Diagnostics): 
       d.error(
         `frontmatter.concepts.${concept.name}`,
         `Reserved concept name "${concept.name}" — Concepts, Elements, and Markers are reserved pseudo-concepts and MUST NOT be declared`,
+        {
+          code: 'RESERVED_CONCEPT_NAME',
+          promptHint: `Rename the concept (e.g. "${concept.name}" -> "${concept.name}Catalog"); Concepts, Elements, and Markers are reserved pseudo-concepts and must not be declared as normal concepts.`,
+        },
       )
     }
   }
@@ -165,7 +177,9 @@ export function checkSchemaConformance(
   templateConcepts: Concept[],
   d: Diagnostics,
 ): void {
-  for (const diag of checkElementsAgainstSchema(groups, templateConcepts, { unknownProperty: 'ignore' })) {
+  for (const diag of checkElementsAgainstSchema(groups, templateConcepts, {
+    unknownProperty: 'ignore',
+  })) {
     d.add({ ...diag, path: `elements.${diag.path}` })
   }
 }
