@@ -56,4 +56,4 @@ Chain strategy is `pending` because this repo lands day-to-day work as commits o
 
 - [x] 5.1 Canonical write command + wizard line in `actioNN/skills/nn-innfo/SKILL.md` ("Clean validation", "Accents preserved", "Wizard announces it")
 - [x] 5.2 Seed `iNNfo/validation-baseline.json` (`version/backlog/entries`) from current tree, maintainer-approved on `dev`
-- [ ] 5.3 Verify: `npm --prefix iNNfo run test`, `lint`, `typecheck` green; confirm zero NEW prettier drift (format:check is NOT a gate)
+- [x] 5.3 Verify: `npm --prefix iNNfo run test`, `lint`, `typecheck` green; confirm zero NEW prettier drift (format:check is NOT a gate) — re-run 2026-09-09: full gate green incl. shipped-template-versions (sibling-registered videoscript), 16/16
