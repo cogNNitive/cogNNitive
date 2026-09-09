@@ -113,7 +113,7 @@ Creating **any** model — with a canonical template, custom template, or withou
 *(Notice: You can select one option or a combination (e.g. A and B))*.
 
 **A2a. If a canonical template was selected ([a]/[b]/[c]/[d]):**
-Resolve the template with `innfo-mcp_get_template` and display an informative summary of the Concepts, Fields, Matrices, and Markers it already defines. Then offer:
+Resolve the template with `innfo-mcp_get_template` and display an informative summary of the Concepts, Fields, Matrices, and Markers it already defines. Then discover its procedures with `innfo-mcp_list_template_procedures`: if the template declares an explicit empty procedures block, announce it — *"This template declares no executable procedures yet."* — instead of silently presenting a template with nothing executable. Then offer:
 - **[a] (Recommended)** Use template as-is, without modifications
 - **[b]** Customize it (create specialization — see §9)
 - **[x]** Cancel
@@ -326,6 +326,15 @@ Stable reference URLs (the version lives in the file name — `main` is already 
    - Read the new actionable `(searched: ...)` diagnostic returned by `validate_model` / `get_template`: it lists the directories the resolver searched for the parent. If the searched directories look wrong (e.g. they don't point at the workspace root), the problem is the **MCP root** (`INNFO_MODELS_DIR` or the server cwd), not the model: fix the root/URL and re-validate (see §2, rule 4).
    - Offer to fix it: a stable http/https URL or a workspace-relative path (never an absolute Windows path — see §2).
 6. When finished, show the **Visual Expectation Checklist (§12)** and the **Contextual Navigation Shortcuts (§13)** section.
+
+#### Canonical `.md` write path (MANDATORY)
+
+Every skill-driven `.md` write (new model, template, specialization, or full-file rewrite) MUST go through a single canonical path so files validate cleanly:
+
+1. **Preferred:** scaffold via `innfo-mcp_init_model` (frontmatter version inferred from the resolved parent — never hand-written), then apply content with `innfo-mcp_apply_change` or a documented file-write tool.
+2. **Encoding:** UTF-8 without BOM, LF line endings, exactly one trailing newline.
+3. **FORBIDDEN:** shell `echo` / `printf` redirection for file writes — they mangle encodings, join lines, and drop trailing newlines.
+4. **Verify:** accented characters MUST round-trip byte-identical; re-validate with `innfo-mcp_validate_model` — no encoding or line-joining diagnostics may appear.
 
 #### Agent Modification provenance (MANDATORY on every successful `apply_change`)
 

@@ -54,6 +54,6 @@ Chain strategy is `pending` because this repo lands day-to-day work as commits o
 
 ## Phase 5: Skill text + seeded baseline + gate
 
-- [ ] 5.1 Canonical write command + wizard line in `actioNN/skills/nn-innfo/SKILL.md` ("Clean validation", "Accents preserved", "Wizard announces it")
-- [ ] 5.2 Seed `iNNfo/validation-baseline.json` (`version/backlog/entries`) from current tree, maintainer-approved on `dev`
+- [x] 5.1 Canonical write command + wizard line in `actioNN/skills/nn-innfo/SKILL.md` ("Clean validation", "Accents preserved", "Wizard announces it")
+- [x] 5.2 Seed `iNNfo/validation-baseline.json` (`version/backlog/entries`) from current tree, maintainer-approved on `dev`
 - [ ] 5.3 Verify: `npm --prefix iNNfo run test`, `lint`, `typecheck` green; confirm zero NEW prettier drift (format:check is NOT a gate)
