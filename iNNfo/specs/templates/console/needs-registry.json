@@ -1,0 +1,40 @@
+{
+  "version": "0.1.0",
+  "runtime": {
+    "version": "0.1.0",
+    "cdn": "https://cdn.jsdelivr.net/gh/cogNNitive/cogNNitive@innfo-console-0.1.0/iNNfo/specs/templates/console/innfo-runtime.js",
+    "fallback": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/console/innfo-runtime.js",
+    "vendored": "./innfo-runtime.js"
+  },
+  "renderers": {
+    "model-viewer": {
+      "file": "render-model-viewer.js",
+      "version": "0.1.0",
+      "cdn": "https://cdn.jsdelivr.net/gh/cogNNitive/cogNNitive@innfo-console-0.1.0/iNNfo/specs/templates/console/render-model-viewer.js",
+      "fallback": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/console/render-model-viewer.js",
+      "vendored": "./render-model-viewer.js"
+    }
+  },
+  "needs": {
+    "feedback-export": {
+      "description": "Reviewer suggest/edit drafts in localStorage plus the Export modal (identifier gate, instructions and agent-prompt tabs, timestamped JSON download).",
+      "since": "0.1.0"
+    },
+    "concept-rail": {
+      "description": "Left rail of template concepts with per-concept element counts.",
+      "since": "0.1.0"
+    },
+    "fulltext-search": {
+      "description": "Search box filtering element cards across name, concept, description, and field values.",
+      "since": "0.1.0"
+    },
+    "matrix-grids": {
+      "description": "Matrix sections rendered as rows-by-cols grids from the model slots.",
+      "since": "0.1.0"
+    },
+    "hash-routing": {
+      "description": "In-page relationship links resolving to element anchors via location hash.",
+      "since": "0.1.0"
+    }
+  }
+}

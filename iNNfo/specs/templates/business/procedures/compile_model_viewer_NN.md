@@ -34,7 +34,7 @@ output:: [[Loaded Shell]]
 output_status:: verified
 tool:: [[AI Agent]]
 scope:: internal
-Fetch the reference shell from `https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business/assets/model_viewer.html` (all CSS and the vanilla-JS renderer inline). It contains two empty blocks — `<script type="application/json" id="innfo-schema">` and `<script type="application/json" id="innfo-model">` — that this procedure populates.
+Fetch the reference shell from `https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business/assets/model_viewer.html` (all CSS inline; the vanilla-JS renderer lives in `console/render-model-viewer.js` loaded via static `<script src>` tags). It contains two empty blocks — `<script type="application/json" id="innfo-schema">` and `<script type="application/json" id="innfo-model">` — that this procedure populates.
 
 ## NN Work: Resolve Model Schema
 parent:: [[Compile Model Viewer]]
@@ -70,7 +70,7 @@ output:: [[Model Viewer HTML]]
 output_status:: verified
 tool:: [[AI Agent]]
 scope:: internal
-Write the `Resolved Schema` JSON verbatim into `<script type="application/json" id="innfo-schema">` and the `Model Data JSON` verbatim into `<script type="application/json" id="innfo-model">`. Change nothing else in the shell. Save as `<ModelTitle>_model_viewer.html` next to the model.
+Write the `Resolved Schema` JSON verbatim into `<script type="application/json" id="innfo-schema">` and the `Model Data JSON` verbatim into `<script type="application/json" id="innfo-model">`. Declare the console capabilities in `<script type="application/json" id="innfo-config">` via `needs[]` (pins resolve through `console/needs-registry.json`), reference the shared runtime and the model-viewer renderer with static `<script src>` tags (CDN primary, mirror fallback — no `fetch()`, no `type=module`), and ship the vendored `innfo-runtime.js` plus `render-model-viewer.js` next to the output for offline `file://` double-click. Change nothing else in the shell. Save as `<Model>_V_<version>_console.html` next to the model.
 
 ## NN Work: Verify Output
 parent:: [[Compile Model Viewer]]
@@ -100,7 +100,7 @@ The active level 3 model conforming to `business_V_0-2-3` (or any template that 
 ## NN Artifact: Model Viewer Reference Shell
 type:: asset
 format:: html
-The static consultation shell at `iNNfo/specs/templates/business/assets/model_viewer.html`: inline CSS, inline vanilla-JS renderer, two empty JSON blocks. Template-agnostic — it renders whatever schema and model data it is given.
+The static consultation shell at `iNNfo/specs/templates/business/assets/model_viewer.html`: inline CSS, two empty JSON blocks, and the template-agnostic renderer in `console/render-model-viewer.js` (UMD `window.InnfoModelViewer`, static script tags only) — it renders whatever schema and model data it is given.
 
 ## NN Artifact: Loaded Shell
 type:: data
@@ -120,7 +120,7 @@ The serialized model: `meta`, `elements` (with fields, markers, relations), and 
 ## NN Artifact: Model Viewer HTML
 type:: deliverable
 format:: html
-The generated single-file, offline, read-only model consultation page.
+The generated blueprint console (`innfo-config` needs[] plus `innfo-schema`/`innfo-model` slots, shared runtime via static script tags), saved as `<Model>_V_<version>_console.html`: a single-file, offline, read-only model consultation page.
 
 ## NN Artifact: Verified Model Viewer
 type:: report
