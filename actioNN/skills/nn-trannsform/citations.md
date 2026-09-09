@@ -2,15 +2,16 @@
 
 Load this file when generating deliverables with citations in step §3c.
 
-Citations are rendered in a single pass directly from Level 3 model pointers (`sources:: [<path>.md#<slug>]`). No intermediate `<!-- cite: ... -->` HTML comments or `_draft.md` files are generated.
+Citations are rendered in a single pass directly from Level 3 model pointers (`sources:: [<path>@<unit>]`). No intermediate `<!-- cite: ... -->` HTML comments or `_draft.md` files are generated.
 
 ## Citation targets: Sources and Models
 
-A `<ref>` is `<path>.md#<heading-slug>`. It resolves canonically as:
-- **Sources** live under `sources/nn/`. An **unqualified** path resolves there by default (`interview.md#feedback` → `sources/nn/interview.md#feedback`); the explicit `sources/nn/` prefix is still tolerated.
-- **Models** are a first-class citation target under the explicit `models/` namespace: `models/Finance_V_1-0-0_business_NN.md#revenue-forecast`. Same `<path>.md#<slug>` syntax; the parser and workspace-source validator already resolve it.
+A `<ref>` is `<path>@<unit>`. It resolves canonically as:
+- **Sources** live under `sources/nn/`. An **unqualified** path resolves there by default (`interview.md@## Feedback` → `sources/nn/interview.md@## Feedback`); the explicit `sources/nn/` prefix is still tolerated. Header levels are preserved (`@#`, `@##`, `@###`).
+- **Tabular sources** are cited directly from curated CSVs: `sources/nn/metricas_q3.csv@104` (row by first-column key), `sources/nn/metricas_q3.csv@104&mrr_usd` (one cell). Normalized-MD derivatives are an ingestion aid, not a citation target.
+- **Models** are a first-class citation target under the explicit `models/` namespace: `models/Finance_V_1-0-0_business_NN.md@## Revenue Forecast`. Same `path@unit` syntax; the parser and workspace-source validator already resolve it.
 
-**Artifact → model → source chain.** A deliverable MAY cite a Model element directly (`models/x.md#element-a`). That element carries its own `sources::` pointing at `sources/nn/…`, so provenance stays fully traceable end to end: *artifact → `models/x.md#element-a` → `sources/nn/1.md#section`*. Cite the Model when the claim is the model's own synthesized position; cite the Source when the claim is a raw fact.
+**Artifact → model → source chain.** A deliverable MAY cite a Model element directly (`models/x.md@## Concept: Element`). That element carries its own `sources::` pointing at `sources/nn/…`, so provenance stays fully traceable end to end: *artifact → `models/x.md@## Concept: Element` → `sources/nn/1.md@## Section`* (or `→ sources/nn/m.csv@104&column` for data claims). Cite the Model when the claim is the model's own synthesized position; cite the Source when the claim is a raw fact.
 
 **Heading-level convention (authoring rule).** For Model-element anchors to be stable and meaningful: `# NN <Concept>` (H1 = Concept), `## NN <Concept>: <Element>` (H2 = Element), `###`+ only inside an element's prose. The slug algorithm is level-agnostic — this is authorial discipline, not a validation gate.
 
@@ -23,9 +24,9 @@ Rules:
 - Number footnote markers sequentially starting at `[^1]`, `[^2]`, etc., in order of appearance.
 - Append footnote definitions at the bottom of the document. Each definition maps the index to the source document and section anchor:
   ```markdown
-  [^N]: <Source Title or Filename> (<path>.md#<heading-slug>), section <section-name>.
+  [^N]: <Source Title or Filename> (<path>@<unit>), <unit-label>.
   ```
-- Anchors MUST conform to Heading-Slug Anchor Derivation and resolve to a valid heading in the source document under `sources/nn/`.
+- Units MUST be valid knowledge-unit pointers (`@` grammar: header with level, or CSV row/cell) resolving in the cited file under `sources/nn/` (legacy `#slug` anchors validate with a deprecation warning).
 
 Example:
 ```markdown
@@ -33,7 +34,7 @@ The operational target for Q3 is 12,000 active units[^1].
 
 ...
 
-[^1]: Strategic Growth Plan (strategic_plan_source.md#q3-milestones), section Q3 Milestones.
+  [^1]: Strategic Growth Plan (strategic_plan_source.md@## Q3 Milestones), section Q3 Milestones.
 ```
 
 ## Format: Simple — Verbatim Source Attribution

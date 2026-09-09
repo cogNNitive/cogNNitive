@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import FileRefPill from '../../components/editor/FileRefPill.vue'
-import { parseSourceRef } from '../../utils/sourceRef'
+import { parseForPill, type KnowledgeUnit } from '../../utils/sourceRef'
 
 /**
  * Renders any field whose resolved widget type has not been ported yet
@@ -13,13 +13,25 @@ defineProps<{
 }>()
 
 function isSourceRef(value: unknown): boolean {
-  if (typeof value !== 'string') return false
-  return parseSourceRef(value).isValid
+  return parseForPill(value) !== null
 }
 
-function toFileRef(val: string): { filePath: string; fileName: string; slug?: string } {
-  const { filePath, fileName, slug } = parseSourceRef(val)
-  return { filePath, fileName, slug }
+function toFileRef(val: string): {
+  filePath: string
+  fileName: string
+  slug?: string
+  unit?: KnowledgeUnit
+  subunits?: string[]
+} {
+  const parsed = parseForPill(val)
+  if (!parsed) return { filePath: '', fileName: '' }
+  return {
+    filePath: parsed.filePath,
+    fileName: parsed.fileName,
+    slug: parsed.slug,
+    unit: parsed.unit,
+    subunits: parsed.subunits,
+  }
 }
 
 function displayValue(value: unknown): string {
@@ -31,7 +43,11 @@ function displayValue(value: unknown): string {
 
 <template>
   <div class="fallback-widget">
-    <FileRefPill v-if="isSourceRef(modelValue)" kind="source" v-bind="toFileRef(String(modelValue))" />
+    <FileRefPill
+      v-if="isSourceRef(modelValue)"
+      kind="source"
+      v-bind="toFileRef(String(modelValue))"
+    />
     <span v-else class="fallback-widget__value">{{ displayValue(modelValue) }}</span>
     <span class="fallback-widget__badge">{{ widgetType }}</span>
   </div>

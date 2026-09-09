@@ -1,7 +1,7 @@
 ---
 name: nn-innfo
-version: "V_0-3-0"
-last_updated: 2026-09-07
+version: "V_0-4-0"
+last_updated: 2026-09-08
 metadata:
   source_type: "original"
   mcp: "innfo-mcp"
@@ -12,7 +12,7 @@ bundled_templates:
 description: |
   Domain skill for creating, editing, validating, scaffolding, or discussing iNNfo models, templates, specializations, samples, or specification files. Includes the conversational Model Creation Wizard and Architecture Coach. Triggers: innfo, iNNfo, /nn-innfo, model, template, *_NN.md, procedures_V_0-1-0_NN.md.
   This includes but is not limited to:
-  - Creating a new model step-by-step using templates (Business, Procedures, Organization, Blank)
+  - Creating a new model step-by-step using templates (Business, Procedures, Organization, Metrics, Blank)
   - Creating or editing any file matching *_NN.md
   - Authoring or modifying business models, procedure models, or any model following an iNNfo template
   - Creating, editing, or modifying templates or specializations under docs/templates/
@@ -30,14 +30,14 @@ description: |
    - Upon session exit or wizard completion:
      - Discard trivial sessions (<2 turns, 0 workspace mutations).
      - For non-trivial sessions, present 3 suggested titles (`[1] (Recommended)`), finalize frontmatter (`status: completed`), and rename to `conversations/YYYY-MM-DD_<slug>.md`.
-     - Prompt for promotion to `sources/conversations/` (`[full]`, `[none]` — the raw transcript is always registered in `conversations/`; `_source.md` promotion is optional) for ingestion into the workspace knowledge graph and model citations (`sources:: [conversations/<file>.md#<anchor>]`).
+     - Prompt for promotion to `sources/conversations/` (`[full]`, `[none]` — the raw transcript is always registered in `conversations/`; `_source.md` promotion is optional) for ingestion into the workspace knowledge graph and model citations (`sources:: [conversations/<file>.md@<unit>]`).
 
 ---
 
 ## Activation Contract
 
 Activates when the user invokes `/nn-innfo`, mentions domain keywords `innfo`, `iNNfo`, `model`, `template`, references files matching `*_NN.md` or `procedures_V_0-1-0_NN.md`, or explicitly asks to:
-- Create a new model step-by-step using templates (Business, Procedures, Organization, Blank).
+- Create a new model step-by-step using templates (Business, Procedures, Organization, Metrics, Blank).
 - Create or edit any file matching `*_NN.md`.
 - Author or modify business models, procedure models, or any model following an iNNfo template.
 - Create, edit, or modify templates or specializations under `docs/templates/`.
@@ -89,7 +89,7 @@ Before executing options **[b]**, **[c]**, **[d]**, or **[x]**, the agent MUST e
 If the user wants to create a model but is unsure which template fits best:
 
 1. Ask 2-3 brief diagnostic questions:
-   - Is the goal to structure a business model / value proposition, a step-by-step operational process, or an organizational / team structure?
+   - Is the goal to structure a business model / value proposition, a step-by-step operational process, an organizational / team structure, or a quantified metrics / projections model?
    - Do you have source documents in `sources/nn/` to extract information from, or are we starting from scratch?
 2. Recommend the optimal template with a 1-sentence technical justification and mark option `[a]` with `(Recommended)`.
 
@@ -107,11 +107,12 @@ Creating **any** model — with a canonical template, custom template, or withou
 - **[a] (Recommended)** Business Model 🏢
 - **[b]** Procedures Model 📋
 - **[c]** Organization Model 👥
-- **[d]** Blank / 100% custom design from scratch
+- **[d]** Metrics Model 📊
+- **[e]** Blank / 100% custom design from scratch
 - **[x]** Cancel
 *(Notice: You can select one option or a combination (e.g. A and B))*.
 
-**A2a. If a canonical template was selected ([a]/[b]/[c]):**
+**A2a. If a canonical template was selected ([a]/[b]/[c]/[d]):**
 Resolve the template with `innfo-mcp_get_template` and display an informative summary of the Concepts, Fields, Matrices, and Markers it already defines. Then offer:
 - **[a] (Recommended)** Use template as-is, without modifications
 - **[b]** Customize it (create specialization — see §9)
@@ -119,7 +120,7 @@ Resolve the template with `innfo-mcp_get_template` and display an informative su
 
 > ⚠️ If the user chooses to customize, warn explicitly: **modifying a canonical template is not recommended unless the reason is very clear** — modifying it unnecessarily reduces compatibility with the rest of the iNNfo ecosystem which assumes that template unchanged.
 
-**A2b. If [d] Blank was selected, or the user confirmed customization in A2a [b]:**
+**A2b. If [e] Blank was selected, or the user confirmed customization in A2a [b]:**
 Design from scratch, in this order, consulting `innfo-mcp_get_spec` for the exact grammar of each primitive (never invent it):
 
 1. **Concepts**: which Concepts the template will have (the root categories of the model).
@@ -278,7 +279,8 @@ Stable reference URLs (the version lives in the file name — `main` is already 
    - Simple relative paths: `client_interview_transcript.md#feedback` resolves canonically to `sources/nn/client_interview_transcript.md`.
    - Subfolders: `interviews/interview_transcript.md#overview` resolves to `sources/nn/interviews/interview_transcript.md`.
    - The explicit `sources/nn/` prefix is still tolerated for backward compatibility.
-   - **A Model is a first-class Source.** `models/<path>.md#<heading-slug>` is a valid citation target with the identical `<path>.md#<slug>` syntax as a Source — the parser (`parseSourceRef`) and validator already resolve it. Citing a Model element chains provenance: `artifact → models/x.md#element-a → sources/nn/1.md#section`. Model paths are always explicit (`models/…`); only unqualified paths default to `sources/nn/`.
+    - **A Model is a first-class Source.** `models/<path>.md@<unit>` is a valid citation target with the identical `path@unit` syntax as a Source — the parser (`parseKnowledgeUnitRef`) and validator already resolve it. Citing a Model element chains provenance: `artifact → models/x.md@## Concept: Element → sources/nn/1.md@## Section`. Model paths are always explicit (`models/…`); only unqualified paths default to `sources/nn/`.
+    - **Curated CSVs are citable.** `sources/nn/<file>.csv@<row-id>` addresses the row whose first-column value equals `<row-id>` (e.g. `metricas_q3.csv@104`); append `&<column>` for one cell (`metricas_q3.csv@104&mrr_usd`). Raw uploads under `sources/original/` are never citable.
    - **Heading-level convention (authoring rule).** So model-heading slugs are stable and meaningful: `# NN <Concept>` (H1 = Concept), `## NN <Concept>: <Element>` (H2 = Element), and `###`+ only inside an element's description/prose — never as standalone structural blocks. The slug algorithm is level-agnostic; this is discipline, not validation.
    - Global PIDs use schema identifiers: `doi:10.1145/3290605.3300233`.
 3. **Staging Isolation (`sources/staging/`):** The `sources/staging/` folder is a transient extraction buffer (OCR, Whisper, etc.) and is **NEVER a valid citation target**. Models only cite normalized sources under `sources/nn/`.
@@ -287,24 +289,28 @@ Stable reference URLs (the version lives in the file name — `main` is already 
    sources:: <ref>
    sources:: [<ref>, <ref>, ...]
 
-   <ref>  ::= <relative-path>.md( #<heading-slug> )?
-   ```
-   - Anchors must be GitHub **heading-slugs** (e.g. `#executive-summary`, `#q3-metrics`).
-   - Numeric line ranges (`#L1-L10`) are **strictly forbidden** because they are fragile under reformatting.
-   - Every anchor must resolve to a real heading in the cited document.
-5. **`sources::` is ALWAYS a bracketed list `[...]`, even for a single source.** The L1 spec requires `sources:: [sources/nn/<filename>#<heading-slug>, ...]` — it MUST always be formatted as a list enclosed in brackets `[...]`, even when referencing a single source document. There is no scalar syntax and no bracket omission for a single value (see `iNNfo/specs/iNNfo_V_0-2-0_NN.md`). In `type:: reference` fields, the WikiLink syntax `[[...]]` is separately mandatory (see §8d and Core Rule 12):
+    <ref>  ::= <relative-path>@<unit>( &<subunit> )*
+    <unit> ::= <level><slug>          (Markdown: `@## Section`, header level preserved)
+             | <row-id>               (CSV: `@104`, explicit first-column value)
+    <subunit> ::= <field-name> | <column-name>   (names only, never values)
+    ```
+    - Markdown units keep their header level (`@#`, `@##`, `@###`) and slugify GitHub-style, except the `Concept: Element` boundary which stays visible as `--` (e.g. `@## NN Person: Dr. Egon Spengler` → slug `nn-person--dr-egon-spengler`).
+    - Numeric line ranges (`#L1-L10`) and legacy `#slug` fragments are **deprecated** (the latter still validates with a warning during transition) — ranges are fragile under reformatting, bare slugs are level-blind.
+    - Every unit must resolve in the cited document; queries (`?filter=…`) are NEVER valid inside `sources::` — they belong to retrieval tools, not provenance.
+5. **`sources::` is ALWAYS a bracketed list `[...]`, even for a single source.** The L1 spec requires `sources:: [sources/nn/<filename>@<unit>, ...]` — it MUST always be formatted as a list enclosed in brackets `[...]`, even when referencing a single source document. There is no scalar syntax and no bracket omission for a single value (see `iNNfo/specs/iNNfo_V_0-2-0_NN.md`). In `type:: reference` fields, the WikiLink syntax `[[...]]` is separately mandatory (see §8d and Core Rule 12):
    ```markdown
    ## NN Stakeholders: Enterprise Customer
-   sources:: [sources/nn/client_interview_transcript.md#key-feedback, sources/nn/notes_source.md#key-points]
+    sources:: [sources/nn/client_interview_transcript.md@## Key Feedback, sources/nn/notes_source.md@## Key Points]
    relationship_model:: B2B Long-term
 
    ## NN Stakeholders: Pilot Customer
-   sources:: [sources/nn/notes_source.md#key-points]
+    sources:: [sources/nn/notes_source.md@## Key Points]
    relationship_model:: Trial
    ```
 6. **Granularity: element-level, not individual-claim level.** `sources::` covers the set of sources backing the WHOLE element (all its fields together) — there is no per-field or per-sentence citation mechanism inside a domain model. If different fields of the same element come from different sources, list the union of them all in the element's single `sources::`. Claim-level citation (via standard `[^1]` footnotes or bibliographic formats) is a separate mechanism, used only inside artifacts generated from the model (see `nn-trannsform/SKILL.md` §4) — never inside a `*_NN.md`.
 7. **No duplicates or empty references.** Do not repeat the same `<ref>` twice in one list. If there is no real source to cite, omit the whole field — do not write `sources:: []` or a placeholder value.
 8. **Conversational instruction:** If the project has files under `sources/nn/`, the agent should suggest adding `sources::`. If it is a greenfield / creative model from scratch, the agent does NOT request or require citations. In both cases the skill's general rule applies: never invent a `<ref>` or content that is not verifiably present in the cited file.
+9. **Retrieval queries (`?`) are never provenance.** A `path?filter=value` expression (e.g. `metricas_q3.csv?segmento=Enterprise`) selects a SET of units for retrieval tools — it MUST NEVER appear inside `sources::` (the validator rejects it: run the query, then cite the resulting `@` pointers). `@` addresses one unit; `?` selects many; the two never mix in one string.
 
 ---
 
@@ -323,7 +329,7 @@ Stable reference URLs (the version lives in the file name — `main` is already 
 
 #### Agent Modification provenance (MANDATORY on every successful `apply_change`)
 
-Whenever an `innfo-mcp_apply_change` call returns `success: true` **and** a `modification` field, you MUST paste that block **verbatim** into your reply, under its own `## NN Agent Modification: <slug>` heading exactly as returned (the block already opens with that heading — reproduce it, do not re-slug it). This makes the synthetic reasoning addressable by heading-slug, so a promoted `_source.md` transcript can be cited via `sources:: [conversations/<session-slug>_source.md#<slug>]`.
+Whenever an `innfo-mcp_apply_change` call returns `success: true` **and** a `modification` field, you MUST paste that block **verbatim** into your reply, under its own `## NN Agent Modification: <slug>` heading exactly as returned (the block already opens with that heading — reproduce it, do not re-slug it). This makes the synthetic reasoning addressable by heading-slug, so a promoted `_source.md` transcript can be cited via `sources:: [conversations/<session-slug>_source.md@<unit>]`.
 
 - The returned block carries `rationale:: _`. Replace `_` with your concrete reasoning for the change **at paste time** — the pasted block MUST NOT keep an unfilled `rationale:: _`.
 - Pass `rationale` (and, when the user explicitly authorized the change, `approved_by: "user"`) in the `apply_change` `args` so the block is populated at the source: `args: { …, rationale: "why", approved_by: "user" }`.
@@ -603,7 +609,7 @@ The master.html procedure (formerly "showroom") is recognizable: if the user ask
 
 1. **Strict V_0-2-0 Meta-template:** Level 2 templates define primitives in the body (`# NN Concept Definition`). NEVER put `concepts: [...]` or `fields: [...]` in the Level 2 YAML frontmatter.
 2. **Unified NN syntax:** Use `# NN <Concept>`, `## NN <Concept>: <Element>`, `key:: value`. Do not use obsolete `_NN` bullets or ````yaml` code blocks.
-3. **Optional, up-to-date Source Citations:** `sources::` is optional; it resolves canonically against the Source Collection (`sources/nn/`) without a redundant prefix, anchors to heading-slugs (`#<slug>`), and takes bracketed lists `[a, b]` for multiple sources (no `src-xxx` IDs, no `#L...` line ranges, no `sources/staging/` buffer).
+3. **Optional, up-to-date Source Citations:** `sources::` is optional; it resolves canonically against the Source Collection (`sources/nn/`) without a redundant prefix, anchors to knowledge units (`@<unit>`), and takes bracketed lists `[a, b]` for multiple sources (no `src-xxx` IDs, no `#L...` line ranges, no `sources/staging/` buffer).
 4. **Zero Unilateral Mutation:** Never rename or move files without explicit confirmation.
 5. **Recommended Option First:** Always prefix option `[a]` with `(Recommended)`.
 6. **Multi-Selection Notice:** Include `"You can select one option or a combination (e.g. A and B)"` when applicable.

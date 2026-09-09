@@ -8,7 +8,12 @@ import type {
 } from '../types'
 import { extractTemplateSchema } from '../schema'
 import { normalizeSeparators } from '../parser/slug'
-import { parseSourceRef, splitSourceFieldValue, type SourceRef } from '../sourceRef'
+import {
+  parseKnowledgeUnitRef,
+  parseSourceRef,
+  splitSourceFieldValue,
+  type SourceRef,
+} from '../sourceRef'
 import type { ParseContext } from './types'
 import { addFieldAndMentionEdges } from './relationships'
 
@@ -28,7 +33,7 @@ export function attachSourceCitations(node: ModelNode): void {
     if (!SOURCE_FIELD_NAMES.has(fieldName.toLowerCase())) continue
     const refs: SourceRef[] = []
     for (const raw of splitSourceFieldValue(fv.value)) {
-      const ref = parseSourceRef(raw)
+      const ref = parseKnowledgeUnitRef(raw) ?? parseSourceRef(raw)
       if (ref) refs.push(ref)
     }
     if (refs.length > 0) {

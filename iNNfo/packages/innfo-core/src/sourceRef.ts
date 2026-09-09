@@ -13,6 +13,25 @@
  * `src-NNN` wrapper are rejected.
  */
 
+import { nfc, stripCombiningMarks } from './parser/slug'
+
+export interface HeaderUnit {
+  /** Markdown heading unit: level is structural rank, slug is the canonical form. */
+  kind: 'header'
+  level: 1 | 2 | 3 | 4 | 5 | 6
+  /** Raw heading text (markers stripped, not slugified). */
+  text: string
+  slug: string
+}
+
+export interface RowUnit {
+  /** CSV row unit: explicit key-column value (never positional). Case-sensitive. */
+  kind: 'row'
+  id: string
+}
+
+export type KnowledgeUnit = HeaderUnit | RowUnit
+
 export interface SourceRef {
   /** Workspace-relative path, always normalised to start with `sources/nn/` (or `models/`). */
   filePath: string
@@ -24,6 +43,10 @@ export interface SourceRef {
   kind: 'source' | 'model'
   /** Original string as authored. */
   raw: string
+  /** Knowledge-unit address when parsed from `@` grammar (set by parseKnowledgeUnitRef only). */
+  unit?: KnowledgeUnit
+  /** Subunit names (field / column / matrix row+column labels). Names only, never values. */
+  subunits?: string[]
 }
 
 const SLUG = '[a-z0-9]+(?:-[a-z0-9]+)*'
@@ -131,10 +154,23 @@ export function splitSourceFieldValue(value: unknown): string[] {
  * trailing `-`.
  */
 export function slugifyHeading(text: string): string {
-  const stripped = text.replace(/^\s*#{1,6}\s*/, '').replace(/[*_`]/g, '')
-  const transliterated = stripped.normalize('NFD').replace(/[̀-ͯ]/g, '')
+  const stripped = nfc(text)
+    .replace(/^\s*#{1,6}\s*/, '')
+    .replace(/[*_`]/g, '')
+  // Split on exactly-two hyphens bounded by letters/numbers (the `--` boundary
+  // marker), slugify each part with full collapsing, rejoin. Runs of 3+ and
+  // whitespace-born doubles still collapse; split+join makes canonical slugs
+  // (which contain `--`) stable under re-parsing by construction.
+  return stripped
+    .split(/(?<=[\p{L}\p{N}])--(?=[\p{L}\p{N}])/gu)
+    .map(slugifyFlat)
+    .join('--')
+}
+
+function slugifyFlat(part: string): string {
+  const transliterated = stripCombiningMarks(part)
   const dashed = transliterated.trim().toLowerCase().replace(/\s+/g, '-')
-  const filtered = dashed.replace(/[^a-z0-9-]/g, '')
+  const filtered = dashed.replace(/[^\p{L}\p{N}-]+/gu, '')
   return filtered.replace(/-+/g, '-').replace(/^-+|-+$/g, '')
 }
 
@@ -145,6 +181,10 @@ export interface HeadingInfo {
   text: string
   /** Disambiguated slug for this heading (matches GitHub's anchor behavior). */
   slug: string
+  /** Concept (left of `:`) for `## NN Concept: Element` headers, when present. */
+  concept?: string
+  /** Element (right of `:`) for `## NN Concept: Element` headers, when present. */
+  element?: string
   /** 0-based line index of the heading line within the document. */
   line: number
 }
@@ -164,12 +204,12 @@ export function extractHeadings(markdown: string): HeadingInfo[] {
 
     const level = match[1].length
     const text = match[2].replace(/[*_`]/g, '').trim()
-    const baseSlug = slugifyHeading(text)
+    const { concept, element, slug: baseSlug } = headingSlugParts(text)
     const occurrence = seen.get(baseSlug) ?? 0
     seen.set(baseSlug, occurrence + 1)
     const slug = occurrence === 0 ? baseSlug : `${baseSlug}-${occurrence}`
 
-    headings.push({ level, text, slug, line: i })
+    headings.push({ level, text, slug, line: i, concept, element })
   }
 
   return headings
@@ -210,4 +250,193 @@ export function resolveHeadingSection(
   }
 
   return { heading, startLine: heading.line, endLine }
+}
+
+/**
+ * Split a heading into Concept/Element at the FIRST `:` (the structural boundary in
+ * `## NN Concept: Element`). Inner colons belong to the element text and slugify away.
+ * Returns the canonical slug, keeping the boundary visible as `--`.
+ */
+function headingSlugParts(text: string): { slug: string; concept?: string; element?: string } {
+  const clean = text.trim()
+  const boundary = clean.indexOf(':')
+  if (boundary > 0) {
+    const concept = clean.slice(0, boundary).trim()
+    const element = clean.slice(boundary + 1).trim()
+    if (concept && element) {
+      return {
+        slug: `${slugifyHeading(concept)}--${slugifyHeading(element)}`,
+        concept,
+        element,
+      }
+    }
+  }
+  return { slug: slugifyHeading(clean) }
+}
+
+/**
+ * Slugify one Markdown heading into a knowledge-unit slug, preserving the header level
+ * and the Concept/Element boundary (`--`). The level is captured by the caller BEFORE
+ * slugification — it is structural metadata, not slug text.
+ */
+export function slugifyUnitHeading(
+  level: number,
+  text: string,
+): { level: 1 | 2 | 3 | 4 | 5 | 6; text: string; slug: string } {
+  const clean = text.trim()
+  const { slug } = headingSlugParts(clean)
+  const clamped = Math.min(6, Math.max(1, Math.floor(level) || 1)) as 1 | 2 | 3 | 4 | 5 | 6
+  return { level: clamped, text: clean, slug }
+}
+
+/**
+ * Normalise a field/column/filter name: trim, lowercase, inner whitespace to `_`,
+ * preserving `_` and non-Latin letters. Gentler than heading slugs — data-world names
+ * (`mrr_usd`, `relationship_model`) must survive verbatim modulo case.
+ */
+export function normalizeName(name: string): string {
+  return nfc(name)
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '_')
+    .replace(/[^a-z0-9_\-\p{L}\p{N}]+/gu, '')
+}
+
+export function resolveUnitPath(
+  rawPath: string,
+): { filePath: string; kind: 'source' | 'model' } | null {
+  const trimmed = rawPath.trim()
+  if (!trimmed || /^https?:\/\//i.test(trimmed)) return null
+  const segments = trimmed.split(/[/\\]/)
+  if (segments.some((s) => s === '..')) return null
+  const forward = segments.join('/')
+  if (forward.startsWith('sources/original/')) return null
+  const isMd = /\.md$/i.test(forward)
+  const isCsv = /\.csv$/i.test(forward)
+  if (!isMd && !isCsv) return null
+  if (forward.startsWith('sources/nn/')) return { filePath: forward, kind: 'source' }
+  if (/^models\//i.test(forward)) {
+    if (!isMd) return null
+    return { filePath: forward, kind: 'model' }
+  }
+  if (/^[a-zA-Z]:[/\\]/.test(trimmed) || trimmed.startsWith('/')) return null
+  return { filePath: `sources/nn/${forward}`, kind: 'source' }
+}
+
+function decodeSegment(segment: string): string | null {
+  try {
+    return decodeURIComponent(segment)
+  } catch {
+    return null
+  }
+}
+
+const HEADER_UNIT = /^(#{1,6})\s*(.+?)\s*$/
+
+/**
+ * Parse a knowledge-unit pointer: `path "@" unit *("&" subunit)`.
+ * The file extension disambiguates the unit grammar (`.md` → `#`-level header,
+ * `.csv` → explicit key-column value). Subunits are names only, never values.
+ * Returns `null` for anything that is not a pointer (bare paths, legacy `#slug`
+ * fragments, URLs, absolute paths, line anchors).
+ */
+export function parseKnowledgeUnitRef(input: string): SourceRef | null {
+  if (!input || typeof input !== 'string') return null
+  const clean = input.trim()
+  const at = clean.indexOf('@')
+  if (at === -1) return null
+  const resolved = resolveUnitPath(clean.slice(0, at))
+  if (!resolved) return null
+  const rawSegments = clean.slice(at + 1).split('&')
+  if (rawSegments.some((s) => s.trim() === '')) return null
+  const decoded: string[] = []
+  for (const part of rawSegments) {
+    const text = decodeSegment(part.trim())
+    if (text === null || text.trim() === '') return null
+    decoded.push(text.trim())
+  }
+  const [unitRaw, ...subunits] = decoded
+  const isCsv = /\.csv$/i.test(resolved.filePath)
+  if (isCsv) {
+    if (resolved.kind === 'model') return null
+    return {
+      filePath: resolved.filePath,
+      fileName: basename(resolved.filePath),
+      kind: 'source',
+      unit: { kind: 'row', id: unitRaw },
+      subunits,
+      raw: clean,
+    }
+  }
+  const heading = unitRaw.match(HEADER_UNIT)
+  if (!heading) return null
+  const headed = slugifyUnitHeading(heading[1].length, heading[2])
+  if (!headed.text || !headed.slug) return null
+  const unit: HeaderUnit = {
+    kind: 'header',
+    level: headed.level,
+    text: headed.text,
+    slug: headed.slug,
+  }
+  return {
+    filePath: resolved.filePath,
+    fileName: basename(resolved.filePath),
+    slug: headed.slug,
+    kind: resolved.kind,
+    unit,
+    subunits,
+    raw: clean,
+  }
+}
+
+/**
+ * Serialize a parsed pointer back to its canonical `@` form: header level + slug,
+ * verbatim row-id, subunits normalized. `parse(serialize(parse(x)))` is stable.
+ */
+export function serializeKnowledgeUnitRef(
+  filePath: string,
+  unit: KnowledgeUnit,
+  subunits: string[] = [],
+): string {
+  const head = unit.kind === 'header' ? `${'#'.repeat(unit.level)}${unit.slug}` : unit.id
+  const tail = subunits.map((s) => normalizeName(s)).filter((s) => s !== '')
+  return tail.length > 0 ? `${filePath}@${head}&${tail.join('&')}` : `${filePath}@${head}`
+}
+
+/**
+ * Split a `key::` field value into matchable items. Bracketed lists split on
+ * commas respecting double quotes (`[a, "b,c"]` → two items, quotes stripped);
+ * anything else is a single scalar (commas preserved). Contrast
+ * `splitSourceFieldValue`, which splits naively and stays untouched for
+ * provenance parsing.
+ */
+export function splitBracketList(value: unknown): string[] {
+  if (value === undefined || value === null) return []
+  const s = String(value).trim()
+  if (s === '') return []
+  if (!(s.startsWith('[') && s.endsWith(']'))) return [s]
+  const inner = s.slice(1, -1)
+  const out: string[] = []
+  let cur = ''
+  let inQuotes = false
+  for (let i = 0; i < inner.length; i++) {
+    const ch = inner[i]
+    if (ch === '\\' && i + 1 < inner.length) {
+      cur += inner[i + 1]
+      i++
+      continue
+    }
+    if (ch === '"') {
+      inQuotes = !inQuotes
+      continue
+    }
+    if (ch === ',' && !inQuotes) {
+      out.push(cur.trim())
+      cur = ''
+      continue
+    }
+    cur += ch
+  }
+  out.push(cur.trim())
+  return out.filter((v) => v !== '')
 }

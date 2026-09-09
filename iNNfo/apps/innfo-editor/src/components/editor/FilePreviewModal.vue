@@ -32,10 +32,16 @@
                   {{ fileName }}
                 </h2>
                 <span
-                  v-if="slug"
+                  v-if="slug || unit"
                   class="text-xs font-mono px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300"
                 >
-                  {{ resolvedSection ? resolvedSection.heading.text : slug }}
+                  {{
+                    unit
+                      ? unitLabel(unit, subunits ?? [])
+                      : resolvedSection
+                        ? resolvedSection.heading.text
+                        : slug
+                  }}
                 </span>
               </div>
               <p
@@ -237,6 +243,48 @@
             v-html="formattedHtml"
           ></div>
 
+          <!-- Preview Mode for CSV -->
+          <div
+            v-else-if="viewMode === 'preview' && isCsv"
+            class="overflow-auto rounded-xl border border-slate-200 dark:border-slate-800"
+          >
+            <table class="w-full text-xs font-mono border-collapse">
+              <thead class="sticky top-0 bg-slate-100 dark:bg-slate-800">
+                <tr>
+                  <th
+                    v-for="(h, cIdx) in csvHeaders"
+                    :key="cIdx"
+                    class="px-3 py-2 text-left font-bold border-b border-slate-200 dark:border-slate-700"
+                  >
+                    {{ h }}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="(row, rIdx) in csvRows"
+                  :key="rIdx"
+                  :data-csv-row="rIdx"
+                  :class="isCsvRowTargeted(rIdx) ? `unit-targeted font-bold ${meta.highlight}` : ''"
+                >
+                  <td
+                    v-for="(cell, cIdx) in row"
+                    :key="cIdx"
+                    :data-csv-cell="`${rIdx}:${cIdx}`"
+                    class="px-3 py-1.5 border-b border-slate-100 dark:border-slate-800"
+                    :class="
+                      isCsvCellTargeted(rIdx, cIdx)
+                        ? `unit-targeted font-bold ${meta.highlight}`
+                        : ''
+                    "
+                  >
+                    {{ cell }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
           <!-- Lineage Mode (Mermaid) -->
           <div
             v-else-if="viewMode === 'lineage'"
@@ -260,7 +308,11 @@
               :key="idx"
               :id="`line-${idx + 1}`"
               class="flex items-start gap-4 px-2 py-0.5 rounded transition-colors"
-              :class="isLineTargeted(idx + 1) ? `font-bold border-l-4 pl-3 ${meta.highlight}` : ''"
+              :class="
+                isLineTargeted(idx + 1)
+                  ? `unit-targeted font-bold border-l-4 pl-3 ${meta.highlight}`
+                  : ''
+              "
             >
               <span
                 class="w-8 shrink-0 text-right select-none text-slate-600 text-[11px] font-mono"
@@ -312,7 +364,14 @@ import {
 import { useWorkspaceStore } from '../../stores/workspaceStore'
 import { useModelStore } from '../../stores/modelStore'
 import MermaidWidget from '../../shared/widgets/MermaidWidget.vue'
-import { resolveHeadingSection } from '../../utils/sourceRef'
+import {
+  resolveHeadingSection,
+  parseCsvTable,
+  normalizeName,
+  unitLabel,
+  type KnowledgeUnit,
+} from '../../utils/sourceRef'
+import { useUnitResolution } from '../../composables/useUnitResolution'
 import { parseFrontmatter } from '@cognnitive/innfo-core'
 import { renderMarkdown } from '../../utils/markdown'
 
@@ -322,6 +381,8 @@ const props = defineProps<{
   filePath: string
   fileName: string
   slug?: string
+  unit?: KnowledgeUnit
+  subunits?: string[]
 }>()
 
 const emit = defineEmits<{
@@ -467,10 +528,14 @@ const lineageMermaidCode = computed(() => {
 
   // Styling
   chartLines.push('  classDef focal fill:#eef2ff,stroke:#6366f1,stroke-width:2px,font-weight:bold;')
-  chartLines.push('  classDef upstream fill:#f8fafc,stroke:#94a3b8,stroke-width:1px,stroke-dasharray: 4 4;')
+  chartLines.push(
+    '  classDef upstream fill:#f8fafc,stroke:#94a3b8,stroke-width:1px,stroke-dasharray: 4 4;',
+  )
   chartLines.push('  classDef modelNode fill:#f0fdf4,stroke:#22c55e,stroke-width:1.5px;')
   chartLines.push('  classDef relNode fill:#fdf4ff,stroke:#d946ef,stroke-width:1px;')
-  chartLines.push('  classDef emptyNode fill:#f1f5f9,stroke:#cbd5e1,stroke-width:1px,stroke-dasharray: 3 3;')
+  chartLines.push(
+    '  classDef emptyNode fill:#f1f5f9,stroke:#cbd5e1,stroke-width:1px,stroke-dasharray: 3 3;',
+  )
 
   return chartLines.join('\n')
 })
@@ -494,8 +559,58 @@ const resolvedSection = computed(() => {
   return resolveHeadingSection(rawContent.value, props.slug)
 })
 
+const { resolveTarget, resolvedRowIndex, scrollToResolved } = useUnitResolution()
+
+const isCsv = computed(() => extension.value === 'csv')
+
+const resolvedUnit = computed(() => {
+  if (!props.unit || !rawContent.value) return null
+  return resolveTarget(
+    rawContent.value,
+    props.filePath,
+    props.fileName,
+    props.unit,
+    props.subunits ?? [],
+  )
+})
+
+const unitSection = computed(() => {
+  if (!props.unit || props.unit.kind !== 'header' || !rawContent.value) return null
+  return resolveHeadingSection(rawContent.value, props.unit.slug)
+})
+
+const csvTable = computed(() => {
+  if (!isCsv.value || !rawContent.value) return null
+  try {
+    return parseCsvTable(rawContent.value)
+  } catch {
+    return null
+  }
+})
+const csvHeaders = computed(() => csvTable.value?.headers ?? [])
+const csvRows = computed(() => csvTable.value?.rows ?? [])
+
+function isCsvRowTargeted(rowIdx: number): boolean {
+  const idx = resolvedRowIndex(resolvedUnit.value)
+  return idx !== null && idx === rowIdx
+}
+
+function isCsvCellTargeted(rowIdx: number, colIdx: number): boolean {
+  const u = resolvedUnit.value
+  if (!u || u.kind !== 'cell') return false
+  const header = csvHeaders.value[colIdx]
+  if (header === undefined) return false
+  return u.row === rowIdx && normalizeName(u.column) === normalizeName(header)
+}
+
 function isLineTargeted(lineNum: number): boolean {
-  const section = resolvedSection.value
+  const u = resolvedUnit.value
+  if (u?.kind === 'field') {
+    // lineNum is 1-based; resolved lines are 0-based.
+    return u.lines.includes(lineNum - 1)
+  }
+  // Matrix cells have no single line: fall back to the section context.
+  const section = u?.kind === 'cell' ? unitSection.value : resolvedSection.value
   if (!section) return false
   // lineNum is 1-based; section.startLine/endLine are 0-based (endLine exclusive).
   return lineNum >= section.startLine + 1 && lineNum <= section.endLine
@@ -592,7 +707,17 @@ async function loadFileContent(): Promise<void> {
       }
     }
 
-    if (props.slug) {
+    if (props.unit) {
+      const resolved = resolveTarget(
+        textContent,
+        props.filePath,
+        props.fileName,
+        props.unit,
+        props.subunits ?? [],
+      )
+      await nextTick()
+      scrollToResolved(resolved)
+    } else if (props.slug) {
       const section = resolveHeadingSection(textContent, props.slug)
       if (section) {
         await nextTick()
@@ -640,8 +765,10 @@ watch(
   () => props.isOpen,
   (val) => {
     if (val) {
-      if (props.slug) {
-        viewMode.value = 'code'
+      if (props.slug || props.unit) {
+        // Slugs and field pointers need code lines for highlight; CSV units
+        // render their table in the preview slot.
+        viewMode.value = isCsv.value ? 'preview' : 'code'
       } else {
         viewMode.value = isMarkdown.value || isImage.value || isPdf.value ? 'preview' : 'code'
       }

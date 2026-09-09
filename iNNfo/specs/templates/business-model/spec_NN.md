@@ -5,7 +5,7 @@ level: 2
 parent_spec:
   name: "iNNfo_V_0-2-1"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-2-1_NN.md"
-template_version: "V_0-2-0"
+template_version: "V_0-2-1"
 title: "Business Model Template"
 includes:
   - name: "organization"
@@ -79,7 +79,6 @@ relationship_types:
 * [[Operations]]
   * [[Activities]]
   * [[Resources]]
-  * [[Metrics]]
 * [[Finance]]
   * [[Revenue]]
   * [[Costs]]
@@ -397,12 +396,6 @@ type:: weight
 color:: blue
 weight:: 30
 
-## NN Concept Definition: Metrics
-icon:: gauge
-type:: weight
-color:: blue
-weight:: 50
-
 ## NN Concept Definition: Finance
 icon:: banknote
 type:: category
@@ -644,13 +637,6 @@ values:: [Max, Very High, High, Slightly High, Neutral, Slightly Low, Low, Very 
 widget:: set
 description:: Scores how effective each Channel is at delivering each Message (channel strategy).
 
-## NN Matrix Definition: Metrics-Organizational goals Matrix
-source:: Metrics
-target:: Organizational goals
-values:: [Max, Very High, High, Slightly High, Neutral, Slightly Low, Low, Very Low, Min]
-widget:: set
-description:: Scores how directly each Metric tracks each Organizational goal.
-
 ## NN Matrix Definition: Features-Milestone Matrix
 source:: Features
 target:: Milestones
@@ -698,15 +684,15 @@ their skills) comes from the `organization` template, and project planning
 template. This template `includes` both, so their concepts, fields, markers, and
 matrices resolve as part of its effective schema without being duplicated. The
 strategic-review layer (assumptions, risks, SWOT, coherence, experiments) lives in
-the separate `analysis` template; the `business_V_0-2-0` umbrella `includes` this
+the separate `analysis` template; the `business` umbrella `includes` this
 template and `analysis` together.
 
 ## Objectives
 
 1. Provide the descriptive concept set covering market, value, solutions, marketing, team narrative, objectives, operations, finance, and legal.
-2. Enable relationship mapping between concepts via evaluable matrices (Problems↔Value propositions, Metrics↔Organizational goals, etc.).
+2. Enable relationship mapping between concepts via evaluable matrices (Problems↔Value propositions, etc.).
 3. Reuse `organization` and `projects` through `includes` rather than redeclaring human-structure and project-planning concepts.
-4. Compose cleanly with `analysis` under the `business_V_0-2-0` umbrella by declaring the shared five-marker set identically.
+4. Compose cleanly with `analysis` under the `business` umbrella by declaring the shared five-marker set identically.
 
 ## Specification
 
@@ -727,7 +713,7 @@ Locally declared concepts, by category:
 | **Solutions** | Products and services, Components, Features, Roadmap, Offerings | Offerings |
 | **Marketing** | Branding, Media plan, Communication, Pitch, Web, Storytelling, Presentations | Go-to-market |
 | **Team & idea** | Team, Business idea, Inspiration, Opportunity, Challenges, Business objectives, Mission, Vision, Organizational values, Organizational goals, Goals | Narrative & direction |
-| **Operations** | Activities, Resources, Metrics | Execution |
+| **Operations** | Activities, Resources | Execution |
 | **Finance** | Revenue, Costs, Unit economics, Funding sources, Shareholders, Projections | Economics |
 | **Legal** | Legal issues, Contracts | Compliance |
 | **Cross-cutting** | Unfair advantage, Procedure, Misc | — |
@@ -768,7 +754,6 @@ The template declares the following evaluable matrices:
 | Problems-Value propositions | Problems → Value propositions | Solution fit |
 | Value propositions-Messages | Value propositions → Messages | Message alignment |
 | Messages-Channels | Messages → Channels | Channel strategy |
-| Metrics-Organizational goals | Metrics → Organizational goals | Goal tracking |
 | Features-Milestone | Features → Milestone | Release planning (targets `Milestone` from `projects`) |
 | Organizational values-Organizational goals | Organizational values → Organizational goals | Values alignment |
 | Activities-Resources | Activities → Resources | Resource dependency |
@@ -807,7 +792,7 @@ Solutions → Products and services → Components, Features, Roadmap ...
 Team (text narrative)
 Business idea → Inspiration, Opportunity
 Business objectives → Mission, Vision, Organizational values, Organizational goals
-Operations → Activities, Resources, Metrics
+Operations → Activities, Resources
 Finance → Revenue, Costs, Unit economics, Funding sources ...
 Legal → Legal issues, Contracts
 Organization → Roles, Functions, Position, Person, Skills          (via includes: organization)
@@ -2913,51 +2898,6 @@ Comparing the competencies the model requires against those the team holds today
 
 ---
 
-## Metrics
-
-### Summary
-Metrics are quantifiable measures used to evaluate the performance and effectiveness of a business model.
-
-### Description
-Metrics, in the context of business design, is a set of quantifiable measures that are used to assess the performance and effectiveness of a business model. These metrics serve as a tool for businesses to track their progress towards achieving their strategic objectives, and to identify areas where improvements can be made.
-
-The Metric List begins with the identification of key performance indicators (KPIs). These are the critical measures that reflect the success or failure of a business model. KPIs can be financial, such as revenue or profit margins, or non-financial, such as customer satisfaction or employee turnover rates.
-
-Once the KPIs have been identified, the next step is to establish benchmarks or targets for each metric. These benchmarks serve as a standard against which the actual performance of the business can be compared. They can be based on industry standards, historical performance, or strategic objectives.
-
-The Metric List also includes a system for tracking and reporting on these metrics. This could involve the use of dashboards, reports, or other data visualization tools that allow businesses to monitor their performance in real-time. This system should be designed to provide clear, concise, and actionable information to decision-makers.
-
-Finally, the Metric List includes a process for reviewing and updating the metrics. This is because the relevance and usefulness of metrics can change over time due to factors such as changes in the business environment, strategic shifts, or advancements in technology.
-
-An example of a Metric List in business design could be a retail company that uses metrics such as sales revenue, customer footfall, average transaction value, and customer satisfaction scores to evaluate the performance of its business model. The company would set targets for each of these metrics, track their performance using a dashboard, and regularly review and update the metrics to ensure they remain relevant and useful.
-
-In conclusion, a Metric List is a vital tool in business design that enables businesses to measure the performance and effectiveness of their business model. It provides a structured approach to tracking progress, identifying areas for improvement, and driving business growth and success.
-
-### Methodologies
-**Balanced Scorecard**
-The Balanced Scorecard is a strategic planning and management system that organizations use to align business activities with the vision and strategy of the organization, improve internal and external communications, and monitor organization performance against strategic goals. It includes financial metrics, customer metrics, process metrics, and people metrics.
-**Key Performance Indicators (KPIs)**
-KPIs are a type of performance measurement that evaluate the success of an organization or of a particular activity in which it engages. They are tied to target values and are used to measure the effectiveness of a business model in achieving key business objectives.
-**OKRs (Objectives and Key Results)**
-OKRs are a goal-setting framework for defining and tracking objectives and their outcomes. The main goal of OKRs is to connect company, team, and personal objectives to measurable results, making all employees work together in one unified direction.
-**Dashboarding**
-Dashboards are a visual display of the most important information needed to achieve one or more objectives, consolidated and arranged on a single screen so the information can be monitored at a glance. They can be used to track the metrics and other data relevant to a business, department, or specific process.
-**Benchmarking**
-Benchmarking is the process of comparing your business processes and performance metrics to industry bests or best practices from other industries. It can be applied against any product, process, function or approach in business.
-**Net Promoter Score (NPS)**
-NPS is a customer loyalty metric that measures customers’ willingness to not only return for another purchase or service but also make a recommendation to their family, friends or colleagues. It is a powerful and straightforward metric that can be used to measure a customer's perception of a brand.
-**Customer Lifetime Value (CLV)**
-CLV is a prediction of the net profit attributed to the entire future relationship with a customer. This metric helps businesses understand a reasonable cost per acquisition.
-
-### Prompts
-`List key performance indicators (KPIs) aligned with strategic objectives.`
-`For each metric, define data sources, calculation methods, and reporting frequency.`
-`Benchmark metrics against industry standards and competitors.`
-`Propose dashboards or tools for real-time monitoring.`
-`Set threshold values that trigger alerts or corrective actions.`
-
----
-
 ## Finance
 
 ### Summary
@@ -3685,20 +3625,6 @@ Patent databases like those maintained by the U.S. Patent and Trademark Office o
 *No prompts provided.*
 
 ## Messages-Channels Matrix
-
-### Summary
-*No summary provided.*
-
-### Description
-*No description provided.*
-
-### Methodologies
-*No methodologies provided.*
-
-### Prompts
-*No prompts provided.*
-
-## Metrics-Organizational goals Matrix
 
 ### Summary
 *No summary provided.*

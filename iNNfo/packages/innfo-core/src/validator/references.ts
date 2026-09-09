@@ -7,6 +7,8 @@ export interface ReferenceDiagnostic {
   path: string
   message: string
   severity: 'error' | 'warning'
+  /** Stable machine-readable code (e.g. `KU_UNKNOWN_ROW`). Tests assert codes, not prose. */
+  code?: string
 }
 
 /**
@@ -138,9 +140,7 @@ export function validateElementFieldReferences(
 
     for (const el of elements) {
       for (const fieldName of Object.keys(el.fields)) {
-        const fieldDef = fieldDefs.find(
-          (f) => f.name.toLowerCase() === fieldName.toLowerCase(),
-        )
+        const fieldDef = fieldDefs.find((f) => f.name.toLowerCase() === fieldName.toLowerCase())
 
         const isRef =
           (fieldDef && (fieldDef.type === 'reference' || fieldDef.type === 'model')) ||

@@ -78,27 +78,79 @@ function sanitizeMarkdownBody(content) {
 }
 
 /**
- * GitHub-compatible heading slug algorithm. Mirrors, exactly,
+ * Knowledge-unit heading slug algorithm. Mirrors, exactly,
  * `@cognnitive/innfo-core`'s `slugifyHeading` (`src/sourceRef.ts`); the two are
  * kept in lock-step and `test/unit/test-slug-parity.js` guards it:
+ *   - NFC-normalise input first (single form regardless of OS/editor).
  *   - Strip markdown emphasis/formatting characters (*, _, `, leading #).
- *   - NFD-normalise and drop combining marks (Visión -> vision, Café -> cafe).
- *   - Trim and lowercase.
- *   - Replace runs of whitespace with a single '-'.
- *   - Remove any remaining character that isn't [a-z0-9-].
- *   - Collapse multiple consecutive '-' into one; trim leading/trailing '-'.
+ *   - Split on letter-bounded exactly-two hyphens (the `--` boundary marker),
+ *     slugify each part, rejoin with `--` (canonical slugs round-trip).
+ *   - Per part: NFD-normalise and drop combining marks (Visión -> vision,
+ *     Café -> cafe); keep non-Latin letters/numbers (さくら stays).
+ *   - Trim and lowercase; runs of whitespace become one '-'.
+ *   - Remove any remaining character that isn't a letter, number, or '-'.
+ *   - Collapse runs of 3+ '-' into one; trim leading/trailing '-'.
  */
-function slugifyHeading(text) {
-  let s = String(text == null ? '' : text);
-  s = s.replace(/^\s*#{1,6}\s*/, ''); // leading heading hashes
-  s = s.replace(/[*_`]/g, ''); // emphasis/formatting characters
-  s = s.normalize('NFD').replace(/[̀-ͯ]/g, ''); // transliterate accents (Visión -> vision)
+function slugifyFlat(part) {
+  let s = String(part == null ? '' : part);
+  s = s.normalize('NFD').replace(/[̀-ͯ]/g, '');
   s = s.trim().toLowerCase();
   s = s.replace(/\s+/g, '-');
-  s = s.replace(/[^a-z0-9-]/g, '');
+  s = s.replace(/[^\p{L}\p{N}-]+/gu, '');
   s = s.replace(/-+/g, '-');
   s = s.replace(/^-+|-+$/g, '');
   return s;
+}
+
+function slugifyHeading(text) {
+  let s = String(text == null ? '' : text);
+  s = s.normalize('NFC');
+  s = s.replace(/^\s*#{1,6}\s*/, ''); // leading heading hashes
+  s = s.replace(/[*_`]/g, ''); // emphasis/formatting characters
+  return s
+    .split(/(?<=[\p{L}\p{N}])--(?=[\p{L}\p{N}])/gu)
+    .map(slugifyFlat)
+    .join('--');
+}
+
+/**
+ * Concept/Element split at the first ':' (mirrors core `headingSlugParts`).
+ * Returns { slug, concept?, element? }.
+ */
+function headingSlugParts(text) {
+  const clean = String(text == null ? '' : text).trim();
+  const boundary = clean.indexOf(':');
+  if (boundary > 0) {
+    const concept = clean.slice(0, boundary).trim();
+    const element = clean.slice(boundary + 1).trim();
+    if (concept && element) {
+      return { slug: `${slugifyHeading(concept)}--${slugifyHeading(element)}`, concept, element };
+    }
+  }
+  return { slug: slugifyHeading(clean) };
+}
+
+/**
+ * Field/column/filter name normalization (mirrors core `normalizeName`):
+ * trim, lowercase, inner whitespace to '_', preserving '_' and non-Latin.
+ */
+function normalizeName(name) {
+  return String(name == null ? '' : name)
+    .normalize('NFC')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '_')
+    .replace(/[^a-z0-9_\-\p{L}\p{N}]+/gu, '');
+}
+
+/**
+ * Unit slug with level + Concept/Element boundary (mirrors core `slugifyUnitHeading`).
+ */
+function slugifyUnitHeading(level, text) {
+  const clean = String(text == null ? '' : text).trim();
+  const { slug } = headingSlugParts(clean);
+  const clamped = Math.min(6, Math.max(1, Math.floor(level) || 1));
+  return { level: clamped, text: clean, slug };
 }
 
 /**
@@ -142,14 +194,15 @@ function extractHeadingSlugs(content) {
     if (!headingMatch) continue;
 
     const rawText = headingMatch[2].trim();
-    let slug = slugifyHeading(rawText);
+    const parts = headingSlugParts(rawText);
+    let slug = parts.slug;
     if (!slug) slug = 'section';
 
     const seen = counts.get(slug) || 0;
     counts.set(slug, seen + 1);
     const finalSlug = seen === 0 ? slug : `${slug}-${seen}`;
 
-    headings.push({ level: headingMatch[1].length, text: rawText, slug: finalSlug, lineIndex: i });
+    headings.push({ level: headingMatch[1].length, text: rawText, slug: finalSlug, lineIndex: i, concept: parts.concept, element: parts.element });
   }
 
   return headings;
@@ -187,6 +240,9 @@ function ensureHeading(body, baseName) {
 module.exports = {
   sanitizeMarkdownBody,
   slugifyHeading,
+  slugifyUnitHeading,
+  normalizeName,
+  headingSlugParts,
   extractHeadingSlugs,
   hasHeading,
   humanizeBaseName,

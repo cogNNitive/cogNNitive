@@ -18,6 +18,101 @@ normalized_at: "2026-01-01T00:00:00Z"
 Normalized content line 1.
 `
 
+const unitMd = [
+  '# Overview', // 0
+  '', // 1
+  '## NN Person: Dr. Egon Spengler', // 2
+  'compensation:: Equal partner share.', // 3
+  '', // 4
+].join('\n')
+
+const unitCsv = ['cliente_id,mrr_usd', '101,45000', '104,78000', ''].join('\n')
+
+describe('FilePreviewModal knowledge units', () => {
+  let unitWrapper: ReturnType<typeof mount> | null = null
+
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  afterEach(() => {
+    unitWrapper?.unmount()
+    unitWrapper = null
+  })
+
+  async function mountWithContent(tree: FakeTree, props: Record<string, unknown>): Promise<void> {
+    const handle = buildFakeTree('workspace', tree)
+    const workspaceStore = useWorkspaceStore()
+    workspaceStore.handle = handle
+    unitWrapper = mount(FilePreviewModal, {
+      props: { isOpen: true, kind: 'source', ...props },
+      attachTo: document.body,
+    })
+  }
+
+  it('highlights a Markdown field line for a field pointer', async () => {
+    await mountWithContent(
+      { sources: { nn: { 'g.md': unitMd } } },
+      {
+        filePath: 'sources/nn/g.md',
+        fileName: 'g.md',
+        unit: {
+          kind: 'header',
+          level: 2,
+          text: 'NN Person: Dr. Egon Spengler',
+          slug: 'nn-person--dr-egon-spengler',
+        },
+        subunits: ['compensation'],
+      },
+    )
+    await vi.waitFor(() => {
+      const hits = [...document.body.querySelectorAll('.unit-targeted')]
+      if (!hits.some((el) => el.textContent?.includes('compensation::'))) {
+        throw new Error('field line not highlighted yet')
+      }
+    })
+  })
+
+  it('renders a CSV table with the targeted row highlighted', async () => {
+    await mountWithContent(
+      { sources: { nn: { 'm.csv': unitCsv } } },
+      {
+        filePath: 'sources/nn/m.csv',
+        fileName: 'm.csv',
+        unit: { kind: 'row', id: '104' },
+        subunits: [],
+      },
+    )
+    await vi.waitFor(() => {
+      const row = document.body.querySelector('[data-csv-row="1"]')
+      if (!row || !row.textContent?.includes('78000')) {
+        throw new Error('csv row not rendered yet')
+      }
+    })
+    const row = document.body.querySelector('[data-csv-row="1"]')!
+    expect(row.className).toContain('unit-targeted')
+  })
+
+  it('highlights the targeted CSV cell', async () => {
+    await mountWithContent(
+      { sources: { nn: { 'm.csv': unitCsv } } },
+      {
+        filePath: 'sources/nn/m.csv',
+        fileName: 'm.csv',
+        unit: { kind: 'row', id: '104' },
+        subunits: ['mrr_usd'],
+      },
+    )
+    await vi.waitFor(() => {
+      const cell = document.body.querySelector('[data-csv-cell="1:1"]')
+      if (!cell) throw new Error('csv cell not rendered yet')
+    })
+    const cell = document.body.querySelector('[data-csv-cell="1:1"]')!
+    expect(cell.textContent).toContain('78000')
+    expect(cell.className).toContain('unit-targeted')
+  })
+})
+
 describe('FilePreviewModal', () => {
   let wrapper: ReturnType<typeof mount> | null = null
 
@@ -130,7 +225,9 @@ describe('FilePreviewModal', () => {
       type: 'Section',
       fields: {},
       markers: {},
-      relationships: [{ targetId: 'CaseStudy/Conclusion', label: 'references', origin: 'metamodel' }],
+      relationships: [
+        { targetId: 'CaseStudy/Conclusion', label: 'references', origin: 'metamodel' },
+      ],
       rawSections: {},
       source: { path: 'models/casestudy_V_0-1-0_business_NN.md' },
       sources: [

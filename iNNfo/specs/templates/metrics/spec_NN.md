@@ -112,7 +112,7 @@ description:: Numeric value of the input variable (rate, occupancy %, fee, growt
 ## NN Field Definition: variableType
 concept:: Variables
 type:: select
-options:: [rate, occupancy, fee, growth, cost, days, months]
+options:: [rate, occupancy, fee, growth, cost, days, months, count]
 description:: Classification of the variable for use in the projection sheet.
 
 ## NN Field Definition: variableUnit

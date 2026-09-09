@@ -72,6 +72,21 @@ export type {
 
 export { parseSourceRef, slugifyHeading, extractHeadings, resolveHeadingSection } from './sourceRef'
 export type { SourceRef, HeadingInfo, ResolvedHeadingSection } from './sourceRef'
+export {
+  parseKnowledgeUnitRef,
+  serializeKnowledgeUnitRef,
+  slugifyUnitHeading,
+  normalizeName,
+} from './sourceRef'
+export type { KnowledgeUnit, HeaderUnit, RowUnit } from './sourceRef'
+export { parseCsvTable } from './csvTable'
+export type { CsvTable, CsvTableOptions } from './csvTable'
+export { resolveUnit } from './unitResolve'
+export type { ResolvedUnit } from './unitResolve'
+export { parseKnowledgeQuery, runQuery } from './queryUnits'
+export type { KnowledgeQuery, KnowledgeQueryFilter, FileSnapshot, QueryResult } from './queryUnits'
+export { scanSections } from './querySections'
+export type { SectionFields } from './querySections'
 
 export * from './identity'
 export * from './metamodel'

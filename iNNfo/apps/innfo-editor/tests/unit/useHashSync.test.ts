@@ -53,7 +53,10 @@ function mockWindowApi() {
   const removeEventListener = vi.fn()
 
   Object.defineProperty(window, 'addEventListener', { value: addEventListener, writable: true })
-  Object.defineProperty(window, 'removeEventListener', { value: removeEventListener, writable: true })
+  Object.defineProperty(window, 'removeEventListener', {
+    value: removeEventListener,
+    writable: true,
+  })
 
   const getHash = () => currentHash
   const getPushCount = () => pushCount
@@ -64,7 +67,15 @@ function mockWindowApi() {
     for (const cb of listeners) cb()
   }
 
-  return { getHash, getPushCount, getEntries, setHash }
+  return {
+    getHash,
+    getPushCount,
+    getEntries,
+    setHash,
+    setSearch: (s: string) => {
+      location.search = s
+    },
+  }
 }
 
 function makeNode(id: string, overrides: Record<string, unknown> = {}) {
@@ -121,10 +132,9 @@ describe('useHashSync (E7: no duplicate pushState)', () => {
     const nodeB = makeNode('doc/Beta', { kind: 'element', type: 'Task', parentId: 'doc' })
     const nodeC = makeNode('doc/Gamma', { kind: 'element', type: 'Task', parentId: 'doc' })
 
-    modelStore.setGraph(
-      { doc, 'doc/Alpha': nodeA, 'doc/Beta': nodeB, 'doc/Gamma': nodeC } as any,
-      ['doc'],
-    )
+    modelStore.setGraph({ doc, 'doc/Alpha': nodeA, 'doc/Beta': nodeB, 'doc/Gamma': nodeC } as any, [
+      'doc',
+    ])
 
     wrapper = mountHost()
     await tick()
@@ -176,5 +186,24 @@ describe('useHashSync (E7: no duplicate pushState)', () => {
 
     expect(api.getPushCount()).toBe(1)
     expect(api.getHash()).toContain('Alpha')
+  })
+
+  it('preserves an existing ?ku= query param across store-driven hash pushes', async () => {
+    const modelStore = useModelStore()
+    const uiStore = useUiStore()
+
+    const doc = makeNode('doc', { kind: 'root', type: 'document' })
+    const nodeA = makeNode('doc/Alpha', { kind: 'element', type: 'Task', parentId: 'doc' })
+    modelStore.setGraph({ doc, 'doc/Alpha': nodeA } as any, ['doc'])
+
+    api.setSearch('?ku=models%2Fx.md')
+    wrapper = mountHost()
+    await tick()
+
+    uiStore.selectNode('doc/Alpha')
+    await tick()
+
+    expect(api.getHash()).toContain('Alpha')
+    expect(window.location.search).toBe('?ku=models%2Fx.md')
   })
 })

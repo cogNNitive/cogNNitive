@@ -15,6 +15,8 @@
       :file-path="filePath"
       :file-name="fileName"
       :slug="slug"
+      :unit="unit"
+      :subunits="subunits"
       @close="showModal = false"
     />
   </span>
@@ -24,17 +26,26 @@
 import { ref, computed } from 'vue'
 import Pill from './Pill.vue'
 import FilePreviewModal from './FilePreviewModal.vue'
+import { unitLabel, type KnowledgeUnit } from '../../utils/sourceRef'
 
 const props = defineProps<{
   kind: 'artifact' | 'source' | 'model'
   filePath: string
   fileName: string
   slug?: string
+  unit?: KnowledgeUnit
+  subunits?: string[]
 }>()
 
 const showModal = ref(false)
 
-const displayName = computed(() => (props.slug ? `${props.fileName} #${props.slug}` : props.fileName))
+const displayName = computed(() =>
+  props.unit
+    ? `${props.fileName}@${unitLabel(props.unit, props.subunits ?? [])}`
+    : props.slug
+      ? `${props.fileName} #${props.slug}`
+      : props.fileName,
+)
 
 const colorForKind = computed(() => {
   if (props.kind === 'artifact') return 'black'

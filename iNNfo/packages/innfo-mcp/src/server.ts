@@ -13,6 +13,7 @@
  *   get_template  — retrieve a template (business/procedures/kb)
  *   validate_model— run innfo-core validator against a template
  *   apply_change  — apply an intent operation and re-validate
+ *   query_units   — run a content query returning knowledge-unit URIs
  *
  * Every tool result is a versioned machine envelope: the payload keys are
  * preserved at the top level alongside a `version` field of the form
@@ -47,6 +48,7 @@ import {
   initModel,
 } from './tools/mutate.js'
 import { checkWorkspace } from './tools/check-workspace.js'
+import { queryUnits } from './tools/query-units.js'
 import { findRepoRoot } from './tools/repo-root.js'
 import { syncWorkspaceManifest } from './tools/workspace-sync.js'
 import { envelope, envelopeList } from '@cognnitive/innfo-core'
@@ -332,6 +334,25 @@ const toolDefinitions: Tool[] = [
     },
   },
   {
+    name: 'query_units',
+    description:
+      'Run a read-only content query over one workspace file and return matching knowledge-unit URIs: "path?filter=value[&filter...][&projection]". Filters use exact match (trimmed, case-insensitive); a trailing bare segment projects one column/field over the matches. Capped at 100 results with truncated=true. Never writes files.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: {
+          type: 'string',
+          description: 'Query string, e.g. "sources/nn/m.csv?segmento=Enterprise&mrr_usd"',
+        },
+        root: {
+          type: 'string',
+          description: 'Optional workspace root directory override (default: server root)',
+        },
+      },
+      required: ['query'],
+    },
+  },
+  {
     name: 'list_template_procedures',
     description:
       'List all procedures defined in a template and its transitively included templates up to depth 10',
@@ -396,6 +417,8 @@ async function dispatchTool(name: string, args: Record<string, unknown>): Promis
         return await handleSyncWorkspaceManifest(args)
       case 'check_workspace':
         return await handleCheckWorkspace(args)
+      case 'query_units':
+        return await handleQueryUnits(args)
       case 'list_template_procedures':
         return await handleListTemplateProcedures(args)
       case 'list_template_skills':
@@ -537,6 +560,12 @@ async function handleCheckWorkspace(args: Record<string, unknown>): Promise<Call
     offline: Boolean(args.offline),
   })
   return textResult(JSON.stringify(envelope('innfo-check-workspace', report), null, 2))
+}
+
+async function handleQueryUnits(args: Record<string, unknown>): Promise<CallToolResult> {
+  const root = (args.root as string) || ROOT_DIR
+  const result = await queryUnits(root, String(args.query ?? ''))
+  return textResult(JSON.stringify(envelope('innfo-query-units', result), null, 2))
 }
 
 async function handleListTemplateProcedures(

@@ -1,6 +1,6 @@
 {
   "name": "@cognnitive/innfo-editor",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -19,7 +19,7 @@
     "test:e2e:debug": "playwright test --debug"
   },
   "dependencies": {
-    "@cognnitive/innfo-core": "^0.4.0",
+    "@cognnitive/innfo-core": "^0.5.0",
     "@tanstack/vue-virtual": "^3.13.31",
     "@tiptap/starter-kit": "^3.29.2",
     "@tiptap/vue-3": "^3.29.2",

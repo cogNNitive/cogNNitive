@@ -76,12 +76,13 @@ describe('parent spec resolution failure diagnostics', () => {
     const modelContent = tpl('business/samples/Ghostbusters_V_0-2-1_business_NN.md')
     const templateContent = tpl('business/spec_NN.md')
 
-    // Canonical `business` composes its schema from the four templates it includes.
+    // Canonical `business` composes its schema from the five templates it includes.
     const includes: Record<string, string> = {
       'business-model': tpl('business-model/spec_NN.md'),
       analysis: tpl('analysis/spec_NN.md'),
       organization: tpl('organization/spec_NN.md'),
       projects: tpl('projects/spec_NN.md'),
+      metrics: tpl('metrics/spec_NN.md'),
     }
     const resolveInclude = (ref: { name: string }): string | null =>
       includes[ref.name.toLowerCase()] ?? null

@@ -27,11 +27,11 @@
     },
     "business": {
       "name": "business",
-      "adopted": "V_0-2-3",
+      "adopted": "V_0-2-4",
       "versions": [
         {
-          "template_version": "V_0-2-3",
-          "spec_version": "V_0-2-3",
+          "template_version": "V_0-2-4",
+          "spec_version": "V_0-2-4",
           "title": "Business Template",
           "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business/spec_NN.md"
         }
@@ -39,10 +39,10 @@
     },
     "business-model": {
       "name": "business-model",
-      "adopted": "V_0-2-0",
+      "adopted": "V_0-2-1",
       "versions": [
         {
-          "template_version": "V_0-2-0",
+          "template_version": "V_0-2-1",
           "spec_version": "V_0-2-1",
           "title": "Business Model Template",
           "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business-model/spec_NN.md"

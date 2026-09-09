@@ -42,9 +42,9 @@ describe('Metaplantilla Nivel 1 (specs/)', () => {
 
   it('business template is a composition shell over the decomposed templates', () => {
     // Canonical `business` (V_0-2-x) is no longer a monolith: it `includes`
-    // business-model + analysis + organization + projects and keeps only a few
-    // demonstrative body elements of its own. Full composed-schema coverage
-    // lives in business-decomposition-v2.test.ts.
+    // business-model + analysis + organization + projects + metrics and keeps
+    // only a few demonstrative body elements of its own. Full composed-schema
+    // coverage lives in business-decomposition-v2.test.ts.
     const content = readSpec('templates/business/spec_NN.md')
     const fm = parseFrontmatter(content)!
     expect(fm.level).toBe(2)
@@ -55,6 +55,7 @@ describe('Metaplantilla Nivel 1 (specs/)', () => {
     expect((fm.includes ?? []).map((i: { name: string }) => i.name).sort()).toEqual([
       'analysis',
       'business-model',
+      'metrics',
       'organization',
       'projects',
     ])

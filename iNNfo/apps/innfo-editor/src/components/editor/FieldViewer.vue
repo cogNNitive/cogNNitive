@@ -70,7 +70,9 @@
               :kind="entry.refNode.conceptBinding?.name ? 'instance' : 'concept'"
               :concept-type="entry.refNode.type"
               :block-id="entry.refNode.id"
-              :description="entry.refNode.rawContent || entry.refNode.rawSections?.description || ''"
+              :description="
+                entry.refNode.rawContent || entry.refNode.rawSections?.description || ''
+              "
               :fields="entry.refNode.fields"
               :concept-fields="getConceptFields(entry.refNode.type)"
               interactive
@@ -99,7 +101,11 @@
           <template v-else-if="Array.isArray(entry.displayValue)">
             <div class="flex flex-wrap gap-1.5 items-center">
               <template v-for="(item, idx) in entry.displayValue" :key="idx">
-                <FileRefPill v-if="isSourceRef(item)" kind="source" v-bind="toFileRef(String(item))" />
+                <FileRefPill
+                  v-if="isSourceRef(item)"
+                  kind="source"
+                  v-bind="toFileRef(String(item))"
+                />
                 <span v-else>{{ item }}</span>
               </template>
             </div>
@@ -134,13 +140,16 @@ import { useUiStore } from '../../stores/uiStore'
 import type { ModelNode } from '../../model/types'
 import Pill from './Pill.vue'
 import FileRefPill from './FileRefPill.vue'
-import { parseSourceRef } from '../../utils/sourceRef'
+import { parseForPill, type KnowledgeUnit } from '../../utils/sourceRef'
 import { isImageFieldValue } from '../../utils/imageDetection'
 import { findMatchingModelNode } from '../../utils/modelMatching'
 
 function handleModelPillClick(val: unknown): void {
   if (!val || typeof val !== 'string') return
-  const clean = val.replace(/^\[\[\s*/, '').replace(/\s*\]\]$/, '').trim()
+  const clean = val
+    .replace(/^\[\[\s*/, '')
+    .replace(/\s*\]\]$/, '')
+    .trim()
   const matchingNode = findMatchingModelNode(modelStore.nodes, clean)
   const resolvedId = matchingNode ? matchingNode.id : clean
   uiStore.focusModel(resolvedId)
@@ -150,17 +159,32 @@ function handleModelPillClick(val: unknown): void {
 
 function cleanReferenceName(val: unknown): string {
   if (typeof val !== 'string') return ''
-  return val.replace(/^\[\[\s*/, '').replace(/\s*\]\]$/, '').trim()
+  return val
+    .replace(/^\[\[\s*/, '')
+    .replace(/\s*\]\]$/, '')
+    .trim()
 }
 
 function isSourceRef(val: unknown): boolean {
-  if (typeof val !== 'string') return false
-  return parseSourceRef(val).isValid
+  return parseForPill(val) !== null
 }
 
-function toFileRef(val: string): { filePath: string; fileName: string; slug?: string } {
-  const { filePath, fileName, slug } = parseSourceRef(val)
-  return { filePath, fileName, slug }
+function toFileRef(val: string): {
+  filePath: string
+  fileName: string
+  slug?: string
+  unit?: KnowledgeUnit
+  subunits?: string[]
+} {
+  const parsed = parseForPill(val)
+  if (!parsed) return { filePath: '', fileName: '' }
+  return {
+    filePath: parsed.filePath,
+    fileName: parsed.fileName,
+    slug: parsed.slug,
+    unit: parsed.unit,
+    subunits: parsed.subunits,
+  }
 }
 
 const MARKDOWN_FIELD_TYPES = new Set(['markdown_inline', 'markdown_file', 'markdown'])
@@ -221,9 +245,10 @@ const getConceptFields = (typeName: string | undefined) => {
   const rootId = modelStore.rootIds[0]
   if (!rootId) return []
   const root = modelStore.getNode(rootId)
-  return root?.localMetamodel?.concepts?.find(
-    (c) => c.name.toLowerCase() === typeName.toLowerCase(),
-  )?.fields ?? []
+  return (
+    root?.localMetamodel?.concepts?.find((c) => c.name.toLowerCase() === typeName.toLowerCase())
+      ?.fields ?? []
+  )
 }
 
 /**
@@ -240,7 +265,10 @@ const fieldEntries = computed<FieldEntry[]>(() => {
 
     let refNode = null
     if (def.type === 'reference' && hasValue && typeof rawValue === 'string') {
-      let name = rawValue.replace(/^\[\[\s*/, '').replace(/\s*\]\]$/, '').trim()
+      let name = rawValue
+        .replace(/^\[\[\s*/, '')
+        .replace(/\s*\]\]$/, '')
+        .trim()
       if (name.startsWith('[[') && name.endsWith(']]')) {
         name = name.slice(2, -2).trim()
       }
@@ -252,15 +280,19 @@ const fieldEntries = computed<FieldEntry[]>(() => {
         name = name.slice(closingBracket + 1).trim()
       }
 
-      refNode = Object.values(modelStore.nodes).find((n) => {
-        if (modelPrefix) {
-          const path = n.source?.path || ''
-          const modelFileName = path.split('/').pop()?.split('\\').pop() || ''
-          const modelBaseName = modelFileName.replace(/\.md$/i, '').replace(/_NN$/i, '').toLowerCase()
-          return n.name.toLowerCase() === name.toLowerCase() && modelBaseName === modelPrefix
-        }
-        return n.name.toLowerCase() === name.toLowerCase()
-      }) || null
+      refNode =
+        Object.values(modelStore.nodes).find((n) => {
+          if (modelPrefix) {
+            const path = n.source?.path || ''
+            const modelFileName = path.split('/').pop()?.split('\\').pop() || ''
+            const modelBaseName = modelFileName
+              .replace(/\.md$/i, '')
+              .replace(/_NN$/i, '')
+              .toLowerCase()
+            return n.name.toLowerCase() === name.toLowerCase() && modelBaseName === modelPrefix
+          }
+          return n.name.toLowerCase() === name.toLowerCase()
+        }) || null
     }
 
     return {
