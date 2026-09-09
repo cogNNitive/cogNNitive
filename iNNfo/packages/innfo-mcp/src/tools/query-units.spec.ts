@@ -53,4 +53,24 @@ describe('query_units', () => {
     expect(result.diagnostics[0].severity).toBe('error')
     expect(readFileSync(target, 'utf-8')).toBe(before)
   })
+
+  it('slice-only projection: max_values_chars caps projected values with truncated=true', async () => {
+    const full = await queryUnits(rootDir, 'sources/nn/small.csv?segmento=Enterprise&mrr_usd')
+    expect(full.values).toEqual(['45000'])
+    const capped = await queryUnits(rootDir, 'sources/nn/small.csv?segmento=Enterprise&mrr_usd', {
+      max_values_chars: 2,
+    })
+    expect(capped.values).toBeDefined()
+    const joined = (capped.values ?? []).join('\n')
+    expect(joined.length).toBeLessThanOrEqual(2)
+    expect(capped.truncated).toBe(true)
+  })
+
+  it('leaves small projections untouched when under max_values_chars', async () => {
+    const result = await queryUnits(rootDir, 'sources/nn/small.csv?segmento=Enterprise&mrr_usd', {
+      max_values_chars: 1000,
+    })
+    expect(result.values).toEqual(['45000'])
+    expect(result.truncated).toBe(false)
+  })
 })

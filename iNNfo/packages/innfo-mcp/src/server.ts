@@ -90,7 +90,8 @@ const toolDefinitions: Tool[] = [
   },
   {
     name: 'read_model',
-    description: "Parse and return an iNNfo model's full structure by its id",
+    description:
+      "Parse and return an iNNfo model's full structure by its id. For surgical work prefer bounded slices: pass concept (+ element) with max_lines (default 150); slices over the cap truncate with truncated=true unless override_reason records a manual override",
     inputSchema: {
       type: 'object',
       properties: {
@@ -101,6 +102,22 @@ const toolDefinitions: Tool[] = [
         root: {
           type: 'string',
           description: 'Optional models root directory override',
+        },
+        concept: {
+          type: 'string',
+          description: 'Optional concept slice (e.g. Models); returns only that concept',
+        },
+        element: {
+          type: 'string',
+          description: 'Optional element slice within the concept',
+        },
+        max_lines: {
+          type: 'number',
+          description: 'Line cap for the returned slice (default 150)',
+        },
+        override_reason: {
+          type: 'string',
+          description: 'Recorded reason to bypass the line cap for wide context',
         },
       },
       required: ['id'],
@@ -361,7 +378,7 @@ const toolDefinitions: Tool[] = [
   {
     name: 'query_units',
     description:
-      'Run a read-only content query over one workspace file and return matching knowledge-unit URIs: "path?filter=value[&filter...][&projection]". Filters use exact match (trimmed, case-insensitive); a trailing bare segment projects one column/field over the matches. Capped at 100 results with truncated=true. Never writes files.',
+      'Run a read-only content query over one workspace file and return matching knowledge-unit URIs: "path?filter=value[&filter...][&projection]". Filters use exact match (trimmed, case-insensitive); a trailing bare segment projects one column/field over the matches. Capped at 100 results with truncated=true. Pass max_values_chars to cap projected value characters for slice-only surgical reads. Never writes files.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -372,6 +389,10 @@ const toolDefinitions: Tool[] = [
         root: {
           type: 'string',
           description: 'Optional workspace root directory override (default: server root)',
+        },
+        max_values_chars: {
+          type: 'number',
+          description: 'Optional cap on total projected value characters',
         },
       },
       required: ['query'],
@@ -468,7 +489,12 @@ async function handleReadModel(args: Record<string, unknown>): Promise<CallToolR
   const id = args.id as string
   if (!id) return errorResult('Missing required argument: id')
   const root = (args.root as string) || ROOT_DIR
-  const model = await readModel(root, id)
+  const model = await readModel(root, id, {
+    concept: args.concept as string | undefined,
+    element: args.element as string | undefined,
+    max_lines: args.max_lines as number | undefined,
+    override_reason: args.override_reason as string | undefined,
+  })
   if (!model) return errorResult(`Model not found: ${id}`)
   return textResult(JSON.stringify(envelope('innfo-read-model', model), null, 2))
 }
@@ -605,7 +631,9 @@ async function handleCheckWorkspace(args: Record<string, unknown>): Promise<Call
 
 async function handleQueryUnits(args: Record<string, unknown>): Promise<CallToolResult> {
   const root = (args.root as string) || ROOT_DIR
-  const result = await queryUnits(root, String(args.query ?? ''))
+  const result = await queryUnits(root, String(args.query ?? ''), {
+    max_values_chars: args.max_values_chars as number | undefined,
+  })
   return textResult(JSON.stringify(envelope('innfo-query-units', result), null, 2))
 }
 
