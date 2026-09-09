@@ -175,7 +175,7 @@ channels:
         ref: skills-v1.4.0
       - key: templates
         repo: cogNNitive/cogNNitive
-        ref: templates-v0.5.0
+        ref: templates-v0.5.1
       - key: innfo-mcp
         repo: cogNNitive/cogNNitive
         ref: innfo-mcp-v0.5.0
