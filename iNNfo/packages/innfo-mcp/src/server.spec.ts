@@ -101,6 +101,7 @@ const MUTABLE_MODEL_CONTENT = [
 
 describe('innfo-mcp server (dispatch/handler layer, real MCP client/server round-trip)', () => {
   let client: Client
+  const origCache = process.env.INNFO_CACHE_DIR
 
   beforeAll(async () => {
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
@@ -113,6 +114,9 @@ describe('innfo-mcp server (dispatch/handler layer, real MCP client/server round
   })
 
   beforeEach(async () => {
+    // Hermetic temp cache: the OS temp dir is shared across test files/runs,
+    // so resolution here must never see entries fetched by other suites.
+    process.env.INNFO_CACHE_DIR = join(rootDir, 'isolated-cache')
     await rm(rootDir, { recursive: true, force: true })
     await mkdir(specsDir, { recursive: true })
     vi.restoreAllMocks()
@@ -122,6 +126,8 @@ describe('innfo-mcp server (dispatch/handler layer, real MCP client/server round
   })
 
   afterEach(async () => {
+    if (origCache !== undefined) process.env.INNFO_CACHE_DIR = origCache
+    else delete process.env.INNFO_CACHE_DIR
     await rm(rootDir, { recursive: true, force: true })
   })
 

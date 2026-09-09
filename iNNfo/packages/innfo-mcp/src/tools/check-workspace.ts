@@ -135,7 +135,8 @@ export async function resolveCatalog(
 
 /**
  * Self-healing resolve + hydrate for one model's parent template. Reads
- * through `resolveParentChainNode({ checkFreshness: false })`: a 4-tier local
+ * through `resolveParentChainNode({ checkFreshness: false, inPlace: true })`:
+ * a 4-tier local
  * hit is `resolved` (with tier), a network fetch + write-once hydration is
  * `hydrated`, and a `SpecResolutionError` is `unresolved` — never throws out
  * of the port. Merges the returned `SpecCache` into the shared context.
@@ -152,6 +153,7 @@ async function resolveTemplateForModel(
   try {
     const cache = await resolveParentChainNode(rootDir, model.parentUrl, model.parentName, {
       checkFreshness: false,
+      inPlace: true, // self-heal is an explicit in-tree write: hydrate beside the model
     })
     mergeCache(ctx.mergedCache, cache)
     const depth0 = cache.specs.get(model.parentName)
@@ -174,9 +176,16 @@ async function resolveTemplateForModel(
 }
 
 function toIntegrityDiagnostics(
-  diags: Array<{ path: string; message: string; severity: 'error' | 'warning'; code?: string }>,
+  diags: Array<{ path: string; message: string; severity: 'error' | 'warning' | 'info'; code?: string }>,
 ): IntegrityDiagnostic[] {
-  return diags.map((d) => ({ path: d.path, message: d.message, severity: d.severity, ...(d.code ? { code: d.code } : {}) }))
+  // The workspace report has no `info` bucket: non-blocking notices surface
+  // as warnings, keeping path/message/code intact.
+  return diags.map((d) => ({
+    path: d.path,
+    message: d.message,
+    severity: d.severity === 'info' ? 'warning' : d.severity,
+    ...(d.code ? { code: d.code } : {}),
+  }))
 }
 
 async function discoverModels(ctx: CheckContext): Promise<WorkspaceModelRef[]> {

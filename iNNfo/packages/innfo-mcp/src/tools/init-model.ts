@@ -3,6 +3,7 @@ import { basename, join } from 'node:path'
 import { resolveTemplateSchema, validateDocument } from '@cognnitive/innfo-core'
 import type { SpecDocument, ValidationError } from '@cognnitive/innfo-core'
 import { resolveTemplateWithCache, findModelFile, normalizeId } from './spec.js'
+import { normalizeVersion } from './resolver-node.js'
 
 
 /**
@@ -87,6 +88,10 @@ export async function initModel(
     title?: string
     model_version?: string
   },
+  opts?: {
+    cacheDir?: string
+    inPlace?: boolean
+  },
 ): Promise<{
   success: boolean
   filePath: string
@@ -132,7 +137,12 @@ export async function initModel(
   let resolveInclude: (ref: { name: string; url: string }) => string | null = () => null
   const templateErrors: string[] = []
   try {
-    const resolved = await resolveTemplateWithCache(rootDir, args.template_url, args.template_name)
+    const resolved = await resolveTemplateWithCache(
+      rootDir,
+      args.template_url,
+      args.template_name,
+      opts,
+    )
     template = resolved.template
     resolveInclude = resolved.resolveInclude
     if (resolved.template) {
@@ -167,13 +177,49 @@ export async function initModel(
     body = body ? notice + '\n\n' + body : notice
   }
 
-  const modelVersion = args.model_version || 'V_0-1-0'
+  // Version-aware frontmatter (model-scaffold-robustness): infer the version
+  // from the resolved parent template's own `spec_version`. An explicit
+  // `model_version` wins only when there is nothing to contradict it (parent
+  // unresolved, or exact match); when both exist and differ the scaffold
+  // refuses with VERSION_MISMATCH rather than emit a differing version.
+  const inferredVersion =
+    template?.frontmatter && typeof template.frontmatter.spec_version === 'string'
+      ? template.frontmatter.spec_version
+      : null
+  if (
+    args.model_version &&
+    inferredVersion &&
+    normalizeVersion(args.model_version) !== normalizeVersion(inferredVersion)
+  ) {
+    const message =
+      `[VERSION_MISMATCH] Explicit model_version "${args.model_version}" differs ` +
+      `from the resolved parent template spec_version "${inferredVersion}". ` +
+      `Omit model_version to inherit "${inferredVersion}".`
+    return {
+      success: false,
+      templateResolved,
+      scaffolded: false,
+      warnings,
+      filePath,
+      content: '',
+      validation: {
+        valid: false,
+        errors: [
+          { path: 'model_version', message, code: 'VERSION_MISMATCH', severity: 'error' as const },
+        ],
+        warnings: [],
+      },
+    }
+  }
+
+  const modelVersion = args.model_version || inferredVersion || 'V_0-1-0'
+  const specVersion = inferredVersion || 'V_0-2-1'
   const title = args.title || cleanId
 
   const esc = (s: string) => JSON.stringify(s)
   const frontmatter = [
     '---',
-    'spec_version: "V_0-2-1"',
+    `spec_version: ${esc(specVersion)}`,
     'spec_url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-2-1_NN.md"',
     'level: 3',
     'parent_spec:',

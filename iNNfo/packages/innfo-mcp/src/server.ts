@@ -121,6 +121,11 @@ const toolDefinitions: Tool[] = [
           type: 'string',
           description: 'Model id whose frontmatter parent_spec.url seeds resolution',
         },
+        in_place: {
+          type: 'boolean',
+          description:
+            'Write fetched templates inside the workspace tree (default false = OS temp cache, tree stays clean)',
+        },
       },
     },
   },
@@ -139,6 +144,11 @@ const toolDefinitions: Tool[] = [
         name: {
           type: 'string',
           description: 'Optional chain-start name; derived from the url when omitted',
+        },
+        in_place: {
+          type: 'boolean',
+          description:
+            'Write fetched templates inside the workspace tree (default false = OS temp cache, tree stays clean)',
         },
       },
     },
@@ -160,6 +170,16 @@ const toolDefinitions: Tool[] = [
           type: 'string',
           description:
             'Optional explicit template URL when the model has no resolvable parent_spec.url',
+        },
+        baseline_path: {
+          type: 'string',
+          description:
+            'Optional path to a versioned validation-baseline.json: only NEW errors surface, known errors are suppressed and counted with a backlog link',
+        },
+        in_place: {
+          type: 'boolean',
+          description:
+            'Write fetched templates inside the workspace tree (default false = OS temp cache, tree stays clean)',
         },
         workspace: {
           type: 'boolean',
@@ -256,7 +276,12 @@ const toolDefinitions: Tool[] = [
         model_version: {
           type: 'string',
           description:
-            'Initial version of the model (e.g. V_0-1-0, defaults to V_0-1-0). The model is scaffolded against the adopted L1 spec iNNfo_V_0-2-1.',
+            'Initial version of the model (e.g. V_0-1-0). When omitted it is inferred from the resolved parent template spec_version. When provided and different from the parent spec_version, the call fails with VERSION_MISMATCH. The model is scaffolded against the adopted L1 spec iNNfo_V_0-2-1.',
+        },
+        in_place: {
+          type: 'boolean',
+          description:
+            'Write fetched templates inside the workspace tree (default false = OS temp cache, tree stays clean)',
         },
         root: { type: 'string', description: 'Optional models root directory override' },
       },
@@ -452,7 +477,11 @@ async function handleGetSpec(args: Record<string, unknown>): Promise<CallToolRes
   const url = args.url as string | undefined
   const modelId = args.model_id as string | undefined
   if (!url && !modelId) return errorResult('Provide either url or model_id')
-  const result = await getSpec(ROOT_DIR, { url, modelId })
+  const result = await getSpec(
+    ROOT_DIR,
+    { url, modelId },
+    { inPlace: args.in_place as boolean | undefined },
+  )
   if (!result.spec) return errorResult('Spec could not be resolved from the provided url/model_id')
   return textResult(JSON.stringify(envelope('innfo-get-spec', result), null, 2))
 }
@@ -464,9 +493,13 @@ async function handleGetTemplate(args: Record<string, unknown>): Promise<CallToo
 
   let template = null
   if (url) {
-    template = await getTemplateFromUrl(ROOT_DIR, url, name ?? deriveNameFromUrl(url))
+    template = await getTemplateFromUrl(ROOT_DIR, url, name ?? deriveNameFromUrl(url), {
+      inPlace: args.in_place as boolean | undefined,
+    })
   } else if (modelId) {
-    template = await getTemplateFromModel(ROOT_DIR, modelId)
+    template = await getTemplateFromModel(ROOT_DIR, modelId, {
+      inPlace: args.in_place as boolean | undefined,
+    })
   } else {
     return errorResult('Provide either url or model_id')
   }
@@ -482,7 +515,10 @@ async function handleValidateModel(args: Record<string, unknown>): Promise<CallT
   const workspace = args.workspace as boolean | undefined
   if (!id && !content) return errorResult('Provide either id or content')
   const root = (args.root as string) || ROOT_DIR
-  const result = await validateModel(root, id, content, templateUrl, workspace)
+  const result = await validateModel(root, id, content, templateUrl, workspace, {
+    baselinePath: args.baseline_path as string | undefined,
+    inPlace: args.in_place as boolean | undefined,
+  })
   return textResult(JSON.stringify(envelope('innfo-validate-model', result), null, 2))
 }
 
@@ -525,7 +561,12 @@ async function handleInitModel(args: Record<string, unknown>): Promise<CallToolR
   if (!id || !template_url || !template_name) {
     return errorResult('Missing required arguments: id, template_url, template_name')
   }
-  const result = await initModel(root, id, { template_url, template_name, title, model_version })
+  const result = await initModel(
+    root,
+    id,
+    { template_url, template_name, title, model_version },
+    { inPlace: args.in_place as boolean | undefined },
+  )
   return textResult(JSON.stringify(envelope('innfo-init-model', result), null, 2))
 }
 

@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto'
 import { readdir, readFile, mkdir, writeFile, rename, rm } from 'node:fs/promises'
 import { join, basename, isAbsolute } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { homedir } from 'node:os'
+import { homedir, tmpdir } from 'node:os'
 import { parseFrontmatter, SpecResolutionError } from '@cognnitive/innfo-core'
 import type {
   SpecCache,
@@ -23,6 +23,29 @@ export type ResolverOptionsWithFreshness = ResolverOptions & {
   globalDir?: string
   skillsDir?: string
   checkFreshness?: boolean
+  /**
+   * Explicit cache directory for fetched specs/templates. Defaults to
+   * {@link defaultCacheDir} (OS temp dir). Reads check it after the
+   * workspace tree; fetch-and-save paths write to it unless `inPlace`.
+   */
+  cacheDir?: string
+  /**
+   * When true, fetched content is written inside `<rootDir>/specs` (legacy
+   * behavior). Default false — the workspace tree stays clean.
+   */
+  inPlace?: boolean
+}
+
+/**
+ * Default on-disk location for fetched specs/templates:
+ * `join(os.tmpdir(), 'innfo-specs')`. Resolver *writes* (never reads alone)
+ * go here by default so a default run creates no cache artifacts inside the
+ * workspace or repository tree. Restored in-tree only via `inPlace: true`.
+ * `INNFO_CACHE_DIR` overrides the location (test seam, mirroring
+ * `INNFO_GLOBAL_DIR` / `INNFO_SKILLS_DIR`).
+ */
+export function defaultCacheDir(): string {
+  return process.env.INNFO_CACHE_DIR ?? join(tmpdir(), 'innfo-specs')
 }
 
 export type ResolvedCache = SpecCache & { freshness?: Map<string, FreshnessResult> }
@@ -490,6 +513,17 @@ async function writeStagedTree(
 }
 
 /**
+ * Process-unique suffix for staging/temp paths. `Date.now()` alone collides
+ * when two workspaces resolve the same URL in the same millisecond — the
+ * second writer must get its own staging dir / temp file, never the first
+ * writer's path (concurrent-isolation scenario).
+ */
+let stagingCounter = 0
+function uniqueSuffix(): string {
+  return `${process.pid}-${Date.now()}-${stagingCounter++}`
+}
+
+/**
  * Write-once atomic package hydration.
  *
  * Creates a staging directory `specs/templates/<base>/.staging-<pid>-<time>/`,
@@ -508,10 +542,12 @@ export async function hydrateTemplatePackageAtomically(
   base: string,
   version: string,
   payload: string | TemplatePackagePayload,
+  opts?: { baseDir?: string },
 ): Promise<string> {
   const pkg: TemplatePackagePayload = typeof payload === 'string' ? { spec: payload } : payload
   const verSegment = `V_${normalizeVersion(version).replace(/\./g, '-')}`
-  const targetPkgDir = join(rootDir, 'specs', 'templates', base, verSegment)
+  const templatesBase = opts?.baseDir ?? join(rootDir, 'specs', 'templates')
+  const targetPkgDir = join(templatesBase, base, verSegment)
 
   // Write-once immutability check
   try {
@@ -523,10 +559,10 @@ export async function hydrateTemplatePackageAtomically(
     // Directory does not exist yet
   }
 
-  const baseTemplatesDir = join(rootDir, 'specs', 'templates', base)
+  const baseTemplatesDir = join(templatesBase, base)
   await mkdir(baseTemplatesDir, { recursive: true })
 
-  const stagingDir = join(baseTemplatesDir, `.staging-${process.pid}-${Date.now()}`)
+  const stagingDir = join(baseTemplatesDir, `.staging-${uniqueSuffix()}`)
   await mkdir(stagingDir, { recursive: true })
 
   const specFileName = 'spec_NN.md'
@@ -613,7 +649,7 @@ export async function fetchTemplatePackageFromRemote(
  * `path` for a concurrent reader to observe.
  */
 async function atomicWriteFile(path: string, content: string): Promise<void> {
-  const tmpPath = `${path}.tmp-${process.pid}-${Date.now()}`
+  const tmpPath = `${path}.tmp-${uniqueSuffix()}`
   await writeFile(tmpPath, content, 'utf-8')
   await rename(tmpPath, path)
 }
@@ -650,6 +686,14 @@ export async function resolveParentChainNode(
   const maxDepth = options.maxDepth ?? MAX_DEPTH_DEFAULT
   const timeout = options.timeout ?? 10000
   const specsDir = join(rootDir, 'specs')
+  // Effective cache dir: `inPlace` restores pure legacy behavior (the temp
+  // cache is neither read nor written — every `cacheDir !== specsDir` guard
+  // below goes quiet); otherwise the OS temp cache (or an explicit
+  // `cacheDir`) takes all fetch-and-save writes while reads still prefer the
+  // workspace tree (vendored specs win over cached fetches).
+  const cacheDir = options.inPlace === true ? specsDir : (options.cacheDir ?? defaultCacheDir())
+  const writeDir = cacheDir
+  const templatesBaseDir = join(cacheDir, 'templates')
   const specs = new Map<string, SpecDocument>()
   const chain: string[] = []
   const freshness = new Map<string, FreshnessResult>()
@@ -658,7 +702,7 @@ export async function resolveParentChainNode(
   let currentName: string | undefined = parentName
   let depth = 0
 
-  await mkdir(specsDir, { recursive: true })
+  await mkdir(writeDir, { recursive: true })
 
   while (currentUrl && currentName && depth < maxDepth) {
     let content: string | null = null
@@ -672,7 +716,7 @@ export async function resolveParentChainNode(
       try {
         content = await readFile(localPath, 'utf-8')
         const specName = canonicalSpecFilename(currentName, content)
-        await saveSpecOnce(specsDir, `${specName}_NN.md`, content).catch(() => {})
+        await saveSpecOnce(writeDir, `${specName}_NN.md`, content).catch(() => {})
       } catch {
         content = null
       }
@@ -685,6 +729,15 @@ export async function resolveParentChainNode(
       if (pkg) {
         content = await readFile(pkg.specFilePath, 'utf-8')
         resolvedFromLocalTier = true
+      }
+    }
+
+    // 1b. OS temp cache reuse: a previous default run already fetched this spec.
+    if (content === null && cacheDir !== specsDir) {
+      attempted.push(`temp cache dir "${cacheDir}"`)
+      const hit = await findLocalSpec(cacheDir, currentName)
+      if (hit) {
+        content = await readFile(hit, 'utf-8').catch(() => null)
       }
     }
 
@@ -707,9 +760,11 @@ export async function resolveParentChainNode(
             timeout,
           }).catch(() => content as string)
         }
-        await hydrateTemplatePackageAtomically(rootDir, baseName, fmVer, payload)
+        await hydrateTemplatePackageAtomically(rootDir, baseName, fmVer, payload, {
+          baseDir: templatesBaseDir,
+        })
         const specName = canonicalSpecFilename(currentName, content)
-        await saveSpecOnce(specsDir, `${specName}_NN.md`, content)
+        await saveSpecOnce(writeDir, `${specName}_NN.md`, content)
       } catch {
         content = null
       }
@@ -772,19 +827,20 @@ export async function resolveParentChainNode(
   // template's `includes` list (recursively), so `resolveTemplateSchema` in
   // innfo-core can compose their schemas offline. Best-effort — an
   // unresolvable include is left out and surfaces later as a validation error.
-  await resolveIncludesInto(specs, specsDir, timeout)
+  await resolveIncludesInto(specs, specsDir, timeout, undefined, cacheDir)
 
   const result: ResolvedCache = { specs, chain }
   if (options.checkFreshness === true) result.freshness = freshness
   return result
 }
 
-/** Resolve one spec's raw content: local specs dir first, 4-tier package resolver second, then network. */
+/** Resolve one spec's raw content: local specs dir first, temp cache second, 4-tier package resolver third, then network. */
 export async function fetchSpecContent(
   name: string,
   url: string | undefined,
   specsDir: string,
   timeout: number,
+  cacheDir?: string,
 ): Promise<string | null> {
   if (url && isLocalPath(url)) {
     const localPath = toLocalFilePath(url, specsDir.replace(/[/\\]specs[/\\]?$/, ''))
@@ -793,15 +849,21 @@ export async function fetchSpecContent(
   }
   const local = await findLocalSpec(specsDir, name)
   if (local) return readFile(local, 'utf-8').catch(() => null)
+  if (cacheDir && cacheDir !== specsDir) {
+    const hit = await findLocalSpec(cacheDir, name)
+    if (hit) return readFile(hit, 'utf-8').catch(() => null)
+  }
   const rootDir = specsDir.replace(/[/\\]specs[/\\]?$/, '')
   const pkg = await resolveTemplatePackage(rootDir, name).catch(() => null)
   if (pkg) return readFile(pkg.specFilePath, 'utf-8').catch(() => null)
   if (url && /^https?:\/\//i.test(url)) {
     try {
       const content = await download(url, timeout)
-      await saveSpecOnce(specsDir, `${canonicalSpecFilename(name, content)}_NN.md`, content).catch(
-        () => {},
-      )
+      await saveSpecOnce(
+        cacheDir ?? specsDir,
+        `${canonicalSpecFilename(name, content)}_NN.md`,
+        content,
+      ).catch(() => {})
       return content
     } catch {
       return null
@@ -820,6 +882,7 @@ export async function buildIncludeContentMap(
   specsBaseDir: string,
   refs: Array<{ name: string; url: string }>,
   timeout = 10000,
+  cacheDir?: string,
 ): Promise<Map<string, string>> {
   const specsDir = join(specsBaseDir, 'specs')
   const out = new Map<string, string>()
@@ -830,7 +893,13 @@ export async function buildIncludeContentMap(
     const key = ref.name.toLowerCase()
     if (seen.has(key)) continue
     seen.add(key)
-    const content = await fetchSpecContent(ref.name, ref.url || undefined, specsDir, timeout)
+    const content = await fetchSpecContent(
+      ref.name,
+      ref.url || undefined,
+      specsDir,
+      timeout,
+      cacheDir,
+    )
     if (content === null) continue
     out.set(ref.name, content)
     out.set(key, content)
@@ -849,6 +918,7 @@ export async function resolveIncludesInto(
   specsDir: string,
   timeout: number,
   seen: Set<string> = new Set(),
+  cacheDir?: string,
 ): Promise<void> {
   const queue: SpecDocument[] = [...specs.values()]
   while (queue.length > 0) {
@@ -858,7 +928,13 @@ export async function resolveIncludesInto(
       const key = ref.name.toLowerCase()
       if (seen.has(key) || specs.has(ref.name)) continue
       seen.add(key)
-      const content = await fetchSpecContent(ref.name, ref.url || undefined, specsDir, timeout)
+      const content = await fetchSpecContent(
+        ref.name,
+        ref.url || undefined,
+        specsDir,
+        timeout,
+        cacheDir,
+      )
       if (content === null) continue
       const fm = parseFrontmatter(content)
       if (fm === null) continue

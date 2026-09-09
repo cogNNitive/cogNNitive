@@ -6,12 +6,18 @@ import { initModel } from '../src/tools/mutate'
 
 describe('MCP model repair tools', () => {
   let tempDir: string
+  const origCache = process.env.INNFO_CACHE_DIR
 
   beforeEach(async () => {
     tempDir = await mkdtemp(join(tmpdir(), 'innfo-mcp-test-'))
+    // Hermetic temp cache: this suite performs real network fetches, which
+    // must never leak into the shared OS temp cache seen by other suites.
+    process.env.INNFO_CACHE_DIR = join(tempDir, 'isolated-cache')
   })
 
   afterEach(async () => {
+    if (origCache !== undefined) process.env.INNFO_CACHE_DIR = origCache
+    else delete process.env.INNFO_CACHE_DIR
     await rm(tempDir, { recursive: true, force: true })
   })
 
@@ -44,7 +50,10 @@ describe('MCP model repair tools', () => {
 
     expect(res.success).toBe(true)
     const content = await readFile(res.filePath, 'utf-8')
-    expect(content).toContain('spec_version: "V_0-2-1"')
+    // Version-aware scaffold (validator-robustness): versions inferred from
+    // the resolved live parent template (business, spec_version V_0-2-0).
+    expect(content).toContain('spec_version: "V_0-2-0"')
+    expect(content).toContain('model_version: "V_0-2-0"')
     expect(content).toContain('# NN Team')
     expect(content).toContain('## NN Team: Alice')
   })

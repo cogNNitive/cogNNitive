@@ -1,10 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { join } from 'node:path'
+import { tmpdir } from 'node:os'
+import { existsSync } from 'node:fs'
 import { rm, mkdir, writeFile, readFile, readdir } from 'node:fs/promises'
 import {
   resolveParentChainNode,
   saveSpecOnce,
   fetchTemplatePackageFromRemote,
+  defaultCacheDir,
 } from './resolver-node'
 
 const rootDir = join(import.meta.dirname!, '..', '..', 'temp-test-resolver')
@@ -13,10 +16,14 @@ const specsDir = join(rootDir, 'specs')
 describe('NodeSpecResolver', () => {
   const origGlobal = process.env.INNFO_GLOBAL_DIR
   const origSkills = process.env.INNFO_SKILLS_DIR
+  const origCache = process.env.INNFO_CACHE_DIR
 
   beforeEach(async () => {
     process.env.INNFO_GLOBAL_DIR = join(rootDir, 'isolated-global')
     process.env.INNFO_SKILLS_DIR = join(rootDir, 'isolated-skills')
+    // Hermetic temp cache: the OS temp dir is shared across test files, so
+    // every fetch-and-save in this file lands in an isolated dir instead.
+    process.env.INNFO_CACHE_DIR = join(rootDir, 'isolated-cache')
     // Reset/clean temp directory
     await rm(rootDir, { recursive: true, force: true })
     await mkdir(specsDir, { recursive: true })
@@ -28,6 +35,8 @@ describe('NodeSpecResolver', () => {
     else delete process.env.INNFO_GLOBAL_DIR
     if (origSkills !== undefined) process.env.INNFO_SKILLS_DIR = origSkills
     else delete process.env.INNFO_SKILLS_DIR
+    if (origCache !== undefined) process.env.INNFO_CACHE_DIR = origCache
+    else delete process.env.INNFO_CACHE_DIR
     await rm(rootDir, { recursive: true, force: true })
   })
 
@@ -121,6 +130,7 @@ describe('NodeSpecResolver', () => {
       rootDir,
       'https://example.com/business_V_0-1-1_NN.md',
       'business_V_0-1-1',
+      { inPlace: true },
     )
 
     // Should fetch from network since local version was 0-1-0 and requested was 0-1-1
@@ -153,6 +163,7 @@ describe('NodeSpecResolver', () => {
       rootDir,
       'https://example.com/iNNfo_V_0-2-0_NN.md',
       'iNNfo_V_0-2-0',
+      { inPlace: true },
     )
 
     expect(fetchSpy).toHaveBeenCalledTimes(1)
@@ -206,6 +217,7 @@ describe('NodeSpecResolver', () => {
       rootDir,
       'https://example.com/specs/latest/level2/business/business_NN.md',
       'business',
+      { inPlace: true },
     )
 
     expect(fetchSpy).toHaveBeenCalledTimes(1)
@@ -355,6 +367,7 @@ describe('NodeSpecResolver', () => {
       rootDir,
       'https://example.com/business_V_0-8-0_NN.md',
       'business_V_0-8-0',
+      { inPlace: true },
     )
 
     const entries = await readdir(specsDir)
@@ -753,5 +766,134 @@ describe('fetchTemplatePackageFromRemote', () => {
   it('throws when the primary spec cannot be fetched', async () => {
     mockFetch({ '/business/spec_NN.md': null }, {})
     await expect(fetchTemplatePackageFromRemote('business', 'V_0-2-1')).rejects.toThrow()
+  })
+})
+
+describe('Temp-dir cache default (validator-robustness 4.3)', () => {
+  const cacheRootDir = join(rootDir, 'temp-cache-rooms')
+  // Hermetic temp cache (the OS temp dir is shared across test files/runs):
+  // every fetch-and-save in this block lands here, never in the real temp.
+  const cacheIsolatedDir = join(cacheRootDir, 'isolated-cache')
+  const origGlobal = process.env.INNFO_GLOBAL_DIR
+  const origSkills = process.env.INNFO_SKILLS_DIR
+  const origCache = process.env.INNFO_CACHE_DIR
+
+  const remoteContentFor = (title: string) =>
+    ['---', 'spec_version: "V_0-1-0"', 'level: 1', `title: "${title}"`, '---', 'Body'].join('\n')
+
+  function mockRemote(content: string) {
+    return vi
+      .spyOn(global, 'fetch')
+      .mockImplementation(() =>
+        Promise.resolve({ ok: true, text: () => Promise.resolve(content) } as Response),
+      )
+  }
+
+  beforeEach(async () => {
+    process.env.INNFO_GLOBAL_DIR = join(cacheRootDir, 'isolated-global')
+    process.env.INNFO_SKILLS_DIR = join(cacheRootDir, 'isolated-skills')
+    process.env.INNFO_CACHE_DIR = cacheIsolatedDir
+    await rm(cacheRootDir, { recursive: true, force: true })
+    await mkdir(join(cacheRootDir, 'specs'), { recursive: true })
+    vi.restoreAllMocks()
+  })
+
+  afterEach(async () => {
+    await rm(cacheRootDir, { recursive: true, force: true })
+    if (origGlobal !== undefined) process.env.INNFO_GLOBAL_DIR = origGlobal
+    else delete process.env.INNFO_GLOBAL_DIR
+    if (origSkills !== undefined) process.env.INNFO_SKILLS_DIR = origSkills
+    else delete process.env.INNFO_SKILLS_DIR
+    if (origCache !== undefined) process.env.INNFO_CACHE_DIR = origCache
+    else delete process.env.INNFO_CACHE_DIR
+  })
+
+  it('defaultCacheDir points at the OS temp directory', () => {
+    const saved = process.env.INNFO_CACHE_DIR
+    delete process.env.INNFO_CACHE_DIR
+    try {
+      expect(defaultCacheDir()).toBe(join(tmpdir(), 'innfo-specs'))
+    } finally {
+      if (saved !== undefined) process.env.INNFO_CACHE_DIR = saved
+    }
+  })
+
+  it('Tree clean: a default run caches in the cache dir and writes nothing in-tree', async () => {
+    const content = remoteContentFor('Temp Cache Spec')
+    const fetchSpy = mockRemote(content)
+
+    const result = await resolveParentChainNode(
+      cacheRootDir,
+      'https://example.com/tempcache_V_0-1-0_NN.md',
+      'tempcache_V_0-1-0',
+    )
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    expect(result.specs.get('tempcache_V_0-1-0')?.rawContent).toBe(content)
+    // Nothing inside the workspace tree …
+    expect(await readdir(join(cacheRootDir, 'specs'))).toEqual([])
+    // … the fetched content lives in the cache dir instead.
+    const cached = join(cacheIsolatedDir, 'tempcache_V_0-1-0_NN.md')
+    expect(await readFile(cached, 'utf-8')).toBe(content)
+  })
+
+  it('Temp entry reused: resolving the same URL again refetches nothing', async () => {
+    const content = remoteContentFor('Reusable Spec')
+    const fetchSpy = mockRemote(content)
+
+    const first = await resolveParentChainNode(
+      cacheRootDir,
+      'https://example.com/reused_V_0-1-0_NN.md',
+      'reused_V_0-1-0',
+    )
+    const second = await resolveParentChainNode(
+      cacheRootDir,
+      'https://example.com/reused_V_0-1-0_NN.md',
+      'reused_V_0-1-0',
+    )
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    expect(second.specs.get('reused_V_0-1-0')?.rawContent).toBe(
+      first.specs.get('reused_V_0-1-0')?.rawContent,
+    )
+  })
+
+  it('Concurrent isolated: two workspaces resolving the same URL keep both trees clean', async () => {
+    const content = remoteContentFor('Shared Spec')
+    const fetchSpy = mockRemote(content)
+    const wsA = join(cacheRootDir, 'ws-a')
+    const wsB = join(cacheRootDir, 'ws-b')
+    await mkdir(join(wsA, 'specs'), { recursive: true })
+    await mkdir(join(wsB, 'specs'), { recursive: true })
+
+    const [resA, resB] = await Promise.all([
+      resolveParentChainNode(wsA, 'https://example.com/shared_V_0-3-0_NN.md', 'shared_V_0-3-0'),
+      resolveParentChainNode(wsB, 'https://example.com/shared_V_0-3-0_NN.md', 'shared_V_0-3-0'),
+    ])
+
+    expect(resA.specs.get('shared_V_0-3-0')?.rawContent).toBe(content)
+    expect(resB.specs.get('shared_V_0-3-0')?.rawContent).toBe(content)
+    expect(await readdir(join(wsA, 'specs'))).toEqual([])
+    expect(await readdir(join(wsB, 'specs'))).toEqual([])
+    expect(fetchSpy.mock.calls.length).toBeLessThanOrEqual(2)
+  })
+
+  it('Explicit flag: inPlace restores in-tree caching and skips the temp cache', async () => {
+    const content = remoteContentFor('In-Place Spec')
+    const fetchSpy = mockRemote(content)
+
+    const result = await resolveParentChainNode(
+      cacheRootDir,
+      'https://example.com/inplace_V_0-1-0_NN.md',
+      'inplace_V_0-1-0',
+      { inPlace: true },
+    )
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    expect(result.specs.get('inplace_V_0-1-0')?.rawContent).toBe(content)
+    expect(await readFile(join(cacheRootDir, 'specs', 'inplace_V_0-1-0_NN.md'), 'utf-8')).toBe(
+      content,
+    )
+    expect(existsSync(join(cacheIsolatedDir, 'inplace_V_0-1-0_NN.md'))).toBe(false)
   })
 })

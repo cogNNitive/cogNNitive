@@ -47,10 +47,10 @@ Chain strategy is `pending` because this repo lands day-to-day work as commits o
 
 ## Phase 4: Scaffold + resolver + MCP contracts (innfo-mcp)
 
-- [ ] 4.1 RED: `init-model.spec.ts` for "Version inferred", "Override wins", "Mismatch refused" (`VERSION_MISMATCH`)
-- [ ] 4.2 GREEN: infer `spec_version` from resolved parent in `tools/init-model.ts` (override wins, mismatch refuses); run lint/typecheck/test
-- [ ] 4.3 RED: `resolver-node.spec.ts` + `validate.spec.ts` for "Tree clean", "Temp entry reused", "Concurrent isolated", "Explicit flag", "Regression blocked"
-- [ ] 4.4 GREEN: temp-dir default + `inPlace` flag in `tools/resolver-node.ts`/`spec.ts`; `baselinePath` + suppressed-count in `tools/validate.ts`; `baseline_path`/`in_place` contracts in `server.ts`; run lint/typecheck/test
+- [x] 4.1 RED: `init-model.spec.ts` for "Version inferred", "Override wins", "Mismatch refused" (`VERSION_MISMATCH`)
+- [x] 4.2 GREEN: infer `spec_version` from resolved parent in `tools/init-model.ts` (override wins, mismatch refuses); run lint/typecheck/test
+- [x] 4.3 RED: `resolver-node.spec.ts` + `validate.spec.ts` for "Tree clean", "Temp entry reused", "Concurrent isolated", "Explicit flag", "Regression blocked"
+- [x] 4.4 GREEN: temp-dir default + `inPlace` flag in `tools/resolver-node.ts`/`spec.ts`; `baselinePath` + suppressed-count in `tools/validate.ts`; `baseline_path`/`in_place` contracts in `server.ts`; run lint/typecheck/test
 
 ## Phase 5: Skill text + seeded baseline + gate
 
