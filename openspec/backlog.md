@@ -448,13 +448,13 @@ concurrent `check_workspace` / `validate` calls have never been stress-tested.
 
 ---
 
-## 20. `feature/metrics-scenario-compare` � side-by-side scenario comparison in Projections artifacts
+## 20. `feature/metrics-scenario-compare` � side-by-side scenario comparison in Projections artifacts
 
 **Why:** the Metrics template models scenarios (historical/projection, neutral/optimistic/pessimistic) but the Projections artifact deliberately renders a single neutral flow (see `iNNfo/specs/templates/metrics/spec_NN.md`, Scenario guidance). Comparing variants today means editing variables by hand.
 
-**Approach:** implement variants as ordinary variant rows through the Metrics/Variables mechanism (increment factors on variables, computed variant metrics) � no parallel MODEL_DATA snapshots. Then add comparison UI on top: per-variant series in charts (Actual/Projection split already exists for pinning), variant cards, and a CSV that exports all variants. Scenario selector/dimming must NOT return; selection stays model-side.
+**Approach:** implement variants as ordinary variant rows through the Metrics/Variables mechanism (increment factors on variables, computed variant metrics) � no parallel MODEL_DATA snapshots. Then add comparison UI on top: per-variant series in charts (Actual/Projection split already exists for pinning), variant cards, and a CSV that exports all variants. Scenario selector/dimming must NOT return; selection stays model-side.
 
-**Size:** small-medium � engine charts/cards/CSV extension + procedure text + smoke probes; no spec change expected.
+**Size:** small-medium � engine charts/cards/CSV extension + procedure text + smoke probes; no spec change expected.
 
 **Suggested trigger:** `/sdd-new metrics-scenario-compare`.
 
@@ -558,3 +558,17 @@ request - standing rule.
 (attribution + timing vs sibling work) is the actual task.
 
 **Suggested trigger:** maintainer decision in chat, not an SDD cycle.
+
+---
+
+## 23. `robustness-coda` — 5 leftover pins from validator-robustness + llm-efficiency verifies
+
+**Context (2026-09-09 night).** Both SDD cycles closed (proposal → specs → design → tasks → apply → verify-report → archive; PASS WITH WARNINGS, zero critical). The verifies left 5 honest gaps, planned as coda through tasks (6 flat tasks, single commit-sized unit, ~80–150 lines): (1) explicit empty `procedures:` block key + test, (2) F2 info→warning demotion pin test, (3) stable misuse-class codes + fix-examples, (4) core barrel export replacing the `validate.ts` baseline mirror (byte-identical fingerprints), (5) queue confirm-path automated test. Artifacts: `openspec/changes/robustness-coda/` (proposal + 4 delta specs + tasks, all uncommitted working-tree state).
+
+**Why not applied:** the `sdd-apply` executor delegation was interrupted 3 times at the mechanism level (long-runner cancellation — proposal/specs/tasks delegations all succeeded fast, so it is NOT a problem with this change). Resume with `/sdd-apply` on the 6 tasks, or inline.
+
+**Precondition — coordinate first:** a sibling session has since modified exactly this coda's target files (`iNNfo/specs/templates/organization/spec_NN.md`, `innfo-core/src/index.ts`, `validator/model-checks.ts`, `innfo-mcp validate.ts` + specs). Re-verify each path is free of foreign work (or reconcile) before editing; do NOT layer on sibling dirt. Follows the same rule as item 22.
+
+**Size:** tiny — 5 RED→GREEN pins + verification. Risk Low.
+
+**Suggested trigger:** `/sdd-apply robustness-coda` (or inline) once the tree is quiet.
