@@ -458,3 +458,60 @@ concurrent `check_workspace` / `validate` calls have never been stress-tested.
 
 **Suggested trigger:** `/sdd-new metrics-scenario-compare`.
 
+
+---
+
+## 21. `refactor/console-domain-renderers` - migrate projections + strategic-master inline code to console renderers (deferred, special cases)
+
+**Deferred from the innfo-console cycle (2026-09-09).** The model-viewer renderer
+was extracted (`console/render-model-viewer.js`, UMD `window.InnfoModelViewer`,
+commit `d2fac2e`); the two assets below were deliberately left inline.
+
+**Scope decision (2026-09-09, maintainer):** the generic console template
+(blueprint + shared runtime + per-template renderers) must NOT be overloaded to
+fit projections 100% - projections is a special case and stays bespoke. Same
+for the strategic master. When this item is taken, extend the renderer pattern
+to them; do not bend the generic template around their needs.
+
+**Contract note:** `file://` double-click means no server / no build / no
+`fetch()` / no modules - CDN `<script src>` tags are the *primary* loading path
+(jsDelivr pin + raw mirror + vendored fallback, see
+`console/artifact_blueprint.html`). Online CDN use is expected; "offline" only
+ever meant "no local server". So projections' CDN deps are contract-compliant -
+robustness (vendored fallbacks), not compliance, is the only CDN concern.
+
+**Why per asset:**
+
+- *projections* (`metrics/assets/projections.html`, 41KB): ~28KB inline metrics
+  engine (~24 functions: per-row scaling, compact formatting, real vs projected
+  months, history/peak flags, growth overrides with reset, uPlot series
+  builders) plus CDN tailwind Play + lucide + uPlot. Moving the JS 1:1 to a file
+  changes nothing functional - the weight just relocates and the engine is
+  metrics-only (no cross-template reuse). The real work is a packaging decision:
+  vendor the chart/icon deps and replace tailwind Play with owned CSS, or
+  document the CDN-online requirement and keep the bespoke renderer as the
+  metrics special case.
+- *strategic master* (`business/assets/master.html`, 103KB): only ~1.6KB of
+  inline JS (paints title/version from the `innfo-model-data` slot). The ~94KB
+  bulk is 25 static framework sections (Sankey, Canvas, SWOT, PESTEL, Porter,
+  BCG, Gantt...) with Ghostbusters sample content. There is almost no code to
+  extract - thinning it means *building* a data-driven dashboard renderer plus
+  slot contracts for 25 frameworks that do not exist today. That is a feature
+  build, not a move.
+
+**Approach (open):** `/sdd-explore` first. Likely two independent slices with
+different shapes: (a) projections packaging (vendor vs document-online,
+renderer stays metrics-specific under `console/` pins); (b) master data-driven
+redesign (slot contracts per framework + renderer + procedure rewrite) versus
+freezing master as a reference sample and exempting it from the thin-shell
+rule (adjust `console-thinning` expectations + document the deviation, as was
+done for the seam-only thinning).
+
+**Size:** large if both slices go data-driven - do NOT attempt as one change;
+each slice needs its own spec. Small if the outcome is freeze + document.
+
+**Guard:** any data-driven rewrite must keep the E2E equivalence bar set by
+`e2e/17-model-viewer-renderer.spec.ts` (new shell renders identical DOM to the
+original) - no silent visual regressions across 25 frameworks.
+
+**Suggested trigger:** `/sdd-explore console-domain-renderers`.
