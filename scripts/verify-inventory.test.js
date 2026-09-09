@@ -104,6 +104,39 @@ frozen_templates:
     }
   }
 
+  // 4. Folder declared only under seam_dirs: passes guard (shared seam partition)
+  {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'verify-inventory-'));
+    try {
+      const sourceYaml = `---
+templates:
+  - name: registered-tmpl
+    path: iNNfo/specs/templates/registered-tmpl
+seam_dirs:
+  - name: console
+    path: iNNfo/specs/templates/console/
+    description: Shared console seam.
+`;
+      const sourceYamlPath = path.join(tmpDir, 'source.yaml');
+      fs.writeFileSync(sourceYamlPath, sourceYaml, 'utf8');
+
+      const templatesDir = path.join(tmpDir, 'templates');
+      fs.mkdirSync(path.join(templatesDir, 'registered-tmpl'), { recursive: true });
+      fs.mkdirSync(path.join(templatesDir, 'console'), { recursive: true });
+
+      const result = checkTemplateInventory(templatesDir, sourceYamlPath);
+      assert.strictEqual(
+        result.ok,
+        true,
+        'seam folder must satisfy the inventory guard via the seam_dirs: partition',
+      );
+      assert.deepStrictEqual(result.missing, []);
+      console.log('✔ Seam-only folder passed via seam_dirs: partition');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }
+
   console.log('All verify-inventory unit tests passed successfully!');
 }
 

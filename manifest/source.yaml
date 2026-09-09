@@ -134,6 +134,17 @@ frozen_templates:
     version: "V_0-1-0"
     ref_key: templates
 
+# Shared seam folders that live under iNNfo/specs/templates/ but are NOT
+# distributable templates: they hold cross-template runtime assets (blueprint
+# shells, UMD runtimes, schemas) with no spec_NN.md. Listed here only so the
+# verify.js Template Inventory Guard recognizes the folder; the catalog and
+# manifest generators skip them (no spec_NN.md to enumerate), same as `assets`.
+seam_dirs:
+  - name: console
+    repo: cogNNitive/cogNNitive
+    path: iNNfo/specs/templates/console/
+    description: Shared console seam — artifact blueprint shell, InnfoConsole UMD runtime, and feedback JSON schema for the reviewer feedback loop.
+
 workflows:
   - id: model
     label: Create an iNNfo model
