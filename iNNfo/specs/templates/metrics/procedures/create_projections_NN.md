@@ -82,12 +82,12 @@ Translate each dependsOn of the model into the DEPS map (row ids). Feeds the Met
 parent:: [[Create Projections]]
 step_type:: task
 next:: [[Apply Visual System]]
-condition:: Dependency graph mapped
+condition:: Master HTML built
 input:: [[Model Data Block]]
 output:: [[Projections HTML]]
 output_status:: draft
 tool:: [[Tailwind Play CDN]]
-Single-page structure from the Projections Layout asset: parameter topbar, result summary cards, collapsible tabbed charts, spreadsheet, Export CSV. Calculation logic lives in FORMULAS, strictly separated from data. Pinned CDNs: Tailwind Play, uPlot 1.6.32 (dist/uPlot.iife.min.js), Lucide 1.42.0, Inter + JetBrains Mono.
+Single-page structure from the Projections Layout asset: parameter topbar, result summary cards, collapsible tabbed charts, spreadsheet, Export CSV. Calculation logic lives in FORMULAS, strictly separated from data. Declare the console capabilities in `<script type="application/json" id="innfo-config">` via `needs[]` (pins resolve through `console/needs-registry.json`), reference the shared runtime with static `<script src>` tags (CDN primary, mirror fallback — no `fetch()`, no `type=module`), and ship the vendored `innfo-runtime.js` next to the output for offline `file://` double-click. Save the deliverable as `<Model>_V_<version>_console.html` next to the model. Pinned CDNs: Tailwind Play, uPlot 1.6.32 (dist/uPlot.iife.min.js), Lucide 1.42.0, Inter + JetBrains Mono.
 
 ## NN Work: Apply Visual System
 parent:: [[Create Projections]]

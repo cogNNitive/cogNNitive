@@ -58,7 +58,7 @@ output:: [[Strategic Master HTML]]
 output_status:: verified
 tool:: [[AI Agent]]
 scope:: internal
-Inject the extracted model data JSON into the `<script id="innfo-model-data" type="application/json">` data slot of the loaded reference layout, and save the deliverable.
+Inject the extracted model data JSON into the `<script id="innfo-model-data" type="application/json">` data slot of the loaded reference layout. Declare the console capabilities in `<script type="application/json" id="innfo-config">` via `needs[]` (pins resolve through `console/needs-registry.json`), reference the shared runtime with static `<script src>` tags (CDN primary, mirror fallback — no `fetch()`, no `type=module`), and ship the vendored `innfo-runtime.js` next to the output for offline `file://` double-click. Save the deliverable as `<Model>_V_<version>_console.html` next to the model.
 
 ## NN Work: Verify Output
 parent:: [[Compile Strategic Master]]
@@ -103,7 +103,7 @@ Normalized JSON payload extracted from the L3 model ready for injection into the
 ## NN Artifact: Strategic Master HTML
 type:: deliverable
 format:: html
-The generated single-file dashboard with the model data slot populated.
+The generated blueprint console (`innfo-config` needs[] plus the model data slot, shared runtime via static script tags), saved as `<Model>_V_<version>_console.html`.
 
 ## NN Artifact: Verified Strategic Master
 type:: report

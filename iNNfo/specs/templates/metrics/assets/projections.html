@@ -169,6 +169,19 @@
 
 </div>
 
+    <!-- innfo-console seam: capability gate (pins in console/needs-registry.json). MODEL_DATA/DEPS/FORMULAS below stay the only per-model payload. -->
+    <script type="application/json" id="innfo-config">
+      {
+        "needs": ["feedback-export"],
+        "runtime": {
+          "cdn": "https://cdn.jsdelivr.net/gh/cogNNitive/cogNNitive@innfo-console-0.1.0/iNNfo/specs/templates/console/innfo-runtime.js",
+          "fallback": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/console/innfo-runtime.js"
+        }
+      }
+    </script>
+    <!-- Shared console runtime (static tags: CDN primary, mirror fallback — no fetch, no modules). -->
+    <script src="https://cdn.jsdelivr.net/gh/cogNNitive/cogNNitive@innfo-console-0.1.0/iNNfo/specs/templates/console/innfo-runtime.js"></script>
+    <script src="https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/console/innfo-runtime.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/lucide@1.42.0/dist/umd/lucide.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/uplot@1.6.32/dist/uPlot.iife.min.js"></script>
 <script>
