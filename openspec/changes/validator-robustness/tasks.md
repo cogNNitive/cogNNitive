@@ -40,10 +40,10 @@ Chain strategy is `pending` because this repo lands day-to-day work as commits o
 
 ## Phase 3: Codes, BOM, multivalue (innfo-core)
 
-- [ ] 3.1 RED: coded-warning tests ("Missing submodel warns", "Mismatch warns with code and hint", "Match by name/URL passes")
-- [ ] 3.2 GREEN: attach stable codes+hints in `validator/references.ts`, `model.ts`, `model-checks.ts`, `document.ts`; run lint/typecheck/test
-- [ ] 3.3 RED: BOM + multivalue tests ("BOM warns", "No BOM, no warning", "Canonical multivalue accepted", "Non-canonical fails with hint")
-- [ ] 3.4 GREEN: BOM detection in `parser/markdown.ts`, `BOM_WARNING` in `document.ts`; canonical split + `MULTIVALUE_SYNTAX` in `workspaceReferences.ts`; run lint/typecheck/test
+- [x] 3.1 RED: coded-warning tests ("Missing submodel warns", "Mismatch warns with code and hint", "Match by name/URL passes")
+- [x] 3.2 GREEN: attach stable codes+hints in `validator/references.ts`, `model.ts`, `model-checks.ts`, `document.ts`; run lint/typecheck/test
+- [x] 3.3 RED: BOM + multivalue tests ("BOM warns", "No BOM, no warning", "Canonical multivalue accepted", "Non-canonical fails with hint")
+- [x] 3.4 GREEN: BOM detection in `parser/markdown.ts`, `BOM_WARNING` in `document.ts`; canonical split + `MULTIVALUE_SYNTAX` in `workspaceReferences.ts`; run lint/typecheck/test
 
 ## Phase 4: Scaffold + resolver + MCP contracts (innfo-mcp)
 

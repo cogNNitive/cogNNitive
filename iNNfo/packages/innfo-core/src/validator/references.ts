@@ -9,6 +9,11 @@ export interface ReferenceDiagnostic {
   severity: 'error' | 'warning'
   /** Stable machine-readable code (e.g. `KU_UNKNOWN_ROW`). Tests assert codes, not prose. */
   code?: string
+  /** Inline fix hint naming the canonical form or repair step. Survives the
+   *  `Diagnostics` accumulator and the model/document report mapping. */
+  promptHint?: string
+  /** Structured context for reporters (paths, template names, urls). */
+  meta?: Record<string, unknown>
 }
 
 /**
@@ -171,6 +176,9 @@ export function validateElementFieldReferences(
                     path: `elements.${conceptName}.${el.name}.fields.${fieldDef?.name ?? fieldName}`,
                     message: `Dangling submodel reference: field "${fieldDef?.name ?? fieldName}" references file "${cleanPath}" which does not exist`,
                     severity: 'warning',
+                    code: 'SUBMODEL_NOT_FOUND',
+                    promptHint: `Create the file "${cleanPath}" or fix the path in field "${fieldDef?.name ?? fieldName}".`,
+                    meta: { refPath: cleanPath, field: fieldDef?.name ?? fieldName },
                   })
                 } else if (fieldDef.target_template) {
                   const matches = matchesTargetTemplate(fieldDef.target_template, {
@@ -179,10 +187,18 @@ export function validateElementFieldReferences(
                   })
 
                   if (!matches) {
+                    const actualLabel = res.templateName || res.templateUrl || 'unknown'
                     diagnostics.push({
                       path: `elements.${conceptName}.${el.name}.fields.${fieldDef?.name ?? fieldName}`,
-                      message: `Submodel template mismatch: field "${fieldDef?.name ?? fieldName}" expects template "${fieldDef.target_template}", but referenced file "${cleanPath}" uses template "${res.templateName || res.templateUrl}"`,
+                      message: `Submodel template mismatch: field "${fieldDef?.name ?? fieldName}" expects template "${fieldDef.target_template}", but referenced file "${cleanPath}" uses template "${actualLabel}"`,
                       severity: 'warning',
+                      code: 'SUBMODEL_TEMPLATE_MISMATCH',
+                      promptHint: `Field "${fieldDef?.name ?? fieldName}" expects template "${fieldDef.target_template}" but "${cleanPath}" uses "${actualLabel}": update target_template or fix parent_spec in the referenced file.`,
+                      meta: {
+                        expectedTemplate: fieldDef.target_template,
+                        actualTemplate: actualLabel,
+                        refPath: cleanPath,
+                      },
                     })
                   }
                 }

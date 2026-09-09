@@ -1,6 +1,7 @@
 import type { SpecDocument, ValidationCheck, ValidationError, ValidationReport } from '../types'
 import type { IncludeResolver } from '../schema'
 import { parseModel } from '../parser'
+import { hasBom } from '../parser/markdown'
 import { Diagnostics } from '../diagnostics'
 import { validateFormatContent } from './content'
 import { validateModel } from './model'
@@ -62,6 +63,17 @@ export function validateDocument(
   const format = validateFormatContent(content, opts.fileName, opts.expectedSpecVersion)
 
   const d = new Diagnostics()
+
+  // BOM tolerance (model-scaffold-robustness): the parser strips a leading
+  // BOM before matching frontmatter, so parsing succeeds; surface a
+  // non-blocking `info` notice so encoding rot stays visible. Never an error.
+  if (hasBom(content)) {
+    d.info('format.bom', 'File starts with a byte-order mark; stripped before parsing.', {
+      code: 'BOM_WARNING',
+      promptHint: 'Save the file as UTF-8 without BOM.',
+      meta: { stripped: true },
+    })
+  }
 
   for (const check of format.checks) {
     const diag = formatCheckToDiagnostic(check)
