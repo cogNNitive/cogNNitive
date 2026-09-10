@@ -145,6 +145,18 @@ seam_dirs:
     path: iNNfo/specs/templates/console/
     description: Shared console seam — artifact blueprint shell, InnfoConsole UMD runtime, and feedback JSON schema for the reviewer feedback loop.
 
+# Published console bundle: the single-file runtime + renderers (visuals,
+# innfo-runtime, model-viewer, procedure-stepper) that generated console
+# artifacts vendor locally for offline `file://` use. Distributed as the
+# `console-assets` block of the bootstrap manifest and installed to
+# ~/.agents/console by skills-manager. Pinned by tag + commit.
+console_assets:
+  - name: innfo-console
+    repo: cogNNitive/cogNNitive
+    file: iNNfo/specs/templates/console/innfo-console.bundle.js
+    version: "0.1.0"
+    ref_key: innfo-console
+
 workflows:
   - id: model
     label: Create an iNNfo model
@@ -179,6 +191,9 @@ channels:
       - key: innfo-mcp
         repo: cogNNitive/cogNNitive
         ref: innfo-mcp-v0.5.0
+      - key: innfo-console
+        repo: cogNNitive/cogNNitive
+        ref: innfo-console-v0.1.0
   preview:
     refs:
       - key: skills
@@ -188,5 +203,8 @@ channels:
         repo: cogNNitive/cogNNitive
         ref: main
       - key: innfo-mcp
+        repo: cogNNitive/cogNNitive
+        ref: main
+      - key: innfo-console
         repo: cogNNitive/cogNNitive
         ref: main

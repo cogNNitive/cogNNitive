@@ -2,7 +2,7 @@
   "version": "0.1.0",
   "runtime": {
     "version": "0.1.0",
-    "cdn": "https://cdn.jsdelivr.net/gh/cogNNitive/cogNNitive@innfo-console-0.1.0/iNNfo/specs/templates/console/innfo-runtime.js",
+    "cdn": "https://cdn.jsdelivr.net/gh/cogNNitive/cogNNitive@innfo-console-v0.1.0/iNNfo/specs/templates/console/innfo-runtime.js",
     "fallback": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/console/innfo-runtime.js",
     "vendored": "./innfo-runtime.js"
   },
@@ -11,7 +11,7 @@
       "id": "model-viewer",
       "file": "render-model-viewer.js",
       "version": "0.1.0",
-      "cdn": "https://cdn.jsdelivr.net/gh/cogNNitive/cogNNitive@innfo-console-0.1.0/iNNfo/specs/templates/console/render-model-viewer.js",
+      "cdn": "https://cdn.jsdelivr.net/gh/cogNNitive/cogNNitive@innfo-console-v0.1.0/iNNfo/specs/templates/console/render-model-viewer.js",
       "fallback": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/console/render-model-viewer.js",
       "vendored": "./render-model-viewer.js"
     },
@@ -19,7 +19,7 @@
       "id": "procedure-stepper",
       "file": "render-procedure-stepper.js",
       "version": "0.1.0",
-      "cdn": "https://cdn.jsdelivr.net/gh/cogNNitive/cogNNitive@innfo-console-0.1.0/iNNfo/specs/templates/console/render-procedure-stepper.js",
+      "cdn": "https://cdn.jsdelivr.net/gh/cogNNitive/cogNNitive@innfo-console-v0.1.0/iNNfo/specs/templates/console/render-procedure-stepper.js",
       "fallback": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/console/render-procedure-stepper.js",
       "vendored": "./render-procedure-stepper.js"
     },
@@ -27,7 +27,7 @@
       "id": "visuals",
       "file": "visuals.js",
       "version": "0.1.0",
-      "cdn": "https://cdn.jsdelivr.net/gh/cogNNitive/cogNNitive@innfo-console-0.1.0/iNNfo/specs/templates/console/visuals.js",
+      "cdn": "https://cdn.jsdelivr.net/gh/cogNNitive/cogNNitive@innfo-console-v0.1.0/iNNfo/specs/templates/console/visuals.js",
       "fallback": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/console/visuals.js",
       "vendored": "./visuals.js"
     }

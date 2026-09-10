@@ -141,6 +141,12 @@ agent-bootstrap:
       version: "V_0-2-1"
       ref: "templates-v0.5.1"
       commit: "94534bae1acc3c06003d2df3430685daf6161e1c"
+  console-assets:
+    - file: iNNfo/specs/templates/console/innfo-console.bundle.js
+      version: "0.1.0"
+      ref: "innfo-console-v0.1.0"
+      commit: "93b79f348a54fd65957ff5d52f38e28bf240a526"
+      url: https://raw.githubusercontent.com/cogNNitive/cogNNitive/93b79f348a54fd65957ff5d52f38e28bf240a526/iNNfo/specs/templates/console/innfo-console.bundle.js
   workflows:
     - id: model
       label: Create an iNNfo model
