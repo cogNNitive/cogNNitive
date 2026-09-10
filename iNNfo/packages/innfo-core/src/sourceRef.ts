@@ -257,7 +257,7 @@ export function resolveHeadingSection(
  * `## NN Concept: Element`). Inner colons belong to the element text and slugify away.
  * Returns the canonical slug, keeping the boundary visible as `--`.
  */
-function headingSlugParts(text: string): { slug: string; concept?: string; element?: string } {
+export function headingSlugParts(text: string): { slug: string; concept?: string; element?: string } {
   const clean = text.trim()
   const boundary = clean.indexOf(':')
   if (boundary > 0) {

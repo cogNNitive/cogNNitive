@@ -153,6 +153,11 @@ function runVerification() {
   //    classifier input for check_workspace and the preflight CLI).
   run('node scripts/template-catalog.mjs --check', 'Check Template Catalog Fresh');
 
+  // 7b. nn-trannsform slug mirror drift guard: the committed generated mirror must
+  //     match a fresh esbuild render of innfo-core's slug primitives (single
+  //     shared implementation, no hand-maintained copy).
+  run('node scripts/build-trannsform-slug-mirror.mjs --check', 'Check Trannsform Slug Mirror Fresh');
+
   // 8. Manifest validation
   run('node scripts/manifest/validate-manifest.js --channel stable', 'Validate Stable Manifest');
 

@@ -5,7 +5,34 @@
  * GitHub-compatible heading slugs. Shared between scanner.js (normalization
  * pipeline) and provenance.js (citation-anchor validation) so both sides of
  * the pipeline agree on exactly the same slugging algorithm.
+ *
+ * The slug primitives (`slugifyHeading`, `slugifyUnitHeading`, `normalizeName`,
+ * `headingSlugParts`) are NOT defined here: they are generated from
+ * `@cognnitive/innfo-core`'s `src/sourceRef.ts` by
+ * `scripts/build-trannsform-slug-mirror.mjs` and vendored as
+ * `./lib/slug-mirror.generated.cjs` (innfo-core is ESM-only and absent where
+ * this skill is installed, so a runtime import is impossible). That bundle IS
+ * the single shared implementation — do NOT hand-edit the mirror, regenerate it.
  */
+
+/**
+ * Shape of the generated slug mirror. esbuild emits the named exports
+ * dynamically, so the checker cannot infer them from the `.cjs` — this JSDoc
+ * contract is types-only; the implementation stays generated.
+ * @typedef {{
+ *   slugifyHeading: (text: string) => string,
+ *   slugifyUnitHeading: (level: number, text: string) => { level: number, text: string, slug: string },
+ *   normalizeName: (name: string) => string,
+ *   headingSlugParts: (text: string) => { slug: string, concept?: string, element?: string },
+ * }} SlugMirror
+ */
+
+const {
+  slugifyHeading,
+  slugifyUnitHeading,
+  normalizeName,
+  headingSlugParts,
+} = /** @type {SlugMirror} */ (require('./lib/slug-mirror.generated.cjs'));
 
 const FENCE_RE = /^ {0,3}(`{3,}|~{3,})/;
 
@@ -75,82 +102,6 @@ function sanitizeMarkdownBody(content) {
   while (end > start && !collapsed[end - 1].locked && collapsed[end - 1].text === '') end--;
 
   return collapsed.slice(start, end).map((r) => r.text).join('\n');
-}
-
-/**
- * Knowledge-unit heading slug algorithm. Mirrors, exactly,
- * `@cognnitive/innfo-core`'s `slugifyHeading` (`src/sourceRef.ts`); the two are
- * kept in lock-step and `test/unit/test-slug-parity.js` guards it:
- *   - NFC-normalise input first (single form regardless of OS/editor).
- *   - Strip markdown emphasis/formatting characters (*, _, `, leading #).
- *   - Split on letter-bounded exactly-two hyphens (the `--` boundary marker),
- *     slugify each part, rejoin with `--` (canonical slugs round-trip).
- *   - Per part: NFD-normalise and drop combining marks (Visión -> vision,
- *     Café -> cafe); keep non-Latin letters/numbers (さくら stays).
- *   - Trim and lowercase; runs of whitespace become one '-'.
- *   - Remove any remaining character that isn't a letter, number, or '-'.
- *   - Collapse runs of 3+ '-' into one; trim leading/trailing '-'.
- */
-function slugifyFlat(part) {
-  let s = String(part == null ? '' : part);
-  s = s.normalize('NFD').replace(/[̀-ͯ]/g, '');
-  s = s.trim().toLowerCase();
-  s = s.replace(/\s+/g, '-');
-  s = s.replace(/[^\p{L}\p{N}-]+/gu, '');
-  s = s.replace(/-+/g, '-');
-  s = s.replace(/^-+|-+$/g, '');
-  return s;
-}
-
-function slugifyHeading(text) {
-  let s = String(text == null ? '' : text);
-  s = s.normalize('NFC');
-  s = s.replace(/^\s*#{1,6}\s*/, ''); // leading heading hashes
-  s = s.replace(/[*_`]/g, ''); // emphasis/formatting characters
-  return s
-    .split(/(?<=[\p{L}\p{N}])--(?=[\p{L}\p{N}])/gu)
-    .map(slugifyFlat)
-    .join('--');
-}
-
-/**
- * Concept/Element split at the first ':' (mirrors core `headingSlugParts`).
- * Returns { slug, concept?, element? }.
- */
-function headingSlugParts(text) {
-  const clean = String(text == null ? '' : text).trim();
-  const boundary = clean.indexOf(':');
-  if (boundary > 0) {
-    const concept = clean.slice(0, boundary).trim();
-    const element = clean.slice(boundary + 1).trim();
-    if (concept && element) {
-      return { slug: `${slugifyHeading(concept)}--${slugifyHeading(element)}`, concept, element };
-    }
-  }
-  return { slug: slugifyHeading(clean) };
-}
-
-/**
- * Field/column/filter name normalization (mirrors core `normalizeName`):
- * trim, lowercase, inner whitespace to '_', preserving '_' and non-Latin.
- */
-function normalizeName(name) {
-  return String(name == null ? '' : name)
-    .normalize('NFC')
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, '_')
-    .replace(/[^a-z0-9_\-\p{L}\p{N}]+/gu, '');
-}
-
-/**
- * Unit slug with level + Concept/Element boundary (mirrors core `slugifyUnitHeading`).
- */
-function slugifyUnitHeading(level, text) {
-  const clean = String(text == null ? '' : text).trim();
-  const { slug } = headingSlugParts(clean);
-  const clamped = Math.min(6, Math.max(1, Math.floor(level) || 1));
-  return { level: clamped, text: clean, slug };
 }
 
 /**
