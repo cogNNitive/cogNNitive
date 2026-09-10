@@ -3,6 +3,7 @@ import { mount } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
 import ConceptTableView from '../../src/components/editor/ConceptTableView.vue'
 import { useModelStore } from '../../src/stores/modelStore'
+import { useToast } from '../../src/shared/useToast'
 import type { ModelNode } from '../../src/model/types'
 
 function makeNode(id: string, overrides: Partial<ModelNode> = {}): ModelNode {
@@ -300,6 +301,106 @@ describe('ConceptTableView.vue — Reactivity and element addition', () => {
 
     const updated = modelStore.getNode('Root/ItemA')
     expect(updated?.tags).toEqual(['existing', 'new-tag'])
+  })
+
+  it('bounds the table height so the sticky header has its own scroll port', () => {
+    const modelStore = useModelStore()
+    modelStore.setGraph({ Root: makeNode('Root', { childIds: [] }) }, ['Root'])
+
+    const wrapper = mount(ConceptTableView, {
+      props: {
+        nodeId: 'virtual:Root:Problems',
+        conceptType: 'Problems',
+        conceptFields: [],
+      },
+    })
+
+    const container = wrapper.find('.overflow-auto')
+    expect(container.exists()).toBe(true)
+    expect(container.classes()).toContain('max-h-[70vh]')
+  })
+
+  it('sorts rows by element name as a view-only lens, toggling direction', async () => {
+    const modelStore = useModelStore()
+    const root = makeNode('Root', { childIds: ['Root/ItemB', 'Root/ItemA'] })
+    const itemA = makeNode('Root/ItemA', { parentId: 'Root', name: 'ItemA', type: 'Problems', kind: 'element' })
+    const itemB = makeNode('Root/ItemB', { parentId: 'Root', name: 'ItemB', type: 'Problems', kind: 'element' })
+    modelStore.setGraph({ Root: root, 'Root/ItemA': itemA, 'Root/ItemB': itemB }, ['Root'])
+
+    const wrapper = mount(ConceptTableView, {
+      props: {
+        nodeId: 'virtual:Root:Problems',
+        conceptType: 'Problems',
+        conceptFields: [],
+      },
+    })
+
+    const firstRowText = () => wrapper.findAll('tbody tr')[0].text()
+    expect(firstRowText()).toContain('ItemB')
+
+    await wrapper.find('[data-testid="sort-name"]').trigger('click')
+    expect(firstRowText()).toContain('ItemA')
+
+    await wrapper.find('[data-testid="sort-name"]').trigger('click')
+    expect(firstRowText()).toContain('ItemB')
+
+    // View-only lens: document order is untouched.
+    expect(modelStore.nodes['Root'].childIds).toEqual(['Root/ItemB', 'Root/ItemA'])
+  })
+
+  it('sorts numeric fields numerically, not lexicographically', async () => {
+    const modelStore = useModelStore()
+    const root = makeNode('Root', { childIds: ['Root/Nine', 'Root/Ten'] })
+    const nine = makeNode('Root/Nine', {
+      parentId: 'Root',
+      name: 'Nine',
+      type: 'Problems',
+      kind: 'element',
+      fields: { priority: { value: 9 } },
+    })
+    const ten = makeNode('Root/Ten', {
+      parentId: 'Root',
+      name: 'Ten',
+      type: 'Problems',
+      kind: 'element',
+      fields: { priority: { value: 10 } },
+    })
+    modelStore.setGraph({ Root: root, 'Root/Nine': nine, 'Root/Ten': ten }, ['Root'])
+
+    const wrapper = mount(ConceptTableView, {
+      props: {
+        nodeId: 'virtual:Root:Problems',
+        conceptType: 'Problems',
+        conceptFields: [{ name: 'priority', type: 'number' }],
+      },
+    })
+
+    await wrapper.find('[data-testid="sort-priority"]').trigger('click')
+    expect(wrapper.findAll('tbody tr')[0].text()).toContain('Nine')
+  })
+
+  it('shows a success toast when an element is added at the end', async () => {
+    const modelStore = useModelStore()
+    const root = makeNode('Root', { childIds: [] })
+    modelStore.setGraph({ Root: root }, ['Root'])
+
+    const { toasts, clearAll } = useToast()
+    clearAll()
+
+    const wrapper = mount(ConceptTableView, {
+      props: {
+        nodeId: 'virtual:Root:Problems',
+        conceptType: 'Problems',
+        conceptFields: [],
+      },
+    })
+
+    await wrapper.find('[data-testid="add-element-btn"]').trigger('click')
+
+    expect(
+      toasts.value.some((t) => t.type === 'success' && t.message.includes('New Problems')),
+    ).toBe(true)
+    clearAll()
   })
 })
 

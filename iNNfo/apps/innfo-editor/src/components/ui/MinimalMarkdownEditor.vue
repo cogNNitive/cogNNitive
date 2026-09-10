@@ -156,7 +156,10 @@
     </div>
 
     <!-- Body: WYSIWYG Editor vs Raw Textarea -->
-    <div class="relative p-3 min-h-[120px]">
+    <div
+      class="relative p-3 min-h-[120px]"
+      :class="readonly ? '' : 'max-h-80 overflow-y-auto'"
+    >
       <!-- TipTap / Visual WYSIWYG Mode -->
       <div v-if="!isRawMode && !readonly && editor" class="prose prose-slate dark:prose-invert max-w-none text-sm leading-relaxed">
         <EditorContent :editor="editor" class="focus:outline-none min-h-[100px]" />

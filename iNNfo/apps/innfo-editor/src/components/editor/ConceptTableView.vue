@@ -13,7 +13,7 @@
     <div
       ref="tableContainerRef"
       @scroll="syncTableScroll"
-      class="overflow-x-auto rounded-b-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800"
+      class="overflow-auto max-h-[70vh] rounded-b-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800"
     >
       <table
         ref="tableRef"
@@ -25,7 +25,20 @@
               class="sticky left-0 top-0 z-30 bg-slate-50 dark:bg-slate-800/95 text-left px-3 py-2 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 min-w-[280px]"
             >
               <div class="flex items-center gap-2">
-                <span>Element</span>
+                <button
+                  type="button"
+                  class="inline-flex items-center gap-1 hover:text-slate-700 dark:hover:text-slate-200 transition-colors uppercase tracking-wider"
+                  title="Sort by element name"
+                  data-testid="sort-name"
+                  @click="toggleSort('__name__')"
+                >
+                  <span>Element</span>
+                  <component
+                    :is="sortIcon('__name__')"
+                    class="w-3.5 h-3.5"
+                    :class="sortKey === '__name__' ? 'text-indigo-500' : 'text-slate-300 dark:text-slate-600'"
+                  />
+                </button>
                 <button
                   @click="addElement"
                   class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-600 hover:bg-blue-500 text-white shadow-xs hover:scale-110 active:scale-95 transition-all cursor-pointer shrink-0"
@@ -53,12 +66,38 @@
               :key="field.name"
               class="sticky top-0 z-20 bg-slate-50 dark:bg-slate-800/95 text-left px-3 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 min-w-[140px]"
             >
-              {{ field.name.replace(/_/g, ' ') }}
+              <button
+                type="button"
+                class="inline-flex items-center gap-1 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+                :title="`Sort by ${field.name}`"
+                :data-testid="`sort-${field.name}`"
+                @click="toggleSort(field.name)"
+              >
+                <span>{{ field.name.replace(/_/g, ' ') }}</span>
+                <component
+                  :is="sortIcon(field.name)"
+                  class="w-3.5 h-3.5"
+                  :class="sortKey === field.name ? 'text-indigo-500' : 'text-slate-300 dark:text-slate-600'"
+                />
+              </button>
             </th>
             <th
               class="sticky top-0 z-20 bg-slate-50 dark:bg-slate-800/95 text-left px-3 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 min-w-[160px]"
             >
-              Tags
+              <button
+                type="button"
+                class="inline-flex items-center gap-1 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+                title="Sort by tags"
+                data-testid="sort-tags"
+                @click="toggleSort('__tags__')"
+              >
+                <span>Tags</span>
+                <component
+                  :is="sortIcon('__tags__')"
+                  class="w-3.5 h-3.5"
+                  :class="sortKey === '__tags__' ? 'text-indigo-500' : 'text-slate-300 dark:text-slate-600'"
+                />
+              </button>
             </th>
             <th
               class="sticky top-0 z-20 bg-slate-50 dark:bg-slate-800/95 text-center px-3 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 min-w-[80px] w-[80px]"
@@ -69,17 +108,18 @@
         </thead>
         <tbody>
           <tr
-            v-for="(child, idx) in children"
+            v-for="(child, idx) in displayChildren"
             :key="child.id"
+            :data-node-id="child.id"
             @click="navigateTo(child.id)"
-            :draggable="draggableRowId === child.id"
+            :draggable="!isSorted && draggableRowId === child.id"
             @dragstart="onDragStart($event, idx)"
             @dragover.prevent="onDragOver($event, idx)"
             @dragend="onDragEnd"
             @drop="onDrop($event, idx)"
             class="group transition-colors cursor-pointer border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/30"
             :class="[
-              idx === children.length - 1 ? 'border-b-0' : '',
+              idx === displayChildren.length - 1 ? 'border-b-0' : '',
               draggedIndex === idx ? 'opacity-40 bg-slate-100 dark:bg-slate-700/50' : '',
               dragOverIndex === idx ? 'bg-indigo-50/40 dark:bg-indigo-950/20' : ''
             ]"
@@ -150,9 +190,10 @@
             <td class="px-3 py-2 text-sm text-slate-700 dark:text-slate-300 text-center">
               <div class="flex items-center justify-center">
                 <span
-                  class="cursor-grab active:cursor-grabbing p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 dark:text-slate-500 transition-colors flex items-center justify-center"
-                  title="Drag to reorder"
-                  @mousedown="draggableRowId = child.id"
+                  class="p-1 rounded transition-colors flex items-center justify-center"
+                  :class="isSorted ? 'opacity-30 cursor-not-allowed text-slate-400 dark:text-slate-500' : 'cursor-grab active:cursor-grabbing hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 dark:text-slate-500'"
+                  :title="isSorted ? 'Clear sort to reorder' : 'Drag to reorder'"
+                  @mousedown="onGripMouseDown(child)"
                   @mouseup="draggableRowId = null"
                   @mouseleave="draggableRowId = null"
                 >
@@ -161,7 +202,7 @@
               </div>
             </td>
           </tr>
-          <tr v-if="children.length === 0">
+          <tr v-if="displayChildren.length === 0">
             <td
               :colspan="3 + (conceptFields?.length || 0)"
               class="px-6 py-12 text-center text-sm text-slate-400 dark:text-slate-500 italic"
@@ -193,10 +234,11 @@
 
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted, nextTick } from 'vue'
-import { GripVertical, Plus, Pencil, Check } from 'lucide-vue-next'
+import { GripVertical, Plus, Pencil, Check, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-vue-next'
 import { useModelStore } from '../../stores/modelStore'
 import { useConfirmStore } from '../../stores/confirmStore'
 import { useUiStore } from '../../stores/uiStore'
+import { useToast } from '../../shared/useToast'
 import WidgetField from '../../shared/widgets/WidgetField.vue'
 import Pill from './Pill.vue'
 import FieldDetailModal from './FieldDetailModal.vue'
@@ -213,8 +255,79 @@ const props = defineProps<{
 const modelStore = useModelStore()
 const confirmStore = useConfirmStore()
 const uiStore = useUiStore()
+const { show: showToast } = useToast()
 
 const isEditMode = ref(false)
+
+// ── Column sorting (view-only lens; never mutates document order) ──
+type SortDir = 'asc' | 'desc'
+const sortKey = ref<string | null>(null)
+const sortDir = ref<SortDir>('asc')
+const isSorted = computed(() => sortKey.value !== null)
+
+function toggleSort(key: string): void {
+  if (sortKey.value === key) {
+    sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    sortKey.value = key
+    sortDir.value = 'asc'
+  }
+}
+
+function clearSort(): void {
+  sortKey.value = null
+  sortDir.value = 'asc'
+}
+
+function sortIcon(key: string) {
+  if (sortKey.value !== key) return ArrowUpDown
+  return sortDir.value === 'asc' ? ArrowUp : ArrowDown
+}
+
+function fieldValueFor(child: any, key: string): unknown {
+  if (key === '__name__') return child.name ?? ''
+  if (key === '__tags__') return (child.tags ?? []).join(', ')
+  return getRawFields(child)[key]
+}
+
+function toComparable(value: unknown): number | string {
+  if (value === null || value === undefined) return ''
+  if (typeof value === 'number') return value
+  if (typeof value === 'boolean') return value ? 1 : 0
+  if (Array.isArray(value)) {
+    return value.map((v) => String(v)).join(', ').toLowerCase()
+  }
+  if (typeof value === 'object') {
+    const inner = (value as { value?: unknown }).value
+    if (inner !== undefined) return toComparable(inner)
+    return JSON.stringify(value).toLowerCase()
+  }
+  const s = String(value)
+  const trimmed = s.trim()
+  if (trimmed !== '') {
+    const n = Number(trimmed)
+    if (!Number.isNaN(n)) return n
+    if (/^\d{4}-\d{2}-\d{2}/.test(trimmed)) {
+      const d = Date.parse(trimmed)
+      if (!Number.isNaN(d)) return d
+    }
+  }
+  return s.toLowerCase()
+}
+
+function compareChildren(a: any, b: any): number {
+  const key = sortKey.value
+  if (!key) return 0
+  const va = toComparable(fieldValueFor(a, key))
+  const vb = toComparable(fieldValueFor(b, key))
+  let cmp: number
+  if (typeof va === 'number' && typeof vb === 'number') {
+    cmp = va - vb
+  } else {
+    cmp = String(va).localeCompare(String(vb))
+  }
+  return sortDir.value === 'asc' ? cmp : -cmp
+}
 
 const draggedIndex = ref<number | null>(null)
 const dragOverIndex = ref<number | null>(null)
@@ -322,16 +435,29 @@ const children = computed(() => {
   return modelStore.getChildren(id)
 })
 
+const sortedChildren = computed(() => {
+  if (!sortKey.value) return children.value
+  return [...children.value].sort(compareChildren)
+})
+
+const displayChildren = computed(() => (sortKey.value ? sortedChildren.value : children.value))
+
 function navigateTo(nodeId: string): void {
   uiStore.selectNode(nodeId)
 }
 
 function onDragStart(e: DragEvent, index: number): void {
+  if (isSorted.value) return
   draggedIndex.value = index
   if (e.dataTransfer) {
     e.dataTransfer.effectAllowed = 'move'
     e.dataTransfer.setData('text/plain', index.toString())
   }
+}
+
+function onGripMouseDown(child: { id: string }): void {
+  if (isSorted.value) return
+  draggableRowId.value = child.id
 }
 
 function onDragOver(e: DragEvent, index: number): void {
@@ -349,6 +475,12 @@ function onDragEnd(): void {
 
 function onDrop(e: DragEvent, targetIdx: number): void {
   e.preventDefault()
+  if (isSorted.value) {
+    draggedIndex.value = null
+    dragOverIndex.value = null
+    draggableRowId.value = null
+    return
+  }
   if (draggedIndex.value === null || draggedIndex.value === targetIdx) {
     draggedIndex.value = null
     dragOverIndex.value = null
@@ -356,7 +488,7 @@ function onDrop(e: DragEvent, targetIdx: number): void {
     return
   }
 
-  const childId = children.value[draggedIndex.value].id
+  const childId = displayChildren.value[draggedIndex.value].id
   const id = props.nodeId
   const parentId = id.startsWith('virtual:') ? id.split(':')[1] : id
 
@@ -404,6 +536,16 @@ function addElement(): void {
   const newId = modelStore.createChild(parentId, elementName, conceptName, 'element')
   if (newId) {
     isEditMode.value = true
+    if (isSorted.value) clearSort()
+    showToast(`New ${conceptName} added at the end of the table`, 'success')
+    nextTick(() => {
+      const rows = tableRef.value?.querySelectorAll<HTMLTableRowElement>('tr[data-node-id]')
+      rows?.forEach((row) => {
+        if (row.dataset.nodeId === newId && typeof row.scrollIntoView === 'function') {
+          row.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+        }
+      })
+    })
   }
 }
 
