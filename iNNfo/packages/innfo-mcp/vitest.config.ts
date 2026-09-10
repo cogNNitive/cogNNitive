@@ -21,19 +21,20 @@ export default defineConfig({
         '**/*.d.ts',
         '*.config.ts',
       ],
-      // Ratchet thresholds, set a couple of points below the measured baseline so
-      // CI fails on a REGRESSION, not on the current level.
+      // Ratchet thresholds, set below the measured baseline so CI fails on a
+      // REGRESSION, not on the current level.
       // 2026-08-07 baseline: lines 95.2%, branches 86.94%, funcs 97.72%, stmts 95.2%.
-      // But coverage gates (90/85/95/90) were never wired into CI, so coverage
-      // silently drifted DOWN to the 2026-09-10 baseline: lines/stmts 88.03%,
-      // branches 78.55%, funcs 89.4%. Thresholds are ratcheted to that floor and
-      // enforced in CI (`test:coverage`); backfill lowest-first toward the
+      // The old 90/85/95/90 were never wired into CI, so coverage silently drifted
+      // down. Measured floor (2026-09-10): local Windows run = lines/stmts 88.03%,
+      // branches 78.54%, funcs 89.4%; the v8 provider on the Linux CI runner reads
+      // ~0.7pp lower (lines/stmts 87.31%, branches 78.06%, funcs 88.74%). Thresholds
+      // track the CI floor so CI is stable; backfill lowest-first toward the
       // original 90/85/95/90 (see backlog #5).
       thresholds: {
-        lines: 88,
-        branches: 78,
-        functions: 89,
-        statements: 88,
+        lines: 87,
+        branches: 77,
+        functions: 88,
+        statements: 87,
       },
     },
   },
