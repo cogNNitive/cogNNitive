@@ -62,7 +62,7 @@ agent-bootstrap:
     - name: nn-design-presets
       repo: cogNNitive/cogNNitive
       path: actioNN/skills/nn-design-presets
-      version: "V_1-2-0"
+      version: "V_1-3-0"
       ref: "skills-v1.4.0"
       commit: "13270094886e51679ff7696045f08dd29660d816"
       description: cogNNitive visual design presets — palettes, typography, spacing.
