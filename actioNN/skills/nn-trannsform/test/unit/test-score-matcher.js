@@ -145,6 +145,32 @@ function run() {
       "scoring is deterministic across runs",
     );
 
+    // Reviewer workflow tests (robustness-coda 1.5)
+    const reviewResult = matcher.scorePairs(
+      [{ id: "src-doubtful", text: "ghost removal" }],
+      [{ id: "el-ghost", text: "paranormal ghost containment" }],
+      { threshold: 0.9 }, // forces into queue
+    );
+    eq(reviewResult.queue.length, 1, "doubtful pair queues under strict threshold");
+    
+    // Undecided path
+    const undecided = matcher.applyReviewDecision(reviewResult, "src-doubtful", "undecided");
+    eq(undecided.queue.length, 1, "undecided pairs stay queued");
+    eq(undecided.queue[0].status, "pending", "undecided queue item retains pending status");
+    eq(undecided.links.length, 0, "undecided pair produces no links");
+
+    // Reject path
+    const rejected = matcher.applyReviewDecision(reviewResult, "src-doubtful", "reject");
+    eq(rejected.queue.length, 0, "rejected pair is removed from queue");
+    eq(rejected.links.length, 0, "rejected pair produces no links");
+
+    // Confirm path
+    const confirmed = matcher.applyReviewDecision(reviewResult, "src-doubtful", "confirm", { elementId: "el-ghost" });
+    eq(confirmed.queue.length, 0, "confirmed pair is removed from queue");
+    eq(confirmed.links.length, 1, "confirmed pair produces a link");
+    eq(confirmed.links[0].sourceId, "src-doubtful", "confirmed link has correct sourceId");
+    eq(confirmed.links[0].elementId, "el-ghost", "confirmed link has correct elementId");
+
     console.log(`\n  Score-matcher tests: ${passed} passed, ${failed} failed`);
   } catch (e) {
     console.error(`  ERROR: ${e.message}`);

@@ -121,10 +121,44 @@ function scorePairs(sources, elements, { threshold = DEFAULT_THRESHOLD } = {}) {
   return { links, queue };
 }
 
+/**
+ * Apply a reviewer decision to a queued source item.
+ * @param {{ links: Array, queue: Array }} result - current scorePairs result
+ * @param {string} sourceId - source id being reviewed
+ * @param {'confirm' | 'reject' | 'undecided'} decision
+ * @param {{ elementId?: string }} [options]
+ * @returns {{ links: Array, queue: Array }} updated links and queue
+ */
+function applyReviewDecision(result, sourceId, decision, { elementId } = {}) {
+  const links = [...result.links];
+  const queue = [...result.queue];
+  const queueIndex = queue.findIndex((q) => q.sourceId === sourceId);
+  if (queueIndex === -1) return { links, queue };
+
+  const item = queue[queueIndex];
+
+  if (decision === "confirm") {
+    const targetElementId = elementId || item.candidates[0]?.elementId;
+    if (targetElementId) {
+      const candidate = item.candidates.find((c) => c.elementId === targetElementId);
+      const score = candidate ? candidate.score : 1.0;
+      links.push({ sourceId, elementId: targetElementId, score });
+      queue.splice(queueIndex, 1);
+    }
+  } else if (decision === "reject") {
+    queue.splice(queueIndex, 1);
+  } else if (decision === "undecided") {
+    item.status = "pending";
+  }
+
+  return { links, queue };
+}
+
 module.exports = {
   DEFAULT_THRESHOLD,
   MAX_QUEUE_CANDIDATES,
   tokenize,
   scorePair,
   scorePairs,
+  applyReviewDecision,
 };
