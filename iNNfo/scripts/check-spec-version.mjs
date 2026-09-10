@@ -31,6 +31,7 @@ import { readFileSync, existsSync } from 'node:fs'
 import { readdirSync, statSync } from 'node:fs'
 import { join, relative, resolve, dirname, extname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { execSync } from 'node:child_process'
 
 // ── Config ──────────────────────────────────────────────────────────
 
@@ -241,8 +242,31 @@ function contentContainsVersion(content, version) {
 
 // ── Repo-Wide URL & Legacy Integrity Check ──────────────────────────
 
+// Files visible to git (tracked + untracked-but-not-ignored). The scan walks the
+// filesystem, so without this it also flags gitignored local artifacts (e.g. the
+// `_NN/specs/**` resolver caches, .gitignore:30-36) that a fresh CI checkout never
+// has — making a clean repo fail locally but pass in CI. Null when git is
+// unavailable / not a checkout, in which case no filtering is applied.
+let gitVisibleFilesCache
+function gitVisibleFiles() {
+  if (gitVisibleFilesCache !== undefined) return gitVisibleFilesCache
+  try {
+    const out = execSync('git ls-files -co --exclude-standard', { cwd: REPO_ROOT, encoding: 'utf8' })
+    const set = new Set()
+    for (const line of out.split('\n')) {
+      const rel = line.trim()
+      if (rel) set.add(resolve(REPO_ROOT, rel).replace(/\\/g, '/'))
+    }
+    gitVisibleFilesCache = set
+  } catch {
+    gitVisibleFilesCache = null
+  }
+  return gitVisibleFilesCache
+}
+
 function collectRepoFiles(dir, includeArchives) {
   const files = []
+  const gitVisible = gitVisibleFiles()
 
   try {
     const entries = readdirSync(dir)
@@ -260,6 +284,7 @@ function collectRepoFiles(dir, includeArchives) {
         if (full.endsWith('.bundle.js')) continue
         if (rel === 'scripts/migrate-spec-urls.mjs') continue
         if (rel === 'iNNfo/scripts/check-spec-version.mjs') continue
+        if (gitVisible && !gitVisible.has(full.replace(/\\/g, '/'))) continue
         const ext = extname(entry)
         if (URL_CHECK_EXTENSIONS.has(ext)) {
           files.push(full)
