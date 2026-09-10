@@ -3,8 +3,8 @@ name: nn-design-presets
 description: Reference for cogNNitive visual design presets — palettes, typography, spacing, and branding tokens. MUST be activated whenever generating visual components, web apps, HTML dashboard artifacts, or styled site pages.
 license: MIT
 compatibility: ">=1.0.0"
-version: "V_1-2-0"
-last_updated: 2026-08-02
+version: "V_1-3-0"
+last_updated: 2026-09-10
 metadata:
   source_type: original
 bundled_templates: []
@@ -40,6 +40,7 @@ Which visual design style would you like to apply to this artifact/component?
   [c] glassmorphism — Ambient glass: Deep gradient backdrop, translucent panels, backdrop-filter blur, neon glow
   [d] neo-brutalism — Bold pop retro: Canary yellow (#FFE600), thick 3px black borders, hard 5px shadows, pop colors
   [e] nordic-warm-editorial — Organic luxury: Warm linen (#FDFBF7), forest green (#2D4A3E) & terracotta (#C85A32) accents
+  [f] nn-shad-cn — Monochrome neutral (shadcn-inspired): black/white/gray only; color reserved for semantic meaning (danger red, success green, warning amber, info blue)
 
 *(Notice: You can select one option or a combination (e.g. A and B))*
 ```
@@ -53,5 +54,6 @@ Which visual design style would you like to apply to this artifact/component?
 - [`glassmorphism`](presets/glassmorphism.md) — Ambient glass, backdrop-filter blur, translucent cards, neon accents
 - [`neo-brutalism`](presets/neo-brutalism.md) — Bold pop retro, canary yellow, 3px solid black borders & hard shadows
 - [`nordic-warm-editorial`](presets/nordic-warm-editorial.md) — Organic warm linen `#FDFBF7`, terracotta & forest green accents, Lora serif
+- [`nn-shad-cn`](presets/nn-shad-cn.md) — Monochrome neutral (shadcn-inspired): black/white/gray only; color only for semantic meaning (success `#16A34A`, danger `#DC2626`, warning `#D97706`, info `#2563EB`)
 
 Browse the `presets/` directory for the full token specs. When a user or workflow creates a visual artifact, read the relevant preset and apply its CSS tokens.
