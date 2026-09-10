@@ -198,7 +198,7 @@ npm --prefix iNNfo/packages/innfo-core run build      # ALWAYS first — kills s
 npm --prefix iNNfo run lint
 npm --prefix iNNfo run typecheck
 npm --prefix iNNfo/packages/innfo-core test
-npm --prefix iNNfo/packages/innfo-mcp test
+npm --prefix iNNfo/packages/innfo-mcp run test:coverage
 npm --prefix iNNfo/apps/innfo-editor test
 npm --prefix iNNfo/apps/innfo-editor run build
 node scripts/verify.js            # dev mode: skips the live stable-manifest check (release-only)

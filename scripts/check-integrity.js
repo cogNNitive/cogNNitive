@@ -8,7 +8,8 @@
  * - Group 0 & 1: Git working tree & concurrency status
  * - Group 2: MCP version square alignment
  * - Group 3, 4, 7+: Full workspace verification suite (scripts/verify.js)
- * - Group 5 (optional): Complete CI mirror (lint, typecheck, tests)
+ * - Group 5 (optional): Complete CI mirror (lint, typecheck, core/app tests,
+ *   innfo-mcp tests + coverage ratchet, spec-url resolution)
  *
  * Usage:
  *   node scripts/check-integrity.js            # Standard deterministic gate (Groups 0-4, 7+)
@@ -74,7 +75,7 @@ try {
 
 // Step 4: Full CI Mirror (Group 5, if --pre-push)
 if (isPrePush) {
-  console.log('\n[Group 5] Full CI Mirror (lint · typecheck · test suites):');
+  console.log('\n[Group 5] Full CI Mirror (lint · typecheck · tests+coverage · spec-urls):');
   function runCmd(cmd, desc) {
     console.log(`\n▶ ${desc} (${cmd})...`);
     execSync(cmd, { cwd: repoRoot, stdio: 'inherit' });
@@ -83,7 +84,10 @@ if (isPrePush) {
   try {
     runCmd('npm --prefix iNNfo run lint', 'Lint');
     runCmd('npm --prefix iNNfo run typecheck', 'Typecheck');
-    runCmd('npm --prefix iNNfo test', 'Test Suites');
+    runCmd('npm --prefix iNNfo/packages/innfo-core test', 'Unit tests (core)');
+    runCmd('npm --prefix iNNfo/packages/innfo-mcp run test:coverage', 'Unit tests + coverage (innfo-mcp)');
+    runCmd('npm --prefix iNNfo/apps/innfo-editor test', 'Unit tests (app)');
+    runCmd('npm --prefix iNNfo run check:spec-urls', 'Check spec URLs resolve');
     console.log('\n✅ [Group 5] CI mirror passed.');
   } catch (err) {
     console.error(`\n❌ CI mirror failed.`);
