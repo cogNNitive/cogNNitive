@@ -17,6 +17,7 @@ import {
   normalizeMatrixDecl,
 } from '../src/index'
 import type { ElementNode } from '../src/types'
+import { decomposedResolver } from './fixtures/decomposed'
 
 const specsRoot = join(import.meta.dirname!, '..', '..', '..', 'specs')
 
@@ -218,16 +219,8 @@ describe('validator', () => {
   const bizTemplateFm = parseFrontmatter(bizTemplateContent)!
 
   // Canonical `business` is a composition shell — its schema is resolved from
-  // the five decomposed templates it `includes`.
-  const bizIncludes: Record<string, string> = {
-    'business-model': readSpec('templates/business-model/spec_NN.md'),
-    analysis: readSpec('templates/analysis/spec_NN.md'),
-    organization: readSpec('templates/organization/spec_NN.md'),
-    projects: readSpec('templates/projects/spec_NN.md'),
-    metrics: readSpec('templates/metrics/spec_NN.md'),
-  }
-  const resolveBizInclude = (ref: { name: string }): string | null =>
-    bizIncludes[ref.name.toLowerCase()] ?? null
+  // the five decomposed templates it `includes` (shared fixture).
+  const resolveBizInclude = decomposedResolver()
 
   it('validates a model against the migrated business template', () => {
     const model = parseModel(validModelContent)

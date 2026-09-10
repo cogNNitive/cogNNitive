@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { parseModel } from '../src/parser/index'
 import { validateModel } from '../src/validator/model'
+import { readSpec, decomposedResolver } from '../tests/fixtures/decomposed'
 
 describe('parent spec resolution failure diagnostics', () => {
   const modelContent = [
@@ -68,24 +69,12 @@ describe('parent spec resolution failure diagnostics', () => {
     expect(parentError).toBeUndefined()
   })
 
-  it('validates the official Ghostbusters sample successfully against the updated Business template', async () => {
-    const fs = await import('fs')
-    const path = await import('path')
-    const tpl = (p: string) =>
-      fs.readFileSync(path.join(import.meta.dirname, '../../../specs/templates/', p), 'utf8')
-    const modelContent = tpl('business/samples/Ghostbusters_V_0-2-1_business_NN.md')
-    const templateContent = tpl('business/spec_NN.md')
+  it('validates the official Ghostbusters sample successfully against the updated Business template', () => {
+    const modelContent = readSpec('templates/business/samples/Ghostbusters_V_0-2-1_business_NN.md')
+    const templateContent = readSpec('templates/business/spec_NN.md')
 
-    // Canonical `business` composes its schema from the five templates it includes.
-    const includes: Record<string, string> = {
-      'business-model': tpl('business-model/spec_NN.md'),
-      analysis: tpl('analysis/spec_NN.md'),
-      organization: tpl('organization/spec_NN.md'),
-      projects: tpl('projects/spec_NN.md'),
-      metrics: tpl('metrics/spec_NN.md'),
-    }
-    const resolveInclude = (ref: { name: string }): string | null =>
-      includes[ref.name.toLowerCase()] ?? null
+    // Canonical `business` composes its schema from the five decomposed templates (shared fixture).
+    const resolveInclude = decomposedResolver()
 
     const model = parseModel(modelContent)
     const mockTemplate = {

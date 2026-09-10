@@ -1,33 +1,19 @@
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import {
   resolveTemplateSchema,
   validateTemplateAgainstMetaschema,
   parseModel,
   validateModel,
 } from '../src/index'
+import { readSpec, decomposedTemplates, decomposedResolver } from './fixtures/decomposed'
 
-const specsRoot = join(import.meta.dirname!, '..', '..', '..', 'specs')
-const readSpec = (p: string): string => readFileSync(join(specsRoot, p), 'utf-8')
-
-const BUSINESS_MODEL = readSpec('templates/business-model/spec_NN.md')
-const ANALYSIS = readSpec('templates/analysis/spec_NN.md')
-const ORG_V2 = readSpec('templates/organization/spec_NN.md')
-const PROJECTS_V2 = readSpec('templates/projects/spec_NN.md')
-const METRICS = readSpec('templates/metrics/spec_NN.md')
+const decomposed = decomposedTemplates()
+const BUSINESS_MODEL = decomposed['business-model']
+const ANALYSIS = decomposed.analysis
 const BUSINESS_V2 = readSpec('templates/business/spec_NN.md')
 const INNFO_V2 = readSpec('iNNfo_V_0-2-0_NN.md')
 
-/** Resolve an `includes` entry by (lowercased) name from the five decomposed templates on disk. */
-const byName: Record<string, string> = {
-  'business-model': BUSINESS_MODEL,
-  analysis: ANALYSIS,
-  organization: ORG_V2,
-  projects: PROJECTS_V2,
-  metrics: METRICS,
-}
-const resolver = (ref: { name: string }): string | null => byName[ref.name.toLowerCase()] ?? null
+const resolver = decomposedResolver()
 
 describe('business-model_V_0-2-0 — composite of organization + projects', () => {
   it('resolves with zero errors', () => {

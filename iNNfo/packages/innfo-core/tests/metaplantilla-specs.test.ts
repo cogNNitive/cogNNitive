@@ -7,6 +7,7 @@ import {
   extractTemplateSchemaFromContent,
 } from '../src/index'
 import type { SpecDocument } from '../src/types'
+import { decomposedTemplateNames } from './fixtures/decomposed'
 
 const specsRoot = join(import.meta.dirname!, '..', '..', '..', 'specs')
 
@@ -52,13 +53,9 @@ describe('Metaplantilla Nivel 1 (specs/)', () => {
     expect(fm.markers).toBeUndefined()
     expect(fm.matrices).toBeUndefined()
 
-    expect((fm.includes ?? []).map((i: { name: string }) => i.name).sort()).toEqual([
-      'analysis',
-      'business-model',
-      'metrics',
-      'organization',
-      'projects',
-    ])
+    expect((fm.includes ?? []).map((i: { name: string }) => i.name).sort()).toEqual(
+      decomposedTemplateNames(),
+    )
 
     // Without resolving `includes`, the shell contributes no schema of its own.
     const schema = extractTemplateSchemaFromContent(content)
