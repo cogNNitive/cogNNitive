@@ -41,6 +41,7 @@ function parseSourceYaml(text) {
     entrypoint: doc.entrypoint,
     skills: Array.isArray(doc.skills) ? doc.skills : [],
     templates: Array.isArray(doc.templates) ? doc.templates : [],
+    consoleAssets: Array.isArray(doc.console_assets) ? doc.console_assets : [],
     workflows: Array.isArray(doc.workflows) ? doc.workflows : [],
     channels: doc.channels || {},
   };
@@ -107,11 +108,25 @@ async function buildRenderModel(source, channel, resolveRef) {
     templates.push({ ...template, ref: resolved.ref, commit: resolved.commit });
   }
 
+  const consoleAssets = [];
+  for (const asset of source.consoleAssets) {
+    const resolved = await resolveEntryRef(asset, channelRefs, resolveRef, policy);
+    if (resolved.error) return { error: `${asset.name}: ${resolved.error}` };
+    consoleAssets.push({
+      file: asset.file,
+      version: asset.version,
+      ref: resolved.ref,
+      commit: resolved.commit,
+      url: `https://raw.githubusercontent.com/${asset.repo}/${resolved.commit}/${asset.file}`,
+    });
+  }
+
   return {
     version: source.version,
     entrypoint: source.entrypoint,
     skills,
     templates,
+    consoleAssets,
     workflows: source.workflows,
   };
 }
@@ -178,6 +193,16 @@ function renderTemplateEntry(template) {
   return out;
 }
 
+function renderConsoleAssetEntry(asset) {
+  const indent = '    ';
+  let out = `${indent}- file: ${asset.file}\n`;
+  out += `${indent}  version: ${q(asset.version)}\n`;
+  out += `${indent}  ref: ${q(asset.ref)}\n`;
+  out += `${indent}  commit: ${q(asset.commit)}\n`;
+  out += `${indent}  url: ${asset.url}\n`;
+  return out;
+}
+
 function renderWorkflowEntry(wf) {
   const indent = '    ';
   let out = `${indent}- id: ${wf.id}\n`;
@@ -201,6 +226,10 @@ function renderFrontmatter(model, channel) {
   for (const s of model.skills) out += renderSkillEntry(s);
   out += '  templates:\n';
   for (const t of model.templates) out += renderTemplateEntry(t);
+  if (model.consoleAssets && model.consoleAssets.length) {
+    out += '  console-assets:\n';
+    for (const a of model.consoleAssets) out += renderConsoleAssetEntry(a);
+  }
   out += '  workflows:\n';
   for (const w of model.workflows) out += renderWorkflowEntry(w);
   out += '---\n';

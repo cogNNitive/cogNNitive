@@ -84,6 +84,30 @@ channels:
         ref: feat/business-template-decomposition
 `;
 
+const CONSOLE_SOURCE = `version: "2.0"
+entrypoint: "workspace_NN.md"
+skills: []
+templates: []
+console_assets:
+  - name: innfo-console
+    repo: cogNNitive/cogNNitive
+    file: iNNfo/specs/templates/console/innfo-console.bundle.js
+    version: "0.1.0"
+    ref_key: innfo-console
+workflows: []
+channels:
+  stable:
+    refs:
+      - key: innfo-console
+        repo: cogNNitive/cogNNitive
+        ref: innfo-console-v0.1.0
+  preview:
+    refs:
+      - key: innfo-console
+        repo: cogNNitive/cogNNitive
+        ref: main
+`;
+
 const BASIC_BODY = `# cogNNitive — bootstrap manifest
 
 Body prose goes here.
@@ -290,6 +314,24 @@ channels:
     const result = await mod.renderManifest(source, 'preview', BASIC_BODY, resolveRef);
     assert.strictEqual(typeof result, 'string', 'preview must accept a branch-kind ref');
     console.log('✔ preview channel accepts a branch-kind ref test passed');
+  }
+
+  // Console assets: the published single-file console bundle is a distributable
+  // with its own ref_key; the renderer emits file/version/ref/commit plus a
+  // commit-pinned raw URL (no branch in the stable url).
+  {
+    const mod = freshGeneratorModule();
+    const source = mod.parseSourceYaml(CONSOLE_SOURCE);
+    const commit = 'a'.repeat(40);
+    const resolveRef = fakeResolveRef({ 'innfo-console-v0.1.0': commit }, {});
+    const rendered = await mod.renderManifest(source, 'stable', BASIC_BODY, resolveRef);
+    assert.strictEqual(typeof rendered, 'string', 'console asset must resolve on the stable channel');
+    assert.match(rendered, /\n  console-assets:\n/, 'console-assets block must be emitted');
+    assert.match(rendered, /- file: iNNfo\/specs\/templates\/console\/innfo-console\.bundle\.js/, 'file must render');
+    assert.match(rendered, /ref: "innfo-console-v0\.1\.0"/, 'ref must render');
+    assert.match(rendered, new RegExp(`commit: "${commit}"`), 'commit must render');
+    assert.match(rendered, /url: https:\/\/raw\.githubusercontent\.com\/cogNNitive\/cogNNitive\/a{40}\/iNNfo\/specs\/templates\/console\/innfo-console\.bundle\.js/, 'url must be commit-pinned');
+    console.log('✔ console-assets block rendering test passed');
   }
 
   console.log('All generate-manifest unit tests passed successfully!');

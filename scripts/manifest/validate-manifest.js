@@ -97,11 +97,11 @@ async function validateChannel(repoRoot, channelName) {
 
   if (violations.length > 0) {
     for (const violation of violations) console.error(`FAIL: ${prefix} ${violation}`);
-    console.error(`\nFAIL: ${prefix} ${violations.length} violation(s) in manifest (${stats.skillsCount} skills, ${stats.templatesCount} templates, ${stats.mcpCount} mcp bundles)`);
+    console.error(`\nFAIL: ${prefix} ${violations.length} violation(s) in manifest (${stats.skillsCount} skills, ${stats.templatesCount} templates, ${stats.mcpCount} mcp bundles, ${stats.consoleCount} console assets)`);
     return false;
   }
 
-  console.log(`OK: ${prefix} ${stats.skillsCount} skills, ${stats.templatesCount} templates, and ${stats.mcpCount} mcp bundles validated`);
+  console.log(`OK: ${prefix} ${stats.skillsCount} skills, ${stats.templatesCount} templates, ${stats.mcpCount} mcp bundles, and ${stats.consoleCount} console assets validated`);
   return true;
 }
 
