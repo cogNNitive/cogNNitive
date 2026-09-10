@@ -398,3 +398,51 @@ robustness-coda verify + archive; then the batched merge path
 chat, not an SDD cycle.
 
 **Suggested trigger:** maintainer decision in chat.
+
+---
+
+## 16. `fix/skills-manager-test-workspace-template-name` — preexisting skills-manager sync test failure
+
+**Type:** bug · **Size:** small
+
+**Why:** `actioNN/scripts/skills-manager.test.js` (test 4, local sync) asserts that
+`nn-innfo/templates/workspace_V_0-3-0_spec_NN.md` is synchronized to the destination,
+but the repo ships `actioNN/skills/nn-innfo/templates/workspace_spec_NN.md` (no
+`V_0-3-0` segment). The failure predates the console-bundle distribution work
+(2026-09-10) and derives from working-tree drift around the template pin
+(`templates-v0.5.1`), not from any console change. It was surfaced while running the
+suite after wiring `console-assets` into `skills-manager`.
+
+**Approach:** decide the intended contract for bundled templates inside skills:
+(a) the bundled filename should carry the version segment (`workspace_V_0-3-0_spec_NN.md`)
+matching what `nn-innfo` actually ships, or (b) the test should resolve the file by
+glob/name-without-version rather than asserting an exact versioned filename. Fix the
+file that is wrong (test vs shipped asset), rerun `node actioNN/scripts/skills-manager.test.js`.
+
+**Suggested trigger:** `/sdd-new fix/skills-manager-test-workspace-template-name`.
+
+---
+
+## 17. `fix/dev-gate-release-coupling` — release-time manifest check runs inside the dev pre-push gate
+
+**Type:** chore / design · **Size:** medium
+
+**Why:** `scripts/verify.js` step 8 (`validate-manifest --channel stable`) validates pins
+live against GitHub and requires a tag that only exists *after* a release, while step 9
+asserts `docs/use/manifest.md` is a generated artifact in sync with `manifest/source.yaml`.
+The dev pre-push preset (`nn-dev-check-integrity` `[p] = d + 5`, SKILL.md:76) runs group 5
+(`:204`), which invokes `verify.js` — so any release-shaped change on `dev` (a version bump
+or a manifest pin) blocks the gate until the tag is cut. `nn-dev-development §4e` prescribes
+"check-integrity → release", making the ordering circular for exactly those changes. The
+failure is also misleading: step 8 (tag 404) fires before step 9 (generated-file drift), so a
+hand-edit to a generated manifest reports "tag not found" instead of "you edited a generated
+file". This recurred on the `skills-v1.5.0` release (merge → tag → pin) and again on the
+`innfo-console` bundle (2026-09-10).
+
+**Approach:** split dev vs release gates. Keep lint / typecheck / tests / parity / doc-drift
+in the dev pre-push gate; move the tag-dependent checks (`validate-manifest --channel stable`
+plus stable-manifest-doc freshness) into the release path (post-tag) or behind a dedicated
+`--release` flag. Run the generated-manifest drift check before the live validation so a
+hand-edited `docs/use/manifest.md` fails fast with the correct message.
+
+**Suggested trigger:** `/sdd-new fix/dev-gate-release-coupling`.
