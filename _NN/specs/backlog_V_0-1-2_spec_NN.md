@@ -5,7 +5,7 @@ level: 2
 parent_spec:
   name: "iNNfo_V_0-2-0"
   url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/iNNfo_V_0-2-0_NN.md"
-template_version: "V_0-1-1"
+template_version: "V_0-1-2"
 title: "Backlog Template"
 relationship_types:
   hierarchy:
@@ -58,7 +58,7 @@ concept:: WorkItem
 type:: string
 description:: Backlog index of the work item (1..N).
 
-## NN Field Definition: slug
+## NN Field Definition: key
 concept:: WorkItem
 type:: string
 description:: Machine-readable identifier, e.g. refactor/split-types.
@@ -168,7 +168,7 @@ The schema mirrors the structure of a canonical backlog document so a raw backlo
 | Backlog | `title` | string | Backlog title |
 | Backlog | `description` | markdown_inline | Backlog scope description |
 | WorkItem | `number` | string | Backlog index |
-| WorkItem | `slug` | string | Machine-readable identifier |
+| WorkItem | `key` | string | Machine-readable identifier |
 | WorkItem | `title` | string | Human title |
 | WorkItem | `type` | select | Category (functional/refactor/chore/feat/ci/fix) |
 | WorkItem | `size` | select | Effort estimate (small…large) |
@@ -233,16 +233,16 @@ A prioritized unit of work with typed metadata and inter-item relations.
 
 ### Description
 
-Each `WorkItem` element carries the operational fields (number, slug, title, type, size, why, approach, behaviour, also_consider, risks, suggested_trigger, status) so a downstream task can be actioned from the model alone. Relationships between items are stored in the `work-item relations` matrix: `depends_on` is directional (a row item depends on its column neighbor), `related` marks affinity or shared scope.
+Each `WorkItem` element carries the operational fields (number, key, title, type, size, why, approach, behaviour, also_consider, risks, suggested_trigger, status) so a downstream task can be actioned from the model alone. Relationships between items are stored in the `work-item relations` matrix: `depends_on` is directional (a row item depends on its column neighbor), `related` marks affinity or shared scope.
 
 ### Methodologies
 
-- One `WorkItem` per backlog entry; keep `number` and `slug` aligned with the source item.
+- One `WorkItem` per backlog entry; keep `number` and `key` aligned with the source item.
 - Use `status` to separate active items from deferred or in-progress ones.
 - Record dependency and affinity only through the `work-item relations` matrix, never as free text.
 
 ### Prompts
 
-- "Add a `WorkItem` for `<slug>` with type `<type>` and size `<size>`."
+- "Add a `WorkItem` for `<key>` with type `<type>` and size `<size>`."
 - "Mark that `<WorkItem A>` depends on `<WorkItem B>`."
 - "Which `WorkItem` elements are related to `<WorkItem>`?"
