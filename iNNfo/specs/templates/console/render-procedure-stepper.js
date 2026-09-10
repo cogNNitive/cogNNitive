@@ -24,10 +24,6 @@
   // local literals when the module is absent (e.g. raw file:// single renderer).
   var V = (GLOBAL.InnfoVisuals && typeof GLOBAL.InnfoVisuals === 'object') ? GLOBAL.InnfoVisuals : null
 
-  function vHex(name) {
-    return V && typeof V.getHexColor === 'function' ? V.getHexColor(name) : STATUS_COLORS[name] || '#a1a1a1'
-  }
-
   function vIcon(name) {
     return V && typeof V.iconSvg === 'function' ? V.iconSvg(name, 12) : ''
   }
