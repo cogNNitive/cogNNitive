@@ -50,7 +50,7 @@ skills:
   - name: nn-design-presets
     repo: cogNNitive/cogNNitive
     path: actioNN/skills/nn-design-presets
-    version: "V_1-2-0"
+    version: "V_1-3-0"
     ref_key: skills
     description: cogNNitive visual design presets — palettes, typography, spacing.
   - name: nn-skills-lifecycle
