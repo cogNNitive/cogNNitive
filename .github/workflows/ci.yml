@@ -96,8 +96,8 @@ jobs:
       - name: Unit tests (core)
         run: npm --prefix iNNfo/packages/innfo-core test
 
-      - name: Unit tests (innfo-mcp)
-        run: npm --prefix iNNfo/packages/innfo-mcp test
+      - name: Unit tests + coverage (innfo-mcp)
+        run: npm --prefix iNNfo/packages/innfo-mcp run test:coverage
 
       - name: Unit tests (app)
         run: npm --prefix iNNfo/apps/innfo-editor test
