@@ -16,7 +16,7 @@ const commands = require('./lib/skills-commands.js');
 /**
  * Parses CLI command line arguments into structured SkillManagerArgs.
  * @param {string[]} argv
- * @returns {{ positional: string[], skillsDir: string | null, templatesDir: string | null, mcpDir: string | null, state: string | null, stateFile: string | null, yes: boolean, direction: string, agent: string, scope: string }}
+ * @returns {{ positional: string[], skillsDir: string | null, templatesDir: string | null, mcpDir: string | null, consoleDir: string | null, state: string | null, stateFile: string | null, yes: boolean, direction: string, agent: string, scope: string }}
  */
 function parseArgs(argv) {
   const args = {
@@ -24,6 +24,7 @@ function parseArgs(argv) {
     skillsDir: null,
     templatesDir: null,
     mcpDir: null,
+    consoleDir: null,
     state: null,
     stateFile: null,
     yes: false,
@@ -56,7 +57,7 @@ function parseArgs(argv) {
       }
       args.scope = value;
       i++;
-    } else if (arg === '--skills-dir' || arg === '--templates-dir' || arg === '--mcp-dir' || arg === '--state') {
+    } else if (arg === '--skills-dir' || arg === '--templates-dir' || arg === '--mcp-dir' || arg === '--console-dir' || arg === '--state') {
       const value = argv[i + 1];
       if (value === undefined || value.startsWith('--')) {
         throw new Error(`Option ${arg} requires a value`);
@@ -64,6 +65,7 @@ function parseArgs(argv) {
       if (arg === '--skills-dir') args.skillsDir = value;
       else if (arg === '--templates-dir') args.templatesDir = value;
       else if (arg === '--mcp-dir') args.mcpDir = value;
+      else if (arg === '--console-dir') args.consoleDir = value;
       else args.state = value;
       i++;
     } else if (arg.startsWith('--')) {
@@ -100,6 +102,7 @@ Flags:
   --skills-dir <dir>     Skills directory (default: ~/.agents/skills)
   --templates-dir <dir>  Templates directory (default: ~/.agents/templates)
   --mcp-dir <dir>        MCP bundle directory (default: ~/.agents/mcp)
+  --console-dir <dir>    Console bundle directory (default: ~/.agents/console)
   --state <file>         State file (default: ~/.agents/bootstrap-state.json)
   --direction <dir>      Sync direction: local-to-global (default) or global-to-local
   --yes, -y              Skip the interactive consent prompt.
@@ -131,6 +134,7 @@ async function main() {
   const defaultSkills = isWorkspaceScope ? './.agents/skills' : commands.DEFAULT_SKILLS_DIR;
   const defaultTemplates = isWorkspaceScope ? './specs/templates' : commands.DEFAULT_TEMPLATES_DIR;
   const defaultMcp = isWorkspaceScope ? './.agents/mcp' : commands.DEFAULT_MCP_DIR;
+  const defaultConsole = isWorkspaceScope ? './.agents/console' : commands.DEFAULT_CONSOLE_DIR;
   const defaultState = isWorkspaceScope ? './.agents/bootstrap-state.json' : commands.DEFAULT_STATE_FILE;
 
   const resolvedArgs = {
@@ -138,6 +142,7 @@ async function main() {
     skillsDir: path.resolve(args.skillsDir || defaultSkills),
     templatesDir: path.resolve(args.templatesDir || defaultTemplates),
     mcpDir: path.resolve(args.mcpDir || defaultMcp),
+    consoleDir: path.resolve(args.consoleDir || defaultConsole),
     stateFile: path.resolve(args.state || defaultState),
     yes: args.yes,
     direction: args.direction,

@@ -58,7 +58,7 @@ output:: [[Strategic Master HTML]]
 output_status:: verified
 tool:: [[AI Agent]]
 scope:: internal
-Inject the extracted model data JSON into the `<script id="innfo-model-data" type="application/json">` data slot of the loaded reference layout. Declare the console capabilities in `<script type="application/json" id="innfo-config">` via `needs[]` (pins resolve through `console/needs-registry.json`), reference the shared runtime with static `<script src>` tags (CDN primary, mirror fallback — no `fetch()`, no `type=module`), and ship the vendored `innfo-runtime.js` next to the output for offline `file://` double-click. Save the deliverable as `<Model>_V_<version>_console.html` next to the model.
+Inject the extracted model data JSON into the `<script id="innfo-model-data" type="application/json">` data slot of the loaded reference layout. Declare the console capabilities in `<script type="application/json" id="innfo-config">` via `needs[]` (pins resolve through `console/needs-registry.json`), reference the single-file console bundle (`console/innfo-console.bundle.js`) with static `<script src>` tags (CDN primary, mirror fallback — no `fetch()`, no `type=module`), resolve the bundle pin from the `console-assets` entry in `docs/use/manifest.md`, and ship the vendored `innfo-console.bundle.js` next to the output for offline `file://` double-click. Write the deliverable folder as `export/<Model>_V_<version>_console/` containing `<Model>_V_<version>_console.html` plus `innfo-console.bundle.js` — self-contained and portable.
 
 ## NN Work: Verify Output
 parent:: [[Compile Strategic Master]]

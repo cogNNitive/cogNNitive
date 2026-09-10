@@ -357,8 +357,12 @@
   function autoBoot() {
     try {
       if (typeof document === 'undefined' || !document.getElementById) return
-      // Viewer-only gate: the model_viewer shell owns #doc-title + nav#rail.
+      // Viewer-only gate: the model_viewer shell owns #doc-title + nav#rail + #search.
+      // #search is exclusive to the model_viewer shell, so this renderer never
+      // auto-boots inside other shells that share #doc-title/#rail (e.g. the
+      // procedures console) when loaded through the shared console bundle.
       if (!document.getElementById('doc-title') || !document.getElementById('rail')) return
+      if (!document.getElementById('search')) return
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', function () {
           boot()

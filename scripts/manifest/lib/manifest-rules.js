@@ -321,6 +321,52 @@ async function validateMcp(entry, policy) {
 }
 
 /**
+ * Validates a console asset bundle entry (innfo-console.bundle.js) against
+ * structural, existence, and channel policies. Mirrors validateMcp: the asset
+ * is a committed JS bundle pinned by commit + version + ref.
+ * @param {{ file: string, repo: string, version: string, ref: string, commit: string, url?: string, path?: string }} entry
+ * @param {typeof CHANNELS[string]} policy
+ * @returns {Promise<string[]>}
+ */
+async function validateConsoleAsset(entry, policy) {
+  // Normalize the console-assets shape (file/url) to the structural entry shape
+  // (name/repo/path) so structuralViolations and the shared checks apply.
+  const normalized = {
+    name: String(entry.file || entry.url || '').split('/').pop() || 'console-asset',
+    repo: entry.repo || 'cogNNitive/cogNNitive',
+    path: entry.file || entry.path,
+    version: entry.version,
+    ref: entry.ref,
+    commit: entry.commit,
+    url: entry.url,
+  };
+  const violations = structuralViolations(normalized);
+  if (violations.length > 0) return violations;
+
+  const commitViolation = await checkCommitExists(normalized);
+  if (commitViolation) violations.push(commitViolation);
+
+  violations.push(...await checkReleaseAndRefPolicy(normalized, policy));
+
+  if (normalized.url) {
+    const urlViolation = await checkMcpUrlPinned(normalized);
+    if (urlViolation) violations.push(urlViolation);
+  }
+
+  const url = `https://api.github.com/repos/${normalized.repo}/contents/${normalized.path}?ref=${normalized.commit}`;
+  const res = await apiRequest(url);
+  if (res.status !== 200) {
+    if (rateLimited(res.status)) {
+      violations.push(`${normalized.path}: GitHub API rate limit hit (HTTP ${res.status}) while checking path; ${RATE_LIMIT_HINT}.`);
+    } else {
+      violations.push(`${normalized.path}: path ${normalized.path} not found at ${normalized.commit} (HTTP ${res.status || res.error || 'network error'})`);
+    }
+  }
+
+  return violations;
+}
+
+/**
  * Validates a skill entry including structure, commit existence, ref policies, path, and version.
  * @param {{
  *   name: string,
@@ -467,15 +513,16 @@ function checkClosureViolations(manifestData, bundledTemplateNames = []) {
  *   templates?: any[],
  *   workflows?: any[],
  *   mcp?: any[],
+ *   consoleAssets?: any[],
  * }} manifestData
  * @param {typeof CHANNELS[string]} policy
  * @returns {Promise<{
  *   violations: string[],
- *   stats: { skillsCount: number, templatesCount: number, mcpCount: number },
+ *   stats: { skillsCount: number, templatesCount: number, mcpCount: number, consoleCount: number },
  * }>}
  */
 async function validateManifest(manifestData, policy) {
-  const { skills = [], templates = [], workflows = [], mcp = [] } = manifestData;
+  const { skills = [], templates = [], workflows = [], mcp = [], consoleAssets = [] } = manifestData;
   const mcpCount = mcp.length + skills.reduce((n, s) => n + ((s.mcp || []).length), 0);
   const violations = [];
   const knownSkillBundledTemplates = new Set();
@@ -497,6 +544,10 @@ async function validateManifest(manifestData, policy) {
     violations.push(...await validateMcp(mcpEntry, policy));
   }
 
+  for (const asset of consoleAssets) {
+    violations.push(...await validateConsoleAsset(asset, policy));
+  }
+
   const closureViolations = checkClosureViolations(manifestData, knownSkillBundledTemplates);
   violations.push(...closureViolations);
 
@@ -506,6 +557,7 @@ async function validateManifest(manifestData, policy) {
       skillsCount: skills.length,
       templatesCount: templates.length,
       mcpCount,
+      consoleCount: consoleAssets.length,
     },
   };
 }
@@ -526,6 +578,7 @@ module.exports = {
   checkMcpUrlPinned,
   checkTemplateMainCoherence,
   validateMcp,
+  validateConsoleAsset,
   validateSkill,
   validateTemplate,
   checkClosureViolations,

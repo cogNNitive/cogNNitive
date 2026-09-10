@@ -80,3 +80,27 @@ describe('innfo-runtime.js (module hygiene)', () => {
     expect(source).not.toContain('type=module')
   })
 })
+
+describe('innfo-console.bundle.js (single-file distribution)', () => {
+  const bundlePath = join(consoleDir, 'innfo-console.bundle.js')
+
+  it('exists and embeds all four console globals in order', () => {
+    expect(existsSync(bundlePath)).toBe(true)
+    const bundle = readFileSync(bundlePath, 'utf8')
+    expect(bundle).toContain('InnfoVisuals')
+    expect(bundle).toContain('InnfoConsole')
+    expect(bundle).toContain('InnfoModelViewer')
+    expect(bundle).toContain('InnfoProcedureStepper')
+  })
+
+  it('keeps the no-fetch / no-module hygiene of the runtime', () => {
+    const bundle = readFileSync(bundlePath, 'utf8')
+    expect(bundle).not.toContain('fetch(')
+    expect(bundle).not.toContain('type=module')
+  })
+
+  it('matches the runtime version stamp', () => {
+    const bundle = readFileSync(bundlePath, 'utf8')
+    expect(bundle).toMatch(/Version 0\.1\.0/)
+  })
+})

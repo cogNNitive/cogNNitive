@@ -38,6 +38,7 @@ const DEFAULT_MANIFEST_URL = 'https://raw.githubusercontent.com/cogNNitive/cogNN
 const DEFAULT_SKILLS_DIR = path.join(os.homedir(), '.agents', 'skills');
 const DEFAULT_TEMPLATES_DIR = path.join(os.homedir(), '.agents', 'templates');
 const DEFAULT_MCP_DIR = path.join(os.homedir(), '.agents', 'mcp');
+const DEFAULT_CONSOLE_DIR = path.join(os.homedir(), '.agents', 'console');
 const DEFAULT_STATE_FILE = path.join(os.homedir(), '.agents', 'bootstrap-state.json');
 const LEGACY_STATE_FILE = path.join(os.homedir(), '.agents', 'skills-state.json');
 
@@ -64,16 +65,16 @@ function requestFor(url) {
 
 /**
  * Initializes a new empty skill manager state structure.
- * @returns {{ manifest: string, skills: Record<string, any>, templates: Record<string, any>, mcp: Record<string, any> }}
+ * @returns {{ manifest: string, skills: Record<string, any>, templates: Record<string, any>, mcp: Record<string, any>, console: Record<string, any> }}
  */
 function emptyState() {
-  return { manifest: getManifestUrl(), skills: {}, templates: {}, mcp: {} };
+  return { manifest: getManifestUrl(), skills: {}, templates: {}, mcp: {}, console: {} };
 }
 
 /**
  * Loads the current machine skill state from JSON file, supporting legacy migrations.
  * @param {string} file
- * @returns {{ manifest: string, skills: Record<string, any>, templates: Record<string, any>, mcp: Record<string, any> }}
+ * @returns {{ manifest: string, skills: Record<string, any>, templates: Record<string, any>, mcp: Record<string, any>, console: Record<string, any> }}
  */
 function loadState(file) {
   if (fs.existsSync(file)) {
@@ -85,6 +86,7 @@ function loadState(file) {
         skills: data.skills || {},
         templates: data.templates || {},
         mcp: data.mcp || {},
+        console: data.console || {},
       };
     } catch (err) {
       return emptyState();
@@ -104,6 +106,7 @@ function loadState(file) {
         skills: legacyData.skills || {},
         templates: {},
         mcp: {},
+        console: {},
       };
       saveState(file, state);
       return state;
@@ -314,6 +317,30 @@ async function installMcpAtCommit(mcp, mcpDir, state) {
   };
 }
 
+/**
+ * Installs a console asset bundle (innfo-console.bundle.js) from GitHub raw URL
+ * at the pinned commit. The bundle is self-contained (runtime + renderers) and
+ * lives in ~/.agents/console/ so generated artifacts can vendor it locally.
+ * @param {object} asset
+ * @param {string} consoleDir
+ * @param {object} state
+ * @returns {Promise<void>}
+ */
+async function installConsoleAssetAtCommit(asset, consoleDir, state) {
+  fs.mkdirSync(consoleDir, { recursive: true });
+  const fileName = path.basename(asset.file || asset.url);
+  const dest = path.join(consoleDir, fileName);
+  const url = asset.url || `https://raw.githubusercontent.com/${asset.repo}/${asset.commit}/${asset.file}`;
+  await downloadFile(url, dest);
+  if (!state.console) state.console = {};
+  state.console[fileName] = {
+    commit: asset.commit,
+    version: asset.version,
+    path: dest,
+    updated_at: new Date().toISOString(),
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Console helpers & Consent gate
 // ---------------------------------------------------------------------------
@@ -387,17 +414,18 @@ async function consentOrAbort(label, names, menu, yes) {
 
 /**
  * Executes status command comparing installed commits against pinned commits.
- * @param {{ skillsDir: string, templatesDir: string, stateFile: string }} args
+ * @param {{ skillsDir: string, templatesDir: string, consoleDir?: string, stateFile: string }} args
  * @returns {Promise<void>}
  */
 async function cmdStatus(args) {
   const manifestRaw = await fetchString(getManifestUrl());
-  const { skills, templates } = parseManifest(manifestRaw);
+  const { skills, templates, consoleAssets } = parseManifest(manifestRaw);
   const state = loadState(args.stateFile);
 
   const rows = [];
   const outdatedSkills = [];
   const outdatedTemplates = [];
+  const outdatedConsoleAssets = [];
 
   for (const skill of skills) {
     const dirPresent = fs.existsSync(path.join(args.skillsDir, skill.name));
@@ -442,9 +470,32 @@ async function cmdStatus(args) {
     if (status === 'outdated') outdatedTemplates.push(template);
   }
 
+  const consoleDir = args.consoleDir || DEFAULT_CONSOLE_DIR;
+  for (const asset of consoleAssets || []) {
+    const fileName = path.basename(asset.file || asset.url);
+    const pathPresent = fs.existsSync(path.join(consoleDir, fileName));
+    const entry = state.console ? state.console[fileName] : null;
+    let status;
+    if (pathPresent) {
+      if (!entry) status = 'untracked';
+      else if (entry.commit === asset.commit) status = 'up-to-date';
+      else status = 'outdated';
+    } else {
+      status = entry ? 'file-missing' : 'missing';
+    }
+    rows.push({
+      type: 'console',
+      name: fileName,
+      pinned: asset.commit ? asset.commit.slice(0, 7) : '-',
+      installed: entry ? entry.commit.slice(0, 7) : '-',
+      status,
+    });
+    if (status === 'outdated') outdatedConsoleAssets.push(asset);
+  }
+
   printStatusTable(rows);
 
-  if (outdatedSkills.length > 0 || outdatedTemplates.length > 0) {
+  if (outdatedSkills.length > 0 || outdatedTemplates.length > 0 || outdatedConsoleAssets.length > 0) {
     console.log('\nDiff previews for outdated items:');
     for (const skill of outdatedSkills) {
       const installed = state.skills[skill.name].commit;
@@ -459,36 +510,43 @@ async function cmdStatus(args) {
 
 /**
  * Executes install command installing missing skills and templates with consent.
- * @param {{ skillsDir: string, templatesDir: string, stateFile: string, yes: boolean }} args
+ * @param {{ skillsDir: string, templatesDir: string, consoleDir?: string, stateFile: string, yes: boolean }} args
  * @returns {Promise<void>}
  */
 async function cmdInstall(args) {
   const manifestRaw = await fetchString(getManifestUrl());
-  const { skills, templates } = parseManifest(manifestRaw);
+  const { skills, templates, consoleAssets } = parseManifest(manifestRaw);
   const state = loadState(args.stateFile);
+  const consoleDir = args.consoleDir || DEFAULT_CONSOLE_DIR;
 
   const toInstallSkills = skills.filter(skill => !fs.existsSync(path.join(args.skillsDir, skill.name)));
   const toInstallTemplates = templates.filter(template => {
     const fileName = template.name.endsWith('.md') ? template.name : `${template.name}.md`;
     return !fs.existsSync(path.join(args.templatesDir, fileName)) && !fs.existsSync(path.join(args.templatesDir, template.name));
   });
+  const toInstallConsole = (consoleAssets || []).filter(asset => {
+    const fileName = path.basename(asset.file || asset.url);
+    return !fs.existsSync(path.join(consoleDir, fileName));
+  });
 
-  if (toInstallSkills.length === 0 && toInstallTemplates.length === 0) {
-    console.log('All skills and templates present.');
+  if (toInstallSkills.length === 0 && toInstallTemplates.length === 0 && toInstallConsole.length === 0) {
+    console.log('All skills, templates, and console assets present.');
     return;
   }
 
   const names = [
     ...toInstallSkills.map(s => `skill:${s.name}`),
     ...toInstallTemplates.map(t => `template:${t.name}`),
+    ...toInstallConsole.map(a => `console:${path.basename(a.file || a.url)}`),
   ];
 
   const menu = `The following items are missing:\n` +
     (toInstallSkills.length > 0 ? `Skills:\n  - ${toInstallSkills.map(s => `${s.name} (${s.version})`).join('\n  - ')}\n` : '') +
     (toInstallTemplates.length > 0 ? `Templates:\n  - ${toInstallTemplates.map(t => `${t.name} (${t.version})`).join('\n  - ')}\n` : '') +
+    (toInstallConsole.length > 0 ? `Console assets:\n  - ${toInstallConsole.map(a => `${path.basename(a.file || a.url)} (${a.version})`).join('\n  - ')}\n` : '') +
     `\n[a] Install all missing (Recommended)\n[b] Skip\n`;
 
-  const proceed = await consentOrAbort('install missing skills and templates', names, menu, args.yes);
+  const proceed = await consentOrAbort('install missing skills, templates, and console assets', names, menu, args.yes);
   if (!proceed) return;
 
   let failures = 0;
@@ -513,24 +571,35 @@ async function cmdInstall(args) {
     }
   }
 
+  for (const asset of toInstallConsole) {
+    try {
+      await installConsoleAssetAtCommit(asset, consoleDir, state);
+      console.log(`  installed console ${path.basename(asset.file || asset.url)} (${asset.version}) @ ${asset.commit.slice(0, 7)}`);
+    } catch (err) {
+      failures++;
+      console.error(`  FAIL console ${path.basename(asset.file || asset.url)}: ${err.message}`);
+    }
+  }
+
   saveState(args.stateFile, state);
 
   if (failures > 0) {
     console.error(`\n${failures} item(s) failed to install.`);
     process.exit(1);
   }
-  console.log(`\nInstalled ${toInstallSkills.length} skill(s) and ${toInstallTemplates.length} template(s).`);
+  console.log(`\nInstalled ${toInstallSkills.length} skill(s), ${toInstallTemplates.length} template(s), and ${toInstallConsole.length} console asset(s).`);
 }
 
 /**
  * Executes update command updating outdated skills and templates with consent.
- * @param {{ skillsDir: string, templatesDir: string, stateFile: string, positional: string[], yes: boolean }} args
+ * @param {{ skillsDir: string, templatesDir: string, consoleDir?: string, stateFile: string, positional: string[], yes: boolean }} args
  * @returns {Promise<void>}
  */
 async function cmdUpdate(args) {
   const manifestRaw = await fetchString(getManifestUrl());
-  const { skills, templates } = parseManifest(manifestRaw);
+  const { skills, templates, consoleAssets } = parseManifest(manifestRaw);
   const state = loadState(args.stateFile);
+  const consoleDir = args.consoleDir || DEFAULT_CONSOLE_DIR;
 
   const isOutdatedSkill = (skill) => {
     const dirPresent = fs.existsSync(path.join(args.skillsDir, skill.name));
@@ -545,28 +614,38 @@ async function cmdUpdate(args) {
     return pathPresent && (!entry || entry.commit !== template.commit);
   };
 
+  const isOutdatedConsole = (asset) => {
+    const fileName = path.basename(asset.file || asset.url);
+    const pathPresent = fs.existsSync(path.join(consoleDir, fileName));
+    const entry = state.console ? state.console[fileName] : null;
+    return pathPresent && (!entry || entry.commit !== asset.commit);
+  };
+
   let selectedSkills = skills.filter(isOutdatedSkill);
   let selectedTemplates = templates.filter(isOutdatedTemplate);
+  let selectedConsole = (consoleAssets || []).filter(isOutdatedConsole);
 
   if (args.positional.length > 0) {
     selectedSkills = skills.filter(s => args.positional.includes(s.name) && isOutdatedSkill(s));
     selectedTemplates = templates.filter(t => args.positional.includes(t.name) && isOutdatedTemplate(t));
+    selectedConsole = (consoleAssets || []).filter(a => args.positional.includes(path.basename(a.file || a.url)) && isOutdatedConsole(a));
   }
 
-  if (selectedSkills.length === 0 && selectedTemplates.length === 0) {
-    console.log('All skills and templates up to date.');
+  if (selectedSkills.length === 0 && selectedTemplates.length === 0 && selectedConsole.length === 0) {
+    console.log('All skills, templates, and console assets up to date.');
     return;
   }
 
   const names = [
     ...selectedSkills.map(s => `skill:${s.name}`),
     ...selectedTemplates.map(t => `template:${t.name}`),
+    ...selectedConsole.map(a => `console:${path.basename(a.file || a.url)}`),
   ];
 
   const proceed = await consentOrAbort(
-    'update skills and templates',
+    'update skills, templates, and console assets',
     names,
-    `Updating ${selectedSkills.length} skill(s) and ${selectedTemplates.length} template(s).\n\n[a] Update all listed (Recommended)\n[b] Skip\n`,
+    `Updating ${selectedSkills.length} skill(s), ${selectedTemplates.length} template(s), and ${selectedConsole.length} console asset(s).\n\n[a] Update all listed (Recommended)\n[b] Skip\n`,
     args.yes
   );
   if (!proceed) return;
@@ -593,13 +672,23 @@ async function cmdUpdate(args) {
     }
   }
 
+  for (const asset of selectedConsole) {
+    try {
+      await installConsoleAssetAtCommit(asset, consoleDir, state);
+      console.log(`  updated console ${path.basename(asset.file || asset.url)} -> ${asset.version} (${asset.commit.slice(0, 7)})`);
+    } catch (err) {
+      failures++;
+      console.error(`  FAIL console ${path.basename(asset.file || asset.url)}: ${err.message}`);
+    }
+  }
+
   saveState(args.stateFile, state);
 
   if (failures > 0) {
     console.error(`\n${failures} item(s) failed to update.`);
     process.exit(1);
   }
-  console.log(`\nUpdated ${selectedSkills.length} skill(s) and ${selectedTemplates.length} template(s).`);
+  console.log(`\nUpdated ${selectedSkills.length} skill(s), ${selectedTemplates.length} template(s), and ${selectedConsole.length} console asset(s).`);
 }
 
 /**
@@ -663,6 +752,7 @@ async function cmdSync(args) {
  *   skillsDir: string,
  *   templatesDir: string,
  *   mcpDir?: string,
+ *   consoleDir?: string,
  *   stateFile: string,
  *   agent?: string,
  *   yes: boolean,
@@ -679,19 +769,22 @@ async function cmdBootstrap(args) {
   const state = loadState(args.stateFile);
 
   const mcpDir = args.mcpDir || DEFAULT_MCP_DIR;
+  const consoleDir = args.consoleDir || DEFAULT_CONSOLE_DIR;
   fs.mkdirSync(args.skillsDir, { recursive: true });
   fs.mkdirSync(args.templatesDir, { recursive: true });
   fs.mkdirSync(mcpDir, { recursive: true });
+  fs.mkdirSync(consoleDir, { recursive: true });
 
   const names = [
     ...manifest.skills.map(s => `skill:${s.name}`),
     ...manifest.templates.map(t => `template:${t.name}`),
+    ...(manifest.consoleAssets || []).map(a => `console:${path.basename(a.file || a.url)}`),
   ];
 
   const proceed = await consentOrAbort(
     'bootstrap cogNNitive ecosystem',
     names,
-    `Bootstrapping ${manifest.skills.length} skills, ${manifest.templates.length} templates, and MCP servers.\n\n[a] Bootstrap now (Recommended)\n[b] Cancel\n`,
+    `Bootstrapping ${manifest.skills.length} skills, ${manifest.templates.length} templates, MCP servers, and console assets.\n\n[a] Bootstrap now (Recommended)\n[b] Cancel\n`,
     args.yes
   );
   if (!proceed) return;
@@ -759,10 +852,26 @@ async function cmdBootstrap(args) {
     }
   }
 
-  // 5. Save state
+  // 5. Console assets
+  if (manifest.consoleAssets && manifest.consoleAssets.length > 0) {
+    console.log(`\nInstalling/verifying ${manifest.consoleAssets.length} console asset(s)...`);
+    for (const asset of manifest.consoleAssets) {
+      const fileName = path.basename(asset.file || asset.url);
+      const dest = path.join(consoleDir, fileName);
+      const entry = state.console ? state.console[fileName] : null;
+      if (!fs.existsSync(dest) || !entry || entry.commit !== asset.commit) {
+        await installConsoleAssetAtCommit(asset, consoleDir, state);
+        console.log(`  ✓ console ${fileName} (${asset.version}) @ ${asset.commit.slice(0, 7)}`);
+      } else {
+        console.log(`  ✓ console ${fileName} (${asset.version}) up-to-date`);
+      }
+    }
+  }
+
+  // 6. Save state
   saveState(args.stateFile, state);
 
-  // 6. Summary and workflows
+  // 7. Summary and workflows
   console.log(`\nBootstrap completed successfully! All components up-to-date.`);
   if (manifest.workflows && manifest.workflows.length > 0) {
     console.log(`\nAvailable workflows:`);
@@ -780,6 +889,7 @@ module.exports = {
   DEFAULT_SKILLS_DIR,
   DEFAULT_TEMPLATES_DIR,
   DEFAULT_MCP_DIR,
+  DEFAULT_CONSOLE_DIR,
   DEFAULT_STATE_FILE,
   LEGACY_STATE_FILE,
   getManifestUrl,
@@ -801,6 +911,7 @@ module.exports = {
   installSkillAtCommit,
   installTemplateAtCommit,
   installMcpAtCommit,
+  installConsoleAssetAtCommit,
   printStatusTable,
   promptChoice,
   isConsent,

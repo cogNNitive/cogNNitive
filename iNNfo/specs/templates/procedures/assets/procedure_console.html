@@ -556,8 +556,8 @@
         "feedback-export"
       ],
       "runtime": {
-        "cdn": "https://cdn.jsdelivr.net/gh/cogNNitive/cogNNitive@innfo-console-0.1.0/iNNfo/specs/templates/console/innfo-runtime.js",
-        "fallback": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/console/innfo-runtime.js"
+        "cdn": "https://cdn.jsdelivr.net/gh/cogNNitive/cogNNitive@innfo-console-0.1.0/iNNfo/specs/templates/console/innfo-console.bundle.js",
+        "fallback": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/console/innfo-console.bundle.js"
       }
     }
   </script>
@@ -567,19 +567,9 @@
   <script type="application/json" id="innfo-model">
 {}
   </script>
-  <!-- Shared console runtime (static tags: CDN primary, mirror fallback, vendored — no fetch, no modules). -->
-  <script src="https://cdn.jsdelivr.net/gh/cogNNitive/cogNNitive@innfo-console-0.1.0/iNNfo/specs/templates/console/innfo-runtime.js"></script>
-  <script src="https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/console/innfo-runtime.js"></script>
-  <script src="./innfo-runtime.js"></script>
-
-  <!-- Shared visual vocabulary (colors, icons, contrast) — static tags: CDN primary, mirror, vendored. -->
-  <script src="https://cdn.jsdelivr.net/gh/cogNNitive/cogNNitive@innfo-console-0.1.0/iNNfo/specs/templates/console/visuals.js"></script>
-  <script src="https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/console/visuals.js"></script>
-  <script src="./visuals.js"></script>
-
-  <!-- Domain renderer: guided procedure stepper (static tags: CDN primary, mirror, vendored — no fetch, no modules). -->
-  <script src="https://cdn.jsdelivr.net/gh/cogNNitive/cogNNitive@innfo-console-0.1.0/iNNfo/specs/templates/console/render-procedure-stepper.js"></script>
-  <script src="https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/console/render-procedure-stepper.js"></script>
-  <script src="./render-procedure-stepper.js"></script>
+  <!-- Single-file console bundle (runtime + visuals + renderers). Static tags: CDN primary, mirror fallback, vendored — no fetch, no modules. -->
+  <script src="https://cdn.jsdelivr.net/gh/cogNNitive/cogNNitive@innfo-console-0.1.0/iNNfo/specs/templates/console/innfo-console.bundle.js"></script>
+  <script src="https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/console/innfo-console.bundle.js"></script>
+  <script src="./innfo-console.bundle.js"></script>
 </body>
 </html>

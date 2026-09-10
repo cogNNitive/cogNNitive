@@ -8,7 +8,14 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict'
 
-  var GLOBAL = typeof self !== 'undefined' ? self : typeof window !== 'undefined' ? window : this
+  var GLOBAL =
+    typeof self !== 'undefined'
+      ? self
+      : typeof window !== 'undefined'
+        ? window
+        : typeof globalThis !== 'undefined'
+          ? globalThis
+          : this
 
   var RENDERER_VERSION = '0.1.0'
 
