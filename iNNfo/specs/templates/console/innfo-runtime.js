@@ -161,6 +161,110 @@
     })
   }
 
+  // ---- Generic tree / sequence helpers (DOM-free, concept-agnostic) ----
+  // Any model whose elements carry `parent` / `next` reference fields can build
+  // a Work-style tree: roots = elements without a parent; children = elements
+  // whose parent points to the root; order = `next` chain within the same parent.
+
+  function buildTree(elements) {
+    var nodes = {}
+    var roots = []
+    ;(Array.isArray(elements) ? elements : []).forEach(function (el) {
+      if (!el || !el.id) return
+      nodes[el.id] = {
+        el: el,
+        fields: isObject(el.fields) ? el.fields : {},
+        relations: Array.isArray(el.relations) ? el.relations : [],
+        children: [],
+        parentId: null,
+      }
+    })
+    Object.keys(nodes).forEach(function (id) {
+      var node = nodes[id]
+      var parentId = resolveParentId(node, nodes)
+      node.parentId = parentId
+      if (parentId && nodes[parentId]) nodes[parentId].children.push(node)
+    })
+    Object.keys(nodes).forEach(function (id) {
+      var node = nodes[id]
+      if (!node.parentId || !nodes[node.parentId]) roots.push(node)
+    })
+    roots.forEach(function (root) {
+      sortChildren(root.children, nodes)
+    })
+    return { nodes: nodes, roots: roots }
+  }
+
+  function resolveParentId(node, nodes) {
+    if (!node) return null
+    var field = node.fields && node.fields.parent
+    if (field && field !== '-' && field !== '') {
+      // field may hold the parent NAME; find a node by element name
+      for (var id in nodes) {
+        if (nodes[id].el && nodes[id].el.name === field) return id
+      }
+      return null
+    }
+    var rels = node.relations || []
+    for (var i = 0; i < rels.length; i++) {
+      if (rels[i].field === 'parent' && rels[i].target && nodes[rels[i].target]) {
+        return rels[i].target
+      }
+    }
+    return null
+  }
+
+  function sortChildren(children, nodes) {
+    var nextOf = {}
+    children.forEach(function (c) {
+      var rel = (c.relations || []).filter(function (r) {
+        return r.field === 'next' && r.target && nodes[r.target]
+      })
+      if (rel.length) nextOf[c.el.id] = rel[0].target
+    })
+    children.sort(function (a, b) {
+      if (nextOf[a.el.id] === b.el.id) return -1
+      if (nextOf[b.el.id] === a.el.id) return 1
+      return (a.el.name || '').localeCompare(b.el.name || '')
+    })
+  }
+
+  function firstChild(node) {
+    return node && node.children && node.children.length ? node.children[0] : null
+  }
+
+  function nextStep(node, nodes) {
+    if (!node) return null
+    var rel = (node.relations || []).filter(function (r) {
+      return r.field === 'next' && r.target && nodes[r.target]
+    })
+    if (rel.length) {
+      var cand = nodes[rel[0].target]
+      if (cand && cand.parentId === node.parentId) return cand
+    }
+    var label = node.fields && node.fields.next
+    if (label && label !== '-' && label !== '') {
+      for (var id in nodes) {
+        var n = nodes[id]
+        if (n.el && n.el.name === label && n.parentId === node.parentId) return n
+      }
+    }
+    return null
+  }
+
+  function chainOf(root, nodes) {
+    var out = [root]
+    var cursor = firstChild(root)
+    var visited = {}
+    visited[root.el.id] = true
+    while (cursor && !visited[cursor.el.id]) {
+      visited[cursor.el.id] = true
+      out.push(cursor)
+      cursor = nextStep(cursor, nodes)
+    }
+    return out
+  }
+
   function checkStaleness(feedbackVersion, liveVersion) {
     var fb = String(feedbackVersion || '')
     var live = String(liveVersion || '')
@@ -355,7 +459,7 @@
     })
   }
 
-  function renderCards(doc, elements, drafts, onSuggest) {
+  function renderCards(doc, elements, drafts, onSuggest, refs) {
     var content = doc.getElementById('innfo-content')
     if (!content) return
     content.innerHTML = ''
@@ -373,7 +477,20 @@
         Object.keys(element.fields).forEach(function (k) {
           if (!dl) return
           var dt = el('dt', null, k)
-          var dd = el('dd', null, String(element.fields[k]))
+          var val = element.fields[k]
+          var dd
+          var target = refs && isObject(refs[String(val)]) ? refs[String(val)] : null
+          if (target) {
+            dd = el('button', 'innfo-ref-pill', String(val))
+            if (dd) {
+              dd.setAttribute('type', 'button')
+              dd.addEventListener('click', function () {
+                renderRefDialog(doc, target)
+              })
+            }
+          } else {
+            dd = el('dd', null, String(val))
+          }
           if (dt) dl.appendChild(dt)
           if (dd) dl.appendChild(dd)
         })
@@ -432,6 +549,140 @@
       })
       section.appendChild(table)
       host.appendChild(section)
+    })
+  }
+
+  // Build a name->element lookup used by the reference-popup need so field
+  // values that match an element name render as pills (opens a detail dialog).
+  function buildRefsByName(elements) {
+    var refs = {}
+    ;(Array.isArray(elements) ? elements : []).forEach(function (e) {
+      if (e && e.name) refs[e.name] = e
+    })
+    return refs
+  }
+
+  function renderRefDialog(doc, element) {
+    if (!doc || !element) return
+    var dialog = doc.getElementById('innfo-ref-dialog')
+    if (!dialog || typeof dialog.showModal !== 'function') return
+    dialog.innerHTML = ''
+    var head = el('div', 'innfo-ref-head')
+    var h = el('h2', null, String(element.name || 'Element'))
+    var close = el('button', 'innfo-ref-close', '×')
+    if (close) {
+      close.setAttribute('type', 'button')
+      close.setAttribute('aria-label', 'Close')
+      close.addEventListener('click', function () {
+        if (typeof dialog.close === 'function') dialog.close()
+      })
+    }
+    if (head && h) head.appendChild(h)
+    if (head && close) head.appendChild(close)
+    var body = el('div', 'innfo-ref-body')
+    var tag = el('span', 'innfo-ref-tag', String(element.concept || 'Element'))
+    if (body && tag) body.appendChild(tag)
+    if (body && element.description) {
+      var p = el('p', 'innfo-ref-desc', element.description)
+      if (p) body.appendChild(p)
+    }
+    if (body && isObject(element.fields)) {
+      var dl = el('dl', 'innfo-ref-fields')
+      Object.keys(element.fields).forEach(function (k) {
+        if (!dl) return
+        var dt = el('dt', null, k)
+        var dd = el('dd', null, String(element.fields[k]))
+        if (dt) dl.appendChild(dt)
+        if (dd) dl.appendChild(dd)
+      })
+      if (dl.children.length) body.appendChild(dl)
+    }
+    dialog.appendChild(head)
+    dialog.appendChild(body)
+    dialog.showModal()
+  }
+
+  // Generic readable-document renderer for a chain of elements (concept-agnostic).
+  // `chain` is an array of tree nodes (from buildTree/chainOf) with .el/.fields.
+  // The first element is treated as the root; the rest are rendered as steps.
+  function renderDocument(doc, chain, opts) {
+    if (!doc || !chain) return
+    var host = doc.getElementById('innfo-doc')
+    if (!host) return
+    var append = opts && opts.append
+    if (!append) host.innerHTML = ''
+    var colorOf = opts && opts.colorOf ? opts.colorOf : null
+    var iconOf = opts && opts.iconOf ? opts.iconOf : null
+    chain.forEach(function (step, i) {
+      var isRoot = i === 0
+      var block = el(isRoot ? 'article' : 'section', isRoot ? 'doc-root' : 'doc-step')
+      if (!block) return
+      var h = el(isRoot ? 'h2' : 'h3', null, null)
+      var col = colorOf ? colorOf(step.el.concept, step.el) : null
+      var iconName = step.fields && step.fields.step_type ? step.fields.step_type : null
+      var svg = iconOf ? iconOf(iconName) : ''
+      if (col) h.style.color = col
+      var iconSpan = el('span', 'doc-icon', null)
+      if (iconSpan) iconSpan.innerHTML = svg || (isRoot ? '◆' : '·')
+      h.appendChild(iconSpan)
+      h.appendChild(document.createTextNode(' ' + String(step.el.name || (isRoot ? 'Root' : 'Step'))))
+      block.appendChild(h)
+      if (step.el.description) {
+        var p = el('p', 'desc', step.el.description)
+        if (p) block.appendChild(p)
+      }
+      if (!isRoot && isObject(step.fields)) {
+        var dl = el('dl', 'doc-fields', null)
+        Object.keys(step.fields).forEach(function (k) {
+          if (k === 'parent' || k === 'next') return
+          var dt = el('dt', null, k)
+          var dd = el('dd', null, String(step.fields[k]))
+          if (dt) dl.appendChild(dt)
+          if (dd) dl.appendChild(dd)
+        })
+        if (dl && dl.children.length) block.appendChild(dl)
+      }
+      host.appendChild(block)
+    })
+  }
+
+  // Renders the generic document view: builds the tree from all elements,
+  // picks roots that have children (procedures/trees), and renders each chain.
+  function renderDocumentView(doc, elements, concepts) {
+    var host = doc.getElementById('innfo-doc')
+    if (!host) return
+    var visuals = typeof self !== 'undefined' && self.InnfoVisuals ? self.InnfoVisuals : null
+    var conceptColorByName = {}
+    ;(Array.isArray(concepts) ? concepts : []).forEach(function (c) {
+      if (c && c.name) conceptColorByName[c.name] = c.color
+    })
+    function colorOf(conceptName) {
+      var colorName = conceptColorByName[conceptName]
+      if (colorName && visuals && typeof visuals.getHexColor === 'function') {
+        return visuals.getHexColor(colorName)
+      }
+      return '#171717'
+    }
+    function iconOf(iconName) {
+      if (iconName && visuals && typeof visuals.iconSvg === 'function') {
+        return visuals.iconSvg(iconName, 14)
+      }
+      return ''
+    }
+    var tree = buildTree(elements)
+    var roots = tree.roots.filter(function (r) {
+      return r.children && r.children.length > 0
+    })
+    if (!roots.length) {
+      host.innerHTML = ''
+      return
+    }
+    roots.forEach(function (root) {
+      renderDocument(doc, chainOf(root, tree.nodes), {
+        colorOf: colorOf,
+        iconOf: iconOf,
+        append: true,
+      })
     })
   }
 
@@ -549,6 +800,8 @@
       if (e && e.concept) counts[e.concept] = (counts[e.concept] || 0) + 1
     })
 
+    var refs = hasNeed(config, 'reference-popup') ? buildRefsByName(elements) : null
+
     function refresh(query) {
       renderCards(
         active,
@@ -557,6 +810,7 @@
         function (element) {
           suggestFor(element, state, active, refresh)
         },
+        refs,
       )
       renderBanner(active, meta, config.needs, readStore(state.draftKey).length)
     }
@@ -569,9 +823,12 @@
         refresh(concept)
       }
     })
+    if (hasNeed(config, 'document-view')) {
+      renderDocumentView(active, elements, concepts)
+    }
     renderCards(active, elements, readStore(state.draftKey), function (element) {
       suggestFor(element, state, active, refresh)
-    })
+    }, refs)
     renderMatrices(active, matrices)
 
     var searchBox = active.getElementById('innfo-search')
@@ -662,6 +919,16 @@
     parseSlots: parseSlots,
     resolveElementId: resolveElementId,
     filterElements: filterElements,
+    buildRefsByName: buildRefsByName,
+    renderRefDialog: renderRefDialog,
+    renderDocument: renderDocument,
+    renderDocumentView: renderDocumentView,
+    buildTree: buildTree,
+    resolveParentId: resolveParentId,
+    sortChildren: sortChildren,
+    firstChild: firstChild,
+    nextStep: nextStep,
+    chainOf: chainOf,
     checkStaleness: checkStaleness,
     getDraftKey: getDraftKey,
     buildExportDoc: buildExportDoc,

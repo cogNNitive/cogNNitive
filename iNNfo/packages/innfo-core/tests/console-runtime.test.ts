@@ -44,6 +44,15 @@ interface RuntimeCore {
     meta: Record<string, unknown>
     drafts: Array<Record<string, unknown>>
   }) => { meta: Record<string, unknown>; items: Array<Record<string, unknown>> }
+  buildTree: (elements: unknown[]) => {
+    nodes: Record<string, { el: ElementLike; children: unknown[]; parentId: string | null }>
+    roots: Array<{ el: ElementLike }>
+  }
+  chainOf: (
+    root: unknown,
+    nodes: Record<string, { el: ElementLike }>,
+  ) => Array<{ el: ElementLike }>
+  resolveParentId: (node: unknown, nodes: Record<string, unknown>) => string | null
 }
 
 function loadCore(): RuntimeCore {
@@ -164,5 +173,82 @@ describe('getDraftKey / buildExportDoc (localStorage + export modal)', () => {
     expect(doc.meta['source_model']).toBe('Ghostbusters')
     expect(doc.items.length).toBe(1)
     expect(doc.items[0]['id']).toBe('fb-001')
+  })
+})
+
+describe('buildTree / chainOf (generic tree + sequence helpers)', () => {
+  interface TreeElement {
+    id: string
+    concept: string
+    name: string
+    fields?: Record<string, string>
+    relations?: Array<{ field: string; target: string; targetLabel?: string }>
+  }
+
+  const treeElements: TreeElement[] = [
+    {
+      id: 'work-root-a',
+      concept: 'Work',
+      name: 'Root A',
+      fields: { next: 'Root B' },
+    },
+    {
+      id: 'work-step-1',
+      concept: 'Work',
+      name: 'Step 1',
+      fields: { parent: 'Root A', next: 'Step 2' },
+    },
+    {
+      id: 'work-step-2',
+      concept: 'Work',
+      name: 'Step 2',
+      fields: { parent: 'Root A', next: '-' },
+    },
+    {
+      id: 'work-root-b',
+      concept: 'Work',
+      name: 'Root B',
+      fields: { parent: '-', next: '-' },
+    },
+    {
+      id: 'artifact-x',
+      concept: 'Artifact',
+      name: 'Artifact X',
+    },
+  ]
+
+  it('builds roots and children from parent fields', () => {
+    const core = loadCore()
+    const tree = core.buildTree(treeElements as never)
+    const rootA = tree.nodes['work-root-a']
+    expect(rootA.children.map((c: { el: TreeElement }) => c.el.id)).toEqual([
+      'work-step-1',
+      'work-step-2',
+    ])
+    // roots = elements without a resolvable parent
+    expect(tree.roots.map((r: { el: TreeElement }) => r.el.id).sort()).toEqual([
+      'artifact-x',
+      'work-root-a',
+      'work-root-b',
+    ])
+  })
+
+  it('chains a root through its steps in next order', () => {
+    const core = loadCore()
+    const tree = core.buildTree(treeElements as never)
+    const rootA = tree.nodes['work-root-a']
+    const chain = core.chainOf(rootA, tree.nodes)
+    expect(chain.map((n: { el: TreeElement }) => n.el.id)).toEqual([
+      'work-root-a',
+      'work-step-1',
+      'work-step-2',
+    ])
+  })
+
+  it('resolves parent via name field or parent relation', () => {
+    const core = loadCore()
+    const tree = core.buildTree(treeElements as never)
+    expect(tree.nodes['work-step-1'].parentId).toBe('work-root-a')
+    expect(tree.nodes['artifact-x'].parentId).toBe(null)
   })
 })
