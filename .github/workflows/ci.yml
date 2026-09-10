@@ -30,13 +30,18 @@ jobs:
           npm ci
           npm --prefix iNNfo ci
 
+      # Build first: `verify.js` step 0 (MCP Version Square) reads the staged CDN
+      # bundle `docs/innfo/cdn/innfo-mcp-v<version>.bundle.js`, which is a
+      # gitignored build artifact created here — a fresh checkout has none.
+      - name: Build Docs & Bundles Gate
+        run: npm run build:docs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Run Deterministic Verification
         run: "node scripts/verify.js ${{ github.event_name == 'push' && '--release' || '' }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build Docs & Bundles Gate
-        run: npm run build:docs
 
       # Hand the built docs to deploy-pages so Pages publishes exactly what this
       # job verified instead of rebuilding. Only produced on main (the only ref
