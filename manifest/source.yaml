@@ -172,7 +172,7 @@ channels:
     refs:
       - key: skills
         repo: cogNNitive/cogNNitive
-        ref: skills-v1.4.0
+        ref: skills-v1.5.0
       - key: templates
         repo: cogNNitive/cogNNitive
         ref: templates-v0.5.1
