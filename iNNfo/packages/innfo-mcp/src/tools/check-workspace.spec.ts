@@ -7,6 +7,23 @@ const rootDir = join(import.meta.dirname!, '..', '..', 'temp-test-check-workspac
 const specsDir = join(rootDir, 'specs')
 const modelsDir = join(rootDir, 'models')
 
+// Windows can hold a transient lock on files a test just wrote (fs.rm -> EBUSY
+// on unlink), failing the local gate spuriously. Retry briefly; Linux CI never
+// hits this.
+async function rmWithRetry(dir: string, attempts = 6): Promise<void> {
+  for (let i = 0; i < attempts; i++) {
+    try {
+      await rm(dir, { recursive: true, force: true })
+      return
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code
+      if (code !== 'EBUSY' && code !== 'EPERM' && code !== 'ENOTEMPTY') throw err
+      await new Promise((resolve) => setTimeout(resolve, 30 * (i + 1)))
+    }
+  }
+  await rm(dir, { recursive: true, force: true })
+}
+
 const TEMPLATE_URL =
   'https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business/V_0-2-0/spec_NN.md'
 
@@ -131,14 +148,14 @@ function stubNetwork(): void {
 
 describe('resolveCatalog (AD-3)', () => {
   beforeEach(async () => {
-    await rm(rootDir, { recursive: true, force: true })
+    await rmWithRetry(rootDir)
     await mkdir(specsDir, { recursive: true })
     vi.restoreAllMocks()
   })
 
   afterEach(async () => {
     vi.restoreAllMocks()
-    await rm(rootDir, { recursive: true, force: true })
+    await rmWithRetry(rootDir)
   })
 
   it('resolves remote-first when the network returns a catalog', async () => {
@@ -185,7 +202,7 @@ describe('checkWorkspace (AD-5)', () => {
   beforeEach(async () => {
     process.env.INNFO_GLOBAL_DIR = join(rootDir, 'isolated-global')
     process.env.INNFO_SKILLS_DIR = join(rootDir, 'isolated-skills')
-    await rm(rootDir, { recursive: true, force: true })
+    await rmWithRetry(rootDir)
     await mkdir(specsDir, { recursive: true })
     await mkdir(modelsDir, { recursive: true })
     vi.restoreAllMocks()
@@ -197,7 +214,7 @@ describe('checkWorkspace (AD-5)', () => {
     if (origSkills !== undefined) process.env.INNFO_SKILLS_DIR = origSkills
     else delete process.env.INNFO_SKILLS_DIR
     vi.restoreAllMocks()
-    await rm(rootDir, { recursive: true, force: true })
+    await rmWithRetry(rootDir)
   })
 
   it('self-heals a missing template package into hydrated and leaves specs untouched', async () => {

@@ -13,6 +13,23 @@ import {
 const rootDir = join(import.meta.dirname!, '..', '..', 'temp-test-resolver')
 const specsDir = join(rootDir, 'specs')
 
+// Windows can hold a transient lock on files a test just wrote (fs.rm -> EBUSY
+// on unlink), failing the local gate spuriously. Retry briefly; Linux CI never
+// hits this.
+async function rmWithRetry(dir: string, attempts = 6): Promise<void> {
+  for (let i = 0; i < attempts; i++) {
+    try {
+      await rm(dir, { recursive: true, force: true })
+      return
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code
+      if (code !== 'EBUSY' && code !== 'EPERM' && code !== 'ENOTEMPTY') throw err
+      await new Promise((resolve) => setTimeout(resolve, 30 * (i + 1)))
+    }
+  }
+  await rm(dir, { recursive: true, force: true })
+}
+
 describe('NodeSpecResolver', () => {
   const origGlobal = process.env.INNFO_GLOBAL_DIR
   const origSkills = process.env.INNFO_SKILLS_DIR
@@ -25,7 +42,7 @@ describe('NodeSpecResolver', () => {
     // every fetch-and-save in this file lands in an isolated dir instead.
     process.env.INNFO_CACHE_DIR = join(rootDir, 'isolated-cache')
     // Reset/clean temp directory
-    await rm(rootDir, { recursive: true, force: true })
+    await rmWithRetry(rootDir)
     await mkdir(specsDir, { recursive: true })
     vi.restoreAllMocks()
   })
@@ -37,7 +54,7 @@ describe('NodeSpecResolver', () => {
     else delete process.env.INNFO_SKILLS_DIR
     if (origCache !== undefined) process.env.INNFO_CACHE_DIR = origCache
     else delete process.env.INNFO_CACHE_DIR
-    await rm(rootDir, { recursive: true, force: true })
+    await rmWithRetry(rootDir)
   })
 
   it('R-LSR-01: resolves spec from local specs/ directory recursively', async () => {
