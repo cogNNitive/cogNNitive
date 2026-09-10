@@ -6,14 +6,10 @@
  * Exposes semantic iNNfo tools over stdio transport for consumption by
  * MCP clients such as OpenCode Desktop.
  *
- * Tools:
- *   list_models   — scan models/ directory for iNNfo model files
- *   read_model    — parse and return a model's full structure
- *   get_spec      — retrieve the iNNfo specification for a version
- *   get_template  — retrieve a template (business/procedures/kb)
- *   validate_model— run innfo-core validator against a template
- *   apply_change  — apply an intent operation and re-validate
- *   query_units   — run a content query returning knowledge-unit URIs
+ * Every tool is ONE entry in `TOOL_REGISTRY` (definition + handler). The
+ * ListTools result, the call dispatcher, and the tool count all derive from
+ * that table — adding a tool is a single edit, with no separate switch arm or
+ * count to keep in sync (see the registry section below).
  *
  * Every tool result is a versioned machine envelope: the payload keys are
  * preserved at the top level alongside a `version` field of the form
@@ -75,433 +71,471 @@ export const server = new Server(
   { capabilities: { tools: {} } },
 )
 
-/* ── Tool definitions ───────────────────────────────────────── */
+/* ── Tool registry ───────────────────────────────────────────── */
 
-const toolDefinitions: Tool[] = [
+type ToolHandler = (args: Record<string, unknown>) => Promise<CallToolResult>
+
+interface ToolEntry {
+  definition: Tool
+  handler: ToolHandler
+}
+
+/**
+ * Single source of truth for the MCP tool surface: each entry pairs a tool's
+ * JSON definition with the handler that serves it. Adding/removing a tool is a
+ * one-entry change — `toolDefinitions`, `TOOL_COUNT`, and the dispatcher all
+ * derive from this list.
+ */
+const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
   {
-    name: 'list_models',
-    description: 'Scan the models directory and list all iNNfo models',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        root: { type: 'string', description: 'Optional override directory to scan' },
+    definition: {
+      name: 'list_models',
+      description: 'Scan the models directory and list all iNNfo models',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          root: { type: 'string', description: 'Optional override directory to scan' },
+        },
       },
     },
+    handler: handleListModels,
   },
   {
-    name: 'read_model',
-    description:
-      "Parse and return an iNNfo model's full structure by its id. For surgical work prefer bounded slices: pass concept (+ element) with max_lines (default 150); slices over the cap truncate with truncated=true unless override_reason records a manual override",
-    inputSchema: {
-      type: 'object',
-      properties: {
-        id: {
-          type: 'string',
-          description: 'Model id (filename stem, e.g. Ghostbusters_V_0-1-0_business)',
+    definition: {
+      name: 'read_model',
+      description:
+        "Parse and return an iNNfo model's full structure by its id. For surgical work prefer bounded slices: pass concept (+ element) with max_lines (default 150); slices over the cap truncate with truncated=true unless override_reason records a manual override",
+      inputSchema: {
+        type: 'object',
+        properties: {
+          id: {
+            type: 'string',
+            description: 'Model id (filename stem, e.g. Ghostbusters_V_0-1-0_business)',
+          },
+          root: {
+            type: 'string',
+            description: 'Optional models root directory override',
+          },
+          concept: {
+            type: 'string',
+            description: 'Optional concept slice (e.g. Models); returns only that concept',
+          },
+          element: {
+            type: 'string',
+            description: 'Optional element slice within the concept',
+          },
+          max_lines: {
+            type: 'number',
+            description: 'Line cap for the returned slice (default 150)',
+          },
+          override_reason: {
+            type: 'string',
+            description: 'Recorded reason to bypass the line cap for wide context',
+          },
+          intent: {
+            type: 'string',
+            description:
+              'Optional intent class for this call (coach, surgical, verify, or match); omit for current behavior (no-op default)',
+          },
+          override_intent: {
+            type: 'string',
+            description:
+              'Manual intent override; takes precedence over intent when present (same values)',
+          },
         },
-        root: {
-          type: 'string',
-          description: 'Optional models root directory override',
-        },
-        concept: {
-          type: 'string',
-          description: 'Optional concept slice (e.g. Models); returns only that concept',
-        },
-        element: {
-          type: 'string',
-          description: 'Optional element slice within the concept',
-        },
-        max_lines: {
-          type: 'number',
-          description: 'Line cap for the returned slice (default 150)',
-        },
-        override_reason: {
-          type: 'string',
-          description: 'Recorded reason to bypass the line cap for wide context',
-        },
-        intent: {
-          type: 'string',
-          description:
-            'Optional intent class for this call (coach, surgical, verify, or match); omit for current behavior (no-op default)',
-        },
-        override_intent: {
-          type: 'string',
-          description:
-            'Manual intent override; takes precedence over intent when present (same values)',
-        },
+        required: ['id'],
       },
-      required: ['id'],
     },
+    handler: handleReadModel,
   },
   {
-    name: 'get_spec',
-    description:
-      'Resolve the iNNfo specification (level-1) from an explicit url or from a loaded model. Provide either url or model_id — the URL is never taken from an internal constant',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        url: {
-          type: 'string',
-          description: 'Explicit spec/template URL to resolve the parent chain from',
-        },
-        model_id: {
-          type: 'string',
-          description: 'Model id whose frontmatter parent_spec.url seeds resolution',
-        },
-        in_place: {
-          type: 'boolean',
-          description:
-            'Write fetched templates inside the workspace tree (default false = OS temp cache, tree stays clean)',
+    definition: {
+      name: 'get_spec',
+      description:
+        'Resolve the iNNfo specification (level-1) from an explicit url or from a loaded model. Provide either url or model_id — the URL is never taken from an internal constant',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          url: {
+            type: 'string',
+            description: 'Explicit spec/template URL to resolve the parent chain from',
+          },
+          model_id: {
+            type: 'string',
+            description: 'Model id whose frontmatter parent_spec.url seeds resolution',
+          },
+          in_place: {
+            type: 'boolean',
+            description:
+              'Write fetched templates inside the workspace tree (default false = OS temp cache, tree stays clean)',
+          },
         },
       },
     },
+    handler: handleGetSpec,
   },
   {
-    name: 'get_template',
-    description:
-      'Resolve an iNNfo template (level-2) from an explicit url or from a loaded model. Provide either url or model_id — template names/URLs are never hardcoded',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        url: { type: 'string', description: 'Explicit template URL to resolve from' },
-        model_id: {
-          type: 'string',
-          description: 'Model id whose parent_spec.url points to its template',
-        },
-        name: {
-          type: 'string',
-          description: 'Optional chain-start name; derived from the url when omitted',
-        },
-        in_place: {
-          type: 'boolean',
-          description:
-            'Write fetched templates inside the workspace tree (default false = OS temp cache, tree stays clean)',
+    definition: {
+      name: 'get_template',
+      description:
+        'Resolve an iNNfo template (level-2) from an explicit url or from a loaded model. Provide either url or model_id — template names/URLs are never hardcoded',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          url: { type: 'string', description: 'Explicit template URL to resolve from' },
+          model_id: {
+            type: 'string',
+            description: 'Model id whose parent_spec.url points to its template',
+          },
+          name: {
+            type: 'string',
+            description: 'Optional chain-start name; derived from the url when omitted',
+          },
+          in_place: {
+            type: 'boolean',
+            description:
+              'Write fetched templates inside the workspace tree (default false = OS temp cache, tree stays clean)',
+          },
         },
       },
     },
+    handler: handleGetTemplate,
   },
   {
-    name: 'validate_model',
-    description:
-      'Validate an iNNfo model against its template. Provide id (file on disk) or content (raw text). The template is resolved from the model parent_spec.url, or from an optional template_url',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string', description: 'Model id (reads from disk)' },
-        content: { type: 'string', description: 'Raw model content string (inline)' },
-        root: {
-          type: 'string',
-          description: 'Optional models root directory override (used only with id mode)',
-        },
-        template_url: {
-          type: 'string',
-          description:
-            'Optional explicit template URL when the model has no resolvable parent_spec.url',
-        },
-        baseline_path: {
-          type: 'string',
-          description:
-            'Optional path to a versioned validation-baseline.json: only NEW errors surface, known errors are suppressed and counted with a backlog link',
-        },
-        in_place: {
-          type: 'boolean',
-          description:
-            'Write fetched templates inside the workspace tree (default false = OS temp cache, tree stays clean)',
-        },
-        workspace: {
-          type: 'boolean',
-          description:
-            "Optional workspace-scope mode (default false = today's single-file behavior, unchanged). When true, also runs cross-model reference validation (qualified `[[Model Title :: Element Name]]` refs) and `sources::` Citation validation (referenced file exists under sources/nn/, `#heading-slug` resolves, no line ranges) across the whole workspace, merging diagnostics owned by this model. Requires `id` mode.",
-        },
-        intent: {
-          type: 'string',
-          description:
-            'Optional intent class for this call (coach, surgical, verify, or match); omit for current behavior (no-op default)',
-        },
-        override_intent: {
-          type: 'string',
-          description:
-            'Manual intent override; takes precedence over intent when present (same values)',
+    definition: {
+      name: 'validate_model',
+      description:
+        'Validate an iNNfo model against its template. Provide id (file on disk) or content (raw text). The template is resolved from the model parent_spec.url, or from an optional template_url',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', description: 'Model id (reads from disk)' },
+          content: { type: 'string', description: 'Raw model content string (inline)' },
+          root: {
+            type: 'string',
+            description: 'Optional models root directory override (used only with id mode)',
+          },
+          template_url: {
+            type: 'string',
+            description:
+              'Optional explicit template URL when the model has no resolvable parent_spec.url',
+          },
+          baseline_path: {
+            type: 'string',
+            description:
+              'Optional path to a versioned validation-baseline.json: only NEW errors surface, known errors are suppressed and counted with a backlog link',
+          },
+          in_place: {
+            type: 'boolean',
+            description:
+              'Write fetched templates inside the workspace tree (default false = OS temp cache, tree stays clean)',
+          },
+          workspace: {
+            type: 'boolean',
+            description:
+              "Optional workspace-scope mode (default false = today's single-file behavior, unchanged). When true, also runs cross-model reference validation (qualified `[[Model Title :: Element Name]]` refs) and `sources::` Citation validation (referenced file exists under sources/nn/, `#heading-slug` resolves, no line ranges) across the whole workspace, merging diagnostics owned by this model. Requires `id` mode.",
+          },
+          intent: {
+            type: 'string',
+            description:
+              'Optional intent class for this call (coach, surgical, verify, or match); omit for current behavior (no-op default)',
+          },
+          override_intent: {
+            type: 'string',
+            description:
+              'Manual intent override; takes precedence over intent when present (same values)',
+          },
         },
       },
     },
+    handler: handleValidateModel,
   },
   {
-    name: 'apply_change',
-    description:
-      'Apply an intent-level change to a model and re-validate. Returns updated model or validation errors',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string', description: 'Model id' },
-        op: {
-          type: 'string',
-          description: 'Operation to perform',
-          enum: [
-            'add_concept',
-            'add_field',
-            'set_marker',
-            'add_element',
-            'update_field',
-            'remove_element',
-            'rename_concept',
-            'rename_element',
-            'generate_index',
-            'bump_version',
-          ],
+    definition: {
+      name: 'apply_change',
+      description:
+        'Apply an intent-level change to a model and re-validate. Returns updated model or validation errors',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', description: 'Model id' },
+          op: {
+            type: 'string',
+            description: 'Operation to perform',
+            enum: [
+              'add_concept',
+              'add_field',
+              'set_marker',
+              'add_element',
+              'update_field',
+              'remove_element',
+              'rename_concept',
+              'rename_element',
+              'generate_index',
+              'bump_version',
+            ],
+          },
+          args: {
+            type: 'object',
+            description:
+              'Operation-specific arguments. For update_field: { conceptName, elementName, fieldName, value } (overwrites a field on an existing element). For generate_index: { taxonomy? } (rebuilds the model taxonomy from present concepts). For bump_version: { version: "V_0-5-0" } (explicit) or { bump: "major" | "minor" | "patch" } (increment from the current model_version, default patch). Any op also accepts optional { rationale: string, approved_by: "user" | "agent" } (default "agent"), echoed into the Agent Modification provenance block returned on success.',
+          },
         },
-        args: {
-          type: 'object',
-          description:
-            'Operation-specific arguments. For update_field: { conceptName, elementName, fieldName, value } (overwrites a field on an existing element). For generate_index: { taxonomy? } (rebuilds the model taxonomy from present concepts). For bump_version: { version: "V_0-5-0" } (explicit) or { bump: "major" | "minor" | "patch" } (increment from the current model_version, default patch). Any op also accepts optional { rationale: string, approved_by: "user" | "agent" } (default "agent"), echoed into the Agent Modification provenance block returned on success.',
-        },
+        required: ['id', 'op', 'args'],
       },
-      required: ['id', 'op', 'args'],
     },
+    handler: handleApplyChange,
   },
   {
-    name: 'validate_model_url',
-    description:
-      'Validate an iNNfo model fetched from a URL without writing to disk. Accepts a model URL and optional template_url. Returns validation results.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        model_url: {
-          type: 'string',
-          description: 'URL pointing to the iNNfo model content to validate',
+    definition: {
+      name: 'validate_model_url',
+      description:
+        'Validate an iNNfo model fetched from a URL without writing to disk. Accepts a model URL and optional template_url. Returns validation results.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          model_url: {
+            type: 'string',
+            description: 'URL pointing to the iNNfo model content to validate',
+          },
+          template_url: {
+            type: 'string',
+            description:
+              'Optional explicit template URL when the model has no resolvable parent_spec.url',
+          },
         },
-        template_url: {
-          type: 'string',
-          description:
-            'Optional explicit template URL when the model has no resolvable parent_spec.url',
-        },
+        required: ['model_url'],
       },
-      required: ['model_url'],
     },
+    handler: handleValidateModelUrl,
   },
   {
-    name: 'validate_template',
-    description:
-      'Validate a Level 2 template against its Level 1 parent spec with frontmatter level-2 auto-detection and parent resolution failure diagnostics',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string', description: 'Template model id (reads from disk)' },
-        content: { type: 'string', description: 'Raw template content string (inline)' },
-        url: { type: 'string', description: 'Explicit parent spec URL override' },
-        root: { type: 'string', description: 'Optional models root directory override' },
+    definition: {
+      name: 'validate_template',
+      description:
+        'Validate a Level 2 template against its Level 1 parent spec with frontmatter level-2 auto-detection and parent resolution failure diagnostics',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', description: 'Template model id (reads from disk)' },
+          content: { type: 'string', description: 'Raw template content string (inline)' },
+          url: { type: 'string', description: 'Explicit parent spec URL override' },
+          root: { type: 'string', description: 'Optional models root directory override' },
+        },
       },
     },
+    handler: handleValidateTemplate,
   },
   {
-    name: 'init_model',
-    description:
-      'Initialize or repair a level-3 model file: writes canonical YAML frontmatter and, when the file has no concept sections and the template resolves, scaffolds a starter body (index block + one section per Concept) from the template schema. Returns templateResolved / scaffolded / warnings.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        id: {
-          type: 'string',
-          description: 'Model ID/filename stem (e.g. arenzano_V_0-1-0_cogNNitive)',
+    definition: {
+      name: 'init_model',
+      description:
+        'Initialize or repair a level-3 model file: writes canonical YAML frontmatter and, when the file has no concept sections and the template resolves, scaffolds a starter body (index block + one section per Concept) from the template schema. Returns templateResolved / scaffolded / warnings.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          id: {
+            type: 'string',
+            description: 'Model ID/filename stem (e.g. arenzano_V_0-1-0_cogNNitive)',
+          },
+          template_url: { type: 'string', description: 'Immutable URL of the parent template' },
+          template_name: {
+            type: 'string',
+            description: 'Name of the parent template (e.g. cogNNitive_V_0-1-0)',
+          },
+          title: { type: 'string', description: 'Logical title of the model (defaults to ID)' },
+          model_version: {
+            type: 'string',
+            description:
+              'Initial version of the model (e.g. V_0-1-0). When omitted it is inferred from the resolved parent template spec_version. When provided and different from the parent spec_version, the call fails with VERSION_MISMATCH. The model is scaffolded against the adopted L1 spec iNNfo_V_0-2-1.',
+          },
+          in_place: {
+            type: 'boolean',
+            description:
+              'Write fetched templates inside the workspace tree (default false = OS temp cache, tree stays clean)',
+          },
+          root: { type: 'string', description: 'Optional models root directory override' },
         },
-        template_url: { type: 'string', description: 'Immutable URL of the parent template' },
-        template_name: {
-          type: 'string',
-          description: 'Name of the parent template (e.g. cogNNitive_V_0-1-0)',
-        },
-        title: { type: 'string', description: 'Logical title of the model (defaults to ID)' },
-        model_version: {
-          type: 'string',
-          description:
-            'Initial version of the model (e.g. V_0-1-0). When omitted it is inferred from the resolved parent template spec_version. When provided and different from the parent spec_version, the call fails with VERSION_MISMATCH. The model is scaffolded against the adopted L1 spec iNNfo_V_0-2-1.',
-        },
-        in_place: {
-          type: 'boolean',
-          description:
-            'Write fetched templates inside the workspace tree (default false = OS temp cache, tree stays clean)',
-        },
-        root: { type: 'string', description: 'Optional models root directory override' },
+        required: ['id', 'template_url', 'template_name'],
       },
-      required: ['id', 'template_url', 'template_name'],
     },
+    handler: handleInitModel,
   },
   {
-    name: 'list_templates',
-    description:
-      'List all available Level 2 spec templates across local workspace, global environment, and installed skills',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        root: { type: 'string', description: 'Optional workspace root directory override' },
+    definition: {
+      name: 'list_templates',
+      description:
+        'List all available Level 2 spec templates across local workspace, global environment, and installed skills',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          root: { type: 'string', description: 'Optional workspace root directory override' },
+        },
       },
     },
+    handler: handleListTemplates,
   },
   {
-    name: 'hydrate_template',
-    description:
-      'Hydrate (copy) a Level 2 spec template from global or skill store into active workspace templates directory',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        template_name: {
-          type: 'string',
-          description: 'Name of template to hydrate (e.g. workspace_spec_NN)',
+    definition: {
+      name: 'hydrate_template',
+      description:
+        'Hydrate (copy) a Level 2 spec template from global or skill store into active workspace templates directory',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          template_name: {
+            type: 'string',
+            description: 'Name of template to hydrate (e.g. workspace_spec_NN)',
+          },
+          root: { type: 'string', description: 'Optional workspace root directory override' },
+          target_dir: {
+            type: 'string',
+            description: 'Optional target directory override (defaults to ./templates/)',
+          },
         },
-        root: { type: 'string', description: 'Optional workspace root directory override' },
-        target_dir: {
-          type: 'string',
-          description: 'Optional target directory override (defaults to ./templates/)',
-        },
+        required: ['template_name'],
       },
-      required: ['template_name'],
     },
+    handler: handleHydrateTemplate,
   },
   {
-    name: 'sync_workspace_manifest',
-    description:
-      'Reconcile the workspace manifest ## NN Models entries against discovered Level-3 model files: additively appends new entries, archives entries whose file disappeared, and reactivates tool-owned entries whose file returned. Never touches hand-authored entries lacking the <!-- nn:auto --> ownership marker. Defaults to a dry run.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        root: { type: 'string', description: 'Optional workspace root directory override' },
-        dry_run: {
-          type: 'boolean',
-          description: 'Report computed changes/diff without writing (defaults to true)',
+    definition: {
+      name: 'sync_workspace_manifest',
+      description:
+        'Reconcile the workspace manifest ## NN Models entries against discovered Level-3 model files: additively appends new entries, archives entries whose file disappeared, and reactivates tool-owned entries whose file returned. Never touches hand-authored entries lacking the <!-- nn:auto --> ownership marker. Defaults to a dry run.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          root: { type: 'string', description: 'Optional workspace root directory override' },
+          dry_run: {
+            type: 'boolean',
+            description: 'Report computed changes/diff without writing (defaults to true)',
+          },
         },
       },
     },
+    handler: handleSyncWorkspaceManifest,
   },
   {
-    name: 'check_workspace',
-    description:
-      'Run one consolidated workspace integrity pass over every Level-3 model: validate each against its template and traceability, self-heal missing template packages/specs (write-once hydration), classify each pinned template version against the published catalog, and return one report with a per-model status and a workspace aggregate. Non-blocking and informational — validation failures never fail the tool.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        root: {
-          type: 'string',
-          description: 'Optional workspace root directory override (default: server root)',
-        },
-        summary_only: {
-          type: 'boolean',
-          description:
-            'Omit clean models; return the aggregate plus failing/upgrade-available models only (capped at 25). Default false.',
-        },
-        offline: {
-          type: 'boolean',
-          description:
-            'Skip all network: no catalog fetch, no hydration, no freshness. Default false.',
+    definition: {
+      name: 'check_workspace',
+      description:
+        'Run one consolidated workspace integrity pass over every Level-3 model: validate each against its template and traceability, self-heal missing template packages/specs (write-once hydration), classify each pinned template version against the published catalog, and return one report with a per-model status and a workspace aggregate. Non-blocking and informational — validation failures never fail the tool.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          root: {
+            type: 'string',
+            description: 'Optional workspace root directory override (default: server root)',
+          },
+          summary_only: {
+            type: 'boolean',
+            description:
+              'Omit clean models; return the aggregate plus failing/upgrade-available models only (capped at 25). Default false.',
+          },
+          offline: {
+            type: 'boolean',
+            description:
+              'Skip all network: no catalog fetch, no hydration, no freshness. Default false.',
+          },
         },
       },
     },
+    handler: handleCheckWorkspace,
   },
   {
-    name: 'query_units',
-    description:
-      'Run a read-only content query over one workspace file and return matching knowledge-unit URIs: "path?filter=value[&filter...][&projection]". Filters use exact match (trimmed, case-insensitive); a trailing bare segment projects one column/field over the matches. Capped at 100 results with truncated=true. Pass max_values_chars to cap projected value characters for slice-only surgical reads. Never writes files.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        query: {
-          type: 'string',
-          description: 'Query string, e.g. "sources/nn/m.csv?segmento=Enterprise&mrr_usd"',
+    definition: {
+      name: 'query_units',
+      description:
+        'Run a read-only content query over one workspace file and return matching knowledge-unit URIs: "path?filter=value[&filter...][&projection]". Filters use exact match (trimmed, case-insensitive); a trailing bare segment projects one column/field over the matches. Capped at 100 results with truncated=true. Pass max_values_chars to cap projected value characters for slice-only surgical reads. Never writes files.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          query: {
+            type: 'string',
+            description: 'Query string, e.g. "sources/nn/m.csv?segmento=Enterprise&mrr_usd"',
+          },
+          root: {
+            type: 'string',
+            description: 'Optional workspace root directory override (default: server root)',
+          },
+          max_values_chars: {
+            type: 'number',
+            description: 'Optional cap on total projected value characters',
+          },
+          intent: {
+            type: 'string',
+            description:
+              'Optional intent class for this call (coach, surgical, verify, or match); omit for current behavior (no-op default)',
+          },
+          override_intent: {
+            type: 'string',
+            description:
+              'Manual intent override; takes precedence over intent when present (same values)',
+          },
         },
-        root: {
-          type: 'string',
-          description: 'Optional workspace root directory override (default: server root)',
-        },
-        max_values_chars: {
-          type: 'number',
-          description: 'Optional cap on total projected value characters',
-        },
-        intent: {
-          type: 'string',
-          description:
-            'Optional intent class for this call (coach, surgical, verify, or match); omit for current behavior (no-op default)',
-        },
-        override_intent: {
-          type: 'string',
-          description:
-            'Manual intent override; takes precedence over intent when present (same values)',
-        },
+        required: ['query'],
       },
-      required: ['query'],
     },
+    handler: handleQueryUnits,
   },
   {
-    name: 'list_template_procedures',
-    description:
-      'List all procedures defined in a template and its transitively included templates up to depth 10',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        model_path: { type: 'string', description: 'Optional model file path or ID' },
-        model_id: { type: 'string', description: 'Optional model ID' },
-        template_name: { type: 'string', description: 'Optional template name' },
-        version: { type: 'string', description: 'Optional template version' },
-        url: { type: 'string', description: 'Optional template URL' },
-        root: { type: 'string', description: 'Optional workspace root directory override' },
+    definition: {
+      name: 'list_template_procedures',
+      description:
+        'List all procedures defined in a template and its transitively included templates up to depth 10',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          model_path: { type: 'string', description: 'Optional model file path or ID' },
+          model_id: { type: 'string', description: 'Optional model ID' },
+          template_name: { type: 'string', description: 'Optional template name' },
+          version: { type: 'string', description: 'Optional template version' },
+          url: { type: 'string', description: 'Optional template URL' },
+          root: { type: 'string', description: 'Optional workspace root directory override' },
+        },
       },
     },
+    handler: handleListTemplateProcedures,
   },
   {
-    name: 'list_template_skills',
-    description:
-      'List all agent skills defined in a template and its transitively included templates up to depth 10',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        model_path: { type: 'string', description: 'Optional model file path or ID' },
-        model_id: { type: 'string', description: 'Optional model ID' },
-        template_name: { type: 'string', description: 'Optional template name' },
-        version: { type: 'string', description: 'Optional template version' },
-        url: { type: 'string', description: 'Optional template URL' },
-        root: { type: 'string', description: 'Optional workspace root directory override' },
+    definition: {
+      name: 'list_template_skills',
+      description:
+        'List all agent skills defined in a template and its transitively included templates up to depth 10',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          model_path: { type: 'string', description: 'Optional model file path or ID' },
+          model_id: { type: 'string', description: 'Optional model ID' },
+          template_name: { type: 'string', description: 'Optional template name' },
+          version: { type: 'string', description: 'Optional template version' },
+          url: { type: 'string', description: 'Optional template URL' },
+          root: { type: 'string', description: 'Optional workspace root directory override' },
+        },
       },
     },
+    handler: handleListTemplateSkills,
   },
 ]
 
+/** Tool definitions advertised by ListTools — derived from the registry. */
+export const toolDefinitions: Tool[] = TOOL_REGISTRY.map((entry) => entry.definition)
+
+/** Number of registered tools — single source for the count (no brittle literal). */
+export const TOOL_COUNT = TOOL_REGISTRY.length
+
 /* ── Tool call dispatcher ────────────────────────────────────── */
+
+const handlersByName = new Map<string, ToolHandler>(
+  TOOL_REGISTRY.map((entry) => [entry.definition.name, entry.handler]),
+)
 
 async function dispatchTool(name: string, args: Record<string, unknown>): Promise<CallToolResult> {
   try {
-    switch (name) {
-      case 'list_models':
-        return await handleListModels(args)
-      case 'read_model':
-        return await handleReadModel(args)
-      case 'get_spec':
-        return await handleGetSpec(args)
-      case 'get_template':
-        return await handleGetTemplate(args)
-      case 'validate_model':
-        return await handleValidateModel(args)
-      case 'apply_change':
-        return await handleApplyChange(args)
-      case 'validate_model_url':
-        return await handleValidateModelUrl(args)
-      case 'validate_template':
-        return await handleValidateTemplate(args)
-      case 'init_model':
-        return await handleInitModel(args)
-      case 'list_templates':
-        return await handleListTemplates(args)
-      case 'hydrate_template':
-        return await handleHydrateTemplate(args)
-      case 'sync_workspace_manifest':
-        return await handleSyncWorkspaceManifest(args)
-      case 'check_workspace':
-        return await handleCheckWorkspace(args)
-      case 'query_units':
-        return await handleQueryUnits(args)
-      case 'list_template_procedures':
-        return await handleListTemplateProcedures(args)
-      case 'list_template_skills':
-        return await handleListTemplateSkills(args)
-      default:
-        return errorResult(`Unknown tool: ${name}`)
-    }
+    const handler = handlersByName.get(name)
+    if (!handler) return errorResult(`Unknown tool: ${name}`)
+    return await handler(args)
   } catch (err) {
     return errorResult(String(err))
   }

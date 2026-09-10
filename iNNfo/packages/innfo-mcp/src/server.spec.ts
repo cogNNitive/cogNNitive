@@ -14,7 +14,7 @@ const rootDir = join(import.meta.dirname!, '..', 'temp-test-server')
 const specsDir = join(rootDir, 'specs')
 process.env.INNFO_MODELS_DIR = rootDir
 
-const { server } = await import('./server')
+const { server, toolDefinitions, TOOL_COUNT } = await import('./server')
 
 const pkgVersion = JSON.parse(
   await readFile(join(import.meta.dirname!, '..', 'package.json'), 'utf-8'),
@@ -137,29 +137,11 @@ describe('innfo-mcp server (dispatch/handler layer, real MCP client/server round
     expect(info?.version).toBe(pkgVersion)
   })
 
-  it('lists all 16 tools with names matching the dispatcher', async () => {
+  it('lists every registered tool (the registry is the single source)', async () => {
     const { tools } = await client.listTools()
     const names = tools.map((t) => t.name).sort()
-    expect(names).toEqual(
-      [
-        'apply_change',
-        'check_workspace',
-        'get_spec',
-        'get_template',
-        'hydrate_template',
-        'init_model',
-        'list_models',
-        'list_template_procedures',
-        'list_template_skills',
-        'list_templates',
-        'query_units',
-        'read_model',
-        'sync_workspace_manifest',
-        'validate_model',
-        'validate_model_url',
-        'validate_template',
-      ].sort(),
-    )
+    expect(names).toEqual(toolDefinitions.map((t) => t.name).sort())
+    expect(tools).toHaveLength(TOOL_COUNT)
   })
 
   it('returns an isError result for an unknown tool name', async () => {
