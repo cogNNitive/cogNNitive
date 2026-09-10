@@ -107,6 +107,14 @@ order:: 30
 parent:: [[Architecture]]
 description:: Alignment and compatibility with the Open Knowledge Format standard.
 
+## NN Page: Discipline Overlaps
+title:: Discipline Overlaps
+source:: discipline-overlaps.md
+route:: discipline-overlaps
+order:: 40
+parent:: [[Architecture]]
+description:: How cogNNitive overlaps with established disciplines — Model-Driven Engineering, Knowledge Management, Enterprise Architecture, Ontology Engineering, Docs as Code, and Personal Knowledge Management.
+
 ## NN Page: Usage Guide
 title:: Usage
 source:: usage.md

@@ -10,6 +10,7 @@
   - [Ecosystem](ecosystem)
   - [Specifications](specifications)
   - [OKF Compatibility](ecosystem?id=open-knowledge-format-compatibility)
+  - [Discipline Overlaps](discipline-overlaps)
 
 - **Guides**
   - [Usage](usage)

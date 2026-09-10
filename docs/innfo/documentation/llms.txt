@@ -11,6 +11,7 @@
 - [Ecosystem](ecosystem): Holistic view of cogNNitive ecosystem layers (iNNfo, actioNN, eNNvironment).
 - [Specifications](specifications): Formal specification of the iNNfo format and meta-template layers.
 - [OKF Compatibility](ecosystem?id=open-knowledge-format-compatibility): Alignment and compatibility with the Open Knowledge Format standard.
+- [Discipline Overlaps](discipline-overlaps): How cogNNitive overlaps with established disciplines — Model-Driven Engineering, Knowledge Management, Enterprise Architecture, Ontology Engineering, Docs as Code, and Personal Knowledge Management.
 - [Usage](usage): Practical workflow examples and CLI usage.
 - [Relationships & Connections](relationships): Graph relationships, bidirectional edges, and matrices in iNNfo.
 - [Sources, Citations & Lineage](citations-provenance): How the pipeline tracks where knowledge comes from, with three terms — Source, Citation, Lineage.

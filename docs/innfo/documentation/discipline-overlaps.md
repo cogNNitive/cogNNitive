@@ -1,9 +1,3 @@
----
-layout: default
-title: Disciplines cogNNitive Overlaps With
-description: Core overlaps between cogNNitive (iNNfo + actioNN) and established disciplines —Model-Driven Engineering, Knowledge Management, Enterprise Architecture, and Ontology Engineering— plus Docs as Code and Personal Knowledge Management (Obsidian, Logseq).
----
-
 # Disciplines cogNNitive Overlaps With
 
 cogNNitive does not invent a new discipline: it **recombines several well-established ones** on a shared substrate — plain Markdown, Git version control, and deterministic validation. This document maps those overlaps and explains what each shares.
