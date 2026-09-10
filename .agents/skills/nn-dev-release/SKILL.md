@@ -87,11 +87,11 @@ Present a consolidated summary table with:
 ### Option [b]: Sincronizar y verificar gates
 
 1. Perform `git pull origin main` in the monorepo root.
-2. Run deterministic workspace verification:
+2. Run workspace verification in release mode:
    ```powershell
-   node scripts/verify.js
+   node scripts/verify.js --release
    ```
-   *(Enforces template inventory, orchestrator line limits < 200 lines, workspace parity, scripts typecheck, and stable manifest validity).*
+   *(--release adds the live stable-manifest publication check — pins resolving to tags on main-reachable commits — on top of the deterministic gates: template inventory, orchestrator line limits < 200 lines, workspace parity, scripts typecheck, generated-manifest freshness).*
 3. In `iNNfo`:
    - Run typecheck: `npm run typecheck --prefix iNNfo`
    - Run tests: `npm test --prefix iNNfo`

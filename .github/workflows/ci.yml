@@ -31,7 +31,7 @@ jobs:
           npm --prefix iNNfo ci
 
       - name: Run Deterministic Verification
-        run: node scripts/verify.js
+        run: "node scripts/verify.js ${{ github.event_name == 'push' && '--release' || '' }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

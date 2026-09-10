@@ -4,7 +4,14 @@
  * scripts/verify.js
  *
  * Deterministic workspace verification runner for cogNNitive tooling.
- * Enforces template inventory parity, scripts static type safety, orchestrator line-count limits, and manifest validity.
+ * Enforces template inventory parity, scripts static type safety, orchestrator
+ * line-count limits, and generated-manifest freshness.
+ *
+ * The live stable-manifest publication check (resolving pins to tags on
+ * main-reachable commits over the GitHub API) depends on release state, so it
+ * only runs with `--release` — CI on push to `main`, and the release flow after
+ * tagging. Dev/pre-push runs skip it, because a release pin cannot exist before
+ * its tag is cut (release order: merge -> tag -> pin).
  */
 
 const { execSync } = require('child_process');
@@ -70,7 +77,13 @@ function run(cmd, desc) {
   }
 }
 
-function runVerification() {
+/**
+ * @param {{ release?: boolean }} [options] - `release: true` also runs the live
+ *   stable-manifest publication check (network + tags). Defaults to dev mode.
+ * @returns {void}
+ */
+function runVerification(options = {}) {
+  const release = options.release === true;
   console.log('🔍 [cogNNitive Verify] Running workspace verification...');
 
   // 0. MCP Version Square: the 6-way alignment (mcp/core package.json versions,
@@ -158,11 +171,22 @@ function runVerification() {
   //     shared implementation, no hand-maintained copy).
   run('node scripts/build-trannsform-slug-mirror.mjs --check', 'Check Trannsform Slug Mirror Fresh');
 
-  // 8. Manifest validation
-  run('node scripts/manifest/validate-manifest.js --channel stable', 'Validate Stable Manifest');
-
-  // 9. Rendered stable manifest doc must be in sync with manifest/source.yaml.
+  // 8. Rendered stable manifest doc must be in sync with manifest/source.yaml.
+  //    Deterministic (renders source.yaml and compares bytes). Runs BEFORE the
+  //    live validation so a hand-edited generated manifest fails fast with a
+  //    drift message instead of a misleading 404 from the tag check.
   run('node scripts/manifest/generate-manifest.js --channel stable --check', 'Check Stable Manifest Doc Fresh');
+
+  // 9. Live stable-manifest publication check: every pin must resolve to a tag on
+  //    a main-reachable commit. Release-state dependent (network + existing tags),
+  //    so it only runs with --release (CI on push to main, and the release flow
+  //    after tagging). Dev/pre-push skips it, because a release pin cannot exist
+  //    before its tag is cut (release order: merge -> tag -> pin).
+  if (release) {
+    run('node scripts/manifest/validate-manifest.js --channel stable', 'Validate Stable Manifest');
+  } else {
+    console.log('\n▶ Skipping live stable-manifest validation (dev mode; run with --release after tagging).');
+  }
 
   // 10. Test Template Inventory Guard
   run('node scripts/verify-inventory.test.js', 'Test Template Inventory Guard');
@@ -177,7 +201,7 @@ function runVerification() {
 }
 
 if (require.main === module) {
-  runVerification();
+  runVerification({ release: process.argv.includes('--release') });
 }
 
 module.exports = {

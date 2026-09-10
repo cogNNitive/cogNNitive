@@ -425,7 +425,7 @@ file that is wrong (test vs shipped asset), rerun `node actioNN/scripts/skills-m
 
 ## 17. `fix/dev-gate-release-coupling` — release-time manifest check runs inside the dev pre-push gate
 
-**Type:** chore / design · **Size:** medium
+**Type:** chore / design · **Size:** medium · **Status:** fixed
 
 **Why:** `scripts/verify.js` step 8 (`validate-manifest --channel stable`) validates pins
 live against GitHub and requires a tag that only exists *after* a release, while step 9

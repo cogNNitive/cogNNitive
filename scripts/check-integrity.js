@@ -11,8 +11,9 @@
  * - Group 5 (optional): Complete CI mirror (lint, typecheck, tests)
  *
  * Usage:
- *   node scripts/check-integrity.js           # Standard deterministic gate (Groups 0-4, 7+)
+ *   node scripts/check-integrity.js            # Standard deterministic gate (Groups 0-4, 7+)
  *   node scripts/check-integrity.js --pre-push # Full pre-push gate (includes CI mirror)
+ *   node scripts/check-integrity.js --release  # Release gate: pre-push + live stable-manifest validation
  */
 
 const { execSync } = require('child_process');
@@ -23,7 +24,8 @@ const { runVerification } = require('./verify.js');
 
 const repoRoot = path.resolve(__dirname, '..');
 const args = process.argv.slice(2);
-const isPrePush = args.includes('--pre-push') || args.includes('--all') || args.includes('-p');
+const isRelease = args.includes('--release') || args.includes('-r');
+const isPrePush = args.includes('--pre-push') || args.includes('--all') || args.includes('-p') || isRelease;
 
 console.log('🩺 [nn-dev-check-integrity] Running deterministic integrity gate...');
 
@@ -64,7 +66,7 @@ console.log(`  ✅ All 6 version references in sync (v${vSquare.version}).`);
 // Step 3: Full Deterministic Workspace Verification (verify.js)
 console.log('\n[Groups 3, 4, 7+] Workspace Verification Suite:');
 try {
-  runVerification();
+  runVerification({ release: isRelease });
 } catch (e) {
   console.error(`❌ Workspace verification failed: ${e.message}`);
   process.exit(1);

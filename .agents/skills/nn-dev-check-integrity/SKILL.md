@@ -179,7 +179,7 @@ incident 3 — PR #29 broke CI on every push because `base/` was added under
 `specs/templates/` without a `manifest/source.yaml` entry. Also happened with `documentation`.
 
 ```powershell
-node scripts/verify.js            # includes the Template Inventory Guard + line-count guard + stable manifest validity
+node scripts/verify.js            # Template Inventory Guard + line-count guard + generated-manifest freshness (live stable validation is release-only: add --release)
 node scripts/manifest/check-parity.js
 ```
 - ❌ any folder under `iNNfo/specs/templates/` (except `assets`) with no `- name: <folder>`
@@ -201,7 +201,7 @@ npm --prefix iNNfo/packages/innfo-core test
 npm --prefix iNNfo/packages/innfo-mcp test
 npm --prefix iNNfo/apps/innfo-editor test
 npm --prefix iNNfo/apps/innfo-editor run build
-node scripts/verify.js
+node scripts/verify.js            # dev mode: skips the live stable-manifest check (release-only)
 npm run build:docs
 npm --prefix iNNfo run check:spec-urls
 npm --prefix iNNfo run check:spec-version -- --inventory   # informational

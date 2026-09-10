@@ -332,9 +332,14 @@ confirm. Never delete branches automatically.
 When the maintainer says the accumulated changes on `dev` are ready:
 
 1. Run `nn-dev-check-integrity` first — it is the pre-push/post-change gate that
-   verifies git hygiene and the MCP version square. Do not merge dirty.
+   verifies git hygiene and the MCP version square. Do not merge dirty. This dev
+   gate runs `verify.js` in dev mode: it skips the live stable-manifest publication
+   check (pins resolving to release tags), which can only pass after the release
+   cuts the tag (merge → tag → pin).
 2. Run `nn-dev-release` for the merge itself: it manages version bumps, release
-   tagging, manifest generation, and distribution validation.
+   tagging, manifest generation, and distribution validation. The release path runs
+   `node scripts/verify.js --release`, which adds the live stable-manifest check
+   once the tag exists.
 3. After the merge to `main` lands, return to `dev` for the next batch.
 
 This replaces the old "commit + push + PR" flow: with single-branch workflow there is
