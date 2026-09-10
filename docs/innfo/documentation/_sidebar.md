@@ -18,3 +18,8 @@
   - [Sources, Citations & Lineage](citations-provenance)
   - [Tags & Open Taxonomy](tags-and-taxonomy)
   - [Collaboration with Git](collaboration-git)
+
+- **Runtime & Internals**
+  - [Offline Consoles](offline-consoles)
+  - [Console Needs & Visuals](console-needs-and-visuals)
+  - [Validator Behavior](validator-behavior)

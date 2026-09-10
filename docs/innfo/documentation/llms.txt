@@ -17,3 +17,6 @@
 - [Sources, Citations & Lineage](citations-provenance): How the pipeline tracks where knowledge comes from, with three terms — Source, Citation, Lineage.
 - [Tags & Open Taxonomy](tags-and-taxonomy): Cross-cutting categorization, centralized workspace taxonomies, and multi-dimensional view filtering.
 - [Collaboration with Git](collaboration-git): Gated workspace-to-Git review workflow with private defaults, branch-per-change PR gates, version map, and offline backup.
+- [Offline Consoles](offline-consoles): How generated consoles boot offline from file:// via static script tags and a vendored UMD bundle.
+- [Console Needs & Visuals](console-needs-and-visuals): Capability needs and template-driven concept color/icon in generated consoles.
+- [Validator Behavior](validator-behavior): Deterministic validation, differential baseline_path output, version inference, and workspace-first resolution.

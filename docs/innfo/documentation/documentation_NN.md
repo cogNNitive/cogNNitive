@@ -41,6 +41,10 @@ parent:: [[iNNfo Documentation]]
 section_order:: 3
 parent:: [[iNNfo Documentation]]
 
+## NN Section: Runtime & Internals
+section_order:: 4
+parent:: [[iNNfo Documentation]]
+
 # NN Page
 
 ## NN Page: Home
@@ -154,6 +158,30 @@ route:: collaboration-git
 order:: 50
 parent:: [[Guides]]
 description:: Gated workspace-to-Git review workflow with private defaults, branch-per-change PR gates, version map, and offline backup.
+
+## NN Page: Offline Consoles
+title:: Offline Consoles
+source:: offline-consoles.md
+route:: offline-consoles
+order:: 10
+parent:: [[Runtime & Internals]]
+description:: How generated consoles boot offline from file:// via static script tags and a vendored UMD bundle.
+
+## NN Page: Console Needs & Visuals
+title:: Console Needs & Visuals
+source:: console-needs-and-visuals.md
+route:: console-needs-and-visuals
+order:: 20
+parent:: [[Runtime & Internals]]
+description:: Capability needs and template-driven concept color/icon in generated consoles.
+
+## NN Page: Validator Behavior
+title:: Validator Behavior
+source:: validator-behavior.md
+route:: validator-behavior
+order:: 30
+parent:: [[Runtime & Internals]]
+description:: Deterministic validation, differential baseline_path output, version inference, and workspace-first resolution.
 
 # NN NavbarItem
 
