@@ -341,7 +341,7 @@ title: "cogNNitive Backlog"
 | Import source-history check | X |
 | Duplicate-source detection | X |
 | Local specialization migration | - |
-| Massive renaming app | X |
+| Massive renaming app | - |
 | Repository template | X |
 | Video generator template | X |
 | MCP tool registry | X |
@@ -356,6 +356,6 @@ title: "cogNNitive Backlog"
 | Console domain renderers | - |
 | Console remainder | - |
 | Robustness coda | - |
-| Knowledge review workflow | X |
+| Knowledge review workflow | - |
 | Term dictionary | X |
 | Knowledge change log | X |
