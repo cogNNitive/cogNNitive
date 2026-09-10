@@ -5,7 +5,7 @@ level: 2
 parent_spec:
   name: "iNNfo_V_0-2-0"
   url: "https://raw.githubusercontent.com/cogNNitive/iNNfo/main/specs/iNNfo_V_0-2-0_NN.md"
-template_version: "V_0-1-2"
+template_version: "V_0-1-3"
 title: "Backlog Template"
 relationship_types:
   hierarchy:
@@ -113,8 +113,13 @@ description:: Suggested command to start or explore the work item.
 ## NN Field Definition: status
 concept:: WorkItem
 type:: select
-options:: [backlog, deferred, in-progress]
+options:: [backlog, in-progress, review, blocked, done, deferred, discarded]
 description:: Current lifecycle state of the work item.
+
+## NN Field Definition: notes
+concept:: WorkItem
+type:: markdown_inline
+description:: Free-form annotations for the work item (current state only; no history).
 
 # NN Marker Definition
 
@@ -178,7 +183,8 @@ The schema mirrors the structure of a canonical backlog document so a raw backlo
 | WorkItem | `also_consider` | markdown_inline | Alternatives (optional) |
 | WorkItem | `risks` | markdown_inline | Risks/open decisions (optional) |
 | WorkItem | `suggested_trigger` | string | Suggested trigger command (optional) |
-| WorkItem | `.status` | select | State: backlog/deferred/in-progress |
+| WorkItem | `status` | select | State: backlog/in-progress/review/blocked/done/deferred/discarded |
+| WorkItem | `notes` | markdown_inline | Free-form annotations (current state only) |
 
 ### Markers
 
@@ -233,7 +239,7 @@ A prioritized unit of work with typed metadata and inter-item relations.
 
 ### Description
 
-Each `WorkItem` element carries the operational fields (number, key, title, type, size, why, approach, behaviour, also_consider, risks, suggested_trigger, status) so a downstream task can be actioned from the model alone. Relationships between items are stored in the `work-item relations` matrix: `depends_on` is directional (a row item depends on its column neighbor), `related` marks affinity or shared scope.
+Each `WorkItem` element carries the operational fields (number, key, title, type, size, why, approach, behaviour, also_consider, risks, suggested_trigger, status, notes) so a downstream task can be actioned from the model alone. Relationships between items are stored in the `work-item relations` matrix: `depends_on` is directional (a row item depends on its column neighbor), `related` marks affinity or shared scope.
 
 ### Methodologies
 
