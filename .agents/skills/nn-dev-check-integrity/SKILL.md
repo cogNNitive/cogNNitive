@@ -137,8 +137,9 @@ git tag -l "v*" "innfo-mcp-v*" "skills-v*" "templates-v*" --sort=-creatordate | 
   `origin/main` tip not `success`.
 - ⚠️ a `package.json` / SKILL.md / template `version` was bumped in the diff but no matching
   tag exists (`v<x>`, `innfo-mcp-v<x>`, `skills-v<x>`, `templates-v<x>`).
-- ⚠️ if a version was released: reminder that GitHub Pages deploy (`deploy-pages` job) and
-  the manual `npm run deploy:cdn` are **separate** from tagging — confirm both ran.
+- ⚠️ if a version was released: reminder that the GitHub Pages deploy (`deploy-pages` job,
+  reusing the `verify` docs artifact) and the CDN bundle/manifest produced by
+  `npm run build:docs` are **separate** from tagging — confirm the release build ran.
 
 ### Group 2 — MCP version square
 **Expediente:** `mcp-two-distribution-channels.md` — CDN frozen at v0.2.1 while the repo
@@ -155,8 +156,8 @@ Compare these **six** values; all must be the same `x.y.z`:
 5. `docs/innfo/cdn/manifest.json` → `latest: "v<x.y.z>"`
 6. `docs/innfo/cdn/innfo-mcp-v<x.y.z>.bundle.js` → file exists
 - ❌ any mismatch. Name the two sides.
-- Fix hints: bump the literal in `server.ts`; run `npm run deploy:cdn` in
-  `iNNfo/packages/innfo-mcp` (writes value 5 + 6); re-pin `manifest/source.yaml`.
+- Fix hints: bump the literal in `server.ts`; run `npm run build:docs` from the repo root
+  (stages values 5 + 6); re-pin `manifest/source.yaml`.
 
 ### Group 3 — Immutability of published `_V_x-y-z_` specs
 **Expediente:** `spec-files-are-write-once.md` — six `_V_0-1-0_` template files edited in
@@ -326,7 +327,7 @@ One consolidated report. Per group, per check, a line:
 ### ❌ Blockers
 - [G2] MCP version square: server.ts literal "0.2.3" ≠ package.json "0.2.4"
   Impact: MCP handshake advertises the wrong version; CDN + manifest may follow it.
-  Fix: edit the literal in iNNfo/packages/innfo-mcp/src/server.ts, rebuild, deploy:cdn.
+  Fix: edit the literal in iNNfo/packages/innfo-mcp/src/server.ts, then run build:docs.
 
 ### ⚠️ Warnings
 - [G6] recursiveParser/normalize.ts changed, no test touched in innfo-core.

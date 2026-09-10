@@ -226,14 +226,15 @@ Before editing a model, the agent should verify MCP is available:
 
 ## Updating the bundle
 
-The bundle is built from `packages/innfo-mcp/src/server.ts` and copied to `docs/cdn/` for CDN serving:
+The bundle is built from `packages/innfo-mcp/src/server.ts` and staged to `docs/innfo/cdn/`
+for CDN serving by the docs build (the same command CI runs):
 
 ```bash
-cd packages/innfo-mcp
-npm run deploy:cdn
+npm run build:docs
 ```
 
-This rebuilds the bundle and copies it to `docs/cdn/innfo-mcp-<version>.bundle.js`.
+This builds the bundle and copies it to
+`docs/innfo/cdn/innfo-mcp-<version>.bundle.js`, updating `docs/innfo/cdn/manifest.json`.
 
 ## Related
 

@@ -73,6 +73,20 @@ function run(cmd, desc) {
 function runVerification() {
   console.log('🔍 [cogNNitive Verify] Running workspace verification...');
 
+  // 0. MCP Version Square: the 6-way alignment (mcp/core package.json versions,
+  //    the innfo-core dependency range, the CDN manifest, the CDN bundle file,
+  //    and the stable ref in manifest/source.yaml) must be in sync. Enforced here
+  //    so CI covers it, not only the local check-integrity gate.
+  const { checkVersionSquare } = require('./lib/version-square.js');
+  const versionSquare = checkVersionSquare(path.join(__dirname, '..'));
+  if (!versionSquare.ok) {
+    console.error('❌ MCP Version Square mismatch:');
+    versionSquare.errors.forEach((e) => console.error(`  - ${e}`));
+    process.exit(1);
+  }
+  console.log(`▶ MCP Version Square: v${versionSquare.version} (6-way) in sync.`);
+  run('node scripts/version-square.test.js', 'Test MCP Version Square');
+
 // 1. Template Inventory Guard: ensure every template folder is declared in manifest/source.yaml
   const templatesDir = path.join(__dirname, '..', 'iNNfo', 'specs', 'templates');
   const sourceYamlPath = path.join(__dirname, '..', 'manifest', 'source.yaml');
