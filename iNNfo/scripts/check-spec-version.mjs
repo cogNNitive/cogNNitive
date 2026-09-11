@@ -31,7 +31,9 @@ import { readFileSync, existsSync } from 'node:fs'
 import { readdirSync, statSync } from 'node:fs'
 import { join, relative, resolve, dirname, extname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { execSync } from 'node:child_process'
+import gitVisible from '../../scripts/lib/git-visible.js'
+
+const { collectGitVisible } = gitVisible
 
 // ── Config ──────────────────────────────────────────────────────────
 
@@ -245,21 +247,13 @@ function contentContainsVersion(content, version) {
 // Files visible to git (tracked + untracked-but-not-ignored). The scan walks the
 // filesystem, so without this it also flags gitignored local artifacts (e.g. the
 // `_NN/specs/**` resolver caches, .gitignore:30-36) that a fresh CI checkout never
-// has — making a clean repo fail locally but pass in CI. Null when git is
-// unavailable / not a checkout, in which case no filtering is applied.
+// has — making a clean repo fail locally but pass in CI. Selection is centralized
+// in scripts/lib/git-visible.js; null when git is unavailable, in which case no
+// filtering is applied.
 let gitVisibleFilesCache
 function gitVisibleFiles() {
-  if (gitVisibleFilesCache !== undefined) return gitVisibleFilesCache
-  try {
-    const out = execSync('git ls-files -co --exclude-standard', { cwd: REPO_ROOT, encoding: 'utf8' })
-    const set = new Set()
-    for (const line of out.split('\n')) {
-      const rel = line.trim()
-      if (rel) set.add(resolve(REPO_ROOT, rel).replace(/\\/g, '/'))
-    }
-    gitVisibleFilesCache = set
-  } catch {
-    gitVisibleFilesCache = null
+  if (gitVisibleFilesCache === undefined) {
+    gitVisibleFilesCache = collectGitVisible(REPO_ROOT)
   }
   return gitVisibleFilesCache
 }

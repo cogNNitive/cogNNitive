@@ -100,6 +100,14 @@ function runVerification(options = {}) {
   console.log(`▶ MCP Version Square: v${versionSquare.version} (6-way) in sync.`);
   run('node scripts/version-square.test.js', 'Test MCP Version Square');
 
+  // 0b. Root manifest suites: generator, validator, and parity coverage. These
+  //     run under CI's test job but were not part of the deterministic gate, so a
+  //     broken manifest render or parity rule could pass `verify.js` unnoticed.
+  //     Wiring invokes the existing suites; their assertions are not duplicated.
+  run('node scripts/manifest/generate-manifest.test.js', 'Test Manifest Generator');
+  run('node scripts/manifest/validate-manifest.test.js', 'Test Manifest Validator');
+  run('node scripts/manifest/check-parity.test.js', 'Test Manifest Parity');
+
 // 1. Template Inventory Guard: ensure every template folder is declared in manifest/source.yaml
   const templatesDir = path.join(__dirname, '..', 'iNNfo', 'specs', 'templates');
   const sourceYamlPath = path.join(__dirname, '..', 'manifest', 'source.yaml');
@@ -196,6 +204,10 @@ function runVerification(options = {}) {
 
   // 12. Template Immutability Guard (against real git state)
   run('node scripts/guard-template-immutability.js', 'Template Immutability Guard');
+
+  // 13. Tracked-text encoding guard: fail on U+FFFD or undecodable UTF-8 bytes in
+  //     any git-visible text file (binary and generated bundles skipped by rule).
+  run('node scripts/guard-text-encoding.js', 'Guard Tracked Text Encoding');
 
   console.log('\n✅ [cogNNitive Verify] All deterministic pre-checks passed.');
 }
