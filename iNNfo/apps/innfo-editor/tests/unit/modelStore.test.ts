@@ -315,7 +315,27 @@ describe('modelStore', () => {
       expect(node?.rawContent).toContain('name: "business"')
       expect(node?.rawContent).toContain('model_version: "0.1.0"')
       expect(node?.rawContent).toContain('title: "My Business Submodel"')
-      expect(node?.rawContent).toContain('# NN Business Model')
+      expect(node?.rawContent).toContain('# NN index')
+      expect(node?.rawContent).toContain('* [[Business]]')
+      expect(node?.rawContent).toContain('# NN Business')
+      expect(node?.rawContent).toContain('## NN Business: Example')
+    })
+
+    it('writes spec_version/spec_url and an explicit parent_spec.url when provided', () => {
+      const modelStore = useModelStore()
+      const newId = modelStore.scaffoldSubmodel({
+        path: 'models/sub_business_NN.md',
+        template: 'business',
+        templateUrl:
+          'https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business/spec_NN.md',
+      })
+
+      const node = modelStore.getNode(newId)
+      expect(node?.rawContent).toContain('spec_version: "V_0-2-1"')
+      expect(node?.rawContent).toContain(
+        'url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business/spec_NN.md"',
+      )
+      expect(node?.rawContent).toMatch(/model_version: "V_\d+-\d+-\d+"/)
     })
 
     it('normalizes backslashes to forward slashes in node id and source.path', () => {

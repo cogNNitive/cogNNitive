@@ -204,7 +204,7 @@ describe('FieldModel.vue', () => {
       expect(btn.text()).toContain('business')
     })
 
-    it('does not render creation trigger in readonly mode', () => {
+    it('renders the creation trigger in readonly mode when the model is missing', () => {
       const wrapper = mount(FieldModel, {
         props: {
           modelValue: '',
@@ -217,6 +217,50 @@ describe('FieldModel.vue', () => {
         },
       })
 
+      const btn = wrapper.find('[data-testid="create-submodel-button"]')
+      expect(btn.exists()).toBe(true)
+      expect(btn.text()).toContain('Create & bind new model')
+    })
+
+    it('keeps the pill and shows the creation trigger in readonly mode when the value does not resolve to a workspace node', () => {
+      const wrapper = mount(FieldModel, {
+        props: {
+          modelValue: 'patentes_maestras_V_0-1-0/patente/sombrero-paraguas/business-v-0-2-0_01.md',
+          readonly: true,
+          fieldDefinition: {
+            name: 'business_model',
+            type: 'model',
+            target_template: 'business',
+          },
+        },
+      })
+
+      const btn = wrapper.find('[data-testid="create-submodel-button"]')
+      expect(btn.exists()).toBe(true)
+      expect(wrapper.find('[data-testid="model-field-pill"]').exists()).toBe(true)
+    })
+
+    it('keeps the pill and hides the creation trigger in readonly mode when the model resolves', () => {
+      const modelStore = useModelStore()
+      const root = makeNode('models/auth_01.md', {
+        name: 'auth',
+        source: { path: 'models/auth_01.md' },
+      })
+      modelStore.setGraph({ 'models/auth_01.md': root }, ['models/auth_01.md'])
+
+      const wrapper = mount(FieldModel, {
+        props: {
+          modelValue: 'models/auth_01.md',
+          readonly: true,
+          fieldDefinition: {
+            name: 'business_model',
+            type: 'model',
+            target_template: 'business',
+          },
+        },
+      })
+
+      expect(wrapper.find('[data-testid="model-field-pill"]').exists()).toBe(true)
       expect(wrapper.find('[data-testid="create-submodel-button"]').exists()).toBe(false)
     })
 

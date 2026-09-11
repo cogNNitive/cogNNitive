@@ -165,5 +165,15 @@ describe('submodelPath utility', () => {
       })
       expect(deepDir).toBe('workspace/models/sub/System/nodes/gateway/architecture_01.md')
     })
+
+    it('strips the embedded template version from the leaf stem', () => {
+      const path = deriveSuggestedSubmodelPath({
+        parentPath: 'models/Company_V_0-1-0_innovation_NN.md',
+        conceptSlug: 'Patente',
+        elementSlug: 'Sombrero paraguas',
+        targetTemplate: 'business_V_0-2-0',
+      })
+      expect(path).toBe('models/Company_V_0-1-0/patente/sombrero-paraguas/business_01.md')
+    })
   })
 })

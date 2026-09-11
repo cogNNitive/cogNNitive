@@ -31,6 +31,18 @@ export function slugify(text: string): string {
 }
 
 /**
+ * Determines leaf stem for the generated submodel filename.
+ */
+function templateLeafStem(targetTemplate?: string, fieldName?: string): string {
+  const raw = targetTemplate && targetTemplate !== 'base' ? targetTemplate : fieldName
+  if (!raw) return 'submodel'
+  // Strip any embedded version suffix (e.g. "business_V_0-2-0" -> "business")
+  // so the generated filename follows the iNNfo <Name>_V_x-y-z_<Template>_NN.md
+  // convention instead of embedding the template version as part of the name.
+  return slugify(raw.replace(/_V_\d+-\d+-\d+$/i, '')) || 'submodel'
+}
+
+/**
  * Derives a normalized, collision-resistant suggested path for an inline submodel.
  */
 export function deriveSuggestedSubmodelPath(options: SuggestedSubmodelPathOptions): string {
@@ -52,9 +64,7 @@ export function deriveSuggestedSubmodelPath(options: SuggestedSubmodelPathOption
   }
 
   // Determine leaf stem
-  const effectiveTemplate =
-    targetTemplate && targetTemplate !== 'base' ? targetTemplate : undefined
-  const leafStem = slugify(effectiveTemplate || fieldName || 'submodel') || 'submodel'
+  const leafStem = templateLeafStem(targetTemplate, fieldName)
 
   // Clean concept & element slugs
   const cSlug = conceptSlug ? slugify(conceptSlug) : ''

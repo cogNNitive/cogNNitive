@@ -401,6 +401,20 @@ chat, not an SDD cycle.
 
 ---
 
+## 18. `feature/primitive-url-field` — primitive url field support in iNNfo engine and UI
+
+**Type:** functional · **Size:** medium
+
+**Why:** iNNfo models have no primitive field type for URLs, so links are stored as plain text strings without validation or interactive rendering in cards and tables.
+
+**Behaviour:** support a new primitive field type `url` in the iNNfo engine and UI. Validate valid URL formats, render them directly as interactive hyperlinks in cards and tables, and enable direct navigation by opening the link in a new browser tab (`target="_blank" rel="noopener noreferrer"`).
+
+**Approach:** extend engine field types and validation logic in `innfo-core`, update card and table UI renderers in `innfo-console` to render interactive hyperlinks, and add test coverage.
+
+**Suggested trigger:** `/sdd-explore primitive-url-field`.
+
+---
+
 ## 16. `fix/skills-manager-test-workspace-template-name` — preexisting skills-manager sync test failure
 
 **Type:** bug · **Size:** small

@@ -2,6 +2,8 @@ import { defineStore } from 'pinia'
 import type { ModelNode, ModelRelationship } from '../model/types'
 import type { DirectoryHandleLike } from '../model/fs-types'
 
+import { DEFAULT_INNFO_VERSION, buildSpecificationUrl } from '../utils/constants'
+
 export interface SourceCitation {
   nodeId: string
   nodeName: string
@@ -257,6 +259,7 @@ export const useModelStore = defineStore('model', {
     scaffoldSubmodel(options: {
       path: string
       template: string
+      templateUrl?: string
       title?: string
       modelVersion?: string
     }): string {
@@ -264,18 +267,33 @@ export const useModelStore = defineStore('model', {
       const id = normalizedPath
       const title =
         options.title || normalizedPath.split('/').pop()?.replace(/\.md$/i, '') || 'New Submodel'
-      const version = options.modelVersion || '0.1.0'
+      const version = options.modelVersion || 'V_0-1-0'
+      const template = options.template || 'base'
+      const templateUrl = options.templateUrl || ''
+      const specVersion = DEFAULT_INNFO_VERSION
+      const specUrl = buildSpecificationUrl(specVersion)
+      const conceptName = template.charAt(0).toUpperCase() + template.slice(1)
 
       const content = [
         '---',
+        `spec_version: "${specVersion}"`,
+        `spec_url: "${specUrl}"`,
         'level: 3',
         'parent_spec:',
-        `  name: "${options.template}"`,
+        `  name: "${template}"`,
+        `  url: "${templateUrl}"`,
         `model_version: "${version}"`,
         `title: "${title}"`,
         '---',
         '',
-        `# NN ${options.template.charAt(0).toUpperCase() + options.template.slice(1)} Model`,
+        '> [!NOTE]',
+        '> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor or view and edit it with [cogNNitive](https://cognnitive.com/innfo/app/innfo-doc).',
+        '',
+        '# NN index',
+        `* [[${conceptName}]]`,
+        '',
+        `# NN ${conceptName}`,
+        `## NN ${conceptName}: Example`,
         '',
       ].join('\n')
 
@@ -283,7 +301,7 @@ export const useModelStore = defineStore('model', {
         id,
         name: title,
         kind: 'root',
-        type: options.template,
+        type: template,
         parentId: null,
         childIds: [],
         fields: {},

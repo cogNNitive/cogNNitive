@@ -10,7 +10,7 @@ bundled_templates:
   - name: workspace_spec_NN
     path: templates/workspace_spec_NN.md
 description: |
-  Domain skill for creating, editing, validating, scaffolding, or discussing iNNfo models, templates, specializations, samples, or specification files. Includes the conversational Model Creation Wizard and Architecture Coach. Triggers: innfo, iNNfo, /nn-innfo, model, template, *_NN.md, procedures_V_0-1-0_NN.md.
+  Domain skill for creating, editing, validating, scaffolding, or discussing iNNfo models, templates, specializations, samples, or specification files. Includes the conversational Model Creation Wizard and Architecture Assistant. Triggers: innfo, iNNfo, /nn-innfo, model, template, *_NN.md, procedures_V_0-1-0_NN.md.
   This includes but is not limited to:
   - Creating a new model step-by-step using templates (Business, Procedures, Organization, Metrics, Blank)
   - Creating or editing any file matching *_NN.md
@@ -65,7 +65,7 @@ When the skill is activated or the user is undecided about what to do, present t
 - **[a] (Recommended)** Create a new model (Conversational Wizard)
 - **[b]** Edit / extend an existing model
 - **[c]** Validate a model with MCP
-- **[d]** Analyze consistency and robustness (Architecture Coach) — audit the model across formal, logical, semantic, and solidity layers (§8c)
+- **[d]** Analyze consistency and robustness (Architecture Assistant) — audit the model across formal, logical, semantic, and solidity layers (§8c)
 - **[x]** Execute a model procedure — list procedures declared in the model and execute the chosen one
 - **[y]** Cancel / help
 
@@ -387,6 +387,8 @@ When a Concept or Element must be renamed:
 
 Every field must declare an explicit `type` (`string`, `select`, `reference`, `markdown_inline`, `markdown_file`, `image`, `file`, `video`, `audio`, `model`).
 
+> 💡 **Submodel Fields (`type:: model`)**: When you need a field to reference or contain another iNNfo model document (`*_NN.md`) with template enforcement (e.g. `target_template:: business`), use `type:: model`. Never claim that `type:: model` or submodel composition does not exist — it is a fully supported normative primitive in iNNfo (V_0-2-1+).
+
 > ⚠️ **List syntax — NEVER use quotes without brackets.** For any field with multiple values (`reference`, `sources::`, or any other list type), the only valid format is `[a, b, c]` — no quotes around each value. The format `"a", "b"` (individual quotes, no enclosing brackets) **corrupts parsing silently**: the validator treats it as a single unreadable string instead of a list, and ends up reporting a generic dangling reference without explaining the real cause. If you see that error and the field has loose quotes with no `[...]`, this is almost certainly the cause.
 
 ### Change Preview with Diff (Option D)
@@ -416,17 +418,17 @@ Once the user confirms, run the mutation via `innfo-mcp_apply_change` and re-val
 
 ---
 
-## 8c. Coherence & Solidity Analysis — "Architecture Coach" Mode (Option C)
+## 8c. Coherence & Solidity Analysis — "Architecture Assistant" Mode (Option C)
 
-When the user picks option `[d]` (Analyze coherence), the agent takes the role of **Architecture Coach**:
+When the user picks option `[d]` (Analyze coherence), the agent takes the role of **Architecture Assistant**:
 
 1. Load the model (`read_model`) and its template (`get_template`).
 2. Evaluate the 4 layers: **Formal Correctness**, **Logical Coherence**, **Semantic Coherence**, and **Solidity/Robustness**.
-3. **Presentation with Functional Impact (Coach Mode):**
+3. **Presentation with Functional Impact (Assistant Mode):**
    Do not just list technical errors; explain the **business/functional risk** and offer the **1-click fix**:
 
 ```markdown
-🧠 Architecture Coach Diagnosis:
+🧠 Architecture Assistant Diagnosis:
 
 1. ⚠️ [Logical Coherence] Broken Reference
    - Finding: Element `Enterprise Customer` references `CommercialDirector`, which does not exist.
@@ -563,7 +565,7 @@ Upon concluding the generation or editing of a model, the agent MUST include log
 ```markdown
 📌 Suggested next steps:
 - [a] (Recommended) Guided review of generated concepts and elements
-- [b] Run Architecture Coach audit ([d])
+- [b] Run Architecture Assistant audit ([d])
 - [c] Edit or add a new concept/element
 - [m] Switch active model (select another model)
 ```
@@ -667,7 +669,7 @@ Each session MUST record per-intent call and token counts via the `usage-counter
 5. **Recommended Option First:** Always prefix option `[a]` with `(Recommended)`.
 6. **Multi-Selection Notice:** Include `"You can select one option or a combination (e.g. A and B)"` when applicable.
 7. **Change Preview with Diff:** Show a natural-language summary before applying any MCP mutation.
-8. **Architecture Coach Mode:** In the `[d]` audit, explain business/functional risks and offer 1-click fixes.
+8. **Architecture Assistant Mode:** In the `[d]` audit, explain business/functional risks and offer 1-click fixes.
 9. **Contextual Shortcuts:** End every response by offering 2-3 suggested next actions (Quick Actions).
 10. **Full MCP Delegation:** Query types, schemas, and validation from the `innfo-mcp` server; do not guess or duplicate the grammar.
 11. **Index Block: Concepts only:** The `# NN index` lists ONLY Concepts (types declared by the template), NEVER Elements (instances of Concepts). Elements are declared inside their Concept sections with `## NN <Concept>: <Element>`. The Elements↔Concepts relationship is by section structure and `reference` fields, not by hierarchy in the index.

@@ -17,6 +17,7 @@ import { useModelStore } from '../../stores/modelStore'
 import { useUiStore } from '../../stores/uiStore'
 import { findMatchingModelNode } from '../../utils/modelMatching'
 import { deriveSuggestedSubmodelPath, slugify } from '../../utils/submodelPath'
+import { buildSubmodelTemplateUrl } from '../../utils/constants'
 
 interface FieldDefinitionLike {
   name: string
@@ -67,6 +68,30 @@ function cleanValue(val: string): string {
 }
 
 const displayName = computed(() => basename(cleanValue(props.modelValue || '')))
+
+/**
+ * True when the field's raw value does not resolve to a model already
+ * present in the workspace graph. In read mode a missing target hides the
+ * dead pill and surfaces the create action instead.
+ */
+const modelMissing = computed(() => {
+  const clean = cleanValue(props.modelValue || '')
+  if (!clean) return true
+  return !findMatchingModelNode(modelStore.nodes, clean)
+})
+
+/**
+ * The "Create & bind new model" action renders in edit mode and, in read
+ * mode, whenever the bound model does not exist yet and the field declares
+ * a target template to scaffold against.
+ */
+const showCreateAction = computed(
+  () =>
+    !props.readonly ||
+    (props.readonly &&
+      modelMissing.value &&
+      !!props.fieldDefinition?.target_template),
+)
 
 interface ModelSuggestion {
   id: string
@@ -182,6 +207,7 @@ async function handleCreateSubmodel(): Promise<void> {
   const newModelId = modelStore.scaffoldSubmodel({
     path: cleanPath,
     template: targetTemplate,
+    templateUrl: buildSubmodelTemplateUrl(targetTemplate),
     title,
   })
 
@@ -208,7 +234,12 @@ async function handleCreateSubmodel(): Promise<void> {
         <FileText class="w-3.5 h-3.5 shrink-0" />
         <span>{{ displayName }}</span>
       </button>
-      <span v-else class="text-slate-300 dark:text-slate-600 italic">—</span>
+      <span
+        v-if="!modelValue && !showCreateAction"
+        class="text-slate-300 dark:text-slate-600 italic"
+      >
+        —
+      </span>
     </template>
     <input
       v-else
@@ -237,7 +268,7 @@ async function handleCreateSubmodel(): Promise<void> {
       </li>
     </ul>
 
-    <div v-if="!readonly" class="flex items-center gap-2 mt-1">
+    <div v-if="showCreateAction" class="flex items-center gap-2 mt-1">
       <button
         type="button"
         class="text-xs text-primary hover:text-primary-700 dark:text-primary-400 font-medium inline-flex items-center gap-1 hover:underline cursor-pointer"

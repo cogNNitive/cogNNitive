@@ -146,7 +146,7 @@ agent-bootstrap:
     });
     assert.strictEqual(res.status, 0, `Sync command with --yes should succeed. Got: ${res.stderr || res.stdout}`);
     assert(fs.existsSync(path.join(targetSkillsDir, 'nn-innfo')), 'nn-innfo skill should be synchronized to destination');
-    assert(fs.existsSync(path.join(targetSkillsDir, 'nn-innfo', 'templates', 'workspace_V_0-3-0_spec_NN.md')), 'Bundled template workspace_V_0-3-0_spec_NN.md should be synchronized');
+    assert(fs.existsSync(path.join(targetSkillsDir, 'nn-innfo', 'templates', 'workspace_spec_NN.md')), 'Bundled template workspace_spec_NN.md should be synchronized');
     console.log('✔ Skill & bundled template sync test passed');
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });

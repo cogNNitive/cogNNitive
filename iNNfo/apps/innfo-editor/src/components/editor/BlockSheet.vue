@@ -183,6 +183,18 @@
           :class="{ '-rotate-90': collapsed }"
         />
       </button>
+
+      <!-- Global OpenCode Custom Prompt Button -->
+      <button
+        type="button"
+        @click.stop="isPromptModalOpen = true"
+        class="ml-1 p-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center gap-1 shadow-sm transition-all cursor-pointer shrink-0"
+        title="Generate custom prompt for OpenCode"
+        data-testid="open-custom-prompt-modal-btn"
+      >
+        <Terminal class="w-3.5 h-3.5" />
+        <span class="hidden sm:inline">AI Prompt</span>
+      </button>
     </div>
 
     <!-- Expandable body / edit form -->
@@ -243,6 +255,18 @@
                 class="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold self-end transition-all"
               >
                 Prompt copied to clipboard!
+              </div>
+
+              <div class="mt-2 pt-2 border-t border-amber-200 dark:border-amber-900/40 flex justify-end">
+                <button
+                  type="button"
+                  @click="isPromptModalOpen = true"
+                  class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                  data-testid="open-custom-prompt-modal-btn"
+                >
+                  <Terminal class="w-3.5 h-3.5" />
+                  <span>Generate custom prompt with notes...</span>
+                </button>
               </div>
             </div>
 
@@ -471,6 +495,18 @@
         </template>
       </div>
     </div>
+    <!-- Prompt Generator Modal -->
+    <OpenCodePromptModal
+      :is-open="isPromptModalOpen"
+      :context="{
+        modelName: modelFilename,
+        modelPath: modelPath,
+        conceptName: conceptName || conceptType,
+        elementName: block.name,
+        elementType: conceptType
+      }"
+      @close="isPromptModalOpen = false"
+    />
   </div>
 </template>
 
@@ -486,11 +522,13 @@ import {
   PlusCircle,
   X,
   Copy,
+  Terminal,
 } from 'lucide-vue-next'
 import IconRenderer from './IconRenderer.vue'
 import MarkerButton from './MarkerButton.vue'
 import WidgetField from '../../shared/widgets/WidgetField.vue'
 import MinimalMarkdownEditor from '../ui/MinimalMarkdownEditor.vue'
+import OpenCodePromptModal from './OpenCodePromptModal.vue'
 import { getMarkerDefinitions } from './MarkerIcons'
 import { renderMarkdown } from '../../utils/markdown'
 import { useModelStore } from '../../stores/modelStore'
@@ -907,6 +945,7 @@ watch(
 )
 
 const copied = ref(false)
+const isPromptModalOpen = ref(false)
 
 const templateNode = computed(() => {
   if (!rootNodeId.value) return undefined

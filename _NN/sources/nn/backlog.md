@@ -398,3 +398,112 @@ robustness-coda verify + archive; then the batched merge path
 chat, not an SDD cycle.
 
 **Suggested trigger:** maintainer decision in chat.
+
+---
+
+## 16. `fix/skills-manager-test-workspace-template-name` — preexisting skills-manager sync test failure
+
+**Type:** bug · **Size:** small
+
+**Why:** `actioNN/scripts/skills-manager.test.js` (test 4, local sync) asserts that
+`nn-innfo/templates/workspace_V_0-3-0_spec_NN.md` is synchronized to the destination,
+but the repo ships `actioNN/skills/nn-innfo/templates/workspace_spec_NN.md` (no
+`V_0-3-0` segment). The failure predates the console-bundle distribution work
+(2026-09-10) and derives from working-tree drift around the template pin
+(`templates-v0.5.1`), not from any console change. It was surfaced while running the
+suite after wiring `console-assets` into `skills-manager`.
+
+**Approach:** decide the intended contract for bundled templates inside skills:
+(a) the bundled filename should carry the version segment (`workspace_V_0-3-0_spec_NN.md`)
+matching what `nn-innfo` actually ships, or (b) the test should resolve the file by
+glob/name-without-version rather than asserting an exact versioned filename. Fix the
+file that is wrong (test vs shipped asset), rerun `node actioNN/scripts/skills-manager.test.js`.
+
+**Suggested trigger:** `/sdd-new fix/skills-manager-test-workspace-template-name`.
+
+---
+
+## 17. `fix/dev-gate-release-coupling` — release-time manifest check runs inside the dev pre-push gate
+
+**Type:** chore / design · **Size:** medium · **Status:** fixed
+
+**Why:** `scripts/verify.js` step 8 (`validate-manifest --channel stable`) validates pins
+live against GitHub and requires a tag that only exists *after* a release, while step 9
+asserts `docs/use/manifest.md` is a generated artifact in sync with `manifest/source.yaml`.
+The dev pre-push preset (`nn-dev-check-integrity` `[p] = d + 5`, SKILL.md:76) runs group 5
+(`:204`), which invokes `verify.js` — so any release-shaped change on `dev` (a version bump
+or a manifest pin) blocks the gate until the tag is cut. `nn-dev-development §4e` prescribes
+"check-integrity → release", making the ordering circular for exactly those changes. The
+failure is also misleading: step 8 (tag 404) fires before step 9 (generated-file drift), so a
+hand-edit to a generated manifest reports "tag not found" instead of "you edited a generated
+file". This recurred on the `skills-v1.5.0` release (merge → tag → pin) and again on the
+`innfo-console` bundle (2026-09-10).
+
+**Approach:** split dev vs release gates. Keep lint / typecheck / tests / parity / doc-drift
+in the dev pre-push gate; move the tag-dependent checks (`validate-manifest --channel stable`
+plus stable-manifest-doc freshness) into the release path (post-tag) or behind a dedicated
+`--release` flag. Run the generated-manifest drift check before the live validation so a
+hand-edited `docs/use/manifest.md` fails fast with the correct message.
+
+**Suggested trigger:** `/sdd-new fix/dev-gate-release-coupling`.
+
+---
+
+## 18. `feature/primitive-url-field` — primitive url field support in iNNfo engine and UI
+
+**Type:** functional · **Size:** medium
+
+**Why:** iNNfo models have no primitive field type for URLs, so links are stored as plain text strings without validation or interactive rendering in cards and tables.
+
+**Behaviour:** support a new primitive field type `url` in the iNNfo engine and UI. Validate valid URL formats, render them directly as interactive hyperlinks in cards and tables, and enable direct navigation by opening the link in a new browser tab (`target="_blank" rel="noopener noreferrer"`).
+
+**Approach:** extend engine field types and validation logic in `innfo-core`, update card and table UI renderers in `innfo-console` to render interactive hyperlinks, and add test coverage.
+
+**Suggested trigger:** `/sdd-explore primitive-url-field`.
+
+---
+
+## 19. `chore/dev-process-hardening` — dev→main process miscellany: gate parity, CI on dev, guards
+
+**Type:** chore · **Size:** medium
+
+**Why:** the 2026-09-10 batched `dev → main` merge shipped red. Root cause: `dev` has no CI, so batch commits stay CI-unverified until the merge (`.github/workflows/ci.yml` triggers only on `main`). Secondary gaps surfaced at the same time: the local pre-push gate did not mirror CI (it ran `npm test`, never `test:coverage`, and never `check:spec-urls`); `iNNfo/scripts/check-spec-version.mjs` walked the filesystem and flagged gitignored `_NN/specs/**` caches that CI never has; a generated `docs/use/manifest.md` was hand-edited; and two U+FFFD (mojibake) characters slipped into `openspec/backlog.md`. A second agent also edited the shared working tree throughout the session.
+
+**Approach (priority order):**
+
+1. **Run CI on `dev`** — add `dev` to the `ci.yml` triggers (or a lightweight dev job). Highest return; removes the root cause.
+2. **Wire the manifest tests into `verify.js`** — `scripts/manifest/{generate,validate,check-parity}.test.js` are not run by `verify.js` or CI (the new `console-assets` generator test included).
+3. **Mojibake guard** — fail when U+FFFD appears in tracked text files.
+4. **Local gate parity** — add `build:docs`, app build, and `innfo-mcp` typecheck to `check-integrity --pre-push` (or a `--ci` preset); note `build:docs` dirties tracked `docs/`.
+5. **git-visible scanning** — make `check-spec-version.mjs` `collectFiles` git-aware too (only `collectRepoFiles` was fixed).
+6. **Batched-merge DoD** — add "confirm the `main` CI run is green" to `nn-dev-development §4e` / `nn-dev-release`.
+7. **Release skill** — add a Console subsystem to `nn-dev-release` and document the `-v` tag shape (`innfo-console-vX.Y.Z`).
+8. **Shared test helper** — extract `rmWithRetry` (now duplicated in `innfo-mcp/src/tools/{check-workspace,resolver-node}.spec.ts`).
+9. **Concurrency isolation** — adopt worktrees or `wip:` commits for concurrent sessions.
+10. **MCP root vs workspace** — `innfo-mcp` is rooted at the repo root, so `apply_change`/`bump_version` on `_NN/` models abort during the parent pre-check (the relative `specs/...` resolves under `<repo>/specs`, not `_NN/specs`). Root the MCP at the workspace (or let `apply_change` take a per-call `root`) so workspace models can be mutated deterministically instead of by hand.
+
+**Suggested trigger:** `/sdd-explore dev-process-hardening`.
+
+---
+
+## 21. `feature/opencode-prompt-generator` — on-the-fly OpenCode prompt generator modal with custom notes & clipboard copy
+
+**Type:** functional · **Size:** medium
+
+**Why:** Users need an easy, frictionless way to pass a specific prompt with full contextual metadata (element, concept, model, path) and custom instructions to OpenCode / AI agents directly from any part of the iNNfo app.
+
+**Behaviour:**
+1. Provide a quick action button on elements, concepts, and models across the iNNfo editor (following the existing prompt copy pattern seen in validation / block sheet / migration banners).
+2. Clicking the button opens a modal window featuring:
+   - A text area (`textarea`) for user comments or custom instructions for the AI agent.
+   - A "Generate & Copy Prompt" button.
+3. The generator combines the structural context of the item (filename, path, concept/element type, name) with the user's custom notes into a structured prompt.
+4. Copies the prompt to the clipboard, displays a "Copied!" confirmation, and shows a preview copy of the prompt so the user can easily review and paste it into OpenCode.
+
+**Approach:** 
+- Build a reusable prompt generator utility that aggregates node/model metadata.
+- Implement a modal component or extend existing sheet/modal triggers (like `BlockSheet.vue` or `ModelInfoPanel.vue`) with a text area for custom notes and clipboard actions.
+- Add unit and component tests.
+
+**Suggested trigger:** `/sdd-explore opencode-prompt-generator`.
+

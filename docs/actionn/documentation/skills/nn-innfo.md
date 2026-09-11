@@ -1,13 +1,13 @@
 ---
-title: "nn-innfo — Semantic Modeling & Architecture Coach"
-description: "Author, edit, validate, and audit iNNfo-compliant models and templates with the conversational Model Creation Wizard and Architecture Coach."
+title: "nn-innfo — Semantic Modeling & Architecture Assistant"
+description: "Author, edit, validate, and audit iNNfo-compliant models and templates with the conversational Model Creation Wizard and Architecture Assistant."
 html_url: https://cognnitive.com/actionn/documentation/#/skills/nn-innfo
 generator: https://cognnitive.com/actionn/nn-design-presets
 ---
 
 # nn-innfo
 
-**Skill**: `nn-innfo` · **Version**: `V_0-2-0` · **Role**: Semantic Modeling & Architecture Coach
+**Skill**: `nn-innfo` · **Version**: `V_0-2-0` · **Role**: Semantic Modeling & Architecture Assistant
 
 Guides LLMs and agents in authoring, scaffolding, editing, auditing, and validating **iNNfo-compliant files** (V_0-1-0 Meta-template specification with unified `NN` syntax: `# NN`, `## NN`, and `key:: value`).
 
@@ -22,7 +22,7 @@ When activated, `nn-innfo` presents the entry menu:
 - **`[a]` (Recommended)** Create a new model (Conversational Wizard: Phase A Template &rarr; Phase B Model)
 - **`[b]`** Edit / extend an existing model
 - **`[c]`** Validate a model with MCP (`innfo-mcp_validate_model`)
-- **`[d]`** Analyze coherence & solidity (Architecture Coach audit)
+- **`[d]`** Analyze coherence & solidity (Architecture Assistant audit)
 - **`[x]`** Execute a declared model procedure
 - **`[y]`** Cancel / help
 

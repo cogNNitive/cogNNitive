@@ -43,3 +43,41 @@ export function buildSpecificationUrl(version: string = DEFAULT_INNFO_VERSION): 
 export function buildTemplateUrl(name: string, version: string = DEFAULT_TEMPLATE_VERSION): string {
   return `https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/${name}/${name}_${version}_NN.md`
 }
+
+const KNOWN_TEMPLATES = new Set([
+  'business',
+  'business-model',
+  'analysis',
+  'organization',
+  'projects',
+  'procedures',
+  'innovation',
+  'metrics',
+  'workspace',
+  'blank',
+  'cogNNitive',
+])
+
+/**
+ * Normalizes a `target_template` field value (e.g. `business` or
+ * `business_V_0-2-0`) into the canonical template URL used in a model's
+ * `parent_spec.url`.
+ *
+ * Templates evolved from a per-version file (`{name}_{version}_NN.md`) to
+ * a stable `spec_NN.md` leaf under `specs/templates/{name}/` (their
+ * `spec_url` today points at that immutable path). `buildSubmodelTemplateUrl`
+ * produces the current canonical form so a freshly scaffolded submodel
+ * resolves without a network 404.
+ */
+export function buildSubmodelTemplateUrl(template: string): string {
+  const normalized = (template || '').trim()
+  if (KNOWN_TEMPLATES.has(normalized)) {
+    return `https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/${normalized}/spec_NN.md`
+  }
+  // Known templates may arrive version-suffixed (e.g. "business_V_0-2-0").
+  const baseName = normalized.match(/^(.*?)(?:_V_\d+-\d+-\d+)?$/i)?.[1] || normalized
+  if (KNOWN_TEMPLATES.has(baseName)) {
+    return `https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/${baseName}/spec_NN.md`
+  }
+  return buildTemplateUrl(normalized, DEFAULT_TEMPLATE_VERSION)
+}

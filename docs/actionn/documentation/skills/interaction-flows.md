@@ -50,7 +50,7 @@ stateDiagram-v2
             ActiveModelGate --> WizardL2L3: "[a] Create model (Wizard L2 -> L3)"
             ActiveModelGate --> EditModel: "[b] Edit existing model"
             ActiveModelGate --> ValidateMCP: "[c] Validate schema with innfo-mcp"
-            ActiveModelGate --> ArchCoach: "[d] Architecture Coach (Audit)"
+            ActiveModelGate --> ArchAssistant: "[d] Architecture Assistant (Audit)"
             ActiveModelGate --> ExecProc: "[x] Execute model procedure"
             
             state "Model Creation Wizard" as WizardL2L3 {
