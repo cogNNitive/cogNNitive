@@ -46,7 +46,7 @@ AI Agent ? actioNN (instructions) ? innfo-mcp (MCP server) ? @cognnitive/innfo-c
 ```
 
 - The MCP server (`innfo-mcp`) wraps `@cognnitive/innfo-core` from this repo
-- The agent delegates all resolution, validation, and mutation to the MCP � never hand-rolls
+- The agent delegates all resolution, validation, and mutation to the MCP — never hand-rolls
 - Specs are fetched at runtime from `iNNfo/specs/` (immutable, filename-versioned) — no duplication
 
 ## Developing iNNfo
@@ -59,4 +59,4 @@ npm run build --workspace=packages/innfo-mcp
 
 This builds `packages/innfo-mcp/bin/innfo-mcp.bundle.js` which the local `opencode.json` registers.
 
-For agent interaction with iNNfo models, still install actioNN � the skills contain the interaction patterns that the local MCP registration does not replace.
+For agent interaction with iNNfo models, still install actioNN — the skills contain the interaction patterns that the local MCP registration does not replace.

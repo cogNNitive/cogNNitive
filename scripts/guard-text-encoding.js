@@ -44,12 +44,9 @@ const FALLBACK_SKIP_DIRS = new Set([
 ]);
 
 // Explicit exceptions. Every entry needs a reviewer note: an allowlist entry is
-// not a silent pass, it is a tracked and documented gap.
-const DEFAULT_ALLOWLIST = new Set([
-  // Pre-existing U+FFFD corruption in a tracked doc (2 occurrences). Recorded as
-  // a separate defect in the apply report; do not broaden without a reviewer note.
-  'iNNfo/USE_AI.md',
-]);
+// not a silent pass, it is a tracked and documented gap. Currently empty: the
+// iNNfo/USE_AI.md U+FFFD corruption was repaired, so its entry was removed.
+const DEFAULT_ALLOWLIST = new Set([]);
 
 /**
  * Classifies a file buffer.
