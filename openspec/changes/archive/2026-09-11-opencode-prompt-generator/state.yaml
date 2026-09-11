@@ -1,0 +1,11 @@
+status: completed
+current_phase: archive
+phases:
+  proposal: completed
+  exploration: completed
+  design: completed
+  spec: completed
+  tasks: completed
+  apply: completed
+  verify: completed
+  archive: completed
