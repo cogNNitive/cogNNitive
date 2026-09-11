@@ -639,7 +639,9 @@ function main() {
 
     const { violations, warnings } = scanStrictLegacy(repoFiles)
     if (warnings.length > 0) {
-      console.log(`  Allowlisted legacy references (${warnings.length} occurrences tracked for Change 2):`)
+      console.log(
+        `  Allowlisted legacy references (${warnings.length} occurrences tracked for Change 2):`,
+      )
       for (const w of warnings) {
         console.warn(`    [WARN] ${w.file}:${w.line}: ${w.text}`)
       }
@@ -647,7 +649,9 @@ function main() {
     }
 
     if (violations.length > 0) {
-      console.error(`  [ERROR] Found ${violations.length} forbidden residual cogNNitive/iNNfo reference(s):`)
+      console.error(
+        `  [ERROR] Found ${violations.length} forbidden residual cogNNitive/iNNfo reference(s):`,
+      )
       for (const v of violations) {
         console.error(`    · ${v.file}:${v.line}: ${v.text}`)
       }

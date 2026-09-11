@@ -92,7 +92,11 @@ async function writeModels(count: number): Promise<string[]> {
   for (let i = 0; i < count; i++) {
     const name = `model${i}_V_0-1-0_business_NN.md`
     const p = join(modelsDir, name)
-    await writeFile(p, modelContent(`Model ${i}`, `## NN Stakeholders: Stakeholder ${i}\n`), 'utf-8')
+    await writeFile(
+      p,
+      modelContent(`Model ${i}`, `## NN Stakeholders: Stakeholder ${i}\n`),
+      'utf-8',
+    )
     paths.push(p)
   }
   return paths
@@ -225,11 +229,18 @@ describe('checkWorkspace (AD-5)', () => {
     // Pre-place an existing spec that the resolver would otherwise hydrate.
     await mkdir(join(specsDir, 'templates', 'business', 'V_0-2-0'), { recursive: true })
     const preExisting = 'PRE-EXISTING CONTENT - DO NOT TOUCH'
-    await writeFile(join(specsDir, 'templates', 'business', 'V_0-2-0', 'spec_NN.md'), preExisting, 'utf-8')
+    await writeFile(
+      join(specsDir, 'templates', 'business', 'V_0-2-0', 'spec_NN.md'),
+      preExisting,
+      'utf-8',
+    )
 
     const report = await checkWorkspace(rootDir)
     expect(report.models).toHaveLength(1)
-    const after = await readFile(join(specsDir, 'templates', 'business', 'V_0-2-0', 'spec_NN.md'), 'utf-8')
+    const after = await readFile(
+      join(specsDir, 'templates', 'business', 'V_0-2-0', 'spec_NN.md'),
+      'utf-8',
+    )
     expect(after).toBe(preExisting)
   })
 
@@ -237,7 +248,11 @@ describe('checkWorkspace (AD-5)', () => {
     const spy = vi.spyOn(global, 'fetch')
     // Pre-hydrate the template locally so resolution works without network.
     await mkdir(join(specsDir, 'templates', 'business', 'V_0-2-0'), { recursive: true })
-    await writeFile(join(specsDir, 'templates', 'business', 'V_0-2-0', 'spec_NN.md'), TEMPLATE_CONTENT, 'utf-8')
+    await writeFile(
+      join(specsDir, 'templates', 'business', 'V_0-2-0', 'spec_NN.md'),
+      TEMPLATE_CONTENT,
+      'utf-8',
+    )
     await writeFile(join(specsDir, 'iNNfo_V_0-2-1_NN.md'), LEVEL1_CONTENT, 'utf-8')
     await writeFile(join(specsDir, 'defiNNe_V_0-1-0_NN.md'), LEVEL0_CONTENT, 'utf-8')
     await writeModels(1)
@@ -264,7 +279,9 @@ describe('checkWorkspace (AD-5)', () => {
     const report = await checkWorkspace(rootDir, { summaryOnly: true })
     expect(report.aggregate.modelsScanned).toBe(41)
     expect(report.models.length).toBeGreaterThan(0)
-    expect(report.models.every((m) => m.errors.length > 0 || m.versionStatus === 'upgrade-available')).toBe(true)
+    expect(
+      report.models.every((m) => m.errors.length > 0 || m.versionStatus === 'upgrade-available'),
+    ).toBe(true)
   }, 30000)
 })
 
