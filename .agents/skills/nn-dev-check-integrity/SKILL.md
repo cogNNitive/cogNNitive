@@ -206,6 +206,26 @@ npm run build:docs
 npm --prefix iNNfo run check:spec-urls
 npm --prefix iNNfo run check:spec-version -- --inventory   # informational
 ```
+
+**Local automation & residual nonequivalence.** `node scripts/check-integrity.js --pre-push`
+automates the core of this list: `lint`, `typecheck`, `innfo-core test`,
+`innfo-mcp test:coverage`, `innfo-editor test`, `check:spec-urls`, plus the full
+`verify.js` suite (Groups 3/4/7). Three steps are deliberately **not** mirrored
+locally — they are documented gaps, not oversights, and the runner should not be
+widened to include them:
+- `innfo-core run build` — CI builds core before the tests to kill stale `dist/`
+  (expediente `innfo-core-dist-staleness-breaks-mcp-tests.md`). The local runner
+  expects a current build; if `innfo-mcp` tests throw `<fn> is not a function`,
+  run the core build manually before blaming the change.
+- `innfo-editor run build` — CI owns the app build; locally the app test suite plus
+  typecheck catch the same regressions without the heavier bundle step.
+- `npm run build:docs` — excluded from the local gate on purpose: it is heavy and
+  rewrites tracked generated docs, so running it would dirty the very tree the gate
+  is inspecting. The release path owns it.
+
+`check:spec-version -- --inventory` is informational by design and never fails a
+gate, so it stays out of the runner.
+
 Format — **changed files only**, mirroring `.github/workflows/ci.yml`:
 ```powershell
 git fetch --no-tags --depth=1 origin main

@@ -119,6 +119,8 @@ Present a consolidated summary table with:
    - `iNNfo Suite` (`v<A.B.C>` & `innfo-mcp-v<A.B.C>`)
    - `Skills` (`skills-v<X.Y.Z>`)
    - `Templates` (`templates-v<T.U.V>`)
+   - `Console` (`innfo-console-v<C.D.E>` — the published `innfo-console.bundle.js`
+     distributed through the manifest `console-assets` block)
 
 2. **Synchronize & Bump Versions**:
    - For `iNNfo Suite`:
@@ -136,11 +138,21 @@ Present a consolidated summary table with:
      - Bump `version:` in targeted `actioNN/skills/<skill>/SKILL.md`.
    - For `Templates`:
      - Bump `version:` in targeted `iNNfo/specs/templates/<template>.md`.
+   - For `Console`:
+     - Bump `BUNDLE_VERSION` in `scripts/build-console-bundle.mjs` and the
+       `console_assets` `version:` in `manifest/source.yaml`.
+     - Rebuild the published bundle (committed, following the `innfo-mcp.bundle.js`
+       precedent):
+       ```powershell
+       node scripts/build-console-bundle.mjs
+       ```
+     - The rebuilt `iNNfo/specs/templates/console/innfo-console.bundle.js` must be
+       part of the release commit before tagging.
 
 3. **Update Manifest Source**:
    Update `manifest/source.yaml`:
    - Update component `version:` field.
-   - Update `channels.stable.refs` with the new tag names (`skills-v<X.Y.Z>`, `innfo-mcp-v<A.B.C>`, or `templates-v<T.U.V>`).
+   - Update `channels.stable.refs` with the new tag names (`skills-v<X.Y.Z>`, `innfo-mcp-v<A.B.C>`, `templates-v<T.U.V>`, or `innfo-console-v<C.D.E>`).
 
 4. **Verify Local Parity & Commit** (precise staging only — never `git add -A`,
    per `nn-dev-development` rule 6; a concurrent agent's files may be in the tree):
@@ -152,6 +164,15 @@ Present a consolidated summary table with:
     ```
 
 5. **Create & Push Git Tags**:
+
+   > **Stable tag shape (normative).** Every stable-channel ref MUST match
+   > `<subsystem>-v<x.y.z>` — the `-v` separator is mandatory
+   > (`innfo-console-v0.1.0`, `innfo-mcp-v0.5.0`, `skills-v2.1.0`,
+   > `templates-v0.1.0`). `validate-manifest.js` enforces this via
+   > `TAG_SHAPE_RE = ^[a-z][a-z0-9-]*-v\d+\.\d+\.\d+$`. A tag without `-v`
+   > (e.g. `innfo-console0.1.0`) will fail validation: **stop the release flow
+   > before tagging** and fix the tag name.
+
    - For `iNNfo`:
      ```powershell
      git tag v<A.B.C>
@@ -168,6 +189,11 @@ Present a consolidated summary table with:
      ```powershell
      git tag templates-v<T.U.V>
      git push origin templates-v<T.U.V>
+     ```
+   - For `Console`:
+     ```powershell
+     git tag innfo-console-v<C.D.E>
+     git push origin innfo-console-v<C.D.E>
      ```
 
 6. **Regenerate & Validate Manifests**:
