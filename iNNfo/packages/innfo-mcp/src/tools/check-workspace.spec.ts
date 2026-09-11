@@ -1,28 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { join } from 'node:path'
-import { rm, mkdir, writeFile, readFile, readdir } from 'node:fs/promises'
+import { mkdir, writeFile, readFile, readdir } from 'node:fs/promises'
 import { checkWorkspace, resolveCatalog, toIntegrityDiagnostics } from './check-workspace'
+import { rmWithRetry } from '../../test/helpers/fs-retry'
 
 const rootDir = join(import.meta.dirname!, '..', '..', 'temp-test-check-workspace')
 const specsDir = join(rootDir, 'specs')
 const modelsDir = join(rootDir, 'models')
-
-// Windows can hold a transient lock on files a test just wrote (fs.rm -> EBUSY
-// on unlink), failing the local gate spuriously. Retry briefly; Linux CI never
-// hits this.
-async function rmWithRetry(dir: string, attempts = 6): Promise<void> {
-  for (let i = 0; i < attempts; i++) {
-    try {
-      await rm(dir, { recursive: true, force: true })
-      return
-    } catch (err) {
-      const code = (err as NodeJS.ErrnoException).code
-      if (code !== 'EBUSY' && code !== 'EPERM' && code !== 'ENOTEMPTY') throw err
-      await new Promise((resolve) => setTimeout(resolve, 30 * (i + 1)))
-    }
-  }
-  await rm(dir, { recursive: true, force: true })
-}
 
 const TEMPLATE_URL =
   'https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business/V_0-2-0/spec_NN.md'

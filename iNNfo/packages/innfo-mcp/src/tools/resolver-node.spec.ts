@@ -2,33 +2,17 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { existsSync } from 'node:fs'
-import { rm, mkdir, writeFile, readFile, readdir } from 'node:fs/promises'
+import { mkdir, writeFile, readFile, readdir } from 'node:fs/promises'
 import {
   resolveParentChainNode,
   saveSpecOnce,
   fetchTemplatePackageFromRemote,
   defaultCacheDir,
 } from './resolver-node'
+import { rmWithRetry } from '../../test/helpers/fs-retry'
 
 const rootDir = join(import.meta.dirname!, '..', '..', 'temp-test-resolver')
 const specsDir = join(rootDir, 'specs')
-
-// Windows can hold a transient lock on files a test just wrote (fs.rm -> EBUSY
-// on unlink), failing the local gate spuriously. Retry briefly; Linux CI never
-// hits this.
-async function rmWithRetry(dir: string, attempts = 6): Promise<void> {
-  for (let i = 0; i < attempts; i++) {
-    try {
-      await rm(dir, { recursive: true, force: true })
-      return
-    } catch (err) {
-      const code = (err as NodeJS.ErrnoException).code
-      if (code !== 'EBUSY' && code !== 'EPERM' && code !== 'ENOTEMPTY') throw err
-      await new Promise((resolve) => setTimeout(resolve, 30 * (i + 1)))
-    }
-  }
-  await rm(dir, { recursive: true, force: true })
-}
 
 describe('NodeSpecResolver', () => {
   const origGlobal = process.env.INNFO_GLOBAL_DIR
@@ -810,13 +794,13 @@ describe('Temp-dir cache default (validator-robustness 4.3)', () => {
     process.env.INNFO_GLOBAL_DIR = join(cacheRootDir, 'isolated-global')
     process.env.INNFO_SKILLS_DIR = join(cacheRootDir, 'isolated-skills')
     process.env.INNFO_CACHE_DIR = cacheIsolatedDir
-    await rm(cacheRootDir, { recursive: true, force: true })
+    await rmWithRetry(cacheRootDir)
     await mkdir(join(cacheRootDir, 'specs'), { recursive: true })
     vi.restoreAllMocks()
   })
 
   afterEach(async () => {
-    await rm(cacheRootDir, { recursive: true, force: true })
+    await rmWithRetry(cacheRootDir)
     if (origGlobal !== undefined) process.env.INNFO_GLOBAL_DIR = origGlobal
     else delete process.env.INNFO_GLOBAL_DIR
     if (origSkills !== undefined) process.env.INNFO_SKILLS_DIR = origSkills
