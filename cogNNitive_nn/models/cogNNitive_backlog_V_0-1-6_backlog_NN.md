@@ -316,6 +316,21 @@ title: "cogNNitive Backlog"
   suggested_trigger:: "/sdd-explore dev-process-hardening"
   sources:: ["sources/nn/backlog.md"]
 
+## NN WorkItem: Identifier migration
+  number:: 23
+  key:: "refactor/identifier-migration"
+  title:: "Mechanical identifier migration (template to app identifiers)"
+  type:: "refactor"
+  size:: "large"
+  priority:: "P3"
+  status:: "backlog"
+  why:: "The user-facing vocabulary pass made app canonical and kept resolution-bearing identifiers stable as documented deprecated aliases; the actual identifier migration is intentionally deferred because paths, URLs, tool names, manifest keys and version tags all carry resolution semantics."
+  behaviour:: "Mechanically migrate the identifiers recorded in `iNNfo/specs/vocabulary.json` under `terms.app.planned_migrations`: `specs/templates/ -> specs/apps/`, MCP tool names (e.g. `get_template`), the manifest `templates:` key, and `templates-v*` tags — with a coordinated alias/version strategy so existing pins keep resolving."
+  approach:: "Follow the deprecation lifecycle from the canonical-vocabulary dictionary; sequence after the user-facing rename; never a blind find-and-replace. Requires coordinated updates across catalog, manifest/source.yaml, `_spec_NN.md` parent pointers, hydration paths, and the editor resolver constants."
+  risks:: "Large; touches resolution across editor, MCP and skills. Do not attempt as one change; reuse the planned_migrations list as the checklist."
+  suggested_trigger:: "/sdd-explore identifier-migration"
+  sources:: ["sources/nn/backlog.md"]
+
 # NN matrices: work-item relations
 | Row \ Col | New templates | Silent fallbacks sweep | Metrics scenario compare | Console domain renderers | Pending tree closeout | Vocabulary simplification |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
