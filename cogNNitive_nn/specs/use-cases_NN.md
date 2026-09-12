@@ -1,4 +1,4 @@
-﻿---
+---
 spec_version: "V_0-2-0"
 spec_url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-2-0_NN.md"
 level: 2
@@ -130,13 +130,13 @@ description:: Degree of impact or relevance.
 # NN Matrix Definition
 
 ## NN Matrix Definition: ArchetypeDeliverablesMatrix
-source:: Archetype
-target:: Deliverable
+row_concept:: Archetype
+col_concept:: Deliverable
 widget:: boolean
 description:: Maps which deliverables are generated for each archetype.
 
 ## NN Matrix Definition: PainMitigationMatrix
-source:: PainPoint
-target:: Pipeline
+row_concept:: PainPoint
+col_concept:: Pipeline
 widget:: boolean
 description:: Maps how pipeline phases eliminate specific operational pains.
