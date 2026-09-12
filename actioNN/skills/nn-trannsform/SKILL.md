@@ -1,8 +1,8 @@
 ---
 name: nn-trannsform
 description: "Bootstrap projects, scan raw documents, normalize them to Markdown with mandatory provenance frontmatter, apply V_0-1-0 template-based transformations, and execute multi-step transformation procedures compliant with procedures_V_0-1-0_NN.md. Includes document ingestion, format conversion (txt, md, csv, json, docx, pdf, xlsx), procedure orchestration, and export generation. Triggers: trannsform, transform, workflow, pipeline, procedure, normalize, scan documents, document ingestion, document transformation, document processing, markdown conversion, project bootstrap"
-version: "V_3-1-0"
-last_updated: 2026-09-07
+version: "V_3-2-0"
+last_updated: 2026-09-11
 empty_sections_mode: "ask-per-section"
 license: MIT
 metadata:
@@ -209,12 +209,29 @@ Interaction dialogues are first-class source streams. The transcript lifecycle f
    - `[full] (Recommended) Full Transcript`: Promotes verbatim dialogue turns to `sources/conversations/<session-slug>_source.md`.
    - `[none]`: Keeps the transcript in `conversations/` only, without promotion.
    - `_summary.md` promotion is **retired** — there is no executive-summary option and no `_summary.md` is produced.
-5. **Scanner Normalization**: Promoted transcripts link to their origin (`origin_transcript: conversations/...`) and are normalized into `sources/nn/conversations/` with `conversation_format: "full"` and `is_synthetic: false`. Downstream models cite these sources using `sources:: [conversations/<file>.md#<anchor>]`.
-6. **CLI Promotion**:
+5. **Author Naming (before promoting on the `[full]` path)**: Before writing the `_source.md`, present an author-naming step for the transcript's participants — human first, agent second. Suggest the human name from `git config user.name` and/or the OS user (`$env:USERNAME`), offer a manual entry and a skip, then confirm the agent's own tool id (e.g. `OpenCode`, `Antigravity`, `ClaudeCode`). The user may confirm or edit each suggestion before the promoted file is written:
+
+   ```
+   📋 Author naming (before promoting to sources/conversations/):
+   Who is the human participant?
+     [a] (Recommended) Lucas    (from git config user.name)
+     [b] lucas                  (from $env:USERNAME / OS user)
+     [c] enter a name manually
+     [x] leave unnamed
+   > a
+   Your tool id (who produced your turns — e.g. OpenCode, Antigravity)?
+     author-id: OpenCode   [Enter] confirm · type to edit
+   > (confirm)
+   ```
+
+   A participant the user declines to name (or skips) renders the deterministic placeholder `unnamed`; promotion still completes — a missing name never blocks or aborts the `_source.md` write.
+6. **Scanner Normalization**: Promoted transcripts link to their origin (`origin_transcript: conversations/...`), render each turn under a `## NN Turn NN: <author-id>` heading (1-based, 2-digit zero-padded: `## NN Turn 01: Lucas`, …, `## NN Turn 100: X`), and are normalized into `sources/nn/conversations/` with `conversation_format: "full"` and `is_synthetic: false`. The sequential number makes every turn heading unique and addressable under the workspace heading-slug rules. Downstream models cite these sources using `sources:: [conversations/<file>.md#<anchor>]` for plain headings and the `@` pointer grammar for turn headings: `sources:: [conversations/<session-slug>_source.md@## NN Turn 01: Lucas]`. The `#` fragment form MUST NOT be used for `## NN …: …` headings — the Concept/Element boundary in their slug contains `--`, which `parseSourceRef` rejects (`KU_MALFORMED`). Turn headings carry no `author::` key: embedded modification blocks self-describe as they travel across turns.
+7. **CLI Promotion**:
    ```bash
    node scripts/index.js --promote-conv "conversations/YYYY-MM-DD_<slug>.md" --format full
    ```
-7. **Agent Modification provenance**: When an agent turn in the transcript pasted a `## NN Agent Modification: <slug>` block (per `nn-innfo` §5), that heading survives promotion into the `_source.md` and is citeable by heading-slug: `sources:: [conversations/<session-slug>_source.md#<slug>]`. This is how synthetic agent reasoning enters the workspace provenance graph.
+   The CLI path is a mechanical verbatim copy (no turn headings added); the agent-driven path — naming step + turn-structured body passed as `fullContent` — produces the author-attributed `_source.md`.
+8. **Agent Modification provenance**: When an agent turn in the transcript pasted a `## NN Agent Modification: <slug>` block (per `nn-innfo` §5), that heading survives promotion into the `_source.md` and is citeable via the `@` pointer grammar: `sources:: [conversations/<session-slug>_source.md@## NN Agent Modification: <scope>]`. This is how synthetic agent reasoning enters the workspace provenance graph.
 
 #### 2g. Capability Assessment — Decision Matrix
 

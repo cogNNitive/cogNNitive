@@ -26,6 +26,8 @@ export interface AgentModificationContext {
   rationale?: string
   /** Authorization; defaults to `agent`. */
   approvedBy?: 'user' | 'agent'
+  /** Created-by attribution; when absent the block emits the explicit `author:: _` marker. */
+  author?: string
   /** Previous/resulting version — required for a meaningful `bump_version` block. */
   versionTransition?: { from: string; to: string }
 }
@@ -73,7 +75,11 @@ function scopeFor(
 }
 
 /** Deterministic `change::` description for a block-producing op. */
-function changeFor(op: string, args: Record<string, unknown>, ctx: AgentModificationContext): string {
+function changeFor(
+  op: string,
+  args: Record<string, unknown>,
+  ctx: AgentModificationContext,
+): string {
   const c = args.conceptName
   const e = args.elementName
   const f = args.fieldName
@@ -121,6 +127,7 @@ export function buildAgentModificationBlock(
   const change = changeFor(op, args, ctx)
   const rationale = ctx.rationale && ctx.rationale.trim() ? ctx.rationale.trim() : '_'
   const approvedBy = ctx.approvedBy === 'user' ? 'user' : 'agent'
+  const author = ctx.author && ctx.author.trim() ? ctx.author.trim() : '_'
   const timestamp = ctx.timestamp ?? new Date().toISOString()
   const headingSlug = slugifyHeading(scope)
 
@@ -131,6 +138,7 @@ export function buildAgentModificationBlock(
     `change:: ${change}`,
     `rationale:: ${rationale}`,
     `approved_by:: ${approvedBy}`,
+    `author:: ${author}`,
     `model:: ${ctx.model}`,
   ]
   if (op === 'bump_version') {

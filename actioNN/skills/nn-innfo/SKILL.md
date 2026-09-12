@@ -1,7 +1,7 @@
 ---
 name: nn-innfo
-version: "V_0-4-0"
-last_updated: 2026-09-08
+version: "V_0-4-1"
+last_updated: 2026-09-11
 metadata:
   source_type: "original"
   mcp: "innfo-mcp"
@@ -338,10 +338,11 @@ Every skill-driven `.md` write (new model, template, specialization, or full-fil
 
 #### Agent Modification provenance (MANDATORY on every successful `apply_change`)
 
-Whenever an `innfo-mcp_apply_change` call returns `success: true` **and** a `modification` field, you MUST paste that block **verbatim** into your reply, under its own `## NN Agent Modification: <slug>` heading exactly as returned (the block already opens with that heading — reproduce it, do not re-slug it). This makes the synthetic reasoning addressable by heading-slug, so a promoted `_source.md` transcript can be cited via `sources:: [conversations/<session-slug>_source.md@<unit>]`.
+Whenever an `innfo-mcp_apply_change` call returns `success: true` **and** a `modification` field, you MUST paste that block **verbatim** into your reply, under its own `## NN Agent Modification: <slug>` heading exactly as returned (the block already opens with that heading — reproduce it, do not re-slug it). This makes the synthetic reasoning addressable by heading-slug, so a promoted `_source.md` transcript is citeable via `@` pointers — pasted modifications via `sources:: [conversations/<session-slug>_source.md@## NN Agent Modification: <scope>]` and transcript turns via `sources:: [conversations/<session-slug>_source.md@## NN Turn NN: <author-id>]`. The `#` fragment form (`#<slug>`) MUST NOT be used for `## NN …: …` headings: the Concept/Element boundary in their slug contains `--`, which `parseSourceRef` rejects (`KU_MALFORMED`).
 
 - The returned block carries `rationale:: _`. Replace `_` with your concrete reasoning for the change **at paste time** — the pasted block MUST NOT keep an unfilled `rationale:: _`.
-- Pass `rationale` (and, when the user explicitly authorized the change, `approved_by: "user"`) in the `apply_change` `args` so the block is populated at the source: `args: { …, rationale: "why", approved_by: "user" }`.
+- The returned block carries `author:: _`. Replace `_` with your own tool id — the identifier of the agent you are (e.g. `OpenCode`, `Antigravity`, `ClaudeCode`) — **at paste time**; the pasted block MUST NOT keep an unfilled `author:: _`.
+- Pass `rationale` (and, when the user explicitly authorized the change, `approved_by: "user"`) and your own `author: "<your-tool-id>"` in the `apply_change` `args` so the block is populated at the source: `args: { …, rationale: "why", approved_by: "user", author: "<your-tool-id>" }`. The tool id you pass IS the id you paste — same identifier convention.
 - On a **failed** mutation (`success: false`, no `modification`), do NOT fabricate a block.
 - One heading per successful change; do not merge multiple modifications under one heading.
 
@@ -406,7 +407,7 @@ Shall we proceed with this modification?
 - [x] Cancel
 ```
 
-Once the user confirms, run the mutation via `innfo-mcp_apply_change` and re-validate with `innfo-mcp_validate_model`. Feed the "Rationale" line from this preview into `apply_change` as `args.rationale`, and — since the user just confirmed — pass `args.approved_by: "user"`. Then paste the returned `modification` block verbatim per §5 (Agent Modification provenance).
+Once the user confirms, run the mutation via `innfo-mcp_apply_change` and re-validate with `innfo-mcp_validate_model`. Feed the "Rationale" line from this preview into `apply_change` as `args.rationale`, and — since the user just confirmed — pass `args.approved_by: "user"` and `args.author: "<your-tool-id>"` so the block is populated at the source. Then paste the returned `modification` block verbatim per §5 (Agent Modification provenance).
 
 ---
 

@@ -48,20 +48,21 @@ describe('buildAgentModificationBlock', () => {
     expect(strip(a)).toBe(strip(b))
   })
 
-  it('emits keys in the fixed order scope, change, rationale, approved_by, model, model_version, timestamp', () => {
+  it('emits keys in the fixed order scope, change, rationale, approved_by, author, model, model_version, timestamp', () => {
     const block = buildAgentModificationBlock('add_concept', { conceptName: 'Risks' }, CTX)!
     expect(fields(block).map(([k]) => k)).toEqual([
       'scope',
       'change',
       'rationale',
       'approved_by',
+      'author',
       'model',
       'model_version',
       'timestamp',
     ])
   })
 
-  it('inserts version_transition between model and model_version for bump_version only', () => {
+  it('inserts version_transition between model and model_version for bump_version only, keeping author after approved_by', () => {
     const block = buildAgentModificationBlock(
       'bump_version',
       { version: 'V_0-2-0' },
@@ -72,6 +73,7 @@ describe('buildAgentModificationBlock', () => {
       'change',
       'rationale',
       'approved_by',
+      'author',
       'model',
       'version_transition',
       'model_version',
@@ -107,6 +109,65 @@ describe('buildAgentModificationBlock', () => {
         { ...CTX, approvedBy: 'user' },
       )!,
     ).toContain('approved_by:: user')
+  })
+
+  it('emits author:: between approved_by:: and model:: when the caller supplies one', () => {
+    const block = buildAgentModificationBlock(
+      'add_concept',
+      { conceptName: 'Risks' },
+      { ...CTX, approvedBy: 'user', author: 'OpenCode' },
+    )!
+    const keys = fields(block).map(([k]) => k)
+    expect(keys.indexOf('author')).toBe(keys.indexOf('approved_by') + 1)
+    expect(keys.indexOf('author')).toBe(keys.indexOf('model') - 1)
+    expect(block).toContain('author:: OpenCode')
+    // The two attribution keys coexist and stay distinct.
+    expect(block).toContain('approved_by:: user')
+    expect(fields(block).filter(([k]) => k === 'author')).toHaveLength(1)
+  })
+
+  it('falls back to `author:: _` when the caller supplies none or only whitespace; never omits the key', () => {
+    const omitted = buildAgentModificationBlock('add_concept', { conceptName: 'Risks' }, CTX)!
+    expect(omitted).toContain('author:: _')
+    const whitespace = buildAgentModificationBlock(
+      'add_concept',
+      { conceptName: 'Risks' },
+      { ...CTX, author: '   ' },
+    )!
+    expect(whitespace).toContain('author:: _')
+  })
+
+  it('same (op, args) with different authors differs only in the author line', () => {
+    const a = buildAgentModificationBlock(
+      'add_concept',
+      { conceptName: 'Risks' },
+      { ...CTX, author: 'OpenCode' },
+    )!
+    const b = buildAgentModificationBlock(
+      'add_concept',
+      { conceptName: 'Risks' },
+      { ...CTX, author: 'Lucas' },
+    )!
+    expect(a).not.toBe(b)
+    expect(a).toContain('author:: OpenCode')
+    expect(b).toContain('author:: Lucas')
+    // scope/change ARE identical — only the author attribution differs.
+    const scopeOf = (s: string) => fields(s).find(([k]) => k === 'scope')![1]
+    const changeOf = (s: string) => fields(s).find(([k]) => k === 'change')![1]
+    expect(scopeOf(a)).toBe(scopeOf(b))
+    expect(changeOf(a)).toBe(changeOf(b))
+    const stripAuthor = (s: string) => s.replace(/^author:: .*$/m, 'author:: <a>')
+    expect(stripAuthor(a)).toBe(stripAuthor(b))
+  })
+
+  it('trims surrounding whitespace from a caller-supplied author', () => {
+    const block = buildAgentModificationBlock(
+      'add_concept',
+      { conceptName: 'Risks' },
+      { ...CTX, author: '  OpenCode  ' },
+    )!
+    expect(block).toContain('author:: OpenCode')
+    expect(block).not.toContain('author::   OpenCode')
   })
 
   it('derives the exact scope:: string per op (design table)', () => {

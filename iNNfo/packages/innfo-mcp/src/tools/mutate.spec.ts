@@ -350,9 +350,7 @@ describe('mutate tools', () => {
 
         expect(result.success).toBe(true)
         expect(typeof result.modification).toBe('string')
-        expect(result.modification).toContain(
-          'scope:: add_element concept "Work" element "Review"',
-        )
+        expect(result.modification).toContain('scope:: add_element concept "Work" element "Review"')
         expect(result.modification).toContain('model:: Mutable')
         expect(result.modification).toContain('rationale:: _')
 
@@ -382,6 +380,65 @@ describe('mutate tools', () => {
         expect(result.success).toBe(true)
         expect(result.modification).toContain('rationale:: the reviewer role was missing')
         expect(result.modification).toContain('approved_by:: user')
+      })
+
+      it('threads args.author into the block on a general success', async () => {
+        await stubBusinessTemplate()
+        await writeFile(join(rootDir, 'Mutable_NN.md'), MUTABLE_MODEL_CONTENT, 'utf-8')
+
+        const result = await applyChange(rootDir, 'Mutable', 'add_element', {
+          conceptName: 'Work',
+          elementName: 'Review',
+          description: 'Code review step.',
+          author: 'OpenCode',
+        })
+
+        expect(result.success).toBe(true)
+        expect(result.modification).toContain('author:: OpenCode')
+        expect(result.modification).not.toContain('author:: _')
+      })
+
+      it('threads args.author into the block on a bump_version success', async () => {
+        await stubBusinessTemplate()
+        await writeFile(join(rootDir, 'Versioned_V_0-0-1_NN.md'), MUTABLE_MODEL_CONTENT, 'utf-8')
+
+        const result = await applyChange(rootDir, 'Versioned_V_0-0-1', 'bump_version', {
+          version: 'V_0-5-0',
+          author: 'OpenCode',
+        })
+
+        expect(result.success).toBe(true)
+        expect(result.modification).toContain('author:: OpenCode')
+        expect(result.modification).not.toContain('author:: _')
+      })
+
+      it('emits author:: _ when the caller passes no author', async () => {
+        await stubBusinessTemplate()
+        await writeFile(join(rootDir, 'Mutable_NN.md'), MUTABLE_MODEL_CONTENT, 'utf-8')
+
+        const result = await applyChange(rootDir, 'Mutable', 'add_element', {
+          conceptName: 'Work',
+          elementName: 'Review',
+          description: 'Code review step.',
+        })
+
+        expect(result.success).toBe(true)
+        expect(result.modification).toContain('author:: _')
+      })
+
+      it('never leaks an author marker into a failed mutation (modification absent)', async () => {
+        await stubBusinessTemplate()
+        await writeFile(join(rootDir, 'Mutable_NN.md'), MUTABLE_MODEL_CONTENT, 'utf-8')
+
+        const dup = await applyChange(rootDir, 'Mutable', 'add_element', {
+          conceptName: 'Work',
+          elementName: 'Triage',
+          author: 'OpenCode',
+        })
+
+        expect(dup.success).toBe(false)
+        expect(dup.modification).toBeUndefined()
+        expect(dup).not.toHaveProperty('modification')
       })
 
       it('carries a bump_version block that states the version transition', async () => {

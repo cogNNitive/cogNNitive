@@ -32,10 +32,13 @@ export interface ApplyChangeResult {
 function modificationContext(args: Record<string, unknown>): {
   rationale?: string
   approvedBy?: 'user' | 'agent'
+  author?: string
 } {
   const rationale = typeof args.rationale === 'string' ? args.rationale : undefined
   const approvedBy = args.approved_by === 'user' ? 'user' : undefined
-  return { rationale, approvedBy }
+  const author =
+    typeof args.author === 'string' && args.author.trim() !== '' ? args.author.trim() : undefined
+  return { rationale, approvedBy, author }
 }
 
 /** Matches the `_V_<major>-<minor>-<patch>_` segment in iNNfo filenames. */
@@ -127,8 +130,9 @@ async function bumpVersion(
         encoding: 'utf-8',
       })
       backupNeeded = gitStatus.trim() !== ''
-    } catch {
-      // git unavailable — no dirty-tree signal, so no auto-backup is taken.
+    } catch (err) {
+      // log + continue: git unavailable — no dirty-tree signal, so no auto-backup.
+      console.warn(`[apply-change] git status probe failed; skipping dirty-tree backup: ${err}`)
     }
   }
   if (backupNeeded) {
@@ -191,7 +195,9 @@ async function bumpVersion(
         }
         parentContent = serializeModel(parentModel)
       } catch (err) {
-        // Parent spec not found locally, skip template renaming but still update references
+        // log + continue: parent spec not found locally — skip template
+        // renaming but still update references.
+        console.warn(`[apply-change] Local parent spec not found; template rename skipped: ${err}`)
       }
     }
 
@@ -277,8 +283,11 @@ async function bumpVersion(
       if (replaced) {
         await writeFile(indexPath, indexContent, 'utf-8')
       }
-    } catch {
-      // index.md might not exist or be readable, ignore
+    } catch (err) {
+      // swallow deliberately: index.md might not exist or be readable.
+      if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
+        console.warn(`[apply-change] Failed to update index.md: ${err}`)
+      }
     }
   } catch (err) {
     return { success: false, errors: [{ path: '', message: `Failed to write model: ${err}` }] }
@@ -339,8 +348,10 @@ export async function applyChange(
           ? schema.taxonomy
           : parseModel(idxTemplate.rawContent).taxonomy
       }
-    } catch {
-      /* template not resolvable — generate_index falls back to model taxonomy */
+    } catch (err) {
+      // log + continue: template not resolvable — generate_index falls back to
+      // the model taxonomy.
+      console.warn(`[apply-change] Index template resolution failed; using model taxonomy: ${err}`)
     }
   }
 
@@ -356,7 +367,10 @@ export async function applyChange(
       if (schemaTemplate) {
         renameSchema = resolveTemplateSchema(schemaTemplate.rawContent, schemaInclude).schema
       }
-    } catch {
+    } catch (err) {
+      // log + continue: without the resolved schema the rename runs untyped
+      // (no reference-field gating), never aborts.
+      console.warn(`[apply-change] Schema resolution failed for rename; untyped rename: ${err}`)
       renameSchema = undefined
     }
   }
@@ -415,8 +429,9 @@ export async function applyChange(
         if (st && st.isDirectory()) {
           await rename(oldAssetDir, newAssetDir)
         }
-      } catch {
-        // Asset directory rename is best effort
+      } catch (err) {
+        // log + continue: asset directory rename is best effort.
+        console.warn(`[apply-change] Asset dir rename failed: ${err}`)
       }
     }
   } catch (err) {
