@@ -18,7 +18,7 @@ skills:
   - name: nn-innfo
     repo: cogNNitive/cogNNitive
     path: actioNN/skills/nn-innfo
-    version: "V_0-5-0"
+    version: "V_0-5-1"
     ref_key: skills
     description: Author, edit, and validate iNNfo models with built-in step-by-step Model Creation Wizard.
     templates: [workspace]

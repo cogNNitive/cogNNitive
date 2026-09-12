@@ -24,7 +24,7 @@ agent-bootstrap:
     - name: nn-innfo
       repo: cogNNitive/cogNNitive
       path: actioNN/skills/nn-innfo
-      version: "V_0-5-0"
+      version: "V_0-5-1"
       ref: "skills-v1.7.0"
       commit: "1cc1a8c215fd05d1d0894e05d2712fd4ff7d7c6e"
       description: Author, edit, and validate iNNfo models with built-in step-by-step Model Creation Wizard.
