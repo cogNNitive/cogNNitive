@@ -9,7 +9,7 @@ const templatesDir = join(here, '..', '..', '..', 'specs', 'templates')
 const assets = {
   master: join(templatesDir, 'business', 'assets', 'master.html'),
   viewer: join(templatesDir, 'business', 'assets', 'model_viewer.html'),
-  projections: join(templatesDir, 'metrics', 'assets', 'projections.html'),
+  timeline: join(templatesDir, 'metrics', 'assets', 'timeline.html'),
 }
 
 // Markers that would indicate a duplicated inline copy of the shared runtime.
@@ -28,7 +28,7 @@ function readAsset(path: string): string {
 describe.each([
   ['master', assets.master],
   ['viewer', assets.viewer],
-  ['projections', assets.projections],
+  ['timeline', assets.timeline],
 ])('%s console asset', (_name, path) => {
   it('declares an innfo-config block with a needs[] capability list', () => {
     const html = readAsset(path)
@@ -40,9 +40,9 @@ describe.each([
     expect(config.needs.length).toBeGreaterThan(0)
   })
 
-  it('loads the shared runtime via static script tags', () => {
+  it('loads a shared runtime via static script tags', () => {
     const html = readAsset(path)
-    expect(html).toContain('innfo-runtime.js')
+    expect(html).toMatch(/innfo-(runtime|console\.bundle)\.js/)
     expect(html).not.toContain('type="module"')
   })
 
@@ -69,11 +69,34 @@ describe('master slot payloads', () => {
   })
 })
 
-describe('projections slot payloads', () => {
-  it('keeps the MODEL_DATA, DEPS, and FORMULAS slots', () => {
-    const html = readAsset(assets.projections)
-    expect(html).toContain('MODEL_DATA')
-    expect(html).toContain('DEPS')
-    expect(html).toContain('FORMULAS')
+// The timeline asset is a template blue-print shell: it declares the shared
+// console bundle (innfo-console.bundle.js), NOT the legacy innfo-runtime.js,
+// and carries the two blueprint JSON slots. Inline dashboard engine markers
+// (MODEL_DATA/FORMULAS/DEPS/SERIES/SEASON as code) must not survive.
+describe('timeline slot payloads', () => {
+  it('boots the shared console bundle (not the legacy innfo-runtime.js)', () => {
+    const html = readAsset(assets.timeline)
+    expect(html).toContain('innfo-console.bundle.js')
+    expect(html).not.toContain('innfo-runtime.js')
+  })
+
+  it('keeps the innfo-schema and innfo-model blueprint slots', () => {
+    const html = readAsset(assets.timeline)
+    expect(html).toContain('id="innfo-schema"')
+    expect(html).toContain('id="innfo-model"')
+  })
+
+  it('ships no inline dashboard engine blocks', () => {
+    const html = readAsset(assets.timeline)
+    for (const marker of [
+      'const MODEL_DATA',
+      'const FORMULAS',
+      'const DEPS',
+      'const SERIES',
+      'const SEASON',
+      'new uPlot',
+    ]) {
+      expect(html).not.toContain(marker)
+    }
   })
 })

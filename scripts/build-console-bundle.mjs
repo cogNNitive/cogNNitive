@@ -8,10 +8,11 @@
  * is safe and exactly one renderer boots per shell.
  *
  * Order:
- *   1. visuals.js              (InnfoVisuals — no boot, pure vocabulary)
- *   2. innfo-runtime.js        (InnfoConsole — boots on #innfo-config)
- *   3. render-model-viewer.js  (InnfoModelViewer — boots on #doc-title + #rail)
- *   4. render-procedure-stepper.js (InnfoProcedureStepper — boots on #doc-title + #proc-tabs)
+ *   1. uplot.iife.min.js      (vendored uPlot v1.6.31 — charts capability)
+ *   2. visuals.js             (InnfoVisuals — no boot, pure vocabulary)
+ *   3. innfo-runtime.js       (InnfoConsole — boots on #innfo-config)
+ *   4. render-model-viewer.js (InnfoModelViewer — boots on #doc-title + #rail)
+ *   5. render-procedure-stepper.js (InnfoProcedureStepper — boots on #doc-title + #proc-tabs)
  *
  * Output: iNNfo/specs/templates/console/innfo-console.bundle.js (committed,
  * following the innfo-mcp.bundle.js precedent). Regenerate on every console release.
@@ -25,6 +26,7 @@ const here = dirname(fileURLToPath(import.meta.url))
 const consoleDir = join(here, '..', 'iNNfo', 'specs', 'templates', 'console')
 
 const SOURCES = [
+  ['uplot.iife.min.js', 'uPlot'],
   ['visuals.js', 'InnfoVisuals'],
   ['innfo-runtime.js', 'InnfoConsole'],
   ['render-model-viewer.js', 'InnfoModelViewer'],

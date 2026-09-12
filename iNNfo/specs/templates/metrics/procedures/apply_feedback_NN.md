@@ -22,7 +22,7 @@ output:: [[Regenerated Console]]
 output_status:: verified
 tool:: [[AI Agent]]
 scope:: internal
-Carry accepted reviewer items back into the active metrics model with staleness protection and patch-bump versioning: check `source_model_version` against the live model, preview the diff, apply accepted items via `innfo-mcp apply_change` (one call per item), run `validate_model`, bump the patch version, and regenerate the stable-name projections console `{Model}_V_{version}_console.html`. Timestamped console copies are archive-only. Never auto-apply without reviewer confirmation of the preview.
+Carry accepted reviewer items back into the active metrics model with staleness protection and patch-bump versioning: check `source_model_version` against the live model, preview the diff, apply accepted items via `innfo-mcp apply_change` (one call per item), run `validate_model`, bump the patch version, and regenerate the stable-name timeline console `{Model}_V_{version}_console.html`. Timestamped console copies are archive-only. Never auto-apply without reviewer confirmation of the preview.
 
 ## NN Work: Load Feedback
 parent:: [[Apply Feedback]]
@@ -106,13 +106,13 @@ output:: [[Regenerated Console]]
 output_status:: verified
 tool:: [[AI Agent]]
 scope:: internal
-Regenerate the projections console from `artifact_blueprint.html`: declare `needs[]` in `innfo-config` (pins resolve via `console/needs-registry.json`), refresh the MODEL_DATA snapshot plus DEPS/FORMULAS/SERIES/SEASON slots, reference the single-file console bundle via static script tags, and ship the vendored `innfo-console.bundle.js` next to the console for offline double-click. Save under the stable name `{Model}_V_{version}_console.html`; timestamped copies are archive-only. Verify headless with zero page errors.
+Regenerate the timeline console from the Timeline Layout asset (`../assets/timeline.html`): declare `needs[]` in `innfo-config` (`charts` + the minimal set, pins resolve via `console/needs-registry.json`), refresh the MODEL_DATA snapshot plus DEPS/FORMULAS/SERIES/SEASON slots, reference the single-file console bundle via static script tags, and ship the vendored `innfo-console.bundle.js` next to the console for offline double-click. Save under the stable name `{Model}_V_{version}_console.html`; timestamped copies are archive-only. Verify headless with zero page errors.
 
 # NN Tools
 
 ## NN Tools: AI Agent
 scope:: external
-LLM agent (e.g. OpenCode Desktop) that loads the feedback, renders the preview, routes each accepted item through `innfo-mcp`, and regenerates the projections console.
+LLM agent (e.g. OpenCode Desktop) that loads the feedback, renders the preview, routes each accepted item through `innfo-mcp`, and regenerates the timeline console.
 
 ## NN Tools: innfo-mcp apply_change
 scope:: external
@@ -161,4 +161,4 @@ Active metrics model after the single patch bump.
 ## NN Artifact: Regenerated Console
 type:: deliverable
 format:: html
-Blueprint projections console saved as `{Model}_V_{version}_console.html` with the vendored runtime alongside.
+Timeline console saved as `{Model}_V_{version}_console.html` with the vendored runtime alongside.

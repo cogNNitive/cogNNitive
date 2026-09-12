@@ -50,16 +50,19 @@ describe('artifact_blueprint.html (console shell)', () => {
 })
 
 describe('needs-registry.json (capability pins)', () => {
-  it('exists, is versioned, and pins the runtime CDN', () => {
+  it('exists, is versioned, and pins the shipped bundle CDN (bundle-vs-runtime reconciliation)', () => {
     expect(existsSync(registryPath)).toBe(true)
     const registry = JSON.parse(readFileSync(registryPath, 'utf8')) as {
       version: string
-      runtime: { cdn: string; fallback: string }
+      runtime: { cdn: string; fallback: string; vendored: string }
       needs: Record<string, { description: string }>
     }
     expect(typeof registry.version).toBe('string')
     expect(registry.runtime.cdn).toContain('cdn.jsdelivr.net')
-    expect(registry.runtime.cdn).toContain('innfo-runtime.js')
+    // Consoles load the single-file bundle (uPlot vendored) — the registry pins
+    // must match what ships beside generated consoles for offline file://.
+    expect(registry.runtime.cdn).toContain('innfo-console.bundle.js')
+    expect(registry.runtime.vendored).toContain('innfo-console.bundle.js')
     expect(typeof registry.runtime.fallback).toBe('string')
   })
 
@@ -69,6 +72,15 @@ describe('needs-registry.json (capability pins)', () => {
     }
     expect(Object.keys(registry.needs)).toContain('feedback-export')
     expect(registry.needs['feedback-export'].description.length).toBeGreaterThan(0)
+  })
+
+  it('registers the charts capability with a renderer pin', () => {
+    const registry = JSON.parse(readFileSync(registryPath, 'utf8')) as {
+      needs: Record<string, { description?: string; renderer?: string }>
+    }
+    expect(Object.keys(registry.needs)).toContain('charts')
+    expect(registry.needs['charts'].description).toBeDefined()
+    expect(registry.needs['charts'].renderer).toBeDefined()
   })
 })
 

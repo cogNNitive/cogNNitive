@@ -2,9 +2,9 @@
   "version": "0.1.0",
   "runtime": {
     "version": "0.1.0",
-    "cdn": "https://cdn.jsdelivr.net/gh/cogNNitive/cogNNitive@innfo-console-v0.1.0/iNNfo/specs/templates/console/innfo-runtime.js",
-    "fallback": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/console/innfo-runtime.js",
-    "vendored": "./innfo-runtime.js"
+    "cdn": "https://cdn.jsdelivr.net/gh/cogNNitive/cogNNitive@innfo-console-v0.1.0/iNNfo/specs/templates/console/innfo-console.bundle.js",
+    "fallback": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/console/innfo-console.bundle.js",
+    "vendored": "./innfo-console.bundle.js"
   },
   "renderers": {
     "model-viewer": {
@@ -33,6 +33,11 @@
     }
   },
   "needs": {
+    "charts": {
+      "description": "uPlot chart renderer reading pure-data series from innfo-model.series{chartId:number[]}; x-axis months window from meta.months/historyMonths/startMonth/startYear. Rendered by the shared console runtime (innfo-runtime.js renderCharts) vendored into innfo-console.bundle.js — no template-specific code, no evaluation of slot JS.",
+      "renderer": "innfo-runtime",
+      "since": "0.1.0"
+    },
     "feedback-export": {
       "description": "Reviewer suggest/edit drafts in localStorage and the Export modal with identifier gate, instructions and agent-prompt tabs, timestamped JSON download.",
       "since": "0.1.0"

@@ -1,4 +1,5 @@
 /* global module: writable */
+/* global uPlot */
 ;(function (root, factory) {
   if (typeof module === 'object' && module.exports) {
     module.exports = factory()
@@ -280,6 +281,63 @@
     }
   }
 
+  // ---- Charts (shared console capability) ----
+  // The runtime renders charts from pure-data series only: `compileChartSeries`
+  // maps innfo-model.series{chartId:number[]} into uPlot-ready xs/ys arrays and
+  // never executes slot JavaScript. `monthAxis` derives the x-axis month window
+  // from meta.months / historyMonths / startMonth / startYear. Missing series
+  // for a declared chartId degrade to a console warning (chart skipped); the
+  // rest of the sheet still renders.
+
+  function isPureSeriesValue(value) {
+    return value === null || (typeof value === 'number' && Number.isFinite(value))
+  }
+
+  function compileChartSeries(series, meta) {
+    var source = isObject(series) ? series : {}
+    var chartsMeta = Array.isArray(meta && meta.charts) ? meta.charts : []
+    var charts = []
+    var missing = []
+    var invalid = []
+    chartsMeta.forEach(function (c) {
+      var id = c && c.id
+      var label = String((c && c.label) || id || '')
+      if (!Array.isArray(source[id])) {
+        missing.push({ id: id, label: label })
+        return
+      }
+      var values = source[id]
+      for (var i = 0; i < values.length; i++) {
+        if (!isPureSeriesValue(values[i])) {
+          invalid.push({ id: id, label: label, detail: 'non-pure series value at index ' + i })
+          return
+        }
+      }
+      charts.push({
+        id: id,
+        label: label,
+        xs: values.map(function (_, index) {
+          return index
+        }),
+        ys: values.slice(),
+      })
+    })
+    return { ok: missing.length === 0 && invalid.length === 0, charts: charts, missing: missing, invalid: invalid }
+  }
+
+  function monthAxis(meta, count) {
+    var startMonth = Number(meta && meta.startMonth) || 1
+    var startYear = Number(meta && meta.startYear) || 1970
+    var n = Math.max(0, Number(count) || 0)
+    var labels = []
+    for (var i = 0; i < n; i++) {
+      var m = ((startMonth - 1 + i) % 12) + 1
+      var y = startYear + Math.floor((startMonth - 1 + i) / 12)
+      labels.push(String(y) + '-' + pad2(m))
+    }
+    return labels
+  }
+
   function getDraftKey(model, version) {
     return 'innfo-console:drafts:' + slugify(model) + ':' + slugify(version)
   }
@@ -549,6 +607,78 @@
       })
       section.appendChild(table)
       host.appendChild(section)
+    })
+  }
+
+  // Renders uPlot charts from the pure-data series mapping (charts capability).
+  // Boot-gated by hasNeed(config,'charts'); missing/invalid series skip the
+  // chart with a console warning; requires the vendored uPlot global that ships
+  // inside innfo-console.bundle.js. Never evaluates slot JavaScript.
+  function renderCharts(doc, model, meta) {
+    var host = doc && typeof doc.getElementById === 'function' ? doc.getElementById('innfo-charts') : null
+    if (!host) return
+    var compiled = compileChartSeries(isObject(model) ? model.series : {}, meta)
+    compiled.missing.forEach(function (c) {
+      if (typeof console !== 'undefined' && console.warn)
+        console.warn('innfo-console: chart skipped — missing series for chart "' + c.id + '"')
+    })
+    compiled.invalid.forEach(function (c) {
+      if (typeof console !== 'undefined' && console.warn)
+        console.warn('innfo-console: chart skipped — ' + c.label + ' (' + c.detail + ')')
+    })
+    // uPlot is vendored into the single-file bundle (see build-console-bundle.mjs);
+    // the runtime also tolerates standalone loads where it is absent.
+    var U =
+      typeof uPlot !== 'undefined'
+        ? uPlot
+        : typeof self !== 'undefined' && self.uPlot
+          ? self.uPlot
+          : null
+    if (!U) {
+      if (typeof console !== 'undefined' && console.warn)
+        console.warn('innfo-console: uPlot unavailable — charts need the vendored console bundle')
+      return
+    }
+    var windowCount =
+      (Number(meta && meta.months) || 0) + (Number(meta && meta.historyMonths) || 0)
+    compiled.charts.forEach(function (chart) {
+      var section = el('section', 'innfo-chart')
+      if (!section) return
+      var heading = el('h3', 'innfo-chart-title', chart.label)
+      if (heading) section.appendChild(heading)
+      var canvas = el('div', 'innfo-chart-canvas')
+      if (canvas) section.appendChild(canvas)
+      host.appendChild(section)
+      var labels = monthAxis(meta, windowCount || chart.ys.length)
+      try {
+        new U(
+          {
+            width: Math.max(320, host.clientWidth || 640),
+            height: 240,
+            legend: { show: true },
+            scales: { x: { time: false } },
+            series: [
+              { label: 'Month' },
+              { label: chart.label, stroke: '#2563eb', width: 2, nullGaps: true },
+            ],
+            axes: [
+              {
+                values: function (_self, ticks) {
+                  return ticks.map(function (t) {
+                    return labels[Number(t)] != null ? labels[Number(t)] : String(t)
+                  })
+                },
+              },
+              {},
+            ],
+          },
+          [chart.xs, chart.ys],
+          canvas,
+        )
+      } catch (err) {
+        if (typeof console !== 'undefined' && console.warn)
+          console.warn('innfo-console: chart render failed for "' + chart.id + '"', err)
+      }
     })
   }
 
@@ -830,6 +960,9 @@
       suggestFor(element, state, active, refresh)
     }, refs)
     renderMatrices(active, matrices)
+    if (hasNeed(config, 'charts')) {
+      renderCharts(active, model, meta)
+    }
 
     var searchBox = active.getElementById('innfo-search')
     if (searchBox) {
@@ -930,6 +1063,9 @@
     nextStep: nextStep,
     chainOf: chainOf,
     checkStaleness: checkStaleness,
+    compileChartSeries: compileChartSeries,
+    monthAxis: monthAxis,
+    renderCharts: renderCharts,
     getDraftKey: getDraftKey,
     buildExportDoc: buildExportDoc,
     boot: boot,

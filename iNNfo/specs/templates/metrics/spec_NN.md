@@ -18,18 +18,18 @@ relationship_types:
   sequence:
     enabled: true
 procedures:
-  - id: "create-projections"
-    name: "Create Projections"
-    path: "procedures/create_projections_NN.md"
+  - id: "create-timeline"
+    name: "Create Timeline"
+    path: "procedures/create_timeline_NN.md"
 assets:
-  - id: "projections-layout"
-    name: "Projections HTML Layout"
-    path: "assets/projections.html"
+  - id: "timeline-layout"
+    name: "Timeline HTML Layout"
+    path: "assets/timeline.html"
   - id: "model-data-template"
     name: "MODEL_DATA JSON Template"
     path: "assets/MODEL_DATA.template.json"
   - id: "verify-harness"
-    name: "Projections Verify Harness"
+    name: "Timeline Verify Harness"
     path: "scripts/verify.harness.js"
 ---
 
@@ -85,7 +85,7 @@ description:: Verbatim formula text computing the value (e.g. net income - opex 
 concept:: Metrics
 type:: reference
 target_concepts:: [Metrics, Variables]
-description:: Primary row feeding this metric (single WikiLink). The full fan-in graph lives in the metrics-dependencies and metric-variables matrices; the Create Projections procedure merges both into the artifact DEPS map.
+description:: Primary row feeding this metric (single WikiLink). The full fan-in graph lives in the metrics-dependencies and metric-variables matrices; the Create Timeline procedure merges both into the artifact DEPS map.
 
 ## NN Field Definition: metricType
 concept:: Metrics
@@ -193,8 +193,8 @@ values:: [Includes]
 A projection is only as trustworthy as the metric graph behind it. This template
 treats every number as a node: base variables feed metric rows through declared
 formulas, evolution rules project them across months, and scenarios select which
-rows participate. The `Create Projections` procedure snapshots that graph into a
-standalone `Projections` HTML artifact — data (`MODEL_DATA`), logic (`FORMULAS`),
+rows participate. The `Create Timeline` procedure snapshots that graph into a
+standalone `Timeline` HTML artifact — data (`MODEL_DATA`), logic (`FORMULAS`),
 and dependencies (`DEPS`) kept strictly separate so a model change means
 re-snapshotting one JSON block, never rewriting the dashboard.
 
@@ -204,7 +204,7 @@ re-snapshotting one JSON block, never rewriting the dashboard.
 - Consolidate measured history and future projection in one table: `historical` scenarios anchor the sheet on actuals, `projection` scenarios extend it.
 - Keep input variables, evolution rules, and scenarios as first-class concepts instead of spreadsheet folklore.
 - Score rows with `is_variable` / `is_formula` / `is_derived` markers so the artifact knows what is editable, computed, or artifact-invented help.
-- Generate the `Projections` HTML dashboard deterministically via the embedded `create-projections` procedure.
+- Generate the `Timeline` HTML dashboard deterministically via the embedded `create-timeline` procedure.
 
 ## Specification
 
@@ -301,7 +301,7 @@ A quantified row of the model: either an editable input, a computed result, or a
 
 Each Metrics element carries its value, its verbatim formula text, the rows it
 depends on (`dependsOn`), its category (`metricType`), its unit, and its monthly
-evolution rule. Computed rows reference their inputs; the Create Projections
+evolution rule. Computed rows reference their inputs; the Create Timeline
 procedure mirrors those references into the artifact DEPS map.
 
 ### Methodologies
