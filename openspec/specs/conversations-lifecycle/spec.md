@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Define the full lifecycle of an interactive cogNNitive session transcript: silent reservation of a timestamped file in `conversations/` at session start, automatic discard of trivial sessions, post-session title suggestion and rename, and an interactive prompt to promote the finalized transcript into `sources/conversations/` as a verbatim source, an executive summary, both, or neither.
+Define the full lifecycle of an interactive cogNNitive session transcript: silent reservation of a timestamped file in `conversations/` at session start, automatic discard of trivial sessions, post-session title suggestion and rename, and an interactive prompt to promote the finalized transcript into `sources/conversations/` as a verbatim source with per-turn author attribution, or to decline promotion.
 ## Requirements
 ### Requirement: Silent Session Transcript Reservation
 
@@ -76,9 +76,15 @@ After titling a concluded non-trivial session, the agent MUST prompt the user wh
 
 The prompt MUST NOT offer an executive-summary option (`[summary]`) or a combined option (`[both]`): `_summary.md` files are no longer produced by the standard promotion flow. The raw transcript in `conversations/` MUST always be registered regardless of the choice; promotion to `_source.md` is optional and occurs only on the user's choice.
 
+Before promoting a transcript on the `[full]` path, the agent MUST present an author-naming step for the transcript's participants. The agent MUST suggest the human author's name, derived from `git config user.name` or the OS user (the agent MAY offer both as options alongside a manual entry), and MUST suggest the agent's own tool id (e.g. `OpenCode`, `Antigravity`). The user MUST be able to confirm or edit each suggested name before the promoted file is written.
+
+When the `_source.md` file is generated, each conversation turn MUST be rendered as a `## NN Turn NN: <author-id>` heading, where NN is the 1-based sequential turn number and `<author-id>` is the resolved participant name. The heading MUST be unique per turn — the sequential number guarantees it — and MUST be addressable under the workspace heading-slug rules via the `@` pointer grammar, so a turn can be cited via `sources:: [conversations/<session-slug>_source.md@## NN Turn NN: <author-id>]`. The `#` fragment form (`#<slug>`) MUST NOT be used for `## NN …: …` headings: the Concept/Element boundary in their slug contains `--`, which `parseSourceRef` rejects (`KU_MALFORMED`). Turn headings MUST NOT carry an `author::` key: embedded modification blocks self-describe as they travel into arbitrary turns.
+
+When a participant is left unnamed (the user declines to name them or skips the step), the agent MUST use the deterministic neutral placeholder `unnamed` as that participant's `<author-id>`; the promotion MUST still complete, and the missing name MUST NOT block or abort the `_source.md` write.
+
 Promoted files in `sources/conversations/` MUST include frontmatter linking them to `origin_transcript: conversations/YYYY-MM-DD_<slug>.md`.
 
-(Previously: the prompt offered four options — `[full]`, `[summary]`, `[both]`, `[none]` — and could emit an executive summary `_summary.md`.)
+(Previously: the promotion prompt had no author-naming step and turns were promoted without per-turn author headings. Even earlier, the prompt offered four options — `[full]`, `[summary]`, `[both]`, `[none]` — and could emit `_summary.md`.)
 
 #### Scenario: User promotes transcript as source
 - GIVEN a finalized transcript `conversations/2026-09-06_api-gateway.md`
@@ -99,3 +105,19 @@ Promoted files in `sources/conversations/` MUST include frontmatter linking them
 - THEN only `[full]` and `[none]` are offered
 - AND no `[summary]` or `[both]` option is presented and no `_summary.md` file is written for any selection
 
+#### Scenario: Author names are suggested, confirmed, and resolved into turn headings
+- GIVEN a finalized transcript whose first turn is the human's and whose second turn is the agent's
+- WHEN the user selects `[full]` and the naming step suggests `Lucas` (from `git config user.name`) and `OpenCode` (the agent's tool id), and the user confirms both unedited
+- THEN the generated `_source.md` renders `## NN Turn 01: Lucas` and `## NN Turn 02: OpenCode`
+- AND each heading is unique and addressable via the `@` pointer grammar, citeable as `sources:: [conversations/<session-slug>_source.md@## NN Turn 01: Lucas]`
+
+#### Scenario: User edits a suggested author name
+- GIVEN the naming step suggested `Lucas` for the human participant
+- WHEN the user edits the suggestion to `Mercedes` and confirms
+- THEN the human turns render as `## NN Turn NN: Mercedes` in the promoted file
+
+#### Scenario: User declines to name a participant
+- GIVEN a finalized transcript with a participant the user declines to name during the naming step
+- WHEN the promotion proceeds on the `[full]` path
+- THEN that participant's turns render with the neutral placeholder `## NN Turn NN: unnamed`
+- AND the `_source.md` write completes without being skipped or aborted
