@@ -129,17 +129,56 @@ gh pr status
 gh pr list --state open --head (git branch --show-current)
 # CI + Pages on the tip of origin/main
 gh run list --branch main --workflow "CI & Verify" --limit 1 --json headSha,status,conclusion
+# Pages deploy finished on that same tip? (deploy-pages job inside CI & Verify)
+$runId = gh run list --branch main --workflow "CI & Verify" --limit 1 --json databaseId --jq '.[0].databaseId'
+gh run view $runId --json jobs --jq '.jobs[] | select(.name=="deploy-pages") | {name,conclusion,headSha}'
+# CDN bundle + manifest pins resolve (stable channel)
+$env:GITHUB_TOKEN = (gh auth token).Trim()
+node scripts/manifest/validate-manifest.js
 # version bumps without a pushed tag
 git tag -l "v*" "innfo-mcp-v*" "skills-v*" "templates-v*" --sort=-creatordate | Select-Object -First 8
 ```
 - ❌ uncommitted changes that belong to this change; unpushed commits; local `main` behind
   or ahead of `origin/main`; an open PR that still needs merge; latest `CI & Verify` run on
   `origin/main` tip not `success`.
+- ❌ for **release-shaped changes** (a version was bumped / tags are being cut / a release
+  is in flight): any of the four deploy legs failing — (1) tag pushed, (2) CI `success` on
+  the `origin/main` tip, (3) Pages `deploy-pages` job `success` on that tip, (4) CDN bundle
+  + manifest pins resolving. A tag alone NEVER satisfies the definition of deployed
+  (expediente `mcp-two-distribution-channels.md`).
+- ⚠️ for non-release changes: the Pages deploy and CDN/manifest legs are advisory only —
+  report their status, never block on them.
 - ⚠️ a `package.json` / SKILL.md / template `version` was bumped in the diff but no matching
   tag exists (`v<x>`, `innfo-mcp-v<x>`, `skills-v<x>`, `templates-v<x>`).
 - ⚠️ if a version was released: reminder that the GitHub Pages deploy (`deploy-pages` job,
   reusing the `verify` docs artifact) and the CDN bundle/manifest produced by
   `npm run build:docs` are **separate** from tagging — confirm the release build ran.
+
+### Group 1b — Merge gate (`dev → main`) — blocking
+
+Invoked by `nn-dev-release` before release step 0, and runnable manually. A
+`dev → main` batch MUST NOT land without evidence on the exact commits being
+merged:
+
+1. **Batch CI signal** — a green CI run exists for the batch tip on `dev`:
+   ```powershell
+   gh run list --branch dev --workflow "CI & Verify" --limit 1 --json headSha,status,conclusion
+   ```
+   No green signal → the gate SHALL block and require either a dev CI run or a
+   documented full local rehearsal (`node scripts/check-integrity.js --pre-push`
+   green on the tip) recorded in the merge report.
+2. **Green stationary target** — `origin/main` latest CI conclusion is
+   `success` AND `origin/main` has NOT advanced since the batch was verified
+   (`git rev-parse origin/main` vs the verified sha).
+3. **Verdict** — ❌ if either leg fails, stopping with the named reason.
+   Distinguish:
+   - **Red caused by this batch** → fix-forward on `dev` first, re-verify, then
+     re-run the gate. Do not merge.
+   - **Pre-existing red** → record a maintainer-approved exception naming the
+     failing run id; only then may the merge proceed.
+
+Exception format (merge report line):
+`MERGE-GATE EXCEPTION · origin/main red pre-existing · run <run-id> · approved by <maintainer> · <date>`
 
 ### Group 2 — MCP version square
 **Expediente:** `mcp-two-distribution-channels.md` — CDN frozen at v0.2.1 while the repo

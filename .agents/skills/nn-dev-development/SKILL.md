@@ -154,9 +154,37 @@ or a sibling agent's live edits. Do NOT assume interference:
 2. If it is theirs: continue; never revert or stage it without consent.
 3. If foreign and active: pause writes that touch those paths.
 
-Prevention (convention, not enforcement): work that survives more than one
-session gets a `wip:` commit on `dev` instead of living as a dirty tree.
-A committed `wip:` is attributable; a dirty tree is not.
+#### Stale dirty-tree age rule (enforced)
+
+A dirty tree MUST NOT outlive the session that created it. When a new session
+opens and `git status --porcelain` shows paths that no `wip:<session-id>` commit
+or maintainer confirmation attributes, those paths are **stale unattributed
+WIP**. Report ❌ and require exactly one of three named exits before the
+session's first write:
+
+1. **Commit it** — `git commit -m "wip:<session-id>: <short reason>"` on `dev`,
+   so the in-flight work becomes attributable.
+2. **Stash it with an owner note** — `git stash push -u -m "wip:<session-id>:
+   <short reason>"`, so the stash names its owner.
+3. **Discard it** — only with explicit maintainer confirmation; never silently.
+
+Never stage, commit, or delete stale unattributed paths on your own (Core
+Rule 6). A committed `wip:` is attributable; a dirty tree is not.
+
+### 1f. Session claim (advisory for siblings, mandatory for ours)
+
+Write-intended sessions announce their presence so sibling agents can tell
+active work from abandoned work:
+
+- **Record the claim** — `branch + session id + intent` — in the handoff block
+  (§4d) as soon as the consent gate approves the first write.
+- A claimed path is **live and hands-off** for sibling sessions; unclaimed
+  dirty paths fall under the §1e stale-WIP rule.
+- The §3 re-check re-reads the claim alongside `$baselineHead` /
+  `$baselineBranch`. A claim collision (another live session claims the same
+  paths) means **stop and report** — never race the sibling agent.
+- The claim is advisory for foreign agents (Claude Code, Cursor, ...) but
+  **mandatory for our sessions**.
 
 ---
 
@@ -320,6 +348,7 @@ confirm. Never delete branches automatically.
 ```markdown
 🌿 Session guard:
 - Branch: dev · based on origin/main @ <sha> · clean/dirty
+- Session claim: <session-id> · dev · <intent>
 - origin/main advanced during session: <yes — rebase before merge | no>
 - Writes on: dev · N files
 - Pending batch (origin/main..dev): <list of commits> · <stat>
@@ -361,8 +390,10 @@ no per-change PR to open; `main` absorbs the batch instead.
    write to a repo file without the branch decision being made.
 5. **Consent once per branch** — do not re-ask on every write; re-ask only on scope
    change or tree switch.
-6. **Never stage foreign files** — never `git add .` / `git add -A`; a concurrent
-   agent's files may be in the tree. Stash only your own files.
+6. **Never stage foreign or unattributed files** — never `git add .` / `git add -A`;
+   a concurrent agent's files may be in the tree. Stash only your own files. A path
+   is attributable only via a `wip:<session-id>` commit or explicit maintainer
+   consent; unattributed paths are never staged.
 7. **Stop on stolen branch** — if HEAD/branch moved since the gate, stop and report;
    recover with the stash-switch-pop protocol only for your own files.
 8. **Never delete branches automatically** — ghost branches are listed as candidates;

@@ -74,6 +74,15 @@ git tag -l "v*" --sort=-creatordate | Where-Object { $_ -notmatch '^(skills|temp
 
 Write-Host "`n=== LOCAL WORKSPACE PARITY ==="
 node scripts/manifest/check-parity.js
+
+Write-Host "`n=== DEPLOY-DoD (tag · CI-tip · Pages · CDN/manifest) ==="
+# 1. tag pushed?  2. CI success on the origin/main tip?  3. Pages deploy on that tip?
+gh run list --branch main --workflow "CI & Verify" --limit 1 --json headSha,status,conclusion
+$runId = gh run list --branch main --workflow "CI & Verify" --limit 1 --json databaseId --jq '.[0].databaseId'
+gh run view $runId --json jobs --jq '.jobs[] | select(.name=="deploy-pages") | {name,conclusion,headSha}'
+# 4. CDN bundle + manifest pins resolve
+$env:GITHUB_TOKEN = (gh auth token).Trim()
+node scripts/manifest/validate-manifest.js
 ```
 
 Present a consolidated summary table with:
@@ -81,6 +90,8 @@ Present a consolidated summary table with:
 - Working tree status (Clean / Uncommitted changes)
 - Latest release tags for each subsystem
 - Parity status between local workspace files and `manifest/source.yaml`
+- Deploy-DoD (tag / CI-tip / Pages / CDN-manifest): all four legs green, or ❌
+  naming the failing leg — a tag alone NEVER satisfies the definition of deployed
 
 ---
 
@@ -102,17 +113,27 @@ Present a consolidated summary table with:
 
 ### Option [c]: Ejecutar Release completo (Bump de versión + Tags + Manifest + Push)
 
-0. **Clean tree + release order (mandatory preconditions)**:
+> **Pre-merge gate (blocking — run before step 0).** This option merges
+> `dev → main` and cuts tags. Run the merge gate from `nn-dev-check-integrity`
+> (Group 1b) first: batch CI signal present and green, `origin/main` CI
+> `success` and stationary since the batch was verified. On ❌ STOP with the
+> named reason (fix-forward on `dev` for batch-caused red; maintainer-approved
+> exception with the failing run id for pre-existing red). Never skip it.
+
+0. **Clean tree + release order (blocking preconditions)**:
+   - The merge gate (above) must have PASSED before anything in this option
+     runs — merging, tagging, and pinning are a **gate, not advice**.
    - `generate-manifest.js` reads versions off the working-tree files, so a
      dirty tree contaminates the pin (expediente 2026-09-08: an uncommitted
      0.5.0 bump leaked into `source.yaml`). Before step 6, `git status
      --porcelain` must show no modifications under `iNNfo/**/package.json`
      (and ideally a fully clean tree); if dirty, commit or stash first.
-   - Release order is **merge → tag → pin**: the stable channel only accepts
-     pins whose commits are reachable from `main` (the validator rejects
-     "diverged" tips). Tagging `dev`-only commits first leaves stable red
-     until the `dev`→`main` merge lands — so merge first (or tag commits
-     already on `main`), then pin.
+   - Release order **merge → tag → pin** is blocking: the stable channel only
+     accepts pins whose commits are reachable from `main` (the validator
+     rejects "diverged" tips). Tagging `dev`-only commits first leaves stable
+     red until the `dev`→`main` merge lands — so merge first (or tag commits
+     already on `main`), then pin. Do NOT tag until the merge has landed on
+     `main`.
 
 1. **Confirm Version Bump Scope**:
    Prompt the developer to select which subsystem is releasing:
