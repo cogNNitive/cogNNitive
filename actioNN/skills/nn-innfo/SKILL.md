@@ -576,7 +576,7 @@ Upon concluding the generation or editing of a model, the agent MUST include log
 ```markdown
 📌 Available procedures in model:
 - [p1] Execute: <Procedure 1>
-- [pn] ... (if the model declares master.html procedure, it will appear here as "Generate master.html")
+- [pn] ... (if the model declares a console procedure, it will appear here as "Generate <Template> Console")
 ```
 * If the model does not declare any procedures, omit the "Available procedures in model" block completely to avoid broken shortcuts or noise.
 
@@ -613,7 +613,7 @@ Executable procedures and agent skills are content declared dynamically in model
 
 Additionally, procedures are discovered by reading the `## NN Procedure: ...` sections of the active model and the workspace's `procedures/` folder (`*_procedures_V_0-1-0_NN.md`).
 
-The master.html procedure (formerly "showroom") is recognizable: if the user asks for a "master.html", "master", "showroom", "gallery", or "visual framework" of a model, offer to generate it (without changing how it is generated or altering the current generator's behavior).
+The template console procedure (historically referred to as "master.html", "showroom", or "gallery") generates the canonical interactive console for a model (e.g. `business_console.html`, `procedures_console.html`). For multi-model workspaces, the `workspace_hub` procedure generates the aggregated workspace portal (`artifacts/workspace_hub.html`). If the user asks for a "console", "master", "hub", "showroom", "gallery", or "visual framework", offer to generate the corresponding canonical console or workspace hub.
 
 ---
 

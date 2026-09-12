@@ -27,6 +27,8 @@ import { useToast } from '../shared/useToast'
 import SetupWizard from '../components/layout/SetupWizard.vue'
 import { modelStemMatches } from '../utils/modelMatching'
 
+import { resolveWorkspacePreset } from '../config/workspaces'
+
 const router = useRouter()
 const route = useRoute()
 const workspace = useWorkspaceStore()
@@ -45,11 +47,52 @@ onMounted(async () => {
   if (createTemplate) {
     showWizard.value = true
     router.replace({ query: {} })
+    return
   }
 
-  // Auto-reopen the workspace that contains the deep-linked model, or the one
-  // hinted via &ws= when provided. Falls back to the most recent workspace
-  // when the model cannot be located in any previously opened folder.
+  // Intercept workspace preset deep-links (e.g. ?workspace=startup-founder)
+  const wsSlug = route.query.workspace as string | undefined
+  if (wsSlug) {
+    const preset = resolveWorkspacePreset(wsSlug)
+    if (preset) {
+      try {
+        await workspace.loadVirtualWorkspace(preset.modelUrls, preset.name, preset.templateName)
+        await router.push({ path: '/workspace', query: route.query, hash: route.hash })
+        return
+      } catch (err) {
+        error.value = `Failed to load virtual workspace "${preset.name}": ${err instanceof Error ? err.message : String(err)}`
+      }
+    }
+  }
+
+  // Intercept multi-model deep-links (e.g. ?models=url1,url2)
+  const multiModels = route.query.models as string | undefined
+  if (multiModels) {
+    const urls = multiModels.split(',').map((u) => u.trim()).filter(Boolean)
+    if (urls.length > 0) {
+      try {
+        await workspace.loadVirtualWorkspace(urls)
+        await router.push({ path: '/workspace', query: route.query, hash: route.hash })
+        return
+      } catch (err) {
+        error.value = `Failed to load models: ${err instanceof Error ? err.message : String(err)}`
+      }
+    }
+  }
+
+  // Intercept remote model URLs (?model=https://... or ?url=https://... or ?doc=https://...)
+  const directUrl = (route.query.model || route.query.url || route.query.doc) as string | undefined
+  if (directUrl && /^(https?:\/\/|\/|\.\/)/i.test(directUrl)) {
+    try {
+      await workspace.loadVirtualWorkspace([directUrl])
+      await router.push({ path: '/workspace', query: route.query, hash: route.hash })
+      return
+    } catch (err) {
+      error.value = `Failed to load remote model: ${err instanceof Error ? err.message : String(err)}`
+    }
+  }
+
+  // Auto-reopen local workspace containing the deep-linked model if found in history
   if (route.query.model && history.value.length > 0) {
     const modelId = typeof route.query.model === 'string' ? route.query.model : undefined
     const wsHint = typeof route.query.ws === 'string' ? route.query.ws : undefined

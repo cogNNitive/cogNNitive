@@ -57,6 +57,9 @@ const ProjectGanttView = defineAsyncComponent(
 const SearchResultsView = defineAsyncComponent(
   () => import('../components/editor/SearchResultsView.vue'),
 )
+const ConsoleHubView = defineAsyncComponent(
+  () => import('../components/editor/ConsoleHubView.vue'),
+)
 
 const router = useRouter()
 const workspaceStore = useWorkspaceStore()
@@ -655,6 +658,13 @@ onUnmounted(() => {
               :matrix-index="uiStore.activeMatrixIndex"
               @cell-change="(_key, _val) => {}"
             />
+          </div>
+        </template>
+
+        <!-- ── Consoles / Workspace Hub View ── -->
+        <template v-else-if="uiStore.activeView === 'consoles'">
+          <div class="flex-1 flex flex-col min-h-0">
+            <ConsoleHubView />
           </div>
         </template>
 

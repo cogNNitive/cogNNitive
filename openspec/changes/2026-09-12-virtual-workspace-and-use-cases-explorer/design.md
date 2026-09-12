@@ -1,4 +1,4 @@
-# Design: Virtual Workspace Architecture & Interactive Explorer
+# Design: Virtual Workspace Architecture, Prompt Generator & Interactive Explorer
 
 ## 1. Architectural Decisions
 
@@ -20,7 +20,7 @@
 - **Consequences**: Instant view-only exploration of any remote GitHub repository workspace.
 
 ### ADR-3: Known Workspace Slug Registry
-- Preconfigure canonical workspace slugs in `config/workspaces.ts` (or `config/samples.ts`):
+- Preconfigure canonical workspace slugs in `config/workspaces.ts`:
   - `startup-founder`: `[.../docs/samples/use-cases/startup-founder/models/SaaS_Founder_V_1-0-0_business_NN.md]`
   - `freelance-designer`: `[.../docs/samples/use-cases/freelance-designer/models/Client_Website_V_1-0-0_site_spec_NN.md]`
   - `consulting-sales`: `[.../docs/samples/use-cases/consulting-sales/models/Fintech_RFP_Response_V_1-0-0_business_NN.md`, `.../docs/samples/use-cases/consulting-sales/models/Consulting_Team_Matrix_V_1-0-0_organization_NN.md]`
@@ -29,13 +29,15 @@
 
 ### ADR-4: Local Workspace Explorer Modal Component
 - Pure CSS/JS modal in `docs/use-cases.html` with zero external dependencies.
-- Simulates an authentic Windows/macOS file explorer with path breadcrumbs (`C:\Users\<user>\Projects\<workspace>\`).
-- File icons differentiated by extension:
-  - 📊 `.pptx`, `.ppt` (PowerPoint Presentation)
-  - 📝 `.docx`, `.doc` (Word Brief)
-  - 📈 `.xlsx`, `.csv` (Excel / Data)
-  - 📕 `.pdf` (Document / Study)
-  - 🧠 `_NN.md` (iNNfo Model)
-  - 📄 `.md` (Markdown Source)
-  - 🌐 `.html` (Interactive Dashboard)
+- Simulates an authentic desktop file explorer with path breadcrumbs (`C:\Users\<user>\Projects\<workspace>\`).
+- File icons differentiated by extension (`.pptx`, `.docx`, `.xlsx`, `.pdf`, `_NN.md`, `.md`, `.html`).
 - Includes tabs for `All Files`, `Sources (Import)`, `Normalized (iNNfo)`, `Models`, `Export Deliverables`.
+
+### ADR-5: On-the-fly OpenCode Prompt Generator
+- **Context**: Users want to prompt AI coding agents directly with context from the active block or model.
+- **Decision**: Create `src/utils/promptGenerator.ts` and `PromptGeneratorModal.vue`. Provide trigger button with copy action inside `BlockSheet.vue` and `ModelInfoPanel.vue`.
+- **Consequences**: Zero friction between visual inspection in the browser and AI agent execution.
+
+### ADR-6: Interactive Navigation Links & Backlog URI Protocol
+- **Context**: Links between models need visual clarity and future desktop app deep linking.
+- **Decision**: Add navigation emoji decorators (`🧭`, `🗺️`, `🔗`, `⚡`) to link renderers and document `innfo://` URI protocol in backlog.

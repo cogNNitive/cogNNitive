@@ -42,7 +42,6 @@ describe('out-of-scope feature absence (R19)', () => {
       /[\/\\]components[\/\\]editor[\/\\]FieldSchemaView\.vue$/,
       /[\/\\]components[\/\\]layout[\/\\]SetupWizard\.vue$/,
       /[\/\\]composables[\/\\]useWorkspaceScaffolding\.ts$/,
-      /[\/\\]views[\/\\]StandaloneProcedureView\.vue$/,
       /FieldReference\.vue$/,
       /modelStore\.ts$/,
     ]

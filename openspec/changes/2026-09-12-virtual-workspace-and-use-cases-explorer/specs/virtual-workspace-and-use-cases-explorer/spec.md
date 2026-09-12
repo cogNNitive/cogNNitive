@@ -47,3 +47,13 @@ Every use case card in `docs/use-cases.html` and `docs/use-cases.md` provides:
 2. **Model**: "🧠 Open Model in App" (`https://cognnitive.com/innfo/app/?model=<canonical_raw_url>`).
 3. **Knowledge Base**: "🌐 Open Knowledge Base App" (`https://cognnitive.com/innfo/app/?workspace=<slug>`).
 4. **Deliverable**: "📊 View Deliverable" (links to primary deliverable).
+
+### R6: OpenCode / Agent Prompt Generator Contract
+- Utility `generatePromptForBlock(block: ModelNode, schema?: ConceptDefinition): string` formats a structured prompt.
+- Modal `PromptGeneratorModal.vue` renders with editable prompt textarea and quick-copy feedback button.
+- Quick action trigger buttons are integrated into `BlockSheet.vue` and `ModelInfoPanel.vue`.
+
+### R7: Interactive Navigation Links Contract
+- Links matching iNNfo models, workspaces, or concepts render with intuitive navigation emojis (`🧭`, `🗺️`, `🔗`, `⚡`).
+- Backlog records `innfo://` URI protocol specification for future desktop/browser deep-linking.
+

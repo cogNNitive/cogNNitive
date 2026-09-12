@@ -7,6 +7,7 @@ export type ActiveView =
   | 'graph'
   | 'matrices'
   | 'info'
+  | 'consoles'
   | 'ai-guide'
   | 'guided-procedure'
   | 'gantt-chart'

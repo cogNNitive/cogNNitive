@@ -240,12 +240,26 @@ export const useWorkspaceStore = defineStore('workspace', {
      * block navigation to /workspace unless the caller sets hasHandle or
      * bypasses the guard.
      */
+    /**
+     * Loads a single FORMAT model document from a URL into modelStore.
+     */
     async loadFromUrl(url: string, templateName?: string): Promise<void> {
+      return this.loadVirtualWorkspace([url], undefined, templateName)
+    },
+
+    /**
+     * Loads multiple FORMAT model documents from URLs into modelStore as a
+     * unified virtual workspace (no File System handle — save is disabled).
+     */
+    async loadVirtualWorkspace(
+      urls: string[],
+      name?: string,
+      templateName?: string,
+    ): Promise<void> {
       this.error = null
-      this.sourceUrl = url
+      this.sourceUrl = urls.join(',')
       this.emptyFolderError = false
 
-      // Reset handle so router guards know this is a virtual workspace
       this.handle = null
       this.hasHandle = false
 
@@ -253,10 +267,10 @@ export const useWorkspaceStore = defineStore('workspace', {
       this.isParsing = true
 
       try {
-        const { loadIntoStore } = useUrlDocLoader()
-        const result = await loadIntoStore(url)
+        const { loadWorkspaceIntoStore } = useUrlDocLoader()
+        const result = await loadWorkspaceIntoStore(urls)
 
-        if (result.error) {
+        if (result.error && Object.keys(result.nodes).length === 0) {
           this.error = result.error
           throw new Error(result.error)
         }
@@ -264,7 +278,6 @@ export const useWorkspaceStore = defineStore('workspace', {
         this.hasParsed = true
         this.parseCount += 1
 
-        // Set UI state to active root node and appropriate view
         const uiStore = useUiStore()
         const modelStore = useModelStore()
         const firstRootId = modelStore.rootIds[0] || null
@@ -276,10 +289,8 @@ export const useWorkspaceStore = defineStore('workspace', {
           uiStore.setActiveView('editor')
         }
 
-        if (templateName) {
-          this.isSampleSession = true
-          this.sampleTemplateName = templateName
-        }
+        this.isSampleSession = true
+        this.sampleTemplateName = templateName || name || 'workspace'
       } catch (err) {
         this.error = err instanceof Error ? err.message : String(err)
         throw err
@@ -287,6 +298,7 @@ export const useWorkspaceStore = defineStore('workspace', {
         this.isParsing = false
       }
     },
+
 
     /**
      * Reloads the entire model graph from disk (or source URL), discarding

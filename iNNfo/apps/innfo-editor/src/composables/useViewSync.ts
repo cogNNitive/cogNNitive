@@ -4,11 +4,14 @@ import { useUiStore, type ActiveView } from '../stores/uiStore'
 
 const VALID_VIEWS: ActiveView[] = [
   'editor',
+  'explorer',
   'graph',
   'matrices',
   'info',
+  'consoles',
   'ai-guide',
   'guided-procedure',
+  'gantt-chart',
 ]
 
 /**

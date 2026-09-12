@@ -1,4 +1,4 @@
-﻿/**
+/**
  * useUrlDocLoader — Load a FORMAT model document from a URL.
  *
  * Fetches the raw markdown, parses it with @cognnitive/innfo-core's `parseModel`,
@@ -112,5 +112,36 @@ export function useUrlDocLoader() {
     return result
   }
 
-  return { fetch, loadIntoStore, loadFromFrontmatter }
+  /**
+   * Fetches multiple FORMAT models from an array of URLs, merges their node graphs,
+   * resolves parent specs, and populates modelStore.
+   */
+  async function loadWorkspaceIntoStore(urls: string[]): Promise<UrlDocLoaderResult> {
+    const combinedNodes: Record<string, ModelNode> = {}
+    const allRootIds: string[] = []
+    let firstError: string | null = null
+
+    for (const url of urls) {
+      if (!url.trim()) continue
+      const res = await fetch(url.trim())
+      if (res.error && !firstError) firstError = res.error
+      Object.assign(combinedNodes, res.nodes)
+      allRootIds.push(...res.rootIds)
+    }
+
+    if (Object.keys(combinedNodes).length > 0) {
+      const modelStore = useModelStore()
+      await resolveParentSpecs(combinedNodes, allRootIds)
+      modelStore.setGraph(combinedNodes, allRootIds)
+    }
+
+    return {
+      nodes: combinedNodes,
+      rootIds: allRootIds,
+      sourceUrl: urls.join(','),
+      error: firstError,
+    }
+  }
+
+  return { fetch, loadIntoStore, loadWorkspaceIntoStore, loadFromFrontmatter }
 }

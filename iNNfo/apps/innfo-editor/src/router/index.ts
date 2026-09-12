@@ -13,13 +13,6 @@ export const routes = [
     component: WorkspaceView,
     meta: { requiresHandle: true },
   },
-  {
-    path: '/view/procedure',
-    alias: ['/standalone/procedure'],
-    name: 'view-procedure',
-    component: () => import('../views/StandaloneProcedureView.vue'),
-    meta: { requiresHandle: false },
-  },
 ]
 
 export const router = createRouter({

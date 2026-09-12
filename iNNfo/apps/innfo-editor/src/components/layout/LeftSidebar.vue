@@ -59,6 +59,22 @@
           <LayoutDashboard class="w-3.5 h-3.5 shrink-0" />
           <span>graph</span>
         </button>
+
+        <!-- Consoles -->
+        <button
+          class="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-semibold rounded-md transition-all cursor-pointer capitalize border border-transparent"
+          :class="
+            uiStore.activeView === 'consoles'
+              ? 'bg-white dark:bg-slate-700 text-primary shadow-xs'
+              : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+          "
+          @click="uiStore.setActiveView('consoles')"
+          data-testid="view-switcher-consoles"
+          title="Workspace Consoles & Hub"
+        >
+          <Layers class="w-3.5 h-3.5 shrink-0" />
+          <span>consoles</span>
+        </button>
       </div>
 
       <!-- Breadcrumb navigation for Focused Model Mode -->
@@ -299,6 +315,7 @@ import {
   FolderTree,
   ArrowLeft,
   Boxes,
+  Layers,
 } from 'lucide-vue-next'
 import { useModelStore } from '../../stores/modelStore'
 import { useMetamodelStore } from '../../stores/metamodelStore'

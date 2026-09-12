@@ -7,7 +7,7 @@
       >
         <span class="font-mono text-lg font-black text-primary select-none leading-none">_NN</span>
       </div>
-      <div>
+      <div class="flex-1 min-w-0">
         <h2 class="text-lg font-bold text-slate-900 dark:text-slate-100">
           Model Information & Workspace
         </h2>
@@ -15,6 +15,14 @@
           Manage your workspace files, inspect metamodel configurations, and view raw model data.
         </p>
       </div>
+      <button
+        @click="isPromptModalOpen = true"
+        class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center gap-2 shadow-sm transition-all cursor-pointer shrink-0"
+        title="Generate OpenCode / Agent Prompt for this Model"
+      >
+        <Terminal class="w-4 h-4" />
+        <span>Prompt Agent</span>
+      </button>
     </div>
 
     <!-- Workspace Model Selector (Multi-Model Workspace) -->
@@ -93,19 +101,10 @@
           <div class="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
             <button
               @click="launchExtensionView(String(viewKey))"
-              class="flex-1 px-3 py-1.5 rounded-md text-xs font-bold bg-purple-700 hover:bg-purple-800 text-white transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+              class="w-full px-3 py-1.5 rounded-md text-xs font-bold bg-purple-700 hover:bg-purple-800 text-white transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
             >
               <Play class="w-3.5 h-3.5 fill-current" />
               <span>Launch in Workspace</span>
-            </button>
-
-            <button
-              @click="openStandaloneViewer"
-              class="px-3 py-1.5 rounded-md text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors flex items-center gap-1 cursor-pointer"
-              title="Launch in Standalone Mode"
-            >
-              <ExternalLink class="w-3.5 h-3.5" />
-              <span>Standalone</span>
             </button>
           </div>
         </div>
@@ -522,6 +521,13 @@
         Toggle "Show Source Code" to display the raw Markdown model representation.
       </div>
     </div>
+
+    <!-- OpenCode / Agent Prompt Modal -->
+    <OpenCodePromptModal
+      :is-open="isPromptModalOpen"
+      :context="promptContext"
+      @close="isPromptModalOpen = false"
+    />
   </div>
 </template>
 <script setup lang="ts">
@@ -544,10 +550,12 @@ import {
   Database,
   Sparkles,
   Play,
-  ExternalLink,
   Copy,
   Check,
+  Terminal,
 } from 'lucide-vue-next'
+import OpenCodePromptModal from './OpenCodePromptModal.vue'
+import type { PromptContext } from '../../utils/promptGenerator'
 import { buildSpecificationUrl } from '../../utils/constants'
 import type { BumpLevel } from '../../utils/version'
 import { useToast } from '../../shared/useToast'
@@ -565,6 +573,7 @@ const workspaceStore = useWorkspaceStore()
 const modelStore = useModelStore()
 const uiStore = useUiStore()
 const { show } = useToast()
+const isPromptModalOpen = ref(false)
 
 const availableExtensions = computed(() => {
   const tName = fullTemplateName.value || templateName.value || ''
@@ -586,15 +595,6 @@ const availableExtensions = computed(() => {
 
 function launchExtensionView(viewKey: string) {
   uiStore.setActiveView(viewKey as any)
-}
-
-function openStandaloneViewer() {
-  const sourceUrl = workspaceStore.sourceUrl
-  if (sourceUrl) {
-    router.push({ name: 'view-procedure', query: { url: sourceUrl } })
-  } else {
-    router.push({ name: 'view-procedure' })
-  }
 }
 
 const showPlainTextView = ref(false)
@@ -637,6 +637,13 @@ const nodeCount = computed(() => Object.keys(modelStore.nodes).length)
 
 const { formatVersion, templateName, templateVersion, modelVersion, rawModelVersion, lastSaved } =
   useModelFrontmatter(rawContent)
+
+const promptContext = computed<PromptContext>(() => ({
+  modelName: activeModelId.value || 'Active Model',
+  conceptName: templateName.value || 'Model',
+  relativePath: filePath.value,
+  rawContent: rawContent.value,
+}))
 
 const specUrl = computed(() => buildSpecificationUrl(formatVersion.value))
 

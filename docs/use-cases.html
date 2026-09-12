@@ -363,14 +363,157 @@
       background: var(--brand-light);
       transform: translateY(-1px);
     }
-    .btn-action-live.artifact {
-      background: #ECFDF5;
-      border: 1px solid #A7F3D0;
-      color: #065F46;
+    .btn-action-live.kb {
+      background: #EFF6FF;
+      border: 1px solid #BFDBFE;
+      color: #1E40AF;
     }
-    .btn-action-live.artifact:hover {
-      background: #D1FAE5;
+    .btn-action-live.kb:hover {
+      background: #DBEAFE;
       transform: translateY(-1px);
+    }
+    .btn-action-live.workspace {
+      background: #F8FAFC;
+      border: 1px solid #CBD5E1;
+      color: #334155;
+      cursor: pointer;
+    }
+    .btn-action-live.workspace:hover {
+      background: #E2E8F0;
+      transform: translateY(-1px);
+    }
+
+    /* Modal Backdrop & Dialog */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal-dialog {
+      background: #FFFFFF;
+      border-radius: 16px;
+      width: 100%;
+      max-width: 800px;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+      border: 1px solid #E2E8F0;
+      overflow: hidden;
+      animation: modalScaleIn 0.2s ease-out;
+    }
+    @keyframes modalScaleIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    .modal-header {
+      background: #F8FAFC;
+      border-bottom: 1px solid #E2E8F0;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .modal-header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .modal-title {
+      font-size: 15px;
+      font-weight: 800;
+      color: #0F172A;
+    }
+    .modal-path {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: #64748B;
+      background: #FFFFFF;
+      padding: 3px 8px;
+      border-radius: 6px;
+      border: 1px solid #E2E8F0;
+    }
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 20px;
+      color: #94A3B8;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 6px;
+    }
+    .modal-close:hover { color: #0F172A; background: #E2E8F0; }
+    .modal-tabs {
+      display: flex;
+      gap: 6px;
+      padding: 10px 20px;
+      background: #FFFFFF;
+      border-bottom: 1px solid #F1F5F9;
+      overflow-x: auto;
+    }
+    .modal-tab {
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid transparent;
+      background: #F8FAFC;
+      color: #64748B;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .modal-tab.active {
+      background: #F1F5F9;
+      border-color: #CBD5E1;
+      color: #0F172A;
+    }
+    .modal-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 20px;
+    }
+    .file-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .file-table th {
+      text-align: left;
+      padding: 8px 12px;
+      color: #64748B;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid #E2E8F0;
+    }
+    .file-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid #F8FAFC;
+      color: #334155;
+    }
+    .file-table tr:hover td { background: #F8FAFC; }
+    .file-name-cell {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+      color: #0F172A;
+    }
+    .file-icon { font-size: 16px; }
+    .modal-footer {
+      padding: 12px 20px;
+      background: #F8FAFC;
+      border-top: 1px solid #E2E8F0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
 
     /* Footer */
@@ -433,9 +576,10 @@
             <h2>The Startup Founder &amp; Early-Stage Team</h2>
             <p>From scattered napkins, investor feedback, and customer discovery to a traceable, living business model.</p>
             <div class="case-live-actions">
-              <a href="samples/use-cases/startup-founder/sources/nn/customer_discovery.md" target="_blank" rel="noopener noreferrer" class="btn-action-live source">📄 Source (Transcripts)</a>
-              <a href="https://cognnitive.com/innfo/app/?model=https://raw.githubusercontent.com/cogNNitive/cogNNitive/dev/docs/samples/use-cases/startup-founder/models/SaaS_Founder_V_1-0-0_business_NN.md" target="_blank" rel="noopener noreferrer" class="btn-action-live model">🧠 Open in iNNfo App &rarr;</a>
-              <a href="samples/use-cases/startup-founder/export/pitch_deck_summary.md" target="_blank" rel="noopener noreferrer" class="btn-action-live artifact">📊 Deliverable (Pitch Deck)</a>
+              <button onclick="openWorkspaceModal('startup-founder')" class="btn-action-live workspace">📁 Local Workspace</button>
+              <a href="https://cognnitive.com/innfo/app/?model=https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/docs/samples/use-cases/startup-founder/models/SaaS_Founder_V_1-0-0_business_NN.md" target="_blank" rel="noopener noreferrer" class="btn-action-live model">🧠 Open Model in App</a>
+              <a href="https://cognnitive.com/innfo/app/?workspace=startup-founder" target="_blank" rel="noopener noreferrer" class="btn-action-live kb">🌐 Open Knowledge Base App</a>
+              <a href="samples/use-cases/startup-founder/export/pitch_deck_summary.md" target="_blank" rel="noopener noreferrer" class="btn-action-live artifact">📊 View Deliverable</a>
             </div>
           </div>
         </div>
@@ -508,10 +652,10 @@
             <h2>The Sales Director (Mid-Size Consulting Firm)</h2>
             <p>Unified service offerings, verified team credentials, and rapid RFP proposal generation with zero stale rates.</p>
             <div class="case-live-actions">
-              <a href="samples/use-cases/consulting-sales/sources/nn/enterprise_rfp_fintech.md" target="_blank" rel="noopener noreferrer" class="btn-action-live source">📄 Sources (RFP, RateCard, CaseStudy)</a>
-              <a href="https://cognnitive.com/innfo/app/?model=https://raw.githubusercontent.com/cogNNitive/cogNNitive/dev/docs/samples/use-cases/consulting-sales/models/Fintech_RFP_Response_V_1-0-0_commercial_NN.md" target="_blank" rel="noopener noreferrer" class="btn-action-live model">🧠 Bid Model &rarr;</a>
-              <a href="https://cognnitive.com/innfo/app/?model=https://raw.githubusercontent.com/cogNNitive/cogNNitive/dev/docs/samples/use-cases/consulting-sales/models/Consulting_Team_Matrix_V_1-0-0_organization_NN.md" target="_blank" rel="noopener noreferrer" class="btn-action-live model">👥 Staffing Matrix &rarr;</a>
-              <a href="samples/use-cases/consulting-sales/export/commercial_proposal_executive.md" target="_blank" rel="noopener noreferrer" class="btn-action-live artifact">📊 Proposal &amp; Pricing Sheets</a>
+              <button onclick="openWorkspaceModal('consulting-sales')" class="btn-action-live workspace">📁 Local Workspace</button>
+              <a href="https://cognnitive.com/innfo/app/?model=https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/docs/samples/use-cases/consulting-sales/models/Fintech_RFP_Response_V_1-0-0_commercial_NN.md" target="_blank" rel="noopener noreferrer" class="btn-action-live model">🧠 Open Model in App</a>
+              <a href="https://cognnitive.com/innfo/app/?workspace=consulting-sales" target="_blank" rel="noopener noreferrer" class="btn-action-live kb">🌐 Open Knowledge Base App</a>
+              <a href="samples/use-cases/consulting-sales/export/commercial_proposal_executive.md" target="_blank" rel="noopener noreferrer" class="btn-action-live artifact">📊 View Deliverable</a>
             </div>
           </div>
         </div>
@@ -584,9 +728,10 @@
             <h2>The Freelance Web Designer &amp; Solopreneur</h2>
             <p>Bulletproof client requirements, clear design contracts, and zero "I didn't approve that" scope disputes.</p>
             <div class="case-live-actions">
-              <a href="samples/use-cases/freelance-designer/sources/nn/client_kickoff_brief.md" target="_blank" rel="noopener noreferrer" class="btn-action-live source">📄 Sources (Brief &amp; Brand PDF)</a>
-              <a href="https://cognnitive.com/innfo/app/?model=https://raw.githubusercontent.com/cogNNitive/cogNNitive/dev/docs/samples/use-cases/freelance-designer/models/Client_Website_V_1-0-0_site_spec_NN.md" target="_blank" rel="noopener noreferrer" class="btn-action-live model">🧠 Site Spec Model &rarr;</a>
-              <a href="samples/use-cases/freelance-designer/export/interactive_spec_dashboard.html" target="_blank" rel="noopener noreferrer" class="btn-action-live artifact">📊 Deliverable (Interactive HTML Blueprint)</a>
+              <button onclick="openWorkspaceModal('freelance-designer')" class="btn-action-live workspace">📁 Local Workspace</button>
+              <a href="https://cognnitive.com/innfo/app/?model=https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/docs/samples/use-cases/freelance-designer/models/Client_Website_V_1-0-0_site_spec_NN.md" target="_blank" rel="noopener noreferrer" class="btn-action-live model">🧠 Open Model in App</a>
+              <a href="https://cognnitive.com/innfo/app/?workspace=freelance-designer" target="_blank" rel="noopener noreferrer" class="btn-action-live kb">🌐 Open Knowledge Base App</a>
+              <a href="samples/use-cases/freelance-designer/export/interactive_spec_dashboard.html" target="_blank" rel="noopener noreferrer" class="btn-action-live artifact">📊 View Deliverable</a>
             </div>
           </div>
         </div>
@@ -659,10 +804,10 @@
             <h2>The YouTube Video &amp; Technical Content Creator</h2>
             <p>Connected research libraries, verifiable video scripts, and instant B-roll production checklists.</p>
             <div class="case-live-actions">
-              <a href="samples/use-cases/youtube-creator/sources/nn/battery_thermal_research_2026.md" target="_blank" rel="noopener noreferrer" class="btn-action-live source">📄 Sources (Paper, Transcripts, CSV, Loop)</a>
-              <a href="https://cognnitive.com/innfo/app/?model=https://raw.githubusercontent.com/cogNNitive/cogNNitive/dev/docs/samples/use-cases/youtube-creator/models/Episode_42_Battery_Tech_V_1-0-0_video_script_NN.md" target="_blank" rel="noopener noreferrer" class="btn-action-live model">🧠 Script Model &rarr;</a>
-              <a href="https://cognnitive.com/innfo/app/?model=https://raw.githubusercontent.com/cogNNitive/cogNNitive/dev/docs/samples/use-cases/youtube-creator/models/Episode_42_Production_V_1-0-0_procedures_NN.md" target="_blank" rel="noopener noreferrer" class="btn-action-live model">📋 Production Pipeline &rarr;</a>
-              <a href="samples/use-cases/youtube-creator/export/production_teleprompter_cue_sheet.md" target="_blank" rel="noopener noreferrer" class="btn-action-live artifact">📊 Deliverables (Prompter, B-Roll, BibTeX)</a>
+              <button onclick="openWorkspaceModal('youtube-creator')" class="btn-action-live workspace">📁 Local Workspace</button>
+              <a href="https://cognnitive.com/innfo/app/?model=https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/docs/samples/use-cases/youtube-creator/models/Episode_42_Battery_Tech_V_1-0-0_video_script_NN.md" target="_blank" rel="noopener noreferrer" class="btn-action-live model">🧠 Open Model in App</a>
+              <a href="https://cognnitive.com/innfo/app/?workspace=youtube-creator" target="_blank" rel="noopener noreferrer" class="btn-action-live kb">🌐 Open Knowledge Base App</a>
+              <a href="samples/use-cases/youtube-creator/export/production_teleprompter_cue_sheet.md" target="_blank" rel="noopener noreferrer" class="btn-action-live artifact">📊 View Deliverable</a>
             </div>
           </div>
         </div>
@@ -737,6 +882,183 @@
       </div>
     </section>
   </main>
+
+  <!-- Local Workspace Explorer Modal Dialog -->
+  <div id="workspace-modal" class="modal-backdrop" onclick="if(event.target === this) closeWorkspaceModal()">
+    <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div class="modal-header">
+        <div class="modal-header-left">
+          <span style="font-size: 20px;">📁</span>
+          <div>
+            <div id="modal-title" class="modal-title">Local Workspace Explorer</div>
+            <div id="modal-path" class="modal-path">C:\Users\founder\workspace\startup-founder\</div>
+          </div>
+        </div>
+        <button class="modal-close" onclick="closeWorkspaceModal()" aria-label="Close dialog">&times;</button>
+      </div>
+      <div class="modal-tabs">
+        <button class="modal-tab active" onclick="filterModalTab('all', this)">All Files</button>
+        <button class="modal-tab" onclick="filterModalTab('sources-import', this)">Sources: Import (.docx, .pptx, .pdf)</button>
+        <button class="modal-tab" onclick="filterModalTab('sources-nn', this)">Sources: Normalized (.md)</button>
+        <button class="modal-tab" onclick="filterModalTab('models', this)">Models (_NN.md)</button>
+        <button class="modal-tab" onclick="filterModalTab('export', this)">Deliverables (.html, .md)</button>
+      </div>
+      <div class="modal-body">
+        <table class="file-table">
+          <thead>
+            <tr>
+              <th>File Name</th>
+              <th>Category</th>
+              <th>Format</th>
+              <th>Size</th>
+            </tr>
+          </thead>
+          <tbody id="modal-file-list">
+            <!-- Dynamically populated -->
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <span id="modal-summary" style="font-size: 12px; color: #64748B;">Files in workspace · 100% Traceable</span>
+        <a id="modal-app-link" href="#" target="_blank" rel="noopener noreferrer" class="btn-action-live model" style="padding: 8px 16px;">
+          🧠 Open in iNNfo App &rarr;
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const WORKSPACE_DATA = {
+      'startup-founder': {
+        title: 'SaaS Startup Founder Workspace',
+        path: 'C:\\Users\\founder\\Projects\\startup-founder\\',
+        appUrl: 'https://cognnitive.com/innfo/app/?workspace=startup-founder',
+        files: [
+          { name: 'sources/import/founder_pitch_deck_v1.pptx', category: 'sources-import', format: 'PPTX (PowerPoint)', size: '2.4 MB', icon: '📊' },
+          { name: 'sources/import/user_interviews_notes.docx', category: 'sources-import', format: 'DOCX (Word)', size: '148 KB', icon: '📝' },
+          { name: 'sources/import/customer_discovery.md', category: 'sources-import', format: 'MD (Transcripts)', size: '18 KB', icon: '📄' },
+          { name: 'sources/nn/customer_discovery.md', category: 'sources-nn', format: 'iNNfo Normalized MD', size: '14 KB', icon: '🧠' },
+          { name: 'models/SaaS_Founder_V_1-0-0_business_NN.md', category: 'models', format: 'iNNfo Business Model', size: '32 KB', icon: '🧠' },
+          { name: 'export/pitch_deck_summary.md', category: 'export', format: 'Pitch Deck Deliverable', size: '12 KB', icon: '📈' },
+          { name: 'workspace_NN.md', category: 'models', format: 'Workspace Manifest', size: '4 KB', icon: '🗺️' }
+        ]
+      },
+      'consulting-sales': {
+        title: 'Fintech RFP & Sales Workspace',
+        path: 'C:\\Users\\sales-director\\Projects\\consulting-sales\\',
+        appUrl: 'https://cognnitive.com/innfo/app/?workspace=consulting-sales',
+        files: [
+          { name: 'sources/import/enterprise_rfp_fintech.pdf', category: 'sources-import', format: 'PDF Document', size: '3.8 MB', icon: '📕' },
+          { name: 'sources/import/master_rate_card_2026.xlsx', category: 'sources-import', format: 'XLSX Spreadsheet', size: '512 KB', icon: '📈' },
+          { name: 'sources/import/enterprise_rfp_fintech.md', category: 'sources-import', format: 'MD Text', size: '24 KB', icon: '📄' },
+          { name: 'sources/nn/enterprise_rfp_fintech.md', category: 'sources-nn', format: 'iNNfo Normalized MD', size: '22 KB', icon: '🧠' },
+          { name: 'sources/nn/fintech_case_study.md', category: 'sources-nn', format: 'iNNfo Normalized MD', size: '16 KB', icon: '🧠' },
+          { name: 'sources/nn/master_rate_card_2026.md', category: 'sources-nn', format: 'iNNfo Normalized MD', size: '12 KB', icon: '🧠' },
+          { name: 'models/Fintech_RFP_Response_V_1-0-0_commercial_NN.md', category: 'models', format: 'Commercial Bid Model', size: '48 KB', icon: '🧠' },
+          { name: 'models/Consulting_Team_Matrix_V_1-0-0_organization_NN.md', category: 'models', format: 'Staffing Matrix Model', size: '28 KB', icon: '👥' },
+          { name: 'export/commercial_proposal_executive.md', category: 'export', format: 'Executive Proposal MD', size: '18 KB', icon: '📊' },
+          { name: 'export/pricing_breakdown_sheet.md', category: 'export', format: 'Pricing Sheet MD', size: '14 KB', icon: '📊' }
+        ]
+      },
+      'freelance-designer': {
+        title: 'Freelance Design Studio Workspace',
+        path: 'C:\\Users\\designer\\Projects\\freelance-designer\\',
+        appUrl: 'https://cognnitive.com/innfo/app/?workspace=freelance-designer',
+        files: [
+          { name: 'sources/import/brand_style_guide.pdf', category: 'sources-import', format: 'PDF Brand Guide', size: '5.2 MB', icon: '📕' },
+          { name: 'sources/import/client_kickoff_brief.docx', category: 'sources-import', format: 'DOCX Meeting Notes', size: '95 KB', icon: '📝' },
+          { name: 'sources/import/client_kickoff_brief.md', category: 'sources-import', format: 'MD Brief', size: '16 KB', icon: '📄' },
+          { name: 'sources/nn/client_kickoff_brief.md', category: 'sources-nn', format: 'iNNfo Normalized MD', size: '14 KB', icon: '🧠' },
+          { name: 'sources/nn/brand_style_guide.md', category: 'sources-nn', format: 'iNNfo Normalized MD', size: '18 KB', icon: '🧠' },
+          { name: 'models/Client_Website_V_1-0-0_site_spec_NN.md', category: 'models', format: 'Site Architecture Model', size: '42 KB', icon: '🧠' },
+          { name: 'export/interactive_spec_dashboard.html', category: 'export', format: 'Interactive HTML Blueprint', size: '64 KB', icon: '🌐' }
+        ]
+      },
+      'youtube-creator': {
+        title: 'YouTube Creator Studio Workspace',
+        path: 'C:\\Users\\creator\\Projects\\youtube-creator\\',
+        appUrl: 'https://cognnitive.com/innfo/app/?workspace=youtube-creator',
+        files: [
+          { name: 'sources/import/battery_thermal_research_2026.pdf', category: 'sources-import', format: 'PDF Research Paper', size: '4.1 MB', icon: '📕' },
+          { name: 'sources/import/benchmark_metrics_raw.csv', category: 'sources-import', format: 'CSV Data Metrics', size: '128 KB', icon: '📈' },
+          { name: 'sources/import/audience_feedback_episode_41.md', category: 'sources-import', format: 'MD Feedback', size: '12 KB', icon: '📄' },
+          { name: 'sources/nn/battery_thermal_research_2026.md', category: 'sources-nn', format: 'iNNfo Normalized MD', size: '26 KB', icon: '🧠' },
+          { name: 'sources/nn/audience_feedback_episode_41.md', category: 'sources-nn', format: 'iNNfo Normalized MD', size: '10 KB', icon: '🧠' },
+          { name: 'models/Episode_42_Battery_Tech_V_1-0-0_video_script_NN.md', category: 'models', format: 'Video Script Model', size: '52 KB', icon: '🧠' },
+          { name: 'models/Episode_42_Production_V_1-0-0_procedures_NN.md', category: 'models', format: 'Production Workflow Model', size: '36 KB', icon: '📋' },
+          { name: 'export/production_teleprompter_cue_sheet.md', category: 'export', format: 'Teleprompter Cue Sheet', size: '20 KB', icon: '🎬' },
+          { name: 'export/broll_shooting_checklist.md', category: 'export', format: 'B-Roll Shot List', size: '14 KB', icon: '🎥' },
+          { name: 'export/youtube_description_bibliography.md', category: 'export', format: 'Bibliography & Description', size: '8 KB', icon: '📚' }
+        ]
+      }
+    };
+
+    let currentWorkspaceSlug = 'startup-founder';
+    let currentFilter = 'all';
+
+    function openWorkspaceModal(slug) {
+      const data = WORKSPACE_DATA[slug];
+      if (!data) return;
+      currentWorkspaceSlug = slug;
+      currentFilter = 'all';
+
+      document.getElementById('modal-title').textContent = data.title;
+      document.getElementById('modal-path').textContent = data.path;
+      document.getElementById('modal-app-link').href = data.appUrl;
+
+      const tabs = document.querySelectorAll('.modal-tab');
+      tabs.forEach((t, idx) => {
+        if (idx === 0) t.classList.add('active');
+        else t.classList.remove('active');
+      });
+
+      renderModalFiles();
+      document.getElementById('workspace-modal').classList.add('open');
+    }
+
+    function closeWorkspaceModal() {
+      document.getElementById('workspace-modal').classList.remove('open');
+    }
+
+    function filterModalTab(cat, tabEl) {
+      currentFilter = cat;
+      document.querySelectorAll('.modal-tab').forEach(t => t.classList.remove('active'));
+      if (tabEl) tabEl.classList.add('active');
+      renderModalFiles();
+    }
+
+    function renderModalFiles() {
+      const data = WORKSPACE_DATA[currentWorkspaceSlug];
+      if (!data) return;
+
+      const tbody = document.getElementById('modal-file-list');
+      tbody.innerHTML = '';
+
+      const filtered = data.files.filter(f => currentFilter === 'all' || f.category === currentFilter);
+
+      filtered.forEach(f => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>
+            <div class="file-name-cell">
+              <span class="file-icon">${f.icon}</span>
+              <span>${f.name}</span>
+            </div>
+          </td>
+          <td><span style="font-size: 11px; font-family: var(--mono); color: #64748B;">${f.category}</span></td>
+          <td>${f.format}</td>
+          <td style="font-family: var(--mono); font-size: 12px; color: #64748B;">${f.size}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById('modal-summary').textContent = `${data.files.length} files in workspace · 100% Traceable`;
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeWorkspaceModal();
+    });
+  </script>
 
   <!-- Footer -->
   <footer>
