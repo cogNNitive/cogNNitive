@@ -19,7 +19,6 @@
  */
 
 import { pathToFileURL } from 'node:url'
-import { readFileSync } from 'node:fs'
 import { Server } from '@modelcontextprotocol/sdk/server/index.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { ListToolsRequestSchema, CallToolRequestSchema } from '@modelcontextprotocol/sdk/types.js'
@@ -60,14 +59,14 @@ import { envelope, envelopeList } from '@cognnitive/innfo-core'
 const ROOT_DIR: string =
   process.env.INNFO_MODELS_DIR ?? findRepoRoot(process.cwd()) ?? process.cwd()
 
-// Single source of truth for the MCP server version: read from package.json
-// (readFileSync avoids TS6059 — package.json sits outside `rootDir: ./src`).
-const packageJson = JSON.parse(
-  readFileSync(new URL('../package.json', import.meta.url), 'utf-8'),
-) as { version: string }
+// MCP server version: injected at build time by tsup via `define`, so the
+// standalone bundle (bin/innfo-mcp.bundle.js) stays self-contained when
+// installed flat (e.g. ~/.agents/mcp/) — it never reads a sibling
+// package.json at boot.
+declare const __INNFO_MCP_VERSION__: string
 
 export const server = new Server(
-  { name: 'innfo-mcp', version: packageJson.version },
+  { name: 'innfo-mcp', version: __INNFO_MCP_VERSION__ },
   { capabilities: { tools: {} } },
 )
 
