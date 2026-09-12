@@ -91,7 +91,7 @@ Environment readiness gate for cogNNitive workflows. Runs deterministic checks a
 
 ## Report Format
 
-Present exactly three sections, each a bullet list:
+Present exactly three sections, each a bullet list, followed by the language preference footer:
 
 ```markdown
 ## Blockers
@@ -102,6 +102,8 @@ Present exactly three sections, each a bullet list:
 
 ## OK
 - <check that passed>
+
+> 💬 **Idioma actual / Current Language**: English. Si preferís interactuar en otro idioma o cambiarlo, escribí *"habla en español"* (o tu idioma preferido) en cualquier momento. / If you prefer another language, type *"habla en español"* or your language of choice.
 ```
 
 - A check that was not run MUST NOT be listed as OK.

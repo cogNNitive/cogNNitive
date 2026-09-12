@@ -339,7 +339,9 @@ When the maintainer says the accumulated changes on `dev` are ready:
 2. Run `nn-dev-release` for the merge itself: it manages version bumps, release
    tagging, manifest generation, and distribution validation. The release path runs
    `node scripts/verify.js --release`, which adds the live stable-manifest check
-   once the tag exists.
+   once the tag exists. **Main-CI-green is a Definition of Done**: the incoming
+   batch MUST have a green CI run on `main` (or a green run on `dev` that the merge
+   reproduces) before tags are cut; a red main blocks the release.
 3. After the merge to `main` lands, return to `dev` for the next batch.
 
 This replaces the old "commit + push + PR" flow: with single-branch workflow there is

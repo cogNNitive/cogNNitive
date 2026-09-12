@@ -1,0 +1,17 @@
+change: 2026-09-10-dev-skills-concurrency-deploy-hardening
+status: planning-complete
+artifact_store: openspec
+delivery_strategy: single-pr-default
+review_budget_lines: 800
+execution_mode: auto
+phases:
+  explore: done
+  propose: done
+  spec: done
+  design: done
+  tasks: done
+  apply: pending
+  verify: pending
+  archive: pending
+next_recommended: apply
+blockedReasons: []

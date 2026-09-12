@@ -2,9 +2,9 @@ name: CI & Verify
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, dev ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, dev ]
   workflow_dispatch:
 
 permissions:
@@ -39,7 +39,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run Deterministic Verification
-        run: "node scripts/verify.js ${{ github.event_name == 'push' && '--release' || '' }}"
+        run: "node scripts/verify.js ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && '--release' || '' }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

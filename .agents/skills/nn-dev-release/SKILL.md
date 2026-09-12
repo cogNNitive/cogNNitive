@@ -225,4 +225,5 @@ Run `node scripts/manifest/validate-manifest.js` with `$env:GITHUB_TOKEN = (gh a
 1. **Never guess git state:** Always run `git status -sb` before reporting or committing.
 2. **Deterministic Parity First:** Always run `node scripts/manifest/check-parity.js` before tagging or committing manifest changes to guarantee zero drift.
 3. **Always authenticate API calls:** Use `gh auth token` when running `generate-manifest.js` or `validate-manifest.js` to avoid GitHub HTTP 403 rate limits.
-4. **Monorepo Scope:** Limit all operations to `D:\Users\lucas\Documents\GitHub\cogNNitive`.
+4. **Main-CI-green is a Definition of Done:** Before tagging a release or merging `dev → main`, the merge target `main` MUST have a green CI run for the branch being merged (the merged result's CI is the final gate). If CI on `main` is red or has never run for the incoming changes, do not cut tags — fix the failure first.
+5. **Monorepo Scope:** Limit all operations to `D:\Users\lucas\Documents\GitHub\cogNNitive`.
