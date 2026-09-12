@@ -328,6 +328,51 @@
       margin: 0 auto 28px;
     }
 
+    .case-live-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+    .btn-action-live {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+    .btn-action-live.source {
+      background: var(--canvas-inert);
+      border: 1px solid var(--border-darker);
+      color: var(--ink);
+    }
+    .btn-action-live.source:hover {
+      background: #E5E7EB;
+      transform: translateY(-1px);
+    }
+    .btn-action-live.model {
+      background: var(--brand);
+      color: #FFFFFF;
+      box-shadow: 0 2px 8px rgba(77, 14, 78, 0.25);
+    }
+    .btn-action-live.model:hover {
+      background: var(--brand-light);
+      transform: translateY(-1px);
+    }
+    .btn-action-live.artifact {
+      background: #ECFDF5;
+      border: 1px solid #A7F3D0;
+      color: #065F46;
+    }
+    .btn-action-live.artifact:hover {
+      background: #D1FAE5;
+      transform: translateY(-1px);
+    }
+
     /* Footer */
     footer {
       padding: 40px 0;
@@ -386,6 +431,11 @@
           <div class="case-title-block">
             <h2>The Startup Founder &amp; Early-Stage Team</h2>
             <p>From scattered napkins, investor feedback, and customer discovery to a traceable, living business model.</p>
+            <div class="case-live-actions">
+              <a href="samples/use-cases/startup-founder/sources/nn/customer_discovery.md" target="_blank" rel="noopener noreferrer" class="btn-action-live source">📄 View Raw Source</a>
+              <a href="https://cognnitive.com/innfo/app/?model=https://raw.githubusercontent.com/cogNNitive/cogNNitive/dev/docs/samples/use-cases/startup-founder/models/SaaS_Founder_V_1-0-0_business_NN.md" target="_blank" rel="noopener noreferrer" class="btn-action-live model">🧠 Open in iNNfo App &rarr;</a>
+              <a href="samples/use-cases/startup-founder/export/pitch_deck_summary.md" target="_blank" rel="noopener noreferrer" class="btn-action-live artifact">📊 View Generated Pitch Deck</a>
+            </div>
           </div>
         </div>
 
@@ -455,6 +505,11 @@
           <div class="case-title-block">
             <h2>The Sales Director (Mid-Size Consulting Firm)</h2>
             <p>Unified service offerings, verified team credentials, and rapid RFP proposal generation with zero stale rates.</p>
+            <div class="case-live-actions">
+              <a href="samples/use-cases/consulting-sales/sources/nn/enterprise_rfp_fintech.md" target="_blank" rel="noopener noreferrer" class="btn-action-live source">📄 View Raw Source</a>
+              <a href="https://cognnitive.com/innfo/app/?model=https://raw.githubusercontent.com/cogNNitive/cogNNitive/dev/docs/samples/use-cases/consulting-sales/models/Fintech_RFP_Response_V_1-0-0_commercial_NN.md" target="_blank" rel="noopener noreferrer" class="btn-action-live model">🧠 Open in iNNfo App &rarr;</a>
+              <a href="samples/use-cases/consulting-sales/export/commercial_proposal_executive.md" target="_blank" rel="noopener noreferrer" class="btn-action-live artifact">📊 View Generated Proposal</a>
+            </div>
           </div>
         </div>
 
@@ -524,6 +579,11 @@
           <div class="case-title-block">
             <h2>The Freelance Web Designer &amp; Solopreneur</h2>
             <p>Bulletproof client requirements, clear design contracts, and zero "I didn't approve that" scope disputes.</p>
+            <div class="case-live-actions">
+              <a href="samples/use-cases/freelance-designer/sources/nn/client_kickoff_brief.md" target="_blank" rel="noopener noreferrer" class="btn-action-live source">📄 View Raw Source</a>
+              <a href="https://cognnitive.com/innfo/app/?model=https://raw.githubusercontent.com/cogNNitive/cogNNitive/dev/docs/samples/use-cases/freelance-designer/models/Client_Website_V_1-0-0_site_spec_NN.md" target="_blank" rel="noopener noreferrer" class="btn-action-live model">🧠 Open in iNNfo App &rarr;</a>
+              <a href="samples/use-cases/freelance-designer/export/interactive_spec_dashboard.html" target="_blank" rel="noopener noreferrer" class="btn-action-live artifact">📊 View Interactive Blueprint</a>
+            </div>
           </div>
         </div>
 
@@ -593,6 +653,11 @@
           <div class="case-title-block">
             <h2>The YouTube Video &amp; Technical Content Creator</h2>
             <p>Connected research libraries, verifiable video scripts, and instant B-roll production checklists.</p>
+            <div class="case-live-actions">
+              <a href="samples/use-cases/youtube-creator/sources/nn/battery_thermal_research_2026.md" target="_blank" rel="noopener noreferrer" class="btn-action-live source">📄 View Raw Source</a>
+              <a href="https://cognnitive.com/innfo/app/?model=https://raw.githubusercontent.com/cogNNitive/cogNNitive/dev/docs/samples/use-cases/youtube-creator/models/Episode_42_Battery_Tech_V_1-0-0_video_script_NN.md" target="_blank" rel="noopener noreferrer" class="btn-action-live model">🧠 Open in iNNfo App &rarr;</a>
+              <a href="samples/use-cases/youtube-creator/export/production_teleprompter_cue_sheet.md" target="_blank" rel="noopener noreferrer" class="btn-action-live artifact">📊 View Teleprompter Cue Sheet</a>
+            </div>
           </div>
         </div>
 
