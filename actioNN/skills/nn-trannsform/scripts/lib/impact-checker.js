@@ -349,10 +349,157 @@ function writeImpactReport(projectDir, audit, date) {
   return { reportPath: reportPath.replace(/\\/g, '/'), content };
 }
 
+/**
+ * Regular expression matching timestamped normalized source files
+ * e.g. "quarterly_forecast_20260912-185536.md"
+ */
+const TIMESTAMP_REGEX = /^(.+)_(\d{8}-\d{6})(?:\.md)?$/i;
+
+/**
+ * Groups normalized Markdown source files under sources/nn/ into time-series families.
+ *
+ * @param {string} projectDir
+ * @returns {Record<string, Array<{ relPath: string, fullPath: string, fileName: string, timestamp: string }>>}
+ */
+function groupSourceFamilies(projectDir) {
+  const nnDir = path.join(projectDir, 'sources', 'nn');
+  /** @type {Record<string, Array<{ relPath: string, fullPath: string, fileName: string, timestamp: string }>>} */
+  const families = {};
+  if (!fs.existsSync(nnDir)) return families;
+
+  const files = modelLib.walkFiles(nnDir, (n) => n.endsWith('.md'));
+
+  for (const rel of files) {
+    const base = path.basename(rel);
+    const m = base.match(TIMESTAMP_REGEX);
+    if (m) {
+      const stem = m[1];
+      const timestamp = m[2];
+      if (!families[stem]) {
+        families[stem] = [];
+      }
+      families[stem].push({
+        relPath: rel.replace(/\\/g, '/'),
+        fullPath: path.join(nnDir, rel).replace(/\\/g, '/'),
+        fileName: base,
+        timestamp,
+      });
+    }
+  }
+
+  // Sort each family by timestamp ascending
+  for (const stem of Object.keys(families)) {
+    families[stem].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+  }
+
+  return families;
+}
+
+/**
+ * Detects models that cite an earlier snapshot when a newer timestamped snapshot
+ * in the same source family is available.
+ *
+ * @param {string} projectDir
+ * @returns {Array<{
+ *   modelFile: string,
+ *   elementName?: string,
+ *   citation: string,
+ *   family: string,
+ *   currentSnapshot: string,
+ *   latestSnapshot: string,
+ *   headingSlug?: string,
+ *   headingPreserved: boolean,
+ *   advisory: string
+ * }>}
+ */
+function detectSourceFamilyEvolution(projectDir) {
+  const families = groupSourceFamilies(projectDir);
+  const modelsDir = path.join(projectDir, 'models');
+  const evolutions = [];
+
+  if (!fs.existsSync(modelsDir) || Object.keys(families).length === 0) {
+    return evolutions;
+  }
+
+  const modelFiles = modelLib.walkFiles(modelsDir, (n) => n.endsWith('_NN.md'));
+
+  for (const rel of modelFiles) {
+    const modelRelPath = `models/${rel.replace(/\\/g, '/')}`;
+    const modelFullPath = path.join(modelsDir, rel);
+    const content = fs.readFileSync(modelFullPath, 'utf8');
+
+    const lines = content.split(/\r?\n/);
+    let currentElement = null;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const elemMatch = line.match(/^## NN [^:]+:\s*(.+?)\s*$/);
+      if (elemMatch) {
+        currentElement = elemMatch[1].trim();
+      }
+
+      if (line.trim().startsWith('sources::')) {
+        const refs = modelLib.scrapeSourceRefs(line);
+        for (const ref of refs) {
+          const hashIdx = ref.indexOf('#');
+          const filePart = (hashIdx >= 0 ? ref.substring(0, hashIdx) : ref)
+            .replace(/^sources\/nn\//, '')
+            .trim();
+          const slugPart = hashIdx >= 0 ? ref.substring(hashIdx + 1).trim() : null;
+
+          const baseFile = path.basename(filePart);
+          const match = baseFile.match(TIMESTAMP_REGEX);
+          if (!match) continue;
+
+          const stem = match[1];
+          const citedTs = match[2];
+
+          const snapshots = families[stem];
+          if (!snapshots || snapshots.length <= 1) continue;
+
+          const latest = snapshots[snapshots.length - 1];
+          if (latest.timestamp > citedTs) {
+            // Check heading preservation in latest
+            let headingPreserved = true;
+            if (slugPart && fs.existsSync(latest.fullPath)) {
+              try {
+                const latestContent = fs.readFileSync(latest.fullPath, 'utf8');
+                const headings = extractHeadingSlugs(latestContent);
+                headingPreserved = headings.some((h) => h.slug === slugPart);
+              } catch {
+                headingPreserved = false;
+              }
+            }
+
+            evolutions.push({
+              modelFile: modelRelPath,
+              elementName: currentElement || undefined,
+              citation: ref,
+              family: stem,
+              currentSnapshot: baseFile,
+              latestSnapshot: latest.fileName,
+              headingSlug: slugPart || undefined,
+              headingPreserved,
+              advisory: `Model cites previous snapshot "${baseFile}". Newer snapshot "${latest.fileName}" is available${
+                slugPart ? (headingPreserved ? ' (heading preserved)' : ' (heading missing in newer snapshot)') : ''
+              }.`,
+            });
+          }
+        }
+      }
+    }
+  }
+
+  return evolutions;
+}
+
 module.exports = {
+  TIMESTAMP_REGEX,
   auditModelCitations,
   checkScanImpact,
   findClosestSlugs,
   buildImpactReport,
   writeImpactReport,
+  groupSourceFamilies,
+  detectSourceFamilyEvolution,
 };

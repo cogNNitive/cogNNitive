@@ -86,9 +86,28 @@ function run() {
       );
     }
 
-    // planned_migrations present for the future mechanical identifier migration
-    assertTrue(Array.isArray(app.planned_migrations), 'app declares planned_migrations');
-    assertTrue(app.planned_migrations.length > 0, 'planned_migrations is non-empty');
+    // `ageNNt` is the canonical term
+    const ageNNt = vocab.terms.ageNNt;
+    assertEqual(typeof ageNNt, 'object', 'ageNNt term entry exists');
+    assertTrue(ageNNt.canonical === true, 'ageNNt is marked canonical');
+    assertTrue(Array.isArray(ageNNt.aliases), 'ageNNt declares an aliases array');
+    assertTrue(ageNNt.aliases.includes('actioNN'), 'actioNN is listed as a deprecated alias');
+    assertEqual(typeof ageNNt.sense, 'string', 'ageNNt declares a sense string');
+    assertTrue(ageNNt.sense.length > 0, 'ageNNt sense is non-empty');
+    assertTrue(Array.isArray(ageNNt.stable_identifiers), 'ageNNt lists stable identifiers');
+    for (const id of ['actioNN/', 'actioNN/skills/', 'actioNN/scripts/']) {
+      assertTrue(ageNNt.stable_identifiers.includes(id), `stable identifier "${id}" is listed for ageNNt`);
+    }
+
+    // `assistant` is the canonical term
+    const assistant = vocab.terms.assistant;
+    assertEqual(typeof assistant, 'object', 'assistant term entry exists');
+    assertTrue(assistant.canonical === true, 'assistant is marked canonical');
+    assertTrue(Array.isArray(assistant.aliases), 'assistant declares an aliases array');
+    assertTrue(assistant.aliases.includes('coach'), 'coach is listed as a deprecated alias');
+    assertTrue(assistant.aliases.includes('architecture coach'), 'architecture coach is listed as an alias');
+    assertEqual(typeof assistant.sense, 'string', 'assistant declares a sense string');
+    assertTrue(assistant.sense.length > 0, 'assistant sense is non-empty');
 
     console.log(`\n  Vocabulary tests: ${passed} passed, ${failed} failed`);
   } catch (e) {

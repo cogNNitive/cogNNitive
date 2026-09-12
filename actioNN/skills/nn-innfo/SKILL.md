@@ -597,7 +597,16 @@ The workspace manifest (`workspace_NN.md`, section `# NN Models`) can drift out 
 2. Present the user a natural-language summary of the proposed changes (how many entries would be added, which would be archived/reactivated) before writing anything.
 3. Only after the user's explicit confirmation, call again with `dry_run: false` to persist the changes to disk.
 
-```
+---
+
+## 15. External Watch Roots & Pre-Authoring Scanner Integration
+
+When authoring or auditing models that rely on external data drops (e.g. client spreadsheets, RFPs, audio transcripts):
+1. **Detect Declarative Watch Roots**: Check if the workspace provenance model (`workspace_NN.md` or `<Project>_V_0-2-0_cogNNitive_NN.md`) defines a `## NN External Watch Roots:` section.
+2. **Pre-Authoring Scan Check**: Before updating or creating a model citing dynamic sources, offer to scan external roots:
+   > *"This workspace defines external watch roots. Would you like to scan for new or evolved primary sources before authoring?"*
+3. **Execution**: Invoke `node actioNN/skills/nn-trannsform/scripts/index.js --scan-external --check-impact` to inspect external changes, import timestamped snapshots (`YYYYMMDD-HHmmss`), and check source family evolutions.
+
 innfo-mcp_sync_workspace_manifest({ dry_run: true })
 // review result.changes / result.diff with the user before continuing
 innfo-mcp_sync_workspace_manifest({ dry_run: false }) // only after explicit confirmation

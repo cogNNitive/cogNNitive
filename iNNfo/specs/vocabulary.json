@@ -1,5 +1,5 @@
 {
-  "version": "V_0-1-0",
+  "version": "V_0-2-0",
   "terms": {
     "app": {
       "canonical": true,
@@ -20,6 +20,29 @@
         "manifest templates: key",
         "templates-v* tags"
       ]
+    },
+    "ageNNt": {
+      "canonical": true,
+      "aliases": ["actioNN"],
+      "sense": "Skill ecosystem, execution engine, and dynamic AI persona framework for cogNNitive",
+      "excludes": ["generic-agent", "subagent-runtime"],
+      "stable_identifiers": [
+        "actioNN/",
+        "actioNN/skills/",
+        "actioNN/scripts/"
+      ],
+      "planned_migrations": [
+        "actioNN/ -> ageNNt/ in monorepo root",
+        "actioNN URL references"
+      ]
+    },
+    "assistant": {
+      "canonical": true,
+      "aliases": ["coach", "architecture coach"],
+      "sense": "Interactive architecture mentor and modeling guide persona in iNNfo",
+      "excludes": ["system-prompt-generic"],
+      "stable_identifiers": [],
+      "planned_migrations": []
     }
   }
 }

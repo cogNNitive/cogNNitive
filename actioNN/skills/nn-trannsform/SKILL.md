@@ -156,6 +156,32 @@ When an existing source file is modified in `sources/import/` (or `sources/origi
    ```
    Inspects every Level 3 model in `models/`, parses all `sources::` citations, and verifies that the cited file exists under `sources/nn/` AND that the exact `#heading-slug` anchor is present. Reports errors for drifted or missing anchors along with fuzzy suggestions for closest matching headings. Exits non-zero if drift errors are detected.
 
+#### 2a-3. External Watch Roots & Immutable Timestamped Sources (`--scan-external`)
+
+Workspaces can watch external file drops without daemons or external mutations:
+
+1. **Declarative Watch Roots in Provenance Model**:
+   ```markdown
+   ## NN External Watch Roots:
+   - Root: "D:/External_Drops/Client_Inputs"
+     Cadence: "dynamic"
+     Recursive: true
+     Filter: ["*.pdf", "*.docx", "*.xlsx", "*.csv", "*.json"]
+   - Root: "Z:/Vault/Legal"
+     Cadence: "static"
+     Recursive: false
+     Filter: ["*.pdf"]
+   ```
+2. **On-Demand Scan with Fast Path**:
+   ```bash
+   node scripts/index.js --scan-external --src "<project-dir>"
+   ```
+   Inspects external file metadata (`mtimeMs` and `size`) to avoid unnecessary disk I/O, hashes changed files, and classifies changes (`NEW`, `EVOLVED_DYNAMIC`, `STATIC_ALERT`, `DISCONNECTED`).
+3. **Immutable Timestamped Ingestion (`YYYYMMDD-HHmmss`)**:
+   Dynamic sources are ingested into `sources/import/<stem>_<YYYYMMDD-HHmmss>.<ext>` and normalized into `sources/nn/import/<stem>_<YYYYMMDD-HHmmss>.md`. Existing citations remain permanently valid without broken links.
+4. **Source Family Evolution & Impact Guidance**:
+   The impact checker detects when models reference older snapshots of an evolving source family and advises when newer snapshots are available.
+
 #### 2b. Progressive Disclosure & Source Naming Convention
 
 To prevent LLM context degradation (*Lost in the Middle*) and maintain workspace clarity:

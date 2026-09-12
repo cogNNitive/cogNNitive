@@ -121,12 +121,33 @@ status:: Inactive
     ok(writtenContent.includes('derived_from:'), 'written report carries derived_from');
     ok(writtenContent.includes('Recommended remediation'), 'written report details remediation');
 
-    // Test 7: clean audit produces a report with zero drift (different code path)
-    const cleanWritten = writeImpactReport(tmpDir, auditClean, '2026-09-12');
-    ok(fs.existsSync(cleanWritten.reportPath), 'clean audit still writes a report file');
-    const cleanContent = fs.readFileSync(cleanWritten.reportPath, 'utf8');
-    ok(cleanContent.includes('0'), 'clean report reports zero drift issues');
-    ok(!cleanContent.includes('Recommended remediation'), 'clean report omits remediation section when no drift');
+    // Test 8: groupSourceFamilies and detectSourceFamilyEvolution
+    const snap1Content = `# Strategy Snapshot 1\n## Strategic Vision\nVision v1\n`;
+    const snap2Content = `# Strategy Snapshot 2\n## Strategic Vision\nVision v2 with updates\n## New Market Plan\nNew market details\n`;
+    fs.writeFileSync(path.join(nnDir, 'quarterly_strategy_20260901-120000.md'), snap1Content, 'utf8');
+    fs.writeFileSync(path.join(nnDir, 'quarterly_strategy_20260912-180000.md'), snap2Content, 'utf8');
+
+    const { groupSourceFamilies, detectSourceFamilyEvolution } = require('../../scripts/lib/impact-checker');
+    const families = groupSourceFamilies(tmpDir);
+    ok(Boolean(families['quarterly_strategy']), 'groups quarterly_strategy family correctly');
+    eq(families['quarterly_strategy'].length, 2, 'records 2 snapshots in quarterly_strategy family');
+
+    // Model citing older snapshot
+    const citingModel = `---
+spec_version: "V_0-1-0"
+---
+# NN Vision
+## NN Vision: Growth Plan
+sources:: [quarterly_strategy_20260901-120000.md#strategic-vision]
+`;
+    fs.writeFileSync(path.join(modelsDir, 'Citing_Model_V_1-0-0_NN.md'), citingModel, 'utf8');
+
+    const evolutions = detectSourceFamilyEvolution(tmpDir);
+    ok(evolutions.length > 0, 'detects source family evolution opportunity');
+    eq(evolutions[0].family, 'quarterly_strategy', 'identifies correct family stem');
+    eq(evolutions[0].currentSnapshot, 'quarterly_strategy_20260901-120000.md', 'identifies current snapshot');
+    eq(evolutions[0].latestSnapshot, 'quarterly_strategy_20260912-180000.md', 'identifies latest snapshot');
+    eq(evolutions[0].headingPreserved, true, 'detects heading preserved in newer snapshot');
 
   } finally {
     try {

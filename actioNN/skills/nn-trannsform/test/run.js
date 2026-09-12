@@ -99,6 +99,11 @@ async function main() {
     const impactCheckerResult = await impactCheckerTest.run();
     totalPassed += impactCheckerResult.passed;
     totalFailed += impactCheckerResult.failed;
+
+    const externalScannerTest = require('./unit/test-external-scanner');
+    const externalScannerResult = await externalScannerTest.run();
+    totalPassed += externalScannerResult.passed;
+    totalFailed += externalScannerResult.failed;
   }
 
   if (mode === 'all' || mode === 'integration') {

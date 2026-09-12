@@ -76,8 +76,11 @@ When files are imported into a cogNNitive workspace:
 3. **Normalized Markdown (`sources/nn/`)**:
    - Documents are converted to structured Markdown with clean heading anchors (`#heading-slug`).
    - Every file carries standardized YAML frontmatter recording `source_file`, `sha256`, `size_bytes`, `normalized_at`, `normalized_by`, `canonical` identity (BibTeX / DOI), and external `cited_works`.
-4. **Dynamic Snapshot Archive (`sources/archive/`)**:
-   - When a source file is modified (hash change), the previous normalized version is archived under `sources/archive/<name>/V<N>/<name>.md` before the new version is written.
+4. **External Watch Roots & Immutable Timestamped Sources**:
+   - Workspaces can watch external directories on demand without daemons (`node scripts/index.js --scan-external`).
+   - Dynamic sources are ingested with second-precision timestamps (`<basename>_YYYYMMDD-HHmmss.<ext>`), creating immutable time-series snapshots that prevent broken links and preserve complete citation permanence.
+5. **Dynamic Snapshot Archive (`sources/archive/`)**:
+   - For legacy or unversioned modified sources, previous versions are archived under `sources/archive/<name>/V<N>/<name>.md`.
 
 ---
 

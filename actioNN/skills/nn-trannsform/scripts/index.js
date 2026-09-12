@@ -12,14 +12,17 @@ const provenance = require('./provenance');
 const webImport = require('./webImport');
 const { bootstrapProject } = require('./lib/bootstrap');
 const { checkLineage } = require('./lib/lineage-check');
-const { auditModelCitations, checkScanImpact, writeImpactReport } = require('./lib/impact-checker');
+const { auditModelCitations, checkScanImpact, writeImpactReport, detectSourceFamilyEvolution } = require('./lib/impact-checker');
 const { promoteConversation, PROMOTION_OPTIONS } = require('./lib/conversations');
+const externalScanner = require('./lib/external-scanner');
 
 async function main() {
   const argv = minimist(process.argv.slice(2));
 
   const hasArgs =
     argv.scan ||
+    argv['scan-external'] ||
+    argv.external ||
     argv.apply ||
     argv.provenance ||
     argv.lineage ||
@@ -92,6 +95,53 @@ async function handleCliMode(argv) {
       console.log(`📊 Impact audit report written to: ${reportPath}`);
     }
     process.exit(audit.errors.length > 0 ? 1 : 0);
+  }
+
+  if (argv['scan-external'] || argv.external) {
+    console.log(`Scanning external watch roots for "${projectDir}"...`);
+    const scanResult = externalScanner.scanAllWatchRoots(projectDir);
+
+    console.log(`Discovered ${scanResult.roots.length} external root(s).`);
+    for (const r of scanResult.roots) {
+      console.log(`- [${r.status}] ${r.root} (${r.cadence}, ${r.items.length} file(s))`);
+    }
+
+    const { new: newItems, evolved, alerts, disconnected } = scanResult.classified;
+    console.log(`\nDelta Summary:`);
+    console.log(`  NEW files: ${newItems.length}`);
+    console.log(`  EVOLVED (dynamic): ${evolved.length}`);
+    console.log(`  STATIC ALERTS: ${alerts.length}`);
+    console.log(`  DISCONNECTED roots: ${disconnected.length}`);
+
+    const candidates = [...newItems, ...evolved];
+    if (candidates.length > 0) {
+      if (argv.yes || argv.y || argv.apply) {
+        console.log(`\nImporting ${candidates.length} candidate file(s) into sources/import/...`);
+        const imported = externalScanner.importExternalFiles(candidates, projectDir);
+        for (const imp of imported) {
+          console.log(`  ✔ Copied: ${imp.importedAs}`);
+        }
+        console.log(`\nNormalizing imported sources...`);
+        const scanRes = await scanner.scanAndProcess(projectDir, { autoAcceptPrompt: true });
+        console.log(`Normalization done: Processed ${scanRes.processedCount} source(s).`);
+      } else {
+        console.log(`\nCandidate files to import:`);
+        for (const c of candidates) {
+          console.log(`  - [${c.deltaStatus}] ${c.baseName} (${c.cadence})`);
+        }
+        console.log(`\nRun with --apply or --yes to import and normalize these files.`);
+      }
+    }
+
+    const evolutions = detectSourceFamilyEvolution(projectDir);
+    if (evolutions.length > 0) {
+      console.log(`\n⚡ Source Family Evolution Opportunities (${evolutions.length}):`);
+      for (const evo of evolutions) {
+        console.log(`  - ${evo.modelFile}: cites "${evo.currentSnapshot}" -> newer "${evo.latestSnapshot}" available`);
+      }
+    }
+
+    process.exit(0);
   }
 
   let importResult = null;
