@@ -26,22 +26,22 @@ Chain strategy: pending
 
 ## Phase 1: Foundation — Canonical Dictionary
 
-- [ ] 1.1 Create `iNNfo/specs/vocabulary.json` with terms (app canonical, template deprecated alias), senses, excluded senses, stable_identifiers, planned_migrations
-- [ ] 1.2 Create `docs/innfo/documentation/vocabulary.md` rendering the dictionary (app canonical, alias table, exclusions, stable-identifier list)
-- [ ] 1.3 Update `iNNfo/AGENTS.md` glossary block: add `app` (Level-2 schema), mark `template` deprecated alias, keep Workspace/Model/Concept/Element/Block/Pill-Sheet
-- [ ] 1.4 RED test `test-vocabulary.js` (nn-trannsform unit pattern): asserts vocabulary.json well-formed, app canonical, template alias present, every stable identifier listed
+- [x] 1.1 Create `iNNfo/specs/vocabulary.json` with terms (app canonical, template deprecated alias), senses, excluded senses, stable_identifiers, planned_migrations
+- [x] 1.2 Create `docs/innfo/documentation/vocabulary.md` rendering the dictionary (app canonical, alias table, exclusions, stable-identifier list)
+- [x] 1.3 Update `iNNfo/AGENTS.md` glossary block: add `app` (Level-2 schema), mark `template` deprecated alias, keep Workspace/Model/Concept/Element/Block/Pill-Sheet
+- [x] 1.4 RED test `test-vocabulary.js` (nn-trannsform unit pattern): asserts vocabulary.json well-formed, app canonical, template alias present, every stable identifier listed
 
 ## Phase 2: Core — User-Facing Rename (sequenced after sibling archive)
 
-- [ ] 2.1 Rename `title: "X Template"` → `"X App"` in the 13 active `iNNfo/specs/templates/*/spec_NN.md` (skip frozen base/cogNNitive, versioned specs)
-- [ ] 2.2 Regenerate `iNNfo/specs/templates/catalog.json` via `node scripts/template-catalog.mjs`; `--check` green
-- [ ] 2.3 `iNNfo/apps/innfo-editor/src/views/HomeView.vue`: "Creating Models from Templates" → "…Apps"; sample card copy (keep `templateName`/`createTemplate` identifiers)
-- [ ] 2.4 `iNNfo/apps/innfo-editor/src/components/layout/SampleBanner.vue`: "…template…" → "…app…" (user-facing string only)
-- [ ] 2.5 `iNNfo/apps/innfo-editor/src/components/ValidationReport.vue`: `Template:` labels → `App:` (keep `template_name`/`template_version` field identifiers)
-- [ ] 2.6 `iNNfo/apps/innfo-editor/src/components/layout/WorkspaceIntegrityNotice.vue`: user-facing "template" → "app"
-- [ ] 2.7 `actioNN/skills/nn-innfo/SKILL.md`: L2-sense copy → app (~70 hits); `bundled_templates` identifier unchanged
-- [ ] 2.8 `actioNN/skills/nn-trannsform/SKILL.md`: L2-sense only; `traNNsformations/` + `--apply` sense untouched
-- [ ] 2.9 `.agents/skills/nn-template-audit/SKILL.md`: audit copy L2-sense → app (identifiers unchanged)
+- [x] 2.1 Rename `title: "X Template"` → `"X App"` in the 13 active `iNNfo/specs/templates/*/spec_NN.md` (skip frozen base/cogNNitive, versioned specs)
+- [x] 2.2 Regenerate `iNNfo/specs/templates/catalog.json` via `node scripts/template-catalog.mjs`; `--check` green
+- [x] 2.3 `iNNfo/apps/innfo-editor/src/views/HomeView.vue`: "Creating Models from Templates" → "…Apps"; sample card copy (keep `templateName`/`createTemplate` identifiers)
+- [x] 2.4 `iNNfo/apps/innfo-editor/src/components/layout/SampleBanner.vue`: "…template…" → "…app…" (user-facing string only)
+- [x] 2.5 `iNNfo/apps/innfo-editor/src/components/ValidationReport.vue`: `Template:` labels → `App:` (keep `template_name`/`template_version` field identifiers)
+- [x] 2.6 `iNNfo/apps/innfo-editor/src/components/layout/WorkspaceIntegrityNotice.vue`: user-facing "template" → "app"
+- [x] 2.7 `actioNN/skills/nn-innfo/SKILL.md`: L2-sense copy → app (~70 hits); `bundled_templates` identifier unchanged
+- [x] 2.8 `actioNN/skills/nn-trannsform/SKILL.md`: L2-sense only; `traNNsformations/` + `--apply` sense untouched
+- [x] 2.9 `.agents/skills/nn-template-audit/SKILL.md`: audit copy L2-sense → app (identifiers unchanged)
 - [ ] 2.10 `docs/**` prose + `iNNfo/USE_AI.md`: conceptual "template" (L2-sense) → "app"; identifiers verbatim
 
 ## Phase 3: Audit + Backlog Follow-up

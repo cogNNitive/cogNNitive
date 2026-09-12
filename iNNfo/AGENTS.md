@@ -40,7 +40,8 @@ All agents, developers, and code artifacts in this project MUST strictly follow 
 
 - **Workspace**: The local working directory containing one or more iNNfo models (aligned with OpenCode, VS Code, and AI Agents native workspace scope).
 - **Model**: An iNNfo Level-3 data document (`<Name>_V_x-y-z_<Template>_NN.md`).
-- **Template**: An iNNfo Level-2 schema document (`business`, `organization`, `procedures`).
+- **App**: An iNNfo Level-2 schema document (`business`, `organization`, `procedures`) — the canonical user-facing term (see `specs/vocabulary.json`).
+- **Template**: Deprecated alias for **App** (Level-2 schema). Keep technical identifiers (`template_version`, `specs/templates/`, MCP `get_template`, manifest `templates:`) unchanged; use **app** in user-facing copy.
 - **Concept**: A type/class section defined by `# NN <Concept>`.
 - **Element**: A concrete instance defined by `## NN <Concept>: <Element>`.
 - **Block**: An iNNfo Markdown structural unit (`# NN` or `## NN`). A block represents either a Concept or an Element.

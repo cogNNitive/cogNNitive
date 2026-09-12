@@ -1,0 +1,25 @@
+{
+  "version": "V_0-1-0",
+  "terms": {
+    "app": {
+      "canonical": true,
+      "aliases": ["template"],
+      "sense": "Level-2 schema (_spec_NN.md pinned by parent_spec)",
+      "excludes": ["traNNsformations", "vue-sfc-template", "generic-english"],
+      "stable_identifiers": [
+        "specs/templates/",
+        "template_version",
+        "get_template",
+        "templates:",
+        "templates-v*",
+        "SHIPPED_TEMPLATE_VERSIONS"
+      ],
+      "planned_migrations": [
+        "specs/templates/ -> specs/apps/",
+        "MCP tool names",
+        "manifest templates: key",
+        "templates-v* tags"
+      ]
+    }
+  }
+}
