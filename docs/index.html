@@ -650,6 +650,74 @@
       .mid-hero-rotator { max-width: 100%; }
       .mid-hero-rotator > span { white-space: normal; }
     }
+
+    /* Use Cases 4-Grid */
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 24px;
+    }
+    .use-case-card {
+      background: var(--canvas);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px 24px;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+      text-decoration: none;
+      color: inherit;
+    }
+    .use-case-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 30px rgba(77, 14, 78, 0.1);
+      border-color: rgba(77, 14, 78, 0.3);
+    }
+    .use-case-avatar {
+      font-size: 32px;
+      margin-bottom: 16px;
+      display: inline-block;
+    }
+    .use-case-role {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--ink);
+      margin-bottom: 4px;
+    }
+    .use-case-tagline {
+      font-size: 13px;
+      color: var(--brand);
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    .use-case-desc {
+      font-size: 14px;
+      color: var(--ink-muted);
+      line-height: 1.5;
+      margin-bottom: 20px;
+      flex: 1;
+    }
+    .use-case-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid var(--border);
+      padding-top: 14px;
+      margin-top: auto;
+    }
+    .use-case-roi {
+      font-size: 11px;
+      font-weight: 700;
+      color: #059669;
+      background: #ECFDF5;
+      padding: 4px 8px;
+      border-radius: 6px;
+    }
+    .use-case-cta {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--brand);
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
   <script>
@@ -669,6 +737,7 @@
       </a>
       <nav class="nav">
         <a href="https://cognnitive.com" class="nav-link active">cogNNitive</a>
+        <a href="use-cases.html" class="nav-link">Use Cases</a>
         <a href="https://cognnitive.com/innfo" class="nav-link">iNNfo</a>
         <a href="https://cognnitive.com/actionn" class="nav-link">actioNN</a>
         <a href="https://cognnitive.com/innfo/documentation/" target="_blank" rel="noopener noreferrer" class="nav-link">Docs</a>
@@ -844,6 +913,69 @@
             <h3>iNNfo Modeler — Visual App</h3>
             <p>A browser-based workspace editor to view, edit, and validate knowledge graphs without installing servers.</p>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Real-World Use Cases Section -->
+    <section>
+      <div class="container">
+        <div class="section-title">
+          <span class="badge-pill">⚡ Real-World Impact</span>
+          <h2>Who is cogNNitive For?</h2>
+          <p>Real problems, tangible workflows, and verifiable outcomes across industries.</p>
+        </div>
+        <div class="grid-4">
+          <!-- Card 1: Founder -->
+          <a href="use-cases.html#founder" class="use-case-card">
+            <span class="use-case-avatar">🚀</span>
+            <div class="use-case-role">Startup Founders</div>
+            <div class="use-case-tagline">Living Business Models</div>
+            <p class="use-case-desc">Turn messy investor feedback, pitch decks, and discovery transcripts into an auditable business model where pivots update the whole company in 1 hour.</p>
+            <div class="use-case-footer">
+              <span class="use-case-roi">Pivot in 1h vs 2wks</span>
+              <span class="use-case-cta">Explore &rarr;</span>
+            </div>
+          </a>
+
+          <!-- Card 2: Sales Director -->
+          <a href="use-cases.html#sales" class="use-case-card">
+            <span class="use-case-avatar">💼</span>
+            <div class="use-case-role">Sales Directors</div>
+            <div class="use-case-tagline">Consulting &amp; Proposals</div>
+            <p class="use-case-desc">Unify scattered rate cards, service packages, and credentials in Git. Generate tailored RFP responses with mathematically verified citations.</p>
+            <div class="use-case-footer">
+              <span class="use-case-roi">RFP: 5 days &rarr; 3 hours</span>
+              <span class="use-case-cta">Explore &rarr;</span>
+            </div>
+          </a>
+
+          <!-- Card 3: Designer -->
+          <a href="use-cases.html#designer" class="use-case-card">
+            <span class="use-case-avatar">🎨</span>
+            <div class="use-case-role">Freelance Designers</div>
+            <div class="use-case-tagline">Zero Scope Creep</div>
+            <p class="use-case-desc">Capture kickoff audio and structure information architecture citing exact client requirements. Export clickable HTML previews for formal sign-off.</p>
+            <div class="use-case-footer">
+              <span class="use-case-roi">0 Unpaid Revisions</span>
+              <span class="use-case-cta">Explore &rarr;</span>
+            </div>
+          </a>
+
+          <!-- Card 4: Creator -->
+          <a href="use-cases.html#creator" class="use-case-card">
+            <span class="use-case-avatar">🎬</span>
+            <div class="use-case-role">YouTube Creators</div>
+            <div class="use-case-tagline">Research &amp; Video Scripts</div>
+            <p class="use-case-desc">Import papers, videos, and datasets. Write scripts with fine-grained claim citations and auto-generate shooting B-roll cues and video descriptions.</p>
+            <div class="use-case-footer">
+              <span class="use-case-roi">0-Minute Fact Check</span>
+              <span class="use-case-cta">Explore &rarr;</span>
+            </div>
+          </a>
+        </div>
+        <div style="text-align: center; margin-top: 36px;">
+          <a href="use-cases.html" class="btn-secondary">View Detailed Walkthrough of All 4 Use Cases &rarr;</a>
         </div>
       </div>
     </section>

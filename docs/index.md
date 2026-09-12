@@ -9,6 +9,7 @@ description: Turn ideas scattered in brains and files into a living, structured 
 Turn ideas, insights, and data scattered through human brains and computer files into a **living knowledge base powered by AI** that continuously evolves, maintains absolute traceability, and never locks you into proprietary silos.
 
 - [Open iNNfo Modeler App](https://cognnitive.com/innfo/app/)
+- [Real-World Use Cases](use-cases.md)
 - [Explore Agent Skills](https://cognnitive.com/actionn)
 
 ---
@@ -84,6 +85,19 @@ Normalized sources are structured into Level 3 iNNfo models (`models/*_NN.md`):
 From the verified model, generate tailored deliverables into `export/`:
 * **Tailored Vistas**: Interactive HTML dashboards, executive Word documents, PDF reports, or task specs filtered by role or department.
 * **Closed-Loop Feedback**: Exported documents carry metadata. When a stakeholder reviews, annotates, or amends a deliverable outside the system, that document can be re-imported into `sources/import/`. The system identifies the origin, detects diffs, and updates the underlying model.
+
+---
+
+## Real-World Use Cases: Zero Abstractions
+
+Explore how cogNNitive delivers tangible value across different roles:
+
+* **🚀 [Startup Founders](use-cases.md#1--the-startup-founder--early-stage-team)**: Turn messy discovery calls and investor notes into a living business model where pivots propagate in 1 hour instead of 2 weeks.
+* **💼 [Sales Directors (Consulting)](use-cases.md#2--the-sales-director-mid-size-consulting-firm)**: Unify rate cards, service matrices, and credentials in Git; cut RFP response turnaround from 5 days to 3 hours with mathematically verified citations.
+* **🎨 [Freelance Designers](use-cases.md#3--the-freelance-web-designer--solopreneur)**: Structure information architecture directly citing client kickoff recordings; eliminate unpaid scope creep with clickable specification sign-offs.
+* **🎬 [YouTube Creators](use-cases.md#4--the-youtube-video--technical-content-creator)**: Research papers and benchmarks become cited video scripts, auto-generated B-roll cues, and instant bibliography descriptions.
+
+👉 **[Read the full deep-dive with pipeline workflows and ROI metrics &rarr;](use-cases.md)**
 
 ---
 
