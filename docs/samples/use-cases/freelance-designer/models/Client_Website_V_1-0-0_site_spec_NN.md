@@ -21,21 +21,21 @@ title: "Verdant Roasters Website Specification"
 
 ## NN Element: Hero & Value Proposition
 cta_action:: Email Waitlist Form
-sources:: [client_kickoff_brief.md#waitlist-form-scope]
+sources:: [client_kickoff_brief.md#waitlist-form-scope, brand_style_guide.md#forest-green-primary-brand-token]
 
 ## NN Element: Organic Sustainability Badges
 placement:: Above Fold Trust Bar
-sources:: [client_kickoff_brief.md#primary-business-goals]
+sources:: [client_kickoff_brief.md#primary-business-goals, brand_style_guide.md#certified-organic-seal]
 
 # NN Concept: DesignToken
 
 ## NN Element: Primary Brand Color
 hex_value:: #1B4332 (Forest Green)
-sources:: [client_kickoff_brief.md#design-tokens--palette]
+sources:: [brand_style_guide.md#forest-green-primary-brand-token]
 
 ## NN Element: Neutral Background
 hex_value:: #F8F9FA (Warm Cream)
-sources:: [client_kickoff_brief.md#design-tokens--palette]
+sources:: [brand_style_guide.md#warm-cream-background-token]
 
 # NN Concept: ScopeBoundary
 
