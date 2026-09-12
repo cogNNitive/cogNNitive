@@ -59,5 +59,5 @@ Chain strategy: pending
 
 ## Phase 5: Cleanup
 
-- [ ] 5.1 Confirm `base`/`cogNNitive`/versioned specs byte-identical (git diff empty)
-- [ ] 5.2 Update `iNNfo/specs/templates/console/` seam untouched; no runtime/bundle change
+- [x] 5.1 Confirm `base`/`cogNNitive`/versioned specs byte-identical (git diff empty) — VERIFIED 2026-09-12: `git diff --stat HEAD` empty for base/ and cogNNitive/
+- [x] 5.2 Update `iNNfo/specs/templates/console/` seam untouched; no runtime/bundle change — VERIFIED 2026-09-12: `git diff --stat HEAD` empty for console/
