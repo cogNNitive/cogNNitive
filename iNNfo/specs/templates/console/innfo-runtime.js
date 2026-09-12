@@ -302,24 +302,58 @@
     chartsMeta.forEach(function (c) {
       var id = c && c.id
       var label = String((c && c.label) || id || '')
-      if (!Array.isArray(source[id])) {
+      var raw = source[id]
+      if (raw === undefined || raw === null) {
         missing.push({ id: id, label: label })
         return
       }
-      var values = source[id]
-      for (var i = 0; i < values.length; i++) {
-        if (!isPureSeriesValue(values[i])) {
-          invalid.push({ id: id, label: label, detail: 'non-pure series value at index ' + i })
+      // Scenario compare: a chartId may hold an object of variants
+      // { "<variantLabel>": number[] } for side-by-side comparison, or a flat
+      // number[] (single neutral flow). Both are pure JSON data.
+      var variants = []
+      if (Array.isArray(raw)) {
+        variants.push({ label: label, values: raw })
+      } else if (isObject(raw)) {
+        var keys = Object.keys(raw)
+        if (keys.length === 0) {
+          missing.push({ id: id, label: label })
           return
         }
+        for (var k = 0; k < keys.length; k++) {
+          var vLabel = String(keys[k])
+          var v = raw[keys[k]]
+          if (!Array.isArray(v)) {
+            invalid.push({ id: id, label: label, detail: 'variant "' + vLabel + '" is not an array' })
+            return
+          }
+          variants.push({ label: vLabel, values: v })
+        }
+      } else {
+        invalid.push({ id: id, label: label, detail: 'series must be an array or a variants map' })
+        return
       }
+      for (var vi = 0; vi < variants.length; vi++) {
+        var values = variants[vi].values
+        for (var i = 0; i < values.length; i++) {
+          if (!isPureSeriesValue(values[i])) {
+            invalid.push({
+              id: id,
+              label: label,
+              detail: 'non-pure series value at index ' + i + ' in variant "' + variants[vi].label + '"',
+            })
+            return
+          }
+        }
+      }
+      var n = Math.max.apply(null, variants.map(function (v) { return v.values.length }))
+      var xs = []
+      for (var xi = 0; xi < (Number.isFinite(n) ? n : 0); xi++) xs.push(xi)
       charts.push({
         id: id,
         label: label,
-        xs: values.map(function (_, index) {
-          return index
-        }),
-        ys: values.slice(),
+        xs: xs,
+        variants: variants,
+        count: Number.isFinite(n) ? n : 0,
       })
     })
     return { ok: missing.length === 0 && invalid.length === 0, charts: charts, missing: missing, invalid: invalid }
@@ -649,7 +683,22 @@
       var canvas = el('div', 'innfo-chart-canvas')
       if (canvas) section.appendChild(canvas)
       host.appendChild(section)
-      var labels = monthAxis(meta, windowCount || chart.ys.length)
+      var labels = monthAxis(meta, windowCount || chart.count)
+      // Scenario compare: one uPlot series per variant (single-variant charts
+      // keep the neutral label); distinct colors come from a fixed palette.
+      var palette = ['#2563eb', '#dc2626', '#16a34a', '#f59e0b', '#7c3aed', '#0891b2']
+      var seriesDefs = [{ label: 'Month' }]
+      var dataSeries = []
+      for (var v = 0; v < chart.variants.length; v++) {
+        var variant = chart.variants[v]
+        seriesDefs.push({
+          label: variant.label,
+          stroke: palette[v % palette.length],
+          width: 2,
+          nullGaps: true,
+        })
+        dataSeries.push(variant.values)
+      }
       try {
         new U(
           {
@@ -657,10 +706,7 @@
             height: 240,
             legend: { show: true },
             scales: { x: { time: false } },
-            series: [
-              { label: 'Month' },
-              { label: chart.label, stroke: '#2563eb', width: 2, nullGaps: true },
-            ],
+            series: seriesDefs,
             axes: [
               {
                 values: function (_self, ticks) {
@@ -672,7 +718,7 @@
               {},
             ],
           },
-          [chart.xs, chart.ys],
+          [chart.xs].concat(dataSeries),
           canvas,
         )
       } catch (err) {

@@ -84,6 +84,16 @@ async function main() {
     const scoreMatcherResult = await scoreMatcherTest.run();
     totalPassed += scoreMatcherResult.passed;
     totalFailed += scoreMatcherResult.failed;
+
+    const duplicateGuardsTest = require('./unit/test-duplicate-guards');
+    const duplicateGuardsResult = await duplicateGuardsTest.run();
+    totalPassed += duplicateGuardsResult.passed;
+    totalFailed += duplicateGuardsResult.failed;
+
+    const changeLogTest = require('./unit/test-change-log');
+    const changeLogResult = await changeLogTest.run();
+    totalPassed += changeLogResult.passed;
+    totalFailed += changeLogResult.failed;
   }
 
   if (mode === 'all' || mode === 'integration') {

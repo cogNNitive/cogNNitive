@@ -171,8 +171,11 @@ export async function calculateSpecReachability(rootDir: string): Promise<Reacha
               }
             }
           }
-        } catch {
-          // Ignore
+        } catch (err) {
+          /* v8 ignore start */
+          // swallow deliberately: an unparseable candidate spec file is skipped.
+          console.warn(`[reachability] Failed to scan candidate spec: ${err}`)
+          /* v8 ignore stop */
         }
       }
     }

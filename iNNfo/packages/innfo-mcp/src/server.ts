@@ -258,6 +258,11 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
         type: 'object',
         properties: {
           id: { type: 'string', description: 'Model id' },
+          root: {
+            type: 'string',
+            description:
+              'Optional workspace root override (defaults to the server root). Lets one server mutate models in an arbitrary workspace deterministically.',
+          },
           op: {
             type: 'string',
             description: 'Operation to perform',
@@ -626,7 +631,8 @@ async function handleApplyChange(args: Record<string, unknown>): Promise<CallToo
   if (!id || !op || !opArgs) {
     return errorResult('Missing required arguments: id, op, args')
   }
-  const result = await applyChange(ROOT_DIR, id, op, opArgs)
+  const root = (args.root as string) || ROOT_DIR
+  const result = await applyChange(root, id, op, opArgs)
   return textResult(JSON.stringify(envelope('innfo-apply-change', result), null, 2))
 }
 

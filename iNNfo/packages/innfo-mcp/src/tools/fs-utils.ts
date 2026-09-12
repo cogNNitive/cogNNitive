@@ -14,8 +14,13 @@ export async function getMarkdownFiles(dir: string): Promise<string[]> {
         files.push(fullPath)
       }
     }
-  } catch {
-    // Ignore directory reading issues
+  } catch (err) {
+    /* v8 ignore start */
+    // swallow deliberately: the directory may legitimately not exist.
+    if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
+      console.warn(`[fs-utils] Failed to read directory ${dir}: ${err}`)
+    }
+    /* v8 ignore stop */
   }
   return files
 }

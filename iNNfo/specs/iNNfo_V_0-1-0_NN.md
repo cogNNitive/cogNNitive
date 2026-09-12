@@ -111,7 +111,7 @@ Declares a typed Field of a Concept. The Element name is the Field name. Allowed
 | Property | Type | Description |
 |---|---|---|
 | `concept` | string | Name of the owning Concept Definition (required) |
-| `type` | `string` \| `select` \| `reference` \| `markdown_inline` \| `markdown_file` \| `image` \| `file` \| `video` \| `audio` \| `model` | Field type (required) |
+| `type` | `string` \| `select` \| `reference` \| `markdown_inline` \| `markdown_file` \| `image` \| `file` \| `video` \| `audio` \| `url` \| `model` | Field type (required) |
 | `options` | array | Allowed values for `select` fields |
 | `target_concepts` | array | Target concepts for `reference` fields |
 | `target_template` | string | Expected template name or stable URL for referenced submodels (optional, used when type is model) |
@@ -790,7 +790,7 @@ description:: Name of the owning Concept Definition (required).
 ## NN Field Definition: type
 concept:: Field Definition
 type:: select
-options:: [string, select, reference, markdown_inline, markdown_file, image, file, video, audio, model]
+options:: [string, select, reference, markdown_inline, markdown_file, image, file, video, audio, url, model]
 description:: Field type (required).
 
 ## NN Field Definition: options

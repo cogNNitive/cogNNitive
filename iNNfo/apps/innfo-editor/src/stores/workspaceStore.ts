@@ -65,6 +65,31 @@ async function resolveFileHandleForWrite(
   return current.getFileHandle(last, { create: true })
 }
 
+/** Resolve an existing file handle by workspace-relative path (no creation). */
+async function resolveFileHandleForRead(
+  root: DirectoryHandleLike,
+  refPath: string,
+): Promise<FileHandleLike | null> {
+  const segments = refPath
+    .replace(/\\/g, '/')
+    .split('/')
+    .filter((p) => p && p !== '.')
+  if (segments.length === 0) return null
+  let current: DirectoryHandleLike = root
+  for (let i = 0; i < segments.length - 1; i++) {
+    try {
+      current = await current.getDirectoryHandle(segments[i])
+    } catch {
+      return null
+    }
+  }
+  try {
+    return await current.getFileHandle(segments[segments.length - 1])
+  } catch {
+    return null
+  }
+}
+
 async function removeFileByPath(root: DirectoryHandleLike, refPath: string): Promise<void> {
   const segments = refPath
     .replace(/\\/g, '/')
@@ -696,6 +721,30 @@ export const useWorkspaceStore = defineStore('workspace', {
 
       // Persist all dirty nodes (including the updated root)
       await this.saveActiveFile()
+    },
+
+    /**
+     * Read the full text content of a workspace file by relative path.
+     * Returns null when the handle is missing or the file cannot be resolved.
+     * Shared by FilePreviewModal and WorkspaceExplorer (no duplicated traversal).
+     */
+    async readText(refPath: string): Promise<string | null> {
+      if (!this.handle) return null
+      const fileHandle = await resolveFileHandleForRead(this.handle, refPath)
+      if (!fileHandle) return null
+      const file = await fileHandle.getFile()
+      return file.text()
+    },
+
+    /** Read a file by relative path as a Blob (for image/PDF previews).
+ *  The FileHandleLike type only exposes {text()}, but the browser returns a
+ *  native File (a Blob subclass) — cast preserves size/type for object URLs. */
+    async readFileBlob(refPath: string): Promise<Blob | null> {
+      if (!this.handle) return null
+      const fileHandle = await resolveFileHandleForRead(this.handle, refPath)
+      if (!fileHandle) return null
+      const file = await fileHandle.getFile()
+      return file as unknown as Blob
     },
   },
 })

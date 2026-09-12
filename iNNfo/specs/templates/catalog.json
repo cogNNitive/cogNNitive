@@ -121,6 +121,30 @@
         }
       ]
     },
+    "repository": {
+      "name": "repository",
+      "adopted": "V_0-1-0",
+      "versions": [
+        {
+          "template_version": "V_0-1-0",
+          "spec_version": "V_0-2-1",
+          "title": "Repository Template",
+          "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/repository/spec_NN.md"
+        }
+      ]
+    },
+    "video-generator": {
+      "name": "video-generator",
+      "adopted": "V_0-1-0",
+      "versions": [
+        {
+          "template_version": "V_0-1-0",
+          "spec_version": "V_0-2-1",
+          "title": "Video Generator Template",
+          "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/video-generator/spec_NN.md"
+        }
+      ]
+    },
     "workspace": {
       "name": "workspace",
       "adopted": "V_0-3-0",

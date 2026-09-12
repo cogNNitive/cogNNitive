@@ -141,6 +141,18 @@ agent-bootstrap:
       version: "V_0-2-1"
       ref: "templates-v0.6.0"
       commit: "65187daea6690718b4ee36b45ee4e16bfefd8652"
+    - name: repository
+      repo: cogNNitive/cogNNitive
+      path: iNNfo/specs/templates/repository/spec_NN.md
+      version: "V_0-2-1"
+      ref: "templates-v0.6.0"
+      commit: "65187daea6690718b4ee36b45ee4e16bfefd8652"
+    - name: video-generator
+      repo: cogNNitive/cogNNitive
+      path: iNNfo/specs/templates/video-generator/spec_NN.md
+      version: "V_0-2-1"
+      ref: "templates-v0.6.0"
+      commit: "65187daea6690718b4ee36b45ee4e16bfefd8652"
   console-assets:
     - file: iNNfo/specs/templates/console/innfo-console.bundle.js
       version: "0.2.0"

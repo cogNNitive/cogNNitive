@@ -67,7 +67,7 @@ function loadHarness() {
 describe('charts runtime: series -> uPlot mapping (Spec: Shared Console Charts Capability)', () => {
   const runtime = loadRuntime()
 
-  it('maps series{chartId} to uPlot-ready xs/ys arrays for every declared chart', () => {
+  it('maps series{chartId} to uPlot-ready xs/variants arrays for every declared chart', () => {
     const meta = {
       charts: [{ id: 'net', label: 'Net result' }],
       months: 12,
@@ -78,10 +78,37 @@ describe('charts runtime: series -> uPlot mapping (Spec: Shared Console Charts C
     const result = runtime.compileChartSeries({ net: [1917, 2050, 2200] }, meta)
     expect(result.ok).toBe(true)
     expect(result.charts).toEqual([
-      { id: 'net', label: 'Net result', xs: [0, 1, 2], ys: [1917, 2050, 2200] },
+      {
+        id: 'net',
+        label: 'Net result',
+        xs: [0, 1, 2],
+        variants: [{ label: 'Net result', values: [1917, 2050, 2200] }],
+        count: 3,
+      },
     ])
     expect(result.missing).toEqual([])
     expect(result.invalid).toEqual([])
+  })
+
+  it('maps a variants map {label: number[]} to multiple uPlot series (scenario compare)', () => {
+    const meta = { charts: [{ id: 'net', label: 'Net result' }] }
+    const result = runtime.compileChartSeries(
+      { net: { neutral: [1917, 2050, 2200], optimistic: [1917, 2100, 2300] } },
+      meta,
+    )
+    expect(result.ok).toBe(true)
+    expect(result.charts[0].variants).toEqual([
+      { label: 'neutral', values: [1917, 2050, 2200] },
+      { label: 'optimistic', values: [1917, 2100, 2300] },
+    ])
+    expect(result.charts[0].xs).toEqual([0, 1, 2])
+  })
+
+  it('flags a non-array non-object series value as invalid', () => {
+    const meta = { charts: [{ id: 'net', label: 'Net result' }] }
+    const result = runtime.compileChartSeries({ net: 42 }, meta)
+    expect(result.ok).toBe(false)
+    expect(result.invalid[0].id).toBe('net')
   })
 
   it('reports a declared chartId with no series array as missing (graceful skip)', () => {
@@ -98,11 +125,11 @@ describe('charts runtime: series -> uPlot mapping (Spec: Shared Console Charts C
     expect(result.missing).toEqual([{ id: 'flow', label: 'Cumulative' }])
   })
 
-  it('treats a declared chartId whose series value is not an array as missing', () => {
+  it('treats a declared chartId whose series value is not an array/object as invalid', () => {
     const meta = { charts: [{ id: 'net', label: 'Net result' }] }
     const result = runtime.compileChartSeries({ net: 'not-an-array' }, meta)
     expect(result.ok).toBe(false)
-    expect(result.missing).toContainEqual({ id: 'net', label: 'Net result' })
+    expect(result.invalid[0].id).toBe('net')
   })
 
   it('flags a series carrying executable/non-pure values as invalid (no eval render)', () => {

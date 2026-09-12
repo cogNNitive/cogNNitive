@@ -265,13 +265,7 @@ async function handleDownloadFile(item: FileItem): Promise<void> {
     let fileBlob: Blob
 
     if (handle) {
-      const parts = item.path.split(/[/\\]/).filter(Boolean)
-      let current: any = handle
-      for (let i = 0; i < parts.length - 1; i++) {
-        current = await current.getDirectoryHandle(parts[i])
-      }
-      const fileHandle = await current.getFileHandle(parts[parts.length - 1])
-      fileBlob = await fileHandle.getFile()
+      fileBlob = (await workspaceStore.readFileBlob(item.path)) ?? new Blob()
     } else {
       // Fallback for virtual tree
       const resp = await fetch(item.path)

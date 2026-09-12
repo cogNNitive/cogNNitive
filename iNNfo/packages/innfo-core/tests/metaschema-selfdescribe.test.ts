@@ -75,6 +75,8 @@ describe('Metaschema (Self-Description)', () => {
       'templates/organization/spec_NN.md',
       'templates/procedures/spec_NN.md',
       'templates/projects/spec_NN.md',
+      'templates/repository/spec_NN.md',
+      'templates/video-generator/spec_NN.md',
     ]
     for (const rel of templates) {
       const diags = validateTemplateAgainstMetaschema(readSpec(rel), iNNfo)

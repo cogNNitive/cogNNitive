@@ -661,14 +661,8 @@ async function loadFileContent(): Promise<void> {
 
     if (isImage.value || isPdf.value) {
       if (handle) {
-        const parts = props.filePath.split(/[/\\]/).filter(Boolean)
-        let current: any = handle
-        for (let i = 0; i < parts.length - 1; i++) {
-          current = await current.getDirectoryHandle(parts[i])
-        }
-        const fileHandle = await current.getFileHandle(parts[parts.length - 1])
-        const file = await fileHandle.getFile()
-        objectUrl.value = URL.createObjectURL(file)
+        const blob = await workspaceStore.readFileBlob(props.filePath)
+        objectUrl.value = blob ? URL.createObjectURL(blob) : props.filePath
       } else {
         objectUrl.value = props.filePath
       }
@@ -679,14 +673,7 @@ async function loadFileContent(): Promise<void> {
     let textContent = ''
 
     if (handle) {
-      const parts = props.filePath.split(/[/\\]/).filter(Boolean)
-      let current: any = handle
-      for (let i = 0; i < parts.length - 1; i++) {
-        current = await current.getDirectoryHandle(parts[i])
-      }
-      const fileHandle = await current.getFileHandle(parts[parts.length - 1])
-      const file = await fileHandle.getFile()
-      textContent = await file.text()
+      textContent = (await workspaceStore.readText(props.filePath)) ?? ''
     } else {
       const resp = await fetch(props.filePath)
       if (!resp.ok) {
@@ -743,15 +730,9 @@ async function openOriginalFile(): Promise<void> {
     const sourceFile = metadata.value.source_file
 
     if (handle) {
-      const parts = sourceFile.split(/[/\\]/).filter(Boolean)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      let current: any = handle
-      for (let i = 0; i < parts.length - 1; i++) {
-        current = await current.getDirectoryHandle(parts[i])
-      }
-      const fileHandle = await current.getFileHandle(parts[parts.length - 1])
-      const file = await fileHandle.getFile()
-      const url = URL.createObjectURL(file)
+      const blob = await workspaceStore.readFileBlob(sourceFile)
+      if (!blob) throw new Error(`Source file not found: ${sourceFile}`)
+      const url = URL.createObjectURL(blob)
       window.open(url, '_blank')
     } else {
       window.open(sourceFile, '_blank')
