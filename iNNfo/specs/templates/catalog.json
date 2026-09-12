@@ -3,10 +3,10 @@
   "templates": {
     "analysis": {
       "name": "analysis",
-      "adopted": "V_0-2-0",
+      "adopted": "V_0-2-1",
       "versions": [
         {
-          "template_version": "V_0-2-0",
+          "template_version": "V_0-2-1",
           "spec_version": "V_0-2-1",
           "title": "Analysis Template",
           "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/analysis/spec_NN.md"
@@ -39,10 +39,10 @@
     },
     "business-model": {
       "name": "business-model",
-      "adopted": "V_0-2-1",
+      "adopted": "V_0-2-2",
       "versions": [
         {
-          "template_version": "V_0-2-1",
+          "template_version": "V_0-2-2",
           "spec_version": "V_0-2-1",
           "title": "Business Model Template",
           "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business-model/spec_NN.md"
@@ -51,11 +51,11 @@
     },
     "documentation": {
       "name": "documentation",
-      "adopted": "V_0-2-0",
+      "adopted": "V_0-2-1",
       "versions": [
         {
-          "template_version": "V_0-2-0",
-          "spec_version": "V_0-2-0",
+          "template_version": "V_0-2-1",
+          "spec_version": "V_0-2-1",
           "title": "Documentation Specification Template",
           "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/documentation/spec_NN.md"
         }
@@ -63,10 +63,10 @@
     },
     "innovation": {
       "name": "innovation",
-      "adopted": "V_0-2-0",
+      "adopted": "V_0-2-1",
       "versions": [
         {
-          "template_version": "V_0-2-0",
+          "template_version": "V_0-2-1",
           "spec_version": "V_0-2-1",
           "title": "Innovation Template",
           "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/innovation/spec_NN.md"
@@ -87,10 +87,10 @@
     },
     "organization": {
       "name": "organization",
-      "adopted": "V_0-2-1",
+      "adopted": "V_0-2-2",
       "versions": [
         {
-          "template_version": "V_0-2-1",
+          "template_version": "V_0-2-2",
           "spec_version": "V_0-2-1",
           "title": "Organization Template",
           "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/organization/spec_NN.md"
@@ -111,10 +111,10 @@
     },
     "projects": {
       "name": "projects",
-      "adopted": "V_0-2-0",
+      "adopted": "V_0-2-1",
       "versions": [
         {
-          "template_version": "V_0-2-0",
+          "template_version": "V_0-2-1",
           "spec_version": "V_0-2-1",
           "title": "Projects Template",
           "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/projects/spec_NN.md"
@@ -123,10 +123,10 @@
     },
     "repository": {
       "name": "repository",
-      "adopted": "V_0-1-0",
+      "adopted": "V_0-1-1",
       "versions": [
         {
-          "template_version": "V_0-1-0",
+          "template_version": "V_0-1-1",
           "spec_version": "V_0-2-1",
           "title": "Repository Template",
           "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/repository/spec_NN.md"
@@ -135,10 +135,10 @@
     },
     "video-generator": {
       "name": "video-generator",
-      "adopted": "V_0-1-0",
+      "adopted": "V_0-1-1",
       "versions": [
         {
-          "template_version": "V_0-1-0",
+          "template_version": "V_0-1-1",
           "spec_version": "V_0-2-1",
           "title": "Video Generator Template",
           "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/video-generator/spec_NN.md"

@@ -1,12 +1,12 @@
 ---
-spec_version: "V_0-2-0"
+spec_version: "V_0-2-1"
 spec_url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/documentation/spec_NN.md"
 level: 2
 parent_spec:
-  name: "iNNfo_V_0-2-0"
-  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-2-0_NN.md"
+  name: "iNNfo_V_0-2-1"
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-2-1_NN.md"
 title: "Documentation Specification Template"
-template_version: "V_0-2-0"
+template_version: "V_0-2-1"
 relationship_types:
   hierarchy:
     enabled: true
@@ -21,6 +21,10 @@ procedures:
   - id: "generate-docsify-suite"
     name: "Generate Docsify Suite"
     path: "procedures/generate_docsify_suite_NN.md"
+assets:
+  - id: "docs-portal-layout"
+    name: "Documentation Portal HTML Layout"
+    path: "assets/docs_portal_console.html"
 ---
 
 > [!NOTE]

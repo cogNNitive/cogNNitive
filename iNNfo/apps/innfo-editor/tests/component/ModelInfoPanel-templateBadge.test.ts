@@ -24,14 +24,14 @@ function makeNode(id: string, overrides: Partial<ModelNode> = {}): ModelNode {
   }
 }
 
-// Same model content for all cases: it pins `analysis_V_0-2-0`. `analysis`
-// ships V_0-2-0 in SHIPPED_TEMPLATE_VERSIONS, so whether the badge fires depends only on what
+// Same model content for all cases: it pins `analysis_V_0-2-1`. `analysis`
+// ships V_0-2-1 in SHIPPED_TEMPLATE_VERSIONS, so whether the badge fires depends only on what
 // the workspace scan says is newest (see each test's handle setup below).
 const rootContent = `---
 spec_version: "V_0-3-0"
 parent_spec:
-  name: "analysis_V_0-2-0"
-  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/analysis/analysis_V_0-2-0_NN.md"
+  name: "analysis_V_0-2-1"
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/analysis/analysis_V_0-2-1_NN.md"
 model_version: "V_1-0-0"
 title: "StartupValidation"
 ---
@@ -78,7 +78,7 @@ describe('ModelInfoPanel.vue — Template Version Badge (D3)', () => {
     const badge = wrapper.find('[data-testid="template-version-badge"]')
     expect(badge.exists()).toBe(true)
     expect(badge.text()).toContain('V_0-2-2')
-    expect(badge.text()).toContain('V_0-2-0')
+    expect(badge.text()).toContain('V_0-2-1')
 
     const copyButton = wrapper.find('[data-testid="template-version-copy-prompt"]')
     expect(copyButton.exists()).toBe(true)
@@ -99,14 +99,14 @@ describe('ModelInfoPanel.vue — Template Version Badge (D3)', () => {
     )
 
     // No newer version anywhere: the bundled SHIPPED_TEMPLATE_VERSIONS map
-    // also pins "analysis" at V_0-2-0 (see config/samples.ts), matching the
+    // also pins "analysis" at V_0-2-1 (see config/samples.ts), matching the
     // model's own pinned version.
     const workspaceStore = useWorkspaceStore()
     workspaceStore.handle = buildFakeTree('workspace', {
       specs: {
         templates: {
           analysis: {
-            'analysis_V_0-2-0_NN.md': '---\nlevel: 2\n---\n',
+            'analysis_V_0-2-1_NN.md': '---\nlevel: 2\n---\n',
           },
         },
       },

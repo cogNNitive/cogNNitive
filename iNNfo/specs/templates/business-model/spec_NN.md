@@ -5,13 +5,8 @@ level: 2
 parent_spec:
   name: "iNNfo_V_0-2-1"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-2-1_NN.md"
-template_version: "V_0-2-1"
+template_version: "V_0-2-2"
 title: "Business Model Template"
-includes:
-  - name: "organization"
-    url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/organization/spec_NN.md"
-  - name: "projects"
-    url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/projects/spec_NN.md"
 relationship_types:
   hierarchy:
     enabled: true
@@ -92,19 +87,6 @@ relationship_types:
 * [[Unfair advantage]]
 * [[Procedure]]
 * [[Misc]]
-* [[Organization]]
-  * [[Roles]]
-  * [[Functions]]
-  * [[Position]]
-  * [[Person]]
-  * [[Skills]]
-* [[Project]]
-  * [[Phases]]
-    * [[Milestone]]
-  * [[Deliverable]]
-  * [[Task]]
-  * [[Risk]]
-  * [[Project roles]]
 
 # NN Concept Definition
 
@@ -637,13 +619,6 @@ values:: [Max, Very High, High, Slightly High, Neutral, Slightly Low, Low, Very 
 widget:: set
 description:: Scores how effective each Channel is at delivering each Message (channel strategy).
 
-## NN Matrix Definition: Features-Milestone Matrix
-source:: Features
-target:: Milestones
-values:: [Max, Very High, High, Slightly High, Neutral, Slightly Low, Low, Very Low, Min]
-widget:: set
-description:: Scores how much each Feature contributes to each Milestone (release planning).
-
 ## NN Matrix Definition: Organizational values-Organizational goals Matrix
 source:: Organizational values
 target:: Organizational goals
@@ -667,7 +642,7 @@ description:: Scores how well each Competitor exploits each Problem (competitive
 
 # Business Model Template
 
-## The descriptive core of a business model — market, value, solutions, marketing, team narrative, objectives, operations, finance, and legal — composed with the reusable `organization` and `projects` vocabularies
+## The descriptive core of a business model — market, value, solutions, marketing, team narrative, objectives, operations, finance, and legal
 
 ## Philosophy
 
@@ -677,30 +652,22 @@ day to day. It follows the belief that a business model is best understood as a
 network of relationships — between problems and solutions, stakeholders and
 channels, activities and resources — rather than as a linear document.
 
-Two concerns that a full business model needs are deliberately **not** declared
-here. Human structure (roles, functions, positions, the people who fill them, and
-their skills) comes from the `organization` template, and project planning
-(projects, phases, milestones, deliverables, tasks) comes from the `projects`
-template. This template `includes` both, so their concepts, fields, markers, and
-matrices resolve as part of its effective schema without being duplicated. The
-strategic-review layer (assumptions, risks, SWOT, coherence, experiments) lives in
-the separate `analysis` template; the `business` umbrella `includes` this
-template and `analysis` together.
+This template is a standalone Level 2 specification. It declares no `includes`.
+The composite `business` umbrella template `includes` this template alongside
+`organization`, `projects`, `analysis`, and `metrics` to form an integrated business system.
 
 ## Objectives
 
 1. Provide the descriptive concept set covering market, value, solutions, marketing, team narrative, objectives, operations, finance, and legal.
 2. Enable relationship mapping between concepts via evaluable matrices (Problems↔Value propositions, etc.).
-3. Reuse `organization` and `projects` through `includes` rather than redeclaring human-structure and project-planning concepts.
-4. Compose cleanly with `analysis` under the `business` umbrella by declaring the shared five-marker set identically.
+3. Serve as the pure standalone core domain model for business ventures.
+4. Compose cleanly with `organization`, `projects`, and `analysis` under the `business` umbrella by declaring the shared five-marker set identically.
 
 ## Specification
 
 The template instantiates three of the four root primitives of the iNNfo metaschema
 directly — **Concept Definition**, **Field Definition**, **Marker Definition**, and
-**Matrix Definition** — and pulls further Definitions in through `includes`. Its
-schema is resolved from the body elements of this document plus the resolved
-schemas of `organization` and `projects`.
+**Matrix Definition**.
 
 ### Concepts
 
@@ -717,11 +684,6 @@ Locally declared concepts, by category:
 | **Finance** | Revenue, Costs, Unit economics, Funding sources, Shareholders, Projections | Economics |
 | **Legal** | Legal issues, Contracts | Compliance |
 | **Cross-cutting** | Unfair advantage, Procedure, Misc | — |
-
-Concepts arriving through `includes` (not redeclared here): `Organization`,
-`Roles`, `Functions`, `Position`, `Person`, `Skills` from `organization`;
-`Project`, `Phases`, `Milestone`, `Deliverable`, `Task`, `Risk`, `Project roles`
-from `projects`.
 
 Each concept has a `type` that determines its representation:
 
@@ -851,11 +813,6 @@ This template has no sample of its own — its concepts are exercised by the
 parent_spec:
   name: "iNNfo_V_0-2-1"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-2-1_NN.md"
-
-# This template's includes:
-includes:
-  - name: "organization"
-  - name: "projects"
 ```
 
 

@@ -5,9 +5,19 @@ level: 2
 parent_spec:
   name: "iNNfo_V_0-2-1"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-2-1_NN.md"
-template_version: "V_0-2-1"
+template_version: "V_0-2-2"
 title: "Organization Template"
-procedures: []
+procedures:
+  - id: "audit-skill-gaps"
+    name: "Audit Skill Gaps"
+    path: "procedures/audit_skill_gaps_NN.md"
+  - id: "export-team-directory"
+    name: "Export Team Directory"
+    path: "procedures/export_team_directory_NN.md"
+assets:
+  - id: "org-chart-layout"
+    name: "Organization Chart HTML Layout"
+    path: "assets/org_chart_console.html"
 relationship_types:
   hierarchy:
     enabled: true
@@ -26,11 +36,11 @@ relationship_types:
 # NN index
 
 * [[Organization]]
-* [[Roles]]
-* [[Position]]
-* [[Person]]
-* [[Skills]]
-* [[Functions]]
+  * [[Roles]]
+  * [[Functions]]
+  * [[Position]]
+  * [[Person]]
+  * [[Skills]]
 
 # NN Concept Definition
 

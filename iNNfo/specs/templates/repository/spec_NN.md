@@ -5,7 +5,7 @@ level: 2
 parent_spec:
   name: "iNNfo_V_0-2-1"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-2-1_NN.md"
-template_version: "V_0-1-0"
+template_version: "V_0-1-1"
 title: "Repository Template"
 relationship_types:
   hierarchy:
@@ -211,9 +211,7 @@ The Repository Template models a GitHub repository as a container (`Repository`)
 | Hierarchy | ✅ | index block (wikilinks) |
 | Evaluable matrix | ✅ | change/release + release/state |
 | Graph edge | ❌ | Not applicable |
-| Sequence | ❌ | Not applicable |
-
-### Concept Guidance Documentation
+# Concept Guidance Documentation
 
 ## Repository
 

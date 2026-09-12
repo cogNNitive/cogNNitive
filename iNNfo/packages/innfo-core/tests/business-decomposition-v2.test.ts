@@ -68,37 +68,16 @@ describe('business-model_V_0-2-0 — composite of organization + projects', () =
     const { schema: own } = resolveTemplateSchema(BUSINESS_MODEL, () => null)
     const ownNames = own.concepts.map((c) => c.name)
     expect(ownNames).toContain('Stakeholder roles')
-    expect(ownNames).not.toContain('Roles') // the bare name still belongs to organization
+    expect(ownNames).not.toContain('Roles') // the bare name belongs to organization
+  })
 
-    // Composed: `Stakeholder roles` (business-model) and `Roles` (organization)
-    // co-exist without a collision, and composition stays clean.
-    const { schema, errors } = resolveTemplateSchema(BUSINESS_MODEL, resolver)
+  it('validates as standalone L2 template without includes', () => {
+    const { schema, errors } = resolveTemplateSchema(BUSINESS_MODEL, () => null)
     expect(errors, JSON.stringify(errors)).toEqual([])
     const names = new Set(schema.concepts.map((c) => c.name))
     expect(names.has('Stakeholder roles')).toBe(true)
-    expect(names.has('Roles')).toBe(true)
-  })
-
-  it('pulls the human-structure and project concepts back via includes', () => {
-    const { schema } = resolveTemplateSchema(BUSINESS_MODEL, resolver)
-    const names = new Set(schema.concepts.map((c) => c.name))
-    for (const viaInclude of [
-      'Organization',
-      'Roles',
-      'Functions',
-      'Position',
-      'Person',
-      'Skills',
-      'Project',
-      'Phases',
-      'Project roles',
-    ]) {
-      expect(names.has(viaInclude), `expected included concept ${viaInclude}`).toBe(true)
-    }
-    // The stakeholder `Roles` concept is gone; the surviving `Roles` is the
-    // functional one from `organization` (a list, not a weight).
-    const roles = schema.concepts.find((c) => c.name === 'Roles')!
-    expect(roles.type).toBe('list')
+    expect(names.has('Business summary')).toBe(true)
+    expect(names.has('Value propositions')).toBe(true)
   })
 
   it('the `Team` it keeps is a text concept (root aggregator replaced)', () => {

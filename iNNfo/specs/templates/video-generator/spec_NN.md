@@ -5,7 +5,7 @@ level: 2
 parent_spec:
   name: "iNNfo_V_0-2-1"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-2-1_NN.md"
-template_version: "V_0-1-0"
+template_version: "V_0-1-1"
 title: "Video Generator Template"
 relationship_types:
   hierarchy:
@@ -233,9 +233,7 @@ The Video Generator Template models the end-to-end pipeline that transforms a so
 | Hierarchy | ✅ | index block (wikilinks) |
 | Evaluable matrix | ✅ | stage-to-stage relations |
 | Graph edge | ❌ | Not applicable |
-| Sequence | ✅ | Script sections (playback order) |
-
-### Concept Guidance Documentation
+# Concept Guidance Documentation
 
 ## VideoProject
 

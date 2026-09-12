@@ -54,9 +54,13 @@ This document records the official compliance audit status for all iNNfo Level 2
 |---|---|:---:|:---:|:---:|:---:|:---:|:---:|---|
 | **Business** | `Ghostbusters_V_0-1-0_business_NN.md` | `V_0-1-0` | ✅ | ✅ | ✅ | ⚠️ | `PASSED` | Retained V1 legacy sample |
 | **Business** | `Ghostbusters_V_0-2-0_business_NN.md` | `V_0-2-0` | ✅ | ✅ | ✅ | ✅ | `PASSED` | Enriched with typed fields, tags & item-markers matrix |
-| **Analysis** | `Ghostbusters_V_0-2-0_analysis_NN.md` | `V_0-2-0` | ✅ | ✅ | ✅ | ✅ | `PASSED` | Enriched with tags & 5-dimension item-markers matrix |
-| **Innovation** | `Ghostbusters_V_0-2-0_innovation_NN.md` | `V_0-2-1` | ✅ | ✅ | ✅ | ✅ | `PASSED` | Removed index block, unindented props, added tags & marker matrix |
+| **Business Model** | `Ghostbusters_V_0-2-1_business-model_NN.md` | `V_0-2-1` | ✅ | ✅ | ✅ | ✅ | `PASSED` | Standalone core domain sample |
+| **Analysis** | `Ghostbusters_V_0-2-0_analysis_NN.md` | `V_0-2-1` | ✅ | ✅ | ✅ | ✅ | `PASSED` | Enriched with tags & matrices, SWOT purged |
+| **Innovation** | `Ghostbusters_V_0-2-0_innovation_NN.md` | `V_0-2-1` | ✅ | ✅ | ✅ | ✅ | `PASSED` | Removed index block, added tags & marker matrix |
 | **Organization** | `Ghostbusters_V_0-2-0_organization_NN.md` | `V_0-2-0` | ✅ | ✅ | ✅ | ✅ | `PASSED` | Enriched with tags & complexity item-markers matrix |
 | **Procedures** | `Ghostbusters_V_0-2-0_procedures_NN.md` | `V_0-2-0` | ✅ | ✅ | ✅ | ✅ | `PASSED` | Enriched with step tags & cross-referenced matrices |
 | **Projects** | `Ghostbusters_V_0-2-0_projects_NN.md` | `V_0-2-0` | ✅ | ✅ | ✅ | ✅ | `PASSED` | Enriched with tags & health item-markers matrix |
-| **Documentation** | `Ghostbusters_V_0-1-0_documentation_NN.md` | `V_0-1-0` | ✅ | ✅ | ✅ | ✅ | `PASSED` | Converted description:: property to Markdown prose + tags |
+| **Documentation** | `Ghostbusters_V_0-2-0_documentation_NN.md` | `V_0-2-0` | ✅ | ✅ | ✅ | ✅ | `PASSED` | Living technical manuals suite |
+| **Metrics** | `Ghostbusters_V_0-1-0_metrics_NN.md` | `V_0-2-1` | ✅ | ✅ | ✅ | ✅ | `PASSED` | Revenue projection series model |
+| **Repository** | `Ghostbusters_V_0-1-0_repository_NN.md` | `V_0-1-0` | ✅ | ✅ | ✅ | ✅ | `PASSED` | Firmware and laser telemetry lifecycle model |
+| **Video Generator** | `Ghostbusters_V_0-1-0_video-generator_NN.md` | `V_0-1-0` | ✅ | ✅ | ✅ | ✅ | `PASSED` | Commercial spot video script & storyboard |

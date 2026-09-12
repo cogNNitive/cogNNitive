@@ -30,20 +30,20 @@ export const SAMPLE_BASE: string = import.meta.env.DEV ? '/specs/templates' : RE
  * this entry whenever a shipped template's `template_version` is bumped.
  */
 export const SHIPPED_TEMPLATE_VERSIONS: Record<string, string> = {
-  analysis: 'V_0-2-0',
+  analysis: 'V_0-2-1',
   base: 'V_0-1-0',
   blank: 'V_0-2-0',
   business: 'V_0-2-4',
-  'business-model': 'V_0-2-1',
+  'business-model': 'V_0-2-2',
   cogNNitive: 'V_0-2-0',
-  documentation: 'V_0-2-0',
-  innovation: 'V_0-2-0',
+  documentation: 'V_0-2-1',
+  innovation: 'V_0-2-1',
   metrics: 'V_0-2-1',
-  organization: 'V_0-2-1',
+  organization: 'V_0-2-2',
   procedures: 'V_0-2-0',
-  projects: 'V_0-2-0',
-  repository: 'V_0-1-0',
-  'video-generator': 'V_0-1-0',
+  projects: 'V_0-2-1',
+  repository: 'V_0-1-1',
+  'video-generator': 'V_0-1-1',
   // workspace_spec is intentionally omitted: this map is keyed by the
   // `{slug}/` subdirectories, and the root `workspace_spec_NN.md` lives one
   // level up.

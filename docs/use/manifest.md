@@ -132,7 +132,7 @@ agent-bootstrap:
     - name: documentation
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/documentation/spec_NN.md
-      version: "V_0-2-0"
+      version: "V_0-2-1"
       ref: "templates-v0.7.0"
       commit: "dbb8c463f62d26b58d272d4315a53ad795b1c961"
     - name: metrics

@@ -5,8 +5,19 @@ level: 2
 parent_spec:
   name: "iNNfo_V_0-2-1"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-2-1_NN.md"
-template_version: "V_0-2-0"
+template_version: "V_0-2-1"
 title: "Analysis Template"
+procedures:
+  - id: "run-coherence-audit"
+    name: "Run Coherence Audit"
+    path: "procedures/run_coherence_audit_NN.md"
+  - id: "prioritize-experiments"
+    name: "Prioritize Experiments"
+    path: "procedures/prioritize_experiments_NN.md"
+assets:
+  - id: "strategic-audit-layout"
+    name: "Strategic Audit HTML Layout"
+    path: "assets/strategic_audit_console.html"
 relationship_types:
   hierarchy:
     enabled: true
@@ -141,8 +152,8 @@ The Analysis Template isolates the *evaluative* half of business modeling from t
 *descriptive* half. Where a business model describes what the venture is — its
 market, value propositions, operations, and finances — analysis asks whether that
 description holds together and where it is most likely to be wrong. It groups the
-work into two categories: **Analysis** (surfacing assumptions, risks, SWOT
-positions, key success factors, and improvement suggestions) and **Validation**
+work into two categories: **Analysis** (surfacing assumptions, risks,
+key success factors, and improvement suggestions) and **Validation**
 (checking internal coherence and running experiments that turn assumptions into
 evidence).
 
@@ -170,7 +181,6 @@ business vocabulary, kept in sync across the two halves.
 | **Assumptions** | `weight` | Hypotheses the model depends on, to be validated or invalidated |
 | **Risks** | `weight` | Potential negative outcomes that threaten the model |
 | **Suggestions** | `weight` | Concrete improvement proposals arising from the review |
-| **SWOT** | `text` | Strengths, weaknesses, opportunities, and threats summary |
 | **Keys** | `weight` | Key success factors and critical capabilities |
 | **Validation** | `category` | Grouping concept for coherence and experimentation |
 | **Coherence** | `weight` | Internal-consistency checks between model components |
@@ -212,7 +222,7 @@ To create an analysis model, create a level 3 FILE mode document with:
 ---
 level: 3
 parent_spec:
-  name: "analysis_V_0-1-0"
+  name: "analysis_V_0-2-1"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/analysis/spec_NN.md"
 model_version: "V_x-y-z"
 title: "<Analysis Name>"
@@ -220,17 +230,6 @@ title: "<Analysis Name>"
 
 > [!NOTE]
 > This is an **iNNfo document**...
-
-# NN index
-* [[Analysis]]
-  * [[Assumptions]]
-  * [[Risks]]
-  * [[SWOT]]
-  * [[Keys]]
-  * [[Suggestions]]
-* [[Validation]]
-  * [[Coherence]]
-  * [[Experiments]]
 
 # NN Analysis
 ## NN Analysis: Strategic Assessment
@@ -242,11 +241,11 @@ Overall assessment narrative.
 # NN Risks
 ## NN Risks: A key risk.
 
-# NN SWOT
-Strengths, weaknesses, opportunities, threats.
-
 # NN Keys
 ## NN Keys: A key success factor.
+
+# NN Suggestions
+## NN Suggestions: An improvement proposal.
 
 # NN Coherence
 ## NN Coherence: A consistency check.
@@ -269,7 +268,7 @@ Strengths, weaknesses, opportunities, threats.
 
 ### Canonical Sample
 
-The official sample for this template is at `specs/templates/analysis/samples/Ghostbusters_V_0-2-0_analysis_NN.md`. It exercises Assumptions, Risks, SWOT, Keys, Coherence, and Experiments and both matrices.
+The official sample for this template is at `specs/templates/analysis/samples/Ghostbusters_V_0-2-0_analysis_NN.md`. It exercises Assumptions, Risks, Keys, Suggestions, Coherence, and Experiments and both matrices.
 
 # Concept Guidance Documentation
 

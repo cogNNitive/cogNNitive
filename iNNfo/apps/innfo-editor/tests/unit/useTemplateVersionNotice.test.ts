@@ -132,13 +132,13 @@ describe('buildMigrationPrompt', () => {
 
 describe('useTemplateVersionNotice', () => {
   it('sets notice when the workspace scan finds a newer template version', async () => {
-    // Use `analysis`: it ships V_0-2-0 in SHIPPED_TEMPLATE_VERSIONS, so this
+    // Use `analysis`: it ships V_0-2-1 in SHIPPED_TEMPLATE_VERSIONS, so this
     // case isolates the workspace-scan path.
     const handle = buildFakeTree('workspace', {
       specs: { 'analysis_V_0-2-2_NN.md': '---\nlevel: 2\n---\n' },
     })
     const { notice, refresh } = useTemplateVersionNotice({
-      templateName: ref('analysis_V_0-2-0'),
+      templateName: ref('analysis_V_0-2-1'),
       modelFileName: ref('StartupValidation_V_0-2-2_analysis_NN.md'),
       handle: ref(handle),
     })
@@ -147,18 +147,18 @@ describe('useTemplateVersionNotice', () => {
     await refresh()
 
     expect(notice.value).not.toBeNull()
-    expect(notice.value?.current).toBe('V_0-2-0')
+    expect(notice.value?.current).toBe('V_0-2-1')
     expect(notice.value?.latest).toBe('V_0-2-2')
     expect(notice.value?.prompt).toMatch(/^innfo: /)
   })
 
   it('leaves notice null when the model already pins the newest known version', async () => {
-    // `analysis` ships V_0-2-0 in the bundled map, matching the pin here.
+    // `analysis` ships V_0-2-1 in the bundled map, matching the pin here.
     const handle = buildFakeTree('workspace', {
-      specs: { 'analysis_V_0-2-0_NN.md': '---\nlevel: 2\n---\n' },
+      specs: { 'analysis_V_0-2-1_NN.md': '---\nlevel: 2\n---\n' },
     })
     const { notice, refresh } = useTemplateVersionNotice({
-      templateName: ref('analysis_V_0-2-0'),
+      templateName: ref('analysis_V_0-2-1'),
       modelFileName: ref('StartupValidation_NN.md'),
       handle: ref(handle),
     })

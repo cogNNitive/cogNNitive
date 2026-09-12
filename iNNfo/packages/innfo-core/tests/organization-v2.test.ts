@@ -49,22 +49,11 @@ describe('organization_V_0-2-0 — standalone L2 template', () => {
     expect(errors, JSON.stringify(errors)).toEqual([])
   })
 
-  it('declares an explicit empty procedures block (robustness-coda 1.1)', () => {
+  it('declares procedures in frontmatter', () => {
     const fm = parseFrontmatter(ORG_V2)
     expect(fm).not.toBeNull()
-    // Explicit: the key itself must be present — not implied by discovery yielding [].
     expect('procedures' in fm!).toBe(true)
-    expect(fm!.procedures).toEqual([])
-  })
-
-  it('declares the empty block in raw frontmatter text, not via parser default', () => {
-    const rawFm = ORG_V2.match(/^---\r?\n([\s\S]*?)\r?\n---/)?.[1] ?? ''
-    expect(rawFm).toMatch(/^procedures:\s*\[\]/m)
-  })
-
-  it('dynamic discovery agrees with the declared block (empty set)', () => {
-    const fm = parseFrontmatter(ORG_V2)!
-    const discovered = Array.isArray(fm.procedures) ? fm.procedures : []
-    expect(discovered).toEqual([])
+    const procIds = (fm!.procedures as Array<{ id: string }>).map((p) => p.id)
+    expect(procIds).toEqual(['audit-skill-gaps', 'export-team-directory'])
   })
 })

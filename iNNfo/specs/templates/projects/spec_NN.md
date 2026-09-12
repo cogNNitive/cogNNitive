@@ -5,8 +5,19 @@ level: 2
 parent_spec:
   name: "iNNfo_V_0-2-1"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-2-1_NN.md"
-template_version: "V_0-2-0"
+template_version: "V_0-2-1"
 title: "Projects Template"
+procedures:
+  - id: "calculate-critical-path"
+    name: "Calculate Critical Path"
+    path: "procedures/calculate_critical_path_NN.md"
+  - id: "generate-status-report"
+    name: "Generate Project Status Report"
+    path: "procedures/generate_status_report_NN.md"
+assets:
+  - id: "roadmap-layout"
+    name: "Roadmap Console HTML Layout"
+    path: "assets/roadmap_console.html"
 relationship_types:
   hierarchy:
     enabled: true
