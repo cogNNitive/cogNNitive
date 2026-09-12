@@ -175,6 +175,30 @@ describe('iNNfo_V_0-2-0 — metaschema still self-consistent', () => {
       expect(errors, `${rel}: ${JSON.stringify(errors)}`).toEqual([])
     }
   })
+
+  it('accepts url as a Field Definition type', () => {
+    const template = [
+      '---',
+      'level: 2',
+      'title: Url Field',
+      'parent_spec:',
+      '  name: iNNfo_V_0-2-1',
+      '  url: https://example.com/iNNfo_V_0-2-1_NN.md',
+      '---',
+      '',
+      '> [!NOTE]',
+      '> x',
+      '',
+      '# NN Field Definition',
+      '',
+      '## NN Field Definition: website',
+      'concept:: Link',
+      'type:: url',
+      '',
+    ].join('\n')
+    const diags = validateTemplateAgainstMetaschema(template, iNNfoV2)
+    expect(diags.filter((d) => d.severity === 'error'), JSON.stringify(diags)).toEqual([])
+  })
 })
 
 describe('iNNfo_V_0-2-1 — metaschema still self-consistent (task G)', () => {

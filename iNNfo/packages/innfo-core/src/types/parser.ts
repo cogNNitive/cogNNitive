@@ -20,6 +20,7 @@ export const FIELD_TYPES = [
   'file',
   'video',
   'audio',
+  'url',
   'markdown_inline',
   'markdown_file',
   'model',
