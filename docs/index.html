@@ -487,12 +487,49 @@
       font-size: 10px;
       color: #E2E8F0;
     }
-    .manage-model-code {
+    .model-tree-box {
+      width: 100%;
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-radius: 8px;
       padding: 8px 10px;
       font-family: var(--mono);
-      font-size: 9.5px;
-      line-height: 1.45;
-      color: #F6EEF6;
+      font-size: 10px;
+      line-height: 1.4;
+      color: #1F2937;
+      text-align: left;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+    }
+    .tree-node {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 2px 0;
+    }
+    .tree-node.root {
+      font-weight: 700;
+      color: var(--brand);
+      border-bottom: 1px dashed rgba(77,14,78,0.15);
+      padding-bottom: 4px;
+      margin-bottom: 4px;
+    }
+    .tree-branch {
+      margin-left: 12px;
+      padding-left: 8px;
+      border-left: 2px solid rgba(77,14,78,0.18);
+    }
+    .tree-leaf {
+      margin-left: 10px;
+      padding-left: 6px;
+      border-left: 1.5px dashed rgba(77,14,78,0.25);
+    }
+    .tree-tag {
+      font-size: 8.5px;
+      padding: 1px 4px;
+      border-radius: 3px;
+      background: var(--brand-subtle);
+      color: var(--brand);
+      font-weight: 600;
     }
     .access-modes-row {
       display: flex;
@@ -500,6 +537,7 @@
       width: 100%;
       justify-content: center;
       margin-top: 6px;
+      flex-wrap: wrap;
     }
     .access-badge {
       font-size: 9px;
@@ -644,6 +682,18 @@
       margin-bottom: 16px;
       flex: 1;
     }
+    .compare-narrative {
+      background: #F8FAFC;
+      color: #475569;
+      padding: 16px;
+      border-radius: 10px;
+      border: 1px dashed #CBD5E1;
+      font-size: 13px;
+      line-height: 1.6;
+      margin-bottom: 16px;
+      flex: 1;
+      font-style: italic;
+    }
     .compare-footer {
       font-size: 13px;
       color: var(--ink-muted);
@@ -653,31 +703,15 @@
       font-weight: 500;
     }
 
-    /* Mid-Hero: Turn Anything into Knowledge */
-    .mid-hero {
-      padding: 28px 0 20px;
-      text-align: center;
-      background: var(--brand-subtle);
-      border-bottom: none;
-    }
-    .mid-hero-statement {
-      font-size: 20px;
-      font-weight: 400;
-      letter-spacing: normal;
-      line-height: 1.6;
-      color: var(--ink-muted);
-      max-width: 900px;
-      margin: 0 auto;
-    }
-    .mid-hero-rotator {
+    /* Hero Rotator in Headline */
+    .hero-rotator-inline {
       display: inline-grid;
       color: var(--brand);
-      padding: 0 12px;
-      margin: 0 6px;
+      padding: 0 4px;
       vertical-align: baseline;
       text-align: center;
     }
-    .mid-hero-rotator > span {
+    .hero-rotator-inline > span {
       grid-area: 1 / 1;
       white-space: nowrap;
       opacity: 0;
@@ -685,18 +719,16 @@
       filter: blur(4px);
       transition: opacity 0.25s ease, transform 0.25s ease, filter 0.25s ease;
     }
-    .mid-hero-rotator > span.active {
+    .hero-rotator-inline > span.active {
       opacity: 1;
       transform: none;
       filter: none;
     }
     @media (prefers-reduced-motion: reduce) {
-      .mid-hero-rotator > span { transition: none; }
+      .hero-rotator-inline > span { transition: none; }
     }
     @media (max-width: 640px) {
-      .mid-hero-statement { font-size: 18px; }
-      .mid-hero-rotator { max-width: 100%; }
-      .mid-hero-rotator > span { white-space: normal; }
+      .hero-rotator-inline > span { white-space: normal; }
     }
 
     /* Use Cases 4-Grid */
@@ -797,24 +829,18 @@
   </header>
 
   <main>
-    <!-- Mid-Hero: Turn Anything into Knowledge -->
-    <section class="mid-hero" aria-label="Turn anything into actionable knowledge">
-      <div class="container">
-        <p class="mid-hero-statement">Turn <span id="mid-hero-rotator" class="mid-hero-rotator" aria-live="polite"><span class="active">💡 ideas</span><span aria-hidden="true">📄 documents</span><span aria-hidden="true">📰 information</span><span aria-hidden="true">📊 data</span><span aria-hidden="true">📁 files</span><span aria-hidden="true">📽️ slides</span><span aria-hidden="true">✉️ emails</span><span aria-hidden="true">📅 meetings</span><span aria-hidden="true">🌐 webs</span><span aria-hidden="true">📝 articles</span><span aria-hidden="true">📕 PDFs</span><span aria-hidden="true">🚀 ANYTHING!</span></span> into actionable knowledge using AI</p>
-      </div>
-    </section>
-
-    <!-- Hero Section -->
+    <!-- Hero Section with Integrated Action Rotator -->
     <section class="hero">
       <div class="container">
-        <h1>Knowledge Evolution <span class="accent">Framework</span></h1>
-        <p>Leverage ideas, information and data scattered through brains and computer files into a <span class="heartbeat-word">living knowledge base powered by AI</span> that constantly evolves, maximizing value provided.</p>
+        <h1>Turn <span id="hero-rotator" class="hero-rotator-inline" aria-live="polite"><span class="active">💡 ideas</span><span aria-hidden="true">📅 meetings</span><span aria-hidden="true">📄 documents</span><span aria-hidden="true">📊 data</span><span aria-hidden="true">📁 files</span><span aria-hidden="true">📽️ slides</span><span aria-hidden="true">✉️ emails</span><span aria-hidden="true">📰 articles</span><span aria-hidden="true">📕 PDFs</span><span aria-hidden="true">🚀 ANYTHING!</span></span> into Actionable Knowledge using AI</h1>
+        <p>The open Knowledge Evolution Framework that unifies your scattered inputs into structured, living models with radical traceability.</p>
         <div class="hero-actions">
-          <a href="https://cognnitive.com/innfo/app/" class="btn-primary">Open iNNfo Modeler App &rarr;</a>
-          <a href="https://cognnitive.com/actionn" class="btn-secondary">Explore Agent Skills</a>
+          <a href="#how-to-use" class="btn-primary">🚀 Getting Started &rarr;</a>
+          <a href="https://cognnitive.com/innfo/app/" class="btn-secondary">Open Modeler App</a>
+          <a href="https://cognnitive.com/actionn" class="btn-secondary">Explore Skills</a>
         </div>
 
-        <!-- The Living Knowledge Pipeline (Quadratic-Style Hero Showcase) -->
+        <!-- The Living Knowledge Pipeline (Hero Showcase) -->
         <div class="flow-canvas" style="margin-top: 56px; text-align: left;">
           <div class="flow-canvas-bg"></div>
           <div class="flow-canvas-grid"></div>
@@ -853,16 +879,15 @@
                       </div>
                     </div>
                     <div class="import-paths-bar">
-                      <span class="path-pill highlight" title="Immutable Originals with SHA-256 Checksum">sources/import/</span>
-                      <span class="path-pill" title="Intermediate Whisper &amp; OCR Scratchpad">staging/</span>
-                      <span class="path-pill highlight" title="Normalized Markdown with #heading-slugs">sources/nn/</span>
-                      <span class="path-pill" title="Dynamic Snapshot Archive on Content Discrepancy">archive/</span>
+                      <span class="path-pill highlight" title="Immutable Originals">sources/import/</span>
+                      <span class="path-pill" title="Intermediate Extraction Scratchpad">staging/</span>
+                      <span class="path-pill highlight" title="Normalized Markdown with #heading-slugs">sources/normalized/</span>
                     </div>
                   </div>
                 </div>
                 <div class="flow-card-body">
                   <h3><span>1. Ingestion &amp; Provenance</span></h3>
-                  <p>Ingest files &amp; thoughts into immutable <code>sources/import/</code> with cryptographic SHA-256 hashes, stage raw dumps, and normalize to Markdown in <code>sources/nn/</code>.</p>
+                  <p>Ingest files, recordings, and raw notes into immutable <code>sources/import/</code>, stage extraction buffers, and normalize into clean Markdown in <code>sources/normalized/</code>.</p>
                 </div>
               </div>
 
@@ -877,26 +902,37 @@
               <div class="flow-card">
                 <span class="flow-phase-tag p2">Phase 2: MANAGE</span>
                 <div class="flow-card-preview">
-                  <div class="manage-model-card">
-                    <div class="manage-model-header">
-                      <span>models/*_NN.md</span>
-                      <span style="background: rgba(77,14,78,0.25); color: #F6EEF6; padding: 1px 5px; border-radius: 3px; font-size: 8.5px; font-weight: 700;">SSOT</span>
+                  <div class="model-tree-box">
+                    <div class="tree-node root">
+                      <span>📦</span>
+                      <span><strong>Model:</strong> Business_NN.md</span>
                     </div>
-                    <div class="manage-model-code">
-                      <div><span style="color: #F472B6;">sources::</span> [interview.md#budget]</div>
-                      <div><span style="color: #38BDF8;">canonical:</span> { sha256: "4a8f9..." }</div>
-                      <div style="color: #34D399; margin-top: 2px;">&#x2714; Citations verified &amp; live</div>
+                    <div class="tree-branch">
+                      <div class="tree-node">
+                        <span>📑</span>
+                        <span><strong>Concept:</strong> ProductFeature</span>
+                      </div>
+                      <div class="tree-leaf">
+                        <div class="tree-node">
+                          <span>🔹</span>
+                          <span><strong>Element:</strong> RealTimeSync <span class="tree-tag">sources::</span></span>
+                        </div>
+                        <div class="tree-node" style="color: #64748B; font-size: 9px;">
+                          <span>▫️</span>
+                          <span><strong>Fields:</strong> status, priority, owner</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                   <div class="access-modes-row">
-                    <span class="access-badge" title="Obsidian / VS Code / Notepad">📝 Text/Git</span>
-                    <span class="access-badge" title="Visual Graph Navigation">🛠️ Modeler</span>
+                    <span class="access-badge" title="Obsidian / VS Code / Notepad">📝 Text Editors</span>
+                    <span class="access-badge" title="Visual Graph Navigation">🛠️ Web App</span>
                     <span class="access-badge" title="OpenCode / Antigravity / Claude Code">🤖 AI Agents</span>
                   </div>
                 </div>
                 <div class="flow-card-body">
                   <h3><span>2. Semantic Modeling (SSOT)</span></h3>
-                  <p>Structure knowledge into Level 3 iNNfo Models with fine-grained citations (<code>sources:: [doc.md#slug]</code>). Access and edit freely via plain text, web app, or AI pair-programming.</p>
+                  <p>Structure knowledge into predictable **Models** with fine-grained citations (<code>sources:: [doc.md#slug]</code>). Access and edit freely via text editors, web app, or AI agents.</p>
                 </div>
               </div>
 
@@ -936,8 +972,8 @@
                   </div>
                 </div>
                 <div class="flow-card-body">
-                  <h3><span>3. Deliverables &amp; Feedback</span></h3>
-                  <p>Generate role-tailored dashboards, documents, and briefs into <code>export/</code>. Annotated stakeholder reviews are re-ingested into sources to continuously evolve models.</p>
+                  <h3><span>3. Artifacts &amp; Feedback</span></h3>
+                  <p>Project role-tailored **Artifacts** — dashboards, executive briefs, and specifications into <code>export/</code>. Annotated stakeholder reviews re-ingest into sources to continuously evolve models.</p>
                 </div>
               </div>
 
@@ -953,40 +989,13 @@
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
                 </svg>
-                <span>Closed Feedback Loop: Annotated deliverables &amp; revisions re-ingest into <code>sources/import/</code> to evolve the SSOT</span>
+                <span>Closed Feedback Loop: Annotated artifacts &amp; revisions re-ingest into <code>sources/import/</code> to evolve the SSOT</span>
               </div>
             </div>
 
           </div>
         </div>
 
-      </div>
-    </section>
-
-    <!-- What is cogNNitive? -->
-    <section>
-      <div class="container">
-        <div class="section-title">
-          <h2>What is cogNNitive?</h2>
-          <p>An open, unified ecosystem designed to make documentation readable and editable by humans and AI.</p>
-        </div>
-        <div class="grid-3">
-          <div class="card">
-            <div class="card-icon">📘</div>
-            <h3>iNNfo — Knowledge Modeling</h3>
-            <p>A simple specification chain for structuring Markdown documents. Clear, validated, and engine-backed.</p>
-          </div>
-          <div class="card">
-            <div class="card-icon">⚡</div>
-            <h3>actioNN — AI Agent Skills</h3>
-            <p>Modular capabilities that teach your OpenCode AI agent specialized domain workflows automatically.</p>
-          </div>
-          <div class="card">
-            <div class="card-icon">🛠️</div>
-            <h3>iNNfo Modeler — Visual App</h3>
-            <p>A browser-based workspace editor to view, edit, and validate knowledge graphs without installing servers.</p>
-          </div>
-        </div>
       </div>
     </section>
 
@@ -1053,124 +1062,110 @@
       </div>
     </section>
 
-    <!-- Master Architecture Diagram: 3-Phase Knowledge Lifecycle -->
+    <!-- Operational Architecture: Clean & High-Level -->
     <section style="background: var(--canvas-inert);">
       <div class="container">
         <div class="section-title">
           <span class="badge-pill">Operational Architecture</span>
-          <h2>Knowledge Lifecycle &amp; Ecosystem Architecture</h2>
-          <p>End-to-end flow: from human elicitation to cryptographic ingestion, semantic modeling, role-tailored export, and closed-loop feedback.</p>
+          <h2>Knowledge Lifecycle Architecture</h2>
+          <p>A continuous, auditable flow from raw inputs to living models, project artifacts, and feedback.</p>
         </div>
         <div class="diagram-card">
           <pre class="mermaid">
-flowchart TD
-    subgraph External["0. External World (Knowledge Creation)"]
-        B["🧠 Human Brains\n(Internal teams, external researchers, experts)"]
-        B -->|"Elicitation\n(Recording, Writing, Exporting)"| F["📁 Raw Files &amp; Web URLs\n(PDF, DOCX, CSV, Audio, Notes)"]
+flowchart LR
+    subgraph P1["1. IMPORT &amp; NORMALIZE"]
+        RAW["📁 Raw Inputs\n(Audio, Docs, Sheets, Notes)"] --> NORM["📝 sources/normalized/\n(Markdown + Citations)"]
     end
 
-    subgraph Phase1["Phase 1: IMPORT (Ingestion &amp; Provenance)"]
-        F -->|"Verbatim Ingestion\nSHA-256 Hash"| S_IMP["sources/import/\n(Immutable Originals)"]
-        S_IMP -->|"Extraction Dumps\n(Whisper / OCR)"| S_STG["sources/staging/\n(Ephemeral Buffer)"]
-        S_IMP &amp; S_STG -->|"Markdown Normalization\nHeading Slugs"| S_NN["sources/nn/\n(Normalized Sources)"]
-        S_IMP -->|"Snapshot on Hash Change"| S_ARC["sources/archive/&lt;name&gt;/V&lt;N&gt;/\n(Historical Versions)"]
+    subgraph P2["2. MANAGE (Living SSOT)"]
+        NORM --> MOD["🧠 models/*_NN.md\n(Concepts, Elements, Fields)"]
+        MOD <--> EDIT["👥 Text Editors · Web App · AI Agents"]
     end
 
-    subgraph Phase2["Phase 2: MANAGE (Semantic Modeling - SSOT)"]
-        S_NN -->|"Fine-Grained Citation\nsources:: [file.md#slug]"| M["models/*_NN.md\n(iNNfo Level 3 Semantic Models)"]
-        M &lt;--&gt;|"Validation &amp; Introspection"| CORE["iNNfo Core Engine &amp; MCP"]
-        CORE &lt;--&gt;|"Visual Navigation"| APP["iNNfo Modeler Web App"]
-        CORE &lt;--&gt;|"Pair-Programming"| AGENTS["AI Agents\n(OpenCode / Antigravity / Claude Code)"]
-        CORE &lt;--&gt;|"Local Text Editing"| EDITORS["Text Editors\n(Obsidian / VS Code / Notepad)"]
+    subgraph P3["3. EXPORT &amp; FEEDBACK"]
+        MOD --> ART["📊 export/\n(Dashboards, Briefs, Specs)"]
+        ART -.->|"Closed-Loop Feedback"| RAW
     end
 
-    subgraph Phase3["Phase 3: EXPORT &amp; Closed Feedback Loop"]
-        M -->|"Role-Specific Generation"| EXP["export/\n(Dashboards, Exec Word, PDF)"]
-        EXP -.->|"External Review &amp; Annotation"| REV["Annotated / Modified Deliverables"]
-        REV -.->|"Re-ingestion as Feedback"| S_IMP
-    end
-
-    classDef ext fill:#F4F4F6,stroke:#8E8E93,color:#1C1C1E;
     classDef p1 fill:#EBF3FF,stroke:#007AFF,color:#003D82;
     classDef p2 fill:#F6EEF6,stroke:#4D0E4E,color:#4D0E4E;
     classDef p3 fill:#E8F8F0,stroke:#34C759,color:#105C29;
 
-    class B,F,REV ext;
-    class S_IMP,S_STG,S_NN,S_ARC p1;
-    class M,CORE,APP,AGENTS,EDITORS p2;
-    class EXP p3;
+    class RAW,NORM p1;
+    class MOD,EDIT p2;
+    class ART p3;
           </pre>
         </div>
       </div>
     </section>
 
-    <!-- 6 Key Benefits -->
+    <!-- 6 Key Benefits: End-User Value Focused -->
     <section>
       <div class="container">
         <div class="section-title">
           <h2>6 Key Benefits</h2>
-          <p>Why modern teams and AI developers choose cogNNitive for their documentation.</p>
+          <p>Why modern teams and AI builders choose cogNNitive to organize their knowledge.</p>
         </div>
         <div class="benefits-grid">
           <div class="benefit-item">
             <div class="benefit-num">1</div>
             <div class="benefit-content">
-              <h4>Zero Vendor Lock-in</h4>
-              <p>Plain text Markdown files stored in your own Git repository. You own your knowledge forever.</p>
+              <h4>Immediate Clarity &amp; Speed</h4>
+              <p>Turn chaotic meetings, raw recordings, and scattered files into structured, actionable knowledge in minutes.</p>
             </div>
           </div>
           <div class="benefit-item">
             <div class="benefit-num">2</div>
             <div class="benefit-content">
-              <h4>AI That Never Guesses</h4>
-              <p>Deterministic validation guarantees your OpenCode agent always works with reliable data.</p>
+              <h4>Zero Vendor Lock-in</h4>
+              <p>100% plain Markdown files in your own Git repository. You retain complete ownership of your knowledge forever.</p>
             </div>
           </div>
           <div class="benefit-item">
             <div class="benefit-num">3</div>
             <div class="benefit-content">
-              <h4>No Setup Friction</h4>
-              <p>Works directly inside OpenCode Desktop with a single prompt. No complex setup required.</p>
+              <h4>AI You Can Actually Trust</h4>
+              <p>Deterministic section-level citations eliminate hallucinations and ensure your AI pair-programmer operates on ground truth.</p>
             </div>
           </div>
           <div class="benefit-item">
             <div class="benefit-num">4</div>
             <div class="benefit-content">
-              <h4>Always Up to Date</h4>
-              <p>Detects structural drift and outdated information automatically before it causes mistakes.</p>
+              <h4>Effortless Company Updates</h4>
+              <p>When business assumptions, prices, or specs change, update the model and all downstream artifacts reflect the change automatically.</p>
             </div>
           </div>
           <div class="benefit-item">
             <div class="benefit-num">5</div>
             <div class="benefit-content">
-              <h4>Visual & Flexible</h4>
-              <p>Edit visually in your browser app or textually through conversational AI instructions.</p>
+              <h4>Universal Freedom of Access</h4>
+              <p>Work visually with the web modeler app, textually in VS Code / Obsidian, or conversationally via your AI agent.</p>
             </div>
           </div>
           <div class="benefit-item">
             <div class="benefit-num">6</div>
             <div class="benefit-content">
-              <h4>100% Free & Open Source</h4>
-              <p>Built for the open community under the MIT license. No hidden subscriptions or API costs.</p>
+              <h4>100% Free &amp; Open Source</h4>
+              <p>Built for the open community under the MIT license. No hidden cloud subscriptions or artificial limits.</p>
             </div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- How to Use It (OpenCode Exclusive) -->
-    <section style="background: var(--canvas-inert);">
+    <!-- How to Use It (OpenCode & Getting Started) -->
+    <section id="how-to-use" style="background: var(--canvas-inert);">
       <div class="container">
         <div class="section-title">
-          <h2>How to Use It</h2>
-          <p>Get started with cogNNitive in 3 simple steps inside OpenCode Desktop.</p>
+          <h2>How to Get Started</h2>
+          <p>Get started with cogNNitive in 3 simple steps inside your favorite AI agent workspace.</p>
         </div>
         <div class="steps-wrapper">
           <div class="step-card">
             <span class="step-badge">Step 1</span>
             <div class="step-text">
-              <h4>Open OpenCode Desktop</h4>
-              <p>Launch OpenCode Desktop on your computer and open your project workspace folder.</p>
+              <h4>Open Your Workspace</h4>
+              <p>Launch OpenCode Desktop, VS Code, or Antigravity and open your project workspace folder.</p>
             </div>
           </div>
           <div class="step-card">
@@ -1185,14 +1180,14 @@ flowchart TD
             <span class="step-badge">Step 3</span>
             <div class="step-text">
               <h4>Enjoy Living Knowledge</h4>
-              <p>OpenCode automatically installs the skills, configures tools, and presents your interactive workflow menu.</p>
+              <p>Your agent automatically installs the skills, configures tools, and presents your interactive workflow menu.</p>
             </div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- The A ⇄ K Paradigm & The Prism -->
+    <!-- The A ⇄ K Paradigm: Virtuous Knowledge Loop -->
     <section>
       <div class="container">
         <div class="section-title">
@@ -1202,40 +1197,36 @@ flowchart TD
         <div class="diagram-card">
           <pre class="mermaid">
 flowchart LR
-    A1["&#x1F4C4; Anything (A)<br/>White light — your original file"] -->|"A &rarr;"| Prism["&#x1F4E1; AI Prism<br/>The intelligence loop"]
-    Prism --> K["&#x1F308; Structured Knowledge (K)<br/>The spectrum — entities, relations, metadata"]
-    K -->|"K &rarr;"| A2["&#x1F3A8; Anything (A)<br/>A new ray — the file you choose"]
+    A1["📄 Anything In (A)<br/>(Raw meetings, notes, PDFs, data)"] -->|"Structure &amp; Verify"| K["🧠 Structured Knowledge (K)<br/>(Living models, concepts, citations)"]
+    K -->|"Project Tailored Artifacts"| A2["📊 Anything Out (A)<br/>(Dashboards, executive briefs, specs)"]
+    A2 -.->|"Virtuous Feedback Loop"| A1
 
-    A2 -.->|"A &#8644; K<br/>virtuous cycle"| A1
+    classDef a fill:#FAFAFC,stroke:#636366,color:#111112;
+    classDef k fill:#F6EEF6,stroke:#4D0E4E,color:#4D0E4E,font-weight:bold;
 
-    classDef a1 fill:#FAFAFC,stroke:#636366,color:#111112;
-    classDef k fill:#F6EEF6,stroke:#4D0E4E,color:#4D0E4E;
-    classDef a2 fill:#4D0E4E,stroke:#4D0E4E,color:#FFFFFF;
-
-    class A1 a1;
-    class Prism,K k;
-    class A2 a2;
+    class A1,A2 a;
+    class K k;
           </pre>
         </div>
         <div class="grid-3" style="margin-top: 32px;">
           <div class="card">
-            <div class="card-icon">&#x1F4C4;</div>
+            <div class="card-icon">📄</div>
             <h3>Anything In (A)</h3>
-            <p>Any file you have: PDF, DOCX, meeting notes, spreadsheet, or raw text. This is your white light.</p>
+            <p>Any file or thought you have: meetings, audio transcripts, PDFs, spreadsheets, or raw brainstorming notes.</p>
           </div>
           <div class="card">
-            <div class="card-icon">&#x1F4E1;</div>
-            <h3>The AI Prism (&#8644;)</h3>
-            <p>Not a shallow format converter. AI decomposes the original file into a structured knowledge layer — entities, relations, and metadata.</p>
+            <div class="card-icon">🧠</div>
+            <h3>Structured Knowledge (K)</h3>
+            <p>The single source of truth — predictable models, clear concepts, typed attributes, and verifiable citations.</p>
           </div>
           <div class="card">
-            <div class="card-icon">&#x1F3A8;</div>
+            <div class="card-icon">📊</div>
             <h3>Anything Out (A)</h3>
-            <p>AI re-composes that knowledge into the new file you need — dashboard, summary, spec, or script. The color you choose.</p>
+            <p>AI generates the exact artifact you need — interactive dashboards, executive briefs, specs, or task lists.</p>
           </div>
         </div>
         <p style="text-align: center; max-width: 760px; margin: 40px auto 0; color: var(--ink-muted); font-size: 15px;">
-          The cycle is fully reversible (<span style="font-family: var(--mono); color: var(--brand);">A &#8644; K</span>): inputs and outputs stay decoupled through a single semantic core, and every pass through the prism enriches the knowledge behind the file.
+          The virtuous loop is fully reversible (<span style="font-family: var(--mono); color: var(--brand);">A &#8644; K</span>): inputs and outputs stay decoupled through a single semantic core, and every pass enriches the underlying knowledge.
         </p>
       </div>
     </section>
@@ -1246,34 +1237,40 @@ flowchart LR
         <div class="section-title">
           <span class="badge-pill">&#x2728; Mathematical Traceability &amp; OKF Standard</span>
           <h2>Every Insight Traceable. Zero Hallucinations.</h2>
-          <p>Transform scattered PDFs, subtitles, spreadsheets, and chats into verified semantic models &mdash; with cryptographic provenance and academic-grade citations.</p>
+    <!-- Extreme Traceability & Verifiable Provenance Section -->
+    <section style="background: var(--canvas-inert); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+      <div class="container">
+        <div class="section-title">
+          <span class="badge-pill">&#x2728; Radical Precision</span>
+          <h2>Extreme Traceability &amp; Provenance</h2>
+          <p>Transform scattered audio, spreadsheets, documents, and chats into verified models with permanent section anchors.</p>
         </div>
 
         <div class="grid-3" style="margin-top: 40px;">
           <!-- Card 1 -->
           <div class="card" style="border: 1px solid rgba(77, 14, 78, 0.15); box-shadow: 0 8px 24px -10px rgba(77, 14, 78, 0.08);">
             <div class="card-icon" style="background: var(--brand-subtle); color: var(--brand);">&#x1F50E;</div>
-            <h3 style="font-size: 18px; margin-bottom: 10px;">1. Multimodal Ingestion &amp; OKF Manifest</h3>
+            <h3 style="font-size: 18px; margin-bottom: 10px;">1. Multimodal Normalization</h3>
             <p style="font-size: 14px; color: var(--ink-muted); line-height: 1.6;">
-              Normalize video/audio transcripts (<code style="font-family: var(--mono); font-size: 12px;">.srt/.vtt</code>), datasets with auto-generated data dictionaries (<code style="font-family: var(--mono); font-size: 12px;">.csv</code>), conversation logs, DOCX, workbooks, and PDFs with SHA-256 fingerprinting. Generates Google <strong>Open Knowledge Format (OKF v0.1)</strong> compliant progressive-disclosure catalogs (<code style="font-family: var(--mono); font-size: 12px;">index.md</code>).
+              Normalize audio transcripts (<code style="font-family: var(--mono); font-size: 12px;">.srt/.vtt</code>), spreadsheets (<code style="font-family: var(--mono); font-size: 12px;">.csv/.xlsx</code>), conversation logs, and PDFs into clean Markdown under <code style="font-family: var(--mono); font-size: 12px;">sources/normalized/</code>.
             </p>
           </div>
 
           <!-- Card 2 -->
           <div class="card" style="border: 1px solid rgba(77, 14, 78, 0.15); box-shadow: 0 8px 24px -10px rgba(77, 14, 78, 0.08);">
             <div class="card-icon" style="background: var(--brand-subtle); color: var(--brand);">&#x1F517;</div>
-            <h3 style="font-size: 18px; margin-bottom: 10px;">2. Semantic Slugs &amp; Short Paths</h3>
+            <h3 style="font-size: 18px; margin-bottom: 10px;">2. Permanent Section Anchors</h3>
             <p style="font-size: 14px; color: var(--ink-muted); line-height: 1.6;">
-              Models link assertions directly to sources using ergonomic relative syntax (<code style="font-family: var(--mono); font-size: 12px;">sources:: [report.md#financials]</code>). Volatile line numbers are strictly rejected in favor of permanent heading anchors that never break across edits or refactorings.
+              Models link assertions directly to sources using clear heading syntax (<code style="font-family: var(--mono); font-size: 12px;">sources:: [report.md#budget]</code>). Volatile line numbers are rejected in favor of permanent anchors.
             </p>
           </div>
 
           <!-- Card 3 -->
           <div class="card" style="border: 1px solid rgba(77, 14, 78, 0.15); box-shadow: 0 8px 24px -10px rgba(77, 14, 78, 0.08);">
             <div class="card-icon" style="background: var(--brand-subtle); color: var(--brand);">&#x1F4DA;</div>
-            <h3 style="font-size: 18px; margin-bottom: 10px;">3. Dual-Layer Artifacts &amp; BibTeX</h3>
+            <h3 style="font-size: 18px; margin-bottom: 10px;">3. Project Artifacts &amp; Lineage</h3>
             <p style="font-size: 14px; color: var(--ink-muted); line-height: 1.6;">
-              Dual publishing at the touch of a button: <strong>Canonical Views</strong> with rich inline callouts (<code style="font-family: var(--mono); font-size: 12px;">^[source#slug]</code>) for internal auditing, and clean <strong>Export Views</strong> with numbered citations, formal reference lists, and companion <code style="font-family: var(--mono); font-size: 12px;">.bib</code> BibTeX files for executive stakeholders.
+              Generate interactive HTML dashboards, executive briefs, and formal specifications with verified citations and automatic lineage tracking (<code style="font-family: var(--mono); font-size: 12px;">derived_from: [Model_NN]</code>).
             </p>
           </div>
         </div>
@@ -1281,24 +1278,24 @@ flowchart LR
         <div class="diagram-card" style="margin-top: 36px; padding: 24px; background: #FFFFFF; border: 1px solid var(--border); border-radius: 14px;">
           <pre class="mermaid">
 flowchart LR
-    subgraph Sources["Phase 1: IMPORT (sources/nn/)"]
-        S1["&#x1F3A5; Video/Audio Subtitles (.srt, .vtt)"]
-        S2["&#x1F4CA; Data Dictionaries (.csv, .xlsx)"]
-        S3["&#x1F4D1; Documents &amp; Chats (.pdf, .docx, .json)"]
+    subgraph Sources["1. SOURCES (sources/normalized/)"]
+        S1["🎥 Subtitles &amp; Audio Transcripts"]
+        S2["📊 Spreadsheets &amp; Data Tables"]
+        S3["📑 Documents, PDFs &amp; Chats"]
     end
 
-    subgraph Model["Phase 2: MANAGE (models/*_NN.md)"]
-        M["&#x1F9E0; Concept &amp; Matrix Entities<br/><span style='font-size:11px;'>sources:: [source.md#slug]</span><br/><span style='font-size:11px;'>canonical: { doi, bibtex, sha256 }</span>"]
+    subgraph Model["2. MODELS (models/*_NN.md)"]
+        M["🧠 Living Concepts &amp; Elements<br/><span style='font-size:11px;'>sources:: [source.md#slug]</span>"]
     end
 
-    subgraph Output["Phase 3: EXPORT (export/)"]
-        O1["&#x1F4C3; Canonical Artifact<br/><span style='font-size:11px;'>Inline Callouts ^[source#slug]</span>"]
-        O2["&#x1F393; Executive Export<br/><span style='font-size:11px;'>Numbered Citations + .bib</span>"]
+    subgraph Output["3. ARTIFACTS (export/)"]
+        O1["📊 Interactive HTML Dashboards"]
+        O2["📑 Executive Briefs &amp; Specs"]
     end
 
-    Sources -->|"Cryptographic SHA-256 Ingestion"| M
-    M -->|"Traceable Projection"| Output
-    Output -.->|"Closed-Loop Feedback Re-ingestion"| Sources
+    Sources -->|"Permanent Section Citations"| M
+    M -->|"Deterministic Projection"| Output
+    Output -.->|"Feedback Re-ingestion"| Sources
 
     classDef s fill:#FAFAFC,stroke:#636366,color:#111112;
     classDef m fill:#F6EEF6,stroke:#4D0E4E,color:#4D0E4E,font-weight:bold;
@@ -1312,31 +1309,28 @@ flowchart LR
       </div>
     </section>
 
-    <!-- Quadratic-Inspired Comparative Section -->
+    <!-- Comparative Section: Old Way vs cogNNitive Way -->
     <section class="showcase-section">
       <div class="container">
-        <!-- Comparative Section: Old Way vs cogNNitive Way -->
         <div class="section-title">
           <span class="badge-pill">&#x26A1; Paradigm Shift</span>
           <h2>Goodbye Fragmented Documentation</h2>
-          <p>The difference between stale files nobody trusts and an active semantic foundation.</p>
+          <p>The difference between unmaintained chaotic notes nobody trusts and an active semantic foundation.</p>
         </div>
 
         <div class="compare-container">
-          <!-- Old Way -->
+          <!-- Old Way: Unstructured Narrative -->
           <div class="compare-card">
             <div class="compare-header">
               <span class="compare-badge bad">&#x2716; The Old Way</span>
-              <span style="font-size: 12px; color: #9CA3AF; font-family: var(--mono);">docs/unmaintained</span>
+              <span style="font-size: 12px; color: #9CA3AF; font-family: var(--mono);">unstructured-notes.txt</span>
             </div>
-            <pre class="compare-code"><code># Architecture Doc (Updated: 2023?)
-TODO: Update this section after rewrite
-See link: http://broken-notion-link.internal
-Note: Might not match current database schema.
-Ask Dave if this still applies.</code></pre>
+            <div class="compare-narrative">
+              "Met with Dave on Tuesday — think we agreed on $45k budget for Q3, but Sarah mentioned in Slack we should cap at $38k. Check the old Notion doc (link broken?). Wait, did we decide to charge per seat or usage-based? See attached PDF v2_final_FINAL.pdf for details, though the pricing table might be outdated. Ask Dave if this still applies..."
+            </div>
             <div class="compare-footer">
               <span style="color: #EF4444; font-weight: bold;">&#x26A0;</span>
-              <span>Stale in 2 weeks. Zero agent verifiability. Unchecked hallucinations.</span>
+              <span>Chaotic narrative. Stale in 2 weeks. Zero agent verifiability. Guaranteed hallucinations.</span>
             </div>
           </div>
 
@@ -1344,15 +1338,18 @@ Ask Dave if this still applies.</code></pre>
           <div class="compare-card highlight">
             <div class="compare-header">
               <span class="compare-badge good">&#x2714; The cogNNitive Way</span>
-              <span style="font-size: 12px; color: var(--brand); font-family: var(--mono);">*_V_0-1-0_NN.md</span>
+              <span style="font-size: 12px; color: var(--brand); font-family: var(--mono);">Business_V_1-0-0_business_NN.md</span>
             </div>
-            <pre class="compare-code" style="background: #140815; border: 1px solid rgba(77,14,78,0.2);"><code>---
-provenance: { hash: "sha256:4a8f9...", verified: true }
-spec_version: "V_0-1-0"
-mcp_tools: ["innfo_search", "innfo_trace_matrix"]
----
-| ID | Requirement | Matrix Relation | Verified |
-| M-1 | Living Schema | ACT-004 | [x] True |</code></pre>
+            <pre class="compare-code" style="background: #140815; border: 1px solid rgba(77,14,78,0.2);"><code>### 🔹 PricingTier [Element]
+- tier_name:: Growth
+- price_monthly:: 49
+- billing_model:: per-seat
+- sources:: [meeting_q3.md#approved-pricing]
+
+### 🔹 BudgetCap [Element]
+- q3_ceiling:: 45000
+- approved_by:: Dave
+- sources:: [finance_sync.md#executive-signoff]</code></pre>
             <div class="compare-footer">
               <span style="color: #10B981; font-weight: bold;">&#x2714;</span>
               <span>Strict compliance. Machine-readable. Ground truth for humans and AI agents.</span>
@@ -1430,45 +1427,53 @@ mcp_tools: ["innfo_search", "innfo_trace_matrix"]
         </div>
       </div>
     </section>
-    <!-- Knowledge Evolution Framework -->
+
+    <!-- Knowledge Evolution Framework: Living & Dynamic Knowledge -->
     <section>
       <div class="container">
         <div class="section-title">
           <span class="badge-pill">Knowledge Evolution Framework</span>
-          <h2>What does Knowledge Evolution Framework mean?</h2>
-          <p>Three words that define how cogNNitive turns scattered inputs into living information.</p>
+          <h2>A <span class="heartbeat-word">Living Knowledge Base</span> Powered by AI</h2>
+          <p>Three foundational pillars that define how cogNNitive turns scattered inputs into living information.</p>
         </div>
         <div class="grid-3">
           <div class="card">
             <div class="card-icon">🧠</div>
             <h3>Knowledge</h3>
-            <p>The ideas in your team's brains and the data in your computer files — files, docs, chats, sheets — captured and structured so humans and AI agents can understand, query, and reuse it.</p>
+            <p>The ideas in your team's brains and the data in your computer files — meetings, docs, chats, sheets — captured and structured so humans and AI agents can query and build upon it with 100% confidence.</p>
           </div>
           <div class="card">
             <div class="card-icon">🌱</div>
             <h3>Evolution</h3>
-            <p>Knowledge is never frozen. Every pass validates, enriches, and updates it, so information stays living, constantly evolving instead of going stale.</p>
+            <p>Knowledge is never frozen. Every pass validates, enriches, and updates it, creating a <span class="heartbeat-word">living knowledge base</span> that continuously evolves as your project grows.</p>
           </div>
           <div class="card">
             <div class="card-icon">🧰</div>
             <h3>Framework</h3>
-            <p>A set of processes and tools — iNNfo models, actioNN agent skills, and the Modeler app — that guide knowledge from scattered input to verified, traceable output, maximizing value provided.</p>
+            <p>A set of processes and tools — iNNfo models, actioNN agent skills, and the visual Modeler app — that guide knowledge from scattered input to verified, traceable output, maximizing value provided.</p>
           </div>
         </div>
       </div>
     </section>
   </main>
 
-  <!-- Footer -->
-  <footer>
-    <div class="container">
-      <p>&copy; 2026 cogNNitive. Open Source under MIT License. Built for <a href="https://opencode.ai">OpenCode</a>.</p>
+  <!-- Footer with Dynamic Version & Timestamp -->
+  <footer style="padding: 32px 0; border-top: 1px solid var(--border); background: var(--canvas);">
+    <div class="container" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+      <p>&copy; 2026 cogNNitive. Open Source under MIT License. Built for <a href="https://opencode.ai" style="color: var(--brand); font-weight: 600; text-decoration: none;">OpenCode</a>.</p>
+      <p style="font-size: 13px; color: var(--ink-muted); display: flex; align-items: center; gap: 10px;">
+        <span style="font-family: var(--mono); background: var(--brand-subtle); color: var(--brand); padding: 2px 6px; border-radius: 4px; font-weight: 600;">v0.7.0</span>
+        <span>&bull;</span>
+        <span>Control de versiones en Git</span>
+        <span>&bull;</span>
+        <span>Última actualización: <time datetime="2026-09-12">Septiembre 2026</time></span>
+      </p>
     </div>
   </footer>
 
   <script>
     (function() {
-      var el = document.getElementById("mid-hero-rotator");
+      var el = document.getElementById("hero-rotator");
       if (!el) return;
       var words = el.querySelectorAll("span");
       if (!words.length) return;

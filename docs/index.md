@@ -24,36 +24,27 @@ Knowledge in an organization begins in minds and existing documents. cogNNitive 
 
 ```mermaid
 flowchart LR
-    subgraph EXT["0. External World"]
-        B["🧠 Brains\n(Internal & External)"] -->|"Elicitation\n(Audio, Notes, Docs)"| F["📁 Files & URLs\n(Local disk paths / Web)"]
+    subgraph P1["1. IMPORT & NORMALIZE"]
+        RAW["📁 Raw Inputs\n(Audio, Docs, Sheets, Notes)"] --> NORM["📝 sources/normalized/\n(Markdown + Citations)"]
     end
 
-    subgraph P1["1. IMPORT (Sources)"]
-        F -->|"Verbatim Copy + SHA-256"| S_IMP["sources/import/"]
-        S_IMP -->|"Intermediate Buffer (Whisper/OCR)"| S_STG["sources/staging/"]
-        S_STG -->|"Normalization to Markdown"| S_NN["sources/nn/"]
-        S_IMP -->|"Snapshot on Change"| S_ARC["sources/archive/"]
+    subgraph P2["2. MANAGE (Living SSOT)"]
+        NORM --> MOD["🧠 models/*_NN.md\n(Concepts, Elements, Fields)"]
+        MOD <--> EDIT["👥 Text Editors · Web App · AI Agents"]
     end
 
-    subgraph P2["2. MANAGE (iNNfo Models)"]
-        S_NN -->|"Fine-Grained Citation\nsources:: [file.md#slug]"| M["models/*_NN.md\n(Single Source of Truth)"]
+    subgraph P3["3. EXPORT & FEEDBACK"]
+        MOD --> ART["📊 export/\n(Dashboards, Briefs, Specs)"]
+        ART -.->|"Closed-Loop Feedback"| RAW
     end
 
-    subgraph P3["3. EXPORT (Deliverables)"]
-        M -->|"Role-Specific Vistas"| A["export/\n(Dashboards, Word, PDF, Web)"]
-    end
-
-    A -.->|"Human Feedback & Revision Loop"| F
-
-    classDef ext fill:#F4F4F6,stroke:#8E8E93,color:#1C1C1E;
     classDef p1 fill:#EBF3FF,stroke:#007AFF,color:#003D82;
     classDef p2 fill:#F6EEF6,stroke:#4D0E4E,color:#4D0E4E;
     classDef p3 fill:#E8F8F0,stroke:#34C759,color:#105C29;
 
-    class B,F ext;
-    class S_IMP,S_STG,S_NN,S_ARC p1;
-    class M p2;
-    class A p3;
+    class RAW,NORM p1;
+    class MOD,EDIT p2;
+    class ART p3;
 ```
 
 ---
@@ -67,24 +58,23 @@ Knowledge initially resides in human brains—internal team members, external re
 
 ### 1. IMPORT: Ingestion, Staging, and Normalization
 When external files enter the cogNNitive workspace:
-* **`sources/import/` (Immutable Originals)**: A verbatim copy is stored alongside its cryptographic SHA-256 hash. Originals remain untouched.
-* **`sources/staging/` (Extraction Buffer)**: Raw intermediate outputs (such as Whisper audio transcripts, raw OCR dumps, or SRT subtitle streams) live in a staging buffer. This folder is ignored by Git and models—it is never cited directly.
-* **`sources/nn/` (Cognitivized Markdown)**: The content is normalized into human- and AI-readable Markdown with clear heading sections (`#heading-slug`) and mandatory provenance frontmatter (`source_file`, `sha256`, timestamps, canonical identity).
-* **`sources/archive/` (Dynamic Versioning)**: If an original file changes, previous normalized versions are preserved automatically in snapshot folders (`sources/archive/<name>/V<N>/`).
+* **`sources/import/` (Immutable Originals)**: Original raw files are stored and protected.
+* **`sources/staging/` (Extraction Buffer)**: Intermediate raw outputs (Whisper transcripts, OCR dumps) live in a temporary scratchpad.
+* **`sources/normalized/` (Normalized Markdown)**: Content is normalized into clean Markdown with permanent heading sections (`#heading-slug`) and provenance frontmatter.
 
 ### 2. MANAGE: Semantic Modeling (Single Source of Truth)
-Normalized sources are structured into Level 3 iNNfo models (`models/*_NN.md`):
-* **Predictable Semantic Structure**: Concepts define the schema, Elements represent specific entity instances, Fields store typed attributes, and Matrices formalize entity relationships.
-* **Radical Fine-Grained Traceability**: Every element cites its exact provenance using section anchors (`sources:: [strategy.md#vision-goals]`).
-* **Triple Access Freedom**:
-  1. **Plain Text Editors**: Open and edit directly with Obsidian, VS Code, Notepad, or Logseq.
+Normalized sources are structured into predictable **Models** (`models/*_NN.md`):
+* **Predictable Semantic Structure**: Concepts define the schema, Elements represent specific entity instances, and Fields store typed attributes.
+* **Radical Fine-Grained Traceability**: Every element cites its exact provenance using section anchors (`sources:: [meeting.md#budget]`).
+* **Universal Access Freedom**:
+  1. **Text Editors**: Open and edit directly with Obsidian, VS Code, Notepad, or Logseq.
   2. **iNNfo Modeler**: Use the zero-install web UI to visually navigate graphs and edit matrices.
   3. **AI Pair-Programming Agents**: Direct OpenCode, Antigravity, or Claude Code in natural language to expand and refine models.
 
-### 3. EXPORT: Deliverables and Closed Feedback Loop
-From the verified model, generate tailored deliverables into `export/`:
-* **Tailored Vistas**: Interactive HTML dashboards, executive Word documents, PDF reports, or task specs filtered by role or department.
-* **Closed-Loop Feedback**: Exported documents carry metadata. When a stakeholder reviews, annotates, or amends a deliverable outside the system, that document can be re-imported into `sources/import/`. The system identifies the origin, detects diffs, and updates the underlying model.
+### 3. EXPORT: Artifacts and Closed Feedback Loop
+From the verified model, project role-tailored **Artifacts** into `export/`:
+* **Tailored Views**: Interactive HTML dashboards, executive Word documents, PDF reports, or task specs filtered by role or department.
+* **Closed-Loop Feedback**: Exported artifacts carry lineage metadata (`derived_from: [Model_NN]`). When a stakeholder reviews, annotates, or amends an artifact, it can be re-imported into sources to continuously evolve the model.
 
 ---
 
@@ -101,14 +91,14 @@ Explore how cogNNitive delivers tangible value across different roles:
 
 ---
 
-## 6 Key Architectural Pillars
+## 6 Key Benefits
 
-1. **Zero Vendor Lock-in**: Everything is plain Markdown stored on your local filesystem and Git. No proprietary databases, no opaque binary stores, no hosted lock-in.
-2. **Fine-Grained Traceability**: Citations point directly to granular heading anchors (`#slug`), not vague document-level links or fragile line numbers.
-3. **Dynamic Source Drift Detection**: When an updated file is imported, the built-in **Impact Check** audits all downstream models and alerts you if cited sections have moved or changed.
-4. **Respected Workflow**: Your team captures knowledge using whatever physical or digital tools they already know. Ingestion happens transparently.
-5. **Deterministic AI Pair-Programming**: AI agents operate against validated schemas with deterministic verification rather than guessing hallucinated structures.
-6. **100% Free & Open Source**: Released under the MIT license. Local-first, community-driven, and designed to last decades.
+1. **Immediate Clarity & Speed**: Turn chaotic meetings, raw recordings, and scattered files into structured, actionable knowledge in minutes.
+2. **Zero Vendor Lock-in**: 100% plain Markdown files in your own Git repository. You retain complete ownership of your knowledge forever.
+3. **AI You Can Actually Trust**: Deterministic section-level citations eliminate hallucinations and ensure your AI pair-programmer operates on ground truth.
+4. **Effortless Company Updates**: When business assumptions, prices, or specs change, update the model and all downstream artifacts reflect the change automatically.
+5. **Universal Freedom of Access**: Work visually with the web modeler app, textually in VS Code / Obsidian, or conversationally via your AI agent.
+6. **100% Free & Open Source**: Built for the open community under the MIT license. No hidden cloud subscriptions or artificial limits.
 
 ---
 
