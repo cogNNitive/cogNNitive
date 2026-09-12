@@ -1,6 +1,6 @@
 ---
 name: nn-innfo
-version: "V_0-5-0"
+version: "V_0-5-1"
 last_updated: 2026-09-12
 metadata:
   source_type: "original"
@@ -52,7 +52,7 @@ This skill guides LLMs and agents in authoring, creating from scratch (wizard), 
 > 1. The `iNNfo` repository is the **Single Source of Truth** for all apps and specs. Do NOT duplicate app files across repositories.
 > 2. When resolving apps/specs without MCP: if a git fallback clone is required, the agent MUST clone into the system temporary directory (`$env:TEMP/innfo_tmp` or `~/.agents/tmp/`), read the required file, and **immediately delete the temporary folder**. The agent MUST NEVER clone git repositories or leave checkouts inside the user's workspace directory.
 > 3. **Windows Network Resilience**: In Windows environments, do NOT execute bare `curl` in PowerShell (which aliases to `Invoke-WebRequest` and fails SSL handshakes). Use `curl.exe` explicitly, Node.js native fetch (`node -e "fetch(...)"`), or git archive.
-> 4. **Web GUI & Preview Integration**: When asked to preview a model or element in Web GUI environments, prefer generating structured Markdown cards with interactive deep links (`https://cognnitive.com/innfo/app/workspace?view=editor&model={model_id}#{element_id}`) or inline SVG diagrams instead of un-sanitizable `<iframe>` tags.
+> 4. **Web GUI & Preview Integration**: When asked to preview a model or element in Web GUI environments, prefer generating structured Markdown cards with interactive deep links (`https://cognnitive.com/innfo/app/?view=editor&model={model_id}#{element_id}`) or inline SVG diagrams instead of un-sanitizable `<iframe>` tags.
 
 ---
 
@@ -535,7 +535,7 @@ When the project scales to multiple sub-models, present the **4 Architectural Al
 Upon completing the creation or modification of a model, the agent MUST print the Visual Checklist with dynamic deep links instead of the generic `https://cognnitive.com/innfo/app/`.
 
 ### Deep URL construction instruction:
-- **Base URL**: `https://cognnitive.com/innfo/app/workspace?view=editor`
+- **Base URL**: `https://cognnitive.com/innfo/app/?view=editor`
 - **Model Query Parameter**: `&model=<model_id>` (where `<model_id>` is the model identifier/filename without extension, e.g. `arenzano_V_1-2-0_business`).
 - **Workspace Query Parameter** (optional): `&ws=<workspace_folder_name>` — the root folder name of the workspace where the model lives (e.g. `rejas_rehabilitacion`). Include it whenever the workspace folder is known: it lets the editor reopen the correct workspace from the recent list instead of the most recently opened one. Links to models living in different workspaces MUST each carry their own `&ws=`. When the folder name is unknown, omit `&ws=` — the editor then resolves the model across the user's recently opened workspaces.
 - **Concept Deep Link (Hash)**: `#@<ConceptName>` (URL-encoded if containing spaces, e.g. `#@Market%20trends`).
@@ -547,13 +547,13 @@ Example of dynamic checklist to generate:
 ```markdown
 📋 Visual Expectation Checklist in iNNfo Modeler (assuming workspace is already open):
 
-- [ ] 🌳 [**Navigation Sidebar Tree**](https://cognnitive.com/innfo/app/workspace?view=editor&model=<model_id>&ws=<workspace_folder_name>):
+- [ ] 🌳 [**Navigation Sidebar Tree**](https://cognnitive.com/innfo/app/?view=editor&model=<model_id>&ws=<workspace_folder_name>):
       Hierarchical structure based on `# NN index` with fluid navigation across concepts and elements.
-- [ ] 📋 [**Concept Field Panels** (e.g. <Concept>)](https://cognnitive.com/innfo/app/workspace?view=editor&model=<model_id>&ws=<workspace_folder_name>#@<Concept_url_encoded>):
+- [ ] 📋 [**Concept Field Panels** (e.g. <Concept>)](https://cognnitive.com/innfo/app/?view=editor&model=<model_id>&ws=<workspace_folder_name>#@<Concept_url_encoded>):
       Detailed view rendered for each `key:: value` (properties, types, and references).
-- [ ] 🎴 [**Element Cards** (e.g. <Element>)](https://cognnitive.com/innfo/app/workspace?view=editor&model=<model_id>&ws=<workspace_folder_name>#<Concept_url_encoded>.<Element_url_encoded>):
+- [ ] 🎴 [**Element Cards** (e.g. <Element>)](https://cognnitive.com/innfo/app/?view=editor&model=<model_id>&ws=<workspace_folder_name>#<Concept_url_encoded>.<Element_url_encoded>):
       Interactive cards for each `## NN <Concept>: <Element>` block showing metadata and descriptions.
-- [ ] 📊 [**Comparative Matrix Tables**](https://cognnitive.com/innfo/app/workspace?view=matrices&model=<model_id>&ws=<workspace_folder_name>):
+- [ ] 📊 [**Comparative Matrix Tables**](https://cognnitive.com/innfo/app/?view=matrices&model=<model_id>&ws=<workspace_folder_name>):
       N-to-M relationship tables and `item-markers matrix` rendered with interactive cells (`X` / `-`).
 ```
 
