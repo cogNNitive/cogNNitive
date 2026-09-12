@@ -6,7 +6,7 @@ parent_spec:
   name: "iNNfo_V_0-2-1"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-2-1_NN.md"
 template_version: "V_0-2-2"
-title: "Organization Template"
+title: "Organization App"
 procedures:
   - id: "audit-skill-gaps"
     name: "Audit Skill Gaps"

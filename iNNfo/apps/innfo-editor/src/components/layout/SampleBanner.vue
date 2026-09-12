@@ -38,7 +38,7 @@ function onDismiss(): void {
       </span>
       <p class="sample-banner__text">
         You are exploring a sample model that uses the
-        <strong>{{ templateName }}</strong> template. Changes you make won't be saved.
+        <strong>{{ templateName }}</strong> app. Changes you make won't be saved.
         When you're ready, you can
         <button class="sample-banner__link" @click="emit('create')">
           create your own model

@@ -8,7 +8,7 @@
         {
           "template_version": "V_0-2-1",
           "spec_version": "V_0-2-1",
-          "title": "Analysis Template",
+          "title": "Analysis App",
           "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/analysis/spec_NN.md"
         }
       ]
@@ -20,7 +20,7 @@
         {
           "template_version": "V_0-2-0",
           "spec_version": "V_0-2-1",
-          "title": "Blank Template",
+          "title": "Blank App",
           "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/blank/spec_NN.md"
         }
       ]
@@ -32,7 +32,7 @@
         {
           "template_version": "V_0-2-4",
           "spec_version": "V_0-2-4",
-          "title": "Business Template",
+          "title": "Business App",
           "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business/spec_NN.md"
         }
       ]
@@ -44,7 +44,7 @@
         {
           "template_version": "V_0-2-2",
           "spec_version": "V_0-2-1",
-          "title": "Business Model Template",
+          "title": "Business Model App",
           "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business-model/spec_NN.md"
         }
       ]
@@ -56,7 +56,7 @@
         {
           "template_version": "V_0-2-1",
           "spec_version": "V_0-2-1",
-          "title": "Documentation Specification Template",
+          "title": "Documentation Specification App",
           "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/documentation/spec_NN.md"
         }
       ]
@@ -68,7 +68,7 @@
         {
           "template_version": "V_0-2-1",
           "spec_version": "V_0-2-1",
-          "title": "Innovation Template",
+          "title": "Innovation App",
           "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/innovation/spec_NN.md"
         }
       ]
@@ -80,7 +80,7 @@
         {
           "template_version": "V_0-2-1",
           "spec_version": "V_0-2-1",
-          "title": "Metrics Template",
+          "title": "Metrics App",
           "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/metrics/spec_NN.md"
         }
       ]
@@ -92,7 +92,7 @@
         {
           "template_version": "V_0-2-2",
           "spec_version": "V_0-2-1",
-          "title": "Organization Template",
+          "title": "Organization App",
           "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/organization/spec_NN.md"
         }
       ]
@@ -104,7 +104,7 @@
         {
           "template_version": "V_0-2-0",
           "spec_version": "V_0-2-1",
-          "title": "Procedures Template",
+          "title": "Procedures App",
           "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/procedures/spec_NN.md"
         }
       ]
@@ -116,7 +116,7 @@
         {
           "template_version": "V_0-2-1",
           "spec_version": "V_0-2-1",
-          "title": "Projects Template",
+          "title": "Projects App",
           "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/projects/spec_NN.md"
         }
       ]
@@ -128,7 +128,7 @@
         {
           "template_version": "V_0-1-1",
           "spec_version": "V_0-2-1",
-          "title": "Repository Template",
+          "title": "Repository App",
           "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/repository/spec_NN.md"
         }
       ]
@@ -140,7 +140,7 @@
         {
           "template_version": "V_0-1-1",
           "spec_version": "V_0-2-1",
-          "title": "Video Generator Template",
+          "title": "Video Generator App",
           "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/video-generator/spec_NN.md"
         }
       ]
@@ -152,7 +152,7 @@
         {
           "template_version": "V_0-3-0",
           "spec_version": "V_0-2-1",
-          "title": "Workspace Specification Template",
+          "title": "Workspace Specification App",
           "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/workspace_spec_NN.md"
         }
       ]

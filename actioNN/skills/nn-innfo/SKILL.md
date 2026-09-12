@@ -10,12 +10,12 @@ bundled_templates:
   - name: workspace_spec_NN
     path: templates/workspace_spec_NN.md
 description: |
-  Domain skill for creating, editing, validating, scaffolding, or discussing iNNfo models, templates, specializations, samples, or specification files. Includes the conversational Model Creation Wizard and Architecture Assistant. Triggers: innfo, iNNfo, /nn-innfo, model, template, *_NN.md, procedures_V_0-1-0_NN.md.
+  Domain skill for creating, editing, validating, scaffolding, or discussing iNNfo models, apps, specializations, samples, or specification files. Includes the conversational Model Creation Wizard and Architecture Assistant. Triggers: innfo, iNNfo, /nn-innfo, model, template, *_NN.md, procedures_V_0-1-0_NN.md.
   This includes but is not limited to:
-  - Creating a new model step-by-step using templates (Business, Procedures, Organization, Metrics, Blank)
+  - Creating a new model step-by-step using apps (Business, Procedures, Organization, Metrics, Blank)
   - Creating or editing any file matching *_NN.md
-  - Authoring or modifying business models, procedure models, or any model following an iNNfo template
-  - Creating, editing, or modifying templates or specializations under docs/templates/
+  - Authoring or modifying business models, procedure models, or any model following an iNNfo app
+  - Creating, editing, or modifying apps or specializations under docs/templates/
   - Discussing the iNNfo V_0-2-0 specification, meta-templates, primitives, matrices, or naming conventions
   - Any conversation about how iNNfo works, how to use it, or how to structure iNNfo files
   - Executing procedures declared in a model
@@ -37,10 +37,10 @@ description: |
 ## Activation Contract
 
 Activates when the user invokes `/nn-innfo`, mentions domain keywords `innfo`, `iNNfo`, `model`, `template`, references files matching `*_NN.md` or `procedures_V_0-1-0_NN.md`, or explicitly asks to:
-- Create a new model step-by-step using templates (Business, Procedures, Organization, Metrics, Blank).
+- Create a new model step-by-step using apps (Business, Procedures, Organization, Metrics, Blank).
 - Create or edit any file matching `*_NN.md`.
-- Author or modify business models, procedure models, or any model following an iNNfo template.
-- Create, edit, or modify templates or specializations under `docs/templates/`.
+- Author or modify business models, procedure models, or any model following an iNNfo app.
+- Create, edit, or modify apps or specializations under `docs/templates/`.
 - Discuss the iNNfo V_0-2-0 specification, meta-templates, primitives, matrices, or naming conventions.
 - Execute procedures declared in a model.
 
@@ -49,8 +49,8 @@ This skill guides LLMs and agents in authoring, creating from scratch (wizard), 
 **Resolution, validation, and mutation are delegated to the `innfo-mcp` server** — a deterministic engine wrapping `@cognnitive/innfo-core`. The agent does NOT hand-resolve spec chains, hand-validate models, or guess syntax when the MCP is available. See §1 (MCP Operating Model) and §7 (Delegation Contract).
 
 > 🛡️ **Single Source of Truth & Zero Workspace Pollution**:
-> 1. The `iNNfo` repository is the **Single Source of Truth** for all templates and specs. Do NOT duplicate template files across repositories.
-> 2. When resolving templates/specs without MCP: if a git fallback clone is required, the agent MUST clone into the system temporary directory (`$env:TEMP/innfo_tmp` or `~/.agents/tmp/`), read the required file, and **immediately delete the temporary folder**. The agent MUST NEVER clone git repositories or leave checkouts inside the user's workspace directory.
+> 1. The `iNNfo` repository is the **Single Source of Truth** for all apps and specs. Do NOT duplicate app files across repositories.
+> 2. When resolving apps/specs without MCP: if a git fallback clone is required, the agent MUST clone into the system temporary directory (`$env:TEMP/innfo_tmp` or `~/.agents/tmp/`), read the required file, and **immediately delete the temporary folder**. The agent MUST NEVER clone git repositories or leave checkouts inside the user's workspace directory.
 > 3. **Windows Network Resilience**: In Windows environments, do NOT execute bare `curl` in PowerShell (which aliases to `Invoke-WebRequest` and fails SSL handshakes). Use `curl.exe` explicitly, Node.js native fetch (`node -e "fetch(...)"`), or git archive.
 > 4. **Web GUI & Preview Integration**: When asked to preview a model or element in Web GUI environments, prefer generating structured Markdown cards with interactive deep links (`https://cognnitive.com/innfo/app/workspace?view=editor&model={model_id}#{element_id}`) or inline SVG diagrams instead of un-sanitizable `<iframe>` tags.
 
@@ -86,22 +86,22 @@ Before executing options **[b]**, **[c]**, **[d]**, or **[x]**, the agent MUST e
 
 ### 0b. Proactive Discovery (Option A)
 
-If the user wants to create a model but is unsure which template fits best:
+If the user wants to create a model but is unsure which app fits best:
 
 1. Ask 2-3 brief diagnostic questions:
    - Is the goal to structure a business model / value proposition, a step-by-step operational process, an organizational / team structure, or a quantified metrics / projections model?
    - Do you have source documents in `sources/nn/` to extract information from, or are we starting from scratch?
-2. Recommend the optimal template with a 1-sentence technical justification and mark option `[a]` with `(Recommended)`.
+2. Recommend the optimal app with a 1-sentence technical justification and mark option `[a]` with `(Recommended)`.
 
 ---
 
-### 0c. Model Creation Wizard: Phase A (Template) + Phase B (Model)
+### 0c. Model Creation Wizard: Phase A (App) + Phase B (Model)
 
 When the user asks to "create a new model", "start a model from scratch", or selects option [a]:
 
-Creating **any** model — with a canonical template, custom template, or without a template — always follows two separate phases. First, the **Template (Level 2)** is designed and approved (Phase A), then the **Model (Level 3)** is designed and approved (Phase B). No file is written until the user confirms the plan for the corresponding phase.
+Creating **any** model — with a canonical app, custom app, or without an app — always follows two separate phases. First, the **App (Level 2)** is designed and approved (Phase A), then the **Model (Level 3)** is designed and approved (Phase B). No file is written until the user confirms the plan for the corresponding phase.
 
-#### Phase A — Template Design (Level 2)
+#### Phase A — App Design (Level 2)
 
 **A1. Base Selection:**
 - **[a] (Recommended)** Business Model 🏢
@@ -112,25 +112,25 @@ Creating **any** model — with a canonical template, custom template, or withou
 - **[x]** Cancel
 *(Notice: You can select one option or a combination (e.g. A and B))*.
 
-**A2a. If a canonical template was selected ([a]/[b]/[c]/[d]):**
-Resolve the template with `innfo-mcp_get_template` and display an informative summary of the Concepts, Fields, Matrices, and Markers it already defines. Then discover its procedures with `innfo-mcp_list_template_procedures`: if the template declares an explicit empty procedures block, announce it — *"This template declares no executable procedures yet."* — instead of silently presenting a template with nothing executable. Then offer:
-- **[a] (Recommended)** Use template as-is, without modifications
+**A2a. If a canonical app was selected ([a]/[b]/[c]/[d]):**
+Resolve the app with `innfo-mcp_get_template` and display an informative summary of the Concepts, Fields, Matrices, and Markers it already defines. Then discover its procedures with `innfo-mcp_list_template_procedures`: if the app declares an explicit empty procedures block, announce it — *"This app declares no executable procedures yet."* — instead of silently presenting an app with nothing executable. Then offer:
+- **[a] (Recommended)** Use app as-is, without modifications
 - **[b]** Customize it (create specialization — see §9)
 - **[x]** Cancel
 
-> ⚠️ If the user chooses to customize, warn explicitly: **modifying a canonical template is not recommended unless the reason is very clear** — modifying it unnecessarily reduces compatibility with the rest of the iNNfo ecosystem which assumes that template unchanged.
+> ⚠️ If the user chooses to customize, warn explicitly: **modifying a canonical app is not recommended unless the reason is very clear** — modifying it unnecessarily reduces compatibility with the rest of the iNNfo ecosystem which assumes that app unchanged.
 
 **A2b. If [e] Blank was selected, or the user confirmed customization in A2a [b]:**
 Design from scratch, in this order, consulting `innfo-mcp_get_spec` for the exact grammar of each primitive (never invent it):
 
-1. **Concepts**: which Concepts the template will have (the root categories of the model).
+1. **Concepts**: which Concepts the app will have (the root categories of the model).
 2. **Fields per Concept**, with their `type::` — apply the **Type Heuristic** (below) before assigning `string` to any field.
 3. **Matrices**: which relationships between Concepts warrant a matrix — apply the **Matrix Heuristic** (below). Each Matrix Definition can declare `values::` (set of allowed cell values), `widget::` (`boolean` | `cycle` | `scale` | `set` | `text`), and `widget_config::` (JSON object: `scale`→`{min,max,step}`, `cycle`→`{order}`, `set`→`{max_selections}`, `text`→`{max_length}`). `widget:: scale` without `min`/`max` in `widget_config` is a validation ERROR.
-4. **Markers**: ask explicitly — *"Does this template need Markers (reusable tags/states, e.g. for matrix cells or cross-cutting Element classification)? If so, which ones?"* Do not assume they are not needed just because the user did not mention them. Each Marker Definition declares:
+4. **Markers**: ask explicitly — *"Does this app need Markers (reusable tags/states, e.g. for matrix cells or cross-cutting Element classification)? If so, which ones?"* Do not assume they are not needed just because the user did not mention them. Each Marker Definition declares:
    - `applies_to:: [Element]` (default), `[Concept]`, or `[Element, Concept]` — which entities can be scored. Scoring a row whose scope is not in `applies_to` is a validation ERROR.
    - `values:: / widget:: / widget_config::` — same vocabulary as Matrix Definition (omit `values` for an open numeric marker bounded only by `widget_config`).
    - `symbol / icon / color / weight` — presentational; `weight` is NOT a score.
-5. **`includes` (additive composition, optional)**: if the template should reuse Concepts/Fields/Markers/Matrices from other *peer* templates, declare them in frontmatter as `includes:` with entries `{ name, url }`. This is horizontal composition (template ∪ template), additive: NOTHING is overridden or deleted, and a name collision between two sources is an ERROR. This is a different axis from `parent_spec` (vertical chain to L1) and `specializes` (inert). See §9.
+5. **`includes` (additive composition, optional)**: if the app should reuse Concepts/Fields/Markers/Matrices from other *peer* apps, declare them in frontmatter as `includes:` with entries `{ name, url }`. This is horizontal composition (app ∪ app), additive: NOTHING is overridden or deleted, and a name collision between two sources is an ERROR. This is a different axis from `parent_spec` (vertical chain to L1) and `specializes` (inert). See §9.
 
 ##### Type Heuristic (String vs. Reference)
 
@@ -146,11 +146,11 @@ Before assigning `type:: string` to a field, ask: **does the value of this field
 - Any relationship where each cross-point needs its own state/type/attribute (e.g. `X` / `-` / `primary`) → matrix, typically with Markers.
 - Quick test: if you can count the same Element more than once on each side of the relationship, it is a strong signal for a matrix.
 
-**A3. Consolidated Template Plan (mandatory gate):**
-Before writing the template file, present EVERYTHING together in a single block — Concepts, Fields with types, Matrices, Markers — and ask if anything needs adjustment:
+**A3. Consolidated App Plan (mandatory gate):**
+Before writing the app file, present EVERYTHING together in a single block — Concepts, Fields with types, Matrices, Markers — and ask if anything needs adjustment:
 
 ```markdown
-📋 Proposed Template Plan:
+📋 Proposed App Plan:
 - Concepts: Stakeholders, Segments, Offerings
 - Fields:
   - Stakeholders: name (string), owner (reference), budget (string)
@@ -158,19 +158,19 @@ Before writing the template file, present EVERYTHING together in a single block 
 - Matrices: Stakeholders × Offerings (N:M, markers: interested/buyer/dismissed)
 - Markers: interested, buyer, dismissed
 
-Confirm this design, or would you like to adjust anything before creating the template?
-- [a] (Recommended) Confirm and create template
+Confirm this design, or would you like to adjust anything before creating the app?
+- [a] (Recommended) Confirm and create app
 - [b] Adjust Concepts/Fields/Matrices/Markers
 - [x] Cancel
 ```
 
-Only upon confirming [a] is the template file written: `<Template>_V_0-1-0_spec_NN.md` if completely new, or `<Model>_<Template>_V_x-y-z_spec_NN.md` if specializing an existing base (see §9).
+Only upon confirming [a] is the app file written: `<Template>_V_0-1-0_spec_NN.md` if completely new, or `<Model>_<Template>_V_x-y-z_spec_NN.md` if specializing an existing base (see §9).
 
 ---
 
 #### Phase B — Model Design (Level 3)
 
-Once the Phase A template is approved (or confirmed as-is):
+Once the Phase A app is approved (or confirmed as-is):
 
 **B1. Elements and Crossings Plan (mandatory gate):**
 Present what Elements will be created for each Concept, and what matrix crossings will be populated, BEFORE writing content:
@@ -223,8 +223,8 @@ as its very first output — before any questions, analysis, or tool calls. Sess
 |---|---|---|
 | **0** | Meta-specification (`defiNNe`) | Defines the meta-rules for specifications. |
 | **1** | Concrete Specification (`iNNfo`) | Level 1 meta-template. Defines the 4 root primitives (`Concept Definition`, `Field Definition`, `Matrix Definition`, `Marker Definition`). |
-| **2** | Template (Template / Specialization) | An iNNfo document with lightweight frontmatter (`level: 2`). The body instantiates the 4 root primitives as Markdown elements. **FORBIDDEN to put `concepts: []` or `fields: []` in the YAML frontmatter.** |
-| **3** | Data Model | Instantiates the concepts and fields defined by its parent template (`parent_spec`). |
+| **2** | App (App / Specialization) | An iNNfo document with lightweight frontmatter (`level: 2`). The body instantiates the 4 root primitives as Markdown elements. **FORBIDDEN to put `concepts: []` or `fields: []` in the YAML frontmatter.** |
+| **3** | Data Model | Instantiates the concepts and fields defined by its parent app (`parent_spec`). |
 
 ---
 
@@ -237,20 +237,20 @@ The `innfo-mcp` server exposes 15 deterministic tools built on `@cognnitive/innf
 | `list_models` | Scans the directory for valid iNNfo models. |
 | `read_model` | Parses a model into a structured AST / JSON. |
 | `get_spec` | Dynamically resolves the Level 1 specification. |
-| `get_template` | Dynamically resolves the Level 2 template and its primitives. |
+| `get_template` | Dynamically resolves the Level 2 app and its primitives. |
 | `validate_model` | Runs deterministic syntactic and schema validation (with a `(searched: ...)` diagnostic when the parent chain does not resolve). |
-| `check_workspace` | Runs one consolidated workspace integrity pass over every Level-3 model: validates each against its template and traceability, self-heals missing template packages/specs (write-once hydration), classifies each pinned template version against the published catalog, and returns one report with a per-model status and a workspace aggregate. Non-blocking and informational — validation failures never fail the tool. Accepts `root`, `summary_only` (aggregate + failing/upgrade-available models only, capped at 25), and `offline`. The editor runs the same pass on workspace open. |
+| `check_workspace` | Runs one consolidated workspace integrity pass over every Level-3 model: validates each against its app and traceability, self-heals missing app packages/specs (write-once hydration), classifies each pinned app version against the published catalog, and returns one report with a per-model status and a workspace aggregate. Non-blocking and informational — validation failures never fail the tool. Accepts `root`, `summary_only` (aggregate + failing/upgrade-available models only, capped at 25), and `offline`. The editor runs the same pass on workspace open. |
 | `validate_model_url` | Validates a model from a URL without writing it to disk. |
-| `validate_template` | Validates a Level 2 template against its parent Level 1 specification. |
+| `validate_template` | Validates a Level 2 app against its parent Level 1 specification. |
 | `apply_change` | Runs deterministic mutations (add field, rename, `bump_version`, etc.). |
-| `list_templates` | Lists Level 2 templates in the workspace, the global cache, and installed skills. |
-| `hydrate_template` | Atomically and immutably copies a Level 2 template into the workspace. |
+| `list_templates` | Lists Level 2 apps in the workspace, the global cache, and installed skills. |
+| `hydrate_template` | Atomically and immutably copies a Level 2 app into the workspace. |
 | `prune_orphaned_specs` | Analyzes reachability and purges orphaned specs with a zip backup. |
 | `sync_workspace_manifest` | Additively reconciles the `## NN Models` entries of the manifest against the Level 3 models discovered on disk (`dry_run` defaults to `true`). See §14. |
 | `list_template_procedures` | Discovers SOP procedures transitively across the `includes` tree (depth 10). |
 | `list_template_skills` | Discovers agent skills transitively across the `includes` tree (depth 10). |
 
-**Golden Rule:** The specification/template URL always comes from `parent_spec.url` or from the user. Never hardcode or invent URLs.
+**Golden Rule:** The specification/app URL always comes from `parent_spec.url` or from the user. Never hardcode or invent URLs.
 
 ---
 
@@ -264,8 +264,8 @@ Stable reference URLs (the version lives in the file name — `main` is already 
 
 ### The `parent_spec.url` Rule for Level 3 Models
 
-1. A Level 3 model's `parent_spec.url` must be a **STABLE (http/https)** URL pointing at the Level 2 template, or a **workspace-relative path** (e.g. `specs/MyTemplate_V_0-1-0_spec_NN.md`).
-2. **FORBIDDEN: absolute Windows paths** (e.g. `C:/Users/.../MyTemplate_spec_NN.md`): they break resolution in the Modeler (fetch over a local path) and in the MCP. The `innfo-mcp` resolver (`resolver-node.ts`) looks for the template only under the workspace's `specs/` (recursively); the canonical form is the stable http URL.
+1. A Level 3 model's `parent_spec.url` must be a **STABLE (http/https)** URL pointing at the Level 2 app, or a **workspace-relative path** (e.g. `specs/MyTemplate_V_0-1-0_spec_NN.md`).
+2. **FORBIDDEN: absolute Windows paths** (e.g. `C:/Users/.../MyTemplate_spec_NN.md`): they break resolution in the Modeler (fetch over a local path) and in the MCP. The `innfo-mcp` resolver (`resolver-node.ts`) looks for the app only under the workspace's `specs/` (recursively); the canonical form is the stable http URL.
 3. After setting `parent_spec.url`, ALWAYS verify resolution (see §5, parent-chain pre-check) before declaring the model done.
 4. **Relative paths resolve against the MCP server's root** (the `INNFO_MODELS_DIR` environment variable, or the process cwd when the server starts), NOT against the model file's own folder. Therefore, to validate a workspace with relative paths, the MCP root MUST be the workspace root; `root:` overrides only apply where the tool accepts them (`validate_model` with `root`, `get_spec`/`get_template` with `url`).
 5. **The resolver AUTO-CACHES every resolved parent** (local or remote) into `<workspace>/specs/`, under the document's own canonical versioned file name (write-once: if a file with that name already exists, it is never overwritten). There is no separate cache directory — `specs/` is the only local lookup, recursive, relative to the MCP server's `root`. (Note: `.spec-cache/` and `.specs/` are scanned only by the in-browser editor, as an extra heuristic for a version notice — they are not part of the MCP's real resolution; do not copy files there expecting the MCP to use them.) If a resolution fails, check that the MCP `root` points at the workspace root so relative paths resolve correctly. NEVER copy files into `specs/` by hand — let the resolver sync them.
@@ -316,20 +316,20 @@ Stable reference URLs (the version lives in the file name — `main` is already 
 
 ## 5. Operating Instructions & MCP Flow
 
-1. Get the template with `innfo-mcp_get_template({ url })`.
+1. Get the app with `innfo-mcp_get_template({ url })`.
 2. Present concepts to the user using the format with `[a] (Recommended)`.
 3. Draft the body using the unified syntax `# NN <Concept>`, `## NN <Concept>: <Element>`, `key:: value`.
 4. Validate the model with `innfo-mcp_validate_model({ content })`.
-5. **Parent-chain pre-check (MANDATORY before reporting done):** resolve the parent chain with `innfo-mcp_get_template({ model_id })` (or `{ url }`) BEFORE declaring the model done. If the template does NOT resolve (`Template could not be resolved` / `PARENT_RESOLUTION_FAILED`):
+5. **Parent-chain pre-check (MANDATORY before reporting done):** resolve the parent chain with `innfo-mcp_get_template({ model_id })` (or `{ url }`) BEFORE declaring the model done. If the app does NOT resolve (`Template could not be resolved` / `PARENT_RESOLUTION_FAILED`):
    - Do NOT report the model as done.
-   - Warn that the template is unresolved, showing the problematic `parent_spec.url`.
+   - Warn that the app is unresolved, showing the problematic `parent_spec.url`.
    - Read the new actionable `(searched: ...)` diagnostic returned by `validate_model` / `get_template`: it lists the directories the resolver searched for the parent. If the searched directories look wrong (e.g. they don't point at the workspace root), the problem is the **MCP root** (`INNFO_MODELS_DIR` or the server cwd), not the model: fix the root/URL and re-validate (see §2, rule 4).
    - Offer to fix it: a stable http/https URL or a workspace-relative path (never an absolute Windows path — see §2).
 6. When finished, show the **Visual Expectation Checklist (§12)** and the **Contextual Navigation Shortcuts (§13)** section.
 
 #### Canonical `.md` write path (MANDATORY)
 
-Every skill-driven `.md` write (new model, template, specialization, or full-file rewrite) MUST go through a single canonical path so files validate cleanly:
+Every skill-driven `.md` write (new model, app, specialization, or full-file rewrite) MUST go through a single canonical path so files validate cleanly:
 
 1. **Preferred:** scaffold via `innfo-mcp_init_model` (frontmatter version inferred from the resolved parent — never hand-written), then apply content with `innfo-mcp_apply_change` or a documented file-write tool.
 2. **Encoding:** UTF-8 without BOM, LF line endings, exactly one trailing newline.
@@ -348,7 +348,7 @@ Whenever an `innfo-mcp_apply_change` call returns `success: true` **and** a `mod
 
 #### Atomic version bump
 
-To raise the version of a Level 3 model and its associated template (parent_spec), use the MCP's `bump_version` operation — do NOT edit the frontmatter by hand:
+To raise the version of a Level 3 model and its associated app (parent_spec), use the MCP's `bump_version` operation — do NOT edit the frontmatter by hand:
 
 ```
 innfo-mcp_apply_change({
@@ -356,17 +356,17 @@ innfo-mcp_apply_change({
   op: "bump_version",
   args: { 
     version: "V_0-5-0",
-    parent_version: "V_0-5-0" // Optional: to re-version and rename the associated template
+    parent_version: "V_0-5-0" // Optional: to re-version and rename the associated app
   }
 })
 ```
 
 - **Automated Behavior**:
   1. Updates `model_version` in the frontmatter and renames the model file atomically.
-  2. If `parent_version` is provided, physically renames the local template file, updates its `spec_version` (in frontmatter), updates `parent_spec.name`/`url` in the model frontmatter, and copies the renamed template to the `specs/` directory.
+  2. If `parent_version` is provided, physically renames the local app file, updates its `spec_version` (in frontmatter), updates `parent_spec.name`/`url` in the model frontmatter, and copies the renamed app to the `specs/` directory.
   3. Consistently updates references in workspace `index.md`.
   4. Everything is validated via pre-check before performing any write (if validation fails, aborts without writing).
-- **Remaining manual checklist**: If the template was remote, remember to push it to its corresponding server or repository.
+- **Remaining manual checklist**: If the app was remote, remember to push it to its corresponding server or repository.
 
 ---
 
@@ -388,7 +388,7 @@ When a Concept or Element must be renamed:
 
 Every field must declare an explicit `type` (`string`, `select`, `reference`, `markdown_inline`, `markdown_file`, `image`, `file`, `video`, `audio`, `model`).
 
-> 💡 **Submodel Fields (`type:: model`)**: When you need a field to reference or contain another iNNfo model document (`*_NN.md`) with template enforcement (e.g. `target_template:: business`), use `type:: model`. Never claim that `type:: model` or submodel composition does not exist — it is a fully supported normative primitive in iNNfo (V_0-2-1+).
+> 💡 **Submodel Fields (`type:: model`)**: When you need a field to reference or contain another iNNfo model document (`*_NN.md`) with app enforcement (e.g. `target_template:: business`), use `type:: model`. Never claim that `type:: model` or submodel composition does not exist — it is a fully supported normative primitive in iNNfo (V_0-2-1+).
 
 > ⚠️ **List syntax — NEVER use quotes without brackets.** For any field with multiple values (`reference`, `sources::`, or any other list type), the only valid format is `[a, b, c]` — no quotes around each value. The format `"a", "b"` (individual quotes, no enclosing brackets) **corrupts parsing silently**: the validator treats it as a single unreadable string instead of a list, and ends up reporting a generic dangling reference without explaining the real cause. If you see that error and the field has loose quotes with no `[...]`, this is almost certainly the cause.
 
@@ -423,7 +423,7 @@ Once the user confirms, run the mutation via `innfo-mcp_apply_change` and re-val
 
 When the user picks option `[d]` (Analyze coherence), the agent takes the role of **Architecture Assistant**:
 
-1. Load the model (`read_model`) and its template (`get_template`).
+1. Load the model (`read_model`) and its app (`get_template`).
 2. Evaluate the 4 layers: **Formal Correctness**, **Logical Coherence**, **Semantic Coherence**, and **Solidity/Robustness**.
 3. **Presentation with Functional Impact (Assistant Mode):**
    Do not just list technical errors; explain the **business/functional risk** and offer the **1-click fix**:
@@ -449,7 +449,7 @@ Would you like me to apply the recommended fix automatically?
 There are **4 formal relationship forms** in iNNfo (`hierarchy`, `evaluable_matrix`, `graph_edge`, `sequence`) and two cross-linking mechanisms (`reference` fields and contextual mentions):
 
 1. **Taxonomic hierarchy (`hierarchy`)**: Declared **only** via nested WikiLink lists in the `# NN index` (`* [[Parent]]` -> `  * [[Child]]`).
-2. **Reference fields (`reference`)**: When a field has `type:: reference` in its template definition, its value in the Level 3 model **MUST be enclosed in WikiLink brackets `[[...]]`** (e.g. `location:: [[Dining-Room]]`). NEVER write the value as plain text (`location:: Dining-Room`), because that prevents incoming-reference detection in the editor.
+2. **Reference fields (`reference`)**: When a field has `type:: reference` in its app definition, its value in the Level 3 model **MUST be enclosed in WikiLink brackets `[[...]]`** (e.g. `location:: [[Dining-Room]]`). NEVER write the value as plain text (`location:: Dining-Room`), because that prevents incoming-reference detection in the editor.
 3. **Evaluable N-to-M relationships (`evaluable_matrix`)**: Expressed in `# NN matrices:` blocks for complex or scored relationships between concepts.
 4. **Contextual mentions**: Written as WikiLinks `[[Element]]` inside the prose Markdown description.
 
@@ -459,7 +459,7 @@ There are **4 formal relationship forms** in iNNfo (`hierarchy`, `evaluable_matr
 
 ## 8e. Free-form Tag Protocol (`tags::`)
 
-1. **Ad-hoc tagging at Level 3**: Any Element or Concept in a Level 3 model may declare the `tags::` property for free-form categorization *on the fly*, without modifying the Level 2 template or predefining a `Marker Definition`.
+1. **Ad-hoc tagging at Level 3**: Any Element or Concept in a Level 3 model may declare the `tags::` property for free-form categorization *on the fly*, without modifying the Level 2 app or predefining a `Marker Definition`.
 2. **List syntax**: Written as an inline list `tags:: [urgent, sprint-1, vip-client]` (or `tags:: urgent` for a single tag). For multiple values, the bracketed `[...]` syntax is MANDATORY.
 3. **Agent use**: When the user asks to "filter or act only on elements with tag X", the agent MUST inspect the `tags::` fields of each Element/Concept to restrict its scope to the matching entities only.
 4. **Coexistence with Markers**: `tags::` are lightweight plain-text labels. If the user needs an icon, color, weight, or participation in comparative matrices, the tag can be promoted to a formal Level 2 `Marker Definition`.
@@ -468,13 +468,13 @@ There are **4 formal relationship forms** in iNNfo (`hierarchy`, `evaluable_matr
 
 ## 9. Specialization Strategy
 
-When a model needs custom concepts or fields beyond the base template:
+When a model needs custom concepts or fields beyond the base app:
 1. **NEVER modify** specifications published under `specs/`.
-2. Create a specialization template file `<Model>_<Template>_V_x-y-z_spec_NN.md` with `level: 2`.
+2. Create a specialization app file `<Model>_<Template>_V_x-y-z_spec_NN.md` with `level: 2`.
 3. Point the Level 3 model's `parent_spec.url` at the specialization file.
-4. **The workspace `index.md` lists ONLY Level 3 models.** A `_spec_NN.md` file (Level 2 template / specialization) MUST NOT be listed as a model in `index.md`: it is resolved as a template via `parent_spec.url` and rendered as a `spec:` node, never as a model in the navigation tree.
+4. **The workspace `index.md` lists ONLY Level 3 models.** A `_spec_NN.md` file (Level 2 app / specialization) MUST NOT be listed as a model in `index.md`: it is resolved as an app via `parent_spec.url` and rendered as a `spec:` node, never as a model in the navigation tree.
 
-> **Note — 100% new template (no base to specialize):** When Phase A (§0c) results in a from-scratch design, with no canonical template as a base, the file is named `<Template>_V_0-1-0_spec_NN.md` (without the `<Model>_` prefix, because there is no base to specialize). The rest of the flow — the Level 3 model's `parent_spec.url`, `index.md` listing only Level 3 models — applies the same.
+> **Note — 100% new app (no base to specialize):** When Phase A (§0c) results in a from-scratch design, with no canonical app as a base, the file is named `<Template>_V_0-1-0_spec_NN.md` (without the `<Model>_` prefix, because there is no base to specialize). The rest of the flow — the Level 3 model's `parent_spec.url`, `index.md` listing only Level 3 models — applies the same.
 
 ### 9-bis. `includes` vs. specialization
 
@@ -482,11 +482,11 @@ They are distinct mechanisms:
 
 | | `includes` (composition) | Specialization (`parent_spec` pointing at a `_spec_NN.md`) |
 |---|---|---|
-| What it does | Additively unions Definitions from *peer* templates | The model points at its own template that replaces the canonical one |
+| What it does | Additively unions Definitions from *peer* apps | The model points at its own app that replaces the canonical one |
 | Override | Forbidden (name collision = ERROR) | The specialization redefines the whole body |
-| When | You need to combine several canonical templates as-is | You need to change/extend a specific template for one model |
+| When | You need to combine several canonical apps as-is | You need to change/extend a specific app for one model |
 
-A **composite** template (the one that declares `includes`) is the one the model names in its `parent_spec`; the included ones are standalone templates used as ingredients, not a lower category. `includes` is valid only at Level 2 — a Level 3 model composes through *its* template's `includes`, never its own. Combining `projects` + `organization` via `includes` is an ERROR while both declare the Concept `Roles` (you must rename on one side).
+A **composite** app (the one that declares `includes`) is the one the model names in its `parent_spec`; the included ones are standalone apps used as ingredients, not a lower category. `includes` is valid only at Level 2 — a Level 3 model composes through *its* app's `includes`, never its own. Combining `projects` + `organization` via `includes` is an ERROR while both declare the Concept `Roles` (you must rename on one side).
 
 ---
 
@@ -590,7 +590,7 @@ The workspace manifest (`workspace_NN.md`, section `# NN Models`) can drift out 
 - Sets `status:: archived` on an entry the tool itself created (identifiable by `<!-- nn:auto -->`) when its file no longer exists on disk — never deleting it.
 - Reactivates (`status:: active`) a previously archived tool-owned entry if its file reappears.
 - **Never modifies an entry without the `<!-- nn:auto -->` marker**, leaving it completely intact whether or not its file exists. Every hand-authored entry is untouchable by design.
-- Excludes from discovery the manifest itself, any model whose template is `cogNNitive` or `workspace` (in any version — those are lineage records, not navigation references), and anything outside the reconciliation scope (`backups/`, `archive/`, `specs/`).
+- Excludes from discovery the manifest itself, any model whose app is `cogNNitive` or `workspace` (in any version — those are lineage records, not navigation references), and anything outside the reconciliation scope (`backups/`, `archive/`, `specs/`).
 
 **Invocation protocol (mandatory — same pattern as the Change Preview with Diff, §8):**
 1. Run first with `dry_run: true` (the default) and inspect `changes` and `diff` in the response.
@@ -609,7 +609,7 @@ This is the headless / CLI-equivalent path for actioNN — there is no separate 
 
 ## 15. Model Procedure & Skill Discovery
 
-Executable procedures and agent skills are content declared dynamically in models and templates (not a fixed catalog in the skill). They are discovered by calling the MCP tools `list_template_procedures` and `list_template_skills`, which transitively walk the `parent_spec` hierarchy and the `includes` composition tree to a depth of 10 levels, deduplicating procedures by `id` and skills by `name`.
+Executable procedures and agent skills are content declared dynamically in models and apps (not a fixed catalog in the skill). They are discovered by calling the MCP tools `list_template_procedures` and `list_template_skills`, which transitively walk the `parent_spec` hierarchy and the `includes` composition tree to a depth of 10 levels, deduplicating procedures by `id` and skills by `name`.
 
 Additionally, procedures are discovered by reading the `## NN Procedure: ...` sections of the active model and the workspace's `procedures/` folder (`*_procedures_V_0-1-0_NN.md`).
 
@@ -663,7 +663,7 @@ Each session MUST record per-intent call and token counts via the `usage-counter
 
 ## Core Rules
 
-1. **Strict V_0-2-0 Meta-template:** Level 2 templates define primitives in the body (`# NN Concept Definition`). NEVER put `concepts: [...]` or `fields: [...]` in the Level 2 YAML frontmatter.
+1. **Strict V_0-2-0 Meta-template:** Level 2 apps define primitives in the body (`# NN Concept Definition`). NEVER put `concepts: [...]` or `fields: [...]` in the Level 2 YAML frontmatter.
 2. **Unified NN syntax:** Use `# NN <Concept>`, `## NN <Concept>: <Element>`, `key:: value`. Do not use obsolete `_NN` bullets or ````yaml` code blocks.
 3. **Optional, up-to-date Source Citations:** `sources::` is optional; it resolves canonically against the Source Collection (`sources/nn/`) without a redundant prefix, anchors to knowledge units (`@<unit>`), and takes bracketed lists `[a, b]` for multiple sources (no `src-xxx` IDs, no `#L...` line ranges, no `sources/staging/` buffer).
 4. **Zero Unilateral Mutation:** Never rename or move files without explicit confirmation.
@@ -673,12 +673,12 @@ Each session MUST record per-intent call and token counts via the `usage-counter
 8. **Architecture Assistant Mode:** In the `[d]` audit, explain business/functional risks and offer 1-click fixes.
 9. **Contextual Shortcuts:** End every response by offering 2-3 suggested next actions (Quick Actions).
 10. **Full MCP Delegation:** Query types, schemas, and validation from the `innfo-mcp` server; do not guess or duplicate the grammar.
-11. **Index Block: Concepts only:** The `# NN index` lists ONLY Concepts (types declared by the template), NEVER Elements (instances of Concepts). Elements are declared inside their Concept sections with `## NN <Concept>: <Element>`. The Elements↔Concepts relationship is by section structure and `reference` fields, not by hierarchy in the index.
+11. **Index Block: Concepts only:** The `# NN index` lists ONLY Concepts (types declared by the app), NEVER Elements (instances of Concepts). Elements are declared inside their Concept sections with `## NN <Concept>: <Element>`. The Elements↔Concepts relationship is by section structure and `reference` fields, not by hierarchy in the index.
 12. **Mandatory WikiLink syntax in references:** In every reference field (`type:: reference`), the value MUST be formatted using WikiLink syntax (`key:: [[Element]]`). Plain text without WikiLink brackets is forbidden.
 13. **Element descriptions in prose:** The description/explanation of an element in a Level 3 model must NEVER be written as a `description::` field. It must always be free-form Markdown prose below the `key:: value` field list, separated by a blank line.
 14. **Active Model Selection Gate:** Never perform editing, validation, audits, or model procedure execution without a validated active model in context. Run workspace discovery first if none is set.
 15. **Dynamic Quick Actions:** Only list procedure shortcuts in next steps if the model contains declared procedures.
-16. **Free-form Tags (`tags::`)**: Any Element or Concept in a Level 3 model may declare `tags:: [tag1, tag2]` for free-form categorization without modifying the Level 2 template. Multi-tag syntax requires brackets `[...]`. Agents should use this field to filter and scope actions to tagged elements.
+16. **Free-form Tags (`tags::`)**: Any Element or Concept in a Level 3 model may declare `tags:: [tag1, tag2]` for free-form categorization without modifying the Level 2 app. Multi-tag syntax requires brackets `[...]`. Agents should use this field to filter and scope actions to tagged elements.
 
 ---
 
@@ -718,9 +718,9 @@ appear in the index — they are discovered by expanding a Concept in the sideba
 
 When creating or editing a model, the agent must:
 
-1. **Read the template** (`get_template`) to obtain the defined Concepts
+1. **Read the app** (`get_template`) to obtain the defined Concepts
 2. **Identify root Concepts** (first level of the index)
-3. **Identify sub-Concepts** (if the template has hierarchies)
+3. **Identify sub-Concepts** (if the app has hierarchies)
 4. **Generate the index** listing ONLY Concepts, NOT Elements
 5. **Validate** with `validate_model` that the index contains no Elements
 

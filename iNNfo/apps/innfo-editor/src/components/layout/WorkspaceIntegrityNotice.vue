@@ -60,7 +60,7 @@ function buildSummaryPrompt(): string {
     const count = aggregate.versionStatus[status as keyof typeof aggregate.versionStatus]
     if (count > 0) lines.push(`- ${count} ${status}`)
   }
-  if (report.offline) lines.push('- offline: template catalog unreachable')
+  if (report.offline) lines.push('- offline: app catalog unreachable')
   return lines.join('\n')
 }
 
@@ -131,7 +131,7 @@ async function copySummary(): Promise<void> {
     >
       <div class="space-y-1">
         <p class="text-2xs font-semibold text-amber-700 dark:text-amber-300">
-          Template version updates or warnings
+          App version updates or warnings
         </p>
         <p class="text-2xs text-amber-600/80 dark:text-amber-400/80 leading-relaxed">
           <template v-for="(count, status) in report.aggregate.versionStatus" :key="status">
@@ -160,7 +160,7 @@ async function copySummary(): Promise<void> {
           Some checks could not be determined
         </p>
         <p class="text-2xs text-slate-500 dark:text-slate-400 leading-relaxed">
-          <span v-if="report.offline">Offline — the template catalog and remote checks were unreachable.</span>
+          <span v-if="report.offline">Offline — the app catalog and remote checks were unreachable.</span>
           <span v-else-if="report.degraded.length">Not checked on this platform.</span>
           <span v-else>Unknown.</span>
         </p>

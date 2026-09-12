@@ -317,7 +317,7 @@ function formatLog(): string {
     lines.push(`Path:     ${filePath.value}`)
     lines.push(`Model:    ${modelName.value} (v${modelVersion.value})`)
     lines.push(`Spec:     iNNfo v${formatVersion.value}`)
-    lines.push(`Template: ${templateName.value} (v${templateVersion.value})`)
+    lines.push(`App:     ${templateName.value} (v${templateVersion.value})`)
     lines.push('')
     lines.push(
       `Summary: ${totalPassed.value}/${totalChecks.value} passed — ${totalErrors.value} error${totalErrors.value !== 1 ? 's' : ''}, ${totalWarnings.value} warning${totalWarnings.value !== 1 ? 's' : ''}`,
@@ -362,7 +362,7 @@ function formatLog(): string {
       lines.push(`   File:     ${m.fileName}`)
       lines.push(`   Path:     ${path}`)
       lines.push(`   Spec:     iNNfo v${fVersion}`)
-      lines.push(`   Template: ${tName} (v${tVersion})`)
+      lines.push(`   App:      ${tName} (v${tVersion})`)
       
       const mErrors = report.checks.filter((c) => !c.passed && c.severity === 'error').length
       const mWarnings = report.checks.filter((c) => !c.passed && c.severity === 'warning').length
@@ -448,7 +448,7 @@ function formatAiPrompt(): string {
     lines.push(`- **Model Name:** \`${modelName.value}\``)
     lines.push(`- **Model Version:** \`${modelVersion.value}\``)
     lines.push(`- **Format Version (spec_version):** \`${formatVersion.value}\``)
-    lines.push(`- **Template:** \`${templateName.value}\` (v${templateVersion.value})`)
+    lines.push(`- **App:** \`${templateName.value}\` (v${templateVersion.value})`)
     lines.push(`- **Report Timestamp:** ${new Date().toISOString()}`)
     lines.push('')
     lines.push('## Validation Summary')
@@ -893,7 +893,7 @@ function copyToClipboard(text: string): void {
           <strong class="text-slate-800 dark:text-slate-200">Frontmatter:</strong> Checks basic metadata like <code>level</code>, <code>version</code>, and <code>parent_spec</code> links.
         </li>
         <li>
-          <strong class="text-slate-800 dark:text-slate-200">Body Syntax:</strong> Validates elements and relationships against the declared template.
+          <strong class="text-slate-800 dark:text-slate-200">Body Syntax:</strong> Validates elements and relationships against the declared app.
         </li>
         <li>
           <strong class="text-slate-800 dark:text-slate-200">Conventions:</strong> Checks naming conventions and clean file structure.
