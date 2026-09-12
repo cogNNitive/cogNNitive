@@ -1,10 +1,10 @@
 # Tasks: Lifecycle Narrative and Dynamic Sources Impact Checking
 
 ## Phase 1: Dynamic Sources Impact Checker Implementation
-- [x] 1.1 Create `scripts/lib/impact-checker.js` with `auditModelCitations` and heading-level diff analysis. <!-- id: task-1-1 -->
-- [x] 1.2 Wire `--check-impact` (and alias `--impact`) flag into `scripts/index.js`. <!-- id: task-1-2 -->
+- [x] 1.1 Create `scripts/lib/impact-checker.js` with `auditModelCitations`, heading-level diff analysis, and `buildImpactReport`/`writeImpactReport` for structured report generation. <!-- id: task-1-1 -->
+- [x] 1.2 Wire `--check-impact` (and alias `--impact`) flag into `scripts/index.js`, plus `--report` to write `export/Impact_Audit_<date>_report.md`. <!-- id: task-1-2 -->
 - [x] 1.3 Integrate lightweight impact warning into `scripts/index.js --scan` when snapshots are generated. <!-- id: task-1-3 -->
-- [x] 1.4 Write automated unit/integration tests for impact checking under `scripts/lib/impact-checker.test.js`. <!-- id: task-1-4 -->
+- [x] 1.4 Write automated unit/integration tests for impact checking (including report generation) under `test/unit/test-impact-checker.js` (tasks lists `scripts/lib/impact-checker.test.js`, but the real test file lives under `test/unit/`). <!-- id: task-1-4 -->
 
 ## Phase 2: Documentation & Narrative Refactoring
 - [x] 2.1 Refactor `docs/index.md` to incorporate the 3-phase lifecycle, external knowledge elicitation diagram, and refined value pillars. <!-- id: task-2-1 -->

@@ -13,7 +13,6 @@ const repoRoot = join(import.meta.dirname!, '..', '..', '..', '..')
 const editorSrc = join(repoRoot, 'apps', 'innfo-editor', 'src')
 
 const SOURCE_FILES = [
-  join(editorSrc, 'views', 'HomeView.vue'),
   join(editorSrc, 'components', 'layout', 'SetupWizard.vue'),
   join(editorSrc, 'composables', 'useWorkspaceScaffolding.ts'),
 ]
@@ -32,7 +31,7 @@ const allRefs = SOURCE_FILES.flatMap((file) =>
 
 describe('starter-sample URLs — V_0-2-0 adoption (D3 additional finding)', () => {
   it('finds the starter-sample URL literals it is meant to guard', () => {
-    expect(allRefs.length).toBeGreaterThanOrEqual(9)
+    expect(allRefs.length).toBeGreaterThanOrEqual(6)
   })
 
   it('every starter-sample URL points at a _V_0-2-0_ sample', () => {

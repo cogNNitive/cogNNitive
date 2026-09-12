@@ -12,7 +12,7 @@ const provenance = require('./provenance');
 const webImport = require('./webImport');
 const { bootstrapProject } = require('./lib/bootstrap');
 const { checkLineage } = require('./lib/lineage-check');
-const { auditModelCitations, checkScanImpact } = require('./lib/impact-checker');
+const { auditModelCitations, checkScanImpact, writeImpactReport } = require('./lib/impact-checker');
 const { promoteConversation, PROMOTION_OPTIONS } = require('./lib/conversations');
 
 async function main() {
@@ -27,6 +27,7 @@ async function main() {
     argv['check-impact'] ||
     argv.impact ||
     argv['impact-check'] ||
+    argv.report ||
     argv.src ||
     argv.dest ||
     argv.name ||
@@ -76,7 +77,7 @@ async function handleCliMode(argv) {
     process.exit(errors.length > 0 ? 1 : 0);
   }
 
-  if (argv['check-impact'] || argv.impact || argv['impact-check']) {
+  if (argv['check-impact'] || argv.impact || argv['impact-check'] || argv.report) {
     console.log(`Auditing model citations in "${projectDir}"...`);
     const audit = auditModelCitations(projectDir);
     for (const w of audit.warnings) console.log(`⚠️  ${w}`);
@@ -85,6 +86,10 @@ async function handleCliMode(argv) {
       console.log(`✅ All ${audit.validCitations} model citation(s) resolve to valid source files and headings.`);
     } else {
       console.error(`\nFound ${audit.errors.length} citation drift issue(s) across models.`);
+    }
+    if (argv.report) {
+      const { reportPath } = writeImpactReport(projectDir, audit);
+      console.log(`📊 Impact audit report written to: ${reportPath}`);
     }
     process.exit(audit.errors.length > 0 ? 1 : 0);
   }

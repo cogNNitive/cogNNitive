@@ -2,7 +2,7 @@ const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { auditModelCitations, checkScanImpact, findClosestSlugs } = require('../../scripts/lib/impact-checker');
+const { auditModelCitations, checkScanImpact, findClosestSlugs, buildImpactReport, writeImpactReport } = require('../../scripts/lib/impact-checker');
 
 async function run() {
   let passed = 0;
@@ -102,6 +102,31 @@ status:: Inactive
     ], tmpDir);
     ok(scanImpact.length > 0, 'scan impact returns affected models for changed source');
     eq(scanImpact[0].affectedModels[0].modelFile, 'models/Drifted_V_1-0-0_NN.md', 'identifies correct affected model');
+
+    // Test 5: buildImpactReport emits structured markdown with required frontmatter
+    const reportMd = buildImpactReport(auditDrift, '2026-09-12');
+    ok(reportMd.includes('type: report'), 'report carries type: report frontmatter');
+    ok(reportMd.includes('derived_from:'), 'report carries derived_from frontmatter');
+    ok(reportMd.includes('models/Drifted_V_1-0-0_NN.md'), 'report names each affected model');
+    ok(reportMd.includes('Unknown Heading Target'), 'report names the affected element');
+    ok(reportMd.includes('non-existent-heading'), 'report cites the drifting source heading');
+    ok(/Recommended remediation/i.test(reportMd), 'report includes recommended remediation');
+
+    // Test 6: writeImpactReport writes export/Impact_Audit_<date>_report.md
+    const written = writeImpactReport(tmpDir, auditDrift, '2026-09-12');
+    ok(fs.existsSync(written.reportPath), 'report file is created on disk');
+    ok(written.reportPath.endsWith(path.join('export', 'Impact_Audit_2026-09-12_report.md').replace(/\\/g, '/')), 'report path uses export/Impact_Audit_<date>_report.md');
+    const writtenContent = fs.readFileSync(written.reportPath, 'utf8');
+    ok(writtenContent.includes('type: report'), 'written report carries type: report');
+    ok(writtenContent.includes('derived_from:'), 'written report carries derived_from');
+    ok(writtenContent.includes('Recommended remediation'), 'written report details remediation');
+
+    // Test 7: clean audit produces a report with zero drift (different code path)
+    const cleanWritten = writeImpactReport(tmpDir, auditClean, '2026-09-12');
+    ok(fs.existsSync(cleanWritten.reportPath), 'clean audit still writes a report file');
+    const cleanContent = fs.readFileSync(cleanWritten.reportPath, 'utf8');
+    ok(cleanContent.includes('0'), 'clean report reports zero drift issues');
+    ok(!cleanContent.includes('Recommended remediation'), 'clean report omits remediation section when no drift');
 
   } finally {
     try {

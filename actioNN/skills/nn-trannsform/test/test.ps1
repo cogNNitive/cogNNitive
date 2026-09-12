@@ -132,8 +132,8 @@ try {
   Assert-True (Test-Path "$TEST_DIR\test-project\index.md") "semantic workspace index.md created"
   Assert-True (Test-Path "$TEST_DIR\test-project\sources\nn\import\hello.md") "hello.md created in sources/nn/import/"
 
-  $provModel = Get-ChildItem "$TEST_DIR\test-project" -Filter "*_cogNNitive_NN.md" -ErrorAction SilentlyContinue
-  Assert-True ($null -ne $provModel) "provenance model (*_cogNNitive_NN.md) created"
+  $provModel = Get-ChildItem "$TEST_DIR\test-project" -Filter "*_NN.md" -Recurse -ErrorAction SilentlyContinue
+  Assert-True ($null -ne $provModel) "provenance model (*_workspace_NN.md / *_cogNNitive_NN.md) created"
 
   $helloContent = Get-Content "$TEST_DIR\test-project\sources\nn\import\hello.md" -Raw
   Assert-True ($helloContent -match 'Hello world') "hello.md contains 'Hello world'"

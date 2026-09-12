@@ -245,8 +245,114 @@ function checkScanImpact(changedSources, projectDir) {
   return results;
 }
 
+/**
+ * Build a recommended remediation directive for a drifted citation based on
+ * the reason it was flagged.
+ *
+ * @param {string} reason
+ * @param {string[]} [suggestions]
+ * @returns {string}
+ */
+function remediationFor(reason, suggestions) {
+  if (reason === 'missing_file') {
+    return 'Restore the missing source file, or update the citation to point to an existing source.';
+  }
+  if (reason === 'missing_heading' && suggestions && suggestions.length > 0) {
+    return `Update the citation to one of the suggested headings: ${suggestions.map((s) => `#${s}`).join(', ')} — or restore the missing heading in the source.`;
+  }
+  if (reason === 'missing_heading') {
+    return 'Update the citation to an existing heading, or restore the missing heading in the source.';
+  }
+  return 'Review the source and update the model citation accordingly.';
+}
+
+/**
+ * Render a structured Markdown audit report from an impact audit result.
+ * The report carries `type: report` and `derived_from` frontmatter, names every
+ * affected model and element, and details recommended remediation per drift.
+ *
+ * @param {ReturnType<typeof auditModelCitations>} audit
+ * @param {string} date ISO date string used for the filename/header (e.g. "2026-09-12").
+ * @returns {string}
+ */
+function buildImpactReport(audit, date) {
+  const d = date || new Date().toISOString().slice(0, 10);
+  const lines = [];
+  lines.push('---');
+  lines.push('type: report');
+  lines.push('title: Dynamic Sources Impact Audit Report');
+  lines.push(`date: ${d}`);
+  lines.push('derived_from: auditModelCitations');
+  lines.push('---');
+  lines.push('');
+  lines.push('# Dynamic Sources Impact Audit Report');
+  lines.push('');
+  lines.push(`Generated on **${d}**.`);
+  lines.push('');
+  lines.push('## Summary');
+  lines.push('');
+  lines.push(`- Total citations audited: ${audit.totalCitations}`);
+  lines.push(`- Valid citations: ${audit.validCitations}`);
+  lines.push(`- Drift issues found: ${audit.errors.length}`);
+
+  if (audit.driftedCitations.length > 0) {
+    lines.push('');
+    lines.push('## Drifted Citations');
+    lines.push('');
+    for (const dc of audit.driftedCitations) {
+      lines.push(`### ${dc.modelFile}`);
+      lines.push('');
+      lines.push(`**Element:** ${dc.elementName || '(untitled element)'}`);
+      lines.push('');
+      lines.push('| Field | Value |');
+      lines.push('|-------|-------|');
+      lines.push(`| Citation | \`${dc.citation}\` |`);
+      lines.push(`| Source file | \`sources/nn/${dc.sourceFile}\` |`);
+      lines.push(`| Heading slug | \`${dc.headingSlug || '(whole file)'}\` |`);
+      lines.push(`| Status | \`${dc.reason}\` |`);
+      if (dc.suggestions && dc.suggestions.length > 0) {
+        lines.push(`| Suggested headings | ${dc.suggestions.map((s) => `\`#${s}\``).join(', ')} |`);
+      }
+      lines.push(`| Recommended remediation | ${remediationFor(dc.reason, dc.suggestions)} |`);
+      lines.push('');
+    }
+  }
+
+  if (audit.warnings.length > 0) {
+    lines.push('## Warnings');
+    lines.push('');
+    for (const w of audit.warnings) {
+      lines.push(`- ${w}`);
+    }
+    lines.push('');
+  }
+
+  return lines.join('\n');
+}
+
+/**
+ * Write a structured Markdown impact audit report to
+ * `export/Impact_Audit_<date>_report.md` inside the workspace.
+ *
+ * @param {string} projectDir
+ * @param {ReturnType<typeof auditModelCitations>} audit
+ * @param {string} [date] ISO date string used for the filename (defaults to today).
+ * @returns {{ reportPath: string, content: string }}
+ */
+function writeImpactReport(projectDir, audit, date) {
+  const d = date || new Date().toISOString().slice(0, 10);
+  const exportDir = path.join(projectDir, 'export');
+  fs.mkdirSync(exportDir, { recursive: true });
+  const reportPath = path.join(exportDir, `Impact_Audit_${d}_report.md`);
+  const content = buildImpactReport(audit, d);
+  fs.writeFileSync(reportPath, content, 'utf8');
+  return { reportPath: reportPath.replace(/\\/g, '/'), content };
+}
+
 module.exports = {
   auditModelCitations,
   checkScanImpact,
   findClosestSlugs,
+  buildImpactReport,
+  writeImpactReport,
 };
