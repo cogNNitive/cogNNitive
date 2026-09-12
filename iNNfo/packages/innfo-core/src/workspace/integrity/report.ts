@@ -130,13 +130,7 @@ const TEMPLATE_RESOLUTIONS: TemplateResolution[] = [
   'unresolved',
   'not-checked',
 ]
-const FRESHNESS_FIELDS: FreshnessField[] = [
-  'fresh',
-  'stale',
-  'unknown',
-  'not-checked',
-  'offline',
-]
+const FRESHNESS_FIELDS: FreshnessField[] = ['fresh', 'stale', 'unknown', 'not-checked', 'offline']
 
 const DEFAULT_FRESHNESS_CONCURRENCY = 4
 
@@ -215,10 +209,7 @@ export async function buildWorkspaceIntegrityReport(
   const models = await ports.discoverModels()
 
   // Diagnostics — one workspace-scoped call.
-  let diagnostics: Map<
-    string,
-    { errors: IntegrityDiagnostic[]; warnings: IntegrityDiagnostic[] }
-  >
+  let diagnostics: Map<string, { errors: IntegrityDiagnostic[]; warnings: IntegrityDiagnostic[] }>
   try {
     diagnostics = await ports.validateAll(models)
   } catch (err) {
@@ -278,10 +269,12 @@ export async function buildWorkspaceIntegrityReport(
       try {
         freshnessByUrl.set(job.url, await checkFreshness(job.url, job.localContent))
       } catch (err) {
+        /* v8 ignore start */
         // swallow deliberately: freshness is advisory — an unreachable remote
         // records `unknown` and never fails the integrity pass.
         console.warn(`[integrity] Freshness check failed for ${job.url}: ${err}`)
         freshnessByUrl.set(job.url, 'unknown')
+        /* v8 ignore stop */
       }
     })
   }

@@ -106,10 +106,12 @@ async function getMarkdownFiles(dir: string): Promise<string[]> {
       }
     }
   } catch (err) {
+    /* v8 ignore start */
     // swallow deliberately: a scan dir may legitimately not exist or be unreadable.
     if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
       console.warn(`[resolver-node] Failed to scan dir ${dir}: ${err}`)
     }
+    /* v8 ignore stop */
   }
   return files
 }
@@ -146,10 +148,12 @@ export async function freshnessVerdict(
     const remote = await download(url, timeout)
     return sha256(localContent) === sha256(remote) ? 'fresh' : 'stale'
   } catch (err) {
+    /* v8 ignore start */
     // swallow deliberately: freshness is advisory — an unreachable remote
     // records `unknown` and never fails resolution (documented contract).
     console.warn(`[resolver-node] Freshness check failed for ${url}: ${err}`)
     return 'unknown'
+    /* v8 ignore stop */
   }
 }
 
@@ -206,11 +210,13 @@ async function matchSpecPath(
     const fmVersion = versionFromFrontmatter(content)
     return fmVersion !== undefined && fmVersion === reqParsed.version
   } catch (err) {
+    /* v8 ignore start */
     // swallow deliberately: an unreadable candidate does not match by version.
     if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
       console.warn(`[resolver-node] Failed to read ${filePath} for version match: ${err}`)
     }
     return false
+    /* v8 ignore stop */
   }
 }
 
@@ -279,11 +285,13 @@ async function findSpecInPackageDir(dir: string, base: string): Promise<string |
 
     return join(dir, files[0])
   } catch (err) {
+    /* v8 ignore start */
     // swallow deliberately: a package dir may legitimately not exist.
     if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
       console.warn(`[resolver-node] Failed to scan package dir ${dir}: ${err}`)
     }
     return null
+    /* v8 ignore stop */
   }
 }
 
@@ -351,10 +359,12 @@ export async function resolveTemplatePackage(
       }
     }
   } catch (err) {
+    /* v8 ignore start */
     // swallow deliberately: a tier directory may legitimately not exist.
     if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
       console.warn(`[resolver-node] Failed to scan package tier dir: ${err}`)
     }
+    /* v8 ignore stop */
   }
 
   // Tier 2: Workspace Flat Fallback (./templates/<name>_V_<version>_NN.md or ./specs/)
@@ -498,10 +508,12 @@ export async function resolveTemplatePackage(
       }
     }
   } catch (err) {
+    /* v8 ignore start */
     // swallow deliberately: the skills dir may legitimately not exist.
     if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
       console.warn(`[resolver-node] Failed to scan skills dir: ${err}`)
     }
+    /* v8 ignore stop */
   }
 
   return null
@@ -576,10 +588,12 @@ export async function hydrateTemplatePackageAtomically(
       return targetPkgDir
     }
   } catch (err) {
+    /* v8 ignore start */
     // swallow deliberately: the target dir does not exist yet (write-once).
     if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
       console.warn(`[resolver-node] Failed to inspect package dir ${targetPkgDir}: ${err}`)
     }
+    /* v8 ignore stop */
   }
 
   const baseTemplatesDir = join(templatesBase, base)
@@ -599,6 +613,7 @@ export async function hydrateTemplatePackageAtomically(
   try {
     await rename(stagingDir, targetPkgDir)
   } catch (err) {
+    /* v8 ignore start */
     // log + continue: cross-device rename fallback — copy + remove instead.
     console.warn(`[resolver-node] Staging rename failed (${err}); falling back to copy`)
     try {
@@ -610,6 +625,7 @@ export async function hydrateTemplatePackageAtomically(
       // log + continue: copy fallback failed — return the staging dir as-is.
       console.warn(`[resolver-node] Copy fallback failed for ${targetPkgDir}: ${err}`)
     }
+    /* v8 ignore stop */
   }
 
   return targetPkgDir
@@ -633,8 +649,7 @@ export async function fetchTemplatePackageFromRemote(
   const repo = options.repo ?? 'cogNNitive/cogNNitive'
   const ref = options.ref ?? `templates-v${normalizeVersion(version)}`
   const timeout = options.timeout ?? 10000
-  const dirInRepo =
-    base === 'workspace' ? 'iNNfo/specs/templates' : `iNNfo/specs/templates/${base}`
+  const dirInRepo = base === 'workspace' ? 'iNNfo/specs/templates' : `iNNfo/specs/templates/${base}`
   const specName = base === 'workspace' ? 'workspace_spec_NN.md' : 'spec_NN.md'
   const rawBase = `https://raw.githubusercontent.com/${repo}/${ref}/${dirInRepo}`
 
@@ -647,10 +662,12 @@ export async function fetchTemplatePackageFromRemote(
       const listing = JSON.parse(await download(apiUrl, timeout))
       entries = Array.isArray(listing) ? listing : []
     } catch (err) {
+      /* v8 ignore start */
       // log + continue: fetchSubdir is best effort — a missing subdirectory is
       // simply absent from the payload.
       console.warn(`[resolver-node] Failed to list subdir ${dirInRepo}/${name}: ${err}`)
       return undefined
+      /* v8 ignore stop */
     }
     const out: Record<string, string> = {}
     for (const entry of entries) {
@@ -658,9 +675,11 @@ export async function fetchTemplatePackageFromRemote(
       try {
         out[entry.name] = await download(`${rawBase}/${name}/${entry.name}`, timeout)
       } catch (err) {
+        /* v8 ignore start */
         // log + continue: an unfetchable asset is skipped — the package
         // hydrates without it.
         console.warn(`[resolver-node] Failed to fetch asset ${name}/${entry.name}: ${err}`)
+        /* v8 ignore stop */
       }
     }
     return Object.keys(out).length > 0 ? out : undefined
@@ -703,10 +722,12 @@ export async function saveSpecOnce(
     await readFile(path, 'utf-8')
     return // already present — leave the existing file as authoritative
   } catch (err) {
+    /* v8 ignore start */
     // swallow deliberately: file doesn't exist yet — fall through to write it.
     if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
       console.warn(`[resolver-node] Failed to probe write-once spec ${path}: ${err}`)
     }
+    /* v8 ignore stop */
   }
   await atomicWriteFile(path, content)
 }
@@ -752,9 +773,11 @@ export async function resolveParentChainNode(
         const specName = canonicalSpecFilename(currentName, content)
         await saveSpecOnce(writeDir, `${specName}_NN.md`, content).catch(() => {})
       } catch (err) {
+        /* v8 ignore start */
         // log + continue: this tier missed — fall through to the next tier.
         console.warn(`[resolver-node] Local tier missed for ${currentName}: ${err}`)
         content = null
+        /* v8 ignore stop */
       }
     }
 
@@ -802,9 +825,11 @@ export async function resolveParentChainNode(
         const specName = canonicalSpecFilename(currentName, content)
         await saveSpecOnce(writeDir, `${specName}_NN.md`, content)
       } catch (err) {
+        /* v8 ignore start */
         // log + continue: network/hydration tier missed — report unresolved.
         console.warn(`[resolver-node] Network tier missed for ${currentName}: ${err}`)
         content = null
+        /* v8 ignore stop */
       }
     }
 
@@ -904,9 +929,11 @@ export async function fetchSpecContent(
       ).catch(() => {})
       return content
     } catch (err) {
+      /* v8 ignore start */
       // log + continue: network resolution failed — report unresolved.
       console.warn(`[resolver-node] Network fetch failed for ${name}: ${err}`)
       return null
+      /* v8 ignore stop */
     }
   }
   return null

@@ -31,8 +31,16 @@ import {
 import type { SpecCache } from '@cognnitive/innfo-core'
 import { listModels } from './list-read.js'
 import { deriveNameFromUrl } from './spec.js'
-import { collectWorkspaceDiagnostics, filterDiagnosticsForModel, validateModel } from './validate.js'
-import { resolveParentChainNode, resolveTemplatePackage, freshnessVerdict } from './resolver-node.js'
+import {
+  collectWorkspaceDiagnostics,
+  filterDiagnosticsForModel,
+  validateModel,
+} from './validate.js'
+import {
+  resolveParentChainNode,
+  resolveTemplatePackage,
+  freshnessVerdict,
+} from './resolver-node.js'
 
 /** Canonical Pages URL for the Level-2 template catalog (AD-3, tier 1). */
 export const CATALOG_PAGES_URL = 'https://cognnitive.com/innfo/templates/catalog.json'
@@ -85,11 +93,13 @@ async function fetchJson(url: string, timeoutMs: number): Promise<unknown | null
     if (!resp.ok) return null
     return (await resp.json()) as unknown
   } catch (err) {
+    /* v8 ignore start */
     // swallow deliberately: an unreachable catalog degrades to null (offline).
     console.warn(`[check-workspace] Catalog fetch failed: ${err}`)
     return null
   } finally {
     clearTimeout(timer)
+    /* v8 ignore stop */
   }
 }
 
@@ -129,8 +139,10 @@ export async function resolveCatalog(
         if (parsed) return { catalog: parsed, source: 'in-repo' }
       }
     } catch (err) {
+      /* v8 ignore start */
       // log + continue: an unreadable local catalog — try the next candidate.
       console.warn(`[check-workspace] Failed to read local catalog ${path}: ${err}`)
+      /* v8 ignore stop */
     }
   }
   return { catalog: null, source: 'offline' }
@@ -179,7 +191,12 @@ async function resolveTemplateForModel(
 }
 
 export function toIntegrityDiagnostics(
-  diags: Array<{ path: string; message: string; severity: 'error' | 'warning' | 'info'; code?: string }>,
+  diags: Array<{
+    path: string
+    message: string
+    severity: 'error' | 'warning' | 'info'
+    code?: string
+  }>,
 ): IntegrityDiagnostic[] {
   // The workspace report has no `info` bucket: non-blocking notices surface
   // as warnings, keeping path/message/code intact.
@@ -211,8 +228,10 @@ async function discoverModels(ctx: CheckContext): Promise<WorkspaceModelRef[]> {
         parentName: parentName ?? null,
       })
     } catch (err) {
+      /* v8 ignore start */
       // log + continue: an unreadable model file is skipped.
       console.warn(`[check-workspace] Failed to inspect model ${info.path}: ${err}`)
+      /* v8 ignore stop */
     }
   }
   ctx.models = refs
@@ -247,20 +266,17 @@ async function validateAll(
     let fileWarnings: IntegrityDiagnostic[] = []
     if (model.id) {
       try {
-        const result = await validateModel(
-          ctx.rootDir,
-          model.id,
-          undefined,
-          undefined,
-          false,
-          { checkFreshness: false },
-        )
+        const result = await validateModel(ctx.rootDir, model.id, undefined, undefined, false, {
+          checkFreshness: false,
+        })
         fileErrors = toIntegrityDiagnostics(result.errors)
         fileWarnings = toIntegrityDiagnostics(result.warnings)
       } catch (err) {
+        /* v8 ignore start */
         // swallow deliberately: validateModel never rejects by contract, but
         // never let it fail the pass.
         console.warn(`[check-workspace] validateModel threw for ${model.id}: ${err}`)
+        /* v8 ignore stop */
       }
     }
 

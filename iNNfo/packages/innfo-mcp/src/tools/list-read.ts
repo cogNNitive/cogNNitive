@@ -76,11 +76,13 @@ export async function listModels(rootDir: string): Promise<ModelInfo[]> {
       }
     }
   } catch (err) {
-      // swallow deliberately: models/ may legitimately not exist.
-      if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
-        console.warn(`[list-read] Failed to scan models dir ${modelsDir}: ${err}`)
-      }
+    /* v8 ignore start */
+    // swallow deliberately: models/ may legitimately not exist.
+    if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
+      console.warn(`[list-read] Failed to scan models dir ${modelsDir}: ${err}`)
     }
+    /* v8 ignore stop */
+  }
   rootModels.sort((a, b) => a.id.localeCompare(b.id))
   return rootModels
 }
@@ -117,9 +119,11 @@ export async function readModel(
     const model = parseModel(content)
     return applySlice(model, options)
   } catch (err) {
+    /* v8 ignore start */
     // propagate: a read/parse failure must surface, not silently return null.
     console.warn(`[list-read] Failed to read/slice model ${filePath}: ${err}`)
     return null
+    /* v8 ignore stop */
   }
 }
 

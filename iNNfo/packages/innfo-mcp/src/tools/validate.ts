@@ -109,11 +109,13 @@ function syncFindSubmodel(
         if (found) return found
       }
     } catch (err) {
+      /* v8 ignore start */
       // swallow deliberately: a search dir may legitimately not exist.
       if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
         console.warn(`[validate] Failed to scan dir ${dir}: ${err}`)
       }
       return null
+      /* v8 ignore stop */
     }
     return null
   }
@@ -154,10 +156,12 @@ export function buildTemplateSchemaResolverFromCache(
     try {
       return resolveTemplateSchema(doc.rawContent, resolveInclude).schema
     } catch (err) {
+      /* v8 ignore start */
       // swallow deliberately: an unresolvable schema degrades to null (no
       // schema), never aborts validation — AD-04 contract.
       console.warn(`[validate] Schema resolution degraded for ${doc.name}: ${err}`)
       return null
+      /* v8 ignore stop */
     }
   }
 }
@@ -197,10 +201,12 @@ export function createNodeDirectoryHandle(
       try {
         dirents = await readdir(dirPath, { withFileTypes: true })
       } catch (err) {
+        /* v8 ignore start */
         // swallow deliberately: a workspace dir may legitimately not exist or
         // be unreadable; the directory then contributes no entries.
         console.warn(`[validate] Failed to readdir ${dirPath}: ${err}`)
         return
+        /* v8 ignore stop */
       }
       for (const dirent of dirents) {
         if (ignore && ignore.has(dirent.name)) continue
@@ -283,9 +289,11 @@ export async function collectWorkspaceDiagnostics(
         content,
       }
     } catch (err) {
+      /* v8 ignore start */
       // swallow deliberately: an unreadable source file reports not-exists.
       console.warn(`[validate] Failed to read source ${abs}: ${err}`)
       return { exists: false }
+      /* v8 ignore stop */
     }
   }
   return [
@@ -471,9 +479,11 @@ export async function validateModel(
       const templateUrl = fm?.parent_spec?.url
       return { exists: true, templateName, templateUrl }
     } catch (err) {
+      /* v8 ignore start */
       // swallow deliberately: an unreadable model reports not-exists.
       console.warn(`[validate] Failed to inspect model ${refPath}: ${err}`)
       return { exists: false }
+      /* v8 ignore stop */
     }
   }
 

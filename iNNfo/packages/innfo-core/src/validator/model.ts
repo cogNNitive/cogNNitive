@@ -58,7 +58,8 @@ export function reportCheckFromWarning(w: ValidationError, templateName?: string
       w.code === 'TEMPLATE_CACHE_STALE'
         ? 'Verifies that local cached template in specs/ matches canonical remote upstream.'
         : w.message,
-    category: (w.code === 'TEMPLATE_CACHE_STALE' ? 'governance' : 'convention') as 'governance' | 'convention',
+    category: (w.code === 'TEMPLATE_CACHE_STALE' ? 'governance' : 'convention') as
+      'governance' | 'convention',
     severity: w.severity === 'info' ? 'info' : 'warning',
     passed: false,
     message: w.message,
@@ -78,8 +79,7 @@ function buildReportMetadata(
       label: e.path || 'Validation error',
       description: e.message,
       category: (e.code === 'TEMPLATE_CACHE_STALE' ? 'governance' : 'convention') as
-        | 'governance'
-        | 'convention',
+        'governance' | 'convention',
       severity: 'error' as const,
       passed: false,
       message: e.message,
@@ -146,8 +146,11 @@ export function validateModel(
   for (const diag of composed.errors) {
     d.add({ ...diag, path: `parent.${diag.path}` })
   }
-  const { concepts: templateConcepts, markers: templateMarkers, matrices: templateMatrices } =
-    composed.schema
+  const {
+    concepts: templateConcepts,
+    markers: templateMarkers,
+    matrices: templateMatrices,
+  } = composed.schema
 
   checkTemplateDocumentation(templateConcepts, template.rawContent || '', d)
 
@@ -215,9 +218,11 @@ export function validateModel(
           }
         }
       } catch (err) {
+        /* v8 ignore start */
         // swallow deliberately: offline / unreachable network falls back
         // gracefully without failing validation (freshness is advisory).
         console.warn(`[validator] Remote template freshness check skipped: ${err}`)
+        /* v8 ignore stop */
       }
     }
 

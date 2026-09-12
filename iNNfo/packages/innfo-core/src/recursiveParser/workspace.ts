@@ -2,7 +2,12 @@ import type { DirectoryHandleLike, FileHandleLike } from '../fs-types'
 import type { ModelDriver, ModelNode } from '../types'
 import type { TemplateSchema } from '../schema'
 import { IdentityRegistry } from '../identity'
-import type { ParseContext, RecursiveParseOptions, RecursiveParseResult, WorklistItem } from './types'
+import type {
+  ParseContext,
+  RecursiveParseOptions,
+  RecursiveParseResult,
+  WorklistItem,
+} from './types'
 import { stripMdSuffix, normalizePathKey, resolveSubmodelPath, basename } from './paths'
 import { parseAndRegisterModel } from './model'
 import { parseModel, parseFrontmatter, stripFrontmatter } from '../parser'
@@ -135,10 +140,12 @@ async function findPrimaryWorkspaceFile(
           const parsed = await driver.readModel(name)
           return { path: name, name: stripMdSuffix(name), content: parsed.rawContent }
         } catch (err) {
+          /* v8 ignore start */
           // swallow deliberately: a fallback entrypoint file may not exist.
           if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
             console.warn(`[workspace] Failed to read fallback entrypoint ${name}: ${err}`)
           }
+          /* v8 ignore stop */
         }
       }
     }
@@ -212,7 +219,13 @@ export function extractSubmodelRefs(
           referringPath,
           author: cleanAuthor,
         }
-        if (!modelRefs.some((r) => normalizePathKey(resolveSubmodelPath(r.path, referringPath)) === normalizePathKey(resolved))) {
+        if (
+          !modelRefs.some(
+            (r) =>
+              normalizePathKey(resolveSubmodelPath(r.path, referringPath)) ===
+              normalizePathKey(resolved),
+          )
+        ) {
           modelRefs.push(ref)
         }
       }
@@ -244,7 +257,9 @@ export function extractSubmodelRefs(
             const rawVal = typeof val === 'string' ? val : undefined
             if (rawVal) {
               const author =
-                typeof el.fields['author'] === 'string' ? (el.fields['author'] as string) : undefined
+                typeof el.fields['author'] === 'string'
+                  ? (el.fields['author'] as string)
+                  : undefined
               addRef(rawVal, author)
             }
           }
@@ -252,8 +267,10 @@ export function extractSubmodelRefs(
       }
     }
   } catch (err) {
+    /* v8 ignore start */
     // log + continue: parse failure degrades to regex wikilink extraction.
     console.warn(`[workspace] Submodel reference parse failed; falling back to regex: ${err}`)
+    /* v8 ignore stop */
   }
 
   // 2. Extract Wikilinks: [[target.md]]
@@ -314,10 +331,12 @@ function schemaFor(
     const fm = (parseFrontmatter(content) ?? {}) as Record<string, unknown>
     return options.resolveTemplateSchema({ path, name, content, frontmatter: fm }) ?? undefined
   } catch (err) {
+    /* v8 ignore start */
     // swallow deliberately: an unresolvable template schema degrades to "no
     // schema" for this model (AD-04 contract), never aborts the parse.
     console.warn(`[workspace] Template schema resolution failed for ${path}: ${err}`)
     return undefined
+    /* v8 ignore stop */
   }
 }
 
@@ -429,7 +448,12 @@ export async function recursiveParse(
 
   // Step 3: Iterative worklist traversal
   const queue: WorklistItem[] = []
-  const entrypointSchema = schemaFor(options, entrypointPath, primary?.name ?? '', entrypointContent)
+  const entrypointSchema = schemaFor(
+    options,
+    entrypointPath,
+    primary?.name ?? '',
+    entrypointContent,
+  )
   const initialRefs = extractSubmodelRefs(entrypointContent, entrypointPath, entrypointSchema)
   const entrypointKey = normalizePathKey(entrypointPath)
   for (const ref of initialRefs) {

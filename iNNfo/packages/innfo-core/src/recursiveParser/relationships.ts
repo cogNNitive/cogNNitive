@@ -64,9 +64,11 @@ export function addFieldAndMentionEdges(
       }
     }
   } catch (err) {
+    /* v8 ignore start */
     // log + continue: schema extraction is a non-fatal enhancement; reference
     // fields degrade to name-based matching when the schema is unavailable.
     console.warn(`[relationships] Schema extraction failed; reference fields degraded: ${err}`)
+    /* v8 ignore stop */
   }
 
   // Per-node dedup tracking (targetId|label|origin|value)

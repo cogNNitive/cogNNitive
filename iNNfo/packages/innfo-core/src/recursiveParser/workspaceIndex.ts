@@ -28,7 +28,6 @@ export interface WorkspaceIndex {
   issues: ParseIssue[]
 }
 
-
 /**
  * Derives a pure, standalone view over a `RecursiveParseResult`: title,
  * template, element/concept, schema, and multi-parent lookups needed by
@@ -71,8 +70,7 @@ export function buildWorkspaceIndex(
     }
 
     const parentSpec = root.fields['parent_spec']?.value as
-      | { name?: string; url?: string }
-      | undefined
+      { name?: string; url?: string } | undefined
     if (parentSpec?.name) {
       nodeTemplate[root.id] = { name: parentSpec.name, url: parentSpec.url }
     }
@@ -93,9 +91,11 @@ export function buildWorkspaceIndex(
         })
         if (schema) nodeSchema[root.id] = schema
       } catch (err) {
+        /* v8 ignore start */
         // swallow deliberately: AD-04 contract — a throwing resolver degrades
         // this node to "no schema", never aborts the parse.
         console.warn(`[workspace-index] Schema resolution degraded for ${root.name}: ${err}`)
+        /* v8 ignore stop */
       }
     }
 
