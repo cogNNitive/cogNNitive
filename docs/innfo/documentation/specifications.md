@@ -32,11 +32,11 @@ resolvable forever for models authored against them.
 | iNNfo V 0.2.0 | Superseded — frozen, still resolvable | [`specs/iNNfo_V_0-2-0_NN.md`](https://github.com/cogNNitive/cogNNitive/blob/main/iNNfo/specs/iNNfo_V_0-2-0_NN.md) |
 | iNNfo V 0.1.0 | Superseded — frozen, still resolvable | [`specs/iNNfo_V_0-1-0_NN.md`](https://github.com/cogNNitive/cogNNitive/blob/main/iNNfo/specs/iNNfo_V_0-1-0_NN.md) |
 
-## Level 2 — Templates
+## Level 2 — Apps
 
-Domain-specific templates. Each declares concepts, markers, matrices, and relationship types for a specific domain, and its own `template_version` (independent of `spec_version`, which tracks L1 compliance). All templates are L1-compliant with `iNNfo_V_0-2-1`. `business_V_0-2-0` is a pure composite that `includes` `business-model` + `analysis`; `analysis` and `business-model` are first-revision templates carved out of the former monolithic `business` template, so they carry `spec_version: V_0-2-0` with `template_version: V_0-1-0`.
+Domain-specific apps. Each declares concepts, markers, matrices, and relationship types for a specific domain, and its own `template_version` (independent of `spec_version`, which tracks L1 compliance). All apps are L1-compliant with `iNNfo_V_0-2-1`. `business_V_0-2-0` is a pure composite that `includes` `business-model` + `analysis`; `analysis` and `business-model` are first-revision apps carved out of the former monolithic `business` app, so they carry `spec_version: V_0-2-0` with `template_version: V_0-1-0`.
 
-| Template | `template_version` | Source |
+| App | `template_version` | Source |
 |----------|--------------------|--------|
 | **Blank** | V_0-2-0 | [`specs/templates/blank/blank_V_0-2-0_NN.md`](https://github.com/cogNNitive/cogNNitive/blob/main/iNNfo/specs/templates/blank/blank_V_0-2-0_NN.md) |
 | **Business** (composite) | V_0-2-1 | [`specs/templates/business/business_V_0-2-1_NN.md`](https://github.com/cogNNitive/cogNNitive/blob/main/iNNfo/specs/templates/business/business_V_0-2-1_NN.md) |
@@ -48,13 +48,13 @@ Domain-specific templates. Each declares concepts, markers, matrices, and relati
 | **Procedures** | V_0-2-0 | [`specs/templates/procedures/procedures_V_0-2-0_NN.md`](https://github.com/cogNNitive/cogNNitive/blob/main/iNNfo/specs/templates/procedures/procedures_V_0-2-0_NN.md) |
 | **Projects** | V_0-2-0 | [`specs/templates/projects/projects_V_0-2-0_NN.md`](https://github.com/cogNNitive/cogNNitive/blob/main/iNNfo/specs/templates/projects/projects_V_0-2-0_NN.md) |
 
-Each template's `_V_0-1-0_` file (where one existed) stays frozen and resolvable for models still pinned to it.
+Each app's `_V_0-1-0_` file (where one existed) stays frozen and resolvable for models still pinned to it.
 
 ## Level 3 — Sample models
 
-Concrete data instances. Lightweight — just data and a parent pointer to their template. Each sample stays pinned to the template version it was authored against; a `_V_0-1-0_` sample remains valid after the adoption.
+Concrete data instances. Lightweight — just data and a parent pointer to their app. Each sample stays pinned to the app version it was authored against; a `_V_0-1-0_` sample remains valid after the adoption.
 
-| Model | Template | Source |
+| Model | App | Source |
 |-------|----------|--------|
 | **Ghostbusters** | business V_0-2-1 | [`specs/templates/business/samples/Ghostbusters_V_0-2-1_business_NN.md`](https://github.com/cogNNitive/cogNNitive/blob/main/iNNfo/specs/templates/business/samples/Ghostbusters_V_0-2-1_business_NN.md) |
 | **Ghostbusters** | business V_0-2-0 | [`specs/templates/business/samples/Ghostbusters_V_0-2-0_business_NN.md`](https://github.com/cogNNitive/cogNNitive/blob/main/iNNfo/specs/templates/business/samples/Ghostbusters_V_0-2-0_business_NN.md) |
@@ -67,16 +67,16 @@ Concrete data instances. Lightweight — just data and a parent pointer to their
 
 ## Traceability & change propagation
 
-The format spec (L0 `defiNNe` → L1 `iNNfo` → L2 templates) is consumed by every other
+The format spec (L0 `defiNNe` → L1 `iNNfo` → L2 apps) is consumed by every other
 part of the project. What reads it, and how a change flows through:
 
 | Consumer | How it reads the spec | Source |
 |---|---|---|
-| `@cognnitive/innfo-core` | Parses the parent chain, extracts template schema, validates models | `packages/innfo-core/src/resolver.ts`, `schema.ts`, `validator/` |
+| `@cognnitive/innfo-core` | Parses the parent chain, extracts app schema, validates models | `packages/innfo-core/src/resolver.ts`, `schema.ts`, `validator/` |
 | `innfo-mcp` (MCP server) | Wraps core. Resolves local `specs/` first, then network `fetch`, then persists write-once into `specs/` | `packages/innfo-mcp/src/tools/spec.ts`, `resolver-node.ts` |
 | `innfo-editor` (UI) | `resolveParentSpecs()` — workspace `specs/` handle → dev-only `/specs/…` → network. URLs built from one constant | `apps/innfo-editor/src/services/SpecResolverService.ts`, `utils/constants.ts` |
 | `cogNNitive/actioNN` skill `nn-innfo` | Delegates all resolution/validation to `innfo-mcp`; bundles a copy of `workspace_spec_NN` | `actioNN/skills/nn-innfo/` |
-| `cogNNitive/eNNvironment` manifest | Pins L2 templates by `repo` + `path` + `version` + `commit`; CI validates | `eNNvironment/docs/use/manifest.md` |
+| `cogNNitive/eNNvironment` manifest | Pins L2 apps by `repo` + `path` + `version` + `commit`; CI validates | `eNNvironment/docs/use/manifest.md` |
 | Docs | Describe the resolver protocol and level system | `docs/documentation/ecosystem.md`, this page |
 
 ### Invariants
@@ -105,7 +105,7 @@ The mechanical procedure lives in the dev skill
    `node scripts/check-spec-version.mjs --version <old> --check --by-type --with-skills`
    lists every doc, sample, test, fixture and skill file still on the old version — update each.
 5. **URLs.** `npm run check:spec-urls` must stay green (also gated in CI, job `spec-integrity`).
-6. **Templates.** Each L2 template must be compliant with the new L1. Templates that only
+6. **Apps.** Each L2 app must be compliant with the new L1. Apps that only
    exist at the old version must get a new-version file before the L1 can be made the default.
 7. **Skills.** Sync any bundled copy in `cogNNitive/actioNN` (today: `workspace_spec_NN`) from
    the canonical file here. Bump `version` + `commit` in `eNNvironment`'s manifest.
@@ -116,12 +116,12 @@ The mechanical procedure lives in the dev skill
 > **V_0-2-0 adopted (2026-09-01).** L1 `iNNfo_V_0-2-0` is `status: Stable` and is the
 > value of `DEFAULT_INNFO_VERSION`. `iNNfo_V_0-1-0_NN.md` is immutable (R-SV-02) and
 > unchanged — it is simply no longer the default. Every shipped L2
-> template resolves at `iNNfo_V_0-2-0`. The V_0-2-0 rule changes (the four
+> app resolves at `iNNfo_V_0-2-0`. The V_0-2-0 rule changes (the four
 > frontmatter-block forms `concepts:` / `markers:` / `matrices:` removed in favour of
 > body-element definitions; `includes` duplicate-name entries with AST-identical bodies
 > merged instead of erroring; `model` added to the `Concept Definition` and
 > `Field Definition` `type` enums) are all in the engine. Existing L3 models pinned to
-> `iNNfo_V_0-1-0` templates keep resolving unchanged.
+> `iNNfo_V_0-1-0` apps keep resolving unchanged.
 
 ## Related Standards
 
@@ -132,7 +132,7 @@ iNNfo is **compatible** with [OKF v0.1](https://github.com/GoogleCloudPlatform/k
 | OKF Conformance Rule (Â§9) | iNNfo Status |
 |---|---|
 | Parseable YAML frontmatter on every non-reserved `.md` file | âœ… Satisfied — every `_NN.md` has required frontmatter |
-| Non-empty `type` field in every frontmatter block | âœ… Satisfied — `level` + template name provides type semantics |
+| Non-empty `type` field in every frontmatter block | âœ… Satisfied — `level` + app name provides type semantics |
 | Reserved filenames follow OKF conventions | âœ… Satisfied — `index.md` follows progressive-disclosure pattern |
 
 **Why the compatibility holds:**

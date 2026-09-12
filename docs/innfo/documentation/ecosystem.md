@@ -10,11 +10,11 @@ The meta-specification. Defines the structure, versioning conventions (SemVer wi
 
 The central specification. Every model is a single `_NN.md` document containing concepts, elements, fields, markers, and matrices, with optional structural children.
 
-## Level 2: Templates
+## Level 2: Apps
 
-Domain-specific templates that declare which concepts, markers, and relationship types apply:
+Domain-specific apps that declare which concepts, markers, and relationship types apply:
 
-| Template | Description |
+| App | Description |
 |----------|-------------|
 | business | Business strategy modeling |
 | procedures | Workflows, SOPs, processes |
@@ -22,7 +22,7 @@ Domain-specific templates that declare which concepts, markers, and relationship
 
 ## Level 3: Models
 
-Concrete instances of a template. Lightweight — just data and a `parent` pointer to the template.
+Concrete instances of an app. Lightweight — just data and a `parent` pointer to the app.
 
 ## Open Knowledge Format Compatibility
 
@@ -35,7 +35,7 @@ OKF v0.1 defines three conformance requirements (§9). Here is the exact mapping
 | OKF Requirement | How iNNfo Satisfies It |
 |---|---|
 | **§9.1** Every non-reserved `.md` file contains a parseable YAML frontmatter block | iNNfo requires YAML frontmatter on every `_NN.md` document. The `---` delimited block is mandatory — unparseable frontmatter is a validation error. |
-| **§9.2** Every frontmatter block contains a non-empty `type` field | iNNfo's `level` field (0–3) and template system provide equivalent type semantics. A model document's `parent` template name serves as its conceptual type. OKF's permissive consumption model tolerates any `type` value — iNNfo's structured approach exceeds what OKF requires. |
+| **§9.2** Every frontmatter block contains a non-empty `type` field | iNNfo's `level` field (0–3) and app system provide equivalent type semantics. A model document's `parent` app name serves as its conceptual type. OKF's permissive consumption model tolerates any `type` value — iNNfo's structured approach exceeds what OKF requires. |
 | **§9.3** Reserved filenames (`index.md`, `log.md`) follow OKF conventions | iNNfo's `index.md` follows the exact same progressive-disclosure convention as OKF §6. iNNfo does not prescribe `log.md` usage, which is optional in OKF as well. No conflicts. |
 
 ### OKF's permissive consumption model
@@ -43,7 +43,7 @@ OKF v0.1 defines three conformance requirements (§9). Here is the exact mapping
 OKF explicitly states consumers MUST NOT reject a bundle because of:
 
 - Missing optional frontmatter fields ✓
-- Unknown `type` values ✓ — iNNfo's template names are valid OKF type values
+- Unknown `type` values ✓ — iNNfo's app names are valid OKF type values
 - Unknown additional frontmatter keys ✓ — iNNfo adds `spec_version`, `level`, `parent`, `concepts`, `markers`, `matrices`, `relationship_declarations`, all tolerated
 - Broken cross-links ✓ — iNNfo also tolerates broken wikilinks with warnings
 - Missing `index.md` files ✓ — iNNfo requires them, which exceeds OKF's baseline
@@ -63,7 +63,7 @@ OKF explicitly states consumers MUST NOT reject a bundle because of:
 
 ### Bottom line
 
-Any directory of `_NN.md` documents opened in an OKF consumer will be accepted as a conformant OKF v0.1 bundle. The reverse is not guaranteed — iNNfo adds structural requirements (parent chain, template validation, marker syntax) that OKF bundles may lack. But the **intersection is compatible**: every valid iNNfo document is a valid OKF document.
+Any directory of `_NN.md` documents opened in an OKF consumer will be accepted as a conformant OKF v0.1 bundle. The reverse is not guaranteed — iNNfo adds structural requirements (parent chain, app validation, marker syntax) that OKF bundles may lack. But the **intersection is compatible**: every valid iNNfo document is a valid OKF document.
 
 ## Resolver Protocol
 

@@ -28,9 +28,9 @@ _NN Metrics
   * value: "Monthly active users"
 ```
 
-## Templates
+## Apps
 
-Level 2 templates declare the concepts, markers, and relationship types available to a model:
+Level 2 apps declare the concepts, markers, and relationship types available to a model:
 
 - **business** — business strategy modeling
 - **procedures** — workflows, SOPs, processes
@@ -38,7 +38,7 @@ Level 2 templates declare the concepts, markers, and relationship types availabl
 
 ## Working with the ecosystem
 
-1. Open [innfo-editor](innfo-editor) and start from a starter template, a sample model, or an existing workspace folder.
+1. Open [innfo-editor](innfo-editor) and start from a starter app, a sample model, or an existing workspace folder.
 2. Edit concepts, elements, and fields through the editor's per-node views.
 3. Validation runs automatically on every parse — check the header badge or open the full validation report.
 4. Use the "Use AI" button to open the AI Guide, or connect an AI agent directly via [innfo-mcp](innfo-mcp).
