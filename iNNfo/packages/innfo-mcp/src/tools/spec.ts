@@ -86,8 +86,11 @@ export async function findModelFile(
       try {
         await stat(fp)
         return fp
-      } catch {
-        continue
+      } catch (err) {
+        // swallow deliberately: a candidate path may legitimately not exist.
+        if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
+          console.warn(`[spec] Failed to stat candidate ${fp}: ${err}`)
+        }
       }
     }
   }
@@ -103,8 +106,11 @@ export async function findModelFile(
         if (wsFile) {
           return join(dir, wsFile)
         }
-      } catch {
-        continue
+      } catch (err) {
+        // swallow deliberately: a search dir may legitimately not exist.
+        if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
+          console.warn(`[spec] Failed to readdir ${dir}: ${err}`)
+        }
       }
     }
   }
@@ -128,7 +134,11 @@ async function recursiveFindModel(
   let entries
   try {
     entries = await readdir(dir, { withFileTypes: true })
-  } catch {
+  } catch (err) {
+    // swallow deliberately: a search dir may legitimately not exist.
+    if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
+      console.warn(`[spec] Failed to readdir ${dir}: ${err}`)
+    }
     return null
   }
 
@@ -363,8 +373,10 @@ export async function listTemplates(
             const fm = parseFrontmatter(content)
             if (fm?.version) version = String(fm.version)
             else if (fm?.spec_version) version = String(fm.spec_version)
-          } catch {
-            // Unreadable or malformed template — fall back to the default version.
+          } catch (err) {
+            // swallow deliberately: an unreadable template falls back to the
+            // default version — version is advisory metadata.
+            console.warn(`[spec] Failed to read frontmatter of ${filePath}: ${err}`)
           }
 
           discovered.push({
@@ -376,8 +388,11 @@ export async function listTemplates(
           })
         }
       }
-    } catch {
-      // Directory absent for this tier — contributes no templates.
+    } catch (err) {
+      // swallow deliberately: a tier directory may legitimately not exist.
+      if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
+        console.warn(`[spec] Failed to scan template tier dir: ${err}`)
+      }
     }
   }
 
@@ -394,8 +409,11 @@ export async function listTemplates(
         await scanDir(join(skillsDir, entry.name), 'skill', entry.name)
       }
     }
-  } catch {
-    // No skills directory installed — skip the skill tier.
+  } catch (err) {
+    // swallow deliberately: no skills directory installed — skip the skill tier.
+    if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
+      console.warn(`[spec] Failed to scan skills dir ${skillsDir}: ${err}`)
+    }
   }
 
   return discovered
@@ -426,8 +444,10 @@ export async function hydrateTemplate(
     let content = ''
     try {
       content = await readFile(pkg.specFilePath, 'utf-8')
-    } catch {
-      // Content read failed
+    } catch (err) {
+      // swallow deliberately: an unreadable spec file yields empty content and
+      // the caller reports it as unresolved.
+      console.warn(`[spec] Failed to read spec ${pkg.specFilePath}: ${err}`)
     }
 
     const sourceName =

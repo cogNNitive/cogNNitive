@@ -75,9 +75,12 @@ export async function listModels(rootDir: string): Promise<ModelInfo[]> {
         }
       }
     }
-  } catch {
-    // Ignore error if models/ does not exist
-  }
+  } catch (err) {
+      // swallow deliberately: models/ may legitimately not exist.
+      if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
+        console.warn(`[list-read] Failed to scan models dir ${modelsDir}: ${err}`)
+      }
+    }
   rootModels.sort((a, b) => a.id.localeCompare(b.id))
   return rootModels
 }
@@ -113,7 +116,9 @@ export async function readModel(
     const content = await readFile(filePath, 'utf-8')
     const model = parseModel(content)
     return applySlice(model, options)
-  } catch {
+  } catch (err) {
+    // propagate: a read/parse failure must surface, not silently return null.
+    console.warn(`[list-read] Failed to read/slice model ${filePath}: ${err}`)
     return null
   }
 }

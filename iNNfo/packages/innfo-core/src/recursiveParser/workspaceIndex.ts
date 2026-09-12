@@ -92,8 +92,10 @@ export function buildWorkspaceIndex(
           frontmatter,
         })
         if (schema) nodeSchema[root.id] = schema
-      } catch {
-        // AD-04: a throwing resolver degrades this node — no schema, no abort.
+      } catch (err) {
+        // swallow deliberately: AD-04 contract — a throwing resolver degrades
+        // this node to "no schema", never aborts the parse.
+        console.warn(`[workspace-index] Schema resolution degraded for ${root.name}: ${err}`)
       }
     }
 

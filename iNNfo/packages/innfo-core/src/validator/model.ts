@@ -214,8 +214,10 @@ export function validateModel(
             isStale = true
           }
         }
-      } catch {
-        // Offline / unreachable network falls back gracefully without failing validation
+      } catch (err) {
+        // swallow deliberately: offline / unreachable network falls back
+        // gracefully without failing validation (freshness is advisory).
+        console.warn(`[validator] Remote template freshness check skipped: ${err}`)
       }
     }
 

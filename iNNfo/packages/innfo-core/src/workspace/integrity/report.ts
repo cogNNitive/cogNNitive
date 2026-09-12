@@ -277,7 +277,10 @@ export async function buildWorkspaceIntegrityReport(
     await runWithConcurrency(jobs, freshnessConcurrency, async (job) => {
       try {
         freshnessByUrl.set(job.url, await checkFreshness(job.url, job.localContent))
-      } catch {
+      } catch (err) {
+        // swallow deliberately: freshness is advisory — an unreachable remote
+        // records `unknown` and never fails the integrity pass.
+        console.warn(`[integrity] Freshness check failed for ${job.url}: ${err}`)
         freshnessByUrl.set(job.url, 'unknown')
       }
     })

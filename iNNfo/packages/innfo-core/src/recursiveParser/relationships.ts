@@ -63,8 +63,10 @@ export function addFieldAndMentionEdges(
         referenceFieldsByConcept.set(concept.name, new Set(refFields))
       }
     }
-  } catch {
-    // schema extraction is non-fatal fallback
+  } catch (err) {
+    // log + continue: schema extraction is a non-fatal enhancement; reference
+    // fields degrade to name-based matching when the schema is unavailable.
+    console.warn(`[relationships] Schema extraction failed; reference fields degraded: ${err}`)
   }
 
   // Per-node dedup tracking (targetId|label|origin|value)

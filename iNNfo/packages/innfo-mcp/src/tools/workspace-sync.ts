@@ -41,7 +41,11 @@ async function walkMarkdownFiles(dir: string, out: string[] = []): Promise<strin
   let entries
   try {
     entries = await readdir(dir, { withFileTypes: true })
-  } catch {
+  } catch (err) {
+    // swallow deliberately: a workspace dir may legitimately not exist.
+    if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
+      console.warn(`[workspace-sync] Failed to readdir ${dir}: ${err}`)
+    }
     return out
   }
   for (const entry of entries) {
@@ -60,7 +64,11 @@ async function findManifestPath(root: string): Promise<string | null> {
   let entries
   try {
     entries = await readdir(root, { withFileTypes: true })
-  } catch {
+  } catch (err) {
+    // swallow deliberately: the workspace root may legitimately not exist.
+    if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
+      console.warn(`[workspace-sync] Failed to readdir root ${root}: ${err}`)
+    }
     return null
   }
   const match = entries.find(
@@ -92,7 +100,9 @@ async function discoverCandidates(root: string, manifestRelPath: string): Promis
     let content: string
     try {
       content = await readFile(filePath, 'utf-8')
-    } catch {
+    } catch (err) {
+      // swallow deliberately: an unreadable md file is skipped.
+      console.warn(`[workspace-sync] Failed to read ${filePath}: ${err}`)
       continue
     }
 

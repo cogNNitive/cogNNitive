@@ -91,13 +91,17 @@ export async function calculateSpecReachability(rootDir: string): Promise<Reacha
                 }
               }
             }
-          } catch {
-            // Ignore unparseable
+          } catch (err) {
+            // swallow deliberately: an unparseable template package is skipped.
+            console.warn(`[reachability] Failed to scan template package: ${err}`)
           }
         }
       }
-    } catch {
-      // Directory absent
+    } catch (err) {
+      // swallow deliberately: the package dir may legitimately not exist.
+      if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
+        console.warn(`[reachability] Failed to scan package dir: ${err}`)
+      }
     }
   }
 
@@ -223,8 +227,9 @@ export async function calculateSpecReachability(rootDir: string): Promise<Reacha
               }
             }
           }
-        } catch {
-          // Ignore
+        } catch (err) {
+          // swallow deliberately: an unparseable spec file is skipped.
+          console.warn(`[reachability] Failed to scan spec subdir: ${err}`)
         }
       } else if (entry.isFile() && /\.(md|markdown)$/i.test(entry.name)) {
         const stem = entry.name.replace(/\.(md|markdown)$/i, '').toLowerCase()
@@ -252,8 +257,11 @@ export async function calculateSpecReachability(rootDir: string): Promise<Reacha
         }
       }
     }
-  } catch {
-    // specs directory absent
+  } catch (err) {
+    // swallow deliberately: the specs dir may legitimately not exist.
+    if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
+      console.warn(`[reachability] Failed to scan specs dir ${specsDir}: ${err}`)
+    }
   }
 
   return {

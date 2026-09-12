@@ -73,7 +73,8 @@ export function parsePropertyValue(raw: string): unknown {
     try {
       return JSON.parse(value)
     } catch {
-      /* fall through to scalar parsing */
+      // propagate deliberately: malformed JSON object literals fall through to
+      // scalar parsing below — this is a parsing fallback, not a swallowed IO error.
     }
   }
   if (value.toLowerCase() === 'true') return true

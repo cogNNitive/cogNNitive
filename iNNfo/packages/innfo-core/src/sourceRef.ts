@@ -327,6 +327,7 @@ function decodeSegment(segment: string): string | null {
   try {
     return decodeURIComponent(segment)
   } catch {
+    // propagate deliberately: a malformed URI segment makes the reference invalid.
     return null
   }
 }

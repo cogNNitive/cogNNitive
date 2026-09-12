@@ -134,8 +134,11 @@ async function findPrimaryWorkspaceFile(
         try {
           const parsed = await driver.readModel(name)
           return { path: name, name: stripMdSuffix(name), content: parsed.rawContent }
-        } catch {
-          // continue
+        } catch (err) {
+          // swallow deliberately: a fallback entrypoint file may not exist.
+          if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
+            console.warn(`[workspace] Failed to read fallback entrypoint ${name}: ${err}`)
+          }
         }
       }
     }
@@ -248,8 +251,9 @@ export function extractSubmodelRefs(
         }
       }
     }
-  } catch {
-    // ignore parse error, fallback to regex extraction
+  } catch (err) {
+    // log + continue: parse failure degrades to regex wikilink extraction.
+    console.warn(`[workspace] Submodel reference parse failed; falling back to regex: ${err}`)
   }
 
   // 2. Extract Wikilinks: [[target.md]]
@@ -309,7 +313,10 @@ function schemaFor(
   try {
     const fm = (parseFrontmatter(content) ?? {}) as Record<string, unknown>
     return options.resolveTemplateSchema({ path, name, content, frontmatter: fm }) ?? undefined
-  } catch {
+  } catch (err) {
+    // swallow deliberately: an unresolvable template schema degrades to "no
+    // schema" for this model (AD-04 contract), never aborts the parse.
+    console.warn(`[workspace] Template schema resolution failed for ${path}: ${err}`)
     return undefined
   }
 }

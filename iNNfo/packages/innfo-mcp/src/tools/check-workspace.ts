@@ -84,7 +84,9 @@ async function fetchJson(url: string, timeoutMs: number): Promise<unknown | null
     const resp = await fetch(url, { signal: controller.signal })
     if (!resp.ok) return null
     return (await resp.json()) as unknown
-  } catch {
+  } catch (err) {
+    // swallow deliberately: an unreachable catalog degrades to null (offline).
+    console.warn(`[check-workspace] Catalog fetch failed: ${err}`)
     return null
   } finally {
     clearTimeout(timer)
@@ -126,8 +128,9 @@ export async function resolveCatalog(
         const parsed = parseCatalog(JSON.parse(readFileSync(path, 'utf-8')))
         if (parsed) return { catalog: parsed, source: 'in-repo' }
       }
-    } catch {
-      // unreadable local catalog — try the next candidate
+    } catch (err) {
+      // log + continue: an unreadable local catalog — try the next candidate.
+      console.warn(`[check-workspace] Failed to read local catalog ${path}: ${err}`)
     }
   }
   return { catalog: null, source: 'offline' }
@@ -207,8 +210,9 @@ async function discoverModels(ctx: CheckContext): Promise<WorkspaceModelRef[]> {
         parentUrl: parentUrl ?? null,
         parentName: parentName ?? null,
       })
-    } catch {
-      // unreadable model file — skip it
+    } catch (err) {
+      // log + continue: an unreadable model file is skipped.
+      console.warn(`[check-workspace] Failed to inspect model ${info.path}: ${err}`)
     }
   }
   ctx.models = refs
@@ -253,8 +257,10 @@ async function validateAll(
         )
         fileErrors = toIntegrityDiagnostics(result.errors)
         fileWarnings = toIntegrityDiagnostics(result.warnings)
-      } catch {
-        // validateModel never rejects by contract, but never let it fail the pass
+      } catch (err) {
+        // swallow deliberately: validateModel never rejects by contract, but
+        // never let it fail the pass.
+        console.warn(`[check-workspace] validateModel threw for ${model.id}: ${err}`)
       }
     }
 

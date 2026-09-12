@@ -113,8 +113,11 @@ export async function initModel(
       if (st.isDirectory()) {
         useModelsDir = true
       }
-    } catch {
-      /* no models/ dir — write beside the repo root */
+    } catch (err) {
+      // swallow deliberately: no models/ dir — write beside the repo root.
+      if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
+        console.warn(`[init-model] Failed to stat models dir ${modelsDir}: ${err}`)
+      }
     }
     filePath = useModelsDir
       ? join(modelsDir, `${cleanId}_NN.md`)
@@ -125,9 +128,12 @@ export async function initModel(
   try {
     const currentContent = await readFile(filePath, 'utf-8')
     body = currentContent.replace(/^---[\s\S]*?---\n?/, '').trim()
-  } catch {
-    /* new file — no existing body to preserve */
-  }
+} catch (err) {
+      // swallow deliberately: new file — no existing body to preserve.
+      if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
+        console.warn(`[init-model] Failed to read existing body from ${filePath}: ${err}`)
+      }
+    }
 
   // Resolve the template so we can (a) confirm it exists and (b) scaffold a
   // starter body when the file has none.

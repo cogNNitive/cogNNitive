@@ -65,6 +65,7 @@ export function parseKnowledgeQuery(input: string): KnowledgeQuery | null {
     try {
       text = decodeURIComponent(part.trim())
     } catch {
+      // propagate deliberately: a malformed URI segment makes the query invalid.
       return null
     }
     if (text.trim() === '') return null

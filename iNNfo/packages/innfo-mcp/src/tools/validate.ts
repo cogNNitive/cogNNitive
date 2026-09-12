@@ -108,7 +108,11 @@ function syncFindSubmodel(
         const found = searchDirSync(subdir, depth + 1)
         if (found) return found
       }
-    } catch {
+    } catch (err) {
+      // swallow deliberately: a search dir may legitimately not exist.
+      if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
+        console.warn(`[validate] Failed to scan dir ${dir}: ${err}`)
+      }
       return null
     }
     return null
@@ -149,7 +153,10 @@ export function buildTemplateSchemaResolverFromCache(
     }
     try {
       return resolveTemplateSchema(doc.rawContent, resolveInclude).schema
-    } catch {
+    } catch (err) {
+      // swallow deliberately: an unresolvable schema degrades to null (no
+      // schema), never aborts validation — AD-04 contract.
+      console.warn(`[validate] Schema resolution degraded for ${doc.name}: ${err}`)
       return null
     }
   }
@@ -189,7 +196,10 @@ export function createNodeDirectoryHandle(
       let dirents
       try {
         dirents = await readdir(dirPath, { withFileTypes: true })
-      } catch {
+      } catch (err) {
+        // swallow deliberately: a workspace dir may legitimately not exist or
+        // be unreadable; the directory then contributes no entries.
+        console.warn(`[validate] Failed to readdir ${dirPath}: ${err}`)
         return
       }
       for (const dirent of dirents) {
@@ -272,7 +282,9 @@ export async function collectWorkspaceDiagnostics(
         headings: extractHeadings(content).map((h) => h.slug),
         content,
       }
-    } catch {
+    } catch (err) {
+      // swallow deliberately: an unreadable source file reports not-exists.
+      console.warn(`[validate] Failed to read source ${abs}: ${err}`)
       return { exists: false }
     }
   }
@@ -458,7 +470,9 @@ export async function validateModel(
         fm?.parent_spec?.name ?? (typeof fm?.title === 'string' ? fm.title : undefined)
       const templateUrl = fm?.parent_spec?.url
       return { exists: true, templateName, templateUrl }
-    } catch {
+    } catch (err) {
+      // swallow deliberately: an unreadable model reports not-exists.
+      console.warn(`[validate] Failed to inspect model ${refPath}: ${err}`)
       return { exists: false }
     }
   }

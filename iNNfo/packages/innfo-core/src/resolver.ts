@@ -115,8 +115,11 @@ async function buildTemplateCandidates(
   try {
     const entries = await fs.readdir(skillsDir, { withFileTypes: true })
     skillNames = entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name)
-  } catch {
-    // No skills directory installed — tier 3 contributes no candidates.
+  } catch (err) {
+    // swallow deliberately: the skills directory may legitimately not exist.
+    if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
+      console.warn(`[resolver] Failed to scan skills templates dir ${skillsDir}: ${err}`)
+    }
   }
   for (const skillName of skillNames) {
     for (const candidate of candidateNames) {
@@ -166,8 +169,11 @@ export async function resolveTemplatePath(
           ...(candidate.skillName ? { skillName: candidate.skillName } : {}),
         }
       }
-    } catch {
-      // Path does not exist — keep walking the precedence list.
+    } catch (err) {
+      // swallow deliberately: a precedence candidate may legitimately not exist.
+      if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
+        console.warn(`[resolver] Failed to stat template candidate ${candidate.filePath}: ${err}`)
+      }
     }
   }
 
