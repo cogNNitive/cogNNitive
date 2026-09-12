@@ -513,7 +513,6 @@ import {
   AlertTriangle,
   XCircle,
   Sparkles,
-  Play,
   Search,
   X,
 } from 'lucide-vue-next'
@@ -527,12 +526,7 @@ import TagInput from '../ui/TagInput.vue'
 import IconRenderer from '../editor/IconRenderer.vue'
 import { getConceptMeta } from '../../composables/useConceptVisuals'
 
-import { extensionRegistry } from '../../extensions/registry'
-import {
-  DEFAULT_INNFO_VERSION,
-  DEFAULT_TEMPLATE_NAME,
-  DEFAULT_TEMPLATE_VERSION,
-} from '../../utils/constants'
+import { DEFAULT_INNFO_VERSION } from '../../utils/constants'
 
 const workspaceStore = useWorkspaceStore()
 const modelStore = useModelStore()
@@ -727,47 +721,6 @@ const formatVersion = computed(() => {
   return (node?.fields?.format_version?.value ??
     node?.fields?.spec_version?.value ??
     DEFAULT_INNFO_VERSION) as string
-})
-
-const templateName = computed(() => {
-  const node = rootNode.value
-  return (node?.fields?.template_name?.value ??
-    (node?.fields?.parent_spec?.value as any)?.name ??
-    (node?.fields?.parent?.value as any)?.name ??
-    DEFAULT_TEMPLATE_NAME) as string
-})
-
-const templateVersion = computed(() => {
-  const node = rootNode.value
-  const tVal =
-    node?.fields?.template_version?.value ??
-    (node?.fields?.parent?.value as any)?.version ??
-    DEFAULT_TEMPLATE_VERSION
-  return ((node?.fields?.template?.value as any)?.version ?? tVal) as string
-})
-
-const fullTemplateName = computed(() => {
-  const name = templateName.value || ''
-  if (!name || name.toLowerCase() === 'template') {
-    return templateVersion.value || DEFAULT_TEMPLATE_VERSION
-  }
-  const hasVersion = /_V_?\d+/i.test(name)
-  if (hasVersion || !templateVersion.value) {
-    return name
-  }
-  return `${name}_${templateVersion.value}`
-})
-
-const hasGuidedProcedureExtension = computed(() => {
-  const tName = fullTemplateName.value || templateName.value || ''
-  const templateNode = modelStore.rootIds
-    .map((id) => modelStore.getNode(id))
-    .find((n) => n && (n.fields?.spec_version || (n as any)?.frontmatter?.viewers))
-  const fm = (templateNode as any)?.frontmatter ?? (rootNode.value as any)?.frontmatter
-  return extensionRegistry.hasViewTypeForTemplate('fsm-stepper', {
-    frontmatter: fm,
-    templateName: tName,
-  })
 })
 
 const modelFileName = computed(() => {

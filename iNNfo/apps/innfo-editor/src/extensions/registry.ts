@@ -1,7 +1,6 @@
 import { defineAsyncComponent, type Component } from 'vue'
 import type { ExtensionManifest, ResolvedExtensionView } from './types'
 import type { SpecFrontmatter } from '@cognnitive/innfo-core'
-import proceduresManifest from './procedures/manifest.json'
 import projectsManifest from './projects/manifest.json'
 
 export interface RegisteredExtension {
@@ -22,24 +21,13 @@ class ExtensionRegistry {
 
   constructor() {
     this.registerStandardViewTypes()
-    this.registerProceduresExtension()
     this.registerProjectsExtension()
   }
 
   private registerStandardViewTypes() {
-    const fsmComponent = defineAsyncComponent(
-      () => import('../components/editor/GuidedProcedureView.vue'),
-    )
     const ganttComponent = defineAsyncComponent(
       () => import('../components/editor/ProjectGanttView.vue'),
     )
-
-    this.viewTypes.set('fsm-stepper', {
-      viewType: 'fsm-stepper',
-      component: fsmComponent,
-      defaultLabel: 'Guided Procedure Execution',
-      defaultIcon: 'play-circle',
-    })
 
     this.viewTypes.set('gantt-timeline', {
       viewType: 'gantt-timeline',
@@ -49,20 +37,7 @@ class ExtensionRegistry {
     })
 
     // Aliases for direct ID lookup
-    this.viewTypes.set('guided-procedure', this.viewTypes.get('fsm-stepper')!)
     this.viewTypes.set('gantt-chart', this.viewTypes.get('gantt-timeline')!)
-  }
-
-  private registerProceduresExtension() {
-    const fsmComponent = this.viewTypes.get('fsm-stepper')!.component
-    this.extensions.set('procedures_V_0-2-0', {
-      manifest: proceduresManifest as ExtensionManifest,
-      views: {
-        'guided-procedure': fsmComponent,
-      },
-    })
-    // Also alias by short name
-    this.extensions.set('procedures', this.extensions.get('procedures_V_0-2-0')!)
   }
 
   private registerProjectsExtension() {
@@ -111,18 +86,6 @@ class ExtensionRegistry {
     // Fallback to legacy template name matching
     if (templateName) {
       const lower = templateName.toLowerCase()
-      if (lower.includes('procedure')) {
-        const reg = this.viewTypes.get('fsm-stepper')!
-        return [
-          {
-            id: 'guided-procedure',
-            viewType: 'fsm-stepper',
-            label: reg.defaultLabel,
-            icon: reg.defaultIcon,
-            targetConcept: 'Work',
-          },
-        ]
-      }
       if (lower.includes('project')) {
         const reg = this.viewTypes.get('gantt-timeline')!
         return [

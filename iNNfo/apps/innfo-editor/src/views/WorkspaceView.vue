@@ -48,9 +48,6 @@ const ModelInfoPanel = defineAsyncComponent(() => import('../components/editor/M
 const AiWorkflowPanel = defineAsyncComponent(
   () => import('../components/editor/AiWorkflowPanel.vue'),
 )
-const GuidedProcedureView = defineAsyncComponent(
-  () => import('../components/editor/GuidedProcedureView.vue'),
-)
 const ProjectGanttView = defineAsyncComponent(
   () => import('../components/editor/ProjectGanttView.vue'),
 )
@@ -685,13 +682,6 @@ onUnmounted(() => {
         <template v-else-if="uiStore.activeView === 'ai-guide'">
           <div class="flex-1 flex flex-col min-h-0">
             <AiWorkflowPanel />
-          </div>
-        </template>
-
-        <!-- ── Guided Procedure View ── -->
-        <template v-else-if="uiStore.activeView === 'guided-procedure'">
-          <div class="flex-1 flex flex-col min-h-0">
-            <GuidedProcedureView />
           </div>
         </template>
 

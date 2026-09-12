@@ -282,12 +282,7 @@ export const useWorkspaceStore = defineStore('workspace', {
         const modelStore = useModelStore()
         const firstRootId = modelStore.rootIds[0] || null
         uiStore.selectNode(firstRootId)
-
-        if (templateName === 'procedures') {
-          uiStore.setActiveView('guided-procedure')
-        } else {
-          uiStore.setActiveView('editor')
-        }
+        uiStore.setActiveView('editor')
 
         this.isSampleSession = true
         this.sampleTemplateName = templateName || name || 'workspace'

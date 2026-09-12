@@ -39,25 +39,19 @@ Validation runs automatically on every parse via `@cognnitive/innfo-core`. A pas
 - **GraphViewer** — node and relationship graph visualization of the model.
 - **MatricesGrid** / **MetamatrixConfig** — evaluable matrices between concepts.
 - **ModelInfoPanel** — workspace and metamodel inspection.
-- **GuidedProcedureView** — interactive step-by-step FSM execution engine for `Procedures` models.
+- **ConsoleHubView** — embedded, sandboxed view of the workspace hub and each model's canonical template console (e.g. `procedures_console.html`).
 
 ## App Extensions Architecture
 
 The editor features a decoupled **Domain Extension Architecture**:
-- Each level 2 app (e.g. `procedures_V_0-2-0`) can define its own extension, living alongside its consumers under `apps/innfo-editor/src/extensions/{name}/` (extensions are app code, not spec content, so they never live under `specs/`).
+- Each level 2 app can define its own extension, living alongside its consumers under `apps/innfo-editor/src/extensions/{name}/` (extensions are app code, not spec content, so they never live under `specs/`).
 - **Manifest (`manifest.json`)**: Declares views, widgets, and target concepts provided by the app extension.
-- **Pure Domain Logic (`useProcedureFSM.ts`)**: Decoupled state machine logic operating on a pure node map.
-- **Extension Registry (`registry.ts`)**: Resolves and dynamically mounts extension views based on model `parent_spec`.
+- **Pure Domain Logic (e.g. `useProjectGantt.ts`)**: Decoupled view logic operating on a pure node map.
+- **Extension Registry (`registry.ts`)**: Resolves and dynamically mounts extension views based on model `parent_spec` frontmatter `viewers:` (Semantic View Intent).
 - **Adapters**:
   - `workspaceAdapter.ts`: Connects the extension to the full workspace stores (`modelStore` & `uiStore`).
-  - `standaloneAdapter.ts`: Connects the extension to a lightweight model graph parsed from a URL or raw Markdown.
 
-## Standalone Procedure Viewer
-
-Models using app extensions can be executed and visualized in **Standalone Mode** without opening the full IDE workspace:
-- **Route**: `/view/procedure` (or `/standalone/procedure`).
-- **URL Parameter**: Pass `?url=<RAW_MD_URL>` (e.g. `http://localhost:5173/app/view/procedure?url=https://raw.githubusercontent.com/.../Ghostbusters_V_0-2-0_procedures_NN.md`).
-- **Features**: Full FSM state derivation, step sequence navigation, sub-steps progress tracking, RACI accountability matrix inspection, and artifact I/O mapping in a clean, full-screen interface.
+Guided procedure execution is **not** a built-in editor view: the interactive procedure console is a standalone template artifact (`templates/procedures/assets/procedure_console.html`) that the modeler embeds via `ConsoleHubView`.
 
 ## AI Guide View
 

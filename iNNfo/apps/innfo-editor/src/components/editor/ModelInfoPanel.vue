@@ -87,7 +87,7 @@
             <div class="flex items-center justify-between">
               <span class="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
                 <Play class="w-3.5 h-3.5 text-blue-500 fill-current" />
-                {{ viewKey === 'guided-procedure' ? 'Guided Procedure Execution Engine' : viewKey }}
+                {{ viewKey }}
               </span>
               <span class="text-3xs font-mono px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 font-semibold">
                 {{ viewKey }}

@@ -9,7 +9,6 @@ export type ActiveView =
   | 'info'
   | 'consoles'
   | 'ai-guide'
-  | 'guided-procedure'
   | 'gantt-chart'
 
 export type ExplorerFilterMode = 'all' | 'models' | 'sources' | 'artifacts'
