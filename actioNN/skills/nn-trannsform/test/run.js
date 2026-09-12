@@ -94,6 +94,11 @@ async function main() {
     const changeLogResult = await changeLogTest.run();
     totalPassed += changeLogResult.passed;
     totalFailed += changeLogResult.failed;
+
+    const impactCheckerTest = require('./unit/test-impact-checker');
+    const impactCheckerResult = await impactCheckerTest.run();
+    totalPassed += impactCheckerResult.passed;
+    totalFailed += impactCheckerResult.failed;
   }
 
   if (mode === 'all' || mode === 'integration') {

@@ -6,9 +6,9 @@ description: Arquitectura de integración de herramientas independientes en cogN
 
 # Cognitive Ecosystem & External Tooling
 
-El ecosistema **cogNNitive** está diseñado con una arquitectura modular y desacoplada centrada en el conocimiento estructurado (**iNNfo**) y las capacidades de los agentes de IA (**actioNN**). Para extraer el máximo partido a la plataforma, cogNNitive no intenta encapsular todas las capacidades del mundo exterior; en su lugar, está arquitectónicamente preparado para **interactuar con herramientas y servicios externos independientes**.
+El ecosistema **cogNNitive** está diseñado con una arquitectura modular y desacoplada centrada en el conocimiento estructurado (**iNNfo**) y las capacidades de los agentes de IA (**actioNN**). Para conocer el ciclo de vida completo de la información (`IMPORT` ➔ `MANAGE` ➔ `EXPORT` + Feedback Loop), consulta la [**Guía de Arquitectura del Ciclo de Vida del Conocimiento**](knowledge-lifecycle.md).
 
-Este documento inaugura la sección **Cognitive Ecosystem**, explorando las integraciones externas mediante el primer caso de estudio práctico: **la generación de imágenes y contenido multimedia con WaveSpeed**.
+Este documento explora la integración con herramientas y servicios externos independientes mediante casos de estudio prácticos (como renderizado multimedia con WaveSpeed).
 
 ---
 

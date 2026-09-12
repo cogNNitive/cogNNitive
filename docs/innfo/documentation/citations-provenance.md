@@ -217,6 +217,12 @@ T?"* — auditability **per source**, even if no commit was ever made. `sources/
 is excluded from every scanner walk and is **not** a default Citation target
 (unqualified `sources::` resolves under `sources/nn/` only).
 
+### Dynamic Sources & The Impact Check
+
+When a living source document changes over time (e.g. quarterly metrics, edited interview notes):
+1. **Automatic Scan Warning**: When `node scripts/index.js --scan` creates an archive snapshot, it compares the heading structure of the archived vs new version. If any downstream model citations point to altered or missing heading slugs, the scanner immediately emits an `[IMPACT WARNING]`.
+2. **On-Demand Citation Audit**: Running `node scripts/index.js --check-impact` (or `--impact`) traverses all models in `models/`, parses all `sources::` pointers, and verifies that both the file and the exact heading anchor exist in `sources/nn/`. Drifted citations are reported with fuzzy matching suggestions.
+
 ### Where they overlap — and the rule that keeps them apart
 
 The overlap is **real**: the same files (templates, specs, models) are versioned

@@ -146,6 +146,16 @@ Reviewer consoles export structured feedback JSON (see `iNNfo/specs/templates/co
 3. **Frontmatter contract**: normalized feedback lands mirrored at `sources/nn/import/feedback/<name>.md` with the standard origin frontmatter (`source_file` pointing at the `sources/import/feedback/` origin, `sha256`, `size_bytes`, `normalized_at`, `normalized_by`) **plus** `source_type: "feedback"` and `is_synthetic: true`.
 4. **Citation**: the normalized body renders one `### <fb-NNN> (<kind>, <status>)` heading per item, so agents cite items directly: `sources:: import/feedback/<file>.md#fb-001`. Downstream, the template `apply_feedback_NN.md` procedure carries accepted items back into the model (staleness check, diff preview, `apply_change` per item, `validate_model`, single patch bump, stable-name console regeneration).
 
+#### 2a-2. Dynamic Sources & Impact Checking (`--check-impact`)
+
+When an existing source file is modified in `sources/import/` (or `sources/original/`), its SHA-256 hash changes:
+1. **Automatic Snapshot & Scan Warning**: `--scan` creates a version snapshot under `sources/archive/<basename>/V<N>/<basename>.md`, normalizes the new version into `sources/nn/`, and immediately audits downstream models in `models/`. If any model citation (`sources:: [file.md#heading-slug]`) points to an altered or removed section, an `[IMPACT WARNING]` is printed to the console.
+2. **On-Demand Audit Command**:
+   ```bash
+   node scripts/index.js --check-impact --src "<project-dir>"
+   ```
+   Inspects every Level 3 model in `models/`, parses all `sources::` citations, and verifies that the cited file exists under `sources/nn/` AND that the exact `#heading-slug` anchor is present. Reports errors for drifted or missing anchors along with fuzzy suggestions for closest matching headings. Exits non-zero if drift errors are detected.
+
 #### 2b. Progressive Disclosure & Source Naming Convention
 
 To prevent LLM context degradation (*Lost in the Middle*) and maintain workspace clarity:

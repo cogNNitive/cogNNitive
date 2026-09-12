@@ -505,7 +505,7 @@ function findOrphanSources(projectDir) {
  * @param {string} displayOutPath
  * @param {boolean} isSelected
  * @param {Record<string, any>} extra
- * @returns {{ format: string, status: string, action: string, outcome: 'processed' | 'skipped' }}
+ * @returns {{ format: string, status: string, action: string, outcome: 'processed' | 'skipped', snapshot?: any, baseName?: string, displayOutPath?: string }}
  */
 function processOkFile(ext, absPath, sourceFileField, destPath, displayOutPath, isSelected, extra) {
   const format = ext === '.txt' ? 'Plain Text' : ext.substring(1).toUpperCase();
@@ -574,7 +574,7 @@ function processOkFile(ext, absPath, sourceFileField, destPath, displayOutPath, 
     const actionText = (snapshot && snapshot.archived)
       ? `Archived ${snapshot.version} then converted`
       : `Converted to markdown at \`sources/nn/${displayOutPath}\``;
-    return { format, status: '✅ Processed', action: actionText, outcome: 'processed' };
+    return { format, status: '✅ Processed', action: actionText, outcome: 'processed', snapshot, baseName, displayOutPath };
   } catch (err) {
     return { format, status: '❌ Error', action: `Failed to process: ${err.message}`, outcome: 'skipped' };
   }
@@ -590,7 +590,7 @@ function processOkFile(ext, absPath, sourceFileField, destPath, displayOutPath, 
  * @param {boolean} isSelected
  * @param {Record<string, any>} options
  * @param {Record<string, any>} extra
- * @returns {Promise<{ format: string, status: string, action: string, outcome: 'processed' | 'skipped' }>}
+ * @returns {Promise<{ format: string, status: string, action: string, outcome: 'processed' | 'skipped', snapshot?: any, baseName?: string, displayOutPath?: string }>}
  */
 async function processPromptFile(ext, absPath, sourceFileField, destPath, displayOutPath, isSelected, options, extra) {
   const format = ext.substring(1).toUpperCase();
@@ -657,14 +657,14 @@ async function processPromptFile(ext, absPath, sourceFileField, destPath, displa
     fs.mkdirSync(path.dirname(destPath), { recursive: true });
     fs.writeFileSync(destPath, generateSourceFrontmatter(absPath, sourceFileField, finalExtra) + result.body, 'utf8');
     if (result.partial) {
-      return { format, status: '✅ Processed (Partial)', action: `Created placeholder markdown at \`sources/nn/${displayOutPath}\`. PDF parsing failed: ${result.note}`, outcome: 'processed' };
+      return { format, status: '✅ Processed (Partial)', action: `Created placeholder markdown at \`sources/nn/${displayOutPath}\`. PDF parsing failed: ${result.note}`, outcome: 'processed', snapshot, baseName, displayOutPath };
     }
     const actionText = (snapshot && snapshot.archived)
       ? `Archived ${snapshot.version} then converted`
-      : `Converted ${format} to markdown at \`sources/nn/${displayOutPath}\``;
-    return { format, status: '✅ Processed', action: actionText, outcome: 'processed' };
+      : `Converted to markdown at \`sources/nn/${displayOutPath}\``;
+    return { format, status: '✅ Processed', action: actionText, outcome: 'processed', snapshot, baseName, displayOutPath };
   } catch (err) {
-    return { format, status: '❌ Error', action: `Failed to convert: ${err.message}`, outcome: 'skipped' };
+    return { format, status: '❌ Error', action: `Failed to process: ${err.message}`, outcome: 'skipped' };
   }
 }
 

@@ -12,6 +12,7 @@ const provenance = require('./provenance');
 const webImport = require('./webImport');
 const { bootstrapProject } = require('./lib/bootstrap');
 const { checkLineage } = require('./lib/lineage-check');
+const { auditModelCitations, checkScanImpact } = require('./lib/impact-checker');
 const { promoteConversation, PROMOTION_OPTIONS } = require('./lib/conversations');
 
 async function main() {
@@ -23,6 +24,9 @@ async function main() {
     argv.provenance ||
     argv.lineage ||
     argv.check ||
+    argv['check-impact'] ||
+    argv.impact ||
+    argv['impact-check'] ||
     argv.src ||
     argv.dest ||
     argv.name ||
@@ -72,6 +76,19 @@ async function handleCliMode(argv) {
     process.exit(errors.length > 0 ? 1 : 0);
   }
 
+  if (argv['check-impact'] || argv.impact || argv['impact-check']) {
+    console.log(`Auditing model citations in "${projectDir}"...`);
+    const audit = auditModelCitations(projectDir);
+    for (const w of audit.warnings) console.log(`⚠️  ${w}`);
+    for (const e of audit.errors) console.error(`❌ ${e}`);
+    if (audit.errors.length === 0) {
+      console.log(`✅ All ${audit.validCitations} model citation(s) resolve to valid source files and headings.`);
+    } else {
+      console.error(`\nFound ${audit.errors.length} citation drift issue(s) across models.`);
+    }
+    process.exit(audit.errors.length > 0 ? 1 : 0);
+  }
+
   let importResult = null;
   if (argv['import-url']) {
     const importDir = path.join(projectDir, 'sources', 'import');
@@ -111,6 +128,16 @@ async function handleCliMode(argv) {
 
     const result = await scanner.scanAndProcess(projectDir, scanOptions);
     console.log(`Scan completed! Discovered: ${result.totalDiscovered}, Processed: ${result.processedCount}, Skipped: ${result.skippedCount}`);
+
+    if (result.changedSnapshots && result.changedSnapshots.length > 0) {
+      const impacts = checkScanImpact(result.changedSnapshots, projectDir);
+      for (const impact of impacts) {
+        console.warn(`\n⚠️  [IMPACT WARNING] Updated source "${impact.source}" affects downstream models:`);
+        for (const aff of impact.affectedModels) {
+          console.warn(`    - ${aff.modelFile}${aff.element ? ` (${aff.element})` : ''}: references "${aff.citation}" [${aff.status}]`);
+        }
+      }
+    }
 
     const prov = provenance.buildProvenanceModel(projectDir);
     console.log(

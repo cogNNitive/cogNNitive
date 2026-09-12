@@ -1,125 +1,108 @@
 ---
 layout: default
 title: cogNNitive — Knowledge Evolution Framework
-description: Leverage ideas, information and data scattered through brains and computer files into a living knowledge base powered by AI that constantly evolves.
+description: Turn ideas scattered in brains and files into a living, structured knowledge base with zero vendor lock-in and radical traceability.
 ---
 
 # Knowledge Evolution Framework
 
-Leverage ideas, information and data scattered through brains and computer files into a **living knowledge base powered by AI** that constantly evolves, maximizing value provided.
+Turn ideas, insights, and data scattered through human brains and computer files into a **living knowledge base powered by AI** that continuously evolves, maintains absolute traceability, and never locks you into proprietary silos.
 
 - [Open iNNfo Modeler App](https://cognnitive.com/innfo/app/)
 - [Explore Agent Skills](https://cognnitive.com/actionn)
 
 ---
 
-## Turn 💡 ideas 📄 documents 📰 information 📊 data 📁 files 📽️ slides ✉️ emails 📅 meetings 🌐 webs 📝 articles 📕 PDFs 🚀 ANYTHING! into actionable knowledge using AI
+## Turn 💡 ideas 📄 documents 📰 articles 📊 data 📁 files 📽️ slides ✉️ emails 📅 meetings 🌐 webs 📝 audios 📕 PDFs into actionable, living knowledge
 
 ---
 
-## What is cogNNitive?
+## The Knowledge Lifecycle (`IMPORT` ➔ `MANAGE` ➔ `EXPORT`)
 
-An open, unified ecosystem designed to make documentation readable and editable by humans and AI.
-
-- **iNNfo — Knowledge Modeling**: A simple specification chain for structuring Markdown documents. Clear, validated, and engine-backed. Read the [Especificaciones iNNfo y Arquitectura de Documentos](specifications.md).
-- **actioNN — AI Agent Skills**: Modular capabilities that teach your OpenCode AI agent specialized domain workflows automatically.
-- **iNNfo Modeler — Visual App**: A browser-based workspace editor to view, edit, and validate knowledge graphs without installing servers.
-
----
-
-## Ecosystem & Information Flow
-
-```mermaid
-flowchart TD
-    subgraph Step1["Step 1: Ingestion & Setup"]
-        U["👤 User in OpenCode"] -->|Bootstrap Prompt| Router["⚡ actioNN Skills (Router & traNNsform)"]
-        RawDocs["📄 Raw Documents (PDF, DOCX)"] --> Router
-    end
-
-    subgraph Step2["Step 2: Validation & Engine"]
-        Router --> Models["📘 Structured Models (_NN.md)"]
-        Models <--> MCP["⚙️ innfo-mcp Server + Core Engine"]
-    end
-
-    subgraph Step3["Step 3: Delivery & Access"]
-        MCP <--> Modeler["🛠️ iNNfo Modeler App (Web Editor)"]
-        MCP <--> AgentChat["💬 OpenCode Conversational Queries"]
-    end
-
-    subgraph Step4["Step 4: Artifact Generation"]
-        Modeler & AgentChat --> Artifacts["📊 Final Deliverables\n(Visual Dashboards, Exec Summaries, Scripts)"]
-    end
-```
-
----
-
-## 6 Key Benefits
-
-1. **Zero Vendor Lock-in**: Plain text Markdown files stored in your own Git repository. You own your knowledge forever.
-2. **AI That Never Guesses**: Deterministic validation guarantees your OpenCode agent always works with reliable data.
-3. **No Setup Friction**: Works directly inside OpenCode Desktop with a single prompt. No complex setup required.
-4. **Always Up to Date**: Detects structural drift and outdated information automatically before it causes mistakes.
-5. **Visual & Flexible**: Edit visually in your browser app or textually through conversational AI instructions.
-6. **100% Free & Open Source**: Built for the open community under the MIT license. No hidden subscriptions or API costs.
-
----
-
-## How to Use It (OpenCode)
-
-1. **Open OpenCode Desktop**: Open OpenCode Desktop on your computer and open your project workspace folder.
-2. **Prompt Your Agent**: Tell your AI agent: `I want to use https://cognnitive.com/use`
-3. **Enjoy Living Knowledge**: OpenCode automatically installs the skills, configures tools, and presents your interactive workflow menu.
-
----
-
-## The `A ⇄ K` Paradigm
-
-*Turn Anything into structured Knowledge, and back into Anything using AI.*
+Knowledge in an organization begins in minds and existing documents. cogNNitive structures this journey through three transparent phases and a continuous feedback loop:
 
 ```mermaid
 flowchart LR
-    A1["📄 Anything (A)\nWhite light — your original file"] -->|"A →"| Prism["📡 AI Prism\nThe intelligence loop"]
-    Prism --> K["🌈 Structured Knowledge (K)\nThe spectrum — entities, relations, metadata"]
-    K -->|"K →"| A2["🎨 Anything (A)\nA new ray — the file you choose"]
+    subgraph EXT["0. External World"]
+        B["🧠 Brains\n(Internal & External)"] -->|"Elicitation\n(Audio, Notes, Docs)"| F["📁 Files & URLs\n(Local disk paths / Web)"]
+    end
 
-    A2 -.->|"A ⇄ K\nvirtuous cycle"| A1
+    subgraph P1["1. IMPORT (Sources)"]
+        F -->|"Verbatim Copy + SHA-256"| S_IMP["sources/import/"]
+        S_IMP -->|"Intermediate Buffer (Whisper/OCR)"| S_STG["sources/staging/"]
+        S_STG -->|"Normalization to Markdown"| S_NN["sources/nn/"]
+        S_IMP -->|"Snapshot on Change"| S_ARC["sources/archive/"]
+    end
 
-    classDef a1 fill:#FAFAFC,stroke:#636366,color:#111112;
-    classDef k fill:#F6EEF6,stroke:#4D0E4E,color:#4D0E4E;
-    classDef a2 fill:#4D0E4E,stroke:#4D0E4E,color:#FFFFFF;
+    subgraph P2["2. MANAGE (iNNfo Models)"]
+        S_NN -->|"Fine-Grained Citation\nsources:: [file.md#slug]"| M["models/*_NN.md\n(Single Source of Truth)"]
+    end
 
-    class A1 a1;
-    class Prism,K k;
-    class A2 a2;
+    subgraph P3["3. EXPORT (Deliverables)"]
+        M -->|"Role-Specific Vistas"| A["export/\n(Dashboards, Word, PDF, Web)"]
+    end
+
+    A -.->|"Human Feedback & Revision Loop"| F
+
+    classDef ext fill:#F4F4F6,stroke:#8E8E93,color:#1C1C1E;
+    classDef p1 fill:#EBF3FF,stroke:#007AFF,color:#003D82;
+    classDef p2 fill:#F6EEF6,stroke:#4D0E4E,color:#4D0E4E;
+    classDef p3 fill:#E8F8F0,stroke:#34C759,color:#105C29;
+
+    class B,F ext;
+    class S_IMP,S_STG,S_NN,S_ARC p1;
+    class M p2;
+    class A p3;
 ```
 
-- **Anything In (A)**: Any file you have — PDF, DOCX, meeting notes, spreadsheet, or raw text. This is your white light.
-- **The AI Prism (⇄)**: Not a shallow format converter. AI decomposes the original file into a structured knowledge layer — entities, relations, and metadata.
-- **Anything Out (A)**: AI re-composes that knowledge into the new file you need — dashboard, summary, spec, or script. The color you choose.
+---
 
-The cycle is fully reversible (**`A ⇄ K`**): inputs and outputs stay decoupled through a single semantic core, and every pass through the prism enriches the knowledge behind the file.
+## How It Works: Phase by Phase
+
+### 0. The External World: Where Ideas Originate
+Knowledge initially resides in human brains—internal team members, external researchers, subject-matter experts, book authors, and meeting participants. To be usable, this knowledge is **elicited** into digital files (recordings, transcripts, notes, PDFs, spreadsheets, presentations, or URLs). 
+
+**cogNNitive never forces you to change how you capture thoughts.** You continue using whatever note-taking tools, voice recorders, or document editors you prefer.
+
+### 1. IMPORT: Ingestion, Staging, and Normalization
+When external files enter the cogNNitive workspace:
+* **`sources/import/` (Immutable Originals)**: A verbatim copy is stored alongside its cryptographic SHA-256 hash. Originals remain untouched.
+* **`sources/staging/` (Extraction Buffer)**: Raw intermediate outputs (such as Whisper audio transcripts, raw OCR dumps, or SRT subtitle streams) live in a staging buffer. This folder is ignored by Git and models—it is never cited directly.
+* **`sources/nn/` (Cognitivized Markdown)**: The content is normalized into human- and AI-readable Markdown with clear heading sections (`#heading-slug`) and mandatory provenance frontmatter (`source_file`, `sha256`, timestamps, canonical identity).
+* **`sources/archive/` (Dynamic Versioning)**: If an original file changes, previous normalized versions are preserved automatically in snapshot folders (`sources/archive/<name>/V<N>/`).
+
+### 2. MANAGE: Semantic Modeling (Single Source of Truth)
+Normalized sources are structured into Level 3 iNNfo models (`models/*_NN.md`):
+* **Predictable Semantic Structure**: Concepts define the schema, Elements represent specific entity instances, Fields store typed attributes, and Matrices formalize entity relationships.
+* **Radical Fine-Grained Traceability**: Every element cites its exact provenance using section anchors (`sources:: [strategy.md#vision-goals]`).
+* **Triple Access Freedom**:
+  1. **Plain Text Editors**: Open and edit directly with Obsidian, VS Code, Notepad, or Logseq.
+  2. **iNNfo Modeler**: Use the zero-install web UI to visually navigate graphs and edit matrices.
+  3. **AI Pair-Programming Agents**: Direct OpenCode, Antigravity, or Claude Code in natural language to expand and refine models.
+
+### 3. EXPORT: Deliverables and Closed Feedback Loop
+From the verified model, generate tailored deliverables into `export/`:
+* **Tailored Vistas**: Interactive HTML dashboards, executive Word documents, PDF reports, or task specs filtered by role or department.
+* **Closed-Loop Feedback**: Exported documents carry metadata. When a stakeholder reviews, annotates, or amends a deliverable outside the system, that document can be re-imported into `sources/import/`. The system identifies the origin, detects diffs, and updates the underlying model.
+
+---
+
+## 6 Key Architectural Pillars
+
+1. **Zero Vendor Lock-in**: Everything is plain Markdown stored on your local filesystem and Git. No proprietary databases, no opaque binary stores, no hosted lock-in.
+2. **Fine-Grained Traceability**: Citations point directly to granular heading anchors (`#slug`), not vague document-level links or fragile line numbers.
+3. **Dynamic Source Drift Detection**: When an updated file is imported, the built-in **Impact Check** audits all downstream models and alerts you if cited sections have moved or changed.
+4. **Respected Workflow**: Your team captures knowledge using whatever physical or digital tools they already know. Ingestion happens transparently.
+5. **Deterministic AI Pair-Programming**: AI agents operate against validated schemas with deterministic verification rather than guessing hallucinated structures.
+6. **100% Free & Open Source**: Released under the MIT license. Local-first, community-driven, and designed to last decades.
 
 ---
 
 ## What cogNNitive is NOT
 
-Clear boundaries keep the ecosystem honest, simple, and yours. If it isn't listed here, it isn't the product.
+Clear boundaries keep the ecosystem honest, simple, and yours:
 
-- **Not a database**: Models are plain Markdown files in your own Git repository. No proprietary storage engine, no hidden silo, no lock-in.
-- **Not a hosted platform**: No mandatory cloud service or managed infrastructure that owns your knowledge. Everything runs locally or in your browser.
-- **Models never execute code**: `_NN.md` files are data, not programs — no macros, scripts, arbitrary commands, or auto-installed plugins. Opening a model never runs anything.
-- **Not a real-time collaboration platform**: No live multi-user editing, presence, or sync protocol. Collaboration is the engineering way: files in Git, branches, and reviews.
-- **Not a vector database / RAG platform**: It structures knowledge so retrieval works, but it does not store embeddings or manage retrieval infrastructure. Connect the vector tool of your choice.
-- **Not a document authoring suite**: It does not replace your wiki, CMS, or word processor. It organizes the knowledge those tools produce into validated, linked models.
-- **Not a universal format**: OKF-compatible and plain Markdown, but not the single format for all knowledge. Your source of truth stays yours.
-- **Not a one-shot AI converter**: The `A ⇄ K` cycle is reversible and iterative. A single unvalidated lossy conversion is not the product — living, validated models are.
-
----
-
-## Knowledge Evolution Framework
-
-Three words that define how cogNNitive turns scattered inputs into living information.
-
-- **Knowledge**: The ideas in your team's brains and the data in your computer files — files, docs, chats, sheets — captured and structured so humans and AI agents can understand, query, and reuse it.
-- **Evolution**: Knowledge is never frozen. Every pass validates, enriches, and updates it, so information stays living, constantly evolving instead of going stale.
-- **Framework**: A set of processes and tools — iNNfo models, actioNN agent skills, and the Modeler app — that guide knowledge from scattered input to verified, traceable output, maximizing value provided.
+- **Not a database engine**: Models are plain Markdown files in your Git repo.
+- **Not a closed SaaS platform**: Runs locally on your machine or directly in your browser.
+- **Models never execute code**: `_NN.md` files are pure declarative data—no hidden macros or background scripts.
+- **Not an unvalidated one-shot converter**: The lifecycle is continuous, verified, and reversible.

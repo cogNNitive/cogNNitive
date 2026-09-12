@@ -9,7 +9,7 @@ const converters = require('./lib/scanner-converters');
  * mirroring the source subtree structure.
  * @param {string} projectDir
  * @param {Record<string, any>} [options]
- * @returns {Promise<{ totalDiscovered: number, processedCount: number, skippedCount: number, registry: Array<any>, orphans?: Array<any> }>}
+ * @returns {Promise<{ totalDiscovered: number, processedCount: number, skippedCount: number, registry: Array<any>, orphans?: Array<any>, changedSnapshots?: Array<any> }>}
  */
 async function scanAndProcess(projectDir, options = {}) {
   const sourcesDir = path.join(projectDir, 'sources');
@@ -33,6 +33,7 @@ async function scanAndProcess(projectDir, options = {}) {
   const webImportMeta = options.webImportMeta || {};
 
   const registry = [];
+  const changedSnapshots = [];
   let totalDiscovered = 0;
   let processedCount = 0;
   let skippedCount = 0;
@@ -74,6 +75,13 @@ async function scanAndProcess(projectDir, options = {}) {
     totalDiscovered++;
     if (entry.outcome === 'processed') {
       processedCount++;
+      if (entry.snapshot && entry.snapshot.archived) {
+        changedSnapshots.push({
+          baseName: entry.baseName,
+          displayOutPath: entry.displayOutPath,
+          snapshot: entry.snapshot,
+        });
+      }
     } else {
       skippedCount++;
     }
@@ -139,7 +147,8 @@ async function scanAndProcess(projectDir, options = {}) {
     processedCount,
     skippedCount,
     registry,
-    orphans
+    orphans,
+    changedSnapshots,
   };
 }
 
