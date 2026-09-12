@@ -42,7 +42,7 @@ Chain strategy: pending
 - [x] 2.7 `actioNN/skills/nn-innfo/SKILL.md`: L2-sense copy → app (~70 hits); `bundled_templates` identifier unchanged
 - [x] 2.8 `actioNN/skills/nn-trannsform/SKILL.md`: L2-sense only; `traNNsformations/` + `--apply` sense untouched
 - [x] 2.9 `.agents/skills/nn-template-audit/SKILL.md`: audit copy L2-sense → app (identifiers unchanged)
-- [ ] 2.10 `docs/**` prose + `iNNfo/USE_AI.md`: conceptual "template" (L2-sense) → "app"; identifiers verbatim
+- [x] 2.10 `docs/**` prose + `iNNfo/USE_AI.md`: conceptual "template" (L2-sense) → "app"; identifiers verbatim
 
 ## Phase 3: Audit + Backlog Follow-up
 

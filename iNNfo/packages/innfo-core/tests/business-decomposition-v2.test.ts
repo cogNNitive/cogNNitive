@@ -217,7 +217,7 @@ describe('business_V_0-2-0 — collision is still an ERROR (REQ-B4)', () => {
     const { errors } = resolveTemplateSchema(BUSINESS_V2, clashResolver)
     const collision = errors.find((e) => e.message.includes('importance'))
     expect(collision?.severity).toBe('error')
-    expect(collision?.message).toMatch(/Business Model Template|Analysis Template/)
+    expect(collision?.message).toMatch(/Business Model (Template|App)|Analysis (Template|App)/)
   })
 })
 

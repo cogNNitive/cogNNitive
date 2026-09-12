@@ -33,7 +33,7 @@ The four-level specification chain:
 |-------|------|-------------|
 | 0 | **defiNNe** | Meta-specification: structure, SemVer, RFC 2119 |
 | 1 | **iNNfo** | Central spec — single-file `_NN.md` documents |
-| 2 | **Templates** | business, procedures, organization |
+| 2 | **Apps** | business, procedures, organization |
 | 3 | **Models** | Concrete instances (Ghostbusters, Code Review Process, Engineering Team) |
 
 ### [Specifications](specifications)
@@ -43,7 +43,7 @@ Complete listing of all specs and models at every level, with links to source fi
 iNNfo is **compatible** with OKF v0.1 by Google Cloud Platform. Every iNNfo document is a valid OKF knowledge bundle.
 
 ### [Usage](usage)
-How to create iNNfo models, use templates, and work with the ecosystem.
+How to create iNNfo models, use apps, and work with the ecosystem.
 
 ### [iNNfo Agent (OpenCode)](opencode-innfo-agent)
 Connect the iNNfo MCP agent to OpenCode Desktop for natural-language model editing.

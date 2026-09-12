@@ -8,7 +8,7 @@ cogNNitive does not invent a new discipline: it **recombines several well-establ
 
 ### 1. Model-Driven Engineering / Metamodeling (MDE · MDA · MOF)
 
-iNNfo's four-level cascade (`defiNNe` → `iNNfo` → templates → models) is a formal **metamodeling architecture**: a meta-specification (Level 0) defines the language used to describe templates (Level 2), which in turn are the metamodels against which concrete instances (Level 3) are validated. The resolver walks the parent chain, validation is deterministic, and references are immutable (*write-once*). Structurally, this is the same problem solved by **OMG MOF/MDA** (M3→M0 layers) and DSL engineering tooling (Eclipse EMF, Xtext).
+iNNfo's four-level cascade (`defiNNe` → `iNNfo` → apps → models) is a formal **metamodeling architecture**: a meta-specification (Level 0) defines the language used to describe apps (Level 2), which in turn are the metamodels against which concrete instances (Level 3) are validated. The resolver walks the parent chain, validation is deterministic, and references are immutable (*write-once*). Structurally, this is the same problem solved by **OMG MOF/MDA** (M3→M0 layers) and DSL engineering tooling (Eclipse EMF, Xtext).
 
 Unlike MOF/MDA, iNNfo does not generate code or PIM→PSM transformations: its output is validated knowledge models and derived artifacts (dashboards, summaries), not executable artifacts.
 
@@ -16,11 +16,11 @@ Unlike MOF/MDA, iNNfo does not generate code or PIM→PSM transformations: its o
 
 The commercial positioning is explicit: a *Knowledge Evolution Framework* that turns **tacit** knowledge (what lives in the team's heads) and **explicit** knowledge (PDFs, DOCX, spreadsheets, meetings) into a living base that is validated and enriched on every pass. This is Nonaka–Takeuchi's tacit↔explicit cycle, with the addition of deterministic validation and AI-agent consumption. The `A ⇄ K` paradigm makes the cycle explicit: any file goes in, is decomposed into structured knowledge, and is recomposed into another artifact, reversibly.
 
-Classic KM usually stops at capture, classification, and search; cogNNitive adds a verifiable contract (validation against a template) and origin traceability.
+Classic KM usually stops at capture, classification, and search; cogNNitive adds a verifiable contract (validation against an app) and origin traceability.
 
 ### 3. Enterprise Architecture (EA)
 
-The Level 2 templates (`business`, `organization`, `procedures`) operate as domain *viewpoints*, and intersection matrices (for example `WORK → ROLES`) act as relationship matrices between domains. Together —metamodel + viewpoints + typed relationships + matrices— they reproduce the conceptual scaffolding of frameworks such as **TOGAF** and notations such as **ArchiMate**.
+The Level 2 apps (`business`, `organization`, `procedures`) operate as domain *viewpoints*, and intersection matrices (for example `WORK → ROLES`) act as relationship matrices between domains. Together —metamodel + viewpoints + typed relationships + matrices— they reproduce the conceptual scaffolding of frameworks such as **TOGAF** and notations such as **ArchiMate**.
 
 cogNNitive does not implement an ADM (Architecture Development Method) or a governed EA repository; it provides the *language* to model the architecture, not the corporate governance process.
 

@@ -85,7 +85,7 @@ the preview channel tracks `main`.
 > **Convention, not enforcement.** Not editing a published bundle in place is a
 > **convention** applied by the release flow. The manifest rules validate that a
 > console pin resolves and carries release provenance; the content-coherence
-> check (`checkTemplateMainCoherence`) applies to **templates only**. None of
+> check (`checkTemplateMainCoherence`) applies to **apps only**. None of
 > these enforce write-once immutability on the published artifact. Treat
 > immutability as a discipline, not a runtime guarantee.
 

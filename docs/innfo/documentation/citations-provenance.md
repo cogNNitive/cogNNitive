@@ -177,8 +177,8 @@ references resolvable and auditable without consulting git history:
 | :--- | :--- | :--- |
 | 0 | `defiNNe` | meta-spec; defines the versioning conventions themselves |
 | 1 | Specifications | `iNNfo_V_0-1-0_NN.md`, `iNNfo_V_0-2-0_NN.md`, `iNNfo_V_0-2-1_NN.md` — `spec_version` in frontmatter |
-| 2 | Templates | `business_V_0-2-0_NN.md` — `template_version` + `spec_version` in frontmatter; the template catalog (`catalog.json`) tracks every `versions[]` and the `adopted` one |
-| 3 | Models | `<Name>_V_<x-y-z>_<template>_NN.md` — `model_version` in frontmatter; `parent_spec.url` pins the exact template version it conforms to |
+| 2 | Apps | `business_V_0-2-0_NN.md` — `template_version` + `spec_version` in frontmatter; the app catalog (`catalog.json`) tracks every `versions[]` and the `adopted` one |
+| 3 | Models | `<Name>_V_<x-y-z>_<template>_NN.md` — `model_version` in frontmatter; `parent_spec.url` pins the exact app version it conforms to |
 | — | Sources | `sources/archive/<basename>/V<N>/<basename>.md` — per-source snapshots (see below) |
 
 The same pattern extends to the **distribution layer**: the MCP server ships as
@@ -225,7 +225,7 @@ When a living source document changes over time (e.g. quarterly metrics, edited 
 
 ### Where they overlap — and the rule that keeps them apart
 
-The overlap is **real**: the same files (templates, specs, models) are versioned
+The overlap is **real**: the same files (apps, specs, models) are versioned
 by both systems, and both speak SemVer — native `V_0-2-0` (underscores) vs. git
 tags `v0.2.5` (dots). The bootstrap manifest itself records both on the same
 entry (`version: "V_3-2-0"` next to `ref: "skills-v1.1.5"` and the `commit`
@@ -233,7 +233,7 @@ hash). That duality is the system working as designed.
 
 | Concern | Git | Native semver |
 | :--- | :--- | :--- |
-| Granularity | whole repo / commit | per artifact (spec, template, model, source) |
+| Granularity | whole repo / commit | per artifact (spec, app, model, source) |
 | History mechanism | SHA object graph + tags | version-in-filename + write-once files |
 | What a version means | a point in repo history | the immutable identity of the artifact |
 | Requires a commit? | yes, per change | no — version exists in the file itself |
@@ -256,7 +256,7 @@ The natural handshake between them:
 
 - **Git transports and anchors.** The stable `raw.githubusercontent.com`
   URLs, the release tags, and the commit history are Git's job.
-- **Native semver is the reference contract.** Models pin templates, templates
+- **Native semver is the reference contract.** Models pin apps, apps
   pin specs, exports pin sources — each by an immutable version that must stay
   stable regardless of commit activity.
 - **Releases couple them.** The release flow bumps the native version,

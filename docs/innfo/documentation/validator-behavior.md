@@ -51,9 +51,9 @@ Behavior:
 ## Version inference at scaffold time
 
 `innfo-mcp/src/tools/init-model.ts` infers a new model's version from the resolved
-**parent template's own `spec_version`**:
+**parent app's own `spec_version`**:
 
-- Omitting `model_version` inherits the template's `spec_version`.
+- Omitting `model_version` inherits the app's `spec_version`.
 - An explicit `model_version` wins only when it does not contradict the inferred
   one.
 - When both exist and differ, init refuses to write and returns

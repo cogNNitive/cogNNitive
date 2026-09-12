@@ -89,6 +89,6 @@ before continuing. The backup must predate the first mutation. Never rely on Git
 
 ## Boundary
 
-The Git workflow never touches `nn-innfo`, Level-2 templates, or spec canonical URLs.
+The Git workflow never touches `nn-innfo`, Level-2 apps, or spec canonical URLs.
 It reads models and writes only Git-layer artifacts (branches, PRs, map rows, backups).
-If a change needs a template or spec edit, that happens in the iNNfo workflow — not here.
+If a change needs an app or spec edit, that happens in the iNNfo workflow — not here.

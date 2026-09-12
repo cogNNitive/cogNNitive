@@ -11,7 +11,7 @@ To maintain clean architectural boundaries, cogNNitive cleanly distinguishes thr
 | Mechanism | Purpose | Scope | Schema Requirement |
 | :--- | :--- | :--- | :--- |
 | **Tags (`tags::`)** | Cross-cutting categorization, ad-hoc taxonomy, and multi-dimensional view filtering (e.g. `strategy-a`, `enterprise`, `q4`). | Model Elements and Concepts | **None** (ad-hoc, open vocabulary). |
-| **Markers** | Quantitative evaluation, matrix intersections, and lifecycle scoring with formal widgets (`scale`, `cycle`, `boolean`). | Specific matrices and elements | **Mandatory** definition in Level 2 template (`spec_NN.md`). |
+| **Markers** | Quantitative evaluation, matrix intersections, and lifecycle scoring with formal widgets (`scale`, `cycle`, `boolean`). | Specific matrices and elements | **Mandatory** definition in Level 2 app (`spec_NN.md`). |
 | **Releases / Snapshots** | Immutable point-in-time milestones for frozen baselines, pipeline inputs, and public distribution. | Whole model repository | Defined via version tags (`V_1-0-0`) and git tags. |
 
 > [!TIP]
@@ -21,7 +21,7 @@ To maintain clean architectural boundaries, cogNNitive cleanly distinguishes thr
 
 ## 2. Using Tags in Models (Ad-hoc / Open Vocabulary)
 
-At the model level (Level 3), you can attach `tags::` to any Element or Concept heading without declaring them upfront in your template:
+At the model level (Level 3), you can attach `tags::` to any Element or Concept heading without declaring them upfront in your app:
 
 ```markdown
 # NN Oferta

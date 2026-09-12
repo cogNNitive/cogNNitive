@@ -3,7 +3,7 @@
 What a generated console can do is **declared, not inferred**. A console opts into
 capabilities by listing them in `innfo-config.needs[]`; the shared runtime reads
 that list through `hasNeed()` and only wires the matching UI. Concept color and
-icon are a separate concern: they are **data from the active template**, not a
+icon are a separate concern: they are **data from the active app**, not a
 hard-coded app palette.
 
 ---
@@ -15,7 +15,7 @@ hard-coded app palette.
 | Need | What it enables |
 | :--- | :--- |
 | `feedback-export` | Reviewer suggest/edit drafts in `localStorage` plus the Export modal (identifier gate, instructions, agent prompt, timestamped JSON download). |
-| `concept-rail` | Left rail of template concepts with per-concept element counts. |
+| `concept-rail` | Left rail of app concepts with per-concept element counts. |
 | `fulltext-search` | Search box filtering element names and field values. |
 | `matrix-grids` | Matrix sections rendered as rows-by-columns tables from the model slots. |
 | `hash-routing` | In-page relationship links resolving to element anchors via the location hash. |
@@ -57,9 +57,9 @@ Two mismatches are worth stating plainly.
 
 ---
 
-## Template-driven visual identity
+## App-driven visual identity
 
-Concept color and icon come from the **active template's concept definitions**
+Concept color and icon come from the **active app's concept definitions**
 (`innfo-schema.concepts[].color` / `.icon`), never from the app's own palette. A
 color is stored as a name (for example `blue`) and translated to a hex value by
 the shared visuals module's `COLOR_HEX`.

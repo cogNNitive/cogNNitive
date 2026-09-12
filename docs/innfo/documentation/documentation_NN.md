@@ -181,7 +181,7 @@ source:: console-needs-and-visuals.md
 route:: console-needs-and-visuals
 order:: 20
 parent:: [[Runtime & Internals]]
-description:: Capability needs and template-driven concept color/icon in generated consoles.
+description:: Capability needs and app-driven concept color/icon in generated consoles.
 
 ## NN Page: Validator Behavior
 title:: Validator Behavior
