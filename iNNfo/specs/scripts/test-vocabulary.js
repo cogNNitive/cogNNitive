@@ -30,7 +30,7 @@ function run() {
       assert.strictEqual(actual, expected);
       console.log(`  PASS: ${msg}`);
       passed++;
-    } catch (e) {
+    } catch {
       console.log(`  FAIL: ${msg}`);
       console.log(`    Expected: ${JSON.stringify(expected)}`);
       console.log(`    Actual:   ${JSON.stringify(actual)}`);

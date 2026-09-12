@@ -46,16 +46,16 @@ Chain strategy: pending
 
 ## Phase 3: Audit + Backlog Follow-up
 
-- [ ] 3.1 Element-vocabulary audit: L2 Concept Definition names in 13 templates + Ghostbusters samples; produce proposed simpler surface (report section in change folder)
-- [ ] 3.2 Add backlog work item to `_NN/models/cogNNitive_backlog_V_0-1-6_backlog_NN.md`: future identifier migration (paths/URLs/keys/tags) referencing dictionary planned_migrations
+- [x] 3.1 Element-vocabulary audit: L2 Concept Definition names in 13 templates + Ghostbusters samples; produce proposed simpler surface (report section in change folder)
+- [x] 3.2 Add backlog work item to `_NN/models/cogNNitive_backlog_V_0-1-6_backlog_NN.md`: future identifier migration (paths/URLs/keys/tags) referencing dictionary planned_migrations
 
 ## Phase 4: Testing / Verification
 
-- [ ] 4.1 GREEN test 1.4 (vocabulary.json contract)
-- [ ] 4.2 Guard grep: `template_version|specs/templates/|get_template|ref_key: templates|SHIPPED_TEMPLATE_VERSIONS` all still present (no identifier renamed)
-- [ ] 4.3 `node scripts/template-catalog.mjs --check` green
-- [ ] 4.4 `npm --prefix iNNfo run lint` + `typecheck` + editor test suite (663) green
-- [ ] 4.5 `node actioNN/skills/nn-trannsform/test/run.js` green (398)
+- [x] 4.1 GREEN test 1.4 (vocabulary.json contract)
+- [x] 4.2 Guard grep: `template_version|specs/templates/|get_template|ref_key: templates|SHIPPED_TEMPLATE_VERSIONS` all still present (no identifier renamed)
+- [x] 4.3 `node scripts/template-catalog.mjs --check` green
+- [x] 4.4 `npm --prefix iNNfo run lint` + `typecheck` + editor test suite (663) green
+- [x] 4.5 `node actioNN/skills/nn-trannsform/test/run.js` green (398)
 
 ## Phase 5: Cleanup
 
