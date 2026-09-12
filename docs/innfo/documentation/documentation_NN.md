@@ -143,6 +143,14 @@ order:: 30
 parent:: [[Guides]]
 description:: How the pipeline tracks where knowledge comes from, with three terms — Source, Citation, Lineage.
 
+## NN Page: Lifecycle Walkthrough
+title:: Lifecycle Walkthrough (Case Study)
+source:: lifecycle-walkthrough.md
+route:: lifecycle-walkthrough
+order:: 35
+parent:: [[Guides]]
+description:: End-to-end walkthrough of the 3-phase knowledge lifecycle using the Ghostbusters Inc. sample workspace.
+
 ## NN Page: Tags & Open Taxonomy
 title:: Tags & Open Taxonomy
 source:: tags-and-taxonomy.md
