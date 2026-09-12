@@ -507,3 +507,18 @@ hand-edited `docs/use/manifest.md` fails fast with the correct message.
 
 **Suggested trigger:** `/sdd-explore opencode-prompt-generator`.
 
+---
+
+## 22. `feature/innfo-uri-protocol-someday-maybe` — `innfo://` custom URI scheme and deep-linking parser
+
+**Type:** functional · **Size:** medium · **Status:** someday-maybe (backlog)
+
+**Why:** The iNNfo ecosystem can benefit from a native internal URI scheme (`innfo://`) and deep-linking mechanism for cross-referencing models, elements, and procedures across workspaces, avoiding manual modal path pasting.
+
+**Behaviour:** Define and implement the `innfo://` custom URI scheme specification (`innfo://model/<id>`, `innfo://element/<id>`, `innfo://procedure/<id>`), wire custom URI interception and routing in `innfo-editor` and console/runtime views, and register the OS-level custom protocol handler.
+
+**Approach:** Establish a robust regex/parser utility in `innfo-core` to parse `innfo://` URIs, intercept click events on matching anchors in `innfo-editor` and static consoles, and route them to the internal model navigation engine.
+
+**Suggested trigger:** `/sdd-explore innfo-uri-protocol`.
+
+
