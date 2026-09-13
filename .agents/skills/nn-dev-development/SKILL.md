@@ -1,6 +1,6 @@
 ---
 name: nn-dev-development
-version: "0.2.1"
+version: "0.3.0"
 description: Internal developer skill for cogNNitive maintainers. Guards the shared working tree against concurrent AI agents and enforces single-branch (dev) hygiene with batched merges to main. On session start it detects other agent processes (Claude Code, Cursor, OpenCode, Copilot, etc.), checks whether origin/main advanced, and reports worktree/stash/HEAD state. Before any write to a repository file it confirms the change belongs on the shared dev branch (one-time consent per session), then re-checks the tree before each chunk and, when HEAD/branch was moved by a concurrent agent, runs the safe stash-switch-pop recovery protocol. At session close it reports what is on dev vs origin/main, flags ghost branches whose content already landed in main, and hands off to nn-dev-check-integrity + nn-dev-release for the batched merge to main. Trigger: any development session, concurrency check, branch decision, working-tree guard, session start.
 ---
 
@@ -202,18 +202,17 @@ branch `dev`, not on `main` and not on a new parallel branch.
 - Exception: read-only work, generated artifacts already covered by an existing change
   branch, or a fix the maintainer explicitly says "just commit on the current branch".
 
-### The prompt (one gate, two options)
+### The default: announce, don't ask (no interaction)
 
-Ask with a short numbered menu. The recommended option is first and marked
-`(Recommended)`:
+The gate is **non-interactive by default**. Instead of blocking on a numbered menu, the
+agent states the working branch and proceeds — the maintainer opts out only if they want
+another branch:
 
 ```markdown
-🌿 ¿Confirmamos la rama de trabajo? (ante cualquier escritura en el repo)
-
-  [1] Sí — trabajar en dev (Recomendado)
-  [2] No — trabajar sobre la rama actual (main)
-  [x] Cancelar / no tocar nada
+🌿 Estoy trabajando en dev. Indícame si quieres que trabaje en otra rama.
 ```
+
+Then resolve `dev` as the session's integration target:
 
 - **Default is `dev`.** If `dev` exists locally, switch to it (`git switch dev`). If it
   does not exist locally but exists on origin, track it (`git switch dev` with
@@ -223,8 +222,8 @@ Ask with a short numbered menu. The recommended option is first and marked
 - Only fall back to `main` for trivial, maintainer-approved hotfixes. A parallel branch
   is **not** proposed by this skill — per the repo's real workflow (see Overview),
   day-to-day work is integrated continuously on `dev` and `main` only absorbs batched
-  merges. If the maintainer still wants a dedicated branch for a special case, honor it
-  (see Section 2a).
+  merges. If the maintainer explicitly asks for a dedicated branch, honor it (see
+  Section 2a).
 
 Confirm the switch with `git status -sb` and record `$baselineHead` / `$baselineBranch`
 again if the branch changed, then proceed.
@@ -244,9 +243,10 @@ Treat that branch as the session's integration target for consent purposes (see
 
 ### Consent is one-time per session per branch
 
-Ask **once** at the first write. Once the branch is chosen, subsequent writes on that
-session stay on it without re-asking — re-asking every write would be noise. Re-ask
-only if the task changes scope or the user switches the working tree.
+Announce the branch **once** at the first write. Once the branch is chosen, subsequent
+writes on that session stay on it without re-announcing — re-announcing every write
+would be noise. Re-announce only if the task changes scope or the user switches the
+working tree.
 
 ---
 
@@ -386,10 +386,11 @@ no per-change PR to open; `main` absorbs the batch instead.
    report findings before doing anything else.
 3. **Single branch by default** — day-to-day work lands on `dev`; `main` only absorbs
    batched merges. A dedicated branch is the exception, not the rule.
-4. **Ask before any repo write** — the single-branch consent gate is mandatory; never
-   write to a repo file without the branch decision being made.
-5. **Consent once per branch** — do not re-ask on every write; re-ask only on scope
-   change or tree switch.
+4. **Announce before any repo write** — the single-branch gate announces the working
+   branch (default `dev`) instead of asking; never write to a repo file without the
+   branch decision being made.
+5. **Consent once per branch** — announce once, do not repeat on every write; re-announce
+   only on scope change or tree switch.
 6. **Never stage foreign or unattributed files** — never `git add .` / `git add -A`;
    a concurrent agent's files may be in the tree. Stash only your own files. A path
    is attributable only via a `wip:<session-id>` commit or explicit maintainer
