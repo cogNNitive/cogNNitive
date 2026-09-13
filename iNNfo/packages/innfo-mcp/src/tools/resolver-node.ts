@@ -786,7 +786,7 @@ export async function resolveParentChainNode(
     }
 
     // 1. 4-tier template package resolution (workspace package -> workspace flat -> global -> skill)
-    if (content === null) {
+    if (content === null && !isLocalPath(currentUrl)) {
       attempted.push(`4-tier package resolver for "${currentName}" in "${specsDir}"`)
       const pkg = await resolveTemplatePackage(rootDir, currentName, undefined, options)
       if (pkg) {
@@ -796,7 +796,7 @@ export async function resolveParentChainNode(
     }
 
     // 1b. OS temp cache reuse: a previous default run already fetched this spec.
-    if (content === null && cacheDir !== specsDir) {
+    if (content === null && cacheDir !== specsDir && !isLocalPath(currentUrl)) {
       attempted.push(`temp cache dir "${cacheDir}"`)
       const hit = await findLocalSpec(cacheDir, currentName)
       if (hit) {
@@ -838,7 +838,7 @@ export async function resolveParentChainNode(
     }
 
     // 3. Built-in Canonical Fallback Registry (Tier 4 / Offline fallback)
-    if (content === null) {
+    if (content === null && !isLocalPath(currentUrl)) {
       attempted.push(`canonical fallback registry for "${currentName}"`)
       const canonical =
         findCanonicalTemplate(currentName) ||
