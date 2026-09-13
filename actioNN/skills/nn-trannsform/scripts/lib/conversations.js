@@ -70,9 +70,9 @@ function reserveConversationSession(workspaceRoot, timestamp) {
 }
 
 /**
- * Evaluate whether a conversation session should be discarded as trivial.
- * Trivial: turns < 2 AND mutations === false.
- * Silently deletes sessionFile if provided and trivial.
+ * Evaluate conversation session retention.
+ * Under the Guaranteed All-Session Retention policy, all sessions are preserved.
+ * Discard is always false and files are never unlinked.
  */
 function evaluateSessionDiscard({
   turns = 0,
@@ -82,23 +82,12 @@ function evaluateSessionDiscard({
 } = {}) {
   const hasMutations = Boolean(modelMutations || mutations);
   const turnCount = Number(turns) || 0;
-  const discard = turnCount < 2 && !hasMutations;
-
-  if (discard && sessionFile && fs.existsSync(sessionFile)) {
-    try {
-      fs.unlinkSync(sessionFile);
-    } catch {
-      // Silently ignore unlink errors
-    }
-  }
 
   return {
-    discard,
+    discard: false,
     turns: turnCount,
     mutations: hasMutations,
-    reason: discard
-      ? "Session has fewer than 2 turns and 0 workspace mutations"
-      : "Session meets retention criteria",
+    reason: "All sessions are retained by policy",
   };
 }
 

@@ -65,68 +65,50 @@ async function run() {
     );
     assertTrue(Boolean(session.sessionId), "session has unique sessionId");
 
-    console.log("--- Test 2: Trivial Session Discard Filtering ---");
-    const discard1 = conv.evaluateSessionDiscard({
+    console.log("--- Test 2: Guaranteed All-Session Retention (Zero Discard) ---");
+    const eval1 = conv.evaluateSessionDiscard({
       turns: 0,
       modelMutations: false,
     });
-    assertTrue(discard1.discard, "0 turns, 0 mutations -> discard");
+    assertFalse(eval1.discard, "0 turns, 0 mutations -> retain (zero discard policy)");
 
-    const discard2 = conv.evaluateSessionDiscard({
+    const eval2 = conv.evaluateSessionDiscard({
       turns: 1,
       modelMutations: false,
     });
-    assertTrue(discard2.discard, "1 turn, 0 mutations -> discard");
+    assertFalse(eval2.discard, "1 turn, 0 mutations -> retain");
 
-    const retain1 = conv.evaluateSessionDiscard({
+    const eval3 = conv.evaluateSessionDiscard({
       turns: 1,
       modelMutations: true,
     });
-    assertFalse(retain1.discard, "1 turn with mutations -> retain");
+    assertFalse(eval3.discard, "1 turn with mutations -> retain");
 
-    const retain2 = conv.evaluateSessionDiscard({
+    const eval4 = conv.evaluateSessionDiscard({
       turns: 2,
       modelMutations: false,
     });
-    assertFalse(retain2.discard, "2 turns without mutations -> retain");
+    assertFalse(eval4.discard, "2 turns without mutations -> retain");
 
-    const retain3 = conv.evaluateSessionDiscard({
-      turns: 4,
-      modelMutations: true,
-    });
-    assertFalse(retain3.discard, "multi-turn with mutations -> retain");
-
-    const discardTempFile = path.join(
+    const retainTempFile = path.join(
       TEST_TEMP,
       "conversations",
-      "discard_me.md",
+      "keep_zero_turns.md",
     );
-    fs.writeFileSync(discardTempFile, "Ephemeral draft", "utf8");
+    fs.writeFileSync(retainTempFile, "Short session draft", "utf8");
     assertTrue(
-      fs.existsSync(discardTempFile),
-      "temp file created before discard evaluation",
+      fs.existsSync(retainTempFile),
+      "temp file created before evaluation",
     );
-    const discardEval = conv.evaluateSessionDiscard({
+    const evalWithFile = conv.evaluateSessionDiscard({
       turns: 1,
-      modelMutations: false,
-      sessionFile: discardTempFile,
-    });
-    assertTrue(discardEval.discard, "evaluated as discard");
-    assertFalse(
-      fs.existsSync(discardTempFile),
-      "discarded session file unlinked from disk",
-    );
-
-    const retainTempFile = path.join(TEST_TEMP, "conversations", "keep_me.md");
-    fs.writeFileSync(retainTempFile, "Important draft", "utf8");
-    conv.evaluateSessionDiscard({
-      turns: 3,
       modelMutations: false,
       sessionFile: retainTempFile,
     });
+    assertFalse(evalWithFile.discard, "evaluated as retain");
     assertTrue(
       fs.existsSync(retainTempFile),
-      "retained session file kept on disk",
+      "session file is preserved on disk and never unlinked",
     );
 
     console.log("--- Test 3: Post-Session Title Suggestions ---");

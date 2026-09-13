@@ -52,14 +52,15 @@ Every agent interaction across the cogNNitive ecosystem MUST follow these strict
    - This prompt MUST load and activate the **`nn-design-presets`** skill to retrieve branding tokens (e.g. `morado-nazareno`).
 
 5. **Conversations as Reference & Source Protocol (MANDATORY)**:
-   - **Silent Reservation**: When an interactive session begins, immediately allocate `conversations/YYYY-MM-DD_HHmmss.md` with initial frontmatter (`status: in_progress`, `turns: 0`, `mutations: false`) without interrupting the user.
-   - **Trivial Discard Filter**: Upon session exit or completion, if `turns < 2` AND `mutations === false` (no files created/modified), silently delete the reserved transcript file from disk.
-   - **Post-Session Title Suggestions**: For non-trivial sessions, present 3 suggested title options with `[1] (Recommended) <title>` plus a manual entry option. Finalize frontmatter (`status: completed`, `ended_at: ISO_8601`) and rename the file to `conversations/YYYY-MM-DD_<slug>.md`.
-    - **Promotion Prompt**: Prompt the user to promote the conversation transcript into workspace knowledge sources (`sources/conversations/`):
-      - `[full] (Recommended) Full Transcript`: Promotes the verbatim dialogue to `sources/conversations/<session-slug>_source.md`.
-      - `[none]`: Leaves transcript in `conversations/` only.
-      No executive-summary (`_summary.md`) or combined option is offered; `_summary.md` files are not produced by the standard promotion flow.
-      Promoted sources link back via `origin_transcript: conversations/...` and are normalized into `sources/nn/conversations/` via `nn-trannsform` scanner for citation by models (`sources:: [conversations/<file>.md#<anchor>]`).
+   - **Silent Reservation & Continuous Turn Logging**: When an interactive session begins, immediately allocate `conversations/YYYY-MM-DD_HHmmss.md` with initial frontmatter (`status: in_progress`, `turns: 0`, `mutations: false`) without interrupting the user. Update the transcript on each turn to guarantee zero data loss even on abrupt client disconnects.
+   - **Guaranteed All-Session Retention (Zero Discard)**: Never automatically delete or discard session transcripts. All sessions remain persisted in `conversations/` with their timestamp.
+   - **Session Status Footer & Close Triggers**: On milestone responses or deliverables, provide a brief status footer (`💬 Sesión: conversations/... · Escribí "cerrar" o "/close" para titular y archivar`). Recognize natural close commands (`/close`, `cerrar`, `terminar sesión`, `listo por hoy`, `done`).
+   - **Post-Session Title Suggestions**: Present 3 suggested title options with `[1] (Recommended) <title>` plus a manual entry option. Finalize frontmatter (`status: completed`, `ended_at: ISO_8601`) and rename the file to `conversations/YYYY-MM-DD_<slug>.md`.
+   - **Promotion Prompt**: Prompt the user to promote the conversation transcript into workspace knowledge sources (`sources/conversations/`):
+     - `[full] (Recommended) Full Transcript`: Promotes the verbatim dialogue with per-turn author attribution to `sources/conversations/<session-slug>_source.md`.
+     - `[none]`: Leaves transcript in `conversations/` only.
+     No executive-summary (`_summary.md`) or combined option is offered; `_summary.md` files are not produced by the standard promotion flow.
+     Promoted sources link back via `origin_transcript: conversations/...` and are normalized into `sources/nn/conversations/` via `nn-trannsform` scanner for citation by models (`sources:: [conversations/<file>.md#<anchor>]`).
 
 6. **Canonical Source Taxonomy (Zero Confusion Gate)**:
    - **Primary Sources (Fuentes Primarias)**: Raw files in `sources/import/`, `sources/original/`, or external watch roots (`## NN External Watch Roots:`). Includes documents and raw media (`.mp3`, `.wav`).

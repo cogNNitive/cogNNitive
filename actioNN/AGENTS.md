@@ -147,7 +147,9 @@ Rules specific to the cogNNitive ecosystem. These apply to ALL files in this rep
 
 ### Conversation Logging Protocol (MANDATORY)
 
-- Every conversation using NN skills MUST save a transcript or markdown summary to `<workspace_root>/conversations/YYYY-MM-DD_<nombre_modelo>_<titulo_3_a_6_palabras>.md` (or `conversations/YYYY-MM-DD_<titulo_3_a_6_palabras>.md` if no model is active).
+- Every conversation using NN skills MUST silently reserve and continuously update a transcript in `<workspace_root>/conversations/YYYY-MM-DD_HHmmss.md` (`status: in_progress`).
+- **Zero-Loss Retention**: All sessions are preserved on disk. Automatic deletion or discard is prohibited.
+- **Closing & Titling Protocol**: Upon session conclusion (via `/close`, `cerrar`, or explicit closing flow), the agent presents 3 title suggestions, finalizes frontmatter (`status: completed`), renames to `conversations/YYYY-MM-DD_<slug>.md`, and prompts for optional promotion to `sources/conversations/` (`[full]` / `[none]`).
 
 ### Skill Versioning Convention
 
