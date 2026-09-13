@@ -164,7 +164,8 @@ export async function getSessionState(): Promise<Record<string, unknown>> {
       result[item.key] = item.value
     }
     return result
-  } catch {
+  } catch (err) {
+    console.warn('[db] Failed to read session state:', err)
     return {}
   }
 }
@@ -184,8 +185,8 @@ export async function setSessionState(key: string, value: unknown): Promise<void
       }
       tx.onerror = () => reject(tx.error)
     })
-  } catch {
-    // silent
+  } catch (err) {
+    console.warn(`[db] Failed to persist session state for "${key}":`, err)
   }
 }
 
