@@ -100,6 +100,24 @@ export function applyMutation(
   return result
 }
 
+type MutationHandler = (
+  model: ParsedModel,
+  args: Record<string, unknown>,
+  schema?: TemplateSchema,
+) => MutationResult
+
+const MUTATION_HANDLERS: Record<string, MutationHandler> = {
+  add_concept: (model, args) => addConcept(model, args),
+  add_field: (model, args) => addField(model, args),
+  set_marker: (model, args) => setMarker(model, args),
+  add_element: (model, args) => addElement(model, args),
+  update_field: (model, args) => updateField(model, args),
+  remove_element: (model, args) => removeElement(model, args),
+  rename_concept: (model, args) => renameConcept(model, args),
+  rename_element: (model, args, schema) => renameElement(model, args, schema),
+  generate_index: (model, args) => generateIndex(model, args),
+}
+
 function runMutation(
   model: ParsedModel,
   op: string,
@@ -107,28 +125,11 @@ function runMutation(
   schema?: TemplateSchema,
 ): MutationResult {
   try {
-    switch (op) {
-      case 'add_concept':
-        return addConcept(model, args)
-      case 'add_field':
-        return addField(model, args)
-      case 'set_marker':
-        return setMarker(model, args)
-      case 'add_element':
-        return addElement(model, args)
-      case 'update_field':
-        return updateField(model, args)
-      case 'remove_element':
-        return removeElement(model, args)
-      case 'rename_concept':
-        return renameConcept(model, args)
-      case 'rename_element':
-        return renameElement(model, args, schema)
-      case 'generate_index':
-        return generateIndex(model, args)
-      default:
-        return { success: false, errors: [{ path: '', message: `Unknown operation: ${op}` }] }
+    const handler = MUTATION_HANDLERS[op]
+    if (!handler) {
+      return { success: false, errors: [{ path: '', message: `Unknown operation: ${op}` }] }
     }
+    return handler(model, args, schema)
   } catch (err) {
     return {
       success: false,
