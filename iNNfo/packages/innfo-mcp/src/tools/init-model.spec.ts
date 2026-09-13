@@ -98,7 +98,7 @@ describe('initModel', () => {
     expect(result.content).toContain('# NN Work')
     expect(result.content).toContain('## NN Work: Example Work')
 
-    const onDisk = await readFile(result.filePath, 'utf-8')
+    const onDisk = await readFile(result.filePath!, 'utf-8')
     expect(onDisk).toBe(result.content)
   })
 
@@ -116,7 +116,7 @@ describe('initModel', () => {
     expect(result.content).toContain(`name: "${TEMPLATE_NAME}"`)
     expect(result.content).not.toContain('# NN Work')
 
-    const onDisk = await readFile(result.filePath, 'utf-8')
+    const onDisk = await readFile(result.filePath!, 'utf-8')
     expect(onDisk).toBe(result.content)
   })
 
@@ -164,7 +164,7 @@ describe('initModel', () => {
       title: 'The "Real" Deal',
     })
     expect(resQuotes.success).toBe(true)
-    const onDiskQuotes = await readFile(resQuotes.filePath, 'utf-8')
+    const onDiskQuotes = await readFile(resQuotes.filePath!, 'utf-8')
     const parsedQuotes = parseModel(onDiskQuotes)
     expect(parsedQuotes.frontmatter?.title).toBe('The "Real" Deal')
 
@@ -175,7 +175,7 @@ describe('initModel', () => {
       title: 'Line1\nLine2',
     })
     expect(resNewlines.success).toBe(true)
-    const onDiskNewlines = await readFile(resNewlines.filePath, 'utf-8')
+    const onDiskNewlines = await readFile(resNewlines.filePath!, 'utf-8')
     const parsedNewlines = parseModel(onDiskNewlines)
     expect(parsedNewlines.frontmatter.title).toBe('Line1\nLine2')
   })
@@ -294,11 +294,14 @@ describe('initModel', () => {
         'parent_spec:',
         '  name: "iNNfo_V_0-1-0"',
         '  url: "https://example.com/iNNfo_V_0-1-0_NN.md"',
+        'includes:',
+        '  - name: "missing_tpl_V_0-1-0"',
+        '    url: "https://example.com/missing_tpl_V_0-1-0_NN.md"',
         '---',
         '',
         '# NN Concept Definition',
         '## NN Concept Definition: Broken',
-        'type:: unknown_invalid_type',
+        'type:: list',
         '',
       ].join('\n'),
       'utf-8',
@@ -313,8 +316,122 @@ describe('initModel', () => {
       template_name: 'broken_V_0-2-0',
     })
 
-    if (!result.validation.valid) {
-      expect(existsSync(targetFile)).toBe(false)
+    expect(result.validation.valid).toBe(false)
+    expect(existsSync(targetFile)).toBe(false)
+    // model-scaffold-robustness (H1): a failed init must never return a
+    // success-shaped payload — filePath/content are omitted entirely, not
+    // just left pointing at a file that was never written.
+    expect(result.success).toBe(false)
+    expect(result.filePath).toBeUndefined()
+    expect(result.content).toBeUndefined()
+  })
+
+  describe('model-scaffold-robustness (H1)', () => {
+    /** A template with a `type:: reference` field carrying no concrete target
+     * resolvable at scaffold time, alongside an ordinary `string` field. */
+    async function stubReferenceFieldTemplate() {
+      await writeFile(
+        join(specsDir, 'reftpl_V_0-1-0_NN.md'),
+        [
+          '---',
+          'spec_version: "V_0-1-0"',
+          'level: 2',
+          'title: "Reference Field Template"',
+          'parent_spec:',
+          '  name: "iNNfo_V_0-1-0"',
+          '  url: "https://example.com/iNNfo_V_0-1-0_NN.md"',
+          '---',
+          '',
+          '# NN Concept Definition',
+          '',
+          '## NN Concept Definition: Item',
+          'type:: list',
+          '',
+          '# NN Field Definition',
+          '',
+          '## NN Field Definition: linkedItem',
+          'concept:: Item',
+          'type:: reference',
+          '',
+          '## NN Field Definition: label',
+          'concept:: Item',
+          'type:: string',
+          '',
+        ].join('\n'),
+        'utf-8',
+      )
+      await stubSpecChain()
     }
+
+    it('omits the placeholder for a reference field with no concrete target instead of a dangling wikilink', async () => {
+      await stubReferenceFieldTemplate()
+
+      const result = await initModel(rootDir, 'RefModel', {
+        template_url: 'https://example.com/reftpl_V_0-1-0_NN.md',
+        template_name: 'reftpl_V_0-1-0',
+      })
+
+      expect(result.success).toBe(true)
+      expect(result.validation.valid).toBe(true)
+      expect(result.content).not.toContain('[[Target Element]]')
+      expect(result.content).not.toContain('linkedItem::')
+      expect(result.content).toContain('label:: <string>')
+    })
+
+    /** The REAL, shipped `blank` template (single `type:: text` concept, no
+     * `includes`) — read from disk so this test proves the production
+     * template scaffolds clean, not a synthetic stand-in. */
+    async function stubRealBlankTemplate() {
+      const blankRaw = await readFile(
+        join(
+          import.meta.dirname!,
+          '..',
+          '..',
+          '..',
+          '..',
+          'specs',
+          'templates',
+          'blank',
+          'spec_NN.md',
+        ),
+        'utf-8',
+      )
+      await writeFile(join(specsDir, 'blank_V_0-2-0_NN.md'), blankRaw, 'utf-8')
+      // blank's parent_spec is iNNfo_V_0-2-1 -> defiNNe_V_0-1-0; stub that
+      // chain locally (same shape already proven by stubSpecChain()).
+      await writeFile(
+        join(specsDir, 'iNNfo_V_0-2-1_NN.md'),
+        [
+          '---',
+          'spec_version: "V_0-2-1"',
+          'level: 1',
+          'title: "Local iNNfo Spec V_0-2-1"',
+          'parent_spec:',
+          '  name: "defiNNe_V_0-1-0"',
+          '  url: "https://example.com/defiNNe_V_0-1-0_NN.md"',
+          '---',
+        ].join('\n'),
+        'utf-8',
+      )
+      await stubSpecChain()
+    }
+
+    it('scaffolds the real blank template clean on first attempt (a lone type:: text concept gets a real element marker)', async () => {
+      await stubRealBlankTemplate()
+
+      const result = await initModel(rootDir, 'BlankModel', {
+        template_url: 'https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/blank/spec_NN.md',
+        template_name: 'blank_V_0-2-0',
+      })
+
+      expect(result.success).toBe(true)
+      expect(result.templateResolved).toBe(true)
+      expect(result.scaffolded).toBe(true)
+      expect(result.validation.valid).toBe(true)
+      expect(
+        result.validation.errors.some((e) => e.message.includes('No NN element markers found')),
+      ).toBe(false)
+      expect(result.content).toMatch(/##\s+NN\s+Content:\s+.+/)
+    })
   })
 })

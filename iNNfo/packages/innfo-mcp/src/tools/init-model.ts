@@ -39,17 +39,21 @@ function scaffoldBodyFromSchema(schema: {
   for (const c of schema.concepts) {
     lines.push(`# NN ${c.name}`)
     if (c.type === 'text') {
+      if (listConcepts.length === 0) {
+        lines.push(`## NN ${c.name}: ${exampleFor(c.name)}`)
+      }
       lines.push(`_Describe ${c.name} here._`, '')
       continue
     }
     lines.push(`## NN ${c.name}: ${exampleFor(c.name)}`)
     for (const f of c.fields ?? []) {
+      if (f.type === 'reference') {
+        continue
+      }
       const hint =
         f.type === 'select' && f.options && f.options.length > 0
           ? f.options[0]
-          : f.type === 'reference'
-            ? '[[Target Element]]'
-            : `<${f.type}>`
+          : `<${f.type}>`
       lines.push(`${f.name}:: ${hint}`)
     }
     lines.push('')
@@ -93,8 +97,8 @@ export async function initModel(
   },
 ): Promise<{
   success: boolean
-  filePath: string
-  content: string
+  filePath?: string
+  content?: string
   templateResolved: boolean
   scaffolded: boolean
   warnings: string[]
@@ -209,8 +213,6 @@ export async function initModel(
       templateResolved,
       scaffolded: false,
       warnings,
-      filePath,
-      content: '',
       validation: {
         valid: false,
         errors: [
@@ -255,8 +257,6 @@ export async function initModel(
       templateResolved,
       scaffolded: false,
       warnings,
-      filePath,
-      content: newContent,
       validation: {
         valid: false,
         errors: [
