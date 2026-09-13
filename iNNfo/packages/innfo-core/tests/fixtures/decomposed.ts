@@ -13,16 +13,10 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const specsRoot = join(import.meta.dirname!, '..', '..', '..', '..', 'specs')
-const repoSpecsRoot = join(import.meta.dirname!, '..', '..', '..', '..', '..', 'specs')
 
 /** Read a spec file relative to the iNNfo specs root (e.g. `templates/business/spec_NN.md`). */
 export function readSpec(relPath: string): string {
   return readFileSync(join(specsRoot, relPath), 'utf-8')
-}
-
-/** Read a spec file relative to the repository specs root (e.g. `business_V_0-2-4_NN.md`). */
-export function readRepoSpec(relPath: string): string {
-  return readFileSync(join(repoSpecsRoot, relPath), 'utf-8')
 }
 
 /** The five decomposed templates `business` composes, mapped to their spec paths. */

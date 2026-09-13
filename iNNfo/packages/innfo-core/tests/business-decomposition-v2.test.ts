@@ -5,7 +5,7 @@ import {
   parseModel,
   validateModel,
 } from '../src/index'
-import { readSpec, readRepoSpec, decomposedTemplates, decomposedResolver } from './fixtures/decomposed'
+import { readSpec, decomposedTemplates, decomposedResolver } from './fixtures/decomposed'
 
 const decomposed = decomposedTemplates()
 const BUSINESS_MODEL = decomposed['business-model']
@@ -244,7 +244,7 @@ describe('Ghostbusters_V_0-2-0 — sample validates against the composed umbrell
 })
 
 describe('business_V_0-2-4 — composed umbrella with Metrics-Organizational goals', () => {
-  const BUSINESS_V024 = readRepoSpec('templates/business/V_0-2-4/business_V_0-2-4_NN.md')
+  const BUSINESS_V024 = BUSINESS_V2
 
   it('resolves with ZERO errors — all 5 sub-templates compose without collision', () => {
     const { schema, errors } = resolveTemplateSchema(BUSINESS_V024, resolver)
