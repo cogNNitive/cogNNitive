@@ -7,12 +7,14 @@ const rootDir = join(import.meta.dirname!, '..', 'temp-test-drift-and-gate')
 
 describe('Phase 2 Hard-Gate & Concept Drift Diagnostics (innfo-validation-resilience)', () => {
   beforeEach(async () => {
+    vi.restoreAllMocks()
     await rm(rootDir, { recursive: true, force: true })
     await mkdir(join(rootDir, 'models'), { recursive: true })
     await mkdir(join(rootDir, 'specs'), { recursive: true })
   })
 
   afterEach(async () => {
+    vi.restoreAllMocks()
     await rm(rootDir, { recursive: true, force: true })
   })
 
