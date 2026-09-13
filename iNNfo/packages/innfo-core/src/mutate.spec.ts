@@ -21,6 +21,22 @@ type:: list
 note:: keep
 `
 
+const LEVEL3_MODEL = `---
+spec_version: "V_0-2-0"
+spec_url: "https://example.test/iNNfo_V_0-2-0_NN.md"
+level: 3
+model_version: "V_1-0-0"
+parent_spec:
+  name: "iNNfo_V_0-2-0"
+  url: "https://example.test/iNNfo_V_0-2-0_NN.md"
+title: "Fixture Model"
+---
+
+# NN Phase
+## NN Phase: First
+note:: keep
+`
+
 describe('applyMutation transactionality', () => {
   it('commits a successful op onto the caller model in place (same reference)', () => {
     const model = parseModel(TEMPLATE)
@@ -61,5 +77,42 @@ describe('applyMutation transactionality', () => {
     expect(applyMutation(model, 'add_concept', { conceptName: 'B', type: 'list' }).success).toBe(true)
     const names = (model.elements.get('Concept Definition') ?? []).map((c) => c.name)
     expect(names).toEqual(expect.arrayContaining(['Phase', 'A', 'B']))
+  })
+})
+
+describe('level gate for template-authoring mutations (H5)', () => {
+  const gatedOps: Array<{ op: string; args: Record<string, unknown> }> = [
+    { op: 'add_concept', args: { conceptName: 'Risk', type: 'list' } },
+    { op: 'add_field', args: { conceptName: 'Phase', fieldName: 'owner' } },
+    { op: 'set_marker', args: { markerName: 'blocked', symbol: '!' } },
+  ]
+
+  for (const { op, args } of gatedOps) {
+    it(`rejects "${op}" on a level: 3 model with an explicit level-mismatch error, not a downstream schema error`, () => {
+      const model = parseModel(LEVEL3_MODEL)
+      const before = JSON.stringify(model)
+      const result = applyMutation(model, op, args)
+
+      expect(result.success).toBe(false)
+      expect(result.errors?.[0]?.message).toMatch(/level/i)
+      expect(result.errors?.[0]?.message).toContain('level-2')
+      expect(result.errors?.[0]?.message).toContain('level 3')
+      expect(result.errors?.[0]?.message).not.toContain('not defined in template')
+
+      // Rollback proof: the model on disk/in-memory is byte-identical.
+      expect(JSON.stringify(model)).toBe(before)
+    })
+
+    it(`still allows "${op}" on the existing level: 2 TEMPLATE fixture`, () => {
+      const model = parseModel(TEMPLATE)
+      const result = applyMutation(model, op, args)
+      expect(result.success).toBe(true)
+    })
+  }
+
+  it('does not gate other mutation handlers (add_element) on a level: 3 model', () => {
+    const model = parseModel(LEVEL3_MODEL)
+    const result = applyMutation(model, 'add_element', { conceptName: 'Phase', elementName: 'Second' })
+    expect(result.success).toBe(true)
   })
 })

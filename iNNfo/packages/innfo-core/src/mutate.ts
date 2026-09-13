@@ -118,6 +118,17 @@ const MUTATION_HANDLERS: Record<string, MutationHandler> = {
   generate_index: (model, args) => generateIndex(model, args),
 }
 
+/**
+ * Template-authoring primitives (`# NN Concept Definition`, `# NN Field
+ * Definition` / `Marker Definition`) are only meaningful against a level-2
+ * template. Running them against any other level structurally "works" but
+ * produces an incoherent document that a later validation pass rejects with
+ * an unrelated schema error (`checkElementGroups()`). Gate here, in core —
+ * the enforcement engine — so every consumer (MCP, editor via
+ * `src/browser.ts`) shares one contract instead of two.
+ */
+const LEVEL2_ONLY_OPS = new Set(['add_concept', 'add_field', 'set_marker'])
+
 function runMutation(
   model: ParsedModel,
   op: string,
@@ -128,6 +139,17 @@ function runMutation(
     const handler = MUTATION_HANDLERS[op]
     if (!handler) {
       return { success: false, errors: [{ path: '', message: `Unknown operation: ${op}` }] }
+    }
+    if (LEVEL2_ONLY_OPS.has(op) && model.frontmatter.level !== 2) {
+      return {
+        success: false,
+        errors: [
+          {
+            path: 'frontmatter.level',
+            message: `Operation "${op}" authors template primitives and is only valid on a level-2 template; this document is level ${model.frontmatter.level ?? 'unset'}. Use add_element/update_field on a level-3 model, or target the parent template.`,
+          },
+        ],
+      }
     }
     return handler(model, args, schema)
   } catch (err) {

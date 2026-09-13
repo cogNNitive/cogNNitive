@@ -317,10 +317,12 @@ describe('mutate tools', () => {
       expect(onDisk).toBe(MUTABLE_MODEL_CONTENT)
     })
 
-    it('rejects a mutation that succeeds structurally but fails post-mutation template validation (reject-without-writing)', async () => {
-      // add_concept declares a new ad-hoc "Concept Definition" section on the
-      // model itself — a concept name the resolved template never defines, so
-      // the post-mutation validate step rejects it and the file is left untouched.
+    it('rejects add_concept on a level-3 model with an explicit level-gate error (H5), not a downstream schema error (reject-without-writing)', async () => {
+      // add_concept authors a level-2 template primitive ("Concept
+      // Definition"). "Mutable" is a level-3 model, so the core enforcement
+      // engine (runMutation's LEVEL2_ONLY_OPS gate) must reject this BEFORE
+      // ever attempting the mutation or the post-mutation template-schema
+      // validation — surfaced here verbatim through applyChange's pass-through.
       await stubBusinessTemplate()
       const filePath = join(rootDir, 'Mutable_NN.md')
       await writeFile(filePath, MUTABLE_MODEL_CONTENT, 'utf-8')
@@ -331,7 +333,8 @@ describe('mutate tools', () => {
       })
 
       expect(result.success).toBe(false)
-      expect(result.errors?.some((e) => /not defined in template/.test(e.message))).toBe(true)
+      expect(result.errors?.some((e) => /level-2/.test(e.message))).toBe(true)
+      expect(result.errors?.some((e) => /not defined in template/.test(e.message))).toBe(false)
       const onDisk = await readFile(filePath, 'utf-8')
       expect(onDisk).toBe(MUTABLE_MODEL_CONTENT)
     })
