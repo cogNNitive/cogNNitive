@@ -182,11 +182,17 @@ async function downloadToImport(url, targetDir, options = {}) {
     contentType: contentType || null,
     sourceUrl: url,
     downloadedAt,
-    meta: {},
+    meta: {
+      origin_uri: url,
+      type: options.type || 'url_snapshot',
+      format: ext.startsWith('.') ? ext.substring(1) : ext,
+      ...(options.tags ? { tags: options.tags } : {}),
+    },
   };
 
   if (ext === '.html' || ext === '.htm') {
-    result.meta = extractHtmlMetadata(buffer.toString('utf8'));
+    const extracted = extractHtmlMetadata(buffer.toString('utf8'));
+    result.meta = { ...result.meta, ...extracted };
   }
 
   return result;

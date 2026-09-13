@@ -1,16 +1,16 @@
 ---
-spec_version: "V_0-2-1"
-spec_url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/workspace_spec_NN.md"
+spec_version: V_0-2-1
+spec_url: https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/workspace_spec_NN.md
 level: 2
 parent_spec:
-  name: "iNNfo_V_0-2-1"
-  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-2-1_NN.md"
-title: "Workspace Specification App"
-template_version: "V_0-3-0"
+  name: iNNfo_V_0-2-1
+  url: https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-2-1_NN.md
+title: Workspace Specification App
+template_version: V_0-4-0
 relationship_types:
   hierarchy:
     enabled: true
-    via: "index block"
+    via: index block
   evaluable_matrix:
     enabled: true
   graph_edge:
@@ -71,6 +71,18 @@ weight:: 50
 
 # NN Field Definition
 
+<!-- Workspace fields: conventions & global config -->
+
+## NN Field Definition: models_dir
+concept:: Workspace
+type:: string
+description:: Base relative path for domain models in the workspace (default: models/).
+
+## NN Field Definition: sources_dir
+concept:: Workspace
+type:: string
+description:: Base relative path for normalized sources in the workspace (default: sources/nn/).
+
 <!-- Tag fields -->
 
 ## NN Field Definition: color
@@ -123,48 +135,46 @@ type:: reference
 target_concepts:: [Procedures]
 description:: The Procedure run that produced this model (PROV wasGeneratedBy).
 
-<!-- Sources fields: raw inputs and normalized markdown -->
+<!-- Sources fields: polymorphic sources (local files, web snapshots, dynamic feeds, repos) -->
 
-## NN Field Definition: raw_filename
-concept:: Sources
-type:: string
-description:: Original file name of the raw source, relative to the workspace (e.g. sources/nn/report.docx).
-
-## NN Field Definition: raw_hash
-concept:: Sources
-type:: string
-description:: SHA-256 content hash of the raw file (sha256:...). Stable identity for the source.
-
-## NN Field Definition: size
-concept:: Sources
-type:: string
-description:: Raw file size in bytes.
-
-## NN Field Definition: source_format
+## NN Field Definition: type
 concept:: Sources
 type:: select
-options:: [txt, md, csv, json, docx, pdf, xlsx]
-description:: Detected format of the raw source file.
+options:: [local_file, url_snapshot, dynamic_feed, git_repo, api_export]
+description:: Polymorphic origin category of the primary source.
 
-## NN Field Definition: normalized_at
+## NN Field Definition: origin_uri
 concept:: Sources
 type:: string
-description:: ISO-8601 timestamp when the source was normalized to Markdown.
+description:: Universal identifier of origin: local path, web URL (https://), or git repository URI.
 
-## NN Field Definition: normalized_by
+## NN Field Definition: format
+concept:: Sources
+type:: select
+options:: [txt, md, csv, json, docx, pdf, xlsx, html, audio, rss, repo]
+description:: Original file or payload format.
+
+## NN Field Definition: subpath
 concept:: Sources
 type:: string
-description:: Tool and version that produced the normalized content (e.g. traNNsform v1.5).
+description:: Relative subpath to the normalized source document inside sources/nn/.
 
-## NN Field Definition: normalized_content
+## NN Field Definition: refresh_policy
 concept:: Sources
-type:: markdown_file
-description:: The normalized Markdown extracted from the raw file (stored under sources/nn/). File-backed asset.
+type:: select
+options:: [immutable, manual, scheduled, on_build]
+description:: Lifecycle policy for re-scraping or refreshing the source content.
 
-## NN Field Definition: raw_file
+## NN Field Definition: status
 concept:: Sources
-type:: file
-description:: Optional copy of the original raw binary, retained for full reproducibility.
+type:: select
+options:: [ready, stale, error, processing]
+description:: Operational state of the source snapshot.
+
+## NN Field Definition: tags
+concept:: Sources
+type:: string
+description:: Categorization and domain tags for grouping sources.
 
 <!-- Procedures fields: transformation activities -->
 
@@ -233,30 +243,28 @@ source:: Artifacts
 target:: Sources
 values:: [X]
 widget:: boolean
-description:: Optional projection view of the derived_from_inputs references — which Artifact draws on which Source. The reference fields remain the single source of truth; this matrix is a convenience visualization.
+description:: Optional projection view of the derived_from_inputs references — which Artifact draws on which Source.
+
+## NN Matrix Definition: Model-Source Lineage
+source:: Models
+target:: Sources
+values:: [X]
+widget:: boolean
+description:: Optional projection view of the derived_from references — which Model consumes which Source.
 
 # Workspace Specification Template
 
-## A level-2 unified template for the workspace manifest and provenance graph — listing models, sources, procedures, artifacts, and taxonomy tags
+## A level-2 unified template for the workspace manifest and provenance graph — listing models, polymorphic sources, procedures, artifacts, and taxonomy tags
 
 ## Philosophy
 
-A workspace manifest in `V_0-3-0` is the single source of truth for both workspace inventory and data lineage. It unifies structural model cataloging with the W3C PROV provenance model:
-* **Models** is the single concept for domain models in the workspace, combining structural metadata (`path`, `template`, `status`, `author`) with lineage edges (`derived_from`, `generated_by`).
-* **Sources** represents raw and normalized input documents.
+A workspace manifest in V_0-4-0 is the single source of truth for workspace topology and data lineage, while respecting physical storage separation:
+* **Workspace** sets directory conventions (models_dir, sources_dir).
+* **Models** combines structural metadata (path, 	emplate, status, uthor) with lineage edges (derived_from, generated_by).
+* **Sources** models polymorphic primary sources (local files, web snapshots, feeds, git repos) via relative subpaths. Physical hashes, byte sizes, and timestamps reside strictly within sources/nn/*.md frontmatter.
 * **Procedures** tracks the transformation activities that produce models and artifacts.
 * **Artifacts** represents derivative deliverables (documents, reports, datasets, boards).
 * **Tag** provides a centralized taxonomy catalog (color, icon, description) used across the workspace.
-
-Legacy taxonomy-only grouping (`Folder`) and unstructured attachment listings (`Asset`) are retired in favor of first-class typed entities.
-
-## Objectives
-
-- Provide a single, canonical level-2 schema for the workspace root entry-point (`workspace_NN.md`).
-- Eliminate collision risks between inventory and provenance by unifying them under cohesive concepts.
-- Retain per-workspace ownership (`author`) on the manifest without polluting individual model files.
-- Enable full W3C PROV graph auditability (`Sources` → `Procedures` → `Models` → `Artifacts`) directly from the workspace entrypoint.
-- Centralize `Tag` styling and open taxonomy across all submodels.
 
 ## Specification
 
@@ -264,65 +272,57 @@ Legacy taxonomy-only grouping (`Folder`) and unstructured attachment listings (`
 
 | Concept | Type | PROV Role | Purpose |
 |---|---|---|---|
-| **Workspace** | `text` | — | Prose description of the workspace: purpose, scope, and guidelines |
-| **Models** | `model` | Entity | Domain model files in the workspace with metadata and derivation |
-| **Sources** | `list` | Entity | Raw and normalized input source documents |
-| **Procedures** | `list` | Activity | Transformation procedure runs |
-| **Artifacts** | `list` | Entity | Derivative deliverables generated from sources or models |
-| **Tag** | `category` | — | Centralized taxonomy tags with color, icon, and description |
+| **Workspace** | 	ext | — | Prose description and directory conventions of the workspace |
+| **Models** | model | Entity | Domain model files in the workspace with metadata and derivation |
+| **Sources** | list | Entity | Polymorphic primary sources (local files, web snapshots, feeds, repos) |
+| **Procedures** | list | Activity | Transformation procedure runs |
+| **Artifacts** | list | Entity | Derivative deliverables generated from sources or models |
+| **Tag** | category | — | Centralized taxonomy tags with color, icon, and description |
 
 ### Fields
 
 | Field | Concept | Type | Purpose |
 |---|---|---|---|
-| `path` | Models | `model` | Workspace-relative path to the referenced model file |
-| `template` | Models | `string` | The level-2 template the referenced model conforms to |
-| `status` | Models | `select` (draft / active / archived) | Lifecycle status within this workspace |
-| `author` | Models | `string` | Owner of the model within this workspace |
-| `derived_from` | Models | `reference` [Sources] | Sources this model was derived from |
-| `generated_by` | Models | `reference` [Procedures] | Procedure run that produced this model |
-| `raw_filename` | Sources | `string` | Original file path of the raw source |
-| `raw_hash` | Sources | `string` | SHA-256 hash of the raw source |
-| `size` | Sources | `string` | Raw file size in bytes |
-| `source_format` | Sources | `select` | Detected format (txt, md, csv, json, docx, pdf, xlsx) |
-| `normalized_at` | Sources | `string` | ISO-8601 timestamp of Markdown normalization |
-| `normalized_by` | Sources | `string` | Tool or agent that normalized the source |
-| `normalized_content` | Sources | `markdown_file` | Relative path to normalized Markdown in sources/nn/ |
-| `raw_file` | Sources | `file` | Original binary copy in sources/original/ |
-| `procedure_ref` | Procedures | `string` | Relative path to procedure spec |
-| `agent` | Procedures | `string` | Agent or tool that ran the procedure |
-| `run_at` | Procedures | `string` | ISO-8601 timestamp of procedure execution |
-| `artifact_format` | Artifacts | `select` | Deliverable format (document, report, board, dataset) |
-| `artifact_version` | Artifacts | `string` | Version of the artifact |
-| `location` | Artifacts | `string` | Relative path to generated deliverable |
-| `artifact_hash` | Artifacts | `string` | SHA-256 hash of deliverable |
-| `derived_from_inputs` | Artifacts | `reference` [Sources, Models] | Inputs this deliverable was derived from |
-| `produced_by` | Artifacts | `reference` [Procedures] | Procedure run that generated this deliverable |
-| `color` | Tag | `string` | Hex color code or CSS token |
-| `icon` | Tag | `string` | Lucide icon identifier |
-| `description` | Tag | `string` | Semantic scope or definition of tag |
-
-### Relationship Types
-
-| Type | Enabled | Representation |
-|---|---|---|
-| Hierarchy | ✅ | index block (wikilinks) |
-| Evaluable matrix | ✅ | Artifact-Source Lineage matrix |
-| Graph edge | ❌ | Not applicable |
-| Sequence | ❌ | Not applicable |
+| models_dir | Workspace | string | Base path for models (default: models/) |
+| sources_dir | Workspace | string | Base path for normalized sources (default: sources/nn/) |
+| path | Models | model | Workspace-relative path to the referenced model file |
+| 	emplate | Models | string | The level-2 template the referenced model conforms to |
+| status | Models | select | Lifecycle status within this workspace |
+| uthor | Models | string | Owner of the model within this workspace |
+| derived_from | Models | eference [Sources] | Sources this model was derived from |
+| generated_by | Models | eference [Procedures] | Procedure run that produced this model |
+| 	ype | Sources | select | local_file, url_snapshot, dynamic_feed, git_repo, api_export |
+| origin_uri | Sources | string | Origin URI (file path, http URL, git URI) |
+| ormat | Sources | select | pdf, docx, html, md, json, csv, audio, rss, repo |
+| subpath | Sources | string | Relative subpath within sources_dir |
+| efresh_policy | Sources | select | immutable, manual, scheduled, on_build |
+| status | Sources | select | ready, stale, error, processing |
+| 	ags | Sources | string | Grouping and domain tags |
+| procedure_ref | Procedures | string | Relative path to procedure spec |
+| gent | Procedures | string | Agent or tool that ran the procedure |
+| un_at | Procedures | string | ISO-8601 timestamp of procedure execution |
+| rtifact_format | Artifacts | select | Deliverable format (document, report, board, dataset) |
+| rtifact_version | Artifacts | string | Version of the artifact |
+| location | Artifacts | string | Relative path to generated deliverable |
+| rtifact_hash | Artifacts | string | SHA-256 hash of deliverable |
+| derived_from_inputs | Artifacts | eference [Sources, Models] | Inputs this deliverable was derived from |
+| produced_by | Artifacts | eference [Procedures] | Procedure run that generated this deliverable |
+| color | Tag | string | Hex color code or CSS token |
+| icon | Tag | string | Lucide icon identifier |
+| description | Tag | string | Semantic scope or definition of tag |
 
 ## Template
 
 ### Level 3 Model Template (Lightweight)
 
-```yaml
+`yaml
 ---
 level: 3
 parent_spec:
-  name: "workspace_spec"
-  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/workspace_spec_NN.md"
-model_version: "V_0-1-0"
-title: "<Workspace Name>"
+  name: workspace_spec
+  url: https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/workspace_spec_NN.md
+model_version: V_0-1-0
+title: <Workspace Name>
 ---
 
 > [!NOTE]
@@ -338,6 +338,8 @@ title: "<Workspace Name>"
 * [[Tag]]
 
 # NN Workspace
+models_dir:: models/
+sources_dir:: sources/nn/
 
 Description of the workspace: its purpose, scope, and conventions.
 
@@ -353,13 +355,22 @@ derived_from:: [[Interview Transcript]]
 # NN Sources
 
 ## NN Sources: Interview Transcript
-raw_filename:: sources/original/interview.docx
-raw_hash:: sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
-size:: 14280
-source_format:: docx
-normalized_at:: 2026-09-06T10:00:00Z
-normalized_by:: traNNsform v1.5
-normalized_content:: sources/nn/interview.md
+type:: local_file
+origin_uri:: sources/original/interview.docx
+format:: docx
+subpath:: interviews/interview.md
+refresh_policy:: immutable
+status:: ready
+tags:: [discovery, operations]
+
+## NN Sources: Regulatory Benchmark
+type:: url_snapshot
+origin_uri:: https://example.com/compliance/standard-2026.html
+format:: html
+subpath:: web/standard-2026.md
+refresh_policy:: manual
+status:: ready
+tags:: [compliance, external]
 
 # NN Procedures
 
@@ -383,4 +394,4 @@ produced_by:: [[Initial Ingestion Run]]
 color:: #3b82f6
 icon:: layers
 description:: Foundational architecture and patterns.
-```
+`

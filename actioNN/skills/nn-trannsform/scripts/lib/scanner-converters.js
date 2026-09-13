@@ -16,25 +16,48 @@ function stripFrontmatter(content) {
 }
 
 /**
- * Zero-dependency HTML-to-plain-text conversion.
+ * Zero-dependency HTML-to-Markdown conversion.
+ * Preserves headings, bold/italics, links, lists, code, and tables.
  * @param {string} html
  * @returns {string}
  */
 function htmlToPlainText(html) {
+  if (!html || typeof html !== 'string') return '';
   return html
     .replace(/<!--[\s\S]*?-->/g, '')
     .replace(/<head[\s\S]*?<\/head>/gi, '')
     .replace(/<script[\s\S]*?<\/script>/gi, '')
     .replace(/<style[\s\S]*?<\/style>/gi, '')
+    // Headings
+    .replace(/<h1[^>]*>([\s\S]*?)<\/h1>/gi, '\n\n# $1\n\n')
+    .replace(/<h2[^>]*>([\s\S]*?)<\/h2>/gi, '\n\n## $1\n\n')
+    .replace(/<h3[^>]*>([\s\S]*?)<\/h3>/gi, '\n\n### $1\n\n')
+    .replace(/<h4[^>]*>([\s\S]*?)<\/h4>/gi, '\n\n#### $1\n\n')
+    .replace(/<h5[^>]*>([\s\S]*?)<\/h5>/gi, '\n\n##### $1\n\n')
+    .replace(/<h6[^>]*>([\s\S]*?)<\/h6>/gi, '\n\n###### $1\n\n')
+    // Bold / Italic / Code
+    .replace(/<(strong|b)[^>]*>([\s\S]*?)<\/\1>/gi, '**$2**')
+    .replace(/<(em|i)[^>]*>([\s\S]*?)<\/\1>/gi, '*$2*')
+    .replace(/<code[^>]*>([\s\S]*?)<\/code>/gi, '`$1`')
+    // Links
+    .replace(/<a\s+[^>]*href=["']([^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi, '[$2]($1)')
+    // Lists
+    .replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, '\n* $1')
+    .replace(/<\/(ul|ol)>/gi, '\n\n')
+    // Paragraphs & breaks
     .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/(p|div|h[1-6]|li|tr|section|article)>/gi, '\n')
+    .replace(/<\/(p|div|section|article|tr|blockquote)>/gi, '\n\n')
     .replace(/<[^>]+>/g, '')
+    // Entities
     .replace(/&nbsp;/gi, ' ')
     .replace(/&amp;/gi, '&')
     .replace(/&lt;/gi, '<')
     .replace(/&gt;/gi, '>')
     .replace(/&quot;/gi, '"')
     .replace(/&#39;/gi, "'")
+    .replace(/&mdash;/gi, '—')
+    .replace(/&ndash;/gi, '–')
+    // Cleanup whitespace
     .replace(/[ \t]+/g, ' ')
     .replace(/\n[ \t]+/g, '\n')
     .replace(/\n{3,}/g, '\n\n')

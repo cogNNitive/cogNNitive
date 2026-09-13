@@ -106,6 +106,16 @@ function run() {
     eq(webImport.sanitizeFilenameFromUrl('https://example.com/reports/Q1 Report.pdf', '.pdf'), 'Q1_Report.pdf', 'sanitizeFilenameFromUrl strips unsafe characters and keeps extension');
     eq(webImport.sanitizeFilenameFromUrl('https://example.com/', '.html'), 'download.html', 'sanitizeFilenameFromUrl falls back to download.<ext> for a bare origin');
 
+    // HTML to Markdown conversion test via scanner-converters
+    const converters = require('../../scripts/lib/scanner-converters');
+    const sampleHtml = '<h1>Title</h1><p>This is <strong>bold</strong> and <em>italic</em> with a <a href="https://example.com">link</a>.</p><ul><li>Item 1</li><li>Item 2</li></ul>';
+    const md = converters.htmlToPlainText(sampleHtml);
+    ok(md.includes('# Title'), 'htmlToPlainText converts <h1> to # Heading');
+    ok(md.includes('**bold**'), 'htmlToPlainText converts <strong> to **bold**');
+    ok(md.includes('*italic*'), 'htmlToPlainText converts <em> to *italic*');
+    ok(md.includes('[link](https://example.com)'), 'htmlToPlainText converts <a> to markdown link');
+    ok(md.includes('* Item 1'), 'htmlToPlainText converts <li> to markdown list');
+
     console.log(`\n  Web import tests: ${passed} passed, ${failed} failed`);
   } catch (e) {
     console.error(`  ERROR: ${e.message}`);

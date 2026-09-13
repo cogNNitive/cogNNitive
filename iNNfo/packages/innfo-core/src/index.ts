@@ -70,7 +70,13 @@ export type {
   SourceResolver,
 } from './validator'
 
-export { parseSourceRef, slugifyHeading, extractHeadings, resolveHeadingSection } from './sourceRef'
+export {
+  parseSourceRef,
+  slugifyHeading,
+  extractHeadings,
+  resolveHeadingSection,
+  SOURCE_FIELD_NAMES,
+} from './sourceRef'
 export type { SourceRef, HeadingInfo, ResolvedHeadingSection } from './sourceRef'
 export {
   parseKnowledgeUnitRef,

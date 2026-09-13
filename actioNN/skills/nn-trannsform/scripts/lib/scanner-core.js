@@ -85,6 +85,12 @@ function generateSourceFrontmatter(originalFilePath, relativeSourcePath, extra =
   }
 
   if (extra.source_url) lines.push(`source_url: "${escapeYamlString(extra.source_url)}"`);
+  if (extra.origin_uri) lines.push(`origin_uri: "${escapeYamlString(extra.origin_uri)}"`);
+  if (extra.type) lines.push(`type: "${escapeYamlString(extra.type)}"`);
+  if (extra.tags) {
+    const tagsArr = Array.isArray(extra.tags) ? extra.tags : [extra.tags];
+    lines.push(`tags: [${tagsArr.map((t) => `"${escapeYamlString(t)}"`).join(', ')}]`);
+  }
   if (extra.downloaded_at) lines.push(`downloaded_at: "${escapeYamlString(extra.downloaded_at)}"`);
   if (extra.title) lines.push(`title: "${escapeYamlString(extra.title)}"`);
   if (extra.description) lines.push(`description: "${escapeYamlString(extra.description)}"`);
