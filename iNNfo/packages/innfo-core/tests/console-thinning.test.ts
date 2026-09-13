@@ -7,7 +7,6 @@ const here = dirname(fileURLToPath(import.meta.url))
 const templatesDir = join(here, '..', '..', '..', 'specs', 'templates')
 
 const assets = {
-  master: join(templatesDir, 'business', 'assets', 'master.html'),
   viewer: join(templatesDir, 'business', 'assets', 'model_viewer.html'),
   timeline: join(templatesDir, 'metrics', 'assets', 'timeline.html'),
 }
@@ -26,7 +25,6 @@ function readAsset(path: string): string {
 }
 
 describe.each([
-  ['master', assets.master],
   ['viewer', assets.viewer],
   ['timeline', assets.timeline],
 ])('%s console asset', (_name, path) => {
@@ -59,13 +57,6 @@ describe('viewer slot payloads', () => {
     const html = readAsset(assets.viewer)
     expect(html).toContain('id="innfo-schema"')
     expect(html).toContain('id="innfo-model"')
-  })
-})
-
-describe('master slot payloads', () => {
-  it('keeps the innfo-model-data slot', () => {
-    const html = readAsset(assets.master)
-    expect(html).toContain('id="innfo-model-data"')
   })
 })
 

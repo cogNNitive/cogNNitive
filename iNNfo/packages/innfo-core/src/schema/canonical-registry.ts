@@ -1802,13 +1802,13 @@ values:: [Better, Parity, Worse]
 `
 
 const BUSINESS_SPEC_CONTENT = `---
-spec_version: "V_0-2-4"
+spec_version: "V_0-2-5"
 spec_url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business/spec_NN.md"
 level: 2
 parent_spec:
   name: "iNNfo_V_0-2-1"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-2-1_NN.md"
-template_version: "V_0-2-4"
+template_version: "V_0-2-5"
 title: "Business App"
 includes:
   - name: "business-model"
@@ -1832,12 +1832,13 @@ relationship_types:
   sequence:
     enabled: true
 procedures:
-  - id: "compile-strategic-master"
-    name: "Compile Strategic Master"
-    path: "procedures/compile_strategic_master_NN.md"
   - id: "compile-model-viewer"
     name: "Compile Model Viewer"
     path: "procedures/compile_model_viewer_NN.md"
+assets:
+  - id: "model-viewer-shell"
+    name: "Model Viewer HTML Layout"
+    path: "assets/model_viewer.html"
 ---
 
 > [!NOTE]
@@ -1856,7 +1857,7 @@ description:: Scores how directly each Metric tracks each Organizational goal.
 export const CANONICAL_TEMPLATES: Record<string, CanonicalTemplate> = {
   business: {
     name: 'business',
-    version: 'V_0-2-4',
+    version: 'V_0-2-5',
     aliases: [
       'business',
       'business_spec_nn',
@@ -1867,6 +1868,7 @@ export const CANONICAL_TEMPLATES: Record<string, CanonicalTemplate> = {
       'business_v_0-2-2',
       'business_v_0-2-3',
       'business_v_0-2-4',
+      'business_v_0-2-5',
       'business_v_0-1-0',
       'business_v_0-1-1',
       'specs/templates/business/spec_nn.md',
@@ -1874,11 +1876,13 @@ export const CANONICAL_TEMPLATES: Record<string, CanonicalTemplate> = {
       'specs/templates/business/business_v_0-2-1_nn.md',
       'specs/templates/business/business_v_0-2-3_nn.md',
       'specs/templates/business/business_v_0-2-4_nn.md',
+      'specs/templates/business/business_v_0-2-5_nn.md',
       'https://raw.githubusercontent.com/cognnitive/cognnitive/main/innfo/specs/templates/business/spec_nn.md',
       'https://raw.githubusercontent.com/cognnitive/cognnitive/main/innfo/specs/templates/business/business_v_0-2-0_nn.md',
       'https://raw.githubusercontent.com/cognnitive/cognnitive/main/innfo/specs/templates/business/business_v_0-2-1_nn.md',
       'https://raw.githubusercontent.com/cognnitive/cognnitive/main/innfo/specs/templates/business/business_v_0-2-3_nn.md',
       'https://raw.githubusercontent.com/cognnitive/cognnitive/main/innfo/specs/templates/business/business_v_0-2-4_nn.md',
+      'https://raw.githubusercontent.com/cognnitive/cognnitive/main/innfo/specs/templates/business/business_v_0-2-5_nn.md',
     ],
     specContent: BUSINESS_SPEC_CONTENT,
   },
