@@ -2,6 +2,7 @@ import { ValidationCheck, ValidationReport } from '../types'
 import { parseModel, stripFrontmatter } from '../parser'
 import { VERSION_RE, WIKILINK_RE, SECTION_NN_RE, RESERVED_CONCEPT_NAMES } from './constants'
 import { CONCEPT_DEFINITION } from '../schema'
+import { QUALIFIED_REF_RE } from './workspaceReferences'
 
 /**
  * Validates iNNfo document content (frontmatter + body syntax + conventions).
@@ -402,7 +403,19 @@ export function validateFormatContent(
 
   // 13. Wikilinks reference
   if (hasIndex) {
-    const allWikilinks = [...content.matchAll(WIKILINK_RE)].map((m) => m[1].toLowerCase())
+    // Qualified cross-model references (`[[Model Title :: Element Name]]`)
+    // are validated workspace-wide by `validateWorkspaceReferences()`, which
+    // is the only pass that can see sibling models. This per-file convention
+    // check bypasses any wikilink matching the precise qualified form —
+    // mirroring the `AD-06` delegation in `references.ts` — so a genuinely
+    // undefined qualified reference is reported once, by the workspace
+    // checker, not duplicated here as a generic "undefined reference(s)"
+    // warning. A value containing `::` that does NOT match the qualified
+    // form (e.g. missing text on either side) is deliberately NOT bypassed.
+    const allWikilinks = [...content.matchAll(WIKILINK_RE)]
+      .map((m) => m[1])
+      .filter((inner) => !QUALIFIED_REF_RE.test(`[[${inner}]]`))
+      .map((inner) => inner.toLowerCase())
     const conceptNames = new Set<string>()
     for (const key of parsed.elements.keys()) {
       conceptNames.add(key.toLowerCase())

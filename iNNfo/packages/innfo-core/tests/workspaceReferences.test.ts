@@ -9,6 +9,7 @@ import { buildWorkspaceIndex, type WorkspaceIndex } from '../src/recursiveParser
 import type { ParseIssue, RecursiveParseResult } from '../src/recursiveParser/types'
 import type { ModelNode, Concept } from '../src/types'
 import type { TemplateSchema } from '../src/schema'
+import { validateFormatContent } from '../src/validator/content'
 
 function field(value: unknown): ModelNode['fields'][string] {
   return { value, editAttribution: { author: { kind: 'system', id: 'test' }, timestamp: '' } }
@@ -754,5 +755,72 @@ describe('validateWorkspaceReferences — canonical multivalue syntax (validator
     expect(diagnostics).toHaveLength(1)
     expect(diagnostics[0].code).toBe('MULTIVALUE_SYNTAX')
     expect(diagnostics[0].promptHint).toContain('[[Acme Org :: Jane Doe]]')
+  })
+})
+
+describe('conv-wikilinks — qualified cross-model reference bypass (H4)', () => {
+  /** Minimal level-3 document with a `# NN index` (so `hasIndex` is true)
+   *  and one `Founder` element carrying a `fundadores` field whose value
+   *  is the wikilink under test. */
+  function referrerDoc(wikilinkValue: string): string {
+    return `---
+spec_version: "V_0-3-0"
+level: 3
+model_version: "V_1-0-0"
+title: "Referrer"
+parent_spec:
+  name: "mini_V_1-0-0"
+  url: "https://example.com/mini_V_1-0-0_NN.md"
+---
+
+# NN index
+
+* [[Founder]]
+
+# NN Founder
+
+## NN Founder: Some Founder
+fundadores:: ${wikilinkValue}
+`
+  }
+
+  function conveWikilinksCheck(content: string) {
+    const report = validateFormatContent(content, 'referrer_V_1-0-0_NN.md')
+    const check = report.checks.find((c) => c.id === 'conv-wikilinks')
+    if (!check) throw new Error('conv-wikilinks check did not run (hasIndex must be true)')
+    return check
+  }
+
+  it('valid qualified reference produces no conv-wikilinks warning', () => {
+    const check = conveWikilinksCheck(referrerDoc('[[Acme Org :: Jane Doe]]'))
+    expect(check.passed).toBe(true)
+    expect(check.message).toBeUndefined()
+  })
+
+  it('invalid qualified reference is bypassed here (not the generic warning) — validateWorkspaceReferences reports it instead', () => {
+    // Per-file conv-wikilinks must NOT emit the generic "N undefined
+    // reference(s)" warning for a qualified value, valid or not — existence
+    // is workspace-graph knowledge it deliberately does not have. The
+    // "dangling-model-errors" test above proves validateWorkspaceReferences
+    // is the one that reports this specific case.
+    const check = conveWikilinksCheck(referrerDoc('[[Nonexistent Model :: Jane Doe]]'))
+    expect(check.passed).toBe(true)
+    expect(check.message).toBeUndefined()
+  })
+
+  it('non-qualified local wikilink is still checked normally', () => {
+    const check = conveWikilinksCheck(referrerDoc('[[Ghost]]'))
+    expect(check.passed).toBe(false)
+    expect(check.message).toContain('undefined reference')
+    expect(check.message).toContain('ghost')
+  })
+
+  it('a value containing "::" but not matching the qualified form is not silently hidden', () => {
+    // "Broken::" has no text after the separator, so it does not match the
+    // precise `[[<text> :: <text>]]` pattern and must stay subject to
+    // normal local-reference checking.
+    const check = conveWikilinksCheck(referrerDoc('[[Broken::]]'))
+    expect(check.passed).toBe(false)
+    expect(check.message).toContain('undefined reference')
   })
 })
