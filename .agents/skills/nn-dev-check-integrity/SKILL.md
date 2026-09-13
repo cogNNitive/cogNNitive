@@ -220,11 +220,12 @@ incident 3 — PR #29 broke CI on every push because `base/` was added under
 ```powershell
 node scripts/verify.js            # Template Inventory Guard + line-count guard + generated-manifest freshness (live stable validation is release-only: add --release)
 node scripts/manifest/check-parity.js
+node scripts/template-catalog.mjs --check # validates iNNfo/specs/templates/catalog.json freshness
 ```
 - ❌ any folder under `iNNfo/specs/templates/` (except `assets`) with no `- name: <folder>`
   in `manifest/source.yaml`; any parity mismatch (SKILL.md ↔ manifest ↔ template
-  frontmatter ↔ `innfo-mcp/package.json`).
-- Fix: add the `templates:` entry (name, repo, path, version) in the **same** change.
+  frontmatter ↔ `innfo-mcp/package.json`); stale `catalog.json`.
+- Fix: add the `templates:` entry (name, repo, path, version) in the **same** change; run `node scripts/template-catalog.mjs` to regenerate `catalog.json`.
 
 ### Group 5 — CI mirror (slow; run before push)
 **Expedientes:** `innfo-core-dist-staleness-breaks-mcp-tests.md` (stale `dist/` →

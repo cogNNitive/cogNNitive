@@ -106,7 +106,13 @@ Check for **worktrees** too — another agent may have checked out the same work
 git worktree list
 ```
 
-### 1c. Record the baseline
+### 1c. Engram recent session recall (when disambiguating active WIP)
+
+When the tree is dirty or recent work needs context, inspect recent observations in Engram:
+- Query `observations` in `C:/Users/lucas/.engram/engram.db` (or via `mem_context` / `mem_search`) for recent commits, PRs, and active agent goals from today and yesterday.
+- Sibling agent notes (Claude Code, OpenCode) clarify whether uncommitted files are part of an in-flight SDD change or abandoned WIP.
+
+### 1d. Record the baseline
 
 After the scan, record the values you will compare against later:
 
@@ -117,7 +123,7 @@ After the scan, record the values you will compare against later:
 These are the anchor points for the stolen-branch detection in Section 3 and for the
 "has origin/main advanced since we started?" check in Section 4.
 
-### 1d. Report the findings
+### 1e. Report the findings
 
 Report as a compact block, then proceed. Do **not** block unless something is clearly
 wrong (see the ❌ rules in `nn-dev-check-integrity` Group 0):
@@ -142,7 +148,7 @@ wrong (see the ❌ rules in `nn-dev-check-integrity` Group 0):
 - If another agent process is actively holding the tree, state it plainly and, only if
   the maintainer asks, pause.
 
-### 1e. Stale WIP vs foreign agent (disambiguation)
+### 1f. Stale WIP vs foreign agent (disambiguation)
 
 A dirty tree with no known session behind it is **ambiguous**: it can be the
 maintainer's own in-flight work from another session (expediente 2026-09-08: an
@@ -360,18 +366,35 @@ confirm. Never delete branches automatically.
 
 When the maintainer says the accumulated changes on `dev` are ready:
 
-1. Run `nn-dev-check-integrity` first — it is the pre-push/post-change gate that
-   verifies git hygiene and the MCP version square. Do not merge dirty. This dev
-   gate runs `verify.js` in dev mode: it skips the live stable-manifest publication
-   check (pins resolving to release tags), which can only pass after the release
-   cuts the tag (merge → tag → pin).
-2. Run `nn-dev-release` for the merge itself: it manages version bumps, release
-   tagging, manifest generation, and distribution validation. The release path runs
-   `node scripts/verify.js --release`, which adds the live stable-manifest check
-   once the tag exists. **Main-CI-green is a Definition of Done**: the incoming
-   batch MUST have a green CI run on `main` (or a green run on `dev` that the merge
-   reproduces) before tags are cut; a red main blocks the release.
-3. After the merge to `main` lands, return to `dev` for the next batch.
+1. **Pre-push integrity gate**: Run `node scripts/check-integrity.js` (or `npm run check:integrity`).
+   - If `template-catalog` reports `catalog.json` is stale, run `node scripts/template-catalog.mjs` to regenerate it cleanly.
+   - If MCP or workspace parity reports drift, resolve it before pushing.
+   - Ensure the working tree is clean and `git push origin dev` succeeds.
+2. **Deterministic Fast-Forward merge (`dev → main`)**:
+   ```powershell
+   # Ensure local dev is pushed
+   git push origin dev
+
+   # Switch to main and sync
+   git switch main
+   git pull origin main
+
+   # Fast-forward merge dev batch into main
+   git merge --ff-only dev
+
+   # Push to origin/main (triggers CI and GitHub Pages deployment)
+   git push origin main
+
+   # Return to dev and verify 1:1 sync (divergence 0 0)
+   git switch dev
+   git rev-list --left-right --count origin/main...dev
+   ```
+3. **Release tagging (when releasing a version bump)**:
+   - Run `nn-dev-release` when version tags, manifest re-pinning, or distribution bundles are being published.
+   - The release path runs `node scripts/verify.js --release`, adding the live stable-manifest check once tags exist.
+   - **Main-CI-green is a Definition of Done**: a red main blocks release tagging.
+4. **Persist Milestone in Engram**:
+   - Save a concise summary of the batch, commit range, and sync status in Engram memory (`observations` table) to give sibling sessions full visibility.
 
 This replaces the old "commit + push + PR" flow: with single-branch workflow there is
 no per-change PR to open; `main` absorbs the batch instead.
