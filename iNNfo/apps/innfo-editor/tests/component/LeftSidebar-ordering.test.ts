@@ -26,7 +26,7 @@ describe('LeftSidebar — Concept and element ordering', () => {
     setActivePinia(createPinia())
   })
 
-  it('orders concepts according to template concepts order', () => {
+  it('orders concepts according to template concepts order', async () => {
     const modelStore = useModelStore()
     modelStore.setGraph(
       {
@@ -55,6 +55,11 @@ title: Business Model
     const wrapper = mount(LeftSidebar, {
       attachTo: document.body,
     })
+
+    // Models start collapsed by default (feature: "collapsed initial state");
+    // expand the model header before inspecting its rendered tree.
+    await wrapper.find('[data-testid="model-header"]').trigger('click')
+    await wrapper.vm.$nextTick()
 
     const groupText = wrapper.text()
     // Business summary (index 0 in template) should appear before Market (index 1) and Analysis (index 2)
@@ -104,6 +109,11 @@ title: Business Model
       attachTo: document.body,
     })
 
+    // Models start collapsed by default (feature: "collapsed initial state");
+    // expand the model header before expanding its nested concept groups.
+    await wrapper.find('[data-testid="model-header"]').trigger('click')
+    await wrapper.vm.$nextTick()
+
     const expandAllBtn = wrapper.find('[data-testid="expand-all"]')
     await expandAllBtn.trigger('click')
     await wrapper.vm.$nextTick()
@@ -117,7 +127,7 @@ title: Business Model
     expect(idxZeroth).toBeLessThan(idxFirst)
   })
 
-  it('does not repeat root concepts when taxonomy edges contain duplicates', () => {
+  it('does not repeat root concepts when taxonomy edges contain duplicates', async () => {
     const modelStore = useModelStore()
     modelStore.setGraph(
       {
@@ -145,6 +155,11 @@ title: Business Model
     const wrapper = mount(LeftSidebar, {
       attachTo: document.body,
     })
+
+    // Models start collapsed by default (feature: "collapsed initial state");
+    // expand the model header before inspecting its rendered tree.
+    await wrapper.find('[data-testid="model-header"]').trigger('click')
+    await wrapper.vm.$nextTick()
 
     const virtualNodes = wrapper.findAll('[data-testid="virtual-group-node"]')
     expect(virtualNodes).toHaveLength(2)

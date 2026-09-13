@@ -26,7 +26,7 @@ describe('LeftSidebar — ghost concept groups (R-TGC-01, R-TGC-05)', () => {
     setActivePinia(createPinia())
   })
 
-  it('shows ghost concept groups inline alongside populated ones', () => {
+  it('shows ghost concept groups inline alongside populated ones', async () => {
     const modelStore = useModelStore()
     modelStore.setGraph(
       {
@@ -53,6 +53,11 @@ describe('LeftSidebar — ghost concept groups (R-TGC-01, R-TGC-05)', () => {
     const wrapper = mount(LeftSidebar, {
       attachTo: document.body,
     })
+
+    // Models start collapsed by default (feature: "collapsed initial state");
+    // expand the model header before inspecting its rendered tree.
+    await wrapper.find('[data-testid="model-header"]').trigger('click')
+    await wrapper.vm.$nextTick()
 
     // Ghost groups are rendered inline, no separate section container
     expect(wrapper.find('[data-testid="ghost-concepts-section"]').exists()).toBe(false)

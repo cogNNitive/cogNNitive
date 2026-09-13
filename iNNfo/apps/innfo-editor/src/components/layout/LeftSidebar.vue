@@ -200,6 +200,7 @@
                     : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
                 "
                 @click="selectModelHeader(rootId)"
+                data-testid="model-header"
               >
                 <ChevronDown
                   class="transition-transform duration-200 w-3 h-3 text-slate-400 dark:text-slate-500"

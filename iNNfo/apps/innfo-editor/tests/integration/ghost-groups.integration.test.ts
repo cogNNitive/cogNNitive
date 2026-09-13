@@ -92,6 +92,11 @@ describe('Ghost groups — Add action integration', () => {
       attachTo: document.body,
     })
 
+    // Models start collapsed by default (feature: "collapsed initial state");
+    // expand the model header before inspecting its rendered tree.
+    await wrapper.find('[data-testid="model-header"]').trigger('click')
+    await wrapper.vm.$nextTick()
+
     // Find and click the ghost group header
     const ghostHeader = wrapper.find('[data-testid="ghost-group-header"]')
     expect(ghostHeader.exists()).toBe(true)
