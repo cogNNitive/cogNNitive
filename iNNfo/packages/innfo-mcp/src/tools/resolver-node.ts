@@ -805,7 +805,7 @@ export async function resolveParentChainNode(
     }
 
     // 2. Download from network and hydrate into specs/templates/<name>/<version>/
-    if (content === null) {
+    if (content === null && /^https?:\/\//i.test(currentUrl)) {
       attempted.push(`network url "${currentUrl}"`)
       try {
         content = await download(currentUrl, timeout)

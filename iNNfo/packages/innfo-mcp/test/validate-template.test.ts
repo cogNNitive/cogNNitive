@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
+import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest'
 import { validateTemplate } from '../src/tools/mutate.js'
 import { writeFile, rm, mkdir } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
@@ -6,6 +6,14 @@ import { pathToFileURL } from 'node:url'
 
 describe('validate_template Level 2 template validation', () => {
   const tmpDir = resolve('./test-tmp-validate-template')
+
+  beforeEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
 
   // Level 1 parent spec
   const level1Path = join(tmpDir, 'iNNfo_V_1-0_NN.md')
