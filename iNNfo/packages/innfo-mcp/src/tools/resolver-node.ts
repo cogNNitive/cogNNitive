@@ -3,7 +3,11 @@ import { readdir, readFile, mkdir, writeFile, rename, rm } from 'node:fs/promise
 import { join, basename, isAbsolute } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { homedir, tmpdir } from 'node:os'
-import { parseFrontmatter, SpecResolutionError } from '@cognnitive/innfo-core'
+import {
+  parseFrontmatter,
+  SpecResolutionError,
+  findCanonicalTemplate,
+} from '@cognnitive/innfo-core'
 import type {
   SpecCache,
   SpecDocument,
@@ -833,6 +837,18 @@ export async function resolveParentChainNode(
       }
     }
 
+    // 3. Built-in Canonical Fallback Registry (Tier 4 / Offline fallback)
+    if (content === null) {
+      attempted.push(`canonical fallback registry for "${currentName}"`)
+      const canonical =
+        findCanonicalTemplate(currentName) ||
+        (currentUrl ? findCanonicalTemplate(currentUrl) : null)
+      if (canonical) {
+        content = canonical.specContent
+        resolvedFromLocalTier = true
+      }
+    }
+
     if (content === null) {
       throw new SpecResolutionError(
         `Failed to resolve parent "${currentName}" from "${currentUrl}". Attempted: ${attempted.join('; ')}`,
@@ -932,10 +948,11 @@ export async function fetchSpecContent(
       /* v8 ignore start */
       // log + continue: network resolution failed — report unresolved.
       console.warn(`[resolver-node] Network fetch failed for ${name}: ${err}`)
-      return null
       /* v8 ignore stop */
     }
   }
+  const canonical = findCanonicalTemplate(name) || (url ? findCanonicalTemplate(url) : null)
+  if (canonical) return canonical.specContent
   return null
 }
 

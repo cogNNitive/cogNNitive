@@ -20,7 +20,7 @@ export function hasBom(text: string): boolean {
 export function normalizeSource(text: string): string {
   // CRLF/CR → LF so `$`-anchored patterns work on Windows-saved files.
   // BOM → strip so `^---` frontmatter anchors match on BOM-saved files.
-  const withoutBom = hasBom(text) ? text.slice(BOM_CHAR.length) : text
+  const withoutBom = text.charCodeAt(0) === 0xfeff ? text.replace(/^\uFEFF+/, '') : text
   return withoutBom.replace(/\r\n?/g, '\n')
 }
 

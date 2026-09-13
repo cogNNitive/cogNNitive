@@ -8,6 +8,13 @@ export interface ValidationError {
   filePath?: string
 }
 
+export interface ConceptDriftDiagnostic extends ValidationError {
+  code: 'CONCEPT_DRIFT_WARNING'
+  concept: string
+  suggestionType: 'typo' | 'cross_template' | 'specialization'
+  suggestedAction: string
+}
+
 export interface ValidationResult {
   valid: boolean
   errors: ValidationError[]

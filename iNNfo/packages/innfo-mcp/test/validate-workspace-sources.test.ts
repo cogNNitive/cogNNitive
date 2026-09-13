@@ -20,8 +20,8 @@ const MODEL = `---
 specification_version: "V_0-1-0"
 level: 3
 parent_spec:
-  name: Template
-  url: "https://example.com/template.md"
+  name: business
+  url: "business"
 model_version: "V_0-1-0"
 title: "Plan"
 ---

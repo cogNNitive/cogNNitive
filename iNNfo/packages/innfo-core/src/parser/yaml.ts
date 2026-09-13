@@ -12,8 +12,9 @@ export function parseYaml(
   yamlStr: string,
   onError?: (message: string) => void,
 ): Record<string, any> {
+  const sanitized = yamlStr.charCodeAt(0) === 0xfeff ? yamlStr.replace(/^\uFEFF+/, '') : yamlStr
   try {
-    return yamlParse(yamlStr) || {}
+    return yamlParse(sanitized) || {}
   } catch (err) {
     onError?.(`Frontmatter YAML failed to parse: ${err instanceof Error ? err.message : String(err)}`)
     return {}

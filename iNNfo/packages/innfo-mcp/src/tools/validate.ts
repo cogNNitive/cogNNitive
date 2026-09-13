@@ -17,10 +17,13 @@ import {
   fingerprint,
   diffNewOnly,
   normalizeBaselinePath,
+  findCanonicalTemplate,
+  CANONICAL_TEMPLATES,
 } from '@cognnitive/innfo-core'
 import type {
   SpecDocument,
   ValidationError,
+  ConceptDriftDiagnostic,
   ParsedModel,
   SubmodelResolver,
   SourceResolver,
@@ -352,9 +355,188 @@ async function loadBaselineFile(baselinePath: string): Promise<ValidationBaselin
   return loadBaseline(raw)
 }
 
+const RESERVED_STRUCTURAL_HEADINGS = new Set([
+  'index',
+  'matrices',
+  'item-markers matrix',
+  'external watch roots',
+  'external watch roots:',
+  'agent modification',
+  'agent modification:',
+  'agent modifications',
+  'concept definition',
+  'field definition',
+  'marker definition',
+  'matrix definition',
+  'concepts',
+  'elements',
+  'markers',
+])
+
+function isReservedStructuralHeading(concept: string): boolean {
+  const norm = concept.trim().toLowerCase().replace(/^#+\s*(nn\s*)?/i, '')
+  if (RESERVED_STRUCTURAL_HEADINGS.has(norm)) return true
+  if (norm.startsWith('matrices:') || norm.startsWith('matrices')) return true
+  if (norm.startsWith('external watch roots')) return true
+  if (norm.startsWith('agent modification')) return true
+  return false
+}
+
+function levenshteinDistance(a: string, b: string): number {
+  const an = a.length
+  const bn = b.length
+  if (an === 0) return bn
+  if (bn === 0) return an
+  const matrix = Array.from({ length: bn + 1 }, () => new Array(an + 1).fill(0))
+  for (let i = 0; i <= an; i++) matrix[0][i] = i
+  for (let j = 0; j <= bn; j++) matrix[j][0] = j
+  for (let j = 1; j <= bn; j++) {
+    for (let i = 1; i <= an; i++) {
+      const cost = a[i - 1].toLowerCase() === b[j - 1].toLowerCase() ? 0 : 1
+      matrix[j][i] = Math.min(
+        matrix[j - 1][i] + 1,
+        matrix[j][i - 1] + 1,
+        matrix[j - 1][i - 1] + cost,
+      )
+    }
+  }
+  return matrix[bn][an]
+}
+
+export function analyzeConceptDrift(
+  model: ParsedModel,
+  templateConcepts: Array<{ name: string }>,
+  modelPath: string,
+): ConceptDriftDiagnostic[] {
+  const diagnostics: ConceptDriftDiagnostic[] = []
+  const knownConcepts = new Map<string, string>()
+  for (const c of templateConcepts) {
+    knownConcepts.set(c.name.toLowerCase(), c.name)
+  }
+
+  const instantiatedConcepts = new Set<string>()
+  for (const key of model.elements.keys()) {
+    instantiatedConcepts.add(key)
+  }
+  if (model.rawSections) {
+    for (const key of Object.keys(model.rawSections)) {
+      instantiatedConcepts.add(key)
+    }
+  }
+
+  for (const concept of instantiatedConcepts) {
+    if (isReservedStructuralHeading(concept)) continue
+    const conceptLower = concept.toLowerCase()
+    if (knownConcepts.has(conceptLower)) continue
+
+    // 1. Typo / Levenshtein distance against current template concepts
+    let bestTypoMatch: string | null = null
+    let bestDistance = Infinity
+    for (const [knownLower, originalName] of knownConcepts.entries()) {
+      const dist = levenshteinDistance(conceptLower, knownLower)
+      const maxLen = Math.max(conceptLower.length, knownLower.length)
+      const isPluralSingular =
+        conceptLower + 's' === knownLower ||
+        knownLower + 's' === conceptLower ||
+        conceptLower + 'es' === knownLower ||
+        knownLower + 'es' === conceptLower
+      if (isPluralSingular || dist <= 2 || (maxLen > 4 && dist / maxLen <= 0.35)) {
+        if (dist < bestDistance) {
+          bestDistance = dist
+          bestTypoMatch = originalName
+        }
+      }
+    }
+
+    if (bestTypoMatch) {
+      const action = `Did you mean "${bestTypoMatch}"?`
+      diagnostics.push({
+        path: `elements.${concept}`,
+        code: 'CONCEPT_DRIFT_WARNING',
+        message: `[CONCEPT_DRIFT_WARNING] Concept "${concept}" is not defined in template. Did you mean "${bestTypoMatch}"?`,
+        promptHint: action,
+        severity: 'warning',
+        filePath: modelPath,
+        concept,
+        suggestionType: 'typo',
+        suggestedAction: action,
+        meta: {
+          concept,
+          suggestionType: 'typo',
+          suggestedAction: action,
+          suggestedConcept: bestTypoMatch,
+        },
+      })
+      continue
+    }
+
+    // 2. Cross-template match across canonical templates
+    let crossTemplateMatch: { templateName: string; conceptName: string } | null = null
+    for (const tmpl of Object.values(CANONICAL_TEMPLATES)) {
+      const schema = resolveTemplateSchema(tmpl.specContent, (ref) => {
+        const inc = findCanonicalTemplate(ref.name) || (ref.url ? findCanonicalTemplate(ref.url) : null)
+        return inc?.specContent ?? null
+      })
+      const foundInOther = schema.schema.concepts.find(
+        (c) => c.name.toLowerCase() === conceptLower,
+      )
+      if (foundInOther) {
+        crossTemplateMatch = { templateName: tmpl.name, conceptName: foundInOther.name }
+        break
+      }
+    }
+
+    if (crossTemplateMatch) {
+      const action = `Concept '${concept}' belongs to the ${crossTemplateMatch.templateName} template. Consider composing templates via 'includes' in a Level 2 specialization.`
+      diagnostics.push({
+        path: `elements.${concept}`,
+        code: 'CONCEPT_DRIFT_WARNING',
+        message: `[CONCEPT_DRIFT_WARNING] ${action}`,
+        promptHint: action,
+        severity: 'warning',
+        filePath: modelPath,
+        concept,
+        suggestionType: 'cross_template',
+        suggestedAction: action,
+        meta: {
+          concept,
+          suggestionType: 'cross_template',
+          suggestedAction: action,
+          matchingTemplate: crossTemplateMatch.templateName,
+        },
+      })
+      continue
+    }
+
+    // 3. Specialization recommendation for novel concepts
+    const action = `Consider creating a Level 2 specialization to declare this concept.`
+    diagnostics.push({
+      path: `elements.${concept}`,
+      code: 'CONCEPT_DRIFT_WARNING',
+      message: `[CONCEPT_DRIFT_WARNING] Concept "${concept}" is not defined in template. Consider creating a Level 2 specialization to declare this concept.`,
+      promptHint: action,
+      severity: 'warning',
+      filePath: modelPath,
+      concept,
+      suggestionType: 'specialization',
+      suggestedAction: action,
+      meta: {
+        concept,
+        suggestionType: 'specialization',
+        suggestedAction: action,
+      },
+    })
+  }
+
+  return diagnostics
+}
+
 /**
- * Validate a model against its template.
- * Provide either `id` (reads from disk) or `content` (inline raw text).
+ * Validate a model against its template using a 4-phase validation lifecycle:
+ * Phase 1: Ingestion & Frontmatter Parse
+ * Phase 2: Schema Resolution Hard-Gate (Short-circuits validation without cascading child errors on resolution failure)
+ * Phase 3: Structural & Concept Alignment + Concept Drift Detection
+ * Phase 4: Element, Field, Matrix, WikiLinks & Workspace Reference Validation
  */
 export async function validateModel(
   rootDir: string,
@@ -377,6 +559,7 @@ export async function validateModel(
   backlog: string | null
   summary: string | null
 }> {
+  // ── Phase 1: Ingestion & Frontmatter Parse ──
   const checkFreshness = options.checkFreshness ?? true
   let model: ParsedModel
 
@@ -414,10 +597,12 @@ export async function validateModel(
     return { ...delegated, suppressedCount: 0, staleEntries: [], backlog: null, summary: null }
   }
 
-  // Resolve the template only from the model's parent_spec.url, or from an
-  // explicit templateUrl supplied by the caller. Never from a constant. The
-  // resolved cache also carries every template named by the template's
-  // `includes`, exposed here as an `IncludeResolver` for additive composition.
+  const resolvedModelPath = id ? await findModelFile(rootDir, id) : null
+  const modelPath = resolvedModelPath ?? (id ?? 'inline')
+  const referringDir = resolvedModelPath ? dirname(resolvedModelPath) : rootDir
+  const fileNameForCheck = id ? basename(resolvedModelPath ?? id) : 'inline_NN.md'
+
+  // ── Phase 2: Schema Resolution Hard-Gate ──
   let template: SpecDocument | null = null
   let resolveInclude: (ref: { name: string; url: string }) => string | null = () => null
   let resolutionDetail: string | null = null
@@ -456,12 +641,82 @@ export async function validateModel(
     }
   }
 
-  // One door: hygiene (validateFormatContent) + schema conformance
-  // (validateModel, with `includes` composition) in a single pass.
-  const resolvedModelPath = id ? await findModelFile(rootDir, id) : null
-  const referringDir = resolvedModelPath ? dirname(resolvedModelPath) : rootDir
-  const fileNameForCheck = id ? basename(resolvedModelPath ?? id) : 'inline_NN.md'
+  // Phase 2 Hard-Gate: If parent_spec is declared (or explicit templateUrl provided) but could not be resolved,
+  // short-circuit validation immediately, suppressing downstream Phase 3 and Phase 4 checks.
+  const parentUrl = parentRef?.url ?? templateUrl
+  if (!template && parentUrl) {
+    const searchedSuffix = ` (searched: ${rootDir}/specs, network, canonical registry)`
+    const detailSuffix = resolutionDetail ? ` Detail: ${resolutionDetail}` : ''
+    const blockingError: ValidationError = {
+      path: 'parent_spec',
+      code: 'PARENT_RESOLUTION_FAILED',
+      message: `[PARENT_RESOLUTION_FAILED] Parent template could not be resolved from parent_spec.url "${parentUrl}"${searchedSuffix}${detailSuffix}`,
+      promptHint: 'Correct the parent_spec.url to a valid stable URL or workspace-relative path in specs/.',
+      severity: 'error',
+      filePath: modelPath,
+    }
 
+    const initialWarnings: ValidationError[] = []
+    const rawToCheck =
+      content ??
+      (id && modelPath !== 'inline' ? await readFile(modelPath, 'utf-8').catch(() => '') : '')
+    if (rawToCheck.charCodeAt(0) === 0xfeff) {
+      initialWarnings.push({
+        path: 'format.bom',
+        message: 'File starts with a byte-order mark; stripped before parsing.',
+        severity: 'info',
+        code: 'BOM_WARNING',
+        promptHint: 'Save the file as UTF-8 without BOM.',
+        filePath: modelPath,
+        meta: { stripped: true },
+      })
+    }
+
+    let finalErrors = [blockingError]
+    let suppressedCount = 0
+    let staleEntries: BaselineEntry[] = []
+    let backlog: string | null = null
+    let summary: string | null = null
+    let isValid = false
+
+    if (options.baselinePath) {
+      const baseline = await loadBaselineFile(options.baselinePath)
+      if (baseline) {
+        backlog = baseline.backlog
+        const diff = diffNewOnly(finalErrors, baseline)
+        finalErrors = diff.newErrors
+        suppressedCount = diff.suppressedCount
+        staleEntries = diff.staleEntries
+        if (staleEntries.length > 0) {
+          initialWarnings.push({
+            path: 'baseline',
+            message: `[BASELINE_STALE] ${staleEntries.length} baseline ${staleEntries.length === 1 ? 'entry matches' : 'entries match'} no current error; prune ${staleEntries.length === 1 ? 'it' : 'them'} or keep ${staleEntries.length === 1 ? 'it' : 'them'} as backlog.`,
+            code: 'BASELINE_STALE',
+            severity: 'info',
+            filePath: options.baselinePath,
+          })
+        }
+        summary =
+          `Suppressed ${suppressedCount} known error(s) (backlog: ${backlog}).` +
+          (staleEntries.length > 0
+            ? ` ${staleEntries.length} stale baseline entr(ies) reported.`
+            : '')
+        isValid = finalErrors.length === 0
+      }
+    }
+
+    return {
+      valid: isValid,
+      errors: finalErrors,
+      warnings: initialWarnings,
+      suppressedCount,
+      staleEntries,
+      backlog,
+      summary,
+    }
+  }
+
+  // ── Phase 3 & 4: Structural, Concept Alignment, and Reference Validation ──
   const resolveSubmodel: SubmodelResolver = (refPath: string) => {
     try {
       const clean = refPath
@@ -476,11 +731,10 @@ export async function validateModel(
       const fm = parseFrontmatter(raw)
       const templateName =
         fm?.parent_spec?.name ?? (typeof fm?.title === 'string' ? fm.title : undefined)
-      const templateUrl = fm?.parent_spec?.url
-      return { exists: true, templateName, templateUrl }
+      const submodelUrl = fm?.parent_spec?.url
+      return { exists: true, templateName, templateUrl: submodelUrl }
     } catch (err) {
       /* v8 ignore start */
-      // swallow deliberately: an unreadable model reports not-exists.
       console.warn(`[validate] Failed to inspect model ${refPath}: ${err}`)
       return { exists: false }
       /* v8 ignore stop */
@@ -494,35 +748,36 @@ export async function validateModel(
     resolveSubmodel,
     referringPath: resolvedModelPath ?? undefined,
   })
-  const result = { valid: doc.valid, errors: [...doc.errors], warnings: [...doc.warnings] }
-  const warnings: ValidationError[] = [...result.warnings]
-  if (!template) {
-    const parentUrl = model.frontmatter?.parent_spec?.url
-    if (parentUrl) {
-      // The model declares a parent that could not be resolved — this is a
-      // hard error, not a structural-only warning. coreValidate already emits
-      // [PARENT_RESOLUTION_FAILED]; surface the offending URL explicitly,
-      // the directories searched, and the per-link resolution attempts.
-      const searchedSuffix = ` (searched: ${rootDir}/specs, network)`
-      const detailSuffix = resolutionDetail ? ` Detail: ${resolutionDetail}` : ''
-      result.errors.push({
-        path: 'parent_spec',
-        message: `[PARENT_RESOLUTION_FAILED] Parent template could not be resolved from parent_spec.url "${parentUrl}"${searchedSuffix}${detailSuffix}`,
-        severity: 'error',
-      })
-    } else {
-      warnings.push({
-        path: 'parent_spec',
-        message: 'No template resolved; structural validation only',
-        severity: 'warning',
+
+  // Phase 3: Concept Drift Detection
+  const templatePath = template?.name ? `${template.name}_NN.md` : 'parent_spec'
+  const warnings: ValidationError[] = [...doc.warnings]
+  let docErrors = [...doc.errors]
+
+  if (template) {
+    const composed = resolveTemplateSchema(template.rawContent, resolveInclude)
+    const driftDiagnostics = analyzeConceptDrift(model, composed.schema.concepts, modelPath)
+    if (driftDiagnostics.length > 0) {
+      warnings.push(...driftDiagnostics)
+      // Convert / filter unknown concept errors from docErrors so concept drift remains a non-fatal warning
+      const driftedConcepts = new Set(driftDiagnostics.map((d) => d.concept.toLowerCase()))
+      docErrors = docErrors.filter((e) => {
+        const match = e.message.match(/Concept "([^"]+)" is not defined in template/i)
+        if (match && driftedConcepts.has(match[1].toLowerCase())) {
+          return false
+        }
+        return true
       })
     }
+  } else {
+    warnings.push({
+      path: 'parent_spec',
+      message: 'No template resolved; structural validation only',
+      severity: 'warning',
+    })
   }
 
-  // Staleness provenance: when the resolved template came from the local cache
-  // and its content hash differs from the canonical remote, surface a warning
-  // (never an error) — the failure mode must be loud, not silent, but a stale
-  // cache must not downgrade `valid`.
+  // Staleness provenance
   if (checkFreshness && freshness?.verdict === 'stale') {
     warnings.push({
       path: 'parent_spec',
@@ -537,11 +792,7 @@ export async function validateModel(
     })
   }
 
-  // D8: Decorate errors and warnings with originating file path
-  const modelPath = id ? ((await findModelFile(rootDir, id)) ?? id) : 'inline'
-  const templatePath = template?.name ? `${template.name}_NN.md` : 'parent_spec'
-
-  const errors = result.errors.map((e) => ({
+  const errors = docErrors.map((e) => ({
     ...e,
     filePath: e.path.startsWith('parent') ? templatePath : modelPath,
   }))
@@ -551,12 +802,8 @@ export async function validateModel(
     filePath: w.path.startsWith('parent') ? templatePath : modelPath,
   }))
 
-  // Workspace-scope cross-model validation (PR5a wiring): purely additive.
-  // Default `false` ⇒ everything above this line is today's behavior,
-  // byte-for-byte, `valid` included. Requires `id` mode (a real file on
-  // disk) — inline `content` has no workspace position to scope
-  // diagnostics to.
-  let valid = result.valid
+  // Phase 4: Workspace-scope cross-model validation
+  let valid = errors.length === 0
   if (workspace && id && modelPath !== 'inline') {
     const workspaceDiagnostics = await runWorkspaceValidation(rootDir, modelPath, specCache)
     for (const diag of workspaceDiagnostics) {
@@ -575,11 +822,7 @@ export async function validateModel(
     }
   }
 
-  // Differential validation (validation-baseline-differential): with a
-  // baseline configured, only NEW errors surface in the main output. Known
-  // errors are hidden and counted with a backlog link; stale entries are
-  // reported as info without failing validation. No baseline (missing file
-  // or no `baselinePath`) means full output.
+  // Differential baseline handling
   let surfacedErrors: ValidationError[] = errors
   let suppressedCount = 0
   let staleEntries: BaselineEntry[] = []
@@ -604,9 +847,7 @@ export async function validateModel(
       }
       summary =
         `Suppressed ${suppressedCount} known error(s) (backlog: ${backlog}).` +
-        (staleEntries.length > 0
-          ? ` ${staleEntries.length} stale baseline entr(ies) reported.`
-          : '')
+        (staleEntries.length > 0 ? ` ${staleEntries.length} stale baseline entr(ies) reported.` : '')
       valid = surfacedErrors.length === 0
     }
   }

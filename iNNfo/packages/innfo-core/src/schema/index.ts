@@ -26,3 +26,12 @@ export {
   checkWidgetConfig,
 } from './metaschema'
 export type { SchemaCheckOptions } from './metaschema'
+
+export {
+  CANONICAL_TEMPLATES,
+  findCanonicalTemplate,
+  getCanonicalSpecContent,
+  listCanonicalTemplates,
+} from './canonical-registry'
+export type { CanonicalTemplate } from './canonical-registry'
+

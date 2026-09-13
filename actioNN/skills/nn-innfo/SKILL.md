@@ -102,6 +102,20 @@ Before executing options **[b]**, **[c]**, **[d]**, or **[x]**, the agent MUST e
    - **If multiple models found:** Present a numbered list of all models found and ask the user to select one: *"Multiple models detected. Please select which one you want to work with:"*. Set the selected file as `active_model_path` and proceed.
 3. **Session Persistence:** Once a model is selected or created, save its path in context. Subsequent actions (validation, edits, audits) MUST default to this active model. To switch models, the user can explicitly ask to "switch model" or select the change option in the quick actions menu.
 
+### 0a-ter. Step 0 Schema Integrity Gate (MANDATORY before downstream repairs)
+
+Before attempting to diagnose or repair child reference warnings, matrix mismatches, or element field inconsistencies in a Level 3 model, the agent MUST verify that the model's `parent_spec` resolves cleanly to a valid Level 2 template.
+
+1. **Gate Verification**: Inspect the output of `innfo-mcp_validate_model` (or `innfo-mcp_get_template`) for `PARENT_RESOLUTION_FAILED` or `CRITICAL_BLOCKER` diagnostics.
+2. **Fail-Fast Policy**: If `parent_spec` cannot be resolved:
+   - **HALT**: The agent MUST halt all downstream field, matrix, or reference remediation immediately.
+   - **NO MUTATION**: The agent MUST NOT attempt to edit child elements or add missing fields while the parent schema is unreachable.
+   - **Report to User**: Report the unresolved parent template to the user, displaying the searched paths `(searched: ...)` and offering concrete remediation options:
+     - Correct `parent_spec.url` to a valid stable HTTP/HTTPS URL or workspace-relative path (`specs/...`).
+     - Rehydrate the template into `specs/` using `innfo-mcp_hydrate_template` or canonical registry fallback.
+     - Check the MCP root configuration (`INNFO_MODELS_DIR`).
+3. **Execution Condition**: Only after the schema resolution gate passes (`parent_spec` successfully resolved) SHALL the agent proceed to Phase 3/4 content, matrix, and reference remediation.
+
 ---
 
 ### 0b. Proactive Discovery (Option A)
@@ -702,23 +716,44 @@ Each session MUST record per-intent call and token counts via the `usage-counter
 8. **Architecture Assistant Mode:** In the `[d]` audit, explain business/functional risks and offer 1-click fixes.
 9. **Contextual Shortcuts:** End every response by offering 2-3 suggested next actions (Quick Actions).
 10. **Full MCP Delegation:** Query types, schemas, and validation from the `innfo-mcp` server; do not guess or duplicate the grammar.
-11. **Index Block: Concepts only:** The `# NN index` lists ONLY Concepts (types declared by the app), NEVER Elements (instances of Concepts). Elements are declared inside their Concept sections with `## NN <Concept>: <Element>`. The Elements↔Concepts relationship is by section structure and `reference` fields, not by hierarchy in the index.
+11. **Index Block Scope (`# NN index`):** The `# NN index` is reserved exclusively for workspace manifest documents (`workspace_NN.md` / `index.md`) and Level 2 templates (defining the taxonomy hierarchy of Concepts). Level 3 domain data models (`models/*_NN.md`) MUST NOT contain a root `# NN index` block; navigation in Level 3 models is derived dynamically from Concept and Element headings.
 12. **Mandatory WikiLink syntax in references:** In every reference field (`type:: reference`), the value MUST be formatted using WikiLink syntax (`key:: [[Element]]`). Plain text without WikiLink brackets is forbidden.
 13. **Element descriptions in prose:** The description/explanation of an element in a Level 3 model must NEVER be written as a `description::` field. It must always be free-form Markdown prose below the `key:: value` field list, separated by a blank line.
 14. **Active Model Selection Gate:** Never perform editing, validation, audits, or model procedure execution without a validated active model in context. Run workspace discovery first if none is set.
 15. **Dynamic Quick Actions:** Only list procedure shortcuts in next steps if the model contains declared procedures.
 16. **Free-form Tags (`tags::`)**: Any Element or Concept in a Level 3 model may declare `tags:: [tag1, tag2]` for free-form categorization without modifying the Level 2 app. Multi-tag syntax requires brackets `[...]`. Agents should use this field to filter and scope actions to tagged elements.
+17. **Step 0 Schema Integrity Gate (MANDATORY)**: Always verify that `parent_spec` resolves cleanly before diagnosing or repairing child element fields, matrices, or references. If unresolved, halt and resolve schema reachability first.
+18. **Mechanical Linting & BOM Encoding Sanitization**: Always enforce UTF-8 without BOM (`\uFEFF`), detect and disambiguate heading/slug collisions, and enforce clean V_0-2-0 frontmatter.
 
 ---
 
-## Generating the Index Block
+## Mechanical Linting & Upgrade Playbook
+
+Deterministic instructions for identifying and mechanically repairing legacy syntax, corrupted encodings, and obsolete structural patterns:
+
+1. **BOM Encoding Sanitization**:
+   - Detect files containing UTF-8 Byte Order Marks (`\uFEFF` / `0xFEFF`).
+   - Strip leading BOM characters upon reading and saving, strictly enforcing UTF-8 without BOM.
+2. **Obsolete Level 3 `# NN index` Removal**:
+   - The `# NN index` heading is reserved exclusively for workspace manifest documents (`workspace_NN.md` / `index.md`) and Level 2 templates, NOT Level 3 domain data models (`models/*_NN.md`).
+   - When linting or refactoring Level 3 models, remove any root `# NN index` navigation blocks. Navigation in Level 3 models is derived dynamically from Concept headings (`# NN <Concept>`) and Element headings (`## NN <Concept>: <Element>`).
+3. **Heading and Slug Collision Detection**:
+   - Detect duplicate `## NN <Concept>: <Element>` headings within a model file that yield identical slugs (e.g. `## NN Person: Alice` and another `## NN Person: Alice`).
+   - Prompt the user for disambiguation or rename duplicate elements deterministically using `innfo-mcp_apply_change` (`rename_element`).
+4. **Frontmatter Standardization (V_0-2-0)**:
+   - Ensure Level 3 frontmatter contains only valid metadata: `model_version`, `parent_spec: { name, url }`, `title`, and optional workspace/provenance tags.
+   - Remove forbidden legacy frontmatter structures such as `concepts: []` or `fields: []` embedded in YAML frontmatter.
+
+---
+
+## Generating the Index Block (Level 2 Templates & Workspace Manifests)
 
 ### Fundamental Rule
 
-The `# NN index` defines the **navigation** hierarchy between Concepts. Elements do NOT
+The `# NN index` defines the **navigation** hierarchy between Concepts in Level 2 templates or between Models in workspace manifests. Elements do NOT
 appear in the index — they are discovered by expanding a Concept in the sidebar tree.
 
-### Correct Format
+### Correct Format (Level 2 Template)
 
 ```markdown
 # NN index
@@ -743,22 +778,22 @@ appear in the index — they are discovered by expanding a Concept in the sideba
   * [[Segments]]        ← Element, does NOT belong in the index
 ```
 
-### Automatic Generation
+### Automatic Generation (Level 2)
 
-When creating or editing a model, the agent must:
+When creating or editing a template, the agent must:
 
-1. **Read the app** (`get_template`) to obtain the defined Concepts
+1. **Read the template** (`get_template`) to obtain the defined Concepts
 2. **Identify root Concepts** (first level of the index)
 3. **Identify sub-Concepts** (if the app has hierarchies)
 4. **Generate the index** listing ONLY Concepts, NOT Elements
-5. **Validate** with `validate_model` that the index contains no Elements
+5. **Validate** with `validate_template` that the index contains no Elements
 
 ### Elements↔Concepts Relationship
 
-Elements relate to their Concepts by:
+In Level 3 data models, Elements relate to their Concepts by:
 
 1. **Section structure:** `## NN <Concept>: <Element>` declares that Element belongs to that Concept
 2. **Reference fields:** `location:: [[Element Name]]` establishes relationships between Elements
 3. **Matrices:** Matrices cross Elements from different Concepts
 
-NEVER by hierarchy in the index.
+NEVER by hierarchy in a Level 3 index.

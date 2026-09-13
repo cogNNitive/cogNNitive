@@ -28,12 +28,17 @@ export {
   resolveTemplateSchema,
   canonicalizeDefinition,
   applyAliasToSchema,
+  CANONICAL_TEMPLATES,
+  findCanonicalTemplate,
+  getCanonicalSpecContent,
+  listCanonicalTemplates,
 } from './schema'
 export type {
   TemplateSchema,
   SchemaCheckOptions,
   IncludeResolver,
   ResolvedTemplateSchema,
+  CanonicalTemplate,
 } from './schema'
 
 export {
