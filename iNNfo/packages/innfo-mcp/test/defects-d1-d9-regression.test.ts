@@ -68,9 +68,10 @@ title: "Test Model"
     }
 
     const result = coreValidate(parsedModel, mockTemplate as any, null)
-    const warning = result.warnings.find((w) => w.path.includes('Sources'))
+    const warning = result.warnings.find((w) => w.path.startsWith('parent.concepts'))
     expect(warning).toBeDefined()
-    expect(warning!.message).toContain('lacks optional guidance section')
+    expect(warning!.message).toContain('Sources')
+    expect(warning!.message).toContain('lacks complete guidance section')
   })
 
   it('D4: Slug/name collisions are reported as validation ERRORs', async () => {

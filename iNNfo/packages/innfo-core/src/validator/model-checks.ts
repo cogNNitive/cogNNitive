@@ -117,22 +117,32 @@ export function checkTemplateDocumentation(
   d: Diagnostics,
 ): void {
   const sections = scanGuidanceSections(templateRawContent)
+  const undocumented: string[] = []
+
   for (const concept of templateConcepts) {
     const section = sections.find((s) => s.title === concept.name)
     if (!section) {
-      d.warn(
-        `parent.concepts.${concept.name}`,
-        `Concept '${concept.name}' lacks optional guidance section '### ${concept.name}' in parent template`,
-      )
+      undocumented.push(concept.name)
       continue
     }
     const missing = REQUIRED_GUIDANCE_H3S.filter((req) => !section.subheadings.includes(req))
     if (missing.length > 0) {
-      d.warn(
-        `parent.concepts.${concept.name}`,
-        `Concept '${concept.name}' has incomplete documentation in parent template (missing: ${missing.join(', ')})`,
-      )
+      undocumented.push(`${concept.name} (missing: ${missing.join(', ')})`)
     }
+  }
+
+  if (undocumented.length === 0) return
+
+  if (undocumented.length === 1) {
+    d.warn(
+      'parent.concepts',
+      `Concept '${undocumented[0]}' lacks complete guidance section in parent template`,
+    )
+  } else {
+    d.warn(
+      'parent.concepts',
+      `${undocumented.length} template concepts lack complete guidance sections: ${undocumented.join(', ')}`,
+    )
   }
 }
 

@@ -113,8 +113,7 @@ Commit: `fix(innfo-mcp): point stale-cache hint at check_workspace self-heal`
 
 Commit: `fix(innfo-core): aggregate template documentation warnings`
 
-- [ ] 7.1 RED — `iNNfo/packages/innfo-core/tests/` (model-checks suite): a template with N undocumented concepts yields exactly ONE aggregated diagnostic naming the count and listing affected concepts; a single-occurrence case still yields one diagnostic; `valid` is unaffected. Done: fails against current worktree.
-- [ ] 7.2 GREEN — `iNNfo/packages/innfo-core/src/validator/model-checks.ts` (`checkTemplateDocumentation`, ~line 114): collapse per-concept warnings into one aggregated diagnostic (count + list); validation semantics unchanged.
-- [ ] 7.3 Verify — Done: `npx vitest run tests/<model-checks test>` passes; `npx tsc --noEmit` clean in `innfo-core`.
+- [x] 7.1 RED — `iNNfo/packages/innfo-core/tests/` (model-checks suite): a template with N undocumented concepts yields exactly ONE aggregated diagnostic naming the count and listing affected concepts; a single-occurrence case still yields one diagnostic; `valid` is unaffected. Done: failed against worktree prior to fix.
+- [x] 7.2 GREEN — `iNNfo/packages/innfo-core/src/validator/model-checks.ts` (`checkTemplateDocumentation`, ~line 114): collapse per-concept warnings into one aggregated diagnostic (count + list); validation semantics unchanged.
+- [x] 7.3 Verify — Done: `npx vitest run src/validator/model-checks.spec.ts` passes; updated assertions in `tests/index.test.ts` and `innfo-mcp/test/defects-d1-d9-regression.test.ts`; `innfo-core` (755 passed / 1 skipped) and `innfo-mcp` (265 passed) suites both green; `npx tsc --noEmit` clean in both packages.
 - Spec: `diagnostic-signal-quality` / Requirement: Non-Actionable Repetitive Diagnostics Are Aggregated (all 4 scenarios).
-</content>

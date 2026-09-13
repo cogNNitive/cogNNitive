@@ -1794,15 +1794,13 @@ describe('FOLDER mode rejection (FR-007)', () => {
     }
 
     const result = validateModel(model, mockTemplate, null)
-    expect(result.warnings.length).toBeGreaterThanOrEqual(2)
+    expect(result.warnings.length).toBe(1)
 
-    const marketWarning = result.warnings.find((w) => w.message.includes('Market'))
-    expect(marketWarning).toBeDefined()
-    expect(marketWarning!.message).toContain('has incomplete documentation in parent template')
-
-    const productWarning = result.warnings.find((w) => w.message.includes('Product'))
-    expect(productWarning).toBeDefined()
-    expect(productWarning!.message).toContain('lacks optional guidance section')
+    const docWarning = result.warnings.find((w) => w.path === 'parent.concepts')
+    expect(docWarning).toBeDefined()
+    expect(docWarning!.message).toContain('Market')
+    expect(docWarning!.message).toContain('Product')
+    expect(docWarning!.message).toContain('2')
   })
 })
 

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { Diagnostics } from '../diagnostics'
 import { ElementsMap, type ParsedModel } from '../types'
-import { checkFrontmatterInvariants } from './model-checks'
+import { checkFrontmatterInvariants, checkTemplateDocumentation } from './model-checks'
 
 function frontmatterModel(fm: Record<string, unknown>): ParsedModel {
   return {
@@ -88,5 +88,55 @@ describe('misuse-class stable codes (robustness-coda 1.2)', () => {
     expect(d.errors.map((e) => e.code).sort()).toEqual(
       ['L3_SCHEMA_COMPONENTS', 'RESERVED_CONCEPT_NAME'].sort(),
     )
+  })
+})
+
+describe('diagnostic-signal-quality (H8) — aggregate template documentation warnings', () => {
+  it('aggregates multiple undocumented concepts into exactly one warning with count and names', () => {
+    const d = new Diagnostics()
+    const concepts = [
+      { name: 'Actor', type: 'list' as const },
+      { name: 'Goal', type: 'list' as const },
+      { name: 'Process', type: 'list' as const },
+    ]
+    const templateRaw = '# NN Concept Definition\n## NN Concept Definition: Actor\ntype:: list\n'
+    checkTemplateDocumentation(concepts, templateRaw, d)
+
+    expect(d.warnings).toHaveLength(1)
+    expect(d.warnings[0].severity).toBe('warning')
+    expect(d.warnings[0].message).toContain('3')
+    expect(d.warnings[0].message).toContain('Actor')
+    expect(d.warnings[0].message).toContain('Goal')
+    expect(d.warnings[0].message).toContain('Process')
+    expect(d.valid).toBe(true)
+  })
+
+  it('reports a single undocumented concept as exactly one warning', () => {
+    const d = new Diagnostics()
+    const concepts = [{ name: 'Solo', type: 'list' as const }]
+    const templateRaw = '# NN Concept Definition\n'
+    checkTemplateDocumentation(concepts, templateRaw, d)
+
+    expect(d.warnings).toHaveLength(1)
+    expect(d.warnings[0].severity).toBe('warning')
+    expect(d.warnings[0].message).toContain('Solo')
+    expect(d.valid).toBe(true)
+  })
+
+  it('emits no warning when all concepts have complete guidance', () => {
+    const d = new Diagnostics()
+    const concepts = [{ name: 'Documented', type: 'list' as const }]
+    const templateRaw = [
+      '# NN Concept Definition',
+      '## Documented',
+      '### Summary',
+      '### Description',
+      '### Methodologies',
+      '### Prompts',
+    ].join('\n')
+    checkTemplateDocumentation(concepts, templateRaw, d)
+
+    expect(d.warnings).toHaveLength(0)
+    expect(d.valid).toBe(true)
   })
 })
