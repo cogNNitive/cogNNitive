@@ -104,9 +104,9 @@ Commit: `fix(innfo-mcp): emit a self-valid scaffold from init_model`
 
 Commit: `fix(innfo-mcp): point stale-cache hint at check_workspace self-heal`
 
-- [ ] 6.1 RED — `iNNfo/packages/innfo-mcp/tests/` (validate suite): `TEMPLATE_CACHE_STALE` warning's `message`/`promptHint` both name `check_workspace` and no longer instruct manual `specs/` file surgery. Done: fails against current worktree.
-- [ ] 6.2 GREEN — `iNNfo/packages/innfo-mcp/src/tools/validate.ts` (lines ~529-531): rewrite `message`/`promptHint` to point at `check_workspace`'s existing self-heal rehydration.
-- [ ] 6.3 Verify — Done: `npx vitest run tests/<validate test>` passes; `npx tsc --noEmit` clean in `innfo-mcp`.
+- [x] 6.1 RED — `iNNfo/packages/innfo-mcp/tests/` (validate suite): `TEMPLATE_CACHE_STALE` warning's `message`/`promptHint` both name `check_workspace` and no longer instruct manual `specs/` file surgery. Done: failed against worktree prior to fix.
+- [x] 6.2 GREEN — `iNNfo/packages/innfo-mcp/src/tools/validate.ts` (lines ~529-531): rewrite `message`/`promptHint` to point at `check_workspace`'s existing self-heal rehydration.
+- [x] 6.3 Verify — Done: `npx vitest run test/freshness-warning.test.ts` passes; `npx tsc --noEmit` clean in `innfo-mcp`.
 - Spec: `template-cache-staleness-detection` / Requirement: validateModel surfaces TEMPLATE_CACHE_STALE warning (both scenarios).
 
 ## Phase 7: H8 — aggregate template-documentation warnings
