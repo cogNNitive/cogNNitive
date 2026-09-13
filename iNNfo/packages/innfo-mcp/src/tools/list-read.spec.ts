@@ -46,8 +46,19 @@ describe('listModels', () => {
   })
 
   it('scans a directory and returns models sorted by id, excluding index.md', async () => {
-    await writeFile(join(rootDir, 'Beta_V_1-0-0_business_NN.md'), '', 'utf-8')
-    await writeFile(join(rootDir, 'Alpha_V_1-0-0_business_NN.md'), '', 'utf-8')
+    // H6: `list_models` requires `level: 3` + a resolvable `parent_spec`,
+    // not just an `_NN.md` extension match.
+    const modelFrontmatter = [
+      '---',
+      'level: 3',
+      'parent_spec:',
+      '  name: business_V_0-2-0',
+      '  url: https://example.com/business_V_0-2-0_NN.md',
+      '---',
+      '',
+    ].join('\n')
+    await writeFile(join(rootDir, 'Beta_V_1-0-0_business_NN.md'), modelFrontmatter, 'utf-8')
+    await writeFile(join(rootDir, 'Alpha_V_1-0-0_business_NN.md'), modelFrontmatter, 'utf-8')
     await writeFile(join(rootDir, 'index.md'), '', 'utf-8')
     await writeFile(join(rootDir, 'notes.txt'), '', 'utf-8')
 
@@ -115,12 +126,18 @@ describe('readModel', () => {
     expect(model?.frontmatter.title).toBe('Readable Model')
   })
 
-  it('discovers workspace_01.md entrypoints and parses type:: model submodels', async () => {
+  it('discovers workspace_NN.md entrypoints and parses type:: model submodels', async () => {
+    // H6: the workspace manifest follows the same `_NN.md` + `level: 3` +
+    // `parent_spec` convention as any other discoverable model
+    // (`workspace_NN.md`, per `iNNfo/specs/templates/base/spec_NN.md`).
     const wsContent = [
       '---',
       'spec_version: "V_0-2-0"',
       'level: 3',
       'title: "Root Workspace"',
+      'parent_spec:',
+      '  name: workspace_V_0-2-0',
+      '  url: https://example.com/workspace_V_0-2-0_NN.md',
       '---',
       '',
       '# NN Models',
@@ -129,10 +146,10 @@ describe('readModel', () => {
       'type:: model',
       '',
     ].join('\n')
-    await writeFile(join(rootDir, 'workspace_01.md'), wsContent, 'utf-8')
+    await writeFile(join(rootDir, 'workspace_NN.md'), wsContent, 'utf-8')
 
     const models = await listModels(rootDir)
-    expect(models.some((m) => m.id === 'workspace_01')).toBe(true)
+    expect(models.some((m) => m.id === 'workspace_NN')).toBe(true)
 
     const model = await readModel(rootDir, 'workspace')
     expect(model?.frontmatter.title).toBe('Root Workspace')

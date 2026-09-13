@@ -151,9 +151,21 @@ describe('innfo-mcp server (dispatch/handler layer, real MCP client/server round
   })
 
   describe('list_models', () => {
+    // H6: `list_models` requires `level: 3` + a resolvable `parent_spec`,
+    // not just an `_NN.md` filename match.
+    const modelFrontmatter = [
+      '---',
+      'level: 3',
+      'parent_spec:',
+      '  name: business_V_0-2-0',
+      '  url: https://example.com/business_V_0-2-0_NN.md',
+      '---',
+      '',
+    ].join('\n')
+
     it('scans the configured root and returns model info', async () => {
-      await writeFile(join(rootDir, 'Alpha_V_1-0-0_business_NN.md'), '', 'utf-8')
-      await writeFile(join(rootDir, 'Beta_V_1-0-0_business_NN.md'), '', 'utf-8')
+      await writeFile(join(rootDir, 'Alpha_V_1-0-0_business_NN.md'), modelFrontmatter, 'utf-8')
+      await writeFile(join(rootDir, 'Beta_V_1-0-0_business_NN.md'), modelFrontmatter, 'utf-8')
       await writeFile(join(rootDir, 'index.md'), '', 'utf-8')
 
       const result = await client.callTool({ name: 'list_models', arguments: {} })
@@ -169,7 +181,7 @@ describe('innfo-mcp server (dispatch/handler layer, real MCP client/server round
     it('honors an explicit root override', async () => {
       const otherRoot = join(rootDir, 'other-root')
       await mkdir(otherRoot, { recursive: true })
-      await writeFile(join(otherRoot, 'Only_V_1-0-0_NN.md'), '', 'utf-8')
+      await writeFile(join(otherRoot, 'Only_V_1-0-0_NN.md'), modelFrontmatter, 'utf-8')
 
       const result = await client.callTool({ name: 'list_models', arguments: { root: otherRoot } })
       const parsed = JSON.parse(textOf(result as CallToolResult))

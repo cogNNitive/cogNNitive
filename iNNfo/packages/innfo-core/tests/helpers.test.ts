@@ -12,6 +12,17 @@ async function makeRoot(): Promise<string> {
   return dir
 }
 
+/** Minimal frontmatter satisfying `isDiscoverableModel` (level: 3 + parent_spec). */
+const MODEL_FRONTMATTER = [
+  '---',
+  'level: 3',
+  'parent_spec:',
+  '  name: business_V_0-2-0',
+  '  url: https://example.com/business_V_0-2-0_NN.md',
+  '---',
+  '',
+].join('\n')
+
 describe('listModels (recursive scan)', () => {
   afterEach(async () => {
     await Promise.all(tempDirs.splice(0).map((d) => rm(d, { recursive: true, force: true })))
@@ -21,13 +32,13 @@ describe('listModels (recursive scan)', () => {
     const root = await makeRoot()
 
     // Root-level model.
-    await writeFile(join(root, 'Root_V_0-1-0_NN.md'), '# Root', 'utf-8')
+    await writeFile(join(root, 'Root_V_0-1-0_NN.md'), MODEL_FRONTMATTER + '# Root', 'utf-8')
 
     // Nested model inside a normal subdirectory tree.
     await mkdir(join(root, 'models', 'subdir'), { recursive: true })
     await writeFile(
       join(root, 'models', 'subdir', 'Nested_V_0-2-0_NN.md'),
-      '# Nested',
+      MODEL_FRONTMATTER + '# Nested',
       'utf-8',
     )
 
@@ -67,5 +78,54 @@ describe('listModels (recursive scan)', () => {
   it('returns an empty list for a non-existent root', async () => {
     const models = await listModels(join(tmpdir(), 'does-not-exist-innfo'))
     expect(models).toEqual([])
+  })
+
+  it('H6: only returns files satisfying the shared discoverable-model predicate (level:3 + parent_spec + _NN.md), honoring root', async () => {
+    const root = await makeRoot()
+
+    // Real discoverable level-3 model: must be included.
+    await writeFile(
+      join(root, 'Acme_V_1-0-0_business_NN.md'),
+      [
+        '---',
+        'level: 3',
+        'parent_spec:',
+        '  name: business_V_0-2-0',
+        '  url: https://example.com/business_V_0-2-0_NN.md',
+        '---',
+        '# Model',
+      ].join('\n'),
+      'utf-8',
+    )
+
+    // Editor/core test fixture: same frontmatter shape, but not `_NN.md` — excluded.
+    await writeFile(
+      join(root, 'Ghostbusters_V_0-1-1_business_F.md'),
+      [
+        '---',
+        'level: 3',
+        'parent_spec:',
+        '  name: business_V_0-2-0',
+        '  url: https://example.com/business_V_0-2-0_NN.md',
+        '---',
+        '# Fixture',
+      ].join('\n'),
+      'utf-8',
+    )
+
+    // README: no frontmatter, not `_NN.md` — excluded.
+    await writeFile(join(root, 'README.md'), '# Read me\n', 'utf-8')
+
+    // NN-suffixed but NOT a model (level: 2 template spec) — excluded by frontmatter.
+    await writeFile(
+      join(root, 'business_V_0-2-0_spec_NN.md'),
+      ['---', 'level: 2', 'title: Business Template', '---', '# Template'].join('\n'),
+      'utf-8',
+    )
+
+    const models = await listModels(root)
+    const ids = models.map((m) => m.id)
+
+    expect(ids).toEqual(['Acme_V_1-0-0_business_NN'])
   })
 })
