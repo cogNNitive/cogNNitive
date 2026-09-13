@@ -1,9 +1,25 @@
 import { ParsedModel } from '../types'
 import { stringify as yamlStringify } from 'yaml'
 import { printTaxonomyNode } from './taxonomy'
+import { SOURCE_FIELD_NAMES } from '../sourceRef'
 
-/** Serializes a property value into the unified `key:: value` form. */
-function serializePropertyValue(value: unknown): string {
+/**
+ * Serializes a property value into the unified `key:: value` form.
+ *
+ * `fieldName`, when provided, lets citation-list fields (`sources`/`source`,
+ * see `SOURCE_FIELD_NAMES`) use the spec-correct unquoted bracket-list
+ * grammar that `splitSourceFieldValue` (`sourceRef.ts`) already expects on
+ * the read side, instead of falling through to `JSON.stringify`. Detection is
+ * keyed by field NAME, never by value shape: this function serializes EVERY
+ * field of EVERY model, and non-citation fields that happen to look like
+ * bracket lists (`options`, `values`, `applies_to`, `target_concepts`, ...)
+ * MUST keep serializing exactly as before this branch was added.
+ */
+function serializePropertyValue(value: unknown, fieldName?: string): string {
+  if (fieldName && SOURCE_FIELD_NAMES.has(fieldName.toLowerCase())) {
+    const citation = serializeCitationValue(value)
+    if (citation !== null) return citation
+  }
   if (typeof value === 'string') {
     const trimmed = value.trim()
     // WikiLinks [[Name]]
@@ -16,10 +32,32 @@ function serializePropertyValue(value: unknown): string {
       (v) => typeof v === 'string' && v.trim().startsWith('[[') && v.trim().endsWith(']]'),
     )
     if (hasWikiLink) {
-      return `[${value.map(serializePropertyValue).join(', ')}]`
+      return `[${value.map((v) => serializePropertyValue(v)).join(', ')}]`
     }
   }
   return JSON.stringify(value)
+}
+
+/**
+ * Citation-list grammar for `sources::`/`source::` values: a bare unquoted
+ * scalar, or a bracketed list of bare unquoted items joined with `, '`.
+ * Returns `null` (caller falls through to the default `JSON.stringify` path,
+ * unchanged from before this change) when any item is not a plain string or
+ * contains a character (`,` `[` `]`) that `splitSourceFieldValue`'s naive
+ * comma-split on a bracketed string cannot round-trip safely.
+ */
+function serializeCitationValue(value: unknown): string | null {
+  if (Array.isArray(value)) {
+    if (value.length === 0) return '[]'
+    if (!value.every(isSafeCitationItem)) return null
+    return `[${value.join(', ')}]`
+  }
+  if (isSafeCitationItem(value)) return value
+  return null
+}
+
+function isSafeCitationItem(v: unknown): v is string {
+  return typeof v === 'string' && !/[,[\]]/.test(v)
 }
 
 export function serializeModel(model: ParsedModel): string {
@@ -157,7 +195,7 @@ export function serializeModel(model: ParsedModel): string {
         lines.push(`  tags:: ${node.tags.join(', ')}`)
       }
       for (const [k, v] of Object.entries(node.fields)) {
-        lines.push(`  ${k}:: ${serializePropertyValue(v)}`)
+        lines.push(`  ${k}:: ${serializePropertyValue(v, k)}`)
       }
       if (node.description) {
         for (const descLine of node.description.split('\n')) {

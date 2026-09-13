@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import { validateWorkspaceSources, type SourceResolver } from '../src/validator/workspaceSources'
 import { extractHeadings } from '../src/sourceRef'
+import { parseModel, serializeModel } from '../src/parser'
+import { applyMutation } from '../src/mutate'
+import { normalizeSingleModel } from '../src/recursiveParser'
 import type { RecursiveParseResult } from '../src/recursiveParser/types'
 import type { ModelNode } from '../src/types'
 
@@ -217,6 +220,95 @@ describe('validateWorkspaceSources knowledge-unit pointers', () => {
 
   it('keeps the generic malformed code for non-query garbage', () => {
     const diags = validateWorkspaceSources(resultWith('just some prose'), resolver({}))
+    expect(diags).toHaveLength(1)
+    expect(diags[0]).toMatchObject({ severity: 'error', code: 'KU_MALFORMED' })
+  })
+})
+
+// H2/H3 integration: a citation written via `apply_change add_element` must
+// close the write<->read loop end to end (mutate -> serialize -> normalize ->
+// workspace validation), never just one side of it (design.md Decision 2).
+// Citation diagnostics only exist in workspace scope, so this MUST go through
+// `validateWorkspaceSources` (the engine `collectWorkspaceDiagnostics` calls),
+// never a per-file `validateModel`.
+describe('add_element sources round-trip through workspace validation (H2/H3 integration)', () => {
+  const LEVEL3_MODEL = `---
+spec_version: "V_0-2-1"
+level: 3
+parent_spec:
+  name: "Fixture"
+  url: "https://example.test/fixture"
+title: "Fixture Model"
+---
+
+# NN Phase
+## NN Phase: First
+note:: keep
+`
+
+  function workspaceResultFor(serialized: string): RecursiveParseResult {
+    const { nodes } = normalizeSingleModel(
+      serialized,
+      'models/Fixture_V_1-0-0_NN.md',
+      'Fixture_V_1-0-0_NN',
+    )
+    return { nodes, rootIds: Object.keys(nodes), issues: [] }
+  }
+
+  it('a citation written via add_element resolves cleanly through workspace validation', () => {
+    const model = parseModel(LEVEL3_MODEL)
+    const mutation = applyMutation(model, 'add_element', {
+      conceptName: 'Phase',
+      elementName: 'Second',
+      sources: ['present.md#intro'],
+    })
+    expect(mutation.success).toBe(true)
+
+    const serialized = serializeModel(model)
+    const parseResult = workspaceResultFor(serialized)
+
+    const diags = validateWorkspaceSources(
+      parseResult,
+      contentResolver({ 'sources/nn/present.md': '# Intro\n' }),
+    )
+    expect(diags.filter((d) => d.severity === 'error')).toEqual([])
+  })
+
+  it('a citation to a nonexistent file yields an explicit diagnostic naming the unresolved target, reached only through workspace scope', () => {
+    const model = parseModel(LEVEL3_MODEL)
+    const mutation = applyMutation(model, 'add_element', {
+      conceptName: 'Phase',
+      elementName: 'Second',
+      sources: ['missing.md#intro'],
+    })
+    expect(mutation.success).toBe(true)
+
+    const serialized = serializeModel(model)
+    const parseResult = workspaceResultFor(serialized)
+
+    const diags = validateWorkspaceSources(parseResult, resolver({}))
+    const errors = diags.filter((d) => d.severity === 'error')
+    expect(errors).toHaveLength(1)
+    expect(errors[0]).toMatchObject({ code: 'KU_DANGLING_FILE' })
+    expect(errors[0].message).toContain('sources/nn/missing.md')
+  })
+
+  it('a line-range anchor citation is rejected with KU_MALFORMED, not silently accepted', () => {
+    const model = parseModel(LEVEL3_MODEL)
+    const mutation = applyMutation(model, 'add_element', {
+      conceptName: 'Phase',
+      elementName: 'Second',
+      sources: ['report.md#L10-L20'],
+    })
+    expect(mutation.success).toBe(true)
+
+    const serialized = serializeModel(model)
+    const parseResult = workspaceResultFor(serialized)
+
+    const diags = validateWorkspaceSources(
+      parseResult,
+      resolver({ 'sources/nn/report.md': true }),
+    )
     expect(diags).toHaveLength(1)
     expect(diags[0]).toMatchObject({ severity: 'error', code: 'KU_MALFORMED' })
   })

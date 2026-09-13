@@ -5,6 +5,7 @@ import {
   extractHeadings,
   resolveHeadingSection,
   splitSourceFieldValue,
+  SOURCE_FIELD_NAMES,
 } from './sourceRef'
 
 describe('parseSourceRef', () => {
@@ -111,6 +112,16 @@ describe('splitSourceFieldValue', () => {
   it('returns [] for empty input', () => {
     expect(splitSourceFieldValue('')).toEqual([])
     expect(splitSourceFieldValue([])).toEqual([])
+  })
+})
+
+describe('SOURCE_FIELD_NAMES', () => {
+  it('exports the single citation field-name set shared by the writer and both readers (H2/H3)', () => {
+    expect(SOURCE_FIELD_NAMES).toEqual(new Set(['sources', 'source']))
+    expect(SOURCE_FIELD_NAMES.has('sources')).toBe(true)
+    expect(SOURCE_FIELD_NAMES.has('source')).toBe(true)
+    expect(SOURCE_FIELD_NAMES.has('SOURCES')).toBe(false) // case-folding is the caller's job
+    expect(SOURCE_FIELD_NAMES.has('title')).toBe(false)
   })
 })
 

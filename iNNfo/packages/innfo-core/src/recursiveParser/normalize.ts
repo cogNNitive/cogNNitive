@@ -9,6 +9,7 @@ import type {
 import { extractTemplateSchema } from '../schema'
 import { normalizeSeparators } from '../parser/slug'
 import {
+  SOURCE_FIELD_NAMES,
   parseKnowledgeUnitRef,
   parseSourceRef,
   splitSourceFieldValue,
@@ -16,9 +17,6 @@ import {
 } from '../sourceRef'
 import type { ParseContext } from './types'
 import { addFieldAndMentionEdges } from './relationships'
-
-/** Field names (case-insensitive) whose value is a list of source Citations. */
-const SOURCE_FIELD_NAMES = new Set(['sources', 'source'])
 
 /**
  * Reads a node's `sources`/`source` field, parses every value as a

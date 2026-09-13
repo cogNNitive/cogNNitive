@@ -3,6 +3,7 @@ import type { ReferenceDiagnostic } from './references'
 import { parseCsvTable } from '../csvTable'
 import { parseKnowledgeQuery } from '../queryUnits'
 import {
+  SOURCE_FIELD_NAMES,
   extractHeadings,
   normalizeName,
   parseKnowledgeUnitRef,
@@ -11,9 +12,6 @@ import {
   type SourceRef,
 } from '../sourceRef'
 import { listSectionFields, resolveUnit } from '../unitResolve'
-
-/** Field names (case-insensitive) that hold source Citations. */
-const SOURCE_FIELD_NAMES = new Set(['sources', 'source'])
 
 /**
  * Host-supplied callback that resolves a workspace-relative source path

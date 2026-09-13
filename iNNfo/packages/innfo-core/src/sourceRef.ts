@@ -52,6 +52,16 @@ export interface SourceRef {
 const SLUG = '[a-z0-9]+(?:-[a-z0-9]+)*'
 
 /**
+ * Field names (case-insensitive, caller lowercases before checking) that hold
+ * source Citations. THE single definition, shared by the writer
+ * (`parser/serializer.ts`, citation-list serialization) and both readers
+ * (`validator/workspaceSources.ts`, `recursiveParser/normalize.ts`) so writing
+ * and reading a `sources::`/`source::` field key off the same grammar by
+ * construction, not by coincidence.
+ */
+export const SOURCE_FIELD_NAMES = new Set(['sources', 'source'])
+
+/**
  * Parse a single field value as a source reference. Returns `null` for anything
  * that is not a reference (plain prose, URLs, line-range anchors, `src-NNN`
  * wrappers, `sources/original/` paths).

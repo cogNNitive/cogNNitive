@@ -258,12 +258,21 @@ function addElement(model: ParsedModel, args: Record<string, unknown>): Mutation
     }
   }
 
+  // H3a: `sources` is a reserved field, propagated alongside `fields` (same
+  // "reserved field written on the element" mechanism `updateField` uses for
+  // an existing element). Omitting it changes nothing — no `sources::` field
+  // is written, exactly as before this fix.
+  const fields: Record<string, unknown> = { ...(args.fields as Record<string, unknown> | undefined) }
+  if (args.sources !== undefined) {
+    fields['sources'] = args.sources
+  }
+
   const existingElements = model.elements.get(conceptName) ?? []
   const newElement: ElementNode = {
     type: conceptName,
     name: elementName,
     description: (args.description as string) ?? '',
-    fields: (args.fields as Record<string, unknown>) ?? {},
+    fields,
     markers: {},
   }
   existingElements.push(newElement)

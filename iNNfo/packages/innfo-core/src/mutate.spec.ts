@@ -116,3 +116,43 @@ describe('level gate for template-authoring mutations (H5)', () => {
     expect(result.success).toBe(true)
   })
 })
+
+describe('addElement sources propagation (H3a)', () => {
+  it('persists a sources field alongside fields when provided', () => {
+    const model = parseModel(LEVEL3_MODEL)
+    const result = applyMutation(model, 'add_element', {
+      conceptName: 'Phase',
+      elementName: 'Second',
+      fields: { note: 'keep' },
+      sources: ['a.md#x', 'b.md#y'],
+    })
+    expect(result.success).toBe(true)
+    const el = (model.elements.get('Phase') ?? []).find((e) => e.name === 'Second')
+    expect(el?.fields).toEqual({ note: 'keep', sources: ['a.md#x', 'b.md#y'] })
+  })
+
+  it('persists sources when it is the only argument beyond the required ones', () => {
+    const model = parseModel(LEVEL3_MODEL)
+    const result = applyMutation(model, 'add_element', {
+      conceptName: 'Phase',
+      elementName: 'Second',
+      sources: 'a.md#x',
+    })
+    expect(result.success).toBe(true)
+    const el = (model.elements.get('Phase') ?? []).find((e) => e.name === 'Second')
+    expect(el?.fields).toEqual({ sources: 'a.md#x' })
+  })
+
+  it('behaves exactly as before when sources is omitted', () => {
+    const model = parseModel(LEVEL3_MODEL)
+    const result = applyMutation(model, 'add_element', {
+      conceptName: 'Phase',
+      elementName: 'Second',
+      fields: { note: 'keep' },
+    })
+    expect(result.success).toBe(true)
+    const el = (model.elements.get('Phase') ?? []).find((e) => e.name === 'Second')
+    expect(el?.fields).toEqual({ note: 'keep' })
+    expect(el?.fields.sources).toBeUndefined()
+  })
+})
