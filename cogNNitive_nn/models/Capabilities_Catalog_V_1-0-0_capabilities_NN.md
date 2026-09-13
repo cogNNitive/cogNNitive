@@ -5,18 +5,12 @@ level: 3
 parent_spec:
   name: "capabilities"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/cogNNitive_nn/specs/capabilities_V_0-1-0_spec_NN.md"
+model_version: "V_1-0-0"
 title: "cogNNitive Platform Capabilities & Value Catalog"
 ---
 
 > [!NOTE]
 > This is the **cogNNitive Capabilities & Value Catalog** — a master architectural model documenting the 25 high-level platform capabilities, core value pillars, and end-user benefits.
-
-# NN index
-
-* [[CapabilityDomain]]
-* [[Capability]]
-* [[UserBenefit]]
-* [[EnablingInterface]]
 
 # NN CapabilityDomain
 

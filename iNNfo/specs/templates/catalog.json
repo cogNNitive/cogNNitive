@@ -147,10 +147,10 @@
     },
     "workspace": {
       "name": "workspace",
-      "adopted": "V_0-3-0",
+      "adopted": "V_0-4-0",
       "versions": [
         {
-          "template_version": "V_0-3-0",
+          "template_version": "V_0-4-0",
           "spec_version": "V_0-2-1",
           "title": "Workspace Specification App",
           "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/workspace_spec_NN.md"

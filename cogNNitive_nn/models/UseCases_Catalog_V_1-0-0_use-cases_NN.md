@@ -4,20 +4,13 @@ spec_url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/sp
 level: 3
 parent_spec:
   name: "use-cases"
-  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/cogNNitive_nn/specs/use-cases_V_0-1-0_spec_NN.md"
+  url: "specs/use-cases_V_0-1-0_spec_NN.md"
+model_version: "V_1-0-0"
 title: "cogNNitive Real-World Use Cases Catalog"
 ---
 
 > [!NOTE]
 > This is the **cogNNitive Portfolio Catalog** — a master model connecting real-world archetypes to their independent workspaces and live iNNfo models.
-
-# NN index
-
-* [[Archetype]]
-* [[PainPoint]]
-* [[Pipeline]]
-* [[Deliverable]]
-* [[ValueMetric]]
 
 # NN Archetype
 

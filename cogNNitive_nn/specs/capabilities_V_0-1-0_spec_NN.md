@@ -128,3 +128,64 @@ source:: Capability
 target:: UserBenefit
 widget:: boolean
 description:: Maps capabilities to direct end-user benefits.
+
+# Concept Guidance Documentation
+
+## CapabilityDomain
+
+### Summary
+Strategic architectural domain grouping related system capabilities.
+
+### Description
+The `CapabilityDomain` concept models major functional pillars of the platform, defining their core purpose and high-level architectural boundaries.
+
+### Methodologies
+- Group related system capabilities under overarching architectural domains.
+- Maintain a stable `domain_code` identifier (e.g., DOM-01).
+
+### Prompts
+- "Create a `CapabilityDomain` for <domain_name>."
+- "List all capabilities under <CapabilityDomain>."
+
+## Capability
+
+### Summary
+Granular, user-facing capability delivering concrete system functionality.
+
+### Description
+The `Capability` concept represents an individual capability linked to its parent domain, primary enabled user benefit, and delivery interface.
+
+### Methodologies
+- Link each `Capability` to its parent `domain` and primary `benefit`.
+- Explicitly state `maturity` status.
+
+### Prompts
+- "Add a `Capability` named <name> under <domain>."
+
+## UserBenefit
+
+### Summary
+Concrete value proposition or friction reduction experienced by end users.
+
+### Description
+The `UserBenefit` concept articulates tangible business and operational outcomes, eliminating specific user pains.
+
+### Methodologies
+- Articulate clear user ROI and friction removal in `value_statement`.
+
+### Prompts
+- "What user benefit is unlocked by <Capability>?"
+
+## EnablingInterface
+
+### Summary
+System touchpoint or modality through which capabilities are delivered.
+
+### Description
+The `EnablingInterface` concept represents the interaction surface (iNNfo Modeler, MCP Server, CLI, Local File System).
+
+### Methodologies
+- Categorize interfaces by delivery modality.
+
+### Prompts
+- "Which interfaces support <Capability>?"
