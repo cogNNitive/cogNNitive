@@ -136,6 +136,269 @@ function searchConversationHistory(workspaceRoot, query = {}) {
   return hits;
 }
 
+/**
+ * Traverse sources/nn/ (and any active source trees) and compute a content-hash
+ * index of all normalized sources, establishing canonical primary paths vs alias paths.
+ *
+ * Priority rules for primary canonical path:
+ * 1. Non-import paths take precedence over `import/` paths (e.g. `sources/nn/sessions/foo.md` > `sources/nn/import/sessions/foo.md`).
+ * 2. If both are non-import or both are import, shorter path or first-seen wins.
+ *
+ * @param {string} workspaceRoot
+ * @param {object} [opts]
+ * @returns {{
+ *   sources: Array<any>,
+ *   canonicalSources: Array<any>,
+ *   aliases: Array<any>,
+ *   byHash: Map<string, Array<any>>,
+ *   byPath: Map<string, any>,
+ * }}
+ */
+function indexWorkspaceSources(workspaceRoot, opts = {}) {
+  const nnDir = path.join(workspaceRoot, 'sources', 'nn');
+  const allEntries = [];
+
+  if (!fs.existsSync(nnDir)) {
+    return {
+      sources: [],
+      canonicalSources: [],
+      aliases: [],
+      byHash: new Map(),
+      byPath: new Map(),
+    };
+  }
+
+  function walk(dir) {
+    let entries;
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const ent of entries) {
+      if (ent.name.startsWith('.') || ent.name === 'index.md' || ent.name === 'staging' || ent.name === 'archive') {
+        continue;
+      }
+      const full = path.join(dir, ent.name);
+      if (ent.isDirectory()) {
+        walk(full);
+      } else if (ent.isFile() && ent.name.endsWith('.md')) {
+        const relPath = path.relative(workspaceRoot, full).replace(/\\/g, '/');
+        const normPath = path.relative(nnDir, full).replace(/\\/g, '/');
+        let content = '';
+        try {
+          content = fs.readFileSync(full, 'utf8');
+        } catch {
+          continue;
+        }
+
+        let hash = null;
+        const shaMatch = content.match(/^sha256:\s*"([a-f0-9]{64})"\s*$/m);
+        if (shaMatch) {
+          hash = shaMatch[1];
+        } else {
+          hash = crypto.createHash('sha256').update(content, 'utf8').digest('hex');
+        }
+
+        allEntries.push({
+          fullPath: full,
+          relativePath: relPath,
+          normalizedPath: normPath,
+          sha256: hash,
+          isCanonical: false,
+          primaryPath: '',
+          aliases: [],
+        });
+      }
+    }
+  }
+
+  walk(nnDir);
+
+  const byHash = new Map();
+  const byPath = new Map();
+
+  for (const entry of allEntries) {
+    if (!byHash.has(entry.sha256)) {
+      byHash.set(entry.sha256, []);
+    }
+    byHash.get(entry.sha256).push(entry);
+  }
+
+  const canonicalSources = [];
+  const aliases = [];
+
+  for (const [hash, group] of byHash.entries()) {
+    group.sort((a, b) => {
+      const aImport = a.normalizedPath.startsWith('import/') || a.relativePath.includes('/import/');
+      const bImport = b.normalizedPath.startsWith('import/') || b.relativePath.includes('/import/');
+      if (!aImport && bImport) return -1;
+      if (aImport && !bImport) return 1;
+      return a.relativePath.length - b.relativePath.length || a.relativePath.localeCompare(b.relativePath);
+    });
+
+    const primary = group[0];
+    primary.isCanonical = true;
+    primary.primaryPath = primary.relativePath;
+    primary.aliases = [];
+
+    canonicalSources.push(primary);
+    byPath.set(primary.relativePath, primary);
+    byPath.set(primary.normalizedPath, primary);
+
+    for (let i = 1; i < group.length; i++) {
+      const alias = group[i];
+      alias.isCanonical = false;
+      alias.primaryPath = primary.relativePath;
+      primary.aliases.push(alias.relativePath);
+      aliases.push(alias);
+      byPath.set(alias.relativePath, alias);
+      byPath.set(alias.normalizedPath, alias);
+    }
+  }
+
+  return {
+    sources: allEntries,
+    canonicalSources,
+    aliases,
+    byHash,
+    byPath,
+  };
+}
+
+/**
+ * Audit models against workspace sources to discover un-cited sources,
+ * suppressing identical duplicate sources across import subtrees using content hashing.
+ *
+ * @param {string} workspaceRoot
+ * @param {object} [opts]
+ * @returns {{
+ *   totalSources: number,
+ *   canonicalCount: number,
+ *   aliasCount: number,
+ *   citedCount: number,
+ *   uncitedCount: number,
+ *   uncitedSources: Array<{
+ *     path: string,
+ *     normalizedPath: string,
+ *     sha256: string,
+ *     aliases: string[],
+ *   }>,
+ *   citedSources: Array<{
+ *     path: string,
+ *     normalizedPath: string,
+ *     sha256: string,
+ *     citedByModels: string[],
+ *     aliases: string[],
+ *   }>,
+ *   aliasMappings: Array<{
+ *     aliasPath: string,
+ *     canonicalPath: string,
+ *     sha256: string,
+ *   }>,
+ * }}
+ */
+function auditUncitedSources(workspaceRoot, opts = {}) {
+  const index = indexWorkspaceSources(workspaceRoot, opts);
+  const modelsDir = path.join(workspaceRoot, 'models');
+
+  const citedHashes = new Set();
+  const citedPaths = new Set();
+  const modelCitations = new Map();
+
+  if (fs.existsSync(modelsDir)) {
+    const modelFiles = [];
+    function walkModels(dir) {
+      let entries;
+      try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
+      for (const ent of entries) {
+        if (ent.name.startsWith('.')) continue;
+        const full = path.join(dir, ent.name);
+        if (ent.isDirectory()) walkModels(full);
+        else if (ent.isFile() && ent.name.endsWith('_NN.md')) modelFiles.push(full);
+      }
+    }
+    walkModels(modelsDir);
+
+    for (const mFile of modelFiles) {
+      const relModel = path.relative(workspaceRoot, mFile).replace(/\\/g, '/');
+      let content = '';
+      try { content = fs.readFileSync(mFile, 'utf8'); } catch { continue; }
+
+      const refRegex = /^\s*sources::\s*(.+?)\s*$/gm;
+      let m;
+      while ((m = refRegex.exec(content)) !== null) {
+        const raw = m[1].trim();
+        const bracket = raw.match(/^\[(.*)\]$/s);
+        const parts = bracket ? bracket[1].split(',') : [raw];
+        for (const p of parts) {
+          const v = p.trim().replace(/^"|"$/g, '');
+          if (!v || v.startsWith('models/') || v.includes('@')) continue;
+
+          const hashIdx = v.indexOf('#');
+          const fileRef = (hashIdx >= 0 ? v.substring(0, hashIdx) : v)
+            .replace(/^sources\/nn\//, '')
+            .trim();
+
+          if (!fileRef) continue;
+
+          const match = index.byPath.get(fileRef) ||
+                        index.byPath.get(`sources/nn/${fileRef}`) ||
+                        index.sources.find(s => s.normalizedPath === fileRef || s.normalizedPath.endsWith(`/${fileRef}`) || path.basename(s.normalizedPath) === fileRef);
+
+          if (match) {
+            citedHashes.add(match.sha256);
+            citedPaths.add(match.relativePath);
+            if (!modelCitations.has(match.sha256)) {
+              modelCitations.set(match.sha256, new Set());
+            }
+            modelCitations.get(match.sha256).add(relModel);
+          }
+        }
+      }
+    }
+  }
+
+  const uncitedSources = [];
+  const citedSources = [];
+
+  for (const canon of index.canonicalSources) {
+    if (citedHashes.has(canon.sha256)) {
+      citedSources.push({
+        path: canon.relativePath,
+        normalizedPath: canon.normalizedPath,
+        sha256: canon.sha256,
+        citedByModels: Array.from(modelCitations.get(canon.sha256) || []),
+        aliases: canon.aliases,
+      });
+    } else {
+      uncitedSources.push({
+        path: canon.relativePath,
+        normalizedPath: canon.normalizedPath,
+        sha256: canon.sha256,
+        aliases: canon.aliases,
+      });
+    }
+  }
+
+  const aliasMappings = index.aliases.map((a) => ({
+    aliasPath: a.relativePath,
+    canonicalPath: a.primaryPath,
+    sha256: a.sha256,
+  }));
+
+  return {
+    totalSources: index.sources.length,
+    canonicalCount: index.canonicalSources.length,
+    aliasCount: index.aliases.length,
+    citedCount: citedSources.length,
+    uncitedCount: uncitedSources.length,
+    uncitedSources,
+    citedSources,
+    aliasMappings,
+  };
+}
+
 module.exports = {
   canonicalize,
   tokenize,
@@ -143,4 +406,6 @@ module.exports = {
   computeFileHash,
   detectDuplicates,
   searchConversationHistory,
+  indexWorkspaceSources,
+  auditUncitedSources,
 };

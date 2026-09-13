@@ -122,6 +122,19 @@ describe('resolveTemplateSchema — additive `includes` composition', () => {
     const { errors } = resolveTemplateSchema(COMPOSITE, cyc)
     expect(errors.some((e) => /cyclic/i.test(e.message))).toBe(true)
   })
+
+  it('flags unresolvable matrix source or target concepts', () => {
+    const brokenMatrixTpl = COMPOSITE + `
+# NN Matrix Definition
+## NN Matrix Definition: Broken Matrix
+source:: NonExistentSource
+target:: NonExistentTarget
+values:: [X]
+`
+    const { errors } = resolveTemplateSchema(brokenMatrixTpl, (ref) => lookup(ref.name))
+    expect(errors.some((e) => e.message.includes('NonExistentSource') && e.severity === 'error')).toBe(true)
+    expect(errors.some((e) => e.message.includes('NonExistentTarget') && e.severity === 'error')).toBe(true)
+  })
 })
 
 describe('validateModel — applies_to and marker value enforcement', () => {

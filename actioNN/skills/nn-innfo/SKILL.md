@@ -78,9 +78,16 @@ The iNNfo ecosystem establishes an explicit taxonomy for sources and evidence:
 
 ## 0. Entry Menu & Conversational Model Creation Wizard
 
-### 0a. Entry Menu (initial options)
+### 0a. Intent-First Execution & Entry Menu
 
-When the skill is activated or the user is undecided about what to do, present the entry menu:
+#### 1. Intent-First Execution (MANDATORY)
+If the user's message already expresses an explicit, actionable intent (e.g. "run preflight", "check for new sources", "validate the model", "scaffold business model", "show uncited sources", "fix matrix error"):
+- **EXECUTE IMMEDIATELY**: Process the requested workflow directly without rendering the root options menu (`[a]`, `[b]`, `[c]`, `[d]`, `[x]`, `[y]`).
+- **Contextual Follow-up**: Upon completing the requested sub-task, summarize the findings and ask a focused, single follow-up question relevant to the result (e.g. *"I detected 3 uncited sources. Would you like to map them to model elements now?"*).
+- **Menu Suppression**: DO NOT regurgitate the global entry menu after targeted actions unless the user explicitly asks for the menu, options, or help.
+
+#### 2. Entry Menu (Undecided / Open-Ended Invocations)
+When the user invokes the skill without an explicit intent (e.g., bare `/nn-innfo`, "hola", "qué podés hacer?", or open-ended browsing), present the entry menu:
 
 - **[a] (Recommended)** Create a new model (Conversational Wizard)
 - **[b]** Edit / extend an existing model

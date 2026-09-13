@@ -12,7 +12,7 @@ const http = require('http');
 const assert = require('assert');
 const { spawn } = require('child_process');
 const crypto = require('crypto');
-const { parseManifest, scanWorkspaceSources } = require('./preflight-check');
+const { parseManifest, scanWorkspaceSources, validateTemplateCompositions } = require('./preflight-check');
 
 const preflightScript = path.join(__dirname, 'preflight-check.js');
 
@@ -781,6 +781,155 @@ agent-bootstrap:
       assert.strictEqual(parsedRes.summary.templateCatalogOffline, 1);
       assert.ok(parsedRes.items.some((i) => i.type === 'template-catalog' && i.status === 'offline'));
       console.log('✔ Tier 3 degrades to an offline notice without blocking');
+    } finally {
+      await server.close();
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }
+
+  // Test 18: validateTemplateCompositions passes cleanly on valid composite template
+  {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'preflight-tmpl-valid-'));
+    try {
+      const specsDir = path.join(tmpDir, 'specs');
+      fs.mkdirSync(specsDir, { recursive: true });
+
+      fs.writeFileSync(
+        path.join(specsDir, 'sub_a_NN.md'),
+        '---\nlevel: 2\n---\n# NN index\n* [[ConceptA]]\n',
+        'utf8'
+      );
+      fs.writeFileSync(
+        path.join(specsDir, 'sub_b_NN.md'),
+        '---\nlevel: 2\n---\n# NN index\n* [[ConceptB]]\n',
+        'utf8'
+      );
+      fs.writeFileSync(
+        path.join(specsDir, 'root_NN.md'),
+        '---\nlevel: 2\nincludes:\n  - name: "sub_a"\n  - name: "sub_b"\n---\n# NN index\n* [[RootConcept]]\n\n## NN Matrix Definition: Sample Matrix\nsource:: ConceptA\ntarget:: ConceptB\n',
+        'utf8'
+      );
+
+      const res = validateTemplateCompositions({ workspaceDir: tmpDir });
+      assert.strictEqual(res.blockerCount, 0, `Expected 0 blockers, got: ${JSON.stringify(res.items)}`);
+      assert.ok(res.validCount >= 3, `Expected at least 3 valid templates, got ${res.validCount}`);
+      console.log('✔ validateTemplateCompositions passes cleanly on valid composite templates');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }
+
+  // Test 19: validateTemplateCompositions flags unresolvable matrix endpoints as blockers
+  {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'preflight-tmpl-broken-matrix-'));
+    try {
+      const specsDir = path.join(tmpDir, 'specs');
+      fs.mkdirSync(specsDir, { recursive: true });
+
+      fs.writeFileSync(
+        path.join(specsDir, 'broken_NN.md'),
+        '---\nlevel: 2\n---\n# NN index\n* [[ExistingConcept]]\n\n## NN Matrix Definition: Broken Matrix\nsource:: ExistingConcept\ntarget:: NonExistentConcept\n',
+        'utf8'
+      );
+
+      const res = validateTemplateCompositions({ workspaceDir: tmpDir });
+      assert.strictEqual(res.blockerCount, 1);
+      const blocker = res.items.find((i) => i.status === 'blocker');
+      assert.ok(blocker && blocker.detail.includes('NonExistentConcept'), 'Blocker must mention missing target');
+      console.log('✔ validateTemplateCompositions flags unresolvable matrix endpoints as blockers');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }
+
+  // Test 20: validateTemplateCompositions flags unresolved includes as blockers
+  {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'preflight-tmpl-missing-inc-'));
+    try {
+      const specsDir = path.join(tmpDir, 'specs');
+      fs.mkdirSync(specsDir, { recursive: true });
+
+      fs.writeFileSync(
+        path.join(specsDir, 'composite_missing_NN.md'),
+        '---\nlevel: 2\nincludes:\n  - name: "non_existent_subtemplate"\n---\n# NN index\n* [[MyConcept]]\n',
+        'utf8'
+      );
+
+      const res = validateTemplateCompositions({ workspaceDir: tmpDir });
+      assert.strictEqual(res.blockerCount, 1);
+      const blocker = res.items.find((i) => i.status === 'blocker');
+      assert.ok(blocker && blocker.detail.includes('non_existent_subtemplate'), 'Blocker must mention unresolved include');
+      console.log('✔ validateTemplateCompositions flags unresolved includes as blockers');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }
+
+  // Test 21: validateTemplateCompositions flags concept collisions across sub-templates as warnings
+  {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'preflight-tmpl-collision-'));
+    try {
+      const specsDir = path.join(tmpDir, 'specs');
+      fs.mkdirSync(specsDir, { recursive: true });
+
+      fs.writeFileSync(
+        path.join(specsDir, 'sub1_NN.md'),
+        '---\nlevel: 2\n---\n# NN index\n* [[DuplicateNode]]\n',
+        'utf8'
+      );
+      fs.writeFileSync(
+        path.join(specsDir, 'sub2_NN.md'),
+        '---\nlevel: 2\n---\n# NN index\n* [[DuplicateNode]]\n',
+        'utf8'
+      );
+      fs.writeFileSync(
+        path.join(specsDir, 'composite_collision_NN.md'),
+        '---\nlevel: 2\nincludes:\n  - name: "sub1"\n  - name: "sub2"\n---\n# NN index\n* [[Root]]\n',
+        'utf8'
+      );
+
+      const res = validateTemplateCompositions({ workspaceDir: tmpDir });
+      assert.strictEqual(res.blockerCount, 0);
+      assert.strictEqual(res.warningCount, 1);
+      const warn = res.items.find((i) => i.status === 'warning');
+      assert.ok(warn && warn.detail.includes('DuplicateNode'), 'Warning must mention colliding concept');
+      console.log('✔ validateTemplateCompositions flags concept collisions across sub-templates as warnings');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }
+
+  // Test 22: CLI preflight exits 1 with ACTION_REQUIRED when composition blocker is present
+  {
+    const emptyManifest = `---
+agent-bootstrap:
+  version: "2.0"
+  skills: []
+  templates: []
+---
+`;
+    const server = await serveRoutes({ '/manifest.md': emptyManifest });
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'preflight-cli-comp-blocker-'));
+    try {
+      const specsDir = path.join(tmpDir, 'specs');
+      fs.mkdirSync(specsDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(specsDir, 'broken_NN.md'),
+        '---\nlevel: 2\n---\n# NN index\n* [[ConceptX]]\n\n## NN Matrix Definition: Broken Matrix\nsource:: ConceptX\ntarget:: ConceptY_Missing\n',
+        'utf8'
+      );
+
+      const res = await runScriptAsync([
+        '--json',
+        '--workspace-dir', tmpDir,
+        '--manifest-url', `${server.url}/manifest.md`,
+      ]);
+
+      assert.strictEqual(res.status, 1, `Must exit with code 1 on template blocker. Got: ${res.stdout} ${res.stderr}`);
+      const parsedRes = JSON.parse(res.stdout);
+      assert.strictEqual(parsedRes.status, 'ACTION_REQUIRED');
+      assert.strictEqual(parsedRes.summary.templatesCompositionBlockers, 1);
+      console.log('✔ CLI preflight exits 1 with ACTION_REQUIRED when composition blocker is present');
     } finally {
       await server.close();
       fs.rmSync(tmpDir, { recursive: true, force: true });

@@ -5,7 +5,7 @@ import {
   parseModel,
   validateModel,
 } from '../src/index'
-import { readSpec, decomposedTemplates, decomposedResolver } from './fixtures/decomposed'
+import { readSpec, readRepoSpec, decomposedTemplates, decomposedResolver } from './fixtures/decomposed'
 
 const decomposed = decomposedTemplates()
 const BUSINESS_MODEL = decomposed['business-model']
@@ -240,5 +240,69 @@ describe('Ghostbusters_V_0-2-0 — sample validates against the composed umbrell
 
     const composeErrors = result.errors.filter((e) => e.path.startsWith('parent.includes'))
     expect(composeErrors, JSON.stringify(composeErrors)).toEqual([])
+  })
+})
+
+describe('business_V_0-2-4 — composed umbrella with Metrics-Organizational goals', () => {
+  const BUSINESS_V024 = readRepoSpec('templates/business/V_0-2-4/business_V_0-2-4_NN.md')
+
+  it('resolves with ZERO errors — all 5 sub-templates compose without collision', () => {
+    const { schema, errors } = resolveTemplateSchema(BUSINESS_V024, resolver)
+    expect(errors, JSON.stringify(errors)).toEqual([])
+    const conceptNames = new Set(schema.concepts.map((c) => c.name))
+    expect(conceptNames.has('Metrics')).toBe(true)
+    expect(conceptNames.has('Organizational goals')).toBe(true)
+    expect(conceptNames.has('Business summary')).toBe(true)
+    expect(conceptNames.has('Analysis')).toBe(true)
+    expect(conceptNames.has('Organization')).toBe(true)
+    expect(conceptNames.has('Project')).toBe(true)
+  })
+
+  it('Metrics-Organizational goals Matrix resolves its source and target concepts cleanly', () => {
+    const { schema, errors } = resolveTemplateSchema(BUSINESS_V024, resolver)
+    expect(errors).toEqual([])
+    const mx = schema.matrices.find((m) => m.name === 'Metrics-Organizational goals Matrix')
+    expect(mx).toBeDefined()
+    expect(mx?.source).toBe('Metrics')
+    expect(mx?.target).toBe('Organizational goals')
+  })
+
+  it('validates a Level 3 model declaring parent_spec: business_V_0-2-4 cleanly', () => {
+    const sampleModel = `---
+level: 3
+model_version: "V_1-0-0"
+title: "ACME Corp"
+parent_spec:
+  name: "business_V_0-2-4"
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business/spec_NN.md"
+---
+
+# NN Business summary
+ACME Corp summary description.
+
+# NN Organizational goals
+## NN Organizational goals: Market Leadership
+Target expansion across region.
+
+# NN Metrics
+## NN Metrics: Monthly Revenue
+metricValue:: "$100k"
+metricType:: revenue
+
+# NN matrices: metrics-organizational goals matrix
+| Metrics \\ Organizational goals | Market Leadership |
+| :--- | :---: |
+| Monthly Revenue | High |
+`
+    const parsedModel = parseModel(sampleModel)
+    const template = {
+      name: 'business_V_0-2-4',
+      level: 2 as const,
+      frontmatter: parseModel(BUSINESS_V024).frontmatter,
+      rawContent: BUSINESS_V024,
+    }
+    const result = validateModel(parsedModel, template, null, resolver)
+    expect(result.errors.filter((e) => e.severity === 'error'), JSON.stringify(result.errors)).toEqual([])
+    expect(result.valid).toBe(true)
   })
 })

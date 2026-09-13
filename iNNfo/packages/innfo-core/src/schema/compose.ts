@@ -347,5 +347,30 @@ export function resolveTemplateSchema(
   // The composite template's own definitions apply on top of the union.
   mergeSchemaInto(base, local, selfLabel, provenance, errors, true)
 
+  // Validate matrix endpoints at top-level resolution
+  if (_depth === 0) {
+    const conceptNames = new Set(base.concepts.map((c) => c.name.toLowerCase()))
+    const BUILTIN_TARGETS = new Set(['marker', 'element', 'item'])
+
+    for (const mx of base.matrices) {
+      const srcKey = mx.source.toLowerCase()
+      const tgtKey = mx.target.toLowerCase()
+      if (!conceptNames.has(srcKey) && !BUILTIN_TARGETS.has(srcKey)) {
+        errors.push({
+          path: `matrix.${mx.name}.source`,
+          message: `Matrix "${mx.name}" source concept "${mx.source}" does not resolve to any concept in the composed template schema`,
+          severity: 'error',
+        })
+      }
+      if (!conceptNames.has(tgtKey) && !BUILTIN_TARGETS.has(tgtKey)) {
+        errors.push({
+          path: `matrix.${mx.name}.target`,
+          message: `Matrix "${mx.name}" target concept "${mx.target}" does not resolve to any concept in the composed template schema`,
+          severity: 'error',
+        })
+      }
+    }
+  }
+
   return { schema: base, errors }
 }

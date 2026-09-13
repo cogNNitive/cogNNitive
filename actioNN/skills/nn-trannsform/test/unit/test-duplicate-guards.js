@@ -117,6 +117,67 @@ function run() {
     }
   }
 
+  // ── indexWorkspaceSources & auditUncitedSources ──────────────────
+  console.log("indexWorkspaceSources & auditUncitedSources");
+  {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "src-dedup-"));
+    try {
+      const nnDir = path.join(dir, "sources", "nn");
+      const sessionsDir = path.join(nnDir, "sessions");
+      const importSessionsDir = path.join(nnDir, "import", "sessions");
+      const modelsDir = path.join(dir, "models");
+
+      fs.mkdirSync(sessionsDir, { recursive: true });
+      fs.mkdirSync(importSessionsDir, { recursive: true });
+      fs.mkdirSync(modelsDir, { recursive: true });
+
+      const contentA = "---\nsource_file: \"sources/import/sessions/recording_1.txt\"\nsha256: \"abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789\"\n---\n# Recording 1\nContent of recording 1";
+      const contentADup = "---\nsource_file: \"sources/import/sessions/recording_1.txt\"\nsha256: \"abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789\"\n---\n# Recording 1\nContent of recording 1";
+      const contentB = "---\nsource_file: \"sources/import/sessions/recording_2.txt\"\nsha256: \"1111111111111111111111111111111111111111111111111111111111111111\"\n---\n# Recording 2\nContent of recording 2";
+      const contentC_SameNameDiffHash = "---\nsource_file: \"sources/import/archive/recording_1.txt\"\nsha256: \"2222222222222222222222222222222222222222222222222222222222222222\"\n---\n# Old Recording 1\nDifferent content";
+
+      fs.writeFileSync(path.join(sessionsDir, "recording_1.md"), contentA);
+      fs.writeFileSync(path.join(importSessionsDir, "recording_1.md"), contentADup);
+      fs.writeFileSync(path.join(sessionsDir, "recording_2.md"), contentB);
+      fs.writeFileSync(path.join(nnDir, "recording_1_diff.md"), contentC_SameNameDiffHash);
+
+      // 1. Indexing
+      const index = guards.indexWorkspaceSources(dir);
+      eq(index.sources.length, 4, "all 4 files discovered in sources/nn/");
+      eq(index.canonicalSources.length, 3, "3 canonical sources (1 duplicate deduplicated)");
+      eq(index.aliases.length, 1, "1 alias discovered");
+
+      const primaryA = index.canonicalSources.find(s => s.sha256 === "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789");
+      ok(primaryA, "primary canonical source found for hash A");
+      eq(primaryA.relativePath, "sources/nn/sessions/recording_1.md", "non-import path wins as primary canonical");
+      eq(primaryA.aliases.length, 1, "primary records 1 alias");
+      eq(primaryA.aliases[0], "sources/nn/import/sessions/recording_1.md", "import path recorded as alias");
+
+      // 2. Audit Uncited Sources - no citations yet
+      const auditNoCite = guards.auditUncitedSources(dir);
+      eq(auditNoCite.totalSources, 4, "total sources count is 4");
+      eq(auditNoCite.canonicalCount, 3, "canonical count is 3");
+      eq(auditNoCite.aliasCount, 1, "alias count is 1");
+      eq(auditNoCite.uncitedCount, 3, "uncited count reports 3 canonicals (duplicate suppressed from backlog)");
+      ok(auditNoCite.uncitedSources.some(s => s.path === "sources/nn/sessions/recording_1.md"), "canonical recording_1 in uncited backlog");
+      ok(!auditNoCite.uncitedSources.some(s => s.path === "sources/nn/import/sessions/recording_1.md"), "alias import recording_1 suppressed from uncited backlog");
+
+      // 3. Model cites canonical source
+      const modelContent = "---\nlevel: 3\n---\n# NN index\n* [[Concept1]]\n\n# NN Concept1\nsources:: [sources/nn/sessions/recording_1.md]\n";
+      fs.writeFileSync(path.join(modelsDir, "Model_V_0-1-0_NN.md"), modelContent);
+
+      const auditWithCite = guards.auditUncitedSources(dir);
+      eq(auditWithCite.citedCount, 1, "1 canonical source cited");
+      eq(auditWithCite.uncitedCount, 2, "2 remaining uncited canonical sources");
+      ok(!auditWithCite.uncitedSources.some(s => s.sha256 === "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"), "cited source and its alias suppressed from uncited");
+      const citedItem = auditWithCite.citedSources.find(s => s.sha256 === "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789");
+      ok(citedItem, "cited source reported in citedSources");
+      eq(citedItem.aliases[0], "sources/nn/import/sessions/recording_1.md", "cited source includes its alias list");
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  }
+
   console.log(`\nResult: ${passed} passed, ${failed} failed`);
   return { passed, failed };
 }

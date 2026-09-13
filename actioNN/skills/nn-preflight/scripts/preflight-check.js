@@ -476,6 +476,303 @@ function scanWorkspaceSources(workspaceDir) {
   };
 }
 
+/* ── Template Composition & Semantic AST Validator ─────────────────── */
+
+/**
+ * Inspects Level 2 template compositions across specs/templates and specs/.
+ * Evaluates:
+ *   1. Resolvability of all `includes:` definitions on disk.
+ *   2. Absence of cyclic includes.
+ *   3. Absence of colliding/conflicting concept definitions.
+ *   4. Resolvability of matrix `source::` and `target::` endpoints within the composed AST.
+ *
+ * @param {object} options
+ * @param {string} [options.workspaceDir]
+ * @param {string} [options.templatesDir]
+ * @returns {{ validCount: number, blockerCount: number, warningCount: number, items: Array<any> }}
+ */
+function validateTemplateCompositions(options = {}) {
+  const { workspaceDir, templatesDir } = options;
+  const searchDirs = [];
+
+  if (workspaceDir) {
+    const wsSpecsTemplates = path.join(workspaceDir, 'specs', 'templates');
+    const wsSpecs = path.join(workspaceDir, 'specs');
+    if (fs.existsSync(wsSpecsTemplates)) searchDirs.push(wsSpecsTemplates);
+    if (fs.existsSync(wsSpecs)) searchDirs.push(wsSpecs);
+  } else if (templatesDir && fs.existsSync(templatesDir)) {
+    searchDirs.push(templatesDir);
+  } else {
+    const repoRoot = path.resolve(__dirname, '../../../..');
+    const repoSpecsTemplates = path.join(repoRoot, 'specs', 'templates');
+    const repoSpecs = path.join(repoRoot, 'specs');
+    if (fs.existsSync(repoSpecsTemplates)) searchDirs.push(repoSpecsTemplates);
+    if (fs.existsSync(repoSpecs)) searchDirs.push(repoSpecs);
+  }
+
+  // Also include resolver fallback search dirs
+  const resolverDirs = [...searchDirs];
+  const repoRoot = path.resolve(__dirname, '../../../..');
+  const repoInnfoSpecsTemplates = path.join(repoRoot, 'iNNfo', 'specs', 'templates');
+  const repoSpecsTemplates = path.join(repoRoot, 'specs', 'templates');
+  const repoSpecs = path.join(repoRoot, 'specs');
+  if (fs.existsSync(repoInnfoSpecsTemplates) && !resolverDirs.includes(repoInnfoSpecsTemplates)) {
+    resolverDirs.push(repoInnfoSpecsTemplates);
+  }
+  if (fs.existsSync(repoSpecsTemplates) && !resolverDirs.includes(repoSpecsTemplates)) {
+    resolverDirs.push(repoSpecsTemplates);
+  }
+  if (fs.existsSync(repoSpecs) && !resolverDirs.includes(repoSpecs)) {
+    resolverDirs.push(repoSpecs);
+  }
+
+  const templateFiles = new Map();
+
+  function walkTemplates(dir) {
+    let entries;
+    try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
+    for (const ent of entries) {
+      if (ent.name.startsWith('.') || SPEC_SKIP_DIRS.has(ent.name)) continue;
+      const fullPath = path.join(dir, ent.name);
+      if (ent.isDirectory()) {
+        walkTemplates(fullPath);
+      } else if (ent.isFile() && ent.name.endsWith('.md')) {
+        try {
+          const content = fs.readFileSync(fullPath, 'utf8');
+          let fm = {};
+          try {
+            fm = parseFocusedYaml(parseFrontmatter(content)) || {};
+          } catch {}
+          if (fm.level === 1 || fm.level === '1') continue;
+          if (fm.level === 2 || fm.level === '2' || fm.type === 'template' || Array.isArray(fm.includes) || fullPath.includes('templates')) {
+            templateFiles.set(fullPath, { name: ent.name, content, fm });
+          }
+        } catch {}
+      }
+    }
+  }
+
+  for (const d of searchDirs) {
+    walkTemplates(d);
+  }
+
+  const results = {
+    validCount: 0,
+    blockerCount: 0,
+    warningCount: 0,
+    items: [],
+  };
+
+  if (templateFiles.size === 0) {
+    return results;
+  }
+
+  function resolveIncludeFile(incName, parentFilePath) {
+    const rawName = typeof incName === 'object' && incName !== null ? (incName.name || incName.path || '') : String(incName);
+    const cleanName = rawName.replace(/\\/g, '/');
+    const slug = path.basename(cleanName, '.md').toLowerCase().replace(/[\s_]+/g, '-');
+    const baseName = path.basename(cleanName, '.md');
+
+    const parentDir = path.dirname(parentFilePath);
+    const candidates = [
+      path.resolve(parentDir, cleanName),
+      path.resolve(parentDir, `${cleanName}.md`),
+      path.resolve(parentDir, `${cleanName}_NN.md`),
+      path.resolve(parentDir, cleanName, 'spec_NN.md'),
+      path.resolve(parentDir, cleanName, `${baseName}_NN.md`),
+      path.resolve(parentDir, slug, 'spec_NN.md'),
+      path.resolve(parentDir, slug, `${slug}_NN.md`),
+    ];
+
+    for (const searchDir of resolverDirs) {
+      candidates.push(
+        path.join(searchDir, cleanName),
+        path.join(searchDir, `${cleanName}.md`),
+        path.join(searchDir, `${cleanName}_NN.md`),
+        path.join(searchDir, cleanName, 'spec_NN.md'),
+        path.join(searchDir, cleanName, `${baseName}_NN.md`),
+        path.join(searchDir, slug, 'spec_NN.md'),
+        path.join(searchDir, slug, `${slug}_NN.md`)
+      );
+    }
+
+    for (const cand of candidates) {
+      if (fs.existsSync(cand) && fs.statSync(cand).isFile()) {
+        return cand;
+      }
+    }
+
+    for (const [absPath, info] of templateFiles.entries()) {
+      const stem = path.basename(absPath, '.md').toLowerCase().replace(/_nn$/, '').replace(/[\s_]+/g, '-');
+      const folder = path.basename(path.dirname(absPath)).toLowerCase().replace(/[\s_]+/g, '-');
+      if (stem === slug || folder === slug || info.name === cleanName || info.name === `${cleanName}.md`) {
+        return absPath;
+      }
+    }
+
+    return null;
+  }
+
+  function extractConceptsAndMatrices(content) {
+    const concepts = new Set();
+    const matrices = [];
+
+    const indexMatch = content.match(/# NN index\b([\s\S]*?)(?=\n# NN |\n# [^#]|$)/i);
+    if (indexMatch) {
+      const itemMatches = indexMatch[1].matchAll(/\*\s*\[\[(.*?)\]\]/g);
+      for (const m of itemMatches) {
+        const c = m[1].trim();
+        if (c) concepts.add(c);
+      }
+    }
+
+    const conceptDefMatches = content.matchAll(/## NN Concept Definition:\s*(.+?)(?:\r?\n|$)/gi);
+    for (const m of conceptDefMatches) {
+      const c = m[1].trim();
+      if (c) concepts.add(c);
+    }
+
+    const sectionMatches = content.matchAll(/^# NN (?!index|Matrix|Field|Marker|Relation|Procedure|Procedures|Sources|Models|Artifacts|Concept Definition|Actions)(.+?)(?:\r?\n|$)/gim);
+    for (const m of sectionMatches) {
+      const c = m[1].trim();
+      if (c) concepts.add(c);
+    }
+
+    const matrixBlocks = content.split(/## NN Matrix Definition:\s*/i);
+    for (let i = 1; i < matrixBlocks.length; i++) {
+      const block = matrixBlocks[i];
+      const name = block.split(/\r?\n/)[0].trim();
+      const sourceMatch = block.match(/^\s*source::\s*(.+?)\s*$/m);
+      const targetMatch = block.match(/^\s*target::\s*(.+?)\s*$/m);
+      if (sourceMatch && targetMatch) {
+        matrices.push({
+          name,
+          source: sourceMatch[1].trim(),
+          target: targetMatch[1].trim(),
+        });
+      }
+    }
+
+    return { concepts, matrices };
+  }
+
+  for (const [absPath, tmplInfo] of templateFiles.entries()) {
+    const relName = workspaceDir ? path.relative(workspaceDir, absPath).replace(/\\/g, '/') : path.basename(absPath);
+    const fm = tmplInfo.fm;
+    const includes = Array.isArray(fm.includes) ? fm.includes : [];
+
+    const rootData = extractConceptsAndMatrices(tmplInfo.content);
+    const composedConcepts = new Map();
+    for (const c of rootData.concepts) {
+      composedConcepts.set(c.toLowerCase(), { originalName: c, sourceFile: relName });
+    }
+
+    const allMatrices = [...rootData.matrices];
+    let hasBlocker = false;
+    let hasWarning = false;
+    const blockerDetails = [];
+    const warningDetails = [];
+
+    const queue = includes.map((inc) => ({ inc, chain: [absPath] }));
+
+    while (queue.length > 0) {
+      const { inc, chain } = queue.shift();
+      const incPath = resolveIncludeFile(inc, chain[chain.length - 1]);
+      const incLabel = typeof inc === 'object' && inc !== null ? inc.name : String(inc);
+
+      if (!incPath) {
+        hasBlocker = true;
+        blockerDetails.push(`Unresolved include "${incLabel}"`);
+        continue;
+      }
+
+      if (chain.includes(incPath)) {
+        hasBlocker = true;
+        blockerDetails.push(`Cyclic include detected: ${[...chain, incPath].map((p) => path.basename(p)).join(' -> ')}`);
+        continue;
+      }
+
+      let subContent;
+      try {
+        subContent = fs.readFileSync(incPath, 'utf8');
+      } catch {
+        hasBlocker = true;
+        blockerDetails.push(`Cannot read included template "${incLabel}" at "${incPath}"`);
+        continue;
+      }
+
+      const subData = extractConceptsAndMatrices(subContent);
+      const subRelName = workspaceDir ? path.relative(workspaceDir, incPath).replace(/\\/g, '/') : path.basename(incPath);
+
+      for (const c of subData.concepts) {
+        const key = c.toLowerCase();
+        const existing = composedConcepts.get(key);
+        if (existing && existing.sourceFile !== subRelName && existing.sourceFile !== relName) {
+          hasWarning = true;
+          warningDetails.push(`Concept collision: "${c}" is defined in both "${existing.sourceFile}" and "${subRelName}"`);
+        } else if (!existing) {
+          composedConcepts.set(key, { originalName: c, sourceFile: subRelName });
+        }
+      }
+
+      allMatrices.push(...subData.matrices);
+
+      let subFm = {};
+      try {
+        subFm = parseFocusedYaml(parseFrontmatter(subContent)) || {};
+      } catch {}
+      if (Array.isArray(subFm.includes)) {
+        for (const nextInc of subFm.includes) {
+          queue.push({ inc: nextInc, chain: [...chain, incPath] });
+        }
+      }
+    }
+
+    for (const mat of allMatrices) {
+      const srcKey = mat.source.toLowerCase();
+      const tgtKey = mat.target.toLowerCase();
+      const hasSrc = composedConcepts.has(srcKey);
+      const hasTgt = composedConcepts.has(tgtKey);
+
+      if (!hasSrc || !hasTgt) {
+        hasBlocker = true;
+        const missing = [];
+        if (!hasSrc) missing.push(`source "${mat.source}"`);
+        if (!hasTgt) missing.push(`target "${mat.target}"`);
+        blockerDetails.push(`Matrix "${mat.name}" references unresolvable ${missing.join(' and ')}`);
+      }
+    }
+
+    if (hasBlocker) {
+      results.blockerCount++;
+      results.items.push({
+        type: 'template-composition',
+        name: relName,
+        status: 'blocker',
+        detail: blockerDetails.join('; '),
+      });
+    } else if (hasWarning) {
+      results.warningCount++;
+      results.items.push({
+        type: 'template-composition',
+        name: relName,
+        status: 'warning',
+        detail: warningDetails.join('; '),
+      });
+    } else {
+      results.validCount++;
+      results.items.push({
+        type: 'template-composition',
+        name: relName,
+        status: 'ok',
+        detail: `Valid composition (${composedConcepts.size} concepts, ${allMatrices.length} matrices)`,
+      });
+    }
+  }
+
+  return results;
+}
+
 async function runCheck(options = {}) {
   const isJson = options.json || process.argv.includes('--json');
   const manifestUrl = options.manifestUrl || process.env.SM_MANIFEST_URL || DEFAULT_MANIFEST_URL;
@@ -524,6 +821,9 @@ async function runCheck(options = {}) {
       templateModelsUnlisted: 0,
       templateModelsUnpinned: 0,
       templateCatalogOffline: 0,
+      templatesCompositionValid: 0,
+      templatesCompositionBlockers: 0,
+      templatesCompositionWarnings: 0,
     },
     sources_integrity: {
       ok: true,
@@ -746,6 +1046,16 @@ async function runCheck(options = {}) {
     });
   }
 
+  // 5. Template Composition Integrity Validation
+  const compositionResults = validateTemplateCompositions({
+    workspaceDir,
+    templatesDir,
+  });
+  results.summary.templatesCompositionValid = compositionResults.validCount;
+  results.summary.templatesCompositionBlockers = compositionResults.blockerCount;
+  results.summary.templatesCompositionWarnings = compositionResults.warningCount;
+  results.items.push(...compositionResults.items);
+
   const hasSkillDeps = (results.summary.skillsDependenciesMissing || 0) > 0;
   const hasOutdated = results.summary.skillsOutdated > 0 ||
                       results.summary.mcpOutdated > 0 ||
@@ -757,8 +1067,9 @@ async function runCheck(options = {}) {
   const hasStaleSpecs = results.summary.specsStale > 0;
   const hasSourceIssues = results.summary.sourcesUnnormalized > 0 ||
                           results.summary.sourcesDangling > 0;
+  const hasCompositionBlockers = results.summary.templatesCompositionBlockers > 0;
 
-  if (hasOutdated || hasMissing || hasStaleSpecs || hasSourceIssues) {
+  if (hasOutdated || hasMissing || hasStaleSpecs || hasSourceIssues || hasCompositionBlockers) {
     results.status = 'ACTION_REQUIRED';
     results.exitCode = 1;
   } else {
@@ -814,6 +1125,19 @@ function printHumanReport(results) {
     console.log('  Remediation: Run `node scripts/index.js --scan` (nn-trannsform --scan) to synchronize sources.\n');
   }
 
+  if (results.summary.templatesCompositionBlockers > 0 || results.summary.templatesCompositionWarnings > 0) {
+    console.log(`\n⚠️  Template composition issue(s) detected (${results.summary.templatesCompositionBlockers} blocker(s), ${results.summary.templatesCompositionWarnings} warning(s)):`);
+    for (const item of results.items) {
+      if (item.type === 'template-composition' && (item.status === 'blocker' || item.status === 'warning')) {
+        console.log(`  - [${item.status.toUpperCase()}] ${item.name}`);
+        console.log(`    ${item.detail}`);
+      }
+    }
+    console.log('  Remediation: Resolve template concept collisions or broken matrix endpoints in specs/.\n');
+  } else if (results.summary.templatesCompositionValid > 0) {
+    console.log(`✨ Template Composition: OK (${results.summary.templatesCompositionValid} templates valid)`);
+  }
+
   if (results.summary.templateUpgradesAvailable > 0) {
     console.log(`\n🆙  Workspace template upgrade(s) available (${results.summary.templateUpgradesAvailable}):`);
     for (const item of results.items) {
@@ -836,6 +1160,9 @@ function printHumanReport(results) {
 
   if (results.status === 'OK') {
     let msg = `Status: OK — All ${results.summary.skillsTotal} skills, ${results.summary.mcpTotal} MCP servers, and ${results.summary.templatesTotal} templates are up-to-date.`;
+    if (results.summary.templatesCompositionValid > 0) {
+      msg += ` All ${results.summary.templatesCompositionValid} template compositions verified.`;
+    }
     if (results.summary.sourcesTotal > 0) {
       msg += ` All ${results.summary.sourcesTotal} sources normalized and verified.`;
     }
@@ -850,12 +1177,13 @@ function printHumanReport(results) {
     i.status === 'missing' ||
     i.status === 'stale' ||
     i.status === 'unnormalized' ||
-    i.status === 'dangling'
+    i.status === 'dangling' ||
+    (i.type === 'template-composition' && i.status === 'blocker')
   );
   console.log('Detected items needing attention:');
   for (const item of pending) {
     let detail;
-    if (item.type === 'source-integrity') {
+    if (item.type === 'source-integrity' || item.type === 'template-composition') {
       detail = item.detail ? `(${item.detail})` : `(${item.status})`;
     } else if (item.status === 'outdated') {
       detail = `(installed: ${item.installedCommit || item.installedVersion || 'unknown'} -> pinned: ${item.pinnedCommit || item.version})`;
@@ -921,4 +1249,5 @@ module.exports = {
   parseManifest,
   loadState,
   scanWorkspaceSources,
+  validateTemplateCompositions,
 };
