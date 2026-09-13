@@ -23,7 +23,7 @@ export interface ValidationCheck {
   id: string
   label: string
   description: string
-  category: 'frontmatter' | 'body' | 'convention' | 'governance'
+  category: 'frontmatter' | 'body' | 'convention' | 'governance' | 'parser'
   severity: 'error' | 'warning' | 'info'
   passed: boolean
   message?: string
