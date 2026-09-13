@@ -51,22 +51,26 @@
         </div>
       </div>
 
-      <!-- Search & Filters -->
+      <!-- Actions, Search & Filters -->
       <div class="flex items-center gap-3">
         <div class="relative">
           <input 
             type="text" 
             id="search-input" 
             placeholder="Filter models or templates..." 
-            class="w-64 px-3 py-1.5 pl-9 text-xs rounded-lg bg-slate-900 border border-slate-700 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+            class="w-56 px-3 py-1.5 pl-9 text-xs rounded-lg bg-slate-900 border border-slate-700 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
           >
           <svg class="w-4 h-4 text-slate-500 absolute left-2.5 top-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
           </svg>
         </div>
-        <div id="stats-badge" class="px-3 py-1 text-xs font-semibold rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20">
+        <div id="stats-badge" class="px-3 py-1 text-xs font-semibold rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20 whitespace-nowrap">
           <span id="active-count">0</span> Active Consoles
         </div>
+        <button id="open-prompt-btn" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap" title="Generate prompt for AI Agent to regenerate all workspace consoles">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+          <span>Regenerate Consoles</span>
+        </button>
       </div>
     </div>
   </header>
@@ -104,6 +108,51 @@
       </div>
     </div>
   </main>
+
+  <!-- Agent Prompt Generator Modal -->
+  <div id="prompt-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+    <div class="relative w-full max-w-3xl bg-slate-900 border border-slate-700/80 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950/50">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-mono text-sm font-bold">
+            🤖
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-white">AI Agent Instructions: Regenerate Consoles</h3>
+            <p class="text-2xs text-slate-400">Copy this prompt and provide it to your AI agent to refresh all workspace artifacts</p>
+          </div>
+        </div>
+        <button id="close-prompt-modal-btn" class="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors" title="Close Modal">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-6 flex flex-col gap-4 max-h-[65vh] overflow-y-auto">
+        <div class="bg-slate-950 rounded-xl border border-slate-800 p-4 font-mono text-xs text-slate-300 leading-relaxed select-all overflow-x-auto">
+          <pre id="prompt-text-content" class="whitespace-pre-wrap break-words font-mono text-xs"></pre>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="flex items-center justify-between px-6 py-4 border-t border-slate-800 bg-slate-950/50">
+        <span id="copy-status" class="text-xs text-emerald-400 font-medium hidden flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+          Prompt copied to clipboard!
+        </span>
+        <div class="flex items-center gap-3 ml-auto">
+          <button id="cancel-prompt-modal-btn" class="px-4 py-2 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors cursor-pointer">
+            Close
+          </button>
+          <button id="copy-prompt-btn" class="px-4 py-2 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white shadow-md transition-all flex items-center gap-1.5 cursor-pointer">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+            <span>Copy Prompt</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Workspace Data Injection Slot -->
   <script id="innfo-workspace-data" type="application/json">
@@ -176,13 +225,61 @@
       const previewExtLink = document.getElementById('preview-ext-link');
       const previewCloseBtn = document.getElementById('preview-close-btn');
 
+      // Prompt Modal Elements
+      const openPromptBtn = document.getElementById('open-prompt-btn');
+      const promptModal = document.getElementById('prompt-modal');
+      const closePromptModalBtn = document.getElementById('close-prompt-modal-btn');
+      const cancelPromptModalBtn = document.getElementById('cancel-prompt-modal-btn');
+      const copyPromptBtn = document.getElementById('copy-prompt-btn');
+      const promptTextContent = document.getElementById('prompt-text-content');
+      const copyStatus = document.getElementById('copy-status');
+
+      const templateProcedureMap = {
+        business: 'iNNfo/specs/templates/business/procedures/compile_business_console_NN.md',
+        procedures: 'iNNfo/specs/templates/procedures/procedures_V_0-2-0_NN.md',
+        organization: 'iNNfo/specs/templates/organization/procedures/compile_org_chart_console_NN.md',
+        documentation: 'iNNfo/specs/templates/documentation/procedures/compile_docs_portal_console_NN.md',
+        analysis: 'iNNfo/specs/templates/analysis/procedures/compile_strategic_audit_console_NN.md',
+        innovation: 'iNNfo/specs/templates/innovation/procedures/compile_innovation_funnel_console_NN.md',
+        metrics: 'iNNfo/specs/templates/metrics/procedures/create_timeline_NN.md',
+        projects: 'iNNfo/specs/templates/projects/procedures/create_roadmap_NN.md',
+      };
+
       const templateColors = {
         business: { bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/20', icon: '🏢' },
         procedures: { bg: 'bg-indigo-500/10', text: 'text-indigo-400', border: 'border-indigo-500/20', icon: '📋' },
         organization: { bg: 'bg-amber-500/10', text: 'text-amber-400', border: 'border-amber-500/20', icon: '👥' },
         site: { bg: 'bg-cyan-500/10', text: 'text-cyan-400', border: 'border-cyan-500/20', icon: '🌐' },
+        documentation: { bg: 'bg-violet-500/10', text: 'text-violet-400', border: 'border-violet-500/20', icon: '📚' },
+        analysis: { bg: 'bg-rose-500/10', text: 'text-rose-400', border: 'border-rose-500/20', icon: '📊' },
+        innovation: { bg: 'bg-yellow-500/10', text: 'text-yellow-400', border: 'border-yellow-500/20', icon: '💡' },
+        metrics: { bg: 'bg-teal-500/10', text: 'text-teal-400', border: 'border-teal-500/20', icon: '📈' },
+        projects: { bg: 'bg-sky-500/10', text: 'text-sky-400', border: 'border-sky-500/20', icon: '🚀' },
         default: { bg: 'bg-blue-500/10', text: 'text-blue-400', border: 'border-blue-500/20', icon: '📦' },
       };
+
+      function generateAgentPrompt() {
+        const title = data.workspace?.title || 'Workspace';
+        const version = data.workspace?.version || '1.0.0';
+        const modelsList = data.models || [];
+
+        let prompt = `Please validate and regenerate all interactive consoles for workspace "${title}" (v${version}).\n\n`;
+        prompt += `### Target Workspace Models:\n`;
+        modelsList.forEach((m, idx) => {
+          const proc = templateProcedureMap[m.template] || `iNNfo/specs/templates/${m.template}/procedures/compile_${m.template}_console_NN.md`;
+          prompt += `${idx + 1}. **${m.title}** (Template: \`${m.template}\`, Model: \`${m.modelPath}\`)\n`;
+          prompt += `   - Compilation Procedure: \`${proc}\`\n`;
+          prompt += `   - Target Console Artifact: \`${m.consolePath || `artifacts/${m.id}_console.html`}\`\n\n`;
+        });
+
+        prompt += `### Step-by-Step Instructions for the AI Agent:\n`;
+        prompt += `1. **Model Validation**: Inspect the workspace models listed above to ensure concepts, fields, and matrices are valid and properly formatted.\n`;
+        prompt += `2. **Console Regeneration**: For each model, run its declared compilation procedure to regenerate its standalone HTML console artifact in \`artifacts/\`.\n`;
+        prompt += `3. **Workspace Hub Compilation**: Execute \`iNNfo/specs/templates/workspace/procedures/compile_workspace_hub_NN.md\` to recompile \`artifacts/workspace_hub.html\` reflecting all updated models and console statuses.\n`;
+        prompt += `4. **Verification**: Confirm that all generated HTML consoles and the Workspace Hub render correctly offline via \`file://\`.\n`;
+
+        return prompt;
+      }
 
       function renderGrid(filter = '') {
         const query = filter.toLowerCase().trim();
@@ -266,6 +363,49 @@
         previewPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
 
+      function openModal() {
+        promptTextContent.textContent = generateAgentPrompt();
+        copyStatus.classList.add('hidden');
+        promptModal.classList.remove('hidden');
+        promptModal.classList.add('flex');
+      }
+
+      function closeModal() {
+        promptModal.classList.add('hidden');
+        promptModal.classList.remove('flex');
+      }
+
+      function copyPrompt() {
+        const text = promptTextContent.textContent || '';
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(showCopied).catch(fallbackCopy);
+        } else {
+          fallbackCopy();
+        }
+      }
+
+      function fallbackCopy() {
+        try {
+          const range = document.createRange();
+          range.selectNodeContents(promptTextContent);
+          const sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(range);
+          document.execCommand('copy');
+          sel.removeAllRanges();
+          showCopied();
+        } catch (err) {
+          console.error('Fallback copy failed', err);
+        }
+      }
+
+      function showCopied() {
+        copyStatus.classList.remove('hidden');
+        setTimeout(() => {
+          copyStatus.classList.add('hidden');
+        }, 3000);
+      }
+
       previewCloseBtn.addEventListener('click', () => {
         previewFrame.src = 'about:blank';
         previewPanel.classList.add('hidden');
@@ -274,6 +414,22 @@
 
       searchInput.addEventListener('input', (e) => {
         renderGrid(e.target.value);
+      });
+
+      // Modal Event Listeners
+      if (openPromptBtn) openPromptBtn.addEventListener('click', openModal);
+      if (closePromptModalBtn) closePromptModalBtn.addEventListener('click', closeModal);
+      if (cancelPromptModalBtn) cancelPromptModalBtn.addEventListener('click', closeModal);
+      if (copyPromptBtn) copyPromptBtn.addEventListener('click', copyPrompt);
+
+      promptModal.addEventListener('click', (e) => {
+        if (e.target === promptModal) closeModal();
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !promptModal.classList.contains('hidden')) {
+          closeModal();
+        }
       });
 
       // Initial render

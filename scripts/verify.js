@@ -179,6 +179,10 @@ function runVerification(options = {}) {
   //     shared implementation, no hand-maintained copy).
   run('node scripts/build-trannsform-slug-mirror.mjs --check', 'Check Trannsform Slug Mirror Fresh');
 
+  // 7c. Samples SSOT Drift Guard: ensure template sample files match _samples_nn/models/ SSOT
+  run('node scripts/sync-samples.test.mjs', 'Test Samples Synchronization');
+  run('node scripts/sync-samples.mjs --check', 'Check Samples Parity with _samples_nn');
+
   // 8. Rendered stable manifest doc must be in sync with manifest/source.yaml.
   //    Deterministic (renders source.yaml and compares bytes). Runs BEFORE the
   //    live validation so a hand-edited generated manifest fails fast with a
