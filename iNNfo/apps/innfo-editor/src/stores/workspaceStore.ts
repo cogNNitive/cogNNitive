@@ -1,22 +1,18 @@
 import { defineStore } from 'pinia'
 import { useModelStore } from './modelStore'
 import { useUiStore } from './uiStore'
-import { recursiveSerialize } from '../model/recursiveSerializer'
-import {
-  parseFormatFilename,
-  buildFormatFilename,
-  bumpVersion,
-  formatVersionString,
-} from '../utils/version'
-import { buildSpecificationUrl } from '../utils/constants'
 import { IndexedDbWorkspaceRepository } from '../repositories/IndexedDbWorkspaceRepository'
 import type { IWorkspaceRepository } from '../repositories/IWorkspaceRepository'
-import { parseFrontmatter } from '@cognnitive/innfo-core'
 import type { WorkspaceIntegrityReport } from '@cognnitive/innfo-core'
 import { useUrlDocLoader } from '../composables/useUrlDocLoader'
-import { reconcileWorkspaceManifest } from '../services/WorkspaceSyncService'
 import { createWorkspaceIntegrityPorts } from '../services/workspaceIntegrityPorts'
-import type { DirectoryHandleLike, FileHandleLike } from '../model/fs-types'
+import {
+  resolveFileHandleForRead,
+  saveActiveFile as persistSaveActiveFile,
+  renameActiveFile as persistRenameActiveFile,
+  saveActiveFileWithVersionBump as persistSaveActiveFileWithVersionBump,
+} from '../services/WorkspacePersistenceService'
+import type { DirectoryHandleLike } from '../model/fs-types'
 import type { BumpLevel } from '../utils/version'
 import type { ModelDriver } from '@cognnitive/innfo-core'
 import type { ActiveView } from './uiStore'
@@ -47,62 +43,6 @@ export interface WorkspaceState {
   integrityReport: WorkspaceIntegrityReport | null
   /** True while the non-blocking integrity check is in flight. */
   integrityRunning: boolean
-}
-
-async function resolveFileHandleForWrite(
-  root: DirectoryHandleLike,
-  refPath: string,
-): Promise<FileHandleLike> {
-  const segments = refPath
-    .replace(/\\/g, '/')
-    .split('/')
-    .filter((p) => p && p !== '.')
-  let current: DirectoryHandleLike = root
-  for (let i = 0; i < segments.length - 1; i++) {
-    current = await current.getDirectoryHandle(segments[i], { create: true })
-  }
-  const last = segments[segments.length - 1]
-  return current.getFileHandle(last, { create: true })
-}
-
-/** Resolve an existing file handle by workspace-relative path (no creation). */
-async function resolveFileHandleForRead(
-  root: DirectoryHandleLike,
-  refPath: string,
-): Promise<FileHandleLike | null> {
-  const segments = refPath
-    .replace(/\\/g, '/')
-    .split('/')
-    .filter((p) => p && p !== '.')
-  if (segments.length === 0) return null
-  let current: DirectoryHandleLike = root
-  for (let i = 0; i < segments.length - 1; i++) {
-    try {
-      current = await current.getDirectoryHandle(segments[i])
-    } catch {
-      return null
-    }
-  }
-  try {
-    return await current.getFileHandle(segments[segments.length - 1])
-  } catch {
-    return null
-  }
-}
-
-async function removeFileByPath(root: DirectoryHandleLike, refPath: string): Promise<void> {
-  const segments = refPath
-    .replace(/\\/g, '/')
-    .split('/')
-    .filter((p) => p && p !== '.')
-  let current: DirectoryHandleLike = root
-  for (let i = 0; i < segments.length - 1; i++) {
-    current = await current.getDirectoryHandle(segments[i])
-  }
-  const last = segments[segments.length - 1]
-  if (current.removeEntry) {
-    await current.removeEntry(last)
-  }
 }
 
 /**
@@ -378,199 +318,29 @@ export const useWorkspaceStore = defineStore('workspace', {
     },
 
     /**
-     * Creates a backup of the root node's content before saving.
-     * Writes to `backups/{YYYY-MM-DD_HHmmss}_{original-basename}.md`.
-     * Non-blocking: failure is logged but does NOT prevent the save.
-     *
-     * Marked with `_` prefix (not `#`) because esbuild/vitest does not
-     * transpile JavaScript private fields in Pinia option-store targets.
-     */
-    async _createBackup(): Promise<void> {
-      if (!this.handle) return
-
-      const modelStore = useModelStore()
-      const dirtyRootIds = modelStore.rootIds.filter((id) => modelStore.dirtyIds.has(id))
-      if (dirtyRootIds.length === 0) return
-
-      for (const rootId of dirtyRootIds) {
-        const rootNode = modelStore.getNode(rootId)
-        if (!rootNode?.rawContent) continue
-
-        try {
-          const now = new Date()
-          const ts =
-            `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}_` +
-            `${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`
-
-          const rawBasename = rootNode.source.path.split(/[/\\]/).pop() ?? 'document'
-          const cleanBasename = rawBasename.split(/[?#]/)[0]
-          const backupName = `${ts}_${cleanBasename.replace(/[^a-zA-Z0-9._-]/g, '_').trim()}`
-
-          let backupsDir: DirectoryHandleLike
-          try {
-            backupsDir = await this.handle.getDirectoryHandle('backups', { create: true })
-          } catch {
-            console.warn('[backup] Could not create backups/ directory')
-            return
-          }
-
-          const fileHandle = await backupsDir.getFileHandle(backupName, { create: true })
-          if (fileHandle.createWritable) {
-            const writable = await fileHandle.createWritable()
-            await writable.write(rootNode.rawContent)
-            await writable.close()
-          }
-        } catch (err) {
-          console.warn('[backup] Failed to create backup:', err)
-        }
-      }
-    },
-
-    /**
-     * Downloads the generic iNNfo specification (level-1) into specs/ when
-     * the root node declares a spec_version and the file is not already present.
-     *
-     * Best-effort: network failures or missing versions degrade gracefully.
-     */
-    async _ensureGeneralSpec(handle: DirectoryHandleLike): Promise<void> {
-      const uiStore = useUiStore()
-      const modelStore = useModelStore()
-      const rootId =
-        (uiStore.activeModelId && modelStore.nodes[uiStore.activeModelId]
-          ? uiStore.activeModelId
-          : undefined) ??
-        modelStore.rootIds.find((id) => !id.startsWith('spec:')) ??
-        modelStore.rootIds[0]
-      if (!rootId) return
-      const rootNode = modelStore.getNode(rootId)
-      if (!rootNode?.rawContent) return
-
-      const fm = parseFrontmatter(rootNode.rawContent)
-      const specVersion = (fm as any)?.spec_version as string | undefined
-      if (!specVersion) return
-
-      const specFilename = `iNNfo_${specVersion}_NN.md`
-
-      try {
-        const specsDir = await handle.getDirectoryHandle('specs', { create: true })
-
-        // Skip if already exists
-        try {
-          await specsDir.getFileHandle(specFilename)
-          return
-        } catch {
-          // Not found — proceed to download
-        }
-
-        // Single URL strategy: the filename already encodes the version, so the
-        // `main` branch is content-pinned (see `spec-versioning`, A4). There is
-        // no separate tag-pinned or `models/specs/` fallback anymore.
-        let text = ''
-        try {
-          const resp = await fetch(buildSpecificationUrl(specVersion))
-          if (resp.ok) {
-            text = await resp.text()
-          }
-        } catch {
-          // network failure — degrade gracefully below
-        }
-
-        if (!text) {
-          console.warn(`[spec] Failed to fetch spec for version ${specVersion}`)
-          return
-        }
-
-        const fileHandle = await specsDir.getFileHandle(specFilename, { create: true })
-        if (fileHandle.createWritable) {
-          const w = await fileHandle.createWritable()
-          await w.write(text)
-          await w.close()
-        }
-      } catch (e) {
-        console.warn('[spec] Could not ensure general spec:', e)
-      }
-    },
-
-    /**
      * Serializes all dirty nodes and writes them back to disk via
      * recursiveSerialize. Clears dirty flags on success.
      *
      * When `backupEnabled` is true (default), creates a timestamped backup
      * of the root node before writing.
+     *
+     * Delegates the actual disk I/O to `WorkspacePersistenceService` (see
+     * OpenSpec `2026-09-13-simple-refactors-batch`, task 4) — this action
+     * keeps only the `saving`/`error` state management.
      */
     async saveActiveFile(): Promise<void> {
       if (!this.handle) throw new Error('No workspace handle')
       this.saving = true
       try {
-        // Non-blocking backup before write
-        if (this.backupEnabled) {
-          await this._createBackup()
-        }
-
         const modelStore = useModelStore()
-        const reports = await recursiveSerialize(
-          modelStore.nodes,
-          modelStore.dirtyIds,
-          this.driver ?? undefined,
+        const uiStore = useUiStore()
+        await persistSaveActiveFile(
+          this.handle,
+          this.driver,
+          modelStore,
+          uiStore,
+          this.backupEnabled,
         )
-
-        if (!this.driver) {
-          // If no driver is set, write the dirty model files directly using the directory handle
-          for (const report of reports) {
-            if (report.nodeId.startsWith('spec:')) continue
-            const node = modelStore.getNode(report.nodeId)
-            if (node && node.rawContent !== undefined) {
-              const fileHandle = await resolveFileHandleForWrite(this.handle, report.path)
-              if (fileHandle.createWritable) {
-                const w = await fileHandle.createWritable()
-                await w.write(node.rawContent)
-                await w.close()
-              }
-            }
-          }
-        }
-
-        // Persist spec:* nodes (templates/specs) to specs/ directory.
-        // Write-once: specs/ content is immutable by convention, so an
-        // existing file is left as authoritative rather than overwritten.
-        const specsDir = await this.handle.getDirectoryHandle('specs', { create: true })
-        for (const [id, node] of Object.entries(modelStore.nodes)) {
-          if (id.startsWith('spec:') && node.rawContent) {
-            const specName = node.name || id.substring(5)
-            const filename = specName.endsWith('_NN') ? `${specName}.md` : `${specName}_NN.md`
-            const alreadyPresent = await specsDir
-              .getFileHandle(filename)
-              .then(() => true)
-              .catch(() => false)
-            if (alreadyPresent) continue
-            const fileHandle = await specsDir.getFileHandle(filename, { create: true })
-            if (fileHandle.createWritable) {
-              const w = await fileHandle.createWritable()
-              await w.write(node.rawContent)
-              await w.close()
-            }
-          }
-        }
-
-        // Also ensure the generic iNNfo spec is present
-        await this._ensureGeneralSpec(this.handle)
-
-        // Clear dirty flags after successful write
-        for (const id of Array.from(modelStore.dirtyIds)) {
-          modelStore.clearDirty(id)
-        }
-
-        // Autorregistro (PR7): reconcile the workspace manifest against the
-        // current on-disk model set now that a write just happened — the
-        // closest add/remove-aware moment this app has (no native fs watcher
-        // exists yet). Never lets a reconciliation failure fail the save.
-        if (!this.driver) {
-          try {
-            await reconcileWorkspaceManifest(this.handle)
-          } catch (err) {
-            console.warn('Workspace manifest reconciliation skipped:', err)
-          }
-        }
       } catch (err) {
         this.error = err instanceof Error ? err.message : String(err)
         throw err
@@ -583,150 +353,24 @@ export const useWorkspaceStore = defineStore('workspace', {
      * Renames the active file on disk (if handle present) and updates the source path in memory.
      */
     async renameActiveFile(newFilename: string, targetRootId?: string): Promise<void> {
-      const uiStore = useUiStore()
       const modelStore = useModelStore()
-      const rootId =
-        targetRootId ??
-        (uiStore.activeModelId && modelStore.nodes[uiStore.activeModelId]
-          ? uiStore.activeModelId
-          : undefined) ??
-        modelStore.rootIds.find((id) => !id.startsWith('spec:')) ??
-        modelStore.rootIds[0]
-      const rootNode = rootId ? modelStore.getNode(rootId) : null
-      if (!rootNode) throw new Error('No root node found to rename')
-
-      const oldPath = rootNode.source.path.replace(/\\/g, '/')
-      const pathSegments = oldPath.split('/')
-      pathSegments.pop()
-      const dirPath = pathSegments.join('/')
-
-      let cleanNewFilenameOnly = newFilename.trim()
-      if (!cleanNewFilenameOnly.endsWith('.md')) {
-        cleanNewFilenameOnly += '.md'
-      }
-      cleanNewFilenameOnly = cleanNewFilenameOnly.replace(/[^a-zA-Z0-9._-]/g, '_')
-      const cleanNewFilename = dirPath ? `${dirPath}/${cleanNewFilenameOnly}` : cleanNewFilenameOnly
-
-      if (this.handle) {
-        const oldFilename = rootNode.source.path
-        if (oldFilename === cleanNewFilename) return
-
-        // Create new file and copy content
-        const newFileHandle = await resolveFileHandleForWrite(this.handle, cleanNewFilename)
-        if (!newFileHandle.createWritable) {
-          throw new Error(`File handle for "${cleanNewFilename}" does not support writing`)
-        }
-        const writable = await newFileHandle.createWritable()
-        await writable.write(rootNode.rawContent ?? '')
-        await writable.close()
-
-        // Delete old file
-        try {
-          await removeFileByPath(this.handle, oldFilename)
-        } catch (e) {
-          console.warn(`Failed to delete old file "${oldFilename}":`, e)
-        }
-      }
-
-      // Update in memory path for root node and all child nodes belonging to this model
-      const oldPathRef = rootNode.source.path
-      rootNode.source.path = cleanNewFilename
-      for (const node of Object.values(modelStore.nodes)) {
-        if (
-          node.source &&
-          (node.source.path === oldPathRef || modelStore.getModelRootForNode(node.id) === rootId)
-        ) {
-          node.source.path = cleanNewFilename
-        }
-      }
+      const uiStore = useUiStore()
+      await persistRenameActiveFile(this.handle, modelStore, uiStore, newFilename, targetRootId)
     },
 
     /**
      * Saves the active file under a new version-bumped filename, then
      * persists all dirty nodes. The original file is NOT deleted.
+     *
+     * The final persist step is delegated to this store's own
+     * `saveActiveFile()` action (not called directly from the service) so the
+     * `saving`/`error` state transitions happen exactly as before.
      */
     async saveActiveFileWithVersionBump(level: BumpLevel, targetRootId?: string): Promise<void> {
       if (!this.handle) throw new Error('No workspace handle')
-
-      const uiStore = useUiStore()
       const modelStore = useModelStore()
-      const rootId =
-        targetRootId ??
-        (uiStore.activeModelId && modelStore.nodes[uiStore.activeModelId]
-          ? uiStore.activeModelId
-          : undefined) ??
-        modelStore.rootIds.find((id) => !id.startsWith('spec:')) ??
-        modelStore.rootIds[0]
-      const rootNode = modelStore.getNode(rootId)
-      if (!rootNode) throw new Error('No root node found for version bump')
-
-      const oldPath = rootNode.source.path.replace(/\\/g, '/')
-      const pathSegments = oldPath.split('/')
-      const oldFilenameOnly = pathSegments.pop() || ''
-      const dirPath = pathSegments.join('/')
-
-      const parsed = parseFormatFilename(oldFilenameOnly)
-      if (!parsed) throw new Error('Could not parse filename for version bump')
-
-      const newVersion = bumpVersion(parsed.version, level)
-      const newFilenameOnly = buildFormatFilename(parsed.baseName, parsed.templateName, newVersion)
-      const versionStr = formatVersionString(newVersion)
-      const oldFilename = rootNode.source.path
-
-      const cleanNewFilenameOnly = newFilenameOnly.replace(/[^a-zA-Z0-9._-]/g, '_').trim()
-      const cleanNewFilename = dirPath ? `${dirPath}/${cleanNewFilenameOnly}` : cleanNewFilenameOnly
-
-      // Create the new file and write current content
-      const newFileHandle = await resolveFileHandleForWrite(this.handle, cleanNewFilename)
-      if (!newFileHandle.createWritable) {
-        throw new Error(`New file handle "${cleanNewFilename}" does not support writing`)
-      }
-      const writable = await newFileHandle.createWritable()
-      await writable.write(rootNode.rawContent ?? '')
-      await writable.close()
-
-      // Archive the previous version (non-blocking)
-      if (oldFilename !== cleanNewFilename) {
-        try {
-          const archiveDir = await this.handle.getDirectoryHandle('Archive', { create: true })
-          const oldFileHandle = await resolveFileHandleForWrite(this.handle, oldFilename)
-          const oldFile = await oldFileHandle.getFile()
-          const oldContent = await oldFile.text()
-          const archiveFileHandle = await resolveFileHandleForWrite(archiveDir, oldFilename)
-          if (archiveFileHandle.createWritable) {
-            const archiveWritable = await archiveFileHandle.createWritable()
-            await archiveWritable.write(oldContent)
-            await archiveWritable.close()
-          }
-          await removeFileByPath(this.handle, oldFilename)
-        } catch (err) {
-          console.warn('[version-bump] Failed to archive previous version:', err)
-        }
-      }
-
-      // Update the root node's in-memory frontmatter version
-      if (rootNode.rawContent) {
-        rootNode.rawContent = rootNode.rawContent.replace(
-          /^(model_version|version):\s*"V_\d+-\d+-\d+"/m,
-          `$1: "${versionStr}"`,
-        )
-      }
-
-      // Update the root node's source path and all child nodes belonging to this model
-      rootNode.source.path = cleanNewFilename
-      for (const node of Object.values(modelStore.nodes)) {
-        if (
-          node.source &&
-          (node.source.path === oldFilename || modelStore.getModelRootForNode(node.id) === rootId)
-        ) {
-          node.source.path = cleanNewFilename
-        }
-      }
-
-      // Mark root node dirty so saveActiveFile persists changes
-      modelStore.markDirty(rootId)
-
-      // Persist all dirty nodes (including the updated root)
+      const uiStore = useUiStore()
+      await persistSaveActiveFileWithVersionBump(this.handle, modelStore, uiStore, level, targetRootId)
       await this.saveActiveFile()
     },
 

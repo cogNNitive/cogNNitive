@@ -9,6 +9,7 @@ import { parseFormatFilename } from '../../utils/version'
 import { addToHistory } from '../../stores/historyStore'
 import { useToast } from '../../shared/useToast'
 import { serializeModel } from '@cognnitive/innfo-core'
+import { _ensureGeneralSpec } from '../../services/WorkspacePersistenceService'
 import type { DirectoryHandleLike } from '../../model/fs-types'
 
 const workspaceStore = useWorkspaceStore()
@@ -203,7 +204,7 @@ To open this workspace:
     await workspaceStore.open(handle, { force: true })
 
     // Ensure the generic iNNfo spec is present locally
-    await workspaceStore._ensureGeneralSpec(handle)
+    await _ensureGeneralSpec(handle, modelStore, uiStore)
 
     // Clear dirty flags
     for (const id of Array.from(modelStore.dirtyIds)) {

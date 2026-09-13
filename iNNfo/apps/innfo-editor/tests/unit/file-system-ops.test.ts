@@ -305,13 +305,15 @@ describe('workspaceStore backup', () => {
     const modelStore = useModelStore()
     modelStore.markDirty(modelStore.rootIds[0])
 
-    // Spy on the backup method
-    const backupSpy = vi.spyOn(store as any, '_createBackup')
-
     await store.saveActiveFile()
 
-    // Backup was called
-    expect(backupSpy).toHaveBeenCalledTimes(1)
+    // A backups/ directory with exactly one entry was written to disk
+    // (WorkspacePersistenceService's _createBackup — see
+    // src/services/WorkspacePersistenceService.ts).
+    const backupsDir = await handle.getDirectoryHandle('backups')
+    const backupNames: string[] = []
+    for await (const [name] of backupsDir.entries()) backupNames.push(name)
+    expect(backupNames).toHaveLength(1)
   })
 
   it('backup is NOT created when backupEnabled is false', async () => {
@@ -326,11 +328,10 @@ describe('workspaceStore backup', () => {
     const modelStore = useModelStore()
     modelStore.markDirty(modelStore.rootIds[0])
 
-    const backupSpy = vi.spyOn(store as any, '_createBackup')
-
     await store.saveActiveFile()
 
-    expect(backupSpy).not.toHaveBeenCalled()
+    // No backups/ directory should have been created at all.
+    await expect(handle.getDirectoryHandle('backups')).rejects.toThrow()
   })
 })
 
