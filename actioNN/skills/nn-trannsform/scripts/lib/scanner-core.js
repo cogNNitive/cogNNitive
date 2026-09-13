@@ -67,11 +67,14 @@ function generateSourceFrontmatter(originalFilePath, relativeSourcePath, extra =
   const lines = [
     '---',
     `source_file: "${relativeSourcePath}"`,
-    `sha256: "${hash}"`,
-    `size_bytes: ${stat.size}`,
-    `normalized_at: "${timestamp}"`,
-    `normalized_by: "traNNsform v${TRANNNSFORM_VERSION}"`,
   ];
+
+  if (extra.media_file) lines.push(`media_file: "${escapeYamlString(extra.media_file)}"`);
+  lines.push(`sha256: "${hash}"`);
+  if (extra.media_sha256) lines.push(`media_sha256: "${escapeYamlString(extra.media_sha256)}"`);
+  lines.push(`size_bytes: ${stat.size}`);
+  lines.push(`normalized_at: "${timestamp}"`);
+  lines.push(`normalized_by: "traNNsform v${TRANNNSFORM_VERSION}"`);
 
   if (extra.staging_file) lines.push(`staging_file: "${escapeYamlString(extra.staging_file)}"`);
   if (extra.is_synthetic !== undefined) lines.push(`is_synthetic: ${Boolean(extra.is_synthetic)}`);
@@ -449,9 +452,33 @@ function archiveSourceSnapshot(absPath, nnPath, destPath, basename) {
 }
 
 /**
+ * Checks if a binary media companion sharing the same base name (stem) exists alongside a text source.
+ * @param {string} absPath
+ * @param {string} sourceFileField
+ * @returns {{ media_file: string, media_sha256: string } | null}
+ */
+const COMPANION_MEDIA_EXTENSIONS = ['.mp3', '.wav', '.m4a', '.mp4', '.ogg', '.flac', '.aac'];
+
+function findCompanionMedia(absPath, sourceFileField) {
+  const dir = path.dirname(absPath);
+  const ext = path.extname(absPath);
+  const stem = path.basename(absPath, ext);
+  const relDir = path.dirname(sourceFileField);
+  for (const mExt of COMPANION_MEDIA_EXTENSIONS) {
+    const cand = path.join(dir, `${stem}${mExt}`);
+    if (fs.existsSync(cand) && fs.statSync(cand).isFile()) {
+      const relMedia = path.join(relDir, `${stem}${mExt}`).replace(/\\/g, '/');
+      const mediaHash = computeFileHash(cand);
+      return { media_file: relMedia, media_sha256: mediaHash };
+    }
+  }
+  return null;
+}
+
+/**
  * Recursively find orphaned normalized markdown files under sources/nn/.
  * An orphan is a file whose frontmatter source_file does not exist on disk relative to projectDir.
- * Excludes index.md, staging, and archive.
+ * Excludes index.md, staging, archive, and user_input / in-line sources.
  *
  * @param {string} projectDir
  * @returns {Array<{ nnPath: string, relPath: string, baseName: string, sourceFile: string, sha256: string | null }>}
@@ -481,6 +508,9 @@ function findOrphanSources(projectDir) {
         if (relPath === 'index.md') continue;
         const content = fs.readFileSync(abs, 'utf8');
         const fm = parseFrontmatterFields(content);
+        if (fm.source_type === 'user_input' || (fm.source_file && (fm.source_file.startsWith('inline:') || fm.source_file.startsWith('chat:') || fm.source_file.includes('(proporcionado directamente')))) {
+          continue;
+        }
         if (fm.source_file) {
           const originalOnDisk = path.join(projectDir, fm.source_file);
           if (!fs.existsSync(originalOnDisk)) {
@@ -557,9 +587,12 @@ function processOkFile(ext, absPath, sourceFileField, destPath, displayOutPath, 
       }
     }
 
+    const companionMedia = findCompanionMedia(absPath, sourceFileField);
     const existingFields = getExistingFrontmatterFields(destPath, sourceFileField);
     const finalExtra = {
       staging_file: extra.staging_file || incomingFields.staging_file || existingFields.staging_file,
+      media_file: extra.media_file || incomingFields.media_file || existingFields.media_file || (companionMedia ? companionMedia.media_file : undefined),
+      media_sha256: extra.media_sha256 || incomingFields.media_sha256 || existingFields.media_sha256 || (companionMedia ? companionMedia.media_sha256 : undefined),
       is_synthetic: isFeedbackDoc ? true : (extra.is_synthetic !== undefined ? extra.is_synthetic : (incomingFields.is_synthetic !== undefined ? (incomingFields.is_synthetic === 'true' || incomingFields.is_synthetic === true) : (existingFields.is_synthetic !== undefined ? existingFields.is_synthetic === 'true' : undefined))),
       source_type: isFeedbackDoc ? 'feedback' : (extra.source_type || incomingFields.source_type || existingFields.source_type),
       conversation_format: extra.conversation_format || incomingFields.conversation_format || existingFields.conversation_format,
@@ -642,9 +675,12 @@ async function processPromptFile(ext, absPath, sourceFileField, destPath, displa
       if (result.info.Author && !mergedExtra.author) mergedExtra.author = result.info.Author;
     }
 
+    const companionMedia = findCompanionMedia(absPath, sourceFileField);
     const existingFields = getExistingFrontmatterFields(destPath, sourceFileField);
     const finalExtra = {
       staging_file: extra.staging_file || existingFields.staging_file,
+      media_file: extra.media_file || existingFields.media_file || (companionMedia ? companionMedia.media_file : undefined),
+      media_sha256: extra.media_sha256 || existingFields.media_sha256 || (companionMedia ? companionMedia.media_sha256 : undefined),
       is_synthetic: extra.is_synthetic !== undefined ? extra.is_synthetic : (existingFields.is_synthetic !== undefined ? existingFields.is_synthetic === 'true' : undefined),
       source_type: extra.source_type || existingFields.source_type,
       conversation_format: extra.conversation_format || existingFields.conversation_format,

@@ -272,6 +272,8 @@ function scanWorkspaceSources(workspaceDir) {
   let unnormalizedCount = 0;
   let danglingCount = 0;
 
+  const MEDIA_EXTENSIONS = new Set(['.mp3', '.wav', '.m4a', '.mp4', '.ogg', '.flac', '.aac']);
+
   // 1. Discover all normalized Markdown files in sources/nn/ (excluding index.md)
   const nnFiles = [];
   if (fs.existsSync(nnDir)) {
@@ -287,9 +289,14 @@ function scanWorkspaceSources(workspaceDir) {
 
   // 2. Parse frontmatter and map source_file -> normalized file & hash
   const sourceIndex = new Map();
+  const companionMediaIndex = new Map();
+  const normalizedStems = new Set();
 
   for (const nnFile of nnFiles) {
     const relNnPath = path.relative(workspaceDir, nnFile).replace(/\\/g, '/');
+    const nnStem = path.basename(nnFile, '.md').toLowerCase();
+    normalizedStems.add(nnStem);
+
     let content;
     try {
       content = fs.readFileSync(nnFile, 'utf-8');
@@ -305,6 +312,27 @@ function scanWorkspaceSources(workspaceDir) {
 
     const rawRef = fm.source_file || fm.file;
     const storedHash = (fm.sha256 || fm.hash || '').trim();
+
+    if (fm.media_file) {
+      const normMedia = String(fm.media_file).replace(/\\/g, '/');
+      const mediaEntry = { nnPath: relNnPath, storedHash: (fm.media_sha256 || '').trim(), isCompanionMedia: true };
+      sourceIndex.set(normMedia, mediaEntry);
+      companionMediaIndex.set(normMedia, mediaEntry);
+      const mediaAbs = path.resolve(workspaceDir, normMedia);
+      if (fs.existsSync(mediaAbs)) {
+        const relMedia = path.relative(workspaceDir, mediaAbs).replace(/\\/g, '/');
+        sourceIndex.set(relMedia, mediaEntry);
+        companionMediaIndex.set(relMedia, mediaEntry);
+      }
+    }
+
+    if (
+      fm.source_type === 'user_input' ||
+      (rawRef && (String(rawRef).startsWith('inline:') || String(rawRef).startsWith('chat:') || String(rawRef).includes('(proporcionado directamente')))
+    ) {
+      sourceIndex.set(String(rawRef || relNnPath).replace(/\\/g, '/'), { nnPath: relNnPath, storedHash, isUserInput: true });
+      continue;
+    }
 
     if (!rawRef) {
       danglingCount++;
@@ -372,6 +400,10 @@ function scanWorkspaceSources(workspaceDir) {
 
     for (const file of treeFiles) {
       const relPath = path.relative(workspaceDir, file).replace(/\\/g, '/');
+      const fileExt = path.extname(file).toLowerCase();
+      const fileStem = path.basename(file, fileExt).toLowerCase();
+      const isMedia = MEDIA_EXTENSIONS.has(fileExt);
+
       subtrees[tree.name].total++;
       totalCount++;
 
@@ -384,7 +416,38 @@ function scanWorkspaceSources(workspaceDir) {
       }
 
       const match = sourceIndex.get(relPath);
-      if (!match) {
+      if (match) {
+        if (!isMedia && match.storedHash && match.storedHash !== currentHash) {
+          unnormalizedCount++;
+          subtrees[tree.name].unnormalized++;
+          unnormalizedList.push({ path: relPath, subtree: tree.name, reason: 'hash_mismatch' });
+          items.push({
+            type: 'source-integrity',
+            name: relPath,
+            status: 'stale',
+            detail: 'Source content has changed since normalization. Run `node scripts/index.js --scan`.',
+          });
+        } else {
+          normalizedCount++;
+          subtrees[tree.name].normalized++;
+        }
+      } else if (isMedia) {
+        // Check if paired with a normalized companion sharing the same stem
+        if (companionMediaIndex.has(relPath) || normalizedStems.has(fileStem)) {
+          normalizedCount++;
+          subtrees[tree.name].normalized++;
+        } else {
+          // Un-transcribed raw media is informational, non-blocking
+          subtrees[tree.name].normalized++;
+          normalizedCount++;
+          items.push({
+            type: 'source-integrity',
+            name: relPath,
+            status: 'raw-media',
+            detail: 'Raw media primary source (pending transcription). Non-blocking.',
+          });
+        }
+      } else {
         unnormalizedCount++;
         subtrees[tree.name].unnormalized++;
         unnormalizedList.push({ path: relPath, subtree: tree.name, reason: 'missing' });
@@ -394,19 +457,6 @@ function scanWorkspaceSources(workspaceDir) {
           status: 'unnormalized',
           detail: 'Source has not been normalized into sources/nn/. Run `node scripts/index.js --scan`.',
         });
-      } else if (match.storedHash !== currentHash) {
-        unnormalizedCount++;
-        subtrees[tree.name].unnormalized++;
-        unnormalizedList.push({ path: relPath, subtree: tree.name, reason: 'hash_mismatch' });
-        items.push({
-          type: 'source-integrity',
-          name: relPath,
-          status: 'stale',
-          detail: 'Source content has changed since normalization. Run `node scripts/index.js --scan`.',
-        });
-      } else {
-        normalizedCount++;
-        subtrees[tree.name].normalized++;
       }
     }
   }
@@ -598,6 +648,39 @@ async function runCheck(options = {}) {
       results.summary.skillsOutdated++;
     }
 
+    if (dirExists) {
+      const pkgPath = path.join(skillDir, 'package.json');
+      if (fs.existsSync(pkgPath)) {
+        try {
+          const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+          const nodeModulesDir = path.join(skillDir, 'node_modules');
+          const hasNodeModules = fs.existsSync(nodeModulesDir);
+          const deps = Object.keys(pkg.dependencies || {});
+          const missingDeps = [];
+          if (!hasNodeModules) {
+            missingDeps.push(...deps);
+          } else {
+            for (const dep of deps) {
+              if (!fs.existsSync(path.join(nodeModulesDir, dep))) {
+                missingDeps.push(dep);
+              }
+            }
+          }
+          if (missingDeps.length > 0) {
+            results.summary.skillsDependenciesMissing = (results.summary.skillsDependenciesMissing || 0) + 1;
+            results.items.push({
+              type: 'skill-dependency',
+              name: skill.name,
+              status: 'missing',
+              detail: `Missing npm dependencies (${missingDeps.join(', ')}) in skill "${skill.name}". Run: cd "${skillDir}" && npm install`,
+            });
+          }
+        } catch {
+          // ignore malformed package.json
+        }
+      }
+    }
+
     results.items.push({
       type: 'skill',
       name: skill.name,
@@ -663,13 +746,14 @@ async function runCheck(options = {}) {
     });
   }
 
-  // Determine overall status
+  const hasSkillDeps = (results.summary.skillsDependenciesMissing || 0) > 0;
   const hasOutdated = results.summary.skillsOutdated > 0 ||
                       results.summary.mcpOutdated > 0 ||
                       results.summary.templatesOutdated > 0;
   const hasMissing = results.summary.skillsMissing > 0 ||
                      results.summary.mcpMissing > 0 ||
-                     results.summary.templatesMissing > 0;
+                     results.summary.templatesMissing > 0 ||
+                     hasSkillDeps;
   const hasStaleSpecs = results.summary.specsStale > 0;
   const hasSourceIssues = results.summary.sourcesUnnormalized > 0 ||
                           results.summary.sourcesDangling > 0;
@@ -688,6 +772,17 @@ async function runCheck(options = {}) {
 function printHumanReport(results) {
   console.log('=== cogNNitive Environment & Integrity Gate ===');
   console.log(`Node.js: v${results.node.version} (${results.node.ok ? 'OK' : 'BLOCKER'})`);
+
+  if (results.summary.skillsDependenciesMissing > 0) {
+    console.log(`\n⚠️  Missing skill dependencies detected:`);
+    for (const item of results.items) {
+      if (item.type === 'skill-dependency' && item.status === 'missing') {
+        console.log(`  - [DEPENDENCY] ${item.name}`);
+        console.log(`    ${item.detail}`);
+      }
+    }
+    console.log('');
+  }
 
   if (results.summary.specsStale > 0) {
     console.log(`\n⚠️  Stale workspace spec(s) detected (${results.summary.specsStale}):`);

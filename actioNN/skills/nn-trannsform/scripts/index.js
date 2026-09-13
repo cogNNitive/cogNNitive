@@ -36,7 +36,10 @@ async function main() {
     argv.name ||
     argv['import-url'] ||
     argv['promote-conv'] ||
-    argv['promote-conversation'];
+    argv['promote-conversation'] ||
+    argv.unlink ||
+    argv.purge ||
+    argv['remove-source'];
 
   if (hasArgs) {
     await handleCliMode(argv);
@@ -254,6 +257,100 @@ async function handleCliMode(argv) {
       process.exit(1);
     }
   }
+
+  if (argv.unlink || argv.purge || argv['remove-source']) {
+    const target = argv.unlink || argv.purge || argv['remove-source'];
+    console.log(`Unlinking/purging source "${target}" from workspace "${projectDir}"...`);
+    const { deleted } = unlinkSource(projectDir, target);
+    if (deleted.length === 0) {
+      console.log(`No files matched "${target}".`);
+    } else {
+      console.log(`Deleted ${deleted.length} file(s)/folder(s):`);
+      for (const d of deleted) {
+        console.log(`  - ${path.relative(projectDir, d).replace(/\\/g, '/')}`);
+      }
+      // Regenerate lineage & index
+      const scanRes = await scanner.scanAndProcess(projectDir, {});
+      const prov = provenance.buildProvenanceModel(projectDir);
+      console.log(
+        `Workspace lineage refreshed: ${prov.sourceCount} source(s), ${prov.modelCount} model(s), ${prov.artifactCount} artifact(s).`
+      );
+    }
+  }
+}
+
+function unlinkSource(projectDir, targetPattern) {
+  if (!targetPattern || typeof targetPattern !== 'string') {
+    return { deleted: [] };
+  }
+
+  const cleanPattern = targetPattern.replace(/\\/g, '/').replace(/^sources\/(import|original|nn|archive)\//, '');
+  const baseTarget = path.basename(cleanPattern).replace(/\.[^.]+$/, '');
+
+  const slugifyHelper = (s) => String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  const baseSlug = slugifyHelper(baseTarget);
+
+  const deleted = [];
+  const sourcesDir = path.join(projectDir, 'sources');
+
+  const checkAndDelete = (filePath) => {
+    if (fs.existsSync(filePath)) {
+      try {
+        const stat = fs.statSync(filePath);
+        if (stat.isFile()) {
+          fs.unlinkSync(filePath);
+          deleted.push(filePath);
+        } else if (stat.isDirectory()) {
+          fs.rmSync(filePath, { recursive: true, force: true });
+          deleted.push(filePath);
+        }
+      } catch (err) {
+        console.warn(`Warning: Could not delete ${filePath}: ${err.message}`);
+      }
+    }
+  };
+
+  const walkAndRemove = (dir) => {
+    if (!fs.existsSync(dir)) return;
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    for (const ent of entries) {
+      const full = path.join(dir, ent.name);
+      if (ent.isDirectory()) {
+        const dName = ent.name.toLowerCase();
+        if (dName === baseTarget.toLowerCase() || (baseSlug && dName === baseSlug)) {
+          checkAndDelete(full);
+        } else {
+          walkAndRemove(full);
+        }
+      } else if (ent.isFile()) {
+        const fName = ent.name.toLowerCase();
+        const fStem = path.basename(ent.name, path.extname(ent.name)).toLowerCase();
+        const fSlug = slugifyHelper(fStem);
+        if (
+          fName === cleanPattern.toLowerCase() ||
+          fStem === baseTarget.toLowerCase() ||
+          (baseSlug && fSlug === baseSlug)
+        ) {
+          checkAndDelete(full);
+        }
+      }
+    }
+  };
+
+  walkAndRemove(sourcesDir);
+
+  const assetsDir = path.join(projectDir, 'assets');
+  if (fs.existsSync(assetsDir)) {
+    const assetEntries = fs.readdirSync(assetsDir, { withFileTypes: true });
+    for (const ent of assetEntries) {
+      const aName = ent.name.toLowerCase();
+      if (aName.includes(baseTarget.toLowerCase()) || (baseSlug && aName.includes(baseSlug))) {
+        checkAndDelete(path.join(assetsDir, ent.name));
+      }
+    }
+  }
+
+  return { deleted };
 }
 
 async function handleInteractiveMode() {

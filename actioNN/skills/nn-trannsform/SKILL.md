@@ -87,19 +87,52 @@ node scripts/index.js --src "<source-folder>" --dest "<destination-parent-folder
 
 ### 2. Capability Scan & Source Ingestion Protocol (MANDATORY)
 
-#### 2a-0. Ingest `sources/import/` to `sources/nn/`
+#### 2a-0. Canonical Source Taxonomy (Taxonomía Canónica de Fuentes)
+
+The cogNNitive ecosystem operates on four clearly differentiated categories of sources:
+
+1. **Primary Source (Fuente Primaria)**:
+   - The immutable, raw original evidence or external watch root (`sources/import/`, `sources/original/`, `## NN External Watch Roots:`).
+   - Encompasses documents (PDF, DOCX, XLSX, TXT, CSV, JSON), raw audio/video recordings (`.mp3`, `.wav`, `.m4a`, `.mp4`), and external file drops.
+   - The scanner **never mutates, moves, or deletes** primary sources without explicit confirmation.
+2. **Normalized / Secondary Source (Fuente Normalizada / Secundaria)**:
+   - The structured Markdown representation generated under `sources/nn/` mirroring the active source subtrees.
+   - Contains mandatory scanner traceability frontmatter (`source_file`, `sha256`, `size_bytes`, `normalized_at`, and optional `media_file`).
+   - Serves as the canonical citation target (`sources:: [path.md#heading-slug]`) for Level 3 models.
+3. **Synthetic / Derived Source (Fuente Sintética)**:
+   - Internal deliverables or consolidated summaries re-ingested into the workspace graph (`sources/export/`, marked with `is_synthetic: true`).
+4. **User Input / Interactive Source (Fuente de Entrada de Usuario)**:
+   - In-line sources provided interactively during conversations (e.g. pasted data, calendars).
+   - Marked with `source_type: "user_input"` or `source_file: "inline:..."` and exempt from physical file existence checks.
+
+#### 2a-1. Ingest `sources/import/` to `sources/nn/` and Binary Media Companion Linking
 
 **Primary raw files live in `sources/import/` (or legacy `sources/original/`). The tool never moves, renames, or deletes anything there; it only reads.**
 
 1. **Check if `sources/import/` exists** inside the project directory. If not (and no `sources/original/` exists), ask the user and create it: `mkdir sources/import`
 2. **Copy files into `sources/import/`** (preserve originals in-place; DO NOT move or delete user files without consent). The user may organize subfolders freely — the scanner mirrors that structure into `sources/nn/`.
-3. **Scanner Normalization with Origin-Metadata Frontmatter**:
+3. **Binary Media Companion Linking (Same Stem Pairing)**:
+   When a raw binary media file (e.g. `.mp3`, `.wav`, `.m4a`, `.mp4`) exists alongside a text source (e.g. `.txt`, `.srt`, `.json`, `.docx`) with the same base name (`stem`), the scanner automatically links them:
+   - The text file is converted/normalized to `sources/nn/.../<stem>.md`.
+   - The companion media is recorded via `media_file` in the frontmatter:
+     ```yaml
+     ---
+     source_file: "sources/import/sessions/Grabación (21).txt"
+     media_file: "sources/import/sessions/Grabación (21).mp3"
+     sha256: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+     media_sha256: "a1b2c3d4e5f6..."
+     normalized_at: "2026-09-13T12:00:00Z"
+     ---
+     ```
+   - In iNNfo Modeler / UI, viewing this source automatically mounts an embedded audio/video player for direct playback and transcript verification.
+4. **Scanner Normalization with Origin-Metadata Frontmatter**:
    Every normalized file generated under `sources/nn/` MUST include the mandatory, flat scanner traceability frontmatter — this schema is exact and must match the iNNfo editor:
 
 ```yaml
 ---
 # 1. Origin metadata (where this Source came from)
 source_file: "sources/import/interview_transcript.pdf"
+media_file: "sources/import/interview_transcript.mp3"   # Optional companion media link (same stem)
 sha256: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 size_bytes: 1048576
 normalized_at: "2026-08-02T13:30:00Z"
@@ -309,6 +342,21 @@ node C:\Users\lucas\.agents\skills\nn-trannsform\scripts\extract.js "<file>"
 ```
 
 Prints only the extracted plain text to stdout (no frontmatter, no heading noise). The format is detected from the file extension (or forced with `--format pdf|docx|xlsx|doc|txt|md|csv|json|html`). The script lives inside the skill folder, so `pdf-parse`/`mammoth`/`xlsx` resolve against the skill's own `node_modules` — no `NODE_PATH` needed.
+
+#### 2h. Atomic Source Unlink & Purge Protocol (`--unlink`)
+
+When a user requests to remove, delete, or unlink a source completely from the workspace:
+1. **Consent Gate**: Never delete files unilaterally. List the full cascade of files (raw files in `sources/import/`, companion media files, normalized Markdown in `sources/nn/`, cached assets under `assets/`, archive snapshots in `sources/archive/`) and request confirmation: `[a] (Recommended) Confirm purge | [x] Cancel`.
+2. **Deterministic Purge Execution**:
+   ```bash
+   node scripts/index.js --unlink "<path-or-stem>" --src "<workspace-dir>"
+   ```
+3. **Automated Cascade Cleanup**:
+   - Removes physical source files in `sources/import/` (and linked companion media if confirmed).
+   - Removes normalized file(s) in `sources/nn/`.
+   - Removes matching assets directory in `assets/<stem>/`.
+   - Re-syncs `sources/nn/index.md` and workspace `index.md`.
+   - Re-generates the lineage record (`<Project>_V_0-2-0_workspace_NN.md`) in idempotent replace mode, eliminating all dangling references.
 
 ---
 

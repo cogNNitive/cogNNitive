@@ -50,7 +50,7 @@ function slugify(name) {
 /**
  * Parses flat frontmatter from normalized markdown source.
  * @param {string} content
- * @returns {{ file: string, hash: string | null, size: string | null, normalized_at: string | null, normalized_by: string | null, is_synthetic?: boolean, derived_from?: string[] | null } | null}
+ * @returns {{ file: string, media_file?: string | null, media_sha256?: string | null, hash: string | null, size: string | null, normalized_at: string | null, normalized_by: string | null, is_synthetic?: boolean, derived_from?: string[] | null } | null}
  */
 function parseSourceFrontmatter(content) {
   const fm = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
@@ -77,6 +77,8 @@ function parseSourceFrontmatter(content) {
 
   return {
     file,
+    media_file: get('media_file'),
+    media_sha256: get('media_sha256'),
     hash: get('sha256'),
     size: get('size_bytes'),
     normalized_at: get('normalized_at'),
@@ -121,7 +123,7 @@ function walkMarkdown(mdDir) {
 /**
  * Collects normalized sources from sources/nn/.
  * @param {string} mdDir
- * @returns {Array<{ name: string, raw_filename: string, raw_hash: string | null, size: string | null, source_format: string, normalized_at: string | null, normalized_by: string | null, normalized_content: string, mdFile: string, is_synthetic: boolean, derived_from: string[] | null, version: string, archive_path: string | null }>}
+ * @returns {Array<{ name: string, raw_filename: string, media_filename?: string | null, raw_hash: string | null, size: string | null, source_format: string, normalized_at: string | null, normalized_by: string | null, normalized_content: string, mdFile: string, is_synthetic: boolean, derived_from: string[] | null, version: string, archive_path: string | null }>}
  */
 function collectSources(mdDir) {
   const sources = [];
@@ -141,6 +143,7 @@ function collectSources(mdDir) {
     sources.push({
       name: rawBase,
       raw_filename: fmData.file,
+      media_filename: fmData.media_file || null,
       raw_hash: fmData.hash,
       size: fmData.size,
       source_format: mapSourceFormat(ext),
@@ -449,6 +452,7 @@ function renderSourcesSection(sources) {
   for (const s of sources) {
     out += `\n## NN Sources: ${s.name}\n`;
     out += `raw_filename:: ${s.raw_filename}\n`;
+    if (s.media_filename) out += `media_filename:: ${s.media_filename}\n`;
     if (s.raw_hash) out += `raw_hash:: ${s.raw_hash}\n`;
     if (s.size) out += `size:: ${s.size}\n`;
     if (s.source_format) out += `source_format:: ${s.source_format}\n`;

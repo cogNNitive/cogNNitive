@@ -56,6 +56,26 @@ This skill guides LLMs and agents in authoring, creating from scratch (wizard), 
 
 ---
 
+## Canonical Source Taxonomy & Provenance Contract
+
+The iNNfo ecosystem establishes an explicit taxonomy for sources and evidence:
+
+1. **Primary Source (Fuente Primaria)**:
+   - The immutable, original evidence files located in `sources/import/` (or legacy `sources/original/`) or watched via `## NN External Watch Roots:` (read-only).
+   - Includes raw text documents, spreadsheets, PDFs, and raw media (`.mp3`, `.wav`, `.mp4`).
+2. **Normalized Source / Secondary Source (Fuente Normalizada / Secundaria)**:
+   - Structured Markdown files generated under `sources/nn/` carrying canonical origin metadata in frontmatter (`source_file`, `sha256`, optional `media_file`).
+   - Cited in Level 3 model elements via `sources:: [path.md#heading-slug]`.
+3. **Companion Media & Lineage Playback**:
+   - When a source is paired with a companion audio/video file sharing the same stem (e.g. `Grabación (21).txt` + `Grabación (21).mp3`), the normalized Markdown links it via `media_file`.
+   - In the iNNfo Modeler lineage modal, companion media is surfaced with an embedded audio/video player for seamless evidence playback.
+4. **Synthetic Source (Fuente Sintética)**:
+   - Derived deliverables re-ingested into `sources/export/` (`is_synthetic: true`).
+5. **User Input Source (Fuente de Entrada de Usuario)**:
+   - In-line interactive input (`source_type: "user_input"`, `source_file: "inline:..."`) exempt from physical disk file existence.
+
+---
+
 ## 0. Entry Menu & Conversational Model Creation Wizard
 
 ### 0a. Entry Menu (initial options)

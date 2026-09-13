@@ -72,16 +72,21 @@ Environment readiness gate for cogNNitive workflows. Runs deterministic checks a
 
 ## Tier 1 Checks (always run)
 
-1. **Preflight & Integrity Runner**: run `node scripts/preflight-check.js` (or `node ~/.agents/skills/nn-preflight/scripts/preflight-check.js`). When `--workspace-dir <dir>` is passed, audits workspace spec freshness and executes the Universal Source Integrity Audit across `sources/import/`, `sources/conversations/`, and `sources/export/` (with legacy `sources/original/` fallback) against `sources/nn/`. Verifies Node.js >= 18, manifest reachability, installed skills vs pinned commits, MCP bundle availability, and templates. If exit code is `1`, report outdated/missing components or unnormalized/dangling sources and prompt for confirmation per the Canonical Activation Gate protocol.
+1. **Preflight & Integrity Runner**: run `node scripts/preflight-check.js` (or `node ~/.agents/skills/nn-preflight/scripts/preflight-check.js`). When `--workspace-dir <dir>` is passed, audits workspace spec freshness and executes the Universal Source Integrity Audit across `sources/import/`, `sources/conversations/`, and `sources/export/` (with legacy `sources/original/` fallback) against `sources/nn/`. Verifies Node.js >= 18, manifest reachability, installed skills vs pinned commits, MCP bundle availability, skill dependencies (`node_modules`), and templates. If exit code is `1`, report outdated/missing components or unnormalized/dangling sources and prompt for confirmation per the Canonical Activation Gate protocol.
 2. **Node.js**: require >= 18.
 3. **innfo-mcp availability**: call `innfo-mcp_list_models`; if the MCP tool is unavailable, fall back to checking that the bundle exists at `~/.agents/mcp/innfo-mcp.bundle.js` or `.cogNNitive/mcp-bundle.js`.
-4. **Workspace layout**: verify the expected directories exist — `sources/` (`sources/import/`, `sources/conversations/`, `sources/export/`, `sources/nn/`), `conversations/`, `export/`, `models/`, `procedures/`, `index.md` (legacy workspaces using `sources/original/` and `artifacts/` are supported via backward-compatible fallbacks).
+4. **Skill Dependencies Integrity**: verify installed skills containing `package.json` have `node_modules` present and resolvable.
+5. **Workspace layout**: verify the expected directories exist — `sources/` (`sources/import/`, `sources/conversations/`, `sources/export/`, `sources/nn/`), `conversations/`, `export/`, `models/`, `procedures/`, `index.md` (legacy workspaces using `sources/original/` and `artifacts/` are supported via backward-compatible fallbacks).
 
 ## Tier 2 Checks (optional — only for iNNfo output workflows)
 
-5. **iNNfo output workspace structure**: for Level 3 model workflows, verify `models/` holds `*_NN.md` files (note that `list_models` recursively scans both the workspace root and the `models/` subdirectory to find all models) and that `index.md` exists with `# NN index` as the entry point.
-6. **Semantic link validation (sources)**: parse all Level 3 model files and verify that every file path listed in the `sources:: [...]` metadata array exists physically in the workspace. Report any missing or dangling sources as warnings.
-7. **Workspace Source Integrity Audit (`scanWorkspaceSources`)**: when `--workspace-dir` is provided, discovers files across `sources/import/`, `sources/conversations/`, and `sources/export/` (or legacy `sources/original/`), verifies that every source file has an up-to-date normalized counterpart in `sources/nn/` matching its content SHA-256 hash, and verifies that no dangling references exist in `sources/nn/`. Any unnormalized or stale source is reported as a non-blocking actionable warning recommending `node scripts/index.js --scan`. Emits structured `sources_integrity` payload in `--json` mode.
+6. **iNNfo output workspace structure**: for Level 3 model workflows, verify `models/` holds `*_NN.md` files (note that `list_models` recursively scans both the workspace root and the `models/` subdirectory to find all models) and that `index.md` exists with `# NN index` as the entry point.
+7. **Semantic link validation (sources)**: parse all Level 3 model files and verify that every file path listed in the `sources:: [...]` metadata array exists physically in the workspace. Report any missing or dangling sources as warnings.
+8. **Workspace Source Integrity Audit (`scanWorkspaceSources`)**: when `--workspace-dir` is provided:
+   - Discovers files across `sources/import/`, `sources/conversations/`, and `sources/export/` (or legacy `sources/original/`).
+   - Pairs raw media binaries (`.mp3`, `.wav`, etc.) sharing the same stem with text companions via `media_file` without flagging them as unnormalized. Standalone media is classified as informational `raw-media` (pending transcription) and does not flip the exit code to warning.
+   - Recognizes in-line user sources (`source_type: "user_input"` or `inline:`) and does not flag them as dangling.
+   - Verifies that every text source has an up-to-date normalized counterpart in `sources/nn/` matching its content SHA-256 hash. Any unnormalized or stale source is reported as an actionable warning recommending `node scripts/index.js --scan`. Emits structured `sources_integrity` payload in `--json` mode.
 
 ## Tier 3 Checks (workspace template upgrades — informational)
 

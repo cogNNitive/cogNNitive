@@ -59,7 +59,13 @@ Every agent interaction across the cogNNitive ecosystem MUST follow these strict
       - `[full] (Recommended) Full Transcript`: Promotes the verbatim dialogue to `sources/conversations/<session-slug>_source.md`.
       - `[none]`: Leaves transcript in `conversations/` only.
       No executive-summary (`_summary.md`) or combined option is offered; `_summary.md` files are not produced by the standard promotion flow.
-     Promoted sources link back via `origin_transcript: conversations/...` and are normalized into `sources/nn/conversations/` via `nn-trannsform` scanner for citation by models (`sources:: [conversations/<file>.md#<anchor>]`).
+      Promoted sources link back via `origin_transcript: conversations/...` and are normalized into `sources/nn/conversations/` via `nn-trannsform` scanner for citation by models (`sources:: [conversations/<file>.md#<anchor>]`).
+
+6. **Canonical Source Taxonomy (Zero Confusion Gate)**:
+   - **Primary Sources (Fuentes Primarias)**: Raw files in `sources/import/`, `sources/original/`, or external watch roots (`## NN External Watch Roots:`). Includes documents and raw media (`.mp3`, `.wav`).
+   - **Normalized Sources (Fuentes Normalizadas)**: Structured Markdown in `sources/nn/`. Companion media files sharing the same stem are linked via `media_file` frontmatter.
+   - **Synthetic Sources (Fuentes Sintéticas)**: Deliverables re-ingested into graph (`is_synthetic: true`).
+   - **User Input Sources (Entrada de Usuario)**: In-line conversational inputs (`source_type: "user_input"`), exempt from physical file checks.
 
 ---
 
