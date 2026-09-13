@@ -7,6 +7,7 @@ import {
   Trash2,
   X,
   AlertCircle,
+  Loader2,
 } from 'lucide-vue-next'
 import { useRouter, useRoute } from 'vue-router'
 import { useWorkspaceStore } from '../stores/workspaceStore'
@@ -40,78 +41,113 @@ const showWizard = ref(false)
 const folderBusy = ref(false)
 const folderInputRef = ref<HTMLInputElement | null>(null)
 
-onMounted(async () => {
-  history.value = await loadHistory()
+const hasDeepLink = !!(
+  route.query.workspace ||
+  route.query.models ||
+  route.query.model ||
+  route.query.url ||
+  route.query.doc
+)
+const isDeepLinkLoading = ref(hasDeepLink && !route.query.createTemplate)
 
-  const createTemplate = route.query.createTemplate as string | undefined
-  if (createTemplate) {
-    showWizard.value = true
-    router.replace({ query: {} })
-    return
-  }
-
-  // Intercept workspace preset deep-links (e.g. ?workspace=startup-founder)
-  const wsSlug = route.query.workspace as string | undefined
-  if (wsSlug) {
-    const preset = resolveWorkspacePreset(wsSlug)
-    if (preset) {
-      try {
-        await workspace.loadVirtualWorkspace(preset.modelUrls, preset.name, preset.templateName)
-        await router.push({ path: '/workspace', query: route.query, hash: route.hash })
-        return
-      } catch (err) {
-        error.value = `Failed to load virtual workspace "${preset.name}": ${err instanceof Error ? err.message : String(err)}`
-      }
-    }
-  }
-
-  // Intercept multi-model deep-links (e.g. ?models=url1,url2)
-  const multiModels = route.query.models as string | undefined
-  if (multiModels) {
-    const urls = multiModels.split(',').map((u) => u.trim()).filter(Boolean)
-    if (urls.length > 0) {
-      try {
-        await workspace.loadVirtualWorkspace(urls)
-        await router.push({ path: '/workspace', query: route.query, hash: route.hash })
-        return
-      } catch (err) {
-        error.value = `Failed to load models: ${err instanceof Error ? err.message : String(err)}`
-      }
-    }
-  }
-
-  // Intercept remote model URLs (?model=https://... or ?url=https://... or ?doc=https://...)
+function getInitialDeepLinkMessage(): string {
+  if (route.query.workspace) return 'Loading workspace preset...'
+  if (route.query.models) return 'Loading models...'
   const directUrl = (route.query.model || route.query.url || route.query.doc) as string | undefined
   if (directUrl && /^(https?:\/\/|\/|\.\/)/i.test(directUrl)) {
-    try {
-      await workspace.loadVirtualWorkspace([directUrl])
-      await router.push({ path: '/workspace', query: route.query, hash: route.hash })
-      return
-    } catch (err) {
-      error.value = `Failed to load remote model: ${err instanceof Error ? err.message : String(err)}`
-    }
+    return 'Loading remote model...'
   }
+  if (route.query.model) {
+    return `Opening workspace for "${route.query.model}"...`
+  }
+  return 'Loading workspace...'
+}
 
-  // Auto-reopen local workspace containing the deep-linked model if found in history
-  if (route.query.model && history.value.length > 0) {
-    const modelId = typeof route.query.model === 'string' ? route.query.model : undefined
-    const wsHint = typeof route.query.ws === 'string' ? route.query.ws : undefined
-    const entry = await resolveWorkspaceForDeepLink(history.value, modelId, wsHint)
-    if (entry) {
-      try {
-        const handle = await getStoredHandle(entry.handleKey)
-        if (handle) {
-          await workspace.open(handle, { force: true })
-          await router.push({
-            path: '/workspace',
-            query: route.query,
-            hash: route.hash,
-          })
+const deepLinkMessage = ref(getInitialDeepLinkMessage())
+
+onMounted(async () => {
+  try {
+    history.value = await loadHistory()
+
+    const createTemplate = route.query.createTemplate as string | undefined
+    if (createTemplate) {
+      showWizard.value = true
+      router.replace({ query: {} })
+      return
+    }
+
+    // Intercept workspace preset deep-links (e.g. ?workspace=startup-founder)
+    const wsSlug = route.query.workspace as string | undefined
+    if (wsSlug) {
+      deepLinkMessage.value = 'Loading workspace preset...'
+      const preset = resolveWorkspacePreset(wsSlug)
+      if (preset) {
+        try {
+          await workspace.loadVirtualWorkspace(preset.modelUrls, preset.name, preset.templateName)
+          await router.push({ path: '/workspace', query: route.query, hash: route.hash })
+          return
+        } catch (err) {
+          error.value = `Failed to load virtual workspace "${preset.name}": ${err instanceof Error ? err.message : String(err)}`
         }
-      } catch (e) {
-        console.warn('Failed to auto-reopen workspace:', e)
       }
     }
+
+    // Intercept multi-model deep-links (e.g. ?models=url1,url2)
+    const multiModels = route.query.models as string | undefined
+    if (multiModels) {
+      deepLinkMessage.value = 'Loading models...'
+      const urls = multiModels.split(',').map((u) => u.trim()).filter(Boolean)
+      if (urls.length > 0) {
+        try {
+          await workspace.loadVirtualWorkspace(urls)
+          await router.push({ path: '/workspace', query: route.query, hash: route.hash })
+          return
+        } catch (err) {
+          error.value = `Failed to load models: ${err instanceof Error ? err.message : String(err)}`
+        }
+      }
+    }
+
+    // Intercept remote model URLs (?model=https://... or ?url=https://... or ?doc=https://...)
+    const directUrl = (route.query.model || route.query.url || route.query.doc) as string | undefined
+    if (directUrl && /^(https?:\/\/|\/|\.\/)/i.test(directUrl)) {
+      deepLinkMessage.value = 'Loading remote model...'
+      try {
+        await workspace.loadVirtualWorkspace([directUrl])
+        await router.push({ path: '/workspace', query: route.query, hash: route.hash })
+        return
+      } catch (err) {
+        error.value = `Failed to load remote model: ${err instanceof Error ? err.message : String(err)}`
+      }
+    }
+
+    // Auto-reopen local workspace containing the deep-linked model if found in history
+    if (route.query.model && history.value.length > 0) {
+      deepLinkMessage.value = `Opening workspace for "${route.query.model}"...`
+      const modelId = typeof route.query.model === 'string' ? route.query.model : undefined
+      const wsHint = typeof route.query.ws === 'string' ? route.query.ws : undefined
+      const entry = await resolveWorkspaceForDeepLink(history.value, modelId, wsHint)
+      if (entry) {
+        try {
+          const handle = await getStoredHandle(entry.handleKey)
+          if (handle) {
+            await workspace.open(handle, { force: true })
+            if (workspace.hasParsed) {
+              await router.push({
+                path: '/workspace',
+                query: route.query,
+                hash: route.hash,
+              })
+              return
+            }
+          }
+        } catch (e) {
+          console.warn('Failed to auto-reopen workspace:', e)
+        }
+      }
+    }
+  } finally {
+    isDeepLinkLoading.value = false
   }
 })
 
@@ -321,143 +357,166 @@ async function onFolderInputChange(event: Event): Promise<void> {
 
 <template>
   <div class="home max-w-4xl mx-auto p-6 space-y-8">
-    <!-- Setup Wizard Modal -->
+    <!-- Deep Link Loading State -->
     <div
-      v-if="showWizard"
-      class="fixed inset-0 z-50 flex items-start justify-center p-4 bg-slate-950/50 backdrop-blur-xs overflow-y-auto"
+      v-if="isDeepLinkLoading"
+      class="min-h-[50vh] flex flex-col items-center justify-center space-y-5 text-center"
+      data-testid="deep-link-loader"
     >
-      <div class="relative w-full max-w-2xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl p-6">
-        <button
-          class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
-          aria-label="Close setup wizard"
-          @click="showWizard = false"
-        >
-          <X class="w-5 h-5" />
-        </button>
-        <SetupWizard @done="showWizard = false" />
+      <div
+        class="w-16 h-16 rounded-2xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800/60 flex items-center justify-center shadow-md"
+      >
+        <Loader2 class="w-8 h-8 text-purple-700 dark:text-purple-300 animate-spin" />
+      </div>
+      <div class="space-y-1.5 max-w-sm">
+        <h2 class="text-base font-bold text-slate-800 dark:text-slate-100">
+          {{ deepLinkMessage }}
+        </h2>
+        <p class="text-xs text-slate-500 dark:text-slate-400">
+          Opening and preparing the workspace...
+        </p>
       </div>
     </div>
 
-    <!-- Hero Card -->
-    <section class="hero text-center space-y-4">
+    <template v-else>
+      <!-- Setup Wizard Modal -->
       <div
-        class="bg-gradient-to-br from-purple-50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 border border-purple-900/20 dark:border-purple-900/40 rounded-2xl p-8 shadow-xs"
+        v-if="showWizard"
+        class="fixed inset-0 z-50 flex items-start justify-center p-4 bg-slate-950/50 backdrop-blur-xs overflow-y-auto"
       >
-        <h1 class="text-3xl font-black text-purple-950 dark:text-purple-300">
-          iNNfo Editor &amp; Modeler
-        </h1>
-        <p class="text-xs text-slate-600 dark:text-slate-400 max-w-md mx-auto mt-2 leading-relaxed">
-          Open a local folder containing iNNfo model files (<code class="font-mono text-purple-700 dark:text-purple-300">*_NN.md</code>)
-          to explore, edit, and visualize your models.
-        </p>
-
-        <div class="flex flex-wrap items-center justify-center gap-3 mt-6">
+        <div class="relative w-full max-w-2xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl p-6">
           <button
-            class="px-6 py-3 rounded-xl bg-purple-900 hover:bg-purple-950 text-white font-bold text-sm shadow-md transition-all flex items-center gap-2.5 cursor-pointer disabled:opacity-50"
-            :disabled="folderBusy"
-            @click="openWorkspace"
+            class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+            aria-label="Close setup wizard"
+            @click="showWizard = false"
           >
-            <FolderOpen class="w-4 h-4" />
-            <span>{{ folderBusy ? 'Opening...' : 'Open Workspace Folder' }}</span>
+            <X class="w-5 h-5" />
           </button>
-
-          <button
-            class="px-5 py-3 rounded-xl bg-white dark:bg-slate-800 border border-purple-900/40 text-purple-900 dark:text-purple-300 font-bold text-xs hover:bg-purple-50 dark:hover:bg-slate-700/60 transition-all flex items-center gap-2 cursor-pointer"
-            @click="showWizard = true"
-          >
-            <Sparkles class="w-4 h-4 text-purple-600 dark:text-purple-400" />
-            <span>Guided Setup</span>
-          </button>
+          <SetupWizard @done="showWizard = false" />
         </div>
+      </div>
 
+      <!-- Hero Card -->
+      <section class="hero text-center space-y-4">
         <div
-          v-if="error"
-          class="mt-4 p-3 rounded-lg text-xs bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 flex items-center justify-center gap-2"
-          role="alert"
+          class="bg-gradient-to-br from-purple-50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 border border-purple-900/20 dark:border-purple-900/40 rounded-2xl p-8 shadow-xs"
         >
-          <AlertCircle class="w-4 h-4 shrink-0" />
-          <span>{{ error }}</span>
+          <h1 class="text-3xl font-black text-purple-950 dark:text-purple-300">
+            iNNfo Editor &amp; Modeler
+          </h1>
+          <p class="text-xs text-slate-600 dark:text-slate-400 max-w-md mx-auto mt-2 leading-relaxed">
+            Open a local folder containing iNNfo model files (<code class="font-mono text-purple-700 dark:text-purple-300">*_NN.md</code>)
+            to explore, edit, and visualize your models.
+          </p>
+
+          <div class="flex flex-wrap items-center justify-center gap-3 mt-6">
+            <button
+              class="px-6 py-3 rounded-xl bg-purple-900 hover:bg-purple-950 text-white font-bold text-sm shadow-md transition-all flex items-center gap-2.5 cursor-pointer disabled:opacity-50"
+              :disabled="folderBusy"
+              @click="openWorkspace"
+            >
+              <FolderOpen class="w-4 h-4" />
+              <span>{{ folderBusy ? 'Opening...' : 'Open Workspace Folder' }}</span>
+            </button>
+
+            <button
+              class="px-5 py-3 rounded-xl bg-white dark:bg-slate-800 border border-purple-900/40 text-purple-900 dark:text-purple-300 font-bold text-xs hover:bg-purple-50 dark:hover:bg-slate-700/60 transition-all flex items-center gap-2 cursor-pointer"
+              @click="showWizard = true"
+            >
+              <Sparkles class="w-4 h-4 text-purple-600 dark:text-purple-400" />
+              <span>Guided Setup</span>
+            </button>
+          </div>
+
+          <div
+            v-if="error"
+            class="mt-4 p-3 rounded-lg text-xs bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 flex items-center justify-center gap-2"
+            role="alert"
+          >
+            <AlertCircle class="w-4 h-4 shrink-0" />
+            <span>{{ error }}</span>
+          </div>
+
+          <input
+            ref="folderInputRef"
+            type="file"
+            webkitdirectory
+            multiple
+            class="hidden"
+            @change="onFolderInputChange"
+          />
+        </div>
+      </section>
+
+      <!-- Recent Workspaces -->
+      <section class="space-y-3">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+            <FolderClock class="w-3.5 h-3.5" />
+            <span>Recent Workspaces</span>
+          </h2>
+          <button
+            v-if="history.length"
+            class="text-2xs font-semibold text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors cursor-pointer"
+            @click="clearAllHistory"
+          >
+            Clear all
+          </button>
         </div>
 
-        <input
-          ref="folderInputRef"
-          type="file"
-          webkitdirectory
-          multiple
-          class="hidden"
-          @change="onFolderInputChange"
-        />
-      </div>
-    </section>
-
-    <!-- Recent Workspaces -->
-    <section class="space-y-3">
-      <div class="flex items-center justify-between">
-        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-          <FolderClock class="w-3.5 h-3.5" />
-          <span>Recent Workspaces</span>
-        </h2>
-        <button
-          v-if="history.length"
-          class="text-2xs font-semibold text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors cursor-pointer"
-          @click="clearAllHistory"
-        >
-          Clear all
-        </button>
-      </div>
-
-      <!-- History entries -->
-      <div v-if="history.length" class="space-y-2">
-        <button
-          v-for="entry in history"
-          :key="entry.handleKey"
-          class="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-left hover:border-purple-400 dark:hover:border-purple-600 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all cursor-pointer group disabled:opacity-50"
-          :disabled="reopenBusy === entry.handleKey"
-          @click="reopenFolder(entry)"
-        >
-          <span
-            class="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 flex items-center justify-center shrink-0"
-          >
-            <FolderOpen class="w-4 h-4" />
-          </span>
-          <span class="flex-1 min-w-0">
-            <span class="block text-sm font-bold text-slate-800 dark:text-slate-100 truncate">
-              {{ entry.name }}
-            </span>
-            <span
-              v-if="entry.path && entry.path !== entry.name"
-              class="block text-3xs text-slate-400 dark:text-slate-500 truncate"
-            >
-              {{ entry.path }}
-            </span>
-          </span>
-          <span class="text-3xs text-slate-400 dark:text-slate-500 shrink-0">
-            {{ formatTimestamp(entry.timestamp) }}
-          </span>
+        <!-- History entries -->
+        <div v-if="history.length" class="space-y-2">
           <button
-            type="button"
-            class="p-1.5 rounded-md text-slate-300 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 dark:text-slate-600 dark:hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 cursor-pointer"
-            :aria-label="`Remove ${entry.name} from recent workspaces`"
-            @click.stop="removeEntry(entry.handleKey)"
+            v-for="entry in history"
+            :key="entry.handleKey"
+            class="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-left hover:border-purple-400 dark:hover:border-purple-600 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all cursor-pointer group disabled:opacity-50"
+            :disabled="reopenBusy === entry.handleKey"
+            @click="reopenFolder(entry)"
           >
-            <Trash2 class="w-3.5 h-3.5" />
+            <span
+              class="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 flex items-center justify-center shrink-0"
+            >
+              <FolderOpen class="w-4 h-4" />
+            </span>
+            <span class="flex-1 min-w-0">
+              <span class="block text-sm font-bold text-slate-800 dark:text-slate-100 truncate">
+                {{ entry.name }}
+              </span>
+              <span
+                v-if="entry.path && entry.path !== entry.name"
+                class="block text-3xs text-slate-400 dark:text-slate-500 truncate"
+              >
+                {{ entry.path }}
+              </span>
+            </span>
+            <span class="text-3xs text-slate-400 dark:text-slate-500 shrink-0">
+              {{ formatTimestamp(entry.timestamp) }}
+            </span>
+            <button
+              type="button"
+              class="p-1.5 rounded-md text-slate-300 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 dark:text-slate-600 dark:hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 cursor-pointer"
+              :aria-label="`Remove ${entry.name} from recent workspaces`"
+              @click.stop="removeEntry(entry.handleKey)"
+            >
+              <Trash2 class="w-3.5 h-3.5" />
+            </button>
           </button>
-        </button>
-      </div>
+        </div>
 
-      <!-- Empty state -->
-      <div
-        v-else
-        class="text-center py-10 px-4 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 text-slate-400 dark:text-slate-500 space-y-1.5"
-      >
-        <p class="text-xs font-semibold text-slate-600 dark:text-slate-400">
-          No recent workspaces yet
-        </p>
-        <p class="text-3xs">
-          Open a local workspace folder containing iNNfo models to get started.
-        </p>
-      </div>
-    </section>
+        <!-- Empty state -->
+        <div
+          v-else
+          class="text-center py-10 px-4 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 text-slate-400 dark:text-slate-500 space-y-1.5"
+        >
+          <p class="text-xs font-semibold text-slate-600 dark:text-slate-400">
+            No recent workspaces yet
+          </p>
+          <p class="text-3xs">
+            Open a local workspace folder containing iNNfo models to get started.
+          </p>
+        </div>
+      </section>
+    </template>
   </div>
 </template>
 
