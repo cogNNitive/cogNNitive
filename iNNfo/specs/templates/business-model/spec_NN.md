@@ -5,7 +5,7 @@ level: 2
 parent_spec:
   name: "iNNfo_V_0-2-1"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-2-1_NN.md"
-template_version: "V_0-2-2"
+template_version: "V_0-2-3"
 title: "Business Model App"
 relationship_types:
   hierarchy:
@@ -538,7 +538,7 @@ description:: Payback period in months.
 ## NN Field Definition: target_artifact
 concept:: Procedure
 type:: string
-description:: Nombre del archivo o entregable final a generar (ej. master.html).
+description:: Nombre del archivo o entregable final a generar (ej. model_viewer.html).
 
 ## NN Field Definition: trigger_command
 concept:: Procedure
