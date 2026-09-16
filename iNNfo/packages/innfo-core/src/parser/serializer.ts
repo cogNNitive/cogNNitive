@@ -338,6 +338,9 @@ export function serializeModel(model: ParsedModel): string {
       // programmatically after parsing).
       elementNodes!.forEach((node, idx) => {
         lines.push(`## NN ${conceptName}: ${node.name}`)
+        // An authored `slug::` is an identity declaration and leads the
+        // element. A derived slug is not written: see `slugExplicit`.
+        if (node.slugExplicit && node.slug) lines.push(`slug:: ${node.slug}`)
         for (const [k, v] of Object.entries(node.fields)) {
           // A citation field with a repeated pointer is rewritten (dropping
           // its raw text, deliberately); anything else keeps the author's

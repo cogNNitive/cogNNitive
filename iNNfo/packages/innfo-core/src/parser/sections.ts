@@ -166,6 +166,7 @@ export function parseConceptSection(conceptName: string, content: string): Parse
       if (prop !== null) {
         if (prop[0] === 'slug') {
           current.slug = String(prop[1])
+          current.slugExplicit = true
         } else if (prop[0] === 'tags') {
           current.tags = parseTagList(String(prop[1]))
           current.rawTags = String(prop[1])

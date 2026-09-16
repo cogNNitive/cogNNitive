@@ -130,6 +130,33 @@ describe('indentation stripping (AD-3)', () => {
   })
 })
 
+describe('explicit slugs survive a save', () => {
+  it('re-emits an authored slug:: line', () => {
+    const source = doc(
+      [
+        '# NN Shareholders',
+        '',
+        '## NN Shareholders: Dr. Peter Venkman',
+        'slug:: shareholders-dr-peter-venkman',
+        'role:: founder',
+        '',
+      ].join('\n'),
+    )
+    expect(serializeModel(parseModel(source))).toContain('slug:: shareholders-dr-peter-venkman')
+    expectRoundTrip(source)
+  })
+
+  it('does not invent a slug:: line for an element that never declared one', () => {
+    // Every element gets a DERIVED slug after parsing; only an authored one
+    // may be written back, or every document would grow a slug line per
+    // element on its first save.
+    const source = doc(
+      ['# NN Shareholders', '', '## NN Shareholders: Alice', 'role:: founder', ''].join('\n'),
+    )
+    expect(serializeModel(parseModel(source))).not.toContain('slug::')
+  })
+})
+
 describe('frontmatter and preamble fidelity', () => {
   it('keeps a frontmatter key outside the constructed allow-list', () => {
     const source = [

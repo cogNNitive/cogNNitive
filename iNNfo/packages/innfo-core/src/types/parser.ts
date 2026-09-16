@@ -228,6 +228,13 @@ export interface ElementNode {
    */
   rawTags?: string
   /**
+   * Whether `slug` was AUTHORED as a `slug::` line, rather than derived by
+   * `deriveElementSlugs`. Only an authored slug is written back: every element
+   * carries a derived `slug` after parsing, so emitting unconditionally would
+   * grow a `slug::` line on every element of every document on its first save.
+   */
+  slugExplicit?: boolean
+  /**
    * Exact source text (the RHS after `key:: `) for each field, as originally
    * authored — before `parsePropertyValue` normalizes it. `serializeModel`
    * re-emits this verbatim when the field's current value still matches what
