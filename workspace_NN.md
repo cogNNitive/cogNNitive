@@ -1,4 +1,4 @@
-﻿---
+---
 level: 3
 parent_spec:
   name: " workspace\
@@ -29,7 +29,7 @@ environment:: development
 models_dir:: models/
 sources_dir:: sources/
 templates_dir:: iNNfo/specs/templates/
-skills_dir:: actioNN/skills/
+skills_dir:: skills/
 
 Self-hosted root workspace for the cogNNitive monorepo, governing specifications, domain templates, project models, procedures, AI agent skills, and maintenance tools under unified dogfooding architecture.
 
@@ -104,57 +104,57 @@ author:: Lead Maintainer
 # NN Sources
 
 ## NN Sources: Master Sources Catalog
-path:: _samples_nn/sources_NN.md
+path:: sources/sources_NN.md
 
 # NN Procedures
 
 ## NN Procedures: Master Procedures Catalog
-path:: _samples_nn/procedures_NN.md
+path:: procedures/procedures_NN.md
 
 # NN Artifacts
 
 ## NN Artifacts: Master Artifacts Catalog
-path:: _samples_nn/artifacts_NN.md
+path:: artifacts/artifacts_NN.md
 
 # NN Skills
 
 ## NN Skills: Model Creation Wizard
-path:: actioNN/skills/nn-innfo/SKILL.md
+path:: skills/nn-innfo/SKILL.md
 role:: Conversational Architecture Coach and Model Authoring
 target_agents:: \Antigravity Claude Code OpenCode\
 
 ## NN Skills: Document Ingestion Pipeline
-path:: actioNN/skills/nn-trannsform/SKILL.md
+path:: skills/nn-trannsform/SKILL.md
 role:: Document Ingestion, Scanning, and Markdown Normalization
 target_agents:: \Antigravity Claude Code OpenCode\
 
 ## NN Skills: Workspace Preflight Guard
-path:: actioNN/skills/nn-preflight/SKILL.md
+path:: skills/nn-preflight/SKILL.md
 role:: Multi-tier Workspace Preflight, Freshness Audit, and Composition Validator
 target_agents:: \Antigravity Claude Code OpenCode\
 
 ## NN Skills: Visual Design Presets
-path:: actioNN/skills/nn-design-presets/SKILL.md
+path:: skills/nn-design-presets/SKILL.md
 role:: Typography, Palettes, and Branding Design Tokens
 target_agents:: \Antigravity Claude Code OpenCode\
 
 ## NN Skills: Site Generator
-path:: actioNN/skills/nn-site-generator/SKILL.md
+path:: skills/nn-site-generator/SKILL.md
 role:: Static Documentation Site and Showcase Generator
 target_agents:: \Antigravity Claude Code OpenCode\
 
 ## NN Skills: Skills Lifecycle Manager
-path:: actioNN/skills/nn-skills-lifecycle/SKILL.md
+path:: skills/nn-skills-lifecycle/SKILL.md
 role:: AI Agent Skill Scaffolding, Validation, and Lifecycle
 target_agents:: \Antigravity Claude Code OpenCode\
 
 ## NN Skills: Template Upgrade Assistant
-path:: actioNN/skills/nn-upgrade/SKILL.md
+path:: skills/nn-upgrade/SKILL.md
 role:: Interactive and Automated Template Version Migration
 target_agents:: \Antigravity Claude Code OpenCode\
 
 ## NN Skills: Git Worktree Isolation
-path:: actioNN/skills/nn-workspace-git/SKILL.md
+path:: skills/nn-workspace-git/SKILL.md
 role:: Working Tree Guard and Multi-Agent Concurrency Isolation
 target_agents:: \Antigravity Claude Code OpenCode\
 

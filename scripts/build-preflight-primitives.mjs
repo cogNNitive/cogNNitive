@@ -44,7 +44,6 @@ const ENTRY = path.join(
 )
 const DEFAULT_OUT = path.join(
   REPO_ROOT,
-  'actioNN',
   'skills',
   'nn-preflight',
   'scripts',

@@ -125,9 +125,9 @@ function runVerification(options = {}) {
   const ORCHESTRATORS = [
     'scripts/manifest/validate-manifest.js',
     'scripts/manifest/check-parity.js',
-    'actioNN/scripts/skills-manager.js',
-    'actioNN/skills/nn-trannsform/scripts/scanner.js',
-    'actioNN/skills/nn-trannsform/scripts/provenance.js',
+    'scripts/skills-manager.js',
+    'skills/nn-trannsform/scripts/scanner.js',
+    'skills/nn-trannsform/scripts/provenance.js',
   ];
 
   const MAX_LINES = 200;
@@ -160,7 +160,7 @@ function runVerification(options = {}) {
   //    run BEFORE the stable-manifest validation (step 6) because that step
   //    currently halts on pre-existing pinned-tag drift — the guards here must
   //    stay reachable in CI (W2/W3 from the slice-1 verify report).
-  run('node actioNN/skills/nn-preflight/scripts/preflight-check.test.js', 'Test Preflight Workspace Freshness');
+  run('node skills/nn-preflight/scripts/preflight-check.test.js', 'Test Preflight Workspace Freshness');
 
   // 6. Preflight Primitives Drift Guard: the committed version-status.generated.cjs
   //    must match the innfo-core source it is bundled from (single classifier, no

@@ -37,7 +37,6 @@ const REPO_ROOT = path.resolve(SCRIPT_DIR, '..')
 const ENTRY = path.join(REPO_ROOT, 'iNNfo', 'packages', 'innfo-core', 'src', 'slugPrimitives.ts')
 const DEFAULT_OUT = path.join(
   REPO_ROOT,
-  'actioNN',
   'skills',
   'nn-trannsform',
   'scripts',

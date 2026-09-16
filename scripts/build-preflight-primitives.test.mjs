@@ -22,7 +22,6 @@ const BUILDER = path.join(SCRIPT_DIR, 'build-preflight-primitives.mjs')
 const COMMITTED = path.join(
   SCRIPT_DIR,
   '..',
-  'actioNN',
   'skills',
   'nn-preflight',
   'scripts',

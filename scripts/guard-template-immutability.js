@@ -45,7 +45,7 @@
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
-const { parseFocusedYaml, parseFrontmatter } = require('../actioNN/skills/nn-preflight/scripts/lib/yaml-lite');
+const { parseFocusedYaml, parseFrontmatter } = require('../skills/nn-preflight/scripts/lib/yaml-lite');
 
 const DEFAULT_ROOT = path.join(__dirname, '..', 'iNNfo', 'specs', 'templates');
 
