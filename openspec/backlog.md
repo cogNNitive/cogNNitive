@@ -583,3 +583,25 @@ repeated display name within one document; and if so, whether `qualifiedId` deri
 the slug, and what that means for every existing `[[wikilink]]`.
 
 **Suggested trigger:** `/sdd-new intra-document-identity-by-slug`.
+
+---
+
+## `feature/merkle-lineage-and-distributed-workspace` — Merkle invalidation, distributed submodels & lifecycle governance
+
+**Type:** functional / architecture · **Size:** large
+
+**Status:** Postponed from 2026-09-14 change series to prevent premature overengineering. Core model hierarchy and navigation were prioritized instead.
+
+**What it entails:**
+1. **Merkle-Tree Lineage & Stale Invalidation (`innfo-core`)**:
+   - Container models compute aggregate Merkle hashes from leaf model hashes.
+   - When a source SHA-256 changes, all dependent artifacts are automatically flagged as `status: stale` in $O(1)$ time.
+2. **Distributed Model Resolver & Reusable Includes**:
+   - `type:: model` supports universal URI schemes (`https://`, `git://`).
+   - Enables importing corporate standard procedure libraries and base templates as remote submodels.
+3. **FSM Workspace Lifecycle & Matrix Coverage Gates**:
+   - `workspace_NN.md` defines maturity stages: `[draft, ingesting, modeling, verified, ready]`.
+   - Transitions are gated by mathematical coverage thresholds over relationship matrices (`Artifacts × Procedures`, `Artifacts × Sources`, `Models × Sources`).
+
+**Suggested trigger:** `/sdd-explore merkle-lineage-and-distributed-workspace` (evaluate only after unified workspace hierarchy and navigation have stabilized in real-world usage).
+

@@ -1,7 +1,11 @@
-# Verify Report: Document Fidelity & Provenance Integrity
+# Verification Report: Document Fidelity & Provenance Integrity
 
-Verified 2026-09-16 on `dev`. Strict TDD was active throughout: every behaviour
-below landed with a failing test first.
+**Change Identifier**: `2026-09-13-document-fidelity-and-provenance-integrity`  
+**Date**: 2026-09-16  
+**Status**: **PASS**  
+**Verifier**: Antigravity Verification Subagent  
+
+---
 
 ## Verification commands
 
