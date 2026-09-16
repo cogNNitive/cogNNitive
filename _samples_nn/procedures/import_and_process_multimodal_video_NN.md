@@ -1,4 +1,4 @@
-﻿---
+---
 level: 3
 parent_spec:
   name: "procedures_V_0-2-0"
@@ -247,7 +247,7 @@ Human maintainer reviewing synthesized video summaries and approving model updat
 # NN matrices: work-artifacts matrix
 
 | Work \ Artifact | Raw Video Recordings Directory | Unprocessed Video List | Verified Video Ingestion Queue | Extracted Audio and Keyframe Images | Consolidated Transcript and Visual Text | Staged Multimodal Import Files | Normalized Markdown Sources | Updated Domain Model | Verified Target Domain Model |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 | Import and Process Multimodal Video | Reviews | - | - | - | - | - | - | - | Creates |
 | Discover Raw Video Files | Reviews | Creates | - | - | - | - | - | - | - |
 | Verify and Deduplicate Video Sources | - | Reviews | Creates | - | - | - | - | - | - |
