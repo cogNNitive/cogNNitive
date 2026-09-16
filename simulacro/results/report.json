@@ -1,0 +1,58 @@
+{
+  "counts": {
+    "PASS": 1,
+    "FAIL": 5,
+    "OBSERVED": 0
+  },
+  "scenarios": [
+    {
+      "id": "S07",
+      "title": "Opening the shipped sample workspace",
+      "intent": "A new user opens the workspace we ship. Everything they see on day one is what this scenario measures.",
+      "steps": [
+        {
+          "label": "The shipped workspace parses without issues",
+          "expectation": "all sample models load with zero parse issues — this is the first thing a new user sees",
+          "actual": "{\n  \"entrypoint\": \"workspace_NN.md\",\n  \"models\": 13,\n  \"issueCount\": 40,\n  \"issueKinds\": {\n    \"slug-collision\": 8,\n    \"other\": 32\n  }\n}",
+          "outcome": "FAIL",
+          "error": null
+        },
+        {
+          "label": "Every shipped sample passes document hygiene with no errors",
+          "expectation": "zero hygiene errors across the eleven samples",
+          "actual": "[]",
+          "outcome": "PASS",
+          "error": null
+        },
+        {
+          "label": "Every citation in the shipped workspace resolves",
+          "expectation": "a new user opening the sample sees no broken provenance",
+          "actual": "[\n  {\n    \"code\": \"KU_DANGLING_FILE\",\n    \"severity\": \"error\",\n    \"path\": \"models/Ghostbusters_documentation_NN.md#Handbook Overview.source\"\n  },\n  {\n    \"code\": \"KU_DANGLING_FILE\",\n    \"severity\": \"error\",\n    \"path\": \"models/Ghostbusters_documentation_NN.md#Proton Pack.source\"\n  },\n  {\n    \"code\": \"KU_DANGLING_FILE\",\n    \"severity\": \"error\",\n    \"path\": \"models/Ghostbusters_documentation_NN.md#Ghost Trap.source\"\n  },\n  {\n    \"code\": \"KU_DANGLING_FILE\",\n    \"severity\": \"error\",\n    \"path\": \"models/Ghostbusters_documentation_NN.md#PKE Meter.source\"\n  },\n  {\n    \"code\": \"KU_DANGLING_FILE\",\n    \"severity\": \"error\",\n    \"path\": \"models/Ghostbusters_documentation_NN.md#Entrapment Protocol.source\"\n  },\n  {\n    \"code\": \"KU_DANGLING_FILE\",\n    \"severity\": \"error\",\n    \"path\": \"models/Ghostbusters_documentation_NN.md#Grid Transfer.source\"\n  },\n  {\n    \"code\": \"KU_DANGLING_FILE\",\n    \"severity\": \"error\",\n    \"path\": \"models/Ghostbusters_documentation_NN.md#Roster.source\"\n  }\n]",
+          "outcome": "FAIL",
+          "error": null
+        },
+        {
+          "label": "The shipped workspace contains the sources its models cite",
+          "expectation": "source traceability is the headline capability — the demo must demonstrate it",
+          "actual": "{\n  \"sourcesDir\": \"sources/nn/\",\n  \"files\": []\n}",
+          "outcome": "FAIL",
+          "error": null
+        },
+        {
+          "label": "The shipped workspace contains the compiled console artifact its manifest declares",
+          "expectation": "workspace_NN.md registers `## NN Artifacts: Workspace Hub Dashboard`; the file should exist",
+          "actual": "{\n  \"declared\": \"artifacts/workspace_hub.html\",\n  \"present\": []\n}",
+          "outcome": "FAIL",
+          "error": null
+        },
+        {
+          "label": "A field named `source` that is declared as a content path is not treated as a citation",
+          "expectation": "the Citation vocabulary should key on the declared field TYPE, not on the field NAME",
+          "actual": "{\n  \"template\": \"documentation\",\n  \"declaredType\": \"markdown_file\",\n  \"citationFieldNames\": [\n    \"sources\",\n    \"source\"\n  ],\n  \"diagnosticsOnDocumentationSample\": [\n    \"KU_DANGLING_FILE\",\n    \"KU_DANGLING_FILE\",\n    \"KU_DANGLING_FILE\",\n    \"KU_DANGLING_FILE\",\n    \"KU_DANGLING_FILE\",\n    \"KU_DANGLING_FILE\",\n    \"KU_DANGLING_FILE\"\n  ]\n}",
+          "outcome": "FAIL",
+          "error": null
+        }
+      ]
+    }
+  ]
+}

@@ -10,7 +10,7 @@ Standardize template packaging into canonical unversioned files in source contro
 
 Template packages in the source repository MUST use canonical unversioned filenames under `iNNfo/specs/templates/<template-name>/`:
 - The primary Level 2 specification MUST be named `spec_NN.md` (the root workspace template is `workspace_spec_NN.md`).
-- `procedures/`, `samples/`, and `assets/` (static layouts / media, e.g. `assets/master.html`) MUST also use unversioned filenames; `skills/` MAY carry agent skill manifests.
+- `procedures/`, `samples/`, and `assets/` (static layouts / media, e.g. `assets/model_viewer.html`) MUST also use unversioned filenames; `skills/` MAY carry agent skill manifests.
 - Source paths MUST NOT encode a semantic version. The authoritative version MUST be declared in frontmatter as `template_version` (`V_x-y-z` or dotted `x.y.z`).
 
 #### Scenario: Canonical source template on `main`

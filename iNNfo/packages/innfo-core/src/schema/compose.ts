@@ -5,9 +5,9 @@ import type {
   Marker,
   MatrixDecl,
   ValidationError,
-} from '../types'
-import { parseModel } from '../parser'
-import { type TemplateSchema, extractTemplateSchema } from './extract'
+} from '../types/index.js'
+import { parseModel } from '../parser/index.js'
+import { type TemplateSchema, extractTemplateSchema } from './extract.js'
 
 /* ── Additive template composition (`includes`) ─────────────────
  *

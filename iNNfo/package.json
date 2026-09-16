@@ -1,6 +1,6 @@
 {
   "name": "@cognnitive/innfo",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "private": true,
   "workspaces": [
     "packages/*",
@@ -11,7 +11,7 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "typecheck": "npm --prefix packages/innfo-core run build && npm --prefix apps/innfo-editor run typecheck",
+    "typecheck": "npm --prefix packages/innfo-core run build && npm --prefix packages/innfo-mcp run typecheck && npm --prefix apps/innfo-editor run typecheck",
     "test": "npm --prefix packages/innfo-core test && npm --prefix packages/innfo-mcp test && npm --prefix apps/innfo-editor test",
     "test:coverage": "npm --prefix packages/innfo-core run test:coverage && npm --prefix packages/innfo-mcp run test:coverage && npm --prefix apps/innfo-editor run test:coverage",
     "check:spec-version": "node scripts/check-spec-version.mjs",

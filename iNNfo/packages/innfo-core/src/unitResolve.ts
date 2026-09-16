@@ -1,5 +1,5 @@
-import { parseCsvTable } from './csvTable'
-import { extractHeadings, normalizeName, resolveHeadingSection, type SourceRef } from './sourceRef'
+import { parseCsvTable } from './csvTable.js'
+import { extractHeadings, normalizeName, resolveHeadingSection, type SourceRef } from './sourceRef.js'
 
 export type ResolvedUnit =
   | { kind: 'section'; startLine: number; endLine: number }

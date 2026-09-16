@@ -1,5 +1,5 @@
-import type { RecursiveParseResult } from './types'
-import { normalizePathKey } from './paths'
+import type { RecursiveParseResult } from './types.js'
+import { normalizePathKey } from './paths.js'
 
 /**
  * Reads the optional `workspace_id` frontmatter field from the workspace's

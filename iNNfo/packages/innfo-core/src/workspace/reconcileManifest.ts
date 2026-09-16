@@ -1,4 +1,4 @@
-import { normalizePathKey } from '../recursiveParser/paths'
+import { normalizePathKey } from '../recursiveParser/paths.js'
 
 /** Marks an entry as tool-owned. Ownership is EXPLICIT, never inferred. */
 export const OWNERSHIP_MARKER = '<!-- nn:auto -->'

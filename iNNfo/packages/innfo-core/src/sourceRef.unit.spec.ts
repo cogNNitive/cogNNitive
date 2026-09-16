@@ -6,9 +6,9 @@ import {
   slugifyHeading,
   slugifyUnitHeading,
   normalizeName,
-} from './sourceRef'
-import { parseCsvTable } from './csvTable'
-import { resolveUnit } from './unitResolve'
+} from './sourceRef.js'
+import { parseCsvTable } from './csvTable.js'
+import { resolveUnit } from './unitResolve.js'
 
 const ghost = readFileSync(new URL('../tests/fixtures/ku-ghostbusters.md', import.meta.url), 'utf8')
 const metrics = readFileSync(new URL('../tests/fixtures/metricas_q3.csv', import.meta.url), 'utf8')

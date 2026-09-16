@@ -13,7 +13,7 @@
  * `approved_by` are caller inputs.
  */
 
-import { slugifyHeading } from './sourceRef'
+import { slugifyHeading } from './sourceRef.js'
 
 export interface AgentModificationContext {
   /** Model identifier — the `id` passed to `applyChange`. */

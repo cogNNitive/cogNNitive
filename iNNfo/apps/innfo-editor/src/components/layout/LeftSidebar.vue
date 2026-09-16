@@ -193,26 +193,43 @@
             <div v-for="rootId in visibleRootIds" :key="rootId" class="space-y-1">
               <!-- Model Header (File) -->
               <div
-                class="flex items-center gap-1 px-2 py-1.5 rounded-md text-xs font-semibold cursor-pointer transition-colors"
+                class="flex items-center gap-1 px-2 py-1.5 rounded-md text-xs font-semibold transition-colors"
                 :class="
                   rootId === activeModelId
                     ? 'bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-100 font-bold ring-1 ring-primary/20'
                     : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
                 "
-                @click="selectModelHeader(rootId)"
                 data-testid="model-header"
               >
-                <ChevronDown
-                  class="transition-transform duration-200 w-3 h-3 text-slate-400 dark:text-slate-500"
-                  :class="{ '-rotate-90': !isModelExpanded(rootId) }"
-                />
-                <FileText
-                  class="w-3.5 h-3.5 shrink-0"
-                  :class="
-                    rootId === activeModelId ? 'text-primary' : 'text-slate-400 dark:text-slate-500'
-                  "
-                />
-                <span class="truncate flex-1">{{ getModelName(rootId) }}</span>
+                <!-- Disclosure toggle: expands/collapses the model inline WITHOUT
+                     leaving workspace overview mode (F-12). -->
+                <button
+                  type="button"
+                  class="flex items-center justify-center shrink-0 cursor-pointer"
+                  @click.stop="toggleModelInline(rootId)"
+                  :aria-label="isModelExpanded(rootId) ? 'Collapse model' : 'Expand model'"
+                  data-testid="model-header-toggle"
+                >
+                  <ChevronDown
+                    class="transition-transform duration-200 w-3 h-3 text-slate-400 dark:text-slate-500"
+                    :class="{ '-rotate-90': !isModelExpanded(rootId) }"
+                  />
+                </button>
+                <!-- Model name: focuses the model (Focused Model Mode). -->
+                <button
+                  type="button"
+                  class="flex items-center gap-1 flex-1 min-w-0 cursor-pointer text-left"
+                  @click="focusModelHeader(rootId)"
+                  data-testid="model-header-name"
+                >
+                  <FileText
+                    class="w-3.5 h-3.5 shrink-0"
+                    :class="
+                      rootId === activeModelId ? 'text-primary' : 'text-slate-400 dark:text-slate-500'
+                    "
+                  />
+                  <span class="truncate flex-1">{{ getModelName(rootId) }}</span>
+                </button>
               </div>
 
               <!-- Concepts under this Model -->
@@ -356,8 +373,8 @@ function isTemplateNode(node: ModelNode | undefined): boolean {
   if (node.id.startsWith('spec:')) return true
   if (node.rawContent) {
     try {
-      const fm = parseFrontmatter(node.rawContent) as any
-      if (fm?.level === 3 || fm?.level === '3' || fm?.model_version) return false
+      const fm = parseFrontmatter(node.rawContent)
+      if (Number(fm?.level) === 3 || fm?.model_version) return false
       if (fm?.kind === 'template' || fm?.kind === 'spec') return true
       if (Array.isArray(fm?.concepts) && fm.concepts.length > 0 && !fm?.parent_spec) return true
     } catch {
@@ -383,7 +400,7 @@ function getModelInfo(rootId: string): { baseName: string; version: SemVer } {
   let baseName = filename.replace(/\.md$/i, '').replace(/_NN$/i, '')
   if (rootNode?.rawContent) {
     try {
-      const fm = parseFrontmatter(rootNode.rawContent) as any
+      const fm = parseFrontmatter(rootNode.rawContent)
       if (fm?.title) baseName = fm.title
       if (typeof fm?.model_version === 'string') {
         const vMatch =
@@ -511,7 +528,7 @@ const activeSubmodelCount = computed(() => {
       continue
     }
     try {
-      const fm = parseFrontmatter(node.rawContent) as any
+      const fm = parseFrontmatter(node.rawContent)
       if (fm?.status === 'active' || !fm?.status) count++
     } catch {
       count++
@@ -526,7 +543,7 @@ const draftSubmodelCount = computed(() => {
     if (!isModelRoot(node)) continue
     if (!node.rawContent) continue
     try {
-      const fm = parseFrontmatter(node.rawContent) as any
+      const fm = parseFrontmatter(node.rawContent)
       if (fm?.status === 'draft') count++
     } catch {
       // silent
@@ -545,10 +562,15 @@ const { width, startResize } = useResizablePanel({
 
 const activeModelId = computed(() => uiStore.activeModelId || visibleRootIds.value[0] || null)
 
-function selectModelHeader(rootId: string): void {
+/** Expands/collapses a model's tree inline while staying in workspace overview mode (F-12). */
+function toggleModelInline(rootId: string): void {
+  toggleModel(rootId)
+}
+
+/** Focuses a model (Focused Model Mode) — distinct from inline expansion. */
+function focusModelHeader(rootId: string): void {
   uiStore.focusModel(rootId)
   uiStore.selectNode(rootId)
-  toggleModel(rootId)
 }
 
 function handleSelectNode(rootId: string, nodeId: string): void {
@@ -850,7 +872,7 @@ function getConceptsForModel(rootId: string): TreeGroup[] {
   let taxonomyEdges: Array<{ parent: string; child: string }> = []
   if (rootNode.rawContent) {
     try {
-      const fm = parseFrontmatter(rootNode.rawContent) as any
+      const fm = parseFrontmatter(rootNode.rawContent)
       const parentName = fm?.parent_spec?.name
       if (parentName) {
         const normalizedParent = parentName.replace(/_NN$/, '')
@@ -942,14 +964,16 @@ function getConceptsForModel(rootId: string): TreeGroup[] {
 </script>
 
 <style scoped>
-/* Ultra Lenta Slide Horizontal Transition (1.1s) */
+/* Slide Horizontal Transition (250ms) — a navigation-weight transition, not
+   the previous 1.1s "Ultra Lenta" one, which made every model click feel
+   broken (F-12). */
 .sidebar-slide-forward-enter-active,
 .sidebar-slide-forward-leave-active,
 .sidebar-slide-backward-enter-active,
 .sidebar-slide-backward-leave-active {
   transition:
-    transform 1.1s cubic-bezier(0.16, 1, 0.3, 1),
-    opacity 1.1s cubic-bezier(0.16, 1, 0.3, 1);
+    transform 250ms cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 250ms cubic-bezier(0.16, 1, 0.3, 1);
   will-change: transform, opacity;
 }
 

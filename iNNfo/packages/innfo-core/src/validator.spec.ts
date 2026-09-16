@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { validateModel, parseModel } from './index'
-import type { SpecDocument } from './types'
+import { validateModel, parseModel } from './index.js'
+import type { SpecDocument } from './types/index.js'
 
 describe('Validator Composition Collision Diagnostic Reporting (validator.spec.ts)', () => {
   it('surfaces [COMPOSITION_COLLISION] errors when validating a model against a composite template', () => {

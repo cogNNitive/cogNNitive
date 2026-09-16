@@ -1,6 +1,6 @@
-import type { Concept, ParsedModel, TaxonomyEdge } from '../types'
-import type { ReferenceDiagnostic } from './references'
-import { conceptsByElementName, IMPLICIT_REF_FIELDS } from './elementIndex'
+import type { Concept, ParsedModel, TaxonomyEdge } from '../types/index.js'
+import type { ReferenceDiagnostic } from './references.js'
+import { conceptsByElementName, IMPLICIT_REF_FIELDS } from './elementIndex.js'
 
 /**
  * Cross-checks the `# NN index` taxonomy (concept-to-concept nesting) against

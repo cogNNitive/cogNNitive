@@ -97,7 +97,7 @@ description:: Second task
 
     const serialized = serializeModel(model)
     expect(serialized).toContain('[[Renamed Task Two]]')
-    expect(serialized).toContain('assignee:: "Task Two"')
+    expect(serialized).toContain('assignee:: Task Two')
   })
 
   it('with a schema, rewrites only `type: reference` fields plus wikilinks; plain fields untouched', () => {
@@ -121,7 +121,7 @@ description:: Second task
 
     const serialized = serializeModel(model)
     expect(serialized).toContain('[[Renamed Task Two]]')
-    expect(serialized).toContain('assignee:: "Renamed Task Two"')
+    expect(serialized).toContain('assignee:: Renamed Task Two')
   })
 
   it('schema-aware rename: a plain slug-matching string field is NOT rewritten', () => {

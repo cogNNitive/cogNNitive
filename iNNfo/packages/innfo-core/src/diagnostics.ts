@@ -1,4 +1,4 @@
-import type { ValidationError } from './types'
+import type { ValidationError } from './types/index.js'
 
 /**
  * Accumulates validation diagnostics and routes each one to the errors or the

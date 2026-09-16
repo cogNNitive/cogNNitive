@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { parseFrontmatter } from './parser/yaml'
-import type { SpecFrontmatter } from './types'
+import { parseFrontmatter } from '../parser/yaml.js'
+import type { SpecFrontmatter } from './index.js'
 
 describe('Frontmatter Parsing — Batch 1 (alias, procedures, skills)', () => {
   it('parses includes block with alias map (concepts and fields)', () => {

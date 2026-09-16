@@ -1,5 +1,5 @@
-import { isIgnoredPath } from '../recursiveParser/workspace'
-import { normalizePathKey, basename } from '../recursiveParser/paths'
+import { isIgnoredPath } from '../recursiveParser/workspace.js'
+import { normalizePathKey, basename } from '../recursiveParser/paths.js'
 
 /**
  * A file candidate for manifest reconciliation, described by its

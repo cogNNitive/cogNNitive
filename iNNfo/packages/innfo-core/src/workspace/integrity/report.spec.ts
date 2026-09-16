@@ -7,8 +7,8 @@ import {
   type ModelIntegrityReport,
   type TemplateResolutionResult,
   type IntegrityDiagnostic,
-} from './report'
-import type { TemplateCatalog } from './versionStatus'
+} from './report.js'
+import type { TemplateCatalog } from './versionStatus.js'
 
 const CANON = 'https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates'
 

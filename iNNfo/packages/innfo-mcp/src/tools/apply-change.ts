@@ -164,6 +164,11 @@ async function bumpVersion(
   let newParentPath: string | null = null
   let parentContent: string | null = null
   let newParentName: string | null = null
+  // SpecDocument view of the just-bumped local parent, built once the new
+  // frontmatter is serialized below. Used as the validation `template` when
+  // resolveTemplateForModel can't yet see the bump (the new file hasn't been
+  // written to disk at this point in the flow).
+  let localParentTemplate: SpecDocument | null = null
 
   if (model.frontmatter.parent_spec && typeof args.parent_version === 'string') {
     const parentVer = args.parent_version.trim()
@@ -194,6 +199,14 @@ async function bumpVersion(
           parentModel.frontmatter.spec_version = parentVerString
         }
         parentContent = serializeModel(parentModel)
+        localParentTemplate = {
+          name: newParentName,
+          level: parentModel.frontmatter.level ?? 0,
+          parentName: parentModel.frontmatter.parent_spec?.name,
+          parentUrl: parentModel.frontmatter.parent_spec?.url,
+          frontmatter: parentModel.frontmatter,
+          rawContent: parentContent,
+        }
       } catch (err) {
         // log + continue: parent spec not found locally — skip template
         // renaming but still update references.
@@ -217,9 +230,19 @@ async function bumpVersion(
   let template: SpecDocument | null
   let resolveInclude: (ref: { name: string; url: string }) => string | null = () => null
   try {
-    const r = await resolveTemplateForModel(rootDir, model)
-    template = r.template
-    resolveInclude = r.resolveInclude
+    if (parentContent && newParentName) {
+      template = localParentTemplate
+      const r = await resolveTemplateForModel(rootDir, model).catch(() => ({
+        template: localParentTemplate,
+        resolveInclude: () => null,
+      }))
+      template = r.template ?? localParentTemplate
+      resolveInclude = r.resolveInclude
+    } else {
+      const r = await resolveTemplateForModel(rootDir, model)
+      template = r.template
+      resolveInclude = r.resolveInclude
+    }
   } catch (err) {
     return {
       success: false,

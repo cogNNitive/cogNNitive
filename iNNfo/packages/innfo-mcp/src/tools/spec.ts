@@ -474,7 +474,12 @@ export async function hydrateTemplate(
             source: sourceName,
             message: `Template ${templateName} already present at ${targetPath} (write-once cache immutability)`,
           }
-        } catch {
+        } catch (err) {
+          /* v8 ignore start */
+          if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
+            console.warn(`[spec] Failed to stat target path ${targetPath}: ${err}`)
+          }
+          /* v8 ignore stop */
           await copyFile(pkg.specFilePath, targetPath)
           return {
             success: true,
@@ -533,7 +538,12 @@ export async function hydrateTemplate(
       source: location.source,
       message: `Template ${templateName} already present at ${targetPath} (write-once cache immutability)`,
     }
-  } catch {
+  } catch (err) {
+    /* v8 ignore start */
+    if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
+      console.warn(`[spec] Failed to stat target path ${targetPath}: ${err}`)
+    }
+    /* v8 ignore stop */
     await copyFile(location.filePath, targetPath)
   }
 

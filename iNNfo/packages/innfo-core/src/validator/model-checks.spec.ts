@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { Diagnostics } from '../diagnostics'
-import { ElementsMap, type ParsedModel } from '../types'
-import { checkFrontmatterInvariants, checkTemplateDocumentation } from './model-checks'
+import { Diagnostics } from '../diagnostics.js'
+import { ElementsMap, type ParsedModel } from '../types/index.js'
+import { checkFrontmatterInvariants, checkTemplateDocumentation } from './model-checks.js'
 
 function frontmatterModel(fm: Record<string, unknown>): ParsedModel {
   return {

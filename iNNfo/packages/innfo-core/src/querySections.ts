@@ -1,5 +1,5 @@
-import { extractHeadings, normalizeName, splitBracketList } from './sourceRef'
-import { FIELD_LINE, sectionOwnLines } from './unitResolve'
+import { extractHeadings, normalizeName, splitBracketList } from './sourceRef.js'
+import { FIELD_LINE, sectionOwnLines } from './unitResolve.js'
 
 export interface SectionFields {
   slug: string

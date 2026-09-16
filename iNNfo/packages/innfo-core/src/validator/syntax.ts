@@ -1,5 +1,5 @@
-import { SyntaxCheck } from '../types'
-import { parseModel } from '../parser'
+import { SyntaxCheck } from '../types/index.js'
+import { parseModel } from '../parser/index.js'
 
 /**
  * Validates iNNfo document syntax.

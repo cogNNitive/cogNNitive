@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useModelStore } from '../../stores/modelStore'
 import { useWorkspaceStore } from '../../stores/workspaceStore'
 import { useUiStore } from '../../stores/uiStore'
@@ -21,6 +21,17 @@ const iframeKey = ref(0)
 const isFrameLoading = ref(false)
 const htmlContent = ref<string | null>(null)
 const loadState = ref<'loading' | 'ready' | 'not_found'>('loading')
+const resolvedUrl = ref<string | null>(null)
+
+function normalizeSlug(str: string): string {
+  return str
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9_-]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+}
 
 // Discovered models from modelStore
 const discoveredModels = computed(() => {
@@ -41,10 +52,9 @@ const discoveredModels = computed(() => {
       (typeof node?.fields?.['description']?.value === 'string' ? node.fields['description'].value : '') ||
       ''
 
-    // Derive canonical console path (e.g. artifacts/business_console.html)
     const explicitConsole = typeof node?.fields?.['console']?.value === 'string' ? node.fields['console'].value : undefined
     const normalizedTemplate = String(templateName).toLowerCase().replace(/_v_.*$/, '').replace(/_spec.*$/, '')
-    const consolePath: string = explicitConsole || `artifacts/${normalizedTemplate}_console.html`
+    const defaultConsolePath = explicitConsole || `artifacts/${normalizedTemplate}_console.html`
 
     return {
       id: rootId,
@@ -52,7 +62,8 @@ const discoveredModels = computed(() => {
       template: normalizedTemplate,
       version,
       description: desc,
-      consolePath,
+      consolePath: defaultConsolePath,
+      explicitConsole,
       sourcePath: node?.source?.path || `models/${name}_NN.md`,
     }
   })
@@ -60,12 +71,100 @@ const discoveredModels = computed(() => {
 
 const selectedConsoleTarget = ref<string>('hub')
 
-const currentFrameUrl = computed<string>(() => {
-  if (selectedConsoleTarget.value === 'hub') {
-    return 'artifacts/workspace_hub.html'
+function getCandidatePaths(target: string): string[] {
+  if (target === 'hub') {
+    const candidates = [
+      'artifacts/workspace_hub.html',
+      'export/workspace_hub/workspace_hub.html',
+      'export/workspace_hub/master.html',
+      'export/workspace_hub.html',
+      'artifacts/workspace_console.html',
+      'export/workspace_console/workspace_console.html',
+      'export/workspace_console.html',
+    ]
+
+    // Check registered artifacts in modelStore
+    for (const node of Object.values(modelStore.nodes)) {
+      const isArtifact = node.type === 'Artifacts' || node.conceptBinding?.name === 'Artifacts'
+      const ref = typeof node.fields?.['artifact_ref']?.value === 'string' ? node.fields['artifact_ref'].value : ''
+      if (isArtifact && ref.endsWith('.html') && (ref.includes('workspace') || ref.includes('hub'))) {
+        candidates.unshift(ref)
+      }
+    }
+
+    return Array.from(new Set(candidates))
   }
-  const targetModel = discoveredModels.value.find((m) => m.id === selectedConsoleTarget.value)
-  return targetModel ? targetModel.consolePath : 'artifacts/workspace_hub.html'
+
+  const model = discoveredModels.value.find((m) => m.id === target)
+  if (!model) return ['artifacts/workspace_hub.html']
+
+  const candidates: string[] = []
+
+  // 1. Explicit console if specified on node
+  if (model.explicitConsole) {
+    candidates.push(model.explicitConsole)
+  }
+
+  const modelName = model.name
+  const modelSlug = normalizeSlug(modelName)
+  const sourceBasename = model.sourcePath
+    ? model.sourcePath.split('/').pop()?.replace(/_NN\.md$/i, '') || ''
+    : ''
+  const sourceSlug = normalizeSlug(sourceBasename)
+
+  // 2. Scan registered artifact references in graph
+  for (const node of Object.values(modelStore.nodes)) {
+    const isArtifact = node.type === 'Artifacts' || node.conceptBinding?.name === 'Artifacts'
+    const ref = typeof node.fields?.['artifact_ref']?.value === 'string' ? node.fields['artifact_ref'].value : ''
+    if (isArtifact && ref.endsWith('.html')) {
+      const lowerRef = ref.toLowerCase()
+      if (
+        (modelSlug && lowerRef.includes(modelSlug)) ||
+        (sourceSlug && lowerRef.includes(sourceSlug)) ||
+        (sourceBasename && lowerRef.includes(sourceBasename.toLowerCase()))
+      ) {
+        candidates.push(ref)
+      }
+    }
+  }
+
+  // 3. Known exported console structures
+  if (sourceBasename) {
+    candidates.push(`export/${sourceBasename}_console/${sourceBasename}_console.html`)
+    candidates.push(`export/${sourceBasename}_console/master.html`)
+    candidates.push(`export/${sourceBasename}/${sourceBasename}.html`)
+    candidates.push(`export/${sourceBasename}/master.html`)
+    candidates.push(`artifacts/exports/${sourceBasename}.html`)
+    candidates.push(`artifacts/exports/${sourceBasename}_Strategic_Master_V_0-1-0.html`)
+  }
+
+  if (sourceSlug && sourceSlug !== sourceBasename) {
+    candidates.push(`export/${sourceSlug}_console/${sourceSlug}_console.html`)
+    candidates.push(`export/${sourceSlug}_console/master.html`)
+    candidates.push(`export/${sourceSlug}/${sourceSlug}.html`)
+    candidates.push(`export/${sourceSlug}/master.html`)
+    candidates.push(`artifacts/exports/${sourceSlug}.html`)
+  }
+
+  if (modelSlug) {
+    candidates.push(`export/${modelSlug}_console/${modelSlug}_console.html`)
+    candidates.push(`export/${modelSlug}_console/master.html`)
+    candidates.push(`export/${modelSlug}/${modelSlug}.html`)
+    candidates.push(`artifacts/exports/${modelSlug}.html`)
+    candidates.push(`artifacts/${modelSlug}_console.html`)
+  }
+
+  // 4. Canonical template locations
+  candidates.push(`artifacts/${model.template}_console.html`)
+  candidates.push(`artifacts/${modelName}_console.html`)
+
+  return Array.from(new Set(candidates))
+}
+
+const currentFrameUrl = computed<string>(() => {
+  if (resolvedUrl.value) return resolvedUrl.value
+  const candidates = getCandidatePaths(selectedConsoleTarget.value)
+  return candidates[0] || 'artifacts/workspace_hub.html'
 })
 
 const currentConsoleTitle = computed<string>(() => {
@@ -84,33 +183,49 @@ const currentTargetModel = computed(() => {
 async function loadConsole() {
   loadState.value = 'loading'
   isFrameLoading.value = true
-  const targetPath: string = String(currentFrameUrl.value || 'artifacts/workspace_hub.html')
+  const candidates = getCandidatePaths(selectedConsoleTarget.value)
 
   try {
     if (workspaceStore.handle) {
-      const fileHandle = await resolveFileHandleForRead(workspaceStore.handle, targetPath)
-      if (fileHandle) {
-        const file = await fileHandle.getFile()
-        const text = await file.text()
-        htmlContent.value = text
-        loadState.value = 'ready'
-        return
+      for (const candidate of candidates) {
+        try {
+          const fileHandle = await resolveFileHandleForRead(workspaceStore.handle, candidate)
+          if (fileHandle) {
+            const file = await fileHandle.getFile()
+            const text = await file.text()
+            htmlContent.value = text
+            resolvedUrl.value = candidate
+            loadState.value = 'ready'
+            return
+          }
+        } catch {
+          // continue checking next candidate
+        }
       }
     }
 
-    // Fallback: try fetching if hosted on web/preview
-    const res = await fetch(targetPath)
-    if (res.ok) {
-      const text = await res.text()
-      htmlContent.value = text
-      loadState.value = 'ready'
-      return
+    // Fallback: try fetching candidates if hosted on web/preview
+    for (const candidate of candidates) {
+      try {
+        const res = await fetch(candidate)
+        if (res.ok) {
+          const text = await res.text()
+          htmlContent.value = text
+          resolvedUrl.value = candidate
+          loadState.value = 'ready'
+          return
+        }
+      } catch {
+        // continue
+      }
     }
 
     htmlContent.value = null
+    resolvedUrl.value = candidates[0] || null
     loadState.value = 'not_found'
   } catch {
     htmlContent.value = null
+    resolvedUrl.value = candidates[0] || null
     loadState.value = 'not_found'
   } finally {
     isFrameLoading.value = false
@@ -124,14 +239,45 @@ function reloadIframe() {
 
 function selectTarget(target: string) {
   selectedConsoleTarget.value = target
+  resolvedUrl.value = null
 }
 
-watch([currentFrameUrl, () => workspaceStore.handle, iframeKey], () => {
+watch([selectedConsoleTarget, () => workspaceStore.handle, iframeKey], () => {
   loadConsole()
 })
 
+// "Open External" (F-16): `currentFrameUrl` is a path relative to the user's
+// folder, which is meaningless once resolved against the app's own origin —
+// that's what makes the link 404 for a local folder opened via the File
+// System Access API. When a folder handle is active, `loadConsole()` has
+// already read the file content into `htmlContent`; build a Blob URL from
+// it so the external link works for that primary flow too. Hosted/sample
+// mode has no handle, so it keeps using the plain relative/absolute URL.
+const externalBlobUrl = ref<string | null>(null)
+
+function revokeExternalBlobUrl(): void {
+  if (externalBlobUrl.value) {
+    URL.revokeObjectURL(externalBlobUrl.value)
+    externalBlobUrl.value = null
+  }
+}
+
+watch([htmlContent, () => workspaceStore.handle], ([content, handle]) => {
+  revokeExternalBlobUrl()
+  if (handle && content) {
+    const blob = new Blob([content], { type: 'text/html' })
+    externalBlobUrl.value = URL.createObjectURL(blob)
+  }
+})
+
+const externalHref = computed<string>(() => externalBlobUrl.value ?? currentFrameUrl.value)
+
 onMounted(() => {
   loadConsole()
+})
+
+onUnmounted(() => {
+  revokeExternalBlobUrl()
 })
 </script>
 
@@ -153,6 +299,13 @@ onMounted(() => {
               <span class="px-2 py-0.5 text-2xs font-mono rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 shrink-0">
                 Sandboxed View
               </span>
+              <span
+                v-if="resolvedUrl && loadState === 'ready'"
+                class="px-2 py-0.5 text-2xs font-mono rounded bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 shrink-0 truncate max-w-xs"
+                :title="resolvedUrl"
+              >
+                {{ resolvedUrl }}
+              </span>
             </div>
             <p class="text-xs text-slate-500 dark:text-slate-400 truncate">
               Interactive deliverables & aggregated workspace console portal
@@ -171,7 +324,7 @@ onMounted(() => {
             <span>Reload</span>
           </button>
           <a
-            :href="currentFrameUrl"
+            :href="externalHref"
             target="_blank"
             class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-500 text-white transition-all shadow-xs"
             title="Open in external browser window"
@@ -216,9 +369,9 @@ onMounted(() => {
     </header>
 
     <!-- Main Content: Embedded Iframe or Clean Actionable Empty State -->
-    <div class="flex-1 relative overflow-hidden bg-slate-950 flex flex-col items-center justify-center p-6">
+    <div class="flex-1 relative overflow-hidden bg-slate-100/70 dark:bg-slate-950 flex flex-col items-center justify-center p-6">
       <!-- Loading State -->
-      <div v-if="loadState === 'loading'" class="flex flex-col items-center gap-3 text-slate-400">
+      <div v-if="loadState === 'loading'" class="flex flex-col items-center gap-3 text-slate-500 dark:text-slate-400">
         <RefreshCw class="w-6 h-6 animate-spin text-blue-500" />
         <span class="text-xs font-mono">Loading console artifact...</span>
       </div>
@@ -228,52 +381,52 @@ onMounted(() => {
         v-else-if="loadState === 'ready' && htmlContent"
         :key="iframeKey"
         :srcdoc="htmlContent"
-        class="w-full h-full border-none bg-slate-950"
+        class="w-full h-full border-none bg-white dark:bg-slate-950 rounded-xl shadow-xs"
         sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
       ></iframe>
 
       <!-- Not Found / Pending Build Empty State -->
       <div
         v-else
-        class="max-w-xl w-full bg-slate-900/90 border border-slate-800 rounded-2xl p-8 shadow-2xl flex flex-col gap-5 text-center items-center"
+        class="max-w-xl w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-8 shadow-xl flex flex-col gap-5 text-center items-center"
       >
-        <div class="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center text-xl">
+        <div class="w-12 h-12 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xl">
           <AlertCircle class="w-6 h-6" />
         </div>
 
         <div>
-          <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-2xs font-mono font-medium mb-2">
+          <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20 text-2xs font-mono font-medium mb-2">
             Artifact Pending Compilation
           </div>
-          <h3 class="text-base font-bold text-white mb-1">
+          <h3 class="text-base font-bold text-slate-900 dark:text-white mb-1">
             Console Deliverable Not Found
           </h3>
-          <p class="text-xs font-mono text-slate-400">
+          <p class="text-xs font-mono text-slate-500 dark:text-slate-400">
             {{ currentFrameUrl }}
           </p>
         </div>
 
-        <p class="text-xs text-slate-400 leading-relaxed max-w-md">
+        <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed max-w-md">
           This workspace does not have a compiled console HTML file at this location yet. In iNNfo, interactive consoles are generated deliverables produced by running model compilation procedures.
         </p>
 
-        <div class="w-full bg-slate-950/80 border border-slate-800 rounded-xl p-4 text-left flex flex-col gap-2 font-mono text-xs">
-          <div class="flex items-center gap-2 text-slate-300 font-semibold text-2xs uppercase tracking-wider">
-            <Terminal class="w-3.5 h-3.5 text-blue-400" />
+        <div class="w-full bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl p-4 text-left flex flex-col gap-2 font-mono text-xs">
+          <div class="flex items-center gap-2 text-slate-700 dark:text-slate-300 font-semibold text-2xs uppercase tracking-wider">
+            <Terminal class="w-3.5 h-3.5 text-blue-500 dark:text-blue-400" />
             <span>How to compile this console</span>
           </div>
-          <p v-if="selectedConsoleTarget === 'hub'" class="text-slate-400 text-2xs">
-            Run procedure: <span class="text-indigo-400 font-semibold">compile_workspace_hub_NN.md</span> to aggregate all workspace models into <span class="text-emerald-400">artifacts/workspace_hub.html</span>.
+          <p v-if="selectedConsoleTarget === 'hub'" class="text-slate-600 dark:text-slate-400 text-2xs">
+            Run procedure: <span class="text-indigo-600 dark:text-indigo-400 font-semibold">compile_workspace_hub_NN.md</span> to aggregate all workspace models into <span class="text-emerald-600 dark:text-emerald-400">artifacts/workspace_hub.html</span>.
           </p>
-          <p v-else class="text-slate-400 text-2xs">
-            Run template procedure for <span class="text-indigo-400 font-semibold">{{ currentTargetModel?.template || 'model' }}</span>: <span class="text-blue-400">compile_{{ currentTargetModel?.template }}_console_NN.md</span>.
+          <p v-else class="text-slate-600 dark:text-slate-400 text-2xs">
+            Run template procedure for <span class="text-indigo-600 dark:text-indigo-400 font-semibold">{{ currentTargetModel?.template || 'model' }}</span>: <span class="text-blue-600 dark:text-blue-400">compile_{{ currentTargetModel?.template }}_console_NN.md</span>.
           </p>
         </div>
 
         <div class="flex items-center gap-3">
           <button
             @click="reloadIframe"
-            class="px-4 py-2 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors flex items-center gap-1.5 cursor-pointer"
+            class="px-4 py-2 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-colors flex items-center gap-1.5 cursor-pointer"
           >
             <RefreshCw class="w-3.5 h-3.5" />
             <span>Re-check Artifact</span>

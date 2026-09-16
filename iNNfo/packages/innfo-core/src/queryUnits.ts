@@ -3,10 +3,10 @@ import {
   resolveUnitPath,
   serializeKnowledgeUnitRef,
   type KnowledgeUnit,
-} from './sourceRef'
-import { parseCsvTable } from './csvTable'
-import { scanSections } from './querySections'
-import type { ReferenceDiagnostic } from './validator/references'
+} from './sourceRef.js'
+import { parseCsvTable } from './csvTable.js'
+import { scanSections } from './querySections.js'
+import type { ReferenceDiagnostic } from './validator/references.js'
 
 export interface KnowledgeQueryFilter {
   name: string
@@ -64,7 +64,7 @@ export function parseKnowledgeQuery(input: string): KnowledgeQuery | null {
     let text: string
     try {
       text = decodeURIComponent(part.trim())
-    } catch {
+    } catch (err) {
       // propagate deliberately: a malformed URI segment makes the query invalid.
       return null
     }

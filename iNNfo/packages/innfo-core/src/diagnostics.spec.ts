@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { Diagnostics } from './diagnostics'
+import { Diagnostics } from './diagnostics.js'
 
 describe('Diagnostics accumulator', () => {
   it('routes add() by severity', () => {

@@ -16,7 +16,7 @@ import {
   type TemplateCatalog,
   type VersionGap,
   type VersionStatus,
-} from './versionStatus'
+} from './versionStatus.js'
 
 export type { TemplateCatalog, VersionGap, VersionStatus }
 

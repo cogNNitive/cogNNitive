@@ -1,10 +1,10 @@
-import type { ConceptField, ModelNode } from '../types'
-import type { RecursiveParseResult } from '../recursiveParser/types'
-import type { WorkspaceIndex } from '../recursiveParser/workspaceIndex'
-import type { ReferenceDiagnostic } from './references'
-import { normalizeSeparators } from '../parser/slug'
-import { stripMdSuffix, basename } from '../recursiveParser/paths'
-import { matchesTargetTemplate } from './templateMatching'
+import type { ConceptField, ModelNode } from '../types/index.js'
+import type { RecursiveParseResult } from '../recursiveParser/types.js'
+import type { WorkspaceIndex } from '../recursiveParser/workspaceIndex.js'
+import type { ReferenceDiagnostic } from './references.js'
+import { normalizeSeparators } from '../parser/slug.js'
+import { stripMdSuffix, basename } from '../recursiveParser/paths.js'
+import { matchesTargetTemplate } from './templateMatching.js'
 
 /**
  * `[[Model Title :: Element Name]]` — the ONLY cross-model reference form
@@ -18,6 +18,31 @@ export interface QualifiedRef {
   modelTitle: string
   elementName: string
   raw: string
+}
+
+/**
+ * Thrown when a workspace-scope validator is called without a resolvable
+ * `WorkspaceIndex`. Without this guard, the missing-argument case surfaces as
+ * a raw `TypeError: Cannot read properties of undefined (reading 'nodeSchema')`
+ * from deep inside `iterateTypedFieldValues`, which gives the caller no hint
+ * about what was actually missing or how to fix it.
+ */
+export class MissingWorkspaceIndexError extends Error {
+  constructor() {
+    super(
+      'validateWorkspaceReferences requires a WorkspaceIndex. Build one with ' +
+        '`buildWorkspaceIndex(result)` (from `recursiveParser/workspaceIndex`) and pass it as the ' +
+        'second argument.',
+    )
+    this.name = 'MissingWorkspaceIndexError'
+  }
+}
+
+/** Throws `MissingWorkspaceIndexError` when `index` is not a resolvable `WorkspaceIndex`. */
+function assertWorkspaceIndex(index: WorkspaceIndex): asserts index is WorkspaceIndex {
+  if (!index || typeof index !== 'object' || !('nodeSchema' in index)) {
+    throw new MissingWorkspaceIndexError()
+  }
 }
 
 /**
@@ -106,6 +131,8 @@ function* iterateTypedFieldValues(
   result: RecursiveParseResult,
   index: WorkspaceIndex,
 ): Generator<TypedFieldValue> {
+  assertWorkspaceIndex(index)
+
   for (const node of Object.values(result.nodes)) {
     if (node.kind !== 'element') continue
 

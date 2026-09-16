@@ -1,11 +1,11 @@
 ---
-spec_version: "V_0-2-4"
+spec_version: "V_0-2-5"
 spec_url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business/spec_NN.md"
 level: 2
 parent_spec:
   name: "iNNfo_V_0-2-1"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-2-1_NN.md"
-template_version: "V_0-2-4"
+template_version: "V_0-2-5"
 title: "Business App"
 includes:
   - name: "business-model"
@@ -29,16 +29,10 @@ relationship_types:
   sequence:
     enabled: true
 procedures:
-  - id: "compile-strategic-master"
-    name: "Compile Strategic Master"
-    path: "procedures/compile_strategic_master_NN.md"
   - id: "compile-model-viewer"
     name: "Compile Model Viewer"
     path: "procedures/compile_model_viewer_NN.md"
 assets:
-  - id: "master-layout"
-    name: "Strategic Master HTML Layout"
-    path: "assets/master.html"
   - id: "model-viewer-shell"
     name: "Model Viewer HTML Layout"
     path: "assets/model_viewer.html"

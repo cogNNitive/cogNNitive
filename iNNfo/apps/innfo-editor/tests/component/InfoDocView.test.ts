@@ -58,7 +58,15 @@ describe('InfoDocView', () => {
       return { ok: false, status: 404, text: async () => '' } as any
     })
 
+    // Land on this view's own route and let the initial navigation settle before
+    // mounting. Starting at '/' leaves the router resolving the home route (and
+    // its workspace bootstrap) concurrently with the file load below, which is
+    // how a demo workspace's model used to end up in `rootIds` instead of the
+    // fixture -- at random, depending on which finished last.
     const router = createRouter({ history: createMemoryHistory(), routes })
+    await router.push('/innfo-doc')
+    await router.isReady()
+
     const wrapper = mount(InfoDocView, {
       global: {
         plugins: [router],
@@ -74,13 +82,18 @@ describe('InfoDocView', () => {
     })
 
     await input.trigger('change')
-    await new Promise((resolve) => setTimeout(resolve, 50))
 
     const modelStore = useModelStore()
     const metamodelStore = useMetamodelStore()
 
-    expect(modelStore.rootIds).toContain('Test_V_0-2-0_innovation_NN')
-    expect(modelStore.rootIds).toContain('spec:innovation_V_0-2-0')
+    // The view resolves the parent spec over `fetch`, so the store settles on a
+    // microtask chain of unknown length. Waiting a fixed 50ms raced that chain
+    // and made this test order-dependent in CI; poll for the settled state.
+    await vi.waitFor(() => {
+      expect(modelStore.rootIds).toContain('Test_V_0-2-0_innovation_NN')
+      expect(modelStore.rootIds).toContain('spec:innovation_V_0-2-0')
+    })
+
     expect(metamodelStore.concepts.length).toBeGreaterThan(0)
     expect(metamodelStore.concepts.some((c) => c.name === 'Program')).toBe(true)
   })

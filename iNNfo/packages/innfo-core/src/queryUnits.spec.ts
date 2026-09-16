@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { parseKnowledgeQuery, runQuery, type FileSnapshot } from './queryUnits'
+import { parseKnowledgeQuery, runQuery, type FileSnapshot } from './queryUnits.js'
 
 const ghost = readFileSync(new URL('../tests/fixtures/ku-ghostbusters.md', import.meta.url), 'utf8')
 const metrics = readFileSync(new URL('../tests/fixtures/metricas_q3.csv', import.meta.url), 'utf8')
@@ -95,13 +95,13 @@ describe('runQuery over Markdown sections', () => {
   it('matches list membership', () => {
     const q = parseKnowledgeQuery('sources/nn/g.md?tags=vip')!
     const result = runQuery(q, files)
-    expect(result.uris).toEqual(['sources/nn/g.md@##nn-stakeholders--dana-barrett'])
+    expect(result.uris).toEqual(['sources/nn/g.md@## NN Stakeholders: Dana Barrett'])
   })
 
   it('matches scalars case-insensitively', () => {
     const q = parseKnowledgeQuery('sources/nn/g.md?relationship_model=anchor commercial client')!
     const result = runQuery(q, files)
-    expect(result.uris).toEqual(['sources/nn/g.md@##nn-stakeholders--dana-barrett'])
+    expect(result.uris).toEqual(['sources/nn/g.md@## NN Stakeholders: Dana Barrett'])
   })
 
   it('projects a field value over the matched sections', () => {

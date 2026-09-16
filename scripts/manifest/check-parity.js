@@ -84,6 +84,11 @@ function checkWorkspaceParity(repoRoot = process.cwd()) {
     let declared = null;
     try {
       const meta = parseFocusedYaml(parseFrontmatter(text));
+      // Deliberately NOT `template_version`: manifest/source.yaml's `version`
+      // tracks the Level-1 spec a template conforms to, and the release-time
+      // validator (manifest/lib/manifest-rules.js checkVersionParity) reads the
+      // same fields. Preferring `template_version` here makes the local check
+      // pass while stable-manifest validation fails on main.
       declared = meta.version !== undefined ? meta.version : (meta.spec_version !== undefined ? meta.spec_version : (meta.metadata && meta.metadata.version));
     } catch {
       // ignore

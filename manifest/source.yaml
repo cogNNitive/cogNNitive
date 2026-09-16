@@ -26,7 +26,7 @@ skills:
       - name: innfo-mcp
         repo: cogNNitive/cogNNitive
         path: iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js
-        version: "0.7.0"
+        version: "0.8.0"
         ref_key: innfo-mcp
   - name: nn-preflight
     repo: cogNNitive/cogNNitive
@@ -85,7 +85,7 @@ templates:
   - name: business
     repo: cogNNitive/cogNNitive
     path: iNNfo/specs/templates/business/spec_NN.md
-    version: "V_0-2-4"
+    version: "V_0-2-5"
     ref_key: templates
   - name: business-model
     repo: cogNNitive/cogNNitive
@@ -197,10 +197,10 @@ channels:
         ref: skills-v1.9.0
       - key: templates
         repo: cogNNitive/cogNNitive
-        ref: templates-v0.9.0
+        ref: templates-v0.9.1
       - key: innfo-mcp
         repo: cogNNitive/cogNNitive
-        ref: innfo-mcp-v0.7.0
+        ref: innfo-mcp-v0.8.0
       - key: innfo-console
         repo: cogNNitive/cogNNitive
         ref: innfo-console-v0.2.0

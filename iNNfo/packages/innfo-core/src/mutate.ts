@@ -1,14 +1,14 @@
-import type { ParsedModel, ElementNode, TaxonomyEdge } from './types'
-import { ElementsMap } from './types'
-import type { TemplateSchema } from './schema'
+import type { ParsedModel, ElementNode, TaxonomyEdge } from './types/index.js'
+import { ElementsMap } from './types/index.js'
+import type { TemplateSchema } from './schema/index.js'
 import {
   CONCEPT_DEFINITION,
   FIELD_DEFINITION,
   MARKER_DEFINITION,
   MATRIX_DEFINITION,
-} from './schema'
-import { slugify } from './parser/slug'
-import { RESERVED_CONCEPT_NAMES } from './validator/constants'
+} from './schema/index.js'
+import { slugify } from './parser/slug.js'
+import { RESERVED_CONCEPT_NAMES } from './validator/constants.js'
 
 export interface MutationResult {
   success: boolean
@@ -52,6 +52,50 @@ function requireArgs(args: Record<string, unknown>, keys: string[]): RequireArgs
     }
   }
   return { ok: true, values }
+}
+
+/** Standard edit-distance metric, used to suggest a likely-intended concept
+ *  name when `addElement` rejects an undeclared `conceptName` (AD-6). */
+function levenshteinDistance(a: string, b: string): number {
+  const an = a.length
+  const bn = b.length
+  if (an === 0) return bn
+  if (bn === 0) return an
+  const matrix = Array.from({ length: bn + 1 }, () => new Array(an + 1).fill(0))
+  for (let i = 0; i <= an; i++) matrix[0][i] = i
+  for (let j = 0; j <= bn; j++) matrix[j][0] = j
+  for (let j = 1; j <= bn; j++) {
+    for (let i = 1; i <= an; i++) {
+      const cost = a[i - 1].toLowerCase() === b[j - 1].toLowerCase() ? 0 : 1
+      matrix[j][i] = Math.min(
+        matrix[j - 1][i] + 1,
+        matrix[j][i - 1] + 1,
+        matrix[j - 1][i - 1] + cost,
+      )
+    }
+  }
+  return matrix[bn][an]
+}
+
+/** Builds the "unknown concept" rejection message for schema-aware element
+ *  ops (`addElement`, and mirrored by `updateField`'s existing lookup
+ *  failure): names the offending concept, suggests the nearest declared
+ *  concept within Levenshtein distance <= 2, otherwise lists every declared
+ *  concept (mutation-schema-conformance R2). */
+function unknownConceptMessage(conceptName: string, declaredNames: string[]): string {
+  let best: string | undefined
+  let bestDistance = Infinity
+  for (const name of declaredNames) {
+    const dist = levenshteinDistance(conceptName.toLowerCase(), name.toLowerCase())
+    if (dist < bestDistance) {
+      bestDistance = dist
+      best = name
+    }
+  }
+  if (best !== undefined && bestDistance <= 2) {
+    return `Concept "${conceptName}" is not declared in the template. Did you mean "${best}"?`
+  }
+  return `Concept "${conceptName}" is not declared in the template. Declared concepts: ${declaredNames.join(', ')}`
 }
 
 function getModelWideElementNames(model: ParsedModel): Set<string> {
@@ -110,7 +154,7 @@ const MUTATION_HANDLERS: Record<string, MutationHandler> = {
   add_concept: (model, args) => addConcept(model, args),
   add_field: (model, args) => addField(model, args),
   set_marker: (model, args) => setMarker(model, args),
-  add_element: (model, args) => addElement(model, args),
+  add_element: (model, args, schema) => addElement(model, args, schema),
   update_field: (model, args) => updateField(model, args),
   remove_element: (model, args) => removeElement(model, args),
   rename_concept: (model, args) => renameConcept(model, args),
@@ -244,10 +288,31 @@ function setMarker(model: ParsedModel, args: Record<string, unknown>): MutationR
   return { success: true }
 }
 
-function addElement(model: ParsedModel, args: Record<string, unknown>): MutationResult {
+function addElement(
+  model: ParsedModel,
+  args: Record<string, unknown>,
+  schema?: TemplateSchema,
+): MutationResult {
   const req = requireArgs(args, ['conceptName', 'elementName'])
   if (!req.ok) return req.result
   const { conceptName, elementName } = req.values
+
+  // Schema conformance (mutation-schema-conformance R1/R2/R3): when a schema
+  // is supplied, `conceptName` must resolve (case-insensitively) against a
+  // declared concept. This is the back door LEVEL2_ONLY_OPS was meant to
+  // close — `addElement` used to write straight into `model.elements`
+  // without ever consulting `schema`. Absent a schema, behaviour is
+  // unchanged (offline scaffolding / existing tests).
+  if (schema) {
+    const declared = schema.concepts.find((c) => c.name.toLowerCase() === conceptName.toLowerCase())
+    if (!declared) {
+      const declaredNames = schema.concepts.map((c) => c.name)
+      return {
+        success: false,
+        errors: [{ path: 'conceptName', message: unknownConceptMessage(conceptName, declaredNames) }],
+      }
+    }
+  }
 
   // Model-wide uniqueness check (R-IE-02)
   const existingNames = getModelWideElementNames(model)

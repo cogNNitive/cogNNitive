@@ -5,8 +5,8 @@
  */
 import { readdir, readFile } from 'node:fs/promises'
 import { join, relative } from 'node:path'
-import { parseFrontmatter } from './parser'
-import { isDiscoverableModel, NN_FILENAME_RE as MODEL_NN_FILENAME_RE } from './workspace/discoverModels'
+import { parseFrontmatter } from './parser/index.js'
+import { isDiscoverableModel, NN_FILENAME_RE as MODEL_NN_FILENAME_RE } from './workspace/discoverModels.js'
 
 /* ── Version resolution ──────────────────────────────────────── */
 
@@ -77,7 +77,12 @@ async function collectModels(dir: string, rootDir: string, models: ModelInfo[]):
     try {
       const content = await readFile(filePath, 'utf-8')
       frontmatter = parseFrontmatter(content)
-    } catch {
+    } catch (err) {
+      /* v8 ignore start */
+      if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
+        console.warn(`[helpers] Failed to read or parse candidate model ${filePath}: ${err}`)
+      }
+      /* v8 ignore stop */
       continue
     }
     if (!frontmatter) continue

@@ -1,4 +1,4 @@
-import type { ParsedModel } from './parser'
+import type { ParsedModel } from './parser.js'
 
 export interface FileDriverOptions {
   encoding?: string

@@ -1,4 +1,4 @@
-import { normalizeName } from './sourceRef'
+import { normalizeName } from './sourceRef.js'
 
 export interface CsvTable {
   /** Headers normalized with `normalizeName`. Key column is `headers[0]` by convention. */

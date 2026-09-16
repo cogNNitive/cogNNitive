@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { envelope, envelopeList, envelopeVersion, ENVELOPE_MAJOR } from './envelope'
+import { envelope, envelopeList, envelopeVersion, ENVELOPE_MAJOR } from './envelope.js'
 
 describe('versioned envelope (machine output contract)', () => {
   it('builds a version string as <contract>@<major>', () => {

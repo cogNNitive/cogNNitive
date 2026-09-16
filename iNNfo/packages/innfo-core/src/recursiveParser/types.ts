@@ -1,6 +1,6 @@
-import type { ModelNode } from '../types'
-import type { IdentityRegistry } from '../identity'
-import type { TemplateSchema } from '../schema'
+import type { ModelNode } from '../types/index.js'
+import type { IdentityRegistry } from '../identity.js'
+import type { TemplateSchema } from '../schema/index.js'
 
 export interface ParseIssue {
   path: string

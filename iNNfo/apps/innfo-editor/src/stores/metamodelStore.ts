@@ -120,7 +120,7 @@ export const useMetamodelStore = defineStore('metamodel', () => {
         const rootNode = modelStore.getNode(rootId)
         if (rootNode?.rawContent) {
           const fm = parseFrontmatter(rootNode.rawContent)
-          const parentName = (fm as any)?.parent_spec?.name
+          const parentName = fm?.parent_spec?.name
           if (parentName) {
             const templateId = `spec:${parentName}`
             const specNode = modelStore.getNode(templateId)

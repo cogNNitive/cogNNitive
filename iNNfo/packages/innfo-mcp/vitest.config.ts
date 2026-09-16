@@ -39,10 +39,10 @@ export default defineConfig({
       // track the CI floor so CI is stable; backfill lowest-first toward the
       // original 90/85/95/90 (see backlog #5).
       thresholds: {
-        lines: 87,
-        branches: 77,
+        lines: 89,
+        branches: 79,
         functions: 88,
-        statements: 87,
+        statements: 89,
       },
     },
   },

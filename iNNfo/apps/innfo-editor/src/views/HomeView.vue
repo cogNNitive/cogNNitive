@@ -21,12 +21,10 @@ import {
   formatTimestamp,
   getStoredHandle,
 } from '../stores/historyStore'
-import { normalizeSingleModel } from '@cognnitive/innfo-core'
-import { useModelStore } from '../stores/modelStore'
-import { resolveParentSpecs } from '../services/SpecResolverService'
 import { useToast } from '../shared/useToast'
 import SetupWizard from '../components/layout/SetupWizard.vue'
 import { modelStemMatches } from '../utils/modelMatching'
+import { createDirectoryHandleFromFileList } from '../utils/fileListDirectoryHandle'
 
 import { resolveWorkspacePreset } from '../config/workspaces'
 
@@ -144,6 +142,34 @@ onMounted(async () => {
         } catch (e) {
           console.warn('Failed to auto-reopen workspace:', e)
         }
+      }
+    }
+
+    // No deep link resolved a workspace — try resuming the LAST opened one
+    // (F-14). `recoverHandle()` used to be write-only: workspaceStore.open()
+    // persisted a handle to it on every open, but nothing ever read it back.
+    // Only resume silently when the browser still grants read permission
+    // WITHOUT prompting, so returning to `/` never surfaces an unexpected
+    // permission dialog.
+    if (!hasDeepLink) {
+      try {
+        const recovered = await workspace.recoverHandle()
+        if (recovered) {
+          const status = await (
+            recovered as unknown as {
+              queryPermission?: (opts: { mode: string }) => Promise<string>
+            }
+          ).queryPermission?.({ mode: 'read' })
+          if (status === 'granted') {
+            await workspace.open(recovered)
+            if (workspace.hasParsed) {
+              await router.push({ path: '/workspace', query: route.query, hash: route.hash })
+              return
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to resume last workspace:', e)
       }
     }
   } finally {
@@ -322,28 +348,30 @@ async function onFolderInputChange(event: Event): Promise<void> {
       return
     }
 
-    const modelStore = useModelStore()
-    const allNodes: Record<string, import('../model/types').ModelNode> = {}
-    const rootIds: string[] = []
+    // No browser exposes a real FileSystemDirectoryHandle for a
+    // `webkitdirectory` selection — only a flat FileList. Wrap it in a
+    // read-only DirectoryHandleLike so this fallback path runs through the
+    // SAME parse pipeline (workspace.open -> modelStore.parseFromHandle) as
+    // the primary File System Access flow, instead of a second,
+    // independently-maintained parser that skipped workspace-index
+    // building and cross-model reference validation (F-13).
+    const handle = createDirectoryHandleFromFileList(files)
+    await workspace.open(handle, { force: true })
 
-    for (const file of nnFiles) {
-      const content = await file.text()
-      const rootId = file.name.replace(/\.md$/i, '')
-      const result = normalizeSingleModel(content, file.webkitRelativePath || file.name, rootId)
-      Object.assign(allNodes, result.nodes)
-      rootIds.push(rootId)
+    if (!workspace.hasParsed) {
+      error.value = workspace.emptyFolderError
+        ? 'No iNNfo model files (_NN.md) found in this folder.'
+        : workspace.error || 'Could not load any iNNfo model from this folder.'
+      return
     }
 
-    await resolveParentSpecs(allNodes, rootIds)
-    modelStore.setGraph(allNodes, rootIds)
-
-    workspace.hasParsed = true
-    workspace.parseCount += 1
-    workspace.emptyFolderError = false
-
+    // This is a synthetic handle: there is no File System Access permission
+    // API for it, so it can never be regranted on a later visit. Do NOT
+    // store it for reopening — record the entry as explicitly
+    // non-reopenable instead of pretending it can be restored (F-13).
     const relPath = nnFiles[0].webkitRelativePath
     const dirName = relPath.split('/')[0] || 'workspace'
-    await addToHistory(dirName, null as unknown as any, relPath)
+    await addToHistory(dirName, null, relPath, { reopenable: false })
     history.value = await loadHistory()
     router.push({ path: '/workspace', query: route.query, hash: route.hash })
   } catch (err) {
@@ -470,7 +498,13 @@ async function onFolderInputChange(event: Event): Promise<void> {
             v-for="entry in history"
             :key="entry.handleKey"
             class="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-left hover:border-purple-400 dark:hover:border-purple-600 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all cursor-pointer group disabled:opacity-50"
-            :disabled="reopenBusy === entry.handleKey"
+            :disabled="reopenBusy === entry.handleKey || entry.reopenable === false"
+            :title="
+              entry.reopenable === false
+                ? 'Opened via the fallback folder picker — pick the folder again to reopen it.'
+                : undefined
+            "
+            data-testid="history-entry"
             @click="reopenFolder(entry)"
           >
             <span
@@ -479,8 +513,17 @@ async function onFolderInputChange(event: Event): Promise<void> {
               <FolderOpen class="w-4 h-4" />
             </span>
             <span class="flex-1 min-w-0">
-              <span class="block text-sm font-bold text-slate-800 dark:text-slate-100 truncate">
-                {{ entry.name }}
+              <span class="flex items-center gap-1.5">
+                <span class="block text-sm font-bold text-slate-800 dark:text-slate-100 truncate">
+                  {{ entry.name }}
+                </span>
+                <span
+                  v-if="entry.reopenable === false"
+                  class="shrink-0 px-1.5 py-0.5 rounded text-3xs font-semibold uppercase tracking-wider bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60"
+                  data-testid="history-entry-not-reopenable"
+                >
+                  Not reopenable
+                </span>
               </span>
               <span
                 v-if="entry.path && entry.path !== entry.name"

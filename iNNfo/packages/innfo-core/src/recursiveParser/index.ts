@@ -3,13 +3,13 @@ export {
   resolveQualifiedIdToPath,
   normalizePathKey,
   resolveSubmodelPath,
-} from './paths'
+} from './paths.js'
 export {
   WIKILINK_RE,
   extractWikilinkTargets,
   buildLowerNameIndex,
   addFieldAndMentionEdges,
-} from './relationships'
+} from './relationships.js'
 export type {
   ParseIssue,
   RecursiveParseResult,
@@ -17,10 +17,10 @@ export type {
   ParseContext,
   TemplateSchemaResolver,
   RecursiveParseOptions,
-} from './types'
-export { normalizeSingleModel } from './model'
-export { recursiveParse, extractSubmodelRefs, MAX_DEPTH } from './workspace'
-export type { ExtractedSubmodelRef } from './workspace'
-export { buildWorkspaceIndex } from './workspaceIndex'
-export type { WorkspaceIndex } from './workspaceIndex'
-export { readWorkspaceId } from './workspaceId'
+} from './types.js'
+export { normalizeSingleModel } from './model.js'
+export { recursiveParse, extractSubmodelRefs, MAX_DEPTH } from './workspace.js'
+export type { ExtractedSubmodelRef } from './workspace.js'
+export { buildWorkspaceIndex } from './workspaceIndex.js'
+export type { WorkspaceIndex } from './workspaceIndex.js'
+export { readWorkspaceId } from './workspaceId.js'

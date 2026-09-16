@@ -1,7 +1,7 @@
-import type { TemplateSchema } from '../schema'
-import type { SourceRef } from '../sourceRef'
-import type { TaxonomyEdge } from './parser'
-import type { ValidationError } from './validation'
+import type { TemplateSchema } from '../schema/index.js'
+import type { SourceRef } from '../sourceRef.js'
+import type { TaxonomyEdge } from './parser.js'
+import type { ValidationError } from './validation.js'
 
 /* ── Graph / App Model Types (moved from apps/innfo-editor/src/model/types.ts) ── */
 

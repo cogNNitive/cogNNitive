@@ -201,7 +201,7 @@ const getConceptFieldsForNode = (node: ModelNode) => {
   if (node.fields) {
     for (const [key, fv] of Object.entries(node.fields)) {
       if (!fieldsMap.has(key)) {
-        const val = (fv as any)?.value ?? fv
+        const val = fv?.value ?? fv
         fieldsMap.set(key, { name: key, type: inferTypeFromValue(key, val) })
       }
     }
@@ -213,7 +213,7 @@ const getConceptFieldsForNode = (node: ModelNode) => {
       if (child?.fields) {
         for (const [key, fv] of Object.entries(child.fields)) {
           if (!fieldsMap.has(key)) {
-            const val = (fv as any)?.value ?? fv
+            const val = fv?.value ?? fv
             fieldsMap.set(key, { name: key, type: inferTypeFromValue(key, val) })
           }
         }
@@ -246,7 +246,7 @@ const conceptBlock = computed(() => {
   if (!metamodelFields) {
     metamodelFields = []
   }
-  const fields: Record<string, any> = {}
+  const fields: Record<string, unknown> = {}
 
   for (const f of metamodelFields) {
     fields[f.name] = f.type === 'boolean' ? false : ''
@@ -254,7 +254,7 @@ const conceptBlock = computed(() => {
 
   if (node.fields) {
     for (const [k, fv] of Object.entries(node.fields)) {
-      fields[k] = (fv as any).value
+      fields[k] = fv && typeof fv === 'object' && 'value' in fv ? (fv as { value: unknown }).value : fv
     }
   }
 
@@ -278,7 +278,7 @@ const childItems = computed(() => {
       name: n.name,
       description: n.rawSections?.description || '',
       fields: Object.fromEntries(
-        Object.entries(n.fields ?? {}).map(([k, fv]) => [k, (fv as any).value]),
+        Object.entries(n.fields ?? {}).map(([k, fv]) => [k, fv?.value]),
       ),
       tags: n.tags ?? [],
     }))

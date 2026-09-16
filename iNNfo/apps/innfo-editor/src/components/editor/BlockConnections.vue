@@ -235,7 +235,7 @@ const matrixGroups = computed<MatrixGroup[]>(() => {
   const rawMatrices = defsField.length > 0
     ? defsField
     : root.rawContent
-      ? (parseFrontmatter(root.rawContent) as any)?.matrices
+      ? parseFrontmatter(root.rawContent)?.matrices
       : undefined
   const matrices: MatrixDecl[] = Array.isArray(rawMatrices) ? (rawMatrices as MatrixDecl[]) : []
   if (matrices.length === 0) return []
@@ -340,7 +340,7 @@ const matrixGroups = computed<MatrixGroup[]>(() => {
       const rootNode = modelStore.getNode(props.rootNodeId)
       if (rootNode?.rawContent) {
         const fmData = parseFrontmatter(rootNode.rawContent)
-        const concepts: Array<{ name: string; color?: string }> = (fmData as any)?.concepts ?? []
+        const concepts = fmData?.concepts ?? []
         const found = concepts.find((c) => matchesConcept(c.name, conceptTarget))
         if (found?.color) return getHexColor(found.color)
       }

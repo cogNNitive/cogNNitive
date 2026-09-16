@@ -10,6 +10,13 @@ export interface FolderHistoryEntry {
   handleKey: string
   timestamp: number
   path?: string
+  /**
+   * False for workspaces opened through the `webkitdirectory` fallback
+   * (no File System Access handle exists to reopen it with). Defaults to
+   * true (reopenable) when absent, for entries created before this field
+   * existed (F-13).
+   */
+  reopenable?: boolean
 }
 
 /** Onboarding sample model entry. */

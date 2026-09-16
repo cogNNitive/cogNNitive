@@ -5,7 +5,7 @@ import {
   loadBaseline,
   normalizeBaselinePath,
   type ValidationBaseline,
-} from './baseline'
+} from './baseline.js'
 
 const KNOWN = {
   path: 'elements.Task',

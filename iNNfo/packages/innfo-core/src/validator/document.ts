@@ -1,11 +1,11 @@
-import type { SpecDocument, ValidationCheck, ValidationError, ValidationReport } from '../types'
-import type { IncludeResolver } from '../schema'
-import { parseModel } from '../parser'
-import { hasBom } from '../parser/markdown'
-import { Diagnostics } from '../diagnostics'
-import { validateFormatContent } from './content'
-import { validateModel } from './model'
-import type { SubmodelResolver } from './references'
+import type { SpecDocument, ValidationCheck, ValidationError, ValidationReport } from '../types/index.js'
+import type { IncludeResolver } from '../schema/index.js'
+import { parseModel } from '../parser/index.js'
+import { hasBom } from '../parser/markdown.js'
+import { Diagnostics } from '../diagnostics.js'
+import { validateFormatContent } from './content.js'
+import { validateModel } from './model.js'
+import type { SubmodelResolver } from './references.js'
 
 /**
  * Map one hygiene check to a flat diagnostic. Passed checks (any severity)

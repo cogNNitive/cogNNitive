@@ -94,7 +94,7 @@
               </span>
             </div>
             <p class="text-2xs text-slate-500 dark:text-slate-400 leading-relaxed">
-              Step-by-step procedure FSM state machine interpreter: sequence navigation, sub-steps progress, RACI matrix, and tools.
+              {{ availableExtensions.descriptions[String(viewKey)] || 'Custom view provided by this template extension.' }}
             </p>
           </div>
 
@@ -585,11 +585,26 @@ const availableExtensions = computed(() => {
   const ext = extensionRegistry.getExtension(tName)
   const views = extensionRegistry.getExtensionViews(tName, fm)
   const manifest = ext ? ext.manifest : null
+
+  // Drives the extension card's description from the view's own metadata
+  // (declared `description::` or the view type's default) instead of a
+  // hardcoded string that used to describe a deleted guided-procedure view
+  // (F-17 / ModelInfoPanel.vue:97).
+  const resolvedViewers = extensionRegistry.resolveViewersForTemplate({
+    frontmatter: fm,
+    templateName: tName,
+  })
+  const descriptions: Record<string, string> = {}
+  for (const v of resolvedViewers) {
+    if (v.description) descriptions[v.id] = v.description
+  }
+
   return {
     templateName: tName,
     hasExtensions: Object.keys(views).length > 0,
     views,
     manifest,
+    descriptions,
   }
 })
 

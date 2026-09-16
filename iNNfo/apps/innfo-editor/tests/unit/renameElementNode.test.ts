@@ -164,4 +164,76 @@ describe('modelStore.renameElementNode propagation', () => {
     // Expect selection to have updated to the new ID
     expect(uiStore.selectedNodeId).toBe('doc/Task Gamma')
   })
+
+  it('does not re-validate an unrelated model when renaming inside another one (F-15)', () => {
+    const store = useModelStore()
+    store.setGraph(
+      {
+        modelA: {
+          id: 'modelA',
+          name: 'modelA',
+          type: 'document',
+          parentId: null,
+          childIds: ['modelA/node1'],
+          fields: {},
+          markers: {},
+          relationships: [],
+          rawSections: {},
+          rawContent:
+            '---\nspec_version: "V_0-1-1"\ntitle: "A"\n---\n# _NN Problems\n\n* _NN Problems: Task Beta\n',
+          source: { path: 'modelA.md' },
+        },
+        'modelA/node1': {
+          id: 'modelA/node1',
+          name: 'Task Beta',
+          type: 'Problems',
+          parentId: 'modelA',
+          childIds: [],
+          fields: {},
+          markers: {},
+          relationships: [],
+          rawSections: {},
+          source: { path: 'modelA.md' },
+          kind: 'element',
+        },
+        modelB: {
+          id: 'modelB',
+          name: 'modelB',
+          type: 'document',
+          parentId: null,
+          childIds: ['modelB/node1'],
+          fields: {},
+          markers: {},
+          relationships: [],
+          rawSections: {},
+          rawContent:
+            '---\nspec_version: "V_0-1-1"\ntitle: "B"\n---\n# _NN Problems\n\n* _NN Problems: Task Zeta\n',
+          source: { path: 'modelB.md' },
+        },
+        'modelB/node1': {
+          id: 'modelB/node1',
+          name: 'Task Zeta',
+          type: 'Problems',
+          parentId: 'modelB',
+          childIds: [],
+          fields: {},
+          markers: {},
+          relationships: [],
+          rawSections: {},
+          source: { path: 'modelB.md' },
+          kind: 'element',
+        },
+      },
+      ['modelA', 'modelB'],
+    )
+
+    const reportBBefore = store.validationReports['modelB']
+    expect(reportBBefore).toBeDefined()
+
+    store.renameElementNode('modelA/node1', 'Task Gamma')
+
+    // Same object reference proves modelB's report was reused, not recomputed.
+    expect(store.validationReports['modelB']).toBe(reportBBefore)
+    expect(store.validationReports['modelA']).toBeDefined()
+  })
 })

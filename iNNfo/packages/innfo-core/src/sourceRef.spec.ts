@@ -6,7 +6,7 @@ import {
   resolveHeadingSection,
   splitSourceFieldValue,
   SOURCE_FIELD_NAMES,
-} from './sourceRef'
+} from './sourceRef.js'
 
 describe('parseSourceRef', () => {
   it('resolves a bare path under sources/nn/', () => {

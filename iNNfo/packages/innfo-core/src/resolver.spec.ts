@@ -9,8 +9,8 @@ import {
   validateModel,
   parseModel,
   resolveTemplateSchema,
-} from './index'
-import type { SpecDocument } from './types'
+} from './index.js'
+import type { SpecDocument } from './types/index.js'
 
 describe('Multi-Store Template Resolver (innfo-core)', () => {
   let tmpDir: string

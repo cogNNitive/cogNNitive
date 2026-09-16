@@ -64,6 +64,16 @@ if (!vSquare.ok) {
 }
 console.log(`  ✅ All 6 version references in sync (v${vSquare.version}).`);
 
+// Step 2b: Template Version SSOT Guard (spec_NN.md -> samples.ts + manifest/source.yaml)
+console.log('\n[Group 2b] Template Version SSOT (spec_NN.md <-> samples.ts <-> manifest/source.yaml):');
+try {
+  execSync('node scripts/sync-template-versions.mjs --check', { cwd: repoRoot, stdio: 'inherit' });
+  console.log('  ✅ Template versions are in sync with spec_NN.md.');
+} catch (e) {
+  console.error('❌ Template version drift detected. Run `npm run sync:versions` to regenerate the copies.');
+  process.exit(1);
+}
+
 // Step 3: Full Deterministic Workspace Verification (verify.js)
 console.log('\n[Groups 3, 4, 7+] Workspace Verification Suite:');
 try {

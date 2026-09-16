@@ -183,6 +183,13 @@ function runVerification(options = {}) {
   run('node scripts/sync-samples.test.mjs', 'Test Samples Synchronization');
   run('node scripts/sync-samples.mjs --check', 'Check Samples Parity with _samples_nn');
 
+  // 7d. Template Version SSOT Drift Guard: ensure SHIPPED_TEMPLATE_VERSIONS and
+  //     manifest/source.yaml versions match iNNfo/specs/templates/*/spec_NN.md.
+  //     Runs before step 8 so a stale manifest/source.yaml fails here first,
+  //     not as a confusing rendered-doc diff.
+  run('node scripts/sync-template-versions.test.mjs', 'Test Template Version Sync');
+  run('node scripts/sync-template-versions.mjs --check', 'Check Template Version Parity with Specs');
+
   // 8. Rendered stable manifest doc must be in sync with manifest/source.yaml.
   //    Deterministic (renders source.yaml and compares bytes). Runs BEFORE the
   //    live validation so a hand-edited generated manifest fails fast with a

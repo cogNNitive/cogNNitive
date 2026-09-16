@@ -59,7 +59,12 @@ export async function loadHistory(): Promise<FolderHistoryEntry[]> {
 }
 
 /** Adds a new entry to the history (dedup by handleKey). Stores the handle separately. */
-export async function addToHistory(name: string, handle: DirectoryHandleLike, path?: string): Promise<void> {
+export async function addToHistory(
+  name: string,
+  handle: DirectoryHandleLike | null,
+  path?: string,
+  options: { reopenable?: boolean } = {},
+): Promise<void> {
   const db = await openHandleDb()
   const tx = db.transaction(STORE_NAME, 'readwrite')
   const store = tx.objectStore(STORE_NAME)
@@ -75,9 +80,20 @@ export async function addToHistory(name: string, handle: DirectoryHandleLike, pa
   const filtered = existing.filter((e) => e.name !== name)
   const handleKey = generateHandleKey(name)
   const resolvedPath = path || (handle as any)?.path || undefined
-  const entry: FolderHistoryEntry = { name, handleKey, timestamp: Date.now(), path: resolvedPath }
+  const reopenable = options.reopenable ?? true
+  const entry: FolderHistoryEntry = {
+    name,
+    handleKey,
+    timestamp: Date.now(),
+    path: resolvedPath,
+    reopenable,
+  }
 
-  // Store the handle itself
+  // Store the handle itself. When the caller has no real handle to reopen
+  // with (e.g. the `webkitdirectory` fallback, F-13), skip storing anything
+  // instead of writing `null` — `reopenable: false` already tells the UI
+  // this entry cannot be restored, so `getStoredHandle` correctly returns
+  // null instead of pretending a handle exists.
   if (handle) {
     store.put(handle, handleKey)
   }
