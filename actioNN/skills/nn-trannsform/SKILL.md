@@ -29,6 +29,10 @@ Execute the canonical activation gate defined in `nn-preflight` (session greetin
    - In all decision menus, option `[a]` or `[1]` MUST carry the `(Recommended)` prefix.
 3. **Multi-Selection Clarification**:
    - When choices are non-exclusive, include the notice: `"You can select one option or a combination (e.g. A and B)"`.
+4. **Optimistic Execution & Reversibility Protocol (Informative Grace)**:
+   - Safe, standard, and reversible actions (e.g. creating standard directory layout, normalizing documents into `sources/nn/`, running scanner passes) MUST NOT block with confirmation prompts.
+   - Announce intent with Informative Grace: `"Avanzando con [acción estándar]. Si preferís cambiar la ubicación o interrumpir, avisame antes de empezar."`
+   - Explicit confirmation is reserved exclusively for destructive mutations (deleting orphaned sources, moving external user files without copy).
 
 ## Preflight Gate (MANDATORY — run before any transformation)
 
@@ -45,9 +49,11 @@ This skill enables the agent to interactively guide the user through document in
 
 ### 1. Project Initialization & Bootstrap
 
-Ask the user for confirmation before creating directories:
-1. **Source Folder**: Where are the original files?
-2. **Project Name & Destination**: Name for the project and where to save it (recommend `%USERPROFILE%\Documents\_NN\[project-name]`).
+Initialize workspace directories optimistically with Informative Grace:
+1. **Source Folder**: Detect or resolve original source files (`sources/import/` or specified source path).
+2. **Project Name & Destination**: Standard location (recommend `%USERPROFILE%\Documents\_NN\[project-name]`).
+Announce: *"Inicializando estructura de workspace estándar en `[destination]/[project-name]`. Voy a avanzar con esta preparación; si querés cambiar el nombre, ubicación o interrumpir, avisame antes de empezar."*
+Proceed directly to create required directories without blocking.
 
 #### Standard Workspace Directory Layout
 

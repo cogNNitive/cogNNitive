@@ -53,13 +53,23 @@ distilled catalog.
 
 ---
 
-## 1. Selection Menu (MANDATORY — always ask)
+## 1. Execution Protocol (Optimistic Execution & Informative Grace)
 
-Never run the full battery unprompted. Present this list, with the fast/high-value groups
-pre-marked `[x]`, and run **only** what the maintainer selects.
+By default, when `nn-dev-check-integrity` is triggered without explicit arguments or custom group selection:
+**DO NOT block on an interactive menu.** 
+
+Execute optimistically with **Preset [d] Post-cambio (Deterministic Integrity Gate)** (`node scripts/check-integrity.js`), announce intent with Informative Grace, and proceed immediately:
 
 ```markdown
-🩺 nn-dev-check-integrity — ¿qué grupos querés chequear?
+🩺 Ejecutando gate de integridad post-cambio (Preset [d] determinista). Voy a avanzar con esta validación; si preferís otro alcance ([p] pre-push, [q] QA a fondo, [a] todo) o querés interrumpir, avisame ahora.
+```
+
+If the maintainer explicitly requests the menu, wants to customize groups, or provides specific flags:
+- Present the group list below.
+- If Preset `[q]` (QA general) is chosen, default optimistically to **Diff vs `origin/main`** without asking a secondary scope question.
+
+```markdown
+🩺 nn-dev-check-integrity — grupos disponibles:
 
   [x] 0. Working tree & sesiones concurrentes
   [x] 1. Sync con GitHub: commit / push / merge / deploy
@@ -74,15 +84,11 @@ pre-marked `[x]`, and run **only** what the maintainer selects.
   [ ] 10. Revisión general de código: QA básico + bugs + refactors fáciles   · MUY LENTO / muchos tokens
 
 Presets:  [a] Todo   ·   [d] Post-cambio (0 1 2 3 4 6 7)   ·   [p] Pre-push (d + 5)   ·   [q] QA a fondo (p + 10)   ·   [r] Release (a)
-Podés marcar números sueltos, ej. "0 1 2 6".  ·  [x] Cancelar
 ```
 
 ⚡ **Fast Deterministic CLI**:
 - Preset `[d]` (Post-cambio gate): `npm run check:integrity` (or `node scripts/check-integrity.js`)
 - Preset `[p]` (Pre-push gate with CI mirror): `node scripts/check-integrity.js --pre-push`
-
-If the maintainer types a preset letter, expand it to its number set and confirm the
-list before running. In automated environments, run the CLI directly.
 
 ---
 
