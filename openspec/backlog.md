@@ -122,7 +122,7 @@ both.
 
 ## 4. `refactor/core-structure` — split `types.ts` barrel + shared decomposed test fixtures
 
-**Type:** refactor · **Size:** medium
+**Type:** refactor · **Size:** medium · **Status:** fixed
 
 **Merged from:** `refactor/split-types` + `refactor/shared-decomposed-fixtures`.
 
@@ -154,7 +154,7 @@ frontmatter.
 
 ## 5. `chore/mcp-hygiene` — declarative tool registry + enforced coverage gates
 
-**Type:** refactor / chore · **Size:** medium
+**Type:** refactor / chore · **Size:** medium · **Status:** fixed
 
 **Merged from:** `refactor/mcp-tool-registry` + `chore/mcp-coverage-debt`.
 
@@ -168,7 +168,7 @@ plain `vitest run` and never `test:coverage`, so the debt is unenforced. Lowest 
 **Approach:**
 
 1. Drive definitions, dispatch, and count from a single table of
-   `{ name, definition, handler }` — mechanical, no behaviour change.
+   `{ name, definition, handler }` — mechanical, no behaviour change (Done).
 2. Run coverage in CI and backfill per file, lowest-first; keep new-code coverage at
    100%.
 
@@ -178,7 +178,7 @@ plain `vitest run` and never `test:coverage`, so the debt is unenforced. Lowest 
 
 ## 6. `refactor/trannsform-slug-codegen` — generate the `nn-trannsform` slug mirror from core
 
-**Type:** refactor · **Size:** small-medium
+**Type:** refactor · **Size:** small-medium · **Status:** fixed
 
 **Why:** `nn-trannsform`'s `markdown-utils.js` mirrors core's slug functions by hand
 with only a parity test (`test-slug-parity.js`, hardcoded expected table) as guard; it
@@ -195,7 +195,7 @@ Runtime stays dependency-free.
 
 ## 7. `fix/silent-fallbacks-sweep` — classify the remaining `catch` sites
 
-**Type:** fix · **Size:** medium
+**Type:** fix · **Size:** medium · **Status:** fixed
 
 **Why:** the README states "Fail-Fast: No silent fallbacks", yet ~20 bare/empty catch
 sites remain across `innfo-core` and `innfo-mcp` (down from ~35 — `parseYaml` and the
@@ -217,7 +217,7 @@ reads, guarded with `err.code === 'ENOENT'` and a comment saying so.
 
 ## 8. `chore/editor-tech-debt` — drive down `any` + extract `workspaceStore.readText`
 
-**Type:** chore / refactor · **Size:** medium
+**Type:** chore / refactor · **Size:** medium · **Status:** fixed
 
 **Merged from:** `chore/editor-any-ratchet` + `refactor/editor-readtext-helper`.
 
@@ -230,7 +230,7 @@ duplicated across `FilePreviewModal` (`loadFileContent`, `openOriginalFile`) and
 **Approach:**
 
 1. Extract a single async `readText(path)` helper on the workspace store; the modal and
-   explorer call it. No behaviour change.
+   explorer call it. No behaviour change (Done).
 2. Remove gratuitous casts incrementally (gratuitous `(fm as any)` where
    `parseFrontmatter` is already typed; d3 typing pass with `@types/d3` generics).
 3. Add a lint/CI guard that fails a PR which **raises** the `any` count.
@@ -241,7 +241,7 @@ duplicated across `FilePreviewModal` (`loadFileContent`, `openOriginalFile`) and
 
 ## 9. `ci/build-hygiene` — stop `deploy-pages` rebuilding + automate the CDN square check
 
-**Type:** ci · **Size:** small
+**Type:** ci · **Size:** small · **Status:** fixed
 
 **Merged from:** `ci/investigate-deploy-pages` + `chore/cdn-bundle-ci`.
 
@@ -460,3 +460,80 @@ plus stable-manifest-doc freshness) into the release path (post-tag) or behind a
 hand-edited `docs/use/manifest.md` fails fast with the correct message.
 
 **Suggested trigger:** `/sdd-new fix/dev-gate-release-coupling`.
+
+---
+
+## 19. `feature/in-app-source-import` — in-app source import affordance for the editor
+
+**Type:** functional · **Size:** medium · **Status:** non-goal of `2026-09-13-document-fidelity-and-provenance-integrity`
+
+**Why:** FINDINGS F-18 (see `simulacro/FINDINGS.md`) identified that source ingestion
+lives only in the agent/CLI procedures — the editor has no drag-and-drop or file-picker
+affordance to import a primary source directly into `sources/nn/`. This is a real gap
+in the product's onboarding flow but is a **feature**, not a repair, and was explicitly
+scoped out of the document-fidelity-and-provenance-integrity change to keep that change
+to a defect-repair surface.
+
+**Approach (open):** design an editor-side import flow (drag-and-drop or file picker)
+that normalizes the incoming file into `sources/nn/`, ideally sharing matching/guard
+logic with item 1 (`feature/source-import-guards`) rather than shipping a second,
+divergent import path.
+
+**Suggested trigger:** `/sdd-explore in-app-source-import`.
+
+---
+
+## 20. `refactor/generate-canonical-registry` — generate `canonical-registry.ts` from template specs
+
+**Type:** refactor · **Size:** medium-large · **Status:** non-goal of `2026-09-13-document-fidelity-and-provenance-integrity`
+
+**Why:** `innfo-core/src/schema/canonical-registry.ts` is 2116 lines of hand-maintained,
+vendored template content (concepts/fields/matrices per shipped template), duplicating
+what already lives in `iNNfo/specs/templates/*/spec_NN.md`. This is the same class of
+drift risk that motivated AD-8's `sync-template-versions.mjs` generator (version fields
+only), but for the registry's full content — a strictly larger blast radius.
+
+**Why deferred:** the registry backs the editor's **offline-resilience contract** — it
+lets the editor validate/render templates before any workspace or network fetch
+resolves the live spec files. Regenerating it from disk-only specs would need to either
+(a) still commit the generated output (like AD-8) so the offline path has no new
+runtime dependency, or (b) redesign the offline fallback entirely. Either way this
+deserves its own design pass, not a rider on a document-fidelity change.
+
+**Approach (open):** `/sdd-explore` first — confirm the generated-and-committed pattern
+from AD-8 extends cleanly to full concept/field/matrix content, and how drift detection
+(`--check` mode) should treat the registry.
+
+**Suggested trigger:** `/sdd-explore generate-canonical-registry`.
+
+---
+
+## 21. `feature/prune-orphaned-specs-mcp-tool` — decide the fate of `reachability.ts`'s `pruneOrphanedSpecs`
+
+**Type:** functional / chore · **Size:** small-medium
+
+**Why:** `iNNfo/packages/innfo-mcp/src/tools/reachability.ts` exports a complete,
+already-safety-gated (`dry_run` default `true`, optional zip backup via
+`createSpecsBackupZip` before any deletion) spec-pruning engine
+(`calculateSpecReachability` + `pruneOrphanedSpecs`), re-exported from `mutate.ts`'s
+barrel. It is exercised only by `mutate.spec.ts` unit tests — it is never registered in
+`server.ts`'s `TOOL_REGISTRY` and never called from any other production code path. It
+is reachable by nothing except its own test suite, which is itself an instance of the
+orphan-detection problem it was built to solve.
+
+**Investigation done (2026-09-13, as part of
+`2026-09-13-document-fidelity-and-provenance-integrity` work unit 9):** this file is
+concurrently owned by `2026-09-13-mcp-coverage-debt`, whose proposal states its scope
+as "add test coverage for `pruneOrphanedSpecs` and transitive asset reachability" —
+i.e. that change backfills tests for the existing code, it does **not** intend to wire
+the function into `TOOL_REGISTRY` either. So after both changes land, the function will
+remain fully tested but still unreachable from any MCP client.
+
+**Recommendation:** this reads as unshipped-but-finished work, not dead code to delete —
+deleting a backup-gated, dry-run-first pruning engine would throw away real, safety-
+conscious engineering for no benefit. Register it as a new `prune_orphaned_specs` MCP
+tool (`dry_run: true` default preserved as the safety gate) in its own small change,
+once `2026-09-13-mcp-coverage-debt` has landed its coverage backfill on the same file.
+
+**Suggested trigger:** `/sdd-new prune-orphaned-specs-mcp-tool` (after
+`2026-09-13-mcp-coverage-debt` merges).

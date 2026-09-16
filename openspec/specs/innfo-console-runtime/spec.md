@@ -40,10 +40,10 @@ The system MUST ship a single versioned `innfo-runtime.js` as a UMD/IIFE global 
 
 ### Requirement: No Duplicated Inline Runtime
 
-The three reference assets (`business/assets/master.html`, `model_viewer.html`, `metrics/assets/projections.html`) MUST thin onto the blueprint. No console artifact SHALL ship duplicated inline runtime.
+The two reference assets (`business/assets/model_viewer.html`, `metrics/assets/timeline.html`) MUST thin onto the blueprint. No console artifact SHALL ship duplicated inline runtime.
 
 #### Scenario: Reference assets thinned
 
-- GIVEN the three reference assets after this change
+- GIVEN the two reference assets after this change
 - WHEN scanned for inline runtime markers
 - THEN no duplicated runtime block is found
