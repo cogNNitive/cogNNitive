@@ -45,16 +45,21 @@ export default async function run() {
         return templateCache.get(key) ?? templateCache.get(slug) ?? null
       },
     })
+    // `info` notes are deliberate (AD-7: an element name that resolves across
+    // several models is legal, and the note names the qualified-reference form
+    // for addressing a specific one). Only error/warning issues count here.
+    const actionableIssues = parsed.issues.filter((i) => i.severity !== 'info')
     s.expect(
       'The shipped workspace parses without issues',
       {
         entrypoint: parsed.entrypointPath,
         models: Object.values(parsed.nodes).filter((n) => n.kind === 'root').length,
-        issueCount: parsed.issues.length,
-        issueKinds: summarizeIssues(parsed.issues),
+        actionableIssueCount: actionableIssues.length,
+        infoNotes: parsed.issues.length - actionableIssues.length,
+        issueKinds: summarizeIssues(actionableIssues),
       },
-      (v) => v.issueCount === 0 && v.models >= 11,
-      'all sample models load with zero parse issues — this is the first thing a new user sees',
+      (v) => v.actionableIssueCount === 0 && v.models >= 11,
+      'all sample models load with no error or warning issues — this is the first thing a new user sees',
     )
 
     // Per-file document hygiene, the same pass the editor and MCP both run.

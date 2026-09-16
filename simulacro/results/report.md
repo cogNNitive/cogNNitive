@@ -1,8 +1,8 @@
 # Simulacro — user-flow simulation report
 
-Generated: 2026-09-16T13:37:02.384Z
+Generated: 2026-09-16T15:51:03.882Z
 
-**50 passed · 1 failed · 7 observed**
+**51 passed · 0 failed · 7 observed**
 
 | Scenario | Pass | Fail | Observed |
 | --- | ---: | ---: | ---: |
@@ -12,7 +12,7 @@ Generated: 2026-09-16T13:37:02.384Z
 | S04 — Template-authoring gate (level 2 vs level 3) | 5 | 0 | 1 |
 | S05 — Tabular source ingestion & row-level citations | 6 | 0 | 0 |
 | S06 — Workspace manifest reconciliation | 5 | 0 | 2 |
-| S07 — Opening the shipped sample workspace | 5 | 1 | 0 |
+| S07 — Opening the shipped sample workspace | 6 | 0 | 0 |
 | S08 — Consuming innfo-core from plain Node | 2 | 0 | 1 |
 
 ## S01 — Source ingestion & citation traceability
@@ -117,7 +117,7 @@ _An analyst imports a primary source, cites its sections from model elements, an
           "kind": "system",
           "id": "parser"
         },
-        "timestamp": "2026-09-16T13:37:02.138Z"
+        "timestamp": "2026-09-16T15:51:03.614Z"
       }
     }
   }
@@ -403,7 +403,7 @@ _A user opens a shipped sample, changes nothing meaningful, saves — and expect
   {
     "file": "Ghostbusters_business_NN.md",
     "identical": true,
-    "lines": "954->954"
+    "lines": "946->946"
   },
   {
     "file": "Ghostbusters_documentation_NN.md",
@@ -736,18 +736,17 @@ calling it with the index omitted throws a raw TypeError on `index.nodeSchema` r
 
 _A new user opens the workspace we ship. Everything they see on day one is what this scenario measures._
 
-### ❌ The shipped workspace parses without issues
-- **Expected:** all sample models load with zero parse issues — this is the first thing a new user sees
+### ✅ The shipped workspace parses without issues
+- **Expected:** all sample models load with no error or warning issues — this is the first thing a new user sees
 - **Actual:**
 
 ```
 {
   "entrypoint": "workspace_NN.md",
   "models": 13,
-  "issueCount": 32,
-  "issueKinds": {
-    "other": 32
-  }
+  "actionableIssueCount": 0,
+  "infoNotes": 24,
+  "issueKinds": {}
 }
 ```
 

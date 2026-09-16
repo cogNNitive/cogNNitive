@@ -1,7 +1,7 @@
 {
   "counts": {
-    "PASS": 50,
-    "FAIL": 1,
+    "PASS": 51,
+    "FAIL": 0,
     "OBSERVED": 7
   },
   "scenarios": [
@@ -55,7 +55,7 @@
         {
           "label": "Element carrying the citation",
           "expectation": null,
-          "actual": "{\n  \"name\": \"Demand Grows In Q4\",\n  \"fields\": {\n    \"sources\": {\n      \"value\": [\n        \"market-report-2026.md@## Q4 Outlook\"\n      ],\n      \"editAttribution\": {\n        \"author\": {\n          \"kind\": \"system\",\n          \"id\": \"parser\"\n        },\n        \"timestamp\": \"2026-09-16T13:37:02.138Z\"\n      }\n    }\n  }\n}",
+          "actual": "{\n  \"name\": \"Demand Grows In Q4\",\n  \"fields\": {\n    \"sources\": {\n      \"value\": [\n        \"market-report-2026.md@## Q4 Outlook\"\n      ],\n      \"editAttribution\": {\n        \"author\": {\n          \"kind\": \"system\",\n          \"id\": \"parser\"\n        },\n        \"timestamp\": \"2026-09-16T15:51:03.614Z\"\n      }\n    }\n  }\n}",
           "outcome": "OBSERVED",
           "error": null
         },
@@ -195,7 +195,7 @@
         {
           "label": "A no-op save leaves every shipped model byte-identical",
           "expectation": "parse -> serialize is the identity on canonical, spec-conformant files",
-          "actual": "[\n  {\n    \"file\": \"Ghostbusters_analysis_NN.md\",\n    \"identical\": true,\n    \"lines\": \"88->88\"\n  },\n  {\n    \"file\": \"Ghostbusters_business-model_NN.md\",\n    \"identical\": true,\n    \"lines\": \"103->103\"\n  },\n  {\n    \"file\": \"Ghostbusters_business_NN.md\",\n    \"identical\": true,\n    \"lines\": \"954->954\"\n  },\n  {\n    \"file\": \"Ghostbusters_documentation_NN.md\",\n    \"identical\": true,\n    \"lines\": \"150->150\"\n  },\n  {\n    \"file\": \"Ghostbusters_innovation_NN.md\",\n    \"identical\": true,\n    \"lines\": \"199->199\"\n  },\n  {\n    \"file\": \"Ghostbusters_metrics_NN.md\",\n    \"identical\": true,\n    \"lines\": \"201->201\"\n  },\n  {\n    \"file\": \"Ghostbusters_organization_NN.md\",\n    \"identical\": true,\n    \"lines\": \"197->197\"\n  },\n  {\n    \"file\": \"Ghostbusters_procedures_NN.md\",\n    \"identical\": true,\n    \"lines\": \"234->234\"\n  },\n  {\n    \"file\": \"Ghostbusters_projects_NN.md\",\n    \"identical\": true,\n    \"lines\": \"186->186\"\n  },\n  {\n    \"file\": \"Ghostbusters_repository_NN.md\",\n    \"identical\": true,\n    \"lines\": \"59->59\"\n  },\n  {\n    \"file\": \"Ghostbusters_video-generator_NN.md\",\n    \"identical\": true,\n    \"lines\": \"66->66\"\n  }\n]",
+          "actual": "[\n  {\n    \"file\": \"Ghostbusters_analysis_NN.md\",\n    \"identical\": true,\n    \"lines\": \"88->88\"\n  },\n  {\n    \"file\": \"Ghostbusters_business-model_NN.md\",\n    \"identical\": true,\n    \"lines\": \"103->103\"\n  },\n  {\n    \"file\": \"Ghostbusters_business_NN.md\",\n    \"identical\": true,\n    \"lines\": \"946->946\"\n  },\n  {\n    \"file\": \"Ghostbusters_documentation_NN.md\",\n    \"identical\": true,\n    \"lines\": \"150->150\"\n  },\n  {\n    \"file\": \"Ghostbusters_innovation_NN.md\",\n    \"identical\": true,\n    \"lines\": \"199->199\"\n  },\n  {\n    \"file\": \"Ghostbusters_metrics_NN.md\",\n    \"identical\": true,\n    \"lines\": \"201->201\"\n  },\n  {\n    \"file\": \"Ghostbusters_organization_NN.md\",\n    \"identical\": true,\n    \"lines\": \"197->197\"\n  },\n  {\n    \"file\": \"Ghostbusters_procedures_NN.md\",\n    \"identical\": true,\n    \"lines\": \"234->234\"\n  },\n  {\n    \"file\": \"Ghostbusters_projects_NN.md\",\n    \"identical\": true,\n    \"lines\": \"186->186\"\n  },\n  {\n    \"file\": \"Ghostbusters_repository_NN.md\",\n    \"identical\": true,\n    \"lines\": \"59->59\"\n  },\n  {\n    \"file\": \"Ghostbusters_video-generator_NN.md\",\n    \"identical\": true,\n    \"lines\": \"66->66\"\n  }\n]",
           "outcome": "PASS",
           "error": null
         },
@@ -397,9 +397,9 @@
       "steps": [
         {
           "label": "The shipped workspace parses without issues",
-          "expectation": "all sample models load with zero parse issues — this is the first thing a new user sees",
-          "actual": "{\n  \"entrypoint\": \"workspace_NN.md\",\n  \"models\": 13,\n  \"issueCount\": 32,\n  \"issueKinds\": {\n    \"other\": 32\n  }\n}",
-          "outcome": "FAIL",
+          "expectation": "all sample models load with no error or warning issues — this is the first thing a new user sees",
+          "actual": "{\n  \"entrypoint\": \"workspace_NN.md\",\n  \"models\": 13,\n  \"actionableIssueCount\": 0,\n  \"infoNotes\": 24,\n  \"issueKinds\": {}\n}",
+          "outcome": "PASS",
           "error": null
         },
         {
