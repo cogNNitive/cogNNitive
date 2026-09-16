@@ -131,10 +131,24 @@ status:: active
 author:: Egon Spengler
 Automated compilation procedure to generate the unified interactive Workspace Hub HTML dashboard.
 
-# NN Artifacts
+# NN Sources
 
-## NN Artifacts: Workspace Hub Dashboard
-path:: artifacts/workspace_hub.html
-status:: active
-author:: AI Agent
-Interactive single-page workspace console and visual hub aggregating all Ghostbusters models.
+## NN Sources: NYC Paranormal Activity Report 1984
+type:: local_file
+origin_uri:: sources/original/nyc-paranormal-activity-report-1984.pdf
+format:: md
+subpath:: nyc-paranormal-activity-report-1984.md
+refresh_policy:: immutable
+status:: ready
+tags:: market, municipal
+Normalized Markdown transcription of the 1984 municipal field report. Addressed by heading, e.g. `@## Market Demand`.
+
+## NN Sources: Containment Incidents 1984
+type:: local_file
+origin_uri:: sources/original/containment-incidents-1984.xlsx
+format:: csv
+subpath:: containment-incidents-1984.csv
+refresh_policy:: manual
+status:: ready
+tags:: operations, incidents
+Per-incident containment log. Addressed by row key on `incident_id`, e.g. `@INC-1041`.

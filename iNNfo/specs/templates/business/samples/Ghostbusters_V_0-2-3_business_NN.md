@@ -450,6 +450,7 @@ Daily inspection and calibration of Proton Packs, Ghost Traps, and PKE meters.
 ## NN Activities: Entity Research
 Documenting and classifying captured entities. Developing new containment protocols.
 ## NN Activities: Public Relations
+slug:: activities-public-relations
 Managing media inquiries, publishing capture reports, maintaining brand reputation.
 
 # NN Functions
@@ -546,6 +547,7 @@ tags:: [founder, partner, engineering, occult-studies, core-team]
 Dr. Ray Stantz combines deep enthusiasm for occult history with practical mechanical and engineering expertise.
 
 ## NN Person: Winston Zeddemore
+slug:: person-winston-zeddemore
 position_ref:: [[Lead Field Operator]]
 compensation:: $60,000 base salary, overtime hazard pay ($500 per captured class-V entity), healthcare benefits.
 contributions:: Operates heavy field hardware, manages Ecto-1 driving duties, and executes frontline captures.
@@ -554,6 +556,7 @@ tags:: [partner, field-operations, heavy-equipment, veteran, core-team]
 Winston Zeddemore joined the team during peak NYC spectral activity, providing steady discipline and reliable execution under pressure.
 
 ## NN Person: Janine Melnitz
+slug:: person-janine-melnitz
 position_ref:: [[Dispatch Manager]]
 compensation:: $48,000 base salary, full health insurance, overtime dispatch bonuses.
 contributions:: Handles emergency intake calls, manages billing and legal notices, and monitors the containment grid warning alarms.
@@ -646,6 +649,7 @@ Residential LTV: $8,500 (1.7 average incidents per customer lifespan). Commercia
 ## NN Costs: Payroll & Benefits
 4 full-time operators + 1 office manager. $420,000/year total.
 ## NN Costs: Equipment Maintenance
+slug:: costs-equipment-maintenance
 Proton Pack calibration, trap refurbishment, PKE meter replacement. $85,000/year.
 ## NN Costs: Facility Operations
 Firehouse lease, utilities, containment grid power. $120,000/year.
@@ -672,12 +676,16 @@ $30,000 pooled from personal savings to acquire initial equipment and lease depo
 # NN Shareholders
 
 ## NN Shareholders: Dr. Peter Venkman
+slug:: shareholders-dr-peter-venkman
 25% equity. Parapsychology lead. Public-facing partner.
 ## NN Shareholders: Dr. Raymond Stantz
+slug:: shareholders-dr-raymond-stantz
 25% equity. Engineering lead. Equipment design and maintenance.
 ## NN Shareholders: Dr. Egon Spengler
+slug:: shareholders-dr-egon-spengler
 25% equity. R&D lead. Theoretical foundation and containment design.
 ## NN Shareholders: Winston Zeddemore
+slug:: shareholders-winston-zeddemore
 15% equity. Field operations lead. Joined as employee, promoted to partner.
 ## NN Shareholders: Reserve Pool
 10% equity reserved for future key hires and partner-track operators.
@@ -805,6 +813,7 @@ Direct mapping between all identified problems and our service value props. No o
 ## NN Coherence: Segments ↔ Channels
 Residential segment reached via phone/digital. Commercial via direct sales. Government via RFP response.
 ## NN Coherence: Revenue ↔ Cost Structure
+slug:: coherence-revenue-cost-structure
 High-margin incident revenue supports fixed cost base. Commercial contracts provide cash flow stability.
 
 # NN Experiments
