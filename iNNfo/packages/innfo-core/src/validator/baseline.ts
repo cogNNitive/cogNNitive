@@ -1,4 +1,4 @@
-import type { ValidationError } from '../types'
+import type { ValidationError } from '../types/index.js'
 
 /**
  * Differential validation against a versioned known-errors baseline.
@@ -75,8 +75,8 @@ export function loadBaseline(raw: string | null | undefined): ValidationBaseline
   let parsed: unknown
   try {
     parsed = JSON.parse(raw)
-  } catch {
-    throw new Error('[BASELINE_INVALID] Baseline is not valid JSON.')
+  } catch (err) {
+    throw new Error(`[BASELINE_INVALID] Baseline is not valid JSON: ${err instanceof Error ? err.message : String(err)}`)
   }
   if (typeof parsed !== 'object' || parsed === null) {
     throw new Error('[BASELINE_INVALID] Baseline must be a JSON object.')

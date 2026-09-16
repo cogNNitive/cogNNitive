@@ -1,7 +1,7 @@
-import type { Concept, Marker, MatrixDecl, ParsedModel } from '../types'
-import type { Diagnostics } from '../diagnostics'
-import { checkElementsAgainstSchema } from '../schema'
-import { RESERVED_CONCEPT_NAMES } from './constants'
+import type { Concept, Marker, MatrixDecl, ParsedModel } from '../types/index.js'
+import type { Diagnostics } from '../diagnostics.js'
+import { checkElementsAgainstSchema } from '../schema/index.js'
+import { RESERVED_CONCEPT_NAMES } from './constants.js'
 
 /** One element group as consumed by `checkElementsAgainstSchema`. */
 export type ElementGroup = [string, Array<{ name: string; fields: Record<string, unknown> }>]

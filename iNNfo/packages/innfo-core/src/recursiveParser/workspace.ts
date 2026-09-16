@@ -1,16 +1,16 @@
-import type { DirectoryHandleLike, FileHandleLike } from '../fs-types'
-import type { ModelDriver, ModelNode } from '../types'
-import type { TemplateSchema } from '../schema'
-import { IdentityRegistry } from '../identity'
+import type { DirectoryHandleLike, FileHandleLike } from '../fs-types.js'
+import type { ModelDriver, ModelNode } from '../types/index.js'
+import type { TemplateSchema } from '../schema/index.js'
+import { IdentityRegistry } from '../identity.js'
 import type {
   ParseContext,
   RecursiveParseOptions,
   RecursiveParseResult,
   WorklistItem,
-} from './types'
-import { stripMdSuffix, normalizePathKey, resolveSubmodelPath, basename } from './paths'
-import { parseAndRegisterModel } from './model'
-import { parseModel, parseFrontmatter, stripFrontmatter } from '../parser'
+} from './types.js'
+import { stripMdSuffix, normalizePathKey, resolveSubmodelPath, basename } from './paths.js'
+import { parseAndRegisterModel } from './model.js'
+import { parseModel, parseFrontmatter, stripFrontmatter } from '../parser/index.js'
 
 const INNFO_FILE_SUFFIX = '.md'
 const INDEX_MD = 'index.md'
@@ -134,16 +134,21 @@ async function findPrimaryWorkspaceFile(
           content: parsed.rawContent,
         }
       }
-    } catch {
+    } catch (err) {
+      /* v8 ignore start */
+      if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
+        console.warn(`[workspace] Primary entrypoint discovery via driver failed; attempting fallback: ${err}`)
+      }
+      /* v8 ignore stop */
       for (const name of ['workspace_01.md', 'workspace_NN.md', 'workspace.md']) {
         try {
           const parsed = await driver.readModel(name)
           return { path: name, name: stripMdSuffix(name), content: parsed.rawContent }
-        } catch (err) {
+        } catch (fallbackErr) {
           /* v8 ignore start */
           // swallow deliberately: a fallback entrypoint file may not exist.
-          if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
-            console.warn(`[workspace] Failed to read fallback entrypoint ${name}: ${err}`)
+          if ((fallbackErr as NodeJS.ErrnoException)?.code !== 'ENOENT') {
+            console.warn(`[workspace] Failed to read fallback entrypoint ${name}: ${fallbackErr}`)
           }
           /* v8 ignore stop */
         }
@@ -168,7 +173,12 @@ async function findPrimaryWorkspaceFile(
       const file = await fileHandle.getFile()
       const content = await file.text()
       return { path: chosenName, name: stripMdSuffix(chosenName), content }
-    } catch {
+    } catch (err) {
+      /* v8 ignore start */
+      if (!isNotFound(err)) {
+        console.warn(`[workspace] Failed to read entrypoint candidate ${chosenName}: ${err}`)
+      }
+      /* v8 ignore stop */
       // Drop this candidate and try the next (mirrors the pre-A2 per-name loop).
       candidates = candidates.filter((n) => n !== chosenName)
     }
@@ -194,7 +204,7 @@ export function extractSubmodelRefs(
     let cleanTarget = target.trim()
     try {
       cleanTarget = decodeURIComponent(cleanTarget)
-    } catch {
+    } catch (err) {
       // keep raw target if malformed
     }
     if (cleanTarget.startsWith('[[') && cleanTarget.endsWith(']]')) {

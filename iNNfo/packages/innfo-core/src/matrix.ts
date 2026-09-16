@@ -1,4 +1,4 @@
-import type { MatrixDecl } from './types'
+import type { MatrixDecl } from './types/index.js'
 
 export type MatrixWidgetType = 'boolean' | 'cycle' | 'scale' | 'set' | 'text'
 

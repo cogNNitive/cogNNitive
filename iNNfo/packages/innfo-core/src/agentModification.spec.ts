@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { buildAgentModificationBlock, type AgentModificationContext } from './agentModification'
-import { slugifyHeading, extractHeadings } from './sourceRef'
+import { buildAgentModificationBlock, type AgentModificationContext } from './agentModification.js'
+import { slugifyHeading, extractHeadings } from './sourceRef.js'
 
 const CTX: AgentModificationContext = {
   model: 'Ghostbusters_V_0-1-0_business',

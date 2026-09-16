@@ -144,21 +144,27 @@ describe('serializePropertyValue citation round-trip (H3b, via parseModel/serial
     expect(serialized).toContain(`sources:: ${JSON.stringify(['a,b.md#x'])}`)
   })
 
-  it('does not change serialization of non-citation array fields (options/values/applies_to/target_concepts/needs)', () => {
+  // Requirement 5 (document-fidelity spec): the bracket-list grammar that
+  // already applied to citation fields is now the general rule for EVERY
+  // list-valued property, not a citation-only special case.
+  it('serializes non-citation array fields with the same bracket-list grammar as citation fields', () => {
     const fieldNames = ['options', 'values', 'applies_to', 'target_concepts', 'needs']
     for (const fieldName of fieldNames) {
       const model = parseModel(LEVEL3_TEMPLATE('note:: keep'))
       const element = model.elements.get('Stakeholder')?.[0]
       element!.fields[fieldName] = ['.md', '.csv']
       const serialized = serializeModel(model)
-      expect(serialized).toContain(`${fieldName}:: ${JSON.stringify(['.md', '.csv'])}`)
+      expect(serialized).toContain(`${fieldName}:: [.md, .csv]`)
     }
   })
 
-  it('does not change serialization of a non-citation scalar field', () => {
+  // AD-1: canonical scalar values are written unquoted (`category:: cost`,
+  // not `category:: "cost"`) whenever that round-trips safely.
+  it('serializes a non-citation scalar field unquoted, matching canonical form', () => {
     const model1 = parseModel(LEVEL3_TEMPLATE('category:: cost'))
     const serialized1 = serializeModel(model1)
-    expect(serialized1).toContain('category:: "cost"')
+    expect(serialized1).toContain('category:: cost')
+    expect(serialized1).not.toContain('category:: "cost"')
   })
 })
 

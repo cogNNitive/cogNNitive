@@ -1,7 +1,7 @@
-export { slugify } from './slug'
-export { uniqueSlugify } from './slug'
-export { normalizeSeparators } from './slug'
-export { parseYaml, parseFrontmatter } from './yaml'
+export { slugify } from './slug.js'
+export { uniqueSlugify } from './slug.js'
+export { normalizeSeparators } from './slug.js'
+export { parseYaml, parseFrontmatter } from './yaml.js'
 export {
   normalizeSource,
   stripFrontmatter,
@@ -9,8 +9,8 @@ export {
   parseTableRow,
   hasBom,
   BOM_CHAR,
-} from './markdown'
-export { parseIndexBlock, printTaxonomyNode } from './taxonomy'
+} from './markdown.js'
+export { parseIndexBlock, printTaxonomyNode } from './taxonomy.js'
 export {
   sectionName,
   sectionTitle,
@@ -21,6 +21,6 @@ export {
   parseMatrixSection,
   getSectionType,
   parseTagList,
-} from './sections'
-export { serializeModel } from './serializer'
-export { parseModel, deriveElementSlugs } from './core'
+} from './sections.js'
+export { serializeModel } from './serializer.js'
+export { parseModel, deriveElementSlugs } from './core.js'

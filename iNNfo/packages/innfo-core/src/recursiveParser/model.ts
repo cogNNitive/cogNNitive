@@ -1,10 +1,10 @@
-import { parseModel } from '../parser'
-import type { ParsedModel, ModelNode } from '../types'
-import { IdentityRegistry } from '../identity'
-import { normalizeMatrixDecl } from '../matrix'
-import { resolveGraphEdgeTarget } from './paths'
-import { nowIso, toLocalMetamodel, toFieldValues, normalizeElementsIntoGraph } from './normalize'
-import type { ParseContext, ParseIssue } from './types'
+import { parseModel } from '../parser/index.js'
+import type { ParsedModel, ModelNode } from '../types/index.js'
+import { IdentityRegistry } from '../identity.js'
+import { normalizeMatrixDecl } from '../matrix.js'
+import { resolveGraphEdgeTarget } from './paths.js'
+import { nowIso, toLocalMetamodel, toFieldValues, normalizeElementsIntoGraph } from './normalize.js'
+import type { ParseContext, ParseIssue } from './types.js'
 
 /**
  * Parses a single model file and registers its root node and elements into ctx.
@@ -195,14 +195,22 @@ export async function parseAndRegisterModel(
     ctx.issues.push(issue)
   }
 
-  // Track element names per model for cross-model collision detection (FR-005)
+  // Track element names per model (FR-005). Shared identity across models is
+  // LEGAL (AD-7 / shipped-sample-workspace R6) — the same person, place, or
+  // concept can legitimately appear in more than one model in a workspace,
+  // and `[[Model Title :: Element Name]]` is the disambiguation mechanism
+  // the format already provides. Do NOT advise the user to rename; only
+  // record an info-level note naming the qualified form. Intra-document
+  // collisions are a different, still-enforced case (normalizeElementsIntoGraph
+  // rejects them before this point).
   for (const node of Object.values(result.nodes)) {
     if (node.kind === 'element') {
       if (elementNameToModel.has(node.name)) {
         const existingModel = elementNameToModel.get(node.name)!
         ctx.issues.push({
           path: '<root>',
-          message: `Element "${node.name}" appears in both "${existingModel}" and "${refName}" — consider renaming to "${node.name} (${refName})"`,
+          severity: 'info',
+          message: `Element "${node.name}" resolves across multiple models ("${existingModel}" and "${refName}"). Use "${existingModel} :: ${node.name}" or "${refName} :: ${node.name}" to address a specific one.`,
         })
       } else {
         elementNameToModel.set(node.name, refName)

@@ -13,25 +13,25 @@ export {
   MATRIX_DEFINITION,
   extractTemplateSchema,
   extractTemplateSchemaFromContent,
-} from './extract'
-export type { TemplateSchema } from './extract'
+} from './extract.js'
+export type { TemplateSchema } from './extract.js'
 
-export { resolveTemplateSchema, canonicalizeDefinition, applyAliasToSchema } from './compose'
-export type { IncludeResolver, ResolvedTemplateSchema } from './compose'
+export { resolveTemplateSchema, canonicalizeDefinition, applyAliasToSchema } from './compose.js'
+export type { IncludeResolver, ResolvedTemplateSchema } from './compose.js'
 
 export {
   extractMetaschema,
   validateTemplateAgainstMetaschema,
   checkElementsAgainstSchema,
   checkWidgetConfig,
-} from './metaschema'
-export type { SchemaCheckOptions } from './metaschema'
+} from './metaschema.js'
+export type { SchemaCheckOptions } from './metaschema.js'
 
 export {
   CANONICAL_TEMPLATES,
   findCanonicalTemplate,
   getCanonicalSpecContent,
   listCanonicalTemplates,
-} from './canonical-registry'
-export type { CanonicalTemplate } from './canonical-registry'
+} from './canonical-registry.js'
+export type { CanonicalTemplate } from './canonical-registry.js'
 

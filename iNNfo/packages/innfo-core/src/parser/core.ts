@@ -1,9 +1,21 @@
-import { ParsedModel, ElementsMap, MatrixData, SpecFrontmatter, TaxonomyEdge } from '../types'
-import { normalizeSource, YAML_BLOCK_RE, parseMarkdownTable } from './markdown'
-import { parseFrontmatter } from './yaml'
-import { parseIndexBlock } from './taxonomy'
-import { parseConceptSection, parseMatrixSection, getSectionType, sectionTitle } from './sections'
-import { slugify } from './slug'
+import {
+  ParsedModel,
+  ElementsMap,
+  MatrixData,
+  SpecFrontmatter,
+  TaxonomyEdge,
+} from '../types/index.js'
+import { normalizeSource, YAML_BLOCK_RE, parseMarkdownTable } from './markdown.js'
+import { parseFrontmatter } from './yaml.js'
+import { parseIndexBlock } from './taxonomy.js'
+import {
+  parseConceptSection,
+  parseMatrixSection,
+  parseMatrixHeaderAxis,
+  getSectionType,
+  sectionTitle,
+} from './sections.js'
+import { slugify } from './slug.js'
 
 /**
  * Derive slugs for all elements that don't have one, and detect collisions.
@@ -78,12 +90,32 @@ export function parseModel(content: string): ParsedModel {
   const elements = new ElementsMap()
   const matrices: MatrixData[] = []
   const nodeMarkers: Record<string, Record<string, number | string>> = {}
+  const nodeMarkerColumns: string[] = []
   let taxonomy: TaxonomyEdge[] = []
   const conceptTags: Record<string, string[]> = {}
+  const rawConceptTags: Record<string, string> = {}
+
+  // Raw frontmatter + preamble capture, for round-trip fidelity. The
+  // constructed emit path in `serializeModel` is an allow-list of known keys
+  // plus one hardcoded `> [!NOTE]` banner, so anything else the author wrote
+  // there is lost on save unless the original text is carried through.
+  const frontmatterMatch = normalizedContent.match(YAML_BLOCK_RE)
+  const rawFrontmatter = frontmatterMatch ? frontmatterMatch[0] : undefined
+  let rawPreamble: string | undefined
+  if (frontmatterMatch) {
+    const afterFrontmatter = normalizedContent.slice(frontmatterMatch[0].length)
+    const firstSection = afterFrontmatter.search(/^#\s/m)
+    const preamble = (
+      firstSection === -1 ? afterFrontmatter : afterFrontmatter.slice(0, firstSection)
+    ).trim()
+    if (preamble) rawPreamble = preamble
+  }
 
   const body = normalizedContent.replace(YAML_BLOCK_RE, '').trim()
   const sections = splitTopLevelSections(body)
   const rawSections: Record<string, string> = {}
+  const sectionOrder: string[] = []
+  const sectionBlankLine: Record<string, boolean> = {}
 
   for (const section of sections) {
     const headerMatch = section.match(/^#\s+(.*)$/m)
@@ -92,6 +124,28 @@ export function parseModel(content: string): ParsedModel {
     const type = getSectionType(rawTitle)
     const name = sectionTitle(rawTitle)
     const bodyContent = section.replace(/^#\s+.*$/m, '').trim()
+
+    // AD-2: record document order of top-level `# NN` sections so
+    // `serializeModel` can walk them back in the author's original order,
+    // instead of the fixed elements→rawSections→matrices emit order.
+    let sectionKey: string | undefined
+    if (type === 'index') {
+      sectionKey = 'index'
+    } else if (type === 'concept') {
+      sectionKey = name
+    } else if (type === 'matrix') {
+      sectionKey = `matrices: ${name}`
+    }
+    if (sectionKey !== undefined) {
+      sectionOrder.push(sectionKey)
+      // The corpus is inconsistent about a blank line between a `# NN`
+      // heading and the first line of its body — record what this document
+      // actually had (`bodyContent` above is already `.trim()`-ed, which is
+      // why this reads the untrimmed lines instead).
+      const linesAfterHeading = section.split('\n').slice(1)
+      sectionBlankLine[sectionKey.toLowerCase()] =
+        linesAfterHeading.length > 0 && linesAfterHeading[0].trim() === ''
+    }
 
     if (type === 'index') {
       if (taxonomy.length === 0) {
@@ -109,6 +163,7 @@ export function parseModel(content: string): ParsedModel {
       }
       if (parsed.tags) {
         conceptTags[name] = parsed.tags
+        if (parsed.rawTags !== undefined) rawConceptTags[name] = parsed.rawTags
       }
       // Preserve the concept's raw body for round-trip fidelity AND as the
       // concept-level description/content of `text` concepts. Concepts with
@@ -129,6 +184,13 @@ export function parseModel(content: string): ParsedModel {
             if (itemName) {
               nodeMarkers[itemName] = {}
               for (let i = 1; i < keys.length; i++) {
+                // A column whose every cell is `-` (marker not set) would
+                // otherwise leave no trace in `nodeMarkers` at all, and the
+                // serializer — which derives its columns from the recorded
+                // keys — would silently drop that marker from the table.
+                // Record the declared column set separately so an all-empty
+                // marker column survives the round-trip.
+                if (!nodeMarkerColumns.includes(keys[i])) nodeMarkerColumns.push(keys[i])
                 if (row[keys[i]] && row[keys[i]] !== '-') {
                   nodeMarkers[itemName][keys[i]] = isNaN(Number(row[keys[i]]))
                     ? row[keys[i]]
@@ -143,10 +205,15 @@ export function parseModel(content: string): ParsedModel {
           (m) => m.name.toLowerCase() === name.toLowerCase(),
         )
         const cells = parseMatrixSection(bodyContent, name)
+        // Requirement 3 / AD-4: the table header itself is the source of
+        // truth for axis labels (`| Metrics \ Variables | ... |`); the
+        // frontmatter `matrices:` declaration (level-2 template metadata) is
+        // only a fallback for a matrix whose header carries no labels.
+        const axis = parseMatrixHeaderAxis(bodyContent)
         matrices.push({
           name,
-          source: matrixDecl?.source ?? '',
-          target: matrixDecl?.target ?? '',
+          source: axis?.source || matrixDecl?.source || '',
+          target: axis?.target || matrixDecl?.target || '',
           cells,
         })
       }
@@ -177,7 +244,13 @@ export function parseModel(content: string): ParsedModel {
     slugCollisions,
     parseWarnings: parseWarnings.length > 0 ? parseWarnings : undefined,
     conceptTags: Object.keys(conceptTags).length > 0 ? conceptTags : undefined,
+    rawConceptTags: Object.keys(rawConceptTags).length > 0 ? rawConceptTags : undefined,
     rawSections: Object.keys(rawSections).length > 0 ? rawSections : undefined,
     rawContent: content,
+    sectionOrder: sectionOrder.length > 0 ? sectionOrder : undefined,
+    sectionBlankLine: Object.keys(sectionBlankLine).length > 0 ? sectionBlankLine : undefined,
+    nodeMarkerColumns: nodeMarkerColumns.length > 0 ? nodeMarkerColumns : undefined,
+    rawFrontmatter,
+    rawPreamble,
   }
 }

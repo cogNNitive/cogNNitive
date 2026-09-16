@@ -5,8 +5,8 @@ import type {
   MatrixDecl,
   ParsedModel,
   TaxonomyEdge,
-} from '../types'
-import { parseModel } from '../parser'
+} from '../types/index.js'
+import { parseModel } from '../parser/index.js'
 
 /**
  * Root primitives of the Metaplantilla Nivel 1 (V_0-1-0). A level-2 template

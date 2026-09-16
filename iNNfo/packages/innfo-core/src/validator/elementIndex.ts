@@ -1,4 +1,4 @@
-import type { ParsedModel } from '../types'
+import type { ParsedModel } from '../types/index.js'
 
 /**
  * Element fields treated as implicit references even when the template

@@ -1,8 +1,8 @@
-import type { TemplateSchema } from '../schema'
-import { normalizeSeparators } from '../parser/slug'
-import type { ParseIssue, RecursiveParseResult, TemplateSchemaResolver } from './types'
-import { normalizePathKey, stripMdSuffix, basename } from './paths'
-import { readWorkspaceId } from './workspaceId'
+import type { TemplateSchema } from '../schema/index.js'
+import { normalizeSeparators } from '../parser/slug.js'
+import type { ParseIssue, RecursiveParseResult, TemplateSchemaResolver } from './types.js'
+import { normalizePathKey, stripMdSuffix, basename } from './paths.js'
+import { readWorkspaceId } from './workspaceId.js'
 
 export interface WorkspaceIndex {
   /** normalizePathKey(path) -> root node id */

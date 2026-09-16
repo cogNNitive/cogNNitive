@@ -4,6 +4,7 @@ import {
   parseQualifiedRef,
   collectQualifiedReferenceCandidates,
   validateWorkspaceReferences,
+  MissingWorkspaceIndexError,
 } from '../src/validator/workspaceReferences'
 import { buildWorkspaceIndex, type WorkspaceIndex } from '../src/recursiveParser/workspaceIndex'
 import type { ParseIssue, RecursiveParseResult } from '../src/recursiveParser/types'
@@ -822,5 +823,31 @@ fundadores:: ${wikilinkValue}
     const check = conveWikilinksCheck(referrerDoc('[[Broken::]]'))
     expect(check.passed).toBe(false)
     expect(check.message).toContain('undefined reference')
+  })
+})
+
+describe('validateWorkspaceReferences — missing WorkspaceIndex guard', () => {
+  it('throws a named, actionable error instead of a raw TypeError when index is omitted', () => {
+    const { result } = makeRootAndElement({ elementType: 'Person', fields: {} })
+
+    // @ts-expect-error — deliberately calling without the required `index` argument
+    expect(() => validateWorkspaceReferences(result)).toThrow(MissingWorkspaceIndexError)
+    // @ts-expect-error — deliberately calling without the required `index` argument
+    expect(() => validateWorkspaceReferences(result)).toThrow(/buildWorkspaceIndex/)
+  })
+
+  it('throws the same named error when index is null', () => {
+    const { result } = makeRootAndElement({ elementType: 'Person', fields: {} })
+
+    expect(() => validateWorkspaceReferences(result, null as unknown as WorkspaceIndex)).toThrow(
+      MissingWorkspaceIndexError,
+    )
+  })
+
+  it('a real WorkspaceIndex built via buildWorkspaceIndex does not trigger the guard', () => {
+    const { result } = makeRootAndElement({ elementType: 'Person', fields: {} })
+    const index = buildWorkspaceIndex(result)
+
+    expect(() => validateWorkspaceReferences(result, index)).not.toThrow()
   })
 })

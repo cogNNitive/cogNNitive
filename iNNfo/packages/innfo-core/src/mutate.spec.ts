@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { parseModel } from './parser'
-import { applyMutation } from './mutate'
+import { parseModel } from './parser/index.js'
+import { applyMutation } from './mutate.js'
+import type { TemplateSchema } from './schema/index.js'
 
 const TEMPLATE = `---
 spec_version: "V_0-2-0"
@@ -154,5 +155,99 @@ describe('addElement sources propagation (H3a)', () => {
     const el = (model.elements.get('Phase') ?? []).find((e) => e.name === 'Second')
     expect(el?.fields).toEqual({ note: 'keep' })
     expect(el?.fields.sources).toBeUndefined()
+  })
+})
+
+describe('add_element schema conformance (mutation-schema-conformance R1-R5)', () => {
+  const SCHEMA: TemplateSchema = {
+    concepts: [
+      { name: 'Assumptions', type: 'text' },
+      { name: 'Risks', type: 'text' },
+      { name: 'Keys', type: 'text' },
+    ],
+    markers: [],
+    matrices: [],
+    taxonomy: [],
+  }
+
+  it('rejects an undeclared conceptName when a schema is supplied, leaving the model untouched (R1)', () => {
+    const model = parseModel(LEVEL3_MODEL)
+    const before = JSON.stringify(model)
+    const result = applyMutation(
+      model,
+      'add_element',
+      { conceptName: 'Rsiks', elementName: 'X', description: 'd' },
+      SCHEMA,
+    )
+    expect(result.success).toBe(false)
+    expect(JSON.stringify(model)).toBe(before)
+    expect(model.elements.get('Rsiks')).toBeUndefined()
+  })
+
+  it('names the offending concept and suggests the nearest declared concept within edit distance 2 (R2)', () => {
+    const model = parseModel(LEVEL3_MODEL)
+    const result = applyMutation(
+      model,
+      'add_element',
+      { conceptName: 'Rsiks', elementName: 'X', description: 'd' },
+      SCHEMA,
+    )
+    expect(result.success).toBe(false)
+    const message = result.errors?.[0]?.message ?? ''
+    expect(message).toContain('Rsiks')
+    expect(message).toContain('Risks')
+  })
+
+  it('lists the declared concepts when no close match exists (R2)', () => {
+    const model = parseModel(LEVEL3_MODEL)
+    const result = applyMutation(
+      model,
+      'add_element',
+      { conceptName: 'CompletelyUnrelatedName', elementName: 'X' },
+      SCHEMA,
+    )
+    expect(result.success).toBe(false)
+    const message = result.errors?.[0]?.message ?? ''
+    expect(message).toContain('Assumptions')
+    expect(message).toContain('Risks')
+    expect(message).toContain('Keys')
+  })
+
+  it('accepts a declared conceptName matched case-insensitively when a schema is supplied', () => {
+    const model = parseModel(LEVEL3_MODEL)
+    const result = applyMutation(
+      model,
+      'add_element',
+      { conceptName: 'risks', elementName: 'X' },
+      SCHEMA,
+    )
+    expect(result.success).toBe(true)
+    expect(model.elements.get('risks')?.some((e) => e.name === 'X')).toBe(true)
+  })
+
+  it('keeps the current permissive behaviour when no schema is supplied (R3)', () => {
+    const model = parseModel(LEVEL3_MODEL)
+    const result = applyMutation(model, 'add_element', {
+      conceptName: 'Rsiks',
+      elementName: 'X',
+    })
+    expect(result.success).toBe(true)
+    expect(model.elements.get('Rsiks')?.some((e) => e.name === 'X')).toBe(true)
+  })
+})
+
+describe('update_field rejects an unknown concept (R4, consistency with add_element)', () => {
+  it('fails with a "not found" error and does not mutate the model', () => {
+    const model = parseModel(LEVEL3_MODEL)
+    const before = JSON.stringify(model)
+    const result = applyMutation(model, 'update_field', {
+      conceptName: 'Rsiks',
+      elementName: 'First',
+      fieldName: 'note',
+      value: 'x',
+    })
+    expect(result.success).toBe(false)
+    expect(result.errors?.[0]?.message).toContain('Rsiks')
+    expect(JSON.stringify(model)).toBe(before)
   })
 })

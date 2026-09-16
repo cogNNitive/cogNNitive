@@ -413,8 +413,8 @@ describe('recursiveParse (index.md-driven)', () => {
     })
   })
 
-  describe('FR-005: Unique element names across workspace', () => {
-    it('reports collision when two models have same element name', async () => {
+  describe('FR-005 / AD-7: Cross-model element identity is legal (shipped-sample-workspace R6)', () => {
+    it('does NOT advise renaming when two models share an element name — shared identity is legal', async () => {
       const modelA = makeModel(
         'Model A',
         `
@@ -454,12 +454,54 @@ describe('recursiveParse (index.md-driven)', () => {
       // Both root nodes should exist
       expect(result.rootIds).toHaveLength(2)
 
-      // Collision should be detected (both elements named "Database" across models)
-      const collisionIssues = result.issues.filter((i) => i.message.includes('appears in both'))
-      expect(collisionIssues.length).toBeGreaterThan(0)
-      expect(collisionIssues[0].message).toContain('"Database"')
-      expect(collisionIssues[0].message).toContain('modelA')
-      expect(collisionIssues[0].message).toContain('modelB')
+      // The parser MUST NOT tell the user to rename the element — shared
+      // identity across models is the intended shape of a multi-model
+      // workspace, and `[[Model Title :: Element Name]]` already
+      // disambiguates it (AD-7 / shipped-sample-workspace R6).
+      const renameAdvice = result.issues.filter(
+        (i) => i.message.includes('appears in both') && i.message.includes('consider renaming'),
+      )
+      expect(renameAdvice).toHaveLength(0)
+
+      // It MAY record an info-level note naming the qualified-reference form.
+      const infoNotes = result.issues.filter((i) => i.severity === 'info' && i.message.includes('Database'))
+      for (const note of infoNotes) {
+        expect(note.message).toContain('::')
+      }
+    })
+
+    it('still flags a name collision within a single document (intra-model collisions keep their severity)', async () => {
+      const modelA = makeModel(
+        'Model A',
+        `
+# NN index
+
+* [[Database]]
+
+# NN Components
+
+## NN Components: Database
+  The database component.
+
+# NN Storage
+
+## NN Storage: Database
+  A second element with the same name in the SAME model.
+`,
+      )
+
+      const root = fakeDir('workspace', [
+        ['index.md', fakeFile('index.md', makeIndex(['modelA_NN.md']))],
+        ['modelA_NN.md', fakeFile('modelA_NN.md', modelA)],
+      ])
+
+      const result = await recursiveParse(root)
+
+      const duplicateIssues = result.issues.filter((i) =>
+        i.message.toLowerCase().includes('duplicate element name'),
+      )
+      expect(duplicateIssues.length).toBeGreaterThan(0)
+      expect(duplicateIssues[0].message).toContain('"Database"')
     })
 
     it('no collision when all element names are unique across models', async () => {

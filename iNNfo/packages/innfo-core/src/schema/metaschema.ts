@@ -1,5 +1,5 @@
-import type { Concept, ValidationError } from '../types'
-import { parseModel } from '../parser'
+import type { Concept, ValidationError } from '../types/index.js'
+import { parseModel } from '../parser/index.js'
 import {
   CONCEPT_DEFINITION,
   FIELD_DEFINITION,
@@ -8,7 +8,7 @@ import {
   asObject,
   asString,
   extractTemplateSchema,
-} from './extract'
+} from './extract.js'
 
 /* ── Metaschema (Self-Description) ──────────────────────────────
  *

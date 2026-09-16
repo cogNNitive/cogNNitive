@@ -1,7 +1,7 @@
-import type { Concept, ParsedModel } from '../types'
-import { normalizeSeparators } from '../parser/slug'
-import { conceptsByElementName, IMPLICIT_REF_FIELDS } from './elementIndex'
-import { matchesTargetTemplate } from './templateMatching'
+import type { Concept, ParsedModel } from '../types/index.js'
+import { normalizeSeparators } from '../parser/slug.js'
+import { conceptsByElementName, IMPLICIT_REF_FIELDS } from './elementIndex.js'
+import { matchesTargetTemplate } from './templateMatching.js'
 
 export interface ReferenceDiagnostic {
   path: string

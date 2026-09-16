@@ -1,6 +1,6 @@
-import type { ElementNode, ParsedModel, RelationshipOrigin } from '../types'
-import { extractTemplateSchema } from '../schema'
-import type { ParseContext } from './types'
+import type { ElementNode, ParsedModel, RelationshipOrigin } from '../types/index.js'
+import { extractTemplateSchema } from '../schema/index.js'
+import type { ParseContext } from './types.js'
 
 export const WIKILINK_RE = /\[\[(.*?)\]\]/g
 

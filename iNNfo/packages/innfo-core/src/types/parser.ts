@@ -24,6 +24,11 @@ export const FIELD_TYPES = [
   'markdown_inline',
   'markdown_file',
   'model',
+  // A path PLUS an addressable knowledge unit, subject to the `KU_*` integrity
+  // checks. Distinct from `file` ("a path") and `markdown_file` ("a content
+  // body"): only `citation` asserts provenance, and only it is validated as
+  // such. See AD-5 of `2026-09-13-document-fidelity-and-provenance-integrity`.
+  'citation',
 ] as const
 export type FieldType = (typeof FIELD_TYPES)[number]
 
@@ -198,6 +203,40 @@ export interface ElementNode {
   /** Optional slug derived from YAML `slug` field or auto-derived from name. */
   slug?: string
   tags?: string[]
+  /**
+   * Whether a blank line separated this element from the next one in the
+   * source (undefined for a programmatically constructed element, which
+   * `serializeModel` treats as `true`). The shipped corpus is not uniform:
+   * most concepts blank-separate every element, but some description-only
+   * concepts pack `## NN` headings back-to-back with none. Not meaningful
+   * for the last element of a concept — a blank line always follows it,
+   * regardless of this flag.
+   */
+  trailingBlankLine?: boolean
+  /**
+   * Whether a blank line separated this element's last `key:: value` from its
+   * prose description in the source. `description` is stored trimmed, so this
+   * is the only record of that separation. The shipped corpus is split on it,
+   * so `serializeModel` replays what was there rather than assuming a rule.
+   */
+  descriptionBlankLine?: boolean
+  /**
+   * Exact source text of this element's `tags::` RHS. `parseTagList`
+   * lowercases and trims, so the authored casing (`PR`, not `pr`) survives
+   * only here. `serializeModel` re-emits it verbatim when the current `tags`
+   * still match what it parses to; tag semantics stay case-insensitive.
+   */
+  rawTags?: string
+  /**
+   * Exact source text (the RHS after `key:: `) for each field, as originally
+   * authored — before `parsePropertyValue` normalizes it. `serializeModel`
+   * re-emits this verbatim when the field's current value still matches what
+   * this raw text would parse to, so an untouched field keeps the author's
+   * exact quoting/bracket choice (Requirement 5). A field whose value was
+   * changed by a mutation has no matching raw text and falls through to
+   * canonical serialization.
+   */
+  rawFields?: Record<string, string>
 }
 
 export interface MatrixCell {
@@ -208,7 +247,11 @@ export interface MatrixCell {
 
 export interface MatrixData {
   name: string
+  /** Left axis label, parsed from the table header's first cell
+   *  (`| Source \ Target | ... |`). Empty for a label-less matrix, and
+   *  written back empty — `serializeModel` substitutes no placeholder. */
   source: string
+  /** Right axis label, parsed and written back the same way. */
   target: string
   cells: MatrixCell[]
 }
@@ -281,6 +324,57 @@ export interface ParsedModel {
   parseWarnings?: string[]
   /** Tags applied to Concept sections directly (not individual elements) */
   conceptTags?: Record<string, string[]>
+  /** Exact source text of each concept-level `tags::` RHS. See
+   *  `ElementNode.rawTags` for why this is kept separately. */
+  rawConceptTags?: Record<string, string>
+  /**
+   * Document order of top-level `# NN` sections, as encountered by
+   * `parseModel`: `'index'` for `# NN index`, `<ConceptName>` for a concept
+   * section (element-bearing or `text`), and `'matrices: <name>'` for a
+   * `# NN matrices: <name>` section. `serializeModel` walks this list first,
+   * then appends any section not covered by it (created by a mutation after
+   * parsing) in its current insertion order. Optional so a programmatically
+   * constructed `ParsedModel` (tests, `init_model` scaffolding) keeps
+   * working unchanged.
+   */
+  sectionOrder?: string[]
+  /**
+   * Whether a blank line separated a top-level `# NN` heading from the first
+   * line of its body, keyed by the lowercased `sectionOrder` entry
+   * (`'index'`, `'<conceptname>'`, `'matrices: <name>'`). The shipped corpus
+   * is inconsistent here — some documents put a blank line after the heading
+   * and some do not — so `serializeModel` replays what was actually there
+   * instead of assuming a fixed rule. A missing entry falls back to the
+   * per-section-kind default used for programmatically built models.
+   */
+  sectionBlankLine?: Record<string, boolean>
+  /**
+   * The exact frontmatter block `parseModel` read, `---` fences included.
+   * `serializeModel` re-emits it byte-for-byte when re-parsing it still
+   * yields the frontmatter currently held — i.e. nothing mutated it since.
+   *
+   * This exists because the constructed emit path is an ALLOW-LIST of known
+   * keys: a document carrying anything else (`workspace_id`, a template's
+   * own extension keys) silently loses it on save. Raw re-emission is what
+   * makes byte-identity (Requirement 1) reachable for arbitrary frontmatter,
+   * while the allow-list stays as the fallback for a mutated or
+   * programmatically constructed model.
+   */
+  /**
+   * Marker column names declared by the `# NN matrices: item-markers matrix`
+   * table header, in source order. `nodeMarkers` only records markers that
+   * are actually SET, so a column whose every cell is `-` leaves no trace
+   * there and would be dropped on save. This is the declared column set.
+   */
+  nodeMarkerColumns?: string[]
+  rawFrontmatter?: string
+  /**
+   * The exact text between the frontmatter block and the first `# NN`
+   * section — in practice the `> [!NOTE]` banner, plus whatever else the
+   * author put there. The constructed path hardcodes a single fixed banner,
+   * so any additional blockquote content is otherwise dropped on save.
+   */
+  rawPreamble?: string
 }
 
 export interface SpecCache {

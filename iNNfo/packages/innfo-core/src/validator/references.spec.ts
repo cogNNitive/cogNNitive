@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { validateElementFieldReferences } from './references'
-import { ElementsMap, type Concept, type ParsedModel } from '../types'
+import { validateElementFieldReferences } from './references.js'
+import { ElementsMap, type Concept, type ParsedModel } from '../types/index.js'
 
 function modelWithSubmodelField(submodelValue: string): {
   model: ParsedModel

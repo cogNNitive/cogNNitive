@@ -1,6 +1,6 @@
-import { SpecFrontmatter } from '../types'
+import { SpecFrontmatter } from '../types/index.js'
 import { parse as yamlParse } from 'yaml'
-import { normalizeSource, YAML_BLOCK_RE } from './markdown'
+import { normalizeSource, YAML_BLOCK_RE } from './markdown.js'
 
 /**
  * Parse a YAML document. On a syntax error the result is still `{}` (callers

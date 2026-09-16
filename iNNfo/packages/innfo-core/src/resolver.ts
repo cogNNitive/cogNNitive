@@ -1,4 +1,4 @@
-import { SpecCache, SpecDocument, ResolverOptions } from './types'
+import { SpecCache, SpecDocument, ResolverOptions } from './types/index.js'
 
 export interface SpecResolver {
   resolveParentChain(

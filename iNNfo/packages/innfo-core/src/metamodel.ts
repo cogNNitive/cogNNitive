@@ -1,4 +1,4 @@
-import type { LocalMetamodel, MetamodelConcept, MetamodelMarker, ModelNode, TaxonomyEdge } from './types'
+import type { LocalMetamodel, MetamodelConcept, MetamodelMarker, ModelNode, TaxonomyEdge } from './types/index.js'
 
 /**
  * Builds the ancestor chain for `nodeId`, root-first (e.g. `[Root, Root/A,

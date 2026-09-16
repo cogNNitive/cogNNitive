@@ -1,4 +1,4 @@
-export * from './types'
+export * from './types/index.js'
 
 export {
   parseYaml,
@@ -12,7 +12,7 @@ export {
   uniqueSlugify,
   normalizeSeparators,
   deriveElementSlugs,
-} from './parser'
+} from './parser/index.js'
 
 export {
   CONCEPT_DEFINITION,
@@ -32,14 +32,14 @@ export {
   findCanonicalTemplate,
   getCanonicalSpecContent,
   listCanonicalTemplates,
-} from './schema'
+} from './schema/index.js'
 export type {
   TemplateSchema,
   SchemaCheckOptions,
   IncludeResolver,
   ResolvedTemplateSchema,
   CanonicalTemplate,
-} from './schema'
+} from './schema/index.js'
 
 export {
   getSpecForLevel,
@@ -50,8 +50,8 @@ export {
   resolveTemplatePath,
   getTemplateSearchPaths,
   UnresolvedTemplateError,
-} from './resolver'
-export type { SpecResolver, MultiStoreResolverOptions, SpecTemplateLocation } from './resolver'
+} from './resolver.js'
+export type { SpecResolver, MultiStoreResolverOptions, SpecTemplateLocation } from './resolver.js'
 
 export {
   validateModel,
@@ -65,7 +65,7 @@ export {
   parseQualifiedRef,
   validateWorkspaceReferences,
   validateWorkspaceSources,
-} from './validator'
+} from './validator/index.js'
 export type {
   ReferenceDiagnostic,
   DocumentValidation,
@@ -73,7 +73,7 @@ export type {
   ValidateModelOptions,
   QualifiedRef,
   SourceResolver,
-} from './validator'
+} from './validator/index.js'
 
 export {
   parseSourceRef,
@@ -81,39 +81,39 @@ export {
   extractHeadings,
   resolveHeadingSection,
   SOURCE_FIELD_NAMES,
-} from './sourceRef'
-export type { SourceRef, HeadingInfo, ResolvedHeadingSection } from './sourceRef'
+} from './sourceRef.js'
+export type { SourceRef, HeadingInfo, ResolvedHeadingSection } from './sourceRef.js'
 export {
   parseKnowledgeUnitRef,
   serializeKnowledgeUnitRef,
   slugifyUnitHeading,
   normalizeName,
-} from './sourceRef'
-export type { KnowledgeUnit, HeaderUnit, RowUnit } from './sourceRef'
-export { parseCsvTable } from './csvTable'
-export type { CsvTable, CsvTableOptions } from './csvTable'
-export { resolveUnit } from './unitResolve'
-export type { ResolvedUnit } from './unitResolve'
-export { parseKnowledgeQuery, runQuery } from './queryUnits'
-export type { KnowledgeQuery, KnowledgeQueryFilter, FileSnapshot, QueryResult } from './queryUnits'
-export { scanSections } from './querySections'
-export type { SectionFields } from './querySections'
+} from './sourceRef.js'
+export type { KnowledgeUnit, HeaderUnit, RowUnit } from './sourceRef.js'
+export { parseCsvTable } from './csvTable.js'
+export type { CsvTable, CsvTableOptions } from './csvTable.js'
+export { resolveUnit } from './unitResolve.js'
+export type { ResolvedUnit } from './unitResolve.js'
+export { parseKnowledgeQuery, runQuery } from './queryUnits.js'
+export type { KnowledgeQuery, KnowledgeQueryFilter, FileSnapshot, QueryResult } from './queryUnits.js'
+export { scanSections } from './querySections.js'
+export type { SectionFields } from './querySections.js'
 
-export * from './identity'
-export * from './metamodel'
-export * from './recursiveParser'
-export * from './fs-types'
-export { OWNERSHIP_MARKER, reconcileManifest } from './workspace/reconcileManifest'
-export type { DiscoveredModel, ManifestChange } from './workspace/reconcileManifest'
-export { isReconcilableModel } from './workspace/discoverModels'
-export type { CandidateFile } from './workspace/discoverModels'
+export * from './identity.js'
+export * from './metamodel.js'
+export * from './recursiveParser/index.js'
+export * from './fs-types.js'
+export { OWNERSHIP_MARKER, reconcileManifest } from './workspace/reconcileManifest.js'
+export type { DiscoveredModel, ManifestChange } from './workspace/reconcileManifest.js'
+export { isReconcilableModel } from './workspace/discoverModels.js'
+export type { CandidateFile } from './workspace/discoverModels.js'
 export {
   parseSemVer,
   compareVersions,
   gapKind,
   parsePinnedUrl,
   classifyAgainstCatalog,
-} from './workspace/integrity/versionStatus'
+} from './workspace/integrity/versionStatus.js'
 export type {
   SemVerTriple,
   VersionStatus,
@@ -122,11 +122,11 @@ export type {
   TemplateCatalog,
   TemplateCatalogEntry,
   TemplateCatalogVersion,
-} from './workspace/integrity/versionStatus'
+} from './workspace/integrity/versionStatus.js'
 export {
   buildWorkspaceIntegrityReport,
   summarizeWorkspaceIntegrity,
-} from './workspace/integrity/report'
+} from './workspace/integrity/report.js'
 export type {
   WorkspaceIntegrityPorts,
   WorkspaceModelRef,
@@ -139,17 +139,17 @@ export type {
   CatalogSource,
   FreshnessField,
   TemplateResolution,
-} from './workspace/integrity/report'
-export { listModels, resolveSpecVersionFromFilename } from './helpers'
-export type { ModelInfo } from './helpers'
-export { applyMutation, updateReferenceString, updateWikiLinks } from './mutate'
-export type { MutationResult } from './mutate'
-export { buildAgentModificationBlock } from './agentModification'
-export type { AgentModificationContext } from './agentModification'
-export { envelope, envelopeList, envelopeVersion, ENVELOPE_MAJOR } from './envelope'
-export type { VersionedEnvelope } from './envelope'
-export { Diagnostics } from './diagnostics'
-export { loadBaseline, fingerprint, diffNewOnly, normalizeBaselinePath } from './validator/baseline'
-export type { ValidationBaseline, BaselineEntry, BaselineDiff } from './validator/baseline'
-export { deriveMatrixWidgetType, normalizeMatrixDecl, scaleRangeFor } from './matrix'
-export type { MatrixWidgetType } from './matrix'
+} from './workspace/integrity/report.js'
+export { listModels, resolveSpecVersionFromFilename } from './helpers.js'
+export type { ModelInfo } from './helpers.js'
+export { applyMutation, updateReferenceString, updateWikiLinks } from './mutate.js'
+export type { MutationResult } from './mutate.js'
+export { buildAgentModificationBlock } from './agentModification.js'
+export type { AgentModificationContext } from './agentModification.js'
+export { envelope, envelopeList, envelopeVersion, ENVELOPE_MAJOR } from './envelope.js'
+export type { VersionedEnvelope } from './envelope.js'
+export { Diagnostics } from './diagnostics.js'
+export { loadBaseline, fingerprint, diffNewOnly, normalizeBaselinePath } from './validator/baseline.js'
+export type { ValidationBaseline, BaselineEntry, BaselineDiff } from './validator/baseline.js'
+export { deriveMatrixWidgetType, normalizeMatrixDecl, scaleRangeFor } from './matrix.js'
+export type { MatrixWidgetType } from './matrix.js'

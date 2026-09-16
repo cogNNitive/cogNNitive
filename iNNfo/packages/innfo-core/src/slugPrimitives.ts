@@ -15,4 +15,4 @@ export {
   slugifyUnitHeading,
   normalizeName,
   headingSlugParts,
-} from './sourceRef'
+} from './sourceRef.js'

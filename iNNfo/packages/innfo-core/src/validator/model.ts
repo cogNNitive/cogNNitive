@@ -5,14 +5,14 @@ import {
   ValidationError,
   ValidationResult,
   ValidationSummary,
-} from '../types'
-import { resolveTemplateSchema } from '../schema'
-import type { IncludeResolver } from '../schema'
-import { Diagnostics } from '../diagnostics'
-import { validateReferences, validateElementFieldReferences } from './references'
-import type { SubmodelResolver } from './references'
-import { validateTaxonomyHierarchy } from './hierarchy'
-import { computeSha256 } from './crypto'
+} from '../types/index.js'
+import { resolveTemplateSchema } from '../schema/index.js'
+import type { IncludeResolver } from '../schema/index.js'
+import { Diagnostics } from '../diagnostics.js'
+import { validateReferences, validateElementFieldReferences } from './references.js'
+import type { SubmodelResolver } from './references.js'
+import { validateTaxonomyHierarchy } from './hierarchy.js'
+import { computeSha256 } from './crypto.js'
 import {
   checkFrontmatterInvariants,
   checkTemplateDocumentation,
@@ -20,7 +20,7 @@ import {
   checkSchemaConformance,
   checkMatrixCells,
   checkNodeMarkers,
-} from './model-checks'
+} from './model-checks.js'
 
 export interface ValidateModelOptions {
   resolveInclude?: IncludeResolver

@@ -1,7 +1,7 @@
-import type { RecursiveParseResult } from '../recursiveParser/types'
-import type { ReferenceDiagnostic } from './references'
-import { parseCsvTable } from '../csvTable'
-import { parseKnowledgeQuery } from '../queryUnits'
+import type { RecursiveParseResult } from '../recursiveParser/types.js'
+import type { ReferenceDiagnostic } from './references.js'
+import { parseCsvTable } from '../csvTable.js'
+import { parseKnowledgeQuery } from '../queryUnits.js'
 import {
   SOURCE_FIELD_NAMES,
   extractHeadings,
@@ -10,8 +10,10 @@ import {
   parseSourceRef,
   splitSourceFieldValue,
   type SourceRef,
-} from '../sourceRef'
-import { listSectionFields, resolveUnit } from '../unitResolve'
+} from '../sourceRef.js'
+import { listSectionFields, resolveUnit } from '../unitResolve.js'
+import type { ModelNode } from '../types/index.js'
+import type { TemplateSchema } from '../schema/index.js'
 
 /**
  * Host-supplied callback that resolves a workspace-relative source path
@@ -51,6 +53,33 @@ export type SourceResolver = (
  * - `error KU_UNKNOWN_MATRIX_CELL` — matrix `&row&col` does not resolve.
  * - `error KU_DUPLICATE_KEY` / `KU_EMPTY_KEY` — CSV key-column integrity (once per file).
  */
+/**
+ * Whether `fieldName` on an element of concept `conceptType` carries
+ * provenance (AD-5).
+ *
+ * The DECLARED type wins: a field the template declares `citation` is checked
+ * whatever it is called, and a field it declares as anything else is not —
+ * which is what stops `documentation`'s `source:: <content path>` from being
+ * misdiagnosed as a broken citation.
+ *
+ * Name matching against `SOURCE_FIELD_NAMES` remains ONLY as the fallback for
+ * a model whose template schema did not resolve (no resolver supplied, an
+ * offline workspace, a concept the template never declared). Without that
+ * fallback this change could not land without migrating every template in the
+ * same commit.
+ */
+function isCitationField(
+  fieldName: string,
+  conceptType: string | undefined,
+  schema: TemplateSchema | undefined,
+): boolean {
+  const declared = schema?.concepts
+    .find((c) => c.name.toLowerCase() === (conceptType ?? '').toLowerCase())
+    ?.fields?.find((f) => f.name.toLowerCase() === fieldName.toLowerCase())
+  if (declared) return declared.type === 'citation'
+  return SOURCE_FIELD_NAMES.has(fieldName.toLowerCase())
+}
+
 export function validateWorkspaceSources(
   result: RecursiveParseResult,
   resolver: SourceResolver,
@@ -58,11 +87,24 @@ export function validateWorkspaceSources(
   const diagnostics: ReferenceDiagnostic[] = []
   const checkedCsvKeys = new Set<string>()
 
+  /** The composed template schema of the document this node belongs to, if any.
+   *  `recursiveParse` stashes it on the root node, so no host plumbing is
+   *  needed here — walk up to the root and read it. */
+  const schemaFor = (node: ModelNode): TemplateSchema | undefined => {
+    let current: ModelNode | undefined = node
+    while (current) {
+      if (current.templateSchema) return current.templateSchema
+      current = current.parentId ? result.nodes[current.parentId] : undefined
+    }
+    return undefined
+  }
+
   for (const node of Object.values(result.nodes)) {
     if (node.kind !== 'element') continue
+    const schema = schemaFor(node)
 
     for (const [fieldName, fv] of Object.entries(node.fields)) {
-      if (!SOURCE_FIELD_NAMES.has(fieldName.toLowerCase())) continue
+      if (!isCitationField(fieldName, node.type, schema)) continue
 
       const path = `${node.source.path}#${node.name}.${fieldName}`
 

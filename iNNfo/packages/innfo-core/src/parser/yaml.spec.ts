@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
-import { parseYaml, parseFrontmatter } from './yaml'
-import { parseModel } from './core'
+import { parseYaml, parseFrontmatter } from './yaml.js'
+import { parseModel } from './core.js'
 
 describe('parseYaml error surfacing', () => {
   it('still returns {} on malformed YAML but reports through onError', () => {

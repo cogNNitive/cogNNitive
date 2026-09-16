@@ -1,4 +1,4 @@
-export * from './types'
+export * from './types/index.js'
 export {
   parseYaml,
   parseFrontmatter,
@@ -8,7 +8,7 @@ export {
   parseMarkdownTable,
   getSectionType,
   normalizeSeparators,
-} from './parser'
+} from './parser/index.js'
 export {
   CONCEPT_DEFINITION,
   FIELD_DEFINITION,
@@ -21,13 +21,13 @@ export {
   checkElementsAgainstSchema,
   checkWidgetConfig,
   resolveTemplateSchema,
-} from './schema'
+} from './schema/index.js'
 export type {
   TemplateSchema,
   SchemaCheckOptions,
   IncludeResolver,
   ResolvedTemplateSchema,
-} from './schema'
+} from './schema/index.js'
 export {
   validateModel,
   validateDocument,
@@ -35,35 +35,35 @@ export {
   validateFormatSyntax,
   validateWorkspaceReferences,
   validateWorkspaceSources,
-} from './validator'
-export type { DocumentValidation, ReferenceDiagnostic, SourceResolver } from './validator'
+} from './validator/index.js'
+export type { DocumentValidation, ReferenceDiagnostic, SourceResolver } from './validator/index.js'
 
-export { parseSourceRef, slugifyHeading, extractHeadings, resolveHeadingSection } from './sourceRef'
-export type { SourceRef, HeadingInfo, ResolvedHeadingSection } from './sourceRef'
+export { parseSourceRef, slugifyHeading, extractHeadings, resolveHeadingSection } from './sourceRef.js'
+export type { SourceRef, HeadingInfo, ResolvedHeadingSection } from './sourceRef.js'
 export {
   parseKnowledgeUnitRef,
   serializeKnowledgeUnitRef,
   slugifyUnitHeading,
   normalizeName,
-} from './sourceRef'
-export type { KnowledgeUnit, HeaderUnit, RowUnit } from './sourceRef'
-export { parseCsvTable } from './csvTable'
-export type { CsvTable, CsvTableOptions } from './csvTable'
-export { resolveUnit } from './unitResolve'
-export type { ResolvedUnit } from './unitResolve'
-export { parseKnowledgeQuery, runQuery } from './queryUnits'
-export type { KnowledgeQuery, KnowledgeQueryFilter, FileSnapshot, QueryResult } from './queryUnits'
-export { scanSections } from './querySections'
-export type { SectionFields } from './querySections'
-export { applyMutation, updateReferenceString } from './mutate'
-export type { MutationResult } from './mutate'
-export { buildAgentModificationBlock } from './agentModification'
-export type { AgentModificationContext } from './agentModification'
-export { deriveMatrixWidgetType, normalizeMatrixDecl, scaleRangeFor } from './matrix'
-export type { MatrixWidgetType } from './matrix'
-export * from './identity'
-export * from './metamodel'
-export * from './fs-types'
+} from './sourceRef.js'
+export type { KnowledgeUnit, HeaderUnit, RowUnit } from './sourceRef.js'
+export { parseCsvTable } from './csvTable.js'
+export type { CsvTable, CsvTableOptions } from './csvTable.js'
+export { resolveUnit } from './unitResolve.js'
+export type { ResolvedUnit } from './unitResolve.js'
+export { parseKnowledgeQuery, runQuery } from './queryUnits.js'
+export type { KnowledgeQuery, KnowledgeQueryFilter, FileSnapshot, QueryResult } from './queryUnits.js'
+export { scanSections } from './querySections.js'
+export type { SectionFields } from './querySections.js'
+export { applyMutation, updateReferenceString } from './mutate.js'
+export type { MutationResult } from './mutate.js'
+export { buildAgentModificationBlock } from './agentModification.js'
+export type { AgentModificationContext } from './agentModification.js'
+export { deriveMatrixWidgetType, normalizeMatrixDecl, scaleRangeFor } from './matrix.js'
+export type { MatrixWidgetType } from './matrix.js'
+export * from './identity.js'
+export * from './metamodel.js'
+export * from './fs-types.js'
 export {
   recursiveParse,
   normalizeSingleModel,
@@ -73,14 +73,14 @@ export {
   type ParseIssue,
   type RecursiveParseResult,
   type WorkspaceIndex,
-} from './recursiveParser'
+} from './recursiveParser/index.js'
 export {
   OWNERSHIP_MARKER,
   reconcileManifest,
   type DiscoveredModel,
   type ManifestChange,
-} from './workspace/reconcileManifest'
-export { isReconcilableModel, type CandidateFile } from './workspace/discoverModels'
+} from './workspace/reconcileManifest.js'
+export { isReconcilableModel, type CandidateFile } from './workspace/discoverModels.js'
 export {
   parseSemVer,
   compareVersions,
@@ -94,7 +94,7 @@ export {
   type TemplateCatalog,
   type TemplateCatalogEntry,
   type TemplateCatalogVersion,
-} from './workspace/integrity/versionStatus'
+} from './workspace/integrity/versionStatus.js'
 export {
   buildWorkspaceIntegrityReport,
   summarizeWorkspaceIntegrity,
@@ -109,12 +109,12 @@ export {
   type CatalogSource,
   type FreshnessField,
   type TemplateResolution,
-} from './workspace/integrity/report'
+} from './workspace/integrity/report.js'
 export {
   getSpecForLevel,
   getTemplate,
   getFormatSpec,
   getDefiNNe,
   SpecResolutionError,
-} from './resolver'
-export type { SpecResolver } from './resolver'
+} from './resolver.js'
+export type { SpecResolver } from './resolver.js'

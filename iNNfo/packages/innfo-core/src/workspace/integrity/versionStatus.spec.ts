@@ -6,7 +6,7 @@ import {
   parsePinnedUrl,
   classifyAgainstCatalog,
   type TemplateCatalog,
-} from './versionStatus'
+} from './versionStatus.js'
 
 /**
  * Fixtures lifted verbatim from

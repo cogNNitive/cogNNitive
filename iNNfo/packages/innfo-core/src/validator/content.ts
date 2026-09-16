@@ -1,8 +1,8 @@
-import { ValidationCheck, ValidationReport } from '../types'
-import { parseModel, stripFrontmatter } from '../parser'
-import { VERSION_RE, WIKILINK_RE, SECTION_NN_RE, RESERVED_CONCEPT_NAMES } from './constants'
-import { CONCEPT_DEFINITION } from '../schema'
-import { QUALIFIED_REF_RE } from './workspaceReferences'
+import { ValidationCheck, ValidationReport } from '../types/index.js'
+import { parseModel, stripFrontmatter } from '../parser/index.js'
+import { VERSION_RE, WIKILINK_RE, SECTION_NN_RE, RESERVED_CONCEPT_NAMES } from './constants.js'
+import { CONCEPT_DEFINITION } from '../schema/index.js'
+import { QUALIFIED_REF_RE } from './workspaceReferences.js'
 
 /**
  * Validates iNNfo document content (frontmatter + body syntax + conventions).

@@ -5,18 +5,18 @@ import type {
   LocalMetamodel,
   ModelNode,
   TaxonomyEdge,
-} from '../types'
-import { extractTemplateSchema } from '../schema'
-import { normalizeSeparators } from '../parser/slug'
+} from '../types/index.js'
+import { extractTemplateSchema } from '../schema/index.js'
+import { normalizeSeparators } from '../parser/slug.js'
 import {
   SOURCE_FIELD_NAMES,
   parseKnowledgeUnitRef,
   parseSourceRef,
   splitSourceFieldValue,
   type SourceRef,
-} from '../sourceRef'
-import type { ParseContext } from './types'
-import { addFieldAndMentionEdges } from './relationships'
+} from '../sourceRef.js'
+import type { ParseContext } from './types.js'
+import { addFieldAndMentionEdges } from './relationships.js'
 
 /**
  * Reads a node's `sources`/`source` field, parses every value as a

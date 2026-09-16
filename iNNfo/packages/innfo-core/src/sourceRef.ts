@@ -13,7 +13,7 @@
  * `src-NNN` wrapper are rejected.
  */
 
-import { nfc, stripCombiningMarks } from './parser/slug'
+import { nfc, stripCombiningMarks } from './parser/slug.js'
 
 export interface HeaderUnit {
   /** Markdown heading unit: level is structural rank, slug is the canonical form. */
@@ -340,7 +340,7 @@ export function resolveUnitPath(
 function decodeSegment(segment: string): string | null {
   try {
     return decodeURIComponent(segment)
-  } catch {
+  } catch (err) {
     // propagate deliberately: a malformed URI segment makes the reference invalid.
     return null
   }
@@ -413,7 +413,11 @@ export function serializeKnowledgeUnitRef(
   unit: KnowledgeUnit,
   subunits: string[] = [],
 ): string {
-  const head = unit.kind === 'header' ? `${'#'.repeat(unit.level)}${unit.slug}` : unit.id
+  // Headings are written in their human-readable form (`@## Q4 Outlook`), the
+  // way an author would type them and the way they appear in the source file.
+  // The slug stays a READ-side derivation: emitting `@##q4-outlook` turned
+  // every citation into something nobody could read back against the document.
+  const head = unit.kind === 'header' ? `${'#'.repeat(unit.level)} ${unit.text}` : unit.id
   const tail = subunits.map((s) => normalizeName(s)).filter((s) => s !== '')
   return tail.length > 0 ? `${filePath}@${head}&${tail.join('&')}` : `${filePath}@${head}`
 }

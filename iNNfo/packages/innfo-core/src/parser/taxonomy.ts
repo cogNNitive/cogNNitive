@@ -1,5 +1,5 @@
-import { TaxonomyEdge } from '../types'
-import { normalizeSource, WIKILINK_RE } from './markdown'
+import { TaxonomyEdge } from '../types/index.js'
+import { normalizeSource, WIKILINK_RE } from './markdown.js'
 
 export function parseIndexBlock(content: string): TaxonomyEdge[] {
   const edges: TaxonomyEdge[] = []

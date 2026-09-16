@@ -215,8 +215,12 @@ This is an element with tags.
 
     // Check Serialization round-trip
     const serialized = serializeModel(parsed)
-    expect(serialized).toContain('tags:: tag1, tag2, tag3, tag1')
-    expect(serialized).toContain('tags:: el-tag1, el-tag2, el-tag3')
+    // Tag VALUES are normalized (lowercased, trimmed) — asserted above. The
+    // tag SOURCE TEXT is preserved verbatim: re-emitting the author's own
+    // line is what keeps a save byte-identical, and the canonical bracket
+    // form is only produced for tags with no recorded source text.
+    expect(serialized).toContain('tags:: tag1, Tag2,   TAG3 , tag1')
+    expect(serialized).toContain('tags:: el-tag1 , EL-tag2, , el-tag3')
 
     const reParsed = parseModel(serialized)
     expect(reParsed.conceptTags!['Some Concept']).toEqual(['tag1', 'tag2', 'tag3', 'tag1'])
