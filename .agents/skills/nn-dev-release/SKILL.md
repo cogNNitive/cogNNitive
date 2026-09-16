@@ -134,6 +134,9 @@ Present a consolidated summary table with:
      red until the `dev`→`main` merge lands — so merge first (or tag commits
      already on `main`), then pin. Do NOT tag until the merge has landed on
      `main`.
+   - **Restore Point role**: When executing a release prior to major refactors
+     or high-impact changes, the created tag serves as an immutable cryptographic
+     restore point. See `nn-dev-development` Section 6 for rollback procedures.
 
 1. **Confirm Version Bump Scope**:
    Prompt the developer to select which subsystem is releasing:

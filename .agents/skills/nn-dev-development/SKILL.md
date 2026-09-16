@@ -403,6 +403,51 @@ no per-change PR to open; `main` absorbs the batch instead.
 
 ---
 
+## 6. Pre-Refactor Snapshot & Rollback Protocol (Restore Point Gate)
+
+Before executing high-impact, architectural, or potentially destructive changes across the monorepo, establish an immutable **Restore Point** so that returning to the current state is 100% deterministic and safe.
+
+### 6a. When to use
+- Major migrations (parsers, AST, database, serializers, or data models).
+- Large refactorings touching cross-cutting subsystems (`iNNfo-core`, `iNNfo-editor`, `actioNN`).
+- High-risk exploratory tasks where changes might need to be abandoned.
+
+### 6b. Snapshot Mechanisms
+
+#### Mechanism 1: Formal Release as Restore Point
+When the current working state on `dev` is clean, passes all integrity gates, and represents a meaningful milestone:
+1. Pass `node scripts/check-integrity.js`.
+2. Merge `dev → main` and bump subsystem version (e.g. `iNNfo Suite 0.9.0` via `nn-dev-release`).
+3. Push commit and immutable tags (`v<version>`, `innfo-mcp-v<version>`) to `origin/main`.
+4. Publish GitHub Release via `gh release create v<version>` (automatically attaches native `.zip` and `.tar.gz` source downloads).
+5. Sync `dev` with `main` (`git checkout dev && git merge main && git push origin dev`).
+
+#### Mechanism 2: Lightweight / Annotated Checkpoint Tag
+When current work is mid-flight or does not qualify for a public distribution release:
+```powershell
+# Create an annotated checkpoint tag
+git tag -a checkpoint/<topic>-YYYYMMDD -m "Checkpoint pre-refactor: <context>"
+git push origin checkpoint/<topic>-YYYYMMDD
+```
+
+### 6c. Rollback Guarantee (How to revert)
+If subsequent changes in `dev` fail, destabilize the codebase, or need to be discarded:
+```powershell
+# Discard uncommitted working tree changes
+git restore .
+git clean -fd
+
+# Hard reset dev to the exact immutable tag
+git reset --hard <vX.Y.Z or checkpoint-tag>
+git push origin dev --force-with-lease
+```
+Alternatively, branch off the checkpoint without rewriting `dev`:
+```powershell
+git checkout -b restore/<topic> <vX.Y.Z or checkpoint-tag>
+```
+
+---
+
 ## Core Rules
 
 1. **Never guess git state** — run `git status -sb` / `git fetch` right before
