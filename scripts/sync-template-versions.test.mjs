@@ -23,20 +23,20 @@ function fixtureTree() {
   fs.mkdirSync(path.join(templatesDir, 'alpha'), { recursive: true });
   fs.writeFileSync(
     path.join(templatesDir, 'alpha', 'spec_NN.md'),
-    '---\ntemplate_version: "V_0-1-0"\n---\n# Alpha\n',
+    '---\nspec_version: "V_9-0-0"\ntemplate_version: "V_0-1-0"\n---\n# Alpha\n',
     'utf8'
   );
 
   fs.mkdirSync(path.join(templatesDir, 'beta'), { recursive: true });
   fs.writeFileSync(
     path.join(templatesDir, 'beta', 'spec_NN.md'),
-    '---\ntemplate_version: V_0-3-2\n---\n# Beta\n',
+    '---\nspec_version: V_9-0-0\ntemplate_version: V_0-3-2\n---\n# Beta\n',
     'utf8'
   );
 
   fs.writeFileSync(
     path.join(templatesDir, 'workspace_spec_NN.md'),
-    '---\ntemplate_version: V_0-4-0\n---\n# Workspace\n',
+    '---\nspec_version: V_9-0-0\ntemplate_version: V_0-4-0\n---\n# Workspace\n',
     'utf8'
   );
 
@@ -129,11 +129,15 @@ async function runTests() {
     assert.ok(!/^\s*workspace:/m.test(samplesContent), 'workspace must remain omitted from SHIPPED_TEMPLATE_VERSIONS');
     assert.ok(samplesContent.includes('GENERATED'), 'generated header must be present');
 
+    // manifest/source.yaml tracks spec_version, NOT template_version: the two
+    // are different axes and the release gate compares against spec_version.
     const sourceContent = fs.readFileSync(sourceYamlPath, 'utf8');
-    assert.ok(sourceContent.includes('version: "V_0-1-0"') && /workspace[\s\S]*?version: "V_0-4-0"/.test(sourceContent), 'workspace version should be updated in manifest/source.yaml');
-    assert.ok(/beta[\s\S]*?version: "V_0-3-2"/.test(sourceContent), 'frozen_templates entries must also be synced');
+    assert.ok(/workspace[\s\S]*?version: "V_9-0-0"/.test(sourceContent), 'workspace must carry its spec_version in manifest/source.yaml');
+    assert.ok(/alpha[\s\S]*?version: "V_9-0-0"/.test(sourceContent), 'alpha must carry its spec_version in manifest/source.yaml');
+    assert.ok(/beta[\s\S]*?version: "V_9-0-0"/.test(sourceContent), 'frozen_templates entries must also carry spec_version');
+    assert.ok(!sourceContent.includes('V_0-3-2') && !sourceContent.includes('V_0-4-0'), 'template_version must never leak into manifest/source.yaml');
 
-    console.log('✔ syncTemplateVersions writes both copies and omits workspace from samples.ts');
+    console.log('✔ syncTemplateVersions writes template_version to samples.ts and spec_version to source.yaml');
     fs.rmSync(root, { recursive: true, force: true });
   }
 
@@ -161,7 +165,7 @@ async function runTests() {
     assert.strictEqual(res.ok, false, 'Expected drift to be detected');
     const joined = res.errors.join('\n');
     assert.ok(joined.includes('beta'), 'error must name the drifted slug');
-    assert.ok(joined.includes('V_0-3-2'), 'error must name the expected version');
+    assert.ok(joined.includes('V_9-0-0'), 'error must name the expected spec_version');
     assert.ok(joined.includes('sync:versions'), 'error must name the fix command');
     console.log('✔ --check mode reports drift with slug, expected version and fix command');
     fs.rmSync(root, { recursive: true, force: true });

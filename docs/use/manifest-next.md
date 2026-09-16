@@ -78,7 +78,7 @@ agent-bootstrap:
     - name: workspace
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/workspace_spec_NN.md
-      version: "V_0-4-0"
+      version: "V_0-2-1"
       ref: "main"
       commit: "823909bd4135241e58d58d757d5f1911d77ba75a"
     - name: projects
@@ -90,13 +90,13 @@ agent-bootstrap:
     - name: procedures
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/procedures/spec_NN.md
-      version: "V_0-2-0"
+      version: "V_0-2-1"
       ref: "main"
       commit: "823909bd4135241e58d58d757d5f1911d77ba75a"
     - name: organization
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/organization/spec_NN.md
-      version: "V_0-2-2"
+      version: "V_0-2-1"
       ref: "main"
       commit: "823909bd4135241e58d58d757d5f1911d77ba75a"
     - name: business
@@ -108,7 +108,7 @@ agent-bootstrap:
     - name: business-model
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/business-model/spec_NN.md
-      version: "V_0-2-3"
+      version: "V_0-2-1"
       ref: "main"
       commit: "823909bd4135241e58d58d757d5f1911d77ba75a"
     - name: analysis
@@ -126,7 +126,7 @@ agent-bootstrap:
     - name: blank
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/blank/spec_NN.md
-      version: "V_0-2-0"
+      version: "V_0-2-1"
       ref: "main"
       commit: "823909bd4135241e58d58d757d5f1911d77ba75a"
     - name: documentation
@@ -144,13 +144,13 @@ agent-bootstrap:
     - name: repository
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/repository/spec_NN.md
-      version: "V_0-1-1"
+      version: "V_0-2-1"
       ref: "main"
       commit: "823909bd4135241e58d58d757d5f1911d77ba75a"
     - name: video-generator
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/video-generator/spec_NN.md
-      version: "V_0-1-1"
+      version: "V_0-2-1"
       ref: "main"
       commit: "823909bd4135241e58d58d757d5f1911d77ba75a"
   console-assets:

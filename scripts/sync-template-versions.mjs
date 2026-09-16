@@ -47,29 +47,44 @@ const GENERATED_HEADER = [
 
 const FRONTMATTER_VERSION_RE = /^---\r?\n([\s\S]*?)\r?\n---/;
 const TEMPLATE_VERSION_RE = /^template_version:\s*"?([^"\r\n]+?)"?\s*$/m;
+const SPEC_VERSION_RE = /^spec_version:\s*"?([^"\r\n]+?)"?\s*$/m;
 
 /**
  * Reads `template_version` from a spec_NN.md file's frontmatter.
  * Returns undefined if the file has no parseable frontmatter or version.
  */
-function readTemplateVersion(filePath) {
+function readFrontmatterVersion(filePath, fieldRe) {
   const content = fs.readFileSync(filePath, 'utf8');
   const fmMatch = content.match(FRONTMATTER_VERSION_RE);
   if (!fmMatch) return undefined;
-  const versionMatch = fmMatch[1].match(TEMPLATE_VERSION_RE);
+  const versionMatch = fmMatch[1].match(fieldRe);
   return versionMatch ? versionMatch[1].trim() : undefined;
+}
+
+/** Reads `template_version` -- the template's OWN version. */
+function readTemplateVersion(filePath) {
+  return readFrontmatterVersion(filePath, TEMPLATE_VERSION_RE);
+}
+
+/**
+ * Reads `spec_version` -- the Level-1 iNNfo meta-spec the template conforms to.
+ * This is a DIFFERENT axis from `template_version`: every template can ship its
+ * own `template_version` while conforming to the same `spec_version`.
+ */
+function readSpecVersion(filePath) {
+  return readFrontmatterVersion(filePath, SPEC_VERSION_RE);
 }
 
 /**
  * Walks `templatesDir` for `<slug>/spec_NN.md` files plus the root
  * `workspace_spec_NN.md`, returning a map of slug -> template_version.
  */
-export function collectTemplateVersions(templatesDir = DEFAULT_TEMPLATES_DIR) {
+function collectVersions(templatesDir, read) {
   const versions = {};
 
   const workspaceSpecPath = path.join(templatesDir, 'workspace_spec_NN.md');
   if (fs.existsSync(workspaceSpecPath)) {
-    const v = readTemplateVersion(workspaceSpecPath);
+    const v = read(workspaceSpecPath);
     if (v) versions.workspace = v;
   }
 
@@ -78,11 +93,19 @@ export function collectTemplateVersions(templatesDir = DEFAULT_TEMPLATES_DIR) {
     if (!entry.isDirectory()) continue;
     const specPath = path.join(templatesDir, entry.name, 'spec_NN.md');
     if (!fs.existsSync(specPath)) continue;
-    const v = readTemplateVersion(specPath);
+    const v = read(specPath);
     if (v) versions[entry.name] = v;
   }
 
   return versions;
+}
+
+export function collectTemplateVersions(templatesDir = DEFAULT_TEMPLATES_DIR) {
+  return collectVersions(templatesDir, readTemplateVersion);
+}
+
+export function collectSpecVersions(templatesDir = DEFAULT_TEMPLATES_DIR) {
+  return collectVersions(templatesDir, readSpecVersion);
 }
 
 function renderSamplesObjectBody(versions) {
@@ -184,8 +207,18 @@ function syncSourceYaml({ versions, sourceYamlPath, check }) {
 }
 
 /**
- * Reads template_version from every spec_NN.md and syncs (or checks) both
- * generated copies: samples.ts and manifest/source.yaml.
+ * Syncs (or checks) the two generated copies from every spec_NN.md, each from
+ * its OWN frontmatter field -- they are different axes and must not be mixed:
+ *
+ *   - `samples.ts` SHIPPED_TEMPLATE_VERSIONS <- `template_version`
+ *     (the template's own version; drives the editor's "newer template" badge)
+ *   - `manifest/source.yaml` templates[].version <- `spec_version`
+ *     (the Level-1 iNNfo meta-spec the template conforms to)
+ *
+ * The manifest side is NOT free to use `template_version`: the release gate
+ * `checkVersionParity` (scripts/manifest/lib/manifest-rules.js) compares that
+ * field against the template's `version`/`spec_version` frontmatter, so writing
+ * `template_version` there fails stable-manifest validation on main.
  */
 export function syncTemplateVersions({
   check = false,
@@ -194,6 +227,7 @@ export function syncTemplateVersions({
   sourceYamlPath = DEFAULT_SOURCE_YAML_PATH,
 } = {}) {
   const versions = collectTemplateVersions(templatesDir);
+  const specVersions = collectSpecVersions(templatesDir);
   const errors = [];
 
   const samplesResult = syncSamplesTs({ versions, samplesTsPath, check });
@@ -208,13 +242,13 @@ export function syncTemplateVersions({
     }
   }
 
-  const sourceResult = syncSourceYaml({ versions, sourceYamlPath, check });
+  const sourceResult = syncSourceYaml({ versions: specVersions, sourceYamlPath, check });
   if (!sourceResult.ok) {
     if (sourceResult.drift) {
       for (const d of sourceResult.drift) {
         errors.push(
           `Template '${d.slug}' version drift in ${sourceYamlPath}: ` +
-          `expected "${d.expected}" (from spec_NN.md), found "${d.actual}". ` +
+          `expected "${d.expected}" (from spec_version in spec_NN.md), found "${d.actual}". ` +
           `Run \`npm run sync:versions\` to fix it.`
         );
       }
