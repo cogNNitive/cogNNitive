@@ -10,23 +10,23 @@ agent-bootstrap:
       repo: cogNNitive/cogNNitive
       path: skills/nn-router
       version: "V_3-3-0"
-      ref: "skills-v1.9.0"
-      commit: "2893b25568705dd056333fa90f4e5569ad723b83"
+      ref: "skills-v2.0.0"
+      commit: "6ad8eb886d6fefa6379cf095cdc3af9b796d3bbf"
       description: Central system governance, setup, environment readiness gate (Preflight), and skill router.
     - name: nn-trannsform
       repo: cogNNitive/cogNNitive
       path: skills/nn-trannsform
       version: "V_3-3-0"
-      ref: "skills-v1.9.0"
-      commit: "2893b25568705dd056333fa90f4e5569ad723b83"
+      ref: "skills-v2.0.0"
+      commit: "6ad8eb886d6fefa6379cf095cdc3af9b796d3bbf"
       requires: [nn-innfo, nn-preflight]
       description: Ingest documents (PDF, DOCX, XLSX), transform using templates, and execute multi-step procedures (procedures_V_0-1-0_NN.md).
     - name: nn-innfo
       repo: cogNNitive/cogNNitive
       path: skills/nn-innfo
       version: "V_0-5-1"
-      ref: "skills-v1.9.0"
-      commit: "2893b25568705dd056333fa90f4e5569ad723b83"
+      ref: "skills-v2.0.0"
+      commit: "6ad8eb886d6fefa6379cf095cdc3af9b796d3bbf"
       description: Author, edit, and validate iNNfo models with built-in step-by-step Model Creation Wizard.
       templates: [workspace]
       mcp:
@@ -41,37 +41,37 @@ agent-bootstrap:
       repo: cogNNitive/cogNNitive
       path: skills/nn-preflight
       version: "V_0-2-0"
-      ref: "skills-v1.9.0"
-      commit: "2893b25568705dd056333fa90f4e5569ad723b83"
+      ref: "skills-v2.0.0"
+      commit: "6ad8eb886d6fefa6379cf095cdc3af9b796d3bbf"
       description: Environment readiness gate (Tier 1/Tier 2/Tier 3) and canonical skill-location reference.
     - name: nn-upgrade
       repo: cogNNitive/cogNNitive
       path: skills/nn-upgrade
       version: "V_0-1-0"
-      ref: "skills-v1.9.0"
-      commit: "2893b25568705dd056333fa90f4e5569ad723b83"
+      ref: "skills-v2.0.0"
+      commit: "6ad8eb886d6fefa6379cf095cdc3af9b796d3bbf"
       requires: [nn-preflight]
       description: Guided, consent-gated migration of a workspace to the latest adopted iNNfo Level-2 templates.
     - name: nn-site-generator
       repo: cogNNitive/cogNNitive
       path: skills/nn-site-generator
       version: "V_0-2-0"
-      ref: "skills-v1.9.0"
-      commit: "2893b25568705dd056333fa90f4e5569ad723b83"
+      ref: "skills-v2.0.0"
+      commit: "6ad8eb886d6fefa6379cf095cdc3af9b796d3bbf"
       description: Create or edit websites, add analytics, add contact forms.
     - name: nn-design-presets
       repo: cogNNitive/cogNNitive
       path: skills/nn-design-presets
       version: "V_1-3-0"
-      ref: "skills-v1.9.0"
-      commit: "2893b25568705dd056333fa90f4e5569ad723b83"
+      ref: "skills-v2.0.0"
+      commit: "6ad8eb886d6fefa6379cf095cdc3af9b796d3bbf"
       description: cogNNitive visual design presets — palettes, typography, spacing.
     - name: nn-skills-lifecycle
       repo: cogNNitive/cogNNitive
       path: skills/nn-skills-lifecycle
       version: "V_1-2-0"
-      ref: "skills-v1.9.0"
-      commit: "2893b25568705dd056333fa90f4e5569ad723b83"
+      ref: "skills-v2.0.0"
+      commit: "6ad8eb886d6fefa6379cf095cdc3af9b796d3bbf"
       requires: [nn-preflight]
       description: Audit, update, and maintain cogNNitive skills.
   templates:
@@ -79,92 +79,92 @@ agent-bootstrap:
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/workspace_spec_NN.md
       version: "V_0-2-1"
-      ref: "templates-v0.9.1"
-      commit: "2730ac369b346ca3384fd370548f129d2e3f24cd"
+      ref: "templates-v0.10.0"
+      commit: "6ad8eb886d6fefa6379cf095cdc3af9b796d3bbf"
     - name: projects
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/projects/spec_NN.md
       version: "V_0-2-1"
-      ref: "templates-v0.9.1"
-      commit: "2730ac369b346ca3384fd370548f129d2e3f24cd"
+      ref: "templates-v0.10.0"
+      commit: "6ad8eb886d6fefa6379cf095cdc3af9b796d3bbf"
     - name: procedures
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/procedures/spec_NN.md
       version: "V_0-2-1"
-      ref: "templates-v0.9.1"
-      commit: "2730ac369b346ca3384fd370548f129d2e3f24cd"
+      ref: "templates-v0.10.0"
+      commit: "6ad8eb886d6fefa6379cf095cdc3af9b796d3bbf"
     - name: organization
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/organization/spec_NN.md
       version: "V_0-2-1"
-      ref: "templates-v0.9.1"
-      commit: "2730ac369b346ca3384fd370548f129d2e3f24cd"
+      ref: "templates-v0.10.0"
+      commit: "6ad8eb886d6fefa6379cf095cdc3af9b796d3bbf"
     - name: business
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/business/spec_NN.md
       version: "V_0-2-5"
-      ref: "templates-v0.9.1"
-      commit: "2730ac369b346ca3384fd370548f129d2e3f24cd"
+      ref: "templates-v0.10.0"
+      commit: "6ad8eb886d6fefa6379cf095cdc3af9b796d3bbf"
     - name: business-model
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/business-model/spec_NN.md
       version: "V_0-2-1"
-      ref: "templates-v0.9.1"
-      commit: "2730ac369b346ca3384fd370548f129d2e3f24cd"
+      ref: "templates-v0.10.0"
+      commit: "6ad8eb886d6fefa6379cf095cdc3af9b796d3bbf"
     - name: analysis
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/analysis/spec_NN.md
       version: "V_0-2-1"
-      ref: "templates-v0.9.1"
-      commit: "2730ac369b346ca3384fd370548f129d2e3f24cd"
+      ref: "templates-v0.10.0"
+      commit: "6ad8eb886d6fefa6379cf095cdc3af9b796d3bbf"
     - name: innovation
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/innovation/spec_NN.md
       version: "V_0-2-1"
-      ref: "templates-v0.9.1"
-      commit: "2730ac369b346ca3384fd370548f129d2e3f24cd"
+      ref: "templates-v0.10.0"
+      commit: "6ad8eb886d6fefa6379cf095cdc3af9b796d3bbf"
     - name: blank
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/blank/spec_NN.md
       version: "V_0-2-1"
-      ref: "templates-v0.9.1"
-      commit: "2730ac369b346ca3384fd370548f129d2e3f24cd"
+      ref: "templates-v0.10.0"
+      commit: "6ad8eb886d6fefa6379cf095cdc3af9b796d3bbf"
     - name: documentation
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/documentation/spec_NN.md
       version: "V_0-2-1"
-      ref: "templates-v0.9.1"
-      commit: "2730ac369b346ca3384fd370548f129d2e3f24cd"
+      ref: "templates-v0.10.0"
+      commit: "6ad8eb886d6fefa6379cf095cdc3af9b796d3bbf"
     - name: metrics
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/metrics/spec_NN.md
       version: "V_0-2-1"
-      ref: "templates-v0.9.1"
-      commit: "2730ac369b346ca3384fd370548f129d2e3f24cd"
+      ref: "templates-v0.10.0"
+      commit: "6ad8eb886d6fefa6379cf095cdc3af9b796d3bbf"
     - name: repository
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/repository/spec_NN.md
       version: "V_0-2-1"
-      ref: "templates-v0.9.1"
-      commit: "2730ac369b346ca3384fd370548f129d2e3f24cd"
+      ref: "templates-v0.10.0"
+      commit: "6ad8eb886d6fefa6379cf095cdc3af9b796d3bbf"
     - name: video-generator
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/video-generator/spec_NN.md
       version: "V_0-2-1"
-      ref: "templates-v0.9.1"
-      commit: "2730ac369b346ca3384fd370548f129d2e3f24cd"
+      ref: "templates-v0.10.0"
+      commit: "6ad8eb886d6fefa6379cf095cdc3af9b796d3bbf"
     - name: sources
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/sources/spec_NN.md
       version: "V_0-2-1"
-      ref: "templates-v0.9.1"
-      commit: "2730ac369b346ca3384fd370548f129d2e3f24cd"
+      ref: "templates-v0.10.0"
+      commit: "6ad8eb886d6fefa6379cf095cdc3af9b796d3bbf"
     - name: artifacts
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/artifacts/spec_NN.md
       version: "V_0-2-1"
-      ref: "templates-v0.9.1"
-      commit: "2730ac369b346ca3384fd370548f129d2e3f24cd"
+      ref: "templates-v0.10.0"
+      commit: "6ad8eb886d6fefa6379cf095cdc3af9b796d3bbf"
   console-assets:
     - file: iNNfo/specs/templates/console/innfo-console.bundle.js
       version: "0.2.0"
