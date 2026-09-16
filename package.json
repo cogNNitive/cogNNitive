@@ -20,7 +20,9 @@
     "typecheck": "npm --prefix iNNfo run typecheck",
     "check:integrity": "node scripts/check-integrity.js",
     "sync:samples": "node scripts/sync-samples.mjs",
-    "check:samples": "node scripts/sync-samples.mjs --check"
+    "check:samples": "node scripts/sync-samples.mjs --check",
+    "sync:versions": "node scripts/sync-template-versions.mjs && node scripts/manifest/generate-manifest.js --channel stable",
+    "check:versions": "node scripts/sync-template-versions.mjs --check && node scripts/manifest/generate-manifest.js --channel stable --check"
   },
   "devDependencies": {
     "@types/node": "^22.13.9",

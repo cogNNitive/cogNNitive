@@ -39,10 +39,10 @@
     },
     "business-model": {
       "name": "business-model",
-      "adopted": "V_0-2-2",
+      "adopted": "V_0-2-3",
       "versions": [
         {
-          "template_version": "V_0-2-2",
+          "template_version": "V_0-2-3",
           "spec_version": "V_0-2-1",
           "title": "Business Model App",
           "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/business-model/spec_NN.md"

@@ -78,7 +78,7 @@ agent-bootstrap:
     - name: workspace
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/workspace_spec_NN.md
-      version: "V_0-2-1"
+      version: "V_0-4-0"
       ref: "templates-v0.9.0"
       commit: "2893b25568705dd056333fa90f4e5569ad723b83"
     - name: projects
@@ -90,13 +90,13 @@ agent-bootstrap:
     - name: procedures
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/procedures/spec_NN.md
-      version: "V_0-2-1"
+      version: "V_0-2-0"
       ref: "templates-v0.9.0"
       commit: "2893b25568705dd056333fa90f4e5569ad723b83"
     - name: organization
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/organization/spec_NN.md
-      version: "V_0-2-1"
+      version: "V_0-2-2"
       ref: "templates-v0.9.0"
       commit: "2893b25568705dd056333fa90f4e5569ad723b83"
     - name: business
@@ -108,7 +108,7 @@ agent-bootstrap:
     - name: business-model
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/business-model/spec_NN.md
-      version: "V_0-2-1"
+      version: "V_0-2-3"
       ref: "templates-v0.9.0"
       commit: "2893b25568705dd056333fa90f4e5569ad723b83"
     - name: analysis
@@ -126,7 +126,7 @@ agent-bootstrap:
     - name: blank
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/blank/spec_NN.md
-      version: "V_0-2-1"
+      version: "V_0-2-0"
       ref: "templates-v0.9.0"
       commit: "2893b25568705dd056333fa90f4e5569ad723b83"
     - name: documentation
@@ -144,13 +144,13 @@ agent-bootstrap:
     - name: repository
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/repository/spec_NN.md
-      version: "V_0-2-1"
+      version: "V_0-1-1"
       ref: "templates-v0.9.0"
       commit: "2893b25568705dd056333fa90f4e5569ad723b83"
     - name: video-generator
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/video-generator/spec_NN.md
-      version: "V_0-2-1"
+      version: "V_0-1-1"
       ref: "templates-v0.9.0"
       commit: "2893b25568705dd056333fa90f4e5569ad723b83"
   console-assets:

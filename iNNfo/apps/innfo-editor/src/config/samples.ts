@@ -25,16 +25,16 @@ export const SAMPLE_BASE: string = import.meta.env.DEV ? '/specs/templates' : RE
  * (`specs/`, `.specs/`, `.spec-cache/`, see design.md A1). This map exists so
  * the badge can still fire for a workspace that has never locally cached a
  * newer template file (e.g. right after this app itself ships a bump).
- *
- * Keep in sync with `specs/templates/{name}/{name}_V_x-y-z_NN.md` — update
- * this entry whenever a shipped template's `template_version` is bumped.
  */
+// GENERATED — DO NOT EDIT. Source: iNNfo/specs/templates/*/spec_NN.md and
+// iNNfo/specs/templates/workspace_spec_NN.md.
+// Regenerate with `npm run sync:versions` (scripts/sync-template-versions.mjs).
 export const SHIPPED_TEMPLATE_VERSIONS: Record<string, string> = {
   analysis: 'V_0-2-1',
   base: 'V_0-1-0',
   blank: 'V_0-2-0',
-  business: 'V_0-2-4',
-  'business-model': 'V_0-2-2',
+  business: 'V_0-2-5',
+  'business-model': 'V_0-2-3',
   cogNNitive: 'V_0-2-0',
   documentation: 'V_0-2-1',
   innovation: 'V_0-2-1',
@@ -44,7 +44,4 @@ export const SHIPPED_TEMPLATE_VERSIONS: Record<string, string> = {
   projects: 'V_0-2-1',
   repository: 'V_0-1-1',
   'video-generator': 'V_0-1-1',
-  // workspace_spec is intentionally omitted: this map is keyed by the
-  // `{slug}/` subdirectories, and the root `workspace_spec_NN.md` lives one
-  // level up.
 }

@@ -84,7 +84,7 @@ function checkWorkspaceParity(repoRoot = process.cwd()) {
     let declared = null;
     try {
       const meta = parseFocusedYaml(parseFrontmatter(text));
-      declared = meta.version !== undefined ? meta.version : (meta.spec_version !== undefined ? meta.spec_version : (meta.metadata && meta.metadata.version));
+      declared = meta.template_version !== undefined ? meta.template_version : (meta.version !== undefined ? meta.version : (meta.spec_version !== undefined ? meta.spec_version : (meta.metadata && meta.metadata.version)));
     } catch {
       // ignore
     }
