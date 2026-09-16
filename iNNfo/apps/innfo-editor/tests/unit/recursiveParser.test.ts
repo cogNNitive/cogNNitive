@@ -85,7 +85,7 @@ title: "Workspace Index"
     expect(missingIssues.length).toBeGreaterThan(0)
   })
 
-  it('reports a collision issue when two models share same element name', async () => {
+  it('does NOT advise renaming when two models share the same element name — cross-model identity is legal (AD-7)', async () => {
     const modelWithElement = (title: string, elementName: string) => `---
 spec_version: "V_0-1-1"
 spec_url: "https://example.test/specs/business_V_0-1-1_FORMAT.md"
@@ -128,8 +128,10 @@ title: "Workspace Index"
     const root = buildFakeTree('workspace', tree)
     const result = await recursiveParse(root)
 
-    const collisionIssues = result.issues.filter((i) => i.message.includes('appears in both'))
-    expect(collisionIssues.length).toBeGreaterThan(0)
+    const renameAdvice = result.issues.filter(
+      (i) => i.message.includes('appears in both') && i.message.includes('consider renaming'),
+    )
+    expect(renameAdvice).toHaveLength(0)
   })
 
   it('parses model elements into the normalized graph', async () => {

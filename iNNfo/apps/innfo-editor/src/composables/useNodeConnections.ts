@@ -58,7 +58,7 @@ export function useNodeConnections(options: {
     const rawMatrices = defsField.length > 0
       ? defsField
       : root.rawContent
-        ? (parseFrontmatter(root.rawContent) as any)?.matrices
+        ? parseFrontmatter(root.rawContent)?.matrices
         : undefined
     const matrices: MatrixDecl[] = Array.isArray(rawMatrices) ? (rawMatrices as MatrixDecl[]) : []
     if (matrices.length === 0) return []

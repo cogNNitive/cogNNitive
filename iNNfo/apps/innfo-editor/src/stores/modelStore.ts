@@ -191,7 +191,19 @@ export const useModelStore = defineStore('model', {
       this.validateModel()
     },
 
-    validateModel(): void {
+    /**
+     * Rebuilds `validationReport` / `validationReports`.
+     *
+     * When `scopedRootIds` is omitted, every root is re-validated (used by
+     * `setGraph`, a full parse). When it is provided, only THOSE roots are
+     * re-run through `validateFormatContent` — the per-root reports for
+     * every other root are reused as-is from `this.validationReports` and
+     * only the cheap aggregation into `combinedReport` re-runs over all of
+     * them. This keeps a single-model edit (e.g. `renameElementNode`) from
+     * re-validating every other model in the workspace on the main thread
+     * (F-15).
+     */
+    validateModel(scopedRootIds?: string[]): void {
       const nonTemplateRoots = this.rootIds.filter(
         (id) => !id.startsWith('spec:') && this.nodes[id],
       )
@@ -201,12 +213,19 @@ export const useModelStore = defineStore('model', {
         return
       }
 
-      let combinedReport: ValidationReport | null = null
-      const reports: Record<string, ValidationReport> = {}
+      const scopedSet = scopedRootIds ? new Set(scopedRootIds) : null
+      const reports: Record<string, ValidationReport> = scopedSet
+        ? { ...this.validationReports }
+        : {}
 
       for (const rootId of nonTemplateRoots) {
+        if (scopedSet && !scopedSet.has(rootId)) continue
+
         const rootNode = this.nodes[rootId]
-        if (!rootNode?.rawContent) continue
+        if (!rootNode?.rawContent) {
+          delete reports[rootId]
+          continue
+        }
         const path = rootNode.source?.path ?? ''
         const fileName = path.split('/').pop() || path || 'unknown.md'
         const report = validateFormatContent(rootNode.rawContent, fileName)
@@ -233,7 +252,14 @@ export const useModelStore = defineStore('model', {
         }
 
         reports[rootId] = report
+      }
 
+      // Cheap aggregation over the per-root reports (recomputed or reused) —
+      // this loop never re-runs validateFormatContent.
+      let combinedReport: ValidationReport | null = null
+      for (const rootId of nonTemplateRoots) {
+        const report = reports[rootId]
+        if (!report) continue
         if (!combinedReport) {
           combinedReport = {
             checks: [...report.checks],
@@ -604,6 +630,15 @@ export const useModelStore = defineStore('model', {
 
       this.markDirty(currentId)
 
+      // Tracks which root(s) this rename actually touched, so validateModel()
+      // below only re-validates them instead of every root in the workspace.
+      const affectedRootIds = new Set<string>()
+      const trackAffectedRoot = (id: string): void => {
+        const rootId = this.getModelRootForNode(id)
+        if (rootId) affectedRootIds.add(rootId)
+      }
+      trackAffectedRoot(currentId)
+
       // Propagate rename across ALL graph nodes
       for (const otherNode of Object.values(this.nodes)) {
         let nodeModified = false
@@ -665,10 +700,11 @@ export const useModelStore = defineStore('model', {
 
         if (nodeModified) {
           this.markDirty(otherNode.id)
+          trackAffectedRoot(otherNode.id)
         }
       }
 
-      this.validateModel()
+      this.validateModel(Array.from(affectedRootIds))
     },
   },
 })

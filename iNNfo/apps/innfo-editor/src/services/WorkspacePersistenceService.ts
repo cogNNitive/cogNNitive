@@ -153,7 +153,7 @@ export async function _ensureGeneralSpec(
   if (!rootNode?.rawContent) return
 
   const fm = parseFrontmatter(rootNode.rawContent)
-  const specVersion = (fm as any)?.spec_version as string | undefined
+  const specVersion = fm?.spec_version
   if (!specVersion) return
 
   const specFilename = `iNNfo_${specVersion}_NN.md`

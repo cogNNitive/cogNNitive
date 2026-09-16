@@ -127,7 +127,7 @@ describe('matrix selection index space (sidebar ↔ grid)', () => {
     const sidebar = mountSidebar()
     // Models start collapsed by default (feature: "collapsed initial state");
     // expand the model header before reaching its nested relations section.
-    await sidebar.find('[data-testid="model-header"]').trigger('click')
+    await sidebar.find('[data-testid="model-header-toggle"]').trigger('click')
     await nextTick()
     await sidebar.find('[data-testid="relations-header"]').trigger('click')
     const pills = realPills(sidebar)
@@ -166,7 +166,7 @@ describe('matrix selection index space (sidebar ↔ grid)', () => {
     const sidebar = mountSidebar()
     // Models start collapsed by default (feature: "collapsed initial state");
     // expand the model header before reaching its nested relations section.
-    await sidebar.find('[data-testid="model-header"]').trigger('click')
+    await sidebar.find('[data-testid="model-header-toggle"]').trigger('click')
     await nextTick()
     await sidebar.find('[data-testid="relations-header"]').trigger('click')
     const pills = realPills(sidebar)

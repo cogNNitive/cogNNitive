@@ -107,6 +107,16 @@ const modelVersion = computed(() => {
   return (node?.fields?.version?.value ?? node?.fields?.model_version?.value ?? '—') as string
 })
 
+const getNestedName = (val: unknown): string | undefined =>
+  val && typeof val === 'object' && 'name' in val && typeof (val as Record<string, unknown>).name === 'string'
+    ? (val as Record<string, string>).name
+    : undefined
+
+const getNestedVersion = (val: unknown): string | undefined =>
+  val && typeof val === 'object' && 'version' in val && typeof (val as Record<string, unknown>).version === 'string'
+    ? (val as Record<string, string>).version
+    : undefined
+
 const formatVersion = computed(() => {
   const node = selectedRootNode.value
   return (node?.fields?.format_version?.value ??
@@ -117,14 +127,14 @@ const formatVersion = computed(() => {
 const templateName = computed(() => {
   const node = selectedRootNode.value
   return (node?.fields?.template_name?.value ??
-    (node?.fields?.parent_spec?.value as any)?.name ??
+    getNestedName(node?.fields?.parent_spec?.value) ??
     '—') as string
 })
 
 const templateVersion = computed(() => {
   const node = selectedRootNode.value
   return (node?.fields?.template_version?.value ??
-    (node?.fields?.parent?.value as any)?.version ??
+    getNestedVersion(node?.fields?.parent?.value) ??
     '—') as string
 })
 
@@ -179,7 +189,7 @@ const allChecks = computed(() => {
           label: `Structure warning in ${issue.path.split('/').pop() || issue.path}`,
           description: issue.message,
           category: 'parser',
-          severity: (issue.severity ?? 'warning') as any,
+          severity: (issue.severity === 'error' || issue.severity === 'info' ? issue.severity : 'warning'),
           passed: false,
           message: issue.message,
         })
@@ -206,7 +216,7 @@ const allChecks = computed(() => {
           label: `Structure warning in ${issue.path.split('/').pop() || issue.path}`,
           description: issue.message,
           category: 'parser',
-          severity: (issue.severity ?? 'warning') as any,
+          severity: (issue.severity === 'error' || issue.severity === 'info' ? issue.severity : 'warning'),
           passed: false,
           message: issue.message,
         })
@@ -355,8 +365,8 @@ function formatLog(): string {
       const path = node.source?.path ?? ''
       const mVersion = (node.fields?.version?.value ?? node.fields?.model_version?.value ?? '—') as string
       const fVersion = (node.fields?.format_version?.value ?? node.fields?.spec_version?.value ?? '0.1.0') as string
-      const tName = (node.fields?.template_name?.value ?? (node.fields?.parent_spec?.value as any)?.name ?? '—') as string
-      const tVersion = (node.fields?.template_version?.value ?? (node.fields?.parent?.value as any)?.version ?? '—') as string
+      const tName = (node.fields?.template_name?.value ?? getNestedName(node.fields?.parent_spec?.value) ?? '—') as string
+      const tVersion = (node.fields?.template_version?.value ?? getNestedVersion(node.fields?.parent?.value) ?? '—') as string
 
       lines.push(`## Model: ${m.name} (v${mVersion})`)
       lines.push(`   File:     ${m.fileName}`)

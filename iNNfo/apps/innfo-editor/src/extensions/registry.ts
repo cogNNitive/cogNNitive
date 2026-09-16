@@ -13,6 +13,10 @@ export interface ViewTypeRegistration {
   component: Component
   defaultLabel: string
   defaultIcon: string
+  /** Shown by hosts (e.g. ModelInfoPanel's extension card) when a declared
+   * viewer doesn't supply its own `description` — drives that copy instead
+   * of a hardcoded string per view type (F-17). */
+  defaultDescription: string
 }
 
 class ExtensionRegistry {
@@ -34,6 +38,8 @@ class ExtensionRegistry {
       component: ganttComponent,
       defaultLabel: 'Gantt Timeline Chart',
       defaultIcon: 'calendar-range',
+      defaultDescription:
+        'Interactive Gantt timeline for this template’s tasks: schedule, dependencies, and progress across the plan.',
     })
 
     // Aliases for direct ID lookup
@@ -74,7 +80,7 @@ class ExtensionRegistry {
             label: v.label || reg.defaultLabel,
             icon: v.icon || reg.defaultIcon,
             targetConcept: v.target_concept,
-            description: v.description,
+            description: v.description || reg.defaultDescription,
           })
         }
       }
@@ -95,6 +101,7 @@ class ExtensionRegistry {
             label: reg.defaultLabel,
             icon: reg.defaultIcon,
             targetConcept: 'Task',
+            description: reg.defaultDescription,
           },
         ]
       }

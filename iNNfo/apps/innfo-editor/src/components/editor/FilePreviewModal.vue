@@ -51,9 +51,9 @@
               </p>
             </div>
 
-            <!-- Toggle Mode (only if Markdown or source) -->
+            <!-- Toggle Mode (only if Markdown, HTML or source) -->
             <div
-              v-if="isMarkdown || kind === 'source'"
+              v-if="isMarkdown || isHtml || kind === 'source'"
               class="flex items-center gap-1 p-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg text-2xs ml-4 shrink-0"
             >
               <button
@@ -234,6 +234,19 @@
             class="w-full h-[60vh] bg-slate-100 dark:bg-slate-900 rounded-xl overflow-hidden"
           >
             <iframe :src="objectUrl" class="w-full h-full border-0 rounded-xl"></iframe>
+          </div>
+
+          <!-- Preview Mode for HTML -->
+          <div
+            v-else-if="viewMode === 'preview' && isHtml"
+            class="w-full h-[60vh] bg-white dark:bg-slate-900 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800"
+          >
+            <iframe
+              :src="objectUrl"
+              :srcdoc="rawContent"
+              class="w-full h-full border-0 rounded-xl"
+              sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+            ></iframe>
           </div>
 
           <!-- Preview Mode for Markdown -->
@@ -546,6 +559,7 @@ const extension = computed(() => {
 })
 
 const isMarkdown = computed(() => extension.value === 'md')
+const isHtml = computed(() => ['html', 'htm'].includes(extension.value))
 const isImage = computed(() =>
   ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp'].includes(extension.value),
 )

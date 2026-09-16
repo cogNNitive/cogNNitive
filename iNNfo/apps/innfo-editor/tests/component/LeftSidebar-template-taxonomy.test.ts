@@ -93,7 +93,7 @@ title: My Business
     // expand the model header, then Groups start collapsed too
     // (expandedGeneration starts at -1) — expand all so nested sub-groups
     // actually render into the DOM.
-    await wrapper.find('[data-testid="model-header"]').trigger('click')
+    await wrapper.find('[data-testid="model-header-toggle"]').trigger('click')
     await wrapper.vm.$nextTick()
     await wrapper.find('[data-testid="expand-all"]').trigger('click')
     await wrapper.vm.$nextTick()
@@ -180,7 +180,7 @@ title: My Specialized Business
     })
 
     // Models start collapsed by default (feature: "collapsed initial state").
-    await wrapper.find('[data-testid="model-header"]').trigger('click')
+    await wrapper.find('[data-testid="model-header-toggle"]').trigger('click')
     await wrapper.vm.$nextTick()
     await wrapper.find('[data-testid="expand-all"]').trigger('click')
     await wrapper.vm.$nextTick()

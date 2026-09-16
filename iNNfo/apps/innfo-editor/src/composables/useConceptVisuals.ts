@@ -1,4 +1,4 @@
-﻿/**
+/**
  * useConceptVisuals
  *
  * Resolves the visual identity (icon + color) for any model node from the
@@ -94,7 +94,7 @@ function findTemplatePeer(
 
   // Parse frontmatter to extract parent.name (the template name)
   const fm = parseFrontmatter(root.rawContent)
-  const parentName: string | undefined = (fm as any)?.parent_spec?.name
+  const parentName: string | undefined = fm?.parent_spec?.name
   if (!parentName) {
     _peerCache.set(rootId, null)
     return null

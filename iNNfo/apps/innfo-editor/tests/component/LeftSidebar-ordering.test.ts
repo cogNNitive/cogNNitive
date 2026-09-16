@@ -58,7 +58,7 @@ title: Business Model
 
     // Models start collapsed by default (feature: "collapsed initial state");
     // expand the model header before inspecting its rendered tree.
-    await wrapper.find('[data-testid="model-header"]').trigger('click')
+    await wrapper.find('[data-testid="model-header-toggle"]').trigger('click')
     await wrapper.vm.$nextTick()
 
     const groupText = wrapper.text()
@@ -111,7 +111,7 @@ title: Business Model
 
     // Models start collapsed by default (feature: "collapsed initial state");
     // expand the model header before expanding its nested concept groups.
-    await wrapper.find('[data-testid="model-header"]').trigger('click')
+    await wrapper.find('[data-testid="model-header-toggle"]').trigger('click')
     await wrapper.vm.$nextTick()
 
     const expandAllBtn = wrapper.find('[data-testid="expand-all"]')
@@ -158,7 +158,7 @@ title: Business Model
 
     // Models start collapsed by default (feature: "collapsed initial state");
     // expand the model header before inspecting its rendered tree.
-    await wrapper.find('[data-testid="model-header"]').trigger('click')
+    await wrapper.find('[data-testid="model-header-toggle"]').trigger('click')
     await wrapper.vm.$nextTick()
 
     const virtualNodes = wrapper.findAll('[data-testid="virtual-group-node"]')
