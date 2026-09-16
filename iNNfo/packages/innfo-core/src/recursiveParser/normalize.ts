@@ -139,7 +139,17 @@ export function normalizeElementsIntoGraph(
     return rootId
   }
 
-  // Track element names model-wide for uniqueness across all concepts (R-IE-02)
+  // Model-wide element-name uniqueness (R-IE-02).
+  //
+  // NOTE: an element that fails this check is DROPPED from the graph, not just
+  // reported — which is why the issue below carries `severity: 'error'`.
+  // Keying this on the element SLUG instead (so an explicit `slug::` could
+  // legitimise the same display name under two concepts) was considered and
+  // deliberately NOT done here: `IdentityRegistry` independently enforces
+  // sibling-name uniqueness and derives each node's qualified id FROM THE
+  // NAME, so changing the rule in one place only would leave the two gates
+  // disagreeing and would move `[[wikilink]]` resolution underneath every
+  // consumer. That belongs in its own change.
   const modelWideElementNames = new Set<string>()
 
   for (const el of allElements) {
@@ -180,6 +190,10 @@ export function normalizeElementsIntoGraph(
       ctx.issues.push({
         path: `${sourcePath}#${el.name}`,
         message: err instanceof Error ? err.message : String(err),
+        // This element is dropped from the graph, so the issue is an error,
+        // not advice. It previously carried no severity at all, which left
+        // hosts unable to triage it.
+        severity: 'error',
       })
     }
   }

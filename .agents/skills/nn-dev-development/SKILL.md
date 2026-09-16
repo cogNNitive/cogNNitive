@@ -194,11 +194,11 @@ active work from abandoned work:
 
 ---
 
-## 2. Single-Branch Consent Gate (before ANY repo write)
+## 2. Single-Branch Integration Gate (Optimistic Execution & Informative Grace)
 
 Immediately **before writing, creating, moving, or deleting any file inside the
-repository**, this skill MUST confirm that the change belongs on the shared integration
-branch `dev`, not on `main` and not on a new parallel branch.
+repository**, this skill verifies and routes changes to the shared integration
+branch `dev`.
 
 ### When the gate fires
 
@@ -208,14 +208,16 @@ branch `dev`, not on `main` and not on a new parallel branch.
 - Exception: read-only work, generated artifacts already covered by an existing change
   branch, or a fix the maintainer explicitly says "just commit on the current branch".
 
-### The default: announce, don't ask (no interaction)
+### Optimistic Execution Protocol: Announce with Grace, Never Block
 
-The gate is **non-interactive by default**. Instead of blocking on a numbered menu, the
-agent states the working branch and proceeds — the maintainer opts out only if they want
-another branch:
+The gate is **strictly non-interactive**. Agents MUST NEVER block execution with numbered
+menus (`[1] Sí [2] No`), modal prompts, or questions like `¿Confirmamos la rama?`.
+
+Instead, the agent executes the switch to `dev` optimistically, announces the working
+branch with an informative grace notice, and proceeds immediately:
 
 ```markdown
-🌿 Estoy trabajando en dev. Indícame si quieres que trabaje en otra rama.
+🌿 Trabajando en dev (convención estándar). Voy a avanzar con esta vía; si querés cambiar de rama o interrumpir, avisame ahora.
 ```
 
 Then resolve `dev` as the session's integration target:

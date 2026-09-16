@@ -68,6 +68,14 @@ Every agent interaction across the cogNNitive ecosystem MUST follow these strict
    - **Synthetic Sources (Fuentes Sintéticas)**: Deliverables re-ingested into graph (`is_synthetic: true`).
    - **User Input Sources (Entrada de Usuario)**: In-line conversational inputs (`source_type: "user_input"`), exempt from physical file checks.
 
+7. **Optimistic Execution & Reversibility Protocol (Informative Grace)**:
+   - **Convention over Confirmation**: For all safe, standard, idempotent, or reversible actions (e.g. working on the default `dev` branch, auto-binding a single discovered model, creating standard workspace layout folders, using the standard canonical app as-is without customization, running deterministic validation gates):
+     - **NEVER block with numbered menus or redundant confirmation requests.**
+     - **Announce intent with Informative Grace**, proceed immediately, and provide an effortless rollback/interruption path:
+       `"Voy a avanzar con [acción estándar]. Si preferís otra opción o querés cambiarlo, avisame antes de empezar (o interrumpí en cualquier momento)."`
+   - **Single Candidate Auto-Bind**: If dynamic discovery finds exactly 1 model/resource, bind it automatically and proceed. Never ask confirmation when there is only one option.
+   - **Explicit Consent Exclusivity**: Reserve blocking confirmation gates strictly for irreversible or destructive mutations (permanent deletions, git hard resets, force pushes) or genuine architectural forks where no canonical default exists.
+
 ---
 
 ## 3. Canonical Skill Catalog (7 Core Skills)

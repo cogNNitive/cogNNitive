@@ -537,3 +537,49 @@ once `2026-09-13-mcp-coverage-debt` has landed its coverage backfill on the same
 
 **Suggested trigger:** `/sdd-new prune-orphaned-specs-mcp-tool` (after
 `2026-09-13-mcp-coverage-debt` merges).
+
+---
+
+## Intra-document element identity: key on the slug, not the display name
+
+**Status:** explicit NON-GOAL of `2026-09-13-document-fidelity-and-provenance-integrity`.
+Recorded 2026-09-16 while completing work unit 7.
+
+**The behaviour today.** An element whose display name already exists elsewhere in the
+same document fails model-wide name uniqueness (R-IE-02, `recursiveParser/normalize.ts`)
+— and is **silently dropped from the graph**, not merely reported. It never becomes a
+node, so it is invisible to the editor, to `[[wikilink]]` resolution, to matrices and to
+every validation pass. `Ghostbusters_business_NN.md` was losing 8 elements on every load
+this way before the rename below.
+
+**Why it bites.** Modelling the same real-world entity under several concepts is
+natural and correct: `Winston Zeddemore` is legitimately a Stakeholder, a Person **and**
+a Shareholder of the same company. AD-7 of that change already ruled the analogous
+CROSS-model case legal, and the format ships `[[Model Title :: Element Name]]` precisely
+to disambiguate. The intra-document rule is the odd one out — and the format already
+offers the right disambiguator for it: an explicit `slug::`.
+
+**Why it was not fixed there.** There are two independent gates, and they disagree by
+construction:
+
+1. `normalize.ts` keeps a model-wide `Set` of element NAMES.
+2. `IdentityRegistry` (`identity.ts`) enforces sibling-name uniqueness and builds each
+   node's `qualifiedId` **from the name** (`buildQualifiedId`).
+
+Keying only the first on the slug leaves the second still rejecting the element. Keying
+both means node ids stop deriving from names, which moves `[[wikilink]]` resolution,
+matrix endpoint lookup and qualified-reference addressing underneath every consumer
+(editor, MCP, workspace index). That is an identity-semantics change, not a sample
+repair, and it deserves its own change with its own migration story.
+
+**What was done instead.** The 8 collisions in `Ghostbusters_business_NN.md` were
+resolved by RENAMING in the sample (Shareholders entries now name the stake —
+`Venkman Equity Stake` — and the duplicated Stakeholders entries carry a role
+parenthetical). The duplicate-name issue also gained the `severity: 'error'` it was
+missing, so the drop is at least visible to hosts now.
+
+**What a future change should decide:** whether an explicit `slug::` legitimises a
+repeated display name within one document; and if so, whether `qualifiedId` derives from
+the slug, and what that means for every existing `[[wikilink]]`.
+
+**Suggested trigger:** `/sdd-new intra-document-identity-by-slug`.

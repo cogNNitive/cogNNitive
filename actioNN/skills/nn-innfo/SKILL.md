@@ -105,7 +105,7 @@ Before executing options **[b]**, **[c]**, **[d]**, or **[x]**, the agent MUST e
 1. **Verify Session Context:** Check if a model is currently being edited/active in the session.
 2. **Dynamic Discovery:** If no model is active, call `innfo-mcp_list_models` to scan the workspace:
    - **If 0 models found:** Inform the user that no models exist in `models/` and suggest creating one (redirecting to option **[a]**).
-   - **If 1 model found:** Present it and ask for confirmation: *"I detected a single model: `models/{ModelName}_NN.md`. Do you want to work with this one?"*. Upon confirmation, set it as the active model (`active_model_path`) and proceed.
+   - **If 1 model found (Auto-Bind with Informative Grace):** Bind it automatically as the active model (`active_model_path`) without asking. Announce: *"Vinculando `models/{ModelName}_NN.md` (único modelo detectado en el workspace). Voy a avanzar con este modelo; si querés usar otro o crear uno nuevo, avisame antes de empezar."* Proceed immediately.
    - **If multiple models found:** Present a numbered list of all models found and ask the user to select one: *"Multiple models detected. Please select which one you want to work with:"*. Set the selected file as `active_model_path` and proceed.
 3. **Session Persistence:** Once a model is selected or created, save its path in context. Subsequent actions (validation, edits, audits) MUST default to this active model. To switch models, the user can explicitly ask to "switch model" or select the change option in the quick actions menu.
 
@@ -153,13 +153,12 @@ Creating **any** model — with a canonical app, custom app, or without an app �
 - **[x]** Cancel
 *(Notice: You can select one option or a combination (e.g. A and B))*.
 
-**A2a. If a canonical app was selected ([a]/[b]/[c]/[d]):**
-Resolve the app with `innfo-mcp_get_template` and display an informative summary of the Concepts, Fields, Matrices, and Markers it already defines. Then discover its procedures with `innfo-mcp_list_template_procedures`: if the app declares an explicit empty procedures block, announce it — *"This app declares no executable procedures yet."* — instead of silently presenting an app with nothing executable. Then offer:
-- **[a] (Recommended)** Use app as-is, without modifications
-- **[b]** Customize it (create specialization — see §9)
-- **[x]** Cancel
+**A2a. If a canonical app was selected ([a]/[b]/[c]/[d]) (Optimistic Execution with Informative Grace):**
+Resolve the app with `innfo-mcp_get_template` and display an informative summary of the Concepts, Fields, Matrices, and Markers it already defines. Then discover its procedures with `innfo-mcp_list_template_procedures`: if the app declares an explicit empty procedures block, announce it — *"This app declares no executable procedures yet."* — instead of silently presenting an app with nothing executable.
 
-> ⚠️ If the user chooses to customize, warn explicitly: **modifying a canonical app is not recommended unless the reason is very clear** — modifying it unnecessarily reduces compatibility with the rest of the iNNfo ecosystem which assumes that app unchanged.
+**Do NOT block on an intermediate customization menu.** By default, canonical apps are used as-is. Announce with Informative Grace:
+*"Usando la plantilla estándar {App}. Voy a avanzar con el diseño de elementos del modelo; si preferís personalizar la plantilla o crear una especialización, avisame antes de empezar."*
+Proceed directly to **Phase B (Model Design)**. Only branch to customization if the user explicitly asks to customize or interrupts.
 
 **A2b. If [e] Blank was selected, or the user confirmed customization in A2a [b]:**
 Design from scratch, in this order, consulting `innfo-mcp_get_spec` for the exact grammar of each primitive (never invent it):

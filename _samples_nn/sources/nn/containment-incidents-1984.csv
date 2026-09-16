@@ -1,0 +1,9 @@
+incident_id,borough,entity_class,response_minutes,fee_usd,outcome
+INC-1041,Manhattan,V,38,12000,contained
+INC-1042,Manhattan,III,52,4000,contained
+INC-1043,Brooklyn,II,61,2500,contained
+INC-1044,Manhattan,V,44,12000,contained
+INC-1045,Queens,III,73,4000,escaped
+INC-1046,Manhattan,IV,41,7500,contained
+INC-1047,Bronx,II,58,2500,contained
+INC-1048,Manhattan,V,35,12000,contained

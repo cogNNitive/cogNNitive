@@ -21,12 +21,12 @@ relationship_model:: Co-founders & Equity Partners
 tags:: [internal, executive, equity, founders]
 Co-founders and principal operators. They hold equal equity, bring complementary expertise (leadership, engineering, theoretical physics), and are the public face of the brand.
 
-## NN Stakeholders: Winston Zeddemore
+## NN Stakeholders: Winston Zeddemore (Field Operator)
 relationship_model:: Salaried Field Operator
 tags:: [internal, operations, field, operator]
 Fourth team member, hired as field operator. Brings military experience and a pragmatic perspective. Salaried employee with equity participation.
 
-## NN Stakeholders: Janine Melnitz
+## NN Stakeholders: Janine Melnitz (Office Manager)
 relationship_model:: Office Manager & Dispatcher
 tags:: [internal, administration, dispatch, operations]
 Office manager and first point of contact. Handles scheduling, billing, and client intake.
@@ -354,7 +354,7 @@ Traditional listing still drives 15% of first-time residential calls.
 
 # NN Communication
 
-## NN Communication: Public Relations
+## NN Communication: Press Relations
 Managed through selective media appearances and press releases after significant events.
 
 # NN Pitch
@@ -645,7 +645,7 @@ Residential LTV: $8,500 (1.7 average incidents per customer lifespan). Commercia
 
 ## NN Costs: Payroll & Benefits
 4 full-time operators + 1 office manager. $420,000/year total.
-## NN Costs: Equipment Maintenance
+## NN Costs: Equipment Maintenance Spend
 Proton Pack calibration, trap refurbishment, PKE meter replacement. $85,000/year.
 ## NN Costs: Facility Operations
 Firehouse lease, utilities, containment grid power. $120,000/year.
@@ -671,13 +671,13 @@ $30,000 pooled from personal savings to acquire initial equipment and lease depo
 
 # NN Shareholders
 
-## NN Shareholders: Dr. Peter Venkman
+## NN Shareholders: Venkman Equity Stake
 25% equity. Parapsychology lead. Public-facing partner.
-## NN Shareholders: Dr. Raymond Stantz
+## NN Shareholders: Stantz Equity Stake
 25% equity. Engineering lead. Equipment design and maintenance.
-## NN Shareholders: Dr. Egon Spengler
+## NN Shareholders: Spengler Equity Stake
 25% equity. R&D lead. Theoretical foundation and containment design.
-## NN Shareholders: Winston Zeddemore
+## NN Shareholders: Zeddemore Equity Stake
 15% equity. Field operations lead. Joined as employee, promoted to partner.
 ## NN Shareholders: Reserve Pool
 10% equity reserved for future key hires and partner-track operators.
@@ -805,6 +805,7 @@ Direct mapping between all identified problems and our service value props. No o
 ## NN Coherence: Segments ↔ Channels
 Residential segment reached via phone/digital. Commercial via direct sales. Government via RFP response.
 ## NN Coherence: Revenue ↔ Cost Structure
+slug:: coherence-revenue-cost-structure
 High-margin incident revenue supports fixed cost base. Commercial contracts provide cash flow stability.
 
 # NN Experiments
