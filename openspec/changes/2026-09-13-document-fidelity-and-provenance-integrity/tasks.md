@@ -63,13 +63,13 @@ already own the copies.
   - [x] 6.3 Verify: opening `_samples_nn` emits zero cross-model rename issues <!-- id: 6.3 -->
 
 - [ ] 7. Shipped sample workspace repair <!-- id: 7 -->
-  - [ ] 7.1 RED: add a test that opens `_samples_nn/` through the editor/MCP code path and asserts zero error diagnostics, no dangling citations, no slug collisions, and that every declared artifact exists <!-- id: 7.1 -->
-  - [ ] 7.2 Author the normalized primary sources under `_samples_nn/sources/nn/` the documentation model cites — at least one Markdown document and one CSV table <!-- id: 7.2 -->
-  - [ ] 7.3 Add `citation` fields to at least three sample models across different templates, including one CSV row pointer and one subunit pointer <!-- id: 7.3 -->
-  - [ ] 7.4 Resolve the 16 intra-model slug collisions in `Ghostbusters_business_NN.md` <!-- id: 7.4 -->
-  - [ ] 7.5 Either produce `artifacts/workspace_hub.html` or remove the `## NN Artifacts` entry declaring it <!-- id: 7.5 -->
-  - [ ] 7.6 Run `npm run sync:samples`; confirm `npm run check:samples` passes <!-- id: 7.6 -->
-  - [ ] 7.7 Verify: `node simulacro/run-all.mjs 07` fully green <!-- id: 7.7 -->
+  - [ ] 7.1 BLOCKED on the naming decision in 7.7: the assertion cannot be written until the 8 duplicate-element-name collisions are resolved, since it would land red <!-- id: 7.1 -->
+  - [x] 7.2 Author the normalized primary sources under `_samples_nn/sources/nn/` the documentation model cites — at least one Markdown document and one CSV table <!-- id: 7.2 -->
+  - [x] 7.3 Add `citation` fields to at least three sample models across different templates, including one CSV row pointer and one subunit pointer <!-- id: 7.3 -->
+  - [x] 7.4 Slug collisions resolved with explicit `slug::` declarations (8 remained, not 16): `slugCollisions` is now empty. Resolved by declaring addresses rather than renaming, so the same person keeps appearing under the concepts that genuinely describe them <!-- id: 7.4 -->
+  - [x] 7.5 Either produce `artifacts/workspace_hub.html` or remove the `## NN Artifacts` entry declaring it <!-- id: 7.5 -->
+  - [x] 7.6 Run `npm run sync:samples`; confirm `npm run check:samples` passes <!-- id: 7.6 -->
+  - [ ] 7.7 S07 is 5/6. The last failure is 8 `Duplicate element name` issues in `Ghostbusters_business_NN.md`: the same real-world entity appears under several concepts (`Winston Zeddemore` as Stakeholders/Person/Shareholders, `Public Relations` as Communication/Activities). Each one is DROPPED from the graph, so the shipped workspace silently loses 8 elements on load. Two ways out — rename them in the sample (a product naming decision on flagship demo content), or make intra-document identity key on the slug (an architecture change: `IdentityRegistry` derives qualified ids from the name, so it moves wikilink resolution). NEEDS A DECISION <!-- id: 7.7 -->
 
 - [x] 8. Editor workspace flows <!-- id: 8 -->
   - [x] 8.1 Decouple "expand a model inline" from "enter Focused Model Mode" in `LeftSidebar.vue`; remove the dead `toggleModel()` call and shorten the 1.1s transition (F-12) <!-- id: 8.1 -->
