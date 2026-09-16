@@ -153,6 +153,18 @@ agent-bootstrap:
       version: "V_0-2-1"
       ref: "templates-v0.9.1"
       commit: "2730ac369b346ca3384fd370548f129d2e3f24cd"
+    - name: sources
+      repo: cogNNitive/cogNNitive
+      path: iNNfo/specs/templates/sources/spec_NN.md
+      version: "V_0-2-1"
+      ref: "templates-v0.9.1"
+      commit: "2730ac369b346ca3384fd370548f129d2e3f24cd"
+    - name: artifacts
+      repo: cogNNitive/cogNNitive
+      path: iNNfo/specs/templates/artifacts/spec_NN.md
+      version: "V_0-2-1"
+      ref: "templates-v0.9.1"
+      commit: "2730ac369b346ca3384fd370548f129d2e3f24cd"
   console-assets:
     - file: iNNfo/specs/templates/console/innfo-console.bundle.js
       version: "0.2.0"

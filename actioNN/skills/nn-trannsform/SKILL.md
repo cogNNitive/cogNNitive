@@ -168,7 +168,20 @@ cited_works:
 ---
 ```
 
-When the source was imported from the web (see §2c below), also include `source_url` and `downloaded_at`, and — best-effort — `title`, `description`, `author` when discovered.
+5. **Catalog Registration in `sources_NN.md` (SSOT Separation & Progressive Disclosure)**:
+   Whenever a source is ingested or refreshed, the agent registers or updates its catalog entry in `sources_NN.md` conforming to `iNNfo/specs/templates/sources/spec_NN.md`:
+   ```markdown
+   ## NN Source: <Title or Identifier>
+   type:: local_file
+   origin_uri:: sources/import/<file>
+   raw_path:: sources/import/<file>
+   format:: <pdf|docx|html|md|json|csv|audio|xlsx|repo>
+   summary:: <Mandatory concise 1-2 sentence semantic summary of the source contents>
+   tags:: [<tag1>, <tag2>]
+   status:: ready
+   source_model:: sources/nn/<filename>.md
+   ```
+   Normalized files under `sources/nn/*.md` maintain SSOT physical and cryptographic metadata (`sha256`, `raw_path`, `normalized_at`, `normalized_by`), while semantic metadata and summaries reside in `sources_NN.md` to support Tier 2 zero-I/O querying.
 
 > **⚠️ Staging Buffer Rule (`sources/staging/`)**: Intermediate dumps from extraction tools (Whisper SRTs, raw OCR text) live temporarily in `sources/staging/`. This directory is strictly ignored by scanners, git, and models. `sources/staging/` is **NEVER a valid citation target**.
 

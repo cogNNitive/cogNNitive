@@ -13,6 +13,18 @@
         }
       ]
     },
+    "artifacts": {
+      "name": "artifacts",
+      "adopted": "V_0-1-0",
+      "versions": [
+        {
+          "template_version": "V_0-1-0",
+          "spec_version": "V_0-2-1",
+          "title": "Artifacts Catalog App",
+          "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/artifacts/spec_NN.md"
+        }
+      ]
+    },
     "blank": {
       "name": "blank",
       "adopted": "V_0-2-0",
@@ -99,10 +111,10 @@
     },
     "procedures": {
       "name": "procedures",
-      "adopted": "V_0-2-0",
+      "adopted": "V_0-2-1",
       "versions": [
         {
-          "template_version": "V_0-2-0",
+          "template_version": "V_0-2-1",
           "spec_version": "V_0-2-1",
           "title": "Procedures App",
           "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/procedures/spec_NN.md"
@@ -130,6 +142,18 @@
           "spec_version": "V_0-2-1",
           "title": "Repository App",
           "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/repository/spec_NN.md"
+        }
+      ]
+    },
+    "sources": {
+      "name": "sources",
+      "adopted": "V_0-1-0",
+      "versions": [
+        {
+          "template_version": "V_0-1-0",
+          "spec_version": "V_0-2-1",
+          "title": "Sources Catalog App",
+          "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/sources/spec_NN.md"
         }
       ]
     },

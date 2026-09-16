@@ -65,7 +65,13 @@ describe('Metaplantilla Nivel 1 (specs/)', () => {
   it('procedures template schema extracts concepts, fields, markers, matrices', () => {
     const content = readSpec('templates/procedures/spec_NN.md')
     const schema = extractTemplateSchemaFromContent(content)
-    expect(schema.concepts.map((c) => c.name)).toEqual(['Work', 'Artifact', 'Tools', 'Roles'])
+    expect(schema.concepts.map((c) => c.name)).toEqual([
+      'Procedure',
+      'Work',
+      'Artifact',
+      'Tools',
+      'Roles',
+    ])
     const work = schema.concepts.find((c) => c.name === 'Work')!
     expect(work.fields!.map((f) => f.name)).toEqual([
       'step_type',

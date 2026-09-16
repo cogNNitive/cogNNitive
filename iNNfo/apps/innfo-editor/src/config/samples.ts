@@ -31,6 +31,7 @@ export const SAMPLE_BASE: string = import.meta.env.DEV ? '/specs/templates' : RE
 // Regenerate with `npm run sync:versions` (scripts/sync-template-versions.mjs).
 export const SHIPPED_TEMPLATE_VERSIONS: Record<string, string> = {
   analysis: 'V_0-2-1',
+  artifacts: 'V_0-1-0',
   base: 'V_0-1-0',
   blank: 'V_0-2-0',
   business: 'V_0-2-5',
@@ -40,8 +41,9 @@ export const SHIPPED_TEMPLATE_VERSIONS: Record<string, string> = {
   innovation: 'V_0-2-1',
   metrics: 'V_0-2-1',
   organization: 'V_0-2-2',
-  procedures: 'V_0-2-0',
+  procedures: 'V_0-2-1',
   projects: 'V_0-2-1',
   repository: 'V_0-1-1',
+  sources: 'V_0-1-0',
   'video-generator': 'V_0-1-1',
 }

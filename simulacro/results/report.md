@@ -1,6 +1,6 @@
 # Simulacro — user-flow simulation report
 
-Generated: 2026-09-16T15:51:03.882Z
+Generated: 2026-09-16T16:55:24.786Z
 
 **51 passed · 0 failed · 7 observed**
 
@@ -117,7 +117,7 @@ _An analyst imports a primary source, cites its sections from model elements, an
           "kind": "system",
           "id": "parser"
         },
-        "timestamp": "2026-09-16T15:51:03.614Z"
+        "timestamp": "2026-09-16T16:55:24.452Z"
       }
     }
   }
@@ -743,9 +743,9 @@ _A new user opens the workspace we ship. Everything they see on day one is what 
 ```
 {
   "entrypoint": "workspace_NN.md",
-  "models": 13,
+  "models": 18,
   "actionableIssueCount": 0,
-  "infoNotes": 24,
+  "infoNotes": 26,
   "issueKinds": {}
 }
 ```
@@ -828,7 +828,7 @@ _An integrator runs `npm i @cognnitive/innfo-core` and writes `import { parseMod
 
 ```
 {
-  "exportCount": 112,
+  "exportCount": 113,
   "sample": [
     "parseModel",
     "serializeModel",

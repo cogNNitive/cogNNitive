@@ -55,7 +55,7 @@
         {
           "label": "Element carrying the citation",
           "expectation": null,
-          "actual": "{\n  \"name\": \"Demand Grows In Q4\",\n  \"fields\": {\n    \"sources\": {\n      \"value\": [\n        \"market-report-2026.md@## Q4 Outlook\"\n      ],\n      \"editAttribution\": {\n        \"author\": {\n          \"kind\": \"system\",\n          \"id\": \"parser\"\n        },\n        \"timestamp\": \"2026-09-16T15:51:03.614Z\"\n      }\n    }\n  }\n}",
+          "actual": "{\n  \"name\": \"Demand Grows In Q4\",\n  \"fields\": {\n    \"sources\": {\n      \"value\": [\n        \"market-report-2026.md@## Q4 Outlook\"\n      ],\n      \"editAttribution\": {\n        \"author\": {\n          \"kind\": \"system\",\n          \"id\": \"parser\"\n        },\n        \"timestamp\": \"2026-09-16T16:55:24.452Z\"\n      }\n    }\n  }\n}",
           "outcome": "OBSERVED",
           "error": null
         },
@@ -398,7 +398,7 @@
         {
           "label": "The shipped workspace parses without issues",
           "expectation": "all sample models load with no error or warning issues — this is the first thing a new user sees",
-          "actual": "{\n  \"entrypoint\": \"workspace_NN.md\",\n  \"models\": 13,\n  \"actionableIssueCount\": 0,\n  \"infoNotes\": 24,\n  \"issueKinds\": {}\n}",
+          "actual": "{\n  \"entrypoint\": \"workspace_NN.md\",\n  \"models\": 18,\n  \"actionableIssueCount\": 0,\n  \"infoNotes\": 26,\n  \"issueKinds\": {}\n}",
           "outcome": "PASS",
           "error": null
         },
@@ -454,7 +454,7 @@
         {
           "label": "Once bundled, the public API surface is complete and usable",
           "expectation": "the API itself is fine — only the module format blocks plain-Node consumption",
-          "actual": "{\n  \"exportCount\": 112,\n  \"sample\": [\n    \"parseModel\",\n    \"serializeModel\",\n    \"applyMutation\",\n    \"validateDocument\"\n  ]\n}",
+          "actual": "{\n  \"exportCount\": 113,\n  \"sample\": [\n    \"parseModel\",\n    \"serializeModel\",\n    \"applyMutation\",\n    \"validateDocument\"\n  ]\n}",
           "outcome": "PASS",
           "error": null
         },

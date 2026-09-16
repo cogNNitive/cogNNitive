@@ -1,4 +1,4 @@
-# Spec: Unified Model Hierarchy & Workspace Root Specification (Slice 1)
+# Spec: Unified Model Hierarchy & Single-Root Workspace Navigation
 
 ## Specification Requirements
 
@@ -56,3 +56,15 @@ The artifacts catalog MUST be governed by an iNNfo Level 2 template (`artifacts_
 - The parser MUST compute model in-degrees across all `type:: model` references.
 - Top-level models (`in_degree === 0`, default `workspace_NN.md`) are identified deterministically.
 - Submodels are resolvable recursively with cycle prevention and depth limit (`MAX_DEPTH = 10`).
+
+### Requirement 6: Single-Root LeftSidebar Tree Navigation (`innfo-editor`)
+The `innfo-editor` navigation engine MUST render:
+- **Root Level**: Exclusively top-level models (In-Degree = 0, default `workspace_NN.md`).
+- **Branch Expansion**: Clicking the expand chevron on concepts containing `type:: model` lazily fetches and renders child submodels.
+- **Asynchronous Feedback**: A subtle spinner/skeleton is shown while the submodel is being parsed from the model driver.
+
+### Requirement 7: 3-Tier Progressive Disclosure Protocol for Skills
+AI skills (`nn-innfo`, `nn-trannsform`, `nn-dev-check-integrity`) MUST adhere to:
+- **Tier 1 (Root Discovery)**: Read `workspace_NN.md` to identify submodel locations.
+- **Tier 2 (Catalog Query)**: Read `sources_NN.md`, `procedures_NN.md`, or `artifacts_NN.md` to scan `summary`, `format`, `status`, and `tags` of all items without opening individual source or procedure files.
+- **Tier 3 (Targeted Inspection)**: Read the specific `source_model` or `artifact_model` only when detailed element inspection is required.

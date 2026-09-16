@@ -5,11 +5,12 @@ level: 2
 parent_spec:
   name: "iNNfo_V_0-2-1"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-2-1_NN.md"
-template_version: "V_0-2-0"
+template_version: "V_0-2-1"
 title: "Procedures App"
 relationship_types:
   hierarchy:
-    enabled: false
+    enabled: true
+    via: "index block"
   evaluable_matrix:
     enabled: true
   graph_edge:
@@ -29,12 +30,19 @@ viewers:
 
 # NN index
 
+* [[Procedure]]
 * [[Work]]
 * [[Artifact]]
 * [[Tools]]
 * [[Roles]]
 
 # NN Concept Definition
+
+## NN Concept Definition: Procedure
+icon:: workflow
+type:: list
+color:: teal
+weight:: 110
 
 ## NN Concept Definition: Work
 icon:: list-ordered
@@ -61,6 +69,37 @@ color:: green
 weight:: 60
 
 # NN Field Definition
+
+## NN Field Definition: category
+concept:: Procedure
+type:: select
+options:: [ingestion, transformation, audit, reporting, custom]
+description:: Functional classification of the procedure workflow.
+
+## NN Field Definition: summary
+concept:: Procedure
+type:: string
+description:: Mandatory concise summary of the workflow intent and transformation steps.
+
+## NN Field Definition: inputs_required
+concept:: Procedure
+type:: string
+description:: References to required Source or Model concepts consumed as inputs.
+
+## NN Field Definition: outputs_expected
+concept:: Procedure
+type:: string
+description:: References to expected Artifact concepts produced by the procedure.
+
+## NN Field Definition: executed_by
+concept:: Procedure
+type:: string
+description:: Reference to responsible agent or functional role executing the procedure.
+
+## NN Field Definition: procedure_model
+concept:: Procedure
+type:: model
+description:: Link to concrete procedure definition or executable stepper model _NN.md.
 
 ## NN Field Definition: step_type
 concept:: Work
@@ -132,18 +171,13 @@ values:: [Creates, Modifies, Validates, Reviews]
 
 # Procedures Template
 
-## A template for modeling structured workflows with sequenced steps, roles, artifacts, tools, and RACI matrices
+## A template for modeling procedure catalogs and structured workflows with sequenced steps, roles, artifacts, tools, and RACI matrices
 
 ## Philosophy
 
-The Procedures Template is designed for modeling repeatable workflows with clear accountability. It follows the belief that any procedure can be understood as a hierarchical tree of procedures and steps, each producing or consuming artifacts, assigned to roles via a RACI matrix, and supported by tools. Work elements form a tree: root elements (no `parent`) define a procedure, child elements (`parent` set) define its steps. The template emphasizes traceability — every work step declares its inputs, outputs, parent procedure, and the roles responsible for it.
-
-## Objectives
-
-- Provide a complete set of concepts for workflow modeling: hierarchical procedures and steps (Work), produced artifacts (Artifact), supporting tools (Tools), and functional roles (Roles).
-- Enable RACI accountability mapping via evaluable matrices (Work ↔ Roles).
-- Support sequential step definitions with conditional branching, tool assignment, and artifact I/O.
-- Serve as the default template for procedure and process modeling in the iNNfo ecosystem.
+The Procedures Template operates on two complementary tiers:
+1. **Catalog Tier (Procedure)**: Enables progressive disclosure of all workspace procedures, capturing concise summaries, categorization, expected I/O, and links to detailed execution models (`procedure_model`).
+2. **Execution Tier (Work, Artifact, Tools, Roles)**: Defines granular FSM step sequences, accountability matrices (RACI), and tool bindings for step-by-step procedure execution.
 
 ## Specification
 
@@ -151,234 +185,40 @@ The Procedures Template is designed for modeling repeatable workflows with clear
 
 | Concept | Type | Purpose |
 |---|---|---|
-| **Work** | `list` | Hierarchical tree of procedures and steps. Root elements (no `parent`) = procedure; child elements (`parent` set) = step. Each element has fields for step_type, parent, next, condition, I/O, tool |
+| **Procedure** | `list` | Catalog entry declaring procedure metadata, summary, required inputs, expected outputs, and model links |
+| **Work** | `list` | Hierarchical tree of procedures and steps. Root elements (no `parent`) = procedure; child elements (`parent` set) = step |
 | **Artifact** | `list` | Documents, deliverables, or data produced or consumed by work steps |
 | **Tools** | `list` | Software or hardware used to execute work steps |
 | **Roles** | `list` | Functional roles with accountability scope (internal/external) |
 
-### Markers
-
-| Marker | Purpose |
-|---|---|
-| `complexity` | How complex the procedure step or element is to execute |
-
-### Matrices
-
-| Matrix | Source → Target | Purpose |
-|---|---|---|
-| Work-Roles | Work → Roles | RACI assignment (Responsible, Accountable, Consulted, Informed) |
-| Work-Tools | Work → Tools | Which tools are used by each work step |
-| Work-Artifacts | Work → Artifact | I/O relationships (Creates, Modifies, Validates, Reviews) |
-
-### Relationship Types
-
-| Type | Enabled | Representation |
-|---|---|---|
-| Hierarchy | ✅ | Implicit via Work `parent` field — root elements are procedures, children are steps |
-| Evaluable matrix | ✅ | Source→target tables with RACI params |
-| Graph edge | ❌ | Not applicable |
-| Sequence | ✅ | Via Work `next` field — hand-linked order between siblings at same level |
-
 ## Template
 
-### Level 3 Model Template (Lightweight)
-
-To create a procedures model, create a level 3 FILE mode document with:
+### Level 3 Catalog Template
 
 ```yaml
 ---
 level: 3
 parent_spec:
-  name: "procedures_V_0-2-0"
+  name: "procedures"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/procedures/spec_NN.md"
-model_version: "V_x-y-z"
-title: "<Procedure Name>"
+model_version: "V_0-1-0"
+title: "<Procedures Catalog Name>"
 ---
 
 > [!NOTE]
-> This is an **iNNfo document**...
+> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor or view and edit it with [cogNNitive](https://cognnitive.com/innfo/app/innfo-doc).
 
 # NN index
-* [[Work]]
-* [[Artifact]]
-* [[Tools]]
-* [[Roles]]
 
-# NN Work
-## NN Work: Procedure Name
-next:: "Next Procedure Name"
-Procedure description.
+* [[Procedure]]
 
-## NN Work: Step Name
-parent:: "Procedure Name"
-step_type:: task
-next:: "Next Step Name"
-tool:: "Tool Name"
-Step description.
+# NN Procedure
 
-# NN Artifact
-## NN Artifact: Artifact Name
-Artifact description.
-
-# NN matrices: work-roles matrix
-| Work \ Roles | Role Name |
-| :--- | :---: |
-| Step Name | Responsible |
+## NN Procedure: Workflow Name
+category:: transformation
+summary:: Concise summary of workflow intent and steps.
+inputs_required:: [[Source or Model Name]]
+outputs_expected:: [[Artifact Name]]
+executed_by:: Lead Engineer
+procedure_model:: procedures/workflow_NN.md
 ```
-
-The application will resolve the `parent` URL, download this template, and use its
-Concept Definitions, Field Definitions, Marker Definitions, and Matrix Definitions to
-validate and render your model.
-
-## Examples
-
-### Canonical Sample
-
-The official sample for this template is at `specs/templates/procedures/samples/Ghostbusters_V_0-2-0_procedures_NN.md`. It exercises the hierarchical Work tree with two root procedures (Standard Ghost Containment Protocol → Subterranean Containment Grid Shutdown Recovery), element properties (parent, step_type, next, I/O, tool), and the RACI, tools, and artifacts matrices.
-
-### Parent Chain
-
-```yaml
-# From the Ghostbusters procedures sample:
-parent_spec:
-  name: "procedures_V_0-2-0"
-  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/procedures/spec_NN.md"
-
-# This template's parent:
-parent_spec:
-  name: "iNNfo_V_0-2-1"
-  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-2-1_NN.md"
-```
-
-
-# Concept Guidance Documentation
-
-## Work
-
-### Summary
-Hierarchical tree of procedures and their steps. Root elements (no `parent`) represent procedures; child elements (with `parent`) represent individual steps.
-
-### Description
-Procedures and their ordered steps form a tree: root elements describe the procedure, child elements are the steps. Root elements use `next` to order procedures, child elements use `next` to order steps within a parent. All Work items can reference artifacts as inputs and outputs (`input`, `output`), and tools as resources (`tool`).
-
-### Methodologies
-*No methodologies provided.*
-
-### Prompts
-*No prompts provided.*
-
-## Artifact
-
-### Summary
-Documents and deliverables produced or consumed by work steps.
-
-### Description
-Tangible or digital outputs that flow through the procedure (e.g. documents, forms, reports, certificates). Work items interact with artifacts via the work-artifacts matrix (Creates, Modifies, Validates, Reviews).
-
-### Methodologies
-*No methodologies provided.*
-
-### Prompts
-*No prompts provided.*
-
-## Tools
-
-### Summary
-Software and resources used to carry out work steps.
-
-### Description
-Software applications, instruments, or resources used to modify, generate, or process artifacts during a work item (e.g. IDE, spreadsheet, design tool, CI pipeline). Connected to work via the work-tools matrix.
-
-### Methodologies
-*No methodologies provided.*
-
-### Prompts
-*No prompts provided.*
-
-## Roles
-
-### Summary
-The functional roles that act in the workflow.
-
-### Description
-The functional responsibilities/actors in the workflow (e.g. Developer, QA).
-
-### Methodologies
-*No methodologies provided.*
-
-### Prompts
-*No prompts provided.*
-
-
-
-## complexity
-
-### Summary
-Description of complexity.
-
-### Description
-Description of complexity.
-
-### Methodologies
-*No methodologies provided.*
-
-### Prompts
-*No prompts provided.*
-
-## work-roles matrix
-
-### Summary
-Description of work-roles matrix.
-
-### Description
-Description of work-roles matrix.
-
-### Methodologies
-*No methodologies provided.*
-
-### Prompts
-*No prompts provided.*
-
-
-
-## work-tools matrix
-
-### Summary
-Description of work-tools matrix.
-
-### Description
-Description of work-tools matrix.
-
-### Methodologies
-*No methodologies provided.*
-
-### Prompts
-*No prompts provided.*
-
-## work-artifacts matrix
-
-### Summary
-Description of work-artifacts matrix.
-
-### Description
-Description of work-artifacts matrix.
-
-### Methodologies
-*No methodologies provided.*
-
-### Prompts
-*No prompts provided.*
-
-## item-markers matrix
-
-### Summary
-Description of item-markers matrix.
-
-### Description
-Description of item-markers matrix.
-
-### Methodologies
-*No methodologies provided.*
-
-### Prompts
-*No prompts provided.*

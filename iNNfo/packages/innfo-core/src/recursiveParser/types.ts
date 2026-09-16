@@ -10,12 +10,16 @@ export interface ParseIssue {
   code?: 'CYCLE_DETECTED' | 'DEPTH_LIMIT' | 'MODEL_NOT_FOUND'
 }
 
+import type { ModelDagTopology } from './topology.js'
+
 export interface RecursiveParseResult {
   nodes: Record<string, ModelNode>
   rootIds: string[]
   issues: ParseIssue[]
   /** Workspace-relative path of the resolved entrypoint. Undefined on the root-scan fallback. */
   entrypointPath?: string
+  /** Computed DAG topology across models (in-degrees, out-degrees, edges, roots). */
+  topology?: ModelDagTopology
 }
 
 export interface WorklistItem {

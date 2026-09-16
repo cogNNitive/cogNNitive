@@ -121,7 +121,8 @@
         data-testid="nested-submodel-node"
         @click.stop="handleOpenModel({ modelId: sub.submodelId, name: sub.submodelName })"
       >
-        <Boxes class="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+        <Loader2 v-if="loadingModelId === sub.submodelId" class="w-3.5 h-3.5 text-primary animate-spin shrink-0" data-testid="submodel-loading-spinner" />
+        <Boxes v-else class="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
         <span class="font-medium text-slate-700 dark:text-slate-200 truncate flex-1">
           {{ sub.submodelName }}
         </span>
@@ -139,7 +140,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { ChevronDown, Boxes, ArrowUpRight } from 'lucide-vue-next'
+import { ChevronDown, Boxes, ArrowUpRight, Loader2 } from 'lucide-vue-next'
 import { useModelStore } from '../../stores/modelStore'
 import { useUiStore } from '../../stores/uiStore'
 import { useConceptVisuals, getHexColorMedium } from '../../composables/useConceptVisuals'
@@ -357,12 +358,19 @@ const directModelTarget = computed<{ modelId: string; name: string } | undefined
   return undefined
 })
 
-function handleOpenModel(target: { modelId: string; name: string }): void {
-  const match = findMatchingModelNode(modelStore.nodes, target.modelId)
-  const resolvedId = match ? match.id : target.modelId
-  uiStore.focusModel(resolvedId)
-  uiStore.selectNode(resolvedId)
-  uiStore.setActiveView('editor')
+const loadingModelId = ref<string | null>(null)
+
+async function handleOpenModel(target: { modelId: string; name: string }): Promise<void> {
+  loadingModelId.value = target.modelId
+  try {
+    const match = findMatchingModelNode(modelStore.nodes, target.modelId)
+    const resolvedId = match ? match.id : target.modelId
+    uiStore.focusModel(resolvedId)
+    uiStore.selectNode(resolvedId)
+    uiStore.setActiveView('editor')
+  } finally {
+    loadingModelId.value = null
+  }
 }
 
 const hasChildren = computed(() => children.value.length > 0 || elementSubmodels.value.length > 0)

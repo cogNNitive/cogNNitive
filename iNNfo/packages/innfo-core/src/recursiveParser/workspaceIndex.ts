@@ -3,6 +3,7 @@ import { normalizeSeparators } from '../parser/slug.js'
 import type { ParseIssue, RecursiveParseResult, TemplateSchemaResolver } from './types.js'
 import { normalizePathKey, stripMdSuffix, basename } from './paths.js'
 import { readWorkspaceId } from './workspaceId.js'
+import { computeModelDagTopology, type ModelDagTopology } from './topology.js'
 
 export interface WorkspaceIndex {
   /** normalizePathKey(path) -> root node id */
@@ -19,6 +20,8 @@ export interface WorkspaceIndex {
   nodeSchema: Record<string, TemplateSchema>
   /** diamond: child node id -> parent ids other than ModelNode.parentId */
   extraParents: Record<string, string[]>
+  /** DAG topology across all workspace root models (in-degrees, out-degrees, edges, roots) */
+  topology?: ModelDagTopology
   /** paths referenced but never parsed (ParseIssue code MODEL_NOT_FOUND) — lets hosts
    *  distinguish "title unknown" from "file absent from the workspace" */
   missing: string[]
@@ -156,6 +159,8 @@ export function buildWorkspaceIndex(
     }
   }
 
+  const topology = result.topology ?? computeModelDagTopology(result.nodes, result.entrypointPath)
+
   return {
     pathToNodeId,
     titleToNodeIds,
@@ -164,6 +169,7 @@ export function buildWorkspaceIndex(
     nodeElementConcepts,
     nodeSchema,
     extraParents,
+    topology,
     missing: [...missingSet],
     workspaceId: readWorkspaceId(result),
     issues,

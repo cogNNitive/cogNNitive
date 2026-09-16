@@ -10,6 +10,7 @@ import {
   useTemplateVersionNotice,
 } from '../../src/composables/useTemplateVersionNotice'
 import { buildFakeTree } from '../helpers/fakeFs'
+import { SHIPPED_TEMPLATE_VERSIONS } from '../../src/config/samples'
 
 describe('parseTemplateName', () => {
   it('splits a versioned parent_spec.name into slug + version', () => {
@@ -186,6 +187,6 @@ describe('useTemplateVersionNotice', () => {
     await refresh()
     expect(notice.value).not.toBeNull()
     expect(notice.value?.current).toBe('V_0-1-0')
-    expect(notice.value?.latest).toBe('V_0-2-0')
+    expect(notice.value?.latest).toBe(SHIPPED_TEMPLATE_VERSIONS.procedures)
   })
 })

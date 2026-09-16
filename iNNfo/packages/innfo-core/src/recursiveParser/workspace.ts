@@ -11,6 +11,7 @@ import type {
 import { stripMdSuffix, normalizePathKey, resolveSubmodelPath, basename } from './paths.js'
 import { parseAndRegisterModel } from './model.js'
 import { parseModel, parseFrontmatter, stripFrontmatter } from '../parser/index.js'
+import { computeModelDagTopology } from './topology.js'
 
 const INNFO_FILE_SUFFIX = '.md'
 const INDEX_MD = 'index.md'
@@ -245,7 +246,17 @@ export function extractSubmodelRefs(
   // 1. Extract path:: / file_ref:: or fields typed as model
   try {
     const parsed = parseModel(content)
-    const modelFieldNames = new Set<string>(['path', 'file_ref'])
+    const modelFieldNames = new Set<string>([
+      'path',
+      'file_ref',
+      'source_model',
+      'procedure_model',
+      'artifact_model',
+      'models',
+      'sources',
+      'procedures',
+      'artifacts',
+    ])
     if (templateSchema?.concepts) {
       for (const c of templateSchema.concepts) {
         for (const f of c.fields ?? []) {
@@ -440,7 +451,8 @@ export async function recursiveParse(
       }
     }
 
-    const rootCount = Object.values(ctx.nodes).filter((n) => n.parentId === null).length
+    const topology = computeModelDagTopology(ctx.nodes)
+    const rootCount = topology.rootIds.length
     ctx.issues.unshift({
       path: '<root>',
       message:
@@ -449,11 +461,7 @@ export async function recursiveParse(
           : 'Missing index.md — workspace root must contain an index.md file',
     })
 
-    const rootIds = Object.values(ctx.nodes)
-      .filter((n) => n.parentId === null)
-      .map((n) => n.id)
-
-    return { nodes: ctx.nodes, rootIds, issues: ctx.issues }
+    return { nodes: ctx.nodes, rootIds: topology.rootIds, issues: ctx.issues, topology }
   }
 
   // Step 3: Iterative worklist traversal
@@ -565,9 +573,7 @@ export async function recursiveParse(
     }
   }
 
-  const rootIds = Object.values(ctx.nodes)
-    .filter((n) => n.parentId === null)
-    .map((n) => n.id)
+  const topology = computeModelDagTopology(ctx.nodes, entrypointPath)
 
-  return { nodes: ctx.nodes, rootIds, issues: ctx.issues, entrypointPath }
+  return { nodes: ctx.nodes, rootIds: topology.rootIds, issues: ctx.issues, entrypointPath, topology }
 }

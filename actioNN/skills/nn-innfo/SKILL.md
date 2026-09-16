@@ -76,6 +76,19 @@ The iNNfo ecosystem establishes an explicit taxonomy for sources and evidence:
 
 ---
 
+## 3-Tier Progressive Disclosure Protocol for Skills
+
+To minimize token usage and unnecessary file I/O operations across large workspaces, all agent interactions MUST adhere to the 3-Tier Progressive Disclosure Protocol:
+
+- **Tier 1 (Root Discovery)**:
+  Read `workspace_NN.md` (or query `innfo-core` DAG topology) to discover workspace dimensions, directory conventions, and top-level catalog references (`models`, `sources`, `procedures`, `artifacts`).
+- **Tier 2 (Catalog Query)**:
+  Read `sources_NN.md`, `procedures_NN.md`, or `artifacts_NN.md` to scan `summary`, `format`, `status`, `category`, and `tags` of all registered entities with zero additional file I/O. Make routing, indexing, and citation decisions based entirely on these indexed catalog summaries.
+- **Tier 3 (Targeted Inspection)**:
+  Read specific leaf models (`source_model`, `procedure_model`, `artifact_model`) on-demand ONLY when deep element editing, section-level inspection, or granular verification is required.
+
+---
+
 ## 0. Entry Menu & Conversational Model Creation Wizard
 
 ### 0a. Intent-First Execution & Entry Menu

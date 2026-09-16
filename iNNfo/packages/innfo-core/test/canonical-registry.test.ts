@@ -14,6 +14,8 @@ describe('Canonical Template Registry & Offline Fallback', () => {
 
     expect(names).toContain('business')
     expect(names).toContain('procedures')
+    expect(names).toContain('sources')
+    expect(names).toContain('artifacts')
     expect(names).toContain('organization')
     expect(names).toContain('metrics')
     expect(names).toContain('workspace')

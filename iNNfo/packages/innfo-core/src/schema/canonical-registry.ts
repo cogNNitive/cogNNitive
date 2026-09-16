@@ -179,11 +179,12 @@ level: 2
 parent_spec:
   name: "iNNfo_V_0-2-1"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-2-1_NN.md"
-template_version: "V_0-2-0"
+template_version: "V_0-2-1"
 title: "Procedures App"
 relationship_types:
   hierarchy:
-    enabled: false
+    enabled: true
+    via: "index block"
   evaluable_matrix:
     enabled: true
   graph_edge:
@@ -203,12 +204,19 @@ viewers:
 
 # NN index
 
+* [[Procedure]]
 * [[Work]]
 * [[Artifact]]
 * [[Tools]]
 * [[Roles]]
 
 # NN Concept Definition
+
+## NN Concept Definition: Procedure
+icon:: workflow
+type:: list
+color:: teal
+weight:: 110
 
 ## NN Concept Definition: Work
 icon:: list-ordered
@@ -235,6 +243,31 @@ color:: green
 weight:: 60
 
 # NN Field Definition
+
+## NN Field Definition: category
+concept:: Procedure
+type:: select
+options:: [ingestion, transformation, audit, reporting, custom]
+
+## NN Field Definition: summary
+concept:: Procedure
+type:: string
+
+## NN Field Definition: inputs_required
+concept:: Procedure
+type:: string
+
+## NN Field Definition: outputs_expected
+concept:: Procedure
+type:: string
+
+## NN Field Definition: executed_by
+concept:: Procedure
+type:: string
+
+## NN Field Definition: procedure_model
+concept:: Procedure
+type:: model
 
 ## NN Field Definition: step_type
 concept:: Work
@@ -303,6 +336,153 @@ values:: [Uses]
 source:: Work
 target:: Artifact
 values:: [Creates, Modifies, Validates, Reviews]
+`
+
+const SOURCES_SPEC_CONTENT = `---
+spec_version: "V_0-2-1"
+spec_url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/sources/spec_NN.md"
+level: 2
+parent_spec:
+  name: "iNNfo_V_0-2-1"
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-2-1_NN.md"
+template_version: "V_0-1-0"
+title: "Sources Catalog App"
+relationship_types:
+  hierarchy:
+    enabled: true
+    via: "index block"
+  evaluable_matrix:
+    enabled: true
+  graph_edge:
+    enabled: false
+  sequence:
+    enabled: false
+---
+
+> [!NOTE]
+> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor or view and edit it with [cogNNitive](https://cognnitive.com/innfo/app/innfo-doc).
+
+# NN index
+
+* [[Source]]
+
+# NN Concept Definition
+
+## NN Concept Definition: Source
+icon:: file-input
+type:: list
+color:: teal
+weight:: 100
+
+# NN Field Definition
+
+## NN Field Definition: type
+concept:: Source
+type:: select
+options:: [local_file, url_snapshot, dynamic_feed, git_repo, api_export]
+
+## NN Field Definition: origin_uri
+concept:: Source
+type:: string
+
+## NN Field Definition: format
+concept:: Source
+type:: select
+options:: [pdf, docx, html, md, json, csv, audio, xlsx, repo]
+
+## NN Field Definition: raw_path
+concept:: Source
+type:: string
+
+## NN Field Definition: summary
+concept:: Source
+type:: string
+
+## NN Field Definition: tags
+concept:: Source
+type:: string
+
+## NN Field Definition: status
+concept:: Source
+type:: select
+options:: [ready, stale, processing, error]
+
+## NN Field Definition: source_model
+concept:: Source
+type:: model
+`
+
+const ARTIFACTS_SPEC_CONTENT = `---
+spec_version: "V_0-2-1"
+spec_url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/artifacts/spec_NN.md"
+level: 2
+parent_spec:
+  name: "iNNfo_V_0-2-1"
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-2-1_NN.md"
+template_version: "V_0-1-0"
+title: "Artifacts Catalog App"
+relationship_types:
+  hierarchy:
+    enabled: true
+    via: "index block"
+  evaluable_matrix:
+    enabled: true
+  graph_edge:
+    enabled: false
+  sequence:
+    enabled: false
+---
+
+> [!NOTE]
+> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor or view and edit it with [cogNNitive](https://cognnitive.com/innfo/app/innfo-doc).
+
+# NN index
+
+* [[Artifact]]
+
+# NN Concept Definition
+
+## NN Concept Definition: Artifact
+icon:: file-output
+type:: list
+color:: teal
+weight:: 100
+
+# NN Field Definition
+
+## NN Field Definition: format
+concept:: Artifact
+type:: select
+options:: [model, markdown, html, json, csv, binary]
+
+## NN Field Definition: summary
+concept:: Artifact
+type:: string
+
+## NN Field Definition: status
+concept:: Artifact
+type:: select
+options:: [draft, verified, published, deprecated]
+
+## NN Field Definition: tags
+concept:: Artifact
+type:: string
+
+## NN Field Definition: produced_by
+concept:: Artifact
+type:: string
+
+## NN Field Definition: derived_from_inputs
+concept:: Artifact
+type:: string
+
+## NN Field Definition: artifact_model
+concept:: Artifact
+type:: model
+
+## NN Field Definition: file_path
+concept:: Artifact
+type:: string
 `
 
 const ORGANIZATION_SPEC_CONTENT = `---
@@ -626,19 +806,19 @@ weight:: 90
 
 ## NN Concept Definition: Sources
 icon:: file-input
-type:: list
+type:: model
 color:: teal
 weight:: 80
 
 ## NN Concept Definition: Procedures
 icon:: workflow
-type:: list
+type:: model
 color:: teal
 weight:: 70
 
 ## NN Concept Definition: Artifacts
 icon:: file-output
-type:: list
+type:: model
 color:: teal
 weight:: 60
 
@@ -650,6 +830,8 @@ weight:: 50
 
 # NN Field Definition
 
+<!-- Workspace fields: conventions & global config -->
+
 ## NN Field Definition: models_dir
 concept:: Workspace
 type:: string
@@ -657,6 +839,8 @@ type:: string
 ## NN Field Definition: sources_dir
 concept:: Workspace
 type:: string
+
+<!-- Tag fields -->
 
 ## NN Field Definition: color
 concept:: Tag
@@ -669,6 +853,8 @@ type:: string
 ## NN Field Definition: description
 concept:: Tag
 type:: string
+
+<!-- Models fields: inventory + provenance -->
 
 ## NN Field Definition: path
 concept:: Models
@@ -697,76 +883,23 @@ concept:: Models
 type:: reference
 target_concepts:: [Procedures]
 
-## NN Field Definition: type
-concept:: Sources
-type:: select
-options:: [local_file, url_snapshot, dynamic_feed, git_repo, api_export]
+<!-- Sources fields: link to sources catalog model -->
 
-## NN Field Definition: origin_uri
+## NN Field Definition: path
 concept:: Sources
-type:: string
+type:: model
 
-## NN Field Definition: format
-concept:: Sources
-type:: select
-options:: [txt, md, csv, json, docx, pdf, xlsx, html, audio, rss, repo]
+<!-- Procedures fields: link to procedures catalog model -->
 
-## NN Field Definition: subpath
-concept:: Sources
-type:: string
-
-## NN Field Definition: refresh_policy
-concept:: Sources
-type:: select
-options:: [immutable, manual, scheduled, on_build]
-
-## NN Field Definition: status
-concept:: Sources
-type:: select
-options:: [ready, stale, error, processing]
-
-## NN Field Definition: tags
-concept:: Sources
-type:: string
-
-## NN Field Definition: procedure_ref
+## NN Field Definition: path
 concept:: Procedures
-type:: string
+type:: model
 
-## NN Field Definition: agent
-concept:: Procedures
-type:: string
+<!-- Artifacts fields: link to artifacts catalog model -->
 
-## NN Field Definition: run_at
-concept:: Procedures
-type:: string
-
-## NN Field Definition: artifact_format
+## NN Field Definition: path
 concept:: Artifacts
-type:: select
-options:: [document, report, board, dataset]
-
-## NN Field Definition: artifact_version
-concept:: Artifacts
-type:: string
-
-## NN Field Definition: location
-concept:: Artifacts
-type:: string
-
-## NN Field Definition: artifact_hash
-concept:: Artifacts
-type:: string
-
-## NN Field Definition: derived_from_inputs
-concept:: Artifacts
-type:: reference
-target_concepts:: [Sources, Models]
-
-## NN Field Definition: produced_by
-concept:: Artifacts
-type:: reference
-target_concepts:: [Procedures]
+type:: model
 
 # NN Marker Definition
 
@@ -1904,6 +2037,34 @@ export const CANONICAL_TEMPLATES: Record<string, CanonicalTemplate> = {
       'https://raw.githubusercontent.com/cognnitive/cognnitive/main/innfo/specs/templates/procedures/procedures_v_0-2-1_nn.md',
     ],
     specContent: PROCEDURES_SPEC_CONTENT,
+  },
+  sources: {
+    name: 'sources',
+    version: 'V_0-1-0',
+    aliases: [
+      'sources',
+      'sources_spec_nn',
+      'sources_spec',
+      'sources_v_0-1-0_nn',
+      'sources_v_0-1-0',
+      'specs/templates/sources/spec_nn.md',
+      'https://raw.githubusercontent.com/cognnitive/cognnitive/main/innfo/specs/templates/sources/spec_nn.md',
+    ],
+    specContent: SOURCES_SPEC_CONTENT,
+  },
+  artifacts: {
+    name: 'artifacts',
+    version: 'V_0-1-0',
+    aliases: [
+      'artifacts',
+      'artifacts_spec_nn',
+      'artifacts_spec',
+      'artifacts_v_0-1-0_nn',
+      'artifacts_v_0-1-0',
+      'specs/templates/artifacts/spec_nn.md',
+      'https://raw.githubusercontent.com/cognnitive/cognnitive/main/innfo/specs/templates/artifacts/spec_nn.md',
+    ],
+    specContent: ARTIFACTS_SPEC_CONTENT,
   },
   organization: {
     name: 'organization',

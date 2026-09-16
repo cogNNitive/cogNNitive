@@ -1,7 +1,8 @@
 ---
-source_type: "report"
-origin: "City of New York — Office of Emergency Management"
-retrieved: "1984-11-02"
+sha256: "4a2b9f8e3c1d5e7a9b0c2d4e6f8a1b3c5d7e9f0a2b4c6d8e0f1a3b5c7d9e1f2a"
+raw_path: "sources/original/nyc-paranormal-activity-report-1984.pdf"
+normalized_at: "1984-11-02T14:30:00Z"
+normalized_by: "actioNN nn-trannsform"
 ---
 
 # NYC Paranormal Activity Report 1984

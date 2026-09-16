@@ -1,0 +1,72 @@
+import { describe, it, expect } from 'vitest';
+import fs from 'node:fs';
+import path from 'node:path';
+import { parseModel, validateModel, resolveTemplateSchema } from '../src/index.js';
+
+describe('Simulacro — User Workspace Refactorization (temp/simulacro-refactorizacion)', () => {
+  const repoRoot = path.resolve(__dirname, '../../../..');
+  const wsPath = path.join(repoRoot, 'temp/simulacro-refactorizacion/workspace_NN.md');
+  const modelPath = path.join(repoRoot, 'temp/simulacro-refactorizacion/models/solaris_business_NN.md');
+  const tplPath = path.join(repoRoot, 'temp/simulacro-refactorizacion/templates/business/spec_NN.md');
+  const skillPath = path.join(repoRoot, 'temp/simulacro-refactorizacion/skills/nn-innfo/SKILL.md');
+
+  it('1. verifies that all required workspace and package files exist', () => {
+    expect(fs.existsSync(wsPath)).toBe(true);
+    expect(fs.existsSync(modelPath)).toBe(true);
+    expect(fs.existsSync(tplPath)).toBe(true);
+    expect(fs.existsSync(skillPath)).toBe(true);
+
+    // Verify complete modular package structure across all templates
+    const templates = ['business', 'business-model', 'analysis', 'organization', 'projects', 'metrics', 'repository'];
+    for (const t of templates) {
+      const tDir = path.join(repoRoot, 'temp', 'simulacro-refactorizacion', 'templates', t);
+      expect(fs.existsSync(path.join(tDir, 'spec_NN.md')), `Missing spec_NN.md in ${t}`).toBe(true);
+      expect(fs.existsSync(path.join(tDir, 'samples')), `Missing samples in ${t}`).toBe(true);
+      expect(fs.existsSync(path.join(tDir, 'procedures')), `Missing procedures in ${t}`).toBe(true);
+      expect(fs.existsSync(path.join(tDir, 'assets')), `Missing assets in ${t}`).toBe(true);
+      expect(fs.existsSync(path.join(tDir, 'skills')), `Missing skills in ${t}`).toBe(true);
+    }
+  });
+
+  it('2. parses workspace_NN.md correctly as Level 3 workspace entrypoint', () => {
+    const wsContent = fs.readFileSync(wsPath, 'utf8');
+    const parsed = parseModel(wsContent);
+    expect(parsed.frontmatter?.level).toBe(3);
+    expect(parsed.frontmatter?.title).toBe('Solaris Technologies Workspace');
+    expect(parsed.elements.has('Templates')).toBe(true);
+    expect(parsed.elements.has('Models')).toBe(true);
+    expect(parsed.elements.has('Skills')).toBe(true);
+  });
+
+  it('3. parses the user domain model conforming to the local business template', () => {
+    const modelContent = fs.readFileSync(modelPath, 'utf8');
+    const parsed = parseModel(modelContent);
+    expect(parsed.frontmatter?.level).toBe(3);
+    expect(parsed.frontmatter?.title).toBe('Solaris Core Business Model');
+    expect(parsed.elements.has('Stakeholders')).toBe(true);
+
+    const tplContent = fs.readFileSync(tplPath, 'utf8');
+    const template = parseModel(tplContent);
+
+    const resolveInclude = (inc: { name: string }) => {
+      const p = path.join(repoRoot, 'temp', 'simulacro-refactorizacion', 'templates', inc.name, 'spec_NN.md');
+      return fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : null;
+    };
+
+    const { schema } = resolveTemplateSchema(tplContent, resolveInclude);
+    console.log('Available template concepts:', schema.concepts.map(c => c.name).slice(0, 10));
+
+    const result = validateModel(parsed, template, null, { resolveInclude });
+    if (!result.valid) {
+      console.log('Validation errors:', JSON.stringify(result.errors, null, 2));
+    }
+    expect(result.valid).toBe(true);
+    expect(result.errors).toEqual([]);
+  });
+
+  it('4. confirms the local agent skill has valid YAML frontmatter', () => {
+    const skillContent = fs.readFileSync(skillPath, 'utf8');
+    expect(skillContent.startsWith('---')).toBe(true);
+    expect(skillContent).toContain('name: nn-innfo');
+  });
+});

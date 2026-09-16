@@ -10,6 +10,15 @@ title: "Ghostbusters Inc. Operations Workspace"
 > [!NOTE]
 > This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor or view and edit it with [cogNNitive](https://cognnitive.com/innfo/app/innfo-doc).
 
+# NN index
+
+* [[Workspace]]
+* [[Models]]
+* [[Sources]]
+* [[Procedures]]
+* [[Artifacts]]
+* [[Tag]]
+
 # NN Workspace
 
 ## NN Workspace: Ghostbusters Headquarters Workspace
@@ -122,33 +131,29 @@ status:: active
 author:: Peter Venkman
 Television commercial storyboards and video ad production models for broadcast campaigns.
 
+# NN Sources
+
+## NN Sources: Sources Catalog
+path:: sources_NN.md
+template:: sources
+status:: active
+author:: Egon Spengler
+Canonical catalog of primary sources, ingestion feeds, and normalized knowledge models.
+
 # NN Procedures
 
-## NN Procedures: Compile Workspace Hub
-path:: procedures/compile_workspace_hub_NN.md
+## NN Procedures: Procedures Catalog
+path:: procedures_NN.md
 template:: procedures
 status:: active
 author:: Egon Spengler
-Automated compilation procedure to generate the unified interactive Workspace Hub HTML dashboard.
+Canonical catalog of repeatable workflows, transformation pipelines, and operational procedures.
 
-# NN Sources
+# NN Artifacts
 
-## NN Sources: NYC Paranormal Activity Report 1984
-type:: local_file
-origin_uri:: sources/original/nyc-paranormal-activity-report-1984.pdf
-format:: md
-subpath:: nyc-paranormal-activity-report-1984.md
-refresh_policy:: immutable
-status:: ready
-tags:: market, municipal
-Normalized Markdown transcription of the 1984 municipal field report. Addressed by heading, e.g. `@## Market Demand`.
-
-## NN Sources: Containment Incidents 1984
-type:: local_file
-origin_uri:: sources/original/containment-incidents-1984.xlsx
-format:: csv
-subpath:: containment-incidents-1984.csv
-refresh_policy:: manual
-status:: ready
-tags:: operations, incidents
-Per-incident containment log. Addressed by row key on `incident_id`, e.g. `@INC-1041`.
+## NN Artifacts: Artifacts Catalog
+path:: artifacts_NN.md
+template:: artifacts
+status:: active
+author:: Ray Stantz
+Canonical catalog of deliverables, generated reports, structured models, and export artifacts.
