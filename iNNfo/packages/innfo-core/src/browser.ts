@@ -64,16 +64,7 @@ export type { MatrixWidgetType } from './matrix.js'
 export * from './identity.js'
 export * from './metamodel.js'
 export * from './fs-types.js'
-export {
-  recursiveParse,
-  normalizeSingleModel,
-  resolveGraphEdgeTarget,
-  resolveQualifiedIdToPath,
-  buildWorkspaceIndex,
-  type ParseIssue,
-  type RecursiveParseResult,
-  type WorkspaceIndex,
-} from './recursiveParser/index.js'
+export * from './recursiveParser/index.js'
 export {
   OWNERSHIP_MARKER,
   reconcileManifest,

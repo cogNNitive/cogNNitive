@@ -322,7 +322,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import type { ModelNode, MetamodelConcept } from '../../model/types'
-import { parseFrontmatter } from '@cognnitive/innfo-core'
+import { parseFrontmatter, computeModelDagTopology } from '@cognnitive/innfo-core'
 import { parseFormatFilename, compareSemVer, type SemVer } from '../../utils/version'
 import { resolveEffectiveMetamodel } from '../../model/metamodel'
 import {
@@ -430,46 +430,8 @@ const breadcrumbs = computed(() => {
   return uiStore.resolveModelAncestry(modelId, modelStore.nodes)
 })
 
-const submodelParentMap = computed<Map<string, string>>(() => {
-  const map = new Map<string, string>()
-
-  for (const node of Object.values(modelStore.nodes)) {
-    if (node.kind !== 'element' || !node.fields) continue
-
-    // Resolve concept definition to identify type:: model fields
-    const rootId = modelStore.getModelRootForNode(node.id)
-    const rootNode = rootId ? modelStore.getNode(rootId) : null
-    const conceptDef = rootNode?.localMetamodel?.concepts?.find(
-      (c) => c.name.toLowerCase() === (node.type || '').toLowerCase(),
-    )
-
-    for (const [key, field] of Object.entries(node.fields)) {
-      if (!field?.value || typeof field.value !== 'string') continue
-      const fieldDef = conceptDef?.fields?.find((f: any) => f.name === key)
-      const isModelType = fieldDef?.type === 'model' || (field as any)?.type === 'model'
-      if (!isModelType) continue
-
-      const clean = field.value
-        .replace(/^\[\[\s*/, '')
-        .replace(/\s*\]\]$/, '')
-        .trim()
-      if (!clean) continue
-
-      // Match target node in modelStore
-      const targetNode = findMatchingModelNode(modelStore.nodes, clean)
-
-      if (targetNode) {
-        map.set(targetNode.id, node.id)
-        if (targetNode.source?.path) {
-          map.set(targetNode.source.path, node.id)
-        }
-      } else {
-        map.set(clean, node.id)
-      }
-    }
-  }
-
-  return map
+const modelDagTopology = computed(() => {
+  return computeModelDagTopology(modelStore.nodes)
 })
 
 function isModelRoot(node: ModelNode | undefined): boolean {
@@ -479,10 +441,30 @@ function isModelRoot(node: ModelNode | undefined): boolean {
 
 const visibleRootIds = computed(() => {
   const allModelRoots = Object.values(modelStore.nodes).filter(isModelRoot)
+  if (allModelRoots.length === 0) return []
+
+  if (uiStore.sidebarMode === 'focused_model') {
+    const focused = uiStore.focusedModelId || uiStore.activeModelId
+    if (focused && allModelRoots.some((n) => n.id === focused)) {
+      return [focused]
+    }
+    if (focused) {
+      const match = findMatchingModelNode(allModelRoots, focused)
+      if (match) return [match.id]
+    }
+    return [allModelRoots[0].id]
+  }
+
+  // In Workspace Mode: resolve root models via DAG topology (models with inDegree === 0)
+  const topology = modelDagTopology.value
+  const candidateIds =
+    topology.rootIds.length > 0 ? topology.rootIds : allModelRoots.map((n) => n.id)
 
   // Group by baseName -> keep highest version
   const bestByBaseName = new Map<string, { id: string; version: SemVer }>()
-  for (const node of allModelRoots) {
+  for (const rid of candidateIds) {
+    const node = modelStore.getNode(rid)
+    if (!node || isTemplateNode(node)) continue
     const info = getModelInfo(node.id)
     const existing = bestByBaseName.get(info.baseName)
     if (!existing || compareSemVer(info.version, existing.version) > 0) {
@@ -490,29 +472,17 @@ const visibleRootIds = computed(() => {
     }
   }
 
-  const keptIds = new Set([...bestByBaseName.values()].map((v) => v.id))
-  const deduplicatedRoots = allModelRoots.map((n) => n.id).filter((id) => keptIds.has(id))
+  const deduplicatedRoots = Array.from(bestByBaseName.values()).map((v) => v.id)
 
-  if (uiStore.sidebarMode === 'focused_model') {
-    const focused = uiStore.focusedModelId || uiStore.activeModelId
-    if (focused && deduplicatedRoots.includes(focused)) {
-      return [focused]
-    }
-    if (focused) {
-      const match = findMatchingModelNode(allModelRoots, focused)
-      if (match) return [match.id]
-    }
-    return deduplicatedRoots.slice(0, 1)
+  // Prioritize primary root (e.g. workspace_NN.md) at index 0 if present
+  if (topology.primaryRootId && deduplicatedRoots.includes(topology.primaryRootId)) {
+    return [
+      topology.primaryRootId,
+      ...deduplicatedRoots.filter((id) => id !== topology.primaryRootId),
+    ]
   }
 
-  // In Workspace Mode: exclude any root that is owned by an element
-  return deduplicatedRoots.filter((rootId) => {
-    const node = modelStore.getNode(rootId)
-    const path = node?.source?.path || ''
-    const isOwned =
-      submodelParentMap.value.has(rootId) || (path && submodelParentMap.value.has(path))
-    return !isOwned
-  })
+  return deduplicatedRoots
 })
 
 const totalModelCount = computed(() => {

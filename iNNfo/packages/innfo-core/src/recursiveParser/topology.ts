@@ -31,7 +31,11 @@ export function computeModelDagTopology(
   nodes: Record<string, ModelNode>,
   entrypointPath?: string,
 ): ModelDagTopology {
-  const rootNodes = Object.values(nodes).filter((n) => n.kind === 'root')
+  const rootNodes = Object.values(nodes).filter(
+    (n) =>
+      !n.id.startsWith('spec:') &&
+      (n.kind === 'root' || n.parentId === null || (!n.parentId && n.kind !== 'element')),
+  )
   const inDegree: Record<string, number> = {}
   const outDegree: Record<string, number> = {}
   const edges: ModelDagEdge[] = []
