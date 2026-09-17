@@ -134,6 +134,10 @@ export const useUiStore = defineStore('ui', () => {
 
   function selectNode(id: string | null): void {
     selectedNodeId.value = id
+    // The validation report is a modal overlay over the editor. Every
+    // navigation path routes through selectNode, so dismissing it here is
+    // what makes "click anywhere else" show that place again.
+    showValidationReport.value = false
   }
 
   function selectInstance(id: string | null): void {

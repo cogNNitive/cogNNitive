@@ -377,9 +377,6 @@ function onSelectNode(nodeId: string): void {
   if (uiStore.activeView === 'matrices' || uiStore.activeView === 'info') {
     uiStore.setActiveView('editor')
   }
-  // Selecting a node in the sidebar must show it in the central panel
-  // immediately, even if the validation report overlay is open.
-  uiStore.setShowValidationReport(false)
 }
 
 function onEditorChange(): void {
