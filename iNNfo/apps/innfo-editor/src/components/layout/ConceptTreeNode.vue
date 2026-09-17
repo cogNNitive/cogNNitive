@@ -154,6 +154,7 @@ import {
   findMatchingModelNode,
   normalizeModelPath,
   extractModelBasename,
+  isTemplateNode,
 } from '../../utils/modelMatching'
 import Pill from '../editor/Pill.vue'
 import VirtualGroupNode from './VirtualGroupNode.vue'
@@ -312,7 +313,20 @@ function isModelFieldEntry(key: string, fieldVal: string, conceptDef: any, nType
   return false
 }
 
+const isTemplateOrSpecElement = computed(() => {
+  const n = node.value
+  if (!n) return false
+  const nType = (n.type || '').toLowerCase().trim()
+  if (['templates', 'template', 'specs', 'spec'].includes(nType)) return true
+  const rootId = modelStore.getModelRootForNode(props.nodeId)
+  if (rootId && (rootId.startsWith('spec:') || isTemplateNode(modelStore.getNode(rootId)))) {
+    return true
+  }
+  return false
+})
+
 const elementSubmodels = computed<ElementSubmodel[]>(() => {
+  if (isTemplateOrSpecElement.value) return []
   const n = node.value
   if (!n || n.kind !== 'element' || !n.fields) return []
 
@@ -328,6 +342,7 @@ const elementSubmodels = computed<ElementSubmodel[]>(() => {
     if (!clean) continue
 
     const matchingNode = findMatchingModelNode(modelStore.nodes, clean)
+    if (matchingNode && isTemplateNode(matchingNode)) continue
     const fieldDef = conceptDef?.fields?.find((f: any) => f.name === key)
 
     if (matchingNode) {
@@ -345,6 +360,7 @@ const elementSubmodels = computed<ElementSubmodel[]>(() => {
 })
 
 const directModelTarget = computed<{ modelId: string; name: string } | undefined>(() => {
+  if (isTemplateOrSpecElement.value) return undefined
   if (elementSubmodels.value.length > 0) {
     const sub = elementSubmodels.value[0]
     return {
@@ -368,6 +384,7 @@ const directModelTarget = computed<{ modelId: string; name: string } | undefined
 
     const match = findMatchingModelNode(modelStore.nodes, clean)
     if (match) {
+      if (isTemplateNode(match)) continue
       return {
         modelId: match.id,
         name: match.name || match.id,
@@ -384,9 +401,10 @@ const directModelTarget = computed<{ modelId: string; name: string } | undefined
 const { getActiveConceptsForModel } = useModelConcepts()
 
 const submodelConcepts = computed(() => {
+  if (isTemplateOrSpecElement.value) return []
   if (!directModelTarget.value) return []
   const match = findMatchingModelNode(modelStore.nodes, directModelTarget.value.modelId)
-  if (!match) return []
+  if (!match || isTemplateNode(match)) return []
   return getActiveConceptsForModel(match.id)
 })
 

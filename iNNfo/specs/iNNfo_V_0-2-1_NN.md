@@ -381,8 +381,11 @@ MUST relocate the Element's `assets/{element-slug}/` folder accordingly.
 - **Optionality:** A Level 3 Model is syntactically valid with or without `sources::` properties. The parser and validator MUST NOT emit an error solely because `sources::` is omitted.
 - **Location Convention:** Ingested source documents are stored under `sources/nn/` (or relative subfolders within `sources/`).
 - **Syntax:** `sources:: [sources/nn/<filename>#<heading-slug>, ...]` (MUST always be formatted as a list enclosed in brackets `[...]`, even when referencing a single source document; no scalar string syntax or aliases are allowed). The anchor is a GitHub-style slug of the target document's heading, not a line range — it stays valid as long as the cited section isn't renamed or removed, regardless of reformatting elsewhere in the document.
+- **Hierarchical Resolution & Scoping (Lexical Proximity Lookup):**
+  - **Project / Local Scope (Default):** Relative paths (e.g., `sources/nn/<filename>.md#<anchor>` or `./sources/nn/...`) resolve against the nearest ancestor directory containing a `sources/` folder or local `sources_NN.md` catalog. This ensures project subdirectories and bounded contexts remain isolated and portable without polluting the global workspace catalog.
+  - **Workspace Scope (Fallback & Root Citation):** Paths prefixed with `/` (e.g., `/sources/nn/<filename>.md#<anchor>`) or relative paths not found in the local project scope fall back to the root `sources/` directory declared in `workspace_NN.md`.
 
-Example (Single Source):
+Example (Single Local Source):
 
 ```markdown
 ## NN Stakeholders: Enterprise Clients
@@ -390,11 +393,11 @@ sources:: [sources/nn/market_analysis.md#enterprise-clients]
 relationship_model:: B2B Long-term
 ```
 
-Example (Multiple Sources):
+Example (Multiple Scoped Sources):
 
 ```markdown
 ## NN Stakeholders: Enterprise Clients
-sources:: [sources/nn/market_analysis.md#enterprise-clients, sources/nn/interview_transcript.md#stakeholder-feedback]
+sources:: [sources/nn/market_analysis.md#enterprise-clients, /sources/nn/workspace_normative.md#regulatory-guidelines]
 relationship_model:: B2B Long-term
 ```
 

@@ -370,7 +370,7 @@ import ConceptTreeNode from './ConceptTreeNode.vue'
 import VirtualGroupNode, { type TreeGroup } from './VirtualGroupNode.vue'
 import MatrixPill from '../editor/MatrixPill.vue'
 import Pill from '../editor/Pill.vue'
-import { findMatchingModelNode } from '../../utils/modelMatching'
+import { findMatchingModelNode, isTemplateNode } from '../../utils/modelMatching'
 import { useModelConcepts } from '../../composables/useModelConcepts'
 
 const emit = defineEmits<{
@@ -382,24 +382,6 @@ const emit = defineEmits<{
 const modelStore = useModelStore()
 const metamodelStore = useMetamodelStore()
 const uiStore = useUiStore()
-
-function isTemplateNode(node: ModelNode | undefined): boolean {
-  if (!node) return true
-  if (node.id.startsWith('spec:')) return true
-  if (node.rawContent) {
-    try {
-      const fm = parseFrontmatter(node.rawContent)
-      if (Number(fm?.level) === 3 || fm?.model_version) return false
-      if (fm?.kind === 'template' || fm?.kind === 'spec') return true
-      if (Array.isArray(fm?.concepts) && fm.concepts.length > 0 && !fm?.parent_spec) return true
-    } catch {
-      // silent
-    }
-  }
-  const pathOrName = node.source?.path || node.name || ''
-  if (/_template_NN\.md$/i.test(pathOrName) || /_spec_NN\.md$/i.test(pathOrName)) return true
-  return false
-}
 
 function getModelInfo(rootId: string): { baseName: string; version: SemVer } {
   const rootNode = modelStore.getNode(rootId)

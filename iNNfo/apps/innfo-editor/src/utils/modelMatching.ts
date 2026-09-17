@@ -1,4 +1,26 @@
+import { parseFrontmatter } from '@cognnitive/innfo-core'
 import type { ModelNode } from '../model/types'
+
+/**
+ * Returns true if the node represents a Level 2 template, Level 1 spec, or spec node.
+ */
+export function isTemplateNode(node: ModelNode | undefined): boolean {
+  if (!node) return true
+  if (node.id.startsWith('spec:')) return true
+  if (node.rawContent) {
+    try {
+      const fm = parseFrontmatter(node.rawContent)
+      if (Number(fm?.level) === 3 || fm?.model_version) return false
+      if (fm?.kind === 'template' || fm?.kind === 'spec') return true
+      if (Array.isArray(fm?.concepts) && fm.concepts.length > 0 && !fm?.parent_spec) return true
+    } catch {
+      // silent
+    }
+  }
+  const pathOrName = node.source?.path || node.name || ''
+  if (/_template_NN\.md$/i.test(pathOrName) || /_spec_NN\.md$/i.test(pathOrName)) return true
+  return false
+}
 
 /**
  * Normalizes a model path or reference by stripping enclosing double brackets,
