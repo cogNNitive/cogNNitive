@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import { readdir, readFile, mkdir, writeFile, rename, rm } from 'node:fs/promises'
 import { join, basename, isAbsolute } from 'node:path'
-import { isInsideRoot } from './path-guard.js'
+import { isInsideRoot, isDriveQualified, isDriveContained } from './path-guard.js'
 import { fileURLToPath } from 'node:url'
 import { homedir, tmpdir } from 'node:os'
 import {
@@ -92,16 +92,21 @@ export function toLocalFilePath(url: string, rootDir?: string): string | null {
     candidate = url
   }
 
+  // A drive-qualified path is absolute on every host, so `isInsideRoot` (which
+  // resolves against the host) cannot judge it: off Windows it reads `C:\x` as
+  // a harmless relative name and hands back a path never proven contained.
+  // Decide containment on the string form instead.
+  if (isDriveQualified(candidate)) {
+    return isDriveContained(rootDir, candidate) ? candidate : null
+  }
+
   // Without a root there is nothing to contain against — refuse anything that
   // is not already a plain relative path.
   if (!rootDir) {
-    return isAbsolute(candidate) || /^[a-zA-Z]:[/\\]/.test(candidate) ? null : candidate
+    return isAbsolute(candidate) ? null : candidate
   }
 
-  const resolved =
-    isAbsolute(candidate) || /^[a-zA-Z]:[/\\]/.test(candidate)
-      ? candidate
-      : join(rootDir, candidate)
+  const resolved = isAbsolute(candidate) ? candidate : join(rootDir, candidate)
   return isInsideRoot(rootDir, resolved) ? resolved : null
 }
 

@@ -47,3 +47,39 @@ export function isSafeRelativeId(id: string): boolean {
   if (/^[/\\]{2}/.test(id)) return false
   return true
 }
+
+/** True for `C:\x` / `C:/x`, and for the `/C:/x` form `fileURLToPath` yields off Windows. */
+export function isDriveQualified(path: string): boolean {
+  return /^\/?[a-zA-Z]:[/\\]/.test(path)
+}
+
+/**
+ * Normalize a possibly drive-qualified path to the `drive:/segments` form.
+ *
+ * `fileURLToPath` prepends a POSIX slash when it decodes a Windows `file://`
+ * URL on a non-Windows host (`file:///C:/x` becomes `/C:/x`), which would
+ * otherwise hide the drive from {@link isDriveQualified}.
+ */
+function normalizeDrivePath(p: string): string {
+  return p.replace(/\\/g, '/').replace(/^\/(?=[a-zA-Z]:\/)/, '')
+}
+
+/**
+ * True when a drive-qualified `candidate` resolves strictly inside a
+ * drive-qualified `rootDir`, proven on the string form.
+ *
+ * `isInsideRoot` resolves against the host, so off Windows it does not see
+ * `C:\x` as absolute and accepts it as a harmless relative name — which would
+ * hand back a path that was never proven contained. Drive qualification is
+ * absolute on every host, so containment is decided here instead: same drive
+ * (case-insensitive) and a real path-segment prefix.
+ *
+ * A non-drive-qualified root (a POSIX root) can never contain a drive path.
+ */
+export function isDriveContained(rootDir: string | undefined, candidate: string): boolean {
+  if (!rootDir) return false
+  const root = normalizeDrivePath(rootDir).replace(/\/+$/, '')
+  if (!isDriveQualified(root) || root.endsWith(':')) return false
+  const path = normalizeDrivePath(candidate)
+  return path.length > root.length && path.toLowerCase().startsWith(`${root.toLowerCase()}/`)
+}
