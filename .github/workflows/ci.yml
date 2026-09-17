@@ -26,9 +26,7 @@ jobs:
           node-version: 20
 
       - name: Install dependencies
-        run: |
-          npm ci
-          npm --prefix iNNfo ci
+        run: npm ci
 
       # Build first: `verify.js` step 0 (MCP Version Square) reads the staged CDN
       # bundle `docs/innfo/cdn/innfo-mcp-v<version>.bundle.js`, which is a
@@ -69,46 +67,43 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: |
-          npm ci
-          npm --prefix iNNfo ci
+        run: npm ci
 
       - name: Build core package
-        run: npm --prefix iNNfo/packages/innfo-core run build
+        run: npm --workspace=@cognnitive/innfo-core run build
 
       - name: Lint
-        run: npm --prefix iNNfo run lint
+        run: npm run lint
 
       - name: Format check (changed files)
         if: github.event_name == 'pull_request'
-        working-directory: iNNfo
         run: |
           git fetch --no-tags --depth=1 origin ${{ github.base_ref }}
           CHANGED=$(git diff --name-only --diff-filter=ACMR origin/${{ github.base_ref }}...HEAD \
-            -- '*.ts' '*.mts' '*.vue' '*.js' '*.mjs' '*.json' | sed -n 's#^iNNfo/##p' | tr '\n' ' ')
+            -- '*.ts' '*.mts' '*.vue' '*.js' '*.mjs' '*.json' | tr '\n' ' ')
           if [ -n "$CHANGED" ]; then
             npx prettier --check --ignore-unknown $CHANGED
           else
-            echo "No formattable iNNfo files changed."
+            echo "No formattable files changed."
           fi
 
       - name: Typecheck (app)
-        run: npm --prefix iNNfo/apps/innfo-editor run typecheck
+        run: npm --workspace=@cognnitive/innfo-editor run typecheck
 
       - name: Typecheck (innfo-mcp)
-        run: npm --prefix iNNfo/packages/innfo-mcp run typecheck
+        run: npm --workspace=@cognnitive/innfo-mcp run typecheck
 
       - name: Unit tests (core)
-        run: npm --prefix iNNfo/packages/innfo-core test
+        run: npm --workspace=@cognnitive/innfo-core test
 
       - name: Unit tests + coverage (innfo-mcp)
-        run: npm --prefix iNNfo/packages/innfo-mcp run test:coverage
+        run: npm --workspace=@cognnitive/innfo-mcp run test:coverage
 
       - name: Unit tests (app)
-        run: npm --prefix iNNfo/apps/innfo-editor test
+        run: npm --workspace=@cognnitive/innfo-editor test
 
       - name: Build app
-        run: npm --prefix iNNfo/apps/innfo-editor run build
+        run: npm --workspace=@cognnitive/innfo-editor run build
 
   # ── Every hardcoded raw.githubusercontent.com spec URL must resolve to a
   #    file that exists; specs/ is immutable and filename-encoded.
@@ -123,13 +118,13 @@ jobs:
           node-version: 20
 
       - name: Install dependencies
-        run: npm --prefix iNNfo ci
+        run: npm ci
 
       - name: Check spec URLs resolve
-        run: npm --prefix iNNfo run check:spec-urls
+        run: npm run check:spec-urls
 
       - name: Spec version inventory (informational)
-        run: npm --prefix iNNfo run check:spec-version -- --inventory
+        run: npm run check:spec-version -- --inventory
 
   deploy-pages:
     needs: [verify, quality, spec-integrity]
