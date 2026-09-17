@@ -28,6 +28,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # The nn-trannsform skill ships its own dependency tree (minimist, prompts,
+      # document converters) outside the root workspaces, so `npm ci` above does
+      # not install it. `verify.js` step 5b spawns that skill's CLI, which exits 1
+      # on a fresh checkout without these deps.
+      - name: Install nn-trannsform skill dependencies
+        run: npm ci --prefix skills/nn-trannsform
+
       # Build first: `verify.js` step 0 (MCP Version Square) reads the staged CDN
       # bundle `docs/innfo/cdn/innfo-mcp-v<version>.bundle.js`, which is a
       # gitignored build artifact created here — a fresh checkout has none.
