@@ -455,6 +455,41 @@ function run() {
                             assertTrue(fs.existsSync(genericNn), 'generic JSON still normalizes');
                             assertTrue(!fs.readFileSync(genericNn, 'utf8').includes('source_type: "feedback"'), 'generic JSON is not tagged as feedback');
                           }).then(() => {
+                            // Test: Flat layout preservation & snapshotting
+                            const flatProj = path.join(TEST_TEMP, 'flat-proj');
+                            const flatImport = path.join(flatProj, 'sources', 'import');
+                            const flatNn = path.join(flatProj, 'sources', 'nn');
+                            fs.mkdirSync(flatImport, { recursive: true });
+                            fs.mkdirSync(flatNn, { recursive: true });
+
+                            // Seed existing flat normalized file
+                            fs.writeFileSync(path.join(flatImport, 'Tutorias.txt'), 'V1 content', 'utf8');
+                            fs.writeFileSync(
+                              path.join(flatNn, 'Tutorias.md'),
+                              '---\nsource_file: "sources/import/Tutorias.txt"\nsha256: "oldhash"\n---\n# Tutorias\nV1 content',
+                              'utf8'
+                            );
+
+                            // Update import file with V2 content
+                            fs.writeFileSync(path.join(flatImport, 'Tutorias.txt'), 'V2 new content extra rows', 'utf8');
+
+                            return scanner.scanAndProcess(flatProj, { autoAcceptPrompt: true }).then((flatRes) => {
+                              const updatedFlat = path.join(flatNn, 'Tutorias.md');
+                              const duplicateMirrored = path.join(flatNn, 'import', 'Tutorias.md');
+                              assertTrue(fs.existsSync(updatedFlat), 'flat destination preserved when already existing in sources/nn/');
+                              assertTrue(!fs.existsSync(duplicateMirrored), 'no duplicate created in sources/nn/import/');
+                              assertTrue(flatRes.changedSnapshots.length > 0, 'snapshot recorded for updated flat source');
+                              const snapFile = path.join(flatProj, 'sources', 'archive', 'Tutorias', 'V1', 'Tutorias.md');
+                              assertTrue(fs.existsSync(snapFile), 'snapshot created in sources/archive/Tutorias/V1/');
+
+                              // Test: singleFile normalization filter
+                              fs.writeFileSync(path.join(flatImport, 'Other.txt'), 'Other file', 'utf8');
+                              return scanner.scanAndProcess(flatProj, { autoAcceptPrompt: true, singleFile: 'Other.txt', flat: true }).then((singleRes) => {
+                                assertEqual(singleRes.processedCount, 1, 'singleFile option normalizes only 1 file');
+                                assertTrue(fs.existsSync(path.join(flatNn, 'Other.md')), 'singleFile with flat: true normalizes directly to sources/nn/Other.md');
+                              });
+                            });
+                          }).then(() => {
                             // Cleanup
                             fs.rmSync(TEST_TEMP, { recursive: true, force: true });
                             console.log(`\n  Scanner tests: ${passed} passed, ${failed} failed`);

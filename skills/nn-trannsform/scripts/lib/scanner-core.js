@@ -145,7 +145,9 @@ function readExistingSha256(destPath) {
   if (!fs.existsSync(destPath)) return null;
   try {
     const content = fs.readFileSync(destPath, 'utf8');
-    const m = content.match(/^sha256:\s*"([a-f0-9]{64})"\s*$/m);
+    const fields = parseFrontmatterFields(content);
+    if (fields.sha256) return fields.sha256;
+    const m = content.match(/^sha256:\s*"([^"]+)"\s*$/m);
     return m ? m[1] : null;
   } catch {
     return null;
@@ -199,7 +201,7 @@ function walkOriginal(originalDir) {
  * @param {string} projectOrSourcesDir
  * @returns {Array<{ tree: string, absPath: string, relPath: string, sourceFileField: string, destRelPath: string, isSynthetic: boolean }>}
  */
-function walkSourceTrees(projectOrSourcesDir) {
+function walkSourceTrees(projectOrSourcesDir, options = {}) {
   let sourcesDir = projectOrSourcesDir;
   if (path.basename(projectOrSourcesDir) !== 'sources' && fs.existsSync(path.join(projectOrSourcesDir, 'sources'))) {
     sourcesDir = path.join(projectOrSourcesDir, 'sources');
@@ -209,6 +211,7 @@ function walkSourceTrees(projectOrSourcesDir) {
   const originalDir = path.join(sourcesDir, 'original');
   const convDir = path.join(sourcesDir, 'conversations');
   const exportDir = path.join(sourcesDir, 'export');
+  const nnDir = path.join(sourcesDir, 'nn');
 
   const items = [];
 
@@ -217,12 +220,23 @@ function walkSourceTrees(projectOrSourcesDir) {
     const files = walkOriginal(importDir);
     for (const f of files) {
       const relPosix = f.relPath.replace(/\\/g, '/');
+      const flatCandidate = relPosix.replace(/\.[^.]+$/, '.md');
+      const mirroredCandidate = `import/${flatCandidate}`;
+
+      // If flat layout is forced, or if a flat normalized file already exists under sources/nn/ while the mirrored one does not
+      let destRelPath = mirroredCandidate;
+      if (options.flat || options.preserveLayout) {
+        destRelPath = flatCandidate;
+      } else if (fs.existsSync(path.join(nnDir, flatCandidate)) && !fs.existsSync(path.join(nnDir, mirroredCandidate))) {
+        destRelPath = flatCandidate;
+      }
+
       items.push({
         tree: 'import',
         absPath: f.absPath,
         relPath: f.relPath,
         sourceFileField: `sources/import/${relPosix}`,
-        destRelPath: `import/${relPosix.replace(/\.[^.]+$/, '.md')}`,
+        destRelPath,
         isSynthetic: false,
       });
     }
@@ -379,7 +393,32 @@ function getExistingFrontmatterFields(destPath, sourceFileField) {
  * @returns {{ archived: boolean, skipped?: boolean, version?: string, archivePath?: string }}
  */
 function archiveSourceSnapshot(absPath, nnPath, destPath, basename) {
-  const activeFile = [nnPath, destPath, absPath].find(p => p && typeof p === 'string' && fs.existsSync(p) && p.endsWith('.md'));
+  let activeFile = [nnPath, destPath, absPath].find(p => p && typeof p === 'string' && fs.existsSync(p) && p.endsWith('.md'));
+  if (!activeFile && (destPath || nnPath || absPath)) {
+    const candidatePath = destPath || nnPath || absPath;
+    let cur = path.dirname(candidatePath);
+    let sourcesDir = null;
+    while (cur) {
+      if (path.basename(cur).toLowerCase() === 'sources') {
+        sourcesDir = cur;
+        break;
+      }
+      const parent = path.dirname(cur);
+      if (parent === cur) break;
+      cur = parent;
+    }
+    if (sourcesDir) {
+      const base = basename || path.basename(candidatePath, path.extname(candidatePath));
+      const flatCandidate = path.join(sourcesDir, 'nn', `${base}.md`);
+      const importCandidate = path.join(sourcesDir, 'nn', 'import', `${base}.md`);
+      if (fs.existsSync(flatCandidate)) {
+        activeFile = flatCandidate;
+      } else if (fs.existsSync(importCandidate)) {
+        activeFile = importCandidate;
+      }
+    }
+  }
+
   if (!activeFile) {
     return { archived: false };
   }

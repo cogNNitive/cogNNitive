@@ -27,7 +27,25 @@ async function scanAndProcess(projectDir, options = {}) {
   const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
   logs.push(`*   **${timestamp}:** Scan initiated across active source trees in \`${sourcesDir}\`.`);
 
-  const files = core.walkSourceTrees(projectDir);
+  let files = core.walkSourceTrees(projectDir, options);
+  if (options.singleFile) {
+    const singleNorm = options.singleFile.replace(/\\/g, '/').toLowerCase();
+    files = files.filter(item => {
+      const absPosix = item.absPath.replace(/\\/g, '/').toLowerCase();
+      const relPosix = item.relPath.replace(/\\/g, '/').toLowerCase();
+      const srcPosix = item.sourceFileField.toLowerCase();
+      return (
+        absPosix.endsWith(singleNorm) ||
+        relPosix === singleNorm ||
+        srcPosix.endsWith(singleNorm) ||
+        path.basename(absPosix) === singleNorm ||
+        path.basename(relPosix) === singleNorm
+      );
+    });
+    if (files.length === 0) {
+      console.warn(`⚠️  Warning: Specified single file "${options.singleFile}" was not discovered in active source trees.`);
+    }
+  }
   logs.push(`*   **${timestamp}:** Discovered ${files.length} file(s) across active source trees.`);
 
   const webImportMeta = options.webImportMeta || {};

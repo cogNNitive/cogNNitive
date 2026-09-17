@@ -21,6 +21,8 @@ async function main() {
 
   const hasArgs =
     argv.scan ||
+    argv['normalize-file'] ||
+    argv.file ||
     argv['scan-external'] ||
     argv.external ||
     argv.apply ||
@@ -164,10 +166,56 @@ async function handleCliMode(argv) {
     }
   }
 
+  if (argv['normalize-file'] || argv.file) {
+    const targetFile = argv['normalize-file'] || argv.file;
+    console.log(`Normalizing single document "${targetFile}" in "${projectDir}"...`);
+
+    const scanOptions = {
+      autoAcceptPrompt: true,
+      singleFile: targetFile,
+      flat: Boolean(argv.flat || argv['preserve-layout']),
+    };
+
+    if (argv.formats) {
+      const selected = argv.formats.split(',').map(f => '.' + f.trim().replace(/^\./, ''));
+      scanOptions.formats = selected;
+    }
+
+    const result = await scanner.scanAndProcess(projectDir, scanOptions);
+    console.log(`Normalization completed! Discovered: ${result.totalDiscovered}, Processed: ${result.processedCount}, Skipped: ${result.skippedCount}`);
+
+    if (result.changedSnapshots && result.changedSnapshots.length > 0) {
+      const impacts = checkScanImpact(result.changedSnapshots, projectDir);
+      for (const impact of impacts) {
+        console.warn(`\n⚠️  [IMPACT WARNING] Updated source "${impact.source}" affects downstream models:`);
+        for (const aff of impact.affectedModels) {
+          console.warn(`    - ${aff.modelFile}${aff.element ? ` (${aff.element})` : ''}: references "${aff.citation}" [${aff.status}]`);
+        }
+      }
+    }
+
+    const prov = provenance.buildProvenanceModel(projectDir);
+    console.log(
+      `cogNNitive lineage record ${prov.created ? 'created' : 'refreshed'}: ` +
+        `${prov.sourceCount} source(s), ${prov.modelCount} model(s), ${prov.artifactCount} artifact(s) — ${prov.modelPath}`,
+    );
+    provenance.appendProcedureRun(projectDir, {
+      command: 'normalize-file',
+      flags: `--file "${targetFile}"${scanOptions.flat ? ' --flat' : ''}`,
+      inputs: [targetFile],
+      outputs: ['sources/nn/'],
+    });
+
+    process.exit(result.processedCount > 0 ? 0 : 1);
+  }
+
   if (argv.scan) {
     console.log(`Scanning and converting documents in "${projectDir}"...`);
 
-    const scanOptions = { autoAcceptPrompt: true };
+    const scanOptions = {
+      autoAcceptPrompt: true,
+      flat: Boolean(argv.flat || argv['preserve-layout']),
+    };
 
     if (argv.formats) {
       const selected = argv.formats.split(',').map(f => '.' + f.trim().replace(/^\./, ''));

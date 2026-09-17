@@ -33,6 +33,10 @@ Execute the canonical activation gate defined in `nn-preflight` (session greetin
    - Safe, standard, and reversible actions (e.g. creating standard directory layout, normalizing documents into `sources/nn/`, running scanner passes) MUST NOT block with confirmation prompts.
    - Announce intent with Informative Grace: `"Avanzando con [acción estándar]. Si preferís cambiar la ubicación o interrumpir, avisame antes de empezar."`
    - Explicit confirmation is reserved exclusively for destructive mutations (deleting orphaned sources, moving external user files without copy).
+5. **Mandatory Canonical Toolchain for Normalization (No Manual Parsing Bypass)**:
+   - NEVER manually calculate SHA-256 hashes, handcraft converted markdown tables, or manually edit source frontmatter to bypass layout mismatches.
+   - When updating or refreshing a single source file, always use the atomic command: `node scripts/index.js --normalize-file "<source-path>" --src "<project-dir>"` (with `--flat` if preserving flat root layouts).
+   - The canonical toolchain guarantees atomic snapshot archiving in `sources/archive/<basename>/V<N>/`, downstream `[IMPACT WARNING]` audits, and lineage-record synchronization.
 
 ## Preflight Gate (MANDATORY — run before any transformation)
 
@@ -198,11 +202,19 @@ Reviewer consoles export structured feedback JSON (see `iNNfo/specs/templates/co
 3. **Frontmatter contract**: normalized feedback lands mirrored at `sources/nn/import/feedback/<name>.md` with the standard origin frontmatter (`source_file` pointing at the `sources/import/feedback/` origin, `sha256`, `size_bytes`, `normalized_at`, `normalized_by`) **plus** `source_type: "feedback"` and `is_synthetic: true`.
 4. **Citation**: the normalized body renders one `### <fb-NNN> (<kind>, <status>)` heading per item, so agents cite items directly: `sources:: import/feedback/<file>.md#fb-001`. Downstream, the app's `apply_feedback_NN.md` procedure carries accepted items back into the model (staleness check, diff preview, `apply_change` per item, `validate_model`, single patch bump, stable-name console regeneration).
 
-#### 2a-2. Dynamic Sources & Impact Checking (`--check-impact`)
+#### 2a-2. Dynamic Sources & Impact Checking (`--check-impact` / `--normalize-file`)
 
 When an existing source file is modified in `sources/import/` (or `sources/original/`), its SHA-256 hash changes:
 1. **Automatic Snapshot & Scan Warning**: `--scan` creates a version snapshot under `sources/archive/<basename>/V<N>/<basename>.md`, normalizes the new version into `sources/nn/`, and immediately audits downstream models in `models/`. If any model citation (`sources:: [file.md#heading-slug]`) points to an altered or removed section, an `[IMPACT WARNING]` is printed to the console.
-2. **On-Demand Audit Command**:
+2. **Atomic Single-Source Refresh Command**:
+   To update or normalize a single file without a whole-workspace scan:
+   ```bash
+   node scripts/index.js --normalize-file "<source-path>" --src "<project-dir>"
+   ```
+   - Automatically detects if the file already exists in a legacy flat layout (`sources/nn/<basename>.md`) and preserves that destination to prevent breaking existing model citations.
+   - Use `--flat` (or `--preserve-layout`) to explicitly force flat destination normalization.
+   - Atomically creates the `sources/archive/<basename>/V<N>/` snapshot, updates the normalized Markdown, audits downstream citations for `[IMPACT WARNING]`, and updates the workspace lineage record.
+3. **On-Demand Audit Command**:
    ```bash
    node scripts/index.js --check-impact --src "<project-dir>"
    ```
