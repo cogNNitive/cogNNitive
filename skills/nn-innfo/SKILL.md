@@ -10,7 +10,7 @@ bundled_templates:
   - name: workspace_spec_NN
     path: templates/workspace_spec_NN.md
 description: |
-  Domain skill for creating, editing, validating, scaffolding, or discussing iNNfo models, apps, specializations, samples, or specification files. Includes the conversational Model Creation Wizard and Architecture Assistant. Triggers: innfo, iNNfo, /nn-innfo, model, template, *_NN.md, procedures_V_0-1-0_NN.md.
+  Domain skill for creating, editing, validating, scaffolding, or discussing iNNfo models, apps, specializations, samples, or specification files. Includes the conversational Model Creation Wizard and Architecture Assistant. Triggers: innfo, iNNfo, info, /nn-innfo, model, modelo, template, plantilla, spec, wizard, *_NN.md, procedures_V_0-1-0_NN.md.
   This includes but is not limited to:
   - Creating a new model step-by-step using apps (Business, Procedures, Organization, Metrics, Blank)
   - Creating or editing any file matching *_NN.md
@@ -95,7 +95,7 @@ To minimize token usage and unnecessary file I/O operations across large workspa
 
 #### 1. Intent-First Execution (MANDATORY)
 If the user's message already expresses an explicit, actionable intent (e.g. "run preflight", "check for new sources", "validate the model", "scaffold business model", "show uncited sources", "fix matrix error"):
-- **EXECUTE IMMEDIATELY**: Process the requested workflow directly without rendering the root options menu (`[a]`, `[b]`, `[c]`, `[d]`, `[x]`, `[y]`).
+- **EXECUTE IMMEDIATELY**: Process the requested workflow directly without rendering the root options menu (`[a]`, `[b]`, `[c]`, `[d]`, `[x]`, `[w]`, `[y]`).
 - **Contextual Follow-up**: Upon completing the requested sub-task, summarize the findings and ask a focused, single follow-up question relevant to the result (e.g. *"I detected 3 uncited sources. Would you like to map them to model elements now?"*).
 - **Menu Suppression**: DO NOT regurgitate the global entry menu after targeted actions unless the user explicitly asks for the menu, options, or help.
 
@@ -103,10 +103,11 @@ If the user's message already expresses an explicit, actionable intent (e.g. "ru
 When the user invokes the skill without an explicit intent (e.g., bare `/nn-innfo`, "hola", "qué podés hacer?", or open-ended browsing), present the entry menu:
 
 - **[a] (Recommended)** Create a new model (Conversational Wizard)
-- **[b]** Edit / extend an existing model
-- **[c]** Validate a model with MCP
-- **[d]** Analyze consistency and robustness (Architecture Assistant) — audit the model across formal, logical, semantic, and solidity layers (§8c)
+- **[b]** Edit / extend an existing model (Conversational Wizard)
+- **[c]** Audit & validate model (MCP Syntax + Architecture Coherence)
+- **[d]** Export / update console artifacts (Workspace Consoles & Hub)
 - **[x]** Execute a model procedure — list procedures declared in the model and execute the chosen one
+- **[w]** View & consult documentation — browse iNNfo specs, primitives, and guides
 - **[y]** Cancel / help
 
 *Notice: You can select one option or a combination (e.g. A and B).*
@@ -120,7 +121,7 @@ Before executing options **[b]**, **[c]**, **[d]**, or **[x]**, the agent MUST e
    - **If 0 models found:** Inform the user that no models exist in `models/` and suggest creating one (redirecting to option **[a]**).
    - **If 1 model found (Auto-Bind with Informative Grace):** Bind it automatically as the active model (`active_model_path`) without asking. Announce: *"Vinculando `models/{ModelName}_NN.md` (único modelo detectado en el workspace). Voy a avanzar con este modelo; si querés usar otro o crear uno nuevo, avisame antes de empezar."* Proceed immediately.
    - **If multiple models found:** Present a numbered list of all models found and ask the user to select one: *"Multiple models detected. Please select which one you want to work with:"*. Set the selected file as `active_model_path` and proceed.
-3. **Session Persistence:** Once a model is selected or created, save its path in context. Subsequent actions (validation, edits, audits) MUST default to this active model. To switch models, the user can explicitly ask to "switch model" or select the change option in the quick actions menu.
+3. **Session Persistence:** Once a model is selected or created, save its path in context. Subsequent actions (validation, edits, audits, console exports) MUST default to this active model. To switch models, the user can explicitly ask to "switch model" or select the change option in the quick actions menu.
 
 ### 0a-ter. Step 0 Schema Integrity Gate (MANDATORY before downstream repairs)
 
@@ -250,6 +251,18 @@ Prompt for `{ModelName}` and create `{ModelName}_V_0-1-0_{Template}_NN.md` with 
 
 **B4. Validation & Visual Checklist**:
 Validate via `innfo-mcp_validate_model` and output the Visual Expectation Checklist (§12).
+
+---
+
+### 0d. Documentation Consultation (Option W)
+
+When the user selects option `[w]` (View & consult documentation):
+1. Present available iNNfo documentation categories and guides:
+   - **Level 1 Core Specification**: `iNNfo_V_0-2-0_NN.md` (Primitives: Concepts, Fields, Matrices, Markers).
+   - **Level 2 Canonical Templates**: Business, Procedures, Organization, Metrics, Projects, Innovation, Analysis, Documentation.
+   - **Syntactic & Structural Rules**: Heading conventions (`# NN`, `## NN`), typing heuristics, WikiLink reference formatting (`[[...]]`), and source citation grammar (`sources:: [...]`).
+   - **Artifact & Console Architecture**: Blueprints, slot payloads, and interactive console runtimes.
+2. **Read-only consultation**: This workflow is purely informational and performs **zero workspace filesystem mutations**.
 
 ---
 
@@ -437,7 +450,7 @@ When a Concept or Element must be renamed:
 
 ---
 
-## 8. Field Creation & Change-Preview Protocol (Option D)
+## 8. Field Creation & Change-Preview Protocol
 
 Every field must declare an explicit `type` (`string`, `select`, `reference`, `markdown_inline`, `markdown_file`, `image`, `file`, `video`, `audio`, `model`).
 
@@ -445,7 +458,7 @@ Every field must declare an explicit `type` (`string`, `select`, `reference`, `m
 
 > ⚠️ **List syntax — NEVER use quotes without brackets.** For any field with multiple values (`reference`, `sources::`, or any other list type), the only valid format is `[a, b, c]` — no quotes around each value. The format `"a", "b"` (individual quotes, no enclosing brackets) **corrupts parsing silently**: the validator treats it as a single unreadable string instead of a list, and ends up reporting a generic dangling reference without explaining the real cause. If you see that error and the field has loose quotes with no `[...]`, this is almost certainly the cause.
 
-### Change Preview with Diff (Option D)
+### Change Preview with Diff
 Before running any change or mutation on the model, the agent MUST present a short natural-language summary of the proposed change:
 
 ```markdown
@@ -472,13 +485,14 @@ Once the user confirms, run the mutation via `innfo-mcp_apply_change` and re-val
 
 ---
 
-## 8c. Coherence & Solidity Analysis — "Architecture Assistant" Mode (Option C)
+## 8c. Audit, Validation & Architecture Assistant Mode (Option C)
 
-When the user picks option `[d]` (Analyze coherence), the agent takes the role of **Architecture Assistant**:
+When the user picks option `[c]` (Audit & validate model), the agent executes deterministic syntactic validation (`innfo-mcp_validate_model`) and takes the role of **Architecture Assistant**:
 
 1. Load the model (`read_model`) and its app (`get_template`).
-2. Evaluate the 4 layers: **Formal Correctness**, **Logical Coherence**, **Semantic Coherence**, and **Solidity/Robustness**.
-3. **Presentation with Functional Impact (Assistant Mode):**
+2. Run MCP syntactic validation (`innfo-mcp_validate_model`) and report any formal grammar or schema errors.
+3. Evaluate the 4 architectural layers: **Formal Correctness**, **Logical Coherence**, **Semantic Coherence**, and **Solidity/Robustness**.
+4. **Presentation with Functional Impact (Assistant Mode):**
    Do not just list technical errors; explain the **business/functional risk** and offer the **1-click fix**:
 
 ```markdown
@@ -516,6 +530,17 @@ There are **4 formal relationship forms** in iNNfo (`hierarchy`, `evaluable_matr
 2. **List syntax**: Written as an inline list `tags:: [urgent, sprint-1, vip-client]` (or `tags:: urgent` for a single tag). For multiple values, the bracketed `[...]` syntax is MANDATORY.
 3. **Agent use**: When the user asks to "filter or act only on elements with tag X", the agent MUST inspect the `tags::` fields of each Element/Concept to restrict its scope to the matching entities only.
 4. **Coexistence with Markers**: `tags::` are lightweight plain-text labels. If the user needs an icon, color, weight, or participation in comparative matrices, the tag can be promoted to a formal Level 2 `Marker Definition`.
+
+---
+
+## 8f. Console Artifact Export & Inspection (Option D)
+
+When the user selects option `[d]` (Export / update console artifacts):
+1. Verify active model context via the Active Model Selection Gate (§0a-bis).
+2. Execute console compilation for the active model:
+   - Run `node scripts/export-console.mjs . <model_name>` (or `--stale` / `--all` depending on user intent).
+   - If the user requests inspection or status, invoke with `--status` or `--tree` (read-only mode).
+3. Present the compiled artifact path (e.g. `export/<stem>_console/<stem>_console.html`) with instructions for opening offline or in browser.
 
 ---
 
@@ -619,8 +644,8 @@ Upon concluding the generation or editing of a model, the agent MUST include log
 ```markdown
 📌 Suggested next steps:
 - [a] (Recommended) Guided review of generated concepts and elements
-- [b] Run Architecture Assistant audit ([d])
-- [c] Edit or add a new concept/element
+- [b] Run Architecture Assistant audit ([c])
+- [c] Export / update console artifacts ([d])
 - [m] Switch active model (select another model)
 ```
 
@@ -732,13 +757,13 @@ Each session MUST record per-intent call and token counts via the `usage-counter
 5. **Recommended Option First:** Always prefix option `[a]` with `(Recommended)`.
 6. **Multi-Selection Notice:** Include `"You can select one option or a combination (e.g. A and B)"` when applicable.
 7. **Change Preview with Diff:** Show a natural-language summary before applying any MCP mutation.
-8. **Architecture Assistant Mode:** In the `[d]` audit, explain business/functional risks and offer 1-click fixes.
+8. **Architecture Assistant Mode:** In the `[c]` audit, explain business/functional risks and offer 1-click fixes.
 9. **Contextual Shortcuts:** End every response by offering 2-3 suggested next actions (Quick Actions).
 10. **Full MCP Delegation:** Query types, schemas, and validation from the `innfo-mcp` server; do not guess or duplicate the grammar.
 11. **Index Block Scope (`# NN index`):** The `# NN index` is reserved exclusively for workspace manifest documents (`workspace_NN.md` / `index.md`) and Level 2 templates (defining the taxonomy hierarchy of Concepts). Level 3 domain data models (`models/*_NN.md`) MUST NOT contain a root `# NN index` block; navigation in Level 3 models is derived dynamically from Concept and Element headings.
 12. **Mandatory WikiLink syntax in references:** In every reference field (`type:: reference`), the value MUST be formatted using WikiLink syntax (`key:: [[Element]]`). Plain text without WikiLink brackets is forbidden.
 13. **Element descriptions in prose:** The description/explanation of an element in a Level 3 model must NEVER be written as a `description::` field. It must always be free-form Markdown prose below the `key:: value` field list, separated by a blank line.
-14. **Active Model Selection Gate:** Never perform editing, validation, audits, or model procedure execution without a validated active model in context. Run workspace discovery first if none is set.
+14. **Active Model Selection Gate:** Never perform editing, validation, audits, console export, or model procedure execution without a validated active model in context. Run workspace discovery first if none is set.
 15. **Dynamic Quick Actions:** Only list procedure shortcuts in next steps if the model contains declared procedures.
 16. **Free-form Tags (`tags::`)**: Any Element or Concept in a Level 3 model may declare `tags:: [tag1, tag2]` for free-form categorization without modifying the Level 2 app. Multi-tag syntax requires brackets `[...]`. Agents should use this field to filter and scope actions to tagged elements.
 17. **Step 0 Schema Integrity Gate (MANDATORY)**: Always verify that `parent_spec` resolves cleanly before diagnosing or repairing child element fields, matrices, or references. If unresolved, halt and resolve schema reachability first.
