@@ -203,7 +203,7 @@ channels:
         ref: skills-v2.0.0
       - key: templates
         repo: cogNNitive/cogNNitive
-        ref: templates-v0.10.1
+        ref: templates-v0.10.2
       - key: innfo-mcp
         repo: cogNNitive/cogNNitive
         ref: innfo-mcp-v0.9.0
