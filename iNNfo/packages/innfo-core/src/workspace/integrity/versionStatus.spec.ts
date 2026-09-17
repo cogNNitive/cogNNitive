@@ -10,7 +10,7 @@ import {
 
 /**
  * Fixtures lifted verbatim from
- * `actioNN/skills/nn-preflight/scripts/upgrade-check.test.js` so the ported
+ * `skills/nn-preflight/scripts/upgrade-check.test.js` so the ported
  * `innfo-core` primitives keep provable parity with the CLI classifier.
  */
 const CATALOG: TemplateCatalog = {

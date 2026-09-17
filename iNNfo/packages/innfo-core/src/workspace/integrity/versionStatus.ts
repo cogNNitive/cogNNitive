@@ -2,7 +2,7 @@
  * Platform-neutral template-version classification primitives.
  *
  * Ported verbatim (behaviour-for-behaviour) from
- * `actioNN/skills/nn-preflight/scripts/upgrade-check.js:37-215` so the whole
+ * `skills/nn-preflight/scripts/upgrade-check.js:37-215` so the whole
  * cogNNitive ecosystem — the preflight CLI, `innfo-mcp`, and `innfo-editor` —
  * classifies template versions through ONE implementation with no private copy.
  *

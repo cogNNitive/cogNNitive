@@ -8,6 +8,7 @@ const path = require('path');
 // (resolution-bearing path/tool/key/tag that MUST NOT be renamed) listed.
 const SPECS_DIR = path.resolve(__dirname, '..');
 const VOCAB_FILE = path.join(SPECS_DIR, 'vocabulary.json');
+const REPO_ROOT = path.resolve(SPECS_DIR, '..', '..');
 
 // Every identifier that must stay byte-identical during the user-facing
 // `template` -> `app` rename. If one is dropped from the dictionary, the
@@ -95,8 +96,16 @@ function run() {
     assertEqual(typeof ageNNt.sense, 'string', 'ageNNt declares a sense string');
     assertTrue(ageNNt.sense.length > 0, 'ageNNt sense is non-empty');
     assertTrue(Array.isArray(ageNNt.stable_identifiers), 'ageNNt lists stable identifiers');
-    for (const id of ['actioNN/', 'actioNN/skills/', 'actioNN/scripts/']) {
+    // Post-consolidation (2026-09-16) the skill ecosystem lives at the repo
+    // root; every stable identifier must resolve on disk today.
+    for (const id of ['skills/', 'scripts/skills-manager.js']) {
       assertTrue(ageNNt.stable_identifiers.includes(id), `stable identifier "${id}" is listed for ageNNt`);
+    }
+    for (const id of ageNNt.stable_identifiers) {
+      assertTrue(
+        fs.existsSync(path.join(REPO_ROOT, id)),
+        `stable identifier "${id}" must exist on disk`
+      );
     }
 
     // `assistant` is the canonical term

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Root convenience forwarder to actioNN/skills/nn-preflight/scripts/preflight-check.js
+ * Root convenience forwarder to skills/nn-preflight/scripts/preflight-check.js
  */
 
 const path = require('path');

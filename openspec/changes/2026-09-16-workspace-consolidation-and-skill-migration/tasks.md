@@ -18,6 +18,7 @@
   - [x] Update `scripts/verify.js` (`ORCHESTRATORS` line limit list and preflight test paths).
   - [x] Update `scripts/build-preflight-primitives.mjs` and `scripts/build-trannsform-slug-mirror.mjs` output paths.
   - [x] Update any test files or scripts referencing `actioNN/`.
+    - Note: 3 references survived this pass (uncaught because no CI job runs the `skills/` test suites); fixed in `openspec/changes/2026-09-17-post-consolidation-reference-remediation`.
 
 - [x] **Phase 4: Full Gate & Parity Verification**
   - [x] Run `node scripts/check-integrity.js --pre-push`.

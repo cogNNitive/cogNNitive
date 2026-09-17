@@ -154,7 +154,7 @@ export function splitSourceFieldValue(value: unknown): string[] {
 
 /**
  * Slugify one Markdown heading's text into a GitHub-style anchor slug. THE
- * single algorithm — `actioNN/skills/nn-trannsform/scripts/markdown-utils.js`
+ * single algorithm — `skills/nn-trannsform/scripts/markdown-utils.js`
  * mirrors it exactly (parity is asserted by that skill's `test-slug-parity.js`).
  *
  * Steps: strip a leading `#` marker and `* _ \`` emphasis characters,

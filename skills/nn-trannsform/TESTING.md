@@ -56,7 +56,7 @@ Luis,28,Technician
 
 **Instruction for OpenCode:**
 
-> Install the `nn-trannsform` skill in my session. Look for it in `~/.agents/skills/nn-trannsform/SKILL.md` or in the `actioNN/skills/nn-trannsform/` repository.
+> Install the `nn-trannsform` skill in my session. Look for it in `~/.agents/skills/nn-trannsform/SKILL.md` or in the `skills/nn-trannsform/` repository.
 
 **Expected result:** OpenCode loads the skill successfully.
 
