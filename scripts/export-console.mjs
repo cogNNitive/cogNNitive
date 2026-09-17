@@ -13,8 +13,12 @@
  * artifact for offline `file://` use.
  *
  * Usage:
+ *   node scripts/export-console.mjs <workspaceRoot> --status
+ *   node scripts/export-console.mjs <workspaceRoot> --tree
  *   node scripts/export-console.mjs <workspaceRoot> --list
  *   node scripts/export-console.mjs <workspaceRoot> --all
+ *   node scripts/export-console.mjs <workspaceRoot> --stale
+ *   node scripts/export-console.mjs <workspaceRoot> --filter <pattern>
  *   node scripts/export-console.mjs <workspaceRoot> <ModelNameSubstring>
  *
  * Output: <workspaceRoot>/export/<Model>_V_<version>_console/<Model>_V_<version>_console.html
@@ -24,6 +28,7 @@ import { readdir, readFile, writeFile, mkdir, cp } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { join, relative, basename, resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { createHash } from 'node:crypto'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const repoRoot = resolve(here, '..')
@@ -44,13 +49,44 @@ const bundlePath = join(
   'innfo-console.bundle.js',
 )
 
+function computeSha256(content) {
+  return createHash('sha256').update(content, 'utf8').digest('hex')
+}
+
 function parseArgs(argv) {
-  const args = { root: null, list: false, all: false, model: null }
-  for (const a of argv.slice(2)) {
-    if (a === '--list') args.list = true
-    else if (a === '--all') args.all = true
-    else if (args.root === null) args.root = a
-    else args.model = a
+  const args = {
+    root: null,
+    list: false,
+    status: false,
+    tree: false,
+    all: false,
+    stale: false,
+    filter: null,
+    model: null,
+  }
+  const slice = argv.slice(2)
+  for (let i = 0; i < slice.length; i++) {
+    const a = slice[i]
+    if (a === '--list') {
+      args.list = true
+    } else if (a === '--status') {
+      args.status = true
+    } else if (a === '--tree') {
+      args.tree = true
+    } else if (a === '--all') {
+      args.all = true
+    } else if (a === '--stale') {
+      args.stale = true
+    } else if (a === '--filter') {
+      i++
+      if (i < slice.length) {
+        args.filter = slice[i]
+      }
+    } else if (args.root === null) {
+      args.root = a
+    } else {
+      args.model = a
+    }
   }
   return args
 }
@@ -128,6 +164,98 @@ function elSlug(name) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
 }
 
+function extractModelMetaFromHtml(htmlContent) {
+  const match = htmlContent.match(
+    /<script type="application\/json" id="innfo-model">([\s\S]*?)<\/script>/,
+  )
+  if (!match) return null
+  try {
+    const data = JSON.parse(match[1])
+    return data?.meta ?? null
+  } catch {
+    return null
+  }
+}
+
+async function inspectModelStatus(model, rootDir) {
+  const stem = model.name
+  const targetHtmlPath = join(rootDir, 'export', `${stem}_console`, `${stem}_console.html`)
+
+  if (!existsSync(targetHtmlPath)) {
+    return { status: 'uncompiled', targetHtmlPath }
+  }
+
+  let htmlContent
+  try {
+    htmlContent = await readFile(targetHtmlPath, 'utf-8')
+  } catch {
+    return { status: 'stale', targetHtmlPath }
+  }
+
+  const embeddedMeta = extractModelMetaFromHtml(htmlContent)
+  if (!embeddedMeta) {
+    return { status: 'stale', targetHtmlPath }
+  }
+
+  const currentVersion = String(model.fm.model_version ?? 'V_0-1-0')
+  if (embeddedMeta.modelVersion && embeddedMeta.modelVersion !== currentVersion) {
+    return { status: 'version_mismatch', targetHtmlPath, embeddedMeta }
+  }
+
+  const currentSha256 = computeSha256(model.content)
+  if (embeddedMeta.sha256 && embeddedMeta.sha256 === currentSha256) {
+    return { status: 'fresh', targetHtmlPath, embeddedMeta }
+  }
+
+  return { status: 'stale', targetHtmlPath, embeddedMeta }
+}
+
+async function renderTree(models, root) {
+  const groups = new Map()
+  for (const m of models) {
+    const rel = relative(root, m.filePath).replace(/\\/g, '/')
+    const dir = dirname(rel)
+    const dirKey = dir === '.' ? '.' : dir + '/'
+    if (!groups.has(dirKey)) groups.set(dirKey, [])
+    const statusInfo = await inspectModelStatus(m, root)
+    groups.get(dirKey).push({ model: m, rel, statusInfo })
+  }
+
+  console.log(`Workspace: . (${models.length} Level-3 models)`)
+  const dirKeys = Array.from(groups.keys())
+  for (let i = 0; i < dirKeys.length; i++) {
+    const dirKey = dirKeys[i]
+    const isLastDir = i === dirKeys.length - 1
+    const dirPrefix = isLastDir ? '└── ' : '├── '
+    const childIndent = isLastDir ? '    ' : '│   '
+
+    if (dirKey === '.') {
+      const items = groups.get(dirKey)
+      for (let j = 0; j < items.length; j++) {
+        const item = items[j]
+        const isLastItem = j === items.length - 1
+        const itemPrefix = isLastItem ? '└── ' : '├── '
+        const fileIndent = isLastItem ? '    ' : '│   '
+        console.log(`${itemPrefix}${basename(item.model.filePath)} [${item.statusInfo.status}]`)
+        const targetRel = relative(root, item.statusInfo.targetHtmlPath).replace(/\\/g, '/')
+        console.log(`${fileIndent}└── ${targetRel}`)
+      }
+    } else {
+      console.log(`${dirPrefix}${dirKey}`)
+      const items = groups.get(dirKey)
+      for (let j = 0; j < items.length; j++) {
+        const item = items[j]
+        const isLastItem = j === items.length - 1
+        const itemPrefix = isLastItem ? '└── ' : '├── '
+        const fileIndent = isLastItem ? '    ' : '│   '
+        console.log(`${childIndent}${itemPrefix}${basename(item.model.filePath)} [${item.statusInfo.status}]`)
+        const targetRel = relative(root, item.statusInfo.targetHtmlPath).replace(/\\/g, '/')
+        console.log(`${childIndent}${fileIndent}└── ${targetRel}`)
+      }
+    }
+  }
+}
+
 function injectSlots(blueprint, config, schema, model) {
   const slot = (id, json) =>
     blueprint.replace(
@@ -144,7 +272,9 @@ function injectSlots(blueprint, config, schema, model) {
 async function main() {
   const args = parseArgs(process.argv)
   if (!args.root) {
-    console.error('Usage: node scripts/export-console.mjs <workspaceRoot> [--list] [--all] [<ModelName>]')
+    console.error(
+      'Usage: node scripts/export-console.mjs <workspaceRoot> [--status] [--tree] [--list] [--all] [--stale] [--filter <pattern>] [<ModelName>]',
+    )
     process.exit(2)
   }
   const root = resolve(args.root)
@@ -155,10 +285,31 @@ async function main() {
   for (const f of await findModelFiles(root)) {
     const content = await readFile(f, 'utf-8')
     if (isLevel3(content)) {
-      models.push({ filePath: f, name: basename(f).replace(/\.md$/i, ''), content, fm: frontmatterOf(content) })
+      const stem = basename(f).replace(/(_NN)?\.md$/i, '')
+      models.push({
+        filePath: f,
+        name: stem,
+        content,
+        fm: frontmatterOf(content),
+      })
     }
   }
   models.sort((a, b) => a.filePath.localeCompare(b.filePath))
+
+  if (args.status) {
+    console.log(`Status (${models.length} model(s)):`)
+    for (const m of models) {
+      const rel = relative(root, m.filePath).replace(/\\/g, '/')
+      const info = await inspectModelStatus(m, root)
+      console.log(`  ${rel} [${info.status}]`)
+    }
+    return
+  }
+
+  if (args.tree) {
+    await renderTree(models, root)
+    return
+  }
 
   if (args.list) {
     console.log('Models:')
@@ -167,18 +318,44 @@ async function main() {
     return
   }
 
-  const selected = args.all
-    ? models
-    : args.model
-      ? models.filter(
-          (m) =>
-            m.name.toLowerCase().includes(args.model.toLowerCase()) ||
-            m.filePath.toLowerCase().includes(args.model.toLowerCase()),
-        )
-      : []
+  let candidateModels = models
+
+  if (args.filter) {
+    candidateModels = candidateModels.filter(
+      (m) =>
+        m.name.toLowerCase().includes(args.filter.toLowerCase()) ||
+        m.filePath.toLowerCase().includes(args.filter.toLowerCase()),
+    )
+  }
+
+  if (args.model) {
+    candidateModels = candidateModels.filter(
+      (m) =>
+        m.name.toLowerCase().includes(args.model.toLowerCase()) ||
+        m.filePath.toLowerCase().includes(args.model.toLowerCase()),
+    )
+  }
+
+  let selected = []
+  if (args.stale) {
+    for (const m of candidateModels) {
+      const info = await inspectModelStatus(m, root)
+      if (info.status !== 'fresh') {
+        selected.push(m)
+      }
+    }
+    if (selected.length === 0) {
+      console.log('All models are fresh. Nothing to export.')
+      return
+    }
+  } else if (args.all || args.filter || args.model) {
+    selected = candidateModels
+  }
 
   if (selected.length === 0) {
-    console.error('No models selected. Use --all or pass a model name/id substring.')
+    console.error(
+      'No models selected. Use --all, --stale, --filter <pattern>, or pass a model name/id substring.',
+    )
     process.exit(1)
   }
 
@@ -202,11 +379,13 @@ async function main() {
     const stem = m.name
     const modelVersion = String(m.fm.model_version ?? 'V_0-1-0')
     const elements = parseElements(m.content)
+    const sourceSha256 = computeSha256(m.content)
     const meta = {
       model: relative(root, m.filePath).replace(/\\/g, '/'),
       title: m.fm.title ?? stem,
       modelVersion,
       template: m.fm['parent_spec'] ? m.fm['parent_spec'] : undefined,
+      sha256: sourceSha256,
       generated: new Date().toISOString(),
       slug: elSlug(stem),
     }

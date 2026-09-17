@@ -181,10 +181,6 @@ agent-bootstrap:
       label: Transform a document
       description: Normalize a PDF/DOCX/XLSX into clean Markdown, or export to HTML.
       skill: nn-trannsform
-    - id: pdf-to-innfo-dashboard
-      label: PDF to iNNfo dashboard
-      description: Normalize a PDF, model it with iNNfo, and export an interactive deliverable.
-      skill: nn-trannsform
 ---
 
 # cogNNitive — bootstrap manifest
