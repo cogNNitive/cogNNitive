@@ -213,6 +213,34 @@ agent-bootstrap:
   }
 }
 
+// 6. projectSkillsToAgents multi-agent projection test
+{
+  const { projectSkillsToAgents } = require('./lib/skills-commands.js');
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'actioNN-test-project-'));
+  const canonicalSkillsDir = path.join(tmpDir, '.agents', 'skills');
+  const skillSample = path.join(canonicalSkillsDir, 'nn-sample');
+  fs.mkdirSync(skillSample, { recursive: true });
+  fs.writeFileSync(path.join(skillSample, 'SKILL.md'), '# Sample Skill', 'utf-8');
+
+  const projections = projectSkillsToAgents({
+    canonicalSkillsDir,
+    homedir: tmpDir,
+    targetAgent: 'all',
+    silent: true,
+  });
+
+  assert(projections.some(p => p.agent === 'opencode' && p.skill === 'nn-sample'), 'Projected to OpenCode');
+  assert(projections.some(p => p.agent === 'claude' && p.skill === 'nn-sample'), 'Projected to Claude');
+  assert(projections.some(p => p.agent === 'antigravity' && p.skill === 'nn-sample'), 'Projected to Antigravity');
+
+  assert(fs.existsSync(path.join(tmpDir, '.config', 'opencode', 'skills', 'nn-sample', 'SKILL.md')));
+  assert(fs.existsSync(path.join(tmpDir, '.claude', 'skills', 'nn-sample', 'SKILL.md')));
+  assert(fs.existsSync(path.join(tmpDir, '.gemini', 'config', 'skills', 'nn-sample', 'SKILL.md')));
+
+  console.log('✔ projectSkillsToAgents multi-agent projection test passed');
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+}
+
 console.log('All skills-manager unit tests passed successfully!');
 }
 
