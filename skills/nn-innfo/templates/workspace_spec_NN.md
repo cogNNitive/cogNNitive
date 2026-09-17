@@ -25,26 +25,26 @@ relationship_types:
 # NN index
 
 * [[Workspace]]
-* [[Specs]]
-* [[Templates]]
 * [[Models]]
+* [[Templates]]
+* [[Specs]]
 * [[Sources]]
 * [[Procedures]]
 * [[Artifacts]]
 * [[Skills]]
 * [[Tools]]
-* [[Tag]]
+* [[Tags]]
 
 # NN Concept Definition
 
 ## NN Concept Definition: Workspace
 icon:: layout-dashboard
 type:: text
-color:: blue
+color:: grey
 weight:: 100
 
-## NN Concept Definition: Specs
-icon:: book-open
+## NN Concept Definition: Models
+icon:: file-symlink
 type:: model
 color:: purple
 weight:: 95
@@ -52,49 +52,49 @@ weight:: 95
 ## NN Concept Definition: Templates
 icon:: copy
 type:: model
-color:: indigo
+color:: grey
 weight:: 90
 
-## NN Concept Definition: Models
-icon:: file-symlink
+## NN Concept Definition: Specs
+icon:: book-open
 type:: model
-color:: blue
+color:: grey
 weight:: 85
 
 ## NN Concept Definition: Sources
 icon:: file-input
 type:: model
-color:: cyan
+color:: grey
 weight:: 80
 
 ## NN Concept Definition: Procedures
 icon:: workflow
 type:: model
-color:: emerald
+color:: grey
 weight:: 75
 
 ## NN Concept Definition: Artifacts
 icon:: file-output
 type:: model
-color:: amber
+color:: grey
 weight:: 70
 
 ## NN Concept Definition: Skills
 icon:: bot
 type:: list
-color:: amber
+color:: grey
 weight:: 65
 
 ## NN Concept Definition: Tools
 icon:: wrench
 type:: list
-color:: slate
+color:: grey
 weight:: 60
 
-## NN Concept Definition: Tag
+## NN Concept Definition: Tags
 icon:: tag
 type:: category
-color:: purple
+color:: grey
 weight:: 50
 
 # NN Field Definition
@@ -243,20 +243,20 @@ type:: select
 options:: [node, python, bash, powershell]
 description:: Execution runtime required for this tool.
 
-<!-- Tag fields -->
+<!-- Tags fields -->
 
 ## NN Field Definition: color
-concept:: Tag
+concept:: Tags
 type:: string
 description:: Hex color code (e.g. #10b981) or CSS token for tag badges and highlights.
 
 ## NN Field Definition: icon
-concept:: Tag
+concept:: Tags
 type:: string
 description:: Icon identifier (e.g. Lucide icon name) displayed with the tag badge.
 
 ## NN Field Definition: description
-concept:: Tag
+concept:: Tags
 type:: string
 description:: Semantic description, strategic intent, or scope of the tag.
 
@@ -268,22 +268,6 @@ symbol:: >
 icon:: shield-check
 color:: green
 
-# NN Matrix Definition
-
-## NN Matrix Definition: Artifact-Source Lineage
-source:: Artifacts
-target:: Sources
-values:: [X]
-widget:: boolean
-description:: Optional projection view of the derived_from_inputs references — which Artifact draws on which Source.
-
-## NN Matrix Definition: Model-Source Lineage
-source:: Models
-target:: Sources
-values:: [X]
-widget:: boolean
-description:: Optional projection view of the derived_from references — which Model consumes which Source.
-
 # Workspace Specification Template
 
 ## A level-2 unified template for the workspace root manifest — linking domain models, specs, templates, sources, procedures, artifacts, skills, tools, and taxonomy tags
@@ -292,15 +276,15 @@ description:: Optional projection view of the derived_from references — which 
 
 A workspace manifest is the single source of truth for workspace topology, execution context, and data lineage:
 * **Workspace** sets directory conventions and environment parameters (`models_dir`, `sources_dir`, `templates_dir`, `skills_dir`).
-* **Specs** links to formal grammar specifications via `type:: model`.
-* **Templates** links to available template packages via `type:: model`.
 * **Models** links to domain model files with metadata and derivation edges.
+* **Templates** links to available template packages via `type:: model`.
+* **Specs** links to formal grammar specifications via `type:: model`.
 * **Sources** links to `sources_NN.md` catalog via `type:: model`.
 * **Procedures** links to `procedures_NN.md` catalog via `type:: model`.
 * **Artifacts** links to `artifacts_NN.md` catalog via `type:: model`.
 * **Skills** links to agent capability definitions (`SKILL.md`) via `type:: file`.
 * **Tools** links to executable maintenance scripts via `type:: file`.
-* **Tag** provides a centralized taxonomy catalog (`color`, `icon`, `description`) used across the workspace.
+* **Tags** provides a centralized taxonomy catalog (`color`, `icon`, `description`) used across the workspace.
 
 ## Specification
 
@@ -309,15 +293,167 @@ A workspace manifest is the single source of truth for workspace topology, execu
 | Concept | Type | PROV Role | Purpose |
 |---|---|---|---|
 | **Workspace** | text | — | Prose description and configuration parameters of the workspace |
-| **Specs** | model | Plan | Formal language specifications (Level 0 / Level 1) |
-| **Templates** | model | Plan | Level 2 domain templates available for instantiation |
 | **Models** | model | Entity | Domain model files in the workspace with metadata and derivation |
+| **Templates** | model | Plan | Level 2 domain templates available for instantiation |
+| **Specs** | model | Plan | Formal language specifications (Level 0 / Level 1) |
 | **Sources** | model | Entity | Link to the Sources catalog model |
 | **Procedures** | model | Activity | Link to the Procedures catalog model |
 | **Artifacts** | model | Entity | Link to the Artifacts catalog model |
 | **Skills** | file | Agent | Link to standard agent SKILL.md files |
 | **Tools** | file | Agent | Link to executable tool scripts and runners |
-| **Tag** | category | — | Centralized taxonomy tags with color, icon, and description |
+| **Tags** | category | — | Centralized taxonomy tags with color, icon, and description |
+
+## Workspace
+
+### Summary
+Root configuration and narrative overview of the workspace container.
+
+### Description
+The Workspace concept holds environment settings, directory layout paths, and executive summary notes. It acts as the anchor root for tree navigation and tool resolution across the entire repository.
+
+### Methodologies
+- Single source of truth (SSOT) directory anchoring.
+- Convention over configuration for folder structures.
+
+### Prompts
+- "Configure workspace directory conventions and environment targets."
+- "Describe the operational scope and purpose of this workspace."
+
+## Models
+
+### Summary
+Inventory of domain models (Level 3) belonging to the workspace.
+
+### Description
+Lists all active, draft, or archived domain model documents in `models/`, tracking author attribution, template conformance, and PROV derivation lineage.
+
+### Methodologies
+- Entity lifecycle tracking (`draft`, `active`, `archived`).
+- W3C PROV-DM derivation linking to primary Sources and generating Procedures.
+
+### Prompts
+- "Scan and catalog all domain models under models/ with their template bindings."
+
+## Templates
+
+### Summary
+Catalog of domain templates (Level 2) available for model authoring.
+
+### Description
+Links to Level 2 domain templates (such as Business Model, Procedures, Organization, or custom specializations) installed or referenced in the workspace.
+
+### Methodologies
+- Template composition and inheritance.
+- Local override and specialization hierarchy.
+
+### Prompts
+- "List available Level 2 domain templates and their category bindings."
+
+## Specs
+
+### Summary
+Inventory of formal language grammar specifications (Level 0 / Level 1).
+
+### Description
+Declares the foundational formal grammars and metaplantillas referenced by templates and models within this workspace (e.g. `iNNfo_V_0-2-1_NN.md`).
+
+### Methodologies
+- Strict semantic versioning for grammar evolution.
+- Backward compatibility verification.
+
+### Prompts
+- "Register formal language specifications in the workspace manifest."
+
+## Sources
+
+### Summary
+Primary input catalog linking raw evidence and normalized sources.
+
+### Description
+Points to the workspace Sources Catalog model (`sources_NN.md`), establishing immutable provenance links to business documents, contracts, CSVs, and scans.
+
+### Methodologies
+- Immutable primary sources with SHA-256 provenance hashes.
+- Two-tier storage (`sources/original/` and `sources/nn/`).
+
+### Prompts
+- "Bind sources catalog to workspace and verify document lineage."
+
+## Procedures
+
+### Summary
+Executable procedures catalog for workflows, transformations, and migrations.
+
+### Description
+Points to `procedures_NN.md` containing executable transformation workflows, automated pipeline steps, and the **Workspace In-Place Migration & Upgrade Procedure**.
+
+### Methodologies
+- **Workspace In-Place Migration & Upgrade Procedure**:
+  1. *Discovery*: Scan `models/`, `specs/`, `sources/`, `procedures/` for legacy frontmatters.
+  2. *Normalization*: Strip invalid `# NN index` from Level 3 models, format text concepts without headings, deduplicate slugs.
+  3. *Re-binding*: Point `parent_spec` to canonical unified URLs and bind local templates.
+  4. *Synthesis & Validation*: Regenerate `workspace_NN.md` manifest and validate with 0 errors/warnings.
+
+### Prompts
+- "Execute Workspace In-Place Migration & Upgrade procedure on legacy workspace."
+- "Inspect executable procedures in procedures_NN.md."
+
+## Artifacts
+
+### Summary
+Catalog of synthesized outputs, projections, and reports.
+
+### Description
+Points to `artifacts_NN.md`, tracking generated reports, calculations, visual charts, and exports derived from domain models.
+
+### Methodologies
+- Derived artifact tracking with input lineage.
+- Multi-format publishing (HTML, Markdown, PDF).
+
+### Prompts
+- "Register synthesized outputs and deliverables in artifacts catalog."
+
+## Skills
+
+### Summary
+AI agent capabilities and persona definitions available in the workspace.
+
+### Description
+Links to agent `SKILL.md` definitions that provide specialized conversational wizards, linters, and transformation agents.
+
+### Methodologies
+- Agent skill discovery and progressive prompt loading.
+
+### Prompts
+- "List agent skills installed in the workspace."
+
+## Tools
+
+### Summary
+Executable CLI tools, scripts, and runtime utilities.
+
+### Description
+Links to Node.js, Python, or shell automation scripts used for workspace hygiene, builds, and integrity checks.
+
+### Methodologies
+- Automated test and integrity gating.
+
+### Prompts
+- "Register maintenance scripts and runtime utilities in workspace."
+
+## Tags
+
+### Summary
+Taxonomy category definitions with visual branding and color tokens.
+
+### Description
+Declares workspace-wide taxonomy tags, hex colors, and icon identifiers used to classify and filter concepts and elements.
+
+### Methodologies
+- Semantic color assignment and icon consistency.
+
+### Prompts
+- "Define domain tags with semantic colors and icons."
 
 ## Template
 
@@ -336,40 +472,9 @@ title: "<Workspace Name>"
 > [!NOTE]
 > This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor or view and edit it with [cogNNitive](https://cognnitive.com/innfo/app/innfo-doc).
 
-# NN index
-
-* [[Workspace]]
-* [[Specs]]
-* [[Templates]]
-* [[Models]]
-* [[Sources]]
-* [[Procedures]]
-* [[Artifacts]]
-* [[Skills]]
-* [[Tools]]
-* [[Tag]]
-
 # NN Workspace
-name:: "<Workspace Name>"
-environment:: development
-models_dir:: models/
-sources_dir:: sources/nn/
-templates_dir:: templates/
-skills_dir:: skills/
 
 Description of the workspace: its purpose, scope, and conventions.
-
-# NN Specs
-
-## NN Specs: iNNfo Metaplantilla N1
-path:: specs/iNNfo_V_0-2-1_NN.md
-level:: 1
-
-# NN Templates
-
-## NN Templates: Business Model Template
-path:: templates/business/spec_NN.md
-category:: Strategy
 
 # NN Models
 
@@ -378,6 +483,18 @@ path:: models/business_NN.md
 template:: business
 status:: active
 author:: Lead Architect
+
+# NN Templates
+
+## NN Templates: Business Model Template
+path:: templates/business/spec_NN.md
+category:: Strategy
+
+# NN Specs
+
+## NN Specs: iNNfo Metaplantilla N1
+path:: specs/iNNfo_V_0-2-1_NN.md
+level:: 1
 
 # NN Sources
 
@@ -406,10 +523,10 @@ role:: Conversational Architecture Coach
 path:: tools/check_integrity.mjs
 runtime:: node
 
-# NN Tag
+# NN Tags
 
-## NN Tag: architecture
+## NN Tags: Strategic
 color:: #3b82f6
-icon:: layers
-description:: Foundational architecture and patterns.
+icon:: target
+description:: High-level strategic models.
 ```

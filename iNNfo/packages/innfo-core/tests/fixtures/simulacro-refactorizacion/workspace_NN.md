@@ -1,4 +1,4 @@
-﻿---
+---
 level: 3
 parent_spec:
   name: workspace
@@ -16,7 +16,7 @@ title: Solaris Technologies Workspace
 * [[Procedures]]
 * [[Artifacts]]
 * [[Skills]]
-* [[Tag]]
+* [[Tags]]
 
 # NN Workspace
 name:: Solaris Technologies Workspace
@@ -63,9 +63,9 @@ path:: artifacts/artifacts_NN.md
 path:: skills/nn-innfo/SKILL.md
 role:: Conversational Architecture Coach
 
-# NN Tag
+# NN Tags
 
-## NN Tag: solar
+## NN Tags: solar
 color:: #f59e0b
 icon:: sun
 description:: Photovoltaic and solar grid architecture.

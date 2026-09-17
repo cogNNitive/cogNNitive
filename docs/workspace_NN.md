@@ -14,7 +14,7 @@ title: "cogNNitive Documentation Workspace"
 
 * [[Workspace]]
 * [[Models]]
-* [[Tag]]
+* [[Tags]]
 
 # NN Workspace
 
@@ -34,24 +34,24 @@ template:: documentation_V_0-2-0
 status:: active
 author:: cogNNitive Maintainers
 
-# NN Tag
+# NN Tags
 
-## NN Tag: architecture
+## NN Tags: architecture
 color:: #3b82f6
 icon:: layers
 description:: Foundational architecture, domain patterns, and core abstractions.
 
-## NN Tag: specification
+## NN Tags: specification
 color:: #8b5cf6
 icon:: file-code
 description:: Formal meta-templates, grammars, and syntax standards.
 
-## NN Tag: tooling
+## NN Tags: tooling
 color:: #10b981
 icon:: wrench
 description:: Compilers, parsers, MCP servers, and developer workflow tools.
 
-## NN Tag: strategy
+## NN Tags: strategy
 color:: #f59e0b
 icon:: compass
 description:: Strategic planning, roadmaps, and business model initiatives.

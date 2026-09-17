@@ -21,7 +21,7 @@ title: \cogNNitive Monorepo Workspace\
 * [[Artifacts]]
 * [[Skills]]
 * [[Tools]]
-* [[Tag]]
+* [[Tags]]
 
 # NN Workspace
 name:: \cogNNitive Ecosystem\
@@ -204,24 +204,24 @@ runtime:: node
 path:: ../scripts/guard-text-encoding.js
 runtime:: node
 
-# NN Tag
+# NN Tags
 
-## NN Tag: architecture
+## NN Tags: architecture
 color:: #3b82f6
 icon:: layers
 description:: Core semantic architecture, specs, and metamodels.
 
-## NN Tag: engineering
+## NN Tags: engineering
 color:: #10b981
 icon:: git-branch
 description:: Engineering workflows, CI pipelines, and lifecycle tooling.
 
-## NN Tag: strategy
+## NN Tags: strategy
 color:: #8b5cf6
 icon:: lightbulb
 description:: High-level business models, market positioning, and strategic planning.
 
-## NN Tag: operations
+## NN Tags: operations
 color:: #f59e0b
 icon:: workflow
 description:: Daily standard operating procedures and field execution.
