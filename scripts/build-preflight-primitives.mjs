@@ -11,7 +11,7 @@
  * every direction — the bundle is the one shared classifier (design AD-2).
  *
  *   input : iNNfo/packages/innfo-core/src/workspace/integrity/versionStatus.ts
- *   output: actioNN/skills/nn-preflight/scripts/lib/version-status.generated.cjs
+ *   output: skills/nn-preflight/scripts/lib/version-status.generated.cjs
  *
  * Usage:
  *   node scripts/build-preflight-primitives.mjs [--check] [--out <file>]

@@ -46,7 +46,7 @@ export const WORKSPACE_PRESETS: Record<string, WorkspacePreset> = {
     description: 'Battery tech episode script and studio production procedures.',
     modelUrls: [
       `${RAW_GITHUB_BASE}/docs/samples/use-cases/youtube-creator/models/Episode_42_Battery_Tech_V_1-0-0_video_script_NN.md`,
-      `${RAW_GITHUB_BASE}/docs/samples/use-cases/youtube-creator/models/Episode_42_Production_V_1-0-0_procedures_NN.md`,
+      `${RAW_GITHUB_BASE}/docs/samples/use-cases/youtube-creator/procedures/Episode_42_Production_V_1-0-0_procedures_NN.md`,
     ],
     templateName: 'procedures',
   },

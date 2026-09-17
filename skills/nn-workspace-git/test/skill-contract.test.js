@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * actioNN/skills/nn-workspace-git/test/skill-contract.test.js
+ * skills/nn-workspace-git/test/skill-contract.test.js
  *
  * Persisted fixture checks for the nn-workspace-git skill contract
  * (change 2026-09-09-nn-workspace-git-plus-collaboration-git-docs).
@@ -10,7 +10,7 @@
  * backup-workspace.test.js). Uses the repo's yaml-lite subset parser for
  * frontmatter. Run with:
  *
- *   node actioNN/skills/nn-workspace-git/test/skill-contract.test.js
+ *   node skills/nn-workspace-git/test/skill-contract.test.js
  *
  * Covers the spec scenarios that are mechanically testable:
  *   1. SKILL.md frontmatter contract (Explicit Invocation Gate)
@@ -25,8 +25,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { parseFrontmatter, parseFocusedYaml } = require('../../../scripts/lib/yaml-lite.js');
 
-const REPO_ROOT = path.join(__dirname, '..', '..', '..', '..');
-const SKILL_PATH = path.join(REPO_ROOT, 'actioNN', 'skills', 'nn-workspace-git', 'SKILL.md');
+const REPO_ROOT = path.join(__dirname, '..', '..', '..');
+const SKILL_PATH = path.join(REPO_ROOT, 'skills', 'nn-workspace-git', 'SKILL.md');
 const DOC_PATH = path.join(REPO_ROOT, 'docs', 'innfo', 'documentation', 'collaboration-git.md');
 const MODEL_PATH = path.join(REPO_ROOT, 'docs', 'innfo', 'documentation', 'documentation_NN.md');
 const SIDEBAR_PATH = path.join(REPO_ROOT, 'docs', 'innfo', 'documentation', '_sidebar.md');

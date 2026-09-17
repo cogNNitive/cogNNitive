@@ -45,4 +45,4 @@ sources:: [enterprise_rfp_fintech.md#rate-card-compliance]
 
 ## NN Element: Banking Grade Security SLA
 iso_baseline:: ISO-27001 / SOC2 Type II
-sources:: [enterprise_rfp_fintech.md#compliance--security-baseline]
+sources:: [enterprise_rfp_fintech.md#compliance-security-baseline]

@@ -144,8 +144,10 @@ function classifyFile(relPath) {
     return 'source'
   if (relPath.startsWith('docs') && relPath.endsWith('.md')) return 'doc'
   if (relPath.startsWith('.agents') && relPath.endsWith('.md')) return 'skill'
-  // Sibling skills tree scanned via --with-skills (e.g. ../actioNN/skills/...).
+  // Repo-local skills (`skills/`, since the actioNN consolidation) and the
+  // legacy sibling tree scanned via --with-skills (e.g. ../actioNN/skills/...).
   const normalized = relPath.replace(/\\/g, '/')
+  if (normalized.startsWith('skills/') && relPath.endsWith('.md')) return 'skill'
   if (normalized.includes('actioNN/skills/') && relPath.endsWith('.md')) return 'skill'
   // specs/CHANGELOG.md was removed by spec-versioning — root CHANGELOG.md is
   // now the only changelog.
@@ -300,6 +302,9 @@ function isUrlResolutionTarget(rel) {
   if (rel.startsWith('docs/') && !rel.endsWith('_NN.md')) return false
   if (rel.endsWith('.ts') || rel.endsWith('.vue')) return true
   if (rel.endsWith('_NN.md')) return true
+  // Repo-local skills (`skills/`, since the actioNN consolidation) and the
+  // legacy sibling tree scanned via --with-skills (`actioNN/skills/`).
+  if (rel.startsWith('skills/') && rel.endsWith('.md')) return true
   if (rel.includes('actioNN/skills/') && rel.endsWith('.md')) return true
   return false
 }

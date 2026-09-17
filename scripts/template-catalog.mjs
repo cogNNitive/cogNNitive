@@ -5,7 +5,7 @@
  *
  * Generates iNNfo/specs/templates/catalog.json — the machine-readable Level-2
  * template catalog consumed by the nn-preflight Tier-3 upgrade detection scan
- * (actioNN/skills/nn-preflight/scripts/upgrade-check.js).
+ * (skills/nn-preflight/scripts/upgrade-check.js).
  *
  * Discovery rules:
  *   - Walks the templates tree for level-2 documents only (skips samples/).

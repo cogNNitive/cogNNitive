@@ -22,7 +22,7 @@ title: "SaaS Startup Business Model & Validation"
 
 ## NN Element: Living Knowledge with Zero Lock-in
 description:: Mathematical traceability and Git-governed knowledge base that keeps docs living.
-sources:: [customer_discovery.md#defensibility--value-proposition]
+sources:: [customer_discovery.md#defensibility-value-proposition]
 
 ## NN Element: Multi-Tool Consolidation
 description:: Unifies fragmented Notion, Confluence, and Doc files into a single verifiable source of truth.
@@ -40,7 +40,7 @@ sources:: [customer_discovery.md#prospect-feedback-engineering-cto]
 ## NN Element: Team Subscription Tier
 price:: $49/seat/month
 approval_threshold:: Sub-$500/month departmental self-serve approval limit.
-sources:: [customer_discovery.md#enterprise-budget-cap--pricing]
+sources:: [customer_discovery.md#enterprise-budget-cap-pricing]
 
 # NN Concept: KeyResource
 

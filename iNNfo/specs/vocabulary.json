@@ -27,12 +27,11 @@
       "sense": "Skill ecosystem, execution engine, and dynamic AI persona framework for cogNNitive",
       "excludes": ["generic-agent", "subagent-runtime"],
       "stable_identifiers": [
-        "actioNN/",
-        "actioNN/skills/",
-        "actioNN/scripts/"
+        "skills/",
+        "scripts/skills-manager.js"
       ],
       "planned_migrations": [
-        "actioNN/ -> ageNNt/ in monorepo root",
+        "actioNN/skills/ -> skills/ in monorepo root (done 2026-09-16; the earlier actioNN/ -> ageNNt/ rename was abandoned in favor of a flat root skills/ directory)",
         "actioNN URL references"
       ]
     },

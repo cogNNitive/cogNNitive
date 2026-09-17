@@ -35,7 +35,7 @@ function buildHarnessConsole(tag: string): string {
 
 const require = createRequire(import.meta.url)
 const converters = require(
-  '../../../../actioNN/skills/nn-trannsform/scripts/lib/scanner-converters.js',
+  '../../../../skills/nn-trannsform/scripts/lib/scanner-converters.js',
 ) as {
   isFeedbackJsonPath: (p: string) => boolean
   validateFeedbackJson: (doc: unknown) => { meta: Record<string, unknown>; items: unknown[] }

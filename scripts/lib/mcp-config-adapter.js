@@ -167,17 +167,49 @@ function registerMcpForClaude(options) {
 }
 
 /**
- * Registers an MCP server in Antigravity configuration (~/.gemini/antigravity.json).
+ * Registers an MCP server in Antigravity configuration.
+ * Supports ~/.gemini/antigravity/mcp_config.json and ~/.gemini/config/mcp_config.json.
  * @param {{
- *   configFile: string,
+ *   configFile?: string,
  *   serverName?: string,
  *   bundlePath: string,
+ *   homedir?: string,
  * }} options
- * @returns {{ agent: 'antigravity', file: string, updated: boolean }}
+ * @returns {Array<{ agent: 'antigravity', file: string, updated: boolean }>}
  */
 function registerMcpForAntigravity(options) {
-  const res = registerMcpServersFormat({ ...options, agent: 'antigravity' });
-  return { agent: 'antigravity', file: res.file, updated: res.updated };
+  const serverName = options.serverName || 'innfo-mcp';
+  const bundlePath = options.bundlePath;
+  const homedir = options.homedir || os.homedir();
+
+  if (options.configFile) {
+    const res = registerMcpServersFormat({
+      agent: 'antigravity',
+      configFile: options.configFile,
+      serverName,
+      bundlePath,
+    });
+    return [{ agent: 'antigravity', file: res.file, updated: res.updated }];
+  }
+
+  const geminiDir = path.join(homedir, '.gemini');
+  const candidateFiles = [
+    path.join(geminiDir, 'antigravity', 'mcp_config.json'),
+    path.join(geminiDir, 'config', 'mcp_config.json'),
+  ];
+
+  /** @type {Array<{ agent: 'antigravity', file: string, updated: boolean }>} */
+  const results = [];
+  for (const file of candidateFiles) {
+    const res = registerMcpServersFormat({
+      agent: 'antigravity',
+      configFile: file,
+      serverName,
+      bundlePath,
+    });
+    results.push({ agent: 'antigravity', file: res.file, updated: res.updated });
+  }
+  return results;
 }
 
 /**
@@ -199,7 +231,6 @@ function registerMcpAuto({ bundlePath, serverName = 'innfo-mcp', homedir = os.ho
   const opencodeJsonc = path.join(opencodeDir, 'opencode.jsonc');
   const claudeJson = path.join(homedir, '.claude.json');
   const geminiDir = path.join(homedir, '.gemini');
-  const antigravityJson = path.join(geminiDir, 'antigravity.json');
 
   if (normalizedAgent === 'opencode') {
     const targetFile = fs.existsSync(opencodeJsonc) && !fs.existsSync(opencodeJson) ? opencodeJsonc : opencodeJson;
@@ -213,7 +244,15 @@ function registerMcpAuto({ bundlePath, serverName = 'innfo-mcp', homedir = os.ho
   }
 
   if (normalizedAgent === 'antigravity') {
-    results.push(registerMcpForAntigravity({ configFile: antigravityJson, serverName, bundlePath }));
+    results.push(...registerMcpForAntigravity({ homedir, serverName, bundlePath }));
+    return results;
+  }
+
+  if (normalizedAgent === 'all') {
+    const targetFile = fs.existsSync(opencodeJsonc) && !fs.existsSync(opencodeJson) ? opencodeJsonc : opencodeJson;
+    results.push(registerMcpForOpenCode({ configFile: targetFile, serverName, bundlePath }));
+    results.push(registerMcpForClaude({ configFile: claudeJson, serverName, bundlePath }));
+    results.push(...registerMcpForAntigravity({ homedir, serverName, bundlePath }));
     return results;
   }
 
@@ -227,14 +266,14 @@ function registerMcpAuto({ bundlePath, serverName = 'innfo-mcp', homedir = os.ho
   }
 
   // Check Claude Code
-  if (fs.existsSync(claudeJson) || process.env.CLAUDE_CODE || process.env.CLAUDE_PROJECT_DIR) {
+  if (fs.existsSync(claudeJson) || fs.existsSync(path.join(homedir, '.claude')) || process.env.CLAUDE_CODE || process.env.CLAUDE_PROJECT_DIR) {
     results.push(registerMcpForClaude({ configFile: claudeJson, serverName, bundlePath }));
     matchedAny = true;
   }
 
-  // Check Antigravity
+  // Check Antigravity / Gemini
   if (fs.existsSync(geminiDir) || process.env.ANTIGRAVITY || process.env.GEMINI_CLI) {
-    results.push(registerMcpForAntigravity({ configFile: antigravityJson, serverName, bundlePath }));
+    results.push(...registerMcpForAntigravity({ homedir, serverName, bundlePath }));
     matchedAny = true;
   }
 

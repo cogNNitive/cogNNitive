@@ -98,7 +98,7 @@ Commands:
 
 Flags:
   --scope <scope>        Installation scope: global (default, ~/.agents/) or workspace (./.agents/)
-  --agent <agent>        Target agent for MCP config: auto (default), opencode, claude, antigravity
+  --agent <agent>        Target agent for MCP/Skills: auto (default), all, opencode, claude, antigravity
   --skills-dir <dir>     Skills directory (default: ~/.agents/skills)
   --templates-dir <dir>  Templates directory (default: ~/.agents/templates)
   --mcp-dir <dir>        MCP bundle directory (default: ~/.agents/mcp)

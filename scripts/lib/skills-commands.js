@@ -868,10 +868,16 @@ async function cmdBootstrap(args) {
     }
   }
 
-  // 6. Save state
+  // 6. Project skills to agent directories (OpenCode, Claude Code, Antigravity)
+  projectSkillsToAgents({
+    canonicalSkillsDir: args.skillsDir,
+    targetAgent: args.agent,
+  });
+
+  // 7. Save state
   saveState(args.stateFile, state);
 
-  // 7. Summary and workflows
+  // 8. Summary and workflows
   console.log(`\nBootstrap completed successfully! All components up-to-date.`);
   if (manifest.workflows && manifest.workflows.length > 0) {
     console.log(`\nAvailable workflows:`);
@@ -879,6 +885,126 @@ async function cmdBootstrap(args) {
       console.log(`  ${idx + 1}. ${wf.label} (${wf.skill}) — ${wf.description}`);
     });
   }
+}
+
+/**
+ * Projects installed skills from canonical ~/.agents/skills/ into specific agent skill directories.
+ * Target agents:
+ * - OpenCode: ~/.config/opencode/skills/
+ * - Claude Code: ~/.claude/skills/
+ * - Antigravity: ~/.gemini/config/skills/
+ *
+ * @param {{
+ *   canonicalSkillsDir: string,
+ *   homedir?: string,
+ *   targetAgent?: string,
+ *   silent?: boolean,
+ * }} options
+ * @returns {Array<{ agent: string, targetDir: string, skill: string, method: 'symlink' | 'copy' }>}
+ */
+function projectSkillsToAgents({ canonicalSkillsDir, homedir = os.homedir(), targetAgent = 'auto', silent = false }) {
+  if (!fs.existsSync(canonicalSkillsDir)) return [];
+
+  let skillEntries = [];
+  try {
+    skillEntries = fs.readdirSync(canonicalSkillsDir).filter(name => {
+      return !name.startsWith('.') && fs.statSync(path.join(canonicalSkillsDir, name)).isDirectory();
+    });
+  } catch {
+    return [];
+  }
+
+  if (skillEntries.length === 0) return [];
+
+  const normalizedAgent = (targetAgent || 'auto').toLowerCase();
+  /** @type {Array<{ agent: string, targetDir: string, skill: string, method: 'symlink' | 'copy' }>} */
+  const projections = [];
+
+  const agentTargets = [];
+  const opencodeSkillsDir = path.join(homedir, '.config', 'opencode', 'skills');
+  const claudeSkillsDir = path.join(homedir, '.claude', 'skills');
+  const geminiSkillsDir = path.join(homedir, '.gemini', 'config', 'skills');
+
+  if (normalizedAgent === 'opencode' || normalizedAgent === 'all') {
+    agentTargets.push({ agent: 'opencode', dir: opencodeSkillsDir });
+  }
+  if (normalizedAgent === 'claude' || normalizedAgent === 'all') {
+    agentTargets.push({ agent: 'claude', dir: claudeSkillsDir });
+  }
+  if (normalizedAgent === 'antigravity' || normalizedAgent === 'all') {
+    agentTargets.push({ agent: 'antigravity', dir: geminiSkillsDir });
+  }
+
+  if (normalizedAgent === 'auto') {
+    if (fs.existsSync(path.join(homedir, '.config', 'opencode')) || process.env.OPENCODE_SESSION_ID || process.env.OPENCODE_RUN_ID) {
+      agentTargets.push({ agent: 'opencode', dir: opencodeSkillsDir });
+    }
+    if (fs.existsSync(path.join(homedir, '.claude')) || fs.existsSync(path.join(homedir, '.claude.json')) || process.env.CLAUDE_CODE || process.env.CLAUDE_PROJECT_DIR) {
+      agentTargets.push({ agent: 'claude', dir: claudeSkillsDir });
+    }
+    if (fs.existsSync(path.join(homedir, '.gemini')) || process.env.ANTIGRAVITY || process.env.GEMINI_CLI) {
+      agentTargets.push({ agent: 'antigravity', dir: geminiSkillsDir });
+    }
+    if (agentTargets.length === 0) {
+      agentTargets.push({ agent: 'opencode', dir: opencodeSkillsDir });
+      agentTargets.push({ agent: 'claude', dir: claudeSkillsDir });
+      agentTargets.push({ agent: 'antigravity', dir: geminiSkillsDir });
+    }
+  }
+
+  for (const target of agentTargets) {
+    fs.mkdirSync(target.dir, { recursive: true });
+    for (const skill of skillEntries) {
+      const src = path.join(canonicalSkillsDir, skill);
+      const dest = path.join(target.dir, skill);
+
+      if (path.resolve(src) === path.resolve(dest)) continue;
+
+      /** @type {'symlink' | 'copy'} */
+      let method = 'symlink';
+      let symlinkSuccess = false;
+
+      if (fs.existsSync(dest)) {
+        try {
+          const lstat = fs.lstatSync(dest);
+          if (lstat.isSymbolicLink()) {
+            symlinkSuccess = true;
+          }
+        } catch {}
+      }
+
+      if (!symlinkSuccess && !fs.existsSync(dest)) {
+        try {
+          const symlinkType = process.platform === 'win32' ? 'junction' : 'dir';
+          fs.symlinkSync(src, dest, symlinkType);
+          symlinkSuccess = true;
+        } catch {
+          symlinkSuccess = false;
+        }
+      }
+
+      if (!symlinkSuccess) {
+        copyDirRecursive(src, dest);
+        method = 'copy';
+      }
+
+      projections.push({ agent: target.agent, targetDir: target.dir, skill, method });
+    }
+  }
+
+  if (!silent && projections.length > 0) {
+    console.log(`\nProjected skills to agent directories:`);
+    const grouped = {};
+    for (const p of projections) {
+      if (!grouped[p.agent]) grouped[p.agent] = [];
+      grouped[p.agent].push(p.skill);
+    }
+    for (const [agent, skills] of Object.entries(grouped)) {
+      console.log(`  ✓ ${agent}: ${skills.length} skill(s) synchronized`);
+    }
+  }
+
+  return projections;
 }
 
 module.exports = {
@@ -912,6 +1038,7 @@ module.exports = {
   installTemplateAtCommit,
   installMcpAtCommit,
   installConsoleAssetAtCommit,
+  projectSkillsToAgents,
   printStatusTable,
   promptChoice,
   isConsent,

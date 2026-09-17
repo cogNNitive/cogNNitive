@@ -26,7 +26,7 @@ sources:: [master_rate_card_2026.md#principal-architect-standard-rate, fintech_c
 ## NN Element: Elena Rostova
 title:: Lead Security Specialist
 clearance:: CISSP / ISO-27001 Lead Auditor
-sources:: [master_rate_card_2026.md#senior-cloud-security-specialist-rate, enterprise_rfp_fintech.md#compliance--security-baseline]
+sources:: [master_rate_card_2026.md#senior-cloud-security-specialist-rate, enterprise_rfp_fintech.md#compliance-security-baseline]
 
 # NN Concept: AssignedRole
 

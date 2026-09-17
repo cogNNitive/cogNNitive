@@ -89,11 +89,13 @@ function fetchString(url, redirectsLeft = 5) {
     const client = clientFor(url);
     const req = client.get(url, { headers: { 'User-Agent': USER_AGENT, ...authHeaders() } }, (res) => {
       if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        if (typeof res.resume === 'function') res.resume();
         if (redirectsLeft <= 0) return reject(new Error(`Too many redirects fetching ${url}`));
         const nextUrl = new URL(res.headers.location, url).toString();
         return resolve(fetchString(nextUrl, redirectsLeft - 1));
       }
       if (res.statusCode !== 200) {
+        if (typeof res.resume === 'function') res.resume();
         return reject(new Error(`Failed to fetch ${url}, status: ${res.statusCode}`));
       }
       let data = '';
@@ -115,7 +117,9 @@ function fetchJson(url) {
 }
 
 /**
- * Downloads a file to a destination path, following HTTP redirects and cleaning up on failure.
+ * Downloads a remote URL to a local destination file.
+ * Handles HTTP redirects up to redirectsLeft times.
+ * Cleans up partial file on failure.
  * @param {string} url
  * @param {string} destPath
  * @param {number} [redirectsLeft=5]
@@ -124,23 +128,36 @@ function fetchJson(url) {
 function downloadFile(url, destPath, redirectsLeft = 5) {
   return new Promise((resolve, reject) => {
     const dir = path.dirname(destPath);
-    fs.mkdirSync(dir, { recursive: true });
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+
     const file = fs.createWriteStream(destPath);
-    const client = clientFor(url);
+    let isCleanedUp = false;
 
     const cleanup = () => {
-      try { file.close(); } catch (_) {}
-      try { fs.unlinkSync(destPath); } catch (_) {}
+      if (isCleanedUp) return;
+      isCleanedUp = true;
+      file.close();
+      if (fs.existsSync(destPath)) {
+        try { fs.unlinkSync(destPath); } catch (_) {}
+      }
     };
+
+    const client = clientFor(url);
 
     const req = client.get(url, { headers: { 'User-Agent': USER_AGENT, ...authHeaders() } }, (res) => {
       if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-        cleanup();
-        if (redirectsLeft <= 0) return reject(new Error(`Too many redirects downloading ${url}`));
-        const nextUrl = new URL(res.headers.location, url).toString();
-        return resolve(downloadFile(nextUrl, destPath, redirectsLeft - 1));
+        if (typeof res.resume === 'function') res.resume();
+        file.close(() => {
+          if (redirectsLeft <= 0) return reject(new Error(`Too many redirects downloading ${url}`));
+          const nextUrl = new URL(res.headers.location, url).toString();
+          resolve(downloadFile(nextUrl, destPath, redirectsLeft - 1));
+        });
+        return;
       }
       if (res.statusCode !== 200) {
+        if (typeof res.resume === 'function') res.resume();
         cleanup();
         return reject(new Error(`Failed to download ${url}, status: ${res.statusCode}`));
       }

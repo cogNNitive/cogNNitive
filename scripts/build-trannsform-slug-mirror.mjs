@@ -13,7 +13,7 @@
  * what this removes).
  *
  *   input : iNNfo/packages/innfo-core/src/slugPrimitives.ts
- *   output: actioNN/skills/nn-trannsform/scripts/lib/slug-mirror.generated.cjs
+ *   output: skills/nn-trannsform/scripts/lib/slug-mirror.generated.cjs
  *
  * Usage:
  *   node scripts/build-trannsform-slug-mirror.mjs [--check] [--out <file>]

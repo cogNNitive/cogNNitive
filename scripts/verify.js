@@ -162,6 +162,20 @@ function runVerification(options = {}) {
   //    stay reachable in CI (W2/W3 from the slice-1 verify report).
   run('node skills/nn-preflight/scripts/preflight-check.test.js', 'Test Preflight Workspace Freshness');
 
+  // 5b. Skill suites: these existed and passed but were never gated anywhere
+  //     (no CI job touches skills/, and this was the only skill suite verify.js
+  //     ran). A dangling path in skill-contract.test.js crashed with ENOENT
+  //     unnoticed through a full green CI run after the actioNN/ -> skills/
+  //     consolidation; wiring them here closes that gap the same way step 0b
+  //     closed it for the root manifest suites.
+  run('node skills/nn-trannsform/test/run.js', 'Test nn-trannsform Skill Suite');
+  run('node skills/nn-workspace-git/test/skill-contract.test.js', 'Test nn-workspace-git Skill Contract');
+
+  // 5c. Canonical vocabulary guard: same ungated-suite story. It asserts every
+  //     stable identifier in iNNfo/specs/vocabulary.json still resolves on
+  //     disk, which is exactly the contract a directory consolidation breaks.
+  run('node iNNfo/specs/scripts/test-vocabulary.js', 'Test Canonical Vocabulary Guard');
+
   // 6. Preflight Primitives Drift Guard: the committed version-status.generated.cjs
   //    must match the innfo-core source it is bundled from (single classifier, no
   //    hand-maintained copy). Plus its own unit tests, wired here so the drift

@@ -97,17 +97,17 @@ async function testMcpAdapter() {
 
     // 4. Antigravity registration
     {
-      const configFile = path.join(tmpDir, 'antigravity.json');
+      const configFile = path.join(tmpDir, 'mcp_config.json');
       fs.writeFileSync(configFile, JSON.stringify({}, null, 2), 'utf-8');
 
       const bundlePath = 'C:\\agents\\mcp\\innfo-mcp.bundle.js';
-      const result = registerMcpForAntigravity({
+      const results = registerMcpForAntigravity({
         configFile,
         serverName: 'innfo-mcp',
         bundlePath,
       });
 
-      assert.strictEqual(result.updated, true);
+      assert.strictEqual(results[0].updated, true);
       const updated = readJsonClean(configFile);
       assert(updated.mcpServers['innfo-mcp'], 'innfo-mcp added to antigravity mcpServers');
       assert.strictEqual(updated.mcpServers['innfo-mcp'].command, 'node');
@@ -115,10 +115,12 @@ async function testMcpAdapter() {
       console.log('✔ Antigravity MCP registration passed');
     }
 
-    // 5. Auto-registration
+    // 5. Auto & All registration
     {
       const opencodeDir = path.join(tmpDir, '.config', 'opencode');
+      const geminiDir = path.join(tmpDir, '.gemini');
       fs.mkdirSync(opencodeDir, { recursive: true });
+      fs.mkdirSync(geminiDir, { recursive: true });
       const opencodeFile = path.join(opencodeDir, 'opencode.json');
       fs.writeFileSync(opencodeFile, JSON.stringify({ mcp: {} }), 'utf-8');
 
@@ -127,10 +129,13 @@ async function testMcpAdapter() {
         bundlePath,
         serverName: 'innfo-mcp',
         homedir: tmpDir,
+        targetAgent: 'all',
       });
 
-      assert(results.some(r => r.agent === 'opencode' && r.updated), 'Auto detected and updated OpenCode');
-      console.log('✔ Auto-registration passed');
+      assert(results.some(r => r.agent === 'opencode' && r.updated), 'Target all updated OpenCode');
+      assert(results.some(r => r.agent === 'claude' && r.updated), 'Target all updated Claude');
+      assert(results.some(r => r.agent === 'antigravity' && r.updated), 'Target all updated Antigravity');
+      console.log('✔ Multi-agent registration (all) passed');
     }
 
     console.log('All mcp-config-adapter unit tests passed successfully!');

@@ -167,6 +167,14 @@ order:: 50
 parent:: [[Guides]]
 description:: Gated workspace-to-Git review workflow with private defaults, branch-per-change PR gates, version map, and offline backup.
 
+## NN Page: Workspace Backup Strategies
+title:: Workspace Backup Strategies
+source:: workspace-backups.md
+route:: workspace-backups
+order:: 60
+parent:: [[Guides]]
+description:: Layered workspace safety model: user-led snapshots, out-of-tree migration backups, and the optional Git collaboration layer.
+
 ## NN Page: Offline Consoles
 title:: Offline Consoles
 source:: offline-consoles.md
