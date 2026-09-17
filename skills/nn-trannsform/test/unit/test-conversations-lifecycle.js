@@ -462,7 +462,13 @@ async function run() {
       { encoding: "utf8" },
     );
 
-    assertEqual(cliRun.status, 0, "CLI --promote-conv exits with code 0");
+    assertEqual(
+      cliRun.status,
+      0,
+      `CLI --promote-conv exits with code 0${
+        cliRun.status === 0 ? "" : ` (stderr: ${String(cliRun.stderr).trim()})`
+      }`,
+    );
     assertTrue(
       fs.existsSync(
         path.join(
