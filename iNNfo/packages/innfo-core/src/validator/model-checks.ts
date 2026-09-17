@@ -147,6 +147,22 @@ export function checkTemplateDocumentation(
 }
 
 /**
+ * Match a concept name against template concepts, tolerating singular/plural forms.
+ */
+export function matchConcept(name: string, concepts: Concept[]): Concept | undefined {
+  const lower = name.toLowerCase()
+  const exact = concepts.find((c) => c.name.toLowerCase() === lower)
+  if (exact) return exact
+
+  return concepts.find((c) => {
+    const cLower = c.name.toLowerCase()
+    if (lower + 's' === cLower || lower + 'es' === cLower) return true
+    if (cLower + 's' === lower || cLower + 'es' === lower) return true
+    return false
+  })
+}
+
+/**
  * Match each model element group to a template Concept. Unknown concepts are
  * ERRORs (and dropped from the returned groups); `text`-type concepts that
  * carry element headings get a WARNING. Returns the groups that resolved to a
@@ -159,9 +175,7 @@ export function checkElementGroups(
 ): ElementGroup[] {
   const known: ElementGroup[] = []
   for (const [conceptName, elements] of model.elements) {
-    const conceptDef = templateConcepts.find(
-      (c) => c.name.toLowerCase() === conceptName.toLowerCase(),
-    )
+    const conceptDef = matchConcept(conceptName, templateConcepts)
     if (!conceptDef) {
       d.error(`elements.${conceptName}`, `Concept "${conceptName}" is not defined in template`)
       continue
@@ -238,9 +252,8 @@ export function checkNodeMarkers(
   templateMarkers: Marker[],
   d: Diagnostics,
 ): void {
-  const conceptNameSet = new Set(templateConcepts.map((c) => c.name.toLowerCase()))
   for (const [itemName, markers] of Object.entries(model.nodeMarkers)) {
-    const rowScope: 'Concept' | 'Element' = conceptNameSet.has(itemName.toLowerCase())
+    const rowScope: 'Concept' | 'Element' = matchConcept(itemName, templateConcepts)
       ? 'Concept'
       : 'Element'
     for (const [markerName, score] of Object.entries(markers)) {

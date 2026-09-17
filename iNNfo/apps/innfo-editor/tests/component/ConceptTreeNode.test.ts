@@ -765,6 +765,66 @@ describe('ConceptTreeNode.vue — Diamond child renders once (R8)', () => {
       expect(wrapper.text()).toContain('Disco')
       expect(wrapper.text()).toContain('Appetite for Destruction')
     })
+
+    it('unfolds submodel concepts when element references a model via wikilink format in business_model field', async () => {
+      const modelStore = useModelStore()
+
+      const projectRoot = makeNode('models/programa_V_0-1-0_NN.md', {
+        kind: 'root',
+        source: { path: 'models/programa_V_0-1-0_NN.md' },
+      })
+      const elementNode = makeNode('models/programa_V_0-1-0_NN.md/elem_mercedes', {
+        name: 'Proyecto de MERCEDES GRANDE CABALLERO',
+        parentId: projectRoot.id,
+        kind: 'element',
+        type: 'Proyecto',
+        fields: {
+          'business_model': { value: '[[mercedes-grande-caballero_V_0-1-0_business_NN.md]]' },
+        },
+      })
+      const submodelRoot = makeNode('models/mercedes-grande-caballero_V_0-1-0_business_NN.md', {
+        name: 'Mercedes Grande Caballero Business Model',
+        kind: 'root',
+        source: { path: 'models/mercedes-grande-caballero_V_0-1-0_business_NN.md' },
+        childIds: ['models/mercedes-grande-caballero_V_0-1-0_business_NN.md/initiative_1'],
+        localMetamodel: {
+          concepts: [
+            { name: 'Propuesta', type: 'concept', icon: 'lightbulb', color: 'emerald' },
+          ],
+          taxonomy: [{ parent: '', child: 'Propuesta' }],
+          conceptFields: {},
+          markers: [],
+        },
+      })
+      const subElement = makeNode('models/mercedes-grande-caballero_V_0-1-0_business_NN.md/initiative_1', {
+        name: 'Servicio de Consultoría Rural',
+        parentId: submodelRoot.id,
+        kind: 'element',
+        type: 'Propuesta',
+      })
+
+      modelStore.setGraph(
+        {
+          [projectRoot.id]: projectRoot,
+          [elementNode.id]: elementNode,
+          [submodelRoot.id]: submodelRoot,
+          [subElement.id]: subElement,
+        },
+        [projectRoot.id, submodelRoot.id],
+      )
+
+      const wrapper = mount(ConceptTreeNode, {
+        props: {
+          nodeId: elementNode.id,
+          selectedId: null,
+        },
+        attachTo: document.body,
+      })
+
+      expect(wrapper.text()).toContain('Proyecto de MERCEDES GRANDE CABALLERO')
+      expect(wrapper.text()).toContain('Propuesta')
+      expect(wrapper.text()).toContain('Servicio de Consultoría Rural')
+    })
   })
 })
 

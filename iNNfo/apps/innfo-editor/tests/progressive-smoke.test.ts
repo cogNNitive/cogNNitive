@@ -213,7 +213,7 @@ describe('Paso 3 — workspaceStore abre un modelo', () => {
     expect(workspaceStore.hasParsed).toBe(true)
     expect(workspaceStore.parseCount).toBe(1)
     expect(Object.keys(modelStore.nodes).length).toBeGreaterThan(0)
-    expect(modelStore.rootIds).toHaveLength(1)
+    expect(modelStore.rootIds.filter((id) => !id.startsWith('spec:'))).toHaveLength(1)
   })
 
   it('3b: workspaceStore no re-parsea si se llama open() dos veces', async () => {

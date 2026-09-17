@@ -21,6 +21,10 @@ export {
   checkElementsAgainstSchema,
   checkWidgetConfig,
   resolveTemplateSchema,
+  CANONICAL_TEMPLATES,
+  findCanonicalTemplate,
+  getCanonicalSpecContent,
+  listCanonicalTemplates,
 } from './schema/index.js'
 export type {
   TemplateSchema,

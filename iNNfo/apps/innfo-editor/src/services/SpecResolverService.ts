@@ -1,4 +1,4 @@
-import { parseFrontmatter, parseModel, validateModel } from '@cognnitive/innfo-core'
+import { parseFrontmatter, parseModel, validateModel, getCanonicalSpecContent } from '@cognnitive/innfo-core'
 import { normalizeMatrixDecl } from '@cognnitive/innfo-core'
 import { extractTemplateSchemaFromContent, resolveTemplateSchema } from '@cognnitive/innfo-core'
 import type { LocalMetamodel, ParentRef, TemplateSchema } from '@cognnitive/innfo-core'
@@ -88,33 +88,84 @@ async function resolvePathInHandle(
 
 /**
  * Dev-only fallback: resolves a template from the repo's `specs` directory
- * (served by vite at `/specs`, see `vite.config.ts` `serveLocalSpecs`).
- * `parentName` is a canonical, filename-encoded template name (e.g.
- * `business_V_0-1-0`); the template lives under its own `specs/templates/{slug}/`
- * folder alongside its samples (see `spec-versioning`, R-SV-01).
+ * (served by vite at `/specs`, see `vite.config.ts` `serveLocalSpecs`) or
+ * from the offline canonical registry.
  */
-async function tryBundledTemplate(parentName: string): Promise<string | null> {
-  const slug = parentName.replace(/_V_\d+-\d+-\d+$/, '')
-  if (!slug || slug === parentName) return null
+async function tryBundledTemplate(
+  parentName: string,
+  parentUrl?: string,
+): Promise<string | null> {
+  const cleanName = parentName
+    .replace(/\.md$/i, '')
+    .replace(/_(NN|FORMAT|F)$/i, '')
+  const slug = cleanName
+    .replace(/_spec$/i, '')
+    .replace(/_workspace$/i, '')
+    .replace(/_V_\d+-\d+-\d+$/, '')
+
+  // 1. If parentUrl is a raw GitHub URL in cogNNitive, map to local /specs/
+  if (parentUrl && isHttpUrl(parentUrl)) {
+    const rawMatch = parentUrl.match(
+      /raw\.githubusercontent\.com\/(?:cogNNitive)\/(?:cogNNitive|iNNfo)\/(?:main|master)\/(?:iNNfo\/)?(.+)/i,
+    )
+    if (rawMatch?.[1]) {
+      const mappedUrl = rawMatch[1].startsWith('specs/')
+        ? `/${rawMatch[1]}`
+        : `/specs/${rawMatch[1]}`
+      try {
+        const resp = await fetch(mappedUrl)
+        if (resp.ok) return await resp.text()
+      } catch {
+        // ignore
+      }
+    }
+  }
+
+  // 2. Candidate local URLs served by dev server
   const isRootSpec = slug === 'iNNfo' || slug === 'defiNNe'
-  const localUrl = isRootSpec
-    ? `/specs/${parentName}_NN.md`
-    : `/specs/templates/${slug}/${parentName}_NN.md`
-  try {
-    const resp = await fetch(localUrl)
-    if (resp.ok) return await resp.text()
-  } catch {
-    // ignore
+  const candidateUrls: string[] = []
+
+  if (isRootSpec) {
+    candidateUrls.push(
+      `/specs/${cleanName}_NN.md`,
+      `/specs/${cleanName}.md`,
+      `/specs/${slug}_NN.md`,
+    )
+  } else {
+    candidateUrls.push(
+      `/specs/templates/${slug}/${cleanName}_NN.md`,
+      `/specs/templates/${slug}/${cleanName}.md`,
+      `/specs/templates/${slug}/spec_NN.md`,
+      `/specs/templates/${slug}_spec_NN.md`,
+      `/specs/templates/${cleanName}_NN.md`,
+      `/specs/templates/${cleanName}.md`,
+      `/specs/${cleanName}_NN.md`,
+      `/specs/${cleanName}.md`,
+    )
+    if (slug === 'workspace') {
+      candidateUrls.push(`/specs/templates/workspace_spec_NN.md`)
+    }
   }
-  const fallbackUrl = isRootSpec
-    ? `/specs/templates/${slug}/${parentName}_NN.md`
-    : `/specs/${parentName}_NN.md`
-  try {
-    const resp = await fetch(fallbackUrl)
-    if (resp.ok) return await resp.text()
-  } catch {
-    // ignore
+
+  for (const localUrl of candidateUrls) {
+    try {
+      const resp = await fetch(localUrl)
+      if (resp.ok) return await resp.text()
+    } catch {
+      // ignore
+    }
   }
+
+  // 3. Offline canonical registry fallback
+  const canonical =
+    getCanonicalSpecContent(parentName) ||
+    getCanonicalSpecContent(slug) ||
+    getCanonicalSpecContent(cleanName) ||
+    (parentUrl ? getCanonicalSpecContent(parentUrl) : null)
+  if (canonical) {
+    return canonical
+  }
+
   return null
 }
 
@@ -141,7 +192,7 @@ async function fetchIncludeText(
       /* not a resolvable local path */
     }
   }
-  const dev = await tryBundledTemplate(ref.name)
+  const dev = await tryBundledTemplate(ref.name, ref.url)
   if (dev) return dev
   if (ref.url && isHttpUrl(ref.url)) {
     try {
@@ -246,7 +297,7 @@ async function fetchTemplateText(
   }
 
   if (!text) {
-    const devLocal = await tryBundledTemplate(parentName)
+    const devLocal = await tryBundledTemplate(parentName, parentUrl)
     if (devLocal) {
       text = devLocal
       specFilename = `spec:${parentName}`

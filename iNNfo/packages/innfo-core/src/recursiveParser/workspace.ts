@@ -270,10 +270,10 @@ export function extractSubmodelRefs(
     for (const [, elementNodes] of parsed.elements.entries()) {
       for (const el of elementNodes) {
         for (const [key, val] of Object.entries(el.fields)) {
+          const normKey = key.toLowerCase().trim().replace(/[\s_-]+/g, '')
           if (
             modelFieldNames.has(key.toLowerCase()) ||
-            key.toLowerCase() === 'path' ||
-            key.toLowerCase() === 'file_ref'
+            modelFieldNames.has(normKey)
           ) {
             const rawVal = typeof val === 'string' ? val : undefined
             if (rawVal) {

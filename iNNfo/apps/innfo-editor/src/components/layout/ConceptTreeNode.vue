@@ -149,6 +149,7 @@ import { ChevronDown, Boxes } from 'lucide-vue-next'
 import { useModelStore } from '../../stores/modelStore'
 import { useUiStore } from '../../stores/uiStore'
 import { useConceptVisuals, getHexColorMedium } from '../../composables/useConceptVisuals'
+import { useMetamodelStore } from '../../stores/metamodelStore'
 import { resolveEffectiveMetamodel } from '../../model/metamodel'
 import {
   findMatchingModelNode,
@@ -187,6 +188,7 @@ const emit = defineEmits<{
 }>()
 
 const modelStore = useModelStore()
+const metamodelStore = useMetamodelStore()
 const uiStore = useUiStore()
 const visuals = useConceptVisuals()
 
@@ -273,10 +275,18 @@ function resolveConceptForNode(n: ModelNode | undefined): any {
     }
   }
 
-  return concepts.find((c) => {
+  const found = concepts.find((c) => {
     const cName = (c.name || '').toLowerCase()
     return cName === nType || cName.replace(/s$/, '') === nTypeBase
   })
+  if (found) return found
+
+  if (n.type) {
+    const fromMetaStore = metamodelStore.getConceptByName(n.type)
+    if (fromMetaStore) return fromMetaStore
+  }
+
+  return undefined
 }
 
 function isModelFieldEntry(key: string, fieldVal: string, conceptDef: any, nType: string): boolean {
@@ -292,8 +302,22 @@ function isModelFieldEntry(key: string, fieldVal: string, conceptDef: any, nType
     return true
   }
 
-  const modelFieldKeys = new Set(['modelref', 'model', 'submodel', 'path', 'ref', 'modelpath', 'targetmodel'])
-  if (modelFieldKeys.has(normKey)) {
+  const modelFieldKeys = new Set([
+    'modelref',
+    'model',
+    'submodel',
+    'path',
+    'ref',
+    'modelpath',
+    'targetmodel',
+    'businessmodel',
+  ])
+  if (
+    modelFieldKeys.has(normKey) ||
+    normKey.endsWith('model') ||
+    normKey.endsWith('modelref') ||
+    normKey.endsWith('submodel')
+  ) {
     return true
   }
 
@@ -306,7 +330,8 @@ function isModelFieldEntry(key: string, fieldVal: string, conceptDef: any, nType
     return true
   }
 
-  if (fieldVal.trim().endsWith('.md') || fieldVal.trim().endsWith('_NN.md')) {
+  const cleanVal = normalizeModelPath(fieldVal)
+  if (cleanVal.endsWith('.md') || cleanVal.endsWith('_NN.md') || cleanVal.includes('_V_')) {
     return true
   }
 
