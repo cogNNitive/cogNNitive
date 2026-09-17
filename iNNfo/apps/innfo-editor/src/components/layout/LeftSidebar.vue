@@ -15,21 +15,6 @@
     <div class="px-3 py-4 space-y-4">
       <!-- Navigation Switcher (Horizontal) -->
       <div class="flex items-center gap-1 p-1 rounded-lg bg-slate-100 dark:bg-slate-800/80">
-        <!-- Explorer -->
-        <button
-          class="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-semibold rounded-md transition-all cursor-pointer capitalize border border-transparent"
-          :class="
-            uiStore.activeView === 'explorer'
-              ? 'bg-white dark:bg-slate-700 text-primary shadow-xs'
-              : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-          "
-          @click="uiStore.setActiveView('explorer')"
-          data-testid="view-switcher-explorer"
-        >
-          <FolderTree class="w-3.5 h-3.5 shrink-0" />
-          <span>explorer</span>
-        </button>
-
         <!-- Editor -->
         <button
           class="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-semibold rounded-md transition-all cursor-pointer capitalize border border-transparent"
@@ -119,45 +104,35 @@
         </div>
       </div>
 
-      <!-- Workspace Mode summary metrics -->
-      <div
-        v-if="uiStore.sidebarMode === 'workspace' && uiStore.activeView !== 'explorer'"
-        class="p-2.5 bg-white dark:bg-slate-800/80 rounded-lg border border-slate-200 dark:border-slate-700 space-y-2"
-        data-testid="workspace-overview-panel"
-      >
-        <div class="flex items-center justify-between">
-          <span
-            class="text-2xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500"
-          >
-            Workspace Mode
-          </span>
-          <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-primary/10 text-primary">
-            {{ totalModelCount }} Models
-          </span>
-        </div>
-        <div class="flex items-center gap-3 text-xs text-slate-600 dark:text-slate-300">
-          <div class="flex items-center gap-1">
-            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-            <span>Active: {{ activeSubmodelCount }}</span>
-          </div>
-          <div class="flex items-center gap-1">
-            <span class="w-2 h-2 rounded-full bg-amber-500"></span>
-            <span>Draft: {{ draftSubmodelCount }}</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Explorer View -->
-      <WorkspaceExplorer v-if="uiStore.activeView === 'explorer'" />
-
       <!-- Header with expand/collapse all (for editor/graph view) -->
-      <div v-else class="flex items-center justify-between px-2">
-        <div class="flex items-center gap-1.5">
-          <Database class="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
-          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-            Workspace
-          </h2>
+      <div class="flex items-center justify-between px-2">
+        <div class="flex items-center gap-2 min-w-0">
+          <div class="flex items-center gap-1.5 shrink-0">
+            <Database class="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
+            <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Workspace
+            </h2>
+          </div>
+
+          <!-- Compact status pill with tooltip -->
+          <div
+            v-if="totalModelCount > 0"
+            class="flex items-center gap-1.5 px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-[10px] font-medium text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 select-none cursor-help"
+            :title="workspaceMetricsTooltip"
+            data-testid="workspace-metrics-pill"
+          >
+            <span class="flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              <span data-testid="metric-active-count">{{ activeSubmodelCount }}</span>
+            </span>
+            <span v-if="draftSubmodelCount > 0" class="text-slate-300 dark:text-slate-600">/</span>
+            <span v-if="draftSubmodelCount > 0" class="flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+              <span data-testid="metric-draft-count">{{ draftSubmodelCount }}</span>
+            </span>
+          </div>
         </div>
+
         <div class="flex items-center gap-2">
           <button
             @click="expandAll"
@@ -187,7 +162,7 @@
       </div>
 
       <!-- Tree section: complete-only or merged all, grouped by model -->
-      <div v-if="uiStore.activeView !== 'explorer'" class="space-y-2 relative overflow-hidden">
+      <div class="space-y-2 relative overflow-hidden">
         <Transition :name="slideTransitionName" mode="out-in">
           <div :key="uiStore.sidebarMode + '-' + (uiStore.focusedModelId || 'workspace')" class="space-y-2">
             <div v-for="rootId in visibleRootIds" :key="rootId" class="space-y-1">
@@ -237,7 +212,8 @@
                 v-if="isModelExpanded(rootId)"
                 class="ml-1 pl-0.5 border-l border-slate-200 dark:border-slate-700 space-y-0.5"
               >
-                <div v-for="item in getConceptsForModel(rootId)" :key="item.name">
+                <!-- Active concepts (with items) -->
+                <div v-for="item in (activeConceptsByRoot.get(rootId) || [])" :key="item.name">
                   <VirtualGroupNode
                     :concept-name="item.name"
                     :elements="item.elements"
@@ -250,8 +226,48 @@
                     @click-ghost="(cname: string) => handleClickGhost(cname, rootId)"
                   />
                 </div>
+
+                <!-- Empty concepts (collapsible accordion at bottom) -->
+                <div
+                  v-if="(emptyConceptsByRoot.get(rootId)?.length ?? 0) > 0"
+                  class="pt-2 mt-2 border-t border-slate-200/60 dark:border-slate-700/60 space-y-1"
+                  data-testid="empty-groups-section"
+                >
+                  <div
+                    class="flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 select-none cursor-pointer hover:text-slate-600 dark:hover:text-slate-300"
+                    @click.stop="toggleEmptyGroups(rootId)"
+                    data-testid="empty-groups-toggle"
+                  >
+                    <ChevronDown
+                      class="transition-transform duration-200 w-2.5 h-2.5 text-slate-400 dark:text-slate-500"
+                      :class="{ '-rotate-90': !isEmptyGroupsExpanded(rootId) }"
+                    />
+                    <Boxes class="w-3 h-3 text-slate-400 shrink-0" />
+                    <span>Empty ({{ emptyConceptsByRoot.get(rootId)?.length ?? 0 }})</span>
+                  </div>
+                  <div
+                    v-if="isEmptyGroupsExpanded(rootId)"
+                    class="space-y-0.5 mt-0.5 opacity-60 hover:opacity-100 transition-opacity"
+                    data-testid="empty-groups-list"
+                  >
+                    <div v-for="item in (emptyConceptsByRoot.get(rootId) || [])" :key="item.name">
+                      <VirtualGroupNode
+                        :concept-name="item.name"
+                        :elements="item.elements"
+                        :sub-groups="item.children"
+                        :selected-id="selectedId"
+                        :depth="0"
+                        :expanded-generation="expandedGeneration"
+                        :ghost="item.ghost"
+                        @select="(id: string) => handleSelectNode(rootId, id)"
+                        @click-ghost="(cname: string) => handleClickGhost(cname, rootId)"
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 <p
-                  v-if="getConceptsForModel(rootId).length === 0"
+                  v-if="(activeConceptsByRoot.get(rootId)?.length ?? 0) === 0 && (emptyConceptsByRoot.get(rootId)?.length ?? 0) === 0"
                   class="px-2 py-2 text-2xs text-slate-400 dark:text-slate-500 italic"
                 >
                   No nodes loaded
@@ -334,7 +350,6 @@ import {
   FileText,
   Database,
   ChevronDown,
-  FolderTree,
   ArrowLeft,
   Boxes,
   Layers,
@@ -353,10 +368,10 @@ import { getConceptMeta } from '../../composables/useConceptVisuals'
 import { useTreeExpansion } from '../../composables/useTreeExpansion'
 import ConceptTreeNode from './ConceptTreeNode.vue'
 import VirtualGroupNode, { type TreeGroup } from './VirtualGroupNode.vue'
-import WorkspaceExplorer from './WorkspaceExplorer.vue'
 import MatrixPill from '../editor/MatrixPill.vue'
 import Pill from '../editor/Pill.vue'
 import { findMatchingModelNode } from '../../utils/modelMatching'
+import { useModelConcepts } from '../../composables/useModelConcepts'
 
 const emit = defineEmits<{
   'select-node': [nodeId: string]
@@ -522,6 +537,10 @@ const draftSubmodelCount = computed(() => {
   return count
 })
 
+const workspaceMetricsTooltip = computed(() => {
+  return `Workspace Models: ${totalModelCount.value} total (${activeSubmodelCount.value} active, ${draftSubmodelCount.value} draft)`
+})
+
 const { width, startResize } = useResizablePanel({
   storageKey: 'format.leftSidebarWidth',
   defaultWidth: 384,
@@ -571,6 +590,7 @@ const selectedId = computed(() => uiStore.selectedNodeId)
 
 // Relations section.
 const expandedRelations = ref<Record<string, boolean>>({})
+const expandedEmptyGroups = ref<Record<string, boolean>>({})
 
 function isRelationsExpanded(rootId: string): boolean {
   return expandedRelations.value[rootId] === true
@@ -580,14 +600,24 @@ function toggleRelations(rootId: string): void {
   expandedRelations.value[rootId] = !isRelationsExpanded(rootId)
 }
 
+function isEmptyGroupsExpanded(rootId: string): boolean {
+  return expandedEmptyGroups.value[rootId] === true
+}
+
+function toggleEmptyGroups(rootId: string): void {
+  expandedEmptyGroups.value[rootId] = !isEmptyGroupsExpanded(rootId)
+}
+
 watch(expandedGeneration, (val) => {
   if (val >= 0) {
     for (const rootId of visibleRootIds.value) {
       expandedRelations.value[rootId] = true
+      expandedEmptyGroups.value[rootId] = true
     }
   } else {
     for (const rootId of visibleRootIds.value) {
       expandedRelations.value[rootId] = false
+      expandedEmptyGroups.value[rootId] = false
     }
   }
 })
@@ -712,225 +742,13 @@ function getModelName(rootId: string): string {
   return path.split('/').pop()?.split('\\').pop() || path
 }
 
-interface TreeGroupsInput {
-  taxonomyRoots: string[]
-  taxonomyChildren: Map<string, string[]>
-  childrenByType: Map<string, ModelNode[]>
-  templateByName: Map<string, MetamodelConcept>
-  templateOrder: Map<string, number>
-  hasContent: (conceptName: string) => boolean
-}
-
-/** Builds the ordered concept tree (taxonomy + template fallback) shared by every tree-view caller. */
-function buildTreeGroups(input: TreeGroupsInput): TreeGroup[] {
-  const {
-    taxonomyRoots,
-    taxonomyChildren,
-    childrenByType,
-    templateByName,
-    templateOrder,
-    hasContent,
-  } = input
-  const seen = new Set<string>()
-  const items: TreeGroup[] = []
-
-  // Build a recursive tree from taxonomy edges
-  function buildTree(name: string): TreeGroup {
-    const directElements = childrenByType.get(name) ?? []
-    const rawKids = (taxonomyChildren.get(name) ?? []).filter((k) => templateByName.has(k))
-    const kids = Array.from(new Set(rawKids))
-    const subGroups: TreeGroup[] = []
-    for (const k of kids) {
-      subGroups.push(buildTree(k))
-    }
-    subGroups.sort((a, b) => {
-      const ta = templateOrder.get(a.name) ?? 99999
-      const tb = templateOrder.get(b.name) ?? 99999
-      if (ta !== tb) return ta - tb
-      return a.name.localeCompare(b.name)
-    })
-
-    // A node has content if it has direct elements, a text section, or any descendant has content
-    const isPresent = hasContent(name) || subGroups.some((s) => !s.ghost)
-
-    return {
-      name,
-      ghost: !isPresent,
-      elements: directElements,
-      children: subGroups,
-    }
-  }
-
-  function markSeenRecursively(name: string): void {
-    if (seen.has(name)) return
-    seen.add(name)
-    const kids = taxonomyChildren.get(name) ?? []
-    for (const k of kids) markSeenRecursively(k)
-  }
-
-  // Walk taxonomy roots preserving index order
-  for (const root of taxonomyRoots) {
-    if (seen.has(root)) continue
-    const isTemplateConcept = templateByName.has(root)
-    if (isTemplateConcept) {
-      items.push(buildTree(root))
-    }
-    markSeenRecursively(root)
-  }
-
-  // Append template concepts not in the taxonomy
-  for (const [cname] of templateByName) {
-    if (!seen.has(cname)) {
-      seen.add(cname)
-      items.push({
-        name: cname,
-        ghost: !hasContent(cname),
-        elements: childrenByType.get(cname) ?? [],
-        children: [],
-      })
-    }
-  }
-
-  // Stable sort: templateOrder primary, orderedTaxonomyRoots secondary
-  const orderedTaxonomyRoots = new Map(taxonomyRoots.map((r, i) => [r, i]))
-  items.sort((a, b) => {
-    const ta = templateOrder.get(a.name) ?? 99999
-    const tb = templateOrder.get(b.name) ?? 99999
-    if (ta !== tb) return ta - tb
-    const ia = orderedTaxonomyRoots.get(a.name) ?? 99999
-    const ib = orderedTaxonomyRoots.get(b.name) ?? 99999
-    return ia - ib
-  })
-
-  return items
-}
-
-function getConceptsForModel(rootId: string): TreeGroup[] {
-  const rootNode = modelStore.getNode(rootId)
-  if (!rootNode) return []
-
-  const modelPath = rootNode.source?.path
-  const childIdOrder = new Map((rootNode.childIds ?? []).map((id, i) => [id, i]))
-
-  // Collect children per concept type ONLY for this model's nodes
-  const childrenByType = new Map<string, ModelNode[]>()
-  for (const node of Object.values(modelStore.nodes)) {
-    if (node.type && node.kind === 'element') {
-      const nodeRootId = modelStore.getModelRootForNode(node.id)
-      const belongsToModel = nodeRootId
-        ? nodeRootId === rootId
-        : !modelPath || node.source?.path === modelPath
-      if (belongsToModel) {
-        const list = childrenByType.get(node.type)
-        if (list) list.push(node)
-        else childrenByType.set(node.type, [node])
-      }
-    }
-  }
-
-  // Sort elements within each concept type by document order (childIdOrder)
-  for (const list of childrenByType.values()) {
-    list.sort((a, b) => {
-      const ia = childIdOrder.get(a.id) ?? 99999
-      const ib = childIdOrder.get(b.id) ?? 99999
-      return ia - ib
-    })
-  }
-
-  // Resolve template concepts specifically for THIS model
-  let modelConcepts: MetamodelConcept[] = []
-  let taxonomyEdges: Array<{ parent: string; child: string }> = []
-  if (rootNode.rawContent) {
-    try {
-      const fm = parseFrontmatter(rootNode.rawContent)
-      const parentName = fm?.parent_spec?.name
-      if (parentName) {
-        const normalizedParent = parentName.replace(/_NN$/, '')
-        const specNode = Object.values(modelStore.nodes).find((n) => {
-          if (!n.localMetamodel?.concepts?.length) return false
-          const nameCandidate = (n.name || n.id).replace(/_NN$/, '').replace(/^spec:/, '')
-          return nameCandidate === normalizedParent
-        })
-        if (specNode?.localMetamodel?.concepts) {
-          modelConcepts = specNode.localMetamodel.concepts
-          taxonomyEdges = specNode.localMetamodel?.taxonomy ?? []
-        }
-      }
-    } catch {
-      // fallback
-    }
-  }
-
-  // Taxonomy is resolved independently from concepts: a resolved template
-  // may declare concepts without (yet) declaring a taxonomy, in which case
-  // the effective-metamodel fallback (which also covers a model's own
-  // legacy self-authored index, since toLocalMetamodel now attaches
-  // taxonomy to every root node) must still run for taxonomy alone.
-  if (modelConcepts.length === 0 || taxonomyEdges.length === 0) {
-    const effective = resolveEffectiveMetamodel(rootId, modelStore.nodes, [rootId])
-    if (modelConcepts.length === 0) {
-      modelConcepts = effective.concepts
-    }
-    if (taxonomyEdges.length === 0) {
-      taxonomyEdges = effective.taxonomy ?? []
-    }
-  }
-
-  if (modelConcepts.length === 0) {
-    modelConcepts = Array.from(childrenByType.keys()).map((type) => ({
-      name: type,
-      type: 'concept',
-      icon: 'file-text',
-      color: 'slate',
-    }))
-  }
-
-  // Helper: check if a concept has content in this model
-  function hasContent(conceptName: string): boolean {
-    if ((childrenByType.get(conceptName)?.length ?? 0) > 0) return true
-
-    // Check if the rootNode itself contains a text section for this concept
-    if (
-      rootNode &&
-      rootNode.rawSections &&
-      Object.keys(rootNode.rawSections).some((k) => k.toLowerCase() === conceptName.toLowerCase())
-    ) {
-      return true
-    }
-    return false
-  }
-
-  // Build taxonomy tree: parent → children names
-  const taxonomyChildren = new Map<string, string[]>()
-  for (const e of taxonomyEdges) {
-    const list = taxonomyChildren.get(e.parent) ?? []
-    if (!list.includes(e.child)) {
-      list.push(e.child)
-      taxonomyChildren.set(e.parent, list)
-    }
-  }
-
-  // parseIndexBlock() encodes every top-level index bullet as an edge with
-  // parent === '' (there is no real concept named ''). The true roots are its
-  // children, not "keys never seen as a child" — that formula always evaluated
-  // to [''] for standard index sections, which has no entry in templateByName,
-  // so the whole subtree silently vanished instead of being built.
-  const taxonomyRoots = taxonomyChildren.get('') ?? []
-
-  const templateByName = new Map(modelConcepts.map((c) => [c.name, c]))
-  const templateOrder = new Map(modelConcepts.map((c, i) => [c.name, i]))
-
-  const items = buildTreeGroups({
-    taxonomyRoots,
-    taxonomyChildren,
-    childrenByType,
-    templateByName,
-    templateOrder,
-    hasContent,
-  })
-
-  return items
-}
+const {
+  getConceptsForModel,
+  getActiveConceptsForModel,
+  getEmptyConceptsForModel,
+  activeConceptsByRoot,
+  emptyConceptsByRoot,
+} = useModelConcepts()
 </script>
 
 <style scoped>

@@ -30,6 +30,30 @@
     </script>
   </head>
   <body>
+    <!-- Work-in-Progress / Experimental Banner -->
+    <aside id="site-wip-banner" class="site-wip-banner" role="status" aria-label="Experimental preview notice">
+      <div class="site-wip-banner-content">
+        <span class="site-wip-banner-icon" aria-hidden="true">✨</span>
+        <span><strong>Work in Progress:</strong> iNNfo & cogNNitive are experimental and actively evolving. Expect updates & occasional dust — feedback is warmly welcome!</span>
+      </div>
+      <button type="button" class="site-wip-banner-close" aria-label="Dismiss banner" onclick="dismissWipBanner()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </aside>
+    <script>
+      (function() {
+        var banner = document.getElementById('site-wip-banner');
+        if (sessionStorage.getItem('nn_site_wip_banner_dismissed') === 'true') {
+          if (banner) banner.style.display = 'none';
+        }
+      })();
+      function dismissWipBanner() {
+        var banner = document.getElementById('site-wip-banner');
+        if (banner) banner.style.display = 'none';
+        sessionStorage.setItem('nn_site_wip_banner_dismissed', 'true');
+      }
+    </script>
+
     <header class="header">
       <div class="container">
         <div class="header-inner">

@@ -98,6 +98,12 @@ describe('Ghost groups — Add action integration', () => {
     await wrapper.find('[data-testid="model-header-toggle"]').trigger('click')
     await wrapper.vm.$nextTick()
 
+    const emptyToggle = wrapper.find('[data-testid="empty-groups-toggle"]')
+    if (emptyToggle.exists()) {
+      await emptyToggle.trigger('click')
+      await wrapper.vm.$nextTick()
+    }
+
     // Find and click the ghost group header
     const ghostHeader = wrapper.find('[data-testid="ghost-group-header"]')
     expect(ghostHeader.exists()).toBe(true)

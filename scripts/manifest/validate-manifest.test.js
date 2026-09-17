@@ -32,6 +32,10 @@ function stubHttpsGetOnce(statusCode, body) {
 
 function freshValidatorModule() {
   delete require.cache[require.resolve(validatorScript)];
+  try {
+    delete require.cache[require.resolve('../lib/github-client.js')];
+    delete require.cache[require.resolve('./lib/manifest-rules.js')];
+  } catch (_) {}
   return require(validatorScript);
 }
 
@@ -386,10 +390,11 @@ agent-bootstrap:
     url: 'https://raw.githubusercontent.com/cogNNitive/cogNNitive/3f1a9c2b8e4d6f0a1b2c3d4e5f60718293a4b5c6/iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js',
   };
   assert.strictEqual(await mod.checkMcpUrlPinned(pinned), null, 'commit-pinned mcp url must pass');
-  const violation = await mod.checkMcpUrlPinned(unpinned = {
+  const unpinned = {
     ...pinned,
     url: 'https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js',
-  });
+  };
+  const violation = await mod.checkMcpUrlPinned(unpinned);
   assert.notStrictEqual(violation, null, 'unpinned (/main/) mcp url must fail');
   assert.match(violation, /main/, 'violation should identify the unpinned branch segment');
   console.log('✔ mcp-url-pinned test passed');

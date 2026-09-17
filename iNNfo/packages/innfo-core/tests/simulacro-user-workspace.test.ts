@@ -3,12 +3,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { parseModel, validateModel, resolveTemplateSchema } from '../src/index.js';
 
-describe('Simulacro — User Workspace Refactorization (temp/simulacro-refactorizacion)', () => {
-  const repoRoot = path.resolve(__dirname, '../../../..');
-  const wsPath = path.join(repoRoot, 'temp/simulacro-refactorizacion/workspace_NN.md');
-  const modelPath = path.join(repoRoot, 'temp/simulacro-refactorizacion/models/solaris_business_NN.md');
-  const tplPath = path.join(repoRoot, 'temp/simulacro-refactorizacion/templates/business/spec_NN.md');
-  const skillPath = path.join(repoRoot, 'temp/simulacro-refactorizacion/skills/nn-innfo/SKILL.md');
+describe('User Workspace Refactorization (fixtures/simulacro-refactorizacion)', () => {
+  const fixtureRoot = path.join(__dirname, 'fixtures/simulacro-refactorizacion');
+  const wsPath = path.join(fixtureRoot, 'workspace_NN.md');
+  const modelPath = path.join(fixtureRoot, 'models/solaris_business_NN.md');
+  const tplPath = path.join(fixtureRoot, 'templates/business/spec_NN.md');
+  const skillPath = path.join(fixtureRoot, 'skills/nn-innfo/SKILL.md');
 
   it('1. verifies that all required workspace and package files exist', () => {
     expect(fs.existsSync(wsPath)).toBe(true);
@@ -19,7 +19,7 @@ describe('Simulacro — User Workspace Refactorization (temp/simulacro-refactori
     // Verify complete modular package structure across all templates
     const templates = ['business', 'business-model', 'analysis', 'organization', 'projects', 'metrics', 'repository'];
     for (const t of templates) {
-      const tDir = path.join(repoRoot, 'temp', 'simulacro-refactorizacion', 'templates', t);
+      const tDir = path.join(fixtureRoot, 'templates', t);
       expect(fs.existsSync(path.join(tDir, 'spec_NN.md')), `Missing spec_NN.md in ${t}`).toBe(true);
       expect(fs.existsSync(path.join(tDir, 'samples')), `Missing samples in ${t}`).toBe(true);
       expect(fs.existsSync(path.join(tDir, 'procedures')), `Missing procedures in ${t}`).toBe(true);
@@ -49,7 +49,7 @@ describe('Simulacro — User Workspace Refactorization (temp/simulacro-refactori
     const template = parseModel(tplContent);
 
     const resolveInclude = (inc: { name: string }) => {
-      const p = path.join(repoRoot, 'temp', 'simulacro-refactorizacion', 'templates', inc.name, 'spec_NN.md');
+      const p = path.join(fixtureRoot, 'templates', inc.name, 'spec_NN.md');
       return fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : null;
     };
 

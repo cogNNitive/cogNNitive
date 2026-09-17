@@ -1,0 +1,10 @@
+{
+  "name": "cognnitive-simulation",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Executable simulation of real cogNNitive user journeys against the shipped innfo-core contract.",
+  "scripts": {
+    "simulate": "node run-all.mjs"
+  }
+}

@@ -1,8 +1,8 @@
 ---
 level: 3
 parent_spec:
-  name: "workspace_spec"
-  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/workspace_V_0-3-0_spec_NN.md"
+  name: "workspace"
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/workspace_spec_NN.md"
 model_version: "V_0-1-0"
 title: "cogNNitive Documentation Workspace"
 ---

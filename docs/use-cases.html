@@ -525,9 +525,80 @@
       color: var(--ink-muted);
     }
     footer a { color: var(--brand); text-decoration: none; font-weight: 600; }
+
+    /* Site Work-in-Progress / Experimental Banner */
+    .site-wip-banner {
+      background: #FAF5FF;
+      color: #4D0E4E;
+      border-bottom: 1px solid rgba(77, 14, 78, 0.12);
+      font-size: 13px;
+      font-weight: 500;
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      position: relative;
+      z-index: 101;
+    }
+    .site-wip-banner-content {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      text-align: center;
+    }
+    .site-wip-banner-icon {
+      font-size: 14px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .site-wip-banner-close {
+      background: none;
+      border: none;
+      color: #4D0E4E;
+      opacity: 0.65;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.2s, background-color 0.2s;
+      flex-shrink: 0;
+    }
+    .site-wip-banner-close:hover {
+      opacity: 1;
+      background: rgba(77, 14, 78, 0.08);
+    }
   </style>
 </head>
 <body>
+
+  <!-- Work-in-Progress / Experimental Banner -->
+  <aside id="site-wip-banner" class="site-wip-banner" role="status" aria-label="Experimental preview notice">
+    <div class="site-wip-banner-content">
+      <span class="site-wip-banner-icon" aria-hidden="true">✨</span>
+      <span><strong>Work in Progress:</strong> cogNNitive & iNNfo are experimental and actively evolving. Expect updates & occasional dust — feedback is warmly welcome!</span>
+    </div>
+    <button type="button" class="site-wip-banner-close" aria-label="Dismiss banner" onclick="dismissWipBanner()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+    </button>
+  </aside>
+  <script>
+    (function() {
+      var banner = document.getElementById('site-wip-banner');
+      if (sessionStorage.getItem('nn_site_wip_banner_dismissed') === 'true') {
+        if (banner) banner.style.display = 'none';
+      }
+    })();
+    function dismissWipBanner() {
+      var banner = document.getElementById('site-wip-banner');
+      if (banner) banner.style.display = 'none';
+      sessionStorage.setItem('nn_site_wip_banner_dismissed', 'true');
+    }
+  </script>
 
   <!-- Unified Header -->
   <header class="header">

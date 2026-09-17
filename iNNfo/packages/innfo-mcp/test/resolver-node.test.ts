@@ -36,9 +36,16 @@ title: Local Parent Spec
     expect(isLocalPath('https://example.com/spec.md')).toBe(false)
   })
 
-  it('converts file:// URIs to local file paths', () => {
+  it('converts file:// URIs to local file paths inside the workspace root', () => {
     const url = pathToFileURL(specPath).href
-    expect(toLocalFilePath(url)).toBe(specPath)
+    expect(toLocalFilePath(url, tmpDir)).toBe(specPath)
+  })
+
+  it('refuses a file:// URI that escapes the workspace root', () => {
+    const outside = pathToFileURL(resolve(tmpDir, '..', 'outside_NN.md')).href
+    expect(toLocalFilePath(outside, tmpDir)).toBeNull()
+    // No root supplied — containment cannot be proven, so it is refused.
+    expect(toLocalFilePath(pathToFileURL(specPath).href)).toBeNull()
   })
 
   it('resolves parent spec URL with file:// scheme directly via readFile', async () => {

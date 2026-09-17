@@ -1,12 +1,12 @@
 ---
 spec_version: "V_0-2-1"
-spec_url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/workspace_V_0-3-0_spec_NN.md"
+spec_url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/workspace_spec_NN.md"
 level: 2
 parent_spec:
   name: "iNNfo_V_0-2-1"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-2-1_NN.md"
-title: "Workspace Specification Template"
-template_version: "V_0-3-0"
+title: "Workspace Specification App"
+template_version: "V_0-5-1"
 relationship_types:
   hierarchy:
     enabled: true
@@ -25,10 +25,14 @@ relationship_types:
 # NN index
 
 * [[Workspace]]
+* [[Specs]]
+* [[Templates]]
 * [[Models]]
 * [[Sources]]
 * [[Procedures]]
 * [[Artifacts]]
+* [[Skills]]
+* [[Tools]]
 * [[Tag]]
 
 # NN Concept Definition
@@ -39,54 +43,119 @@ type:: text
 color:: blue
 weight:: 100
 
+## NN Concept Definition: Specs
+icon:: book-open
+type:: model
+color:: purple
+weight:: 95
+
+## NN Concept Definition: Templates
+icon:: copy
+type:: model
+color:: indigo
+weight:: 90
+
 ## NN Concept Definition: Models
 icon:: file-symlink
 type:: model
 color:: blue
-weight:: 90
+weight:: 85
 
 ## NN Concept Definition: Sources
 icon:: file-input
-type:: list
-color:: teal
+type:: model
+color:: cyan
 weight:: 80
 
 ## NN Concept Definition: Procedures
 icon:: workflow
-type:: list
-color:: teal
-weight:: 70
+type:: model
+color:: emerald
+weight:: 75
 
 ## NN Concept Definition: Artifacts
 icon:: file-output
+type:: model
+color:: amber
+weight:: 70
+
+## NN Concept Definition: Skills
+icon:: bot
 type:: list
-color:: teal
+color:: amber
+weight:: 65
+
+## NN Concept Definition: Tools
+icon:: wrench
+type:: list
+color:: slate
 weight:: 60
 
 ## NN Concept Definition: Tag
 icon:: tag
 type:: category
-color:: indigo
+color:: purple
 weight:: 50
 
 # NN Field Definition
 
-<!-- Tag fields -->
+<!-- Workspace fields: conventions & global config -->
 
-## NN Field Definition: color
-concept:: Tag
+## NN Field Definition: name
+concept:: Workspace
 type:: string
-description:: Hex color code (e.g. #10b981) or CSS token for tag badges and highlights.
+description:: Display name or title of the workspace.
 
-## NN Field Definition: icon
-concept:: Tag
-type:: string
-description:: Icon identifier (e.g. Lucide icon name) displayed with the tag badge.
+## NN Field Definition: environment
+concept:: Workspace
+type:: select
+options:: [development, staging, production]
+description:: Execution context of the workspace.
 
-## NN Field Definition: description
-concept:: Tag
+## NN Field Definition: models_dir
+concept:: Workspace
 type:: string
-description:: Semantic description, strategic intent, or scope of the tag.
+description:: Base relative path for domain models in the workspace (default: models/).
+
+## NN Field Definition: sources_dir
+concept:: Workspace
+type:: string
+description:: Base relative path for normalized sources in the workspace (default: sources/nn/).
+
+## NN Field Definition: templates_dir
+concept:: Workspace
+type:: string
+description:: Base relative path for template packages in the workspace (default: templates/).
+
+## NN Field Definition: skills_dir
+concept:: Workspace
+type:: string
+description:: Base relative path for agent skills in the workspace (default: skills/).
+
+<!-- Specs fields -->
+
+## NN Field Definition: path
+concept:: Specs
+type:: model
+description:: Workspace-relative path to the formal specification document (e.g. specs/iNNfo_V_0-2-1_NN.md).
+
+## NN Field Definition: level
+concept:: Specs
+type:: select
+options:: [0, 1, 2]
+description:: Abstraction level of the spec (0=primitive meta-meta, 1=meta-template, 2=template spec).
+
+<!-- Templates fields -->
+
+## NN Field Definition: path
+concept:: Templates
+type:: model
+description:: Workspace-relative path to the template spec_NN.md file (e.g. templates/business/spec_NN.md).
+
+## NN Field Definition: category
+concept:: Templates
+type:: string
+description:: Domain classification or strategic focus of the template.
 
 <!-- Models fields: inventory + provenance -->
 
@@ -123,100 +192,73 @@ type:: reference
 target_concepts:: [Procedures]
 description:: The Procedure run that produced this model (PROV wasGeneratedBy).
 
-<!-- Sources fields: raw inputs and normalized markdown -->
+<!-- Sources fields: link to sources catalog model -->
 
-## NN Field Definition: raw_filename
+## NN Field Definition: path
 concept:: Sources
-type:: string
-description:: Original file name of the raw source, relative to the workspace (e.g. sources/nn/report.docx).
+type:: model
+description:: Workspace-relative path to the sources catalog model document (e.g. sources_NN.md).
 
-## NN Field Definition: raw_hash
-concept:: Sources
-type:: string
-description:: SHA-256 content hash of the raw file (sha256:...). Stable identity for the source.
+<!-- Procedures fields: link to procedures catalog model -->
 
-## NN Field Definition: size
-concept:: Sources
-type:: string
-description:: Raw file size in bytes.
+## NN Field Definition: path
+concept:: Procedures
+type:: model
+description:: Workspace-relative path to the procedures catalog model document (e.g. procedures_NN.md).
 
-## NN Field Definition: source_format
-concept:: Sources
-type:: select
-options:: [txt, md, csv, json, docx, pdf, xlsx]
-description:: Detected format of the raw source file.
+<!-- Artifacts fields: link to artifacts catalog model -->
 
-## NN Field Definition: normalized_at
-concept:: Sources
-type:: string
-description:: ISO-8601 timestamp when the source was normalized to Markdown.
+## NN Field Definition: path
+concept:: Artifacts
+type:: model
+description:: Workspace-relative path to the artifacts catalog model document (e.g. artifacts_NN.md).
 
-## NN Field Definition: normalized_by
-concept:: Sources
-type:: string
-description:: Tool and version that produced the normalized content (e.g. traNNsform v1.5).
+<!-- Skills fields: link to AI agent skills -->
 
-## NN Field Definition: normalized_content
-concept:: Sources
-type:: markdown_file
-description:: The normalized Markdown extracted from the raw file (stored under sources/nn/). File-backed asset.
-
-## NN Field Definition: raw_file
-concept:: Sources
+## NN Field Definition: path
+concept:: Skills
 type:: file
-description:: Optional copy of the original raw binary, retained for full reproducibility.
+description:: Relative path to the agent SKILL.md file.
 
-<!-- Procedures fields: transformation activities -->
-
-## NN Field Definition: procedure_ref
-concept:: Procedures
+## NN Field Definition: role
+concept:: Skills
 type:: string
-description:: Link or path to the reusable procedure spec (e.g. procedures/Document_Ingest_V_1-0-0_procedures_NN.md).
+description:: Operational role and specialization of the skill agent.
 
-## NN Field Definition: agent
-concept:: Procedures
+## NN Field Definition: target_agents
+concept:: Skills
 type:: string
-description:: The agent that executed the procedure (tool and/or LLM, e.g. actioNN nn-trannsform + Claude).
+description:: Compatible agent platforms (e.g. Antigravity, Claude Code, OpenCode).
 
-## NN Field Definition: run_at
-concept:: Procedures
-type:: string
-description:: ISO-8601 timestamp of the procedure run.
+<!-- Tools fields: link to executable tools and scripts -->
 
-<!-- Artifacts fields: derivative deliverables -->
+## NN Field Definition: path
+concept:: Tools
+type:: file
+description:: Relative path to the executable tool script or CLI runner.
 
-## NN Field Definition: artifact_format
-concept:: Artifacts
+## NN Field Definition: runtime
+concept:: Tools
 type:: select
-options:: [document, report, board, dataset]
-description:: Kind of artifact. Every generated deliverable is an Artifact.
+options:: [node, python, bash, powershell]
+description:: Execution runtime required for this tool.
 
-## NN Field Definition: artifact_version
-concept:: Artifacts
+<!-- Tag fields -->
+
+## NN Field Definition: color
+concept:: Tag
 type:: string
-description:: Version of the artifact.
+description:: Hex color code (e.g. #10b981) or CSS token for tag badges and highlights.
 
-## NN Field Definition: location
-concept:: Artifacts
+## NN Field Definition: icon
+concept:: Tag
 type:: string
-description:: Path to the artifact within the workspace (e.g. artifacts/Executive_Summary_V_0-1-0.md).
+description:: Icon identifier (e.g. Lucide icon name) displayed with the tag badge.
 
-## NN Field Definition: artifact_hash
-concept:: Artifacts
+## NN Field Definition: description
+concept:: Tag
 type:: string
-description:: Optional SHA-256 hash of the artifact for reproducibility.
-
-## NN Field Definition: derived_from_inputs
-concept:: Artifacts
-type:: reference
-target_concepts:: [Sources, Models]
-description:: The immediate inputs this artifact was derived from — Sources and/or Models (PROV wasDerivedFrom).
-
-## NN Field Definition: produced_by
-concept:: Artifacts
-type:: reference
-target_concepts:: [Procedures]
-description:: The Procedure run that produced this artifact (PROV wasGeneratedBy).
+description:: Semantic description, strategic intent, or scope of the tag.
 
 # NN Marker Definition
 
@@ -233,30 +275,32 @@ source:: Artifacts
 target:: Sources
 values:: [X]
 widget:: boolean
-description:: Optional projection view of the derived_from_inputs references — which Artifact draws on which Source. The reference fields remain the single source of truth; this matrix is a convenience visualization.
+description:: Optional projection view of the derived_from_inputs references — which Artifact draws on which Source.
+
+## NN Matrix Definition: Model-Source Lineage
+source:: Models
+target:: Sources
+values:: [X]
+widget:: boolean
+description:: Optional projection view of the derived_from references — which Model consumes which Source.
 
 # Workspace Specification Template
 
-## A level-2 unified template for the workspace manifest and provenance graph — listing models, sources, procedures, artifacts, and taxonomy tags
+## A level-2 unified template for the workspace root manifest — linking domain models, specs, templates, sources, procedures, artifacts, skills, tools, and taxonomy tags
 
 ## Philosophy
 
-A workspace manifest in `V_0-3-0` is the single source of truth for both workspace inventory and data lineage. It unifies structural model cataloging with the W3C PROV provenance model:
-* **Models** is the single concept for domain models in the workspace, combining structural metadata (`path`, `template`, `status`, `author`) with lineage edges (`derived_from`, `generated_by`).
-* **Sources** represents raw and normalized input documents.
-* **Procedures** tracks the transformation activities that produce models and artifacts.
-* **Artifacts** represents derivative deliverables (documents, reports, datasets, boards).
-* **Tag** provides a centralized taxonomy catalog (color, icon, description) used across the workspace.
-
-Legacy taxonomy-only grouping (`Folder`) and unstructured attachment listings (`Asset`) are retired in favor of first-class typed entities.
-
-## Objectives
-
-- Provide a single, canonical level-2 schema for the workspace root entry-point (`workspace_NN.md`).
-- Eliminate collision risks between inventory and provenance by unifying them under cohesive concepts.
-- Retain per-workspace ownership (`author`) on the manifest without polluting individual model files.
-- Enable full W3C PROV graph auditability (`Sources` → `Procedures` → `Models` → `Artifacts`) directly from the workspace entrypoint.
-- Centralize `Tag` styling and open taxonomy across all submodels.
+A workspace manifest is the single source of truth for workspace topology, execution context, and data lineage:
+* **Workspace** sets directory conventions and environment parameters (`models_dir`, `sources_dir`, `templates_dir`, `skills_dir`).
+* **Specs** links to formal grammar specifications via `type:: model`.
+* **Templates** links to available template packages via `type:: model`.
+* **Models** links to domain model files with metadata and derivation edges.
+* **Sources** links to `sources_NN.md` catalog via `type:: model`.
+* **Procedures** links to `procedures_NN.md` catalog via `type:: model`.
+* **Artifacts** links to `artifacts_NN.md` catalog via `type:: model`.
+* **Skills** links to agent capability definitions (`SKILL.md`) via `type:: file`.
+* **Tools** links to executable maintenance scripts via `type:: file`.
+* **Tag** provides a centralized taxonomy catalog (`color`, `icon`, `description`) used across the workspace.
 
 ## Specification
 
@@ -264,52 +308,16 @@ Legacy taxonomy-only grouping (`Folder`) and unstructured attachment listings (`
 
 | Concept | Type | PROV Role | Purpose |
 |---|---|---|---|
-| **Workspace** | `text` | — | Prose description of the workspace: purpose, scope, and guidelines |
-| **Models** | `model` | Entity | Domain model files in the workspace with metadata and derivation |
-| **Sources** | `list` | Entity | Raw and normalized input source documents |
-| **Procedures** | `list` | Activity | Transformation procedure runs |
-| **Artifacts** | `list` | Entity | Derivative deliverables generated from sources or models |
-| **Tag** | `category` | — | Centralized taxonomy tags with color, icon, and description |
-
-### Fields
-
-| Field | Concept | Type | Purpose |
-|---|---|---|---|
-| `path` | Models | `model` | Workspace-relative path to the referenced model file |
-| `template` | Models | `string` | The level-2 template the referenced model conforms to |
-| `status` | Models | `select` (draft / active / archived) | Lifecycle status within this workspace |
-| `author` | Models | `string` | Owner of the model within this workspace |
-| `derived_from` | Models | `reference` [Sources] | Sources this model was derived from |
-| `generated_by` | Models | `reference` [Procedures] | Procedure run that produced this model |
-| `raw_filename` | Sources | `string` | Original file path of the raw source |
-| `raw_hash` | Sources | `string` | SHA-256 hash of the raw source |
-| `size` | Sources | `string` | Raw file size in bytes |
-| `source_format` | Sources | `select` | Detected format (txt, md, csv, json, docx, pdf, xlsx) |
-| `normalized_at` | Sources | `string` | ISO-8601 timestamp of Markdown normalization |
-| `normalized_by` | Sources | `string` | Tool or agent that normalized the source |
-| `normalized_content` | Sources | `markdown_file` | Relative path to normalized Markdown in sources/nn/ |
-| `raw_file` | Sources | `file` | Original binary copy in sources/original/ |
-| `procedure_ref` | Procedures | `string` | Relative path to procedure spec |
-| `agent` | Procedures | `string` | Agent or tool that ran the procedure |
-| `run_at` | Procedures | `string` | ISO-8601 timestamp of procedure execution |
-| `artifact_format` | Artifacts | `select` | Deliverable format (document, report, board, dataset) |
-| `artifact_version` | Artifacts | `string` | Version of the artifact |
-| `location` | Artifacts | `string` | Relative path to generated deliverable |
-| `artifact_hash` | Artifacts | `string` | SHA-256 hash of deliverable |
-| `derived_from_inputs` | Artifacts | `reference` [Sources, Models] | Inputs this deliverable was derived from |
-| `produced_by` | Artifacts | `reference` [Procedures] | Procedure run that generated this deliverable |
-| `color` | Tag | `string` | Hex color code or CSS token |
-| `icon` | Tag | `string` | Lucide icon identifier |
-| `description` | Tag | `string` | Semantic scope or definition of tag |
-
-### Relationship Types
-
-| Type | Enabled | Representation |
-|---|---|---|
-| Hierarchy | ✅ | index block (wikilinks) |
-| Evaluable matrix | ✅ | Artifact-Source Lineage matrix |
-| Graph edge | ❌ | Not applicable |
-| Sequence | ❌ | Not applicable |
+| **Workspace** | text | — | Prose description and configuration parameters of the workspace |
+| **Specs** | model | Plan | Formal language specifications (Level 0 / Level 1) |
+| **Templates** | model | Plan | Level 2 domain templates available for instantiation |
+| **Models** | model | Entity | Domain model files in the workspace with metadata and derivation |
+| **Sources** | model | Entity | Link to the Sources catalog model |
+| **Procedures** | model | Activity | Link to the Procedures catalog model |
+| **Artifacts** | model | Entity | Link to the Artifacts catalog model |
+| **Skills** | file | Agent | Link to standard agent SKILL.md files |
+| **Tools** | file | Agent | Link to executable tool scripts and runners |
+| **Tag** | category | — | Centralized taxonomy tags with color, icon, and description |
 
 ## Template
 
@@ -319,8 +327,8 @@ Legacy taxonomy-only grouping (`Folder`) and unstructured attachment listings (`
 ---
 level: 3
 parent_spec:
-  name: "workspace_spec"
-  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/workspace_V_0-3-0_spec_NN.md"
+  name: "workspace"
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/workspace_spec_NN.md"
 model_version: "V_0-1-0"
 title: "<Workspace Name>"
 ---
@@ -331,51 +339,72 @@ title: "<Workspace Name>"
 # NN index
 
 * [[Workspace]]
+* [[Specs]]
+* [[Templates]]
 * [[Models]]
 * [[Sources]]
 * [[Procedures]]
 * [[Artifacts]]
+* [[Skills]]
+* [[Tools]]
 * [[Tag]]
 
 # NN Workspace
+name:: "<Workspace Name>"
+environment:: development
+models_dir:: models/
+sources_dir:: sources/nn/
+templates_dir:: templates/
+skills_dir:: skills/
 
 Description of the workspace: its purpose, scope, and conventions.
+
+# NN Specs
+
+## NN Specs: iNNfo Metaplantilla N1
+path:: specs/iNNfo_V_0-2-1_NN.md
+level:: 1
+
+# NN Templates
+
+## NN Templates: Business Model Template
+path:: templates/business/spec_NN.md
+category:: Strategy
 
 # NN Models
 
 ## NN Models: Core Business Model
-path:: models/business_V_0-1-0_business_NN.md
-template:: business_V_0-2-0
+path:: models/business_NN.md
+template:: business
 status:: active
 author:: Lead Architect
-derived_from:: [[Interview Transcript]]
 
 # NN Sources
 
-## NN Sources: Interview Transcript
-raw_filename:: sources/original/interview.docx
-raw_hash:: sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
-size:: 14280
-source_format:: docx
-normalized_at:: 2026-09-06T10:00:00Z
-normalized_by:: traNNsform v1.5
-normalized_content:: sources/nn/interview.md
+## NN Sources: Sources Catalog
+path:: sources_NN.md
 
 # NN Procedures
 
-## NN Procedures: Initial Ingestion Run
-procedure_ref:: procedures/ingest_V_1-0-0_procedures_NN.md
-agent:: actioNN + Claude 3.5 Sonnet
-run_at:: 2026-09-06T10:00:00Z
+## NN Procedures: Procedures Catalog
+path:: procedures_NN.md
 
 # NN Artifacts
 
-## NN Artifacts: Executive Summary
-artifact_format:: report
-artifact_version:: V_1-0-0
-location:: artifacts/Executive_Summary.md
-derived_from_inputs:: [[Core Business Model]]
-produced_by:: [[Initial Ingestion Run]]
+## NN Artifacts: Artifacts Catalog
+path:: artifacts_NN.md
+
+# NN Skills
+
+## NN Skills: Model Creation Wizard
+path:: skills/nn-innfo/SKILL.md
+role:: Conversational Architecture Coach
+
+# NN Tools
+
+## NN Tools: Integrity Checker
+path:: tools/check_integrity.mjs
+runtime:: node
 
 # NN Tag
 

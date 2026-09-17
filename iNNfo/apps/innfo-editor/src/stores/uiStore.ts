@@ -11,8 +11,6 @@ export type ActiveView =
   | 'ai-guide'
   | 'gantt-chart'
 
-export type ExplorerFilterMode = 'all' | 'models' | 'sources' | 'artifacts'
-
 export type SidebarMode = 'workspace' | 'focused_model'
 
 export interface BreadcrumbSegment {
@@ -39,7 +37,6 @@ export const useUiStore = defineStore('ui', () => {
   const showMetamatrixConfig = ref(false)
   const showSaveWorkspaceModal = ref(false)
   const showAiModal = ref(false)
-  const explorerFilterMode = ref<ExplorerFilterMode>('all')
   const isSearchOpen = ref(false)
   const searchQuery = ref('')
   const searchConceptFilter = ref('all')
@@ -153,10 +150,6 @@ export const useUiStore = defineStore('ui', () => {
 
   function setShowSaveWorkspaceModal(val: boolean): void {
     showSaveWorkspaceModal.value = val
-  }
-
-  function setExplorerFilterMode(mode: ExplorerFilterMode): void {
-    explorerFilterMode.value = mode
   }
 
   function setShowAiModal(val: boolean): void {
@@ -277,7 +270,6 @@ export const useUiStore = defineStore('ui', () => {
     showMetamatrixConfig,
     showSaveWorkspaceModal,
     showAiModal,
-    explorerFilterMode,
     isSearchOpen,
     searchQuery,
     searchConceptFilter,
@@ -306,7 +298,6 @@ export const useUiStore = defineStore('ui', () => {
     setShowValidationReport,
     setShowSaveWorkspaceModal,
     setShowAiModal,
-    setExplorerFilterMode,
     toggleSearchOpen,
     setSearchOpen,
     setSearchQuery,

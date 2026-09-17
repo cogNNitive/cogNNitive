@@ -217,6 +217,16 @@
             </p>
           </div>
         </div>
+
+        <!-- Embedded Workspace Filesystem Explorer -->
+        <div class="space-y-1.5 pt-2 border-t border-slate-200 dark:border-slate-700">
+          <label class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block px-1">
+            Filesystem Explorer
+          </label>
+          <div class="bg-slate-50/50 dark:bg-slate-900/40 rounded-lg border border-slate-200 dark:border-slate-700 p-3 max-h-96 overflow-y-auto" data-testid="embedded-workspace-explorer">
+            <WorkspaceExplorer />
+          </div>
+        </div>
       </div>
 
       <!-- Right Column: File & Metamodel Details (replacing iNNfo Metadata) -->
@@ -555,6 +565,7 @@ import {
   Terminal,
 } from 'lucide-vue-next'
 import OpenCodePromptModal from './OpenCodePromptModal.vue'
+import WorkspaceExplorer from '../layout/WorkspaceExplorer.vue'
 import type { PromptContext } from '../../utils/promptGenerator'
 import { buildSpecificationUrl } from '../../utils/constants'
 import type { BumpLevel } from '../../utils/version'

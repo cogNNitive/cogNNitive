@@ -40,9 +40,6 @@
           </template>
           <template v-else>{{ name }}</template>
         </slot>
-        <span v-if="isEmpty" class="ml-1 text-slate-400 dark:text-slate-500 text-2xs italic"
-          >Empty</span
-        >
       </span>
 
       <!-- Active markers, read-only, rendered inside the pill -->
@@ -72,8 +69,8 @@
       </span>
     </div>
 
-    <!-- Info popup (only when blockId is provided) -->
-    <Teleport v-if="blockId" to="body">
+    <!-- Info popup (only when blockId is provided and popup is open) -->
+    <Teleport v-if="blockId && popupVisible" to="body">
       <Transition name="fade-fast">
         <div
           v-if="popupVisible"

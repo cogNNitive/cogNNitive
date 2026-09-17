@@ -8,12 +8,11 @@ test.describe('Workspace Taxonomy and Submodels — Dual Mode Sidebar & Entrypoi
     await openMockFolder(page)
   })
 
-  test('Workspace Mode renders workspace overview panel with total models', async ({ page }) => {
+  test('Workspace Mode renders workspace metrics pill with model counts', async ({ page }) => {
     await expect(page.getByTestId('left-sidebar')).toBeVisible()
-    const overviewPanel = page.getByTestId('workspace-overview-panel')
-    await expect(overviewPanel).toBeVisible()
-    await expect(overviewPanel).toContainText(/Workspace Mode/i)
-    await expect(overviewPanel).toContainText(/Models/i)
+    const metricsPill = page.getByTestId('workspace-metrics-pill')
+    await expect(metricsPill).toBeVisible()
+    await expect(metricsPill.getByTestId('metric-active-count')).toBeVisible()
   })
 
   test('Focusing a model displays breadcrumb back button and restoring workspace overview', async ({ page }) => {
@@ -29,7 +28,7 @@ test.describe('Workspace Taxonomy and Submodels — Dual Mode Sidebar & Entrypoi
 
       // Click breadcrumb back button to restore Workspace Mode
       await breadcrumb.click()
-      await expect(page.getByTestId('workspace-overview-panel')).toBeVisible()
+      await expect(page.getByTestId('workspace-metrics-pill')).toBeVisible()
     }
   })
 })

@@ -58,18 +58,6 @@
       >
         {{ node.kind }}
       </span>
-
-      <!-- Quick open model action button -->
-      <button
-        v-if="directModelTarget"
-        type="button"
-        class="p-0.5 rounded text-slate-400 hover:text-primary hover:bg-slate-200 dark:hover:bg-slate-700 transition-all shrink-0 cursor-pointer"
-        :title="`Open model: ${directModelTarget.name}`"
-        data-testid="tree-node-open-model"
-        @click.stop="handleOpenModel(directModelTarget)"
-      >
-        <ArrowUpRight class="w-3.5 h-3.5" />
-      </button>
     </div>
 
     <!-- ── Children (recursive, with optional virtual grouping) ── -->
@@ -113,34 +101,51 @@
         />
       </template>
 
-      <!-- Nested Submodel Items -->
-      <div
-        v-for="sub in elementSubmodels"
-        :key="sub.submodelId"
-        class="flex items-center gap-1.5 px-2 py-1 rounded-md text-xs hover:bg-slate-100 dark:hover:bg-slate-800/60 cursor-pointer transition-colors group"
-        data-testid="nested-submodel-node"
-        @click.stop="handleOpenModel({ modelId: sub.submodelId, name: sub.submodelName })"
-      >
-        <Loader2 v-if="loadingModelId === sub.submodelId" class="w-3.5 h-3.5 text-primary animate-spin shrink-0" data-testid="submodel-loading-spinner" />
-        <Boxes v-else class="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
-        <span class="font-medium text-slate-700 dark:text-slate-200 truncate flex-1">
-          {{ sub.submodelName }}
-        </span>
-        <span
-          v-if="sub.targetTemplate"
-          class="text-3xs px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 font-mono"
-          data-testid="nested-submodel-badge"
+      <!-- Nested Submodel Concept Groups (Full Tree Recursion) -->
+      <template v-if="submodelConcepts.length > 0">
+        <VirtualGroupNode
+          v-for="item in submodelConcepts"
+          :key="item.name"
+          :concept-name="item.name"
+          :elements="item.elements"
+          :sub-groups="item.children"
+          :selected-id="selectedId"
+          :depth="(depth ?? 0) + 1"
+          :expanded-generation="expandedGeneration"
+          :ghost="item.ghost"
+          @select="(id: string) => $emit('select', id)"
+          @click-ghost="(cname: string) => $emit('click-ghost', cname)"
+        />
+      </template>
+
+      <!-- Fallback when submodel node is not loaded into store yet -->
+      <template v-else-if="elementSubmodels.length > 0">
+        <div
+          v-for="sub in elementSubmodels"
+          :key="sub.submodelId"
+          class="flex items-center gap-1.5 px-2 py-1 rounded-md text-xs hover:bg-slate-100 dark:hover:bg-slate-800/60 cursor-pointer transition-colors group"
+          data-testid="nested-submodel-node"
         >
-          {{ sub.targetTemplate }}
-        </span>
-      </div>
+          <Boxes class="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+          <span class="font-medium text-slate-700 dark:text-slate-200 truncate flex-1">
+            {{ sub.submodelName }}
+          </span>
+          <span
+            v-if="sub.targetTemplate"
+            class="text-3xs px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 font-mono"
+            data-testid="nested-submodel-badge"
+          >
+            {{ sub.targetTemplate }}
+          </span>
+        </div>
+      </template>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { ChevronDown, Boxes, ArrowUpRight, Loader2 } from 'lucide-vue-next'
+import { ChevronDown, Boxes } from 'lucide-vue-next'
 import { useModelStore } from '../../stores/modelStore'
 import { useUiStore } from '../../stores/uiStore'
 import { useConceptVisuals, getHexColorMedium } from '../../composables/useConceptVisuals'
@@ -152,6 +157,7 @@ import {
 } from '../../utils/modelMatching'
 import Pill from '../editor/Pill.vue'
 import VirtualGroupNode from './VirtualGroupNode.vue'
+import { useModelConcepts } from '../../composables/useModelConcepts'
 import type { ModelNode } from '../../model/types'
 
 const props = withDefaults(
@@ -176,6 +182,7 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   select: [nodeId: string]
+  'click-ghost': [conceptName: string]
 }>()
 
 const modelStore = useModelStore()
@@ -211,10 +218,13 @@ const children = computed<ModelNode[]>(() => {
   const thisName = node.value?.name
   if (!thisName) return []
 
+  const byParent = modelStore.nodesByParentName.get(thisName)
+  if (!byParent || byParent.length === 0) return []
+
   const nodePath = node.value?.source?.path
   const rootId = modelStore.getModelRootForNode(props.nodeId)
-  return Object.values(modelStore.nodes).filter((n) => {
-    if (n.kind !== 'element' || n.fields?.parent?.value !== thisName) return false
+  return byParent.filter((n) => {
+    if (n.kind !== 'element') return false
     if (rootId) {
       return modelStore.getModelRootForNode(n.id) === rootId
     }
@@ -269,20 +279,33 @@ function resolveConceptForNode(n: ModelNode | undefined): any {
 }
 
 function isModelFieldEntry(key: string, fieldVal: string, conceptDef: any, nType: string): boolean {
-  if (!fieldVal) return false
-  const fieldDef = conceptDef?.fields?.find((f: any) => f.name === key)
-  if (fieldDef?.type === 'model') return true
+  if (!fieldVal || typeof fieldVal !== 'string') return false
+  const normKey = key.toLowerCase().trim().replace(/[\s_-]+/g, '')
+
+  const fieldDef = conceptDef?.fields?.find((f: any) => {
+    const fn = (f.name || '').toLowerCase().trim().replace(/[\s_-]+/g, '')
+    return fn === normKey
+  })
+
+  if (fieldDef?.type === 'model' || fieldDef?.type === 'submodel' || fieldDef?.target_template) {
+    return true
+  }
+
+  const modelFieldKeys = new Set(['modelref', 'model', 'submodel', 'path', 'ref', 'modelpath', 'targetmodel'])
+  if (modelFieldKeys.has(normKey)) {
+    return true
+  }
 
   const isModelConcept =
     conceptDef?.type === 'model' ||
     nType.startsWith('model') ||
     nType.startsWith('submodel')
 
-  if (isModelConcept && (key === 'path' || key === 'submodel' || key === 'model')) {
+  if (isModelConcept && (normKey === 'path' || normKey === 'submodel' || normKey === 'model' || normKey === 'ref')) {
     return true
   }
 
-  if (key === 'path' && fieldVal.trim().endsWith('.md')) {
+  if (fieldVal.trim().endsWith('.md') || fieldVal.trim().endsWith('_NN.md')) {
     return true
   }
 
@@ -358,22 +381,21 @@ const directModelTarget = computed<{ modelId: string; name: string } | undefined
   return undefined
 })
 
-const loadingModelId = ref<string | null>(null)
+const { getActiveConceptsForModel } = useModelConcepts()
 
-async function handleOpenModel(target: { modelId: string; name: string }): Promise<void> {
-  loadingModelId.value = target.modelId
-  try {
-    const match = findMatchingModelNode(modelStore.nodes, target.modelId)
-    const resolvedId = match ? match.id : target.modelId
-    uiStore.focusModel(resolvedId)
-    uiStore.selectNode(resolvedId)
-    uiStore.setActiveView('editor')
-  } finally {
-    loadingModelId.value = null
-  }
-}
+const submodelConcepts = computed(() => {
+  if (!directModelTarget.value) return []
+  const match = findMatchingModelNode(modelStore.nodes, directModelTarget.value.modelId)
+  if (!match) return []
+  return getActiveConceptsForModel(match.id)
+})
 
-const hasChildren = computed(() => children.value.length > 0 || elementSubmodels.value.length > 0)
+const hasChildren = computed(
+  () =>
+    children.value.length > 0 ||
+    submodelConcepts.value.length > 0 ||
+    elementSubmodels.value.length > 0,
+)
 
 const instanceCount = computed(() => children.value.length)
 

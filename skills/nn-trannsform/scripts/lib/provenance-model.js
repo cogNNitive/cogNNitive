@@ -2,10 +2,10 @@ const fs = require('fs');
 const path = require('path');
 
 const TEMPLATE_URL =
-  'https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/workspace_V_0-3-0_spec_NN.md';
+  'https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/workspace_spec_NN.md';
 const INNFO_URL =
   'https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-2-1_NN.md';
-const TEMPLATE_NAME = 'workspace_V_0-3-0_spec_NN';
+const TEMPLATE_NAME = 'workspace';
 
 const DOC_NOTICE =
   '> [!NOTE]\n> This is an **iNNfo document** — a plain-text Markdown file. ' +

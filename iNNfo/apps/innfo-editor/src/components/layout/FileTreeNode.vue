@@ -80,7 +80,6 @@
         :key="child.path"
         :item="child"
         :depth="depth + 1"
-        :filter-mode="filterMode"
         :search-query="searchQuery"
         @select-file="$emit('select-file', $event)"
         @view-file="$emit('view-file', $event)"
@@ -95,7 +94,6 @@ import { ref, computed } from 'vue'
 import { ChevronRight, ChevronDown, Folder, FileText, Eye, Download } from 'lucide-vue-next'
 import Pill from '../editor/Pill.vue'
 import { classifyExplorerItem, type ExplorerItemKind } from '../../utils/explorerClassify'
-import type { ExplorerFilterMode } from '../../stores/uiStore'
 
 export interface FileItem {
   name: string
@@ -108,12 +106,10 @@ const props = withDefaults(
   defineProps<{
     item: FileItem
     depth?: number
-    filterMode?: ExplorerFilterMode
     searchQuery?: string
   }>(),
   {
     depth: 0,
-    filterMode: 'all',
     searchQuery: '',
   },
 )
@@ -140,15 +136,6 @@ const pillIcon = computed(() => {
   return 'file-code'
 })
 
-function matchesItemFilter(item: FileItem): boolean {
-  if (item.kind === 'directory') return true
-  const kind = classifyExplorerItem(item)
-  if (props.filterMode === 'models') return kind === 'model'
-  if (props.filterMode === 'sources') return kind === 'source'
-  if (props.filterMode === 'artifacts') return kind === 'artifact'
-  return true
-}
-
 function matchesSearch(item: FileItem): boolean {
   if (!props.searchQuery) return true
   return item.name.toLowerCase().includes(props.searchQuery.toLowerCase())
@@ -156,11 +143,11 @@ function matchesSearch(item: FileItem): boolean {
 
 function hasMatchingSubtree(item: FileItem): boolean {
   if (item.kind === 'file') {
-    return matchesItemFilter(item) && matchesSearch(item)
+    return matchesSearch(item)
   }
 
-  // For directory: if no search query and filterMode is 'all', it's visible
-  if (!props.searchQuery && props.filterMode === 'all') return true
+  // For directory: if no search query, it's visible
+  if (!props.searchQuery) return true
 
   // Otherwise, visible if any child recursively matches
   return (item.children ?? []).some((c) => hasMatchingSubtree(c))

@@ -195,7 +195,7 @@ describe('ConceptTreeNode.vue — BlockPill integration (R-TN-01)', () => {
     expect(wrapper.text()).toContain('MyConcept')
   })
 
-  it('shows "Empty" label via BlockPill for empty nodes', () => {
+  it('renders italic styling for empty nodes without literal "Empty" text', () => {
     const modelStore = useModelStore()
     modelStore.setGraph(
       {
@@ -212,7 +212,9 @@ describe('ConceptTreeNode.vue — BlockPill integration (R-TN-01)', () => {
       attachTo: document.body,
     })
 
-    expect(wrapper.text()).toContain('Empty')
+    const italicSpan = wrapper.find('span.italic')
+    expect(italicSpan.exists()).toBe(true)
+    expect(italicSpan.text()).toContain('Root')
   })
 })
 
@@ -414,7 +416,7 @@ describe('ConceptTreeNode.vue — Diamond child renders once (R8)', () => {
       expect(badge.text()).toBe('business')
     })
 
-    it('clicking nested submodel node invokes uiStore.focusModel', async () => {
+    it('renders nested submodel fallback node without isolate jump on click', async () => {
       const modelStore = useModelStore()
       const uiStore = useUiStore()
       const focusSpy = vi.spyOn(uiStore, 'focusModel')
@@ -465,9 +467,10 @@ describe('ConceptTreeNode.vue — Diamond child renders once (R8)', () => {
       })
 
       const nested = wrapper.find('[data-testid="nested-submodel-node"]')
+      expect(nested.exists()).toBe(true)
       await nested.trigger('click')
 
-      expect(focusSpy).toHaveBeenCalledWith(submodelNode.id)
+      expect(focusSpy).not.toHaveBeenCalled()
       focusSpy.mockRestore()
     })
 
@@ -577,10 +580,8 @@ describe('ConceptTreeNode.vue — Diamond child renders once (R8)', () => {
       expect(wrapper.find('[data-testid="nested-submodel-node"]').exists()).toBe(false)
     })
 
-    it('renders quick open model action button on node row and triggers focusModel on click', async () => {
+    it('does not render quick open model button on node row referencing a submodel', async () => {
       const modelStore = useModelStore()
-      const uiStore = useUiStore()
-      const focusSpy = vi.spyOn(uiStore, 'focusModel')
 
       const rootNode = makeNode('models/root_NN.md', {
         kind: 'root',
@@ -630,18 +631,11 @@ describe('ConceptTreeNode.vue — Diamond child renders once (R8)', () => {
       })
 
       const openBtn = wrapper.find('[data-testid="tree-node-open-model"]')
-      expect(openBtn.exists()).toBe(true)
-
-      await openBtn.trigger('click')
-      expect(focusSpy).toHaveBeenCalledWith(targetModel.id)
+      expect(openBtn.exists()).toBe(false)
     })
 
-    it('renders quick open model button on Level-3 workspace element without localMetamodel', async () => {
+    it('does not render quick open model button on Level-3 workspace element without localMetamodel', async () => {
       const modelStore = useModelStore()
-      const uiStore = useUiStore()
-      const focusSpy = vi.spyOn(uiStore, 'focusModel')
-      const selectSpy = vi.spyOn(uiStore, 'selectNode')
-      const viewSpy = vi.spyOn(uiStore, 'setActiveView')
 
       const workspaceRoot = makeNode('workspace_NN.md', {
         kind: 'root',
@@ -673,11 +667,103 @@ describe('ConceptTreeNode.vue — Diamond child renders once (R8)', () => {
       })
 
       const openBtn = wrapper.find('[data-testid="tree-node-open-model"]')
-      expect(openBtn.exists()).toBe(true)
-      await openBtn.trigger('click')
-      expect(focusSpy).toHaveBeenCalledWith('models/rehabilitacion_reja_pozuello_V_0-1-0_rejas_rehabilitacion_NN.md')
-      expect(selectSpy).toHaveBeenCalledWith('models/rehabilitacion_reja_pozuello_V_0-1-0_rejas_rehabilitacion_NN.md')
-      expect(viewSpy).toHaveBeenCalledWith('editor')
+      expect(openBtn.exists()).toBe(false)
+    })
+
+    it('does not render quick open model button when element has "model ref" or "model_ref" field', async () => {
+      const modelStore = useModelStore()
+
+      const workspaceRoot = makeNode('workspace_NN.md', {
+        kind: 'root',
+        source: { path: 'workspace_NN.md' },
+      })
+      const elementNode = makeNode('workspace_NN.md/elem_discografia', {
+        name: 'Discografia',
+        parentId: workspaceRoot.id,
+        kind: 'element',
+        type: 'Models',
+        fields: {
+          'model ref': { value: 'models/discografia_V_0-1-0_discografia_NN.md' },
+        },
+      })
+      modelStore.setGraph(
+        {
+          [workspaceRoot.id]: workspaceRoot,
+          [elementNode.id]: elementNode,
+        },
+        [workspaceRoot.id],
+      )
+
+      const wrapper = mount(ConceptTreeNode, {
+        props: {
+          nodeId: elementNode.id,
+          selectedId: null,
+        },
+        attachTo: document.body,
+      })
+
+      const openBtn = wrapper.find('[data-testid="tree-node-open-model"]')
+      expect(openBtn.exists()).toBe(false)
+    })
+
+    it('recursively unfolds submodel concepts directly when submodel node exists in store', async () => {
+      const modelStore = useModelStore()
+
+      const workspaceRoot = makeNode('workspace_NN.md', {
+        kind: 'root',
+        source: { path: 'workspace_NN.md' },
+      })
+      const elementNode = makeNode('workspace_NN.md/elem_discografia', {
+        name: 'Discografia',
+        parentId: workspaceRoot.id,
+        kind: 'element',
+        type: 'Models',
+        fields: {
+          'model ref': { value: 'models/discografia_V_0-1-0_discografia_NN.md' },
+        },
+      })
+      const submodelRoot = makeNode('models/discografia_V_0-1-0_discografia_NN.md', {
+        kind: 'root',
+        source: { path: 'models/discografia_V_0-1-0_discografia_NN.md' },
+        childIds: ['models/discografia_V_0-1-0_discografia_NN.md/disco_1'],
+        localMetamodel: {
+          concepts: [
+            { name: 'Disco', type: 'concept', icon: 'disc', color: 'blue' },
+          ],
+          taxonomy: [{ parent: '', child: 'Disco' }],
+          conceptFields: {},
+          markers: [],
+        },
+      })
+      const discoElement = makeNode('models/discografia_V_0-1-0_discografia_NN.md/disco_1', {
+        name: 'Appetite for Destruction',
+        parentId: submodelRoot.id,
+        kind: 'element',
+        type: 'Disco',
+      })
+
+      modelStore.setGraph(
+        {
+          [workspaceRoot.id]: workspaceRoot,
+          [elementNode.id]: elementNode,
+          [submodelRoot.id]: submodelRoot,
+          [discoElement.id]: discoElement,
+        },
+        [workspaceRoot.id, submodelRoot.id],
+      )
+
+      const wrapper = mount(ConceptTreeNode, {
+        props: {
+          nodeId: elementNode.id,
+          selectedId: null,
+        },
+        attachTo: document.body,
+      })
+
+      // The tree node for Discografia should show chevron and contain the submodel's concept Disco
+      expect(wrapper.text()).toContain('Discografia')
+      expect(wrapper.text()).toContain('Disco')
+      expect(wrapper.text()).toContain('Appetite for Destruction')
     })
   })
 })

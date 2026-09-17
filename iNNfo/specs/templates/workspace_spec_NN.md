@@ -6,7 +6,7 @@ parent_spec:
   name: "iNNfo_V_0-2-1"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-2-1_NN.md"
 title: "Workspace Specification App"
-template_version: "V_0-5-0"
+template_version: "V_0-5-1"
 relationship_types:
   hierarchy:
     enabled: true
@@ -64,19 +64,19 @@ weight:: 85
 ## NN Concept Definition: Sources
 icon:: file-input
 type:: model
-color:: teal
+color:: cyan
 weight:: 80
 
 ## NN Concept Definition: Procedures
 icon:: workflow
 type:: model
-color:: teal
+color:: emerald
 weight:: 75
 
 ## NN Concept Definition: Artifacts
 icon:: file-output
 type:: model
-color:: teal
+color:: amber
 weight:: 70
 
 ## NN Concept Definition: Skills
@@ -94,7 +94,7 @@ weight:: 60
 ## NN Concept Definition: Tag
 icon:: tag
 type:: category
-color:: indigo
+color:: purple
 weight:: 50
 
 # NN Field Definition

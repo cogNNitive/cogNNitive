@@ -145,33 +145,7 @@ onMounted(async () => {
       }
     }
 
-    // No deep link resolved a workspace — try resuming the LAST opened one
-    // (F-14). `recoverHandle()` used to be write-only: workspaceStore.open()
-    // persisted a handle to it on every open, but nothing ever read it back.
-    // Only resume silently when the browser still grants read permission
-    // WITHOUT prompting, so returning to `/` never surfaces an unexpected
-    // permission dialog.
-    if (!hasDeepLink) {
-      try {
-        const recovered = await workspace.recoverHandle()
-        if (recovered) {
-          const status = await (
-            recovered as unknown as {
-              queryPermission?: (opts: { mode: string }) => Promise<string>
-            }
-          ).queryPermission?.({ mode: 'read' })
-          if (status === 'granted') {
-            await workspace.open(recovered)
-            if (workspace.hasParsed) {
-              await router.push({ path: '/workspace', query: route.query, hash: route.hash })
-              return
-            }
-          }
-        }
-      } catch (e) {
-        console.warn('Failed to resume last workspace:', e)
-      }
-    }
+    // No deep-link workspace: user stays on Home to pick a folder, recent workspace, or wizard.
   } finally {
     isDeepLinkLoading.value = false
   }

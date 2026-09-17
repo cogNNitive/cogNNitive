@@ -19,23 +19,6 @@
       </button>
     </div>
 
-    <!-- Category Filter Chips -->
-    <div class="flex items-center gap-1 p-1 rounded-lg bg-slate-100 dark:bg-slate-800/80 text-2xs">
-      <button
-        v-for="mode in filterOptions"
-        :key="mode.id"
-        @click="setFilter(mode.id)"
-        class="flex-1 py-1 px-1.5 rounded-md font-semibold transition-all cursor-pointer text-center capitalize"
-        :class="[
-          uiStore.explorerFilterMode === mode.id
-            ? mode.activeClass
-            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-        ]"
-      >
-        {{ mode.label }}
-      </button>
-    </div>
-
     <!-- Search Input -->
     <div class="relative px-1">
       <Search class="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400 dark:text-slate-500" />
@@ -70,7 +53,6 @@
         v-for="item in treeItems"
         :key="item.path"
         :item="item"
-        :filter-mode="uiStore.explorerFilterMode"
         :search-query="searchQuery"
         @select-file="handleSelectFile"
         @view-file="handleViewFile"
@@ -96,7 +78,7 @@ import { FolderTree, Search, RotateCw, Loader, X } from 'lucide-vue-next'
 import { useWorkspaceStore } from '../../stores/workspaceStore'
 import FilePreviewModal from '../editor/FilePreviewModal.vue'
 import { classifyExplorerItem } from '../../utils/explorerClassify'
-import { useUiStore, type ExplorerFilterMode } from '../../stores/uiStore'
+import { useUiStore } from '../../stores/uiStore'
 import { useModelStore } from '../../stores/modelStore'
 import FileTreeNode, { type FileItem } from './FileTreeNode.vue'
 import type { DirectoryHandleLike } from '../../model/fs-types'
@@ -114,17 +96,6 @@ const modelStore = useModelStore()
 const treeItems = ref<FileItem[]>([])
 const isLoading = ref(false)
 const searchQuery = ref('')
-
-const filterOptions: { id: ExplorerFilterMode; label: string; activeClass: string }[] = [
-  { id: 'all', label: 'All', activeClass: 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-100 shadow-2xs' },
-  { id: 'models', label: 'Models', activeClass: 'bg-indigo-600 text-white shadow-2xs font-bold' },
-  { id: 'sources', label: 'Sources', activeClass: 'bg-slate-600 text-white shadow-2xs' },
-  { id: 'artifacts', label: 'Artifacts', activeClass: 'bg-slate-900 text-white shadow-2xs' },
-]
-
-function setFilter(mode: ExplorerFilterMode): void {
-  uiStore.setExplorerFilterMode(mode)
-}
 
 async function buildTreeFromHandle(handle: DirectoryHandleLike, pathPrefix = ''): Promise<FileItem[]> {
   const items: FileItem[] = []

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { marked } from 'marked'
+import { renderMarkdown } from '../../utils/markdown'
 import { FileText, Pencil, Save, X, ArrowLeftFromLine } from 'lucide-vue-next'
 import { useWorkspaceStore } from '../../stores/workspaceStore'
 import { useModelStore } from '../../stores/modelStore'
@@ -226,14 +226,9 @@ async function saveEdit(): Promise<void> {
 
 // ── Rendering ───────────────────────────────────────────────────
 
-function renderMarkdown(md: string): string {
-  if (!md) return ''
-  try {
-    return marked.parse(md, { async: false }) as string
-  } catch {
-    return md
-  }
-}
+// Rendering goes through the shared sanitized `renderMarkdown` (utils/markdown):
+// field content is author-supplied, and the result is injected with `v-html`.
+// Never call `marked.parse` directly here.
 
 const displayContent = computed(() => {
   if (isFileMode.value) return fileContent.value

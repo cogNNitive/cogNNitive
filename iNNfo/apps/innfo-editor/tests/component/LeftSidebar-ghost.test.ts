@@ -60,9 +60,16 @@ describe('LeftSidebar — ghost concept groups (R-TGC-01, R-TGC-05)', () => {
     await wrapper.find('[data-testid="model-header-toggle"]').trigger('click')
     await wrapper.vm.$nextTick()
 
+    // Expand empty/inactive groups section to see ghost concept headers
+    const emptyToggle = wrapper.find('[data-testid="empty-groups-toggle"]')
+    if (emptyToggle.exists()) {
+      await emptyToggle.trigger('click')
+      await wrapper.vm.$nextTick()
+    }
+
     // Ghost groups are rendered inline, no separate section container
     expect(wrapper.find('[data-testid="ghost-concepts-section"]').exists()).toBe(false)
-    // But ghost group headers exist in the single merged tree
+    // But ghost group headers exist in the tree
     const ghostHeaders = wrapper.findAll('[data-testid="ghost-group-header"]')
     expect(ghostHeaders.length).toBeGreaterThan(0)
     expect(ghostHeaders[0].text()).toContain('GhostConcept')

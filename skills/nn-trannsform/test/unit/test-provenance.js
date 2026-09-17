@@ -83,7 +83,7 @@ function run() {
     eq(path.basename(r1.modelPath), 'Acme_V_0-2-0_workspace_NN.md', 'model file named after the workspace template (not trannsform)');
 
     const model1 = fs.readFileSync(r1.modelPath, 'utf8');
-    ok(/parent_spec:\s*\n\s*name: "workspace_V_0-3-0_spec_NN"/.test(model1), 'parent_spec points to the workspace template');
+    ok(/parent_spec:\s*\n\s*name: "workspace"/.test(model1), 'parent_spec points to the workspace template');
     ok(/## NN Sources: market-report\.docx/.test(model1), 'source element present');
     ok(/source_format:: docx/.test(model1), 'source_format derived from extension');
     ok(/source_format:: md/.test(model1), 'source_format html mapped to md (declared set only)');

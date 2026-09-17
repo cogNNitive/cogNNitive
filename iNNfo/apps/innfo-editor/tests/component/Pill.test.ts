@@ -50,7 +50,7 @@ describe('Pill.vue — Ghost state detection (R-TN-04)', () => {
     setActivePinia(createPinia())
   })
 
-  it('shows "Empty" label when description, fields, and instanceCount are all empty/zero', () => {
+  it('applies empty styling (italic text) when description, fields, and instanceCount are all empty/zero', () => {
     const wrapper = mount(Pill, {
       props: {
         name: 'MyNode',
@@ -59,10 +59,10 @@ describe('Pill.vue — Ghost state detection (R-TN-04)', () => {
         instanceCount: 0,
       },
     })
-    expect(wrapper.text()).toContain('Empty')
+    expect(wrapper.find('span.italic').exists()).toBe(true)
   })
 
-  it('does NOT show "Empty" when description is present', () => {
+  it('does NOT apply empty styling when description is present', () => {
     const wrapper = mount(Pill, {
       props: {
         name: 'MyNode',
@@ -71,10 +71,10 @@ describe('Pill.vue — Ghost state detection (R-TN-04)', () => {
         instanceCount: 0,
       },
     })
-    expect(wrapper.text()).not.toContain('Empty')
+    expect(wrapper.find('span.italic').exists()).toBe(false)
   })
 
-  it('does NOT show "Empty" when instanceCount > 0', () => {
+  it('does NOT apply empty styling when instanceCount > 0', () => {
     const wrapper = mount(Pill, {
       props: {
         name: 'MyNode',
@@ -83,10 +83,10 @@ describe('Pill.vue — Ghost state detection (R-TN-04)', () => {
         instanceCount: 3,
       },
     })
-    expect(wrapper.text()).not.toContain('Empty')
+    expect(wrapper.find('span.italic').exists()).toBe(false)
   })
 
-  it('does NOT show "Empty" when fields have values', () => {
+  it('does NOT apply empty styling when fields have values', () => {
     const wrapper = mount(Pill, {
       props: {
         name: 'MyNode',
@@ -95,7 +95,7 @@ describe('Pill.vue — Ghost state detection (R-TN-04)', () => {
         instanceCount: 0,
       },
     })
-    expect(wrapper.text()).not.toContain('Empty')
+    expect(wrapper.find('span.italic').exists()).toBe(false)
   })
 })
 

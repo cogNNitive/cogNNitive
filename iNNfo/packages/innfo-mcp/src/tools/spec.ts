@@ -52,6 +52,7 @@ export function deriveNameFromUrl(url: string): string {
 }
 
 import { normalizeId } from './list-read.js'
+import { isInsideRoot, isSafeRelativeId } from './path-guard.js'
 
 export { normalizeId }
 
@@ -72,6 +73,9 @@ export async function findModelFile(
   id: string,
   opts?: { includeSpecs?: boolean },
 ): Promise<string | null> {
+  // `id` is an untrusted MCP tool argument: reject traversal, absolute and
+  // drive/UNC-qualified forms before it ever reaches a `join`.
+  if (!isSafeRelativeId(id)) return null
   const cleanId = normalizeId(id)
   const searchDirs = [rootDir, join(rootDir, 'models')]
   for (const dir of searchDirs) {
@@ -81,7 +85,7 @@ export async function findModelFile(
       join(dir, cleanId),
       join(dir, id),
       join(dir, `${id}.md`),
-    ]
+    ].filter((fp) => isInsideRoot(rootDir, fp))
     for (const fp of candidates) {
       try {
         await stat(fp)

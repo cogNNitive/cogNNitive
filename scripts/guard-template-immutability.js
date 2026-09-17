@@ -42,7 +42,7 @@
  * Exit 0 when no violations, exit 1 otherwise (every violation is printed).
  */
 
-const { execSync } = require('child_process');
+const { execFileSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const { parseFocusedYaml, parseFrontmatter } = require('../skills/nn-preflight/scripts/lib/yaml-lite');
@@ -118,7 +118,9 @@ function resolveBase() {
   const explicit = getArg('--base');
   if (explicit) return explicit;
   try {
-    execSync('git rev-parse --verify --quiet origin/main', { stdio: ['ignore', 'ignore', 'ignore'] });
+    execFileSync('git', ['rev-parse', '--verify', '--quiet', 'origin/main'], {
+      stdio: ['ignore', 'ignore', 'ignore'],
+    });
     return 'origin/main';
   } catch {
     return 'HEAD';
@@ -126,8 +128,8 @@ function resolveBase() {
 }
 
 function diffLinesFromGit(base, root, staged) {
-  const range = staged ? `--cached ${base}` : base;
-  const out = execSync(`git diff --name-status ${range} -- "${root}"`, {
+  const range = staged ? ['--cached', base] : [base];
+  const out = execFileSync('git', ['diff', '--name-status', ...range, '--', root], {
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'ignore'],
   });
@@ -160,7 +162,9 @@ function readBaseContent(relPath, base, baseRoot) {
     }
   }
   try {
-    return execSync(`git show "${base}:${relPath}"`, {
+    // Argument array, never a shell string: `relPath` comes verbatim from
+    // `git diff --name-status`, and git does not escape `$`/backticks in paths.
+    return execFileSync('git', ['show', `${base}:${relPath}`], {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'ignore'],
     });

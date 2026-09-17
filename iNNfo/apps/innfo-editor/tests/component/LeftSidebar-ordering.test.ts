@@ -61,6 +61,12 @@ title: Business Model
     await wrapper.find('[data-testid="model-header-toggle"]').trigger('click')
     await wrapper.vm.$nextTick()
 
+    const emptyToggle = wrapper.find('[data-testid="empty-groups-toggle"]')
+    if (emptyToggle.exists()) {
+      await emptyToggle.trigger('click')
+      await wrapper.vm.$nextTick()
+    }
+
     const groupText = wrapper.text()
     // Business summary (index 0 in template) should appear before Market (index 1) and Analysis (index 2)
     const idxSummary = groupText.indexOf('Business summary')
@@ -160,6 +166,12 @@ title: Business Model
     // expand the model header before inspecting its rendered tree.
     await wrapper.find('[data-testid="model-header-toggle"]').trigger('click')
     await wrapper.vm.$nextTick()
+
+    const emptyToggle = wrapper.find('[data-testid="empty-groups-toggle"]')
+    if (emptyToggle.exists()) {
+      await emptyToggle.trigger('click')
+      await wrapper.vm.$nextTick()
+    }
 
     const virtualNodes = wrapper.findAll('[data-testid="virtual-group-node"]')
     expect(virtualNodes).toHaveLength(2)

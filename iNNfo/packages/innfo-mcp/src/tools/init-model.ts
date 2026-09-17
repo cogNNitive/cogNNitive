@@ -4,6 +4,7 @@ import { resolveTemplateSchema, validateDocument } from '@cognnitive/innfo-core'
 import type { SpecDocument, ValidationError } from '@cognnitive/innfo-core'
 import { resolveTemplateWithCache, findModelFile, normalizeId } from './spec.js'
 import { normalizeVersion } from './resolver-node.js'
+import { isInsideRoot, isSafeRelativeId } from './path-guard.js'
 
 /**
  * Build a starter level-3 body from a resolved template schema: an index
@@ -124,9 +125,15 @@ export async function initModel(
       }
       /* v8 ignore stop */
     }
-    filePath = useModelsDir
+    const target = useModelsDir
       ? join(modelsDir, `${cleanId}_NN.md`)
       : join(rootDir, `${cleanId}_NN.md`)
+    // The scaffold branch creates a new file from an untrusted id — it must be
+    // confined to the workspace just like the lookup branch above.
+    if (!isSafeRelativeId(id) || !isInsideRoot(rootDir, target)) {
+      throw new Error(`Invalid model id "${id}": resolves outside the workspace root`)
+    }
+    filePath = target
   }
 
   let body = ''

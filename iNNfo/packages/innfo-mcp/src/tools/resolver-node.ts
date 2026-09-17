@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto'
 import { readdir, readFile, mkdir, writeFile, rename, rm } from 'node:fs/promises'
 import { join, basename, isAbsolute } from 'node:path'
+import { isInsideRoot } from './path-guard.js'
 import { fileURLToPath } from 'node:url'
 import { homedir, tmpdir } from 'node:os'
 import {
@@ -65,17 +66,43 @@ export function isLocalPath(url: string): boolean {
   return false
 }
 
-export function toLocalFilePath(url: string, rootDir?: string): string {
+/**
+ * Resolve a local `parent_spec.url` / `template_url` to a real file path,
+ * confined to `rootDir`.
+ *
+ * The url comes from model frontmatter — document content, not a vetted caller
+ * argument — so an absolute, drive-qualified, UNC or `..`-escaping value must
+ * never be honoured verbatim. A UNC path is refused outright: on Windows even
+ * a failed read of `\\host\share` leaks the local account's NTLM hash.
+ *
+ * Returns `null` when the url cannot be proven to stay inside `rootDir`;
+ * callers treat that as "this resolution tier missed" and fall through.
+ */
+export function toLocalFilePath(url: string, rootDir?: string): string | null {
+  if (/^[/\\]{2}/.test(url)) return null
+
+  let candidate: string
   if (url.startsWith('file://')) {
-    return fileURLToPath(url)
+    try {
+      candidate = fileURLToPath(url)
+    } catch {
+      return null
+    }
+  } else {
+    candidate = url
   }
-  if (isAbsolute(url) || /^[a-zA-Z]:[/\\]/.test(url)) {
-    return url
+
+  // Without a root there is nothing to contain against — refuse anything that
+  // is not already a plain relative path.
+  if (!rootDir) {
+    return isAbsolute(candidate) || /^[a-zA-Z]:[/\\]/.test(candidate) ? null : candidate
   }
-  if (rootDir) {
-    return join(rootDir, url)
-  }
-  return url
+
+  const resolved =
+    isAbsolute(candidate) || /^[a-zA-Z]:[/\\]/.test(candidate)
+      ? candidate
+      : join(rootDir, candidate)
+  return isInsideRoot(rootDir, resolved) ? resolved : null
 }
 
 const MAX_DEPTH_DEFAULT = 10
@@ -769,8 +796,8 @@ export async function resolveParentChainNode(
     const attempted: string[] = []
 
     // 0. If currentUrl is a local file path or file:// URI, read directly via readFile
-    if (isLocalPath(currentUrl)) {
-      const localPath = toLocalFilePath(currentUrl, rootDir)
+    const localPath = isLocalPath(currentUrl) ? toLocalFilePath(currentUrl, rootDir) : null
+    if (localPath) {
       attempted.push(`local path "${localPath}"`)
       try {
         content = await readFile(localPath, 'utf-8')
@@ -921,8 +948,11 @@ export async function fetchSpecContent(
   timeout: number,
   cacheDir?: string,
 ): Promise<string | null> {
-  if (url && isLocalPath(url)) {
-    const localPath = toLocalFilePath(url, specsDir.replace(/[/\\]specs[/\\]?$/, ''))
+  const localPath =
+    url && isLocalPath(url)
+      ? toLocalFilePath(url, specsDir.replace(/[/\\]specs[/\\]?$/, ''))
+      : null
+  if (localPath) {
     const direct = await readFile(localPath, 'utf-8').catch(() => null)
     if (direct !== null) return direct
   }

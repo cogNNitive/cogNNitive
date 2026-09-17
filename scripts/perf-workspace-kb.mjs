@@ -4,7 +4,7 @@
  *
  * Workspace KB performance probe (backlog: chore/workspace-kb-perf-limits).
  *
- * Generates a disposable scaled workspace under `temp/simulacro-perf/` and
+ * Generates a disposable scaled workspace under `temp/simulation-perf/` and
  * measures `check_workspace`, `validate_model`, and `query_units` latency vs
  * dimension size, so breaking points (timeouts, memory, false KU_* errors)
  * are recorded instead of guessed.
@@ -30,7 +30,7 @@ import { fileURLToPath } from 'node:url'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const repoRoot = resolve(here, '..')
-const perfRoot = join(repoRoot, 'temp', 'simulacro-perf')
+const perfRoot = join(repoRoot, 'temp', 'simulation-perf')
 const mcpEntry = join(repoRoot, 'iNNfo', 'packages', 'innfo-mcp', 'dist', 'server.js')
 
 /** Retry a recursive rm; Windows MCP children may still hold handles briefly. */

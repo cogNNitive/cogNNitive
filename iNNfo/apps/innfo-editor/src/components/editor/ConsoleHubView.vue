@@ -382,7 +382,7 @@ onUnmounted(() => {
         :key="iframeKey"
         :srcdoc="htmlContent"
         class="w-full h-full border-none bg-white dark:bg-slate-950 rounded-xl shadow-xs"
-        sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+        sandbox="allow-scripts allow-forms allow-popups"
       ></iframe>
 
       <!-- Not Found / Pending Build Empty State -->

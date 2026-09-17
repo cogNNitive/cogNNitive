@@ -19,6 +19,7 @@
   - [Lifecycle Walkthrough (Case Study)](lifecycle-walkthrough)
   - [Tags & Open Taxonomy](tags-and-taxonomy)
   - [Collaboration with Git](collaboration-git)
+  - [Workspace Backup Strategies](workspace-backups)
 
 - **Runtime & Internals**
   - [Offline Consoles](offline-consoles)

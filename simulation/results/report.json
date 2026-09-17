@@ -1,0 +1,471 @@
+{
+  "counts": {
+    "PASS": 51,
+    "FAIL": 0,
+    "OBSERVED": 7
+  },
+  "scenarios": [
+    {
+      "id": "S01",
+      "title": "Source ingestion & citation traceability",
+      "intent": "An analyst imports a primary source, cites its sections from model elements, and relies on the workspace to prove every citation resolves.",
+      "steps": [
+        {
+          "label": "Workspace parses from the canonical entrypoint",
+          "expectation": "workspace_NN.md resolves as entrypoint, models load, no parse issues",
+          "actual": "{\n  \"entrypointPath\": \"workspace_NN.md\",\n  \"nodes\": 8,\n  \"issues\": 0\n}",
+          "outcome": "PASS",
+          "error": null
+        },
+        {
+          "label": "All citations in a well-formed workspace resolve cleanly",
+          "expectation": "zero diagnostics — every `@` pointer resolves to a real file, heading and CSV row",
+          "actual": "[]",
+          "outcome": "PASS",
+          "error": null
+        },
+        {
+          "label": "A heading citation parses into an addressable knowledge unit",
+          "expectation": "parses to a header unit at level 2 under sources/nn/",
+          "actual": "{\n  \"filePath\": \"sources/nn/market-report-2026.md\",\n  \"fileName\": \"market-report-2026.md\",\n  \"slug\": \"q4-outlook\",\n  \"kind\": \"source\",\n  \"unit\": {\n    \"kind\": \"header\",\n    \"level\": 2,\n    \"text\": \"Q4 Outlook\",\n    \"slug\": \"q4-outlook\"\n  },\n  \"subunits\": [],\n  \"raw\": \"market-report-2026.md@## Q4 Outlook\"\n}",
+          "outcome": "PASS",
+          "error": null
+        },
+        {
+          "label": "Citation is structurally stable across a write-back cycle",
+          "expectation": "the pointer still resolves to the same heading after the agent writes it back",
+          "actual": "{\n  \"authored\": \"market-report-2026.md@## Q4 Outlook\",\n  \"written\": \"sources/nn/market-report-2026.md@## Q4 Outlook\",\n  \"rereadSlug\": \"q4-outlook\"\n}",
+          "outcome": "PASS",
+          "error": null
+        },
+        {
+          "label": "Citation keeps its human-readable heading text across a write-back cycle",
+          "expectation": "a human wrote `@## Q4 Outlook`; after one save it should still read as `## Q4 Outlook`",
+          "actual": "{\n  \"authoredText\": \"Q4 Outlook\",\n  \"writtenForm\": \"sources/nn/market-report-2026.md@## Q4 Outlook\",\n  \"rereadText\": \"Q4 Outlook\"\n}",
+          "outcome": "PASS",
+          "error": null
+        },
+        {
+          "label": "Cited section resolves to a concrete line range in the source",
+          "expectation": "the pointer maps to real text the user can read back, not just a string",
+          "actual": "{\n  \"heading\": {\n    \"level\": 2,\n    \"text\": \"Q4 Outlook\",\n    \"slug\": \"q4-outlook\",\n    \"line\": 4\n  },\n  \"startLine\": 4,\n  \"endLine\": 9\n}",
+          "outcome": "PASS",
+          "error": null
+        },
+        {
+          "label": "Element carrying the citation",
+          "expectation": null,
+          "actual": "{\n  \"name\": \"Demand Grows In Q4\",\n  \"fields\": {\n    \"sources\": {\n      \"value\": [\n        \"market-report-2026.md@## Q4 Outlook\"\n      ],\n      \"editAttribution\": {\n        \"author\": {\n          \"kind\": \"system\",\n          \"id\": \"parser\"\n        },\n        \"timestamp\": \"2026-09-17T05:48:58.757Z\"\n      }\n    }\n  }\n}",
+          "outcome": "OBSERVED",
+          "error": null
+        },
+        {
+          "label": "Deleting the source file outside the app is reported, not silently ignored",
+          "expectation": "KU_DANGLING_FILE error naming the missing file",
+          "actual": "[\n  {\n    \"code\": \"KU_DANGLING_FILE\",\n    \"severity\": \"error\",\n    \"message\": \"Dangling source reference: \\\"sources/nn/market-report-2026.md\\\" is not present in this workspace\"\n  },\n  {\n    \"code\": \"KU_DANGLING_FILE\",\n    \"severity\": \"error\",\n    \"message\": \"Dangling source reference: \\\"sources/nn/market-report-2026.md\\\" is not present in this workspace\"\n  },\n  {\n    \"code\": \"KU_DANGLING_FILE\",\n    \"severity\": \"error\",\n    \"message\": \"Dangling source reference: \\\"sources/nn/market-report-2026.md\\\" is not present in this workspace\"\n  }\n]",
+          "outcome": "PASS",
+          "error": null
+        },
+        {
+          "label": "Renaming a cited heading in the source surfaces a drift warning",
+          "expectation": "KU_UNKNOWN_SLUG — the file still exists but the cited unit moved",
+          "actual": "[\n  {\n    \"code\": \"KU_UNKNOWN_SLUG\",\n    \"severity\": \"warning\",\n    \"message\": \"Source reference \\\"market-report-2026.md@## Q4 Outlook\\\" points at heading \\\"@q4-outlook\\\" which does not exist in \\\"market-report-2026.md\\\"\"\n  }\n]",
+          "outcome": "PASS",
+          "error": null
+        },
+        {
+          "label": "Raw material under sources/original/ is refused as a citation target",
+          "expectation": "null — only normalized sources under sources/nn/ carry provenance",
+          "actual": "null",
+          "outcome": "PASS",
+          "error": null
+        },
+        {
+          "label": "A query string cannot stand in for a resolved citation",
+          "expectation": "QU_NOT_PROVENANCE error — queries must be resolved to pointers before being cited",
+          "actual": "[\n  {\n    \"code\": \"QU_NOT_PROVENANCE\",\n    \"severity\": \"error\"\n  }\n]",
+          "outcome": "PASS",
+          "error": null
+        }
+      ]
+    },
+    {
+      "id": "S02",
+      "title": "Modifying a model",
+      "intent": "A user adds a risk, edits it, renames an assumption other elements reference, and deletes a stale entry — expecting the file to stay coherent.",
+      "steps": [
+        {
+          "label": "Model loads with its elements addressable by concept",
+          "expectation": "concepts and elements are indexed the way the editor tree shows them",
+          "actual": "{\n  \"concepts\": [\n    \"Assumptions\",\n    \"Risks\",\n    \"Keys\"\n  ],\n  \"assumptions\": [\n    \"Demand Grows In Q4\",\n    \"Unit Cost Falls\"\n  ]\n}",
+          "outcome": "PASS",
+          "error": null
+        },
+        {
+          "label": "Adding an element succeeds and lands under the right concept",
+          "expectation": "the new risk is present, no error",
+          "actual": "{\n  \"success\": true,\n  \"risks\": [\n    \"Supplier Concentration\",\n    \"Warehouse Overtime Cost\"\n  ]\n}",
+          "outcome": "PASS",
+          "error": null
+        },
+        {
+          "label": "A duplicate element name anywhere in the model is refused",
+          "expectation": "model-wide element name uniqueness (R-IE-02) is enforced",
+          "actual": "{\n  \"success\": false,\n  \"errors\": [\n    {\n      \"path\": \"\",\n      \"message\": \"Element \\\"Warehouse Overtime Cost\\\" already exists in this model — element names must be unique model-wide\"\n    }\n  ]\n}",
+          "outcome": "PASS",
+          "error": null
+        },
+        {
+          "label": "Updating a field on an existing element succeeds",
+          "expectation": "no error; the field is written",
+          "actual": "{\n  \"success\": true\n}",
+          "outcome": "PASS",
+          "error": null
+        },
+        {
+          "label": "Editing a non-existent element fails loudly instead of silently creating one",
+          "expectation": "a clear error, and no phantom element",
+          "actual": "{\n  \"success\": false,\n  \"errors\": [\n    {\n      \"path\": \"\",\n      \"message\": \"Element \\\"Does Not Exist\\\" not found in concept \\\"Risks\\\"\"\n    }\n  ]\n}",
+          "outcome": "PASS",
+          "error": null
+        },
+        {
+          "label": "Renaming an element also repoints the matrices that name it",
+          "expectation": "the matrix row label follows the rename — no dangling label",
+          "actual": "{\n  \"success\": true,\n  \"beforeRows\": [\n    \"Demand Grows In Q4\",\n    \"Unit Cost Falls\"\n  ],\n  \"afterRows\": [\n    \"Q4 Demand Growth\",\n    \"Unit Cost Falls\"\n  ]\n}",
+          "outcome": "PASS",
+          "error": null
+        },
+        {
+          "label": "The renamed element keeps its citations",
+          "expectation": "renaming must not drop the provenance attached to the element",
+          "actual": "{\n  \"sources\": [\n    \"market-report-2026.md@## Q4 Outlook\"\n  ]\n}",
+          "outcome": "PASS",
+          "error": null
+        },
+        {
+          "label": "A misspelled concept name is refused rather than silently creating a new concept",
+          "expectation": "the template declares the legal concepts; `Rsiks` is not one of them",
+          "actual": "{\n  \"success\": false,\n  \"errors\": [\n    {\n      \"path\": \"conceptName\",\n      \"message\": \"Concept \\\"Rsiks\\\" is not declared in the template. Did you mean \\\"Risks\\\"?\"\n    }\n  ],\n  \"concepts\": [\n    \"Assumptions\",\n    \"Risks\",\n    \"Keys\"\n  ]\n}",
+          "outcome": "PASS",
+          "error": null
+        },
+        {
+          "label": "Serialized model re-parses with the same element inventory",
+          "expectation": "a save/load cycle loses nothing",
+          "actual": "{\n  \"before\": {\n    \"Assumptions\": 2,\n    \"Risks\": 2,\n    \"Keys\": 1\n  },\n  \"after\": {\n    \"Assumptions\": 2,\n    \"Risks\": 2,\n    \"Keys\": 1\n  }\n}",
+          "outcome": "PASS",
+          "error": null
+        },
+        {
+          "label": "Citations survive the save/load cycle in the spec-correct bracket form",
+          "expectation": "sources:: lines are written unquoted as `[a, b]`, matching what the reader expects",
+          "actual": "[\n  \"sources:: [market-report-2026.md@## Q4 Outlook]\",\n  \"sources:: [market-report-2026.md@## Cost Curve, unit-costs.csv@SKU-014]\",\n  \"sources:: [market-report-2026.md@## Supplier Landscape]\"\n]",
+          "outcome": "PASS",
+          "error": null
+        },
+        {
+          "label": "Removing an element succeeds and it disappears from the model",
+          "expectation": "the element is gone",
+          "actual": "{\n  \"success\": true,\n  \"risks\": [\n    \"Supplier Concentration\"\n  ]\n}",
+          "outcome": "PASS",
+          "error": null
+        },
+        {
+          "label": "An unknown operation is rejected and leaves the model untouched",
+          "expectation": "failed mutations are atomic — the document is byte-identical afterwards",
+          "actual": "{\n  \"success\": false,\n  \"errors\": [\n    {\n      \"path\": \"\",\n      \"message\": \"Unknown operation: not_a_real_op\"\n    }\n  ],\n  \"unchanged\": true\n}",
+          "outcome": "PASS",
+          "error": null
+        },
+        {
+          "label": "Fixture file on disk was never written",
+          "expectation": null,
+          "actual": "the simulation mutates in memory only; fixtures/acme stays pristine",
+          "outcome": "OBSERVED",
+          "error": null
+        }
+      ]
+    },
+    {
+      "id": "S03",
+      "title": "Save/load fidelity of shipped models",
+      "intent": "A user opens a shipped sample, changes nothing meaningful, saves — and expects a clean git diff.",
+      "steps": [
+        {
+          "label": "A no-op save leaves every shipped model byte-identical",
+          "expectation": "parse -> serialize is the identity on canonical, spec-conformant files",
+          "actual": "[\n  {\n    \"file\": \"Ghostbusters_analysis_NN.md\",\n    \"identical\": true,\n    \"lines\": \"88->88\"\n  },\n  {\n    \"file\": \"Ghostbusters_business-model_NN.md\",\n    \"identical\": true,\n    \"lines\": \"103->103\"\n  },\n  {\n    \"file\": \"Ghostbusters_business_NN.md\",\n    \"identical\": true,\n    \"lines\": \"946->946\"\n  },\n  {\n    \"file\": \"Ghostbusters_documentation_NN.md\",\n    \"identical\": true,\n    \"lines\": \"150->150\"\n  },\n  {\n    \"file\": \"Ghostbusters_innovation_NN.md\",\n    \"identical\": true,\n    \"lines\": \"199->199\"\n  },\n  {\n    \"file\": \"Ghostbusters_metrics_NN.md\",\n    \"identical\": true,\n    \"lines\": \"201->201\"\n  },\n  {\n    \"file\": \"Ghostbusters_organization_NN.md\",\n    \"identical\": true,\n    \"lines\": \"197->197\"\n  },\n  {\n    \"file\": \"Ghostbusters_procedures_NN.md\",\n    \"identical\": true,\n    \"lines\": \"234->234\"\n  },\n  {\n    \"file\": \"Ghostbusters_projects_NN.md\",\n    \"identical\": true,\n    \"lines\": \"186->186\"\n  },\n  {\n    \"file\": \"Ghostbusters_repository_NN.md\",\n    \"identical\": true,\n    \"lines\": \"59->59\"\n  },\n  {\n    \"file\": \"Ghostbusters_video-generator_NN.md\",\n    \"identical\": true,\n    \"lines\": \"66->66\"\n  }\n]",
+          "outcome": "PASS",
+          "error": null
+        },
+        {
+          "label": "Matrix axis labels survive a save",
+          "expectation": "a header reading `| Metrics  Variables |` must not become `| Row  Col |`",
+          "actual": "[]",
+          "outcome": "PASS",
+          "error": null
+        },
+        {
+          "label": "Document section order survives a save",
+          "expectation": "the author chose the order of `# NN` sections; a save must not reshuffle it",
+          "actual": "[]",
+          "outcome": "PASS",
+          "error": null
+        },
+        {
+          "label": "Bracketed list values survive a save",
+          "expectation": "`tags:: [a, b]` must not silently become `tags:: a, b`",
+          "actual": "[]",
+          "outcome": "PASS",
+          "error": null
+        },
+        {
+          "label": "Second-pass stability (is the canonical form at least a fixed point?)",
+          "expectation": null,
+          "actual": "[\n  \"Ghostbusters_analysis_NN.md\",\n  \"Ghostbusters_business-model_NN.md\",\n  \"Ghostbusters_business_NN.md\",\n  \"Ghostbusters_documentation_NN.md\",\n  \"Ghostbusters_innovation_NN.md\"\n]",
+          "outcome": "OBSERVED",
+          "error": null
+        },
+        {
+          "label": "The canonical form is at least stable after the first save",
+          "expectation": "once degraded, further saves produce no further drift (bounded damage)",
+          "actual": "[]",
+          "outcome": "PASS",
+          "error": null
+        }
+      ]
+    },
+    {
+      "id": "S04",
+      "title": "Template-authoring gate (level 2 vs level 3)",
+      "intent": "An agent tries to extend the schema from inside a user model; the gate must hold.",
+      "steps": [
+        {
+          "label": "Level-3 model refuses `add_concept`",
+          "expectation": "schema-authoring ops are gated to level-2 documents",
+          "actual": "{\n  \"success\": false,\n  \"errors\": [\n    {\n      \"path\": \"frontmatter.level\",\n      \"message\": \"Operation \\\"add_concept\\\" authors template primitives and is only valid on a level-2 template; this document is level 3. Use add_element/update_field on a level-3 model, or target the parent template.\"\n    }\n  ]\n}",
+          "outcome": "PASS",
+          "error": null
+        },
+        {
+          "label": "Level-3 model refuses `add_field`",
+          "expectation": "schema-authoring ops are gated to level-2 documents",
+          "actual": "{\n  \"success\": false,\n  \"errors\": [\n    {\n      \"path\": \"frontmatter.level\",\n      \"message\": \"Operation \\\"add_field\\\" authors template primitives and is only valid on a level-2 template; this document is level 3. Use add_element/update_field on a level-3 model, or target the parent template.\"\n    }\n  ]\n}",
+          "outcome": "PASS",
+          "error": null
+        },
+        {
+          "label": "Level-3 model refuses `set_marker`",
+          "expectation": "schema-authoring ops are gated to level-2 documents",
+          "actual": "{\n  \"success\": false,\n  \"errors\": [\n    {\n      \"path\": \"frontmatter.level\",\n      \"message\": \"Operation \\\"set_marker\\\" authors template primitives and is only valid on a level-2 template; this document is level 3. Use add_element/update_field on a level-3 model, or target the parent template.\"\n    }\n  ]\n}",
+          "outcome": "PASS",
+          "error": null
+        },
+        {
+          "label": "The same op succeeds on a level-2 template",
+          "expectation": "the gate discriminates by level, it does not simply forbid the op",
+          "actual": "{\n  \"success\": true\n}",
+          "outcome": "PASS",
+          "error": null
+        },
+        {
+          "label": "A level-3 model declaring inline schema is rejected by validation",
+          "expectation": "an error naming the illegal frontmatter key",
+          "actual": "[\n  {\n    \"path\": \"format.fm-no-inline-schema\",\n    \"message\": \"Inline schema fields (matrices, concepts, markers, relationship_types) found in frontmatter. Move them to the template.\"\n  }\n]",
+          "outcome": "PASS",
+          "error": null
+        },
+        {
+          "label": "What a level-3 model looks like after a refused mutation",
+          "expectation": "no `# NN Concept Definition` section should have appeared",
+          "actual": "# NN Analysis | # NN Assumptions | # NN Risks | # NN Keys | # NN matrices: assumptions-risks matrix",
+          "outcome": "OBSERVED",
+          "error": null
+        }
+      ]
+    },
+    {
+      "id": "S05",
+      "title": "Tabular source ingestion & row-level citations",
+      "intent": "An analyst imports a cost table and cites one SKU row from a model assumption.",
+      "steps": [
+        {
+          "label": "The imported table parses with a usable key column",
+          "expectation": "columns and three data rows",
+          "actual": "{\n  \"columns\": [\n    \"sku\",\n    \"component\",\n    \"unit_cost\",\n    \"supplier\"\n  ],\n  \"rowCount\": 3\n}",
+          "outcome": "PASS",
+          "error": null
+        },
+        {
+          "label": "A row citation parses as a row unit, not a heading",
+          "expectation": "the `.csv` extension selects the row grammar automatically",
+          "actual": "{\n  \"filePath\": \"sources/nn/unit-costs.csv\",\n  \"fileName\": \"unit-costs.csv\",\n  \"kind\": \"source\",\n  \"unit\": {\n    \"kind\": \"row\",\n    \"id\": \"SKU-014\"\n  },\n  \"subunits\": [],\n  \"raw\": \"unit-costs.csv@SKU-014\"\n}",
+          "outcome": "PASS",
+          "error": null
+        },
+        {
+          "label": "A valid row citation produces no diagnostics",
+          "expectation": "SKU-014 exists in the table, so nothing to report",
+          "actual": "[]",
+          "outcome": "PASS",
+          "error": null
+        },
+        {
+          "label": "Deleting the cited row upstream is reported",
+          "expectation": "KU_UNKNOWN_ROW error — the citation no longer resolves",
+          "actual": "[\n  {\n    \"code\": \"KU_UNKNOWN_ROW\",\n    \"severity\": \"error\"\n  }\n]",
+          "outcome": "PASS",
+          "error": null
+        },
+        {
+          "label": "Duplicate keys in the source table are reported once, not per citation",
+          "expectation": "exactly one KU_DUPLICATE_KEY for the file",
+          "actual": "[\n  \"KU_DUPLICATE_KEY\"\n]",
+          "outcome": "PASS",
+          "error": null
+        },
+        {
+          "label": "A line-range citation is refused (line numbers are not stable provenance)",
+          "expectation": "null — provenance addresses named units, never line offsets",
+          "actual": "null",
+          "outcome": "PASS",
+          "error": null
+        }
+      ]
+    },
+    {
+      "id": "S06",
+      "title": "Workspace manifest reconciliation",
+      "intent": "A user adds a model file by hand and expects the workspace index to notice — without losing their own edits.",
+      "steps": [
+        {
+          "label": "Reconciling an already-correct manifest changes nothing",
+          "expectation": "no changes and a byte-identical document (the documented round-trip guarantee)",
+          "actual": "{\n  \"changes\": [],\n  \"identical\": true\n}",
+          "outcome": "PASS",
+          "error": null
+        },
+        {
+          "label": "A newly added model file is registered in the manifest",
+          "expectation": "one `added` change and a new `## NN Models:` entry",
+          "actual": "{\n  \"changes\": [\n    {\n      \"kind\": \"added\",\n      \"path\": \"models/Acme_metrics_NN.md\",\n      \"name\": \"Acme Operational Metrics\"\n    }\n  ],\n  \"containsNew\": true\n}",
+          "outcome": "PASS",
+          "error": null
+        },
+        {
+          "label": "Tool-written entries are explicitly marked as tool-owned",
+          "expectation": "the ownership marker <!-- nn:auto --> appears on the generated entry",
+          "actual": "[\n  \"<!-- nn:auto -->\"\n]",
+          "outcome": "PASS",
+          "error": null
+        },
+        {
+          "label": "A human-owned entry whose file is gone is reported, never silently deleted",
+          "expectation": "the tool reports it rather than editing something it does not own",
+          "actual": "[\n  {\n    \"kind\": \"skipped-not-owned\",\n    \"path\": \"models/Acme_analysis_NN.md\",\n    \"name\": \"Acme Operational Analysis\",\n    \"reason\": \"file missing, entry not tool-owned\"\n  }\n]",
+          "outcome": "PASS",
+          "error": null
+        },
+        {
+          "label": "validateWorkspaceReferences requires a WorkspaceIndex the type surface does not make obvious",
+          "expectation": null,
+          "actual": "calling it with the index omitted throws a raw TypeError on `index.nodeSchema` rather than a named error",
+          "outcome": "OBSERVED",
+          "error": null
+        },
+        {
+          "label": "Workspace-wide reference validation runs clean on a coherent workspace",
+          "expectation": "no dangling cross-model references",
+          "actual": "[]",
+          "outcome": "PASS",
+          "error": null
+        },
+        {
+          "label": "Models the workspace scan discovered",
+          "expectation": null,
+          "actual": "[]",
+          "outcome": "OBSERVED",
+          "error": null
+        }
+      ]
+    },
+    {
+      "id": "S07",
+      "title": "Opening the shipped sample workspace",
+      "intent": "A new user opens the workspace we ship. Everything they see on day one is what this scenario measures.",
+      "steps": [
+        {
+          "label": "The shipped workspace parses without issues",
+          "expectation": "all sample models load with no error or warning issues — this is the first thing a new user sees",
+          "actual": "{\n  \"entrypoint\": \"workspace_NN.md\",\n  \"models\": 18,\n  \"actionableIssueCount\": 0,\n  \"infoNotes\": 26,\n  \"issueKinds\": {}\n}",
+          "outcome": "PASS",
+          "error": null
+        },
+        {
+          "label": "Every shipped sample passes document hygiene with no errors",
+          "expectation": "zero hygiene errors across the eleven samples",
+          "actual": "[]",
+          "outcome": "PASS",
+          "error": null
+        },
+        {
+          "label": "Every citation in the shipped workspace resolves",
+          "expectation": "a new user opening the sample sees no broken provenance",
+          "actual": "[]",
+          "outcome": "PASS",
+          "error": null
+        },
+        {
+          "label": "The shipped workspace contains the sources its models cite",
+          "expectation": "source traceability is the headline capability — the demo must demonstrate it",
+          "actual": "{\n  \"sourcesDir\": \"sources/nn/\",\n  \"files\": [\n    \"containment-incidents-1984.csv\",\n    \"nyc-paranormal-activity-report-1984.md\"\n  ]\n}",
+          "outcome": "PASS",
+          "error": null
+        },
+        {
+          "label": "Every artifact the shipped workspace declares actually exists",
+          "expectation": "the workspace must not advertise an artifact it does not ship",
+          "actual": "{\n  \"declared\": [],\n  \"missing\": []\n}",
+          "outcome": "PASS",
+          "error": null
+        },
+        {
+          "label": "A field named `source` that is declared as a content path is not treated as a citation",
+          "expectation": "the Citation vocabulary should key on the declared field TYPE, not on the field NAME",
+          "actual": "{\n  \"template\": \"documentation\",\n  \"declaredType\": \"markdown_file\",\n  \"citationFieldNames\": [\n    \"sources\",\n    \"source\"\n  ],\n  \"diagnosticsOnDocumentationSample\": []\n}",
+          "outcome": "PASS",
+          "error": null
+        }
+      ]
+    },
+    {
+      "id": "S08",
+      "title": "Consuming innfo-core from plain Node",
+      "intent": "An integrator runs `npm i @cognnitive/innfo-core` and writes `import { parseModel } from ...` in a Node script.",
+      "steps": [
+        {
+          "label": "The published package imports under plain Node ESM",
+          "expectation": "package.json declares \"type\":\"module\" and \"main\":\"./dist/index.js\" — Node must be able to load it",
+          "actual": "{\n  \"ok\": true,\n  \"error\": null\n}",
+          "outcome": "PASS",
+          "error": null
+        },
+        {
+          "label": "Once bundled, the public API surface is complete and usable",
+          "expectation": "the API itself is fine — only the module format blocks plain-Node consumption",
+          "actual": "{\n  \"exportCount\": 113,\n  \"sample\": [\n    \"parseModel\",\n    \"serializeModel\",\n    \"applyMutation\",\n    \"validateDocument\"\n  ]\n}",
+          "outcome": "PASS",
+          "error": null
+        },
+        {
+          "label": "Why every existing consumer hides this",
+          "expectation": null,
+          "actual": "innfo-editor resolves through Vite, the test suites through Vitest, innfo-mcp through tsup — all bundlers, all of which tolerate extensionless directory imports that Node rejects.",
+          "outcome": "OBSERVED",
+          "error": null
+        }
+      ]
+    }
+  ]
+}

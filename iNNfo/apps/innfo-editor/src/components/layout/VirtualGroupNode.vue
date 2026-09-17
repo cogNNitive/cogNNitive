@@ -52,7 +52,7 @@
         <!-- Direct element children (flat, no parent hierarchy) -->
         <template v-if="!hasParentHierarchy">
           <ConceptTreeNode
-            v-for="child in elements"
+            v-for="child in visibleElements"
             :key="child.id"
             :node-id="child.id"
             :selected-id="selectedId"
@@ -60,6 +60,18 @@
             :expanded-generation="expandedGeneration"
             @select="(id: string) => $emit('select', id)"
           />
+
+          <!-- Progressive render: show more button -->
+          <button
+            v-if="hasMoreElements"
+            type="button"
+            @click.stop="showAllElements"
+            class="w-full text-left px-2 py-1 text-2xs text-primary/80 hover:text-primary font-medium hover:bg-primary/5 rounded transition-colors flex items-center justify-between cursor-pointer"
+            data-testid="show-more-elements"
+          >
+            <span>Showing {{ visibleElements.length }} of {{ elements.length }}</span>
+            <span class="underline">Show all (+{{ remainingElementsCount }})</span>
+          </button>
         </template>
 
         <!-- Element children with parent-based hierarchy (e.g. Work procedures) -->
@@ -101,17 +113,17 @@
         @click="onHeaderClick"
         data-testid="ghost-group-header"
       >
-        <div class="pointer-events-none flex items-center gap-1 flex-1 min-w-0">
-          <Pill
-            kind="concept"
-            :color="conceptColorHex"
-            :icon="conceptIcon"
-            :name="conceptName"
-            full-width
-            class="flex-1 min-w-0"
-          />
-          <span class="text-2xs text-slate-400 dark:text-slate-500 italic tabular-nums">0</span>
-        </div>
+        <span class="w-5 shrink-0"></span>
+
+        <Pill
+          kind="concept"
+          :color="conceptColorHex"
+          :icon="conceptIcon"
+          :name="conceptName"
+          full-width
+          class="flex-1 min-w-0 pointer-events-none"
+        />
+        <span class="text-2xs text-slate-400 dark:text-slate-500 italic tabular-nums shrink-0">0</span>
       </div>
     </template>
   </div>
@@ -185,6 +197,34 @@ function countElements(group: TreeGroup): number {
   for (const sub of group.children) c += countElements(sub)
   return c
 }
+
+// ── Progressive batch rendering for large element lists ──
+const PAGE_SIZE = 60
+const currentLimit = ref(PAGE_SIZE)
+
+const visibleElements = computed(() => {
+  if (props.elements.length <= PAGE_SIZE) return props.elements
+  return props.elements.slice(0, currentLimit.value)
+})
+
+const hasMoreElements = computed(() => props.elements.length > visibleElements.value.length)
+const remainingElementsCount = computed(() => props.elements.length - visibleElements.value.length)
+
+function showAllElements(): void {
+  currentLimit.value = props.elements.length
+}
+
+watch(
+  () => props.selectedId,
+  (selId) => {
+    if (!selId) return
+    const idx = props.elements.findIndex((el) => el.id === selId)
+    if (idx >= currentLimit.value) {
+      currentLimit.value = Math.max(currentLimit.value, idx + 20)
+    }
+  },
+  { immediate: true },
+)
 
 // ── Parent-based hierarchy (e.g. Work procedures with `parent` field) ──
 

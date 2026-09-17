@@ -147,6 +147,69 @@ export const useModelStore = defineStore('model', {
     },
 
     /**
+     * Map of elements grouped by root ID and concept type:
+     * rootId -> (conceptType -> ModelNode[])
+     */
+    nodesByRootAndType: (state): Map<string, Map<string, ModelNode[]>> => {
+      const rootMap = new Map<string, Map<string, ModelNode[]>>()
+
+      function findRoot(id: string): string | null {
+        let curr = state.nodes[id]
+        if (!curr) return null
+        if (curr.kind === 'root' || state.rootIds.includes(curr.id)) return curr.id
+        const seen = new Set<string>()
+        while (curr && curr.parentId) {
+          if (seen.has(curr.id)) break
+          seen.add(curr.id)
+          const parent = state.nodes[curr.parentId]
+          if (!parent) break
+          curr = parent
+          if (curr.kind === 'root' || state.rootIds.includes(curr.id)) return curr.id
+        }
+        return curr?.id ?? null
+      }
+
+      for (const node of Object.values(state.nodes)) {
+        if (node.kind !== 'element' || !node.type) continue
+        const rootId = findRoot(node.id)
+        if (!rootId) continue
+
+        let typeMap = rootMap.get(rootId)
+        if (!typeMap) {
+          typeMap = new Map<string, ModelNode[]>()
+          rootMap.set(rootId, typeMap)
+        }
+        let list = typeMap.get(node.type)
+        if (!list) {
+          list = []
+          typeMap.set(node.type, list)
+        }
+        list.push(node)
+      }
+      return rootMap
+    },
+
+    /**
+     * Map of elements indexed by parent field name (for parent-based hierarchies).
+     */
+    nodesByParentName: (state): Map<string, ModelNode[]> => {
+      const map = new Map<string, ModelNode[]>()
+      for (const node of Object.values(state.nodes)) {
+        const parentVal = node.fields?.parent?.value
+        if (typeof parentVal === 'string' && parentVal.trim()) {
+          const key = parentVal.trim()
+          let list = map.get(key)
+          if (!list) {
+            list = []
+            map.set(key, list)
+          }
+          list.push(node)
+        }
+      }
+      return map
+    },
+
+    /**
      * Finds all model elements that cite a given source path in their `sources::` field.
      */
     getSourceCitations:
@@ -512,10 +575,15 @@ export const useModelStore = defineStore('model', {
       }
       let curr = this.nodes[nodeId]
       if (!curr) return null
+      if (curr.kind === 'root' || this.rootIds.includes(curr.id)) return curr.id
+      const seen = new Set<string>()
       while (curr && curr.parentId) {
+        if (seen.has(curr.id)) break
+        seen.add(curr.id)
         const parent = this.nodes[curr.parentId]
         if (!parent) break
         curr = parent
+        if (curr.kind === 'root' || this.rootIds.includes(curr.id)) return curr.id
       }
       return curr?.id ?? null
     },

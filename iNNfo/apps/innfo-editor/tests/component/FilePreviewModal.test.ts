@@ -201,7 +201,8 @@ describe('FilePreviewModal', () => {
     await vi.waitFor(() => {
       expect(createObjectURLSpy).toHaveBeenCalled()
     })
-    expect(openSpy).toHaveBeenCalledWith('blob:fake-url', '_blank')
+    // The third argument isolates the opened tab from window.opener.
+    expect(openSpy).toHaveBeenCalledWith('blob:fake-url', '_blank', 'noopener,noreferrer')
   })
 
   it('switches to the lineage view and renders the mermaid graph with upstream and downstream nodes', async () => {

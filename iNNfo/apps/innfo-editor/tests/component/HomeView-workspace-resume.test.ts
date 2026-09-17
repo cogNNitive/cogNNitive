@@ -35,7 +35,7 @@ vi.mock('../../src/stores/historyStore', () => ({
   getStoredHandle: vi.fn().mockResolvedValue(null),
 }))
 
-describe('HomeView — resumes the last workspace via workspaceStore.recoverHandle() (F-14)', () => {
+describe('HomeView — does not auto-resume without explicit user selection or deep-link', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     mockPush.mockReset()
@@ -43,7 +43,7 @@ describe('HomeView — resumes the last workspace via workspaceStore.recoverHand
     mockRouteQuery = {}
   })
 
-  it('silently reopens and navigates to /workspace when a recovered handle still has granted read permission', async () => {
+  it('stays on HomeView and does not automatically reopen or navigate when landing on /', async () => {
     const workspaceStore = useWorkspaceStore()
     const fakeHandle = {
       kind: 'directory' as const,
@@ -58,55 +58,24 @@ describe('HomeView — resumes the last workspace via workspaceStore.recoverHand
       queryPermission: vi.fn().mockResolvedValue('granted'),
     }
     workspaceStore.recoverHandle = vi.fn().mockResolvedValue(fakeHandle)
-    workspaceStore.open = vi.fn().mockImplementation(async () => {
-      workspaceStore.hasParsed = true
-    })
-
-    shallowMount(HomeView)
-    await flushPromises()
-
-    expect(workspaceStore.recoverHandle).toHaveBeenCalled()
-    expect(workspaceStore.open).toHaveBeenCalledWith(fakeHandle)
-    expect(mockPush).toHaveBeenCalledWith(
-      expect.objectContaining({ path: '/workspace' }),
-    )
-  })
-
-  it('does NOT navigate when the recovered handle no longer has granted permission (no silent prompt)', async () => {
-    const workspaceStore = useWorkspaceStore()
-    const fakeHandle = {
-      kind: 'directory' as const,
-      name: 'workspace',
-      async *entries() {},
-      async getFileHandle() {
-        throw new Error('not found')
-      },
-      async getDirectoryHandle() {
-        throw new Error('not found')
-      },
-      queryPermission: vi.fn().mockResolvedValue('prompt'),
-    }
-    workspaceStore.recoverHandle = vi.fn().mockResolvedValue(fakeHandle)
     workspaceStore.open = vi.fn()
 
     shallowMount(HomeView)
     await flushPromises()
 
-    expect(workspaceStore.recoverHandle).toHaveBeenCalled()
     expect(workspaceStore.open).not.toHaveBeenCalled()
     expect(mockPush).not.toHaveBeenCalled()
   })
 
-  it('does not attempt to resume when a deep link is present', async () => {
+  it('does not auto-resume when a deep link is present but stays on expected flow', async () => {
     mockRouteQuery = { model: 'SomeModel' }
     const workspaceStore = useWorkspaceStore()
     workspaceStore.recoverHandle = vi.fn().mockResolvedValue(null)
+    workspaceStore.open = vi.fn()
 
     shallowMount(HomeView)
     await flushPromises()
 
-    // history is empty in this test setup so the deep-link model resolution
-    // itself no-ops; recoverHandle must not be reached while hasDeepLink is true.
-    expect(workspaceStore.recoverHandle).not.toHaveBeenCalled()
+    expect(workspaceStore.open).not.toHaveBeenCalled()
   })
 })

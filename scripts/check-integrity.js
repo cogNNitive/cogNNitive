@@ -92,12 +92,12 @@ if (isPrePush) {
   }
 
   try {
-    runCmd('npm --prefix iNNfo run lint', 'Lint');
-    runCmd('npm --prefix iNNfo run typecheck', 'Typecheck');
-    runCmd('npm --prefix iNNfo/packages/innfo-core test', 'Unit tests (core)');
-    runCmd('npm --prefix iNNfo/packages/innfo-mcp run test:coverage', 'Unit tests + coverage (innfo-mcp)');
-    runCmd('npm --prefix iNNfo/apps/innfo-editor test', 'Unit tests (app)');
-    runCmd('npm --prefix iNNfo run check:spec-urls', 'Check spec URLs resolve');
+    runCmd('npm run lint', 'Lint');
+    runCmd('npm run typecheck', 'Typecheck');
+    runCmd('npm --workspace=@cognnitive/innfo-core test', 'Unit tests (core)');
+    runCmd('npm --workspace=@cognnitive/innfo-mcp run test:coverage', 'Unit tests + coverage (innfo-mcp)');
+    runCmd('npm --workspace=@cognnitive/innfo-editor test', 'Unit tests (app)');
+    runCmd('node scripts/check-spec-version.mjs --check-urls', 'Check spec URLs resolve');
     console.log('\n✅ [Group 5] CI mirror passed.');
   } catch (err) {
     console.error(`\n❌ CI mirror failed.`);

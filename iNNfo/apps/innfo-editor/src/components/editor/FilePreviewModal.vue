@@ -245,7 +245,7 @@
               :src="objectUrl"
               :srcdoc="rawContent"
               class="w-full h-full border-0 rounded-xl"
-              sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+              sandbox="allow-scripts allow-forms allow-popups"
             ></iframe>
           </div>
 
@@ -387,6 +387,7 @@ import {
 import { useUnitResolution } from '../../composables/useUnitResolution'
 import { parseFrontmatter } from '@cognnitive/innfo-core'
 import { renderMarkdown } from '../../utils/markdown'
+import { toSafeNavigationUrl } from '../../utils/safe-url'
 
 const props = defineProps<{
   isOpen: boolean
@@ -747,9 +748,13 @@ async function openOriginalFile(): Promise<void> {
       const blob = await workspaceStore.readFileBlob(sourceFile)
       if (!blob) throw new Error(`Source file not found: ${sourceFile}`)
       const url = URL.createObjectURL(blob)
-      window.open(url, '_blank')
+      window.open(url, '_blank', 'noopener,noreferrer')
     } else {
-      window.open(sourceFile, '_blank')
+      // `source_file` comes from the previewed document's frontmatter, so it
+      // may carry a `javascript:` or `data:` payload — validate before opening.
+      const safeUrl = toSafeNavigationUrl(sourceFile)
+      if (!safeUrl) throw new Error(`Refusing to open unsafe source file URL: ${sourceFile}`)
+      window.open(safeUrl, '_blank', 'noopener,noreferrer')
     }
   } catch (err) {
     openOriginalError.value = err instanceof Error ? err.message : String(err)

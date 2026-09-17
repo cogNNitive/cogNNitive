@@ -176,8 +176,11 @@ async function bumpVersion(
     const parentVerString = `V_${parentVerSegment}`
 
     const currentParentUrl = model.frontmatter.parent_spec.url
-    if (currentParentUrl && isLocalPath(currentParentUrl)) {
-      const localParentPath = toLocalFilePath(currentParentUrl, rootDir)
+    const localParentPath =
+      currentParentUrl && isLocalPath(currentParentUrl)
+        ? toLocalFilePath(currentParentUrl, rootDir)
+        : null
+    if (localParentPath) {
       try {
         await stat(localParentPath)
         oldParentPath = localParentPath
