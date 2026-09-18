@@ -773,20 +773,20 @@ describe('ConceptTreeNode.vue — Diamond child renders once (R8)', () => {
         kind: 'root',
         source: { path: 'models/programa_V_0-1-0_NN.md' },
       })
-      const elementNode = makeNode('models/programa_V_0-1-0_NN.md/elem_mercedes', {
-        name: 'Proyecto de MERCEDES GRANDE CABALLERO',
+      const elementNode = makeNode('models/programa_V_0-1-0_NN.md/elem_containment', {
+        name: 'Proyecto de High-Voltage Containment',
         parentId: projectRoot.id,
         kind: 'element',
         type: 'Proyecto',
         fields: {
-          'business_model': { value: '[[mercedes-grande-caballero_V_0-1-0_business_NN.md]]' },
+          'business_model': { value: '[[containment-facility_V_0-1-0_business_NN.md]]' },
         },
       })
-      const submodelRoot = makeNode('models/mercedes-grande-caballero_V_0-1-0_business_NN.md', {
-        name: 'Mercedes Grande Caballero Business Model',
+      const submodelRoot = makeNode('models/containment-facility_V_0-1-0_business_NN.md', {
+        name: 'Containment Facility Business Model',
         kind: 'root',
-        source: { path: 'models/mercedes-grande-caballero_V_0-1-0_business_NN.md' },
-        childIds: ['models/mercedes-grande-caballero_V_0-1-0_business_NN.md/initiative_1'],
+        source: { path: 'models/containment-facility_V_0-1-0_business_NN.md' },
+        childIds: ['models/containment-facility_V_0-1-0_business_NN.md/initiative_1'],
         localMetamodel: {
           concepts: [
             { name: 'Propuesta', type: 'concept', icon: 'lightbulb', color: 'emerald' },
@@ -796,8 +796,8 @@ describe('ConceptTreeNode.vue — Diamond child renders once (R8)', () => {
           markers: [],
         },
       })
-      const subElement = makeNode('models/mercedes-grande-caballero_V_0-1-0_business_NN.md/initiative_1', {
-        name: 'Servicio de Consultoría Rural',
+      const subElement = makeNode('models/containment-facility_V_0-1-0_business_NN.md/initiative_1', {
+        name: 'Servicio de Mitigacion Espectral',
         parentId: submodelRoot.id,
         kind: 'element',
         type: 'Propuesta',
@@ -821,9 +821,9 @@ describe('ConceptTreeNode.vue — Diamond child renders once (R8)', () => {
         attachTo: document.body,
       })
 
-      expect(wrapper.text()).toContain('Proyecto de MERCEDES GRANDE CABALLERO')
+      expect(wrapper.text()).toContain('Proyecto de High-Voltage Containment')
       expect(wrapper.text()).toContain('Propuesta')
-      expect(wrapper.text()).toContain('Servicio de Consultoría Rural')
+      expect(wrapper.text()).toContain('Servicio de Mitigacion Espectral')
     })
   })
 })

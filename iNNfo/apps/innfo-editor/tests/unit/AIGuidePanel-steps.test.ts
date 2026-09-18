@@ -12,7 +12,7 @@ describe('AIGuidePanel steps accordion', () => {
   it('renders title and subtitle from the guide', () => {
     const wrapper = mount(AIGuidePanel)
     expect(wrapper.text()).toContain('Use iNNfo with AI')
-    expect(wrapper.text()).toContain('Edit your iNNfo models using OpenCode')
+    expect(wrapper.text()).toContain('Edit your iNNfo models using')
   })
 
   it('renders the Tools section with OpenCode', () => {

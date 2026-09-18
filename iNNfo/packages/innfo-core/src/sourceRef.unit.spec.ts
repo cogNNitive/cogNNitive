@@ -56,7 +56,7 @@ describe('parseKnowledgeUnitRef grammar', () => {
   })
 
   it('keeps row-ids case-sensitive and verbatim', () => {
-    expect(parseKnowledgeUnitRef('m.csv@Lucas')?.unit).toMatchObject({ kind: 'row', id: 'Lucas' })
+    expect(parseKnowledgeUnitRef('m.csv@RowKey')?.unit).toMatchObject({ kind: 'row', id: 'RowKey' })
   })
 
   it('parses field and column subunits (names only, never values)', () => {

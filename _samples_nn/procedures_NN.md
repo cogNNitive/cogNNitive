@@ -31,3 +31,11 @@ inputs_required:: Containment Incidents 1984
 outputs_expected:: Containment Incidents 1984
 executed_by:: Janine Melnitz
 procedure_model:: procedures/import_and_structure_tabular_data_NN.md
+
+## NN Procedure: Reconcile Artifact Feedback
+category:: transformation
+summary:: Dual-emission deliverable compiler, forensic Word/Markdown annotation extractor, 4-layer discrepancy triage engine, and upstream iNNfo domain model reconciler.
+inputs_required:: Reviewed Deliverable Document
+outputs_expected:: Published Final Deliverable
+executed_by:: Senior AI Architect
+procedure_model:: procedures/reconcile_artifact_feedback_NN.md

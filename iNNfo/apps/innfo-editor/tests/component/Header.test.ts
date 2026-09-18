@@ -195,4 +195,23 @@ describe('Header.vue', () => {
       expect(wrapper.find('[data-testid="header-search-popup"]').exists()).toBe(false)
     })
   })
+
+  describe('Use AI button', () => {
+    it('toggles activeView between ai-guide and editor', async () => {
+      const uiStore = useUiStore()
+      uiStore.setActiveView('editor')
+
+      const wrapper = mount(Header)
+      const aiBtn = wrapper.find('[data-testid="header-use-ai-button"]')
+      expect(aiBtn.exists()).toBe(true)
+
+      // First click: editor -> ai-guide
+      await aiBtn.trigger('click')
+      expect(uiStore.activeView).toBe('ai-guide')
+
+      // Second click: ai-guide -> editor
+      await aiBtn.trigger('click')
+      expect(uiStore.activeView).toBe('editor')
+    })
+  })
 })

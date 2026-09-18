@@ -58,7 +58,6 @@ dev→main was open and nearly duplicated).
 Run an empirical scan across the monorepo root:
 
 ```powershell
-Set-Location 'D:\Users\lucas\Documents\GitHub\cogNNitive'
 Write-Host "=== MONOREPO: cogNNitive/cogNNitive ==="
 git status -sb
 
@@ -250,4 +249,4 @@ Run `node scripts/manifest/validate-manifest.js` with `$env:GITHUB_TOKEN = (gh a
 2. **Deterministic Parity First:** Always run `node scripts/manifest/check-parity.js` before tagging or committing manifest changes to guarantee zero drift.
 3. **Always authenticate API calls:** Use `gh auth token` when running `generate-manifest.js` or `validate-manifest.js` to avoid GitHub HTTP 403 rate limits.
 4. **Main-CI-green is a Definition of Done:** Before tagging a release or merging `dev → main`, the merge target `main` MUST have a green CI run for the branch being merged (the merged result's CI is the final gate). If CI on `main` is red or has never run for the incoming changes, do not cut tags — fix the failure first.
-5. **Monorepo Scope:** Limit all operations to `D:\Users\lucas\Documents\GitHub\cogNNitive`.
+5. **Monorepo Scope:** Limit all operations to the cogNNitive repository root (`cogNNitive`).

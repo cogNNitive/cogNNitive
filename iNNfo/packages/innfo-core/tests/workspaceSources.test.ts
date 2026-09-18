@@ -111,6 +111,44 @@ describe('validateWorkspaceSources', () => {
     const diags = validateWorkspaceSources(resultWith('a.md'), () => null)
     expect(diags[0].severity).toBe('error')
   })
+
+  it('reports distinct message when parent directory does not exist', () => {
+    const diags = validateWorkspaceSources(
+      resultWith('missing_folder/report.md#summary'),
+      () => ({ exists: false, parentExists: false }),
+    )
+    expect(diags).toHaveLength(1)
+    expect(diags[0].severity).toBe('error')
+    expect(diags[0].code).toBe('KU_DANGLING_FILE')
+    expect(diags[0].message).toContain('parent directory does not exist')
+  })
+
+  it('includes suggestions when resolver provides fuzzy matches', () => {
+    const diags = validateWorkspaceSources(
+      resultWith('annual_repots.md#intro'),
+      () => ({ exists: false, parentExists: true, suggestions: ['annual_reports.md'] }),
+    )
+    expect(diags).toHaveLength(1)
+    expect(diags[0].severity).toBe('error')
+    expect(diags[0].code).toBe('KU_DANGLING_FILE')
+    expect(diags[0].message).toContain("did you mean 'annual_reports.md'?")
+  })
+
+  it('reports parent directory and suggestion diagnostics on knowledge-unit pointers', () => {
+    const diagsParent = validateWorkspaceSources(
+      resultWith('missing_folder/report.md@## Section'),
+      () => ({ exists: false, parentExists: false }),
+    )
+    expect(diagsParent[0].code).toBe('KU_DANGLING_FILE')
+    expect(diagsParent[0].message).toContain('parent directory does not exist')
+
+    const diagsSugg = validateWorkspaceSources(
+      resultWith('annual_repots.md@## Section'),
+      () => ({ exists: false, parentExists: true, suggestions: ['annual_reports.md'] }),
+    )
+    expect(diagsSugg[0].code).toBe('KU_DANGLING_FILE')
+    expect(diagsSugg[0].message).toContain("did you mean 'annual_reports.md'?")
+  })
 })
 
 const MD_FIXTURE = [

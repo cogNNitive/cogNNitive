@@ -13,6 +13,7 @@ import {
   validateWorkspaceReferences,
   validateWorkspaceSources,
   extractHeadings,
+  levenshteinDistance,
   loadBaseline,
   fingerprint,
   diffNewOnly,
@@ -277,32 +278,108 @@ export async function collectWorkspaceDiagnostics(
   // Cross-model `[[Title :: Element]]` references + `sources::` Citations,
   // the latter resolved against real files under the workspace root. One read
   // per file: content backs headings AND the unit checks (rows/columns/fields).
-  const resolveSource: SourceResolver = (refPath) => {
-    const abs = resolve(rootDir, refPath)
-    const rel = relative(rootDir, abs)
-    if (rel === '' || rel.startsWith('..') || isAbsolute(rel)) {
-      return { exists: false }
-    }
-    if (!existsSync(abs)) return { exists: false }
-    try {
-      const content = readFileSync(abs, 'utf-8')
-      return {
-        exists: true,
-        headings: extractHeadings(content).map((h) => h.slug),
-        content,
-      }
-    } catch (err) {
-      /* v8 ignore start */
-      // swallow deliberately: an unreadable source file reports not-exists.
-      console.warn(`[validate] Failed to read source ${abs}: ${err}`)
-      return { exists: false }
-      /* v8 ignore stop */
-    }
-  }
+  const resolveSource: SourceResolver = createWorkspaceSourceResolver(rootDir)
   return [
     ...validateWorkspaceReferences(result, index),
     ...validateWorkspaceSources(result, resolveSource),
   ]
+}
+
+/**
+ * Creates a disk-backed SourceResolver that resolves sources relative to the referring
+ * document by walking ancestor directories up to rootDir looking for sources/ directories,
+ * and reports parent directory existence and fuzzy suggestions on failure.
+ */
+export function createWorkspaceSourceResolver(rootDir: string): SourceResolver {
+  const rootResolved = resolve(rootDir)
+  return (refPath, referringPath) => {
+    const candidateDirs: string[] = []
+
+    if (referringPath) {
+      const absReferring = isAbsolute(referringPath)
+        ? referringPath
+        : resolve(rootDir, referringPath)
+      let cur = dirname(absReferring)
+      while (true) {
+        const sourcesDir = join(cur, 'sources')
+        if (existsSync(sourcesDir)) {
+          candidateDirs.push(cur)
+        }
+        if (cur === rootResolved || dirname(cur) === cur) {
+          break
+        }
+        const relToRoot = relative(rootResolved, cur)
+        if (relToRoot.startsWith('..')) {
+          break
+        }
+        cur = dirname(cur)
+      }
+    }
+
+    if (!candidateDirs.includes(rootResolved)) {
+      candidateDirs.push(rootResolved)
+    }
+
+    for (const dir of candidateDirs) {
+      const abs = resolve(dir, refPath)
+      const rel = relative(dir, abs)
+      if (rel === '' || rel.startsWith('..') || isAbsolute(rel)) {
+        continue
+      }
+      if (existsSync(abs)) {
+        try {
+          const content = readFileSync(abs, 'utf-8')
+          return {
+            exists: true,
+            headings: extractHeadings(content).map((h) => h.slug),
+            content,
+          }
+        } catch (err) {
+          /* v8 ignore start */
+          // swallow deliberately: an unreadable source file reports not-exists.
+          console.warn(`[validate] Failed to read source ${abs}: ${err}`)
+          return { exists: false }
+          /* v8 ignore stop */
+        }
+      }
+    }
+
+    const primaryDir = candidateDirs[0] ?? rootResolved
+    const targetAbs = resolve(primaryDir, refPath)
+    const targetParent = dirname(targetAbs)
+    const parentExists = existsSync(targetParent)
+
+    if (!parentExists) {
+      return { exists: false, parentExists: false }
+    }
+
+    let suggestions: string[] | undefined
+    try {
+      const entries = readdirSync(targetParent, { withFileTypes: true })
+      const targetBase = basename(refPath)
+      const targetStem = targetBase.replace(/\.[^.]+$/, '')
+      const files = entries.filter((e) => e.isFile()).map((e) => e.name)
+      const maxAllowed = Math.max(1, Math.min(3, Math.floor(targetStem.length / 3)))
+      const scored = files
+        .map((name) => {
+          const candStem = name.replace(/\.[^.]+$/, '')
+          return { name, dist: levenshteinDistance(targetStem, candStem) }
+        })
+        .filter((item) => item.dist > 0 && item.dist <= maxAllowed)
+        .sort((a, b) => a.dist - b.dist)
+      if (scored.length > 0) {
+        suggestions = scored.map((s) => s.name)
+      }
+    } catch {
+      // directory read error
+    }
+
+    return {
+      exists: false,
+      parentExists: true,
+      suggestions,
+    }
+  }
 }
 
 /** Pure. Diagnostics whose `path` names `resolvedModelPath`. */
@@ -382,26 +459,6 @@ function isReservedStructuralHeading(concept: string): boolean {
   return false
 }
 
-function levenshteinDistance(a: string, b: string): number {
-  const an = a.length
-  const bn = b.length
-  if (an === 0) return bn
-  if (bn === 0) return an
-  const matrix = Array.from({ length: bn + 1 }, () => new Array(an + 1).fill(0))
-  for (let i = 0; i <= an; i++) matrix[0][i] = i
-  for (let j = 0; j <= bn; j++) matrix[j][0] = j
-  for (let j = 1; j <= bn; j++) {
-    for (let i = 1; i <= an; i++) {
-      const cost = a[i - 1].toLowerCase() === b[j - 1].toLowerCase() ? 0 : 1
-      matrix[j][i] = Math.min(
-        matrix[j - 1][i] + 1,
-        matrix[j][i - 1] + 1,
-        matrix[j - 1][i - 1] + cost,
-      )
-    }
-  }
-  return matrix[bn][an]
-}
 
 export function analyzeConceptDrift(
   model: ParsedModel,

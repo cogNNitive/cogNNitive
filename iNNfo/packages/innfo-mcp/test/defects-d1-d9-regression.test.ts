@@ -33,9 +33,9 @@ Sources concept
   })
 
   it('D2: Spec Resolver identifies Windows local paths and file:// URIs correctly', () => {
-    expect(isLocalPath('C:/Users/lucas/specs/test_NN.md')).toBe(true)
-    expect(isLocalPath('C:\\Users\\lucas\\specs\\test_NN.md')).toBe(true)
-    expect(isLocalPath('file:///C:/Users/lucas/specs/test_NN.md')).toBe(true)
+    expect(isLocalPath('C:/Users/mock-user/specs/test_NN.md')).toBe(true)
+    expect(isLocalPath('C:\\Users\\mock-user\\specs\\test_NN.md')).toBe(true)
+    expect(isLocalPath('file:///C:/Users/mock-user/specs/test_NN.md')).toBe(true)
     // Conversion is allowed only when the target is contained by the root.
     expect(toLocalFilePath('file:///C:/specs/test_NN.md', 'C:/specs')).toContain('specs')
     // Without a root there is nothing to contain against, so it is refused.

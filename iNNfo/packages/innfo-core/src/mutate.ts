@@ -9,6 +9,7 @@ import {
 } from './schema/index.js'
 import { slugify } from './parser/slug.js'
 import { RESERVED_CONCEPT_NAMES } from './validator/constants.js'
+import { levenshteinDistance } from './sourceRef.js'
 
 export interface MutationResult {
   success: boolean
@@ -54,28 +55,6 @@ function requireArgs(args: Record<string, unknown>, keys: string[]): RequireArgs
   return { ok: true, values }
 }
 
-/** Standard edit-distance metric, used to suggest a likely-intended concept
- *  name when `addElement` rejects an undeclared `conceptName` (AD-6). */
-function levenshteinDistance(a: string, b: string): number {
-  const an = a.length
-  const bn = b.length
-  if (an === 0) return bn
-  if (bn === 0) return an
-  const matrix = Array.from({ length: bn + 1 }, () => new Array(an + 1).fill(0))
-  for (let i = 0; i <= an; i++) matrix[0][i] = i
-  for (let j = 0; j <= bn; j++) matrix[j][0] = j
-  for (let j = 1; j <= bn; j++) {
-    for (let i = 1; i <= an; i++) {
-      const cost = a[i - 1].toLowerCase() === b[j - 1].toLowerCase() ? 0 : 1
-      matrix[j][i] = Math.min(
-        matrix[j - 1][i] + 1,
-        matrix[j][i - 1] + 1,
-        matrix[j - 1][i - 1] + cost,
-      )
-    }
-  }
-  return matrix[bn][an]
-}
 
 /** Builds the "unknown concept" rejection message for schema-aware element
  *  ops (`addElement`, and mirrored by `updateField`'s existing lookup

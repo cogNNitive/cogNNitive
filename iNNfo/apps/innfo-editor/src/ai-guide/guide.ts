@@ -23,14 +23,23 @@ export interface GuideData {
   matrixRows: string[][]
 }
 
-function unquote(s: string): string {
-  return s.trim().replace(/^["']|["']$/g, '')
-}
+function extractPrompt(title: string, yamlLines: string[], descLines: string[]): string | null {
+  const allText = `${title} ${yamlLines.join(' ')} ${descLines.join(' ')}`
+  const allLower = allText.toLowerCase()
 
-function extractPrompt(title: string, yamlLines: string[]): string | null {
-  const all = `${title} ${yamlLines.join(' ')}`.toLowerCase()
-  if (all.includes('edit model') || all.includes('configure mcp')) {
+  // First check for explicit quoted prompt in description text: *"innfo: ... "*
+  const match = allText.match(/\*"(innfo:[^"]+)"\*/i) || allText.match(/"(innfo:[^"]+)"/i)
+  if (match) {
+    const promptText = match[1].trim()
+    return promptText.startsWith('innfo: ') ? promptText : innfoPrompt(promptText.replace(/^innfo:\s*/i, ''))
+  }
+
+  if (allLower.includes('edit model') || allLower.includes('edit models')) {
     return innfoPrompt('Load the nn-innfo skill — I need to edit a model')
+  }
+
+  if (allLower.includes('configure mcp')) {
+    return innfoPrompt('Load the nn-innfo skill and check that innfo-mcp is configured')
   }
 
   return null
@@ -44,13 +53,14 @@ export function parseGuide(content: string): GuideData {
   let matrixHeaders: string[] = []
   const matrixRows: string[][] = []
   let title = 'Use iNNfo with AI'
-  const subtitle = 'Edit your iNNfo models using OpenCode Desktop'
+  let subtitle = 'Edit your iNNfo models using your preferred AI coding agent'
 
   let currentStep: Partial<WorkStep> | null = null
   let currentTool: Partial<ToolEntry> | null = null
   let inYaml = false
   let yamlLines: string[] = []
   let descLines: string[] = []
+  let toolDescLines: string[] = []
   let inMatrix = false
   const matrixLines: string[] = []
 
@@ -60,7 +70,7 @@ export function parseGuide(content: string): GuideData {
       currentStep.descriptionHtml = desc
         .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
         .replace(/\n/g, '<br>')
-      currentStep.prompt = extractPrompt(currentStep.title, yamlLines)
+      currentStep.prompt = extractPrompt(currentStep.title, yamlLines, descLines)
       steps.push(currentStep as WorkStep)
     }
     currentStep = null
@@ -69,12 +79,65 @@ export function parseGuide(content: string): GuideData {
     inYaml = false
   }
 
+  function flushTool(): void {
+    if (currentTool?.name) {
+      const descRaw = toolDescLines.join(' ').trim()
+      let url = currentTool.url || ''
+      let description = descRaw
+
+      const downloadMatch = descRaw.match(/Download:\s*(\S+)/i)
+      if (downloadMatch) {
+        url = downloadMatch[1].trim()
+        description = descRaw.replace(/Download:\s*\S+/i, '').trim()
+      } else if (!url) {
+        const urlMatch = descRaw.match(/https?:\/\/\S+/i)
+        if (urlMatch) {
+          url = urlMatch[0].trim()
+        }
+      }
+
+      const initials = currentTool.name
+        .split(/\s+/)
+        .map((w) => w[0])
+        .join('')
+        .slice(0, 2)
+        .toUpperCase()
+
+      tools.push({
+        name: currentTool.name,
+        initials,
+        description: description || currentTool.name,
+        url: url || 'https://cognnitive.com/use',
+      })
+    }
+    currentTool = null
+    toolDescLines = []
+  }
+
+  function flushAll(): void {
+    flushStep()
+    flushTool()
+  }
+
   for (const rawLine of lines) {
     const line = rawLine.trimEnd()
+    const trimmed = line.trim()
 
-    // Matrix section
-    if (line.startsWith('* _NN matrices:')) {
-      flushStep()
+    // Frontmatter
+    const titleMatch = line.match(/^title:\s*"(.+)"$/)
+    if (titleMatch) {
+      title = titleMatch[1]
+      continue
+    }
+    const subtitleMatch = line.match(/^subtitle:\s*"(.+)"$/)
+    if (subtitleMatch) {
+      subtitle = subtitleMatch[1]
+      continue
+    }
+
+    // Matrix section header
+    if (/^#*\s*_?NN\s+matrices:/i.test(line)) {
+      flushAll()
       inMatrix = true
       continue
     }
@@ -82,7 +145,7 @@ export function parseGuide(content: string): GuideData {
     if (inMatrix) {
       if (line.startsWith('|')) {
         matrixLines.push(line)
-      } else if (line.trim() === '' && matrixLines.length > 0) {
+      } else if (trimmed === '' && matrixLines.length > 0) {
         // continue collecting
       } else if (!line.startsWith('|') && !line.startsWith(':---') && matrixLines.length > 0) {
         inMatrix = false
@@ -90,78 +153,71 @@ export function parseGuide(content: string): GuideData {
       if (inMatrix) continue
     }
 
-    // Tool section
-    const toolMatch = line.match(/^\* _NN Tools: (.+)$/)
+    // Section headers (# NN ...)
+    if (/^#+\s+_?NN\s+(?:index|Concept Definition|Field Definition|Marker Definition|Matrix Definition|Procedure|Roles|Artifact)/i.test(line)) {
+      flushAll()
+      continue
+    }
+
+    // Tool item
+    const toolMatch = line.match(/^(?:##|\*)\s+_?NN\s+Tools:\s*(.+)$/i)
     if (toolMatch) {
-      flushStep()
+      flushAll()
       currentTool = { name: toolMatch[1].trim() }
       continue
     }
 
     if (currentTool) {
-      const urlMatch = line.match(/Download:\s*(\S+)/)
-      if (urlMatch) {
-        currentTool.url = urlMatch[1].trim()
-        currentTool.initials = (currentTool.name || '')
-          .split(/\s+/)
-          .map((w) => w[0])
-          .join('')
-          .slice(0, 2)
-          .toUpperCase()
-        currentTool.description = line.replace(/Download:\s*\S+\s*/, '').trim() || currentTool.name || ''
-        if (currentTool.name && currentTool.url) {
-          tools.push(currentTool as ToolEntry)
-        }
-        currentTool = null
+      if (trimmed.startsWith('url::')) {
+        currentTool.url = trimmed.replace(/^url::\s*/, '').trim()
+      } else if (trimmed) {
+        toolDescLines.push(trimmed)
       }
       continue
     }
 
-    // Role section
-    if (line.startsWith('* _NN Roles:')) {
-      flushStep()
-      continue
-    }
-
-    // Work section
-    const workMatch = line.match(/^\* _NN Work: (.+)$/)
+    // Work item
+    const workMatch = line.match(/^(?:##|\*)\s+_?NN\s+Work:\s*(.+)$/i)
     if (workMatch) {
-      flushStep()
+      flushAll()
       currentStep = { title: workMatch[1].trim(), descriptionHtml: '', prompt: null }
       continue
     }
 
-    // YAML block
+    // Inside Work step
     if (currentStep) {
-      if (line.trim() === '```yaml') {
+      if (trimmed === '```yaml') {
         inYaml = true
         continue
       }
-      if (inYaml && line.trim() === '```') {
+      if (inYaml && trimmed === '```') {
         inYaml = false
         continue
       }
       if (inYaml) {
-        yamlLines.push(line.trim())
+        yamlLines.push(trimmed)
         continue
       }
-
-      if (line.startsWith('  ') && line.trim()) {
-        descLines.push(line.trim())
+      // Inline field notation (e.g., step_type:: task, parent:: target)
+      if (/^[a-zA-Z_]+::/.test(trimmed)) {
+        yamlLines.push(trimmed)
+        continue
+      }
+      // Description lines
+      if (trimmed) {
+        descLines.push(trimmed)
       }
     }
-
-    // Frontmatter title
-    const titleMatch = line.match(/^title:\s*"(.+)"$/)
-    if (titleMatch) title = titleMatch[1]
   }
 
-  flushStep()
+  flushAll()
 
   // Parse matrix
   if (matrixLines.length > 0) {
     const headerLine = matrixLines.find((l) => l.startsWith('|') && !l.includes('---'))
-    const dataLines = matrixLines.filter((l) => l !== headerLine && !l.includes('---') && l.startsWith('|'))
+    const dataLines = matrixLines.filter(
+      (l) => l !== headerLine && !l.includes('---') && l.startsWith('|'),
+    )
     if (headerLine) {
       matrixHeaders = headerLine
         .split('|')

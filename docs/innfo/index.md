@@ -1,11 +1,11 @@
 ---
 title: "iNNfo — The Knowledge Modeling Hub"
-description: "Model, edit, and validate knowledge models with the iNNfo Modeler browser app and OpenCode AI agents."
+description: "Model, edit, and validate knowledge models with the iNNfo Modeler browser app and your AI coding agent of choice (OpenCode Desktop, Google Antigravity, Claude Code, Cursor, Codex)."
 ---
 
 # Transform your documentation into structured, validated knowledge models.
 
-Model, edit, and query knowledge visually in your browser or conversationally with your OpenCode AI agent.
+Model, edit, and query knowledge visually in your browser or conversationally with your AI coding agent of choice (OpenCode Desktop, Google Antigravity, Claude Code, Cursor, Codex).
 
 - [Open iNNfo Modeler App](https://cognnitive.com/innfo/app/)
 - [Explore Documentation](https://cognnitive.com/innfo/documentation/)
@@ -16,7 +16,7 @@ Model, edit, and query knowledge visually in your browser or conversationally wi
 
 - **Visual Modeling**: Explore your documentation as interactive graph trees, block sheets, matrices, and visual diagrams.
 - **Automatic Validation**: Catch broken links, missing properties, and outdated specs automatically as you edit.
-- **AI & Web Editing**: Edit visually in the browser app or ask your OpenCode AI agent to create and update models for you.
+- **AI & Web Editing**: Edit visually in the browser app or ask your AI coding agent (OpenCode Desktop, Claude Code, Antigravity, Cursor) to create and update models for you.
 
 ---
 
@@ -25,7 +25,7 @@ Model, edit, and query knowledge visually in your browser or conversationally wi
 ```mermaid
 flowchart TD
     subgraph Step1["Step 1: Ingestion & Setup"]
-        U["👤 User in OpenCode"] -->|Bootstrap Prompt| Router["⚡ actioNN Skills (Router & traNNsform)"]
+        U["👤 User & AI Agent\n(OpenCode, Antigravity, Claude Code)"] -->|Bootstrap Prompt| Router["⚡ actioNN Skills (Router & traNNsform)"]
         RawDocs["📄 Raw Documents (PDF, DOCX)"] --> Router
     end
 
@@ -36,7 +36,7 @@ flowchart TD
 
     subgraph Step3["Step 3: Delivery & Access"]
         MCP <--> Modeler["🛠️ iNNfo Modeler App (Web Editor)"]
-        MCP <--> AgentChat["💬 OpenCode Conversational Queries"]
+        MCP <--> AgentChat["💬 Conversational Queries & MCP Tools\n(OpenCode, Antigravity, Claude Code)"]
     end
 
     subgraph Step4["Step 4: Artifact Generation"]
@@ -46,8 +46,9 @@ flowchart TD
 
 ---
 
-## Use iNNfo Directly in OpenCode
+## Use iNNfo with Your AI Coding Agent
 
-1. **Open OpenCode Desktop**: Launch OpenCode Desktop and open your project folder containing your documentation.
-2. **Prompt Your Agent**: Tell your agent: `I want to use https://cognnitive.com/use`
-3. **Create & Edit Models**: Ask OpenCode to create an iNNfo model or validate your documentation.
+1. **Choose Your AI Agent**: Launch OpenCode Desktop (recommended reference desktop client) or use Google Antigravity, Claude Code, Cursor, or Codex CLI.
+2. **Open Your Project**: Open the workspace folder containing your documentation and models.
+3. **Prompt Your Agent**: Tell your agent: `I want to use https://cognnitive.com/use`
+4. **Create & Edit Models**: Ask your agent to create an iNNfo model, validate documentation, or explore structures.

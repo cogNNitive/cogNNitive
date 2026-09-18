@@ -24,7 +24,7 @@ This skill is maintainer-only. It is **not** distributed: it is not under
 `actioNN/skills/` and is not registered in `manifest/source.yaml`. It is a sibling of
 `nn-dev-development`, `nn-dev-check-integrity`, `nn-dev-release`, and `nn-usage-audit`.
 
-Scope: all operations limited to `D:\Users\lucas\Documents\GitHub\cogNNitive`.
+Scope: all operations limited to the cogNNitive repository root (`cogNNitive`).
 
 ---
 
@@ -187,4 +187,4 @@ sidebar/index.
    `node scripts/generate-docsify-suite.mjs docs/innfo/documentation/documentation_NN.md`.
 5. **Scratch under `temp/`** — throwaway notes/fixtures live in the gitignored repo-root
    `temp/`, never beside source.
-6. **Monorepo scope** — `D:\Users\lucas\Documents\GitHub\cogNNitive` only.
+6. **Monorepo scope** — cogNNitive repository root only.

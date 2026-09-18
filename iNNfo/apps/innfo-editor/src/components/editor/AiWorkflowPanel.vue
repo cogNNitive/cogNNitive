@@ -8,6 +8,15 @@
         </div>
         <h2 class="text-base font-bold text-slate-900 dark:text-slate-100">AI Workflow</h2>
       </div>
+      <button
+        @click="uiStore.setActiveView('editor')"
+        class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors cursor-pointer"
+        title="Return to model editor"
+        data-testid="ai-workflow-close-button"
+      >
+        <ArrowLeft class="w-3.5 h-3.5" />
+        <span>Back to editor</span>
+      </button>
     </div>
 
     <!-- Content -->
@@ -18,6 +27,9 @@
 </template>
 
 <script setup lang="ts">
-import { Sparkles } from 'lucide-vue-next'
+import { Sparkles, ArrowLeft } from 'lucide-vue-next'
+import { useUiStore } from '../../stores/uiStore'
 import AIGuidePanel from './AIGuidePanel.vue'
+
+const uiStore = useUiStore()
 </script>

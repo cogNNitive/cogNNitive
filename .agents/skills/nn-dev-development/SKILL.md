@@ -43,7 +43,7 @@ This skill is maintainer-only. It is **not** distributed: it is not under
 `actioNN/skills/` and is not registered in `manifest/source.yaml`. It is a sibling of
 `nn-dev-release`, `nn-dev-check-integrity`, and `nn-template-audit`.
 
-Scope: all operations limited to `D:\Users\lucas\Documents\GitHub\cogNNitive`.
+Scope: all operations limited to the cogNNitive repository root (`cogNNitive`).
 
 ---
 
@@ -109,7 +109,7 @@ git worktree list
 ### 1c. Engram recent session recall (when disambiguating active WIP)
 
 When the tree is dirty or recent work needs context, inspect recent observations in Engram:
-- Query `observations` in `C:/Users/lucas/.engram/engram.db` (or via `mem_context` / `mem_search`) for recent commits, PRs, and active agent goals from today and yesterday.
+- Query `observations` in `~/.engram/engram.db` (or via `mem_context` / `mem_search`) for recent commits, PRs, and active agent goals from today and yesterday.
 - Sibling agent notes (Claude Code, OpenCode) clarify whether uncommitted files are part of an in-flight SDD change or abandoned WIP.
 
 ### 1d. Record the baseline
@@ -471,7 +471,7 @@ git checkout -b restore/<topic> <vX.Y.Z or checkpoint-tag>
    deletion is always the maintainer's call.
 9. **Read-only inspection** — this skill detects and asks; it never moves, renames, or
    deletes user files, and it never stages/commits anything on its own.
-10. **Monorepo scope** — `D:\Users\lucas\Documents\GitHub\cogNNitive` only.
+10. **Monorepo scope** — cogNNitive repository root only.
 11. **Disposable scratch lives in `temp/`** — simulation workspaces, ad-hoc scripts,
    and throwaway fixtures go under the repo-root `temp/` directory (gitignored,
    never committed, deleted after the run). Never scatter `*_tmp`, `scratch/`, or

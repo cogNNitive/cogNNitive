@@ -73,10 +73,13 @@ export type {
   ValidateModelOptions,
   QualifiedRef,
   SourceResolver,
+  SourceResolution,
 } from './validator/index.js'
 
 export {
   parseSourceRef,
+  splitSourceFieldValue,
+  levenshteinDistance,
   slugifyHeading,
   extractHeadings,
   resolveHeadingSection,

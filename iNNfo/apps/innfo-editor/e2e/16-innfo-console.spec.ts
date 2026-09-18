@@ -53,7 +53,7 @@ const modelFixture = {
       concept: 'Goal',
       name: 'Grow',
       description: 'Grow the business',
-      fields: { owner: 'Lucas' },
+      fields: { owner: 'Reviewer' },
     },
   ],
   matrices: [],
@@ -66,8 +66,8 @@ const validFeedbackFixture = {
     artifact: 'Acme_console.html',
     artifact_version: '0.1.0',
     exported_at: '2026-09-09T12:00:00Z',
-    author: 'Lucas, primera revisión',
-    feedback_slug: 'lucas-primera-revision',
+    author: 'Reviewer, primera revisión',
+    feedback_slug: 'reviewer-primera-revision',
     viewer: 'innfo-console/0.1.0',
   },
   items: [
@@ -166,13 +166,13 @@ test.describe('innfo-console — feedback loop E2E', () => {
     await page.click('#innfo-export-modal [data-innfo="download"]')
     await expect(page.locator('#innfo-export-modal[open]')).toBeVisible()
 
-    await page.fill('#innfo-export-modal [data-innfo="identifier"]', 'Lucas, primera revisión')
+    await page.fill('#innfo-export-modal [data-innfo="identifier"]', 'Reviewer, primera revisión')
     const [download] = await Promise.all([
       page.waitForEvent('download', { timeout: 5000 }),
       page.click('#innfo-export-modal [data-innfo="download"]'),
     ])
     expect(download.suggestedFilename()).toMatch(
-      /^Acme_V_0-1-0_lucas-primera-revision_feedback_\d{8}-\d{6}\.json$/,
+      /^Acme_V_0-1-0_reviewer-primera-revision_feedback_\d{8}-\d{6}\.json$/,
     )
 
     if (storageWorks) {
@@ -211,8 +211,8 @@ test.describe('innfo-console — feedback loop E2E', () => {
           artifact: 'Acme_console.html',
           artifact_version: '0.1.0',
           exported_at: '2026-09-09T12:00:00Z',
-          author: 'Lucas, primera revisión',
-          feedback_slug: 'lucas-primera-revision',
+          author: 'Reviewer, primera revisión',
+          feedback_slug: 'reviewer-primera-revision',
           viewer: 'innfo-console/0.1.0',
         },
         drafts: [
@@ -229,21 +229,21 @@ test.describe('innfo-console — feedback loop E2E', () => {
       const filename = c.InnfoConsole.buildFeedbackFilename(
         'Acme',
         '0-1-0',
-        'Lucas, primera revisión',
+        'Reviewer, primera revisión',
         new Date('2026-09-09T12:00:00Z'),
       )
       return { doc, check, filename, parsed: c.InnfoConsole.parseFeedbackFilename(filename) }
     })
 
     expect(result.check.ok).toBe(true)
-    expect(result.filename).toMatch(/^Acme_V_0-1-0_lucas-primera-revision_feedback_20260909-120000\.json$/)
-    expect(result.parsed).toMatchObject({ model: 'Acme', version: '0-1-0', slug: 'lucas-primera-revision' })
+    expect(result.filename).toMatch(/^Acme_V_0-1-0_reviewer-primera-revision_feedback_20260909-120000\.json$/)
+    expect(result.parsed).toMatchObject({ model: 'Acme', version: '0-1-0', slug: 'reviewer-primera-revision' })
 
     const validated = converters.validateFeedbackJson(validFeedbackFixture)
     expect(validated.items).toHaveLength(1)
     const markdown = converters.convertFeedbackJson(
       JSON.stringify(validFeedbackFixture),
-      'Acme_V_0-1-0_lucas-primera-revision_feedback_20260909-120000',
+      'Acme_V_0-1-0_reviewer-primera-revision_feedback_20260909-120000',
     )
     expect(markdown).toContain('## NN Meta')
     expect(markdown).toContain('### fb-001 (comment, pending)')
@@ -269,8 +269,8 @@ test.describe('innfo-console — feedback loop E2E', () => {
           artifact: 'Acme_console.html',
           artifact_version: '0.1.0',
           exported_at: '2026-09-09T12:00:00Z',
-          author: 'Lucas',
-          feedback_slug: 'lucas',
+          author: 'Reviewer',
+          feedback_slug: 'reviewer',
           viewer: 'innfo-console/0.1.0',
         },
         items: [{ id: 'fb-001', kind: 'rewrite', target: { element_id: 'goal-grow' }, status: 'pending' }],

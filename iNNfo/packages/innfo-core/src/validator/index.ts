@@ -14,4 +14,4 @@ export {
 } from './workspaceReferences.js'
 export type { QualifiedRef } from './workspaceReferences.js'
 export { validateWorkspaceSources } from './workspaceSources.js'
-export type { SourceResolver } from './workspaceSources.js'
+export type { SourceResolver, SourceResolution } from './workspaceSources.js'

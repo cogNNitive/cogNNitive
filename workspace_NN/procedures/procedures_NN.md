@@ -31,3 +31,11 @@ inputs_required:: cogNNitive Repository Model
 outputs_expected:: Published Subsystem Bundles and Tags
 executed_by:: Release Manager
 procedure_model:: .agents/skills/nn-dev-release/SKILL.md
+
+## NN Procedure: Reconcile Artifact Feedback
+category:: transformation
+summary:: Dual-emission deliverable compiler, forensic Word/Markdown annotation extractor, 4-layer discrepancy triage engine, and upstream iNNfo domain model reconciler.
+inputs_required:: Reviewed Deliverable Document
+outputs_expected:: Published Final Deliverable
+executed_by:: Senior AI Architect
+procedure_model:: procedures/reconcile_artifact_feedback_NN.md

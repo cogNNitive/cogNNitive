@@ -1,5 +1,5 @@
-import { readFile, writeFile, rm, stat, rename } from 'node:fs/promises'
-import { basename, dirname, join } from 'node:path'
+import { readFile, writeFile, rm, stat, rename, readdir } from 'node:fs/promises'
+import { basename, dirname, join, relative, resolve } from 'node:path'
 import {
   parseModel,
   serializeModel,
@@ -13,6 +13,7 @@ import { findModelFile } from './spec.js'
 import { isLocalPath, toLocalFilePath, saveSpecOnce } from './resolver-node.js'
 import { createSpecsBackupZip } from './spec-backup.js'
 import { loadModel, saveModel, resolveTemplateForModel } from './model-io.js'
+import { DEFAULT_WORKSPACE_IGNORE } from './validate.js'
 
 export interface ApplyChangeResult {
   success: boolean
@@ -86,6 +87,130 @@ function computeNewVersion(
   else if (bump === 'minor') parts.minor += 1
   else parts.patch += 1
   return { version: formatVersion(parts) }
+}
+
+async function findAllWorkspaceModelFiles(dir: string, ignore: Set<string>): Promise<string[]> {
+  const results: string[] = []
+  const entries = await readdir(dir, { withFileTypes: true }).catch(() => [])
+  for (const entry of entries) {
+    if (entry.isDirectory()) {
+      if (entry.name.startsWith('.') || ignore.has(entry.name.toLowerCase())) continue
+      const sub = await findAllWorkspaceModelFiles(join(dir, entry.name), ignore)
+      results.push(...sub)
+    } else if (
+      entry.isFile() &&
+      entry.name.endsWith('.md') &&
+      entry.name.toLowerCase() !== 'index.md'
+    ) {
+      results.push(join(dir, entry.name))
+    }
+  }
+  return results
+}
+
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function cascadeModelReferences(
+  model: ParsedModel,
+  oldBase: string,
+  newBase: string,
+): boolean {
+  const oldStem = oldBase.replace(/\.md$/i, '')
+  const newStem = newBase.replace(/\.md$/i, '')
+  const wikiLinkRe = new RegExp(`\\[\\[${escapeRegex(oldStem)}(\\s*(?:::|\\]\\]))`, 'g')
+
+  let changed = false
+
+  const updateStr = (val: string): string => {
+    let next = val
+    if (next.includes(oldBase)) {
+      next = next.replaceAll(oldBase, newBase)
+      changed = true
+    }
+    if (wikiLinkRe.test(next)) {
+      next = next.replaceAll(wikiLinkRe, `[[${newStem}$1`)
+      changed = true
+    }
+    if (next.trim() === oldStem) {
+      next = newStem
+      changed = true
+    }
+    return next
+  }
+
+  const updateValue = (v: unknown): unknown => {
+    if (typeof v === 'string') return updateStr(v)
+    if (Array.isArray(v)) return v.map(updateValue)
+    if (v && typeof v === 'object') {
+      const obj = { ...(v as Record<string, unknown>) }
+      for (const [k, val] of Object.entries(obj)) {
+        obj[k] = updateValue(val)
+      }
+      return obj
+    }
+    return v
+  }
+
+  // 1. Frontmatter
+  if (model.frontmatter) {
+    for (const [k, v] of Object.entries(model.frontmatter)) {
+      const updated = updateValue(v)
+      if (updated !== v) {
+        ;(model.frontmatter as Record<string, unknown>)[k] = updated
+        changed = true
+      }
+    }
+  }
+
+  // 2. Elements
+  for (const [, elements] of model.elements.entries()) {
+    for (const el of elements) {
+      if (el.fields) {
+        for (const [fKey, fVal] of Object.entries(el.fields)) {
+          const updated = updateValue(fVal)
+          if (updated !== fVal) {
+            el.fields[fKey] = updated as any
+            changed = true
+          }
+        }
+      }
+      if (el.description && typeof el.description === 'string') {
+        const next = updateStr(el.description)
+        if (next !== el.description) {
+          el.description = next
+          changed = true
+        }
+      }
+      if (Array.isArray((el as any).relationships)) {
+        for (const rel of (el as any).relationships) {
+          if (rel && typeof rel.target === 'string') {
+            const next = updateStr(rel.target)
+            if (next !== rel.target) {
+              rel.target = next
+              changed = true
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // 3. Raw sections
+  if (model.rawSections) {
+    for (const [sKey, sVal] of Object.entries(model.rawSections)) {
+      if (typeof sVal === 'string') {
+        const next = updateStr(sVal)
+        if (next !== sVal) {
+          model.rawSections[sKey] = next
+          changed = true
+        }
+      }
+    }
+  }
+
+  return changed
 }
 
 /**
@@ -261,6 +386,67 @@ async function bumpVersion(
     }
   }
 
+  // 4. Pre-mutation validation of referencing workspace models
+  const affectedModels: Array<{ filePath: string; model: ParsedModel }> = []
+  const oldBaseResolved = resolve(filePath)
+  const oldStem = base.replace(/\.md$/i, '')
+  const allModelFiles = await findAllWorkspaceModelFiles(rootDir, DEFAULT_WORKSPACE_IGNORE)
+
+  for (const mFile of allModelFiles) {
+    if (resolve(mFile) === oldBaseResolved) continue
+    try {
+      const raw = await readFile(mFile, 'utf-8')
+      if (!raw.includes(base) && !raw.includes(oldStem)) continue
+      const parsed = parseModel(raw)
+      const changed = cascadeModelReferences(parsed, base, newBase)
+      if (changed) {
+        let depTemplate: SpecDocument | null = null
+        let depResolveInclude: (ref: { name: string; url: string }) => string | null = () => null
+        try {
+          const r = await resolveTemplateForModel(rootDir, parsed)
+          depTemplate = r.template
+          depResolveInclude = r.resolveInclude
+        } catch (err) {
+          return {
+            success: false,
+            errors: [
+              {
+                path: relative(rootDir, mFile).replace(/\\/g, '/'),
+                message: `Failed to resolve template for referencing model ${basename(mFile)}: ${
+                  err instanceof Error ? err.message : String(err)
+                }`,
+              },
+            ],
+          }
+        }
+        const check = coreValidate(parsed, depTemplate, null, depResolveInclude)
+        if (!check.valid) {
+          return {
+            success: false,
+            errors: check.errors.map((e) => ({
+              ...e,
+              path: `${relative(rootDir, mFile).replace(/\\/g, '/')}${e.path ? '#' + e.path : ''}`,
+            })),
+            warnings: check.warnings,
+          }
+        }
+        affectedModels.push({ filePath: mFile, model: parsed })
+      }
+    } catch (err) {
+      return {
+        success: false,
+        errors: [
+          {
+            path: relative(rootDir, mFile).replace(/\\/g, '/'),
+            message: `Failed to process referencing model ${basename(mFile)}: ${
+              err instanceof Error ? err.message : String(err)
+            }`,
+          },
+        ],
+      }
+    }
+  }
+
   // Write the new versioned files (or rewrite in place), then remove the old.
   try {
     // 1. If parent template was bumped:
@@ -278,7 +464,7 @@ async function bumpVersion(
       await saveSpecOnce(specsDir, `${newParentName}_NN.md`, parentContent)
     }
 
-    // 2. Write model file
+    // 2. Write target model file
     if (newPath === filePath) {
       await saveModel(filePath, model)
     } else {
@@ -286,7 +472,12 @@ async function bumpVersion(
       await rm(filePath, { force: true })
     }
 
-    // 3. Update references in workspace index.md
+    // 3. Write all affected referencing models
+    for (const affected of affectedModels) {
+      await saveModel(affected.filePath, affected.model)
+    }
+
+    // 4. Update references in workspace index.md
     const indexPath = join(rootDir, 'index.md')
     try {
       let indexContent = await readFile(indexPath, 'utf-8')

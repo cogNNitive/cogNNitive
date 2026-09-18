@@ -15,6 +15,14 @@ import { listSectionFields, resolveUnit } from '../unitResolve.js'
 import type { ModelNode } from '../types/index.js'
 import type { TemplateSchema } from '../schema/index.js'
 
+export interface SourceResolution {
+  exists: boolean
+  headings?: string[]
+  content?: string
+  parentExists?: boolean
+  suggestions?: string[]
+}
+
 /**
  * Host-supplied callback that resolves a workspace-relative source path
  * (`sources/nn/<path>.md`, `sources/nn/<path>.csv`, or `models/<path>.md`) to
@@ -31,7 +39,7 @@ import type { TemplateSchema } from '../schema/index.js'
 export type SourceResolver = (
   refPath: string,
   referringPath?: string,
-) => { exists: boolean; headings?: string[]; content?: string } | null
+) => SourceResolution | null
 
 /**
  * Validates every `sources::` / `source::` Citation across the parsed workspace.
@@ -149,7 +157,7 @@ export function validateWorkspaceSources(
         if (!resolved || !resolved.exists) {
           diagnostics.push({
             path,
-            message: `Dangling source reference: "${ref.filePath}" is not present in this workspace`,
+            message: formatDanglingMessage(ref, resolved),
             severity: 'error',
             code: 'KU_DANGLING_FILE',
           })
@@ -178,6 +186,16 @@ export function validateWorkspaceSources(
   return diagnostics
 }
 
+function formatDanglingMessage(ref: SourceRef, resolved?: SourceResolution | null): string {
+  let msg = `Dangling source reference: "${ref.filePath}" is not present in this workspace`
+  if (resolved?.parentExists === false) {
+    msg += ' (parent directory does not exist)'
+  } else if (resolved?.suggestions && resolved.suggestions.length > 0) {
+    msg += ` — did you mean '${resolved.suggestions[0]}'?`
+  }
+  return msg
+}
+
 function suggestCanonical(
   resolved: { headings?: string[]; content?: string },
   ref: { filePath: string; slug?: string },
@@ -203,7 +221,7 @@ function validateUnitPointer(
   if (!resolved || !resolved.exists) {
     diagnostics.push({
       path,
-      message: `Dangling source reference: "${ref.filePath}" is not present in this workspace`,
+      message: formatDanglingMessage(ref, resolved),
       severity: 'error',
       code: 'KU_DANGLING_FILE',
     })

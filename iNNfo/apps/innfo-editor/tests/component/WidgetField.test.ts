@@ -63,14 +63,14 @@ describe('WidgetField: dispatches to ported widget or FallbackWidget (R15)', () 
     modelStore.setGraph({ Root: makeNode('Root', 'summary', 'Hello') }, ['Root'])
 
     const wrapper = mount(WidgetField, {
-      props: { nodeId: 'Root', fieldKey: 'summary', widgetType: 'text', authorId: 'lucas' },
+      props: { nodeId: 'Root', fieldKey: 'summary', widgetType: 'text', authorId: 'user-1' },
     })
 
     await wrapper.get('input').setValue('Edited')
 
     const node = modelStore.getNode('Root')!
     expect(node.fields.summary.value).toBe('Edited')
-    expect(node.fields.summary.editAttribution.author).toEqual({ kind: 'user', id: 'lucas' })
+    expect(node.fields.summary.editAttribution.author).toEqual({ kind: 'user', id: 'user-1' })
   })
 
   it('records no new editAttribution beyond parse-time state when the node is only loaded, not edited (R16)', () => {
@@ -78,7 +78,7 @@ describe('WidgetField: dispatches to ported widget or FallbackWidget (R15)', () 
     modelStore.setGraph({ Root: makeNode('Root', 'summary', 'Hello') }, ['Root'])
 
     mount(WidgetField, {
-      props: { nodeId: 'Root', fieldKey: 'summary', widgetType: 'text', authorId: 'lucas' },
+      props: { nodeId: 'Root', fieldKey: 'summary', widgetType: 'text', authorId: 'user-1' },
     })
 
     const node = modelStore.getNode('Root')!

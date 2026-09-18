@@ -29,11 +29,11 @@ describe('edit-attribution commit hook (R16)', () => {
     const modelStore = useModelStore()
     modelStore.setGraph({ Root: makeNode('Root') }, ['Root'])
 
-    commitFieldValue(modelStore, 'Root', 'summary', 'Edited value', { kind: 'user', id: 'lucas' })
+    commitFieldValue(modelStore, 'Root', 'summary', 'Edited value', { kind: 'user', id: 'user-1' })
 
     const node = modelStore.getNode('Root')!
     expect(node.fields.summary.value).toBe('Edited value')
-    expect(node.fields.summary.editAttribution.author).toEqual({ kind: 'user', id: 'lucas' })
+    expect(node.fields.summary.editAttribution.author).toEqual({ kind: 'user', id: 'user-1' })
     expect(node.fields.summary.editAttribution.timestamp).toBeTruthy()
   })
 
@@ -41,7 +41,7 @@ describe('edit-attribution commit hook (R16)', () => {
     const modelStore = useModelStore()
     modelStore.setGraph({ Root: makeNode('Root') }, ['Root'])
 
-    commitFieldValue(modelStore, 'Root', 'summary', 'Edited value', { kind: 'user', id: 'lucas' })
+    commitFieldValue(modelStore, 'Root', 'summary', 'Edited value', { kind: 'user', id: 'user-1' })
 
     expect(modelStore.isDirty('Root')).toBe(true)
   })
@@ -70,7 +70,7 @@ describe('edit-attribution commit hook (R16)', () => {
 
     const modelStore = useModelStore()
     modelStore.setGraph({ Root: makeNode('Root') }, ['Root'])
-    commitFieldValue(modelStore, 'Root', 'summary', 'v1', { kind: 'user', id: 'lucas' })
+    commitFieldValue(modelStore, 'Root', 'summary', 'v1', { kind: 'user', id: 'user-1' })
 
     const node = modelStore.getNode('Root')!
     expect(node.fields.summary.editAttribution.timestamp).toBe('2025-06-01T12:00:00.000Z')

@@ -5,6 +5,7 @@ import {
   extractHeadings,
   resolveHeadingSection,
   splitSourceFieldValue,
+  levenshteinDistance,
   SOURCE_FIELD_NAMES,
 } from './sourceRef.js'
 
@@ -105,13 +106,58 @@ describe('splitSourceFieldValue', () => {
     ])
   })
 
-  it('treats a bare scalar as a one-element list', () => {
+  it('handles bracketed list with quoted item containing commas', () => {
+    expect(
+      splitSourceFieldValue('["report, final (2026).md#intro", "notes.md#overview"]'),
+    ).toEqual(['report, final (2026).md#intro', 'notes.md#overview'])
+  })
+
+  it('handles array input with quoted strings', () => {
+    expect(splitSourceFieldValue(['"nested/data, part 1.md#sec"', 'notes.md'])).toEqual([
+      'nested/data, part 1.md#sec',
+      'notes.md',
+    ])
+  })
+
+  it('handles single-quoted list items', () => {
+    expect(
+      splitSourceFieldValue("['report, final (2026).md#intro', 'notes.md#overview']"),
+    ).toEqual(['report, final (2026).md#intro', 'notes.md#overview'])
+  })
+
+  it('handles escaped commas in unquoted list items', () => {
+    expect(
+      splitSourceFieldValue('[quarterly\\, report.md#summary, annex.md#data]'),
+    ).toEqual(['quarterly, report.md#summary', 'annex.md#data'])
+  })
+
+  it('handles mixed quotes and escaped characters', () => {
+    expect(
+      splitSourceFieldValue('["item1\\, with quotes.md", item2\\, unquoted.md]'),
+    ).toEqual(['item1, with quotes.md', 'item2, unquoted.md'])
+  })
+
+  it('treats a bare scalar as a one-element list and unquotes/unescapes if needed', () => {
     expect(splitSourceFieldValue('report.md#q3')).toEqual(['report.md#q3'])
+    expect(splitSourceFieldValue('"report, final.md#q3"')).toEqual(['report, final.md#q3'])
+    expect(splitSourceFieldValue('quarterly\\, report.md#q3')).toEqual(['quarterly, report.md#q3'])
   })
 
   it('returns [] for empty input', () => {
     expect(splitSourceFieldValue('')).toEqual([])
     expect(splitSourceFieldValue([])).toEqual([])
+    expect(splitSourceFieldValue(null)).toEqual([])
+    expect(splitSourceFieldValue(undefined)).toEqual([])
+  })
+})
+
+describe('levenshteinDistance', () => {
+  it('computes edit distance accurately (case-insensitive)', () => {
+    expect(levenshteinDistance('kitten', 'sitting')).toBe(3)
+    expect(levenshteinDistance('annual_repots.md', 'annual_reports.md')).toBe(1)
+    expect(levenshteinDistance('SAME', 'same')).toBe(0)
+    expect(levenshteinDistance('', 'abc')).toBe(3)
+    expect(levenshteinDistance('abc', '')).toBe(3)
   })
 })
 

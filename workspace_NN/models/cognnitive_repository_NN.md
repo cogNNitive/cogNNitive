@@ -1,4 +1,4 @@
-﻿---
+---
 level: 3
 parent_spec:
   name: " repository\
@@ -53,5 +53,5 @@ commit_hash:: \HEAD\
 type:: feat
 scope:: \workspace\
 impact:: major
-author:: \Lucas\
+author:: \cogNNitive\
 description:: \Extend workspace metamodel with Specs Templates Skills and Tools establishing full self-hosted dogfooding.\

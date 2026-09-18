@@ -16,4 +16,25 @@ describe('uiStore.selectNode', () => {
     expect(uiStore.selectedNodeId).toBe('Ghostbusters/Root/Element')
     expect(uiStore.showValidationReport).toBe(false)
   })
+
+  it('resets activeView to editor when activeView is ai-guide', () => {
+    const uiStore = useUiStore()
+    uiStore.setActiveView('ai-guide')
+    expect(uiStore.activeView).toBe('ai-guide')
+
+    uiStore.selectNode('Ghostbusters/Root/Element')
+
+    expect(uiStore.selectedNodeId).toBe('Ghostbusters/Root/Element')
+    expect(uiStore.activeView).toBe('editor')
+  })
+
+  it('preserves activeView when activeView is already editor', () => {
+    const uiStore = useUiStore()
+    uiStore.setActiveView('editor')
+
+    uiStore.selectNode('Ghostbusters/Root/Element')
+
+    expect(uiStore.selectedNodeId).toBe('Ghostbusters/Root/Element')
+    expect(uiStore.activeView).toBe('editor')
+  })
 })

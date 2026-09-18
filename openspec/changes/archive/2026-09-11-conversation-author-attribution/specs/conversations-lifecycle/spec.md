@@ -45,15 +45,15 @@ Promoted files in `sources/conversations/` MUST include frontmatter linking them
 #### Scenario: Author names are suggested, confirmed, and resolved into turn headings
 
 - GIVEN a finalized transcript whose first turn is the human's and whose second turn is the agent's
-- WHEN the user selects `[full]` and the naming step suggests `Lucas` (from `git config user.name`) and `OpenCode` (the agent's tool id), and the user confirms both unedited
-- THEN the generated `_source.md` renders `## NN Turn 01: Lucas` and `## NN Turn 02: OpenCode`
-- AND each heading is unique and addressable via the `@` pointer grammar, citeable as `sources:: [conversations/<session-slug>_source.md@## NN Turn 01: Lucas]`
+- WHEN the user selects `[full]` and the naming step suggests `Architect` (from `git config user.name`) and `OpenCode` (the agent's tool id), and the user confirms both unedited
+- THEN the generated `_source.md` renders `## NN Turn 01: Architect` and `## NN Turn 02: OpenCode`
+- AND each heading is unique and addressable via the `@` pointer grammar, citeable as `sources:: [conversations/<session-slug>_source.md@## NN Turn 01: Architect]`
 
 #### Scenario: User edits a suggested author name
 
-- GIVEN the naming step suggested `Lucas` for the human participant
-- WHEN the user edits the suggestion to `Mercedes` and confirms
-- THEN the human turns render as `## NN Turn NN: Mercedes` in the promoted file
+- GIVEN the naming step suggested `Architect` for the human participant
+- WHEN the user edits the suggestion to `Domain Expert` and confirms
+- THEN the human turns render as `## NN Turn NN: Domain Expert` in the promoted file
 
 #### Scenario: User declines to name a participant
 

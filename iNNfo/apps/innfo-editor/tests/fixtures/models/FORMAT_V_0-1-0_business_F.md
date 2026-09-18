@@ -1247,7 +1247,7 @@ Cuanto más adopta la gente FORMAT para distintas necesidades (estrategia, proce
 | Founder / Full-Stack | - | - | - | - | - |
 | Cloud Backend Engineer | - | - | - | - | - |
 | Marketing & Community | - | - | - | - | - |
-| Lucas Cervera | - | - | - | - | - |
+| Lead Maintainer | - | - | - | - | - |
 | Engine gratuito genera adopción orgánica suficiente | - | - | - | - | - |
 | 2-3% de usuarios Business se convierten a Cloud | - | - | - | - | - |
 | 4-5% de usuarios Procedures se convierten a Cloud | - | - | - | - | - |

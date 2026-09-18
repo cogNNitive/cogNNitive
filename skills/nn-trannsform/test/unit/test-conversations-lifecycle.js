@@ -298,9 +298,9 @@ async function run() {
       }
     };
     assertEqual(
-      turn(1, "Lucas"),
-      "## NN Turn 01: Lucas",
-      "resolveTurnHeading(1, Lucas) pads the number to 01",
+      turn(1, "Architect"),
+      "## NN Turn 01: Architect",
+      "resolveTurnHeading(1, Architect) pads the number to 01",
     );
     assertEqual(
       turn(10, "OpenCode"),
@@ -318,9 +318,9 @@ async function run() {
       "resolveTurnHeading(2, whitespace) falls back to unnamed",
     );
     assertEqual(
-      turn(0, "Lucas"),
-      "## NN Turn 01: Lucas",
-      "resolveTurnHeading(0, Lucas) clamps sub-1 sequences to 01",
+      turn(0, "Architect"),
+      "## NN Turn 01: Architect",
+      "resolveTurnHeading(0, Architect) clamps sub-1 sequences to 01",
     );
     assertEqual(
       turn(100, "X"),
@@ -341,12 +341,12 @@ async function run() {
       "--- Test 6b2: turn-heading slug parity under the vendored slug mirror ---",
     );
     const markdownUtils = require("../../scripts/markdown-utils");
-    const turnHeading = "NN Turn 01: Lucas";
+    const turnHeading = "NN Turn 01: Architect";
     const parts = markdownUtils.headingSlugParts(turnHeading);
     assertEqual(
       parts.slug,
-      "nn-turn-01--lucas",
-      "headingSlugParts(NN Turn 01: Lucas) exposes the -- boundary slug",
+      "nn-turn-01--architect",
+      "headingSlugParts(NN Turn 01: Architect) exposes the -- boundary slug",
     );
     assertEqual(
       parts.concept,
@@ -355,20 +355,20 @@ async function run() {
     );
     assertEqual(
       parts.element,
-      "Lucas",
+      "Architect",
       "headingSlugParts keeps the Element (author) side of the -- boundary",
     );
     assertEqual(
       markdownUtils.slugifyUnitHeading(2, turnHeading).slug,
-      "nn-turn-01--lucas",
-      "the @## NN Turn 01: Lucas pointer resolves to slug nn-turn-01--lucas",
+      "nn-turn-01--architect",
+      "the @## NN Turn 01: Architect pointer resolves to slug nn-turn-01--architect",
     );
 
     console.log(
       "--- Test 6c: Turn-structured fullText Promotion Verbatim + [none] unchanged ---",
     );
     const turnStructuredBody = [
-      "## NN Turn 01: Lucas",
+      "## NN Turn 01: Architect",
       "Human turn content: clarify the budget field.",
       "",
       "## NN Turn 02: OpenCode",
@@ -395,7 +395,7 @@ async function run() {
     );
     const turnSourceContent = fs.readFileSync(turnSourcePath, "utf8");
     assertTrue(
-      turnSourceContent.includes("## NN Turn 01: Lucas"),
+      turnSourceContent.includes("## NN Turn 01: Architect"),
       "turn heading 01 written verbatim",
     );
     assertTrue(

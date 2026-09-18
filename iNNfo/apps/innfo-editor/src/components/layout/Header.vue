@@ -383,16 +383,16 @@
       </div>
 
       <!-- Use AI Button — opens unified modal -->
-
       <button
-        @click="uiStore.setActiveView('ai-guide')"
-        class="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold ring-1 ring-inset transition-all cursor-pointer bg-white dark:bg-slate-800 text-purple-600 dark:text-purple-400 ring-purple-300 dark:ring-purple-700/50 hover:bg-purple-50 dark:hover:bg-purple-950/30"
+        @click="uiStore.setActiveView(uiStore.activeView === 'ai-guide' ? 'editor' : 'ai-guide')"
+        class="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold ring-1 ring-inset transition-all cursor-pointer"
         :class="
           uiStore.activeView === 'ai-guide'
-            ? 'bg-purple-50 dark:bg-purple-950/30 ring-purple-400 dark:ring-purple-600'
-            : ''
+            ? 'bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 ring-purple-500 shadow-xs'
+            : 'bg-white dark:bg-slate-800 text-purple-600 dark:text-purple-400 ring-purple-300 dark:ring-purple-700/50 hover:bg-purple-50 dark:hover:bg-purple-950/30'
         "
-        title="Use AI to edit models"
+        :title="uiStore.activeView === 'ai-guide' ? 'Exit AI Guide and return to Editor' : 'Use AI to edit models'"
+        data-testid="header-use-ai-button"
       >
         <Sparkles class="w-3.5 h-3.5" />
         <span>Use AI</span>

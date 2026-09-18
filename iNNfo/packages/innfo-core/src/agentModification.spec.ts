@@ -146,11 +146,11 @@ describe('buildAgentModificationBlock', () => {
     const b = buildAgentModificationBlock(
       'add_concept',
       { conceptName: 'Risks' },
-      { ...CTX, author: 'Lucas' },
+      { ...CTX, author: 'Architect' },
     )!
     expect(a).not.toBe(b)
     expect(a).toContain('author:: OpenCode')
-    expect(b).toContain('author:: Lucas')
+    expect(b).toContain('author:: Architect')
     // scope/change ARE identical — only the author attribution differs.
     const scopeOf = (s: string) => fields(s).find(([k]) => k === 'scope')![1]
     const changeOf = (s: string) => fields(s).find(([k]) => k === 'change')![1]

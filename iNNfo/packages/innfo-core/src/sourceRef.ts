@@ -122,34 +122,129 @@ function basename(p: string): string {
   return p.split(/[/\\]/).pop() || p
 }
 
+function cleanSourceItem(v: unknown): string {
+  if (v === undefined || v === null) return ''
+  let s = String(v).trim()
+  if (
+    (s.startsWith('"') && s.endsWith('"') && s.length >= 2) ||
+    (s.startsWith("'") && s.endsWith("'") && s.length >= 2)
+  ) {
+    s = s.slice(1, -1).trim()
+  }
+  return s.replace(/\\,/g, ',').trim()
+}
+
+function parseBracketedSourceList(inner: string): string[] {
+  const tokens: string[] = []
+  let cur = ''
+  let inQuote: '"' | "'" | null = null
+  let escaped = false
+
+  for (let i = 0; i < inner.length; i++) {
+    const ch = inner[i]
+    if (escaped) {
+      if (ch === ',') {
+        cur += ','
+      } else if (ch === inQuote) {
+        cur += ch
+      } else if (ch === '\\') {
+        cur += '\\'
+      } else {
+        cur += '\\' + ch
+      }
+      escaped = false
+      continue
+    }
+
+    if (ch === '\\') {
+      escaped = true
+      continue
+    }
+
+    if (inQuote) {
+      if (ch === inQuote) {
+        inQuote = null
+      } else {
+        cur += ch
+      }
+      continue
+    }
+
+    if (ch === '"' || ch === "'") {
+      inQuote = ch
+      continue
+    }
+
+    if (ch === ',') {
+      const cleaned = cleanSourceItem(cur)
+      if (cleaned) tokens.push(cleaned)
+      cur = ''
+      continue
+    }
+
+    cur += ch
+  }
+
+  if (escaped) {
+    cur += '\\'
+  }
+
+  const cleaned = cleanSourceItem(cur)
+  if (cleaned) tokens.push(cleaned)
+  return tokens
+}
+
 /**
  * Normalise a `sources`/`source` field value into the list of raw reference
  * strings it holds. Handles the three forms a Citation field takes:
  * - an already-split array (`["a.md#x", "b.md#y"]`);
  * - the bracketed-list string the unified `key:: [a, b]` syntax produces when
- *   the field is untyped (`"[a.md#x, b.md#y]"`);
+ *   the field is untyped (`"[a.md#x, b.md#y]"`), with support for single/double
+ *   quotes and escaped commas (`\,`);
  * - a single scalar (`"a.md#x"`).
  * Empty / whitespace-only entries are dropped.
  */
 export function splitSourceFieldValue(value: unknown): string[] {
-  const out: string[] = []
-  const push = (v: unknown) => {
-    if (v === undefined || v === null) return
-    const s = String(v).trim()
-    if (s) out.push(s)
-  }
   if (Array.isArray(value)) {
-    for (const v of value) push(v)
+    const out: string[] = []
+    for (const v of value) {
+      const cleaned = cleanSourceItem(v)
+      if (cleaned) out.push(cleaned)
+    }
     return out
   }
   const s = typeof value === 'string' ? value.trim() : String(value ?? '').trim()
+  if (!s) return []
   const bracketed = s.match(/^\[(.*)\]$/s)
   if (bracketed) {
-    for (const part of bracketed[1].split(',')) push(part)
-    return out
+    return parseBracketedSourceList(bracketed[1])
   }
-  push(s)
-  return out
+  const cleaned = cleanSourceItem(s)
+  return cleaned ? [cleaned] : []
+}
+
+/**
+ * Compute the Levenshtein edit distance between two strings (case-insensitive).
+ */
+export function levenshteinDistance(a: string, b: string): number {
+  const an = a.length
+  const bn = b.length
+  if (an === 0) return bn
+  if (bn === 0) return an
+  const matrix = Array.from({ length: bn + 1 }, () => new Array(an + 1).fill(0))
+  for (let i = 0; i <= an; i++) matrix[0][i] = i
+  for (let j = 0; j <= bn; j++) matrix[j][0] = j
+  for (let j = 1; j <= bn; j++) {
+    for (let i = 1; i <= an; i++) {
+      const cost = a[i - 1].toLowerCase() === b[j - 1].toLowerCase() ? 0 : 1
+      matrix[j][i] = Math.min(
+        matrix[j - 1][i] + 1,
+        matrix[j][i - 1] + 1,
+        matrix[j - 1][i - 1] + cost,
+      )
+    }
+  }
+  return matrix[bn][an]
 }
 
 /**

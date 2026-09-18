@@ -22,7 +22,7 @@ This skill is maintainer-only. It is **not** distributed: it is not under `actio
 and it is not registered in `manifest/source.yaml`. It is a sibling of `nn-dev-release`
 and `nn-template-audit`.
 
-Scope: all operations limited to `D:\Users\lucas\Documents\GitHub\cogNNitive`.
+Scope: all operations limited to the cogNNitive repository root (`cogNNitive`).
 
 ---
 
@@ -435,4 +435,4 @@ One consolidated report. Per group, per check, a line:
 8. **Every deterministic check cites its expediente** — if a new recurring incident shows
    up (via engram or the maintainer), extend the catalog in this file; don't add
    history-less checks silently.
-9. **Monorepo scope** — `D:\Users\lucas\Documents\GitHub\cogNNitive` only.
+9. **Monorepo scope** — cogNNitive repository root only.

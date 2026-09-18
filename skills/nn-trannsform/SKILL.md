@@ -314,8 +314,8 @@ Interaction dialogues are first-class source streams. The transcript lifecycle f
    ```
    📋 Author naming (before promoting to sources/conversations/):
    Who is the human participant?
-     [a] (Recommended) Lucas    (from git config user.name)
-     [b] lucas                  (from $env:USERNAME / OS user)
+     [a] (Recommended) Architect (from git config user.name)
+     [b] architect               (from $env:USERNAME / OS user)
      [c] enter a name manually
      [x] leave unnamed
    > a
@@ -325,7 +325,7 @@ Interaction dialogues are first-class source streams. The transcript lifecycle f
    ```
 
    A participant the user declines to name (or skips) renders the deterministic placeholder `unnamed`; promotion still completes — a missing name never blocks or aborts the `_source.md` write.
-6. **Scanner Normalization**: Promoted transcripts link to their origin (`origin_transcript: conversations/...`), render each turn under a `## NN Turn NN: <author-id>` heading (1-based, 2-digit zero-padded: `## NN Turn 01: Lucas`, …, `## NN Turn 100: X`), and are normalized into `sources/nn/conversations/` with `conversation_format: "full"` and `is_synthetic: false`. The sequential number makes every turn heading unique and addressable under the workspace heading-slug rules. Downstream models cite these sources using `sources:: [conversations/<file>.md#<anchor>]` for plain headings and the `@` pointer grammar for turn headings: `sources:: [conversations/<session-slug>_source.md@## NN Turn 01: Lucas]`. The `#` fragment form MUST NOT be used for `## NN …: …` headings — the Concept/Element boundary in their slug contains `--`, which `parseSourceRef` rejects (`KU_MALFORMED`). Turn headings carry no `author::` key: embedded modification blocks self-describe as they travel across turns.
+6. **Scanner Normalization**: Promoted transcripts link to their origin (`origin_transcript: conversations/...`), render each turn under a `## NN Turn NN: <author-id>` heading (1-based, 2-digit zero-padded: `## NN Turn 01: Architect`, …, `## NN Turn 100: X`), and are normalized into `sources/nn/conversations/` with `conversation_format: "full"` and `is_synthetic: false`. The sequential number makes every turn heading unique and addressable under the workspace heading-slug rules. Downstream models cite these sources using `sources:: [conversations/<file>.md#<anchor>]` for plain headings and the `@` pointer grammar for turn headings: `sources:: [conversations/<session-slug>_source.md@## NN Turn 01: Architect]`. The `#` fragment form MUST NOT be used for `## NN …: …` headings — the Concept/Element boundary in their slug contains `--`, which `parseSourceRef` rejects (`KU_MALFORMED`). Turn headings carry no `author::` key: embedded modification blocks self-describe as they travel across turns.
 7. **CLI Promotion**:
    ```bash
    node scripts/index.js --promote-conv "conversations/YYYY-MM-DD_<slug>.md" --format full
@@ -369,7 +369,7 @@ Which route do you prefer for PDF?
 When the agent model cannot read a binary directly (pdf/docx/xlsx) and a full ingestion is not needed, extract the text without running a scan:
 
 ```
-node C:\Users\lucas\.agents\skills\nn-trannsform\scripts\extract.js "<file>"
+node scripts/extract.js "<file>"
 ```
 
 Prints only the extracted plain text to stdout (no frontmatter, no heading noise). The format is detected from the file extension (or forced with `--format pdf|docx|xlsx|doc|txt|md|csv|json|html`). The script lives inside the skill folder, so `pdf-parse`/`mammoth`/`xlsx` resolve against the skill's own `node_modules` — no `NODE_PATH` needed.

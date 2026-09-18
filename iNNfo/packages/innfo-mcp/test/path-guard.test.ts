@@ -95,7 +95,7 @@ describe('toLocalFilePath containment', () => {
 
   it('refuses an absolute path outside the root', () => {
     expect(toLocalFilePath('/etc/passwd', root)).toBeNull()
-    expect(toLocalFilePath('C:\\Users\\lucas\\.ssh\\id_rsa', root)).toBeNull()
+    expect(toLocalFilePath('C:\\Users\\mock-user\\.ssh\\id_rsa', root)).toBeNull()
   })
 
   it('refuses a UNC path outright (NTLM hash leak on Windows)', () => {

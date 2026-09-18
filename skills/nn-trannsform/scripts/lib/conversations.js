@@ -217,7 +217,7 @@ function padTurn(seq) {
 /**
  * Render the canonical turn heading for a promoted transcript:
  * `## NN Turn <NN>: <author-id>`. 1-based, 2-digit zero-padded numbering keeps
- * heading slugs (`nn-turn-01--lucas`) aligned with turn order. An unnamed
+ * heading slugs (`nn-turn-01--author`) aligned with turn order. An unnamed
  * participant (missing/blank) renders the deterministic `unnamed` placeholder
  * so the `_source.md` write never blocks on naming.
  */

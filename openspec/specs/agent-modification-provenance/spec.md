@@ -33,7 +33,7 @@ Every Agent Modification block MUST be shaped so that, pasted verbatim under a `
 - `model_version::` — the model version in effect after the mutation; when the executed op is `bump_version`, the block MUST record the version transition, including both the previous and the resulting version (exact key layout finalized in design).
 - `timestamp::` — ISO 8601 timestamp captured when the block is generated.
 
-The synthetic-vs-human author distinction is enforced by convention, not schema: agent ids are tool names (e.g. `OpenCode`, `Antigravity`, `ClaudeCode`) and human ids are participant names (e.g. `Lucas`). No structured author envelope and no machine-readable participants registry are required.
+The synthetic-vs-human author distinction is enforced by convention, not schema: agent ids are tool names (e.g. `OpenCode`, `Antigravity`, `ClaudeCode`) and human ids are participant names (e.g. `Architect`). No structured author envelope and no machine-readable participants registry are required.
 
 (Previously: the block had no `author::` key; only `approved_by::` recorded authorization.)
 
@@ -66,7 +66,7 @@ The synthetic-vs-human author distinction is enforced by convention, not schema:
 - AND the block also records `approved_by:: user`, keeping the two keys distinct and coexisting
 
 #### Scenario: Author is caller-supplied, not derived from the op
-- GIVEN the same `(op, args)` pair invoked twice, once with `author: "OpenCode"` and once with `author: "Lucas"`
+- GIVEN the same `(op, args)` pair invoked twice, once with `author: "OpenCode"` and once with `author: "Architect"`
 - WHEN the builder runs both times
 - THEN the two blocks differ in their `author::` line
 - AND their `scope::` and `change::` are identical (only `timestamp::` and `author::` may differ)
