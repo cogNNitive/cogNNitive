@@ -156,3 +156,4 @@ export { loadBaseline, fingerprint, diffNewOnly, normalizeBaselinePath } from '.
 export type { ValidationBaseline, BaselineEntry, BaselineDiff } from './validator/baseline.js'
 export { deriveMatrixWidgetType, normalizeMatrixDecl, scaleRangeFor } from './matrix.js'
 export type { MatrixWidgetType } from './matrix.js'
+export { mergeModels } from './merge.js'

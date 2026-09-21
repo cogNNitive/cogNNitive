@@ -6,7 +6,7 @@ import {
   formatVersionString,
 } from '../utils/version'
 import { buildSpecificationUrl } from '../utils/constants'
-import { parseFrontmatter } from '@cognnitive/innfo-core'
+import { parseFrontmatter, parseModel, serializeModel, mergeModels } from '@cognnitive/innfo-core'
 import { reconcileWorkspaceManifest } from './WorkspaceSyncService'
 import type { DirectoryHandleLike, FileHandleLike } from '../model/fs-types'
 import type { BumpLevel } from '../utils/version'
@@ -227,10 +227,30 @@ export async function saveActiveFile(
       if (report.nodeId.startsWith('spec:')) continue
       const node = modelStore.getNode(report.nodeId)
       if (node && node.rawContent !== undefined) {
+        let contentToWrite = node.rawContent
+
+        // Collision detection & Semantic AST auto-merge with disk
+        const existingHandle = await resolveFileHandleForRead(handle, report.path)
+        if (existingHandle) {
+          try {
+            const diskFile = await existingHandle.getFile()
+            const diskText = await diskFile.text()
+            if (diskText && diskText.trim() !== contentToWrite.trim()) {
+              const diskParsed = parseModel(diskText)
+              const memoryParsed = parseModel(contentToWrite)
+              const merged = mergeModels(diskParsed, memoryParsed)
+              contentToWrite = serializeModel(merged)
+              node.rawContent = contentToWrite
+            }
+          } catch (err) {
+            console.warn('[save] Could not perform disk pre-merge:', err)
+          }
+        }
+
         const fileHandle = await resolveFileHandleForWrite(handle, report.path)
         if (fileHandle.createWritable) {
           const w = await fileHandle.createWritable()
-          await w.write(node.rawContent)
+          await w.write(contentToWrite)
           await w.close()
         }
       }

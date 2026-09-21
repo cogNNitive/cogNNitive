@@ -204,6 +204,21 @@ function serializeNodeContent(
 
     collectElements(node.id)
 
+    if (childElements.length === 0) {
+      const allNodes = nodes ? Object.values(nodes) : Object.values(modelStore.nodes)
+      for (const n of allNodes as ModelNode[]) {
+        if (
+          n &&
+          n.kind === 'element' &&
+          (n.source?.path === node.source?.path ||
+            n.id.startsWith(node.id + '/') ||
+            modelStore.getModelRootForNode(n.id) === node.id)
+        ) {
+          childElements.push(n)
+        }
+      }
+    }
+
     if (childElements.length > 0) {
       const elementsMap = new ElementsMap()
       for (const child of childElements) {
@@ -229,29 +244,14 @@ function serializeNodeContent(
       }
       parsed.elements = elementsMap
 
-      // Synchronize hierarchy taxonomy
-      const elementNames = new Set(childElements.map((c) => c.name))
-      const conceptEdges = parsed.taxonomy.filter((edge) => !elementNames.has(edge.child))
-
-      const elementEdges: Array<{ parent: string; child: string }> = []
-      for (const child of childElements) {
-        let parentName = ''
-        if (child.parentId) {
-          if (child.parentId.startsWith('virtual:')) {
-            const parts = child.parentId.split(':')
-            parentName = parts[2] || ''
-          } else {
-            const parentNode = modelStore.getNode(child.parentId)
-            if (parentNode && parentNode.kind === 'element') {
-              parentName = parentNode.name
-            } else {
-              parentName = child.type || ''
-            }
-          }
-        }
-        elementEdges.push({ parent: parentName, child: child.name })
+      // Synchronize hierarchy taxonomy (Level 2 templates only; Level 3 models do not emit an index)
+      const isLevel3 = parsed.frontmatter?.level === 3 || parsed.frontmatter?.level === '3'
+      if (isLevel3) {
+        parsed.taxonomy = []
+      } else {
+        const elementNames = new Set(childElements.map((c) => c.name))
+        parsed.taxonomy = parsed.taxonomy.filter((edge) => !elementNames.has(edge.child))
       }
-      parsed.taxonomy = [...conceptEdges, ...elementEdges]
 
       // Synchronize item node markers
       const nodeMarkers: Record<string, Record<string, number | string>> = {}

@@ -302,22 +302,47 @@ function addElement(
     }
   }
 
-  // H3a: `sources` is a reserved field, propagated alongside `fields` (same
-  // "reserved field written on the element" mechanism `updateField` uses for
-  // an existing element). Omitting it changes nothing — no `sources::` field
-  // is written, exactly as before this fix.
-  const fields: Record<string, unknown> = { ...(args.fields as Record<string, unknown> | undefined) }
+  // Support both nested args.fields and root-level fields passed in args
+  const reservedArgsKeys = new Set([
+    'conceptName',
+    'elementName',
+    'description',
+    'fields',
+    'sources',
+    'rationale',
+    'approved_by',
+    'author',
+    'recovered_after',
+    'timestamp',
+    'scope',
+    'change',
+  ])
+  const fields: Record<string, unknown> = {}
+  for (const [k, v] of Object.entries(args)) {
+    if (!reservedArgsKeys.has(k) && v !== undefined) {
+      fields[k] = v
+    }
+  }
+  if (args.fields && typeof args.fields === 'object') {
+    Object.assign(fields, args.fields)
+  }
   if (args.sources !== undefined) {
     fields['sources'] = args.sources
   }
 
   const existingElements = model.elements.get(conceptName) ?? []
+  if (existingElements.length > 0) {
+    const prevLast = existingElements[existingElements.length - 1]
+    prevLast.trailingBlankLine = true
+  }
+
   const newElement: ElementNode = {
     type: conceptName,
     name: elementName,
     description: (args.description as string) ?? '',
     fields,
     markers: {},
+    trailingBlankLine: true,
   }
   existingElements.push(newElement)
   model.elements.set(conceptName, existingElements)
