@@ -11,3 +11,7 @@ It runs the concurrency scan against the shared working tree and enforces the
 branch-first consent gate before any repo write. Do not skip it, even for
 read-only or "quick" work — it also detects concurrent agents holding the tree.
 <!-- /gentle-ai:session-start-skill -->
+
+`.atl/skill-registry.md` is machine-generated and untracked (each machine
+regenerates it with different absolute paths). If it is missing locally, run
+`gentle-ai skill-registry refresh --force` to regenerate it.
