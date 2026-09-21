@@ -45,23 +45,26 @@ one-line workflow comment stating the step is detection, not pre-merge preventio
 ADR-004, delta spec scenario "The workflow does not claim pre-merge prevention"). Does not
 touch: `scripts/verify.js`, the existing `--release`-gated `main` step, any other CI job.
 
-- [ ] Add the `dev`-conditioned step to `.github/workflows/ci.yml`, positioned after the
+- [x] Add the `dev`-conditioned step to `.github/workflows/ci.yml`, positioned after the
       existing `main`-only stable-manifest step, calling the identical script/channel
       argument (`node scripts/manifest/validate-manifest.js --channel stable`).
-- [ ] Set `continue-on-error: true` on the new step so job conclusion stays green while the
+- [x] Set `continue-on-error: true` on the new step so job conclusion stays green while the
       step itself renders red with an annotation when it fails (design ADR-004 — this is the
       chosen semantics, not a placeholder to tighten later).
-- [ ] Add the one-line workflow comment stating the check evaluates state already merged to
+- [x] Add the one-line workflow comment stating the check evaluates state already merged to
       `main`, not an unmerged PR's prospective effect (delta spec scenario, design §2 ADR-004
       "Why non-blocking is the correct semantics").
-- [ ] Confirm no change to `scripts/verify.js` and no widening of the existing `--release`
+- [x] Confirm no change to `scripts/verify.js` and no widening of the existing `--release`
       condition at `ci.yml:47` (design §8, cut items 4-5).
-- [ ] Manual falsification (design §6, row 1 — no automated test, by design): push to `dev`
+- [~] Manual falsification (design §6, row 1 — no automated test, by design): push to `dev`
       and confirm the step appears, executes `validate-manifest.js --channel stable`, and
       passes given the currently-coherent pin state (`OK: [stable] 8 skills, 15 templates, 1
       mcp bundles, 1 console assets validated`, confirmed this session). Record the run URL
-      in the commit body.
-- [ ] Commit: `feat(ci): surface stable-manifest coherence on dev pushes` (or equivalent
+      in the commit body. **Partially done**: local dry-run of the exact command executed and
+      passed this session (see commit `ca1d267` body and `apply-progress.md`); the actual
+      push-triggered `dev` Actions run was not performed in this batch (see apply-progress
+      Deviations) — run URL still pending on the next real push to `dev`.
+- [x] Commit: `feat(ci): surface stable-manifest coherence on dev pushes` (or equivalent
       Conventional Commit), staged with `git add .github/workflows/ci.yml` only.
 
 **Verification.** `npm run verify` unaffected locally (no `--release`, this step doesn't run
