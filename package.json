@@ -20,6 +20,7 @@
     "typecheck": "npm --workspace=@cognnitive/innfo-core run build && npm --workspace=@cognnitive/innfo-mcp run typecheck && npm --workspace=@cognnitive/innfo-editor run typecheck",
     "test": "npm --workspace=@cognnitive/innfo-core test && npm --workspace=@cognnitive/innfo-mcp test && npm --workspace=@cognnitive/innfo-editor test",
     "test:coverage": "npm --workspace=@cognnitive/innfo-core run test:coverage && npm --workspace=@cognnitive/innfo-mcp run test:coverage && npm --workspace=@cognnitive/innfo-editor run test:coverage",
+    "test:e2e": "npm --workspace=@cognnitive/innfo-editor run test:e2e",
     "verify": "npm run typecheck && npm test",
     "check:integrity": "node scripts/check-integrity.js",
     "sync:samples": "node scripts/sync-samples.mjs",

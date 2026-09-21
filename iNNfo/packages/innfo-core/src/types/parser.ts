@@ -179,6 +179,9 @@ export interface SpecFrontmatter {
   relationship_types?: RelationshipTypeDef[]
   relationship_declarations?: Partial<Record<RelationshipType, RelationshipDecl>>
   model_version?: string
+  mode?: string
+  template?: string | Record<string, unknown>
+  last_saved?: string
   last_updated?: string
   [key: string]: unknown
 }

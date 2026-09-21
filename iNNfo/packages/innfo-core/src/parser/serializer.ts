@@ -181,8 +181,8 @@ export function serializeModel(model: ParsedModel): string {
       lines.push('parent_spec:')
       lines.push(`  name: "${fm.parent_spec.name}"`)
       lines.push(`  url: "${fm.parent_spec.url}"`)
-    } else if ((fm as any).parent !== undefined) {
-      const val = (fm as any).parent
+    } else if (fm.parent !== undefined) {
+      const val = fm.parent
       if (typeof val === 'string') {
         lines.push(`parent: "${val}"`)
       } else {
@@ -192,18 +192,18 @@ export function serializeModel(model: ParsedModel): string {
     if (fm.model_version) lines.push(`model_version: "${fm.model_version}"`)
     if (fm.title) lines.push(`title: "${fm.title}"`)
     if (fm.mode) lines.push(`mode: "${fm.mode}"`)
-    if ((fm as any).template !== undefined) {
-      const val = (fm as any).template
+    if (fm.template !== undefined) {
+      const val = fm.template
       lines.push(yamlStringify({ template: val }).trim())
     }
     // `parent` is already emitted above, in the `else if` paired with
     // `parent_spec`. A second unconditional emit here produced a duplicate
     // `parent:` key (invalid YAML) whenever the frontmatter carried `parent`.
-    if ((fm as any).last_saved !== undefined) {
-      lines.push(`last_saved: "${(fm as any).last_saved}"`)
+    if (fm.last_saved !== undefined) {
+      lines.push(`last_saved: "${fm.last_saved}"`)
     }
-    if ((fm as any).last_updated !== undefined) {
-      lines.push(`last_updated: "${(fm as any).last_updated}"`)
+    if (fm.last_updated !== undefined) {
+      lines.push(`last_updated: "${fm.last_updated}"`)
     }
 
     // Matrix declarations

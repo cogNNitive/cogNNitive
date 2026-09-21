@@ -10,6 +10,7 @@ export default defineConfig({
     __INNFO_MCP_VERSION__: JSON.stringify(pkg.version),
   },
   test: {
+    clearMocks: true,
     pool: 'forks',
     poolOptions: {
       forks: {
