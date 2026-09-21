@@ -1,0 +1,26 @@
+#!/bin/sh
+# pre-push: block the push if the repo does not typecheck.
+#
+# Runs `npm run typecheck` (root, all 3 workspaces, includes the innfo-core
+# build) — the cheapest command that catches the class of defect that caused
+# incident 2c11ecf (a vue-tsc TS2367 dead comparison). Deliberately NOT
+# `npm run verify` (typecheck + full test suite, ~90s+ for the editor alone):
+# a hook that takes minutes trains people to reach for --no-verify as a
+# habit, which disarms every future hook. See design.md ADR-001.
+#
+# ponytail: this hook ignores stdin, so it also runs on tag pushes and ref
+# deletions (a release cuts up to four tags). Upgrade path: read $remote_ref
+# from stdin and skip pushes whose ref is not refs/heads/*. Not shipped —
+# ship it when tag-push friction is actually reported, not before.
+
+npm run typecheck
+status=$?
+
+if [ "$status" -ne 0 ]; then
+  echo ""
+  echo "pre-push: typecheck failed (exit $status). Push blocked."
+  echo "pre-push: fix the errors above, or bypass with: git push --no-verify"
+  exit "$status"
+fi
+
+exit 0

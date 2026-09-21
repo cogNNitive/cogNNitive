@@ -54,3 +54,11 @@ If you are an AI Agent (Claude Code, Antigravity, OpenCode, Cursor):
 3. **Fail-Fast:** No silent fallbacks. Unmatched schemas and drifted source citations fail deterministically.
 4. **Local-First:** Local workspace specifications take precedence over remote references.
 5. **On-Demand Dependencies:** Skills declare dependencies declaratively; agent environments install them on-demand without bloating the core repository.
+
+### Pre-push hook
+
+`npm install` at the repo root wires a native `pre-push` hook via
+`core.hooksPath` (`.githooks/pre-push`, no husky/lint-staged). It runs
+`npm run typecheck` before every `git push` and blocks the push on a
+non-zero exit. Bypass with `git push --no-verify`. Uninstall with
+`git config --unset core.hooksPath`.

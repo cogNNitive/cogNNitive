@@ -10,6 +10,7 @@
     "node": ">=20.15"
   },
   "scripts": {
+    "prepare": "git config core.hooksPath .githooks",
     "build:docs": "node scripts/build-docs.mjs",
     "typecheck:scripts": "tsc --noEmit -p tsconfig.scripts.json",
     "lint": "eslint iNNfo/ scripts/",
