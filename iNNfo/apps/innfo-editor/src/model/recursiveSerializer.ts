@@ -245,7 +245,7 @@ function serializeNodeContent(
       parsed.elements = elementsMap
 
       // Synchronize hierarchy taxonomy (Level 2 templates only; Level 3 models do not emit an index)
-      const isLevel3 = parsed.frontmatter?.level === 3 || parsed.frontmatter?.level === '3'
+      const isLevel3 = parsed.frontmatter?.level === 3
       if (isLevel3) {
         parsed.taxonomy = []
       } else {
