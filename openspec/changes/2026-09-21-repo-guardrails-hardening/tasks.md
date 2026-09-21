@@ -157,7 +157,7 @@ implemented as written.**
 
 ### Strict TDD — RED first (design §6 "Slice 3 — the TDD cycle")
 
-- [ ] **RED**, `iNNfo/packages/innfo-core/tests/parser-standard.test.ts` — add, in one
+- [x] **RED**, `iNNfo/packages/innfo-core/tests/parser-standard.test.ts` — add, in one
       commit-worthy batch, before any implementation change:
   1. `level: "2"` → `parseFrontmatter(...).level` is the number `2`. *(must fail today —
      confirms the bug exists.)*
@@ -167,41 +167,41 @@ implemented as written.**
   4. `level: ""` → unchanged `""`, **not** coerced to `0`.
   5. `level: "2.5"` → unchanged string `"2.5"`.
   6. no `level` key → `'level' in fm` is `false`.
-- [ ] **RED (second file)**, `skills/nn-preflight/scripts/preflight-check.test.js` — add a
+- [x] **RED (second file)**, `skills/nn-preflight/scripts/preflight-check.test.js` — add a
       case asserting a `level: 1` file is skipped by the template walk. Run it **before** the
       ADR-007 deletion and confirm it is already green (this pre-existing green is the proof
       the numeric deletion below is genuinely dead code, not an assumption).
-- [ ] Run both suites, confirm the exact RED/GREEN split above (test 1 fails, tests 2-6 and
+- [x] Run both suites, confirm the exact RED/GREEN split above (test 1 fails, tests 2-6 and
       the preflight case pass) before writing any implementation.
 
 ### GREEN
 
-- [ ] Add `normalizeLevel` to `iNNfo/packages/innfo-core/src/parser/yaml.ts`'s `NORMALIZERS`
+- [x] Add `normalizeLevel` to `iNNfo/packages/innfo-core/src/parser/yaml.ts`'s `NORMALIZERS`
       array (appended last — order-independent, no other normalizer reads/writes `level`,
       design §4). Contract (design ADR-005, binding):
       - string, trims, `Number.isInteger(Number(trimmed))` → coerce to `Number(trimmed)`.
       - empty/whitespace-only string → left unmodified (do NOT let `Number('')` produce `0`).
       - non-string, non-coercible-string, or absent → left unmodified. Never throws, never
         deletes the key, never substitutes a default.
-- [ ] Apply ADR-006 to `iNNfo/packages/innfo-core/src/recursiveParser/model.ts:53`: replace
+- [x] Apply ADR-006 to `iNNfo/packages/innfo-core/src/recursiveParser/model.ts:53`: replace
       `const hasLevel = typeof fm.level === 'number'` with
       `const hasLevel = fm.level !== undefined` (presence check, not type check — the OR'd
       heuristic answers "does this file have iNNfo frontmatter", not "is level well-typed").
-- [ ] Apply the corrected ADR-007 edit to `skills/nn-preflight/scripts/preflight-check.js`:
+- [x] Apply the corrected ADR-007 edit to `skills/nn-preflight/scripts/preflight-check.js`:
       delete only `fm.level === 1 ||` and `fm.level === 2 ||` at lines 546-547, keep
       `fm.level === '1'` / `fm.level === '2'` intact.
-- [ ] Confirm all six `parser-standard.test.ts` cases and the preflight case are green.
+- [x] Confirm all six `parser-standard.test.ts` cases and the preflight case are green.
 
 ### REFACTOR / regression surface
 
-- [ ] Run `npm run verify`, with specific attention to:
+- [x] Run `npm run verify`, with specific attention to:
       - `tests/roundtrip-fidelity.test.ts` (corpus byte-fidelity — ADR-005 claims coercion
         cannot alter serialized output for any existing file; this is the standing guard).
       - `tests/recursive-parser.test.ts` (ADR-006 — behaviour delta only for a `level` that
         is neither number nor integer string, zero corpus instances).
       - `node scripts/verify.js`'s preflight step (ADR-007 — `preflight-check.test.js` runs
         inside `verify.js`, confirmed at `scripts/verify.js:163`).
-- [ ] Commit as ONE work unit (test + code + the corrected preflight deletion travel
+- [x] Commit as ONE work unit (test + code + the corrected preflight deletion travel
       together — do not split RED into a separate commit from GREEN, per work-unit-commits
       discipline: a commit that only adds tests for code landing later is prohibited):
       `fix(parser): normalize level to number at frontmatter boundary` (or equivalent),
