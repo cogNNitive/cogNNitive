@@ -33,6 +33,7 @@ description:: Final approval
 
     const reviewNode = Object.values(nodes).find((n) => n.name === 'Review')
     expect(reviewNode).toBeDefined()
+    expect(reviewNode!.relationships).toHaveLength(1)
     expect(reviewNode!.relationships.every((r) => r.origin === 'matrix')).toBe(true)
     const approveRel = reviewNode!.relationships.find((r) => r.label === 'Dependencies' && r.value === 'blocks')
     expect(approveRel).toEqual({
@@ -41,6 +42,10 @@ description:: Final approval
       value: 'blocks',
       origin: 'matrix',
     })
+
+    const approveNode = Object.values(nodes).find((n) => n.name === 'Approve')
+    expect(approveNode).toBeDefined()
+    expect(approveNode!.relationships).toHaveLength(0)
   })
 
   it('R3: derives field edges from reference fields and inline wikilinks', () => {

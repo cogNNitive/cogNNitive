@@ -243,6 +243,8 @@ export function normalizeElementsIntoGraph(
   }
   for (const matrix of parsed.matrices) {
     for (const cell of matrix.cells) {
+      const valStr = String(cell.value ?? '').trim()
+      if (!valStr || valStr === '-' || valStr === '—' || valStr === 'false') continue
       const sourceId = resolveMatrixEndpoint(cell.row, matrix.name, 'row')
       const targetId = resolveMatrixEndpoint(cell.col, matrix.name, 'col')
       if (sourceId && targetId && ctx.nodes[sourceId]) {
