@@ -372,25 +372,33 @@ When the maintainer says the accumulated changes on `dev` are ready:
    - If `template-catalog` reports `catalog.json` is stale, run `node scripts/template-catalog.mjs` to regenerate it cleanly.
    - If MCP or workspace parity reports drift, resolve it before pushing.
    - Ensure the working tree is clean and `git push origin dev` succeeds.
-2. **Deterministic Fast-Forward merge (`dev → main`)**:
+2. **Server-side fast-forward merge (`dev → main`) — supersedes the
+   checkout-based dance:**
    ```powershell
    # Ensure local dev is pushed
    git push origin dev
 
-   # Switch to main and sync
-   git switch main
-   git pull origin main
+   # Server-side fast-forward: never checks out main, so the dirty
+   # working tree (this repo's normal state) is left completely untouched
+   git push origin dev:main
 
-   # Fast-forward merge dev batch into main
-   git merge --ff-only dev
-
-   # Push to origin/main (triggers CI and GitHub Pages deployment)
-   git push origin main
-
-   # Return to dev and verify 1:1 sync (divergence 0 0)
-   git switch dev
+   # Verify 1:1 sync (divergence 0 0) — still from the dev checkout
    git rev-list --left-right --count origin/main...dev
    ```
+   The previously documented `switch main → pull → merge --ff-only → push →
+   switch dev` sequence is **superseded** by `git push origin dev:main` — its
+   first step (`git switch main`) requires a clean tree, which this repo's
+   tree routinely is not (`concurrent-sessions-share-working-tree.md`).
+   `dev:main` is a fast-forward push: if a sibling agent advanced `main`
+   independently, the server rejects it non-destructively (no partial state,
+   nothing to recover) — the same safety `--ff-only` provided, enforced
+   server-side. Recovery on rejection is `git fetch origin && git merge
+   origin/main` on `dev`, still with no checkout of `main`. If tags are
+   being cut afterward (step 3 below), tag immediately after this push,
+   before any further commit on `dev` — see `nn-dev-release`'s "Safe merge
+   technique" section for the full tag-order constraint and the stated
+   limitation (branch protection on `main`, not enabled today). This
+   technique adds no new hook, script, or working-tree inspection.
 3. **Release tagging (when releasing a version bump)**:
    - Run `nn-dev-release` when version tags, manifest re-pinning, or distribution bundles are being published.
    - The release path runs `node scripts/verify.js --release`, adding the live stable-manifest check once tags exist.

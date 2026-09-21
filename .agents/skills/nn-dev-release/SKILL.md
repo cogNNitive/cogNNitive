@@ -237,6 +237,58 @@ Present a consolidated summary table with:
 
 ---
 
+### Safe merge technique: `git push origin dev:main` (supersedes the checkout-based dance)
+
+**Status: recommended technique.** Wherever this file (or `nn-dev-development`
+§4e) previously instructed `switch main → pull → merge --ff-only → push →
+switch dev`, use `git push origin dev:main` instead:
+
+```powershell
+git push origin dev:main
+```
+
+- It is a **server-side fast-forward push**: it never checks out `main`
+  locally, so it never requires a clean working tree.
+- The repo's tree is routinely dirty with a concurrent session's uncommitted,
+  unrelated paths (`concurrent-sessions-share-working-tree.md`); the
+  checkout-based dance's first step (`git switch main`) is unsafe or
+  outright blocked in that state. `dev:main` leaves those foreign paths
+  completely untouched because no checkout occurs.
+- The old `switch main → pull → merge --ff-only → push → switch dev` sequence
+  is **superseded** by this technique — do not present both as equally
+  valid.
+
+**Two constraints, both mandatory:**
+
+1. **Tag immediately after the `dev:main` push, before any further commit on
+   `dev`.** If `dev` has advanced since the push, tag the exact merged
+   commit explicitly instead of `dev`'s current tip:
+   `git tag <name> $(git rev-parse origin/main)`. Otherwise the tag lands on
+   a `dev`-only commit and `validate-manifest.js` rejects the diverged tip
+   (the same failure mode Option [c] step 0 already warns about, reached by
+   a new route).
+2. **`main` must be an ancestor of `dev`.** `git push origin dev:main` is a
+   fast-forward push; if a sibling agent advanced `main` independently, the
+   server rejects it non-destructively (no partial state, nothing to
+   recover). Recovery is `git fetch origin && git merge origin/main` **on
+   `dev`** — still no checkout of `main`.
+
+**Tag/pin compatibility.** Every other release step (version bumps, manifest
+regeneration, tagging, pinning) is unaffected and still runs from a `dev`
+checkout; the only step this technique changes is the `main` merge + push in
+step 4/7 of Option [c] above. No step in the release flow requires a real
+checkout of `main`.
+
+**Stated limitation.** If branch protection requiring PRs or status checks
+is ever enabled on `main`, `git push origin dev:main` will be rejected. Not
+enabled today (direct pushes to `main` are the documented flow), but recorded
+here so the failure is legible if it ever occurs.
+
+This technique introduces no new hook, script, or working-tree inspection —
+it is a documentation change only.
+
+---
+
 ### Option [d]: Validar publicación del Manifest
 
 Run `node scripts/manifest/validate-manifest.js` with `$env:GITHUB_TOKEN = (gh auth token).Trim()` and report validation status for both `stable` and `preview` channels.
