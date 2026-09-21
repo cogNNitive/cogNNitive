@@ -233,23 +233,23 @@ scenario's implementation step corrected** per design §9 item 3 / ADR-008.
   verified below — only its implied implementation step is dropped.
 - This shrinks the slice to two operations: a git index removal and one doc line.
 
-- [ ] `git rm --cached .atl/skill-registry.md`. Confirm the file remains on disk, byte-for-
+- [x] `git rm --cached .atl/skill-registry.md`. Confirm the file remains on disk, byte-for-
       byte unchanged (`git rm --cached` never touches the working-tree copy).
-- [ ] Add one line to `AGENTS.md` (not a new document — it already carries the
+- [x] Add one line to `AGENTS.md` (not a new document — it already carries the
       `<!-- gentle-ai:session-start-skill -->` block and is the file delegating agents read
       at session start) giving the regeneration command
       (`gentle-ai skill-registry refresh --force`, already self-documented at
       `.atl/skill-registry.md:3` for the case where the file already exists — the AGENTS.md
       line exists for the fresh-clone case where it doesn't).
-- [ ] Confirm no change to `.gitignore`, the skill-resolution protocol (engram primary, local
+- [x] Confirm no change to `.gitignore`, the skill-resolution protocol (engram primary, local
       file fallback), or the registry's own content/contract (design §4 "Untracked").
-- [ ] Manual falsification (design §6, row 4 — no automated test, one-shot git index
+- [x] Manual falsification (design §6, row 4 — no automated test, one-shot git index
       operation, nothing to unit-test):
-  - [ ] `git ls-files .atl/` returns empty.
-  - [ ] `Test-Path .atl/skill-registry.md` (or `test -f`) returns true — file still present
+  - [x] `git ls-files .atl/` returns empty.
+  - [x] `Test-Path .atl/skill-registry.md` (or `test -f`) returns true — file still present
         on disk.
-  - [ ] The path is absent from `git status` output after the commit.
-- [ ] Commit: `chore(git): untrack machine-generated skill registry`, staged with
+  - [x] The path is absent from `git status` output after the commit.
+- [x] Commit: `chore(git): untrack machine-generated skill registry`, staged with
       `git add AGENTS.md` plus the `git rm --cached` above (both are part of the same commit
       — the index removal itself stages the path; do not additionally `git add
       .atl/skill-registry.md`).
@@ -274,13 +274,13 @@ compatibility stated, no new hazard-detection mechanism).
 `.agents/skills/nn-dev-development/SKILL.md` only. No code, no new document, no hook, no
 tree-inspection script (design non-goal, confirmed §8).
 
-- [ ] In `.agents/skills/nn-dev-release/SKILL.md`, replace or mark-superseded the
+- [x] In `.agents/skills/nn-dev-release/SKILL.md`, replace or mark-superseded the
       `switch main → pull → merge --ff-only → push → switch dev` dance with
       `git push origin dev:main` as the documented technique, stating explicitly:
       - it is a server-side fast-forward push and never checks out `main` locally;
       - the dirty working tree (this repo's normal state) is left untouched because no
         checkout occurs.
-- [ ] Add the two ADR-009 constraints verbatim, not as an aside:
+- [x] Add the two ADR-009 constraints verbatim, not as an aside:
       1. **Tag immediately after the `dev:main` push, before any further commit on `dev`.**
          If `dev` has advanced, tag the exact merged commit explicitly:
          `git tag <name> $(git rev-parse origin/main)`. Otherwise the tag lands on a
@@ -290,20 +290,24 @@ tree-inspection script (design non-goal, confirmed §8).
          rejects it non-destructively (no partial state). Recovery is
          `git fetch origin && git merge origin/main` **on `dev`** — still no checkout of
          `main`.
-- [ ] State the limitation: if branch protection requiring PRs/status checks is ever enabled
+- [x] State the limitation: if branch protection requiring PRs/status checks is ever enabled
       on `main`, `dev:main` is rejected; not enabled today, but recorded so the failure is
       legible if it ever occurs (design ADR-009).
-- [ ] Mirror the same technique + constraints in
+- [x] Mirror the same technique + constraints in
       `.agents/skills/nn-dev-development/SKILL.md` §4e (the existing single-branch-workflow
       section), so the two skill files do not disagree.
-- [ ] Explicitly do NOT add: any new skill file, any hook or script classifying
+- [x] Explicitly do NOT add: any new skill file, any hook or script classifying
       working-tree paths as foreign/stale, or any resolution of the concurrent session's
       in-flight OpenSpec archive move (design non-goals, §8 — "not ours to touch").
-- [ ] Manual falsification (design §6, row 5 — documentation-only, no automated test): a
+- [x] Manual falsification (design §6, row 5 — documentation-only, no automated test): a
       reviewer executes `git push origin dev:main` on the next real batch and confirms the
       documented behavior (tree untouched, no checkout, fast-forward semantics, tag-order
-      constraint holds).
-- [ ] Commit: `docs(release): document dev:main fast-forward as the safe merge technique`,
+      constraint holds). **Not performed this batch** — no push to `origin/main` was made
+      (out of this apply run's boundary, that push is the maintainer's call); the
+      documentation is verified for internal consistency (both skill files state the same
+      technique and constraints) but the real-execution falsification is still pending on
+      the next actual `dev → main` batch.
+- [x] Commit: `docs(release): document dev:main fast-forward as the safe merge technique`,
       staged with
       `git add .agents/skills/nn-dev-release/SKILL.md .agents/skills/nn-dev-development/SKILL.md`
       only.

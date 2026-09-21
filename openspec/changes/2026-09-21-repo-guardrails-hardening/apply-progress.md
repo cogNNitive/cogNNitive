@@ -285,12 +285,18 @@ See Deviations item 3 (critical incident). No other issues.
 ### Status (superseded by Slice 3 below)
 
 2/5 slices complete (Slices 1-2 done, both pushed to `origin/dev`). Slice 2's
-own scope is fully implemented, falsified, and committed. **A maintainer
-must review and resolve the foreign-path incident (Deviations item 3) before
-any further `sdd-apply` batch touches this working tree** — the concurrent
-session's in-flight archive move and two file edits need to be redone or
-otherwise recovered by whoever owns that work; this session cannot safely
-guess their intended state.
+own scope is fully implemented, falsified, and committed.
+
+**RESOLVED** (recorded here during the Slices 4-5 batch, see that section's
+opening note for the full resolution): the foreign-path incident described in
+Deviations item 3 above is no longer open. The two modified files
+(`iNNfo/specs/templates/procedures/spec_NN.md`,
+`workspace_NN/procedures/procedures_NN.md`) were recovered from the dangling
+stash `b6e3b8d`, and the 12 in-flight archive-move deletions were re-applied
+after verifying all 12 archive copies byte-identical
+(`compared=12 differing=0`). The working tree is back at its exact pre-incident
+baseline (`13 ??`, `56 D`, `2 M`), confirmed stable across Slices 3, 4, and 5.
+No further action is needed from a maintainer on this specific incident.
 
 ## Slice 3 — `normalize-frontmatter-level` (F4) — DONE
 
@@ -418,7 +424,184 @@ capture) held under the RED→GREEN cycle and the full `npm run verify` +
 
 3/5 slices complete (Slices 1-3 done, all pushed to `origin/dev`). Slice 3's
 own scope is fully implemented, tested (full RED→GREEN), and committed. The
-Slice 2 foreign-path incident (Deviations item 3 under Slice 2) remains
-unresolved and out of this change's scope — the same maintainer note from
-the previous batch still applies. Slices 4-5 (`untrack-skill-registry`,
-`safe-ff-merge-technique`) remain to be applied in a future batch.
+Slice 2 foreign-path incident (Deviations item 3 under Slice 2) is now
+**resolved** — see the updated note under Slice 2's Status section above.
+Slices 4-5 (`untrack-skill-registry`, `safe-ff-merge-technique`) remain to be
+applied in a future batch.
+
+## Slice 4 — `untrack-skill-registry` (F3) — DONE
+
+### Note on the Slice 2 foreign-path incident
+
+This batch began with the working tree at `13 ??`, `56 D`, `2 M` — the
+resolved, pre-incident baseline (see the resolution note added to Slice 2's
+Status section above). No tree-wide git operation was run in this batch;
+only the single named pathspec (`.atl/skill-registry.md`) was removed from
+the index.
+
+### Completed Tasks
+
+- [x] `git rm --cached .atl/skill-registry.md` — file removed from the index,
+      confirmed still present on disk, byte-for-byte unchanged (`git rm
+      --cached` never touches the working-tree copy).
+- [x] Added one line to `AGENTS.md` (not a new document) giving the
+      regeneration command `gentle-ai skill-registry refresh --force` for the
+      fresh-clone case.
+- [x] Confirmed no change to `.gitignore` (ADR-008 — `.atl/` was already
+      present at line 62, so no gitignore edit ships), the skill-resolution
+      protocol, or the registry's own content.
+- [x] Manual falsification — all three checks passed (see below).
+- [x] Commit: `chore(git): untrack machine-generated skill registry`
+      (`ca8bcab`), staged with `git add AGENTS.md` plus the `git rm --cached`
+      operation — no wildcard staging.
+
+### Manual Falsification — Result (design §6 row 4)
+
+1. `git ls-files .atl/` → empty output. **PASS.**
+2. `test -f .atl/skill-registry.md` → true, file present on disk. **PASS.**
+3. `git status --porcelain .atl/` after the commit → no output (path absent
+   from status). **PASS.**
+
+### Files Changed
+
+| File | Action | What Was Done |
+|------|--------|---------------|
+| `.atl/skill-registry.md` | Untracked (`git rm --cached`) | Removed from git's index; unchanged on disk. |
+| `AGENTS.md` | Modified | Added a line after the `nn-dev-development` session-start block documenting the file is machine-generated/untracked and the `gentle-ai skill-registry refresh --force` regeneration command for a fresh clone. |
+
+### TDD Cycle Evidence
+
+Not applicable — one-shot git index operation, no logic to test (design §6
+row 4, tasks.md explicit).
+
+### Deviations from Design
+
+None.
+
+### Issues Found
+
+None. ADR-008's factual claim (`.gitignore:62` already contains `.atl/`) was
+re-verified before editing (`grep -n "\.atl" .gitignore` showed the existing
+line); no `.gitignore` edit was made, matching the amended slice scope.
+
+### Foreign Working-Tree Paths (integrity check)
+
+- Before this batch: `13 ??`, `56 D`, `2 M`.
+- After staging (`.atl/skill-registry.md` index removal + `AGENTS.md`):
+  `13 ??`, `57 D`, `3 M` — the +1 D is the slice's own index removal, the
+  +1 M is `AGENTS.md`; foreign counts unchanged.
+- After commit (`ca8bcab`): `13 ??`, `56 D`, `2 M` — back to the exact
+  pre-batch foreign baseline.
+
+## Slice 5 — `safe-ff-merge-technique` (F5 residue) — DONE
+
+### Completed Tasks
+
+- [x] `.agents/skills/nn-dev-release/SKILL.md`: added a "Safe merge
+      technique" section documenting `git push origin dev:main` as the
+      server-side fast-forward that supersedes the checkout-based
+      `switch main → pull → merge --ff-only → push → switch dev` dance,
+      stating explicitly it never checks out `main` and leaves the routinely
+      dirty tree untouched.
+- [x] Added both ADR-009 constraints verbatim: (1) tag immediately after the
+      `dev:main` push, with the explicit `git tag <name> $(git rev-parse
+      origin/main)` form for the case `dev` has advanced; (2) `main` must be
+      an ancestor of `dev` — the server rejects non-fast-forward pushes
+      non-destructively, recovery is `git fetch origin && git merge
+      origin/main` on `dev`.
+- [x] Stated the branch-protection limitation (not enabled today).
+- [x] Mirrored the technique + both constraints in
+      `.agents/skills/nn-dev-development/SKILL.md` §4e's existing merge
+      step, replacing the `switch main` sequence there too so the two files
+      do not disagree.
+- [x] Confirmed no new skill file, hook, or tree-inspection script was added
+      — `git diff --cached --stat` shows only the two `SKILL.md` files
+      touched.
+- [~] Manual falsification (design §6 row 5) — **partially done**. Internal
+      consistency confirmed: both skill files document the identical
+      `git push origin dev:main` technique and the identical two
+      constraints (`grep -n "dev:main"` across both files shows matching
+      content, no disagreement). The real-execution falsification (a
+      reviewer running `git push origin dev:main` against `origin/main` and
+      confirming the documented behavior end-to-end) was **not** performed
+      in this batch — pushing to `origin/main` was explicitly out of this
+      apply run's boundary (the launch instructions permit `git push origin
+      dev`, not `dev:main`; merging to `main` is the maintainer's call).
+      Pending on the next real `dev → main` batch.
+- [x] Commit: `docs(release): document dev:main fast-forward as the safe
+      merge technique` (`178d95b`), staged with
+      `git add .agents/skills/nn-dev-release/SKILL.md
+      .agents/skills/nn-dev-development/SKILL.md` only.
+
+### Files Changed
+
+| File | Action | What Was Done |
+|------|--------|---------------|
+| `.agents/skills/nn-dev-release/SKILL.md` | Modified | Added a "Safe merge technique" section (52 lines) before Option [d], documenting `git push origin dev:main`, both ADR-009 constraints, tag/pin compatibility, and the branch-protection limitation. |
+| `.agents/skills/nn-dev-development/SKILL.md` | Modified | Replaced the `switch main → pull → merge --ff-only → push → switch dev` block in §4e's "Batched merge orchestration" step 2 with `git push origin dev:main`, cross-referencing `nn-dev-release`'s fuller constraint text. |
+
+### TDD Cycle Evidence
+
+Not applicable — documentation-only, no testable logic (design §6 row 5).
+
+### Deviations from Design
+
+None in content. The real-execution falsification step is incomplete for
+the reason stated above (out of this batch's push boundary), recorded
+honestly rather than claimed as done.
+
+### Issues Found
+
+None.
+
+### Foreign Working-Tree Paths (integrity check)
+
+- Before this batch (continuing from Slice 4's post-commit state): `13 ??`,
+  `56 D`, `2 M`.
+- After staging both `SKILL.md` files: `13 ??`, `56 D`, `4 M` — the +2 M are
+  exactly this slice's own two modified files; foreign counts unchanged.
+- After commit (`178d95b`): `13 ??`, `56 D`, `2 M` — back to the exact
+  pre-batch foreign baseline.
+- After `git push origin dev` (pre-push hook ran `npm run typecheck` clean,
+  no `--no-verify` needed; push carried both Slice 4's and Slice 5's
+  commits, `0d999c8..178d95b dev -> dev`): tree unchanged, same `13 ??`,
+  `56 D`, `2 M`.
+
+### Full Verification Run (this batch)
+
+- `npm run verify`: **PASS** — 106 test files passed, 1 skipped (107 total);
+  698 tests passed, 2 skipped (700 total). Duration 30.84s.
+- `node scripts/verify.js`: **PASS**, exit code 0 — includes the Preflight
+  Workspace Freshness step (`preflight-check.test.js`, 4 tests passing,
+  covering the Slice 3 `level: 1`/`level: 2` cases), the Template
+  Immutability Guard, the Template Inventory Guard, the Stable Manifest Doc
+  Freshness check, and the Text Encoding Guard (1656 files, all valid UTF-8).
+  Final line: `✅ [cogNNitive Verify] All deterministic pre-checks passed.`
+
+### Commits Landed This Batch
+
+6. `ca8bcab` — `chore(git): untrack machine-generated skill registry`
+7. `178d95b` — `docs(release): document dev:main fast-forward as the safe merge technique`
+
+Both pushed to `origin/dev` in one push: `0d999c8..178d95b dev -> dev`.
+
+### Status
+
+5/5 slices complete. All slices (`ci-stable-manifest-on-dev`,
+`native-pre-push-hook`, `normalize-frontmatter-level`,
+`untrack-skill-registry`, `safe-ff-merge-technique`) are implemented,
+verified per their design-specified method (automated RED→GREEN for Slice 3,
+named manual falsification for Slices 1/2/4/5), committed as independent
+work-unit commits on `dev`, and pushed to `origin/dev`. The change
+`2026-09-21-repo-guardrails-hardening` is fully applied.
+
+Two items remain for a maintainer, not for `sdd-apply`:
+
+1. Slice 1's push-triggered GitHub Actions run URL on `dev` (the step now
+   exists and has been exercised by subsequent pushes in this batch series;
+   capturing the specific run URL was never re-attempted after Slice 1).
+2. Slice 5's real-execution falsification — running `git push origin
+   dev:main` against `origin/main` — is the maintainer's call per this
+   batch's explicit push boundary (`git push origin dev` was permitted,
+   `dev:main` was not). The technique is documented and internally
+   consistent; only the live end-to-end confirmation is pending.
