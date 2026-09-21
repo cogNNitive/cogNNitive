@@ -136,11 +136,6 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
             description:
               'Optional intent class for this call (coach, surgical, verify, or match); omit for current behavior (no-op default)',
           },
-          override_intent: {
-            type: 'string',
-            description:
-              'Manual intent override; takes precedence over intent when present (same values)',
-          },
         },
         required: ['id'],
       },
@@ -238,11 +233,6 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
             type: 'string',
             description:
               'Optional intent class for this call (coach, surgical, verify, or match); omit for current behavior (no-op default)',
-          },
-          override_intent: {
-            type: 'string',
-            description:
-              'Manual intent override; takes precedence over intent when present (same values)',
           },
         },
       },
@@ -471,11 +461,6 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
             type: 'string',
             description:
               'Optional intent class for this call (coach, surgical, verify, or match); omit for current behavior (no-op default)',
-          },
-          override_intent: {
-            type: 'string',
-            description:
-              'Manual intent override; takes precedence over intent when present (same values)',
           },
         },
         required: ['query'],
