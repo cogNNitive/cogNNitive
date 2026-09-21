@@ -24,16 +24,21 @@ const RULES = [
       'To revert one file you authored use `git checkout HEAD -- <explicit/path>`.',
   },
   {
+    // `-n` / `--dry-run` only reports what would be removed.
     pattern: /git\s+clean/,
+    unless: /(^|\s)(-[a-zA-Z]*n[a-zA-Z]*|--dry-run)(\s|$)/,
     reason:
       'git clean deletes untracked files across the tree, including another session\'s in-progress work. ' +
-      'Delete the specific paths you created instead.',
+      'Delete the specific paths you created instead, or pass --dry-run to inspect.',
   },
   {
+    // `list` and `show` are read-only; everything else moves the tree.
     pattern: /git\s+stash/,
+    unless: /git\s+stash\s+(list|show)(\s|$)/,
     reason:
       'git stash sweeps up every uncommitted change in the tree, not just yours. ' +
-      'To get a clean tree for a build or a check, use `git worktree add --detach <tmp> <sha>` instead.',
+      'To get a clean tree for a build or a check, use `git worktree add --detach <tmp> <sha>` instead. ' +
+      '`git stash list` and `git stash show` are allowed.',
   },
   {
     pattern: /git\s+branch\s+-D/,
@@ -82,8 +87,8 @@ process.stdin.on('end', () => {
     process.exit(0);
   }
 
-  for (const { pattern, reason } of RULES) {
-    if (pattern.test(command)) {
+  for (const { pattern, unless, reason } of RULES) {
+    if (pattern.test(command) && !(unless && unless.test(command))) {
       process.stderr.write(`BLOCKED: ${command}\n\n${reason}\n`);
       process.exit(2);
     }

@@ -52,6 +52,12 @@ const mustAllow = [
   `${G} worktree add --detach /tmp/x abc`,
   `${G} rm --cached .atl/skill-registry.md`,
   `${G} restore --staged src/foo.ts`,
+  // Read-only escapes: these inspect without moving the tree.
+  `${G} stash list`,
+  `${G} stash show -p`,
+  `${G} clean -n`,
+  `${G} clean --dry-run`,
+  `${G} clean -nd`,
 ];
 
 let failures = 0;
