@@ -5,7 +5,7 @@ level: 2
 parent_spec:
   name: "iNNfo_V_0-2-1"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-2-1_NN.md"
-template_version: "V_0-2-1"
+template_version: "V_0-2-2"
 title: "Procedures App"
 relationship_types:
   hierarchy:
@@ -222,3 +222,125 @@ outputs_expected:: [[Artifact Name]]
 executed_by:: Lead Engineer
 procedure_model:: procedures/workflow_NN.md
 ```
+
+# Concept Guidance Documentation
+
+## Procedure
+
+### Summary
+Catalog entry declaring procedure metadata, functional categorization, input requirements, expected outputs, execution owner, and linked submodels.
+
+### Description
+A Procedure is a high-level operational workflow catalog item. It encapsulates standard operating procedures (SOPs), repeatable transformation routines, verification pipelines, or governance checklists. Each procedure captures its functional domain through `category` (ingestion, transformation, audit, reporting, custom), defines operational prerequisites via `inputs_required`, specifies tangible outcomes in `outputs_expected`, assigns responsibility with `executed_by`, and optionally links to a granular execution model through `procedure_model`.
+
+### Methodologies
+**Standard Operating Procedure (SOP) Framework**
+Defines standard procedural sequences to ensure consistency, regulatory compliance, and operational repeatability across technical and business workflows.
+
+**ITIL Service Transition & Operational Procedures**
+Aligns operational routines with lifecycle management, change governance, and quality verification gates.
+
+**BPMN Workflow Modeling**
+Structures procedure categorization and I/O contracts into clean business process models for human and automated agents.
+
+### Prompts
+`Define a structured procedure catalog entry for our verification gate.`
+`Specify the required inputs and expected deliverables for the release workflow.`
+`Categorize all workspace procedures and map their execution owners.`
+`Link high-level catalog procedures to executable FSM submodels.`
+
+---
+
+## Work
+
+### Summary
+Hierarchical execution tree defining end-to-end workflows, stages, decision nodes, and granular action steps.
+
+### Description
+Work represents the structural execution elements of a procedure. Root elements (where `parent` is omitted) represent top-level procedures or workflows, while child elements (where `parent` references a parent Work item) represent sequential steps, decision gates, or sub-tasks. Each work element defines its operational character through `step_type` (task, decision, event), establishes execution ordering via `next` and `condition`, links consumed inputs and produced outputs via `input` and `output`, and associates execution tooling via `tool`.
+
+### Methodologies
+**Hierarchical Task Analysis (HTA)**
+Decomposes complex operational processes into a hierarchy of sub-goals, tasks, and sequential steps.
+
+**Finite State Machine (FSM) Execution**
+Models procedure progression as discrete states transitioning based on evaluated conditions, events, and task completion.
+
+**Value Stream Mapping (VSM)**
+Visualizes sequential work steps to identify bottlenecks, redundant handoffs, and optimization opportunities.
+
+### Prompts
+`Decompose this multi-step procedure into structured Work steps.`
+`Define conditional branches and decision gates for the workflow.`
+`Link input and output artifacts to each granular work step.`
+`Construct an end-to-end step sequence using next and parent references.`
+
+---
+
+## Artifact
+
+### Summary
+Tangible deliverables, structured models, reports, or data assets consumed and produced by procedural work steps.
+
+### Description
+Artifact represents any physical or digital deliverable produced or required during procedure execution. Artifacts serve as inputs to subsequent work steps or represent the final terminal deliverables of a workflow. In execution models, artifacts are linked to Work steps via `input` and `output` fields and mapped against tasks through the `work-artifacts matrix` (Creates, Modifies, Validates, Reviews).
+
+### Methodologies
+**Deliverable-Oriented Planning**
+Focuses workflow design on concrete, verifiable outputs rather than open-ended activities.
+
+**Artifact Lifecycle Management**
+Tracks the state transitions of artifacts (draft, in-review, approved, published, archived) across procedural milestones.
+
+**Configuration Management (CM)**
+Ensures all procedural inputs and outputs maintain traceable versions and baseline integrity.
+
+### Prompts
+`Identify all artifacts produced and consumed by this operational workflow.`
+`Map procedural deliverables against RACI roles and validation steps.`
+`Define artifact quality criteria and expected output formats.`
+
+---
+
+## Tools
+
+### Summary
+Software platforms, CLI utilities, AI agents, or physical instruments used by roles to execute work steps.
+
+### Description
+Tools defines the operational instruments, automation scripts, compilers, editors, or external platforms employed during the execution of procedural steps. Tools are referenced directly in Work steps via `tool` and mapped across tasks in the `work-tools matrix` to ensure capability readiness and toolchain compatibility.
+
+### Methodologies
+**Toolchain Integration Matrix**
+Maps operational requirements to software tooling and execution automation capabilities.
+
+**Capability-Based Tooling Assessment**
+Evaluates tool suitability, integration contracts, and automation maturity for workflow execution.
+
+### Prompts
+`Catalog the tools and scripts required for each step in this procedure.`
+`Map tool dependencies across our automated and manual workflows.`
+`Identify opportunities to automate manual steps with dedicated CLI tools.`
+
+---
+
+## Roles
+
+### Summary
+Functional roles, actors, or automated agents responsible for executing, reviewing, or overseeing procedural tasks.
+
+### Description
+Roles defines the organizational positions, actor profiles, or automated agent types participating in procedure execution. Each role specifies its organizational boundary through `scope` (internal, external) and is mapped against work steps in the `work-roles matrix` using standard RACI values (Responsible, Accountable, Consulted, Informed).
+
+### Methodologies
+**RACI Governance Framework**
+Clarifies organizational responsibility and decision rights across procedural steps.
+
+**Role-Based Access & Execution (RBAC)**
+Aligns procedural execution permissions and accountability with functional roles.
+
+### Prompts
+`Define the RACI assignments for each step in this workflow.`
+`Identify internal and external roles required for procedure governance.`
+`Clarify accountability and approval gates for critical workflow decisions.`
+

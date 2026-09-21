@@ -41,7 +41,7 @@ export const SHIPPED_TEMPLATE_VERSIONS: Record<string, string> = {
   innovation: 'V_0-2-1',
   metrics: 'V_0-2-1',
   organization: 'V_0-2-2',
-  procedures: 'V_0-2-1',
+  procedures: 'V_0-2-2',
   projects: 'V_0-2-1',
   repository: 'V_0-1-1',
   sources: 'V_0-1-0',
