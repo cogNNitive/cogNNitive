@@ -165,4 +165,63 @@ describe('ConsoleHubView — Open External (F-16)', () => {
 
     wrapper.unmount()
   })
+
+  it('inlines relative and vendored console runtime scripts into iframe srcdoc for offline execution', async () => {
+    const workspaceStore = useWorkspaceStore()
+    workspaceStore.handle = buildFakeTree('workspace', {
+      artifacts: {
+        'workspace_hub.html': '<html><body>Hub</body></html>',
+      },
+      export: {
+        'iNNtrevistas_V_0-1-0_console': {
+          'iNNtrevistas_V_0-1-0_console.html': `<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="./custom-style.css">
+</head>
+<body>
+  <div id="app-root">Model Content</div>
+  <script src="https://cdn.jsdelivr.net/gh/cogNNitive/cogNNitive@innfo-console-v0.1.0/iNNfo/specs/templates/console/render-model-viewer.js"></script>
+  <script src="https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/console/render-model-viewer.js"></script>
+  <script src="./render-model-viewer.js"></script>
+</body>
+</html>`,
+          'render-model-viewer.js': 'window.InnfoModelViewer = { init: () => "OK" };',
+          'custom-style.css': 'body { background: red; }',
+        },
+      },
+    })
+
+    const wrapper = mount(ConsoleHubView)
+    await flushPromises()
+
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        data: {
+          type: 'innfo:select-console',
+          modelId: 'iNNtrevistas',
+          title: 'iNNtrevistas',
+          consolePath: 'export/iNNtrevistas_V_0-1-0_console/iNNtrevistas_V_0-1-0_console.html',
+        },
+      })
+    )
+    await flushPromises()
+
+    const iframe = wrapper.find('iframe')
+    expect(iframe.exists()).toBe(true)
+    const srcdoc = iframe.attributes('srcdoc') || ''
+    
+    // Check that script was inlined
+    expect(srcdoc).toContain('window.InnfoModelViewer = { init: () => "OK" };')
+    expect(srcdoc).toContain('/* Inlined: render-model-viewer.js */')
+
+    // Check that style was inlined
+    expect(srcdoc).toContain('/* Inlined: custom-style.css */')
+    expect(srcdoc).toContain('body { background: red; }')
+
+    // Check that redundant fallback tags were cleaned up to avoid CORS / 404 console noise
+    expect(srcdoc).toContain('<!-- [Inlined render-model-viewer.js earlier] -->')
+
+    wrapper.unmount()
+  })
 })

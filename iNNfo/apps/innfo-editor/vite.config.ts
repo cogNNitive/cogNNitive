@@ -29,7 +29,17 @@ function serveLocalSpecs(): Plugin {
           const urlPath = (req.url || '').replace(/\?.*$/, '')
           const abs = resolve(specsRoot, '.' + urlPath)
           if (abs.startsWith(specsRoot) && existsSync(abs) && statSync(abs).isFile()) {
-            res.setHeader('Content-Type', 'text/markdown; charset=utf-8')
+            let mime = 'text/markdown; charset=utf-8'
+            if (abs.endsWith('.js') || abs.endsWith('.mjs')) {
+              mime = 'application/javascript; charset=utf-8'
+            } else if (abs.endsWith('.css')) {
+              mime = 'text/css; charset=utf-8'
+            } else if (abs.endsWith('.json')) {
+              mime = 'application/json; charset=utf-8'
+            } else if (abs.endsWith('.html')) {
+              mime = 'text/html; charset=utf-8'
+            }
+            res.setHeader('Content-Type', mime)
             res.setHeader('Cache-Control', 'no-store')
             res.end(readFileSync(abs, 'utf8'))
             return

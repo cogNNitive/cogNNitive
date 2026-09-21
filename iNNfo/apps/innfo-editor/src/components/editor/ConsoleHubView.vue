@@ -380,6 +380,175 @@ async function resolveFlexibleFileHandle(
   return null
 }
 
+async function inlineConsoleResources(
+  rawHtml: string,
+  consolePath: string,
+  rootHandle: any,
+): Promise<string> {
+  if (!rawHtml) return rawHtml
+  let result = rawHtml
+
+  const normalizedPath = consolePath.replace(/\\/g, '/').replace(/^\.\//, '').replace(/^\.\.\//, '')
+  const consoleDir = normalizedPath.includes('/')
+    ? normalizedPath.substring(0, normalizedPath.lastIndexOf('/'))
+    : ''
+
+  const inlinedScripts = new Set<string>()
+
+  // 1. Process <script ... src="..."> tags
+  const scriptRegex = /<script\b([^>]*)\bsrc=["']([^"']+)["']([^>]*)>(?:\s*<\/script>)?/gi
+  const scriptMatches: Array<{ fullMatch: string; src: string; isModule: boolean }> = []
+
+  let match: RegExpExecArray | null
+  while ((match = scriptRegex.exec(rawHtml)) !== null) {
+    const fullMatch = match[0]
+    const attrs = `${match[1]} ${match[3]}`
+    const src = match[2]
+    const isModule = /type=["']module["']/i.test(attrs)
+    scriptMatches.push({ fullMatch, src, isModule })
+  }
+
+  for (const { fullMatch, src, isModule } of scriptMatches) {
+    const cleanSrc = src.split('?')[0].split('#')[0]
+    const filename = cleanSrc.split('/').pop() || ''
+    if (!filename || !filename.endsWith('.js')) continue
+
+    if (inlinedScripts.has(filename)) {
+      result = result.replace(fullMatch, `<!-- [Inlined ${filename} earlier] -->`)
+      continue
+    }
+
+    let scriptContent: string | null = null
+
+    // A. Try loading from workspace filesystem
+    if (rootHandle) {
+      const candidatePaths = [
+        consoleDir ? `${consoleDir}/${filename}` : '',
+        filename,
+        `export/${filename}`,
+        `artifacts/${filename}`,
+        `specs/templates/console/${filename}`,
+        `innfo/specs/templates/console/${filename}`,
+      ].filter(Boolean)
+
+      for (const candidate of candidatePaths) {
+        try {
+          const handle = await resolveFlexibleFileHandle(rootHandle, candidate)
+          if (handle && handle.kind === 'file') {
+            const f = await handle.getFile()
+            const text = await f.text()
+            if (text && !text.includes('/src/main.ts') && !text.includes('id="app"')) {
+              scriptContent = text
+              break
+            }
+          }
+        } catch {
+          // ignore
+        }
+      }
+    }
+
+    // B. Fallback: Try fetching via local specs endpoint or relative URL
+    if (!scriptContent) {
+      const fetchUrls = [
+        `/specs/templates/console/${filename}`,
+        `/innfo/specs/templates/console/${filename}`,
+        src.startsWith('http') ? null : src,
+      ].filter(Boolean) as string[]
+
+      for (const url of fetchUrls) {
+        try {
+          const res = await fetch(url)
+          if (res.ok) {
+            const text = await res.text()
+            if (
+              text &&
+              !text.includes('/src/main.ts') &&
+              !text.includes('@vite/client') &&
+              !text.includes('id="app"')
+            ) {
+              scriptContent = text
+              break
+            }
+          }
+        } catch {
+          // ignore
+        }
+      }
+    }
+
+    if (scriptContent) {
+      inlinedScripts.add(filename)
+      const moduleAttr = isModule ? ' type="module"' : ''
+      const inlinedTag = `<script${moduleAttr}>\n/* Inlined: ${filename} */\n${scriptContent}\n<\/script>`
+      result = result.replace(fullMatch, inlinedTag)
+    }
+  }
+
+  // 2. Process <link rel="stylesheet" ...> tags with relative hrefs
+  const linkRegex = /<link\b([^>]*)\bhref=["']([^"']+)["']([^>]*)\/?>/gi
+  const linkMatches: Array<{ fullMatch: string; href: string }> = []
+  while ((match = linkRegex.exec(rawHtml)) !== null) {
+    const fullMatch = match[0]
+    const attrs = `${match[1]} ${match[3]}`
+    if (/rel=["']stylesheet["']/i.test(attrs)) {
+      linkMatches.push({ fullMatch, href: match[2] })
+    }
+  }
+
+  for (const { fullMatch, href } of linkMatches) {
+    if (href.startsWith('http://') || href.startsWith('https://') || href.startsWith('//')) {
+      continue
+    }
+    const cleanHref = href.split('?')[0].split('#')[0]
+    const filename = cleanHref.split('/').pop() || ''
+    if (!filename || !filename.endsWith('.css')) continue
+
+    let cssContent: string | null = null
+    if (rootHandle) {
+      const candidatePaths = [
+        consoleDir ? `${consoleDir}/${filename}` : '',
+        filename,
+        `artifacts/${filename}`,
+        `export/${filename}`,
+      ].filter(Boolean)
+      for (const candidate of candidatePaths) {
+        try {
+          const handle = await resolveFlexibleFileHandle(rootHandle, candidate)
+          if (handle && handle.kind === 'file') {
+            const f = await handle.getFile()
+            cssContent = await f.text()
+            if (cssContent) break
+          }
+        } catch {
+          // ignore
+        }
+      }
+    }
+
+    if (!cssContent) {
+      try {
+        const res = await fetch(href)
+        if (res.ok) {
+          const text = await res.text()
+          if (!text.includes('/src/main.ts') && !text.includes('id="app"')) {
+            cssContent = text
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    if (cssContent) {
+      const inlinedStyle = `<style>\n/* Inlined: ${filename} */\n${cssContent}\n</style>`
+      result = result.replace(fullMatch, inlinedStyle)
+    }
+  }
+
+  return result
+}
+
 async function loadConsole() {
   loadState.value = 'loading'
   isFrameLoading.value = true
@@ -393,7 +562,8 @@ async function loadConsole() {
           if (fileHandle) {
             const file = await fileHandle.getFile()
             const text = await file.text()
-            htmlContent.value = text
+            const inlined = await inlineConsoleResources(text, candidate, workspaceStore.handle)
+            htmlContent.value = inlined
             resolvedUrl.value = candidate
             loadState.value = 'ready'
             return
@@ -411,7 +581,8 @@ async function loadConsole() {
             const text = await res.text()
             // Guard against Vite returning SPA index.html
             if (!text.includes('/src/main.ts') && !text.includes('@vite/client') && !text.includes('id="app"')) {
-              htmlContent.value = text
+              const inlined = await inlineConsoleResources(text, candidate, null)
+              htmlContent.value = inlined
               resolvedUrl.value = candidate
               loadState.value = 'ready'
               return
