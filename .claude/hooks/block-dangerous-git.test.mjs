@@ -38,6 +38,11 @@ const mustBlock = [
   `${G} add .`,
   `${G} commit -am wip`,
   `cd /tmp && ${G} reset ${HARD} abc`,
+  // Shell operators end a token too: a whitespace-only boundary let these through.
+  `${G} add -A; echo done`,
+  `${G} add . && echo done`,
+  `${G} checkout .; echo done`,
+  `${G} commit -am wip|tee log`,
 ];
 
 const mustAllow = [
@@ -58,6 +63,8 @@ const mustAllow = [
   `${G} clean -n`,
   `${G} clean --dry-run`,
   `${G} clean -nd`,
+  `${G} stash list; echo done`,
+  `${G} clean -n && echo done`,
 ];
 
 let failures = 0;

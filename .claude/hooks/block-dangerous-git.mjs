@@ -12,6 +12,12 @@
  * this repo, jq is not installed here, and a hook that silently exits 0 because
  * its parser is missing is worse than no hook at all.
  *
+ * End-of-token boundaries below are `(?![A-Za-z0-9_.-])`, not `(\s|$)`. A
+ * command usually continues with a shell operator, so a whitespace-only
+ * boundary lets `git add -A;` through and stops `git stash list; echo` from
+ * matching its own read-only escape. Regex literals throughout: these patterns
+ * do not survive being built from template strings.
+ *
  * Exit 2 blocks the call and shows `reason` to the agent. Exit 0 allows it.
  */
 
@@ -24,42 +30,42 @@ const RULES = [
       'To revert one file you authored use `git checkout HEAD -- <explicit/path>`.',
   },
   {
-    // `-n` / `--dry-run` only reports what would be removed.
+    // -n / --dry-run only reports what would be removed.
     pattern: /git\s+clean/,
-    unless: /(^|\s)(-[a-zA-Z]*n[a-zA-Z]*|--dry-run)(\s|$)/,
+    unless: /(^|\s)(-[a-zA-Z]*n[a-zA-Z]*|--dry-run)(?![A-Za-z0-9_.-])/,
     reason:
       'git clean deletes untracked files across the tree, including another session\'s in-progress work. ' +
       'Delete the specific paths you created instead, or pass --dry-run to inspect.',
   },
   {
-    // `list` and `show` are read-only; everything else moves the tree.
+    // list and show are read-only; everything else moves the tree.
     pattern: /git\s+stash/,
-    unless: /git\s+stash\s+(list|show)(\s|$)/,
+    unless: /git\s+stash\s+(list|show)(?![A-Za-z0-9_.-])/,
     reason:
       'git stash sweeps up every uncommitted change in the tree, not just yours. ' +
       'To get a clean tree for a build or a check, use `git worktree add --detach <tmp> <sha>` instead. ' +
-      '`git stash list` and `git stash show` are allowed.',
+      'Listing and showing stashes is allowed.',
   },
   {
     pattern: /git\s+branch\s+-D/,
     reason: 'git branch -D force-deletes a branch without a merge check. Use -d, or confirm with the user first.',
   },
   {
-    pattern: /git\s+(checkout|restore)\s+(--\s+)?\.(\s|$)/,
+    pattern: /git\s+(checkout|restore)\s+(--\s+)?\.(?![A-Za-z0-9_.-])/,
     reason:
       'Reverting the whole tree discards changes you did not author. ' +
       'Name the file: `git checkout HEAD -- <explicit/path>`.',
   },
   {
-    pattern: /git\s+add\s+(-A|--all)(\s|$)/,
+    pattern: /git\s+add\s+(-A|--all)(?![A-Za-z0-9_.-])/,
     reason: 'git add -A stages every change in the tree, including other sessions\'. Stage explicit pathspecs.',
   },
   {
-    pattern: /git\s+add\s+\.(\s|$)/,
+    pattern: /git\s+add\s+\.(?![A-Za-z0-9_.-])/,
     reason: 'git add . stages every change under the cwd, including other sessions\'. Stage explicit pathspecs.',
   },
   {
-    pattern: /git\s+commit\s+(-[a-zA-Z]*a[a-zA-Z]*|--all)(\s|$)/,
+    pattern: /git\s+commit\s+(-[a-zA-Z]*a[a-zA-Z]*|--all)(?![A-Za-z0-9_.-])/,
     reason:
       'git commit -a auto-stages every tracked modification, including other sessions\'. ' +
       'Stage explicit pathspecs, then commit without -a.',
