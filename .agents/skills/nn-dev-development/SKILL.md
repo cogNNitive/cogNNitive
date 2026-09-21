@@ -277,7 +277,7 @@ Compare against the recorded `$baselineBranch` / `$baselineHead` (Section 1c):
 - Never trust a plan written several tool calls earlier; re-read the file immediately
   before editing it.
 
-### 3a. Stolen-branch recovery protocol
+### 3a. Stolen-branch recovery and rehearsal protocol
 
 When the check above detects that the current branch / HEAD is not the expected one
 (the "agent changed MY branch under me" failure from the 2026-09-06/07 sessions), use
@@ -293,6 +293,14 @@ git switch <my-branch>
 
 # 3. Bring your work back
 git stash pop
+```
+
+#### Rehearsal & inspection without disturbing the working tree:
+For inspecting historical commits, testing isolated builds, or rehearsing a merge without touching the shared working tree or stashing:
+```powershell
+git worktree add --detach temp/rehearsal <sha-or-ref>
+# ... run verification / rehearsal inside temp/rehearsal ...
+git worktree remove temp/rehearsal
 ```
 
 Hard rules:
@@ -324,6 +332,8 @@ Compare against `$baselineMain` (Section 1c):
 
 ### 4b. What is on `dev` but not on `main`?
 
+Always compare remote tracking refs (`origin/main..origin/dev`) rather than local `main`. Because server-side fast-forward merges do not update the local `main` ref, comparing local `main` results in stale, misleading comparisons.
+
 ```powershell
 git log --oneline origin/main..origin/dev
 git diff --stat origin/main..origin/dev
@@ -331,6 +341,12 @@ git diff --stat origin/main..origin/dev
 
 This is the batch pending merge. Report it so the maintainer can decide when `dev` is
 ready.
+
+#### Decisive pre-merge template check:
+Inspect whether template files were touched in the pending batch (which could trip template versioning or pin coherence validation):
+```powershell
+git diff --name-only origin/main..origin/dev | grep '^iNNfo/specs/templates/'
+```
 
 ### 4c. Ghost-branch sweep (cleanup candidates)
 
@@ -368,8 +384,8 @@ confirm. Never delete branches automatically.
 
 When the maintainer says the accumulated changes on `dev` are ready:
 
-1. **Pre-push integrity gate**: Run `node scripts/check-integrity.js` (or `npm run check:integrity`).
-   - If `template-catalog` reports `catalog.json` is stale, run `node scripts/template-catalog.mjs` to regenerate it cleanly.
+1. **Pre-push integrity gate**: Run `node scripts/check-integrity.js` (or `npm run check:integrity`) and verify version/catalog freshness via `npm run check:versions` (or `node scripts/verify.js`).
+   - If `npm run check:versions` or `node scripts/verify.js` reports `catalog.json` or template copies are stale, run `npm run sync:versions` (or `node scripts/template-catalog.mjs`) to regenerate them cleanly.
    - If MCP or workspace parity reports drift, resolve it before pushing.
    - Ensure the working tree is clean and `git push origin dev` succeeds.
 2. **Server-side fast-forward merge (`dev → main`) — supersedes the
