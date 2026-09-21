@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseModel, parseYaml, serializeModel, parseMarkdownTable, parseTableRow } from '../src/parser'
+import { parseModel, parseYaml, parseFrontmatter, serializeModel, parseMarkdownTable, parseTableRow } from '../src/parser'
 
 describe('Standardised Parser (TDD)', () => {
   it('parses complex nested frontmatter with standard YAML features', () => {
@@ -278,5 +278,37 @@ Alpha description.
     expect(parseTableRow('a | b')).toEqual(['a', 'b'])
     expect(parseTableRow('| a | b')).toEqual(['a', 'b'])
     expect(parseTableRow('a | b |')).toEqual(['a', 'b'])
+  })
+
+  describe('normalizeLevel (F4 — coerce `level` to a number at the parse boundary)', () => {
+    it('coerces a quoted numeric string to a number', () => {
+      const fm = parseFrontmatter('---\nlevel: "2"\n---\n')
+      expect(fm!.level).toBe(2)
+    })
+
+    it('leaves an unquoted number unchanged (corpus-dominant form)', () => {
+      const fm = parseFrontmatter('---\nlevel: 2\n---\n')
+      expect(fm!.level).toBe(2)
+    })
+
+    it('leaves a non-numeric string unchanged and does not throw', () => {
+      const fm = parseFrontmatter('---\nlevel: "abc"\n---\n')
+      expect(fm!.level).toBe('abc')
+    })
+
+    it('leaves an empty string unchanged, not coerced to 0', () => {
+      const fm = parseFrontmatter('---\nlevel: ""\n---\n')
+      expect(fm!.level).toBe('')
+    })
+
+    it('leaves a non-integer numeric string unchanged', () => {
+      const fm = parseFrontmatter('---\nlevel: "2.5"\n---\n')
+      expect(fm!.level).toBe('2.5')
+    })
+
+    it('does not add a level key when it is absent', () => {
+      const fm = parseFrontmatter('---\nspec_version: "V_0-2-0"\n---\n')
+      expect('level' in fm!).toBe(false)
+    })
   })
 })

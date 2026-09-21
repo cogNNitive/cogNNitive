@@ -50,7 +50,7 @@ export function normalizeSingleModel(
   // be parsed as a model (e.g. broken YAML delimiters).
   const fm = parsed.frontmatter
   const hasSpecVersion = typeof fm.spec_version === 'string' && fm.spec_version.length > 0
-  const hasLevel = typeof fm.level === 'number'
+  const hasLevel = fm.level !== undefined
   const hasParent = !!(fm.parent || fm.parent_spec)
 
   if (!hasSpecVersion && !hasLevel && !hasParent) {

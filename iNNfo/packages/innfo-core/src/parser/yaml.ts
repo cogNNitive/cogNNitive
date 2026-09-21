@@ -191,6 +191,18 @@ function normalizeMatrices(fm: MutableFrontmatter): void {
   }
 }
 
+/**
+ * `level:` — tolerate a quoted integer (`level: "2"`); anything else passes
+ * through unmodified. Coerce-only, never throws, never deletes the key,
+ * never substitutes a default (design ADR-005).
+ */
+function normalizeLevel(fm: MutableFrontmatter): void {
+  if (typeof fm.level !== 'string') return
+  const trimmed = fm.level.trim()
+  if (trimmed === '' || !Number.isInteger(Number(trimmed))) return
+  fm.level = Number(trimmed)
+}
+
 const NORMALIZERS: Array<(fm: MutableFrontmatter) => void> = [
   normalizeParentSpec,
   normalizeLegacyFieldNames,
@@ -200,6 +212,7 @@ const NORMALIZERS: Array<(fm: MutableFrontmatter) => void> = [
   normalizeViewers,
   normalizeTopLevelAlias,
   normalizeMatrices,
+  normalizeLevel,
 ]
 
 export function parseFrontmatter(

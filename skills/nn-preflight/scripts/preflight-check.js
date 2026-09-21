@@ -543,8 +543,12 @@ function validateTemplateCompositions(options = {}) {
           try {
             fm = parseFocusedYaml(parseFrontmatter(content)) || {};
           } catch {}
-          if (fm.level === 1 || fm.level === '1') continue;
-          if (fm.level === 2 || fm.level === '2' || fm.type === 'template' || Array.isArray(fm.includes) || fullPath.includes('templates')) {
+          // Note: fm.level here is always a string — this file parses with
+          // ./lib/yaml-lite, a separate parser from innfo-core's
+          // parseFrontmatter, whose parseScalar never coerces to a number
+          // (design ADR-007). The numeric comparisons removed here were dead.
+          if (fm.level === '1') continue;
+          if (fm.level === '2' || fm.type === 'template' || Array.isArray(fm.includes) || fullPath.includes('templates')) {
             templateFiles.set(fullPath, { name: ent.name, content, fm });
           }
         } catch {}

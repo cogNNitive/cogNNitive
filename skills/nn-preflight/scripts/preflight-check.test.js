@@ -899,7 +899,44 @@ agent-bootstrap:
     }
   }
 
-  // Test 22: CLI preflight exits 1 with ACTION_REQUIRED when composition blocker is present
+  // Test 22: validateTemplateCompositions skips a level:1 file during the template walk
+  // (F4 / ADR-007 — this must be green BEFORE and AFTER the dead-numeric-comparison
+  // deletion at preflight-check.js:546-547; that is the proof the deletion is dead code).
+  {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'preflight-tmpl-level1-skip-'));
+    try {
+      const specsDir = path.join(tmpDir, 'specs');
+      fs.mkdirSync(specsDir, { recursive: true });
+
+      // Would qualify for inclusion via `type: template` if the level check did not
+      // short-circuit first — proves the skip, not just an unrelated non-match.
+      fs.writeFileSync(
+        path.join(specsDir, 'skip_me_NN.md'),
+        '---\nlevel: 1\ntype: template\n---\n# NN index\n* [[SkippedConcept]]\n',
+        'utf8'
+      );
+      fs.writeFileSync(
+        path.join(specsDir, 'keep_me_NN.md'),
+        '---\nlevel: 2\n---\n# NN index\n* [[KeptConcept]]\n',
+        'utf8'
+      );
+
+      const res = validateTemplateCompositions({ workspaceDir: tmpDir });
+      assert.ok(
+        !res.items.some((i) => i.name.includes('skip_me')),
+        `level:1 file must be skipped, got: ${JSON.stringify(res.items)}`
+      );
+      assert.ok(
+        res.items.some((i) => i.name.includes('keep_me')),
+        `level:2 file must still be walked, got: ${JSON.stringify(res.items)}`
+      );
+      console.log('✔ validateTemplateCompositions skips a level:1 file during the template walk');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }
+
+  // Test 23: CLI preflight exits 1 with ACTION_REQUIRED when composition blocker is present
   {
     const emptyManifest = `---
 agent-bootstrap:
