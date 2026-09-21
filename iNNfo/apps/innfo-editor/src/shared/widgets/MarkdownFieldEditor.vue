@@ -34,6 +34,9 @@ const emit = defineEmits<{
   'update:modelValue': [value: string]
 }>()
 
+const workspaceStore = useWorkspaceStore()
+const modelStore = useModelStore()
+
 // ── Mode detection ──────────────────────────────────────────────
 const isFileMode = computed(() => props.widgetType === 'markdown_file')
 const isInlineMode = computed(() => props.widgetType === 'markdown_inline')
@@ -61,12 +64,10 @@ async function resolveMarkdownHandle(
   fieldKey: string,
   create: boolean,
 ): Promise<{ handle: FileHandleLike; relativePath: string } | null> {
-  const ws = useWorkspaceStore()
-  const ms = useModelStore()
-  const rootHandle = ws.handle
+  const rootHandle = workspaceStore.handle
   if (!rootHandle) return null
 
-  const node = ms.getNode(nodeId)
+  const node = modelStore.getNode(nodeId)
   if (!node) return null
 
   const slug = node.slug || node.name.toLowerCase().replace(/[^a-z0-9-]/g, '_')
@@ -100,8 +101,7 @@ async function resolveExistingHandle(
   fieldKey: string,
   storedPath: unknown,
 ): Promise<FileHandleLike | null> {
-  const ws = useWorkspaceStore()
-  const rootHandle = ws.handle
+  const rootHandle = workspaceStore.handle
   if (!rootHandle) return null
 
   const rawPath = Array.isArray(storedPath) ? storedPath[0] : storedPath

@@ -1,5 +1,17 @@
 import { h, render as vueRender, type Ref, type VNode } from 'vue'
-import * as d3 from 'd3'
+import { select, type Selection } from 'd3-selection'
+import { zoom as d3zoom } from 'd3-zoom'
+import { group } from 'd3-array'
+import { linkHorizontal } from 'd3-shape'
+import {
+  forceSimulation,
+  forceLink,
+  forceManyBody,
+  forceCenter,
+  forceCollide,
+  type Simulation,
+} from 'd3-force'
+import { drag } from 'd3-drag'
 import { GNode, GEdge } from './useGraphData'
 import Pill from '../Pill.vue'
 
@@ -55,9 +67,9 @@ export function useGraphRenderer(options: GraphRendererOptions) {
   } = options
 
   let resizeObs: ResizeObserver | null = null
-  let svg: d3.Selection<SVGSVGElement, unknown, null, undefined>
-  let root: d3.Selection<SVGGElement, unknown, null, undefined>
-  let sim: d3.Simulation<any, any> | null = null
+  let svg: Selection<SVGSVGElement, unknown, null, undefined>
+  let root: Selection<SVGGElement, unknown, null, undefined>
+  let sim: Simulation<any, any> | null = null
   // Every Pill mounted via `vueRender(vnode, container)` is tracked here so the
   // next `render()` (and the component's `onUnmounted`) can unmount it with
   // `vueRender(null, container)` — without this, each re-render leaks one live
@@ -70,20 +82,19 @@ export function useGraphRenderer(options: GraphRendererOptions) {
       vueRender(null, container)
     }
   }
-  let forceLinkSel: d3.Selection<any, any, any, any> | null = null
-  let forceNodeSel: d3.Selection<any, any, any, any> | null = null
-  let forceEdgeG: d3.Selection<any, any, any, any> | null = null
+  let forceLinkSel: Selection<any, any, any, any> | null = null
+  let forceNodeSel: Selection<any, any, any, any> | null = null
+  let forceEdgeG: Selection<any, any, any, any> | null = null
 
   function initSvg() {
     if (!svgRef.value || !containerRef.value) return
-    svg = d3.select(svgRef.value)
+    svg = select(svgRef.value)
     svg.selectAll('*').remove()
     root = svg.append('g')
-    const zoom = d3
-      .zoom<SVGSVGElement, unknown>()
+    const zoomBehavior = d3zoom<SVGSVGElement, unknown>()
       .scaleExtent([0.1, 6])
       .on('zoom', (e) => root.attr('transform', e.transform))
-    svg.call(zoom)
+    svg.call(zoomBehavior)
     resizeObs = new ResizeObserver(() => {
       if (svgRef.value)
         svg.attr('viewBox', `0 0 ${svgRef.value.clientWidth} ${svgRef.value.clientHeight}`)
@@ -171,7 +182,7 @@ export function useGraphRenderer(options: GraphRendererOptions) {
   function renderSankey() {
     const W = svgRef.value?.clientWidth || 900
     const primaryEdges = displayEdges.value.filter((e) => e.type !== 'taxonomy')
-    const groups = d3.group(displayNodes.value, (n) => n.concept)
+    const groups = group(displayNodes.value, (n) => n.concept)
     let conceptOrder = [...groups.keys()]
 
     // Order concept columns (no hierarchyConcepts — use natural order then heuristic)
@@ -240,8 +251,7 @@ export function useGraphRenderer(options: GraphRendererOptions) {
     }
 
     // ── Draw flow lines (edges) between instances with Bézier curves & gradients ──
-    const linkGen = d3
-      .linkHorizontal<any, [number, number]>()
+    const linkGen = linkHorizontal<any, [number, number]>()
       .source((d) => d.source)
       .target((d) => d.target)
 
@@ -330,7 +340,7 @@ export function useGraphRenderer(options: GraphRendererOptions) {
 
       path
         .on('mouseenter', function () {
-          d3.select(this)
+          select(this)
             .raise()
             .attr('stroke-opacity', 0.95)
             .attr('stroke-width', 3)
@@ -339,11 +349,11 @@ export function useGraphRenderer(options: GraphRendererOptions) {
           const isSelected = selectedNodeId.value
           if (isSelected) {
             const isConnected = depthShown.has(e.source) && depthShown.has(e.target)
-            d3.select(this)
+            select(this)
               .attr('stroke-opacity', isConnected ? 0.8 : 0.05)
               .attr('stroke-width', isConnected ? 2.5 : 1.5)
           } else {
-            d3.select(this)
+            select(this)
               .attr('stroke-opacity', 0.45)
               .attr('stroke-width', 2)
           }
@@ -430,12 +440,12 @@ export function useGraphRenderer(options: GraphRendererOptions) {
     // Selection highlighting
     if (selectedNodeId.value) {
       root.selectAll('[data-node]').attr('opacity', function () {
-        const id = d3.select(this).attr('data-node') as string
+        const id = select(this).attr('data-node') as string
         return depthShown.has(id) ? 1 : 0.15
       })
       root.selectAll('[data-edge]').attr('stroke-opacity', function () {
-        const s = d3.select(this).attr('data-source') as string
-        const t = d3.select(this).attr('data-target') as string
+        const s = select(this).attr('data-source') as string
+        const t = select(this).attr('data-target') as string
         return depthShown.has(s) && depthShown.has(t) ? 0.7 : 0.03
       })
     }
@@ -480,7 +490,7 @@ export function useGraphRenderer(options: GraphRendererOptions) {
     const node = nodeG.selectAll('g').data(gData.nodes).join('g').attr('cursor', 'pointer')
 
     node.each(function (d: any) {
-      const g = d3.select(this)
+      const g = select(this)
 
       const container = document.createElement('div')
       const vnode = h(Pill, {
@@ -526,7 +536,7 @@ export function useGraphRenderer(options: GraphRendererOptions) {
           if (e.target.id === d.id) connected.add(e.source.id)
         })
         nodeG.selectAll('g').each(function (n: any) {
-          const el = d3.select(this)
+          const el = select(this)
           if (connected.has(n.id)) {
             el.attr('opacity', 1)
             el.select('.force-fo')
@@ -554,8 +564,7 @@ export function useGraphRenderer(options: GraphRendererOptions) {
 
     node
       .call(
-        d3
-          .drag<any, any>()
+        drag<any, any>()
           .on('start', (e, d: any) => {
             if (!e.active) sim?.alphaTarget(0.3).restart()
             d.fx = d.x
@@ -576,19 +585,17 @@ export function useGraphRenderer(options: GraphRendererOptions) {
         selectNode(d)
       })
 
-    sim = d3
-      .forceSimulation(gData.nodes)
+    sim = forceSimulation(gData.nodes)
       .force(
         'link',
-        d3
-          .forceLink(gData.edges)
+        forceLink(gData.edges)
           .id((d: any) => d.id)
           .distance(160)
           .strength(0.12),
       )
-      .force('charge', d3.forceManyBody().strength(-400))
-      .force('center', d3.forceCenter(W / 2, H / 2))
-      .force('collision', d3.forceCollide(60))
+      .force('charge', forceManyBody().strength(-400))
+      .force('center', forceCenter(W / 2, H / 2))
+      .force('collision', forceCollide(60))
       .on('tick', () => {
         function getBoxIntersection(s: { x: number; y: number }, t: { x: number; y: number }, w = 200, h = 52) {
           const dx = t.x - s.x
@@ -641,7 +648,7 @@ export function useGraphRenderer(options: GraphRendererOptions) {
 
     forceNodeSel.attr('opacity', (d: any) => (shown.has(d.id) ? 1 : 0.2))
     forceNodeSel.each(function (d: any) {
-      const el = d3.select(this)
+      const el = select(this)
       const sel = isNodeSelected(d)
       if (sel) {
         el.select('.force-fo')

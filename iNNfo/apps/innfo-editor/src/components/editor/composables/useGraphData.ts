@@ -1,5 +1,5 @@
 import { computed, Ref } from 'vue'
-import * as d3 from 'd3'
+import { hsl } from 'd3-color'
 import { useModelStore } from '../../../stores/modelStore'
 import {
   getConceptMeta,
@@ -52,14 +52,12 @@ export function useGraphData(localNodeId: Ref<string>) {
   }
 
   function hslStr(hex: string, satMult: number, lightOff: number): string {
-    const c = d3.hsl(hex)
-    return d3
-      .hsl(c.h, Math.min(1, c.s * satMult), Math.max(0, Math.min(1, c.l + lightOff)))
-      .formatHex()
+    const c = hsl(hex)
+    return hsl(c.h, Math.min(1, c.s * satMult), Math.max(0, Math.min(1, c.l + lightOff))).formatHex()
   }
 
   function textColor(bg: string) {
-    return d3.hsl(bg).l > 0.55 ? '#1e293b' : '#ffffff'
+    return hsl(bg).l > 0.55 ? '#1e293b' : '#ffffff'
   }
 
   const allNodes = computed<GNode[]>(() => {

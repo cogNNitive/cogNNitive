@@ -23,6 +23,14 @@ const htmlContent = ref<string | null>(null)
 const loadState = ref<'loading' | 'ready' | 'not_found'>('loading')
 const resolvedUrl = ref<string | null>(null)
 
+interface DynamicConsoleTarget {
+  id: string
+  name: string
+  template?: string
+  consolePath: string
+}
+const dynamicConsoles = ref<DynamicConsoleTarget[]>([])
+
 function normalizeSlug(str: string): string {
   return str
     .toLowerCase()
@@ -37,7 +45,14 @@ function normalizeSlug(str: string): string {
 const discoveredModels = computed(() => {
   return modelStore.rootIds.map((rootId) => {
     const node = modelStore.getNode(rootId)
-    const name = node?.name || rootId
+    const rawTitle =
+      (typeof node?.fields?.['title']?.value === 'string' ? node.fields['title'].value : null) ||
+      (typeof node?.fields?.['name']?.value === 'string' ? node.fields['name'].value : null)
+    const fileBasename = node?.source?.path
+      ? node.source.path.split('/').pop()?.replace(/_NN\.md$/i, '')
+      : null
+    const name = rawTitle || fileBasename || node?.name || rootId
+
     const templateName =
       (typeof node?.fields?.['template']?.value === 'string' ? node.fields['template'].value : null) ||
       (node?.fields?.['parent_spec']?.value as any)?.name ||
@@ -69,6 +84,25 @@ const discoveredModels = computed(() => {
   })
 })
 
+const allModelTargets = computed(() => {
+  const list = [...discoveredModels.value]
+  for (const dyn of dynamicConsoles.value) {
+    if (!list.some((m) => m.id === dyn.id)) {
+      list.push({
+        id: dyn.id,
+        name: dyn.name,
+        template: dyn.template || 'model',
+        version: '1.0.0',
+        description: '',
+        consolePath: dyn.consolePath,
+        explicitConsole: dyn.consolePath,
+        sourcePath: '',
+      })
+    }
+  }
+  return list
+})
+
 const selectedConsoleTarget = ref<string>('hub')
 
 function getCandidatePaths(target: string): string[] {
@@ -81,6 +115,9 @@ function getCandidatePaths(target: string): string[] {
       'artifacts/workspace_console.html',
       'export/workspace_console/workspace_console.html',
       'export/workspace_console.html',
+      'innfo/artifacts/workspace_hub.html',
+      'innfo/export/workspace_hub/workspace_hub.html',
+      'innfo/export/workspace_hub.html',
     ]
 
     // Check registered artifacts in modelStore
@@ -95,14 +132,35 @@ function getCandidatePaths(target: string): string[] {
     return Array.from(new Set(candidates))
   }
 
-  const model = discoveredModels.value.find((m) => m.id === target)
-  if (!model) return ['artifacts/workspace_hub.html']
+  // Check dynamic targets first
+  const dyn = dynamicConsoles.value.find((d) => d.id === target)
+  if (dyn) {
+    const candidates = [dyn.consolePath]
+    if (!dyn.consolePath.startsWith('innfo/')) candidates.push(`innfo/${dyn.consolePath}`)
+    if (dyn.consolePath.startsWith('innfo/')) candidates.push(dyn.consolePath.replace(/^innfo\//, ''))
+    return Array.from(new Set(candidates))
+  }
+
+  const model = allModelTargets.value.find((m) => m.id === target)
+  if (!model) {
+    // If target itself looks like a direct file path
+    if (target.endsWith('.html') || target.includes('/')) {
+      const directCandidates = [target]
+      if (!target.startsWith('innfo/')) directCandidates.push(`innfo/${target}`)
+      if (target.startsWith('innfo/')) directCandidates.push(target.replace(/^innfo\//, ''))
+      return Array.from(new Set(directCandidates))
+    }
+    return ['artifacts/workspace_hub.html']
+  }
 
   const candidates: string[] = []
 
   // 1. Explicit console if specified on node
   if (model.explicitConsole) {
     candidates.push(model.explicitConsole)
+    if (!model.explicitConsole.startsWith('innfo/')) {
+      candidates.push(`innfo/${model.explicitConsole}`)
+    }
   }
 
   const modelName = model.name
@@ -136,6 +194,10 @@ function getCandidatePaths(target: string): string[] {
     candidates.push(`export/${sourceBasename}/master.html`)
     candidates.push(`artifacts/exports/${sourceBasename}.html`)
     candidates.push(`artifacts/exports/${sourceBasename}_Strategic_Master_V_0-1-0.html`)
+    candidates.push(`innfo/export/${sourceBasename}_console/${sourceBasename}_console.html`)
+    candidates.push(`innfo/export/${sourceBasename}_console/master.html`)
+    candidates.push(`innfo/export/${sourceBasename}/${sourceBasename}.html`)
+    candidates.push(`innfo/artifacts/exports/${sourceBasename}.html`)
   }
 
   if (sourceSlug && sourceSlug !== sourceBasename) {
@@ -144,6 +206,8 @@ function getCandidatePaths(target: string): string[] {
     candidates.push(`export/${sourceSlug}/${sourceSlug}.html`)
     candidates.push(`export/${sourceSlug}/master.html`)
     candidates.push(`artifacts/exports/${sourceSlug}.html`)
+    candidates.push(`innfo/export/${sourceSlug}_console/${sourceSlug}_console.html`)
+    candidates.push(`innfo/export/${sourceSlug}/${sourceSlug}.html`)
   }
 
   if (modelSlug) {
@@ -152,11 +216,16 @@ function getCandidatePaths(target: string): string[] {
     candidates.push(`export/${modelSlug}/${modelSlug}.html`)
     candidates.push(`artifacts/exports/${modelSlug}.html`)
     candidates.push(`artifacts/${modelSlug}_console.html`)
+    candidates.push(`innfo/export/${modelSlug}_console/${modelSlug}_console.html`)
+    candidates.push(`innfo/export/${modelSlug}/${modelSlug}.html`)
+    candidates.push(`innfo/artifacts/${modelSlug}_console.html`)
   }
 
   // 4. Canonical template locations
   candidates.push(`artifacts/${model.template}_console.html`)
   candidates.push(`artifacts/${modelName}_console.html`)
+  candidates.push(`innfo/artifacts/${model.template}_console.html`)
+  candidates.push(`innfo/artifacts/${modelName}_console.html`)
 
   return Array.from(new Set(candidates))
 }
@@ -171,14 +240,145 @@ const currentConsoleTitle = computed<string>(() => {
   if (selectedConsoleTarget.value === 'hub') {
     return 'Workspace Console Hub'
   }
-  const targetModel = discoveredModels.value.find((m) => m.id === selectedConsoleTarget.value)
+  const targetModel = allModelTargets.value.find((m) => m.id === selectedConsoleTarget.value)
   return targetModel ? `${targetModel.name} Console` : 'Model Console'
 })
 
 const currentTargetModel = computed(() => {
   if (selectedConsoleTarget.value === 'hub') return null
-  return discoveredModels.value.find((m) => m.id === selectedConsoleTarget.value) || null
+  return allModelTargets.value.find((m) => m.id === selectedConsoleTarget.value) || null
 })
+
+async function findFileHandleCaseInsensitive(
+  dir: any,
+  targetName: string,
+): Promise<any | null> {
+  try {
+    const direct = await dir.getFileHandle(targetName)
+    if (direct) return direct
+  } catch {
+    // fallback to entry scan
+  }
+
+  const lower = targetName.toLowerCase()
+  try {
+    for await (const [name, handle] of dir.entries()) {
+      if (name.toLowerCase() === lower && handle.kind === 'file') {
+        return handle
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return null
+}
+
+async function findDirHandleCaseInsensitive(
+  dir: any,
+  targetName: string,
+): Promise<any | null> {
+  try {
+    const direct = await dir.getDirectoryHandle(targetName)
+    if (direct) return direct
+  } catch {
+    // fallback to entry scan
+  }
+
+  const lower = targetName.toLowerCase()
+  try {
+    for await (const [name, handle] of dir.entries()) {
+      if (name.toLowerCase() === lower && handle.kind === 'directory') {
+        return handle
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return null
+}
+
+async function findFileHandleDeep(
+  dir: any,
+  targetFilename: string,
+  depth = 0,
+): Promise<any | null> {
+  if (depth > 4) return null
+  const lower = targetFilename.toLowerCase()
+
+  try {
+    const subdirs: any[] = []
+    for await (const [name, handle] of dir.entries()) {
+      if (name.toLowerCase() === lower && handle.kind === 'file') {
+        return handle
+      }
+      if (handle.kind === 'directory' && !name.startsWith('.') && name !== 'node_modules') {
+        subdirs.push(handle)
+      }
+    }
+
+    for (const subdir of subdirs) {
+      const found = await findFileHandleDeep(subdir, targetFilename, depth + 1)
+      if (found) return found
+    }
+  } catch {
+    // ignore
+  }
+  return null
+}
+
+async function resolveFlexibleFileHandle(
+  root: any,
+  refPath: string,
+): Promise<any | null> {
+  const normalized = refPath
+    .replace(/\\/g, '/')
+    .replace(/^(\.\.\/)+/, '')
+    .replace(/^(\.\/)+/, '')
+    .replace(/^\/+/, '')
+
+  const filename = normalized.split('/').pop() || ''
+  const variations = [
+    normalized,
+    normalized.replace(/^innfo\//i, ''),
+    `innfo/${normalized}`,
+    filename ? `artifacts/${filename}` : '',
+    filename ? `export/${filename}` : '',
+    filename ? `innfo/artifacts/${filename}` : '',
+    filename ? `innfo/export/${filename}` : '',
+  ].filter(Boolean)
+
+  const uniquePaths = Array.from(new Set(variations))
+
+  for (const p of uniquePaths) {
+    const segments = p.split('/').filter((s) => s && s !== '.' && s !== '..')
+    if (segments.length === 0) continue
+
+    let current: any = root
+    let failed = false
+
+    for (let i = 0; i < segments.length - 1; i++) {
+      const nextDir = await findDirHandleCaseInsensitive(current, segments[i])
+      if (!nextDir) {
+        failed = true
+        break
+      }
+      current = nextDir
+    }
+
+    if (!failed) {
+      const file = await findFileHandleCaseInsensitive(current, segments[segments.length - 1])
+      if (file) return file
+    }
+  }
+
+  // Deep recursive search for filename as ultimate fallback
+  if (filename && filename.endsWith('.html')) {
+    const deepFound = await findFileHandleDeep(root, filename)
+    if (deepFound) return deepFound
+  }
+
+  return null
+}
 
 async function loadConsole() {
   loadState.value = 'loading'
@@ -189,7 +389,7 @@ async function loadConsole() {
     if (workspaceStore.handle) {
       for (const candidate of candidates) {
         try {
-          const fileHandle = await resolveFileHandleForRead(workspaceStore.handle, candidate)
+          const fileHandle = await resolveFlexibleFileHandle(workspaceStore.handle, candidate)
           if (fileHandle) {
             const file = await fileHandle.getFile()
             const text = await file.text()
@@ -202,21 +402,24 @@ async function loadConsole() {
           // continue checking next candidate
         }
       }
-    }
-
-    // Fallback: try fetching candidates if hosted on web/preview
-    for (const candidate of candidates) {
-      try {
-        const res = await fetch(candidate)
-        if (res.ok) {
-          const text = await res.text()
-          htmlContent.value = text
-          resolvedUrl.value = candidate
-          loadState.value = 'ready'
-          return
+    } else {
+      // Fallback: only when NO folder handle is active (hosted/sample mode)
+      for (const candidate of candidates) {
+        try {
+          const res = await fetch(candidate)
+          if (res.ok) {
+            const text = await res.text()
+            // Guard against Vite returning SPA index.html
+            if (!text.includes('/src/main.ts') && !text.includes('@vite/client') && !text.includes('id="app"')) {
+              htmlContent.value = text
+              resolvedUrl.value = candidate
+              loadState.value = 'ready'
+              return
+            }
+          }
+        } catch {
+          // continue
         }
-      } catch {
-        // continue
       }
     }
 
@@ -242,8 +445,134 @@ function selectTarget(target: string) {
   resolvedUrl.value = null
 }
 
+function onWindowMessage(event: MessageEvent) {
+  if (event.data?.type === 'innfo:select-console' || event.data?.type === 'innfo:launch-console') {
+    const { modelId, title, consolePath } = event.data
+
+    // 1. Try to match an existing discovered model
+    let match = discoveredModels.value.find(
+      (m) =>
+        (modelId && (m.id === modelId || m.name === modelId || normalizeSlug(m.name) === normalizeSlug(modelId))) ||
+        (title && (m.name === title || normalizeSlug(m.name) === normalizeSlug(title)))
+    )
+
+    if (!match && consolePath) {
+      match = discoveredModels.value.find((m) => {
+        const candidates = getCandidatePaths(m.id)
+        return candidates.some((c) => c === consolePath || c.endsWith(consolePath) || consolePath.endsWith(c))
+      })
+    }
+
+    if (match) {
+      selectTarget(match.id)
+      return
+    }
+
+    // 2. If not in discoveredModels, register as dynamic console tab and select it
+    if (consolePath) {
+      const targetId = modelId || consolePath
+      const displayName = title || modelId || consolePath.split('/').pop()?.replace(/\.html$/i, '') || 'Console'
+
+      const existing = dynamicConsoles.value.find((d) => d.id === targetId || d.consolePath === consolePath)
+      if (!existing) {
+        dynamicConsoles.value.push({
+          id: targetId,
+          name: displayName,
+          consolePath,
+        })
+      }
+      selectTarget(targetId)
+    }
+  }
+}
+
 watch([selectedConsoleTarget, () => workspaceStore.handle, iframeKey], () => {
   loadConsole()
+})
+
+const processedHtmlContent = computed<string | null>(() => {
+  if (!htmlContent.value) return null
+  let content = htmlContent.value
+
+  const isDark = typeof document !== 'undefined' && document.documentElement.classList.contains('dark')
+
+  if (selectedConsoleTarget.value === 'hub') {
+    const injectedStyle = isDark
+      ? `<style>
+          #preview-panel { display: none !important; }
+        </style>`
+      : `<style>
+          html, body {
+            background-color: #f8fafc !important;
+            color: #0f172a !important;
+          }
+          header {
+            background-color: rgba(255, 255, 255, 0.9) !important;
+            border-color: #e2e8f0 !important;
+          }
+          .bg-slate-900, .bg-slate-950, [class*="bg-slate-900"], [class*="bg-slate-950"] {
+            background-color: #ffffff !important;
+            color: #0f172a !important;
+            border-color: #e2e8f0 !important;
+          }
+          .text-white {
+            color: #0f172a !important;
+          }
+          .text-slate-400 {
+            color: #64748b !important;
+          }
+          .border-slate-800, .border-slate-700 {
+            border-color: #e2e8f0 !important;
+          }
+          input {
+            background-color: #ffffff !important;
+            color: #0f172a !important;
+            border-color: #e2e8f0 !important;
+          }
+          #preview-panel {
+            display: none !important;
+          }
+        </style>`
+
+    const bridgeScript = `
+<script>
+(function() {
+  document.addEventListener('click', function(e) {
+    var btn = e.target.closest('.launch-btn') || e.target.closest('[data-launch]');
+    if (btn) {
+      e.preventDefault();
+      e.stopPropagation();
+      var launchPath = btn.getAttribute('data-launch');
+      var title = btn.getAttribute('data-title') || btn.getAttribute('data-model-id') || 'Console';
+      var modelId = btn.getAttribute('data-model-id') || title;
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({
+          type: 'innfo:select-console',
+          modelId: modelId,
+          title: title,
+          consolePath: launchPath
+        }, '*');
+      }
+    }
+  }, true);
+})();
+<\/script>
+`
+
+    if (content.includes('</head>')) {
+      content = content.replace('</head>', `${injectedStyle}</head>`)
+    } else {
+      content = injectedStyle + content
+    }
+
+    if (content.includes('</body>')) {
+      content = content.replace('</body>', `${bridgeScript}</body>`)
+    } else {
+      content = content + bridgeScript
+    }
+  }
+
+  return content
 })
 
 // "Open External" (F-16): `currentFrameUrl` is a path relative to the user's
@@ -273,10 +602,12 @@ watch([htmlContent, () => workspaceStore.handle], ([content, handle]) => {
 const externalHref = computed<string>(() => externalBlobUrl.value ?? currentFrameUrl.value)
 
 onMounted(() => {
+  window.addEventListener('message', onWindowMessage)
   loadConsole()
 })
 
 onUnmounted(() => {
+  window.removeEventListener('message', onWindowMessage)
   revokeExternalBlobUrl()
 })
 </script>
@@ -351,7 +682,7 @@ onUnmounted(() => {
         </button>
 
         <button
-          v-for="model in discoveredModels"
+          v-for="model in allModelTargets"
           :key="model.id"
           @click="selectTarget(model.id)"
           class="px-3 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer flex items-center gap-1.5 capitalize shrink-0"
@@ -378,9 +709,9 @@ onUnmounted(() => {
 
       <!-- Ready State: Mount HTML with srcdoc -->
       <iframe
-        v-else-if="loadState === 'ready' && htmlContent"
+        v-else-if="loadState === 'ready' && processedHtmlContent"
         :key="iframeKey"
-        :srcdoc="htmlContent"
+        :srcdoc="processedHtmlContent"
         class="w-full h-full border-none bg-white dark:bg-slate-950 rounded-xl shadow-xs"
         sandbox="allow-scripts allow-forms allow-popups"
       ></iframe>

@@ -18,6 +18,11 @@ let pushCount = 0
 let currentHash = ''
 let historyEntries: string[] = []
 
+const originalAddEventListener = window.addEventListener
+const originalRemoveEventListener = window.removeEventListener
+const originalHistory = window.history
+const originalLocation = window.location
+
 function mockWindowApi() {
   historyEntries = []
   pushCount = 0
@@ -41,7 +46,7 @@ function mockWindowApi() {
     back: vi.fn(),
   }
 
-  Object.defineProperty(window, 'history', { value: history, writable: true })
+  Object.defineProperty(window, 'history', { value: history, writable: true, configurable: true })
   Object.defineProperty(window, 'location', {
     value: location,
     writable: true,
@@ -52,10 +57,11 @@ function mockWindowApi() {
   const addEventListener = vi.fn((_evt: string, cb: () => void) => listeners.push(cb))
   const removeEventListener = vi.fn()
 
-  Object.defineProperty(window, 'addEventListener', { value: addEventListener, writable: true })
+  Object.defineProperty(window, 'addEventListener', { value: addEventListener, writable: true, configurable: true })
   Object.defineProperty(window, 'removeEventListener', {
     value: removeEventListener,
     writable: true,
+    configurable: true,
   })
 
   const getHash = () => currentHash
@@ -120,6 +126,10 @@ describe('useHashSync (E7: no duplicate pushState)', () => {
   afterEach(() => {
     wrapper?.unmount()
     wrapper = null
+    Object.defineProperty(window, 'addEventListener', { value: originalAddEventListener, writable: true, configurable: true })
+    Object.defineProperty(window, 'removeEventListener', { value: originalRemoveEventListener, writable: true, configurable: true })
+    Object.defineProperty(window, 'history', { value: originalHistory, writable: true, configurable: true })
+    Object.defineProperty(window, 'location', { value: originalLocation, writable: true, configurable: true })
     vi.restoreAllMocks()
   })
 

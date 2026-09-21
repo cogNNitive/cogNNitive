@@ -50,15 +50,24 @@ export default defineConfig({
     __APP_VERSION__: JSON.stringify(pkg.version),
     __COMMIT_DATE__: JSON.stringify(getGitCommitDate()),
   },
+  server: {
+    fs: {
+      allow: [
+        resolve(__dirname, '..', '..', '..'),
+      ],
+    },
+  },
   resolve: {
     conditions: ['browser'],
     alias: {
       '@': resolve(__dirname, 'src'),
+      '@cognnitive/innfo-core': resolve(__dirname, '../../packages/innfo-core/src/browser.ts'),
     },
   },
   test: {
     environment: 'happy-dom',
     setupFiles: ['./tests/setup.ts'],
+    clearMocks: true,
     pool: 'forks',
     poolOptions: {
       forks: {
