@@ -10,14 +10,10 @@ title: "cogNNitive Monorepo Procedures Catalog"
 > [!NOTE]
 > This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor or view and edit it with [cogNNitive](https://cognnitive.com/innfo/app/innfo-doc).
 
-# NN index
-
-* [[Procedure]]
-
 # NN Procedure
 
 ## NN Procedure: Verify Monorepo Integrity
-category:: engineering
+category:: audit
 summary:: Deterministic multi-group gate validating working tree hygiene, version squares, manifest parity, orchestrator lines, and test suites.
 inputs_required:: Workspace Metamodel Specification
 outputs_expected:: Integrity Verification Gate Report
@@ -25,7 +21,7 @@ executed_by:: Lead Maintainer
 procedure_model:: .agents/skills/nn-dev-check-integrity/SKILL.md
 
 ## NN Procedure: Release and Tag Subsystems
-category:: engineering
+category:: transformation
 summary:: Orchestration procedure for bumper management, stable manifest generation, immutable git tagging, and GitHub Release publication.
 inputs_required:: cogNNitive Repository Model
 outputs_expected:: Published Subsystem Bundles and Tags
