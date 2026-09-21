@@ -90,35 +90,35 @@ in the root `package.json`, one README note (hook exists, what it runs, bypass, 
 Does not touch: any other workspace's `package.json`, `scripts/verify.js`, lint/format/commit
 tooling (design non-goals, confirmed §8 cut list).
 
-- [ ] Write `.githooks/pre-push`: `#!/bin/sh`, runs `npm run typecheck` from repo root (git
+- [x] Write `.githooks/pre-push`: `#!/bin/sh`, runs `npm run typecheck` from repo root (git
       guarantees `cwd` = repo root for hooks), on non-zero exit prints the compiler output
       and one line naming `git push --no-verify` as the documented bypass, exits with the
       underlying command's status.
-- [ ] Add the `ponytail:` comment in the hook recording the known ceiling: it ignores stdin
+- [x] Add the `ponytail:` comment in the hook recording the known ceiling: it ignores stdin
       and therefore also runs on tag pushes/ref deletions; upgrade path is reading
       `$remote_ref` and skipping non-`refs/heads/*` refs; not shipped now (design ADR-001).
-- [ ] **Mechanical hazard — executable bit (design §10, "Medium-high" residual risk, the
+- [x] **Mechanical hazard — executable bit (design §10, "Medium-high" residual risk, the
       single most likely silent-failure mode):** after creating the file, run
       `git update-index --chmod=+x .githooks/pre-push` before committing. Confirm with
       `git ls-files -s .githooks/pre-push` showing mode `100755`, not `100644`.
-- [ ] **Mechanical hazard — line endings:** confirm the file is LF-terminated (no CRLF), since
+- [x] **Mechanical hazard — line endings:** confirm the file is LF-terminated (no CRLF), since
       Git for Windows runs hooks through its bundled `sh` and a CRLF shebang line breaks
       silently. Verify with `file .githooks/pre-push` or an editor's line-ending indicator
       before commit; do not rely on repo-wide `.gitattributes` defaults without checking this
       file specifically.
-- [ ] Add `"prepare": "git config core.hooksPath .githooks"` to root `package.json` `scripts`
+- [x] Add `"prepare": "git config core.hooksPath .githooks"` to root `package.json` `scripts`
       (ADR-002 — automatic, no opt-in alternative; do not also add a `hooks:install` script).
-- [ ] Add the README note: hook exists, runs `npm run typecheck` on push, bypass via
+- [x] Add the README note: hook exists, runs `npm run typecheck` on push, bypass via
       `git push --no-verify`, uninstall via `git config --unset core.hooksPath`.
-- [ ] Manual falsification (design §6, row 2 — no automated test, by design; run once at
+- [x] Manual falsification (design §6, row 2 — no automated test, by design; run once at
       implementation, record the four outcomes in the commit body):
-  - [ ] (a) Fresh `npm install` at root → `git config core.hooksPath` prints `.githooks`.
-  - [ ] (b) Introduce a deliberate type error → `git push` is **blocked**, compiler output
+  - [x] (a) Fresh `npm install` at root → `git config core.hooksPath` prints `.githooks`.
+  - [x] (b) Introduce a deliberate type error → `git push` is **blocked**, compiler output
         visible. This is the step that matters: the only proof the hook is wired,
         executable, and non-vacuous.
-  - [ ] (c) Same broken state → `git push --no-verify` **succeeds**.
-  - [ ] (d) Revert the deliberate error → `git push` succeeds normally.
-- [ ] Commit: `feat(git): add native pre-push typecheck gate via core.hooksPath`, staged with
+  - [x] (c) Same broken state → `git push --no-verify` **succeeds**.
+  - [x] (d) Revert the deliberate error → `git push` succeeds normally.
+- [x] Commit: `feat(git): add native pre-push typecheck gate via core.hooksPath`, staged with
       `git add .githooks/pre-push package.json README.md` only.
 
 **Verification.** The four-step manual falsification above is the verification; there is no
