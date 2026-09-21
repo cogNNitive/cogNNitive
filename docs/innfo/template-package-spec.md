@@ -83,25 +83,8 @@ skills:
   - name: "nn-audit"
     repo: "cogNNitive/actioNN"
     path: "skills/nn-audit"
-viewers:
-  - id: "guided-procedure"
-    view_type: "fsm-stepper"
-    target_concept: "Work"
-    label: "Guided Procedure Execution"
-    icon: "play-circle"
 ---
 ```
-
-### Semantic View Intent Contract (`viewers:`)
-
-The `viewers:` frontmatter block establishes a decoupled presentation contract between declarative template specs and client application environments (such as `innfo-editor`). Templates declare *what* presentation capability they require via abstract `view_type`s, without binding to host frameworks (Vue, React) or bundling frontend executable code inside `specs/`:
-
-- `id`: Unique identifier for the viewer instance within the template.
-- `view_type`: Standard presentation capability keyword (e.g. `fsm-stepper` for finite state machine procedure execution, `gantt-timeline` for task timeline scheduling).
-- `target_concept`: Optional concept name that activates or anchors this viewer.
-- `label`: Human-readable display label in UI navigation.
-- `icon`: Lucide icon identifier for UI menus.
-- `description`: Optional documentation of the viewer's presentation role.
 
 ---
 

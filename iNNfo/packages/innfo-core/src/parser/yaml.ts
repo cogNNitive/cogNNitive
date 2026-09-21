@@ -42,8 +42,8 @@ function str(v: unknown): string {
 /**
  * Map an array-valued field entry-by-entry and drop the entries that map to
  * `null`. Returns `undefined` (leave the field untouched) when `value` is not
- * an array. Collapses the four near-identical `Array.isArray(x) ? x.map(...).filter(...)`
- * blocks that `includes` / `procedures` / `skills` / `viewers` each repeated.
+ * an array. Collapses the near-identical `Array.isArray(x) ? x.map(...).filter(...)`
+ * blocks that `includes` / `procedures` / `skills` each repeated.
  */
 function coerceList<T>(value: unknown, mapEntry: (entry: unknown) => T | null): T[] | undefined {
   if (!Array.isArray(value)) return undefined
@@ -146,27 +146,6 @@ function normalizeSkills(fm: MutableFrontmatter): void {
   if (out !== undefined) fm.skills = out
 }
 
-/** `viewers:` — `{ id, view_type, ... }`, dropped when `id` or `view_type` is empty. */
-function normalizeViewers(fm: MutableFrontmatter): void {
-  const out = coerceList(fm.viewers, (v) => {
-    const obj = asRecord(v)
-    if (!obj) return null
-    const id = str(obj.id)
-    const viewType = str(obj.view_type ?? obj.type)
-    if (!id || !viewType) return null
-    return {
-      id,
-      view_type: viewType,
-      ...(obj.target_concept ? { target_concept: str(obj.target_concept) } : {}),
-      ...(obj.label ? { label: str(obj.label) } : {}),
-      ...(obj.icon ? { icon: str(obj.icon) } : {}),
-      ...(obj.description ? { description: str(obj.description) } : {}),
-      ...(obj.source_template ? { source_template: str(obj.source_template) } : {}),
-    }
-  })
-  if (out !== undefined) fm.viewers = out
-}
-
 /** Top-level `alias:` → `{ concepts?, fields? }`. */
 function normalizeTopLevelAlias(fm: MutableFrontmatter): void {
   if (fm.alias && typeof fm.alias === 'object') fm.alias = normalizeAliasMap(fm.alias)
@@ -209,7 +188,6 @@ const NORMALIZERS: Array<(fm: MutableFrontmatter) => void> = [
   normalizeIncludes,
   normalizeProcedures,
   normalizeSkills,
-  normalizeViewers,
   normalizeTopLevelAlias,
   normalizeMatrices,
   normalizeLevel,

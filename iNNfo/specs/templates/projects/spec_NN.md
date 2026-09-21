@@ -5,7 +5,7 @@ level: 2
 parent_spec:
   name: "iNNfo_V_0-2-1"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-2-1_NN.md"
-template_version: "V_0-2-1"
+template_version: "V_0-2-2"
 title: "Projects App"
 procedures:
   - id: "calculate-critical-path"
@@ -28,12 +28,6 @@ relationship_types:
     enabled: false
   sequence:
     enabled: true
-viewers:
-  - id: "gantt-chart"
-    view_type: "gantt-timeline"
-    target_concept: "Task"
-    label: "Gantt Timeline Chart"
-    icon: "calendar-range"
 ---
 
 > [!NOTE]

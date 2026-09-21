@@ -41,17 +41,7 @@ Validation runs automatically on every parse via `@cognnitive/innfo-core`. A pas
 - **ModelInfoPanel** — workspace and metamodel inspection.
 - **ConsoleHubView** — embedded, sandboxed view of the workspace hub and each model's canonical template console (e.g. `procedures_console.html`).
 
-## App Extensions Architecture
-
-The editor features a decoupled **Domain Extension Architecture**:
-- Each level 2 app can define its own extension, living alongside its consumers under `apps/innfo-editor/src/extensions/{name}/` (extensions are app code, not spec content, so they never live under `specs/`).
-- **Manifest (`manifest.json`)**: Declares views, widgets, and target concepts provided by the app extension.
-- **Pure Domain Logic (e.g. `useProjectGantt.ts`)**: Decoupled view logic operating on a pure node map.
-- **Extension Registry (`registry.ts`)**: Resolves and dynamically mounts extension views based on model `parent_spec` frontmatter `viewers:` (Semantic View Intent).
-- **Adapters**:
-  - `workspaceAdapter.ts`: Connects the extension to the full workspace stores (`modelStore` & `uiStore`).
-
-Guided procedure execution is **not** a built-in editor view: the interactive procedure console is a standalone template artifact (`templates/procedures/assets/procedure_console.html`) that the modeler embeds via `ConsoleHubView`.
+Interactive domain visualizations and guided procedures are delivered as standalone template console artifacts (e.g. `assets/*_console.html`) rendered via `ConsoleHubView`.
 
 ## AI Guide View
 

@@ -48,9 +48,6 @@ const ModelInfoPanel = defineAsyncComponent(() => import('../components/editor/M
 const AiWorkflowPanel = defineAsyncComponent(
   () => import('../components/editor/AiWorkflowPanel.vue'),
 )
-const ProjectGanttView = defineAsyncComponent(
-  () => import('../components/editor/ProjectGanttView.vue'),
-)
 const SearchResultsView = defineAsyncComponent(
   () => import('../components/editor/SearchResultsView.vue'),
 )
@@ -679,13 +676,6 @@ onUnmounted(() => {
         <template v-else-if="uiStore.activeView === 'ai-guide'">
           <div class="flex-1 flex flex-col min-h-0">
             <AiWorkflowPanel />
-          </div>
-        </template>
-
-        <!-- ── Gantt Chart View (Projects Extension) ── -->
-        <template v-else-if="uiStore.activeView === 'gantt-chart'">
-          <div class="flex-1 flex flex-col min-h-0">
-            <ProjectGanttView />
           </div>
         </template>
       </main>

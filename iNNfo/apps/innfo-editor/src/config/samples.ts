@@ -42,7 +42,7 @@ export const SHIPPED_TEMPLATE_VERSIONS: Record<string, string> = {
   metrics: 'V_0-2-1',
   organization: 'V_0-2-2',
   procedures: 'V_0-2-2',
-  projects: 'V_0-2-1',
+  projects: 'V_0-2-2',
   repository: 'V_0-1-1',
   sources: 'V_0-1-0',
   'video-generator': 'V_0-1-1',

@@ -94,30 +94,4 @@ alias:
       fields: { 'Task.name': 'Task.title' },
     })
   })
-
-  it('parses viewers block (Semantic View Intent)', () => {
-    const yaml = `---
-spec_version: "V_0-2-0"
-level: 2
-title: "Viewer Template"
-viewers:
-  - id: "guided-procedure"
-    view_type: "fsm-stepper"
-    target_concept: "Work"
-    label: "Guided Procedure Execution"
-    icon: "play-circle"
----
-`
-    const fm = parseFrontmatter(yaml) as SpecFrontmatter
-    expect(fm).not.toBeNull()
-    expect(fm.viewers).toEqual([
-      {
-        id: 'guided-procedure',
-        view_type: 'fsm-stepper',
-        target_concept: 'Work',
-        label: 'Guided Procedure Execution',
-        icon: 'play-circle',
-      },
-    ])
-  })
 })

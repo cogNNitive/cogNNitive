@@ -28,12 +28,6 @@ relationship_types:
     enabled: false
   sequence:
     enabled: true
-viewers:
-  - id: "gantt-chart"
-    view_type: "gantt-timeline"
-    target_concept: "Task"
-    label: "Gantt Timeline Chart"
-    icon: "calendar-range"
 ---
 
 > [!NOTE]

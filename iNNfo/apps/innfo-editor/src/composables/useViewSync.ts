@@ -10,7 +10,6 @@ const VALID_VIEWS: ActiveView[] = [
   'info',
   'consoles',
   'ai-guide',
-  'gantt-chart',
 ]
 
 /**

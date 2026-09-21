@@ -52,72 +52,6 @@
       </div>
     </div>
 
-    <!-- Template Extensions & Custom Viewers Section -->
-    <div
-      class="bg-gradient-to-r from-purple-900/10 via-slate-900/5 to-blue-900/10 dark:from-purple-950/40 dark:via-slate-900/40 dark:to-blue-950/40 border border-purple-200 dark:border-purple-800/40 rounded-xl p-5 shadow-xs space-y-4"
-    >
-      <div class="flex items-center justify-between border-b border-purple-200/60 dark:border-purple-800/40 pb-3">
-        <div class="flex items-center gap-2">
-          <Sparkles class="w-5 h-5 text-purple-600 dark:text-purple-400" />
-          <div>
-            <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100">
-              Template Extensions &amp; Custom Viewers
-            </h3>
-            <p class="text-3xs text-slate-500 dark:text-slate-400">
-              Specialized domain engines and execution views provided by template <span class="font-mono text-purple-600 dark:text-purple-300 font-bold">{{ fullTemplateName }}</span>.
-            </p>
-          </div>
-        </div>
-        <span
-          class="px-2.5 py-1 rounded-full text-3xs font-bold uppercase tracking-wider"
-          :class="availableExtensions.hasExtensions ? 'bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700'"
-        >
-          {{ availableExtensions.hasExtensions ? `${Object.keys(availableExtensions.views).length} Extension(s) Active` : 'No Extensions' }}
-        </span>
-      </div>
-
-      <!-- Active Extension Card -->
-      <div v-if="availableExtensions.hasExtensions" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div
-          v-for="(viewComp, viewKey) in availableExtensions.views"
-          :key="viewKey"
-          class="bg-white dark:bg-slate-900 border border-purple-200 dark:border-purple-900/60 rounded-lg p-4 flex flex-col justify-between gap-3 shadow-2xs hover:border-purple-400 transition-colors"
-        >
-          <div class="space-y-1">
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                <Play class="w-3.5 h-3.5 text-blue-500 fill-current" />
-                {{ viewKey }}
-              </span>
-              <span class="text-3xs font-mono px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 font-semibold">
-                {{ viewKey }}
-              </span>
-            </div>
-            <p class="text-2xs text-slate-500 dark:text-slate-400 leading-relaxed">
-              {{ availableExtensions.descriptions[String(viewKey)] || 'Custom view provided by this template extension.' }}
-            </p>
-          </div>
-
-          <div class="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-            <button
-              @click="launchExtensionView(String(viewKey))"
-              class="w-full px-3 py-1.5 rounded-md text-xs font-bold bg-purple-700 hover:bg-purple-800 text-white transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
-            >
-              <Play class="w-3.5 h-3.5 fill-current" />
-              <span>Launch in Workspace</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- No Extensions State -->
-      <div v-else class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4 text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-        <p>
-          Template <strong class="text-slate-700 dark:text-slate-300 font-mono">{{ fullTemplateName }}</strong> does not define custom UI extensions. Extension views are defined in template specifications under <code class="text-purple-600 dark:text-purple-400 font-mono">specs/[level2_template]/extension/</code>.
-        </p>
-      </div>
-    </div>
-
     <!-- Main Grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
       <!-- Left Column: Workspace & Files -->
@@ -546,7 +480,6 @@ import { useRouter } from 'vue-router'
 import { useWorkspaceStore } from '../../stores/workspaceStore'
 import { useModelStore } from '../../stores/modelStore'
 import { useUiStore } from '../../stores/uiStore'
-import { extensionRegistry } from '../../extensions/registry'
 import {
   FolderOpen,
   FileText,
@@ -558,8 +491,6 @@ import {
   Edit2,
   Info,
   Database,
-  Sparkles,
-  Play,
   Copy,
   Check,
   Terminal,
@@ -585,43 +516,6 @@ const modelStore = useModelStore()
 const uiStore = useUiStore()
 const { show } = useToast()
 const isPromptModalOpen = ref(false)
-
-const availableExtensions = computed(() => {
-  const tName = fullTemplateName.value || templateName.value || ''
-  const templateNode = modelStore.rootIds
-    .map((id) => modelStore.getNode(id))
-    .find((n) => n && (n.fields?.spec_version || (n as any)?.frontmatter?.viewers))
-  const fm = (templateNode as any)?.frontmatter ?? (rootNode.value as any)?.frontmatter
-
-  const ext = extensionRegistry.getExtension(tName)
-  const views = extensionRegistry.getExtensionViews(tName, fm)
-  const manifest = ext ? ext.manifest : null
-
-  // Drives the extension card's description from the view's own metadata
-  // (declared `description::` or the view type's default) instead of a
-  // hardcoded string that used to describe a deleted guided-procedure view
-  // (F-17 / ModelInfoPanel.vue:97).
-  const resolvedViewers = extensionRegistry.resolveViewersForTemplate({
-    frontmatter: fm,
-    templateName: tName,
-  })
-  const descriptions: Record<string, string> = {}
-  for (const v of resolvedViewers) {
-    if (v.description) descriptions[v.id] = v.description
-  }
-
-  return {
-    templateName: tName,
-    hasExtensions: Object.keys(views).length > 0,
-    views,
-    manifest,
-    descriptions,
-  }
-})
-
-function launchExtensionView(viewKey: string) {
-  uiStore.setActiveView(viewKey as any)
-}
 
 const showPlainTextView = ref(false)
 const selectedModelId = ref<string>('')

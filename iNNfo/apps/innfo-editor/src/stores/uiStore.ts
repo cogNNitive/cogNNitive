@@ -9,7 +9,6 @@ export type ActiveView =
   | 'info'
   | 'consoles'
   | 'ai-guide'
-  | 'gantt-chart'
 
 export type SidebarMode = 'workspace' | 'focused_model'
 

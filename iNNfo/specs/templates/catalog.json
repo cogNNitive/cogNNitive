@@ -123,10 +123,10 @@
     },
     "projects": {
       "name": "projects",
-      "adopted": "V_0-2-1",
+      "adopted": "V_0-2-2",
       "versions": [
         {
-          "template_version": "V_0-2-1",
+          "template_version": "V_0-2-2",
           "spec_version": "V_0-2-1",
           "title": "Projects App",
           "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/projects/spec_NN.md"
