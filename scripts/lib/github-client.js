@@ -10,33 +10,16 @@ const path = require('path');
 const http = require('http');
 const https = require('https');
 
-const { execSync } = require('child_process');
-
 const USER_AGENT = 'actioNN-Skills-Updater';
 const RATE_LIMIT_HINT = 'set GITHUB_TOKEN to raise the rate limit';
 
-let cachedToken = undefined;
-
 /**
- * Returns authorization headers if GitHub token is present in the environment or gh CLI.
+ * Returns authorization headers if GitHub token is present in the environment.
  * @returns {Record<string, string>}
  */
 function authHeaders() {
-  if (cachedToken === undefined) {
-    cachedToken = process.env.GITHUB_TOKEN || process.env.GH_TOKEN || null;
-    if (!cachedToken) {
-      try {
-        const ghToken = execSync('gh auth token', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] }).trim();
-        if (ghToken) {
-          cachedToken = ghToken;
-          process.env.GITHUB_TOKEN = ghToken;
-        }
-      } catch (_) {
-        cachedToken = null;
-      }
-    }
-  }
-  return cachedToken ? { Authorization: `Bearer ${cachedToken}` } : {};
+  const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
+  return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
 /**

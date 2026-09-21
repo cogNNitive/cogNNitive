@@ -62,6 +62,37 @@ function checkTemplateInventory(templatesDir, sourceYamlPath) {
 }
 
 /**
+ * Collects every self-contained Node test suite under `scripts/` and `skills/`
+ * by shape (`*.test.js` / `*.test.mjs`), instead of an enumerated allowlist.
+ *
+ * The allowlist this replaces drifted twice: the `actioNN/` -> `skills/`
+ * consolidation left skill suites ungated through a green CI run, and eight
+ * further suites (export-console, guard-text-encoding, git-visible,
+ * mcp-config-adapter, skills-manager, template-catalog, upgrade-check,
+ * backup-workspace) were added afterwards and never wired in. Discovering them
+ * by filename means a new suite is gated the moment it exists.
+ *
+ * Suites that do NOT match the pattern stay wired explicitly below
+ * (`nn-trannsform/test/run.js`, `specs/scripts/test-vocabulary.js`), as do the
+ * `--check` drift guards, whose ordering is load-bearing.
+ *
+ * @param {string} dir - Absolute directory to walk.
+ * @param {string[]} [found] - Accumulator.
+ * @returns {string[]} Repo-relative POSIX paths, sorted for a stable run order.
+ */
+function collectTestSuites(dir, found = []) {
+  if (!fs.existsSync(dir)) return found;
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    // skills/nn-trannsform ships its own dependency tree; never walk into it.
+    if (entry.name === 'node_modules') continue;
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) collectTestSuites(full, found);
+    else if (/\.test\.(js|mjs)$/.test(entry.name)) found.push(full);
+  }
+  return found.sort();
+}
+
+/**
  * Executes a verification step synchronously, tracking output and halting on error.
  * @param {string} cmd - CLI command string to execute.
  * @param {string} desc - Descriptive label for the verification step.
@@ -98,15 +129,29 @@ function runVerification(options = {}) {
     process.exit(1);
   }
   console.log(`▶ MCP Version Square: v${versionSquare.version} (6-way) in sync.`);
-  run('node scripts/version-square.test.js', 'Test MCP Version Square');
 
-  // 0b. Root manifest suites: generator, validator, and parity coverage. These
-  //     run under CI's test job but were not part of the deterministic gate, so a
-  //     broken manifest render or parity rule could pass `verify.js` unnoticed.
-  //     Wiring invokes the existing suites; their assertions are not duplicated.
-  run('node scripts/manifest/generate-manifest.test.js', 'Test Manifest Generator');
-  run('node scripts/manifest/validate-manifest.test.js', 'Test Manifest Validator');
-  run('node scripts/manifest/check-parity.test.js', 'Test Manifest Parity');
+  // 0b. Every `*.test.js` / `*.test.mjs` suite under scripts/ and skills/,
+  //     discovered by shape rather than enumerated. These are self-contained
+  //     unit suites with no ordering dependency on each other or on the drift
+  //     guards below, so they run first: a broken tester should fail before the
+  //     slower network- and git-dependent steps. Ordering-sensitive checks
+  //     (every `--check` invocation) stay in their numbered positions.
+  const repoRoot = path.join(__dirname, '..');
+  const suites = [
+    ...collectTestSuites(path.join(repoRoot, 'scripts')),
+    ...collectTestSuites(path.join(repoRoot, 'skills')),
+  ];
+  console.log(`
+▶ Discovered ${suites.length} script/skill test suites.`);
+  for (const suite of suites) {
+    const rel = path.relative(repoRoot, suite).split(path.sep).join('/');
+    run(`node ${rel}`, `Test ${rel}`);
+  }
+
+  // 0c. Suites whose filenames do not match the `*.test.*` shape, so the
+  //     discovery above cannot find them. Keep them explicit.
+  run('node skills/nn-trannsform/test/run.js', 'Test nn-trannsform Skill Suite');
+  run('node iNNfo/specs/scripts/test-vocabulary.js', 'Test Canonical Vocabulary Guard');
 
 // 1. Template Inventory Guard: ensure every template folder is declared in manifest/source.yaml
   const templatesDir = path.join(__dirname, '..', 'iNNfo', 'specs', 'templates');
@@ -156,31 +201,12 @@ function runVerification(options = {}) {
   // 4. Script static type checking
   run('tsc --noEmit -p tsconfig.scripts.json', 'Typecheck Scripts');
 
-  // 5. Preflight workspace freshness + the single-classifier drift guards. These
-  //    run BEFORE the stable-manifest validation (step 6) because that step
-  //    currently halts on pre-existing pinned-tag drift — the guards here must
-  //    stay reachable in CI (W2/W3 from the slice-1 verify report).
-  run('node skills/nn-preflight/scripts/preflight-check.test.js', 'Test Preflight Workspace Freshness');
-
-  // 5b. Skill suites: these existed and passed but were never gated anywhere
-  //     (no CI job touches skills/, and this was the only skill suite verify.js
-  //     ran). A dangling path in skill-contract.test.js crashed with ENOENT
-  //     unnoticed through a full green CI run after the actioNN/ -> skills/
-  //     consolidation; wiring them here closes that gap the same way step 0b
-  //     closed it for the root manifest suites.
-  run('node skills/nn-trannsform/test/run.js', 'Test nn-trannsform Skill Suite');
-  run('node skills/nn-workspace-git/test/skill-contract.test.js', 'Test nn-workspace-git Skill Contract');
-
-  // 5c. Canonical vocabulary guard: same ungated-suite story. It asserts every
-  //     stable identifier in iNNfo/specs/vocabulary.json still resolves on
-  //     disk, which is exactly the contract a directory consolidation breaks.
-  run('node iNNfo/specs/scripts/test-vocabulary.js', 'Test Canonical Vocabulary Guard');
-
-  // 6. Preflight Primitives Drift Guard: the committed version-status.generated.cjs
+  // 5. Preflight Primitives Drift Guard: the committed version-status.generated.cjs
   //    must match the innfo-core source it is bundled from (single classifier, no
-  //    hand-maintained copy). Plus its own unit tests, wired here so the drift
-  //    guard has automated teeth.
-  run('node scripts/build-preflight-primitives.test.mjs', 'Test Preflight Primitives Build');
+  //    hand-maintained copy). Its unit tests run in step 0b with the rest; this is
+  //    the drift check against the real bundle. Runs BEFORE the stable-manifest
+  //    validation (step 9), which halts on pre-existing pinned-tag drift and would
+  //    otherwise make this unreachable in CI (W2/W3, slice-1 verify report).
   run('node scripts/build-preflight-primitives.mjs --check', 'Check Preflight Primitives Bundle Fresh');
 
   // 7. Template Catalog Drift Guard: the committed iNNfo/specs/templates/catalog.json
@@ -194,14 +220,12 @@ function runVerification(options = {}) {
   run('node scripts/build-trannsform-slug-mirror.mjs --check', 'Check Trannsform Slug Mirror Fresh');
 
   // 7c. Samples SSOT Drift Guard: ensure template sample files match _samples_nn/models/ SSOT
-  run('node scripts/sync-samples.test.mjs', 'Test Samples Synchronization');
   run('node scripts/sync-samples.mjs --check', 'Check Samples Parity with _samples_nn');
 
   // 7d. Template Version SSOT Drift Guard: ensure SHIPPED_TEMPLATE_VERSIONS and
   //     manifest/source.yaml versions match iNNfo/specs/templates/*/spec_NN.md.
   //     Runs before step 8 so a stale manifest/source.yaml fails here first,
   //     not as a confusing rendered-doc diff.
-  run('node scripts/sync-template-versions.test.mjs', 'Test Template Version Sync');
   run('node scripts/sync-template-versions.mjs --check', 'Check Template Version Parity with Specs');
 
   // 8. Rendered stable manifest doc must be in sync with manifest/source.yaml.
@@ -220,12 +244,6 @@ function runVerification(options = {}) {
   } else {
     console.log('\n▶ Skipping live stable-manifest validation (dev mode; run with --release after tagging).');
   }
-
-  // 10. Test Template Inventory Guard
-  run('node scripts/verify-inventory.test.js', 'Test Template Inventory Guard');
-
-  // 11. Test Template Immutability Guard
-  run('node scripts/guard-template-immutability.test.js', 'Test Template Immutability Guard');
 
   // 12. Template Immutability Guard (against real git state)
   run('node scripts/guard-template-immutability.js', 'Template Immutability Guard');

@@ -11,25 +11,21 @@ documentation and stable-tag shape.
 
 ### Requirement: Manifest suites in deterministic verification
 
-`scripts/verify.js` MUST execute the existing root manifest test suites before
-reporting deterministic verification as successful.
+`scripts/verify.js` MUST dynamically discover and execute all conforming root test suites matching `*.test.js` and `*.test.mjs` (excluding `node_modules`), along with any explicitly registered non-conforming test runners, before reporting deterministic verification as successful.
 
-#### Scenario: All manifest suites run
+#### Scenario: All manifest and script test suites run via dynamic discovery
 
-- **GIVEN** `node scripts/verify.js`
-- **WHEN** deterministic verification reaches the manifest checks
-- **THEN** it SHALL execute:
-  - `node scripts/manifest/generate-manifest.test.js`
-  - `node scripts/manifest/validate-manifest.test.js`
-  - `node scripts/manifest/check-parity.test.js`
-- **AND** any nonzero exit SHALL fail verification.
+- **GIVEN** `node scripts/verify.js` is invoked
+- **WHEN** deterministic verification performs test suite discovery across root script and skill directories
+- **THEN** it SHALL dynamically discover and execute all conforming files matching `*.test.js` and `*.test.mjs` (including root manifest test suites and `scripts/lib/shared-libs.test.js`) while excluding `node_modules`
+- **AND** it SHALL execute explicitly registered non-conforming suites (`skills/nn-trannsform/test/run.js`, `iNNfo/specs/scripts/test-vocabulary.js`)
+- **AND** any nonzero exit SHALL immediately fail deterministic verification.
 
 #### Scenario: Existing manifest suites are not replaced
 
-- **GIVEN** the wired suites
+- **GIVEN** the discovered test suites
 - **WHEN** they pass
-- **THEN** the implementation SHALL NOT duplicate their assertions in
-  `scripts/verify.js`.
+- **THEN** the implementation SHALL NOT duplicate their assertions in `scripts/verify.js`.
 
 ### Requirement: Tracked-text encoding guard
 
@@ -147,3 +143,28 @@ validate.
 - **THEN** the tag SHALL match the repository snapshot shape requiring `-v`
   before the semantic version, for example `innfo-console-v0.1.0`.
 - **AND** a non-`-v` stable tag SHALL stop the release flow.
+
+### Requirement: Comprehensive template version synchronization and verification
+
+`npm run sync:versions` MUST regenerate all generated artifacts invalidated by template version changes (including `iNNfo/specs/templates/catalog.json`), and `npm run check:versions` MUST verify the freshness of all generated artifacts (including `catalog.json`) against their source definitions.
+
+#### Scenario: Sync regenerates template catalog alongside version copies and manifest
+
+- **GIVEN** a template version bump or template file modification
+- **WHEN** `npm run sync:versions` is executed
+- **THEN** it SHALL synchronize template version copies (`scripts/sync-template-versions.mjs`)
+- **AND** it SHALL generate the stable manifest (`scripts/manifest/generate-manifest.js --channel stable`)
+- **AND** it SHALL regenerate `iNNfo/specs/templates/catalog.json` via `scripts/template-catalog.mjs`.
+
+#### Scenario: Version freshness check detects stale template catalog
+
+- **GIVEN** `iNNfo/specs/templates/catalog.json` is missing or out-of-sync with template definitions
+- **WHEN** `npm run check:versions` is executed
+- **THEN** it SHALL detect the catalog drift via `scripts/template-catalog.mjs --check`
+- **AND** it SHALL exit with a non-zero status code.
+
+#### Scenario: Version check passes when all artifacts are synchronized
+
+- **GIVEN** template version copies, stable manifest, and template catalog are all up-to-date
+- **WHEN** `npm run check:versions` is executed
+- **THEN** all three verification steps SHALL pass with exit code 0.

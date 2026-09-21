@@ -61,7 +61,9 @@ work from abandoned work.
 ### Requirement: CI-verified batches before merge
 
 A `dev -> main` batch MUST carry a green CI signal on the exact commits being
-merged. Unverified batches SHALL NOT land.
+merged. Unverified batches SHALL NOT land. Local pre-push verification procedures
+in maintainer skills MUST invoke genuine catalog and integrity guards rather than
+commands that omit catalog validation.
 
 #### Scenario: Dev CI covers the batch
 
@@ -78,9 +80,16 @@ merged. Unverified batches SHALL NOT land.
   documented full local rehearsal (`check-integrity --pre-push` green on the
   tip) recorded in the merge report.
 
+#### Scenario: Pre-push verification executes genuine catalog guard
+
+- **GIVEN** a maintainer executes pre-push verification per `nn-dev-development` §4e
+- **WHEN** verifying catalog and template freshness locally
+- **THEN** the documented procedure SHALL instruct running the actual catalog guard command (`npm run check:versions` or `node scripts/verify.js`)
+- **AND** the procedure SHALL NOT refer to `node scripts/check-integrity.js` as detecting catalog staleness.
+
 ### Requirement: Merge gate on target health
 
-The merge MUST NOT land on a red or moving target.
+The merge MUST NOT land on a red or moving target. All pre-merge comparisons and diff inspections MUST compare remote tracking refs (`origin/main..origin/dev`) rather than local branch refs to avoid stale local ref drift.
 
 #### Scenario: Target is red or advanced
 
@@ -90,6 +99,13 @@ The merge MUST NOT land on a red or moving target.
 - **THEN** the skill SHALL block with ❌, distinguishing "red caused by this
   batch" (fix-forward on `dev` first, re-verify) from "pre-existing red"
   (record a maintainer-approved exception with the failing run id).
+
+#### Scenario: Diff inspection uses remote tracking references
+
+- **GIVEN** a maintainer evaluates unmerged commits or checks pre-merge template coherence
+- **WHEN** comparing changes between `main` and `dev`
+- **THEN** the procedure SHALL compare `origin/main..origin/dev`
+- **AND** the procedure SHALL NOT compare local `main` due to server-side push staleness.
 
 ### Requirement: Complete definition of deployed
 
