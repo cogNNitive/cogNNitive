@@ -48,6 +48,18 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # Detection, not pre-merge prevention: this step evaluates state already
+      # merged to `main` against the pinned template tag. It does not evaluate
+      # an unmerged PR's prospective effect on `main`, so a red run here is the
+      # first automated signal of drift after a merge, not a gate that could
+      # have stopped it before.
+      - name: Stable-manifest coherence check (dev)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+        continue-on-error: true
+        run: node scripts/manifest/validate-manifest.js --channel stable
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       # Hand the built docs to deploy-pages so Pages publishes exactly what this
       # job verified instead of rebuilding. Only produced on main (the only ref
       # deploy-pages runs on).
