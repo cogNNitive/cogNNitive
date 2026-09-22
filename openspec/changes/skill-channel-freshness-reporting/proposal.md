@@ -152,7 +152,9 @@ different files. See `design.md` ADR-001.
 - **The stable-channel tag-pinning model STAYS.** Pinning to tags is the desired behavior. Nothing
   here proposes tracking `main`, auto-updating from `main`, or weakening the channel.
 - **No new blocking gate.** The freshness signal never changes an exit code (see below).
-- **No new `api.github.com` calls anywhere.** Slice 1 is local git; Slice 3 is an existing fetch.
+- **No new `api.github.com` calls anywhere.** Slice 1 is local git; Slice 2's one new fetch targets
+  the Pages origin (`cognnitive.com`), reusing the existing `fetchWithTimeout` helper and budget — not
+  `api.github.com`.
 - **No extension of `checkTemplateMainCoherence`.** Superseded, for the four reasons tabulated above.
 - **No new dependency**, in the repo or in the distributed skill.
 
@@ -230,20 +232,20 @@ and the scope should be cut back to Slice 1.
 
 | Risk | Severity | Note / mitigation |
 | :-- | :-- | :-- |
-| **UNVERIFIED — CI checkout lacks tags.** `actions/checkout@v4` at `ci.yml:21` uses the default shallow checkout with no `fetch-depth`/`fetch-tags`. If tags are absent, `git log <tag>..HEAD` fails or silently miscomputes | High | Verify before implementing; add `fetch-depth: 0` (or `fetch-tags: true` with sufficient depth). Note `nn-dev-release` Option [a] runs on a maintainer's **full local clone** — the two environments are not equivalent and this has likely never been exercised in CI |
-| **UNVERIFIED — `yaml-lite` tolerance for unknown keys.** `preflight-check.js:34` imports `./lib/yaml-lite`, NOT the maintainer `scripts/lib/yaml-parser.js`. Known repo hazard: the two frontmatter parsers diverge | High | Check `yaml-lite.js` handling of unknown top-level keys **before** assuming Slice 3 can read Slice 2's fields. Either add the fields to both parsers or confirm opaque passthrough |
-| **`github-client.js` / `resolveRef` test coverage is not what it looks like.** Its tests stub `https.get`, so migrating the client to global `fetch` silently **disables** the `resolveRef` tests instead of failing them. Slice 2 touches `generate-manifest.js`, which calls `resolveRef` | High | Treat the client and its tests as **ONE work unit**. Do not assume existing tests still cover `resolveRef`; verify the tests actually execute before relying on them |
+| **VERIFIED BROKEN — CI checkout lacks tags.** `actions/checkout@v4` at `ci.yml:21` is a bare `- uses: actions/checkout@v4` with no `with:` block, so it defaults to `fetch-depth: 1`, `fetch-tags: false` — no tags at all. `git log <tag>..HEAD` (or `git rev-list --count`) would fail with `unknown revision` | High | **Confirmed, not a guess.** Required fix: `with: { fetch-depth: 0 }` on the `verify` job's checkout only (`ci.yml:21`) — the `quality`, `spec-integrity`, and `deploy-pages` checkouts are untouched. `fetch-tags: true` at depth 1 was considered and rejected: it fetches tag *refs* onto a shallow graft, so `<tag>..HEAD` has no common ancestry and **silently miscounts** — worse than failing outright. `nn-dev-release` Option [a] runs on a maintainer's full local clone, so this path had genuinely never been exercised in CI. **Real cost, stated plainly: `fetch-depth: 0` gives the `verify` job a full-history clone on every push and PR, replacing a single-commit one — that is the one genuine price this change imposes on CI, and it should stay visible rather than be buried in a mitigation note.** |
+| **VERIFIED TOLERANT, and now moot — `yaml-lite` unknown-key handling.** `preflight-check.js:34` imports `./lib/yaml-lite`, NOT the maintainer `scripts/lib/yaml-parser.js` | Closed | Read in full: `yaml-lite.js:107-120`'s `parseFocusedYaml` builds `result[key] = value` for every key it matches — a generic map builder with no allowlist, unknown top-level keys pass through unconditionally. **No change to `yaml-lite.js` would have been needed even under the original manifest-embedding plan.** It is also now moot: `preflight-check.js` never reads manifest frontmatter for freshness at all (manifest embedding was cut — see above); it fetches `freshness.json` directly via `JSON.parse`, which yields real numbers regardless of `yaml-lite`. The one real divergence worth recording for posterity: `parseScalar` (`yaml-lite.js:8-24`) never returns a number (a frontmatter `commitsSincePin: 9` would arrive as the string `"9"`) — not worked around, simply no longer on the path. |
+| **No longer applicable — `github-client.js` / `resolveRef` test coverage.** Originally flagged because the (now-deleted) manifest-embedding slice would have touched `generate-manifest.js`, which calls `resolveRef` | N/A | `generate-manifest.js` and `github-client.js` are untouched by this change (manifest embedding was cut). The underlying hazard — `resolveRef`'s tests stub `https.get`, so a future migration to global `fetch` would silently disable rather than fail them — remains true of the codebase but is out of scope here and not triggered by anything in this change. |
 | **Per-subsystem tag prefixes must be respected.** `skills-v*`, `templates-v*`, `innfo-mcp-v*`, `innfo-console-v*` (`nn-dev-release/SKILL.md:65-72`). A naive repo-wide "since last tag" number would misattribute, e.g. an iNNfo Suite release's commits counted as skills drift | Medium | Compute per subsystem against its own last matching tag. Current latest: `skills-v2.0.0`, `templates-v0.10.3`, `innfo-mcp-v0.9.0`, `innfo-console-v0.2.0` |
-| **Offline degrade not implemented exactly.** Getting this wrong produces spurious blockers on flaky networks | Medium | Mirror `preflight-check.js:920-934` literally; see the contract table above. Low risk if followed |
+| **Offline degrade not implemented exactly.** Getting this wrong produces spurious blockers on flaky networks | Medium | Mirror `preflight-check.js:920-934` literally for the manifest-unreachable case; see the contract table above for the (stricter, silent) freshness-fetch case. Low risk if followed |
 | **Windows error-message precedent.** `replaceDirAtomic` (`atomic-fs.js:78-83`) already carries a Windows-specific `EBUSY`/`EPERM` message for locked directories (AV / editor holding a handle) — a recurring real issue on this project | Low | Any new file-writing code follows that error-message precedent, not a raw stack trace. (`saveJsonAtomic` uses `path.join` + `fs.renameSync`; same-volume rename is atomic on NTFS, no special-casing needed) |
-| Published `freshness.json` goes stale if the CI job silently stops running | Low | Include `pinnedTagDate` and generation timestamp so a stale file is legible rather than confidently wrong |
+| Published `freshness.json` goes stale if the CI job silently stops running | Low | Include `pinnedTagDate` and generation timestamp so a stale file is legible rather than confidently wrong; the tag-equality guard (ADR-005) makes a stale file self-silencing after the next repin |
 
 ## Rollback
 
-Each slice reverts independently: delete the CI step and script (the JSON simply stops updating);
-revert the `generate-manifest.js` change (frontmatter fields disappear); revert the preflight line
-(Slice 3 already omits silently when fields are absent, so an older nn-preflight in the wild is
-already forward-compatible). No data migration, no build-artifact change, nothing irreversible.
+Each slice reverts independently: delete the CI step and script (the JSON simply stops updating and
+Slice 2's fetch degrades to its silent-omission path, ADR-005); revert the preflight line (Slice 2
+already omits silently when the fetch fails or the fields are absent, so an older nn-preflight in the
+wild is already forward-compatible). No data migration, no build-artifact change, nothing irreversible.
 
 ## Success criteria
 
