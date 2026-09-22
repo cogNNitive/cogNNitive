@@ -44,7 +44,7 @@ const SKIP_DIRS = new Set(['samples', 'node_modules', '.git', 'dist', '.spec-cac
  * `frozen` object and dropped from `templates` (so nn-preflight upgrade-check —
  * which reads only `catalog.templates` — gives them no upgrade notices).
  */
-const FROZEN_NAMES = ['cogNNitive', 'base'];
+const FROZEN_NAMES = ['cogNNitive', 'base', 'video-generator'];
 
 function parseFrontmatter(text) {
   const m = text.match(/^---\r?\n([\s\S]*?)\r?\n---/);

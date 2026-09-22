@@ -65,6 +65,10 @@ export const SAMPLE_MAPPINGS = [
   {
     source: 'Ghostbusters_video-generator_NN.md',
     target: path.join('video-generator', 'samples', 'Ghostbusters_V_0-1-0_video-generator_NN.md')
+  },
+  {
+    source: 'Ghostbusters_video_NN.md',
+    target: path.join('video', 'samples', 'Ghostbusters_V_0-1-0_video_NN.md')
   }
 ];
 

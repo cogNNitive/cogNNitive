@@ -244,6 +244,7 @@ describe('iNNfo_V_0-2-1 — metaschema still self-consistent (task G)', () => {
       'templates/business/spec_NN.md',
       'templates/organization/spec_NN.md',
       'templates/projects/spec_NN.md',
+      'templates/video/spec_NN.md',
     ]) {
       const errors = validateTemplateAgainstMetaschema(readSpec(rel), iNNfoV21).filter(
         (d) => d.severity === 'error',

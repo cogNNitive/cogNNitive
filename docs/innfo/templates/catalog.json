@@ -111,10 +111,10 @@
     },
     "procedures": {
       "name": "procedures",
-      "adopted": "V_0-2-1",
+      "adopted": "V_0-2-2",
       "versions": [
         {
-          "template_version": "V_0-2-1",
+          "template_version": "V_0-2-2",
           "spec_version": "V_0-2-1",
           "title": "Procedures App",
           "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/procedures/spec_NN.md"
@@ -123,10 +123,10 @@
     },
     "projects": {
       "name": "projects",
-      "adopted": "V_0-2-1",
+      "adopted": "V_0-2-2",
       "versions": [
         {
-          "template_version": "V_0-2-1",
+          "template_version": "V_0-2-2",
           "spec_version": "V_0-2-1",
           "title": "Projects App",
           "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/projects/spec_NN.md"
@@ -157,15 +157,15 @@
         }
       ]
     },
-    "video-generator": {
-      "name": "video-generator",
-      "adopted": "V_0-1-1",
+    "video": {
+      "name": "video",
+      "adopted": "V_0-1-0",
       "versions": [
         {
-          "template_version": "V_0-1-1",
+          "template_version": "V_0-1-0",
           "spec_version": "V_0-2-1",
-          "title": "Video Generator App",
-          "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/video-generator/spec_NN.md"
+          "title": "Video App",
+          "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/video/spec_NN.md"
         }
       ]
     },
@@ -204,6 +204,18 @@
           "spec_version": "V_0-2-1",
           "title": "cogNNitive Template",
           "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/cogNNitive/spec_NN.md"
+        }
+      ]
+    },
+    "video-generator": {
+      "name": "video-generator",
+      "adopted": "V_0-1-1",
+      "versions": [
+        {
+          "template_version": "V_0-1-1",
+          "spec_version": "V_0-2-1",
+          "title": "Video Generator App",
+          "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/video-generator/spec_NN.md"
         }
       ]
     }
