@@ -16,9 +16,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
 const http = require('node:http');
-const https = require('node:https');
 const { spawnSync } = require('node:child_process');
-const { EventEmitter } = require('node:events');
 
 const yamlParser = require('./yaml-parser');
 const githubClient = require('./github-client');
@@ -207,51 +205,38 @@ async function testGithubClient() {
     await new Promise(resolve => server.close(resolve));
   }
 
-  // resolveRef using stubbed https.get
+  // resolveRef using a stubbed globalThis.fetch
+  // (apiRequest -> resolveRef's only transport call is global fetch; stub it directly
+  // so these assertions actually exercise the code under test)
   {
-    const originalGet = https.get;
+    const originalFetch = globalThis.fetch;
+    const fakeResponse = (status, body) => ({
+      status,
+      text: async () => JSON.stringify(body),
+    });
     try {
       // 1. Lightweight tag resolution
-      https.get = (url, options, callback) => {
-        const res = new EventEmitter();
-        res.statusCode = 200;
-        const req = new EventEmitter();
-        process.nextTick(() => {
-          callback(res);
-          res.emit('data', JSON.stringify({
-            ref: 'refs/tags/v1.0.0',
-            object: { sha: '1111111111111111111111111111111111111111', type: 'commit' },
-          }));
-          res.emit('end');
-        });
-        return req;
-      };
+      globalThis.fetch = async () => fakeResponse(200, {
+        ref: 'refs/tags/v1.0.0',
+        object: { sha: '1111111111111111111111111111111111111111', type: 'commit' },
+      });
       const resLightweight = await githubClient.resolveRef('owner/repo', 'v1.0.0');
       assert.strictEqual(resLightweight.sha, '1111111111111111111111111111111111111111');
       assert.strictEqual(resLightweight.kind, 'tag');
 
       // 2. Annotated tag peel
       let callCount = 0;
-      https.get = (url, options, callback) => {
+      globalThis.fetch = async () => {
         callCount++;
-        const res = new EventEmitter();
-        res.statusCode = 200;
-        const req = new EventEmitter();
-        process.nextTick(() => {
-          callback(res);
-          if (callCount === 1) {
-            res.emit('data', JSON.stringify({
-              ref: 'refs/tags/v2.0.0',
-              object: { sha: 'tagobjectsha', type: 'tag' },
-            }));
-          } else {
-            res.emit('data', JSON.stringify({
-              object: { sha: '2222222222222222222222222222222222222222', type: 'commit' },
-            }));
-          }
-          res.emit('end');
+        if (callCount === 1) {
+          return fakeResponse(200, {
+            ref: 'refs/tags/v2.0.0',
+            object: { sha: 'tagobjectsha', type: 'tag' },
+          });
+        }
+        return fakeResponse(200, {
+          object: { sha: '2222222222222222222222222222222222222222', type: 'commit' },
         });
-        return req;
       };
       const resAnnotated = await githubClient.resolveRef('owner/repo', 'v2.0.0');
       assert.strictEqual(resAnnotated.sha, '2222222222222222222222222222222222222222');
@@ -259,60 +244,31 @@ async function testGithubClient() {
 
       // 3. Branch fallback
       callCount = 0;
-      https.get = (url, options, callback) => {
+      globalThis.fetch = async () => {
         callCount++;
-        const res = new EventEmitter();
-        res.statusCode = callCount === 1 ? 404 : 200;
-        const req = new EventEmitter();
-        process.nextTick(() => {
-          callback(res);
-          if (callCount === 1) {
-            res.emit('data', JSON.stringify({ message: 'Not Found' }));
-          } else {
-            res.emit('data', JSON.stringify({
-              ref: 'refs/heads/main',
-              object: { sha: '3333333333333333333333333333333333333333', type: 'commit' },
-            }));
-          }
-          res.emit('end');
+        if (callCount === 1) {
+          return fakeResponse(404, { message: 'Not Found' });
+        }
+        return fakeResponse(200, {
+          ref: 'refs/heads/main',
+          object: { sha: '3333333333333333333333333333333333333333', type: 'commit' },
         });
-        return req;
       };
       const resBranch = await githubClient.resolveRef('owner/repo', 'main');
       assert.strictEqual(resBranch.sha, '3333333333333333333333333333333333333333');
       assert.strictEqual(resBranch.kind, 'branch');
 
       // 4. Rate limited
-      https.get = (url, options, callback) => {
-        const res = new EventEmitter();
-        res.statusCode = 403;
-        const req = new EventEmitter();
-        process.nextTick(() => {
-          callback(res);
-          res.emit('data', JSON.stringify({ message: 'API rate limit exceeded' }));
-          res.emit('end');
-        });
-        return req;
-      };
+      globalThis.fetch = async () => fakeResponse(403, { message: 'API rate limit exceeded' });
       const resRateLimit = await githubClient.resolveRef('owner/repo', 'main');
       assert.match(resRateLimit.error, /rate limit hit/);
 
       // 5. Neither tag nor branch found
-      https.get = (url, options, callback) => {
-        const res = new EventEmitter();
-        res.statusCode = 404;
-        const req = new EventEmitter();
-        process.nextTick(() => {
-          callback(res);
-          res.emit('data', JSON.stringify({ message: 'Not Found' }));
-          res.emit('end');
-        });
-        return req;
-      };
+      globalThis.fetch = async () => fakeResponse(404, { message: 'Not Found' });
       const resNotFound = await githubClient.resolveRef('owner/repo', 'missing');
       assert.match(resNotFound.error, /not found as a tag or branch/);
     } finally {
-      https.get = originalGet;
+      globalThis.fetch = originalFetch;
     }
   }
 

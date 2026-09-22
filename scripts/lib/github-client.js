@@ -1,14 +1,13 @@
 /**
  * scripts/lib/github-client.js
  *
- * Zero-dependency Node.js HTTP/HTTPS client for GitHub API and raw content.
+ * Zero-dependency Node.js HTTP client for GitHub API and raw content.
+ * Uses the global `fetch` (Node >=18; repo floor is Node >=20.15).
  * Handles GitHub token authentication, redirects, rate limiting, and git ref resolution.
  */
 
 const fs = require('fs');
 const path = require('path');
-const http = require('http');
-const https = require('https');
 
 const USER_AGENT = 'actioNN-Skills-Updater';
 const RATE_LIMIT_HINT = 'set GITHUB_TOKEN to raise the rate limit';
@@ -32,33 +31,21 @@ function rateLimited(status) {
 }
 
 /**
- * Returns the matching HTTP/HTTPS client for a given URL.
- * @param {string} url
- * @returns {typeof https | typeof http}
- */
-function clientFor(url) {
-  return url.startsWith('http:') ? http : https;
-}
-
-/**
  * Executes a GET request against GitHub REST API and returns status and parsed JSON data.
  * @template T
  * @param {string} url
  * @returns {Promise<{ status: number, data: T | null, error?: string }>}
  */
-function apiRequest(url) {
-  return new Promise((resolve) => {
-    const client = clientFor(url);
-    client.get(url, { headers: { 'User-Agent': USER_AGENT, ...authHeaders() } }, (res) => {
-      let body = '';
-      res.on('data', chunk => body += chunk);
-      res.on('end', () => {
-        let data = null;
-        try { data = JSON.parse(body); } catch (err) { /* non-JSON body */ }
-        resolve({ status: res.statusCode || 0, data });
-      });
-    }).on('error', (err) => resolve({ status: 0, data: null, error: err.message }));
-  });
+async function apiRequest(url) {
+  try {
+    const res = await fetch(url, { headers: { 'User-Agent': USER_AGENT, ...authHeaders() } });
+    const body = await res.text();
+    let data = null;
+    try { data = JSON.parse(body); } catch (err) { /* non-JSON body */ }
+    return { status: res.status, data };
+  } catch (err) {
+    return { status: 0, data: null, error: err.message };
+  }
 }
 
 /**
@@ -67,26 +54,27 @@ function apiRequest(url) {
  * @param {number} [redirectsLeft=5]
  * @returns {Promise<string>}
  */
-function fetchString(url, redirectsLeft = 5) {
-  return new Promise((resolve, reject) => {
-    const client = clientFor(url);
-    const req = client.get(url, { headers: { 'User-Agent': USER_AGENT, ...authHeaders() } }, (res) => {
-      if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-        if (typeof res.resume === 'function') res.resume();
-        if (redirectsLeft <= 0) return reject(new Error(`Too many redirects fetching ${url}`));
-        const nextUrl = new URL(res.headers.location, url).toString();
-        return resolve(fetchString(nextUrl, redirectsLeft - 1));
-      }
-      if (res.statusCode !== 200) {
-        if (typeof res.resume === 'function') res.resume();
-        return reject(new Error(`Failed to fetch ${url}, status: ${res.statusCode}`));
-      }
-      let data = '';
-      res.on('data', chunk => data += chunk);
-      res.on('end', () => resolve(data));
+async function fetchString(url, redirectsLeft = 5) {
+  let currentUrl = url;
+  let left = redirectsLeft;
+
+  for (;;) {
+    const res = await fetch(currentUrl, {
+      redirect: 'manual',
+      headers: { 'User-Agent': USER_AGENT, ...authHeaders() },
     });
-    req.on('error', reject);
-  });
+
+    if (res.status >= 300 && res.status < 400 && res.headers.get('location')) {
+      if (left <= 0) throw new Error(`Too many redirects fetching ${currentUrl}`);
+      currentUrl = new URL(res.headers.get('location'), currentUrl).toString();
+      left -= 1;
+      continue;
+    }
+    if (res.status !== 200) {
+      throw new Error(`Failed to fetch ${currentUrl}, status: ${res.status}`);
+    }
+    return res.text();
+  }
 }
 
 /**
@@ -108,58 +96,42 @@ function fetchJson(url) {
  * @param {number} [redirectsLeft=5]
  * @returns {Promise<void>}
  */
-function downloadFile(url, destPath, redirectsLeft = 5) {
-  return new Promise((resolve, reject) => {
-    const dir = path.dirname(destPath);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
+async function downloadFile(url, destPath, redirectsLeft = 5) {
+  const dir = path.dirname(destPath);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+
+  let currentUrl = url;
+  let left = redirectsLeft;
+
+  for (;;) {
+    const res = await fetch(currentUrl, {
+      redirect: 'manual',
+      headers: { 'User-Agent': USER_AGENT, ...authHeaders() },
+    });
+
+    if (res.status >= 300 && res.status < 400 && res.headers.get('location')) {
+      if (left <= 0) throw new Error(`Too many redirects downloading ${currentUrl}`);
+      currentUrl = new URL(res.headers.get('location'), currentUrl).toString();
+      left -= 1;
+      continue;
+    }
+    if (res.status !== 200) {
+      throw new Error(`Failed to download ${currentUrl}, status: ${res.status}`);
     }
 
-    const file = fs.createWriteStream(destPath);
-    let isCleanedUp = false;
-
-    const cleanup = () => {
-      if (isCleanedUp) return;
-      isCleanedUp = true;
-      file.close();
+    try {
+      const buffer = Buffer.from(await res.arrayBuffer());
+      fs.writeFileSync(destPath, buffer);
+    } catch (err) {
       if (fs.existsSync(destPath)) {
-        try { fs.unlinkSync(destPath); } catch (_) {}
+        try { fs.unlinkSync(destPath); } catch (_) { /* best effort cleanup */ }
       }
-    };
-
-    const client = clientFor(url);
-
-    const req = client.get(url, { headers: { 'User-Agent': USER_AGENT, ...authHeaders() } }, (res) => {
-      if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-        if (typeof res.resume === 'function') res.resume();
-        file.close(() => {
-          if (redirectsLeft <= 0) return reject(new Error(`Too many redirects downloading ${url}`));
-          const nextUrl = new URL(res.headers.location, url).toString();
-          resolve(downloadFile(nextUrl, destPath, redirectsLeft - 1));
-        });
-        return;
-      }
-      if (res.statusCode !== 200) {
-        if (typeof res.resume === 'function') res.resume();
-        cleanup();
-        return reject(new Error(`Failed to download ${url}, status: ${res.statusCode}`));
-      }
-      res.pipe(file);
-      file.on('finish', () => {
-        file.close(() => resolve());
-      });
-    });
-
-    req.on('error', (err) => {
-      cleanup();
-      reject(err);
-    });
-
-    file.on('error', (err) => {
-      cleanup();
-      reject(err);
-    });
-  });
+      throw err;
+    }
+    return;
+  }
 }
 
 /**
