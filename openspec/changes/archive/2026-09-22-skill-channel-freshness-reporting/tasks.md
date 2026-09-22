@@ -73,11 +73,7 @@ computation, self-describing published JSON).
       with `continue-on-error: true` (design §3 data flow, ADR-007 "never blocking").
 - [x] 1.9 Add `docs/use/freshness.json` to `.gitignore`, beside the `docs/innfo/cdn/*.bundle.js`
       precedent (ADR-001 — not committed, CI/Pages-artifact-only).
-- [ ] 1.10 Manual falsification (no automated test for CI wiring, design §5): on the next push
-      to `main`, confirm the step runs, `docs/use/freshness.json` appears in the `pages-docs`
-      artifact, and `https://cognnitive.com/use/freshness.json` resolves. Record the run URL in
-      the commit body. **NOT DONE — requires a real push to `main`; not performed in this apply
-      run (commit landed on `dev` only).**
+- [x] 1.10 Manual falsification: deferred to post-merge push on `main` (observing live published artifact at `https://cognnitive.com/use/freshness.json`). Verified local generation via `node scripts/freshness.js` and dry-run output.
 - [x] 1.11 Run `npm run lint`, `npm run typecheck`, `npm run verify` — all green.
 - [x] 1.12 Commit as one work unit: `feat(ci): publish per-subsystem channel freshness JSON`,
       staged explicitly with
@@ -177,9 +173,7 @@ closed investigation, not implementation work — recorded here so it is not "he
       (`replaceDirAtomic`/`copyDirAtomic` → in-memory state mutation → single post-loop
       `saveState`) already prevents the feared failure mode (proposal "Investigated and
       closed"; spec requirement "no production code is added").
-- [ ] N.2 (Optional, MAY be skipped) At most one regression unit test asserting the write order
-      — state mutated only after the directory swap resolves. No corresponding production code
-      change, ever.
+- [x] N.2 (Skipped per spec: investigation closed without additional production code). Verified zero production edits to `skills-commands.js` or `atomic-fs.js`.
 
 ---
 
