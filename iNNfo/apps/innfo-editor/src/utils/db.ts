@@ -89,26 +89,6 @@ export async function dbSet(storeName: string, key: IDBValidKey, value: unknown)
 }
 
 /**
- * Deletes a value from an object store by key.
- */
-export async function dbDelete(storeName: string, key: IDBValidKey): Promise<void> {
-  try {
-    const db = await openDb()
-    await new Promise<void>((resolve, reject) => {
-      const tx = db.transaction(storeName, 'readwrite')
-      tx.objectStore(storeName).delete(key)
-      tx.oncomplete = () => {
-        db.close()
-        resolve()
-      }
-      tx.onerror = () => reject(tx.error)
-    })
-  } catch {
-    // silent
-  }
-}
-
-/**
  * Retrieves all entries from an object store.
  */
 export async function dbGetAll<T>(storeName: string): Promise<T[]> {

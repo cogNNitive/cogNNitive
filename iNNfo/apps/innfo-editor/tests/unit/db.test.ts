@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import {
   dbGet,
   dbSet,
-  dbDelete,
   dbGetAll,
   dbClear,
   getSessionState,
@@ -102,13 +101,6 @@ describe('db.ts — Generic CRUD operations (R-SP-05)', () => {
     expect(all.find((e) => e.key === 'b')?.value).toBe(2)
   })
 
-  it('dbDelete removes an entry', async () => {
-    await dbSet('session', 'deleteMe', { key: 'deleteMe', value: 'gone' })
-    await dbDelete('session', 'deleteMe')
-    const result = await dbGet('session', 'deleteMe')
-    expect(result).toBeUndefined()
-  })
-
   it('dbClear removes all entries', async () => {
     await dbSet('session', 'x', { key: 'x', value: 1 })
     await dbSet('session', 'y', { key: 'y', value: 2 })
@@ -191,9 +183,5 @@ describe('db.ts — Graceful degradation (R-SP-05)', () => {
 
   it('dbClear on unknown store does not throw', async () => {
     await expect(dbClear('nonExistentStore' as any)).resolves.toBeUndefined()
-  })
-
-  it('dbDelete on unknown store does not throw', async () => {
-    await expect(dbDelete('nonExistentStore' as any, 'key')).resolves.toBeUndefined()
   })
 })
