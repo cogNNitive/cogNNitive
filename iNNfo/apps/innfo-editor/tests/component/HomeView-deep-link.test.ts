@@ -18,13 +18,6 @@ vi.mock('vue-router', () => ({
   }),
 }))
 
-vi.mock('../../src/components/layout/SetupWizard.vue', () => ({
-  default: {
-    name: 'SetupWizard',
-    template: '<div class="mock-setup-wizard"></div>',
-  },
-}))
-
 vi.mock('../../src/stores/historyStore', () => ({
   loadHistory: vi.fn().mockResolvedValue([]),
   addToHistory: vi.fn().mockResolvedValue(undefined),
@@ -47,8 +40,8 @@ describe('HomeView.vue Deep Link Loader', () => {
     const wrapper = shallowMount(HomeView)
 
     expect(wrapper.find('[data-testid="deep-link-loader"]').exists()).toBe(false)
-    expect(wrapper.text()).toContain('iNNfo Editor & Modeler')
-    expect(wrapper.text()).toContain('Open Workspace Folder')
+    expect(wrapper.text()).toContain('cogNNitive Modeler')
+    expect(wrapper.text()).toContain('Open Existing Workspace')
   })
 
   it('renders loading state when model parameter is present in deep link', async () => {
@@ -74,6 +67,6 @@ describe('HomeView.vue Deep Link Loader', () => {
     expect(wrapper.find('[data-testid="deep-link-loader"]').exists()).toBe(true)
     await flushPromises()
     expect(wrapper.find('[data-testid="deep-link-loader"]').exists()).toBe(false)
-    expect(wrapper.text()).toContain('iNNfo Editor & Modeler')
+    expect(wrapper.text()).toContain('cogNNitive Modeler')
   })
 })

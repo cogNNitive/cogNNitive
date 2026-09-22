@@ -17,7 +17,6 @@
 - **Resume** — reopen a previously used workspace from IndexedDB history without re-prompting for folder access.
 - **Starter apps** — bootstrap a new workspace from the Business, Procedures, or Organization starter, or load one of the live sample models (Ghostbusters, Code Review Process, Engineering Team).
 - **Load from URL** — point the editor at a raw `_NN.md` model URL.
-- **SetupWizard** — guides first-time setup of a new workspace.
 
 ## Editing sub-views
 

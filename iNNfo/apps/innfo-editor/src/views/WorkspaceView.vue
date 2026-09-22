@@ -508,13 +508,12 @@ async function runValidation(): Promise<void> {
   }
 }
 
-/** Creates a new model from the sample template. Closes workspace first. */
+/** Exits the sample session and returns to home. */
 function onSampleCreate(): void {
-  const templateName = workspaceStore.sampleTemplateName
   workspaceStore.reset()
   modelStore.setGraph({}, [])
   uiStore.selectNode(null)
-  router.push({ name: 'home', query: { createTemplate: templateName || undefined } })
+  router.push('/')
 }
 
 /** No-op — dismissal state handled by SampleBanner via sessionStorage. */

@@ -13,6 +13,7 @@
   - [Discipline Overlaps](discipline-overlaps)
 
 - **Guides**
+  - [Installing AI Agents](installing-ai-agents)
   - [Usage](usage)
   - [Relationships & Connections](relationships)
   - [Sources, Citations & Lineage](citations-provenance)

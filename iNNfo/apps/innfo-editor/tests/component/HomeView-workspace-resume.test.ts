@@ -19,13 +19,6 @@ vi.mock('vue-router', () => ({
   }),
 }))
 
-vi.mock('../../src/components/layout/SetupWizard.vue', () => ({
-  default: {
-    name: 'SetupWizard',
-    template: '<div class="mock-setup-wizard"></div>',
-  },
-}))
-
 vi.mock('../../src/stores/historyStore', () => ({
   loadHistory: vi.fn().mockResolvedValue([]),
   addToHistory: vi.fn().mockResolvedValue(undefined),
