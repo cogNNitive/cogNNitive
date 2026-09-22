@@ -18,7 +18,14 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
+      # fetch-depth: 0 gives this job full history + all tags, required by
+      # `scripts/freshness.js` (`git rev-list --count <tag>..HEAD -- <path>`).
+      # The default shallow (depth 1, no tags) checkout would fail that lookup
+      # with "unknown revision". Scoped to this job only — quality,
+      # spec-integrity, and deploy-pages stay shallow.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -59,6 +66,15 @@ jobs:
         run: node scripts/manifest/validate-manifest.js --channel stable
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Per-subsystem channel drift (how far main has moved past each
+      # subsystem's pinned stable tag), local git only. Never blocking:
+      # a measurement failure must not redden main or block the Pages
+      # deploy — that would be worse than the silence it replaces.
+      - name: Compute channel freshness
+        if: github.ref == 'refs/heads/main'
+        continue-on-error: true
+        run: node scripts/freshness.js
 
       # Hand the built docs to deploy-pages so Pages publishes exactly what this
       # job verified instead of rebuilding. Only produced on main (the only ref
