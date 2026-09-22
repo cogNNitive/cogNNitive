@@ -34,22 +34,30 @@ function serveManifest(content) {
 
 /** Serve different content per URL path (used for workspace spec freshness scenarios). */
 function serveRoutes(routes) {
+  const requests = [];
   return new Promise((resolve) => {
     const server = http.createServer((req, res) => {
+      requests.push(req.url);
       const route = routes[req.url];
       if (route === undefined) {
         res.writeHead(404);
         res.end('not found');
         return;
       }
-      res.writeHead(200, { 'Content-Type': 'text/markdown' });
-      res.end(route);
+      if (typeof route === 'function') {
+        route(req, res);
+        return;
+      }
+      const isJson = typeof route === 'object' || (typeof route === 'string' && route.trim().startsWith('{'));
+      res.writeHead(200, { 'Content-Type': isJson ? 'application/json' : 'text/markdown' });
+      res.end(typeof route === 'object' ? JSON.stringify(route) : route);
     });
     server.listen(0, '127.0.0.1', () => {
       const { port } = server.address();
       resolve({
         url: `http://127.0.0.1:${port}`,
         routes,
+        requests,
         close: () => new Promise((r) => server.close(r)),
       });
     });
@@ -967,6 +975,333 @@ agent-bootstrap:
       assert.strictEqual(parsedRes.status, 'ACTION_REQUIRED');
       assert.strictEqual(parsedRes.summary.templatesCompositionBlockers, 1);
       console.log('✔ CLI preflight exits 1 with ACTION_REQUIRED when composition blocker is present');
+    } finally {
+      await server.close();
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }
+
+  // Test 24: (a) Freshness data present and pinnedTag matches manifest -> informational line printed, exitCode unchanged
+  {
+    const manifestContent = `---
+agent-bootstrap:
+  version: "2.0"
+  skills:
+    - name: nn-innfo
+      commit: "1111111111111111111111111111111111111111"
+      version: "V_0-1-0"
+      ref: "skills-v2.0.0"
+  templates: []
+---
+`;
+    const freshnessContent = {
+      generatedAt: '2026-09-22T10:00:00Z',
+      head: '2465a8a',
+      subsystems: {
+        skills: {
+          subsystem: 'skills',
+          pinnedTag: 'skills-v2.0.0',
+          pinnedTagDate: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
+          paths: ['skills/'],
+          commitsSincePin: 9,
+          filesTouched: ['skills/nn-router/SKILL.md'],
+        },
+      },
+    };
+
+    const server = await serveRoutes({
+      '/manifest.md': manifestContent,
+      '/use/freshness.json': freshnessContent,
+    });
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'preflight-freshness-match-'));
+    try {
+      const skillsDir = path.join(tmpDir, 'skills');
+      const stateFile = path.join(tmpDir, 'bootstrap-state.json');
+      fs.mkdirSync(path.join(skillsDir, 'nn-innfo'), { recursive: true });
+      fs.writeFileSync(stateFile, JSON.stringify({
+        manifest: `${server.url}/manifest.md`,
+        skills: {
+          'nn-innfo': { commit: '1111111111111111111111111111111111111111', version: 'V_0-1-0' },
+        },
+      }));
+
+      // 1. Human readable output: verify printed line format and exitCode === 0
+      const humanRes = await runScriptAsync([
+        '--skills-dir', skillsDir,
+        '--state-file', stateFile,
+        '--manifest-url', `${server.url}/manifest.md`,
+        '--freshness-url', `${server.url}/use/freshness.json`,
+      ]);
+
+      assert.strictEqual(humanRes.status, 0, 'Exit code must be 0 for up-to-date install with freshness');
+      assert.ok(
+        humanRes.stdout.includes('ℹ️  Channel freshness: skills pinned to skills-v2.0.0 (6 days old); main has 9 later commit(s) touching skills/ — informational, not a blocker.'),
+        `Human output must include canonical freshness line. Got:\n${humanRes.stdout}`
+      );
+      assert.ok(humanRes.stdout.includes('Status: OK'), 'Human output must preserve Status: OK');
+
+      // 2. JSON output: verify exitCode 0 and no error/warning/freshness blocking item added
+      const jsonRes = await runScriptAsync([
+        '--json',
+        '--skills-dir', skillsDir,
+        '--state-file', stateFile,
+        '--manifest-url', `${server.url}/manifest.md`,
+        '--freshness-url', `${server.url}/use/freshness.json`,
+      ]);
+      assert.strictEqual(jsonRes.status, 0);
+      const parsedJson = JSON.parse(jsonRes.stdout);
+      assert.strictEqual(parsedJson.status, 'OK');
+      assert.strictEqual(parsedJson.exitCode, 0);
+      console.log('✔ (a) Freshness data present and matching tag prints informational line without affecting exitCode');
+    } finally {
+      await server.close();
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }
+
+  // Test 25: (b) Freshness fetch fails / times out -> no line, no item, no notice, exitCode unchanged
+  {
+    const manifestContent = `---
+agent-bootstrap:
+  version: "2.0"
+  skills:
+    - name: nn-innfo
+      commit: "1111111111111111111111111111111111111111"
+      version: "V_0-1-0"
+      ref: "skills-v2.0.0"
+  templates: []
+---
+`;
+    // freshness route returns 500 error
+    const server = await serveRoutes({
+      '/manifest.md': manifestContent,
+      '/use/freshness.json': (_req, res) => {
+        res.writeHead(500);
+        res.end('Server Error');
+      },
+    });
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'preflight-freshness-fail-'));
+    try {
+      const skillsDir = path.join(tmpDir, 'skills');
+      const stateFile = path.join(tmpDir, 'bootstrap-state.json');
+      fs.mkdirSync(path.join(skillsDir, 'nn-innfo'), { recursive: true });
+      fs.writeFileSync(stateFile, JSON.stringify({
+        manifest: `${server.url}/manifest.md`,
+        skills: {
+          'nn-innfo': { commit: '1111111111111111111111111111111111111111', version: 'V_0-1-0' },
+        },
+      }));
+
+      const res = await runScriptAsync([
+        '--skills-dir', skillsDir,
+        '--state-file', stateFile,
+        '--manifest-url', `${server.url}/manifest.md`,
+        '--freshness-url', `${server.url}/use/freshness.json`,
+      ]);
+
+      assert.strictEqual(res.status, 0, 'Exit code must remain 0 when freshness fetch fails');
+      assert.ok(!res.stdout.includes('Channel freshness'), 'Must not print channel freshness on failure');
+      assert.ok(!res.stdout.toLowerCase().includes('freshness error'), 'Must silently omit freshness errors');
+      assert.ok(res.stdout.includes('Status: OK'), 'Must preserve Status: OK');
+      console.log('✔ (b) Freshness fetch rejection/timeout silently degrades with no notice and exitCode 0');
+    } finally {
+      await server.close();
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }
+
+  // Test 26: (c) pinnedTag mismatch (stale freshness file) -> no line, no warning
+  {
+    const manifestContent = `---
+agent-bootstrap:
+  version: "2.0"
+  skills:
+    - name: nn-innfo
+      commit: "1111111111111111111111111111111111111111"
+      version: "V_0-1-0"
+      ref: "skills-v2.0.1"
+  templates: []
+---
+`;
+    const staleFreshnessContent = {
+      generatedAt: '2026-09-22T10:00:00Z',
+      head: '2465a8a',
+      subsystems: {
+        skills: {
+          subsystem: 'skills',
+          pinnedTag: 'skills-v2.0.0', // Mismatch vs manifest's skills-v2.0.1
+          pinnedTagDate: '2026-09-16T08:41:12Z',
+          paths: ['skills/'],
+          commitsSincePin: 9,
+          filesTouched: [],
+        },
+      },
+    };
+
+    const server = await serveRoutes({
+      '/manifest.md': manifestContent,
+      '/use/freshness.json': staleFreshnessContent,
+    });
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'preflight-freshness-mismatch-'));
+    try {
+      const skillsDir = path.join(tmpDir, 'skills');
+      const stateFile = path.join(tmpDir, 'bootstrap-state.json');
+      fs.mkdirSync(path.join(skillsDir, 'nn-innfo'), { recursive: true });
+      fs.writeFileSync(stateFile, JSON.stringify({
+        manifest: `${server.url}/manifest.md`,
+        skills: {
+          'nn-innfo': { commit: '1111111111111111111111111111111111111111', version: 'V_0-1-0' },
+        },
+      }));
+
+      const res = await runScriptAsync([
+        '--skills-dir', skillsDir,
+        '--state-file', stateFile,
+        '--manifest-url', `${server.url}/manifest.md`,
+        '--freshness-url', `${server.url}/use/freshness.json`,
+      ]);
+
+      assert.strictEqual(res.status, 0);
+      assert.ok(!res.stdout.includes('Channel freshness'), 'Must not print freshness line on tag mismatch');
+      assert.ok(!res.stdout.toLowerCase().includes('mismatch'), 'Must not print any warning about mismatch');
+      console.log('✔ (c) Pinned tag mismatch silently drops freshness line with no warning');
+    } finally {
+      await server.close();
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }
+
+  // Test 27: (d) malformed JSON -> no line, no throw, exitCode unchanged
+  {
+    const manifestContent = `---
+agent-bootstrap:
+  version: "2.0"
+  skills:
+    - name: nn-innfo
+      commit: "1111111111111111111111111111111111111111"
+      version: "V_0-1-0"
+      ref: "skills-v2.0.0"
+  templates: []
+---
+`;
+    const server = await serveRoutes({
+      '/manifest.md': manifestContent,
+      '/use/freshness.json': '<html>Not JSON</html>',
+    });
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'preflight-freshness-malformed-'));
+    try {
+      const skillsDir = path.join(tmpDir, 'skills');
+      const stateFile = path.join(tmpDir, 'bootstrap-state.json');
+      fs.mkdirSync(path.join(skillsDir, 'nn-innfo'), { recursive: true });
+      fs.writeFileSync(stateFile, JSON.stringify({
+        manifest: `${server.url}/manifest.md`,
+        skills: {
+          'nn-innfo': { commit: '1111111111111111111111111111111111111111', version: 'V_0-1-0' },
+        },
+      }));
+
+      const res = await runScriptAsync([
+        '--skills-dir', skillsDir,
+        '--state-file', stateFile,
+        '--manifest-url', `${server.url}/manifest.md`,
+        '--freshness-url', `${server.url}/use/freshness.json`,
+      ]);
+
+      assert.strictEqual(res.status, 0, 'Malformed JSON must not throw or change exit code');
+      assert.ok(!res.stdout.includes('Channel freshness'), 'Must not print freshness line on malformed JSON');
+      console.log('✔ (d) Malformed freshness JSON is silently ignored without throwing');
+    } finally {
+      await server.close();
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }
+
+  // Test 28: (e) commitsSincePin: 0 -> no line printed for that subsystem
+  {
+    const manifestContent = `---
+agent-bootstrap:
+  version: "2.0"
+  skills:
+    - name: nn-innfo
+      commit: "1111111111111111111111111111111111111111"
+      version: "V_0-1-0"
+      ref: "skills-v2.0.0"
+  templates: []
+---
+`;
+    const zeroDriftFreshness = {
+      generatedAt: '2026-09-22T10:00:00Z',
+      head: '2465a8a',
+      subsystems: {
+        skills: {
+          subsystem: 'skills',
+          pinnedTag: 'skills-v2.0.0',
+          pinnedTagDate: '2026-09-16T08:41:12Z',
+          paths: ['skills/'],
+          commitsSincePin: 0,
+          filesTouched: [],
+        },
+      },
+    };
+
+    const server = await serveRoutes({
+      '/manifest.md': manifestContent,
+      '/use/freshness.json': zeroDriftFreshness,
+    });
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'preflight-freshness-zero-'));
+    try {
+      const skillsDir = path.join(tmpDir, 'skills');
+      const stateFile = path.join(tmpDir, 'bootstrap-state.json');
+      fs.mkdirSync(path.join(skillsDir, 'nn-innfo'), { recursive: true });
+      fs.writeFileSync(stateFile, JSON.stringify({
+        manifest: `${server.url}/manifest.md`,
+        skills: {
+          'nn-innfo': { commit: '1111111111111111111111111111111111111111', version: 'V_0-1-0' },
+        },
+      }));
+
+      const res = await runScriptAsync([
+        '--skills-dir', skillsDir,
+        '--state-file', stateFile,
+        '--manifest-url', `${server.url}/manifest.md`,
+        '--freshness-url', `${server.url}/use/freshness.json`,
+      ]);
+
+      assert.strictEqual(res.status, 0);
+      assert.ok(!res.stdout.includes('Channel freshness'), 'Must not print freshness line when commitsSincePin is 0');
+      console.log('✔ (e) Zero drift reports no line for that subsystem');
+    } finally {
+      await server.close();
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }
+
+  // Test 29: (f) manifest itself unreachable -> freshness fetch never attempted
+  {
+    const server = await serveRoutes({
+      '/manifest.md': (_req, res) => {
+        res.writeHead(500);
+        res.end('Manifest Unreachable');
+      },
+      '/use/freshness.json': { subsystems: {} },
+    });
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'preflight-manifest-unreachable-'));
+    try {
+      const stateFile = path.join(tmpDir, 'bootstrap-state.json');
+      fs.writeFileSync(stateFile, JSON.stringify({ manifest: `${server.url}/manifest.md` }));
+
+      const res = await runScriptAsync([
+        '--state-file', stateFile,
+        '--manifest-url', `${server.url}/manifest.md`,
+        '--freshness-url', `${server.url}/use/freshness.json`,
+      ]);
+
+      assert.ok(res.stdout.includes('Remote manifest unreachable'), 'Must indicate manifest unreachable');
+      assert.ok(
+        !server.requests.includes('/use/freshness.json'),
+        `Freshness URL must NEVER be requested when manifest is unreachable. Requests: ${JSON.stringify(server.requests)}`
+      );
+      console.log('✔ (f) Unreachable manifest skips freshness fetch completely');
     } finally {
       await server.close();
       fs.rmSync(tmpDir, { recursive: true, force: true });

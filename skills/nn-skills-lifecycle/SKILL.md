@@ -45,7 +45,7 @@ declares an `agent-bootstrap.skills` list; each entry pins:
 - `path` — path to the skill inside that repo
 - `requires` (optional) — names of other manifest skills this one depends on
 
-**Installed state (local record)**: `~/.agents/skills-state.json`, one entry per
+**Installed state (local record)**: `~/.agents/bootstrap-state.json`, one entry per
 skill (`{ commit, version, updated_at }`). This file is never authoritative for
 what *should* be installed — only for what *is* installed on this machine.
 Skills install into `~/.agents/skills/{name}/` by default (override with

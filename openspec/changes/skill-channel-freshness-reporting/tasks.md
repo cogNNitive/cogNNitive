@@ -104,57 +104,57 @@ and `specs/skills-lifecycle-state-file-doc-fix/spec.md` (both requirements).
 
 ### RED
 
-- [ ] 2.1 Write/extend `skills/nn-preflight/scripts/preflight-check.test.js`, covering per
+- [x] 2.1 Write/extend `skills/nn-preflight/scripts/preflight-check.test.js`, covering per
       design §5 / spec scenarios:
-  - [ ] (a) freshness present, `pinnedTag` matches the manifest's reported tag → line printed,
+  - [x] (a) freshness present, `pinnedTag` matches the manifest's reported tag → line printed,
         `exitCode` unchanged (spec scenario "pinned tag matches the manifest").
-  - [ ] (b) freshness fetch rejects/times out → no line, no item, no notice, `exitCode`
+  - [x] (b) freshness fetch rejects/times out → no line, no item, no notice, `exitCode`
         unchanged (spec scenario "freshness fetch itself fails or times out" — the case that
         proves the signal cannot block).
-  - [ ] (c) `pinnedTag` mismatch (stale freshness file) → no line, no warning about the mismatch
+  - [x] (c) `pinnedTag` mismatch (stale freshness file) → no line, no warning about the mismatch
         (spec scenario "stale freshness file").
-  - [ ] (d) malformed JSON → no line, no throw (spec scenario "response lacks expected fields").
-  - [ ] (e) `commitsSincePin: 0` → no line printed for that subsystem.
-  - [ ] (f) manifest itself unreachable → freshness fetch never attempted, existing
+  - [x] (d) malformed JSON → no line, no throw (spec scenario "response lacks expected fields").
+  - [x] (e) `commitsSincePin: 0` → no line printed for that subsystem.
+  - [x] (f) manifest itself unreachable → freshness fetch never attempted, existing
         `:920-934` behavior unchanged (spec scenario "manifest unreachable, exit code
         unaffected").
-- [ ] 2.2 Run the suite, confirm each new case fails for the right reason.
+- [x] 2.2 Run the suite, confirm each new case fails for the right reason.
 
 ### GREEN
 
-- [ ] 2.3 Add `FRESHNESS_URL` const pointing at
+- [x] 2.3 Add `FRESHNESS_URL` const pointing at
       `https://cognnitive.com/use/freshness.json` — single URL, no
       `raw.githubusercontent` fallback (ADR-004, the file is not committed so a raw fallback
       would 404 by construction).
-- [ ] 2.4 After the manifest fetch succeeds, issue one guarded
+- [x] 2.4 After the manifest fetch succeeds, issue one guarded
       `fetchWithTimeout(FRESHNESS_URL, 4000)` call (reuse the existing helper/budget, not
       `fetchString` — ADR-004). Any throw / non-JSON / missing-field response is caught and
       produces no item (ADR-005).
-- [ ] 2.5 Implement the anti-alarm guard: print only when
+- [x] 2.5 Implement the anti-alarm guard: print only when
       `freshness.subsystems[key].pinnedTag === <ref the manifest just reported>`. Mismatch or
       absent → silently skip that subsystem (ADR-005).
-- [ ] 2.6 Place the print block with the `templateCatalogOffline` notice at `:1155-1157`,
+- [x] 2.6 Place the print block with the `templateCatalogOffline` notice at `:1155-1157`,
       **before** both early returns (`:1162` manifest-unreachable, `:1174` status-OK) — placing
       it after either makes the line invisible in the common green case (ADR-005, design §3
       "Placement is load-bearing").
-- [ ] 2.7 Print exactly the design §3 line format: pin identity, pin age computed at print time
+- [x] 2.7 Print exactly the design §3 line format: pin identity, pin age computed at print time
       from `pinnedTagDate` (not `generatedAt`, so phrasing cannot go stale), drift count, and
       the "informational, not a blocker" label. Do not render a stale/fresh verdict (spec
       requirement "reports facts, not a verdict").
-- [ ] 2.8 Confirm no assignment to `results.status` or `results.exitCode` anywhere in the new
+- [x] 2.8 Confirm no assignment to `results.status` or `results.exitCode` anywhere in the new
       code path — this absence is asserted by test 2.1(a)/(b) (ADR-005).
-- [ ] 2.9 Confirm all 2.1 cases pass.
+- [x] 2.9 Confirm all 2.1 cases pass.
 
 ### Doc fix (no test — tautological per design §5)
 
-- [ ] 2.10 `skills/nn-skills-lifecycle/SKILL.md:48`: replace
+- [x] 2.10 `skills/nn-skills-lifecycle/SKILL.md:48`: replace
       `~/.agents/skills-state.json` with `~/.agents/bootstrap-state.json`, matching
       `DEFAULT_STATE_FILE` in `preflight-check.js` / `skills-commands.js`. Do not describe
       `skills-state.json` as current — legacy migration source only, if mentioned at all.
-- [ ] 2.11 Manual falsification: `rg skills-state.json skills/nn-skills-lifecycle/` returns only
+- [x] 2.11 Manual falsification: `rg skills-state.json skills/nn-skills-lifecycle/` returns only
       legacy-migration references, none describing it as the current state file.
-- [ ] 2.12 Run `npm run lint`, `npm run typecheck`, `npm run verify` — all green.
-- [ ] 2.13 Commit as one work unit: `feat(nn-preflight): report channel freshness informationally`,
+- [x] 2.12 Run `npm run lint`, `npm run typecheck`, `npm run verify` — all green.
+- [x] 2.13 Commit as one work unit: `feat(nn-preflight): report channel freshness informationally`,
       staged explicitly with
       `git add skills/nn-preflight/scripts/preflight-check.js skills/nn-preflight/scripts/preflight-check.test.js skills/nn-skills-lifecycle/SKILL.md`
       — no wildcard staging.
@@ -172,7 +172,7 @@ forward-compatible").
 **Satisfies:** delta spec `specs/atomic-state-write-investigation-closed/spec.md`. This is a
 closed investigation, not implementation work — recorded here so it is not "helpfully" reopened.
 
-- [ ] N.1 **Do NOT write any production code** in `scripts/lib/skills-commands.js` or
+- [x] N.1 **Do NOT write any production code** in `scripts/lib/skills-commands.js` or
       `scripts/lib/atomic-fs.js` for atomic/ordered state writes. The existing sequence
       (`replaceDirAtomic`/`copyDirAtomic` → in-memory state mutation → single post-loop
       `saveState`) already prevents the feared failure mode (proposal "Investigated and

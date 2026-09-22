@@ -56,6 +56,25 @@ const DEFAULT_TEMPLATE_CATALOG_URL =
 const FALLBACK_TEMPLATE_CATALOG_URL =
   'https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/catalog.json';
 
+/**
+ * Canonical channel freshness summary published by CI on every push to main.
+ * Read-only informational signal: reports pin identity, pin age, and commit drift.
+ * Single URL, no raw.githubusercontent fallback (file is not committed to git, ADR-004).
+ */
+const FRESHNESS_URL = process.env.SM_FRESHNESS_URL ||
+  'https://cognnitive.com/use/freshness.json';
+
+function formatAge(isoDateStr) {
+  if (!isoDateStr) return 'unknown age';
+  const tagTime = new Date(isoDateStr).getTime();
+  if (Number.isNaN(tagTime)) return 'unknown age';
+  const diffMs = Date.now() - tagTime;
+  const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (days <= 0) return '0 days old';
+  if (days === 1) return '1 day old';
+  return `${days} days old`;
+}
+
 function requestFor(url) {
   return url.startsWith('https:') ? https.request : http.request;
 }
@@ -839,6 +858,7 @@ async function runCheck(options = {}) {
       unnormalized: [],
       orphaned: [],
     },
+    freshnessLines: [],
     items: [],
   };
 
@@ -932,6 +952,41 @@ async function runCheck(options = {}) {
       results.exitCode = 1;
     }
     return results;
+  }
+
+  // 2b. Fetch Freshness (informational only, non-blocking, silent on any failure, ADR-004/ADR-005)
+  const targetFreshnessUrl = options.freshnessUrl || FRESHNESS_URL;
+  let freshnessData = null;
+  try {
+    const rawFreshness = await fetchWithTimeout(targetFreshnessUrl, 4000);
+    freshnessData = JSON.parse(rawFreshness);
+  } catch {
+    // Silent omission on any error / timeout / invalid JSON (ADR-005)
+  }
+
+  if (freshnessData && freshnessData.subsystems && typeof freshnessData.subsystems === 'object') {
+    const targets = [
+      { key: 'skills', manifestRef: (manifest.skills.find(s => s && s.ref) || {}).ref },
+      { key: 'templates', manifestRef: (manifest.templates.find(t => t && t.ref) || {}).ref },
+    ];
+    for (const { key, manifestRef } of targets) {
+      const entry = freshnessData.subsystems[key];
+      if (
+        entry &&
+        manifestRef &&
+        entry.pinnedTag === manifestRef &&
+        typeof entry.commitsSincePin === 'number' &&
+        entry.commitsSincePin > 0
+      ) {
+        const age = formatAge(entry.pinnedTagDate);
+        const paths = Array.isArray(entry.paths) && entry.paths.length > 0
+          ? entry.paths.join(', ')
+          : (key === 'skills' ? 'skills/' : 'iNNfo/specs/templates/');
+        results.freshnessLines.push(
+          `ℹ️  Channel freshness: ${key} pinned to ${entry.pinnedTag} (${age}); main has ${entry.commitsSincePin} later commit(s) touching ${paths} — informational, not a blocker.`
+        );
+      }
+    }
   }
 
   const state = loadState(stateFile);
@@ -1156,6 +1211,13 @@ function printHumanReport(results) {
     console.log('ℹ️  Template catalog offline — workspace template upgrade detection skipped (non-blocking).\n');
   }
 
+  if (results.freshnessLines && results.freshnessLines.length > 0) {
+    for (const line of results.freshnessLines) {
+      console.log(line);
+    }
+    console.log('');
+  }
+
   if (!results.manifest.reachable) {
     console.log(`⚠️  Remote manifest unreachable: ${results.manifest.error}`);
     console.log('Operating in offline cache mode.\n');
@@ -1216,6 +1278,7 @@ async function main() {
   const stateFile = getArg('--state-file');
   const workspaceDir = getArg('--workspace-dir');
   const templateCatalogUrl = getArg('--template-catalog-url');
+  const freshnessUrl = getArg('--freshness-url');
 
   try {
     const results = await runCheck({
@@ -1227,6 +1290,7 @@ async function main() {
       stateFile,
       workspaceDir,
       templateCatalogUrl,
+      freshnessUrl,
     });
     if (isJson) {
       console.log(JSON.stringify(results, null, 2));
@@ -1254,4 +1318,6 @@ module.exports = {
   loadState,
   scanWorkspaceSources,
   validateTemplateCompositions,
+  FRESHNESS_URL,
+  formatAge,
 };
