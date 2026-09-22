@@ -80,20 +80,6 @@
                 >
               </template>
             </div>
-            <div v-if="parentSiblings.length > 0" class="mt-2">
-              <span
-                class="text-slate-400 dark:text-slate-500 text-2xs font-semibold uppercase tracking-wider"
-                >Neighborhood:</span
-              >
-              <div class="flex flex-wrap gap-1 mt-1">
-                <span
-                  v-for="sib in parentSiblings"
-                  :key="sib"
-                  class="px-1.5 py-0.5 rounded-full text-2xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
-                  >{{ sib }}</span
-                >
-              </div>
-            </div>
           </div>
         </div>
 
@@ -279,16 +265,6 @@ const treeBreadcrumb = computed(() => {
     current = nextNode
   }
   return crumbs
-})
-
-const parentSiblings = computed(() => {
-  const node = selectedModelNode.value
-  if (!node?.parentId) return []
-  const parent = modelStore.getNode(node.parentId)
-  if (!parent) return []
-  return parent.childIds
-    .map((id) => modelStore.getNode(id)?.name)
-    .filter((n): n is string => !!n && n !== node.name)
 })
 
 const taxonomyFields = computed(() => {
