@@ -1,7 +1,7 @@
 ---
 name: nn-innfo
-version: "V_0-5-1"
-last_updated: 2026-09-12
+version: "V_0-5-2"
+last_updated: 2026-09-22
 metadata:
   source_type: "original"
   mcp: "innfo-mcp"
@@ -708,18 +708,29 @@ The template console procedure (historically referred to as "master.html", "show
 
 Every automated call declares its context budget and intent class. Nothing travels "just in case". Diagnostic codes are defined by `validator-robustness` (referenced, not re-specified).
 
-### 16a. Intent declaration (`intent:`)
+### 16a. Intent declaration (`intent:`) — RESERVED, NOT ENFORCED
 
-Each call MUST declare exactly one intent — `coach`, `surgical`, `verify`, or `match`:
+> **Status (2026-09-22): not implemented.** `intent` is accepted by `read_model`,
+> `validate_model` and `query_units` and is then ignored — no handler reads it,
+> so a declared intent does not change what the server returns. The companion
+> `override_intent` parameter was removed from the tool schemas entirely; because
+> the schemas do not set `additionalProperties: false`, passing it is silently
+> dropped rather than rejected. Do not rely on either to change server behaviour.
+
+A call MAY declare one intent — `coach`, `surgical`, `verify`, or `match` — to
+record the caller's purpose for humans and for future enforcement:
 
 ```yaml
-intent: surgical   # coach | surgical | match | verify; omit = current behavior
-override_intent: verify  # always wins when present
+intent: surgical   # coach | surgical | match | verify; advisory only today
 ```
 
-1. An undeclared intent MUST default to current behavior (no-op) — omission never breaks a call.
-2. A manual override MUST always be available and MUST take precedence over the declared intent. When the declared intent proves wrong mid-task, the operator overrides it and execution continues under the override rules.
-3. Work spanning two intents MUST declare the broader (more expensive) intent.
+1. An undeclared intent MUST default to current behavior — omission never breaks
+   a call. This holds trivially today, since a declared intent is also a no-op.
+2. Work spanning two intents SHOULD declare the broader (more expensive) intent,
+   so the recorded purpose stays honest once enforcement lands.
+3. Context discipline is therefore the CALLER's responsibility right now: the
+   budgets and slice rules in 16b-16c are real obligations on how you build
+   requests, not something the server enforces on your behalf.
 
 ### 16b. Slice-first reads for surgical work
 
