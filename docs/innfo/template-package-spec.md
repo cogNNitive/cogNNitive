@@ -1,6 +1,6 @@
 # Template Package Structure Specification
 
-This document specifies the standard directory structure, asset organization, resolution rules, and composition semantics for **Level 2 Template Packages** across the `cogNNitive` ecosystem (`iNNfo`, `actioNN`, `eNNvironment`).
+This document specifies the standard directory structure, asset organization, resolution rules, and composition semantics for **Level 2 Template Packages** across the `cogNNitive` ecosystem.
 
 ---
 
@@ -44,7 +44,7 @@ Contains agent skill manifests (`SKILL.md`) and associated action logic attached
 ```yaml
 skills:
   - name: "nn-reforma-casa"
-    repo: "cogNNitive/actioNN"
+    repo: "cogNNitive/cogNNitive"
     path: "skills/nn-reforma-casa"
 ```
 
@@ -81,7 +81,7 @@ procedures:
     path: "procedures/audit_NN.md"
 skills:
   - name: "nn-audit"
-    repo: "cogNNitive/actioNN"
+    repo: "cogNNitive/cogNNitive"
     path: "skills/nn-audit"
 ---
 ```

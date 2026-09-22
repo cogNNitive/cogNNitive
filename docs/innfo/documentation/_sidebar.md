@@ -11,9 +11,9 @@
   - [Specifications](specifications)
   - [OKF Compatibility](ecosystem?id=open-knowledge-format-compatibility)
   - [Discipline Overlaps](discipline-overlaps)
+  - [External Tooling & Integrations](integrations)
 
 - **Guides**
-  - [Installing AI Agents](installing-ai-agents)
   - [Usage](usage)
   - [Relationships & Connections](relationships)
   - [Sources, Citations & Lineage](citations-provenance)

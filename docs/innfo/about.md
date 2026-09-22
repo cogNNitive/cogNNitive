@@ -2,7 +2,7 @@
 title: About — iNNfo
 description: Learn about iNNfo, the hub for the iNNfo ecosystem — the iNNfo Modeler, innfo-core, innfo-mcp, and the spec chain.
 html_url: https://cognnitive.com/innfo/about
-generator: https://cognnitive.com/actionn/nn-design-presets
+generator: https://cognnitive.com/skills/nn-design-presets
 ---
 
 # About iNNfo

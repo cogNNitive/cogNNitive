@@ -75,9 +75,9 @@ part of the project. What reads it, and how a change flows through:
 | `@cognnitive/innfo-core` | Parses the parent chain, extracts app schema, validates models | `packages/innfo-core/src/resolver.ts`, `schema.ts`, `validator/` |
 | `innfo-mcp` (MCP server) | Wraps core. Resolves local `specs/` first, then network `fetch`, then persists write-once into `specs/` | `packages/innfo-mcp/src/tools/spec.ts`, `resolver-node.ts` |
 | `innfo-editor` (UI) | `resolveParentSpecs()` — workspace `specs/` handle → dev-only `/specs/…` → network. URLs built from one constant | `apps/innfo-editor/src/services/SpecResolverService.ts`, `utils/constants.ts` |
-| `cogNNitive/actioNN` skill `nn-innfo` | Delegates all resolution/validation to `innfo-mcp`; bundles a copy of `workspace_spec_NN` | `actioNN/skills/nn-innfo/` |
-| `cogNNitive/eNNvironment` manifest | Pins L2 apps by `repo` + `path` + `version` + `commit`; CI validates | `eNNvironment/docs/use/manifest.md` |
-| Docs | Describe the resolver protocol and level system | `docs/documentation/ecosystem.md`, this page |
+| Skills (`skills/nn-innfo`) | Delegates all resolution/validation to `innfo-mcp`; bundles a copy of `workspace_spec_NN` | `skills/nn-innfo/` |
+| Bootstrap manifest | Pins skills and templates by `repo` + `path` + `version` + `commit`; CI validates | `docs/use/manifest.md` |
+| Docs | Describe the resolver protocol and level system | `docs/innfo/documentation/ecosystem.md`, this page |
 
 ### Invariants
 
@@ -107,8 +107,9 @@ The mechanical procedure lives in the dev skill
 5. **URLs.** `npm run check:spec-urls` must stay green (also gated in CI, job `spec-integrity`).
 6. **Apps.** Each L2 app must be compliant with the new L1. Apps that only
    exist at the old version must get a new-version file before the L1 can be made the default.
-7. **Skills.** Sync any bundled copy in `cogNNitive/actioNN` (today: `workspace_spec_NN`) from
-   the canonical file here. Bump `version` + `commit` in `eNNvironment`'s manifest.
+7. **Skills.** Sync any bundled copy under `skills/` (today: `workspace_spec_NN`) from
+   the canonical file here. Bump `version` + `commit` in the bootstrap manifest
+   (`docs/use/manifest.md`).
 8. **Docs.** Update this page's tables and `ecosystem.md`.
 9. **Existing L3 models are not migrated.** They keep resolving their old, immutable parent
    until an author repoints `parent_spec.url`. No silent fallbacks.

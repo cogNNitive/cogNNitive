@@ -59,6 +59,6 @@ If your agent does not have `agent-web-bootstrap` built in (e.g. opencode CLI, o
    6. Show workflow menu
    ```
 
-2. The canonical reference implementation lives in `cogNNitive/actioNN`'s `AGENTS.md` and `.opencode/opencode.json`.
+2. The canonical reference implementation lives in this repository's `AGENTS.md`.
 
 3. Without the rule above, the agent will not recognize the phrase — paste it into your `AGENTS.md` or global `~/.config/opencode/AGENTS.md`.

@@ -31,7 +31,7 @@ When generating or discussing a visual component or web artifact, prompt the use
 🎨 Visual Artifact Style Selection:
 
 Before creating your interface, test and preview all 5 design styles in real time:
-👉 [Open Interactive Design Presets Showcase](file:///d:/LC/github/actioNN/skills/nn-design-presets/demo/index.html)
+👉 [Open Interactive Design Presets Showcase](./demo/index.html)
 
 Which visual design style would you like to apply to this artifact/component?
 

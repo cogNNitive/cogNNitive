@@ -129,7 +129,7 @@ Claims are resolved from the model's `sources::` pointers. When a Source's
 attributes it as *(Porter, 1985, as cited in Doe, 2026)* rather than falsely
 crediting the intermediate document.
 
-Full per-format rules: `actioNN/skills/nn-trannsform/citations.md`.
+Full per-format rules: `skills/nn-trannsform/citations.md`.
 
 ---
 

@@ -18,7 +18,7 @@ title: "cogNNitive Documentation Workspace"
 
 # NN Workspace
 
-The authoritative documentation and web delivery workspace for the cogNNitive ecosystem, encompassing iNNfo specifications, actioNN agent skills, and hosted web applications.
+The authoritative documentation and web delivery workspace for the cogNNitive ecosystem, encompassing iNNfo specifications, agent skills, and hosted web applications.
 
 # NN Models
 
@@ -28,8 +28,8 @@ template:: documentation_V_0-2-0
 status:: active
 author:: cogNNitive Maintainers
 
-## NN Models: actioNN Agent Documentation
-path:: actionn/documentation/documentation_NN.md
+## NN Models: Agent Skills Documentation
+path:: skills/documentation/documentation_NN.md
 template:: documentation_V_0-2-0
 status:: active
 author:: cogNNitive Maintainers

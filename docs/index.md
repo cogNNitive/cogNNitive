@@ -10,7 +10,7 @@ Turn ideas, insights, and data scattered through human brains and computer files
 
 - [Open iNNfo Modeler App](https://cognnitive.com/innfo/app/)
 - [Real-World Use Cases](use-cases.md)
-- [Explore Agent Skills](https://cognnitive.com/actionn)
+- [Explore Agent Skills](https://cognnitive.com/skills)
 
 ---
 

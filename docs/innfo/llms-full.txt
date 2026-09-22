@@ -1,7 +1,7 @@
 # iNNfo â€” Full Site Content
 
 > The hub for the iNNfo ecosystem.
-> Generator: https://cognnitive.com/actionn/nn-design-presets
+> Generator: https://cognnitive.com/skills/nn-design-presets
 
 ---
 

@@ -120,8 +120,8 @@ run(
   'Generate iNNfo Docsify documentation suite from iNNfo model'
 );
 run(
-  'node scripts/generate-docsify-suite.mjs docs/actionn/documentation/documentation_NN.md',
-  'Generate actioNN Docsify documentation suite from iNNfo model'
+  'node scripts/generate-docsify-suite.mjs docs/skills/documentation/documentation_NN.md',
+  'Generate Agent Skills Docsify documentation suite from iNNfo model'
 );
 
 console.log('\n🎉 [cogNNitive Build Docs] All artifacts built and staged successfully.');

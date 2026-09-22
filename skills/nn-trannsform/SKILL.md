@@ -7,7 +7,7 @@ empty_sections_mode: "ask-per-section"
 license: MIT
 metadata:
   source_type: "integrated"
-  source: "https://github.com/cogNNitive/actioNN/tree/main/skills/nn-trannsform"
+  source: "https://github.com/cogNNitive/cogNNitive/tree/main/skills/nn-trannsform"
   installed_at: "2026-08-02"
   depends_on:
     skills: ["nn-innfo"]

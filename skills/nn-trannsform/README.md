@@ -97,4 +97,4 @@ The `SKILL.md` is the primary interface between the skill and the agent. It must
 
 ## Origin
 
-This skill is part of the [`actioNN`](https://github.com/cogNNitive/actioNN) collection at [`skills/nn-trannsform/`](https://github.com/cogNNitive/actioNN/tree/main/skills/nn-trannsform).
+This skill is part of the [`cogNNitive`](https://github.com/cogNNitive/cogNNitive) collection at [`skills/nn-trannsform/`](https://github.com/cogNNitive/cogNNitive/tree/main/skills/nn-trannsform).

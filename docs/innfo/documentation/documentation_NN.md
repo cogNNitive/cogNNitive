@@ -93,7 +93,7 @@ source:: ecosystem.md
 route:: ecosystem
 order:: 10
 parent:: [[Architecture]]
-description:: Holistic view of cogNNitive ecosystem layers (iNNfo, actioNN, eNNvironment).
+description:: Holistic view of cogNNitive ecosystem layers (iNNfo engine, modeler app, agent skills).
 
 ## NN Page: Specifications
 title:: Specifications
@@ -118,6 +118,14 @@ route:: discipline-overlaps
 order:: 40
 parent:: [[Architecture]]
 description:: How cogNNitive overlaps with established disciplines — Model-Driven Engineering, Knowledge Management, Enterprise Architecture, Ontology Engineering, Docs as Code, and Personal Knowledge Management.
+
+## NN Page: Integrations
+title:: External Tooling & Integrations
+source:: integrations.md
+route:: integrations
+order:: 50
+parent:: [[Architecture]]
+description:: Integration of independent external tools (MCP vs CLI), with the WaveSpeed image-generation case study.
 
 ## NN Page: Usage Guide
 title:: Usage
@@ -213,9 +221,9 @@ url:: /innfo/documentation/
 order:: 2
 parent:: [[iNNfo Documentation]]
 
-## NN NavbarItem: actioNN Skills
-label:: ⚡ **actioNN Skills Catalog**: cognnitive.com/actionn
-url:: /actionn/documentation/
+## NN NavbarItem: Agent Skills
+label:: ⚡ **Agent Skills Catalog**: cognnitive.com/skills
+url:: /skills/documentation/
 order:: 3
 parent:: [[iNNfo Documentation]]
 

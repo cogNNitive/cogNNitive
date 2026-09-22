@@ -1,4 +1,4 @@
-# AI Training & Grounding Ã¢â‚¬â€ https://cognnitive.com/actionn/nn-design-presets
+﻿# AI Training & Grounding - https://cognnitive.com/skills/nn-design-presets
 User-agent: GPTBot
 Allow: /
 

@@ -25,7 +25,7 @@ Model, edit, and query knowledge visually in your browser or conversationally wi
 ```mermaid
 flowchart TD
     subgraph Step1["Step 1: Ingestion & Setup"]
-        U["👤 User & AI Agent\n(OpenCode, Antigravity, Claude Code)"] -->|Bootstrap Prompt| Router["⚡ actioNN Skills (Router & traNNsform)"]
+        U["👤 User & AI Agent\n(OpenCode, Antigravity, Claude Code)"] -->|Bootstrap Prompt| Router["⚡ Agent Skills (Router & traNNsform)"]
         RawDocs["📄 Raw Documents (PDF, DOCX)"] --> Router
     end
 
