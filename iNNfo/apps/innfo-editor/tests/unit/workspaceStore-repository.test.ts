@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useWorkspaceStore } from '../../src/stores/workspaceStore'
-import type { IWorkspaceRepository } from '../../src/repositories/IWorkspaceRepository'
+import type { IndexedDbWorkspaceRepository } from '../../src/repositories/IndexedDbWorkspaceRepository'
 import { buildFakeTree } from '../helpers/fakeFs'
 
-class MockWorkspaceRepository implements IWorkspaceRepository {
+class MockWorkspaceRepository {
   storeHandle = vi.fn().mockResolvedValue(undefined)
   loadStoredHandle = vi.fn().mockResolvedValue(null)
   getSessionState = vi.fn().mockResolvedValue({})
@@ -23,7 +23,7 @@ describe('workspaceStore Repository Delegation (TDD)', () => {
 
   it('delegates handle storage and session persistence to the repository on open()', async () => {
     const workspaceStore = useWorkspaceStore()
-    workspaceStore.repository = mockRepo
+    workspaceStore.repository = mockRepo as unknown as IndexedDbWorkspaceRepository
 
     const handle = buildFakeTree('workspace', {
       'index.md': `---
@@ -51,7 +51,7 @@ title: "Doc"
 
   it('delegates handle recovery and session retrieval to the repository on recoverHandle()', async () => {
     const workspaceStore = useWorkspaceStore()
-    workspaceStore.repository = mockRepo
+    workspaceStore.repository = mockRepo as unknown as IndexedDbWorkspaceRepository
     const handle = buildFakeTree('workspace', {})
     mockRepo.loadStoredHandle.mockResolvedValue(handle)
     mockRepo.getSessionState.mockResolvedValue({
@@ -68,7 +68,7 @@ title: "Doc"
 
   it('delegates tree state persistence to the repository on persistTreeState()', async () => {
     const workspaceStore = useWorkspaceStore()
-    workspaceStore.repository = mockRepo
+    workspaceStore.repository = mockRepo as unknown as IndexedDbWorkspaceRepository
 
     await workspaceStore.persistTreeState('Node1', true)
 
@@ -77,7 +77,7 @@ title: "Doc"
 
   it('delegates tree state restoration to the repository on restoreTreeState()', async () => {
     const workspaceStore = useWorkspaceStore()
-    workspaceStore.repository = mockRepo
+    workspaceStore.repository = mockRepo as unknown as IndexedDbWorkspaceRepository
     const expectedMap = new Map([['Node1', true]])
     mockRepo.getTreeState.mockResolvedValue(expectedMap)
 

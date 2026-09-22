@@ -3,7 +3,6 @@ import { ref, markRaw } from 'vue'
 import { useModelStore } from './modelStore'
 import { useUiStore } from './uiStore'
 import { IndexedDbWorkspaceRepository } from '../repositories/IndexedDbWorkspaceRepository'
-import type { IWorkspaceRepository } from '../repositories/IWorkspaceRepository'
 import type { WorkspaceIntegrityReport } from '@cognnitive/innfo-core'
 import { useUrlDocLoader } from '../composables/useUrlDocLoader'
 import { createWorkspaceIntegrityPorts } from '../services/workspaceIntegrityPorts'
@@ -33,7 +32,7 @@ export interface WorkspaceState {
   sourceUrl: string | null
   /** Whether auto-backup is enabled before saveActiveFile writes. Default true. */
   backupEnabled: boolean
-  repository: IWorkspaceRepository
+  repository: IndexedDbWorkspaceRepository
   /** True when loaded from a sample/preview URL (no folder handle). */
   isSampleSession: boolean
   /** Human-readable template name for the sample banner. */
@@ -63,7 +62,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const error = ref<string | null>(null)
   const sourceUrl = ref<string | null>(null)
   const backupEnabled = ref(true)
-  const repository = ref<IWorkspaceRepository>(markRaw(new IndexedDbWorkspaceRepository()))
+  const repository = ref<IndexedDbWorkspaceRepository>(markRaw(new IndexedDbWorkspaceRepository()))
   const isSampleSession = ref(false)
   const sampleTemplateName = ref('')
   const emptyFolderError = ref(false)

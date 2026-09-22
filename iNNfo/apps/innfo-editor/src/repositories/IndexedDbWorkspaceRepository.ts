@@ -1,5 +1,4 @@
 import type { DirectoryHandleLike } from '../model/fs-types'
-import type { IWorkspaceRepository } from './IWorkspaceRepository'
 import {
   dbGet,
   dbSet,
@@ -9,7 +8,7 @@ import {
   setTreeState,
 } from '../utils/db'
 
-export class IndexedDbWorkspaceRepository implements IWorkspaceRepository {
+export class IndexedDbWorkspaceRepository {
   private readonly storeName = 'handles'
   private readonly handleKey = 'workspaceRoot'
 
