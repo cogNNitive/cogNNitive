@@ -17,7 +17,7 @@ export const WORKSPACE_PRESETS: Record<string, WorkspacePreset> = {
     name: 'SaaS Startup Founder',
     description: 'Comprehensive business model & value proposition for an AI startup.',
     modelUrls: [
-      `${RAW_GITHUB_BASE}/docs/cognitive_nn/use-cases/startup-founder/models/SaaS_Founder_V_1-0-0_business_NN.md`,
+      `${RAW_GITHUB_BASE}/docs/use-cases/startup-founder/models/SaaS_Founder_V_1-0-0_business_NN.md`,
     ],
     templateName: 'business',
   },
@@ -26,7 +26,7 @@ export const WORKSPACE_PRESETS: Record<string, WorkspacePreset> = {
     name: 'Freelance Design Studio',
     description: 'Client project website specification and design deliverables.',
     modelUrls: [
-      `${RAW_GITHUB_BASE}/docs/cognitive_nn/use-cases/freelance-designer/models/Client_Website_V_1-0-0_site_spec_NN.md`,
+      `${RAW_GITHUB_BASE}/docs/use-cases/freelance-designer/models/Client_Website_V_1-0-0_site_spec_NN.md`,
     ],
     templateName: 'projects',
   },
@@ -35,8 +35,8 @@ export const WORKSPACE_PRESETS: Record<string, WorkspacePreset> = {
     name: 'Consulting Sales & RFP',
     description: 'Fintech RFP commercial response and consulting team staffing matrix.',
     modelUrls: [
-      `${RAW_GITHUB_BASE}/docs/cognitive_nn/use-cases/consulting-sales/models/Fintech_RFP_Response_V_1-0-0_commercial_NN.md`,
-      `${RAW_GITHUB_BASE}/docs/cognitive_nn/use-cases/consulting-sales/models/Consulting_Team_Matrix_V_1-0-0_organization_NN.md`,
+      `${RAW_GITHUB_BASE}/docs/use-cases/consulting-sales/models/Fintech_RFP_Response_V_1-0-0_commercial_NN.md`,
+      `${RAW_GITHUB_BASE}/docs/use-cases/consulting-sales/models/Consulting_Team_Matrix_V_1-0-0_organization_NN.md`,
     ],
     templateName: 'business',
   },
@@ -45,8 +45,8 @@ export const WORKSPACE_PRESETS: Record<string, WorkspacePreset> = {
     name: 'YouTube Content Creator',
     description: 'Battery tech episode script and studio production procedures.',
     modelUrls: [
-      `${RAW_GITHUB_BASE}/docs/cognitive_nn/use-cases/youtube-creator/models/Episode_42_Battery_Tech_V_1-0-0_video_script_NN.md`,
-      `${RAW_GITHUB_BASE}/docs/cognitive_nn/use-cases/youtube-creator/procedures/Episode_42_Production_V_1-0-0_procedures_NN.md`,
+      `${RAW_GITHUB_BASE}/docs/use-cases/youtube-creator/models/Episode_42_Battery_Tech_V_1-0-0_video_script_NN.md`,
+      `${RAW_GITHUB_BASE}/docs/use-cases/youtube-creator/procedures/Episode_42_Production_V_1-0-0_procedures_NN.md`,
     ],
     templateName: 'procedures',
   },

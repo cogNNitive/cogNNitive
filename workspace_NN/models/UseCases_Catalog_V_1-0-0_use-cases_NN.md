@@ -17,25 +17,25 @@ title: "cogNNitive Real-World Use Cases Catalog"
 ## NN Archetype: ARC-01: Startup Founder & Team
   industry:: "Tech / SaaS"
   core_focus:: "Product-Market Fit & Investor Due Diligence"
-  model_ref:: "docs/cognitive_nn/use-cases/startup-founder/models/SaaS_Founder_V_1-0-0_business_NN.md"
+  model_ref:: "docs/use-cases/startup-founder/models/SaaS_Founder_V_1-0-0_business_NN.md"
   sources:: ["docs/use-cases.md#1--the-startup-founder--early-stage-team"]
 
 ## NN Archetype: ARC-02: Consulting Sales Director
   industry:: "IT & Management Consulting"
   core_focus:: "RFP Response Velocity & Rate Card Governance"
-  model_ref:: "docs/cognitive_nn/use-cases/consulting-sales/models/Fintech_RFP_Response_V_1-0-0_commercial_NN.md"
+  model_ref:: "docs/use-cases/consulting-sales/models/Fintech_RFP_Response_V_1-0-0_commercial_NN.md"
   sources:: ["docs/use-cases.md#2--the-sales-director-mid-size-consulting-firm"]
 
 ## NN Archetype: ARC-03: Freelance Web Designer
   industry:: "Digital Design & Web Development"
   core_focus:: "Scope Boundary Protection & Client Sign-Off"
-  model_ref:: "docs/cognitive_nn/use-cases/freelance-designer/models/Client_Website_V_1-0-0_site_spec_NN.md"
+  model_ref:: "docs/use-cases/freelance-designer/models/Client_Website_V_1-0-0_site_spec_NN.md"
   sources:: ["docs/use-cases.md#3--the-freelance-web-designer--solopreneur"]
 
 ## NN Archetype: ARC-04: YouTube Content Creator
   industry:: "Digital Media & Technical Video"
   core_focus:: "Fact-Checked Scripting & Automated B-Roll Lists"
-  model_ref:: "docs/cognitive_nn/use-cases/youtube-creator/models/Episode_42_Battery_Tech_V_1-0-0_video_script_NN.md"
+  model_ref:: "docs/use-cases/youtube-creator/models/Episode_42_Battery_Tech_V_1-0-0_video_script_NN.md"
   sources:: ["docs/use-cases.md#4--the-youtube-video--technical-content-creator"]
 
 # NN PainPoint
