@@ -17,8 +17,16 @@ Primary Front Controller and single entry point for system governance, setup, re
 
 ---
 
-## 0. Activation Gate
+## 0. Activation Gate & Workspace Entrypoint
+
 Execute the canonical activation gate defined in `nn-preflight` (session greeting + deterministic preflight integrity check).
+
+### Workspace `AGENTS.md` Session Entrypoint Contract
+Every bootstrapped cogNNitive workspace contains an `AGENTS.md` file at its root with a mandatory **"Session Start: Load nn-router"** directive. AI coding agents (Cursor, Claude Code, OpenCode, Codex, Antigravity) starting an interactive session must:
+1. Load `nn-router` (`skills/nn-router/SKILL.md` or `/nn-router`).
+2. Run `nn-preflight` readiness verification.
+3. Silently initialize or resume turn logging in `conversations/YYYY-MM-DD_HHmmss.md`.
+4. Route user intent to the appropriate cogNNitive skill.
 
 ---
 

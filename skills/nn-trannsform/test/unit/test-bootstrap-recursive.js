@@ -77,9 +77,45 @@ function run() {
     check(!fs.existsSync(path.join(destParent, 'Proj', 'sources', 'original')), 'deprecated sources/original/ not created');
     check(fs.existsSync(result.provModelPath), 'provenance model initialized');
 
+    // AGENTS.md default scaffolding
+    check(Boolean(result.agentsMdPath), 'result.agentsMdPath is returned');
+    check(fs.existsSync(result.agentsMdPath), 'AGENTS.md exists at project root');
+    const agentsContent = fs.readFileSync(result.agentsMdPath, 'utf8');
+    check(
+      agentsContent.includes('## Session Start: Load nn-router (MANDATORY)'),
+      'AGENTS.md has Session Start nn-router directive',
+    );
+    check(
+      agentsContent.includes('nn-preflight'),
+      'AGENTS.md references nn-preflight check',
+    );
+
+    // Preservation of pre-existing AGENTS.md
+    const existingProjDir = path.join(destParent, 'ProjExisting');
+    fs.mkdirSync(existingProjDir, { recursive: true });
+    const customAgentsPath = path.join(existingProjDir, 'AGENTS.md');
+    fs.writeFileSync(customAgentsPath, '# Custom Pre-existing AGENTS Config\n', 'utf8');
+
+    const preservedResult = bootstrapProject(undefined, destParent, 'ProjExisting');
+    check(preservedResult.agentsMdPath === customAgentsPath, 'preservedResult points to existing AGENTS.md');
+    const preservedContent = fs.readFileSync(customAgentsPath, 'utf8');
+    check(
+      preservedContent === '# Custom Pre-existing AGENTS Config\n',
+      'existing custom AGENTS.md is preserved intact without overwrite',
+    );
+
+    // Overwrite pre-existing AGENTS.md when overwriteAgents: true
+    const overwrittenResult = bootstrapProject(undefined, destParent, 'ProjExisting', { overwriteAgents: true });
+    const overwrittenContent = fs.readFileSync(overwrittenResult.agentsMdPath, 'utf8');
+    check(
+      overwrittenContent.includes('## Session Start: Load nn-router (MANDATORY)'),
+      'AGENTS.md is overwritten when options.overwriteAgents is true',
+    );
+
     // No source dir → no crash, zero copied.
     const empty = bootstrapProject(undefined, destParent, 'Proj2');
     check(empty.copiedCount === 0, 'no srcDir → copiedCount 0');
+    check(fs.existsSync(empty.agentsMdPath), 'empty src bootstrap still scaffolds AGENTS.md');
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });
   }

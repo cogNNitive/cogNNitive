@@ -66,6 +66,9 @@ async function handleCliMode(argv) {
     const bootstrap = bootstrapProject(argv.src, argv.dest, argv.name);
     console.log(`Copied ${bootstrap.copiedCount} file(s) to sources/import (subfolders preserved).`);
     console.log(`Initialized cogNNitive provenance model at: ${bootstrap.provModelPath}`);
+    if (bootstrap.agentsMdPath) {
+      console.log(`Scaffolded workspace AGENTS.md entrypoint at: ${bootstrap.agentsMdPath}`);
+    }
     console.log(`\n📌 Place your files to import into: ${bootstrap.importDir || bootstrap.originalDir}\n`);
   }
 

@@ -65,6 +65,7 @@ Every project workspace MUST adhere to the following structure:
 
 ```
 [project-name]/
+├── AGENTS.md             # Workspace agent entrypoint (Session Start -> nn-router)
 ├── sources/
 │   ├── import/           # External raw files (PDF, DOCX, CSV, TXT, JSON, HTML). Legacy sources/original/ supported via fallback.
 │   ├── conversations/    # Promoted transcripts (*_source.md — full transcript only).
@@ -81,6 +82,9 @@ Every project workspace MUST adhere to the following structure:
 ├── traNNsformations/     # Transformation templates applied to sources
 └── index.md              # Semantic workspace index (# NN index)
 ```
+
+> [!NOTE]
+> **Workspace AGENTS.md Scaffolding**: During workspace initialization (`bootstrapProject`), an `AGENTS.md` file is automatically scaffolded at the workspace root if not already present. It directs AI coding agents (Cursor, Claude Code, OpenCode, Codex, Antigravity) to immediately invoke `nn-router` at session start. Pre-existing `AGENTS.md` files are preserved intact without destructive overwrite.
 
 > [!NOTE]
 > **Workspace index.md Format**: The workspace `index.md` file (in the project root) uses standard Markdown links (`* [label](target.md)`), unlike the internal `# NN index` block of Level 3 models which uses WikiLinks (`* [[Concept]]`). When regenerated, the tool preserves existing custom/unknown lines, filters out duplicate or dangling links, and keeps the highest version if multiple versions of the same model base exist.
