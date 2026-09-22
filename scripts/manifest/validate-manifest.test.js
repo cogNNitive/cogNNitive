@@ -3,29 +3,50 @@ const assert = require('node:assert');
 const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
-const https = require('node:https');
-const { EventEmitter } = require('node:events');
 const { spawnSync } = require('node:child_process');
 
 const validatorScript = path.join(__dirname, 'validate-manifest.js');
 
-function stubHttpsGetOnce(statusCode, body) {
-  const originalGet = https.get;
+/**
+ * Builds the minimal Response-like object github-client.js consumes:
+ * `.status`, `.text()` and `.headers.get(name)`.
+ *
+ * @param {number} status
+ * @param {string} body
+ * @param {Record<string, string>} [headers={}]
+ * @returns {{ status: number, text: () => Promise<string>, headers: { get: (n: string) => string | null } }}
+ */
+function fakeResponse(status, body, headers = {}) {
+  const lower = new Map(Object.entries(headers).map(([k, v]) => [k.toLowerCase(), v]));
+  return {
+    status,
+    text: async () => body,
+    headers: { get: (name) => lower.get(String(name).toLowerCase()) ?? null },
+  };
+}
+
+/**
+ * Stubs the global `fetch` with a single canned response.
+ *
+ * github-client.js used to be built on `https.get`, and these helpers used to
+ * monkeypatch that. Since the client moved to global `fetch`, stubbing
+ * `https.get` intercepted nothing: the suite issued REAL network calls to
+ * GitHub and asserted live SHAs against fixed fixtures. Stub what the code
+ * under test actually calls.
+ *
+ * @param {number} statusCode
+ * @param {string} body
+ * @returns {{ restore: () => void, capturedOptions: () => RequestInit | null }}
+ */
+function stubFetchOnce(statusCode, body) {
+  const originalFetch = globalThis.fetch;
   let capturedOptions = null;
-  https.get = (url, options, callback) => {
+  globalThis.fetch = async (url, options) => {
     capturedOptions = options;
-    const res = new EventEmitter();
-    res.statusCode = statusCode;
-    const req = new EventEmitter();
-    process.nextTick(() => {
-      callback(res);
-      res.emit('data', Buffer.from(body));
-      res.emit('end');
-    });
-    return req;
+    return fakeResponse(statusCode, body);
   };
   return {
-    restore: () => { https.get = originalGet; },
+    restore: () => { globalThis.fetch = originalFetch; },
     capturedOptions: () => capturedOptions,
   };
 }
@@ -39,26 +60,25 @@ function freshValidatorModule() {
   return require(validatorScript);
 }
 
-function stubHttpsGetSequence(responses) {
-  const originalGet = https.get;
+/**
+ * Stubs the global `fetch` with an ordered list of canned responses; the last
+ * entry is reused once the list is exhausted.
+ *
+ * @param {Array<{ status: number, body: string, headers?: Record<string, string> }>} responses
+ * @returns {{ restore: () => void, urls: () => string[] }}
+ */
+function stubFetchSequence(responses) {
+  const originalFetch = globalThis.fetch;
   let call = 0;
   const capturedUrls = [];
-  https.get = (url, options, callback) => {
+  globalThis.fetch = async (url, _options) => {
     capturedUrls.push(url);
-    const { status, body } = responses[Math.min(call, responses.length - 1)];
+    const { status, body, headers } = responses[Math.min(call, responses.length - 1)];
     call++;
-    const res = new EventEmitter();
-    res.statusCode = status;
-    const req = new EventEmitter();
-    process.nextTick(() => {
-      callback(res);
-      res.emit('data', Buffer.from(body));
-      res.emit('end');
-    });
-    return req;
+    return fakeResponse(status, body, headers);
   };
   return {
-    restore: () => { https.get = originalGet; },
+    restore: () => { globalThis.fetch = originalFetch; },
     urls: () => capturedUrls,
   };
 }
@@ -87,7 +107,7 @@ console.log('Running validate-manifest unit tests...');
     ref: 'skills-v1.0.0',
     commit: 'd60a7109315820085ab127b70412992db6986c88',
   };
-  const stub = stubHttpsGetSequence([
+  const stub = stubFetchSequence([
     { status: 200, body: JSON.stringify({ sha: skill.commit }) }, // checkCommitExists
     { status: 200, body: JSON.stringify({ object: { sha: skill.commit, type: 'commit' } }) }, // resolveRef tag lookup
     { status: 200, body: JSON.stringify({ status: 'identical' }) }, // checkReleaseProvenance
@@ -185,7 +205,7 @@ agent-bootstrap:
   const mod = freshValidatorModule();
 
   {
-    const stub = stubHttpsGetOnce(200, '{}');
+    const stub = stubFetchOnce(200, '{}');
     try {
       await mod.apiRequest('https://api.github.com/repos/cogNNitive/eNNvironment/commits/abc');
       const headers = stub.capturedOptions().headers;
@@ -196,7 +216,7 @@ agent-bootstrap:
   }
 
   {
-    const stub = stubHttpsGetOnce(200, 'raw body');
+    const stub = stubFetchOnce(200, 'raw body');
     try {
       await mod.fetchString('https://raw.githubusercontent.com/cogNNitive/eNNvironment/abc/README.md');
       const headers = stub.capturedOptions().headers;
@@ -222,7 +242,7 @@ agent-bootstrap:
   };
 
   {
-    const stub = stubHttpsGetOnce(422, JSON.stringify({ message: 'No commit found for SHA' }));
+    const stub = stubFetchOnce(422, JSON.stringify({ message: 'No commit found for SHA' }));
     try {
       const violation = await mod.checkCommitExists(item);
       assert.notStrictEqual(violation, null, '422 should be reported as a violation');
@@ -234,7 +254,7 @@ agent-bootstrap:
   }
 
   {
-    const stub = stubHttpsGetOnce(200, JSON.stringify({ sha: item.commit }));
+    const stub = stubFetchOnce(200, JSON.stringify({ sha: item.commit }));
     try {
       const violation = await mod.checkCommitExists(item);
       assert.strictEqual(violation, null, '200 should pass repo-scoped existence check');
@@ -263,7 +283,7 @@ agent-bootstrap:
 // 7. resolveRef: lightweight tag resolves directly to its commit
 {
   const mod = freshValidatorModule();
-  const stub = stubHttpsGetSequence([
+  const stub = stubFetchSequence([
     { status: 200, body: JSON.stringify({ ref: 'refs/tags/skills-v1.0.0', object: { sha: 'd60a7109315820085ab127b70412992db6986c88', type: 'commit' } }) },
   ]);
   try {
@@ -279,7 +299,7 @@ agent-bootstrap:
 // 8. resolveRef: annotated tag is peeled via git/tags/{sha} to the underlying commit
 {
   const mod = freshValidatorModule();
-  const stub = stubHttpsGetSequence([
+  const stub = stubFetchSequence([
     { status: 200, body: JSON.stringify({ ref: 'refs/tags/templates-v0.2.0', object: { sha: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', type: 'tag' } }) },
     { status: 200, body: JSON.stringify({ object: { sha: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', type: 'commit' } }) },
   ]);
@@ -297,7 +317,7 @@ agent-bootstrap:
 // 9. resolveRef: falls back to a branch ref when no tag matches
 {
   const mod = freshValidatorModule();
-  const stub = stubHttpsGetSequence([
+  const stub = stubFetchSequence([
     { status: 404, body: JSON.stringify({ message: 'Not Found' }) },
     { status: 200, body: JSON.stringify({ ref: 'refs/heads/feat/innfo-v0-2-0-adoption', object: { sha: 'cccccccccccccccccccccccccccccccccccccccc', type: 'commit' } }) },
   ]);
@@ -314,7 +334,7 @@ agent-bootstrap:
 // 10. resolveRef: neither tag nor branch resolves -> error
 {
   const mod = freshValidatorModule();
-  const stub = stubHttpsGetSequence([
+  const stub = stubFetchSequence([
     { status: 404, body: '{}' },
     { status: 404, body: '{}' },
   ]);
@@ -349,7 +369,7 @@ agent-bootstrap:
 {
   const mod = freshValidatorModule();
   {
-    const stub = stubHttpsGetSequence([{ status: 200, body: JSON.stringify({ status: 'ahead' }) }]);
+    const stub = stubFetchSequence([{ status: 200, body: JSON.stringify({ status: 'ahead' }) }]);
     try {
       const violation = await mod.checkReleaseProvenance('cogNNitive/cogNNitive', 'deadbeef00000000000000000000000000000000');
       assert.notStrictEqual(violation, null, 'ahead of main must fail release provenance');
@@ -358,7 +378,7 @@ agent-bootstrap:
     }
   }
   {
-    const stub = stubHttpsGetSequence([{ status: 200, body: JSON.stringify({ status: 'identical' }) }]);
+    const stub = stubFetchSequence([{ status: 200, body: JSON.stringify({ status: 'identical' }) }]);
     try {
       const violation = await mod.checkReleaseProvenance('cogNNitive/cogNNitive', 'deadbeef00000000000000000000000000000000');
       assert.strictEqual(violation, null, 'identical to main must pass release provenance');
@@ -367,7 +387,7 @@ agent-bootstrap:
     }
   }
   {
-    const stub = stubHttpsGetSequence([{ status: 200, body: JSON.stringify({ status: 'behind' }) }]);
+    const stub = stubFetchSequence([{ status: 200, body: JSON.stringify({ status: 'behind' }) }]);
     try {
       const violation = await mod.checkReleaseProvenance('cogNNitive/cogNNitive', 'deadbeef00000000000000000000000000000000');
       assert.strictEqual(violation, null, 'behind main must pass release provenance');
@@ -415,7 +435,7 @@ agent-bootstrap:
 
   // Passing case
   {
-    const stub = stubHttpsGetSequence([
+    const stub = stubFetchSequence([
       { status: 200, body: JSON.stringify({ sha: entry.commit }) }, // checkCommitExists
       { status: 200, body: JSON.stringify({ object: { sha: entry.commit, type: 'commit' } }) }, // resolveRef
       { status: 200, body: JSON.stringify({ status: 'identical' }) }, // checkReleaseProvenance
@@ -432,7 +452,7 @@ agent-bootstrap:
 
   // Failing case: path not found at commit
   {
-    const stub = stubHttpsGetSequence([
+    const stub = stubFetchSequence([
       { status: 200, body: JSON.stringify({ sha: entry.commit }) }, // checkCommitExists
       { status: 200, body: JSON.stringify({ object: { sha: entry.commit, type: 'commit' } }) }, // resolveRef
       { status: 200, body: JSON.stringify({ status: 'identical' }) }, // checkReleaseProvenance
@@ -471,7 +491,7 @@ agent-bootstrap:
 
   // validateConsoleAsset happy path: commit exists, ref resolves, provenance identical, path present
   const entry = parsed.consoleAssets[0];
-  const stub = stubHttpsGetSequence([
+  const stub = stubFetchSequence([
     { status: 200, body: JSON.stringify({ sha: entry.commit }) }, // checkCommitExists
     { status: 200, body: JSON.stringify({ object: { sha: entry.commit, type: 'commit' } }) }, // resolveRef
     { status: 200, body: JSON.stringify({ status: 'identical' }) }, // checkReleaseProvenance
@@ -514,7 +534,7 @@ agent-bootstrap:
     commit: '3f1a9c2b8e4d6f0a1b2c3d4e5f60718293a4b5c6',
   };
   const body = '---\nversion: "V_0-2-1"\n---\n# Workspace Template\n';
-  const stub = stubHttpsGetSequence([
+  const stub = stubFetchSequence([
     { status: 200, body }, // pinned commit
     { status: 200, body }, // main
   ]);
@@ -543,7 +563,7 @@ agent-bootstrap:
   };
   const pinBody = '---\nversion: "V_0-2-1"\n---\n# Workspace Template (pinned)\n';
   const mainBody = '---\nversion: "V_0-2-1"\n---\n# Workspace Template (unreleased main work)\n';
-  const stub = stubHttpsGetSequence([
+  const stub = stubFetchSequence([
     { status: 200, body: pinBody },
     { status: 200, body: mainBody },
   ]);
@@ -575,7 +595,7 @@ agent-bootstrap:
   };
   const pinBody = '---\nversion: "V_0-2-1"\n---\n# Workspace Template (unreleased main work)\n';
   const mainBody = '---\nversion: "V_0-2-1"\n---\n# Workspace Template (pinned)\n';
-  const stub = stubHttpsGetSequence([
+  const stub = stubFetchSequence([
     { status: 200, body: pinBody },
     { status: 200, body: mainBody },
   ]);
@@ -605,7 +625,7 @@ agent-bootstrap:
     ref: 'templates-v0.2.3',
     commit: '3f1a9c2b8e4d6f0a1b2c3d4e5f60718293a4b5c6',
   };
-  const stub = stubHttpsGetSequence([
+  const stub = stubFetchSequence([
     { status: 200, body: '---\nversion: "V_0-2-1"\n---\n# Workspace Template\n' },
     { status: 403, body: 'rate limited' },
   ]);
@@ -633,7 +653,7 @@ agent-bootstrap:
   };
   const crlfBomBody = '\uFEFF---\r\nversion: "V_0-2-1"\r\n---\r\n# Workspace Template\r\n';
   const lfBody = '---\nversion: "V_0-2-1"\n---\n# Workspace Template\n';
-  const stub = stubHttpsGetSequence([
+  const stub = stubFetchSequence([
     { status: 200, body: crlfBomBody },
     { status: 200, body: lfBody },
   ]);
@@ -658,7 +678,7 @@ agent-bootstrap:
     ref: 'feat/innfo-v0-2-0-adoption',
     commit: '3f1a9c2b8e4d6f0a1b2c3d4e5f60718293a4b5c6',
   };
-  const stub = stubHttpsGetSequence([
+  const stub = stubFetchSequence([
     { status: 200, body: JSON.stringify({ sha: template.commit }) }, // checkCommitExists
     { status: 404, body: JSON.stringify({ message: 'Not Found' }) }, // resolveRef tag miss
     { status: 200, body: JSON.stringify({ ref: 'refs/heads/feat/innfo-v0-2-0-adoption', object: { sha: template.commit, type: 'commit' } }) }, // resolveRef branch
@@ -689,7 +709,7 @@ agent-bootstrap:
     commit: '3f1a9c2b8e4d6f0a1b2c3d4e5f60718293a4b5c6',
   };
   const body = '---\nversion: "V_0-2-1"\n---\n# Workspace Template\n';
-  const stub = stubHttpsGetSequence([
+  const stub = stubFetchSequence([
     { status: 200, body: JSON.stringify({ sha: template.commit }) }, // checkCommitExists
     { status: 200, body: JSON.stringify({ object: { sha: template.commit, type: 'commit' } }) }, // resolveRef tag
     { status: 200, body: JSON.stringify({ status: 'identical' }) }, // checkReleaseProvenance
