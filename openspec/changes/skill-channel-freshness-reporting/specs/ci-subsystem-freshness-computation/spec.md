@@ -10,14 +10,21 @@ capability.
 
 ## ADDED Requirements
 
-### Requirement: Drift is computed per subsystem against that subsystem's own tag prefix
+### Requirement: Drift is computed per subsystem against that subsystem's currently pinned tag
 
 The freshness job MUST compute drift separately for each tracked subsystem
 (`skills/`, `iNNfo/specs/templates/`, `iNNfo/packages/innfo-mcp/`, and any
-other subsystem with its own release tag prefix), each measured against the
-most recent tag matching that subsystem's own prefix
-(`skills-v*`, `templates-v*`, `innfo-mcp-v*`, `innfo-console-v*`). A single
-repo-wide "commits since last tag" figure MUST NOT be produced or published.
+other subsystem with its own release tag prefix). A single repo-wide
+"commits since last tag" figure MUST NOT be produced or published.
+
+Each subsystem's baseline MUST be the tag declared for it in
+`manifest/source.yaml` under `channels.stable.refs`, which is what users
+actually install from. The job MUST NOT derive the baseline by sorting tags
+(for example `git tag -l "skills-v*" --sort=-creatordate`): that answers
+"what is the newest tag?", which is the wrong question. A tag that has been
+cut but not yet repinned would make drift read zero while users are still
+receiving the older pinned release — exactly the silent-drift failure this
+change exists to eliminate. See `design.md` ADR-002.
 
 #### Scenario: A skills-only commit is attributed to skills drift
 
@@ -41,9 +48,20 @@ repo-wide "commits since last tag" figure MUST NOT be produced or published.
   though both drift counts derive from commits made on the same day to the
   same branch.
 
+#### Scenario: A cut-but-unpinned tag does not mask drift
+
+- **GIVEN** a newer tag `skills-v2.1.0` exists on `main`
+- **AND** `manifest/source.yaml` still pins `channels.stable.refs` for
+  `skills` to `skills-v2.0.0`
+- **WHEN** the freshness job runs
+- **THEN** `commitsSincePin` for `skills` SHALL be measured from
+  `skills-v2.0.0`, the tag users actually install from
+- **AND** it SHALL NOT be measured from `skills-v2.1.0`, which would report
+  zero drift for a release nobody has received yet.
+
 #### Scenario: A subsystem with zero drift is reported explicitly
 
-- **GIVEN** a subsystem whose last matching tag is on the tip of `main` for
+- **GIVEN** a subsystem whose pinned tag is on the tip of `main` for
   that subsystem's paths (no later commits touch those paths)
 - **WHEN** the freshness job runs
 - **THEN** that subsystem's entry SHALL still be published with
@@ -51,22 +69,26 @@ repo-wide "commits since last tag" figure MUST NOT be produced or published.
 - **AND** it SHALL NOT be omitted from the output merely because there is no
   drift to report.
 
-#### Scenario: No matching tag exists yet for a subsystem
+#### Scenario: A subsystem's pinned tag cannot be resolved
 
-- **GIVEN** a subsystem with no tag matching its expected prefix anywhere in
-  the checkout's tag history (for example, a newly introduced subsystem
-  before its first release)
+- **GIVEN** a subsystem whose pinned tag does not resolve in the checkout
+  (`git rev-parse <tag>^{commit}` fails), or which has no pin declared yet
+  because it predates its first release
 - **WHEN** the freshness job runs
 - **THEN** the job SHALL NOT crash or fail the CI run
-- **AND** that subsystem's entry SHALL be published with an explicit
-  "no pinned tag" state (for example `pinnedTag: null`) rather than a
-  fabricated or zero-value tag.
+- **AND** that subsystem's entry SHALL be published with
+  `commitsSincePin: null` and an `unresolved` reason
+- **AND** it SHALL NOT be omitted from the output, because silence is
+  indistinguishable from zero drift
+- **AND** it SHALL NOT be reported as `commitsSincePin: 0`.
 
 ### Requirement: Computation uses only local git against a checkout of `main`
 
 The freshness job MUST run on pushes to `main` (the branch users are pinned
-against, not `dev`) and MUST derive drift using `git log <tag>..HEAD --
-<path>` against the local checkout's git history. It MUST NOT make any
+against, not `dev`) and MUST derive drift using
+`git rev-list --count <tag>..HEAD -- <path>` against the local checkout's
+git history. It MUST NOT count lines of `git log --oneline`, which carries
+parsing edge cases that `rev-list --count` avoids. It MUST NOT make any
 `api.github.com` request or any other network call to compute drift.
 
 #### Scenario: The checkout has full tag history available
