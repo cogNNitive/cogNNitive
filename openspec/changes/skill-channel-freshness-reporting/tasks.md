@@ -26,62 +26,63 @@ computation, self-describing published JSON).
 
 ### RED
 
-- [ ] 1.1 Write `scripts/freshness.test.js` against a not-yet-existing
+- [x] 1.1 Write `scripts/freshness.test.js` against a not-yet-existing
       `computeFreshness({ sourceYaml, runGit, head })` (pure, injectable git — no real git, no
       network), covering per design §5 / spec scenarios:
-  - [ ] (a) two subsystems, distinct tags, distinct `commitsSincePin` (no misattribution, spec
+  - [x] (a) two subsystems, distinct tags, distinct `commitsSincePin` (no misattribution, spec
         scenarios "skills-only commit" / "iNNfo Suite release not misattributed").
-  - [ ] (b) unresolvable tag → `commitsSincePin: null` + `unresolved` reason, never `0`, never
+  - [x] (b) unresolvable tag → `commitsSincePin: null` + `unresolved` reason, never `0`, never
         omitted (spec scenario "pinned tag cannot be resolved"; ADR-002).
-  - [ ] (c) zero commits since pin → subsystem still published with `commitsSincePin: 0`,
+  - [x] (c) zero commits since pin → subsystem still published with `commitsSincePin: 0`,
         `filesTouched: []` (spec scenario "zero drift reported explicitly").
-  - [ ] (d) `runGit` throwing for one subsystem → that subsystem `unresolved`, siblings still
+  - [x] (d) `runGit` throwing for one subsystem → that subsystem `unresolved`, siblings still
         computed (design §5).
-  - [ ] (e) output key order stable across runs (design §5).
-  - [ ] (f) baseline resolved from `manifest/source.yaml` `channels.stable.refs`, not from
+  - [x] (e) output key order stable across runs (design §5).
+  - [x] (f) baseline resolved from `manifest/source.yaml` `channels.stable.refs`, not from
         sorting tags — a newer unpinned tag must not mask drift (spec scenario "cut-but-unpinned
         tag does not mask drift"; ADR-002).
-- [ ] 1.2 Run the suite, confirm every case above fails for the right reason (module does not
+- [x] 1.2 Run the suite, confirm every case above fails for the right reason (module does not
       exist yet).
 
 ### GREEN
 
-- [ ] 1.3 Create `scripts/freshness.js`: export pure `computeFreshness({ sourceYaml, runGit,
+- [x] 1.3 Create `scripts/freshness.js`: export pure `computeFreshness({ sourceYaml, runGit,
       head })`. Read `channels.stable.refs` via `parseFocusedYaml` (reuse from
       `scripts/manifest/validate-manifest.js`, no new parser — ADR-002). Hardcode the 4-entry
       `SUBSYSTEM_PATHS` table (`skills/`, `iNNfo/specs/templates/`,
       `iNNfo/packages/innfo-mcp/`, `iNNfo/specs/templates/console/`) with the `ponytail:`
       comment recording the known `templates`/`innfo-console` path overlap (ADR-003).
-- [ ] 1.4 Per subsystem: `git rev-parse <tag>^{commit}` (catch failure → `unresolved`),
+- [x] 1.4 Per subsystem: `git rev-parse <tag>^{commit}` (catch failure → `unresolved`),
       `git log -1 --format=%cI <tag>` → `pinnedTagDate`,
       `git rev-list --count <tag>..HEAD -- <dirs>` → `commitsSincePin` (never a line count of
       `git log --oneline` — spec requirement "local git only"),
       `git diff --name-only <tag>..HEAD -- <dirs>` → `filesTouched`.
-- [ ] 1.5 Add the CLI entry: writes `docs/use/freshness.json` via `saveJsonAtomic`
+- [x] 1.5 Add the CLI entry: writes `docs/use/freshness.json` via `saveJsonAtomic`
       (`scripts/lib/atomic-fs.js`, ADR-009); on write failure, exit with
       `FAIL: could not write docs/use/freshness.json: <code>`, not a raw stack trace (matches
       `atomic-fs.js:78-83` precedent).
-- [ ] 1.6 Confirm all 1.1 cases pass.
+- [x] 1.6 Confirm all 1.1 cases pass.
 
 ### Wiring (no test — tautological per design §5)
 
-- [ ] 1.7 `.github/workflows/ci.yml:21`: add `with: { fetch-depth: 0 }` to the `verify` job's
+- [x] 1.7 `.github/workflows/ci.yml:21`: add `with: { fetch-depth: 0 }` to the `verify` job's
       checkout ONLY. Do not touch the `quality`, `spec-integrity`, or `deploy-pages` checkouts
       (ADR-007 — `fetch-tags: true` at depth 1 is explicitly rejected, it miscounts silently).
-- [ ] 1.8 Add one new step in the `verify` job invoking `node scripts/freshness.js`, placed
+- [x] 1.8 Add one new step in the `verify` job invoking `node scripts/freshness.js`, placed
       before `Upload built docs` (`ci.yml:66`), gated `if: github.ref == 'refs/heads/main'`,
       with `continue-on-error: true` (design §3 data flow, ADR-007 "never blocking").
-- [ ] 1.9 Add `docs/use/freshness.json` to `.gitignore`, beside the `docs/innfo/cdn/*.bundle.js`
+- [x] 1.9 Add `docs/use/freshness.json` to `.gitignore`, beside the `docs/innfo/cdn/*.bundle.js`
       precedent (ADR-001 — not committed, CI/Pages-artifact-only).
 - [ ] 1.10 Manual falsification (no automated test for CI wiring, design §5): on the next push
       to `main`, confirm the step runs, `docs/use/freshness.json` appears in the `pages-docs`
       artifact, and `https://cognnitive.com/use/freshness.json` resolves. Record the run URL in
-      the commit body.
-- [ ] 1.11 Run `npm run lint`, `npm run typecheck`, `npm run verify` — all green.
-- [ ] 1.12 Commit as one work unit: `feat(ci): publish per-subsystem channel freshness JSON`,
+      the commit body. **NOT DONE — requires a real push to `main`; not performed in this apply
+      run (commit landed on `dev` only).**
+- [x] 1.11 Run `npm run lint`, `npm run typecheck`, `npm run verify` — all green.
+- [x] 1.12 Commit as one work unit: `feat(ci): publish per-subsystem channel freshness JSON`,
       staged explicitly with
       `git add scripts/freshness.js scripts/freshness.test.js .github/workflows/ci.yml .gitignore`
-      — no wildcard staging.
+      — no wildcard staging. Commit `260fb63` on `dev`.
 
 **Rollback.** Revert the single commit; the JSON simply stops updating, Slice 2's fetch degrades
 to silent omission (design §6).
