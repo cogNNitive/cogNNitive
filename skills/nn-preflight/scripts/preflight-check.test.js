@@ -268,7 +268,7 @@ agent-bootstrap:
 `;
     const server = await serveRoutes({
       '/manifest.md': emptyManifest,
-      '/spec.md': '# REMOTE CONTENT\n',
+      '/workspace_V_0-2-0_spec_NN.md': '# REMOTE CONTENT\n',
     });
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'preflight-ws-stale-'));
     try {
@@ -276,7 +276,7 @@ agent-bootstrap:
       fs.mkdirSync(path.join(workspaceDir, 'specs'), { recursive: true });
       fs.writeFileSync(
         path.join(workspaceDir, 'specs', 'workspace_V_0-2-0_spec_NN.md'),
-        `---\nspec_url: "${server.url}/spec.md"\n---\n# LOCAL CONTENT\n`,
+        `---\nspec_url: "${server.url}/workspace_V_0-2-0_spec_NN.md"\n---\n# LOCAL CONTENT\n`,
         'utf-8',
       );
 
@@ -295,7 +295,7 @@ agent-bootstrap:
       assert.ok(item, 'a spec-freshness item must be reported');
       assert.strictEqual(item.status, 'stale');
       assert.ok(item.name.includes('workspace_V_0-2-0_spec_NN.md'), 'item names the local file');
-      assert.ok(item.url.includes('/spec.md'), 'item carries the canonical remote URL');
+      assert.ok(item.url.includes('/workspace_V_0-2-0_spec_NN.md'), 'item carries the canonical remote URL');
       console.log('✔ Stale workspace spec triggers exit 1 + ACTION_REQUIRED');
     } finally {
       await server.close();
@@ -315,21 +315,21 @@ agent-bootstrap:
     const localContent = `---\nspec_url: "${''}"\n---\n# IDENTICAL CONTENT\n`;
     const server = await serveRoutes({
       '/manifest.md': emptyManifest,
-      '/spec.md': localContent,
+      '/workspace_V_0-2-0_spec_NN.md': localContent,
     });
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'preflight-ws-fresh-'));
     try {
       const workspaceDir = path.join(tmpDir, 'ws');
       fs.mkdirSync(path.join(workspaceDir, 'specs'), { recursive: true });
       // The served copy and the local copy MUST be byte-identical (same URL line).
-      const specContent = localContent.replace('""', `"${server.url}/spec.md"`);
+      const specContent = localContent.replace('""', `"${server.url}/workspace_V_0-2-0_spec_NN.md"`);
       fs.writeFileSync(
         path.join(workspaceDir, 'specs', 'workspace_V_0-2-0_spec_NN.md'),
         specContent,
         'utf-8',
       );
       // Re-serve the exact local bytes so both hashes match.
-      server.routes['/spec.md'] = specContent;
+      server.routes['/workspace_V_0-2-0_spec_NN.md'] = specContent;
 
       const res = await runScriptAsync([
         '--json',
@@ -386,6 +386,172 @@ agent-bootstrap:
         'no spec-freshness item for a file without a canonical URL',
       );
       console.log('✔ Spec without canonical URL is skipped silently');
+    } finally {
+      await server.close();
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }
+
+  // Test 7b: Derived specialization is NOT stale (parent_spec.url is not a self URL)
+  {
+    const emptyManifest = `---
+agent-bootstrap:
+  version: "2.0"
+  skills: []
+  templates: []
+---
+`;
+    const server = await serveRoutes({
+      '/manifest.md': emptyManifest,
+      '/templates/business/business_V_0-1-0_NN.md': '# CANONICAL BUSINESS\n',
+    });
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'preflight-ws-spec-derived-'));
+    try {
+      const workspaceDir = path.join(tmpDir, 'ws');
+      fs.mkdirSync(path.join(workspaceDir, 'specs'), { recursive: true });
+      fs.writeFileSync(
+        path.join(workspaceDir, 'specs', 'arenzano_business_V_0-3-0_NN.md'),
+        `---\nspecification_version: "V_0-1-0"\nlevel: 2\nparent_spec:\n  name: "business_V_0-1-0"\n  url: "${server.url}/templates/business/business_V_0-1-0_NN.md"\n---\n# ARENZANO SPECIALIZATION\n`,
+        'utf-8',
+      );
+
+      const res = await runScriptAsync([
+        '--json',
+        '--workspace-dir', workspaceDir,
+        '--manifest-url', `${server.url}/manifest.md`,
+      ]);
+
+      assert.strictEqual(res.status, 0, `Derived spec must not block. Got: ${res.stdout} ${res.stderr}`);
+      const parsedRes = JSON.parse(res.stdout);
+      assert.strictEqual(parsedRes.summary.specsStale, 0);
+      assert.strictEqual(
+        parsedRes.items.filter((i) => i.type === 'spec-freshness').length,
+        0,
+        'a specialization with only parent_spec.url must not be reported',
+      );
+      console.log('✔ Derived specialization (parent_spec.url only) is skipped, not stale');
+    } finally {
+      await server.close();
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }
+
+  // Test 7c: A spec_url naming a different document is NOT stale
+  {
+    const emptyManifest = `---
+agent-bootstrap:
+  version: "2.0"
+  skills: []
+  templates: []
+---
+`;
+    const server = await serveRoutes({
+      '/manifest.md': emptyManifest,
+      '/other_V_0-9-9_NN.md': '# OTHER DOCUMENT\n',
+    });
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'preflight-ws-spec-mislabeled-'));
+    try {
+      const workspaceDir = path.join(tmpDir, 'ws');
+      fs.mkdirSync(path.join(workspaceDir, 'specs'), { recursive: true });
+      fs.writeFileSync(
+        path.join(workspaceDir, 'specs', 'foo_V_0-1-0_NN.md'),
+        `---\nspec_url: "${server.url}/other_V_0-9-9_NN.md"\n---\n# FOO CONTENT\n`,
+        'utf-8',
+      );
+
+      const res = await runScriptAsync([
+        '--json',
+        '--workspace-dir', workspaceDir,
+        '--manifest-url', `${server.url}/manifest.md`,
+      ]);
+
+      assert.strictEqual(res.status, 0, `Mislabeled spec_url must not block. Got: ${res.stdout} ${res.stderr}`);
+      const parsedRes = JSON.parse(res.stdout);
+      assert.strictEqual(parsedRes.summary.specsStale, 0);
+      assert.strictEqual(
+        parsedRes.items.filter((i) => i.type === 'spec-freshness').length,
+        0,
+        'a spec_url that names a different document must not be compared',
+      );
+      console.log('✔ Mislabeled spec_url (names another document) is skipped, not stale');
+    } finally {
+      await server.close();
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }
+
+  // Test 7d: Canonical package-layout cache (generic spec_NN.md, matching dir) IS compared
+  {
+    const emptyManifest = `---
+agent-bootstrap:
+  version: "2.0"
+  skills: []
+  templates: []
+---
+`;
+    const server = await serveRoutes({
+      '/manifest.md': emptyManifest,
+      '/templates/business/spec_NN.md': '# CANONICAL PACKAGE TEMPLATE\n',
+    });
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'preflight-ws-spec-package-'));
+    try {
+      const workspaceDir = path.join(tmpDir, 'ws');
+      fs.mkdirSync(path.join(workspaceDir, 'specs', 'templates', 'business'), { recursive: true });
+      fs.writeFileSync(
+        path.join(workspaceDir, 'specs', 'templates', 'business', 'spec_NN.md'),
+        `---\nspec_url: "${server.url}/templates/business/spec_NN.md"\n---\n# LOCAL EDITED COPY\n`,
+        'utf-8',
+      );
+
+      const res = await runScriptAsync([
+        '--json',
+        '--workspace-dir', workspaceDir,
+        '--manifest-url', `${server.url}/manifest.md`,
+      ]);
+
+      assert.strictEqual(res.status, 1, `Diverged package cache must block. Got: ${res.stdout} ${res.stderr}`);
+      const parsedRes = JSON.parse(res.stdout);
+      assert.strictEqual(parsedRes.summary.specsStale, 1);
+      console.log('✔ Package-layout cache (matching dir) is compared and flagged stale');
+    } finally {
+      await server.close();
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }
+
+  // Test 7e: Legacy versionless cache name still identifies against a versioned URL
+  {
+    const emptyManifest = `---
+agent-bootstrap:
+  version: "2.0"
+  skills: []
+  templates: []
+---
+`;
+    const server = await serveRoutes({
+      '/manifest.md': emptyManifest,
+      '/procedures_V_0-1-0_NN.md': '# CANONICAL PROCEDURES\n',
+    });
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'preflight-ws-spec-versionless-'));
+    try {
+      const workspaceDir = path.join(tmpDir, 'ws');
+      fs.mkdirSync(path.join(workspaceDir, 'specs'), { recursive: true });
+      fs.writeFileSync(
+        path.join(workspaceDir, 'specs', 'procedures_NN.md'),
+        `---\nspec_url: "${server.url}/procedures_V_0-1-0_NN.md"\n---\n# LOCAL PROCEDURES\n`,
+        'utf-8',
+      );
+
+      const res = await runScriptAsync([
+        '--json',
+        '--workspace-dir', workspaceDir,
+        '--manifest-url', `${server.url}/manifest.md`,
+      ]);
+
+      assert.strictEqual(res.status, 1, `Versionless legacy cache must still be compared. Got: ${res.stdout} ${res.stderr}`);
+      const parsedRes = JSON.parse(res.stdout);
+      assert.strictEqual(parsedRes.summary.specsStale, 1);
+      console.log('✔ Legacy versionless cache name is compared against its versioned URL');
     } finally {
       await server.close();
       fs.rmSync(tmpDir, { recursive: true, force: true });

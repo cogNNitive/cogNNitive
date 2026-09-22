@@ -156,6 +156,50 @@ function sha256(text) {
   return crypto.createHash('sha256').update(text, 'utf-8').digest('hex');
 }
 
+/**
+ * Split a spec filename into `{ base, version }`. The base drops the `_NN` /
+ * `_spec` suffix and the version (`_V_x-y-z`); `version` is `null` when the
+ * name carries none (legacy versionless caches).
+ */
+function specIdentity(fileName) {
+  const stem = String(fileName).toLowerCase().replace(/\.(md|markdown)$/, '');
+  const [namePart, version] = stem.split('_v_');
+  return { base: namePart.replace(/_(nn|spec|f)$/, ''), version: version || null };
+}
+
+/**
+ * True only when `url` names the very document stored at `filePath` — i.e. the
+ * file is a cache OF that URL, not a document that merely references it.
+ * `parent_spec.url` names the parent document, so it never qualifies; comparing
+ * a specialization against its parent would always report a false `stale`.
+ *
+ * Identity is the URL basename matching the local filename, a shared base name
+ * when exactly one side is versionless (legacy `procedures_NN.md`), or — for
+ * the canonical package layout, whose URL basename is the generic `spec_NN.md`
+ * (or `spec.md`) — the URL's parent directory matching the local directory.
+ */
+function urlIdentifiesLocalFile(url, filePath) {
+  let segments;
+  try {
+    const parsed = new URL(url);
+    if (!/^https?:$/i.test(parsed.protocol)) return false;
+    segments = parsed.pathname.split('/').filter(Boolean);
+  } catch {
+    return false;
+  }
+  const urlName = segments[segments.length - 1] || '';
+  const localName = path.basename(filePath);
+  if (urlName.toLowerCase() === localName.toLowerCase()) return true;
+  if (urlName.toLowerCase() === 'spec_nn.md' || urlName.toLowerCase() === 'spec.md') {
+    const urlDir = (segments[segments.length - 2] || '').toLowerCase();
+    const localDir = path.basename(path.dirname(filePath)).toLowerCase();
+    return urlDir !== '' && urlDir === localDir;
+  }
+  const a = specIdentity(localName);
+  const b = specIdentity(urlName);
+  return a.base === b.base && (a.version === null) !== (b.version === null);
+}
+
 /** Node native fetch with an AbortController timeout (mirrors `fetchString`). */
 async function fetchWithTimeout(url, timeoutMs = 6000) {
   const controller = new AbortController();
@@ -190,9 +234,11 @@ function walkSpecs(dir, files) {
 
 /**
  * Content-hash freshness scan of a workspace's `specs/` tree against each
- * file's canonical remote (`spec_url`, fallback `parent_spec.url`). Files
- * without a resolvable URL are skipped silently; unreachable remotes are
- * recorded as `offline` (warning only, never a blocker).
+ * file's own canonical URL (`spec_url`). Only files whose `spec_url` names the
+ * file itself are compared; `parent_spec.url` is never a comparison URL (it
+ * names the parent document, so the hash would always differ). Files without a
+ * self-identifying URL are skipped silently; unreachable remotes are recorded
+ * as `offline` (warning only, never a blocker).
  */
 async function scanWorkspaceSpecs(workspaceDir) {
   const files = [];
@@ -216,8 +262,8 @@ async function scanWorkspaceSpecs(workspaceDir) {
     } catch {
       continue; // no frontmatter → not an iNNfo spec, skip silently
     }
-    const url = fm.spec_url || (fm.parent_spec && fm.parent_spec.url);
-    if (!url) continue;
+    const url = fm.spec_url;
+    if (!url || !urlIdentifiesLocalFile(url, file)) continue;
 
     const relPath = path.relative(workspaceDir, file).replace(/\\/g, '/');
     const localHash = sha256(content);
@@ -1162,7 +1208,7 @@ function printHumanReport(results) {
         console.log(`    canonical: ${item.url}`);
       }
     }
-    console.log('  Remediation: delete/replace the local cached copy under specs/ and re-resolve from the canonical URL.\n');
+    console.log('  Remediation: rehydrate the local copy from its canonical URL (e.g. run check_workspace). Do NOT hand-delete or hand-edit files under specs/.\n');
   }
 
   if (results.summary.sourcesUnnormalized > 0 || results.summary.sourcesDangling > 0) {
