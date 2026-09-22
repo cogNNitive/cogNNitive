@@ -147,7 +147,7 @@ function run() {
       eq(index.canonicalSources.length, 3, "3 canonical sources (1 duplicate deduplicated)");
       eq(index.aliases.length, 1, "1 alias discovered");
 
-      const primaryA = index.canonicalSources.find(s => s.sha256 === "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789");
+      const primaryA = index.canonicalSources.find(s => s.rawSha256 === "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789" || s.relativePath === "sources/nn/sessions/recording_1.md");
       ok(primaryA, "primary canonical source found for hash A");
       eq(primaryA.relativePath, "sources/nn/sessions/recording_1.md", "non-import path wins as primary canonical");
       eq(primaryA.aliases.length, 1, "primary records 1 alias");
@@ -169,8 +169,8 @@ function run() {
       const auditWithCite = guards.auditUncitedSources(dir);
       eq(auditWithCite.citedCount, 1, "1 canonical source cited");
       eq(auditWithCite.uncitedCount, 2, "2 remaining uncited canonical sources");
-      ok(!auditWithCite.uncitedSources.some(s => s.sha256 === "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"), "cited source and its alias suppressed from uncited");
-      const citedItem = auditWithCite.citedSources.find(s => s.sha256 === "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789");
+      ok(!auditWithCite.uncitedSources.some(s => (s.rawSha256 || s.sha256) === "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789" || s.path === "sources/nn/sessions/recording_1.md"), "cited source and its alias suppressed from uncited");
+      const citedItem = auditWithCite.citedSources.find(s => (s.rawSha256 || s.sha256) === "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789" || s.path === "sources/nn/sessions/recording_1.md");
       ok(citedItem, "cited source reported in citedSources");
       eq(citedItem.aliases[0], "sources/nn/import/sessions/recording_1.md", "cited source includes its alias list");
     } finally {

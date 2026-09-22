@@ -594,6 +594,29 @@ function processOkFile(ext, absPath, sourceFileField, destPath, displayOutPath, 
   const feedbackRelPosix = String(sourceFileField || '').replace(/\\/g, '/');
   const isFeedbackDoc = ext === '.json' && /(^|\/)(import|original)\/feedback\//.test(feedbackRelPosix);
 
+  // Destination collision guard: verify destPath is not already owned by a different source_file
+  const sourceFilePosix = String(sourceFileField || '').replace(/\\/g, '/');
+  if (fs.existsSync(destPath)) {
+    try {
+      const existingContent = fs.readFileSync(destPath, 'utf8');
+      const existingFm = parseFrontmatterFields(existingContent);
+      const existingSource = (existingFm.source_file || existingFm.file || '').replace(/\\/g, '/');
+      if (existingSource && existingSource !== sourceFilePosix) {
+        return {
+          format,
+          status: '❌ Collision',
+          action: `Destination collision at \`sources/nn/${displayOutPath}\`: destination already claimed by \`${existingSource}\`. Incoming raw \`${sourceFilePosix}\` cannot overwrite it.`,
+          outcome: 'failed',
+          collision: true,
+          existingSource,
+          incomingSource: sourceFilePosix,
+        };
+      }
+    } catch {
+      // Ignore read error
+    }
+  }
+
   const newHash = computeFileHash(absPath);
   const existingHash = readExistingSha256(destPath);
   if (existingHash && existingHash === newHash) {
@@ -683,6 +706,29 @@ async function processPromptFile(ext, absPath, sourceFileField, destPath, displa
   const dep = await converters.ensureDependency(ext, options, EXT_DEPS);
   if (!dep.ok) {
     return { format, status: dep.status, action: dep.reason, outcome: 'skipped' };
+  }
+
+  // Destination collision guard: verify destPath is not already owned by a different source_file
+  const sourceFilePosix = String(sourceFileField || '').replace(/\\/g, '/');
+  if (fs.existsSync(destPath)) {
+    try {
+      const existingContent = fs.readFileSync(destPath, 'utf8');
+      const existingFm = parseFrontmatterFields(existingContent);
+      const existingSource = (existingFm.source_file || existingFm.file || '').replace(/\\/g, '/');
+      if (existingSource && existingSource !== sourceFilePosix) {
+        return {
+          format,
+          status: '❌ Collision',
+          action: `Destination collision at \`sources/nn/${displayOutPath}\`: destination already claimed by \`${existingSource}\`. Incoming raw \`${sourceFilePosix}\` cannot overwrite it.`,
+          outcome: 'failed',
+          collision: true,
+          existingSource,
+          incomingSource: sourceFilePosix,
+        };
+      }
+    } catch {
+      // Ignore read error
+    }
   }
 
   const newHash = computeFileHash(absPath);

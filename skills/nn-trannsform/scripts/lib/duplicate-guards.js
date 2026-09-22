@@ -60,6 +60,18 @@ function computeFileHash(filePath) {
   return crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
 }
 
+/** Strips frontmatter delimited by --- to isolate the normalized markdown body. */
+function extractNormalizedBody(content) {
+  if (!content || typeof content !== 'string') return '';
+  if (content.startsWith('---\n') || content.startsWith('---\r\n')) {
+    const endIdx = content.indexOf('\n---', 3);
+    if (endIdx !== -1) {
+      return content.slice(endIdx + 4).trim();
+    }
+  }
+  return content.trim();
+}
+
 /**
  * Duplicate guard: classify an incoming file against already-ingested sources.
  *
@@ -73,18 +85,23 @@ function computeFileHash(filePath) {
  */
 function detectDuplicates(incomingPath, corpus, opts = {}) {
   const { contentLoader = (p) => fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : null, nearThreshold = 0.5 } = opts;
-  const newHash = computeFileHash(incomingPath);
-  const newContent = canonicalize(contentLoader(incomingPath) ?? '');
+  const rawIncoming = contentLoader(incomingPath) ?? '';
+  const incomingBody = extractNormalizedBody(rawIncoming);
+  const newHash = crypto.createHash('sha256').update(incomingBody, 'utf8').digest('hex');
+  const newContent = canonicalize(incomingBody);
   const exact = [];
   const near = [];
   for (const item of corpus) {
     if (!item || !item.path) continue;
-    if (item.sha256 && item.sha256 === newHash) {
+    const rawItem = contentLoader(item.path) ?? '';
+    const itemBody = extractNormalizedBody(rawItem);
+    const itemHash = crypto.createHash('sha256').update(itemBody, 'utf8').digest('hex');
+    if (itemHash === newHash) {
       exact.push(item.path);
       continue;
     }
     if (!newContent) continue;
-    const other = canonicalize(contentLoader(item.path) ?? '');
+    const other = canonicalize(itemBody);
     if (!other) continue;
     const score = structuralSimilarity(newContent, other);
     if (score >= nearThreshold) near.push({ path: item.path, score: Math.round(score * 100) / 100 });
@@ -192,19 +209,18 @@ function indexWorkspaceSources(workspaceRoot, opts = {}) {
           continue;
         }
 
-        let hash = null;
+        const body = extractNormalizedBody(content);
+        const bodyHash = crypto.createHash('sha256').update(body, 'utf8').digest('hex');
         const shaMatch = content.match(/^sha256:\s*"([a-f0-9]{64})"\s*$/m);
-        if (shaMatch) {
-          hash = shaMatch[1];
-        } else {
-          hash = crypto.createHash('sha256').update(content, 'utf8').digest('hex');
-        }
+        const rawHash = shaMatch ? shaMatch[1] : null;
 
         allEntries.push({
           fullPath: full,
           relativePath: relPath,
           normalizedPath: normPath,
-          sha256: hash,
+          sha256: bodyHash,
+          bodySha256: bodyHash,
+          rawSha256: rawHash,
           isCanonical: false,
           primaryPath: '',
           aliases: [],
