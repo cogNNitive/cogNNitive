@@ -41,47 +41,70 @@ function normalizeSlug(str: string): string {
     .replace(/^-|-$/g, '')
 }
 
-// Discovered models from modelStore
+// Discovered models from modelStore (domain models only; exclude specs and workspace manifest)
 const discoveredModels = computed(() => {
-  return modelStore.rootIds.map((rootId) => {
-    const node = modelStore.getNode(rootId)
-    const rawTitle =
-      (typeof node?.fields?.['title']?.value === 'string' ? node.fields['title'].value : null) ||
-      (typeof node?.fields?.['name']?.value === 'string' ? node.fields['name'].value : null)
-    const fileBasename = node?.source?.path
-      ? node.source.path.split('/').pop()?.replace(/_NN\.md$/i, '')
-      : null
-    const name = rawTitle || fileBasename || node?.name || rootId
+  return modelStore.rootIds
+    .filter((rootId) => !rootId.startsWith('spec:') && !rootId.startsWith('template:'))
+    .filter((rootId) => {
+      const node = modelStore.getNode(rootId)
+      if (!node) return false
 
-    const templateName =
-      (typeof node?.fields?.['template']?.value === 'string' ? node.fields['template'].value : null) ||
-      (node?.fields?.['parent_spec']?.value as any)?.name ||
-      node?.type ||
-      'business'
-    const version =
-      (typeof node?.fields?.['model_version']?.value === 'string' ? node.fields['model_version'].value : null) ||
-      (node as any)?.version ||
-      '1.0.0'
-    const desc =
-      node?.rawSections?.description ||
-      (typeof node?.fields?.['description']?.value === 'string' ? node.fields['description'].value : '') ||
-      ''
+      const templateName =
+        (typeof node.fields?.['template']?.value === 'string' ? node.fields['template'].value : null) ||
+        (node.fields?.['parent_spec']?.value as any)?.name ||
+        node.type ||
+        ''
+      const normalizedTemplate = String(templateName).toLowerCase().replace(/_v_.*$/, '').replace(/_spec.*$/, '')
+      if (normalizedTemplate === 'workspace' || node.type === 'workspace') {
+        return false
+      }
 
-    const explicitConsole = typeof node?.fields?.['console']?.value === 'string' ? node.fields['console'].value : undefined
-    const normalizedTemplate = String(templateName).toLowerCase().replace(/_v_.*$/, '').replace(/_spec.*$/, '')
-    const defaultConsolePath = explicitConsole || `artifacts/${normalizedTemplate}_console.html`
+      const sourcePath = (node.source?.path || '').toLowerCase()
+      if (sourcePath.endsWith('workspace_nn.md') || sourcePath.endsWith('index.md')) {
+        return false
+      }
 
-    return {
-      id: rootId,
-      name,
-      template: normalizedTemplate,
-      version,
-      description: desc,
-      consolePath: defaultConsolePath,
-      explicitConsole,
-      sourcePath: node?.source?.path || `models/${name}_NN.md`,
-    }
-  })
+      return true
+    })
+    .map((rootId) => {
+      const node = modelStore.getNode(rootId)
+      const rawTitle =
+        (typeof node?.fields?.['title']?.value === 'string' ? node.fields['title'].value : null) ||
+        (typeof node?.fields?.['name']?.value === 'string' ? node.fields['name'].value : null)
+      const fileBasename = node?.source?.path
+        ? node.source.path.split('/').pop()?.replace(/_NN\.md$/i, '')
+        : null
+      const name = rawTitle || fileBasename || node?.name || rootId
+
+      const templateName =
+        (typeof node?.fields?.['template']?.value === 'string' ? node.fields['template'].value : null) ||
+        (node?.fields?.['parent_spec']?.value as any)?.name ||
+        node?.type ||
+        'business'
+      const version =
+        (typeof node?.fields?.['model_version']?.value === 'string' ? node.fields['model_version'].value : null) ||
+        (node as any)?.version ||
+        '1.0.0'
+      const desc =
+        node?.rawSections?.description ||
+        (typeof node?.fields?.['description']?.value === 'string' ? node.fields['description'].value : '') ||
+        ''
+
+      const explicitConsole = typeof node?.fields?.['console']?.value === 'string' ? node.fields['console'].value : undefined
+      const normalizedTemplate = String(templateName).toLowerCase().replace(/_v_.*$/, '').replace(/_spec.*$/, '')
+      const defaultConsolePath = explicitConsole || `artifacts/${normalizedTemplate}_console.html`
+
+      return {
+        id: rootId,
+        name,
+        template: normalizedTemplate,
+        version,
+        description: desc,
+        consolePath: defaultConsolePath,
+        explicitConsole,
+        sourcePath: node?.source?.path || `models/${name}_NN.md`,
+      }
+    })
 })
 
 const allModelTargets = computed(() => {

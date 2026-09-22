@@ -224,4 +224,88 @@ describe('ConsoleHubView — Open External (F-16)', () => {
 
     wrapper.unmount()
   })
+
+  it('filters out spec nodes and workspace root manifests from model console switcher tabs', async () => {
+    const modelStore = useModelStore()
+    modelStore.setGraph(
+      {
+        'workspace-root': {
+          id: 'workspace-root',
+          name: 'INNTrevistas Workspace',
+          parentId: null,
+          childIds: [],
+          storageMode: 'FILE',
+          type: 'workspace',
+          fields: {
+            title: { value: 'INNTrevistas Workspace' },
+            template: { value: 'workspace' },
+          },
+          markers: {},
+          relationships: [],
+          rawSections: {},
+          source: { path: 'workspace_NN.md' },
+        },
+        'spec:workspace': {
+          id: 'spec:workspace',
+          name: 'Spec:Workspace',
+          parentId: null,
+          childIds: [],
+          storageMode: 'FILE',
+          type: 'spec',
+          fields: {},
+          markers: {},
+          relationships: [],
+          rawSections: {},
+          source: { path: 'iNNfo/specs/workspace_spec_NN.md' },
+        },
+        'spec:business': {
+          id: 'spec:business',
+          name: 'Spec:Business',
+          parentId: null,
+          childIds: [],
+          storageMode: 'FILE',
+          type: 'spec',
+          fields: {},
+          markers: {},
+          relationships: [],
+          rawSections: {},
+          source: { path: 'iNNfo/specs/business_spec_NN.md' },
+        },
+        'business-model': {
+          id: 'business-model',
+          name: 'INNTrevistas - Innovaciones Y Creadores De La Historia',
+          parentId: null,
+          childIds: [],
+          storageMode: 'FILE',
+          type: 'business',
+          fields: {
+            title: { value: 'INNTrevistas - Innovaciones Y Creadores De La Historia' },
+            template: { value: 'business' },
+          },
+          markers: {},
+          relationships: [],
+          rawSections: {},
+          source: { path: 'models/INNTrevistas - Innovaciones Y Creadores De La Historia_NN.md' },
+        },
+      },
+      ['workspace-root', 'spec:workspace', 'spec:business', 'business-model']
+    )
+
+    const wrapper = mount(ConsoleHubView)
+    await flushPromises()
+
+    const text = wrapper.text()
+    // Workspace Hub button is present
+    expect(text).toContain('Workspace Hub')
+    // Domain model console tab is present
+    expect(text).toContain('INNTrevistas - Innovaciones Y Creadores De La Historia')
+    // Internal specs are excluded
+    expect(text).not.toContain('Spec:Workspace')
+    expect(text).not.toContain('Spec:Business')
+    // Duplicate workspace manifest tab is excluded (since Workspace Hub covers it)
+    expect(text).not.toContain('INNTrevistas Workspace')
+
+    wrapper.unmount()
+  })
 })
+
