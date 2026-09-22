@@ -79,92 +79,92 @@ agent-bootstrap:
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/workspace_spec_NN.md
       version: "V_0-2-1"
-      ref: "templates-v0.10.4"
-      commit: "f1200ca4d866b0508c6fb7fca9bec3befbe3b8d6"
+      ref: "templates-v0.11.0"
+      commit: "2a66bf7c9d30cbb82cfd3a35c22368cb1c377504"
     - name: projects
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/projects/spec_NN.md
       version: "V_0-2-1"
-      ref: "templates-v0.10.4"
-      commit: "f1200ca4d866b0508c6fb7fca9bec3befbe3b8d6"
+      ref: "templates-v0.11.0"
+      commit: "2a66bf7c9d30cbb82cfd3a35c22368cb1c377504"
     - name: procedures
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/procedures/spec_NN.md
       version: "V_0-2-1"
-      ref: "templates-v0.10.4"
-      commit: "f1200ca4d866b0508c6fb7fca9bec3befbe3b8d6"
+      ref: "templates-v0.11.0"
+      commit: "2a66bf7c9d30cbb82cfd3a35c22368cb1c377504"
     - name: organization
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/organization/spec_NN.md
       version: "V_0-2-1"
-      ref: "templates-v0.10.4"
-      commit: "f1200ca4d866b0508c6fb7fca9bec3befbe3b8d6"
+      ref: "templates-v0.11.0"
+      commit: "2a66bf7c9d30cbb82cfd3a35c22368cb1c377504"
     - name: business
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/business/spec_NN.md
       version: "V_0-2-5"
-      ref: "templates-v0.10.4"
-      commit: "f1200ca4d866b0508c6fb7fca9bec3befbe3b8d6"
+      ref: "templates-v0.11.0"
+      commit: "2a66bf7c9d30cbb82cfd3a35c22368cb1c377504"
     - name: business-model
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/business-model/spec_NN.md
       version: "V_0-2-1"
-      ref: "templates-v0.10.4"
-      commit: "f1200ca4d866b0508c6fb7fca9bec3befbe3b8d6"
+      ref: "templates-v0.11.0"
+      commit: "2a66bf7c9d30cbb82cfd3a35c22368cb1c377504"
     - name: analysis
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/analysis/spec_NN.md
       version: "V_0-2-1"
-      ref: "templates-v0.10.4"
-      commit: "f1200ca4d866b0508c6fb7fca9bec3befbe3b8d6"
+      ref: "templates-v0.11.0"
+      commit: "2a66bf7c9d30cbb82cfd3a35c22368cb1c377504"
     - name: innovation
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/innovation/spec_NN.md
       version: "V_0-2-1"
-      ref: "templates-v0.10.4"
-      commit: "f1200ca4d866b0508c6fb7fca9bec3befbe3b8d6"
+      ref: "templates-v0.11.0"
+      commit: "2a66bf7c9d30cbb82cfd3a35c22368cb1c377504"
     - name: blank
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/blank/spec_NN.md
       version: "V_0-2-1"
-      ref: "templates-v0.10.4"
-      commit: "f1200ca4d866b0508c6fb7fca9bec3befbe3b8d6"
+      ref: "templates-v0.11.0"
+      commit: "2a66bf7c9d30cbb82cfd3a35c22368cb1c377504"
     - name: documentation
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/documentation/spec_NN.md
       version: "V_0-2-1"
-      ref: "templates-v0.10.4"
-      commit: "f1200ca4d866b0508c6fb7fca9bec3befbe3b8d6"
+      ref: "templates-v0.11.0"
+      commit: "2a66bf7c9d30cbb82cfd3a35c22368cb1c377504"
     - name: metrics
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/metrics/spec_NN.md
       version: "V_0-2-1"
-      ref: "templates-v0.10.4"
-      commit: "f1200ca4d866b0508c6fb7fca9bec3befbe3b8d6"
+      ref: "templates-v0.11.0"
+      commit: "2a66bf7c9d30cbb82cfd3a35c22368cb1c377504"
     - name: repository
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/repository/spec_NN.md
       version: "V_0-2-1"
-      ref: "templates-v0.10.4"
-      commit: "f1200ca4d866b0508c6fb7fca9bec3befbe3b8d6"
+      ref: "templates-v0.11.0"
+      commit: "2a66bf7c9d30cbb82cfd3a35c22368cb1c377504"
     - name: video
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/video/spec_NN.md
       version: "V_0-2-1"
-      ref: "templates-v0.10.4"
-      commit: "f1200ca4d866b0508c6fb7fca9bec3befbe3b8d6"
+      ref: "templates-v0.11.0"
+      commit: "2a66bf7c9d30cbb82cfd3a35c22368cb1c377504"
     - name: sources
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/sources/spec_NN.md
       version: "V_0-2-1"
-      ref: "templates-v0.10.4"
-      commit: "f1200ca4d866b0508c6fb7fca9bec3befbe3b8d6"
+      ref: "templates-v0.11.0"
+      commit: "2a66bf7c9d30cbb82cfd3a35c22368cb1c377504"
     - name: artifacts
       repo: cogNNitive/cogNNitive
       path: iNNfo/specs/templates/artifacts/spec_NN.md
       version: "V_0-2-1"
-      ref: "templates-v0.10.4"
-      commit: "f1200ca4d866b0508c6fb7fca9bec3befbe3b8d6"
+      ref: "templates-v0.11.0"
+      commit: "2a66bf7c9d30cbb82cfd3a35c22368cb1c377504"
   console-assets:
     - file: iNNfo/specs/templates/console/innfo-console.bundle.js
       version: "0.2.0"
