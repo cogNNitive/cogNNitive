@@ -58,6 +58,18 @@ data matches the tag the manifest just reported for it.
   severity label, or any threshold-based verdict — the receiving human
   decides what the number means, the tool only states it.
 
+#### Scenario: Zero drift still prints the line
+
+- **GIVEN** freshness data is available and its pinned tag matches the
+  manifest
+- **AND** the subsystem reports `commitsSincePin: 0`
+- **WHEN** the report is rendered
+- **THEN** the freshness line SHALL still be printed, reporting the pin
+  identity and pin age
+- **AND** printing SHALL NOT be conditional on drift being non-zero, because
+  "pinned to `skills-v2.0.0`, 6 days old" is useful on its own and an
+  unconditional print is one branch fewer than a gated one.
+
 ### Requirement: The freshness signal MUST NEVER change `exitCode`
 
 `preflight-check.js`'s `exitCode` MUST be identical with and without the

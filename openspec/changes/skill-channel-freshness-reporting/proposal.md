@@ -205,6 +205,23 @@ and §7.
 A freshness line that blocks a user's workflow because GitHub Pages was slow is a regression, not a
 feature. There is no configuration in which this signal becomes a blocker.
 
+## Resolved product decisions
+
+Four product questions were left open when this proposal was drafted. All four are now decided, each
+resolved toward the simpler implementation. Recorded so the implementer does not re-open them:
+
+| Question | Decision | Why this is the simpler option |
+| :-- | :-- | :-- |
+| Does the line print when drift is zero? | **Yes, always print.** | Printing unconditionally is one branch fewer than gating on drift, and pin identity plus age is useful at zero drift anyway. |
+| Is there a threshold above which the signal escalates? | **No.** | Reports a count and nothing else — no verdict, no severity, no colour, no configuration. A threshold is a product rule nobody asked for and would need its own justification. |
+| Is the signal aimed at maintainers or end users? | **Maintainers first.** | Framing only; no code impact. It is why Slice 1 carries standalone value and Slice 2 is distribution. |
+| Should the maintainer side block a release on high drift? | **No. Never a gate.** | The value of this change is that it says a true thing out loud. The moment it can stop someone's work, its failure modes — stale Pages, slow CDN, absent tags in CI — become everyone's problem instead of nobody's. |
+
+Related delivery decision: Slice 1 takes `fetch-depth: 0` on the existing `verify` job rather than a
+separate `main`-only job with its own deep checkout. The separate job is more YAML for the same
+signal; the deep-checkout cost is accepted, and design §9 records the split as the upgrade path if
+clone time ever becomes material.
+
 ## Delivery: two dependency-ordered slices
 
 **Corrected during design: three slices collapsed to two** once manifest embedding was cut (see
@@ -234,7 +251,7 @@ and the scope should be cut back to Slice 1.
 | :-- | :-- | :-- |
 | **VERIFIED BROKEN — CI checkout lacks tags.** `actions/checkout@v4` at `ci.yml:21` is a bare `- uses: actions/checkout@v4` with no `with:` block, so it defaults to `fetch-depth: 1`, `fetch-tags: false` — no tags at all. `git log <tag>..HEAD` (or `git rev-list --count`) would fail with `unknown revision` | High | **Confirmed, not a guess.** Required fix: `with: { fetch-depth: 0 }` on the `verify` job's checkout only (`ci.yml:21`) — the `quality`, `spec-integrity`, and `deploy-pages` checkouts are untouched. `fetch-tags: true` at depth 1 was considered and rejected: it fetches tag *refs* onto a shallow graft, so `<tag>..HEAD` has no common ancestry and **silently miscounts** — worse than failing outright. `nn-dev-release` Option [a] runs on a maintainer's full local clone, so this path had genuinely never been exercised in CI. **Real cost, stated plainly: `fetch-depth: 0` gives the `verify` job a full-history clone on every push and PR, replacing a single-commit one — that is the one genuine price this change imposes on CI, and it should stay visible rather than be buried in a mitigation note.** |
 | **VERIFIED TOLERANT, and now moot — `yaml-lite` unknown-key handling.** `preflight-check.js:34` imports `./lib/yaml-lite`, NOT the maintainer `scripts/lib/yaml-parser.js` | Closed | Read in full: `yaml-lite.js:107-120`'s `parseFocusedYaml` builds `result[key] = value` for every key it matches — a generic map builder with no allowlist, unknown top-level keys pass through unconditionally. **No change to `yaml-lite.js` would have been needed even under the original manifest-embedding plan.** It is also now moot: `preflight-check.js` never reads manifest frontmatter for freshness at all (manifest embedding was cut — see above); it fetches `freshness.json` directly via `JSON.parse`, which yields real numbers regardless of `yaml-lite`. The one real divergence worth recording for posterity: `parseScalar` (`yaml-lite.js:8-24`) never returns a number (a frontmatter `commitsSincePin: 9` would arrive as the string `"9"`) — not worked around, simply no longer on the path. |
-| **No longer applicable — `github-client.js` / `resolveRef` test coverage.** Originally flagged because the (now-deleted) manifest-embedding slice would have touched `generate-manifest.js`, which calls `resolveRef` | N/A | `generate-manifest.js` and `github-client.js` are untouched by this change (manifest embedding was cut). The underlying hazard — `resolveRef`'s tests stub `https.get`, so a future migration to global `fetch` would silently disable rather than fail them — remains true of the codebase but is out of scope here and not triggered by anything in this change. |
+| **No longer applicable — `github-client.js` / `resolveRef` test coverage.** Originally flagged because the (now-deleted) manifest-embedding slice would have touched `generate-manifest.js`, which calls `resolveRef` | N/A | `generate-manifest.js` and `github-client.js` are untouched by this change (manifest embedding was cut). The underlying hazard — `resolveRef`'s tests stubbed `https.get`, so a migration to global `fetch` would have silently disabled rather than failed them — was **resolved on `dev` on 2026-09-22** by `f3dd42e` (migrate `github-client` to global `fetch`) and `854fa11` (stub global `fetch` instead of `https.get`), landed as one work unit. Nothing remains to carry here. |
 | **Per-subsystem tag prefixes must be respected.** `skills-v*`, `templates-v*`, `innfo-mcp-v*`, `innfo-console-v*` (`nn-dev-release/SKILL.md:65-72`). A naive repo-wide "since last tag" number would misattribute, e.g. an iNNfo Suite release's commits counted as skills drift | Medium | Compute per subsystem against its own last matching tag. Current latest: `skills-v2.0.0`, `templates-v0.10.3`, `innfo-mcp-v0.9.0`, `innfo-console-v0.2.0` |
 | **Offline degrade not implemented exactly.** Getting this wrong produces spurious blockers on flaky networks | Medium | Mirror `preflight-check.js:920-934` literally for the manifest-unreachable case; see the contract table above for the (stricter, silent) freshness-fetch case. Low risk if followed |
 | **Windows error-message precedent.** `replaceDirAtomic` (`atomic-fs.js:78-83`) already carries a Windows-specific `EBUSY`/`EPERM` message for locked directories (AV / editor holding a handle) — a recurring real issue on this project | Low | Any new file-writing code follows that error-message precedent, not a raw stack trace. (`saveJsonAtomic` uses `path.join` + `fs.renameSync`; same-volume rename is atomic on NTFS, no special-casing needed) |

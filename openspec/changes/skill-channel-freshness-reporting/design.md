@@ -35,8 +35,10 @@ regenerated.
 
 The proposal's stated corollary that the tag date "can be baked in for free" via `resolveRef` is also
 false: `github-client.js:171-200` returns `{ sha, kind }` and nothing else. A date would require a
-**new** `api.github.com` call per ref plus an edit to `resolveRef` — the exact function whose tests
-stub `https.get` and would silently stop covering it.
+**new** `api.github.com` call per ref plus an edit to `resolveRef`. (At the time of writing,
+`resolveRef`'s tests stubbed `https.get` and would have silently stopped covering it; that
+particular hazard was resolved on `dev` on 2026-09-22 by `f3dd42e` + `854fa11`. The decision stands
+regardless — the objection that survives is the new API call, not the test coverage.)
 
 **Consequence: the proposal's three slices collapse to two.** There is no manifest-embedding slice.
 `generate-manifest.js`, `validate-manifest.js`, `github-client.js`, `manifest-rules.js`,
