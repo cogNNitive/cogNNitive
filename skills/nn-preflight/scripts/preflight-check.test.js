@@ -1201,8 +1201,8 @@ agent-bootstrap:
 
       assert.strictEqual(humanRes.status, 0, 'Exit code must be 0 for up-to-date install with freshness');
       assert.ok(
-        humanRes.stdout.includes('ℹ️  Channel freshness: skills pinned to skills-v2.0.0 (6 days old); main has 9 later commit(s) touching skills/ — informational, not a blocker.'),
-        `Human output must include canonical freshness line. Got:\n${humanRes.stdout}`
+        humanRes.stdout.includes('ℹ️  Channel freshness: skills pinned to skills-v2.0.0 (6 days old); main has 9 later commit(s) touching skills/nn-router/SKILL.md — informational, not a blocker.'),
+        `Human output must include canonical freshness line sourced from filesTouched (not the legacy paths field). Got:\n${humanRes.stdout}`
       );
       assert.ok(humanRes.stdout.includes('Status: OK'), 'Human output must preserve Status: OK');
 
@@ -1382,7 +1382,8 @@ agent-bootstrap:
     }
   }
 
-  // Test 28: (e) commitsSincePin: 0 -> no line printed for that subsystem
+  // Test 28: (e) commitsSincePin: 0 -> line still prints (spec: "Zero drift still
+  // prints the line"); commitsSincePin: null (unresolved pin) -> stays silent.
   {
     const manifestContent = `---
 agent-bootstrap:
@@ -1392,7 +1393,11 @@ agent-bootstrap:
       commit: "1111111111111111111111111111111111111111"
       version: "V_0-1-0"
       ref: "skills-v2.0.0"
-  templates: []
+  templates:
+    - name: workspace_spec_NN
+      commit: "2222222222222222222222222222222222222222"
+      version: "V_0-2-0"
+      ref: "templates-v0.10.0"
 ---
 `;
     const zeroDriftFreshness = {
@@ -1402,9 +1407,18 @@ agent-bootstrap:
         skills: {
           subsystem: 'skills',
           pinnedTag: 'skills-v2.0.0',
-          pinnedTagDate: '2026-09-16T08:41:12Z',
+          pinnedTagDate: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
           paths: ['skills/'],
           commitsSincePin: 0,
+          filesTouched: [],
+        },
+        templates: {
+          subsystem: 'templates',
+          pinnedTag: 'templates-v0.10.0',
+          pinnedTagDate: '2026-09-16T08:41:12Z',
+          paths: ['iNNfo/specs/templates/'],
+          commitsSincePin: null,
+          reason: 'unresolved',
           filesTouched: [],
         },
       },
@@ -1417,25 +1431,39 @@ agent-bootstrap:
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'preflight-freshness-zero-'));
     try {
       const skillsDir = path.join(tmpDir, 'skills');
+      const templatesDir = path.join(tmpDir, 'templates');
       const stateFile = path.join(tmpDir, 'bootstrap-state.json');
       fs.mkdirSync(path.join(skillsDir, 'nn-innfo'), { recursive: true });
+      fs.mkdirSync(templatesDir, { recursive: true });
+      fs.writeFileSync(path.join(templatesDir, 'workspace_spec_NN.md'), '# template');
       fs.writeFileSync(stateFile, JSON.stringify({
         manifest: `${server.url}/manifest.md`,
         skills: {
           'nn-innfo': { commit: '1111111111111111111111111111111111111111', version: 'V_0-1-0' },
         },
+        templates: {
+          workspace_spec_NN: { commit: '2222222222222222222222222222222222222222', version: 'V_0-2-0' },
+        },
       }));
 
       const res = await runScriptAsync([
         '--skills-dir', skillsDir,
+        '--templates-dir', templatesDir,
         '--state-file', stateFile,
         '--manifest-url', `${server.url}/manifest.md`,
         '--freshness-url', `${server.url}/use/freshness.json`,
       ]);
 
-      assert.strictEqual(res.status, 0);
-      assert.ok(!res.stdout.includes('Channel freshness'), 'Must not print freshness line when commitsSincePin is 0');
-      console.log('✔ (e) Zero drift reports no line for that subsystem');
+      assert.strictEqual(res.status, 0, `Expected exit code 0. Got stdout:\n${res.stdout}\nstderr:\n${res.stderr}`);
+      assert.ok(
+        res.stdout.includes('ℹ️  Channel freshness: skills pinned to skills-v2.0.0 (6 days old); main has 0 later commit(s) touching skills/ — informational, not a blocker.'),
+        `Zero drift must still print the freshness line per spec. Got:\n${res.stdout}`
+      );
+      assert.ok(
+        !res.stdout.includes('Channel freshness: templates'),
+        'A null (unresolved) commitsSincePin must stay silent, not print as zero'
+      );
+      console.log('✔ (e) Zero drift still prints the line; unresolved (null) drift stays silent');
     } finally {
       await server.close();
       fs.rmSync(tmpDir, { recursive: true, force: true });
@@ -1468,6 +1496,109 @@ agent-bootstrap:
         `Freshness URL must NEVER be requested when manifest is unreachable. Requests: ${JSON.stringify(server.requests)}`
       );
       console.log('✔ (f) Unreachable manifest skips freshness fetch completely');
+    } finally {
+      await server.close();
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }
+
+  // Test 30: (g) All four published subsystems are reported (skills, templates,
+  // innfo-mcp, innfo-console), not just the first two; a long filesTouched list
+  // is truncated for readability instead of being joined in full.
+  {
+    const manyFiles = Array.from({ length: 23 }, (_, i) => `skills/nn-router/file-${i}.md`);
+    const manifestContent = `---
+agent-bootstrap:
+  version: "2.0"
+  skills:
+    - name: nn-innfo
+      commit: "1111111111111111111111111111111111111111"
+      version: "V_0-1-0"
+      ref: "skills-v2.0.0"
+      mcp:
+        - name: innfo-mcp
+          version: "0.9.0"
+          ref: "innfo-mcp-v0.9.0"
+  templates: []
+  console-assets:
+    - file: "iNNfo/specs/templates/console/innfo-console.bundle.js"
+      version: "0.2.0"
+      ref: "innfo-console-v0.2.0"
+---
+`;
+    const freshnessContent = {
+      generatedAt: '2026-09-22T10:00:00Z',
+      head: '2465a8a',
+      subsystems: {
+        skills: {
+          subsystem: 'skills',
+          pinnedTag: 'skills-v2.0.0',
+          pinnedTagDate: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
+          commitsSincePin: 23,
+          filesTouched: manyFiles,
+        },
+        'innfo-mcp': {
+          subsystem: 'innfo-mcp',
+          pinnedTag: 'innfo-mcp-v0.9.0',
+          pinnedTagDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+          commitsSincePin: 7,
+          filesTouched: ['iNNfo/packages/innfo-mcp/src/path-containment.ts'],
+        },
+        'innfo-console': {
+          subsystem: 'innfo-console',
+          pinnedTag: 'innfo-console-v0.2.0',
+          pinnedTagDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+          commitsSincePin: 1,
+          filesTouched: ['iNNfo/specs/templates/console/innfo-console.bundle.js'],
+        },
+      },
+    };
+
+    const server = await serveRoutes({
+      '/manifest.md': manifestContent,
+      '/use/freshness.json': freshnessContent,
+    });
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'preflight-freshness-all-subsystems-'));
+    try {
+      const skillsDir = path.join(tmpDir, 'skills');
+      const stateFile = path.join(tmpDir, 'bootstrap-state.json');
+      fs.mkdirSync(path.join(skillsDir, 'nn-innfo'), { recursive: true });
+      fs.writeFileSync(stateFile, JSON.stringify({
+        manifest: `${server.url}/manifest.md`,
+        skills: {
+          'nn-innfo': { commit: '1111111111111111111111111111111111111111', version: 'V_0-1-0' },
+        },
+      }));
+
+      const res = await runScriptAsync([
+        '--skills-dir', skillsDir,
+        '--state-file', stateFile,
+        '--manifest-url', `${server.url}/manifest.md`,
+        '--freshness-url', `${server.url}/use/freshness.json`,
+      ]);
+
+      assert.strictEqual(res.status, 0);
+      assert.ok(
+        res.stdout.includes('Channel freshness: innfo-mcp pinned to innfo-mcp-v0.9.0'),
+        `innfo-mcp drift must be reported, not silently dropped. Got:\n${res.stdout}`
+      );
+      assert.ok(
+        res.stdout.includes('Channel freshness: innfo-console pinned to innfo-console-v0.2.0'),
+        `innfo-console drift must be reported, not silently dropped. Got:\n${res.stdout}`
+      );
+      assert.ok(
+        res.stdout.includes('Channel freshness: skills pinned to skills-v2.0.0'),
+        'skills drift must still be reported alongside the newly added subsystems'
+      );
+      assert.ok(
+        !res.stdout.includes('file-22.md') || res.stdout.includes('more'),
+        'A long filesTouched list must be truncated for readability, not joined in full'
+      );
+      assert.ok(
+        !manyFiles.every((f) => res.stdout.includes(f)),
+        'Not every one of the 23 touched files should appear verbatim in the printed line'
+      );
+      console.log('✔ (g) All four published subsystems reported; long filesTouched lists are truncated');
     } finally {
       await server.close();
       fs.rmSync(tmpDir, { recursive: true, force: true });

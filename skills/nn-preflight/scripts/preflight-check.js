@@ -145,6 +145,10 @@ function parseManifest(text) {
     version: bootstrap.version || 'unknown',
     skills: Array.isArray(bootstrap.skills) ? bootstrap.skills : [],
     templates: Array.isArray(bootstrap.templates) ? bootstrap.templates : [],
+    // Exposes the published `console-assets` block so its resolved `ref` can be
+    // compared against the freshness JSON's `innfo-console` pin, the same way
+    // `skills`/`templates` already are (Defect 1 fix).
+    consoleAssets: Array.isArray(bootstrap['console-assets']) ? bootstrap['console-assets'] : [],
   };
 }
 
@@ -1011,9 +1015,25 @@ async function runCheck(options = {}) {
   }
 
   if (freshnessData && freshnessData.subsystems && typeof freshnessData.subsystems === 'object') {
+    const innfoMcpSkill = manifest.skills.find(s => Array.isArray(s.mcp) && s.mcp.some(m => m && m.name === 'innfo-mcp'));
+    const innfoMcpEntry = innfoMcpSkill ? innfoMcpSkill.mcp.find(m => m && m.name === 'innfo-mcp') : null;
+    const innfoConsoleEntry = manifest.consoleAssets.find(a => a && a.ref);
+
+    // Fallback path label shown only when a subsystem reports no touched files
+    // (e.g. zero drift), per the published tracked-subsystem prefixes.
+    const SUBSYSTEM_PATH_LABELS = {
+      skills: 'skills/',
+      templates: 'iNNfo/specs/templates/',
+      'innfo-mcp': 'iNNfo/packages/innfo-mcp/',
+      'innfo-console': 'iNNfo/specs/templates/console/',
+    };
+    const MAX_FILES_SHOWN = 3;
+
     const targets = [
       { key: 'skills', manifestRef: (manifest.skills.find(s => s && s.ref) || {}).ref },
       { key: 'templates', manifestRef: (manifest.templates.find(t => t && t.ref) || {}).ref },
+      { key: 'innfo-mcp', manifestRef: innfoMcpEntry ? innfoMcpEntry.ref : undefined },
+      { key: 'innfo-console', manifestRef: innfoConsoleEntry ? innfoConsoleEntry.ref : undefined },
     ];
     for (const { key, manifestRef } of targets) {
       const entry = freshnessData.subsystems[key];
@@ -1021,15 +1041,21 @@ async function runCheck(options = {}) {
         entry &&
         manifestRef &&
         entry.pinnedTag === manifestRef &&
-        typeof entry.commitsSincePin === 'number' &&
-        entry.commitsSincePin > 0
+        typeof entry.commitsSincePin === 'number'
       ) {
         const age = formatAge(entry.pinnedTagDate);
-        const paths = Array.isArray(entry.paths) && entry.paths.length > 0
-          ? entry.paths.join(', ')
-          : (key === 'skills' ? 'skills/' : 'iNNfo/specs/templates/');
+        const filesTouched = Array.isArray(entry.filesTouched) ? entry.filesTouched : [];
+        let filesDisplay;
+        if (filesTouched.length === 0) {
+          filesDisplay = SUBSYSTEM_PATH_LABELS[key] || key;
+        } else if (filesTouched.length <= MAX_FILES_SHOWN) {
+          filesDisplay = filesTouched.join(', ');
+        } else {
+          const shown = filesTouched.slice(0, MAX_FILES_SHOWN).join(', ');
+          filesDisplay = `${shown}, and ${filesTouched.length - MAX_FILES_SHOWN} more`;
+        }
         results.freshnessLines.push(
-          `ℹ️  Channel freshness: ${key} pinned to ${entry.pinnedTag} (${age}); main has ${entry.commitsSincePin} later commit(s) touching ${paths} — informational, not a blocker.`
+          `ℹ️  Channel freshness: ${key} pinned to ${entry.pinnedTag} (${age}); main has ${entry.commitsSincePin} later commit(s) touching ${filesDisplay} — informational, not a blocker.`
         );
       }
     }
