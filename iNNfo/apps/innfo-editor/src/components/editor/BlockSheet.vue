@@ -263,10 +263,56 @@ const nodeFromStore = computed(() =>
 
 // ── Relationships ───────────────────────────────────────────────
 
+/** Last path segment of a node id/name (e.g. `youtube.com` from `Root/youtube.com`). */
+function lastSegment(idOrName?: string): string {
+  if (!idOrName) return ''
+  const parts = idOrName.split('/')
+  return parts[parts.length - 1] || idOrName
+}
+
+/**
+ * True when some other node points at this node through a reference field or a
+ * wikilink mention. `node.relationships` holds only outgoing edges, so a node
+ * that is purely a reference target (e.g. a Platform that Resources point at)
+ * would otherwise hide its Connections section even though `useNodeConnections`
+ * already computes those incoming edges.
+ */
+const hasIncomingReferences = computed(() => {
+  if (!props.block.id) return false
+  const node = modelStore.getNode(props.block.id)
+  if (!node) return false
+  const nameLower = (node.name || '').toLowerCase()
+  const cleanLower = lastSegment(node.name).toLowerCase()
+
+  for (const other of Object.values(modelStore.nodes)) {
+    if (other.id === props.block.id) continue
+    const refs: string[] = []
+    if (other.fields) {
+      for (const fv of Object.values(other.fields)) {
+        const val = typeof fv === 'object' && fv !== null && 'value' in fv ? fv.value : fv
+        if (typeof val === 'string' && val.includes('[[')) {
+          for (const m of val.matchAll(/\[\[(.*?)\]\]/g)) refs.push(m[1]?.trim() ?? '')
+        }
+      }
+    }
+    const desc = (other as any)?.description || other.rawContent || ''
+    if (typeof desc === 'string' && desc.includes('[[')) {
+      for (const m of desc.matchAll(/\[\[(.*?)\]\]/g)) refs.push(m[1]?.trim() ?? '')
+    }
+    for (const ref of refs) {
+      if (ref && (ref.toLowerCase() === nameLower || lastSegment(ref).toLowerCase() === cleanLower)) {
+        return true
+      }
+    }
+  }
+  return false
+})
+
 const hasRelationships = computed(() => {
   if (!props.block.id) return false
   const node = modelStore.getNode(props.block.id)
-  return Boolean(node && node.relationships && node.relationships.length > 0)
+  if (node && node.relationships && node.relationships.length > 0) return true
+  return hasIncomingReferences.value
 })
 
 const relationshipsList = computed(() => {

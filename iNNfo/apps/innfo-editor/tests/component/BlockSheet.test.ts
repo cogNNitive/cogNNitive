@@ -81,6 +81,41 @@ describe('BlockSheet.vue — Redesigned layout & assets', () => {
       expect(wrapper.text()).toContain('depends_on')
       expect(wrapper.text()).toContain('Task2')
     })
+
+    it('renders the Connections section for a node that is only a reference target (no outgoing edges)', async () => {
+      const modelStore = useModelStore()
+      const root = makeNode('Root', { rawContent: '---\nspec_version: V_0-1-5\n---\n' })
+      const platform = makeNode('Root/youtube.com', {
+        name: 'youtube.com',
+        parentId: 'Root',
+        type: 'Platform',
+      })
+      const resource = makeNode('Root/Video', {
+        name: 'Video',
+        parentId: 'Root',
+        type: 'Resource',
+        fields: { platform: '[[youtube.com]]' },
+      })
+      modelStore.setGraph(
+        { Root: root, 'Root/youtube.com': platform, 'Root/Video': resource },
+        ['Root'],
+      )
+
+      const wrapper = mount(BlockSheet, {
+        props: {
+          block: { id: 'Root/youtube.com', name: 'youtube.com', description: '' },
+          kind: 'instance',
+          conceptType: 'Platform',
+          conceptName: 'Platform',
+          collapsed: false,
+          isEditing: false,
+        },
+      })
+
+      expect(wrapper.text()).toContain('Connections & Relationships')
+      expect(wrapper.text()).toContain('platform')
+      expect(wrapper.text()).toContain('Video')
+    })
   })
 
   describe('Fields Schema (concept layout)', () => {
