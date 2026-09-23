@@ -65,32 +65,72 @@ function htmlToPlainText(html) {
 }
 
 /**
- * Simple CSV line parser supporting quoted values.
- * @param {string} line
- * @returns {string[]}
+ * Parse an RFC-4180-subset CSV over the WHOLE document: comma delimiter, `"`
+ * quoting with `""` escape, CRLF/LF row breaks, and newlines preserved verbatim
+ * inside quoted fields. CR-only is data; a trailing newline yields no extra row.
+ *
+ * Mirrors the canonical `parseCsvTable` (iNNfo/packages/innfo-core/src/csvTable.ts).
+ * Kept inline because the distributed skill ships zero innfo-core dependency.
+ *
+ * @param {string} content
+ * @returns {{ rows: string[][], malformed: boolean }} malformed=true on unbalanced quotes.
  */
-function parseCsvLine(line) {
-  const result = [];
-  let current = '';
+function parseCsv(content) {
+  const rows = [];
+  let row = [];
+  let field = '';
   let inQuotes = false;
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
-    if (char === '"') {
-      if (inQuotes && line[i + 1] === '"') {
-        current += '"';
-        i++;
+  let hasContent = false;
+
+  const pushField = () => {
+    row.push(field);
+    field = '';
+  };
+  const pushRow = () => {
+    // Skip the trailing empty line the final newline would otherwise produce.
+    if (row.length === 1 && row[0] === '' && !hasContent) {
+      row = [];
+      return;
+    }
+    rows.push(row);
+    row = [];
+    hasContent = false;
+  };
+
+  for (let i = 0; i < content.length; i++) {
+    const ch = content[i];
+    hasContent = hasContent || (ch !== '\r' && ch !== '\n') || inQuotes;
+    if (inQuotes) {
+      if (ch === '"') {
+        if (content[i + 1] === '"') {
+          field += '"';
+          i++;
+        } else {
+          inQuotes = false;
+        }
       } else {
-        inQuotes = !inQuotes;
+        field += ch;
       }
-    } else if (char === ',' && !inQuotes) {
-      result.push(current.trim());
-      current = '';
+      continue;
+    }
+    if (ch === '"') {
+      inQuotes = true;
+    } else if (ch === ',') {
+      pushField();
+    } else if (ch === '\r') {
+      // Lone CR is data; CRLF breaks the row via the LF branch.
+      if (content[i + 1] !== '\n') field += ch;
+    } else if (ch === '\n') {
+      pushField();
+      pushRow();
     } else {
-      current += char;
+      field += ch;
     }
   }
-  result.push(current.trim());
-  return result;
+  if (inQuotes) return { rows: [], malformed: true };
+  pushField();
+  pushRow();
+  return { rows, malformed: false };
 }
 
 /**
@@ -100,19 +140,22 @@ function parseCsvLine(line) {
  * @returns {string}
  */
 function convertCsv(content, baseName) {
-  const lines = content.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-  if (lines.length === 0) {
+  const { rows: parsedRows, malformed } = parseCsv(content);
+  if (malformed) {
+    return `# NN Dataset Schema: ${baseName}\n\n*Malformed CSV: unbalanced quotes — no rows parsed.*\n`;
+  }
+
+  const trimmed = parsedRows.map(r => r.map(cell => cell.trim()));
+  // Drop blank lines; the first surviving record is the header row.
+  const records = trimmed.filter(r => r.some(cell => cell !== ''));
+  if (records.length === 0) {
     return `# NN Dataset Schema: ${baseName}\n\n*Empty CSV dataset*\n`;
   }
 
-  const headers = parseCsvLine(lines[0]);
-  const rows = [];
-  for (let i = 1; i < lines.length; i++) {
-    const row = parseCsvLine(lines[i]);
-    if (row.length === headers.length || row.some(cell => cell.length > 0)) {
-      rows.push(row);
-    }
-  }
+  const headers = records[0];
+  const rows = records
+    .slice(1)
+    .filter(r => r.length === headers.length || r.some(cell => cell !== ''));
 
   // Column profiling
   const colStats = headers.map((header, colIdx) => {
@@ -178,7 +221,13 @@ function convertCsv(content, baseName) {
   out += `| ${headers.map(() => '---').join(' | ')} |\n`;
   for (let i = 0; i < sampleLimit; i++) {
     const row = rows[i];
-    const cells = headers.map((_, idx) => (row[idx] !== undefined ? row[idx].replace(/\|/g, '\\|') : ''));
+    const cells = headers.map((_, idx) => (
+      row[idx] !== undefined
+        // Escape the pipe and flatten embedded newlines so one cell cannot
+        // break the markdown table into a phantom row.
+        ? row[idx].replace(/\|/g, '\\|').replace(/\r?\n/g, '<br>')
+        : ''
+    ));
     out += `| ${cells.join(' | ')} |\n`;
   }
 

@@ -212,6 +212,15 @@ function run() {
       assertTrue(csvMd.includes('# NN Dataset Schema: user_metrics'), 'CSV converter generates ## NN Dataset Schema');
       assertTrue(csvMd.includes('## NN Summary Statistics'), 'CSV converter generates ## NN Summary Statistics');
 
+      // Test 14b: a quoted field with an embedded newline/comma must stay ONE record.
+      // Regression: the naive line split turned it into phantom rows and bogus counts.
+      const csvMultiline = path.join(TEST_TEMP, 'multiline.csv');
+      fs.writeFileSync(csvMultiline, 'id,note\n1,"line a\nline b, still one field"\n2,plain\n', 'utf8');
+      const csvMultilineMd = converters.convertOkFormat('.csv', csvMultiline, 'multiline');
+      assertTrue(csvMultilineMd.includes('- **Total Rows**: 2'), 'multiline quoted CSV parses 2 logical rows, not 3+');
+      assertTrue(csvMultilineMd.includes('| id | note |'), 'multiline quoted CSV preserves the header row');
+      assertTrue(csvMultilineMd.includes('line a<br>line b, still one field'), 'embedded newline is flattened so the sample table stays one row');
+
       // Test 15: JSON converter without Slack heuristics & removal of convertChatJson
       assertEqual(typeof converters.convertChatJson, 'undefined', 'convertChatJson is removed from converters');
       const jsonArraySample = path.join(TEST_TEMP, 'customers.json');
