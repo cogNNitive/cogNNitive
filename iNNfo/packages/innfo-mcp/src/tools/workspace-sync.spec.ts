@@ -130,6 +130,48 @@ describe('syncWorkspaceManifest', () => {
     const result = await syncWorkspaceManifest(rootDir, { dry_run: true })
     expect(result.changes).toEqual([])
   })
+
+  it('regression: procedure/sources/artifacts catalogs never become ## NN Models entries', async () => {
+    const manifestBody = [
+      '# NN Models',
+      '',
+      '# NN Procedures',
+      '',
+      '## NN Procedures: Master Procedures Catalog',
+      'path:: procedures/procedures_NN.md',
+      '',
+    ].join('\n')
+    await writeFile(join(rootDir, 'workspace_NN.md'), manifestBody, 'utf-8')
+    await mkdir(join(rootDir, 'procedures'), { recursive: true })
+    await writeFile(
+      join(rootDir, 'procedures', 'procedures_NN.md'),
+      ['---', 'level: 3', 'parent_spec:', '  name: "procedures"', 'title: "Procedures Catalog"', '---'].join(
+        '\n',
+      ),
+      'utf-8',
+    )
+    await writeFile(
+      join(rootDir, 'procedures', 'generar_guion_anydeo_V_0-1-0_procedures_NN.md'),
+      ['---', 'level: 3', 'parent_spec:', '  name: "procedures"', 'title: "Generar guion"', '---'].join(
+        '\n',
+      ),
+      'utf-8',
+    )
+    await writeFile(
+      join(rootDir, 'sources_NN.md'),
+      ['---', 'level: 3', 'parent_spec:', '  name: "sources"', 'title: "Sources Catalog"', '---'].join(
+        '\n',
+      ),
+      'utf-8',
+    )
+
+    const result = await syncWorkspaceManifest(rootDir, { dry_run: true })
+    expect(result.changes).toEqual([])
+    expect(result.written).toBe(false)
+
+    const after = await readFile(join(rootDir, 'workspace_NN.md'), 'utf-8')
+    expect(after).toBe(manifestBody)
+  })
 })
 
 describe('buildUnifiedDiff', () => {

@@ -605,3 +605,17 @@ the slug, and what that means for every existing `[[wikilink]]`.
 
 **Suggested trigger:** `/sdd-explore merkle-lineage-and-distributed-workspace` (evaluate only after unified workspace hierarchy and navigation have stabilized in real-world usage).
 
+---
+
+## `refactor/workspace-manifest-section-ownership` — manage the `# NN Sources` / `# NN Procedures` / `# NN Artifacts` catalog pointers + `models_dir` scope
+
+**Type:** refactor / architecture · **Size:** medium
+
+**Why:** `sync_workspace_manifest` reconciles only `## NN Models`. The workspace spec defines nine sections (`workspace_spec_NN.md:475-528`): `## NN Models` is enumerated, while `# NN Sources`, `# NN Procedures` and `# NN Artifacts` each carry a **single catalog pointer** (e.g. `## NN Procedures: Master Procedures Catalog → procedures/procedures_NN.md`, as `workspace_NN/workspace_NN.md` does). Those pointers are hand-authored, so a renamed/deleted catalog leaves a stale pointer nobody repairs. Separately, `## NN Models` membership is "any Level-3 file outside `{backups,archive,specs}` not in a non-model app" — a negative deny-list (see the shipped change `2026-09-23-workspace-manifest-catalog-app-exclusion`) — whereas the spec states models live under a declared `models_dir` (default `models/`), a convention real workspaces, including `docs/workspace_NN.md`, do not follow.
+
+**Approach (open):** two candidate rules — (1) `models_dir` directory scope for `## NN Models` (spec-literal; needs a migration for workspaces whose models live elsewhere, or their entries archive), and (2) app→section routing that classifies each discovered Level-3 file by `parent_spec` into its target section, with `## NN Models` as the catch-all. Routing subsumes the deny-list. Before designing, resolve: whether the tool adopts the existing hand-authored catalog-pointer entries (`<!-- nn:auto -->`) or leaves them untouched; the `# NN Procedures` header collision with the nn-trannsform lineage record's append-only log (`openspec/specs/lineage-record-sync`); and the catalog-pointer cardinality (one entry per section vs one per file).
+
+**Impact:** `reconcileManifest` generalized from one section to N; `sync_workspace_manifest` per-section discovery + ownership policy; reconcile with `openspec/specs/{lineage-record-sync, lineage-version-status, workspace-directory-conventions, manifest-governance}`; `iNNfo-editor` save path shares `reconcileManifest`.
+
+**Suggested trigger:** `/sdd-explore workspace-manifest-section-ownership`.
+

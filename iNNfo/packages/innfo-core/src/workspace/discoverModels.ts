@@ -26,13 +26,21 @@ function parentSpecName(frontmatter: Record<string, unknown>): string | undefine
 }
 
 /**
- * Matches lineage-record templates: `cogNNitive`, `cogNNitive_V_0-1-0`,
- * `workspace`, `workspace_V_0-2-0`, `workspace_V_0-3-0_spec_NN`, etc.
- * (any version, any suffix). These are non-navigation records — they must
- * never surface as manifest reconciliation candidates.
+ * Parent-spec names whose Level-3 documents must never surface as `## NN Models`
+ * reconciliation candidates (any version, any suffix):
+ *
+ * - `cogNNitive` / `workspace` — workspace-conforming lineage records
+ *   (non-navigation records; see openspec `lineage-version-status`).
+ * - `procedures` / `sources` / `artifacts` — catalog apps that own their own
+ *   workspace-manifest section (`# NN Procedures` / `# NN Sources` /
+ *   `# NN Artifacts`). Their catalogs (e.g. `procedures/procedures_NN.md`) are
+ *   already indexed by that section; adding them under `## NN Models` duplicate
+ *   the same file in two sections.
  */
-function isCogNNitiveTemplate(name: string | undefined): boolean {
-  return typeof name === 'string' && /^(cognnitive|workspace)(_|$)/i.test(name.trim())
+const NON_MODEL_SPEC_RE = /^(cognnitive|workspace|procedures|sources|artifacts)(_|$)/i
+
+function isNonModelSpec(name: string | undefined): boolean {
+  return typeof name === 'string' && NON_MODEL_SPEC_RE.test(name.trim())
 }
 
 /**
@@ -42,10 +50,10 @@ function isCogNNitiveTemplate(name: string | undefined): boolean {
  *
  * This is the ONE shared discoverability rule for `collectModels()`
  * (`list_models`) and `isReconcilableModel()` (manifest reconciliation).
- * Manifest-specific exclusions (self-reference, cogNNitive lineage-record
- * templates) do NOT belong here — they are meaningless without a manifest
- * and would incorrectly hide legitimate workspace documents from
- * `list_models` (see H6 design notes).
+ * Manifest-specific exclusions (self-reference, non-model spec apps such as
+ * lineage records and the procedures/sources/artifacts catalogs) do NOT belong
+ * here — they are meaningless without a manifest and would incorrectly hide
+ * legitimate workspace documents from `list_models` (see H6 design notes).
  */
 export function isDiscoverableModel(file: CandidateFile): boolean {
   const { path, frontmatter } = file
@@ -72,7 +80,7 @@ export function isReconcilableModel(file: CandidateFile, manifestPath: string): 
 
   if (!isDiscoverableModel(file)) return false
   if (normalizePathKey(path) === normalizePathKey(manifestPath)) return false
-  if (isCogNNitiveTemplate(parentSpecName(frontmatter))) return false
+  if (isNonModelSpec(parentSpecName(frontmatter))) return false
 
   return true
 }

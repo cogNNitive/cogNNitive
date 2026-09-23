@@ -82,6 +82,28 @@ describe('discoverModels: isReconcilableModel', () => {
     expect(isReconcilableModel(v1, MANIFEST_PATH)).toBe(false)
     expect(isReconcilableModel(v2, MANIFEST_PATH)).toBe(false)
   })
+
+  it('excludes catalog apps (procedures/sources/artifacts), any version', () => {
+    const procedures = candidate('procedures_NN.md', {
+      level: 3,
+      parent_spec: { name: 'procedures' },
+    })
+    const proceduresVersioned = candidate('procedures/x_V_0-1-0_procedures_NN.md', {
+      level: 3,
+      parent_spec: { name: 'procedures_V_0-2-1' },
+    })
+    const sources = candidate('sources/sources_NN.md', {
+      level: 3,
+      parent_spec: { name: 'sources' },
+    })
+    const artifacts = candidate('artifacts/artifacts_NN.md', {
+      level: 3,
+      parent_spec: { name: 'artifacts' },
+    })
+    for (const file of [procedures, proceduresVersioned, sources, artifacts]) {
+      expect(isReconcilableModel(file, MANIFEST_PATH)).toBe(false)
+    }
+  })
 })
 
 describe('reconcileManifest', () => {
@@ -313,6 +335,41 @@ describe('reconcileManifest', () => {
 
     const reconcilable = candidates.filter((c) => isReconcilableModel(c, MANIFEST_PATH))
     expect(reconcilable).toEqual([])
+  })
+
+  it('regression: catalog apps never become ## NN Models entries', () => {
+    const manifestContent = [
+      '# NN Models',
+      '',
+      '# NN Procedures',
+      '',
+      '## NN Procedures: Master Procedures Catalog',
+      'path:: procedures/procedures_NN.md',
+      '',
+    ].join('\n')
+
+    const candidates: CandidateFile[] = [
+      candidate('procedures/procedures_NN.md', {
+        level: 3,
+        parent_spec: { name: 'procedures' },
+      }),
+      candidate('procedures/generar_guion_anydeo_V_0-1-0_procedures_NN.md', {
+        level: 3,
+        parent_spec: { name: 'procedures' },
+      }),
+      candidate('sources/sources_NN.md', { level: 3, parent_spec: { name: 'sources' } }),
+      candidate('artifacts/artifacts_NN.md', { level: 3, parent_spec: { name: 'artifacts' } }),
+    ]
+
+    const discovered: DiscoveredModel[] = candidates
+      .filter((c) => isReconcilableModel(c, MANIFEST_PATH))
+      .map((c) => ({ path: c.path, name: c.path }))
+    expect(discovered).toEqual([])
+
+    const result = reconcileManifest(manifestContent, discovered)
+    expect(result.changes).toEqual([])
+    expect(result.content).toBe(manifestContent)
+    expect(result.content).not.toContain('## NN Models:')
   })
 
   it('idempotent: running reconcileManifest twice produces zero further changes and identical content', () => {
