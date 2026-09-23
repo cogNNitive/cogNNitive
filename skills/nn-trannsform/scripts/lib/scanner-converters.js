@@ -693,6 +693,7 @@ async function ensureDependency(ext, options, extDeps, skillDir) {
 }
 
 module.exports = {
+  parseCsv,
   stripFrontmatter,
   htmlToPlainText,
   convertJson,

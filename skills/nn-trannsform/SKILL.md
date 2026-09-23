@@ -250,6 +250,18 @@ Workspaces can watch external file drops without daemons or external mutations:
 4. **Source Family Evolution & Impact Guidance**:
    The impact checker detects when models reference older snapshots of an evolving source family and advises when newer snapshots are available.
 
+#### 2a-4. Curating a CSV for Row-Level Citation
+
+The scanner normalizes a CSV to a Markdown *profile* (`sources/nn/import/<stem>.md`) — an ingestion aid, **not** a citation target. Row-level citations (`sources:: [<file>.csv@<row-id>]`) require the CSV itself under `sources/nn/`, with a unique, non-empty key in its **first column** (the row-id). Curate it with:
+
+```bash
+node scripts/index.js --curate-csv "<path-to-csv>" --key "<column>" [--dedup] --src "<project-dir>"
+```
+
+- Moves the `--key` column to the first position (defaults to the first column), validates it, and writes an RFC-4180 CSV to `sources/nn/import/`, mirroring the `sources/import/` subtree. The raw file is never modified.
+- Without `--dedup` it aborts when the key has empty or duplicate values; with `--dedup` it collapses duplicate-key rows (first wins) and drops empty-key rows, reporting both counts.
+- Cite a row as `sources:: [import/<stem>.csv@<row-id>]` (or `@<row-id>&<column>` for one cell). The iNNfo editor highlights the cited row when the source pill is clicked.
+
 #### 2b. Progressive Disclosure & Source Naming Convention
 
 To prevent LLM context degradation (*Lost in the Middle*) and maintain workspace clarity:

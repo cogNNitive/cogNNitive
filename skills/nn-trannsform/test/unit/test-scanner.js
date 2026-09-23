@@ -221,6 +221,34 @@ function run() {
       assertTrue(csvMultilineMd.includes('| id | note |'), 'multiline quoted CSV preserves the header row');
       assertTrue(csvMultilineMd.includes('line a<br>line b, still one field'), 'embedded newline is flattened so the sample table stays one row');
 
+      // Test 14c: CSV curation -> citation-ready CSV (key first, unique, non-empty)
+      const curate = require('../../scripts/lib/curate-csv');
+      const curated = curate.curateCsvContent('url,id\nz,2\nx,1\nz,2\n', { key: 'id', dedup: true });
+      assertEqual(curated.rows[0][0], 'id', 'curate promotes the key column to first position');
+      assertEqual(curated.rows[1][0], '2', 'curate keeps the key value in the first cell');
+      assertEqual(curated.rows.length, 3, 'curate collapses duplicate keys (header + 2 rows)');
+      assertEqual(curated.collapsed, 1, 'curate reports the collapsed duplicate count');
+
+      const curatedDrop = curate.curateCsvContent('id,url\n,1\nb,2\n', { key: 'id', dedup: true });
+      assertEqual(curatedDrop.rows.length, 2, 'curate drops empty-key rows in --dedup mode (header + 1)');
+      assertEqual(curatedDrop.droppedEmptyKey, 1, 'curate reports dropped empty-key rows');
+
+      assertTrue(
+        (() => { try { curate.curateCsvContent('id,url\na,1\na,2\n', { key: 'id' }); return false; } catch { return true; } })(),
+        'curate refuses duplicate keys without --dedup',
+      );
+
+      const curateProj = path.join(TEST_TEMP, 'curate-project');
+      fs.mkdirSync(path.join(curateProj, 'sources', 'import'), { recursive: true });
+      fs.writeFileSync(path.join(curateProj, 'sources', 'import', 'links.csv'), 'url,id\nz,2\nx,1\n', 'utf8');
+      const fileResult = curate.curateCsvFile(
+        path.join(curateProj, 'sources', 'import', 'links.csv'),
+        { key: 'id', projectDir: curateProj },
+      );
+      assertTrue(fs.existsSync(fileResult.outputPath), 'curateCsvFile writes the curated CSV under sources/nn/import/');
+      assertTrue(fileResult.relOutput.endsWith('sources/nn/import/links.csv'), 'curated CSV mirrors the import/ subtree');
+      assertEqual(fs.readFileSync(fileResult.outputPath, 'utf8').split('\n')[0], 'id,url', 'written curated CSV has the key column first');
+
       // Test 15: JSON converter without Slack heuristics & removal of convertChatJson
       assertEqual(typeof converters.convertChatJson, 'undefined', 'convertChatJson is removed from converters');
       const jsonArraySample = path.join(TEST_TEMP, 'customers.json');

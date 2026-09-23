@@ -15,6 +15,7 @@ const { checkLineage } = require('./lib/lineage-check');
 const { auditModelCitations, checkScanImpact, writeImpactReport, detectSourceFamilyEvolution } = require('./lib/impact-checker');
 const { promoteConversation, PROMOTION_OPTIONS } = require('./lib/conversations');
 const externalScanner = require('./lib/external-scanner');
+const curateCsv = require('./lib/curate-csv');
 
 async function main() {
   const argv = minimist(process.argv.slice(2));
@@ -41,7 +42,8 @@ async function main() {
     argv['promote-conversation'] ||
     argv.unlink ||
     argv.purge ||
-    argv['remove-source'];
+    argv['remove-source'] ||
+    argv['curate-csv'];
 
   if (hasArgs) {
     await handleCliMode(argv);
@@ -259,6 +261,33 @@ async function handleCliMode(argv) {
       inputs: importResult ? [`sources/import/${importResult.relPath}`] : ['sources/import/'],
       outputs: ['sources/nn/'],
     });
+  }
+
+  if (argv['curate-csv']) {
+    const target = argv['curate-csv'];
+    try {
+      const result = curateCsv.curateCsvFile(target, {
+        key: argv.key,
+        dedup: Boolean(argv.dedup),
+        projectDir,
+      });
+      console.log(`Curated CSV written: ${result.relOutput}`);
+      console.log(
+        `  key column "${result.keyName}" · ${result.inputRows} input row(s) -> ${result.outputRows} row(s)` +
+          (result.collapsed ? ` · ${result.collapsed} duplicate key(s) collapsed` : '') +
+          (result.droppedEmptyKey ? ` · ${result.droppedEmptyKey} empty-key row(s) dropped` : ''),
+      );
+      console.log(`  cite a row as: sources:: [${result.citationExample}]`);
+      provenance.appendProcedureRun(projectDir, {
+        command: 'curate-csv',
+        flags: `--curate-csv "${target}"${argv.key ? ` --key "${argv.key}"` : ''}${argv.dedup ? ' --dedup' : ''}`,
+        inputs: [target],
+        outputs: [result.relOutput],
+      });
+    } catch (err) {
+      console.error(`Error curating CSV: ${err.message}`);
+      process.exit(1);
+    }
   }
 
   if ((argv.provenance || argv.lineage) && !argv.scan) {
