@@ -1563,6 +1563,14 @@ agent-bootstrap:
       const skillsDir = path.join(tmpDir, 'skills');
       const stateFile = path.join(tmpDir, 'bootstrap-state.json');
       fs.mkdirSync(path.join(skillsDir, 'nn-innfo'), { recursive: true });
+      // This fixture is the only freshness case whose manifest declares an MCP
+      // entry, so it is the only one that reaches the bundle-on-disk probe. That
+      // probe defaults to ~/.agents/mcp, which exists on a maintainer's machine
+      // and not on CI — so without an explicit --mcp-dir the run exits 0 locally
+      // and 1 on CI. Isolate it inside tmpDir to keep the fixture hermetic.
+      const mcpDir = path.join(tmpDir, 'mcp');
+      fs.mkdirSync(mcpDir, { recursive: true });
+      fs.writeFileSync(path.join(mcpDir, 'innfo-mcp.bundle.js'), '// fixture bundle\n');
       fs.writeFileSync(stateFile, JSON.stringify({
         manifest: `${server.url}/manifest.md`,
         skills: {
@@ -1573,6 +1581,7 @@ agent-bootstrap:
       const res = await runScriptAsync([
         '--skills-dir', skillsDir,
         '--state-file', stateFile,
+        '--mcp-dir', mcpDir,
         '--manifest-url', `${server.url}/manifest.md`,
         '--freshness-url', `${server.url}/use/freshness.json`,
       ]);
