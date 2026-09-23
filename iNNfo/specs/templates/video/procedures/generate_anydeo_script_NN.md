@@ -51,7 +51,7 @@ output:: [[Script Outline]]
 output_status:: verified
 tool:: [[AI Agent]]
 scope:: internal
-Derive the narrative beat structure from the topic and the cited `sources::` of the owning VideoProject element.
+Derive the narrative beat structure from the topic and the cited `sources::` of the owning Video element.
 
 ## NN Work: Author Anydeo Scenes
 parent:: [[Generate Anydeo Script Workflow]]
@@ -74,7 +74,7 @@ output:: [[Registered Script Artifact]]
 output_status:: verified
 tool:: [[File Editor]]
 scope:: internal
-Write the script to the workspace and set `script_path` on the owning VideoProject element.
+Write the script to the video's own folder (`assets/{video-slug}/script.md`) and set `script` on the owning Video element.
 
 # NN Artifact
 
@@ -92,7 +92,7 @@ description:: A V_0-3-3 Anydeo script file with scenes, layers, and TTS settings
 
 ## NN Artifact: Registered Script Artifact
 type:: output
-description:: The Anydeo script stored in the workspace and referenced by a VideoProject element.
+description:: The Anydeo script stored in the video's own folder and referenced by a Video element.
 
 # NN Tools
 

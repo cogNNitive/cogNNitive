@@ -4,7 +4,7 @@ parent_spec:
   name: "video"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/video/spec_NN.md"
 model_version: "V_0-1-0"
-title: "Ghostbusters Inc. Recruitment Video Project"
+title: "Ghostbusters Inc. Recruitment Video"
 ---
 
 > [!NOTE]
@@ -12,13 +12,13 @@ title: "Ghostbusters Inc. Recruitment Video Project"
 
 # NN index
 
-* [[VideoProject]]
+* [[Video]]
 
-# NN VideoProject
+# NN Video
 
-## NN VideoProject: Ghostbusters Recruitment Spot
+## NN Video: Ghostbusters Recruitment Spot
 title:: Ghostbusters 30-Second Recruitment Spot
 description:: Short promotional video recruiting new field technicians for the Ghostbusters containment crew.
-script_path:: artifacts/ghostbusters_recruitment.anydeo.md
+script:: script.md
 status:: published
 sources:: [sources/nn/nyc-paranormal-activity-report-1984.md@## Market Demand]

@@ -5,7 +5,7 @@ level: 2
 parent_spec:
   name: "iNNfo_V_0-2-1"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-2-1_NN.md"
-template_version: "V_0-1-0"
+template_version: "V_0-2-0"
 title: "Video App"
 procedures:
   - id: "generate-anydeo-script"
@@ -28,11 +28,11 @@ relationship_types:
 
 # NN index
 
-* [[VideoProject]]
+* [[Video]]
 
 # NN Concept Definition
 
-## NN Concept Definition: VideoProject
+## NN Concept Definition: Video
 icon:: video
 type:: category
 color:: blue
@@ -41,40 +41,72 @@ weight:: 100
 # NN Field Definition
 
 ## NN Field Definition: title
-concept:: VideoProject
+concept:: Video
 type:: string
-description:: Title of the video project.
+description:: Title of the video.
 
 ## NN Field Definition: description
-concept:: VideoProject
+concept:: Video
 type:: markdown_inline
 description:: Short description of the video scope.
 
-## NN Field Definition: script_path
-concept:: VideoProject
-type:: string
-description:: Workspace-relative path to the generated Anydeo script artifact.
+## NN Field Definition: script
+concept:: Video
+type:: file
+description:: The Anydeo V_0-3-3 script, stored in the video's own folder.
+
+## NN Field Definition: thumbnail
+concept:: Video
+type:: image
+description:: Cover image of the video.
+
+## NN Field Definition: voiceover
+concept:: Video
+type:: audio
+description:: Master voiceover track of the video.
+
+## NN Field Definition: master
+concept:: Video
+type:: video
+description:: Rendered video file of the video.
 
 ## NN Field Definition: status
-concept:: VideoProject
+concept:: Video
 type:: select
 options:: [draft, scripting, rendering, published, archived]
-description:: Production state of the video project.
+description:: Production state of the video.
 
 # Video App
 
-## A minimal schema for a video project: metadata and traceability to its sources
+## A minimal schema for one video: its metadata, its own media folder, and traceability to its sources
 
 ## Philosophy
 
-The Video App models only what iNNfo uniquely contributes: the identity and provenance of a video project. The script itself is a **generated artifact**, authored in Anydeo V_0-3-3 syntax (scenes `@`, layers `@@`, `layer_type`, `scene_templates`, `scene_tts_model`, avatars) and owned by the `anydeo-script-builder` skill — it is not re-modelled as iNNfo data. The project element records where that artifact lives (`script_path`) and which sources it derives from (`sources::`), so the model never re-encodes structure Anydeo already expresses.
+The Video App models one video as a single Element that owns its own media folder. The script is a **generated artifact** authored in Anydeo V_0-3-3 syntax (scenes `@`, layers `@@`, `layer_type`, `scene_templates`, `scene_tts_model`, avatars) and owned by the `anydeo-script-builder` skill — it is not re-modelled as iNNfo data. The Element records where its files live and which sources it derives from (`sources::`), so the model never re-encodes structure Anydeo already expresses.
 
 This replaces the retired `video-generator` pipeline, which modelled `Script`, `Storyboard`, `Asset` and three directional matrices in parallel with Anydeo and drifted on every script change.
 
+## The video folder
+
+Every file-backed field of a video resolves to one folder named after the video Element:
+
+```
+{modelDir}/assets/{video-slug}/{filename}
+```
+
+The field values are **bare filenames** — they do not repeat the folder, because the folder already identifies the video. So `script:: script.md` on the Element `Recruitment Spot` (slug `recruitment-spot`) resolves to:
+
+```
+assets/recruitment-spot/script.md
+```
+
+Renaming the Element renames its folder with it. One video, one folder, all of its media inside.
+
 ## Objectives
 
-- Provide a valid Level 2 template usable as `parent_spec` for video-project models.
-- Model the project container only: `title`, `description`, `script_path`, `status`.
+- Provide a valid Level 2 template usable as `parent_spec` for video models.
+- Model one video per Element: `title`, `description`, `status`, and its media fields.
+- Keep every file of a video inside that video's own folder.
 - Keep traceability to input documents through the reserved `sources::` property.
 - Delegate script, scene, layer, and asset structure to the Anydeo specification.
 
@@ -84,22 +116,25 @@ This replaces the retired `video-generator` pipeline, which modelled `Script`, `
 
 | Concept | Type | Purpose |
 |---|---|---|
-| **VideoProject** | `category` | The video project container |
+| **Video** | `category` | One video, its metadata, and its media folder |
 
 ### Fields
 
 | Concept | Field | Type | Purpose |
 |---|---|---|---|
-| VideoProject | `title` | string | Project title |
-| VideoProject | `description` | markdown_inline | Scope description |
-| VideoProject | `script_path` | string | Path to the generated Anydeo script artifact |
-| VideoProject | `status` | select | draft / scripting / rendering / published / archived |
+| Video | `title` | string | Video title |
+| Video | `description` | markdown_inline | Scope description |
+| Video | `script` | file | Anydeo V_0-3-3 script (`assets/{slug}/`) |
+| Video | `thumbnail` | image | Cover image (`assets/{slug}/`) |
+| Video | `voiceover` | audio | Master voiceover track (`assets/{slug}/`) |
+| Video | `master` | video | Rendered video file (`assets/{slug}/`) |
+| Video | `status` | select | draft / scripting / rendering / published / archived |
+
+Each file-backed field holds exactly one filename. A video that needs several images or several voice clips keeps them in its folder as attachments.
 
 ### Reserved Properties
 
-`sources::` is an optional reserved property of the iNNfo meta-template used on an
-Element to cite the source documents the project derives from. It requires no Field
-Definition and is written as a bracketed list of `sources/nn/<file>#<heading-slug>`.
+`sources::` is an optional reserved property of the iNNfo meta-template used on an Element to cite the source documents the video derives from. It requires no Field Definition and is written as a bracketed list of `sources/nn/<file>#<heading-slug>`.
 
 ### Relationship Types
 
@@ -112,33 +147,29 @@ Definition and is written as a bracketed list of `sources/nn/<file>#<heading-slu
 
 ### Migrating from Video Generator
 
-A workspace authored against the retired `video-generator` template stays valid: that
-template is frozen and remains resolvable at its canonical path. To move to this
-template, create a new model whose `parent_spec` points here, keep one `VideoProject`
-element per video, move the script to an Anydeo `.md`/`.anydeo` artifact and record its
-path in `script_path`, and cite the original sources with `sources::`. The old `Script`,
-`Storyboard`, and `Asset` elements are dropped — Anydeo already owns that structure.
+A workspace authored against the retired `video-generator` template stays valid: that template is frozen and remains resolvable at its canonical path. To move to this template, create a new model whose `parent_spec` points here, keep one `Video` Element per video, put its files in `assets/{video-slug}/`, and cite the original sources with `sources::`. The old `Script`, `Storyboard`, and `Asset` elements are dropped — Anydeo already owns that structure.
 
 # Concept Guidance Documentation
 
-## VideoProject
+## Video
 
 ### Summary
 
-A single video project container described by `title`, `description`, and `status`, pointing at the generated Anydeo script through `script_path`.
+One video: its title, description, and status, plus the file-backed fields `script`, `thumbnail`, `voiceover`, and `master`, all stored in the video's own folder.
 
 ### Description
 
-The `VideoProject` concept is the only concept of this template. One `## NN VideoProject: <name>` element models one video. Its fields hold the title, a short scope description, the workspace-relative path to the generated Anydeo script, and the production `status`. Traceability to input material is expressed with the reserved `sources::` property rather than with a separate `Source` concept.
+The `Video` concept is the only concept of this template. One `## NN Video: <name>` Element models one video. Its `title`, `description`, and `status` describe the video; its file-backed fields (`script`, `thumbnail`, `voiceover`, `master`) point at files inside `assets/{video-slug}/` using bare filenames. Traceability to input material is expressed with the reserved `sources::` property rather than with a separate `Source` concept.
 
 ### Methodologies
 
-- One `VideoProject` element per video, kept as the single entry point of the model.
-- Treat the script as an external artifact: point at it with `script_path`, never inline it.
+- One `Video` Element per video, kept as the single entry point of the model.
+- Treat the script as an external artifact: point at it with `script`, never inline it.
+- Keep all of a video's media in its own folder; never scatter files across the workspace.
 - Keep `sources::` as the single traceability channel back to normalized sources.
 
 ### Prompts
 
-- "Create a `VideoProject` named `<title>` describing `<scope>`."
-- "Set `script_path` of `<project>` to `<path>` and status to `<published>`."
-- "Which sources does `<project>` derive from?"
+- "Create a `Video` named `<title>` describing `<scope>`."
+- "Set `script` of `<video>` to `script.md` and status to `published`."
+- "Which sources does `<video>` derive from?"
