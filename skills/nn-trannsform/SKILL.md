@@ -261,6 +261,7 @@ node scripts/index.js --curate-csv "<path-to-csv>" --key "<column>" [--dedup] --
 - Moves the `--key` column to the first position (defaults to the first column), validates it, and writes an RFC-4180 CSV to `sources/nn/import/`, mirroring the `sources/import/` subtree. The raw file is never modified.
 - Without `--dedup` it aborts when the key has empty or duplicate values; with `--dedup` it collapses duplicate-key rows (first wins) and drops empty-key rows, reporting both counts.
 - Cite a row as `sources:: [import/<stem>.csv@<row-id>]` (or `@<row-id>&<column>` for one cell). The iNNfo editor highlights the cited row when the source pill is clicked.
+- The curated CSV is surfaced in the lineage record as `curated_csv:: sources/nn/...` on its source entry, so the citable file is tracked alongside its profile.
 
 #### 2b. Progressive Disclosure & Source Naming Convention
 

@@ -158,6 +158,38 @@ function collectSources(mdDir) {
     });
   }
 
+  // Curated CSVs under sources/nn/ are the citable form of a source. When a
+  // profile .md exists for the same stem, surface the CSV on that entry
+  // (`curated_csv::`); otherwise register the CSV on its own.
+  const sourcesDir = path.dirname(mdDir);
+  for (const relCsv of walkFiles(mdDir, (n) => n.endsWith('.csv'))) {
+    const relCsvPosix = relCsv.replace(/\\/g, '/');
+    const stemMd = relCsvPosix.replace(/\.csv$/i, '.md');
+    const owner = sources.find((s) => s.mdFile.replace(/\\/g, '/') === stemMd);
+    if (owner) {
+      owner.curated_csv = `sources/nn/${relCsvPosix}`;
+      continue;
+    }
+    const rawCandidate = path.join(sourcesDir, 'import', relCsvPosix);
+    sources.push({
+      name: path.basename(relCsv),
+      raw_filename: fs.existsSync(rawCandidate) ? `sources/import/${relCsvPosix}` : `sources/nn/${relCsvPosix}`,
+      media_filename: null,
+      raw_hash: null,
+      size: null,
+      source_format: 'csv',
+      normalized_at: null,
+      normalized_by: null,
+      normalized_content: `sources/nn/${relCsvPosix}`,
+      mdFile: relCsv,
+      is_synthetic: false,
+      derived_from: null,
+      curated_csv: `sources/nn/${relCsvPosix}`,
+      version: 'V1',
+      archive_path: null,
+    });
+  }
+
   // Disambiguate duplicate source names by prepending parent directory
   const nameCounts = {};
   for (const s of sources) {
@@ -463,6 +495,7 @@ function renderSourcesSection(sources) {
     if (s.normalized_at) out += `normalized_at:: ${s.normalized_at}\n`;
     if (s.normalized_by) out += `normalized_by:: ${s.normalized_by}\n`;
     out += `normalized_content:: ${s.normalized_content}\n`;
+    if (s.curated_csv) out += `curated_csv:: ${s.curated_csv}\n`;
     if (s.status) out += `status:: ${s.status}\n`;
     if (s.version) out += `version:: ${s.version}\n`;
     if (s.archive_path) out += `archive_path:: ${s.archive_path}\n`;

@@ -150,6 +150,26 @@ function run() {
     ok(nested.includes('./models/Custom_Model_V_2-0-0_NN.md'), 'listWorkspaceModels includes top-level models/');
     ok(nested.includes('./Acme_V_0-2-0_workspace_NN.md'), 'listWorkspaceModels keeps root files prefixed ./');
 
+    const csvProj = path.join(TMP, 'CsvProj');
+    fs.mkdirSync(path.join(csvProj, 'sources', 'nn', 'import'), { recursive: true });
+    fs.writeFileSync(
+      path.join(csvProj, 'sources', 'nn', 'import', 'links.md'),
+      SRC_FM('sources/import/links.csv', 'ddd')
+    );
+    fs.writeFileSync(path.join(csvProj, 'sources', 'nn', 'import', 'links.csv'), 'id,url\n1,a\n');
+    const rCsv = provenance.buildProvenanceModel(csvProj, { projectName: 'CsvProj' });
+    const csvModel = fs.readFileSync(rCsv.modelPath, 'utf8');
+    ok(/## NN Sources: links\.csv/.test(csvModel), 'CSV source entry present');
+    ok(
+      /curated_csv:: sources\/nn\/import\/links\.csv/.test(csvModel),
+      'curated CSV is surfaced on its source entry as curated_csv',
+    );
+    eq(
+      (csvModel.match(/## NN Sources:/g) || []).length,
+      1,
+      'curated CSV does not create a duplicate source entry',
+    );
+
     fs.rmSync(TMP, { recursive: true, force: true });
     console.log(`\n  Provenance tests: ${passed} passed, ${failed} failed`);
   } catch (e) {
