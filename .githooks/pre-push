@@ -1,26 +1,67 @@
 #!/bin/sh
-# pre-push: block the push if the repo does not typecheck.
+# pre-push: block the push if the repo does not typecheck, and — for pushes
+# whose remote ref is refs/heads/main — block it if the diff violates
+# tag/pin freshness (skills/ or a template spec_NN.md changed without a
+# manifest/source.yaml re-pin in the same diff; scripts/lib/tag-pin-freshness.js).
 #
-# Runs `npm run typecheck` (root, all 3 workspaces, includes the innfo-core
-# build) — the cheapest command that catches the class of defect that caused
-# incident 2c11ecf (a vue-tsc TS2367 dead comparison). Deliberately NOT
-# `npm run verify` (typecheck + full test suite, ~90s+ for the editor alone):
-# a hook that takes minutes trains people to reach for --no-verify as a
-# habit, which disarms every future hook. See design.md ADR-001.
+# Typecheck runs `npm run typecheck` (root, all 3 workspaces, includes the
+# innfo-core build) — the cheapest command that catches the class of defect
+# that caused incident 2c11ecf (a vue-tsc TS2367 dead comparison).
+# Deliberately NOT `npm run verify` (typecheck + full test suite, ~90s+ for
+# the editor alone): a hook that takes minutes trains people to reach for
+# --no-verify as a habit, which disarms every future hook. See design.md
+# ADR-001. The tag/pin freshness check is a single `git diff --name-only`
+# and stays within that same budget.
 #
-# ponytail: this hook ignores stdin, so it also runs on tag pushes and ref
-# deletions (a release cuts up to four tags). Upgrade path: read $remote_ref
-# from stdin and skip pushes whose ref is not refs/heads/*. Not shipped —
-# ship it when tag-push friction is actually reported, not before.
+# This hook reads $remote_ref from stdin (one line per pushed ref:
+# "<local_ref> <local_sha> <remote_ref> <remote_sha>"), so it now:
+#   - skips typecheck entirely for pushes whose remote ref is not
+#     refs/heads/* (tag pushes, e.g. a release cutting up to four tags),
+#   - only runs the tag/pin freshness guard for pushes whose remote ref is
+#     exactly refs/heads/main,
+#   - skips ref deletions (local sha is all zeros).
 
-npm run typecheck
-status=$?
+typechecked=0
+tag_pin_violation=0
 
-if [ "$status" -ne 0 ]; then
-  echo ""
-  echo "pre-push: typecheck failed (exit $status). Push blocked."
-  echo "pre-push: fix the errors above, or bypass with: git push --no-verify"
-  exit "$status"
+while read -r local_ref local_sha remote_ref remote_sha; do
+  # Ref deletion: local sha is all zeros. Nothing to check.
+  case "$local_sha" in
+    0000000000000000000000000000000000000000) continue ;;
+  esac
+
+  case "$remote_ref" in
+    refs/heads/*)
+      if [ "$typechecked" -eq 0 ]; then
+        npm run typecheck
+        status=$?
+        if [ "$status" -ne 0 ]; then
+          echo ""
+          echo "pre-push: typecheck failed (exit $status). Push blocked."
+          echo "pre-push: fix the errors above, or bypass with: git push --no-verify"
+          exit "$status"
+        fi
+        typechecked=1
+      fi
+      ;;
+    *)
+      # Not a branch push (e.g. refs/tags/*) — typecheck does not apply.
+      ;;
+  esac
+
+  if [ "$remote_ref" = "refs/heads/main" ]; then
+    node scripts/check-tag-pin-freshness-cli.js --base "$remote_sha" --head "$local_sha"
+    status=$?
+    if [ "$status" -ne 0 ]; then
+      echo ""
+      echo "pre-push: fix the errors above, or bypass with: git push --no-verify"
+      tag_pin_violation=1
+    fi
+  fi
+done
+
+if [ "$tag_pin_violation" -ne 0 ]; then
+  exit 1
 fi
 
 exit 0
