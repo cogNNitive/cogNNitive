@@ -1,9 +1,9 @@
 ---
-name: nn-router
-description: Primary Front Controller, ecosystem entry point, system governance, setup, environment readiness gate (Preflight), and skill router for cogNNitive. Triggers: NN, nn, /nn, /nn-router, router, bootstrap, setup, preflight, cognnitive, cognitive, cog-nn-itive, cognitivo, menu, start, ecosystem, ayuda, help.
+name: nn-start
+description: Primary Front Controller, ecosystem entry point, system governance, setup, environment readiness gate (Preflight), and skill router for cogNNitive. Invoke with /nn-start.
 disable-model-invocation: false
-version: "V_3-3-0"
-last_updated: 2026-09-03
+version: "V_3-4-0"
+last_updated: 2026-09-24
 license: MIT
 compatibility: opencode, claude-code, cursor, any agent supporting skills
 metadata:
@@ -11,7 +11,7 @@ metadata:
 bundled_templates: []
 ---
 
-# nn System & Router
+# nn System & Start Router
 
 Primary Front Controller and single entry point for system governance, setup, readiness checks, and routing in the cogNNitive ecosystem.
 
@@ -22,8 +22,8 @@ Primary Front Controller and single entry point for system governance, setup, re
 Execute the canonical activation gate defined in `nn-preflight` (session greeting + deterministic preflight integrity check).
 
 ### Workspace `AGENTS.md` Session Entrypoint Contract
-Every bootstrapped cogNNitive workspace contains an `AGENTS.md` file at its root with a mandatory **"Session Start: Load nn-router"** directive. AI coding agents (Cursor, Claude Code, OpenCode, Codex, Antigravity) starting an interactive session must:
-1. Load `nn-router` (`skills/nn-router/SKILL.md` or `/nn-router`).
+Every bootstrapped cogNNitive workspace contains an `AGENTS.md` file at its root with a mandatory **"Session Start: Load nn-start"** directive. AI coding agents (Cursor, Claude Code, OpenCode, Codex, Antigravity) starting an interactive session must:
+1. Load `nn-start` (`skills/nn-start/SKILL.md` or `/nn-start`).
 2. Run `nn-preflight` readiness verification.
 3. Silently initialize or resume turn logging in `conversations/YYYY-MM-DD_HHmmss.md`.
 4. Route user intent to the appropriate cogNNitive skill.
@@ -32,7 +32,7 @@ Every bootstrapped cogNNitive workspace contains an `AGENTS.md` file at its root
 
 ## 1. Environment Readiness (Preflight Gate)
 
-Before launching any specialized workflow, `nn-router` verifies the environment:
+Before launching any specialized workflow, `nn-start` verifies the environment:
 1. **Preflight Runner**: Ensures the Integrity & Preflight Check passed via `nn-preflight`.
 2. **Node.js**: Checks `node --version` (>= 18 required).
 3. **MCP Server**: Verifies `innfo-mcp` responsiveness via `innfo-mcp_list_models` (or resolves bundle at `~/.agents/mcp/innfo-mcp.bundle.js` or `.cogNNitive/mcp-bundle.js`).
@@ -92,8 +92,8 @@ The cogNNitive ecosystem is streamlined into 7 specialized skills:
 
 | Skill | Role & Scope | Invocation |
 |:---|:---|:---|
-| **`nn-router`** | System governance, setup, preflight readiness gate & routing | User / `/nn-router` |
-| **`nn-preflight`** | Environment readiness gate (Tier 1/2 checks) — loaded by `nn-router` and `nn-trannsform` before they proceed | Model (Auto) |
+| **`nn-start`** | System governance, setup, preflight readiness gate & routing | User / `/nn-start` |
+| **`nn-preflight`** | Environment readiness gate (Tier 1/2 checks) — loaded by `nn-start` and `nn-trannsform` before they proceed | Model (Auto) |
 | **`nn-trannsform`** | Document ingestion (PDF/DOCX/XLSX), template transformation & procedures orchestration (`procedures_V_0-2-0_NN.md`) | User / Model |
 | **`nn-innfo`** | iNNfo model authoring, editing, schema validation & step-by-step Model Creation Wizard (Meta-template V_0-2-0) | User / Model |
 | **`nn-site-generator`** | Website generation & hydration | User / Model |

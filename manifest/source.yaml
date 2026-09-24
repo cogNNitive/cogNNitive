@@ -2,12 +2,12 @@ version: "2.0"
 entrypoint: "workspace_NN.md"
 
 skills:
-  - name: nn-router
+  - name: nn-start
     repo: cogNNitive/cogNNitive
-    path: skills/nn-router
-    version: "V_3-3-0"
+    path: skills/nn-start
+    version: "V_3-4-0"
     ref_key: skills
-    description: Central system governance, setup, environment readiness gate (Preflight), and skill router.
+    description: Central system governance, setup, environment readiness gate (Preflight), and start router.
   - name: nn-trannsform
     repo: cogNNitive/cogNNitive
     path: skills/nn-trannsform

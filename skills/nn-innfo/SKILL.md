@@ -25,7 +25,7 @@ description: |
 
 ## 0. Activation Gate & Conversation Lifecycle Gate
 1. **Activation Gate**: Execute the canonical activation gate defined in `nn-preflight` (session greeting + deterministic preflight integrity check).
-2. **Conversation Lifecycle Gate**: Follow `nn-router` Rule 5:
+2. **Conversation Lifecycle Gate**: Follow `nn-start` Rule 5:
    - Silently reserve `conversations/YYYY-MM-DD_HHmmss.md` upon session start (`status: in_progress`).
    - Upon session exit or wizard completion:
      - Discard trivial sessions (<2 turns, 0 workspace mutations).
