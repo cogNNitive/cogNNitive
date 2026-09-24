@@ -366,8 +366,17 @@ renderer + procedure rewrite) **vs** freeze it as a reference sample and exempt 
 the thin-shell rule (document the deviation). The `console` CDN `<script src>` loading
 path is contract-compliant (offline only ever meant "no local server").
 
-**Guard:** any data-driven rewrite must keep the E2E equivalence bar set by
-`e2e/17-model-viewer-renderer.spec.ts`.
+**Guard:** any data-driven rewrite must keep DOM equivalence between the old and new
+shells. The Playwright spec that used to state this bar (`e2e/17-model-viewer-renderer.spec.ts`)
+was deleted on 2026-09-24 along with the rest of the ungated e2e suite, and it would not
+have held anyway: it read its "before" baseline from `git show HEAD:<the same file>`, so
+from the commit after it landed it compared the file against itself and could never fail.
+Rebuild the bar instead of restoring it — capture the baseline from a ref that is actually
+older than the change (a tag, or the merge-base), never from `HEAD` of the file under test.
+The working harnesses to build on are `innfo-core/tests/console-dom.test.ts` (boots the
+runtime under happy-dom, no browser) and `metrics-console-harness.test.ts` (real
+Chromium `file://` render via `specs/templates/metrics/scripts/verify.harness.js`;
+Windows-only Chrome discovery, so it skips on CI).
 
 **Suggested trigger:** `/sdd-explore console-domain-renderers`.
 
