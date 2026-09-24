@@ -29,9 +29,17 @@ import { existsSync } from 'node:fs'
 import { join, relative, basename, resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createHash } from 'node:crypto'
+import { createRequire } from 'node:module'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const repoRoot = resolve(here, '..')
+
+const require = createRequire(import.meta.url)
+const { getConsoleReleaseInfo } = require('./lib/console-release-info.js')
+// Derived from manifest/source.yaml (channels.stable.refs, key
+// innfo-console) — not a hardcoded tag — so a manifest re-pin is the only
+// place this ever needs to change. See scripts/lib/console-release-info.js.
+const consoleReleaseInfo = getConsoleReleaseInfo(repoRoot)
 const blueprintPath = join(
   repoRoot,
   'iNNfo',
@@ -369,7 +377,7 @@ async function main() {
       'document-view',
     ],
     runtime: {
-      cdn: 'https://cdn.jsdelivr.net/gh/cogNNitive/cogNNitive@innfo-console-v0.1.0/iNNfo/specs/templates/console/innfo-console.bundle.js',
+      cdn: consoleReleaseInfo.cdnUrl,
       fallback:
         'https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/console/innfo-console.bundle.js',
     },

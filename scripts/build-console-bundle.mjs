@@ -21,9 +21,14 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { createRequire } from 'node:module'
 
 const here = dirname(fileURLToPath(import.meta.url))
-const consoleDir = join(here, '..', 'iNNfo', 'specs', 'templates', 'console')
+const repoRoot = join(here, '..')
+const consoleDir = join(repoRoot, 'iNNfo', 'specs', 'templates', 'console')
+
+const require = createRequire(import.meta.url)
+const { getConsoleReleaseInfo } = require('./lib/console-release-info.js')
 
 const SOURCES = [
   ['uplot.iife.min.js', 'uPlot'],
@@ -33,7 +38,10 @@ const SOURCES = [
   ['render-procedure-stepper.js', 'InnfoProcedureStepper'],
 ]
 
-const BUNDLE_VERSION = '0.1.0'
+// Derived from manifest/source.yaml (console_assets[0].version) — not
+// hardcoded — so a manifest re-pin is the only place this ever needs to
+// change. See scripts/lib/console-release-info.js.
+const BUNDLE_VERSION = getConsoleReleaseInfo(repoRoot).version
 const OUT = join(consoleDir, 'innfo-console.bundle.js')
 
 const header = `/*!
