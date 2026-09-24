@@ -200,10 +200,10 @@ channels:
     refs:
       - key: skills
         repo: cogNNitive/cogNNitive
-        ref: skills-v2.0.1
+        ref: skills-v2.1.0
       - key: templates
         repo: cogNNitive/cogNNitive
-        ref: templates-v0.12.0
+        ref: templates-v0.13.0
       - key: innfo-mcp
         repo: cogNNitive/cogNNitive
         ref: innfo-mcp-v0.9.0
