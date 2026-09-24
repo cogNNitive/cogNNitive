@@ -6,13 +6,13 @@ agent-bootstrap:
   version: "2.0"
   entrypoint: "workspace_NN.md"
   skills:
-    - name: nn-router
+    - name: nn-start
       repo: cogNNitive/cogNNitive
-      path: skills/nn-router
-      version: "V_3-3-0"
+      path: skills/nn-start
+      version: "V_3-4-0"
       ref: "skills-v2.0.1"
       commit: "f1200ca4d866b0508c6fb7fca9bec3befbe3b8d6"
-      description: Central system governance, setup, environment readiness gate (Preflight), and skill router.
+      description: Central system governance, setup, environment readiness gate (Preflight), and start router.
     - name: nn-trannsform
       repo: cogNNitive/cogNNitive
       path: skills/nn-trannsform

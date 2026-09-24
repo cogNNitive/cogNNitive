@@ -14,7 +14,7 @@ Documentation in `docs/use-cases.md` MUST reflect the canonical workspace paths 
 #### Scenario: Navigating from documentation to deliverables
 - GIVEN a user browsing `docs/use-cases.md`
 - WHEN clicking the "View Deliverable" link for any use case
-- THEN the link navigates to the corresponding deliverable located in `samples/use-cases/{slug}/artifacts/`.
+- THEN the link navigates to the corresponding deliverable located in `cognitive_nn/use-cases/{slug}/artifacts/`.
 
 ---
 

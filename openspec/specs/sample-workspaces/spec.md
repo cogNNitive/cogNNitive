@@ -13,7 +13,7 @@ Each sample use case directory (`startup-founder`, `consulting-sales`, `freelanc
 3. The manifest MUST declare `# NN Workspace`, `# NN Specs`, `# NN Templates`, `# NN Models`, `# NN Sources`, `# NN Procedures`, and `# NN Artifacts` sections with relative paths to constituent assets.
 
 #### Scenario: Inspecting sample workspace manifest
-- GIVEN any sample use case directory under `docs/samples/use-cases/`
+- GIVEN any sample use case directory under `docs/cognitive_nn/use-cases/`
 - WHEN the workspace manifest `workspace_NN.md` is parsed by the workspace parser
 - THEN all declared models, sources, procedures, and artifacts are resolved against the local folder tree without broken paths.
 
