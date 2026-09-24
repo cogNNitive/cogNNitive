@@ -20,7 +20,7 @@ relationship_types:
 ---
 
 > [!NOTE]
-> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor or view and edit it with [cogNNitive](https://cognnitive.com/innfo/app/innfo-doc).
+> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor or view and edit it with [cogNNitive](https://cognnitive.com/innfo/app/).
 
 # NN index
 
@@ -30,6 +30,7 @@ relationship_types:
 * [[Specs]]
 * [[Sources]]
 * [[Procedures]]
+* [[Executions]]
 * [[Artifacts]]
 * [[Skills]]
 * [[Tools]]
@@ -72,6 +73,12 @@ icon:: workflow
 type:: model
 color:: grey
 weight:: 75
+
+## NN Concept Definition: Executions
+icon:: terminal
+type:: list
+color:: grey
+weight:: 72
 
 ## NN Concept Definition: Artifacts
 icon:: file-output
@@ -206,6 +213,33 @@ concept:: Procedures
 type:: model
 description:: Workspace-relative path to the procedures catalog model document (e.g. procedures_NN.md).
 
+<!-- Executions fields: pipeline execution traces and provenance runs -->
+
+## NN Field Definition: command
+concept:: Executions
+type:: string
+description:: CLI command or transformation executed.
+
+## NN Field Definition: flags
+concept:: Executions
+type:: string
+description:: Command-line flags and parameters passed to the execution.
+
+## NN Field Definition: run_at
+concept:: Executions
+type:: string
+description:: ISO 8601 timestamp when the execution was completed.
+
+## NN Field Definition: inputs
+concept:: Executions
+type:: string
+description:: Input files or sources consumed during the execution.
+
+## NN Field Definition: outputs
+concept:: Executions
+type:: string
+description:: Output models or deliverables produced during the execution.
+
 <!-- Artifacts fields: link to artifacts catalog model -->
 
 ## NN Field Definition: path
@@ -281,6 +315,7 @@ A workspace manifest is the single source of truth for workspace topology, execu
 * **Specs** links to formal grammar specifications via `type:: model`.
 * **Sources** links to `sources_NN.md` catalog via `type:: model`.
 * **Procedures** links to `procedures_NN.md` catalog via `type:: model`.
+* **Executions** logs append-only execution history and provenance traces via `type:: list`.
 * **Artifacts** links to `artifacts_NN.md` catalog via `type:: model`.
 * **Skills** links to agent capability definitions (`SKILL.md`) via `type:: file`.
 * **Tools** links to executable maintenance scripts via `type:: file`.
@@ -297,7 +332,8 @@ A workspace manifest is the single source of truth for workspace topology, execu
 | **Templates** | model | Plan | Level 2 domain templates available for instantiation |
 | **Specs** | model | Plan | Formal language specifications (Level 0 / Level 1) |
 | **Sources** | model | Entity | Link to the Sources catalog model |
-| **Procedures** | model | Activity | Link to the Procedures catalog model |
+| **Procedures** | model | Plan | Link to the Procedures catalog model |
+| **Executions** | list | Activity | Append-only pipeline execution runs, traces, and provenance history |
 | **Artifacts** | model | Entity | Link to the Artifacts catalog model |
 | **Skills** | file | Agent | Link to standard agent SKILL.md files |
 | **Tools** | file | Agent | Link to executable tool scripts and runners |
@@ -398,6 +434,21 @@ Points to `procedures_NN.md` containing executable transformation workflows, aut
 - "Execute Workspace In-Place Migration & Upgrade procedure on legacy workspace."
 - "Inspect executable procedures in procedures_NN.md."
 
+## Executions
+
+### Summary
+Append-only journal of automated pipeline and CLI execution traces.
+
+### Description
+Records immutable execution history entries produced by pipeline runs and maintenance commands (`scan`, `import-url`, `apply`), documenting commands, timestamps, inputs, and outputs for complete auditability.
+
+### Methodologies
+- Append-only provenance logging.
+- W3C PROV-DM execution event attribution.
+
+### Prompts
+- "Review workspace pipeline execution history."
+
 ## Artifacts
 
 ### Summary
@@ -470,7 +521,7 @@ title: "<Workspace Name>"
 ---
 
 > [!NOTE]
-> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor or view and edit it with [cogNNitive](https://cognnitive.com/innfo/app/innfo-doc).
+> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor or view and edit it with [cogNNitive](https://cognnitive.com/innfo/app/).
 
 # NN Workspace
 
@@ -505,6 +556,12 @@ path:: sources_NN.md
 
 ## NN Procedures: Procedures Catalog
 path:: procedures_NN.md
+
+# NN Executions
+
+## NN Executions: scan @ 2026-09-24T12:00:00.000Z
+command:: scan
+run_at:: 2026-09-24T12:00:00.000Z
 
 # NN Artifacts
 

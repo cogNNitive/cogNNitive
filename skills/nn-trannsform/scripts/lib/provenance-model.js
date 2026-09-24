@@ -10,7 +10,7 @@ const TEMPLATE_NAME = 'workspace';
 const DOC_NOTICE =
   '> [!NOTE]\n> This is an **iNNfo document** — a plain-text Markdown file. ' +
   'Open it with any text editor or view and edit it with ' +
-  '[cogNNitive](https://cognnitive.com/innfo/app/innfo-doc).';
+  '[cogNNitive](https://cognnitive.com/innfo/app/).';
 
 /**
  * Allowed `source_format` values, mirroring the cogNNitive template's
