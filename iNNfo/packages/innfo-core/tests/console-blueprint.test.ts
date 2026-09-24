@@ -112,7 +112,19 @@ describe('innfo-console.bundle.js (single-file distribution)', () => {
   })
 
   it('matches the runtime version stamp', () => {
+    // Derive the expected version from manifest/source.yaml rather than
+    // hardcoding it. A literal here was a fourth copy of the console version
+    // and went stale silently: the bundle stamped 0.1.0 while the manifest
+    // declared 0.2.0, and this assertion agreed with the stale bundle instead
+    // of catching it. Derived, it now fails on exactly that drift.
+    const repoRoot = join(here, '..', '..', '..', '..')
+    const sourceYaml = readFileSync(join(repoRoot, 'manifest', 'source.yaml'), 'utf8')
+    const consoleBlock = sourceYaml.split(/^console_assets:/m)[1] ?? ''
+    const declared = consoleBlock.match(/version:\s*"([^"]+)"/)?.[1]
+
+    expect(declared, 'manifest/source.yaml must declare a console_assets version').toBeTruthy()
+
     const bundle = readFileSync(bundlePath, 'utf8')
-    expect(bundle).toMatch(/Version 0\.1\.0/)
+    expect(bundle).toContain(`Version ${declared}`)
   })
 })
