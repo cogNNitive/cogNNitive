@@ -8,7 +8,7 @@ title: "Tabular Data Import & Structure Procedure"
 ---
 
 > [!NOTE]
-> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor or view and edit it with [cogNNitive](https://cognnitive.com/innfo/app/innfo-doc).
+> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor or view and edit it with [cogNNitive](https://cognnitive.com/innfo/app/).
 >
 > **Experimental External Ingestion**: Structured tabular parsing and schema inference (CSV, XLSX, BI exports) are external helper processes assisted by the AI agent. cogNNitive natively manages normalized Markdown representations and semantic model population.
 

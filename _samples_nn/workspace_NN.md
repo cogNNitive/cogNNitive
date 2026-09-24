@@ -8,7 +8,7 @@ title: "Ghostbusters Inc. Operations Workspace"
 ---
 
 > [!NOTE]
-> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor or view and edit it with [cogNNitive](https://cognnitive.com/innfo/app/innfo-doc).
+> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor or view and edit it with [cogNNitive](https://cognnitive.com/innfo/app/).
 
 # NN index
 
@@ -123,13 +123,6 @@ template:: repository
 status:: active
 author:: Egon Spengler
 Software architecture, firmware repositories, and telemetry systems for the containment grid.
-
-## NN Models: Ghostbusters Video Marketing Generator
-path:: models/Ghostbusters_video-generator_NN.md
-template:: video-generator
-status:: active
-author:: Peter Venkman
-Television commercial storyboards and video ad production models for broadcast campaigns.
 
 # NN Sources
 

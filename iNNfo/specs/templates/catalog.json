@@ -159,10 +159,10 @@
     },
     "video": {
       "name": "video",
-      "adopted": "V_0-2-0",
+      "adopted": "V_0-2-1",
       "versions": [
         {
-          "template_version": "V_0-2-0",
+          "template_version": "V_0-2-1",
           "spec_version": "V_0-2-1",
           "title": "Video App",
           "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/video/spec_NN.md"
@@ -204,18 +204,6 @@
           "spec_version": "V_0-2-1",
           "title": "cogNNitive Template",
           "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/cogNNitive/spec_NN.md"
-        }
-      ]
-    },
-    "video-generator": {
-      "name": "video-generator",
-      "adopted": "V_0-1-1",
-      "versions": [
-        {
-          "template_version": "V_0-1-1",
-          "spec_version": "V_0-2-1",
-          "title": "Video Generator App",
-          "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/templates/video-generator/spec_NN.md"
         }
       ]
     }

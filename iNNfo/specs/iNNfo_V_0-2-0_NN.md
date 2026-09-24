@@ -10,7 +10,7 @@ status: "Stable"
 ---
 
 > [!NOTE]
-> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor or view and edit it with [cogNNitive](https://cognnitive.com/innfo/app/innfo-doc).
+> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor or view and edit it with [cogNNitive](https://cognnitive.com/innfo/app/).
 
 # iNNfo Meta-template Specification
 

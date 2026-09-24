@@ -14,8 +14,17 @@ import { renderMarkdown } from '../src/utils/markdown'
  * (`javascript:`), even with its default config and no options passed. That is
  * an artifact of the test DOM, not of production: in a real browser DOMPurify
  * enforces both. Asserting its behaviour here would encode the broken
- * environment as the expectation, so the behavioural guarantee belongs in the
- * Playwright e2e suite instead.
+ * environment as the expectation.
+ *
+ * THE BEHAVIOURAL GUARANTEE IS CURRENTLY UNCOVERED. It was deferred to the
+ * Playwright e2e suite, which never contained a sanitization test and was
+ * never wired into CI; that suite is now deleted. Verified under happy-dom on
+ * 2026-09-24: `renderMarkdown('[x](javascript:alert(1))')` returns the anchor
+ * with the `javascript:` href intact, and `# Title` loses its <h1>. Production
+ * is not known to be affected — a real browser enforces both — but nothing
+ * here would catch a regression. Closing this needs a DOM where DOMPurify
+ * behaves (e.g. jsdom via a per-file `@vitest-environment` pragma); see the
+ * editor XSS item in the 2026-09-17 security audit.
  */
 describe('renderMarkdown is the single rendering path', () => {
   it('returns empty string for nullish input', () => {

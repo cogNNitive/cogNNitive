@@ -5,7 +5,7 @@ level: 2
 parent_spec:
   name: "iNNfo_V_0-2-1"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-2-1_NN.md"
-template_version: "V_0-2-0"
+template_version: "V_0-2-1"
 title: "Video App"
 procedures:
   - id: "generate-anydeo-script"
@@ -24,7 +24,7 @@ relationship_types:
 ---
 
 > [!NOTE]
-> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor or view and edit it with [cogNNitive](https://cognnitive.com/innfo/app/innfo-doc).
+> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor or view and edit it with [cogNNitive](https://cognnitive.com/innfo/app/).
 
 # NN index
 
@@ -84,8 +84,6 @@ description:: Production state of the video.
 
 The Video App models one video as a single Element that owns its own media folder. The script is a **generated artifact** authored in Anydeo V_0-3-3 syntax (scenes `@`, layers `@@`, `layer_type`, `scene_templates`, `scene_tts_model`, avatars) and owned by the `anydeo-script-builder` skill — it is not re-modelled as iNNfo data. The Element records where its files live and which sources it derives from (`sources::`), so the model never re-encodes structure Anydeo already expresses.
 
-This replaces the retired `video-generator` pipeline, which modelled `Script`, `Storyboard`, `Asset` and three directional matrices in parallel with Anydeo and drifted on every script change.
-
 ## The video folder
 
 Every file-backed field of a video resolves to one folder named after the video Element:
@@ -144,10 +142,6 @@ Each file-backed field holds exactly one filename. A video that needs several im
 | Evaluable matrix | ❌ | Not applicable — pipeline structure lives in Anydeo |
 | Graph edge | ❌ | Not applicable |
 | Sequence | ❌ | Not applicable |
-
-### Migrating from Video Generator
-
-A workspace authored against the retired `video-generator` template stays valid: that template is frozen and remains resolvable at its canonical path. To move to this template, create a new model whose `parent_spec` points here, keep one `Video` Element per video, put its files in `assets/{video-slug}/`, and cite the original sources with `sources::`. The old `Script`, `Storyboard`, and `Asset` elements are dropped — Anydeo already owns that structure.
 
 # Concept Guidance Documentation
 

@@ -84,17 +84,12 @@ export default defineConfig({
         singleFork: true,
       },
     },
-    // Playwright specs under e2e/ are driven by `playwright test`, not Vitest.
-    // Without this exclude, Vitest tries to collect them and fails on the
-    // '@playwright/test' import.
-    exclude: ['**/node_modules/**', '**/dist/**', 'e2e/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],
       exclude: [
         'node_modules/**',
         'dist/**',
-        'e2e/**',
         'tests/**',
         '**/*.spec.ts',
         '**/*.test.ts',

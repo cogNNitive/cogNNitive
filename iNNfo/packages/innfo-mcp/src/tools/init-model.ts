@@ -29,7 +29,7 @@ function scaffoldBodyFromSchema(schema: {
 
   lines.push(
     '> [!NOTE]',
-    '> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor or view and edit it with [cogNNitive](https://cognnitive.com/innfo/app/innfo-doc).',
+    '> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor or view and edit it with [cogNNitive](https://cognnitive.com/innfo/app/).',
     '',
   )
   if (schema.concepts.length > 0) {
@@ -191,7 +191,7 @@ export async function initModel(
   }
 
   const notice = `> [!NOTE]
-> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor or view and edit it with [cogNNitive](https://cognnitive.com/innfo/app/innfo-doc).`
+> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor or view and edit it with [cogNNitive](https://cognnitive.com/innfo/app/).`
 
   if (!body.includes('> [!NOTE]')) {
     body = body ? notice + '\n\n' + body : notice

@@ -188,6 +188,13 @@ function isCanonicalMigrationRename(status, oldPath, target) {
   return oldIsVersioned && newIsCanonical;
 }
 
+function normalizeBadgeForComparison(content) {
+  if (!content) return content;
+  return content
+    .replace(/https:\/\/(?:innfo\.)?cognnitive\.com\/innfo\/app\/(?:innfo-doc)?/g, 'https://cognnitive.com/innfo/app/')
+    .replace(/\r\n/g, '\n');
+}
+
 function checkModified(relPath, baseContent, workingContent, errors, migrationRename) {
   if (workingContent == null) return;
 
@@ -203,7 +210,7 @@ function checkModified(relPath, baseContent, workingContent, errors, migrationRe
   if (migrationRename) return;
 
   if (baseContent == null) return; // no base to compare against -> don't block
-  if (baseContent === workingContent) return; // no content change
+  if (normalizeBadgeForComparison(baseContent) === normalizeBadgeForComparison(workingContent)) return; // no content change
 
   const baseV = templateVersionOf(baseContent);
   if (!baseV || !semver(baseV)) {
