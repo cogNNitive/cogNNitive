@@ -40,7 +40,7 @@ This skill does **not** block work. It *detects*, *reports*, and *asks* — alwa
 an explicit consent gate before writing. It never moves, renames, or deletes user files.
 
 This skill is maintainer-only. It is **not** distributed: it is not under
-`actioNN/skills/` and is not registered in `manifest/source.yaml`. It is a sibling of
+`skills/` and is not registered in `manifest/source.yaml`. It is a sibling of
 `nn-dev-release`, `nn-dev-check-integrity`, and `nn-template-audit`.
 
 Scope: all operations limited to the cogNNitive repository root (`cogNNitive`).
@@ -387,6 +387,18 @@ When the maintainer says the accumulated changes on `dev` are ready:
 1. **Pre-push integrity gate**: Run `node scripts/check-integrity.js` (or `npm run check:integrity`) and verify version/catalog freshness via `npm run check:versions` (or `node scripts/verify.js`).
    - If `npm run check:versions` or `node scripts/verify.js` reports `catalog.json` or template copies are stale, run `npm run sync:versions` (or `node scripts/template-catalog.mjs`) to regenerate them cleanly.
    - If MCP or workspace parity reports drift, resolve it before pushing.
+   - **Tag/pin freshness reminder** (expediente: 2026-09-24 — a skill directory
+     rename plus `template_version` bumps across ~15 `spec_NN.md` files merged
+     to `main` without a new `skills-v*`/`templates-v*` tag or a
+     `manifest/source.yaml` re-pin in the same batch, redding
+     `validate-manifest.js --channel stable` on CI afterward). Any change under
+     `skills/**` or `iNNfo/specs/templates/**/spec_NN.md` in the pending batch
+     requires cutting a new `skills-v*`/`templates-v*` tag **and** re-pinning
+     `manifest/source.yaml` in the SAME batch before merging. `node
+     scripts/check-integrity.js` now checks the local half of this
+     automatically (Group 1c in `nn-dev-check-integrity` — a git-only diff
+     check for the untagged/unpinned combination), but cutting the actual tag
+     is still the maintainer's job; the script cannot do that for you.
    - Ensure the working tree is clean and `git push origin dev` succeeds.
 2. **Server-side fast-forward merge (`dev → main`) — supersedes the
    checkout-based dance:**
@@ -410,16 +422,41 @@ When the maintainer says the accumulated changes on `dev` are ready:
    nothing to recover) — the same safety `--ff-only` provided, enforced
    server-side. Recovery on rejection is `git fetch origin && git merge
    origin/main` on `dev`, still with no checkout of `main`. If tags are
-   being cut afterward (step 3 below), tag immediately after this push,
+   being cut afterward (step 4 below), tag immediately after this push,
    before any further commit on `dev` — see `nn-dev-release`'s "Safe merge
    technique" section for the full tag-order constraint and the stated
    limitation (branch protection on `main`, not enabled today). This
    technique adds no new hook, script, or working-tree inspection.
-3. **Release tagging (when releasing a version bump)**:
+3. **Post-push CI gate on `main` — blocking** (expediente: 2026-09-24 — the
+   maintainer had to poll `gh run list` by hand because nothing waited for CI
+   after the `dev:main` push before declaring the batch done). Do not declare
+   the batch done until this step passes:
+   ```powershell
+   # Poll until the run for the just-pushed origin/main sha is completed
+   $sha = git rev-parse origin/main
+   do {
+     Start-Sleep -Seconds 15
+     $run = gh run list --branch main --workflow "CI & Verify" --limit 1 --json headSha,status,conclusion,databaseId | ConvertFrom-Json
+   } while ($run.headSha -ne $sha -or $run.status -ne 'completed')
+
+   gh run view $run.databaseId --json jobs --jq '.jobs[] | {name, conclusion}'
+   ```
+   Require `verify`, `quality`, and `deploy-pages` all `success`. On failure,
+   distinguish:
+   - **Red caused by this batch** → fix-forward on `dev`, re-verify, re-push,
+     and re-poll. Never leave `main` red.
+   - **Pre-existing red** (unrelated to this batch) → maintainer-approved
+     exception, same format as `nn-dev-check-integrity` Group 1b's merge-gate
+     exception (that group is this pattern's precedent):
+     `MERGE-GATE EXCEPTION · origin/main red pre-existing · run <run-id> · approved by <maintainer> · <date>`.
+
+   Only once all three jobs are green (or an exception is recorded) may the
+   handoff report say "release listo".
+4. **Release tagging (when releasing a version bump)**:
    - Run `nn-dev-release` when version tags, manifest re-pinning, or distribution bundles are being published.
    - The release path runs `node scripts/verify.js --release`, adding the live stable-manifest check once tags exist.
    - **Main-CI-green is a Definition of Done**: a red main blocks release tagging.
-4. **Persist Milestone in Engram**:
+5. **Persist Milestone in Engram**:
    - Save a concise summary of the batch, commit range, and sync status in Engram memory (`observations` table) to give sibling sessions full visibility.
 
 This replaces the old "commit + push + PR" flow: with single-branch workflow there is

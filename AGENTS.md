@@ -16,6 +16,20 @@ read-only or "quick" work — it also detects concurrent agents holding the tree
 regenerates it with different absolute paths). If it is missing locally, run
 `gentle-ai skill-registry refresh --force` to regenerate it.
 
+**Two-tier skill resolution.** The canonical content for `nn-dev-development`,
+`nn-dev-release`, and `nn-dev-check-integrity` lives only under
+`.agents/skills/<name>/SKILL.md` — that convention belongs to the
+"Agent Teams Lite" / gentle-ai orchestrator layer, not to Claude Code's native
+`Skill` tool. Claude Code's native `Skill` tool only resolves skills placed
+under `.claude/skills/<name>/SKILL.md` (project-scoped) or the user's global
+`~/.claude/skills/<name>/SKILL.md`. To make these maintainer-only skills
+resolvable by name there too, thin pointer stubs exist at
+`.claude/skills/<name>/SKILL.md` for all three — each one just tells the
+agent to go read the real file under `.agents/skills/`. If the `Skill` tool
+ever again reports "Unknown skill" for one of the `nn-dev-*` skills, do not
+block the session on it: read `.agents/skills/<name>/SKILL.md` directly with
+Read/Glob as a fallback and proceed.
+
 ## Blocked git commands
 
 `.claude/settings.json` registers a PreToolUse hook

@@ -21,6 +21,8 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const { checkVersionSquare } = require('./lib/version-square.js');
+const { checkTagPinFreshness } = require('./lib/tag-pin-freshness.js');
+const { checkNodeEngines } = require('./lib/node-engine-check.js');
 const { runVerification } = require('./verify.js');
 
 const repoRoot = path.resolve(__dirname, '..');
@@ -54,6 +56,19 @@ try {
   console.log(`  ℹ️ Git state check skipped: ${e.message}`);
 }
 
+// Step 1b: Tag/Pin Freshness for skills & templates changes (Group 1c)
+console.log('\n[Group 1c] Tag/Pin Freshness (skills/templates changes must re-pin manifest/source.yaml):');
+const tagPin = checkTagPinFreshness(repoRoot);
+if (tagPin.skipped) {
+  console.log('  ⚠️ Skipped — diff range not resolvable (e.g. origin/main not fetched, or a shallow/fresh repo).');
+} else if (!tagPin.ok) {
+  console.error('❌ Tag/pin freshness violation:');
+  tagPin.errors.forEach(err => console.error(`  - ${err}`));
+  process.exit(1);
+} else {
+  console.log('  ✅ No unpinned skills/template changes detected.');
+}
+
 // Step 2: MCP Version Square (Group 2)
 console.log('\n[Group 2] MCP Version Square (pkg · core · manifest · CDN):');
 const vSquare = checkVersionSquare(repoRoot);
@@ -73,6 +88,19 @@ try {
   console.error('❌ Template version drift detected. Run `npm run sync:versions` to regenerate the copies.');
   process.exit(1);
 }
+
+// Step 2c: Node Engine Compatibility (Group 9 — automated bullets)
+console.log('\n[Group 9] Node Engine Compatibility (installed deps vs CI-pinned Node):');
+const nodeEngines = checkNodeEngines(repoRoot);
+if (nodeEngines.warnings && nodeEngines.warnings.length) {
+  nodeEngines.warnings.forEach(w => console.log(`  ⚠️ ${w}`));
+}
+if (!nodeEngines.ok) {
+  console.error('❌ Node engine compatibility violation:');
+  nodeEngines.errors.forEach(err => console.error(`  - ${err}`));
+  process.exit(1);
+}
+console.log('  ✅ All installed workspace dependencies are compatible with CI-pinned Node version(s).');
 
 // Step 3: Full Deterministic Workspace Verification (verify.js)
 console.log('\n[Groups 3, 4, 7+] Workspace Verification Suite:');

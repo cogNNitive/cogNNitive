@@ -147,18 +147,24 @@ Present a consolidated summary table with:
 
 2. **Synchronize & Bump Versions**:
    - For `iNNfo Suite`:
-     - Update `version` to `<A.B.C>` in all 4 `package.json` files:
-       - `iNNfo/package.json` (`@cognnitive/innfo`)
+     - Update `version` to `<A.B.C>` in all 3 `package.json` files:
        - `iNNfo/packages/innfo-core/package.json` (`@cognnitive/innfo-core`)
        - `iNNfo/packages/innfo-mcp/package.json` (`@cognnitive/innfo-mcp`, ensuring `@cognnitive/innfo-core` dependency is `^<A.B.C>`)
        - `iNNfo/apps/innfo-editor/package.json` (`@cognnitive/innfo-editor`)
+     - `iNNfo/package.json` does **not exist** — do not look for it. The
+       repo-root `package.json` (`"name": "cognnitive"`, currently
+       `"version": "1.0.0"`) is a separate, unrelated version and is never
+       bumped as part of an iNNfo Suite release (verified against `ae1d8f0`,
+       the commit that actually bumped the Suite to 0.10.0: it touched exactly
+       these 3 `package.json` files plus `manifest/source.yaml`, the CDN
+       bundle, and `docs/innfo/cdn/manifest.json`).
      - Rebuild bundles:
        ```powershell
        npm --prefix iNNfo/packages/innfo-core run build
        npm --prefix iNNfo/packages/innfo-mcp run build:bundle
        ```
    - For `Skills`:
-     - Bump `version:` in targeted `actioNN/skills/<skill>/SKILL.md`.
+     - Bump `version:` in targeted `skills/<skill>/SKILL.md`.
    - For `Templates`:
      - Bump `version:` in targeted `iNNfo/specs/templates/<template>.md`.
    - For `Console`:
