@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
@@ -8,23 +9,17 @@ import { renderMarkdown } from '../../src/utils/markdown'
  * through `v-html`, so every rendering path must go through the sanitized
  * `renderMarkdown` in `utils/markdown.ts` — never `marked.parse` directly.
  *
- * NOTE ON SCOPE: these tests assert the *wiring*, not DOMPurify's own output.
- * Vitest runs this suite under `happy-dom`, where DOMPurify 3.x is degraded —
- * it strips tags it should keep (`<h1>`) and keeps URLs it should drop
- * (`javascript:`), even with its default config and no options passed. That is
- * an artifact of the test DOM, not of production: in a real browser DOMPurify
- * enforces both. Asserting its behaviour here would encode the broken
- * environment as the expectation.
+ * NOTE ON ENVIRONMENT: this file overrides the project's `happy-dom` with
+ * `jsdom`, and the pragma on line 1 is load-bearing. Under happy-dom, DOMPurify
+ * 3.x is degraded — it strips `<h1>`, which it should keep, and preserves a
+ * `javascript:` href, which it must drop — so the URL-scheme guarantees below
+ * would assert the broken environment instead of the contract. jsdom is what
+ * DOMPurify is developed against and enforces both.
  *
- * THE BEHAVIOURAL GUARANTEE IS CURRENTLY UNCOVERED. It was deferred to the
- * Playwright e2e suite, which never contained a sanitization test and was
- * never wired into CI; that suite is now deleted. Verified under happy-dom on
- * 2026-09-24: `renderMarkdown('[x](javascript:alert(1))')` returns the anchor
- * with the `javascript:` href intact, and `# Title` loses its <h1>. Production
- * is not known to be affected — a real browser enforces both — but nothing
- * here would catch a regression. Closing this needs a DOM where DOMPurify
- * behaves (e.g. jsdom via a per-file `@vitest-environment` pragma); see the
- * editor XSS item in the 2026-09-17 security audit.
+ * That gap is why those guarantees went uncovered for weeks: they had been
+ * deferred to the Playwright e2e suite, which never contained a sanitization
+ * test and was never wired into CI. The suite is now deleted and the
+ * guarantees live here (editor XSS, 2026-09-17 security audit).
  */
 describe('renderMarkdown is the single rendering path', () => {
   it('returns empty string for nullish input', () => {
@@ -53,6 +48,42 @@ describe('renderMarkdown is the single rendering path', () => {
     const out = renderMarkdown('# Title\n\n- a\n- b')
     expect(out).toContain('<li')
     expect(out).toContain('Title')
+  })
+})
+
+describe('renderMarkdown drops dangerous URL schemes', () => {
+  // These are the assertions happy-dom could not make. Each one is a real
+  // escalation path: an anchor the reviewer clicks inside rendered field
+  // content, where the href came from the document being edited.
+  it('drops a javascript: href while keeping the link text', () => {
+    const out = renderMarkdown('[click me](javascript:alert(1))')
+    expect(out).not.toContain('javascript:')
+    expect(out).toContain('click me')
+  })
+
+  it('drops a data: href that would carry markup', () => {
+    const out = renderMarkdown('[x](data:text/html,<script>alert(1)</script>)')
+    expect(out).not.toContain('data:text/html')
+    expect(out).not.toContain('alert(1)')
+  })
+
+  it('drops a javascript: href written as raw HTML', () => {
+    const out = renderMarkdown('<a href="javascript:alert(1)">x</a>')
+    expect(out).not.toContain('javascript:')
+  })
+
+  it('drops script nested inside svg', () => {
+    const out = renderMarkdown('<svg><script>alert(1)</script></svg>')
+    expect(out).not.toContain('alert(1)')
+  })
+
+  it('keeps heading structure, which the degraded happy-dom DOMPurify removed', () => {
+    expect(renderMarkdown('# Title')).toContain('<h1>')
+  })
+
+  it('keeps an ordinary https href intact', () => {
+    const out = renderMarkdown('[docs](https://example.com/a)')
+    expect(out).toContain('https://example.com/a')
   })
 })
 
