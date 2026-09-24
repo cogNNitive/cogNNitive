@@ -1,11 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { join } from 'node:path'
-import { rm, mkdir, writeFile, readFile } from 'node:fs/promises'
+import { rm, mkdir, writeFile, readFile, stat } from 'node:fs/promises'
 import { validateModel, validateModelUrl, applyChange, validateTemplate } from './mutate'
 import { buildAgentModificationBlock } from '@cognnitive/innfo-core'
 
 const rootDir = join(import.meta.dirname!, '..', '..', 'temp-test-mutate')
 const specsDir = join(rootDir, 'specs')
+const modelsDir = join(rootDir, 'models')
 
 /** Write the level-1 + level-0 spec chain locally so resolution never hits the network. */
 async function stubSpecChain() {
@@ -89,6 +90,7 @@ describe('mutate tools', () => {
     process.env.INNFO_CACHE_DIR = join(rootDir, 'isolated-cache')
     await rm(rootDir, { recursive: true, force: true })
     await mkdir(specsDir, { recursive: true })
+    await mkdir(modelsDir, { recursive: true })
     vi.restoreAllMocks()
     // Default: no real network I/O in tests. Individual tests override this
     // spy when they need to exercise a specific fetch outcome.
@@ -821,6 +823,20 @@ describe('mutate tools', () => {
       expect(st.size).toBeGreaterThan(0)
     })
 
+    // Moved from the former test/coverage-expansion.spec.ts, a grab-bag named
+    // after a coverage metric rather than a behaviour. Only the empty-corpus
+    // branch came across; its dry_run and live-prune assertions duplicated the
+    // two tests below.
+    it('pruneOrphanedSpecs reports a clean result when there is nothing to prune', async () => {
+      const { pruneOrphanedSpecs } = await import('./mutate')
+
+      const result = await pruneOrphanedSpecs(rootDir)
+
+      expect(result.success).toBe(true)
+      expect(result.orphanedCount).toBe(0)
+      expect(result.message).toBe('No orphaned specs found.')
+    })
+
     it('pruneOrphanedSpecs in dry_run mode reports deletion candidates without deleting', async () => {
       const { pruneOrphanedSpecs } = await import('./mutate')
       const orphanPkgDir = join(specsDir, 'templates', 'orphan_package', 'V_0-1-0')
@@ -905,5 +921,157 @@ describe('mutate tools', () => {
       expect(graph.orphanedCandidates).not.toContain(activePkgDir)
       expect(graph.orphanedCandidates).not.toContain(subPkgDir)
     })
+  })
+
+  // Moved from the former test/coverage-expansion.spec.ts, a grab-bag named
+  // after a coverage metric rather than a behaviour.
+  it('applyChange: bump_version with parent_version renames local parent template', async () => {
+    // 1. Setup local parent template
+    const templatePath = join(specsDir, 'my_template_V_0-1-0_NN.md')
+    await writeFile(
+      templatePath,
+      [
+        '---',
+        'spec_version: "V_0-1-0"',
+        'level: 2',
+        'title: "My Template"',
+        'parent_spec:',
+        '  name: "iNNfo_V_0-1-0"',
+        '  url: "specs/iNNfo_V_0-1-0_NN.md"',
+        '---',
+        '',
+        '# NN Concept Definition',
+        '## NN Concept Definition: Task',
+        'type:: list',
+        '',
+      ].join('\n'),
+      'utf-8',
+    )
+
+    // Stub level 1 + 0 chain
+    await writeFile(
+      join(specsDir, 'iNNfo_V_0-1-0_NN.md'),
+      '---\nspec_version: "V_0-1-0"\nlevel: 1\ntitle: "iNNfo"\nparent_spec:\n  name: "defiNNe_V_0-1-0"\n  url: "specs/defiNNe_V_0-1-0_NN.md"\n---\n',
+      'utf-8',
+    )
+    await writeFile(
+      join(specsDir, 'defiNNe_V_0-1-0_NN.md'),
+      '---\nspec_version: "V_0-1-0"\nlevel: 0\ntitle: "defiNNe"\n---\n',
+      'utf-8',
+    )
+
+    // 2. Setup model pointing to local template
+    const modelPath = join(modelsDir, 'my_model_V_0-1-0_my_template_NN.md')
+    await writeFile(
+      modelPath,
+      [
+        '---',
+        'spec_version: "V_0-1-0"',
+        'level: 3',
+        'model_version: "V_0-1-0"',
+        'title: "My Model"',
+        'parent_spec:',
+        '  name: "my_template_V_0-1-0"',
+        '  url: "specs/my_template_V_0-1-0_NN.md"',
+        '---',
+        '',
+        '# NN index',
+        '* [[Task]]',
+        '',
+        '# NN Task',
+        '## NN Task: Alpha',
+        '  Task Alpha',
+        '',
+      ].join('\n'),
+      'utf-8',
+    )
+
+    // Bump model to 0.2.0 and parent to 0.2.0
+    const res = await applyChange(rootDir, 'my_model_V_0-1-0_my_template', 'bump_version', {
+      version: '0.2.0',
+      parent_version: '0.2.0',
+    })
+
+    expect(res.success).toBe(true)
+    const newTemplatePath = join(specsDir, 'my_template_V_0-2-0_NN.md')
+    const tStat = await stat(newTemplatePath)
+    expect(tStat.isFile()).toBe(true)
+
+    const updatedParentContent = await readFile(newTemplatePath, 'utf-8')
+    expect(updatedParentContent).toContain('spec_version: "V_0-2-0"')
+  })
+
+  it('applyChange: rename_element renames associated asset directory if present', async () => {
+    // Stub spec chain and template
+    await writeFile(
+      join(specsDir, 'iNNfo_V_0-1-0_NN.md'),
+      '---\nspec_version: "V_0-1-0"\nlevel: 1\ntitle: "iNNfo"\nparent_spec:\n  name: "defiNNe_V_0-1-0"\n  url: "specs/defiNNe_V_0-1-0_NN.md"\n---\n',
+      'utf-8',
+    )
+    await writeFile(
+      join(specsDir, 'defiNNe_V_0-1-0_NN.md'),
+      '---\nspec_version: "V_0-1-0"\nlevel: 0\ntitle: "defiNNe"\n---\n',
+      'utf-8',
+    )
+    await writeFile(
+      join(specsDir, 't_V_0-1-0_NN.md'),
+      [
+        '---',
+        'spec_version: "V_0-1-0"',
+        'level: 2',
+        'title: "T"',
+        'parent_spec:',
+        '  name: "iNNfo_V_0-1-0"',
+        '  url: "specs/iNNfo_V_0-1-0_NN.md"',
+        '---',
+        '',
+        '# NN Concept Definition',
+        '## NN Concept Definition: Item',
+        'type:: list',
+        '',
+      ].join('\n'),
+      'utf-8',
+    )
+
+    const modelPath = join(modelsDir, 'm_V_0-1-0_t_NN.md')
+    await writeFile(
+      modelPath,
+      [
+        '---',
+        'spec_version: "V_0-1-0"',
+        'level: 3',
+        'model_version: "V_0-1-0"',
+        'title: "M"',
+        'parent_spec:',
+        '  name: "t_V_0-1-0"',
+        '  url: "specs/t_V_0-1-0_NN.md"',
+        '---',
+        '',
+        '# NN index',
+        '* [[Item]]',
+        '',
+        '# NN Item',
+        '## NN Item: Original',
+        '  Content',
+        '',
+      ].join('\n'),
+      'utf-8',
+    )
+
+    // Create assets/original directory
+    const oldAssetDir = join(modelsDir, 'assets', 'original')
+    await mkdir(oldAssetDir, { recursive: true })
+    await writeFile(join(oldAssetDir, 'data.txt'), 'hello', 'utf-8')
+
+    const res = await applyChange(rootDir, 'm_V_0-1-0_t', 'rename_element', {
+      conceptName: 'Item',
+      elementName: 'Original',
+      newName: 'Renamed',
+    })
+
+    expect(res.success).toBe(true)
+    const newAssetDir = join(modelsDir, 'assets', 'renamed')
+    const st = await stat(newAssetDir)
+    expect(st.isDirectory()).toBe(true)
   })
 })

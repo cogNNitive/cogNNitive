@@ -379,4 +379,56 @@ describe('Spec Tools Integration (URL- and model-derived, no hardcoding)', () =>
     expect(result.valid).toBe(true)
     expect(result.errors).toHaveLength(0)
   })
+
+  // Moved from the former test/coverage-expansion.spec.ts, a grab-bag named
+  // after a coverage metric rather than a behaviour.
+  it('spec.ts: discoverTransitiveAssets traverses parent_spec and includes', async () => {
+    // Create template with procedures and parent_spec
+    const basePkgDir = join(specsDir, 'templates', 'base', '0.1.0')
+    await mkdir(join(basePkgDir, 'procedures'), { recursive: true })
+    await writeFile(
+      join(basePkgDir, 'spec_NN.md'),
+      [
+        '---',
+        'spec_version: "V_0-1-0"',
+        'level: 2',
+        'title: "Base"',
+        'procedures:',
+        '  - id: "p1"',
+        '    name: "Proc 1"',
+        '    path: "procedures/p1_V_0-1-0_NN.md"',
+        '---',
+      ].join('\n'),
+      'utf-8',
+    )
+    await writeFile(
+      join(basePkgDir, 'procedures', 'p1_V_0-1-0_NN.md'),
+      '---\nspec_version: "V_0-1-0"\nlevel: 2\ntitle: "Proc 1"\n---\n',
+      'utf-8',
+    )
+
+    const childPkgDir = join(specsDir, 'templates', 'child', '0.1.0')
+    await mkdir(childPkgDir, { recursive: true })
+    await writeFile(
+      join(childPkgDir, 'spec_NN.md'),
+      [
+        '---',
+        'spec_version: "V_0-1-0"',
+        'level: 2',
+        'title: "Child"',
+        'parent_spec:',
+        '  name: "base"',
+        '  url: "specs/templates/base/0.1.0/spec_NN.md"',
+        '---',
+      ].join('\n'),
+      'utf-8',
+    )
+
+    const procs = await listTemplateProcedures(rootDir, { template_name: 'child' })
+    expect(procs.procedures.length).toBeGreaterThan(0)
+    expect(procs.procedures.some((p) => p.name.includes('Proc 1'))).toBe(true)
+
+    const skills = await listTemplateSkills(rootDir, { template_name: 'child' })
+    expect(Array.isArray(skills.skills)).toBe(true)
+  })
 })
