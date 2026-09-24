@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { parseModel } from '../src/parser/index'
 import { validateModel } from '../src/validator/model'
-import { readSpec, decomposedResolver } from '../tests/fixtures/decomposed'
+import { readSpec, decomposedResolver } from './fixtures/decomposed'
 
 describe('parent spec resolution failure diagnostics', () => {
   const modelContent = [

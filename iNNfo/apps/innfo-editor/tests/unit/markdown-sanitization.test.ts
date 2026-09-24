@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { renderMarkdown } from '../src/utils/markdown'
+import { renderMarkdown } from '../../src/utils/markdown'
 
 /**
  * Field content rendered by the editor is author-supplied and reaches the DOM

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { scanNodeMedia } from '../src/composables/useMediaScanner'
+import { scanNodeMedia } from '../../src/composables/useMediaScanner'
 import type { DirectoryHandleLike } from '@cognnitive/innfo-core'
 
 function createMockDirectory(files: Record<string, { kind: 'file' | 'directory'; entries?: Record<string, any> }>): DirectoryHandleLike {

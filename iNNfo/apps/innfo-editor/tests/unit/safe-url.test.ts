@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { toSafeNavigationUrl } from '../src/utils/safe-url'
+import { toSafeNavigationUrl } from '../../src/utils/safe-url'
 
 describe('toSafeNavigationUrl', () => {
   it('accepts http and https URLs', () => {
