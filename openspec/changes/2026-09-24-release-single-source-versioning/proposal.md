@@ -289,7 +289,34 @@ generator leaves `source.yaml` valid and merely hand-maintained again. S3's guar
 restoring one `require` and one call in `verify.js`. No consumer-visible change, no data migration,
 nothing irreversible.
 
-## Proposal question round
+## Resolved before `sdd-spec` (2026-09-26)
+
+**Question 2 — does the skills channel version mean anything, or is it a counter? — ANSWERED:
+it carries meaning, so it stays authored.** Evidence from the full `skills-v*` / `templates-v*` tag
+history:
+
+- The **major** digit is semantic. `skills-v2.0.0` (2026-09-16) marks "consolidate skills layer to
+  root and establish dogfooding catalogs" — a deliberate structural break, not an increment.
+- The **minor/patch** distinction is applied loosely. `skills-v2.1.0` was cut at a `fix(ci)` commit,
+  and `skills-v1.5.0` / `skills-v1.6.0` at a `fix` and a `docs` commit — all of which semver would
+  call patches. `templates-v*` is cleaner: patch for a template revision, minor for new template
+  capability (`templates-v0.11.0` = video template `V_0-1-0`).
+- Most tag messages are the subject line of whatever commit sat at the tip, not an authored release
+  note.
+
+**Consequence for S1: the channel version is NOT derived.** Deriving it would either give up the
+ability to mark a structural break as a major, or require conventional-commit discipline the repo
+demonstrably does not follow (a `fix(ci)` produced a minor). It stays a single authored number per
+channel, and everything downstream — the tag string, the manifest ref — is derived from it.
+
+So the change adds **4 authored fields** and removes ~26 hand-copies plus an 89-line validator. That
+is worse than the ideal "net deletion with zero new fields" and is still clearly worth doing. Spec and
+design must not reopen this.
+
+Questions 1 and 3 below remain open and are design-level, not product-level: proceed on the stated
+assumptions and record the decision in `design.md`.
+
+## Proposal question round (1 and 3 still open)
 
 Three product questions the maintainer should answer before `sdd-spec`. Each one changes the shape of
 S1; none blocks reading the rest of this proposal. Assumptions in force if unanswered are stated.
