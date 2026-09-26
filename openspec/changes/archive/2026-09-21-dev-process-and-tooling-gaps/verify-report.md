@@ -32,10 +32,10 @@ All validation scripts (`npm run check:versions`, `npm run sync:versions`, `node
 
 | Requirement & Scenario | Implemented In | Evidence / Test | Compliance |
 | :--- | :--- | :--- | :---: |
-| **Requirement: Comprehensive template version synchronization and verification**<br>`npm run sync:versions` and `check:versions` cover `catalog.json` alongside template version copies and stable manifest. | [`package.json`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/package.json#L28-L29) | `npm run check:versions`<br>`npm run sync:versions` | **COMPLIANT** |
-| - *Scenario: Sync regenerates template catalog alongside version copies and manifest* | [`package.json:L28`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/package.json#L28) | Appends `node scripts/template-catalog.mjs` to `sync:versions`, generating `iNNfo/specs/templates/catalog.json`. | **COMPLIANT** |
-| - *Scenario: Version freshness check detects stale template catalog* | [`package.json:L29`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/package.json#L29) | Appends `node scripts/template-catalog.mjs --check` to `check:versions`, exiting non-zero on catalog drift. | **COMPLIANT** |
-| - *Scenario: Version check passes when all artifacts are synchronized* | [`package.json:L29`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/package.json#L29) | Verified exit code 0 when versions, manifest, and catalog are in parity. | **COMPLIANT** |
+| **Requirement: Comprehensive template version synchronization and verification**<br>`npm run sync:versions` and `check:versions` cover `catalog.json` alongside template version copies and stable manifest. | [`package.json`](package.json#L28-L29) | `npm run check:versions`<br>`npm run sync:versions` | **COMPLIANT** |
+| - *Scenario: Sync regenerates template catalog alongside version copies and manifest* | [`package.json:L28`](package.json#L28) | Appends `node scripts/template-catalog.mjs` to `sync:versions`, generating `iNNfo/specs/templates/catalog.json`. | **COMPLIANT** |
+| - *Scenario: Version freshness check detects stale template catalog* | [`package.json:L29`](package.json#L29) | Appends `node scripts/template-catalog.mjs --check` to `check:versions`, exiting non-zero on catalog drift. | **COMPLIANT** |
+| - *Scenario: Version check passes when all artifacts are synchronized* | [`package.json:L29`](package.json#L29) | Verified exit code 0 when versions, manifest, and catalog are in parity. | **COMPLIANT** |
 
 ---
 
@@ -43,12 +43,12 @@ All validation scripts (`npm run check:versions`, `npm run sync:versions`, `node
 
 | Requirement & Scenario | Implemented In | Evidence / Test | Compliance |
 | :--- | :--- | :--- | :---: |
-| **Requirement: CI-verified batches before merge**<br>Pre-push procedures invoke genuine catalog and integrity verification. | [`.agents/skills/nn-dev-development/SKILL.md`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/.agents/skills/nn-dev-development/SKILL.md#L383-L390) | Code and document review | **COMPLIANT** |
-| - *Scenario: Pre-push verification executes genuine catalog guard* | [`.agents/skills/nn-dev-development/SKILL.md:L387-L389`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/.agents/skills/nn-dev-development/SKILL.md#L387-L389) | Instructs running `npm run check:versions` (or `node scripts/verify.js`), removing false assertion that `check-integrity.js` validates catalog staleness. | **COMPLIANT** |
-| **Requirement: Merge gate on target health & remote tracking refs**<br>Pre-merge comparisons and diff inspections use `origin/main..origin/dev`. | [`.agents/skills/nn-dev-development/SKILL.md`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/.agents/skills/nn-dev-development/SKILL.md#L333-L350) | Code and document review | **COMPLIANT** |
-| - *Scenario: Diff inspection uses remote tracking references* | [`.agents/skills/nn-dev-development/SKILL.md:L335-L349`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/.agents/skills/nn-dev-development/SKILL.md#L335-L349) | Mandates `origin/main..origin/dev` for git log/diff and pre-merge template checks (`grep '^iNNfo/specs/templates/'`). | **COMPLIANT** |
-| - *Scenario: Worktree rehearsal protocol* | [`.agents/skills/nn-dev-development/SKILL.md:L298-L304`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/.agents/skills/nn-dev-development/SKILL.md#L298-L304) | Documents `git worktree add --detach temp/rehearsal <ref>` isolation for safe merge rehearsals. | **COMPLIANT** |
-| - *Scenario: Version-agnostic ignore patterns* | [`.gitignore`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/.gitignore) | Verified shape-based ignore patterns avoid target-moved version pinning. | **COMPLIANT** |
+| **Requirement: CI-verified batches before merge**<br>Pre-push procedures invoke genuine catalog and integrity verification. | [`.agents/skills/nn-dev-development/SKILL.md`](.agents/skills/nn-dev-development/SKILL.md#L383-L390) | Code and document review | **COMPLIANT** |
+| - *Scenario: Pre-push verification executes genuine catalog guard* | [`.agents/skills/nn-dev-development/SKILL.md:L387-L389`](.agents/skills/nn-dev-development/SKILL.md#L387-L389) | Instructs running `npm run check:versions` (or `node scripts/verify.js`), removing false assertion that `check-integrity.js` validates catalog staleness. | **COMPLIANT** |
+| **Requirement: Merge gate on target health & remote tracking refs**<br>Pre-merge comparisons and diff inspections use `origin/main..origin/dev`. | [`.agents/skills/nn-dev-development/SKILL.md`](.agents/skills/nn-dev-development/SKILL.md#L333-L350) | Code and document review | **COMPLIANT** |
+| - *Scenario: Diff inspection uses remote tracking references* | [`.agents/skills/nn-dev-development/SKILL.md:L335-L349`](.agents/skills/nn-dev-development/SKILL.md#L335-L349) | Mandates `origin/main..origin/dev` for git log/diff and pre-merge template checks (`grep '^iNNfo/specs/templates/'`). | **COMPLIANT** |
+| - *Scenario: Worktree rehearsal protocol* | [`.agents/skills/nn-dev-development/SKILL.md:L298-L304`](.agents/skills/nn-dev-development/SKILL.md#L298-L304) | Documents `git worktree add --detach temp/rehearsal <ref>` isolation for safe merge rehearsals. | **COMPLIANT** |
+| - *Scenario: Version-agnostic ignore patterns* | [`.gitignore`](.gitignore) | Verified shape-based ignore patterns avoid target-moved version pinning. | **COMPLIANT** |
 
 ---
 

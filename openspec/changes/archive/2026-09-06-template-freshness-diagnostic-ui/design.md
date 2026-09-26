@@ -25,17 +25,17 @@
                                                   └────────────────────────┘
 ```
 
-1. **Domain Integrity ([`innfo-core`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/packages/innfo-core)):**
+1. **Domain Integrity ([`innfo-core`](iNNfo/packages/innfo-core)):**
    - Pure validation and calculation logic. It has zero coupling to browser DOM or MCP protocols.
    - Computes SHA-256 hash comparison between local cached spec (`specs/*.md`) and canonical remote URL.
    - Emits structured `ValidationCheck` objects.
 
-2. **Presentation Boundary ([`innfo-editor`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/apps/innfo-editor)):**
+2. **Presentation Boundary ([`innfo-editor`](iNNfo/apps/innfo-editor)):**
    - The editor is a presentation and authoring client.
    - Does **not** perform repo mutations for governance/staleness.
    - Enhances `ValidationReport.vue` to render AI prompt action bridges when `check.promptHint` is present.
 
-3. **Execution Seam ([`innfo-mcp`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/packages/innfo-mcp) & AI Agent):**
+3. **Execution Seam ([`innfo-mcp`](iNNfo/packages/innfo-mcp) & AI Agent):**
    - The AI agent is the designated actor for workspace mutations.
    - Receives the exact diagnostic in JSON from `validate_model`, enabling conversational, consent-gated remediation.
 
@@ -85,7 +85,7 @@ export interface ValidationCheck {
 
 ## UI Component Design (`ValidationReport.vue`)
 
-In [`ValidationReport.vue`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/apps/innfo-editor/src/components/ValidationReport.vue):
+In [`ValidationReport.vue`](iNNfo/apps/innfo-editor/src/components/ValidationReport.vue):
 
 1. **Check Item Rendering:**
    When rendering an issue with `check.promptHint`:

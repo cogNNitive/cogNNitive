@@ -13,7 +13,7 @@ The change `2026-09-06-hierarchical-submodel-paths` updates `innfo-editor`'s inl
 `models/{parent_stem}/{concept_slug}/{element_slug}/{field_or_template}_01.md`
 when submodels are instantiated from concept elements. This eliminates filename collisions between sibling elements in the same concept, preserves conceptual domain nesting, and maintains strict separation between Level-3 models (`models/`) and static media (`assets/`).
 
-All 9 planned tasks in [tasks.md](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/openspec/changes/2026-09-06-hierarchical-submodel-paths/tasks.md) have been implemented, tested, and verified. Unit tests, component tests, full editor test suites, workspace parity/integrity guards, TypeScript typecheck, and Vite production builds all pass with zero errors.
+All 9 planned tasks in [tasks.md](openspec/changes/2026-09-06-hierarchical-submodel-paths/tasks.md) have been implemented, tested, and verified. Unit tests, component tests, full editor test suites, workspace parity/integrity guards, TypeScript typecheck, and Vite production builds all pass with zero errors.
 
 ---
 
@@ -37,13 +37,13 @@ All 9 planned tasks in [tasks.md](file:///d:/Users/lucas/Documents/GitHub/cogNNi
 
 | Requirement / Criterion | Source Document | Implementation Reference | Verification Method & Result |
 | :--- | :--- | :--- | :--- |
-| **Hierarchical Path Derivation** (`models/{parent}/{concept}/{element}/{template}_01.md`) | `spec.md` (Req 3), `proposal.md` (Success Criterion 1) | [`submodelPath.ts`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/apps/innfo-editor/src/utils/submodelPath.ts#L36-L75), [`FieldModel.vue`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/apps/innfo-editor/src/shared/widgets/FieldModel.vue#L140-L175) | `deriveSuggestedSubmodelPath` tests and `FieldModel.test.ts`: verified `models/Company_V_0-1-0/projects/alpha/business_01.md`. **PASS** |
-| **Sibling Element Non-Collision** (Alpha vs Beta get isolated paths) | `spec.md` (Scenario), `proposal.md` (Success Criterion 2) | [`deriveSuggestedSubmodelPath`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/apps/innfo-editor/src/utils/submodelPath.ts#L64-L67) | `FieldModel.test.ts` sibling element test: asserts `alpha/business_01.md` and `beta/business_01.md` are distinct. **PASS** |
-| **Fallback for Concept-less Fields** (`models/{parent}_{template}_01.md`) | `spec.md` (Req 3 fallback), `proposal.md` (Success Criterion 3) | [`submodelPath.ts`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/apps/innfo-editor/src/utils/submodelPath.ts#L73-L75) | `FieldModel.test.ts` fallback test: asserts root field produces `models/Company_architecture_01.md`. **PASS** |
-| **Robust Unicode Slugification & Accent Stripping** | `design.md` (Sec 3.2) | [`slugify`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/apps/innfo-editor/src/utils/submodelPath.ts#L21-L31) | `submodelPath.test.ts`: diacritics, punctuation, trim, multiple hyphens tested. **PASS** |
-| **Parent Stem Resolution** (Strip `_NN.md` and versioned template suffixes) | `design.md` (Sec 3.3) | [`deriveSuggestedSubmodelPath`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/apps/innfo-editor/src/utils/submodelPath.ts#L46-L52) | `submodelPath.test.ts`: versioned template suffixes (`Ghostbusters_V_0-2-0_innovation_NN.md` -> `Ghostbusters_V_0-2-0`) tested. **PASS** |
-| **Scaffold, Bind & Auto-Focus Submodel** | `spec.md` (Req 4-6) | [`FieldModel.vue`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/apps/innfo-editor/src/shared/widgets/FieldModel.vue#L180-L195) | `FieldModel.test.ts`: `modelStore.scaffoldSubmodel`, `update:modelValue`, and `uiStore.focusModel` verified. **PASS** |
-| **Spec Delta in OpenSpec** | `proposal.md` (Success Criterion 4) | [`specs/model-primitive-type/spec.md`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/openspec/changes/2026-09-06-hierarchical-submodel-paths/specs/model-primitive-type/spec.md) | Verified delta captures hierarchical path convention and scenarios. **PASS** |
+| **Hierarchical Path Derivation** (`models/{parent}/{concept}/{element}/{template}_01.md`) | `spec.md` (Req 3), `proposal.md` (Success Criterion 1) | [`submodelPath.ts`](iNNfo/apps/innfo-editor/src/utils/submodelPath.ts#L36-L75), [`FieldModel.vue`](iNNfo/apps/innfo-editor/src/shared/widgets/FieldModel.vue#L140-L175) | `deriveSuggestedSubmodelPath` tests and `FieldModel.test.ts`: verified `models/Company_V_0-1-0/projects/alpha/business_01.md`. **PASS** |
+| **Sibling Element Non-Collision** (Alpha vs Beta get isolated paths) | `spec.md` (Scenario), `proposal.md` (Success Criterion 2) | [`deriveSuggestedSubmodelPath`](iNNfo/apps/innfo-editor/src/utils/submodelPath.ts#L64-L67) | `FieldModel.test.ts` sibling element test: asserts `alpha/business_01.md` and `beta/business_01.md` are distinct. **PASS** |
+| **Fallback for Concept-less Fields** (`models/{parent}_{template}_01.md`) | `spec.md` (Req 3 fallback), `proposal.md` (Success Criterion 3) | [`submodelPath.ts`](iNNfo/apps/innfo-editor/src/utils/submodelPath.ts#L73-L75) | `FieldModel.test.ts` fallback test: asserts root field produces `models/Company_architecture_01.md`. **PASS** |
+| **Robust Unicode Slugification & Accent Stripping** | `design.md` (Sec 3.2) | [`slugify`](iNNfo/apps/innfo-editor/src/utils/submodelPath.ts#L21-L31) | `submodelPath.test.ts`: diacritics, punctuation, trim, multiple hyphens tested. **PASS** |
+| **Parent Stem Resolution** (Strip `_NN.md` and versioned template suffixes) | `design.md` (Sec 3.3) | [`deriveSuggestedSubmodelPath`](iNNfo/apps/innfo-editor/src/utils/submodelPath.ts#L46-L52) | `submodelPath.test.ts`: versioned template suffixes (`Ghostbusters_V_0-2-0_innovation_NN.md` -> `Ghostbusters_V_0-2-0`) tested. **PASS** |
+| **Scaffold, Bind & Auto-Focus Submodel** | `spec.md` (Req 4-6) | [`FieldModel.vue`](iNNfo/apps/innfo-editor/src/shared/widgets/FieldModel.vue#L180-L195) | `FieldModel.test.ts`: `modelStore.scaffoldSubmodel`, `update:modelValue`, and `uiStore.focusModel` verified. **PASS** |
+| **Spec Delta in OpenSpec** | `proposal.md` (Success Criterion 4) | [`specs/model-primitive-type/spec.md`](openspec/changes/2026-09-06-hierarchical-submodel-paths/specs/model-primitive-type/spec.md) | Verified delta captures hierarchical path convention and scenarios. **PASS** |
 
 ---
 
@@ -53,7 +53,7 @@ All 9 planned tasks in [tasks.md](file:///d:/Users/lucas/Documents/GitHub/cogNNi
 ```
 > vitest run tests/unit/submodelPath.test.ts
 
- RUN  v1.6.1 D:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/apps/innfo-editor
+ RUN  v1.6.1 iNNfo/apps/innfo-editor
 
  ✓ tests/unit/submodelPath.test.ts  (13 tests) 11ms
 
@@ -66,7 +66,7 @@ All 9 planned tasks in [tasks.md](file:///d:/Users/lucas/Documents/GitHub/cogNNi
 ```
 > vitest run tests/component/FieldModel.test.ts
 
- RUN  v1.6.1 D:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/apps/innfo-editor
+ RUN  v1.6.1 iNNfo/apps/innfo-editor
 
  ✓ tests/component/FieldModel.test.ts  (15 tests) 142ms
 
@@ -116,7 +116,7 @@ All 9 planned tasks in [tasks.md](file:///d:/Users/lucas/Documents/GitHub/cogNNi
 ▶ Validate Stable Manifest (node scripts/manifest/validate-manifest.js --channel stable)...
 OK: [stable] 8 skills, 12 templates, and 1 mcp bundles validated
 ▶ Check Stable Manifest Doc Fresh (node scripts/manifest/generate-manifest.js --channel stable --check)...
-OK: D:\Users\lucas\Documents\GitHub\cogNNitive\docs\use\manifest.md is up to date
+OK: docs\use\manifest.md is up to date
 ▶ Test Template Inventory Guard (node scripts/verify-inventory.test.js)...
 All verify-inventory unit tests passed successfully!
 ▶ Test Template Immutability Guard (node scripts/guard-template-immutability.test.js)...

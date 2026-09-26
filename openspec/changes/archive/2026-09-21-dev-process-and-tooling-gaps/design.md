@@ -11,7 +11,7 @@ This change resolves developer process and tooling gaps by wiring existing verif
 ## 2. Architecture & Design Decisions
 
 ### Decision 1 (A1): Complete Artifact Coverage in Version Scripts
-- **Choice**: Append `node scripts/template-catalog.mjs` to `sync:versions` and `node scripts/template-catalog.mjs --check` to `check:versions` in root [`package.json`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/package.json).
+- **Choice**: Append `node scripts/template-catalog.mjs` to `sync:versions` and `node scripts/template-catalog.mjs --check` to `check:versions` in root [`package.json`](package.json).
 - **Alternatives considered**: Add dedicated standalone script (`npm run sync:catalog`).
 - **Rationale**: Adding separate commands creates an extra manual step. Chaining into existing scripts ensures all three generated artifacts (`samples.ts`, `manifest/source.yaml`, `catalog.json`) are updated and verified atomically in one call.
 
@@ -21,12 +21,12 @@ This change resolves developer process and tooling gaps by wiring existing verif
 - **Rationale**: Full verification suites take >90s. Heavy hooks induce habitual `--no-verify` usage, disarming repository guardrails. A1 eliminates the root cause of stale catalog pushes by making `sync:versions` complete.
 
 ### Decision 3 (A3): Version-Agnostic Ignore Rules
-- **Choice**: Enforce shape-based, version-agnostic ignore rules in [`.gitignore`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/.gitignore) via time-boxed, evidence-gated pass.
+- **Choice**: Enforce shape-based, version-agnostic ignore rules in [`.gitignore`](.gitignore) via time-boxed, evidence-gated pass.
 - **Alternatives considered**: Add automated CI linter for `.gitignore`.
 - **Rationale**: Automated linters add maintenance overhead and false positives. An evidence-gated audit preserves legitimate version pins (e.g., immutability guards) while preventing cache drift.
 
 ### Decision 4 (A4): Factual Procedure Correction in Maintainer Skills
-- **Choice**: Correct [`.agents/skills/nn-dev-development/SKILL.md`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/.agents/skills/nn-dev-development/SKILL.md) §4e step 1 to cite `node scripts/verify.js` or `npm run check:versions` for catalog staleness, and update §4b to mandate `origin/main..origin/dev` tracking and the template coherence check command.
+- **Choice**: Correct [`.agents/skills/nn-dev-development/SKILL.md`](.agents/skills/nn-dev-development/SKILL.md) §4e step 1 to cite `node scripts/verify.js` or `npm run check:versions` for catalog staleness, and update §4b to mandate `origin/main..origin/dev` tracking and the template coherence check command.
 - **Alternatives considered**: Retain advisory text pointing to `scripts/check-integrity.js`.
 - **Rationale**: `scripts/check-integrity.js` contains no direct catalog checking logic; `scripts/verify.js:215` executes the catalog guard. Pointing operators to the wrong script creates false assurance.
 
@@ -41,9 +41,9 @@ This change resolves developer process and tooling gaps by wiring existing verif
 
 | File | Change | Description |
 | :--- | :--- | :--- |
-| [`package.json`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/package.json) | Modify | Append catalog sync and check to `sync:versions` and `check:versions`. |
-| [`.agents/skills/nn-dev-development/SKILL.md`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/.agents/skills/nn-dev-development/SKILL.md) | Modify | Fix catalog guard references in §4e step 1; document remote-ref diffing and pre-merge template check in §4b. |
-| [`.gitignore`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/.gitignore) | Audit/Modify | Ensure ignore rules use version-agnostic patterns. |
+| [`package.json`](package.json) | Modify | Append catalog sync and check to `sync:versions` and `check:versions`. |
+| [`.agents/skills/nn-dev-development/SKILL.md`](.agents/skills/nn-dev-development/SKILL.md) | Modify | Fix catalog guard references in §4e step 1; document remote-ref diffing and pre-merge template check in §4b. |
+| [`.gitignore`](.gitignore) | Audit/Modify | Ensure ignore rules use version-agnostic patterns. |
 
 ---
 

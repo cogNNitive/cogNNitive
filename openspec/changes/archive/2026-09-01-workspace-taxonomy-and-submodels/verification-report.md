@@ -2,7 +2,7 @@
 
 ## Executive Summary
 * **Change Identifier**: `workspace-taxonomy-and-submodels`
-* **Target Workspace**: `d:/Users/lucas/Documents/GitHub/cogNNitive` (`iNNfo`)
+* **Target Workspace**: `cogNNitive` (repo root, `iNNfo`)
 * **Verification Status**: **PASSED** (Typechecks clean, 100% core parser/validator/MCP tests passing, editor dual-mode & model primitive UI tests passing)
 
 ---

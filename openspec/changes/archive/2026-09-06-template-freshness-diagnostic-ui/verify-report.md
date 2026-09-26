@@ -18,19 +18,19 @@ Change: 2026-09-06-template-freshness-diagnostic-ui
 
 | Requirement | Spec Clause | Status | Source & Test Evidence |
 | :--- | :--- | :---: | :--- |
-| **ValidationCheck Extended Fields** | Support optional `code`, `promptHint`, `meta`, and category union `'governance'` in `innfo-core` | **PASS** | [`iNNfo/packages/innfo-core/src/types.ts`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/packages/innfo-core/src/types.ts#L323-L334)<br>[`iNNfo/packages/innfo-core/tests/template-freshness.test.ts`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/packages/innfo-core/tests/template-freshness.test.ts#L52-L81) |
-| **Non-Blocking Emission** | `TEMPLATE_CACHE_STALE` emitted with `severity: 'warning'`; does not downgrade `valid` or increment `summary.errors` | **PASS** | [`iNNfo/packages/innfo-core/src/validator/model.ts`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/packages/innfo-core/src/validator/model.ts#L44-L67)<br>[`iNNfo/packages/innfo-core/tests/template-freshness.test.ts`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/packages/innfo-core/tests/template-freshness.test.ts#L83-L95) |
-| **Web Presentation Bridge** | `ValidationReport.vue` displays `governance` warnings; renders *"Copy prompt for AI Agent"* button copying `promptHint`; zero file-mutating code | **PASS** | [`iNNfo/apps/innfo-editor/src/components/ValidationReport.vue`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/apps/innfo-editor/src/components/ValidationReport.vue#L138)<br>[`iNNfo/apps/innfo-editor/tests/component/ValidationReport.test.ts`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/apps/innfo-editor/tests/component/ValidationReport.test.ts#L157-L225) |
-| **MCP Server Parity** | `validate_model` outputs structured warning with `code: 'TEMPLATE_CACHE_STALE'`, `promptHint`, and canonical URL details | **PASS** | [`iNNfo/packages/innfo-mcp/src/tools/validate.ts`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/packages/innfo-mcp/src/tools/validate.ts#L433-L445)<br>[`iNNfo/packages/innfo-mcp/test/freshness-warning.test.ts`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/packages/innfo-mcp/test/freshness-warning.test.ts#L55-L80) |
+| **ValidationCheck Extended Fields** | Support optional `code`, `promptHint`, `meta`, and category union `'governance'` in `innfo-core` | **PASS** | [`iNNfo/packages/innfo-core/src/types.ts`](iNNfo/packages/innfo-core/src/types.ts#L323-L334)<br>[`iNNfo/packages/innfo-core/tests/template-freshness.test.ts`](iNNfo/packages/innfo-core/tests/template-freshness.test.ts#L52-L81) |
+| **Non-Blocking Emission** | `TEMPLATE_CACHE_STALE` emitted with `severity: 'warning'`; does not downgrade `valid` or increment `summary.errors` | **PASS** | [`iNNfo/packages/innfo-core/src/validator/model.ts`](iNNfo/packages/innfo-core/src/validator/model.ts#L44-L67)<br>[`iNNfo/packages/innfo-core/tests/template-freshness.test.ts`](iNNfo/packages/innfo-core/tests/template-freshness.test.ts#L83-L95) |
+| **Web Presentation Bridge** | `ValidationReport.vue` displays `governance` warnings; renders *"Copy prompt for AI Agent"* button copying `promptHint`; zero file-mutating code | **PASS** | [`iNNfo/apps/innfo-editor/src/components/ValidationReport.vue`](iNNfo/apps/innfo-editor/src/components/ValidationReport.vue#L138)<br>[`iNNfo/apps/innfo-editor/tests/component/ValidationReport.test.ts`](iNNfo/apps/innfo-editor/tests/component/ValidationReport.test.ts#L157-L225) |
+| **MCP Server Parity** | `validate_model` outputs structured warning with `code: 'TEMPLATE_CACHE_STALE'`, `promptHint`, and canonical URL details | **PASS** | [`iNNfo/packages/innfo-mcp/src/tools/validate.ts`](iNNfo/packages/innfo-mcp/src/tools/validate.ts#L433-L445)<br>[`iNNfo/packages/innfo-mcp/test/freshness-warning.test.ts`](iNNfo/packages/innfo-mcp/test/freshness-warning.test.ts#L55-L80) |
 
 ---
 
 ## Design & Architecture Conformance
 
 1. **Hexagonal Boundaries Preserved:**
-   - [`innfo-core`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/packages/innfo-core) has no dependency on browser APIs, clipboard, DOM, or MCP protocols.
-   - [`innfo-editor`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/apps/innfo-editor) acts purely as an authoring & presentation interface. It contains zero file-write, repo-mutation, or git-altering logic for template updates.
-   - [`innfo-mcp`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/packages/innfo-mcp) acts as the bridge for LLM agents, serving exact machine-readable diagnostics (`code: 'TEMPLATE_CACHE_STALE'`) to enable agent-orchestrated remediation.
+   - [`innfo-core`](iNNfo/packages/innfo-core) has no dependency on browser APIs, clipboard, DOM, or MCP protocols.
+   - [`innfo-editor`](iNNfo/apps/innfo-editor) acts purely as an authoring & presentation interface. It contains zero file-write, repo-mutation, or git-altering logic for template updates.
+   - [`innfo-mcp`](iNNfo/packages/innfo-mcp) acts as the bridge for LLM agents, serving exact machine-readable diagnostics (`code: 'TEMPLATE_CACHE_STALE'`) to enable agent-orchestrated remediation.
 2. **Payload Fidelity:**
    - The diagnostic check schema faithfully produces the planned structure:
      - `code: "TEMPLATE_CACHE_STALE"`
@@ -105,7 +105,7 @@ $ node scripts/verify.js
 ▶ Validate Stable Manifest (node scripts/manifest/validate-manifest.js --channel stable)...
 OK: [stable] 8 skills, 12 templates, and 1 mcp bundles validated
 ▶ Check Stable Manifest Doc Fresh (node scripts/manifest/generate-manifest.js --channel stable --check)...
-OK: D:\Users\lucas\Documents\GitHub\cogNNitive\docs\use\manifest.md is up to date
+OK: docs\use\manifest.md is up to date
 ▶ Test Template Inventory Guard (node scripts/verify-inventory.test.js)...
 All verify-inventory unit tests passed successfully!
 ▶ Test Template Immutability Guard (node scripts/guard-template-immutability.test.js)...

@@ -15,7 +15,7 @@ pointing users to `/innfo-doc` instead of the canonical workspace app entrypoint
 ## Proposed Solution
 
 1. **Router Redirects (`innfo-editor`):**
-   - Update [iNNfo/apps/innfo-editor/src/router/index.ts](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/apps/innfo-editor/src/router/index.ts) to replace the route component mapping with redirects:
+   - Update [iNNfo/apps/innfo-editor/src/router/index.ts](iNNfo/apps/innfo-editor/src/router/index.ts) to replace the route component mapping with redirects:
      - `/innfo-doc` and `/info-doc` redirect (`redirect: '/'`) to the root home route `/`.
 
 2. **Remove Deprecated View & Test Files:**
@@ -24,9 +24,9 @@ pointing users to `/innfo-doc` instead of the canonical workspace app entrypoint
    - Clean up any stale comments or references in `iNNfo/apps/innfo-editor/tests/setup.ts` and router imports.
 
 3. **Update Generators & Core String Literals:**
-   - Update [iNNfo/packages/innfo-core/src/parser/serializer.ts](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/packages/innfo-core/src/parser/serializer.ts) to emit `https://cognnitive.com/innfo/app/`.
-   - Update [iNNfo/packages/innfo-core/src/schema/canonical-registry.ts](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/packages/innfo-core/src/schema/canonical-registry.ts) embedded templates.
-   - Update [iNNfo/packages/innfo-mcp/src/tools/init-model.ts](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/packages/innfo-mcp/src/tools/init-model.ts) and regenerate `innfo-mcp.bundle.js`.
+   - Update [iNNfo/packages/innfo-core/src/parser/serializer.ts](iNNfo/packages/innfo-core/src/parser/serializer.ts) to emit `https://cognnitive.com/innfo/app/`.
+   - Update [iNNfo/packages/innfo-core/src/schema/canonical-registry.ts](iNNfo/packages/innfo-core/src/schema/canonical-registry.ts) embedded templates.
+   - Update [iNNfo/packages/innfo-mcp/src/tools/init-model.ts](iNNfo/packages/innfo-mcp/src/tools/init-model.ts) and regenerate `innfo-mcp.bundle.js`.
 
 4. **Batch-Update Markdown Canonical Badges:**
    - Replace all occurrences of `https://cognnitive.com/innfo/app/innfo-doc` (and legacy variants like `https://innfo.cognnitive.com/app/innfo-doc`) with `https://cognnitive.com/innfo/app/` across:

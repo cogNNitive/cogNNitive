@@ -2,15 +2,15 @@
 
 ## Intent
 
-When a model's cached template in `specs/` diverges from the canonical remote upstream version (detected via content hash), the ecosystem must surface this discrepancy clearly. However, attempting to resolve template staleness directly within the browser app ([`innfo-editor`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/apps/innfo-editor)) by downloading and overwriting local files introduces serious architectural and operational flaws:
+When a model's cached template in `specs/` diverges from the canonical remote upstream version (detected via content hash), the ecosystem must surface this discrepancy clearly. However, attempting to resolve template staleness directly within the browser app ([`innfo-editor`](iNNfo/apps/innfo-editor)) by downloading and overwriting local files introduces serious architectural and operational flaws:
 1. Browser File System Access API constraints and potential file corruption.
 2. Git state drift and uncommitted divergence bypassing repository governance.
 3. Breaking the fundamental cogNNitive principle: **the AI agent is the primary orchestrator of workspace mutations and repository lifecycle**.
 
 This proposal establishes a clean, unified architectural contract across the ecosystem:
-- **Core Domain ([`@cognnitive/innfo-core`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/packages/innfo-core)):** The single source of truth for validation. It detects template cache divergence and produces a structured, non-blocking diagnostic (`TEMPLATE_CACHE_STALE`) enriched with remediation metadata and an actionable prompt hint.
-- **Visual Presentation ([`innfo-editor`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/apps/innfo-editor)):** The web editor displays the staleness warning inside the existing `ValidationReport` UI. It explicitly **does not** mutate files; instead, it provides a one-click *"Copy prompt for AI Agent"* action.
-- **Agent Integration ([`innfo-mcp`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/packages/innfo-mcp)):** The MCP server exposes the exact same diagnostic and remediation hint, allowing AI agents to understand the issue and offer safe, consent-gated workspace updates.
+- **Core Domain ([`@cognnitive/innfo-core`](iNNfo/packages/innfo-core)):** The single source of truth for validation. It detects template cache divergence and produces a structured, non-blocking diagnostic (`TEMPLATE_CACHE_STALE`) enriched with remediation metadata and an actionable prompt hint.
+- **Visual Presentation ([`innfo-editor`](iNNfo/apps/innfo-editor)):** The web editor displays the staleness warning inside the existing `ValidationReport` UI. It explicitly **does not** mutate files; instead, it provides a one-click *"Copy prompt for AI Agent"* action.
+- **Agent Integration ([`innfo-mcp`](iNNfo/packages/innfo-mcp)):** The MCP server exposes the exact same diagnostic and remediation hint, allowing AI agents to understand the issue and offer safe, consent-gated workspace updates.
 
 ## Problem Summary
 

@@ -194,7 +194,7 @@ Workspace: . (3 Level-3 models)
 
 ## Test Strategy (Strict TDD)
 
-A dedicated test suite [`scripts/export-console.test.mjs`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/scripts/export-console.test.mjs) using Node native test runner (`node:test`, `node:assert/strict`) will cover:
+A dedicated test suite [`scripts/export-console.test.mjs`](scripts/export-console.test.mjs) using Node native test runner (`node:test`, `node:assert/strict`) will cover:
 
 1. **CLI Argument Parsing**:
    - Verification of `--status`, `--tree`, `--list`, `--all`, `--stale`, `--filter <pattern>`, and positional filters.

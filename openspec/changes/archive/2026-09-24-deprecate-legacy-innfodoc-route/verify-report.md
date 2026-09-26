@@ -9,7 +9,7 @@
 
 ## 1. Executive Summary
 
-The change `2026-09-24-deprecate-legacy-innfodoc-route` has been independently verified against its delta specifications ([`editor-routing`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/openspec/changes/2026-09-24-deprecate-legacy-innfodoc-route/specs/editor-routing/spec.md) and [`document-badge`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/openspec/changes/2026-09-24-deprecate-legacy-innfodoc-route/specs/document-badge/spec.md)) and task list.
+The change `2026-09-24-deprecate-legacy-innfodoc-route` has been independently verified against its delta specifications ([`editor-routing`](openspec/changes/2026-09-24-deprecate-legacy-innfodoc-route/specs/editor-routing/spec.md) and [`document-badge`](openspec/changes/2026-09-24-deprecate-legacy-innfodoc-route/specs/document-badge/spec.md)) and task list.
 
 All verification criteria passed cleanly with zero critical issues, zero warnings, and zero regressions.
 

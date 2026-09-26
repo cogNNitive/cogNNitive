@@ -40,7 +40,7 @@ Three named causes, each of which predicts more of the same if left alone:
    A pinned rule does not fail loudly when its target moves. It stops matching, and the noise it
    was suppressing reappears as something a human eventually commits.
 3. **Agent tooling is configured where this repository cannot see, test, or version it.** Every
-   Partition B finding lives under `C:\Users\lucas\.claude\`. No CI run in this repo can observe
+   Partition B finding lives under `.claude\`. No CI run in this repo can observe
    a `tools:` line that omits `Bash`, or a security hook that exits 0 because `jq` is missing.
 
 ### Success condition
@@ -61,11 +61,11 @@ commits on `dev`. **A1, A2, A3, A4.**
 
 ### Partition B — global agent configuration, outside this repository
 
-`B1`, `B2`, `B3`, `B4`, `B6` live in files under `C:\Users\lucas\.claude\`. `B5` is a project-level
+`B1`, `B2`, `B3`, `B4`, `B6` live in files under `.claude\`. `B5` is a project-level
 wiring decision whose answer may also be global. These carry three constraints that Partition A
 does not:
 
-1. **Blast radius is every project on this machine.** A change to `C:\Users\lucas\.claude\agents\sdd-archive.md`
+1. **Blast radius is every project on this machine.** A change to `~\.claude\agents\sdd-archive.md`
    or to the orchestrator template affects every repository this user opens, not cogNNitive.
 2. **Not versionable here.** These paths are outside the repo. Committing copies of them into
    cogNNitive would create a second source of truth that drifts from the live file — the exact
@@ -114,7 +114,7 @@ the evidence, and B2 is under-ranked.**
 | :-- | :-- | :-- |
 | 1 | **A1** | Confirmed, and *larger* than the handoff described: the hole exists in both `sync:versions` **and** `check:versions`, and the repo's own drift error message points the operator at the incomplete command. Fix is two clauses appended to two existing scripts. Highest ratio in the set. |
 | 2 | **B2** | Promoted. A **security control that fails open** while appearing installed, on every project on this machine. Its default list also blocks `git push` (needed here) while permitting `git stash`, `git add -A`, `git commit -a` — the three vectors that actually destroyed and contaminated work in this repo. The replacement already exists and is tested; the residual act is deletion. |
-| 3 | **B1** | Confirmed at `C:\Users\lucas\.claude\agents\sdd-archive.md:8` — `tools: Read, Edit, Write, Glob` plus engram, no `Bash`, no `Grep`. A phase that cannot complete itself unattended. Cheapest real fix in the set once confirmed. |
+| 3 | **B1** | Confirmed at `~\.claude\agents\sdd-archive.md:8` — `tools: Read, Edit, Write, Glob` plus engram, no `Bash`, no `Grep`. A phase that cannot complete itself unattended. Cheapest real fix in the set once confirmed. |
 | 4 | **B5** | A decision the user must make, not a slice to design. Ranked here rather than last because until it is answered, every SDD phase in this repo continues to claim persistence it does not have — false confidence is worse than a known absence. |
 | 5 | **A4** | Reframed from "codify what worked" to "**correct what is written wrong**". `nn-dev-development` §4e currently instructs running `node scripts/check-integrity.js` and says it reports catalog staleness. It does not — `check-integrity.js` contains no catalog check at all (verified: zero matches for `catalog`). The catalog guard is `scripts/verify.js:215`. The skill sends the operator to a command that cannot detect the drift it promises. That is a factual error, not a missing convention. |
 | 6 | **B6** | One gating condition in the orchestrator template. Cheap, and it already cost a stopped phase this session. |
@@ -277,7 +277,7 @@ So A4 splits:
 
 ### B1 — `sdd-archive` cannot complete its own phase
 
-**Verified.** `C:\Users\lucas\.claude\agents\sdd-archive.md:8`:
+**Verified.** `~\.claude\agents\sdd-archive.md:8`:
 `tools: Read, Edit, Write, Glob, mcp__...mem_search, mcp__...mem_get_observation, mcp__...mem_save`.
 No `Bash`, no `Grep`. Its stated job includes moving the change folder into `archive/` and
 committing. In the predecessor change it wrote the content and handed the git commands back to the
@@ -301,7 +301,7 @@ decisions #3.
 
 ### B2 — a security hook that installs cleanly, looks active, and allows everything
 
-**Verified.** `C:\Users\lucas\.claude\skills\git-guardrails-claude-code\scripts\block-dangerous-git.sh:4`:
+**Verified.** `~\.claude\skills\git-guardrails-claude-code\scripts\block-dangerous-git.sh:4`:
 
 ```sh
 COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command')
@@ -462,8 +462,8 @@ drift; A-1 changes the answer. Landing A-2 first would document the pre-A-1 stat
 
 | # | Slice | File | Gate |
 | :-- | :-- | :-- | :-- |
-| B-1 | `archive-agent-tool-parity` (B1) | `C:\Users\lucas\.claude\agents\sdd-archive.md` | **confirm** |
-| B-2 | `remove-failing-open-git-guardrail` (B2) | `C:\Users\lucas\.claude\skills\git-guardrails-claude-code\` | **confirm** |
+| B-1 | `archive-agent-tool-parity` (B1) | `~\.claude\agents\sdd-archive.md` | **confirm** |
+| B-2 | `remove-failing-open-git-guardrail` (B2) | `~\.claude\skills\git-guardrails-claude-code\` | **confirm** |
 | B-3 | `spec-design-ordering` (B4) | orchestrator template / SDD graph config | **confirm** |
 | B-4 | `pr-skill-injection-gate` (B6) | orchestrator template | **confirm** |
 | B-5 | `engram-mandate-reconciliation` (B5) | depends on the user's answer | **decision, then confirm** |

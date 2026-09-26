@@ -62,7 +62,7 @@ The verification phase for the `bundle-templates-and-skills` change has been com
 * **Command:** `npm --prefix packages/innfo-core test`
 * **Output:**
   ```text
-  RUN  v1.6.1 D:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/packages/innfo-core
+  RUN  v1.6.1 iNNfo/packages/innfo-core
   ✓ tests/parser-standard.test.ts (4 tests)
   ✓ test/validator.test.ts (4 tests)
   ✓ tests/recursive-parser.test.ts (23 tests)
@@ -92,7 +92,7 @@ The verification phase for the `bundle-templates-and-skills` change has been com
 * **Command:** `npm --prefix packages/innfo-mcp test`
 * **Output:**
   ```text
-  RUN  v1.6.1 D:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/packages/innfo-mcp
+  RUN  v1.6.1 iNNfo/packages/innfo-mcp
   ✓ src/tools/repo-root.spec.ts (4 tests)
   ✓ test/normalize-id.test.ts (5 tests)
   ✓ test/validate-template.test.ts (3 tests)

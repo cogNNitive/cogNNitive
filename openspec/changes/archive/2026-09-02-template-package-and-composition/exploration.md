@@ -14,8 +14,8 @@ As cogNNitive models evolve beyond simple standalone Level 2 specs into modular,
 
 #### Current State
 * Currently, `iNNfo/specs/templates` contains a hybrid structure: some templates exist as flat single files (e.g., `specs/templates/workspace_spec_NN.md`), while others use non-standardized subdirectories containing side-by-side versions (e.g., `specs/templates/business/business_V_0-1-0_NN.md` and `business_V_0-2-0_NN.md`) alongside a shared `samples/` directory.
-* `innfo-mcp`'s [`resolver-node.ts`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/packages/innfo-mcp/src/tools/resolver-node.ts#L173-L201) fetches remote single-file specs via HTTP and saves them as flat versioned files directly into `specs/${specName}_NN.md` using `saveSpecOnce()`.
-* Resolution precedence in [`resolver.ts`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/packages/innfo-core/src/resolver.ts#L87-L135) walks three tiers:
+* `innfo-mcp`'s [`resolver-node.ts`](iNNfo/packages/innfo-mcp/src/tools/resolver-node.ts#L173-L201) fetches remote single-file specs via HTTP and saves them as flat versioned files directly into `specs/${specName}_NN.md` using `saveSpecOnce()`.
+* Resolution precedence in [`resolver.ts`](iNNfo/packages/innfo-core/src/resolver.ts#L87-L135) walks three tiers:
   1. Workspace local (`./templates/`, `./specs/`, `./`)
   2. Global user store (`~/.agents/templates/`)
   3. Installed skill directories (`~/.agents/skills/*/templates/`)
@@ -51,7 +51,7 @@ When `innfo-mcp` or `innfo-core` resolves a template URL (e.g., `https://raw.git
 ### Scope 2: Orphaned Spec Clean Up & Backup Prompt
 
 #### Current State
-* In [`mutate.ts`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/packages/innfo-mcp/src/tools/mutate.ts#L263-L426), `bumpVersion()` updates a model's `model_version`, renames the model file, updates parent references, and writes the bumped parent template to `specs/`.
+* In [`mutate.ts`](iNNfo/packages/innfo-mcp/src/tools/mutate.ts#L263-L426), `bumpVersion()` updates a model's `model_version`, renames the model file, updates parent references, and writes the bumped parent template to `specs/`.
 * **Gaps**:
   * Old spec versions in `specs/` or `specs/templates/` are left orphaned on disk after version migrations.
   * There is no reference-counting or reachability analysis across workspace models to identify which spec versions are still in use.
@@ -80,7 +80,7 @@ When `innfo-mcp` or `innfo-core` resolves a template URL (e.g., `https://raw.git
 ### Scope 3: Template Composition (`includes`) Collision Handling
 
 #### Current State
-* `innfo-core` [`tests/includes-composition.test.ts`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/packages/innfo-core/tests/includes-composition.test.ts#L89-L100) tests basic additive composition. When two included templates define the same `Concept Definition` (e.g., `Alpha`), `resolveTemplateSchema()` flags a collision error naming both source templates.
+* `innfo-core` [`tests/includes-composition.test.ts`](iNNfo/packages/innfo-core/tests/includes-composition.test.ts#L89-L100) tests basic additive composition. When two included templates define the same `Concept Definition` (e.g., `Alpha`), `resolveTemplateSchema()` flags a collision error naming both source templates.
 * **Gaps**:
   * There is currently no mechanism for template authors to explicitly resolve collisions when composing base templates that happen to share concept or field names.
   * Without explicit aliasing/renaming, composing two domain templates with overlapping primitive names fails validation completely.

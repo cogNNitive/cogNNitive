@@ -1,7 +1,7 @@
 # Design: Deprecate Legacy `/innfo-doc` Route & Align Canonical Badges to Workspace-First
 
 **Change ID:** `2026-09-24-deprecate-legacy-innfodoc-route`  
-**Related Proposal:** [proposal.md](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/openspec/changes/2026-09-24-deprecate-legacy-innfodoc-route/proposal.md)  
+**Related Proposal:** [proposal.md](openspec/changes/2026-09-24-deprecate-legacy-innfodoc-route/proposal.md)  
 **Status:** In Review  
 
 ---
@@ -47,21 +47,21 @@ flowchart TD
 
 #### AD-1: Router Redirection with Parameter Preservation (`/innfo-doc` & `/info-doc` $\rightarrow$ `/`)
 * **Context:** Existing external links, bookmarks, and older documentation files link to `https://cognnitive.com/innfo/app/innfo-doc` or `/info-doc`.
-* **Decision:** Replace the route entry in [iNNfo/apps/innfo-editor/src/router/index.ts](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/apps/innfo-editor/src/router/index.ts) with a redirect rule targeting `/`. The redirect preserves search query parameters and URL hashes (`to => ({ path: '/', query: to.query, hash: to.hash })` or Vue Router's declarative `redirect: '/'`).
+* **Decision:** Replace the route entry in [iNNfo/apps/innfo-editor/src/router/index.ts](iNNfo/apps/innfo-editor/src/router/index.ts) with a redirect rule targeting `/`. The redirect preserves search query parameters and URL hashes (`to => ({ path: '/', query: to.query, hash: to.hash })` or Vue Router's declarative `redirect: '/'`).
 * **Rationale:** Direct redirection ensures zero broken links for legacy incoming traffic while routing users directly into the workspace-first onboarding / directory picker workflow.
 
 #### AD-2: Complete Removal of Standalone Document View (`InfoDocView.vue`)
 * **Context:** `InfoDocView.vue` allowed dragging and dropping a single `_NN.md` file into memory without a directory handle. The workspace application now supports opening workspaces and samples directly.
-* **Decision:** Delete [iNNfo/apps/innfo-editor/src/views/InfoDocView.vue](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/apps/innfo-editor/src/views/InfoDocView.vue) and its test file [iNNfo/apps/innfo-editor/tests/component/InfoDocView.test.ts](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/apps/innfo-editor/tests/component/InfoDocView.test.ts). Update comments in [iNNfo/apps/innfo-editor/tests/setup.ts](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/apps/innfo-editor/tests/setup.ts) to clean up references to `InfoDocView`.
+* **Decision:** Delete [iNNfo/apps/innfo-editor/src/views/InfoDocView.vue](iNNfo/apps/innfo-editor/src/views/InfoDocView.vue) and its test file [iNNfo/apps/innfo-editor/tests/component/InfoDocView.test.ts](iNNfo/apps/innfo-editor/tests/component/InfoDocView.test.ts). Update comments in [iNNfo/apps/innfo-editor/tests/setup.ts](iNNfo/apps/innfo-editor/tests/setup.ts) to clean up references to `InfoDocView`.
 * **Rationale:** Eliminates orphaned components, dead bundle bytes, and test suite flakiness related to single-document mount state.
 
 #### AD-3: Generator String Literal Alignment
 * **Context:** Generators in `innfo-core` and `innfo-mcp` generate the default Markdown preamble note for new models.
 * **Decision:** Update the standard callout string literal across all model generation sources:
-  - [iNNfo/packages/innfo-core/src/parser/serializer.ts](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/packages/innfo-core/src/parser/serializer.ts#L274-L278)
-  - [iNNfo/packages/innfo-core/src/schema/canonical-registry.ts](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/packages/innfo-core/src/schema/canonical-registry.ts)
-  - [iNNfo/packages/innfo-mcp/src/tools/init-model.ts](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/packages/innfo-mcp/src/tools/init-model.ts#L30-L34)
-  - [skills/nn-trannsform/scripts/lib/provenance-model.js](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/skills/nn-trannsform/scripts/lib/provenance-model.js#L10-L14)
+  - [iNNfo/packages/innfo-core/src/parser/serializer.ts](iNNfo/packages/innfo-core/src/parser/serializer.ts#L274-L278)
+  - [iNNfo/packages/innfo-core/src/schema/canonical-registry.ts](iNNfo/packages/innfo-core/src/schema/canonical-registry.ts)
+  - [iNNfo/packages/innfo-mcp/src/tools/init-model.ts](iNNfo/packages/innfo-mcp/src/tools/init-model.ts#L30-L34)
+  - [skills/nn-trannsform/scripts/lib/provenance-model.js](skills/nn-trannsform/scripts/lib/provenance-model.js#L10-L14)
   - Regenerate `iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js` via package build.
 * **Rationale:** Ensures every newly generated model or serialized document points to `https://cognnitive.com/innfo/app/`.
 
@@ -75,7 +75,7 @@ flowchart TD
 ## 3. Component Impact & File Modifications
 
 ### 3.1 `iNNfo/apps/innfo-editor`
-- **[src/router/index.ts](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/apps/innfo-editor/src/router/index.ts):**
+- **[src/router/index.ts](iNNfo/apps/innfo-editor/src/router/index.ts):**
   - Remove `import InfoDocView from '../views/InfoDocView.vue'`.
   - Update route definition:
     ```ts
@@ -90,17 +90,17 @@ flowchart TD
       },
     ]
     ```
-- **[src/views/InfoDocView.vue](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/apps/innfo-editor/src/views/InfoDocView.vue):**
+- **[src/views/InfoDocView.vue](iNNfo/apps/innfo-editor/src/views/InfoDocView.vue):**
   - Delete file.
-- **[tests/component/InfoDocView.test.ts](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/apps/innfo-editor/tests/component/InfoDocView.test.ts):**
+- **[tests/component/InfoDocView.test.ts](iNNfo/apps/innfo-editor/tests/component/InfoDocView.test.ts):**
   - Delete file.
-- **[tests/setup.ts](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/apps/innfo-editor/tests/setup.ts):**
+- **[tests/setup.ts](iNNfo/apps/innfo-editor/tests/setup.ts):**
   - Update explanatory comments regarding test isolation to reference general view mounting instead of `InfoDocView`.
 - **Router Unit Tests:**
   - Add / update tests in `innfo-editor` to verify that navigating to `/innfo-doc` or `/info-doc` resolves to `/` while preserving query strings and hashes.
 
 ### 3.2 `iNNfo/packages/innfo-core`
-- **[src/parser/serializer.ts](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/packages/innfo-core/src/parser/serializer.ts):**
+- **[src/parser/serializer.ts](iNNfo/packages/innfo-core/src/parser/serializer.ts):**
   - Update default preamble badge string:
     ```ts
     lines.push('> [!NOTE]')
@@ -108,21 +108,21 @@ flowchart TD
       '> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor or view and edit it with [cogNNitive](https://cognnitive.com/innfo/app/).',
     )
     ```
-- **[src/schema/canonical-registry.ts](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/packages/innfo-core/src/schema/canonical-registry.ts):**
+- **[src/schema/canonical-registry.ts](iNNfo/packages/innfo-core/src/schema/canonical-registry.ts):**
   - Replace all occurrences of `https://cognnitive.com/innfo/app/innfo-doc` with `https://cognnitive.com/innfo/app/`.
-- **[tests/serializer-fidelity-units.test.ts](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/packages/innfo-core/tests/serializer-fidelity-units.test.ts):**
+- **[tests/serializer-fidelity-units.test.ts](iNNfo/packages/innfo-core/tests/serializer-fidelity-units.test.ts):**
   - Update fixture helper `doc()` to emit the updated badge URL.
 - **Fixtures in `tests/fixtures/`:**
   - Update markdown fixtures in `iNNfo/packages/innfo-core/tests/fixtures/simulacro-refactorizacion/`.
 
 ### 3.3 `iNNfo/packages/innfo-mcp`
-- **[src/tools/init-model.ts](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/packages/innfo-mcp/src/tools/init-model.ts):**
+- **[src/tools/init-model.ts](iNNfo/packages/innfo-mcp/src/tools/init-model.ts):**
   - Update the preamble notice in `generateScaffold()` and `initModel()` helper.
 - **`bin/innfo-mcp.bundle.js`:**
   - Recompile and rebuild bundle via `npm run build` in `innfo-mcp`.
 
 ### 3.4 `skills/nn-trannsform`
-- **[scripts/lib/provenance-model.js](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/skills/nn-trannsform/scripts/lib/provenance-model.js):**
+- **[scripts/lib/provenance-model.js](skills/nn-trannsform/scripts/lib/provenance-model.js):**
   - Update `DOC_NOTICE` constant to point to `https://cognnitive.com/innfo/app/`.
 
 ### 3.5 Markdown Files & Specs

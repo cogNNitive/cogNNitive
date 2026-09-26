@@ -2,13 +2,13 @@
 
 ## Intent
 Align the iNNfo skill entry point, console compilation tooling, and ecosystem manifests with current capabilities and architectural standards:
-1. **Unify and Clarify the `nn-innfo` Entry Menu**: Update [`skills/nn-innfo/SKILL.md`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/skills/nn-innfo/SKILL.md) to consolidate audit and validation under `[c]`, introduce dedicated console artifact compilation under `[d]`, add documentation browsing under `[w]`, and maintain conversational wizard workflows under `[a]` and `[b]`.
-2. **Upgrade Console Export CLI (`scripts/export-console.mjs`)**: Equip [`scripts/export-console.mjs`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/scripts/export-console.mjs) with tree and status inspection (`--tree`, `--status`), content hashing (SHA-256) / freshness detection for stale or unbumped models, and selective export flags (`--filter`, `--stale`, `--all`).
-3. **Cleanse Legacy Workflows and Manifests**: Remove the legacy `pdf-to-innfo-dashboard` workflow from [`manifest/source.yaml`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/manifest/source.yaml) and purge outdated documentation references promising unsupported PDF export pipelines.
+1. **Unify and Clarify the `nn-innfo` Entry Menu**: Update [`skills/nn-innfo/SKILL.md`](skills/nn-innfo/SKILL.md) to consolidate audit and validation under `[c]`, introduce dedicated console artifact compilation under `[d]`, add documentation browsing under `[w]`, and maintain conversational wizard workflows under `[a]` and `[b]`.
+2. **Upgrade Console Export CLI (`scripts/export-console.mjs`)**: Equip [`scripts/export-console.mjs`](scripts/export-console.mjs) with tree and status inspection (`--tree`, `--status`), content hashing (SHA-256) / freshness detection for stale or unbumped models, and selective export flags (`--filter`, `--stale`, `--all`).
+3. **Cleanse Legacy Workflows and Manifests**: Remove the legacy `pdf-to-innfo-dashboard` workflow from [`manifest/source.yaml`](manifest/source.yaml) and purge outdated documentation references promising unsupported PDF export pipelines.
 
 ## Scope
 1. **Skill Menu Alignment**:
-   - Update [`skills/nn-innfo/SKILL.md`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/skills/nn-innfo/SKILL.md) entry menu to:
+   - Update [`skills/nn-innfo/SKILL.md`](skills/nn-innfo/SKILL.md) entry menu to:
      - `[a] (Recommended)` Create a new model (Conversational Wizard)
      - `[b]` Edit / extend an existing model (Conversational Wizard)
      - `[c]` Audit & validate model (MCP Syntax + Architecture Coherence)
@@ -18,16 +18,16 @@ Align the iNNfo skill entry point, console compilation tooling, and ecosystem ma
      - `[y]` Cancel / help
    - Update downstream action handlers and active model selection gate logic in `SKILL.md` to reflect the re-mapped options `[c]`, `[d]`, and `[w]`.
 2. **Console CLI Inspection & Selective Export**:
-   - Enhance [`scripts/export-console.mjs`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/scripts/export-console.mjs) with:
+   - Enhance [`scripts/export-console.mjs`](scripts/export-console.mjs) with:
      - `--status`: Display compilation status (fresh, stale, uncompiled, version mismatch) across workspace models.
      - `--tree`: Render a hierarchical tree representation of models and their associated console artifacts.
      - `--stale`: Inspect or filter only models whose source content (SHA-256 hash or timestamp) is newer than the compiled console artifact.
      - `--filter <pattern>`: Filter models matching specific name or path substrings.
      - `--all`: Compile all discovered Level 3 models.
-   - Add unit and integration tests in [`scripts/export-console.test.mjs`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/scripts/export-console.test.mjs) under strict TDD.
+   - Add unit and integration tests in [`scripts/export-console.test.mjs`](scripts/export-console.test.mjs) under strict TDD.
 3. **Manifest & Documentation Cleanup**:
-   - Remove `pdf-to-innfo-dashboard` entry from [`manifest/source.yaml`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/manifest/source.yaml).
-   - Clean up false-promise PDF export mentions in [`docs/use/manifest.md`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/docs/use/manifest.md), [`docs/use/manifest-next.md`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/docs/use/manifest-next.md), and legacy sample documentation.
+   - Remove `pdf-to-innfo-dashboard` entry from [`manifest/source.yaml`](manifest/source.yaml).
+   - Clean up false-promise PDF export mentions in [`docs/use/manifest.md`](docs/use/manifest.md), [`docs/use/manifest-next.md`](docs/use/manifest-next.md), and legacy sample documentation.
    - Synchronize and validate manifest channels (`npm run sync:versions` and `npm run check:versions`).
 
 ## Capabilities
@@ -38,12 +38,12 @@ Align the iNNfo skill entry point, console compilation tooling, and ecosystem ma
 - `manifest-governance`: Pruned manifest workflow catalog containing only active, supported workflows.
 
 ## Affected Areas
-- [`skills/nn-innfo/SKILL.md`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/skills/nn-innfo/SKILL.md)
-- [`scripts/export-console.mjs`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/scripts/export-console.mjs)
-- [`scripts/export-console.test.mjs`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/scripts/export-console.test.mjs) *(New Test Suite)*
-- [`manifest/source.yaml`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/manifest/source.yaml)
-- [`docs/use/manifest.md`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/docs/use/manifest.md)
-- [`docs/use/manifest-next.md`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/docs/use/manifest-next.md)
+- [`skills/nn-innfo/SKILL.md`](skills/nn-innfo/SKILL.md)
+- [`scripts/export-console.mjs`](scripts/export-console.mjs)
+- [`scripts/export-console.test.mjs`](scripts/export-console.test.mjs) *(New Test Suite)*
+- [`manifest/source.yaml`](manifest/source.yaml)
+- [`docs/use/manifest.md`](docs/use/manifest.md)
+- [`docs/use/manifest-next.md`](docs/use/manifest-next.md)
 
 ## Risks
 - **CLI Flag Compatibility**: Existing invocations relying on positional arguments or `--list`/`--all` must remain fully backward-compatible. *Mitigation*: Retain `--list` and positional argument support alongside new flags (`--status`, `--tree`, `--stale`, `--filter`).

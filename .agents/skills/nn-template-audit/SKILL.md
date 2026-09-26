@@ -16,7 +16,7 @@ It enforces syntactic compliance with `iNNfo_V_0-1-0_NN.md` and `iNNfo_V_0-2-0_N
 
 ## Audit Log & Compliance Matrix
 
-The official audit state, timestamps, and compliance checklists for all templates and samples are recorded in [.agents/skills/nn-template-audit/AUDIT_LOG.md](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/.agents/skills/nn-template-audit/AUDIT_LOG.md).
+The official audit state, timestamps, and compliance checklists for all templates and samples are recorded in [.agents/skills/nn-template-audit/AUDIT_LOG.md](../nn-template-audit/AUDIT_LOG.md).
 
 Every audit run or sample refactoring MUST update `AUDIT_LOG.md` with the new timestamp and status (`PASSED`, `IN_PROGRESS`, `NEEDS_REVIEW`).
 

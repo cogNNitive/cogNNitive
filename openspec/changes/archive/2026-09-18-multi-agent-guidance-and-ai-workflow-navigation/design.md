@@ -77,7 +77,7 @@ flowchart TD
 ## 3. Detailed Component Changes
 
 ### 3.1 `AiWorkflowPanel.vue`
-[file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/apps/innfo-editor/src/components/editor/AiWorkflowPanel.vue](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/apps/innfo-editor/src/components/editor/AiWorkflowPanel.vue)
+[iNNfo/apps/innfo-editor/src/components/editor/AiWorkflowPanel.vue](iNNfo/apps/innfo-editor/src/components/editor/AiWorkflowPanel.vue)
 
 - **Header Dismiss Action**:
   - Add an action button in the panel header on the right side:
@@ -97,7 +97,7 @@ flowchart TD
 ---
 
 ### 3.2 `uiStore.ts`
-[file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/apps/innfo-editor/src/stores/uiStore.ts](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/apps/innfo-editor/src/stores/uiStore.ts)
+[iNNfo/apps/innfo-editor/src/stores/uiStore.ts](iNNfo/apps/innfo-editor/src/stores/uiStore.ts)
 
 - **`selectNode(id: string | null)` Update**:
   - When `selectNode` is invoked and `activeView.value === 'ai-guide'`, transition `activeView.value = 'editor'`.
@@ -115,7 +115,7 @@ flowchart TD
 ---
 
 ### 3.3 `Header.vue`
-[file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/apps/innfo-editor/src/components/layout/Header.vue](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/apps/innfo-editor/src/components/layout/Header.vue)
+[iNNfo/apps/innfo-editor/src/components/layout/Header.vue](iNNfo/apps/innfo-editor/src/components/layout/Header.vue)
 
 - **"Use AI" Button Toggle Handler**:
   - Replace direct `@click="uiStore.setActiveView('ai-guide')"` with a toggle handler:
@@ -149,7 +149,7 @@ flowchart TD
 ---
 
 ### 3.4 `procedure_NN.md`
-[file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/apps/innfo-editor/src/ai-guide/procedure_NN.md](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/apps/innfo-editor/src/ai-guide/procedure_NN.md)
+[iNNfo/apps/innfo-editor/src/ai-guide/procedure_NN.md](iNNfo/apps/innfo-editor/src/ai-guide/procedure_NN.md)
 
 - **Frontmatter**:
   ```yaml
@@ -176,7 +176,7 @@ flowchart TD
 ---
 
 ### 3.5 `guide.ts`
-[file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/apps/innfo-editor/src/ai-guide/guide.ts](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/apps/innfo-editor/src/ai-guide/guide.ts)
+[iNNfo/apps/innfo-editor/src/ai-guide/guide.ts](iNNfo/apps/innfo-editor/src/ai-guide/guide.ts)
 
 - **Heading & Pattern Matching**:
   - Support both modern `# NN` and `# _NN` prefix conventions:

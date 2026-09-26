@@ -17,8 +17,8 @@ parent's, so the comparison is guaranteed to report `stale` even though nothing
 is wrong. The reported remediation ("delete/replace the local cached copy under
 `specs/`") is destructive: following it deletes legitimate custom templates.
 
-Observed in the real workspace `D:\Users\lucas\Documents\_NN\arenzano\specs`:
-18 false `stale` entries (e.g. `arenzano_business_V_0-3-0_NN.md`, whose
+Observed in a real external workspace (`<workspace>/specs`):
+18 false `stale` entries (e.g. `acme_business_V_0-3-0_NN.md`, whose
 `parent_spec.url` points at the canonical `business_V_0-1-0`). Those files
 declare `specification_url` (legacy field) plus `parent_spec.url`; they do not
 declare `spec_url` at all. The 8 files that *do* declare `spec_url` are genuine

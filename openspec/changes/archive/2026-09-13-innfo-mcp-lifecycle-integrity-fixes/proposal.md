@@ -129,7 +129,7 @@ semantics unchanged.
 - `tests/metrics-console-harness.test.ts` — pre-existing environmental failure
   (headless Chrome via `file://`), unrelated and not a regression.
 - Rebuilding or republishing the global bundle at
-  `C:\Users\lucas\.agents\mcp\innfo-mcp.bundle.js`. That bundle was verified to
+  `~\.agents\mcp\innfo-mcp.bundle.js`. That bundle was verified to
   already contain the `workspaceSources.ts` / `workspaceReferences.ts` logic, so
   none of these findings is a stale-bundle artifact; redistribution is a separate
   release concern.

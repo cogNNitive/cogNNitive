@@ -57,7 +57,7 @@ ormalizeRefPath and esolveFileHandle to support multi-level relative paths.
 - Define directional evaluable matrices for commits-to-releases and release-to-posture mapping.
 
 ### 2.4 Monorepo Root workspace_NN.md
-- Create the canonical root workspace manifest at d:/Users/lucas/Documents/GitHub/cogNNitive/workspace_NN.md.
+- Create the canonical root workspace manifest at workspace_NN.md.
 - Register the monorepo's specifications, template packages, official skills (ctioNN/skills/*), maintenance tools (scripts/*), and dogfooding repository models.
 
 ## 3. Progressive Disclosure & Context Budget

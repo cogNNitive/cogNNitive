@@ -2,16 +2,16 @@
 
 ## Intent
 Streamline workspace navigation and reduce UI clutter:
-1. **Focus Left Sidebar on Semantic Navigation**: Remove the "Explorer" switcher tab from [`LeftSidebar.vue`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/apps/innfo-editor/src/components/layout/LeftSidebar.vue), dedicating the left navigation pane exclusively to semantic model browsing (Editor, Graph, Consoles).
-2. **Relocate File Explorer to Info View**: Embed the workspace file tree into the Workspace Info view (accessible via the Header `(i)` button / [`ModelInfoPanel.vue`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/apps/innfo-editor/src/components/editor/ModelInfoPanel.vue) / [`WorkspaceDashboard.vue`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/apps/innfo-editor/src/components/layout/WorkspaceDashboard.vue)).
+1. **Focus Left Sidebar on Semantic Navigation**: Remove the "Explorer" switcher tab from [`LeftSidebar.vue`](iNNfo/apps/innfo-editor/src/components/layout/LeftSidebar.vue), dedicating the left navigation pane exclusively to semantic model browsing (Editor, Graph, Consoles).
+2. **Relocate File Explorer to Info View**: Embed the workspace file tree into the Workspace Info view (accessible via the Header `(i)` button / [`ModelInfoPanel.vue`](iNNfo/apps/innfo-editor/src/components/editor/ModelInfoPanel.vue) / [`WorkspaceDashboard.vue`](iNNfo/apps/innfo-editor/src/components/layout/WorkspaceDashboard.vue)).
 3. **Clean Tree Presentation**: Remove the category filter bar (models/sources/artifacts) from the file explorer, presenting an uncluttered, direct filesystem hierarchy with search.
 4. **Preserve Functionality**: Retain file previewing, opening, and markdown inspection capabilities without regressions.
 
 ## Scope
-- **LeftSidebar**: Remove Explorer switcher button and conditional rendering in [`LeftSidebar.vue`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/apps/innfo-editor/src/components/layout/LeftSidebar.vue).
-- **Info View / Dashboard**: Integrate [`WorkspaceExplorer.vue`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/apps/innfo-editor/src/components/layout/WorkspaceExplorer.vue) into the Info page layout.
+- **LeftSidebar**: Remove Explorer switcher button and conditional rendering in [`LeftSidebar.vue`](iNNfo/apps/innfo-editor/src/components/layout/LeftSidebar.vue).
+- **Info View / Dashboard**: Integrate [`WorkspaceExplorer.vue`](iNNfo/apps/innfo-editor/src/components/layout/WorkspaceExplorer.vue) into the Info page layout.
 - **WorkspaceExplorer**: Strip out category filter chips (`filterOptions`, `explorerFilterMode`), preserving search, refresh, and file click/preview interactions.
-- **UI State & Stores**: Adjust [`uiStore.ts`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/iNNfo/apps/innfo-editor/src/stores/uiStore.ts) active view defaults if needed.
+- **UI State & Stores**: Adjust [`uiStore.ts`](iNNfo/apps/innfo-editor/src/stores/uiStore.ts) active view defaults if needed.
 - **Automated Tests**: Update component and integration tests referencing the sidebar explorer tab and filter chips.
 
 ## Capabilities

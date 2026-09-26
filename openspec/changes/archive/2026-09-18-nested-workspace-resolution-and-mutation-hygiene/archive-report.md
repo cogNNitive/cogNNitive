@@ -38,18 +38,18 @@ Standard archive. Verification returned **PASS** with 100% test suite success an
 
 ## Source of Truth Updated
 
-- [`openspec/specs/model-mutation-references/spec.md`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/openspec/specs/model-mutation-references/spec.md)
-- [`openspec/specs/source-list-grammar/spec.md`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/openspec/specs/source-list-grammar/spec.md)
-- [`openspec/specs/workspace-sources-resolution/spec.md`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/openspec/specs/workspace-sources-resolution/spec.md)
+- [`openspec/specs/model-mutation-references/spec.md`](openspec/specs/model-mutation-references/spec.md)
+- [`openspec/specs/source-list-grammar/spec.md`](openspec/specs/source-list-grammar/spec.md)
+- [`openspec/specs/workspace-sources-resolution/spec.md`](openspec/specs/workspace-sources-resolution/spec.md)
 
 ## Archived Contents
 
-- [`proposal.md`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/openspec/changes/archive/2026-09-18-nested-workspace-resolution-and-mutation-hygiene/proposal.md) ✅
-- [`design.md`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/openspec/changes/archive/2026-09-18-nested-workspace-resolution-and-mutation-hygiene/design.md) ✅
-- [`tasks.md`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/openspec/changes/archive/2026-09-18-nested-workspace-resolution-and-mutation-hygiene/tasks.md) ✅ (15/15 `[x]`)
-- [`verify-report.md`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/openspec/changes/archive/2026-09-18-nested-workspace-resolution-and-mutation-hygiene/verify-report.md) ✅ (PASS verdict)
+- [`proposal.md`](openspec/changes/archive/2026-09-18-nested-workspace-resolution-and-mutation-hygiene/proposal.md) ✅
+- [`design.md`](openspec/changes/archive/2026-09-18-nested-workspace-resolution-and-mutation-hygiene/design.md) ✅
+- [`tasks.md`](openspec/changes/archive/2026-09-18-nested-workspace-resolution-and-mutation-hygiene/tasks.md) ✅ (15/15 `[x]`)
+- [`verify-report.md`](openspec/changes/archive/2026-09-18-nested-workspace-resolution-and-mutation-hygiene/verify-report.md) ✅ (PASS verdict)
 - `specs/` (delta specifications preserved as evidence) ✅
   - `model-mutation-references/spec.md`
   - `source-list-grammar/spec.md`
   - `workspace-sources-resolution/spec.md`
-- [`archive-report.md`](file:///d:/Users/lucas/Documents/GitHub/cogNNitive/openspec/changes/archive/2026-09-18-nested-workspace-resolution-and-mutation-hygiene/archive-report.md) ✅ (this file)
+- [`archive-report.md`](openspec/changes/archive/2026-09-18-nested-workspace-resolution-and-mutation-hygiene/archive-report.md) ✅ (this file)
