@@ -27,7 +27,7 @@ function makeRepoWithManifest(sourceYaml) {
 function main() {
   console.log('Running console-release-info unit tests...');
 
-  // 1. Derives version and CDN URL matching the fixture manifest.
+  // 1. Derives version and CDN URL matching the fixture manifest (derived ref).
   {
     const dir = makeRepoWithManifest(`
 console_assets:
@@ -42,7 +42,6 @@ channels:
     refs:
       - key: innfo-console
         repo: cogNNitive/cogNNitive
-        ref: innfo-console-v0.2.0
 `);
     try {
       const info = getConsoleReleaseInfo(dir);
@@ -73,7 +72,6 @@ channels:
     refs:
       - key: innfo-console
         repo: cogNNitive/cogNNitive
-        ref: innfo-console-v0.3.0
 `);
     try {
       const info = getConsoleReleaseInfo(dir);

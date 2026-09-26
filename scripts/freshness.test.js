@@ -18,24 +18,40 @@ function freshFreshnessModule() {
 // Full 4-key stable pin, matching manifest/source.yaml's real shape.
 const SOURCE_YAML = `version: "2.0"
 entrypoint: "workspace_NN.md"
-skills: []
+skills:
+  - name: nn-innfo
+    repo: cogNNitive/cogNNitive
+    path: actioNN/skills/nn-innfo
+    version: "V_0-1-0"
+    ref_key: skills
+    description: Author and validate iNNfo models.
+    mcp:
+      - name: innfo-mcp
+        repo: cogNNitive/cogNNitive
+        path: iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js
+        version: "0.9.0"
+        ref_key: innfo-mcp
 templates: []
+console_assets:
+  - name: innfo-console
+    repo: cogNNitive/cogNNitive
+    file: iNNfo/specs/templates/console/innfo-console.bundle.js
+    version: "0.2.0"
+    ref_key: innfo-console
 workflows: []
 channels:
   stable:
     refs:
       - key: skills
         repo: cogNNitive/cogNNitive
-        ref: skills-v2.0.0
+        version: "2.0.0"
       - key: templates
         repo: cogNNitive/cogNNitive
-        ref: templates-v0.10.3
+        version: "0.10.3"
       - key: innfo-mcp
         repo: cogNNitive/cogNNitive
-        ref: innfo-mcp-v0.9.0
       - key: innfo-console
         repo: cogNNitive/cogNNitive
-        ref: innfo-console-v0.2.0
   preview:
     refs:
       - key: skills

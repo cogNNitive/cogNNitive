@@ -334,6 +334,49 @@ channels:
     console.log('✔ console-assets block rendering test passed');
   }
 
+  // Derived channel versions: source with version: "2.1.0" or inherited artifact versions
+  {
+    const mod = freshGeneratorModule();
+    const DERIVED_SOURCE = `version: "2.0"
+entrypoint: "workspace_NN.md"
+skills:
+  - name: nn-innfo
+    repo: cogNNitive/cogNNitive
+    path: actioNN/skills/nn-innfo
+    version: "V_0-1-0"
+    ref_key: skills
+    description: Author and validate iNNfo models.
+    mcp:
+      - name: innfo-mcp
+        repo: cogNNitive/cogNNitive
+        path: iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js
+        version: "0.10.0"
+        ref_key: innfo-mcp
+templates: []
+workflows: []
+channels:
+  stable:
+    refs:
+      - key: skills
+        repo: cogNNitive/cogNNitive
+        version: "2.1.0"
+      - key: innfo-mcp
+        repo: cogNNitive/cogNNitive
+`;
+    const commitSkills = '1'.repeat(40);
+    const commitMcp = '2'.repeat(40);
+    const resolveRef = fakeResolveRef({
+      'skills-v2.1.0': commitSkills,
+      'innfo-mcp-v0.10.0': commitMcp,
+    }, {});
+    const source = mod.parseSourceYaml(DERIVED_SOURCE);
+    const rendered = await mod.renderManifest(source, 'stable', BASIC_BODY, resolveRef);
+    assert.strictEqual(typeof rendered, 'string');
+    assert.match(rendered, /ref: "skills-v2\.1\.0"/);
+    assert.match(rendered, /ref: "innfo-mcp-v0\.10\.0"/);
+    console.log('✔ derived channel ref reaches rendered manifest test passed');
+  }
+
   console.log('All generate-manifest unit tests passed successfully!');
 }
 

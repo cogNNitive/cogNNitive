@@ -29,6 +29,7 @@ const {
   resolveRef: defaultResolveRef,
   CHANNELS,
 } = require('./validate-manifest.js');
+const { resolveChannelRefs } = require('../lib/channel-refs.js');
 
 // ---------------------------------------------------------------------------
 // Source parsing
@@ -36,6 +37,12 @@ const {
 
 function parseSourceYaml(text) {
   const doc = parseFocusedYaml(text);
+  const channels = {};
+  if (doc.channels && typeof doc.channels === 'object') {
+    for (const ch of Object.keys(doc.channels)) {
+      channels[ch] = { refs: resolveChannelRefs(doc, ch) };
+    }
+  }
   return {
     version: doc.version,
     entrypoint: doc.entrypoint,
@@ -43,7 +50,7 @@ function parseSourceYaml(text) {
     templates: Array.isArray(doc.templates) ? doc.templates : [],
     consoleAssets: Array.isArray(doc.console_assets) ? doc.console_assets : [],
     workflows: Array.isArray(doc.workflows) ? doc.workflows : [],
-    channels: doc.channels || {},
+    channels,
   };
 }
 

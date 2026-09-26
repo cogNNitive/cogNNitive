@@ -18,6 +18,7 @@ const path = require('path');
 const { execFileSync } = require('child_process');
 const { parseFocusedYaml } = require('./manifest/validate-manifest.js');
 const { saveJsonAtomic } = require('./lib/atomic-fs.js');
+const { resolveChannelRefs } = require('./lib/channel-refs.js');
 
 /**
  * Subsystem -> tracked directories. Hardcoded and directory-scoped rather than
@@ -50,7 +51,12 @@ const SUBSYSTEM_PATHS = {
  */
 function computeFreshness({ sourceYaml, runGit, head }) {
   const source = parseFocusedYaml(sourceYaml);
-  const stableRefs = (source.channels && source.channels.stable && source.channels.stable.refs) || [];
+  let stableRefs = [];
+  try {
+    stableRefs = resolveChannelRefs(source, 'stable');
+  } catch (_err) {
+    stableRefs = [];
+  }
 
   const subsystems = {};
   for (const key of Object.keys(SUBSYSTEM_PATHS)) {

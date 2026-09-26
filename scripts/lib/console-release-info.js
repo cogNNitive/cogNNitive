@@ -4,20 +4,12 @@
  * Single source of truth for the innfo-console release identity (bundle
  * version + CDN pin), derived from `manifest/source.yaml` instead of
  * duplicated as hardcoded literals.
- *
- * Before this change, `scripts/build-console-bundle.mjs` hardcoded
- * `BUNDLE_VERSION = '0.1.0'` and `scripts/export-console.mjs` hardcoded the
- * jsDelivr CDN URL pinned to `innfo-console-v0.1.0`. Both had drifted behind
- * `manifest/source.yaml` (`console_assets[0].version` = `0.2.0`,
- * `channels.stable.refs` key `innfo-console` = `innfo-console-v0.2.0`), so
- * every exported console artifact fetched a runtime a full minor behind the
- * one actually shipped. Deriving both from the manifest removes the
- * duplication instead of adding a drift checker for it.
  */
 
 const fs = require('fs');
 const path = require('path');
 const { parseFocusedYaml } = require('./yaml-parser.js');
+const { resolveChannelRefs } = require('./channel-refs.js');
 
 /**
  * @param {string} repoRoot
@@ -36,7 +28,13 @@ function getConsoleReleaseInfo(repoRoot = process.cwd()) {
   }
   const version = String(asset.version);
 
-  const stableRefs = (source.channels && source.channels.stable && source.channels.stable.refs) || [];
+  let stableRefs = [];
+  try {
+    stableRefs = resolveChannelRefs(source, 'stable');
+  } catch (err) {
+    throw new Error(`manifest/source.yaml: ${err.message} at ${sourcePath}`);
+  }
+
   const ref = stableRefs.find((r) => r && r.key === 'innfo-console');
   if (!ref || !ref.ref) {
     throw new Error(

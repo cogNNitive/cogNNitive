@@ -197,19 +197,21 @@ workflows:
 # these zero-dependency scripts does not support `/` inside a mapping key.)
 channels:
   stable:
+    # The tag is derived as "<key>-v<version>" — never typed. skills and templates
+    # carry their own channel version (a batch number that exists nowhere else in
+    # the repo); innfo-mcp and innfo-console derive theirs from the artifact
+    # version declared above, because there it is the same fact, not a copy.
     refs:
       - key: skills
         repo: cogNNitive/cogNNitive
-        ref: skills-v2.1.0
+        version: "2.1.0"
       - key: templates
         repo: cogNNitive/cogNNitive
-        ref: templates-v0.13.0
+        version: "0.13.0"
       - key: innfo-mcp
         repo: cogNNitive/cogNNitive
-        ref: innfo-mcp-v0.10.0
       - key: innfo-console
         repo: cogNNitive/cogNNitive
-        ref: innfo-console-v0.2.0
   preview:
     refs:
       - key: skills
