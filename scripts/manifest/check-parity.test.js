@@ -41,7 +41,7 @@ function main() {
     console.log('✔ Live workspace parity test passed');
   }
 
-  // 2. Skill version mismatch is detected
+  // 2. Missing SKILL.md is detected (presence check)
   {
     const sourceYaml = `
 skills:
@@ -49,15 +49,12 @@ skills:
     path: actioNN/skills/test-skill
     version: "1.0.0"
 `;
-    const files = {
-      'actioNN/skills/test-skill/SKILL.md': '---\nversion: "0.9.0"\n---\n# Test',
-    };
-    const tmpDir = createTempWorkspace(sourceYaml, files);
+    const tmpDir = createTempWorkspace(sourceYaml, {});
     try {
       const result = checkWorkspaceParity(tmpDir);
       assert.strictEqual(result.ok, false);
-      assert.strictEqual(result.errors.some(e => e.includes("version mismatch — manifest '1.0.0' vs SKILL.md '0.9.0'")), true);
-      console.log('✔ Skill version mismatch detection passed');
+      assert.strictEqual(result.errors.some(e => e.includes("file not found")), true);
+      console.log('✔ Missing SKILL.md presence check passed');
     } finally {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }

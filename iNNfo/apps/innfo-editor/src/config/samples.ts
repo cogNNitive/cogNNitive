@@ -29,6 +29,9 @@ export const SAMPLE_BASE: string = import.meta.env.DEV ? '/specs/templates' : RE
 // GENERATED — DO NOT EDIT. Source: iNNfo/specs/templates/*/spec_NN.md and
 // iNNfo/specs/templates/workspace_spec_NN.md.
 // Regenerate with `npm run sync:versions` (scripts/sync-template-versions.mjs).
+// GENERATED — DO NOT EDIT. Source: iNNfo/specs/templates/*/spec_NN.md and
+// iNNfo/specs/templates/workspace_spec_NN.md.
+// Regenerate with `npm run sync:versions` (scripts/sync-versions.mjs).
 export const SHIPPED_TEMPLATE_VERSIONS: Record<string, string> = {
   analysis: 'V_0-2-1',
   artifacts: 'V_0-1-0',
@@ -45,5 +48,5 @@ export const SHIPPED_TEMPLATE_VERSIONS: Record<string, string> = {
   projects: 'V_0-2-2',
   repository: 'V_0-1-1',
   sources: 'V_0-1-0',
-  video: 'V_0-2-1',
+  video: 'V_0-3-0',
 }

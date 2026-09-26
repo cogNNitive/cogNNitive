@@ -34,21 +34,13 @@ function checkWorkspaceParity(repoRoot = process.cwd()) {
   let templatesCount = 0;
   let mcpCount = 0;
 
-  // 1. Check skills
+  // 1. Check skills (presence only — version comparison dissolved in favor of sync-versions.mjs generator)
   for (const skill of (source.skills || [])) {
     skillsCount++;
     const skillMdPath = path.join(repoRoot, skill.path, 'SKILL.md');
     if (!fs.existsSync(skillMdPath)) {
       errors.push(`Skill '${skill.name}': file not found at ${skillMdPath}`);
       continue;
-    }
-    const content = fs.readFileSync(skillMdPath, 'utf8');
-    const meta = parseFocusedYaml(parseFrontmatter(content));
-    const declared = meta.version !== undefined ? meta.version : (meta.metadata && meta.metadata.version);
-    if (declared === undefined || declared === null) {
-      errors.push(`Skill '${skill.name}': SKILL.md declares no version in frontmatter`);
-    } else if (String(declared) !== String(skill.version)) {
-      errors.push(`Skill '${skill.name}': version mismatch — manifest '${skill.version}' vs SKILL.md '${declared}'`);
     }
 
     // Check nested MCP if declared on skill
