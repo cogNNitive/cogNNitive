@@ -152,7 +152,7 @@ validate.
 
 - **GIVEN** a template version bump or template file modification
 - **WHEN** `npm run sync:versions` is executed
-- **THEN** it SHALL synchronize template version copies (`scripts/sync-template-versions.mjs`)
+- **THEN** it SHALL synchronize template and skill version copies (`scripts/sync-versions.mjs`)
 - **AND** it SHALL generate the stable manifest (`scripts/manifest/generate-manifest.js --channel stable`)
 - **AND** it SHALL regenerate `iNNfo/specs/templates/catalog.json` via `scripts/template-catalog.mjs`.
 

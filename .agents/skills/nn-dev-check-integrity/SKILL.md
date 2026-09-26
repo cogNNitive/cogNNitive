@@ -216,23 +216,20 @@ dev/default mode (not just `--pre-push`/`--release`) — see
 maintainer's job; this check only catches the local half (the unpinned
 manifest), not the missing tag itself.
 
-### Group 2 — MCP version square
+### Group 2 — CDN Bundle Staging & Version SSOT
 **Expediente:** `mcp-two-distribution-channels.md` — CDN frozen at v0.2.1 while the repo
-was at v0.2.4 (5 MCP tools missing in production); `server.ts` still hardcodes the version
-string instead of reading `package.json`.
+was at v0.2.4 (5 MCP tools missing in production).
 
-Compare these **six** values; all must be the same `x.y.z`:
-1. `iNNfo/packages/innfo-mcp/package.json` → `version`
-2. `iNNfo/packages/innfo-core/package.json` → `version`, and the `@cognnitive/innfo-core`
-   range in `innfo-mcp/package.json` `dependencies` (`^x.y.z`)
-3. `iNNfo/packages/innfo-mcp/src/server.ts` → the literal in `new Server({ name, version })`
-4. `manifest/source.yaml` → the `innfo-mcp` block `version:` **and** `channels.stable.refs`
-   key `innfo-mcp` `ref: innfo-mcp-v<x.y.z>`
-5. `docs/innfo/cdn/manifest.json` → `latest: "v<x.y.z>"`
-6. `docs/innfo/cdn/innfo-mcp-v<x.y.z>.bundle.js` → file exists
-- ❌ any mismatch. Name the two sides.
-- Fix hints: bump the literal in `server.ts`; run `npm run build:docs` from the repo root
-  (stages values 5 + 6); re-pin `manifest/source.yaml`.
+With single-source versioning (`sync-versions.mjs`), `iNNfo/packages/innfo-mcp/package.json` `version`
+is the single authored source. Dependent version sites (`innfo-core/package.json`, `@cognnitive/innfo-core`
+dep range, `manifest/source.yaml` `skills[].mcp[].version`, derived stable ref, and `docs/innfo/cdn/manifest.json`
+`latest`) are generated automatically via `npm run sync:versions`.
+
+Group 2 verifies:
+1. `docs/innfo/cdn/innfo-mcp-v<x.y.z>.bundle.js` → file exists on disk (build-ordering check via `scripts/lib/cdn-bundle-staged.js`).
+2. Version SSOT → `node scripts/sync-versions.mjs --check` verifies zero drift across template specs, `SKILL.md` frontmatter, MCP package, and `manifest/source.yaml`.
+- ❌ missing staged bundle or version drift.
+- Fix hints: run `npm run build:docs` to produce the staged bundle; run `npm run sync:versions` to synchronize all generated version sites.
 
 ### Group 3 — Immutability of published `_V_x-y-z_` specs
 **Expediente:** `spec-files-are-write-once.md` — six `_V_0-1-0_` template files edited in

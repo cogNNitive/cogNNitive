@@ -188,8 +188,8 @@ runtime:: node
 path:: ../scripts/template-catalog.mjs
 runtime:: node
 
-## NN Tools: Template Version Synchronization
-path:: ../scripts/sync-template-versions.mjs
+## NN Tools: Version Synchronization
+path:: ../scripts/sync-versions.mjs
 runtime:: node
 
 ## NN Tools: Samples SSOT Synchronization

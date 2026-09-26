@@ -147,41 +147,35 @@ Present a consolidated summary table with:
 
 2. **Synchronize & Bump Versions**:
    - For `iNNfo Suite`:
-     - Update `version` to `<A.B.C>` in all 3 `package.json` files:
-       - `iNNfo/packages/innfo-core/package.json` (`@cognnitive/innfo-core`)
-       - `iNNfo/packages/innfo-mcp/package.json` (`@cognnitive/innfo-mcp`, ensuring `@cognnitive/innfo-core` dependency is `^<A.B.C>`)
-       - `iNNfo/apps/innfo-editor/package.json` (`@cognnitive/innfo-editor`)
-     - `iNNfo/package.json` does **not exist** — do not look for it. The
-       repo-root `package.json` (`"name": "cognnitive"`, currently
-       `"version": "1.0.0"`) is a separate, unrelated version and is never
-       bumped as part of an iNNfo Suite release (verified against `ae1d8f0`,
-       the commit that actually bumped the Suite to 0.10.0: it touched exactly
-       these 3 `package.json` files plus `manifest/source.yaml`, the CDN
-       bundle, and `docs/innfo/cdn/manifest.json`).
+     - Update `version` to `<A.B.C>` in `iNNfo/packages/innfo-mcp/package.json` and `iNNfo/apps/innfo-editor/package.json`.
+     - Run `npm run sync:versions` to automatically propagate `<A.B.C>` into:
+       - `iNNfo/packages/innfo-core/package.json`
+       - `@cognnitive/innfo-core` dependency range in `innfo-mcp/package.json` (`^<A.B.C>`)
+       - `manifest/source.yaml` `skills[].mcp[].version`
      - Rebuild bundles:
        ```powershell
        npm --prefix iNNfo/packages/innfo-core run build
        npm --prefix iNNfo/packages/innfo-mcp run build:bundle
+       npm run build:docs
        ```
    - For `Skills`:
      - Bump `version:` in targeted `skills/<skill>/SKILL.md`.
+     - Update channel release version in `manifest/source.yaml` under `channels.stable.refs` (`key: skills`, `version: "<X.Y.Z>"`).
+     - Run `npm run sync:versions` (synchronizes `skills[].version` in `source.yaml`).
    - For `Templates`:
-     - Bump `version:` in targeted `iNNfo/specs/templates/<template>.md`.
+     - Bump `template_version:` (or `spec_version:`) in targeted `iNNfo/specs/templates/<template>/spec_NN.md`.
+     - Update channel release version in `manifest/source.yaml` under `channels.stable.refs` (`key: templates`, `version: "<T.U.V>"`).
+     - Run `npm run sync:versions` (synchronizes `samples.ts`, `source.yaml` templates, and `catalog.json`).
    - For `Console`:
-     - Bump `BUNDLE_VERSION` in `scripts/build-console-bundle.mjs` and the
-       `console_assets` `version:` in `manifest/source.yaml`.
-     - Rebuild the published bundle (committed, following the `innfo-mcp.bundle.js`
-       precedent):
+     - Bump `version:` in `manifest/source.yaml` `console_assets` (`innfo-console`).
+     - Rebuild the published bundle:
        ```powershell
        node scripts/build-console-bundle.mjs
        ```
-     - The rebuilt `iNNfo/specs/templates/console/innfo-console.bundle.js` must be
-       part of the release commit before tagging.
 
-3. **Update Manifest Source**:
-   Update `manifest/source.yaml`:
-   - Update component `version:` field.
-   - Update `channels.stable.refs` with the new tag names (`skills-v<X.Y.Z>`, `innfo-mcp-v<A.B.C>`, `templates-v<T.U.V>`, or `innfo-console-v<C.D.E>`).
+3. **Verify Version Synchronization**:
+   Run `npm run check:versions` to ensure all SSOT copies, catalog, and manifest are 100% in sync with zero drift.
+   - Note ADR-008: Bumping `SKILL.md` and running `sync:versions` touches `source.yaml`, which satisfies `checkTagPinFreshness` automatically. Always confirm that `channels.stable.refs` `version:` was explicitly updated before cutting the tag.
 
 4. **Verify Local Parity & Commit** (precise staging only — never `git add -A`,
    per `nn-dev-development` rule 6; a concurrent agent's files may be in the tree):
