@@ -6,7 +6,7 @@
  * Single Source of Truth synchronization and drift validation for:
  *   - Template versions (spec_NN.md -> samples.ts & manifest/source.yaml)
  *   - Skill versions (skills/<name>/SKILL.md -> manifest/source.yaml)
- *   - MCP package version (innfo-mcp/package.json -> source.yaml, innfo-core, dep range) [S3]
+ *   - MCP package version (innfo-mcp/package.json -> source.yaml, innfo-core, dep range)
  *
  * Usage:
  *   node scripts/sync-versions.mjs          # writes all generated targets
@@ -67,8 +67,12 @@ function readSpecVersion(filePath) {
 /**
  * Walks `templatesDir` for `<slug>/spec_NN.md` files plus the root
  * `workspace_spec_NN.md`, returning a map of slug -> template_version.
+ * @param {string} templatesDir
+ * @param {(filePath: string) => string | undefined} read
+ * @returns {Record<string, string>}
  */
 function collectVersions(templatesDir, read) {
+  /** @type {Record<string, string>} */
   const versions = {};
   if (!fs.existsSync(templatesDir)) return versions;
 
@@ -100,9 +104,11 @@ export function collectSpecVersions(templatesDir = DEFAULT_TEMPLATES_DIR) {
 
 /**
  * Collects frontmatter `version` from each `SKILL.md` under `skillsDir`.
- * Returns map of skillName -> version.
+ * @param {string} [skillsDir]
+ * @returns {Record<string, string>} map of skillName -> version.
  */
 export function collectSkillVersions(skillsDir = DEFAULT_SKILLS_DIR) {
+  /** @type {Record<string, string>} */
   const versions = {};
   if (!fs.existsSync(skillsDir)) return versions;
 
@@ -119,6 +125,13 @@ export function collectSkillVersions(skillsDir = DEFAULT_SKILLS_DIR) {
   }
 
   return versions;
+}
+
+export function readMcpPackageVersion(mcpPkgPath = DEFAULT_MCP_PKG_PATH) {
+  if (!fs.existsSync(mcpPkgPath)) return undefined;
+  const content = fs.readFileSync(mcpPkgPath, 'utf8');
+  const pkg = JSON.parse(content);
+  return pkg.version ? String(pkg.version).trim() : undefined;
 }
 
 function renderSamplesObjectBody(versions) {
@@ -224,15 +237,81 @@ function syncSourceYaml({ sectionMaps, sourceYamlPath, check }) {
   return { ok: true, changed: updated !== current };
 }
 
+function syncCorePkg({ mcpVersion, corePkgPath, check }) {
+  if (!fs.existsSync(corePkgPath)) {
+    return { ok: false, error: `Missing core package.json: ${corePkgPath}` };
+  }
+  const content = fs.readFileSync(corePkgPath, 'utf8');
+  let currentVersion;
+  try {
+    const pkg = JSON.parse(content);
+    currentVersion = pkg.version;
+  } catch (err) {
+    return { ok: false, error: `Failed to parse ${corePkgPath}: ${err.message}` };
+  }
+
+  const updated = content.replace(
+    /^(\s*"version":\s*)"[^"]*"(,?)$/m,
+    `$1"${mcpVersion}"$2`,
+  );
+
+  if (check) {
+    if (currentVersion !== mcpVersion || updated !== content) {
+      return { ok: false, drift: { expected: mcpVersion, actual: currentVersion } };
+    }
+    return { ok: true };
+  }
+
+  if (updated !== content) {
+    fs.writeFileSync(corePkgPath, updated, 'utf8');
+  }
+  return { ok: true, changed: updated !== content };
+}
+
+function syncMcpDepRange({ mcpVersion, mcpPkgPath, check }) {
+  if (!fs.existsSync(mcpPkgPath)) {
+    return { ok: false, error: `Missing mcp package.json: ${mcpPkgPath}` };
+  }
+  const content = fs.readFileSync(mcpPkgPath, 'utf8');
+  let currentDep;
+  try {
+    const pkg = JSON.parse(content);
+    currentDep = pkg.dependencies && pkg.dependencies['@cognnitive/innfo-core'];
+  } catch (err) {
+    return { ok: false, error: `Failed to parse ${mcpPkgPath}: ${err.message}` };
+  }
+
+  const expectedDep = `^${mcpVersion}`;
+  const updated = content.replace(
+    /^(\s*"@cognnitive\/innfo-core":\s*)"[^"]*"(,?)$/m,
+    `$1"${expectedDep}"$2`,
+  );
+
+  if (check) {
+    if (currentDep !== expectedDep || updated !== content) {
+      return { ok: false, drift: { expected: expectedDep, actual: currentDep } };
+    }
+    return { ok: true };
+  }
+
+  if (updated !== content) {
+    fs.writeFileSync(mcpPkgPath, updated, 'utf8');
+  }
+  return { ok: true, changed: updated !== content };
+}
+
 export function syncVersions({
   check = false,
   templatesDir = DEFAULT_TEMPLATES_DIR,
   skillsDir = DEFAULT_SKILLS_DIR,
   samplesTsPath = DEFAULT_SAMPLES_TS_PATH,
   sourceYamlPath = DEFAULT_SOURCE_YAML_PATH,
+  mcpPkgPath = DEFAULT_MCP_PKG_PATH,
+  corePkgPath = DEFAULT_CORE_PKG_PATH,
 } = {}) {
   const versions = collectTemplateVersions(templatesDir);
   const specVersions = collectSpecVersions(templatesDir);
+  /** @type {Record<string, string>} */
   let skillVersions = {};
   const errors = [];
 
@@ -240,6 +319,11 @@ export function syncVersions({
     skillVersions = collectSkillVersions(skillsDir);
   } catch (err) {
     errors.push(err.message);
+  }
+
+  const mcpVersion = readMcpPackageVersion(mcpPkgPath);
+  if (mcpVersion) {
+    skillVersions['innfo-mcp'] = mcpVersion;
   }
 
   const samplesResult = syncSamplesTs({ versions, samplesTsPath, check });
@@ -275,6 +359,36 @@ export function syncVersions({
     }
   }
 
+  if (mcpVersion && fs.existsSync(corePkgPath)) {
+    const coreResult = syncCorePkg({ mcpVersion, corePkgPath, check });
+    if (!coreResult.ok) {
+      if (coreResult.drift) {
+        errors.push(
+          `innfo-core package.json version drift in ${corePkgPath}: ` +
+          `expected "${coreResult.drift.expected}" (from innfo-mcp), found "${coreResult.drift.actual}". ` +
+          `Run \`npm run sync:versions\` to fix it.`
+        );
+      } else {
+        errors.push(coreResult.error);
+      }
+    }
+  }
+
+  if (mcpVersion && fs.existsSync(mcpPkgPath)) {
+    const depResult = syncMcpDepRange({ mcpVersion, mcpPkgPath, check });
+    if (!depResult.ok) {
+      if (depResult.drift) {
+        errors.push(
+          `innfo-mcp dependency @cognnitive/innfo-core drift in ${mcpPkgPath}: ` +
+          `expected "${depResult.drift.expected}", found "${depResult.drift.actual}". ` +
+          `Run \`npm run sync:versions\` to fix it.`
+        );
+      } else {
+        errors.push(depResult.error);
+      }
+    }
+  }
+
   return { ok: errors.length === 0, errors, versions, skillVersions };
 }
 
@@ -286,7 +400,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToP
   const isCheck = process.argv.includes('--check');
 
   if (isCheck) {
-    console.log('🔍 Checking version parity (specs & skills <-> samples.ts <-> manifest/source.yaml)...');
+    console.log('🔍 Checking version parity (specs & skills & mcp <-> samples.ts <-> manifest/source.yaml)...');
     const res = syncVersions({ check: true });
     if (!res.ok) {
       console.error('❌ Version drift detected:');
@@ -297,7 +411,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToP
     }
     console.log('✅ All versions are in sync.');
   } else {
-    console.log('📦 Syncing versions from specs & skills into samples.ts and manifest/source.yaml...');
+    console.log('📦 Syncing versions from specs & skills & mcp into samples.ts, manifest/source.yaml, and packages...');
     const res = syncVersions({ check: false });
     if (!res.ok) {
       console.error('❌ Failed to sync versions:');

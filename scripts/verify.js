@@ -117,18 +117,16 @@ function runVerification(options = {}) {
   const release = options.release === true;
   console.log('🔍 [cogNNitive Verify] Running workspace verification...');
 
-  // 0. MCP Version Square: the 6-way alignment (mcp/core package.json versions,
-  //    the innfo-core dependency range, the CDN manifest, the CDN bundle file,
-  //    and the stable ref in manifest/source.yaml) must be in sync. Enforced here
-  //    so CI covers it, not only the local check-integrity gate.
-  const { checkVersionSquare } = require('./lib/version-square.js');
-  const versionSquare = checkVersionSquare(path.join(__dirname, '..'));
-  if (!versionSquare.ok) {
-    console.error('❌ MCP Version Square mismatch:');
-    versionSquare.errors.forEach((e) => console.error(`  - ${e}`));
+  // 0. CDN Bundle Staging: asserts the staged CDN bundle for the current innfo-mcp
+  //    version exists on disk. Build-ordering check covering CI and local gates.
+  const { checkCdnBundleStaged } = require('./lib/cdn-bundle-staged.js');
+  const bundleCheck = checkCdnBundleStaged(path.join(__dirname, '..'));
+  if (!bundleCheck.ok) {
+    console.error('❌ CDN Bundle check failed:');
+    bundleCheck.errors.forEach((e) => console.error(`  - ${e}`));
     process.exit(1);
   }
-  console.log(`▶ MCP Version Square: v${versionSquare.version} (6-way) in sync.`);
+  console.log(`▶ CDN Bundle Staged: v${bundleCheck.version} bundle present on disk.`);
 
   // 0b. Every `*.test.js` / `*.test.mjs` suite under scripts/ and skills/,
   //     discovered by shape rather than enumerated. These are self-contained

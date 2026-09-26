@@ -20,7 +20,7 @@
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
-const { checkVersionSquare } = require('./lib/version-square.js');
+const { checkCdnBundleStaged } = require('./lib/cdn-bundle-staged.js');
 const { checkTagPinFreshness } = require('./lib/tag-pin-freshness.js');
 const { checkNodeEngines } = require('./lib/node-engine-check.js');
 const { runVerification } = require('./verify.js');
@@ -69,15 +69,15 @@ if (tagPin.skipped) {
   console.log('  ✅ No unpinned skills/template changes detected.');
 }
 
-// Step 2: MCP Version Square (Group 2)
-console.log('\n[Group 2] MCP Version Square (pkg · core · manifest · CDN):');
-const vSquare = checkVersionSquare(repoRoot);
-if (!vSquare.ok) {
-  console.error('❌ MCP Version Square mismatch:');
-  vSquare.errors.forEach(err => console.error(`  - ${err}`));
+// Step 2: CDN Bundle Staging (Group 2)
+console.log('\n[Group 2] CDN Bundle Staging (docs/innfo/cdn/innfo-mcp-v<version>.bundle.js):');
+const cdnBundle = checkCdnBundleStaged(repoRoot);
+if (!cdnBundle.ok) {
+  console.error('❌ CDN Bundle check failed:');
+  cdnBundle.errors.forEach(err => console.error(`  - ${err}`));
   process.exit(1);
 }
-console.log(`  ✅ All 6 version references in sync (v${vSquare.version}).`);
+console.log(`  ✅ Staged CDN bundle present on disk (v${cdnBundle.version}).`);
 
 // Step 2b: Version SSOT Guard (spec_NN.md & SKILL.md -> samples.ts + manifest/source.yaml)
 console.log('\n[Group 2b] Version SSOT (spec_NN.md & SKILL.md <-> samples.ts <-> manifest/source.yaml):');
