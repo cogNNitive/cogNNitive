@@ -15,4 +15,4 @@
   `specsStale` 18 → 6, and the 6 remaining are genuine self-identifying caches
   (`business_V_0-1-0`, `defiNNe_V_0-1-0`, `iNNfo_V_0-1-0`, `procedures_NN`,
   `procedures_V_0-1-0`, `projects_V_0-1-0`) — no specialization misreported.
-- [ ] 5. Commit — `fix(nn-preflight): only hash-compare a spec against its own canonical URL`.
+- [x] 5. Commit — `fix(nn-preflight): only hash-compare a spec against its own canonical URL`.

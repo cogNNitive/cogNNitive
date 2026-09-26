@@ -7,4 +7,4 @@
 - [x] 2. GREEN — `discoverModels.ts`: extend the non-model-spec matcher to `procedures|sources|artifacts`.
 - [x] 3. Verify — core tests green (20/20), MCP `workspace-sync` tests green (10/10).
 - [x] 4. Regenerate — `npm --workspace=@cognnitive/innfo-mcp run build` (bundle + dist).
-- [ ] 5. Commit — `fix(innfo-core): exclude catalog apps from manifest reconciliation`.
+- [x] 5. Commit — `fix(innfo-core): exclude catalog apps from manifest reconciliation`.
