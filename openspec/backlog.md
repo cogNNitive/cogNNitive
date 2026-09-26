@@ -628,3 +628,35 @@ the slug, and what that means for every existing `[[wikilink]]`.
 
 **Suggested trigger:** `/sdd-explore workspace-manifest-section-ownership`.
 
+---
+
+## `feature/opencode-web-onboarding-hint` — `nn-start` guidance to launch OpenCode's browser mode next to the Cognnitive Web App
+
+**Type:** functional / docs · **Size:** small · **Status:** someday-maybe
+
+**Why:** editing a model in an OpenCode terminal/desktop session and visualizing it in
+the Cognnitive Web App means jumping between two separate windows. `opencode web`
+already starts a local server and auto-opens a browser tab against it
+([opencode.ai/docs/web](https://opencode.ai/docs/web/)) — once that tab exists, putting
+it side by side with the Cognnitive Web App tab in a split Chrome window is trivial (two
+independent `localhost` tabs, no port conflict). `nn-start` could, once OpenCode is
+confirmed installed, surface a short tip pointing this out for users who'd rather work
+in the browser than the terminal for both.
+
+**Deliberately NOT chosen:** a "wrapper" that auto-installs OpenCode and hides the CLI
+step entirely. Decided against per the user 2026-09-26: the terminal install of OpenCode
+should stay a distinct, visible step, so the user understands OpenCode is a separate
+tool from Cognnitive, not part of it.
+
+**Open question (blocks starting this):** unconfirmed against primary sources whether
+installing the OpenCode **Desktop app** alone (without a separate npm/brew/winget CLI
+install) leaves the `opencode` binary on `PATH`. If it doesn't, telling a Desktop-only
+user to run `opencode web` in a terminal will just fail with "command not found" —
+`nn-start`'s install-check step would need to run `opencode --version` (or equivalent)
+regardless of which install path the user took, and only offer the web-mode tip when
+that check succeeds. Full research write-up:
+[docs/research/opencode-web-side-by-side-cognnitive.md](../docs/research/opencode-web-side-by-side-cognnitive.md).
+
+**Suggested trigger:** `/sdd-explore opencode-web-onboarding-hint` (after the PATH/binary
+question above is verified empirically).
+
