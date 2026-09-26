@@ -911,7 +911,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   function parseAndEvalFormula(formula, m, rowMap, overrides, memo, growthState, historyCount) {
     if (!formula || /^<.*>$/.test(formula)) return 0
     var cleaned = formula.replace(/\s+[xX]\s+/g, ' * ')
-    var tokens = cleaned.split(/(\s*[\+\-\*\/]\s*)/).map(function (s) { return s.trim() }).filter(Boolean)
+    var tokens = cleaned.split(/(\s*[+\-*/]\s*)/).map(function (s) { return s.trim() }).filter(Boolean)
     if (!tokens.length) return 0
 
     function resolveOperand(token) {
@@ -1365,7 +1365,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       if (doc.location && typeof doc.location.replace === 'function' && doc.location.hash !== '#' + tabId) {
         try {
           doc.location.replace('#' + tabId)
-        } catch (e) {}
+        } catch {
+          // ignore navigation errors in iframe or file://
+        }
       }
     }
 
