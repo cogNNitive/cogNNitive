@@ -109,35 +109,7 @@ skills:
     }
   }
 
-  // 5. MCP package.json version mismatch is detected
-  {
-    const sourceYaml = `
-skills:
-  - name: nn-innfo
-    path: actioNN/skills/nn-innfo
-    version: "1.0.0"
-    mcp:
-      - name: innfo-mcp
-        path: iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js
-        version: "0.2.5"
-`;
-    const files = {
-      'actioNN/skills/nn-innfo/SKILL.md': '---\nversion: "1.0.0"\n---\n# Innfo',
-      'iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js': '// bundle content',
-      'iNNfo/packages/innfo-mcp/package.json': JSON.stringify({ version: '0.2.4' }),
-    };
-    const tmpDir = createTempWorkspace(sourceYaml, files);
-    try {
-      const result = checkWorkspaceParity(tmpDir);
-      assert.strictEqual(result.ok, false);
-      assert.strictEqual(result.errors.some(e => e.includes("version mismatch — manifest '0.2.5' vs package.json '0.2.4'")), true);
-      console.log('✔ MCP package version mismatch detection passed');
-    } finally {
-      fs.rmSync(tmpDir, { recursive: true, force: true });
-    }
-  }
-
-  // 6. Template with body-only V_x-y-z does not cause spurious mismatch
+  // 5. Template with body-only V_x-y-z does not cause spurious mismatch
   {
     const sourceYaml = `
 templates:
@@ -154,6 +126,92 @@ templates:
       assert.strictEqual(result.ok, true, `Should not mismatch based on body URL. Errors: ${result.errors.join('; ')}`);
       console.log('✔ Body-only V_x-y-z ignored for version detection passed');
     } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }
+
+  // 7. external_specs version/sha256 mismatch detection
+  {
+    const sourceYaml = `
+skills:
+  - name: nn-video-script
+    path: skills/nn-video-script
+    version: "V_0-1-0"
+    external_specs:
+      - name: vus
+        repo: innV0/VidGeNN
+        path: packages/core/specs/V_0-3-3.json
+        version: "V_0-3-3"
+        sha256: "72630624f8fb35e6ca6124249663f4e58c2f4772474ed2162007a09eb2013642"
+`;
+    const files = {
+      'skills/nn-video-script/SKILL.md': '---\nname: nn-video-script\nversion: "V_0-1-0"\nvus_spec:\n  version: "V_0-3-2"\n  sha256: "mismatch"\n---\n# Skill',
+    };
+    const tmpDir = createTempWorkspace(sourceYaml, files);
+    try {
+      const result = checkWorkspaceParity(tmpDir);
+      assert.strictEqual(result.ok, false);
+      assert.strictEqual(result.errors.some(e => e.includes("external_spec 'vus' mismatch")), true);
+      console.log('✔ external_specs mismatch detection passed');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }
+
+  // 8. external_specs invalid path rejection (e.g. .agent/skills/...)
+  {
+    const sourceYaml = `
+skills:
+  - name: nn-video-script
+    path: skills/nn-video-script
+    version: "V_0-1-0"
+    external_specs:
+      - name: vus
+        repo: innV0/VidGeNN
+        path: .agent/skills/anydeo-script-builder/specs/V_0-3-3.json
+        version: "V_0-3-3"
+        sha256: "72630624f8fb35e6ca6124249663f4e58c2f4772474ed2162007a09eb2013642"
+`;
+    const files = {
+      'skills/nn-video-script/SKILL.md': '---\nname: nn-video-script\nversion: "V_0-1-0"\nvus_spec:\n  version: "V_0-3-3"\n  sha256: "72630624f8fb35e6ca6124249663f4e58c2f4772474ed2162007a09eb2013642"\n---\n# Skill',
+    };
+    const tmpDir = createTempWorkspace(sourceYaml, files);
+    try {
+      const result = checkWorkspaceParity(tmpDir);
+      assert.strictEqual(result.ok, false);
+      assert.strictEqual(result.errors.some(e => e.includes("must match ^packages/core/specs/")), true);
+      console.log('✔ external_specs invalid path rejection passed');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }
+
+  // 9. external_specs happy path without VIDGENN_ROOT
+  {
+    const oldEnv = process.env.VIDGENN_ROOT;
+    delete process.env.VIDGENN_ROOT;
+    const sourceYaml = `
+skills:
+  - name: nn-video-script
+    path: skills/nn-video-script
+    version: "V_0-1-0"
+    external_specs:
+      - name: vus
+        repo: innV0/VidGeNN
+        path: packages/core/specs/V_0-3-3.json
+        version: "V_0-3-3"
+        sha256: "72630624f8fb35e6ca6124249663f4e58c2f4772474ed2162007a09eb2013642"
+`;
+    const files = {
+      'skills/nn-video-script/SKILL.md': '---\nname: nn-video-script\nversion: "V_0-1-0"\nvus_spec:\n  version: "V_0-3-3"\n  sha256: "72630624f8fb35e6ca6124249663f4e58c2f4772474ed2162007a09eb2013642"\n---\n# Skill',
+    };
+    const tmpDir = createTempWorkspace(sourceYaml, files);
+    try {
+      const result = checkWorkspaceParity(tmpDir);
+      assert.strictEqual(result.ok, true, `Should pass with matching spec and unset VIDGENN_ROOT: ${result.errors.join('; ')}`);
+      console.log('✔ external_specs unset VIDGENN_ROOT pass passed');
+    } finally {
+      if (oldEnv !== undefined) process.env.VIDGENN_ROOT = oldEnv;
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }
   }

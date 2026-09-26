@@ -60,6 +60,19 @@ skills:
     ref_key: skills
     requires: [nn-preflight]
     description: Audit, update, and maintain cogNNitive skills.
+  - name: nn-video-script
+    repo: cogNNitive/cogNNitive
+    path: skills/nn-video-script
+    version: "V_0-1-0"
+    ref_key: skills
+    requires: [nn-innfo]
+    description: Author, gate, and finalize VidGeNN (VUS) video scripts inside iNNfo Series.
+    external_specs:
+      - name: vus
+        repo: innV0/VidGeNN
+        path: packages/core/specs/V_0-3-3.json
+        version: "V_0-3-3"
+        sha256: "72630624f8fb35e6ca6124249663f4e58c2f4772474ed2162007a09eb2013642"
 
 templates:
   - name: workspace
@@ -204,10 +217,10 @@ channels:
     refs:
       - key: skills
         repo: cogNNitive/cogNNitive
-        version: "2.1.0"
+        version: "2.2.0"
       - key: templates
         repo: cogNNitive/cogNNitive
-        version: "0.13.0"
+        version: "0.14.0"
       - key: innfo-mcp
         repo: cogNNitive/cogNNitive
       - key: innfo-console
