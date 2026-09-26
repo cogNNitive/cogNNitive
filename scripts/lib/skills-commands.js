@@ -20,7 +20,14 @@ const {
   replaceDirAtomic,
   extractTarball,
   copyDirRecursive,
+  mirrorDir,
 } = require('./atomic-fs.js');
+
+const {
+  isProjectableName,
+  classifyProjection,
+  hashTree,
+} = require('../../skills/nn-preflight/scripts/lib/projection.js');
 
 const {
   fetchString,
@@ -65,17 +72,17 @@ function requestFor(url) {
 
 /**
  * Initializes a new empty skill manager state structure.
- * @returns {{ manifest: string, skills: Record<string, any>, templates: Record<string, any>, mcp: Record<string, any>, console: Record<string, any> }}
+ * @returns {{ manifest: string, skills: Record<string, any>, templates: Record<string, any>, mcp: Record<string, any>, console: Record<string, any>, projections: Record<string, any> }}
  */
 function emptyState() {
-  return { manifest: getManifestUrl(), skills: {}, templates: {}, mcp: {}, console: {} };
+  return { manifest: getManifestUrl(), skills: {}, templates: {}, mcp: {}, console: {}, projections: {} };
 }
 
 /**
- * Loads the current machine skill state from JSON file, supporting legacy migrations.
- * @param {string} file
- * @returns {{ manifest: string, skills: Record<string, any>, templates: Record<string, any>, mcp: Record<string, any>, console: Record<string, any> }}
- */
+  * Loads the current machine skill state from JSON file, supporting legacy migrations.
+  * @param {string} file
+  * @returns {{ manifest: string, skills: Record<string, any>, templates: Record<string, any>, mcp: Record<string, any>, console: Record<string, any>, projections: Record<string, any> }}
+  */
 function loadState(file) {
   if (fs.existsSync(file)) {
     try {
@@ -87,6 +94,7 @@ function loadState(file) {
         templates: data.templates || {},
         mcp: data.mcp || {},
         console: data.console || {},
+        projections: data.projections || {},
       };
     } catch (err) {
       return emptyState();
@@ -107,6 +115,7 @@ function loadState(file) {
         templates: {},
         mcp: {},
         console: {},
+        projections: {},
       };
       saveState(file, state);
       return state;
@@ -510,7 +519,7 @@ async function cmdStatus(args) {
 
 /**
  * Executes install command installing missing skills and templates with consent.
- * @param {{ skillsDir: string, templatesDir: string, consoleDir?: string, stateFile: string, yes: boolean }} args
+ * @param {{ skillsDir: string, templatesDir: string, consoleDir?: string, stateFile: string, yes: boolean, agent?: string, scope?: string }} args
  * @returns {Promise<void>}
  */
 async function cmdInstall(args) {
@@ -581,6 +590,14 @@ async function cmdInstall(args) {
     }
   }
 
+  projectSkillsToAgents({
+    canonicalSkillsDir: args.skillsDir,
+    targetAgent: args.agent,
+    scope: args.scope,
+    state,
+    skillNames: toInstallSkills.map(s => s.name),
+  });
+
   saveState(args.stateFile, state);
 
   if (failures > 0) {
@@ -592,7 +609,7 @@ async function cmdInstall(args) {
 
 /**
  * Executes update command updating outdated skills and templates with consent.
- * @param {{ skillsDir: string, templatesDir: string, consoleDir?: string, stateFile: string, positional: string[], yes: boolean }} args
+ * @param {{ skillsDir: string, templatesDir: string, consoleDir?: string, stateFile: string, positional: string[], yes: boolean, agent?: string, scope?: string }} args
  * @returns {Promise<void>}
  */
 async function cmdUpdate(args) {
@@ -633,6 +650,14 @@ async function cmdUpdate(args) {
 
   if (selectedSkills.length === 0 && selectedTemplates.length === 0 && selectedConsole.length === 0) {
     console.log('All skills, templates, and console assets up to date.');
+    projectSkillsToAgents({
+      canonicalSkillsDir: args.skillsDir,
+      targetAgent: args.agent,
+      scope: args.scope,
+      state,
+      skillNames: args.positional.length > 0 ? args.positional : undefined,
+    });
+    saveState(args.stateFile, state);
     return;
   }
 
@@ -681,6 +706,14 @@ async function cmdUpdate(args) {
       console.error(`  FAIL console ${path.basename(asset.file || asset.url)}: ${err.message}`);
     }
   }
+
+  projectSkillsToAgents({
+    canonicalSkillsDir: args.skillsDir,
+    targetAgent: args.agent,
+    scope: args.scope,
+    state,
+    skillNames: args.positional.length > 0 ? args.positional : undefined,
+  });
 
   saveState(args.stateFile, state);
 
@@ -755,6 +788,7 @@ async function cmdSync(args) {
  *   consoleDir?: string,
  *   stateFile: string,
  *   agent?: string,
+ *   scope?: string,
  *   yes: boolean,
  *   manifestUrl?: string,
  * }} args
@@ -872,6 +906,8 @@ async function cmdBootstrap(args) {
   projectSkillsToAgents({
     canonicalSkillsDir: args.skillsDir,
     targetAgent: args.agent,
+    scope: args.scope,
+    state,
   });
 
   // 7. Save state
@@ -899,17 +935,42 @@ async function cmdBootstrap(args) {
  *   homedir?: string,
  *   targetAgent?: string,
  *   silent?: boolean,
+ *   state?: Record<string, any>,
+ *   scope?: string,
+ *   skillNames?: string[],
  * }} options
- * @returns {Array<{ agent: string, targetDir: string, skill: string, method: 'symlink' | 'copy' }>}
+ * @returns {Array<{ agent: string, targetDir: string, skill: string, method: 'symlink' | 'copy', action: 'create' | 'adopt' | 'replace' | 'mirror' | 'skip' }>}
  */
-function projectSkillsToAgents({ canonicalSkillsDir, homedir = os.homedir(), targetAgent = 'auto', silent = false }) {
+function projectSkillsToAgents({
+  canonicalSkillsDir,
+  homedir = os.homedir(),
+  targetAgent = 'auto',
+  silent = false,
+  state = null,
+  scope = 'global',
+  skillNames = null,
+}) {
+  if (scope === 'workspace') {
+    if (!silent) {
+      console.log(`\nSkipping skill projection: workspace scope does not project to global editor directories.`);
+    }
+    return [];
+  }
+
   if (!fs.existsSync(canonicalSkillsDir)) return [];
 
   let skillEntries = [];
   try {
-    skillEntries = fs.readdirSync(canonicalSkillsDir).filter(name => {
-      return !name.startsWith('.') && fs.statSync(path.join(canonicalSkillsDir, name)).isDirectory();
+    const diskDirs = fs.readdirSync(canonicalSkillsDir).filter(name => {
+      return isProjectableName(name) && fs.statSync(path.join(canonicalSkillsDir, name)).isDirectory();
     });
+    if (skillNames && skillNames.length > 0) {
+      skillEntries = diskDirs.filter(name => skillNames.includes(name));
+    } else if (state && state.skills && Object.keys(state.skills).length > 0) {
+      skillEntries = diskDirs.filter(name => state.skills[name]);
+    } else {
+      skillEntries = diskDirs;
+    }
   } catch {
     return [];
   }
@@ -917,7 +978,7 @@ function projectSkillsToAgents({ canonicalSkillsDir, homedir = os.homedir(), tar
   if (skillEntries.length === 0) return [];
 
   const normalizedAgent = (targetAgent || 'auto').toLowerCase();
-  /** @type {Array<{ agent: string, targetDir: string, skill: string, method: 'symlink' | 'copy' }>} */
+  /** @type {Array<{ agent: string, targetDir: string, skill: string, method: 'symlink' | 'copy', action: 'create' | 'adopt' | 'replace' | 'mirror' | 'skip' }>} */
   const projections = [];
 
   const agentTargets = [];
@@ -952,28 +1013,43 @@ function projectSkillsToAgents({ canonicalSkillsDir, homedir = os.homedir(), tar
     }
   }
 
+  if (state) {
+    state.projections = state.projections || {};
+  }
+
   for (const target of agentTargets) {
     fs.mkdirSync(target.dir, { recursive: true });
+    if (state) {
+      state.projections[target.agent] = state.projections[target.agent] || { dir: target.dir, skills: {} };
+      state.projections[target.agent].dir = target.dir;
+      state.projections[target.agent].skills = state.projections[target.agent].skills || {};
+    }
+
     for (const skill of skillEntries) {
       const src = path.join(canonicalSkillsDir, skill);
       const dest = path.join(target.dir, skill);
 
-      if (path.resolve(src) === path.resolve(dest)) continue;
+      if (path.resolve(src).toLowerCase() === path.resolve(dest).toLowerCase()) continue;
 
-      /** @type {'symlink' | 'copy'} */
-      let method = 'symlink';
-      let symlinkSuccess = false;
+      const classification = classifyProjection(dest, src);
+      const recorded = state && state.projections[target.agent] && state.projections[target.agent].skills[skill];
 
-      if (fs.existsSync(dest)) {
-        try {
-          const lstat = fs.lstatSync(dest);
-          if (lstat.isSymbolicLink()) {
-            symlinkSuccess = true;
-          }
-        } catch {}
-      }
+      const recordState = (method) => {
+        if (state) {
+          state.projections[target.agent].skills[skill] = {
+            method,
+            source: path.resolve(src),
+            projected_at: new Date().toISOString(),
+          };
+        }
+      };
 
-      if (!symlinkSuccess && !fs.existsSync(dest)) {
+      if (classification === 'absent') {
+        /** @type {'symlink' | 'copy'} */
+        let method = 'symlink';
+        /** @type {'create' | 'adopt' | 'replace' | 'mirror' | 'skip'} */
+        let action = 'create';
+        let symlinkSuccess = false;
         try {
           const symlinkType = process.platform === 'win32' ? 'junction' : 'dir';
           fs.symlinkSync(src, dest, symlinkType);
@@ -981,14 +1057,68 @@ function projectSkillsToAgents({ canonicalSkillsDir, homedir = os.homedir(), tar
         } catch {
           symlinkSuccess = false;
         }
-      }
 
-      if (!symlinkSuccess) {
-        copyDirRecursive(src, dest);
-        method = 'copy';
-      }
+        if (!symlinkSuccess) {
+          mirrorDir(src, dest, isProjectableName);
+          method = /** @type {'symlink' | 'copy'} */ ('copy');
+        }
+        recordState(method);
+        projections.push({ agent: target.agent, targetDir: target.dir, skill, method, action });
+      } else if (classification === 'link-ok') {
+        /** @type {'symlink' | 'copy'} */
+        const method = 'symlink';
+        /** @type {'create' | 'adopt' | 'replace' | 'mirror' | 'skip'} */
+        const action = 'adopt';
+        recordState(method);
+        projections.push({ agent: target.agent, targetDir: target.dir, skill, method, action });
+      } else if (classification === 'link-wrong' || classification === 'link-dangling') {
+        if (recorded) {
+          try {
+            fs.unlinkSync(dest);
+          } catch {
+            fs.rmSync(dest, { force: true });
+          }
 
-      projections.push({ agent: target.agent, targetDir: target.dir, skill, method });
+          /** @type {'symlink' | 'copy'} */
+          let method = 'symlink';
+          /** @type {'create' | 'adopt' | 'replace' | 'mirror' | 'skip'} */
+          let action = 'replace';
+          let symlinkSuccess = false;
+          try {
+            const symlinkType = process.platform === 'win32' ? 'junction' : 'dir';
+            fs.symlinkSync(src, dest, symlinkType);
+            symlinkSuccess = true;
+          } catch {
+            symlinkSuccess = false;
+          }
+
+          if (!symlinkSuccess) {
+            mirrorDir(src, dest, isProjectableName);
+            method = /** @type {'symlink' | 'copy'} */ ('copy');
+          }
+          recordState(method);
+          projections.push({ agent: target.agent, targetDir: target.dir, skill, method, action });
+        } else {
+          projections.push({ agent: target.agent, targetDir: target.dir, skill, method: 'symlink', action: 'skip' });
+        }
+      } else if (classification === 'dir') {
+        if (recorded && recorded.method === 'copy') {
+          mirrorDir(src, dest, isProjectableName);
+          recordState('copy');
+          projections.push({ agent: target.agent, targetDir: target.dir, skill, method: 'copy', action: 'mirror' });
+        } else if (!recorded) {
+          const srcHash = hashTree(src, isProjectableName);
+          const destHash = hashTree(dest, isProjectableName);
+          if (srcHash && destHash && srcHash === destHash) {
+            recordState('copy');
+            projections.push({ agent: target.agent, targetDir: target.dir, skill, method: 'copy', action: 'adopt' });
+          } else {
+            projections.push({ agent: target.agent, targetDir: target.dir, skill, method: 'copy', action: 'skip' });
+          }
+        } else {
+          projections.push({ agent: target.agent, targetDir: target.dir, skill, method: 'copy', action: 'skip' });
+        }
+      }
     }
   }
 
@@ -997,10 +1127,24 @@ function projectSkillsToAgents({ canonicalSkillsDir, homedir = os.homedir(), tar
     const grouped = {};
     for (const p of projections) {
       if (!grouped[p.agent]) grouped[p.agent] = [];
-      grouped[p.agent].push(p.skill);
+      grouped[p.agent].push(p);
     }
-    for (const [agent, skills] of Object.entries(grouped)) {
-      console.log(`  ✓ ${agent}: ${skills.length} skill(s) synchronized`);
+    for (const [agent, list] of Object.entries(grouped)) {
+      const active = list.filter(p => p.action !== 'skip');
+      const symlinks = active.filter(p => p.method === 'symlink').length;
+      const copies = active.filter(p => p.method === 'copy').length;
+      const skipped = list.filter(p => p.action === 'skip').length;
+
+      const parts = [];
+      if (symlinks > 0) parts.push(`${symlinks} symlink`);
+      if (copies > 0) parts.push(`${copies} copy`);
+
+      if (active.length > 0) {
+        console.log(`  ✓ ${agent}: ${active.length} skill(s) synchronized (${parts.join(', ')})`);
+      }
+      if (skipped > 0) {
+        console.log(`  ⚠️ ${agent}: ${skipped} unmanaged skill(s) skipped`);
+      }
     }
   }
 

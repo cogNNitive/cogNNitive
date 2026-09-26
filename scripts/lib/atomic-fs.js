@@ -140,10 +140,61 @@ function copyDirRecursive(src, dest) {
   }
 }
 
+/**
+ * Mirrors source directory to destination directory for included entries.
+ * Removes included orphan entries in destination and updates modified/new files.
+ * Preserves excluded entries in destination untouched.
+ * @param {string} src
+ * @param {string} dest
+ * @param {(name: string) => boolean} [isIncluded] - Filter predicate for managed namespace.
+ * @returns {void}
+ */
+function mirrorDir(src, dest, isIncluded = () => true) {
+  if (!fs.existsSync(src)) return;
+  fs.mkdirSync(dest, { recursive: true });
+
+  // 1. Purge included orphans in destination or type mismatches
+  const destEntries = fs.readdirSync(dest, { withFileTypes: true });
+  for (const entry of destEntries) {
+    if (!isIncluded(entry.name)) continue;
+
+    const destPath = path.join(dest, entry.name);
+    const srcPath = path.join(src, entry.name);
+
+    if (!fs.existsSync(srcPath)) {
+      fs.rmSync(destPath, { recursive: true, force: true });
+    } else {
+      const srcStat = fs.statSync(srcPath);
+      const isSrcDir = srcStat.isDirectory();
+      const isDestDir = entry.isDirectory();
+      if (isSrcDir !== isDestDir) {
+        fs.rmSync(destPath, { recursive: true, force: true });
+      }
+    }
+  }
+
+  // 2. Copy/mirror included entries from source
+  const srcEntries = fs.readdirSync(src, { withFileTypes: true });
+  for (const entry of srcEntries) {
+    if (!isIncluded(entry.name)) continue;
+
+    const srcPath = path.join(src, entry.name);
+    const destPath = path.join(dest, entry.name);
+
+    if (entry.isDirectory()) {
+      mirrorDir(srcPath, destPath, isIncluded);
+    } else {
+      fs.copyFileSync(srcPath, destPath);
+    }
+  }
+}
+
 module.exports = {
   saveJsonAtomic,
   copyDirAtomic,
   replaceDirAtomic,
   extractTarball,
   copyDirRecursive,
+  mirrorDir,
 };
+

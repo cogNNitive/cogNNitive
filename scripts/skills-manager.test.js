@@ -241,6 +241,116 @@ agent-bootstrap:
   fs.rmSync(tmpDir, { recursive: true, force: true });
 }
 
+// 7. cmdUpdate re-projects even when canonical is up to date
+{
+  const manifestRaw = `---
+agent-bootstrap:
+  version: "2.0"
+  skills:
+    - name: nn-sample
+      repo: cogNNitive/actioNN
+      path: skills/nn-sample
+      version: "1.0.0"
+      commit: "1111111111111111111111111111111111111111"
+---
+# Manifest`;
+
+  const server = await serveManifestOnce(manifestRaw);
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'actioNN-test-update-proj-'));
+  const skillsDir = path.join(tmpDir, '.agents', 'skills');
+  const stateFile = path.join(tmpDir, 'bootstrap-state.json');
+  const skillSample = path.join(skillsDir, 'nn-sample');
+  fs.mkdirSync(skillSample, { recursive: true });
+  fs.writeFileSync(path.join(skillSample, 'SKILL.md'), '# Canonical Sample', 'utf-8');
+
+  fs.writeFileSync(stateFile, JSON.stringify({
+    manifest: server.url,
+    skills: { 'nn-sample': { commit: '1111111111111111111111111111111111111111', version: '1.0.0' } },
+    templates: {},
+  }, null, 2), 'utf-8');
+
+  try {
+    const res = await spawnAsync([
+      managerScript, 'update',
+      '--skills-dir', skillsDir,
+      '--state', stateFile,
+      '--agent', 'claude',
+      '--yes',
+    ], {
+      env: { ...process.env, USERPROFILE: tmpDir, HOME: tmpDir, SM_MANIFEST_URL: server.url },
+    });
+
+    assert.strictEqual(res.status, 0, `cmdUpdate should succeed. Stderr: ${res.stderr}`);
+    assert(res.stdout.includes('All skills, templates, and console assets up to date'), 'Reports up to date');
+    assert(fs.existsSync(path.join(tmpDir, '.claude', 'skills', 'nn-sample', 'SKILL.md')), 'Projected to claude');
+
+    const updatedState = JSON.parse(fs.readFileSync(stateFile, 'utf-8'));
+    assert(updatedState.projections && updatedState.projections.claude, 'State records projections');
+    assert(updatedState.projections.claude.skills['nn-sample'], 'State records projected skill');
+
+    console.log('✔ cmdUpdate up-to-date projection test passed');
+  } finally {
+    await server.close();
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+}
+
+// 8. --scope workspace skips projection
+{
+  const { projectSkillsToAgents } = require('./lib/skills-commands.js');
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'actioNN-test-workspace-'));
+  const canonicalSkillsDir = path.join(tmpDir, '.agents', 'skills');
+  const skillSample = path.join(canonicalSkillsDir, 'nn-sample');
+  fs.mkdirSync(skillSample, { recursive: true });
+  fs.writeFileSync(path.join(skillSample, 'SKILL.md'), '# Workspace Skill', 'utf-8');
+
+  const projections = projectSkillsToAgents({
+    canonicalSkillsDir,
+    homedir: tmpDir,
+    targetAgent: 'all',
+    scope: 'workspace',
+    silent: true,
+  });
+
+  assert.strictEqual(projections.length, 0, 'Workspace scope must not project');
+  assert.strictEqual(fs.existsSync(path.join(tmpDir, '.claude', 'skills', 'nn-sample')), false);
+
+  console.log('✔ --scope workspace skips projection test passed');
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+}
+
+// 9. ADR-2 Ownership and unmanaged link/dir handling
+{
+  const { projectSkillsToAgents } = require('./lib/skills-commands.js');
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'actioNN-test-ownership-'));
+  const canonicalSkillsDir = path.join(tmpDir, '.agents', 'skills');
+  const skillSample = path.join(canonicalSkillsDir, 'nn-sample');
+  fs.mkdirSync(skillSample, { recursive: true });
+  fs.writeFileSync(path.join(skillSample, 'SKILL.md'), '# Canonical Skill', 'utf-8');
+
+  // Pre-create an unmanaged foreign real dir with different content
+  const foreignDir = path.join(tmpDir, '.claude', 'skills', 'nn-sample');
+  fs.mkdirSync(foreignDir, { recursive: true });
+  fs.writeFileSync(path.join(foreignDir, 'SKILL.md'), '# Foreign Content', 'utf-8');
+
+  const state = { manifest: 'dummy', skills: { 'nn-sample': { version: '1.0' } }, templates: {}, projections: {} };
+
+  const projections = projectSkillsToAgents({
+    canonicalSkillsDir,
+    homedir: tmpDir,
+    targetAgent: 'claude',
+    state,
+    silent: true,
+  });
+
+  const proj = projections.find(p => p.agent === 'claude' && p.skill === 'nn-sample');
+  assert(proj && proj.action === 'skip', 'Unmanaged foreign directory must be skipped');
+  assert.strictEqual(fs.readFileSync(path.join(foreignDir, 'SKILL.md'), 'utf-8'), '# Foreign Content', 'Foreign content must not be overwritten');
+
+  console.log('✔ ADR-2 unmanaged directory protection test passed');
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+}
+
 console.log('All skills-manager unit tests passed successfully!');
 }
 

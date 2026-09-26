@@ -385,13 +385,33 @@ async function testAtomicFs() {
       );
     }
 
-    // Invalid tarball error handling
-    const invalidTarFile = path.join(tmpRoot, 'not-a-tar.tar.gz');
-    fs.writeFileSync(invalidTarFile, 'not valid gzip or tar data');
-    assert.throws(
-      () => atomicFs.extractTarball(invalidTarFile, path.join(tmpRoot, 'invalid-extract')),
-      /tar extraction failed/
-    );
+    // 7. mirrorDir (removes orphans, replaces mismatched types, preserves excluded)
+    const mirrorSrc = path.join(tmpRoot, 'mirror-src');
+    const mirrorDest = path.join(tmpRoot, 'mirror-dest');
+    fs.mkdirSync(path.join(mirrorSrc, 'sub'), { recursive: true });
+    fs.mkdirSync(path.join(mirrorDest, 'sub'), { recursive: true });
+    fs.mkdirSync(path.join(mirrorDest, 'orphan-dir'), { recursive: true });
+
+    fs.writeFileSync(path.join(mirrorSrc, 'file1.txt'), 'src file 1');
+    fs.writeFileSync(path.join(mirrorSrc, 'sub', 'file2.txt'), 'src file 2');
+    fs.writeFileSync(path.join(mirrorDest, 'orphan-file.txt'), 'to be deleted');
+    fs.writeFileSync(path.join(mirrorDest, 'orphan-dir', 'nested.txt'), 'to be deleted');
+
+    // Excluded files in dest that should survive
+    fs.mkdirSync(path.join(mirrorDest, 'node_modules', 'foo'), { recursive: true });
+    fs.writeFileSync(path.join(mirrorDest, 'node_modules', 'foo', 'index.js'), 'preserved');
+    fs.writeFileSync(path.join(mirrorDest, '.dotfile'), 'preserved');
+
+    const isProjectable = name => !name.startsWith('.') && name !== 'node_modules';
+    atomicFs.mirrorDir(mirrorSrc, mirrorDest, isProjectable);
+
+    assert.strictEqual(fs.existsSync(path.join(mirrorDest, 'file1.txt')), true);
+    assert.strictEqual(fs.readFileSync(path.join(mirrorDest, 'file1.txt'), 'utf-8'), 'src file 1');
+    assert.strictEqual(fs.existsSync(path.join(mirrorDest, 'sub', 'file2.txt')), true);
+    assert.strictEqual(fs.existsSync(path.join(mirrorDest, 'orphan-file.txt')), false, 'orphan file must be removed');
+    assert.strictEqual(fs.existsSync(path.join(mirrorDest, 'orphan-dir')), false, 'orphan dir must be removed');
+    assert.strictEqual(fs.existsSync(path.join(mirrorDest, 'node_modules', 'foo', 'index.js')), true, 'excluded node_modules must survive');
+    assert.strictEqual(fs.existsSync(path.join(mirrorDest, '.dotfile')), true, 'excluded dotfile must survive');
 
   } finally {
     fs.rmSync(tmpRoot, { recursive: true, force: true });

@@ -1614,6 +1614,322 @@ agent-bootstrap:
     }
   }
 
+  // Test 31: Recorded symlink projection in-sync exits 0
+  {
+    const manifestContent = `---
+agent-bootstrap:
+  version: "2.0"
+  skills:
+    - name: nn-sample
+      commit: "1111111111111111111111111111111111111111"
+      version: "1.0.0"
+  templates: []
+---
+`;
+    const server = await serveManifest(manifestContent);
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'preflight-proj-insync-'));
+    try {
+      const skillsDir = path.join(tmpDir, 'canonical-skills');
+      const stateFile = path.join(tmpDir, 'bootstrap-state.json');
+      const canonicalSkill = path.join(skillsDir, 'nn-sample');
+      fs.mkdirSync(canonicalSkill, { recursive: true });
+      fs.writeFileSync(path.join(canonicalSkill, 'SKILL.md'), '# Canonical');
+
+      const claudeSkillsDir = path.join(tmpDir, '.claude', 'skills');
+      fs.mkdirSync(claudeSkillsDir, { recursive: true });
+      const projectedSkill = path.join(claudeSkillsDir, 'nn-sample');
+      const linkType = process.platform === 'win32' ? 'junction' : 'dir';
+      fs.symlinkSync(canonicalSkill, projectedSkill, linkType);
+
+      fs.writeFileSync(stateFile, JSON.stringify({
+        manifest: server.url,
+        skills: { 'nn-sample': { commit: '1111111111111111111111111111111111111111', version: '1.0.0' } },
+        templates: {},
+        projections: {
+          claude: {
+            dir: claudeSkillsDir,
+            skills: {
+              'nn-sample': {
+                method: 'symlink',
+                source: canonicalSkill,
+                projected_at: new Date().toISOString(),
+              },
+            },
+          },
+        },
+      }));
+
+      const res = await runScriptAsync([
+        '--json',
+        '--skills-dir', skillsDir,
+        '--state-file', stateFile,
+        '--manifest-url', server.url,
+      ], {
+        env: { ...process.env, USERPROFILE: tmpDir, HOME: tmpDir },
+      });
+
+      assert.strictEqual(res.status, 0, `In-sync symlink must exit 0. Got: ${res.stdout} ${res.stderr}`);
+      const parsed = JSON.parse(res.stdout);
+      assert.strictEqual(parsed.status, 'OK');
+      assert.strictEqual(parsed.summary.projectionsDrift, 0);
+      assert.strictEqual(parsed.summary.projectionsInSync, 1);
+      console.log('✔ Recorded symlink projection in-sync exits 0');
+    } finally {
+      await server.close();
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }
+
+  // Test 32: Stale copy projection triggers exit 1 and ACTION_REQUIRED
+  {
+    const manifestContent = `---
+agent-bootstrap:
+  version: "2.0"
+  skills:
+    - name: nn-sample
+      commit: "1111111111111111111111111111111111111111"
+      version: "1.0.0"
+  templates: []
+---
+`;
+    const server = await serveManifest(manifestContent);
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'preflight-proj-stale-'));
+    try {
+      const skillsDir = path.join(tmpDir, 'canonical-skills');
+      const stateFile = path.join(tmpDir, 'bootstrap-state.json');
+      const canonicalSkill = path.join(skillsDir, 'nn-sample');
+      fs.mkdirSync(canonicalSkill, { recursive: true });
+      fs.writeFileSync(path.join(canonicalSkill, 'SKILL.md'), '# Canonical New');
+
+      const opencodeSkillsDir = path.join(tmpDir, '.config', 'opencode', 'skills');
+      fs.mkdirSync(opencodeSkillsDir, { recursive: true });
+      const projectedSkill = path.join(opencodeSkillsDir, 'nn-sample');
+      fs.mkdirSync(projectedSkill, { recursive: true });
+      fs.writeFileSync(path.join(projectedSkill, 'SKILL.md'), '# Stale Copy Content');
+
+      fs.writeFileSync(stateFile, JSON.stringify({
+        manifest: server.url,
+        skills: { 'nn-sample': { commit: '1111111111111111111111111111111111111111', version: '1.0.0' } },
+        templates: {},
+        projections: {
+          opencode: {
+            dir: opencodeSkillsDir,
+            skills: {
+              'nn-sample': {
+                method: 'copy',
+                source: canonicalSkill,
+                projected_at: new Date().toISOString(),
+              },
+            },
+          },
+        },
+      }));
+
+      const res = await runScriptAsync([
+        '--json',
+        '--skills-dir', skillsDir,
+        '--state-file', stateFile,
+        '--manifest-url', server.url,
+      ], {
+        env: { ...process.env, USERPROFILE: tmpDir, HOME: tmpDir },
+      });
+
+      assert.strictEqual(res.status, 1, `Stale copy projection must exit 1. Got: ${res.stdout} ${res.stderr}`);
+      const parsed = JSON.parse(res.stdout);
+      assert.strictEqual(parsed.status, 'ACTION_REQUIRED');
+      assert.strictEqual(parsed.summary.projectionsDrift, 1);
+      const item = parsed.items.find(i => i.type === 'skill-projection');
+      assert(item && item.status === 'stale', 'Item status must be stale');
+      console.log('✔ Stale copy projection triggers exit 1 and ACTION_REQUIRED');
+    } finally {
+      await server.close();
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }
+
+  // Test 33: Dangling projection link triggers exit 1
+  {
+    const manifestContent = `---
+agent-bootstrap:
+  version: "2.0"
+  skills:
+    - name: nn-sample
+      commit: "1111111111111111111111111111111111111111"
+      version: "1.0.0"
+  templates: []
+---
+`;
+    const server = await serveManifest(manifestContent);
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'preflight-proj-dangling-'));
+    try {
+      const skillsDir = path.join(tmpDir, 'canonical-skills');
+      const stateFile = path.join(tmpDir, 'bootstrap-state.json');
+      const canonicalSkill = path.join(skillsDir, 'nn-sample');
+      fs.mkdirSync(canonicalSkill, { recursive: true });
+      fs.writeFileSync(path.join(canonicalSkill, 'SKILL.md'), '# Canonical');
+
+      const doomedTarget = path.join(tmpDir, 'doomed');
+      fs.mkdirSync(doomedTarget, { recursive: true });
+
+      const claudeSkillsDir = path.join(tmpDir, '.claude', 'skills');
+      fs.mkdirSync(claudeSkillsDir, { recursive: true });
+      const projectedSkill = path.join(claudeSkillsDir, 'nn-sample');
+      const linkType = process.platform === 'win32' ? 'junction' : 'dir';
+      fs.symlinkSync(doomedTarget, projectedSkill, linkType);
+      fs.rmSync(doomedTarget, { recursive: true, force: true });
+
+      fs.writeFileSync(stateFile, JSON.stringify({
+        manifest: server.url,
+        skills: { 'nn-sample': { commit: '1111111111111111111111111111111111111111', version: '1.0.0' } },
+        templates: {},
+        projections: {
+          claude: {
+            dir: claudeSkillsDir,
+            skills: {
+              'nn-sample': {
+                method: 'symlink',
+                source: canonicalSkill,
+                projected_at: new Date().toISOString(),
+              },
+            },
+          },
+        },
+      }));
+
+      const res = await runScriptAsync([
+        '--json',
+        '--skills-dir', skillsDir,
+        '--state-file', stateFile,
+        '--manifest-url', server.url,
+      ], {
+        env: { ...process.env, USERPROFILE: tmpDir, HOME: tmpDir },
+      });
+
+      assert.strictEqual(res.status, 1, `Dangling projection link must exit 1. Got: ${res.stdout} ${res.stderr}`);
+      const parsed = JSON.parse(res.stdout);
+      assert.strictEqual(parsed.status, 'ACTION_REQUIRED');
+      assert.strictEqual(parsed.summary.projectionsDrift, 1);
+      const item = parsed.items.find(i => i.type === 'skill-projection');
+      assert(item && item.status === 'dangling', 'Item status must be dangling');
+      console.log('✔ Dangling projection link triggers exit 1 and ACTION_REQUIRED');
+    } finally {
+      await server.close();
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }
+
+  // Test 34: Missing projection destination triggers exit 1
+  {
+    const manifestContent = `---
+agent-bootstrap:
+  version: "2.0"
+  skills:
+    - name: nn-sample
+      commit: "1111111111111111111111111111111111111111"
+      version: "1.0.0"
+  templates: []
+---
+`;
+    const server = await serveManifest(manifestContent);
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'preflight-proj-missing-'));
+    try {
+      const skillsDir = path.join(tmpDir, 'canonical-skills');
+      const stateFile = path.join(tmpDir, 'bootstrap-state.json');
+      const canonicalSkill = path.join(skillsDir, 'nn-sample');
+      fs.mkdirSync(canonicalSkill, { recursive: true });
+      fs.writeFileSync(path.join(canonicalSkill, 'SKILL.md'), '# Canonical');
+
+      const claudeSkillsDir = path.join(tmpDir, '.claude', 'skills');
+
+      fs.writeFileSync(stateFile, JSON.stringify({
+        manifest: server.url,
+        skills: { 'nn-sample': { commit: '1111111111111111111111111111111111111111', version: '1.0.0' } },
+        templates: {},
+        projections: {
+          claude: {
+            dir: claudeSkillsDir,
+            skills: {
+              'nn-sample': {
+                method: 'symlink',
+                source: canonicalSkill,
+                projected_at: new Date().toISOString(),
+              },
+            },
+          },
+        },
+      }));
+
+      const res = await runScriptAsync([
+        '--json',
+        '--skills-dir', skillsDir,
+        '--state-file', stateFile,
+        '--manifest-url', server.url,
+      ], {
+        env: { ...process.env, USERPROFILE: tmpDir, HOME: tmpDir },
+      });
+
+      assert.strictEqual(res.status, 1, `Missing projection must exit 1. Got: ${res.stdout} ${res.stderr}`);
+      const parsed = JSON.parse(res.stdout);
+      assert.strictEqual(parsed.status, 'ACTION_REQUIRED');
+      assert.strictEqual(parsed.summary.projectionsDrift, 1);
+      const item = parsed.items.find(i => i.type === 'skill-projection');
+      assert(item && item.status === 'missing', 'Item status must be missing');
+      console.log('✔ Missing projection destination triggers exit 1 and ACTION_REQUIRED');
+    } finally {
+      await server.close();
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }
+
+  // Test 35: Offline manifest fetch with projection drift still triggers exit 1
+  {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'preflight-proj-offline-'));
+    try {
+      const skillsDir = path.join(tmpDir, 'canonical-skills');
+      const stateFile = path.join(tmpDir, 'bootstrap-state.json');
+      const canonicalSkill = path.join(skillsDir, 'nn-sample');
+      fs.mkdirSync(canonicalSkill, { recursive: true });
+      fs.writeFileSync(path.join(canonicalSkill, 'SKILL.md'), '# Canonical');
+
+      const claudeSkillsDir = path.join(tmpDir, '.claude', 'skills');
+
+      fs.writeFileSync(stateFile, JSON.stringify({
+        manifest: 'http://127.0.0.1:9999/manifest.md',
+        skills: { 'nn-sample': { commit: '1111111111111111111111111111111111111111', version: '1.0.0' } },
+        templates: {},
+        projections: {
+          claude: {
+            dir: claudeSkillsDir,
+            skills: {
+              'nn-sample': {
+                method: 'symlink',
+                source: canonicalSkill,
+                projected_at: new Date().toISOString(),
+              },
+            },
+          },
+        },
+      }));
+
+      const res = await runScriptAsync([
+        '--json',
+        '--skills-dir', skillsDir,
+        '--state-file', stateFile,
+        '--manifest-url', 'http://127.0.0.1:9999/manifest.md',
+      ], {
+        env: { ...process.env, USERPROFILE: tmpDir, HOME: tmpDir },
+      });
+
+      assert.strictEqual(res.status, 1, `Offline manifest with projection drift must exit 1. Got: ${res.stdout} ${res.stderr}`);
+      const parsed = JSON.parse(res.stdout);
+      assert.strictEqual(parsed.status, 'ACTION_REQUIRED');
+      assert.strictEqual(parsed.summary.projectionsDrift, 1);
+      console.log('✔ Offline manifest fetch with projection drift triggers exit 1 and ACTION_REQUIRED');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }
+
   console.log('All preflight-check unit tests passed successfully!\n');
 }
 

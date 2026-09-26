@@ -147,6 +147,7 @@ async function main() {
     yes: args.yes,
     direction: args.direction,
     agent: args.agent,
+    scope: args.scope,
   };
 
   try {

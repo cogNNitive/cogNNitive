@@ -33,6 +33,7 @@ const https = require('https');
 const crypto = require('crypto');
 const { parseFocusedYaml, parseFrontmatter } = require('./lib/yaml-lite');
 const { discoverModels, scanWorkspaceUpgrades } = require('./upgrade-check');
+const { isProjectableName, classifyProjection, hashTree } = require('./lib/projection');
 
 const DEFAULT_MANIFEST_URL = process.env.SM_MANIFEST_URL ||
   'https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/docs/use/manifest.md';
@@ -110,6 +111,7 @@ function loadState(file) {
         skills: data.skills || {},
         templates: data.templates || {},
         mcp: data.mcp || {},
+        projections: data.projections || {},
       };
     } catch {
       // ignore corrupt JSON and return empty
@@ -126,13 +128,14 @@ function loadState(file) {
         skills: legacyData.skills || {},
         templates: {},
         mcp: {},
+        projections: {},
       };
     } catch {
       // ignore corrupt JSON
     }
   }
 
-  return { manifest: DEFAULT_MANIFEST_URL, skills: {}, templates: {}, mcp: {} };
+  return { manifest: DEFAULT_MANIFEST_URL, skills: {}, templates: {}, mcp: {}, projections: {} };
 }
 
 function parseManifest(text) {
@@ -846,6 +849,92 @@ function validateTemplateCompositions(options = {}) {
   return results;
 }
 
+/**
+ * Audits recorded AI agent skill projections against canonical skills on disk.
+ * @param {Record<string, any>} state - Loaded bootstrap-state.json object.
+ * @param {string} skillsDir - Canonical skills directory.
+ * @param {string} [homedir] - Optional home directory override for testing.
+ * @returns {{ total: number, inSync: number, drift: number, items: Array<any> }}
+ */
+function auditSkillProjections(state, skillsDir, homedir = os.homedir()) {
+  const items = [];
+  let total = 0;
+  let inSync = 0;
+  let drift = 0;
+
+  const projections = state.projections || {};
+  for (const [agent, agentEntry] of Object.entries(projections)) {
+    if (!agentEntry || typeof agentEntry !== 'object') continue;
+    const skills = agentEntry.skills || {};
+
+    for (const [skillName, proj] of Object.entries(skills)) {
+      if (!proj || typeof proj !== 'object') continue;
+      total++;
+      const canonicalSrc = path.resolve(proj.source || path.join(skillsDir, skillName));
+      const targetDir = agentEntry.dir || (
+        agent === 'opencode' ? path.join(homedir, '.config', 'opencode', 'skills') :
+        agent === 'claude' ? path.join(homedir, '.claude', 'skills') :
+        agent === 'antigravity' ? path.join(homedir, '.gemini', 'config', 'skills') :
+        path.join(homedir, `.${agent}`, 'skills')
+      );
+      const dest = path.resolve(targetDir, skillName);
+
+      const classification = classifyProjection(dest, canonicalSrc);
+      let status = 'in-sync';
+      let detail = 'In sync with canonical.';
+
+      if (classification === 'absent') {
+        status = 'missing';
+        detail = 'Projected skill directory or link does not exist.';
+      } else if (classification === 'link-dangling') {
+        status = 'dangling';
+        detail = 'Projected symlink points to non-existent target.';
+      } else if (classification === 'link-wrong') {
+        status = 'wrong-target';
+        detail = 'Projected symlink points to unexpected target.';
+      } else if (classification === 'link-ok') {
+        status = 'in-sync';
+        detail = 'Symlink projection in sync with canonical.';
+      } else if (classification === 'dir') {
+        if (proj.method === 'copy') {
+          const srcHash = hashTree(canonicalSrc, isProjectableName);
+          const destHash = hashTree(dest, isProjectableName);
+          if (srcHash && destHash && srcHash === destHash) {
+            status = 'in-sync';
+            detail = 'Mirror copy projection in sync with canonical.';
+          } else {
+            status = 'stale';
+            detail = 'Projected copy content has drifted from canonical.';
+          }
+        } else {
+          status = 'stale';
+          detail = 'Expected symlink projection but found unlinked directory.';
+        }
+      }
+
+      if (status === 'in-sync') {
+        inSync++;
+      } else {
+        drift++;
+      }
+
+      items.push({
+        type: 'skill-projection',
+        name: `${agent}/${skillName}`,
+        agent,
+        skill: skillName,
+        method: proj.method,
+        status,
+        detail,
+        dest,
+        source: canonicalSrc,
+      });
+    }
+  }
+
+  return { total, inSync, drift, items };
+}
+
 async function runCheck(options = {}) {
   const isJson = options.json || process.argv.includes('--json');
   const manifestUrl = options.manifestUrl || process.env.SM_MANIFEST_URL || DEFAULT_MANIFEST_URL;
@@ -897,6 +986,9 @@ async function runCheck(options = {}) {
       templatesCompositionValid: 0,
       templatesCompositionBlockers: 0,
       templatesCompositionWarnings: 0,
+      projectionsTotal: 0,
+      projectionsInSync: 0,
+      projectionsDrift: 0,
     },
     sources_integrity: {
       ok: true,
@@ -981,6 +1073,15 @@ async function runCheck(options = {}) {
     }
   }
 
+  const state = loadState(stateFile);
+
+  // 1c. Audit skill projections recorded in state (runs offline before manifest fetch)
+  const projAudit = auditSkillProjections(state, skillsDir, options.homedir);
+  results.summary.projectionsTotal = projAudit.total;
+  results.summary.projectionsInSync = projAudit.inSync;
+  results.summary.projectionsDrift = projAudit.drift;
+  results.items.push(...projAudit.items);
+
   // 2. Fetch Manifest
   let manifest;
   try {
@@ -996,8 +1097,8 @@ async function runCheck(options = {}) {
       detail: `Could not verify remote manifest (${err.message}). Using local state offline.`,
     });
     // Offline mode: do not block if local files exist — but stale workspace
-    // specs or unnormalized sources are still a hard failure and must not be masked by the early return.
-    if (results.summary.specsStale > 0 || results.summary.sourcesUnnormalized > 0 || results.summary.sourcesDangling > 0) {
+    // specs, unnormalized sources, or projection drift are still a hard failure and must not be masked by the early return.
+    if (results.summary.specsStale > 0 || results.summary.sourcesUnnormalized > 0 || results.summary.sourcesDangling > 0 || results.summary.projectionsDrift > 0) {
       results.status = 'ACTION_REQUIRED';
       results.exitCode = 1;
     }
@@ -1060,8 +1161,6 @@ async function runCheck(options = {}) {
       }
     }
   }
-
-  const state = loadState(stateFile);
 
   // 3. Audit Skills & declared MCPs
   for (const skill of manifest.skills) {
@@ -1199,8 +1298,9 @@ async function runCheck(options = {}) {
   const hasSourceIssues = results.summary.sourcesUnnormalized > 0 ||
                           results.summary.sourcesDangling > 0;
   const hasCompositionBlockers = results.summary.templatesCompositionBlockers > 0;
+  const hasProjectionDrift = (results.summary.projectionsDrift || 0) > 0;
 
-  if (hasOutdated || hasMissing || hasStaleSpecs || hasSourceIssues || hasCompositionBlockers) {
+  if (hasOutdated || hasMissing || hasStaleSpecs || hasSourceIssues || hasCompositionBlockers || hasProjectionDrift) {
     results.status = 'ACTION_REQUIRED';
     results.exitCode = 1;
   } else {
@@ -1235,6 +1335,17 @@ function printHumanReport(results) {
       }
     }
     console.log('  Remediation: rehydrate the local copy from its canonical URL (e.g. run check_workspace). Do NOT hand-delete or hand-edit files under specs/.\n');
+  }
+
+  if (results.summary.projectionsDrift > 0) {
+    console.log(`\n⚠️  Skill projection drift detected (${results.summary.projectionsDrift}):`);
+    for (const item of results.items) {
+      if (item.type === 'skill-projection' && item.status !== 'in-sync') {
+        console.log(`  - [${item.status.toUpperCase()}] ${item.name}`);
+        console.log(`    ${item.detail}`);
+      }
+    }
+    console.log('  Remediation: run `node scripts/skills-manager.js update` to synchronize projections.\n');
   }
 
   if (results.summary.sourcesUnnormalized > 0 || results.summary.sourcesDangling > 0) {
@@ -1316,7 +1427,9 @@ function printHumanReport(results) {
     i.status === 'stale' ||
     i.status === 'unnormalized' ||
     i.status === 'dangling' ||
-    (i.type === 'template-composition' && i.status === 'blocker')
+    i.status === 'wrong-target' ||
+    (i.type === 'template-composition' && i.status === 'blocker') ||
+    (i.type === 'skill-projection' && i.status !== 'in-sync')
   );
   console.log('Detected items needing attention:');
   for (const item of pending) {
