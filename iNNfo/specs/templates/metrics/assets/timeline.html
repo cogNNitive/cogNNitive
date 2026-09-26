@@ -461,27 +461,362 @@
       #innfo-charts .innfo-chart-canvas {
         min-height: 240px;
       }
+      /* View Tabs */
+      .innfo-view-tabs {
+        display: flex;
+        gap: 8px;
+        padding: 10px 28px 0;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+      }
+      .innfo-view-tab {
+        appearance: none;
+        border: none;
+        border-bottom: 3px solid transparent;
+        background: transparent;
+        color: var(--muted);
+        font: inherit;
+        font-size: 0.88rem;
+        font-weight: 600;
+        padding: 8px 16px 12px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+      }
+      .innfo-view-tab:hover {
+        color: var(--text);
+      }
+      .innfo-view-tab.active {
+        color: var(--text);
+        border-bottom-color: var(--primary);
+      }
+      .innfo-tab-panel {
+        display: none;
+      }
+      .innfo-tab-panel.active {
+        display: block;
+      }
+      /* Timeline Grid Styles */
+      #innfo-timeline-grid {
+        margin: 20px 0 32px 0;
+      }
+      .innfo-timeline-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+      .innfo-timeline-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        margin: 0;
+      }
+      .innfo-kpi-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 12px;
+        margin-bottom: 24px;
+      }
+      .innfo-kpi-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 14px 16px;
+        box-shadow: var(--shadow-card);
+      }
+      .innfo-kpi-label {
+        font-size: 0.78rem;
+        color: var(--muted);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+      }
+      .innfo-kpi-val {
+        font-size: 1.4rem;
+        font-weight: 700;
+        margin: 4px 0 2px;
+      }
+      .innfo-kpi-meta {
+        font-size: 0.75rem;
+        color: var(--muted);
+      }
+      .innfo-timeline-table-wrap {
+        overflow: auto;
+        max-height: calc(100vh - 200px);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--surface);
+        box-shadow: var(--shadow-card);
+        position: relative;
+      }
+      .innfo-timeline-table {
+        border-collapse: collapse;
+        font-size: 0.82rem;
+        width: 100%;
+        white-space: nowrap;
+      }
+      .innfo-timeline-table th,
+      .innfo-timeline-table td {
+        border: 1px solid var(--border);
+        padding: 6px 10px;
+      }
+      .innfo-timeline-table th.th-sticky {
+        position: sticky;
+        left: 0;
+        top: 0;
+        z-index: 20;
+        background: var(--surface-2);
+        border-right: 2px solid var(--border);
+      }
+      .innfo-timeline-table td.td-sticky {
+        position: sticky;
+        left: 0;
+        background: var(--surface);
+        z-index: 5;
+        border-right: 2px solid var(--border);
+      }
+      .innfo-timeline-table thead th {
+        background: var(--surface-2);
+        font-weight: 700;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        border-bottom: 2px solid var(--border);
+      }
+      .innfo-timeline-table th.hist-col,
+      .innfo-timeline-table td.hist-cell {
+        background: rgba(37, 99, 235, 0.04);
+      }
+      .innfo-timeline-table td.td-num,
+      .innfo-timeline-table th.th-month,
+      .innfo-timeline-table th.th-total {
+        text-align: right;
+        font-family: var(--mono);
+      }
+      .innfo-timeline-table td.td-total {
+        font-weight: 700;
+        background: var(--surface-2);
+      }
+      .innfo-timeline-grp td {
+        background: var(--surface-2);
+        padding: 6px 10px;
+        font-weight: 700;
+      }
+      .innfo-pinned-grp td {
+        background: rgba(37, 99, 235, 0.08);
+        border-bottom: 2px solid var(--link);
+      }
+      .innfo-pinned-grp .innfo-grp-badge {
+        color: var(--link);
+      }
+      .innfo-timeline-row.is-pinned td {
+        background: rgba(37, 99, 235, 0.03);
+      }
+      .innfo-timeline-row.is-pinned td.td-sticky {
+        background: rgba(37, 99, 235, 0.06);
+      }
+      .innfo-grp-badge {
+        display: inline-block;
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--muted);
+      }
+      .innfo-row-actions {
+        display: inline-flex;
+        gap: 2px;
+        margin-right: 6px;
+        vertical-align: middle;
+      }
+      .innfo-row-btn {
+        appearance: none;
+        border: 1px solid transparent;
+        background: transparent;
+        padding: 1px 3px;
+        font-size: 0.75rem;
+        border-radius: 4px;
+        cursor: pointer;
+        opacity: 0.4;
+        transition: opacity 0.15s ease, background 0.15s ease;
+      }
+      .innfo-row-btn:hover {
+        opacity: 1;
+        background: var(--surface-2);
+        border-color: var(--border);
+      }
+      .innfo-row-btn.active, .innfo-row-btn.pinned {
+        opacity: 1;
+        background: rgba(37, 99, 235, 0.15);
+        border-color: var(--link);
+      }
+      .innfo-row-marker {
+        display: inline-block;
+        width: 16px;
+        text-align: center;
+        margin-right: 6px;
+        font-weight: 700;
+      }
+      .innfo-row-marker.marker-var { color: var(--link); }
+      .innfo-row-marker.marker-calc { color: var(--success); }
+      .innfo-row-marker.marker-der { color: var(--warning); }
+      .innfo-row-name { font-weight: 600; }
+      .td-rule { color: var(--muted); font-size: 0.78rem; white-space: nowrap; }
+      .td-unit { color: var(--muted); font-size: 0.78rem; }
+      .innfo-timeline-actions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .innfo-btn-reset, .innfo-btn-csv {
+        appearance: none;
+        border: 1px solid var(--border);
+        background: transparent;
+        color: var(--muted);
+        border-radius: var(--radius-sm);
+        padding: 5px 10px;
+        font: inherit;
+        font-size: 0.78rem;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .innfo-btn-reset:hover, .innfo-btn-csv:hover {
+        background: var(--surface-2);
+        color: var(--text);
+      }
+      .innfo-grow-sel {
+        font: inherit;
+        font-size: 0.75rem;
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 2px 4px;
+        color: var(--text);
+        margin-right: 4px;
+      }
+      .innfo-grow-factor {
+        font: inherit;
+        font-size: 0.75rem;
+        font-family: var(--mono);
+        width: 50px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 2px 4px;
+        color: var(--text);
+        text-align: right;
+      }
+      .innfo-grow-factor:disabled {
+        opacity: 0.4;
+        background: transparent;
+      }
+      .innfo-var-input {
+        font: inherit;
+        font-size: 0.8rem;
+        font-family: var(--mono);
+        width: 65px;
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 2px 4px;
+        color: var(--text);
+        text-align: right;
+      }
+      .innfo-var-input:focus {
+        outline: none;
+        border-color: var(--link);
+      }
+      .innfo-var-input.overridden {
+        background: rgba(37, 99, 235, 0.12);
+        border-color: var(--link);
+        font-weight: 700;
+      }
+      /* Inline chart rows */
+      .innfo-timeline-chart-row td {
+        background: rgba(37, 99, 235, 0.02);
+        padding: 4px 6px;
+        vertical-align: bottom;
+        border-bottom: 2px solid var(--border);
+      }
+      .innfo-timeline-chart-row td.td-sticky {
+        background: var(--surface-2);
+      }
+      .innfo-mini-bar-wrap {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-end;
+        height: 54px;
+        gap: 2px;
+      }
+      .innfo-mini-bar {
+        width: 16px;
+        min-height: 2px;
+        border-radius: 3px 3px 0 0;
+        background: var(--link);
+        transition: height 0.2s ease;
+      }
+      .innfo-mini-bar.negative {
+        background: var(--danger);
+        border-radius: 0 0 3px 3px;
+      }
+      .innfo-mini-bar-val {
+        font-size: 0.68rem;
+        font-family: var(--mono);
+        color: var(--muted);
+        white-space: nowrap;
+      }
+      .innfo-chart-row-label {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--link);
+      }
+      .innfo-chart-range {
+        font-size: 0.72rem;
+        color: var(--muted);
+        font-family: var(--mono);
+      }
+      .innfo-mini-total {
+        font-size: 0.75rem;
+        font-family: var(--mono);
+        font-weight: 700;
+        color: var(--link);
+        text-align: right;
+      }
     </style>
   </head>
   <body>
     <header id="innfo-banner" aria-label="Console review banner"></header>
+    <nav id="innfo-view-tabs" class="innfo-view-tabs" aria-label="Console views" style="display:none;"></nav>
 
-    <div id="innfo-layout">
-      <nav id="innfo-rail" aria-label="Concept rail"></nav>
-      <main>
-        <div class="innfo-toolbar">
-          <input
-            id="innfo-search"
-            type="search"
-            placeholder="Search elements…"
-            aria-label="Search elements"
-          />
-          <button id="innfo-export-open" type="button">Export feedback</button>
-        </div>
-        <div id="innfo-doc"></div>
-        <div id="innfo-content"></div>
-        <div id="innfo-matrices"></div>
+    <div id="innfo-tab-domain" class="innfo-tab-panel">
+      <main style="max-width: 1400px; padding: 20px 28px;">
+        <div id="innfo-timeline-grid"></div>
         <div id="innfo-charts"></div>
+      </main>
+    </div>
+
+    <div id="innfo-tab-explorer" class="innfo-tab-panel">
+      <div id="innfo-layout">
+        <nav id="innfo-rail" aria-label="Concept rail"></nav>
+        <main>
+          <div class="innfo-toolbar">
+            <input
+              id="innfo-search"
+              type="search"
+              placeholder="Search elements…"
+              aria-label="Search elements"
+            />
+            <button id="innfo-export-open" type="button">Export feedback</button>
+          </div>
+          <div id="innfo-doc"></div>
+          <div id="innfo-content"></div>
+        </main>
+      </div>
+    </div>
+
+    <div id="innfo-tab-matrices" class="innfo-tab-panel">
+      <main style="max-width: 1200px; padding: 20px 28px;">
+        <div id="innfo-matrices"></div>
       </main>
     </div>
 
@@ -503,6 +838,7 @@
     <script type="application/json" id="innfo-config">
       {
         "needs": [
+          "timeline-grid",
           "charts",
           "concept-rail",
           "fulltext-search",

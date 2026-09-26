@@ -616,6 +616,18 @@
       var rows = Array.isArray(matrix.rows) ? matrix.rows : []
       var cols = Array.isArray(matrix.cols) ? matrix.cols : []
       var cells = isObject(matrix.cells) ? matrix.cells : {}
+
+      var isStructured = rows.length && isObject(rows[0])
+      if (isStructured && !cols.length) {
+        var colMap = {}
+        rows.forEach(function (r) {
+          if (r && isObject(r.cells)) {
+            Object.keys(r.cells).forEach(function (k) { colMap[k] = true })
+          }
+        })
+        cols = Object.keys(colMap)
+      }
+
       var head = el('tr', null, null)
       if (head) {
         head.appendChild(el('th', null, ''))
@@ -627,14 +639,11 @@
       rows.forEach(function (r) {
         var tr = el('tr', null, null)
         if (!tr) return
-        tr.appendChild(el('th', null, String(r)))
+        var rowLabel = isStructured ? (r.sourceLabel || r.sourceId || '') : String(r)
+        var rowCells = isStructured ? (r.cells || {}) : (cells[r] || cells[String(r)] || {})
+        tr.appendChild(el('th', null, rowLabel))
         cols.forEach(function (c) {
-          var value =
-            cells[r] && cells[r][c] != null
-              ? String(cells[r][c])
-              : cells[String(r)] && cells[String(r)][String(c)] != null
-                ? String(cells[String(r)][String(c)])
-                : ''
+          var value = rowCells[c] != null ? String(rowCells[c]) : ''
           tr.appendChild(el('td', null, value))
         })
         table.appendChild(tr)
@@ -726,6 +735,534 @@
           console.warn('innfo-console: chart render failed for "' + chart.id + '"', err)
       }
     })
+  }
+
+  function formatGridNumber(v) {
+    if (v == null || isNaN(v)) return '-'
+    var abs = Math.abs(v)
+    if (abs >= 1000000) return (v / 1000000).toFixed(1) + 'M'
+    if (abs >= 10000) return Math.round(v).toLocaleString()
+    if (abs >= 100) return (Math.round(v * 10) / 10).toLocaleString()
+    return (Math.round(v * 100) / 100).toString()
+  }
+
+  function normalizeKey(str) {
+    return String(str || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+  }
+
+  function evaluateFormulaTree(row, m, rowMap, overrides, memo, growthState, historyCount) {
+    var memoKey = row.id + '|' + m
+    if (memo[memoKey] !== undefined) return memo[memoKey]
+    if (memo[memoKey] === null) return 0 // cycle guard
+    memo[memoKey] = null
+
+    var val = 0
+    if (row.variable) {
+      if (overrides[row.id] && overrides[row.id][m] !== undefined) {
+        val = Number(overrides[row.id][m]) || 0
+      } else {
+        var base = row.base != null ? Number(row.base) : 0
+        var g = growthState[row.id] || row.growth || { mode: 'fixed', factor: 0 }
+        var factor = Number(g.factor) || 0
+        if (g.mode === 'compound' && factor) {
+          val = base * Math.pow(1 + factor / 100, m)
+        } else if (g.mode === 'additive' && factor) {
+          val = base + factor * m
+        } else {
+          val = base
+        }
+      }
+    } else if (Array.isArray(row.history) && m < row.history.length && row.history[m] !== null) {
+      val = Number(row.history[m]) || 0
+    } else if (row.formula) {
+      val = parseAndEvalFormula(String(row.formula).trim(), m, rowMap, overrides, memo, growthState, historyCount)
+      var gRow = growthState[row.id] || row.growth || { mode: 'fixed', factor: 0 }
+      var factorRow = Number(gRow.factor) || 0
+      if (gRow.mode === 'compound' && factorRow) {
+        val = val * Math.pow(1 + factorRow / 100, m)
+      } else if (gRow.mode === 'additive' && factorRow) {
+        val = val + factorRow * m
+      }
+    } else if (row.base != null) {
+      val = Number(row.base)
+    }
+
+    memo[memoKey] = val
+    return val
+  }
+
+  function parseAndEvalFormula(formula, m, rowMap, overrides, memo, growthState, historyCount) {
+    if (!formula || /^<.*>$/.test(formula)) return 0
+    var cleaned = formula.replace(/\s+[xX]\s+/g, ' * ')
+    var tokens = cleaned.split(/(\s*[\+\-\*\/]\s*)/).map(function (s) { return s.trim() }).filter(Boolean)
+    if (!tokens.length) return 0
+
+    function resolveOperand(token) {
+      var num = Number(token)
+      if (!isNaN(num)) return num
+      var norm = normalizeKey(token)
+      var targetRow = rowMap[norm]
+      if (targetRow) {
+        return evaluateFormulaTree(targetRow, m, rowMap, overrides, memo, growthState, historyCount)
+      }
+      return 0
+    }
+
+    var terms = []
+    var ops = []
+    var i = 0
+    while (i < tokens.length) {
+      var tok = tokens[i]
+      if (tok === '+' || tok === '-') {
+        ops.push(tok)
+        i++
+      } else {
+        var currentVal = resolveOperand(tok)
+        while (i + 1 < tokens.length && (tokens[i + 1] === '*' || tokens[i + 1] === '/')) {
+          var op = tokens[i + 1]
+          var nextOperand = resolveOperand(tokens[i + 2])
+          if (op === '*') currentVal = currentVal * nextOperand
+          else if (op === '/') currentVal = nextOperand !== 0 ? currentVal / nextOperand : 0
+          i += 2
+        }
+        terms.push(currentVal)
+        i++
+      }
+    }
+
+    if (!terms.length) return 0
+    var res = terms[0]
+    for (var j = 0; j < ops.length; j++) {
+      if (ops[j] === '+') res += terms[j + 1] || 0
+      else if (ops[j] === '-') res -= terms[j + 1] || 0
+    }
+    return res
+  }
+
+  function exportTimelineCsv(meta, rows, totalMonths, labels, rowValues) {
+    var lines = []
+    lines.push('# Timeline & P&L Projection Export')
+    lines.push('# Model: ' + (meta.model || ''))
+    lines.push('# Version: ' + (meta.model_version || meta.modelVersion || ''))
+    lines.push('# Generated: ' + (meta.generated_at || meta.generated || ''))
+    lines.push('')
+    var header = ['Group', 'Metric', 'Type', 'Unit', 'Growth Rule']
+    for (var m = 0; m < totalMonths; m++) {
+      header.push(labels[m] != null ? labels[m] : 'Month ' + (m + 1))
+    }
+    header.push('Total')
+    lines.push(header.map(function (s) { return '"' + String(s).replace(/"/g, '""') + '"' }).join(','))
+
+    rows.forEach(function (r) {
+      var g = r.growth || { mode: 'fixed', factor: 0 }
+      var vals = rowValues[r.id] || []
+      var sum = vals.reduce(function (a, b) { return a + b }, 0)
+      var rowLine = [
+        r.grp || '',
+        r.label || r.id,
+        r.metricType || '',
+        r.metricUnit || '',
+        g.mode + (g.factor ? ' (' + g.factor + ')' : '')
+      ]
+      for (var i = 0; i < totalMonths; i++) {
+        rowLine.push(vals[i] != null ? Math.round(vals[i] * 100) / 100 : '')
+      }
+      rowLine.push(Math.round(sum * 100) / 100)
+      lines.push(rowLine.map(function (s) { return '"' + String(s).replace(/"/g, '""') + '"' }).join(','))
+    })
+
+    if (typeof Blob !== 'undefined' && typeof URL !== 'undefined') {
+      var blob = new Blob([lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' })
+      var url = URL.createObjectURL(blob)
+      var a = document.createElement('a')
+      a.href = url
+      a.download = (meta.slug || 'timeline') + '_projection.csv'
+      a.click()
+      setTimeout(function () { URL.revokeObjectURL(url) }, 1000)
+    }
+  }
+
+  function renderTimelineGrid(doc, model, meta) {
+    var host = doc && typeof doc.getElementById === 'function' ? doc.getElementById('innfo-timeline-grid') : null
+    if (!host) return
+    var rows = Array.isArray(model && model.rows) ? model.rows : []
+    if (!rows.length) {
+      host.innerHTML = ''
+      return
+    }
+
+    var monthsCount = Number(meta && meta.months) || 12
+    var historyCount = Number(meta && meta.historyMonths) || 0
+    var totalMonths = monthsCount + historyCount
+    var labels = monthAxis(meta, totalMonths)
+
+    var rowMap = {}
+    rows.forEach(function (r) {
+      if (r) {
+        if (r.id) rowMap[normalizeKey(r.id)] = r
+        if (r.label) rowMap[normalizeKey(r.label)] = r
+        if (r.name) rowMap[normalizeKey(r.name)] = r
+      }
+    })
+
+    var growthState = {}
+    rows.forEach(function (r) {
+      var g = r.growth || { mode: 'fixed', factor: 0 }
+      growthState[r.id] = { mode: g.mode || 'fixed', factor: g.factor != null ? g.factor : 0 }
+    })
+    var overrides = {}
+    var pinnedRowIds = {}
+    var expandedChartRowIds = {}
+
+    function recalculate() {
+      var memo = {}
+      var computedValues = {}
+      rows.forEach(function (r) {
+        var arr = []
+        for (var m = 0; m < totalMonths; m++) {
+          arr.push(evaluateFormulaTree(r, m, rowMap, overrides, memo, growthState, historyCount))
+        }
+        computedValues[r.id] = arr
+      })
+      return computedValues
+    }
+
+    function renderView() {
+      var rowValues = recalculate()
+      host.innerHTML = ''
+
+      // 1. KPI Cards
+      var resultRows = rows.filter(function (r) {
+        return r && !r.variable && (r.metricType === 'result' || r.metricType === 'revenue')
+      })
+      if (resultRows.length) {
+        var cardsWrap = el('div', 'innfo-timeline-cards')
+        resultRows.forEach(function (r) {
+          var vals = rowValues[r.id] || []
+          var tot = vals.reduce(function (a, b) { return a + b }, 0)
+          var card = el('div', 'innfo-card innfo-timeline-kpi')
+          var kpiTitle = el('h4', 'innfo-kpi-title', r.label || r.id)
+          var kpiValue = el('div', 'innfo-kpi-value', formatGridNumber(tot) + (r.metricUnit ? ' ' + r.metricUnit : ''))
+          var kpiSub = el('div', 'innfo-kpi-sub', totalMonths + 'm Total · Horizon Net')
+          if (tot >= 0) kpiValue.classList.add('positive')
+          else kpiValue.classList.add('negative')
+          if (card && kpiTitle) card.appendChild(kpiTitle)
+          if (card && kpiValue) card.appendChild(kpiValue)
+          if (card && kpiSub) card.appendChild(kpiSub)
+          if (cardsWrap && card) cardsWrap.appendChild(card)
+        })
+        if (cardsWrap) host.appendChild(cardsWrap)
+      }
+
+      // 2. Header + Actions
+      var gridHeader = el('div', 'innfo-timeline-header')
+      var gridTitle = el('h3', 'innfo-timeline-title', 'Timeline & P&L Projection')
+      var gridActions = el('div', 'innfo-timeline-actions')
+      var resetBtn = el('button', 'innfo-btn-reset', 'Reset Overrides')
+      if (resetBtn) {
+        resetBtn.setAttribute('type', 'button')
+        resetBtn.addEventListener('click', function () {
+          Object.keys(overrides).forEach(function (k) { delete overrides[k] })
+          rows.forEach(function (r) {
+            var g = r.growth || { mode: 'fixed', factor: 0 }
+            growthState[r.id] = { mode: g.mode || 'fixed', factor: g.factor != null ? g.factor : 0 }
+          })
+          renderView()
+        })
+        gridActions.appendChild(resetBtn)
+      }
+      var exportCsvBtn = el('button', 'innfo-btn-csv', 'Download CSV')
+      if (exportCsvBtn) {
+        exportCsvBtn.setAttribute('type', 'button')
+        exportCsvBtn.addEventListener('click', function () {
+          exportTimelineCsv(meta, rows, totalMonths, labels, rowValues)
+        })
+        gridActions.appendChild(exportCsvBtn)
+      }
+      if (gridHeader && gridTitle) gridHeader.appendChild(gridTitle)
+      if (gridHeader && gridActions) gridHeader.appendChild(gridActions)
+      if (gridHeader) host.appendChild(gridHeader)
+
+      // 3. Interactive Table
+      var tableWrap = el('div', 'innfo-timeline-table-wrap')
+      var table = el('table', 'innfo-timeline-table')
+      var thead = el('thead')
+      var trHead = el('tr')
+
+      trHead.appendChild(el('th', 'th-sticky th-metric', 'Metric'))
+      trHead.appendChild(el('th', 'th-rule', 'Growth Rule'))
+      trHead.appendChild(el('th', 'th-unit', 'Unit'))
+      for (var m = 0; m < totalMonths; m++) {
+        var isHist = m < historyCount
+        var thM = el('th', 'th-month' + (isHist ? ' hist-col' : ''), labels[m] != null ? labels[m] : 'M' + (m + 1))
+        if (isHist) thM.setAttribute('title', 'Historical / Measured month')
+        trHead.appendChild(thM)
+      }
+      trHead.appendChild(el('th', 'th-total', 'Total'))
+      if (thead && trHead) thead.appendChild(trHead)
+      if (table && thead) table.appendChild(thead)
+
+      var tbody = el('tbody')
+
+      function renderRowItem(r, isPinned) {
+        var tr = el('tr', 'innfo-timeline-row' + (r.variable ? ' is-var' : '') + (isPinned ? ' is-pinned' : ''))
+        var tdMetric = el('td', 'td-sticky td-metric')
+
+        var actionsSpan = el('span', 'innfo-row-actions')
+        var isPinnedThis = !!pinnedRowIds[r.id]
+        var pinBtn = el('button', 'innfo-row-btn innfo-pin-btn' + (isPinnedThis ? ' pinned' : ''), '📌')
+        pinBtn.setAttribute('type', 'button')
+        pinBtn.setAttribute('title', isPinnedThis ? 'Unpin row' : 'Pin row to top')
+        pinBtn.addEventListener('click', function (e) {
+          e.stopPropagation()
+          pinnedRowIds[r.id] = !pinnedRowIds[r.id]
+          renderView()
+        })
+        actionsSpan.appendChild(pinBtn)
+
+        var isChartThis = !!expandedChartRowIds[r.id]
+        var chartBtn = el('button', 'innfo-row-btn innfo-chart-btn' + (isChartThis ? ' active' : ''), '📈')
+        chartBtn.setAttribute('type', 'button')
+        chartBtn.setAttribute('title', isChartThis ? 'Hide inline monthly chart' : 'Show inline monthly chart')
+        chartBtn.addEventListener('click', function (e) {
+          e.stopPropagation()
+          expandedChartRowIds[r.id] = !expandedChartRowIds[r.id]
+          renderView()
+        })
+        actionsSpan.appendChild(chartBtn)
+        tdMetric.appendChild(actionsSpan)
+
+        var markerSymbol = r.variable ? '★' : r.source === 'derived' ? '~' : '='
+        var markerSpan = el('span', 'innfo-row-marker marker-' + (r.variable ? 'var' : r.source === 'derived' ? 'der' : 'calc'), markerSymbol)
+        var nameSpan = el('span', 'innfo-row-name', r.label || r.id)
+        if (r.formula) nameSpan.setAttribute('title', 'Formula: ' + r.formula)
+        tdMetric.appendChild(markerSpan)
+        tdMetric.appendChild(nameSpan)
+        tr.appendChild(tdMetric)
+
+        var tdRule = el('td', 'td-rule')
+        var g = growthState[r.id] || { mode: 'fixed', factor: 0 }
+        var selGrow = el('select', 'innfo-grow-sel')
+        var optFixed = el('option', null, 'Fixed')
+        optFixed.value = 'fixed'
+        if (g.mode === 'fixed') optFixed.selected = true
+        var optComp = el('option', null, '% comp.')
+        optComp.value = 'compound'
+        if (g.mode === 'compound') optComp.selected = true
+        var optAdd = el('option', null, '+delta')
+        optAdd.value = 'additive'
+        if (g.mode === 'additive') optAdd.selected = true
+        selGrow.appendChild(optFixed)
+        selGrow.appendChild(optComp)
+        selGrow.appendChild(optAdd)
+        selGrow.addEventListener('change', function (e) {
+          growthState[r.id].mode = e.target.value
+          renderView()
+        })
+        tdRule.appendChild(selGrow)
+
+        var inpFactor = el('input', 'innfo-grow-factor')
+        inpFactor.type = 'number'
+        inpFactor.step = 'any'
+        inpFactor.value = g.factor != null ? String(g.factor) : '0'
+        if (g.mode === 'fixed') inpFactor.disabled = true
+        inpFactor.addEventListener('change', function (e) {
+          growthState[r.id].factor = parseFloat(e.target.value) || 0
+          renderView()
+        })
+        tdRule.appendChild(inpFactor)
+        tr.appendChild(tdRule)
+
+        tr.appendChild(el('td', 'td-unit', r.metricUnit || ''))
+
+        var vals = rowValues[r.id] || []
+        var sum = 0
+        for (var mi = 0; mi < totalMonths; mi++) {
+          var val = vals[mi] != null ? vals[mi] : 0
+          sum += val
+          var isHistCell = mi < historyCount
+          var tdVal = el('td', 'td-num' + (isHistCell ? ' hist-cell' : ''))
+
+          if (r.variable && !isHistCell) {
+            var isOverridden = overrides[r.id] && overrides[r.id][mi] !== undefined
+            var inpVar = el('input', 'innfo-var-input' + (isOverridden ? ' overridden' : ''))
+            inpVar.type = 'number'
+            inpVar.step = 'any'
+            inpVar.value = isOverridden ? overrides[r.id][mi] : String(Math.round(val * 100) / 100)
+            inpVar.dataset.row = r.id
+            inpVar.dataset.m = String(mi)
+            inpVar.addEventListener('change', function (e) {
+              var rowId = e.target.dataset.row
+              var monthIdx = Number(e.target.dataset.m)
+              if (!overrides[rowId]) overrides[rowId] = {}
+              overrides[rowId][monthIdx] = parseFloat(e.target.value) || 0
+              renderView()
+            })
+            tdVal.appendChild(inpVar)
+          } else {
+            tdVal.textContent = formatGridNumber(val)
+          }
+          tr.appendChild(tdVal)
+        }
+
+        var isResultOrRev = r.metricType === 'result' || r.metricType === 'revenue'
+        var totalFormatted = r.growth && r.growth.mode === 'fixed' && !isResultOrRev && r.variable
+          ? formatGridNumber(vals[0]) + ' (avg)'
+          : formatGridNumber(sum)
+        tr.appendChild(el('td', 'td-num td-total', totalFormatted))
+
+        tbody.appendChild(tr)
+
+        // Render inline monthly chart if toggled
+        if (expandedChartRowIds[r.id]) {
+          var trChart = el('tr', 'innfo-timeline-chart-row')
+          var tdChartSticky = el('td', 'td-sticky')
+          tdChartSticky.appendChild(el('span', 'innfo-chart-row-label', '📈 Monthly: ' + (r.label || r.id)))
+          trChart.appendChild(tdChartSticky)
+
+          var maxAbs = Math.max.apply(null, vals.map(function (v) { return Math.abs(v) })) || 1
+          var minReal = Math.min.apply(null, vals)
+          var maxReal = Math.max.apply(null, vals)
+
+          var tdChartRule = el('td', 'td-rule')
+          tdChartRule.appendChild(el('span', 'innfo-chart-range', 'Range: ' + formatGridNumber(minReal) + ' .. ' + formatGridNumber(maxReal)))
+          trChart.appendChild(tdChartRule)
+
+          trChart.appendChild(el('td', 'td-unit', r.metricUnit || ''))
+
+          for (var ci = 0; ci < totalMonths; ci++) {
+            var cVal = vals[ci] != null ? vals[ci] : 0
+            var isHistCol = ci < historyCount
+            var tdCell = el('td', 'td-chart-cell' + (isHistCol ? ' hist-cell' : ''))
+            var barWrap = el('div', 'innfo-mini-bar-wrap')
+            barWrap.setAttribute('title', (labels[ci] || ('M' + (ci + 1))) + ': ' + formatGridNumber(cVal) + (r.metricUnit ? ' ' + r.metricUnit : ''))
+
+            var heightPct = Math.max(4, Math.round((Math.abs(cVal) / maxAbs) * 100))
+            var bar = el('div', 'innfo-mini-bar' + (cVal < 0 ? ' negative' : ''))
+            bar.style.height = heightPct + '%'
+            if (r.colors && r.colors.base) bar.style.backgroundColor = r.colors.base
+
+            var valLabel = el('span', 'innfo-mini-bar-val', formatGridNumber(cVal))
+            barWrap.appendChild(bar)
+            barWrap.appendChild(valLabel)
+            tdCell.appendChild(barWrap)
+            trChart.appendChild(tdCell)
+          }
+
+          var tdChartTotal = el('td', 'td-total td-chart-total')
+          var firstVal = vals[0] || 0
+          var lastVal = vals[totalMonths - 1] || 0
+          var deltaPct = firstVal !== 0 ? Math.round(((lastVal - firstVal) / Math.abs(firstVal)) * 100) : 0
+          tdChartTotal.appendChild(el('div', 'innfo-mini-total', (deltaPct >= 0 ? '+' : '') + deltaPct + '% trend'))
+          trChart.appendChild(tdChartTotal)
+
+          tbody.appendChild(trChart)
+        }
+      }
+
+      // 1. Render pinned section if any
+      var pinnedRows = rows.filter(function (r) { return !!pinnedRowIds[r.id] })
+      if (pinnedRows.length > 0) {
+        var trPinnedHdr = el('tr', 'innfo-timeline-grp innfo-pinned-grp')
+        var tdPinnedHdr = el('td')
+        tdPinnedHdr.setAttribute('colspan', String(totalMonths + 4))
+        tdPinnedHdr.appendChild(el('span', 'innfo-grp-badge', '📌 PINNED METRICS (' + pinnedRows.length + ')'))
+        trPinnedHdr.appendChild(tdPinnedHdr)
+        tbody.appendChild(trPinnedHdr)
+
+        pinnedRows.forEach(function (r) {
+          renderRowItem(r, true)
+        })
+      }
+
+      // 2. Render normal groups
+      var groups = []
+      rows.forEach(function (r) {
+        var grp = r.grp || 'GENERAL'
+        if (groups.indexOf(grp) === -1) groups.push(grp)
+      })
+
+      groups.forEach(function (grp) {
+        var trGrp = el('tr', 'innfo-timeline-grp')
+        var tdGrp = el('td')
+        tdGrp.setAttribute('colspan', String(totalMonths + 4))
+        tdGrp.appendChild(el('span', 'innfo-grp-badge', grp))
+        trGrp.appendChild(tdGrp)
+        tbody.appendChild(trGrp)
+
+        var grpRows = rows.filter(function (r) { return (r.grp || 'GENERAL') === grp })
+        grpRows.forEach(function (r) {
+          renderRowItem(r, false)
+        })
+      })
+
+      if (table && tbody) table.appendChild(tbody)
+      if (tableWrap && table) tableWrap.appendChild(table)
+      if (host && tableWrap) host.appendChild(tableWrap)
+    }
+
+    renderView()
+  }
+
+  function renderViewTabs(doc, config, model, meta) {
+    var tabsNav = doc && typeof doc.getElementById === 'function' ? doc.getElementById('innfo-view-tabs') : null
+    if (!tabsNav) return
+
+    var hasDomain = hasNeed(config, 'timeline-grid') || (Array.isArray(model && model.rows) && model.rows.length > 0 && meta && meta.months)
+    var hasMatrices = Array.isArray(model && model.matrices) && model.matrices.length > 0
+    var hasExplorer = Array.isArray(model && model.elements) && model.elements.length > 0
+
+    var tabs = []
+    if (hasDomain) {
+      tabs.push({ id: 'timeline', label: '📊 Timeline & Projections', targetId: 'innfo-tab-domain' })
+    }
+    if (hasExplorer) {
+      tabs.push({ id: 'explorer', label: '🗂️ Model Explorer', targetId: 'innfo-tab-explorer' })
+    }
+    if (hasMatrices) {
+      tabs.push({ id: 'matrices', label: '🔗 Matrices', targetId: 'innfo-tab-matrices' })
+    }
+
+    if (tabs.length <= 1) {
+      tabsNav.style.display = 'none'
+      return
+    }
+
+    tabsNav.innerHTML = ''
+    tabsNav.style.display = 'flex'
+
+    var initialHash = String(doc.location ? doc.location.hash || '' : '').replace(/^#/, '')
+    var activeTabId = tabs[0].id
+    tabs.forEach(function (t) {
+      if (t.id === initialHash) activeTabId = t.id
+    })
+
+    function selectTab(tabId) {
+      tabs.forEach(function (t) {
+        var btn = tabsNav.querySelector('.innfo-view-tab[data-tab="' + t.id + '"]')
+        var panel = doc.getElementById(t.targetId)
+        var isActive = t.id === tabId
+        if (btn) btn.classList.toggle('active', isActive)
+        if (panel) panel.classList.toggle('active', isActive)
+      })
+      if (doc.location && typeof doc.location.replace === 'function' && doc.location.hash !== '#' + tabId) {
+        try {
+          doc.location.replace('#' + tabId)
+        } catch (e) {}
+      }
+    }
+
+    tabs.forEach(function (t) {
+      var btn = el('button', 'innfo-view-tab' + (t.id === activeTabId ? ' active' : ''), t.label)
+      btn.setAttribute('type', 'button')
+      btn.dataset.tab = t.id
+      btn.addEventListener('click', function () {
+        selectTab(t.id)
+      })
+      tabsNav.appendChild(btn)
+    })
+
+    selectTab(activeTabId)
   }
 
   // Build a name->element lookup used by the reference-popup need so field
@@ -1009,6 +1546,10 @@
     if (hasNeed(config, 'charts')) {
       renderCharts(active, model, meta)
     }
+    if (hasNeed(config, 'timeline-grid') || (Array.isArray(model.rows) && model.rows.length > 0)) {
+      renderTimelineGrid(active, model, meta)
+    }
+    renderViewTabs(active, config, model, meta)
 
     var searchBox = active.getElementById('innfo-search')
     if (searchBox) {
@@ -1112,6 +1653,8 @@
     compileChartSeries: compileChartSeries,
     monthAxis: monthAxis,
     renderCharts: renderCharts,
+    renderTimelineGrid: renderTimelineGrid,
+    renderViewTabs: renderViewTabs,
     getDraftKey: getDraftKey,
     buildExportDoc: buildExportDoc,
     boot: boot,

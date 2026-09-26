@@ -1,5 +1,6 @@
 version: "2.0"
 entrypoint: "workspace_NN.md"
+# manifest/source.yaml - pinned source of truth for distribution
 
 skills:
   - name: nn-start

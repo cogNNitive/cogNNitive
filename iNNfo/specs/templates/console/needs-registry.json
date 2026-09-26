@@ -70,6 +70,11 @@
       "description": "Guided Procedure Execution (fsm-stepper): navigable tree of root Work elements and their step chains with condition guards, I/O, tools, and role assignment.",
       "renderer": "procedure-stepper",
       "since": "0.1.0"
+    },
+    "timeline-grid": {
+      "description": "Interactive monthly P&L and metrics timeline grid with growth rules, variable overrides, formula recalculation, and CSV export.",
+      "renderer": "innfo-runtime",
+      "since": "0.1.0"
     }
   }
 }
