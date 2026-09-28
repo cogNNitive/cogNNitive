@@ -184,6 +184,59 @@ function parseElements(text) {
   return elements
 }
 
+/**
+ * Parse `# NN matrices: <name>` sections into the render-model-viewer contract
+ * `{ name, rows: string[], cols: string[], cells: { [row]: { [col]: value } } }`.
+ *
+ * The section is a Git Markdown table whose first column is the row header:
+ *   | Source \ Target | A | B |
+ *   | :--- | :---: | :---: |
+ *   | Row1 | Max | - |
+ * A cell value of `-` (or empty) means "no relation" and is stored as ''.
+ * The header's first cell (`Source \ Target`) is not a column.
+ */
+function parseMatrices(text) {
+  const normalized = text.replace(/\r\n/g, '\n')
+  const matrices = []
+  const lines = normalized.split('\n')
+  for (let i = 0; i < lines.length; i++) {
+    const head = lines[i].match(/^#\s+NN\s+matrices:\s*(.+?)\s*$/)
+    if (!head) continue
+    const name = head[1]
+    let j = i + 1
+    while (j < lines.length && !lines[j].trim().startsWith('|')) j++
+    if (j >= lines.length) continue
+    const splitRow = (line) =>
+      line
+        .trim()
+        .replace(/^\|/, '')
+        .replace(/\|$/, '')
+        .split('|')
+        .map((c) => c.trim())
+    const header = splitRow(lines[j])
+    const cols = header.slice(1).filter((c) => c && !/^:?-+:?$/.test(c))
+    j++
+    // skip the separator row (`| :--- | :---: |`)
+    if (j < lines.length && /^\s*\|[\s:|-]+\|\s*$/.test(lines[j])) j++
+    const rows = []
+    const cells = {}
+    for (; j < lines.length && lines[j].trim().startsWith('|'); j++) {
+      const parts = splitRow(lines[j])
+      const rowName = parts[0]
+      if (!rowName) continue
+      rows.push(rowName)
+      cells[rowName] = {}
+      cols.forEach((c, idx) => {
+        const raw = parts[idx + 1]
+        cells[rowName][c] = raw && raw !== '-' ? raw : ''
+      })
+    }
+    if (cols.length) matrices.push({ name, rows, cols, cells })
+    i = j - 1
+  }
+  return matrices
+}
+
 function elSlug(name) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
 }
@@ -425,6 +478,7 @@ async function main() {
     const stem = m.name
     const modelVersion = String(m.fm.knowledge_version ?? 'V_0-1-0')
     const elements = parseElements(m.content)
+    const matrices = parseMatrices(m.content)
     const sourceSha256 = computeSha256(m.content)
     const meta = {
       model: relative(root, m.filePath).replace(/\\/g, '/'),
@@ -435,12 +489,12 @@ async function main() {
       generated: new Date().toISOString(),
       slug: elSlug(stem),
     }
-    const model = { meta, elements, matrices: [] }
+    const model = { meta, elements, matrices }
     const conceptNames = Array.from(new Set(elements.map((e) => e.concept).filter(Boolean)))
     const schema = {
       concepts: conceptNames.map((name) => ({ name })),
       markers: [],
-      matrices: [],
+      matrices: matrices.map((mx) => ({ name: mx.name })),
     }
 
     const outDir = join(root, 'export', `${stem}_console`)

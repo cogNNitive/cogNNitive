@@ -428,4 +428,66 @@ level: 3
       )
     })
   })
+
+  describe('Phase 5: Matrix serialization', () => {
+    const matrixModel = `---
+title: "Matrix Model"
+model_version: "V_0-1-0"
+level: 3
+---
+
+# NN Metrics
+## NN Metrics: Payback capex
+metricValue:: 56
+
+# NN matrices: metrics-dependencies matrix
+| Metrics \\\\ Metrics | Flujo acumulado | Payback capex |
+| :--- | :---: | :---: |
+| Flujo acumulado | - | DependsOn |
+| Payback capex | DependsOn | - |
+
+# NN matrices: item-markers matrix
+| Item \\\\ Marker | is_formula | is_derived |
+| :--- | :---: | :---: |
+| Payback capex | X | - |
+`
+
+    beforeEach(async () => {
+      await writeFile(join(tempDir, 'models', 'matrix_V_0-1-0_NN.md'), matrixModel, 'utf-8')
+    })
+
+    it('serializes `# NN matrices:` sections into schema.matrices and model.matrices', async () => {
+      const res = await runCli([tempDir, 'matrix_V_0-1-0'])
+      assert.equal(res.code, 0)
+
+      const htmlPath = join(
+        tempDir,
+        'export',
+        'matrix_V_0-1-0_console',
+        'matrix_V_0-1-0_console.html',
+      )
+      const htmlContent = await readFile(htmlPath, 'utf-8')
+
+      const modelJson = JSON.parse(
+        htmlContent.match(/<script type="application\/json" id="innfo-model">([\s\S]*?)<\/script>/)[1],
+      )
+      assert.equal(modelJson.matrices.length, 2, 'both matrices serialized')
+
+      const deps = modelJson.matrices.find((m) => m.name === 'metrics-dependencies matrix')
+      assert.ok(deps, 'metrics-dependencies matrix present')
+      assert.deepEqual(deps.rows, ['Flujo acumulado', 'Payback capex'])
+      assert.deepEqual(deps.cols, ['Flujo acumulado', 'Payback capex'])
+      assert.equal(deps.cells['Payback capex']['Flujo acumulado'], 'DependsOn')
+      assert.equal(deps.cells['Flujo acumulado']['Flujo acumulado'], '', '`-` becomes empty cell')
+
+      const schemaJson = JSON.parse(
+        htmlContent.match(/<script type="application\/json" id="innfo-schema">([\s\S]*?)<\/script>/)[1],
+      )
+      assert.deepEqual(
+        schemaJson.matrices.map((m) => m.name).sort(),
+        ['item-markers matrix', 'metrics-dependencies matrix'],
+        'schema.matrices lists every parsed matrix',
+      )
+    })
+  })
 })
