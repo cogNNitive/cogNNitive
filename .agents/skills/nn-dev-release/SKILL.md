@@ -74,11 +74,13 @@ git tag -l "v*" --sort=-creatordate | Where-Object { $_ -notmatch '^(skills|temp
 Write-Host "`n=== LOCAL WORKSPACE PARITY ==="
 node scripts/manifest/check-parity.js
 
-Write-Host "`n=== DEPLOY-DoD (tag · CI-tip · Pages · CDN/manifest) ==="
-# 1. tag pushed?  2. CI success on the origin/main tip?  3. Pages deploy on that tip?
+Write-Host "`n=== DEPLOY-DoD (tag · CI-tip · publish-web · CDN/manifest) ==="
+# 1. tag pushed?  2. CI success on the origin/main tip?  3. publish-web (one-way
+# publish to the public cogNNitive-web repo, which owns Pages for cognnitive.com)
+# green on that tip?
 gh run list --branch main --workflow "CI & Verify" --limit 1 --json headSha,status,conclusion
 $runId = gh run list --branch main --workflow "CI & Verify" --limit 1 --json databaseId --jq '.[0].databaseId'
-gh run view $runId --json jobs --jq '.jobs[] | select(.name=="deploy-pages") | {name,conclusion,headSha}'
+gh run view $runId --json jobs --jq '.jobs[] | select(.name=="publish-web") | {name,conclusion,headSha}'
 # 4. CDN bundle + manifest pins resolve
 $env:GITHUB_TOKEN = (gh auth token).Trim()
 node scripts/manifest/validate-manifest.js
@@ -89,8 +91,11 @@ Present a consolidated summary table with:
 - Working tree status (Clean / Uncommitted changes)
 - Latest release tags for each subsystem
 - Parity status between local workspace files and `manifest/source.yaml`
-- Deploy-DoD (tag / CI-tip / Pages / CDN-manifest): all four legs green, or ❌
-  naming the failing leg — a tag alone NEVER satisfies the definition of deployed
+- Deploy-DoD (tag / CI-tip / publish-web / CDN-manifest): all four legs green, or ❌
+  naming the failing leg — a tag alone NEVER satisfies the definition of deployed.
+  `publish-web` pushes the built site + distribution surface to the public
+  `cogNNitive-web` repo (append-only, idempotent); Pages serves `cognnitive.com`
+  from there, not from this monorepo.
 
 ---
 

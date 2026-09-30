@@ -33,17 +33,35 @@ cogNNitive/
 ├── iNNfo/            # Semantic modeling layer
 │   ├── apps/         # innfo-editor (Vue/Vite web application)
 │   ├── packages/     # innfo-core (pure TS semantic engine) & innfo-mcp (MCP server)
-│   └── specs/        # Canonical iNNfo specifications, templates, and samples
+│   └── specs/        # Canonical iNNfo specifications, bluepriNNts, and samples
 ├── skills/           # Agent skills (nn-innfo, nn-trannsform, nn-preflight, etc.)
 ├── openspec/         # Cross-system architecture RFCs and formal specifications
 └── scripts/          # Workspace maintenance and verification scripts
 ```
 
+## Public distribution (`cogNNitive-web`)
+
+This monorepo is the **private source of truth**. The public website and the
+canonically hosted specifications, bluepriNNts and bundles live in the public
+[`cogNNitive/cogNNitive-web`](https://github.com/cogNNitive/cogNNitive-web)
+repository, which owns the GitHub Pages deployment for `cognnitive.com`.
+
+- **Generated output only.** `cogNNitive-web` is never hand-edited: CI pushes to
+  it one-way from this repo (`scripts/publish-web.mjs`, wired into
+  `.github/workflows/ci.yml`), append-only and idempotent.
+- **Canonical base URL.** Every spec/template/bundle URL resolves against
+  `https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/`.
+- **Publishing.** `npm run build:docs` builds the site and artifacts; the
+  `publish-web` CI job copies the site (`docs/`) plus the distribution surface
+  (`skills/**`, `iNNfo/specs/**`, the MCP bundle, `scripts/export-console.mjs`)
+  to the public repo. Set `WEB_PUBLISH_TOKEN` (Contents:write on
+  `cogNNitive-web`) for a manual publish.
+
 ## AI Agent Bootstrap
 
 If you are an AI Agent (Claude Code, Antigravity, OpenCode, Cursor):
 - Bootstrap entrypoint: [https://cognnitive.com/use](https://cognnitive.com/use) (served from `docs/use/manifest.md`)
-- Semantic model entrypoint: `workspace_NN.md`
+- Semantic kNNowledge entrypoint: `domaiNN_NN.md`
 
 ## Development & Philosophy
 
