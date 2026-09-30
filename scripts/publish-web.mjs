@@ -3,22 +3,31 @@
 /**
  * scripts/publish-web.mjs
  *
- * One-way publish of the built site (`docs/`) to the public distribution repo
+ * One-way publish from the private monorepo to the public distribution repo
  * `cogNNitive-web`, part of OpenSpec change `2026-09-30-public-web-repository-split`.
  *
+ * The public repo is the canonical host for two surfaces, both generated/copied
+ * from the private monorepo (the single source of truth):
+ *
+ *   1. the built website → `<repo>/docs/` (Pages serves `main:<WEB_PUBLISH_SUBDIR>`),
+ *   2. the distribution surface the manifest pins against → copied verbatim so
+ *      every `repo: cogNNitive/cogNNitive-web` pin resolves at the release
+ *      commit: `skills/**`, `iNNfo/specs/**`, the MCP bundle and
+ *      `scripts/export-console.mjs`.
+ *
  * Contract:
- *   - The private monorepo is the single source of truth; the public repo holds
- *     GENERATED OUTPUT ONLY.
- *   - Idempotent: when the built artifact is byte-identical to what the public
- *     repo already has, this is a no-op (no empty commit).
- *   - Append-only: it commits ON TOP of the public repo's history, so SHA-pinned
+ *   - Idempotent: a byte-identical artifact is a no-op (no empty commit).
+ *   - Append-only: commits on top of the public repo's history so SHA-pinned
  *     manifest URLs stay valid.
+ *   - Generated-output-only: refuses to publish if the distribution surface ever
+ *     carries private source (src/, node_modules/, package.json, .env, ...).
  *
  * Env:
  *   INNFO_DOCS_OUT       built site root (default `<repo>/docs`)
  *   WEB_PUBLISH_REPO     target repo slug (default `cogNNitive/cogNNitive-web`)
  *   WEB_PUBLISH_TOKEN    token with Contents:write on the target repo (required)
- *   WEB_PUBLISH_SUBDIR   path inside the public repo (default `docs`)
+ *   WEB_PUBLISH_SUBDIR   site path inside the public repo (default `docs`)
+ *   WEB_PUBLISH_SKIP_DISTRIBUTION  set to `1` to publish only the site
  *
  * Usage:
  *   node scripts/publish-web.mjs [--dry-run]
@@ -29,7 +38,7 @@
 import { execFileSync } from 'node:child_process';
 import { cpSync, mkdtempSync, existsSync, readdirSync, rmSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 
@@ -45,18 +54,27 @@ const docsRoot = process.env.INNFO_DOCS_OUT
   : join(repoRoot, 'docs');
 const targetRepo = process.env.WEB_PUBLISH_REPO || 'cogNNitive/cogNNitive-web';
 const subdir = (process.env.WEB_PUBLISH_SUBDIR || 'docs').replace(/^\/+|\/+$/g, '');
+const skipDistribution = process.env.WEB_PUBLISH_SKIP_DISTRIBUTION === '1';
+
+// Paths copied verbatim into the public repo so the manifest's
+// `repo: cogNNitive/cogNNitive-web` pins resolve. Only distribution artifacts:
+// no editor/core/video source, no node_modules.
+const DISTRIBUTION_PATHS = [
+  'skills',
+  'iNNfo/specs',
+  'iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js',
+  'scripts/export-console.mjs',
+];
 
 function git(args, cwd) {
   return execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
 }
 
-// Source trees that must NEVER reach the public repo: the site is generated
-// output only. If the built artifact ever carries any of these, refuse to
-// publish rather than leak private source (public-web-distribution: "Build
-// Output Only").
+// Source trees that must NEVER reach the public repo.
 const FORBIDDEN_SOURCE = [
   'src',
   'packages',
+  'apps',
   'node_modules',
   'package.json',
   'package-lock.json',
@@ -64,9 +82,10 @@ const FORBIDDEN_SOURCE = [
   '.env',
 ];
 
-function assertNoSource(dir) {
+function assertNoSource(target) {
   const offenders = [];
   const walk = (abs, rel) => {
+    if (!statSync(abs).isDirectory()) return;
     for (const name of readdirSync(abs)) {
       const full = join(abs, name);
       const relPath = rel ? `${rel}/${name}` : name;
@@ -78,13 +97,26 @@ function assertNoSource(dir) {
       if (isDir) walk(full, relPath);
     }
   };
-  walk(dir, '');
+  walk(target, '');
   if (offenders.length > 0) {
     console.error(
       `publish-web: refusing to publish — the artifact carries source-like paths that must never be public: ${offenders.join(', ')}`,
     );
     process.exit(1);
   }
+}
+
+/** Copies one distribution path into the clone, guarding against source leaks. */
+function copyDistributionPath(rel, work) {
+  const from = join(repoRoot, rel);
+  if (!existsSync(from)) {
+    console.warn(`publish-web: distribution path missing, skipping: ${rel}`);
+    return;
+  }
+  assertNoSource(from);
+  const to = join(work, rel);
+  rmSync(to, { recursive: true, force: true });
+  cpSync(from, to, { recursive: true });
 }
 
 function main() {
@@ -111,24 +143,24 @@ function main() {
     console.log(`publish-web: cloning ${targetRepo}...`);
     git(['clone', '--depth', '1', cloneUrl, work], repoRoot);
 
-    // The public repo's Pages source is `main:<subdir>`. Diff the built tree
-    // against exactly that subtree.
+    // ── 1. Site: diff the built tree against the Pages subtree ──
     const targetTree = join(work, subdir);
-    const d = diffTrees(docsRoot, existsSync(targetTree) ? targetTree : join(work, '__absent__'));
-
-    if (d.identical) {
-      console.log('publish-web: artifact is byte-identical — no-op (no empty commit).');
-      return;
+    const siteDiff = diffTrees(docsRoot, existsSync(targetTree) ? targetTree : join(work, '__absent__'));
+    if (siteDiff.identical) {
+      console.log('publish-web: site artifact is byte-identical.');
+    } else {
+      console.log(
+        `publish-web: site → ${siteDiff.added.length} added, ${siteDiff.modified.length} modified, ${siteDiff.removed.length} removed.`,
+      );
+      rmSync(targetTree, { recursive: true, force: true });
+      cpSync(docsRoot, targetTree, { recursive: true });
     }
 
-    console.log(
-      `publish-web: publishing ${d.added.length} added, ${d.modified.length} modified, ${d.removed.length} removed file(s).`,
-    );
-
-    // Replace the subtree with the freshly built artifact (excluding the
-    // public repo's own .git; .nojekyll/CNAME live inside docsRoot already).
-    rmSync(targetTree, { recursive: true, force: true });
-    cpSync(docsRoot, targetTree, { recursive: true });
+    // ── 2. Distribution surface: copy verbatim (manifest pins) ──
+    if (!skipDistribution) {
+      for (const rel of DISTRIBUTION_PATHS) copyDistributionPath(rel, work);
+      console.log(`publish-web: staged ${DISTRIBUTION_PATHS.length} distribution path(s).`);
+    }
 
     if (DRY_RUN) {
       console.log('publish-web: DRY RUN — no commit/push performed.');
@@ -137,19 +169,20 @@ function main() {
 
     git(['config', 'user.name', 'cogNNitive publish bot'], work);
     git(['config', 'user.email', 'publish@cognnitive.com'], work);
-    git(['add', '--', subdir], work);
+    const addPaths = skipDistribution ? [subdir] : [subdir, ...DISTRIBUTION_PATHS];
+    git(['add', '--', ...addPaths], work);
 
-    // Nothing staged (e.g. only ignored files changed) -> no-op.
     const staged = git(['diff', '--cached', '--name-only'], work);
     if (!staged) {
-      console.log('publish-web: nothing staged after add — no-op.');
+      console.log('publish-web: nothing staged — no-op (no empty commit).');
       return;
     }
 
     const stamp = new Date().toISOString();
-    git(['commit', '-m', `chore: publish site from cogNNitive@${process.env.GITHUB_SHA || 'local'} (${stamp})`], work);
+    git(['commit', '-m', `chore: publish from cogNNitive@${process.env.GITHUB_SHA || 'local'} (${stamp})`], work);
     git(['push', 'origin', 'HEAD:main'], work);
     console.log('publish-web: pushed to', targetRepo);
+    console.log(relative(repoRoot, work));
   } finally {
     rmSync(work, { recursive: true, force: true });
   }
