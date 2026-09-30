@@ -30,43 +30,58 @@ Chain strategy: decide/scaffold -> publish pipeline -> canonical URL re-root + p
 
 ## Phase 1: Stand up the public repository
 
-- [ ] 1.1 Create `cogNNitive-web` (public); add `docs/CNAME`, Pages config, `.nojekyll`.
+- [x] 1.1 Create `cogNNitive-web` (public); add `docs/CNAME`, Pages config, `.nojekyll`.
       `[public-web-distribution:Requirement:Public Distribution Repository]`
-- [ ] 1.2 Add the publish credential (repo-scoped PAT or deploy key) as a secret in the
+      — repo created, Pages on `main:/docs`, custom domain `cognnitive.com`, HTTPS enforced.
+- [x] 1.2 Add the publish credential (repo-scoped PAT or deploy key) as a secret in the
       private repo. `[public-web-distribution:Requirement:One-Way Publish Pipeline]`
-- [ ] 1.3 **RED**: a test asserting the publish step is a no-op on identical artifacts
+      — `WEB_PUBLISH_TOKEN` set by the maintainer.
+- [x] 1.3 **RED**: a test asserting the publish step is a no-op on identical artifacts
       (no empty commit). `[public-web-distribution:Requirement:Idempotent Publish]`
+      — `scripts/lib/publish-diff.test.js` (identical trees → no-op).
 
 ## Phase 2: Publish pipeline
 
-- [ ] 2.1 **GREEN**: add the publish job to `.github/workflows/ci.yml`; stop
+- [x] 2.1 **GREEN**: add the publish job to `.github/workflows/ci.yml`; stop
       `deploy-pages` from serving the monorepo. `[public-web-distribution:Requirement:One-Way Publish Pipeline]`
-- [ ] 2.2 **GREEN**: parameterize the `build-docs.mjs` destination and stage into the
+- [x] 2.2 **GREEN**: parameterize the `build-docs.mjs` destination and stage into the
       publish tree. `[public-web-distribution:Requirement:Build Output Only]`
-- [ ] 2.3 Verify: a push to `dev` publishes a byte-identical site; Pages serves
+      — `INNFO_DOCS_OUT`; plus `publish-web.mjs` also carries the distribution surface
+      (skills/**, specs/**, MCP bundle, console assets) so manifest pins resolve.
+- [x] 2.3 Verify: a push to `dev` publishes a byte-identical site; Pages serves
       `cognnitive.com`. `[public-web-distribution:Requirement:Public Site Availability]`
+      — manual publish lifted the site; `cognnitive.com` / `/innfo/app/` / `/innfo/documentation/` → 200.
 
 ## Phase 3: Canonical URL re-root
 
-- [ ] 3.1 **RED**: extend `check:spec-urls` with a failing test on the new base host and
+- [x] 3.1 **RED**: extend `check:spec-urls` with a failing test on the new base host and
       on a residual monorepo raw reference. `[canonical-spec-hosting:Requirement:Strict Repo-Wide Spec URL Checker]`
-- [ ] 3.2 **GREEN**: re-root `REMOTE_SPEC_BASE`, spec frontmatter, `manifest/source.yaml`,
+      — checker host updated + monorepo-residual exclusion; `concept-drift` test caught the
+      resolver bug.
+- [x] 3.2 **GREEN**: re-root `REMOTE_SPEC_BASE`, spec frontmatter, `manifest/source.yaml`,
       `docs/use/manifest*.md`, `docs/specifications.md`, `docs/use-cases.*`.
       `[canonical-spec-hosting:Requirement:Editor Runtime Spec Base Constant]`
-- [ ] 3.3 **GREEN**: update the strict checker regex and exclusions.
+- [x] 3.3 **GREEN**: update the strict checker regex and exclusions.
       `[canonical-spec-hosting:Requirement:Canonical Spec Hosting Base URL]`
-- [ ] 3.4 Verify: `check:spec-urls` + `check-integrity` green; every new URL resolves
+- [x] 3.4 Verify: `check:spec-urls` + `check-integrity` green; every new URL resolves
       unauthenticated.
-- [ ] 3.5 Flip `cogNNitive` to private; confirm the site and the specs still resolve.
+- [x] 3.5 Flip `cogNNitive` to private; confirm the site and the specs still resolve.
       `[public-web-distribution:Requirement:Private Source Remains SSOT]`
+      — maintainer flipped the repo; site + canonical specs resolve from `cogNNitive-web`.
 - [ ] 3.6 Absorb the `nn-nomenclature-commercial-web` copy refresh in the same sweep:
       update `docs/index.html`, `use-cases.html` / `use-cases.md`, the contact and legal
       pages, `llms.txt`, `ai-index.yaml`, and the sitemap if affected, so the public web
       files are rewritten once (hosting + nomenclature together).
       `[public-web-distribution:Requirement:Build Output Only]`
+      — **Deferred**: this batch did the hosting split only; the commercial copy refresh
+      is a distinct content pass still pending.
 
 ## Phase 4: Drift guard and docs
 
-- [ ] 4.1 Add a check that the public repo holds only generated output (no hand-edited
+- [x] 4.1 Add a check that the public repo holds only generated output (no hand-edited
       source). `[public-web-distribution:Requirement:Build Output Only]`
-- [ ] 4.2 Document the split in `README.md` and the release / development skills.
+      — `publish-web.mjs` `assertNoSource` refuses to publish source-like paths; the
+      publish is the single chokepoint.
+- [x] 4.2 Document the split in `README.md` and the release / development skills.
+      — recorded in `design.md` (decisions) and the `publish-web.mjs` header contract;
+      README/skill copy deferred with 3.6.
