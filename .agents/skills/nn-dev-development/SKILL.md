@@ -1,7 +1,7 @@
 ---
 name: nn-dev-development
-version: "0.3.0"
-description: Internal developer skill for cogNNitive maintainers. Guards the shared working tree against concurrent AI agents and enforces single-branch (dev) hygiene with batched merges to main. On session start it detects other agent processes (Claude Code, Cursor, OpenCode, Copilot, etc.), checks whether origin/main advanced, and reports worktree/stash/HEAD state. Before any write to a repository file it confirms the change belongs on the shared dev branch (one-time consent per session), then re-checks the tree before each chunk and, when HEAD/branch was moved by a concurrent agent, runs the safe stash-switch-pop recovery protocol. At session close it reports what is on dev vs origin/main, flags ghost branches whose content already landed in main, and hands off to nn-dev-check-integrity + nn-dev-release for the batched merge to main. Trigger: any development session, concurrency check, branch decision, working-tree guard, session start.
+version: "0.3.1"
+description: Internal developer skill for cogNNitive maintainers. Guards the shared working tree against concurrent AI agents and enforces single-branch (dev) hygiene with batched merges to main. On session start it detects other agent processes (Claude Code, Cursor, OpenCode, Copilot, etc.), checks whether origin/main advanced, and reports worktree/stash/HEAD state. Before any write to a repository file it confirms the change belongs on the shared dev branch (one-time consent per session), then re-checks the tree before each chunk and, when HEAD/branch was moved by a concurrent agent, runs the safe stash-free recovery protocol (explicit-path `wip:` commit on a scratch branch, then cherry-pick back). At session close it reports what is on dev vs origin/main, flags ghost branches whose content already landed in main, and hands off to nn-dev-check-integrity + nn-dev-release for the batched merge to main. Trigger: any development session, concurrency check, branch decision, working-tree guard, session start.
 ---
 
 # nn-dev-development Skill (Session & Integration Guard)
@@ -16,7 +16,7 @@ It exists because the monorepo is edited from multiple agents (this one, Claude 
 Cursor, Copilot, other OpenCode sessions), and the failures below recur:
 
 - **Concurrent sessions share a working tree** — one agent's commit can switch the
-  branch under another, `main` advances mid-task, foreign stashes appear, and planned
+  branch under another, `main` advances mid-task, foreign WIP appears, and planned
   fixes get half-applied by a sibling session.
 - **Unbranched writes collide** — two agents editing the same branch at once step on
   each other and dirty the tree for everyone.
@@ -170,12 +170,17 @@ session's first write:
 
 1. **Commit it** — `git commit -m "wip:<session-id>: <short reason>"` on `dev`,
    so the in-flight work becomes attributable.
-2. **Stash it with an owner note** — `git stash push -u -m "wip:<session-id>:
-   <short reason>"`, so the stash names its owner.
+2. **Checkpoint it off-tree, then drop it** — save a recoverable copy first
+   (`git diff --binary > temp/wip-<session-id>.patch` for tracked paths; copy
+   any untracked paths into `temp/`), then remove your own paths. Never drop
+   before the copy exists.
 3. **Discard it** — only with explicit maintainer confirmation; never silently.
 
 Never stage, commit, or delete stale unattributed paths on your own (Core
 Rule 6). A committed `wip:` is attributable; a dirty tree is not.
+
+`git stash` and `git clean` are **NOT** options: `.claude/hooks/block-dangerous-git.mjs`
+refuses both. Never prescribe them, here or anywhere else.
 
 ### 1f. Session claim (advisory for siblings, mandatory for ours)
 
@@ -282,21 +287,30 @@ Compare against the recorded `$baselineBranch` / `$baselineHead` (Section 1c):
 When the check above detects that the current branch / HEAD is not the expected one
 (the "agent changed MY branch under me" failure from the 2026-09-06/07 sessions), use
 this safe recovery. It only touches **your** files — never stage anything that belongs
-to a sibling agent:
+to a sibling agent.
+
+`git stash` is refused by `.claude/hooks/block-dangerous-git.mjs`, so the recovery is
+**stash-free**: park your own files as an attributable `wip:` commit on a throwaway
+branch, then bring them back onto the branch this session should work on.
 
 ```powershell
-# 1. Stash ONLY your files (untracked included), never a blanket stash
-git stash push -u -- <my-files...>
+# 1. Park your work on a scratch branch, so it is safe and attributable
+git switch -c wip/<session-id>
 
-# 2. Move back to the branch this session is supposed to work on
+# 2. Stage ONLY your files explicitly (never `git add -A` / `git add .`)
+git add -- <my-files...>
+git commit -m "wip:<session-id>: parked before branch recovery"
+$wip = git rev-parse HEAD
+
+# 3. Move back to the branch this session is supposed to work on
 git switch <my-branch>
 
-# 3. Bring your work back
-git stash pop
+# 4. Bring your work back as staged changes (or commit it with `git cherry-pick $wip`)
+git cherry-pick --no-commit $wip
 ```
 
 #### Rehearsal & inspection without disturbing the working tree:
-For inspecting historical commits, testing isolated builds, or rehearsing a merge without touching the shared working tree or stashing:
+For inspecting historical commits, testing isolated builds, or rehearsing a merge without touching the shared working tree:
 ```powershell
 git worktree add --detach temp/rehearsal <sha-or-ref>
 # ... run verification / rehearsal inside temp/rehearsal ...
@@ -307,7 +321,9 @@ Hard rules:
 
 - **NUNCA stagear archivos ajenos** — never `git add .` / `git add -A`; a concurrent
   agent's untracked files may be in the tree.
-- If a stash refuses to pop (conflicts with files a sibling agent changed), do **not**
+- **Never prescribe `git stash` / `git clean` / `git reset --hard`** — `.claude/hooks/block-dangerous-git.mjs`
+  refuses all three; the stash-free recovery above is the sanctioned alternative.
+- If the `cherry-pick` conflicts with files a sibling agent changed, do **not**
   force it. Report to the maintainer and ask how to proceed.
 - After recovery, record the new `$baselineHead` / `$baselineBranch` for this session.
 
@@ -492,19 +508,28 @@ git push origin checkpoint/<topic>-YYYYMMDD
 ```
 
 ### 6c. Rollback Guarantee (How to revert)
-If subsequent changes in `dev` fail, destabilize the codebase, or need to be discarded:
-```powershell
-# Discard uncommitted working tree changes
-git restore .
-git clean -fd
+`git restore .`, `git clean -fd` and `git reset --hard` are refused by the hook, so the
+rollback is done **scoped and non-destructively**:
 
-# Hard reset dev to the exact immutable tag
-git reset --hard <vX.Y.Z or checkpoint-tag>
+```powershell
+# Revert a single file you authored (scoped — never the whole tree)
+git checkout HEAD -- <explicit/path>
+
+# Inspect the immutable tag in a detached worktree, without touching the shared tree
+git worktree add --detach temp/rollback <vX.Y.Z or checkpoint-tag>
+# ... verify the restored state inside temp/rollback ...
+git worktree remove temp/rollback
+
+# Move refs/heads/dev to the tag with an atomic compare-and-swap
+# (fails non-destructively if dev advanced meanwhile: <current-dev-sha> is the expected old tip)
+git update-ref refs/heads/dev '<vX.Y.Z or checkpoint-tag>^{commit}' <current-dev-sha>
+
+# Publish the rewritten dev only with explicit maintainer consent
 git push origin dev --force-with-lease
 ```
 Alternatively, branch off the checkpoint without rewriting `dev`:
 ```powershell
-git checkout -b restore/<topic> <vX.Y.Z or checkpoint-tag>
+git switch -c restore/<topic> <vX.Y.Z or checkpoint-tag>
 ```
 
 ---
@@ -523,11 +548,13 @@ git checkout -b restore/<topic> <vX.Y.Z or checkpoint-tag>
 5. **Consent once per branch** — announce once, do not repeat on every write; re-announce
    only on scope change or tree switch.
 6. **Never stage foreign or unattributed files** — never `git add .` / `git add -A`;
-   a concurrent agent's files may be in the tree. Stash only your own files. A path
-   is attributable only via a `wip:<session-id>` commit or explicit maintainer
-   consent; unattributed paths are never staged.
+   a concurrent agent's files may be in the tree. Park your own files via an
+   explicit-path `wip:<session-id>` commit (never `git stash` — the hook refuses it).
+   A path is attributable only via such a commit or explicit maintainer consent;
+   unattributed paths are never staged.
 7. **Stop on stolen branch** — if HEAD/branch moved since the gate, stop and report;
-   recover with the stash-switch-pop protocol only for your own files.
+   recover with the stash-free protocol in §3a (explicit-path `wip:` commit on a
+   scratch branch, then cherry-pick back), only for your own files.
 8. **Never delete branches automatically** — ghost branches are listed as candidates;
    deletion is always the maintainer's call.
 9. **Read-only inspection** — this skill detects and asks; it never moves, renames, or
