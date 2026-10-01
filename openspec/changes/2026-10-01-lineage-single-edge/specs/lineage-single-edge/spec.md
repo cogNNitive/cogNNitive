@@ -4,7 +4,7 @@
 
 Lineage is ONE edge primitive: a `sources` citation (innfo-core `citation` field type). It is written once, inside the deriving file. Node roles (Source, kNNowledge, artifact) come from contract plus folder, never from stored type fields. `parent_spec` is conformance, not lineage, and is out of scope.
 
-Canonical grammar: `path@## Heading&subunit` (markdown), `data.csv@RowID&col` (CSV). Example: `sources/nn/interview.md@## Clients` and `kNNowledge/Client_NN.md@## NN Stakeholders: Enterprise Clients`.
+Canonical grammar: `path@## Heading&subunit` (markdown), `data.csv@RowID&col` (CSV), and `path` (file-level citation). Example: `sources/nn/interview.md@## Clients`, `kNNowledge/Client_NN.md@## NN Stakeholders: Enterprise Clients`, and `kNNowledge/Client_NN.md`.
 
 ## ADDED Requirements
 
