@@ -40,6 +40,10 @@ export default tseslint.config(
       // Peggy-generated parser (rebuilt via `npm run build:grammar`), not hand-written source.
       'iNNfo/packages/innfo-video-parser/src/parser/vus_parser.js',
       'iNNfo/apps/innfo-editor/scratch_graph_test.mjs',
+      // Generated artifacts and blueprints assets
+      '**/*.generated.cjs',
+      '**/*.generated.js',
+      'iNNfo/specs/bluepriNNts/**',
     ],
   },
 
