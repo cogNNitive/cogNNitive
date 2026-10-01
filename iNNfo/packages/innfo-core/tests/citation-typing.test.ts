@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { validateWorkspaceSources, type SourceResolver } from '../src/validator/workspaceSources.js'
-import { parseKnowledgeUnitRef, serializeKnowledgeUnitRef } from '../src/sourceRef.js'
+import { parseCitation, serializeKnowledgeUnitRef } from '../src/sourceRef.js'
 import type { RecursiveParseResult } from '../src/recursiveParser/types.js'
 import type { KnowledgeNode } from '../src/types/index.js'
 import type { BlueprintSchema } from '../src/schema/index.js'
@@ -133,7 +133,7 @@ describe('citation lists are deduplicated on write', () => {
 
 describe('citation text fidelity', () => {
   it('emits the human-readable heading, not its slug', () => {
-    const ref = parseKnowledgeUnitRef('sources/nn/report.md@## Q4 Outlook')
+    const ref = parseCitation('sources/nn/report.md@## Q4 Outlook')
     expect(ref?.unit).toBeDefined()
     expect(serializeKnowledgeUnitRef('sources/nn/report.md', ref!.unit!)).toBe(
       'sources/nn/report.md@## Q4 Outlook',
@@ -141,13 +141,13 @@ describe('citation text fidelity', () => {
   })
 
   it('still derives the slug on read', () => {
-    const ref = parseKnowledgeUnitRef('sources/nn/report.md@## Q4 Outlook')
+    const ref = parseCitation('sources/nn/report.md@## Q4 Outlook')
     expect(ref!.unit!.kind).toBe('header')
     expect((ref!.unit as { slug: string }).slug).toBe('q4-outlook')
   })
 
   it('round-trips a subunit pointer', () => {
-    const ref = parseKnowledgeUnitRef('sources/nn/report.md@## Q4 Outlook&owner')
+    const ref = parseCitation('sources/nn/report.md@## Q4 Outlook&owner')
     expect(serializeKnowledgeUnitRef('sources/nn/report.md', ref!.unit!, ['owner'])).toBe(
       'sources/nn/report.md@## Q4 Outlook&owner',
     )

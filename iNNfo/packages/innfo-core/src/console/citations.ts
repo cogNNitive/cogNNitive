@@ -4,8 +4,7 @@
 import {
   parseCsvTable,
   parseFrontmatter,
-  parseKnowledgeUnitRef,
-  parseSourceRef,
+  parseCitation,
   resolveHeadingSection,
   resolveUnit,
   extractHeadings,
@@ -175,7 +174,7 @@ export function resolveCitation(
   resolver: SourceResolver,
   modelPath: string = '',
 ): ResolvedCitation {
-  const ref = parseKnowledgeUnitRef(raw) ?? parseSourceRef(raw)
+  const ref = parseCitation(raw)
   if (!ref) {
     return { path: raw, exists: false, field, origin: 'document', error: 'MALFORMED' }
   }

@@ -7,10 +7,10 @@ import {
   CONFLICT_FIELD_NAMES,
   extractHeadings,
   normalizeName,
-  parseKnowledgeUnitRef,
-  parseSourceRef,
+  parseCitation,
   splitSourceFieldValue,
   type SourceRef,
+  type Citation,
 } from '../sourceRef.js'
 import { listSectionFields, resolveUnit } from '../unitResolve.js'
 import type { KnowledgeNode } from '../types/index.js'
@@ -184,11 +184,31 @@ export function validateWorkspaceSources(
           continue
         }
 
-        const unitRef = parseKnowledgeUnitRef(value)
-        if (unitRef?.unit) {
+        if (/^models\//i.test(value.trim())) {
+          diagnostics.push({
+            path,
+            message: `Malformed source reference "${value}" — \`models/\` was removed; use \`kNNowledge/\``,
+            severity: 'error',
+            code: 'KU_MALFORMED',
+          })
+          continue
+        }
+
+        const cit = parseCitation(value)
+        if (!cit) {
+          diagnostics.push({
+            path,
+            message: `Malformed source reference "${value}" — use "<path>@<unit>" (e.g. "file.md@## Section", "data.csv@104"); line ranges like #L10-L20 and src-NNN ids are not allowed, and sources/original/ is not citable`,
+            severity: 'error',
+            code: 'KU_MALFORMED',
+          })
+          continue
+        }
+
+        if (cit.unit) {
           const before = diagnostics.length
           validateUnitPointer(
-            unitRef,
+            cit,
             node.source.path,
             path,
             resolver,
@@ -201,22 +221,11 @@ export function validateWorkspaceSources(
           continue
         }
 
-        const ref = parseSourceRef(value)
-        if (!ref) {
-          diagnostics.push({
-            path,
-            message: `Malformed source reference "${value}" — use "<path>@<unit>" (e.g. "file.md@## Section", "data.csv@104"); line ranges like #L10-L20 and src-NNN ids are not allowed, and sources/original/ is not citable`,
-            severity: 'error',
-            code: 'KU_MALFORMED',
-          })
-          continue
-        }
-
-        const resolved = resolver(ref.filePath, node.source.path)
+        const resolved = resolver(cit.filePath, node.source.path)
         if (!resolved || !resolved.exists) {
           diagnostics.push({
             path,
-            message: formatDanglingMessage(ref, resolved),
+            message: formatDanglingMessage(cit, resolved),
             severity: 'error',
             code: 'KU_DANGLING_FILE',
           })
@@ -225,21 +234,23 @@ export function validateWorkspaceSources(
 
         if (isConflict) sawValidConflictPointer = true
 
-        if (ref.slug && resolved.headings && !resolved.headings.includes(ref.slug)) {
+        if (cit.slug && resolved.headings && !resolved.headings.includes(cit.slug)) {
           diagnostics.push({
             path,
-            message: `Source reference "${ref.raw}" points at heading "#${ref.slug}" which does not exist in "${ref.fileName}"`,
+            message: `Source reference "${cit.raw}" points at heading "#${cit.slug}" which does not exist in "${cit.fileName}"`,
             severity: 'warning',
             code: 'KU_UNKNOWN_SLUG',
           })
         }
 
-        diagnostics.push({
-          path,
-          message: `Legacy "#slug" form is deprecated — prefer "@" pointers${suggestCanonical(resolved, ref)}`,
-          severity: 'warning',
-          code: 'KU_DEPRECATED_HASH',
-        })
+        if (cit.legacyHash) {
+          diagnostics.push({
+            path,
+            message: `Legacy "#slug" form is deprecated — prefer "@" pointers${suggestCanonical(resolved, cit)}`,
+            severity: 'warning',
+            code: 'KU_DEPRECATED_HASH',
+          })
+        }
       }
 
       if (isConflict && sawValidConflictPointer) {

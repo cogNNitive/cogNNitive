@@ -10,8 +10,7 @@ import { extractBlueprintSchema, findDeclaredField, type BlueprintSchema } from 
 import { normalizeSeparators } from '../parser/slug.js'
 import {
   SOURCE_FIELD_NAMES,
-  parseKnowledgeUnitRef,
-  parseSourceRef,
+  parseCitation,
   splitSourceFieldValue,
   type SourceRef,
 } from '../sourceRef.js'
@@ -31,7 +30,7 @@ export function attachSourceCitations(node: KnowledgeNode): void {
     if (!SOURCE_FIELD_NAMES.has(fieldName.toLowerCase())) continue
     const refs: SourceRef[] = []
     for (const raw of splitSourceFieldValue(fv.value)) {
-      const ref = parseKnowledgeUnitRef(raw) ?? parseSourceRef(raw)
+      const ref = parseCitation(raw)
       if (ref) refs.push(ref)
     }
     if (refs.length > 0) {
@@ -62,7 +61,7 @@ export function attachSchemaTypedCitations(node: KnowledgeNode, schema: Blueprin
 
     const refs: SourceRef[] = []
     for (const raw of splitSourceFieldValue(fv.value)) {
-      const ref = parseKnowledgeUnitRef(raw) ?? parseSourceRef(raw)
+      const ref = parseCitation(raw)
       if (ref) refs.push(ref)
     }
     if (refs.length > 0) {

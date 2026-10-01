@@ -16,10 +16,10 @@ const metrics = readFileSync(new URL('../tests/fixtures/metricas_q3.csv', import
 describe('parseKnowledgeUnitRef grammar', () => {
   it('parses a level-2 element header with concept-aware slug', () => {
     const r = parseKnowledgeUnitRef(
-      'models/Ghostbusters_V_0-2-3_business_NN.md@## NN Person: Dr. Egon Spengler',
+      'kNNowledge/Ghostbusters_V_0-2-3_business_NN.md@## NN Person: Dr. Egon Spengler',
     )
     expect(r).toMatchObject({
-      filePath: 'models/Ghostbusters_V_0-2-3_business_NN.md',
+      filePath: 'kNNowledge/Ghostbusters_V_0-2-3_business_NN.md',
       fileName: 'Ghostbusters_V_0-2-3_business_NN.md',
       kind: 'model',
       unit: { kind: 'header', level: 2, slug: 'nn-person--dr-egon-spengler' },
@@ -61,7 +61,7 @@ describe('parseKnowledgeUnitRef grammar', () => {
 
   it('parses field and column subunits (names only, never values)', () => {
     const md = parseKnowledgeUnitRef(
-      'models/G_V_0-2-3_business_NN.md@## NN Person: Dr. Egon Spengler&compensation',
+      'kNNowledge/G_V_0-2-3_business_NN.md@## NN Person: Dr. Egon Spengler&compensation',
     )
     expect(md?.subunits).toEqual(['compensation'])
     const csv = parseKnowledgeUnitRef('sources/nn/metricas_q3.csv@104&mrr_usd')
@@ -70,7 +70,7 @@ describe('parseKnowledgeUnitRef grammar', () => {
 
   it('parses a matrix cell as unit + row + column subunits', () => {
     const r = parseKnowledgeUnitRef(
-      'models/G_V_0-2-3_business_NN.md@# NN matrices: journey map&First Contact&Relief',
+      'kNNowledge/G_V_0-2-3_business_NN.md@# NN matrices: journey map&First Contact&Relief',
     )
     expect(r?.subunits).toEqual(['First Contact', 'Relief'])
   })
@@ -82,14 +82,14 @@ describe('parseKnowledgeUnitRef grammar', () => {
 
   it.each([
     'sources/nn/report.md',
-    'models/x.md@',
-    'models/x.md@## ',
-    'models/x.md@## Title&',
+    'kNNowledge/x.md@',
+    'kNNowledge/x.md@## ',
+    'kNNowledge/x.md@## Title&',
     'C:\\temp\\file.md@## Title',
     'https://example.com/a.md@## Title',
     '../outside.md@## Title',
     'sources/original/a.csv@104',
-    'models/x.md#L12-L45',
+    'kNNowledge/x.md#L12-L45',
   ])('rejects %s', (input) => {
     expect(parseKnowledgeUnitRef(input)).toBeNull()
   })
@@ -141,7 +141,7 @@ describe('normalizeName', () => {
 describe('serializeKnowledgeUnitRef', () => {
   it('round-trips canonical pointers', () => {
     const inputs = [
-      'models/G_V_0-2-3_business_NN.md@## NN Person: Dr. Egon Spengler&compensation',
+      'kNNowledge/G_V_0-2-3_business_NN.md@## NN Person: Dr. Egon Spengler&compensation',
       'sources/nn/metricas_q3.csv@104&mrr_usd',
     ]
     for (const input of inputs) {
@@ -198,13 +198,13 @@ describe('parseCsvTable', () => {
 
 describe('resolveUnit over fixtures', () => {
   it('resolves an element section', () => {
-    const ref = parseKnowledgeUnitRef('models/G.md@## NN Person: Dr. Egon Spengler')!
+    const ref = parseKnowledgeUnitRef('kNNowledge/G.md@## NN Person: Dr. Egon Spengler')!
     const resolved = resolveUnit(ghost, ref)
     expect(resolved).toMatchObject({ kind: 'section', startLine: 7, endLine: 13 })
   })
 
   it('resolves a field line inside its section', () => {
-    const ref = parseKnowledgeUnitRef('models/G.md@## NN Person: Dr. Egon Spengler&compensation')!
+    const ref = parseKnowledgeUnitRef('kNNowledge/G.md@## NN Person: Dr. Egon Spengler&compensation')!
     const resolved = resolveUnit(ghost, ref)
     expect(resolved?.kind).toBe('field')
     if (resolved?.kind === 'field') {
@@ -214,7 +214,7 @@ describe('resolveUnit over fixtures', () => {
   })
 
   it('resolves a quoted header', () => {
-    const ref = parseKnowledgeUnitRef('models/G.md@## NN Messages: "We\'re ready to believe you."')!
+    const ref = parseKnowledgeUnitRef('kNNowledge/G.md@## NN Messages: "We\'re ready to believe you."')!
     expect(resolveUnit(ghost, ref)).toMatchObject({ kind: 'section', startLine: 15 })
   })
 
@@ -227,7 +227,7 @@ describe('resolveUnit over fixtures', () => {
 
   it('resolves a matrix cell', () => {
     const ref = parseKnowledgeUnitRef(
-      'models/G.md@# NN matrices: journey map&First Contact&Relief',
+      'kNNowledge/G.md@# NN matrices: journey map&First Contact&Relief',
     )!
     expect(resolveUnit(ghost, ref)).toMatchObject({ kind: 'cell', value: 'Slightly High' })
   })
@@ -238,7 +238,7 @@ describe('resolveUnit over fixtures', () => {
     expect(
       resolveUnit(
         ghost,
-        parseKnowledgeUnitRef('models/G.md@## NN Person: Dr. Egon Spengler&nope')!,
+        parseKnowledgeUnitRef('kNNowledge/G.md@## NN Person: Dr. Egon Spengler&nope')!,
       ),
     ).toBeNull()
   })

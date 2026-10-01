@@ -9,8 +9,7 @@
  * components already consume, delegating all real logic to core.
  */
 import {
-  parseSourceRef as coreParseSourceRef,
-  parseKnowledgeUnitRef as coreParseKnowledgeUnitRef,
+  parseCitation,
   serializeKnowledgeUnitRef as coreSerializeKnowledgeUnitRef,
   slugifyHeading,
   extractHeadings,
@@ -27,10 +26,10 @@ export {
   resolveUnit,
   parseCsvTable,
   serializeKnowledgeUnitRef,
-  parseKnowledgeUnitRef,
+  parseCitation,
   normalizeName,
 } from '@cognnitive/innfo-core'
-export type { KnowledgeUnit, ResolvedUnit, SourceRef } from '@cognnitive/innfo-core'
+export type { KnowledgeUnit, ResolvedUnit, SourceRef, Citation } from '@cognnitive/innfo-core'
 
 export interface ParsedSourceRef {
   filePath: string
@@ -41,11 +40,11 @@ export interface ParsedSourceRef {
 
 /**
  * Parse an iNNfo source-reference pointer. Wraps
- * `@cognnitive/innfo-core`'s `parseSourceRef`, mapping its `SourceRef | null`
+ * `@cognnitive/innfo-core`'s `parseCitation`, mapping its `SourceRef | null`
  * return onto the editor's always-defined `ParsedSourceRef`.
  */
 export function parseSourceRef(input: string): ParsedSourceRef {
-  const ref = coreParseSourceRef(input)
+  const ref = parseCitation(input)
   if (!ref) return { filePath: '', fileName: '', isValid: false }
   return { filePath: ref.filePath, fileName: ref.fileName, slug: ref.slug, isValid: true }
 }
@@ -67,22 +66,21 @@ export interface ParsedUnitRef {
  */
 export function parseForPill(input: unknown): ParsedUnitRef | null {
   if (typeof input !== 'string') return null
-  const unitRef = coreParseKnowledgeUnitRef(input)
-  if (unitRef?.unit) {
-    const subunits = unitRef.subunits ?? []
+  const cit = parseCitation(input)
+  if (!cit) return null
+  if (cit.unit) {
+    const subunits = cit.subunits ?? []
     return {
-      filePath: unitRef.filePath,
-      fileName: unitRef.fileName,
-      slug: unitRef.slug,
-      unit: unitRef.unit,
+      filePath: cit.filePath,
+      fileName: cit.fileName,
+      slug: cit.slug,
+      unit: cit.unit,
       subunits,
-      canonical: coreSerializeKnowledgeUnitRef(unitRef.filePath, unitRef.unit, subunits),
+      canonical: coreSerializeKnowledgeUnitRef(cit.filePath, cit.unit, subunits),
       isValid: true,
     }
   }
-  const legacy = coreParseSourceRef(input)
-  if (!legacy) return null
-  return { filePath: legacy.filePath, fileName: legacy.fileName, slug: legacy.slug, isValid: true }
+  return { filePath: cit.filePath, fileName: cit.fileName, slug: cit.slug, isValid: true }
 }
 
 /**

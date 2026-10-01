@@ -79,7 +79,8 @@ export type {
 } from './validator/index.js'
 
 export {
-  parseSourceRef,
+  parseCitation,
+  resolveUnitPath,
   splitSourceFieldValue,
   levenshteinDistance,
   slugifyHeading,
@@ -88,9 +89,8 @@ export {
   SOURCE_FIELD_NAMES,
   CONFLICT_FIELD_NAMES,
 } from './sourceRef.js'
-export type { SourceRef, HeadingInfo, ResolvedHeadingSection } from './sourceRef.js'
+export type { Citation, SourceRef, HeadingInfo, ResolvedHeadingSection } from './sourceRef.js'
 export {
-  parseKnowledgeUnitRef,
   serializeKnowledgeUnitRef,
   slugifyUnitHeading,
   normalizeName,

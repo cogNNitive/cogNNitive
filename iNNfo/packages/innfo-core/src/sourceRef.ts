@@ -33,13 +33,13 @@ export interface RowUnit {
 export type KnowledgeUnit = HeaderUnit | RowUnit
 
 export interface SourceRef {
-  /** Workspace-relative path, always normalised to start with `sources/nn/` (or `models/`). */
+  /** Workspace-relative path, always normalised to start with `sources/nn/`, `sources/export/`, or `kNNowledge/`. */
   filePath: string
   /** Last path segment. */
   fileName: string
   /** Heading slug after `#`, if present. */
   slug?: string
-  /** `model` for a `models/…` reference, `source` for a `sources/nn/…` one. */
+  /** `model` for a `kNNowledge/…` reference, `source` for a `sources/…` one. */
   kind: 'source' | 'model'
   /** Original string as authored. */
   raw: string
@@ -48,6 +48,8 @@ export interface SourceRef {
   /** Subunit names (field / column / matrix row+column labels). Names only, never values. */
   subunits?: string[]
 }
+
+export type Citation = SourceRef & { legacyHash?: true }
 
 const SLUG = '[a-z0-9]+(?:-[a-z0-9]+)*'
 
@@ -70,9 +72,8 @@ export const SOURCE_FIELD_NAMES = new Set(['sources', 'source'])
 export const CONFLICT_FIELD_NAMES = new Set(['conflicts'])
 
 /**
- * Parse a single field value as a source reference. Returns `null` for anything
- * that is not a reference (plain prose, URLs, line-range anchors, `src-NNN`
- * wrappers, `sources/original/` paths).
+ * Parse a single field value as a source reference.
+ * @internal Module-internal legacy parser. External callers should use `parseCitation`.
  */
 export function parseSourceRef(input: string): SourceRef | null {
   if (!input || typeof input !== 'string') return null
@@ -83,6 +84,8 @@ export function parseSourceRef(input: string): SourceRef | null {
   // Reject src-NNN wrapper
   if (/^src-\d+/i.test(clean)) return null
 
+  if (/^models\//i.test(clean)) return null
+
   const explicit = clean.match(new RegExp(`^(sources/nn/[^#]+?)(?:#(${SLUG}))?$`))
   if (explicit) {
     const filePath = explicit[1].trim()
@@ -90,6 +93,18 @@ export function parseSourceRef(input: string): SourceRef | null {
       filePath,
       fileName: basename(filePath),
       slug: explicit[2] || undefined,
+      kind: 'source',
+      raw: clean,
+    }
+  }
+
+  const exportSource = clean.match(new RegExp(`^(sources/export/[^#]+?)(?:#(${SLUG}))?$`))
+  if (exportSource) {
+    const filePath = exportSource[1].trim()
+    return {
+      filePath,
+      fileName: basename(filePath),
+      slug: exportSource[2] || undefined,
       kind: 'source',
       raw: clean,
     }
@@ -113,6 +128,7 @@ export function parseSourceRef(input: string): SourceRef | null {
   if (unqualified) {
     const rawPath = unqualified[1].trim()
     if (rawPath.startsWith('sources/original/')) return null
+    if (rawPath.startsWith('models/')) return null
     const filePath = `sources/nn/${rawPath}`
     return {
       filePath,
@@ -124,6 +140,45 @@ export function parseSourceRef(input: string): SourceRef | null {
   }
 
   return null
+}
+
+/**
+ * Parse a unified Citation (`@` markdown heading/CSV unit, file-level bare path,
+ * or legacy `#slug`). Single entry point exported by innfo-core.
+ */
+export function parseCitation(input: string): Citation | null {
+  if (!input || typeof input !== 'string') return null
+  const clean = input.trim()
+  if (!clean) return null
+
+  // Reject legacy line-range anchor: #L13, @L10-L20, #L12-L45
+  if (/[#@]L\d+(-L\d+)?$/i.test(clean)) return null
+  // Reject src-NNN wrapper
+  if (/^src-\d+/i.test(clean)) return null
+
+  if (clean.includes('@')) {
+    return parseKnowledgeUnitRef(clean)
+  }
+
+  if (clean.includes('#')) {
+    // legacy:lineage-single-edge/hash-slug-read
+    const ref = parseSourceRef(clean)
+    if (ref && ref.slug) {
+      return { ...ref, legacyHash: true }
+    }
+    return null
+  }
+
+  // Bare file-level citation (no anchor)
+  const resolved = resolveUnitPath(clean)
+  if (!resolved) return null
+
+  return {
+    filePath: resolved.filePath,
+    fileName: basename(resolved.filePath),
+    kind: resolved.kind,
+    raw: clean,
+  }
 }
 
 function basename(p: string): string {
@@ -432,9 +487,13 @@ export function resolveUnitPath(
   const isCsv = /\.csv$/i.test(forward)
   if (!isMd && !isCsv) return null
   if (forward.startsWith('sources/nn/')) return { filePath: forward, kind: 'source' }
-  if (/^models\//i.test(forward)) {
+  if (forward.startsWith('sources/export/')) return { filePath: forward, kind: 'source' }
+  if (forward.startsWith('kNNowledge/')) {
     if (!isMd) return null
     return { filePath: forward, kind: 'model' }
+  }
+  if (/^models\//i.test(forward)) {
+    return null
   }
   if (/^[a-zA-Z]:[/\\]/.test(trimmed) || trimmed.startsWith('/')) return null
   return { filePath: `sources/nn/${forward}`, kind: 'source' }
