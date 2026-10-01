@@ -12,6 +12,7 @@
   "scripts": {
     "prepare": "git config core.hooksPath .githooks",
     "build:docs": "node scripts/build-docs.mjs",
+    "stage:mcp-bundle": "node scripts/stage-mcp-bundle.mjs",
     "typecheck:scripts": "tsc --noEmit -p tsconfig.scripts.json",
     "lint": "eslint iNNfo/ scripts/",
     "lint:fix": "eslint iNNfo/ scripts/ --fix",
