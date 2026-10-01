@@ -58,6 +58,10 @@ const ALLOWLIST = [
   { pattern: 'skills/nn-trannsform/scripts/lib/provenance-knowledge.js', reason: 'legacy `_workspace_NN.md` lineage-record suffix documented for one-time migration' },
   { pattern: 'scripts/lib/legacy-write-guard.js', reason: 'this guard carries the token table itself' },
   { pattern: 'scripts/guard-template-immutability.js', reason: 'reads the retired `template_version` key only as a fallback to recognize the composition-root templates (base/cogNNitive/workspace) whose frontmatter still uses it' },
+  { pattern: 'iNNfo/packages/innfo-core/src/console/feedback-ledger.ts', reason: 'reads the retired `source_model_version` key as a backward-compatible fallback for legacy feedback docs (schema now forbids it)' },
+  { pattern: 'iNNfo/packages/innfo-core/src/console/payload-builder.ts', reason: 'reads the retired `target_template` key as a backward-compatible fallback for pre-rename domains' },
+  { pattern: 'skills/nn-trannsform/scripts/lib/scanner-converters.js', reason: 'names the retired `source_model_version` key to REJECT it during feedback validation (same as validator/content.ts)' },
+  { pattern: 'skills/nn-upgrade/scripts/migrate-domain.js', reason: 'the migrator that transforms specs/templates -> specs/bluepriNNts must name the pre-migration path' },
 ];
 
 const SCOPE_RE = [

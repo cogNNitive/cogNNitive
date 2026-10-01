@@ -24,7 +24,7 @@ describe('Feedback Verdict Ledger & Evaluation Rules', () => {
       },
       item: 'fb-001',
       model_id: 'kNNowledge/biz/Ghostbusters',
-      model_version: 'V_1-0-0',
+      knowledge_version: 'V_1-0-0',
       status: 'applied',
       by: 'reviewer@cognnitive.dev',
       element_id: 'mission-ghostbusters-mission',
@@ -288,7 +288,7 @@ describe('Feedback Verdict Ledger & Evaluation Rules', () => {
         source: { kind: 'console-json', path: 'p', sha256: sourceSha256 },
         item: 'fb-001',
         model_id: 'Ghostbusters',
-        model_version: 'V_0-1-0',
+        knowledge_version: 'V_0-1-0',
         status: 'rejected',
         by: 'reviewer',
       }
@@ -307,7 +307,7 @@ describe('Feedback Verdict Ledger & Evaluation Rules', () => {
         source: { kind: 'console-json', path: 'p', sha256: sourceSha256 },
         item: 'fb-001',
         model_id: 'Ghostbusters',
-        model_version: 'V_0-1-0',
+        knowledge_version: 'V_0-1-0',
         status: 'pending',
         by: 'lead',
       }

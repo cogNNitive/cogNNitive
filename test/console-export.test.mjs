@@ -193,7 +193,7 @@ level: 3
       source: { kind: 'console-json', path: 'sources/import/feedback/f1.json', sha256: 'abc1234567890123456789012345678901234567890123456789012345678901' },
       item: 'fb-001',
       model_id: 'models/business_V_1-0-0_NN.md',
-      model_version: 'V_1-0-0',
+      knowledge_version: 'V_1-0-0',
       element_id: 'stakeholders-enterprise',
       status: 'applied',
       by: 'lead',
@@ -209,7 +209,7 @@ level: 3
       source: { kind: 'console-json', path: 'sources/import/feedback/f1.json', sha256: 'decoy123' },
       item: 'fb-999-decoy',
       model_id: 'models/business_V_1-0-0_NN.md',
-      model_version: 'V_1-0-0',
+      knowledge_version: 'V_1-0-0',
       status: 'rejected',
       by: 'decoy',
     }) + '\n'

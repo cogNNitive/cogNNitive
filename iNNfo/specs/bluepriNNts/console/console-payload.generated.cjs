@@ -8788,8 +8788,8 @@ function validateFeedbackVerdictEntry(entry) {
   if (typeof e.model_id !== "string" || !e.model_id.trim()) {
     errors.push("Entry model_id must be a non-empty string");
   }
-  if (typeof e.model_version !== "string" || !e.model_version.trim()) {
-    errors.push("Entry model_version must be a non-empty string");
+  if (typeof e.knowledge_version !== "string" || !e.knowledge_version.trim()) {
+    errors.push("Entry knowledge_version must be a non-empty string");
   }
   if (typeof e.status !== "string" || !ALLOWED_STATUSES.has(e.status)) {
     errors.push(`Entry status must be one of: ${Array.from(ALLOWED_STATUSES).join(", ")}`);
@@ -8862,7 +8862,7 @@ function feedbackStateFor(entries, modelId) {
         source: entry.source.path,
         element_id: entry.element_id || entry.item,
         status: entry.status,
-        version: entry.model_version
+        version: entry.knowledge_version
       });
     }
   }

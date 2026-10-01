@@ -24,7 +24,7 @@ export interface FeedbackVerdictEntry {
   source: FeedbackSourceRef
   item: string
   model_id: string
-  model_version: string
+  knowledge_version: string
   status: FeedbackStatus
   by: string
   element_id?: string
@@ -137,8 +137,8 @@ export function validateFeedbackVerdictEntry(entry: unknown): string[] {
     errors.push('Entry model_id must be a non-empty string')
   }
 
-  if (typeof e.model_version !== 'string' || !e.model_version.trim()) {
-    errors.push('Entry model_version must be a non-empty string')
+  if (typeof e.knowledge_version !== 'string' || !e.knowledge_version.trim()) {
+    errors.push('Entry knowledge_version must be a non-empty string')
   }
 
   if (typeof e.status !== 'string' || !ALLOWED_STATUSES.has(e.status)) {
@@ -239,7 +239,7 @@ export function feedbackStateFor(entries: FeedbackVerdictEntry[], modelId: strin
         source: entry.source.path,
         element_id: entry.element_id || entry.item,
         status: entry.status,
-        version: entry.model_version,
+        version: entry.knowledge_version,
       })
     }
   }
