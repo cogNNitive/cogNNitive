@@ -70,3 +70,6 @@ Thumbs.db
 temp/
 # Local AI runtime state
 .atl/
+
+# verify.js per-step logs
+.verify-logs/
