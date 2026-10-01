@@ -7,9 +7,10 @@ operation, load the `nn-dev-development` skill via the `skill` tool and follow i
 - Skill name: `nn-dev-development`
 - Path: `.agents/skills/nn-dev-development/SKILL.md`
 
-It runs the concurrency scan against the shared working tree and enforces the
-branch-first consent gate before any repo write. Do not skip it, even for
-read-only or "quick" work — it also detects concurrent agents holding the tree.
+It enters a per-session `git worktree` (via `scripts/nn-session.mjs start`),
+runs the informational concurrency scan, and enforces commit-early on `dev`.
+Do not skip it, even for read-only work. Never write to the primary checkout —
+it is read-only (integration/release only) and guarded by a `PreToolUse` hook.
 <!-- /gentle-ai:session-start-skill -->
 
 `.atl/skill-registry.md` is machine-generated and untracked (each machine
@@ -32,16 +33,16 @@ Read/Glob as a fallback and proceed.
 
 ## Blocked git commands
 
-`.claude/settings.json` registers a PreToolUse hook
-(`.claude/hooks/block-dangerous-git.mjs`) that refuses git commands whose blast
-radius is the whole working tree: `reset --hard`, `clean`, `stash`,
-`branch -D`, `checkout`/`restore` of `.`, `add -A`, `add .` and `commit -a`.
+`.claude/settings.json` registers two PreToolUse hooks:
 
-This checkout is routinely shared by concurrent agent sessions, so it may hold
-uncommitted work the current session did not author. None of those commands can
-be scoped to a pathspec, which makes "only touch your own files" impossible to
-honour once they run — one of them destroyed 58 uncommitted foreign changes on
-2026-09-21.
+- `.claude/hooks/block-dangerous-git.mjs` refuses the destructive git commands
+  whose blast radius is the whole working tree: `reset --hard`, `clean`, `stash`,
+  `branch -D`, and `checkout`/`restore` of `.`. They can erase your own
+  uncommitted work in one stroke. Staging (`add -A`, `add .`, `commit -a`) is
+  allowed — a session worktree only holds your own files.
+- `.claude/hooks/guard-primary-tree.mjs` (mirrored by `.agents/hooks.json` for
+  Antigravity) denies file edits and `git add`/`commit`/`stash` in the PRIMARY
+  checkout, which is read-only (integration/release). Work in a session worktree.
 
 Safe substitutes: `git reset --soft HEAD~1` to drop a commit while keeping the
 tree, `git checkout HEAD -- <explicit/path>` to revert one file, and
@@ -49,9 +50,10 @@ tree, `git checkout HEAD -- <explicit/path>` to revert one file, and
 or a release rehearsal. `git push` is deliberately NOT blocked — it carries its
 own pre-push typecheck hook.
 
-The hook matches on the command text, so a command that merely quotes one of
+The hooks match on the command text, so a command that merely quotes one of
 those patterns is refused too. Verify the rules with
-`node .claude/hooks/block-dangerous-git.test.mjs`.
+`node .claude/hooks/block-dangerous-git.test.mjs` and
+`node .claude/hooks/guard-primary-tree.test.mjs`.
 
 ## Canonical Vocabulary & Ubiquitous Language
 

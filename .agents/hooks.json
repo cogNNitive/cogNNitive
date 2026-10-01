@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "replace_file_content|create_file|write_file|edit_file",
+        "command": "node .claude/hooks/guard-primary-tree.mjs",
+        "timeout": 10
+      },
+      {
+        "matcher": "run_command",
+        "command": "node .claude/hooks/guard-primary-tree.mjs",
+        "timeout": 10
+      }
+    ]
+  }
+}
