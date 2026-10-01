@@ -1,47 +1,39 @@
-# Verify Report: tag-driven-release, PR 1 (tasks 1.1-1.9, AD-7)
+# Verify Report: tag-driven-release, PR 1 (tasks 1.1-1.9, AD-7) - RE-VERIFICATION
 
-Mode: openspec, Strict TDD. Scope: `git diff ea17b810..HEAD`. Fresh-context review.
+Mode: openspec, Strict TDD. Scope: diff ea17b810..HEAD (fixes in 7998cdf1, 82f47670, 1a955d9c). Fresh-context review.
 
 ## Evidence
 - `node scripts/verify.js` -> exit 0, "All deterministic pre-checks passed."
 - `node scripts/check-integrity.js` -> exit 0, "ALL INTEGRITY GATES PASSED."
-- Tasks 1.1-1.9: 9/9 checked, each backed by an existing test or CI/code change.
+- C1 independent proof: skills-manager, shared-libs, validate-manifest, github-client, offline-guard suites run with `NN_OFFLINE=1`, `NODE_OPTIONS=--require <trap> --require scripts/lib/offline-guard.js`; all exit 0; trap (connect/dns.lookup, non-loopback only, logged after the guard) recorded nothing. Previously the same suite logged codeload.github.com / raw.githubusercontent.com.
+- Fail-closed: ad-hoc under the guard, `fetch('https://example.com')`, `https.get`, `net.connect(443,'1.1.1.1')`, `dns.lookup('example.com')`, `fetch('http://[::2]:1/')` all throw `ENN_OFFLINE` before I/O; offline-guard.test.js covers the same plus inert-when-unset.
+- Bootstrap route trace (request log on the loopback server): `/manifest.md`, then `/codeload.../tar.gz/<sha>`, then `/raw.../spec_NN.md`. On this Windows machine the tarball is requested, extraction fails (the msys GNU tar is first on PATH), and the CLI falls back to the raw route.
 
-## Spec compliance (quality-gates)
-| Scenario | Result |
-|---|---|
-| Verify passes with no network | FAILING (see C1: skills-manager.test.js reaches codeload.github.com / raw.githubusercontent.com) |
-| Verify does not need release tags | COMPLIANT (buildSteps identical with/without --release; verify-offline.test.js) |
-| GitHub client throws when offline | COMPLIANT (github-client.test.js; apiRequest, fetchString, downloadFile guarded; downloadFile untested) |
-| Local git lookups allowed | COMPLIANT (github-client.test.js, git rev-parse under NN_OFFLINE=1) |
-| Push CI makes no release-state lookups | COMPLIANT (dev coherence step removed, no GITHUB_TOKEN env, no --release) |
-| Passing suite quiet / failing tail / verbose / >1MB | COMPLIANT (verify-reporter.test.js) |
-| Bundle staged without editor build / editor build does not stage | COMPLIANT (stage-mcp-bundle.test.mjs) |
-| CI uploads .verify-logs on failure | PARTIAL (see W1) |
+## Previous findings: resolution
+- C1 (live network in skills-manager): RESOLVED. `delete process.env.NN_OFFLINE` removed; test uses loopback GitHub fixture + preload; verify-offline.test.js:75 forbids reintroducing the delete; guard is socket-level and fail-closed.
+- W1 (hidden dir upload): RESOLVED (`include-hidden-files: true`, ci.yml:51).
+- W2 (fail-open / socket-level guard): RESOLVED via offline-guard.js in childEnv (verify.js:219-237).
+- W3 (coverage gap until PR 2): ACCEPTED, unchanged; record in PR description.
+- W4 (source-regex tests only): RESOLVED in substance (offline-guard.test.js is behavioural; verify runs every suite under the preload).
+- W5 (preserveSymlinks): STILL OPEN as scope creep, not CI-verified (see W-C).
+- S1: RESOLVED. S2: RESOLVED (downloadFile tested, github-client.test.js:41). S3: RESOLVED (verbose prints spawn error, verify-reporter.js:61). S4: OPEN (readFileSync tail, tolerable). S5: see Size.
 
 ## Findings
 
 ### CRITICAL
-- C1. Offline guard is disabled for three suites and one of them uses the live network. `scripts/skills-manager.test.js:7` (`delete process.env.NN_OFFLINE`); test 5 (`bootstrap`, ~line 181) downloads a pinned template tarball from `codeload.github.com` and raw files from `raw.githubusercontent.com`. Evidence: running the suite with a connect/DNS trap and `NN_OFFLINE=1` logged `NET/DNS codeload.github.com:443` and `raw.githubusercontent.com:443` (exit 0, i.e. it needs the network to pass). `scripts/lib/shared-libs.test.js:19` and `scripts/manifest/validate-manifest.test.js:7` showed zero non-loopback traffic today, but nothing enforces that. The apply-progress claim "they never touch the real network" is false for skills-manager. This violates "Verify passes with no network" and the "enforced, not merely asserted" paragraph. Fix: do not delete the guard. Either stub the tarball/raw transport in that test (loopback server, as test 1/2 already do) or move the live-bootstrap case out of verify.
+None.
 
 ### WARNING
-- W1. `ci.yml` "Upload verify logs" uses `actions/upload-artifact@v4` with `path: .verify-logs`. v4.4+ excludes hidden files/dirs by default, so the dot-directory is likely uploaded empty ("No files were found"). Add `include-hidden-files: true` (or log to a non-dot dir). Spec requires the upload.
-- W2. Safer design for the guard than `delete process.env.NN_OFFLINE`: keep the `assertOnline()` check in github-client but allow loopback hosts (127.0.0.1, localhost, ::1) by URL; and for suites that stub `globalThis.fetch`, they replace the transport after the check, so a stub that is missed still hits `assertOnline` and fails closed. Today `delete` makes any missed stub fail OPEN, the exact failure mode in the project memory (github-client tests stub https.get). Better still, inject a preload (`NODE_OPTIONS=--require scripts/lib/offline-guard.js`, set in `childEnv`) that wraps `net.Socket.connect`/`dns.lookup` for non-loopback hosts; it also covers `skills-commands.js` (http/https.request, not github-client only) and any child process a suite spawns. Note `skills-commands.js` uses https.request directly (lines 12-13, 84-87), so the github-client guard alone does not cover all network paths.
-- W3. Coverage gap until PR 2: removing the stable-manifest drift check (`generate-manifest --check`), live `validate-manifest --channel stable` and `check-parity` from verify (planned by 1.7) leaves `docs/use/manifest.md` (still tracked until PR 4) with no drift or pin validation on main between PR 1 and the first tag-driven release. Accepted by the freeze in tasks.md, but record it explicitly. `--release` is now a silent no-op (documented in verify.js header; not warned at runtime).
-- W4. `verify-offline.test.js` assertions 1 and 6 are source-regex checks (`/gh auth token/`, `/if \(!runVerification\(/`), and no test proves the whole step list makes zero network calls; that is why C1 slipped through. Add a test that runs the suites with a network trap, or the preload from W2 in `childEnv`.
-- W5. `scripts/build-console-payload.mjs:33-38` (`preserveSymlinks: true`) is not a PR 1 task; it is a worktree-environment fix. It passes here, but with workspace symlinks (`@cognnitive/*`) in CI it changes esbuild path output vs. resolved real paths; verified only in the worktree, not on a CI-like checkout. Move to its own commit/PR or confirm on CI.
+- W-A. Test detection in production code: scripts/lib/github-client.js:16-27,42 (`PLATFORM_FETCH`, `process.__nnPlatformFetch`, `isRealFetch`, early return in `assertOnline`). Not justified now that the preload guarantees offline at the socket level. Evidence: suites that stub `globalThis.fetch` and call real GitHub URLs under NN_OFFLINE=1 (shared-libs.test.js:219-267, validate-manifest.test.js:44/74/210/221) would throw if `assertOnline` were loopback-only; that is the only reason the stand-down exists. It also writes a global onto `process`, and a client first loaded after a stub treats the stub as the platform fetch. Recommendation: delete `isRealFetch`/`PLATFORM_FETCH` and the early return, then either (a) remove `assertOnline` and let the preload's `ENN_OFFLINE` surface from fetch (rewrite github-client.test.js:36-42 to spawn a child under the preload; reword the spec scenario "GitHub client throws when offline" to "outbound call refused by the offline guard"), or (b) keep strict loopback-only `assertOnline` and move the stubbed suites to loopback URLs. (a) is smaller with no behavioural loss: a stub never reaches the network, an unstubbed call dies at the socket. Residual risk of (a): in-process steps in verify.js:404 run in the parent without the preload; they are local file checks, or call `require('./lib/offline-guard.js')` after setting the env. Not blocking.
+- W-B. Bootstrap test cannot distinguish the tarball route from the fallback (skills-manager.test.js, fixture server ~lines 220-228, assertion ~265). Tarball and raw payloads are identical and the assertion only requires every request to be codeload OR raw. Observed on Windows: tarball downloaded, extraction fails, raw fallback masks it, test green. On Linux CI the tarball succeeds and raw is never hit. So `extractTarball`/`findRepoRoot` is exercised only on Linux and the fallback only on Windows, and a regression in either is masked (a broken tarball layout on Linux would also pass via raw). Fix: make the raw body distinguishable and assert the expected route per platform, or force bsdtar so the tarball route is deterministic.
+- W-C. scripts/build-console-payload.mjs:36 `preserveSymlinks: true` plus removal of the path-normalising regex is not a PR 1 task and changes generated output for every environment; verified only in a worktree, not a CI checkout (the console-mirror step passes here). Split it or confirm on CI.
 
 ### SUGGESTION
-- S1. `ci.yml` publish-web comment still says "pushes the artifact `verify` already built"; now `site` builds it. `Download built docs` comment likewise.
-- S2. `downloadFile` is guarded (`github-client.js`) but has no offline test; add one beside apiRequest/fetchString.
-- S3. Verbose mode (`verify-reporter.js:60-62`) swallows spawn errors (ENOENT yields status 1 with no message); quiet mode prints them.
-- S4. Reporter reads whole log with `readFileSync` to tail (`verify-reporter.js:93`); fine for tested 5 MB, but a bounded tail read would be safer for very large failing logs.
-- S5. Diff size: ~846 insertions / 319 deletions across 20 files (about 1,160 changed lines) is mostly required (verify.js rewrite 405, reporter + tests 247, staging + test 135, offline test 66, github-client test 69, ci.yml 76). Movable out without breaking PR 1 tasks: `build-console-payload.mjs` fix (W5), the cosmetic comment edit in `iNNfo/packages/innfo-mcp/tsup.config.ts`, and the `.verify-logs` CI upload tweak if split. Realistically this saves about 20 lines; the PR needs the 800-line exception or a split of stage-mcp-bundle (135 lines incl. test) into its own PR, since CI `site` is the only consumer.
+- S-1. scripts/lib/test-fixtures/github-loopback-preload.js:30-33 patches client exports before `skills-commands.js` destructures them; sound under `--require` (shared module cache). Hermetic: passed only in the child env (not process.env), inert without `SM_TEST_GITHUB_PORT`, and with the guard on unrewritten hosts fail closed. Server and tmp dir closed in `finally`. No leakage found.
+- S-2. iNNfo/packages/innfo-mcp/tsup.config.ts:38 comment edit is cosmetic but accurate; keep.
+- S-3. verify-reporter.js tail read could be bounded (old S4).
 
-## Other checks
-- Reporter: fd-based stdio avoids maxBuffer; exit status propagates (null -> 1); run-all summary verified; `::group::` only when `GITHUB_ACTIONS`; passes on Windows.
-- ci.yml: valid YAML; jobs `verify, site, quality, spec-integrity, publish-web`; `publish-web` needs `site` and downloads `pages-docs`, which `site` uploads on main only; freshness moved to `site` (needs fetch-depth 0, present).
-- check-integrity.js: still meaningful; `if (!runVerification(...)) exit 1` honours the boolean, other groups unchanged; retained `tag-pin-freshness` uses local git only.
-- Remaining network capable code outside verify steps: `scripts/manifest/*`, `skills-commands.js`, `export-console.mjs` URLs are strings only. No remaining `gh`/network call in verify step list except via the C1 suite.
+## Size
+Diff ea17b810..HEAD: 23 files, 1296 insertions, 321 deletions (previous run 846/319 over 20 files). Growth is the offline guard (106 + 115 test + 19 loopback), loopback preload (33), skills-manager test hermeticity (+42), plus openspec artifacts (apply-progress 55, tasks 18, report 47). Not required by PR 1 tasks/fixes: build-console-payload.mjs (W-C, 7 lines); stage-mcp-bundle (66 + 69) is only consumed by CI `site` and is the natural split. Still over 400 lines: needs `size:exception` or a split. The W-A recommendation would delete about 25 production lines.
 
-## Verdict: FAIL (1 CRITICAL). Next: sdd-apply to fix C1 (and W1), then re-verify.
+## Verdict: PASS (0 CRITICAL, 3 WARNING, 3 SUGGESTION). Next: sdd-archive is acceptable for PR 1; W-A and W-B are recommended before merge, W-C should be split or CI-confirmed.

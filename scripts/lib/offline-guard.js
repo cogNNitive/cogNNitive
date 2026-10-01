@@ -97,7 +97,6 @@ function install() {
       assertLoopback('fetch', host);
       return origFetch.call(this, input, init);
     };
-    globals.fetch.__nnOfflineGuard = true;
   }
 }
 

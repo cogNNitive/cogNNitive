@@ -6,7 +6,7 @@
 
 `node scripts/verify.js` MUST NOT require network access or GitHub API access, or the existence of any release tag, in any mode, including `--release`. Its result MUST depend only on the committed tree and local git. No step MAY resolve tags, SHAs, or remote content over the network. Reading local git (for example the non-blocking `freshness.js` tag baseline) is allowed. The success criterion is "no network or GitHub API access"; local git lookups do not violate it. Push-to-main and push-to-`dev` CI MUST NOT perform any GitHub API request or remote tag lookup for release state.
 
-Offline mode MUST be enforced, not merely asserted: `verify.js` MUST set `NN_OFFLINE=1` for every child process, and the GitHub client (`apiRequest`, `fetchString`) MUST throw when `NN_OFFLINE=1` is set. `verify.js` MUST NOT call `gh auth token`.
+Offline mode MUST be enforced, not merely asserted: `verify.js` MUST set `NN_OFFLINE=1` for every child process and MUST preload a fail-closed guard (`scripts/lib/offline-guard.js`, via `NODE_OPTIONS=--require`) that refuses every non-loopback outbound connection at the `net`/`tls`/`dns`/`fetch` level before any socket I/O, so no verify child (including suites that bypass or stub the GitHub client) can reach the network. Loopback (`localhost`, `127.0.0.0/8`, `::1`) MUST stay allowed. Production code (the GitHub client) MUST NOT carry offline or test-detection logic of its own. `verify.js` MUST NOT call `gh auth token`.
 
 #### Scenario: Verify passes with no network
 - GIVEN a clean checkout and no network access
@@ -18,10 +18,11 @@ Offline mode MUST be enforced, not merely asserted: `verify.js` MUST set `NN_OFF
 - WHEN `node scripts/verify.js --release` runs
 - THEN no step fails because a tag is missing
 
-#### Scenario: GitHub client throws when offline
-- GIVEN `NN_OFFLINE=1`
-- WHEN any code calls the GitHub client `apiRequest` or `fetchString`
-- THEN it throws instead of issuing a request
+#### Scenario: The preload refuses non-loopback network for every verify child
+- GIVEN `NN_OFFLINE=1` and the offline guard preloaded
+- WHEN any verify child process attempts a non-loopback connection (raw `net`/`tls`/`dns`, `http(s)`, `fetch`, or via the GitHub client)
+- THEN the attempt fails with `ENN_OFFLINE` before any socket I/O
+- AND loopback connections still succeed
 
 #### Scenario: Local git lookups are allowed
 - GIVEN the non-blocking `freshness.js` reads the newest local `<key>-v*` tag

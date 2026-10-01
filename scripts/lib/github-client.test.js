@@ -2,86 +2,92 @@
 /**
  * scripts/lib/github-client.test.js
  *
- * Offline enforcement (quality-gates spec, "GitHub client throws when offline").
+ * Offline enforcement for the GitHub client lives in the offline-guard preload
+ * (quality-gates spec, "Offline mode MUST be enforced"): the client carries no
+ * offline logic of its own. These tests run the client in a child process under
+ * `--require offline-guard.js` with `NN_OFFLINE=1` and assert the guard's
+ * `ENN_OFFLINE` refusal surfaces, that loopback still works, and that local git
+ * lookups are unaffected.
  */
 
 const assert = require('node:assert');
-const { execFileSync } = require('node:child_process');
-const { apiRequest, fetchString, downloadFile } = require('./github-client.js');
+const path = require('node:path');
+const { execFileSync, spawnSync } = require('node:child_process');
 
-const net = require('node:net');
+const guard = path.join(__dirname, 'offline-guard.js');
+const client = path.join(__dirname, 'github-client.js');
 
-// Runs `fn` with NN_OFFLINE=1 and a socket trap; asserts no connection was attempted.
-async function withOffline(fn) {
-  const prev = process.env.NN_OFFLINE;
-  process.env.NN_OFFLINE = '1';
-  const origConnect = net.Socket.prototype.connect;
-  let connects = 0;
-  net.Socket.prototype.connect = function trapped() {
-    connects += 1;
-    throw new Error('socket trap: network must not be reached');
-  };
-  try {
-    await fn();
-    assert.strictEqual(connects, 0, 'no connection is attempted while offline');
-  } finally {
-    net.Socket.prototype.connect = origConnect;
-    if (prev === undefined) delete process.env.NN_OFFLINE;
-    else process.env.NN_OFFLINE = prev;
-  }
+function runUnderGuard(code) {
+  const env = { ...process.env, NN_OFFLINE: '1' };
+  delete env.NODE_OPTIONS;
+  const res = spawnSync(process.execPath, ['--require', guard, '-e', code], {
+    env,
+    encoding: 'utf8',
+    timeout: 30000,
+  });
+  assert.strictEqual(res.status, 0, `child failed: ${res.stderr}`);
+  return JSON.parse(res.stdout.trim().split('\n').pop());
 }
 
-const stubResponse = () => ({ status: 200, text: async () => '{"ok":true}', headers: { get: () => null } });
+// 1. Non-loopback requests are refused (no socket is opened) for every entry point.
+{
+  const out = runUnderGuard(`
+    const c = require(${JSON.stringify(client)});
+    (async () => {
+      const out = {};
+      const api = await c.apiRequest('https://api.github.com/x');
+      out.api = { status: api.status, error: api.error };
+      for (const [name, fn] of [
+        ['fetchString', () => c.fetchString('https://example.com/x')],
+        ['fetchJson', () => c.fetchJson('https://example.com/x')],
+        ['downloadFile', () => c.downloadFile('https://codeload.github.com/x', require('os').tmpdir() + '/never-written')],
+      ]) {
+        try { await fn(); out[name] = 'no-throw'; } catch (e) { out[name] = e.code || e.message; }
+      }
+      console.log(JSON.stringify(out));
+    })();
+  `);
+  assert.strictEqual(out.api.status, 0);
+  assert.match(out.api.error, /NN_OFFLINE/);
+  assert.strictEqual(out.fetchString, 'ENN_OFFLINE');
+  assert.strictEqual(out.fetchJson, 'ENN_OFFLINE');
+  assert.strictEqual(out.downloadFile, 'ENN_OFFLINE');
+  console.log('✔ client calls to non-loopback hosts are refused by the preload');
+}
 
-async function main() {
-  // The real (unstubbed) fetch is refused before any request is built.
-  await withOffline(async () => {
-    await assert.rejects(() => apiRequest('https://api.github.com/x'), /NN_OFFLINE/);
-    await assert.rejects(() => fetchString('https://example.com/x'), /NN_OFFLINE/);
-    await assert.rejects(() => downloadFile('https://codeload.github.com/x', 'unused'), /NN_OFFLINE/);
-  });
+// 2. Loopback keeps working through the client.
+{
+  const out = runUnderGuard(`
+    const http = require('http');
+    const c = require(${JSON.stringify(client)});
+    const server = http.createServer((req, res) => res.end('{"ok":true}'));
+    server.listen(0, '127.0.0.1', async () => {
+      const url = 'http://127.0.0.1:' + server.address().port + '/x';
+      const api = await c.apiRequest(url);
+      const text = await c.fetchString(url);
+      console.log(JSON.stringify({ data: api.data, text }));
+      server.close();
+    });
+  `);
+  assert.deepStrictEqual(out, { data: { ok: true }, text: '{"ok":true}' });
+  console.log('✔ loopback requests through the client still work');
+}
 
-  // Loopback is not network access; a stubbed fetch cannot reach the network either
-  // (and a stub that falls through to the real fetch is caught by the offline-guard preload).
-  await withOffline(async () => {
-    const realFetch = globalThis.fetch;
-    globalThis.fetch = async () => stubResponse();
-    try {
-      assert.deepStrictEqual((await apiRequest('http://127.0.0.1:1/x')).data, { ok: true });
-      assert.strictEqual(await fetchString('http://localhost:1/x'), '{"ok":true}');
-      assert.deepStrictEqual((await apiRequest('https://api.github.com/x')).data, { ok: true });
-    } finally {
-      globalThis.fetch = realFetch;
-    }
-  });
-
-  // Local git lookups are not network access and stay allowed under NN_OFFLINE=1.
-  const out = execFileSync('git', ['rev-parse', '--git-dir'], {
+// 3. Local git lookups are not network access and stay allowed under NN_OFFLINE=1.
+{
+  const gitDir = execFileSync('git', ['rev-parse', '--git-dir'], {
     encoding: 'utf8',
     env: { ...process.env, NN_OFFLINE: '1' },
   });
-  assert.ok(out.trim().length > 0);
-
-  // Without NN_OFFLINE the client still reaches fetch (error is mapped, not thrown).
-  const realFetch = globalThis.fetch;
-  const prev = process.env.NN_OFFLINE;
-  delete process.env.NN_OFFLINE;
-  globalThis.fetch = async () => {
-    throw new Error('stub-network');
-  };
-  try {
-    const res = await apiRequest('https://api.github.com/x');
-    assert.strictEqual(res.status, 0);
-    assert.strictEqual(res.error, 'stub-network');
-  } finally {
-    globalThis.fetch = realFetch;
-    if (prev !== undefined) process.env.NN_OFFLINE = prev;
-  }
-
-  console.log('github-client offline tests passed');
+  assert.ok(gitDir.trim().length > 0);
+  console.log('✔ local git lookups are allowed');
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+// 4. The client contains no offline or test-detection logic of its own.
+{
+  const src = require('node:fs').readFileSync(client, 'utf8');
+  assert.ok(!/NN_OFFLINE|assertOnline|isRealFetch|__nn/.test(src), 'enforcement belongs to the preload, not the client');
+  console.log('✔ client carries no offline logic');
+}
+
+console.log('github-client offline tests passed');
