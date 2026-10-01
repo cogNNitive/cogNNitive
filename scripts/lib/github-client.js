@@ -13,6 +13,17 @@ const USER_AGENT = 'actioNN-Skills-Updater';
 const RATE_LIMIT_HINT = 'set GITHUB_TOKEN to raise the rate limit';
 
 /**
+ * Throws when offline mode is enforced (`NN_OFFLINE=1`, set by verify.js for
+ * every child process), so the deterministic gate cannot silently reach the network.
+ * @returns {void}
+ */
+function assertOnline() {
+  if (process.env.NN_OFFLINE === '1') {
+    throw new Error('Network access is disabled (NN_OFFLINE=1): refusing to call the GitHub client.');
+  }
+}
+
+/**
  * Returns authorization headers if GitHub token is present in the environment.
  * @returns {Record<string, string>}
  */
@@ -37,6 +48,7 @@ function rateLimited(status) {
  * @returns {Promise<{ status: number, data: T | null, error?: string }>}
  */
 async function apiRequest(url) {
+  assertOnline();
   try {
     const res = await fetch(url, { headers: { 'User-Agent': USER_AGENT, ...authHeaders() } });
     const body = await res.text();
@@ -55,6 +67,7 @@ async function apiRequest(url) {
  * @returns {Promise<string>}
  */
 async function fetchString(url, redirectsLeft = 5) {
+  assertOnline();
   let currentUrl = url;
   let left = redirectsLeft;
 
@@ -97,6 +110,7 @@ function fetchJson(url) {
  * @returns {Promise<void>}
  */
 async function downloadFile(url, destPath, redirectsLeft = 5) {
+  assertOnline();
   const dir = path.dirname(destPath);
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
