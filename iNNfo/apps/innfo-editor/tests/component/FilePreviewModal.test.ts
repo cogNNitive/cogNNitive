@@ -129,7 +129,7 @@ describe('FilePreviewModal', () => {
     URL.createObjectURL = originalCreateObjectURL
   })
 
-  it('does not render any sourceId badge (no synthetic id in the header)', async () => {
+  it('does not render any sourceId badge (no synthetic id in the header) and renders English labels', async () => {
     const tree: FakeTree = {
       sources: {
         nn: {
@@ -148,14 +148,16 @@ describe('FilePreviewModal', () => {
     })
 
     // loadSourceContent() is async (handle traversal + frontmatter parse); wait for the
-    // resolved source_file value, not just the always-present "Archivo Original" label.
+    // resolved source_file value, not just the always-present "Original File" label.
     await vi.waitFor(() => {
       expect(document.body.textContent ?? '').toContain('sources/original/clientA/report.docx')
     })
 
     const bodyText = document.body.textContent ?? ''
     expect(bodyText).not.toContain('src-ref')
-    expect(bodyText).toContain('Archivo Original')
+    expect(bodyText).toContain('Original File')
+    expect(bodyText).not.toContain('Archivo Original')
+    expect(bodyText).not.toContain('Linaje')
   })
 
   it('opens the original file via the workspace handle when the "open original" button is clicked', async () => {
@@ -190,7 +192,7 @@ describe('FilePreviewModal', () => {
     // Wait for loadSourceContent() to resolve frontmatter metadata and render the button.
     const openButton = await vi.waitFor(() => {
       const el = document.body.querySelector(
-        'button[title="Abrir archivo original en una pestaña nueva"]',
+        'button[title="Open original file in a new tab"]',
       )
       if (!el) throw new Error('open-original button not yet rendered')
       return el as HTMLElement
@@ -253,7 +255,7 @@ describe('FilePreviewModal', () => {
     })
 
     const lineageButton = Array.from(document.body.querySelectorAll('button')).find((btn) =>
-      btn.textContent?.includes('Linaje'),
+      btn.textContent?.includes('Lineage'),
     )
     expect(lineageButton).toBeTruthy()
 
@@ -263,12 +265,13 @@ describe('FilePreviewModal', () => {
     })
 
     // The lineage graph must render the Mermaid widget and the downstream/upstream nodes, not the empty state.
-    expect(document.body.textContent ?? '').not.toContain('No hay información de linaje')
+    expect(document.body.textContent ?? '').not.toContain('No lineage information available')
     const mermaidWidget = wrapper.findComponent(MermaidWidget)
     if (mermaidWidget.exists()) {
       const code = mermaidWidget.props('modelValue') as string
       expect(code).toContain('FOCAL')
-      expect(code).toContain('UP -->|normalizado| FOCAL')
+      expect(code).toContain('UP -->|normalized| FOCAL')
+      expect(code).not.toContain('normalizado')
       expect(code).toContain('Intro')
     }
   })
@@ -296,7 +299,7 @@ describe('FilePreviewModal', () => {
     })
 
     const lineageButton = Array.from(document.body.querySelectorAll('button')).find((btn) =>
-      btn.textContent?.includes('Linaje'),
+      btn.textContent?.includes('Lineage'),
     )
     lineageButton!.click()
 
@@ -367,7 +370,7 @@ describe('FilePreviewModal', () => {
     })
 
     const lineageButton = Array.from(document.body.querySelectorAll('button')).find((btn) =>
-      btn.textContent?.includes('Linaje'),
+      btn.textContent?.includes('Lineage'),
     )
     lineageButton!.click()
 
@@ -452,7 +455,7 @@ describe('FilePreviewModal', () => {
     })
 
     const lineageButton = Array.from(document.body.querySelectorAll('button')).find((btn) =>
-      btn.textContent?.includes('Linaje'),
+      btn.textContent?.includes('Lineage'),
     )
     lineageButton!.click()
 
@@ -465,4 +468,37 @@ describe('FilePreviewModal', () => {
     )
     expect(toggleButton).toBeUndefined()
   })
+
+  it('renders no Spanish UI strings in template or script', async () => {
+    const tree: FakeTree = {
+      sources: {
+        nn: {
+          'report.md': markdownWithFrontmatter,
+        },
+      },
+    }
+    const handle = buildFakeTree('workspace', tree)
+    const workspaceStore = useWorkspaceStore()
+    workspaceStore.handle = handle
+
+    const parsed = parseSourceRef('sources/nn/report.md')
+    wrapper = mount(FilePreviewModal, {
+      props: { isOpen: true, kind: 'source', filePath: parsed.filePath, fileName: parsed.fileName },
+      attachTo: document.body,
+    })
+
+    await vi.waitFor(() => {
+      expect(document.body.textContent ?? '').toContain('sources/original/clientA/report.docx')
+    })
+
+    const text = document.body.textContent ?? ''
+    expect(text).not.toContain('Archivo Original')
+    expect(text).not.toContain('Linaje')
+    expect(text).not.toContain('Vista Previa')
+    expect(text).not.toContain('Código')
+    expect(text).not.toContain('Normalizado')
+    expect(text).not.toContain('Cerrar')
+  })
 })
+
+

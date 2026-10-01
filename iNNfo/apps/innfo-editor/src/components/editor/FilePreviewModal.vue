@@ -65,7 +65,7 @@
                     : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
                 "
               >
-                Vista Previa
+                Preview
               </button>
               <button
                 @click="viewMode = 'code'"
@@ -76,7 +76,7 @@
                     : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
                 "
               >
-                Código
+                Code
               </button>
               <button
                 @click="viewMode = 'lineage'"
@@ -88,14 +88,14 @@
                 "
               >
                 <GitFork class="w-3 h-3" />
-                Linaje
+                Lineage
               </button>
             </div>
           </div>
           <button
             @click="close"
             class="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-all cursor-pointer"
-            title="Cerrar (Esc)"
+            title="Close (Esc)"
           >
             <X class="w-5 h-5" />
           </button>
@@ -103,7 +103,7 @@
 
         <!-- Metadata Panel -->
         <div
-          class="px-6 py-3 bg-slate-100/60 dark:bg-slate-850 border-b border-slate-200/80 dark:border-slate-800 shrink-0"
+          class="px-6 py-3 bg-slate-100/60 dark:bg-slate-855 border-b border-slate-200/80 dark:border-slate-800 shrink-0"
         >
           <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
             <div
@@ -112,7 +112,7 @@
               <FileText class="w-4 h-4 shrink-0" :class="meta.metaIcon" />
               <div class="min-w-0 flex-1">
                 <span class="text-[10px] uppercase font-bold text-slate-400 block leading-none"
-                  >Archivo Original</span
+                  >Original File</span
                 >
                 <span
                   class="font-mono text-xs truncate block font-medium"
@@ -126,7 +126,7 @@
                 type="button"
                 class="p-1 rounded-md text-slate-400 transition-colors cursor-pointer shrink-0"
                 :class="meta.openHover"
-                title="Abrir archivo original en una pestaña nueva"
+                title="Open original file in a new tab"
                 @click="openOriginalFile"
               >
                 <ExternalLink class="w-3.5 h-3.5" />
@@ -145,7 +145,7 @@
                   class="font-mono text-[11px] truncate block font-medium"
                   :title="metadata.sha256 || 'N/A'"
                 >
-                  {{ metadata.sha256 ? metadata.sha256.substring(0, 14) + '...' : 'Trazable' }}
+                  {{ metadata.sha256 ? metadata.sha256.substring(0, 14) + '...' : 'Traceable' }}
                 </span>
               </div>
             </div>
@@ -156,10 +156,10 @@
               <HardDrive class="w-4 h-4 text-emerald-500 shrink-0" />
               <div class="min-w-0">
                 <span class="text-[10px] uppercase font-bold text-slate-400 block leading-none"
-                  >Tamaño / Estado</span
+                  >Size / Status</span
                 >
                 <span class="font-mono text-xs truncate block font-medium">
-                  {{ metadata.size_bytes ? formatBytes(metadata.size_bytes) : 'Normalizado' }}
+                  {{ metadata.size_bytes ? formatBytes(metadata.size_bytes) : 'Normalized' }}
                 </span>
               </div>
             </div>
@@ -170,16 +170,16 @@
               <Clock class="w-4 h-4 text-amber-500 shrink-0" />
               <div class="min-w-0">
                 <span class="text-[10px] uppercase font-bold text-slate-400 block leading-none"
-                  >Normalizado At</span
+                  >Normalized At</span
                 >
                 <span class="font-mono text-[11px] truncate block font-medium">
-                  {{ metadata.normalized_at ? formatDate(metadata.normalized_at) : 'Reciente' }}
+                  {{ metadata.normalized_at ? formatDate(metadata.normalized_at) : 'Recent' }}
                 </span>
               </div>
             </div>
           </div>
           <p v-if="openOriginalError" class="mt-2 text-[11px] text-red-500 dark:text-red-400">
-            No se pudo abrir el archivo original: {{ openOriginalError }}
+            Could not open original file: {{ openOriginalError }}
           </p>
         </div>
 
@@ -202,7 +202,7 @@
               class="w-7 h-7 border-2 border-t-transparent rounded-full animate-spin"
               :class="meta.spinner"
             ></div>
-            <span>Cargando contenido...</span>
+            <span>Loading content...</span>
           </div>
 
           <div
@@ -211,7 +211,7 @@
           >
             <p class="font-bold flex items-center gap-2">
               <X class="w-4 h-4 text-red-400" />
-              No se pudo cargar el archivo
+              Could not load file
             </p>
             <p class="mt-1 font-mono text-slate-400">{{ error }}</p>
           </div>
@@ -307,7 +307,7 @@
               v-if="!lineageMermaidCode"
               class="text-center text-slate-400 py-12 text-xs font-sans"
             >
-              No hay información de linaje disponible para este archivo.
+              No lineage information available for this file.
             </div>
             <template v-else>
               <button
@@ -318,8 +318,8 @@
               >
                 {{
                   showOutgoing
-                    ? 'Ocultar relaciones salientes'
-                    : `Mostrar +${hiddenOutgoingCount} hidden`
+                    ? 'Hide outgoing relationships'
+                    : `Show +${hiddenOutgoingCount} hidden`
                 }}
               </button>
               <div class="w-full overflow-auto py-4">
@@ -361,13 +361,13 @@
         >
           <span class="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
             <CheckCircle2 class="w-4 h-4 text-emerald-500" />
-            Trazabilidad verificada con especificación iNNfo V_0-2-1
+            Traceability verified with iNNfo specification
           </span>
           <button
             @click="close"
             class="px-4 py-2 text-xs font-semibold rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors cursor-pointer"
           >
-            Cerrar
+            Close
           </button>
         </div>
       </div>
@@ -424,7 +424,7 @@ const knowledgeStore = useKnowledgeStore()
 
 const KIND_META = {
   source: {
-    label: 'Fuente',
+    label: 'Source',
     headerIcon: Link,
     iconWrap:
       'bg-slate-600/10 dark:bg-slate-400/20 text-slate-600 dark:text-slate-300 border-slate-500/20',
@@ -437,7 +437,7 @@ const KIND_META = {
     highlight: 'bg-slate-700/60 text-slate-100 border-slate-400',
   },
   artifact: {
-    label: 'Artefacto',
+    label: 'Artifact',
     headerIcon: FileOutput,
     iconWrap:
       'bg-slate-900/10 dark:bg-slate-100/10 text-slate-900 dark:text-slate-100 border-slate-900/20',
@@ -450,7 +450,7 @@ const KIND_META = {
     highlight: 'bg-slate-900/70 text-white border-slate-400',
   },
   model: {
-    label: 'Modelo',
+    label: 'Model',
     headerIcon: Sparkles,
     iconWrap:
       'bg-indigo-600/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border-indigo-500/20',
@@ -463,7 +463,7 @@ const KIND_META = {
     highlight: 'bg-indigo-900/60 text-indigo-100 border-indigo-500',
   },
   file: {
-    label: 'Archivo',
+    label: 'File',
     headerIcon: FileText,
     iconWrap: 'bg-slate-500/10 text-slate-500 dark:text-slate-400 border-slate-500/20',
     badge:
@@ -519,7 +519,13 @@ const lineageMermaidCode = computed(() => {
   const upHash = metadata.value.sha256 ? metadata.value.sha256.substring(0, 8) + '...' : ''
 
   // 2. Focal node (Current source)
-  const focalTitle = props.fileName + (props.slug ? ' (#' + props.slug + ')' : '')
+  const focalTitle =
+    props.fileName +
+    (props.unit
+      ? ' (@' + unitLabel(props.unit, props.subunits ?? []) + ')'
+      : props.slug
+        ? ' (#' + props.slug + ')'
+        : '')
 
   // 3. Downstream citations from knowledgeStore
   const citations = knowledgeStore.getSourceCitations(props.filePath)
@@ -538,11 +544,11 @@ const lineageMermaidCode = computed(() => {
   if (upFile) {
     const upLabel = `📄 ${sanitize(upFile)}${upHash ? ` [${upHash}]` : ''}`
     chartLines.push(`  UP["${upLabel}"]:::upstream`)
-    chartLines.push(`  UP -->|normalizado| FOCAL`)
+    chartLines.push(`  UP -->|normalized| FOCAL`)
   }
 
   if (citations.length === 0) {
-    chartLines.push(`  EMPTY["(Sin citaciones en modelos)"]:::emptyNode`)
+    chartLines.push(`  EMPTY["(No model citations)"]:::emptyNode`)
     chartLines.push(`  FOCAL -.-> EMPTY`)
   } else {
     // Group citations by nodeId to avoid duplicate nodes
@@ -560,7 +566,7 @@ const lineageMermaidCode = computed(() => {
       const edgeKey = `FOCAL->${nodeId}`
       if (!seenEdges.has(edgeKey)) {
         seenEdges.add(edgeKey)
-        const edgeLabel = c.headingSlug ? `cita #${sanitize(c.headingSlug)}` : 'cita'
+        const edgeLabel = c.headingSlug ? `cites @${sanitize(c.headingSlug)}` : 'cites'
         chartLines.push(`  FOCAL -->|${edgeLabel}| ${nodeId}`)
       }
 
@@ -577,7 +583,7 @@ const lineageMermaidCode = computed(() => {
         outRels.slice(0, 3).forEach((rel, rIdx) => {
           const targetNode = knowledgeStore.getNode(rel.targetId)
           const targetName = targetNode?.name ?? rel.targetId
-          const targetType = targetNode?.type ?? 'Elemento'
+          const targetType = targetNode?.type ?? 'Element'
           const targetId = `R_${idx}_${rIdx}`
           const targetLabel = `🔗 ${sanitize(targetType)}: ${sanitize(targetName)}`
           chartLines.push(`  ${targetId}["${targetLabel}"]:::relNode`)
