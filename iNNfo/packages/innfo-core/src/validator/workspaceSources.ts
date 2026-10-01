@@ -10,7 +10,6 @@ import {
   parseCitation,
   splitSourceFieldValue,
   type SourceRef,
-  type Citation,
 } from '../sourceRef.js'
 import { listSectionFields, resolveUnit } from '../unitResolve.js'
 import type { KnowledgeNode } from '../types/index.js'
@@ -27,57 +26,135 @@ export interface SourceResolution {
 
 /**
  * Host-supplied callback that resolves a workspace-relative source path
- * (`sources/nn/<path>.md`, `sources/nn/<path>.csv`, or `models/<path>.md`) to
+ * (`sources/nn/<path>.md`, `sources/nn/<path>.csv`, or `kNNowledge/<path>.md`) to
  * whether the file exists and, when cheap to compute, its heading slugs and/or
  * raw content (content unlocks row/column/field checks and precise `@` suggestions).
- *
- * - Node host (`innfo-mcp`): read the file from disk, return
- *   `extractHeadings(content).map(h => h.slug)` plus the content itself.
- * - Browser host (`innfo-editor`): look the file up in the in-memory workspace.
- *
- * Returning `null` is equivalent to `{ exists: false }`. Unit checks degrade to
- * file-existence-only when neither `headings` nor `content` is supplied.
  */
 export type SourceResolver = (
   refPath: string,
   referringPath?: string,
 ) => SourceResolution | null
 
+export interface CitationSite {
+  value: string
+  referringPath: string
+  field: string
+  element?: string
+}
+
+export interface CitationDiagnostic extends ReferenceDiagnostic {
+  site: CitationSite
+  target?: string
+}
+
 /**
- * Validates every `sources::` / `source::` Citation across the parsed workspace.
- *
- * Runs after the host's `recursiveParse()`. Complements — never replaces —
- * per-file `validateKnowledge`/`validateDocument`, which do not open other files.
- *
- * Two grammars, one pass: `@` pointers are validated structurally (codes `KU_*`);
- * legacy `#slug` references keep their historical diagnostics plus a timeline-neutral
- * `KU_DEPRECATED_HASH` warning suggesting the canonical `@` form.
- *
- * Severities (codes stable for tests):
- * - `error KU_MALFORMED` — unparseable value on a declared source field.
- * - `error KU_DANGLING_FILE` — the referenced file is not present in the workspace.
- * - `warning KU_UNKNOWN_SLUG` — the file resolves but the slug matches no heading.
- * - `warning KU_DEPRECATED_HASH` — legacy `#slug` form (suggests `@` canonical).
- * - `error KU_UNKNOWN_ROW` / `KU_UNKNOWN_COLUMN` — CSV key/column absent.
- * - `error KU_FIELD_OUTSIDE_SECTION` — `&field` absent from the pointed section.
- * - `error KU_UNKNOWN_MATRIX_CELL` — matrix `&row&col` does not resolve.
- * - `error KU_DUPLICATE_KEY` / `KU_EMPTY_KEY` — CSV key-column integrity (once per file).
+ * Validates a list of CitationSite locations against a SourceResolver.
+ * THE single citation-validation loop shared by workspace validation,
+ * artifacts validation, console meta validation, and skill checks.
  */
-/**
- * Whether `fieldName` on an element of concept `conceptType` carries a
- * citation (AD-5).
- *
- * The DECLARED type wins: a field the template declares `citation` is checked
- * whatever it is called, and a field it declares as anything else is not —
- * which is what stops `documentation`'s `source:: <content path>` from being
- * misdiagnosed as a broken citation.
- *
- * Name matching against `SOURCE_FIELD_NAMES` remains ONLY as the fallback for
- * a model whose template schema did not resolve (no resolver supplied, an
- * offline workspace, a concept the template never declared). Without that
- * fallback this change could not land without migrating every template in the
- * same commit.
- */
+export function validateCitations(
+  sites: CitationSite[],
+  resolver: SourceResolver,
+): CitationDiagnostic[] {
+  const diagnostics: CitationDiagnostic[] = []
+  const checkedCsvKeys = new Set<string>()
+
+  for (const site of sites) {
+    const value = site.value
+    const path = site.element
+      ? `${site.referringPath}#${site.element}.${site.field}`
+      : `${site.referringPath}#${site.field}`
+
+    // Queries select sets for retrieval tools — never a valid citation.
+    if (value.includes('?') && parseKnowledgeQuery(value)) {
+      diagnostics.push({
+        path,
+        message: `Queries are not valid citations: "${value}" selects a set, not a unit — resolve it to pointers first (e.g. run it as a query, then cite the resulting "@" references)`,
+        severity: 'error',
+        code: 'QU_NOT_PROVENANCE',
+        site,
+        target: value,
+      })
+      continue
+    }
+
+    if (/^models\//i.test(value.trim())) {
+      diagnostics.push({
+        path,
+        message: `Malformed source reference "${value}" — \`models/\` was removed; use \`kNNowledge/\``,
+        severity: 'error',
+        code: 'KU_MALFORMED',
+        site,
+        target: value,
+      })
+      continue
+    }
+
+    const cit = parseCitation(value)
+    if (!cit) {
+      diagnostics.push({
+        path,
+        message: `Malformed source reference "${value}" — use "<path>@<unit>" (e.g. "file.md@## Section", "data.csv@104"); line ranges like #L10-L20 and src-NNN ids are not allowed, and sources/original/ is not citable`,
+        severity: 'error',
+        code: 'KU_MALFORMED',
+        site,
+        target: value,
+      })
+      continue
+    }
+
+    if (cit.unit) {
+      validateUnitPointer(
+        cit,
+        site.referringPath,
+        path,
+        resolver,
+        diagnostics,
+        checkedCsvKeys,
+        site,
+      )
+      continue
+    }
+
+    const resolved = resolver(cit.filePath, site.referringPath)
+    if (!resolved || !resolved.exists) {
+      diagnostics.push({
+        path,
+        message: formatDanglingMessage(cit, resolved),
+        severity: 'error',
+        code: 'KU_DANGLING_FILE',
+        site,
+        target: cit.filePath,
+      })
+      continue
+    }
+
+    if (cit.slug && resolved.headings && !resolved.headings.includes(cit.slug)) {
+      diagnostics.push({
+        path,
+        message: `Source reference "${cit.raw}" points at heading "#${cit.slug}" which does not exist in "${cit.fileName}"`,
+        severity: 'warning',
+        code: 'KU_UNKNOWN_SLUG',
+        site,
+        target: cit.filePath,
+      })
+    }
+
+    if (cit.legacyHash) {
+      diagnostics.push({
+        path,
+        message: `Legacy "#slug" form is deprecated — prefer "@" pointers${suggestCanonical(resolved, cit)}`,
+        severity: 'warning',
+        code: 'KU_DEPRECATED_HASH',
+        site,
+        target: cit.filePath,
+      })
+    }
+  }
+
+  return diagnostics
+}
+
 function isCitationField(
   fieldName: string,
   conceptType: string | undefined,
@@ -88,26 +165,10 @@ function isCitationField(
   return SOURCE_FIELD_NAMES.has(fieldName.toLowerCase())
 }
 
-/**
- * Whether `fieldName` is the reserved `conflicts` property (design D5). This
- * is a RESERVED NAME check, deliberately independent of `isCitationField`'s
- * declared-type resolution: `conflicts::` values follow the same KU_*
- * validation path as `sources::`, but must NEVER be added to
- * `SOURCE_FIELD_NAMES` or fed into `recursiveParser/normalize.ts`'s
- * `node.sources` / `origin: 'source'` relationship-edge construction. The
- * reserved name wins over any declared field type.
- */
 function isConflictField(fieldName: string): boolean {
   return CONFLICT_FIELD_NAMES.has(fieldName.toLowerCase())
 }
 
-/**
- * Trigger pairs for the deprecated read-only legacy derivation keys (design
- * D3): `(any concept, derived_from_inputs)` and `(Models, derived_from)`.
- * The warning fires ONLY when the resolved schema declares the concept but
- * not the field — so the frozen cogNNitive schema (which declares
- * `ModelRecords`, not `Models`) and an unresolved schema both stay silent.
- */
 const LEGACY_DERIVATION_FIELD_NAMES = new Set(['derived_from', 'derived_from_inputs'])
 
 function legacyDerivationKeyFor(
@@ -120,7 +181,6 @@ function legacyDerivationKeyFor(
   if (!schema || !conceptType) return undefined
   const concept = schema.concepts.find((c) => c.name.toLowerCase() === conceptType.toLowerCase())
   if (!concept) return undefined
-  // Declares the concept but NOT the field — that is the trigger condition.
   const declaresField = concept.fields?.some((f) => f.name.toLowerCase() === lower)
   if (declaresField) return undefined
   return fieldName
@@ -129,13 +189,10 @@ function legacyDerivationKeyFor(
 export function validateWorkspaceSources(
   result: RecursiveParseResult,
   resolver: SourceResolver,
+  _snapshot?: unknown,
 ): ReferenceDiagnostic[] {
   const diagnostics: ReferenceDiagnostic[] = []
-  const checkedCsvKeys = new Set<string>()
 
-  /** The composed template schema of the document this node belongs to, if any.
-   *  `recursiveParse` stashes it on the root node, so no host plumbing is
-   *  needed here — walk up to the root and read it. */
   const schemaFor = (node: KnowledgeNode): BlueprintSchema | undefined => {
     let current: KnowledgeNode | undefined = node
     while (current) {
@@ -163,103 +220,31 @@ export function validateWorkspaceSources(
         })
       }
 
-      // The reserved `conflicts` name wins over any declared field type
-      // (design D5) — a conflicts:: field is checked here even when the
-      // schema does not declare it `type:: citation`.
       if (!isConflict && !isCitationField(fieldName, node.type, schema)) continue
 
-      const path = `${node.source.path}#${node.name}.${fieldName}`
-      let sawValidConflictPointer = false
-
+      const sites: CitationSite[] = []
       for (const value of splitSourceFieldValue(fv.value)) {
-        // Queries select sets for retrieval tools — never a valid citation.
-        // This check precedes both parsers so the message stays specific.
-        if (value.includes('?') && parseKnowledgeQuery(value)) {
-          diagnostics.push({
-            path,
-            message: `Queries are not valid citations: "${value}" selects a set, not a unit — resolve it to pointers first (e.g. run it as a query, then cite the resulting "@" references)`,
-            severity: 'error',
-            code: 'QU_NOT_PROVENANCE',
-          })
-          continue
-        }
-
-        if (/^models\//i.test(value.trim())) {
-          diagnostics.push({
-            path,
-            message: `Malformed source reference "${value}" — \`models/\` was removed; use \`kNNowledge/\``,
-            severity: 'error',
-            code: 'KU_MALFORMED',
-          })
-          continue
-        }
-
-        const cit = parseCitation(value)
-        if (!cit) {
-          diagnostics.push({
-            path,
-            message: `Malformed source reference "${value}" — use "<path>@<unit>" (e.g. "file.md@## Section", "data.csv@104"); line ranges like #L10-L20 and src-NNN ids are not allowed, and sources/original/ is not citable`,
-            severity: 'error',
-            code: 'KU_MALFORMED',
-          })
-          continue
-        }
-
-        if (cit.unit) {
-          const before = diagnostics.length
-          validateUnitPointer(
-            cit,
-            node.source.path,
-            path,
-            resolver,
-            diagnostics,
-            checkedCsvKeys,
-          )
-          if (isConflict && !diagnostics.slice(before).some((d) => d.severity === 'error')) {
-            sawValidConflictPointer = true
-          }
-          continue
-        }
-
-        const resolved = resolver(cit.filePath, node.source.path)
-        if (!resolved || !resolved.exists) {
-          diagnostics.push({
-            path,
-            message: formatDanglingMessage(cit, resolved),
-            severity: 'error',
-            code: 'KU_DANGLING_FILE',
-          })
-          continue
-        }
-
-        if (isConflict) sawValidConflictPointer = true
-
-        if (cit.slug && resolved.headings && !resolved.headings.includes(cit.slug)) {
-          diagnostics.push({
-            path,
-            message: `Source reference "${cit.raw}" points at heading "#${cit.slug}" which does not exist in "${cit.fileName}"`,
-            severity: 'warning',
-            code: 'KU_UNKNOWN_SLUG',
-          })
-        }
-
-        if (cit.legacyHash) {
-          diagnostics.push({
-            path,
-            message: `Legacy "#slug" form is deprecated — prefer "@" pointers${suggestCanonical(resolved, cit)}`,
-            severity: 'warning',
-            code: 'KU_DEPRECATED_HASH',
-          })
-        }
+        sites.push({
+          value,
+          referringPath: node.source.path,
+          element: node.name,
+          field: fieldName,
+        })
       }
 
-      if (isConflict && sawValidConflictPointer) {
-        diagnostics.push({
-          path,
-          message: `Element "${node.name}" flags a conflict via "conflicts::" — review and record the resolution in "rationale::"`,
-          severity: 'warning',
-          code: 'SRC_CONFLICT_FLAGGED',
-        })
+      const fieldDiags = validateCitations(sites, resolver)
+      diagnostics.push(...fieldDiags)
+
+      if (isConflict) {
+        const hasValid = sites.length > 0 && fieldDiags.every((d) => d.severity !== 'error')
+        if (hasValid) {
+          diagnostics.push({
+            path: `${node.source.path}#${node.name}.${fieldName}`,
+            message: `Element "${node.name}" flags a conflict via "conflicts::" — review and record the resolution in "rationale::"`,
+            severity: 'warning',
+            code: 'SRC_CONFLICT_FLAGGED',
+          })
+        }
       }
     }
   }
@@ -293,8 +278,9 @@ function validateUnitPointer(
   referringPath: string,
   path: string,
   resolver: SourceResolver,
-  diagnostics: ReferenceDiagnostic[],
+  diagnostics: CitationDiagnostic[],
   checkedCsvKeys: Set<string>,
+  site: CitationSite,
 ): void {
   const unit = ref.unit!
   const subunits = ref.subunits ?? []
@@ -305,24 +291,27 @@ function validateUnitPointer(
       message: formatDanglingMessage(ref, resolved),
       severity: 'error',
       code: 'KU_DANGLING_FILE',
+      site,
+      target: ref.filePath,
     })
     return
   }
   if (unit.kind === 'header') {
-    validateHeaderUnit(ref, unit.slug, unit.level, subunits, resolved, path, diagnostics)
+    validateHeaderUnit(ref, unit.slug, unit.level, subunits, resolved, path, diagnostics, site)
   } else {
-    validateRowUnit(ref, unit.id, subunits, resolved, path, diagnostics, checkedCsvKeys)
+    validateRowUnit(ref, unit.id, subunits, resolved, path, diagnostics, checkedCsvKeys, site)
   }
 }
 
 function validateHeaderUnit(
   ref: SourceRef,
   slug: string,
-  level: number,
+  _level: number,
   subunits: string[],
   resolved: { headings?: string[]; content?: string },
   path: string,
-  diagnostics: ReferenceDiagnostic[],
+  diagnostics: CitationDiagnostic[],
+  site: CitationSite,
 ): void {
   const headings =
     resolved.headings ??
@@ -336,6 +325,8 @@ function validateHeaderUnit(
       message: `Source reference "${ref.raw}" points at heading "@${slug}" which does not exist in "${ref.fileName}"`,
       severity: 'warning',
       code: 'KU_UNKNOWN_SLUG',
+      site,
+      target: ref.filePath,
     })
     return
   }
@@ -350,6 +341,8 @@ function validateHeaderUnit(
         message: `Source reference "${ref.raw}" points at field "&${subunits[0]}" which does not exist in section "@${slug}" of "${ref.fileName}"`,
         severity: 'error',
         code: 'KU_FIELD_OUTSIDE_SECTION',
+        site,
+        target: ref.filePath,
       })
     }
     return
@@ -362,6 +355,8 @@ function validateHeaderUnit(
         message: `Source reference "${ref.raw}" points at matrix cell "&${subunits[0]}&${subunits[1]}" which does not resolve in "${ref.fileName}"`,
         severity: 'error',
         code: 'KU_UNKNOWN_MATRIX_CELL',
+        site,
+        target: ref.filePath,
       })
     }
     return
@@ -371,6 +366,8 @@ function validateHeaderUnit(
     message: `Malformed source reference "${ref.raw}" — a header pointer takes at most one field (&field) or one matrix cell (&row&column)`,
     severity: 'error',
     code: 'KU_MALFORMED',
+    site,
+    target: ref.filePath,
   })
 }
 
@@ -380,8 +377,9 @@ function validateRowUnit(
   subunits: string[],
   resolved: { content?: string },
   path: string,
-  diagnostics: ReferenceDiagnostic[],
+  diagnostics: CitationDiagnostic[],
   checkedCsvKeys: Set<string>,
+  site: CitationSite,
 ): void {
   if (!resolved.content) return // Degraded: file-existence-only without content.
   const table = parseCsvTable(resolved.content)
@@ -391,6 +389,8 @@ function validateRowUnit(
       message: `Source file "${ref.filePath}" cannot be parsed as CSV`,
       severity: 'error',
       code: 'KU_MALFORMED',
+      site,
+      target: ref.filePath,
     })
     return
   }
@@ -405,6 +405,8 @@ function validateRowUnit(
           message: `Source file "${ref.filePath}" has a row with an empty key in the first column`,
           severity: 'error',
           code: 'KU_EMPTY_KEY',
+          site,
+          target: ref.filePath,
         })
       } else if (seen.has(key)) {
         diagnostics.push({
@@ -412,6 +414,8 @@ function validateRowUnit(
           message: `Source file "${ref.filePath}" has duplicate key "${key}" in the first column`,
           severity: 'error',
           code: 'KU_DUPLICATE_KEY',
+          site,
+          target: ref.filePath,
         })
       }
       seen.add(key)
@@ -424,6 +428,8 @@ function validateRowUnit(
       message: `Source reference "${ref.raw}" points at row "@${id}" which does not exist in "${ref.fileName}"`,
       severity: 'error',
       code: 'KU_UNKNOWN_ROW',
+      site,
+      target: ref.filePath,
     })
     return
   }
@@ -434,6 +440,8 @@ function validateRowUnit(
       message: `Malformed source reference "${ref.raw}" — a CSV row takes at most one column (&column)`,
       severity: 'error',
       code: 'KU_MALFORMED',
+      site,
+      target: ref.filePath,
     })
     return
   }
@@ -443,6 +451,8 @@ function validateRowUnit(
       message: `Source reference "${ref.raw}" points at column "&${subunits[0]}" which does not exist in "${ref.fileName}"`,
       severity: 'error',
       code: 'KU_UNKNOWN_COLUMN',
+      site,
+      target: ref.filePath,
     })
   }
 }

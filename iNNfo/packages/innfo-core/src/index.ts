@@ -67,6 +67,7 @@ export {
   parseQualifiedRef,
   validateWorkspaceReferences,
   validateWorkspaceSources,
+  validateCitations,
 } from './validator/index.js'
 export type {
   ReferenceDiagnostic,
@@ -76,6 +77,8 @@ export type {
   QualifiedRef,
   SourceResolver,
   SourceResolution,
+  CitationSite,
+  CitationDiagnostic,
 } from './validator/index.js'
 
 export {

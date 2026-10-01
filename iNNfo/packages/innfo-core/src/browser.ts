@@ -39,8 +39,15 @@ export {
   validateFormatSyntax,
   validateWorkspaceReferences,
   validateWorkspaceSources,
+  validateCitations,
 } from './validator/index.js'
-export type { DocumentValidation, ReferenceDiagnostic, SourceResolver } from './validator/index.js'
+export type {
+  DocumentValidation,
+  ReferenceDiagnostic,
+  SourceResolver,
+  CitationSite,
+  CitationDiagnostic,
+} from './validator/index.js'
 
 export {
   parseCitation,

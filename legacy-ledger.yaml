@@ -62,3 +62,12 @@ entries:
     removal: all-known-domains-migrated + maintainer-sign-off
     owner: 2026-09-29-nn-level-nomenclature-rename
 
+  - id: hash-slug-read
+    what: Read-only parser branch for legacy #slug citations in innfo-core
+    paths:
+      - iNNfo/packages/innfo-core/src/sourceRef.ts
+    why: Maintain backwards compatibility for write-once specs and frozen samples
+    removal: no-#slug-left-outside-frozen-paths + maintainer-sign-off
+    owner: 2026-10-01-lineage-single-edge
+
+
