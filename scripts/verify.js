@@ -389,18 +389,26 @@ function runSteps(steps, options) {
 function runVerification(options = {}) {
   const repoRoot = path.join(__dirname, '..');
   // In-process checks (and the children they spawn) must be offline too.
+  const previousOffline = process.env.NN_OFFLINE;
   process.env.NN_OFFLINE = '1';
   console.log('🔍 [cogNNitive Verify] Running workspace verification (offline)...');
 
   const steps = buildSteps(repoRoot, options);
   console.log(`▶ ${steps.length} steps.`);
-  const { ok } = runSteps(steps, {
-    logDir: path.join(repoRoot, '.verify-logs'),
-    verbose: options.verbose === true,
-    ci: Boolean(process.env.GITHUB_ACTIONS),
-    cwd: repoRoot,
-    env: childEnv(),
-  });
+  let ok;
+  try {
+    ({ ok } = runSteps(steps, {
+      logDir: path.join(repoRoot, '.verify-logs'),
+      verbose: options.verbose === true,
+      ci: Boolean(process.env.GITHUB_ACTIONS),
+      cwd: repoRoot,
+      env: childEnv(),
+    }));
+  } finally {
+    // Do not leak offline mode into a caller (check-integrity runs more after us).
+    if (previousOffline === undefined) delete process.env.NN_OFFLINE;
+    else process.env.NN_OFFLINE = previousOffline;
+  }
   if (ok) console.log('\n✅ [cogNNitive Verify] All deterministic pre-checks passed.');
   return ok;
 }

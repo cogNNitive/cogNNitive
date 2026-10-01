@@ -11,15 +11,15 @@ Conventions: `[TEST]` = failing test first (RED), `[IMPL]` = make it pass (GREEN
 
 ## PR 1 - Offline verify, quiet reporter, CDN staging split (AD-7, ~450 lines)
 
-- [ ] 1.1 [TEST] `scripts/lib/verify-reporter.test.js`: quiet pass, failure tail (last 60 lines), `--verbose`, >1 MB output without crash. Ref: quality-gates / Quiet buffered reporter (4 scenarios).
-- [ ] 1.2 [IMPL] Create `scripts/lib/verify-reporter.js` (`runStep`, log fd to `.verify-logs/<id>.log`); add `.verify-logs/` to `.gitignore`.
-- [ ] 1.3 [TEST] Extend `scripts/lib/github-client` test: `apiRequest`/`fetchString` throw under `NN_OFFLINE=1`; local git lookups still allowed. Ref: quality-gates / GitHub client throws when offline; Local git lookups are allowed.
-- [ ] 1.4 [IMPL] `scripts/lib/github-client.js`: throw when `NN_OFFLINE` is set.
-- [ ] 1.5 [TEST] `scripts/stage-mcp-bundle.test.mjs`: stages the committed bundle byte-for-byte, fails on code-split output; `build-docs.mjs` no longer stages it. Ref: quality-gates / MCP CDN bundle staging is independent of the editor build.
-- [ ] 1.6 [IMPL] Create `scripts/stage-mcp-bundle.mjs` (moves code from `build-docs.mjs:68-114`, code-split guard `:93-106`); strip CDN staging from `scripts/build-docs.mjs`.
-- [ ] 1.7 [IMPL] `scripts/verify.js`: drop `gh auth token` (`:30-37`) and steps 0, 3, 8, 9; set `NN_OFFLINE=1` on children; use `runStep`; run all steps then summarize (exit 1 on any failure); add `--verbose`. Ref: quality-gates / Verification is offline - Verify passes with no network, Verify does not need release tags.
-- [ ] 1.8 [IMPL] `.github/workflows/ci.yml`: remove `build:docs` from `verify` (`:46-49`); add `site` job (build docs, stage bundle, upload `pages-docs`); `::group::` tail and upload `.verify-logs/` on failure. Ref: Push CI makes no release-state lookups.
-- [ ] 1.9 [IMPL] `scripts/check-integrity.js`: drop `cdn-bundle-staged` check (`:73-81`) (moves to release, PR 2).
+- [x] 1.1 [TEST] `scripts/lib/verify-reporter.test.js`: quiet pass, failure tail (last 60 lines), `--verbose`, >1 MB output without crash. Ref: quality-gates / Quiet buffered reporter (4 scenarios).
+- [x] 1.2 [IMPL] Create `scripts/lib/verify-reporter.js` (`runStep`, log fd to `.verify-logs/<id>.log`); add `.verify-logs/` to `.gitignore`.
+- [x] 1.3 [TEST] Extend `scripts/lib/github-client` test: `apiRequest`/`fetchString` throw under `NN_OFFLINE=1`; local git lookups still allowed. Ref: quality-gates / GitHub client throws when offline; Local git lookups are allowed.
+- [x] 1.4 [IMPL] `scripts/lib/github-client.js`: throw when `NN_OFFLINE` is set.
+- [x] 1.5 [TEST] `scripts/stage-mcp-bundle.test.mjs`: stages the committed bundle byte-for-byte, fails on code-split output; `build-docs.mjs` no longer stages it. Ref: quality-gates / MCP CDN bundle staging is independent of the editor build.
+- [x] 1.6 [IMPL] Create `scripts/stage-mcp-bundle.mjs` (moves code from `build-docs.mjs:68-114`, code-split guard `:93-106`); strip CDN staging from `scripts/build-docs.mjs`.
+- [x] 1.7 [IMPL] `scripts/verify.js`: drop `gh auth token` (`:30-37`) and steps 0, 3, 8, 9; set `NN_OFFLINE=1` on children; use `runStep`; run all steps then summarize (exit 1 on any failure); add `--verbose`. Ref: quality-gates / Verification is offline - Verify passes with no network, Verify does not need release tags.
+- [x] 1.8 [IMPL] `.github/workflows/ci.yml`: remove `build:docs` from `verify` (`:46-49`); add `site` job (build docs, stage bundle, upload `pages-docs`); `::group::` tail and upload `.verify-logs/` on failure. Ref: Push CI makes no release-state lookups.
+- [x] 1.9 [IMPL] `scripts/check-integrity.js`: drop `cdn-bundle-staged` check (`:73-81`) (moves to release, PR 2).
 - Verify: `node scripts/verify.js` (offline, with network disabled), `node scripts/check-integrity.js`, `node --test scripts/lib/verify-reporter.test.js`.
 
 ## PR 2 - Release engine, gated (AD-1..AD-5, ~750 lines)
