@@ -215,11 +215,7 @@ function thinDecision(gate) {
 /* needs[] resolution through console/needs-registry.json (pins resolve via
    registry — never hand-edit URLs). Unknown needs are reported by name. */
 function resolveNeeds(needs, registry) {
-  const declared = isPlainObject(registry)
-    ? isPlainObject(registry.needs)
-      ? registry.needs
-      : registry
-    : {};
+  const declared = isPlainObject(registry) && isPlainObject(registry.needs) ? registry.needs : {};
   const unknown = (Array.isArray(needs) ? needs : []).filter((need) => !declared[need]);
   return { ok: unknown.length === 0, unknown };
 }
@@ -230,12 +226,8 @@ function resolveNeeds(needs, registry) {
    broken pin. */
 function chartsCapability(needs, registry) {
   const declared = Array.isArray(needs) && needs.indexOf('charts') !== -1;
-  const map = isPlainObject(registry)
-    ? isPlainObject(registry.needs)
-      ? registry.needs
-      : registry
-    : {};
-  const registered = !!map['charts'];
+  const registered =
+    isPlainObject(registry) && isPlainObject(registry.needs) && !!registry.needs['charts'];
   return { declared, registered, ok: !declared || registered };
 }
 

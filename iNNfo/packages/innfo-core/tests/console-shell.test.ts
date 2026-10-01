@@ -50,28 +50,37 @@ describe('artifact_shell.html (console shell)', () => {
 })
 
 describe('needs-registry.json (capability pins)', () => {
-  it('exists and adheres to capability-only shape (no version, no URLs)', () => {
+  it('exists, is versioned, and pins the shipped bundle CDN (bundle-vs-runtime reconciliation)', () => {
     expect(existsSync(registryPath)).toBe(true)
-    const registry = JSON.parse(readFileSync(registryPath, 'utf8')) as Record<string, any>
-    expect(registry.version).toBeUndefined()
-    expect(registry.runtime).toBeUndefined()
-    expect(Object.keys(registry)).toContain('feedback-export')
-    expect(Object.keys(registry)).toContain('charts')
+    const registry = JSON.parse(readFileSync(registryPath, 'utf8')) as {
+      version: string
+      runtime: { cdn: string; fallback: string; vendored: string }
+      needs: Record<string, { description: string }>
+    }
+    expect(typeof registry.version).toBe('string')
+    expect(registry.runtime.cdn).toContain('cdn.jsdelivr.net')
+    // Consoles load the single-file bundle (uPlot vendored) — the registry pins
+    // must match what ships beside generated consoles for offline file://.
+    expect(registry.runtime.cdn).toContain('innfo-console.bundle.js')
+    expect(registry.runtime.vendored).toContain('innfo-console.bundle.js')
+    expect(typeof registry.runtime.fallback).toBe('string')
   })
 
-  it('registers the feedback-export capability with required anchors', () => {
-    const registry = JSON.parse(readFileSync(registryPath, 'utf8')) as Record<string, { description: string; anchors: string[][] }>
-    expect(registry['feedback-export']).toBeDefined()
-    expect(registry['feedback-export'].description.length).toBeGreaterThan(0)
-    expect(Array.isArray(registry['feedback-export'].anchors)).toBe(true)
+  it('registers the feedback-export capability', () => {
+    const registry = JSON.parse(readFileSync(registryPath, 'utf8')) as {
+      needs: Record<string, { description: string }>
+    }
+    expect(Object.keys(registry.needs)).toContain('feedback-export')
+    expect(registry.needs['feedback-export'].description.length).toBeGreaterThan(0)
   })
 
-  it('registers the charts capability with anchors and optional renderer', () => {
-    const registry = JSON.parse(readFileSync(registryPath, 'utf8')) as Record<string, { description?: string; renderer?: string; anchors: string[][] }>
-    expect(registry['charts']).toBeDefined()
-    expect(registry['charts'].description).toBeDefined()
-    expect(registry['charts'].renderer).toBeDefined()
-    expect(Array.isArray(registry['charts'].anchors)).toBe(true)
+  it('registers the charts capability with a renderer pin', () => {
+    const registry = JSON.parse(readFileSync(registryPath, 'utf8')) as {
+      needs: Record<string, { description?: string; renderer?: string }>
+    }
+    expect(Object.keys(registry.needs)).toContain('charts')
+    expect(registry.needs['charts'].description).toBeDefined()
+    expect(registry.needs['charts'].renderer).toBeDefined()
   })
 })
 

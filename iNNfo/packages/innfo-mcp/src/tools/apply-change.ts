@@ -488,8 +488,8 @@ async function bumpVersion(
       const oldRelPath = basename(filePath)
       const newRelPath = basename(newPath)
 
-      const oldModelRel = join('kNNowledge', oldRelPath).replace(/\\/g, '/')
-      const newModelRel = join('kNNowledge', newRelPath).replace(/\\/g, '/')
+      const oldModelRel = join('models', oldRelPath).replace(/\\/g, '/')
+      const newModelRel = join('models', newRelPath).replace(/\\/g, '/')
 
       let replaced = false
       if (indexContent.includes(oldRelPath)) {

@@ -87,50 +87,31 @@ agent-bootstrap:
 
 // 2. TTY interactive decision gate (non-TTY without --yes exits code 2)
 {
-  const manifest = `---
-agent-bootstrap:
-  version: "2.0"
-  skills:
-    - name: nn-test
-      repo: cogNNitive/actioNN
-      path: skills/nn-test
-      version: "1.0"
-      commit: "abc1234"
----
-# Manifest`;
-  const server = await serveManifestOnce(manifest);
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'actioNN-test-'));
   const skillsDir = path.join(tmpDir, 'skills');
   const stateFile = path.join(tmpDir, 'bootstrap-state.json');
 
   try {
-    const res = await spawnAsync([managerScript, 'install', '--skills-dir', skillsDir, '--state', stateFile], {
-      env: { ...process.env, SM_MANIFEST_URL: server.url },
+    const res = spawnSync('node', [managerScript, 'install', '--skills-dir', skillsDir, '--state', stateFile], {
+      encoding: 'utf-8',
+      env: { ...process.env, SM_MANIFEST_URL: 'https://raw.githubusercontent.com/cogNNitive/eNNvironment/main/docs/use/manifest.md' },
     });
     assert.strictEqual(res.status, 2, `Non-TTY execution without --yes should exit code 2. Got: ${res.status}`);
     assert.match(res.stdout || res.stderr, /needs decision:/);
     console.log('✔ TTY consent gate (needs decision: / exit 2) test passed');
   } finally {
-    await server.close();
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
 }
 
 // 3. Legacy state file migration: skills-state.json -> bootstrap-state.json
 {
-  const manifest = `---
-agent-bootstrap:
-  version: "2.0"
-  skills: []
----
-# Manifest`;
-  const server = await serveManifestOnce(manifest);
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'actioNN-test-'));
   const legacyStateFile = path.join(tmpDir, 'skills-state.json');
   const targetStateFile = path.join(tmpDir, 'bootstrap-state.json');
 
   const legacyContent = {
-    manifest: server.url,
+    manifest: 'https://raw.githubusercontent.com/cogNNitive/eNNvironment/main/docs/use/manifest.md',
     skills: {
       'nn-router': { commit: 'd60a7109315820085ab127b70412992db6986c88', version: '3.2' },
     },
@@ -138,8 +119,8 @@ agent-bootstrap:
   fs.writeFileSync(legacyStateFile, JSON.stringify(legacyContent, null, 2), 'utf-8');
 
   try {
-    const res = await spawnAsync([managerScript, 'status', '--skills-dir', tmpDir, '--state', targetStateFile], {
-      env: { ...process.env, SM_MANIFEST_URL: server.url },
+    const res = spawnSync('node', [managerScript, 'status', '--skills-dir', tmpDir, '--state', targetStateFile], {
+      encoding: 'utf-8',
     });
     assert.strictEqual(res.status, 0, `Status execution should succeed. Got stderr: ${res.stderr}`);
     assert(fs.existsSync(targetStateFile), 'bootstrap-state.json should be created after loading legacy state');
@@ -149,7 +130,6 @@ agent-bootstrap:
     assert(migrated.blueprints, 'Migrated state should contain blueprints object');
     console.log('✔ Legacy state file migration test passed');
   } finally {
-    await server.close();
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
 }
@@ -186,11 +166,11 @@ agent-bootstrap:
   version: "2.0"
   skills: []
   blueprints:
-    - name: domaiNN
-      repo: cogNNitive/cogNNitive-web
-      path: iNNfo/specs/bluepriNNts/domaiNN/spec_NN.md
-      version: "V_0-3-0"
-      commit: "535ab18b738280bb479015968f8ec38dee6397a9"
+    - name: workspace
+      repo: cogNNitive/cogNNitive
+      path: iNNfo/specs/templates/workspace_V_0-3-0_spec_NN.md
+      version: "V_0-2-1"
+      commit: "27c79dc8c32375cd5db66e0782253716030e468c"
   workflows:
     - id: test-wf
       label: Test Workflow
@@ -224,7 +204,7 @@ agent-bootstrap:
     const stateContent = fs.readFileSync(targetStateFile, 'utf-8');
     assert.strictEqual(stateContent.charCodeAt(0), 123, 'State file written without BOM');
     const parsedState = JSON.parse(stateContent);
-    assert(parsedState.blueprints.domaiNN, 'State records bootstrapped template');
+    assert(parsedState.blueprints.workspace, 'State records bootstrapped template');
 
     console.log('✔ Bootstrap command with --yes test passed');
   } finally {

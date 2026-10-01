@@ -12,10 +12,6 @@ const { bootstrapProject } = require('../../scripts/lib/bootstrap');
  * dropped everything below the top level.
  */
 function run() {
-  return runAsync();
-}
-
-async function runAsync() {
   let passed = 0;
   let failed = 0;
 
@@ -63,7 +59,7 @@ async function runAsync() {
 
     // Standard workspace layout created with updated conventions
     for (const d of [
-      'kNNowledge',
+      'models',
       'procedures',
       'export',
       'conversations',
@@ -80,19 +76,6 @@ async function runAsync() {
     check(!fs.existsSync(path.join(destParent, 'Proj', 'artifacts')), 'deprecated artifacts/ not created');
     check(!fs.existsSync(path.join(destParent, 'Proj', 'sources', 'original')), 'deprecated sources/original/ not created');
     check(fs.existsSync(result.provModelPath), 'provenance model initialized');
-    check(fs.existsSync(path.join(destParent, 'Proj', 'domaiNN_NN.md')), 'domaiNN_NN.md entrypoint created');
-
-    const { detectLegacy } = require('../../../nn-preflight/scripts/lib/legacy-detect.generated.cjs');
-    const projDir = path.join(destParent, 'Proj');
-    const fsReader = {
-      list: async (rel) => {
-        const full = path.join(projDir, rel);
-        return fs.existsSync(full) ? fs.readdirSync(full) : [];
-      },
-      read: async (rel) => fs.readFileSync(path.join(projDir, rel), 'utf8'),
-    };
-    const layoutDetection = await detectLegacy(fsReader);
-    check(layoutDetection.kind === 'current', `bootstrapped project detected as current (got ${layoutDetection.kind})`);
 
     // AGENTS.md default scaffolding
     check(Boolean(result.agentsMdPath), 'result.agentsMdPath is returned');

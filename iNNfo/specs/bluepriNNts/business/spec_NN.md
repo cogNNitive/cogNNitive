@@ -28,6 +28,10 @@ relationship_types:
     enabled: false
   sequence:
     enabled: true
+assets:
+  - id: "model-viewer-shell"
+    name: "Model Viewer HTML Layout"
+    path: "assets/model_viewer.html"
 ---
 
 > [!NOTE]

@@ -23,9 +23,9 @@ const viewerAsset = join(
   '..',
   'specs',
   'bluepriNNts',
-  'workspace',
+  'business',
   'assets',
-  'model_console.html',
+  'model_viewer.html',
 )
 
 type ModelViewerApi = {

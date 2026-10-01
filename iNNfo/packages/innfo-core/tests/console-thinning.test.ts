@@ -9,7 +9,7 @@ const templatesDir = join(here, '..', '..', '..', 'specs', 'bluepriNNts')
 const repoRoot = join(here, '..', '..', '..', '..')
 
 const assets = {
-  shell: join(templatesDir, 'console', 'artifact_shell.html'),
+  viewer: join(templatesDir, 'business', 'assets', 'model_viewer.html'),
   timeline: join(templatesDir, 'metrics', 'assets', 'timeline.html'),
   console: join(templatesDir, 'workspace', 'assets', 'model_console.html'),
 }
@@ -28,7 +28,7 @@ function readAsset(path: string): string {
 }
 
 describe.each([
-  ['shell', assets.shell],
+  ['viewer', assets.viewer],
   ['timeline', assets.timeline],
   ['console', assets.console],
 ])('%s console asset', (_name, path) => {
@@ -56,11 +56,26 @@ describe.each([
   })
 })
 
-describe('artifact_shell slot payloads', () => {
+describe('viewer slot payloads', () => {
   it('keeps the #innfo-schema and #innfo-model slots', () => {
-    const html = readAsset(assets.shell)
+    const html = readAsset(assets.viewer)
     expect(html).toContain('id="innfo-schema"')
     expect(html).toContain('id="innfo-model"')
+  })
+
+  it('stays byte-unchanged by the console-citation-icons change (C2-C4 create a workspace-level copy instead)', () => {
+    const tracked = execFileSync(
+      'git',
+      ['show', 'HEAD:iNNfo/specs/bluepriNNts/business/assets/model_viewer.html'],
+      { cwd: repoRoot, encoding: 'utf8' },
+    )
+    const onDisk = readAsset(assets.viewer)
+    // The only sanctioned difference is the canonical hosting host (the
+    // public-web-repository-split re-root moved raw URLs off the private
+    // monorepo); normalizing it keeps this a content-identity check.
+    const normalizeHost = (s: string) =>
+      s.replace(/cogNNitive\/cogNNitive(?:-web)?\//g, 'cogNNitive/HOST/')
+    expect(normalizeHost(onDisk)).toBe(normalizeHost(tracked))
   })
 })
 

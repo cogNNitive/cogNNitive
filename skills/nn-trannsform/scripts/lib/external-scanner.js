@@ -299,9 +299,9 @@ function scanExternalDirectory(rootConfig, cache = {}) {
 function scanAllWatchRoots(projectDir, cache = {}) {
   // Find the lineage/entrypoint record that can declare watch roots. The record
   // is `<Project>_..._cogNNitive_NN.md` (or the entrypoint `domaiNN_NN.md`), living
-  // at the workspace root or under the knowledge dir (`kNNowledge/`).
+  // at the workspace root or under the knowledge dir (new `kNNowledge/`, legacy `models/`).
   let modelPath = null;
-  for (const dirName of ['kNNowledge']) {
+  for (const dirName of ['kNNowledge', 'models']) {
     if (modelPath) break;
     const dir = path.join(projectDir, dirName);
     if (!fs.existsSync(dir)) continue;

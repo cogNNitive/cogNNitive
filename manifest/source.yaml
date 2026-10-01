@@ -3,12 +3,6 @@ entrypoint: "domaiNN_NN.md"
 # manifest/source.yaml - pinned source of truth for distribution
 
 skills:
-  - name: nn
-    repo: cogNNitive/cogNNitive-web
-    path: skills/nn
-    version: "V_3-4-0"
-    ref_key: skills
-    description: Primary Front Controller, ecosystem entry point, job loop menu, system governance, and preflight readiness gate.
   - name: nn-start
     repo: cogNNitive/cogNNitive-web
     path: skills/nn-start

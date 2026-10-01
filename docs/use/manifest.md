@@ -6,13 +6,6 @@ agent-bootstrap:
   version: "2.0"
   entrypoint: "domaiNN_NN.md"
   skills:
-    - name: nn
-      repo: cogNNitive/cogNNitive-web
-      path: skills/nn
-      version: "V_3-4-0"
-      ref: "skills-v2.8.1"
-      commit: "535ab18b738280bb479015968f8ec38dee6397a9"
-      description: Primary Front Controller, ecosystem entry point, job loop menu, system governance, and preflight readiness gate.
     - name: nn-start
       repo: cogNNitive/cogNNitive-web
       path: skills/nn-start
@@ -247,7 +240,7 @@ on a machine is recorded per-machine in `~/.agents/bootstrap-state.json` (like l
    - Global User Cache: `~/.agents/templates/<name>/<version>/`
    - Installed Skills Directory: `~/.agents/skills/*/templates/<name>/<version>/`
    Hydration into workspace `./specs/templates/<name>/<version>/` is atomic and write-once immutable.
-8. Attached SOP procedures (`procedures/`) and agent skills (`skills/`) declared in template frontmatter are dynamically discovered up to depth 10 via `list_blueprint_procedures` and `list_blueprint_skills`.
+8. Attached SOP procedures (`procedures/`) and agent skills (`skills/`) declared in template frontmatter are dynamically discovered up to depth 10 via `list_template_procedures` and `list_template_skills`.
 9. Present the `workflows[]` as a menu and hand over to the chosen skill.
 
 ## For an agent that already has `agent-web-bootstrap`

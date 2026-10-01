@@ -105,12 +105,12 @@ Pass exact SKILL.md paths.
 
 ### Maintenance — full review
 
-1. Read `manifest/source.yaml` and installed skills
+1. Read `.cogNNitive/skill-registry.md`
 2. Identify orphaned or unused skills
 3. Check frontmatter compliance across all skills
-4. Verify manifest and documentation parity
+4. Verify registry is up to date
 5. Delegate fixes to the appropriate sub-skills
-6. Run `npm run check:versions` or `node scripts/sync-versions.mjs` to maintain parity
+6. Run `node scripts/build-registry.js` to regenerate `.cogNNitive/skill-registry.md`
 7. Report summary: what was done, new count, remaining items
 
 ---
@@ -118,5 +118,5 @@ Pass exact SKILL.md paths.
 ## Hard Rules
 
 - Never load alongside `skill-creator`, `skill-improver`, or `nnskills-organizer` in the same context
-- Always update `manifest/source.yaml` and sync version documentation after any create, move, rename, or delete
+- Always update the registry after any create, move, rename, or delete
 - Never modify a `SKILL.md` directly — delegate to the specialist

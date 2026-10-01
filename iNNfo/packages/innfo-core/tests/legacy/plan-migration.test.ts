@@ -103,27 +103,4 @@ describe('planMigration (Task 5.6)', () => {
     }
     expect(result.report.customBlueprints).toContain('custom_app')
   })
-
-  it('yields move op and no write op for opaque binary files', async () => {
-    const files = {
-      'workspace_NN.md': '---\ntemplate_version: "0.1.0"\n---\n# Workspace\n',
-      'models/image.png': 'PNG_BYTES',
-    }
-    const reader: DomainReader = {
-      ...createMemoryDomainReader(files),
-      async isOpaque(filePath: string): Promise<boolean> {
-        return filePath.endsWith('.png')
-      },
-    }
-
-    const result = await planMigration(reader, stubDeps)
-    expect(result.status).toBe('ready')
-
-    const moveOp = result.ops.find((op) => op.op === 'move' && op.from === 'models/image.png')
-    expect(moveOp).toBeDefined()
-    expect(moveOp).toEqual({ op: 'move', from: 'models/image.png', to: 'kNNowledge/image.png' })
-
-    const writeOp = result.ops.find((op) => op.op === 'write' && op.path.includes('image.png'))
-    expect(writeOp).toBeUndefined()
-  })
 })

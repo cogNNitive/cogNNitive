@@ -4,7 +4,6 @@
   - [Interaction Flows & Statechart](skills/interaction-flows.md)
 
 - **Canonical Skills**
-  - [nn](skills/nn.md)
   - [nn-start](skills/nn-start.md)
   - [nn-preflight](skills/nn-preflight.md)
   - [nn-innfo](skills/nn-innfo.md)

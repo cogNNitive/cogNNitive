@@ -42,14 +42,13 @@ model_version: "V_1-0-0"
 level: 3
 ---
 
-# NN Stakeholders
+# NN Market
 ## NN Stakeholders: Enterprise
   budget:: "$100k"
   tagline:: "Mission critical"
 
   Leading enterprise tier offering.
 
-# NN RevenueStream
 ## NN RevenueStream: Subscription
   pricing:: "$50k/yr"
 

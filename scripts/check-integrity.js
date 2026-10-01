@@ -113,17 +113,6 @@ if (!legacyLedgerResult.ok) {
 }
 console.log(`  ✅ Legacy ledger valid (${legacyLedgerResult.entries.length} entries, ${legacyLedgerResult.markers.length} code markers).`);
 
-// Step 2e: Console Shell Integrity Guard
-console.log('\n[Group 2e] Console Shell Integrity Guard:');
-const { checkConsoleShellIntegrity } = require('./lib/console-shell-guard.js');
-const consoleShellResult = checkConsoleShellIntegrity(repoRoot);
-if (!consoleShellResult.ok) {
-  console.error('❌ Console Shell Integrity check failed:');
-  consoleShellResult.errors.forEach(err => console.error(`  - ${err}`));
-  process.exit(1);
-}
-console.log(`  ✅ All ${consoleShellResult.shells.length} console shells adhere to the integrity contract.`);
-
 // Step 3: Full Deterministic Workspace Verification (verify.js)
 console.log('\n[Groups 3, 4, 7+] Workspace Verification Suite:');
 try {

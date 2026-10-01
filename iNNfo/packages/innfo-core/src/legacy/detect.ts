@@ -3,7 +3,6 @@
 export interface DomainReader {
   list(dir: string): Promise<string[]>
   read(path: string): Promise<string | null>
-  isOpaque?(path: string): Promise<boolean>
 }
 
 export type LegacySignalType =

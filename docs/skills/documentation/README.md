@@ -14,11 +14,10 @@ generator: https://cognnitive.com/skills/nn-design-presets
 The cogNNitive ecosystem provides the following specialized, autonomous agent skills, derived from [`manifest/source.yaml`](https://github.com/cogNNitive/cogNNitive/blob/main/manifest/source.yaml):
 
 <!-- generated:skills-catalog (source: manifest/source.yaml; run node scripts/generate-docs-facts.mjs) -->
-**10** skills
+**9** skills
 
 | Skill | Version | Description |
 |-------|---------|-------------|
-| [`nn`](skills/nn.md) | `V_3-4-0` | Primary Front Controller, ecosystem entry point, job loop menu, system governance, and preflight readiness gate. |
 | [`nn-start`](skills/nn-start.md) | `V_3-4-2` | Central system governance, setup, environment readiness gate (Preflight), and start router. |
 | [`nn-trannsform`](skills/nn-trannsform.md) | `V_3-4-2` | Ingest documents (PDF, DOCX, XLSX), transform using blueprints, and execute multi-step procedures (procedures_V_0-1-0_NN.md). |
 | [`nn-innfo`](skills/nn-innfo.md) | `V_0-5-5` | Author, edit, and validate iNNfo knowledge with built-in step-by-step Model Creation Wizard. |

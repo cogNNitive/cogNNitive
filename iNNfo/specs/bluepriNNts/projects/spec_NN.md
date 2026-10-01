@@ -14,6 +14,10 @@ procedures:
   - id: "generate-status-report"
     name: "Generate Project Status Report"
     path: "procedures/generate_status_report_NN.md"
+assets:
+  - id: "roadmap-layout"
+    name: "Roadmap Console HTML Layout"
+    path: "assets/roadmap_console.html"
 relationship_types:
   hierarchy:
     enabled: true

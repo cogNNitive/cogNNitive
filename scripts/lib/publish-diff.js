@@ -8,19 +8,16 @@
  *
  * Pure and dependency-free: the caller supplies two directory paths and gets
  * back the list of added / modified / removed relative paths. Only generated
- * content is compared; the repo's `.git` and public-owned files (`.nojekyll`)
- * are excluded from the diff. CNAME is compared if provided.
+ * content is compared; the repo's `.git` and the `CNAME`/Pages plumbing that
+ * the public repo owns are excluded from the diff.
  */
 
 const fs = require('node:fs');
 const path = require('node:path');
 
-// Files that the public distribution repository owns and which should be
-// preserved across site rebuilds unless explicitly provided by the source artifact.
-const PUBLIC_OWNED = ['.nojekyll'];
-
-// Paths the public repo owns and the publish diff must ignore:
-const PUBLISH_EXCLUDED = new Set(['.git', ...PUBLIC_OWNED]);
+// Paths the public repo owns and the publish must never add, overwrite, or
+// delete: its own metadata and Pages config.
+const PUBLISH_EXCLUDED = new Set(['.git', '.nojekyll']);
 
 /**
  * Recursively collects `<relative posix path> -> file bytes` for every file
@@ -90,4 +87,4 @@ function diffTrees(sourceDir, targetDir) {
   };
 }
 
-module.exports = { diffTrees, collectTree, PUBLISH_EXCLUDED, PUBLIC_OWNED };
+module.exports = { diffTrees, collectTree, PUBLISH_EXCLUDED };

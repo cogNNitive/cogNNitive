@@ -63,7 +63,7 @@ export function normalizeId(id: string): string {
  */
 export async function listKnowledge(rootDir: string): Promise<KnowledgeInfo[]> {
   const rootModels = await coreListModels(rootDir)
-  const candidateDirs = [join(rootDir, 'kNNowledge')]
+  const candidateDirs = [join(rootDir, 'kNNowledge'), join(rootDir, 'models')]
   for (const dir of candidateDirs) {
     try {
       const { stat } = await import('node:fs/promises')
