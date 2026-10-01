@@ -65,6 +65,16 @@ async function main() {
     totalPassed += provenanceResult.passed;
     totalFailed += provenanceResult.failed;
 
+    const provKnowledgeTest = require('./unit/test-provenance-knowledge');
+    const provKnowledgeResult = await provKnowledgeTest.run();
+    totalPassed += provKnowledgeResult.passed;
+    totalFailed += provKnowledgeResult.failed;
+
+    const lineageCheckTest = require('./unit/test-lineage-check');
+    const lineageCheckResult = await lineageCheckTest.run();
+    totalPassed += lineageCheckResult.passed;
+    totalFailed += lineageCheckResult.failed;
+
     const lineageSyncTest = require('./unit/test-lineage-sync');
     const lineageSyncResult = await lineageSyncTest.run();
     totalPassed += lineageSyncResult.passed;
