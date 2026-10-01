@@ -209,9 +209,19 @@ agent-bootstrap:
   const specRel = 'iNNfo/specs/bluepriNNts/domaiNN/spec_NN.md';
   const fixtureRoot = path.join(tmpDir, 'fixture');
   fs.mkdirSync(path.join(fixtureRoot, repoDirName, path.dirname(specRel)), { recursive: true });
-  fs.writeFileSync(path.join(fixtureRoot, repoDirName, specRel), '# domaiNN fixture spec\n', 'utf-8');
+  fs.writeFileSync(path.join(fixtureRoot, repoDirName, specRel), 'ROUTE=tarball\n', 'utf-8');
+  // On Windows a Git-for-Windows GNU tar earlier on PATH reads `C:\...` as a remote
+  // host and cannot extract. Put the Windows bsdtar (System32) first so the CLI's
+  // tarball route is exercised on every OS this suite runs on.
+  const baseEnv = { ...process.env };
+  const bsdtar = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'tar.exe');
+  if (process.platform === 'win32') {
+    assert(fs.existsSync(bsdtar), `Windows bsdtar not found at ${bsdtar}; the tarball route cannot be exercised`);
+    const pathKey = Object.keys(baseEnv).find((k) => k.toLowerCase() === 'path') || 'PATH';
+    baseEnv[pathKey] = `${path.dirname(bsdtar)}${path.delimiter}${baseEnv[pathKey] || ''}`;
+  }
   const tarName = 'repo.tar.gz';
-  const tarRes = spawnSync('tar', ['-czf', tarName, repoDirName], { cwd: fixtureRoot, encoding: 'utf-8' });
+  const tarRes = spawnSync('tar', ['-czf', tarName, repoDirName], { cwd: fixtureRoot, encoding: 'utf-8', env: baseEnv });
   assert.strictEqual(tarRes.status, 0, `fixture tarball must build. Got: ${tarRes.stderr}`);
   const tarBytes = fs.readFileSync(path.join(fixtureRoot, tarName));
   const requestedPaths = [];
@@ -224,7 +234,7 @@ agent-bootstrap:
       // Fallback route: the CLI uses it when tarball extraction fails (e.g. GNU tar
       // on Windows reads `C:` as a remote host).
       res.writeHead(200, { 'Content-Type': 'text/markdown' });
-      res.end('# domaiNN fixture spec\n');
+      res.end('ROUTE=raw\n');
     } else {
       res.writeHead(404);
       res.end('not found');
@@ -246,7 +256,7 @@ agent-bootstrap:
       ],
       {
         env: {
-          ...process.env,
+          ...baseEnv,
           SM_MANIFEST_URL: manifestServer.url,
           SM_TEST_GITHUB_PORT: String(githubServer.address().port),
           NODE_OPTIONS: `${process.env.NODE_OPTIONS || ''} --require "${githubPreload}"`.trim(),
@@ -265,6 +275,11 @@ agent-bootstrap:
     assert.strictEqual(parsedState.blueprints.domaiNN.commit, commit, 'State records the pinned commit');
     assert(requestedPaths.length > 0 && requestedPaths.every((p) => /^\/(codeload\.github\.com|raw\.githubusercontent\.com)\//.test(p)),
       'every GitHub download was served by the loopback fixture');
+
+    // Assert the route actually taken: the installed template body says which
+    // fixture route served it. The tarball route is the primary path.
+    const installed = fs.readFileSync(path.join(targetTemplatesDir, 'domaiNN.md'), 'utf-8');
+    assert.strictEqual(installed.trim(), 'ROUTE=tarball', `expected the tarball route, got: ${installed.trim()}`);
 
     console.log('✔ Bootstrap command with --yes test passed');
   } finally {

@@ -46,6 +46,10 @@ Completed after the hook block (all edits via Read/Edit/Write):
 - `skills-manager.test.js` bootstrap is hermetic: a loopback server serves the fixture tarball and the raw fallback; the CLI runs with `scripts/lib/test-fixtures/github-loopback-preload.js`, which rewrites GitHub URLs to that server. On this Windows machine PATH `tar` is GNU tar and cannot read `C:\` paths, so the CLI uses the raw fallback route (same as before); on CI the tarball route is used.
 - Proof: `shared-libs`, `validate-manifest`, `skills-manager`, `verify-offline`, `github-client`, `offline-guard` suites run with `childEnv()` (NN_OFFLINE=1 + preload): all exit 0, zero `ENN_OFFLINE`/offline refusals.
 
+Batch 3 (re-verify warnings):
+- W-A: all offline/test-detection logic removed from `scripts/lib/github-client.js` (`assertOnline`, `isRealFetch`, `PLATFORM_FETCH`, `process.__nnPlatformFetch`) and the detection-only fetch marker removed from the guard. Enforcement is solely the preload. `github-client.test.js` now spawns children under the preload and asserts `ENN_OFFLINE` (fetchString, fetchJson, downloadFile reject; apiRequest returns status 0 with the error), loopback works, local git works, and the client source has no offline logic. Spec scenario reworded ("The preload refuses non-loopback network for every verify child"). Stubbed suites (shared-libs, validate-manifest) and skills-manager pass under the preload with zero refusals.
+- W-B: the bootstrap test serves distinguishable bodies (`ROUTE=tarball` / `ROUTE=raw`) and asserts the installed template is `ROUTE=tarball`. On Windows it puts `System32\tar.exe` (bsdtar) first on PATH for both the fixture build and the CLI (asserting it exists), so the tarball route is exercised on every OS; no silent fallback and no skip.
+
 Earlier in this batch:
 - Fail-closed offline guard preload `scripts/lib/offline-guard.js` (+ `loopback.js`, `offline-guard.test.js`): refuses non-loopback net/tls/dns/fetch before any socket I/O when `NN_OFFLINE=1`; loopback allowed (commit `feat(verify): add a fail-closed offline guard preload`).
 - W1: `.verify-logs` upload now has `include-hidden-files: true`.
