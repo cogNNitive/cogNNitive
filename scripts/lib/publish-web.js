@@ -58,9 +58,8 @@ async function runPublish(config, options = {}) {
     throw new PublishError('WEB_PUBLISH_TOKEN is required (Contents: write on the target repo).');
   }
 
-  // 1. Guard all surfaces BEFORE creating temp directories or touching network
-  const surfaces = skipDistribution ? [docsRoot] : [docsRoot, ...distributionPaths];
-  assertNoSource(repoRoot, surfaces);
+  // 1. Guard docsRoot BEFORE creating temp directories or touching network
+  assertNoSource(repoRoot, [docsRoot]);
 
   const work = fs.mkdtempSync(path.join(tmpRoot, 'publish-web-'));
   try {
@@ -104,6 +103,10 @@ async function runPublish(config, options = {}) {
       }
       logger.log(`publish-web: staged ${copiedCount} distribution path(s).`);
     }
+
+    // 4. Guard staged distribution tree before committing/pushing
+    const stagedSurfaces = skipDistribution ? [subdir] : [subdir, ...distributionPaths];
+    assertNoSource(work, stagedSurfaces);
 
     if (dryRun) {
       logger.log('publish-web: DRY RUN — no commit/push performed.');

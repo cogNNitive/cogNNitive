@@ -63,7 +63,10 @@ function copyDistributionPath(repoRoot, relPath, workDir) {
   const to = path.join(workDir, relPath);
   fs.rmSync(to, { recursive: true, force: true });
   fs.mkdirSync(path.dirname(to), { recursive: true });
-  fs.cpSync(from, to, { recursive: true });
+  fs.cpSync(from, to, {
+    recursive: true,
+    filter: (src) => !src.split(path.sep).includes('node_modules'),
+  });
   return true;
 }
 
