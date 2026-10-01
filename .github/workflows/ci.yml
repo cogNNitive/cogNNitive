@@ -75,11 +75,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Stage the CDN bundle from the COMMITTED bytes before the docs build
-      # rebuilds bin/innfo-mcp.bundle.js, so CDN bytes equal the raw-pinned bytes.
-      - name: Stage MCP CDN bundle
-        run: npm run stage:mcp-bundle
-
       - name: Build Docs
         run: npm run build:docs
 
