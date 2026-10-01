@@ -270,9 +270,21 @@ function runVerification(options = {}) {
   ];
   console.log(`
 ▶ Discovered ${suites.length} script/skill test suites.`);
+  const suiteFailures = [];
   for (const suite of suites) {
     const rel = path.relative(repoRoot, suite).split(path.sep).join('/');
-    run(`node ${rel}`, `Test ${rel}`);
+    console.log(`\n▶ Test ${rel} (node ${rel})...`);
+    try {
+      execSync(`node ${rel}`, { stdio: 'inherit' });
+    } catch {
+      console.error(`❌ Test ${rel} failed.`);
+      suiteFailures.push(rel);
+    }
+  }
+  if (suiteFailures.length > 0) {
+    console.error(`\n❌ ${suiteFailures.length} test suite(s) failed:`);
+    suiteFailures.forEach((f) => console.error(`  - ${f}`));
+    process.exit(1);
   }
 
   // 0c. Suites whose filenames do not match the `*.test.*` shape, so the
