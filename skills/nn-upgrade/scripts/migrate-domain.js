@@ -430,8 +430,8 @@ async function main() {
     }
     const specsTemplates = path.join(ws, 'specs', 'templates')
     if (fs.existsSync(specsTemplates)) {
-      console.log('\nUntouched Legacy Specs/Templates:')
-      console.log('  specs/templates (left untouched)')
+      console.log('\nLegacy Specs/Templates Migration:')
+      console.log('  specs/templates -> specs/bluepriNNts (will be migrated)')
     }
     console.log('\nTo execute this migration:')
     console.log(
@@ -522,7 +522,22 @@ async function main() {
 
     const specsTemplates = path.join(ws, 'specs', 'templates')
     if (fs.existsSync(specsTemplates)) {
-      console.log('ℹ specs/templates/ was left untouched (not migrated).')
+      const destBlueprints = path.join(ws, 'specs', 'bluepriNNts')
+      fs.mkdirSync(destBlueprints, { recursive: true })
+      const entries = fs.readdirSync(specsTemplates, { withFileTypes: true })
+      for (const entry of entries) {
+        const src = path.join(specsTemplates, entry.name)
+        const dest = path.join(destBlueprints, entry.name)
+        if (!fs.existsSync(dest)) {
+          fs.renameSync(src, dest)
+          journal.appliedOps.push({ op: 'move', from: `specs/templates/${entry.name}`, to: `specs/bluepriNNts/${entry.name}` })
+        }
+      }
+      const leftovers = removeEmptyDirsBottomUp(specsTemplates)
+      if (leftovers.length > 0) {
+        journal.leftovers.push(...leftovers.map((l) => `specs/templates/${l}`))
+      }
+      console.log('✔ specs/templates/ migrated to specs/bluepriNNts/.')
     }
 
     journal.committed = true

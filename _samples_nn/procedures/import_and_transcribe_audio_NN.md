@@ -115,7 +115,7 @@ output:: [[Verified Target Domain Model]]
 output_status:: verified
 tool:: [[innfo-mcp]]
 scope:: internal
-Execute validate_model on the target domain model via innfo-mcp to ensure reference integrity and schema compliance.
+Execute validate_knowledge on the target domain model via innfo-mcp to ensure reference integrity and schema compliance.
 
 # NN Tools
 

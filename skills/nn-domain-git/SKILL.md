@@ -48,7 +48,7 @@ The model MUST NOT auto-invoke it. If invoked implicitly, stop and ask for expli
 ## Role
 
 Gated workspace-to-Git review workflow: initialize a private repo with an opinionated
-`.gitignore`, work branch-per-change behind `validate`/`check_workspace` PR gates,
+`.gitignore`, work branch-per-change behind `validate`/`check_domain` PR gates,
 track the two-layer version map (`V_x-y-z` vs Git commit), and keep a timestamped
 filesystem backup outside the workspace before deep changes.
 
@@ -79,7 +79,7 @@ Present exactly:
 ```markdown
 Workspace-to-Git workflow:
 [a] init — private repo + opinionated .gitignore
-[b] branch + PR — branch-per-change with validate + check_workspace gates
+[b] branch + PR — branch-per-change with validate + check_domain gates
 [c] map — record V_x-y-z ↔ commit rows
 [d] backup — timestamped filesystem copy outside the workspace
 ```
@@ -123,7 +123,7 @@ git checkout -b <change>/<short-slug>
 3. Open a pull request targeting `main`. The PR MUST pass BOTH gates before merge:
 
 - `validate` (model validation via `innfo-mcp_validate_knowledge`)
-- `check_workspace` (workspace integrity check)
+- `check_domain` (workspace integrity check)
 
 4. `main` MUST be protected and MUST require at least 1 approval. A PR missing
    any gate result or approval is blocked — never merge it, never force-push over it.

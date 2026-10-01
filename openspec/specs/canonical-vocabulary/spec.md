@@ -2,41 +2,41 @@
 
 ## Purpose
 
-Pin a canonical term dictionary for the cogNNitive ecosystem, collapsing overlapping vocabulary onto canonical nouns with explicit deprecated aliases. Establishes **app** as the canonical term for the Level-2 schema (currently called **template**) while keeping all identifiers stable, and excludes unrelated senses of "template".
+Pin a canonical term dictionary for the cogNNitive ecosystem, collapsing overlapping vocabulary onto canonical nouns with explicit deprecated aliases. Establishes **bluepriNNt** as the canonical term for the Level-2 schema while keeping all resolution identifiers stable, and documents **template** and **app** as deprecated aliases.
 
 ## Requirements
 
 ### Requirement: Canonical term dictionary is machine-readable and human-visible
 
-The system MUST provide a canonical term dictionary in two forms: a machine-readable map (`vocabulary.json` under `iNNfo/specs/`) that drives editor labels and skill copy, and a human-readable page under `docs/innfo/documentation/vocabulary.md`. The `iNNfo/AGENTS.md` "Ubiquitous Language & Domain Terminology" block MUST be updated to match.
+The system MUST provide a canonical term dictionary in two forms: a machine-readable map (`vocabulary.json` under `iNNfo/specs/`) that drives editor labels and skill copy, and a human-readable page under `docs/innfo/documentation/vocabulary.md`. The `iNNfo/AGENTS.md` and root `AGENTS.md` "Canonical Vocabulary & Ubiquitous Language" block MUST match.
 
 #### Scenario: Dictionary consumed by editor labels
 
 - GIVEN the canonical dictionary published as `vocabulary.json`
 - WHEN `innfo-editor` renders a label for a Level-2 schema
-- THEN the label MUST use the canonical term `app` for the schema sense
+- THEN the label MUST use the canonical term `bluepriNNt` for the schema sense
 
 #### Scenario: Dictionary rendered as docs page
 
 - GIVEN the canonical dictionary
 - WHEN `docs/innfo/documentation/vocabulary.md` is generated
-- THEN it lists every canonical term with its deprecated aliases and sense exclusions
+- THEN it lists every canonical term (`defiNNition`, `iNNfo`, `bluepriNNt`, `kNNowledge`, `domaiNN`) with its deprecated aliases and sense exclusions
 
-### Requirement: `app` is canonical, `template` is an explicit deprecated alias
+### Requirement: `bluepriNNt` is canonical, `template` and `app` are explicit deprecated aliases
 
-The dictionary MUST declare **app** as the canonical noun for the Level-2 schema (`_spec_NN.md` pinned by `parent_spec`). **template** MUST be accepted as a documented deprecated alias for one release (read, not written), then removed from user-facing copy. The deprecation MUST follow the `provenance-vocabulary` pattern: explicit, published, and never a silent fallback.
+The dictionary MUST declare **bluepriNNt** as the canonical noun for the Level-2 schema (`_spec_NN.md` pinned by `parent_spec`). **template** and **app** MUST be accepted as documented deprecated aliases. The deprecation MUST follow the `provenance-vocabulary` pattern: explicit, published, and never a silent fallback.
 
-#### Scenario: New copy uses app
+#### Scenario: New copy uses bluepriNNt
 
 - GIVEN user-facing copy authored after this change
 - WHEN it refers to a Level-2 schema
-- THEN it MUST use `app`, not `template`
+- THEN it MUST use `bluepriNNt`, not `template` or `app`
 
 #### Scenario: Legacy copy still readable
 
-- GIVEN existing docs/skills that say `template`
+- GIVEN existing docs/skills that say `template` or `app`
 - WHEN the dictionary deprecation window is open
-- THEN `template` resolves to `app` with a deprecation note in the dictionary
+- THEN `template` and `app` resolve to `bluepriNNt` with a deprecation note in the dictionary
 
 ### Requirement: Excluded senses of "template"
 

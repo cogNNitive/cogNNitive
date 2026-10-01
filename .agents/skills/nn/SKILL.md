@@ -13,6 +13,6 @@ bundled_blueprints: []
 
 # nn Front Controller
 
-Alias entry point for `/nn` delegating to `nn-start`.
+Canonical ecosystem front controller.
 
-Execute the canonical router in [`skills/nn-start/SKILL.md`](../../../skills/nn-start/SKILL.md).
+Execute the front controller in [`skills/nn/SKILL.md`](../../../skills/nn/SKILL.md).

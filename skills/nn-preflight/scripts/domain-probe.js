@@ -4,15 +4,15 @@
  *
  * Fast, deterministic local inspection of workspace state:
  * - Layout (current, legacy, mixed)
- * - Knowledge documents count & listing
- * - Pending sources in sources/import/
+ * - Knowledge documents count & listing in kNNowledge/
+ * - Pending unnormalized sources in sources/ (sha256-verified)
  * - Attached and workspace procedures
- * - Preflight check status with --workspace-dir
+ * - Preflight check status with --workspace-dir and bounded offline runtime
  */
 
 const fs = require('fs');
 const path = require('path');
-const { runCheck } = require('./preflight-check');
+const { runCheck, scanWorkspaceSources } = require('./preflight-check');
 const { detectLegacy } = require('./lib/legacy-detect.generated.cjs');
 
 /**
@@ -20,10 +20,12 @@ const { detectLegacy } = require('./lib/legacy-detect.generated.cjs');
  * @param {object} [options={}]
  * @param {string} [options.workspaceDir='.']
  * @param {boolean} [options.skipPreflight=false]
+ * @param {boolean} [options.offline=true]
  * @returns {Promise<object>}
  */
 async function runProbe(options = {}) {
   const workspaceDir = path.resolve(options.workspaceDir || '.');
+  const isOffline = options.offline !== undefined ? options.offline : true;
 
   // 1. Layout detection
   const fsReader = {
@@ -41,42 +43,28 @@ async function runProbe(options = {}) {
     layout = 'unknown';
   }
 
-  // 2. Knowledge items count
+  // 2. Knowledge items count in canonical kNNowledge/
   const knowledgeDir = path.join(workspaceDir, 'kNNowledge');
-  const legacyModelsDir = path.join(workspaceDir, 'models');
   let knowledgeItems = [];
-  const targetKDir = fs.existsSync(knowledgeDir)
-    ? knowledgeDir
-    : fs.existsSync(legacyModelsDir)
-      ? legacyModelsDir
-      : null;
-  if (targetKDir) {
+  if (fs.existsSync(knowledgeDir)) {
     try {
-      knowledgeItems = fs.readdirSync(targetKDir).filter((f) => f.endsWith('.md') && !f.startsWith('.'));
+      knowledgeItems = fs.readdirSync(knowledgeDir).filter((f) => f.endsWith('.md') && !f.startsWith('.'));
     } catch {
       knowledgeItems = [];
     }
   }
 
-  // 3. Pending sources count
-  let pendingCount = 0;
-  for (const sDir of ['sources/import', 'sources/original']) {
-    const full = path.join(workspaceDir, sDir);
-    if (fs.existsSync(full)) {
-      try {
-        const walk = (d) => {
-          for (const ent of fs.readdirSync(d, { withFileTypes: true })) {
-            if (ent.name.startsWith('.')) continue;
-            const sub = path.join(d, ent.name);
-            if (ent.isDirectory()) walk(sub);
-            else if (ent.isFile()) pendingCount++;
-          }
-        };
-        walk(full);
-      } catch {
-        // ignore read errors
-      }
-    }
+  // 3. Pending sources count (unnormalized raw files or hash mismatches)
+  try {
+    const srcAudit = scanWorkspaceSources(workspaceDir);
+    pendingCount = srcAudit.unnormalized !== undefined ? srcAudit.unnormalized : 0;
+    sourceSummary = {
+      total: srcAudit.total || 0,
+      normalized: srcAudit.normalized || 0,
+      unnormalized: srcAudit.unnormalized || 0,
+    };
+  } catch {
+    pendingCount = 0;
   }
 
   // 4. Procedures count
@@ -114,14 +102,28 @@ async function runProbe(options = {}) {
       const p = await runCheck({
         workspaceDir,
         json: true,
+        offline: isOffline,
       });
+      const warningItems = (p.items || []).filter(
+        (d) =>
+          d.status === 'WARN' ||
+          d.status === 'ACTION_REQUIRED' ||
+          d.status === 'warning' ||
+          d.status === 'blocker' ||
+          d.status === 'unnormalized' ||
+          d.status === 'stale' ||
+          d.status === 'dangling' ||
+          d.status === 'upgrade-available' ||
+          d.status === 'outdated',
+      );
       preflightRes = {
         status: p.status,
         exitCode: p.exitCode,
-        warnings: (p.diagnostics || []).filter(
-          (d) => d.status === 'WARN' || d.status === 'ACTION_REQUIRED',
-        ),
+        warnings: warningItems,
       };
+      if (p.summary && p.summary.sourcesUnnormalized !== undefined) {
+        pendingCount = p.summary.sourcesUnnormalized;
+      }
     } catch (e) {
       preflightRes = {
         status: 'ERROR',
@@ -141,6 +143,7 @@ async function runProbe(options = {}) {
     },
     sources: {
       pending_count: pendingCount,
+      summary: sourceSummary,
     },
     procedures: {
       domain_count: domainProceduresCount,
@@ -157,16 +160,23 @@ async function main() {
   };
   const isJson = args.includes('--json');
   const skipPreflight = args.includes('--skip-preflight');
+  const isOffline = !args.includes('--online');
   const workspaceDir = getArg('--workspace-dir') || '.';
 
   try {
-    const result = await runProbe({ workspaceDir, skipPreflight });
+    const result = await runProbe({ workspaceDir, skipPreflight, offline: isOffline });
     if (isJson) {
       console.log(JSON.stringify(result, null, 2));
     } else {
       console.log(`\n=== Domain State Probe ===`);
       console.log(`Layout: ${result.layout}`);
       console.log(`Preflight: ${result.preflight.status} (exit ${result.preflight.exitCode})`);
+      if (result.preflight.warnings.length > 0) {
+        console.log(`Warnings (${result.preflight.warnings.length}):`);
+        result.preflight.warnings.forEach((w) => {
+          console.log(`  - [${w.status || 'WARN'}] ${w.name || w.type || ''}: ${w.detail || w.message || ''}`);
+        });
+      }
       console.log(`Knowledge count: ${result.knowledge.count}`);
       console.log(`Pending sources: ${result.sources.pending_count}`);
       console.log(`Procedures (domain/blueprint): ${result.procedures.domain_count}/${result.procedures.blueprint_count}`);

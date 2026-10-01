@@ -680,8 +680,6 @@ async function handleGetSpec(args: Record<string, unknown>): Promise<CallToolRes
   const knowledgeId = (args.knowledge_id as string) || (args.model_id as string)
   if (!url && !knowledgeId) return errorResult('Provide either url or knowledge_id')
   const root = (args.domain as string) || (args.root as string) || ROOT_DIR
-  const legacyErr = await checkDomainLegacy(root)
-  if (legacyErr) return legacyErr
   const result = await getSpec(
     root,
     { url, modelId: knowledgeId },
@@ -696,8 +694,6 @@ async function handleGetBlueprint(args: Record<string, unknown>): Promise<CallTo
   const knowledgeId = (args.knowledge_id as string) || (args.model_id as string)
   const name = (args.blueprint_name as string) || (args.name as string)
   const root = (args.domain as string) || (args.root as string) || ROOT_DIR
-  const legacyErr = await checkDomainLegacy(root)
-  if (legacyErr) return legacyErr
 
   let blueprint = null
   if (url) {
@@ -804,8 +800,6 @@ async function handleInitKnowledge(args: Record<string, unknown>): Promise<CallT
 
 async function handleListBlueprints(args: Record<string, unknown>): Promise<CallToolResult> {
   const root = (args.domain as string) || (args.root as string) || ROOT_DIR
-  const legacyErr = await checkDomainLegacy(root)
-  if (legacyErr) return legacyErr
   const blueprints = await listBlueprints(root)
   return textResult(
     JSON.stringify(envelopeList('innfo-list-blueprints', 'blueprints', blueprints), null, 2),
@@ -839,8 +833,6 @@ async function handleSyncDomainManifest(args: Record<string, unknown>): Promise<
 
 async function handleCheckDomain(args: Record<string, unknown>): Promise<CallToolResult> {
   const root = (args.domain as string) || (args.root as string) || ROOT_DIR
-  const legacyErr = await checkDomainLegacy(root)
-  if (legacyErr) return legacyErr
   const report = await checkDomain(root, {
     summaryOnly: Boolean(args.summary_only),
     offline: Boolean(args.offline),

@@ -66,7 +66,7 @@ describe('validateKnowledge TEMPLATE_CACHE_STALE warning (D3)', () => {
     expect(warning).toBeDefined()
     expect(warning!.severity).toBe('warning')
     expect(warning!.path).toBe('parent_spec')
-    expect(warning!.promptHint).toContain('check_workspace')
+    expect(warning!.promptHint).toContain('check_domain')
     expect(warning!.promptHint).toContain(TEMPLATE_URL)
     expect(warning!.meta).toEqual({
       canonicalUrl: TEMPLATE_URL,
@@ -74,7 +74,7 @@ describe('validateKnowledge TEMPLATE_CACHE_STALE warning (D3)', () => {
     })
     expect(warning!.message).toContain('business_V_0-2-0')
     expect(warning!.message).toContain(TEMPLATE_URL)
-    expect(warning!.message).toContain('check_workspace')
+    expect(warning!.message).toContain('check_domain')
     expect(warning!.message).not.toMatch(/Delete\/replace/)
     // D8 decoration: parent-scoped diagnostics are attributed to the template file.
     expect(warning!.filePath).toBe('business_V_0-2-0_NN.md')

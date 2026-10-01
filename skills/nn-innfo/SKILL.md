@@ -24,8 +24,8 @@ description: |
 # iNNfo Skill
 
 ## 0. Activation Gate & Conversation Lifecycle Gate
-1. **Activation Gate**: Execute the canonical activation gate defined in `nn-preflight` (session greeting + deterministic preflight integrity check). If already executed by `nn` / `nn-start` in the current session, skip duplicate preflight execution.
-2. **Conversation Lifecycle Gate**: Follow `nn-start` Rule 5:
+1. **Activation Gate**: Execute the canonical activation gate defined in `nn-preflight` (session greeting + deterministic preflight integrity check). If already executed by `nn` in the current session, skip duplicate preflight execution.
+2. **Conversation Lifecycle Gate**: Follow the conversation lifecycle protocol:
    - Silently reserve `conversations/YYYY-MM-DD_HHmmss.md` upon session start (`status: in_progress`).
    - Upon session exit or wizard completion:
      - Zero Discard Policy: all sessions are retained unconditionally in `conversations/`.
@@ -89,9 +89,9 @@ To minimize token usage and unnecessary file I/O operations across large workspa
 
 ---
 
-## 0. Entry Menu & Conversational Model Creation Wizard
+## 3. Entry Menu & Conversational Model Creation Wizard
 
-### 0a. Intent-First Execution & Entry Menu
+### 3a. Intent-First Execution & Entry Menu
 
 #### 1. Intent-First Execution (MANDATORY)
 If the user's message already expresses an explicit, actionable intent (e.g. "run preflight", "check for new sources", "validate the model", "scaffold business model", "show uncited sources", "fix matrix error"):
@@ -761,10 +761,10 @@ intent: surgical   # coach | surgical | match | verify; advisory only today
 2. Work spanning two intents SHOULD declare the broader (more expensive) intent,
    so the recorded purpose stays honest once enforcement lands.
 3. Context discipline is therefore the CALLER's responsibility right now: the
-   budgets and slice rules in 16b-16c are real obligations on how you build
+   budgets and slice rules in 17b-17c are real obligations on how you build
    requests, not something the server enforces on your behalf.
 
-### 16b. Slice-first reads for surgical work
+### 17b. Slice-first reads for surgical work
 
 Surgical work (few elements of one concept) MUST read bounded slices through existing query units and MUST NOT include whole files. No included unit SHALL exceed 150 lines without an explicit slice or recorded override:
 
@@ -772,14 +772,14 @@ Surgical work (few elements of one concept) MUST read bounded slices through exi
 2. When the needed context spans the cap, record a manual `override_reason` alongside the call; the wider unit MAY then be included.
 3. Honor the `truncated` flag: when set, the slice is partial — narrow the query instead of widening the read.
 
-### 16c. Differential verify prompts
+### 17c. Differential verify prompts
 
 `verify` prompts MUST carry only outcome data and MUST NOT embed full logs or rendered artifacts; full logs remain on disk by path reference:
 
 1. Build the prompt from `validate_knowledge(baseline_path)` as `{ exit, new_errors, verdict, log_path }` — exit status plus errors new against the baseline only.
 2. A clean run carries the verdict only; historical errors are never re-explained.
 
-### 16d. Per-intent budgets and measurement
+### 17d. Per-intent budgets and measurement
 
 | Intent | Budget rule |
 |---|---|

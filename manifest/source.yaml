@@ -9,12 +9,6 @@ skills:
     version: "V_3-4-0"
     ref_key: skills
     description: Primary Front Controller, ecosystem entry point, job loop menu, system governance, and preflight readiness gate.
-  - name: nn-start
-    repo: cogNNitive/cogNNitive-web
-    path: skills/nn-start
-    version: "V_3-4-2"
-    ref_key: skills
-    description: Central system governance, setup, environment readiness gate (Preflight), and start router.
   - name: nn-trannsform
     repo: cogNNitive/cogNNitive-web
     path: skills/nn-trannsform

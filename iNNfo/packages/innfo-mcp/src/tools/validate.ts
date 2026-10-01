@@ -839,8 +839,8 @@ export async function validateKnowledge(
     warnings.push({
       path: 'parent_spec',
       code: 'TEMPLATE_CACHE_STALE',
-      message: `[TEMPLATE_CACHE_STALE] Local template cache for "${freshness.name}" differs from the canonical remote "${freshness.url}". Run check_workspace to rehydrate the template cache and re-validate.`,
-      promptHint: `Run check_workspace to update the template cache with the canonical remote version "${freshness.url}" and re-validate the model.`,
+      message: `[TEMPLATE_CACHE_STALE] Local template cache for "${freshness.name}" differs from the canonical remote "${freshness.url}". Run check_domain or hydrate_blueprint to rehydrate the template cache and re-validate.`,
+      promptHint: `Run check_domain or hydrate_blueprint to update the template cache with the canonical remote version "${freshness.url}" and re-validate the model.`,
       meta: {
         canonicalUrl: freshness.url,
         templateName: freshness.name,

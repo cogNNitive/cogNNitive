@@ -119,7 +119,7 @@ output_status:: verified
 tool:: [[iNNfo MCP Server]]
 scope:: internal
 tags:: [mcp, mutation, refactoring, validation]
-Executes deterministic mutations on Level 3 domain models via `innfo-mcp_apply_change` or file tools, re-validates schemas with `innfo-mcp_validate_model`, and updates generator templates if deliverable scope changed.
+Executes deterministic mutations on Level 3 domain models via `innfo-mcp_apply_change` or file tools, re-validates schemas with `innfo-mcp_validate_knowledge`, and updates generator templates if deliverable scope changed.
 
 ## NN Work: Step 6 - Artifact Sanitization and Lineage Registration
 parent:: [[Artifact Feedback Reconciliation Workflow]]
