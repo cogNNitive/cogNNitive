@@ -333,7 +333,11 @@ level: 3
       await mkdir(toolsDir, { recursive: true })
       await mkdir(consoleDir, { recursive: true })
       await copyFile(resolve(here, 'export-console.mjs'), join(toolsDir, 'export-console.mjs'))
-      for (const name of ['artifact_shell.html', 'innfo-console.bundle.js']) {
+      for (const name of [
+        'artifact_shell.html',
+        'innfo-console.bundle.js',
+        'console-payload.generated.cjs',
+      ]) {
         await copyFile(
           join(repoRoot, 'iNNfo', 'specs', 'bluepriNNts', 'console', name),
           join(consoleDir, name),
@@ -364,6 +368,7 @@ level: 3
       // Installs made before the shell rename only carry the old filename.
       await copyFile(join(consoleSrc, 'artifact_shell.html'), join(assetsDir, 'artifact_blueprint.html'))
       await copyFile(join(consoleSrc, 'innfo-console.bundle.js'), join(assetsDir, 'innfo-console.bundle.js'))
+      await copyFile(join(consoleSrc, 'console-payload.generated.cjs'), join(assetsDir, 'console-payload.generated.cjs'))
 
       const { stdout } = await execFileAsync(
         process.execPath,
@@ -389,6 +394,7 @@ level: 3
       const shell = await readFile(join(consoleSrc, 'artifact_shell.html'), 'utf-8')
       await writeFile(join(assetsDir, 'artifact_blueprint.html'), shell.replace('<title>', '<title>STALE-LEGACY '))
       await copyFile(join(consoleSrc, 'innfo-console.bundle.js'), join(assetsDir, 'innfo-console.bundle.js'))
+      await copyFile(join(consoleSrc, 'console-payload.generated.cjs'), join(assetsDir, 'console-payload.generated.cjs'))
 
       await execFileAsync(
         process.execPath,
@@ -409,7 +415,11 @@ level: 3
       await mkdir(assetsDir, { recursive: true })
       await mkdir(toolsDir, { recursive: true })
       await copyFile(resolve(here, 'export-console.mjs'), join(toolsDir, 'export-console.mjs'))
-      for (const name of ['artifact_shell.html', 'innfo-console.bundle.js']) {
+      for (const name of [
+        'artifact_shell.html',
+        'innfo-console.bundle.js',
+        'console-payload.generated.cjs',
+      ]) {
         await copyFile(
           join(repoRoot, 'iNNfo', 'specs', 'bluepriNNts', 'console', name),
           join(assetsDir, name),
