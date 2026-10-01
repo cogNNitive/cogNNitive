@@ -25,7 +25,8 @@ function tailLines(text, count) {
 }
 
 /**
- * @typedef {{ id: string, desc: string, cmd: string, args?: string[] }} Step
+ * @typedef {{ id: string, desc: string, cmd?: string, args?: string[], run?: () => { ok: boolean, output?: string } }} Step
+ * A step is either a child process (`cmd` + `args`) or an in-process check (`run`).
  * @typedef {{
  *   logDir: string,
  *   verbose?: boolean,
@@ -48,22 +49,39 @@ function runStep(step, options) {
   const started = Date.now();
 
   if (options.verbose) {
-    write(`\n▶ ${step.desc}`);
-    const res = spawnSync(step.cmd, step.args || [], { ...spawnOptions, stdio: 'inherit' });
-    const status = res.status === null ? 1 : res.status;
+    write(`
+▶ ${step.desc}`);
+    let status;
+    if (step.run) {
+      const res = safeRun(step.run);
+      process.stdout.write(res.output);
+      status = res.ok ? 0 : 1;
+    } else {
+      const res = spawnSync(step.cmd, step.args || [], { ...spawnOptions, stdio: 'inherit' });
+      status = res.status === null ? 1 : res.status;
+    }
     return { id: step.id, desc: step.desc, ok: status === 0, status, durationMs: Date.now() - started, logPath: null };
   }
 
   fs.mkdirSync(options.logDir, { recursive: true });
   const logPath = path.join(options.logDir, `${step.id}.log`);
-  const fd = fs.openSync(logPath, 'w');
-  let res;
-  try {
-    res = spawnSync(step.cmd, step.args || [], { ...spawnOptions, stdio: ['ignore', fd, fd] });
-  } finally {
-    fs.closeSync(fd);
+  let status;
+  let spawnError = null;
+  if (step.run) {
+    const res = safeRun(step.run);
+    fs.writeFileSync(logPath, res.output);
+    status = res.ok ? 0 : 1;
+  } else {
+    const fd = fs.openSync(logPath, 'w');
+    let res;
+    try {
+      res = spawnSync(step.cmd, step.args || [], { ...spawnOptions, stdio: ['ignore', fd, fd] });
+    } finally {
+      fs.closeSync(fd);
+    }
+    status = res.status === null ? 1 : res.status;
+    spawnError = res.error || null;
   }
-  const status = res.status === null ? 1 : res.status;
   const durationMs = Date.now() - started;
   const seconds = (durationMs / 1000).toFixed(1);
 
@@ -71,13 +89,28 @@ function runStep(step, options) {
     write(`✔ ${step.desc} (${seconds}s)`);
   } else {
     write(`✖ ${step.desc} → ${logPath}`);
-    if (res.error) write(`  spawn error: ${res.error.message}`);
+    if (spawnError) write(`  spawn error: ${spawnError.message}`);
     const tail = tailLines(fs.readFileSync(logPath, 'utf8'), TAIL_LINES);
     if (options.ci) write(`::group::${step.desc} (last ${TAIL_LINES} lines)`);
     write(tail);
     if (options.ci) write('::endgroup::');
   }
   return { id: step.id, desc: step.desc, ok: status === 0, status, durationMs, logPath };
+}
+
+/**
+ * Runs an in-process step; a throw is a failure (logged), never a crash.
+ * @param {() => { ok: boolean, output?: string }} fn
+ * @returns {{ ok: boolean, output: string }}
+ */
+function safeRun(fn) {
+  try {
+    const res = fn();
+    return { ok: res.ok === true, output: res.output || '' };
+  } catch (err) {
+    return { ok: false, output: `${err && err.stack ? err.stack : err}
+` };
+  }
 }
 
 module.exports = { runStep, tailLines, TAIL_LINES };

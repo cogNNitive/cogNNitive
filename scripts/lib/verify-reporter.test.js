@@ -89,6 +89,33 @@ function testStderrGoesToLog() {
   assert.ok(fs.readFileSync(path.join(logDir, 'err.log'), 'utf8').includes('boom-on-stderr'));
 }
 
+function testInlineStep() {
+  const logDir = mkLogDir();
+  const out = capture();
+  const pass = runStep(
+    { id: 'inline-ok', desc: 'Inline ok', run: () => ({ ok: true, output: 'all good\n' }) },
+    { logDir, write: out.write },
+  );
+  assert.strictEqual(pass.ok, true);
+  assert.match(out.lines[0], /^✔ Inline ok/);
+  assert.strictEqual(fs.readFileSync(path.join(logDir, 'inline-ok.log'), 'utf8'), 'all good\n');
+
+  const failOut = capture();
+  const fail = runStep(
+    { id: 'inline-bad', desc: 'Inline bad', run: () => ({ ok: false, output: 'bad thing\n' }) },
+    { logDir, write: failOut.write },
+  );
+  assert.strictEqual(fail.ok, false);
+  assert.ok(failOut.lines.join('\n').includes('bad thing'));
+
+  const thrown = runStep(
+    { id: 'inline-throw', desc: 'Inline throw', run: () => { throw new Error('kaboom'); } },
+    { logDir, write: capture().write },
+  );
+  assert.strictEqual(thrown.ok, false, 'a throwing inline step is a failure, not a crash');
+  assert.ok(fs.readFileSync(path.join(logDir, 'inline-throw.log'), 'utf8').includes('kaboom'));
+}
+
 function testTailLines() {
   assert.strictEqual(tailLines('a\nb\nc\n', 2), 'b\nc');
   assert.strictEqual(tailLines('a\nb', 5), 'a\nb');
@@ -99,5 +126,6 @@ testFailureTail();
 testVerboseStreams();
 testLargeOutputKeepsExitStatus();
 testStderrGoesToLog();
+testInlineStep();
 testTailLines();
 console.log('verify-reporter tests passed');
