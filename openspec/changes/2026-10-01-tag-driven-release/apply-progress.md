@@ -34,3 +34,15 @@ Status: tasks 1.1-1.9 done (9/9). PR 2..5 not started.
 
 - PR 2..5 and manual S0.x / R.x tasks.
 - The `cdn-bundle-staged` lib and its test are intentionally kept until PR 2/3 (moves to release).
+
+## Batch 2 - verify-report fixes (partial)
+
+Done:
+- Fail-closed offline guard preload `scripts/lib/offline-guard.js` (+ `loopback.js`, `offline-guard.test.js`): refuses non-loopback net/tls/dns/fetch before any socket I/O when `NN_OFFLINE=1`; loopback allowed (commit `feat(verify): add a fail-closed offline guard preload`).
+- W1: `.verify-logs` upload now has `include-hidden-files: true`.
+- S1: publish-web comments say `site` builds the artifact.
+- S3: verbose mode reports spawn errors like quiet mode (test first).
+
+BLOCKED (not done): wiring the guard into `childEnv`, `assertOnline(url)` loopback support, removing the three `delete process.env.NN_OFFLINE` lines, and making the `skills-manager.test.js` bootstrap case hermetic. The edit script was rejected by the CC Safety Net hook (rule `secret.basename.env`, a false positive on `.env`-like text in the command). Per the hook's instruction it was not retried or worked around. RED tests for it are in the working tree (`verify-offline.test.js` check 7, `github-client.test.js` loopback case).
+
+W3 (recorded): between PR 1 and PR 2-4, main CI has NO manifest drift check (`generate-manifest --check`), NO live pin validation (`validate-manifest --channel stable`) and NO `check-parity`; `docs/use/manifest.md` stays tracked until PR 4 without validation. Accepted by the release freeze (no releases from PR 1 merge until the first tag-driven release). `--release` is a silent no-op.

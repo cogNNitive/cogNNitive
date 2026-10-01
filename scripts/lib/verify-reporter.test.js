@@ -70,6 +70,16 @@ function testVerboseStreams() {
   assert.ok(!fs.existsSync(path.join(logDir, 'verbose.log')), 'verbose mode inherits stdio, no log file');
 }
 
+function testVerboseReportsSpawnErrors() {
+  const out = capture();
+  const result = runStep(
+    { id: 'missing', desc: 'Missing binary', cmd: path.join(os.tmpdir(), 'definitely-not-a-binary-xyz'), args: [] },
+    { logDir: mkLogDir(), verbose: true, write: out.write },
+  );
+  assert.strictEqual(result.ok, false);
+  assert.ok(out.lines.join('\n').includes('spawn error'), 'verbose mode reports spawn errors like quiet mode');
+}
+
 function testLargeOutputKeepsExitStatus() {
   const logDir = mkLogDir();
   const out = capture();
@@ -124,6 +134,7 @@ function testTailLines() {
 testQuietPass();
 testFailureTail();
 testVerboseStreams();
+testVerboseReportsSpawnErrors();
 testLargeOutputKeepsExitStatus();
 testStderrGoesToLog();
 testInlineStep();

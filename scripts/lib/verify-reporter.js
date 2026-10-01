@@ -59,6 +59,7 @@ function runStep(step, options) {
     } else {
       const res = spawnSync(step.cmd, step.args || [], { ...spawnOptions, stdio: 'inherit' });
       status = res.status === null ? 1 : res.status;
+      if (res.error) write(`  spawn error: ${res.error.message}`);
     }
     return { id: step.id, desc: step.desc, ok: status === 0, status, durationMs: Date.now() - started, logPath: null };
   }
