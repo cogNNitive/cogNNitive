@@ -160,3 +160,4 @@ export type { ValidationBaseline, BaselineEntry, BaselineDiff } from './validato
 export { deriveMatrixWidgetType, normalizeMatrixDecl, scaleRangeFor } from './matrix.js'
 export type { MatrixWidgetType } from './matrix.js'
 export { mergeKnowledge } from './merge.js'
+export * from './console/index.js'

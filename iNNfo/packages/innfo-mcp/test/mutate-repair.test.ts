@@ -40,20 +40,23 @@ describe('MCP model repair tools', () => {
 
   it('initKnowledge preserves existing body content when frontmatter is missing', async () => {
     const filePath = join(tempDir, 'broken_model_NN.md')
-    await writeFile(filePath, '# NN Team\n## NN Team: Alice\n')
+    await writeFile(
+      filePath,
+      '# NN Person\n\n## NN Person: Alice\ncompensation:: Standard\ncontributions:: Core development\nimage:: /avatars/alice.png\n',
+    )
 
     const res = await initKnowledge(tempDir, 'broken_model', {
-      blueprint_name: 'business_V_0-2-0',
+      blueprint_name: 'organization_V_0-2-0',
       template_url:
-        'https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/latest/level2/business/business_NN.md',
+        'https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/latest/level2/organization/organization_NN.md',
     })
 
     expect(res.success).toBe(true)
-    const content = await readFile(res.filePath, 'utf-8')
+    const content = await readFile(res.filePath!, 'utf-8')
     // The point of this case: a pre-existing body is preserved verbatim when
     // the scaffold rewrites the missing frontmatter.
-    expect(content).toContain('# NN Team')
-    expect(content).toContain('## NN Team: Alice')
+    expect(content).toContain('# NN Person')
+    expect(content).toContain('## NN Person: Alice')
     // Version-aware frontmatter is always emitted, whether the parent template
     // resolved (inherited spec_version) or not (scaffold fallback). Asserting a
     // fixed version here couples the test to volatile external template hosting

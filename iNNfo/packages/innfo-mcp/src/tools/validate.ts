@@ -70,7 +70,7 @@ function syncFindSubmodel(
   const directCandidates = [
     join(rootDir, cleanPath),
     referringDir ? join(referringDir, cleanPath) : null,
-    join(rootDir, 'models', cleanPath),
+    join(rootDir, 'kNNowledge', cleanPath),
   ].filter(Boolean) as string[]
 
   for (const p of directCandidates) {

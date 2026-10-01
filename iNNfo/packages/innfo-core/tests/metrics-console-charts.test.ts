@@ -181,13 +181,11 @@ describe('charts runtime: month axis window from meta (Spec: Shared Console Char
 
 describe('charts capability: registered in needs-registry (Spec: Charts from a declarative need)', () => {
   it('registers the charts capability in console/needs-registry.json', () => {
-    const registry = JSON.parse(readFileSync(registryPath, 'utf8')) as {
-      needs: Record<string, unknown>
-    }
-    const charts = registry.needs['charts'] as { description?: string; renderer?: string } | undefined
+    const registry = JSON.parse(readFileSync(registryPath, 'utf8')) as Record<string, { description?: string; renderer?: string }>
+    const charts = registry['charts']
     expect(charts).toBeDefined()
     expect(charts.description).toBeDefined()
-    expect(charts.description.length).toBeGreaterThan(0)
+    expect(charts.description!.length).toBeGreaterThan(0)
   })
 
   it('charts resolves through the harness resolveNeeds helper against the registry', () => {

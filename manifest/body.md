@@ -31,7 +31,7 @@ on a machine is recorded per-machine in `~/.agents/bootstrap-state.json` (like l
    - Global User Cache: `~/.agents/templates/<name>/<version>/`
    - Installed Skills Directory: `~/.agents/skills/*/templates/<name>/<version>/`
    Hydration into workspace `./specs/templates/<name>/<version>/` is atomic and write-once immutable.
-8. Attached SOP procedures (`procedures/`) and agent skills (`skills/`) declared in template frontmatter are dynamically discovered up to depth 10 via `list_template_procedures` and `list_template_skills`.
+8. Attached SOP procedures (`procedures/`) and agent skills (`skills/`) declared in template frontmatter are dynamically discovered up to depth 10 via `list_blueprint_procedures` and `list_blueprint_skills`.
 9. Present the `workflows[]` as a menu and hand over to the chosen skill.
 
 ## For an agent that already has `agent-web-bootstrap`

@@ -194,12 +194,17 @@ async function detectLegacy(r) {
 var IGNORED_DIRS = /* @__PURE__ */ new Set([".git", "node_modules", "dist", "coverage", "backups", "archive", "specs"]);
 async function readLegacyDomain(r) {
   const files = {};
+  const opaque = [];
   async function walk(dir, depth = 0) {
     if (depth > 10) return;
     const entries = await r.list(dir);
     for (const entry of entries) {
       if (IGNORED_DIRS.has(entry) && !dir) continue;
       const relPath = dir ? `${dir}/${entry}` : entry;
+      if (r.isOpaque && await r.isOpaque(relPath)) {
+        opaque.push(relPath);
+        continue;
+      }
       const content = await r.read(relPath);
       if (content !== null) {
         files[relPath] = content;
@@ -209,7 +214,7 @@ async function readLegacyDomain(r) {
     }
   }
   await walk("");
-  return { files };
+  return { files, opaque };
 }
 
 // iNNfo/packages/innfo-core/src/legacy/schema-maps/workspace.ts
@@ -524,10 +529,33 @@ async function planMigration(r, deps) {
       ops.push({ op: "write", path: targetPath, content });
     }
   }
+  for (const opaquePath of legacyDomain.opaque || []) {
+    const targetPath = migratePath(opaquePath);
+    if (targetPath !== opaquePath) {
+      renamedFiles.push({ from: opaquePath, to: targetPath });
+      ops.push({ op: "move", from: opaquePath, to: targetPath });
+    }
+  }
   const migratedTree = { files: migratedFiles };
   const validationProblems = deps.validate(migratedTree, deps.targets);
   problems.push(...validationProblems);
   const isBlocked = problems.some((p) => p.severity === "error");
+  if (ops.length === 0 && !isBlocked) {
+    return {
+      status: "noop",
+      ops: [],
+      problems,
+      report: {
+        renamedFiles: [],
+        rewrittenFiles: [],
+        customBlueprints: Array.from(customBlueprints),
+        unmappedBlueprints: Array.from(unmappedBlueprints),
+        problems,
+        summary: "Domain is already up to date with the canonical layout."
+      },
+      planHash: computePlanHash([])
+    };
+  }
   const report = {
     renamedFiles,
     rewrittenFiles,

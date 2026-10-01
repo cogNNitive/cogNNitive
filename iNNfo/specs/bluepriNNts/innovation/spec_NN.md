@@ -11,10 +11,6 @@ procedures:
   - id: "score-innovation-pipeline"
     name: "Score Innovation Pipeline"
     path: "procedures/score_innovation_pipeline_NN.md"
-assets:
-  - id: "innovation-funnel-layout"
-    name: "Innovation Funnel HTML Layout"
-    path: "assets/innovation_funnel_console.html"
 relationship_types:
   hierarchy:
     enabled: true

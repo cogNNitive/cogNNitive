@@ -273,12 +273,38 @@ export async function planMigration(r: DomainReader, deps: PlanDeps): Promise<Pl
     }
   }
 
+  // Handle opaque (binary) files: move only, no content rewrite
+  for (const opaquePath of legacyDomain.opaque || []) {
+    const targetPath = migratePath(opaquePath)
+    if (targetPath !== opaquePath) {
+      renamedFiles.push({ from: opaquePath, to: targetPath })
+      ops.push({ op: 'move', from: opaquePath, to: targetPath })
+    }
+  }
+
   // Validate migrated tree with injected validator
   const migratedTree: MigratedTree = { files: migratedFiles }
   const validationProblems = deps.validate(migratedTree, deps.targets)
   problems.push(...validationProblems)
 
   const isBlocked = problems.some((p) => p.severity === 'error')
+
+  if (ops.length === 0 && !isBlocked) {
+    return {
+      status: 'noop',
+      ops: [],
+      problems,
+      report: {
+        renamedFiles: [],
+        rewrittenFiles: [],
+        customBlueprints: Array.from(customBlueprints),
+        unmappedBlueprints: Array.from(unmappedBlueprints),
+        problems,
+        summary: 'Domain is already up to date with the canonical layout.',
+      },
+      planHash: computePlanHash([]),
+    }
+  }
 
   const report: MigrationReport = {
     renamedFiles,

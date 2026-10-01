@@ -34,6 +34,7 @@ const crypto = require('crypto');
 const { parseFocusedYaml, parseFrontmatter } = require('./lib/yaml-lite');
 const { discoverModels, scanWorkspaceUpgrades } = require('./upgrade-check');
 const { isProjectableName, classifyProjection, hashTree } = require('./lib/projection');
+const { detectLegacy } = require('./lib/legacy-detect.generated.cjs');
 
 const DEFAULT_MANIFEST_URL = process.env.SM_MANIFEST_URL ||
   'https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/docs/use/manifest.md';
@@ -651,28 +652,36 @@ function validateBlueprintCompositions(options = {}) {
     const cleanName = rawName.replace(/\\/g, '/');
     const slug = path.basename(cleanName, '.md').toLowerCase().replace(/[\s_]+/g, '-');
     const baseName = path.basename(cleanName, '.md');
+    const baseNoVersion = cleanName.replace(/_V_[\d.-]+/i, '');
+    const slugNoVersion = slug.replace(/-v-[\d-]+/i, '');
+    const urlStem = typeof incName === 'object' && incName?.url ? path.basename(incName.url, '.md') : '';
+    const urlSlug = urlStem ? urlStem.toLowerCase().replace(/[\s_]+/g, '-') : '';
 
     const parentDir = path.dirname(parentFilePath);
-    const candidates = [
-      path.resolve(parentDir, cleanName),
-      path.resolve(parentDir, `${cleanName}.md`),
-      path.resolve(parentDir, `${cleanName}_NN.md`),
-      path.resolve(parentDir, cleanName, 'spec_NN.md'),
-      path.resolve(parentDir, cleanName, `${baseName}_NN.md`),
-      path.resolve(parentDir, slug, 'spec_NN.md'),
-      path.resolve(parentDir, slug, `${slug}_NN.md`),
-    ];
+    const namesToTry = [cleanName, baseNoVersion, slug, slugNoVersion, urlStem, urlSlug].filter(Boolean);
 
-    for (const searchDir of resolverDirs) {
+    const candidates = [];
+    for (const n of namesToTry) {
       candidates.push(
-        path.join(searchDir, cleanName),
-        path.join(searchDir, `${cleanName}.md`),
-        path.join(searchDir, `${cleanName}_NN.md`),
-        path.join(searchDir, cleanName, 'spec_NN.md'),
-        path.join(searchDir, cleanName, `${baseName}_NN.md`),
-        path.join(searchDir, slug, 'spec_NN.md'),
-        path.join(searchDir, slug, `${slug}_NN.md`)
+        path.resolve(parentDir, n),
+        path.resolve(parentDir, `${n}.md`),
+        path.resolve(parentDir, `${n}_NN.md`),
+        path.resolve(parentDir, n, 'spec_NN.md'),
+        path.resolve(parentDir, n, `${n}_NN.md`),
+        path.resolve(parentDir, '..', n),
+        path.resolve(parentDir, '..', `${n}.md`),
+        path.resolve(parentDir, '..', `${n}_NN.md`),
+        path.resolve(parentDir, '..', n, 'spec_NN.md')
       );
+      for (const searchDir of resolverDirs) {
+        candidates.push(
+          path.join(searchDir, n),
+          path.join(searchDir, `${n}.md`),
+          path.join(searchDir, `${n}_NN.md`),
+          path.join(searchDir, n, 'spec_NN.md'),
+          path.join(searchDir, n, `${n}_NN.md`)
+        );
+      }
     }
 
     for (const cand of candidates) {
@@ -684,7 +693,17 @@ function validateBlueprintCompositions(options = {}) {
     for (const [absPath, info] of templateFiles.entries()) {
       const stem = path.basename(absPath, '.md').toLowerCase().replace(/_nn$/, '').replace(/[\s_]+/g, '-');
       const folder = path.basename(path.dirname(absPath)).toLowerCase().replace(/[\s_]+/g, '-');
-      if (stem === slug || folder === slug || info.name === cleanName || info.name === `${cleanName}.md`) {
+      if (
+        stem === slug ||
+        folder === slug ||
+        stem === slugNoVersion ||
+        folder === slugNoVersion ||
+        (urlSlug && (stem === urlSlug || folder === urlSlug)) ||
+        info.name === cleanName ||
+        info.name === `${cleanName}.md` ||
+        info.name === baseNoVersion ||
+        info.name === `${baseNoVersion}.md`
+      ) {
         return absPath;
       }
     }
@@ -1025,6 +1044,36 @@ async function runCheck(options = {}) {
   // before the manifest fetch so the manifest-offline early return below can
   // still fold staleness or unnormalized sources into ACTION_REQUIRED / exit 1.
   if (workspaceDir) {
+    // 1a. Domain layout check
+    const wsReader = {
+      list: async (subDir) => {
+        const p = path.join(workspaceDir, subDir);
+        if (!fs.existsSync(p)) return [];
+        try { return fs.readdirSync(p); } catch { return []; }
+      },
+      read: async (rel) => {
+        const p = path.join(workspaceDir, rel);
+        if (!fs.existsSync(p)) return null;
+        try { return fs.readFileSync(p, 'utf8'); } catch { return null; }
+      }
+    };
+    try {
+      const layoutVerdict = await detectLegacy(wsReader);
+      results.layout = layoutVerdict.kind;
+      results.legacy_signals = layoutVerdict.signals || [];
+      if (layoutVerdict.kind !== 'current') {
+        results.items.push({
+          type: 'workspace-layout',
+          name: 'Workspace Layout',
+          status: 'warning',
+          detail: `Domain layout is '${layoutVerdict.kind}'. Run 'nn-upgrade' to migrate to canonical kNNowledge/ layout.`,
+          signals: layoutVerdict.signals
+        });
+      }
+    } catch {
+      results.layout = 'unknown';
+    }
+
     const specResults = await scanWorkspaceSpecs(workspaceDir);
     results.summary.specsStale = specResults.stale;
     results.summary.specsFresh = specResults.fresh;

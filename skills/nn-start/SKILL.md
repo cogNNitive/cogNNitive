@@ -11,15 +11,15 @@ metadata:
 bundled_blueprints: []
 ---
 
-# nn System & Start Router
+# nn System & Start Router (Backward-Compatible Alias)
 
-Primary Front Controller and single entry point for system governance, setup, readiness checks, and routing in the cogNNitive ecosystem.
+Entrypoint alias delegating to the canonical **[`skills/nn/SKILL.md`](../nn/SKILL.md)** front controller.
 
 ---
 
-## 0. Activation Gate & Workspace Entrypoint
+## 0. Canonical Delegation
 
-Execute the canonical activation gate defined in `nn-preflight` (session greeting + deterministic preflight integrity check).
+When invoked, execute the front controller workflow defined in **[`skills/nn/SKILL.md`](../nn/SKILL.md)**. All governance, environment probe gate execution, and job navigation are handled by `nn`.
 
 ### Workspace `AGENTS.md` Session Entrypoint Contract
 Every bootstrapped cogNNitive workspace contains an `AGENTS.md` file at its root with a mandatory **"Session Start: Load nn-start"** directive. AI coding agents (Cursor, Claude Code, OpenCode, Codex, Antigravity) starting an interactive session must:
@@ -30,13 +30,16 @@ Every bootstrapped cogNNitive workspace contains an `AGENTS.md` file at its root
 
 ---
 
-## 1. Environment Readiness (Preflight Gate)
+## 1. Environment Readiness (Preflight & Domain State Gate)
 
-Before launching any specialized workflow, `nn-start` verifies the environment:
-1. **Preflight Runner**: Ensures the Integrity & Preflight Check passed via `nn-preflight`.
-2. **Node.js**: Checks `node --version` (>= 18 required).
-3. **MCP Server**: Verifies `innfo-mcp` responsiveness via `innfo-mcp_list_knowledge` (or resolves bundle at `~/.agents/mcp/innfo-mcp.bundle.js` or `.cogNNitive/mcp-bundle.js`).
-4. **Workspace Layout**: Ensures workspace contains standard folders (`sources/`, `kNNowledge/`, `procedures/`, `export/`, `conversations/`, `index.md`). Ingestion branches are `sources/import/`, `sources/conversations/`, and `sources/export/` normalized into `sources/nn/` (legacy `sources/original/` and `artifacts/` supported via non-breaking fallback).
+Before launching any specialized workflow, `nn-start` verifies the environment by executing the fast local domain probe:
+```bash
+node skills/nn-preflight/scripts/domain-probe.js --workspace-dir . --json
+```
+1. **Layout**: Identifies layout (`current`, `legacy`, `mixed`). If `legacy` or `mixed`, suggests running `nn-upgrade`.
+2. **Preflight**: Checks preflight status and Node.js runtime. Exit code 1 indicates non-blocking warning (surfaces actionable warnings without stopping session flow).
+3. **Workspace State**: Inspects `kNNowledge/`, `sources/import/`, and `procedures/` (domain & attached blueprint procedures).
+4. **Single Gate Owner**: `nn` / `nn-start` is the single gate runner for the session. Downstream skills (`nn-innfo`, `nn-trannsform`, etc.) skip duplicate preflight runs when invoked inside an established session.
 5. **External Watch Roots Digest**: If the domaiNN manifest declares `## NN External Watch Roots:`, run `node skills/nn-trannsform/scripts/index.js --watch-digest`. If it reports items, present them with `[a] ignore` / `[b] postpone` / `[c] import` per item (`postpone` is the default; `import` copies an immutable timestamped snapshot into `sources/import/`). The digest is read-only and MUST NOT block session start: with no roots, or if the scan is unavailable, continue silently. Decisions persist via `--digest-decide` in `.cognnitive/watch-digest.json`.
 
 ---
@@ -87,33 +90,36 @@ Every agent interaction across the cogNNitive ecosystem MUST follow these strict
 
 ---
 
-## 3. Canonical Skill Catalog (7 Core Skills)
+## 3. Canonical Skill Catalog
 
-The cogNNitive ecosystem is streamlined into 7 specialized skills:
+The cogNNitive ecosystem provides specialized skills distributed via `manifest/source.yaml`:
 
 | Skill | Role & Scope | Invocation |
 |:---|:---|:---|
 | **`nn-start`** | System governance, setup, preflight readiness gate & routing | User / `/nn-start` |
-| **`nn-preflight`** | Environment readiness gate (Tier 1/2 checks) — loaded by `nn-start` and `nn-trannsform` before they proceed | Model (Auto) |
-| **`nn-trannsform`** | Document ingestion (PDF/DOCX/XLSX), template transformation & procedures orchestration (`procedures_V_0-2-0_NN.md`) | User / Model |
-| **`nn-innfo`** | iNNfo model authoring, editing, schema validation & step-by-step Model Creation Wizard (Meta-template V_0-2-0) | User / Model |
+| **`nn-preflight`** | Environment readiness gate (Tier 1/2/3 checks) | Model (Auto) |
+| **`nn-trannsform`** | Document ingestion (PDF/DOCX/XLSX), template transformation & procedures orchestration | User / Model |
+| **`nn-innfo`** | iNNfo model authoring, editing, schema validation & Model Creation Wizard | User / Model |
+| **`nn-upgrade`** | Guided, consent-gated migration of a domaiNN to the latest adopted Level-2 blueprints | User / Model |
 | **`nn-site-generator`** | Website generation & hydration | User / Model |
-| **`nn-design-presets`** | Visual design system tokens (Morado Nazareno, 8px grid) — activated for visual artifacts | Model (Auto/User) |
-| **`nn-skills-lifecycle`** | Install/update/audit skills from the remote manifest (Steward branch) | User / Model |
+| **`nn-design-presets`** | Visual design system tokens (Morado Nazareno, 8px grid) | Model (Auto/User) |
+| **`nn-skills-lifecycle`** | Install/update/audit skills from the remote manifest | User / Model |
+| **`nn-video-script`** | Author, gate, and finalize video scripts, asset pipeline, and thumbnails | User / Model |
 
 ---
 
 ## 4. How to Route
 
-1. Read the generated registry: [`.cogNNitive/skill-registry.md`](../../.cogNNitive/skill-registry.md).
-2. Match the user's request against the 5 core skills above.
-3. For model authoring/wizard → Load **`nn-innfo`**.
-4. For documents, transformations or multi-step procedures → Load **`nn-trannsform`**.
+1. Match the user's request against the canonical skills catalog above.
+2. For model authoring/wizard → Load **`nn-innfo`**.
+3. For documents, transformations or multi-step procedures → Load **`nn-trannsform`**.
+4. For migrations / upgrades → Load **`nn-upgrade`**.
 5. For web design or site generation → Load **`nn-site-generator`** / **`nn-design-presets`**.
+6. For video scripts / media pipelines → Load **`nn-video-script`**.
 
 ---
 
 ## If the user doesn't know where to start
 
 Ask them to describe their current situation in one sentence, then recommend the
-single best-fit skill from the registry — do not dump the whole list. Always format the recommendation with `(Recommended)` as option `[a]`.
+single best-fit skill from the catalog — do not dump the whole list. Always format the recommendation with `(Recommended)` as option `[a]`.

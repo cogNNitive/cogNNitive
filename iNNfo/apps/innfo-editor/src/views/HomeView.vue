@@ -856,11 +856,11 @@ async function onFolderInputChange(event: Event): Promise<void> {
 
         <!-- History entries -->
         <div v-if="history.length" class="space-y-2">
-          <button
+          <div
             v-for="entry in history"
             :key="entry.handleKey"
-            class="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-left hover:border-purple-400 dark:hover:border-purple-600 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all cursor-pointer group disabled:opacity-50"
-            :disabled="reopenBusy === entry.handleKey || entry.reopenable === false"
+            class="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-left hover:border-purple-400 dark:hover:border-purple-600 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all cursor-pointer group"
+            :class="{ 'opacity-50 cursor-not-allowed': reopenBusy === entry.handleKey || entry.reopenable === false }"
             :title="
               entry.reopenable === false
                 ? 'Opened via the fallback folder picker — pick the folder again to reopen it.'
@@ -905,7 +905,7 @@ async function onFolderInputChange(event: Event): Promise<void> {
             >
               <Trash2 class="w-3.5 h-3.5" />
             </button>
-          </button>
+          </div>
         </div>
 
         <!-- Empty state -->

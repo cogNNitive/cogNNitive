@@ -122,7 +122,7 @@ git checkout -b <change>/<short-slug>
    (see Double-Confirm Rule below).
 3. Open a pull request targeting `main`. The PR MUST pass BOTH gates before merge:
 
-- `validate` (model validation via `innfo-mcp_validate_model`)
+- `validate` (model validation via `innfo-mcp_validate_knowledge`)
 - `check_workspace` (workspace integrity check)
 
 4. `main` MUST be protected and MUST require at least 1 approval. A PR missing
@@ -146,15 +146,7 @@ return the corresponding commit AND restate that the version is not the commit.
 
 ### Step 3d — Timestamped Offline Backup
 
-Before any deep change, write a timestamped filesystem copy OUTSIDE the workspace:
-
-```bash
-node scripts/backup-workspace.js --workspace-dir <dir>
-```
-
-If the automated backup fails, use the manual fallback: copy the whole workspace
-folder to a backups directory on disk (e.g. `xcopy /E /I <dir> <dir>-backup-<timestamp>`
-on Windows), and confirm it exists before continuing.
+Before any deep change, write a timestamped filesystem copy OUTSIDE the workspace (e.g. `xcopy /E /I <dir> <dir>-backup-<timestamp>` on Windows or `cp -r <dir> <dir>-backup-<timestamp>` on POSIX), and confirm it exists before continuing.
 
 The backup MUST exist with an earlier timestamp than the first mutation.
 Never rely on Git alone for recovery.
@@ -169,7 +161,7 @@ one confirmation is given, the operation MUST NOT execute.
 ## Boundary (Read-Only iNNfo)
 
 This skill MUST NOT modify `nn-innfo`, any Level-2 template, or any spec canonical
-URL. It reads models via `innfo-mcp` (`validate_model`, `get_template`) and writes
+URL. It reads models via `innfo-mcp` (`validate_knowledge`, `get_blueprint`) and writes
 only Git-layer artifacts (branches, PRs, map rows, backups). Git remains review-only.
 
 ## Quick Actions

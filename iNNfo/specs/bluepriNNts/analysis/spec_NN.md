@@ -14,10 +14,6 @@ procedures:
   - id: "prioritize-experiments"
     name: "Prioritize Experiments"
     path: "procedures/prioritize_experiments_NN.md"
-assets:
-  - id: "strategic-audit-layout"
-    name: "Strategic Audit HTML Layout"
-    path: "assets/strategic_audit_console.html"
 relationship_types:
   hierarchy:
     enabled: true

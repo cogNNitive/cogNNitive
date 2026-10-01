@@ -294,6 +294,16 @@ function runVerification(options = {}) {
     console.log(`▶ Template Inventory Guard: all ${diskFolders.length} template folders are registered in manifest.`);
   }
 
+  // 1b. Console Shell Integrity Guard: ensures all shells match needs registry & pins
+  const { checkConsoleShellIntegrity } = require('./lib/console-shell-guard.js');
+  const consoleShellCheck = checkConsoleShellIntegrity(repoRoot);
+  if (!consoleShellCheck.ok) {
+    console.error('❌ Console Shell Integrity check failed:');
+    consoleShellCheck.errors.forEach((e) => console.error(`  - ${e}`));
+    process.exit(1);
+  }
+  console.log(`▶ Console Shell Integrity Guard: all ${consoleShellCheck.shells.length} shells adhere to contract.`);
+
   // 2. Orchestrator Line-Count Guard: enforce strictly < 200 physical lines per orchestrator
   const ORCHESTRATORS = [
     'scripts/manifest/validate-manifest.js',

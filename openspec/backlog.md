@@ -800,3 +800,17 @@ and whether it best fits **Projects** (built on the SDK) vs **Agents**/**Plugins
 **Approach:** establish a regex/parser utility in `innfo-core` to parse `innfo://` URIs, intercept click events on matching anchors in `innfo-editor` and the consoles, and route them to the internal model navigation engine.
 
 **Suggested trigger:** `/sdd-explore innfo-uri-protocol`.
+
+---
+
+## `chore/trannsform-xlsx-vulnerability` — `xlsx` (SheetJS) ships two highs with no patched version on npm
+
+**Type:** security / chore · **Size:** small-medium · **Status:** open
+
+**Why:** `skills/nn-trannsform/package.json` depends on `xlsx@^0.18.5`, which carries two open **high** advisories with **no fixed version on the npm registry**: CVE-2023-30533 (prototype pollution) and CVE-2024-22363 (ReDoS). SheetJS distributes current releases from its own CDN, not npm, so `npm audit fix` and any version bump inside the registry **cannot** clear them. `nn-trannsform` reads user-supplied `.xlsx` sources, so untrusted input reaches this code — it is a **production** dependency, not dev tooling.
+
+**Audit context (2026-10-01):** Dependabot flagged 29 alerts on `main`; the other 27 were dev/test tooling (`vitest`, `happy-dom`, `vite`, `esbuild`, `dompurify`, `@xmldom/xmldom`) and were addressed that day (criticals 3→0; `@xmldom` override in `nn-trannsform`; `dompurify` floor raised). Two residuals remain, both **dev-only**: `@vitest/mocker` path traversal (GHSA-82fw-gwwq-j7x9) needs `vitest@5` (major); and the hoisted `vite`/`esbuild` highs/moderates are non-breaking-fixable via `npm audit fix`. `xlsx` is the only one that needs a **product decision**.
+
+**Approach (open):** pick one — (a) migrate to the maintained fork (`@e965/xlsx`); (b) install the official SheetJS tarball from `cdn.sheetjs.com` (drops the npm-registry dependency source); (c) keep `xlsx` and mitigate at the trust boundary (row/size caps + parse in a worker/sandbox). Decide before the next `nn-trannsform` release.
+
+**Suggested trigger:** `/sdd-explore trannsform-xlsx-vulnerability`.

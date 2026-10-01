@@ -14,10 +14,6 @@ procedures:
   - id: "export-team-directory"
     name: "Export Team Directory"
     path: "procedures/export_team_directory_NN.md"
-assets:
-  - id: "org-chart-layout"
-    name: "Organization Chart HTML Layout"
-    path: "assets/org_chart_console.html"
 relationship_types:
   hierarchy:
     enabled: true

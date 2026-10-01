@@ -21,10 +21,6 @@ procedures:
   - id: "generate-docsify-suite"
     name: "Generate Docsify Suite"
     path: "procedures/generate_docsify_suite_NN.md"
-assets:
-  - id: "docs-portal-layout"
-    name: "Documentation Portal HTML Layout"
-    path: "assets/docs_portal_console.html"
 ---
 
 > [!NOTE]

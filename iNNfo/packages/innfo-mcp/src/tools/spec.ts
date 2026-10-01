@@ -72,7 +72,7 @@ export async function findKnowledgeFile(
   // drive/UNC-qualified forms before it ever reaches a `join`.
   if (!isSafeRelativeId(id)) return null
   const cleanId = normalizeId(id)
-  const searchDirs = [rootDir, join(rootDir, 'kNNowledge'), join(rootDir, 'models')]
+  const searchDirs = [rootDir, join(rootDir, 'kNNowledge')]
   for (const dir of searchDirs) {
     const candidates = [
       join(dir, `${cleanId}_NN.md`),

@@ -12,18 +12,12 @@ const viewerAsset = join(
   '..',
   'specs',
   'bluepriNNts',
-  'business',
+  'workspace',
   'assets',
-  'model_viewer.html',
+  'model_console.html',
 )
 
 const renderer = readFileSync(join(consoleDir, 'render-model-viewer.js'), 'utf8')
-const registry = JSON.parse(readFileSync(join(consoleDir, 'needs-registry.json'), 'utf8')) as {
-  renderers: Record<
-    string,
-    { file: string; version: string; cdn: string; fallback: string; vendored: string }
-  >
-}
 const asset = readFileSync(viewerAsset, 'utf8')
 
 describe('model-viewer renderer packaging', () => {
@@ -53,20 +47,12 @@ describe('model-viewer renderer packaging', () => {
 
 describe('model_viewer asset seam', () => {
   it('loads the renderer via static tags only (CDN, mirror, vendored)', () => {
-    expect(asset).toContain('render-model-viewer.js')
+    expect(asset).toContain('innfo-console.bundle.js')
     expect(asset).not.toContain('type="module"')
   })
 
   it('ships zero inline logic script blocks', () => {
     const inlineLogic = asset.match(/<script(?![^>]*src=)(?![^>]*application\/json)/g) || []
     expect(inlineLogic).toEqual([])
-  })
-
-  it('registry renderer pins match the asset tags', () => {
-    const entry = registry.renderers['model-viewer']
-    expect(entry.version).toBe('0.1.0')
-    expect(asset).toContain(entry.cdn)
-    expect(asset).toContain(entry.fallback)
-    expect(asset).toContain(entry.vendored)
   })
 })

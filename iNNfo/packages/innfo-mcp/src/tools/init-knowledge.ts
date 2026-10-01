@@ -118,18 +118,12 @@ export async function initKnowledge(
 
   if (!filePath) {
     const knowledgeDir = join(rootDir, 'kNNowledge')
-    const modelsDir = join(rootDir, 'models')
     let targetDir = rootDir
     try {
       const stK = await stat(knowledgeDir)
       if (stK.isDirectory()) targetDir = knowledgeDir
     } catch {
-      try {
-        const stM = await stat(modelsDir)
-        if (stM.isDirectory()) targetDir = modelsDir
-      } catch {
-        targetDir = rootDir
-      }
+      targetDir = rootDir
     }
     const target = join(targetDir, `${cleanId}_NN.md`)
     // The scaffold branch creates a new file from an untrusted id — it must be
