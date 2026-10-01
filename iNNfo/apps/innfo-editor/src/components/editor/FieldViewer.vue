@@ -139,7 +139,7 @@ import { useUiStore } from '../../stores/uiStore'
 import type { KnowledgeNode } from '../../model/types'
 import Pill from './Pill.vue'
 import FileRefPill from './FileRefPill.vue'
-import { parseForPill, type KnowledgeUnit } from '../../utils/sourceRef'
+import { parseCitation, type KnowledgeUnit } from '../../utils/sourceRef'
 import { isImageFieldValue } from '../../utils/imageDetection'
 import { findMatchingKnowledgeNode } from '../../utils/knowledgeMatching'
 
@@ -171,7 +171,8 @@ function isWikilinkValue(val: unknown): boolean {
 }
 
 function isSourceRef(val: unknown): boolean {
-  return parseForPill(val) !== null
+  if (typeof val !== 'string') return false
+  return parseCitation(val) !== null
 }
 
 function toFileRef(val: string): {
@@ -181,7 +182,7 @@ function toFileRef(val: string): {
   unit?: KnowledgeUnit
   subunits?: string[]
 } {
-  const parsed = parseForPill(val)
+  const parsed = parseCitation(val)
   if (!parsed) return { filePath: '', fileName: '' }
   return {
     filePath: parsed.filePath,

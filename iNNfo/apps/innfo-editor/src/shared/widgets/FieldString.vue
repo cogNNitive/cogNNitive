@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import FileRefPill from '../../components/editor/FileRefPill.vue'
-import { parseForPill, type KnowledgeUnit } from '../../utils/sourceRef'
+import { parseCitation, type KnowledgeUnit } from '../../utils/sourceRef'
 
 /**
  * Renders a string field as a text input or FileRefPill if it matches a canonical source reference.
@@ -28,7 +28,8 @@ defineEmits<{
 }>()
 
 function isSourceRef(val: unknown): boolean {
-  return parseForPill(val) !== null
+  if (typeof val !== 'string') return false
+  return parseCitation(val) !== null
 }
 
 function toFileRef(val: string): {
@@ -38,7 +39,7 @@ function toFileRef(val: string): {
   unit?: KnowledgeUnit
   subunits?: string[]
 } {
-  const parsed = parseForPill(val)
+  const parsed = parseCitation(val)
   if (!parsed) return { filePath: '', fileName: '' }
   return {
     filePath: parsed.filePath,

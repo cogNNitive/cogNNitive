@@ -394,4 +394,72 @@ title: "DomaiNN Index"
       expect(knowledgeStore.dirtyIds.has(newId)).toBe(true)
     })
   })
+
+  describe('getSourceCitations', () => {
+    it('matches citations by exact canonical filePath equality only (no suffix match)', () => {
+      const knowledgeStore = useKnowledgeStore()
+      const nodeA = makeNode('Model/A', {
+        name: 'Concept A',
+        type: 'Concept',
+        sources: [
+          {
+            filePath: 'sources/nn/a/report.md',
+            fileName: 'report.md',
+            kind: 'source',
+            raw: 'sources/nn/a/report.md@## Intro',
+            slug: 'intro',
+          },
+        ],
+      })
+      const nodeB = makeNode('Model/B', {
+        name: 'Concept B',
+        type: 'Concept',
+        sources: [
+          {
+            filePath: 'sources/nn/b/report.md',
+            fileName: 'report.md',
+            kind: 'source',
+            raw: 'sources/nn/b/report.md@## Intro',
+            slug: 'intro',
+          },
+        ],
+      })
+      const nodeBare = makeNode('Model/Bare', {
+        name: 'Concept Bare',
+        type: 'Concept',
+        sources: [
+          {
+            filePath: 'sources/nn/report.md',
+            fileName: 'report.md',
+            kind: 'source',
+            raw: 'report.md@## Intro',
+            slug: 'intro',
+          },
+        ],
+      })
+
+      knowledgeStore.setGraph(
+        { 'Model/A': nodeA, 'Model/B': nodeB, 'Model/Bare': nodeBare },
+        ['Model/A', 'Model/B', 'Model/Bare'],
+      )
+
+      // Querying for sources/nn/a/report.md returns ONLY nodeA (no suffix match to b or bare)
+      const resA = knowledgeStore.getSourceCitations('sources/nn/a/report.md')
+      expect(resA.map((r) => r.nodeId)).toEqual(['Model/A'])
+
+      // Querying for sources/nn/b/report.md returns ONLY nodeB
+      const resB = knowledgeStore.getSourceCitations('sources/nn/b/report.md')
+      expect(resB.map((r) => r.nodeId)).toEqual(['Model/B'])
+
+      // Querying for sources/nn/report.md returns ONLY nodeBare
+      const resBare = knowledgeStore.getSourceCitations('sources/nn/report.md')
+      expect(resBare.map((r) => r.nodeId)).toEqual(['Model/Bare'])
+    })
+
+    it('returns empty array when sourcePath is empty', () => {
+      const knowledgeStore = useKnowledgeStore()
+      expect(knowledgeStore.getSourceCitations('')).toEqual([])
+    })
+  })
 })
+

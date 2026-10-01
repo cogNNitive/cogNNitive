@@ -19,6 +19,7 @@ import {
   updateReferenceString,
   buildWorkspaceIndex,
   validateWorkspaceReferences,
+  parseCitation,
 } from '@cognnitive/innfo-core'
 import type {
   KnowledgeDriver,
@@ -216,7 +217,8 @@ export const useKnowledgeStore = defineStore('model', () => {
    */
   function getSourceCitations(sourcePath: string): SourceCitation[] {
     if (!sourcePath) return []
-    const normalizedTarget = sourcePath.replace(/\\/g, '/').toLowerCase()
+    const parsedTarget = parseCitation(sourcePath)
+    const normalizedTarget = (parsedTarget?.filePath ?? sourcePath).replace(/\\/g, '/').toLowerCase()
     const results: SourceCitation[] = []
 
     for (const node of Object.values(nodes.value)) {
@@ -224,10 +226,7 @@ export const useKnowledgeStore = defineStore('model', () => {
 
       for (const ref of node.sources) {
         const normalizedRef = (ref.filePath ?? '').replace(/\\/g, '/').toLowerCase()
-        const isMatch =
-          normalizedRef === normalizedTarget ||
-          normalizedTarget.endsWith('/' + normalizedRef) ||
-          normalizedRef.endsWith('/' + normalizedTarget)
+        const isMatch = normalizedRef === normalizedTarget
 
         if (isMatch) {
           results.push({
