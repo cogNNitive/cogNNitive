@@ -40,7 +40,9 @@ async function run() {
     metafile: true,
   })
 
-  const generatedCode = result.outputFiles[0].text
+  const rawCode = result.outputFiles[0].text
+  // Normalize symlinked node_modules paths when building inside a session worktree
+  const generatedCode = rawCode.replace(/(?:\.\.\/)+node_modules\//g, 'node_modules/')
 
   if (isCheck) {
     if (!existsSync(targetOutfile)) {

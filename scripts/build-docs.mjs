@@ -22,7 +22,10 @@ console.log(`   Output root: ${docsRoot}`);
 function run(cmd, desc) {
   console.log(`\nâ–¶ ${desc} (${cmd})...`);
   try {
-    const env = { ...process.env, NODE_OPTIONS: process.env.NODE_OPTIONS || '--max-old-space-size=4096' };
+    const binDir = path.join(repoRoot, 'node_modules', '.bin');
+    const pathKey = Object.keys(process.env).find((k) => k.toUpperCase() === 'PATH') || 'PATH';
+    const pathEnv = process.env[pathKey] ? `${binDir}${path.delimiter}${process.env[pathKey]}` : binDir;
+    const env = { ...process.env, [pathKey]: pathEnv, NODE_OPTIONS: process.env.NODE_OPTIONS || '--max-old-space-size=4096' };
     execSync(cmd, { cwd: repoRoot, stdio: 'inherit', env });
   } catch (err) {
     console.error(`\nâŒ ${desc} failed.`);
