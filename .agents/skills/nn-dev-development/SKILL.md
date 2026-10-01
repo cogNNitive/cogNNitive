@@ -1,55 +1,43 @@
 ---
 name: nn-dev-development
-version: "0.3.1"
-description: Internal developer skill for cogNNitive maintainers. Guards the shared working tree against concurrent AI agents and enforces single-branch (dev) hygiene with batched merges to main. On session start it detects other agent processes (Claude Code, Cursor, OpenCode, Copilot, etc.), checks whether origin/main advanced, and reports worktree/stash/HEAD state. Before any write to a repository file it confirms the change belongs on the shared dev branch (one-time consent per session), then re-checks the tree before each chunk and, when HEAD/branch was moved by a concurrent agent, runs the safe stash-free recovery protocol (explicit-path `wip:` commit on a scratch branch, then cherry-pick back). At session close it reports what is on dev vs origin/main, flags ghost branches whose content already landed in main, and hands off to nn-dev-check-integrity + nn-dev-release for the batched merge to main. Trigger: any development session, concurrency check, branch decision, working-tree guard, session start.
+version: "1.0.0"
+description: Internal developer skill for cogNNitive maintainers. Enforces session isolation on a single-developer, multi-agent repo: each write-intended session works in its own git worktree of `dev` (created by `scripts/nn-session.mjs start`), leaving the primary checkout as a read-only integration/release point. Reports agent processes and git state as an informational scan, enforces commit-early on `dev`, and orchestrates the batched `dev -> main` merge through nn-dev-check-integrity + nn-dev-release. Trigger: any development session, concurrency check, branch decision, session start, session isolation.
 ---
 
-# nn-dev-development Skill (Session & Integration Guard)
+# nn-dev-development Skill (Session Isolation & Integration Guard)
 
 ## Overview
 
-`nn-dev-development` is an internal maintenance skill for maintainers of `cogNNitive`.
-It guards the shared working tree against concurrent AI agents and enforces
-**single-branch (`dev`) discipline with batched merges to `main`**.
-
-It exists because the monorepo is edited from multiple agents (this one, Claude Code,
-Cursor, Copilot, other OpenCode sessions), and the failures below recur:
-
-- **Concurrent sessions share a working tree** — one agent's commit can switch the
-  branch under another, `main` advances mid-task, foreign WIP appears, and planned
-  fixes get half-applied by a sibling session.
-- **Unbranched writes collide** — two agents editing the same branch at once step on
-  each other and dirty the tree for everyone.
-- **Parallel branches became an illusion of isolation** — in practice other agents
-  merged work into `main` on their own (same commit hashes), leaving feature branches
-  with 0 unique commits vs `main` and empty PRs to reconcile. The repo's real workflow
-  is *continuous integration*: everyone writes to one integration branch and `main`
-  absorbs it. This skill aligns the process with that reality.
+`nn-dev-development` is the maintainer-only session guard for `cogNNitive`. This repo is
+operated by **one developer** driving several AI agents (OpenCode, Claude Code, Antigravity)
+that may run concurrently. The recurring failure is mechanical — N processes writing one
+directory — and the fix is **isolation, not attribution** (attribution already failed twice;
+it is undecidable from git alone).
 
 ### The model
 
-- **One integration branch: `dev`.** All day-to-day work lands on `dev`. No per-feature
-  branches.
-- **Batched merges to `main`.** When a meaningful set of changes is accumulated on
-  `dev` (e.g. a completed SDD change), run the integrity gate and release flow, then
-  merge `dev` → `main` as one conscious act — not a silent merge by a sibling agent.
-- **Never guess git state.** Run `git status -sb` / `git fetch` right before reporting
-  or writing, never from values read earlier.
+- **One integration branch: `dev`.** All day-to-day work lands on `dev`; `main` only
+  absorbs batched merges.
+- **One worktree per session.** Every write-intended session works in its own
+  `git worktree` of `dev`, created by `scripts/nn-session.mjs start`. No two sessions
+  share a directory.
+- **The primary checkout is read-only.** It exists for integration and release only:
+  merge `dev -> main`, `push`, `tag`, `fetch`, and gate runs. A `PreToolUse` hook
+  (`.claude/hooks/guard-primary-tree.mjs` + `.agents/hooks.json`) denies file edits and
+  `git add`/`commit`/`stash` there.
+- **Commit early.** A session commits to `dev` frequently; `wip:<session-id>: <reason>`
+  checkpoints keep work durable across a crash. Never hold a dirty tree.
+- **Never guess git state.** Run `git status -sb` / `git fetch` right before reporting or
+  writing, never from values read earlier.
 
-This skill does **not** block work. It *detects*, *reports*, and *asks* — always with
-an explicit consent gate before writing. It never moves, renames, or deletes user files.
-
-This skill is maintainer-only. It is **not** distributed: it is not under
-`skills/` and is not registered in `manifest/source.yaml`. It is a sibling of
-`nn-dev-release`, `nn-dev-check-integrity`, and `nn-template-audit`.
-
-Scope: all operations limited to the cogNNitive repository root (`cogNNitive`).
+This skill is maintainer-only, not distributed, and not registered in `manifest/source.yaml`.
+Scope: cogNNitive repository root only.
 
 ---
 
 ## Greeting Protocol (MANDATORY)
 
-When this skill is loaded or activated, the agent MUST print as its very first line:
+When this skill is loaded, the agent MUST print as its very first line:
 
 ```
 🔧 You're using skill: nn-dev-development (🌿)
@@ -59,508 +47,183 @@ Session-scoped: once per conversation.
 
 ---
 
-## 1. Concurrency Detection (run at session start)
+## 1. Session Start: isolate, then scan
 
-The **very first** thing this skill does when a conversation starts is scan for other
-processes that may be touching the repo, then report what it finds. This is the same
-idea as `nn-dev-check-integrity` Group 0 (expediente:
-`concurrent-sessions-share-working-tree.md`), but it runs **proactively** at session
-open, not as a post-change gate.
+### 1a. Enter a session worktree
 
-### 1a. Detect agent processes
-
-Search the local process table for known AI coding agents and editors:
+Before the first write, create (or reuse) this session's worktree and work there:
 
 ```powershell
-Get-CimInstance Win32_Process |
-  Where-Object {
-    $_.Name -match 'code|Cursor|claude|opencode|copilot|continue|windsurf|aider|gemini'
-  } |
-  Select-Object ProcessId, Name, @{N='CmdLine';E={$_.CommandLine}} | Format-Table -Auto
+node scripts/nn-session.mjs start --id <session-id>
+# prints the absolute worktree path; the session works there from now on
 ```
 
-- A hit does **not** prove that agent is editing this repo — but if it is, list it and
-  tell the maintainer.
-- Windows falls back cleanly; on `git-bash`/WSL use `ps aux | grep -iE
-  'claude|code|cursor|opencode'`.
+`start` reuses an existing worktree for the same id, junctions the primary tree's
+`node_modules`, and creates the branch `session/<id>` off `dev`. Never write to the
+primary checkout; the primary-tree guard blocks it.
 
-### 1b. Detect concurrent git access to the working tree
+### 1b. Informational concurrency scan
 
-The ground truth is the git state itself, not the process list. Run these immediately
-at session start:
+Run and report (do **not** block on it — isolation already makes collisions impossible):
 
 ```powershell
-git status -sb                          # branch, ahead/behind, staged+modified
-git rev-parse HEAD                      # what this session is on
+Get-CimInstance Win32_Process | Where-Object { $_.Name -match 'code|Cursor|claude|opencode|copilot|gemini' } | Select ProcessId,Name
+git status -sb
+git rev-parse HEAD
 git fetch origin
-git log --oneline -1 origin/main        # has main moved since we started?
-git log --oneline -3 origin/dev         # where is dev relative to main?
-git rev-list --left-right --count origin/main...dev  # divergence: <main-only> <dev-only>
-git stash list                          # foreign stashes?
-git branch --show-current               # explicit branch name
-```
-
-Check for **worktrees** too — another agent may have checked out the same work:
-
-```powershell
+git rev-list --left-right --count origin/main...dev
 git worktree list
+git stash list
 ```
 
-### 1c. Engram recent session recall (when disambiguating active WIP)
-
-When the tree is dirty or recent work needs context, inspect recent observations in Engram:
-- Query `observations` in `~/.engram/engram.db` (or via `mem_context` / `mem_search`) for recent commits, PRs, and active agent goals from today and yesterday.
-- Sibling agent notes (Claude Code, OpenCode) clarify whether uncommitted files are part of an in-flight SDD change or abandoned WIP.
-
-### 1d. Record the baseline
-
-After the scan, record the values you will compare against later:
-
-- `$baselineHead = git rev-parse HEAD`
-- `$baselineBranch = git branch --show-current`
-- `$baselineMain = git log --oneline -1 origin/main`
-
-These are the anchor points for the stolen-branch detection in Section 3 and for the
-"has origin/main advanced since we started?" check in Section 4.
-
-### 1e. Report the findings
-
-Report as a compact block, then proceed. Do **not** block unless something is clearly
-wrong (see the ❌ rules in `nn-dev-check-integrity` Group 0):
+Report the block, then proceed:
 
 ```
 🌿 Concurrent work scan:
-- Active agent processes: <none | Claude Code PID x · Cursor PID y · ...>
-- Branch: main (behind origin/main by 2) · worktrees: <none | 1>
-- Stashes: <none | 1 uncommitted-...>
-- Modified/untracked paths: <list — flag any you did NOT expect>
-- origin/main vs origin/dev: <in sync | dev ahead N, behind M (from rev-list counts)>
-- Divergence read: <if dev behind main by M> expect merge conflicts in <overlapping paths>; reconcile main→dev BEFORE building release pins on top.
+- Active agent processes: <list>
+- Branch: dev · HEAD <sha> · ahead/behind origin/dev
+- origin/main vs dev: <0/N> (dev-only commits pending merge)
+- Worktrees: <list>
 ```
 
-- ❌ if the current branch / HEAD is not what the maintainer expects, or a stash they do
-  not recognise exists.
-- ⚠️ list every staged/modified path; flag any outside the set this conversation expects
-  to touch (it may belong to a concurrent agent — never stage it).
-- ⚠️ **origin/main advanced** — if `origin/main` moved since the last known state, state
-  it plainly: your `dev` may be behind, and sibling agents may already have merged work
-  into `main` that you planned to deliver. Rebase/reconcile before building on top.
-- If another agent process is actively holding the tree, state it plainly and, only if
-  the maintainer asks, pause.
+Flag only if `origin/main` advanced since the session baseline (rebase before the batched
+merge).
 
-### 1f. Stale WIP vs foreign agent (disambiguation)
+### 1c. Record the baseline
 
-A dirty tree with no known session behind it is **ambiguous**: it can be the
-maintainer's own in-flight work from another session (expediente 2026-09-08: an
-uncommitted 0.5.0 version bump first read as interference, then landed cleanly)
-or a sibling agent's live edits. Do NOT assume interference:
-
-1. Report the dirty paths with `git diff --stat` and ask the maintainer one
-   question: "yours from another session, or foreign?"
-2. If it is theirs: continue; never revert or stage it without consent.
-3. If foreign and active: pause writes that touch those paths.
-
-#### Stale dirty-tree age rule (enforced)
-
-A dirty tree MUST NOT outlive the session that created it. When a new session
-opens and `git status --porcelain` shows paths that no `wip:<session-id>` commit
-or maintainer confirmation attributes, those paths are **stale unattributed
-WIP**. Report ❌ and require exactly one of three named exits before the
-session's first write:
-
-1. **Commit it** — `git commit -m "wip:<session-id>: <short reason>"` on `dev`,
-   so the in-flight work becomes attributable.
-2. **Checkpoint it off-tree, then drop it** — save a recoverable copy first
-   (`git diff --binary > temp/wip-<session-id>.patch` for tracked paths; copy
-   any untracked paths into `temp/`), then remove your own paths. Never drop
-   before the copy exists.
-3. **Discard it** — only with explicit maintainer confirmation; never silently.
-
-Never stage, commit, or delete stale unattributed paths on your own (Core
-Rule 6). A committed `wip:` is attributable; a dirty tree is not.
-
-`git stash` and `git clean` are **NOT** options: `.claude/hooks/block-dangerous-git.mjs`
-refuses both. Never prescribe them, here or anywhere else.
-
-### 1f. Session claim (advisory for siblings, mandatory for ours)
-
-Write-intended sessions announce their presence so sibling agents can tell
-active work from abandoned work:
-
-- **Record the claim** — `branch + session id + intent` — in the handoff block
-  (§4d) as soon as the consent gate approves the first write.
-- A claimed path is **live and hands-off** for sibling sessions; unclaimed
-  dirty paths fall under the §1e stale-WIP rule.
-- The §3 re-check re-reads the claim alongside `$baselineHead` /
-  `$baselineBranch`. A claim collision (another live session claims the same
-  paths) means **stop and report** — never race the sibling agent.
-- The claim is advisory for foreign agents (Claude Code, Cursor, ...) but
-  **mandatory for our sessions**.
+`$baselineHead`, `$baselineBranch`, `$baselineMain` — anchor points for the merge checks
+in Section 4.
 
 ---
 
-## 2. Single-Branch Integration Gate (Optimistic Execution & Informative Grace)
+## 2. Branch Discipline
 
-Immediately **before writing, creating, moving, or deleting any file inside the
-repository**, this skill verifies and routes changes to the shared integration
-branch `dev`.
+- **Work on `dev`** via the session worktree (`session/<id>`). No per-feature branches.
+- **Commit early and often** on `dev`. A `wip:<session-id>: <reason>` commit is the
+  durability mechanism, not a first-write gate.
+- `git add -A` / `git add .` / `git commit -a` are **permitted** (the worktree only holds
+  your own work). The destructive commands `reset --hard`, `clean`, `stash`, `branch -D`,
+  and `checkout/restore .` stay **blocked** by `.claude/hooks/block-dangerous-git.mjs` —
+  they can still erase your own uncommitted work.
 
-### When the gate fires
+### 2a. Maintainer requests a dedicated branch
 
-- The user asks to edit/create/delete a repo file, or the work in progress is about to
-  write one.
-- The conversation has drifted toward implementation and the first write is imminent.
-- Exception: read-only work, generated artifacts already covered by an existing change
-  branch, or a fix the maintainer explicitly says "just commit on the current branch".
-
-### Optimistic Execution Protocol: Announce with Grace, Never Block
-
-The gate is **strictly non-interactive**. Agents MUST NEVER block execution with numbered
-menus (`[1] Sí [2] No`), modal prompts, or questions like `¿Confirmamos la rama?`.
-
-Instead, the agent executes the switch to `dev` optimistically, announces the working
-branch with an informative grace notice, and proceeds immediately:
-
-```markdown
-🌿 Trabajando en dev (convención estándar). Voy a avanzar con esta vía; si querés cambiar de rama o interrumpir, avisame ahora.
-```
-
-Then resolve `dev` as the session's integration target:
-
-- **Default is `dev`.** If `dev` exists locally, switch to it (`git switch dev`). If it
-  does not exist locally but exists on origin, track it (`git switch dev` with
-  `--track origin/dev`). If it does not exist anywhere, create it from the current
-  `origin/main` tip:
-  `git switch -c dev origin/main`.
-- Only fall back to `main` for trivial, maintainer-approved hotfixes. A parallel branch
-  is **not** proposed by this skill — per the repo's real workflow (see Overview),
-  day-to-day work is integrated continuously on `dev` and `main` only absorbs batched
-  merges. If the maintainer explicitly asks for a dedicated branch, honor it (see
-  Section 2a).
-
-Confirm the switch with `git status -sb` and record `$baselineHead` / `$baselineBranch`
-again if the branch changed, then proceed.
-
-### 2a. Exception: maintainer requests a dedicated branch
-
-The maintainer is free to override. If they ask for a dedicated branch, create it with
-the repo's conventional name shape `<tipo>/<kebab-case>` derived from the task, e.g.
-`feat/tag-selection-and-template-cache-guards`, `fix/integrity-audit-blockers`:
-
-```powershell
-git switch -c <branch-name>
-```
-
-Treat that branch as the session's integration target for consent purposes (see
-"Consent is one-time per session per branch" below).
-
-### Consent is one-time per session per branch
-
-Announce the branch **once** at the first write. Once the branch is chosen, subsequent
-writes on that session stay on it without re-announcing — re-announcing every write
-would be noise. Re-announce only if the task changes scope or the user switches the
-working tree.
+If the maintainer explicitly asks for a dedicated branch, honor it with the conventional
+shape `<tipo>/<kebab-case>`; treat it as the session's integration target.
 
 ---
 
-## 3. Re-check Before Writing (hardening)
+## 3. Worktree Lifecycle
 
-Even after the consent gate, re-verify the tree is still in the expected state right
-before the first write of each new chunk of work (the tree can change under you between
-tool calls — expediente `concurrent-sessions-share-working-tree.md`):
-
-```powershell
-git status -sb
-git rev-parse HEAD
-git branch --show-current
-```
-
-Compare against the recorded `$baselineBranch` / `$baselineHead` (Section 1c):
-
-- If the branch or HEAD moved since the gate, **stop and tell the maintainer before
-  writing** — a concurrent agent may have switched the branch under you.
-- Never trust a plan written several tool calls earlier; re-read the file immediately
-  before editing it.
-
-### 3a. Stolen-branch recovery and rehearsal protocol
-
-When the check above detects that the current branch / HEAD is not the expected one
-(the "agent changed MY branch under me" failure from the 2026-09-06/07 sessions), use
-this safe recovery. It only touches **your** files — never stage anything that belongs
-to a sibling agent.
-
-`git stash` is refused by `.claude/hooks/block-dangerous-git.mjs`, so the recovery is
-**stash-free**: park your own files as an attributable `wip:` commit on a throwaway
-branch, then bring them back onto the branch this session should work on.
-
-```powershell
-# 1. Park your work on a scratch branch, so it is safe and attributable
-git switch -c wip/<session-id>
-
-# 2. Stage ONLY your files explicitly (never `git add -A` / `git add .`)
-git add -- <my-files...>
-git commit -m "wip:<session-id>: parked before branch recovery"
-$wip = git rev-parse HEAD
-
-# 3. Move back to the branch this session is supposed to work on
-git switch <my-branch>
-
-# 4. Bring your work back as staged changes (or commit it with `git cherry-pick $wip`)
-git cherry-pick --no-commit $wip
-```
-
-#### Rehearsal & inspection without disturbing the working tree:
-For inspecting historical commits, testing isolated builds, or rehearsing a merge without touching the shared working tree:
-```powershell
-git worktree add --detach temp/rehearsal <sha-or-ref>
-# ... run verification / rehearsal inside temp/rehearsal ...
-git worktree remove temp/rehearsal
-```
-
-Hard rules:
-
-- **NUNCA stagear archivos ajenos** — never `git add .` / `git add -A`; a concurrent
-  agent's untracked files may be in the tree.
-- **Never prescribe `git stash` / `git clean` / `git reset --hard`** — `.claude/hooks/block-dangerous-git.mjs`
-  refuses all three; the stash-free recovery above is the sanctioned alternative.
-- If the `cherry-pick` conflicts with files a sibling agent changed, do **not**
-  force it. Report to the maintainer and ask how to proceed.
-- After recovery, record the new `$baselineHead` / `$baselineBranch` for this session.
+- `node scripts/nn-session.mjs stop --id <session-id>` removes the worktree and its
+  `session/<id>` branch **only if** the branch is merged into `dev` or pushed; otherwise it
+  refuses and lists the unique commits.
+- `node scripts/nn-session.mjs list` shows session worktrees and flags abandoned ones.
+- Never auto-delete worktrees or branches; abandoned ones are surfaced to the maintainer.
 
 ---
 
-## 4. Report / handoff (batched merge to main)
+## 4. Batched Merge to `main`
 
-At the end of the session (or when the maintainer asks), close the loop concisely.
-
-### 4a. Did origin/main advance during this session?
+### 4a. Did origin/main advance?
 
 ```powershell
 git fetch origin
 git log --oneline -3 origin/main
 ```
 
-Compare against `$baselineMain` (Section 1c):
+Compare against `$baselineMain`. If `origin/main` advanced, rebase `dev` before merging.
 
-- If `origin/main` advanced, sibling agents merged work while you worked. Say so — your
-  `dev` may need a rebase before the batched merge, and some of your planned changes may
-  already be in `main`.
+### 4b. What is on `dev` but not `main`?
 
-### 4b. What is on `dev` but not on `main`?
-
-Always compare remote tracking refs (`origin/main..origin/dev`) rather than local `main`. Because server-side fast-forward merges do not update the local `main` ref, comparing local `main` results in stale, misleading comparisons.
+Always compare remote tracking refs (`origin/main..origin/dev`), never local `main`:
 
 ```powershell
 git log --oneline origin/main..origin/dev
 git diff --stat origin/main..origin/dev
-```
-
-This is the batch pending merge. Report it so the maintainer can decide when `dev` is
-ready.
-
-#### Decisive pre-merge template check:
-Inspect whether template files were touched in the pending batch (which could trip template versioning or pin coherence validation):
-```powershell
 git diff --name-only origin/main..origin/dev | grep '^iNNfo/specs/templates/'
 ```
 
-### 4c. Ghost-branch sweep (cleanup candidates)
+### 4c. Ghost-branch sweep
 
-Feature branches from the old parallel-branch era are usually dead: their content is
-already in `main` (merged by hand or by a sibling agent). List them, never delete:
+List feature branches whose tip is already in `main` (`git merge-base --is-ancestor
+<branch> origin/main`); flag them as safe-to-delete **candidates**. Never delete branches
+automatically.
 
-```powershell
-git branch -a
-git for-each-ref --format='%(refname:short)' refs/remotes/origin | Where-Object { $_ -match 'feat/|fix/|chore/|refactor/|docs/' }
-```
-
-For each candidate, check whether its tip is already contained in `main`:
-
-```powershell
-git merge-base --is-ancestor <branch> origin/main
-```
-
-If yes, flag it in the report as safe-to-delete **candidates** and let the maintainer
-confirm. Never delete branches automatically.
-
-### 4d. The handoff block
+### 4d. Handoff block
 
 ```markdown
 🌿 Session guard:
 - Branch: dev · based on origin/main @ <sha> · clean/dirty
-- Session claim: <session-id> · dev · <intent>
-- origin/main advanced during session: <yes — rebase before merge | no>
-- Writes on: dev · N files
-- Pending batch (origin/main..dev): <list of commits> · <stat>
-- Ghost branches (content already in main): <list — candidates to delete>
+- Session: <session-id> · worktree <path>
+- origin/main advanced during session: <yes|no>
+- Pending batch (origin/main..dev): <commits> · <stat>
 - Next: run nn-dev-check-integrity, then nn-dev-release to merge dev → main
 ```
 
 ### 4e. Batched merge orchestration
 
-When the maintainer says the accumulated changes on `dev` are ready:
+When the maintainer says the accumulated `dev` work is ready:
 
-1. **Pre-push integrity gate**: Run `node scripts/check-integrity.js` (or `npm run check:integrity`) and verify version/catalog freshness via `npm run check:versions` (or `node scripts/verify.js`).
-   - If `npm run check:versions` or `node scripts/verify.js` reports `catalog.json` or template copies are stale, run `npm run sync:versions` (or `node scripts/template-catalog.mjs`) to regenerate them cleanly.
-   - If MCP or workspace parity reports drift, resolve it before pushing.
-   - **Tag/pin freshness reminder** (expediente: 2026-09-24 — a skill directory
-     rename plus `template_version` bumps across ~15 `spec_NN.md` files merged
-     to `main` without a new `skills-v*`/`templates-v*` tag or a
-     `manifest/source.yaml` re-pin in the same batch, redding
-     `validate-manifest.js --channel stable` on CI afterward). Any change under
-     `skills/**` or `iNNfo/specs/templates/**/spec_NN.md` in the pending batch
-     requires cutting a new `skills-v*`/`templates-v*` tag **and** re-pinning
-     `manifest/source.yaml` in the SAME batch before merging. `node
-     scripts/check-integrity.js` now checks the local half of this
-     automatically (Group 1c in `nn-dev-check-integrity` — a git-only diff
-     check for the untagged/unpinned combination), but cutting the actual tag
-     is still the maintainer's job; the script cannot do that for you.
-   - Ensure the working tree is clean and `git push origin dev` succeeds.
-2. **Server-side fast-forward merge (`dev → main`) — supersedes the
-   checkout-based dance:**
+1. **Pre-push integrity gate**: `node scripts/check-integrity.js` and
+   `npm run check:versions`. Resolve drift before pushing. Any change under `skills/**`
+   or `iNNfo/specs/templates/**/spec_NN.md` requires cutting a new `skills-v*`/`templates-v*`
+   tag **and** re-pinning `manifest/source.yaml` in the SAME batch. Ensure the tree is
+   clean and `git push origin dev` succeeds.
+2. **Server-side fast-forward (`dev → main`)** — never checks out `main`, leaves the tree
+   untouched:
    ```powershell
-   # Ensure local dev is pushed
    git push origin dev
-
-   # Server-side fast-forward: never checks out main, so the dirty
-   # working tree (this repo's normal state) is left completely untouched
    git push origin dev:main
-
-   # Verify 1:1 sync (divergence 0 0) — still from the dev checkout
-   git rev-list --left-right --count origin/main...dev
+   git rev-list --left-right --count origin/main...dev   # expect 0 0
    ```
-   The previously documented `switch main → pull → merge --ff-only → push →
-   switch dev` sequence is **superseded** by `git push origin dev:main` — its
-   first step (`git switch main`) requires a clean tree, which this repo's
-   tree routinely is not (`concurrent-sessions-share-working-tree.md`).
-   `dev:main` is a fast-forward push: if a sibling agent advanced `main`
-   independently, the server rejects it non-destructively (no partial state,
-   nothing to recover) — the same safety `--ff-only` provided, enforced
-   server-side. Recovery on rejection is `git fetch origin && git merge
-   origin/main` on `dev`, still with no checkout of `main`. If tags are
-   being cut afterward (step 4 below), tag immediately after this push,
-   before any further commit on `dev` — see `nn-dev-release`'s "Safe merge
-   technique" section for the full tag-order constraint and the stated
-   limitation (branch protection on `main`, not enabled today). This
-   technique adds no new hook, script, or working-tree inspection.
-3. **Post-push CI gate on `main` — blocking** (expediente: 2026-09-24 — the
-   maintainer had to poll `gh run list` by hand because nothing waited for CI
-   after the `dev:main` push before declaring the batch done). Do not declare
-   the batch done until this step passes:
-   ```powershell
-   # Poll until the run for the just-pushed origin/main sha is completed
-   $sha = git rev-parse origin/main
-   do {
-     Start-Sleep -Seconds 15
-     $run = gh run list --branch main --workflow "CI & Verify" --limit 1 --json headSha,status,conclusion,databaseId | ConvertFrom-Json
-   } while ($run.headSha -ne $sha -or $run.status -ne 'completed')
-
-   gh run view $run.databaseId --json jobs --jq '.jobs[] | {name, conclusion}'
-   ```
-   Require `verify`, `quality`, and `deploy-pages` all `success`. On failure,
-   distinguish:
-   - **Red caused by this batch** → fix-forward on `dev`, re-verify, re-push,
-     and re-poll. Never leave `main` red.
-   - **Pre-existing red** (unrelated to this batch) → maintainer-approved
-     exception, same format as `nn-dev-check-integrity` Group 1b's merge-gate
-     exception (that group is this pattern's precedent):
-     `MERGE-GATE EXCEPTION · origin/main red pre-existing · run <run-id> · approved by <maintainer> · <date>`.
-
-   Only once all three jobs are green (or an exception is recorded) may the
-   handoff report say "release listo".
-4. **Release tagging (when releasing a version bump)**:
-   - Run `nn-dev-release` when version tags, manifest re-pinning, or distribution bundles are being published.
-   - The release path runs `node scripts/verify.js --release`, adding the live stable-manifest check once tags exist.
-   - **Main-CI-green is a Definition of Done**: a red main blocks release tagging.
-5. **Persist Milestone in Engram**:
-   - Save a concise summary of the batch, commit range, and sync status in Engram memory (`observations` table) to give sibling sessions full visibility.
-
-This replaces the old "commit + push + PR" flow: with single-branch workflow there is
-no per-change PR to open; `main` absorbs the batch instead.
+   On rejection: `git fetch origin && git merge origin/main` on `dev`. If tagging, tag
+   immediately after this push, before any further commit on `dev`.
+3. **Post-push CI gate on `main` — blocking**: poll `gh run list --branch main` until the
+   run for the pushed sha completes; require `verify`, `quality`, `deploy-pages` all
+   `success`. Distinguish red-caused-by-batch (fix-forward) from pre-existing red
+   (maintainer-approved `MERGE-GATE EXCEPTION`).
+4. **Release tagging** (only for a version bump): run `nn-dev-release`; a red `main`
+   blocks tagging.
+5. **Persist the milestone** in Engram for sibling sessions.
 
 ---
 
 ## 6. Pre-Refactor Snapshot & Rollback Protocol (Restore Point Gate)
 
-Before executing high-impact, architectural, or potentially destructive changes across the monorepo, establish an immutable **Restore Point** so that returning to the current state is 100% deterministic and safe.
+Before high-impact changes, establish an immutable restore point.
 
-### 6a. When to use
-- Major migrations (parsers, AST, database, serializers, or data models).
-- Large refactorings touching cross-cutting subsystems (`iNNfo-core`, `iNNfo-editor`, `actioNN`).
-- High-risk exploratory tasks where changes might need to be abandoned.
+- **Formal release** (`dev` clean + gates green): merge `dev → main`, bump the version,
+  tag `v<version>` / `innfo-mcp-v<version>`, `gh release create`.
+- **Checkpoint tag** (mid-flight): `git tag -a checkpoint/<topic>-YYYYMMDD -m ...` and push.
 
-### 6b. Snapshot Mechanisms
-
-#### Mechanism 1: Formal Release as Restore Point
-When the current working state on `dev` is clean, passes all integrity gates, and represents a meaningful milestone:
-1. Pass `node scripts/check-integrity.js`.
-2. Merge `dev → main` and bump subsystem version (e.g. `iNNfo Suite 0.9.0` via `nn-dev-release`).
-3. Push commit and immutable tags (`v<version>`, `innfo-mcp-v<version>`) to `origin/main`.
-4. Publish GitHub Release via `gh release create v<version>` (automatically attaches native `.zip` and `.tar.gz` source downloads).
-5. Sync `dev` with `main` (`git checkout dev && git merge main && git push origin dev`).
-
-#### Mechanism 2: Lightweight / Annotated Checkpoint Tag
-When current work is mid-flight or does not qualify for a public distribution release:
-```powershell
-# Create an annotated checkpoint tag
-git tag -a checkpoint/<topic>-YYYYMMDD -m "Checkpoint pre-refactor: <context>"
-git push origin checkpoint/<topic>-YYYYMMDD
-```
-
-### 6c. Rollback Guarantee (How to revert)
-`git restore .`, `git clean -fd` and `git reset --hard` are refused by the hook, so the
-rollback is done **scoped and non-destructively**:
+### Rollback (scoped, non-destructive)
 
 ```powershell
-# Revert a single file you authored (scoped — never the whole tree)
-git checkout HEAD -- <explicit/path>
-
-# Inspect the immutable tag in a detached worktree, without touching the shared tree
-git worktree add --detach temp/rollback <vX.Y.Z or checkpoint-tag>
-# ... verify the restored state inside temp/rollback ...
-git worktree remove temp/rollback
-
-# Move refs/heads/dev to the tag with an atomic compare-and-swap
-# (fails non-destructively if dev advanced meanwhile: <current-dev-sha> is the expected old tip)
-git update-ref refs/heads/dev '<vX.Y.Z or checkpoint-tag>^{commit}' <current-dev-sha>
-
-# Publish the rewritten dev only with explicit maintainer consent
-git push origin dev --force-with-lease
+git checkout HEAD -- <explicit/path>                       # revert one authored file
+git worktree add --detach temp/rollback <tag>              # inspect a tag without touching the tree
+git update-ref refs/heads/dev '<tag>^{commit}' <old-sha>   # atomic compare-and-swap
+git push origin dev --force-with-lease                     # only with maintainer consent
 ```
-Alternatively, branch off the checkpoint without rewriting `dev`:
-```powershell
-git switch -c restore/<topic> <vX.Y.Z or checkpoint-tag>
-```
+
+`git restore .`, `git clean -fd`, `git reset --hard` and `git stash` remain **blocked**.
 
 ---
 
 ## Core Rules
 
-1. **Never guess git state** — run `git status -sb` / `git fetch` right before
-   reporting or writing, never from values read earlier.
-2. **Detect first, act second** — concurrency scan is the opening move of any session;
-   report findings before doing anything else.
-3. **Single branch by default** — day-to-day work lands on `dev`; `main` only absorbs
-   batched merges. A dedicated branch is the exception, not the rule.
-4. **Announce before any repo write** — the single-branch gate announces the working
-   branch (default `dev`) instead of asking; never write to a repo file without the
-   branch decision being made.
-5. **Consent once per branch** — announce once, do not repeat on every write; re-announce
-   only on scope change or tree switch.
-6. **Never stage foreign or unattributed files** — never `git add .` / `git add -A`;
-   a concurrent agent's files may be in the tree. Park your own files via an
-   explicit-path `wip:<session-id>` commit (never `git stash` — the hook refuses it).
-   A path is attributable only via such a commit or explicit maintainer consent;
-   unattributed paths are never staged.
-7. **Stop on stolen branch** — if HEAD/branch moved since the gate, stop and report;
-   recover with the stash-free protocol in §3a (explicit-path `wip:` commit on a
-   scratch branch, then cherry-pick back), only for your own files.
-8. **Never delete branches automatically** — ghost branches are listed as candidates;
-   deletion is always the maintainer's call.
-9. **Read-only inspection** — this skill detects and asks; it never moves, renames, or
-   deletes user files, and it never stages/commits anything on its own.
-10. **Monorepo scope** — cogNNitive repository root only.
-11. **Disposable scratch lives in `temp/`** — simulation workspaces, ad-hoc scripts,
-   and throwaway fixtures go under the repo-root `temp/` directory (gitignored,
-   never committed, deleted after the run). Never scatter `*_tmp`, `scratch/`, or
-   fixture copies beside real source.
+1. **Isolate first** — enter a session worktree (`nn-session.mjs start`) before any write;
+   never write to the primary checkout.
+2. **Never guess git state** — re-read `git status -sb` / `HEAD` right before reporting
+   or writing.
+3. **Single branch** — day-to-day work lands on `dev`; `main` only absorbs batched merges.
+4. **Commit early** — prefer a `wip:<session-id>` commit over a dirty tree.
+5. **Never run destructive git** — `reset --hard`, `clean`, `stash`, `branch -D`,
+   `checkout/restore .` are blocked and must not be prescribed.
+6. **Never delete branches automatically** — ghost branches are candidates, the maintainer
+   deletes.
+7. **Read-only inspection** — this skill detects and asks; it never moves, renames, or
+   deletes user files, and never stages/commits on its own.
+8. **Monorepo scope** — cogNNitive repository root only.
+9. **Disposable scratch lives in `temp/`** — throwaway fixtures and workspaces go under
+   the gitignored `temp/` directory, deleted after the run.
