@@ -5,7 +5,7 @@ context: |
   Project: cogNNitive
   Type: Multi-module ecosystem containing agent skills, documentation, and the iNNfo monorepo.
   Modules:
-    - iNNfo: Monorepo with npm workspaces (innfo-core, innfo-mcp, innfo-editor). Stack: Vue 3, Vite, Tailwind CSS, TypeScript, ESM.
+    - iNNfo: Monorepo with npm workspaces (innfo-core, innfo-mcp, innfo-editor, innfo-video-parser). Stack: Vue 3, Vite, Tailwind CSS, TypeScript, ESM.
     - actioNN: Agent skill ecosystem (Markdown + YAML frontmatter, Node.js scripts for nn-trannsform).
     - eNNvironment: Ecosystem setup, manifest governance, and validation scripts.
     - _NN: Artifacts and commercial web content store.
@@ -13,23 +13,31 @@ context: |
 
 testing:
   strict_tdd: true
-  detected_at: '2026-09-02'
+  detected_at: '2026-10-01'
   runner:
-    command: 'npm run test'
-    framework: 'Vitest / Playwright / Node.js Test Runner'
+    command: 'npm test'
+    framework: 'Vitest (iNNfo workspaces) / Node scripts (scripts/, skills/, test/)'
+    per_package:
+      innfo-core: 'npm --workspace=@cognnitive/innfo-core test'
+      innfo-mcp: 'npm --workspace=@cognnitive/innfo-mcp test'
+      innfo-editor: 'npm --workspace=@cognnitive/innfo-editor test'
+      innfo-video-parser: 'npm --workspace=@cognnitive/innfo-video-parser test'
+      scripts_and_skills: 'node scripts/verify.js (discovers every *.test.js/*.test.mjs under scripts/, skills/, test/ via collectTestSuites)'
+      nn-trannsform: 'npm --prefix skills/nn-trannsform test (own package.json; CI needs npm ci --prefix)'
   layers:
     unit:
       available: true
-      tool: 'Vitest (iNNfo) / Node test runner (actioNN/skills/nn-trannsform, eNNvironment)'
+      tool: 'Vitest (iNNfo) / plain node *.test.js|mjs suites (scripts, skills, test)'
     integration:
       available: true
-      tool: 'Vitest (iNNfo) / PowerShell integration tests (nn-trannsform)'
+      tool: 'Vitest (iNNfo) / PowerShell scripts in skills/nn-trannsform/test (pwsh)'
     e2e:
-      available: true
-      tool: 'Playwright (apps/innfo-editor)'
+      available: false
+      note: 'Playwright suite removed 2026-09-24; editor XSS guarantee covered by jsdom-pragma unit test'
   coverage:
     available: true
     command: 'npm run test:coverage'
+    note: 'core, mcp, editor only'
   quality:
     linter:
       available: true
@@ -38,14 +46,18 @@ testing:
     typecheck:
       available: true
       command: 'npm run typecheck'
+      extra: 'npm run typecheck:scripts'
     formatter:
       available: true
       command: 'npm run format:check'
       fix_command: 'npm run format'
-      # INFORMATIONAL — legacy gate. The repo carries ~236 pre-existing
-      # prettier-dirty files (baseline) and `format:check` is NOT wired into
-      # CI (CI runs `verify` + `quality` only). Do not block on or report
-      # this gate; only ensure a change introduces zero NEW drift.
+      # INFORMATIONAL - legacy gate. Many pre-existing prettier-dirty files;
+      # CI only checks formatting of files changed in a PR. Ensure a change
+      # introduces zero NEW drift; do not report the baseline.
+  gates:
+    deterministic: 'node scripts/verify.js [--release]'
+    integrity: 'npm run check:integrity'
+    node_engine: '^22.22.2 || ^24.15.0 || >=26 (engine-strict=true in .npmrc)'
 
 rules:
   proposal:
