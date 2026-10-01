@@ -587,6 +587,9 @@ cutover) is in `main` but in NO tag (`git tag --contains 6f905b1e` is empty; `me
 **Behaviour (as requested):** cut a new `skills-v*` tag containing `6f905b1e` and re-pin
 `manifest/source.yaml` `refs.skills` in the SAME batch; run `check-integrity` + CI green.
 
+**Blocked by:** item 27 — `main` CI is red, so `publish-web` (which serves the stable
+manifest) is down and the tag cannot ship until `main` is repaired.
+
 ## 23. `fix/migrate-domain-esm-cjs` - run the migrator under a workspace with `"type": "module"`
 
 **Type:** fix · **Size:** small
@@ -636,6 +639,23 @@ samples) is deferred. Must land before the format ships (change A is unreleased)
 
 **Behaviour:** sweep the ledger + procedure + samples to `knowledge_*`; drop the
 allowlist entries added in `dd801c0a` once clean.
+
+## 27. `fix/repair-main-red-ci` - undo the premature console merge and restore `main` green
+
+**Type:** fix / chore · **Size:** medium
+
+**Why:** `6f905b1e` (console unified review pipeline + the `models/` → `kNNowledge/` fix)
+merged to `main` in an incomplete state and broke it. `main` (fc925f8a) CI is red: `verify`
+fails (console mirror/docs-facts/manifest/legacy-write, plus a CI-only `publish-web` test)
+and `quality` fails (lint ~50 console-WIP errors). `publish-web` requires both
+(`needs: [verify, quality, spec-integrity]`), so the release pipeline is down — which is
+why item 22 cannot ship. Root cause is the premature merge, not a missing tag.
+
+**Behaviour (recommended):** revert the console half of `6f905b1e` on `main` (keep the
+`models/` → `kNNowledge/` fix as its own minimal commit), restore `main` green, then ship
+item 22. The console work (changes A/B/C) continues on `dev` under session isolation and
+merges cleanly later. The CI-only publish-web test bug is already fixed on `dev`
+(`48792c2c`).
 
 ## Intra-document element identity: key on the slug, not the display name
 
