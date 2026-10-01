@@ -84,7 +84,7 @@ function testAssertNoReleaseOwnedInArtifact() {
   const cleanSrc = mkTree({ 'index.html': '<h1>Clean</h1>', 'use/manifest-next.md': '# Preview' });
   assert.doesNotThrow(() => assertNoReleaseOwnedInArtifact(cleanSrc));
 
-  const dirtySrc1 = mkTree({ 'use/manifest.md': '# Polluted' });
+  const dirtySrc1 = mkTree({ 'innfo/cdn/manifest.json': '{"latest":"0.12.0"}' });
   assert.throws(
     () => assertNoReleaseOwnedInArtifact(dirtySrc1),
     (err) => /release-owned/i.test(err.message)

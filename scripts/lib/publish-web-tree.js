@@ -50,12 +50,19 @@ function collectFiles(dir, base = '') {
 
 /**
  * Enforces that a build artifact does not contain release-owned paths.
+ * In PR 2, guards versioned CDN bundles and release snapshots.
+ * Upgraded to full strict guard (including stable manifest) in PR 4 (task 4.3).
  * @param {string} srcDir - Built site artifact directory
  */
 function assertNoReleaseOwnedInArtifact(srcDir) {
   const files = collectFiles(srcDir);
   for (const file of files) {
-    if (isReleaseOwnedPath(file)) {
+    const norm = file.replace(/\\/g, '/').replace(/^\/+/, '');
+    if (
+      /^innfo\/cdn\/innfo-mcp-v\d+\.\d+\.\d+\.bundle\.js$/.test(norm) ||
+      norm === 'innfo/cdn/manifest.json' ||
+      /^use\/manifests\/[a-z0-9-.]+\.md$/.test(norm)
+    ) {
       throw new Error(
         `Main build artifact contains release-owned path "${file}". Release-owned paths must not be published by push-to-main CI.`
       );
