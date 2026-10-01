@@ -1,5 +1,5 @@
 status: proposed
-current_phase: spec
+current_phase: tasks
 artifact_store: openspec
 delivery_strategy: ask-on-risk
 chain_strategy: pending
