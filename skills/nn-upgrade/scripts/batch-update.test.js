@@ -15,6 +15,11 @@
  * continue-on-failure), 6.1 (aggregate journal shape/order/committed, incremental
  * write-ahead) and 6.3 (real apply + reverse-order rollback, --yes required).
  *
+ * Work Unit 3 (slice 3): idempotency, soft lock, exit codes + scope guard, and
+ * Flow C docs. Covers tasks 7.1/7.2 (re-run skips applied/noop, no backup-of-backup),
+ * 7.3/7.4 (.nn-batch.lock wx, EEXIST refuses, --force bypasses, read-only warn),
+ * 7.5/7.6 (exit 0/1/2, no legacy-deletion path) and 8.1 (SKILL.md Flow C).
+ *
  * Style mirrors migrate-domain.test.js: node assert + spawnSync, fixtures under
  * repo-root temp/ (gitignored), removed in finally. Apply/rollback are exercised
  * through the injectable `spawn` seam (real spawnSync for the integration test).
@@ -651,6 +656,257 @@ async function runTests() {
         'journal marks restored flags',
       )
       console.log('✔ real apply + reverse-order rollback (B→A); --yes required')
+    }
+
+    // 12. Idempotency: re-run over applied domains skips, no backup-of-backup; all-noop exits 0
+    //     (tasks 7.1 / 7.2 / 7.5)
+    {
+      const parent = fs.mkdtempSync(path.join(tmpRoot, 'idem-'))
+      makeReadyDomain(parent, 'acme')
+      const scan = await runBatch({
+        parents: [parent],
+        command: 'scan',
+        selection: { only: [], exclude: [] },
+        now: fixedNow,
+        out: capturingOut(),
+      })
+      assert.strictEqual(findDomain(scan, 'acme').status, 'ready', 'fixture starts ready')
+      // Freeze the pre-apply plan so the second apply still lists the domain as `ready`.
+      const frozen = path.join(parent, 'frozen-plan.json')
+      fs.copyFileSync(scan.parents[0].planPath, frozen)
+
+      const applied = await runBatch({
+        parents: [parent],
+        command: 'apply',
+        consent: true,
+        now: fixedNow,
+        out: capturingOut(),
+      })
+      assert.strictEqual(applied.exitCode, 0, 'real apply of a ready domain exits 0')
+      assert.strictEqual(applied.parents[0].results[0].status, 'applied', 'domain applied')
+      const backupsAfterApply = fs.readdirSync(parent).filter((n) => n.includes('-backup-'))
+      assert.strictEqual(backupsAfterApply.length, 1, 'exactly one backup after the first apply')
+
+      // Re-scan: the migrated domain is `noop`, exit 0, and the backup sibling is never a candidate.
+      const rescan = await runBatch({
+        parents: [parent],
+        command: 'scan',
+        selection: { only: [], exclude: [] },
+        now: fixedNow,
+        out: capturingOut(),
+      })
+      assert.strictEqual(rescan.exitCode, 0, 'all-noop scan exits 0')
+      assert.strictEqual(findDomain(rescan, 'acme').status, 'noop', 'migrated domain re-scans noop')
+      assert.ok(
+        rescan.parents[0].plan.domains.every((d) => !d.name.includes('-backup-')),
+        'backup dirs are never recursed into as candidates',
+      )
+      assert.deepStrictEqual(rescan.parents[0].selected, [], 'a noop domain is not selectable')
+
+      // Re-apply from the frozen (stale, still-`ready`) plan: already current ⇒ skipped, no new backup.
+      const reapply = await runBatch({
+        parents: [parent],
+        command: 'apply',
+        consent: true,
+        planPath: frozen,
+        now: () => new Date('2026-10-01T13:00:00.000Z'),
+        out: capturingOut(),
+      })
+      assert.strictEqual(reapply.exitCode, 0, 're-apply of an applied domain exits 0')
+      assert.strictEqual(
+        reapply.parents[0].results[0].status,
+        'skipped',
+        'already-applied domain is skipped, not drifted',
+      )
+      const backupsAfterReapply = fs.readdirSync(parent).filter((n) => n.includes('-backup-'))
+      assert.strictEqual(
+        backupsAfterReapply.length,
+        backupsAfterApply.length,
+        're-apply creates no new backup (no backup-of-backup chain)',
+      )
+      console.log('✔ re-run over applied domains skips; no backup-of-backup; all-noop exits 0')
+    }
+
+    // 13. Soft lock: per-parent .nn-batch.lock — EEXIST refuses, --force bypasses, read-only warns
+    //     (tasks 7.3 / 7.4)
+    {
+      const parent = fs.mkdtempSync(path.join(tmpRoot, 'lock-'))
+      const acme = makeReadyDomain(parent, 'acme')
+      await runBatch({
+        parents: [parent],
+        command: 'scan',
+        selection: { only: [], exclude: [] },
+        now: fixedNow,
+        out: capturingOut(),
+      })
+      const lockPath = path.join(parent, '.nn-batch.lock')
+      fs.writeFileSync(
+        lockPath,
+        JSON.stringify({ pid: 999999, startedAt: '2026-10-01T11:00:00.000Z' }),
+        'utf-8',
+      )
+      const before = snapshotTree(acme)
+
+      let calls = 0
+      const fake = () => {
+        calls += 1
+        return applyOk(path.join(parent, 'never-backup'))
+      }
+      const refused = await runBatch({
+        parents: [parent],
+        command: 'apply',
+        consent: true,
+        spawn: fake,
+        now: fixedNow,
+        out: capturingOut(),
+      })
+      assert.strictEqual(refused.exitCode, 1, 'a held lock refuses apply (exit 1)')
+      assert.strictEqual(calls, 0, 'lock refusal spawns nothing')
+      assert.deepStrictEqual(snapshotTree(acme), before, 'lock refusal writes no domain files')
+      assert.deepStrictEqual(listJournals(parent), [], 'lock refusal writes no aggregate journal')
+      assert.ok(fs.existsSync(lockPath), 'a refused run does not remove the foreign lock')
+
+      // Same refusal through the real CLI (--force plumbing of main()).
+      const cliRefused = runBatchCli(['--dir', parent, '--apply', '--yes'])
+      assert.strictEqual(cliRefused.status, 1, 'held lock refuses apply through the CLI too')
+
+      const forced = await runBatch({
+        parents: [parent],
+        command: 'apply',
+        consent: true,
+        force: true,
+        spawn: fake,
+        now: fixedNow,
+        out: capturingOut(),
+      })
+      assert.strictEqual(forced.exitCode, 0, '--force bypasses the held lock')
+      assert.strictEqual(calls, 1, '--force proceeds to apply')
+      assert.ok(!fs.existsSync(lockPath), '--force clears the stale lock')
+
+      // EPERM/EACCES (read-only/cloud parent): warn and proceed without a lock.
+      const roParent = fs.mkdtempSync(path.join(tmpRoot, 'lock-ro-'))
+      makeReadyDomain(roParent, 'acme')
+      await runBatch({
+        parents: [roParent],
+        command: 'scan',
+        selection: { only: [], exclude: [] },
+        now: fixedNow,
+        out: capturingOut(),
+      })
+      const roOut = capturingOut()
+      let roCalls = 0
+      const roFake = () => {
+        roCalls += 1
+        return applyOk(path.join(roParent, 'never-backup'))
+      }
+      const ro = await runBatch({
+        parents: [roParent],
+        command: 'apply',
+        consent: true,
+        spawn: roFake,
+        now: fixedNow,
+        out: roOut,
+        openLock: () => {
+          const err = new Error('EPERM')
+          err.code = 'EPERM'
+          throw err
+        },
+      })
+      assert.strictEqual(ro.exitCode, 0, 'EPERM lock warns and proceeds')
+      assert.strictEqual(roCalls, 1, 'EPERM proceeds to apply')
+      assert.ok(roOut.lines.some((l) => /warning/i.test(l)), 'EPERM emits a warning')
+      console.log('✔ soft lock: EEXIST refuses, --force bypasses, EPERM warns + proceeds')
+    }
+
+    // 14. Exit codes + scope guard — no legacy/quarantine deletion path (tasks 7.5 / 7.6)
+    {
+      // Zero candidates: a parent with only a non-domain dir → scan/apply exit 0.
+      const emptyParent = fs.mkdtempSync(path.join(tmpRoot, 'empty-'))
+      fs.mkdirSync(path.join(emptyParent, 'notes'), { recursive: true })
+      const emptyScan = await runBatch({
+        parents: [emptyParent],
+        command: 'scan',
+        selection: { only: [], exclude: [] },
+        now: fixedNow,
+        out: capturingOut(),
+      })
+      assert.strictEqual(emptyScan.exitCode, 0, 'zero candidates scans exit 0')
+      assert.deepStrictEqual(emptyScan.parents[0].selected, [], 'zero candidates selects nothing')
+      const emptyApply = await runBatch({
+        parents: [emptyParent],
+        command: 'apply',
+        consent: true,
+        now: fixedNow,
+        out: capturingOut(),
+      })
+      assert.strictEqual(emptyApply.exitCode, 0, 'zero candidates apply exits 0')
+
+      // Invalid / incomplete flags exit 2 (CLI).
+      assert.strictEqual(
+        runBatchCli(['--dir', emptyParent, '--nope']).status,
+        2,
+        'invalid flag exits 2',
+      )
+      assert.strictEqual(
+        runBatchCli(['--dir', emptyParent, '--only']).status,
+        2,
+        'missing --only value exits 2',
+      )
+
+      // Any failed domain exits 1.
+      const failParent = fs.mkdtempSync(path.join(tmpRoot, 'exitfail-'))
+      makeReadyDomain(failParent, 'acme')
+      const fail = await runBatch({
+        parents: [failParent],
+        command: 'apply',
+        consent: true,
+        now: fixedNow,
+        out: capturingOut(),
+        spawn: () => ({ status: 1, stdout: '', stderr: '❌ Migration failed: boom' }),
+      })
+      assert.strictEqual(fail.exitCode, 1, 'a failed domain exits 1')
+
+      // Scope guard: no code path deletes legacy/quarantine files. The only unlink
+      // in the module is the advisory lock release, and it only ever targets a lock.
+      const src = fs.readFileSync(BATCH_CLI, 'utf-8')
+      assert.ok(
+        !/\brmSync\b|\brmdirSync\b|\brmdir\b|\bfs\.rm\b/.test(src),
+        'no recursive/directory deletion APIs in the batch tool',
+      )
+      const unlinks = src.match(/unlinkSync/g) || []
+      assert.strictEqual(unlinks.length, 1, 'exactly one unlink exists — the lock release')
+      assert.ok(/function safeUnlink[\s\S]*fs\.unlinkSync/.test(src), 'unlink is confined to safeUnlink')
+      const safeUnlinkArgs = [...src.matchAll(/safeUnlink\(([^)]*)\)/g)]
+        .map((m) => m[1].trim())
+        .filter((arg) => arg !== 'file' && !arg.startsWith('lock'))
+      assert.deepStrictEqual(
+        safeUnlinkArgs,
+        [],
+        'safeUnlink only ever targets a lock path',
+      )
+      console.log('✔ exit codes (0/1/2) and no legacy-deletion code path')
+    }
+
+    // 15. SKILL.md Flow C docs (tasks 8.1 / 8.2)
+    {
+      const skillPath = path.join(REPO_ROOT, 'skills', 'nn-upgrade', 'SKILL.md')
+      const doc = fs.readFileSync(skillPath, 'utf-8')
+      assert.ok(/Supports three distinct flows/i.test(doc), 'SKILL.md announces three flows')
+      assert.ok(/## Flow C: Batch Domain Update/.test(doc), 'Flow C section present')
+      for (const phase of ['C0', 'C1', 'C2', 'C3']) {
+        assert.ok(new RegExp(`${phase}\\s*[—-]`).test(doc), `Flow C documents phase ${phase}`)
+      }
+      assert.ok(/batch-update\.js/.test(doc), 'Flow C references batch-update.js')
+      assert.ok(/migrate-domain\.js/.test(doc), 'Flow C notes reuse of migrate-domain.js')
+      assert.ok(
+        /v1[^\n]*Flow A/i.test(doc) || /Flow A[^\n]*v1/i.test(doc),
+        'Flow C notes v1 = Flow A only',
+      )
+      assert.ok(
+        /never delete|does not delete|no legacy\/quarantine|without deleting legacy/i.test(doc),
+        'Flow C notes it never deletes legacy code',
+      )
+      console.log('✔ SKILL.md documents Flow C (C0–C3) with reuse + no-deletion notes')
     }
   } finally {
     fs.rmSync(tmpRoot, { recursive: true, force: true })

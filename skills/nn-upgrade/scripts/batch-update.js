@@ -41,8 +41,63 @@ const USAGE =
   'Usage: node batch-update.js [--dir <parent> ...] [--scan] [--only a,b] [--exclude x,y] [--plan <file>] [--json] [--apply --yes] [--rollback <journal> --yes]'
 
 const PLAN_FILE = 'batch-plan.json'
+const LOCK_FILE = '.nn-batch.lock'
 const MIGRATE_CLI = path.join(__dirname, 'migrate-domain.js')
 const APPLY_STATUSES = ['failed', 'drift', 'blocked']
+
+/** Best-effort removal — the ONLY unlink in this module, used for the advisory lock. */
+function safeUnlink(file) {
+  try {
+    fs.unlinkSync(file)
+  } catch {
+    /* lock may already be gone */
+  }
+}
+
+/**
+ * Acquire the per-parent soft advisory lock `<parent>/.nn-batch.lock` for
+ * `--apply`/`--rollback`. `wx` is one syscall; the lock holds `{pid,startedAt}`.
+ *
+ * - `EEXIST` without `--force` ⇒ refused (caller exits 1, zero writes).
+ * - `--force` ⇒ best-effort clears any existing lock and proceeds unheld.
+ * - `EPERM`/`EACCES`/`ENOENT` (read-only or cloud parent) ⇒ warn and proceed.
+ */
+function acquireLock(parent, force, openLock, sink) {
+  const lockPath = path.join(parent, LOCK_FILE)
+  if (force) {
+    safeUnlink(lockPath)
+    return { acquired: true, lockPath, held: false, bypassed: true }
+  }
+  let fd
+  try {
+    fd = openLock(lockPath)
+  } catch (err) {
+    if (err.code === 'EEXIST') {
+      sink.error(
+        `Error: batch lock already held at ${lockPath}. Another batch may be running; re-run with --force to bypass.`,
+      )
+      return { acquired: false, lockPath, held: false, reason: 'EEXIST' }
+    }
+    if (err.code === 'EPERM' || err.code === 'EACCES' || err.code === 'ENOENT') {
+      sink.error(
+        `Warning: cannot create batch lock at ${lockPath} (${err.code}); proceeding without a lock.`,
+      )
+      return { acquired: true, lockPath, held: false, reason: err.code }
+    }
+    throw err
+  }
+  try {
+    fs.writeSync(fd, JSON.stringify({ pid: process.pid, startedAt: toIso(new Date()) }))
+  } finally {
+    fs.closeSync(fd)
+  }
+  return { acquired: true, lockPath, held: true }
+}
+
+function releaseLock(lock) {
+  if (!lock || !lock.held) return
+  safeUnlink(lock.lockPath)
+}
 
 function normalizeOut(out) {
   if (!out) {
@@ -205,7 +260,9 @@ async function runBatch(opts = {}) {
     planPath = null,
     journalPath = null,
     consent = false,
+    force = false,
     spawn = spawnSync,
+    openLock = (lockPath) => fs.openSync(lockPath, 'wx'),
     now = () => new Date(),
     out,
     json = false,
@@ -216,13 +273,27 @@ async function runBatch(opts = {}) {
   const exclude = Array.isArray(selection.exclude) ? selection.exclude : []
 
   if (command === 'apply') {
-    return runApply({ parents, only, exclude, planPath, consent, spawn, now, out: sink, json })
+    return runApply({
+      parents,
+      only,
+      exclude,
+      planPath,
+      consent,
+      force,
+      spawn,
+      openLock,
+      now,
+      out: sink,
+      json,
+    })
   }
   if (command === 'rollback') {
     return runRollback({
       journalPath: journalPath || planPath,
       consent,
+      force,
       spawn,
+      openLock,
       now,
       out: sink,
       json,
@@ -323,17 +394,24 @@ async function applyOne({ entry, order, spawn }) {
     return rec
   }
 
-  let currentHash
+  let fresh
   try {
-    const fresh = await planMigration(createFsDomainReader(entry.path), DEPS)
-    currentHash = fresh.planHash || null
+    fresh = await planMigration(createFsDomainReader(entry.path), DEPS)
   } catch (err) {
     rec.status = 'failed'
     rec.error = err.message
     return rec
   }
 
-  if (currentHash !== entry.planHash) {
+  // Idempotency: a domain already at canonical layout re-plans to `noop`. Skip it
+  // (no spawn, no backup) instead of treating the expected hash change as drift.
+  if (fresh.status === 'noop') {
+    rec.status = 'skipped'
+    rec.planHash = fresh.planHash || rec.planHash
+    return rec
+  }
+
+  if ((fresh.planHash || null) !== entry.planHash) {
     rec.status = 'drift'
     rec.error = 'Plan hash mismatch'
     return rec
@@ -372,7 +450,19 @@ async function applyOne({ entry, order, spawn }) {
  * `--apply`: consent-gate, then per selected `ready` domain (ascending) drift-check
  * and spawn. Continue-on-failure; aggregate journal written incrementally.
  */
-async function runApply({ parents, only, exclude, planPath, consent, spawn, now, out, json }) {
+async function runApply({
+  parents,
+  only,
+  exclude,
+  planPath,
+  consent,
+  force,
+  spawn,
+  openLock,
+  now,
+  out,
+  json,
+}) {
   if (!consent) {
     const message = 'Consent required: pass --yes to apply domain migrations.'
     out.error(message)
@@ -393,25 +483,23 @@ async function runApply({ parents, only, exclude, planPath, consent, spawn, now,
       continue
     }
 
-    let plan
-    let resolvedPlanPath
-    if (planPath) {
-      resolvedPlanPath = path.resolve(planPath)
-      if (!fs.existsSync(resolvedPlanPath)) {
-        out.error(`Error: plan not found: ${resolvedPlanPath}`)
-        exitCode = 1
-        continue
-      }
-      try {
-        plan = JSON.parse(fs.readFileSync(resolvedPlanPath, 'utf-8'))
-      } catch (err) {
-        out.error(`Error: cannot read plan ${resolvedPlanPath}: ${err.message}`)
-        exitCode = 1
-        continue
-      }
-    } else {
-      resolvedPlanPath = path.join(parent, PLAN_FILE)
-      if (fs.existsSync(resolvedPlanPath)) {
+    // Per-parent advisory lock: acquired before any write, released in `finally`.
+    const lock = acquireLock(parent, force, openLock, out)
+    if (!lock.acquired) {
+      exitCode = 1
+      continue
+    }
+
+    try {
+      let plan
+      let resolvedPlanPath
+      if (planPath) {
+        resolvedPlanPath = path.resolve(planPath)
+        if (!fs.existsSync(resolvedPlanPath)) {
+          out.error(`Error: plan not found: ${resolvedPlanPath}`)
+          exitCode = 1
+          continue
+        }
         try {
           plan = JSON.parse(fs.readFileSync(resolvedPlanPath, 'utf-8'))
         } catch (err) {
@@ -420,74 +508,87 @@ async function runApply({ parents, only, exclude, planPath, consent, spawn, now,
           continue
         }
       } else {
-        // First-time apply: no persisted plan, take a fresh read-only scan.
-        plan = await buildPlan(parent, now)
-        atomicWriteJson(resolvedPlanPath, plan)
+        resolvedPlanPath = path.join(parent, PLAN_FILE)
+        if (fs.existsSync(resolvedPlanPath)) {
+          try {
+            plan = JSON.parse(fs.readFileSync(resolvedPlanPath, 'utf-8'))
+          } catch (err) {
+            out.error(`Error: cannot read plan ${resolvedPlanPath}: ${err.message}`)
+            exitCode = 1
+            continue
+          }
+        } else {
+          // First-time apply: no persisted plan, take a fresh read-only scan.
+          plan = await buildPlan(parent, now)
+          atomicWriteJson(resolvedPlanPath, plan)
+        }
       }
-    }
 
-    const selected = selectReady(plan, only, exclude, out)
-    allSelected.push(...selected)
+      const selected = selectReady(plan, only, exclude, out)
+      allSelected.push(...selected)
 
-    if (selected.length === 0) {
-      out.log(`No candidates to apply in ${parent}`)
+      if (selected.length === 0) {
+        out.log(`No candidates to apply in ${parent}`)
+        parentResults.push({
+          parentDir: parent,
+          planPath: resolvedPlanPath,
+          plan,
+          selected,
+          journalPath: null,
+          journal: null,
+          results: [],
+        })
+        continue
+      }
+
+      const journalPathForParent = path.join(parent, `batch-journal-${stamp}.json`)
+      const journal = {
+        version: 1,
+        batchId: stamp,
+        parentDir: parent,
+        startedAt,
+        finishedAt: null,
+        committed: false,
+        domains: [],
+      }
+      atomicWriteJson(journalPathForParent, journal)
+
+      const results = []
+      let order = 0
+      for (const name of selected) {
+        const entry = plan.domains.find((d) => d.name === name)
+        const rec = await applyOne({ entry, order: order++, spawn })
+        results.push(rec)
+        journal.domains.push(rec)
+        // Write-ahead after each domain so a killed batch leaves a recoverable journal.
+        atomicWriteJson(journalPathForParent, journal)
+        if (rec.status === 'applied') {
+          out.log(`Applied ${entry.name} (backup: ${rec.backupDir})`)
+        } else if (rec.status === 'skipped') {
+          out.log(`Skipped ${entry.name} (already current)`)
+        } else {
+          out.error(`Domain ${entry.name}: ${rec.status}${rec.error ? ` — ${rec.error}` : ''}`)
+        }
+      }
+
+      journal.finishedAt = toIso(now())
+      journal.committed = true
+      atomicWriteJson(journalPathForParent, journal)
+
+      if (results.some((r) => APPLY_STATUSES.includes(r.status))) exitCode = 1
+
       parentResults.push({
         parentDir: parent,
         planPath: resolvedPlanPath,
         plan,
         selected,
-        journalPath: null,
-        journal: null,
-        results: [],
+        journalPath: journalPathForParent,
+        journal,
+        results,
       })
-      continue
+    } finally {
+      releaseLock(lock)
     }
-
-    const journalPathForParent = path.join(parent, `batch-journal-${stamp}.json`)
-    const journal = {
-      version: 1,
-      batchId: stamp,
-      parentDir: parent,
-      startedAt,
-      finishedAt: null,
-      committed: false,
-      domains: [],
-    }
-    atomicWriteJson(journalPathForParent, journal)
-
-    const results = []
-    let order = 0
-    for (const name of selected) {
-      const entry = plan.domains.find((d) => d.name === name)
-      const rec = await applyOne({ entry, order: order++, spawn })
-      results.push(rec)
-      journal.domains.push(rec)
-      // Write-ahead after each domain so a killed batch leaves a recoverable journal.
-      atomicWriteJson(journalPathForParent, journal)
-      if (rec.status === 'applied') {
-        out.log(`Applied ${entry.name} (backup: ${rec.backupDir})`)
-      } else if (rec.status === 'skipped') {
-        out.log(`Skipped ${entry.name} (already current)`)
-      } else {
-        out.error(`Domain ${entry.name}: ${rec.status}${rec.error ? ` — ${rec.error}` : ''}`)
-      }
-    }
-
-    journal.finishedAt = toIso(now())
-    journal.committed = true
-    atomicWriteJson(journalPathForParent, journal)
-
-    if (results.some((r) => APPLY_STATUSES.includes(r.status))) exitCode = 1
-
-    parentResults.push({
-      parentDir: parent,
-      planPath: resolvedPlanPath,
-      plan,
-      selected,
-      journalPath: journalPathForParent,
-      journal,
-      results,
-    })
   }
 
   if (json) {
@@ -514,7 +615,7 @@ async function runApply({ parents, only, exclude, planPath, consent, spawn, now,
  * `--rollback <batch-journal.json>` (alias `--restore`): restore `applied`
  * domains in reverse `order`, one spawned `migrate-domain.js --restore` each.
  */
-async function runRollback({ journalPath, consent, spawn, now, out, json }) {
+async function runRollback({ journalPath, consent, force, spawn, openLock, now, out, json }) {
   if (!consent) {
     const message = 'Consent required: pass --yes to restore domains.'
     out.error(message)
@@ -546,35 +647,47 @@ async function runRollback({ journalPath, consent, spawn, now, out, json }) {
     .filter((d) => d.status === 'applied' && !d.restored)
     .sort((a, b) => b.order - a.order)
 
-  const restored = []
-  let failed = false
-  for (const d of applied) {
-    const res = spawn(
-      process.execPath,
-      [MIGRATE_CLI, '--domain-dir', d.path, '--restore', d.backupDir],
-      { encoding: 'utf-8' },
-    )
-    if (res.status === 0) {
-      d.restored = true
-      d.restoreError = null
-      out.log(`Restored ${d.name} from ${d.backupDir}`)
-    } else {
-      failed = true
-      d.restoreError = (res.stderr || '').trim() || `migrate-domain.js exited with ${res.status}`
-      out.error(`Failed to restore ${d.name}: ${d.restoreError}`)
-    }
-    restored.push({
-      name: d.name,
-      order: d.order,
-      status: res.status === 0 ? 'restored' : 'restore-failed',
-      exitCode: res.status,
-      error: d.restoreError || null,
-    })
-    atomicWriteJson(resolved, journal)
+  const rollbackParent = journal.parentDir
+    ? path.resolve(journal.parentDir)
+    : path.dirname(resolved)
+  const lock = acquireLock(rollbackParent, force, openLock, out)
+  if (!lock.acquired) {
+    return { exitCode: 1, command: 'rollback', journalPath: resolved, restored: [], messages: ['lock-held'] }
   }
 
-  journal.lastRollbackAt = toIso(now())
-  atomicWriteJson(resolved, journal)
+  const restored = []
+  let failed = false
+  try {
+    for (const d of applied) {
+      const res = spawn(
+        process.execPath,
+        [MIGRATE_CLI, '--domain-dir', d.path, '--restore', d.backupDir],
+        { encoding: 'utf-8' },
+      )
+      if (res.status === 0) {
+        d.restored = true
+        d.restoreError = null
+        out.log(`Restored ${d.name} from ${d.backupDir}`)
+      } else {
+        failed = true
+        d.restoreError = (res.stderr || '').trim() || `migrate-domain.js exited with ${res.status}`
+        out.error(`Failed to restore ${d.name}: ${d.restoreError}`)
+      }
+      restored.push({
+        name: d.name,
+        order: d.order,
+        status: res.status === 0 ? 'restored' : 'restore-failed',
+        exitCode: res.status,
+        error: d.restoreError || null,
+      })
+      atomicWriteJson(resolved, journal)
+    }
+
+    journal.lastRollbackAt = toIso(now())
+    atomicWriteJson(resolved, journal)
+  } finally {
+    releaseLock(lock)
+  }
 
   if (json) {
     out.log(JSON.stringify({ command: 'rollback', journalPath: resolved, restored }, null, 2))
@@ -692,6 +805,7 @@ async function main(argv = process.argv.slice(2)) {
     planPath: opts.planPath,
     journalPath: opts.journalPath,
     consent: opts.yes,
+    force: opts.force,
     now: () => new Date(),
     json: opts.json,
   })

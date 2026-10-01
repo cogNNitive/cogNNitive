@@ -78,21 +78,21 @@ Chain strategy: pending
 
 ## 7. Idempotency, lock & edges
 
-- [ ] 7.1 **RED**: re-run over applied domains ⇒ each skipped, no new backup; `-backup-*` never recursed into. `[batch-domain-update:Requirement:Idempotent and Resumable]`
-- [ ] 7.2 **GREEN**: skip `noop`/already-applied; enforce backup-of-backup prevention. `[batch-domain-update:Requirement:Idempotent and Resumable]`
-- [ ] 7.3 **RED**: `.nn-batch.lock` `wx`; EEXIST without `--force` exits 1; `--force` bypasses; read-only parent warns + proceeds. `[batch-domain-update:Requirement:Per-Domain Atomicity (No Fused Transaction)]`
-- [ ] 7.4 **GREEN**: acquire/release advisory lock in `finally` for `--apply`/`--rollback`. `[batch-domain-update:Requirement:Per-Domain Atomicity (No Fused Transaction)]`
-- [ ] 7.5 **RED**: zero-candidate and all-noop exit 0; invalid flags exit 2; any failed/drift/blocked exits 1. `[batch-domain-update:Requirement:Scope Boundary]`
-- [ ] 7.6 **GREEN**: wire exit codes; assert no legacy/quarantine deletion path exists. `[batch-domain-update:Requirement:Scope Boundary]`
+- [x] 7.1 **RED**: re-run over applied domains ⇒ each skipped, no new backup; `-backup-*` never recursed into. `[batch-domain-update:Requirement:Idempotent and Resumable]`
+- [x] 7.2 **GREEN**: skip `noop`/already-applied; enforce backup-of-backup prevention. `[batch-domain-update:Requirement:Idempotent and Resumable]`
+- [x] 7.3 **RED**: `.nn-batch.lock` `wx`; EEXIST without `--force` exits 1; `--force` bypasses; read-only parent warns + proceeds. `[batch-domain-update:Requirement:Per-Domain Atomicity (No Fused Transaction)]`
+- [x] 7.4 **GREEN**: acquire/release advisory lock in `finally` for `--apply`/`--rollback`. `[batch-domain-update:Requirement:Per-Domain Atomicity (No Fused Transaction)]`
+- [x] 7.5 **RED**: zero-candidate and all-noop exit 0; invalid flags exit 2; any failed/drift/blocked exits 1. `[batch-domain-update:Requirement:Scope Boundary]`
+- [x] 7.6 **GREEN**: wire exit codes; assert no legacy/quarantine deletion path exists. `[batch-domain-update:Requirement:Scope Boundary]`
 
 ## 8. Skill docs — Flow C
 
-- [ ] 8.1 **RED**: assert `skills/nn-upgrade/SKILL.md` says "three" flows and contains `## Flow C` with C0–C3 and a reuse note. `[batch-domain-update:Requirement:Skill Integration (Flow C)]`
-- [ ] 8.2 **GREEN**: edit `SKILL.md` — "two" → "three"; add Flow C (C0 scan, C1 selection/consent, C2 apply, C3 rollback); note v1 = Flow A only and no legacy deletion. `[batch-domain-update:Requirement:Skill Integration (Flow C)]`
+- [x] 8.1 **RED**: assert `skills/nn-upgrade/SKILL.md` says "three" flows and contains `## Flow C` with C0–C3 and a reuse note. `[batch-domain-update:Requirement:Skill Integration (Flow C)]`
+- [x] 8.2 **GREEN**: edit `SKILL.md` — "two" → "three"; add Flow C (C0 scan, C1 selection/consent, C2 apply, C3 rollback); note v1 = Flow A only and no legacy deletion. `[batch-domain-update:Requirement:Skill Integration (Flow C)]`
 
 ## 9. Verification
 
 - [ ] 9.1 Run `npm run test` — new suite and full repo green.
 - [ ] 9.2 Run `npm run lint` + `npm run typecheck` — clean.
-- [ ] 9.3 Manual smoke: real `--scan` on a temp parent ⇒ zero domain writes; then delete runtime artifacts, confirm migrated domains intact. `[batch-domain-update:Requirement:Scope Boundary]`
+- [x] 9.3 Manual smoke: real `--scan` on a temp parent ⇒ zero domain writes; then delete runtime artifacts, confirm migrated domains intact. `[batch-domain-update:Requirement:Scope Boundary]`
 - [ ] 9.4 Confirm `migrate-domain.js` unchanged and no legacy code deleted; close traceability to all 9 requirements.
