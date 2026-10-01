@@ -15,5 +15,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src/**/*.ts", "src/**/*.vue", "env.d.ts", "../../specs/**/*.ts", "../../specs/**/*.json"]
+  "include": ["src/**/*.ts", "src/**/*.vue", "env.d.ts", "../../specs/**/*.ts", "../../specs/**/*.json"],
+  "exclude": ["src/**/*.test.ts", "src/**/*.spec.ts"]
 }

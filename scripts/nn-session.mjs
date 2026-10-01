@@ -31,13 +31,17 @@ function worktreePath(root, id) {
 }
 
 function junctionNodeModules(root, target) {
-  const src = join(root, 'node_modules')
-  const dst = join(target, 'node_modules')
-  if (existsSync(dst) || !existsSync(src)) return
-  try {
-    symlinkSync(src, dst, 'junction')
-  } catch {
-    console.error(`WARNING: could not junction node_modules; run "npm install" in ${target}`)
+  const links = [
+    { src: join(root, 'node_modules'), dst: join(target, 'node_modules') },
+    { src: join(root, 'skills', 'nn-trannsform', 'node_modules'), dst: join(target, 'skills', 'nn-trannsform', 'node_modules') },
+  ]
+  for (const { src, dst } of links) {
+    if (existsSync(dst) || !existsSync(src)) continue
+    try {
+      symlinkSync(src, dst, 'junction')
+    } catch {
+      console.error(`WARNING: could not junction ${src}; run "npm install" in ${target}`)
+    }
   }
 }
 

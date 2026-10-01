@@ -22,7 +22,8 @@ console.log(`   Output root: ${docsRoot}`);
 function run(cmd, desc) {
   console.log(`\nâ–¶ ${desc} (${cmd})...`);
   try {
-    execSync(cmd, { cwd: repoRoot, stdio: 'inherit' });
+    const env = { ...process.env, NODE_OPTIONS: process.env.NODE_OPTIONS || '--max-old-space-size=4096' };
+    execSync(cmd, { cwd: repoRoot, stdio: 'inherit', env });
   } catch (err) {
     console.error(`\nâŒ ${desc} failed.`);
     process.exit(1);
@@ -30,9 +31,9 @@ function run(cmd, desc) {
 }
 
 // 1. Sequential topological build execution
-run('npm --prefix iNNfo/packages/innfo-core run build', 'Build @cognnitive/innfo-core');
-run('npm --prefix iNNfo/packages/innfo-mcp run build', 'Build @cognnitive/innfo-mcp');
-run('npm --prefix iNNfo/apps/innfo-editor run build', 'Build @cognnitive/innfo-editor');
+run('npm --workspace=@cognnitive/innfo-core run build', 'Build @cognnitive/innfo-core');
+run('npm --workspace=@cognnitive/innfo-mcp run build', 'Build @cognnitive/innfo-mcp');
+run('npm --workspace=@cognnitive/innfo-editor run build', 'Build @cognnitive/innfo-editor');
 
 // 2. Stage innfo-editor distribution into docs/innfo/app/
 console.log('\nâ–¶ Staging innfo-editor dist into docs/innfo/app/...');

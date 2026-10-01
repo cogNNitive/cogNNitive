@@ -66,15 +66,15 @@ tags:: [docs, architecture, fsm, statechart, mermaid]
 
 Deterministic finite state machine, decision transition matrix, and governance paths across cogNNitive skills from the "nn" entry point.
 
-## NN Page: nn-start
-title:: nn-start
-source:: skills/nn-start.md
-route:: skills/nn-start.md
+## NN Page: nn
+title:: nn
+source:: skills/nn.md
+route:: skills/nn.md
 order:: 5
 parent:: [[Canonical Skills]]
-tags:: [docs, skills, nn-start, front-controller, governance]
+tags:: [docs, skills, nn, front-controller, governance]
 
-Central system governance, setup, environment readiness gate (Preflight), and start router.
+Primary Front Controller, ecosystem entry point, job loop navigation menu, system governance, and preflight readiness gate.
 
 
 ## NN Page: nn-preflight
