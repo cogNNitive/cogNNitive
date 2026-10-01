@@ -1,0 +1,15 @@
+status: in_progress
+current_phase: apply
+artifact_store: openspec
+delivery_strategy: dev-single-branch-3-slices
+delivery_decision: option-1-three-reviewable-commits-on-dev
+current_slice: 1-scanner-plan-selection
+phases:
+  exploration: completed
+  proposal: completed
+  spec: completed
+  design: completed
+  tasks: completed
+  apply: in_progress
+  verify: pending
+  archive: pending
