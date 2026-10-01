@@ -164,3 +164,4 @@ export { deriveMatrixWidgetType, normalizeMatrixDecl, scaleRangeFor } from './ma
 export type { MatrixWidgetType } from './matrix.js'
 export { mergeKnowledge } from './merge.js'
 export * from './console/index.js'
+export * from './lineage/index.js'

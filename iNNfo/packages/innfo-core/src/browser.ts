@@ -127,3 +127,4 @@ export {
   SpecResolutionError,
 } from './resolver.js'
 export type { SpecResolver } from './resolver.js'
+export * from './lineage/index.js'
