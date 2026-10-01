@@ -66,6 +66,40 @@ function testExits1OnStaleMirror() {
   }
 }
 
+function testSlugMirrorCheck() {
+  const tempDir = mkdtempSync(join(tmpdir(), 'payload-slug-test-'))
+  const tempOut = join(tempDir, 'console-payload.generated.cjs')
+  const tempSlugOut = join(tempDir, 'innfo-slug.generated.js')
+
+  try {
+    execFileSync('node', [scriptPath, '--out', tempOut, '--slug-out', tempSlugOut], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+    })
+
+    const output = execFileSync('node', [scriptPath, '--check', '--out', tempOut, '--slug-out', tempSlugOut], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+    })
+    assert.match(output, /matches generated bundle/)
+
+    // Corrupt slug file
+    writeFileSync(tempSlugOut, '/* stale slug */', 'utf8')
+    let threw = false
+    try {
+      execFileSync('node', [scriptPath, '--check', '--out', tempOut, '--slug-out', tempSlugOut], {
+        cwd: repoRoot,
+        encoding: 'utf8',
+      })
+    } catch {
+      threw = true
+    }
+    assert.strictEqual(threw, true, 'Corrupted slug output should fail --check')
+  } finally {
+    rmSync(tempDir, { recursive: true, force: true })
+  }
+}
+
 console.log('▶ Testing build-console-payload.mjs --check (matches generated bundle)')
 testMatchesGeneratedBundle()
 console.log('✔ Passed')
@@ -73,3 +107,8 @@ console.log('✔ Passed')
 console.log('▶ Testing build-console-payload.mjs --check (exits 1 on stale mirror)')
 testExits1OnStaleMirror()
 console.log('✔ Passed')
+
+console.log('▶ Testing build-console-payload.mjs --check (slug mirror check)')
+testSlugMirrorCheck()
+console.log('✔ Passed')
+
