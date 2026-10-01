@@ -8,18 +8,46 @@
 
 const fs = require('fs');
 const path = require('path');
+const { isLoopbackHost } = require('./loopback.js');
 
 const USER_AGENT = 'actioNN-Skills-Updater';
 const RATE_LIMIT_HINT = 'set GITHUB_TOKEN to raise the rate limit';
 
+// The platform fetch as first seen by this process (before any test double is
+// installed). Shared across module reloads so a re-required client still knows it.
+const sharedState = /** @type {any} */ (process);
+const PLATFORM_FETCH = (sharedState.__nnPlatformFetch = sharedState.__nnPlatformFetch || globalThis.fetch);
+
+/**
+ * @param {unknown} fn
+ * @returns {boolean} true for the platform fetch or the offline-guard wrapper around it.
+ */
+function isRealFetch(fn) {
+  return typeof fn === 'function' && (/** @type {any} */ (fn).__nnOfflineGuard === true || fn === PLATFORM_FETCH);
+}
+
 /**
  * Throws when offline mode is enforced (`NN_OFFLINE=1`, set by verify.js for
  * every child process), so the deterministic gate cannot silently reach the network.
+ * Loopback URLs stay allowed: they are not network access, and suites that run a
+ * local server need them.
+ * @param {string} url
  * @returns {void}
  */
-function assertOnline() {
-  if (process.env.NN_OFFLINE === '1') {
-    throw new Error('Network access is disabled (NN_OFFLINE=1): refusing to call the GitHub client.');
+function assertOnline(url) {
+  if (process.env.NN_OFFLINE !== '1') return;
+  // A test double installed over globalThis.fetch cannot reach the network. If it
+  // falls through to the real fetch, the offline-guard preload (net/tls/dns level)
+  // refuses it, so the gate stays fail-closed without blocking stubbed suites.
+  if (!isRealFetch(globalThis.fetch)) return;
+  let host;
+  try {
+    host = new URL(url).hostname;
+  } catch (_) {
+    host = String(url);
+  }
+  if (!isLoopbackHost(host)) {
+    throw new Error(`Network access is disabled (NN_OFFLINE=1): refusing to call the GitHub client for ${host}.`);
   }
 }
 
@@ -48,7 +76,7 @@ function rateLimited(status) {
  * @returns {Promise<{ status: number, data: T | null, error?: string }>}
  */
 async function apiRequest(url) {
-  assertOnline();
+  assertOnline(url);
   try {
     const res = await fetch(url, { headers: { 'User-Agent': USER_AGENT, ...authHeaders() } });
     const body = await res.text();
@@ -67,7 +95,7 @@ async function apiRequest(url) {
  * @returns {Promise<string>}
  */
 async function fetchString(url, redirectsLeft = 5) {
-  assertOnline();
+  assertOnline(url);
   let currentUrl = url;
   let left = redirectsLeft;
 
@@ -110,7 +138,7 @@ function fetchJson(url) {
  * @returns {Promise<void>}
  */
 async function downloadFile(url, destPath, redirectsLeft = 5) {
-  assertOnline();
+  assertOnline(url);
   const dir = path.dirname(destPath);
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });

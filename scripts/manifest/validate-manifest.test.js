@@ -1,10 +1,5 @@
 #!/usr/bin/env node
 const assert = require('node:assert');
-
-// This suite exercises the API client against a loopback server or a stubbed
-// fetch, never the real network. verify.js sets NN_OFFLINE=1, which would make
-// the client throw before reaching those stubs, so opt this process out.
-delete process.env.NN_OFFLINE;
 const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');

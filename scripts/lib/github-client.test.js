@@ -7,34 +7,52 @@
 
 const assert = require('node:assert');
 const { execFileSync } = require('node:child_process');
-const { apiRequest, fetchString } = require('./github-client.js');
+const { apiRequest, fetchString, downloadFile } = require('./github-client.js');
 
+const net = require('node:net');
+
+// Runs `fn` with NN_OFFLINE=1 and a socket trap; asserts no connection was attempted.
 async function withOffline(fn) {
   const prev = process.env.NN_OFFLINE;
   process.env.NN_OFFLINE = '1';
-  const realFetch = globalThis.fetch;
-  let fetchCalls = 0;
-  globalThis.fetch = async () => {
-    fetchCalls += 1;
-    throw new Error('network must not be reached');
+  const origConnect = net.Socket.prototype.connect;
+  let connects = 0;
+  net.Socket.prototype.connect = function trapped() {
+    connects += 1;
+    throw new Error('socket trap: network must not be reached');
   };
   try {
     await fn();
-    assert.strictEqual(fetchCalls, 0, 'no request is issued while offline');
+    assert.strictEqual(connects, 0, 'no connection is attempted while offline');
   } finally {
-    globalThis.fetch = realFetch;
+    net.Socket.prototype.connect = origConnect;
     if (prev === undefined) delete process.env.NN_OFFLINE;
     else process.env.NN_OFFLINE = prev;
   }
 }
 
+const stubResponse = () => ({ status: 200, text: async () => '{"ok":true}', headers: { get: () => null } });
+
 async function main() {
+  // The real (unstubbed) fetch is refused before any request is built.
   await withOffline(async () => {
     await assert.rejects(() => apiRequest('https://api.github.com/x'), /NN_OFFLINE/);
+    await assert.rejects(() => fetchString('https://example.com/x'), /NN_OFFLINE/);
+    await assert.rejects(() => downloadFile('https://codeload.github.com/x', 'unused'), /NN_OFFLINE/);
   });
 
+  // Loopback is not network access; a stubbed fetch cannot reach the network either
+  // (and a stub that falls through to the real fetch is caught by the offline-guard preload).
   await withOffline(async () => {
-    await assert.rejects(() => fetchString('https://example.com/x'), /NN_OFFLINE/);
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = async () => stubResponse();
+    try {
+      assert.deepStrictEqual((await apiRequest('http://127.0.0.1:1/x')).data, { ok: true });
+      assert.strictEqual(await fetchString('http://localhost:1/x'), '{"ok":true}');
+      assert.deepStrictEqual((await apiRequest('https://api.github.com/x')).data, { ok: true });
+    } finally {
+      globalThis.fetch = realFetch;
+    }
   });
 
   // Local git lookups are not network access and stay allowed under NN_OFFLINE=1.

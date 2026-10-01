@@ -63,4 +63,17 @@ assert.deepStrictEqual(
   assert.ok(!/cdn-bundle-staged|checkCdnBundleStaged/.test(ci), 'check-integrity must not check CDN staging');
   assert.ok(/if \(!runVerification\(/.test(ci), 'check-integrity must exit non-zero when verification fails');
 }
+// 7. Children load the fail-closed preload (existing NODE_OPTIONS are kept), and
+//    no suite opts out of offline mode.
+{
+  const env = childEnv({ NODE_OPTIONS: '--max-old-space-size=512' });
+  assert.match(env.NODE_OPTIONS, /--max-old-space-size=512/);
+  assert.match(env.NODE_OPTIONS, /--require "[^"]*scripts[/]lib[/]offline-guard[.]js"/);
+  assert.strictEqual((childEnv(env).NODE_OPTIONS.match(/offline-guard/g) || []).length, 1, 'preload is not added twice');
+  for (const rel of ['lib/shared-libs.test.js', 'manifest/validate-manifest.test.js', 'skills-manager.test.js']) {
+    const text = fs.readFileSync(path.join(__dirname, rel), 'utf8');
+    assert.ok(!/delete process.env.NN_OFFLINE/.test(text), rel + ' must not disable offline mode');
+  }
+}
+
 console.log('verify-offline tests passed');

@@ -216,13 +216,24 @@ function collectTestSuites(dir, found = []) {
   return found.sort();
 }
 
+const OFFLINE_GUARD = path.join(__dirname, 'lib', 'offline-guard.js').split(path.sep).join('/');
+
 /**
  * Environment for every child process: offline mode is enforced, never optional.
+ * `NN_OFFLINE=1` plus a `--require` preload that refuses non-loopback connections
+ * at the net/tls/dns/fetch level, so even a suite that bypasses the GitHub client
+ * (or stubs the wrong transport) fails closed. Existing NODE_OPTIONS are kept.
  * @param {NodeJS.ProcessEnv} [base]
  * @returns {NodeJS.ProcessEnv}
  */
 function childEnv(base = process.env) {
-  return { ...base, NN_OFFLINE: '1' };
+  /** @type {NodeJS.ProcessEnv} */
+  const childEnvironment = { ...base, NN_OFFLINE: '1' };
+  const options = childEnvironment.NODE_OPTIONS || '';
+  if (!options.includes(OFFLINE_GUARD)) {
+    childEnvironment.NODE_OPTIONS = `${options} --require "${OFFLINE_GUARD}"`.trim();
+  }
+  return childEnvironment;
 }
 
 /**

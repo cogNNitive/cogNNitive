@@ -16,15 +16,18 @@
  * With `NN_OFFLINE` unset the module installs nothing.
  */
 
-const net = require('node:net');
-const tls = require('node:tls');
-const dns = require('node:dns');
+// The guard monkey-patches platform modules, so these are deliberately untyped.
+const net = /** @type {any} */ (require('node:net'));
+const tls = /** @type {any} */ (require('node:tls'));
+const dns = /** @type {any} */ (require('node:dns'));
+const state = /** @type {any} */ (process);
+const globals = /** @type {any} */ (globalThis);
 const { isLoopbackHost } = require('./loopback.js');
 
 function offlineError(what, host) {
-  const err = new Error(`Network access is disabled (NN_OFFLINE=1): refusing ${what} to ${host}`);
-  err.code = 'ENN_OFFLINE';
-  return err;
+  return Object.assign(new Error(`Network access is disabled (NN_OFFLINE=1): refusing ${what} to ${host}`), {
+    code: 'ENN_OFFLINE',
+  });
 }
 
 function assertLoopback(what, host) {
@@ -45,8 +48,8 @@ function connectHost(args) {
 }
 
 function install() {
-  if (process.__nnOfflineGuardInstalled) return;
-  process.__nnOfflineGuardInstalled = true;
+  if (state.__nnOfflineGuardInstalled) return;
+  state.__nnOfflineGuardInstalled = true;
 
   const origConnect = net.Socket.prototype.connect;
   net.Socket.prototype.connect = function guardedConnect(...args) {
@@ -81,9 +84,9 @@ function install() {
     }
   }
 
-  if (typeof globalThis.fetch === 'function') {
-    const origFetch = globalThis.fetch;
-    globalThis.fetch = async function guardedFetch(input, init) {
+  if (typeof globals.fetch === 'function') {
+    const origFetch = globals.fetch;
+    globals.fetch = async function guardedFetch(input, init) {
       const raw = typeof input === 'string' || input instanceof URL ? String(input) : input && input.url;
       let host;
       try {
@@ -94,6 +97,7 @@ function install() {
       assertLoopback('fetch', host);
       return origFetch.call(this, input, init);
     };
+    globals.fetch.__nnOfflineGuard = true;
   }
 }
 

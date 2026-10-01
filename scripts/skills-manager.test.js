@@ -1,10 +1,5 @@
 #!/usr/bin/env node
 const assert = require('node:assert');
-
-// This suite exercises the API client against a loopback server or a stubbed
-// fetch, never the real network. verify.js sets NN_OFFLINE=1, which would make
-// the client throw before reaching those stubs, so opt this process out.
-delete process.env.NN_OFFLINE;
 const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
@@ -206,6 +201,38 @@ agent-bootstrap:
 
   const manifestServer = await serveManifestOnce(manifestFixture);
 
+  // Hermetic GitHub: build the pinned repo tarball locally and serve it from a
+  // loopback server. The CLI is spawned with a preload that rewrites GitHub URLs
+  // to that server, so nothing leaves the machine (and the offline guard stays on).
+  const commit = '535ab18b738280bb479015968f8ec38dee6397a9';
+  const repoDirName = `cogNNitive-web-${commit.slice(0, 7)}`;
+  const specRel = 'iNNfo/specs/bluepriNNts/domaiNN/spec_NN.md';
+  const fixtureRoot = path.join(tmpDir, 'fixture');
+  fs.mkdirSync(path.join(fixtureRoot, repoDirName, path.dirname(specRel)), { recursive: true });
+  fs.writeFileSync(path.join(fixtureRoot, repoDirName, specRel), '# domaiNN fixture spec\n', 'utf-8');
+  const tarName = 'repo.tar.gz';
+  const tarRes = spawnSync('tar', ['-czf', tarName, repoDirName], { cwd: fixtureRoot, encoding: 'utf-8' });
+  assert.strictEqual(tarRes.status, 0, `fixture tarball must build. Got: ${tarRes.stderr}`);
+  const tarBytes = fs.readFileSync(path.join(fixtureRoot, tarName));
+  const requestedPaths = [];
+  const githubServer = http.createServer((req, res) => {
+    requestedPaths.push(req.url);
+    if (req.url === `/codeload.github.com/cogNNitive/cogNNitive-web/tar.gz/${commit}`) {
+      res.writeHead(200, { 'Content-Type': 'application/gzip' });
+      res.end(tarBytes);
+    } else if (req.url === `/raw.githubusercontent.com/cogNNitive/cogNNitive-web/${commit}/${specRel}`) {
+      // Fallback route: the CLI uses it when tarball extraction fails (e.g. GNU tar
+      // on Windows reads `C:` as a remote host).
+      res.writeHead(200, { 'Content-Type': 'text/markdown' });
+      res.end('# domaiNN fixture spec\n');
+    } else {
+      res.writeHead(404);
+      res.end('not found');
+    }
+  });
+  await new Promise((resolve) => githubServer.listen(0, '127.0.0.1', resolve));
+  const githubPreload = path.join(__dirname, 'lib', 'test-fixtures', 'github-loopback-preload.js').split(path.sep).join('/');
+
   try {
     const res = await spawnAsync(
       [
@@ -218,7 +245,12 @@ agent-bootstrap:
         '--yes',
       ],
       {
-        env: { ...process.env, SM_MANIFEST_URL: manifestServer.url },
+        env: {
+          ...process.env,
+          SM_MANIFEST_URL: manifestServer.url,
+          SM_TEST_GITHUB_PORT: String(githubServer.address().port),
+          NODE_OPTIONS: `${process.env.NODE_OPTIONS || ''} --require "${githubPreload}"`.trim(),
+        },
       }
     );
 
@@ -230,10 +262,14 @@ agent-bootstrap:
     assert.strictEqual(stateContent.charCodeAt(0), 123, 'State file written without BOM');
     const parsedState = JSON.parse(stateContent);
     assert(parsedState.blueprints.domaiNN, 'State records bootstrapped template');
+    assert.strictEqual(parsedState.blueprints.domaiNN.commit, commit, 'State records the pinned commit');
+    assert(requestedPaths.length > 0 && requestedPaths.every((p) => /^\/(codeload\.github\.com|raw\.githubusercontent\.com)\//.test(p)),
+      'every GitHub download was served by the loopback fixture');
 
     console.log('✔ Bootstrap command with --yes test passed');
   } finally {
     await manifestServer.close();
+    await new Promise((resolve) => githubServer.close(resolve));
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
 }
