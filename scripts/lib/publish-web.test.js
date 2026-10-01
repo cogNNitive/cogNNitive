@@ -18,7 +18,11 @@ function mkTmpDir(prefix = 'publish-e2e-') {
 }
 
 function initBareRepo(dir) {
-  execFileSync('git', ['init', '--bare', dir], { stdio: 'ignore' });
+  // --initial-branch=main makes the bare repo's default branch match the real
+  // GitHub target (main), so `git clone --depth 1` fetches main instead of an
+  // unborn `master` — otherwise the subsequent `push origin HEAD:main` is
+  // rejected as non-fast-forward on hosts where init.defaultBranch is master.
+  execFileSync('git', ['init', '--bare', '--initial-branch=main', dir], { stdio: 'ignore' });
 }
 
 function initInitialCommit(bareRepoUrl, initFiles = {}) {
