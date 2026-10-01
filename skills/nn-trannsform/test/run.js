@@ -60,6 +60,11 @@ async function main() {
     totalPassed += scannerResult.passed;
     totalFailed += scannerResult.failed;
 
+    const scannerSidecarTest = require('./unit/test-scanner-sidecar');
+    const scannerSidecarResult = await scannerSidecarTest.run();
+    totalPassed += scannerSidecarResult.passed;
+    totalFailed += scannerSidecarResult.failed;
+
     const provenanceTest = require('./unit/test-provenance');
     const provenanceResult = await provenanceTest.run();
     totalPassed += provenanceResult.passed;
