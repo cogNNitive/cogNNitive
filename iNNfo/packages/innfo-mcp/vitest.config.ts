@@ -1,5 +1,6 @@
 import { defineConfig } from 'vitest/config'
 import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 
 const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf-8')) as {
   version: string
@@ -8,6 +9,12 @@ const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 
 export default defineConfig({
   define: {
     __INNFO_MCP_VERSION__: JSON.stringify(pkg.version),
+  },
+  resolve: {
+    alias: {
+      '@cognnitive/innfo-core/legacy': resolve(__dirname, '../innfo-core/src/legacy/index.ts'),
+      '@cognnitive/innfo-core': resolve(__dirname, '../innfo-core/src/index.ts'),
+    },
   },
   test: {
     clearMocks: true,
