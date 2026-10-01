@@ -13,13 +13,6 @@ agent-bootstrap:
       ref: "skills-v2.8.1"
       commit: "535ab18b738280bb479015968f8ec38dee6397a9"
       description: Primary Front Controller, ecosystem entry point, job loop menu, system governance, and preflight readiness gate.
-    - name: nn-start
-      repo: cogNNitive/cogNNitive-web
-      path: skills/nn-start
-      version: "V_3-4-2"
-      ref: "skills-v2.8.1"
-      commit: "535ab18b738280bb479015968f8ec38dee6397a9"
-      description: Central system governance, setup, environment readiness gate (Preflight), and start router.
     - name: nn-trannsform
       repo: cogNNitive/cogNNitive-web
       path: skills/nn-trannsform
@@ -202,6 +195,16 @@ agent-bootstrap:
       ref: "innfo-console-v0.6.0"
       commit: "535ab18b738280bb479015968f8ec38dee6397a9"
       url: https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/535ab18b738280bb479015968f8ec38dee6397a9/scripts/export-console.mjs
+    - file: iNNfo/specs/bluepriNNts/console/needs-registry.json
+      version: "0.6.0"
+      ref: "innfo-console-v0.6.0"
+      commit: "535ab18b738280bb479015968f8ec38dee6397a9"
+      url: https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/535ab18b738280bb479015968f8ec38dee6397a9/iNNfo/specs/bluepriNNts/console/needs-registry.json
+    - file: iNNfo/specs/bluepriNNts/console/console-payload.generated.cjs
+      version: "0.6.0"
+      ref: "innfo-console-v0.6.0"
+      commit: "535ab18b738280bb479015968f8ec38dee6397a9"
+      url: https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/535ab18b738280bb479015968f8ec38dee6397a9/iNNfo/specs/bluepriNNts/console/console-payload.generated.cjs
   workflows:
     - id: model
       label: Create an iNNfo model
