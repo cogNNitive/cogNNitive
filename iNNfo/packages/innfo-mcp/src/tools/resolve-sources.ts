@@ -13,6 +13,7 @@ import {
   EXCERPT_CHAR_CAP,
   AGENT_MODIFICATION_CONCEPT,
   KNOWN_AGENT_TOOL_IDS,
+  createFsSourceResolver,
 } from '@cognnitive/innfo-core'
 import type {
   ParsedKnowledge,
@@ -22,7 +23,7 @@ import type {
 } from '@cognnitive/innfo-core'
 import { readKnowledge } from './list-read.js'
 import { findKnowledgeFile, resolveBlueprintWithCache } from './spec.js'
-import { createWorkspaceSourceResolver, buildBlueprintSchemaResolverFromCache } from './validate.js'
+import { buildBlueprintSchemaResolverFromCache } from './validate.js'
 
 export {
   EXCERPT_CHAR_CAP,
@@ -68,7 +69,7 @@ export async function resolveSources(
   }
 
   const fieldNames = await resolveFieldNames(rootDir, model, element, input.fieldName)
-  const resolver = createWorkspaceSourceResolver(rootDir)
+  const resolver = createFsSourceResolver(rootDir)
 
   const results: ResolvedCitation[] = []
   for (const fieldName of fieldNames) {

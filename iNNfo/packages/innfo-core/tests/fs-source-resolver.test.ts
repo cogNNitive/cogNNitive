@@ -40,9 +40,27 @@ describe('createFsSourceResolver', () => {
       expect(rootResult.content).toContain('Root content')
       expect(rootResult.headings).toContain('overview')
 
-      // Non-existent source
-      const nonExistent = resolver('sources/missing.md', join(subDir, 'model.md'))
-      expect(nonExistent.exists).toBe(false)
+      // Non-existent source with non-existent parent directory
+      const parentMissingResult = resolver('sources/missing_dir/file.md', join(subDir, 'model.md'))
+      expect(parentMissingResult.exists).toBe(false)
+      expect(parentMissingResult.parentExists).toBe(false)
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true })
+    }
+  })
+
+  it('reports suggestions for near-miss file names in existing directory', () => {
+    const tempDir = mkdtempSync(join(tmpdir(), 'fs-resolver-sugg-'))
+    try {
+      const sourcesDir = join(tempDir, 'sources')
+      mkdirSync(sourcesDir, { recursive: true })
+      writeFileSync(join(sourcesDir, 'annual_reports.md'), '# Annual Reports\n', 'utf8')
+
+      const resolver = createFsSourceResolver(tempDir)
+      const nearMiss = resolver('sources/annual_repots.md')
+      expect(nearMiss.exists).toBe(false)
+      expect(nearMiss.parentExists).toBe(true)
+      expect(nearMiss.suggestions).toContain('annual_reports.md')
     } finally {
       rmSync(tempDir, { recursive: true, force: true })
     }

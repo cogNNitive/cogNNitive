@@ -8,6 +8,7 @@ import { existsSync } from 'node:fs'
 import { basename, join, relative } from 'node:path'
 import {
   buildConsolePayload,
+  createFsSourceResolver,
   serializeConsoleSlot,
   parseFeedbackLedger,
   FEEDBACK_LEDGER_FILENAME,
@@ -15,7 +16,7 @@ import {
 import type { BlueprintSchema, FeedbackVerdictEntry } from '@cognnitive/innfo-core'
 import { findKnowledgeFile, resolveBlueprintWithCache } from './spec.js'
 import { readKnowledge } from './list-read.js'
-import { createWorkspaceSourceResolver, buildBlueprintSchemaResolverFromCache } from './validate.js'
+import { buildBlueprintSchemaResolverFromCache } from './validate.js'
 
 export interface BuildConsolePayloadInput {
   model?: string
@@ -98,7 +99,7 @@ export async function buildConsolePayloadTool(
   }
 
   // Resolve Citations
-  const resolver = createWorkspaceSourceResolver(rootDir)
+  const resolver = createFsSourceResolver(rootDir)
 
   const payload = buildConsolePayload({
     content,
