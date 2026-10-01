@@ -3,14 +3,21 @@
 /**
  * skills/nn-upgrade/scripts/batch-update.test.js
  *
- * Work Unit 1 (slice 1) suite for batch-update.js: READ-ONLY scanner + planner +
- * selector. Covers tasks 1.2/1.3 (exports), 2.1/2.2 (discovery + classification),
- * 3.1/3.2 (persisted plan shape), 3.3/3.4 (hash parity + --plan override) and
- * 4.1/4.2 (selection precedence, empty no-op).
+ * batch-update.js suite.
+ *
+ * Work Unit 1 (slice 1): READ-ONLY scanner + planner + selector. Covers tasks
+ * 1.2/1.3 (exports), 2.1/2.2 (discovery + classification), 3.1/3.2 (persisted
+ * plan shape), 3.3/3.4 (hash parity + --plan override) and 4.1/4.2 (selection
+ * precedence, empty no-op).
+ *
+ * Work Unit 2 (slice 2): apply loop + aggregate journal + rollback. Covers tasks
+ * 5.1 (consent), 5.3 (drift guard + missing planHash), 5.5 (per-domain atomicity,
+ * continue-on-failure), 6.1 (aggregate journal shape/order/committed, incremental
+ * write-ahead) and 6.3 (real apply + reverse-order rollback, --yes required).
  *
  * Style mirrors migrate-domain.test.js: node assert + spawnSync, fixtures under
- * repo-root temp/ (gitignored), removed in finally. No --apply / --rollback here
- * (Work Unit 2) — only that the CLI parses and cleanly refuses them.
+ * repo-root temp/ (gitignored), removed in finally. Apply/rollback are exercised
+ * through the injectable `spawn` seam (real spawnSync for the integration test).
  */
 
 const assert = require('node:assert')
@@ -101,10 +108,27 @@ function findDomain(res, name) {
   return res.parents[0].plan.domains.find((d) => d.name === name)
 }
 
+/** All aggregate journal files currently present in a parent dir. */
+function listJournals(parent) {
+  return fs
+    .readdirSync(parent)
+    .filter((n) => /^batch-journal-.*\.json$/.test(n))
+    .map((n) => path.join(parent, n))
+}
+
+/** A successful migrate-domain.js apply result carrying a backup line. */
+function applyOk(backupDir) {
+  return {
+    status: 0,
+    stdout: `Backup created at: ${backupDir}\n✔ Migration applied successfully! (6 ops)\n`,
+    stderr: '',
+  }
+}
+
 async function runTests() {
   fs.mkdirSync(TEMP_ROOT, { recursive: true })
   const tmpRoot = fs.mkdtempSync(path.join(TEMP_ROOT, 'batch-update-'))
-  console.log('Running batch-update.js (Work Unit 1) unit tests...')
+  console.log('Running batch-update.js unit tests...')
 
   try {
     // 1. Exports smoke (tasks 1.2 / 1.3)
@@ -277,35 +301,362 @@ async function runTests() {
       console.log('✔ selection precedence and empty selection no-op')
     }
 
-    // 6. Slice boundary: apply/rollback parsed but cleanly refused; invalid flags exit 2
+    // 6. Work Unit 2 acceptance: apply/rollback now implemented but consent-gated;
+    //    unknown flags still exit 2.
     {
-      const parent = fs.mkdtempSync(path.join(TEMP_ROOT, 'cli-'))
+      const parent = fs.mkdtempSync(path.join(tmpRoot, 'cli-'))
       makeReadyDomain(parent, 'acme')
 
-      const applyRes = runBatchCli(['--dir', parent, '--apply', '--yes'])
-      assert.strictEqual(applyRes.status, 1, '--apply refused in slice 1')
+      const applyNoYes = runBatchCli(['--dir', parent, '--apply'])
+      assert.strictEqual(applyNoYes.status, 1, '--apply without --yes exits 1')
       assert.ok(
-        (applyRes.stdout + applyRes.stderr).includes('not implemented in this slice'),
-        '--apply refusal message is explicit',
+        /--yes/.test(applyNoYes.stdout + applyNoYes.stderr),
+        '--apply refusal mentions the --yes consent token',
+      )
+      assert.ok(
+        !fs.existsSync(path.join(parent, 'batch-plan.json')),
+        '--apply without --yes writes nothing (no plan)',
       )
 
-      const rollbackRes = runBatchCli(['--dir', parent, '--rollback', 'batch-journal.json', '--yes'])
-      assert.strictEqual(rollbackRes.status, 1, '--rollback refused in slice 1')
-      assert.ok(
-        (rollbackRes.stdout + rollbackRes.stderr).includes('not implemented in this slice'),
-        '--rollback refusal message is explicit',
-      )
+      const rollbackNoYes = runBatchCli([
+        '--dir',
+        parent,
+        '--rollback',
+        path.join(parent, 'missing-journal.json'),
+      ])
+      assert.strictEqual(rollbackNoYes.status, 1, '--rollback without --yes exits 1')
 
       const badFlagRes = runBatchCli(['--dir', parent, '--nope'])
       assert.strictEqual(badFlagRes.status, 2, 'unknown flag exits 2')
 
-      console.log('✔ apply/rollback refuse cleanly (exit 1); unknown flags exit 2')
+      console.log('✔ apply/rollback require --yes (exit 1); unknown flags exit 2')
+    }
+
+    // 7. Consent: --apply without --yes exits 1 with zero writes (task 5.1)
+    {
+      const parent = fs.mkdtempSync(path.join(tmpRoot, 'consent-'))
+      const acme = makeReadyDomain(parent, 'acme')
+      const before = snapshotTree(acme)
+      let calls = 0
+      const fake = () => {
+        calls += 1
+        return applyOk(path.join(parent, 'never-backup'))
+      }
+
+      const res = await runBatch({
+        parents: [parent],
+        command: 'apply',
+        selection: { only: [], exclude: [] },
+        consent: false,
+        spawn: fake,
+        now: fixedNow,
+        out: capturingOut(),
+      })
+
+      assert.strictEqual(res.exitCode, 1, 'apply without consent exits 1')
+      assert.strictEqual(calls, 0, 'no spawn without consent')
+      assert.deepStrictEqual(snapshotTree(acme), before, 'zero domain writes without consent')
+      assert.ok(
+        !fs.existsSync(path.join(parent, 'batch-plan.json')),
+        'no plan written without consent',
+      )
+      assert.deepStrictEqual(listJournals(parent), [], 'no journal written without consent')
+      console.log('✔ --apply without --yes refuses (exit 1) with zero writes')
+    }
+
+    // 8. Drift guard + missing planHash refusal (task 5.3)
+    {
+      const parent = fs.mkdtempSync(path.join(tmpRoot, 'drift-'))
+      const acme = makeReadyDomain(parent, 'acme')
+      const scan = await runBatch({
+        parents: [parent],
+        command: 'scan',
+        selection: { only: [], exclude: [] },
+        now: fixedNow,
+        out: capturingOut(),
+      })
+      assert.ok(findDomain(scan, 'acme').planHash, 'scanned plan records planHash')
+
+      // Mutate the tree after scan → recomputed hash differs → drift, no spawn.
+      fs.writeFileSync(
+        path.join(acme, 'models', 'extra_NN.md'),
+        '---\nmodel_version: "0.1.0"\nblueprint_name: "custom_app"\n---\n# Extra App Heading\n\n- Field:: x\n',
+        'utf-8',
+      )
+      const before = snapshotTree(acme)
+      let driftCalls = 0
+      const driftFake = () => {
+        driftCalls += 1
+        return applyOk(path.join(parent, 'never-backup'))
+      }
+      const drift = await runBatch({
+        parents: [parent],
+        command: 'apply',
+        consent: true,
+        spawn: driftFake,
+        now: fixedNow,
+        out: capturingOut(),
+      })
+
+      assert.strictEqual(drift.exitCode, 1, 'drift exits 1')
+      assert.strictEqual(driftCalls, 0, 'drift never spawns migrate-domain.js')
+      const dentry = drift.parents[0].results.find((d) => d.name === 'acme')
+      assert.strictEqual(dentry.status, 'drift', 'mutated domain classified as drift')
+      assert.match(String(dentry.error), /mismatch/i, 'drift error mentions hash mismatch')
+      assert.deepStrictEqual(snapshotTree(acme), before, 'drift leaves no partial write')
+
+      // Hand-edited plan with an absent planHash → refused, never applied.
+      const frozen = {
+        version: 1,
+        generatedAt: '2026-10-01T12:00:00.000Z',
+        parentDir: parent,
+        domains: [
+          { name: 'acme', path: acme, status: 'ready', opsCount: 6, planHash: null, reason: null },
+        ],
+      }
+      const frozenPath = path.join(parent, 'frozen-plan.json')
+      fs.writeFileSync(frozenPath, JSON.stringify(frozen, null, 2), 'utf-8')
+      let missingCalls = 0
+      const missingFake = () => {
+        missingCalls += 1
+        return applyOk(path.join(parent, 'never-backup'))
+      }
+      const missing = await runBatch({
+        parents: [parent],
+        command: 'apply',
+        consent: true,
+        planPath: frozenPath,
+        spawn: missingFake,
+        now: fixedNow,
+        out: capturingOut(),
+      })
+
+      assert.strictEqual(missing.exitCode, 1, 'missing planHash exits 1')
+      assert.strictEqual(missingCalls, 0, 'missing planHash never spawns apply')
+      const mres = missing.parents[0].results[0]
+      assert.strictEqual(mres.status, 'drift', 'missing planHash refused')
+      assert.strictEqual(mres.error, 'missing-plan-hash', 'missing planHash reason recorded')
+      console.log('✔ drift aborts without spawn; missing planHash is refused')
+    }
+
+    // 9. Per-domain atomicity: A applied then B fails; B never rolls back A (task 5.5)
+    {
+      const parent = fs.mkdtempSync(path.join(tmpRoot, 'atomic-'))
+      const aDir = makeReadyDomain(parent, 'a-domain')
+      const bDir = makeReadyDomain(parent, 'b-domain')
+      await runBatch({
+        parents: [parent],
+        command: 'scan',
+        selection: { only: [], exclude: [] },
+        now: fixedNow,
+        out: capturingOut(),
+      })
+
+      const backupA = path.join(parent, 'a-domain-backup-2026-10-01_120000')
+      const calls = []
+      const fake = (cmd, args) => {
+        calls.push(args.slice())
+        const dd = args[args.indexOf('--domain-dir') + 1]
+        if (dd === aDir) return applyOk(backupA)
+        if (dd === bDir) return { status: 1, stdout: '', stderr: '❌ Migration failed: boom' }
+        return { status: 0, stdout: '', stderr: '' }
+      }
+
+      const res = await runBatch({
+        parents: [parent],
+        command: 'apply',
+        consent: true,
+        spawn: fake,
+        now: fixedNow,
+        out: capturingOut(),
+      })
+
+      assert.strictEqual(res.exitCode, 1, 'batch exits 1 when one domain fails')
+      const ra = res.parents[0].results.find((d) => d.name === 'a-domain')
+      const rb = res.parents[0].results.find((d) => d.name === 'b-domain')
+      assert.strictEqual(ra.status, 'applied', 'A stays applied')
+      assert.strictEqual(ra.backupDir, backupA, 'A records its own backup')
+      assert.strictEqual(rb.status, 'failed', 'B is recorded failed')
+      assert.strictEqual(rb.backupDir, null, 'B has no backup')
+      assert.ok(
+        !calls.some((a) => a.includes('--restore')),
+        'no rollback is spawned when a sibling fails',
+      )
+
+      const journal = JSON.parse(fs.readFileSync(res.parents[0].journalPath, 'utf-8'))
+      assert.strictEqual(
+        journal.domains.find((d) => d.name === 'a-domain').status,
+        'applied',
+        'aggregate journal keeps A applied despite B failure',
+      )
+      console.log('✔ B failure leaves A applied with its own backup (no fused rollback)')
+    }
+
+    // 10. Aggregate journal shape/order/committed + incremental write-ahead (task 6.1)
+    {
+      const parent = fs.mkdtempSync(path.join(tmpRoot, 'journal-'))
+      makeReadyDomain(parent, 'a-domain')
+      makeReadyDomain(parent, 'b-domain')
+      await runBatch({
+        parents: [parent],
+        command: 'scan',
+        selection: { only: [], exclude: [] },
+        now: fixedNow,
+        out: capturingOut(),
+      })
+
+      const snapshots = []
+      const fake = (cmd, args) => {
+        const dd = args[args.indexOf('--domain-dir') + 1]
+        const jf = listJournals(parent)[0]
+        if (jf) {
+          snapshots.push({
+            domain: path.basename(dd),
+            journal: JSON.parse(fs.readFileSync(jf, 'utf-8')),
+          })
+        }
+        const backup = path.join(parent, `${path.basename(dd)}-backup-2026-10-01_120000`)
+        return applyOk(backup)
+      }
+
+      const res = await runBatch({
+        parents: [parent],
+        command: 'apply',
+        consent: true,
+        spawn: fake,
+        now: fixedNow,
+        out: capturingOut(),
+      })
+      assert.strictEqual(res.exitCode, 0, 'applying two ready domains exits 0')
+
+      const journalPath = res.parents[0].journalPath
+      assert.ok(
+        /batch-journal-2026-10-01_120000\.json$/.test(journalPath),
+        'journal filename uses the batch stamp',
+      )
+      const journal = JSON.parse(fs.readFileSync(journalPath, 'utf-8'))
+      assert.strictEqual(journal.version, 1, 'journal version')
+      assert.strictEqual(journal.batchId, '2026-10-01_120000', 'journal batchId stamp')
+      assert.strictEqual(journal.parentDir, parent, 'journal parentDir')
+      assert.strictEqual(journal.startedAt, '2026-10-01T12:00:00.000Z', 'journal startedAt')
+      assert.strictEqual(journal.finishedAt, '2026-10-01T12:00:00.000Z', 'journal finishedAt')
+      assert.strictEqual(journal.committed, true, 'journal committed after the loop')
+      assert.deepStrictEqual(
+        journal.domains.map((d) => d.name),
+        ['a-domain', 'b-domain'],
+        'ascending (sorted) apply order',
+      )
+      assert.deepStrictEqual(
+        journal.domains.map((d) => d.order),
+        [0, 1],
+        'order indices recorded',
+      )
+      for (const d of journal.domains) {
+        for (const k of ['order', 'backupDir', 'journalPath']) {
+          assert.ok(k in d, `journal domain records ${k}`)
+        }
+        assert.strictEqual(d.status, 'applied', 'journal domain applied')
+        assert.ok(d.journalPath.endsWith('journal.json'), 'journalPath points at journal.json')
+      }
+
+      const duringB = snapshots.find((s) => s.domain === 'b-domain')
+      assert.ok(duringB, 'journal is observable mid-loop')
+      assert.strictEqual(duringB.journal.committed, false, 'mid-loop journal is uncommitted')
+      assert.deepStrictEqual(
+        duringB.journal.domains.map((d) => d.name),
+        ['a-domain'],
+        'journal is written incrementally after each domain',
+      )
+      console.log('✔ aggregate journal references per-domain backups in order with committed flag')
+    }
+
+    // 11. Integration: real migrate-domain apply + reverse-order rollback (task 6.3)
+    {
+      const parent = fs.mkdtempSync(path.join(tmpRoot, 'rollback-'))
+      const aDir = makeReadyDomain(parent, 'a-domain')
+      const bDir = makeReadyDomain(parent, 'b-domain')
+      const beforeA = snapshotTree(aDir)
+      const beforeB = snapshotTree(bDir)
+      await runBatch({
+        parents: [parent],
+        command: 'scan',
+        selection: { only: [], exclude: [] },
+        now: fixedNow,
+        out: capturingOut(),
+      })
+
+      const applyCalls = []
+      const applySpy = (cmd, args, options) => {
+        applyCalls.push(args.slice())
+        return spawnSync(cmd, args, options)
+      }
+      const applied = await runBatch({
+        parents: [parent],
+        command: 'apply',
+        consent: true,
+        spawn: applySpy,
+        now: fixedNow,
+        out: capturingOut(),
+      })
+      assert.strictEqual(applied.exitCode, 0, 'real apply of two ready domains exits 0')
+      const results = applied.parents[0].results
+      assert.deepStrictEqual(
+        results.map((d) => d.status),
+        ['applied', 'applied'],
+        'both domains applied by the real migrate-domain.js',
+      )
+      for (const d of results) {
+        assert.ok(d.backupDir && fs.existsSync(d.backupDir), 'per-domain backup exists on disk')
+      }
+      const journalPath = applied.parents[0].journalPath
+
+      // Rollback requires --yes and must not touch the tree when refused.
+      const noYes = await runBatch({
+        parents: [parent],
+        command: 'rollback',
+        journalPath,
+        consent: false,
+        out: capturingOut(),
+      })
+      assert.strictEqual(noYes.exitCode, 1, 'rollback without --yes exits 1')
+
+      const restoreCalls = []
+      const restoreSpy = (cmd, args, options) => {
+        restoreCalls.push(args.slice())
+        return spawnSync(cmd, args, options)
+      }
+      const rolled = await runBatch({
+        parents: [parent],
+        command: 'rollback',
+        journalPath,
+        consent: true,
+        spawn: restoreSpy,
+        now: fixedNow,
+        out: capturingOut(),
+      })
+      assert.strictEqual(rolled.exitCode, 0, 'rollback exits 0')
+      const restoreOrder = restoreCalls.map((a) =>
+        path.basename(a[a.indexOf('--domain-dir') + 1]),
+      )
+      assert.deepStrictEqual(
+        restoreOrder,
+        ['b-domain', 'a-domain'],
+        'rollback restores B before A (reverse order)',
+      )
+      assert.deepStrictEqual(snapshotTree(aDir), beforeA, 'A restored to its pre-apply tree')
+      assert.deepStrictEqual(snapshotTree(bDir), beforeB, 'B restored to its pre-apply tree')
+      const journal = JSON.parse(fs.readFileSync(journalPath, 'utf-8'))
+      assert.ok(
+        journal.domains.every((d) => d.restored === true),
+        'journal marks restored flags',
+      )
+      console.log('✔ real apply + reverse-order rollback (B→A); --yes required')
     }
   } finally {
     fs.rmSync(tmpRoot, { recursive: true, force: true })
   }
 
-  console.log('All batch-update (Work Unit 1) unit tests passed successfully!\n')
+  console.log('All batch-update unit tests passed successfully!\n')
 }
 
 runTests().catch((err) => {

@@ -62,19 +62,19 @@ Chain strategy: pending
 
 ## 5. Apply orchestration
 
-- [ ] 5.1 **RED**: `--apply` without `--yes` exits 1 with zero writes. `[batch-domain-update:Requirement:Per-Domain Atomic Apply with Drift Guard]`
-- [ ] 5.2 **GREEN**: require `--yes` else refuse before any write. `[batch-domain-update:Requirement:Per-Domain Atomic Apply with Drift Guard]`
-- [ ] 5.3 **RED**: mutated fixture + fake `spawnSync` ⇒ drift abort, no partial write; missing `planHash` refused. `[batch-domain-update:Requirement:Per-Domain Atomic Apply with Drift Guard]`
-- [ ] 5.4 **GREEN**: recompute `planHash` in-process; mismatch ⇒ `drift` (no spawn); else spawn `migrate-domain.js --apply --plan-hash <hash> --yes`; parse `Backup created at:`. `[batch-domain-update:Requirement:Per-Domain Atomic Apply with Drift Guard]`
-- [ ] 5.5 **RED**: A applied then B fails ⇒ A stays applied with its own backup+journal; B failure never rolls back A. `[batch-domain-update:Requirement:Per-Domain Atomicity (No Fused Transaction)]`
-- [ ] 5.6 **GREEN**: continue-on-failure per domain; never fuse; each domain keeps own backup+journal. `[batch-domain-update:Requirement:Per-Domain Atomicity (No Fused Transaction)]`
+- [x] 5.1 **RED**: `--apply` without `--yes` exits 1 with zero writes. `[batch-domain-update:Requirement:Per-Domain Atomic Apply with Drift Guard]`
+- [x] 5.2 **GREEN**: require `--yes` else refuse before any write. `[batch-domain-update:Requirement:Per-Domain Atomic Apply with Drift Guard]`
+- [x] 5.3 **RED**: mutated fixture + fake `spawnSync` ⇒ drift abort, no partial write; missing `planHash` refused. `[batch-domain-update:Requirement:Per-Domain Atomic Apply with Drift Guard]`
+- [x] 5.4 **GREEN**: recompute `planHash` in-process; mismatch ⇒ `drift` (no spawn); else spawn `migrate-domain.js --apply --plan-hash <hash> --yes`; parse `Backup created at:`. `[batch-domain-update:Requirement:Per-Domain Atomic Apply with Drift Guard]`
+- [x] 5.5 **RED**: A applied then B fails ⇒ A stays applied with its own backup+journal; B failure never rolls back A. `[batch-domain-update:Requirement:Per-Domain Atomicity (No Fused Transaction)]`
+- [x] 5.6 **GREEN**: continue-on-failure per domain; never fuse; each domain keeps own backup+journal. `[batch-domain-update:Requirement:Per-Domain Atomicity (No Fused Transaction)]`
 
 ## 6. Aggregate journal & rollback
 
-- [ ] 6.1 **RED**: assert incremental `batch-journal-<stamp>.json` references per-domain `order`/`backupDir`/`journalPath` and `committed` flag. `[batch-domain-update:Requirement:Aggregate Journal and Batch Rollback]`
-- [ ] 6.2 **GREEN**: write aggregate journal incrementally after each domain (write-ahead, `committed:false`). `[batch-domain-update:Requirement:Aggregate Journal and Batch Rollback]`
-- [ ] 6.3 **RED**: A then B applied; rollback replay restores B before A; `--yes` required else exit 1. `[batch-domain-update:Requirement:Aggregate Journal and Batch Rollback]`
-- [ ] 6.4 **GREEN**: `--rollback <batch-journal.json>` filters `applied`, sorts `order` desc, spawns `migrate-domain.js --restore <backupDir>`. `[batch-domain-update:Requirement:Aggregate Journal and Batch Rollback]`
+- [x] 6.1 **RED**: assert incremental `batch-journal-<stamp>.json` references per-domain `order`/`backupDir`/`journalPath` and `committed` flag. `[batch-domain-update:Requirement:Aggregate Journal and Batch Rollback]`
+- [x] 6.2 **GREEN**: write aggregate journal incrementally after each domain (write-ahead, `committed:false`). `[batch-domain-update:Requirement:Aggregate Journal and Batch Rollback]`
+- [x] 6.3 **RED**: A then B applied; rollback replay restores B before A; `--yes` required else exit 1. `[batch-domain-update:Requirement:Aggregate Journal and Batch Rollback]`
+- [x] 6.4 **GREEN**: `--rollback <batch-journal.json>` filters `applied`, sorts `order` desc, spawns `migrate-domain.js --restore <backupDir>`. `[batch-domain-update:Requirement:Aggregate Journal and Batch Rollback]`
 
 ## 7. Idempotency, lock & edges
 

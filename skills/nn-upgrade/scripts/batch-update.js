@@ -3,19 +3,22 @@
 /**
  * skills/nn-upgrade/scripts/batch-update.js
  *
- * nn-upgrade Flow C orchestrator (Work Unit 1 / slice 1): READ-ONLY
- * scanner + planner + selector over sibling domaiNN workspaces.
+ * nn-upgrade Flow C orchestrator. READ-ONLY scanner + planner + selector, plus
+ * the Work Unit 2 apply loop, aggregate journal, and reverse-order rollback over
+ * sibling domaiNN workspaces.
  *
  * Reuses `migrate-domain.js` (`createFsDomainReader`) and the generated
  * migration planner (`planMigration`) so a batch never reimplements migration
- * logic and its `planHash` matches `migrate-domain.js --json` exactly.
+ * logic and its `planHash` matches `migrate-domain.js --json` exactly. Mutation
+ * is delegated by SPAWNING `migrate-domain.js --apply --plan-hash <hash> --yes`
+ * per domain: the batch is an aggregator, never a fused transaction. Each domain
+ * keeps its own backup + `journal.json`; an aggregate
+ * `<parent>/batch-journal-<stamp>.json` references them (write-ahead,
+ * `committed:false`, then `committed:true`) for reverse-order restore.
  *
- * Slice 1 delivers: `--dir`, `--scan` (default), `--json`, `--only`,
- * `--exclude`, `--plan`. It writes exactly one artifact per parent,
- * `<parent>/batch-plan.json` (atomic), and ZERO domain files.
- *
- * `--apply` / `--rollback` are parsed but cleanly refused here; Work Unit 2
- * replaces the refusal branch with the apply loop + aggregate journal.
+ * Delivered: `--dir`, `--scan` (default), `--json`, `--only`, `--exclude`,
+ * `--plan`, `--apply --yes`, `--rollback <journal> --yes` (alias `--restore`).
+ * The advisory batch lock is Work Unit 3.
  */
 
 const fs = require('node:fs')
@@ -38,6 +41,8 @@ const USAGE =
   'Usage: node batch-update.js [--dir <parent> ...] [--scan] [--only a,b] [--exclude x,y] [--plan <file>] [--json] [--apply --yes] [--rollback <journal> --yes]'
 
 const PLAN_FILE = 'batch-plan.json'
+const MIGRATE_CLI = path.join(__dirname, 'migrate-domain.js')
+const APPLY_STATUSES = ['failed', 'drift', 'blocked']
 
 function normalizeOut(out) {
   if (!out) {
@@ -175,8 +180,20 @@ function renderTable(report) {
 }
 
 /**
- * In-process batch scan. Pure seam: no process/console/fs globals beyond the
- * injected `spawn` (reserved for Work Unit 2), `now`, and `out`.
+ * In-process batch orchestrator. Pure seam: no process/console/fs globals beyond
+ * the injected `spawn` (defaults to the real `spawnSync`), `now`, and `out`.
+ *
+ * @param {object} [opts]
+ * @param {string[]} [opts.parents] Parent dirs (resolved) to process.
+ * @param {'scan'|'apply'|'rollback'} [opts.command]
+ * @param {{only?:string[], exclude?:string[]}} [opts.selection]
+ * @param {string|null} [opts.planPath] Plan output (scan) or input (apply).
+ * @param {string|null} [opts.journalPath] Aggregate journal input (rollback).
+ * @param {boolean} [opts.consent] `--yes` consent token for apply/rollback.
+ * @param {Function} [opts.spawn] Injectable child-process spawn (default spawnSync).
+ * @param {Function} [opts.now] Injectable clock.
+ * @param {object|Function} [opts.out] Output sink.
+ * @param {boolean} [opts.json] Machine-readable output.
  *
  * @returns {Promise<{exitCode:number, command:string, parents:Array, selected:string[]}>}
  */
@@ -186,24 +203,37 @@ async function runBatch(opts = {}) {
     command = 'scan',
     selection = {},
     planPath = null,
+    journalPath = null,
+    consent = false,
     spawn = spawnSync,
     now = () => new Date(),
     out,
     json = false,
   } = opts
 
-  void spawn // seam reserved for Work Unit 2 (`--apply` / `--rollback`)
   const sink = normalizeOut(out)
-
-  // Slice boundary: apply/rollback are known flags, not implemented yet.
-  if (command !== 'scan') {
-    const message = `--${command} is not implemented in this slice (Work Unit 1 delivers scan/plan/select only).`
-    sink.error(message)
-    return { exitCode: 1, command, parents: [], selected: [], messages: [message] }
-  }
-
   const only = Array.isArray(selection.only) ? selection.only : []
   const exclude = Array.isArray(selection.exclude) ? selection.exclude : []
+
+  if (command === 'apply') {
+    return runApply({ parents, only, exclude, planPath, consent, spawn, now, out: sink, json })
+  }
+  if (command === 'rollback') {
+    return runRollback({
+      journalPath: journalPath || planPath,
+      consent,
+      spawn,
+      now,
+      out: sink,
+      json,
+    })
+  }
+  if (command !== 'scan') {
+    const message = `Unknown command: ${command}`
+    sink.error(message)
+    return { exitCode: 2, command, parents: [], selected: [], messages: [message] }
+  }
+
   const generatedAt = toIso(now())
 
   const parentResults = []
@@ -252,6 +282,305 @@ async function runBatch(opts = {}) {
   }
 
   return { exitCode, command, parents: parentResults, selected: allSelected }
+}
+
+/** Batch stamp `YYYY-MM-DD_HHMMSS` (UTC) used for the aggregate journal name. */
+function batchStamp(date) {
+  const iso = toIso(date)
+  return `${iso.slice(0, 10)}_${iso.slice(11, 19).replace(/:/g, '')}`
+}
+
+/** Discover + classify a parent fresh (used only when no persisted plan exists). */
+async function buildPlan(parent, now) {
+  const domains = []
+  for (const name of discoverDomainDirs(parent)) {
+    domains.push(await classifyDomain(name, path.join(parent, name)))
+  }
+  return { version: 1, generatedAt: toIso(now()), parentDir: path.resolve(parent), domains }
+}
+
+/**
+ * Apply one selected `ready` domain. Recomputes `planHash` in process first
+ * (drift guard, no spawn on mismatch or absent hash), then delegates mutation to
+ * `migrate-domain.js`. Never throws: failures are recorded as a status.
+ */
+async function applyOne({ entry, order, spawn }) {
+  const rec = {
+    name: entry.name,
+    path: entry.path,
+    order,
+    status: null,
+    planHash: entry.planHash || null,
+    backupDir: null,
+    journalPath: null,
+    exitCode: null,
+    error: null,
+  }
+
+  if (!entry.planHash) {
+    rec.status = 'drift'
+    rec.error = 'missing-plan-hash'
+    return rec
+  }
+
+  let currentHash
+  try {
+    const fresh = await planMigration(createFsDomainReader(entry.path), DEPS)
+    currentHash = fresh.planHash || null
+  } catch (err) {
+    rec.status = 'failed'
+    rec.error = err.message
+    return rec
+  }
+
+  if (currentHash !== entry.planHash) {
+    rec.status = 'drift'
+    rec.error = 'Plan hash mismatch'
+    return rec
+  }
+
+  const res = spawn(
+    process.execPath,
+    [MIGRATE_CLI, '--domain-dir', entry.path, '--apply', '--plan-hash', entry.planHash, '--yes'],
+    { encoding: 'utf-8' },
+  )
+  rec.exitCode = res.status
+  const stdout = res.stdout || ''
+  const stderr = res.stderr || ''
+
+  if (res.status === 0) {
+    const match = stdout.match(/Backup created at:\s*(.+)/)
+    if (match) {
+      rec.status = 'applied'
+      rec.backupDir = match[1].trim()
+      rec.journalPath = path.join(rec.backupDir, 'journal.json')
+    } else {
+      // Spawned migrate-domain.js reported "already up to date" (no backup).
+      rec.status = 'skipped'
+    }
+  } else if (/Plan hash mismatch/.test(stderr)) {
+    rec.status = 'drift'
+    rec.error = 'Plan hash mismatch'
+  } else {
+    rec.status = 'failed'
+    rec.error = stderr.trim() || stdout.trim() || `migrate-domain.js exited with ${res.status}`
+  }
+  return rec
+}
+
+/**
+ * `--apply`: consent-gate, then per selected `ready` domain (ascending) drift-check
+ * and spawn. Continue-on-failure; aggregate journal written incrementally.
+ */
+async function runApply({ parents, only, exclude, planPath, consent, spawn, now, out, json }) {
+  if (!consent) {
+    const message = 'Consent required: pass --yes to apply domain migrations.'
+    out.error(message)
+    return { exitCode: 1, command: 'apply', parents: [], selected: [], messages: [message] }
+  }
+
+  const startedAt = toIso(now())
+  const stamp = batchStamp(now())
+  const parentResults = []
+  const allSelected = []
+  let exitCode = 0
+
+  for (const parentRaw of parents) {
+    const parent = path.resolve(parentRaw)
+    if (!fs.existsSync(parent) || !fs.statSync(parent).isDirectory()) {
+      out.error(`Error: parent directory not found: ${parent}`)
+      exitCode = 1
+      continue
+    }
+
+    let plan
+    let resolvedPlanPath
+    if (planPath) {
+      resolvedPlanPath = path.resolve(planPath)
+      if (!fs.existsSync(resolvedPlanPath)) {
+        out.error(`Error: plan not found: ${resolvedPlanPath}`)
+        exitCode = 1
+        continue
+      }
+      try {
+        plan = JSON.parse(fs.readFileSync(resolvedPlanPath, 'utf-8'))
+      } catch (err) {
+        out.error(`Error: cannot read plan ${resolvedPlanPath}: ${err.message}`)
+        exitCode = 1
+        continue
+      }
+    } else {
+      resolvedPlanPath = path.join(parent, PLAN_FILE)
+      if (fs.existsSync(resolvedPlanPath)) {
+        try {
+          plan = JSON.parse(fs.readFileSync(resolvedPlanPath, 'utf-8'))
+        } catch (err) {
+          out.error(`Error: cannot read plan ${resolvedPlanPath}: ${err.message}`)
+          exitCode = 1
+          continue
+        }
+      } else {
+        // First-time apply: no persisted plan, take a fresh read-only scan.
+        plan = await buildPlan(parent, now)
+        atomicWriteJson(resolvedPlanPath, plan)
+      }
+    }
+
+    const selected = selectReady(plan, only, exclude, out)
+    allSelected.push(...selected)
+
+    if (selected.length === 0) {
+      out.log(`No candidates to apply in ${parent}`)
+      parentResults.push({
+        parentDir: parent,
+        planPath: resolvedPlanPath,
+        plan,
+        selected,
+        journalPath: null,
+        journal: null,
+        results: [],
+      })
+      continue
+    }
+
+    const journalPathForParent = path.join(parent, `batch-journal-${stamp}.json`)
+    const journal = {
+      version: 1,
+      batchId: stamp,
+      parentDir: parent,
+      startedAt,
+      finishedAt: null,
+      committed: false,
+      domains: [],
+    }
+    atomicWriteJson(journalPathForParent, journal)
+
+    const results = []
+    let order = 0
+    for (const name of selected) {
+      const entry = plan.domains.find((d) => d.name === name)
+      const rec = await applyOne({ entry, order: order++, spawn })
+      results.push(rec)
+      journal.domains.push(rec)
+      // Write-ahead after each domain so a killed batch leaves a recoverable journal.
+      atomicWriteJson(journalPathForParent, journal)
+      if (rec.status === 'applied') {
+        out.log(`Applied ${entry.name} (backup: ${rec.backupDir})`)
+      } else if (rec.status === 'skipped') {
+        out.log(`Skipped ${entry.name} (already current)`)
+      } else {
+        out.error(`Domain ${entry.name}: ${rec.status}${rec.error ? ` — ${rec.error}` : ''}`)
+      }
+    }
+
+    journal.finishedAt = toIso(now())
+    journal.committed = true
+    atomicWriteJson(journalPathForParent, journal)
+
+    if (results.some((r) => APPLY_STATUSES.includes(r.status))) exitCode = 1
+
+    parentResults.push({
+      parentDir: parent,
+      planPath: resolvedPlanPath,
+      plan,
+      selected,
+      journalPath: journalPathForParent,
+      journal,
+      results,
+    })
+  }
+
+  if (json) {
+    out.log(
+      JSON.stringify(
+        {
+          command: 'apply',
+          parents: parentResults.map((p) => ({
+            parentDir: p.parentDir,
+            journalPath: p.journalPath,
+            results: p.results,
+          })),
+        },
+        null,
+        2,
+      ),
+    )
+  }
+
+  return { exitCode, command: 'apply', parents: parentResults, selected: allSelected }
+}
+
+/**
+ * `--rollback <batch-journal.json>` (alias `--restore`): restore `applied`
+ * domains in reverse `order`, one spawned `migrate-domain.js --restore` each.
+ */
+async function runRollback({ journalPath, consent, spawn, now, out, json }) {
+  if (!consent) {
+    const message = 'Consent required: pass --yes to restore domains.'
+    out.error(message)
+    return { exitCode: 1, command: 'rollback', journalPath: journalPath || null, restored: [], messages: [message] }
+  }
+  if (!journalPath) {
+    const message = 'Error: --rollback requires a batch journal path.'
+    out.error(message)
+    return { exitCode: 1, command: 'rollback', journalPath: null, restored: [], messages: [message] }
+  }
+
+  const resolved = path.resolve(journalPath)
+  if (!fs.existsSync(resolved)) {
+    const message = `Error: batch journal not found: ${resolved}`
+    out.error(message)
+    return { exitCode: 1, command: 'rollback', journalPath: resolved, restored: [], messages: [message] }
+  }
+
+  let journal
+  try {
+    journal = JSON.parse(fs.readFileSync(resolved, 'utf-8'))
+  } catch (err) {
+    const message = `Error: cannot read journal ${resolved}: ${err.message}`
+    out.error(message)
+    return { exitCode: 1, command: 'rollback', journalPath: resolved, restored: [], messages: [message] }
+  }
+
+  const applied = (journal.domains || [])
+    .filter((d) => d.status === 'applied' && !d.restored)
+    .sort((a, b) => b.order - a.order)
+
+  const restored = []
+  let failed = false
+  for (const d of applied) {
+    const res = spawn(
+      process.execPath,
+      [MIGRATE_CLI, '--domain-dir', d.path, '--restore', d.backupDir],
+      { encoding: 'utf-8' },
+    )
+    if (res.status === 0) {
+      d.restored = true
+      d.restoreError = null
+      out.log(`Restored ${d.name} from ${d.backupDir}`)
+    } else {
+      failed = true
+      d.restoreError = (res.stderr || '').trim() || `migrate-domain.js exited with ${res.status}`
+      out.error(`Failed to restore ${d.name}: ${d.restoreError}`)
+    }
+    restored.push({
+      name: d.name,
+      order: d.order,
+      status: res.status === 0 ? 'restored' : 'restore-failed',
+      exitCode: res.status,
+      error: d.restoreError || null,
+    })
+    atomicWriteJson(resolved, journal)
+  }
+
+  journal.lastRollbackAt = toIso(now())
+  atomicWriteJson(resolved, journal)
+
+  if (json) {
+    out.log(JSON.stringify({ command: 'rollback', journalPath: resolved, restored }, null, 2))
+  }
+
+  return { exitCode: failed ? 1 : 0, command: 'rollback', journalPath: resolved, journal, restored }
 }
 
 function parseArgs(argv) {
@@ -361,6 +690,8 @@ async function main(argv = process.argv.slice(2)) {
     command: opts.command,
     selection: { only: opts.only, exclude: opts.exclude },
     planPath: opts.planPath,
+    journalPath: opts.journalPath,
+    consent: opts.yes,
     now: () => new Date(),
     json: opts.json,
   })
