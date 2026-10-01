@@ -9,6 +9,7 @@ import {
   resolveHeadingSection,
   resolveUnit,
   extractHeadings,
+  SOURCE_FIELD_NAMES,
 } from '../index.js'
 import type {
   SourceResolver,
@@ -244,3 +245,59 @@ export function resolveCitation(
     ...(version ? { version } : {}),
   }
 }
+
+/**
+ * Groups an array of ResolvedCitation by field name, omitting the `field` property from each entry.
+ */
+export function groupCitationsByField(
+  citations: ResolvedCitation[],
+): Record<string, Omit<ResolvedCitation, 'field'>[]> {
+  const grouped: Record<string, Omit<ResolvedCitation, 'field'>[]> = {}
+  for (const c of citations) {
+    const fieldName = c.field || 'sources'
+    if (!grouped[fieldName]) {
+      grouped[fieldName] = []
+    }
+    const { field: _, ...rest } = c
+    grouped[fieldName].push(rest)
+  }
+  return grouped
+}
+
+/**
+ * Determines which fields in an element carry citations (name-based or schema type:: citation).
+ */
+export function citationFieldsFor(
+  conceptName: string,
+  fields: Record<string, unknown>,
+  schema?: any,
+): string[] {
+  const result = new Set<string>()
+  for (const fieldName of Object.keys(fields)) {
+    if (SOURCE_FIELD_NAMES.has(fieldName.toLowerCase())) {
+      result.add(fieldName)
+    }
+  }
+
+  if (schema) {
+    const schemaFields: any[] = Array.isArray(schema.fields)
+      ? schema.fields
+      : typeof schema.fields === 'object' && schema.fields !== null
+        ? Object.values(schema.fields).flat()
+        : []
+
+    for (const sf of schemaFields) {
+      if (
+        sf &&
+        sf.concept === conceptName &&
+        sf.type === 'citation' &&
+        fields[sf.name] !== undefined
+      ) {
+        result.add(sf.name)
+      }
+    }
+  }
+
+  return Array.from(result)
+}
+

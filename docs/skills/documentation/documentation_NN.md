@@ -76,15 +76,6 @@ tags:: [docs, skills, nn, front-controller, governance]
 
 Primary Front Controller, ecosystem governance, activation preflight gate, and job loop navigation menu.
 
-## NN Page: nn-start
-title:: nn-start
-source:: skills/nn-start.md
-route:: skills/nn-start.md
-order:: 10
-parent:: [[Canonical Skills]]
-tags:: [docs, skills, start, front-controller, governance]
-
-Primary Front Controller, ecosystem governance, activation preflight gate, and intent triage router.
 
 ## NN Page: nn-preflight
 title:: nn-preflight

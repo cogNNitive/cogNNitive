@@ -357,6 +357,10 @@ function runVerification(options = {}) {
   //     shared implementation, no hand-maintained copy).
   run('node scripts/build-trannsform-slug-mirror.mjs --check', 'Check Trannsform Slug Mirror Fresh');
 
+  // 7b-bis. Console payload mirror drift guard: the committed generated mirror must
+  //         match a fresh esbuild render of innfo-core's console subsystem.
+  run('node scripts/build-console-payload.mjs --check', 'Check Console Payload Mirror Fresh');
+
   // 7c. Samples SSOT Drift Guard: ensure template sample files match _samples_nn/models/ SSOT
   run('node scripts/sync-samples.mjs --check', 'Check Samples Parity with _samples_nn');
 

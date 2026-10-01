@@ -247,6 +247,15 @@ function testFindHandTypedFacts() {
     assert.strictEqual(violations.length, 0, 'version literal alone (no skill name on the line) is not a violation');
   }
 
+  // 6. A short skill name like "nn" does not match substrings inside words like "innovation" or "cogNNitive".
+  {
+    const violations = findHandTypedFacts(
+      [{ path: 'docs/innfo/documentation/specifications.md', content: '| **Innovation** | V_0-2-0 | [`specs/templates/innovation/innovation_V_0-2-0_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/innovation/innovation_V_0-2-0_NN.md) |' }],
+      { skillNames: ['nn'] },
+    );
+    assert.strictEqual(violations.length, 0, 'short skill name "nn" does not match substrings in innovation or cogNNitive');
+  }
+
   console.log('✔ findHandTypedFacts: flags spelled-out and numeric tool counts and skill+version pairs, excludes generated regions, avoids false positives');
 }
 

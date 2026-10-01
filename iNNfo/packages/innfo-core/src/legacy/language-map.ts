@@ -76,25 +76,30 @@ export function migrateContent(content: string, filePath: string): string {
   result = result.replace(/(\btype::\s*)model\b/gi, '$1knowledge')
 
   // 3. Headings and list definitions
-  result = result.replace(/^(#{1,6}\s+)Workspace(\s*)$/gm, '$1domaiNN$2')
-  result = result.replace(/^(#{1,6}\s+)Models(\s*)$/gm, '$1kNNowledge$2')
-  result = result.replace(/^(#{1,6}\s+)Templates(\s*)$/gm, '$1bluepriNNts$2')
+  result = result.replace(/^(#{1,6}\s+(?:NN\s+)?)Workspace(\b[^\r\n]*)$/gm, '$1domaiNN$2')
+  result = result.replace(/^(#{1,6}\s+(?:NN\s+)?)Models(\b[^\r\n]*)$/gm, '$1kNNowledge$2')
+  result = result.replace(/^(#{1,6}\s+(?:NN\s+)?)Templates(\b[^\r\n]*)$/gm, '$1bluepriNNts$2')
 
   result = result.replace(/^(\s*-\s+)Workspace(\s+Definition|\s+DefiNNition)/gm, '$1domaiNN$2')
   result = result.replace(/^(\s*-\s+)Models(\s+Definition|\s+DefiNNition)/gm, '$1kNNowledge$2')
   result = result.replace(/^(\s*-\s+)Templates(\s+Definition|\s+DefiNNition)/gm, '$1bluepriNNts$2')
 
   // Wikilinks
-  result = result.replace(/\[\[#Workspace\]\]/g, '[[#domaiNN]]')
-  result = result.replace(/\[\[#Models\]\]/g, '[[#kNNowledge]]')
-  result = result.replace(/\[\[#Templates\]\]/g, '[[#bluepriNNts]]')
+  result = result.replace(/\[\[#?Workspace\]\]/g, (m) => (m.includes('#') ? '[[#domaiNN]]' : '[[domaiNN]]'))
+  result = result.replace(/\[\[#?Models\]\]/g, (m) => (m.includes('#') ? '[[#kNNowledge]]' : '[[kNNowledge]]'))
+  result = result.replace(/\[\[#?Templates\]\]/g, (m) => (m.includes('#') ? '[[#bluepriNNts]]' : '[[bluepriNNts]]'))
 
-  // 4. Path references (path::, relative links, markdown links)
-  result = result.replace(/(\bpath::\s*)models\//g, '$1kNNowledge/')
-  result = result.replace(/(\bpath::\s*)specs\/templates\//g, '$1specs/bluepriNNts/')
-  result = result.replace(/(\bpath::\s*)templates\//g, '$1specs/bluepriNNts/')
+  // 4. Path references (path::, relative links, markdown links, reference fields, quoted arrays)
+  result = result.replace(/(\b(?:path|sources|fuentes|model_ref|model|derived_from)::\s*(?:\[\s*)?)(?:\.\/)?models\//g, '$1kNNowledge/')
+  result = result.replace(/(\b(?:path|sources|fuentes|model_ref|model|derived_from)::\s*(?:\[\s*)?)(?:\.\/)?specs\/templates\//g, '$1specs/bluepriNNts/')
+  result = result.replace(/(\b(?:path|sources|fuentes|model_ref|model|derived_from)::\s*(?:\[\s*)?)(?:\.\/)?templates\//g, '$1specs/bluepriNNts/')
   result = result.replace(/(\bpath::\s*)workspace_NN\.md/g, '$1domaiNN_NN.md')
   result = result.replace(/(\bpath::\s*)workspace\.md/g, '$1domaiNN_NN.md')
+
+  // Quoted string values inside arrays or properties (e.g. fuentes:: ["models/file.md"])
+  result = result.replace(/(["'])(?:\.\/)?models\//g, '$1kNNowledge/')
+  result = result.replace(/(["'])(?:\.\/)?specs\/templates\//g, '$1specs/bluepriNNts/')
+  result = result.replace(/(["'])(?:\.\/)?templates\//g, '$1specs/bluepriNNts/')
 
   result = result.replace(/(\]\(\.\/|\()models\//g, '$1kNNowledge/')
   result = result.replace(/(\]\(\.\/|\()specs\/templates\//g, '$1specs/bluepriNNts/')
@@ -106,12 +111,31 @@ export function migrateContent(content: string, filePath: string): string {
 
   // 5. Parent spec and L1/L0 URL rewrites
   result = result.replace(
-    /\/specs\/templates\/workspace\/spec_NN\.md/g,
+    /\/specs\/(?:templates|bluepriNNts)\/workspace(?:_spec_NN\.md|\/spec_NN\.md)/g,
+    '/specs/bluepriNNts/domaiNN/spec_NN.md',
+  )
+  result = result.replace(
+    /\/bluepriNNts\/workspace(?:_spec_NN\.md|\/spec_NN\.md)/g,
+    '/bluepriNNts/domaiNN/spec_NN.md',
+  )
+  result = result.replace(
+    /\/specs\/templates\/workspace_spec_NN\.md/g,
+    '/specs/bluepriNNts/domaiNN/spec_NN.md',
+  )
+  result = result.replace(
+    /\/templates\/workspace_spec_NN\.md/g,
     '/specs/bluepriNNts/domaiNN/spec_NN.md',
   )
   result = result.replace(/\/specs\/templates\//g, '/specs/bluepriNNts/')
   result = result.replace(/\/specs\/iNNfo_V_0-[12]-[0-9]+_NN\.md/g, '/specs/iNNfo_V_0-3-0_NN.md')
   result = result.replace(/\/specs\/defiNNe_V_0-1-0_NN\.md/g, '/specs/defiNNition_V_0-1-0_NN.md')
+
+  // Entrypoint parent_spec name and blueprint_name rewrites
+  result = result.replace(
+    /(parent_spec:\s*\r?\n(?:[ \t]+[^\r\n]+\r?\n)*?[ \t]+name:\s*["']?)workspace(["']?)/g,
+    '$1domaiNN$2',
+  )
+  result = result.replace(/^(\s*blueprint_name\s*:\s*["']?)workspace(["']?)/gm, '$1domaiNN$2')
 
   return result
 }
@@ -158,10 +182,11 @@ function computePlanHash(ops: Op[]): string {
 function extractBlueprintName(content: string, filePath: string): string | null {
   const normPath = filePath.replace(/\\/g, '/')
   if (normPath === 'workspace_NN.md' || normPath === 'domaiNN_NN.md' || OVERVIEW_ROOT_RE.test(normPath)) {
-    return 'workspace'
+    return 'domaiNN'
   }
   const match = content.match(/^\s*(?:blueprint_name|template_name)\s*:\s*["']?([a-zA-Z0-9_-]+)["']?/m)
   if (match) {
+    if (match[1] === 'workspace') return 'domaiNN'
     return match[1]
   }
   return null

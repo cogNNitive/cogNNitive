@@ -193,7 +193,11 @@ export function findHandTypedFacts(files, options = {}) {
       }
 
       if (VERSION_LITERAL_RE.test(line)) {
-        const hasSkillName = skillNames.some((name) => line.includes(name));
+        const hasSkillName = skillNames.some((name) => {
+          const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const skillPattern = new RegExp(`(?:^|[^\\w-])${escaped}(?:[^\\w-]|$)`, 'i');
+          return skillPattern.test(line);
+        });
         if (hasSkillName) {
           violations.push({ path: file.path, line: index + 1, rule: 'skill-version', excerpt: line.trim() });
         }

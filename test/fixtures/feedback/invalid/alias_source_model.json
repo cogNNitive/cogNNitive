@@ -1,0 +1,24 @@
+{
+  "meta": {
+    "source_knowledge": "business",
+    "source_knowledge_version": "V_1-0-0",
+    "source_model": "business",
+    "artifact": "business_console.html",
+    "artifact_version": "0.7.0",
+    "exported_at": "2026-10-01T12:00:00Z",
+    "author": "reviewer-1",
+    "feedback_slug": "reviewer-1",
+    "viewer": "innfo-console/0.7.0"
+  },
+  "items": [
+    {
+      "id": "fb-001",
+      "kind": "comment",
+      "target": {
+        "concept": "Stakeholders",
+        "element": "Enterprise"
+      },
+      "comment": "Forbidden source_model in meta"
+    }
+  ]
+}

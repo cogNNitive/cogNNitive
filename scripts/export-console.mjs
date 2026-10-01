@@ -55,90 +55,41 @@ const shellPath = findShell(consoleDir) || join(consoleDir, SHELL_FILENAME)
 const bundlePath = join(consoleDir, 'innfo-console.bundle.js')
 
 function loadPayloadHelper() {
-  const candidates = [
-    join(repoConsoleDir, 'console-payload.generated.cjs'),
-    join(consoleDir, 'console-payload.generated.cjs'),
-  ]
+  const candidates = process.env.INNFO_CONSOLE_DIR
+    ? [join(consoleDir, 'console-payload.generated.cjs')]
+    : [
+        join(consoleDir, 'console-payload.generated.cjs'),
+        join(repoConsoleDir, 'console-payload.generated.cjs'),
+      ]
   for (const c of candidates) {
     if (existsSync(c)) {
       try {
         return req(c)
-      } catch {
-        // ignore
+      } catch (err) {
+        console.error(`Error loading console payload mirror from ${c}: ${err.message}`)
+        process.exit(1)
       }
     }
   }
-  return null
+  const preferred = candidates[0]
+  console.error(
+    `Error: Console payload mirror not found at ${preferred}.\n` +
+      'Build it with "node scripts/build-console-payload.mjs" or install console assets.',
+  )
+  process.exit(1)
 }
 
 const payloadHelper = loadPayloadHelper()
 
+function computeSha256(content) {
+  return payloadHelper?.computeSha256
+    ? payloadHelper.computeSha256(content)
+    : createHash('sha256').update(content, 'utf8').digest('hex')
+}
+
 function parseConsoleCdnRef(bundleText) {
   const m = bundleText && bundleText.match(/\bVersion (\d+\.\d+\.\d+)\./)
   return m ? `innfo-console-v${m[1]}` : null
-}
-
-function computeSha256(content) {
-  return createHash('sha256').update(content, 'utf8').digest('hex')
-}
-
-function fallbackBuildPayload(content, filePath, root) {
-  const fm = frontmatterOf(content)
-  const stem = basename(filePath).replace(/(_NN)?\.md$/i, '')
-  const title = fm.title ?? stem
-  const modelVersion = String(fm.knowledge_version ?? 'V_0-1-0')
-  const rawSha256 = computeSha256(content)
-  const rel = relative(root, filePath).replace(/\\/g, '/')
-
-  const elements = []
-  let concept = null
-  for (const rawLine of content.split('\n')) {
-    const line = rawLine.replace(/\r$/, '')
-    const block = line.match(/^## NN ([^:]+): (.+)$/)
-    if (block) {
-      concept = block[1].trim()
-      elements.push({
-        id: block[2].trim().toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-        concept,
-        name: block[2].trim(),
-        description: '',
-        fields: {},
-        markers: {},
-        hash: computeSha256(line).slice(0, 16),
-      })
-      continue
-    }
-    if (!concept || elements.length === 0) continue
-    const last = elements[elements.length - 1]
-    const fld = line.match(/^\s{2}([a-zA-Z_][a-zA-Z0-9_]*)::\s*(.+)$/)
-    if (fld) {
-      last.fields[fld[1]] = fld[2].replace(/^"|"$/g, '').trim()
-    } else if (!line.trim().startsWith('#') && line.trim().length >= 12 && !last.description) {
-      last.description = line.trim()
-    }
-  }
-  const conceptNames = Array.from(new Set(elements.map((e) => e.concept).filter(Boolean)))
-  return {
-    schema: {
-      concepts: conceptNames.map((name) => ({ name })),
-      markers: [],
-      matrices: [],
-    },
-    model: {
-      meta: {
-        modelId: rel.replace(/^.*?\/(kNNowledge|models)\//i, '$1/').replace(/(\.md|_NN\.md)$/i, ''),
-        model: rel,
-        title,
-        modelVersion,
-        template: fm.parent_spec,
-        sha256: rawSha256,
-        generated: new Date().toISOString(),
-        feedbackState: [],
-      },
-      elements,
-      matrices: [],
-    },
-  }
 }
 
 function parseArgs(argv) {
@@ -203,6 +154,13 @@ async function findModelFiles(dir) {
 }
 
 function frontmatterOf(content) {
+  if (payloadHelper?.parseFrontmatter) {
+    try {
+      return payloadHelper.parseFrontmatter(content)
+    } catch {
+      // fallback
+    }
+  }
   const normalized = content.replace(/\r\n/g, '\n')
   const fm = normalized.match(/^---\n([\s\S]*?)\n---/)
   if (!fm) return {}
@@ -313,10 +271,13 @@ async function renderTree(models, root) {
 }
 
 function injectSlots(shell, config, schema, model) {
+  const serialize = payloadHelper?.serializeConsoleSlot
+    ? (json) => payloadHelper.serializeConsoleSlot(json)
+    : (json) => JSON.stringify(json, null, 2).replace(/</g, '\\u003c')
   const slot = (html, id, json) =>
     html.replace(
       new RegExp(`(<script type="application/json" id="${id}">)[\\s\\S]*?(</script>)`),
-      (_m, open, close) => `${open}\n${JSON.stringify(json, null, 2)}\n${close}`,
+      (_m, open, close) => `${open}\n${serialize(json)}\n${close}`,
     )
   return slot(slot(slot(shell, 'innfo-config', config), 'innfo-schema', schema), 'innfo-model', model)
 }
@@ -454,36 +415,43 @@ async function main() {
   }
 
   let ledgerEntries = []
-  const ledgerPaths = [
-    join(root, 'sources', 'import', 'feedback', 'ledger.jsonl'),
-    join(root, 'sources', 'nn', 'import', 'feedback', 'ledger.jsonl'),
-    join(root, 'sources', 'feedback', 'ledger.jsonl'),
-  ]
-  for (const lp of ledgerPaths) {
-    if (existsSync(lp)) {
-      try {
-        const rawLedger = await readFile(lp, 'utf-8')
-        if (payloadHelper?.parseFeedbackLedger) {
-          const parsed = payloadHelper.parseFeedbackLedger(rawLedger)
-          ledgerEntries = parsed.entries
-        }
-        break
-      } catch {
-        // ignore parse error
-      }
+  const rootLedgerPath = join(root, payloadHelper.FEEDBACK_LEDGER_FILENAME || 'feedback-ledger.jsonl')
+  if (existsSync(rootLedgerPath)) {
+    try {
+      const rawLedger = await readFile(rootLedgerPath, 'utf-8')
+      const parsed = payloadHelper.parseFeedbackLedger(rawLedger)
+      ledgerEntries = parsed.entries
+    } catch {
+      // ignore parse error
     }
   }
+
+  const resolver = payloadHelper.createFsSourceResolver ? payloadHelper.createFsSourceResolver(root) : undefined
 
   for (const m of selected) {
     const stem = m.name
     const relPath = relative(root, m.filePath).replace(/\\/g, '/')
-    const payload = payloadHelper?.buildConsolePayload
-      ? payloadHelper.buildConsolePayload({
-          content: m.content,
-          path: relPath,
-          ledgerEntries,
-        })
-      : fallbackBuildPayload(m.content, m.filePath, root)
+
+    let schema = undefined
+    const fm = frontmatterOf(m.content)
+    if (fm.parent_spec?.name) {
+      const tier1Path = join(root, 'specs', 'bluepriNNts', fm.parent_spec.name)
+      if (existsSync(tier1Path)) {
+        // tier 1 exists
+      } else {
+        process.stderr.write(
+          `WARNING: [export-console] Schema resolution for parent_spec '${fm.parent_spec.name}' not found at Tier 1; derived schema used.\n`,
+        )
+      }
+    }
+
+    const payload = payloadHelper.buildConsolePayload({
+      content: m.content,
+      path: relPath,
+      schema,
+      resolver,
+      ledgerEntries,
+    })
 
     const outDir = join(root, 'export', `${stem}_console`)
     await mkdir(outDir, { recursive: true })

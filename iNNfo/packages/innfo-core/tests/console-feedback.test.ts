@@ -43,14 +43,12 @@ function validFeedback(): Record<string, unknown> {
         },
         original: 'low',
         proposed: 'high',
-        status: 'pending',
       },
       {
         id: 'fb-002',
         kind: 'comment',
         target: { element_id: 'problems-paranormal-infestation' },
         comment: 'Check wording',
-        status: 'pending',
       },
     ],
   }
@@ -79,12 +77,11 @@ describe('feedback.schema.json (canonical contract)', () => {
     expect(text).not.toContain('rewrite')
   })
 
-  it('restricts item status to pending|applied|rejected', () => {
+  it('forbids item status in schema', () => {
     const schema = loadSchema()
-    const text = JSON.stringify(schema)
-    expect(text).toContain('pending')
-    expect(text).toContain('applied')
-    expect(text).toContain('rejected')
+    const itemsSchema = (schema['properties'] as Record<string, unknown>)?.['items'] as Record<string, unknown>
+    const itemProps = (itemsSchema?.['items'] as Record<string, unknown>)?.['properties'] as Record<string, unknown>
+    expect(itemProps?.['status']).toBe(false)
   })
 
   it('documents the export filename pattern', () => {

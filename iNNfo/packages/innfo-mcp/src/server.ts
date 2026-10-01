@@ -47,6 +47,7 @@ import {
 import { checkDomain } from './tools/check-workspace.js'
 import { queryUnits } from './tools/query-units.js'
 import { resolveSources } from './tools/resolve-sources.js'
+import { buildConsolePayloadTool } from './tools/build-console-payload.js'
 import { findRepoRoot } from './tools/repo-root.js'
 import { syncDomainManifest } from './tools/workspace-sync.js'
 import { checkLegacyDomain } from './tools/legacy-hint.js'
@@ -583,6 +584,24 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
   },
   {
     definition: {
+      name: 'build_console_payload',
+      description:
+        'Compile canonical schema and model JSON slot strings for an iNNfo model console artifact. Returns escaped slot strings and outputPath.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          model: { type: 'string', description: 'Model name or knowledge id' },
+          knowledge_id: { type: 'string', description: 'Model name or knowledge id (alias for model)' },
+          id: { type: 'string', description: 'Model name or knowledge id (alias for model)' },
+          domain: { type: 'string', description: 'Optional domain root directory override' },
+          root: { type: 'string', description: 'Optional domain root directory override (alias for domain)' },
+        },
+      },
+    },
+    handler: handleBuildConsolePayload,
+  },
+  {
+    definition: {
       name: 'list_blueprint_procedures',
       description:
         'List all procedures defined in a blueprint and its transitively included blueprints up to depth 10',
@@ -865,6 +884,20 @@ async function handleResolveSources(args: Record<string, unknown>): Promise<Call
   return textResult(
     JSON.stringify(envelopeList('innfo-resolve-sources', 'citations', results), null, 2),
   )
+}
+
+async function handleBuildConsolePayload(args: Record<string, unknown>): Promise<CallToolResult> {
+  const root = (args.domain as string) || (args.root as string) || ROOT_DIR
+  const legacyErr = await checkDomainLegacy(root)
+  if (legacyErr) return legacyErr
+  try {
+    const result = await buildConsolePayloadTool(root, {
+      model: (args.model as string) || (args.knowledge_id as string) || (args.id as string),
+    })
+    return textResult(JSON.stringify(envelope('innfo-build-console-payload', result), null, 2))
+  } catch (err) {
+    return errorResult(err instanceof Error ? err.message : String(err))
+  }
 }
 
 async function handleListBlueprintProcedures(

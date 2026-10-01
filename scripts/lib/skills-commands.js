@@ -41,7 +41,8 @@ const {
 
 const { registerMcpAuto } = require('./mcp-config-adapter.js');
 
-const DEFAULT_MANIFEST_URL = 'https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/docs/use/manifest.md';
+const DEFAULT_MANIFEST_URL = 'https://cognnitive.com/use/manifest.md';
+const FALLBACK_MANIFEST_URL = 'https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/docs/use/manifest.md';
 const DEFAULT_SKILLS_DIR = path.join(os.homedir(), '.agents', 'skills');
 const DEFAULT_BLUEPRINTS_DIR = path.join(os.homedir(), '.agents', 'bluepriNNts');
 const DEFAULT_MCP_DIR = path.join(os.homedir(), '.agents', 'mcp');
@@ -55,6 +56,26 @@ const LEGACY_STATE_FILE = path.join(os.homedir(), '.agents', 'skills-state.json'
  */
 function getManifestUrl() {
   return process.env.SM_MANIFEST_URL || DEFAULT_MANIFEST_URL;
+}
+
+/**
+ * Fetches manifest text with automatic fallback to GitHub raw URL.
+ * @returns {Promise<string>}
+ */
+async function fetchManifestString() {
+  const primaryUrl = getManifestUrl();
+  try {
+    return await fetchString(primaryUrl);
+  } catch (err) {
+    if (!process.env.SM_MANIFEST_URL && primaryUrl !== FALLBACK_MANIFEST_URL) {
+      try {
+        return await fetchString(FALLBACK_MANIFEST_URL);
+      } catch (fallbackErr) {
+        throw new Error(`Failed to fetch manifest from ${primaryUrl} (${err.message}) and fallback ${FALLBACK_MANIFEST_URL} (${fallbackErr.message})`);
+      }
+    }
+    throw err;
+  }
 }
 
 /**
@@ -472,7 +493,7 @@ async function consentOrAbort(label, names, menu, yes) {
  * @returns {Promise<void>}
  */
 async function cmdStatus(args) {
-  const manifestRaw = await fetchString(getManifestUrl());
+  const manifestRaw = await fetchManifestString();
   const { skills, blueprints, consoleAssets } = parseManifest(manifestRaw);
   const state = loadState(args.stateFile);
 
@@ -568,7 +589,7 @@ async function cmdStatus(args) {
  * @returns {Promise<void>}
  */
 async function cmdInstall(args) {
-  const manifestRaw = await fetchString(getManifestUrl());
+  const manifestRaw = await fetchManifestString();
   const { skills, blueprints, consoleAssets } = parseManifest(manifestRaw);
   const state = loadState(args.stateFile);
   const consoleDir = args.consoleDir || DEFAULT_CONSOLE_DIR;
@@ -658,7 +679,7 @@ async function cmdInstall(args) {
  * @returns {Promise<void>}
  */
 async function cmdUpdate(args) {
-  const manifestRaw = await fetchString(getManifestUrl());
+  const manifestRaw = await fetchManifestString();
   const { skills, blueprints, consoleAssets } = parseManifest(manifestRaw);
   const state = loadState(args.stateFile);
   const consoleDir = args.consoleDir || DEFAULT_CONSOLE_DIR;

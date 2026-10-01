@@ -2,23 +2,26 @@
  * Console Payload Builder.
  * THE single payload builder shared by the CLI exporter and compile procedures.
  */
-import { createHash } from 'node:crypto'
 import {
   parseFrontmatter,
   parseKnowledge,
   slugify,
   splitSourceFieldValue,
-  SOURCE_FIELD_NAMES,
 } from '../index.js'
+import { computeSha256 } from '../validator/crypto.js'
 import type { SourceResolver } from '../index.js'
-import { resolveCitation } from './citations.js'
+import {
+  resolveCitation,
+  groupCitationsByField,
+  citationFieldsFor,
+} from './citations.js'
 import type { ResolvedCitation } from './citations.js'
 import { feedbackStateFor } from './feedback-ledger.js'
 import type { FeedbackVerdictEntry, FeedbackStateItem } from './feedback-ledger.js'
+import { buildConsoleSchemaSlot } from './slot.js'
+import type { ConsoleSchemaSlot } from './slot.js'
 
-export function computeSha256(text: string): string {
-  return createHash('sha256').update(text, 'utf8').digest('hex')
-}
+export { computeSha256 }
 
 /**
  * Computes canonical JSON string with sorted keys recursively.
@@ -61,6 +64,12 @@ export function computeElementHash(element: {
   return computeSha256(canonical).slice(0, 16)
 }
 
+export interface ConsolePayloadElementRelation {
+  field: string
+  target: string
+  targetLabel: string
+}
+
 export interface ConsolePayloadElement {
   id: string
   concept: string
@@ -69,13 +78,16 @@ export interface ConsolePayloadElement {
   fields: Record<string, unknown>
   markers: Record<string, unknown>
   hash: string
-  citations?: ResolvedCitation[]
+  relations?: ConsolePayloadElementRelation[]
+  citations?: Record<string, Omit<ResolvedCitation, 'field'>[]>
 }
 
 export interface ConsolePayloadMatrix {
   name: string
   source: string
   target: string
+  rows: string[]
+  cols: string[]
   values?: string[]
   cells: Record<string, Record<string, unknown>>
   widget?: string
@@ -85,19 +97,16 @@ export interface ConsolePayloadMatrix {
 export interface ConsolePayloadMeta {
   modelId: string
   title: string
+  template?: string
   modelVersion: string
   sha256: string
   generated: string
+  citationsResolvedAt?: string
   feedbackState: FeedbackStateItem[]
 }
 
 export interface ConsolePayload {
-  schema: {
-    concepts: Record<string, any>
-    fields: Record<string, any[]>
-    markers: any[]
-    matrices: any[]
-  }
+  schema: ConsoleSchemaSlot
   model: {
     meta: ConsolePayloadMeta
     elements: ConsolePayloadElement[]
@@ -112,6 +121,27 @@ export interface BuildConsolePayloadOptions {
   resolver?: SourceResolver
   ledgerEntries?: FeedbackVerdictEntry[]
   generated?: string
+}
+
+const WIKILINK_TARGET_RE = /\[\[([^\]|#]+)(?:#[^\]|]+)?(?:\|([^\]]+))?\]\]/g
+
+function extractWikilinksFromValue(val: unknown): { target: string; label?: string }[] {
+  if (typeof val === 'string') {
+    const results: { target: string; label?: string }[] = []
+    const matches = val.matchAll(WIKILINK_TARGET_RE)
+    for (const match of matches) {
+      const target = match[1].trim()
+      const label = match[2] ? match[2].trim() : undefined
+      if (target) {
+        results.push({ target, label })
+      }
+    }
+    return results
+  }
+  if (Array.isArray(val)) {
+    return val.flatMap(extractWikilinksFromValue)
+  }
+  return []
 }
 
 /**
@@ -135,14 +165,20 @@ export function buildConsolePayload(options: BuildConsolePayloadOptions): Consol
   const fm = (parsed.frontmatter || parseFrontmatter(content) || {}) as Record<string, any>
 
   const title = fm.title || fm.name || (modelPath ? modelPath.split(/[/\\]/).pop()?.replace(/(\.md|_NN\.md)$/i, '') : 'Model') || 'Model'
+  const template = fm.target_blueprint || fm.target_template || fm.blueprint || fm.template || undefined
   const modelVersion = fm.knowledge_version || fm.version || 'V_0-1-0'
   const modelId = normalizeModelId(modelPath, title)
 
-  // Elements
+  // Elements (Pass 1: instantiate elements and compute hashes)
   const seenIds = new Map<string, number>()
-  const elements: ConsolePayloadElement[] = []
+  const rawElements: {
+    elem: ConsolePayloadElement
+    rawFields: Record<string, unknown>
+  }[] = []
 
-  // Flatten parsed elements map into element objects
+  const elementsByName = new Map<string, ConsolePayloadElement>()
+  const elementsById = new Map<string, ConsolePayloadElement>()
+
   for (const [conceptName, nodes] of parsed.elements.entries()) {
     for (const node of nodes) {
       const concept = conceptName
@@ -178,32 +214,73 @@ export function buildConsolePayload(options: BuildConsolePayloadOptions): Consol
         hash,
       }
 
-      // Resolve citations if resolver injected
-      if (resolver) {
-        const citations: ResolvedCitation[] = []
-        for (const [fieldName, val] of Object.entries(fields)) {
-          if (SOURCE_FIELD_NAMES.has(fieldName.toLowerCase())) {
-            for (const raw of splitSourceFieldValue(val)) {
-              citations.push(resolveCitation(raw, fieldName, resolver, modelPath || ''))
-            }
-          }
-        }
-        if (citations.length > 0) {
-          elem.citations = citations
+      rawElements.push({ elem, rawFields: { ...fields } })
+      if (!elementsByName.has(name.toLowerCase())) {
+        elementsByName.set(name.toLowerCase(), elem)
+      }
+      if (!elementsById.has(id.toLowerCase())) {
+        elementsById.set(id.toLowerCase(), elem)
+      }
+    }
+  }
+
+  // Pass 2: resolve intra-model relations and citations
+  let citationsResolved = false
+  const elements: ConsolePayloadElement[] = []
+
+  for (const { elem, rawFields } of rawElements) {
+    // Relations
+    const relations: ConsolePayloadElementRelation[] = []
+    for (const [fieldName, val] of Object.entries(rawFields)) {
+      const links = extractWikilinksFromValue(val)
+      for (const link of links) {
+        const targetEl =
+          elementsByName.get(link.target.toLowerCase()) ||
+          elementsById.get(link.target.toLowerCase()) ||
+          elementsById.get(slugify(link.target).toLowerCase())
+        if (targetEl) {
+          relations.push({
+            field: fieldName,
+            target: targetEl.id,
+            targetLabel: link.label || targetEl.name,
+          })
         }
       }
-
-      elements.push(elem)
     }
+    if (relations.length > 0) {
+      elem.relations = relations
+    }
+
+    // Citations
+    if (resolver) {
+      const citationFields = citationFieldsFor(elem.concept, rawFields, inputSchema)
+      const flatCitations: ResolvedCitation[] = []
+      for (const fieldName of citationFields) {
+        const val = rawFields[fieldName]
+        for (const raw of splitSourceFieldValue(val)) {
+          flatCitations.push(resolveCitation(raw, fieldName, resolver, modelPath || ''))
+        }
+      }
+      if (flatCitations.length > 0) {
+        elem.citations = groupCitationsByField(flatCitations)
+        citationsResolved = true
+      }
+    }
+
+    elements.push(elem)
   }
 
   // Matrices
   const matrices: ConsolePayloadMatrix[] = []
   if (Array.isArray(parsed.matrices)) {
     for (const mat of parsed.matrices) {
+      const rows: string[] = []
+      const cols: string[] = []
       const cellsObj: Record<string, Record<string, unknown>> = {}
       if (Array.isArray(mat.cells)) {
         for (const cell of mat.cells) {
+          if (!rows.includes(cell.row)) rows.push(cell.row)
+          if (!cols.includes(cell.col)) cols.push(cell.col)
           if (!cellsObj[cell.row]) {
             cellsObj[cell.row] = {}
           }
@@ -214,34 +291,38 @@ export function buildConsolePayload(options: BuildConsolePayloadOptions): Consol
         name: mat.name,
         source: mat.source || '',
         target: mat.target || '',
+        rows,
+        cols,
         cells: cellsObj,
       })
     }
   }
 
-  // Schema slot
-  const schema = {
-    concepts: inputSchema?.concepts || {},
-    fields: inputSchema?.fields || {},
-    markers: Array.isArray(inputSchema?.markers) ? inputSchema.markers : [],
-    matrices: Array.isArray(inputSchema?.matrices) ? inputSchema.matrices : [],
+  const schemaSlot = buildConsoleSchemaSlot(inputSchema, elements)
+  const genTime = generated || new Date().toISOString()
+
+  const meta: ConsolePayloadMeta = {
+    modelId,
+    title,
+    modelVersion,
+    sha256: rawSha256,
+    generated: genTime,
+    feedbackState: feedbackStateFor(ledgerEntries || [], modelId),
   }
 
-  const payload: ConsolePayload = {
-    schema,
+  if (template) {
+    meta.template = template
+  }
+  if (citationsResolved) {
+    meta.citationsResolvedAt = genTime
+  }
+
+  return {
+    schema: schemaSlot,
     model: {
-      meta: {
-        modelId,
-        title,
-        modelVersion,
-        sha256: rawSha256,
-        generated: generated || new Date().toISOString(),
-        feedbackState: feedbackStateFor(ledgerEntries || [], modelId),
-      },
+      meta,
       elements,
       matrices,
     },
   }
-
-  return payload
 }

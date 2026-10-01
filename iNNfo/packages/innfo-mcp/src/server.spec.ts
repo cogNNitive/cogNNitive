@@ -125,11 +125,11 @@ describe('innfo-mcp server (dispatch/handler layer, real MCP client/server round
     expect(info?.version).toBe(pkgVersion)
   })
 
-  it('lists exactly the 17 canonical tools and no retired names', async () => {
+  it('lists exactly the 18 canonical tools and no retired names', async () => {
     const { tools } = await client.listTools()
     const names = tools.map((t) => t.name).sort()
     expect(names).toEqual(toolDefinitions.map((t) => t.name).sort())
-    expect(tools).toHaveLength(17)
+    expect(tools).toHaveLength(18)
 
     const canonicalNames = [
       'list_knowledge',
@@ -147,6 +147,7 @@ describe('innfo-mcp server (dispatch/handler layer, real MCP client/server round
       'check_domain',
       'query_units',
       'resolve_sources',
+      'build_console_payload',
       'list_blueprint_procedures',
       'list_blueprint_skills',
     ].sort()

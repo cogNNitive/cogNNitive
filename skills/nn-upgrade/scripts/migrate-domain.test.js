@@ -42,13 +42,13 @@ function populateLegacyDomain(dir) {
 
   fs.writeFileSync(
     path.join(dir, 'workspace_NN.md'),
-    '---\ntemplate_version: "0.1.0"\ntemplate_name: "workspace"\nmodels_dir: "models"\ntemplates_dir: "specs/templates"\nparent_spec:\n  url: "https://raw.githubusercontent.com/cognnitive/innfo/main/iNNfo/specs/templates/workspace/spec_NN.md"\n---\n# Workspace\n\n- Ref: path:: models/core_NN.md\n- Link: [Core](./models/core_NN.md)\n- Wikilink: [[#Workspace]]\n\n## Models\n\n## Templates\n',
+    '---\ntemplate_version: "0.1.0"\ntemplate_name: "workspace"\nmodels_dir: "models"\ntemplates_dir: "specs/templates"\nparent_spec:\n  name: "workspace"\n  url: "https://raw.githubusercontent.com/cognnitive/innfo/main/iNNfo/specs/templates/workspace/spec_NN.md"\n---\n# NN index\n\n* [[Workspace]]\n* [[Models]]\n\n# NN Workspace\n\n- Ref: path:: models/core_NN.md\n- Sources: fuentes:: ["models/core_NN.md"]\n- Link: [Core](./models/core_NN.md)\n- Wikilink: [[#Workspace]]\n\n## NN Models\n\n## NN Templates\n',
     'utf-8',
   )
 
   fs.writeFileSync(
     path.join(dir, 'models', 'core_NN.md'),
-    '---\nmodel_version: "0.1.0"\nblueprint_name: "custom_app"\n---\n# Custom App Heading\n\n- Field:: value\n',
+    '---\nmodel_version: "0.1.0"\nblueprint_name: "custom_app"\n---\n# Custom App Heading\n\n- Field:: value\n- Related: fuentes:: ["models/core_NN.md"]\n',
     'utf-8',
   )
 
@@ -154,10 +154,15 @@ async function runTests() {
       assert.ok(!fs.existsSync(path.join(domainDir, 'models')), 'models/ moved')
 
       const domainnContent = fs.readFileSync(path.join(domainDir, 'domaiNN_NN.md'), 'utf-8')
-      assert.ok(domainnContent.includes('# domaiNN'), 'Workspace renamed to domaiNN')
-      assert.ok(domainnContent.includes('## kNNowledge'), 'Models renamed to kNNowledge')
+      assert.ok(domainnContent.includes('# NN domaiNN'), 'NN Workspace renamed to NN domaiNN')
+      assert.ok(domainnContent.includes('## NN kNNowledge'), 'NN Models renamed to NN kNNowledge')
       assert.ok(domainnContent.includes('path:: kNNowledge/core_NN.md'), 'path:: reference rewritten')
+      assert.ok(domainnContent.includes('fuentes:: ["kNNowledge/core_NN.md"]'), 'fuentes array reference rewritten')
       assert.ok(domainnContent.includes('[Core](./kNNowledge/core_NN.md)'), 'markdown link rewritten')
+      assert.ok(domainnContent.includes('name: "domaiNN"'), 'parent_spec name renamed to domaiNN')
+
+      const coreContent = fs.readFileSync(path.join(domainDir, 'kNNowledge', 'core_NN.md'), 'utf-8')
+      assert.ok(coreContent.includes('fuentes:: ["kNNowledge/core_NN.md"]'), 'model fuentes array reference rewritten')
 
       // Check feedback JSON
       const feedbackPath = path.join(domainDir, 'feedback', 'core_feedback_20260929-120000.json')

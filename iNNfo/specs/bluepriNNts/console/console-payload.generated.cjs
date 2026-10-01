@@ -7366,25 +7366,35 @@ var index_exports = {};
 __export(index_exports, {
   AGENT_MODIFICATION_CONCEPT: () => AGENT_MODIFICATION_CONCEPT,
   EXCERPT_CHAR_CAP: () => EXCERPT_CHAR_CAP,
+  FEEDBACK_LEDGER_FILENAME: () => FEEDBACK_LEDGER_FILENAME,
   KNOWN_AGENT_TOOL_IDS: () => KNOWN_AGENT_TOOL_IDS,
   NORMALIZED_KNOWN_AGENT_TOOL_IDS: () => NORMALIZED_KNOWN_AGENT_TOOL_IDS,
   buildConsolePayload: () => buildConsolePayload,
+  buildConsoleSchemaSlot: () => buildConsoleSchemaSlot,
   canonicalJsonStringify: () => canonicalJsonStringify,
   capExcerpt: () => capExcerpt,
+  citationFieldsFor: () => citationFieldsFor,
   classifyFromFrontmatter: () => classifyFromFrontmatter,
   classifyOrigin: () => classifyOrigin,
   computeElementHash: () => computeElementHash,
-  computeSha256: () => computeSha2562,
+  computeSha256: () => computeSha256,
+  createFsSourceResolver: () => createFsSourceResolver,
   effectiveStatusFor: () => effectiveStatusFor,
+  evaluateFeedbackItems: () => evaluateFeedbackItems,
   extractExcerpt: () => extractExcerpt,
   feedbackStateFor: () => feedbackStateFor,
   findEnclosingAgentModification: () => findEnclosingAgentModification,
+  groupCitationsByField: () => groupCitationsByField,
   normalizeModelId: () => normalizeModelId,
   normalizeToolId: () => normalizeToolId,
   parseFeedbackLedger: () => parseFeedbackLedger,
+  parseFrontmatter: () => parseFrontmatter,
+  parseYaml: () => parseYaml,
   readAgentModificationAuthor: () => readAgentModificationAuthor,
   resolveCitation: () => resolveCitation,
-  serializeFeedbackLedgerEntry: () => serializeFeedbackLedgerEntry
+  serializeConsoleSlot: () => serializeConsoleSlot,
+  serializeFeedbackLedgerEntry: () => serializeFeedbackLedgerEntry,
+  validateFeedbackVerdictEntry: () => validateFeedbackVerdictEntry
 });
 module.exports = __toCommonJS(index_exports);
 
@@ -8271,6 +8281,137 @@ var REQUIRED_BY_PRIMITIVE = {
   [MATRIX_DEFINITION]: ["source", "target"]
 };
 
+// iNNfo/packages/innfo-core/src/validator/crypto.ts
+function computeSha256(content) {
+  const utf8 = new TextEncoder().encode(content);
+  function rotr(n, x) {
+    return x >>> n | x << 32 - n;
+  }
+  const K = [
+    1116352408,
+    1899447441,
+    3049323471,
+    3921009573,
+    961987163,
+    1508970993,
+    2453635748,
+    2870763221,
+    3624381080,
+    310598401,
+    607225278,
+    1426881987,
+    1925078388,
+    2162078206,
+    2614888103,
+    3248222580,
+    3835390401,
+    4022224774,
+    264347078,
+    604807628,
+    770255983,
+    1249150122,
+    1555081692,
+    1996064986,
+    2554220882,
+    2821834349,
+    2952996808,
+    3210313671,
+    3336571891,
+    3584528711,
+    113926993,
+    338241895,
+    666307205,
+    773529912,
+    1294757372,
+    1396182291,
+    1695183700,
+    1986661051,
+    2177026350,
+    2456956037,
+    2730485921,
+    2820302411,
+    3259730800,
+    3345764771,
+    3516065817,
+    3600352804,
+    4094571909,
+    275423344,
+    430227734,
+    506948616,
+    659060556,
+    883997877,
+    958139571,
+    1322822218,
+    1537002063,
+    1747873779,
+    1955562222,
+    2024104815,
+    2227730452,
+    2361852424,
+    2428436474,
+    2756734187,
+    3204031479,
+    3329325298
+  ];
+  let H = [
+    1779033703,
+    3144134277,
+    1013904242,
+    2773480762,
+    1359893119,
+    2600822924,
+    528734635,
+    1541459225
+  ];
+  const len = utf8.length;
+  const bitLen = len * 8;
+  const padLen = (len + 8 >> 6 << 6) + 64;
+  const msg = new Uint8Array(padLen);
+  msg.set(utf8);
+  msg[len] = 128;
+  const view = new DataView(msg.buffer);
+  view.setUint32(padLen - 4, bitLen, false);
+  const W = new Int32Array(64);
+  for (let i = 0; i < padLen; i += 64) {
+    for (let t = 0; t < 16; t++) {
+      W[t] = view.getInt32(i + t * 4, false);
+    }
+    for (let t = 16; t < 64; t++) {
+      const s0 = rotr(7, W[t - 15]) ^ rotr(18, W[t - 15]) ^ W[t - 15] >>> 3;
+      const s1 = rotr(17, W[t - 2]) ^ rotr(19, W[t - 2]) ^ W[t - 2] >>> 10;
+      W[t] = W[t - 16] + s0 + W[t - 7] + s1 | 0;
+    }
+    let [a, b, c, d, e, f, g, h] = H;
+    for (let t = 0; t < 64; t++) {
+      const S1 = rotr(6, e) ^ rotr(11, e) ^ rotr(25, e);
+      const ch = e & f ^ ~e & g;
+      const temp1 = h + S1 + ch + K[t] + W[t] | 0;
+      const S0 = rotr(2, a) ^ rotr(13, a) ^ rotr(22, a);
+      const maj = a & b ^ a & c ^ b & c;
+      const temp2 = S0 + maj | 0;
+      h = g;
+      g = f;
+      f = e;
+      e = d + temp1 | 0;
+      d = c;
+      c = b;
+      b = a;
+      a = temp1 + temp2 | 0;
+    }
+    H = [
+      H[0] + a | 0,
+      H[1] + b | 0,
+      H[2] + c | 0,
+      H[3] + d | 0,
+      H[4] + e | 0,
+      H[5] + f | 0,
+      H[6] + g | 0,
+      H[7] + h | 0
+    ];
+  }
+  return H.map((x) => (x >>> 0).toString(16).padStart(8, "0")).join("");
+}
+
 // iNNfo/packages/innfo-core/src/csvTable.ts
 function parseCsvTable(content, options = {}) {
   const delimiter = options.delimiter ?? ",";
@@ -8579,8 +8720,103 @@ function resolveCitation(raw, field, resolver, modelPath = "") {
     ...version ? { version } : {}
   };
 }
+function groupCitationsByField(citations) {
+  const grouped = {};
+  for (const c of citations) {
+    const fieldName = c.field || "sources";
+    if (!grouped[fieldName]) {
+      grouped[fieldName] = [];
+    }
+    const { field: _, ...rest } = c;
+    grouped[fieldName].push(rest);
+  }
+  return grouped;
+}
+function citationFieldsFor(conceptName, fields, schema) {
+  const result = /* @__PURE__ */ new Set();
+  for (const fieldName of Object.keys(fields)) {
+    if (SOURCE_FIELD_NAMES.has(fieldName.toLowerCase())) {
+      result.add(fieldName);
+    }
+  }
+  if (schema) {
+    const schemaFields = Array.isArray(schema.fields) ? schema.fields : typeof schema.fields === "object" && schema.fields !== null ? Object.values(schema.fields).flat() : [];
+    for (const sf of schemaFields) {
+      if (sf && sf.concept === conceptName && sf.type === "citation" && fields[sf.name] !== void 0) {
+        result.add(sf.name);
+      }
+    }
+  }
+  return Array.from(result);
+}
 
 // iNNfo/packages/innfo-core/src/console/feedback-ledger.ts
+var FEEDBACK_LEDGER_FILENAME = "feedback-ledger.jsonl";
+var ALLOWED_STATUSES = /* @__PURE__ */ new Set(["pending", "applied", "rejected", "stale"]);
+var ALLOWED_KINDS = /* @__PURE__ */ new Set(["console-json", "docx"]);
+var ALLOWED_LAYERS = /* @__PURE__ */ new Set(["scope", "data", "domain", "anomaly"]);
+var ALLOWED_SEVERITIES = /* @__PURE__ */ new Set(["low", "medium", "high"]);
+function validateFeedbackVerdictEntry(entry) {
+  const errors = [];
+  if (!entry || typeof entry !== "object") {
+    return ["Entry must be a non-null object"];
+  }
+  const e = entry;
+  if (e.v !== 1) {
+    errors.push("Entry version (v) must be integer 1");
+  }
+  if (typeof e.at !== "string" || !e.at.trim()) {
+    errors.push("Entry timestamp (at) must be a non-empty ISO string");
+  }
+  if (!e.source || typeof e.source !== "object") {
+    errors.push("Entry source must be an object");
+  } else {
+    const src = e.source;
+    if (typeof src.kind !== "string" || !ALLOWED_KINDS.has(src.kind)) {
+      errors.push(`Entry source.kind must be one of: ${Array.from(ALLOWED_KINDS).join(", ")}`);
+    }
+    if (typeof src.path !== "string" || !src.path.trim()) {
+      errors.push("Entry source.path must be a non-empty string");
+    }
+    if (typeof src.sha256 !== "string" || !src.sha256.trim()) {
+      errors.push("Entry source.sha256 must be a non-empty string");
+    }
+  }
+  if (typeof e.item !== "string" || !e.item.trim()) {
+    errors.push("Entry item identifier must be a non-empty string");
+  }
+  if (typeof e.model_id !== "string" || !e.model_id.trim()) {
+    errors.push("Entry model_id must be a non-empty string");
+  }
+  if (typeof e.model_version !== "string" || !e.model_version.trim()) {
+    errors.push("Entry model_version must be a non-empty string");
+  }
+  if (typeof e.status !== "string" || !ALLOWED_STATUSES.has(e.status)) {
+    errors.push(`Entry status must be one of: ${Array.from(ALLOWED_STATUSES).join(", ")}`);
+  }
+  if (typeof e.by !== "string" || !e.by.trim()) {
+    errors.push("Entry by (author) must be a non-empty string");
+  }
+  if (e.confirm_stale !== void 0 && e.confirm_stale !== true) {
+    errors.push("Entry confirm_stale must be boolean true if present");
+  }
+  if (e.layer !== void 0 && (typeof e.layer !== "string" || !ALLOWED_LAYERS.has(e.layer))) {
+    errors.push(`Entry layer must be one of: ${Array.from(ALLOWED_LAYERS).join(", ")}`);
+  }
+  if (e.severity !== void 0 && (typeof e.severity !== "string" || !ALLOWED_SEVERITIES.has(e.severity))) {
+    errors.push(`Entry severity must be one of: ${Array.from(ALLOWED_SEVERITIES).join(", ")}`);
+  }
+  if (e.element_id !== void 0 && typeof e.element_id !== "string") {
+    errors.push("Entry element_id must be a string");
+  }
+  if (e.target_hash !== void 0 && typeof e.target_hash !== "string") {
+    errors.push("Entry target_hash must be a string");
+  }
+  if (e.note !== void 0 && typeof e.note !== "string") {
+    errors.push("Entry note must be a string");
+  }
+  return errors;
+}
 function parseFeedbackLedger(content) {
   const entries = [];
   const errors = [];
@@ -8591,12 +8827,9 @@ function parseFeedbackLedger(content) {
     if (!raw) continue;
     try {
       const parsed = JSON.parse(raw);
-      if (!parsed || typeof parsed !== "object") {
-        errors.push({ line: i + 1, error: "Entry is not a JSON object", raw });
-        continue;
-      }
-      if (!parsed.source || !parsed.item || !parsed.status) {
-        errors.push({ line: i + 1, error: "Entry missing required fields (source, item, status)", raw });
+      const validationErrors = validateFeedbackVerdictEntry(parsed);
+      if (validationErrors.length > 0) {
+        errors.push({ line: i + 1, error: validationErrors.join("; "), raw });
         continue;
       }
       entries.push(parsed);
@@ -8635,12 +8868,156 @@ function feedbackStateFor(entries, modelId) {
   }
   return result;
 }
+function evaluateFeedbackItems(options) {
+  const { feedback, sourceSha256, payload, entries = [] } = options;
+  const results = [];
+  const latestByKey = effectiveStatusFor(entries);
+  const elements = payload.model?.elements || [];
+  const elementsById = /* @__PURE__ */ new Map();
+  const elementsByConceptName = /* @__PURE__ */ new Map();
+  for (const elem of elements) {
+    if (!elementsById.has(elem.id.toLowerCase())) {
+      elementsById.set(elem.id.toLowerCase(), elem);
+    }
+    const conceptNameKey = `${elem.concept.toLowerCase()}::${elem.name.toLowerCase()}`;
+    if (!elementsByConceptName.has(conceptNameKey)) {
+      elementsByConceptName.set(conceptNameKey, elem);
+    }
+  }
+  const modelVersion = payload.model?.meta?.modelVersion || "";
+  const sourceKnowledgeVersion = feedback.meta?.source_knowledge_version || feedback.meta?.source_model_version || "";
+  const items = feedback.items || [];
+  for (const item of items) {
+    const itemId = item.id || item.item || "";
+    const targetElementId = item.target?.element_id;
+    const targetConcept = item.target?.concept;
+    const targetElementName = item.target?.element;
+    let matchedElement = targetElementId ? elementsById.get(targetElementId.toLowerCase()) : void 0;
+    if (!matchedElement && targetConcept && targetElementName) {
+      matchedElement = elementsByConceptName.get(`${targetConcept.toLowerCase()}::${targetElementName.toLowerCase()}`);
+    }
+    if (!matchedElement && itemId) {
+      matchedElement = elementsById.get(itemId.toLowerCase());
+    }
+    const itemKey = `${sourceSha256}#${itemId}`;
+    const latestEntry = latestByKey.get(itemKey);
+    const effectiveStatus = latestEntry ? latestEntry.status : "pending";
+    if (!matchedElement) {
+      results.push({
+        item: itemId,
+        element_id: targetElementId,
+        effective_status: effectiveStatus,
+        base_hash: item.base_hash,
+        current_hash: void 0,
+        stale: false,
+        orphaned: true
+      });
+    } else {
+      let isStale = false;
+      if (item.base_hash) {
+        isStale = item.base_hash !== matchedElement.hash;
+      } else if (sourceKnowledgeVersion && modelVersion) {
+        isStale = sourceKnowledgeVersion !== modelVersion;
+      }
+      results.push({
+        item: itemId,
+        element_id: matchedElement.id,
+        effective_status: effectiveStatus,
+        base_hash: item.base_hash,
+        current_hash: matchedElement.hash,
+        stale: isStale,
+        orphaned: false
+      });
+    }
+  }
+  return results;
+}
+
+// iNNfo/packages/innfo-core/src/console/fs-source-resolver.ts
+var import_node_fs = require("node:fs");
+var import_node_path = require("node:path");
+function createFsSourceResolver(rootDir) {
+  const rootResolved = (0, import_node_path.resolve)(rootDir);
+  return (refPath, referringPath) => {
+    const candidateDirs = [];
+    if (referringPath) {
+      const absReferring = (0, import_node_path.isAbsolute)(referringPath) ? referringPath : (0, import_node_path.resolve)(rootDir, referringPath);
+      let cur = (0, import_node_path.dirname)(absReferring);
+      while (true) {
+        const sourcesDir = (0, import_node_path.join)(cur, "sources");
+        if ((0, import_node_fs.existsSync)(sourcesDir)) {
+          candidateDirs.push(cur);
+        }
+        if (cur === rootResolved || (0, import_node_path.dirname)(cur) === cur) {
+          break;
+        }
+        const relToRoot = (0, import_node_path.relative)(rootResolved, cur);
+        if (relToRoot.startsWith("..")) {
+          break;
+        }
+        cur = (0, import_node_path.dirname)(cur);
+      }
+    }
+    if (!candidateDirs.includes(rootResolved)) {
+      candidateDirs.push(rootResolved);
+    }
+    for (const dir of candidateDirs) {
+      const abs = (0, import_node_path.resolve)(dir, refPath);
+      const rel = (0, import_node_path.relative)(dir, abs);
+      if (rel === "" || rel.startsWith("..") || (0, import_node_path.isAbsolute)(rel)) {
+        continue;
+      }
+      if ((0, import_node_fs.existsSync)(abs)) {
+        try {
+          const content = (0, import_node_fs.readFileSync)(abs, "utf-8");
+          return {
+            exists: true,
+            headings: extractHeadings(content).map((h) => h.slug),
+            content
+          };
+        } catch {
+          return { exists: false };
+        }
+      }
+    }
+    return { exists: false };
+  };
+}
+
+// iNNfo/packages/innfo-core/src/console/slot.ts
+function serializeConsoleSlot(value) {
+  return JSON.stringify(value, null, 2).replace(/</g, "\\u003c");
+}
+function buildConsoleSchemaSlot(schema, elements) {
+  if (schema) {
+    const concepts = Array.isArray(schema.concepts) ? schema.concepts : typeof schema.concepts === "object" && schema.concepts !== null ? Object.values(schema.concepts) : [];
+    const fields = Array.isArray(schema.fields) ? schema.fields : typeof schema.fields === "object" && schema.fields !== null ? Object.values(schema.fields) : [];
+    const markers = Array.isArray(schema.markers) ? schema.markers : typeof schema.markers === "object" && schema.markers !== null ? Object.values(schema.markers) : [];
+    const matrices = Array.isArray(schema.matrices) ? schema.matrices : typeof schema.matrices === "object" && schema.matrices !== null ? Object.values(schema.matrices) : [];
+    return {
+      concepts,
+      fields,
+      markers,
+      matrices
+    };
+  }
+  const conceptNames = /* @__PURE__ */ new Set();
+  if (Array.isArray(elements)) {
+    for (const el of elements) {
+      if (el && el.concept) {
+        conceptNames.add(el.concept);
+      }
+    }
+  }
+  return {
+    concepts: Array.from(conceptNames).map((name) => ({ name })),
+    fields: [],
+    markers: [],
+    matrices: []
+  };
+}
 
 // iNNfo/packages/innfo-core/src/console/payload-builder.ts
-var import_node_crypto = require("node:crypto");
-function computeSha2562(text) {
-  return (0, import_node_crypto.createHash)("sha256").update(text, "utf8").digest("hex");
-}
 function canonicalJsonStringify(value) {
   if (value === null || typeof value !== "object") {
     return JSON.stringify(value);
@@ -8666,7 +9043,26 @@ function computeElementHash(element) {
     markers: element.markers ?? {},
     name: element.name
   });
-  return computeSha2562(canonical).slice(0, 16);
+  return computeSha256(canonical).slice(0, 16);
+}
+var WIKILINK_TARGET_RE = /\[\[([^\]|#]+)(?:#[^\]|]+)?(?:\|([^\]]+))?\]\]/g;
+function extractWikilinksFromValue(val) {
+  if (typeof val === "string") {
+    const results = [];
+    const matches = val.matchAll(WIKILINK_TARGET_RE);
+    for (const match of matches) {
+      const target = match[1].trim();
+      const label = match[2] ? match[2].trim() : void 0;
+      if (target) {
+        results.push({ target, label });
+      }
+    }
+    return results;
+  }
+  if (Array.isArray(val)) {
+    return val.flatMap(extractWikilinksFromValue);
+  }
+  return [];
 }
 function normalizeModelId(filePath, fallbackTitle) {
   if (!filePath) return fallbackTitle ? slugify(fallbackTitle) : "model";
@@ -8675,14 +9071,17 @@ function normalizeModelId(filePath, fallbackTitle) {
 }
 function buildConsolePayload(options) {
   const { content, path: modelPath, schema: inputSchema, resolver, ledgerEntries, generated } = options;
-  const rawSha256 = computeSha2562(content);
+  const rawSha256 = computeSha256(content);
   const parsed = parseKnowledge(content);
   const fm = parsed.frontmatter || parseFrontmatter(content) || {};
   const title = fm.title || fm.name || (modelPath ? modelPath.split(/[/\\]/).pop()?.replace(/(\.md|_NN\.md)$/i, "") : "Model") || "Model";
+  const template = fm.target_blueprint || fm.target_template || fm.blueprint || fm.template || void 0;
   const modelVersion = fm.knowledge_version || fm.version || "V_0-1-0";
   const modelId = normalizeModelId(modelPath, title);
   const seenIds = /* @__PURE__ */ new Map();
-  const elements = [];
+  const rawElements = [];
+  const elementsByName = /* @__PURE__ */ new Map();
+  const elementsById = /* @__PURE__ */ new Map();
   for (const [conceptName, nodes] of parsed.elements.entries()) {
     for (const node of nodes) {
       const concept = conceptName;
@@ -8713,28 +9112,61 @@ function buildConsolePayload(options) {
         markers,
         hash
       };
-      if (resolver) {
-        const citations = [];
-        for (const [fieldName, val] of Object.entries(fields)) {
-          if (SOURCE_FIELD_NAMES.has(fieldName.toLowerCase())) {
-            for (const raw of splitSourceFieldValue(val)) {
-              citations.push(resolveCitation(raw, fieldName, resolver, modelPath || ""));
-            }
-          }
-        }
-        if (citations.length > 0) {
-          elem.citations = citations;
+      rawElements.push({ elem, rawFields: { ...fields } });
+      if (!elementsByName.has(name.toLowerCase())) {
+        elementsByName.set(name.toLowerCase(), elem);
+      }
+      if (!elementsById.has(id.toLowerCase())) {
+        elementsById.set(id.toLowerCase(), elem);
+      }
+    }
+  }
+  let citationsResolved = false;
+  const elements = [];
+  for (const { elem, rawFields } of rawElements) {
+    const relations = [];
+    for (const [fieldName, val] of Object.entries(rawFields)) {
+      const links = extractWikilinksFromValue(val);
+      for (const link of links) {
+        const targetEl = elementsByName.get(link.target.toLowerCase()) || elementsById.get(link.target.toLowerCase()) || elementsById.get(slugify(link.target).toLowerCase());
+        if (targetEl) {
+          relations.push({
+            field: fieldName,
+            target: targetEl.id,
+            targetLabel: link.label || targetEl.name
+          });
         }
       }
-      elements.push(elem);
     }
+    if (relations.length > 0) {
+      elem.relations = relations;
+    }
+    if (resolver) {
+      const citationFields = citationFieldsFor(elem.concept, rawFields, inputSchema);
+      const flatCitations = [];
+      for (const fieldName of citationFields) {
+        const val = rawFields[fieldName];
+        for (const raw of splitSourceFieldValue(val)) {
+          flatCitations.push(resolveCitation(raw, fieldName, resolver, modelPath || ""));
+        }
+      }
+      if (flatCitations.length > 0) {
+        elem.citations = groupCitationsByField(flatCitations);
+        citationsResolved = true;
+      }
+    }
+    elements.push(elem);
   }
   const matrices = [];
   if (Array.isArray(parsed.matrices)) {
     for (const mat of parsed.matrices) {
+      const rows = [];
+      const cols = [];
       const cellsObj = {};
       if (Array.isArray(mat.cells)) {
         for (const cell of mat.cells) {
+          if (!rows.includes(cell.row)) rows.push(cell.row);
+          if (!cols.includes(cell.col)) cols.push(cell.col);
           if (!cellsObj[cell.row]) {
             cellsObj[cell.row] = {};
           }
@@ -8745,54 +9177,68 @@ function buildConsolePayload(options) {
         name: mat.name,
         source: mat.source || "",
         target: mat.target || "",
+        rows,
+        cols,
         cells: cellsObj
       });
     }
   }
-  const schema = {
-    concepts: inputSchema?.concepts || {},
-    fields: inputSchema?.fields || {},
-    markers: Array.isArray(inputSchema?.markers) ? inputSchema.markers : [],
-    matrices: Array.isArray(inputSchema?.matrices) ? inputSchema.matrices : []
+  const schemaSlot = buildConsoleSchemaSlot(inputSchema, elements);
+  const genTime = generated || (/* @__PURE__ */ new Date()).toISOString();
+  const meta = {
+    modelId,
+    title,
+    modelVersion,
+    sha256: rawSha256,
+    generated: genTime,
+    feedbackState: feedbackStateFor(ledgerEntries || [], modelId)
   };
-  const payload = {
-    schema,
+  if (template) {
+    meta.template = template;
+  }
+  if (citationsResolved) {
+    meta.citationsResolvedAt = genTime;
+  }
+  return {
+    schema: schemaSlot,
     model: {
-      meta: {
-        modelId,
-        title,
-        modelVersion,
-        sha256: rawSha256,
-        generated: generated || (/* @__PURE__ */ new Date()).toISOString(),
-        feedbackState: feedbackStateFor(ledgerEntries || [], modelId)
-      },
+      meta,
       elements,
       matrices
     }
   };
-  return payload;
 }
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   AGENT_MODIFICATION_CONCEPT,
   EXCERPT_CHAR_CAP,
+  FEEDBACK_LEDGER_FILENAME,
   KNOWN_AGENT_TOOL_IDS,
   NORMALIZED_KNOWN_AGENT_TOOL_IDS,
   buildConsolePayload,
+  buildConsoleSchemaSlot,
   canonicalJsonStringify,
   capExcerpt,
+  citationFieldsFor,
   classifyFromFrontmatter,
   classifyOrigin,
   computeElementHash,
   computeSha256,
+  createFsSourceResolver,
   effectiveStatusFor,
+  evaluateFeedbackItems,
   extractExcerpt,
   feedbackStateFor,
   findEnclosingAgentModification,
+  groupCitationsByField,
   normalizeModelId,
   normalizeToolId,
   parseFeedbackLedger,
+  parseFrontmatter,
+  parseYaml,
   readAgentModificationAuthor,
   resolveCitation,
-  serializeFeedbackLedgerEntry
+  serializeConsoleSlot,
+  serializeFeedbackLedgerEntry,
+  validateFeedbackVerdictEntry
 });

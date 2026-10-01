@@ -102,9 +102,10 @@ price:: 5000
 
     const mission = payload.model.elements[0]
     expect(mission.citations).toBeDefined()
-    expect(mission.citations!.length).toBe(1)
-    expect(mission.citations![0].exists).toBe(true)
-    expect(mission.citations![0].path).toBe('sources/nn/initial-brief.md')
+    expect(mission.citations!.sources).toBeDefined()
+    expect(mission.citations!.sources!.length).toBe(1)
+    expect(mission.citations!.sources![0].exists).toBe(true)
+    expect(mission.citations!.sources![0].path).toBe('sources/nn/initial-brief.md')
   })
 
   it('parses and computes effective status from feedback verdict ledger', () => {

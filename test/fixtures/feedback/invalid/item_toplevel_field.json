@@ -1,0 +1,26 @@
+{
+  "meta": {
+    "source_knowledge": "business",
+    "source_knowledge_version": "V_1-0-0",
+    "artifact": "business_console.html",
+    "artifact_version": "0.7.0",
+    "exported_at": "2026-10-01T12:00:00Z",
+    "author": "reviewer-1",
+    "feedback_slug": "reviewer-1",
+    "viewer": "innfo-console/0.7.0"
+  },
+  "items": [
+    {
+      "id": "fb-001",
+      "kind": "correction",
+      "target": {
+        "concept": "Stakeholders",
+        "element": "Enterprise"
+      },
+      "field": "budget",
+      "original": "$100k",
+      "proposed": "$120k",
+      "comment": "Forbidden top-level field outside target"
+    }
+  ]
+}

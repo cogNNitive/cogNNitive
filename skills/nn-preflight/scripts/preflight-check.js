@@ -37,6 +37,8 @@ const { isProjectableName, classifyProjection, hashTree } = require('./lib/proje
 const { detectLegacy } = require('./lib/legacy-detect.generated.cjs');
 
 const DEFAULT_MANIFEST_URL = process.env.SM_MANIFEST_URL ||
+  'https://cognnitive.com/use/manifest.md';
+const FALLBACK_MANIFEST_URL =
   'https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/docs/use/manifest.md';
 
 const DEFAULT_SKILLS_DIR = path.join(os.homedir(), '.agents', 'skills');
@@ -1136,17 +1138,31 @@ async function runCheck(options = {}) {
 
   // 2. Fetch Manifest
   let manifest;
-  try {
-    const raw = await fetchString(manifestUrl);
-    manifest = parseManifest(raw);
-  } catch (err) {
+  let manifestFetchError = null;
+  const manifestUrlsToTry = options.manifestUrl
+    ? [options.manifestUrl]
+    : [manifestUrl, FALLBACK_MANIFEST_URL];
+
+  for (const url of manifestUrlsToTry) {
+    try {
+      const raw = await fetchString(url);
+      manifest = parseManifest(raw);
+      results.manifest.url = url;
+      manifestFetchError = null;
+      break;
+    } catch (err) {
+      manifestFetchError = err.message;
+    }
+  }
+
+  if (!manifest) {
     results.manifest.reachable = false;
-    results.manifest.error = err.message;
+    results.manifest.error = manifestFetchError;
     results.items.push({
       type: 'network',
       name: 'manifest',
       status: 'warning',
-      detail: `Could not verify remote manifest (${err.message}). Using local state offline.`,
+      detail: `Could not verify remote manifest (${manifestFetchError}). Using local state offline.`,
     });
     // Offline mode: do not block if local files exist — but stale workspace
     // specs, unnormalized sources, or projection drift are still a hard failure and must not be masked by the early return.

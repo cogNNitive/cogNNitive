@@ -1,19 +1,44 @@
-# cogNNitive Video Engine Specification
+# Delta: cogNNitive Video Engine — Scene Compiler Parses via the Vendored VUS Parser
 
-## Purpose
-
-Defines the programmatic rendering and media synthesis engine (`cognnitive-video-engine`) embedded into cogNNitive. It provides headless Remotion scene compilation, deterministic TTS and media synthesis caching, and command-line video rendering capabilities, eliminating external desktop application dependencies.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Programmatic Remotion Scene Compilation
 
-The system MUST provide a scene compiler that transforms VUS / markdown video scripts into a valid Remotion Composition Manifest. The compiler MUST generate frame-accurate sequence tracks, transitions, lower-thirds (`lowerThirds`), kinetic typography titles (`kineticTitles`), and concept callouts (`conceptCallouts`). Text layers are authored with the canonical VUS field `layer_text_content`; the compiler MUST source overlay text from `layer_text_content` and MUST NOT read the legacy `layer_generation_text` field or a `text` fallback.
+The system MUST provide a scene compiler that transforms VUS / markdown video
+scripts into a valid Remotion Composition Manifest. The compiler MUST obtain its
+scene model by invoking the vendored VUS parser
+(`@cognnitive/innfo-video-parser`'s `parse()` → `Project`) and lowering that AST
+into the manifest; it MUST NOT scan script text with its own grammar subset. Each
+VUS scene MUST map to exactly one `RemotionSceneTrack`, preserving scene order,
+names, layers, and resolved properties (property sets, template chains, per-model
+TTS overrides). The compiler MUST generate frame-accurate sequence tracks,
+transitions, lower-thirds (`lowerThirds`), kinetic typography titles
+(`kineticTitles`), and concept callouts (`conceptCallouts`). Text layers are
+authored with the canonical VUS field `layer_text_content`; the compiler MUST
+source overlay text from `layer_text_content` and MUST NOT read the legacy
+`layer_generation_text` field or a `text` fallback.
 
 #### Scenario: Compile multi-scene VUS script into Remotion composition manifest
 - GIVEN a valid VUS script containing narrative scenes and visual cues
 - WHEN the scene compiler processes the script
 - THEN it produces a structured Remotion composition manifest containing ordered scene sequences, audio track bindings, transition descriptors, and overlay timing intervals
+
+#### Scenario: `@`-declared scenes compile one track per scene
+- GIVEN a valid VUS script whose scenes are declared with `@Template Scene Title` headers and `@@Layer` children
+- WHEN the scene compiler processes the script
+- THEN it produces one `RemotionSceneTrack` per declared scene, in source order
+- AND it never collapses the script into a single scene named after a section header
+
+#### Scenario: Compiler scene model matches the vendored parser
+- GIVEN a valid VUS script
+- WHEN both the scene compiler and `@cognnitive/innfo-video-parser`'s `parse()` process it
+- THEN the compiler's scene count, order, and per-scene layer mapping match the parser's `Project`
+
+#### Scenario: Blocking parser issues stop compilation
+- GIVEN a script for which the vendored parser reports blocking issues
+- WHEN the scene compiler is invoked
+- THEN it fails with a named, non-zero error before emitting any manifest
+- AND it does not synthesize assets for the malformed input
 
 #### Scenario: Visual overlay components compiled with precise frame timings
 - GIVEN a script specifying lower thirds, kinetic titles, and concept callouts
@@ -29,7 +54,16 @@ The system MUST provide a scene compiler that transforms VUS / markdown video sc
 
 ### Requirement: Deterministic Media & TTS Asset Synthesis
 
-The system MUST provide an asset synthesis pipeline for TTS voice narration and media asset retrieval. The pipeline MUST compute a SHA-256 hash of the input text/parameters and cache synthesized audio and media files. If an asset corresponding to the SHA-256 hash exists in the cache, the system MUST reuse the cached asset and skip re-synthesis.
+The system MUST provide an asset synthesis pipeline for TTS voice narration and
+media asset retrieval. The pipeline MUST compute a SHA-256 hash of the input
+text/parameters and cache synthesized audio and media files. If an asset
+corresponding to the SHA-256 hash exists in the cache, the system MUST reuse the
+cached asset and skip re-synthesis. TTS synthesis MUST run exactly once per
+parsed scene that carries narration, and MUST source voice/model parameters from
+the parsed scene's resolved properties (`scene_tts_model` and its per-model
+`<model>/voice_id`, `speed`, `emotion`, `pitch`, `intensity` overrides), NOT from
+a single generic voice field; voice and model values MUST be resolved from the
+vendored VUS spec, never restated as prose.
 
 #### Scenario: Cache hit avoids redundant TTS synthesis
 - GIVEN an existing cached TTS narration file matching the SHA-256 hash of the scene's text and voice settings
@@ -41,34 +75,13 @@ The system MUST provide an asset synthesis pipeline for TTS voice narration and 
 - WHEN asset synthesis is executed
 - THEN the system synthesizes the audio, writes the result to the cache keyed by its SHA-256 hash, and links it in the scene composition
 
----
+#### Scenario: One synthesis call per narrated scene
+- GIVEN a multi-scene script in which only some scenes carry narration
+- WHEN the compiler synthesizes assets
+- THEN exactly one TTS call is made per narrated scene
+- AND no synthesis is attempted for a merged multi-scene text blob
 
-### Requirement: Headless Video Rendering CLI
-
-The system MUST provide headless CLI commands that invoke the Remotion bundler and renderer to produce a finalized MP4 video file and calculate the exact total video duration and frame metrics.
-
-#### Scenario: Headless CLI renders MP4 master video
-- GIVEN a compiled Remotion composition manifest and validated synthesized assets
-- WHEN the video render CLI is executed with master output parameters
-- THEN it compiles the bundle headlessly, renders the full composition to an MP4 video file, and logs total rendered frames and execution time
-
-#### Scenario: Total duration calculation and validation
-- GIVEN a completed render job
-- WHEN the CLI outputs the render summary
-- THEN the reported total duration exactly matches the composition timeline duration derived from the individual scene sequence timings
-
----
-
-### Requirement: Interactive Provider Consultation and Cost Estimation
-
-The system MUST provide an asset cost estimator and provider pricing catalog (`asset-cost-estimator.mjs`). Prior to asset synthesis, the engine MUST calculate per-scene character counts, image layer requirements, unit pricing for selected image providers (WaveSpeed AI, Replicate, Local) and voiceover providers (ElevenLabs, OpenAI, Windows SAPI / Edge-TTS), and present an itemized per-scene and total budget estimation table for user approval.
-
-#### Scenario: Script parsed and estimated by scene
-- GIVEN a validated video script
-- WHEN `asset-cost-estimator.mjs` is executed
-- THEN it outputs an itemized table with per-scene durations, image counts, character counts, unit rates, and grand total in USD ($)
-
-#### Scenario: Comparison across quality tiers
-- GIVEN a script cost estimation
-- WHEN the cost plan is generated
-- THEN it includes a side-by-side comparison across Budget, Professional Studio, Cinema, and Offline/Free tiers detailing tradeoffs and estimated total costs
+#### Scenario: Per-model TTS overrides are honored
+- GIVEN a scene whose resolved properties declare `scene_tts_model` and a `<model>/voice_id` override
+- WHEN the compiler synthesizes that scene's narration
+- THEN the synthesis uses the declared model and override voice, resolved from the vendored spec

@@ -110,5 +110,38 @@ parent: "https://raw.githubusercontent.com/cognnitive/innfo/main/iNNfo/specs/iNN
       expect(parsed.knowledge_version).toBe("0.2.0")
       expect(parsed.source_model).toBeUndefined()
     })
+    it('migrates bare reference arrays in fuentes::, sources::, model_ref:: (Issue #103 Bug 1)', () => {
+      const input = `fuentes:: ["models/arenzano_V_1-3-1_business_NN.md"]\nsources:: ["models/foo_NN.md", "specs/templates/base/spec_NN.md"]\nmodel_ref:: ["models/bar_NN.md"]\n`
+      const output = migrateContent(input, 'kNNowledge/test_NN.md')
+      expect(output).toContain('fuentes:: ["kNNowledge/arenzano_V_1-3-1_business_NN.md"]')
+      expect(output).toContain('sources:: ["kNNowledge/foo_NN.md", "specs/bluepriNNts/base/spec_NN.md"]')
+      expect(output).toContain('model_ref:: ["kNNowledge/bar_NN.md"]')
+    })
+
+    it('migrates parent_spec name "workspace" to "domaiNN" (Issue #103 Bug 2)', () => {
+      const input = `---
+parent_spec:
+  name: "workspace"
+  url: "https://raw.githubusercontent.com/cognnitive/innfo/main/iNNfo/specs/templates/workspace_spec_NN.md"
+---
+`
+      const output = migrateContent(input, 'workspace_NN.md')
+      expect(output).toContain('name: "domaiNN"')
+      expect(output).toContain('url: "https://raw.githubusercontent.com/cognnitive/innfo/main/iNNfo/specs/bluepriNNts/domaiNN/spec_NN.md"')
+    })
+
+    it('migrates concept headings # NN Workspace, # NN Models, # NN Templates (Issue #103 Bug 3)', () => {
+      const input = `# NN index\n\n* [[Workspace]]\n* [[Models]]\n* [[Templates]]\n\n# NN Workspace\n\n## NN Workspace: Arenzano Workspace\n\n# NN Models\n\n## NN Models: Business\n\n# NN Templates\n`
+      const output = migrateContent(input, 'workspace_NN.md')
+      expect(output).toContain('* [[domaiNN]]')
+      expect(output).toContain('* [[kNNowledge]]')
+      expect(output).toContain('* [[bluepriNNts]]')
+      expect(output).toContain('# NN domaiNN')
+      expect(output).toContain('## NN domaiNN: Arenzano Workspace')
+      expect(output).toContain('# NN kNNowledge')
+      expect(output).toContain('## NN kNNowledge: Business')
+      expect(output).toContain('# NN bluepriNNts')
+    })
   })
 })
+

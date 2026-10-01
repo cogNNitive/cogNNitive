@@ -33,8 +33,8 @@ user-level skills directory by `scripts/skills-manager.js` — a zero-dependency
 lockfile-lite manager (the counterpart of lazy.nvim's `lazy-lock.json`).
 
 **Desired state (source of truth)**: the bootstrap manifest at
-`eNNvironment/docs/use/manifest.md`, fetched from
-`https://raw.githubusercontent.com/cogNNitive/eNNvironment/main/docs/use/manifest.md`
+`docs/use/manifest.md`, fetched from
+`https://cognnitive.com/use/manifest.md`
 (override via `SM_MANIFEST_URL`, used for local testing). Its YAML frontmatter
 declares an `agent-bootstrap.skills` list; each entry pins:
 
