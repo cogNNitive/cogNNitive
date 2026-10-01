@@ -134,6 +134,6 @@ Every slice that touches a bundled core file regenerates all affected mirrors in
 
 ## Open Questions / Spec Reconciliation
 
-- [ ] The `console-field-citations` scenario expects transitive citations in `meta.sources`. D7 uses a file-level citation of the kNNowledge document instead. The spec must be amended.
+- [x] The `console-field-citations` scenario expects transitive citations in `meta.sources`. D7 uses a file-level citation of the kNNowledge document instead. The spec must be amended. (Amended in S2)
 - [ ] `lineage-bluepriNNts-docs` requires `derived_from_inputs` / `generated_by` to be typed `citation`. D10 deletes them, and D9 keeps the artifacts catalog. The spec must be amended.
 - [ ] The `lineage-single-edge` grammar needs one line allowing file-level (anchorless) citations (D1).

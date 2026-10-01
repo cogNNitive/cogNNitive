@@ -9274,11 +9274,14 @@ function buildConsolePayload(options) {
   }
   const schemaSlot = buildConsoleSchemaSlot(inputSchema, elements);
   const genTime = generated || (/* @__PURE__ */ new Date()).toISOString();
+  const normalizedSource = modelPath ? modelPath.split("\\").join("/").replace(/^models\//i, "kNNowledge/").replace(/^.*?\/(kNNowledge\/)/i, "$1") : fm.title ? `kNNowledge/${slugify(fm.title)}_NN.md` : "kNNowledge/Model_NN.md";
+  const sourceFile = normalizedSource.startsWith("kNNowledge/") ? normalizedSource : `kNNowledge/${normalizedSource}`;
   const meta = {
     modelId,
     title,
     modelVersion,
     sha256: rawSha256,
+    sources: [sourceFile],
     generated: genTime,
     feedbackState: feedbackStateFor(ledgerEntries || [], modelId)
   };

@@ -8,7 +8,7 @@ describe('build_console_payload tool', () => {
   it('returns schemaSlot, modelSlot, outputPath, schemaSource, and warnings', async () => {
     const tempDir = mkdtempSync(join(tmpdir(), 'build-console-test-'))
     try {
-      const modelsDir = join(tempDir, 'models')
+      const modelsDir = join(tempDir, 'kNNowledge')
       mkdirSync(modelsDir, { recursive: true })
 
       const modelContent = `---
@@ -43,7 +43,8 @@ level: 3
 
       // Content inside slots is valid JSON structure when unescaped
       const parsedModel = JSON.parse(result.modelSlot)
-      expect(parsedModel.meta.modelId).toBe('models/Ghostbusters')
+      expect(parsedModel.meta.modelId).toBe('kNNowledge/Ghostbusters')
+      expect(parsedModel.meta.sources).toEqual(['kNNowledge/Ghostbusters_NN.md'])
       expect(parsedModel.elements).toHaveLength(1)
     } finally {
       rmSync(tempDir, { recursive: true, force: true })
