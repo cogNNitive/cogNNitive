@@ -317,6 +317,7 @@ function buildSteps(repoRoot, _options = {}) {
         'scripts/manifest/validate-manifest.js',
         'scripts/manifest/check-parity.js',
         'scripts/skills-manager.js',
+        'scripts/release/run-release.js',
         'skills/nn-trannsform/scripts/scanner.js',
         'skills/nn-trannsform/scripts/provenance.js',
       ];

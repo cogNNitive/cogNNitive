@@ -57,3 +57,25 @@ Earlier in this batch:
 - S3: verbose mode reports spawn errors like quiet mode (test first).
 
 W3 (recorded): between PR 1 and PR 2-4, main CI has NO manifest drift check (`generate-manifest --check`), NO live pin validation (`validate-manifest --channel stable`) and NO `check-parity`; `docs/use/manifest.md` stays tracked until PR 4 without validation. Accepted by the release freeze (no releases from PR 1 merge until the first tag-driven release). `--release` is a silent no-op.
+
+## Batch 4 - PR 2 (release engine, gated; AD-1..AD-5)
+
+Status: tasks 2.1-2.21 done (21/21).
+
+### Implemented Components
+1. `scripts/release/release-keys.js` & `.test.js`: defines release keys table (`skills`, `blueprints`, `innfo-mcp`, `innfo-console`), derived distribution paths and release-owned paths.
+2. `scripts/release/parse-release-tag.js` & `.test.js`: tag shape validation, key/semver extraction, ancestor-of-main verification, annotated tag requirement.
+3. `scripts/release/publish-decision.js` & `.test.js`: AD-3 pure state matrix decision engine (detects whether content C and mirror tag need publishing or are idempotent re-runs).
+4. `scripts/manifest/lib/entry-version.js` & `.test.js`: single source of truth readers for entry versions from SKILL.md frontmatter, blueprint specs, MCP package.json, and console specs.
+5. `scripts/release/assemble-manifest.js` & `.test.js`: pure release manifest assembler combining previous web manifest, content SHA, tagged inventory, version regression guard, and snapshot creation.
+6. `scripts/manifest/validate-manifest.js`: added `--manifest <path|url>` support, removed `checkBlueprintMainCoherence`, compact orchestrator under 200 lines.
+7. `scripts/lib/publish-web-tree.js`: preserves `releaseOwned` paths on publish, rejects build artifacts colliding with release paths or conflicting versioned CDN files.
+8. `scripts/release/run-release.js` & `.test.js`: complete release orchestration engine with serialized stages, push-race retries (up to 5x with exponential backoff), staged validation, commit C and mirror tag, commit M and snapshot, and smoke test.
+9. `scripts/release/smoke.js` & `.test.js`: post-publish polling smoke test verifying byte-level manifest parity and CDN bundle integrity.
+10. `scripts/release/restore-cdn-bundles.js` & `.test.js` & `.github/workflows/restore-cdn.yml`: one-shot restoration workflow for historical CDN bundles.
+11. `.github/workflows/release.yml`: tag-triggered release workflow with concurrency grouping, `release` environment, and `vars.RELEASE_ENABLED` gate.
+
+### Verification
+- `verify.js`: 96/96 steps pass offline.
+- `check-integrity.js`: ALL INTEGRITY GATES PASSED.
+

@@ -24,27 +24,27 @@ Conventions: `[TEST]` = failing test first (RED), `[IMPL]` = make it pass (GREEN
 
 ## PR 2 - Release engine, gated (AD-1..AD-5, ~750 lines)
 
-- [ ] 2.1 [TEST] `scripts/release/release-keys.test.js`: table for 4 keys; `DISTRIBUTION_PATHS` derived from it. Ref: public-web-distribution / Additive versioned publish.
-- [ ] 2.2 [IMPL] Create `scripts/release/release-keys.js`; derive `DISTRIBUTION_PATHS` in `scripts/lib/publish-web*.js`.
-- [ ] 2.3 [TEST] `scripts/release/parse-release-tag.test.js`: valid per key, unknown key, malformed version, lightweight tag, not on main, console alone. Ref: Release tag shape and allowed keys (6 scenarios).
-- [ ] 2.4 [IMPL] Create `scripts/release/parse-release-tag.js` (`parseReleaseTag`, annotated + ancestor-of-main checks).
-- [ ] 2.5 [TEST] `scripts/release/publish-decision.test.js`: every AD-3 row. Ref: Idempotent re-run on the same tag; Mirror tags are written once (Re-run keeps the tag, Divergent tag never moved).
-- [ ] 2.6 [IMPL] Create `scripts/release/publish-decision.js` (`decidePublish`).
-- [ ] 2.7 [TEST] `scripts/manifest/lib/entry-version.test.js`: SKILL.md, spec, mcp, console readers. Ref: release-version-generation / Entry versions are read from their single authored source.
-- [ ] 2.8 [IMPL] Create `scripts/manifest/lib/entry-version.js`; use it from `manifest-rules.js:207,481`.
-- [ ] 2.9 [TEST] `scripts/release/assemble-manifest.test.js`: preserve other pins, nested mcp pin retained, regression guard, unit add/drop, determinism, snapshot, unresolved retained pin. Ref: Manifest content is assembled per unit and published last; New tag version strictly greater (Version below the previous pin).
-- [ ] 2.10 [IMPL] Create `scripts/release/assemble-manifest.js` (pure; reuses `renderFrontmatter`/`normalizeOutput` from `generate-manifest.js:223-253`).
-- [ ] 2.11 [TEST] `scripts/manifest/validate-manifest.test.js`: `--manifest <path|url>`; `checkBlueprintMainCoherence` gone. Ref: monorepo-release-manifest / Stable Template Main Coherence (REMOVED); Staged validation failure.
-- [ ] 2.12 [IMPL] `validate-manifest.js` add `--manifest`; remove `checkBlueprintMainCoherence` (`manifest-rules.js:247-274`, call `:495-500`).
-- [ ] 2.13 [TEST] `scripts/lib/publish-web-tree.test.js`: `releaseOwned` paths preserved; build artifact containing a release-owned path fails; versioned CDN file with different bytes fails. Ref: public-web-distribution / Publishing never prunes, Build artifact containing a release-owned path, Versioned file with different bytes.
-- [ ] 2.14 [IMPL] `publish-web-tree.js` (`replaceSiteTree` releaseOwned globs, `:21-49`), `publish-web.js` guard.
-- [ ] 2.15 [TEST] `scripts/release/run-release.test.js`: temp bare repo as web (`remoteUrl`), run twice (idempotent), conflicting tag, push-race retry (5x), validator stubbed, dry-run writes nothing. Ref: Release stages run in a fixed order; Idempotent re-run; Releases are serialized and safe to re-run.
-- [ ] 2.16 [IMPL] Create `scripts/release/run-release.js` (reuses `runGit`/`buildGitAuthEnv`, `diffTrees`, `copyDistributionPath`); add to orchestrator line-count guard (`verify.js:320-326`).
-- [ ] 2.17 [TEST] `scripts/release/smoke.test.js`: polling until byte-equal, MCP bundle sha256, failure after M keeps tag. Ref: Staged validation and post-publish smoke test (4 scenarios).
-- [ ] 2.18 [IMPL] Create `scripts/release/smoke.js`.
-- [ ] 2.19 [TEST] `scripts/release/restore-cdn-bundles.test.js` on a temp repo with deleted bundles. Ref: Previously deleted bundles are restored once.
-- [ ] 2.20 [IMPL] Create `scripts/release/restore-cdn-bundles.js` and `.github/workflows/restore-cdn.yml` (`workflow_dispatch`, one-shot).
-- [ ] 2.21 [IMPL] Create `.github/workflows/release.yml` (tags `skills-v*|blueprints-v*|innfo-mcp-v*|innfo-console-v*`, `group: release`, `cancel-in-progress: false`, env `release`, writes gated by `vars.RELEASE_ENABLED`, `workflow_dispatch` forced dry-run, upload `.verify-logs/` on failure). Ref: Release workflow is triggered only by monorepo tags.
+- [x] 2.1 [TEST] `scripts/release/release-keys.test.js`: table for 4 keys; `DISTRIBUTION_PATHS` derived from it. Ref: public-web-distribution / Additive versioned publish.
+- [x] 2.2 [IMPL] Create `scripts/release/release-keys.js`; derive `DISTRIBUTION_PATHS` in `scripts/lib/publish-web*.js`.
+- [x] 2.3 [TEST] `scripts/release/parse-release-tag.test.js`: valid per key, unknown key, malformed version, lightweight tag, not on main, console alone. Ref: Release tag shape and allowed keys (6 scenarios).
+- [x] 2.4 [IMPL] Create `scripts/release/parse-release-tag.js` (`parseReleaseTag`, annotated + ancestor-of-main checks).
+- [x] 2.5 [TEST] `scripts/release/publish-decision.test.js`: every AD-3 row. Ref: Idempotent re-run on the same tag; Mirror tags are written once (Re-run keeps the tag, Divergent tag never moved).
+- [x] 2.6 [IMPL] Create `scripts/release/publish-decision.js` (`decidePublish`).
+- [x] 2.7 [TEST] `scripts/manifest/lib/entry-version.test.js`: SKILL.md, spec, mcp, console readers. Ref: release-version-generation / Entry versions are read from their single authored source.
+- [x] 2.8 [IMPL] Create `scripts/manifest/lib/entry-version.js`; use it from `manifest-rules.js:207,481`.
+- [x] 2.9 [TEST] `scripts/release/assemble-manifest.test.js`: preserve other pins, nested mcp pin retained, regression guard, unit add/drop, determinism, snapshot, unresolved retained pin. Ref: Manifest content is assembled per unit and published last; New tag version strictly greater (Version below the previous pin).
+- [x] 2.10 [IMPL] Create `scripts/release/assemble-manifest.js` (pure; reuses `renderFrontmatter`/`normalizeOutput` from `generate-manifest.js:223-253`).
+- [x] 2.11 [TEST] `scripts/manifest/validate-manifest.test.js`: `--manifest <path|url>`; `checkBlueprintMainCoherence` gone. Ref: monorepo-release-manifest / Stable Template Main Coherence (REMOVED); Staged validation failure.
+- [x] 2.12 [IMPL] `validate-manifest.js` add `--manifest`; remove `checkBlueprintMainCoherence` (`manifest-rules.js:247-274`, call `:495-500`).
+- [x] 2.13 [TEST] `scripts/lib/publish-web-tree.test.js`: `releaseOwned` paths preserved; build artifact containing a release-owned path fails; versioned CDN file with different bytes fails. Ref: public-web-distribution / Publishing never prunes, Build artifact containing a release-owned path, Versioned file with different bytes.
+- [x] 2.14 [IMPL] `publish-web-tree.js` (`replaceSiteTree` releaseOwned globs, `:21-49`), `publish-web.js` guard.
+- [x] 2.15 [TEST] `scripts/release/run-release.test.js`: temp bare repo as web (`remoteUrl`), run twice (idempotent), conflicting tag, push-race retry (5x), validator stubbed, dry-run writes nothing. Ref: Release stages run in a fixed order; Idempotent re-run; Releases are serialized and safe to re-run.
+- [x] 2.16 [IMPL] Create `scripts/release/run-release.js` (reuses `runGit`/`buildGitAuthEnv`, `diffTrees`, `copyDistributionPath`); add to orchestrator line-count guard (`verify.js:320-326`).
+- [x] 2.17 [TEST] `scripts/release/smoke.test.js`: polling until byte-equal, MCP bundle sha256, failure after M keeps tag. Ref: Staged validation and post-publish smoke test (4 scenarios).
+- [x] 2.18 [IMPL] Create `scripts/release/smoke.js`.
+- [x] 2.19 [TEST] `scripts/release/restore-cdn-bundles.test.js` on a temp repo with deleted bundles. Ref: Previously deleted bundles are restored once.
+- [x] 2.20 [IMPL] Create `scripts/release/restore-cdn-bundles.js` and `.github/workflows/restore-cdn.yml` (`workflow_dispatch`, one-shot).
+- [x] 2.21 [IMPL] Create `.github/workflows/release.yml` (tags `skills-v*|blueprints-v*|innfo-mcp-v*|innfo-console-v*`, `group: release`, `cancel-in-progress: false`, env `release`, writes gated by `vars.RELEASE_ENABLED`, `workflow_dispatch` forced dry-run, upload `.verify-logs/` on failure). Ref: Release workflow is triggered only by monorepo tags.
 - Verify: `node scripts/verify.js`, `node scripts/check-integrity.js`, `node --test scripts/release/*.test.js`. If PR exceeds 800 lines, split 2.19-2.21 into PR 2b.
 
 ## PR 3 - Single version source and guard removal (AD-6, ~650 lines, mostly deletions)
