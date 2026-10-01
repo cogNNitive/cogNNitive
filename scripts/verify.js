@@ -364,10 +364,10 @@ function runVerification(options = {}) {
   //    classifier input for check_domain and the preflight CLI).
   run('node scripts/blueprint-catalog.mjs --check', 'Check Blueprint Catalog Fresh');
 
-  // 7b. nn-trannsform slug mirror drift guard: the committed generated mirror must
-  //     match a fresh esbuild render of innfo-core's slug primitives (single
+  // 7b. nn-trannsform core mirror drift guard: the committed generated mirror must
+  //     match a fresh esbuild render of innfo-core's trannsform primitives (single
   //     shared implementation, no hand-maintained copy).
-  run('node scripts/build-trannsform-slug-mirror.mjs --check', 'Check Trannsform Slug Mirror Fresh');
+  run('node scripts/build-trannsform-core-mirror.mjs --check', 'Check Trannsform Core Mirror Fresh');
 
   // 7b-bis. Console payload mirror drift guard: the committed generated mirror must
   //         match a fresh esbuild render of innfo-core's console subsystem.

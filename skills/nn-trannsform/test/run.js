@@ -50,6 +50,11 @@ async function main() {
     totalPassed += slugParityResult.passed;
     totalFailed += slugParityResult.failed;
 
+    const coreMirrorTest = require('./unit/test-core-mirror');
+    const coreMirrorResult = await coreMirrorTest.run();
+    totalPassed += coreMirrorResult.passed;
+    totalFailed += coreMirrorResult.failed;
+
     const scannerTest = require('./unit/test-scanner');
     const scannerResult = await scannerTest.run();
     totalPassed += scannerResult.passed;

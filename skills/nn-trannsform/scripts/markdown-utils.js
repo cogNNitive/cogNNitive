@@ -32,7 +32,7 @@ const {
   slugifyUnitHeading,
   normalizeName,
   headingSlugParts,
-} = /** @type {SlugMirror} */ (require('./lib/slug-mirror.generated.cjs'));
+} = /** @type {SlugMirror} */ (require('./lib/innfo-core.generated.cjs'));
 
 const FENCE_RE = /^ {0,3}(`{3,}|~{3,})/;
 

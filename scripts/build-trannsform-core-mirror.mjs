@@ -1,22 +1,20 @@
 #!/usr/bin/env node
 
 /**
- * scripts/build-trannsform-slug-mirror.mjs
+ * scripts/build-trannsform-core-mirror.mjs
  *
- * Bundles the heading/name slug primitives from `@cognnitive/innfo-core`
- * (`src/slugPrimitives.ts`, re-exporting `sourceRef.ts`) into a committed,
- * zero-dependency CommonJS artifact the DISTRIBUTED `nn-trannsform` skill can
- * `require()`. The skill is installed at `~/.agents/skills/` where
- * `@cognnitive/innfo-core` does not exist, and innfo-core is ESM-only, so a
- * runtime import is impossible — this bundle IS the single shared
- * implementation (`markdown-utils.js` hand-mirrored it before; that drift is
- * what this removes).
+ * Bundles the core primitives from `@cognnitive/innfo-core`
+ * (`src/trannsformPrimitives.ts`) into a committed, zero-dependency CommonJS
+ * artifact the DISTRIBUTED `nn-trannsform` skill can `require()`. The skill is
+ * installed at `~/.agents/skills/` where `@cognnitive/innfo-core` does not exist,
+ * and innfo-core is ESM-only, so a runtime import is impossible — this bundle IS
+ * the single shared implementation.
  *
- *   input : iNNfo/packages/innfo-core/src/slugPrimitives.ts
- *   output: skills/nn-trannsform/scripts/lib/slug-mirror.generated.cjs
+ *   input : iNNfo/packages/innfo-core/src/trannsformPrimitives.ts
+ *   output: skills/nn-trannsform/scripts/lib/innfo-core.generated.cjs
  *
  * Usage:
- *   node scripts/build-trannsform-slug-mirror.mjs [--check] [--out <file>]
+ *   node scripts/build-trannsform-core-mirror.mjs [--check] [--out <file>]
  *
  *   --check   render the bundle and compare to the committed file; exit 1 on drift.
  *   --out     override the output file (default: the committed skill artifact).
@@ -34,22 +32,22 @@ const require = createRequire(import.meta.url)
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url))
 const REPO_ROOT = path.resolve(SCRIPT_DIR, '..')
-const ENTRY = path.join(REPO_ROOT, 'iNNfo', 'packages', 'innfo-core', 'src', 'slugPrimitives.ts')
+const ENTRY = path.join(REPO_ROOT, 'iNNfo', 'packages', 'innfo-core', 'src', 'trannsformPrimitives.ts')
 const DEFAULT_OUT = path.join(
   REPO_ROOT,
   'skills',
   'nn-trannsform',
   'scripts',
   'lib',
-  'slug-mirror.generated.cjs',
+  'innfo-core.generated.cjs',
 )
 
 const BANNER =
   '/**\n' +
   ' * GENERATED FILE — DO NOT EDIT.\n' +
-  ' * Source: iNNfo/packages/innfo-core/src/slugPrimitives.ts (-> src/sourceRef.ts)\n' +
-  ' * Regenerate: node scripts/build-trannsform-slug-mirror.mjs\n' +
-  ' * Drift-guarded by scripts/verify.js (build-trannsform-slug-mirror --check).\n' +
+  ' * Source: iNNfo/packages/innfo-core/src/trannsformPrimitives.ts\n' +
+  ' * Regenerate: node scripts/build-trannsform-core-mirror.mjs\n' +
+  ' * Drift-guarded by scripts/verify.js (build-trannsform-core-mirror --check).\n' +
   ' */'
 
 /** Resolve esbuild from the hoisted iNNfo workspace (root has no node_modules). */
@@ -72,13 +70,15 @@ async function render() {
     entryPoints: [ENTRY],
     bundle: true,
     format: 'cjs',
-    platform: 'neutral',
+    platform: 'node',
     target: 'node20',
+    absWorkingDir: REPO_ROOT,
     write: false,
     legalComments: 'none',
     banner: { js: BANNER },
   })
-  return result.outputFiles[0].text.replace(/\r\n/g, '\n')
+  const rawCode = result.outputFiles[0].text.replace(/\r\n/g, '\n')
+  return rawCode.replace(/(?:\.\.\/)+node_modules\//g, 'node_modules/')
 }
 
 function getArg(flag) {
@@ -98,16 +98,16 @@ async function main() {
       ? fs.readFileSync(outFile, 'utf-8').replace(/\r\n/g, '\n')
       : null
     if (rendered === committed) {
-      console.log(`build-trannsform-slug-mirror: OK — ${rel} is up to date.`)
+      console.log(`build-trannsform-core-mirror: OK — ${rel} is up to date.`)
       process.exit(0)
     }
-    console.error(`build-trannsform-slug-mirror: DRIFT — ${rel} is stale. Re-run without --check.`)
+    console.error(`build-trannsform-core-mirror: DRIFT — ${rel} is stale. Re-run without --check.`)
     process.exit(1)
   }
 
   fs.mkdirSync(path.dirname(outFile), { recursive: true })
   fs.writeFileSync(outFile, rendered, 'utf-8')
-  console.log(`build-trannsform-slug-mirror: wrote ${rel}.`)
+  console.log(`build-trannsform-core-mirror: wrote ${rel}.`)
 }
 
 main().catch((err) => {
