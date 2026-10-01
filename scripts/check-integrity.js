@@ -6,7 +6,7 @@
  * Deterministic post-change & pre-push integrity runner.
  * Unifies:
  * - Group 0 & 1: Git working tree & concurrency status
- * - Group 2: MCP version square alignment
+ * - Group 2: Version SSOT alignment (the CDN bundle is staged by the release, not gated here)
  * - Group 3, 4, 7+: Full workspace verification suite (scripts/verify.js)
  * - Group 5 (optional): Complete CI mirror (lint, typecheck, core/app tests,
  *   innfo-mcp tests + coverage ratchet, spec-url resolution)
@@ -14,13 +14,12 @@
  * Usage:
  *   node scripts/check-integrity.js            # Standard deterministic gate (Groups 0-4, 7+)
  *   node scripts/check-integrity.js --pre-push # Full pre-push gate (includes CI mirror)
- *   node scripts/check-integrity.js --release  # Release gate: pre-push + live stable-manifest validation
+ *   node scripts/check-integrity.js --release  # Same as --pre-push (verification is offline in every mode)
  */
 
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
-const { checkCdnBundleStaged } = require('./lib/cdn-bundle-staged.js');
 const { checkTagPinFreshness } = require('./lib/tag-pin-freshness.js');
 const { checkNodeEngines } = require('./lib/node-engine-check.js');
 const { validateLegacyLedger } = require('./lib/legacy-ledger-guard.js');
@@ -70,16 +69,6 @@ if (tagPin.skipped) {
   console.log('  ✅ No unpinned skills/template changes detected.');
 }
 
-// Step 2: CDN Bundle Staging (Group 2)
-console.log('\n[Group 2] CDN Bundle Staging (docs/innfo/cdn/innfo-mcp-v<version>.bundle.js):');
-const cdnBundle = checkCdnBundleStaged(repoRoot);
-if (!cdnBundle.ok) {
-  console.error('❌ CDN Bundle check failed:');
-  cdnBundle.errors.forEach(err => console.error(`  - ${err}`));
-  process.exit(1);
-}
-console.log(`  ✅ Staged CDN bundle present on disk (v${cdnBundle.version}).`);
-
 // Step 2b: Version SSOT Guard (spec_NN.md & SKILL.md -> samples.ts + manifest/source.yaml)
 console.log('\n[Group 2b] Version SSOT (spec_NN.md & SKILL.md <-> samples.ts <-> manifest/source.yaml):');
 try {
@@ -126,10 +115,8 @@ console.log(`  ✅ All ${consoleShellResult.shells.length} console shells adhere
 
 // Step 3: Full Deterministic Workspace Verification (verify.js)
 console.log('\n[Groups 3, 4, 7+] Workspace Verification Suite:');
-try {
-  runVerification({ release: isRelease });
-} catch (e) {
-  console.error(`❌ Workspace verification failed: ${e.message}`);
+if (!runVerification({ release: isRelease })) {
+  console.error('❌ Workspace verification failed (see the step summary above).');
   process.exit(1);
 }
 

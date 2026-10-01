@@ -54,4 +54,13 @@ assert.deepStrictEqual(
   assert.ok(/2 of 4 step\(s\) failed/.test(text), 'summary reports failures');
 }
 
+
+
+// 6. check-integrity no longer gates on the staged CDN bundle (release owns it)
+//    and honours runVerification's boolean result (it no longer exits itself).
+{
+  const ci = fs.readFileSync(path.join(__dirname, 'check-integrity.js'), 'utf8');
+  assert.ok(!/cdn-bundle-staged|checkCdnBundleStaged/.test(ci), 'check-integrity must not check CDN staging');
+  assert.ok(/if \(!runVerification\(/.test(ci), 'check-integrity must exit non-zero when verification fails');
+}
 console.log('verify-offline tests passed');

@@ -35,7 +35,7 @@ export default defineConfig([
     noExternal: [/.*/],
     minify: true,
     // The distributed bundle is copied as a single file to docs/innfo/cdn/ by
-    // scripts/build-docs.mjs; code-splitting would emit sibling chunk-*.js the
+    // scripts/stage-mcp-bundle.mjs; code-splitting would emit sibling chunk-*.js the
     // CDN never publishes, breaking the install.
     splitting: false,
     // Inline the version so the standalone bundle (installed flat, e.g. into
