@@ -34,23 +34,20 @@ const mustBlock = [
   `${G} checkout .`,
   `${G} restore .`,
   `${G} checkout -- .`,
-  `${G} add -A`,
-  `${G} add .`,
-  `${G} commit -am wip`,
   `cd /tmp && ${G} reset ${HARD} abc`,
   // Shell operators end a token too: a whitespace-only boundary let these through.
-  `${G} add -A; echo done`,
-  `${G} add . && echo done`,
   `${G} checkout .; echo done`,
-  `${G} commit -am wip|tee log`,
 ];
 
 const mustAllow = [
   `${G} push origin dev`,
   `${G} reset --soft HEAD~1`,
   `${G} checkout HEAD -- src/foo.ts`,
+  `${G} add -A`,
+  `${G} add .`,
   `${G} add .claude/settings.json`,
   `${G} add -- path/to/file.ts`,
+  `${G} commit -am wip`,
   `${G} commit --amend --no-edit`,
   `${G} commit -m msg`,
   `${G} status --porcelain`,

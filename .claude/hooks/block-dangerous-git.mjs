@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 /**
- * PreToolUse guardrail: refuses git commands whose blast radius is the whole
- * working tree.
+ * PreToolUse guardrail: refuses the git commands whose blast radius is a whole
+ * working tree. Under the session-isolation model (one worktree per session),
+ * these can no longer erase another session's work — but they can still erase
+ * THIS session's uncommitted work in one stroke, so they stay blocked as cheap
+ * self-harm insurance.
  *
- * This checkout is routinely shared by concurrent agent sessions, so at any
- * moment it may hold uncommitted work this session did not author. The commands
- * below cannot be scoped to a pathspec — they act on everything — which makes
- * "only touch your own files" impossible to honour once they run.
+ * The staging commands (`git add -A`, `git add .`, `git commit -a`) are
+ * DELIBERATELY NOT blocked: a session worktree holds only that session's own
+ * work, so there are no foreign paths to accidentally stage.
  *
  * Written in Node rather than bash + jq on purpose: Node is already required by
  * this repo, jq is not installed here, and a hook that silently exits 0 because
@@ -14,9 +16,8 @@
  *
  * End-of-token boundaries below are `(?![A-Za-z0-9_.-])`, not `(\s|$)`. A
  * command usually continues with a shell operator, so a whitespace-only
- * boundary lets `git add -A;` through and stops `git stash list; echo` from
- * matching its own read-only escape. Regex literals throughout: these patterns
- * do not survive being built from template strings.
+ * boundary lets `git reset --hard;` through and stops `git stash list; echo`
+ * from matching its own read-only escape. Regex literals throughout.
  *
  * Exit 2 blocks the call and shows `reason` to the agent. Exit 0 allows it.
  */
@@ -25,7 +26,7 @@ const RULES = [
   {
     pattern: /reset\s+--hard/,
     reason:
-      'git reset --hard resets the ENTIRE index and working tree; there is no pathspec-scoped form. ' +
+      'git reset --hard resets the ENTIRE index and working tree, discarding your uncommitted work. ' +
       'To drop a commit but keep the tree use `git reset --soft HEAD~1`. ' +
       'To revert one file you authored use `git checkout HEAD -- <explicit/path>`.',
   },
@@ -34,7 +35,7 @@ const RULES = [
     pattern: /git\s+clean/,
     unless: /(^|\s)(-[a-zA-Z]*n[a-zA-Z]*|--dry-run)(?![A-Za-z0-9_.-])/,
     reason:
-      'git clean deletes untracked files across the tree, including another session\'s in-progress work. ' +
+      'git clean deletes untracked files across the tree, including your own in-progress work. ' +
       'Delete the specific paths you created instead, or pass --dry-run to inspect.',
   },
   {
@@ -42,7 +43,7 @@ const RULES = [
     pattern: /git\s+stash/,
     unless: /git\s+stash\s+(list|show)(?![A-Za-z0-9_.-])/,
     reason:
-      'git stash sweeps up every uncommitted change in the tree, not just yours. ' +
+      'git stash sweeps up every uncommitted change in the tree in one go. ' +
       'To get a clean tree for a build or a check, use `git worktree add --detach <tmp> <sha>` instead. ' +
       'Listing and showing stashes is allowed.',
   },
@@ -53,22 +54,8 @@ const RULES = [
   {
     pattern: /git\s+(checkout|restore)\s+(--\s+)?\.(?![A-Za-z0-9_.-])/,
     reason:
-      'Reverting the whole tree discards changes you did not author. ' +
+      'Reverting the whole tree discards your uncommitted work. ' +
       'Name the file: `git checkout HEAD -- <explicit/path>`.',
-  },
-  {
-    pattern: /git\s+add\s+(-A|--all)(?![A-Za-z0-9_.-])/,
-    reason: 'git add -A stages every change in the tree, including other sessions\'. Stage explicit pathspecs.',
-  },
-  {
-    pattern: /git\s+add\s+\.(?![A-Za-z0-9_.-])/,
-    reason: 'git add . stages every change under the cwd, including other sessions\'. Stage explicit pathspecs.',
-  },
-  {
-    pattern: /git\s+commit\s+(-[a-zA-Z]*a[a-zA-Z]*|--all)(?![A-Za-z0-9_.-])/,
-    reason:
-      'git commit -a auto-stages every tracked modification, including other sessions\'. ' +
-      'Stage explicit pathspecs, then commit without -a.',
   },
 ];
 
