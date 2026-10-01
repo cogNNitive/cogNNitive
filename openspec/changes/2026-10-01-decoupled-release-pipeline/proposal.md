@@ -1,5 +1,7 @@
 # Proposal: Decoupled & Lightweight Release Pipeline
 
+> **SUPERSEDED** by `openspec/changes/2026-10-01-tag-driven-release`. Do not implement or archive this change. It treats symptoms of a circular release model; the replacement redesigns the model. This folder is deleted once the replacement is implemented.
+
 ## Why
 
 The current release and verification workflow across the `cogNNitive` monorepo suffers from severe operational friction, process instability, and architectural coupling. During releases and continuous integration (CI) synchronization, the local environment and IDE agents experience critical performance degradation and UI crashes (e.g., Electron White Screen of Death / IPC congestion).
