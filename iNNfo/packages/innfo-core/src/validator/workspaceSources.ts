@@ -15,6 +15,8 @@ import { listSectionFields, resolveUnit } from '../unitResolve.js'
 import type { KnowledgeNode } from '../types/index.js'
 import type { BlueprintSchema } from '../schema/index.js'
 import { findDeclaredField } from '../schema/index.js'
+import { extractFileCitations } from '../lineage/project.js'
+import type { FileSnapshot } from '../queryUnits.js'
 
 export interface SourceResolution {
   exists: boolean
@@ -189,9 +191,16 @@ function legacyDerivationKeyFor(
 export function validateWorkspaceSources(
   result: RecursiveParseResult,
   resolver: SourceResolver,
-  _snapshot?: unknown,
+  snapshot?: FileSnapshot[],
 ): ReferenceDiagnostic[] {
   const diagnostics: ReferenceDiagnostic[] = []
+
+  if (snapshot && Array.isArray(snapshot) && snapshot.length > 0) {
+    const fileSites = extractFileCitations(snapshot)
+    if (fileSites.length > 0) {
+      diagnostics.push(...validateCitations(fileSites, resolver))
+    }
+  }
 
   const schemaFor = (node: KnowledgeNode): BlueprintSchema | undefined => {
     let current: KnowledgeNode | undefined = node

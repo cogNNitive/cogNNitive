@@ -13,6 +13,7 @@ import {
   validateWorkspaceReferences,
   validateWorkspaceSources,
   createFsSourceResolver,
+  readLineageSnapshot,
   extractHeadings,
   levenshteinDistance,
   loadBaseline,
@@ -280,9 +281,10 @@ export async function collectWorkspaceDiagnostics(
   // the latter resolved against real files under the workspace root. One read
   // per file: content backs headings AND the unit checks (rows/columns/fields).
   const resolveSource: SourceResolver = createFsSourceResolver(rootDir)
+  const snapshot = readLineageSnapshot(rootDir)
   return [
     ...validateWorkspaceReferences(result, index),
-    ...validateWorkspaceSources(result, resolveSource),
+    ...validateWorkspaceSources(result, resolveSource, snapshot),
   ]
 }
 
