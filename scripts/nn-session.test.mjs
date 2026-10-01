@@ -59,6 +59,24 @@ test('start creates and reuses a session worktree; stop removes it', () => {
   }
 })
 
+test('start junctions the primary node_modules', () => {
+  const base = mkdtempSync(join(tmpdir(), 'nn-session-'))
+  const repo = makeRepo(base)
+  mkdirSync(join(repo, 'node_modules'), { recursive: true })
+  const target = join(dirname(repo), 'cogNNitive-s3')
+  try {
+    const s = run(['start', '--id', 's3', '--root', repo])
+    assert.equal(s.code, 0)
+    // best-effort: either the junction exists, or the script warned and named npm install
+    assert.ok(
+      existsSync(join(target, 'node_modules')) || s.out.includes('WARNING'),
+      'junction created or a WARNING was printed',
+    )
+  } finally {
+    rmSync(base, { recursive: true, force: true })
+  }
+})
+
 test('stop refuses an unmerged session branch', () => {
   const base = mkdtempSync(join(tmpdir(), 'nn-session-'))
   const repo = makeRepo(base)

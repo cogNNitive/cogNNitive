@@ -1,9 +1,10 @@
 # Spec: safe-ff-merge-technique
 
 This spec records the requirement to document a server-side fast-forward push
-technique for shipping `dev` to `main`. It is explicitly not a fix for
-concurrent-session tree hazards; that hazard remains open and out of scope.
-It does not add any new skill, document, hook, or tree-inspection mechanism.
+technique for shipping `dev` to `main`. The concurrent-session tree hazard is
+addressed by session isolation in `dev-skills` (one worktree per session), not by
+this technique. It does not add any new skill, document, hook, or tree-inspection
+mechanism.
 
 ## Requirements
 
@@ -55,7 +56,10 @@ steps still work from a `dev` checkout under the new technique.
 ### Requirement: No new hazard-detection mechanism is introduced
 
 This change MUST NOT add any script, hook, or check that inspects the
-working tree for foreign or stale paths.
+working tree for foreign or stale paths. The concurrent-session tree hazard is
+NOT this technique's responsibility: it is addressed by session isolation in the
+`dev-skills` capability (one worktree per session), so this technique SHALL remain
+hazard-agnostic.
 
 #### Scenario: No tree-inspection logic ships with this change
 
@@ -63,8 +67,14 @@ working tree for foreign or stale paths.
 - **WHEN** the repository is searched for new scripts or hooks added by
   this change
 - **THEN** none SHALL classify working-tree paths as "foreign" or
-  "stale-WIP", per the deliberate non-goal of not adding hazard-detection
-  logic (attribution is undecidable from git alone).
+  "stale-WIP".
+
+#### Scenario: The technique composes with session isolation
+
+- **GIVEN** the `dev-skills` capability provides one worktree per session
+- **WHEN** a maintainer ships `dev` to `main` with `git push origin dev:main`
+- **THEN** the fast-forward push SHALL be documented as leaving the primary
+  checkout untouched, consistent with per-session isolation.
 
 ## Design decisions
 

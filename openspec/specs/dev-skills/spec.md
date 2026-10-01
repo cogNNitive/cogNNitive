@@ -13,50 +13,36 @@ four-leg deploy definition of done.
 
 ### Requirement: Session-attributed in-flight work
 
-The shared working tree MUST make every session's in-flight work attributable,
-so no dirty tree is ever anonymous.
+The repository MUST isolate every write-intended session in its own checkout — a `git worktree` of `dev` — so no two sessions ever share a directory, and in-flight work is attributable by construction. A session SHALL commit early and often; work that must survive a crash without merging SHALL be committed as `wip:<session-id>: <reason>` on `dev`.
+
+#### Scenario: A session works in its own worktree
+
+- GIVEN a write-intended session with id `<session-id>` on `dev`
+- WHEN the session starts
+- THEN the session-start helper SHALL create, or reuse, a `git worktree` of `dev` for that session
+- AND the session SHALL perform its writes inside that worktree, never the primary checkout.
 
 #### Scenario: WIP commit carries session identity
 
-- **GIVEN** a session with id `<session-id>` working on `dev`
-- **WHEN** the work must survive beyond the current session without merging
-- **THEN** the session SHALL commit it as `wip:<session-id>: <short reason>`
-  on `dev` instead of leaving a dirty tree.
+- GIVEN a session with id `<session-id>` whose work must survive a crash without merging
+- WHEN the work is committed
+- THEN it SHALL commit as `wip:<session-id>: <reason>` on `dev`.
 
-#### Scenario: Anonymous dirty tree is a blocker
+#### Scenario: Commit early, not freeze
 
-- **GIVEN** `git status --porcelain` is non-empty at session start
-- **WHEN** no `wip:<session-id>` commit or maintainer confirmation attributes
-  the paths to a known session
-- **THEN** the skill SHALL report ❌ and ask exactly one question
-  ("yours from another session, or foreign?") before any write, and SHALL
-  never stage those paths without explicit consent.
+- GIVEN uncommitted paths in a session's worktree
+- WHEN the session continues to write
+- THEN it SHALL prefer committing, or stashing with a session note, over leaving the tree dirty across tool-call boundaries.
 
-### Requirement: Dirty-tree age rule
+### Requirement: Gates run against committed HEAD
 
-A dirty tree MUST NOT outlive the session that created it without conversion
-to an attributed `wip:` commit.
+The deterministic gate MUST evaluate its checks against committed `HEAD` (or a detached clean worktree), never a shared dirty tree, so one session's uncommitted WIP SHALL NOT redden another session's gate.
 
-#### Scenario: Stale dirty tree expires
+#### Scenario: Dirty session tree does not redden the gate
 
-- **GIVEN** uncommitted paths older than one session with no attributed owner
-- **WHEN** a new session opens on the shared tree
-- **THEN** the skill SHALL flag ❌ "stale unattributed WIP" and require
-  commit (`wip:<session-id>`), stash-with-owner-note, or maintainer-confirmed
-  discard before the session's first write.
-
-### Requirement: Session claim on the shared tree
-
-Sessions SHOULD announce their presence so sibling agents can tell active
-work from abandoned work.
-
-#### Scenario: Claim is visible
-
-- **GIVEN** a session starts write-intended work on `dev`
-- **WHEN** the concurrency scan runs (skill §1)
-- **THEN** the session SHALL record its claim (branch + session id + intent)
-  in the session handoff block, and sibling sessions MUST treat claimed paths
-  as live and hands-off.
+- GIVEN a session worktree with uncommitted files
+- WHEN another session runs the deterministic gate against `HEAD`
+- THEN the gate SHALL NOT read the dirty worktree for its verdicts.
 
 ### Requirement: CI-verified batches before merge
 
