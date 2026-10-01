@@ -1,0 +1,14 @@
+status: proposed
+current_phase: spec
+artifact_store: openspec
+delivery_strategy: ask-on-risk
+chain_strategy: pending
+phases:
+  exploration: completed
+  proposal: completed
+  spec: completed
+  design: completed
+  tasks: completed
+  apply: pending
+  verify: pending
+  archive: pending

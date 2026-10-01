@@ -574,6 +574,69 @@ MCP tool. Superseded, not shipped.
 
 ---
 
+## 22. `fix/skills-version-skew-release` - corrective skills release: tag `6f905b1e` + re-pin stable
+
+**Type:** release / fix · **Size:** small
+
+**Why:** `skills-v2.8.1` still reads `models/`; `6f905b1e` (the `models/` → `kNNowledge/`
+cutover) is in `main` but in NO tag (`git tag --contains 6f905b1e` is empty; `merge-base
+--is-ancestor 6f905b1e skills-v2.8.1` is false). Stable users get 0 models / 0 citations
+(`--check-impact` blind). Only entangled with the console batch through
+`manifest/source.yaml`, which is clean post-checkpoint.
+
+**Behaviour (as requested):** cut a new `skills-v*` tag containing `6f905b1e` and re-pin
+`manifest/source.yaml` `refs.skills` in the SAME batch; run `check-integrity` + CI green.
+
+## 23. `fix/migrate-domain-esm-cjs` - run the migrator under a workspace with `"type": "module"`
+
+**Type:** fix · **Size:** small
+
+**Why:** `skills/nn-upgrade/scripts/migrate-domain.js` is CJS (`require(...)`); a user
+workspace whose `.agents/package.json` declares `"type": "module"` crashes `node
+migrate-domain.js`. Not reproducible in this repo (`.agents/` has no `package.json`), but
+real for users. Reported by a migrating user alongside the version-skew.
+
+**Behaviour:** ship the migrator as `.cjs` (or isolate the invocation directory); add a
+regression test for the `"type": "module"` case.
+
+## 24. `refactor/derived-artifact-consolidation` - one regen command, fewer committed outputs
+
+**Type:** refactor · **Size:** large
+
+**Why:** ~12 committed derived artifacts (generated bundles, mirrors, registries, docs
+renders) each guarded by one of ~25 guard/drift/parity/freshness scripts. Each derived
+file is a second source of truth; every change reddens several gates in a chain (the
+2026-10-01 session hit five in a row). `verify.js` and CI keep them in lock-step by hand.
+
+**Behaviour:** one `build:all` / regen entry point; CI regenerates and fails on drift;
+stop committing outputs that can be regenerated, except CDN-distributed bundles. Needs
+`sdd-explore` first.
+
+## 25. `refactor/contract-deduplication` - one core implementation + thin adapters
+
+**Type:** refactor · **Size:** large
+
+**Why:** ~6 parity/golden/mirror suites exist because the CLI, MCP tool, and console
+bundle reimplement shared logic; design docs already note "bitten once by two copies of
+the same parser drifting apart". The test sprawl compensates for duplication instead of
+removing it.
+
+**Behaviour:** single source of truth in `innfo-core`; adapters wrap it; parity suites
+collapse. Needs `sdd-explore` first.
+
+## 26. `chore/console-feedback-vocabulary-alignment` - finish the `knowledge_*` sweep before A ships
+
+**Type:** chore · **Size:** small-medium
+
+**Why:** the Legacy Write Guard caught `model_version` in the new console feedback ledger.
+This session renamed the guarded field (commit `dd801c0a`) and allowlisted the legitimate
+fallback/reject/migration cases, but the full `model_*` → `knowledge_*` sweep (`model_id`
+→ `knowledge_id`, remaining `model_version`, the `reconcile_feedback_NN.md` procedure, and
+samples) is deferred. Must land before the format ships (change A is unreleased).
+
+**Behaviour:** sweep the ledger + procedure + samples to `knowledge_*`; drop the
+allowlist entries added in `dd801c0a` once clean.
+
 ## Intra-document element identity: key on the slug, not the display name
 
 **Status:** explicit NON-GOAL of `2026-09-13-document-fidelity-and-provenance-integrity`.
