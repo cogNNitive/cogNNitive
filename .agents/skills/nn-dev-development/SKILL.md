@@ -166,9 +166,7 @@ automatically.
 When the maintainer says the accumulated `dev` work is ready:
 
 1. **Pre-push integrity gate**: `node scripts/check-integrity.js` and
-   `npm run check:versions`. Resolve drift before pushing. Any change under `skills/**`
-   or `iNNfo/specs/templates/**/spec_NN.md` requires cutting a new `skills-v*`/`templates-v*`
-   tag **and** re-pinning `manifest/source.yaml` in the SAME batch. Ensure the tree is
+   `npm run check:versions`. Resolve drift before pushing. Ensure the tree is
    clean and `git push origin dev` succeeds.
 2. **Server-side fast-forward (`dev → main`)** — never checks out `main`, leaves the tree
    untouched:
@@ -180,11 +178,12 @@ When the maintainer says the accumulated `dev` work is ready:
    On rejection: `git fetch origin && git merge origin/main` on `dev`. If tagging, tag
    immediately after this push, before any further commit on `dev`.
 3. **Post-push CI gate on `main` — blocking**: poll `gh run list --branch main` until the
-   run for the pushed sha completes; require `verify`, `quality`, `deploy-pages` all
-   `success`. Distinguish red-caused-by-batch (fix-forward) from pre-existing red
+   run for the pushed sha completes; require `verify`, `quality`, `spec-integrity`, `site`,
+   `publish-web` all `success`. Distinguish red-caused-by-batch (fix-forward) from pre-existing red
    (maintainer-approved `MERGE-GATE EXCEPTION`).
-4. **Release tagging** (only for a version bump): run `nn-dev-release`; a red `main`
-   blocks tagging.
+4. **Release tagging** (only for a version bump): run `nn-dev-release` to create and push
+   an annotated release tag (`<key>-v<semver>`: `skills-v*`, `blueprints-v*`, `innfo-mcp-v*`,
+   `innfo-console-v*`); a red `main` blocks tagging.
 5. **Persist the milestone** in Engram for sibling sessions.
 
 ---
@@ -193,8 +192,9 @@ When the maintainer says the accumulated `dev` work is ready:
 
 Before high-impact changes, establish an immutable restore point.
 
-- **Formal release** (`dev` clean + gates green): merge `dev → main`, bump the version,
-  tag `v<version>` / `innfo-mcp-v<version>`, `gh release create`.
+- **Formal release** (`dev` clean + gates green): merge `dev → main`, create annotated
+  tag `<key>-v<semver>` (e.g. `innfo-console-v0.6.0`, `skills-v0.12.0`), push tag to trigger
+  `release.yml`.
 - **Checkpoint tag** (mid-flight): `git tag -a checkpoint/<topic>-YYYYMMDD -m ...` and push.
 
 ### Rollback (scoped, non-destructive)
