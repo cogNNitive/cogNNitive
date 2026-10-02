@@ -16,7 +16,6 @@ const consoleDir = join(repoRoot, 'iNNfo', 'specs', 'bluepriNNts', 'console')
 const generatedSlugPath = join(consoleDir, 'innfo-slug.generated.js')
 const runtimePath = join(consoleDir, 'innfo-runtime.js')
 const bundlePath = join(consoleDir, 'innfo-console.bundle.js')
-const buildBundlePath = join(repoRoot, 'scripts', 'build-console-bundle.mjs')
 
 describe('Console runtime slug parity with core (D8)', () => {
   it('parses console contract citations via core parseCitation', () => {
@@ -85,10 +84,13 @@ describe('Console runtime slug parity with core (D8)', () => {
     assert.equal(slugifyBody.includes('[\\u0300-\\u036f]'), false, 'slugify body must not contain duplicate regex logic')
   })
 
-  it('scripts/build-console-bundle.mjs concatenates innfo-slug.generated.js first', () => {
-    const buildScript = readFileSync(buildBundlePath, 'utf8')
-    assert.match(buildScript, /\[\s*'innfo-slug\.generated\.js'\s*,\s*'InnfoSlug'\s*\]/, 'SOURCES must include innfo-slug.generated.js')
-    const firstSourceMatch = buildScript.match(/const\s+SOURCES\s*=\s*\[\s*\[\s*'([^']+)'/)
+  it('scripts/lib/console-bundle.js concatenates innfo-slug.generated.js first', () => {
+    // SOURCES lives in the extracted CommonJS lib (scripts/lib/console-bundle.js);
+    // build-console-bundle.mjs is a thin entry that re-exports it.
+    const bundleLibPath = join(repoRoot, 'scripts', 'lib', 'console-bundle.js')
+    const bundleLib = readFileSync(bundleLibPath, 'utf8')
+    assert.match(bundleLib, /\[\s*'innfo-slug\.generated\.js'\s*,\s*'InnfoSlug'\s*\]/, 'SOURCES must include innfo-slug.generated.js')
+    const firstSourceMatch = bundleLib.match(/const\s+SOURCES\s*=\s*\[\s*\[\s*'([^']+)'/)
     assert.ok(firstSourceMatch, 'SOURCES array must be found')
     assert.equal(firstSourceMatch[1], 'innfo-slug.generated.js', 'innfo-slug.generated.js must be the first entry in SOURCES')
   })

@@ -1059,18 +1059,8 @@
     return String(str || '').toLowerCase().replace(/[^a-z0-9]/g, '')
   }
 
-  // Theme message synchronization for embedded iframes
-  if (typeof window !== 'undefined' && window.addEventListener) {
-    window.addEventListener('message', function (e) {
-      if (e && e.data && e.data.type === 'innfo:theme-change') {
-        var isDark = e.data.theme === 'dark'
-        if (typeof document !== 'undefined' && document.documentElement) {
-          document.documentElement.classList.toggle('dark', isDark)
-          document.documentElement.classList.toggle('light', !isDark)
-        }
-      }
-    })
-  }
+  // Theme synchronization for embedded iframes now lives in ui-kit.js
+  // (InnfoUI.setTheme -> html[data-theme]); the class-based mechanism is gone.
 
   function baseValueOf(row) {
     return row.base != null

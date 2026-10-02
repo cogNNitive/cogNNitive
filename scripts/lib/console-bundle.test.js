@@ -56,6 +56,7 @@ function main() {
       'innfo-slug.generated.js',
       'uplot.iife.min.js',
       'visuals.js',
+      'ui-kit.js',
       'innfo-runtime.js',
       'render-model-viewer.js',
       'render-procedure-stepper.js',

@@ -14,6 +14,7 @@ const SOURCES = [
   ['innfo-slug.generated.js', 'InnfoSlug'],
   ['uplot.iife.min.js', 'uPlot'],
   ['visuals.js', 'InnfoVisuals'],
+  ['ui-kit.js', 'InnfoUI'],
   ['innfo-runtime.js', 'InnfoConsole'],
   ['render-model-viewer.js', 'InnfoModelViewer'],
   ['render-procedure-stepper.js', 'InnfoProcedureStepper'],
