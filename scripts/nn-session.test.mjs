@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync, existsSync } from 'node:fs'
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, existsSync, symlinkSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { execFileSync } from 'node:child_process'
@@ -113,6 +113,37 @@ test('stop refuses an unmerged session branch', () => {
     assert.notEqual(st.code, 0)
     assert.ok(st.out.includes('refusing'), 'names the refusal')
     assert.ok(existsSync(target), 'worktree NOT removed')
+  } finally {
+    rmSync(base, { recursive: true, force: true })
+  }
+})
+
+test('stop removes the node_modules junction without deleting primary sources', () => {
+  const base = mkdtempSync(join(tmpdir(), 'nn-session-'))
+  const repo = makeRepo(base)
+  // Mimic npm workspaces: a primary source dir, and a symlink to it inside
+  // node_modules. A recursive worktree delete that followed the junction into
+  // the primary's node_modules would then follow this symlink and delete the
+  // source dir (the data-loss bug this test guards).
+  const srcDir = join(repo, 'iNNfo', 'packages', 'innfo-core')
+  mkdirSync(srcDir, { recursive: true })
+  writeFileSync(join(srcDir, 'keep.txt'), 'keep')
+  mkdirSync(join(repo, 'node_modules', '@cognnitive'), { recursive: true })
+  symlinkSync(srcDir, join(repo, 'node_modules', '@cognnitive', 'innfo-core'), 'junction')
+  writeFileSync(join(repo, '.gitignore'), 'node_modules\n')
+  git(['add', '.gitignore'], repo)
+  git(['commit', '-m', 'ignore node_modules'], repo)
+
+  const target = join(dirname(repo), 'cogNNitive-s5')
+  try {
+    const s = run(['start', '--id', 's5', '--root', repo])
+    assert.equal(s.code, 0)
+    assert.ok(existsSync(join(target, 'node_modules')), 'junction created')
+
+    const st = run(['stop', '--id', 's5', '--root', repo])
+    assert.equal(st.code, 0)
+    assert.ok(!existsSync(target), 'worktree removed')
+    assert.ok(existsSync(join(srcDir, 'keep.txt')), 'primary source survived the worktree removal')
   } finally {
     rmSync(base, { recursive: true, force: true })
   }
