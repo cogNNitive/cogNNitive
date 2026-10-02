@@ -116,7 +116,10 @@ The release workflow (`release.yml`) will:
 
 A release SHALL be reported as "deployed" ONLY when all 4 legs verify:
 1. **Monorepo tag:** Monorepo release tag `<key>-v<semver>` is pushed to `cogNNitive/cogNNitive`.
-2. **Workflow success:** The `release.yml` GitHub Actions run concludes with `success`, including the smoke test job.
+2. **Workflow success:** the `release.yml` **publish** steps (`verify` + `Run Release`) conclude
+   `success`. The **Post-Publish Smoke Test is advisory** (`continue-on-error`): a transient
+   live-check failure does not un-deploy the release, but a red smoke step MUST still be
+   investigated — a genuine break means leg 4 is false.
 3. **Mirror tag:** The mirror tag `<key>-v<semver>` exists in `cogNNitive/cogNNitive-web` pointing to commit C.
 4. **Live resolution:** The published manifest at `https://cognnitive.com/use/manifest.md` and versioned CDN URLs resolve and reflect the released version.
 

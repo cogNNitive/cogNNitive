@@ -68,8 +68,13 @@ jobs:
             });
           "
 
-      - name: Run Post-Publish Smoke Test
+      # Advisory: the assets + manifest are already published by the steps above.
+      # The live smoke depends on GitHub API auth and CDN propagation, so it MUST
+      # NOT gate the release status — a transient failure here is not an un-publish.
+      # Investigate a red smoke step, but the release itself is done regardless.
+      - name: Run Post-Publish Smoke Test (advisory)
         if: github.event_name != 'workflow_dispatch' && vars.RELEASE_ENABLED == 'true'
+        continue-on-error: true
         env:
           RELEASE_TAG: ${{ github.ref_name }}
           GITHUB_TOKEN: ${{ secrets.WEB_RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
