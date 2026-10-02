@@ -167,10 +167,14 @@ Each slice is a self-contained commit range on `dev` and reverts with `git rever
 
 ## Proposal question round
 
-All product decisions are maintainer-approved (decisions 1-7, Q1-Q6). The only assumptions that still need review are the four defaults in "Defaults for items the exploration left open" and the open questions below.
+All product decisions are maintainer-approved (decisions 1-7, Q1-Q6). The four defaults in "Defaults for items the exploration left open" stand, subject to design confirmation.
 
-## Open Questions
+## Resolved Questions (maintainer, 2026-10-02)
 
-1. **Frozen bluepriNNt carve-out vs. required behavior.** The `workspace` bluepriNNt is frozen (`manifest/source.yaml:159-174`) but holds `compile_model_console`, `compile_workspace_hub`, and other procedures that S4 must make write-once. The `cogNNitive` record fields (`archive_path`, `version`) also change. Default: edit both in place for behavior, as in the base change's D10 precedent, and keep their procedure *names* under the carve-out, with no rename. Confirm.
-2. **`.gitattributes` scope** for the hash guard. Default: path-based on `sources/import/**` and `artifacts/**`. Raw files cognitivized elsewhere would stay exposed to CRLF conversion. Confirm whether to use `* -text` for the whole domaiNN.
-3. **Procedure rename and published URLs.** Do any published docs or pinned consumers deep-link `procedures/<verb>_<noun>_NN.md`? If so, they 404 after rename unless the release notes cover it. There is no redirect, per the no-compat rule.
+1. **Frozen bluepriNNt carve-out vs. required behavior.** The `workspace` bluepriNNt is frozen (`manifest/source.yaml:159-174`) but holds `compile_model_console`, `compile_workspace_hub`, and other procedures that S4 must make write-once; the `cogNNitive` record fields (`archive_path`, `version`) also change. **Decision:** edit both in place for behavior (base change D10 precedent) and keep their procedure *names* under the carve-out, with no rename.
+2. **`.gitattributes` scope** for the hash guard. **Decision:** `* -text` for the whole domaiNN. Cognitivize works in place, so any file can carry a sidecar hash; path-based scoping would leave gaps.
+3. **Procedure rename and published URLs.** **Decision:** accepted risk. URLs pinned to an older `templates-v*` tag keep resolving; user domaiNNs are migrated by nn-upgrade; the release notes must list the renames. No redirect (no-compat rule).
+
+## Carried-over follow-up
+
+- From `2026-10-01-lineage-single-edge` verify W4: `scripts/export-console.mjs` scans models directly and never calls core `buildConsolePayload`, so exported consoles lack `meta.sources`. S4 (write-once producers) must route the export script through the core payload builder and regenerate sample consoles at release time.
