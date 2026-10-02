@@ -13,6 +13,7 @@ const {
   extractShellConfig,
   discoverConsoleShells,
   checkConsoleShellIntegrity,
+  findRootColorDeclarations,
 } = require('./console-shell-guard.js');
 
 console.log('Running console-shell-guard unit tests...');
@@ -136,7 +137,40 @@ console.log('Running console-shell-guard unit tests...');
   assert.deepStrictEqual(anchorSets, [], 'feedback-export must declare empty anchors');
   const satisfied = anchorSets.length === 0 || anchorSets.some((set) => set.every((id) => domIds.has(id)));
   assert.strictEqual(satisfied, true, 'shell declaring feedback-export with no markup must satisfy anchor check');
-  console.log('✔ Shell declaring feedback-export with no markup passes anchor check');
+  console.log('[ok] Shell declaring feedback-export with no markup passes anchor check');
+}
+
+// 7. findRootColorDeclarations: flags hard-coded colors in :root, allows layout vars
+{
+  const fs = require('node:fs');
+  const clean = `:root { --sidebar-w: 280px; --innfo-bg: var(--innfo-surface); }`;
+  assert.deepStrictEqual(findRootColorDeclarations(clean), []);
+
+  const hexRoot = `:root { --accent: #1f2937; }`;
+  const hexFound = findRootColorDeclarations(hexRoot);
+  assert.strictEqual(hexFound.length, 1);
+  assert.match(hexFound[0].selector, /:root/);
+  assert.strictEqual(hexFound[0].line, 1);
+
+  const mediaRoot = `@media (prefers-color-scheme: dark) {\n  :root {\n    --accent: rgb(15, 23, 42);\n  }\n}`;
+  const mediaFound = findRootColorDeclarations(mediaRoot);
+  assert.strictEqual(mediaFound.length, 1);
+  assert.strictEqual(mediaFound[0].line, 3);
+
+  const hslaRoot = `:root {\n  --x: hsla(210, 40%, 20%, .5);\n}`;
+  assert.strictEqual(findRootColorDeclarations(hslaRoot).length, 1);
+
+  // The real artifact/model shells must already be tokenized (proven red before d1.3).
+  const repoRoot = path.join(__dirname, '..', '..');
+  for (const rel of [
+    'iNNfo/specs/bluepriNNts/console/artifact_shell.html',
+    'iNNfo/specs/bluepriNNts/workspace/assets/model_console.html',
+  ]) {
+    const html = fs.readFileSync(path.join(repoRoot, rel), 'utf8');
+    const offenders = findRootColorDeclarations(html);
+    assert.deepStrictEqual(offenders, [], `${rel} must carry no :root color literals`);
+  }
+  console.log('✔ findRootColorDeclarations flags root colors and passes tokenized shells');
 }
 
 console.log('\nAll console-shell-guard unit tests passed! ✨');
