@@ -53,6 +53,7 @@ jobs:
           RELEASE_TAG: ${{ github.event.inputs.tag || github.ref_name }}
           DRY_RUN: ${{ github.event_name == 'workflow_dispatch' || vars.RELEASE_ENABLED != 'true' }}
           WEB_RELEASE_TOKEN: ${{ secrets.WEB_RELEASE_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.WEB_RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
           node -e "
             const { runRelease } = require('./scripts/release/run-release.js');
