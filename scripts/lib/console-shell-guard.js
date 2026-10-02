@@ -204,18 +204,6 @@ function findRootColorDeclarations(html) {
 }
 
 /**
- * Console shells whose `:root` must be fully tokenized. Slice d1 enforces the
- * artifact and model shells; d2 widens this to the timeline and procedure
- * shells once they are migrated.
- */
-// Built from parts so this guard source never hard-codes a shell filename
-// (A5.5 forbids naming the workspace console shell literally here).
-const ENFORCED_ROOT_SHELLS = [
-  ['iNNfo', 'specs', 'bluepriNNts', 'console', 'artifact_shell.html'].join('/'),
-  ['iNNfo', 'specs', 'bluepriNNts', 'workspace', 'assets', 'model' + '_console.html'].join('/'),
-]
-
-/**
  * Checks integrity of console shells in the repo.
  * @param {string} repoRoot
  * @param {object} [options]
@@ -317,8 +305,9 @@ function checkConsoleShellIntegrity(repoRoot, options = {}) {
       errors.push(`Shell ${shellPath} does not load the innfo-console bundle via CDN script tag`);
     }
 
-    // Requirement: no hard-coded :root colors in enforced shells (d1/d2).
-    const enforced = (options.enforcedRootShells || ENFORCED_ROOT_SHELLS);
+    // Requirement: shells must consume var(--innfo-*) tokens, never :root color
+    // literals (all discovered shells; options.enforcedRootShells is a test seam).
+    const enforced = options.enforcedRootShells || shells;
     if (enforced.indexOf(shellPath) !== -1) {
       for (const finding of findRootColorDeclarations(content)) {
         errors.push(

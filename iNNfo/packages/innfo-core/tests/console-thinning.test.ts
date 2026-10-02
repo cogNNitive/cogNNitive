@@ -135,3 +135,62 @@ describe('timeline slot payloads', () => {
     }
   })
 })
+
+describe('frozen vendored console bundles (not migrated, not guarded)', () => {
+  // These export/sample bundles are permanent history: they keep their own
+  // inlined CSS and must never be swept into the token migration nor scanned
+  // by the console-shell guard (which skips /samples/ and /export/).
+  const frozen = [
+    join(templatesDir, 'metrics', 'samples', 'Ghostbusters_V_0-1-0_console.html'),
+    join(
+      templatesDir,
+      'procedures',
+      'samples',
+      'export',
+      'Ghostbusters_V_0-2-0_procedures_console',
+      'Ghostbusters_V_0-2-0_procedures_console.html',
+    ),
+    join(
+      templatesDir,
+      'procedures',
+      'procedures',
+      'export',
+      'document_sop_console',
+      'document_sop_console.html',
+    ),
+    join(
+      repoRoot,
+      'iNNfo',
+      'packages',
+      'innfo-core',
+      'tests',
+      'fixtures',
+      'simulacro-refactorizacion',
+      'bluepriNNts',
+      'metrics',
+      'samples',
+      'Ghostbusters_V_0-1-0_console.html',
+    ),
+    join(
+      repoRoot,
+      'iNNfo',
+      'packages',
+      'innfo-core',
+      'tests',
+      'legacy',
+      'fixtures',
+      'legacy-domain',
+      'templates',
+      'metrics',
+      'samples',
+      'Ghostbusters_V_0-1-0_console.html',
+    ),
+  ]
+
+  it('keeps their legacy inline :root colors (proves they were not migrated)', () => {
+    for (const f of frozen) {
+      const html = readAsset(f)
+      expect(html, `${f} must keep its frozen inline :root colors`).toMatch(/--(bg|surface):\s*#/)
+    }
+  })
+})

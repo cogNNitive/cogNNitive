@@ -47,54 +47,28 @@
       safe: exactly one copy boots.
     -->
     <style>
+      /* Semantic tokens come from InnfoUI (data-theme driven). Local aliases keep
+         this shell's layout variables working without hard-coded colors. */
       :root {
-        --bg: #ffffff;
-        --surface: #ffffff;
-        --surface-2: #f4f4f5;
-        --text: #0a0a0a;
-        --muted: #737373;
-        --faint: #a1a1a1;
-        --border: #e5e5e5;
-        --primary: #171717;
-        --primary-hover: #0a0a0a;
-        --success: #16a34a;
-        --danger: #e7000b;
-        --warning: #d97706;
-        --link: #2563eb;
-        --radius-sm: 6px;
-        --radius: 8px;
-        --radius-lg: 10px;
-        --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.06);
-        --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        --mono: 'SF Mono', 'JetBrains Mono', ui-monospace, 'Courier New', monospace;
-      }
-      .dark,
-      html.dark,
-      body.dark {
-        --bg: #09090b;
-        --surface: #18181b;
-        --surface-2: #27272a;
-        --text: #fafafa;
-        --muted: #a1a1a1;
-        --faint: #71717a;
-        --border: #27272a;
-        --primary: #fafafa;
-        --primary-hover: #f4f4f5;
-        --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.5);
-      }
-      @media (prefers-color-scheme: dark) {
-        :root:not(.light) {
-          --bg: #09090b;
-          --surface: #18181b;
-          --surface-2: #27272a;
-          --text: #fafafa;
-          --muted: #a1a1a1;
-          --faint: #71717a;
-          --border: #27272a;
-          --primary: #fafafa;
-          --primary-hover: #f4f4f5;
-          --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.5);
-        }
+        --bg: var(--innfo-bg);
+        --surface: var(--innfo-surface);
+        --surface-2: var(--innfo-surface-2);
+        --text: var(--innfo-text);
+        --muted: var(--innfo-muted);
+        --faint: var(--innfo-muted);
+        --border: var(--innfo-border);
+        --primary: var(--innfo-accent);
+        --primary-hover: var(--innfo-text);
+        --success: var(--innfo-status-applied);
+        --danger: var(--innfo-status-rejected);
+        --warning: var(--innfo-status-pending);
+        --link: var(--innfo-link);
+        --radius-sm: var(--innfo-radius-sm);
+        --radius: var(--innfo-radius);
+        --radius-lg: var(--innfo-radius-lg);
+        --shadow-card: var(--innfo-shadow);
+        --font: var(--innfo-font);
+        --mono: var(--innfo-mono);
       }
       * {
         box-sizing: border-box;

@@ -160,17 +160,30 @@ console.log('Running console-shell-guard unit tests...');
   const hslaRoot = `:root {\n  --x: hsla(210, 40%, 20%, .5);\n}`;
   assert.strictEqual(findRootColorDeclarations(hslaRoot).length, 1);
 
-  // The real artifact/model shells must already be tokenized (proven red before d1.3).
+  // All four live shells must be fully tokenized (d1 + d2).
   const repoRoot = path.join(__dirname, '..', '..');
-  for (const rel of [
+  const fourShells = [
     'iNNfo/specs/bluepriNNts/console/artifact_shell.html',
+    'iNNfo/specs/bluepriNNts/metrics/assets/timeline.html',
+    'iNNfo/specs/bluepriNNts/procedures/assets/procedure_console.html',
     'iNNfo/specs/bluepriNNts/workspace/assets/model_console.html',
-  ]) {
+  ];
+  for (const rel of fourShells) {
     const html = fs.readFileSync(path.join(repoRoot, rel), 'utf8');
     const offenders = findRootColorDeclarations(html);
     assert.deepStrictEqual(offenders, [], `${rel} must carry no :root color literals`);
   }
   console.log('✔ findRootColorDeclarations flags root colors and passes tokenized shells');
+
+  // d2.1: timeline.html must drop the legacy class-based dark mechanism.
+  const timeline = fs.readFileSync(path.join(repoRoot, fourShells[1]), 'utf8');
+  assert.strictEqual(timeline.includes('.dark'), false, 'timeline.html must not carry a .dark block');
+  assert.strictEqual(
+    /:root:not\(\.light\)/.test(timeline),
+    false,
+    'timeline.html must not carry a :root:not(.light) block',
+  );
+  console.log('✔ timeline.html dropped the class-based dark mechanism');
 }
 
 console.log('\nAll console-shell-guard unit tests passed! ✨');
