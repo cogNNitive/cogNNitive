@@ -96,3 +96,16 @@ None.
 
 ## Next recommended
 `sdd-apply` for a small remediation pass (W2, W3 decision, W4 re-export, W6) if the maintainer wants every success criterion fully met; otherwise `sdd-archive` is viable once the maintainer accepts W1-W7 and the release coupling (W5) is handled at release time. No CRITICAL blockers.
+
+## Post-verify fixes
+
+Small remediation pass on the same session branch. Re-run after the fixes: innfo-core (1032 passed), innfo-editor (726 passed), nn-trannsform with empty USERPROFILE/HOME (604 passed), `npm run typecheck`, `node scripts/verify.js` (PASS).
+
+| Warning | Outcome |
+|---|---|
+| W2 | FIXED for `is_synthetic`: `skills/nn-trannsform/SKILL.md` (export/ tree line and `_synthetic.md` bullet) now say a promoted file carries its own `sources:` and that no `is_synthetic` flag is stored. The `sources/original/` mentions (lines 70, 93, 109, 124-126, 201-210, 342) were intentionally LEFT: `scanner.js`, `scanner-core.js#walkSourceTrees` and `index.js` still read `sources/original/` as an ingestion fallback, so the docs match the code. Only the lineage projection dropped it. Skill version not bumped. |
+| W3 | FIXED for the editor: `submodelPath.ts` no longer defines `slugify`; it and `FieldKnowledge.vue` import core `slugify`, now exported from the `innfo-core` browser entry (`browser.ts`). Red-first test `tests/unit/submodelPath.slug-source.test.ts` (failed before: no browser export, local copy present); the old local-slugify cases were removed from `submodelPath.test.ts` (core owns that contract). Behaviour is equivalent for strings (core adds a `.trim()` first; null/undefined are no longer tolerated, and no caller passes them). LEFT by design: `conversations.js:160` and `index.js:558` slugify conversation titles and match filename stems when deleting conversation files; they do not produce citation heading slugs, so the mirror's heading slug primitive would be the wrong contract. |
+| W4 | DEFERRED. `scripts/export-console.mjs` does a direct model scan and never calls `buildConsolePayload`, so a re-export does not emit `innfo-model.meta.sources` at all. A trial export into a scratch dir also rewrote `innfo-console.bundle.js` (differs from the committed vendored bundle; export prefers `INNFO_CONSOLE_DIR` / `~/.agents/console` over the repo console dir), which is release-coupled churn. The Ghostbusters sample also has no `sources` to cite. Follow-up: make `export-console.mjs` use the core payload builder, then regenerate samples together with the console bundle at release time. Nothing committed for W4. |
+| W6 | FIXED: `test/unit/test-config.js` writes `skills/nn-trannsform/config.json` as an untracked byproduct; added to the root `.gitignore`. |
+
+W1, W5 and W7 are unchanged (W5 remains deferred to release). Success criteria: "no second slugify outside core" is now met for the editor; the sample-console criterion stays PARTIAL (W4).
