@@ -389,21 +389,6 @@ export async function resolveBlueprintPackage(
   // Tier 1: Workspace Package Directory (./specs/bluepriNNts/<name>/<version>/)
   const wsPackageBaseDir = join(rootDir, 'specs', 'bluepriNNts', base)
 
-  // Tier 1a: canonical UNVERSIONED package directory
-  // (./specs/bluepriNNts/<name>/spec_NN.md). This is the shipped layout; check
-  // it before the versioned tiers so `procedures/` is never taken for a version.
-  const unversionedSpecFile = await findSpecInPackageDir(wsPackageBaseDir, base)
-  if (unversionedSpecFile) {
-    return {
-      name: base,
-      version: targetVersion || 'V_0-1-0',
-      packagePath: wsPackageBaseDir,
-      specFilePath: unversionedSpecFile,
-      isPackageDir: true,
-      tier: 'workspace-package',
-    }
-  }
-
   try {
     const entries = await readdir(wsPackageBaseDir, { withFileTypes: true })
     const verDirs = entries.filter((e) => e.isDirectory() && isVersionDirName(e.name))
@@ -473,19 +458,6 @@ export async function resolveBlueprintPackage(
   // Tier 3: Global User Cache (~/.agents/bluepriNNts/<name>/<version>/)
   const globalBaseDir = join(globalDir, base)
 
-  // Tier 3a: unversioned package in the global cache.
-  const unversionedGlobalSpec = await findSpecInPackageDir(globalBaseDir, base)
-  if (unversionedGlobalSpec) {
-    return {
-      name: base,
-      version: targetVersion || 'V_0-1-0',
-      packagePath: globalBaseDir,
-      specFilePath: unversionedGlobalSpec,
-      isPackageDir: true,
-      tier: 'global-cache',
-    }
-  }
-
   try {
     const entries = await readdir(globalBaseDir, { withFileTypes: true })
     const verDirs = entries.filter((e) => e.isDirectory() && isVersionDirName(e.name))
@@ -549,19 +521,6 @@ export async function resolveBlueprintPackage(
 
     for (const skillName of skillDirs) {
       const skillPkgBase = join(skillsDir, skillName, 'bluepriNNts', base)
-
-      // Unversioned package inside an installed skill.
-      const unversionedSkillSpec = await findSpecInPackageDir(skillPkgBase, base)
-      if (unversionedSkillSpec) {
-        return {
-          name: base,
-          version: targetVersion || 'V_0-1-0',
-          packagePath: skillPkgBase,
-          specFilePath: unversionedSkillSpec,
-          isPackageDir: true,
-          tier: 'installed-skill',
-        }
-      }
 
       try {
         const entries = await readdir(skillPkgBase, { withFileTypes: true })
