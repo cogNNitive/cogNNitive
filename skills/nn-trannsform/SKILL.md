@@ -69,7 +69,7 @@ Every project workspace MUST adhere to the following structure:
 ├── sources/
 │   ├── import/           # External raw files (PDF, DOCX, CSV, TXT, JSON, HTML). Legacy sources/original/ supported via fallback.
 │   ├── conversations/    # Promoted transcripts (*_source.md — full transcript only).
-│   ├── export/           # Promoted deliverables re-entering pipeline (is_synthetic: true).
+│   ├── export/           # Promoted deliverables re-entering the pipeline; a promoted file carries its own `sources:` as upstream lineage.
 │   ├── archive/          # Version store for past normalized snapshots (sources/archive/<basename>/V<N>/<basename>.md).
 │   └── nn/               # Normalized Markdown, mirroring the source subtrees
 │                         # (e.g. sources/import/clientA/report.docx -> sources/nn/import/clientA/report.md).
@@ -332,7 +332,7 @@ To prevent LLM context degradation (*Lost in the Middle*) and maintain workspace
    - `_transcript.md`: Audio/video transcription normalized into coherent paragraphs.
    - `_summary.md`: High-density semantic distillation of a massive source.
    - `_schema.md`: Dataset profile and statistical summary for tabular data (CSV/Excel).
-   - `_synthetic.md`: An internal deliverable re-ingested as a source (`is_synthetic: true`).
+   - `_synthetic.md`: An internal deliverable re-ingested as a source; its upstream lineage is its own `sources:` frontmatter (no `is_synthetic` flag is stored).
 
 #### 2c. Importing from the Web (URL / online PDF)
 

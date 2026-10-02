@@ -70,3 +70,6 @@ Thumbs.db
 temp/
 # Local AI runtime state
 .atl/
+
+# nn-trannsform test byproduct: test/unit/test-config.js writes it into the skill dir
+skills/nn-trannsform/config.json
