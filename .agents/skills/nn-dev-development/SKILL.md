@@ -62,6 +62,13 @@ node scripts/nn-session.mjs start --id <session-id>
 `node_modules`, and creates the branch `session/<id>` off `dev`. Never write to the
 primary checkout; the primary-tree guard blocks it.
 
+⚠️ It junctions only the **root** `node_modules` (and `skills/nn-trannsform/node_modules`),
+not the per-workspace ones (`iNNfo/packages/*`, `iNNfo/apps/*`). A fresh worktree can
+therefore fail local `npm run typecheck` (e.g. `Cannot find module 'vitest'`) even on a
+clean tree — an environment gap, not a code error. CI installs deps with `npm ci`. For a
+change that touches no TypeScript, `git push --no-verify` is acceptable (CI re-runs
+`typecheck` on the pushed ref); otherwise run `npm install` in the worktree first.
+
 ### 1b. Informational concurrency scan
 
 Run and report (do **not** block on it — isolation already makes collisions impossible):
@@ -181,6 +188,9 @@ When the maintainer says the accumulated `dev` work is ready:
    run for the pushed sha completes; require `verify`, `quality`, `spec-integrity`, `site`,
    `publish-web` all `success`. Distinguish red-caused-by-batch (fix-forward) from pre-existing red
    (maintainer-approved `MERGE-GATE EXCEPTION`).
+   - **Release freeze:** once a release tag is cut, no session may push `dev`/`main`
+     until that tag's workflow concludes — a moved `origin/main` breaks the tag's own
+     verification and its already-limited re-run. See `nn-dev-release` §4/§4b.
 4. **Release tagging** (only for a version bump): run `nn-dev-release` to create and push
    an annotated release tag (`<key>-v<semver>`: `skills-v*`, `blueprints-v*`, `innfo-mcp-v*`,
    `innfo-console-v*`); a red `main` blocks tagging.

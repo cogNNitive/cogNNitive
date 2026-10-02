@@ -44,15 +44,35 @@ The monorepo defines four distinct release keys. Each release tag MUST match `<k
 
 The entire release procedure consists of three steps: **Tag, Push, Watch**.
 
-### Step 1: Pre-Release Validation
+### Step 1: Pre-Release Validation — the "don't burn a tag" checklist
 
-Before creating any release tag, verify that:
-1. **Branch is clean and merged:** The changes to be released are merged into `main` and all CI checks on `main` are green (`gh run list --branch main`).
-2. **Authored version matches (for `innfo-mcp` and `innfo-console`):**
-   - For `innfo-mcp`: `version` in `iNNfo/packages/innfo-mcp/package.json` equals `<semver>`.
-   - For `innfo-console`: `version` in `iNNfo/specs/bluepriNNts/console/package.json` equals `<semver>`.
-3. **Strictly greater than existing tags:**
-   The new `<semver>` MUST be strictly greater than the highest existing tag for that `<key>` in BOTH `cogNNitive/cogNNitive` AND `cogNNitive/cogNNitive-web`.
+Every tag attempt is **irreversible**: it can never be re-used, moved, or deleted
+once published, and it leaves a mirror tag + manifest snapshot on `cogNNitive-web`.
+There is no "undo release". Run **all** of these before `git tag`:
+
+1. **Branch is clean and merged:** the changes to release are on `main` and the
+   latest `CI & Verify` run on the **exact** `origin/main` tip is `success`
+   (`gh run list --branch main --workflow "CI & Verify" --limit 1`).
+2. **The tagged commit already contains the CURRENT release scripts.** The workflow
+   checks out the tag and runs `scripts/**` **from that commit** — a fix merged
+   after the tag does NOT reach the tag's re-run. If you are about to tag the tip
+   of `main`, confirm `main` already carries the release-script fixes.
+3. **Authored version matches (for `innfo-mcp` and `innfo-console`):**
+   - `innfo-mcp`: `version` in `iNNfo/packages/innfo-mcp/package.json` equals `<semver>`.
+   - `innfo-console`: `version` in `iNNfo/specs/bluepriNNts/console/package.json` equals `<semver>`.
+4. **Strictly greater than existing tags:** `<semver>` MUST be greater than the
+   highest existing tag for that `<key>` in BOTH the monorepo and
+   `cogNNitive/cogNNitive-web`.
+5. **`release.yml` env is complete.** Every step that touches the GitHub API carries
+   a token — in particular the **Post-Publish Smoke Test** step, whose validator
+   (`validateManifestText`) calls the GitHub API and fails with HTTP 403/429 when
+   unauthenticated. Inspect that step's `env:` block for `GITHUB_TOKEN`.
+6. **`vars.RELEASE_ENABLED == 'true'`.** Otherwise a tag push silently runs as a
+   **dry run** (the workflow sets `DRY_RUN` when the variable is absent/false) and
+   the smoke test is skipped — a green-looking no-op that publishes nothing.
+7. **Release freeze.** No other session/agent may push to `dev`/`main` while the
+   release workflow is in flight: a moved `origin/main` breaks the tag's own
+   verification (see §4). Announce the freeze before tagging.
 
 ### Step 2: Create Annotated Tag
 
@@ -104,7 +124,19 @@ A release SHALL be reported as "deployed" ONLY when all 4 legs verify:
 
 ## 4. Failure & Re-Run States
 
-If a release workflow run fails, inspect the failing stage below. Re-running the workflow on the same tag is the primary recovery path because all release operations are idempotent and additive:
+> ⚠️ **A failed tag usually CANNOT be re-run to green.** "Re-run the workflow on
+> the same tag" is only valid for a **transient infrastructure/network failure
+> with no code or state change**. It does NOT work once either is true:
+> - **`origin/main` advanced past the tag.** Release verification (e.g. the
+>   template-immutability guard) compares the tag checkout against `origin/main`;
+>   a moved main makes the old tag look like it went backwards and false-fails.
+> - **The fix that makes it pass landed AFTER the tag was cut.** The workflow runs
+>   the scripts *from the tag*, so a later fix never reaches the tag's re-run.
+>
+> In both cases the recovery is a **new version tag** (`<key>-v<next>`), never a
+> re-run. Do not delete or move the failed tag (published tags are immutable).
+
+If a release workflow run fails, inspect the failing stage below. Re-running on the same tag is the primary recovery path **only for a transient failure** (see the callout above); all release operations are idempotent and additive:
 
 | Stage | Failure State | Recovery Action |
 |-------|---------------|-----------------|
@@ -114,7 +146,19 @@ If a release workflow run fails, inspect the failing stage below. Re-running the
 | **4. Manifest Assembly** | Commit C and mirror tag exist; manifest assembly failed. | Re-run workflow. Re-assembles manifest against published history. |
 | **5. Manifest Staging Validation** | Assembled manifest failed validation checks. | Release aborted before commit M. Check inventory rules and re-run. |
 | **6. Manifest Commit M** | Manifest commit failed to push to `cogNNitive-web`. | Re-run workflow. Retries pushing commit M and snapshot. |
-| **7. Post-Publish Smoke Test** | All assets, mirror tag, and manifest commit M are published, but live URL smoke test failed (e.g. CDN replication delay). | **DO NOT DELETE TAGS.** Published tags are immutable. Re-run the release workflow on the same tag (`gh run rerun <run-id>`) to re-verify live smoke tests once CDN propagates. |
+| **7. Post-Publish Smoke Test** | All assets, mirror tag, and manifest commit M are published, but the live smoke failed (CDN replication delay, or an unauthenticated validator — see §4b). | **DO NOT DELETE TAGS.** Re-run (`gh run rerun <run-id>`) **only** if `origin/main` has not moved and the fix predates the tag; otherwise cut a new version. |
+
+---
+
+## 4b. Known Failure Modes (symptom → cause → fix)
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| `Post-Publish Smoke Test` fails with `Live manifest … failed validation` although the manifest already reached byte-equality | the smoke step ran **without a token**; `validateManifestText`'s GitHub API calls returned 403/429 | add `GITHUB_TOKEN: ${{ secrets.WEB_RELEASE_TOKEN || secrets.GITHUB_TOKEN }}` to that step's `env:` |
+| `Template Immutability Guard` fails on a tag with `base: "V_0-X-0", current: "V_0-(X-1)-0"` — especially on a **re-run** | the guard diffed the tag against a moved-on `origin/main` | base is now `merge-base(HEAD, origin/main)`; if it still fires on an old tag, cut a new version |
+| Workflow concludes without publishing anything | `vars.RELEASE_ENABLED` is not `'true'` → silent dry run | set the repo variable to `true`, then re-tag |
+| `Authored version mismatch` | tag `<semver>` ≠ the key's `package.json` `version` | bump the package in the same batch, then tag |
+| `Version below existing tag` | semver ≤ an existing tag for the key | cut a higher version — tags are immutable |
 
 ---
 

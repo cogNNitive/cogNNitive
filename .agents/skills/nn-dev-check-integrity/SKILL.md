@@ -216,6 +216,30 @@ dev/default mode (not just `--pre-push`/`--release`) — see
 maintainer's job; this check only catches the local half (the unpinned
 manifest), not the missing tag itself.
 
+### Group 1d — Release workflow auth & trigger sanity — blocking on release-shaped changes
+
+**Expediente:** 2026-10-02 — every tag-driven release failed for most of a day
+because the `Post-Publish Smoke Test` step in `.github/workflows/release.yml`
+ran **without a token**: its validator (`validateManifestText`) calls the GitHub
+API and, unauthenticated, got HTTP 403/429 — surfacing only as an opaque
+`Live manifest … failed validation`. A second attempt then died in the template
+immutability guard because its base was the moved-on `origin/main` (see
+`nn-dev-release` §4b). Both are local, static checks:
+
+```powershell
+# 1. Every networked step must carry a token (Run Release AND the smoke test).
+Select-String -Path .github/workflows/release.yml -Pattern 'GITHUB_TOKEN|WEB_RELEASE_TOKEN'
+# 2. A tag push only publishes when the repo variable is enabled.
+gh variable get RELEASE_ENABLED
+```
+
+- ❌ a step that calls the manifest validator / GitHub API has no token in its
+  `env:` block.
+- ❌ `RELEASE_ENABLED` is unset or not `true` while a real (non-dry-run) release
+  is expected — tag pushes then silently dry-run and publish nothing.
+- ❌ a **tag cut before the guard/smoke fix** cannot be re-run green: the workflow
+  runs the scripts *from the tag*. Recovery is a new version tag, never a re-run.
+
 ### Group 2 — Version SSOT & Inventory Coherence
 **Expediente:** `mcp-two-distribution-channels.md` — CDN frozen at v0.2.1 while the repo
 was at v0.2.4 (5 MCP tools missing in production).
