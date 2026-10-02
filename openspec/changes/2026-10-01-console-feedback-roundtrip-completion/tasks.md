@@ -138,13 +138,13 @@ A5b (shells, registry, guard, docs, ~150 + deletions)
 
 ## Phase 7: A6b - Deletions and references (PR 7, ~100 + 333 deletions)
 
-- [ ] A6.7 RED: update `CORE/tests/metrics-console-feedback.test.ts` (:43, :110-112) to expect `reconcile_feedback`; add a repo-scan test: zero `apply_feedback` outside `openspec/changes/archive/` and the kept fixtures (`CORE/tests/{fixtures/simulacro-refactorizacion,legacy/fixtures}/**`, `procedures/procedures/export/document_sop_console/*`), zero `console-review-v1`, zero `session_label` and `(?<!source_)knowledge_version` in the console dir, schema, validators, reconcile procedure and nn-trannsform.
-- [ ] A6.8 GREEN: delete `BP/business/procedures/apply_feedback_NN.md` and `BP/metrics/procedures/apply_feedback_NN.md` (pure deletion; `size:exception` for the deletion lines if the maintainer rejects the split).
-- [ ] A6.9 GREEN: repoint `BP/metrics/procedures/create_timeline_NN.md` (:123 prose, :145 link), `docs/innfo/documentation/lifecycle-walkthrough.md:136`, `docs/research/cognnitive-value-proposition.md` (:111, :202, :278, :420), any `spec_NN.md` hit found by `rg apply_feedback`.
-- [ ] A6.10 GREEN: bump `blueprint_version` of business and metrics (procedure removed, minor) and the version of edited `create_timeline_NN.md`, in the same commit (template-immutability guard); register in editor `SHIPPED_TEMPLATE_VERSIONS` if its test demands.
-- [ ] A6.11 `rg apply_feedback` and `rg "console-review-v1"` outside the allowed set return nothing; `canonical-registry.ts` and `innfo-mcp.bundle.js` have no `apply_feedback` hits (regenerated in R).
-- [ ] A6.12 If gate 0.8 says not yet fixed: `templates-v*` -> `blueprints-v*` in `.agents/skills/nn-dev-release/SKILL.md` (maintainer-only, no `skills-v*` tag).
-- [ ] A6.13 Run G; commits `chore(blueprints): remove apply_feedback procedures`, `docs: repoint apply_feedback references to reconcile_feedback`.
+- [x] A6.7 RED: update `CORE/tests/metrics-console-feedback.test.ts` (:43, :110-112) to expect `reconcile_feedback`; add a repo-scan test: zero `apply_feedback` outside `openspec/changes/archive/` and the kept fixtures (`CORE/tests/{fixtures/simulacro-refactorizacion,legacy/fixtures}/**`, `procedures/procedures/export/document_sop_console/*`), zero `console-review-v1`, zero `session_label` and `(?<!source_)knowledge_version` in the console dir, schema, validators, reconcile procedure and nn-trannsform.
+- [x] A6.8 GREEN: delete `BP/business/procedures/apply_feedback_NN.md` and `BP/metrics/procedures/apply_feedback_NN.md` (pure deletion; `size:exception` for the deletion lines if the maintainer rejects the split).
+- [x] A6.9 GREEN: repoint `BP/metrics/procedures/create_timeline_NN.md` (:123 prose, :145 link), `docs/innfo/documentation/lifecycle-walkthrough.md:136`, `docs/research/cognnitive-value-proposition.md` (:111, :202, :278, :420), any `spec_NN.md` hit found by `rg apply_feedback`.
+- [x] A6.10 GREEN: bump `blueprint_version` of business and metrics (procedure removed, minor) and the version of edited `create_timeline_NN.md`, in the same commit (template-immutability guard); register in editor `SHIPPED_TEMPLATE_VERSIONS` if its test demands.
+- [x] A6.11 `rg apply_feedback` and `rg "console-review-v1"` outside the allowed set return nothing; `canonical-registry.ts` and `innfo-mcp.bundle.js` have no `apply_feedback` hits (regenerated in R).
+- [x] A6.12 If gate 0.8 says not yet fixed: `templates-v*` -> `blueprints-v*` in `.agents/skills/nn-dev-release/SKILL.md` (maintainer-only, no `skills-v*` tag).
+- [x] A6.13 Run G; commits `chore(blueprints): remove apply_feedback procedures`, `docs: repoint apply_feedback references to reconcile_feedback`.
 
 ## Phase 8: R - Release prep (once for the batch; real tags, verify unused at release time)
 
