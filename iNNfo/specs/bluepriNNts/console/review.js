@@ -388,7 +388,59 @@
       return b
     }
 
+    function onKeydown(event) {
+      if (!enabled) return
+      if (!event) return
+      if (event.ctrlKey || event.metaKey || event.altKey) return
+      var target = event.target
+      var tag = target && target.tagName ? String(target.tagName).toLowerCase() : ''
+      if (tag === 'input' || tag === 'textarea' || tag === 'select') return
+      if (target && target.isContentEditable) return
+      if (openPopover) return
+
+      var changedOn = html() && html().getAttribute('data-innfo-filter') === 'changed'
+      var visible = []
+      Array.prototype.forEach.call(
+        doc.querySelectorAll('[data-innfo-component="element-card"][data-element-id]'),
+        function (card) {
+          // Layout-free visibility: when the changed filter is on, only changed
+          // cards are shown; otherwise every connected card is navigable.
+          if (changedOn && !card.hasAttribute('data-innfo-changed')) return
+          if (card.hidden) return
+          visible.push(card)
+        },
+      )
+      if (!visible.length) return
+
+      var current = doc.activeElement
+      var idx = visible.indexOf(current)
+      if (event.key === 'j') {
+        if (typeof event.preventDefault === 'function') event.preventDefault()
+        var next = visible[idx < 0 ? 0 : Math.min(idx + 1, visible.length - 1)]
+        if (next && typeof next.focus === 'function') next.focus()
+      } else if (event.key === 'k') {
+        if (typeof event.preventDefault === 'function') event.preventDefault()
+        var prev = visible[idx <= 0 ? 0 : idx - 1]
+        if (prev && typeof prev.focus === 'function') prev.focus()
+      } else if (event.key === 'c') {
+        if (typeof event.preventDefault === 'function') event.preventDefault()
+        var focused = idx >= 0 ? visible[idx] : visible[0]
+        var fieldRow = focused.querySelector('[data-innfo-ctl="field-anchor"]')
+        var anchor = focused.querySelector('[data-innfo-ctl="card-anchor"]')
+        if (fieldRow && document.activeElement && document.activeElement.closest && document.activeElement.closest('[data-innfo-component="field-row"]')) {
+          fieldRow.dispatchEvent(new Event('click', { bubbles: true }))
+        } else if (anchor) {
+          anchor.dispatchEvent(new Event('click', { bubbles: true }))
+        }
+      }
+    }
+
+    function ensureCardFocusable(card) {
+      if (!card.getAttribute('tabindex')) card.setAttribute('tabindex', '-1')
+    }
+
     function decorateCard(card) {
+      ensureCardFocusable(card)
       var elId = card.getAttribute('data-element-id')
       var head = card.querySelector('.innfo-card-head') || card
       if (!card.querySelector('[data-innfo-ctl="card-anchor"]')) {
@@ -545,6 +597,7 @@
         if (enabled && toggleEl) buildChangedFilter()
       }
       if (toggleEl) toggleEl.setAttribute('aria-pressed', enabled ? 'true' : 'false')
+      decorateCounter()
       decorateBadges()
       if (enabled) {
         decorate(root || doc)
@@ -579,6 +632,7 @@
       enabled = true
       if (html()) html().setAttribute('data-innfo-review', 'on')
       if (toggleEl) toggleEl.setAttribute('aria-pressed', 'true')
+      if (doc.addEventListener) doc.addEventListener('keydown', onKeydown)
       buildChangedFilter()
       applyDecorations()
     }
@@ -586,6 +640,7 @@
     function disable() {
       enabled = false
       closePopover()
+      if (doc.removeEventListener) doc.removeEventListener('keydown', onKeydown)
       if (html()) {
         html().removeAttribute('data-innfo-review')
         html().removeAttribute('data-innfo-filter')
@@ -617,10 +672,20 @@
       toggleEl = null
     }
 
+    // A11y: the draft counter is a polite live region (C13).
+    function decorateCounter() {
+      var counter = doc.querySelector('[data-innfo="draft-count"]')
+      if (counter) {
+        counter.setAttribute('role', 'status')
+        counter.setAttribute('aria-live', 'polite')
+      }
+    }
+
     toggleEl = buildToggle()
     if (doc.addEventListener) doc.addEventListener('innfo:rendered', onRendered)
     // One initial pass: covers a render that preceded the controller's creation
     // (verdict badges show with review mode off).
+    decorateCounter()
     decorateBadges()
 
     return {
