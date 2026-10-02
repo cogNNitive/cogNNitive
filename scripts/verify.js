@@ -47,16 +47,55 @@ function extractDeclaredBlueprints(sourceText) {
   return declaredBlueprints;
 }
 
-function checkBlueprintInventory(blueprintsDir, sourceYamlPath) {
+function checkBlueprintInventory(blueprintsDir, sourceYamlPath, repoRoot = null) {
   const sourceText = fs.readFileSync(sourceYamlPath, 'utf8');
   const declaredBlueprints = extractDeclaredBlueprints(sourceText);
 
-  const diskFolders = fs.readdirSync(blueprintsDir, { withFileTypes: true })
-    .filter(d => d.isDirectory() && d.name !== 'assets')
-    .map(d => d.name);
+  let diskFolders = [];
+  if (fs.existsSync(blueprintsDir)) {
+    diskFolders = fs.readdirSync(blueprintsDir, { withFileTypes: true })
+      .filter(d => d.isDirectory() && d.name !== 'assets')
+      .map(d => d.name);
+  }
 
   const missing = diskFolders.filter(name => !declaredBlueprints.has(name));
-  return { ok: missing.length === 0, missing, diskFolders };
+  const missingPaths = [];
+
+  if (repoRoot) {
+    const { parseFocusedYaml } = require('./lib/yaml-parser.js');
+    try {
+      const doc = parseFocusedYaml(sourceText) || {};
+      for (const s of (doc.skills || [])) {
+        if (s.path && !fs.existsSync(path.join(repoRoot, s.path, 'SKILL.md'))) {
+          missingPaths.push(`Skill '${s.name || s.path}' missing at ${s.path}/SKILL.md`);
+        }
+        for (const m of (s.mcp || [])) {
+          if (m.path && !fs.existsSync(path.join(repoRoot, m.path))) {
+            missingPaths.push(`Skill MCP '${m.name || m.path}' missing at ${m.path}`);
+          }
+        }
+      }
+      for (const b of (doc.blueprints || [])) {
+        if (b.path && !fs.existsSync(path.join(repoRoot, b.path))) {
+          missingPaths.push(`Blueprint '${b.name || b.path}' missing at ${b.path}`);
+        }
+      }
+      for (const b of (doc.frozen_blueprints || [])) {
+        if (b.path && !fs.existsSync(path.join(repoRoot, b.path))) {
+          missingPaths.push(`Frozen blueprint '${b.name || b.path}' missing at ${b.path}`);
+        }
+      }
+      for (const a of (doc.console_assets || [])) {
+        if (a.file && !fs.existsSync(path.join(repoRoot, a.file))) {
+          missingPaths.push(`Console asset '${a.name || a.file}' missing at ${a.file}`);
+        }
+      }
+    } catch (err) {
+      missingPaths.push(`Failed to parse source.yaml: ${err.message}`);
+    }
+  }
+
+  return { ok: missing.length === 0 && missingPaths.length === 0, missing, missingPaths, diskFolders };
 }
 
 /**
@@ -288,10 +327,17 @@ function buildSteps(repoRoot, _options = {}) {
       if (!fs.existsSync(blueprintsDir) || !fs.existsSync(sourceYamlPath)) {
         return { ok: true, lines: ['skipped: blueprints dir or source.yaml missing'] };
       }
-      const { ok, missing, diskFolders } = checkBlueprintInventory(blueprintsDir, sourceYamlPath);
+      const { ok, missing, missingPaths, diskFolders } = checkBlueprintInventory(blueprintsDir, sourceYamlPath, repoRoot);
+      const errLines = [];
+      if (missing && missing.length > 0) {
+        errLines.push(`Folders exist in specs/bluepriNNts/ but are missing from manifest/source.yaml: ${missing.join(', ')}`);
+      }
+      if (missingPaths && missingPaths.length > 0) {
+        errLines.push(...missingPaths.map((p) => `Missing source path: ${p}`));
+      }
       return ok
-        ? { ok, lines: [`all ${diskFolders.length} template folders are registered in manifest.`] }
-        : { ok, lines: [`Folders exist in specs/bluepriNNts/ but are missing from manifest/source.yaml: ${missing.join(', ')}`] };
+        ? { ok, lines: [`all ${diskFolders.length} template folders and declared source paths exist.`] }
+        : { ok: false, lines: errLines };
     }),
   });
 
@@ -315,7 +361,6 @@ function buildSteps(repoRoot, _options = {}) {
     run: inline(() => {
       const ORCHESTRATORS = [
         'scripts/manifest/validate-manifest.js',
-        'scripts/manifest/check-parity.js',
         'scripts/skills-manager.js',
         'scripts/release/run-release.js',
         'skills/nn-trannsform/scripts/scanner.js',

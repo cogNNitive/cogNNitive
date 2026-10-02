@@ -1,25 +1,16 @@
 #!/usr/bin/env node
 
 /**
- * scripts/generate-manifest.js
+ * scripts/manifest/generate-manifest.js
  *
  * Renders docs/use/manifest.md (stable) or docs/use/manifest-next.md (preview)
  * from a SHA-free hand-authored source: manifest/source.yaml (identity, paths,
- * versions, per-channel refs) + manifest/body.md (prose). Every `commit` in the
- * output is resolved from a `repo` + `ref` pair through the GitHub API — there
- * is no field in the source for a human to type a commit or a wrong-repo SHA
- * into.
+ * single-source version reading) + manifest/body.md (prose).
  *
- * CLI contract:
- *   node scripts/generate-manifest.js --channel stable|preview [--check] [--out <path>]
- *     exit 0  wrote (or --check: on-disk file is byte-identical)
- *     exit 1  --check drift: on-disk file differs from render (diff on stderr)
- *     exit 2  resolution failure (ref not found, wrong ref kind, rate limit, network)
+ * Preview channel refs default to 'main'.
+ * Generation is deterministic and offline-friendly with injected ref resolver.
  *
- * The render is a pure function of its inputs: no timestamp, no generator
- * version, no run id. Regeneration with no upstream change is byte-identical.
- *
- * Zero dependencies. Requires Node >= 18.
+ * Zero external dependencies. Requires Node >= 18.
  */
 
 const fs = require('fs');
@@ -29,53 +20,139 @@ const {
   resolveRef: defaultResolveRef,
   CHANNELS,
 } = require('./validate-manifest.js');
-const { resolveChannelRefs } = require('../lib/channel-refs.js');
+const { readEntryVersion } = require('./lib/entry-version.js');
 
 // ---------------------------------------------------------------------------
 // Source parsing
 // ---------------------------------------------------------------------------
 
-function parseSourceYaml(text) {
+function resolveVersionForEntry(entry, section, repoRoot) {
+  if (entry.version !== undefined && entry.version !== null && entry.version !== '') {
+    return String(entry.version);
+  }
+  if (!repoRoot) return '0.0.0';
+  const pList = section === 'skills'
+    ? (entry.path ? [entry.path, 'SKILL.md'] : ['skills', entry.name || '', 'SKILL.md'])
+    : section === 'blueprints'
+      ? (entry.path ? [entry.path] : ['iNNfo', 'specs', entry.name || ''])
+      : section === 'mcp'
+        ? ['iNNfo', 'packages', 'innfo-mcp', 'package.json']
+        : ['iNNfo', 'specs', 'bluepriNNts', 'console', 'package.json'];
+  const target = path.join(repoRoot, ...pList.filter(Boolean));
+  if (fs.existsSync(target)) {
+    const v = readEntryVersion({ section, content: fs.readFileSync(target, 'utf8') });
+    if (v) return v;
+  }
+  return '0.0.0';
+}
+
+function parseSourceYaml(text, repoRoot = process.cwd()) {
   const doc = parseFocusedYaml(text);
   const channels = {};
   if (doc.channels && typeof doc.channels === 'object') {
     for (const ch of Object.keys(doc.channels)) {
-      channels[ch] = { refs: resolveChannelRefs(doc, ch) };
+      const channelObj = doc.channels[ch];
+      const refs = [];
+      if (channelObj && Array.isArray(channelObj.refs)) {
+        for (const r of channelObj.refs) {
+          let ref = r.ref;
+          if (!ref && r.version) {
+            ref = `${r.key}-v${r.version}`;
+          }
+          if (!ref) {
+            if (r.key === 'innfo-mcp') {
+              for (const s of (doc.skills || [])) {
+                for (const m of (s.mcp || [])) {
+                  if (m.name === 'innfo-mcp' && m.version) {
+                    ref = `innfo-mcp-v${m.version}`;
+                    break;
+                  }
+                }
+              }
+            } else if (r.key === 'innfo-console') {
+              for (const c of (doc.console_assets || [])) {
+                if (c.name === 'innfo-console' && c.version) {
+                  ref = `innfo-console-v${c.version}`;
+                  break;
+                }
+              }
+            } else if (r.key === 'blueprints' || r.key === 'templates') {
+              for (const b of (doc.blueprints || doc.templates || [])) {
+                if (b.version) {
+                  ref = `${r.key}-v${b.version}`;
+                  break;
+                }
+              }
+            }
+          }
+          refs.push({
+            key: r.key || r.repo,
+            repo: r.repo,
+            ref: ref || 'main',
+          });
+        }
+      }
+      channels[ch] = { refs };
     }
   }
+
+  const rawSkills = Array.isArray(doc.skills) ? doc.skills : [];
+  const skills = rawSkills.map((s) => {
+    const sVer = s.version || resolveVersionForEntry(s, 'skills', repoRoot);
+    const mcp = Array.isArray(s.mcp)
+      ? s.mcp.map((m) => {
+          const mVer = m.version || resolveVersionForEntry(m, 'mcp', repoRoot);
+          return { ...m, ...(mVer && mVer !== '0.0.0' ? { version: mVer } : {}) };
+        })
+      : [];
+    return {
+      ...s,
+      ...(sVer && sVer !== '0.0.0' ? { version: sVer } : {}),
+      ...(mcp.length ? { mcp } : {}),
+    };
+  });
+
+  const rawBlueprints = Array.isArray(doc.blueprints) ? doc.blueprints : Array.isArray(doc.templates) ? doc.templates : [];
+  const blueprints = rawBlueprints.map((b) => {
+    const bVer = b.version || resolveVersionForEntry(b, 'blueprints', repoRoot);
+    return {
+      ...b,
+      ...(bVer && bVer !== '0.0.0' ? { version: bVer } : {}),
+    };
+  });
+
+  const rawConsole = Array.isArray(doc.console_assets) ? doc.console_assets : [];
+  const consoleAssets = rawConsole.map((c) => {
+    const cVer = c.version || resolveVersionForEntry(c, 'console', repoRoot);
+    return {
+      ...c,
+      ...(cVer && cVer !== '0.0.0' ? { version: cVer } : {}),
+    };
+  });
+
   return {
     version: doc.version,
     entrypoint: doc.entrypoint,
-    skills: Array.isArray(doc.skills) ? doc.skills : [],
-    blueprints: Array.isArray(doc.blueprints) ? doc.blueprints : [],
-    consoleAssets: Array.isArray(doc.console_assets) ? doc.console_assets : [],
+    skills,
+    blueprints,
+    consoleAssets,
     workflows: Array.isArray(doc.workflows) ? doc.workflows : [],
     channels,
   };
 }
 
-// ---------------------------------------------------------------------------
-// Ref resolution — resolves each entry's ref_key against the channel's refs
-// map, then resolves the ref itself through the GitHub API (or an injected
-// stub in tests). No network in unit tests.
-// ---------------------------------------------------------------------------
-
-async function resolveEntryRef(entry, channelRefs, resolveRef, policy) {
+async function resolveEntryRef(entry, channelRefs, resolveRef, policy, defaultRef = 'main') {
   const key = entry.ref_key || entry.repo;
-  const refInfo = channelRefs.find((r) => r.key === key);
+  let refInfo = channelRefs.find((r) => r.key === key);
   if (refInfo === undefined) {
-    return { error: `no ref declared for ref_key '${key}' in this channel` };
+    refInfo = { key, repo: entry.repo || 'cogNNitive/cogNNitive', ref: defaultRef };
   }
   const { repo, ref } = refInfo;
-  if (repo !== entry.repo) {
+  if (repo !== entry.repo && entry.repo) {
     return { error: `ref_key '${key}' resolves to repo '${repo}', but '${entry.name}' declares repo '${entry.repo}'` };
   }
   const resolved = await resolveRef(repo, ref);
   if (resolved.error) return { error: resolved.error };
-  // Judge the ref by what it resolves to, never by what it is named: a branch
-  // called 'skills-v1.0.0' is still a branch. The channel policy table in
-  // validate-manifest.js is the single source of this rule, so generation and
-  // validation cannot drift.
   if (policy && resolved.kind && resolved.kind !== policy.requiredRefKind) {
     return {
       error: `ref '${ref}' resolves as a ${resolved.kind}, but the ${policy.name} channel requires a ${policy.requiredRefKind}`,
@@ -84,44 +161,50 @@ async function resolveEntryRef(entry, channelRefs, resolveRef, policy) {
   return { ref, commit: resolved.sha };
 }
 
-async function buildRenderModel(source, channel, resolveRef) {
-  const channelRefs = (source.channels[channel] && source.channels[channel].refs) || [];
+async function buildRenderModel(source, channel, resolveRef, repoRoot = process.cwd()) {
+  const channelRefs = (source.channels && source.channels[channel] && source.channels[channel].refs) || [];
   const policy = CHANNELS[channel];
+  const defaultRef = channel === 'preview' ? 'main' : 'main';
 
   const skills = [];
   for (const skill of source.skills) {
-    const resolved = await resolveEntryRef(skill, channelRefs, resolveRef, policy);
+    const resolved = await resolveEntryRef(skill, channelRefs, resolveRef, policy, defaultRef);
     if (resolved.error) return { error: `${skill.name}: ${resolved.error}` };
+    const version = resolveVersionForEntry(skill, 'skills', repoRoot);
 
     const mcp = [];
     for (const m of (skill.mcp || [])) {
-      const mResolved = await resolveEntryRef(m, channelRefs, resolveRef, policy);
+      const mResolved = await resolveEntryRef(m, channelRefs, resolveRef, policy, defaultRef);
       if (mResolved.error) return { error: `${m.name}: ${mResolved.error}` };
+      const mVersion = resolveVersionForEntry(m, 'mcp', repoRoot);
       mcp.push({
         ...m,
+        version: mVersion,
         ref: mResolved.ref,
         commit: mResolved.commit,
         url: `https://raw.githubusercontent.com/${m.repo}/${mResolved.commit}/${m.path}`,
       });
     }
 
-    skills.push({ ...skill, ref: resolved.ref, commit: resolved.commit, mcp });
+    skills.push({ ...skill, version, ref: resolved.ref, commit: resolved.commit, mcp });
   }
 
   const blueprints = [];
   for (const blueprint of source.blueprints) {
-    const resolved = await resolveEntryRef(blueprint, channelRefs, resolveRef, policy);
+    const resolved = await resolveEntryRef(blueprint, channelRefs, resolveRef, policy, defaultRef);
     if (resolved.error) return { error: `${blueprint.name}: ${resolved.error}` };
-    blueprints.push({ ...blueprint, ref: resolved.ref, commit: resolved.commit });
+    const version = resolveVersionForEntry(blueprint, 'blueprints', repoRoot);
+    blueprints.push({ ...blueprint, version, ref: resolved.ref, commit: resolved.commit });
   }
 
   const consoleAssets = [];
   for (const asset of source.consoleAssets) {
-    const resolved = await resolveEntryRef(asset, channelRefs, resolveRef, policy);
+    const resolved = await resolveEntryRef(asset, channelRefs, resolveRef, policy, defaultRef);
     if (resolved.error) return { error: `${asset.name}: ${resolved.error}` };
+    const version = resolveVersionForEntry(asset, 'console', repoRoot);
     consoleAssets.push({
       file: asset.file,
-      version: asset.version,
+      version,
       ref: resolved.ref,
       commit: resolved.commit,
       url: `https://raw.githubusercontent.com/${asset.repo}/${resolved.commit}/${asset.file}`,
@@ -129,17 +212,17 @@ async function buildRenderModel(source, channel, resolveRef) {
   }
 
   return {
-    version: source.version,
-    entrypoint: source.entrypoint,
+    version: source.version || '2.0',
+    entrypoint: source.entrypoint || 'domaiNN_NN.md',
     skills,
     blueprints,
     consoleAssets,
-    workflows: source.workflows,
+    workflows: source.workflows || [],
   };
 }
 
 // ---------------------------------------------------------------------------
-// Deterministic emitter — no YAML library, fixed key order, fixed quoting.
+// Deterministic emitter — fixed key order, fixed quoting.
 // ---------------------------------------------------------------------------
 
 function q(value) {
@@ -177,8 +260,7 @@ function renderSkillEntry(skill) {
       out += `${indent}      repo: ${m.repo}\n`;
       out += `${indent}      path: ${m.path}\n`;
       if (m.version !== undefined) {
-        out += `${indent}      version: ${q(m.version)}
-`;
+        out += `${indent}      version: ${q(m.version)}\n`;
       }
       out += `${indent}      ref: ${q(m.ref)}\n`;
       out += `${indent}      commit: ${q(m.commit)}\n`;
@@ -252,16 +334,15 @@ function normalizeOutput(text) {
   return lines.join('\n') + '\n';
 }
 
-async function renderManifest(source, channel, body, resolveRef) {
-  const model = await buildRenderModel(source, channel, resolveRef);
+async function renderManifest(source, channel, body, resolveRef, repoRoot = process.cwd()) {
+  const model = await buildRenderModel(source, channel, resolveRef, repoRoot);
   if (model.error) return { error: model.error };
   const rendered = normalizeOutput(`${renderFrontmatter(model, channel)}\n${body}`);
   return rendered;
 }
 
 // ---------------------------------------------------------------------------
-// Minimal line diff for --check output. Not a full LCS diff — good enough to
-// point a reviewer at what changed in a hand-edited manifest.
+// Minimal line diff for --check output.
 // ---------------------------------------------------------------------------
 
 function unifiedDiff(oldText, newText) {
@@ -336,7 +417,7 @@ async function run(argv, options = {}) {
     body = `${fs.readFileSync(bannerPath, 'utf-8').trim()}\n\n${body}`;
   }
 
-  const rendered = await renderManifest(source, channel, body, resolveRef);
+  const rendered = await renderManifest(source, channel, body, resolveRef, cwd);
   if (typeof rendered !== 'string') {
     logError(`FAIL: ${rendered.error}`);
     return 2;

@@ -135,16 +135,19 @@ function discoverConsoleShells(repoRoot) {
 }
 
 /**
- * Parses expected console version from manifest/source.yaml.
+ * Parses expected console version from console package.json.
  * @param {string} repoRoot
  * @returns {string} e.g. "0.6.0"
  */
 function getExpectedConsoleVersion(repoRoot) {
-  const sourceYamlPath = path.join(repoRoot, 'manifest', 'source.yaml');
-  if (!fs.existsSync(sourceYamlPath)) return '0.6.0';
-  const text = fs.readFileSync(sourceYamlPath, 'utf8');
-  const match = /name:\s*innfo-console\b[\s\S]*?version:\s*["']?([^"'\s\r\n]+)/.exec(text);
-  return match ? match[1] : '0.6.0';
+  const pkgPath = path.join(repoRoot, 'iNNfo', 'specs', 'bluepriNNts', 'console', 'package.json');
+  if (fs.existsSync(pkgPath)) {
+    try {
+      const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+      if (pkg.version) return String(pkg.version);
+    } catch {}
+  }
+  return '0.6.0';
 }
 
 /**

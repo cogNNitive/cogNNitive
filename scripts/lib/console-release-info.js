@@ -2,49 +2,42 @@
  * scripts/lib/console-release-info.js
  *
  * Single source of truth for the innfo-console release identity (bundle
- * version + CDN pin), derived from `manifest/source.yaml` instead of
- * duplicated as hardcoded literals.
+ * version + CDN pin), derived from `iNNfo/specs/bluepriNNts/console/package.json`
+ * instead of duplicated as hardcoded literals (AD-6).
  */
 
 const fs = require('fs');
 const path = require('path');
-const { parseFocusedYaml } = require('./yaml-parser.js');
-const { resolveChannelRefs } = require('./channel-refs.js');
 
 /**
  * @param {string} repoRoot
  * @returns {{ version: string, cdnRef: string, cdnUrl: string }}
  */
 function getConsoleReleaseInfo(repoRoot = process.cwd()) {
-  const sourcePath = path.join(repoRoot, 'manifest', 'source.yaml');
-  const source = parseFocusedYaml(fs.readFileSync(sourcePath, 'utf8'));
-
-  const consoleAssets = Array.isArray(source.console_assets) ? source.console_assets : [];
-  const asset = consoleAssets.find((a) => a && a.name === 'innfo-console');
-  if (!asset || !asset.version) {
+  const pkgPath = path.join(repoRoot, 'iNNfo', 'specs', 'bluepriNNts', 'console', 'package.json');
+  if (!fs.existsSync(pkgPath)) {
     throw new Error(
-      `manifest/source.yaml: missing console_assets entry for "innfo-console" at ${sourcePath}`,
+      `console package.json not found at ${pkgPath}`,
     );
   }
-  const version = String(asset.version);
 
-  let stableRefs = [];
+  let pkg;
   try {
-    stableRefs = resolveChannelRefs(source, 'stable');
+    pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
   } catch (err) {
-    throw new Error(`manifest/source.yaml: ${err.message} at ${sourcePath}`);
+    throw new Error(`Failed to parse ${pkgPath}: ${err.message}`);
   }
 
-  const ref = stableRefs.find((r) => r && r.key === 'innfo-console');
-  if (!ref || !ref.ref) {
-    throw new Error(
-      `manifest/source.yaml: missing channels.stable.refs entry keyed "innfo-console" at ${sourcePath}`,
-    );
+  if (!pkg.version) {
+    throw new Error(`console package.json missing "version" field at ${pkgPath}`);
   }
-  const repoSlug = ref.repo || 'cogNNitive/cogNNitive';
-  const cdnUrl = `https://cdn.jsdelivr.net/gh/${repoSlug}@${ref.ref}/iNNfo/specs/bluepriNNts/console/innfo-console.bundle.js`;
 
-  return { version, cdnRef: ref.ref, cdnUrl };
+  const version = String(pkg.version);
+  const cdnRef = `innfo-console-v${version}`;
+  const repoSlug = 'cogNNitive/cogNNitive-web';
+  const cdnUrl = `https://cdn.jsdelivr.net/gh/${repoSlug}@${cdnRef}/iNNfo/specs/bluepriNNts/console/innfo-console.bundle.js`;
+
+  return { version, cdnRef, cdnUrl };
 }
 
 module.exports = { getConsoleReleaseInfo };

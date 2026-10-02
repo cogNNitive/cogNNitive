@@ -79,3 +79,23 @@ Status: tasks 2.1-2.21 done (21/21).
 - `verify.js`: 96/96 steps pass offline.
 - `check-integrity.js`: ALL INTEGRITY GATES PASSED.
 
+## Batch 5 - PR 3 (Single version source and guard removal; AD-6)
+
+Status: tasks 3.1-3.10 done (10/10).
+
+### Implemented Components
+1. `iNNfo/specs/bluepriNNts/console/package.json` created (`private: true`, `version: 0.6.0`); re-sourced `console-release-info.js`, `console-shell-guard.js` and tests.
+2. `scripts/release/version-agreement.js` & `.test.js`: verifies package version matching for `innfo-mcp` and `innfo-console`, and monotonic progression against existing tags across both repositories. Wired into `run-release.js`.
+3. `scripts/verify-inventory.test.js` & `scripts/verify.js`: extended `checkBlueprintInventory` to verify that every path declared in `manifest/source.yaml` exists on disk.
+4. `manifest/source.yaml`: stripped all `version:` and `channels:` blocks; inventory carries zero hand-typed channel versions.
+5. `scripts/sync-versions.mjs` & `.test.mjs`: dropped `syncSourceYaml`, kept `samples.ts` and package sync.
+6. Deleted obsolete synchronization guards: `channel-refs.js`, `check-parity.js`, `tag-pin-freshness.js`, `check-tag-pin-freshness-cli.js`, `cdn-bundle-staged.js` and their test suites.
+7. Removed retired guards from `scripts/verify.js` line-count list, `scripts/check-integrity.js`, and `.githooks/pre-push`.
+8. `scripts/freshness.js` & `.test.js`: baseline re-derived purely from newest monorepo `<key>-v*` tag in local git sorted by semver; no network call.
+9. `scripts/manifest/generate-manifest.js` & `.test.js`: removed `channel-refs.js` dependency, preview channel defaults to `main`, versions resolved via single source readers.
+
+### Verification
+- `node scripts/verify.js`: 92/92 steps pass offline.
+- `node scripts/check-integrity.js`: ALL INTEGRITY GATES PASSED.
+- `node --test scripts/release/*.test.js`: 26/26 tests pass.
+

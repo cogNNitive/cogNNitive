@@ -49,16 +49,16 @@ Conventions: `[TEST]` = failing test first (RED), `[IMPL]` = make it pass (GREEN
 
 ## PR 3 - Single version source and guard removal (AD-6, ~650 lines, mostly deletions)
 
-- [ ] 3.1 [TEST] Update `console-shell.test.ts:112` and a `console-release-info` test to read `iNNfo/specs/bluepriNNts/console/package.json`. Ref: release-version-generation / Console version has its own source.
-- [ ] 3.2 [IMPL] Create `iNNfo/specs/bluepriNNts/console/package.json` (`private`, `version`); re-source `console-release-info.js`, `console-shell-guard.js`.
-- [ ] 3.3 [TEST] `scripts/release/version-agreement.test.js`: mcp/console tag = package version; skills/blueprints monotonic across both repos. Ref: New tag version strictly greater (Version not greater, Authored version mismatch for innfo-mcp).
-- [ ] 3.4 [IMPL] Implement the agreement check in `scripts/release/` and call it from `run-release.js`.
-- [ ] 3.5 [TEST] Inventory guard test: every `source.yaml` path exists (replaces `check-parity`). Ref: release-version-generation / Source paths still exist.
-- [ ] 3.6 [IMPL] `manifest/source.yaml`: remove all `version:` and `channels:` (`:227-257`); preview refs become constant `main` in code. Ref: monorepo-release-manifest / Source inventory carries no versions or channels.
-- [ ] 3.7 [IMPL] `sync-versions.mjs`: drop `syncSourceYaml` (`:181-238`); keep `samples.ts`/innfo-core checks; update `package.json` scripts. Ref: Comprehensive template version synchronization.
-- [ ] 3.8 [IMPL] Delete `channel-refs.js`, `check-parity.js`, `tag-pin-freshness.js`, `check-tag-pin-freshness-cli.js`, `cdn-bundle-staged.js` and their tests; remove from `verify.js` step 3/7, `check-integrity.js:61-71`, `.githooks/pre-push:53-61`. Ref: Obsolete synchronization guards are removed (Every removed guard has a disposition).
-- [ ] 3.9 [TEST]+[IMPL] `scripts/lib/freshness.js`: baseline = newest monorepo `<key>-v*` tag (local git), non-blocking, moved to `site` job (`ci.yml:72-75`); remove dev validate step `ci.yml:61-66`. Ref: ci-stable-manifest-on-dev (REMOVED requirements).
-- [ ] 3.10 [IMPL] `scripts/manifest/generate-manifest.js`: stable derives ref from tag (no API); `--check` no longer a gate. Ref: release-version-generation / The tag determines the ref; Generation is not a verification gate.
+- [x] 3.1 [TEST] Update `console-shell.test.ts:112` and a `console-release-info` test to read `iNNfo/specs/bluepriNNts/console/package.json`. Ref: release-version-generation / Console version has its own source.
+- [x] 3.2 [IMPL] Create `iNNfo/specs/bluepriNNts/console/package.json` (`private`, `version`); re-source `console-release-info.js`, `console-shell-guard.js`.
+- [x] 3.3 [TEST] `scripts/release/version-agreement.test.js`: mcp/console tag = package version; skills/blueprints monotonic across both repos. Ref: New tag version strictly greater (Version not greater, Authored version mismatch for innfo-mcp).
+- [x] 3.4 [IMPL] Implement the agreement check in `scripts/release/` and call it from `run-release.js`.
+- [x] 3.5 [TEST] Inventory guard test: every `source.yaml` path exists (replaces `check-parity`). Ref: release-version-generation / Source paths still exist.
+- [x] 3.6 [IMPL] `manifest/source.yaml`: remove all `version:` and `channels:` (`:227-257`); preview refs become constant `main` in code. Ref: monorepo-release-manifest / Source inventory carries no versions or channels.
+- [x] 3.7 [IMPL] `sync-versions.mjs`: drop `syncSourceYaml` (`:181-238`); keep `samples.ts`/innfo-core checks; update `package.json` scripts. Ref: Comprehensive template version synchronization.
+- [x] 3.8 [IMPL] Delete `channel-refs.js`, `check-parity.js`, `tag-pin-freshness.js`, `check-tag-pin-freshness-cli.js`, `cdn-bundle-staged.js` and their tests; remove from `verify.js` step 3/7, `check-integrity.js:61-71`, `.githooks/pre-push:53-61`. Ref: Obsolete synchronization guards are removed (Every removed guard has a disposition).
+- [x] 3.9 [TEST]+[IMPL] `scripts/lib/freshness.js`: baseline = newest monorepo `<key>-v*` tag (local git), non-blocking, moved to `site` job (`ci.yml:72-75`); remove dev validate step `ci.yml:61-66`. Ref: ci-stable-manifest-on-dev (REMOVED requirements).
+- [x] 3.10 [IMPL] `scripts/manifest/generate-manifest.js`: stable derives ref from tag (no API); `--check` no longer a gate. Ref: release-version-generation / The tag determines the ref; Generation is not a verification gate.
 - Verify: `node scripts/verify.js`, `node scripts/check-integrity.js`, `node scripts/lib/legacy-ledger-guard.js`, `node --test scripts/release/*.test.js`.
 
 ## PR 4 - Manifest leaves the repo (~300 lines)

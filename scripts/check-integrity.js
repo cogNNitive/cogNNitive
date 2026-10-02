@@ -20,7 +20,6 @@
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
-const { checkTagPinFreshness } = require('./lib/tag-pin-freshness.js');
 const { checkNodeEngines } = require('./lib/node-engine-check.js');
 const { validateLegacyLedger } = require('./lib/legacy-ledger-guard.js');
 const { runVerification } = require('./verify.js');
@@ -33,7 +32,6 @@ const isPrePush = args.includes('--pre-push') || args.includes('--all') || args.
 console.log('🩺 [nn-dev-check-integrity] Running deterministic integrity gate...');
 
 // Step 1: Git & Working Tree Hygiene (Group 0 & 1)
-console.log('\n[Group 0 & 1] Working Tree & Git State:');
 try {
   const branch = execSync('git branch --show-current', { cwd: repoRoot, encoding: 'utf8' }).trim();
   const status = execSync('git status -sb', { cwd: repoRoot, encoding: 'utf8' }).trim();
@@ -54,19 +52,6 @@ try {
   }
 } catch (e) {
   console.log(`  ℹ️ Git state check skipped: ${e.message}`);
-}
-
-// Step 1b: Tag/Pin Freshness for skills & templates changes (Group 1c)
-console.log('\n[Group 1c] Tag/Pin Freshness (skills/templates changes must re-pin manifest/source.yaml):');
-const tagPin = checkTagPinFreshness(repoRoot);
-if (tagPin.skipped) {
-  console.log('  ⚠️ Skipped — diff range not resolvable (e.g. origin/main not fetched, or a shallow/fresh repo).');
-} else if (!tagPin.ok) {
-  console.error('❌ Tag/pin freshness violation:');
-  tagPin.errors.forEach(err => console.error(`  - ${err}`));
-  process.exit(1);
-} else {
-  console.log('  ✅ No unpinned skills/template changes detected.');
 }
 
 // Step 2b: Version SSOT Guard (spec_NN.md & SKILL.md -> samples.ts + manifest/source.yaml)

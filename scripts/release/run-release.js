@@ -11,6 +11,7 @@ const { parseReleaseTag } = require('./parse-release-tag.js');
 const { decidePublish } = require('./publish-decision.js');
 const { assembleManifest } = require('./assemble-manifest.js');
 const { RELEASE_TABLE } = require('./release-keys.js');
+const { checkVersionAgreement } = require('./version-agreement.js');
 const { readEntryVersion } = require('../manifest/lib/entry-version.js');
 const { parseFocusedYaml } = require('../lib/yaml-parser.js');
 const { buildGitAuthEnv, runGit } = require('../lib/publish-web-git.js');
@@ -72,6 +73,9 @@ async function runRelease(config, options = {}) {
     runGit(['config', 'user.name', 'cogNNitive release bot'], { cwd: work, env: authEnv, secrets });
     runGit(['config', 'user.email', 'release@cognnitive.com'], { cwd: work, env: authEnv, secrets });
     const git = (args) => runGit(args, { cwd: work, env: authEnv, secrets }).trim();
+
+    const existingTags = git(['tag', '-l']).split(/\r?\n/).map((t) => t.trim()).filter(Boolean);
+    checkVersionAgreement({ releaseTag: tag, repoRoot, existingTags });
 
     // 1. Stage key paths
     const keyConfig = RELEASE_TABLE[key] || { repoPaths: [], sitePaths: [] };

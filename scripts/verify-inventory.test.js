@@ -137,6 +137,33 @@ seam_dirs:
     }
   }
 
+  // 5. Missing source.yaml path fails guard (replaces check-parity)
+  {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'verify-inventory-'));
+    try {
+      const sourceYaml = `---
+skills:
+  - name: missing-skill
+    path: skills/missing-skill
+blueprints:
+  - name: registered-tmpl
+    path: iNNfo/specs/templates/registered-tmpl
+`;
+      const sourceYamlPath = path.join(tmpDir, 'source.yaml');
+      fs.writeFileSync(sourceYamlPath, sourceYaml, 'utf8');
+
+      const blueprintsDir = path.join(tmpDir, 'templates');
+      fs.mkdirSync(path.join(blueprintsDir, 'registered-tmpl'), { recursive: true });
+
+      const result = checkBlueprintInventory(blueprintsDir, sourceYamlPath, tmpDir);
+      assert.strictEqual(result.ok, false, 'Missing skill path must fail inventory guard');
+      assert.ok(result.missingPaths.some((p) => p.includes('missing-skill')), 'error must name missing-skill');
+      console.log('✔ Missing source.yaml path is rejected by inventory guard');
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  }
+
   console.log('All verify-inventory unit tests passed successfully!');
 }
 
