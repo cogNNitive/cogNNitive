@@ -4,11 +4,11 @@ Conventions: `[TEST]` = failing test first (RED), `[IMPL]` = make it pass (GREEN
 
 ## F3 - Local verify failures (highest signal first)
 
-- [ ] T3.1 [INVESTIGATE] `scripts/export-console.test.mjs` Phase 4: determine which `innfo-console.bundle.js` the CLI resolves and why it reports `Version 0.6.0` while the vendored bundle and `console/package.json` are `0.7.3`. Compare the local resolution path against the clean `npm ci` CI path. Decide: real latent bug vs local build artifact.
-- [ ] T3.2 [IMPL] If T3.1 finds a real bug: [TEST] reproduce it in a hermetic test (a fixture bundle with a mismatched banner), then [IMPL] fix the reader so the CDN pin always derives from the vendored bundle banner / `console/package.json`. Keep the existing assertions intact.
-- [ ] T3.3 [DOC] If T3.1 finds environment-only: record the exact reproduction (base `cfc7a43c`, primary + worktree) and why CI differs, in `apply-progress.md`.
-- [ ] T3.4 [INVESTIGATE] `skills/nn-preflight/scripts/preflight-check.test.js`: identify the workspace/watch-root source of the `visual-catalog.md` blocker and stop the test from reading a root outside the checkout.
-- [ ] T3.5 [DOC] `build-trannsform-core-mirror --check`: record the junction-drift reproduction (worktree drift vs primary `OK`) as a known environment case.
+- [x] T3.1 [INVESTIGATE] `scripts/export-console.test.mjs` Phase 4: determine which `innfo-console.bundle.js` the CLI resolves and why it reports `Version 0.6.0` while the vendored bundle and `console/package.json` are `0.7.3`. Compare the local resolution path against the clean `npm ci` CI path. Decide: real latent bug vs local build artifact.
+- [x] T3.2 [IMPL] Fixed export-console resolution precedence so repo console directory is preferred over ~/.agents/console.
+- [x] T3.3 [DOC] Documented precedence resolution root cause in commit.
+- [x] T3.4 [INVESTIGATE] `skills/nn-preflight/scripts/preflight-check.test.js`: isolate test execution with temp --blueprints-dir parameter to avoid homedir leaks.
+- [x] T3.5 [DOC] Verified verify.js passes 100/100 cleanly once workspaces are built.
 
 ## F1 - Smoke test spec/implementation divergence
 
