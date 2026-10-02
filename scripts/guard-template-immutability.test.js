@@ -13,7 +13,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const assert = require('assert');
-const { spawn } = require('child_process');
+const { spawn, execFileSync } = require('child_process');
 
 const guardScript = path.join(__dirname, 'guard-template-immutability.js');
 
@@ -176,6 +176,41 @@ async function runTests() {
       const res = await runGuard(args(fx), tmpDir);
       assert.strictEqual(res.status, 0, 'non-template edits must not fail the guard');
       console.log('✔ edits to samples/assets/procedures are not flagged');
+    }
+
+    // 9. Release-tag build: HEAD is an exact tag that is an ANCESTOR of a
+    //    moved-on origin/main (the v0.7.2 re-run failure). The guard must diff
+    //    against the merge-base (the tag itself), not origin/main, or it reports
+    //    main's later blueprint_version bumps as unbumped tag edits.
+    {
+      const repo = fs.mkdtempSync(path.join(os.tmpdir(), 'guard-immutability-tag-'));
+      const g = (...a) => execFileSync('git', a, { cwd: repo, stdio: 'pipe' });
+      const rel = 'iNNfo/specs/bluepriNNts/artifacts/spec_NN.md';
+      try {
+        g('init', '-q');
+        g('config', 'user.email', 'test@example.com');
+        g('config', 'user.name', 'Test');
+        g('config', 'commit.gpgsign', 'false');
+        fs.mkdirSync(path.join(repo, path.dirname(rel)), { recursive: true });
+        fs.writeFileSync(path.join(repo, rel), tpl('V_0-3-0'));
+        g('add', '-A');
+        g('commit', '-qm', 'release 0.3.0');
+        g('tag', 'innfo-console-v0.7.2');
+        fs.writeFileSync(path.join(repo, rel), tpl('V_0-4-0'));
+        g('add', '-A');
+        g('commit', '-qm', 'bump blueprint_version to 0.4.0 on main');
+        g('update-ref', 'refs/remotes/origin/main', 'HEAD');
+        g('checkout', '-q', 'innfo-console-v0.7.2');
+        const res = await runGuard(['--root', 'iNNfo/specs/bluepriNNts'], repo);
+        assert.strictEqual(
+          res.status,
+          0,
+          'a release tag older than origin/main must not fail the guard',
+        );
+        console.log('✔ release tag older than origin/main passes (merge-base base)');
+      } finally {
+        fs.rmSync(repo, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+      }
     }
 
     console.log('All template immutability guard tests passed successfully!\n');
