@@ -35,13 +35,13 @@ export const SAMPLE_BASE: string = import.meta.env.DEV ? '/specs/bluepriNNts' : 
 // Regenerate with `npm run sync:versions` (scripts/sync-versions.mjs).
 export const SHIPPED_BLUEPRINT_VERSIONS: Record<string, string> = {
   analysis: 'V_0-3-1',
-  artifacts: 'V_0-3-0',
+  artifacts: 'V_0-4-0',
   blank: 'V_0-3-0',
   business: 'V_0-3-1',
   'business-model': 'V_0-3-0',
   'design-presets': 'V_0-3-0',
   documentation: 'V_0-3-1',
-  domaiNN: 'V_0-1-0',
+  domaiNN: 'V_0-2-0',
   innovation: 'V_0-3-1',
   metrics: 'V_0-3-0',
   organization: 'V_0-3-1',
