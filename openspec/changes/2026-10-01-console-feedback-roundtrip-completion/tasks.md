@@ -96,18 +96,18 @@ A2b (ledger rules, mirror drift, ~150)
 ## Phase 4: A4 - MCP tool, dedup, thin procedure (PR 4, ~400; split A4a / A4b)
 
 A4a (dedup, ~150)
-- [ ] A4.1 RED: grep test finds exactly one `function classifyOrigin` and one `extractExcerpt` definition across `iNNfo/packages`; `MCP/src/tools/resolve-sources.spec.ts` stays UNCHANGED and green.
-- [ ] A4.2 GREEN: `MCP/src/tools/resolve-sources.ts`: delete :179-386, import core `resolveCitation`/`capExcerpt`/..., re-export `EXCERPT_CHAR_CAP`; `createWorkspaceSourceResolver` becomes a wrapper over `createFsSourceResolver` adding miss-time `suggestions`.
+- [x] A4.1 RED: grep test finds exactly one `function classifyOrigin` and one `extractExcerpt` definition across `iNNfo/packages`; `MCP/src/tools/resolve-sources.spec.ts` stays UNCHANGED and green.
+- [x] A4.2 GREEN: `MCP/src/tools/resolve-sources.ts`: delete :179-386, import core `resolveCitation`/`capExcerpt`/..., re-export `EXCERPT_CHAR_CAP`; `createWorkspaceSourceResolver` becomes a wrapper over `createFsSourceResolver` adding miss-time `suggestions`.
 
 A4b (tool, procedure, golden, ~250)
-- [ ] A4.3 RED: `MCP/src/tools/build-console-payload.spec.ts`: returns `{schemaSlot, modelSlot, outputPath, schemaSource, warnings}`; `outputPath` literal `export/<stem>_console/<stem>_console.html`; `<` escaped; unknown model errors; `MCP/src/server.spec.ts` tool list includes it.
-- [ ] A4.4 RED: golden test: MCP slot strings equal the CLI-embedded slot text (real CLI process; `meta.generated` and `meta.citationsResolvedAt` normalized) on a temp fixture domaiNN with sources, a ledger and a Tier-1 blueprint; a procedure-style console at `outputPath` reports `fresh` in `--status`. Prove red with the CLI minus its resolver.
-- [ ] A4.5 RED: scan `BP/workspace/procedures/compile_model_console_NN.md`: no hand-built JSON contract (check the exact heading literals at apply time), it calls `build_console_payload`.
-- [ ] A4.6 GREEN: `MCP/src/tools/build-console-payload.ts` (schema via `resolveBlueprintWithCache`, ledger via `FEEDBACK_LEDGER_FILENAME`, read-only) registered in `MCP/src/server.ts`; `MCP/src/tools/validate.ts` dedup if it imports the removed helpers.
-- [ ] A4.7 GREEN: thin `compile_model_console_NN.md` (call tool, paste both slots verbatim at `outputPath`) with its `model_version` bump in the same commit; if the editor `SHIPPED_TEMPLATE_VERSIONS` test demands it, register there (recurring gap).
-- [ ] A4.8 Regenerate docs-facts via its script only if its output changes, without staging the foreign `scripts/lib/docs-facts.mjs` edits.
-- [ ] A4.9 REFACTOR: no leftover unused exports in `resolve-sources.ts`.
-- [ ] A4.10 Run G (core rebuilt first); commits `refactor(mcp): reuse core citation logic`, `feat(mcp): build_console_payload tool and thin compile procedure`.
+- [x] A4.3 RED: `MCP/src/tools/build-console-payload.spec.ts`: returns `{schemaSlot, modelSlot, outputPath, schemaSource, warnings}`; `outputPath` literal `export/<stem>_console/<stem>_console.html`; `<` escaped; unknown model errors; `MCP/src/server.spec.ts` tool list includes it.
+- [x] A4.4 RED: golden test: MCP slot strings equal the CLI-embedded slot text (real CLI process; `meta.generated` and `meta.citationsResolvedAt` normalized) on a temp fixture domaiNN with sources, a ledger and a Tier-1 blueprint; a procedure-style console at `outputPath` reports `fresh` in `--status`. Prove red with the CLI minus its resolver.
+- [x] A4.5 RED: scan `BP/workspace/procedures/compile_model_console_NN.md`: no hand-built JSON contract (check the exact heading literals at apply time), it calls `build_console_payload`.
+- [x] A4.6 GREEN: `MCP/src/tools/build-console-payload.ts` (schema via `resolveBlueprintWithCache`, ledger via `FEEDBACK_LEDGER_FILENAME`, read-only) registered in `MCP/src/server.ts`; `MCP/src/tools/validate.ts` dedup if it imports the removed helpers.
+- [x] A4.7 GREEN: thin `compile_model_console_NN.md` (call tool, paste both slots verbatim at `outputPath`) with its `model_version` bump in the same commit; if the editor `SHIPPED_TEMPLATE_VERSIONS` test demands it, register there (recurring gap).
+- [x] A4.8 Regenerate docs-facts via its script only if its output changes, without staging the foreign `scripts/lib/docs-facts.mjs` edits.
+- [x] A4.9 REFACTOR: no leftover unused exports in `resolve-sources.ts`.
+- [x] A4.10 Run G (core rebuilt first); commits `refactor(mcp): reuse core citation logic`, `feat(mcp): build_console_payload tool and thin compile procedure`.
 
 ## Phase 5: A5 - Bundle UI, export gate, shells, guard, docs (PR 5, ~400; split A5a / A5b)
 
