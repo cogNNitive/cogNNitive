@@ -13,6 +13,7 @@ const assets = {
   timeline: join(templatesDir, 'metrics', 'assets', 'timeline.html'),
   console: join(templatesDir, 'workspace', 'assets', 'model_console.html'),
 }
+const consoleUiKit = join(templatesDir, 'console', 'ui-kit.js')
 
 // Markers that would indicate a duplicated inline copy of the shared runtime.
 // Static <script src="...innfo-runtime.js"> tags are REQUIRED (not markers).
@@ -83,13 +84,18 @@ describe('console (workspace) slot payloads', () => {
     expect(html).not.toContain('render-model-viewer.js')
   })
 
-  it('declares the native citation dialog and its colour-rule hooks', () => {
+  it('declares the native citation dialog; colour rules now live in InnfoUI', () => {
     const html = readAsset(assets.console)
     expect(html).toContain('id="innfo-citation-dialog"')
     expect(html).toContain('aria-label="Citation details"')
-    for (const cls of ['.cite-icon.cite-agent', '.cite-icon.cite-human', '.cite-icon.cite-reviewer', '.cite-icon.cite-document', '.cite-icon.cite-error']) {
-      expect(html).toContain(cls)
+    // Citation-icon colours moved to the kit (data-origin driven); the shell
+    // must no longer carry the legacy .cite-icon.cite-* rules.
+    expect(html).not.toContain('.cite-icon.cite-agent')
+    const kit = readAsset(consoleUiKit)
+    for (const origin of ['agent', 'human', 'reviewer', 'document', 'error']) {
+      expect(kit).toContain(`--innfo-origin-${origin}`)
     }
+    expect(kit).toContain('[data-origin=agent]')
   })
 
   it('widens the innfo-ref-dialog CSS selectors to also cover innfo-citation-dialog', () => {
