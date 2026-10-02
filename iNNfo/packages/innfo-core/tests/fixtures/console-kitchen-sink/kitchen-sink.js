@@ -1,4 +1,4 @@
-/* global InnfoUI */
+/* global InnfoUI, module */
 // Offline kitchen sink: renders every implemented component under both themes.
 // No fetch, no module system — double-click / happy-dom friendly.
 ;(function () {
