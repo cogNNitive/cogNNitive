@@ -576,7 +576,7 @@ MCP tool. Superseded, not shipped.
 
 ## 22. `fix/skills-version-skew-release` - corrective skills release: tag `6f905b1e` + re-pin stable
 
-**Type:** release / fix · **Size:** small
+**Type:** release / fix · **Size:** small · **Status:** shipped (2026-10-02 via skills-v2.11.0 tag-driven release)
 
 **Why:** `skills-v2.8.1` still reads `models/`; `6f905b1e` (the `models/` → `kNNowledge/`
 cutover) is in `main` but in NO tag (`git tag --contains 6f905b1e` is empty; `merge-base
@@ -642,7 +642,7 @@ allowlist entries added in `dd801c0a` once clean.
 
 ## 27. `fix/repair-main-red-ci` - undo the premature console merge and restore `main` green
 
-**Type:** fix / chore · **Size:** medium
+**Type:** fix / chore · **Size:** medium · **Status:** fixed (2026-10-02 via tag-driven release architecture and green main CI)
 
 **Why:** `6f905b1e` (console unified review pipeline + the `models/` → `kNNowledge/` fix)
 merged to `main` in an incomplete state and broke it. `main` (fc925f8a) CI is red: `verify`

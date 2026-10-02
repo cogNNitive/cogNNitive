@@ -92,7 +92,7 @@ Chain strategy: pending
 
 ## 9. Verification
 
-- [ ] 9.1 Run `npm run test` — new suite and full repo green.
-- [ ] 9.2 Run `npm run lint` + `npm run typecheck` — clean.
+- [x] 9.1 Run `npm run test` — new suite and full repo green.
+- [x] 9.2 Run `npm run lint` + `npm run typecheck` — clean.
 - [x] 9.3 Manual smoke: real `--scan` on a temp parent ⇒ zero domain writes; then delete runtime artifacts, confirm migrated domains intact. `[batch-domain-update:Requirement:Scope Boundary]`
-- [ ] 9.4 Confirm `migrate-domain.js` unchanged and no legacy code deleted; close traceability to all 9 requirements.
+- [x] 9.4 Confirm `migrate-domain.js` unchanged and no legacy code deleted; close traceability to all 9 requirements.

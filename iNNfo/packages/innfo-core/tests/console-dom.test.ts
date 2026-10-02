@@ -29,7 +29,6 @@ const consoleDir = join(import.meta.dirname!, '..', '..', '..', 'specs', 'bluepr
 
 type ConsoleApi = {
   boot: (doc: Document) => void
-  getDraftKey: (model: string, version: string) => string
 }
 
 const schemaFixture = { concepts: [{ name: 'Goal' }, { name: 'Metric' }] }
@@ -94,7 +93,7 @@ describe('innfo-console — rendered DOM', () => {
   it('paints the banner, concept rail and one card per element from the slots', () => {
     bootConsole()
 
-    const banner = document.getElementById('innfo-banner')!.textContent ?? ''
+    const banner = (document.getElementById('innfo-feedback-banner') || document.getElementById('innfo-banner'))!.textContent ?? ''
     expect(banner).toContain('Acme')
     expect(banner).toContain('V_0-1-0')
 
@@ -157,38 +156,46 @@ describe('innfo-console — export gate', () => {
   it('refuses to emit a file until an identifier is entered', () => {
     bootConsole()
 
-    document.getElementById('innfo-export-open')!.dispatchEvent(new Event('click', { bubbles: true }))
-    const download = document.querySelector('#innfo-export-modal [data-innfo="download"]')!
+    const openBtn = (document.getElementById('innfo-feedback-open') || document.getElementById('innfo-export-open'))!
+    openBtn.dispatchEvent(new Event('click', { bubbles: true }))
+    const download = (document.querySelector('#innfo-feedback-modal [data-innfo="download"]') || document.querySelector('#innfo-export-modal [data-innfo="download"]'))!
 
     download.dispatchEvent(new Event('click', { bubbles: true }))
     expect(downloads).toEqual([])
 
     // Whitespace is not an identifier either.
-    typeInto('#innfo-export-modal [data-innfo="identifier"]', '   ')
+    typeInto('#innfo-feedback-modal [data-innfo="identifier"], #innfo-export-modal [data-innfo="identifier"]', '   ')
     download.dispatchEvent(new Event('click', { bubbles: true }))
     expect(downloads).toEqual([])
   })
 
   it('emits a file named by the feedback contract once an identifier is entered', () => {
-    const api = bootConsole()
     localStorage.setItem(
-      api.getDraftKey('Acme', 'V_0-1-0'),
-      JSON.stringify([
-        {
-          id: 'fb-001',
-          kind: 'comment',
-          target: { element_id: 'goal-grow' },
-          comment: 'Clarify the owner field',
-          status: 'pending',
-        },
-      ]),
+      'innfo-console:v2:Acme',
+      JSON.stringify({
+        v: 2,
+        modelId: 'Acme',
+        drafts: [
+          {
+            id: 'fb-001',
+            element_id: 'goal-grow',
+            concept: 'Goal',
+            element: 'Grow',
+            comment: 'Clarify the owner field',
+            base_hash: '0123456789abcdef',
+            kind: 'comment',
+          },
+        ],
+        reviewed: {},
+      }),
     )
+    bootConsole()
 
-    document.getElementById('innfo-export-open')!.dispatchEvent(new Event('click', { bubbles: true }))
-    typeInto('#innfo-export-modal [data-innfo="identifier"]', 'Reviewer, primera revisión')
-    document
-      .querySelector('#innfo-export-modal [data-innfo="download"]')!
-      .dispatchEvent(new Event('click', { bubbles: true }))
+    const openBtn = (document.getElementById('innfo-feedback-open') || document.getElementById('innfo-export-open'))!
+    openBtn.dispatchEvent(new Event('click', { bubbles: true }))
+    typeInto('#innfo-feedback-modal [data-innfo="identifier"], #innfo-export-modal [data-innfo="identifier"]', 'Reviewer, primera revisión')
+    const download = (document.querySelector('#innfo-feedback-modal [data-innfo="download"]') || document.querySelector('#innfo-export-modal [data-innfo="download"]'))!
+    download.dispatchEvent(new Event('click', { bubbles: true }))
 
     expect(downloads).toHaveLength(1)
     expect(downloads[0]).toMatch(
@@ -197,19 +204,26 @@ describe('innfo-console — export gate', () => {
   })
 
   it('reports the pending draft count in the modal instructions', () => {
-    const api = bootConsole()
     localStorage.setItem(
-      api.getDraftKey('Acme', 'V_0-1-0'),
-      JSON.stringify([
-        { id: 'fb-001', kind: 'comment', target: { element_id: 'goal-grow' }, status: 'pending' },
-        { id: 'fb-002', kind: 'comment', target: { element_id: 'metric-churn' }, status: 'pending' },
-      ]),
+      'innfo-console:v2:Acme',
+      JSON.stringify({
+        v: 2,
+        modelId: 'Acme',
+        drafts: [
+          { id: 'fb-001', element_id: 'goal-grow', concept: 'Goal', element: 'Grow', kind: 'comment', base_hash: '0123456789abcdef' },
+          { id: 'fb-002', element_id: 'metric-churn', concept: 'Metric', element: 'Churn', kind: 'comment', base_hash: '0123456789abcdef' },
+        ],
+        reviewed: {},
+      }),
     )
+    bootConsole()
 
-    document.getElementById('innfo-export-open')!.dispatchEvent(new Event('click', { bubbles: true }))
+    const openBtn = (document.getElementById('innfo-feedback-open') || document.getElementById('innfo-export-open'))!
+    openBtn.dispatchEvent(new Event('click', { bubbles: true }))
 
+    const modal = (document.getElementById('innfo-feedback-modal') || document.getElementById('innfo-export-modal'))!
     expect(
-      document.querySelector('#innfo-export-modal [data-innfo="instructions"]')!.textContent,
+      modal.querySelector('[data-innfo="instructions"]')!.textContent,
     ).toContain('2 pending draft(s)')
   })
 })

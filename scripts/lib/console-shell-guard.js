@@ -164,6 +164,46 @@ function getExpectedConsoleVersion(repoRoot) {
 }
 
 /**
+ * Finds hard-coded color declarations inside a `:root` selector (any block,
+ * including inside an `@media`). Layout custom properties (e.g. `--sidebar-w:
+ * 280px`) and token indirections (`var(...)`) are allowed; hex / rgb() / hsl()
+ * / named-ish color literals on a `:root` custom property are flagged. Shells
+ * must consume `var(--innfo-*)` tokens instead of inventing colors.
+ *
+ * @param {string} html
+ * @returns {Array<{ line: number, selector: string, declaration: string }>}
+ */
+function findRootColorDeclarations(html) {
+  const findings = [];
+  const text = String(html == null ? '' : html);
+  // Capture each `:root ... { ... }` block (selector may be `:root` or `:root:not(...)`).
+  const rootBlockRe = /(:root(?::not\([^)]*\))?)\s*\{([^}]*)\}/g;
+  let m;
+  while ((m = rootBlockRe.exec(text)) !== null) {
+    const selector = m[1];
+    const body = m[2];
+    const bodyStart = m.index + m[1].length + (m[0].length - m[2].length - 1);
+    for (const decl of body.split(';')) {
+      const d = decl.trim();
+      if (!d || d.startsWith('/*')) continue;
+      const valueMatch = /:\s*([^;]*)$/.exec(d);
+      if (!valueMatch) continue;
+      const value = valueMatch[1].trim();
+      // Allow pure layout values and token indirections.
+      const hasColorLiteral =
+        /#[0-9a-fA-F]{3,8}\b/.test(value) ||
+        /\brgba?\(/.test(value) ||
+        /\bhsla?\(/.test(value);
+      if (!hasColorLiteral) continue;
+      if (/var\(/.test(value)) continue;
+      const line = text.slice(0, bodyStart).split('\n').length;
+      findings.push({ line, selector, declaration: d });
+    }
+  }
+  return findings;
+}
+
+/**
  * Checks integrity of console shells in the repo.
  * @param {string} repoRoot
  * @param {object} [options]
@@ -236,12 +276,8 @@ function checkConsoleShellIntegrity(repoRoot, options = {}) {
         if (anchorSets.length > 0) {
           const satisfied = anchorSets.some((set) => set.every((id) => domIds.has(id)));
           if (!satisfied) {
-            // Check for ledgered exception on model_console.html if needed
-            const isModelConsoleFeedback = shellPath.endsWith('model_console.html') && need === 'feedback-export';
-            if (!isModelConsoleFeedback) {
-              const expectedStr = anchorSets.map((s) => s.map((id) => `#${id}`).join(' + ')).join(' OR ');
-              errors.push(`Shell ${shellPath} declares need "${need}" but is missing required anchor(s) (${expectedStr})`);
-            }
+            const expectedStr = anchorSets.map((s) => s.map((id) => `#${id}`).join(' + ')).join(' OR ');
+            errors.push(`Shell ${shellPath} declares need "${need}" but is missing required anchor(s) (${expectedStr})`);
           }
         }
       }
@@ -267,6 +303,18 @@ function checkConsoleShellIntegrity(repoRoot, options = {}) {
 
     if (!foundCdnScript) {
       errors.push(`Shell ${shellPath} does not load the innfo-console bundle via CDN script tag`);
+    }
+
+    // Requirement: shells must consume var(--innfo-*) tokens, never :root color
+    // literals (all discovered shells; options.enforcedRootShells is a test seam).
+    const enforced = options.enforcedRootShells || shells;
+    if (enforced.indexOf(shellPath) !== -1) {
+      for (const finding of findRootColorDeclarations(content)) {
+        errors.push(
+          `${shellPath}:${finding.line} declares a hard-coded color in "${finding.selector}" ` +
+            `(${finding.declaration}); use var(--innfo-*) tokens`,
+        );
+      }
     }
   }
 
@@ -299,6 +347,7 @@ module.exports = {
   extractShellConfig,
   discoverConsoleShells,
   getExpectedConsoleVersion,
+  findRootColorDeclarations,
   checkConsoleShellIntegrity,
 };
 

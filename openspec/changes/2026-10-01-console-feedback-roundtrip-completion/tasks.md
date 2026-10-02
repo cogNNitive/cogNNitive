@@ -96,55 +96,55 @@ A2b (ledger rules, mirror drift, ~150)
 ## Phase 4: A4 - MCP tool, dedup, thin procedure (PR 4, ~400; split A4a / A4b)
 
 A4a (dedup, ~150)
-- [ ] A4.1 RED: grep test finds exactly one `function classifyOrigin` and one `extractExcerpt` definition across `iNNfo/packages`; `MCP/src/tools/resolve-sources.spec.ts` stays UNCHANGED and green.
-- [ ] A4.2 GREEN: `MCP/src/tools/resolve-sources.ts`: delete :179-386, import core `resolveCitation`/`capExcerpt`/..., re-export `EXCERPT_CHAR_CAP`; `createWorkspaceSourceResolver` becomes a wrapper over `createFsSourceResolver` adding miss-time `suggestions`.
+- [x] A4.1 RED: grep test finds exactly one `function classifyOrigin` and one `extractExcerpt` definition across `iNNfo/packages`; `MCP/src/tools/resolve-sources.spec.ts` stays UNCHANGED and green.
+- [x] A4.2 GREEN: `MCP/src/tools/resolve-sources.ts`: delete :179-386, import core `resolveCitation`/`capExcerpt`/..., re-export `EXCERPT_CHAR_CAP`; `createWorkspaceSourceResolver` becomes a wrapper over `createFsSourceResolver` adding miss-time `suggestions`.
 
 A4b (tool, procedure, golden, ~250)
-- [ ] A4.3 RED: `MCP/src/tools/build-console-payload.spec.ts`: returns `{schemaSlot, modelSlot, outputPath, schemaSource, warnings}`; `outputPath` literal `export/<stem>_console/<stem>_console.html`; `<` escaped; unknown model errors; `MCP/src/server.spec.ts` tool list includes it.
-- [ ] A4.4 RED: golden test: MCP slot strings equal the CLI-embedded slot text (real CLI process; `meta.generated` and `meta.citationsResolvedAt` normalized) on a temp fixture domaiNN with sources, a ledger and a Tier-1 blueprint; a procedure-style console at `outputPath` reports `fresh` in `--status`. Prove red with the CLI minus its resolver.
-- [ ] A4.5 RED: scan `BP/workspace/procedures/compile_model_console_NN.md`: no hand-built JSON contract (check the exact heading literals at apply time), it calls `build_console_payload`.
-- [ ] A4.6 GREEN: `MCP/src/tools/build-console-payload.ts` (schema via `resolveBlueprintWithCache`, ledger via `FEEDBACK_LEDGER_FILENAME`, read-only) registered in `MCP/src/server.ts`; `MCP/src/tools/validate.ts` dedup if it imports the removed helpers.
-- [ ] A4.7 GREEN: thin `compile_model_console_NN.md` (call tool, paste both slots verbatim at `outputPath`) with its `model_version` bump in the same commit; if the editor `SHIPPED_TEMPLATE_VERSIONS` test demands it, register there (recurring gap).
-- [ ] A4.8 Regenerate docs-facts via its script only if its output changes, without staging the foreign `scripts/lib/docs-facts.mjs` edits.
-- [ ] A4.9 REFACTOR: no leftover unused exports in `resolve-sources.ts`.
-- [ ] A4.10 Run G (core rebuilt first); commits `refactor(mcp): reuse core citation logic`, `feat(mcp): build_console_payload tool and thin compile procedure`.
+- [x] A4.3 RED: `MCP/src/tools/build-console-payload.spec.ts`: returns `{schemaSlot, modelSlot, outputPath, schemaSource, warnings}`; `outputPath` literal `export/<stem>_console/<stem>_console.html`; `<` escaped; unknown model errors; `MCP/src/server.spec.ts` tool list includes it.
+- [x] A4.4 RED: golden test: MCP slot strings equal the CLI-embedded slot text (real CLI process; `meta.generated` and `meta.citationsResolvedAt` normalized) on a temp fixture domaiNN with sources, a ledger and a Tier-1 blueprint; a procedure-style console at `outputPath` reports `fresh` in `--status`. Prove red with the CLI minus its resolver.
+- [x] A4.5 RED: scan `BP/workspace/procedures/compile_model_console_NN.md`: no hand-built JSON contract (check the exact heading literals at apply time), it calls `build_console_payload`.
+- [x] A4.6 GREEN: `MCP/src/tools/build-console-payload.ts` (schema via `resolveBlueprintWithCache`, ledger via `FEEDBACK_LEDGER_FILENAME`, read-only) registered in `MCP/src/server.ts`; `MCP/src/tools/validate.ts` dedup if it imports the removed helpers.
+- [x] A4.7 GREEN: thin `compile_model_console_NN.md` (call tool, paste both slots verbatim at `outputPath`) with its `model_version` bump in the same commit; if the editor `SHIPPED_TEMPLATE_VERSIONS` test demands it, register there (recurring gap).
+- [x] A4.8 Regenerate docs-facts via its script only if its output changes, without staging the foreign `scripts/lib/docs-facts.mjs` edits.
+- [x] A4.9 REFACTOR: no leftover unused exports in `resolve-sources.ts`.
+- [x] A4.10 Run G (core rebuilt first); commits `refactor(mcp): reuse core citation logic`, `feat(mcp): build_console_payload tool and thin compile procedure`.
 
 ## Phase 5: A5 - Bundle UI, export gate, shells, guard, docs (PR 5, ~400; split A5a / A5b)
 
 A5a (runtime and DOM, ~250)
-- [ ] A5.1 RED: `CORE/tests/console-feedback-ui.test.ts` with `@vitest-environment jsdom` (happy-dom lets `javascript:` through): unchanged `model_console.html` + bundle evaluated twice -> one `[data-innfo-feedback-root]`, one `#innfo-feedback-open`, `showModal` once per click; seeded draft exports `target.field` and `base_hash`; invalid meta -> `createObjectURL` never called and errors listed in `[data-innfo="errors"]`; undeclared `feedback-export` injects nothing; stepper `#innfo-export-modal` coexists; viewer renders an icon from builder output. Prove red by removing the idempotency guard and the validation gate.
-- [ ] A5.2 RED: rewrite `test/console-review.test.mjs`: `draftToItem` shape (`target{element_id,concept,element,field?}`, `comment`, `base_hash`, no `status`), export passes `validateFeedback`; `buildReviewDoc`, `validateReviewDoc`, `serializeReviewDoc`, `buildReviewFilename`, `parseReviewFilename`, `REVIEW_FILENAME_PATTERN`, `updateDraftStatus`, `.innfo-review-status-select` absent.
-- [ ] A5.3 GREEN: `CONSOLE/innfo-runtime.js`: `ensureFeedbackUi(doc)` (reads `needs[]` from the DOM; one root with `#innfo-feedback-banner`/`-open`/`-modal`; one `<style data-innfo-feedback>`; `data-innfo-bound`), `autoBoot` sets `data-innfo-console-booted` on `<html>`, `addDraft` stores `base_hash` from the element hash, `draftToItem`, `buildExportDoc` -> `validateFeedback` -> download with errors listed on failure; delete the A15 names and the status `<select>` (:2248).
-- [ ] A5.4 Rebuild `innfo-console.bundle.js` in the same commit; offline scan: no `fetch(` or `type=module` added.
+- [x] A5.1 RED: `CORE/tests/console-feedback-ui.test.ts` with `@vitest-environment jsdom` (happy-dom lets `javascript:` through): unchanged `model_console.html` + bundle evaluated twice -> one `[data-innfo-feedback-root]`, one `#innfo-feedback-open`, `showModal` once per click; seeded draft exports `target.field` and `base_hash`; invalid meta -> `createObjectURL` never called and errors listed in `[data-innfo="errors"]`; undeclared `feedback-export` injects nothing; stepper `#innfo-export-modal` coexists; viewer renders an icon from builder output. Prove red by removing the idempotency guard and the validation gate.
+- [x] A5.2 RED: rewrite `test/console-review.test.mjs`: `draftToItem` shape (`target{element_id,concept,element,field?}`, `comment`, `base_hash`, no `status`), export passes `validateFeedback`; `buildReviewDoc`, `validateReviewDoc`, `serializeReviewDoc`, `buildReviewFilename`, `parseReviewFilename`, `REVIEW_FILENAME_PATTERN`, `updateDraftStatus`, `.innfo-review-status-select` absent.
+- [x] A5.3 GREEN: `CONSOLE/innfo-runtime.js`: `ensureFeedbackUi(doc)` (reads `needs[]` from the DOM; one root with `#innfo-feedback-banner`/`-open`/`-modal`; one `<style data-innfo-feedback>`; `data-innfo-bound`), `autoBoot` sets `data-innfo-console-booted` on `<html>`, `addDraft` stores `base_hash` from the element hash, `draftToItem`, `buildExportDoc` -> `validateFeedback` -> download with errors listed on failure; delete the A15 names and the status `<select>` (:2248).
+- [x] A5.4 Rebuild `innfo-console.bundle.js` in the same commit; offline scan: no `fetch(` or `type=module` added.
 
 A5b (shells, registry, guard, docs, ~150 + deletions)
-- [ ] A5.5 RED: guard tests in `scripts/lib/console-shell-guard.test.js`: `model_console.html` passes through the registry rule alone; the guard source contains no `model_console.html` literal; a shell declaring `feedback-export` with no markup passes. Prove red by re-adding anchors to `needs-registry.json`.
-- [ ] A5.6 GREEN: `CONSOLE/needs-registry.json` `feedback-export: []`; delete the exemption at `scripts/lib/console-shell-guard.js` :215-217.
-- [ ] A5.7 GREEN: delete `#innfo-banner`/`#innfo-export-*` markup and CSS from `CONSOLE/artifact_shell.html` and `BP/metrics/assets/timeline.html`; update `BP/metrics/scripts/verify.harness.js:516`.
-- [ ] A5.8 GREEN: `docs/innfo/documentation/reviewer-guide.md` and `templates.md`: drop `console-review-v1`, describe the conformant export, the `### fb-001` format, and (per gate 0.7) the draft-creation gap until C.
-- [ ] A5.9 Confirm via `guard-template-immutability` that asset-only edits need no `blueprint_version` bump.
-- [ ] A5.14 CDN path (per gate 0.5): `templates/console` -> `bluepriNNts/console` in the script tags of `artifact_shell.html`, `timeline.html`, `model_console.html`; do NOT change the pin (it moves at release, the guard requires pin == manifest version).
-- [ ] A5.10 REFACTOR: remove CSS left unused by the markup deletion.
-- [ ] A5.11 Run G; commits `feat(console): bundle-injected feedback UI with validated export`, `refactor(console): drop shell feedback anchors and guard exemption`.
+- [x] A5.5 RED: guard tests in `scripts/lib/console-shell-guard.test.js`: `model_console.html` passes through the registry rule alone; the guard source contains no `model_console.html` literal; a shell declaring `feedback-export` with no markup passes. Prove red by re-adding anchors to `needs-registry.json`.
+- [x] A5.6 GREEN: `CONSOLE/needs-registry.json` `feedback-export: []`; delete the exemption at `scripts/lib/console-shell-guard.js` :215-217.
+- [x] A5.7 GREEN: delete `#innfo-banner`/`#innfo-export-*` markup and CSS from `CONSOLE/artifact_shell.html` and `BP/metrics/assets/timeline.html`; update `BP/metrics/scripts/verify.harness.js:516`.
+- [x] A5.8 GREEN: `docs/innfo/documentation/reviewer-guide.md` and `templates.md`: drop `console-review-v1`, describe the conformant export, the `### fb-001` format, and (per gate 0.7) the draft-creation gap until C.
+- [x] A5.9 Confirm via `guard-template-immutability` that asset-only edits need no `blueprint_version` bump.
+- [x] A5.14 CDN path (per gate 0.5): `templates/console` -> `bluepriNNts/console` in the script tags of `artifact_shell.html`, `timeline.html`, `model_console.html`; do NOT change the pin (it moves at release, the guard requires pin == manifest version).
+- [x] A5.10 REFACTOR: remove CSS left unused by the markup deletion.
+- [x] A5.11 Run G; commits `feat(console): bundle-injected feedback UI with validated export`, `refactor(console): drop shell feedback anchors and guard exemption`.
 
 ## Phase 6: A6a - Ledger tools and reconcile procedure (PR 6, ~260)
 
-- [ ] A6.1 RED: `MCP` tests for `record_feedback_verdict` and `evaluate_feedback_items` on a real temp dir (no transport stubs): N lines stay byte-identical after an append; invalid entry -> file unchanged; `applied` over `stale` refused, then `confirm_stale: true` succeeds and is persisted; `applied` over orphan refused; `applied` after a fresh evaluation is accepted; evaluate is idempotent; refusal when the last byte is not `\n`; two parallel appends yield two intact lines; feedback source hashes unchanged. Prove red by writing without the queue and without validation.
-- [ ] A6.2 RED: scan `BP/workspace/procedures/reconcile_feedback_NN.md`: no `sources/import/feedback/ledger.jsonl`; `evaluate_feedback_items` precedes `apply_change`; `validate_model` precedes `record_feedback_verdict`; abort path records no `applied` entry.
-- [ ] A6.3 GREEN: `MCP/src/tools/feedback-verdict.ts` (one validated LF line via `appendFile(..., {flag:'a'})` behind a per-path promise queue; derives `source.sha256`, `model_id`, `model_version`, `element_id`, `target_hash` = item `base_hash`), registered in `MCP/src/server.ts`; `server.spec.ts` tool list.
-- [ ] A6.4 GREEN: `reconcile_feedback_NN.md`: root ledger path (:24, :108, :175), step order (evaluate -> apply -> validate -> record), tools named; `model_version`/`knowledge_version` bump in the same commit.
-- [ ] A6.5 REFACTOR: share the ledger path join with the payload tool.
-- [ ] A6.6 Run G; commit `feat(mcp): validated feedback ledger tools and reconcile order`.
+- [x] A6.1 RED: `MCP` tests for `record_feedback_verdict` and `evaluate_feedback_items` on a real temp dir (no transport stubs): N lines stay byte-identical after an append; invalid entry -> file unchanged; `applied` over `stale` refused, then `confirm_stale: true` succeeds and is persisted; `applied` over orphan refused; `applied` after a fresh evaluation is accepted; evaluate is idempotent; refusal when the last byte is not `\n`; two parallel appends yield two intact lines; feedback source hashes unchanged. Prove red by writing without the queue and without validation.
+- [x] A6.2 RED: scan `BP/workspace/procedures/reconcile_feedback_NN.md`: no `sources/import/feedback/ledger.jsonl`; `evaluate_feedback_items` precedes `apply_change`; `validate_model` precedes `record_feedback_verdict`; abort path records no `applied` entry.
+- [x] A6.3 GREEN: `MCP/src/tools/feedback-verdict.ts` (one validated LF line via `appendFile(..., {flag:'a'})` behind a per-path promise queue; derives `source.sha256`, `model_id`, `model_version`, `element_id`, `target_hash` = item `base_hash`), registered in `MCP/src/server.ts`; `server.spec.ts` tool list.
+- [x] A6.4 GREEN: `reconcile_feedback_NN.md`: root ledger path (:24, :108, :175), step order (evaluate -> apply -> validate -> record), tools named; `model_version`/`knowledge_version` bump in the same commit.
+- [x] A6.5 REFACTOR: share the ledger path join with the payload tool.
+- [x] A6.6 Run G; commit `feat(mcp): validated feedback ledger tools and reconcile order`.
 
 ## Phase 7: A6b - Deletions and references (PR 7, ~100 + 333 deletions)
 
-- [ ] A6.7 RED: update `CORE/tests/metrics-console-feedback.test.ts` (:43, :110-112) to expect `reconcile_feedback`; add a repo-scan test: zero `apply_feedback` outside `openspec/changes/archive/` and the kept fixtures (`CORE/tests/{fixtures/simulacro-refactorizacion,legacy/fixtures}/**`, `procedures/procedures/export/document_sop_console/*`), zero `console-review-v1`, zero `session_label` and `(?<!source_)knowledge_version` in the console dir, schema, validators, reconcile procedure and nn-trannsform.
-- [ ] A6.8 GREEN: delete `BP/business/procedures/apply_feedback_NN.md` and `BP/metrics/procedures/apply_feedback_NN.md` (pure deletion; `size:exception` for the deletion lines if the maintainer rejects the split).
-- [ ] A6.9 GREEN: repoint `BP/metrics/procedures/create_timeline_NN.md` (:123 prose, :145 link), `docs/innfo/documentation/lifecycle-walkthrough.md:136`, `docs/research/cognnitive-value-proposition.md` (:111, :202, :278, :420), any `spec_NN.md` hit found by `rg apply_feedback`.
-- [ ] A6.10 GREEN: bump `blueprint_version` of business and metrics (procedure removed, minor) and the version of edited `create_timeline_NN.md`, in the same commit (template-immutability guard); register in editor `SHIPPED_TEMPLATE_VERSIONS` if its test demands.
-- [ ] A6.11 `rg apply_feedback` and `rg "console-review-v1"` outside the allowed set return nothing; `canonical-registry.ts` and `innfo-mcp.bundle.js` have no `apply_feedback` hits (regenerated in R).
-- [ ] A6.12 If gate 0.8 says not yet fixed: `templates-v*` -> `blueprints-v*` in `.agents/skills/nn-dev-release/SKILL.md` (maintainer-only, no `skills-v*` tag).
-- [ ] A6.13 Run G; commits `chore(blueprints): remove apply_feedback procedures`, `docs: repoint apply_feedback references to reconcile_feedback`.
+- [x] A6.7 RED: update `CORE/tests/metrics-console-feedback.test.ts` (:43, :110-112) to expect `reconcile_feedback`; add a repo-scan test: zero `apply_feedback` outside `openspec/changes/archive/` and the kept fixtures (`CORE/tests/{fixtures/simulacro-refactorizacion,legacy/fixtures}/**`, `procedures/procedures/export/document_sop_console/*`), zero `console-review-v1`, zero `session_label` and `(?<!source_)knowledge_version` in the console dir, schema, validators, reconcile procedure and nn-trannsform.
+- [x] A6.8 GREEN: delete `BP/business/procedures/apply_feedback_NN.md` and `BP/metrics/procedures/apply_feedback_NN.md` (pure deletion; `size:exception` for the deletion lines if the maintainer rejects the split).
+- [x] A6.9 GREEN: repoint `BP/metrics/procedures/create_timeline_NN.md` (:123 prose, :145 link), `docs/innfo/documentation/lifecycle-walkthrough.md:136`, `docs/research/cognnitive-value-proposition.md` (:111, :202, :278, :420), any `spec_NN.md` hit found by `rg apply_feedback`.
+- [x] A6.10 GREEN: bump `blueprint_version` of business and metrics (procedure removed, minor) and the version of edited `create_timeline_NN.md`, in the same commit (template-immutability guard); register in editor `SHIPPED_TEMPLATE_VERSIONS` if its test demands.
+- [x] A6.11 `rg apply_feedback` and `rg "console-review-v1"` outside the allowed set return nothing; `canonical-registry.ts` and `innfo-mcp.bundle.js` have no `apply_feedback` hits (regenerated in R).
+- [x] A6.12 If gate 0.8 says not yet fixed: `templates-v*` -> `blueprints-v*` in `.agents/skills/nn-dev-release/SKILL.md` (maintainer-only, no `skills-v*` tag).
+- [x] A6.13 Run G; commits `chore(blueprints): remove apply_feedback procedures`, `docs: repoint apply_feedback references to reconcile_feedback`.
 
 ## Phase 8: R - Release prep (once for the batch; real tags, verify unused at release time)
 

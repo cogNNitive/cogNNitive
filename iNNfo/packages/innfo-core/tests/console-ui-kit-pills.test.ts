@@ -1,0 +1,133 @@
+// @vitest-environment happy-dom
+import { describe, it, expect } from 'vitest'
+import { join } from 'node:path'
+import { createRequire } from 'node:module'
+
+const req = createRequire(import.meta.url)
+const consoleDir = join(import.meta.dirname!, '..', '..', '..', 'specs', 'bluepriNNts', 'console')
+const uiKitPath = join(consoleDir, 'ui-kit.js')
+
+type InnfoUI = any
+
+const UI = req(uiKitPath) as InnfoUI
+
+const comp = (root: HTMLElement) => root.getAttribute('data-innfo-component')
+
+describe('InnfoUI.ConceptPill', () => {
+  it('renders data hooks, dot, label and count', () => {
+    // slot = (index mod 12) + 1, so index 1 -> slot 2
+    const pill = UI.ConceptPill({ id: 'paranormal-threat', label: 'ParanormalThreat', index: 1, count: 3 })
+    expect(comp(pill)).toBe('concept-pill')
+    expect(pill.getAttribute('data-concept-id')).toBe('paranormal-threat')
+    expect(pill.getAttribute('data-concept-slot')).toBe('2')
+    expect(pill.querySelector('.innfo-concept-dot')).toBeTruthy()
+    expect(pill.textContent).toContain('ParanormalThreat')
+    expect(pill.querySelector('.innfo-concept-count')!.textContent).toBe(' (3)')
+  })
+
+  it('colors the dot from an explicit palette color (slot 2, CSS-token driven)', () => {
+    const pill = UI.ConceptPill({ id: 'x', label: 'X', index: 14, color: 'violet' })
+    expect(pill.getAttribute('data-concept-slot')).toBe('2')
+    // The dot color is applied by CSS via --innfo-concept-<slot>, never inline.
+    expect(UI.generateTokenCss()).toContain('[data-concept-slot="2"]')
+  })
+
+  it('maps grey to slot 12 and count without suffix if absent', () => {
+    const pill = UI.ConceptPill({ id: 'x', label: 'X', index: 1, color: 'grey' })
+    expect(pill.getAttribute('data-concept-slot')).toBe('12')
+    expect(pill.querySelector('.innfo-concept-count')).toBeNull()
+  })
+
+  it('is a button that calls onSelect and is inert without one', () => {
+    let called = 0
+    const a = UI.ConceptPill({ id: 'x', label: 'X', index: 0 }, { onSelect: () => called++ })
+    expect(a.tagName).toBe('BUTTON')
+    a.click()
+    expect(called).toBe(1)
+    const b = UI.ConceptPill({ id: 'x', label: 'X', index: 0 })
+    expect(b.tagName).toBe('SPAN')
+  })
+
+  it('throws TypeError naming the component on invalid data', () => {
+    expect(() => UI.ConceptPill(null)).toThrow(TypeError)
+    expect(() => UI.ConceptPill(null)).toThrow(/ConceptPill/)
+  })
+
+  it('uses no shadow DOM', () => {
+    expect(UI.ConceptPill({ id: 'x', label: 'X', index: 0 }).shadowRoot).toBeNull()
+  })
+})
+
+describe('InnfoUI.ElementPill', () => {
+  it('renders data-element-id and an origin icon child', () => {
+    const pill = UI.ElementPill({ id: 'slimer', label: 'Slimer', origin: 'agent' })
+    expect(comp(pill)).toBe('element-pill')
+    expect(pill.getAttribute('data-element-id')).toBe('slimer')
+    expect(pill.querySelector('[data-origin=agent]')).toBeTruthy()
+  })
+
+  it('omits the origin icon when origin is absent', () => {
+    const pill = UI.ElementPill({ id: 'x', label: 'X' })
+    expect(pill.querySelector('[data-origin]')).toBeNull()
+  })
+
+  it('is an anchor when href is given, a button with onSelect, else a span', () => {
+    const a = UI.ElementPill({ id: 'x', label: 'X' }, { href: '#el-x' })
+    expect(a.tagName).toBe('A')
+    expect(a.getAttribute('href')).toBe('#el-x')
+    const b = UI.ElementPill({ id: 'x', label: 'X' }, { onSelect: () => {} })
+    expect(b.tagName).toBe('BUTTON')
+    expect(UI.ElementPill({ id: 'x', label: 'X' }).tagName).toBe('SPAN')
+  })
+})
+
+describe('InnfoUI.MarkerChip', () => {
+  it('renders data-marker-id, data-kind and an optional value', () => {
+    const chip = UI.MarkerChip({ id: 'm1', label: 'Severity', kind: 'field', value: 'high' })
+    expect(comp(chip)).toBe('marker-chip')
+    expect(chip.getAttribute('data-marker-id')).toBe('m1')
+    expect(chip.getAttribute('data-kind')).toBe('field')
+    expect(chip.querySelector('b')!.textContent).toBe('high')
+  })
+})
+
+describe('InnfoUI.StatusBadge', () => {
+  it('renders data-status and text/aria from count', () => {
+    const b = UI.StatusBadge({ status: 'pending', count: 4 })
+    expect(comp(b)).toBe('status-badge')
+    expect(b.getAttribute('data-status')).toBe('pending')
+    expect(b.textContent).toBe('4')
+    expect(b.getAttribute('aria-label')).toBe('4 pending')
+  })
+
+  it('falls back to the status as text and supports stale', () => {
+    const b = UI.StatusBadge({ status: 'stale' })
+    expect(b.textContent).toBe('stale')
+    expect(b.getAttribute('aria-label')).toBe('stale')
+  })
+
+  it('throws on unknown status', () => {
+    expect(() => UI.StatusBadge({ status: 'bogus' })).toThrow(TypeError)
+  })
+})
+
+describe('InnfoUI exports', () => {
+  it('exposes slug, conceptSlot and ORIGIN_VARIANTS', () => {
+    expect(typeof UI.slug).toBe('function')
+    expect(UI.slug('Paranormal Threat')).toBe('paranormal-threat')
+    expect(typeof UI.conceptSlot).toBe('function')
+    expect(UI.conceptSlot({ index: 0 })).toBe(1)
+    expect(UI.conceptSlot({ index: 12 })).toBe(1)
+    expect(UI.conceptSlot({ index: 13 })).toBe(2)
+    expect(Array.isArray(UI.ORIGIN_VARIANTS)).toBe(true)
+    expect(UI.ORIGIN_VARIANTS).toEqual(['error', 'agent', 'human', 'reviewer', 'document'])
+  })
+})
+
+describe('InnfoUI.icon', () => {
+  it('returns the same SVG for a known name and throws on unknown', () => {
+    expect(UI.icon('pin', 12)).toContain('<svg')
+    expect(UI.icon('cite-agent', 12)).toContain('<svg')
+    expect(() => UI.icon('no-such-icon')).toThrow(TypeError)
+  })
+})

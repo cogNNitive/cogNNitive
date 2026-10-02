@@ -17,6 +17,7 @@ import type { BlueprintSchema, FeedbackVerdictEntry } from '@cognnitive/innfo-co
 import { findKnowledgeFile, resolveBlueprintWithCache } from './spec.js'
 import { readKnowledge } from './list-read.js'
 import { buildBlueprintSchemaResolverFromCache } from './validate.js'
+import { getFeedbackLedgerPath } from './feedback-verdict.js'
 
 export interface BuildConsolePayloadInput {
   model?: string
@@ -87,7 +88,7 @@ export async function buildConsolePayloadTool(
 
   // Resolve Feedback Verdict Ledger
   let ledgerEntries: FeedbackVerdictEntry[] = []
-  const ledgerPath = join(rootDir, FEEDBACK_LEDGER_FILENAME)
+  const ledgerPath = getFeedbackLedgerPath(rootDir)
   if (existsSync(ledgerPath)) {
     try {
       const rawLedger = await readFile(ledgerPath, 'utf-8')
