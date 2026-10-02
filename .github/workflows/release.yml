@@ -79,10 +79,10 @@ jobs:
             const fs = require('fs');
             const path = require('path');
             const { key, version } = parseReleaseTag(process.env.RELEASE_TAG);
-            const stagedManifestPath = path.join(process.cwd(), 'docs', 'use', 'manifests', process.env.RELEASE_TAG + '.md');
+            const stagedManifestPath = path.join(process.cwd(), '.release-manifest.md');
             const stagedManifestText = fs.existsSync(stagedManifestPath)
               ? fs.readFileSync(stagedManifestPath, 'utf8')
-              : fs.readFileSync(path.join(process.cwd(), 'docs', 'use', 'manifest.md'), 'utf8');
+              : '';
             runSmokeTest({
               key,
               version,

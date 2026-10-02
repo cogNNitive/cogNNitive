@@ -13,6 +13,7 @@ docs/innfo/cdn/
 docs/use/freshness.json
 docs/use/manifest.md
 docs/update/manifest.md
+.release-manifest.md
 
 # Test reports & Coverage
 coverage/

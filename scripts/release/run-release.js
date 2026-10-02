@@ -158,7 +158,9 @@ async function runRelease(config, options = {}) {
       }
     }
 
-    return { tag, key, version, contentSha, manifestSha, action: decision.action, dryRun };
+    fs.writeFileSync(path.join(repoRoot, '.release-manifest.md'), manifestText, 'utf8');
+
+    return { tag, key, version, contentSha, manifestSha, action: decision.action, dryRun, manifestText };
   } finally {
     try { fs.rmSync(work, { recursive: true, force: true }); } catch {}
   }
