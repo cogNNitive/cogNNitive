@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { execFileSync } from 'node:child_process'
-import { existsSync, symlinkSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, symlinkSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import os from 'node:os'
@@ -30,14 +30,30 @@ function worktreePath(root, id) {
   return join(dirname(root), `cogNNitive-${id}`)
 }
 
+/**
+ * Every node_modules a session worktree needs, as repo-relative paths: the root
+ * one, the `iNNfo/` aggregate, and each npm workspace (`iNNfo/packages/*`,
+ * `iNNfo/apps/*`) plus each skill that ships its own deps (`skills/*`).
+ */
+function candidateNodeModules(root) {
+  const rels = ['node_modules', join('iNNfo', 'node_modules')]
+  for (const group of [join('iNNfo', 'packages'), join('iNNfo', 'apps'), 'skills']) {
+    const groupDir = join(root, group)
+    if (!existsSync(groupDir)) continue
+    for (const entry of readdirSync(groupDir, { withFileTypes: true })) {
+      if (entry.isDirectory()) rels.push(join(group, entry.name, 'node_modules'))
+    }
+  }
+  return rels
+}
+
 function junctionNodeModules(root, target) {
-  const links = [
-    { src: join(root, 'node_modules'), dst: join(target, 'node_modules') },
-    { src: join(root, 'skills', 'nn-trannsform', 'node_modules'), dst: join(target, 'skills', 'nn-trannsform', 'node_modules') },
-  ]
-  for (const { src, dst } of links) {
+  for (const rel of candidateNodeModules(root)) {
+    const src = join(root, rel)
+    const dst = join(target, rel)
     if (existsSync(dst) || !existsSync(src)) continue
     try {
+      mkdirSync(dirname(dst), { recursive: true })
       symlinkSync(src, dst, 'junction')
     } catch {
       console.error(`WARNING: could not junction ${src}; run "npm install" in ${target}`)

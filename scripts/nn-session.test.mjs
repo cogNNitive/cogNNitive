@@ -77,6 +77,28 @@ test('start junctions the primary node_modules', () => {
   }
 })
 
+test('start junctions workspace node_modules', () => {
+  const base = mkdtempSync(join(tmpdir(), 'nn-session-'))
+  const repo = makeRepo(base)
+  mkdirSync(join(repo, 'iNNfo', 'packages', 'innfo-mcp', 'node_modules'), { recursive: true })
+  mkdirSync(join(repo, 'iNNfo', 'apps', 'innfo-editor', 'node_modules'), { recursive: true })
+  const target = join(dirname(repo), 'cogNNitive-s4')
+  try {
+    const s = run(['start', '--id', 's4', '--root', repo])
+    assert.equal(s.code, 0)
+    assert.ok(
+      existsSync(join(target, 'iNNfo', 'packages', 'innfo-mcp', 'node_modules')),
+      'package workspace node_modules junctioned',
+    )
+    assert.ok(
+      existsSync(join(target, 'iNNfo', 'apps', 'innfo-editor', 'node_modules')),
+      'app workspace node_modules junctioned',
+    )
+  } finally {
+    rmSync(base, { recursive: true, force: true })
+  }
+})
+
 test('stop refuses an unmerged session branch', () => {
   const base = mkdtempSync(join(tmpdir(), 'nn-session-'))
   const repo = makeRepo(base)

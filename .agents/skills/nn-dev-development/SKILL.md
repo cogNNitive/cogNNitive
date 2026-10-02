@@ -62,12 +62,13 @@ node scripts/nn-session.mjs start --id <session-id>
 `node_modules`, and creates the branch `session/<id>` off `dev`. Never write to the
 primary checkout; the primary-tree guard blocks it.
 
-⚠️ It junctions only the **root** `node_modules` (and `skills/nn-trannsform/node_modules`),
-not the per-workspace ones (`iNNfo/packages/*`, `iNNfo/apps/*`). A fresh worktree can
-therefore fail local `npm run typecheck` (e.g. `Cannot find module 'vitest'`) even on a
-clean tree — an environment gap, not a code error. CI installs deps with `npm ci`. For a
+⚠️ It junctions the root `node_modules`, `iNNfo/node_modules`, and every workspace
+(`iNNfo/packages/*`, `iNNfo/apps/*`) and skill `node_modules` that exists in the primary.
+A dependency missing from the **local install** (a partial / `--omit=dev` install — e.g.
+`vitest` present in neither the root nor the workspace) still breaks local `npm run
+typecheck`; that is an environment gap, not a code error. CI installs with `npm ci`. For a
 change that touches no TypeScript, `git push --no-verify` is acceptable (CI re-runs
-`typecheck` on the pushed ref); otherwise run `npm install` in the worktree first.
+`typecheck` on the pushed ref); otherwise run `npm install` in the working tree first.
 
 ### 1b. Informational concurrency scan
 
