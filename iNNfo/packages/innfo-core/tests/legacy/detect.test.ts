@@ -162,6 +162,17 @@ describe('detectLegacy (Task 5.1)', () => {
     }
   })
 
+  it('ignores /specs/templates/ and iNNfo_V_0-3-0 mentions in file bodies (issue #105)', async () => {
+    const reader = createMemoryDomainReader({
+      'domaiNN_NN.md': '---\nblueprint_version: "0.1.0"\n---\n',
+      'kNNowledge/item_NN.md': '---\nknowledge_version: "0.1.0"\n---\n# Item\n',
+      'specs/bluepriNNts/definnition/V_0-1-0/spec_NN.md':
+        '# defiNNition\n\nThe historical layout used `/specs/templates/`; the L1 spec is iNNfo_V_0-3-0.\n',
+    })
+    const result = await detectLegacy(reader)
+    expect(result.kind).toBe('current')
+  })
+
   it('returns current for a canonical V_0-3-0 domain', async () => {
     const reader = createMemoryDomainReader({
       'domaiNN_NN.md': '---\nblueprint_version: "0.1.0"\nblueprint_name: "domaiNN"\nknowledge_dir: "kNNowledge"\nblueprints_dir: "specs/bluepriNNts"\nparent_spec:\n  url: "https://raw.githubusercontent.com/cognnitive/innfo/main/iNNfo/specs/bluepriNNts/domaiNN/spec_NN.md"\n---\n# domaiNN\n',
