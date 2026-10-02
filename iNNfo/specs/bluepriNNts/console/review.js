@@ -323,6 +323,7 @@
         var n = store.drafts().length
         counter.textContent = counter.textContent.replace(/drafts:\s*\d+/, 'drafts: ' + n)
       }
+      applyDecorations()
     }
 
     function openFor(anchor, anchorData) {
@@ -388,10 +389,28 @@
     }
 
     function decorateCard(card) {
-      if (card.querySelector('[data-innfo-ctl="card-anchor"]')) return
       var elId = card.getAttribute('data-element-id')
       var head = card.querySelector('.innfo-card-head') || card
-      head.appendChild(annotateControl({ elementId: elId }, '\u270e'))
+      if (!card.querySelector('[data-innfo-ctl="card-anchor"]')) {
+        head.appendChild(annotateControl({ elementId: elId }, '\u270e'))
+      }
+      if (!head.querySelector('[data-innfo-component="reviewed-toggle"]') && store) {
+        var el = elementsById[elId]
+        var state = el ? reviewState(el, store.reviewed()) : 'none'
+        var rt = UI.ReviewedToggle({ state: state })
+        rt.setAttribute('data-innfo-review-ctl', '1')
+        rt.addEventListener('click', function () {
+          var current = store.reviewed()
+          if (Object.prototype.hasOwnProperty.call(current, elId)) {
+            store.unmarkReviewed(elId)
+          } else if (el) {
+            store.markReviewed(elId, el.hash)
+          }
+          applyDecorations()
+          refreshCount()
+        })
+        head.appendChild(rt)
+      }
     }
 
     function decorateFieldRow(row) {
@@ -400,6 +419,107 @@
       var elId = card ? card.getAttribute('data-element-id') : ''
       var field = row.getAttribute('data-field')
       row.appendChild(annotateControl({ elementId: elId, field: field }, '\u270e'))
+    }
+
+    function decorateBadges() {
+      if (!doc.querySelectorAll) return
+      var feedbackState = Array.isArray(meta.feedbackState) ? meta.feedbackState : []
+      if (!feedbackState.length) return
+      var verdicts = verdictsByElement(feedbackState, elementsById)
+      Array.prototype.forEach.call(
+        doc.querySelectorAll('[data-innfo-component="element-card"][data-element-id]'),
+        function (card) {
+          var elId = card.getAttribute('data-element-id')
+          var statuses = verdicts[elId]
+          if (!statuses) return
+          var head = card.querySelector('.innfo-card-head') || card
+          var host = head.querySelector('[data-innfo-review-badges]')
+          if (!host) {
+            host = makeEl(doc, 'span', 'innfo-review-badges')
+            host.setAttribute('data-innfo-review-badges', '')
+            head.appendChild(host)
+          }
+          host.innerHTML = ''
+          Object.keys(statuses).forEach(function (status) {
+            host.appendChild(UI.StatusBadge({ status: status, count: statuses[status] }))
+          })
+        },
+      )
+    }
+
+    function decorateRailProgress() {
+      if (!doc.querySelectorAll || !store) return
+      var progress = progressByConcept(elements, store.drafts(), store.reviewed())
+      Array.prototype.forEach.call(
+        doc.querySelectorAll('.innfo-rail-item, [data-key]'),
+        function (btn) {
+          var key = btn.getAttribute('data-concept') || btn.getAttribute('data-key')
+          if (!key || key === '__all' || !progress[key]) return
+          var existing = btn.querySelector('[data-innfo-component="rail-progress"]')
+          if (existing) existing.parentNode.removeChild(existing)
+          btn.appendChild(
+            UI.RailProgress({
+              reviewed: progress[key].reviewed,
+              total: progress[key].total,
+              pending: progress[key].pending,
+            }),
+          )
+        },
+      )
+    }
+
+    function applyChangedFilter() {
+      if (!store) return
+      var changed = changedIds(elements, store.reviewed())
+      var changedSet = {}
+      changed.forEach(function (id) {
+        changedSet[id] = true
+      })
+      Array.prototype.forEach.call(
+        doc.querySelectorAll('[data-innfo-component="element-card"][data-element-id]'),
+        function (card) {
+          if (changedSet[card.getAttribute('data-element-id')]) {
+            card.setAttribute('data-innfo-changed', '')
+          } else {
+            card.removeAttribute('data-innfo-changed')
+          }
+        },
+      )
+    }
+
+    function buildChangedFilter() {
+      var bar =
+        doc.getElementById('innfo-feedback-banner') || doc.getElementById('innfo-banner')
+      if (!bar) return null
+      var existing = bar.querySelector('[data-innfo="changed-filter"]')
+      if (existing) return existing
+      var b = makeEl(doc, 'button', 'innfo-changed-filter', 'Changed')
+      b.setAttribute('data-innfo', 'changed-filter')
+      b.setAttribute('type', 'button')
+      b.setAttribute('aria-pressed', 'false')
+      b.addEventListener('click', function () {
+        var on = html() && html().getAttribute('data-innfo-filter') === 'changed'
+        if (on) {
+          html().removeAttribute('data-innfo-filter')
+          b.setAttribute('aria-pressed', 'false')
+        } else {
+          html().setAttribute('data-innfo-filter', 'changed')
+          b.setAttribute('aria-pressed', 'true')
+          applyChangedFilter()
+        }
+      })
+      var openBtn = bar.querySelector('#innfo-feedback-open')
+      if (openBtn && openBtn.parentNode) openBtn.parentNode.insertBefore(b, openBtn)
+      else bar.appendChild(b)
+      return b
+    }
+
+    function applyDecorations() {
+      decorateBadges()
+      if (!enabled) return
+      decorate(doc)
+      decorateRailProgress()
+      if (html() && html().getAttribute('data-innfo-filter') === 'changed') applyChangedFilter()
     }
 
     function decorate(root) {
@@ -419,10 +539,18 @@
     function onRendered(event) {
       var root = event && event.detail ? event.detail.root : null
       // The runtime rebuilds the banner innerHTML on every refresh, so the
-      // toggle is re-inserted here (idempotent) before decoration.
-      if (enabled || toggleEl) toggleEl = buildToggle()
+      // toggle and changed filter are re-inserted here (idempotent).
+      if (canReview(meta, elements, needs)) {
+        toggleEl = buildToggle()
+        if (enabled && toggleEl) buildChangedFilter()
+      }
       if (toggleEl) toggleEl.setAttribute('aria-pressed', enabled ? 'true' : 'false')
-      decorate(root || doc)
+      decorateBadges()
+      if (enabled) {
+        decorate(root || doc)
+        decorateRailProgress()
+        if (html() && html().getAttribute('data-innfo-filter') === 'changed') applyChangedFilter()
+      }
     }
 
     function buildToggle() {
@@ -451,17 +579,35 @@
       enabled = true
       if (html()) html().setAttribute('data-innfo-review', 'on')
       if (toggleEl) toggleEl.setAttribute('aria-pressed', 'true')
-      decorate(doc)
+      buildChangedFilter()
+      applyDecorations()
     }
 
     function disable() {
       enabled = false
       closePopover()
-      if (html()) html().removeAttribute('data-innfo-review')
+      if (html()) {
+        html().removeAttribute('data-innfo-review')
+        html().removeAttribute('data-innfo-filter')
+      }
       if (toggleEl) toggleEl.setAttribute('aria-pressed', 'false')
       Array.prototype.forEach.call(doc.querySelectorAll('[data-innfo-review-ctl]'), function (n) {
         if (n.parentNode) n.parentNode.removeChild(n)
       })
+      Array.prototype.forEach.call(
+        doc.querySelectorAll('[data-innfo-component="rail-progress"]'),
+        function (n) {
+          if (n.parentNode) n.parentNode.removeChild(n)
+        },
+      )
+      var filterBtn = doc.querySelector('[data-innfo="changed-filter"]')
+      if (filterBtn && filterBtn.parentNode) filterBtn.parentNode.removeChild(filterBtn)
+      Array.prototype.forEach.call(
+        doc.querySelectorAll('[data-innfo-changed]'),
+        function (n) {
+          n.removeAttribute('data-innfo-changed')
+        },
+      )
     }
 
     function destroy() {
@@ -473,6 +619,9 @@
 
     toggleEl = buildToggle()
     if (doc.addEventListener) doc.addEventListener('innfo:rendered', onRendered)
+    // One initial pass: covers a render that preceded the controller's creation
+    // (verdict badges show with review mode off).
+    decorateBadges()
 
     return {
       enable: enable,
