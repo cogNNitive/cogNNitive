@@ -21,15 +21,21 @@ import { resolve, relative, join, extname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
 
-const require = createRequire(import.meta.url)
+const req = createRequire(import.meta.url)
+const __dirname = fileURLToPath(new URL('.', import.meta.url))
+const REPO_ROOT = resolve(__dirname, '..')
+
+function loadCoreMirror() {
+  const mirrorPath = join(REPO_ROOT, 'skills', 'nn-trannsform', 'scripts', 'lib', 'innfo-core.generated.cjs')
+  return req(mirrorPath)
+}
+
+const mirror = loadCoreMirror()
 const {
   parseCitation,
   extractHeadings,
   serializeKnowledgeUnitRef,
-} = require('../skills/nn-trannsform/scripts/lib/innfo-core.generated.cjs')
-
-const __dirname = fileURLToPath(new URL('.', import.meta.url))
-const REPO_ROOT = resolve(__dirname, '..')
+} = mirror
 
 const INCLUDED_EXTENSIONS = new Set([
   '.md',
@@ -55,10 +61,10 @@ const EXCLUDED_DIRS = new Set([
 /**
  * Checks if a relative path should be skipped from migration.
  * @param {string} relPath - Relative path from workspace/repo root.
- * @param {boolean} [isDir=false] - Whether the path is a directory.
+ * @param {boolean} [_isDir=false] - Whether the path is a directory.
  * @returns {boolean}
  */
-export function shouldSkip(relPath, isDir = false) {
+export function shouldSkip(relPath, _isDir = false) {
   const normalized = relPath.replace(/\\/g, '/')
   const segments = normalized.split('/')
 
@@ -132,7 +138,7 @@ export function migrateContent(content, relPath, resolveSourceFile) {
 
   const updated = content.replace(HASH_CITATION_RE, (match, filePathPart, slugPart) => {
     const rawCandidate = `${filePathPart}#${slugPart}`
-    const parsed = parseCitation(rawCandidate)
+    const parsed = /** @type {any} */ (parseCitation(rawCandidate))
     if (!parsed || !parsed.legacyHash || !parsed.slug) {
       return match
     }
