@@ -11,6 +11,8 @@
   },
   "scripts": {
     "prepare": "git config core.hooksPath .githooks",
+    "build:console": "node scripts/build-console-bundle.mjs",
+    "check:console-bundle": "node scripts/build-console-bundle.mjs --check",
     "build:docs": "node scripts/build-docs.mjs",
     "stage:mcp-bundle": "node scripts/stage-mcp-bundle.mjs",
     "typecheck:scripts": "tsc --noEmit -p tsconfig.scripts.json",

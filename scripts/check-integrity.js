@@ -98,6 +98,17 @@ if (!consoleShellResult.ok) {
 }
 console.log(`  ✅ All ${consoleShellResult.shells.length} console shells adhere to the integrity contract.`);
 
+// Step 2f: Console Bundle Freshness Guard
+console.log('\n[Group 2f] Console Bundle Freshness Guard:');
+const { checkConsoleBundle } = require('./lib/console-bundle.js');
+const consoleBundleResult = checkConsoleBundle(repoRoot);
+if (!consoleBundleResult.ok) {
+  console.error('❌ Console Bundle check failed:');
+  consoleBundleResult.errors.forEach(err => console.error(`  - ${err}`));
+  process.exit(1);
+}
+console.log('  ✅ Console bundle is fresh and matches sources.');
+
 // Step 3: Full Deterministic Workspace Verification (verify.js)
 console.log('\n[Groups 3, 4, 7+] Workspace Verification Suite:');
 if (!runVerification({ release: isRelease })) {
@@ -116,6 +127,7 @@ if (isPrePush) {
   try {
     runCmd('npm run lint', 'Lint');
     runCmd('npm run typecheck', 'Typecheck');
+    runCmd('npm run check:console-bundle', 'Check console bundle');
     runCmd('npm --workspace=@cognnitive/innfo-core test', 'Unit tests (core)');
     runCmd('npm --workspace=@cognnitive/innfo-mcp run test:coverage', 'Unit tests + coverage (innfo-mcp)');
     runCmd('npm --workspace=@cognnitive/innfo-editor test', 'Unit tests (app)');
