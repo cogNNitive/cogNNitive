@@ -12,6 +12,8 @@ export {
   normalizeName,
   headingSlugParts,
   parseCitation,
+  extractHeadings,
+  serializeKnowledgeUnitRef,
 } from './sourceRef.js'
 
 export {

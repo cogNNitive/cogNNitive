@@ -7371,12 +7371,14 @@ var trannsformPrimitives_exports = {};
 __export(trannsformPrimitives_exports, {
   createFsSourceResolver: () => createFsSourceResolver,
   extractFileCitations: () => extractFileCitations,
+  extractHeadings: () => extractHeadings,
   headingSlugParts: () => headingSlugParts,
   normalizeName: () => normalizeName,
   parseCitation: () => parseCitation,
   projectLineage: () => projectLineage,
   readLineageSnapshot: () => readLineageSnapshot,
   renderLineageSections: () => renderLineageSections,
+  serializeKnowledgeUnitRef: () => serializeKnowledgeUnitRef,
   slugifyHeading: () => slugifyHeading,
   slugifyUnitHeading: () => slugifyUnitHeading,
   validateCitations: () => validateCitations
@@ -7723,6 +7725,11 @@ function parseKnowledgeUnitRef(input) {
     subunits,
     raw: clean
   };
+}
+function serializeKnowledgeUnitRef(filePath, unit, subunits = []) {
+  const head = unit.kind === "header" ? `${"#".repeat(unit.level)} ${unit.text}` : unit.id;
+  const tail = subunits.map((s) => normalizeName(s)).filter((s) => s !== "");
+  return tail.length > 0 ? `${filePath}@${head}&${tail.join("&")}` : `${filePath}@${head}`;
 }
 
 // iNNfo/packages/innfo-core/src/console/fs-source-resolver.ts
@@ -9524,12 +9531,14 @@ function readLineageSnapshot(root) {
 0 && (module.exports = {
   createFsSourceResolver,
   extractFileCitations,
+  extractHeadings,
   headingSlugParts,
   normalizeName,
   parseCitation,
   projectLineage,
   readLineageSnapshot,
   renderLineageSections,
+  serializeKnowledgeUnitRef,
   slugifyHeading,
   slugifyUnitHeading,
   validateCitations
