@@ -236,12 +236,8 @@ function checkConsoleShellIntegrity(repoRoot, options = {}) {
         if (anchorSets.length > 0) {
           const satisfied = anchorSets.some((set) => set.every((id) => domIds.has(id)));
           if (!satisfied) {
-            // Check for ledgered exception on model_console.html if needed
-            const isModelConsoleFeedback = shellPath.endsWith('model_console.html') && need === 'feedback-export';
-            if (!isModelConsoleFeedback) {
-              const expectedStr = anchorSets.map((s) => s.map((id) => `#${id}`).join(' + ')).join(' OR ');
-              errors.push(`Shell ${shellPath} declares need "${need}" but is missing required anchor(s) (${expectedStr})`);
-            }
+            const expectedStr = anchorSets.map((s) => s.map((id) => `#${id}`).join(' + ')).join(' OR ');
+            errors.push(`Shell ${shellPath} declares need "${need}" but is missing required anchor(s) (${expectedStr})`);
           }
         }
       }

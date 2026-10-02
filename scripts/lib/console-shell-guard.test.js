@@ -105,8 +105,38 @@ console.log('Running console-shell-guard unit tests...');
   }
   assert.strictEqual(result.ok, true);
   assert.ok(result.shells.length >= 4, `Expected at least 4 shells, got ${result.shells.length}`);
+  assert.ok(result.shells.some((s) => s.includes('model_console.html')), 'model_console.html must be among checked shells');
   console.log(`✔ Live repository check passes on all ${result.shells.length} shells:`);
   result.shells.forEach((s) => console.log(`  - ${s}`));
+}
+
+// 5. Guard source contains no model_console.html literal (A5.5)
+{
+  const fs = require('node:fs');
+  const guardSource = fs.readFileSync(path.join(__dirname, 'console-shell-guard.js'), 'utf8');
+  assert.strictEqual(
+    guardSource.includes('model_console.html'),
+    false,
+    'guard source must contain no model_console.html literal (exemption removed)',
+  );
+  console.log('✔ Guard source contains no model_console.html literal');
+}
+
+// 6. Shell declaring feedback-export with no markup passes (A5.5)
+{
+  const { extractDomIds } = require('./console-shell-guard.js');
+  const domIds = extractDomIds('<div>No feedback markup here</div>');
+  const registry = JSON.parse(
+    require('node:fs').readFileSync(
+      path.join(__dirname, '..', '..', 'iNNfo', 'specs', 'bluepriNNts', 'console', 'needs-registry.json'),
+      'utf8',
+    ),
+  );
+  const anchorSets = registry['feedback-export'].anchors || [];
+  assert.deepStrictEqual(anchorSets, [], 'feedback-export must declare empty anchors');
+  const satisfied = anchorSets.length === 0 || anchorSets.some((set) => set.every((id) => domIds.has(id)));
+  assert.strictEqual(satisfied, true, 'shell declaring feedback-export with no markup must satisfy anchor check');
+  console.log('✔ Shell declaring feedback-export with no markup passes anchor check');
 }
 
 console.log('\nAll console-shell-guard unit tests passed! ✨');

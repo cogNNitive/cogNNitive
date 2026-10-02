@@ -31,10 +31,11 @@ In the top navigation banner, locate the **Reviewer** chip (e.g., `Reviewer: rev
 - Inspect the breakdown of pending notes, corrections, and comments.
 - Click any element reference link in the review table to jump directly to the highlighted element card in the Explorer or Domain view.
 
-### 4. Exporting the Review Document
-- Click **Export Review** in the header banner or inside the Review tab.
-- A standardized review JSON document named `<Model>_V_<Version>_<user>_review.json` is generated and downloaded to your computer.
-- Review JSON documents adhere to schema `https://cognntive.dev/schemas/console-review-v1.json`.
+### 4. Exporting the Feedback Document
+- Click **Export feedback** in the header banner or inside the Review tab.
+- A standardized feedback JSON document named `<Model>_V_<Version>_<user>_feedback_<YYYYMMDD-HHMMSS>.json` is generated and downloaded to your computer.
+- Each item is structured with `id`, `kind`, `target` (`element_id`, `concept`, `element`, optional `field`), `comment`, and `base_hash`.
+- *Note:* Until Change C ships, `model_console` supports conformant export but in-console draft creation arrives with Change C (draft store v2).
 
 ### 5. Ingesting Feedback
-Send the exported `*_review.json` file back to the knowledge architect or AI agent (Pathway 1 or Pathway 2) to apply corrections and update the model version.
+Normalized feedback documents ingest via `nn-trannsform` or the `reconcile_feedback` procedure, with items indexed under `### fb-001` headings followed by `- **Kind**:` bullets.
