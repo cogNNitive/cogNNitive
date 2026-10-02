@@ -42,10 +42,10 @@ describe('artifact_shell.html (console shell)', () => {
     expect(html).not.toContain('fetch(')
   })
 
-  it('provides the review banner and export modal containers', () => {
+  it('does not contain hardcoded review banner or export modal (bundle-injected)', () => {
     const html = readShell()
-    expect(html).toContain('id="innfo-banner"')
-    expect(html).toContain('id="innfo-export-modal"')
+    expect(html).not.toContain('id="innfo-banner"')
+    expect(html).not.toContain('id="innfo-export-modal"')
   })
 })
 

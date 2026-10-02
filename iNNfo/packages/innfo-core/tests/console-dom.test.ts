@@ -94,7 +94,7 @@ describe('innfo-console — rendered DOM', () => {
   it('paints the banner, concept rail and one card per element from the slots', () => {
     bootConsole()
 
-    const banner = document.getElementById('innfo-banner')!.textContent ?? ''
+    const banner = (document.getElementById('innfo-feedback-banner') || document.getElementById('innfo-banner'))!.textContent ?? ''
     expect(banner).toContain('Acme')
     expect(banner).toContain('V_0-1-0')
 
@@ -157,14 +157,15 @@ describe('innfo-console — export gate', () => {
   it('refuses to emit a file until an identifier is entered', () => {
     bootConsole()
 
-    document.getElementById('innfo-export-open')!.dispatchEvent(new Event('click', { bubbles: true }))
-    const download = document.querySelector('#innfo-export-modal [data-innfo="download"]')!
+    const openBtn = (document.getElementById('innfo-feedback-open') || document.getElementById('innfo-export-open'))!
+    openBtn.dispatchEvent(new Event('click', { bubbles: true }))
+    const download = (document.querySelector('#innfo-feedback-modal [data-innfo="download"]') || document.querySelector('#innfo-export-modal [data-innfo="download"]'))!
 
     download.dispatchEvent(new Event('click', { bubbles: true }))
     expect(downloads).toEqual([])
 
     // Whitespace is not an identifier either.
-    typeInto('#innfo-export-modal [data-innfo="identifier"]', '   ')
+    typeInto('#innfo-feedback-modal [data-innfo="identifier"], #innfo-export-modal [data-innfo="identifier"]', '   ')
     download.dispatchEvent(new Event('click', { bubbles: true }))
     expect(downloads).toEqual([])
   })
@@ -179,16 +180,16 @@ describe('innfo-console — export gate', () => {
           kind: 'comment',
           target: { element_id: 'goal-grow' },
           comment: 'Clarify the owner field',
-          status: 'pending',
+          base_hash: '0123456789abcdef',
         },
       ]),
     )
 
-    document.getElementById('innfo-export-open')!.dispatchEvent(new Event('click', { bubbles: true }))
-    typeInto('#innfo-export-modal [data-innfo="identifier"]', 'Reviewer, primera revisión')
-    document
-      .querySelector('#innfo-export-modal [data-innfo="download"]')!
-      .dispatchEvent(new Event('click', { bubbles: true }))
+    const openBtn = (document.getElementById('innfo-feedback-open') || document.getElementById('innfo-export-open'))!
+    openBtn.dispatchEvent(new Event('click', { bubbles: true }))
+    typeInto('#innfo-feedback-modal [data-innfo="identifier"], #innfo-export-modal [data-innfo="identifier"]', 'Reviewer, primera revisión')
+    const download = (document.querySelector('#innfo-feedback-modal [data-innfo="download"]') || document.querySelector('#innfo-export-modal [data-innfo="download"]'))!
+    download.dispatchEvent(new Event('click', { bubbles: true }))
 
     expect(downloads).toHaveLength(1)
     expect(downloads[0]).toMatch(
@@ -201,15 +202,17 @@ describe('innfo-console — export gate', () => {
     localStorage.setItem(
       api.getDraftKey('Acme', 'V_0-1-0'),
       JSON.stringify([
-        { id: 'fb-001', kind: 'comment', target: { element_id: 'goal-grow' }, status: 'pending' },
-        { id: 'fb-002', kind: 'comment', target: { element_id: 'metric-churn' }, status: 'pending' },
+        { id: 'fb-001', kind: 'comment', target: { element_id: 'goal-grow' }, base_hash: '0123456789abcdef' },
+        { id: 'fb-002', kind: 'comment', target: { element_id: 'metric-churn' }, base_hash: '0123456789abcdef' },
       ]),
     )
 
-    document.getElementById('innfo-export-open')!.dispatchEvent(new Event('click', { bubbles: true }))
+    const openBtn = (document.getElementById('innfo-feedback-open') || document.getElementById('innfo-export-open'))!
+    openBtn.dispatchEvent(new Event('click', { bubbles: true }))
 
+    const modal = (document.getElementById('innfo-feedback-modal') || document.getElementById('innfo-export-modal'))!
     expect(
-      document.querySelector('#innfo-export-modal [data-innfo="instructions"]')!.textContent,
+      modal.querySelector('[data-innfo="instructions"]')!.textContent,
     ).toContain('2 pending draft(s)')
   })
 })

@@ -112,20 +112,20 @@ A4b (tool, procedure, golden, ~250)
 ## Phase 5: A5 - Bundle UI, export gate, shells, guard, docs (PR 5, ~400; split A5a / A5b)
 
 A5a (runtime and DOM, ~250)
-- [ ] A5.1 RED: `CORE/tests/console-feedback-ui.test.ts` with `@vitest-environment jsdom` (happy-dom lets `javascript:` through): unchanged `model_console.html` + bundle evaluated twice -> one `[data-innfo-feedback-root]`, one `#innfo-feedback-open`, `showModal` once per click; seeded draft exports `target.field` and `base_hash`; invalid meta -> `createObjectURL` never called and errors listed in `[data-innfo="errors"]`; undeclared `feedback-export` injects nothing; stepper `#innfo-export-modal` coexists; viewer renders an icon from builder output. Prove red by removing the idempotency guard and the validation gate.
-- [ ] A5.2 RED: rewrite `test/console-review.test.mjs`: `draftToItem` shape (`target{element_id,concept,element,field?}`, `comment`, `base_hash`, no `status`), export passes `validateFeedback`; `buildReviewDoc`, `validateReviewDoc`, `serializeReviewDoc`, `buildReviewFilename`, `parseReviewFilename`, `REVIEW_FILENAME_PATTERN`, `updateDraftStatus`, `.innfo-review-status-select` absent.
-- [ ] A5.3 GREEN: `CONSOLE/innfo-runtime.js`: `ensureFeedbackUi(doc)` (reads `needs[]` from the DOM; one root with `#innfo-feedback-banner`/`-open`/`-modal`; one `<style data-innfo-feedback>`; `data-innfo-bound`), `autoBoot` sets `data-innfo-console-booted` on `<html>`, `addDraft` stores `base_hash` from the element hash, `draftToItem`, `buildExportDoc` -> `validateFeedback` -> download with errors listed on failure; delete the A15 names and the status `<select>` (:2248).
-- [ ] A5.4 Rebuild `innfo-console.bundle.js` in the same commit; offline scan: no `fetch(` or `type=module` added.
+- [x] A5.1 RED: `CORE/tests/console-feedback-ui.test.ts` with `@vitest-environment jsdom` (happy-dom lets `javascript:` through): unchanged `model_console.html` + bundle evaluated twice -> one `[data-innfo-feedback-root]`, one `#innfo-feedback-open`, `showModal` once per click; seeded draft exports `target.field` and `base_hash`; invalid meta -> `createObjectURL` never called and errors listed in `[data-innfo="errors"]`; undeclared `feedback-export` injects nothing; stepper `#innfo-export-modal` coexists; viewer renders an icon from builder output. Prove red by removing the idempotency guard and the validation gate.
+- [x] A5.2 RED: rewrite `test/console-review.test.mjs`: `draftToItem` shape (`target{element_id,concept,element,field?}`, `comment`, `base_hash`, no `status`), export passes `validateFeedback`; `buildReviewDoc`, `validateReviewDoc`, `serializeReviewDoc`, `buildReviewFilename`, `parseReviewFilename`, `REVIEW_FILENAME_PATTERN`, `updateDraftStatus`, `.innfo-review-status-select` absent.
+- [x] A5.3 GREEN: `CONSOLE/innfo-runtime.js`: `ensureFeedbackUi(doc)` (reads `needs[]` from the DOM; one root with `#innfo-feedback-banner`/`-open`/`-modal`; one `<style data-innfo-feedback>`; `data-innfo-bound`), `autoBoot` sets `data-innfo-console-booted` on `<html>`, `addDraft` stores `base_hash` from the element hash, `draftToItem`, `buildExportDoc` -> `validateFeedback` -> download with errors listed on failure; delete the A15 names and the status `<select>` (:2248).
+- [x] A5.4 Rebuild `innfo-console.bundle.js` in the same commit; offline scan: no `fetch(` or `type=module` added.
 
 A5b (shells, registry, guard, docs, ~150 + deletions)
-- [ ] A5.5 RED: guard tests in `scripts/lib/console-shell-guard.test.js`: `model_console.html` passes through the registry rule alone; the guard source contains no `model_console.html` literal; a shell declaring `feedback-export` with no markup passes. Prove red by re-adding anchors to `needs-registry.json`.
-- [ ] A5.6 GREEN: `CONSOLE/needs-registry.json` `feedback-export: []`; delete the exemption at `scripts/lib/console-shell-guard.js` :215-217.
-- [ ] A5.7 GREEN: delete `#innfo-banner`/`#innfo-export-*` markup and CSS from `CONSOLE/artifact_shell.html` and `BP/metrics/assets/timeline.html`; update `BP/metrics/scripts/verify.harness.js:516`.
-- [ ] A5.8 GREEN: `docs/innfo/documentation/reviewer-guide.md` and `templates.md`: drop `console-review-v1`, describe the conformant export, the `### fb-001` format, and (per gate 0.7) the draft-creation gap until C.
-- [ ] A5.9 Confirm via `guard-template-immutability` that asset-only edits need no `blueprint_version` bump.
-- [ ] A5.14 CDN path (per gate 0.5): `templates/console` -> `bluepriNNts/console` in the script tags of `artifact_shell.html`, `timeline.html`, `model_console.html`; do NOT change the pin (it moves at release, the guard requires pin == manifest version).
-- [ ] A5.10 REFACTOR: remove CSS left unused by the markup deletion.
-- [ ] A5.11 Run G; commits `feat(console): bundle-injected feedback UI with validated export`, `refactor(console): drop shell feedback anchors and guard exemption`.
+- [x] A5.5 RED: guard tests in `scripts/lib/console-shell-guard.test.js`: `model_console.html` passes through the registry rule alone; the guard source contains no `model_console.html` literal; a shell declaring `feedback-export` with no markup passes. Prove red by re-adding anchors to `needs-registry.json`.
+- [x] A5.6 GREEN: `CONSOLE/needs-registry.json` `feedback-export: []`; delete the exemption at `scripts/lib/console-shell-guard.js` :215-217.
+- [x] A5.7 GREEN: delete `#innfo-banner`/`#innfo-export-*` markup and CSS from `CONSOLE/artifact_shell.html` and `BP/metrics/assets/timeline.html`; update `BP/metrics/scripts/verify.harness.js:516`.
+- [x] A5.8 GREEN: `docs/innfo/documentation/reviewer-guide.md` and `templates.md`: drop `console-review-v1`, describe the conformant export, the `### fb-001` format, and (per gate 0.7) the draft-creation gap until C.
+- [x] A5.9 Confirm via `guard-template-immutability` that asset-only edits need no `blueprint_version` bump.
+- [x] A5.14 CDN path (per gate 0.5): `templates/console` -> `bluepriNNts/console` in the script tags of `artifact_shell.html`, `timeline.html`, `model_console.html`; do NOT change the pin (it moves at release, the guard requires pin == manifest version).
+- [x] A5.10 REFACTOR: remove CSS left unused by the markup deletion.
+- [x] A5.11 Run G; commits `feat(console): bundle-injected feedback UI with validated export`, `refactor(console): drop shell feedback anchors and guard exemption`.
 
 ## Phase 6: A6a - Ledger tools and reconcile procedure (PR 6, ~260)
 

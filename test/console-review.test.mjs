@@ -10,23 +10,22 @@ const here = dirname(fileURLToPath(import.meta.url))
 const runtimePath = join(here, '..', 'iNNfo', 'specs', 'bluepriNNts', 'console', 'innfo-runtime.js')
 const InnfoConsole = require(runtimePath)
 
-describe('Console Review Workflow & 3-Tier Architecture', () => {
+describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
   let dom
   let window
   let document
 
   beforeEach(() => {
-    dom = new JSDOM(`<!doctype html>
+    dom = new JSDOM(
+      `<!doctype html>
 <html>
   <head></head>
   <body>
-    <header id="innfo-banner"></header>
     <div id="innfo-layout">
       <nav id="innfo-rail"></nav>
       <main>
         <div class="innfo-toolbar">
           <input id="innfo-search" type="search" />
-          <button id="innfo-export-open" type="button">Export feedback</button>
         </div>
         <nav id="innfo-view-tabs" class="innfo-view-tabs"></nav>
         <div id="innfo-tab-explorer" class="innfo-tab-panel active">
@@ -39,9 +38,9 @@ describe('Console Review Workflow & 3-Tier Architecture', () => {
       </main>
     </div>
   </body>
-</html>`, {
-      url: 'http://localhost',
-    })
+</html>`,
+      { url: 'http://localhost' },
+    )
     window = dom.window
     document = window.document
     global.window = window
@@ -56,7 +55,20 @@ describe('Console Review Workflow & 3-Tier Architecture', () => {
     }
   })
 
-  describe('Phase 1: Reviewer Identity & UI Tokens', () => {
+  describe('Legacy Symbols Removal Contract', () => {
+    it('asserts legacy review functions and patterns are absent from InnfoConsole', () => {
+      assert.equal(InnfoConsole.buildReviewDoc, undefined)
+      assert.equal(InnfoConsole.validateReviewDoc, undefined)
+      assert.equal(InnfoConsole.serializeReviewDoc, undefined)
+      assert.equal(InnfoConsole.buildReviewFilename, undefined)
+      assert.equal(InnfoConsole.parseReviewFilename, undefined)
+      assert.equal(InnfoConsole.REVIEW_FILENAME_PATTERN, undefined)
+      assert.equal(InnfoConsole.updateDraftStatus, undefined)
+      assert.equal(InnfoConsole.updateStatus, undefined)
+    })
+  })
+
+  describe('Reviewer Identity & Banner Chip', () => {
     it('defaults reviewer name to "reviewer" when localStorage is empty', () => {
       assert.equal(InnfoConsole.getReviewerName(), 'reviewer')
     })
@@ -74,141 +86,99 @@ describe('Console Review Workflow & 3-Tier Architecture', () => {
       assert.equal(InnfoConsole.slugifyReviewer(null), 'reviewer')
     })
 
-    it('generates standardized review filename with dot-to-hyphen version conversion', () => {
-      const filename = InnfoConsole.buildReviewFilename('BusinessModel', '1.2.0', 'Jane Doe')
-      assert.equal(filename, 'BusinessModel_V_1-2-0_jane_doe_review.json')
-
-      const filenameV = InnfoConsole.buildReviewFilename('BusinessModel', 'V_0-2-5', 'alice')
-      assert.equal(filenameV, 'BusinessModel_V_0-2-5_alice_review.json')
-    })
-
-    it('parses standardized review filename into parts', () => {
-      const parsed = InnfoConsole.parseReviewFilename('BusinessModel_V_1-2-0_jane_doe_review.json')
-      assert.deepEqual(parsed, {
-        model: 'BusinessModel',
-        version: '1-2-0',
-        reviewer: 'jane_doe',
-      })
-      assert.equal(InnfoConsole.parseReviewFilename('invalid_file.json'), null)
-    })
-
-    it('renders Level 1 ConceptPill and ElementPill primitives', () => {
-      const conceptPill = InnfoConsole.renderConceptPill('Problems', 5, '#ef4444')
-      assert.ok(conceptPill)
-      assert.equal(conceptPill.className, 'innfo-concept-pill')
-      assert.match(conceptPill.textContent, /Problems/)
-      assert.match(conceptPill.textContent, /5/)
-
-      const elementPill = InnfoConsole.renderElementPill({ id: 'el-1', name: 'Ghost Trap' }, {}, [
-        { origin: 'human' },
-      ])
-      assert.ok(elementPill)
-      assert.match(elementPill.className, /innfo-element-pill/)
-      assert.match(elementPill.textContent, /Ghost Trap/)
-    })
-
     it('renders reviewer chip in header banner with inline edit support', () => {
       InnfoConsole.setReviewerName('Alice')
-      InnfoConsole.renderBanner(document, { title: 'Ghostbusters', modelVersion: 'V_0-2-1' }, ['concept-rail'], 0)
+      const banner = document.createElement('header')
+      banner.id = 'innfo-feedback-banner'
+      document.body.appendChild(banner)
 
-      const banner = document.getElementById('innfo-banner')
+      InnfoConsole.renderBanner(
+        document,
+        { title: 'Ghostbusters', modelVersion: 'V_0-2-1' },
+        ['concept-rail'],
+        0,
+      )
+
       const chip = banner.querySelector('.innfo-reviewer-chip')
       assert.ok(chip, 'Reviewer chip exists in banner')
       assert.match(chip.querySelector('.innfo-reviewer-name').textContent, /Alice/)
       assert.ok(chip.querySelector('.innfo-reviewer-edit'), 'Edit trigger exists in reviewer chip')
     })
+  })
 
-    it('renders visual review badges on cards and concept rail', () => {
-      const elements = [
-        { id: 'prob-1', name: 'Infestation', concept: 'Problems' },
-        { id: 'sol-1', name: 'Proton Pack', concept: 'Solutions' },
-      ]
-      const drafts = [
-        { id: 'fb-001', elementId: 'prob-1', concept: 'Problems', status: 'pending', note: 'Fix severity' },
-        { id: 'fb-002', elementId: 'prob-1', concept: 'Problems', status: 'pending', note: 'Add citation' },
-      ]
+  describe('draftToItem & Feedback Document Validation', () => {
+    it('converts draft to conformant feedback item shape without status', () => {
+      const draft = {
+        id: 'fb-001',
+        elementId: 'threat-slimer',
+        concept: 'ParanormalThreat',
+        elementName: 'Slimer',
+        field: 'severity',
+        note: 'Change to Class VII',
+        base_hash: 'abcdef0123456789',
+        status: 'pending', // must be stripped
+      }
 
-      InnfoConsole.renderCards(document, elements, drafts, () => {})
-      const card = document.getElementById('prob-1')
-      const cardBadge = card.querySelector('.innfo-card-badge')
-      assert.ok(cardBadge, 'Card review badge rendered for element with draft comments')
-      assert.equal(cardBadge.textContent, '2')
+      const item = InnfoConsole.draftToItem(draft)
+      assert.equal(item.id, 'fb-001')
+      assert.equal(item.kind, 'comment')
+      assert.deepEqual(item.target, {
+        element_id: 'threat-slimer',
+        concept: 'ParanormalThreat',
+        element: 'Slimer',
+        field: 'severity',
+      })
+      assert.equal(item.comment, 'Change to Class VII')
+      assert.equal(item.base_hash, 'abcdef0123456789')
+      assert.equal(item.status, undefined)
+      assert.equal('status' in item, false)
+    })
 
-      const railCounts = { Problems: 1, Solutions: 1 }
-      const railDraftCounts = { Problems: 2, Solutions: 0 }
-      InnfoConsole.renderRail(document, [{ name: 'Problems' }, { name: 'Solutions' }], railCounts, railDraftCounts, () => {})
+    it('assembles export document that passes validateFeedback', () => {
+      const draft = {
+        id: 'fb-001',
+        elementId: 'threat-slimer',
+        concept: 'ParanormalThreat',
+        elementName: 'Slimer',
+        field: 'severity',
+        note: 'Change to Class VII',
+        base_hash: 'abcdef0123456789',
+      }
 
-      const rail = document.getElementById('innfo-rail')
-      const probItem = rail.querySelector('[data-concept="Problems"]')
-      const railBadge = probItem.querySelector('.innfo-rail-badge')
-      assert.ok(railBadge, 'Rail review badge rendered on concept with active draft comments')
-      assert.equal(railBadge.textContent, '2')
+      const exportDoc = InnfoConsole.buildExportDoc({
+        meta: {
+          source_knowledge: 'GhostbustersModel',
+          source_knowledge_version: 'V_0-2-1',
+          artifact: 'GhostbustersModel_console.html',
+          artifact_version: '0.7.3',
+          exported_at: '2026-10-02T12:00:00Z',
+          author: 'Egon Spengler',
+          feedback_slug: 'egon-spengler',
+          viewer: 'innfo-console@0.7.3',
+          source_sha256: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+        },
+        drafts: [draft],
+      })
 
-      const solItem = rail.querySelector('[data-concept="Solutions"]')
-      assert.equal(solItem.querySelector('.innfo-rail-badge'), null)
+      assert.equal(exportDoc.items.length, 1)
+      assert.equal(exportDoc.items[0].target.field, 'severity')
+      assert.equal(exportDoc.items[0].base_hash, 'abcdef0123456789')
+      assert.equal('status' in exportDoc.items[0], false)
+
+      const validation = InnfoConsole.validateFeedback(exportDoc)
+      assert.equal(validation.ok, true)
+      assert.deepEqual(validation.errors, [])
     })
   })
 
-  describe('Phase 2: Review Tab & Draft State Management', () => {
-    it('manages draft store lifecycle: add, status update, delete, summary', () => {
-      const key = 'test-drafts-key'
-      window.localStorage.clear()
-
-      // Add comment
-      const item1 = InnfoConsole.addDraft(key, {
-        elementId: 'prob-1',
-        concept: 'Problems',
-        elementName: 'Infestation',
-        kind: 'correction',
-        field: 'severity',
-        note: 'Change to high',
-        status: 'pending',
-      })
-      assert.equal(item1.id, 'fb-001')
-      assert.equal(item1.kind, 'correction')
-      assert.equal(item1.status, 'pending')
-
-      const item2 = InnfoConsole.addDraft(key, {
-        elementId: 'sol-1',
-        concept: 'Solutions',
-        kind: 'comment',
-        note: 'Review pricing',
-        status: 'pending',
-      })
-      assert.equal(item2.id, 'fb-002')
-
-      // Summary aggregation
-      let drafts = JSON.parse(window.localStorage.getItem(key))
-      let summary = InnfoConsole.getDraftSummary(drafts)
-      assert.deepEqual(summary, {
-        total: 2,
-        corrections: 1,
-        comments: 1,
-        pending: 2,
-        applied: 0,
-        rejected: 0,
-      })
-
-      // Update status
-      InnfoConsole.updateDraftStatus(key, 'fb-001', 'applied')
-      drafts = JSON.parse(window.localStorage.getItem(key))
-      summary = InnfoConsole.getDraftSummary(drafts)
-      assert.equal(summary.applied, 1)
-      assert.equal(summary.pending, 1)
-
-      // Remove comment
-      InnfoConsole.removeDraftItem(key, 'fb-002')
-      drafts = JSON.parse(window.localStorage.getItem(key))
-      assert.equal(drafts.length, 1)
-      assert.equal(drafts[0].id, 'fb-001')
-    })
-
-    it('renders Universal Review Tab aggregating session notes and item counters', () => {
+  describe('Review Tab without Status Select', () => {
+    it('renders Review Tab without any .innfo-review-status-select dropdown', () => {
       const state = {
         modelTitle: 'BusinessModel',
         modelVersion: 'V_1-2-0',
         draftKey: 'test-review-tab-key',
       }
+
       InnfoConsole.addDraft(state.draftKey, {
         elementId: 'ent-tier',
         concept: 'RevenueStream',
@@ -216,117 +186,39 @@ describe('Console Review Workflow & 3-Tier Architecture', () => {
         kind: 'correction',
         field: 'pricing',
         note: 'Updated seat minimum to 50',
-        status: 'pending',
-      })
-      InnfoConsole.addDraft(state.draftKey, {
-        elementId: 'self-serve',
-        concept: 'RevenueStream',
-        elementName: 'Self Serve',
-        kind: 'comment',
-        note: 'Verify monthly billing option',
-        status: 'pending',
+        base_hash: '0123456789abcdef',
       })
 
       InnfoConsole.renderReviewTab(document, state, { needs: [] })
 
       const reviewTab = document.getElementById('innfo-tab-review')
       assert.ok(reviewTab)
-      assert.match(reviewTab.textContent, /Review Summary/)
-      assert.match(reviewTab.textContent, /Total Notes/)
+
+      const statusSelect = reviewTab.querySelector('.innfo-review-status-select')
+      assert.equal(
+        statusSelect,
+        null,
+        'No .innfo-review-status-select element rendered in review tab',
+      )
 
       const items = reviewTab.querySelectorAll('.innfo-review-item')
-      assert.equal(items.length, 2)
+      assert.equal(items.length, 1)
       assert.match(items[0].textContent, /Updated seat minimum to 50/)
-      assert.match(items[1].textContent, /Verify monthly billing option/)
-
-      const linkBtn = items[0].querySelector('.innfo-review-card-link')
-      assert.ok(linkBtn, 'Deep link button exists for review item')
-      assert.match(linkBtn.textContent, /Enterprise Tier/)
     })
 
     it('deep-links from Review Tab to focus and highlight corresponding Element Card', () => {
-      // Setup elements in explorer view
-      const elements = [
-        { id: 'ent-tier', name: 'Enterprise Tier', concept: 'RevenueStream' },
-      ]
+      const elements = [{ id: 'ent-tier', name: 'Enterprise Tier', concept: 'RevenueStream' }]
       InnfoConsole.renderCards(document, elements, [], () => {})
       const card = document.getElementById('ent-tier')
       let scrolled = false
-      card.scrollIntoView = () => { scrolled = true }
+      card.scrollIntoView = () => {
+        scrolled = true
+      }
 
       InnfoConsole.focusElementCard(document, 'ent-tier')
 
       assert.equal(scrolled, true, 'scrollIntoView was invoked on target card')
       assert.ok(card.classList.contains('innfo-highlight'), 'Card received highlight animation class')
-    })
-
-    it('dynamically injects review tab container when hydrating legacy shell lacking markup', () => {
-      // Minimal shell without #innfo-tab-review or #innfo-view-tabs
-      const legacyDom = new JSDOM(`<!doctype html><html><body><main><div id="innfo-content"></div></main></body></html>`)
-      const legDoc = legacyDom.window.document
-
-      InnfoConsole.renderViewTabs(legDoc, { needs: [] }, { elements: [{ id: 'a', name: 'A' }] }, { title: 'Legacy' }, { draftKey: 'k' })
-
-      const injectedTabs = legDoc.getElementById('innfo-view-tabs')
-      assert.ok(injectedTabs, 'dynamically injected view tabs nav into legacy shell')
-      const injectedReview = legDoc.getElementById('innfo-tab-review')
-      assert.ok(injectedReview, 'dynamically injected review tab panel into legacy shell')
-    })
-  })
-
-  describe('Phase 3: Export & Filename Standard', () => {
-    it('serializes review doc according to console-review-v1.json schema', () => {
-      const doc = InnfoConsole.buildReviewDoc({
-        model: 'BusinessModel',
-        version: '1.2.0',
-        reviewer: 'jane_doe',
-        exportedAt: '2026-09-28T18:00:00Z',
-        drafts: [
-          {
-            id: 'fb-001',
-            elementId: 'enterprise-tier',
-            concept: 'RevenueStream',
-            kind: 'correction',
-            field: 'pricing',
-            note: 'Updated seat minimum to 50',
-            status: 'pending',
-          },
-        ],
-      })
-
-      assert.equal(doc.$schema, 'https://cognntive.dev/schemas/console-review-v1.json')
-      assert.equal(doc.model, 'BusinessModel')
-      assert.equal(doc.version, '1-2-0')
-      assert.equal(doc.reviewer, 'jane_doe')
-      assert.equal(doc.exportedAt, '2026-09-28T18:00:00Z')
-      assert.deepEqual(doc.summary, {
-        total: 1,
-        corrections: 1,
-        comments: 0,
-      })
-      assert.equal(doc.items.length, 1)
-      assert.equal(doc.items[0].id, 'fb-001')
-      assert.equal(doc.items[0].elementId, 'enterprise-tier')
-      assert.equal(doc.items[0].field, 'pricing')
-      assert.equal(doc.items[0].note, 'Updated seat minimum to 50')
-
-      const validation = InnfoConsole.validateReviewDoc(doc)
-      assert.equal(validation.ok, true)
-      assert.deepEqual(validation.errors, [])
-    })
-
-    it('rejects invalid review documents with descriptive errors', () => {
-      const invalid = {
-        model: '',
-        version: '1-0-0',
-        reviewer: 'jane',
-        exportedAt: 'not-a-date',
-        summary: null,
-        items: [{ id: 'invalid-id', kind: 'unknown', status: 'unknown' }],
-      }
-      const validation = InnfoConsole.validateReviewDoc(invalid)
-      assert.equal(validation.ok, false)
-      assert.ok(validation.errors.length > 0)
     })
   })
 })

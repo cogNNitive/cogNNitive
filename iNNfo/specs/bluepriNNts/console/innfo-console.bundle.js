@@ -212,8 +212,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   var SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/
   var FILENAME_PATTERN =
     /^([A-Za-z0-9-]+)_V_(\d+-\d+-\d+)_([a-z0-9-]+)_feedback_(\d{8}-\d{6})\.json$/
-  var REVIEW_FILENAME_PATTERN =
-    /^([A-Za-z0-9_-]+)_V_([0-9]+(?:[-.][0-9]+)*)_([a-z0-9_]+)_review\.json$/
   var ITEM_KINDS = ['correction', 'comment', 'new', 'delete']
   var ITEM_STATUSES = ['pending', 'applied', 'rejected']
 
@@ -318,33 +316,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var m = FILENAME_PATTERN.exec(String(filename || ''))
     if (!m) return null
     return { model: m[1], version: m[2], slug: m[3], stamp: m[4] }
-  }
-
-  function buildReviewFilename(model, version, user) {
-    if (!model || typeof model !== 'string') {
-      throw new Error('innfo-console: model must be a non-empty string')
-    }
-    var cleanModel = String(model).trim().replace(/[^A-Za-z0-9_-]/g, '')
-    if (!cleanModel) {
-      throw new Error('innfo-console: model must contain alphanumeric characters')
-    }
-    var cleanVersion = String(version || '1-0-0')
-      .replace(/^V_/, '')
-      .replace(/\./g, '-')
-      .replace(/[^0-9-]/g, '')
-    if (!cleanVersion) cleanVersion = '1-0-0'
-    var cleanUser = slugifyReviewer(user)
-    return cleanModel + '_V_' + cleanVersion + '_' + cleanUser + '_review.json'
-  }
-
-  function parseReviewFilename(filename) {
-    var m = REVIEW_FILENAME_PATTERN.exec(String(filename || ''))
-    if (!m) return null
-    return {
-      model: m[1],
-      version: m[2].replace(/\./g, '-'),
-      reviewer: m[3],
-    }
   }
 
   function isValidExportedAt(value) {
@@ -667,25 +638,55 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return 'innfo-console:drafts:' + slugify(model) + ':' + slugify(version)
   }
 
+  function draftToItem(draft, element) {
+    var d = isObject(draft) ? draft : {}
+    var id = typeof d.id === 'string' && ITEM_ID_PATTERN.test(d.id) ? d.id : null
+    var target = isObject(d.target) ? Object.assign({}, d.target) : {}
+    if (!target.element_id && (d.elementId || (element && element.id))) {
+      target.element_id = String(d.elementId || element.id)
+    }
+    if (!target.concept && (d.concept || (element && element.concept))) {
+      target.concept = String(d.concept || element.concept)
+    }
+    if (!target.element && (d.elementName || d.element || (element && element.name))) {
+      target.element = String(d.elementName || d.element || element.name)
+    }
+    if (!target.field && (d.field || (d.target && d.target.field))) {
+      target.field = String(d.field || d.target.field)
+    }
+    var item = {
+      id: id || 'fb-001',
+      kind: ITEM_KINDS.indexOf(d.kind) !== -1 ? d.kind : 'comment',
+      target: target,
+      comment: d.comment != null ? String(d.comment) : d.note != null ? String(d.note) : '',
+    }
+    if (d.original !== undefined) item.original = d.original
+    if (d.proposed !== undefined) item.proposed = d.proposed
+    var baseHash = d.base_hash || (element && element.hash)
+    if (typeof baseHash === 'string') {
+      item.base_hash = baseHash
+    }
+    return item
+  }
+
   function buildExportDoc(args) {
     var input = isObject(args) ? args : {}
-    var meta = isObject(input.meta) ? input.meta : {}
-    var drafts = Array.isArray(input.drafts) ? input.drafts : []
+    var meta = isObject(input.meta) ? Object.assign({}, input.meta) : {}
+    var drafts = Array.isArray(input.drafts)
+      ? input.drafts
+      : Array.isArray(input.items)
+        ? input.items
+        : []
     var items = drafts.map(function (d, index) {
-      var item = isObject(d) ? d : {}
-      var id = typeof item.id === 'string' && ITEM_ID_PATTERN.test(item.id) ? item.id : null
-      var out = {
-        id: id || 'fb-' + String(index + 1).padStart(3, '0'),
-        kind: ITEM_KINDS.indexOf(item.kind) !== -1 ? item.kind : 'comment',
-        target: isObject(item.target) ? item.target : {},
-        original: item.original,
-        proposed: item.proposed,
-        comment: item.comment,
+      var item = draftToItem(d)
+      var draftId = d && d.id ? d.id : 'fb-' + String(index + 1).padStart(3, '0')
+      if (!d.id) {
+        item.id = draftId
       }
-      if (typeof item.base_hash === 'string') {
-        out.base_hash = item.base_hash
+      if (!item.base_hash) {
+        throw new Error('innfo-console: draft "' + draftId + '" is missing required base_hash')
       }
-      return out
+      return item
     })
     return { meta: meta, items: items }
   }
@@ -828,140 +829,15 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       total: list.length,
       corrections: 0,
       comments: 0,
-      pending: 0,
-      applied: 0,
-      rejected: 0,
     }
     list.forEach(function (item) {
       if (!isObject(item)) return
       if (item.kind === 'correction') summary.corrections++
       else if (item.kind === 'comment') summary.comments++
       else if (item.kind === 'new' || item.kind === 'delete') summary.corrections++
-
-      if (item.status === 'applied') summary.applied++
-      else if (item.status === 'rejected') summary.rejected++
-      else summary.pending++
+      else summary.comments++
     })
     return summary
-  }
-
-  function buildReviewDoc(args) {
-    var input = isObject(args) ? args : {}
-    var model = String(input.model || input.source_knowledge || 'Model')
-    var rawVersion = String(input.version || input.source_knowledge_version || '1-0-0')
-    var version = rawVersion.replace(/^V_/, '').replace(/\./g, '-')
-    var reviewer = slugifyReviewer(input.reviewer || input.author || getReviewerName())
-    var exportedAt =
-      input.exportedAt ||
-      input.exported_at ||
-      new Date().toISOString().replace(/\.\d+Z$/, 'Z')
-    var drafts = Array.isArray(input.drafts)
-      ? input.drafts
-      : Array.isArray(input.items)
-        ? input.items
-        : []
-
-    var items = drafts.map(function (d, index) {
-      var item = isObject(d) ? d : {}
-      var id =
-        typeof item.id === 'string' && ITEM_ID_PATTERN.test(item.id)
-          ? item.id
-          : 'fb-' + String(index + 1).padStart(3, '0')
-      var elementId = item.elementId || (item.target && item.target.element_id) || ''
-      var concept = item.concept || (item.target && item.target.concept) || ''
-      var kind = ITEM_KINDS.indexOf(item.kind) !== -1 ? item.kind : 'comment'
-      var note =
-        item.note != null
-          ? String(item.note)
-          : item.comment != null
-            ? String(item.comment)
-            : ''
-      var status = ITEM_STATUSES.indexOf(item.status) !== -1 ? item.status : 'pending'
-
-      var res = {
-        id: id,
-        elementId: String(elementId),
-        concept: String(concept),
-        kind: kind,
-        note: note,
-        status: status,
-      }
-      if (item.field) res.field = String(item.field)
-      return res
-    })
-
-    var summary = getDraftSummary(items)
-
-    return {
-      $schema: 'https://cognntive.dev/schemas/console-review-v1.json',
-      model: model,
-      version: version,
-      reviewer: reviewer,
-      exportedAt: exportedAt,
-      summary: {
-        total: summary.total,
-        corrections: summary.corrections,
-        comments: summary.comments,
-      },
-      items: items,
-    }
-  }
-
-  function validateReviewDoc(doc) {
-    var errors = []
-    if (!isObject(doc)) return { ok: false, errors: ['document: must be an object'] }
-
-    if (!doc.model || typeof doc.model !== 'string') {
-      errors.push('model: required non-empty string is missing')
-    }
-    if (!doc.version || typeof doc.version !== 'string') {
-      errors.push('version: required non-empty string is missing')
-    }
-    if (!doc.reviewer || typeof doc.reviewer !== 'string') {
-      errors.push('reviewer: required non-empty string is missing')
-    }
-    if (!isValidExportedAt(doc.exportedAt || doc.exported_at)) {
-      errors.push('exportedAt: must be ISO-8601 string (got ' + (doc.exportedAt || doc.exported_at) + ')')
-    }
-    if (!isObject(doc.summary)) {
-      errors.push('summary: required object is missing')
-    } else {
-      if (typeof doc.summary.total !== 'number') errors.push('summary.total: must be a number')
-      if (typeof doc.summary.corrections !== 'number') errors.push('summary.corrections: must be a number')
-      if (typeof doc.summary.comments !== 'number') errors.push('summary.comments: must be a number')
-    }
-
-    if (!Array.isArray(doc.items)) {
-      errors.push('items: required array is missing')
-    } else {
-      doc.items.forEach(function (item, index) {
-        var where = isObject(item) && item.id ? item.id : '#' + index
-        if (!isObject(item)) {
-          errors.push(where + ': must be an object')
-          return
-        }
-        if (!ITEM_ID_PATTERN.test(String(item.id || ''))) {
-          errors.push(where + ': id must match fb-NNN (got ' + item.id + ')')
-        }
-        if (ITEM_KINDS.indexOf(item.kind) === -1) {
-          errors.push(
-            where + ': kind must be one of ' + ITEM_KINDS.join('|') + ' (got ' + item.kind + ')',
-          )
-        }
-        if (ITEM_STATUSES.indexOf(item.status) === -1) {
-          errors.push(
-            where +
-              ': status must be one of ' +
-              ITEM_STATUSES.join('|') +
-              ' (got ' +
-              item.status +
-              ')',
-          )
-        }
-      })
-    }
-
-    return { ok: errors.length === 0, errors: errors }
   }
 
   function addDraft(keyOrDrafts, item) {
@@ -973,7 +849,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var concept = raw.concept || (raw.target && raw.target.concept) || ''
     var kind = ITEM_KINDS.indexOf(raw.kind) !== -1 ? raw.kind : 'comment'
     var note = raw.note != null ? String(raw.note) : raw.comment != null ? String(raw.comment) : ''
-    var status = ITEM_STATUSES.indexOf(raw.status) !== -1 ? raw.status : 'pending'
 
     var newItem = {
       id: id,
@@ -981,7 +856,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       concept: String(concept),
       kind: kind,
       note: note,
-      status: status,
       target: {
         element_id: String(elId),
         concept: String(concept),
@@ -990,22 +864,14 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       comment: note,
     }
     if (raw.field) newItem.field = String(raw.field)
+    if (raw.target && raw.target.field) newItem.target.field = String(raw.target.field)
+    var baseHash = raw.base_hash || raw.hash
+    if (typeof baseHash === 'string') {
+      newItem.base_hash = baseHash
+    }
     drafts.push(newItem)
     if (isKey) writeStore(keyOrDrafts, drafts)
     return newItem
-  }
-
-  function updateDraftStatus(keyOrDrafts, id, status) {
-    var isKey = typeof keyOrDrafts === 'string'
-    var drafts = isKey ? readStore(keyOrDrafts) : Array.isArray(keyOrDrafts) ? keyOrDrafts : []
-    var nextStatus = ITEM_STATUSES.indexOf(status) !== -1 ? status : 'pending'
-    drafts.forEach(function (d) {
-      if (d && d.id === id) {
-        d.status = nextStatus
-      }
-    })
-    if (isKey) writeStore(keyOrDrafts, drafts)
-    return drafts
   }
 
   function removeDraftItem(keyOrDrafts, id) {
@@ -1061,9 +927,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return pill
   }
 
-  function renderBanner(doc, meta, needs, draftCount, onReviewerChange) {
-    var banner = doc.getElementById('innfo-banner')
+  function renderBanner(doc, meta, needs, draftCount, onReviewerChange, state) {
+    var banner = doc.getElementById('innfo-feedback-banner') || doc.getElementById('innfo-banner')
     if (!banner) return
+    var existingOpen = banner.querySelector('#innfo-feedback-open') || banner.querySelector('#innfo-export-open')
     banner.innerHTML = ''
     var title = el('strong', null, String(meta.title || meta.model || 'iNNfo Console'))
     var version = el(
@@ -1077,6 +944,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       ' needs: ' + (needs && needs.length ? needs.join(', ') : 'none'),
     )
     var draftsBadge = el('span', 'innfo-banner-drafts', ' drafts: ' + (draftCount || 0))
+    draftsBadge.setAttribute('data-innfo', 'draft-count')
 
     banner.appendChild(title)
     banner.appendChild(version)
@@ -1114,6 +982,23 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       if (chipName) chip.appendChild(chipName)
       if (editBtn) chip.appendChild(editBtn)
       banner.appendChild(chip)
+    }
+
+    if (existingOpen) {
+      banner.appendChild(existingOpen)
+    } else if (banner.id === 'innfo-feedback-banner') {
+      var openBtn = el('button', 'innfo-feedback-open', 'Export feedback')
+      if (openBtn) {
+        openBtn.id = 'innfo-feedback-open'
+        openBtn.setAttribute('type', 'button')
+        if (state) {
+          openBtn.setAttribute('data-innfo-bound', '1')
+          openBtn.addEventListener('click', function () {
+            openExportModal(doc, state)
+          })
+        }
+        banner.appendChild(openBtn)
+      }
     }
   }
 
@@ -2425,12 +2310,12 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         var exportBtn = el(
           'button',
           'innfo-btn innfo-btn-primary innfo-review-export-btn',
-          'Export Review JSON',
+          'Export Feedback JSON',
         )
         if (exportBtn) {
           exportBtn.setAttribute('type', 'button')
           exportBtn.addEventListener('click', function () {
-            downloadReviewExport(doc, state)
+            downloadFeedbackExport(doc, state)
           })
           actionRow.appendChild(exportBtn)
         }
@@ -2457,7 +2342,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           var elName = (item.target && item.target.element) || elId || 'Item #' + (idx + 1)
           var noteText = item.note || item.comment || ''
           var kind = item.kind || 'comment'
-          var status = item.status || 'pending'
 
           var card = el('article', 'innfo-review-item')
           if (!card) return
@@ -2482,24 +2366,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
               })
             }
 
-            var statusSelect = el('select', 'innfo-review-status-select')
-            if (statusSelect) {
-              ;['pending', 'applied', 'rejected'].forEach(function (st) {
-                var opt = typeof document !== 'undefined' ? document.createElement('option') : null
-                if (opt) {
-                  opt.value = st
-                  opt.textContent = st
-                  if (st === status) opt.selected = true
-                  statusSelect.appendChild(opt)
-                }
-              })
-              statusSelect.addEventListener('change', function (e) {
-                var newSt = e.target.value
-                updateDraftStatus(state.draftKey, item.id, newSt)
-                if (typeof onRefresh === 'function') onRefresh()
-              })
-            }
-
             var delBtn = el('button', 'innfo-review-delete-btn', '×')
             if (delBtn) {
               delBtn.setAttribute('type', 'button')
@@ -2514,7 +2380,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
             if (idSpan) itemHead.appendChild(idSpan)
             if (kindBadge) itemHead.appendChild(kindBadge)
             if (linkBtn) itemHead.appendChild(linkBtn)
-            if (statusSelect) itemHead.appendChild(statusSelect)
             if (delBtn) itemHead.appendChild(delBtn)
             card.appendChild(itemHead)
           }
@@ -2565,36 +2430,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         card.classList.remove('innfo-highlight')
       }, 2500)
     }
-  }
-
-  function downloadReviewExport(doc, state) {
-    var reviewer = getReviewerName()
-    var drafts = readStore(state.draftKey)
-    var model = state.modelTitle || 'Model'
-    var version = state.modelVersion || '1-0-0'
-    var payload = buildReviewDoc({
-      model: model,
-      version: version,
-      reviewer: reviewer,
-      drafts: drafts,
-    })
-    var check = validateReviewDoc(payload)
-    if (!check.ok) {
-      throw new Error('innfo-console: review export blocked — ' + check.errors.join('; '))
-    }
-    var filename = buildFeedbackFilename(model, String(version).replace(/^V_/, ''), reviewer)
-    var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
-    var url = URL.createObjectURL(blob)
-    var anchor = doc.createElement('a')
-    anchor.href = url
-    anchor.download = filename
-    doc.body.appendChild(anchor)
-    anchor.click()
-    anchor.remove()
-    setTimeout(function () {
-      URL.revokeObjectURL(url)
-    }, 1000)
-    return { filename: filename, items: payload.items.length }
   }
 
   // Build a name->element lookup used by the reference-popup need so field
@@ -2803,20 +2638,215 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     })
   }
 
+  function ensureFeedbackUi(doc, state) {
+    var active = doc || (typeof document !== 'undefined' ? document : null)
+    if (!active) return null
+    var config = parseConfig(slotText(active, 'innfo-config'))
+    if (!hasNeed(config, 'feedback-export')) return null
+
+    var existing = active.querySelector('[data-innfo-feedback-root]')
+    if (existing) return existing
+
+    var root = active.createElement('div')
+    root.setAttribute('data-innfo-feedback-root', '')
+
+    // Feedback CSS
+    if (!active.querySelector('style[data-innfo-feedback]')) {
+      var style = active.createElement('style')
+      style.setAttribute('data-innfo-feedback', '')
+      style.textContent =
+        '[data-innfo-feedback-root]{display:block;}' +
+        '#innfo-feedback-banner{padding:16px 24px;background:var(--surface,#ffffff);border-bottom:1px solid var(--border,#e5e7eb);display:flex;gap:12px;align-items:center;flex-wrap:wrap;}' +
+        '#innfo-feedback-banner strong{font-size:1.1rem;font-weight:700;}' +
+        '#innfo-feedback-banner .innfo-banner-version,#innfo-feedback-banner .innfo-banner-needs,#innfo-feedback-banner .innfo-banner-drafts{color:var(--muted,#6b7280);font-size:0.8rem;}' +
+        '#innfo-feedback-open{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--surface,#ffffff);color:var(--text,#111827);font:inherit;font-size:0.82rem;font-weight:600;padding:6px 14px;border-radius:var(--radius-sm,4px);cursor:pointer;margin-left:auto;}' +
+        '#innfo-feedback-open:hover{background:var(--surface-2,#f3f4f6);}' +
+        '#innfo-feedback-modal{border:1px solid var(--border,#e5e7eb);border-radius:var(--radius-lg,8px);padding:20px;max-width:560px;width:100%;background:var(--surface,#ffffff);color:var(--text,#111827);}' +
+        '#innfo-feedback-modal::backdrop{background:rgba(0,0,0,0.35);}' +
+        '#innfo-feedback-modal input{width:100%;padding:8px 12px;margin:8px 0;border:1px solid var(--border,#e5e7eb);border-radius:var(--radius-sm,4px);box-sizing:border-box;}' +
+        '#innfo-feedback-modal pre{background:var(--surface-2,#f3f4f6);border:1px solid var(--border,#e5e7eb);border-radius:6px;padding:12px;white-space:pre-wrap;font-size:0.8rem;}' +
+        '[data-innfo="errors"]{color:#dc2626;font-size:0.85rem;margin:8px 0;padding:8px 12px;background:#fef2f2;border:1px solid #fecaca;border-radius:4px;}' +
+        '#innfo-feedback-modal button[data-innfo="download"]{appearance:none;border:1px solid var(--primary,#2563eb);background:var(--primary,#2563eb);color:#ffffff;font:inherit;font-size:0.85rem;font-weight:600;padding:8px 16px;border-radius:var(--radius-sm,4px);cursor:pointer;}' +
+        '#innfo-feedback-modal button[data-innfo="download"]:hover{background:var(--primary-hover,#1d4ed8);}'
+      root.appendChild(style)
+    }
+
+    // Banner
+    var banner = active.createElement('header')
+    banner.id = 'innfo-feedback-banner'
+    banner.setAttribute('aria-label', 'Console review banner')
+
+    var title = active.createElement('strong')
+    title.textContent = state ? state.modelTitle : 'iNNfo Console'
+    banner.appendChild(title)
+
+    var version = active.createElement('span')
+    version.className = 'innfo-banner-version'
+    version.textContent = ' ' + (state ? state.modelVersion : '')
+    banner.appendChild(version)
+
+    var needsBadge = active.createElement('span')
+    needsBadge.className = 'innfo-banner-needs'
+    needsBadge.textContent = ' needs: ' + (config.needs && config.needs.length ? config.needs.join(', ') : 'none')
+    banner.appendChild(needsBadge)
+
+    var draftsBadge = active.createElement('span')
+    draftsBadge.className = 'innfo-banner-drafts'
+    draftsBadge.setAttribute('data-innfo', 'draft-count')
+    draftsBadge.textContent = ' drafts: 0'
+    banner.appendChild(draftsBadge)
+
+    // Reviewer chip
+    var reviewerName = getReviewerName()
+    var chip = active.createElement('div')
+    chip.className = 'innfo-reviewer-chip'
+    var chipLabel = active.createElement('span')
+    chipLabel.className = 'innfo-reviewer-label'
+    chipLabel.textContent = 'Reviewer: '
+    var chipName = active.createElement('span')
+    chipName.className = 'innfo-reviewer-name'
+    chipName.textContent = reviewerName
+    var editBtn = active.createElement('button')
+    editBtn.className = 'innfo-reviewer-edit'
+    editBtn.setAttribute('type', 'button')
+    editBtn.setAttribute('title', 'Edit reviewer identity')
+    editBtn.setAttribute('aria-label', 'Edit reviewer identity')
+    editBtn.textContent = '✏️'
+    chip.appendChild(chipLabel)
+    chip.appendChild(chipName)
+    chip.appendChild(editBtn)
+    banner.appendChild(chip)
+
+    // Open button
+    var openBtn = active.createElement('button')
+    openBtn.id = 'innfo-feedback-open'
+    openBtn.setAttribute('type', 'button')
+    openBtn.className = 'innfo-feedback-open'
+    openBtn.textContent = 'Export feedback'
+    banner.appendChild(openBtn)
+
+    root.appendChild(banner)
+
+    // Modal
+    var modal = active.createElement('dialog')
+    modal.id = 'innfo-feedback-modal'
+    modal.setAttribute('aria-label', 'Export reviewer feedback')
+    modal.innerHTML =
+      '<h2>Export reviewer feedback</h2>' +
+      '<label>Reviewer identifier (required)' +
+      '<input data-innfo="identifier" type="text" placeholder="e.g. round-2" />' +
+      '</label>' +
+      '<h3>Instructions</h3>' +
+      '<pre data-innfo="instructions"></pre>' +
+      '<h3>Agent prompt</h3>' +
+      '<pre data-innfo="agent-prompt"></pre>' +
+      '<div data-innfo="errors" style="display: none;"></div>' +
+      '<button data-innfo="download" type="button">Download feedback JSON</button>'
+
+    root.appendChild(modal)
+
+    if (active.body) {
+      active.body.insertBefore(root, active.body.firstChild)
+    }
+
+    if (state && !openBtn.getAttribute('data-innfo-bound')) {
+      openBtn.setAttribute('data-innfo-bound', '1')
+      openBtn.addEventListener('click', function () {
+        openExportModal(active, state)
+      })
+    }
+
+    return root
+  }
+
+  function downloadFeedbackExport(doc, state) {
+    var reviewer = getReviewerName()
+    var drafts = state && state.draftKey ? readStore(state.draftKey) : []
+    var model = state && state.modelTitle ? state.modelTitle : 'Model'
+    var version = state && state.modelVersion ? state.modelVersion : '1-0-0'
+    var errorContainer = (doc && (doc.querySelector('#innfo-feedback-modal [data-innfo="errors"]') || doc.querySelector('[data-innfo="errors"]'))) || null
+    if (errorContainer) {
+      errorContainer.innerHTML = ''
+      errorContainer.style.display = 'none'
+    }
+
+    var rawVersion = String(version || '1-0-0')
+    var normVersion = MODEL_VERSION_PATTERN.test(rawVersion)
+      ? rawVersion
+      : 'V_' + rawVersion.replace(/^V_/, '').replace(/\./g, '-')
+    var reviewerSlug = slugify(reviewer) || 'reviewer'
+
+    var exportMeta = Object.assign({}, (state && state.meta) || {}, {
+      source_knowledge: model,
+      source_knowledge_version: normVersion,
+      artifact: (state && state.artifactName) || (model + '_console.html'),
+      artifact_version: CONSOLE_VERSION,
+      exported_at: new Date().toISOString().replace(/\.\d+Z$/, 'Z'),
+      author: reviewer,
+      feedback_slug: reviewerSlug,
+      viewer: 'innfo-console@' + CONSOLE_VERSION,
+    })
+    if (state && (state.sourceSha256 || (state.meta && state.meta.sha256))) {
+      exportMeta.source_sha256 = state.sourceSha256 || state.meta.sha256
+    }
+
+    var payload
+    try {
+      payload = buildExportDoc({
+        meta: exportMeta,
+        drafts: drafts,
+      })
+    } catch (err) {
+      if (errorContainer) {
+        errorContainer.textContent = err.message
+        errorContainer.style.display = 'block'
+      }
+      return { ok: false, errors: [err.message] }
+    }
+
+    var check = validateFeedback(payload)
+    if (!check.ok) {
+      if (errorContainer) {
+        errorContainer.innerHTML = '<strong>Validation errors:</strong><ul>' + check.errors.map(function (e) { return '<li>' + e + '</li>' }).join('') + '</ul>'
+        errorContainer.style.display = 'block'
+      }
+      return { ok: false, errors: check.errors }
+    }
+
+    var filename = buildFeedbackFilename(model, String(version).replace(/^V_/, ''), reviewer)
+    var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+    var url = URL.createObjectURL(blob)
+    var anchor = doc.createElement('a')
+    anchor.href = url
+    anchor.download = filename
+    doc.body.appendChild(anchor)
+    anchor.click()
+    anchor.remove()
+    setTimeout(function () {
+      URL.revokeObjectURL(url)
+    }, 1000)
+    return { ok: true, filename: filename, items: payload.items.length }
+  }
+
   function openExportModal(doc, state) {
-    var modal = doc.getElementById('innfo-export-modal')
+    var modal = doc.getElementById('innfo-feedback-modal') || doc.getElementById('innfo-export-modal')
     if (!modal) {
-      downloadReviewExport(doc, state)
+      downloadFeedbackExport(doc, state)
       return
     }
     var identifierInput = modal.querySelector('[data-innfo="identifier"]')
     var instructions = modal.querySelector('[data-innfo="instructions"]')
     var agentPrompt = modal.querySelector('[data-innfo="agent-prompt"]')
+    var errorContainer = modal.querySelector('[data-innfo="errors"]')
     var downloadBtn = modal.querySelector('[data-innfo="download"]')
-    var drafts = readStore(state.draftKey)
+    var drafts = state && state.draftKey ? readStore(state.draftKey) : []
+
+    if (errorContainer) {
+      errorContainer.innerHTML = ''
+      errorContainer.style.display = 'none'
+    }
+
     if (identifierInput) {
-      // Prefill the stored reviewer name, but never prefill the bare fallback:
-      // an export must carry an identifier the user actually chose.
       var storedName = getReviewerName()
       identifierInput.value = storedName === DEFAULT_REVIEWER_NAME ? '' : storedName
     }
@@ -2824,29 +2854,36 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       instructions.textContent =
         'Review ' +
         drafts.length +
-        ' pending draft(s), then download the review JSON.'
+        ' pending draft(s), then download the feedback JSON.'
     }
     if (agentPrompt) {
       agentPrompt.textContent =
-        'Apply the attached review JSON to ' +
-        state.modelTitle +
+        'Apply the attached feedback JSON to ' +
+        (state ? state.modelTitle : 'Model') +
         ' (' +
-        state.modelVersion +
+        (state ? state.modelVersion : '') +
         ').'
     }
-    modal.setAttribute('open', 'open')
+
+    if (typeof modal.showModal === 'function') {
+      if (!modal.open) {
+        modal.showModal()
+      }
+    } else {
+      modal.setAttribute('open', 'open')
+    }
+
     if (downloadBtn && !downloadBtn.getAttribute('data-innfo-bound')) {
       downloadBtn.setAttribute('data-innfo-bound', '1')
       downloadBtn.addEventListener('click', function () {
         var identifier = identifierInput && identifierInput.value ? String(identifierInput.value).trim() : ''
-        // The feedback export contract requires a reviewer identifier the user
-        // actually chose: an empty field, or the bare fallback, is refused so no
-        // file is emitted and the modal stays open for correction.
         if (!identifier || identifier === DEFAULT_REVIEWER_NAME) return
         setReviewerName(identifier)
-        downloadReviewExport(doc, state)
-        if (typeof modal.close === 'function') modal.close()
-        else modal.removeAttribute('open')
+        var res = downloadFeedbackExport(doc, state)
+        if (res && res.ok) {
+          if (typeof modal.close === 'function') modal.close()
+          else modal.removeAttribute('open')
+        }
       })
     }
   }
@@ -2855,7 +2892,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     if (identifier && String(identifier).trim()) {
       setReviewerName(String(identifier).trim())
     }
-    return downloadReviewExport(doc, state)
+    return downloadFeedbackExport(doc, state)
   }
 
   function boot(doc) {
@@ -2889,6 +2926,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         String(meta.title || meta.model || 'model'),
         String(meta.modelVersion || meta.knowledge_version || 'V_0-0-0'),
       ),
+      modelId: meta.modelId || meta.model || meta.title || 'model',
+      sourceSha256: meta.sha256 || meta.source_sha256,
+      meta: meta,
     }
 
     var counts = {}
@@ -2921,7 +2961,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       )
       renderBanner(active, meta, config.needs, currentDrafts.length, function () {
         refresh(activeSearchQuery)
-      })
+      }, state)
       renderRail(active, concepts, counts, draftCountsByConcept, function (concept) {
         var search = active.getElementById('innfo-search')
         if (search) {
@@ -2935,6 +2975,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       renderViewTabs(active, config, model, meta, state, function () {
         refresh(activeSearchQuery)
       })
+    }
+
+    if (hasNeed(config, 'feedback-export')) {
+      ensureFeedbackUi(active, state)
     }
 
     refresh('')
@@ -2958,8 +3002,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
 
     if (hasNeed(config, 'feedback-export')) {
-      var exportBtn = active.getElementById('innfo-export-open')
-      if (exportBtn) {
+      var exportBtn = active.getElementById('innfo-feedback-open') || active.getElementById('innfo-export-open')
+      if (exportBtn && !exportBtn.getAttribute('data-innfo-bound')) {
+        exportBtn.setAttribute('data-innfo-bound', '1')
         exportBtn.addEventListener('click', function () {
           openExportModal(active, state)
         })
@@ -2991,9 +3036,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       elementId: element.id,
       concept: element.concept,
       elementName: element.name,
+      base_hash: element.hash,
       kind: 'comment',
       note: String(comment).trim(),
-      status: 'pending',
     })
     writeStore(state.draftKey, drafts)
     if (typeof refresh === 'function') refresh('')
@@ -3002,7 +3047,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   function autoBoot() {
     try {
       if (typeof document === 'undefined' || !document.getElementById) return
+      if (document.documentElement && document.documentElement.getAttribute('data-innfo-console-booted') === 'true') return
       if (!document.getElementById('innfo-config')) return
+      if (document.documentElement) {
+        document.documentElement.setAttribute('data-innfo-console-booted', 'true')
+      }
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', function () {
           boot(document)
@@ -3022,7 +3071,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     version: CONSOLE_VERSION,
     CONSOLE_VERSION: CONSOLE_VERSION,
     FILENAME_PATTERN: FILENAME_PATTERN,
-    REVIEW_FILENAME_PATTERN: REVIEW_FILENAME_PATTERN,
     REVIEWER_STORAGE_KEY: REVIEWER_STORAGE_KEY,
     ITEM_KINDS: ITEM_KINDS,
     ITEM_STATUSES: ITEM_STATUSES,
@@ -3031,17 +3079,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     stampFromDate: stampFromDate,
     getReviewerName: getReviewerName,
     setReviewerName: setReviewerName,
-    buildReviewFilename: buildReviewFilename,
-    parseReviewFilename: parseReviewFilename,
-    buildReviewDoc: buildReviewDoc,
-    serializeReviewDoc: buildReviewDoc,
-    validateReviewDoc: validateReviewDoc,
     getDraftSummary: getDraftSummary,
     getSummary: getDraftSummary,
     addDraft: addDraft,
     addComment: addDraft,
-    updateDraftStatus: updateDraftStatus,
-    updateStatus: updateDraftStatus,
     removeDraftItem: removeDraftItem,
     removeComment: removeDraftItem,
     buildFeedbackFilename: buildFeedbackFilename,
@@ -3078,7 +3119,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     renderViewTabs: renderViewTabs,
     renderReviewTab: renderReviewTab,
     focusElementCard: focusElementCard,
-    downloadReviewExport: downloadReviewExport,
+    ensureFeedbackUi: ensureFeedbackUi,
+    draftToItem: draftToItem,
+    downloadFeedbackExport: downloadFeedbackExport,
     downloadExport: downloadExport,
     getDraftKey: getDraftKey,
     buildExportDoc: buildExportDoc,

@@ -168,11 +168,20 @@ describe('getDraftKey / buildExportDoc (localStorage + export modal)', () => {
   it('assembles the export document from meta and drafts', () => {
     const doc = loadCore().buildExportDoc({
       meta: { source_model: 'Ghostbusters' },
-      drafts: [{ id: 'fb-001', kind: 'comment', status: 'pending' }],
+      drafts: [{ id: 'fb-001', kind: 'comment', base_hash: '0123456789abcdef' }],
     })
     expect(doc.meta['source_model']).toBe('Ghostbusters')
     expect(doc.items.length).toBe(1)
     expect(doc.items[0]['id']).toBe('fb-001')
+  })
+
+  it('fails with an error naming the draft when base_hash is missing', () => {
+    expect(() => {
+      loadCore().buildExportDoc({
+        meta: { source_model: 'Ghostbusters' },
+        drafts: [{ id: 'fb-001', kind: 'comment' }],
+      })
+    }).toThrow('fb-001')
   })
 })
 
