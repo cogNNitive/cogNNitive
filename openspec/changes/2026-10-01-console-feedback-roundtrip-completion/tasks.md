@@ -129,12 +129,12 @@ A5b (shells, registry, guard, docs, ~150 + deletions)
 
 ## Phase 6: A6a - Ledger tools and reconcile procedure (PR 6, ~260)
 
-- [ ] A6.1 RED: `MCP` tests for `record_feedback_verdict` and `evaluate_feedback_items` on a real temp dir (no transport stubs): N lines stay byte-identical after an append; invalid entry -> file unchanged; `applied` over `stale` refused, then `confirm_stale: true` succeeds and is persisted; `applied` over orphan refused; `applied` after a fresh evaluation is accepted; evaluate is idempotent; refusal when the last byte is not `\n`; two parallel appends yield two intact lines; feedback source hashes unchanged. Prove red by writing without the queue and without validation.
-- [ ] A6.2 RED: scan `BP/workspace/procedures/reconcile_feedback_NN.md`: no `sources/import/feedback/ledger.jsonl`; `evaluate_feedback_items` precedes `apply_change`; `validate_model` precedes `record_feedback_verdict`; abort path records no `applied` entry.
-- [ ] A6.3 GREEN: `MCP/src/tools/feedback-verdict.ts` (one validated LF line via `appendFile(..., {flag:'a'})` behind a per-path promise queue; derives `source.sha256`, `model_id`, `model_version`, `element_id`, `target_hash` = item `base_hash`), registered in `MCP/src/server.ts`; `server.spec.ts` tool list.
-- [ ] A6.4 GREEN: `reconcile_feedback_NN.md`: root ledger path (:24, :108, :175), step order (evaluate -> apply -> validate -> record), tools named; `model_version`/`knowledge_version` bump in the same commit.
-- [ ] A6.5 REFACTOR: share the ledger path join with the payload tool.
-- [ ] A6.6 Run G; commit `feat(mcp): validated feedback ledger tools and reconcile order`.
+- [x] A6.1 RED: `MCP` tests for `record_feedback_verdict` and `evaluate_feedback_items` on a real temp dir (no transport stubs): N lines stay byte-identical after an append; invalid entry -> file unchanged; `applied` over `stale` refused, then `confirm_stale: true` succeeds and is persisted; `applied` over orphan refused; `applied` after a fresh evaluation is accepted; evaluate is idempotent; refusal when the last byte is not `\n`; two parallel appends yield two intact lines; feedback source hashes unchanged. Prove red by writing without the queue and without validation.
+- [x] A6.2 RED: scan `BP/workspace/procedures/reconcile_feedback_NN.md`: no `sources/import/feedback/ledger.jsonl`; `evaluate_feedback_items` precedes `apply_change`; `validate_model` precedes `record_feedback_verdict`; abort path records no `applied` entry.
+- [x] A6.3 GREEN: `MCP/src/tools/feedback-verdict.ts` (one validated LF line via `appendFile(..., {flag:'a'})` behind a per-path promise queue; derives `source.sha256`, `model_id`, `model_version`, `element_id`, `target_hash` = item `base_hash`), registered in `MCP/src/server.ts`; `server.spec.ts` tool list.
+- [x] A6.4 GREEN: `reconcile_feedback_NN.md`: root ledger path (:24, :108, :175), step order (evaluate -> apply -> validate -> record), tools named; `model_version`/`knowledge_version` bump in the same commit.
+- [x] A6.5 REFACTOR: share the ledger path join with the payload tool.
+- [x] A6.6 Run G; commit `feat(mcp): validated feedback ledger tools and reconcile order`.
 
 ## Phase 7: A6b - Deletions and references (PR 7, ~100 + 333 deletions)
 
