@@ -8,6 +8,7 @@ export {
   parseMarkdownTable,
   getSectionType,
   normalizeSeparators,
+  slugify,
 } from './parser/index.js'
 export {
   CONCEPT_DEFINITION,

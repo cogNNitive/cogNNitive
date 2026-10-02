@@ -1,44 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import {
-  slugify,
   deriveSuggestedSubmodelPath,
   type SuggestedSubmodelPathOptions,
 } from '../../src/utils/submodelPath'
 
 describe('submodelPath utility', () => {
-  describe('slugify', () => {
-    it('normalizes Unicode diacritics and accents', () => {
-      expect(slugify('Iniciativas Estratégicas')).toBe('iniciativas-estrategicas')
-      expect(slugify('José Luis Olmo Mora')).toBe('jose-luis-olmo-mora')
-      expect(slugify('Área de I+D & Innovación')).toBe('area-de-id-innovacion')
-    })
-
-    it('lowercases and replaces spaces and underscores with hyphens', () => {
-      expect(slugify('Projects')).toBe('projects')
-      expect(slugify('Municipal Franchise Expansion')).toBe('municipal-franchise-expansion')
-      expect(slugify('  __initiative_01__  ')).toBe('initiative-01')
-      expect(slugify('some_field_name')).toBe('some-field-name')
-    })
-
-    it('removes special characters and symbols', () => {
-      expect(slugify('C++ & Python / AI!')).toBe('c-python-ai')
-      expect(slugify('Model (Level 3) [Draft]')).toBe('model-level-3-draft')
-    })
-
-    it('collapses multiple hyphens and trims boundary hyphens', () => {
-      expect(slugify('---test---slug---')).toBe('test-slug')
-      expect(slugify('a - - - b')).toBe('a-b')
-    })
-
-    it('handles empty, null, or undefined gracefully', () => {
-      expect(slugify('')).toBe('')
-      // @ts-expect-error test non-string runtime values
-      expect(slugify(null)).toBe('')
-      // @ts-expect-error test non-string runtime values
-      expect(slugify(undefined)).toBe('')
-    })
-  })
-
   describe('deriveSuggestedSubmodelPath', () => {
     it('constructs hierarchical path for concept element with target template', () => {
       const path = deriveSuggestedSubmodelPath({
