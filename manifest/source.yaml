@@ -124,6 +124,11 @@ blueprints:
     repo: cogNNitive/cogNNitive-web
     path: iNNfo/specs/bluepriNNts/design-presets/spec_NN.md
     ref_key: blueprints
+  - name: visual-catalog
+    repo: cogNNitive/cogNNitive-web
+    path: iNNfo/specs/bluepriNNts/visual-catalog/spec_NN.md
+    version: "V_0-1-0"
+    ref_key: blueprints
 
 frozen_blueprints:
   - name: cogNNitive

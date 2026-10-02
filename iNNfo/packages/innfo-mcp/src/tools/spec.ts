@@ -666,8 +666,15 @@ export async function discoverTransitiveAssets(
       if (content) {
         const fm = parseFrontmatter(content)
         if (fm) {
+          // Identity is the package DIRECTORY name for canonical packages
+          // (`<name>/spec_NN.md`), where the spec filename would report
+          // `spec_NN`; flat specs keep their filename as the identity so
+          // `source_template` stays backward-compatible.
+          const docName = pkg.isPackageDir
+            ? pkg.name || opts.blueprint_name || basename(pkg.specFilePath, '.md')
+            : basename(pkg.specFilePath, '.md')
           queue.push({
-            docName: basename(pkg.specFilePath, '.md') || opts.blueprint_name || pkg.name,
+            docName,
             fm,
             depth: 0,
             filePath: pkg.specFilePath,

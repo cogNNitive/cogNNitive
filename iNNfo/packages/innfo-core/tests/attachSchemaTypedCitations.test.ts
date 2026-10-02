@@ -1,6 +1,11 @@
 import { describe, it, expect } from 'vitest'
+import { existsSync, readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import type { DirectoryHandleLike, FileHandleLike } from '../src/fs-types'
 import type { BlueprintSchema } from '../src/schema'
+import { extractBlueprintSchema } from '../src/schema'
+import { parseKnowledge } from '../src/parser'
 import { recursiveParse } from '../src/recursiveParser'
 
 /**
@@ -183,5 +188,72 @@ describe('attachSchemaTypedCitations (wired through recursiveParse)', () => {
     expect(widget).toBeDefined()
     expect(widget!.sources).toBeUndefined()
     expect(widget!.relationships.filter((r) => r.origin === 'source')).toHaveLength(0)
+  })
+})
+
+/**
+ * `visual-catalog` is the blueprint this change ships. Its `Entry.source` and
+ * `Evidence.source` fields are declared `type:: citation`, so a Level-3 catalog
+ * adopting it must have those values typed onto the graph exactly as any other
+ * citation field. The schema is read from the REAL shipped blueprint package,
+ * so this fails (RED) until `visual-catalog/spec_NN.md` exists.
+ */
+const repoBlueprintsDir = join(
+  dirname(fileURLToPath(import.meta.url)),
+  '..',
+  '..',
+  '..',
+  'specs',
+  'bluepriNNts',
+)
+const visualCatalogSpecPath = join(repoBlueprintsDir, 'visual-catalog', 'spec_NN.md')
+
+describe('visual-catalog blueprint citation fields (real package)', () => {
+  it('declares Entry.source and Evidence.source as citation and types both onto the graph', async () => {
+    expect(existsSync(visualCatalogSpecPath)).toBe(true)
+
+    const schema = extractBlueprintSchema(parseKnowledge(readFileSync(visualCatalogSpecPath, 'utf8')))
+    expect(schema.concepts.find((c) => c.name === 'Entry')?.fields?.find((f) => f.name === 'source')?.type).toBe(
+      'citation',
+    )
+    expect(
+      schema.concepts.find((c) => c.name === 'Evidence')?.fields?.find((f) => f.name === 'source')?.type,
+    ).toBe('citation')
+
+    const model = [
+      '---',
+      BASE_FM,
+      'title: "Visual Catalog"',
+      '---',
+      '',
+      '# NN Entry',
+      '',
+      '## NN Entry: Museum Pass',
+      'source:: sources/nn/photo.md@## Capture',
+      '',
+      '# NN Evidence',
+      '',
+      '## NN Evidence: Photo A',
+      'source:: sources/nn/photo.md@## Capture',
+      '',
+    ].join('\n')
+
+    const root = fakeDir('workspace', [
+      ['domaiNN_NN.md', fakeFile('domaiNN_NN.md', makeIndex(['catalog_NN.md']))],
+      ['catalog_NN.md', fakeFile('catalog_NN.md', model)],
+    ])
+
+    const result = await recursiveParse(root, undefined, { resolveBlueprintSchema: () => schema })
+
+    const entry = Object.values(result.nodes).find((n) => n.name === 'Museum Pass')
+    const evidence = Object.values(result.nodes).find((n) => n.name === 'Photo A')
+    expect(entry!.sources?.map((s) => s.filePath)).toEqual(['sources/nn/photo.md'])
+    expect(entry!.relationships.filter((r) => r.origin === 'source')).toEqual([
+      { targetId: 'sources/nn/photo.md', label: 'source', origin: 'source' },
+    ])
+    expect(evidence!.sources?.map((s) => s.filePath)).toEqual(['sources/nn/photo.md'])
+    expect(evidence!.relationships.filter((r) => r.origin === 'source')).toEqual([
+      { targetId: 'sources/nn/photo.md', label: 'source', origin: 'source' },
+    ])
   })
 })
