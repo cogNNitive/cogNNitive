@@ -75,7 +75,13 @@
   // identical to pre-citations rendering — see design D7/D9.
   function citationButtons(fieldName, entries) {
     var rt = typeof window !== 'undefined' ? window.InnfoConsole : null
-    if (!rt || typeof rt.renderCitationDialog !== 'function' || typeof rt.svgIcon !== 'function') {
+    var ui = typeof window !== 'undefined' ? window.InnfoUI : null
+    if (
+      !rt ||
+      typeof rt.renderCitationDialog !== 'function' ||
+      !ui ||
+      typeof ui.icon !== 'function'
+    ) {
       return null
     }
     var list = Array.isArray(entries) ? entries : []
@@ -98,7 +104,7 @@
       var label = (CITATION_ICON_LABELS[variant] || variant) + ': ' + fieldName
       btn.setAttribute('aria-label', label)
       btn.setAttribute('title', label)
-      btn.innerHTML = rt.svgIcon('cite-' + variant, 14)
+      btn.innerHTML = ui.icon('cite-' + variant, 14)
       btn.addEventListener('click', function (ev) {
         if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation()
         rt.renderCitationDialog(document, fieldName, list)

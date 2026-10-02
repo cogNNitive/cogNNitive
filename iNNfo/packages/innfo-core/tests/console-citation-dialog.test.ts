@@ -12,7 +12,9 @@ import { createRequire } from 'node:module'
  */
 
 const here = dirname(fileURLToPath(import.meta.url))
-const runtimePath = join(here, '..', '..', '..', 'specs', 'bluepriNNts', 'console', 'innfo-runtime.js')
+const consoleDir = join(here, '..', '..', '..', 'specs', 'bluepriNNts', 'console')
+const runtimePath = join(consoleDir, 'innfo-runtime.js')
+const uiKitPath = join(consoleDir, 'ui-kit.js')
 const nodeRequire = createRequire(import.meta.url)
 
 type ResolvedCitation = {
@@ -30,28 +32,35 @@ type ResolvedCitation = {
 
 interface RuntimeApi {
   renderCitationDialog: (doc: Document, fieldName: string, entries: ResolvedCitation[]) => void
-  svgIcon: (name: string, size?: number, cls?: string) => string
+}
+
+interface UiKitApi {
+  icon: (name: string, size?: number, cls?: string) => string
 }
 
 function loadRuntime(): RuntimeApi {
   return nodeRequire(runtimePath) as RuntimeApi
 }
 
-describe('innfo-runtime.js — svgIcon citation entries', () => {
+function loadKit(): UiKitApi {
+  return nodeRequire(uiKitPath) as UiKitApi
+}
+
+describe('InnfoUI.icon citation entries', () => {
   it('returns non-empty markup for every citation icon name', () => {
-    const api = loadRuntime()
+    const ui = loadKit()
     for (const name of ['cite-agent', 'cite-human', 'cite-reviewer', 'cite-document', 'cite-error']) {
-      const svg = api.svgIcon(name, 14)
+      const svg = ui.icon(name, 14)
       expect(svg).toContain('<svg')
       expect(svg).toContain('innfo-icon')
     }
   })
 
   it('keeps the human icon visually distinct from the agent and document icons', () => {
-    const api = loadRuntime()
-    const human = api.svgIcon('cite-human', 14)
-    const agent = api.svgIcon('cite-agent', 14)
-    const doc = api.svgIcon('cite-document', 14)
+    const ui = loadKit()
+    const human = ui.icon('cite-human', 14)
+    const agent = ui.icon('cite-agent', 14)
+    const doc = ui.icon('cite-document', 14)
     expect(human).not.toBe(agent)
     expect(human).not.toBe(doc)
   })

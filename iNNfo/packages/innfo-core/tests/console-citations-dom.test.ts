@@ -64,15 +64,20 @@ function bootViewer(): ModelViewerApi {
   return api
 }
 
-function stubRuntime(overrides: Partial<{ renderCitationDialog: unknown; svgIcon: unknown }> = {}) {
-  ;(globalThis as unknown as { window: Record<string, unknown> }).window.InnfoConsole = {
-    svgIcon: overrides.svgIcon ?? ((name: string) => `<svg data-name="${name}"></svg>`),
+function stubRuntime(overrides: Partial<{ renderCitationDialog: unknown; icon: unknown }> = {}) {
+  const w = (globalThis as unknown as { window: Record<string, unknown> }).window
+  w.InnfoConsole = {
     renderCitationDialog: overrides.renderCitationDialog ?? vi.fn(),
+  }
+  w.InnfoUI = {
+    icon: overrides.icon ?? ((name: string) => `<svg data-name="${name}"></svg>`),
   }
 }
 
 function clearRuntime() {
-  delete (globalThis as unknown as { window: Record<string, unknown> }).window.InnfoConsole
+  const w = (globalThis as unknown as { window: Record<string, unknown> }).window
+  delete w.InnfoConsole
+  delete w.InnfoUI
 }
 
 describe('render-model-viewer.js — citation icons (backward compatibility)', () => {

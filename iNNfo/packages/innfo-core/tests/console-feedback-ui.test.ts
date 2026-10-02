@@ -95,8 +95,11 @@ function loadRuntime(): ConsoleApi {
   // Clear require cache for clean evaluation
   delete req.cache[req.resolve(join(consoleDir, 'innfo-runtime.js'))]
   const api = req(join(consoleDir, 'innfo-runtime.js')) as ConsoleApi
+  const ui = req(join(consoleDir, 'ui-kit.js'))
   ;(globalThis as any).InnfoConsole = api
   ;(window as any).InnfoConsole = api
+  ;(globalThis as any).InnfoUI = ui
+  ;(window as any).InnfoUI = ui
   return api
 }
 

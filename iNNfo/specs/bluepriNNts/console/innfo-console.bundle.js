@@ -303,6 +303,31 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }).join('\n')
   }
 
+  // Component CSS: every rule is scoped to a [data-innfo-component] root so it
+  // never leaks into a shell. C appends the review components here.
+  var COMPONENT_CSS = [
+    '[data-innfo-component]{box-sizing:border-box}',
+    '.innfo-concept-pill,.innfo-element-pill,.innfo-marker-chip,.innfo-status-badge{display:inline-flex;align-items:center;gap:.35em;font:inherit;font-size:.82rem;line-height:1.2}',
+    '.innfo-concept-dot{width:.6em;height:.6em;border-radius:50%;background:var(--innfo-muted);flex:0 0 auto}',
+    '.innfo-concept-count{color:var(--innfo-muted)}',
+    '.innfo-element-origin{display:inline-flex;align-items:center;color:var(--innfo-origin-document)}',
+    '.innfo-element-origin[data-origin=error]{color:var(--innfo-origin-error)}',
+    '.innfo-element-origin[data-origin=agent]{color:var(--innfo-origin-agent)}',
+    '.innfo-element-origin[data-origin=human]{color:var(--innfo-origin-human)}',
+    '.innfo-element-origin[data-origin=reviewer]{color:var(--innfo-origin-reviewer)}',
+    '.innfo-status-badge{border-radius:var(--innfo-radius-sm);padding:.05em .5em;font-weight:600}',
+    '.innfo-status-badge[data-status=pending]{color:var(--innfo-status-pending);background:var(--innfo-status-pending-bg)}',
+    '.innfo-status-badge[data-status=applied]{color:var(--innfo-status-applied);background:var(--innfo-status-applied-bg)}',
+    '.innfo-status-badge[data-status=rejected]{color:var(--innfo-status-rejected);background:var(--innfo-status-rejected-bg)}',
+    '.innfo-status-badge[data-status=stale]{color:var(--innfo-status-stale);background:var(--innfo-status-stale-bg)}',
+  ]
+  for (var slot = 1; slot <= 12; slot++) {
+    COMPONENT_CSS.push(
+      '[data-concept-slot="' + slot + '"] .innfo-concept-dot{background:var(--innfo-concept-' + slot + ')}',
+    )
+  }
+  var COMPONENT_CSS_TEXT = COMPONENT_CSS.join('\n')
+
   // D2: light is the default; an OS dark preference applies unless the author
   // pinned light; an explicit [data-theme=dark] always wins.
   function generateTokenCss(values) {
@@ -323,7 +348,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       '}\n' +
       '[data-theme=dark] {\n' +
       declBlock(v.dark) +
-      '\n}\n'
+      '\n}\n' +
+      COMPONENT_CSS_TEXT +
+      '\n'
     )
   }
 
@@ -358,6 +385,171 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     else d.documentElement.setAttribute('data-theme', theme)
   }
 
+  // ---- Shared helpers ----
+
+  function slug(s) {
+    return String(s == null ? '' : s)
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+  }
+
+  // The palette order doubles as the named-color index (spec order, grey -> 12).
+  var COLOR_INDEX = {
+    blue: 1,
+    violet: 2,
+    purple: 2,
+    teal: 3,
+    amber: 4,
+    orange: 4,
+    pink: 5,
+    green: 6,
+    red: 9,
+    yellow: 10,
+    indigo: 8,
+    slate: 12,
+    grey: 12,
+    gray: 12,
+    black: 12,
+  }
+
+  // D7: explicit color wins; otherwise (index mod 12) + 1.
+  function conceptSlot(data) {
+    if (data && data.color && COLOR_INDEX[String(data.color).toLowerCase()]) {
+      return COLOR_INDEX[String(data.color).toLowerCase()]
+    }
+    var index = Number(data && data.index) || 0
+    return (index % 12) + 1
+  }
+
+  function makeEl(doc, tag, cls, text) {
+    var node = doc.createElement(tag)
+    if (cls) node.className = cls
+    if (text != null) node.textContent = String(text)
+    return node
+  }
+
+  function resolveDoc(opts) {
+    return (opts && opts.doc) || (typeof document !== 'undefined' ? document : null)
+  }
+
+  // SVG bodies (everything after viewBox="0 0 24 24", before </svg>). Moved out
+  // of innfo-runtime.js's former svgIcon.
+  var ICON_PATHS = {
+    pin: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a1 1 0 0 0 0-2H8a1 1 0 0 0 0 2h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"></path>',
+    chart: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line>',
+    target: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle>',
+    explorer: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>',
+    matrices: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line>',
+    timeline: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"></path><path d="m19 9-5 5-4-4-3 3"></path>',
+    star: ' fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>',
+    calc: ' fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="9" x2="19" y2="9"></line><line x1="5" y1="15" x2="19" y2="15"></line>',
+    derived: ' fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12a4 4 0 0 1 8 0 4 4 0 0 0 8 0"></path>',
+    close: ' fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>',
+    review: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><path d="m9 15 2 2 4-4"></path>',
+    'cite-agent': ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="9" width="18" height="11" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><line x1="12" y1="7" x2="12" y2="9"></line><line x1="8" y1="14" x2="8" y2="15"></line><line x1="16" y1="14" x2="16" y2="15"></line>',
+    'cite-human': ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 4-7 8-7s8 3 8 7"></path>',
+    'cite-reviewer': ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path><path d="m9 10 2 2 4-4"></path>',
+    'cite-document': ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="8" y1="13" x2="16" y2="13"></line><line x1="8" y1="17" x2="16" y2="17"></line>',
+    'cite-error': ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line>',
+  }
+
+  function icon(name, size, cls) {
+    var s = size || 14
+    var c = cls ? ' ' + cls : ''
+    var body = ICON_PATHS[name]
+    if (!body) throw new TypeError('InnfoUI.icon: unknown icon "' + name + '"')
+    return (
+      '<svg class="innfo-icon' +
+      c +
+      '" width="' +
+      s +
+      '" height="' +
+      s +
+      '" viewBox="0 0 24 24"' +
+      body +
+      '</svg>'
+    )
+  }
+
+  // ---- Components ----
+
+  function ConceptPill(data, opts) {
+    if (!data || typeof data !== 'object') throw new TypeError('InnfoUI.ConceptPill: data required')
+    var doc = resolveDoc(opts)
+    var interactive = !!(opts && opts.onSelect)
+    var pill = makeEl(doc, interactive ? 'button' : 'span', 'innfo-concept-pill')
+    pill.setAttribute('data-innfo-component', 'concept-pill')
+    pill.setAttribute('data-concept-id', String(data.id == null ? '' : data.id))
+    pill.setAttribute('data-concept-slot', String(conceptSlot(data)))
+    if (interactive) {
+      pill.setAttribute('type', 'button')
+      pill.addEventListener('click', function () {
+        opts.onSelect(data)
+      })
+    }
+    var dot = makeEl(doc, 'i', 'innfo-concept-dot')
+    pill.appendChild(dot)
+    pill.appendChild(doc.createTextNode(String(data.label == null ? '' : data.label)))
+    if (data.count != null) pill.appendChild(makeEl(doc, 'span', 'innfo-concept-count', ' (' + data.count + ')'))
+    return pill
+  }
+
+  function ElementPill(data, opts) {
+    if (!data || typeof data !== 'object') throw new TypeError('InnfoUI.ElementPill: data required')
+    var doc = resolveDoc(opts)
+    var tag = opts && opts.href ? 'a' : opts && opts.onSelect ? 'button' : 'span'
+    var pill = makeEl(doc, tag, 'innfo-element-pill')
+    pill.setAttribute('data-innfo-component', 'element-pill')
+    pill.setAttribute('data-element-id', String(data.id == null ? '' : data.id))
+    if (opts && opts.href) pill.setAttribute('href', String(opts.href))
+    if (tag === 'button') {
+      pill.setAttribute('type', 'button')
+      pill.addEventListener('click', function () {
+        if (opts && opts.onSelect) opts.onSelect(data)
+      })
+    }
+    if (data.origin) {
+      var wrap = makeEl(doc, 'span', 'innfo-element-origin')
+      wrap.setAttribute('data-origin', String(data.origin))
+      wrap.innerHTML = icon('cite-' + data.origin, 12)
+      pill.appendChild(wrap)
+    }
+    pill.appendChild(doc.createTextNode(String(data.label == null ? '' : data.label)))
+    return pill
+  }
+
+  function MarkerChip(data) {
+    if (!data || typeof data !== 'object') throw new TypeError('InnfoUI.MarkerChip: data required')
+    var doc = resolveDoc(null)
+    var chip = makeEl(doc, 'span', 'innfo-marker-chip')
+    chip.setAttribute('data-innfo-component', 'marker-chip')
+    chip.setAttribute('data-marker-id', String(data.id == null ? '' : data.id))
+    chip.setAttribute('data-kind', String(data.kind == null ? '' : data.kind))
+    chip.appendChild(doc.createTextNode(String(data.label == null ? '' : data.label)))
+    if (data.value != null) chip.appendChild(makeEl(doc, 'b', null, data.value))
+    return chip
+  }
+
+  var STATUSES = ['pending', 'applied', 'rejected', 'stale']
+
+  function StatusBadge(data) {
+    if (!data || typeof data !== 'object') throw new TypeError('InnfoUI.StatusBadge: data required')
+    if (STATUSES.indexOf(data.status) === -1) {
+      throw new TypeError('InnfoUI.StatusBadge: unknown status "' + data.status + '"')
+    }
+    var doc = resolveDoc(null)
+    var badge = makeEl(doc, 'span', 'innfo-status-badge')
+    badge.setAttribute('data-innfo-component', 'status-badge')
+    badge.setAttribute('data-status', String(data.status))
+    var text = data.count != null ? String(data.count) : String(data.status)
+    badge.textContent = text
+    badge.setAttribute('aria-label', data.count != null ? data.count + ' ' + data.status : data.status)
+    return badge
+  }
+
   // Token injection at load when a document exists. The bundle loads up to 3
   // times per shell; ensureTokens is idempotent, so this is safe.
   if (typeof document !== 'undefined' && document.head) {
@@ -385,6 +577,14 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     generateTokenCss: generateTokenCss,
     ensureTokens: ensureTokens,
     setTheme: setTheme,
+    icon: icon,
+    slug: slug,
+    conceptSlot: conceptSlot,
+    ORIGIN_VARIANTS: ['error', 'agent', 'human', 'reviewer', 'document'],
+    ConceptPill: ConceptPill,
+    ElementPill: ElementPill,
+    MarkerChip: MarkerChip,
+    StatusBadge: StatusBadge,
   }
 })
 
@@ -393,12 +593,15 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 /* global uPlot */
 ;(function (root, factory) {
   if (typeof module === 'object' && module.exports) {
-    module.exports = factory()
+    module.exports = factory(require('./ui-kit.js'))
   } else {
-    root.InnfoConsole = factory()
+    root.InnfoConsole = factory(root.InnfoUI)
   }
-})(typeof self !== 'undefined' ? self : this, function () {
+})(typeof self !== 'undefined' ? self : this, function (UI) {
   'use strict'
+
+  // D5: the kit is a hard dependency; fail loudly rather than degrade silently.
+  if (!UI) throw new Error('InnfoUI missing: load ui-kit.js first')
 
   var CONSOLE_VERSION = '0.1.0'
 
@@ -1084,49 +1287,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return filtered
   }
 
-  function renderConceptPill(concept, count, color) {
-    var pill = el('span', 'innfo-concept-pill')
-    if (!pill) return null
-    if (color) {
-      var dot = el('span', 'innfo-concept-dot')
-      if (dot) {
-        dot.style.backgroundColor = color
-        pill.appendChild(dot)
-      }
-    }
-    var textNode =
-      typeof document !== 'undefined' ? document.createTextNode(String(concept || '')) : null
-    if (textNode) pill.appendChild(textNode)
-    if (count != null) {
-      var countSpan = el('span', 'innfo-concept-count', ' ' + count)
-      if (countSpan) pill.appendChild(countSpan)
-    }
-    return pill
-  }
-
-  function renderElementPill(element, refs, citations) {
-    var name = element
-      ? typeof element === 'string'
-        ? element
-        : element.name || element.id || ''
-      : ''
-    var pill = el('button', 'innfo-ref-pill innfo-element-pill', name)
-    if (!pill) return null
-    pill.setAttribute('type', 'button')
-    if (citations && citations.length) {
-      var originKey = citations[0].error ? 'error' : citations[0].origin || 'document'
-      var icon = svgIcon('cite-' + originKey, 12, 'innfo-cite-origin-icon')
-      if (icon) {
-        var iconWrap = el('span', 'innfo-cite-icon-wrap')
-        if (iconWrap) {
-          iconWrap.innerHTML = icon
-          pill.appendChild(iconWrap)
-        }
-      }
-    }
-    return pill
-  }
-
   function renderBanner(doc, meta, needs, draftCount, onReviewerChange, state) {
     var banner = doc.getElementById('innfo-feedback-banner') || doc.getElementById('innfo-banner')
     if (!banner) return
@@ -1604,30 +1764,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
   }
 
-  function svgIcon(name, size, cls) {
-    var s = size || 14
-    var c = cls ? ' ' + cls : ''
-    var svgs = {
-      pin: '<svg class="innfo-icon' + c + '" width="' + s + '" height="' + s + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a1 1 0 0 0 0-2H8a1 1 0 0 0 0 2h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"></path></svg>',
-      chart: '<svg class="innfo-icon' + c + '" width="' + s + '" height="' + s + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>',
-      target: '<svg class="innfo-icon' + c + '" width="' + s + '" height="' + s + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>',
-      explorer: '<svg class="innfo-icon' + c + '" width="' + s + '" height="' + s + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>',
-      matrices: '<svg class="innfo-icon' + c + '" width="' + s + '" height="' + s + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line></svg>',
-      timeline: '<svg class="innfo-icon' + c + '" width="' + s + '" height="' + s + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"></path><path d="m19 9-5 5-4-4-3 3"></path></svg>',
-      star: '<svg class="innfo-icon' + c + '" width="' + s + '" height="' + s + '" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>',
-      calc: '<svg class="innfo-icon' + c + '" width="' + s + '" height="' + s + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="9" x2="19" y2="9"></line><line x1="5" y1="15" x2="19" y2="15"></line></svg>',
-      derived: '<svg class="innfo-icon' + c + '" width="' + s + '" height="' + s + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12a4 4 0 0 1 8 0 4 4 0 0 0 8 0"></path></svg>',
-      close: '<svg class="innfo-icon' + c + '" width="' + s + '" height="' + s + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>',
-      review: '<svg class="innfo-icon' + c + '" width="' + s + '" height="' + s + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><path d="m9 15 2 2 4-4"></path></svg>',
-      'cite-agent': '<svg class="innfo-icon' + c + '" width="' + s + '" height="' + s + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="9" width="18" height="11" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><line x1="12" y1="7" x2="12" y2="9"></line><line x1="8" y1="14" x2="8" y2="15"></line><line x1="16" y1="14" x2="16" y2="15"></line></svg>',
-      'cite-human': '<svg class="innfo-icon' + c + '" width="' + s + '" height="' + s + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 4-7 8-7s8 3 8 7"></path></svg>',
-      'cite-reviewer': '<svg class="innfo-icon' + c + '" width="' + s + '" height="' + s + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path><path d="m9 10 2 2 4-4"></path></svg>',
-      'cite-document': '<svg class="innfo-icon' + c + '" width="' + s + '" height="' + s + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="8" y1="13" x2="16" y2="13"></line><line x1="8" y1="17" x2="16" y2="17"></line></svg>',
-      'cite-error': '<svg class="innfo-icon' + c + '" width="' + s + '" height="' + s + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>'
-    }
-    return svgs[name] || ''
-  }
-
   var CITATION_ORIGIN_LABELS = {
     agent: 'AI agent',
     human: 'Human author',
@@ -2028,10 +2164,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         if (focusedRow) {
           var filterBanner = el('div', 'innfo-timeline-filter-banner')
           var bannerText = el('span', 'innfo-filter-banner-text')
-          bannerText.innerHTML = svgIcon('target', 14) + ' <span>Showing dependency tree for: <strong>' + (focusedRow.label || focusedRow.id) + '</strong> (' + Object.keys(activeDepSet).length + ' items)</span>'
+          bannerText.innerHTML = UI.icon('target', 14) + ' <span>Showing dependency tree for: <strong>' + (focusedRow.label || focusedRow.id) + '</strong> (' + Object.keys(activeDepSet).length + ' items)</span>'
           var clearBtn = el('button', 'innfo-filter-banner-clear')
           clearBtn.setAttribute('type', 'button')
-          clearBtn.innerHTML = svgIcon('close', 12) + ' <span>Clear Filter</span>'
+          clearBtn.innerHTML = UI.icon('close', 12) + ' <span>Clear Filter</span>'
           clearBtn.addEventListener('click', function () {
             focusedDependencyRowId = null
             renderView()
@@ -2072,7 +2208,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         var pinBtn = el('button', 'innfo-row-btn innfo-pin-btn' + (isPinnedThis ? ' pinned' : ''))
         pinBtn.setAttribute('type', 'button')
         pinBtn.setAttribute('title', isPinnedThis ? 'Unpin row' : 'Pin row to top')
-        pinBtn.innerHTML = svgIcon('pin', 12)
+        pinBtn.innerHTML = UI.icon('pin', 12)
         pinBtn.addEventListener('click', function (e) {
           e.stopPropagation()
           pinnedRowIds[r.id] = !pinnedRowIds[r.id]
@@ -2084,7 +2220,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         var chartBtn = el('button', 'innfo-row-btn innfo-chart-btn' + (isChartThis ? ' active' : ''))
         chartBtn.setAttribute('type', 'button')
         chartBtn.setAttribute('title', isChartThis ? 'Hide inline monthly chart' : 'Show inline monthly chart')
-        chartBtn.innerHTML = svgIcon('chart', 12)
+        chartBtn.innerHTML = UI.icon('chart', 12)
         chartBtn.addEventListener('click', function (e) {
           e.stopPropagation()
           expandedChartRowIds[r.id] = !expandedChartRowIds[r.id]
@@ -2098,7 +2234,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           var filterBtn = el('button', 'innfo-row-btn innfo-filter-btn' + (isFocusThis ? ' active' : ''))
           filterBtn.setAttribute('type', 'button')
           filterBtn.setAttribute('title', isFocusThis ? 'Clear dependency tree filter' : 'Filter grid to show only dependencies of ' + (r.label || r.id))
-          filterBtn.innerHTML = svgIcon('target', 12)
+          filterBtn.innerHTML = UI.icon('target', 12)
           filterBtn.addEventListener('click', function (e) {
             e.stopPropagation()
             focusedDependencyRowId = (focusedDependencyRowId === r.id ? null : r.id)
@@ -2108,7 +2244,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         }
         tdMetric.appendChild(actionsSpan)
 
-        var markerSvg = r.variable ? svgIcon('star', 11) : r.source === 'derived' ? svgIcon('derived', 11) : svgIcon('calc', 11)
+        var markerSvg = r.variable ? UI.icon('star', 11) : r.source === 'derived' ? UI.icon('derived', 11) : UI.icon('calc', 11)
         var markerSpan = el('span', 'innfo-row-marker marker-' + (r.variable ? 'var' : r.source === 'derived' ? 'der' : 'calc'))
         markerSpan.innerHTML = markerSvg
         var nameSpan = el('span', 'innfo-row-name', r.label || r.id)
@@ -2196,7 +2332,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           var trChart = el('tr', 'innfo-timeline-chart-row')
           var tdChartSticky = el('td', 'td-sticky')
           var chartLabel = el('span', 'innfo-chart-row-label')
-          chartLabel.innerHTML = svgIcon('chart', 12) + ' <span>Monthly: ' + (r.label || r.id) + '</span>'
+          chartLabel.innerHTML = UI.icon('chart', 12) + ' <span>Monthly: ' + (r.label || r.id) + '</span>'
           tdChartSticky.appendChild(chartLabel)
           trChart.appendChild(tdChartSticky)
 
@@ -2251,7 +2387,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         var tdPinnedHdr = el('td')
         tdPinnedHdr.setAttribute('colspan', String(totalMonths + 4))
         var pinnedBadge = el('span', 'innfo-grp-badge')
-        pinnedBadge.innerHTML = svgIcon('pin', 12) + ' <span>PINNED METRICS (' + pinnedRows.length + ')</span>'
+        pinnedBadge.innerHTML = UI.icon('pin', 12) + ' <span>PINNED METRICS (' + pinnedRows.length + ')</span>'
         tdPinnedHdr.appendChild(pinnedBadge)
         trPinnedHdr.appendChild(tdPinnedHdr)
         tbody.appendChild(trPinnedHdr)
@@ -2428,7 +2564,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       if (!btn) return
       btn.setAttribute('type', 'button')
       btn.dataset.tab = t.id
-      var iconHtml = svgIcon(t.icon, 15)
+      var iconHtml = UI.icon(t.icon, 15)
       var countBadge =
         t.count > 0 ? '<span class="innfo-rail-badge">' + t.count + '</span>' : ''
       btn.innerHTML = iconHtml + '<span>' + t.label + '</span>' + countBadge
@@ -3287,9 +3423,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     buildRefsByName: buildRefsByName,
     renderRefDialog: renderRefDialog,
     renderCitationDialog: renderCitationDialog,
-    svgIcon: svgIcon,
-    renderConceptPill: renderConceptPill,
-    renderElementPill: renderElementPill,
     renderBanner: renderBanner,
     renderRail: renderRail,
     renderCards: renderCards,
@@ -3399,7 +3532,13 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   // identical to pre-citations rendering — see design D7/D9.
   function citationButtons(fieldName, entries) {
     var rt = typeof window !== 'undefined' ? window.InnfoConsole : null
-    if (!rt || typeof rt.renderCitationDialog !== 'function' || typeof rt.svgIcon !== 'function') {
+    var ui = typeof window !== 'undefined' ? window.InnfoUI : null
+    if (
+      !rt ||
+      typeof rt.renderCitationDialog !== 'function' ||
+      !ui ||
+      typeof ui.icon !== 'function'
+    ) {
       return null
     }
     var list = Array.isArray(entries) ? entries : []
@@ -3422,7 +3561,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       var label = (CITATION_ICON_LABELS[variant] || variant) + ': ' + fieldName
       btn.setAttribute('aria-label', label)
       btn.setAttribute('title', label)
-      btn.innerHTML = rt.svgIcon('cite-' + variant, 14)
+      btn.innerHTML = ui.icon('cite-' + variant, 14)
       btn.addEventListener('click', function (ev) {
         if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation()
         rt.renderCitationDialog(document, fieldName, list)
