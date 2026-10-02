@@ -427,6 +427,16 @@ agent-bootstrap:
   fs.rmSync(tmpDir, { recursive: true, force: true });
 }
 
+// ADR / Monorepo release manifest fallback URL agreement test
+{
+  const { FALLBACK_MANIFEST_URL: smFallback } = require('./lib/skills-commands.js');
+  const { FALLBACK_MANIFEST_URL: pfFallback } = require('../skills/nn-preflight/scripts/preflight-check.js');
+  const expectedUrl = 'https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/docs/use/manifest.md';
+  assert.strictEqual(smFallback, expectedUrl, 'skills-commands FALLBACK_MANIFEST_URL must point to cogNNitive-web');
+  assert.strictEqual(pfFallback, expectedUrl, 'preflight-check FALLBACK_MANIFEST_URL must point to cogNNitive-web');
+  console.log('✔ Fallback manifest URL agreement test passed');
+}
+
 console.log('All skills-manager unit tests passed successfully!');
 }
 

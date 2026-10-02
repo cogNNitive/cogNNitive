@@ -115,4 +115,22 @@ Status: tasks 4.1-4.4 done (4/4).
 - `node scripts/lib/publish-web-tree.test.js`: all checks passed.
 - `node scripts/manifest/generate-manifest.test.js`: all 11 checks passed.
 
+## Batch 7 - PR 5 (Docs, specs, fallback URL, cleanup; AD-9; ~350 lines)
+
+Status: tasks 5.1-5.6 done (6/6).
+
+### Implemented Components
+1. `scripts/lib/skills-commands.js` & `skills/nn-preflight/scripts/preflight-check.js`: updated `FALLBACK_MANIFEST_URL` to `https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/docs/use/manifest.md` and exported it.
+2. `scripts/skills-manager.test.js`: added unit test confirming both consumers agree and point to `cogNNitive-web`.
+3. `.agents/skills/nn-dev-release/SKILL.md`: rewritten cleanly as "tag, push, watch" covering release keys table, pre-release validation, annotated tag creation, definition of deployed, 7-stage failure and idempotent re-run states, and manual snapshot rollback.
+4. `openspec/specs/*`: merged delta specs across all 8 capabilities (`ci-stable-manifest-on-dev`, `dev-skills`, `monorepo-release-manifest`, `public-web-distribution`, `quality-gates`, `release-version-generation`, `tag-driven-release-workflow` created, `template-release-tagging`). Spec URLs checked and verified.
+5. Deleted temporary `restore-cdn.yml` workflow, `scripts/release/restore-cdn-bundles.js`, and `scripts/release/restore-cdn-bundles.test.js`.
+6. Deleted superseded change folder `openspec/changes/2026-10-01-decoupled-release-pipeline/`.
+
+### Verification
+- `node scripts/verify.js`: 91/91 steps pass offline.
+- `node scripts/check-integrity.js`: ALL INTEGRITY GATES PASSED.
+- `node scripts/check-spec-version.mjs --check-urls`: all spec URLs verified.
+
+
 

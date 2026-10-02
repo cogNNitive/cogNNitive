@@ -71,12 +71,12 @@ Conventions: `[TEST]` = failing test first (RED), `[IMPL]` = make it pass (GREEN
 
 ## PR 5 - Docs, specs, fallback URL, cleanup (AD-9, ~350 lines)
 
-- [ ] 5.1 [TEST] Test both consumers export the same fallback URL `https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/docs/use/manifest.md`. Ref: monorepo-release-manifest / Both consumers agree.
-- [ ] 5.2 [IMPL] Update `scripts/lib/skills-commands.js:45` and `skills/nn-preflight/scripts/preflight-check.js:41-42`.
-- [ ] 5.3 [IMPL] Rewrite `.agents/skills/nn-dev-release/SKILL.md` as "tag, push, watch" incl. failure/re-run states and manual snapshot rollback. Ref: dev-skills / The release procedure is "tag, push, watch"; Failure and re-run states are documented.
-- [ ] 5.4 [IMPL] Merge delta specs into `openspec/specs/*` (8 capabilities); keep `check:spec-urls` happy (split code spans for bare slugs).
-- [ ] 5.5 [IMPL] Delete `.github/workflows/restore-cdn.yml` and `scripts/release/restore-cdn-bundles.js` (+ test).
-- [ ] 5.6 [IMPL] Delete `openspec/changes/2026-10-01-decoupled-release-pipeline/` (superseded; maintainer request).
+- [x] 5.1 [TEST] Test both consumers export the same fallback URL `https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/docs/use/manifest.md`. Ref: monorepo-release-manifest / Both consumers agree.
+- [x] 5.2 [IMPL] Update `scripts/lib/skills-commands.js:45` and `skills/nn-preflight/scripts/preflight-check.js:41-42`.
+- [x] 5.3 [IMPL] Rewrite `.agents/skills/nn-dev-release/SKILL.md` as "tag, push, watch" incl. failure/re-run states and manual snapshot rollback. Ref: dev-skills / The release procedure is "tag, push, watch"; Failure and re-run states are documented.
+- [x] 5.4 [IMPL] Merge delta specs into `openspec/specs/*` (8 capabilities); keep `check:spec-urls` happy (split code spans for bare slugs).
+- [x] 5.5 [IMPL] Delete `.github/workflows/restore-cdn.yml` and `scripts/release/restore-cdn-bundles.js` (+ test).
+- [x] 5.6 [IMPL] Delete `openspec/changes/2026-10-01-decoupled-release-pipeline/` (superseded; maintainer request).
 - Verify: `node scripts/verify.js`, `node scripts/check-integrity.js`, spec-integrity job.
 
 ## Rollout (mirrors design Migration)
