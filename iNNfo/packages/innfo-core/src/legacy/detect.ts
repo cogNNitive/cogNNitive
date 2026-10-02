@@ -36,6 +36,15 @@ const LEGACY_KEYS = [
 
 const OVERVIEW_ROOT_RE = /_base_[a-z0-9]+\.md$/i
 
+// Frontmatter lives between the first pair of `---` fences. Detection of
+// structural legacy signals (parent_spec URLs, legacy keys) must read only this
+// block — never the body, where prose may legitimately document historical
+// paths and trip false positives.
+function extractFrontmatter(content: string): string {
+  const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/)
+  return match ? match[1] : ''
+}
+
 export async function detectLegacy(r: DomainReader): Promise<DetectLegacyResult> {
   const signals: LegacySignal[] = []
   let hasCurrentSignal = false
@@ -166,15 +175,17 @@ export async function detectLegacy(r: DomainReader): Promise<DetectLegacyResult>
     const content = await r.read(filePath)
     if (!content) continue
 
-    // Current signal indicators in content
-    if (content.includes('knowledge_version:')) hasCurrentSignal = true
+    const frontmatter = extractFrontmatter(content)
+
+    // Current signal indicators: frontmatter keys plus in-body type markers
+    if (frontmatter.includes('knowledge_version:')) hasCurrentSignal = true
     if (/type::\s*knowledge\b/.test(content)) hasCurrentSignal = true
-    if (content.includes('iNNfo_V_0-3-0')) hasCurrentSignal = true
+    if (frontmatter.includes('iNNfo_V_0-3-0')) hasCurrentSignal = true
 
     // Check legacy frontmatter keys
     for (const legacyKey of LEGACY_KEYS) {
       const keyPattern = new RegExp(`^\\s*${legacyKey}\\s*:`, 'm')
-      if (keyPattern.test(content)) {
+      if (keyPattern.test(frontmatter)) {
         signals.push({
           type: 'legacy-key',
           path: filePath,
@@ -183,7 +194,7 @@ export async function detectLegacy(r: DomainReader): Promise<DetectLegacyResult>
       }
     }
 
-    // Check legacy keyword: type:: model
+    // Check legacy keyword: type:: model (an in-body marker)
     if (/type::\s*model\b/i.test(content)) {
       signals.push({
         type: 'legacy-keyword',
@@ -192,8 +203,8 @@ export async function detectLegacy(r: DomainReader): Promise<DetectLegacyResult>
       })
     }
 
-    // Check parent_spec URL containing /specs/templates/
-    if (content.includes('/specs/templates/')) {
+    // Check parent_spec URL containing /specs/templates/ (frontmatter only)
+    if (frontmatter.includes('/specs/templates/')) {
       signals.push({
         type: 'legacy-parent-spec',
         path: filePath,
@@ -201,8 +212,8 @@ export async function detectLegacy(r: DomainReader): Promise<DetectLegacyResult>
       })
     }
 
-    // Check legacy L1 parent below V_0-3-0
-    const l1Match = content.match(/iNNfo_V_0-[12]-[0-9]+|defiNNe_V_0-1-0/i)
+    // Check legacy L1 parent below V_0-3-0 (frontmatter only)
+    const l1Match = frontmatter.match(/iNNfo_V_0-[12]-[0-9]+|defiNNe_V_0-1-0/i)
     if (l1Match) {
       signals.push({
         type: 'legacy-l1-parent',
