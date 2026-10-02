@@ -205,3 +205,22 @@ Conventions for every slice: work-unit commits (tests + code + docs of one behav
   - Run `node scripts/verify.js` and `node scripts/check-integrity.js`.
 - [ ] 5.6 Tag release rehearsal in detached worktree (`git worktree add --detach temp/rehearsal`). Verify clean `--release` integrity check.
 - [ ] 5.7 Run standard gate G. Commit: `feat(console): complete keyboard a11y, contrast guarantees, reviewer docs and release prep`.
+
+## Hand-off from Change B (release checklist, D14)
+
+Change B (`2026-10-01-console-ui-kit`) ships **no tag of its own**; it releases
+together with C under **one** `innfo-console-v*` tag. At release time:
+
+- Next **minor** above the highest existing `innfo-console-v*` tag.
+- Bump **all three** `console_assets` entries in `manifest/source.yaml` (shared
+  ref key) — assets are ignored by the immutability guard, so there is **no**
+  `blueprint_version` bump.
+- Run `npm run build:console`, `npm run sync:versions`, `npm run check:versions`,
+  `npm run check:console-bundle`.
+- Bump the shell CDN pins (`artifact_shell.html`, `timeline.html`,
+  `procedure_console.html`, `model_console.html`) to the new tag.
+- Bump `channels.stable.refs[blueprints]` (`0.19.1` currently; A plans `0.20.0`).
+- Run `node scripts/verify.js` and `node scripts/check-integrity.js` (use a
+  detached worktree if the tree is dirty).
+- Merge `dev` -> `main` as a **merge commit**, then tag `innfo-console-vX.Y.Z`
+  and `blueprints-vA.B.C`. **No** `innfo-mcp-v*` or `skills-v*` tag.
