@@ -65,53 +65,9 @@ for (const entry of distEntries) {
 }
 console.log(`âœ… Staged ${distEntries.length} dist entries to docs/innfo/app/`);
 
-// 3. Stage MCP bundle and update CDN manifest
-console.log('\nâ–¶ Staging innfo-mcp CDN bundle and updating manifest...');
-const mcpDir = path.join(repoRoot, 'iNNfo', 'packages', 'innfo-mcp');
-const mcpPkgPath = path.join(mcpDir, 'package.json');
-const mcpPkg = JSON.parse(fs.readFileSync(mcpPkgPath, 'utf8'));
-const version = mcpPkg.version;
-
-if (!version) {
-  console.error('âŒ Could not determine version from innfo-mcp package.json');
-  process.exit(1);
-}
-
-const cdnDir = path.join(docsRoot, 'innfo', 'cdn');
-fs.mkdirSync(cdnDir, { recursive: true });
-
-const srcBundle = path.join(mcpDir, 'bin', 'innfo-mcp.bundle.js');
-if (!fs.existsSync(srcBundle)) {
-  console.error(`âŒ MCP bundle not found at: ${srcBundle}`);
-  process.exit(1);
-}
-
-const targetBundle = path.join(cdnDir, `innfo-mcp-v${version}.bundle.js`);
-fs.copyFileSync(srcBundle, targetBundle);
-console.log(`âœ… Copied MCP bundle to docs/innfo/cdn/innfo-mcp-v${version}.bundle.js`);
-
-// The CDN bundle must be a single self-contained file: only innfo-mcp.bundle.js
-// is published to docs/innfo/cdn/, never any sibling chunk. A code-split build
-// would emit `import ... from "./chunk-XXXX.js"` and silently ship a broken
-// bundle (the chunk name is a per-build content hash). Fail loudly instead.
-const stagedBundle = fs.readFileSync(targetBundle, 'utf8');
-const splitImport = stagedBundle.match(/from\s*['"]\.\/(chunk|spec)-[^'"]+['"]/);
-if (splitImport) {
-  console.error(
-    `âŒ MCP bundle is code-split (${splitImport[0]}). ` +
-      `docs/innfo/cdn/ only publishes innfo-mcp.bundle.js, so this would break the install. ` +
-      `Set splitting:false on the bin config in iNNfo/packages/innfo-mcp/tsup.config.ts.`
-  );
-  process.exit(1);
-}
-
-const manifestPath = path.join(cdnDir, 'manifest.json');
-const manifest = {
-  latest: `v${version}`,
-  updated: new Date().toISOString().split('T')[0],
-};
-fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n', 'utf8');
-console.log(`âœ… Updated docs/innfo/cdn/manifest.json (latest: v${version})`);
+// 3. The MCP CDN bundle is NOT staged here: `scripts/stage-mcp-bundle.mjs` owns it
+// (it copies the committed bundle and needs no editor build). CI `site` and the
+// release workflow run it.
 
 // 3b. Stage the Level-2 blueprint catalog so it is reachable at a canonical
 // same-origin URL for the browser editor and non-monorepo workspaces (AD-3,
@@ -138,16 +94,11 @@ run('node scripts/generate-docs-facts.mjs', 'Generate docs-derived facts (MCP to
 // canonical HTML page.
 run('node scripts/generate-about-twin.mjs', 'Generate docs/innfo/about.md twin from about.html');
 
-// 3e. Stage distribution manifests into docs/update/
-console.log('\n▶ Staging distribution manifests into docs/update/...');
-const manifestSrc = path.join(docsRoot, 'use', 'manifest.md');
+// 3e. Stage distribution preview manifest into docs/update/
+console.log('\n▶ Staging distribution preview manifest into docs/update/...');
 const manifestNextSrc = path.join(docsRoot, 'use', 'manifest-next.md');
 const updateDir = path.join(docsRoot, 'update');
 fs.mkdirSync(updateDir, { recursive: true });
-if (fs.existsSync(manifestSrc)) {
-  fs.copyFileSync(manifestSrc, path.join(updateDir, 'manifest.md'));
-  console.log('✅ Staged docs/update/manifest.md');
-}
 if (fs.existsSync(manifestNextSrc)) {
   fs.copyFileSync(manifestNextSrc, path.join(updateDir, 'manifest-next.md'));
   console.log('✅ Staged docs/update/manifest-next.md');

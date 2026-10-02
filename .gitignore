@@ -9,8 +9,11 @@ build/
 **/build/
 docs/innfo/app/assets/
 docs/innfo/app/index.html
-docs/innfo/cdn/*.bundle.js
+docs/innfo/cdn/
 docs/use/freshness.json
+docs/use/manifest.md
+docs/update/manifest.md
+.release-manifest.md
 
 # Test reports & Coverage
 coverage/
@@ -73,3 +76,5 @@ temp/
 
 # nn-trannsform test byproduct: test/unit/test-config.js writes it into the skill dir
 skills/nn-trannsform/config.json
+# verify.js per-step logs
+.verify-logs/

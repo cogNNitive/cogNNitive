@@ -1,0 +1,103 @@
+name: Tag-Driven Release
+
+on:
+  push:
+    tags:
+      - 'skills-v*'
+      - 'blueprints-v*'
+      - 'innfo-mcp-v*'
+      - 'innfo-console-v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to inspect (forced dry-run)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    environment: release
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install nn-trannsform skill dependencies
+        run: npm ci --prefix skills/nn-trannsform
+
+      - name: Build MCP packages for facts check
+        run: npm --workspace=@cognnitive/innfo-core run build && npm --workspace=@cognnitive/innfo-mcp run build
+
+      - name: Run Deterministic Verification
+        run: node scripts/verify.js
+
+      - name: Run Release
+        id: run_release
+        env:
+          RELEASE_TAG: ${{ github.event.inputs.tag || github.ref_name }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' || vars.RELEASE_ENABLED != 'true' }}
+          WEB_RELEASE_TOKEN: ${{ secrets.WEB_RELEASE_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.WEB_RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
+        run: |
+          node -e "
+            const { runRelease } = require('./scripts/release/run-release.js');
+            runRelease({
+              tag: process.env.RELEASE_TAG,
+              dryRun: process.env.DRY_RUN === 'true',
+            }).then((res) => {
+              console.log('Release completed successfully:', res);
+            }).catch((err) => {
+              console.error('Release failed:', err);
+              process.exit(1);
+            });
+          "
+
+      - name: Run Post-Publish Smoke Test
+        if: github.event_name != 'workflow_dispatch' && vars.RELEASE_ENABLED == 'true'
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          node -e "
+            const { parseReleaseTag } = require('./scripts/release/parse-release-tag.js');
+            const { runSmokeTest } = require('./scripts/release/smoke.js');
+            const fs = require('fs');
+            const path = require('path');
+            const { key, version } = parseReleaseTag(process.env.RELEASE_TAG);
+            const stagedManifestPath = path.join(process.cwd(), '.release-manifest.md');
+            const stagedManifestText = fs.existsSync(stagedManifestPath)
+              ? fs.readFileSync(stagedManifestPath, 'utf8')
+              : '';
+            runSmokeTest({
+              key,
+              version,
+              stagedManifestText,
+            }).catch((err) => {
+              console.error('Smoke test failed:', err);
+              process.exit(1);
+            });
+          "
+
+      - name: Upload verify logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verify-logs
+          path: .verify-logs
+          include-hidden-files: true
+          retention-days: 7

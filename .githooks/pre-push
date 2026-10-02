@@ -1,8 +1,5 @@
 #!/bin/sh
-# pre-push: block the push if the repo does not typecheck, and — for pushes
-# whose remote ref is refs/heads/main — block it if the diff violates
-# tag/pin freshness (skills/ or a template spec_NN.md changed without a
-# manifest/source.yaml re-pin in the same diff; scripts/lib/tag-pin-freshness.js).
+# pre-push: block the push if the repo does not typecheck.
 #
 # Typecheck runs `npm run typecheck` (root, all 3 workspaces, includes the
 # innfo-core build) — the cheapest command that catches the class of defect
@@ -10,19 +7,15 @@
 # Deliberately NOT `npm run verify` (typecheck + full test suite, ~90s+ for
 # the editor alone): a hook that takes minutes trains people to reach for
 # --no-verify as a habit, which disarms every future hook. See design.md
-# ADR-001. The tag/pin freshness check is a single `git diff --name-only`
-# and stays within that same budget.
+# ADR-001.
 #
 # This hook reads $remote_ref from stdin (one line per pushed ref:
 # "<local_ref> <local_sha> <remote_ref> <remote_sha>"), so it now:
 #   - skips typecheck entirely for pushes whose remote ref is not
 #     refs/heads/* (tag pushes, e.g. a release cutting up to four tags),
-#   - only runs the tag/pin freshness guard for pushes whose remote ref is
-#     exactly refs/heads/main,
 #   - skips ref deletions (local sha is all zeros).
 
 typechecked=0
-tag_pin_violation=0
 
 while read -r local_ref local_sha remote_ref remote_sha; do
   # Ref deletion: local sha is all zeros. Nothing to check.
@@ -49,20 +42,7 @@ while read -r local_ref local_sha remote_ref remote_sha; do
       # Not a branch push (e.g. refs/tags/*) — typecheck does not apply.
       ;;
   esac
-
-  if [ "$remote_ref" = "refs/heads/main" ]; then
-    node scripts/check-tag-pin-freshness-cli.js --base "$remote_sha" --head "$local_sha"
-    status=$?
-    if [ "$status" -ne 0 ]; then
-      echo ""
-      echo "pre-push: fix the errors above, or bypass with: git push --no-verify"
-      tag_pin_violation=1
-    fi
-  fi
 done
 
-if [ "$tag_pin_violation" -ne 0 ]; then
-  exit 1
-fi
-
 exit 0
+

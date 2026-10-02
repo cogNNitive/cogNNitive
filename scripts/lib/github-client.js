@@ -17,7 +17,7 @@ const RATE_LIMIT_HINT = 'set GITHUB_TOKEN to raise the rate limit';
  * @returns {Record<string, string>}
  */
 function authHeaders() {
-  const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
+  const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN || process.env.WEB_RELEASE_TOKEN;
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 

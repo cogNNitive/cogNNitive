@@ -1,19 +1,19 @@
 ---
 name: nn-dev-release
-version: "2.1.0"
+version: "3.0.0"
 description: Internal developer skill for cogNNitive maintainers. Manages monorepo git status, gate checks, version bumping, release tagging, manifest generation, and distribution validation.
 ---
 
-# nn-dev-release Skill (Developer Release & Workflow Manager)
+# nn-dev-release Skill (Tag-Driven Release Manager)
 
 ## Overview
 
-`nn-dev-release` is an internal maintenance skill for developers and maintainers of `cogNNitive`. It automates the release and verification workflow across the unified monorepo (`cogNNitive/cogNNitive`):
-- **`actioNN/`** — Skills & governance subsystem
-- **`iNNfo/`** — Core engine (`packages/innfo-core`), MCP server (`packages/innfo-mcp`), visual editor (`apps/innfo-editor`), and canonical specifications (`specs/`)
-- **`manifest/`** — Source declarations (`source.yaml`) for distribution manifests
-- **`docs/`** — Documentation portal and rendered distribution manifests (`docs/use/manifest.md`)
-- **`scripts/`** — Zero-dependency deterministic verification, generator, and validator tooling
+`nn-dev-release` is an internal maintenance skill for developers and maintainers of `cogNNitive`. It governs the tag-driven release workflow across the unified monorepo (`cogNNitive/cogNNitive`).
+
+Under the tag-driven release model (AD-1..AD-9):
+- Pushing an annotated release tag `<key>-v<semver>` on the monorepo is the **sole release trigger**.
+- No hand-typed channel versions or pinned SHAs in `manifest/source.yaml`.
+- The release workflow (`.github/workflows/release.yml`) executes additively to `cogNNitive-web`, creates mirror tags, generates and publishes the stable manifest, and executes automated smoke tests.
 
 ---
 
@@ -27,283 +27,123 @@ When this skill is loaded or activated, the agent MUST print as its very first l
 
 ---
 
-## 0. Entry Menu
+## 1. Release Keys Table
 
-Present the following interactive menu **only when the task is ambiguous**
-(multiple plausible options). When the maintainer already approved a specific
-task (audit, sync, release, validate), skip the menu and run that option
-directly — presenting it anyway is noise:
+The monorepo defines four distinct release keys. Each release tag MUST match `<key>-v<semver>`:
 
-```markdown
-🛠️ cogNNitive — Developer Release & Workflow Manager
-
-- [a] (Recomendado) Auditar estado del Monorepo (Git status, drift de paridad local y tags recientes)
-- [b] Sincronizar y verificar gates (Pull main + verify.js + tests completos)
-- [c] Ejecutar Release completo (Bump de versión + Rebuild + Tags en GitHub + Regenerar Manifest + Push)
-- [d] Validar publicación del Manifest (Ejecutar validate-manifest.js con GITHUB_TOKEN)
-- [x] Cancelar
-```
-
-Before creating any PR (`gh pr create`), always run
-`gh pr list --head <head> --base <base>` first — an open PR for the same
-branch pair already exists more often than not (expediente 2026-09-08: PR #83
-dev→main was open and nearly duplicated).
+| Release Key | Target Subsystem | Authored Version Source | Target in Manifest |
+|-------------|------------------|-------------------------|--------------------|
+| `skills` | Agent Skills suite | `skills/*/SKILL.md` (individual) | `skills[*]` |
+| `blueprints` | Domain templates & specs | `iNNfo/specs/templates/*/spec_NN.md` | `templates[*]` |
+| `innfo-mcp` | MCP server & tools bundle | `iNNfo/packages/innfo-mcp/package.json` | `mcp` bundle |
+| `innfo-console` | Interactive blueprint console | `iNNfo/specs/bluepriNNts/console/package.json` | `console_assets` |
 
 ---
 
-## 1. Protocol execution details
+## 2. Release Procedure ("Tag, Push, Watch")
 
-### Option [a]: Auditar estado del Monorepo
+The entire release procedure consists of three steps: **Tag, Push, Watch**.
 
-Run an empirical scan across the monorepo root:
+### Step 1: Pre-Release Validation
+
+Before creating any release tag, verify that:
+1. **Branch is clean and merged:** The changes to be released are merged into `main` and all CI checks on `main` are green (`gh run list --branch main`).
+2. **Authored version matches (for `innfo-mcp` and `innfo-console`):**
+   - For `innfo-mcp`: `version` in `iNNfo/packages/innfo-mcp/package.json` equals `<semver>`.
+   - For `innfo-console`: `version` in `iNNfo/specs/bluepriNNts/console/package.json` equals `<semver>`.
+3. **Strictly greater than existing tags:**
+   The new `<semver>` MUST be strictly greater than the highest existing tag for that `<key>` in BOTH `cogNNitive/cogNNitive` AND `cogNNitive/cogNNitive-web`.
+
+### Step 2: Create Annotated Tag
+
+Create an annotated git tag locally on the `main` commit:
 
 ```powershell
-Write-Host "=== MONOREPO: cogNNitive/cogNNitive ==="
-git status -sb
-
-Write-Host "`n=== RECENT TAGS BY SUBSYSTEM ==="
-Write-Host "Skills:"
-git tag -l "skills-v*" --sort=-creatordate | Select-Object -First 3
-Write-Host "Templates:"
-git tag -l "templates-v*" --sort=-creatordate | Select-Object -First 3
-Write-Host "MCP:"
-git tag -l "innfo-mcp-v*" --sort=-creatordate | Select-Object -First 3
-Write-Host "iNNfo Suite:"
-git tag -l "v*" --sort=-creatordate | Where-Object { $_ -notmatch '^(skills|templates|innfo-mcp)-' } | Select-Object -First 3
-
-Write-Host "`n=== LOCAL WORKSPACE PARITY ==="
-node scripts/manifest/check-parity.js
-
-Write-Host "`n=== DEPLOY-DoD (tag · CI-tip · publish-web · CDN/manifest) ==="
-# 1. tag pushed?  2. CI success on the origin/main tip?  3. publish-web (one-way
-# publish to the public cogNNitive-web repo, which owns Pages for cognnitive.com)
-# green on that tip?
-gh run list --branch main --workflow "CI & Verify" --limit 1 --json headSha,status,conclusion
-$runId = gh run list --branch main --workflow "CI & Verify" --limit 1 --json databaseId --jq '.[0].databaseId'
-gh run view $runId --json jobs --jq '.jobs[] | select(.name=="publish-web") | {name,conclusion,headSha}'
-# 4. CDN bundle + manifest pins resolve
-$env:GITHUB_TOKEN = (gh auth token).Trim()
-node scripts/manifest/validate-manifest.js
+git tag -a <key>-v<semver> -m "release: <key> v<semver>"
 ```
 
-Present a consolidated summary table with:
-- Current branch & push sync status
-- Working tree status (Clean / Uncommitted changes)
-- Latest release tags for each subsystem
-- Parity status between local workspace files and `manifest/source.yaml`
-- Deploy-DoD (tag / CI-tip / publish-web / CDN-manifest): all four legs green, or ❌
-  naming the failing leg — a tag alone NEVER satisfies the definition of deployed.
-  `publish-web` pushes the built site + distribution surface to the public
-  `cogNNitive-web` repo (append-only, idempotent); Pages serves `cognnitive.com`
-  from there, not from this monorepo.
+*Example:*
+```powershell
+git tag -a skills-v2.9.0 -m "release: skills v2.9.0"
+```
+
+### Step 3: Push Tag & Watch Release Workflow
+
+Push the tag to `origin`:
+
+```powershell
+git push origin <key>-v<semver>
+```
+
+Then watch the automated release workflow:
+
+```powershell
+gh run list --workflow release.yml --limit 1
+gh run watch <run-id> --exit-status
+```
+
+The release workflow (`release.yml`) will:
+1. Validate the tag and compute the release decision matrix (`scripts/release/publish-decision.js`).
+2. Sync the published assets to `cogNNitive-web` and stage versioned CDN bundles (commit C).
+3. Create the corresponding mirror tag on `cogNNitive-web`.
+4. Assemble the updated manifest from the previous published manifest + tagged inventory (`scripts/release/assemble-manifest.js`).
+5. Save snapshot to `docs/use/manifests/<tag>.md` and publish manifest (commit M).
+6. Run live smoke tests (`scripts/release/smoke.js`).
 
 ---
 
-### Option [b]: Sincronizar y verificar gates
+## 3. Definition of Deployed
 
-1. Perform `git pull origin main` in the monorepo root.
-2. Run workspace verification in release mode:
-   ```powershell
-   node scripts/verify.js --release
-   ```
-   *(--release adds the live stable-manifest publication check — pins resolving to tags on main-reachable commits — on top of the deterministic gates: template inventory, orchestrator line limits < 200 lines, workspace parity, scripts typecheck, generated-manifest freshness).*
-3. In `iNNfo`:
-   - Run typecheck: `npm run typecheck --prefix iNNfo`
-   - Run tests: `npm test --prefix iNNfo`
-   - Run lint: `npm run lint --prefix iNNfo`
-4. Report test count and gate results to the developer.
+A release SHALL be reported as "deployed" ONLY when all 4 legs verify:
+1. **Monorepo tag:** Monorepo release tag `<key>-v<semver>` is pushed to `cogNNitive/cogNNitive`.
+2. **Workflow success:** The `release.yml` GitHub Actions run concludes with `success`, including the smoke test job.
+3. **Mirror tag:** The mirror tag `<key>-v<semver>` exists in `cogNNitive/cogNNitive-web` pointing to commit C.
+4. **Live resolution:** The published manifest at `https://cognnitive.com/use/manifest.md` and versioned CDN URLs resolve and reflect the released version.
 
 ---
 
-### Option [c]: Ejecutar Release completo (Bump de versión + Tags + Manifest + Push)
+## 4. Failure & Re-Run States
 
-> **Pre-merge gate (blocking — run before step 0).** This option merges
-> `dev → main` and cuts tags. Run the merge gate from `nn-dev-check-integrity`
-> (Group 1b) first: batch CI signal present and green, `origin/main` CI
-> `success` and stationary since the batch was verified. On ❌ STOP with the
-> named reason (fix-forward on `dev` for batch-caused red; maintainer-approved
-> exception with the failing run id for pre-existing red). Never skip it.
+If a release workflow run fails, inspect the failing stage below. Re-running the workflow on the same tag is the primary recovery path because all release operations are idempotent and additive:
 
-0. **Clean tree + release order (blocking preconditions)**:
-   - The merge gate (above) must have PASSED before anything in this option
-     runs — merging, tagging, and pinning are a **gate, not advice**.
-   - `generate-manifest.js` reads versions off the working-tree files, so a
-     dirty tree contaminates the pin (expediente 2026-09-08: an uncommitted
-     0.5.0 bump leaked into `source.yaml`). Before step 6, `git status
-     --porcelain` must show no modifications under `iNNfo/**/package.json`
-     (and ideally a fully clean tree); if dirty, commit or stash first.
-   - Release order **merge → tag → pin** is blocking: the stable channel only
-     accepts pins whose commits are reachable from `main` (the validator
-     rejects "diverged" tips). Tagging `dev`-only commits first leaves stable
-     red until the `dev`→`main` merge lands — so merge first (or tag commits
-     already on `main`), then pin. Do NOT tag until the merge has landed on
-     `main`.
-   - **Restore Point role**: When executing a release prior to major refactors
-     or high-impact changes, the created tag serves as an immutable cryptographic
-     restore point. See `nn-dev-development` Section 6 for rollback procedures.
+| Stage | Failure State | Recovery Action |
+|-------|---------------|-----------------|
+| **1. Parse & Decision Matrix** | No assets pushed; tag rejected (e.g. invalid key, non-increasing semver, or authored version mismatch). | Delete local/remote tag if incorrect, fix source files or version, merge to `main`, and re-tag. |
+| **2. Web Commit C (Additive Sync)** | Commit C failed to push to `cogNNitive-web`. No mirror tag created. | Re-run workflow for the tag (`gh run rerun <run-id>`). |
+| **3. Mirror Tag Creation** | Commit C pushed, but mirror tag failed to create. | Re-run workflow. Mirror tag creation is retried. |
+| **4. Manifest Assembly** | Commit C and mirror tag exist; manifest assembly failed. | Re-run workflow. Re-assembles manifest against published history. |
+| **5. Manifest Staging Validation** | Assembled manifest failed validation checks. | Release aborted before commit M. Check inventory rules and re-run. |
+| **6. Manifest Commit M** | Manifest commit failed to push to `cogNNitive-web`. | Re-run workflow. Retries pushing commit M and snapshot. |
+| **7. Post-Publish Smoke Test** | All assets, mirror tag, and manifest commit M are published, but live URL smoke test failed (e.g. CDN replication delay). | **DO NOT DELETE TAGS.** Published tags are immutable. Re-run the release workflow on the same tag (`gh run rerun <run-id>`) to re-verify live smoke tests once CDN propagates. |
 
-1. **Confirm Version Bump Scope**:
-   Prompt the developer to select which subsystem is releasing:
-   - `iNNfo Suite` (`v<A.B.C>` & `innfo-mcp-v<A.B.C>`)
-   - `Skills` (`skills-v<X.Y.Z>`)
-   - `Templates` (`templates-v<T.U.V>`)
-   - `Console` (`innfo-console-v<C.D.E>` — the published `innfo-console.bundle.js`
-     distributed through the manifest `console-assets` block)
+---
 
-2. **Synchronize & Bump Versions**:
-   - For `iNNfo Suite`:
-     - Update `version` to `<A.B.C>` in `iNNfo/packages/innfo-mcp/package.json` and `iNNfo/apps/innfo-editor/package.json`.
-     - Run `npm run sync:versions` to automatically propagate `<A.B.C>` into:
-       - `iNNfo/packages/innfo-core/package.json`
-       - `@cognnitive/innfo-core` dependency range in `innfo-mcp/package.json` (`^<A.B.C>`)
-       - `manifest/source.yaml` `skills[].mcp[].version`
-     - Rebuild bundles:
-       ```powershell
-       npm --prefix iNNfo/packages/innfo-core run build
-       npm --prefix iNNfo/packages/innfo-mcp run build:bundle
-       npm run build:docs
-       ```
-   - For `Skills`:
-     - Bump `version:` in targeted `skills/<skill>/SKILL.md`.
-     - Update channel release version in `manifest/source.yaml` under `channels.stable.refs` (`key: skills`, `version: "<X.Y.Z>"`).
-     - Run `npm run sync:versions` (synchronizes `skills[].version` in `source.yaml`).
-   - For `Templates`:
-     - Bump `template_version:` (or `spec_version:`) in targeted `iNNfo/specs/templates/<template>/spec_NN.md`.
-     - Update channel release version in `manifest/source.yaml` under `channels.stable.refs` (`key: templates`, `version: "<T.U.V>"`).
-     - Run `npm run sync:versions` (synchronizes `samples.ts`, `source.yaml` templates, and `catalog.json`).
-   - For `Console`:
-     - Bump `version:` in `manifest/source.yaml` `console_assets` (`innfo-console`).
-     - Rebuild the published bundle:
-       ```powershell
-       node scripts/build-console-bundle.mjs
-       ```
+## 5. Rollback & Disaster Recovery
 
-3. **Verify Version Synchronization**:
-   Run `npm run check:versions` to ensure all SSOT copies, catalog, and manifest are 100% in sync with zero drift.
-   - Note ADR-008: Bumping `SKILL.md` and running `sync:versions` touches `source.yaml`, which satisfies `checkTagPinFreshness` automatically. Always confirm that `channels.stable.refs` `version:` was explicitly updated before cutting the tag.
+### Manual Snapshot Rollback
 
-4. **Verify Local Parity & Commit** (precise staging only — never `git add -A`,
-   per `nn-dev-development` rule 6; a concurrent agent's files may be in the tree):
-    ```powershell
-    node scripts/manifest/check-parity.js
-    git add <only-the-intended-files>
-    git commit -m "chore(release): bump <subsystem> to <version>"
-    git push origin main
-    ```
-
-5. **Create & Push Git Tags**:
-
-   > **Stable tag shape (normative).** Every stable-channel ref MUST match
-   > `<subsystem>-v<x.y.z>` — the `-v` separator is mandatory
-   > (`innfo-console-v0.1.0`, `innfo-mcp-v0.5.0`, `skills-v2.1.0`,
-   > `templates-v0.1.0`). `validate-manifest.js` enforces this via
-   > `TAG_SHAPE_RE = ^[a-z][a-z0-9-]*-v\d+\.\d+\.\d+$`. A tag without `-v`
-   > (e.g. `innfo-console0.1.0`) will fail validation: **stop the release flow
-   > before tagging** and fix the tag name.
-
-   - For `iNNfo`:
-     ```powershell
-     git tag v<A.B.C>
-     git tag innfo-mcp-v<A.B.C>
-     git push origin v<A.B.C>
-     git push origin innfo-mcp-v<A.B.C>
-     ```
-   - For `Skills`:
-     ```powershell
-     git tag skills-v<X.Y.Z>
-     git push origin skills-v<X.Y.Z>
-     ```
-   - For `Templates`:
-     ```powershell
-     git tag templates-v<T.U.V>
-     git push origin templates-v<T.U.V>
-     ```
-   - For `Console`:
-     ```powershell
-     git tag innfo-console-v<C.D.E>
-     git push origin innfo-console-v<C.D.E>
-     ```
-
-6. **Regenerate & Validate Manifests**:
-   With GitHub authentication token active:
-   ```powershell
-   $env:GITHUB_TOKEN = (gh auth token).Trim()
-   node scripts/manifest/generate-manifest.js --channel stable
-   node scripts/manifest/generate-manifest.js --channel preview
-   node scripts/manifest/validate-manifest.js
+Every release saves an immutable snapshot of the stable manifest to `docs/use/manifests/<tag>.md` on `cogNNitive-web`. If an emergency rollback of the stable manifest is required:
+1. Clone `cogNNitive-web`.
+2. Copy the desired previous snapshot:
+   ```bash
+   cp docs/use/manifests/<previous-tag>.md docs/use/manifest.md
+   cp docs/use/manifests/<previous-tag>.md docs/update/manifest.md
    ```
-
-7. **Commit & Push Manifest**:
-   ```powershell
-   git add manifest/source.yaml docs/use/manifest.md docs/use/manifest-next.md
-   git commit -m "chore(manifest): pin stable manifest to latest release tags"
+3. Commit and push to `cogNNitive-web` `main`:
+   ```bash
+   git commit -m "revert(manifest): rollback stable manifest to <previous-tag>"
    git push origin main
    ```
 
----
+### Concurrency & Cancelled Runs
 
-### Safe merge technique: `git push origin dev:main` (supersedes the checkout-based dance)
-
-**Status: recommended technique.** Wherever this file (or `nn-dev-development`
-§4e) previously instructed `switch main → pull → merge --ff-only → push →
-switch dev`, use `git push origin dev:main` instead:
-
-```powershell
-git push origin dev:main
-```
-
-- It is a **server-side fast-forward push**: it never checks out `main`
-  locally, so it never requires a clean working tree.
-- The repo's tree is routinely dirty with a concurrent session's uncommitted,
-  unrelated paths (`concurrent-sessions-share-working-tree.md`); the
-  checkout-based dance's first step (`git switch main`) is unsafe or
-  outright blocked in that state. `dev:main` leaves those foreign paths
-  completely untouched because no checkout occurs.
-- The old `switch main → pull → merge --ff-only → push → switch dev` sequence
-  is **superseded** by this technique — do not present both as equally
-  valid.
-
-**Two constraints, both mandatory:**
-
-1. **Tag immediately after the `dev:main` push, before any further commit on
-   `dev`.** If `dev` has advanced since the push, tag the exact merged
-   commit explicitly instead of `dev`'s current tip:
-   `git tag <name> $(git rev-parse origin/main)`. Otherwise the tag lands on
-   a `dev`-only commit and `validate-manifest.js` rejects the diverged tip
-   (the same failure mode Option [c] step 0 already warns about, reached by
-   a new route).
-2. **`main` must be an ancestor of `dev`.** `git push origin dev:main` is a
-   fast-forward push; if a sibling agent advanced `main` independently, the
-   server rejects it non-destructively (no partial state, nothing to
-   recover). Recovery is `git fetch origin && git merge origin/main` **on
-   `dev`** — still no checkout of `main`.
-
-**Tag/pin compatibility.** Every other release step (version bumps, manifest
-regeneration, tagging, pinning) is unaffected and still runs from a `dev`
-checkout; the only step this technique changes is the `main` merge + push in
-step 4/7 of Option [c] above. No step in the release flow requires a real
-checkout of `main`.
-
-**Stated limitation.** If branch protection requiring PRs or status checks
-is ever enabled on `main`, `git push origin dev:main` will be rejected. Not
-enabled today (direct pushes to `main` are the documented flow), but recorded
-here so the failure is legible if it ever occurs.
-
-This technique introduces no new hook, script, or working-tree inspection —
-it is a documentation change only.
+The release workflow uses `concurrency: group: release, cancel-in-progress: false` to ensure releases do not clobber each other. If a pending release run is cancelled or failed due to GitHub Actions infrastructure, simply trigger a re-run on the tag via `gh run rerun <run-id>` or `workflow_dispatch`.
 
 ---
 
-### Option [d]: Validar publicación del Manifest
+## 6. Core Guidelines for Maintainers
 
-Run `node scripts/manifest/validate-manifest.js` with `$env:GITHUB_TOKEN = (gh auth token).Trim()` and report validation status for both `stable` and `preview` channels.
-
----
-
-## Core Guidelines for LLM Execution
-
-1. **Never guess git state:** Always run `git status -sb` before reporting or committing.
-2. **Deterministic Parity First:** Always run `node scripts/manifest/check-parity.js` before tagging or committing manifest changes to guarantee zero drift.
-3. **Always authenticate API calls:** Use `gh auth token` when running `generate-manifest.js` or `validate-manifest.js` to avoid GitHub HTTP 403 rate limits.
-4. **Main-CI-green is a Definition of Done:** Before tagging a release or merging `dev → main`, the merge target `main` MUST have a green CI run for the branch being merged (the merged result's CI is the final gate). If CI on `main` is red or has never run for the incoming changes, do not cut tags — fix the failure first.
-5. **Monorepo Scope:** Limit all operations to the cogNNitive repository root (`cogNNitive`).
+1. **Never edit `manifest/source.yaml` channels or versions by hand:** `manifest/source.yaml` contains static inventory declarations only.
+2. **Never push untagged release commits:** Releases are driven purely by git tags.
+3. **Always verify `main` CI before tagging:** Releases must only be cut from verified `main` commits.
+4. **Never delete published mirror tags:** Published mirror tags on `cogNNitive-web` are immutable restore points.

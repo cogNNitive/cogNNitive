@@ -10,14 +10,8 @@ const path = require('node:path');
 const { diffTrees } = require('./publish-diff.js');
 const { assertNoSource } = require('./publish-web-guard.js');
 const { buildGitAuthEnv, runGit, PublishError } = require('./publish-web-git.js');
-const { replaceSiteTree, copyDistributionPath } = require('./publish-web-tree.js');
-
-const DISTRIBUTION_PATHS = [
-  'skills',
-  'iNNfo/specs',
-  'iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js',
-  'scripts/export-console.mjs',
-];
+const { replaceSiteTree, copyDistributionPath, assertNoReleaseOwnedInArtifact } = require('./publish-web-tree.js');
+const { DISTRIBUTION_PATHS } = require('../release/release-keys.js');
 
 /**
  * Runs the public-web publishing workflow.
@@ -60,6 +54,7 @@ async function runPublish(config, options = {}) {
 
   // 1. Guard docsRoot BEFORE creating temp directories or touching network
   assertNoSource(repoRoot, [docsRoot]);
+  assertNoReleaseOwnedInArtifact(docsRoot);
 
   const work = fs.mkdtempSync(path.join(tmpRoot, 'publish-web-'));
   try {

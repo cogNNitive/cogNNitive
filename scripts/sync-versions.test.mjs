@@ -114,57 +114,7 @@ function fixtureTree() {
     'utf8'
   );
 
-  const manifestDir = path.join(root, 'manifest');
-  fs.mkdirSync(manifestDir, { recursive: true });
-  const sourceYamlPath = path.join(manifestDir, 'source.yaml');
-  fs.writeFileSync(
-    sourceYamlPath,
-    [
-      'skills:',
-      '  - name: nn-alpha',
-      '    path: skills/nn-alpha',
-      '    version: "V_0-0-0"',
-      '  - name: nn-innfo',
-      '    path: skills/nn-innfo',
-      '    version: "V_0-0-0"',
-      '    mcp:',
-      '      - name: innfo-mcp',
-      '        version: "0.0.0"',
-      '  - name: alpha',
-      '    path: skills/alpha',
-      '    version: "V_0-0-0"',
-      '',
-      'blueprints:',
-      '  - name: workspace',
-      '    repo: cogNNitive/cogNNitive',
-      '    path: iNNfo/specs/bluepriNNts/workspace_spec_NN.md',
-      '    version: "V_0-1-0"',
-      '    ref_key: blueprints',
-      '  - name: alpha',
-      '    repo: cogNNitive/cogNNitive',
-      '    path: iNNfo/specs/bluepriNNts/alpha/spec_NN.md',
-      '    version: "V_0-0-0"',
-      '    ref_key: blueprints',
-      '',
-      'frozen_blueprints:',
-      '  - name: beta',
-      '    repo: cogNNitive/cogNNitive',
-      '    path: iNNfo/specs/bluepriNNts/beta/spec_NN.md',
-      '    version: "V_0-0-0"',
-      '    ref_key: blueprints',
-      '',
-      'channels:',
-      '  stable:',
-      '    refs:',
-      '      - key: skills',
-      '        repo: cogNNitive/cogNNitive',
-      '        version: "2.1.0"',
-      '',
-    ].join('\n'),
-    'utf8'
-  );
-
-  return { root, blueprintsDir, skillsDir, samplesTsPath, sourceYamlPath, mcpPkgPath, corePkgPath };
+  return { root, blueprintsDir, skillsDir, samplesTsPath, mcpPkgPath, corePkgPath };
 }
 
 async function runTests() {
@@ -196,15 +146,14 @@ async function runTests() {
     fs.rmSync(root, { recursive: true, force: true });
   }
 
-  // Test 3: syncVersions writes template, skill, and MCP package versions
+  // Test 3: syncVersions writes template and MCP package versions
   {
-    const { root, samplesTsPath, sourceYamlPath, blueprintsDir, skillsDir, mcpPkgPath, corePkgPath } = fixtureTree();
+    const { root, samplesTsPath, blueprintsDir, skillsDir, mcpPkgPath, corePkgPath } = fixtureTree();
     const res = syncVersions({
       check: false,
       blueprintsDir,
       skillsDir,
       samplesTsPath,
-      sourceYamlPath,
       mcpPkgPath,
       corePkgPath,
     });
@@ -215,47 +164,30 @@ async function runTests() {
     assert.ok(samplesContent.includes("beta: 'V_0-3-2'"), 'beta version should be added to samples.ts');
     assert.ok(!/^\s*workspace:/m.test(samplesContent), 'workspace must remain omitted from SHIPPED_BLUEPRINT_VERSIONS');
 
-    const sourceContent = fs.readFileSync(sourceYamlPath, 'utf8');
-    // Skill versions
-    assert.ok(/name: nn-alpha[\s\S]*?version: "V_3-4-0"/.test(sourceContent), 'nn-alpha skill version updated');
-    assert.ok(/skills:[\s\S]*?name: alpha[\s\S]*?version: "V_7-7-7"/.test(sourceContent), 'skill alpha receives skill version V_7-7-7');
-    assert.ok(/name: innfo-mcp[\s\S]*?version: "9\.9\.9"/.test(sourceContent), 'nested innfo-mcp receives 9.9.9');
-
-    // Template versions
-    assert.ok(/blueprints:[\s\S]*?name: alpha[\s\S]*?version: "V_9-0-0"/.test(sourceContent), 'blueprint alpha receives spec_version V_9-0-0');
-    assert.ok(/workspace[\s\S]*?version: "V_9-0-0"/.test(sourceContent), 'workspace receives spec_version');
-    assert.ok(/beta[\s\S]*?version: "V_9-0-0"/.test(sourceContent), 'frozen_blueprints receives spec_version');
-
     // Core package version and dependency range
     const corePkg = JSON.parse(fs.readFileSync(corePkgPath, 'utf8'));
     assert.strictEqual(corePkg.version, '9.9.9', 'core package version must match mcp version');
     const mcpPkg = JSON.parse(fs.readFileSync(mcpPkgPath, 'utf8'));
     assert.strictEqual(mcpPkg.dependencies['@cognnitive/innfo-core'], '^9.9.9', 'mcp dep range must be ^9.9.9');
 
-    // Channels block untouched
-    assert.ok(/channels:[\s\S]*?version: "2\.1\.0"/.test(sourceContent), 'channels block must remain byte-identical');
-
-    console.log('✔ syncVersions writes skill, template, and MCP package targets');
+    console.log('✔ syncVersions writes template and MCP package targets');
     fs.rmSync(root, { recursive: true, force: true });
   }
 
   // Test 4: syncVersions is idempotent — running twice produces no diff
   {
-    const { root, samplesTsPath, sourceYamlPath, blueprintsDir, skillsDir, mcpPkgPath, corePkgPath } = fixtureTree();
-    syncVersions({ check: false, blueprintsDir, skillsDir, samplesTsPath, sourceYamlPath, mcpPkgPath, corePkgPath });
+    const { root, samplesTsPath, blueprintsDir, skillsDir, mcpPkgPath, corePkgPath } = fixtureTree();
+    syncVersions({ check: false, blueprintsDir, skillsDir, samplesTsPath, mcpPkgPath, corePkgPath });
     const firstSamples = fs.readFileSync(samplesTsPath, 'utf8');
-    const firstSource = fs.readFileSync(sourceYamlPath, 'utf8');
     const firstCore = fs.readFileSync(corePkgPath, 'utf8');
     const firstMcp = fs.readFileSync(mcpPkgPath, 'utf8');
 
-    syncVersions({ check: false, blueprintsDir, skillsDir, samplesTsPath, sourceYamlPath, mcpPkgPath, corePkgPath });
+    syncVersions({ check: false, blueprintsDir, skillsDir, samplesTsPath, mcpPkgPath, corePkgPath });
     const secondSamples = fs.readFileSync(samplesTsPath, 'utf8');
-    const secondSource = fs.readFileSync(sourceYamlPath, 'utf8');
     const secondCore = fs.readFileSync(corePkgPath, 'utf8');
     const secondMcp = fs.readFileSync(mcpPkgPath, 'utf8');
 
     assert.strictEqual(firstSamples, secondSamples, 'samples.ts must be identical on second run');
-    assert.strictEqual(firstSource, secondSource, 'source.yaml must be identical on second run');
     assert.strictEqual(firstCore, secondCore, 'core package.json must be identical on second run');
     assert.strictEqual(firstMcp, secondMcp, 'mcp package.json must be identical on second run');
     console.log('✔ syncVersions is idempotent');
@@ -264,16 +196,15 @@ async function runTests() {
 
   // Test 5: --check mode reports drift for all targets
   {
-    const { root, samplesTsPath, sourceYamlPath, blueprintsDir, skillsDir, mcpPkgPath, corePkgPath } = fixtureTree();
-    const res = syncVersions({ check: true, blueprintsDir, skillsDir, samplesTsPath, sourceYamlPath, mcpPkgPath, corePkgPath });
+    const { root, samplesTsPath, blueprintsDir, skillsDir, mcpPkgPath, corePkgPath } = fixtureTree();
+    const res = syncVersions({ check: true, blueprintsDir, skillsDir, samplesTsPath, mcpPkgPath, corePkgPath });
     assert.strictEqual(res.ok, false, 'Expected drift to be detected');
     const joined = res.errors.join('\n');
-    assert.ok(joined.includes('nn-alpha'), 'error must name drifted skill');
-    assert.ok(joined.includes('beta'), 'error must name drifted template');
+    assert.ok(joined.includes('SHIPPED_BLUEPRINT_VERSIONS'), 'error must name samples.ts');
     assert.ok(joined.includes('innfo-core package.json'), 'error must name core package drift');
     assert.ok(joined.includes('@cognnitive/innfo-core drift'), 'error must name dep range drift');
     assert.ok(joined.includes('sync:versions'), 'error must name fix command');
-    console.log('✔ --check mode reports skill, template, and package drift with fix command');
+    console.log('✔ --check mode reports template and package drift with fix command');
     fs.rmSync(root, { recursive: true, force: true });
   }
 
