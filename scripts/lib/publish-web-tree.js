@@ -58,11 +58,7 @@ function assertNoReleaseOwnedInArtifact(srcDir) {
   const files = collectFiles(srcDir);
   for (const file of files) {
     const norm = file.replace(/\\/g, '/').replace(/^\/+/, '');
-    if (
-      /^innfo\/cdn\/innfo-mcp-v\d+\.\d+\.\d+\.bundle\.js$/.test(norm) ||
-      norm === 'innfo/cdn/manifest.json' ||
-      /^use\/manifests\/[a-z0-9-.]+\.md$/.test(norm)
-    ) {
+    if (isReleaseOwnedPath(norm)) {
       throw new Error(
         `Main build artifact contains release-owned path "${file}". Release-owned paths must not be published by push-to-main CI.`
       );

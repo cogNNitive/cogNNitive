@@ -335,6 +335,9 @@ function normalizeOutput(text) {
 }
 
 async function renderManifest(source, channel, body, resolveRef, repoRoot = process.cwd()) {
+  if (channel !== 'preview') {
+    return { error: `Channel '${channel}' is not supported by generate-manifest; stable manifest is assembled by the release workflow` };
+  }
   const model = await buildRenderModel(source, channel, resolveRef, repoRoot);
   if (model.error) return { error: model.error };
   const rendered = normalizeOutput(`${renderFrontmatter(model, channel)}\n${body}`);
@@ -389,8 +392,8 @@ async function run(argv, options = {}) {
 
   const { channel, check, out } = parseArgs(argv);
 
-  if (!channel || !CHANNELS[channel]) {
-    logError("FAIL: --channel stable|preview is required");
+  if (!channel || channel !== 'preview') {
+    logError("FAIL: --channel preview is required (stable manifest is assembled by release workflow)");
     return 2;
   }
 
@@ -423,7 +426,7 @@ async function run(argv, options = {}) {
     return 2;
   }
 
-  const outPath = out ? path.resolve(cwd, out) : path.join(cwd, ...CHANNELS[channel].file.split('/'));
+  const outPath = out ? path.resolve(cwd, out) : path.join(cwd, 'docs', 'use', 'manifest-next.md');
 
   if (check) {
     if (!fs.existsSync(outPath)) {

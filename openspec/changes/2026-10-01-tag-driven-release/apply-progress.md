@@ -99,3 +99,20 @@ Status: tasks 3.1-3.10 done (10/10).
 - `node scripts/check-integrity.js`: ALL INTEGRITY GATES PASSED.
 - `node --test scripts/release/*.test.js`: 26/26 tests pass.
 
+## Batch 6 - PR 4 (Manifest leaves the repo; ~300 lines)
+
+Status: tasks 4.1-4.4 done (4/4).
+
+### Implemented Components
+1. `docs/use/manifest.md` untracked (`git rm --cached docs/use/manifest.md`); added `docs/use/manifest.md` and `docs/update/manifest.md` to `.gitignore`.
+2. `scripts/build-docs.mjs`: removed copying `docs/use/manifest.md` to `docs/update/manifest.md`; only `manifest-next.md` is staged into `docs/update/`.
+3. `scripts/lib/publish-web-tree.js` & `.test.js`: `assertNoReleaseOwnedInArtifact` upgraded to strictly verify via `isReleaseOwnedPath` that no release-owned files (`use/manifest.md`, `update/manifest.md`, snapshots, CDN bundles) are contained in push-to-main artifacts.
+4. `scripts/manifest/generate-manifest.js` & `.test.js`: restricted CLI and rendering to `--channel preview`; stable manifest is assembled purely by the release engine (`assemble-manifest.js`).
+
+### Verification
+- `node scripts/verify.js`: 92/92 steps pass offline.
+- `node scripts/check-integrity.js`: ALL INTEGRITY GATES PASSED.
+- `node scripts/lib/publish-web-tree.test.js`: all checks passed.
+- `node scripts/manifest/generate-manifest.test.js`: all 11 checks passed.
+
+

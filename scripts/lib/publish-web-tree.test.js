@@ -95,6 +95,18 @@ function testAssertNoReleaseOwnedInArtifact() {
     () => assertNoReleaseOwnedInArtifact(dirtySrc2),
     (err) => /release-owned/i.test(err.message)
   );
+
+  const dirtySrc3 = mkTree({ 'use/manifest.md': '# Stable Manifest' });
+  assert.throws(
+    () => assertNoReleaseOwnedInArtifact(dirtySrc3),
+    (err) => /release-owned/i.test(err.message)
+  );
+
+  const dirtySrc4 = mkTree({ 'update/manifest.md': '# Update Manifest' });
+  assert.throws(
+    () => assertNoReleaseOwnedInArtifact(dirtySrc4),
+    (err) => /release-owned/i.test(err.message)
+  );
   console.log('PASS: assertNoReleaseOwnedInArtifact rejects release-owned paths in build artifact');
 }
 

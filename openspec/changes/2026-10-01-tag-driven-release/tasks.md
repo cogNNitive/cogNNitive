@@ -63,10 +63,10 @@ Conventions: `[TEST]` = failing test first (RED), `[IMPL]` = make it pass (GREEN
 
 ## PR 4 - Manifest leaves the repo (~300 lines)
 
-- [ ] 4.1 [TEST] Test that `docs/use/manifest.md` is untracked and `build-docs.mjs` output omits stable manifest/CDN; main publish preserves web manifest. Ref: monorepo-release-manifest / Monorepo does not track the stable manifest; public-web-distribution / Build artifact containing a release-owned path.
-- [ ] 4.2 [IMPL] `git rm --cached docs/use/manifest.md`, add to `.gitignore`; `build-docs.mjs:141-154` remove stable copy (keep `manifest-next`).
-- [ ] 4.3 [IMPL] Enforce strict release-owned guard in `publish-web` (same PR as 4.2, required for green main).
-- [ ] 4.4 [IMPL] Remove stable path from `generate-manifest.js`; delete `verify.js` step 8 remnants.
+- [x] 4.1 [TEST] Test that `docs/use/manifest.md` is untracked and `build-docs.mjs` output omits stable manifest/CDN; main publish preserves web manifest. Ref: monorepo-release-manifest / Monorepo does not track the stable manifest; public-web-distribution / Build artifact containing a release-owned path.
+- [x] 4.2 [IMPL] `git rm --cached docs/use/manifest.md`, add to `.gitignore`; `build-docs.mjs:141-154` remove stable copy (keep `manifest-next`).
+- [x] 4.3 [IMPL] Enforce strict release-owned guard in `publish-web` (same PR as 4.2, required for green main).
+- [x] 4.4 [IMPL] Remove stable path from `generate-manifest.js`; delete `verify.js` step 8 remnants.
 - Verify: `node scripts/verify.js`, `node scripts/check-integrity.js`, then after merge confirm first main publish keeps the web manifest.
 
 ## PR 5 - Docs, specs, fallback URL, cleanup (AD-9, ~350 lines)

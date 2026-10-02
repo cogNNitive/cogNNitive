@@ -94,16 +94,11 @@ run('node scripts/generate-docs-facts.mjs', 'Generate docs-derived facts (MCP to
 // canonical HTML page.
 run('node scripts/generate-about-twin.mjs', 'Generate docs/innfo/about.md twin from about.html');
 
-// 3e. Stage distribution manifests into docs/update/
-console.log('\n▶ Staging distribution manifests into docs/update/...');
-const manifestSrc = path.join(docsRoot, 'use', 'manifest.md');
+// 3e. Stage distribution preview manifest into docs/update/
+console.log('\n▶ Staging distribution preview manifest into docs/update/...');
 const manifestNextSrc = path.join(docsRoot, 'use', 'manifest-next.md');
 const updateDir = path.join(docsRoot, 'update');
 fs.mkdirSync(updateDir, { recursive: true });
-if (fs.existsSync(manifestSrc)) {
-  fs.copyFileSync(manifestSrc, path.join(updateDir, 'manifest.md'));
-  console.log('✅ Staged docs/update/manifest.md');
-}
 if (fs.existsSync(manifestNextSrc)) {
   fs.copyFileSync(manifestNextSrc, path.join(updateDir, 'manifest-next.md'));
   console.log('✅ Staged docs/update/manifest-next.md');
