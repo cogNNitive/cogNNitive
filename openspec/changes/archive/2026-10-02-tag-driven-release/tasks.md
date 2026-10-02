@@ -85,8 +85,8 @@ Conventions: `[TEST]` = failing test first (RED), `[IMPL]` = make it pass (GREEN
 - [x] R.2 Merge PR 2; [MANUAL] run `restore-cdn.yml` once; confirm old `innfo-mcp-v*.bundle.js` URLs resolve.
 - [x] R.3 [MANUAL] Dry-run rehearsal via `release.yml` `workflow_dispatch` per key (4 runs); review decisions and staged manifest.
 - [x] R.4 Merge PR 3, then PR 4, then PR 5.
-- [ ] R.5 [MANUAL] Set `vars.RELEASE_ENABLED=true`.
-- [ ] R.6 [MANUAL] Canary releases in order: `innfo-console`, `blueprints`, `skills` (ships fallback fix), `innfo-mcp`. Each version > highest tag in both repos. Watch smoke test per key. Freeze ends after the first.
+- [x] R.5 [MANUAL] Set `vars.RELEASE_ENABLED=true`.
+- [x] R.6 [MANUAL] Canary releases in order: `innfo-console`, `blueprints`, `skills` (ships fallback fix), `innfo-mcp`. Each version > highest tag in both repos. Watch smoke test per key. Freeze ends after the first.
 
 ## Review Workload Forecast
 

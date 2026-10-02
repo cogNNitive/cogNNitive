@@ -132,5 +132,23 @@ Status: tasks 5.1-5.6 done (6/6).
 - `node scripts/check-integrity.js`: ALL INTEGRITY GATES PASSED.
 - `node scripts/check-spec-version.mjs --check-urls`: all spec URLs verified.
 
+## Batch 8 - Rollout completion (R.5-R.6) and archive
+
+Status: R.5 and R.6 done. Change archived.
+
+### Rollout evidence
+- R.5: `vars.RELEASE_ENABLED=true` (proven: tag-driven runs performed real writes to `cogNNitive-web` instead of the forced dry-run path).
+- R.6 canary (each version strictly greater than the highest tag in both repos):
+  - `innfo-console-v0.7.3` -> Tag-Driven Release run 36995191227 success.
+  - `blueprints-v0.19.4` -> run 36991916426 success.
+  - `skills-v2.11.0` -> runs 36999574864 and 36999575415 success (idempotent re-run); mirror tag `62a2bc30` on web; live `https://cognnitive.com/use/manifest.md` resolves `skills-v2.11.0`.
+  - `innfo-mcp-v0.13.1` -> run 36995191172 success.
+- Release freeze ended after the first canary release.
+
+### Archive
+- Delta specs were already merged into `openspec/specs/*` in task 5.4.
+- Change folder moved to `openspec/changes/archive/2026-10-02-tag-driven-release/`.
+- Note: `Run Post-Publish Smoke Test` is advisory (`continue-on-error`) per `fix(release): make post-publish smoke test advisory (non-blocking)`; it must not gate the release status.
+
 
 
