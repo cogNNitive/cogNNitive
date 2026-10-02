@@ -29,7 +29,6 @@ const consoleDir = join(import.meta.dirname!, '..', '..', '..', 'specs', 'bluepr
 
 type ConsoleApi = {
   boot: (doc: Document) => void
-  getDraftKey: (model: string, version: string) => string
 }
 
 const schemaFixture = { concepts: [{ name: 'Goal' }, { name: 'Metric' }] }
@@ -171,19 +170,26 @@ describe('innfo-console — export gate', () => {
   })
 
   it('emits a file named by the feedback contract once an identifier is entered', () => {
-    const api = bootConsole()
     localStorage.setItem(
-      api.getDraftKey('Acme', 'V_0-1-0'),
-      JSON.stringify([
-        {
-          id: 'fb-001',
-          kind: 'comment',
-          target: { element_id: 'goal-grow' },
-          comment: 'Clarify the owner field',
-          base_hash: '0123456789abcdef',
-        },
-      ]),
+      'innfo-console:v2:Acme',
+      JSON.stringify({
+        v: 2,
+        modelId: 'Acme',
+        drafts: [
+          {
+            id: 'fb-001',
+            element_id: 'goal-grow',
+            concept: 'Goal',
+            element: 'Grow',
+            comment: 'Clarify the owner field',
+            base_hash: '0123456789abcdef',
+            kind: 'comment',
+          },
+        ],
+        reviewed: {},
+      }),
     )
+    bootConsole()
 
     const openBtn = (document.getElementById('innfo-feedback-open') || document.getElementById('innfo-export-open'))!
     openBtn.dispatchEvent(new Event('click', { bubbles: true }))
@@ -198,14 +204,19 @@ describe('innfo-console — export gate', () => {
   })
 
   it('reports the pending draft count in the modal instructions', () => {
-    const api = bootConsole()
     localStorage.setItem(
-      api.getDraftKey('Acme', 'V_0-1-0'),
-      JSON.stringify([
-        { id: 'fb-001', kind: 'comment', target: { element_id: 'goal-grow' }, base_hash: '0123456789abcdef' },
-        { id: 'fb-002', kind: 'comment', target: { element_id: 'metric-churn' }, base_hash: '0123456789abcdef' },
-      ]),
+      'innfo-console:v2:Acme',
+      JSON.stringify({
+        v: 2,
+        modelId: 'Acme',
+        drafts: [
+          { id: 'fb-001', element_id: 'goal-grow', concept: 'Goal', element: 'Grow', kind: 'comment', base_hash: '0123456789abcdef' },
+          { id: 'fb-002', element_id: 'metric-churn', concept: 'Metric', element: 'Churn', kind: 'comment', base_hash: '0123456789abcdef' },
+        ],
+        reviewed: {},
+      }),
     )
+    bootConsole()
 
     const openBtn = (document.getElementById('innfo-feedback-open') || document.getElementById('innfo-export-open'))!
     openBtn.dispatchEvent(new Event('click', { bubbles: true }))

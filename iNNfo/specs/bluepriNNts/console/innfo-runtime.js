@@ -2,15 +2,16 @@
 /* global uPlot */
 ;(function (root, factory) {
   if (typeof module === 'object' && module.exports) {
-    module.exports = factory(require('./ui-kit.js'))
+    module.exports = factory(require('./ui-kit.js'), require('./review.js'))
   } else {
-    root.InnfoConsole = factory(root.InnfoUI)
+    root.InnfoConsole = factory(root.InnfoUI, root.InnfoReview)
   }
-})(typeof self !== 'undefined' ? self : this, function (UI) {
+})(typeof self !== 'undefined' ? self : this, function (UI, Review) {
   'use strict'
 
   // D5: the kit is a hard dependency; fail loudly rather than degrade silently.
   if (!UI) throw new Error('InnfoUI missing: load ui-kit.js first')
+  if (!Review) throw new Error('InnfoReview missing: load review.js first')
 
   var CONSOLE_VERSION = '0.1.0'
 
@@ -446,39 +447,8 @@
   var BASE_HASH_PATTERN = /^[0-9a-f]{16}$/
   var SOURCE_SHA256_PATTERN = /^[0-9a-f]{64}$/
 
-  function getDraftKey(model, version) {
-    return 'innfo-console:drafts:' + slugify(model) + ':' + slugify(version)
-  }
-
-  function draftToItem(draft, element) {
-    var d = isObject(draft) ? draft : {}
-    var id = typeof d.id === 'string' && ITEM_ID_PATTERN.test(d.id) ? d.id : null
-    var target = isObject(d.target) ? Object.assign({}, d.target) : {}
-    if (!target.element_id && (d.elementId || (element && element.id))) {
-      target.element_id = String(d.elementId || element.id)
-    }
-    if (!target.concept && (d.concept || (element && element.concept))) {
-      target.concept = String(d.concept || element.concept)
-    }
-    if (!target.element && (d.elementName || d.element || (element && element.name))) {
-      target.element = String(d.elementName || d.element || element.name)
-    }
-    if (!target.field && (d.field || (d.target && d.target.field))) {
-      target.field = String(d.field || d.target.field)
-    }
-    var item = {
-      id: id || 'fb-001',
-      kind: ITEM_KINDS.indexOf(d.kind) !== -1 ? d.kind : 'comment',
-      target: target,
-      comment: d.comment != null ? String(d.comment) : d.note != null ? String(d.note) : '',
-    }
-    if (d.original !== undefined) item.original = d.original
-    if (d.proposed !== undefined) item.proposed = d.proposed
-    var baseHash = d.base_hash || (element && element.hash)
-    if (typeof baseHash === 'string') {
-      item.base_hash = baseHash
-    }
-    return item
+  function draftToItem(draft) {
+    return Review.draftToItem(draft)
   }
 
   function buildExportDoc(args) {
@@ -596,104 +566,12 @@
   /* Browser console: banner, rail, search, cards, matrices, drafts, export modal.
      Runs only where document/localStorage exist; pure helpers above stay DOM-free. */
 
-  function readStore(key) {
-    try {
-      if (typeof localStorage === 'undefined') return []
-      var raw = localStorage.getItem(key)
-      if (!raw) return []
-      var parsed = JSON.parse(raw)
-      return Array.isArray(parsed) ? parsed : []
-    } catch {
-      return []
-    }
-  }
-
-  function writeStore(key, drafts) {
-    try {
-      if (typeof localStorage === 'undefined') return false
-      localStorage.setItem(key, JSON.stringify(drafts))
-      return true
-    } catch {
-      return false
-    }
-  }
-
   function el(tag, cls, text) {
     var node = typeof document !== 'undefined' ? document.createElement(tag) : null
     if (!node) return null
     if (cls) node.className = cls
     if (text != null) node.textContent = String(text)
     return node
-  }
-
-  function nextDraftId(drafts) {
-    var max = 0
-    drafts.forEach(function (d) {
-      var m = /^fb-(\d+)$/.exec(String((d && d.id) || ''))
-      if (m && Number(m[1]) > max) max = Number(m[1])
-    })
-    return 'fb-' + String(max + 1).padStart(3, '0')
-  }
-
-  function getDraftSummary(drafts) {
-    var list = Array.isArray(drafts) ? drafts : []
-    var summary = {
-      total: list.length,
-      corrections: 0,
-      comments: 0,
-    }
-    list.forEach(function (item) {
-      if (!isObject(item)) return
-      if (item.kind === 'correction') summary.corrections++
-      else if (item.kind === 'comment') summary.comments++
-      else if (item.kind === 'new' || item.kind === 'delete') summary.corrections++
-      else summary.comments++
-    })
-    return summary
-  }
-
-  function addDraft(keyOrDrafts, item) {
-    var isKey = typeof keyOrDrafts === 'string'
-    var drafts = isKey ? readStore(keyOrDrafts) : Array.isArray(keyOrDrafts) ? keyOrDrafts : []
-    var raw = isObject(item) ? item : {}
-    var id = raw.id || nextDraftId(drafts)
-    var elId = raw.elementId || (raw.target && raw.target.element_id) || ''
-    var concept = raw.concept || (raw.target && raw.target.concept) || ''
-    var kind = ITEM_KINDS.indexOf(raw.kind) !== -1 ? raw.kind : 'comment'
-    var note = raw.note != null ? String(raw.note) : raw.comment != null ? String(raw.comment) : ''
-
-    var newItem = {
-      id: id,
-      elementId: String(elId),
-      concept: String(concept),
-      kind: kind,
-      note: note,
-      target: {
-        element_id: String(elId),
-        concept: String(concept),
-        element: raw.elementName || raw.element || String(elId),
-      },
-      comment: note,
-    }
-    if (raw.field) newItem.field = String(raw.field)
-    if (raw.target && raw.target.field) newItem.target.field = String(raw.target.field)
-    var baseHash = raw.base_hash || raw.hash
-    if (typeof baseHash === 'string') {
-      newItem.base_hash = baseHash
-    }
-    drafts.push(newItem)
-    if (isKey) writeStore(keyOrDrafts, drafts)
-    return newItem
-  }
-
-  function removeDraftItem(keyOrDrafts, id) {
-    var isKey = typeof keyOrDrafts === 'string'
-    var drafts = isKey ? readStore(keyOrDrafts) : Array.isArray(keyOrDrafts) ? keyOrDrafts : []
-    var filtered = drafts.filter(function (d) {
-      return d && d.id !== id
-    })
-    if (isKey) writeStore(keyOrDrafts, filtered)
-    return filtered
   }
 
   function renderBanner(doc, meta, needs, draftCount, onReviewerChange, state) {
@@ -1902,7 +1780,7 @@
     var hasExplorer =
       (Array.isArray(model && model.elements) && model.elements.length > 0) || !!explorerPanel
 
-    var drafts = state ? readStore(state.draftKey) : []
+    var drafts = state && state.store ? state.store.drafts() : []
     var draftCount = drafts.length
 
     var tabs = []
@@ -1977,13 +1855,24 @@
     selectTab(activeTabId)
   }
 
+  function summarizeDrafts(drafts) {
+    var list = Array.isArray(drafts) ? drafts : []
+    var summary = { total: list.length, corrections: 0, comments: 0, pending: list.length }
+    list.forEach(function (item) {
+      if (!isObject(item)) return
+      if (item.kind === 'correction' || item.kind === 'new' || item.kind === 'delete') summary.corrections++
+      else summary.comments++
+    })
+    return summary
+  }
+
   function renderReviewTab(doc, state, config, onRefresh) {
     var host = doc && typeof doc.getElementById === 'function' ? doc.getElementById('innfo-tab-review') : null
     if (!host) return
     host.innerHTML = ''
 
-    var drafts = state ? readStore(state.draftKey) : []
-    var summary = getDraftSummary(drafts)
+    var drafts = state && state.store ? state.store.drafts() : []
+    var summary = summarizeDrafts(drafts)
 
     var root = el('div', 'innfo-review-tab-content')
     if (!root) return
@@ -2098,7 +1987,7 @@
               delBtn.setAttribute('title', 'Delete draft comment')
               delBtn.setAttribute('aria-label', 'Delete draft comment')
               delBtn.addEventListener('click', function () {
-                removeDraftItem(state.draftKey, item.id)
+                if (state && state.store) state.store.removeDraft(item.id)
                 if (typeof onRefresh === 'function') onRefresh()
               })
             }
@@ -2487,7 +2376,7 @@
 
   function downloadFeedbackExport(doc, state) {
     var reviewer = getReviewerName()
-    var drafts = state && state.draftKey ? readStore(state.draftKey) : []
+    var drafts = state && state.store ? state.store.drafts() : []
     var model = state && state.modelTitle ? state.modelTitle : 'Model'
     var version = state && state.modelVersion ? state.modelVersion : '1-0-0'
     var errorContainer = (doc && (doc.querySelector('#innfo-feedback-modal [data-innfo="errors"]') || doc.querySelector('[data-innfo="errors"]'))) || null
@@ -2565,7 +2454,7 @@
     var agentPrompt = modal.querySelector('[data-innfo="agent-prompt"]')
     var errorContainer = modal.querySelector('[data-innfo="errors"]')
     var downloadBtn = modal.querySelector('[data-innfo="download"]')
-    var drafts = state && state.draftKey ? readStore(state.draftKey) : []
+    var drafts = state && state.store ? state.store.drafts() : []
 
     if (errorContainer) {
       errorContainer.innerHTML = ''
@@ -2648,13 +2537,13 @@
       modelTitle: String(meta.title || meta.model || 'Model'),
       modelVersion: String(meta.modelVersion || meta.knowledge_version || 'V_0-0-0'),
       artifactName: String(meta.title || 'console') + '_console.html',
-      draftKey: getDraftKey(
-        String(meta.title || meta.model || 'model'),
-        String(meta.modelVersion || meta.knowledge_version || 'V_0-0-0'),
-      ),
       modelId: meta.modelId || meta.model || meta.title || 'model',
       sourceSha256: meta.sha256 || meta.source_sha256,
       meta: meta,
+      store: Review.createDraftStore(
+        typeof localStorage !== 'undefined' ? localStorage : null,
+        String(meta.modelId || meta.model || meta.title || 'model'),
+      ),
     }
 
     var counts = {}
@@ -2667,10 +2556,10 @@
 
     function refresh(query) {
       if (query !== undefined) activeSearchQuery = query
-      var currentDrafts = readStore(state.draftKey)
+      var currentDrafts = state.store.drafts()
       var draftCountsByConcept = {}
       currentDrafts.forEach(function (d) {
-        if (d && (d.status === 'pending' || !d.status)) {
+        if (d) {
           var c = d.concept || (d.target && d.target.concept)
           if (c) draftCountsByConcept[c] = (draftCountsByConcept[c] || 0) + 1
         }
@@ -2757,16 +2646,14 @@
     if (typeof prompt === 'undefined') return
     var comment = prompt('Suggest for ' + element.name + ' (empty cancels):', '')
     if (!comment || !String(comment).trim()) return
-    var drafts = readStore(state.draftKey)
-    addDraft(drafts, {
-      elementId: element.id,
+    state.store.addDraft({
+      element_id: element.id,
       concept: element.concept,
-      elementName: element.name,
+      element: element.name,
       base_hash: element.hash,
       kind: 'comment',
-      note: String(comment).trim(),
+      comment: String(comment).trim(),
     })
-    writeStore(state.draftKey, drafts)
     if (typeof refresh === 'function') refresh('')
   }
 
@@ -2805,12 +2692,6 @@
     stampFromDate: stampFromDate,
     getReviewerName: getReviewerName,
     setReviewerName: setReviewerName,
-    getDraftSummary: getDraftSummary,
-    getSummary: getDraftSummary,
-    addDraft: addDraft,
-    addComment: addDraft,
-    removeDraftItem: removeDraftItem,
-    removeComment: removeDraftItem,
     buildFeedbackFilename: buildFeedbackFilename,
     parseFeedbackFilename: parseFeedbackFilename,
     isValidExportedAt: isValidExportedAt,
@@ -2845,7 +2726,6 @@
     draftToItem: draftToItem,
     downloadFeedbackExport: downloadFeedbackExport,
     downloadExport: downloadExport,
-    getDraftKey: getDraftKey,
     buildExportDoc: buildExportDoc,
     boot: boot,
   }

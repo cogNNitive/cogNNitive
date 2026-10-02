@@ -21,8 +21,6 @@ const modelConsolePath = join(
 type ConsoleApi = {
   boot: (doc: Document) => any
   ensureFeedbackUi: (doc: Document, state?: any) => HTMLElement | null
-  getDraftKey: (model: string, version: string) => string
-  addDraft: (keyOrDrafts: string | any[], item: any) => any
   draftToItem: (draft: any, element?: any) => any
   buildExportDoc: (args: any) => any
   validateFeedback: (doc: any) => { ok: boolean; errors: string[] }
@@ -164,18 +162,22 @@ describe('console-feedback-ui (bundle-injected feedback UI contract)', () => {
     const api = loadRuntime()
     api.boot(document)
 
-    const draftKey = api.getDraftKey('GhostbustersModel', 'V_0-2-1')
-    api.addDraft(draftKey, {
-      elementId: 'threat-slimer',
+    const storeKey = 'innfo-console:v2:ghostbusters-model'
+    const existing = JSON.parse(localStorage.getItem(storeKey) || '{"v":2,"modelId":"ghostbusters-model","drafts":[],"reviewed":{}}')
+    existing.drafts.push({
+      id: 'fb-001',
+      element_id: 'threat-slimer',
       concept: 'ParanormalThreat',
-      elementName: 'Slimer',
+      element: 'Slimer',
       field: 'severity',
       base_hash: 'abcdef0123456789',
       kind: 'correction',
-      note: 'Change severity to Class VII',
+      comment: 'Change severity to Class VII',
+      created_at: '2026-10-02T12:00:00Z',
     })
+    localStorage.setItem(storeKey, JSON.stringify(existing))
 
-    const drafts = JSON.parse(localStorage.getItem(draftKey) || '[]')
+    const drafts = JSON.parse(localStorage.getItem(storeKey) || '{}').drafts
     expect(drafts).toHaveLength(1)
     expect(drafts[0].base_hash).toBe('abcdef0123456789')
     expect(drafts[0].field).toBe('severity')
@@ -216,15 +218,19 @@ describe('console-feedback-ui (bundle-injected feedback UI contract)', () => {
     const api = loadRuntime()
     api.boot(document)
 
-    const draftKey = api.getDraftKey('GhostbustersModel', 'V_0-2-1')
-    api.addDraft(draftKey, {
-      elementId: 'threat-slimer',
+    const storeKey = 'innfo-console:v2:ghostbusters-model'
+    const existing = JSON.parse(localStorage.getItem(storeKey) || '{"v":2,"modelId":"ghostbusters-model","drafts":[],"reviewed":{}}')
+    existing.drafts.push({
+      id: 'fb-001',
+      element_id: 'threat-slimer',
       concept: 'ParanormalThreat',
-      elementName: 'Slimer',
+      element: 'Slimer',
       base_hash: 'abcdef0123456789',
       kind: 'comment',
-      note: 'Needs check',
+      comment: 'Needs check',
+      created_at: '2026-10-02T12:00:00Z',
     })
+    localStorage.setItem(storeKey, JSON.stringify(existing))
 
     const createObjectURLSpy = vi.fn().mockReturnValue('blob:stub')
     globalThis.URL.createObjectURL = createObjectURLSpy

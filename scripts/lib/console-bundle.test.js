@@ -57,6 +57,7 @@ function main() {
       'uplot.iife.min.js',
       'visuals.js',
       'ui-kit.js',
+      'review.js',
       'innfo-runtime.js',
       'render-model-viewer.js',
       'render-procedure-stepper.js',

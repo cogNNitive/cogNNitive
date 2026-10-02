@@ -15,6 +15,7 @@ const SOURCES = [
   ['uplot.iife.min.js', 'uPlot'],
   ['visuals.js', 'InnfoVisuals'],
   ['ui-kit.js', 'InnfoUI'],
+  ['review.js', 'InnfoReview'],
   ['innfo-runtime.js', 'InnfoConsole'],
   ['render-model-viewer.js', 'InnfoModelViewer'],
   ['render-procedure-stepper.js', 'InnfoProcedureStepper'],

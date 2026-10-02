@@ -110,13 +110,12 @@ describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
     it('converts draft to conformant feedback item shape without status', () => {
       const draft = {
         id: 'fb-001',
-        elementId: 'threat-slimer',
+        element_id: 'threat-slimer',
         concept: 'ParanormalThreat',
-        elementName: 'Slimer',
+        element: 'Slimer',
         field: 'severity',
-        note: 'Change to Class VII',
+        comment: 'Change to Class VII',
         base_hash: 'abcdef0123456789',
-        status: 'pending', // must be stripped
       }
 
       const item = InnfoConsole.draftToItem(draft)
@@ -137,11 +136,11 @@ describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
     it('assembles export document that passes validateFeedback', () => {
       const draft = {
         id: 'fb-001',
-        elementId: 'threat-slimer',
+        element_id: 'threat-slimer',
         concept: 'ParanormalThreat',
-        elementName: 'Slimer',
+        element: 'Slimer',
         field: 'severity',
-        note: 'Change to Class VII',
+        comment: 'Change to Class VII',
         base_hash: 'abcdef0123456789',
       }
 
@@ -173,19 +172,23 @@ describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
 
   describe('Review Tab without Status Select', () => {
     it('renders Review Tab without any .innfo-review-status-select dropdown', () => {
+      const InnfoReview = require(
+        join(here, '..', 'iNNfo', 'specs', 'bluepriNNts', 'console', 'review.js'),
+      )
+      const store = InnfoReview.createDraftStore(window.localStorage, 'business-model')
       const state = {
         modelTitle: 'BusinessModel',
         modelVersion: 'V_1-2-0',
-        draftKey: 'test-review-tab-key',
+        store,
       }
 
-      InnfoConsole.addDraft(state.draftKey, {
-        elementId: 'ent-tier',
+      store.addDraft({
+        element_id: 'ent-tier',
         concept: 'RevenueStream',
-        elementName: 'Enterprise Tier',
+        element: 'Enterprise Tier',
         kind: 'correction',
         field: 'pricing',
-        note: 'Updated seat minimum to 50',
+        comment: 'Updated seat minimum to 50',
         base_hash: '0123456789abcdef',
       })
 
