@@ -152,7 +152,6 @@ size_bytes: 1048576
 normalized_at: "2026-08-02T13:30:00Z"
 normalized_by: "traNNsform V_2-0-0"
 staging_file: "sources/staging/interview_transcript.srt" # Optional link to intermediate buffer
-is_synthetic: false                                     # Set to true ONLY if produced by an internal deliverable
 
 # 2. Canonical Identity of THIS Document (Self BibTeX & PID)
 canonical:
@@ -222,7 +221,7 @@ When an existing source file is modified in `sources/import/` (or `sources/origi
    ```bash
    node scripts/index.js --check-impact --src "<project-dir>"
    ```
-   Inspects every Level 3 model in `kNNowledge/`, parses all `sources::` citations, and verifies that the cited file exists under `sources/nn/` AND that the exact `#heading-slug` anchor is present. Reports errors for drifted or missing anchors along with fuzzy suggestions for closest matching headings. Exits non-zero if drift errors are detected.
+   Inspects every Level 3 model in `kNNowledge/`, parses all `sources::` citations, and verifies that the cited file exists under `sources/nn/` AND that the cited anchor (`@## Heading` or `@RowID&col`) is present. Reports errors for drifted or missing anchors along with fuzzy suggestions for closest matching headings. Exits non-zero if drift errors are detected.
 
 #### 2a-3. External Watch Roots & Immutable Timestamped Sources (`--scan-external`)
 
