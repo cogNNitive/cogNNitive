@@ -62,6 +62,7 @@ async function runSmokeTest(config, options = {}) {
     return { status: 200, text: async () => text };
   });
   const validator = config.validator || (async (text) => (await validateManifestText(text, 'stable')).ok);
+  const usingDefaultValidator = !config.validator;
 
   const startTime = Date.now();
   let attempts = 0;
@@ -95,7 +96,21 @@ async function runSmokeTest(config, options = {}) {
   // Validate served manifest
   const isValid = await validator(servedText, 'stable');
   if (!isValid) {
-    throw new SmokeTestError(`Live manifest at ${manifestUrl} failed validation.`);
+    // Surface *why* validation failed. An opaque "failed validation" long hid a
+    // missing GITHUB_TOKEN (unauthenticated API calls => HTTP 403/429). Re-run
+    // the validator once, only on the default path, to capture the violations.
+    let detail = '';
+    if (usingDefaultValidator) {
+      try {
+        const { violations } = await validateManifestText(servedText, 'stable');
+        if (Array.isArray(violations) && violations.length) {
+          detail = `: ${violations.slice(0, 5).join('; ')}`;
+        }
+      } catch {
+        // diagnostic only; never mask the original failure
+      }
+    }
+    throw new SmokeTestError(`Live manifest at ${manifestUrl} failed validation${detail}.`);
   }
 
   // If innfo-mcp was released, check CDN bundle sha256
