@@ -414,6 +414,7 @@ function buildSteps(repoRoot, _options = {}) {
 
   // 12-15. Repository guards.
   steps.push(node('template-immutability', 'Template Immutability Guard', 'scripts/guard-template-immutability.js'));
+  steps.push(node('console-shells-fresh', 'Check Generated Console Shells Fresh', 'scripts/build-console-shells.mjs', '--check'));
   steps.push(node('text-encoding', 'Guard Tracked Text Encoding', 'scripts/guard-text-encoding.js'));
   steps.push(node('legacy-ledger', 'Legacy Ledger & Quarantine Guard', 'scripts/lib/legacy-ledger-guard.js'));
   steps.push(node('brand-purge', 'Retired Product Name Guard', 'scripts/lib/brand-purge-guard.js'));

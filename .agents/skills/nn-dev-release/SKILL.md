@@ -38,6 +38,32 @@ The monorepo defines four distinct release keys. Each release tag MUST match `<k
 | `innfo-mcp` | MCP server & tools bundle | `iNNfo/packages/innfo-mcp/package.json` | `mcp` bundle |
 | `innfo-console` | Interactive blueprint console | `iNNfo/specs/bluepriNNts/console/package.json` | `console_assets` |
 
+### Regenerating derived artifacts on a bump
+
+A version bump is not just a `package.json` edit — it ripples into committed derived
+artifacts. Regenerate them in the **same** commit, or the guards redden:
+
+```powershell
+# innfo-mcp bump: innfo-core version + dep range (sync-versions) + both bundles (tsup inlines the version)
+npm run sync:versions
+npm --workspace=@cognnitive/innfo-mcp run build
+npm --workspace=@cognnitive/innfo-mcp run build:bundle
+
+# innfo-console bump: the bundle banner + the CDN pin in generated console shells
+node scripts/build-console-bundle.mjs        # banner derived from console/package.json
+node scripts/build-console-shells.mjs        # rewrites the @innfo-console-v* pin in marked shells
+```
+
+The console shells carry an `<!-- nn:console-shell:start/end -->` marker; the pin inside
+them is generated from `console/package.json` and `node scripts/build-console-shells.mjs
+--check` (a `verify.js` step) fails a stale one. Never hand-edit the pin.
+
+> ⚠️ Do **not** commit a `skills/nn-trannsform/scripts/lib/innfo-core.generated.cjs`
+> regen authored from a worktree: esbuild resolves the `node_modules` junction's real
+> path and emits non-canonical `../cogNNitive/node_modules/...` comments. CI (`npm ci`)
+> resolves the canonical path. Leave that file alone unless you regenerate it from a
+> non-worktree checkout.
+
 ---
 
 ## 2. Release Procedure ("Tag, Push, Watch")
@@ -162,6 +188,7 @@ If a release workflow run fails, inspect the failing stage below. Re-running on 
 | Workflow concludes without publishing anything | `vars.RELEASE_ENABLED` is not `'true'` → silent dry run | set the repo variable to `true`, then re-tag |
 | `Authored version mismatch` | tag `<semver>` ≠ the key's `package.json` `version` | bump the package in the same batch, then tag |
 | `Version below existing tag` | semver ≤ an existing tag for the key | cut a higher version — tags are immutable |
+| `Generated Console Shells Fresh` check fails | a console bump didn't regenerate the shells | `node scripts/build-console-shells.mjs`, commit the 4 shells |
 
 ---
 

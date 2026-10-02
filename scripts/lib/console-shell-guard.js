@@ -11,6 +11,9 @@
  * 4. Required DOM anchors are present for declared capabilities.
  * 5. Script tag pins match manifest/source.yaml innfo-console version without floating refs.
  * 6. Dead `runtime` key rejected in `innfo-config`.
+ * 7. Generated shells (marked `nn:console-shell`) carry the CURRENT console pin — a
+ *    release bump must regenerate them, else they drift. Authored shells (no marker)
+ *    are pinned but not force-regenerated.
  */
 
 const fs = require('node:fs');
@@ -135,6 +138,16 @@ function discoverConsoleShells(repoRoot) {
 }
 
 /**
+ * A generated console shell carries the `nn:console-shell` provenance marker
+ * (written by scripts/build-console-shells.mjs). Authored shells do not.
+ * @param {string} content
+ * @returns {boolean}
+ */
+function isGeneratedShell(content) {
+  return /nn:console-shell/.test(content);
+}
+
+/**
  * Parses expected console version from console package.json.
  * @param {string} repoRoot
  * @returns {string} e.g. "0.6.0"
@@ -179,6 +192,14 @@ function checkConsoleShellIntegrity(repoRoot, options = {}) {
   const expectedVersion = options.expectedVersion || getExpectedConsoleVersion(repoRoot);
   const expectedTagPin = `@innfo-console-v${expectedVersion}`;
   const shells = discoverConsoleShells(repoRoot);
+
+  // Generated shells (marked `nn:console-shell`) get a freshness check in addition to
+  // the pin match below; authored shells only get the pin match.
+  const generatedPins = [];
+  for (const shellPath of shells) {
+    const content = fs.readFileSync(path.join(repoRoot, shellPath), 'utf8');
+    if (isGeneratedShell(content)) generatedPins.push({ shellPath, content });
+  }
 
   for (const shellPath of shells) {
     const fullPath = path.join(repoRoot, shellPath);
@@ -246,6 +267,26 @@ function checkConsoleShellIntegrity(repoRoot, options = {}) {
 
     if (!foundCdnScript) {
       errors.push(`Shell ${shellPath} does not load the innfo-console bundle via CDN script tag`);
+    }
+  }
+
+  if (generatedPins.length > 0) {
+    const { getGeneratedPin } = require('./console-shell-sync.js');
+    const canonicalPin = generatedPins[0] ? getGeneratedPin(generatedPins[0].content) : null;
+    if (!canonicalPin) {
+      errors.push(
+        'Generated console shell(s) carry no "#nn:console-shell pin=..." marker; ' +
+          'regenerate with `node scripts/build-console-shells.mjs`.',
+      );
+    } else {
+      const drifted = generatedPins.filter((s) => getGeneratedPin(s.content) !== canonicalPin);
+      if (drifted.length > 0) {
+        errors.push(
+          `Generated console shells disagree on the CDN pin (${canonicalPin} vs ` +
+            `${getGeneratedPin(drifted[0].content)}); regenerate with ` +
+            '`node scripts/build-console-shells.mjs`.',
+        );
+      }
     }
   }
 
