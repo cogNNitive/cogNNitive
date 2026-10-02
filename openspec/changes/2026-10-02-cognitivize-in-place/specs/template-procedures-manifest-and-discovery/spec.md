@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Procedure files follow `<verb>_<noun>_procedures_NN.md`. Procedures of frozen bluepriNNts keep their names under the carve-out, so discovery must derive ids from both forms.
+The 15 non-frozen procedure files follow `<verb>_<noun>_procedures_NN.md`. The 9 procedures in the frozen `iNNfo/specs/bluepriNNts/workspace/procedures/` keep their names under the carve-out, so discovery must derive ids from both forms.
 
 ## MODIFIED Requirements
 
@@ -17,11 +17,16 @@ Procedure files follow `<verb>_<noun>_procedures_NN.md`. Procedures of frozen bl
 - THEN it returns id `generate-video-script` with path `procedures/generate_video_script_procedures_NN.md`
 
 #### Scenario: Frozen procedure name
-- GIVEN the frozen `workspace` package with `procedures/compile_workspace_hub_NN.md`
+- GIVEN the frozen `workspace` package with `iNNfo/specs/bluepriNNts/workspace/procedures/compile_workspace_hub_NN.md`
 - WHEN `list_template_procedures` runs
 - THEN it returns id `compile-workspace-hub`
 
 #### Scenario: `procedure_model::` paths match files
-- GIVEN every non-frozen bluepriNNt procedure file
+- GIVEN every one of the 15 non-frozen bluepriNNt procedure files
 - WHEN `procedure_model::` references in bluepriNNts are checked
 - THEN each resolves to an existing file name
+
+#### Scenario: Frozen folder is not renamed
+- GIVEN the 9 files under `iNNfo/specs/bluepriNNts/workspace/procedures/`
+- WHEN the invariant check and the rename rewriter run
+- THEN none is reported as a violation and none is renamed

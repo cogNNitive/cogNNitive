@@ -65,7 +65,7 @@ The system MUST NOT read, write, or infer lineage from the `export-meta` convent
 
 ### Requirement: Node role derives from the naming contract
 
-A file's role MUST be derived by the `nn-naming-contract` role function from its name, its `parent_spec`, and whether a co-located sidecar exists. Folders are write destinations only. A file with a sidecar is a Source; a `knowledge` document is kNNowledge; any other non-`_NN.md` file is an artifact. Role MUST NOT be read from a stored `type` or `is_synthetic` value.
+A file's role MUST be derived by the `nn-naming-contract` role function from its name, its `parent_spec`, and whether a co-located sidecar exists. Folders are write destinations only. A file with a sidecar is a Source; a `knowledge` document is kNNowledge; any other non-`_NN.md` file has role `artifact`, and it is a lineage artifact node only if it is a timestamped family member or declares upstream `sources` (a hand-written markdown file with neither is not projected into the lineage record). Role MUST NOT be read from a stored `type` or `is_synthetic` value.
 (Previously: role derived from folder (`sources/`, `kNNowledge/`, `export/`); an artifact reused as input was promoted by copying into `sources/export/`.)
 
 #### Scenario: Artifact reused as input is cognitivized in place
@@ -73,6 +73,11 @@ A file's role MUST be derived by the `nn-naming-contract` role function from its
 - WHEN it is cognitivized
 - THEN it becomes a Source without moving
 - AND its own `sources:` frontmatter remains the single upstream edge for the derivation
+
+#### Scenario: Loose markdown without upstream is not projected
+- GIVEN `artifacts/notes.md`, unsuffixed, without a sidecar and without `sources`
+- WHEN the projection runs
+- THEN it is not a lineage node
 
 #### Scenario: No stored role
 - GIVEN any artifact or sidecar

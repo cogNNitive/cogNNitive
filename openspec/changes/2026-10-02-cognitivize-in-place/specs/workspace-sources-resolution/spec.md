@@ -31,8 +31,8 @@ When validating a citation in a document inside a nested workspace, the resolver
 
 ### Requirement: Enriched KU_DANGLING_FILE Diagnostics
 
-When a cited file cannot be resolved, the diagnostic MUST distinguish a missing parent directory from a missing file within an existing directory. When the parent exists, the diagnostic SHOULD include a fuzzy "did you mean" suggestion drawn from that directory, excluding sidecar files. When the path begins with a removed prefix (`sources/nn/`, `sources/original/`, `sources/export/`, `sources/archive/`, `export/`, `models/`) the diagnostic MUST say the prefix was removed.
-(Previously: suggestions drawn from `sources/nn/`; no removed-prefix message.)
+When a cited file cannot be resolved, the diagnostic MUST distinguish a missing parent directory from a missing file within an existing directory. When the parent exists, the diagnostic SHOULD include a fuzzy "did you mean" suggestion drawn from that directory, excluding sidecar files. A path under a retired folder (`sources/nn/`, `sources/original/`, `sources/export/`, `export/`, `models/`) is reported like any other missing path, with no dedicated removed-prefix message; the legacy layout detector explains the retirement. A citation into an existing `sources/archive/` file resolves as a plain path.
+(Previously: suggestions drawn from `sources/nn/`.)
 
 #### Scenario: Missing parent directory
 - GIVEN a citation `sources/import/missing_folder/report.md@## Summary` and no `sources/import/missing_folder`
@@ -44,7 +44,12 @@ When a cited file cannot be resolved, the diagnostic MUST distinguish a missing 
 - WHEN validation runs
 - THEN the diagnostic suggests `annual_reports.md`
 
-#### Scenario: Removed prefix
-- GIVEN a citation `sources/nn/report.md@## Intro`
+#### Scenario: Retired prefix is just missing
+- GIVEN a citation `sources/nn/report.md@## Intro` and no `sources/nn/` directory
 - WHEN validation runs
-- THEN an error states that `sources/nn/` was removed
+- THEN a `KU_DANGLING_FILE` error states that the parent directory does not exist, with no removed-prefix message
+
+#### Scenario: Archive snapshot resolves
+- GIVEN an existing `sources/archive/metrics/V1/metrics.md` with `## Totals`
+- WHEN a citation `sources/archive/metrics/V1/metrics.md@## Totals` is validated
+- THEN no diagnostic is emitted

@@ -10,7 +10,7 @@ The sidecar moves next to its raw file and gets a contract name. It carries orig
 
 ### Requirement: Every citable Source has a normalized sidecar
 
-For every raw file that can be cited (any file that has been cognitivized, including curated CSVs), a co-located `<file>.<ext>_sidecar_NN.md` MUST exist whose frontmatter records non-null `source_file`, `sha256`, `size_bytes`, and `normalized_at`. A Source MUST NOT be registered with null origin metadata. The sidecar's body MUST be present only for binary sources.
+For every raw file that can be cited (any file that has been cognitivized, including curated CSVs), a co-located `<file>.<ext>_sidecar_NN.md` MUST exist whose frontmatter records non-null `source_file`, `sha256`, `size_bytes`, and `normalized_at`. A Source MUST NOT be registered with null origin metadata. The sidecar's body MUST be present only for binary sources. The projection MUST check that `source_file` equals the subject path derived from the sidecar's name and MUST report `SIDECAR_SUBJECT_MISMATCH` otherwise.
 (Previously: the sidecar was a normalized `.md` under `sources/nn/` mirroring the raw path.)
 
 #### Scenario: Curated CSV receives a sidecar
@@ -18,6 +18,11 @@ For every raw file that can be cited (any file that has been cognitivized, inclu
 - WHEN the lineage is built
 - THEN `artifacts/prices_20261002T101500Z.csv_sidecar_NN.md` exists with all four fields non-null
 - AND the Source row in the lineage record shows the same `sha256`
+
+#### Scenario: Subject mismatch is reported
+- GIVEN `sources/import/a.csv_sidecar_NN.md` whose `source_file` is `sources/import/b.csv`
+- WHEN the projection runs
+- THEN `SIDECAR_SUBJECT_MISMATCH` is reported
 
 #### Scenario: Sidecar sha256 matches raw file
 - GIVEN a Source with a sidecar

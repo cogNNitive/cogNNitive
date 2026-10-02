@@ -8,7 +8,7 @@ Sample workspaces follow the new layout and naming. Content covered by the froze
 
 ### Requirement: Canonical Workspace Manifests
 
-Each non-frozen sample workspace MUST contain a valid `workspace_NN.md` manifest declaring `level`, `parent_spec`, `model_version`, and `title`, an `# NN index` block, and sections `# NN Workspace`, `# NN Specs`, `# NN Templates`, `# NN Models`, `# NN Sources`, `# NN Procedures`, and `# NN Artifacts`. `# NN Models` MUST list only models per the contract predicate and MUST NOT list sidecars.
+Each non-frozen sample workspace MUST contain a valid `workspace_NN.md` manifest declaring `level`, `parent_spec`, `knowledge_version`, and `title`, an `# NN index` block, and sections `# NN Workspace`, `# NN Specs`, `# NN Templates`, `# NN Models`, `# NN Sources`, `# NN Procedures`, and `# NN Artifacts`. `# NN Models` MUST list only models per the contract predicate and MUST NOT list sidecars.
 (Previously: did not exclude sidecars.)
 
 #### Scenario: Inspecting a sample manifest

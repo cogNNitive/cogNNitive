@@ -58,7 +58,7 @@ New bluepriNNt checklist: `bluepriNNts/<name>/spec_NN.md` (`guard-template-immut
 Hazards: a `source` bluepriNNt would differ from the existing `sources` (Sources Catalog) by one letter; `NON_KNOWLEDGE_SPEC_RE` would not match it, so L3 sidecars leak into `## NN Models`, `list_knowledge`, and `export-console` targets; no structural ignore of `sources/`.
 
 ## 4. Release and compat risks
-- Frozen content vs "no compat": `docs/innfo/samples/lifecycle-ghostbusters/workspace`, `docs/cognitive_nn/use-cases/*`, published `_V_` specs, frozen bluepriNNts `cogNNitive`/`base`/`workspace` (`manifest/source.yaml:159-174`). Tests `use-cases-workspaces.test.ts`, `workspace-v4-sources.test.ts`, `source-citations.test.ts` read them. Needs an explicit carve-out.
+- Frozen content vs "no compat": `docs/innfo/samples/lifecycle-ghostbusters/workspace`, `docs/cognitive_nn/use-cases/*`, published `_V_` specs, frozen bluepriNNts `cogNNitive`/`base`/`workspace` (`manifest/source.yaml:128-140`, `frozen_blueprints`). Tests `use-cases-workspaces.test.ts`, `workspace-v4-sources.test.ts`, `source-citations.test.ts` read them. Needs an explicit carve-out.
 - bluepriNNt bumps and procedure/sample renames change `templates-v*` bytes; merging to `main` without tag + repin reddens `verify --release`.
 - `skills-v*` and innfo-mcp release (new tool, new CDN bundle).
 - Regenerate per slice: `innfo-core.generated.cjs`, `console-payload.generated.cjs`, `innfo-mcp.bundle.js`, `canonical-registry.ts`, `catalog.json`, `samples.ts`, console bundle.

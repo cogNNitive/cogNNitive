@@ -8,7 +8,7 @@ Sidecars are `_NN.md` documents, so they conform to a bluepriNNt. The Level 2 bl
 
 ### Requirement: The `sidecar` bluepriNNt exists and is registered
 
-`iNNfo/specs/bluepriNNts/sidecar/spec_NN.md` MUST exist as a Level 2 bluepriNNt defining the sidecar fields (`source_file`, `sha256`, `size_bytes`, `normalized_at`, optional metadata) and the optional normalized body. It MUST be registered in `manifest/source.yaml`, `canonical-registry.ts` (with the generator `MAP` entry), `blueprint-catalog.mjs`, and `sync-versions`. Its `template_version` MUST be registered where `SHIPPED_TEMPLATE_VERSIONS` is derived.
+`iNNfo/specs/bluepriNNts/sidecar/spec_NN.md` MUST exist as a Level 2 bluepriNNt defining the sidecar fields (`level: 3`, `parent_spec`, `source_file`, `sha256`, `size_bytes`, `source_format`, `normalized_at`, optional `normalized_by`, optional `sources`, and optional normalizer metadata) and the optional normalized body. It MUST be registered in `manifest/source.yaml`, `canonical-registry.ts` (with the generator `MAP` entry), `blueprint-catalog.mjs`, and `sync-versions`. Its `template_version` MUST be registered where `SHIPPED_TEMPLATE_VERSIONS` is derived.
 
 #### Scenario: Inventory guard passes
 - GIVEN the new bluepriNNt folder

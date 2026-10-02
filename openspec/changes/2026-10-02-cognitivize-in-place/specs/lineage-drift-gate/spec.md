@@ -41,7 +41,7 @@ The gate MUST NOT compare the `# NN Procedures` journal, hand-authored blocks (i
 
 ### Requirement: Three run sites
 
-The gate MUST run in (1) `nn-trannsform --lineage --check`, (2) `scripts/verify.js` over every non-frozen workspace it validates, and (3) the innfo-mcp `check_workspace` tool. A failure MUST yield a non-zero exit in (1) and (2) and an error-severity diagnostic in (3).
+The gate MUST run in (1) `nn-trannsform --lineage --check`, (2) `scripts/verify.js` (step `lineage-drift`, backed by `scripts/lib/lineage-drift-guard.js`) over one committed test-fixture domaiNN under the innfo-core tests fixtures only, and never over `_samples_nn` or shipped template bytes, and (3) the innfo-mcp `check_workspace` tool. A failure MUST yield a non-zero exit in (1) and (2) and an error-severity diagnostic with code `LINEAGE_DRIFT` in (3). All three MUST call the one core comparator (`checkLineageDrift`), which reads the managed-section definitions from core (`lineage/record.ts`) so the CLI generator and the gate share one definition of "managed".
 
 #### Scenario: CLI fails
 - GIVEN a drifted record
@@ -49,14 +49,19 @@ The gate MUST run in (1) `nn-trannsform --lineage --check`, (2) `scripts/verify.
 - THEN the exit code is non-zero
 
 #### Scenario: verify fails
-- GIVEN a drifted record in a validated workspace
+- GIVEN the committed fixture domaiNN with a hand-edited managed section
 - WHEN `node scripts/verify.js` runs
-- THEN it exits non-zero naming the workspace
+- THEN it exits non-zero naming the fixture
+
+#### Scenario: verify does not scan shipped content
+- GIVEN `_samples_nn/` and the shipped template bytes, which carry no lineage record
+- WHEN `node scripts/verify.js` runs
+- THEN the drift step does not read them and no record is added to them
 
 #### Scenario: MCP reports
 - GIVEN a drifted record
 - WHEN `check_workspace` runs
-- THEN the response includes an error diagnostic for the record and the section
+- THEN the response includes an error diagnostic `LINEAGE_DRIFT` for the record and the section
 
 #### Scenario: All three agree on the clean case
 - GIVEN an in-sync record
@@ -65,7 +70,7 @@ The gate MUST run in (1) `nn-trannsform --lineage --check`, (2) `scripts/verify.
 
 ### Requirement: The gate is read-only and tolerates absence
 
-The gate MUST NOT modify any file; regeneration remains the job of `--lineage`. A workspace with no lineage record MUST NOT fail the gate; it MUST report that no record exists.
+The gate MUST NOT modify any file; regeneration remains the job of `--lineage`. A workspace with no lineage record MUST NOT fail the gate; it MUST report that no record exists. The record is found by role (`lineage-record`); a domaiNN has at most one.
 
 #### Scenario: No writes
 - GIVEN a drifted record

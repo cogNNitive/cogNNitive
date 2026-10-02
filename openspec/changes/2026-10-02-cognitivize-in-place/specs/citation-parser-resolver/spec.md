@@ -9,19 +9,19 @@ One parser and one filesystem resolver gain JSON Pointer as a third unit kind an
 ## RENAMED Requirements
 
 - FROM: `### Requirement: `kNNowledge/` is the only model path prefix`
-- TO: `### Requirement: Citation paths are workspace-relative and retired prefixes are rejected`
+- TO: `### Requirement: Citation paths are workspace-relative with no implicit prefix`
 
 ## MODIFIED Requirements
 
 ### Requirement: innfo-core exports one `parseCitation`
 
-innfo-core MUST export a single `parseCitation(value)` returning a structured citation (`path`, optional `unit` with `kind`, `anchor`, and optional `subunit`) for the canonical `@` grammar: markdown heading anchors, CSV `RowID&column`, and JSON Pointer. It MUST be the only consumer-facing parser; no consumer outside innfo-core MAY implement citation parsing.
+innfo-core MUST export a single `parseCitation(value)` returning a structured citation (`path` and an optional `unit` whose `kind` is `header`, `row`, or `pointer`; a CSV `row` may carry a `subunit`) for the canonical `@` grammar: markdown heading anchors, CSV `RowID&column`, and JSON Pointer. It MUST be the only consumer-facing parser and serializer; no consumer outside innfo-core MAY implement citation parsing or serialization.
 (Previously: heading and CSV only.)
 
 #### Scenario: Markdown heading citation
 - GIVEN `sources/import/interview.md@## Clients`
 - WHEN `parseCitation` runs
-- THEN it returns path `sources/import/interview.md` and a heading unit `Clients`
+- THEN it returns path `sources/import/interview.md` and a `header` unit `Clients`
 
 #### Scenario: CSV citation
 - GIVEN `sources/import/prices.csv@R12&price`
@@ -31,7 +31,7 @@ innfo-core MUST export a single `parseCitation(value)` returning a structured ci
 #### Scenario: JSON Pointer citation
 - GIVEN `sources/import/data.json@/items/0/name`
 - WHEN `parseCitation` runs
-- THEN it returns a `json-pointer` unit with anchor `/items/0/name`
+- THEN it returns a `pointer` unit with `pointer` `/items/0/name`
 
 #### Scenario: Bare path is a file-level citation
 - GIVEN `kNNowledge/Client_business_NN.md`
@@ -45,7 +45,7 @@ innfo-core MUST export a single `parseCitation(value)` returning a structured ci
 
 ### Requirement: One filesystem source resolver
 
-innfo-core MUST provide exactly one filesystem source resolver (`createFsSourceResolver`). innfo-mcp `validate` and `resolve_sources` MUST use it. The resolver MUST dispatch on `unit.kind` exhaustively (heading, CSV row, JSON Pointer) and MUST resolve against the cited file as written; it MUST NOT redirect a citation to a different member of a family. The `resolve_sources` output shape MUST be unchanged except for the added `json-pointer` kind.
+innfo-core MUST provide exactly one filesystem source resolver (`createFsSourceResolver`). innfo-mcp `validate` and `resolve_sources` MUST use it. The resolver MUST dispatch on `unit.kind` exhaustively (`header`, `row`, `pointer`; an `assertNever` default) and MUST resolve against the cited file as written; it MUST NOT redirect a citation to a different member of a family. The `resolve_sources` output shape MUST be unchanged except for the added `pointer` kind; the reported `kind` of a target is `model` if and only if its role is `knowledge`.
 (Previously: heading and CSV only.)
 
 #### Scenario: MCP uses the core resolver
@@ -63,9 +63,9 @@ innfo-core MUST provide exactly one filesystem source resolver (`createFsSourceR
 - WHEN the resolver runs
 - THEN it resolves in the older member's bytes
 
-### Requirement: Citation paths are workspace-relative and retired prefixes are rejected
+### Requirement: Citation paths are workspace-relative with no implicit prefix
 
-`resolveUnitPath` MUST treat the citation path as workspace-relative with no default prefix. It MUST reject `sources/nn/`, `sources/original/`, `sources/export/`, `sources/archive/`, `export/`, `models/`, and `staging/`. The validator MUST report a dedicated `KU_MALFORMED` message for each rejected prefix stating it was removed (or, for `staging/`, that scratch files are not citable).
+`resolveUnitPath` MUST accept any domaiNN-relative path to a `md`, `csv`, or `json` file, with no implicit `sources/nn/` prefix and no branches for retired folders. A path under a retired folder (`sources/nn/`, `sources/original/`, `sources/export/`, `export/`, `models/`) simply does not exist and so dangles (`KU_DANGLING_FILE`); the legacy layout detector, not the resolver, explains why. A path under `sources/archive/` that still exists on disk resolves as a plain path. A unit citation aimed at a binary raw file MUST yield `KU_BINARY_TARGET` with a suggestion to cite `<file>.<ext>_sidecar_NN.md`. A path under `staging/` is an excluded path and is not citable.
 (Previously: accepted `sources/nn/`, `sources/export/`, and `kNNowledge/` only, with a dedicated message for `models/`.)
 
 #### Scenario: `kNNowledge/` resolves
@@ -78,10 +78,20 @@ innfo-core MUST provide exactly one filesystem source resolver (`createFsSourceR
 - WHEN `resolveUnitPath` runs
 - THEN it resolves to that file
 
-#### Scenario: Retired prefixes are rejected
-- GIVEN `sources/nn/a.md@## Intro` and `models/Client_NN.md@## NN Stakeholders: Enterprise Clients`
+#### Scenario: Retired prefixes dangle
+- GIVEN `sources/nn/a.md@## Intro` and `models/Client_NN.md@## NN Stakeholders: Enterprise Clients` and no such files
 - WHEN `resolveUnitPath` runs on each
-- THEN neither resolves and the validator reports a removed-prefix `KU_MALFORMED` message for each
+- THEN neither resolves and the validator reports `KU_DANGLING_FILE` for each, with no special removed-prefix message
+
+#### Scenario: Archive snapshot still resolves
+- GIVEN an existing `sources/archive/metrics/V1/metrics.md` with a heading `## Totals`
+- WHEN `sources/archive/metrics/V1/metrics.md@## Totals` is resolved
+- THEN it resolves as a plain path
+
+#### Scenario: Binary raw target
+- GIVEN `sources/import/report.pdf@## Summary`
+- WHEN the validator runs
+- THEN it reports `KU_BINARY_TARGET` suggesting `sources/import/report.pdf_sidecar_NN.md`
 
 ### Requirement: Artifact frontmatter and console meta citations are validated
 
@@ -101,7 +111,7 @@ innfo-core MUST provide exactly one filesystem source resolver (`createFsSourceR
 
 ### Requirement: JSON Pointer is a unit kind
 
-For `.json` targets the portion after `@` MUST be a JSON Pointer (RFC 6901): empty or beginning with `/`, with `~0` and `~1` escapes. For `json-pointer` units the character `&` MUST NOT be a subunit separator; the whole anchor is the pointer. A pointer MUST resolve only when it addresses an existing value in the parsed document; the array end marker `-` and indexes with leading zeros MUST NOT resolve. An unresolved pointer MUST yield an anchor-resolution diagnostic. A pointer on a non-`.json` target MUST be a malformed-citation diagnostic.
+For `.json` targets the portion after `@` MUST be a JSON Pointer (RFC 6901) held in the unit `{kind:'pointer', pointer}` in raw (escaped) form: it MUST begin with `/` and use `~0` and `~1` escapes; the empty pointer is the file-level citation. `pointer` units have no subunits. A literal `&` inside a key MUST be written `%26` and is decoded by the existing segment decoder. A pointer MUST resolve only when it addresses an existing value in the parsed document; the array end marker `-` and indexes with leading zeros MUST NOT resolve. An unresolved pointer MUST yield `KU_UNKNOWN_POINTER`. A target that does not parse as JSON MUST yield `KU_INVALID_JSON`. A pointer on a non-`.json` target MUST be a malformed-citation diagnostic.
 
 #### Scenario: Resolves
 - GIVEN `{"items":[{"name":"a"}]}` at `sources/import/d.json`
@@ -113,15 +123,20 @@ For `.json` targets the portion after `@` MUST be a JSON Pointer (RFC 6901): emp
 - WHEN the pointers `/a~1b` and `/m~0n` are validated
 - THEN both resolve
 
-#### Scenario: Ampersand is part of the pointer
+#### Scenario: Ampersand is percent-encoded and no subunit exists
 - GIVEN a key `R&D`
-- WHEN `sources/import/d.json@/R&D` is validated
+- WHEN `sources/import/d.json@/R%26D` is validated
 - THEN it resolves and no subunit is parsed
 
 #### Scenario: Missing and past-end pointers
 - GIVEN an array with two items
 - WHEN `@/items/2` and `@/items/-` are validated
-- THEN each yields an anchor-resolution diagnostic
+- THEN each yields `KU_UNKNOWN_POINTER`
+
+#### Scenario: Invalid JSON target
+- GIVEN `sources/import/bad.json` that does not parse
+- WHEN `sources/import/bad.json@/items/0` is validated
+- THEN `KU_INVALID_JSON` is reported
 
 #### Scenario: Pointer on a markdown file
 - GIVEN `sources/import/a.md@/items/0`

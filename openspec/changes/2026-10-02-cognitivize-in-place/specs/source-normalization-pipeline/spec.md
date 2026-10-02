@@ -12,9 +12,9 @@ The scanner (`nn-trannsform --scan` / `scanAndProcess`) MUST recursively scan `s
 (Previously: scanned `sources/import/`, `sources/export/`, and `sources/conversations/` and wrote mirrored normalized files under `sources/nn/`.)
 
 #### Scenario: Normalization across subtrees
-- GIVEN `sources/import/guide.pdf` and `sources/conversations/meeting_source_20261002T101500Z.md`
+- GIVEN `sources/import/guide.pdf` and `sources/conversations/meeting_20261002T101500Z.md`
 - WHEN `scanAndProcess` runs
-- THEN `sources/import/guide.pdf_sidecar_NN.md` and `sources/conversations/meeting_source_20261002T101500Z.md_sidecar_NN.md` exist next to their raw files
+- THEN `sources/import/guide.pdf_sidecar_NN.md` and `sources/conversations/meeting_20261002T101500Z.md_sidecar_NN.md` exist next to their raw files
 - AND each sidecar `source_file` records the raw file's workspace-relative path
 
 #### Scenario: No mirror tree
@@ -33,7 +33,7 @@ Files promoted from `conversations/` into `sources/conversations/` by the standa
 (Previously: normalized the transcript into `sources/nn/conversations/` with `source_type` in the normalized file's frontmatter.)
 
 #### Scenario: Transcript cognitivized in place
-- GIVEN `sources/conversations/2026-09-06_auth_architecture_source_20260906T120000Z.md`
+- GIVEN `sources/conversations/2026-09-06_auth_architecture_20260906T120000Z.md`
 - WHEN normalization runs
 - THEN a co-located sidecar exists with `source_type: conversation_transcript`
 - AND the raw transcript's dialogue structure is byte-unchanged

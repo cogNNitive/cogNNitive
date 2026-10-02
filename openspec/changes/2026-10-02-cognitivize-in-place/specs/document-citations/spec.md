@@ -17,7 +17,7 @@ A kNNowledge file under `kNNowledge/` MUST be a valid citation target with the s
 
 ### Requirement: Uniform Block Identifier Across the Workspace
 
-The form `<workspace-relative-path>@<anchor>` MUST be the single, uniform identifier for any knowledge block. `<workspace-relative-path>` is the path of any citable file in the domaiNN (a Source, an artifact, or a kNNowledge document); the role of the file is derived from its name per `nn-naming-contract`, not from a folder whitelist. Line-range anchors and `src-NNN` ids remain prohibited. The anchor kind follows the target: heading for markdown, `RowID&column` for CSV, JSON Pointer (RFC 6901) for JSON. Paths under the removed roots (`sources/nn/`, `sources/original/`, `sources/export/`, `sources/archive/`, `export/`, `models/`) and under `staging/` MUST NOT be citable.
+The form `<workspace-relative-path>@<anchor>` MUST be the single, uniform identifier for any knowledge block. `<workspace-relative-path>` is the path of any citable file in the domaiNN (a Source, an artifact, or a kNNowledge document); the role of the file is derived from its name per `nn-naming-contract`, not from a folder whitelist. Line-range anchors and `src-NNN` ids remain prohibited. The anchor kind follows the target: heading for markdown (`header` unit), `RowID&column` for CSV (`row` unit), JSON Pointer (RFC 6901) for JSON (`pointer` unit). Paths under `staging/` MUST NOT be citable. Paths under the retired roots (`sources/nn/`, `sources/original/`, `sources/export/`, `export/`, `models/`) have no special handling: they dangle because the files no longer exist. An existing file under `sources/archive/` is a plain path and still resolves.
 (Previously: the path was `sources/nn/<subpath>`, `sources/export/<subpath>`, or `kNNowledge/<subpath>`.)
 
 #### Scenario: Uniform addressing of a Source and a kNNowledge element
@@ -28,7 +28,7 @@ The form `<workspace-relative-path>@<anchor>` MUST be the single, uniform identi
 #### Scenario: Staging is not citable
 - GIVEN `staging/draft.md@## Intro`
 - WHEN validation runs
-- THEN an explicit diagnostic is reported
+- THEN a `KU_EXCLUDED_PATH` diagnostic is reported stating that `staging/` is scratch and not citable
 
 ### Requirement: Artifact Citations May Target Models
 
@@ -46,7 +46,7 @@ Artifact citations MUST be able to cite a kNNowledge element in addition to a So
 
 ### Requirement: Malformed Citations Produce an Explicit Diagnostic
 
-A `sources::` value that cannot be resolved as a valid citation (nonexistent file, line-range anchor, a removed prefix, a unit citation aimed at a binary raw file, or an anchor kind that does not match the target file type) MUST produce an explicit diagnostic identifying the value. Line-range anchors MUST be rejected, not silently dropped.
+A `sources::` value that cannot be resolved as a valid citation (nonexistent file, line-range anchor, a unit citation aimed at a binary raw file (`KU_BINARY_TARGET`), or an anchor kind that does not match the target file type) MUST produce an explicit diagnostic identifying the value. Line-range anchors MUST be rejected, not silently dropped. A retired-folder path is reported as a nonexistent file (`KU_DANGLING_FILE`) with no dedicated removed-prefix message.
 (Previously: covered nonexistent file, line-range anchor, and the `models/` prefix.)
 
 #### Scenario: Citation to a nonexistent file
@@ -59,10 +59,10 @@ A `sources::` value that cannot be resolved as a valid citation (nonexistent fil
 - WHEN validation runs
 - THEN it is rejected with an explicit diagnostic
 
-#### Scenario: Removed prefix rejected
-- GIVEN a `sources::` value `sources/nn/x.md@## Intro`
+#### Scenario: Retired prefix dangles
+- GIVEN a `sources::` value `sources/nn/x.md@## Intro` and no such file
 - WHEN validation runs
-- THEN an explicit diagnostic states the prefix was removed
+- THEN a `KU_DANGLING_FILE` diagnostic names the value
 
 #### Scenario: Anchor kind mismatch
 - GIVEN a `sources::` value `sources/import/data.csv@## Heading`

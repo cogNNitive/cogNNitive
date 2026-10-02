@@ -8,7 +8,7 @@ A citation must point at bytes that cannot change. Producers never overwrite; ea
 
 ### Requirement: `writeOnce` is the only producer write path
 
-innfo-core MUST export `writeOnce` that writes bytes to a new, unique, suffixed path (per `nn-naming-contract`) and never opens an existing file for writing. Producers named in "Producers adopt write-once" MUST write through it.
+innfo-core MUST export `writeOnce(root, target, bytes, options)` (target is `{dir, key, ext}`; options carry `inputs` and a clock) that writes bytes to a new, unique, suffixed path (per `nn-naming-contract`) and never opens an existing file for writing: it opens with exclusive-create semantics and, when the name already exists, retries with the next tie-break number. It reports `written` or `deduplicated`, and throws `PATH_TOO_LONG` or `HASH_MISMATCH` before writing. The write step order is: path budget, input hash guard, dedup against the latest member, exclusive-create write. Producers named in "Producers adopt write-once" MUST write through it.
 
 #### Scenario: New member, old bytes untouched
 - GIVEN `artifacts/report_20261002T101500Z.md` exists
@@ -21,9 +21,14 @@ innfo-core MUST export `writeOnce` that writes bytes to a new, unique, suffixed 
 - WHEN both complete
 - THEN the second file is named with the `-2` tie-break and both exist
 
+#### Scenario: Slow clock still writes the latest member
+- GIVEN the latest member carries a stamp later than the writer's current clock
+- WHEN `writeOnce` stores different bytes
+- THEN the new member's stamp is not earlier than the latest member's stamp (a tie-break is bumped on equality), so the new write is the latest by name
+
 ### Requirement: Hash guard on inputs
 
-`writeOnce` MUST accept the files the new artifact derives from. For every input that has a sidecar, the sidecar `sha256` MUST equal the hash of the input's current raw bytes. On a mismatch `writeOnce` MUST fail with an error naming the input and MUST NOT write. Hashing MUST use raw bytes only (no line-ending normalization).
+`writeOnce` MUST accept the files the new artifact derives from. For every input that has a sidecar, the sidecar `sha256` MUST equal the hash of the input's current raw bytes. On a mismatch `writeOnce` MUST fail with the error `HASH_MISMATCH` naming the input and MUST NOT write. Hashing MUST use raw bytes only (no line-ending normalization).
 
 #### Scenario: Stale input blocks the write
 - GIVEN `sources/import/prices.csv` edited after its sidecar was written
@@ -42,7 +47,7 @@ innfo-core MUST export `writeOnce` that writes bytes to a new, unique, suffixed 
 
 ### Requirement: Dedup against the latest member
 
-`writeOnce` MUST compare the new bytes with the latest member of the family. When equal it MUST NOT write and MUST report `deduplicated` with the existing path. Only the latest member is compared, so content that returns to an earlier value after a change is written as a new member.
+`writeOnce` MUST compare the new bytes with the latest member of the family, using the member's sidecar `sha256` when it has one and a hash of its raw bytes otherwise. When equal it MUST NOT write and MUST report `deduplicated` with the existing path. Only the latest member is compared, so content that returns to an earlier value after a change is written as a new member.
 
 #### Scenario: Identical bytes
 - GIVEN the latest member holds bytes A
@@ -56,7 +61,7 @@ innfo-core MUST export `writeOnce` that writes bytes to a new, unique, suffixed 
 
 ### Requirement: Latest-of-family is a name query
 
-`latestOfFamily(dir, key, ext)` MUST resolve the latest member by name pattern per `nn-naming-contract`. The system MUST NOT create or maintain a moving `_latest` alias, copy, or link.
+`latestOfFamily(members)`, a pure function over the members of one family `(dir, key, ext)`, MUST resolve the latest member by name pattern per `nn-naming-contract`. The system MUST NOT create or maintain a moving `_latest` alias, copy, or link.
 
 #### Scenario: Latest resolves from names
 - GIVEN `x.csv`, `x_20261002T101500Z.csv`, `x_20261003T080000Z.csv`
@@ -70,7 +75,7 @@ innfo-core MUST export `writeOnce` that writes bytes to a new, unique, suffixed 
 
 ### Requirement: Garbage collection proposes and deletes only with consent
 
-The GC planner MUST be a pure function returning the family members that are not the latest of their family and are cited by no `sources` citation in the workspace (lineage-driven). It MUST NOT delete. Deleting MUST require an explicit user-confirmed list; deleting a member MUST also delete its sidecar. Non-interactive runs (CI, `verify`) MUST NOT delete.
+The GC planner (`planGc`) MUST be a pure function over the families and the set of cited paths, returning the family members that are not the latest of their family and are cited by no `sources` citation in the workspace (lineage-driven; a citation of a member's sidecar counts as a citation of that member). It MUST NOT delete. The CLI exposes it as `--gc` (dry run) and `--gc --apply --yes --paths <list>`. Deleting (`applyGc`) MUST require an explicit user-confirmed list, MUST recompute the plan and delete only the intersection of the confirmed list and that fresh plan, and MUST also delete each deleted member's sidecar. Non-interactive runs (CI, `verify`) MUST NOT pass `--apply` and MUST NOT delete.
 
 #### Scenario: Cited old member is retained
 - GIVEN a family of three members where the first is cited by a kNNowledge file
@@ -88,6 +93,11 @@ The GC planner MUST be a pure function returning the family members that are not
 - WHEN the apply step runs without a user-confirmed list
 - THEN nothing is deleted
 
+#### Scenario: Stale confirmation is ignored
+- GIVEN a confirmed member that became cited after the proposal was produced
+- WHEN the apply step runs
+- THEN that member is not in the fresh plan and is not deleted
+
 #### Scenario: Sidecar leaves with its member
 - GIVEN a confirmed member with a sidecar
 - WHEN the apply step runs
@@ -95,7 +105,9 @@ The GC planner MUST be a pure function returning the family members that are not
 
 ### Requirement: The lineage record is exempt
 
-`*_cogNNitive_NN.md` MUST be a living document updated in place; `writeOnce` and the family rules MUST NOT apply to it. The managed-section regeneration and journal append continue as defined by `lineage-record-sync`.
+`*_cogNNitive_NN.md` MUST be a living document updated in place; `writeOnce` and the family rules MUST NOT apply to it, and GC never proposes it. The managed-section regeneration and journal append continue as defined by `lineage-record-sync`.
+
+A file is an *artifact* for the lineage record only if it is a timestamped family member or declares upstream `sources`. A hand-written markdown file with neither is not an artifact node and is not projected into the lineage record.
 
 #### Scenario: Record refresh keeps one file
 - GIVEN a workspace with `Acme_cogNNitive_NN.md`

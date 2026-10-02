@@ -8,7 +8,7 @@
 
 ### Requirement: Cognitivize is one innfo-core operation
 
-innfo-core MUST export `cognitivize(path, options)` as the only code that creates or refreshes a sidecar. The nn-trannsform CLI and the innfo-mcp `cognitivize` tool MUST both call it. No other module MAY write a sidecar.
+innfo-core MUST export `cognitivize(root, rel, options)` (workspace root, workspace-relative path, options with an optional injected `normalizer` and clock) as the only code that creates or refreshes a sidecar. The nn-trannsform CLI and the innfo-mcp `cognitivize` tool MUST both call it. No other module MAY write a sidecar.
 
 #### Scenario: CLI and MCP produce the same sidecar
 - GIVEN `sources/import/notes.md`
@@ -22,7 +22,7 @@ innfo-core MUST export `cognitivize(path, options)` as the only code that create
 
 ### Requirement: Sidecar is co-located and carries origin metadata
 
-`cognitivize` MUST write the sidecar in the same directory as the raw file, named per `nn-naming-contract`. Its frontmatter MUST contain `source_file` (workspace-relative path), `sha256` (hash of the raw bytes), `size_bytes`, `normalized_at` (UTC ISO 8601), and `parent_spec` naming the `sidecar` bluepriNNt. For markdown, CSV, and JSON files the sidecar MUST NOT contain a normalized body. For every other (binary) format it MUST contain the normalized markdown body produced by the injected normalizer so headings stay citable. Metadata the normalizer returns (for example `source_type`, a CSV column profile, or origin URL) MAY be added to the frontmatter.
+`cognitivize` MUST write the sidecar in the same directory as the raw file, named per `nn-naming-contract`. Its frontmatter MUST contain `level: 3`, `parent_spec` naming the `sidecar` bluepriNNt, `source_file` (workspace-relative path of the subject), `sha256` (hash of the raw bytes), `size_bytes`, `source_format`, and `normalized_at` (UTC ISO 8601); it MAY contain `normalized_by` and `sources` (the upstream citations of the subject, used for binary subjects that cannot declare their own). For markdown, CSV, and JSON files the sidecar MUST NOT contain a normalized body. For every other (binary) format it MUST contain the normalized markdown body produced by the injected normalizer so headings stay citable. Metadata the normalizer returns (for example `source_type`, a CSV column profile, or origin URL) MAY be added to the frontmatter.
 
 #### Scenario: Text-native file gets a bodyless sidecar
 - GIVEN `sources/import/prices.csv`
@@ -47,7 +47,7 @@ innfo-core MUST export `cognitivize(path, options)` as the only code that create
 
 ### Requirement: Cognitivize is idempotent and refreshes on change
 
-When a sidecar already exists and its `sha256` equals the hash of the current raw bytes, `cognitivize` MUST write nothing and MUST report `unchanged`, preserving the existing `normalized_at`. When the hashes differ, `cognitivize` MUST rewrite the sidecar and report `refreshed`.
+When a sidecar already exists and its `sha256` equals the hash of the current raw bytes, `cognitivize` MUST write nothing and MUST report `unchanged`, preserving the existing `normalized_at`. When the hashes differ, `cognitivize` MUST rewrite the sidecar and report `refreshed`; a new sidecar is reported as `written`. A sidecar is metadata bound to the bytes, not an artifact, so it is rewritten in place and is not write-once.
 
 #### Scenario: Second run writes nothing
 - GIVEN a cognitivized file with unchanged bytes
@@ -59,23 +59,28 @@ When a sidecar already exists and its `sha256` equals the hash of the current ra
 - WHEN `cognitivize` runs
 - THEN the sidecar `sha256` equals the new bytes and the result is `refreshed`
 
-### Requirement: Sidecars are not cognitivized
+### Requirement: Sidecars and `_NN.md` documents are not cognitivized
 
-`cognitivize` MUST reject a path whose role is `sidecar` with an explicit error and MUST NOT write a sidecar of a sidecar.
+`cognitivize` MUST return `rejected` (writing nothing) for a path whose role is `sidecar` (reason `sidecar`), for any other `_NN.md` document (reason `nn-document`), for an excluded path such as `staging/` (reason `excluded`), for an over-budget path (reason `path-too-long`), and for a missing file (reason `not-found`). It MUST NOT write a sidecar of a sidecar.
 
 #### Scenario: Sidecar of a sidecar
 - GIVEN `sources/import/prices.csv_sidecar_NN.md`
 - WHEN `cognitivize` is called on it
-- THEN it returns an error and writes nothing
+- THEN it returns `rejected` with reason `sidecar` and writes nothing
+
+#### Scenario: NN document
+- GIVEN `kNNowledge/Client_business_NN.md`
+- WHEN `cognitivize` is called on it
+- THEN it returns `rejected` with reason `nn-document` and writes nothing
 
 ### Requirement: The normalizer is injected
 
-innfo-core `cognitivize` MUST accept a normalizer function as an option and MUST NOT import any format converter. When a binary file is cognitivized without a normalizer, `cognitivize` MUST fail with an explicit error and MUST NOT write a partial sidecar. nn-trannsform MUST inject its converters (`scanner-converters`, `process-images`).
+innfo-core `cognitivize` MUST accept a normalizer function as an option and MUST NOT import any format converter. When a binary file is cognitivized without a normalizer, `cognitivize` MUST return the non-throwing status `requires-normalizer` and MUST NOT write a partial sidecar. nn-trannsform MUST inject its converters (`scanner-converters`, `process-images`).
 
 #### Scenario: Missing normalizer for a binary
 - GIVEN `report.pdf` and no injected normalizer
 - WHEN `cognitivize` runs
-- THEN it fails explicitly and no sidecar exists afterwards
+- THEN it returns `requires-normalizer` and no sidecar exists afterwards
 
 #### Scenario: Text-native file needs no normalizer
 - GIVEN `notes.md` and no normalizer
@@ -84,7 +89,7 @@ innfo-core `cognitivize` MUST accept a normalizer function as an option and MUST
 
 ### Requirement: MCP never converts binaries
 
-The innfo-mcp `cognitivize` tool MUST cognitivize markdown, CSV, and JSON files in place. For any binary format it MUST return a non-throwing structured result with status `requires-cli` whose message contains the text "use the nn-trannsform CLI", and MUST write nothing. The tool MUST reject paths outside the workspace root.
+The innfo-mcp `cognitivize` tool MUST cognitivize markdown, CSV, and JSON files in place. For any binary format it MUST return a non-throwing structured result with status `requires-cli` whose message contains the text "use the nn-trannsform CLI", and MUST write nothing. The tool MUST reject paths outside the workspace root. It calls core `cognitivize` without a normalizer and maps `requires-normalizer` to `requires-cli`.
 
 #### Scenario: MCP cognitivizes markdown
 - GIVEN `sources/import/notes.md`
@@ -103,7 +108,7 @@ The innfo-mcp `cognitivize` tool MUST cognitivize markdown, CSV, and JSON files 
 
 ### Requirement: CLI surface
 
-nn-trannsform MUST expose cognitivize through the CLI as `--cognitivize <path>` accepting a file, and a directory (recursive, skipping sidecars and `staging/`). The scan command (`--scan`) MUST cognitivize every uncognitivized or stale file under `sources/import/` and `sources/conversations/` through the same operation.
+nn-trannsform MUST expose cognitivize through the CLI as `--cognitivize <file|dir>`, accepting a file or a directory (recursive, skipping sidecars and `staging/`), and MUST inject its converter adapter (`lib/normalizer.js`) as the normalizer. The scan command (`--scan`) MUST cognitivize every uncognitivized or stale file under `sources/import/` and `sources/conversations/` through the same operation.
 
 #### Scenario: Directory cognitivize
 - GIVEN `sources/import/` with two files and one existing sidecar
@@ -117,7 +122,7 @@ nn-trannsform MUST expose cognitivize through the CLI as `--cognitivize <path>` 
 
 ### Requirement: Raw imports land verbatim in `sources/import/`
 
-Importing an external file MUST copy its bytes unchanged into `sources/import/` (the only canonical raw-import location) through the write-once path (see `write-once-artifacts`), then cognitivize the copy in place. Files the user places in `sources/import/` by hand are unsuffixed family members and MUST NOT be renamed.
+Importing an external file (core `importRaw`) MUST copy its bytes unchanged into `sources/import/` (the only canonical raw-import location) through the write-once path (see `write-once-artifacts`), then cognitivize the copy in place. Files the user places in `sources/import/` by hand are unsuffixed family members and MUST NOT be renamed.
 
 #### Scenario: Verbatim copy
 - GIVEN an external `C:/drop/budget.xlsx`
@@ -151,7 +156,7 @@ External watch roots (`## NN External Watch Roots`) MUST only be read. The `stat
 
 ### Requirement: Retired source folders do not exist at runtime
 
-The ingest path MUST NOT read or write `sources/nn/`, `sources/original/`, `sources/export/`, or `sources/archive/`. Only code carrying a `legacy:cognitivize-in-place/<id>` marker (the migration detector and rewriter) MAY mention these paths. Sidecar field `staging_file` MUST be removed.
+The ingest path MUST NOT read or write `sources/nn/`, `sources/original/`, `sources/export/`, or `sources/archive/`. Only code carrying a `legacy:cognitivize-in-place/<id>` marker (the migration detector and rewriter) MAY mention these paths. Sidecar field `staging_file` MUST be removed. Pre-existing `sources/archive/` snapshots in user domaiNNs are inert files: no ingest or projection code walks them, and a citation into one still resolves as a plain path (see `workspace-template-upgrade` for the migration warning).
 
 #### Scenario: Path gate
 - GIVEN the repository after this change
@@ -174,4 +179,4 @@ A transcript promoted to `sources/conversations/` MUST be a write-once markdown 
 #### Scenario: Promoted transcript has a co-located sidecar
 - GIVEN a finalized transcript promoted with `[full]`
 - WHEN promotion completes
-- THEN `sources/conversations/<slug>_source_<UTC suffix>.md` and its `_sidecar_NN.md` sit side by side
+- THEN `sources/conversations/<slug>_<UTC suffix>.md` (the suffix is the contract UTC timestamp) and its `_sidecar_NN.md` sit side by side

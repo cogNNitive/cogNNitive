@@ -22,8 +22,8 @@ Why now: the base change put lineage behind a single core projection and resolve
 
 ## Intent (the rules)
 
-1. **Cognitivize in place.** `cognitivize(path)` is one innfo-core operation, exposed through the nn-trannsform CLI and innfo-mcp. It writes a co-located sidecar `<file>.<ext>_sidecar_NN.md` containing `source_file`, `sha256`, `size_bytes`, metadata, and, for binary files only, a normalized body. `sources/nn/`, `sources/export/`, and promotion go away.
-2. **Roles come from names.** A file's role is a pure function of its name, `parent_spec`, and whether a sidecar exists. Folders are only write destinations. A sidecar is never a model.
+1. **Cognitivize in place.** `cognitivize(path)` is one innfo-core operation, exposed through the nn-trannsform CLI (`--cognitivize <file|dir>`) and the innfo-mcp `cognitivize` tool. It writes a co-located sidecar `<file>.<ext>_sidecar_NN.md` containing `source_file`, `sha256`, `size_bytes`, metadata, and, for binary files only, a normalized body. `sources/nn/`, `sources/export/`, and promotion go away.
+2. **Roles come from names.** A file's role is a pure function of its name, `parent_spec`, and whether a sidecar exists. Folders are only write destinations. A sidecar is never a model. A non-`_NN.md` file is an *artifact* (and so a lineage node) only if it is a timestamped family member or declares upstream `sources`; a hand-written md with neither is not projected into the lineage record.
 3. **Universal `_NN` invariant.** Every `*_NN.md` conforms to a bluepriNNt `<bp>` whose name comes right before `_NN`: the stem ends with `_<bp>` or equals `<bp>`. Examples:
    - procedures: `<verb>_<noun>_procedures_NN.md`
    - kNNowledge names drop `_V_` (the version lives in frontmatter)
@@ -37,7 +37,7 @@ Why now: the base change put lineage behind a single core projection and resolve
 5. **Citation target.** md/csv/json: cite the raw file. Binary: cite the sidecar body (`report.pdf_sidecar_NN.md@Heading`). A curated CSV is a write-once artifact derived from its raw file. JSON Pointer (RFC 6901) becomes a third `unit.kind`, and unit dispatch (`workspaceSources.ts:308-312`) becomes exhaustive. The grammar `path@Heading&sub` and `file.csv@RowID&column` is unchanged.
 6. **Raw imports.** Watch roots only observe. Importing copies bytes verbatim into `sources/import/` (the only canonical location) and cognitivizes them there.
 7. **`export/` becomes `artifacts/`.** One rename, no fallback.
-8. **Drift gate.** The managed view sections of `*_cogNNitive_NN.md` must equal a fresh projection. The gate runs in nn-trannsform `--lineage --check`, `scripts/verify.js`, and MCP `check_workspace`. The journal and hand-authored blocks are not compared.
+8. **Drift gate.** The managed view sections of `*_cogNNitive_NN.md` must equal a fresh projection. The gate runs in nn-trannsform `--lineage --check`, in `scripts/verify.js` (over one committed test-fixture domaiNN under the core tests fixtures only, not over `_samples_nn` or shipped template bytes), and in MCP `check_workspace`. The journal and hand-authored blocks are not compared.
 9. **Converter boundary.** Core `cognitivize()` takes an injected normalizer. For binary files MCP returns a "use the nn-trannsform CLI" result.
 
 ### Defaults for items the exploration left open (design to confirm)
@@ -76,8 +76,8 @@ Why now: the base change put lineage behind a single core projection and resolve
 - **Scripts**: `export-console.mjs` (write-once, contract targets), `verify.js` drift gate, `workspace-index.js`, `duplicate-guards.js`, `preflight-check.js`, `upgrade-check.js`.
 - **bluepriNNts**:
   - new `iNNfo/specs/bluepriNNts/sidecar/spec_NN.md`, plus its manifest entry, `canonical-registry.ts`, `blueprint-catalog.mjs`, and `sync-versions`;
-  - procedure renames in all 24 `bluepriNNts/*/procedures/*_NN.md` files and their `procedure_model::` paths;
-  - write-once output names in the compile and video procedures;
+  - procedure renames in the 15 non-frozen `bluepriNNts/*/procedures/*_NN.md` files and their `procedure_model::` paths. The 9 files in the frozen `iNNfo/specs/bluepriNNts/workspace/procedures/` keep their names (Resolved Question 1);
+  - write-once output names in the compile and video procedures (the frozen `workspace` ones are edited in place for behavior only);
   - `template_version` bumps.
 - **Editor**: `explorerClassify.ts`, `ConsoleHubView.vue` (the roughly 40 hand-written paths), `HomeView.vue`, `SaveWorkspaceModal.vue`, `KnowledgeInfoPanel.vue`, `WorkspacePersistenceService.ts`, `useMediaScanner.ts`, `utils/version.ts`, `submodelPath.ts`.
 - **Migration**: an nn-upgrade Flow A extension (the `models/` -> `kNNowledge/` pattern) that rewrites layout, names, and citations in non-frozen workspaces.
@@ -85,7 +85,7 @@ Why now: the base change put lineage behind a single core projection and resolve
 
 ### Out of scope (non-goals)
 - Releases: `templates-v*`/`skills-v*`/innfo-mcp tags, the new CDN bundle, and the `manifest/source.yaml` repin. **Coupling:** bluepriNNt edits (new `sidecar`, procedure renames, version bumps) change `templates-v*` bytes. Merging them to `main` without a tag and repin turns `verify --release` red. The new MCP tool also needs an innfo-mcp release. Batch S2-S7 into `main` together with the release.
-- Frozen content: published `_V_` specs, `docs/innfo/samples/`, use-case docs under `docs/cognitive_nn/use-cases/`, and frozen bluepriNNts are exempt from renames under an explicit carve-out in the invariant check.
+- Frozen content: published `_V_` specs, `docs/innfo/samples/`, use-case docs under `docs/cognitive_nn/use-cases/`, and frozen bluepriNNts (`manifest/source.yaml` `frozen_blueprints`, `:128-140`) are exempt from renames under an explicit carve-out in the invariant check. The carve-out MUST name the folder `iNNfo/specs/bluepriNNts/workspace/procedures/` explicitly, because the manifest's frozen entry points only at the flat `bluepriNNts/workspace_spec_NN.md`.
 - Changing the citation grammar beyond the JSON Pointer unit, and `parent_spec` semantics.
 - OKF/LLM-Wiki positioning or bridges.
 - Unilateral deletion. GC never deletes without consent.
@@ -121,11 +121,12 @@ The estimate is 8-12k changed lines (3-4k generated), so chained PRs are require
 | S0 | Naming-contract module; `sidecar` bluepriNNt; unified UTC timestamp; **every** model-discovery consumer (core, MCP, editor, scripts, preflight) switched to the contract predicate | — | Exclusion has to land before any sidecar exists, or sidecars leak. |
 | S1 | `writeOnce`, hash guard, dedup, `latestOfFamily`, GC planner; `cognitivize()` with an injected normalizer; JSON Pointer unit | S0 | Purely additive. |
 | S2 | `export/` → `artifacts/` across core, scripts, and editor; drop the `sources/original` fallback; legacy detector and rewriter | S0 | |
-| S3 | Cognitivize cutover: scanner, curate-csv, conversations, and web/external import adopt it; core projection and resolver re-keyed; `sources/nn`, `sources/export`, and `sources/archive` code deleted; MCP `cognitivize` tool | S1, S2 | Likely over budget. Design should split it into core and consumers only if each half stays green. |
+| S3a | Resolver and MCP tool: `resolveUnitPath` accepts any domaiNN-relative path (`KU_BINARY_TARGET`); MCP `cognitivize` tool | S1, S2 | Additive. |
+| S3b | Ingest switch-over and projection re-key: scanner, curate-csv, conversations, and web/external import adopt cognitivize; core projection re-keyed; `sources/nn`, `sources/export`, and `sources/archive` code deleted | S3a | Pre-flagged `size:exception` (cannot be split further and stay green). |
 | S4 | Write-once producers: console export, impact report, transformer, curated CSV, compile and video procedures | S1, S2 | |
-| S5 | Drift gate in the CLI, `verify.js`, and `check_workspace` | S3, S4 | |
+| S5 | Drift gate in the CLI, `verify.js` (committed fixture domaiNN), and `check_workspace` | S3b, S4 | |
 | S6 | `_NN` invariant: validator rule, procedure and kNNowledge renames, `_V_` dropped, `procedure_model::` rewrite, migration | S5 | |
-| S7 | Docs, living specs, vocabulary, regenerated samples and bundles; release handoff notes | S3-S6 | |
+| S7 | Docs, living specs, vocabulary, regenerated samples and bundles; release handoff notes | S3a-S6 | |
 
 ## Affected Modules
 
@@ -140,18 +141,18 @@ The estimate is 8-12k changed lines (3-4k generated), so chained PRs are require
 
 | Risk | Likelihood | Mitigation |
 |---|---|---|
-| Windows `autocrlf` rewrites md/csv/json raw bytes, which breaks the hash guard | High | Hash raw bytes only. Bootstrap writes a workspace `.gitattributes` marking `sources/import/**` and `artifacts/**` as `-text`. Add a CRLF fixture test. |
+| Windows `autocrlf` rewrites md/csv/json raw bytes, which breaks the hash guard | High | Hash raw bytes only. Bootstrap (and the migration) write a workspace `.gitattributes` with `* -text` for the whole domaiNN (Resolved Question 2). Add a CRLF fixture test. |
 | `MAX_PATH`: `<name>_<ts>.<ext>_sidecar_NN.md` plus deep paths | Med | The contract computes path length and fails loudly before writing. Document the long-path setting. |
 | Sidecar discovery leak: one missed `_NN` encoding lists sidecars as models | High | S0 switches all consumers first. An rg gate forbids `_NN\.md` regexes outside the contract module. |
 | Concurrent changes touch the same files (`console-*`, `visual-catalog-blueprint`, `nn-quarantine-removal`, `decoupled-release-pipeline`) | High | Rebase each slice on `dev`, sequence after those merges, and keep slices small. |
 | Test churn: about 100 test files, many fixtures renamed | High | Rename fixtures with the migration tool itself, so the tool is exercised as a side effect. |
 | Release coupling turns `main` red | Med | Merge S2-S7 to `main` only together with the tag and repin (separate change). |
-| A frozen bluepriNNt (`workspace`) holds the compile procedures that need write-once outputs | Med | See Open Question 1. |
+| A frozen bluepriNNt (`workspace`) holds the compile procedures that need write-once outputs | Med | See Resolved Question 1: edit behavior in place, keep names. |
 | Ordering by UTC suffix vs. clock skew across machines | Low | Ties and out-of-order clocks are resolved by the suffix plus `-n` only. Order is never inferred from mtime. |
 
 ## Rollback
 
-Each slice is a self-contained commit range on `dev` and reverts with `git revert`. S0, S1, and S5 are additive. S2, S3, and S6 rewrite paths and names, so reverting them also requires reverting the matching migration output in sample workspaces (generated, regenerable). Write-once never mutates existing bytes and GC never deletes without consent, so no user data is lost by a revert. The Procedures journal is never rewritten. Nothing reaches users until a `templates-v*`/`skills-v*`/innfo-mcp release is cut.
+Each slice is a self-contained commit range on `dev` and reverts with `git revert`. S0, S1, S3a, and S5 are additive. S2, S3b, and S6 rewrite paths and names, so reverting them also requires reverting the matching migration output in sample workspaces (generated, regenerable). Write-once never mutates existing bytes and GC never deletes without consent, so no user data is lost by a revert. The Procedures journal is never rewritten. Nothing reaches users until a `templates-v*`/`skills-v*`/innfo-mcp release is cut.
 
 ## Success Criteria
 
@@ -160,7 +161,7 @@ Each slice is a self-contained commit range on `dev` and reverts with `git rever
 - [ ] There is one timestamp helper. `external-scanner.js`, `impact-checker.js`, `convergence-delta.js`, `transformer.js`, and `conversations.js` define none.
 - [ ] Running each producer twice on unchanged input writes no new file. Changed input writes a new suffixed file and leaves prior bytes identical (sha256).
 - [ ] On every sample workspace, zero sidecars appear in `list_knowledge`, `## NN Models`, `export-console` targets, or editor workspace detection.
-- [ ] Editing a managed record section fails `nn-trannsform --lineage --check`, `node scripts/verify.js`, and MCP `check_workspace`. Editing the journal passes.
+- [ ] Editing a managed record section fails `nn-trannsform --lineage --check`, `node scripts/verify.js` (run over the committed fixture domaiNN), and MCP `check_workspace`. Editing the journal passes.
 - [ ] Every non-exempt `*_NN.md` in the repo satisfies the invariant check, and frozen paths are reported as carved out.
 - [ ] Binary citations resolve via `<file>.<ext>_sidecar_NN.md@Heading`. JSON Pointer units resolve and validate.
 - [ ] `node scripts/verify.js`, `npm run check:integrity`, and `node scripts/lib/legacy-ledger-guard.js` pass. Every `legacy:cognitivize-in-place/` marker maps 1:1 to a ledger entry.
@@ -171,7 +172,7 @@ All product decisions are maintainer-approved (decisions 1-7, Q1-Q6). The four d
 
 ## Resolved Questions (maintainer, 2026-10-02)
 
-1. **Frozen bluepriNNt carve-out vs. required behavior.** The `workspace` bluepriNNt is frozen (`manifest/source.yaml:159-174`) but holds `compile_model_console`, `compile_workspace_hub`, and other procedures that S4 must make write-once; the `cogNNitive` record fields (`archive_path`, `version`) also change. **Decision:** edit both in place for behavior (base change D10 precedent) and keep their procedure *names* under the carve-out, with no rename.
+1. **Frozen bluepriNNt carve-out vs. required behavior.** The `workspace` bluepriNNt is frozen (`manifest/source.yaml` `frozen_blueprints`, `:128-140`) but holds `compile_model_console`, `compile_workspace_hub`, and other procedures that S4 must make write-once; the `cogNNitive` record fields (`archive_path`, `version`) also change. **Decision:** edit both in place for behavior (base change D10 precedent) and keep their procedure *names* under the carve-out, with no rename. Procedure renames therefore apply to the 15 non-frozen procedure files; the 9 files in `iNNfo/specs/bluepriNNts/workspace/procedures/` keep their names, and the carve-out names that folder explicitly.
 2. **`.gitattributes` scope** for the hash guard. **Decision:** `* -text` for the whole domaiNN. Cognitivize works in place, so any file can carry a sidecar hash; path-based scoping would leave gaps.
 3. **Procedure rename and published URLs.** **Decision:** accepted risk. URLs pinned to an older `templates-v*` tag keep resolving; user domaiNNs are migrated by nn-upgrade; the release notes must list the renames. No redirect (no-compat rule).
 

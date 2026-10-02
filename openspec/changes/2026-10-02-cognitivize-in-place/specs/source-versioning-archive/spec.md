@@ -8,15 +8,15 @@
 
 ### Requirement: Snapshot-on-change preserves the previous normalized version
 (Reason: a changed source now becomes a new suffixed family member; the previous member is never overwritten, so no snapshot is needed.)
-(Migration: the nn-upgrade rewriter reports existing `sources/archive/` content and never deletes it without consent; see `workspace-template-upgrade`.)
+(Migration: the nn-upgrade rewriter leaves existing `sources/archive/` content in place, reports it and the citations into it, and never deletes it; see `workspace-template-upgrade`.)
 
 ### Requirement: Snapshots are hash-idempotent
 (Reason: replaced by generic dedup against the latest family member in `write-once-artifacts`.)
 (Migration: none.)
 
 ### Requirement: `sources/archive/` is excluded from every walk
-(Reason: the folder is no longer part of the layout; the runtime does not resolve it.)
-(Migration: none; the legacy detector is the only code that mentions it, under a `legacy:cognitivize-in-place/*` marker.)
+(Reason: the folder is no longer part of the layout; no ingest or projection code walks it. Existing snapshots are inert files excluded from the family version chain, and a citation into one still resolves as a plain path.)
+(Migration: none; the legacy detector is the only code that mentions the folder, under a `legacy:cognitivize-in-place/*` marker, and the migration report warns about every citation that targets it; see `workspace-template-upgrade`.)
 
 ### Requirement: Orphaned sources are archived only with explicit consent
 (Reason: archive-and-delete of orphans is replaced by the consent-gated GC planner and by orphan-sidecar reporting in `generic-source-integrity-audit`.)

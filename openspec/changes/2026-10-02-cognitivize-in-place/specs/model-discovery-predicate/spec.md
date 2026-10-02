@@ -8,7 +8,7 @@ The shared discoverable-model predicate becomes the contract predicate in `nn-na
 
 ### Requirement: Single Shared Discoverable-Model Predicate
 
-`collectModels()` and `isReconcilableModel()` MUST call the one contract predicate. The predicate MUST require the `_NN.md` filename pattern, a role of `knowledge` (so sidecars, lineage records, and catalog documents are excluded), and frontmatter indicating a model (`level: 3` and a resolvable `parent_spec`). No other module MAY define a filename pattern for `_NN.md`.
+`collectModels()` MUST call the one contract predicate (`isModelCandidate`), and `isReconcilableModel()` MUST keep only its manifest self-reference check on top of it. The predicate MUST require the `_NN.md` filename pattern, a role of `knowledge` (so sidecars, lineage records, and catalog documents are excluded), frontmatter indicating a model (`level: 3` and a resolvable `parent_spec`), and a path that is not excluded (`isExcludedPath`). `discoverModels.ts` MUST delete its local filename and non-knowledge regexes. No other module MAY define a filename pattern for `_NN.md`.
 (Previously: required `NN_FILENAME_RE` and the frontmatter test; sidecars did not exist and `NON_KNOWLEDGE_SPEC_RE` lived in `discoverModels.ts`.)
 
 #### Scenario: Non-NN markdown file excluded

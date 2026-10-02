@@ -18,7 +18,7 @@ The conventions MUST define these write destinations: `kNNowledge/` (documents),
 
 ### Requirement: Retired layouts are never resolved at runtime
 
-Runtime code MUST NOT read or fall back to retired folders. Only the migration detector and rewriter, marked `legacy:cognitivize-in-place/<id>` with a matching `legacy-ledger.yaml` entry, MAY refer to them.
+Runtime code MUST NOT read or fall back to retired folders. Existing `sources/archive/` content is inert: it is not walked, not part of any family chain, and a citation into it still resolves as a plain path. Only the migration detector and rewriter, marked `legacy:cognitivize-in-place/<id>` with a matching `legacy-ledger.yaml` entry, MAY refer to them.
 
 #### Scenario: Retired folder present
 - GIVEN a workspace that still contains `export/report.md`

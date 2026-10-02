@@ -12,7 +12,7 @@ The preflight runner (`preflight-check.js`) and audit commands MUST inspect `sou
 (Previously: three subtrees audited against canonical files under `sources/nn/`.)
 
 #### Scenario: Workspace with multiple source subtrees
-- GIVEN `sources/import/specs/api.pdf` and `sources/conversations/2026-09-06_planning_source_20260906T120000Z.md`
+- GIVEN `sources/import/specs/api.pdf` and `sources/conversations/2026-09-06_planning_20260906T120000Z.md`
 - WHEN the integrity audit runs
 - THEN both raw files are discovered and each is checked against its own co-located sidecar path
 

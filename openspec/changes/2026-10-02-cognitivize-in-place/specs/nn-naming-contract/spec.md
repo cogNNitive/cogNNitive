@@ -10,7 +10,7 @@ Terms: the `stem` of a `*_NN.md` file is its filename without the trailing `_NN.
 
 ### Requirement: One contract module owns `_NN.md` filename identity
 
-innfo-core MUST provide a single naming-contract module that is the only place in the repository where the `_NN.md` filename pattern is defined. Every other consumer MUST import its predicates. An automated check MUST fail when a `_NN\.md` filename regex is defined in any `.ts`, `.js`, `.vue`, or `.mjs` file outside the contract module, excluding generated files and tests.
+innfo-core MUST provide a single naming-contract module that is the only place in the repository where the `_NN.md` filename pattern is defined. Every other consumer MUST import its predicates. An automated check (`scripts/lib/nn-name-regex-guard.js`, a `scripts/verify.js` step) MUST fail when a `_NN\.md` filename regex, or a `\d{8}`-stamp builder, is defined in any `.ts`, `.js`, `.vue`, or `.mjs` file outside the contract module, excluding generated files, tests, `legacy/**`, and a per-file allowlist that states a reason for each entry (published-spec URL tooling, which identifies the published L0-L2 specs and not workspace files).
 
 #### Scenario: Repository gate finds no second definition
 - GIVEN the repository after this change
@@ -24,7 +24,7 @@ innfo-core MUST provide a single naming-contract module that is the only place i
 
 ### Requirement: Universal `_NN` invariant
 
-Every `*_NN.md` document that is not a structural exception and not frozen MUST satisfy: its stem ends with `_<bp>` or equals `<bp>`. The core validator MUST report a dedicated diagnostic for a violation, naming the file, the declared `<bp>`, and the expected form.
+Every `*_NN.md` document that is not a structural exception and not frozen MUST satisfy: its stem ends with `_<bp>` or equals `<bp>` (compared case-insensitively; core function `checkNameInvariant`). The core validator MUST report the dedicated diagnostic `NN_NAME_INVARIANT` for a violation, naming the file, the declared `<bp>`, and the expected form. In user domaiNNs its severity is warning, so unmigrated workspaces get a migration hint and not a wall. The repository guard `scripts/lib/nn-name-invariant-guard.js` MUST treat a violation as an error.
 
 #### Scenario: Knowledge file conforms
 - GIVEN `kNNowledge/Client_business_NN.md` with `parent_spec` naming bluepriNNt `business`
@@ -39,12 +39,17 @@ Every `*_NN.md` document that is not a structural exception and not frozen MUST 
 #### Scenario: Missing bluepriNNt in the name
 - GIVEN `kNNowledge/Client_NN.md` with `parent_spec` naming bluepriNNt `business`
 - WHEN the invariant check runs
-- THEN a violation diagnostic is reported expecting a stem ending with `_business`
+- THEN an `NN_NAME_INVARIANT` warning is reported expecting a stem ending with `_business`
 
 #### Scenario: bluepriNNt name not last
 - GIVEN `kNNowledge/Client_business_extra_NN.md` with `parent_spec` naming `business`
 - WHEN the invariant check runs
-- THEN a violation diagnostic is reported
+- THEN an `NN_NAME_INVARIANT` warning is reported
+
+#### Scenario: Repository guard is stricter
+- GIVEN a non-frozen violating file in the repository
+- WHEN `scripts/lib/nn-name-invariant-guard.js` runs
+- THEN it exits as an error, while the user-workspace validator reports only a warning
 
 ### Requirement: Structural exceptions are exempt from the invariant
 
@@ -57,7 +62,7 @@ Every `*_NN.md` document that is not a structural exception and not frozen MUST 
 
 ### Requirement: Frozen content carve-out
 
-Published `_V_` specifications, `docs/innfo/samples/`, use-case documentation under `docs/cognitive_nn/use-cases/`, and frozen bluepriNNts (`manifest/source.yaml` `frozen_templates`) MUST be exempt from the invariant and from rename rewriting. The invariant check MUST report the number of carved-out paths. Frozen files MUST NOT be renamed; their behavior MAY be edited in place only where another requirement of this change demands it.
+The following MUST be exempt from the invariant and from rename rewriting: published `_V_` specifications (`iNNfo/specs/**/*_V_*_NN.md`), `docs/innfo/samples/**`, use-case documentation under `docs/cognitive_nn/use-cases/**`, the frozen bluepriNNts listed in `manifest/source.yaml` `frozen_blueprints` (`:128-140`), and the folder `iNNfo/specs/bluepriNNts/workspace/procedures/` (named explicitly because the manifest's frozen entry points only at the flat `bluepriNNts/workspace_spec_NN.md`). The invariant check MUST report the number of carved-out paths. Frozen files MUST NOT be renamed; their behavior MAY be edited in place only where another requirement of this change demands it.
 
 #### Scenario: Frozen path is reported, not failed
 - GIVEN `docs/innfo/samples/lifecycle-ghostbusters/workspace/Ghostbusters_Operations_V_1-0-0_NN.md`
@@ -72,7 +77,9 @@ Published `_V_` specifications, `docs/innfo/samples/`, use-case documentation un
 
 ### Requirement: Role is a pure function of name, parent_spec, and sidecar presence
 
-The contract MUST expose a role function whose result depends only on the file name, the `parent_spec` of the document (when it is an `_NN.md` document), and whether a co-located sidecar exists. It MUST NOT read the containing folder. Roles MUST include at least: `sidecar`, `lineage-record` (`parent_spec` `cogNNitive`), `knowledge`, `source` (a file with a co-located sidecar), and `artifact` (any other non-`_NN.md` file).
+The contract MUST expose a role function (`roleOf`) whose result depends only on the file basename, the `parent_spec` of the document (when it is an `_NN.md` document), and whether a co-located sidecar exists. It MUST NOT read the containing folder. Roles are exactly: `entrypoint` (`domaiNN_NN.md`), `spec` (`spec_NN.md`), `sidecar`, `lineage-record` (`parent_spec` `cogNNitive`), `catalog`, `procedure`, `knowledge`, `source` (a file with a co-located sidecar), and `artifact` (any other non-`_NN.md` file).
+
+Scope exclusion MUST be a separate predicate (`isExcludedPath`), not a role: the ignored workspace roots, any `staging` path segment, and any dot-prefixed segment are excluded from discovery, citation, and projection.
 
 #### Scenario: Same bytes, different folders, same role
 - GIVEN `report.md` in `sources/import/` and a byte-identical copy in `artifacts/`, both without a sidecar
@@ -110,7 +117,7 @@ A sidecar name MUST be `<file>.<ext>_sidecar_NN.md`, keeping the original extens
 
 ### Requirement: One model-discovery predicate; sidecars never count as models
 
-The contract MUST expose the single predicate deciding whether a file is a discoverable model. A file is a model only if it matches the `_NN.md` pattern, its role is `knowledge`, it is Level 3 with a resolvable `parent_spec`, and its bluepriNNt is not one of the non-knowledge bluepriNNts (`cogNNitive`, `workspace`, `procedures`, `sources`, `artifacts`, `sidecar`). innfo-core discovery, `list_knowledge` and `validate` in innfo-mcp, the editor (`explorerClassify`, `HomeView`, `SaveWorkspaceModal`, `KnowledgeInfoPanel`, `WorkspacePersistenceService`, `useMediaScanner`), `export-console`, `workspace-index`, `duplicate-guards`, `convergence-delta`, and preflight MUST all use it.
+The contract MUST expose the single predicate (`isModelCandidate`) deciding whether a file is a discoverable model. A file is a model only if it matches the `_NN.md` pattern, its role is `knowledge`, it is Level 3 with a resolvable `parent_spec`, it is not an excluded path, and its bluepriNNt is not one of the non-knowledge bluepriNNts (`cogNNitive`, `workspace`, `procedures`, `sources`, `artifacts`, `sidecar`). innfo-core discovery, `list_knowledge` and `validate` in innfo-mcp, the editor (`explorerClassify`, `HomeView`, `SaveWorkspaceModal`, `KnowledgeInfoPanel`, `WorkspacePersistenceService`, `useMediaScanner`), `export-console`, `workspace-index`, `duplicate-guards`, `convergence-delta`, and preflight MUST all use it.
 
 #### Scenario: Sidecars are absent everywhere
 - GIVEN a sample workspace containing sidecars
@@ -124,7 +131,7 @@ The contract MUST expose the single predicate deciding whether a file is a disco
 
 ### Requirement: Procedure file names
 
-A procedure document MUST be named `<verb>_<noun>_procedures_NN.md` and carry `parent_spec` naming `procedures`. The procedure id MUST be the stem with a trailing `_procedures` removed, underscores converted to hyphens. Procedures of frozen bluepriNNts keep their existing names under the carve-out; their ids MUST follow the same rule (a stem without `_procedures` yields its own stem as id). `procedure_model::` paths MUST point at the actual file name.
+A procedure document MUST be named `<verb>_<noun>_procedures_NN.md` and carry `parent_spec` naming `procedures`. This applies to the 15 non-frozen bluepriNNt procedure files. The procedure id (`procedureIdOf`) MUST be the stem with a trailing `_procedures` removed, underscores converted to hyphens. The 9 procedures in the frozen `iNNfo/specs/bluepriNNts/workspace/procedures/` keep their existing names under the carve-out; their ids MUST follow the same rule (a stem without `_procedures` yields its own stem as id). `procedure_model::` paths MUST point at the actual file name.
 
 #### Scenario: New procedure name and id
 - GIVEN `procedures/generate_video_script_procedures_NN.md`
@@ -132,7 +139,7 @@ A procedure document MUST be named `<verb>_<noun>_procedures_NN.md` and carry `p
 - THEN the id is `generate-video-script`
 
 #### Scenario: Frozen procedure keeps its name
-- GIVEN `bluepriNNts/workspace/procedures/compile_workspace_hub_NN.md` in a frozen bluepriNNt
+- GIVEN `iNNfo/specs/bluepriNNts/workspace/procedures/compile_workspace_hub_NN.md` in a frozen bluepriNNt
 - WHEN its id is derived
 - THEN the id is `compile-workspace-hub` and the file is not reported as a violation
 
@@ -141,18 +148,23 @@ A procedure document MUST be named `<verb>_<noun>_procedures_NN.md` and carry `p
 New kNNowledge file names MUST NOT contain `_V_<version>`. The model version MUST be read from frontmatter. Helpers that previously derived the version from the filename MUST read frontmatter.
 
 #### Scenario: Version from frontmatter
-- GIVEN `kNNowledge/Client_business_NN.md` with frontmatter `model_version: V_1-0-0`
+- GIVEN `kNNowledge/Client_business_NN.md` with frontmatter `knowledge_version: V_1-0-0`
 - WHEN the version helper runs
 - THEN it returns `V_1-0-0`
+
+#### Scenario: Legacy key is not the version source
+- GIVEN a document whose frontmatter carries `model_version` and no `knowledge_version`
+- WHEN the version helper runs
+- THEN the legacy key is not used as the version (the legacy detector flags it)
 
 #### Scenario: Version in a new name is a violation
 - GIVEN a non-frozen `kNNowledge/Client_V_1-0-0_business_NN.md`
 - WHEN the invariant check runs
-- THEN a violation diagnostic is reported
+- THEN an `NN_NAME_INVARIANT` warning is reported
 
 ### Requirement: UTC timestamp grammar and a single helper
 
-The contract MUST provide the only timestamp helper. It MUST format UTC instants as `YYYYMMDDTHHmmssZ`; a write-once suffix is `_` plus that token placed before the file extension. A same-second collision MUST append `-2`, `-3`, and so on directly after the `Z`. `external-scanner.js`, `impact-checker.js`, `convergence-delta.js`, `transformer.js`, and `conversations.js` MUST NOT define timestamp formatting.
+The contract MUST provide the only timestamp helper (`formatUtcStamp`, plus `nextStamp` for tie-breaks). It MUST format UTC instants as `YYYYMMDDTHHmmssZ`; a write-once suffix is `_` plus that token placed before the file extension. A same-second collision MUST append `-2`, `-3`, and so on directly after the `Z`. `external-scanner.js`, `impact-checker.js`, `convergence-delta.js`, `transformer.js`, and `conversations.js` MUST NOT define timestamp formatting.
 
 #### Scenario: Suffix format
 - GIVEN the instant 2026-10-02T10:15:00Z and the base name `balance.csv`
@@ -201,9 +213,14 @@ A family is the set of files in one directory that share a family key and an ext
 
 ### Requirement: Path length is checked before writing
 
-Before any write the contract MUST compute the resulting path length, including the sidecar name, and MUST fail with an explicit error naming the limit when the path would exceed the platform limit (260 characters on Windows without long-path support). Nothing MUST be written on failure.
+Before any write the contract (`checkPathBudget`) MUST compute the resulting absolute path length, including the sidecar name, and MUST fail with an explicit error naming the limit when the path would exceed 259 characters on `win32` (the Windows `MAX_PATH` of 260 including the terminator). Nothing MUST be written on failure. On other platforms a domaiNN-relative path longer than 200 characters MUST produce a warning, not a failure. `writeOnce` surfaces the failure as `PATH_TOO_LONG`; `cognitivize` returns `rejected` with reason `path-too-long`.
 
 #### Scenario: Overlong path
-- GIVEN a raw path of 250 characters on Windows whose sidecar path would exceed 260
+- GIVEN a raw path of 250 characters on Windows whose sidecar path would exceed 259
 - WHEN `cognitivize` is requested
-- THEN it fails before writing the sidecar and the error names the limit
+- THEN it returns `rejected` (`path-too-long`) before writing the sidecar and the message names the limit
+
+#### Scenario: Long relative path off Windows
+- GIVEN a domaiNN-relative path of 220 characters on a non-Windows platform
+- WHEN a write is planned
+- THEN a warning is reported and the write is allowed
