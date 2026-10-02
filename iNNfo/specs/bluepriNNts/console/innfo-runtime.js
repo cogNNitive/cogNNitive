@@ -473,6 +473,10 @@
     return { meta: meta, items: items }
   }
 
+  function serializeFeedback(doc) {
+    return JSON.stringify(doc, null, 2) + '\n'
+  }
+
   function validateFeedback(doc) {
     var errors = []
     if (!isObject(doc)) return { ok: false, errors: ['document: must be an object'] }
@@ -1831,165 +1835,48 @@
     selectTab(activeTabId)
   }
 
-  function summarizeDrafts(drafts) {
-    var list = Array.isArray(drafts) ? drafts : []
-    var summary = { total: list.length, corrections: 0, comments: 0, pending: list.length }
-    list.forEach(function (item) {
-      if (!isObject(item)) return
-      if (item.kind === 'correction' || item.kind === 'new' || item.kind === 'delete') summary.corrections++
-      else summary.comments++
-    })
-    return summary
-  }
-
+  // C11: the review tab renders through the kit DraftList from the v2 store.
   function renderReviewTab(doc, state, config, onRefresh) {
     var host = doc && typeof doc.getElementById === 'function' ? doc.getElementById('innfo-tab-review') : null
     if (!host) return
     host.innerHTML = ''
 
     var drafts = state && state.store ? state.store.drafts() : []
-    var summary = summarizeDrafts(drafts)
-
     var root = el('div', 'innfo-review-tab-content')
     if (!root) return
 
-    // Header & Summary Stats
-    var headSection = el('section', 'innfo-review-head')
-    if (headSection) {
-      var h2 = el('h2', null, 'Review Summary & Pending Feedback')
-      if (h2) headSection.appendChild(h2)
-
-      var statsRow = el('div', 'innfo-review-stats')
-      if (statsRow) {
-        var totalStat = el('div', 'innfo-review-stat')
-        if (totalStat) {
-          totalStat.innerHTML =
-            '<span class="innfo-stat-num">' +
-            summary.total +
-            '</span><span class="innfo-stat-lbl">Total Notes</span>'
-          statsRow.appendChild(totalStat)
-        }
-        var pendingStat = el('div', 'innfo-review-stat')
-        if (pendingStat) {
-          pendingStat.innerHTML =
-            '<span class="innfo-stat-num">' +
-            summary.pending +
-            '</span><span class="innfo-stat-lbl">Pending</span>'
-          statsRow.appendChild(pendingStat)
-        }
-        var corrStat = el('div', 'innfo-review-stat')
-        if (corrStat) {
-          corrStat.innerHTML =
-            '<span class="innfo-stat-num">' +
-            summary.corrections +
-            '</span><span class="innfo-stat-lbl">Corrections</span>'
-          statsRow.appendChild(corrStat)
-        }
-        var commStat = el('div', 'innfo-review-stat')
-        if (commStat) {
-          commStat.innerHTML =
-            '<span class="innfo-stat-num">' +
-            summary.comments +
-            '</span><span class="innfo-stat-lbl">Comments</span>'
-          statsRow.appendChild(commStat)
-        }
-        headSection.appendChild(statsRow)
-      }
-
-      var actionRow = el('div', 'innfo-review-actions')
-      if (actionRow) {
-        var exportBtn = el(
-          'button',
-          'innfo-btn innfo-btn-primary innfo-review-export-btn',
-          'Export Feedback JSON',
-        )
-        if (exportBtn) {
-          exportBtn.setAttribute('type', 'button')
-          exportBtn.addEventListener('click', function () {
-            downloadFeedbackExport(doc, state)
-          })
-          actionRow.appendChild(exportBtn)
-        }
-        headSection.appendChild(actionRow)
-      }
-      root.appendChild(headSection)
+    var head = el('section', 'innfo-review-head')
+    if (head) {
+      head.appendChild(el('h2', null, 'Review Summary & Pending Feedback'))
+      var count = el(
+        'p',
+        'innfo-review-count',
+        drafts.length + (drafts.length === 1 ? ' pending draft' : ' pending drafts'),
+      )
+      if (count) head.appendChild(count)
+      root.appendChild(head)
     }
 
-    // List of drafted feedback items
     var listSection = el('section', 'innfo-review-list-section')
     if (listSection) {
       if (drafts.length === 0) {
-        var empty = el(
-          'div',
-          'empty-state',
-          'No review comments drafted yet. Click "Suggest" on any element card to add feedback.',
+        listSection.appendChild(
+          el('div', 'empty-state', 'No review drafts yet. Annotate an element in review mode.'),
         )
-        if (empty) listSection.appendChild(empty)
       } else {
-        var list = el('div', 'innfo-review-list')
-        drafts.forEach(function (item, idx) {
-          var elId = item.elementId || (item.target && item.target.element_id) || ''
-          var conceptName = item.concept || (item.target && item.target.concept) || ''
-          var elName = (item.target && item.target.element) || elId || 'Item #' + (idx + 1)
-          var noteText = item.note || item.comment || ''
-          var kind = item.kind || 'comment'
-
-          var card = el('article', 'innfo-review-item')
-          if (!card) return
-          card.setAttribute('data-draft-id', String(item.id))
-
-          var itemHead = el('div', 'innfo-review-item-head')
-          if (itemHead) {
-            var idSpan = el('span', 'innfo-review-item-id', item.id)
-            var kindBadge = el('span', 'innfo-review-kind-badge kind-' + kind, kind)
-
-            // Deep Link Button to focus card (Task 2.2)
-            var linkBtn = el(
-              'button',
-              'innfo-review-card-link',
-              (conceptName ? conceptName + ': ' : '') + elName,
-            )
-            if (linkBtn) {
-              linkBtn.setAttribute('type', 'button')
-              linkBtn.setAttribute('title', 'Focus element card')
-              linkBtn.addEventListener('click', function () {
-                focusElementCard(doc, elId)
-              })
-            }
-
-            var delBtn = el('button', 'innfo-review-delete-btn', '×')
-            if (delBtn) {
-              delBtn.setAttribute('type', 'button')
-              delBtn.setAttribute('title', 'Delete draft comment')
-              delBtn.setAttribute('aria-label', 'Delete draft comment')
-              delBtn.addEventListener('click', function () {
-                if (state && state.store) state.store.removeDraft(item.id)
-                if (typeof onRefresh === 'function') onRefresh()
-              })
-            }
-
-            if (idSpan) itemHead.appendChild(idSpan)
-            if (kindBadge) itemHead.appendChild(kindBadge)
-            if (linkBtn) itemHead.appendChild(linkBtn)
-            if (delBtn) itemHead.appendChild(delBtn)
-            card.appendChild(itemHead)
-          }
-
-          if (item.field) {
-            var fldDiv = el('div', 'innfo-review-item-field')
-            if (fldDiv) {
-              fldDiv.innerHTML =
-                '<span class="innfo-fld-lbl">Field:</span> <code>' + item.field + '</code>'
-              card.appendChild(fldDiv)
-            }
-          }
-
-          var noteDiv = el('div', 'innfo-review-item-note', noteText)
-          if (noteDiv) card.appendChild(noteDiv)
-
-          if (list) list.appendChild(card)
+        var byId = {}
+        ;(state && state.elements ? state.elements : []).forEach(function (e) {
+          if (e && e.id) byId[e.id] = e
         })
-        if (list) listSection.appendChild(list)
+        listSection.appendChild(
+          UI.DraftList({ drafts: drafts, byId: byId }, {
+            doc: doc,
+            onDelete: function (id) {
+              if (state && state.store) state.store.removeDraft(id)
+              if (typeof onRefresh === 'function') onRefresh()
+            },
+          }),
+        )
       }
       root.appendChild(listSection)
     }
@@ -2258,7 +2145,12 @@
         '#innfo-feedback-modal pre{background:var(--surface-2,#f3f4f6);border:1px solid var(--border,#e5e7eb);border-radius:6px;padding:12px;white-space:pre-wrap;font-size:0.8rem;}' +
         '[data-innfo="errors"]{color:#dc2626;font-size:0.85rem;margin:8px 0;padding:8px 12px;background:#fef2f2;border:1px solid #fecaca;border-radius:4px;}' +
         '#innfo-feedback-modal button[data-innfo="download"]{appearance:none;border:1px solid var(--primary,#2563eb);background:var(--primary,#2563eb);color:#ffffff;font:inherit;font-size:0.85rem;font-weight:600;padding:8px 16px;border-radius:var(--radius-sm,4px);cursor:pointer;}' +
-        '#innfo-feedback-modal button[data-innfo="download"]:hover{background:var(--primary-hover,#1d4ed8);}'
+        '#innfo-feedback-modal button[data-innfo="download"]:hover{background:var(--primary-hover,#1d4ed8);}' +
+        '#innfo-feedback-modal [data-innfo="export-json"]{width:100%;min-height:140px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:0.78rem;border:1px solid var(--border,#e5e7eb);border-radius:6px;padding:10px;box-sizing:border-box;}' +
+        '#innfo-feedback-modal .innfo-feedback-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:8px 0;}' +
+        '#innfo-feedback-modal button[data-innfo="copy"]{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--surface,#ffffff);color:var(--text,#111827);font:inherit;font-size:0.85rem;font-weight:600;padding:8px 16px;border-radius:var(--radius-sm,4px);cursor:pointer;}' +
+        '#innfo-feedback-modal button:disabled{opacity:0.5;cursor:not-allowed;}' +
+        '#innfo-feedback-modal [data-innfo="copy-status"]{font-size:0.8rem;color:var(--muted,#6b7280);}'
       root.appendChild(style)
     }
 
@@ -2324,15 +2216,22 @@
     modal.setAttribute('aria-label', 'Export reviewer feedback')
     modal.innerHTML =
       '<h2>Export reviewer feedback</h2>' +
+      '<div data-innfo="preview"></div>' +
       '<label>Reviewer identifier (required)' +
       '<input data-innfo="identifier" type="text" placeholder="e.g. round-2" />' +
       '</label>' +
+      '<div data-innfo="errors" style="display: none;"></div>' +
+      '<h3>Export JSON</h3>' +
+      '<textarea data-innfo="export-json" readonly></textarea>' +
+      '<div class="innfo-feedback-actions">' +
+      '<button data-innfo="download" type="button">Download feedback JSON</button>' +
+      '<button data-innfo="copy" type="button">Copy to clipboard</button>' +
+      '<span data-innfo="copy-status" role="status" aria-live="polite"></span>' +
+      '</div>' +
       '<h3>Instructions</h3>' +
       '<pre data-innfo="instructions"></pre>' +
       '<h3>Agent prompt</h3>' +
-      '<pre data-innfo="agent-prompt"></pre>' +
-      '<div data-innfo="errors" style="display: none;"></div>' +
-      '<button data-innfo="download" type="button">Download feedback JSON</button>'
+      '<pre data-innfo="agent-prompt"></pre>'
 
     root.appendChild(modal)
 
@@ -2350,16 +2249,11 @@
     return root
   }
 
-  function downloadFeedbackExport(doc, state) {
-    var reviewer = getReviewerName()
+  function composeExport(state, identifier) {
+    var reviewer = identifier && String(identifier).trim() ? String(identifier).trim() : getReviewerName()
     var drafts = state && state.store ? state.store.drafts() : []
     var model = state && state.modelTitle ? state.modelTitle : 'Model'
     var version = state && state.modelVersion ? state.modelVersion : '1-0-0'
-    var errorContainer = (doc && (doc.querySelector('#innfo-feedback-modal [data-innfo="errors"]') || doc.querySelector('[data-innfo="errors"]'))) || null
-    if (errorContainer) {
-      errorContainer.innerHTML = ''
-      errorContainer.style.display = 'none'
-    }
 
     var rawVersion = String(version || '1-0-0')
     var normVersion = MODEL_VERSION_PATTERN.test(rawVersion)
@@ -2372,7 +2266,8 @@
       source_knowledge_version: normVersion,
       artifact: (state && state.artifactName) || (model + '_console.html'),
       artifact_version: CONSOLE_VERSION,
-      exported_at: new Date().toISOString().replace(/\.\d+Z$/, 'Z'),
+      exported_at:
+        (state && state.exportedAt) || new Date().toISOString().replace(/\.\d+Z$/, 'Z'),
       author: reviewer,
       feedback_slug: reviewerSlug,
       viewer: 'innfo-console@' + CONSOLE_VERSION,
@@ -2381,42 +2276,158 @@
       exportMeta.source_sha256 = state.sourceSha256 || state.meta.sha256
     }
 
+    if (!reviewer || reviewer === DEFAULT_REVIEWER_NAME) {
+      return { ok: false, errors: ['Reviewer identifier is required.'] }
+    }
+
     var payload
     try {
-      payload = buildExportDoc({
-        meta: exportMeta,
-        drafts: drafts,
-      })
+      payload = buildExportDoc({ meta: exportMeta, drafts: drafts })
     } catch (err) {
-      if (errorContainer) {
-        errorContainer.textContent = err.message
-        errorContainer.style.display = 'block'
-      }
       return { ok: false, errors: [err.message] }
     }
 
     var check = validateFeedback(payload)
-    if (!check.ok) {
-      if (errorContainer) {
-        errorContainer.innerHTML = '<strong>Validation errors:</strong><ul>' + check.errors.map(function (e) { return '<li>' + e + '</li>' }).join('') + '</ul>'
-        errorContainer.style.display = 'block'
-      }
-      return { ok: false, errors: check.errors }
-    }
+    if (!check.ok) return { ok: false, errors: check.errors }
 
-    var filename = buildFeedbackFilename(model, String(version).replace(/^V_/, ''), reviewer)
-    var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+    return {
+      ok: true,
+      payload: payload,
+      text: serializeFeedback(payload),
+      filename: buildFeedbackFilename(model, String(version).replace(/^V_/, ''), reviewer),
+      items: payload.items.length,
+    }
+  }
+
+  function renderErrors(doc, errors) {
+    var errorContainer = doc.querySelector('#innfo-feedback-modal [data-innfo="errors"]')
+    if (!errorContainer) return
+    if (!errors || !errors.length) {
+      errorContainer.innerHTML = ''
+      errorContainer.style.display = 'none'
+      return
+    }
+    errorContainer.innerHTML =
+      '<strong>Validation errors:</strong><ul>' +
+      errors.map(function (e) {
+        return '<li>' + e + '</li>'
+      }).join('') +
+      '</ul>'
+    errorContainer.style.display = 'block'
+  }
+
+  function downloadFeedbackExport(doc, state) {
+    var identifierInput = doc.querySelector('#innfo-feedback-modal [data-innfo="identifier"]')
+    var identifier = identifierInput && identifierInput.value ? String(identifierInput.value).trim() : ''
+    var composed = composeExport(state, identifier)
+    if (!composed.ok) {
+      renderErrors(doc, composed.errors)
+      return composed
+    }
+    renderErrors(doc, [])
+    var blob = new Blob([composed.text], { type: 'application/json' })
     var url = URL.createObjectURL(blob)
     var anchor = doc.createElement('a')
     anchor.href = url
-    anchor.download = filename
+    anchor.download = composed.filename
     doc.body.appendChild(anchor)
     anchor.click()
     anchor.remove()
     setTimeout(function () {
       URL.revokeObjectURL(url)
     }, 1000)
-    return { ok: true, filename: filename, items: payload.items.length }
+    return { ok: true, filename: composed.filename, items: composed.items }
+  }
+
+  function updateExportPreview(doc, state) {
+    var modal = doc.getElementById('innfo-feedback-modal')
+    if (!modal) return { ok: false }
+    var identifierInput = modal.querySelector('[data-innfo="identifier"]')
+    var identifier = identifierInput && identifierInput.value ? String(identifierInput.value).trim() : ''
+    var drafts = state && state.store ? state.store.drafts() : []
+
+    var preview = modal.querySelector('[data-innfo="preview"]')
+    if (preview) {
+      preview.innerHTML = ''
+      var byId = {}
+      ;(state && state.elements ? state.elements : []).forEach(function (e) {
+        if (e && e.id) byId[e.id] = e
+      })
+      preview.appendChild(UI.DraftList({ drafts: drafts, byId: byId }, { doc: doc }))
+    }
+
+    var composed = composeExport(state, identifier)
+    var downloadBtn = modal.querySelector('[data-innfo="download"]')
+    var copyBtn = modal.querySelector('[data-innfo="copy"]')
+    var textarea = modal.querySelector('[data-innfo="export-json"]')
+
+    if (composed.ok) {
+      renderErrors(doc, [])
+      if (textarea) textarea.value = composed.text
+      if (downloadBtn) downloadBtn.disabled = false
+      if (copyBtn) copyBtn.disabled = false
+    } else {
+      renderErrors(doc, composed.errors)
+      if (textarea) textarea.value = ''
+      if (downloadBtn) downloadBtn.disabled = true
+      if (copyBtn) copyBtn.disabled = true
+    }
+    return composed
+  }
+
+  function copyExport(doc, state) {
+    var modal = doc.getElementById('innfo-feedback-modal')
+    var status = modal && modal.querySelector('[data-innfo="copy-status"]')
+    var textarea = modal && modal.querySelector('[data-innfo="export-json"]')
+    function announce(msg) {
+      if (status) status.textContent = msg
+    }
+    var composed = composeExport(state, _readIdentifier(modal))
+    if (!composed.ok) {
+      announce('Cannot copy: fix the validation errors first.')
+      return composed
+    }
+    var text = composed.text
+    try {
+      if (
+        typeof navigator !== 'undefined' &&
+        navigator.clipboard &&
+        typeof navigator.clipboard.writeText === 'function'
+      ) {
+        navigator.clipboard.writeText(text).then(
+          function () {
+            announce('Copied feedback JSON to clipboard.')
+          },
+          function () {
+            announce(fallbackCopy(doc, textarea, text))
+          },
+        )
+        return composed
+      }
+      announce(fallbackCopy(doc, textarea, text))
+    } catch {
+      announce('Copy failed. Press Ctrl+C with the JSON selected.')
+    }
+    return composed
+  }
+
+  function _readIdentifier(modal) {
+    var input = modal && modal.querySelector('[data-innfo="identifier"]')
+    return input && input.value ? String(input.value) : ''
+  }
+
+  function fallbackCopy(doc, textarea, text) {
+    try {
+      if (textarea) {
+        textarea.value = text
+        if (typeof textarea.select === 'function') textarea.select()
+      }
+      var ok = typeof doc.execCommand === 'function' ? doc.execCommand('copy') : false
+      if (ok) return 'Copied feedback JSON to clipboard.'
+      return 'Select the JSON and press Ctrl+C to copy.'
+    } catch {
+      return 'Copy failed. Select the JSON and press Ctrl+C.'
+    }
   }
 
   function openExportModal(doc, state) {
@@ -2428,14 +2439,11 @@
     var identifierInput = modal.querySelector('[data-innfo="identifier"]')
     var instructions = modal.querySelector('[data-innfo="instructions"]')
     var agentPrompt = modal.querySelector('[data-innfo="agent-prompt"]')
-    var errorContainer = modal.querySelector('[data-innfo="errors"]')
-    var downloadBtn = modal.querySelector('[data-innfo="download"]')
     var drafts = state && state.store ? state.store.drafts() : []
 
-    if (errorContainer) {
-      errorContainer.innerHTML = ''
-      errorContainer.style.display = 'none'
-    }
+    // One held exported_at per modal opening, so download and copy emit
+    // byte-identical JSON.
+    if (state) state.exportedAt = new Date().toISOString().replace(/\.\d+Z$/, 'Z')
 
     if (identifierInput) {
       var storedName = getReviewerName()
@@ -2445,7 +2453,7 @@
       instructions.textContent =
         'Review ' +
         drafts.length +
-        ' pending draft(s), then download the feedback JSON.'
+        ' pending draft(s), then download or copy the feedback JSON.'
     }
     if (agentPrompt) {
       agentPrompt.textContent =
@@ -2456,14 +2464,22 @@
         ').'
     }
 
+    updateExportPreview(doc, state)
+
     if (typeof modal.showModal === 'function') {
-      if (!modal.open) {
-        modal.showModal()
-      }
+      if (!modal.open) modal.showModal()
     } else {
       modal.setAttribute('open', 'open')
     }
 
+    if (identifierInput && !identifierInput.getAttribute('data-innfo-bound')) {
+      identifierInput.setAttribute('data-innfo-bound', '1')
+      identifierInput.addEventListener('input', function () {
+        updateExportPreview(doc, state)
+      })
+    }
+
+    var downloadBtn = modal.querySelector('[data-innfo="download"]')
     if (downloadBtn && !downloadBtn.getAttribute('data-innfo-bound')) {
       downloadBtn.setAttribute('data-innfo-bound', '1')
       downloadBtn.addEventListener('click', function () {
@@ -2475,6 +2491,16 @@
           if (typeof modal.close === 'function') modal.close()
           else modal.removeAttribute('open')
         }
+      })
+    }
+
+    var copyBtn = modal.querySelector('[data-innfo="copy"]')
+    if (copyBtn && !copyBtn.getAttribute('data-innfo-bound')) {
+      copyBtn.setAttribute('data-innfo-bound', '1')
+      copyBtn.addEventListener('click', function () {
+        var identifier = identifierInput && identifierInput.value ? String(identifierInput.value).trim() : ''
+        if (identifier && identifier !== DEFAULT_REVIEWER_NAME) setReviewerName(identifier)
+        copyExport(doc, state)
       })
     }
   }
@@ -2516,6 +2542,7 @@
       modelId: meta.modelId || meta.model || meta.title || 'model',
       sourceSha256: meta.sha256 || meta.source_sha256,
       meta: meta,
+      elements: elements,
       store: Review.createDraftStore(
         typeof localStorage !== 'undefined' ? localStorage : null,
         String(meta.modelId || meta.model || meta.title || 'model'),
@@ -2696,6 +2723,8 @@
     ensureFeedbackUi: ensureFeedbackUi,
     draftToItem: draftToItem,
     downloadFeedbackExport: downloadFeedbackExport,
+    composeExport: composeExport,
+    serializeFeedback: serializeFeedback,
     downloadExport: downloadExport,
     buildExportDoc: buildExportDoc,
     boot: boot,

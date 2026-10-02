@@ -179,6 +179,9 @@ describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
       const state = {
         modelTitle: 'BusinessModel',
         modelVersion: 'V_1-2-0',
+        elements: [
+          { id: 'ent-tier', concept: 'RevenueStream', name: 'Enterprise Tier', hash: '0123456789abcdef' },
+        ],
         store,
       }
 
@@ -204,7 +207,11 @@ describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
         'No .innfo-review-status-select element rendered in review tab',
       )
 
-      const items = reviewTab.querySelectorAll('.innfo-review-item')
+      assert.ok(
+        reviewTab.querySelector('[data-innfo-component="draft-list"]'),
+        'Review tab renders through InnfoUI.DraftList',
+      )
+      const items = reviewTab.querySelectorAll('.innfo-draft-row')
       assert.equal(items.length, 1)
       assert.match(items[0].textContent, /Updated seat minimum to 50/)
     })

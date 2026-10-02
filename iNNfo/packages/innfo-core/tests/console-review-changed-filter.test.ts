@@ -89,6 +89,7 @@ describe('console-review-changed-filter', () => {
     localStorage.clear()
     controllers = []
     ;(globalThis as any).__innfoNoAutoBoot = true
+    document.body.innerHTML = ''
     renderModelConsole()
     document.documentElement.removeAttribute('data-innfo-review')
     document.documentElement.removeAttribute('data-innfo-filter')
