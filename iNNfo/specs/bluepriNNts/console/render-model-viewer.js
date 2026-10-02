@@ -223,6 +223,10 @@
       }
 
       applyHash()
+
+      // C2: one dispatch per card commit; the review controller (owned by
+      // InnfoConsole) decorates the freshly rendered cards.
+      document.dispatchEvent(new CustomEvent('innfo:rendered', { detail: { root: content } }))
     }
 
     function matchesQuery(el, q) {

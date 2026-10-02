@@ -611,14 +611,17 @@
         editBtn.setAttribute('aria-label', 'Edit reviewer identity')
       }
       function handleEdit() {
-        if (typeof prompt === 'undefined') return
-        var newName = prompt('Enter your reviewer name / identifier:', getReviewerName())
-        if (newName != null && String(newName).trim()) {
-          setReviewerName(String(newName).trim())
-          if (typeof onReviewerChange === 'function') {
-            onReviewerChange(getReviewerName())
-          }
+        // C5: the reviewer identifier is edited in the feedback modal's
+        // identifier field, not a window.prompt.
+        var modal = doc.getElementById('innfo-feedback-modal')
+        if (!modal) return
+        if (typeof modal.showModal === 'function' && !modal.open) {
+          modal.showModal()
+        } else {
+          modal.setAttribute('open', 'open')
         }
+        var input = modal.querySelector('[data-innfo="identifier"]')
+        if (input && typeof input.focus === 'function') input.focus()
       }
       chip.addEventListener('click', function (e) {
         if (e.target === editBtn || editBtn.contains(e.target) || e.target === chipName) {
@@ -676,39 +679,14 @@
     })
   }
 
-  // D19: draft-count badge + Suggest button travel through ElementCard opts.
-  function mountElementCards(doc, elements, drafts, onSuggest, refs) {
+  // Cards are review-agnostic: C's controller decorates them after render
+  // (the B D19 Suggest button and per-card draft badge are gone).
+  function mountElementCards(doc, elements, drafts, refs) {
     var content = doc.getElementById('innfo-content')
     if (!content) return
     content.innerHTML = ''
-    var draftList = Array.isArray(drafts) ? drafts : []
 
     elements.forEach(function (element) {
-      var pendingNotes = draftList.filter(function (d) {
-        var dElId = d.elementId || (d.target && d.target.element_id)
-        return dElId === element.id && (d.status === 'pending' || !d.status)
-      })
-
-      var headNodes = []
-      if (pendingNotes.length > 0) {
-        var cardBadge = el('span', 'innfo-card-badge', String(pendingNotes.length))
-        if (cardBadge) {
-          cardBadge.setAttribute('title', pendingNotes.length + ' unexported draft note(s)')
-          headNodes.push(cardBadge)
-        }
-      }
-
-      var pending = pendingNotes.length
-      var suggest = el('button', 'innfo-suggest', pending ? 'Suggest (' + pending + ')' : 'Suggest')
-      var bodyNodes = []
-      if (suggest) {
-        suggest.setAttribute('type', 'button')
-        suggest.addEventListener('click', function () {
-          if (typeof onSuggest === 'function') onSuggest(element)
-        })
-        bodyNodes.push(suggest)
-      }
-
       var fields = []
       if (isObject(element.fields)) {
         Object.keys(element.fields).forEach(function (k) {
@@ -732,8 +710,6 @@
         },
         {
           domId: String(element.id || ''),
-          head: headNodes,
-          body: bodyNodes,
           collapsible: false,
           onRef: function (refId) {
             var target = refs && isObject(refs[String(refId)]) ? refs[String(refId)] : null
@@ -2565,15 +2541,7 @@
         }
       })
 
-      mountElementCards(
-        active,
-        filterElements(elements, activeSearchQuery || ''),
-        currentDrafts,
-        function (element) {
-          suggestFor(element, state, active, refresh)
-        },
-        refs,
-      )
+      mountElementCards(active, filterElements(elements, activeSearchQuery || ''), currentDrafts, refs)
       renderBanner(active, meta, config.needs, currentDrafts.length, function () {
         refresh(activeSearchQuery)
       }, state)
@@ -2590,6 +2558,11 @@
       renderViewTabs(active, config, model, meta, state, function () {
         refresh(activeSearchQuery)
       })
+
+      var content = active.getElementById('innfo-content') || active.getElementById('content')
+      if (content) {
+        active.dispatchEvent(new CustomEvent('innfo:rendered', { detail: { root: content } }))
+      }
     }
 
     if (hasNeed(config, 'feedback-export')) {
@@ -2597,6 +2570,18 @@
     }
 
     refresh('')
+
+    // C3: the controller builds the toggle into the (now rendered) banner and
+    // listens for innfo:rendered; created after the first paint so the banner
+    // rebuild does not drop the toggle.
+    if (hasNeed(config, 'feedback-export')) {
+      state.controller = Review.createReviewController(active, {
+        meta: meta,
+        elements: elements,
+        needs: config.needs,
+        store: state.store,
+      })
+    }
 
     if (hasNeed(config, 'document-view')) {
       renderDocumentView(active, elements, concepts)
@@ -2639,26 +2624,12 @@
     }
     onHash()
 
-    return { ok: true, needs: config.needs, elements: elements.length }
-  }
-
-  function suggestFor(element, state, doc, refresh) {
-    if (typeof prompt === 'undefined') return
-    var comment = prompt('Suggest for ' + element.name + ' (empty cancels):', '')
-    if (!comment || !String(comment).trim()) return
-    state.store.addDraft({
-      element_id: element.id,
-      concept: element.concept,
-      element: element.name,
-      base_hash: element.hash,
-      kind: 'comment',
-      comment: String(comment).trim(),
-    })
-    if (typeof refresh === 'function') refresh('')
+    return { ok: true, needs: config.needs, elements: elements.length, controller: state.controller }
   }
 
   function autoBoot() {
     try {
+      if (typeof globalThis !== 'undefined' && globalThis.__innfoNoAutoBoot) return
       if (typeof document === 'undefined' || !document.getElementById) return
       if (document.documentElement && document.documentElement.getAttribute('data-innfo-console-booted') === 'true') return
       if (!document.getElementById('innfo-config')) return

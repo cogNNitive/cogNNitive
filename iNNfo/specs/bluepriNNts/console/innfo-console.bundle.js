@@ -1130,10 +1130,236 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return item
   }
 
+  // ---- Review controller (Slice 2) ----
+
+  function makeEl(doc, tag, cls, text) {
+    var node = doc.createElement(tag)
+    if (cls) node.className = cls
+    if (text != null) node.textContent = String(text)
+    return node
+  }
+
+  function createReviewController(doc, opts) {
+    var options = isObject(opts) ? opts : {}
+    var meta = isObject(options.meta) ? options.meta : {}
+    var elements = Array.isArray(options.elements) ? options.elements : []
+    var needs = Array.isArray(options.needs) ? options.needs : []
+    var store = options.store
+    var elementsById = {}
+    elements.forEach(function (el) {
+      if (el && el.id) elementsById[el.id] = el
+    })
+
+    var enabled = false
+    var toggleEl = null
+    var openPopover = null
+    var lastAnchor = null
+
+    function html() {
+      return doc.documentElement
+    }
+
+    function closePopover() {
+      if (openPopover && openPopover.parentNode) openPopover.parentNode.removeChild(openPopover)
+      openPopover = null
+    }
+
+    function saveDraft(anchorData, payload) {
+      if (!store) return
+      var el = elementsById[anchorData.elementId]
+      if (!el) return
+      var draft = {
+        element_id: anchorData.elementId,
+        concept: el.concept,
+        element: el.name || el.id,
+        base_hash: el.hash,
+        kind: payload.kind,
+      }
+      if (anchorData.field) {
+        draft.field = anchorData.field
+        draft.original = el.fields ? el.fields[anchorData.field] : undefined
+        draft.proposed = payload.proposed
+      } else {
+        draft.comment = payload.comment
+      }
+      store.addDraft(draft)
+      refreshCount()
+    }
+
+    function refreshCount() {
+      if (!doc.querySelector) return
+      var counter = doc.querySelector('[data-innfo="draft-count"]')
+      if (counter && store) {
+        var n = store.drafts().length
+        counter.textContent = counter.textContent.replace(/drafts:\s*\d+/, 'drafts: ' + n)
+      }
+    }
+
+    function openFor(anchor, anchorData) {
+      closePopover()
+      lastAnchor = anchor
+      var kinds = anchorData.field ? ['comment', 'correction'] : ['comment', 'delete']
+      var activeKind = kinds[0]
+      var data = {
+        kinds: kinds,
+        label: anchorData.field ? 'Annotate field' : 'Annotate element',
+      }
+      if (anchorData.field && elementsById[anchorData.elementId]) {
+        var el = elementsById[anchorData.elementId]
+        data.original = el.fields ? el.fields[anchorData.field] : undefined
+      }
+      var pop = UI.AnnotationPopover(data, {
+        doc: doc,
+        onSave: function () {
+          var ta = pop.querySelector('textarea')
+          if (activeKind === 'delete') {
+            saveDraft(anchorData, { kind: 'delete' })
+          } else if (anchorData.field && activeKind === 'correction' && ta) {
+            saveDraft(anchorData, { kind: 'correction', proposed: ta.value })
+          } else if (ta) {
+            saveDraft(anchorData, { kind: 'comment', comment: ta.value })
+          }
+          closePopover()
+        },
+        onCancel: function () {
+          closePopover()
+          if (lastAnchor && typeof lastAnchor.focus === 'function') lastAnchor.focus()
+        },
+      })
+      // The kit adds a correction textarea when a correction is offered; for a
+      // card we still need a comment box, and both kinds reuse the same input.
+      if (!anchorData.field) {
+        var ta = doc.createElement('textarea')
+        ta.className = 'innfo-popover-comment'
+        var saveBtn = pop.querySelector('.innfo-popover-save')
+        pop.insertBefore(ta, saveBtn)
+      }
+      Array.prototype.forEach.call(pop.querySelectorAll('.innfo-popover-kind'), function (b) {
+        b.addEventListener('click', function () {
+          activeKind = b.getAttribute('data-kind')
+        })
+      })
+      anchor.parentNode.insertBefore(pop, anchor.nextSibling)
+      openPopover = pop
+      var focusable = pop.querySelector('textarea, button')
+      if (focusable && typeof focusable.focus === 'function') focusable.focus()
+    }
+
+    function annotateControl(anchorData, label) {
+      var b = makeEl(doc, 'button', 'innfo-review-anchor', label || '+')
+      b.setAttribute('data-innfo-review-ctl', '1')
+      b.setAttribute('data-innfo-ctl', anchorData.field ? 'field-anchor' : 'card-anchor')
+      b.setAttribute('type', 'button')
+      b.setAttribute('aria-label', anchorData.field ? 'Annotate field' : 'Annotate element')
+      b.addEventListener('click', function () {
+        openFor(b, anchorData)
+      })
+      return b
+    }
+
+    function decorateCard(card) {
+      if (card.querySelector('[data-innfo-ctl="card-anchor"]')) return
+      var elId = card.getAttribute('data-element-id')
+      var head = card.querySelector('.innfo-card-head') || card
+      head.appendChild(annotateControl({ elementId: elId }, '\u270e'))
+    }
+
+    function decorateFieldRow(row) {
+      if (row.querySelector('[data-innfo-ctl="field-anchor"]')) return
+      var card = row.closest('[data-innfo-component="element-card"]')
+      var elId = card ? card.getAttribute('data-element-id') : ''
+      var field = row.getAttribute('data-field')
+      row.appendChild(annotateControl({ elementId: elId, field: field }, '\u270e'))
+    }
+
+    function decorate(root) {
+      if (!enabled) return
+      var host = root || doc
+      if (!host.querySelectorAll) return
+      Array.prototype.forEach.call(
+        host.querySelectorAll('[data-innfo-component="element-card"][data-element-id]'),
+        decorateCard,
+      )
+      Array.prototype.forEach.call(
+        host.querySelectorAll('[data-innfo-component="field-row"][data-field]'),
+        decorateFieldRow,
+      )
+    }
+
+    function onRendered(event) {
+      var root = event && event.detail ? event.detail.root : null
+      // The runtime rebuilds the banner innerHTML on every refresh, so the
+      // toggle is re-inserted here (idempotent) before decoration.
+      if (enabled || toggleEl) toggleEl = buildToggle()
+      if (toggleEl) toggleEl.setAttribute('aria-pressed', enabled ? 'true' : 'false')
+      decorate(root || doc)
+    }
+
+    function buildToggle() {
+      if (!canReview(meta, elements, needs)) return null
+      var banner =
+        doc.getElementById('innfo-feedback-banner') || doc.getElementById('innfo-banner')
+      if (!banner) return null
+      if (banner.querySelector('[data-innfo="review-toggle"]')) {
+        return banner.querySelector('[data-innfo="review-toggle"]')
+      }
+      var b = makeEl(doc, 'button', 'innfo-review-toggle', 'Review mode')
+      b.setAttribute('data-innfo', 'review-toggle')
+      b.setAttribute('type', 'button')
+      b.setAttribute('aria-pressed', 'false')
+      b.addEventListener('click', function () {
+        if (enabled) disable()
+        else enable()
+      })
+      var openBtn = banner.querySelector('#innfo-feedback-open')
+      if (openBtn && openBtn.parentNode) openBtn.parentNode.insertBefore(b, openBtn)
+      else banner.appendChild(b)
+      return b
+    }
+
+    function enable() {
+      enabled = true
+      if (html()) html().setAttribute('data-innfo-review', 'on')
+      if (toggleEl) toggleEl.setAttribute('aria-pressed', 'true')
+      decorate(doc)
+    }
+
+    function disable() {
+      enabled = false
+      closePopover()
+      if (html()) html().removeAttribute('data-innfo-review')
+      if (toggleEl) toggleEl.setAttribute('aria-pressed', 'false')
+      Array.prototype.forEach.call(doc.querySelectorAll('[data-innfo-review-ctl]'), function (n) {
+        if (n.parentNode) n.parentNode.removeChild(n)
+      })
+    }
+
+    function destroy() {
+      disable()
+      if (doc.removeEventListener) doc.removeEventListener('innfo:rendered', onRendered)
+      if (toggleEl && toggleEl.parentNode) toggleEl.parentNode.removeChild(toggleEl)
+      toggleEl = null
+    }
+
+    toggleEl = buildToggle()
+    if (doc.addEventListener) doc.addEventListener('innfo:rendered', onRendered)
+
+    return {
+      enable: enable,
+      disable: disable,
+      decorate: decorate,
+      destroy: destroy,
+      isEnabled: function () {
+        return enabled
+      },
+    }
+  }
+
   return {
     STORE_PREFIX: STORE_PREFIX,
     STORE_VERSION: STORE_VERSION,
     createDraftStore: createDraftStore,
+    createReviewController: createReviewController,
     reviewState: reviewState,
     isTargetChanged: isTargetChanged,
     progressByConcept: progressByConcept,
@@ -1758,14 +1984,17 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         editBtn.setAttribute('aria-label', 'Edit reviewer identity')
       }
       function handleEdit() {
-        if (typeof prompt === 'undefined') return
-        var newName = prompt('Enter your reviewer name / identifier:', getReviewerName())
-        if (newName != null && String(newName).trim()) {
-          setReviewerName(String(newName).trim())
-          if (typeof onReviewerChange === 'function') {
-            onReviewerChange(getReviewerName())
-          }
+        // C5: the reviewer identifier is edited in the feedback modal's
+        // identifier field, not a window.prompt.
+        var modal = doc.getElementById('innfo-feedback-modal')
+        if (!modal) return
+        if (typeof modal.showModal === 'function' && !modal.open) {
+          modal.showModal()
+        } else {
+          modal.setAttribute('open', 'open')
         }
+        var input = modal.querySelector('[data-innfo="identifier"]')
+        if (input && typeof input.focus === 'function') input.focus()
       }
       chip.addEventListener('click', function (e) {
         if (e.target === editBtn || editBtn.contains(e.target) || e.target === chipName) {
@@ -1823,39 +2052,14 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     })
   }
 
-  // D19: draft-count badge + Suggest button travel through ElementCard opts.
-  function mountElementCards(doc, elements, drafts, onSuggest, refs) {
+  // Cards are review-agnostic: C's controller decorates them after render
+  // (the B D19 Suggest button and per-card draft badge are gone).
+  function mountElementCards(doc, elements, drafts, refs) {
     var content = doc.getElementById('innfo-content')
     if (!content) return
     content.innerHTML = ''
-    var draftList = Array.isArray(drafts) ? drafts : []
 
     elements.forEach(function (element) {
-      var pendingNotes = draftList.filter(function (d) {
-        var dElId = d.elementId || (d.target && d.target.element_id)
-        return dElId === element.id && (d.status === 'pending' || !d.status)
-      })
-
-      var headNodes = []
-      if (pendingNotes.length > 0) {
-        var cardBadge = el('span', 'innfo-card-badge', String(pendingNotes.length))
-        if (cardBadge) {
-          cardBadge.setAttribute('title', pendingNotes.length + ' unexported draft note(s)')
-          headNodes.push(cardBadge)
-        }
-      }
-
-      var pending = pendingNotes.length
-      var suggest = el('button', 'innfo-suggest', pending ? 'Suggest (' + pending + ')' : 'Suggest')
-      var bodyNodes = []
-      if (suggest) {
-        suggest.setAttribute('type', 'button')
-        suggest.addEventListener('click', function () {
-          if (typeof onSuggest === 'function') onSuggest(element)
-        })
-        bodyNodes.push(suggest)
-      }
-
       var fields = []
       if (isObject(element.fields)) {
         Object.keys(element.fields).forEach(function (k) {
@@ -1879,8 +2083,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         },
         {
           domId: String(element.id || ''),
-          head: headNodes,
-          body: bodyNodes,
           collapsible: false,
           onRef: function (refId) {
             var target = refs && isObject(refs[String(refId)]) ? refs[String(refId)] : null
@@ -3712,15 +3914,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         }
       })
 
-      mountElementCards(
-        active,
-        filterElements(elements, activeSearchQuery || ''),
-        currentDrafts,
-        function (element) {
-          suggestFor(element, state, active, refresh)
-        },
-        refs,
-      )
+      mountElementCards(active, filterElements(elements, activeSearchQuery || ''), currentDrafts, refs)
       renderBanner(active, meta, config.needs, currentDrafts.length, function () {
         refresh(activeSearchQuery)
       }, state)
@@ -3737,6 +3931,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       renderViewTabs(active, config, model, meta, state, function () {
         refresh(activeSearchQuery)
       })
+
+      var content = active.getElementById('innfo-content') || active.getElementById('content')
+      if (content) {
+        active.dispatchEvent(new CustomEvent('innfo:rendered', { detail: { root: content } }))
+      }
     }
 
     if (hasNeed(config, 'feedback-export')) {
@@ -3744,6 +3943,18 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
 
     refresh('')
+
+    // C3: the controller builds the toggle into the (now rendered) banner and
+    // listens for innfo:rendered; created after the first paint so the banner
+    // rebuild does not drop the toggle.
+    if (hasNeed(config, 'feedback-export')) {
+      state.controller = Review.createReviewController(active, {
+        meta: meta,
+        elements: elements,
+        needs: config.needs,
+        store: state.store,
+      })
+    }
 
     if (hasNeed(config, 'document-view')) {
       renderDocumentView(active, elements, concepts)
@@ -3786,26 +3997,12 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
     onHash()
 
-    return { ok: true, needs: config.needs, elements: elements.length }
-  }
-
-  function suggestFor(element, state, doc, refresh) {
-    if (typeof prompt === 'undefined') return
-    var comment = prompt('Suggest for ' + element.name + ' (empty cancels):', '')
-    if (!comment || !String(comment).trim()) return
-    state.store.addDraft({
-      element_id: element.id,
-      concept: element.concept,
-      element: element.name,
-      base_hash: element.hash,
-      kind: 'comment',
-      comment: String(comment).trim(),
-    })
-    if (typeof refresh === 'function') refresh('')
+    return { ok: true, needs: config.needs, elements: elements.length, controller: state.controller }
   }
 
   function autoBoot() {
     try {
+      if (typeof globalThis !== 'undefined' && globalThis.__innfoNoAutoBoot) return
       if (typeof document === 'undefined' || !document.getElementById) return
       if (document.documentElement && document.documentElement.getAttribute('data-innfo-console-booted') === 'true') return
       if (!document.getElementById('innfo-config')) return
@@ -4106,6 +4303,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       }
 
       applyHash()
+
+      // C2: one dispatch per card commit; the review controller (owned by
+      // InnfoConsole) decorates the freshly rendered cards.
+      document.dispatchEvent(new CustomEvent('innfo:rendered', { detail: { root: content } }))
     }
 
     function matchesQuery(el, q) {
