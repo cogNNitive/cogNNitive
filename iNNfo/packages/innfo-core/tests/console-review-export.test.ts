@@ -1,22 +1,9 @@
-// @vitest-environment happy-dom
+// @vitest-environment node
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
-import { createRequire } from 'node:module'
+import { createConsoleEnv, modelConsolePath } from './helpers/console-review-env'
 
-const req = createRequire(import.meta.url)
-const consoleDir = join(import.meta.dirname!, '..', '..', '..', 'specs', 'bluepriNNts', 'console')
-const modelConsolePath = join(
-  import.meta.dirname!,
-  '..',
-  '..',
-  '..',
-  'specs',
-  'bluepriNNts',
-  'workspace',
-  'assets',
-  'model_console.html',
-)
+const env = createConsoleEnv()
 
 const sampleSchema = { concepts: [{ name: 'ParanormalThreat' }] }
 const sampleModel = {
@@ -53,26 +40,7 @@ function renderModelConsole(): void {
       '$1{"needs":["feedback-export","concept-rail","fulltext-search"]}$2',
     )
     .replace(/<script\b[^>]*\bsrc=[^>]*><\/script>/g, '')
-  document.documentElement.innerHTML = html
-}
-
-function loadModules() {
-  delete (globalThis as any).InnfoReview
-  delete (globalThis as any).InnfoConsole
-  delete (globalThis as any).InnfoModelViewer
-  delete (globalThis as any).InnfoUI
-  for (const f of ['ui-kit.js', 'review.js', 'innfo-runtime.js', 'render-model-viewer.js']) {
-    delete req.cache[req.resolve(join(consoleDir, f))]
-  }
-  const UI = req(join(consoleDir, 'ui-kit.js'))
-  ;(globalThis as any).InnfoUI = UI
-  const Review = req(join(consoleDir, 'review.js'))
-  ;(globalThis as any).InnfoReview = Review
-  const Console = req(join(consoleDir, 'innfo-runtime.js'))
-  ;(globalThis as any).InnfoConsole = Console
-  const Viewer = req(join(consoleDir, 'render-model-viewer.js'))
-  ;(globalThis as any).InnfoModelViewer = Viewer
-  return { Review, Console, Viewer, UI }
+  env.setup(html)
 }
 
 function seedDraft(overrides: any = {}) {
@@ -89,141 +57,131 @@ function seedDraft(overrides: any = {}) {
     created_at: '2026-10-02T12:00:00Z',
     ...overrides,
   }
-  localStorage.setItem(
+  env.localStorage.setItem(
     'innfo-console:v2:ghostbusters-model',
     JSON.stringify({ v: 2, modelId: 'ghostbusters-model', drafts: [draft], reviewed: {} }),
   )
 }
 
+function boot() {
+  const mods = env.loadConsole()
+  const res = mods.Console.boot(env.document)
+  return { mods, controller: res && res.controller }
+}
+
+function openModal() {
+  ;(env.document.getElementById('innfo-feedback-open') as HTMLElement).dispatchEvent(
+    new env.window.Event('click', { bubbles: true }),
+  )
+}
+
 describe('console-review-export (preview + clipboard)', () => {
   beforeEach(() => {
-    localStorage.clear()
-    ;(globalThis as any).__innfoNoAutoBoot = true
-    if (!HTMLDialogElement.prototype.showModal) {
-      HTMLDialogElement.prototype.showModal = function (this: HTMLDialogElement) {
+    renderModelConsole()
+    env.localStorage.clear()
+    const g = globalThis as any
+    if (!g.HTMLDialogElement.prototype.showModal) {
+      g.HTMLDialogElement.prototype.showModal = function (this: HTMLDialogElement) {
         this.setAttribute('open', 'open')
       }
     }
-    if (!HTMLDialogElement.prototype.close) {
-      HTMLDialogElement.prototype.close = function (this: HTMLDialogElement) {
+    if (!g.HTMLDialogElement.prototype.close) {
+      g.HTMLDialogElement.prototype.close = function (this: HTMLDialogElement) {
         this.removeAttribute('open')
       }
     }
   })
 
   afterEach(() => {
-    localStorage.clear()
-    ;(globalThis as any).__innfoNoAutoBoot = false
+    env.teardown()
     vi.restoreAllMocks()
+    vi.unstubAllGlobals()
   })
 
   it('opening the feedback modal renders a DraftList preview', () => {
     seedDraft()
-    renderModelConsole()
-    const { Console } = loadModules()
-    Console.boot(document)
-    ;(document.getElementById('innfo-feedback-open') as HTMLElement).dispatchEvent(
-      new Event('click', { bubbles: true }),
-    )
-    const preview = document.querySelector('#innfo-feedback-modal [data-innfo="preview"]')
+    boot()
+    openModal()
+    const preview = env.document.querySelector('#innfo-feedback-modal [data-innfo="preview"]')
     expect(preview).not.toBeNull()
     expect(preview!.querySelector('[data-innfo-component="draft-list"]')).not.toBeNull()
   })
 
   it('an empty identifier disables download and copy', () => {
     seedDraft()
-    renderModelConsole()
-    const { Console } = loadModules()
-    Console.boot(document)
-    ;(document.getElementById('innfo-feedback-open') as HTMLElement).dispatchEvent(
-      new Event('click', { bubbles: true }),
-    )
-    const download = document.querySelector(
+    boot()
+    openModal()
+    const download = env.document.querySelector(
       '#innfo-feedback-modal [data-innfo="download"]',
     ) as HTMLButtonElement
-    const copy = document.querySelector(
+    const copy = env.document.querySelector(
       '#innfo-feedback-modal [data-innfo="copy"]',
     ) as HTMLButtonElement
     expect(download.disabled).toBe(true)
     expect(copy.disabled).toBe(true)
   })
 
-  it('clipboard writeText receives exactly the export JSON', async () => {
+  it('clipboard writeText receives exactly the export JSON', () => {
     seedDraft()
-    renderModelConsole()
-    const { Console } = loadModules()
-    Console.boot(document)
+    boot()
     const writeText = vi.fn().mockResolvedValue(undefined)
-    Object.defineProperty(navigator, 'clipboard', {
-      value: { writeText },
-      configurable: true,
-    })
+    vi.stubGlobal('navigator', { clipboard: { writeText } })
 
-    ;(document.getElementById('innfo-feedback-open') as HTMLElement).dispatchEvent(
-      new Event('click', { bubbles: true }),
-    )
-    const idInput = document.querySelector(
+    openModal()
+    const idInput = env.document.querySelector(
       '#innfo-feedback-modal [data-innfo="identifier"]',
     ) as HTMLInputElement
     idInput.value = 'Egon Spengler'
-    idInput.dispatchEvent(new Event('input', { bubbles: true }))
+    idInput.dispatchEvent(new env.window.Event('input', { bubbles: true }))
 
-    const copy = document.querySelector(
+    const copy = env.document.querySelector(
       '#innfo-feedback-modal [data-innfo="copy"]',
     ) as HTMLButtonElement
-    copy.dispatchEvent(new Event('click', { bubbles: true }))
+    copy.dispatchEvent(new env.window.Event('click', { bubbles: true }))
 
     expect(writeText).toHaveBeenCalledTimes(1)
     const text = writeText.mock.calls[0][0]
     expect(text).toContain('"base_hash"')
     expect(text).not.toContain('"status"')
-    const status = document.querySelector('#innfo-feedback-modal [data-innfo="copy-status"]')!
+    const status = env.document.querySelector('#innfo-feedback-modal [data-innfo="copy-status"]')!
     expect(status.getAttribute('role')).toBe('status')
   })
 
   it('clipboard unavailable falls back to execCommand and announces without throwing', () => {
     seedDraft()
-    renderModelConsole()
-    const { Console } = loadModules()
-    Console.boot(document)
-    Object.defineProperty(navigator, 'clipboard', { value: undefined, configurable: true })
+    boot()
+    vi.stubGlobal('navigator', { clipboard: undefined })
     const execCommand = vi.fn().mockReturnValue(true)
-    ;(document as any).execCommand = execCommand
+    ;(env.document as any).execCommand = execCommand
 
-    ;(document.getElementById('innfo-feedback-open') as HTMLElement).dispatchEvent(
-      new Event('click', { bubbles: true }),
-    )
-    const idInput = document.querySelector(
+    openModal()
+    const idInput = env.document.querySelector(
       '#innfo-feedback-modal [data-innfo="identifier"]',
     ) as HTMLInputElement
     idInput.value = 'Egon Spengler'
-    idInput.dispatchEvent(new Event('input', { bubbles: true }))
+    idInput.dispatchEvent(new env.window.Event('input', { bubbles: true }))
 
-    const copy = document.querySelector(
+    const copy = env.document.querySelector(
       '#innfo-feedback-modal [data-innfo="copy"]',
     ) as HTMLButtonElement
-    expect(() => copy.dispatchEvent(new Event('click', { bubbles: true }))).not.toThrow()
+    expect(() => copy.dispatchEvent(new env.window.Event('click', { bubbles: true }))).not.toThrow()
     expect(execCommand).toHaveBeenCalled()
     expect(
-      document.querySelector('#innfo-feedback-modal [data-innfo="copy-status"]')!.textContent,
+      env.document.querySelector('#innfo-feedback-modal [data-innfo="copy-status"]')!.textContent,
     ).toBeTruthy()
   })
 
   it('exported items carry base_hash and no status', () => {
     seedDraft()
-    renderModelConsole()
-    const { Console } = loadModules()
-    Console.boot(document)
-    ;(document.getElementById('innfo-feedback-open') as HTMLElement).dispatchEvent(
-      new Event('click', { bubbles: true }),
-    )
-    const idInput = document.querySelector(
+    boot()
+    openModal()
+    const idInput = env.document.querySelector(
       '#innfo-feedback-modal [data-innfo="identifier"]',
     ) as HTMLInputElement
     idInput.value = 'Egon Spengler'
-    idInput.dispatchEvent(new Event('input', { bubbles: true }))
+    idInput.dispatchEvent(new env.window.Event('input', { bubbles: true }))
 
-    const textarea = document.querySelector(
+    const textarea = env.document.querySelector(
       '#innfo-feedback-modal [data-innfo="export-json"]',
     ) as HTMLTextAreaElement
     const doc = JSON.parse(textarea.value)

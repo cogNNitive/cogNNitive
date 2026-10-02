@@ -1,21 +1,19 @@
-// @vitest-environment happy-dom
+// @vitest-environment node
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { createRequire } from 'node:module'
+import { createConsoleEnv, consoleDir } from './helpers/console-review-env'
 
-const req = createRequire(import.meta.url)
-const consoleDir = join(import.meta.dirname!, '..', '..', '..', 'specs', 'bluepriNNts', 'console')
+const env = createConsoleEnv()
 
 describe('console-review-tab (shell CSS + DraftList)', () => {
   beforeEach(() => {
-    ;(globalThis as any).__innfoNoAutoBoot = true
-    localStorage.clear()
-    document.body.innerHTML = ''
+    env.setup('<!doctype html><html><head></head><body></body></html>')
+    env.localStorage.clear()
   })
 
   afterEach(() => {
-    ;(globalThis as any).__innfoNoAutoBoot = false
+    env.teardown()
     vi.restoreAllMocks()
   })
 
@@ -29,22 +27,13 @@ describe('console-review-tab (shell CSS + DraftList)', () => {
   })
 
   it('renderReviewTab renders through InnfoUI.DraftList', () => {
-    delete (globalThis as any).InnfoUI
-    delete (globalThis as any).InnfoReview
-    delete (globalThis as any).InnfoConsole
-    for (const f of ['ui-kit.js', 'review.js', 'innfo-runtime.js']) {
-      delete req.cache[req.resolve(join(consoleDir, f))]
-    }
-    ;(globalThis as any).InnfoUI = req(join(consoleDir, 'ui-kit.js'))
-    ;(globalThis as any).InnfoReview = req(join(consoleDir, 'review.js'))
-    const Console = req(join(consoleDir, 'innfo-runtime.js'))
+    const { Review, Console } = env.loadConsole()
 
-    const host = document.createElement('div')
+    const host = env.document.createElement('div')
     host.id = 'innfo-tab-review'
-    document.body.appendChild(host)
+    env.document.body.appendChild(host)
 
-    const Review = (globalThis as any).InnfoReview
-    const store = Review.createDraftStore(localStorage, 'm1')
+    const store = Review.createDraftStore(env.localStorage, 'm1')
     store.addDraft({
       element_id: 'e1',
       concept: 'C',
@@ -53,7 +42,7 @@ describe('console-review-tab (shell CSS + DraftList)', () => {
       kind: 'comment',
       comment: 'hi',
     })
-    Console.renderReviewTab(document, { store }, { needs: [] })
+    Console.renderReviewTab(env.document, { store }, { needs: [] })
 
     expect(host.querySelector('[data-innfo-component="draft-list"]')).not.toBeNull()
   })

@@ -1,22 +1,9 @@
-// @vitest-environment happy-dom
+// @vitest-environment node
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
-import { createRequire } from 'node:module'
+import { createConsoleEnv, modelConsolePath } from './helpers/console-review-env'
 
-const req = createRequire(import.meta.url)
-const consoleDir = join(import.meta.dirname!, '..', '..', '..', 'specs', 'bluepriNNts', 'console')
-const modelConsolePath = join(
-  import.meta.dirname!,
-  '..',
-  '..',
-  '..',
-  'specs',
-  'bluepriNNts',
-  'workspace',
-  'assets',
-  'model_console.html',
-)
+const env = createConsoleEnv()
 
 const sampleSchema = { concepts: [{ name: 'ParanormalThreat' }] }
 
@@ -57,37 +44,18 @@ function renderModelConsole(model = buildModel()): void {
       '$1{"needs":["feedback-export","concept-rail","fulltext-search"]}$2',
     )
     .replace(/<script\b[^>]*\bsrc=[^>]*><\/script>/g, '')
-  document.documentElement.innerHTML = html
-}
-
-function loadModules() {
-  delete (globalThis as any).InnfoReview
-  delete (globalThis as any).InnfoConsole
-  delete (globalThis as any).InnfoModelViewer
-  delete (globalThis as any).InnfoUI
-  for (const f of ['ui-kit.js', 'review.js', 'innfo-runtime.js', 'render-model-viewer.js']) {
-    delete req.cache[req.resolve(join(consoleDir, f))]
-  }
-  const UI = req(join(consoleDir, 'ui-kit.js'))
-  ;(globalThis as any).InnfoUI = UI
-  const Review = req(join(consoleDir, 'review.js'))
-  ;(globalThis as any).InnfoReview = Review
-  const Console = req(join(consoleDir, 'innfo-runtime.js'))
-  ;(globalThis as any).InnfoConsole = Console
-  const Viewer = req(join(consoleDir, 'render-model-viewer.js'))
-  ;(globalThis as any).InnfoModelViewer = Viewer
-  return { Review, Console, Viewer, UI }
+  env.setup(html)
 }
 
 let controllers: any[] = []
 
 function boot(withReview: boolean) {
-  const mods = loadModules()
-  const res = mods.Console.boot(document)
+  const mods = env.loadConsole()
+  const res = mods.Console.boot(env.document)
   if (res && res.controller) controllers.push(res.controller)
   if (withReview) {
-    ;(document.querySelector('[data-innfo="review-toggle"]') as HTMLElement).dispatchEvent(
-      new Event('click', { bubbles: true }),
+    ;(env.document.querySelector('[data-innfo="review-toggle"]') as HTMLElement).dispatchEvent(
+      new env.window.Event('click', { bubbles: true }),
     )
   }
   mods.Viewer.boot()
@@ -96,17 +64,15 @@ function boot(withReview: boolean) {
 
 describe('console-review-badges (verdict badges from feedbackState)', () => {
   beforeEach(() => {
-    localStorage.clear()
     controllers = []
-    ;(globalThis as any).__innfoNoAutoBoot = true
-    document.documentElement.removeAttribute('data-innfo-review')
+    env.setup(readFileSync(modelConsolePath, 'utf8'))
+    env.localStorage.clear()
   })
 
   afterEach(() => {
     controllers.forEach((c) => c && c.destroy && c.destroy())
     controllers = []
-    localStorage.clear()
-    ;(globalThis as any).__innfoNoAutoBoot = false
+    env.teardown()
     vi.restoreAllMocks()
   })
 
@@ -115,7 +81,7 @@ describe('console-review-badges (verdict badges from feedbackState)', () => {
       buildModel([{ id: 'fb-001', element_id: 'threat-slimer', status: 'applied' }]),
     )
     boot(false)
-    const badges = document.querySelector(
+    const badges = env.document.querySelector(
       '[data-element-id="threat-slimer"] [data-innfo-review-badges]',
     )
     expect(badges).not.toBeNull()
@@ -129,8 +95,8 @@ describe('console-review-badges (verdict badges from feedbackState)', () => {
       buildModel([{ id: 'fb-001', element_id: 'threat-slimer', status: 'stale' }]),
     )
     boot(false)
-    expect(document.documentElement.getAttribute('data-innfo-review')).not.toBe('on')
-    const badge = document.querySelector(
+    expect(env.document.documentElement.getAttribute('data-innfo-review')).not.toBe('on')
+    const badge = env.document.querySelector(
       '[data-innfo-review-badges] [data-innfo-component="status-badge"]',
     ) as HTMLElement
     expect(badge).not.toBeNull()
@@ -138,7 +104,8 @@ describe('console-review-badges (verdict badges from feedbackState)', () => {
   })
 
   it('a local draft alone produces no verdict badge', () => {
-    localStorage.setItem(
+    renderModelConsole(buildModel())
+    env.localStorage.setItem(
       'innfo-console:v2:ghostbusters-model',
       JSON.stringify({
         v: 2,
@@ -157,9 +124,8 @@ describe('console-review-badges (verdict badges from feedbackState)', () => {
         reviewed: {},
       }),
     )
-    renderModelConsole(buildModel())
     boot(false)
-    expect(document.querySelector('[data-innfo-review-badges]')).toBeNull()
+    expect(env.document.querySelector('[data-innfo-review-badges]')).toBeNull()
   })
 
   it('ignores orphan feedback entries targeting a missing element', () => {
@@ -167,6 +133,6 @@ describe('console-review-badges (verdict badges from feedbackState)', () => {
       buildModel([{ id: 'fb-001', element_id: 'ghost-element', status: 'applied' }]),
     )
     expect(() => boot(false)).not.toThrow()
-    expect(document.querySelector('[data-innfo-review-badges]')).toBeNull()
+    expect(env.document.querySelector('[data-innfo-review-badges]')).toBeNull()
   })
 })

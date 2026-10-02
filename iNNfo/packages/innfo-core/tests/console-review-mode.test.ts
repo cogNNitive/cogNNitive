@@ -1,13 +1,9 @@
-// @vitest-environment happy-dom
+// @vitest-environment node
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
-import { createRequire } from 'node:module'
+import { createConsoleEnv, modelConsolePath } from './helpers/console-review-env'
 
-const req = createRequire(import.meta.url)
-const consoleDir = join(import.meta.dirname!, '..', '..', '..', 'specs', 'bluepriNNts', 'console')
-const bpRoot = join(import.meta.dirname!, '..', '..', '..', 'specs', 'bluepriNNts')
-const modelConsolePath = join(bpRoot, 'workspace', 'assets', 'model_console.html')
+const env = createConsoleEnv()
 
 const sampleSchema = {
   concepts: [{ name: 'ParanormalThreat' }, { name: 'ContainmentEquipment' }],
@@ -60,28 +56,7 @@ function renderModelConsole(overrideConfig?: any, overrideMeta?: any): void {
         : '$1{"needs":["feedback-export","concept-rail","fulltext-search"]}$2',
     )
     .replace(/<script\b[^>]*\bsrc=[^>]*><\/script>/g, '')
-  document.documentElement.innerHTML = filled
-  document.documentElement.removeAttribute('data-innfo-review')
-  document.documentElement.removeAttribute('data-innfo-filter')
-}
-
-function loadModules() {
-  delete (globalThis as any).InnfoReview
-  delete (globalThis as any).InnfoConsole
-  delete (globalThis as any).InnfoModelViewer
-  delete (globalThis as any).InnfoUI
-  for (const f of ['ui-kit.js', 'review.js', 'innfo-runtime.js', 'render-model-viewer.js']) {
-    delete req.cache[req.resolve(join(consoleDir, f))]
-  }
-  const UI = req(join(consoleDir, 'ui-kit.js'))
-  ;(globalThis as any).InnfoUI = UI
-  const Review = req(join(consoleDir, 'review.js'))
-  ;(globalThis as any).InnfoReview = Review
-  const Console = req(join(consoleDir, 'innfo-runtime.js'))
-  ;(globalThis as any).InnfoConsole = Console
-  const Viewer = req(join(consoleDir, 'render-model-viewer.js'))
-  ;(globalThis as any).InnfoModelViewer = Viewer
-  return { Review, Console, Viewer, UI }
+  env.setup(filled)
 }
 
 function reviewCtl(doc: Document): Element[] {
@@ -92,33 +67,29 @@ describe('console-review-mode (toggle + decoration)', () => {
   let controllers: any[] = []
 
   function bootConsole() {
-    const mods = loadModules()
-    const res = mods.Console.boot(document)
+    const mods = env.loadConsole()
+    const res = mods.Console.boot(env.document)
     if (res && res.controller) controllers.push(res.controller)
     return mods
   }
 
   beforeEach(() => {
-    localStorage.clear()
     controllers = []
-    ;(globalThis as any).__innfoNoAutoBoot = true
-    document.documentElement.removeAttribute('data-innfo-review')
-    document.documentElement.removeAttribute('data-innfo-filter')
-    document.documentElement.removeAttribute('data-innfo-console-booted')
+    env.setup(readFileSync(modelConsolePath, 'utf8'))
+    env.localStorage.clear()
   })
 
   afterEach(() => {
     controllers.forEach((c) => c && typeof c.destroy === 'function' && c.destroy())
     controllers = []
-    localStorage.clear()
-    ;(globalThis as any).__innfoNoAutoBoot = false
+    env.teardown()
     vi.restoreAllMocks()
   })
 
   it('renders the toggle only with feedback-export, modelId and all 16-hex hashes', () => {
     renderModelConsole()
-    const { Console } = bootConsole()
-    expect(document.querySelector('[data-innfo="review-toggle"]')).not.toBeNull()
+    bootConsole()
+    expect(env.document.querySelector('[data-innfo="review-toggle"]')).not.toBeNull()
   })
 
   it('withholds the toggle when modelId is missing', () => {
@@ -127,8 +98,8 @@ describe('console-review-mode (toggle + decoration)', () => {
       modelVersion: 'V_0-2-1',
       sha256: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
     })
-    const { Console } = bootConsole()
-    expect(document.querySelector('[data-innfo="review-toggle"]')).toBeNull()
+    bootConsole()
+    expect(env.document.querySelector('[data-innfo="review-toggle"]')).toBeNull()
   })
 
   it('withholds the toggle when an element lacks a hash', () => {
@@ -148,30 +119,30 @@ describe('console-review-mode (toggle + decoration)', () => {
         '$1{"needs":["feedback-export","concept-rail","fulltext-search"]}$2',
       )
       .replace(/<script\b[^>]*\bsrc=[^>]*><\/script>/g, '')
-    document.documentElement.innerHTML = html
+    env.setup(html)
 
-    const { Console } = bootConsole()
-    expect(document.querySelector('[data-innfo="review-toggle"]')).toBeNull()
+    bootConsole()
+    expect(env.document.querySelector('[data-innfo="review-toggle"]')).toBeNull()
   })
 
   it('is off by default: zero review control nodes', () => {
     renderModelConsole()
-    const { Console } = bootConsole()
-    expect(document.documentElement.getAttribute('data-innfo-review')).not.toBe('on')
-    expect(reviewCtl(document)).toHaveLength(0)
+    bootConsole()
+    expect(env.document.documentElement.getAttribute('data-innfo-review')).not.toBe('on')
+    expect(reviewCtl(env.document)).toHaveLength(0)
   })
 
   it('toggle on sets html[data-innfo-review=on], aria-pressed and decorates every card', () => {
     renderModelConsole()
-    const { Console, Viewer } = bootConsole()
+    const { Viewer } = bootConsole()
     Viewer.boot()
 
-    const toggle = document.querySelector('[data-innfo="review-toggle"]') as HTMLElement
-    toggle.dispatchEvent(new Event('click', { bubbles: true }))
+    const toggle = env.document.querySelector('[data-innfo="review-toggle"]') as HTMLElement
+    toggle.dispatchEvent(new env.window.Event('click', { bubbles: true }))
 
-    expect(document.documentElement.getAttribute('data-innfo-review')).toBe('on')
+    expect(env.document.documentElement.getAttribute('data-innfo-review')).toBe('on')
     expect(toggle.getAttribute('aria-pressed')).toBe('true')
-    const cards = document.querySelectorAll('#content [data-innfo-component="element-card"]')
+    const cards = env.document.querySelectorAll('#content [data-innfo-component="element-card"]')
     expect(cards.length).toBeGreaterThan(0)
     cards.forEach((card) => {
       expect(card.querySelectorAll('[data-innfo-review-ctl]').length).toBeGreaterThan(0)
@@ -180,43 +151,43 @@ describe('console-review-mode (toggle + decoration)', () => {
 
   it('toggle off cleans up every review control', () => {
     renderModelConsole()
-    const { Console, Viewer } = bootConsole()
+    const { Viewer } = bootConsole()
     Viewer.boot()
-    const toggle = document.querySelector('[data-innfo="review-toggle"]') as HTMLElement
-    toggle.dispatchEvent(new Event('click', { bubbles: true }))
-    expect(reviewCtl(document).length).toBeGreaterThan(0)
+    const toggle = env.document.querySelector('[data-innfo="review-toggle"]') as HTMLElement
+    toggle.dispatchEvent(new env.window.Event('click', { bubbles: true }))
+    expect(reviewCtl(env.document).length).toBeGreaterThan(0)
 
-    toggle.dispatchEvent(new Event('click', { bubbles: true }))
-    expect(document.documentElement.getAttribute('data-innfo-review')).not.toBe('on')
-    expect(reviewCtl(document)).toHaveLength(0)
+    toggle.dispatchEvent(new env.window.Event('click', { bubbles: true }))
+    expect(env.document.documentElement.getAttribute('data-innfo-review')).not.toBe('on')
+    expect(reviewCtl(env.document)).toHaveLength(0)
   })
 
   it('re-render dispatches innfo:rendered and re-decorates idempotently', () => {
     renderModelConsole()
-    const { Console, Viewer } = bootConsole()
+    const { Viewer } = bootConsole()
     Viewer.boot()
-    const toggle = document.querySelector('[data-innfo="review-toggle"]') as HTMLElement
-    toggle.dispatchEvent(new Event('click', { bubbles: true }))
+    const toggle = env.document.querySelector('[data-innfo="review-toggle"]') as HTMLElement
+    toggle.dispatchEvent(new env.window.Event('click', { bubbles: true }))
 
-    const search = document.getElementById('search') as HTMLInputElement
+    const search = env.document.getElementById('search') as HTMLInputElement
     search.value = 'slimer'
-    search.dispatchEvent(new Event('input', { bubbles: true }))
+    search.dispatchEvent(new env.window.Event('input', { bubbles: true }))
 
-    const visibleCards = document.querySelectorAll('#content [data-innfo-component="element-card"]')
+    const visibleCards = env.document.querySelectorAll('#content [data-innfo-component="element-card"]')
     expect(visibleCards.length).toBe(1)
     expect(visibleCards[0].querySelectorAll('[data-innfo-review-ctl]').length).toBeGreaterThan(0)
   })
 
   it('decorates the viewer cards from the same controller when the viewer renders', () => {
     renderModelConsole()
-    const { Console, Viewer } = bootConsole()
-    const toggle = document.querySelector('[data-innfo="review-toggle"]') as HTMLElement
-    toggle.dispatchEvent(new Event('click', { bubbles: true }))
+    const { Viewer } = bootConsole()
+    const toggle = env.document.querySelector('[data-innfo="review-toggle"]') as HTMLElement
+    toggle.dispatchEvent(new env.window.Event('click', { bubbles: true }))
 
     Viewer.boot()
 
     const viewerCards = Array.from(
-      document.querySelectorAll('#content [data-innfo-component="element-card"]'),
+      env.document.querySelectorAll('#content [data-innfo-component="element-card"]'),
     )
     expect(viewerCards.length).toBeGreaterThan(0)
     viewerCards.forEach((card) => {
