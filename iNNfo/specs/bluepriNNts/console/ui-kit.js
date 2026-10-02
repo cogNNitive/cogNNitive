@@ -129,6 +129,16 @@
     '.innfo-status-badge[data-status=applied]{color:var(--innfo-status-applied);background:var(--innfo-status-applied-bg)}',
     '.innfo-status-badge[data-status=rejected]{color:var(--innfo-status-rejected);background:var(--innfo-status-rejected-bg)}',
     '.innfo-status-badge[data-status=stale]{color:var(--innfo-status-stale);background:var(--innfo-status-stale-bg)}',
+    '.innfo-draft-list{list-style:none;margin:0;padding:0}',
+    '.innfo-draft-row{display:flex;align-items:baseline;gap:.5em;padding:.3em 0;border-bottom:1px solid var(--innfo-border)}',
+    '.innfo-draft-kind{font-weight:600;color:var(--innfo-muted)}',
+    '.innfo-draft-text{flex:1 1 auto}',
+    '.innfo-draft-target-changed{color:var(--innfo-status-stale);font-size:.8rem}',
+    '.innfo-annotation-popover{border:1px solid var(--innfo-border);border-radius:var(--innfo-radius);background:var(--innfo-surface);padding:.75em;box-shadow:var(--innfo-shadow)}',
+    '.innfo-popover-original{color:var(--innfo-muted)}',
+    '.innfo-popover-proposed{display:block;width:100%;font:inherit}',
+    '.innfo-rail-progress{color:var(--innfo-muted);font-size:.75rem}',
+    '@media (max-width:640px){.innfo-annotation-popover{width:100%}}',
   ]
   for (var slot = 1; slot <= 12; slot++) {
     COMPONENT_CSS.push(
@@ -485,6 +495,141 @@
     return card
   }
 
+  function DraftList(data, opts) {
+    if (!data || typeof data !== 'object') throw new TypeError('InnfoUI.DraftList: data required')
+    var doc = resolveDoc(opts)
+    var drafts = Array.isArray(data.drafts) ? data.drafts : []
+    var byId = data.byId && typeof data.byId === 'object' ? data.byId : {}
+    var ul = makeEl(doc, 'ul', 'innfo-draft-list')
+    ul.setAttribute('data-innfo-component', 'draft-list')
+    drafts.forEach(function (d) {
+      if (!d || typeof d !== 'object') return
+      var el = byId[String(d.element_id)]
+      var changed = !el || el.hash !== d.base_hash
+      var li = makeEl(doc, 'li', 'innfo-draft-row')
+      li.setAttribute('data-draft-id', String(d.id))
+      if (changed) li.setAttribute('data-target-changed', 'true')
+      li.appendChild(makeEl(doc, 'span', 'innfo-draft-kind', d.kind))
+      var targetLabel = el ? el.name || d.element_id : d.element || d.element_id
+      li.appendChild(
+        makeEl(doc, 'span', 'innfo-draft-target', targetLabel + (d.field ? '.' + d.field : '')),
+      )
+      var text = d.comment != null ? d.comment : d.proposed != null ? d.proposed : ''
+      li.appendChild(makeEl(doc, 'span', 'innfo-draft-text', text))
+      if (changed) li.appendChild(makeEl(doc, 'span', 'innfo-draft-target-changed', 'target changed'))
+      var del = makeEl(doc, 'button', 'innfo-draft-delete', 'Delete')
+      del.setAttribute('type', 'button')
+      del.addEventListener('click', function () {
+        if (opts && typeof opts.onDelete === 'function') opts.onDelete(d.id)
+      })
+      li.appendChild(del)
+      ul.appendChild(li)
+    })
+    return ul
+  }
+
+  function AnnotationPopover(data, opts) {
+    if (!data || typeof data !== 'object') {
+      throw new TypeError('InnfoUI.AnnotationPopover: data required')
+    }
+    var doc = resolveDoc(opts)
+    var kinds = Array.isArray(data.kinds) && data.kinds.length ? data.kinds : ['comment']
+    var hasCorrection = kinds.indexOf('correction') !== -1
+    var pop = makeEl(doc, 'div', 'innfo-annotation-popover')
+    pop.setAttribute('data-innfo-component', 'annotation-popover')
+    pop.setAttribute('role', 'dialog')
+    pop.setAttribute('aria-modal', 'true')
+    pop.setAttribute('tabindex', '-1')
+    pop.appendChild(makeEl(doc, 'p', 'innfo-popover-label', data.label))
+    kinds.forEach(function (k) {
+      var b = makeEl(doc, 'button', 'innfo-popover-kind', k)
+      b.setAttribute('type', 'button')
+      b.setAttribute('data-kind', k)
+      pop.appendChild(b)
+    })
+    if (hasCorrection) {
+      if (data.original != null) {
+        pop.appendChild(makeEl(doc, 'span', 'innfo-popover-original', String(data.original)))
+      }
+      pop.appendChild(makeEl(doc, 'textarea', 'innfo-popover-proposed'))
+    }
+    var save = makeEl(doc, 'button', 'innfo-popover-save', 'Save')
+    save.setAttribute('type', 'button')
+    save.addEventListener('click', function () {
+      var payload = { kind: hasCorrection ? 'correction' : kinds[0] }
+      if (hasCorrection) {
+        var ta = pop.querySelector('textarea')
+        payload.proposed = ta ? ta.value : ''
+      }
+      if (opts && typeof opts.onSave === 'function') opts.onSave(payload)
+    })
+    var cancel = makeEl(doc, 'button', 'innfo-popover-cancel', 'Cancel')
+    cancel.setAttribute('type', 'button')
+    cancel.addEventListener('click', function () {
+      if (opts && typeof opts.onCancel === 'function') opts.onCancel()
+    })
+    pop.appendChild(save)
+    pop.appendChild(cancel)
+    pop.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') {
+        if (typeof e.preventDefault === 'function') e.preventDefault()
+        if (opts && typeof opts.onCancel === 'function') opts.onCancel()
+        return
+      }
+      if (e.key === 'Tab') {
+        var f = pop.querySelectorAll('button, textarea, input, [tabindex]')
+        if (!f.length) return
+        var first = f[0]
+        var last = f[f.length - 1]
+        if (e.shiftKey && doc.activeElement === first) {
+          if (typeof e.preventDefault === 'function') e.preventDefault()
+          last.focus()
+        } else if (!e.shiftKey && doc.activeElement === last) {
+          if (typeof e.preventDefault === 'function') e.preventDefault()
+          first.focus()
+        }
+      }
+    })
+    return pop
+  }
+
+  var REVIEW_STATES = ['none', 'reviewed', 'changed']
+
+  function ReviewedToggle(data) {
+    if (!data || typeof data !== 'object') {
+      throw new TypeError('InnfoUI.ReviewedToggle: data required')
+    }
+    var state = REVIEW_STATES.indexOf(data.state) !== -1 ? data.state : 'none'
+    var doc = resolveDoc(null)
+    var b = makeEl(doc, 'button', 'innfo-reviewed-toggle', state)
+    b.setAttribute('data-innfo-component', 'reviewed-toggle')
+    b.setAttribute('type', 'button')
+    b.setAttribute('data-state', String(state))
+    b.setAttribute('aria-pressed', state === 'reviewed' ? 'true' : 'false')
+    return b
+  }
+
+  function RailProgress(data) {
+    if (!data || typeof data !== 'object') {
+      throw new TypeError('InnfoUI.RailProgress: data required')
+    }
+    var reviewed = Number(data.reviewed)
+    var total = Number(data.total)
+    var pending = Number(data.pending)
+    if (!isFinite(reviewed) || !isFinite(total) || !isFinite(pending)) {
+      throw new TypeError('InnfoUI.RailProgress: numeric reviewed, total and pending required')
+    }
+    var doc = resolveDoc(null)
+    var span = makeEl(doc, 'span', 'innfo-rail-progress')
+    span.setAttribute('data-innfo-component', 'rail-progress')
+    span.setAttribute('data-reviewed', String(reviewed))
+    span.setAttribute('data-total', String(total))
+    span.setAttribute('data-pending', String(pending))
+    span.appendChild(doc.createTextNode(reviewed + '/' + total))
+    span.appendChild(makeEl(doc, 'span', 'innfo-rail-progress-pending', String(pending)))
+    return span
+  }
+
   // Token injection at load when a document exists. The bundle loads up to 3
   // times per shell; ensureTokens is idempotent, so this is safe.
   if (typeof document !== 'undefined' && document.head) {
@@ -524,5 +669,9 @@
     FieldRow: FieldRow,
     ElementCard: ElementCard,
     CITATION_ORIGIN_LABELS: CITATION_ORIGIN_LABELS,
+    DraftList: DraftList,
+    AnnotationPopover: AnnotationPopover,
+    ReviewedToggle: ReviewedToggle,
+    RailProgress: RailProgress,
   }
 })

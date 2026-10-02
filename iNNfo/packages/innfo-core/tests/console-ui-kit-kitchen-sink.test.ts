@@ -11,7 +11,7 @@ const sinkJsPath = join(import.meta.dirname!, 'fixtures', 'console-kitchen-sink'
 
 const UI = req(uiKitPath) as any
 
-// Components implemented in slices b + c1 (c2/f extend this list).
+// Components implemented in slices b + c1 + f (c2 extends this list).
 const IMPLEMENTED = [
   'concept-pill',
   'element-pill',
@@ -20,6 +20,10 @@ const IMPLEMENTED = [
   'element-card',
   'field-row',
   'citation-icon',
+  'draft-list',
+  'annotation-popover',
+  'reviewed-toggle',
+  'rail-progress',
 ]
 
 describe('console ui-kit kitchen sink', () => {
@@ -60,6 +64,10 @@ describe('console ui-kit kitchen sink', () => {
           fields: [{ name: 'f', value: 'v', citations: [{ origin: 'agent', field: 'f' }] }],
         }),
       )
+      root.appendChild(UI.DraftList({ drafts: [], byId: {} }))
+      root.appendChild(UI.AnnotationPopover({ label: 'f', kinds: ['comment'] }, {}))
+      root.appendChild(UI.ReviewedToggle({ state: 'reviewed' }))
+      root.appendChild(UI.RailProgress({ reviewed: 1, total: 2, pending: 1 }))
       for (const name of IMPLEMENTED) {
         expect(
           root.querySelector(`[data-innfo-component=${name}]`),
