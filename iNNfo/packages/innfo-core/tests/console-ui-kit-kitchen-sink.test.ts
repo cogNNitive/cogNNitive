@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { createRequire } from 'node:module'
 
@@ -11,8 +11,16 @@ const sinkJsPath = join(import.meta.dirname!, 'fixtures', 'console-kitchen-sink'
 
 const UI = req(uiKitPath) as any
 
-// Components implemented in slice b (c1/c2/f extend this list).
-const IMPLEMENTED = ['concept-pill', 'element-pill', 'marker-chip', 'status-badge']
+// Components implemented in slices b + c1 (c2/f extend this list).
+const IMPLEMENTED = [
+  'concept-pill',
+  'element-pill',
+  'marker-chip',
+  'status-badge',
+  'element-card',
+  'field-row',
+  'citation-icon',
+]
 
 describe('console ui-kit kitchen sink', () => {
   it('the fixture boots offline with no fetch and no module system', () => {
@@ -21,6 +29,18 @@ describe('console ui-kit kitchen sink', () => {
     const html = readFileSync(join(import.meta.dirname!, 'fixtures', 'console-kitchen-sink', 'index.html'), 'utf8')
     expect(html).not.toContain('type="module"')
     expect(html).toContain('ui-kit.js')
+  })
+
+  it('goal check: no duplicate builder names survive outside ui-kit.js and the bundle', () => {
+    const banned = ['renderConceptPill', 'renderElementPill', 'renderCards', 'svgIcon']
+    const offenders: string[] = []
+    for (const f of readdirSync(consoleDir)) {
+      if (!f.endsWith('.js')) continue
+      if (f === 'ui-kit.js' || f.endsWith('.bundle.js')) continue
+      const src = readFileSync(join(consoleDir, f), 'utf8')
+      for (const name of banned) if (src.includes(name)) offenders.push(`${f}:${name}`)
+    }
+    expect(offenders).toEqual([])
   })
 
   it('renders every implemented data-innfo-component under both themes', () => {
@@ -33,6 +53,13 @@ describe('console ui-kit kitchen sink', () => {
       root.appendChild(UI.ElementPill({ id: 'e', label: 'E', origin: 'agent' }))
       root.appendChild(UI.MarkerChip({ id: 'm', label: 'M', kind: 'field', value: 'v' }))
       root.appendChild(UI.StatusBadge({ status: 'pending', count: 2 }))
+      root.appendChild(
+        UI.ElementCard({
+          id: 'card',
+          name: 'Card',
+          fields: [{ name: 'f', value: 'v', citations: [{ origin: 'agent', field: 'f' }] }],
+        }),
+      )
       for (const name of IMPLEMENTED) {
         expect(
           root.querySelector(`[data-innfo-component=${name}]`),

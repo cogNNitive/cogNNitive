@@ -550,6 +550,132 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return badge
   }
 
+  // Canonical citation-origin order + labels (moved out of the runtime).
+  var CITATION_ORIGIN_LABELS = {
+    agent: 'AI agent',
+    human: 'Human author',
+    reviewer: 'Reviewer feedback',
+    document: 'Document',
+    error: 'Unresolved citation',
+  }
+
+  function originVariantOf(entry) {
+    if (entry && entry.error) return 'error'
+    var o = entry && entry.origin
+    return CITATION_ORIGIN_LABELS[o] ? o : 'document'
+  }
+
+  function CitationIcon(data, opts) {
+    if (!data || typeof data !== 'object') throw new TypeError('InnfoUI.CitationIcon: data required')
+    var doc = resolveDoc(opts)
+    var variant = data.variant || 'document'
+    var btn = makeEl(doc, 'button', 'cite-icon')
+    btn.setAttribute('data-innfo-component', 'citation-icon')
+    btn.setAttribute('type', 'button')
+    btn.setAttribute('data-origin', String(variant))
+    btn.setAttribute('data-field', String(data.field == null ? '' : data.field))
+    var label = (CITATION_ORIGIN_LABELS[variant] || variant) + ': ' + (data.field == null ? '' : data.field)
+    btn.setAttribute('aria-label', label)
+    btn.setAttribute('title', label)
+    btn.innerHTML = icon('cite-' + variant, 14)
+    btn.addEventListener('click', function (ev) {
+      if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation()
+      if (opts && typeof opts.onOpen === 'function') opts.onOpen(data)
+    })
+    return btn
+  }
+
+  function FieldRow(data, opts) {
+    if (!data || typeof data !== 'object') throw new TypeError('InnfoUI.FieldRow: data required')
+    var doc = resolveDoc(opts)
+    var row = makeEl(doc, 'div', 'innfo-field-row')
+    row.setAttribute('data-innfo-component', 'field-row')
+    row.setAttribute('data-field', String(data.name == null ? '' : data.name))
+    var dt = makeEl(doc, 'dt', null, data.name)
+    var dd = makeEl(doc, 'dd')
+    if (data.ref && data.ref.id) {
+      dd.appendChild(
+        ElementPill({ id: data.ref.id, label: data.ref.label || data.ref.id }, {
+          onSelect: opts && opts.onRef ? function () { opts.onRef(data.ref.id) } : undefined,
+        }),
+      )
+    } else {
+      dd.appendChild(doc.createTextNode(String(data.value == null ? '' : data.value)))
+    }
+    if (Array.isArray(data.citations) && data.citations.length) {
+      var seen = {}
+      var variants = data.citations.map(originVariantOf)
+      ;['error', 'agent', 'human', 'reviewer', 'document'].forEach(function (v) {
+        if (seen[v]) return
+        seen[v] = true
+        if (variants.indexOf(v) === -1) return
+        dd.appendChild(
+          CitationIcon({ variant: v, field: data.name }, {
+            onOpen: opts && opts.onCite ? opts.onCite : undefined,
+          }),
+        )
+      })
+    }
+    row.appendChild(dt)
+    row.appendChild(dd)
+    return row
+  }
+
+  function ElementCard(data, opts) {
+    if (!data || typeof data !== 'object') throw new TypeError('InnfoUI.ElementCard: data required')
+    var doc = resolveDoc(opts)
+    var card = makeEl(doc, 'article', 'innfo-card')
+    card.setAttribute('data-innfo-component', 'element-card')
+    card.setAttribute('data-element-id', String(data.id == null ? '' : data.id))
+    if (data.conceptId) card.setAttribute('data-concept-id', String(data.conceptId))
+    var open = !(opts && opts.open === false)
+    card.setAttribute('data-open', open ? 'true' : 'false')
+    if (opts && opts.domId) card.setAttribute('id', String(opts.domId))
+
+    var head = makeEl(doc, 'header', 'innfo-card-head')
+    head.appendChild(makeEl(doc, 'h3', 'innfo-card-name', data.name || data.id))
+    if (Array.isArray(data.markers)) {
+      data.markers.forEach(function (m) {
+        if (m) head.appendChild(MarkerChip(m))
+      })
+    }
+    if (Array.isArray(opts && opts.head)) {
+      ;(opts.head || []).forEach(function (n) {
+        if (n) head.appendChild(n)
+      })
+    }
+    if (opts && opts.collapsible) {
+      var toggle = makeEl(doc, 'button', 'innfo-card-toggle')
+      toggle.setAttribute('type', 'button')
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false')
+      toggle.addEventListener('click', function () {
+        open = !open
+        toggle.setAttribute('aria-expanded', open ? 'true' : 'false')
+        card.setAttribute('data-open', open ? 'true' : 'false')
+      })
+      head.appendChild(toggle)
+    }
+    card.appendChild(head)
+
+    var body = makeEl(doc, 'section', 'innfo-card-body')
+    if (data.description) body.appendChild(makeEl(doc, 'p', 'innfo-card-desc', data.description))
+    var fields = Array.isArray(data.fields) ? data.fields : []
+    if (fields.length) {
+      var dl = makeEl(doc, 'dl', 'innfo-card-fields')
+      fields.forEach(function (f) {
+        if (f) dl.appendChild(FieldRow(f, { onRef: opts && opts.onRef, onCite: opts && opts.onCite }))
+      })
+      body.appendChild(dl)
+    }
+    if (Array.isArray(opts && opts.body)) {
+      ;(opts.body || []).forEach(function (n) {
+        if (n) body.appendChild(n)
+      })
+    }
+    card.appendChild(body)
+    return card
+  }
+
   // Token injection at load when a document exists. The bundle loads up to 3
   // times per shell; ensureTokens is idempotent, so this is safe.
   if (typeof document !== 'undefined' && document.head) {
@@ -585,6 +711,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     ElementPill: ElementPill,
     MarkerChip: MarkerChip,
     StatusBadge: StatusBadge,
+    CitationIcon: CitationIcon,
+    FieldRow: FieldRow,
+    ElementCard: ElementCard,
+    CITATION_ORIGIN_LABELS: CITATION_ORIGIN_LABELS,
   }
 })
 
@@ -1366,15 +1496,15 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var rail = doc.getElementById('innfo-rail')
     if (!rail) return
     rail.innerHTML = ''
-    concepts.forEach(function (concept) {
+    concepts.forEach(function (concept, index) {
       var name = typeof concept === 'string' ? concept : concept.name
       var count = counts[name] || 0
       var draftCount = draftCountsByConcept ? draftCountsByConcept[name] || 0 : 0
       var btn = el('button', 'innfo-rail-item')
       if (!btn) return
       btn.setAttribute('data-concept', String(name))
-      var textSpan = el('span', 'innfo-rail-label', name + ' (' + count + ')')
-      if (textSpan) btn.appendChild(textSpan)
+      var pill = UI.ConceptPill({ id: name, label: name, index: index, count: count })
+      if (pill) btn.appendChild(pill)
       if (draftCount > 0) {
         var badge = el('span', 'innfo-rail-badge', String(draftCount))
         if (badge) {
@@ -1389,75 +1519,71 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     })
   }
 
-  function renderCards(doc, elements, drafts, onSuggest, refs) {
+  // D19: draft-count badge + Suggest button travel through ElementCard opts.
+  function mountElementCards(doc, elements, drafts, onSuggest, refs) {
     var content = doc.getElementById('innfo-content')
     if (!content) return
     content.innerHTML = ''
     var draftList = Array.isArray(drafts) ? drafts : []
 
     elements.forEach(function (element) {
-      var card = el('article', 'innfo-card')
-      if (!card) return
-      card.setAttribute('id', String(element.id || ''))
-
-      var headerWrap = el('div', 'innfo-card-head')
-      var heading = el('h3', null, String(element.name || element.id || ''))
-      if (headerWrap && heading) headerWrap.appendChild(heading)
-
       var pendingNotes = draftList.filter(function (d) {
         var dElId = d.elementId || (d.target && d.target.element_id)
         return dElId === element.id && (d.status === 'pending' || !d.status)
       })
 
-      if (pendingNotes.length > 0 && headerWrap) {
+      var headNodes = []
+      if (pendingNotes.length > 0) {
         var cardBadge = el('span', 'innfo-card-badge', String(pendingNotes.length))
         if (cardBadge) {
           cardBadge.setAttribute('title', pendingNotes.length + ' unexported draft note(s)')
-          headerWrap.appendChild(cardBadge)
+          headNodes.push(cardBadge)
         }
-      }
-
-      if (headerWrap) card.appendChild(headerWrap)
-      else if (heading) card.appendChild(heading)
-
-      var concept = el('p', 'innfo-card-concept', String(element.concept || ''))
-      if (concept) card.appendChild(concept)
-      if (element.description) card.appendChild(el('p', null, element.description))
-
-      if (isObject(element.fields)) {
-        var dl = el('dl', 'innfo-card-fields')
-        Object.keys(element.fields).forEach(function (k) {
-          if (!dl) return
-          var dt = el('dt', null, k)
-          var val = element.fields[k]
-          var dd
-          var target = refs && isObject(refs[String(val)]) ? refs[String(val)] : null
-          if (target) {
-            dd = el('button', 'innfo-ref-pill innfo-element-pill', String(val))
-            if (dd) {
-              dd.setAttribute('type', 'button')
-              dd.addEventListener('click', function () {
-                renderRefDialog(doc, target)
-              })
-            }
-          } else {
-            dd = el('dd', null, String(val))
-          }
-          if (dt) dl.appendChild(dt)
-          if (dd) dl.appendChild(dd)
-        })
-        if (dl) card.appendChild(dl)
       }
 
       var pending = pendingNotes.length
       var suggest = el('button', 'innfo-suggest', pending ? 'Suggest (' + pending + ')' : 'Suggest')
+      var bodyNodes = []
       if (suggest) {
         suggest.setAttribute('type', 'button')
         suggest.addEventListener('click', function () {
           if (typeof onSuggest === 'function') onSuggest(element)
         })
-        card.appendChild(suggest)
+        bodyNodes.push(suggest)
       }
+
+      var fields = []
+      if (isObject(element.fields)) {
+        Object.keys(element.fields).forEach(function (k) {
+          var val = element.fields[k]
+          var target = refs && isObject(refs[String(val)]) ? refs[String(val)] : null
+          fields.push({
+            name: k,
+            value: val,
+            ref: target ? { id: target.id || String(val), label: String(val) } : undefined,
+          })
+        })
+      }
+
+      var card = UI.ElementCard(
+        {
+          id: element.id,
+          name: element.name || element.id || '',
+          conceptId: element.concept,
+          description: element.description,
+          fields: fields,
+        },
+        {
+          domId: String(element.id || ''),
+          head: headNodes,
+          body: bodyNodes,
+          collapsible: false,
+          onRef: function (refId) {
+            var target = refs && isObject(refs[String(refId)]) ? refs[String(refId)] : null
+            if (target) renderRefDialog(doc, target)
+          },
+        },
+      )
       content.appendChild(card)
     })
   }
@@ -1764,13 +1890,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
   }
 
-  var CITATION_ORIGIN_LABELS = {
-    agent: 'AI agent',
-    human: 'Human author',
-    reviewer: 'Reviewer feedback',
-    document: 'Document',
-    error: 'Unresolved citation',
-  }
+  // Labels live in the kit now (single source of truth).
+  var CITATION_ORIGIN_LABELS = UI.CITATION_ORIGIN_LABELS
 
   function getSemanticBarColor(val, minVal, maxVal, row) {
     if (row && row.colors && row.colors.gradient) {
@@ -3276,7 +3397,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         }
       })
 
-      renderCards(
+      mountElementCards(
         active,
         filterElements(elements, activeSearchQuery || ''),
         currentDrafts,
@@ -3425,7 +3546,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     renderCitationDialog: renderCitationDialog,
     renderBanner: renderBanner,
     renderRail: renderRail,
-    renderCards: renderCards,
     renderDocument: renderDocument,
     renderDocumentView: renderDocumentView,
     buildTree: buildTree,

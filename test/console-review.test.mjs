@@ -207,9 +207,12 @@ describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
     })
 
     it('deep-links from Review Tab to focus and highlight corresponding Element Card', () => {
-      const elements = [{ id: 'ent-tier', name: 'Enterprise Tier', concept: 'RevenueStream' }]
-      InnfoConsole.renderCards(document, elements, [], () => {})
-      const card = document.getElementById('ent-tier')
+      // Cards are now composed by InnfoUI (mountElementCards is private); this
+      // suite only exercises focusElementCard's DOM contract: find by id,
+      // scroll, highlight.
+      const card = document.createElement('article')
+      card.id = 'ent-tier'
+      document.getElementById('innfo-content').appendChild(card)
       let scrolled = false
       card.scrollIntoView = () => {
         scrolled = true

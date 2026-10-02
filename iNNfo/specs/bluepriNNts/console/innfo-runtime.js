@@ -775,15 +775,15 @@
     var rail = doc.getElementById('innfo-rail')
     if (!rail) return
     rail.innerHTML = ''
-    concepts.forEach(function (concept) {
+    concepts.forEach(function (concept, index) {
       var name = typeof concept === 'string' ? concept : concept.name
       var count = counts[name] || 0
       var draftCount = draftCountsByConcept ? draftCountsByConcept[name] || 0 : 0
       var btn = el('button', 'innfo-rail-item')
       if (!btn) return
       btn.setAttribute('data-concept', String(name))
-      var textSpan = el('span', 'innfo-rail-label', name + ' (' + count + ')')
-      if (textSpan) btn.appendChild(textSpan)
+      var pill = UI.ConceptPill({ id: name, label: name, index: index, count: count })
+      if (pill) btn.appendChild(pill)
       if (draftCount > 0) {
         var badge = el('span', 'innfo-rail-badge', String(draftCount))
         if (badge) {
@@ -798,75 +798,71 @@
     })
   }
 
-  function renderCards(doc, elements, drafts, onSuggest, refs) {
+  // D19: draft-count badge + Suggest button travel through ElementCard opts.
+  function mountElementCards(doc, elements, drafts, onSuggest, refs) {
     var content = doc.getElementById('innfo-content')
     if (!content) return
     content.innerHTML = ''
     var draftList = Array.isArray(drafts) ? drafts : []
 
     elements.forEach(function (element) {
-      var card = el('article', 'innfo-card')
-      if (!card) return
-      card.setAttribute('id', String(element.id || ''))
-
-      var headerWrap = el('div', 'innfo-card-head')
-      var heading = el('h3', null, String(element.name || element.id || ''))
-      if (headerWrap && heading) headerWrap.appendChild(heading)
-
       var pendingNotes = draftList.filter(function (d) {
         var dElId = d.elementId || (d.target && d.target.element_id)
         return dElId === element.id && (d.status === 'pending' || !d.status)
       })
 
-      if (pendingNotes.length > 0 && headerWrap) {
+      var headNodes = []
+      if (pendingNotes.length > 0) {
         var cardBadge = el('span', 'innfo-card-badge', String(pendingNotes.length))
         if (cardBadge) {
           cardBadge.setAttribute('title', pendingNotes.length + ' unexported draft note(s)')
-          headerWrap.appendChild(cardBadge)
+          headNodes.push(cardBadge)
         }
-      }
-
-      if (headerWrap) card.appendChild(headerWrap)
-      else if (heading) card.appendChild(heading)
-
-      var concept = el('p', 'innfo-card-concept', String(element.concept || ''))
-      if (concept) card.appendChild(concept)
-      if (element.description) card.appendChild(el('p', null, element.description))
-
-      if (isObject(element.fields)) {
-        var dl = el('dl', 'innfo-card-fields')
-        Object.keys(element.fields).forEach(function (k) {
-          if (!dl) return
-          var dt = el('dt', null, k)
-          var val = element.fields[k]
-          var dd
-          var target = refs && isObject(refs[String(val)]) ? refs[String(val)] : null
-          if (target) {
-            dd = el('button', 'innfo-ref-pill innfo-element-pill', String(val))
-            if (dd) {
-              dd.setAttribute('type', 'button')
-              dd.addEventListener('click', function () {
-                renderRefDialog(doc, target)
-              })
-            }
-          } else {
-            dd = el('dd', null, String(val))
-          }
-          if (dt) dl.appendChild(dt)
-          if (dd) dl.appendChild(dd)
-        })
-        if (dl) card.appendChild(dl)
       }
 
       var pending = pendingNotes.length
       var suggest = el('button', 'innfo-suggest', pending ? 'Suggest (' + pending + ')' : 'Suggest')
+      var bodyNodes = []
       if (suggest) {
         suggest.setAttribute('type', 'button')
         suggest.addEventListener('click', function () {
           if (typeof onSuggest === 'function') onSuggest(element)
         })
-        card.appendChild(suggest)
+        bodyNodes.push(suggest)
       }
+
+      var fields = []
+      if (isObject(element.fields)) {
+        Object.keys(element.fields).forEach(function (k) {
+          var val = element.fields[k]
+          var target = refs && isObject(refs[String(val)]) ? refs[String(val)] : null
+          fields.push({
+            name: k,
+            value: val,
+            ref: target ? { id: target.id || String(val), label: String(val) } : undefined,
+          })
+        })
+      }
+
+      var card = UI.ElementCard(
+        {
+          id: element.id,
+          name: element.name || element.id || '',
+          conceptId: element.concept,
+          description: element.description,
+          fields: fields,
+        },
+        {
+          domId: String(element.id || ''),
+          head: headNodes,
+          body: bodyNodes,
+          collapsible: false,
+          onRef: function (refId) {
+            var target = refs && isObject(refs[String(refId)]) ? refs[String(refId)] : null
+            if (target) renderRefDialog(doc, target)
+          },
+        },
+      )
       content.appendChild(card)
     })
   }
@@ -1173,13 +1169,8 @@
     }
   }
 
-  var CITATION_ORIGIN_LABELS = {
-    agent: 'AI agent',
-    human: 'Human author',
-    reviewer: 'Reviewer feedback',
-    document: 'Document',
-    error: 'Unresolved citation',
-  }
+  // Labels live in the kit now (single source of truth).
+  var CITATION_ORIGIN_LABELS = UI.CITATION_ORIGIN_LABELS
 
   function getSemanticBarColor(val, minVal, maxVal, row) {
     if (row && row.colors && row.colors.gradient) {
@@ -2685,7 +2676,7 @@
         }
       })
 
-      renderCards(
+      mountElementCards(
         active,
         filterElements(elements, activeSearchQuery || ''),
         currentDrafts,
@@ -2834,7 +2825,6 @@
     renderCitationDialog: renderCitationDialog,
     renderBanner: renderBanner,
     renderRail: renderRail,
-    renderCards: renderCards,
     renderDocument: renderDocument,
     renderDocumentView: renderDocumentView,
     buildTree: buildTree,
