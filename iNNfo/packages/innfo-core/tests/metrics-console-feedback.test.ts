@@ -30,7 +30,7 @@ const procedurePath = join(
   'bluepriNNts',
   'metrics',
   'procedures',
-  'create_timeline_NN.md',
+  'create_timeline_procedures_NN.md',
 )
 const reconcileProcedurePath = join(
   here,

@@ -26,7 +26,7 @@ summary:: Frame a Video from its bound Subject and Series, author and gate a cog
 inputs_required:: Subject Element (via sources::) and Series registry model
 outputs_expected:: Registered Video Assets
 executed_by:: Video Producer
-procedure_model:: procedures/generate_video_script_NN.md
+procedure_model:: procedures/generate_video_script_procedures_NN.md
 
 # NN Work
 
@@ -181,7 +181,7 @@ output:: [[Web Publication Decision]]
 output_status:: verified
 tool:: [[AI Agent]]
 scope:: internal
-Prompt the user explicitly asking if they want to publish the video companion page and update the public web portal via the `Publish Video Web Portal` procedure (`procedures/publish_web_portal_NN.md`). If confirmed, proceed to generate or update the web portal in the `web/` directory.
+Prompt the user explicitly asking if they want to publish the video companion page and update the public web portal via the `Publish Video Web Portal` procedure (`procedures/publish_web_portal_procedures_NN.md`). If confirmed, proceed to generate or update the web portal in the `web/` directory.
 
 ## NN Work: Conduct Closing Retrospective
 parent:: [[Generate Video Script Workflow]]

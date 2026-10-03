@@ -150,17 +150,17 @@ describe('useBlueprintVersionNotice', () => {
 
     expect(notice.value).not.toBeNull()
     expect(notice.value?.current).toBe('V_0-2-1')
-    expect(notice.value?.latest).toBe('V_0-3-1')
+    expect(notice.value?.latest).toBe('V_0-3-2')
     expect(notice.value?.prompt).toMatch(/^innfo: /)
   })
 
   it('leaves notice null when the model already pins the newest known version', async () => {
-    // `analysis` ships V_0-3-1 in the bundled map, matching the pin here.
+    // `analysis` ships V_0-3-2 in the bundled map, matching the pin here.
     const handle = buildFakeTree('workspace', {
-      specs: { 'analysis_V_0-3-1_NN.md': '---\nlevel: 2\n---\n' },
+      specs: { 'analysis_V_0-3-2_NN.md': '---\nlevel: 2\n---\n' },
     })
     const { notice, refresh } = useBlueprintVersionNotice({
-      templateName: ref('analysis_V_0-3-1'),
+      templateName: ref('analysis_V_0-3-2'),
       modelFileName: ref('StartupValidation_NN.md'),
       handle: ref(handle),
     })

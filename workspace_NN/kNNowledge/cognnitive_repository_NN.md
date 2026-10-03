@@ -1,10 +1,10 @@
 ---
 level: 3
 parent_spec:
-  name: " repository\
- url: \iNNfo/specs/bluepriNNts/repository/spec_NN.md\
-knowledge_version: \V_0-1-1\
-title: \cogNNitive Repository Model\
+  name: "repository"
+  url: "iNNfo/specs/bluepriNNts/repository/spec_NN.md"
+knowledge_version: "V_0-1-1"
+title: "cogNNitive Repository Model"
 ---
 
 # NN index

@@ -24,7 +24,7 @@
         <p class="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
           This guide is generated from the procedure model at
           <code class="text-2xs bg-purple-100 dark:bg-purple-900/40 px-1.5 py-0.5 rounded font-mono"
-            >src/ai-guide/procedure_NN.md</code
+            >src/ai-guide/procedure_procedures_NN.md</code
           >
           — loaded at build time, no workspace required.
         </p>

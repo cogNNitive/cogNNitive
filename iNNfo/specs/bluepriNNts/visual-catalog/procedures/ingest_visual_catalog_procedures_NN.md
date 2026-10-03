@@ -26,7 +26,7 @@ summary:: Turn raw visual sources into a validated `visual-catalog` catalogue: n
 inputs_required:: Raw visual files in sources/import/, target `visual-catalog` L3 catalogue document
 outputs_expected:: [[Updated Visual Catalog]], [[Ingestion Report]]
 executed_by:: Catalog Maintainer
-procedure_model:: procedures/ingest_visual_catalog_NN.md
+procedure_model:: procedures/ingest_visual_catalog_procedures_NN.md
 
 # NN Work
 

@@ -22,7 +22,7 @@ summary:: Automated compilation procedure to generate the unified interactive Wo
 inputs_required:: Ghostbusters Business Model
 outputs_expected:: Workspace Hub Interactive Dashboard
 executed_by:: Egon Spengler
-procedure_model:: procedures/compile_workspace_hub_NN.md
+procedure_model:: procedures/compile_workspace_hub_procedures_NN.md
 
 ## NN Procedure: Import and Structure Tabular Data
 category:: ingestion
@@ -30,7 +30,7 @@ summary:: Ingestion workflow to normalize Excel/CSV incident reports into struct
 inputs_required:: Containment Incidents 1984
 outputs_expected:: Containment Incidents 1984
 executed_by:: Janine Melnitz
-procedure_model:: procedures/import_and_structure_tabular_data_NN.md
+procedure_model:: procedures/import_and_structure_tabular_data_procedures_NN.md
 
 ## NN Procedure: Reconcile Artifact Feedback
 category:: transformation
@@ -38,4 +38,4 @@ summary:: Dual-emission deliverable compiler, forensic Word/Markdown annotation 
 inputs_required:: Reviewed Deliverable Document
 outputs_expected:: Published Final Deliverable
 executed_by:: Senior AI Architect
-procedure_model:: procedures/reconcile_artifact_feedback_NN.md
+procedure_model:: procedures/reconcile_artifact_feedback_procedures_NN.md

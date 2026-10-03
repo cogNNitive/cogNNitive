@@ -522,7 +522,7 @@ describe('visual-catalog blueprint procedure discovery (real package)', () => {
     expect(procedures).toContainEqual({
       id: 'ingest-visual-catalog',
       name: 'Ingest Visual Catalog Procedure',
-      path: 'procedures/ingest_visual_catalog_NN.md',
+      path: 'procedures/ingest_visual_catalog_procedures_NN.md',
       source_template: 'visual-catalog',
     })
   })

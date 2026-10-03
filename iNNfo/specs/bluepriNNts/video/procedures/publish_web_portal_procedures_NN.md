@@ -26,7 +26,7 @@ summary:: Scaffold and update a lightweight zero-build public web portal in the 
 inputs_required:: Video Element with metadata, thumbnail, sources::, and optional youtube_url
 outputs_expected:: Published Web Portal Artifacts
 executed_by:: Video Web Publisher
-procedure_model:: procedures/publish_web_portal_NN.md
+procedure_model:: procedures/publish_web_portal_procedures_NN.md
 
 # NN Work
 
@@ -86,7 +86,7 @@ output:: [[Published Web Portal Artifacts]]
 output_status:: verified
 tool:: [[AI Agent]]
 scope:: internal
-Verify that all relative paths in `web/data/videos.json` resolve correctly against `web/`, and that `web/.nojekyll` is present. If `web/.git` is not yet initialized or published, guide the user to execute the `Setup GitHub Pages Repo` procedure (`procedures/setup_github_pages_repo_NN.md`). If already published, commit the new content on `main` and push to remote. Provide the final public URL to be placed in the YouTube video description.
+Verify that all relative paths in `web/data/videos.json` resolve correctly against `web/`, and that `web/.nojekyll` is present. If `web/.git` is not yet initialized or published, guide the user to execute the `Setup GitHub Pages Repo` procedure (`procedures/setup_github_pages_repo_procedures_NN.md`). If already published, commit the new content on `main` and push to remote. Provide the final public URL to be placed in the YouTube video description.
 
 # NN Artifact
 

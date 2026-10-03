@@ -26,7 +26,7 @@ summary:: Verify local Git and GitHub CLI tooling (offering automated platform i
 inputs_required:: Published Web Portal Artifacts in web/
 outputs_expected:: Live GitHub Pages Deployment and Public URL
 executed_by:: Release Engineer
-procedure_model:: procedures/setup_github_pages_repo_NN.md
+procedure_model:: procedures/setup_github_pages_repo_procedures_NN.md
 
 # NN Work
 

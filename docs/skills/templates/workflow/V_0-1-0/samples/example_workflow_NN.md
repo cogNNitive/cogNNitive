@@ -4,7 +4,7 @@ spec_url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNf
 level: 3
 parent_spec:
   name: "workflow_V_0-1-0"
-  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/docs/skills/templates/workflow/V_0-1-0/workflow_V_0-1-0_NN.md"
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/docs/skills/templates/workflow/V_0-1-0/workflow_iNNfo_NN.md"
 model_version: "V_1-0-0"
 title: "Video a Comercial"
 documentation_location: "docs/templates/workflow/V_0-1-0/"
@@ -143,5 +143,5 @@ project/
 │   └── VideoComercial_V_1-0-0_business_NN.md
 ├── scripts/                    ← Generado por Stage 3
 │   └── comercial_video.any
-└── example_V_1-0-0_workflow_NN.md
+└── example_workflow_NN.md
 ```

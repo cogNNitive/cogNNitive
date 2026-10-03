@@ -145,11 +145,11 @@ description:: Maps each stage to the artifact type it produces as output. Each s
 
 ## File Naming Convention
 
-- This template file: `workflow_V_0-1-0_NN.md` (level 2).
+- This template file: `workflow_iNNfo_NN.md` (level 2).
 - Workflow instance files (level 3): `<Name>_V_<major>-<minor>-<patch>_workflow_NN.md`.
 
 Examples:
-- `example_V_1-0-0_workflow_NN.md`
+- `example_workflow_NN.md`
 - `video-processing_V_2-0-0_workflow_NN.md`
 
 ## Frontmatter Requirements
@@ -166,7 +166,7 @@ spec_url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNf
 level: 3
 parent_spec:
   name: "workflow_V_0-1-0"
-  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/docs/skills/templates/workflow/V_0-1-0/workflow_V_0-1-0_NN.md"
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/docs/skills/templates/workflow/V_0-1-0/workflow_iNNfo_NN.md"
 model_version: "V_<major>-<minor>-<patch>"
 title: "<Workflow Name>"
 documentation_location: "docs/templates/workflow/V_0-1-0/"
