@@ -227,6 +227,14 @@ order:: 10
 parent:: [[Runtime & Internals]]
 description:: How generated consoles boot offline from file:// via static script tags and a vendored UMD bundle.
 
+## NN Page: Workspace Console Hub
+title:: Workspace Console Hub
+source:: workspace-console-hub.md
+route:: workspace-console-hub
+order:: 15
+parent:: [[Runtime & Internals]]
+description:: The aggregated console entry point: how to generate consoles with an AI prompt and how the embedded hub stays consistent with the editor.
+
 ## NN Page: Console Needs & Visuals
 title:: Console Needs & Visuals
 source:: console-needs-and-visuals.md
@@ -234,6 +242,14 @@ route:: console-needs-and-visuals
 order:: 20
 parent:: [[Runtime & Internals]]
 description:: Capability needs and app-driven concept color/icon in generated consoles.
+
+## NN Page: Console UI Kit
+title:: Console UI Kit
+source:: console-ui-kit.md
+route:: console-ui-kit
+order:: 25
+parent:: [[Runtime & Internals]]
+description:: Design tokens and presentational components (InnfoUI) shared by generated consoles.
 
 ## NN Page: Validator Behavior
 title:: Validator Behavior
