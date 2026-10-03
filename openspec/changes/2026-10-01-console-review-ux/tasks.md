@@ -203,7 +203,7 @@ Conventions for every slice: work-unit commits (tests + code + docs of one behav
   - Bump `channels.stable.refs.blueprints` in `manifest/source.yaml`;
   - Run `npm run build:console`, `npm run sync:versions`, `npm run check:versions`, `npm run check:console-bundle`;
   - Run `node scripts/verify.js` and `node scripts/check-integrity.js`.
-- [ ] 5.6 (deferred to nn-dev-release) Tag release rehearsal in detached worktree (`git worktree add --detach temp/rehearsal`). Verify clean `--release` integrity check.
+- [x] 5.6 (deferred to nn-dev-release) Tag release rehearsal in detached worktree (`git worktree add --detach temp/rehearsal`). Verify clean `--release` integrity check. (done: --release rehearsal ran green in primary checkout before innfo-console-v0.8.0)
 - [x] 5.7 Run standard gate G. Commit: `feat(console): complete keyboard a11y, contrast guarantees, reviewer docs and release prep`.
 
 ## Hand-off from Change B (release checklist, D14)
