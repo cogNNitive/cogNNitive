@@ -163,12 +163,10 @@ describe('FilePreviewModal', () => {
   it('opens the original file via the workspace handle when the "open original" button is clicked', async () => {
     const tree: FakeTree = {
       sources: {
-        original: {
+        import: {
           clientA: {
             'report.docx': 'binary-ish content',
           },
-        },
-        import: {
           'report.md': markdownWithFrontmatter,
         },
       },

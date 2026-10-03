@@ -233,9 +233,9 @@ describe('collectWorkspaceDiagnostics / filterDiagnosticsForModel (AD-4 split)',
   describe('knowledge-unit pointers in workspace mode', () => {
     async function writeUnitWorkspace(): Promise<void> {
       await mkdir(modelsDir, { recursive: true })
-      await mkdir(join(rootDir, 'sources', 'nn'), { recursive: true })
+      await mkdir(join(rootDir, 'sources', 'import'), { recursive: true })
       await writeFile(
-        join(rootDir, 'sources', 'nn', 'metricas_q3.csv'),
+        join(rootDir, 'sources', 'import', 'metricas_q3.csv'),
         'cliente_id,segmento\n101,Enterprise\n102,SMB\n',
         'utf-8',
       )

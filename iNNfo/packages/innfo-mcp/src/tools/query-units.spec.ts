@@ -7,12 +7,12 @@ import { queryUnits } from './query-units'
 const rootDir = join(import.meta.dirname!, '..', '..', 'temp-test-query-units')
 
 async function writeWorkspace(): Promise<void> {
-  await mkdir(join(rootDir, 'sources', 'nn'), { recursive: true })
+  await mkdir(join(rootDir, 'sources', 'import'), { recursive: true })
   const rows = ['cliente_id,segmento,mrr_usd']
   for (let i = 1; i <= 250; i++) rows.push(`${i},Enterprise,${i * 100}`)
-  await writeFile(join(rootDir, 'sources', 'nn', 'big.csv'), rows.join('\n') + '\n', 'utf-8')
+  await writeFile(join(rootDir, 'sources', 'import', 'big.csv'), rows.join('\n') + '\n', 'utf-8')
   await writeFile(
-    join(rootDir, 'sources', 'nn', 'small.csv'),
+    join(rootDir, 'sources', 'import', 'small.csv'),
     'cliente_id,segmento,mrr_usd\n101,Enterprise,45000\n102,SMB,5500\n',
     'utf-8',
   )
@@ -45,7 +45,7 @@ describe('query_units', () => {
   })
 
   it('rejects malformed queries without touching the workspace', async () => {
-    const target = join(rootDir, 'sources', 'nn', 'small.csv')
+    const target = join(rootDir, 'sources', 'import', 'small.csv')
     const before = readFileSync(target, 'utf-8')
     const result = await queryUnits(rootDir, 'sources/import/small.csv@101?segmento=Enterprise')
     expect(result.uris).toEqual([])

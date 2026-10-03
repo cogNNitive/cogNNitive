@@ -63,7 +63,7 @@ async function stubPricingTemplate() {
 
 async function writeWorkspace(): Promise<void> {
   await mkdir(join(rootDir, 'models'), { recursive: true })
-  await mkdir(join(rootDir, 'sources', 'nn'), { recursive: true })
+  await mkdir(join(rootDir, 'sources', 'import'), { recursive: true })
 
   await writeFile(
     join(rootDir, 'models', 'Plan_V_1-0-0_NN.md'),
@@ -101,7 +101,7 @@ async function writeWorkspace(): Promise<void> {
   )
 
   await writeFile(
-    join(rootDir, 'sources', 'nn', 'pricing.md'),
+    join(rootDir, 'sources', 'import', 'pricing.md'),
     [
       '---',
       'sha256: "abc123"',
@@ -115,7 +115,7 @@ async function writeWorkspace(): Promise<void> {
   )
 
   await writeFile(
-    join(rootDir, 'sources', 'nn', 'report.md'),
+    join(rootDir, 'sources', 'import', 'report.md'),
     ['---', 'sha256: "def456"', '---', '', '## Some Other Heading', 'Unrelated content.', ''].join(
       '\n',
     ),
@@ -123,19 +123,19 @@ async function writeWorkspace(): Promise<void> {
   )
 
   await writeFile(
-    join(rootDir, 'sources', 'nn', 'long.md'),
+    join(rootDir, 'sources', 'import', 'long.md'),
     ['---', 'sha256: "longhash"', '---', '', '## Long Section', 'x'.repeat(2000), ''].join('\n'),
     'utf-8',
   )
 
   await writeFile(
-    join(rootDir, 'sources', 'nn', 'short.md'),
+    join(rootDir, 'sources', 'import', 'short.md'),
     ['---', 'sha256: "shorthash"', '---', '', '## Short Section', 'y'.repeat(120), ''].join('\n'),
     'utf-8',
   )
 
   await writeFile(
-    join(rootDir, 'sources', 'nn', 'agent-mod.md'),
+    join(rootDir, 'sources', 'import', 'agent-mod.md'),
     [
       '## NN Agent Modification: update-field-precio',
       '',
@@ -153,7 +153,7 @@ async function writeWorkspace(): Promise<void> {
   )
 
   await writeFile(
-    join(rootDir, 'sources', 'nn', 'agent-mod-unknown.md'),
+    join(rootDir, 'sources', 'import', 'agent-mod-unknown.md'),
     [
       '## NN Agent Modification: update-field-precio',
       '',
@@ -171,7 +171,7 @@ async function writeWorkspace(): Promise<void> {
   )
 
   await writeFile(
-    join(rootDir, 'sources', 'nn', 'agent-mod-missing.md'),
+    join(rootDir, 'sources', 'import', 'agent-mod-missing.md'),
     [
       '## NN Agent Modification: update-field-precio',
       '',
@@ -188,7 +188,7 @@ async function writeWorkspace(): Promise<void> {
   )
 
   await writeFile(
-    join(rootDir, 'sources', 'nn', 'agent-mod-human.md'),
+    join(rootDir, 'sources', 'import', 'agent-mod-human.md'),
     [
       '## NN Agent Modification: update-field-precio',
       '',
@@ -206,7 +206,7 @@ async function writeWorkspace(): Promise<void> {
   )
 
   await writeFile(
-    join(rootDir, 'sources', 'nn', 'agent-mod-nested.md'),
+    join(rootDir, 'sources', 'import', 'agent-mod-nested.md'),
     [
       '## NN Agent Modification: update-field-precio',
       '',
@@ -228,7 +228,7 @@ async function writeWorkspace(): Promise<void> {
   )
 
   await writeFile(
-    join(rootDir, 'sources', 'nn', 'agent-mod-sibling.md'),
+    join(rootDir, 'sources', 'import', 'agent-mod-sibling.md'),
     [
       '## NN Agent Modification: update-field-precio',
       '',
@@ -250,7 +250,7 @@ async function writeWorkspace(): Promise<void> {
   )
 
   await writeFile(
-    join(rootDir, 'sources', 'nn', 'reviewer-with-author.md'),
+    join(rootDir, 'sources', 'import', 'reviewer-with-author.md'),
     [
       '---',
       'source_type: feedback',
@@ -265,7 +265,7 @@ async function writeWorkspace(): Promise<void> {
   )
 
   await writeFile(
-    join(rootDir, 'sources', 'nn', 'reviewer-no-author.md'),
+    join(rootDir, 'sources', 'import', 'reviewer-no-author.md'),
     [
       '---',
       'source_type: feedback',
@@ -279,7 +279,7 @@ async function writeWorkspace(): Promise<void> {
   )
 
   await writeFile(
-    join(rootDir, 'sources', 'nn', 'plain-doc.md'),
+    join(rootDir, 'sources', 'import', 'plain-doc.md'),
     ['---', 'sha256: "plaindoc1"', '---', '', '## Plain Heading', 'Just prose.', ''].join('\n'),
     'utf-8',
   )
@@ -529,7 +529,7 @@ describe('resolve_sources', () => {
       const headingLine = block!.split('\n')[0]
       const headingText = headingLine.replace(/^#{1,6}\s+/, '')
 
-      await writeFile(join(rootDir, 'sources', 'nn', 'contract-block.md'), block!, 'utf-8')
+      await writeFile(join(rootDir, 'sources', 'import', 'contract-block.md'), block!, 'utf-8')
 
       // Add the citation field dynamically, referencing the block's own real heading text.
       const modelFile = join(rootDir, 'models', 'Plan_V_1-0-0_NN.md')
