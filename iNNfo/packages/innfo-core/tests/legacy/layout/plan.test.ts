@@ -562,6 +562,112 @@ describe('planLayoutMigration', () => {
     })
   })
 
+  describe('name renames', () => {
+    const procedure = '---\nlevel: 3\nparent_spec:\n  name: "procedures"\n---\n# Procedure\n'
+
+    it('renames a procedure file to <verb>_<noun>_procedures_NN.md', async () => {
+      const plan = await planLayoutMigration(
+        memoryReader({ ...BASE, 'procedures/generate_video_script_NN.md': procedure }),
+        deps,
+      )
+      expect(plan.status).toBe('ready')
+      expect(plan.ops).toContainEqual({
+        op: 'move',
+        from: 'procedures/generate_video_script_NN.md',
+        to: 'procedures/generate_video_script_procedures_NN.md',
+      })
+      expect(plan.report.moved).toContainEqual({
+        from: 'procedures/generate_video_script_NN.md',
+        to: 'procedures/generate_video_script_procedures_NN.md',
+      })
+    })
+
+    it('drops the _V_ token from a kNNowledge filename', async () => {
+      const plan = await planLayoutMigration(
+        memoryReader({
+          ...BASE,
+          'kNNowledge/Capabilities_Catalog_V_1-0-0_capabilities_NN.md':
+            '---\nlevel: 3\nparent_spec:\n  name: "capabilities"\n---\n# Capabilities\n',
+        }),
+        deps,
+      )
+      expect(plan.ops).toContainEqual({
+        op: 'move',
+        from: 'kNNowledge/Capabilities_Catalog_V_1-0-0_capabilities_NN.md',
+        to: 'kNNowledge/Capabilities_Catalog_capabilities_NN.md',
+      })
+    })
+
+    it('rewrites a citation that references a renamed path', async () => {
+      const plan = await planLayoutMigration(
+        memoryReader({
+          ...BASE,
+          'procedures/generate_video_script_NN.md': procedure,
+          'kNNowledge/plan_business_NN.md':
+            '---\nparent_spec:\n  name: "business"\nsources: ["procedures/generate_video_script_NN.md@## Work"]\n---\n# Plan\n',
+        }),
+        deps,
+      )
+      const write = plan.ops.find((o) => o.op === 'write' && o.path === 'kNNowledge/plan_business_NN.md')
+      expect(write).toBeDefined()
+      if (write?.op !== 'write') throw new Error('expected a write op')
+      expect(write.content).toContain('"procedures/generate_video_script_procedures_NN.md@## Work"')
+    })
+
+    it('rewrites a procedure_model:: field pointing at a renamed procedure file', async () => {
+      const plan = await planLayoutMigration(
+        memoryReader({
+          ...BASE,
+          'procedures/generate_video_script_NN.md': procedure,
+          'kNNowledge/plan_business_NN.md':
+            '---\nparent_spec:\n  name: "business"\nprocedure_model:: procedures/generate_video_script_NN.md\n---\n# Plan\n',
+        }),
+        deps,
+      )
+      const write = plan.ops.find((o) => o.op === 'write' && o.path === 'kNNowledge/plan_business_NN.md')
+      expect(write).toBeDefined()
+      if (write?.op !== 'write') throw new Error('expected a write op')
+      expect(write.content).toContain('procedure_model:: procedures/generate_video_script_procedures_NN.md')
+    })
+
+    it('reports a frozen workspace/procedures file without renaming it', async () => {
+      const plan = await planLayoutMigration(
+        memoryReader({
+          ...BASE,
+          'iNNfo/specs/bluepriNNts/workspace/procedures/compile_workspace_hub_NN.md': procedure,
+        }),
+        deps,
+      )
+      expect(plan.ops.some((o) => o.op === 'move' && o.from.includes('workspace/procedures'))).toBe(false)
+      expect(plan.report.frozen).toContain(
+        'iNNfo/specs/bluepriNNts/workspace/procedures/compile_workspace_hub_NN.md',
+      )
+      expect(plan.status).toBe('noop')
+    })
+
+    it('carves out published _V_ specs, samples, and use-case docs from renaming', async () => {
+      const plan = await planLayoutMigration(
+        memoryReader({
+          ...BASE,
+          'iNNfo/specs/business_V_1-0-0_NN.md': '---\nparent_spec:\n  name: "iNNfo_V_0-3-0"\n---\n# Spec\n',
+          'docs/innfo/samples/lifecycle-ghostbusters/Ghostbusters_V_1-0-0_business_NN.md':
+            '---\nparent_spec:\n  name: "business"\n---\n# Sample\n',
+          'docs/cognitive_nn/use-cases/Onboarding_V_1-0-0_business_NN.md':
+            '---\nparent_spec:\n  name: "business"\n---\n# Use case\n',
+        }),
+        deps,
+      )
+      expect(plan.ops.filter((o) => o.op === 'move')).toEqual([])
+      expect(plan.report.frozen).toEqual(
+        expect.arrayContaining([
+          'iNNfo/specs/business_V_1-0-0_NN.md',
+          'docs/innfo/samples/lifecycle-ghostbusters/Ghostbusters_V_1-0-0_business_NN.md',
+          'docs/cognitive_nn/use-cases/Onboarding_V_1-0-0_business_NN.md',
+        ]),
+      )
+    })
+  })
+
   it('is idempotent over mirrors: applying the plan leaves nothing to do', async () => {
     const files = {
       ...BASE,

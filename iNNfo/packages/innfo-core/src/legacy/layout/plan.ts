@@ -3,6 +3,13 @@
 import type { DomainReader } from '../detect.js'
 import type { Op, Problem } from '../index.js'
 import { computePlanHash } from '../language-map.js'
+import {
+  blueprintNameOf,
+  checkNameInvariant,
+  isNNName,
+  parentSpecNameOf,
+} from '../../naming/contract.js'
+import { parseFrontmatter } from '../../parser/index.js'
 import { bareCitationRewriter, planMirrors } from './mirrors.js'
 
 export interface LayoutPlanDeps {
@@ -22,6 +29,8 @@ export interface LayoutMigrationReport {
   rewrittenFiles: string[]
   /** Retired content with no destination in the new layout, left in place. */
   unmigrated: string[]
+  /** Frozen `*_NN.md` files carved out of renaming; reported, never renamed. */
+  frozen: string[]
   /** Citations whose target is under `sources/archive/` (never rewritten). */
   archiveCitations: Array<{ file: string; citation: string; target: string }>
   summary: string
@@ -115,6 +124,47 @@ function isInert(path: string): boolean {
   return path.startsWith('sources/archive/') || path.startsWith('staging/')
 }
 
+/** Frozen content carved out of renaming (mirrors `scripts/lib/nn-name-invariant-guard.js`). */
+const FROZEN_PREFIXES = [
+  'docs/innfo/samples/',
+  'docs/cognitive_nn/use-cases/',
+  'iNNfo/specs/bluepriNNts/workspace/procedures/',
+]
+
+function baseOf(p: string): string {
+  const i = p.lastIndexOf('/')
+  return i < 0 ? p : p.slice(i + 1)
+}
+
+function dirOf(p: string): string {
+  const i = p.lastIndexOf('/')
+  return i < 0 ? '' : p.slice(0, i)
+}
+
+function isFrozen(path: string): boolean {
+  if (FROZEN_PREFIXES.some((p) => path.startsWith(p))) return true
+  return path.startsWith('iNNfo/specs/') && /_V_/.test(baseOf(path))
+}
+
+/** `parent_spec.name` -> blueprint name of a `*_NN.md` document's content. */
+function blueprintOf(content: string): string | undefined {
+  const fm = parseFrontmatter(content)
+  if (!fm) return undefined
+  const parent = parentSpecNameOf(fm)
+  return parent ? blueprintNameOf(parent) : undefined
+}
+
+/** Rewrites citations of renamed `*_NN.md` paths (and `procedure_model::` fields) to their new names. */
+function renameCitationRewriter(renames: ReadonlyMap<string, string>): (content: string) => string {
+  if (renames.size === 0) return (content) => content
+  const pattern = [...renames.keys()]
+    .sort((a, b) => b.length - a.length)
+    .map((from) => from.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+    .join('|')
+  const re = new RegExp(`(?<![\\w/.-])(${pattern})(?![A-Za-z0-9_-])`, 'g')
+  return (content) => content.replace(re, (from) => renames.get(from) ?? from)
+}
+
 export async function planLayoutMigration(
   r: DomainReader,
   deps: LayoutPlanDeps,
@@ -163,6 +213,37 @@ export async function planLayoutMigration(
   deleted.push(...mirrors.deleted)
   problems.push(...mirrors.problems)
 
+  // 1c. Name renames: procedures gain `_procedures`, kNNowledge names drop `_V_`.
+  // Planned after folder moves so the citation path map accounts for both.
+  const renameTargets = new Map<string, string>() // post-folder-move path -> renamed path
+  const frozen: string[] = []
+  const finalLocations = new Set([...text.keys(), ...opaque].map((p) => finalPath.get(p) ?? p))
+  for (const [from, content] of [...text.entries()].sort(([a], [b]) => a.localeCompare(b))) {
+    if (!isNNName(from) || isInert(from)) continue
+    if (isFrozen(from)) {
+      frozen.push(from)
+      continue
+    }
+    const invariant = checkNameInvariant(from, blueprintOf(content))
+    if (!invariant) continue
+    const base = finalPath.get(from) ?? from
+    const to = `${dirOf(base)}/${invariant.expected}`
+    if (to === base) continue
+    if (finalLocations.has(to)) {
+      problems.push({
+        path: from,
+        message: `Cannot rename '${from}' to '${to}': the destination already exists with different content`,
+        severity: 'error',
+      })
+      continue
+    }
+    ops.push({ op: 'move', from: base, to })
+    moved.push({ from: base, to })
+    finalPath.set(from, to)
+    renameTargets.set(base, to)
+    finalLocations.add(to)
+  }
+
   const rewriteToken = (token: string): string => {
     if (!token.startsWith('sources/nn/')) return destinationOf(token, deps, []) ?? token
     const rest = token.slice('sources/nn/'.length)
@@ -173,13 +254,14 @@ export async function planLayoutMigration(
   }
 
   const rewriteBare = bareCitationRewriter(mirrors.citationTargets)
+  const rewriteRename = renameCitationRewriter(renameTargets)
 
   // 2. Citation rewrites in markdown (archive snapshots and staging are inert).
   const rewrittenFiles: string[] = []
   for (const [path, content] of [...text.entries()].sort(([a], [b]) => a.localeCompare(b))) {
     if (isInert(path) || !path.endsWith('.md')) continue
     if (deleted.includes(path)) continue
-    const rewritten = rewriteBare(content.replace(MOVED_PATH_RE, rewriteToken)).replace(
+    const rewritten = rewriteBare(rewriteRename(content.replace(MOVED_PATH_RE, rewriteToken))).replace(
       SOURCES_DIR_RE,
       '$1sources/',
     )
@@ -230,6 +312,7 @@ export async function planLayoutMigration(
       preservedBodies: mirrors.preserved,
       rewrittenFiles,
       unmigrated,
+      frozen,
       archiveCitations,
       summary:
         status === 'noop'
