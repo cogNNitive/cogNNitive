@@ -23,7 +23,7 @@ parent_spec:
 # NN Mission
 ## NN Mission: Ghostbusters Mission
 description:: Rid New York City of supernatural threats.
-sources:: sources/nn/initial-brief.md#mission
+sources:: sources/import/initial-brief.md#mission
 
 # NN Service
 ## NN Service: Ghost Capture
@@ -86,7 +86,7 @@ price:: 5000
 
   it('handles citation resolution when resolver is injected', () => {
     const mockResolver = (filePath: string) => {
-      if (filePath === 'sources/nn/initial-brief.md') {
+      if (filePath === 'sources/import/initial-brief.md') {
         return {
           exists: true,
           content: '## Mission\nWe eliminate ghosts.\n',
@@ -106,7 +106,7 @@ price:: 5000
     expect(mission.citations!.sources).toBeDefined()
     expect(mission.citations!.sources!.length).toBe(1)
     expect(mission.citations!.sources![0].exists).toBe(true)
-    expect(mission.citations!.sources![0].path).toBe('sources/nn/initial-brief.md')
+    expect(mission.citations!.sources![0].path).toBe('sources/import/initial-brief.md')
   })
 
   it('parses and computes effective status from feedback verdict ledger', () => {

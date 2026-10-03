@@ -7,8 +7,8 @@
  *
  * A source reference is a domaiNN-relative path to a `.md`, `.csv`, or `.json`
  * file, optionally followed by a heading-slug anchor (`<path>.md#<heading-slug>`).
- * The path is taken as written: no folder is implied and no retired folder
- * (`sources/nn/`, `sources/export/`, `models/`) has a special meaning.
+ * The path is taken as written: no folder is implied and no folder name
+ * has a special meaning.
  * Line-range anchors (`#L12-L45`) and the legacy `src-NNN` wrapper are rejected.
  */
 

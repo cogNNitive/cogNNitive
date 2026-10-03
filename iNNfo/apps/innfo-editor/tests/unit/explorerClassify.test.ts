@@ -32,7 +32,7 @@ describe('explorerClassify', () => {
   })
 
   it('classifies sources/ files as source', () => {
-    const item = { name: 'interview.md', path: 'sources/nn/interview.md', kind: 'file' as const }
+    const item = { name: 'interview.md', path: 'sources/import/interview.md', kind: 'file' as const }
     expect(checkIsSource(item)).toBe(true)
     expect(classifyExplorerItem(item)).toBe('source')
   })

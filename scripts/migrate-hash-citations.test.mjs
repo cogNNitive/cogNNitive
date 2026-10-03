@@ -38,7 +38,7 @@ function createFixtureWorkspace() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'migrate-hash-test-'))
   
   // Create directories
-  fs.mkdirSync(path.join(root, 'sources', 'nn'), { recursive: true })
+  fs.mkdirSync(path.join(root, 'sources', 'import'), { recursive: true })
   fs.mkdirSync(path.join(root, 'kNNowledge'), { recursive: true })
   fs.mkdirSync(path.join(root, 'docs', 'innfo', 'samples'), { recursive: true })
   fs.mkdirSync(path.join(root, '_samples_nn'), { recursive: true })
@@ -46,38 +46,38 @@ function createFixtureWorkspace() {
 
   // 1. Target source file with headings
   const sourceContent = `# Market Research\n\n## Overview & Summary\n\nSome overview text.\n\n### Detailed Findings\n\nFindings text.\n`
-  fs.writeFileSync(path.join(root, 'sources', 'nn', 'market.md'), sourceContent, 'utf8')
+  fs.writeFileSync(path.join(root, 'sources', 'import', 'market.md'), sourceContent, 'utf8')
 
   // 2. Another source file
   const interviewContent = `# User Interview\n\n## Pain Points\n\nPain points.\n`
-  fs.writeFileSync(path.join(root, 'sources', 'nn', 'interview.md'), interviewContent, 'utf8')
+  fs.writeFileSync(path.join(root, 'sources', 'import', 'interview.md'), interviewContent, 'utf8')
 
   // 3. Model file with legacy #slug citations (scalar, list, quoted)
   const modelContent = `---
 type: knowledge
-sources: [sources/nn/market.md#overview-summary]
+sources: [sources/import/market.md#overview-summary]
 ---
 # Strategy
 
 ## NN Strategy: Expansion
-sources:: sources/nn/market.md#detailed-findings
-derived_from:: [sources/nn/interview.md#pain-points]
+sources:: sources/import/market.md#detailed-findings
+derived_from:: [sources/import/interview.md#pain-points]
 `
   fs.writeFileSync(path.join(root, 'kNNowledge', 'strategy_NN.md'), modelContent, 'utf8')
 
-  // 4. Model file with unqualified path legacy citation
+  // 4. Second model file with a legacy #slug citation
   const unqualifiedModelContent = `---
 type: knowledge
 ---
 # Operations
 
 ## NN Operations: Plan
-sources:: market.md#overview-summary
+sources:: sources/import/market.md#overview-summary
 `
   fs.writeFileSync(path.join(root, 'kNNowledge', 'operations_NN.md'), unqualifiedModelContent, 'utf8')
 
   // 5. Frozen _V_ file (must be skipped)
-  const frozenVContent = `sources:: sources/nn/market.md#overview-summary\n`
+  const frozenVContent = `sources:: sources/import/market.md#overview-summary\n`
   fs.writeFileSync(path.join(root, 'kNNowledge', 'Model_V_1-0-0_NN.md'), frozenVContent, 'utf8')
 
   // 6. docs/innfo/samples file (must be skipped)
@@ -90,7 +90,7 @@ sources:: market.md#overview-summary
   fs.writeFileSync(path.join(root, 'tests', 'unit', 'fixtures', 'fixture.md'), frozenVContent, 'utf8')
 
   // 9. File already containing canonical @ citations (must remain unchanged)
-  const canonicalContent = `sources:: sources/nn/market.md@## Overview & Summary\n`
+  const canonicalContent = `sources:: sources/import/market.md@## Overview & Summary\n`
   fs.writeFileSync(path.join(root, 'kNNowledge', 'canonical_NN.md'), canonicalContent, 'utf8')
 
   return root
@@ -123,11 +123,11 @@ async function runTests() {
     return fs.existsSync(full) ? fs.readFileSync(full, 'utf8') : null
   }
 
-  const sampleInput = `sources:: sources/nn/market.md#overview-summary\nderived_from:: [sources/nn/interview.md#pain-points]`
+  const sampleInput = `sources:: sources/import/market.md#overview-summary\nderived_from:: [sources/import/interview.md#pain-points]`
   const { updated, count } = migrateContent(sampleInput, 'kNNowledge/test_NN.md', resolveSource)
   assert.strictEqual(count, 2, 'Two replacements made')
-  assert.ok(updated.includes('sources:: sources/nn/market.md@## Overview & Summary'), 'market.md rewritten with heading text')
-  assert.ok(updated.includes('derived_from:: [sources/nn/interview.md@## Pain Points]'), 'interview.md rewritten with heading text')
+  assert.ok(updated.includes('sources:: sources/import/market.md@## Overview & Summary'), 'market.md rewritten with heading text')
+  assert.ok(updated.includes('derived_from:: [sources/import/interview.md@## Pain Points]'), 'interview.md rewritten with heading text')
 
   // Test 3: Idempotence of migrateContent
   console.log('  Testing idempotence of migrateContent...')
@@ -137,7 +137,7 @@ async function runTests() {
 
   // Test 4: Preserves non-hash citations and markdown anchors
   console.log('  Testing preservation of non-hash citations...')
-  const nonHashInput = `sources:: sources/nn/market.md@## Overview & Summary\nCSV: sources/nn/data.csv@R10&col\nLink: [Intro](#overview)\n`
+  const nonHashInput = `sources:: sources/import/market.md@## Overview & Summary\nCSV: sources/import/data.csv@R10&col\nLink: [Intro](#overview)\n`
   const nonHashResult = migrateContent(nonHashInput, 'kNNowledge/test_NN.md', resolveSource)
   assert.strictEqual(nonHashResult.count, 0, 'Non-hash citations untouched')
   assert.strictEqual(nonHashResult.updated, nonHashInput, 'Content untouched')

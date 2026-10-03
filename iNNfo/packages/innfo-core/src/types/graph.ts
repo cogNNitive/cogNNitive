@@ -159,7 +159,7 @@ export interface KnowledgeNode {
   assets?: string[]
   /**
    * Parsed source citations from this element's `sources::` field (a Citation
-   * pointing at a Source section under `sources/nn/`). Populated by
+   * pointing at a section of a Source file). Populated by
    * `normalizeElementsIntoGraph` when the element declares a `sources`/`source`
    * field. Each ref also produces a `relationships` entry with
    * `origin: 'source'` whose `targetId` is the workspace-relative file path

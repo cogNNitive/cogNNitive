@@ -9,7 +9,7 @@ import { parseSourceRef } from '../../src/utils/sourceRef'
 import { buildFakeTree, type FakeTree } from '../helpers/fakeFs'
 
 const markdownWithFrontmatter = `---
-source_file: "sources/original/clientA/report.docx"
+source_file: "sources/import/clientA/report.docx"
 sha256: "abc123"
 size_bytes: 42
 normalized_at: "2026-01-01T00:00:00Z"
@@ -52,9 +52,9 @@ describe('FilePreviewModal knowledge units', () => {
 
   it('highlights a Markdown field line for a field pointer', async () => {
     await mountWithContent(
-      { sources: { nn: { 'g.md': unitMd } } },
+      { sources: { import: { 'g.md': unitMd } } },
       {
-        filePath: 'sources/nn/g.md',
+        filePath: 'sources/import/g.md',
         fileName: 'g.md',
         unit: {
           kind: 'header',
@@ -75,9 +75,9 @@ describe('FilePreviewModal knowledge units', () => {
 
   it('renders a CSV table with the targeted row highlighted', async () => {
     await mountWithContent(
-      { sources: { nn: { 'm.csv': unitCsv } } },
+      { sources: { import: { 'm.csv': unitCsv } } },
       {
-        filePath: 'sources/nn/m.csv',
+        filePath: 'sources/import/m.csv',
         fileName: 'm.csv',
         unit: { kind: 'row', id: '104' },
         subunits: [],
@@ -95,9 +95,9 @@ describe('FilePreviewModal knowledge units', () => {
 
   it('highlights the targeted CSV cell', async () => {
     await mountWithContent(
-      { sources: { nn: { 'm.csv': unitCsv } } },
+      { sources: { import: { 'm.csv': unitCsv } } },
       {
-        filePath: 'sources/nn/m.csv',
+        filePath: 'sources/import/m.csv',
         fileName: 'm.csv',
         unit: { kind: 'row', id: '104' },
         subunits: ['mrr_usd'],
@@ -132,7 +132,7 @@ describe('FilePreviewModal', () => {
   it('does not render any sourceId badge (no synthetic id in the header) and renders English labels', async () => {
     const tree: FakeTree = {
       sources: {
-        nn: {
+        import: {
           'report.md': markdownWithFrontmatter,
         },
       },
@@ -141,7 +141,7 @@ describe('FilePreviewModal', () => {
     const workspaceStore = useWorkspaceStore()
     workspaceStore.handle = handle
 
-    const parsed = parseSourceRef('sources/nn/report.md')
+    const parsed = parseSourceRef('sources/import/report.md')
     wrapper = mount(FilePreviewModal, {
       props: { isOpen: true, kind: 'source', filePath: parsed.filePath, fileName: parsed.fileName },
       attachTo: document.body,
@@ -150,7 +150,7 @@ describe('FilePreviewModal', () => {
     // loadSourceContent() is async (handle traversal + frontmatter parse); wait for the
     // resolved source_file value, not just the always-present "Original File" label.
     await vi.waitFor(() => {
-      expect(document.body.textContent ?? '').toContain('sources/original/clientA/report.docx')
+      expect(document.body.textContent ?? '').toContain('sources/import/clientA/report.docx')
     })
 
     const bodyText = document.body.textContent ?? ''
@@ -168,7 +168,7 @@ describe('FilePreviewModal', () => {
             'report.docx': 'binary-ish content',
           },
         },
-        nn: {
+        import: {
           'report.md': markdownWithFrontmatter,
         },
       },
@@ -183,7 +183,7 @@ describe('FilePreviewModal', () => {
     ;(URL as any).createObjectURL = createObjectURLSpy
     const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null)
 
-    const parsed = parseSourceRef('sources/nn/report.md')
+    const parsed = parseSourceRef('sources/import/report.md')
     wrapper = mount(FilePreviewModal, {
       props: { isOpen: true, kind: 'source', filePath: parsed.filePath, fileName: parsed.fileName },
       attachTo: document.body,
@@ -210,7 +210,7 @@ describe('FilePreviewModal', () => {
   it('switches to the lineage view and renders the mermaid graph with upstream and downstream nodes', async () => {
     const tree: FakeTree = {
       sources: {
-        nn: {
+        import: {
           'report.md': markdownWithFrontmatter,
         },
       },
@@ -235,15 +235,15 @@ describe('FilePreviewModal', () => {
       source: { path: 'kNNowledge/casestudy_V_0-1-0_business_NN.md' },
       sources: [
         {
-          filePath: 'sources/nn/report.md',
+          filePath: 'sources/import/report.md',
           fileName: 'report.md',
           kind: 'source',
-          raw: 'sources/nn/report.md',
+          raw: 'sources/import/report.md',
         },
       ],
     } as any
 
-    const parsed = parseSourceRef('sources/nn/report.md')
+    const parsed = parseSourceRef('sources/import/report.md')
     wrapper = mount(FilePreviewModal, {
       props: { isOpen: true, kind: 'source', filePath: parsed.filePath, fileName: parsed.fileName },
       attachTo: document.body,
@@ -251,7 +251,7 @@ describe('FilePreviewModal', () => {
 
     // Wait for loadSourceContent() to resolve frontmatter so the upstream node is available.
     await vi.waitFor(() => {
-      expect(document.body.textContent ?? '').toContain('sources/original/clientA/report.docx')
+      expect(document.body.textContent ?? '').toContain('sources/import/clientA/report.docx')
     })
 
     const lineageButton = Array.from(document.body.querySelectorAll('button')).find((btn) =>
@@ -279,7 +279,7 @@ describe('FilePreviewModal', () => {
   it('renders the lineage graph at natural size, top-down', async () => {
     const tree: FakeTree = {
       sources: {
-        nn: {
+        import: {
           'report.md': markdownWithFrontmatter,
         },
       },
@@ -288,14 +288,14 @@ describe('FilePreviewModal', () => {
     const workspaceStore = useWorkspaceStore()
     workspaceStore.handle = handle
 
-    const parsed = parseSourceRef('sources/nn/report.md')
+    const parsed = parseSourceRef('sources/import/report.md')
     wrapper = mount(FilePreviewModal, {
       props: { isOpen: true, kind: 'source', filePath: parsed.filePath, fileName: parsed.fileName },
       attachTo: document.body,
     })
 
     await vi.waitFor(() => {
-      expect(document.body.textContent ?? '').toContain('sources/original/clientA/report.docx')
+      expect(document.body.textContent ?? '').toContain('sources/import/clientA/report.docx')
     })
 
     const lineageButton = Array.from(document.body.querySelectorAll('button')).find((btn) =>
@@ -317,7 +317,7 @@ describe('FilePreviewModal', () => {
   it('collapses the 4th-level outgoing relationships by default and expands them via the toggle', async () => {
     const tree: FakeTree = {
       sources: {
-        nn: {
+        import: {
           'report.md': markdownWithFrontmatter,
         },
       },
@@ -351,22 +351,22 @@ describe('FilePreviewModal', () => {
       source: { path: 'kNNowledge/casestudy_V_0-1-0_business_NN.md' },
       sources: [
         {
-          filePath: 'sources/nn/report.md',
+          filePath: 'sources/import/report.md',
           fileName: 'report.md',
           kind: 'source',
-          raw: 'sources/nn/report.md',
+          raw: 'sources/import/report.md',
         },
       ],
     } as any
 
-    const parsed = parseSourceRef('sources/nn/report.md')
+    const parsed = parseSourceRef('sources/import/report.md')
     wrapper = mount(FilePreviewModal, {
       props: { isOpen: true, kind: 'source', filePath: parsed.filePath, fileName: parsed.fileName },
       attachTo: document.body,
     })
 
     await vi.waitFor(() => {
-      expect(document.body.textContent ?? '').toContain('sources/original/clientA/report.docx')
+      expect(document.body.textContent ?? '').toContain('sources/import/clientA/report.docx')
     })
 
     const lineageButton = Array.from(document.body.querySelectorAll('button')).find((btn) =>
@@ -411,7 +411,7 @@ describe('FilePreviewModal', () => {
   it('shows no collapse toggle when the deepest outgoing chain is only 3 levels', async () => {
     const tree: FakeTree = {
       sources: {
-        nn: {
+        import: {
           'report.md': markdownWithFrontmatter,
         },
       },
@@ -436,22 +436,22 @@ describe('FilePreviewModal', () => {
       source: { path: 'kNNowledge/casestudy_V_0-1-0_business_NN.md' },
       sources: [
         {
-          filePath: 'sources/nn/report.md',
+          filePath: 'sources/import/report.md',
           fileName: 'report.md',
           kind: 'source',
-          raw: 'sources/nn/report.md',
+          raw: 'sources/import/report.md',
         },
       ],
     } as any
 
-    const parsed = parseSourceRef('sources/nn/report.md')
+    const parsed = parseSourceRef('sources/import/report.md')
     wrapper = mount(FilePreviewModal, {
       props: { isOpen: true, kind: 'source', filePath: parsed.filePath, fileName: parsed.fileName },
       attachTo: document.body,
     })
 
     await vi.waitFor(() => {
-      expect(document.body.textContent ?? '').toContain('sources/original/clientA/report.docx')
+      expect(document.body.textContent ?? '').toContain('sources/import/clientA/report.docx')
     })
 
     const lineageButton = Array.from(document.body.querySelectorAll('button')).find((btn) =>
@@ -472,7 +472,7 @@ describe('FilePreviewModal', () => {
   it('renders no Spanish UI strings in template or script', async () => {
     const tree: FakeTree = {
       sources: {
-        nn: {
+        import: {
           'report.md': markdownWithFrontmatter,
         },
       },
@@ -481,14 +481,14 @@ describe('FilePreviewModal', () => {
     const workspaceStore = useWorkspaceStore()
     workspaceStore.handle = handle
 
-    const parsed = parseSourceRef('sources/nn/report.md')
+    const parsed = parseSourceRef('sources/import/report.md')
     wrapper = mount(FilePreviewModal, {
       props: { isOpen: true, kind: 'source', filePath: parsed.filePath, fileName: parsed.fileName },
       attachTo: document.body,
     })
 
     await vi.waitFor(() => {
-      expect(document.body.textContent ?? '').toContain('sources/original/clientA/report.docx')
+      expect(document.body.textContent ?? '').toContain('sources/import/clientA/report.docx')
     })
 
     const text = document.body.textContent ?? ''

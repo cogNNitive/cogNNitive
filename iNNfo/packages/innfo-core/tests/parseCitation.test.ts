@@ -4,12 +4,12 @@ import { parseCitation, resolveUnitPath } from '../src/index.js'
 describe('parseCitation', () => {
   describe('canonical @ markdown citations', () => {
     it('parses source heading citation with level', () => {
-      const cit = parseCitation('sources/nn/interview.md@## Clients')
+      const cit = parseCitation('sources/import/interview.md@## Clients')
       expect(cit).toEqual({
-        filePath: 'sources/nn/interview.md',
+        filePath: 'sources/import/interview.md',
         fileName: 'interview.md',
         kind: 'source',
-        raw: 'sources/nn/interview.md@## Clients',
+        raw: 'sources/import/interview.md@## Clients',
         slug: 'clients',
         unit: {
           kind: 'header',
@@ -40,13 +40,13 @@ describe('parseCitation', () => {
       })
     })
 
-    it('parses sources/export/ markdown heading citation', () => {
-      const cit = parseCitation('sources/export/report.md@### Findings')
+    it('parses artifacts/ markdown heading citation', () => {
+      const cit = parseCitation('artifacts/report.md@### Findings')
       expect(cit).toEqual({
-        filePath: 'sources/export/report.md',
+        filePath: 'artifacts/report.md',
         fileName: 'report.md',
         kind: 'source',
-        raw: 'sources/export/report.md@### Findings',
+        raw: 'artifacts/report.md@### Findings',
         slug: 'findings',
         unit: {
           kind: 'header',
@@ -59,12 +59,12 @@ describe('parseCitation', () => {
     })
 
     it('parses heading citation with subunit field', () => {
-      const cit = parseCitation('sources/nn/doc.md@## Overview&summary')
+      const cit = parseCitation('sources/import/doc.md@## Overview&summary')
       expect(cit).toEqual({
-        filePath: 'sources/nn/doc.md',
+        filePath: 'sources/import/doc.md',
         fileName: 'doc.md',
         kind: 'source',
-        raw: 'sources/nn/doc.md@## Overview&summary',
+        raw: 'sources/import/doc.md@## Overview&summary',
         slug: 'overview',
         unit: {
           kind: 'header',
@@ -79,12 +79,12 @@ describe('parseCitation', () => {
 
   describe('canonical @ CSV citations', () => {
     it('parses CSV row citation with subunit column', () => {
-      const cit = parseCitation('sources/nn/prices.csv@R12&price')
+      const cit = parseCitation('sources/import/prices.csv@R12&price')
       expect(cit).toEqual({
-        filePath: 'sources/nn/prices.csv',
+        filePath: 'sources/import/prices.csv',
         fileName: 'prices.csv',
         kind: 'source',
-        raw: 'sources/nn/prices.csv@R12&price',
+        raw: 'sources/import/prices.csv@R12&price',
         unit: {
           kind: 'row',
           id: 'R12',
@@ -124,25 +124,25 @@ describe('parseCitation', () => {
       expect(cit?.legacyHash).toBeUndefined()
     })
 
-    it('parses sources/nn/ bare path', () => {
-      const cit = parseCitation('sources/nn/interview.md')
+    it('parses sources/import/ bare path', () => {
+      const cit = parseCitation('sources/import/interview.md')
       expect(cit).toEqual({
-        filePath: 'sources/nn/interview.md',
+        filePath: 'sources/import/interview.md',
         fileName: 'interview.md',
         kind: 'source',
-        raw: 'sources/nn/interview.md',
+        raw: 'sources/import/interview.md',
       })
       expect(cit?.unit).toBeUndefined()
       expect(cit?.legacyHash).toBeUndefined()
     })
 
-    it('parses sources/export/ bare path', () => {
-      const cit = parseCitation('sources/export/deliverable.md')
+    it('parses artifacts/ bare path', () => {
+      const cit = parseCitation('artifacts/deliverable.md')
       expect(cit).toEqual({
-        filePath: 'sources/export/deliverable.md',
+        filePath: 'artifacts/deliverable.md',
         fileName: 'deliverable.md',
         kind: 'source',
-        raw: 'sources/export/deliverable.md',
+        raw: 'artifacts/deliverable.md',
       })
       expect(cit?.unit).toBeUndefined()
       expect(cit?.legacyHash).toBeUndefined()
@@ -161,12 +161,12 @@ describe('parseCitation', () => {
     })
 
     it('parses bare CSV path', () => {
-      const cit = parseCitation('sources/nn/dataset.csv')
+      const cit = parseCitation('sources/import/dataset.csv')
       expect(cit).toEqual({
-        filePath: 'sources/nn/dataset.csv',
+        filePath: 'sources/import/dataset.csv',
         fileName: 'dataset.csv',
         kind: 'source',
-        raw: 'sources/nn/dataset.csv',
+        raw: 'sources/import/dataset.csv',
       })
       expect(cit?.unit).toBeUndefined()
     })
@@ -185,7 +185,7 @@ describe('parseCitation', () => {
       })
     })
 
-    it('parses legacy #slug on an unqualified path as written, with no sources/nn/ prefix', () => {
+    it('parses legacy #slug on an unqualified path as written, with no sources/import/ prefix', () => {
       const cit = parseCitation('a.md#intro')
       expect(cit).toEqual({
         filePath: 'a.md',
@@ -223,14 +223,14 @@ describe('parseCitation', () => {
     })
 
     it('rejects line-range anchors', () => {
-      expect(parseCitation('sources/nn/a.md@L10-L20')).toBeNull()
-      expect(parseCitation('sources/nn/a.md#L10-L20')).toBeNull()
-      expect(parseCitation('sources/nn/a.md#L15')).toBeNull()
+      expect(parseCitation('sources/import/a.md@L10-L20')).toBeNull()
+      expect(parseCitation('sources/import/a.md#L10-L20')).toBeNull()
+      expect(parseCitation('sources/import/a.md#L15')).toBeNull()
     })
 
     it('rejects src-NNN wrappers', () => {
       expect(parseCitation('src-001')).toBeNull()
-      expect(parseCitation('src-123 sources/nn/a.md')).toBeNull()
+      expect(parseCitation('src-123 sources/import/a.md')).toBeNull()
     })
 
     it('rejects URLs and empty inputs', () => {
@@ -260,7 +260,7 @@ describe('resolveUnitPath', () => {
   })
 
   it('treats retired prefixes as plain paths (they dangle later, not here)', () => {
-    expect(resolveUnitPath('sources/nn/a.md')).toEqual({ filePath: 'sources/nn/a.md', kind: 'source' })
+    expect(resolveUnitPath('sources/import/a.md')).toEqual({ filePath: 'sources/import/a.md', kind: 'source' })
     expect(resolveUnitPath('models/x.md')).toEqual({ filePath: 'models/x.md', kind: 'source' })
     expect(resolveUnitPath('sources/archive/m/V1/m.md')).toEqual({
       filePath: 'sources/archive/m/V1/m.md',

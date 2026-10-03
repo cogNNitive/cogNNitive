@@ -182,7 +182,7 @@ relationship_model:: B2B
 | Enterprise Customer | X |
 
 ## NN External Watch Roots:
-sources:: [sources/nn/watch.md]
+sources:: [sources/import/watch.md]
 
 ## NN Agent Modification: test-mod
 rationale:: Added core platform

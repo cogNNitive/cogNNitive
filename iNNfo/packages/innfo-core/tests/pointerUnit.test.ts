@@ -66,7 +66,7 @@ describe('JSON Pointer unit: parse and serialize', () => {
     ['a dangling tilde', `${FILE}@/a~`],
     ['a literal ampersand (subunits do not exist)', `${FILE}@/a&b`],
     ['a malformed percent escape', `${FILE}@/100%`],
-    ['a pointer on a markdown file', 'sources/nn/a.md@/items/0'],
+    ['a pointer on a markdown file', 'sources/import/a.md@/items/0'],
   ])('rejects %s', (_label, input) => {
     expect(parseCitation(input)).toBeNull()
   })
@@ -142,7 +142,7 @@ describe('validateCitations with pointer units', () => {
     element: 'Acme',
     field: 'sources',
   })
-  const resolver = resolverOf({ [FILE]: DOC, 'sources/nn/bad.json': '{not json' })
+  const resolver = resolverOf({ [FILE]: DOC, 'sources/import/bad.json': '{not json' })
   const codes = (value: string, r: SourceResolver = resolver): string[] =>
     validateCitations([site(value)], r).map((d) => d.code ?? '')
 
@@ -156,15 +156,15 @@ describe('validateCitations with pointer units', () => {
   })
 
   it('reports KU_INVALID_JSON when the target does not parse', () => {
-    expect(codes('sources/nn/bad.json@/items/0')).toEqual(['KU_INVALID_JSON'])
+    expect(codes('sources/import/bad.json@/items/0')).toEqual(['KU_INVALID_JSON'])
   })
 
   it('reports a malformed citation for a pointer on a markdown file', () => {
-    expect(codes('sources/nn/a.md@/items/0')).toEqual(['KU_MALFORMED'])
+    expect(codes('sources/import/a.md@/items/0')).toEqual(['KU_MALFORMED'])
   })
 
   it('reports a dangling file when the target is absent', () => {
-    expect(codes('sources/nn/none.json@/items/0')).toEqual(['KU_DANGLING_FILE'])
+    expect(codes('sources/import/none.json@/items/0')).toEqual(['KU_DANGLING_FILE'])
   })
 
   it('stays silent when the resolver offers no content (degraded)', () => {

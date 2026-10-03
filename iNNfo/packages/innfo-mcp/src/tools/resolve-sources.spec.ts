@@ -80,21 +80,21 @@ async function writeWorkspace(): Promise<void> {
       '# NN Producto',
       '',
       '## NN Producto: Widget',
-      'sources:: sources/nn/pricing.md@## Q3 Pricing',
-      'precio_source:: sources/nn/pricing.md@## Q3 Pricing',
-      'dangling_source:: sources/nn/missing.md@## Ghost',
-      'unknown_anchor_source:: sources/nn/report.md@## Nonexistent Heading',
-      'long_source:: sources/nn/long.md@## Long Section',
-      'short_source:: sources/nn/short.md@## Short Section',
-      'agent_known_source:: sources/nn/agent-mod.md@## NN Agent Modification: update-field-precio',
-      'agent_unknown_marker_source:: sources/nn/agent-mod-unknown.md@## NN Agent Modification: update-field-precio',
-      'agent_missing_author_source:: sources/nn/agent-mod-missing.md@## NN Agent Modification: update-field-precio',
-      'human_source:: sources/nn/agent-mod-human.md@## NN Agent Modification: update-field-precio',
-      'nested_source:: sources/nn/agent-mod-nested.md@### Sub Detail',
-      'sibling_source:: sources/nn/agent-mod-sibling.md@## Sibling Heading',
-      'reviewer_source:: sources/nn/reviewer-with-author.md@## Feedback Note',
-      'reviewer_no_author_source:: sources/nn/reviewer-no-author.md@## Feedback Note',
-      'document_source:: sources/nn/plain-doc.md@## Plain Heading',
+      'sources:: sources/import/pricing.md@## Q3 Pricing',
+      'precio_source:: sources/import/pricing.md@## Q3 Pricing',
+      'dangling_source:: sources/import/missing.md@## Ghost',
+      'unknown_anchor_source:: sources/import/report.md@## Nonexistent Heading',
+      'long_source:: sources/import/long.md@## Long Section',
+      'short_source:: sources/import/short.md@## Short Section',
+      'agent_known_source:: sources/import/agent-mod.md@## NN Agent Modification: update-field-precio',
+      'agent_unknown_marker_source:: sources/import/agent-mod-unknown.md@## NN Agent Modification: update-field-precio',
+      'agent_missing_author_source:: sources/import/agent-mod-missing.md@## NN Agent Modification: update-field-precio',
+      'human_source:: sources/import/agent-mod-human.md@## NN Agent Modification: update-field-precio',
+      'nested_source:: sources/import/agent-mod-nested.md@### Sub Detail',
+      'sibling_source:: sources/import/agent-mod-sibling.md@## Sibling Heading',
+      'reviewer_source:: sources/import/reviewer-with-author.md@## Feedback Note',
+      'reviewer_no_author_source:: sources/import/reviewer-no-author.md@## Feedback Note',
+      'document_source:: sources/import/plain-doc.md@## Plain Heading',
       '',
     ].join('\n'),
     'utf-8',
@@ -303,7 +303,7 @@ describe('resolve_sources', () => {
       fieldName: 'sources',
     })
     expect(results).toHaveLength(1)
-    expect(results[0].path).toBe('sources/nn/pricing.md')
+    expect(results[0].path).toBe('sources/import/pricing.md')
     expect(results[0].anchor).toBe('q3-pricing')
     expect(results[0].exists).toBe(true)
     expect(results[0].sha256).toBe('abc123')
@@ -318,7 +318,7 @@ describe('resolve_sources', () => {
       fieldName: 'precio_source',
     })
     expect(results).toHaveLength(1)
-    expect(results[0].path).toBe('sources/nn/pricing.md')
+    expect(results[0].path).toBe('sources/import/pricing.md')
   })
 
   it('reports a dangling file without throwing', async () => {
@@ -374,7 +374,7 @@ describe('resolve_sources', () => {
     // Both the name-based `sources` field and the schema-typed `precio_source`
     // field resolve to the same target here, so the same path appears twice —
     // once per field — proving both selection paths fired.
-    expect(paths.filter((p) => p === 'sources/nn/pricing.md')).toHaveLength(2)
+    expect(paths.filter((p) => p === 'sources/import/pricing.md')).toHaveLength(2)
   })
 
   it('truncates a long section to the excerpt cap', async () => {
@@ -537,7 +537,7 @@ describe('resolve_sources', () => {
       const modelContent = await readFile(modelFile, 'utf-8')
       const withContractField = modelContent.replace(
         '## NN Producto: Widget\n',
-        `## NN Producto: Widget\ncontract_source:: sources/nn/contract-block.md@${headingLine}\n`,
+        `## NN Producto: Widget\ncontract_source:: sources/import/contract-block.md@${headingLine}\n`,
       )
       await writeFile(modelFile, withContractField, 'utf-8')
 

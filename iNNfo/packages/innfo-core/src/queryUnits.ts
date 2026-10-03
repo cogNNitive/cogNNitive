@@ -14,7 +14,7 @@ export interface KnowledgeQueryFilter {
 }
 
 export interface KnowledgeQuery {
-  /** Workspace-relative file path (resolved, e.g. unqualified names under `sources/nn/`). */
+  /** Workspace-relative file path (taken as written, never prefixed). */
   path: string
   filters: KnowledgeQueryFilter[]
   /** Optional trailing bare segment: project one column/field over the matches. */

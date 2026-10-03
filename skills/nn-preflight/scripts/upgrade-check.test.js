@@ -49,7 +49,7 @@ const CATALOG = {
 function buildWorkspace() {
   const ws = fs.mkdtempSync(path.join(os.tmpdir(), 'upgrade-ws-'));
   fs.mkdirSync(path.join(ws, 'models'), { recursive: true });
-  fs.mkdirSync(path.join(ws, 'sources', 'nn'), { recursive: true });
+  fs.mkdirSync(path.join(ws, 'sources', 'import'), { recursive: true });
   fs.mkdirSync(path.join(ws, 'node_modules', 'pkg'), { recursive: true });
   const model = (file, url) => {
     fs.writeFileSync(path.join(ws, file), `---\nlevel: 3\nparent_spec:\n  name: "x"\n  url: "${url}"\nknowledge_version: "V_0-1-0"\n---\n# NN x\n`, 'utf-8');
@@ -61,7 +61,7 @@ function buildWorkspace() {
   // Non-model files that must be ignored:
   fs.writeFileSync(path.join(ws, 'models', 'index.md'), '# nope');
   fs.writeFileSync(path.join(ws, 'node_modules', 'pkg', 'X_V_0-1-0_business_NN.md'), '---\nlevel: 3\nparent_spec:\n  name: "x"\n  url: "https://x/business_V_0-1-0_NN.md"\n---\n');
-  fs.writeFileSync(path.join(ws, 'sources', 'nn', 'Y_V_0-1-0_business_NN.md'), '---\nlevel: 3\nparent_spec:\n  name: "x"\n  url: "https://x/business_V_0-1-0_NN.md"\n---\n');
+  fs.writeFileSync(path.join(ws, 'sources', 'import', 'Y_V_0-1-0_business_NN.md'), '---\nlevel: 3\nparent_spec:\n  name: "x"\n  url: "https://x/business_V_0-1-0_NN.md"\n---\n');
   return ws;
 }
 

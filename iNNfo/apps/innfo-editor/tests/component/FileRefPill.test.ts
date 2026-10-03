@@ -9,48 +9,48 @@ import {
   resolveHeadingSection,
 } from '../../src/utils/sourceRef'
 
-describe('parseSourceRef utility (sources/nn/ path format)', () => {
+describe('parseSourceRef utility (domaiNN-relative path format)', () => {
   it('parses canonical source reference string with a heading-slug anchor', () => {
-    const res = parseSourceRef('sources/nn/The_Goonies.md#opening-scene')
+    const res = parseSourceRef('sources/import/The_Goonies.md#opening-scene')
     expect(res.isValid).toBe(true)
-    expect(res.filePath).toBe('sources/nn/The_Goonies.md')
+    expect(res.filePath).toBe('sources/import/The_Goonies.md')
     expect(res.fileName).toBe('The_Goonies.md')
     expect(res.slug).toBe('opening-scene')
   })
 
   it('parses canonical source reference string with accented unicode characters in the path', () => {
-    const res = parseSourceRef('sources/nn/Una_noche_en_la_ópera.md#overview')
+    const res = parseSourceRef('sources/import/Una_noche_en_la_ópera.md#overview')
     expect(res.isValid).toBe(true)
-    expect(res.filePath).toBe('sources/nn/Una_noche_en_la_ópera.md')
+    expect(res.filePath).toBe('sources/import/Una_noche_en_la_ópera.md')
     expect(res.fileName).toBe('Una_noche_en_la_ópera.md')
     expect(res.slug).toBe('overview')
   })
 
   it('parses a multi-word heading-slug anchor', () => {
-    const res = parseSourceRef('sources/nn/interviews/interview.md#background-and-context')
+    const res = parseSourceRef('sources/import/interviews/interview.md#background-and-context')
     expect(res.isValid).toBe(true)
-    expect(res.filePath).toBe('sources/nn/interviews/interview.md')
+    expect(res.filePath).toBe('sources/import/interviews/interview.md')
     expect(res.fileName).toBe('interview.md')
     expect(res.slug).toBe('background-and-context')
   })
 
   it('parses a full-file reference with no anchor', () => {
-    const res = parseSourceRef('sources/nn/clientA/report.md')
+    const res = parseSourceRef('sources/import/clientA/report.md')
     expect(res.isValid).toBe(true)
-    expect(res.filePath).toBe('sources/nn/clientA/report.md')
+    expect(res.filePath).toBe('sources/import/clientA/report.md')
     expect(res.fileName).toBe('report.md')
     expect(res.slug).toBeUndefined()
   })
 
   it('rejects the legacy line-range anchor format', () => {
-    expect(parseSourceRef('sources/nn/The_Goonies.md#L13').isValid).toBe(false)
-    expect(parseSourceRef('sources/nn/interviews/interview.md#L12-L45').isValid).toBe(false)
+    expect(parseSourceRef('sources/import/The_Goonies.md#L13').isValid).toBe(false)
+    expect(parseSourceRef('sources/import/interviews/interview.md#L12-L45').isValid).toBe(false)
   })
 
-  it('parses unqualified source reference string resolving relative to sources/nn/', () => {
+  it('parses an unqualified source reference as written, with no implicit folder', () => {
     const res = parseSourceRef('The_Goonies.md#opening-scene')
     expect(res.isValid).toBe(true)
-    expect(res.filePath).toBe('sources/nn/The_Goonies.md')
+    expect(res.filePath).toBe('The_Goonies.md')
     expect(res.fileName).toBe('The_Goonies.md')
     expect(res.slug).toBe('opening-scene')
   })
@@ -58,15 +58,15 @@ describe('parseSourceRef utility (sources/nn/ path format)', () => {
   it('parses nested unqualified source reference', () => {
     const res = parseSourceRef('interviews/interview.md#background')
     expect(res.isValid).toBe(true)
-    expect(res.filePath).toBe('sources/nn/interviews/interview.md')
+    expect(res.filePath).toBe('interviews/interview.md')
     expect(res.fileName).toBe('interview.md')
     expect(res.slug).toBe('background')
   })
 
   it('rejects invalid source strings', () => {
     expect(parseSourceRef('Just plain text').isValid).toBe(false)
-    expect(parseSourceRef('src-003 (sources/nn/The_Goonies.md#opening-scene)').isValid).toBe(false)
-    expect(parseSourceRef('sources/original/The_Goonies.docx').isValid).toBe(false)
+    expect(parseSourceRef('src-003 (sources/import/The_Goonies.md#opening-scene)').isValid).toBe(false)
+    expect(parseSourceRef('sources/import/The_Goonies.docx').isValid).toBe(false)
     expect(parseSourceRef('../secret.md#heading').isValid).toBe(false)
   })
 
@@ -125,7 +125,7 @@ describe('slugifyHeading / heading resolution', () => {
 
 describe('FileRefPill component (kind="source")', () => {
   it('renders pill with file name and section slug (no synthetic id) when given a parsed canonical reference', () => {
-    const parsed = parseSourceRef('sources/nn/Una_noche_en_la_ópera.md#overview')
+    const parsed = parseSourceRef('sources/import/Una_noche_en_la_ópera.md#overview')
     const wrapper = mount(FileRefPill, {
       props: {
         kind: 'source',
@@ -147,10 +147,10 @@ describe('FileRefPill component (kind="source")', () => {
 describe('parseCitation (knowledge-unit pointers, bare file citations, legacy #slug)', () => {
   it('parses a CSV cell pointer with unit and subunits', async () => {
     const { parseCitation } = await import('../../src/utils/sourceRef')
-    const p = parseCitation('sources/nn/metricas_q3.csv@104&mrr_usd')
+    const p = parseCitation('sources/import/metricas_q3.csv@104&mrr_usd')
     expect(p).not.toBeNull()
     expect(p).toMatchObject({
-      filePath: 'sources/nn/metricas_q3.csv',
+      filePath: 'sources/import/metricas_q3.csv',
       fileName: 'metricas_q3.csv',
       unit: { kind: 'row', id: '104' },
       subunits: ['mrr_usd'],
@@ -178,9 +178,9 @@ describe('parseCitation (knowledge-unit pointers, bare file citations, legacy #s
 
   it('parses legacy #slug references marked with legacyHash', async () => {
     const { parseCitation } = await import('../../src/utils/sourceRef')
-    const p = parseCitation('sources/nn/report.md#overview')
+    const p = parseCitation('sources/import/report.md#overview')
     expect(p).toMatchObject({
-      filePath: 'sources/nn/report.md',
+      filePath: 'sources/import/report.md',
       slug: 'overview',
       legacyHash: true,
     })
@@ -199,7 +199,7 @@ describe('FileRefPill with citations', () => {
     const { parseCitation } = await import('../../src/utils/sourceRef')
     const FilePreviewModal = (await import('../../src/components/editor/FilePreviewModal.vue'))
       .default
-    const p = parseCitation('sources/nn/metricas_q3.csv@104&mrr_usd')!
+    const p = parseCitation('sources/import/metricas_q3.csv@104&mrr_usd')!
     const wrapper = mount(FileRefPill, {
       props: {
         kind: 'source',

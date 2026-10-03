@@ -113,7 +113,7 @@ function serializeTagsValue(tags: string[], rawText?: string): string {
  * Requirement 6: a citation list never carries the same pointer twice.
  *
  * Comparison is on the PARSED pointer, so `file.md@## X` and
- * `sources/nn/file.md@##x` are recognised as one citation. Returns the value
+ * `file.md@##x` are recognised as one citation. Returns the value
  * unchanged when nothing was duplicated, which is what keeps this compatible
  * with round-trip identity (Requirement 1): only an already-malformed document
  * is rewritten, and its raw text is deliberately discarded in that one case.

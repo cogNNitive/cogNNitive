@@ -63,9 +63,9 @@ function pathSegments(refPath: string): string[] {
  * directory segments with getDirectoryHandle before the final getFileHandle.
  *
  * The File System Access API rejects any name that contains a path separator
- * (e.g. "sources/nn/model.md" or "./models/a_NN.md") with
+ * (e.g. "sources/import/model.md" or "./models/a_NN.md") with
  * "Name is not allowed", so references like `[[./models/a_NN.md]]` or
- * `[a](./sources/nn/a.md)` must be resolved segment by segment.
+ * `[a](./sources/import/a.md)` must be resolved segment by segment.
  *
  * References that escape the workspace root (`..`) are treated as not found
  * (unsupported) instead of surfacing a "Name is not allowed" error.

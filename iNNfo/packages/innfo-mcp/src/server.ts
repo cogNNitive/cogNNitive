@@ -533,7 +533,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
         properties: {
           query: {
             type: 'string',
-            description: 'Query string, e.g. "sources/nn/m.csv?segmento=Enterprise&mrr_usd"',
+            description: 'Query string, e.g. "sources/import/m.csv?segmento=Enterprise&mrr_usd"',
           },
           domain: {
             type: 'string',

@@ -494,11 +494,11 @@ describe('validateWorkspaceSources — LEGACY_DERIVATION_KEY (D3)', () => {
 describe('validateWorkspaceSources — single citation edge updates', () => {
   it('accepts file-level bare paths without emitting KU_DEPRECATED_HASH', () => {
     const diags = validateWorkspaceSources(
-      resultWith(['kNNowledge/Client_NN.md', 'sources/export/report.md', 'sources/nn/guide.md']),
+      resultWith(['kNNowledge/Client_NN.md', 'artifacts/report.md', 'sources/import/guide.md']),
       resolver({
         'kNNowledge/Client_NN.md': true,
-        'sources/export/report.md': true,
-        'sources/nn/guide.md': true,
+        'artifacts/report.md': true,
+        'sources/import/guide.md': true,
       }),
     )
     expect(diags).toEqual([])

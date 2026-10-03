@@ -25,8 +25,8 @@ describe('parseSourceRef', () => {
     const r = parseSourceRef('sources/import/report.md#intro')
     expect(r?.filePath).toBe('sources/import/report.md')
     expect(r?.kind).toBe('source')
-    expect(parseSourceRef('sources/nn/report.md#intro')?.filePath).toBe('sources/nn/report.md')
-    expect(parseSourceRef('sources/export/report.md#intro')?.filePath).toBe('sources/export/report.md')
+    expect(parseSourceRef('sources/import/report.md#intro')?.filePath).toBe('sources/import/report.md')
+    expect(parseSourceRef('artifacts/report.md#intro')?.filePath).toBe('artifacts/report.md')
   })
 
   it('recognises a kNNowledge/ cross-domain reference', () => {

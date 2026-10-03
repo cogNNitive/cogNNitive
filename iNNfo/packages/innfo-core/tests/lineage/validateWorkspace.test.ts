@@ -9,7 +9,7 @@ import type { FileSnapshot } from '../../src/queryUnits.js'
 
 describe('validateWorkspaceSources with FileSnapshot[]', () => {
   const mockResolver: SourceResolver = (p: string) => {
-    if (p === 'sources/nn/existing.md') {
+    if (p === 'sources/import/existing.md') {
       return {
         exists: true,
         content: '# Overview\nValid content',
@@ -62,7 +62,7 @@ describe('validateWorkspaceSources with FileSnapshot[]', () => {
         elements: {},
         fields: {
           derived_from: {
-            value: 'sources/nn/existing.md@## Overview',
+            value: 'sources/import/existing.md@## Overview',
           },
         },
         templateSchema: modelRecordsSchema,
@@ -76,7 +76,7 @@ describe('validateWorkspaceSources with FileSnapshot[]', () => {
       path: 'artifacts/DanglingReport.md',
       content: `---
 title: "Dangling Report"
-sources: ["sources/nn/missing.md@## Section"]
+sources: ["sources/import/missing.md@## Section"]
 ---
 `,
     },
@@ -94,7 +94,7 @@ sources: ["sources/nn/missing.md@## Section"]
       path: 'artifacts/ValidReport.md',
       content: `---
 title: "Valid Report"
-sources: ["sources/nn/existing.md@## Overview"]
+sources: ["sources/import/existing.md@## Overview"]
 ---
 `,
     },
@@ -109,7 +109,7 @@ sources: ["sources/nn/existing.md@## Overview"]
 
     const reportDiag = missingFileDiags.find((d) => d.path.startsWith('artifacts/DanglingReport.md'))
     expect(reportDiag).toBeDefined()
-    expect(reportDiag?.message).toContain('sources/nn/missing.md')
+    expect(reportDiag?.message).toContain('sources/import/missing.md')
 
     const consoleDiag = missingFileDiags.find((d) => d.path.startsWith('artifacts/DanglingConsole.html'))
     expect(consoleDiag).toBeDefined()

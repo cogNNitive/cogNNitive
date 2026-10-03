@@ -105,7 +105,7 @@ export type Role =
 
 /**
  * Workspace roots whose contents are never discovered, cited, or projected.
- * Roots only: `sources/archive/` is not excluded by this set.
+ * Roots only: nested folders are not excluded by this set.
  */
 export const IGNORED_DIRECTORIES: ReadonlySet<string> = new Set(['backups', 'archive', 'specs'])
 

@@ -38,7 +38,7 @@ function readRecordSources(recordText) {
  *  (e) a sidecar `sha256` differs from the hash of its raw bytes;
  *  (f) a sidecar names a subject other than the one its name derives.
  * Warnings: an orphaned sidecar (its raw file is missing). Nothing is moved,
- * archived or deleted; `sources/archive/` is never read.
+ * archived or deleted.
  *
  * @param {string} projectDir
  * @returns {{ errors: string[], warnings: string[] }}

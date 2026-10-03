@@ -15,7 +15,7 @@ knowledge_version: "V_1-0-0"
 ## NN Problems: Paranormal Infestation
 severity:: high
 description:: Uncontrolled supernatural events in NYC.
-sources:: sources/nn/brief.md#intro
+sources:: sources/import/brief.md#intro
 next:: [[Paranormal Infestation]]
 
 ## NN Problems: Paranormal Infestation

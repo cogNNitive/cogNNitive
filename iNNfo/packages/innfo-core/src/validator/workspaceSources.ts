@@ -31,7 +31,7 @@ export interface SourceResolution {
 
 /**
  * Host-supplied callback that resolves a workspace-relative source path
- * (`sources/nn/<path>.md`, `sources/nn/<path>.csv`, or `kNNowledge/<path>.md`) to
+ * (for example `sources/import/<path>.csv` or `kNNowledge/<path>.md`) to
  * whether the file exists and, when cheap to compute, its heading slugs and/or
  * raw content (content unlocks row/column/field checks and precise `@` suggestions).
  */

@@ -13,7 +13,7 @@
  *   --models N      number of Level-3 model files
  *   --rows N        rows per sources/*.csv knowledge unit
  *   --units N       knowledge-unit headings per source file
- *   --sources N     source files under sources/nn/
+ *   --sources N     source files under sources/import/
  *
  * Run:
  *   node scripts/perf-workspace-kb.mjs --models 20 --rows 500 --units 50 --sources 4
@@ -70,7 +70,7 @@ function parseArgs(argv) {
 function generateWorkspace({ models, rows, units, sources }) {
   if (existsSync(perfRoot)) rmSync(perfRoot, { recursive: true, force: true })
   mkdirSync(join(perfRoot, 'models'), { recursive: true })
-  mkdirSync(join(perfRoot, 'sources', 'nn'), { recursive: true })
+  mkdirSync(join(perfRoot, 'sources', 'import'), { recursive: true })
 
   for (let s = 0; s < sources; s++) {
     const header = ['id', 'metric', 'owner', 'status']
@@ -78,15 +78,15 @@ function generateWorkspace({ models, rows, units, sources }) {
     for (let r = 0; r < rows; r++) {
       lines.push([`k${s}-${r}`, `value_${r}`, `owner_${r % 7}`, 'active'].join(','))
     }
-    writeFileSync(join(perfRoot, 'sources', 'nn', `kb_${s}.csv`), lines.join('\n'), 'utf8')
+    writeFileSync(join(perfRoot, 'sources', 'import', `kb_${s}.csv`), lines.join('\n'), 'utf8')
 
     let unitsMd = `# NN Sources\n`
     unitsMd += `## NN Source: KB ${s}\n`
-    unitsMd += `  source_file:: "sources/nn/kb_${s}.csv"\n`
+    unitsMd += `  source_file:: "sources/import/kb_${s}.csv"\n`
     for (let u = 0; u < units; u++) {
       unitsMd += `\n## NN Knowledge Unit: Unit ${s}-${u}\n  slug:: "unit-${s}-${u}"\n  metric:: "value_${u}"\n  description:: "Knowledge unit ${s}-${u} with a moderately long description so the parse has real work to do."\n`
     }
-    writeFileSync(join(perfRoot, 'sources', 'nn', `kb_${s}_NN.md`), unitsMd, 'utf8')
+    writeFileSync(join(perfRoot, 'sources', 'import', `kb_${s}_NN.md`), unitsMd, 'utf8')
   }
 
   for (let m = 0; m < models; m++) {
@@ -195,7 +195,7 @@ async function measure(rootDir) {
   out.validate = performance.now() - t1
 
   const t2 = performance.now()
-  await mcpCall(rootDir, 'query_units', { query: 'sources/nn/kb_0.csv?status=active' })
+  await mcpCall(rootDir, 'query_units', { query: 'sources/import/kb_0.csv?status=active' })
   out.query = performance.now() - t2
 
   return out

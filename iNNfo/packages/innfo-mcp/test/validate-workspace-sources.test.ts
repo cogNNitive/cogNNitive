@@ -108,7 +108,7 @@ title: "Finance Plan"
 sources:: [budget.md@## Budget Summary]
 `
     const budgetSource = `---
-source_file: "sources/original/budget.txt"
+source_file: "sources/import/budget.txt"
 sha256: "0"
 ---
 
@@ -151,7 +151,7 @@ title: "Fallback Plan"
 sources:: [shared_policy.md@## Policy Overview]
 `
     const rootPolicySource = `---
-source_file: "sources/original/shared_policy.txt"
+source_file: "sources/import/shared_policy.txt"
 sha256: "0"
 ---
 
@@ -219,7 +219,7 @@ sources:: [missing_folder/report.md#summary, sources/import/annual_repots.md#int
     await mkdir(join(rootDir, 'artifacts'), { recursive: true })
     await writeFile(
       join(rootDir, 'artifacts', 'Report.md'),
-      '---\ntitle: "Deliverable"\nsources: ["sources/nn/dangling.md@## Section"]\n---\n# Content',
+      '---\ntitle: "Deliverable"\nsources: ["sources/import/dangling.md@## Section"]\n---\n# Content',
       'utf-8',
     )
     const diags = await collectWorkspaceDiagnostics(rootDir, null)
@@ -227,6 +227,6 @@ sources:: [missing_folder/report.md#summary, sources/import/annual_repots.md#int
       (d) => d.path.startsWith('artifacts/Report.md') && d.code === 'KU_DANGLING_FILE',
     )
     expect(dangling).toBeDefined()
-    expect(dangling?.message).toContain('sources/nn/dangling.md')
+    expect(dangling?.message).toContain('sources/import/dangling.md')
   })
 })

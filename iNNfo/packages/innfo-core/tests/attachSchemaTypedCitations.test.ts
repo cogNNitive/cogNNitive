@@ -94,7 +94,7 @@ describe('attachSchemaTypedCitations (wired through recursiveParse)', () => {
       ['domaiNN_NN.md', fakeFile('domaiNN_NN.md', makeIndex(['plan_NN.md']))],
       [
         'plan_NN.md',
-        fakeFile('plan_NN.md', planModel('precio_source:: sources/nn/pricing.md@## Q3 Pricing')),
+        fakeFile('plan_NN.md', planModel('precio_source:: sources/import/pricing.md@## Q3 Pricing')),
       ],
     ])
 
@@ -104,10 +104,10 @@ describe('attachSchemaTypedCitations (wired through recursiveParse)', () => {
 
     const widget = Object.values(result.nodes).find((n) => n.name === 'Widget')
     expect(widget).toBeDefined()
-    expect(widget!.sources?.map((s) => s.filePath)).toEqual(['sources/nn/pricing.md'])
+    expect(widget!.sources?.map((s) => s.filePath)).toEqual(['sources/import/pricing.md'])
     const sourceEdges = widget!.relationships.filter((r) => r.origin === 'source')
     expect(sourceEdges).toEqual([
-      { targetId: 'sources/nn/pricing.md', label: 'precio_source', origin: 'source' },
+      { targetId: 'sources/import/pricing.md', label: 'precio_source', origin: 'source' },
     ])
   })
 
@@ -126,7 +126,7 @@ describe('attachSchemaTypedCitations (wired through recursiveParse)', () => {
     }
     const root = fakeDir('workspace', [
       ['domaiNN_NN.md', fakeFile('domaiNN_NN.md', makeIndex(['plan_NN.md']))],
-      ['plan_NN.md', fakeFile('plan_NN.md', planModel('sources:: sources/nn/pricing.md@## Q3 Pricing'))],
+      ['plan_NN.md', fakeFile('plan_NN.md', planModel('sources:: sources/import/pricing.md@## Q3 Pricing'))],
     ])
 
     const result = await recursiveParse(root, undefined, {
@@ -154,7 +154,7 @@ describe('attachSchemaTypedCitations (wired through recursiveParse)', () => {
       '# NN Producto',
       '',
       '## NN Producto: Widget',
-      'precio_source:: sources/nn/pricing.md@## Q3 Pricing',
+      'precio_source:: sources/import/pricing.md@## Q3 Pricing',
       '',
     ].join('\n')
 
@@ -166,10 +166,10 @@ describe('attachSchemaTypedCitations (wired through recursiveParse)', () => {
 
     const widget = Object.values(result.nodes).find((n) => n.name === 'Widget')
     expect(widget).toBeDefined()
-    expect(widget!.sources?.map((s) => s.filePath)).toEqual(['sources/nn/pricing.md'])
+    expect(widget!.sources?.map((s) => s.filePath)).toEqual(['sources/import/pricing.md'])
     const sourceEdges = widget!.relationships.filter((r) => r.origin === 'source')
     expect(sourceEdges).toEqual([
-      { targetId: 'sources/nn/pricing.md', label: 'precio_source', origin: 'source' },
+      { targetId: 'sources/import/pricing.md', label: 'precio_source', origin: 'source' },
     ])
   })
 
@@ -178,7 +178,7 @@ describe('attachSchemaTypedCitations (wired through recursiveParse)', () => {
       ['domaiNN_NN.md', fakeFile('domaiNN_NN.md', makeIndex(['plan_NN.md']))],
       [
         'plan_NN.md',
-        fakeFile('plan_NN.md', planModel('precio_source:: sources/nn/pricing.md@## Q3 Pricing')),
+        fakeFile('plan_NN.md', planModel('precio_source:: sources/import/pricing.md@## Q3 Pricing')),
       ],
     ])
 
@@ -229,12 +229,12 @@ describe('visual-catalog blueprint citation fields (real package)', () => {
       '# NN Entry',
       '',
       '## NN Entry: Museum Pass',
-      'source:: sources/nn/photo.md@## Capture',
+      'source:: sources/import/photo.md@## Capture',
       '',
       '# NN Evidence',
       '',
       '## NN Evidence: Photo A',
-      'source:: sources/nn/photo.md@## Capture',
+      'source:: sources/import/photo.md@## Capture',
       '',
     ].join('\n')
 
@@ -247,13 +247,13 @@ describe('visual-catalog blueprint citation fields (real package)', () => {
 
     const entry = Object.values(result.nodes).find((n) => n.name === 'Museum Pass')
     const evidence = Object.values(result.nodes).find((n) => n.name === 'Photo A')
-    expect(entry!.sources?.map((s) => s.filePath)).toEqual(['sources/nn/photo.md'])
+    expect(entry!.sources?.map((s) => s.filePath)).toEqual(['sources/import/photo.md'])
     expect(entry!.relationships.filter((r) => r.origin === 'source')).toEqual([
-      { targetId: 'sources/nn/photo.md', label: 'source', origin: 'source' },
+      { targetId: 'sources/import/photo.md', label: 'source', origin: 'source' },
     ])
-    expect(evidence!.sources?.map((s) => s.filePath)).toEqual(['sources/nn/photo.md'])
+    expect(evidence!.sources?.map((s) => s.filePath)).toEqual(['sources/import/photo.md'])
     expect(evidence!.relationships.filter((r) => r.origin === 'source')).toEqual([
-      { targetId: 'sources/nn/photo.md', label: 'source', origin: 'source' },
+      { targetId: 'sources/import/photo.md', label: 'source', origin: 'source' },
     ])
   })
 })

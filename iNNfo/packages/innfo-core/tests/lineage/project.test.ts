@@ -273,7 +273,7 @@ sources:
 
   it('ignores old mirror files, archive snapshots and staging sidecars', () => {
     const { sources, artifacts } = projectLineage([
-      { path: 'sources/nn/old.md', content: '---\nsource_file: x.txt\n---\n' },
+      { path: 'sources/import/old.md', content: '---\nsource_file: x.txt\n---\n' },
       { path: 'sources/archive/m/V1/m.md', content: '---\nsource_file: m.txt\n---\n' },
       sidecar('sources/import/staging/x.md'),
     ])

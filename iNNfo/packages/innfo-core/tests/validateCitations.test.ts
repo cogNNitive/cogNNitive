@@ -23,14 +23,14 @@ describe('validateCitations', () => {
   it('validates canonical @ heading citations cleanly when target exists', () => {
     const sites: CitationSite[] = [
       {
-        value: 'sources/nn/guide.md@## Overview',
+        value: 'sources/import/guide.md@## Overview',
         referringPath: 'kNNowledge/Client_NN.md',
         element: 'Enterprise Clients',
         field: 'sources',
       },
     ]
     const resolver = contentResolver({
-      'sources/nn/guide.md': '# Guide\n\n## Overview\nContent here.\n',
+      'sources/import/guide.md': '# Guide\n\n## Overview\nContent here.\n',
     })
 
     const diags = validateCitations(sites, resolver)
@@ -39,7 +39,7 @@ describe('validateCitations', () => {
 
   it('reports KU_DANGLING_FILE with site and target populated on missing file', () => {
     const site: CitationSite = {
-      value: 'sources/nn/missing.md@## Overview',
+      value: 'sources/import/missing.md@## Overview',
       referringPath: 'kNNowledge/Client_NN.md',
       element: 'Enterprise Clients',
       field: 'sources',
@@ -51,20 +51,20 @@ describe('validateCitations', () => {
       code: 'KU_DANGLING_FILE',
       severity: 'error',
       path: 'kNNowledge/Client_NN.md#Enterprise Clients.sources',
-      target: 'sources/nn/missing.md',
+      target: 'sources/import/missing.md',
       site,
     })
   })
 
   it('reports KU_UNKNOWN_SLUG when heading anchor does not exist', () => {
     const site: CitationSite = {
-      value: 'sources/nn/guide.md@## NonExistent',
+      value: 'sources/import/guide.md@## NonExistent',
       referringPath: 'kNNowledge/Client_NN.md',
       element: 'Enterprise Clients',
       field: 'sources',
     }
     const resolver = contentResolver({
-      'sources/nn/guide.md': '# Guide\n\n## Overview\nContent here.\n',
+      'sources/import/guide.md': '# Guide\n\n## Overview\nContent here.\n',
     })
 
     const diags = validateCitations([site], resolver)
@@ -73,17 +73,17 @@ describe('validateCitations', () => {
       code: 'KU_UNKNOWN_SLUG',
       severity: 'warning',
       path: 'kNNowledge/Client_NN.md#Enterprise Clients.sources',
-      target: 'sources/nn/guide.md',
+      target: 'sources/import/guide.md',
       site,
     })
   })
 
   it('reports KU_UNKNOWN_ROW and KU_UNKNOWN_COLUMN for CSV citations', () => {
     const csvContent = 'id,name,price\n101,Widget,50\n'
-    const resolver = contentResolver({ 'sources/nn/data.csv': csvContent })
+    const resolver = contentResolver({ 'sources/import/data.csv': csvContent })
 
     const rowSite: CitationSite = {
-      value: 'sources/nn/data.csv@999',
+      value: 'sources/import/data.csv@999',
       referringPath: 'artifacts/summary.md',
       field: 'sources',
     }
@@ -93,12 +93,12 @@ describe('validateCitations', () => {
       code: 'KU_UNKNOWN_ROW',
       severity: 'error',
       path: 'artifacts/summary.md#sources',
-      target: 'sources/nn/data.csv',
+      target: 'sources/import/data.csv',
       site: rowSite,
     })
 
     const colSite: CitationSite = {
-      value: 'sources/nn/data.csv@101&nonexistent_col',
+      value: 'sources/import/data.csv@101&nonexistent_col',
       referringPath: 'artifacts/summary.md',
       field: 'sources',
     }
@@ -108,7 +108,7 @@ describe('validateCitations', () => {
       code: 'KU_UNKNOWN_COLUMN',
       severity: 'error',
       path: 'artifacts/summary.md#sources',
-      target: 'sources/nn/data.csv',
+      target: 'sources/import/data.csv',
       site: colSite,
     })
   })
