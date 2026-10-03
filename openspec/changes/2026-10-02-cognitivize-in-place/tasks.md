@@ -102,7 +102,7 @@ Spec links: `cognitivize-in-place` (imports, watch roots, retired folders, stagi
 - [x] 3b.4 RED: web/external import copies verbatim into `sources/import/`, every import suffixed, identical bytes dedupe, watch roots only observe, `process-images.js` uses cognitivize. GREEN: `webImport.js`, `external-scanner.js`, `process-images.js`.
 - [x] 3b.5 RED: `--cognitivize <file|dir>` recurses, skips sidecars/staging; `--scan` calls the same function. GREEN: `index.js`, `normalizer.js` adapter over converters.
 - [x] 3b.6 RED: `lineage-check` family validation (record exists, `validateCitations`, orphan sidecars), archive chain checks removed; `impact-checker` reads families + hash guard. GREEN: `lineage-check.js`, `impact-checker.js`, `provenance-knowledge.js`, `transformer.js`, preflight `:334,352-363,463,496-501`.
-- [ ] 3b.7 Edit `iNNfo/specs/bluepriNNts/cogNNitive/spec_NN.md` in place (Resolved Q1: version/archive_path fields); `template_version` bump; `npm run sync:versions`, registry, `catalog.json`.
+- [x] 3b.7 Edit `iNNfo/specs/bluepriNNts/cogNNitive/spec_NN.md` in place (Resolved Q1: version/archive_path fields); `template_version` bump; `npm run sync:versions`, registry, `catalog.json`.
 - [ ] 3b.8 Extend `legacy/layout/plan.ts` for `sources/nn` mirror deletion and sidecar relocation; migrate fixtures with the tool.
 - [ ] 3b.9 Generated: core mirror, preflight mirrors, console payload + bundle. Verify the success-criterion `rg -n "sources/(nn|original|export|archive)/"` shows only marked lines.
 - [ ] 3b.10 Gate: all test commands (skills with empty-home), `verify.js`, `check:integrity`, ledger guard, typecheck(s), lint.

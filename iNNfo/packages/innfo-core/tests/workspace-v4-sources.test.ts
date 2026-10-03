@@ -9,7 +9,7 @@ describe('Workspace Template V_0-4-0 & Polymorphic Sources', () => {
   it('parses the workspace_spec_NN.md template correctly', () => {
     const specContent = fs.readFileSync(specPath, 'utf8');
     const parsed = parseKnowledge(specContent);
-    expect(parsed.frontmatter?.template_version).toMatch(/^V_0-[4-6]-\d+$/);
+    expect(parsed.frontmatter?.template_version).toMatch(/^V_0-\d+-\d+$/);
     expect(parsed.elements.has('Concept Definition')).toBe(true);
     expect(parsed.elements.has('Field Definition')).toBe(true);
   });
@@ -35,7 +35,7 @@ title: "Test Polymorphic Workspace"
 
 # NN Workspace
 models_dir:: kNNowledge/
-sources_dir:: sources/nn/
+sources_dir:: sources/import/
 
 Test workspace demonstrating polymorphic sources.
 
@@ -52,7 +52,7 @@ derived_from:: [[Entrevista Operaciones]]
 
 ## NN Sources: Entrevista Operaciones
 type:: local_file
-origin_uri:: sources/original/docs/interview.txt
+origin_uri:: sources/import/docs/interview.txt
 format:: txt
 subpath:: docs/interview.md
 refresh_policy:: immutable
