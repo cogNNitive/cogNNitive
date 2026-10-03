@@ -402,5 +402,22 @@ describe('innfo-mcp server (dispatch/handler layer, real MCP client/server round
       expect(parsed.message).toContain('legacy layout')
       expect(parsed.hint).toContain('nn-upgrade')
     })
+
+    it('lets reads through but refuses writes when the only legacy signal is the retired layout', async () => {
+      await mkdir(join(rootDir, 'sources', 'nn'), { recursive: true })
+      await writeFile(join(rootDir, 'sources', 'nn', 'raw_NN.md'), '# raw\n', 'utf-8')
+
+      const read = await client.callTool({ name: 'list_knowledge', arguments: {} })
+      expect(read.isError).toBeFalsy()
+      expect(JSON.parse(textOf(read as CallToolResult)).isLegacy).toBeUndefined()
+
+      const write = await client.callTool({
+        name: 'init_knowledge',
+        arguments: { id: 'x', blueprint_url: 'u', blueprint_name: 'n', knowledge_version: '0.1.0' },
+      })
+      const parsed = JSON.parse(textOf(write as CallToolResult))
+      expect(parsed.isLegacy).toBe(true)
+      expect(parsed.signals.every((s: { type: string }) => s.type === 'legacy-layout')).toBe(true)
+    })
   })
 })

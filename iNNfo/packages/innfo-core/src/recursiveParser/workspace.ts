@@ -387,7 +387,23 @@ export async function recursiveParse(
   // Step 0: Check for legacy signals using DomainReader and detectLegacy
   const reader = makeDomainReader(root, driver)
   const legacyCheck = await detectLegacy(reader)
-  if (legacyCheck.kind === 'legacy' || legacyCheck.kind === 'mixed') {
+  // A domain whose ONLY legacy signals are retired layout folders still parses:
+  // the frozen samples and use cases keep the retired layout by design and must open
+  // with their content. The signal stays visible as a warning plus `legacyResult`
+  // so the editor banner and nn-upgrade can act on it. Any other signal blocks.
+  const layoutOnly =
+    legacyCheck.kind !== 'current' && legacyCheck.signals.every((s) => s.type === 'legacy-layout')
+  const legacyReport: Pick<RecursiveParseResult, 'legacyResult'> = layoutOnly
+    ? { legacyResult: legacyCheck }
+    : {}
+  if (layoutOnly) {
+    ctx.issues.push({
+      path: '<root>',
+      message: legacyCheck.hint,
+      code: 'LEGACY_DOMAIN',
+      severity: 'warning',
+    })
+  } else if (legacyCheck.kind === 'legacy' || legacyCheck.kind === 'mixed') {
     return {
       nodes: {},
       rootIds: [],
@@ -481,7 +497,7 @@ export async function recursiveParse(
       severity: 'warning',
     })
 
-    return { nodes: ctx.nodes, rootIds: topology.rootIds, issues: ctx.issues, topology }
+    return { nodes: ctx.nodes, rootIds: topology.rootIds, issues: ctx.issues, topology, ...legacyReport }
   }
 
   // Step 3: Iterative worklist traversal
@@ -623,5 +639,12 @@ export async function recursiveParse(
 
   const topology = computeModelDagTopology(ctx.nodes, entrypointPath)
 
-  return { nodes: ctx.nodes, rootIds: topology.rootIds, issues: ctx.issues, entrypointPath, topology }
+  return {
+    nodes: ctx.nodes,
+    rootIds: topology.rootIds,
+    issues: ctx.issues,
+    entrypointPath,
+    topology,
+    ...legacyReport,
+  }
 }

@@ -148,3 +148,45 @@ describe('Task 7.3: Canonical DomaiNN Entrypoint Resolution', () => {
     expect(result.entrypointPath).not.toBe('index.md')
   })
 })
+
+describe('Layout-only legacy signals do not block parsing (frozen samples)', () => {
+  const entry = md(CANONICAL_DOMAIN_FM, '\n# NN domaiNN\n## NN domaiNN: Test\n')
+  const frozenSources = fakeDir('sources', [
+    ['nn', fakeDir('nn', [['raw_sidecar_NN.md', fakeFile('raw_sidecar_NN.md', md({ title: 'Raw' }))]])],
+  ])
+
+  it('parses the domain, yields nodes, and reports the layout signal as a warning', async () => {
+    const dir = fakeDir('root', [
+      ['domaiNN_NN.md', fakeFile('domaiNN_NN.md', entry)],
+      ['sources', frozenSources],
+    ])
+
+    const result = await recursiveParse(dir)
+    expect(Object.keys(result.nodes).length).toBeGreaterThan(0)
+    expect(result.entrypointPath).toBe(CANONICAL_DOMAIN_ENTRYPOINT)
+    expect(result.isLegacy).toBeFalsy()
+    const legacyIssues = result.issues.filter((i) => i.code === 'LEGACY_DOMAIN')
+    expect(legacyIssues).toHaveLength(1)
+    expect(legacyIssues[0].severity).toBe('warning')
+    expect(result.issues.filter((i) => i.severity === 'error')).toEqual([])
+    expect(result.legacyResult?.kind).not.toBe('current')
+    expect(
+      result.legacyResult && result.legacyResult.kind !== 'current'
+        ? result.legacyResult.signals.every((s) => s.type === 'legacy-layout')
+        : false,
+    ).toBe(true)
+  })
+
+  it('still blocks when a non-layout legacy signal accompanies the layout signal', async () => {
+    const legacy = md({ level: 3, model_version: '0.1.0', title: 'Legacy Workspace' })
+    const dir = fakeDir('root', [
+      ['workspace_01.md', fakeFile('workspace_01.md', legacy)],
+      ['sources', frozenSources],
+    ])
+
+    const result = await recursiveParse(dir)
+    expect(result.isLegacy).toBe(true)
+    expect(Object.keys(result.nodes)).toEqual([])
+    expect(result.issues.find((i) => i.code === 'LEGACY_DOMAIN')?.severity).toBe('error')
+  })
+})
