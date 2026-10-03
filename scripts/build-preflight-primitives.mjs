@@ -89,6 +89,8 @@ const BUNDLE_TARGETS = [
   },
   {
     name: 'legacy-migrate',
+    // The post-apply cognitivize step reads and writes the domain, so this bundle is Node-only.
+    platform: 'node',
     entry: path.join(
       REPO_ROOT,
       'iNNfo',
@@ -158,7 +160,7 @@ async function renderTarget(target) {
     entryPoints: [target.entry],
     bundle: true,
     format: 'cjs',
-    platform: 'neutral',
+    platform: target.platform ?? 'neutral',
     target: 'node20',
     write: false,
     legalComments: 'none',

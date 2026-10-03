@@ -8,6 +8,10 @@ export type {
 } from './detect.js'
 export { detectLegacy } from './detect.js'
 export { detectLegacyLayout, RETIRED_LAYOUT_FOLDERS } from './layout/detect.js'
+export type { LayoutPlanDeps, LayoutMigrationReport, LayoutPlanResult } from './layout/plan.js'
+export { planLayoutMigration } from './layout/plan.js'
+export type { PreservedBodiesResult } from './layout/finalize.js'
+export { cognitivizePreservedBodies, MIGRATION_STAGING_DIR } from './layout/finalize.js'
 
 export type Op =
   | { op: 'move'; from: string; to: string }

@@ -86,3 +86,20 @@ entries:
     why: Preflight, MCP, and the editor must report domains still using the retired folders
     removal: "every non-frozen repo domaiNN and fixture reports current + a skills-v release shipping the migrator + maintainer-sign-off"
     owner: 2026-10-02-cognitivize-in-place
+
+  - id: layout-migrate
+    what: Layout migration planner and post-apply preserved-body step (export/ and sources/original/ moves, duplicate deletes, old local-time stamps converted via the injected localToUtc, citation path map)
+    paths:
+      - iNNfo/packages/innfo-core/src/legacy/layout/plan.ts
+      - iNNfo/packages/innfo-core/src/legacy/layout/finalize.ts
+    why: Existing domaiNNs must move to the artifacts/ and sources/import/ layout without runtime code resolving old folders
+    removal: "every non-frozen repo domaiNN and fixture reports current + a skills-v release shipping the migrator + maintainer-sign-off"
+    owner: 2026-10-02-cognitivize-in-place
+
+  - id: upgrade-flow
+    what: nn-upgrade second Flow A step (layout migration with backup, dry run, plan-hash consent, frozen skip) and its helpers
+    paths:
+      - skills/nn-upgrade/scripts/migrate-domain.js
+    why: Delivers the layout migration to users through the existing consent-gated upgrade flow
+    removal: "every non-frozen repo domaiNN and fixture reports current + a skills-v release shipping the migrator + maintainer-sign-off"
+    owner: 2026-10-02-cognitivize-in-place
