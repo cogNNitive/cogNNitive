@@ -6,18 +6,12 @@ import type { DomainReader, LegacySignal } from '../detect.js'
  * Folders retired by the cognitivize-in-place layout, in report order.
  * Runtime code never reads them; only this detector and the layout planner do.
  *
- * `sources/archive` is permanent by design: the migration lists it and never
- * moves or deletes it, so a domain holding snapshots keeps reporting it.
+ * `sources/archive` is deliberately absent: the migration never moves or deletes
+ * those snapshots, so a signal for it could never clear and would hold every
+ * domain that keeps an archive in the legacy state. The layout migration lists
+ * archive content and warns about citations into it instead.
  */
-export const RETIRED_LAYOUT_FOLDERS = [
-  'export',
-  'sources/original',
-  'sources/nn',
-  'sources/export',
-  'sources/archive',
-] as const
-
-const INERT_FOLDERS: ReadonlySet<string> = new Set(['sources/archive'])
+export const RETIRED_LAYOUT_FOLDERS = ['export', 'sources/original', 'sources/nn', 'sources/export'] as const
 
 async function hasContent(r: DomainReader, dir: string): Promise<boolean> {
   return (await r.list(dir)).length > 0
@@ -35,9 +29,7 @@ export async function detectLegacyLayout(r: DomainReader): Promise<LegacySignal[
       signals.push({
         type: 'legacy-layout',
         path: folder,
-        detail: INERT_FOLDERS.has(folder)
-          ? `Retired folder '${folder}/' holds archived snapshots: they are inert, listed by the nn-upgrade layout migration, and never moved or deleted`
-          : `Retired folder '${folder}/' still holds content (see the nn-upgrade layout migration)`,
+        detail: `Retired folder '${folder}/' still holds content (see the nn-upgrade layout migration)`,
       })
     }
   }

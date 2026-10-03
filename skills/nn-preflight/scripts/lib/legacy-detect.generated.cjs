@@ -32,14 +32,7 @@ __export(detect_exports, {
 module.exports = __toCommonJS(detect_exports);
 
 // iNNfo/packages/innfo-core/src/legacy/layout/detect.ts
-var RETIRED_LAYOUT_FOLDERS = [
-  "export",
-  "sources/original",
-  "sources/nn",
-  "sources/export",
-  "sources/archive"
-];
-var INERT_FOLDERS = /* @__PURE__ */ new Set(["sources/archive"]);
+var RETIRED_LAYOUT_FOLDERS = ["export", "sources/original", "sources/nn", "sources/export"];
 async function hasContent(r, dir) {
   return (await r.list(dir)).length > 0;
 }
@@ -50,7 +43,7 @@ async function detectLegacyLayout(r) {
       signals.push({
         type: "legacy-layout",
         path: folder,
-        detail: INERT_FOLDERS.has(folder) ? `Retired folder '${folder}/' holds archived snapshots: they are inert, listed by the nn-upgrade layout migration, and never moved or deleted` : `Retired folder '${folder}/' still holds content (see the nn-upgrade layout migration)`
+        detail: `Retired folder '${folder}/' still holds content (see the nn-upgrade layout migration)`
       });
     }
   }
