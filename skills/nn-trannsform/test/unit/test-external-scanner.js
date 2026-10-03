@@ -16,9 +16,9 @@ async function run() {
   let passed = 0;
   let failed = 0;
 
-  function it(desc, fn) {
+  async function it(desc, fn) {
     try {
-      fn();
+      await fn();
       console.log(`  ✔ ${desc}`);
       passed++;
     } catch (err) {
@@ -30,13 +30,13 @@ async function run() {
 
   console.log('\n--- test-external-scanner ---');
 
-  it('formats the timestamped basename with the UTC contract stamp', () => {
+  await it('formats the timestamped basename with the UTC contract stamp', () => {
     const fixedDate = new Date(Date.UTC(2026, 8, 12, 18, 55, 36));
     const tsName = formatTimestampedBasename('quarterly_forecast.xlsx', fixedDate);
     assert.strictEqual(tsName, 'quarterly_forecast_20260912T185536Z.xlsx');
   });
 
-  it('parses source stem and timestamp correctly', () => {
+  await it('parses source stem and timestamp correctly', () => {
     const parsed1 = parseSourceStem('quarterly_forecast_20260912T185536Z.xlsx');
     assert.strictEqual(parsed1.stem, 'quarterly_forecast');
     assert.strictEqual(parsed1.timestamp, '20260912T185536Z');
@@ -48,7 +48,7 @@ async function run() {
     assert.strictEqual(parsed2.ext, '.md');
   });
 
-  it('parses declarative watch roots from markdown model', () => {
+  await it('parses declarative watch roots from markdown model', () => {
     const mockModel = `
 # NN Workspace
 
@@ -75,7 +75,7 @@ async function run() {
     assert.deepStrictEqual(roots[1].Filter, ['*.pdf']);
   });
 
-  it('scans external directory with Fast Path caching and detects delta status', () => {
+  await it('scans external directory with Fast Path caching and detects delta status', () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ext-scan-test-'));
     try {
       const file1 = path.join(tempDir, 'sales_q3.xlsx');
@@ -122,7 +122,7 @@ async function run() {
     }
   });
 
-  it('imports external candidate files into sources/import without modifying source', () => {
+  await it('imports external candidate files into sources/import without modifying source', async () => {
     const tempExtDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ext-src-'));
     const tempWorkDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ext-work-'));
     try {
@@ -138,7 +138,7 @@ async function run() {
         },
       ];
 
-      const imported = importExternalFiles(candidates, tempWorkDir, { timestampDate: fixedDate });
+      const imported = await importExternalFiles(candidates, tempWorkDir, { timestampDate: fixedDate });
       assert.strictEqual(imported.length, 1);
       assert.strictEqual(imported[0].importedAs, 'weekly_metrics_20260912T120000Z.csv');
 
@@ -154,7 +154,7 @@ async function run() {
     }
   });
 
-  it('serializes a scan result as stable JSON with changed items only', () => {
+  await it('serializes a scan result as stable JSON with changed items only', () => {
     const result = {
       roots: [
         {
@@ -178,7 +178,7 @@ async function run() {
     assert.strictEqual(JSON.parse(JSON.stringify(serialized)).roots.length, 2);
   });
 
-  it('scanAllWatchRoots finds watch roots in the renamed domaiNN_NN.md entrypoint', () => {
+  await it('scanAllWatchRoots finds watch roots in the renamed domaiNN_NN.md entrypoint', () => {
     const tempProj = fs.mkdtempSync(path.join(os.tmpdir(), 'ext-proj-'));
     const tempDrops = fs.mkdtempSync(path.join(os.tmpdir(), 'ext-drops-'));
     try {
@@ -199,7 +199,7 @@ async function run() {
     }
   });
 
-  it('scanAllWatchRoots still finds the legacy cogNNitive lineage record', () => {
+  await it('scanAllWatchRoots still finds the legacy cogNNitive lineage record', () => {
     const tempProj = fs.mkdtempSync(path.join(os.tmpdir(), 'ext-proj-legacy-'));
     const tempDrops = fs.mkdtempSync(path.join(os.tmpdir(), 'ext-drops-legacy-'));
     try {

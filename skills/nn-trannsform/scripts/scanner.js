@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const core = require('./lib/scanner-core');
 const converters = require('./lib/scanner-converters');
-const { cognitivize } = require('./lib/innfo-core.generated.cjs');
+const { cognitivize, isSidecarName, isNNName } = require('./lib/innfo-core.generated.cjs');
 const { createNormalizer } = require('./lib/normalizer');
 
 /**
@@ -63,36 +63,14 @@ async function processFile(projectDir, item, normalizer, notes, options) {
 }
 
 /**
- * Scan the raw source trees (`sources/import/`, `sources/conversations/`) and
- * cognitivize every file that has no up-to-date sidecar, in place. Sidecars sit
- * next to their raw file; nothing is mirrored, archived, or moved.
+ * Cognitivize a list of items, in order, through the one per-file operation.
+ * Orphaned sidecars under the scanned raw trees are reported, never deleted.
  * @param {string} projectDir
- * @param {Record<string, any>} [options]
+ * @param {Array<{ absPath: string, relPath: string, sourceFileField: string }>} files
+ * @param {Record<string, any>} options
  * @returns {Promise<{ totalDiscovered: number, processedCount: number, skippedCount: number, registry: Array<any>, orphans: Array<{ sidecar: string, sourceFile: string }>, refreshed: string[] }>}
  */
-async function scanAndProcess(projectDir, options = {}) {
-  fs.mkdirSync(path.join(projectDir, 'sources', 'import'), { recursive: true });
-
-  let files = core.walkSourceTrees(projectDir);
-  if (options.singleFile) {
-    const singleNorm = options.singleFile.replace(/\\/g, '/').toLowerCase();
-    files = files.filter(item => {
-      const absPosix = item.absPath.replace(/\\/g, '/').toLowerCase();
-      const relPosix = item.relPath.replace(/\\/g, '/').toLowerCase();
-      const srcPosix = item.sourceFileField.toLowerCase();
-      return (
-        absPosix.endsWith(singleNorm) ||
-        relPosix === singleNorm ||
-        srcPosix.endsWith(singleNorm) ||
-        path.basename(absPosix) === singleNorm ||
-        path.basename(relPosix) === singleNorm
-      );
-    });
-    if (files.length === 0) {
-      console.warn(`⚠️  Warning: Specified single file "${options.singleFile}" was not discovered in the raw source trees.`);
-    }
-  }
-
+async function cognitivizeItems(projectDir, files, options) {
   const notes = new Map();
   const normalizer = createNormalizer({ projectDir, webImportMeta: options.webImportMeta || {}, notes });
 
@@ -134,8 +112,73 @@ async function scanAndProcess(projectDir, options = {}) {
   };
 }
 
+/**
+ * Scan the raw source trees (`sources/import/`, `sources/conversations/`) and
+ * cognitivize every file that has no up-to-date sidecar, in place. Sidecars sit
+ * next to their raw file; nothing is mirrored, archived, or moved.
+ * @param {string} projectDir
+ * @param {Record<string, any>} [options]
+ */
+async function scanAndProcess(projectDir, options = {}) {
+  fs.mkdirSync(path.join(projectDir, 'sources', 'import'), { recursive: true });
+
+  let files = core.walkSourceTrees(projectDir);
+  if (options.singleFile) {
+    const singleNorm = options.singleFile.replace(/\\/g, '/').toLowerCase();
+    files = files.filter(item => {
+      const absPosix = item.absPath.replace(/\\/g, '/').toLowerCase();
+      const relPosix = item.relPath.replace(/\\/g, '/').toLowerCase();
+      const srcPosix = item.sourceFileField.toLowerCase();
+      return (
+        absPosix.endsWith(singleNorm) ||
+        relPosix === singleNorm ||
+        srcPosix.endsWith(singleNorm) ||
+        path.basename(absPosix) === singleNorm ||
+        path.basename(relPosix) === singleNorm
+      );
+    });
+    if (files.length === 0) {
+      console.warn(`⚠️  Warning: Specified single file "${options.singleFile}" was not discovered in the raw source trees.`);
+    }
+  }
+
+  return cognitivizeItems(projectDir, files, options);
+}
+
+/**
+ * Cognitivize one file or, recursively, every raw file under a directory of the
+ * domaiNN. Sidecars, other `_NN.md` documents, `staging/` and dot entries are
+ * skipped. The same per-file operation backs `scanAndProcess`.
+ * @param {string} projectDir
+ * @param {string} target File or directory, workspace-relative or absolute (must be inside the project).
+ * @param {Record<string, any>} [options]
+ */
+async function cognitivizeTarget(projectDir, target, options = {}) {
+  const root = path.resolve(projectDir);
+  const abs = path.resolve(root, target);
+  const within = path.relative(root, abs);
+  if (within.startsWith('..') || path.isAbsolute(within)) {
+    throw new RangeError(`${target}: path is outside the project`);
+  }
+  if (!fs.existsSync(abs)) throw new Error(`${target}: no such file or directory`);
+
+  const toItem = (absPath) => {
+    const relPath = path.relative(root, absPath);
+    return { absPath, relPath, sourceFileField: relPath.replace(/\\/g, '/') };
+  };
+  const files = fs.statSync(abs).isDirectory()
+    ? core
+        .walkOriginal(abs)
+        .filter((f) => !isSidecarName(f.relPath) && !isNNName(f.relPath))
+        .map((f) => toItem(f.absPath))
+    : [toItem(abs)];
+
+  return cognitivizeItems(projectDir, files, options);
+}
+
 module.exports = {
   scanAndProcess,
+  cognitivizeTarget,
   detectFormats: core.detectFormats,
   isDepInstalled: converters.isDepInstalled,
   getSupportedFormats: core.getSupportedFormats,

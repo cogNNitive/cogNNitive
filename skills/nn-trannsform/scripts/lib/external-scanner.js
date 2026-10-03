@@ -7,6 +7,8 @@ const {
   nextStamp,
   isNNName,
   isSidecarName,
+  importRaw,
+  TEXT_NATIVE_FORMATS,
 } = require('./innfo-core.generated.cjs');
 
 /**
@@ -333,35 +335,36 @@ function scanAllWatchRoots(projectDir, cache = {}) {
 }
 
 /**
- * Copies candidate files into workspace `sources/import/` strictly read-only from source.
+ * Imports candidate files from the watch roots into workspace sources/import/.
+ * The watch root is only read. Every import is a new write-once family member
+ * (always suffixed, whatever the cadence; identical bytes dedupe) and its copy is
+ * cognitivized in place. Binary formats are left to the scan that follows, which
+ * runs their dependency and consent checks before converting.
  *
- * @param {Array<{ fullPath: string, baseName: string, cadence: 'dynamic' | 'static' }>} candidates
+ * @param {Array<{ fullPath: string, baseName: string, cadence?: 'dynamic' | 'static' }>} candidates
  * @param {string} projectDir
  * @param {{ timestampDate?: Date }} [options]
- * @returns {Array<{ sourcePath: string, importedAs: string, fullImportPath: string }>}
+ * @returns {Promise<Array<{ sourcePath: string, importedAs: string, fullImportPath: string, status: 'imported' | 'deduplicated', cognitivized: boolean }>>}
  */
-function importExternalFiles(candidates, projectDir, options = {}) {
-  const importDir = path.join(projectDir, 'sources', 'import');
-  if (!fs.existsSync(importDir)) {
-    fs.mkdirSync(importDir, { recursive: true });
-  }
+async function importExternalFiles(candidates, projectDir, options = {}) {
+  const now = options.timestampDate ? () => options.timestampDate : undefined;
+  const { createNormalizer } = require('./normalizer');
+  const normalizer = createNormalizer({ projectDir });
 
   const imported = [];
-  const date = options.timestampDate || new Date();
-
   for (const item of candidates) {
-    let targetName = item.baseName;
-    if (item.cadence === 'dynamic') {
-      targetName = formatTimestampedBasename(item.baseName, date);
+    const ext = path.extname(item.baseName).slice(1).toLowerCase();
+    const textNative = TEXT_NATIVE_FORMATS.has(ext);
+    const result = await importRaw(projectDir, item.fullPath, { now, normalizer: textNative ? normalizer : undefined });
+    if (result.status === 'rejected') {
+      throw new Error(`Cannot import ${item.fullPath}: ${result.reason}`);
     }
-
-    const targetFullPath = path.join(importDir, targetName);
-    fs.copyFileSync(item.fullPath, targetFullPath);
-
     imported.push({
       sourcePath: item.fullPath,
-      importedAs: targetName,
-      fullImportPath: targetFullPath,
+      importedAs: path.basename(result.path),
+      fullImportPath: path.join(projectDir, result.path),
+      status: result.status,
+      cognitivized: result.cognitivize.status === 'written' || result.cognitivize.status === 'refreshed' || result.cognitivize.status === 'unchanged',
     });
   }
 

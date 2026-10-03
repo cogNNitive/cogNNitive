@@ -135,6 +135,16 @@ async function main() {
     totalPassed += impactCheckerResult.passed;
     totalFailed += impactCheckerResult.failed;
 
+    const importInPlaceTest = require('./unit/test-import-in-place');
+    const importInPlaceResult = await importInPlaceTest.run();
+    totalPassed += importInPlaceResult.passed;
+    totalFailed += importInPlaceResult.failed;
+
+    const cliCognitivizeTest = require('./unit/test-cli-cognitivize');
+    const cliCognitivizeResult = await cliCognitivizeTest.run();
+    totalPassed += cliCognitivizeResult.passed;
+    totalFailed += cliCognitivizeResult.failed;
+
     const externalScannerTest = require('./unit/test-external-scanner');
     const externalScannerResult = await externalScannerTest.run();
     totalPassed += externalScannerResult.passed;

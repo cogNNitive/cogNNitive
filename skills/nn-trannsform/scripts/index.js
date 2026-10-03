@@ -25,6 +25,7 @@ async function main() {
   const hasArgs =
     argv.scan ||
     argv['normalize-file'] ||
+    argv.cognitivize ||
     argv.file ||
     argv['scan-external'] ||
     argv.external ||
@@ -160,9 +161,9 @@ async function handleCliMode(argv) {
     if (candidates.length > 0) {
       if (argv.yes || argv.y || argv.apply) {
         console.log(`\nImporting ${candidates.length} candidate file(s) into sources/import/...`);
-        const imported = externalScanner.importExternalFiles(candidates, projectDir);
+        const imported = await externalScanner.importExternalFiles(candidates, projectDir);
         for (const imp of imported) {
-          console.log(`  ✔ Copied: ${imp.importedAs}`);
+          console.log(`  ✔ ${imp.status === 'deduplicated' ? 'Already imported' : 'Copied'}: ${imp.importedAs}`);
         }
         console.log(`\nNormalizing imported sources...`);
         const scanRes = await scanner.scanAndProcess(projectDir, { autoAcceptPrompt: true });
@@ -228,7 +229,7 @@ async function handleCliMode(argv) {
           console.error(`Error: no external item matches digest key "${key}".`);
           process.exit(1);
         }
-        externalScanner.importExternalFiles([item], projectDir);
+        await externalScanner.importExternalFiles([item], projectDir);
         await scanner.scanAndProcess(projectDir, { autoAcceptPrompt: true });
       }
       watchDigestStore.decide(projectDir, key, status, argv.note);
@@ -344,14 +345,15 @@ async function handleCliMode(argv) {
 
   let importResult = null;
   if (argv['import-url']) {
-    const importDir = path.join(projectDir, 'sources', 'import');
-    const targetDir = importDir;
-    fs.mkdirSync(targetDir, { recursive: true });
-    const targetLabel = path.relative(projectDir, targetDir).replace(/\\/g, '/');
+    const targetLabel = 'sources/import';
     console.log(`Downloading "${argv['import-url']}" into ${targetLabel}/...`);
     try {
-      importResult = await webImport.downloadToImport(argv['import-url'], targetDir);
-      console.log(`Downloaded to: ${targetLabel}/${importResult.relPath}`);
+      importResult = await webImport.downloadToImport(argv['import-url'], projectDir);
+      console.log(
+        importResult.deduplicated
+          ? `Already imported (identical bytes): ${targetLabel}/${importResult.relPath}`
+          : `Downloaded to: ${targetLabel}/${importResult.relPath}`,
+      );
     } catch (err) {
       console.error(`Error downloading URL: ${err.message}`);
       process.exit(1);
@@ -365,7 +367,6 @@ async function handleCliMode(argv) {
     const scanOptions = {
       autoAcceptPrompt: true,
       singleFile: targetFile,
-      flat: Boolean(argv.flat || argv['preserve-layout']),
     };
 
     if (argv.formats) {
@@ -393,7 +394,7 @@ async function handleCliMode(argv) {
     );
     provenance.appendProcedureRun(projectDir, {
       command: 'normalize-file',
-      flags: `--file "${targetFile}"${scanOptions.flat ? ' --flat' : ''}`,
+      flags: `--file "${targetFile}"`,
       inputs: [targetFile],
       outputs: ['sources/import/*_sidecar_NN.md', 'sources/conversations/*_sidecar_NN.md'],
     });
@@ -401,12 +402,47 @@ async function handleCliMode(argv) {
     process.exit(result.processedCount > 0 ? 0 : 1);
   }
 
+  if (argv.cognitivize) {
+    const target = String(argv.cognitivize);
+    console.log(`Cognitivizing "${target}" in place in "${projectDir}"...`);
+
+    const options = { autoAcceptPrompt: true };
+    if (argv.formats) {
+      options.formats = argv.formats.split(',').map(f => '.' + f.trim().replace(/^\./, ''));
+    }
+
+    let result;
+    try {
+      result = await scanner.cognitivizeTarget(projectDir, target, options);
+    } catch (err) {
+      console.error(`Error cognitivizing "${target}": ${err.message}`);
+      process.exit(1);
+    }
+    for (const entry of result.registry) {
+      console.log(`  ${entry.status} ${entry.name}: ${entry.action}`);
+    }
+    console.log(`Cognitivize completed! Discovered: ${result.totalDiscovered}, Processed: ${result.processedCount}, Skipped: ${result.skippedCount}`);
+
+    const prov = provenance.buildProvenanceKnowledge(projectDir);
+    console.log(
+      `cogNNitive lineage record ${prov.created ? 'created' : 'refreshed'}: ` +
+        `${prov.sourceCount} source(s), ${prov.modelCount} model(s), ${prov.artifactCount} artifact(s) — ${prov.modelPath}`,
+    );
+    provenance.appendProcedureRun(projectDir, {
+      command: 'cognitivize',
+      flags: `--cognitivize "${target}"`,
+      inputs: [target],
+      outputs: ['*_sidecar_NN.md'],
+    });
+
+    process.exit(result.totalDiscovered > 0 ? 0 : 1);
+  }
+
   if (argv.scan) {
     console.log(`Scanning and converting documents in "${projectDir}"...`);
 
     const scanOptions = {
       autoAcceptPrompt: true,
-      flat: Boolean(argv.flat || argv['preserve-layout']),
     };
 
     if (argv.formats) {
@@ -518,7 +554,7 @@ async function handleCliMode(argv) {
         titleSlug: slug,
         format,
       });
-      console.log(`Promotion complete! Promoted ${result.promotedFiles.length} file(s) to sources/conversations/ and normalized to sources/nn/conversations/.`);
+      console.log(`Promotion complete! Promoted ${result.promotedFiles.length} file(s) to sources/conversations/ and cognitivized in place.`);
     } catch (err) {
       console.error(`Error promoting conversation: ${err.message}`);
       process.exit(1);
@@ -858,7 +894,7 @@ async function runPromoteConversationFlow(projectDir) {
     sessionFile: sessionAbsPath,
     format: promoResp.format,
   });
-  console.log(`\nPromoted ${result.promotedFiles.length} file(s) into sources/conversations/ and normalized into sources/nn/conversations/.`);
+  console.log(`\nPromoted ${result.promotedFiles.length} file(s) into sources/conversations/ and cognitivized in place.`);
 }
 
 async function runCreateBlueprintFlow(projectDir) {
