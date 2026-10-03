@@ -7,6 +7,7 @@
  * `--plan-hash` consent, preserved-body sidecars from staging/migration/, archive
  * citation warnings, and staging removal.
  */
+// legacy:cognitivize-in-place/upgrade-flow
 
 const { test } = require('node:test')
 const assert = require('node:assert')

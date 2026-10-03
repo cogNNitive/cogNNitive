@@ -1,3 +1,4 @@
+// legacy:cognitivize-in-place/layout-detect
 import { describe, expect, it } from 'vitest'
 import { detectLegacy, type DomainReader } from '../../../src/legacy/index.js'
 import { detectLegacyLayout } from '../../../src/legacy/layout/detect.js'

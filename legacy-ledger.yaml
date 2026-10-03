@@ -79,9 +79,10 @@ entries:
     owner: 2026-10-01-lineage-single-edge
 
   - id: layout-detect
-    what: Detection of the retired export/ and sources/original/ layout (legacy-layout signal)
+    what: Detection of the retired export/, sources/original/, sources/nn/ and sources/export/ layout (legacy-layout signal; sources/archive/ is never a signal)
     paths:
       - iNNfo/packages/innfo-core/src/legacy/layout/detect.ts
+      - iNNfo/packages/innfo-core/tests/legacy/layout/detect.test.ts
       - iNNfo/packages/innfo-core/src/legacy/detect.ts
     why: Preflight, MCP, and the editor must report domains still using the retired folders
     removal: "every non-frozen repo domaiNN and fixture reports current + a skills-v release shipping the migrator + maintainer-sign-off"
@@ -92,6 +93,7 @@ entries:
     paths:
       - iNNfo/packages/innfo-core/src/legacy/layout/plan.ts
       - iNNfo/packages/innfo-core/src/legacy/layout/mirrors.ts
+      - iNNfo/packages/innfo-core/tests/legacy/layout/plan.test.ts
       - iNNfo/packages/innfo-core/src/legacy/layout/finalize.ts
     why: Existing domaiNNs must move to the artifacts/ and sources/import/ layout without runtime code resolving old folders
     removal: "every non-frozen repo domaiNN and fixture reports current + a skills-v release shipping the migrator + maintainer-sign-off"
@@ -101,6 +103,7 @@ entries:
     what: nn-upgrade second Flow A step (layout migration with backup, dry run, plan-hash consent, frozen skip) and its helpers
     paths:
       - skills/nn-upgrade/scripts/migrate-domain.js
+      - skills/nn-upgrade/scripts/migrate-layout.test.js
     why: Delivers the layout migration to users through the existing consent-gated upgrade flow
     removal: "every non-frozen repo domaiNN and fixture reports current + a skills-v release shipping the migrator + maintainer-sign-off"
     owner: 2026-10-02-cognitivize-in-place

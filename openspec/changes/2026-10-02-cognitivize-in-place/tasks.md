@@ -104,8 +104,8 @@ Spec links: `cognitivize-in-place` (imports, watch roots, retired folders, stagi
 - [x] 3b.6 RED: `lineage-check` family validation (record exists, `validateCitations`, orphan sidecars), archive chain checks removed; `impact-checker` reads families + hash guard. GREEN: `lineage-check.js`, `impact-checker.js`, `provenance-knowledge.js`, `transformer.js`, preflight `:334,352-363,463,496-501`.
 - [x] 3b.7 Edit `iNNfo/specs/bluepriNNts/cogNNitive/spec_NN.md` in place (Resolved Q1: version/archive_path fields); `template_version` bump; `npm run sync:versions`, registry, `catalog.json`.
 - [x] 3b.8 Extend `legacy/layout/plan.ts` for `sources/nn` mirror deletion and sidecar relocation; migrate fixtures with the tool.
-- [ ] 3b.9 Generated: core mirror, preflight mirrors, console payload + bundle. Verify the success-criterion `rg -n "sources/(nn|original|export|archive)/"` shows only marked lines.
-- [ ] 3b.10 Gate: all test commands (skills with empty-home), `verify.js`, `check:integrity`, ledger guard, typecheck(s), lint.
+- [x] 3b.9 Generated: core mirror, preflight mirrors, console payload + bundle. Verify the success-criterion `rg -n "sources/(nn|original|export|archive)/"` shows only marked lines.
+- [x] 3b.10 Gate: all test commands (skills with empty-home), `verify.js`, `check:integrity`, ledger guard, typecheck(s), lint.
 
 Commits: (a) core re-key; (b) scanner/curate/collision/archive deletion; (c) conversations + import + CLI; (d) checks, bluepriNNt, fixtures, generated.
 
