@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
 import ConsoleHubView from '../../src/components/editor/ConsoleHubView.vue'
@@ -393,6 +393,14 @@ describe('ConsoleHubView — Open External (F-16)', () => {
 describe('ConsoleHubView — generation entry point and onboarding', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    // No folder handle is active in these cases, so loadConsole falls through to
+    // fetch() for hosted/sample mode. Stub it so every candidate 404s, which is
+    // what "no console artifact exists" means without a real dev server.
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }))
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
   })
 
   it('renders the primary generation CTA when no console artifact exists', async () => {
@@ -418,7 +426,7 @@ describe('ConsoleHubView — generation entry point and onboarding', () => {
           childIds: [],
           storageMode: 'FILE',
           type: 'business',
-          fields: { template: { value: 'business' } },
+          fields: { template: { value: 'business' }, title: { value: 'Business Model' } },
           markers: {},
           relationships: [],
           rawSections: {},
@@ -454,7 +462,7 @@ describe('ConsoleHubView — generation entry point and onboarding', () => {
           childIds: [],
           storageMode: 'FILE',
           type: 'business',
-          fields: { template: { value: 'business' } },
+          fields: { template: { value: 'business' }, title: { value: 'Business Model' } },
           markers: {},
           relationships: [],
           rawSections: {},
