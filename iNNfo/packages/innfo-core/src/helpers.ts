@@ -12,8 +12,8 @@ import { isModelCandidate, isExcludedPath, parseName } from './naming/contract.j
 
 /**
  * Read a model's own version from its frontmatter `knowledge_version`
- * (e.g. `V_1-0-0`). The legacy `model_version` key is NOT a version source
- * (the legacy detector flags it). Returns `null` when absent or empty.
+ * (e.g. `V_1-0-0`). Returns `null` when absent or empty; the legacy version
+ * key is not used as a source (the legacy detector flags it).
  */
 export function resolveKnowledgeVersion(frontmatter: Record<string, unknown>): string | null {
   const v = frontmatter.knowledge_version
