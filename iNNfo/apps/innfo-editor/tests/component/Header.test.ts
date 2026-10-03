@@ -284,5 +284,45 @@ describe('Header.vue', () => {
       expect(editorBtn.classes()).toContain('text-slate-500')
       expect(graphBtn.classes()).toContain('text-slate-500')
     })
+
+    it('collapses the switcher behind the hamburger and closes it on selection', async () => {
+      const { uiStore } = setupRootModel()
+      const wrapper = mount(Header)
+
+      const menu = wrapper.find('[data-testid="header-view-switcher"]')
+      const hamburger = wrapper.find('[data-testid="header-view-menu-button"]')
+
+      expect(menu.exists()).toBe(true)
+      expect(menu.attributes('style')).toContain('display: none')
+
+      await hamburger.trigger('click')
+      expect(menu.attributes('style') ?? '').not.toContain('display: none')
+
+      await wrapper.find('[data-testid="header-view-graph"]').trigger('click')
+      expect(uiStore.activeView).toBe('graph')
+      expect(menu.attributes('style')).toContain('display: none')
+    })
+  })
+
+  describe('Overflow menu', () => {
+    it('collapses Use AI, Web and Docs behind the three-dots menu', async () => {
+      const knowledgeStore = useKnowledgeStore()
+      knowledgeStore.rootIds = ['Root']
+      knowledgeStore.nodes = {
+        Root: makeNode('Root', { title: 'Workspace Model' }),
+      }
+
+      const wrapper = mount(Header)
+      const menu = wrapper.find('[data-testid="header-more-menu"]')
+
+      expect(menu.exists()).toBe(true)
+      expect(menu.attributes('style')).toContain('display: none')
+      expect(menu.find('[data-testid="header-use-ai-button"]').exists()).toBe(true)
+      expect(menu.text()).toContain('Web')
+      expect(menu.text()).toContain('Docs')
+
+      await wrapper.find('[data-testid="header-more-menu-button"]').trigger('click')
+      expect(menu.attributes('style') ?? '').not.toContain('display: none')
+    })
   })
 })
