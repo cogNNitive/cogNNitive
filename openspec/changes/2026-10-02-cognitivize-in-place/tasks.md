@@ -78,7 +78,7 @@ Spec links: `workspace-directory-conventions`, `sample-workspaces`, `workspace-t
 - [x] 2.5 RED: nn-upgrade end-to-end on a legacy fixture: backup, dry run, `--plan-hash` consent, preserved-body normalizer from `staging/migration/`, archive-citation warnings, staging removed. GREEN: `skills/nn-upgrade/scripts/migrate-domain.js` second Flow A step (marker `upgrade-flow`).
 - [x] 2.6 Ledger: add `layout-detect`, `layout-migrate`, `upgrade-flow` entries to `legacy-ledger.yaml`; run `node scripts/lib/legacy-ledger-guard.js`.
 - [x] 2.7 Migrate non-frozen sample workspaces/fixtures with the tool itself; regenerate mirrors (core, preflight/legacy-detect, console payload); `sync:versions` if bluepriNNt bytes changed.
-- [ ] 2.8 Gate: core, MCP, editor, skills (empty-home), nn-upgrade, `verify.js`, `check:integrity`, typecheck, lint.
+- [x] 2.8 Gate: core, MCP, editor, skills (empty-home), nn-upgrade, `verify.js`, `check:integrity`, typecheck, lint.
 
 Commits: (a) rename `artifacts/` + drop `sources/original`; (b) detector; (c) planner + nn-upgrade + ledger; (d) fixture migration output.
 
