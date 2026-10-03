@@ -1,5 +1,7 @@
+import { slugify } from '@cognnitive/innfo-core'
+
 /**
- * Utility functions for submodel path derivation and slugification.
+ * Utility functions for submodel path derivation. Slugs come from innfo-core.
  */
 
 export interface SuggestedSubmodelPathOptions {
@@ -13,21 +15,6 @@ export interface SuggestedSubmodelPathOptions {
   fieldName?: string
   /** Target template constraint from field definition (e.g., "business") */
   targetBlueprint?: string
-}
-
-/**
- * Normalizes an arbitrary string into a URL- and filesystem-safe slug.
- */
-export function slugify(text: string): string {
-  if (!text || typeof text !== 'string') return ''
-  return text
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[\s_]+/g, '-')
-    .replace(/[^a-z0-9-]/g, '')
-    .replace(/-+/g, '-')
-    .replace(/^-+|-+$/g, '')
 }
 
 /**

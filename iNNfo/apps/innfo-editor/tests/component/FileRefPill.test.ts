@@ -144,48 +144,62 @@ describe('FileRefPill component (kind="source")', () => {
   })
 })
 
-describe('parseForPill (knowledge-unit pointers)', () => {
-  it('parses a CSV cell pointer with unit, subunits, and canonical form', async () => {
-    const { parseForPill } = await import('../../src/utils/sourceRef')
-    const p = parseForPill('sources/nn/metricas_q3.csv@104&mrr_usd')
+describe('parseCitation (knowledge-unit pointers, bare file citations, legacy #slug)', () => {
+  it('parses a CSV cell pointer with unit and subunits', async () => {
+    const { parseCitation } = await import('../../src/utils/sourceRef')
+    const p = parseCitation('sources/nn/metricas_q3.csv@104&mrr_usd')
     expect(p).not.toBeNull()
     expect(p).toMatchObject({
       filePath: 'sources/nn/metricas_q3.csv',
       fileName: 'metricas_q3.csv',
       unit: { kind: 'row', id: '104' },
       subunits: ['mrr_usd'],
-      canonical: 'sources/nn/metricas_q3.csv@104&mrr_usd',
-      isValid: true,
     })
   })
 
   it('parses a Markdown field pointer', async () => {
-    const { parseForPill } = await import('../../src/utils/sourceRef')
-    const p = parseForPill('kNNowledge/G.md@## NN Person: Dr. Egon Spengler&compensation')
+    const { parseCitation } = await import('../../src/utils/sourceRef')
+    const p = parseCitation('kNNowledge/G.md@## NN Person: Dr. Egon Spengler&compensation')
     expect(p?.unit).toMatchObject({ kind: 'header', level: 2 })
     expect(p?.subunits).toEqual(['compensation'])
   })
 
-  it('keeps legacy #slug references valid without unit data', async () => {
-    const { parseForPill } = await import('../../src/utils/sourceRef')
-    const p = parseForPill('sources/nn/report.md#overview')
-    expect(p).toMatchObject({ filePath: 'sources/nn/report.md', slug: 'overview', isValid: true })
+  it('parses a file-level bare citation with no anchor', async () => {
+    const { parseCitation } = await import('../../src/utils/sourceRef')
+    const p = parseCitation('kNNowledge/casestudy_NN.md')
+    expect(p).toMatchObject({
+      filePath: 'kNNowledge/casestudy_NN.md',
+      fileName: 'casestudy_NN.md',
+      kind: 'model',
+    })
+    expect(p?.unit).toBeUndefined()
+    expect(p?.slug).toBeUndefined()
+  })
+
+  it('parses legacy #slug references marked with legacyHash', async () => {
+    const { parseCitation } = await import('../../src/utils/sourceRef')
+    const p = parseCitation('sources/nn/report.md#overview')
+    expect(p).toMatchObject({
+      filePath: 'sources/nn/report.md',
+      slug: 'overview',
+      legacyHash: true,
+    })
     expect(p?.unit).toBeUndefined()
   })
 
   it('returns null for non-references', async () => {
-    const { parseForPill } = await import('../../src/utils/sourceRef')
-    expect(parseForPill('Just plain text')).toBeNull()
-    expect(parseForPill('')).toBeNull()
+    const { parseCitation } = await import('../../src/utils/sourceRef')
+    expect(parseCitation('Just plain text')).toBeNull()
+    expect(parseCitation('')).toBeNull()
   })
 })
 
-describe('FileRefPill with knowledge units', () => {
+describe('FileRefPill with citations', () => {
   it('renders file@unit label and forwards unit props to the modal', async () => {
-    const { parseForPill } = await import('../../src/utils/sourceRef')
+    const { parseCitation } = await import('../../src/utils/sourceRef')
     const FilePreviewModal = (await import('../../src/components/editor/FilePreviewModal.vue'))
       .default
-    const p = parseForPill('sources/nn/metricas_q3.csv@104&mrr_usd')!
+    const p = parseCitation('sources/nn/metricas_q3.csv@104&mrr_usd')!
     const wrapper = mount(FileRefPill, {
       props: {
         kind: 'source',
@@ -203,4 +217,23 @@ describe('FileRefPill with knowledge units', () => {
     expect(modal.props('unit')).toMatchObject({ kind: 'row', id: '104' })
     expect(modal.props('subunits')).toEqual(['mrr_usd'])
   })
+
+  it('renders file-level bare reference cleanly without slug or unit', async () => {
+    const { parseCitation } = await import('../../src/utils/sourceRef')
+    const p = parseCitation('kNNowledge/casestudy_NN.md')!
+    const wrapper = mount(FileRefPill, {
+      props: {
+        kind: 'model',
+        filePath: p.filePath,
+        fileName: p.fileName,
+      },
+      global: {
+        plugins: [createPinia()],
+      },
+    })
+    expect(wrapper.text()).toContain('casestudy_NN.md')
+    expect(wrapper.text()).not.toContain('@')
+    expect(wrapper.text()).not.toContain('#')
+  })
 })
+

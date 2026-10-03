@@ -30,8 +30,8 @@
  *                                               [--root <path>]
  *                                               [--diff-file <path> [--base-root <path>]]
  *
- *   --base       base ref to diff against (default: origin/main if it resolves,
- *                otherwise HEAD).
+ *   --base       base ref to diff against (default: the merge-base of HEAD and
+ *                origin/main when origin/main resolves, otherwise HEAD).
  *   --staged     diff the index instead of the working tree.
  *   --root       bluepriNNts directory (default: <repo>/iNNfo/specs/bluepriNNts).
  *   --diff-file  read `git diff --name-status` lines from a file instead of
@@ -120,7 +120,15 @@ function parseDiffLine(line) {
   return { status, target: tokens[tokens.length - 1], oldPath: null };
 }
 
-/** Resolve the base ref: explicit --base, else origin/main if it resolves, else HEAD. */
+/**
+ * Resolve the base ref: explicit --base, else the merge-base of HEAD and
+ * origin/main (their common ancestor, not origin/main itself), else HEAD.
+ *
+ * The merge-base keeps a release-tag build honest: when the tag is an ancestor
+ * of a moved-on origin/main, the comparison becomes tag-vs-tag (no change)
+ * instead of tag-vs-newer-main, which would report main's later
+ * blueprint_version bumps as unbumped tag edits and fail the release re-run.
+ */
 function resolveBase() {
   const explicit = getArg('--base');
   if (explicit) return explicit;
@@ -128,9 +136,17 @@ function resolveBase() {
     execFileSync('git', ['rev-parse', '--verify', '--quiet', 'origin/main'], {
       stdio: ['ignore', 'ignore', 'ignore'],
     });
-    return 'origin/main';
   } catch {
     return 'HEAD';
+  }
+  try {
+    const mergeBase = execFileSync('git', ['merge-base', 'HEAD', 'origin/main'], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
+    return mergeBase || 'origin/main';
+  } catch {
+    return 'origin/main';
   }
 }
 

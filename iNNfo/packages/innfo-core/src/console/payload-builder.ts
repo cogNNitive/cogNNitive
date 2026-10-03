@@ -100,6 +100,7 @@ export interface ConsolePayloadMeta {
   template?: string
   modelVersion: string
   sha256: string
+  sources: string[]
   generated: string
   citationsResolvedAt?: string
   feedbackState: FeedbackStateItem[]
@@ -301,11 +302,17 @@ export function buildConsolePayload(options: BuildConsolePayloadOptions): Consol
   const schemaSlot = buildConsoleSchemaSlot(inputSchema, elements)
   const genTime = generated || new Date().toISOString()
 
+  const normalizedSource = modelPath
+    ? modelPath.split('\\').join('/').replace(/^models\//i, 'kNNowledge/').replace(/^.*?\/(kNNowledge\/)/i, '$1')
+    : (fm.title ? `kNNowledge/${slugify(fm.title)}_NN.md` : 'kNNowledge/Model_NN.md')
+  const sourceFile = normalizedSource.startsWith('kNNowledge/') ? normalizedSource : `kNNowledge/${normalizedSource}`
+
   const meta: ConsolePayloadMeta = {
     modelId,
     title,
     modelVersion,
     sha256: rawSha256,
+    sources: [sourceFile],
     generated: genTime,
     feedbackState: feedbackStateFor(ledgerEntries || [], modelId),
   }

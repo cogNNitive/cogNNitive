@@ -25,6 +25,7 @@ All templates are validated against Level 1 (`iNNfo_V_0-2-1`) and are declared i
 | **Sources** | `V_0-1-0` | External citations and reference catalogs | [`specs/templates/sources/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/sources/spec_NN.md) |
 | **Workspace** | `V_0-6-0` | Top-level workspace layout and metadata | [`specs/templates/workspace_spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/workspace_spec_NN.md) |
 | **Blank** | `V_0-2-0` | Minimal starter schema | [`specs/templates/blank/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/blank/spec_NN.md) |
+| **Visual Catalog** | `V_0-1-0` | Image-derived entries with witness evidence and traceability to normalized sources | [`specs/templates/visual-catalog/spec_NN.md`](https://github.com/cogNNitive/cogNNitive-web/blob/main/iNNfo/specs/bluepriNNts/visual-catalog/spec_NN.md) |
 
 ---
 
@@ -39,7 +40,7 @@ iNNfo supports three complementary pathways for knowledge modeling, curation, an
 3. **Pathway 3: Asynchronous Console Review (Three-Tier Consoles)**
    - Domain experts and non-technical stakeholders review compiled standalone HTML consoles (`<Model>_V_<Version>_console.html`).
    - Features zero-build offline `file://` execution, persistent reviewer identity (`localStorage['innfo_reviewer_name']`), visual review badges on cards/rails, and a Universal Review Tab.
-   - Stakeholders annotate and export standardized review JSON payloads (`<Model>_V_<Version>_<user>_review.json` adhering to `https://cognntive.dev/schemas/console-review-v1.json`) which are ingested back into Pathway 1 or Pathway 2 for automated model updates.
+   - Stakeholders annotate and export standardized feedback JSON payloads (`<Model>_V_<Version>_<user>_feedback_<timestamp>.json` with `### fb-001` normalized anchors) which are reconciled back into the domain using `reconcile_feedback` for automated model updates. Note: in-console draft creation arrives with Change C.
 
 ---
 

@@ -42,7 +42,7 @@ const {
 const { registerMcpAuto } = require('./mcp-config-adapter.js');
 
 const DEFAULT_MANIFEST_URL = 'https://cognnitive.com/use/manifest.md';
-const FALLBACK_MANIFEST_URL = 'https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/docs/use/manifest.md';
+const FALLBACK_MANIFEST_URL = 'https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/docs/use/manifest.md';
 const DEFAULT_SKILLS_DIR = path.join(os.homedir(), '.agents', 'skills');
 const DEFAULT_BLUEPRINTS_DIR = path.join(os.homedir(), '.agents', 'bluepriNNts');
 const DEFAULT_MCP_DIR = path.join(os.homedir(), '.agents', 'mcp');
@@ -1222,6 +1222,7 @@ module.exports = {
     return getManifestUrl();
   },
   DEFAULT_MANIFEST_URL,
+  FALLBACK_MANIFEST_URL,
   DEFAULT_SKILLS_DIR,
   DEFAULT_BLUEPRINTS_DIR,
   DEFAULT_MCP_DIR,

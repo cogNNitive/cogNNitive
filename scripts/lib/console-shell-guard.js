@@ -11,6 +11,9 @@
  * 4. Required DOM anchors are present for declared capabilities.
  * 5. Script tag pins match manifest/source.yaml innfo-console version without floating refs.
  * 6. Dead `runtime` key rejected in `innfo-config`.
+ * 7. Generated shells (marked `nn:console-shell`) carry the CURRENT console pin — a
+ *    release bump must regenerate them, else they drift. Authored shells (no marker)
+ *    are pinned but not force-regenerated.
  */
 
 const fs = require('node:fs');
@@ -135,16 +138,69 @@ function discoverConsoleShells(repoRoot) {
 }
 
 /**
- * Parses expected console version from manifest/source.yaml.
+ * A generated console shell carries the `nn:console-shell` provenance marker
+ * (written by scripts/build-console-shells.mjs). Authored shells do not.
+ * @param {string} content
+ * @returns {boolean}
+ */
+function isGeneratedShell(content) {
+  return /nn:console-shell/.test(content);
+}
+
+/**
+ * Parses expected console version from console package.json.
  * @param {string} repoRoot
  * @returns {string} e.g. "0.6.0"
  */
 function getExpectedConsoleVersion(repoRoot) {
-  const sourceYamlPath = path.join(repoRoot, 'manifest', 'source.yaml');
-  if (!fs.existsSync(sourceYamlPath)) return '0.6.0';
-  const text = fs.readFileSync(sourceYamlPath, 'utf8');
-  const match = /name:\s*innfo-console\b[\s\S]*?version:\s*["']?([^"'\s\r\n]+)/.exec(text);
-  return match ? match[1] : '0.6.0';
+  const pkgPath = path.join(repoRoot, 'iNNfo', 'specs', 'bluepriNNts', 'console', 'package.json');
+  if (fs.existsSync(pkgPath)) {
+    try {
+      const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+      if (pkg.version) return String(pkg.version);
+    } catch {}
+  }
+  return '0.6.0';
+}
+
+/**
+ * Finds hard-coded color declarations inside a `:root` selector (any block,
+ * including inside an `@media`). Layout custom properties (e.g. `--sidebar-w:
+ * 280px`) and token indirections (`var(...)`) are allowed; hex / rgb() / hsl()
+ * / named-ish color literals on a `:root` custom property are flagged. Shells
+ * must consume `var(--innfo-*)` tokens instead of inventing colors.
+ *
+ * @param {string} html
+ * @returns {Array<{ line: number, selector: string, declaration: string }>}
+ */
+function findRootColorDeclarations(html) {
+  const findings = [];
+  const text = String(html == null ? '' : html);
+  // Capture each `:root ... { ... }` block (selector may be `:root` or `:root:not(...)`).
+  const rootBlockRe = /(:root(?::not\([^)]*\))?)\s*\{([^}]*)\}/g;
+  let m;
+  while ((m = rootBlockRe.exec(text)) !== null) {
+    const selector = m[1];
+    const body = m[2];
+    const bodyStart = m.index + m[1].length + (m[0].length - m[2].length - 1);
+    for (const decl of body.split(';')) {
+      const d = decl.trim();
+      if (!d || d.startsWith('/*')) continue;
+      const valueMatch = /:\s*([^;]*)$/.exec(d);
+      if (!valueMatch) continue;
+      const value = valueMatch[1].trim();
+      // Allow pure layout values and token indirections.
+      const hasColorLiteral =
+        /#[0-9a-fA-F]{3,8}\b/.test(value) ||
+        /\brgba?\(/.test(value) ||
+        /\bhsla?\(/.test(value);
+      if (!hasColorLiteral) continue;
+      if (/var\(/.test(value)) continue;
+      const line = text.slice(0, bodyStart).split('\n').length;
+      findings.push({ line, selector, declaration: d });
+    }
+  }
+  return findings;
 }
 
 /**
@@ -176,6 +232,14 @@ function checkConsoleShellIntegrity(repoRoot, options = {}) {
   const expectedVersion = options.expectedVersion || getExpectedConsoleVersion(repoRoot);
   const expectedTagPin = `@innfo-console-v${expectedVersion}`;
   const shells = discoverConsoleShells(repoRoot);
+
+  // Generated shells (marked `nn:console-shell`) get a freshness check in addition to
+  // the pin match below; authored shells only get the pin match.
+  const generatedPins = [];
+  for (const shellPath of shells) {
+    const content = fs.readFileSync(path.join(repoRoot, shellPath), 'utf8');
+    if (isGeneratedShell(content)) generatedPins.push({ shellPath, content });
+  }
 
   for (const shellPath of shells) {
     const fullPath = path.join(repoRoot, shellPath);
@@ -212,12 +276,8 @@ function checkConsoleShellIntegrity(repoRoot, options = {}) {
         if (anchorSets.length > 0) {
           const satisfied = anchorSets.some((set) => set.every((id) => domIds.has(id)));
           if (!satisfied) {
-            // Check for ledgered exception on model_console.html if needed
-            const isModelConsoleFeedback = shellPath.endsWith('model_console.html') && need === 'feedback-export';
-            if (!isModelConsoleFeedback) {
-              const expectedStr = anchorSets.map((s) => s.map((id) => `#${id}`).join(' + ')).join(' OR ');
-              errors.push(`Shell ${shellPath} declares need "${need}" but is missing required anchor(s) (${expectedStr})`);
-            }
+            const expectedStr = anchorSets.map((s) => s.map((id) => `#${id}`).join(' + ')).join(' OR ');
+            errors.push(`Shell ${shellPath} declares need "${need}" but is missing required anchor(s) (${expectedStr})`);
           }
         }
       }
@@ -244,6 +304,38 @@ function checkConsoleShellIntegrity(repoRoot, options = {}) {
     if (!foundCdnScript) {
       errors.push(`Shell ${shellPath} does not load the innfo-console bundle via CDN script tag`);
     }
+
+    // Requirement: shells must consume var(--innfo-*) tokens, never :root color
+    // literals (all discovered shells; options.enforcedRootShells is a test seam).
+    const enforced = options.enforcedRootShells || shells;
+    if (enforced.indexOf(shellPath) !== -1) {
+      for (const finding of findRootColorDeclarations(content)) {
+        errors.push(
+          `${shellPath}:${finding.line} declares a hard-coded color in "${finding.selector}" ` +
+            `(${finding.declaration}); use var(--innfo-*) tokens`,
+        );
+      }
+    }
+  }
+
+  if (generatedPins.length > 0) {
+    const { getGeneratedPin } = require('./console-shell-sync.js');
+    const canonicalPin = generatedPins[0] ? getGeneratedPin(generatedPins[0].content) : null;
+    if (!canonicalPin) {
+      errors.push(
+        'Generated console shell(s) carry no "#nn:console-shell pin=..." marker; ' +
+          'regenerate with `node scripts/build-console-shells.mjs`.',
+      );
+    } else {
+      const drifted = generatedPins.filter((s) => getGeneratedPin(s.content) !== canonicalPin);
+      if (drifted.length > 0) {
+        errors.push(
+          `Generated console shells disagree on the CDN pin (${canonicalPin} vs ` +
+            `${getGeneratedPin(drifted[0].content)}); regenerate with ` +
+            '`node scripts/build-console-shells.mjs`.',
+        );
+      }
+    }
   }
 
   return { ok: errors.length === 0, errors, shells };
@@ -255,6 +347,7 @@ module.exports = {
   extractShellConfig,
   discoverConsoleShells,
   getExpectedConsoleVersion,
+  findRootColorDeclarations,
   checkConsoleShellIntegrity,
 };
 

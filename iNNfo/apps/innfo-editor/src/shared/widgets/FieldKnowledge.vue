@@ -16,7 +16,8 @@ import { FileText, Plus } from 'lucide-vue-next'
 import { useKnowledgeStore } from '../../stores/knowledgeStore'
 import { useUiStore } from '../../stores/uiStore'
 import { findMatchingKnowledgeNode } from '../../utils/knowledgeMatching'
-import { deriveSuggestedSubmodelPath, slugify } from '../../utils/submodelPath'
+import { slugify } from '@cognnitive/innfo-core'
+import { deriveSuggestedSubmodelPath } from '../../utils/submodelPath'
 import { buildSubmodelBlueprintUrl } from '../../utils/constants'
 
 interface FieldDefinitionLike {

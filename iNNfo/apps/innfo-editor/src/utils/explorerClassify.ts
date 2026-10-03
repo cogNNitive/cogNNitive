@@ -17,7 +17,7 @@ export function checkIsModel(item: ExplorerClassifiable): boolean {
 
 export function checkIsArtifact(item: ExplorerClassifiable): boolean {
   if (item.kind !== 'file') return false
-  return normalizePath(item.path).startsWith('artifacts/')
+  return normalizePath(item.path).startsWith('export/')
 }
 
 export function checkIsSource(item: ExplorerClassifiable): boolean {

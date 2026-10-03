@@ -8,6 +8,7 @@ import { existsSync } from 'node:fs'
 import { basename, join, relative } from 'node:path'
 import {
   buildConsolePayload,
+  createFsSourceResolver,
   serializeConsoleSlot,
   parseFeedbackLedger,
   FEEDBACK_LEDGER_FILENAME,
@@ -15,7 +16,8 @@ import {
 import type { BlueprintSchema, FeedbackVerdictEntry } from '@cognnitive/innfo-core'
 import { findKnowledgeFile, resolveBlueprintWithCache } from './spec.js'
 import { readKnowledge } from './list-read.js'
-import { createWorkspaceSourceResolver, buildBlueprintSchemaResolverFromCache } from './validate.js'
+import { buildBlueprintSchemaResolverFromCache } from './validate.js'
+import { getFeedbackLedgerPath } from './feedback-verdict.js'
 
 export interface BuildConsolePayloadInput {
   model?: string
@@ -86,7 +88,7 @@ export async function buildConsolePayloadTool(
 
   // Resolve Feedback Verdict Ledger
   let ledgerEntries: FeedbackVerdictEntry[] = []
-  const ledgerPath = join(rootDir, FEEDBACK_LEDGER_FILENAME)
+  const ledgerPath = getFeedbackLedgerPath(rootDir)
   if (existsSync(ledgerPath)) {
     try {
       const rawLedger = await readFile(ledgerPath, 'utf-8')
@@ -98,7 +100,7 @@ export async function buildConsolePayloadTool(
   }
 
   // Resolve Citations
-  const resolver = createWorkspaceSourceResolver(rootDir)
+  const resolver = createFsSourceResolver(rootDir)
 
   const payload = buildConsolePayload({
     content,

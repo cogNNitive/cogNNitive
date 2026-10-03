@@ -438,4 +438,69 @@ level: 3
       )
     })
   })
+
+  describe('Phase 5: Matrix serialization', () => {
+    // Two ordinary `# NN matrices:` tables plus one special `item-markers matrix`
+    // (which the parser folds into model-level markers, not a matrix).
+    const matrixModel = `---
+title: "Matrix Model"
+knowledge_version: "V_0-1-0"
+level: 3
+---
+
+# NN Metrics
+## NN Metrics: Payback capex
+metricValue:: 56
+
+# NN matrices: metrics-dependencies matrix
+| Metrics \\ Metrics | Flujo acumulado | Payback capex |
+| :--- | :---: | :---: |
+| Flujo acumulado | - | DependsOn |
+| Payback capex | DependsOn | - |
+
+# NN matrices: scenario matrix
+| Scenario \\ Metric | Base | Stress |
+| :--- | :---: | :---: |
+| Base-Balance | 1 | - |
+| Stress-Balance | - | 1 |
+
+# NN matrices: item-markers matrix
+| Item \\ Marker | is_formula |
+| :--- | :---: |
+| Payback capex | X |
+`
+
+    beforeEach(async () => {
+      await writeFile(join(tempDir, 'models', 'matrix_V_0-1-0_NN.md'), matrixModel, 'utf-8')
+    })
+
+    it('serializes ordinary `# NN matrices:` sections into model.matrices for the viewer', async () => {
+      const res = await runCli([tempDir, 'matrix_V_0-1-0'])
+      assert.equal(res.code, 0)
+
+      const htmlPath = join(
+        tempDir,
+        'export',
+        'matrix_V_0-1-0_console',
+        'matrix_V_0-1-0_console.html',
+      )
+      const htmlContent = await readFile(htmlPath, 'utf-8')
+      const modelJson = JSON.parse(
+        htmlContent.match(/<script type="application\/json" id="innfo-model">([\s\S]*?)<\/script>/)[1],
+      )
+
+      assert.equal(modelJson.matrices.length, 2, 'both ordinary matrices serialized')
+      const deps = modelJson.matrices.find((m) => m.name === 'metrics-dependencies matrix')
+      assert.ok(deps, 'metrics-dependencies matrix present')
+      assert.deepEqual(deps.rows, ['Flujo acumulado', 'Payback capex'])
+      assert.deepEqual(deps.cols, ['Flujo acumulado', 'Payback capex'])
+      assert.equal(deps.cells['Payback capex']['Flujo acumulado'], 'DependsOn')
+
+      const scenario = modelJson.matrices.find((m) => m.name === 'scenario matrix')
+      assert.ok(scenario, 'scenario matrix present')
+      assert.deepEqual(scenario.rows, ['Base-Balance', 'Stress-Balance'])
+      assert.deepEqual(scenario.cols, ['Base', 'Stress'])
+      assert.equal(scenario.cells['Base-Balance']['Base'], '1')
+    })
+  })
 })

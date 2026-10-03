@@ -3,77 +3,89 @@
  * scripts/freshness.js
  *
  * Computes per-subsystem channel drift ("how far has `main` moved past the
- * tag users are currently pinned to?") using only local git, and publishes it
+ * newest release tag for each subsystem?") using only local git, and publishes it
  * as `docs/use/freshness.json` through the existing Pages/build-docs pipeline.
  *
- * The baseline for each subsystem is its `manifest/source.yaml`
- * `channels.stable.refs` pin — never the newest matching tag (a cut-but-
- * unpinned tag must not mask drift; see design.md ADR-002).
+ * The baseline for each subsystem is its newest monorepo `<key>-v*` tag
+ * in local git.
  *
  * Zero dependencies, local git only, no `api.github.com` call.
  */
 
-const fs = require('fs');
 const path = require('path');
 const { execFileSync } = require('child_process');
-const { parseFocusedYaml } = require('./manifest/validate-manifest.js');
 const { saveJsonAtomic } = require('./lib/atomic-fs.js');
-const { resolveChannelRefs } = require('./lib/channel-refs.js');
 
-/**
- * Subsystem -> tracked directories. Hardcoded and directory-scoped rather than
- * derived from `manifest/source.yaml` entries (those name files, which would
- * reproduce the single-file blindness this change removes — design.md ADR-003).
- *
- * ponytail: `innfo-console` lives under `iNNfo/specs/bluepriNNts/`, so a console
- * commit is double-counted under `templates` too. Accepted as an informational
- * lower-bound signal; a `:(exclude)` pathspec is the upgrade path if it ever
- * misleads (ADR-003).
- */
 const SUBSYSTEM_PATHS = {
   skills: ['skills/'],
+  blueprints: ['iNNfo/specs/bluepriNNts/'],
   templates: ['iNNfo/specs/bluepriNNts/'],
   'innfo-mcp': ['iNNfo/packages/innfo-mcp/'],
   'innfo-console': ['iNNfo/specs/bluepriNNts/console/'],
 };
 
-/**
- * Computes drift for every tracked subsystem. Pure and injectable: no real
- * git process is spawned here, `runGit` does all of it.
- *
- * @param {object} params
- * @param {string} params.sourceYaml - Raw contents of `manifest/source.yaml`.
- * @param {(args: string[]) => string} params.runGit - Runs a git subcommand
- *   (already scoped to the repo checkout) and returns its stdout, or throws.
- * @param {string} params.head - The ref to diff each pin against (e.g. `HEAD`).
- * @returns {Record<string, object>} Subsystem name -> freshness entry, in
- *   `SUBSYSTEM_PATHS` declaration order (stable across runs).
- */
-function computeFreshness({ sourceYaml, runGit, head }) {
-  const source = parseFocusedYaml(sourceYaml);
-  let stableRefs = [];
-  try {
-    stableRefs = resolveChannelRefs(source, 'stable');
-  } catch (_err) {
-    stableRefs = [];
+function parseSemver(v) {
+  const parts = String(v || '').replace(/^v/, '').split('.').map(Number);
+  return parts.length === 3 && parts.every((n) => !isNaN(n)) ? parts : null;
+}
+
+function compareSemver(v1, v2) {
+  const p1 = parseSemver(v1);
+  const p2 = parseSemver(v2);
+  if (!p1 || !p2) return String(v1).localeCompare(String(v2));
+  for (let i = 0; i < 3; i++) {
+    if (p1[i] > p2[i]) return 1;
+    if (p1[i] < p2[i]) return -1;
+  }
+  return 0;
+}
+
+function findNewestTag(key, runGit) {
+  const patterns = key === 'blueprints' || key === 'templates'
+    ? ['blueprints-v*', 'templates-v*']
+    : [`${key}-v*`];
+
+  const allTags = [];
+  for (const pat of patterns) {
+    try {
+      const out = runGit(['tag', '-l', pat]);
+      if (out) {
+        const lines = out.split('\n').map((l) => l.trim()).filter(Boolean);
+        allTags.push(...lines);
+      }
+    } catch {
+      // ignore
+    }
   }
 
+  const valid = [];
+  for (const tag of allTags) {
+    const m = tag.match(/^(?:skills|blueprints|templates|innfo-mcp|innfo-console)-v(\d+\.\d+\.\d+)$/);
+    if (m) {
+      valid.push({ tag, version: m[1] });
+    }
+  }
+
+  if (valid.length === 0) return null;
+  valid.sort((a, b) => compareSemver(a.version, b.version));
+  return valid[valid.length - 1].tag;
+}
+
+function computeFreshness({ runGit, head }) {
   const subsystems = {};
   for (const key of Object.keys(SUBSYSTEM_PATHS)) {
     const paths = SUBSYSTEM_PATHS[key];
-    const refEntry = stableRefs.find((r) => r && r.key === key);
+    const tag = findNewestTag(key, runGit);
 
-    if (!refEntry) {
+    if (!tag) {
       subsystems[key] = {
         subsystem: key,
         pinnedTag: null,
         commitsSincePin: null,
-        unresolved: 'no stable pin declared for this subsystem in manifest/source.yaml',
+        unresolved: 'no tag found for this subsystem in local git',
       };
       continue;
     }
-
-    const tag = refEntry.ref;
 
     try {
       runGit(['rev-parse', `${tag}^{commit}`]);
@@ -96,7 +108,7 @@ function computeFreshness({ sourceYaml, runGit, head }) {
         pinnedTag: tag,
         pinnedTagDate,
         commitsSincePin: Number.parseInt(countOut, 10),
-        filesTouched: filesOut === '' ? [] : filesOut.split('\n'),
+        filesTouched: filesOut === '' ? [] : filesOut.split('\n').filter(Boolean),
       };
     } catch (err) {
       subsystems[key] = {
@@ -117,11 +129,10 @@ function realRunGit(repoRoot) {
 
 function main() {
   const repoRoot = path.join(__dirname, '..');
-  const sourceYaml = fs.readFileSync(path.join(repoRoot, 'manifest', 'source.yaml'), 'utf-8');
   const runGit = realRunGit(repoRoot);
   const head = runGit(['rev-parse', 'HEAD']).trim();
 
-  const subsystems = computeFreshness({ sourceYaml, runGit, head });
+  const subsystems = computeFreshness({ runGit, head });
   const output = {
     generatedAt: new Date().toISOString(),
     head,
@@ -138,7 +149,7 @@ function main() {
   console.log(`freshness.json written: ${outPath}`);
 }
 
-module.exports = { computeFreshness, SUBSYSTEM_PATHS };
+module.exports = { computeFreshness, SUBSYSTEM_PATHS, findNewestTag };
 
 if (require.main === module) {
   main();

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import FileRefPill from '../../components/editor/FileRefPill.vue'
-import { parseForPill, type KnowledgeUnit } from '../../utils/sourceRef'
+import { parseCitation, type KnowledgeUnit } from '../../utils/sourceRef'
 
 /**
  * Renders any field whose resolved widget type has not been ported yet
@@ -13,7 +13,8 @@ defineProps<{
 }>()
 
 function isSourceRef(value: unknown): boolean {
-  return parseForPill(value) !== null
+  if (typeof value !== 'string') return false
+  return parseCitation(value) !== null
 }
 
 function toFileRef(val: string): {
@@ -23,7 +24,7 @@ function toFileRef(val: string): {
   unit?: KnowledgeUnit
   subunits?: string[]
 } {
-  const parsed = parseForPill(val)
+  const parsed = parseCitation(val)
   if (!parsed) return { filePath: '', fileName: '' }
   return {
     filePath: parsed.filePath,

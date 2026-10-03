@@ -4,9 +4,10 @@
  * scripts/sync-versions.mjs
  *
  * Single Source of Truth synchronization and drift validation for:
- *   - Template versions (spec_NN.md -> samples.ts & manifest/source.yaml)
- *   - Skill versions (skills/<name>/SKILL.md -> manifest/source.yaml)
- *   - MCP package version (innfo-mcp/package.json -> source.yaml, innfo-core, dep range)
+ *   - Template versions in editor (spec_NN.md -> samples.ts)
+ *   - MCP package version (innfo-mcp/package.json -> innfo-core, dep range)
+ *
+ * (source.yaml synchronization is removed under tag-driven release AD-6).
  *
  * Usage:
  *   node scripts/sync-versions.mjs          # writes all generated targets
@@ -25,7 +26,6 @@ const DEFAULT_SKILLS_DIR = path.join(REPO_ROOT, 'skills');
 const DEFAULT_SAMPLES_TS_PATH = path.join(
   REPO_ROOT, 'iNNfo', 'apps', 'innfo-editor', 'src', 'config', 'samples.ts'
 );
-const DEFAULT_SOURCE_YAML_PATH = path.join(REPO_ROOT, 'manifest', 'source.yaml');
 const DEFAULT_MCP_PKG_PATH = path.join(REPO_ROOT, 'iNNfo', 'packages', 'innfo-mcp', 'package.json');
 const DEFAULT_CORE_PKG_PATH = path.join(REPO_ROOT, 'iNNfo', 'packages', 'innfo-core', 'package.json');
 
@@ -178,65 +178,6 @@ function syncSamplesTs({ versions, samplesTsPath, check }) {
   return { ok: true, changed: updated !== current };
 }
 
-function syncSourceYaml({ sectionMaps, sourceYamlPath, check }) {
-  if (!fs.existsSync(sourceYamlPath)) {
-    return { ok: false, error: `Missing manifest source file: ${sourceYamlPath}` };
-  }
-
-  const current = fs.readFileSync(sourceYamlPath, 'utf8');
-  const lines = current.split('\n');
-
-  let currentSection = null;
-  let currentSlug = null;
-  const perSlugDrift = [];
-
-  const updatedLines = lines.map((line) => {
-    if (/^\S/.test(line)) {
-      const match = line.match(/^(\S+):/);
-      const secName = match ? match[1] : null;
-      if (secName && /^(blueprints|frozen_blueprints|skills)$/.test(secName)) {
-        currentSection = secName;
-      } else {
-        currentSection = null;
-      }
-      currentSlug = null;
-      return line;
-    }
-
-    if (!currentSection) return line;
-
-    const nameMatch = line.match(/^\s*- name:\s*(\S+)\s*$/);
-    if (nameMatch) {
-      currentSlug = nameMatch[1];
-      return line;
-    }
-
-    const versionMatch = line.match(/^(\s*version:\s*)"([^"]*)"\s*$/);
-    if (versionMatch && currentSlug && currentSection && sectionMaps[currentSection] && sectionMaps[currentSection][currentSlug] !== undefined) {
-      const expected = sectionMaps[currentSection][currentSlug];
-      if (versionMatch[2] !== expected) {
-        perSlugDrift.push({ section: currentSection, slug: currentSlug, expected, actual: versionMatch[2] });
-      }
-      return `${versionMatch[1]}"${expected}"`;
-    }
-
-    return line;
-  });
-
-  if (check) {
-    if (perSlugDrift.length > 0) {
-      return { ok: false, drift: perSlugDrift };
-    }
-    return { ok: true };
-  }
-
-  const updated = updatedLines.join('\n');
-  if (updated !== current) {
-    fs.writeFileSync(sourceYamlPath, updated, 'utf8');
-  }
-  return { ok: true, changed: updated !== current };
-}
-
 function syncCorePkg({ mcpVersion, corePkgPath, check }) {
   if (!fs.existsSync(corePkgPath)) {
     return { ok: false, error: `Missing core package.json: ${corePkgPath}` };
@@ -305,12 +246,10 @@ export function syncVersions({
   blueprintsDir = DEFAULT_BLUEPRINTS_DIR,
   skillsDir = DEFAULT_SKILLS_DIR,
   samplesTsPath = DEFAULT_SAMPLES_TS_PATH,
-  sourceYamlPath = DEFAULT_SOURCE_YAML_PATH,
   mcpPkgPath = DEFAULT_MCP_PKG_PATH,
   corePkgPath = DEFAULT_CORE_PKG_PATH,
 } = {}) {
   const versions = collectBlueprintVersions(blueprintsDir);
-  const specVersions = collectSpecVersions(blueprintsDir);
   /** @type {Record<string, string>} */
   let skillVersions = {};
   const errors = [];
@@ -335,27 +274,6 @@ export function syncVersions({
       );
     } else {
       errors.push(samplesResult.error);
-    }
-  }
-
-  const sectionMaps = {
-    blueprints: specVersions,
-    frozen_blueprints: specVersions,
-    skills: skillVersions,
-  };
-
-  const sourceResult = syncSourceYaml({ sectionMaps, sourceYamlPath, check });
-  if (!sourceResult.ok) {
-    if (sourceResult.drift) {
-      for (const d of sourceResult.drift) {
-        errors.push(
-          `${d.section} entry '${d.slug}' version drift in ${sourceYamlPath}: ` +
-          `expected "${d.expected}", found "${d.actual}". ` +
-          `Run \`npm run sync:versions\` to fix it.`
-        );
-      }
-    } else {
-      errors.push(sourceResult.error);
     }
   }
 
@@ -400,7 +318,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToP
   const isCheck = process.argv.includes('--check');
 
   if (isCheck) {
-    console.log('🔍 Checking version parity (specs & skills & mcp <-> samples.ts <-> manifest/source.yaml)...');
+    console.log('🔍 Checking version parity (specs & mcp <-> samples.ts & packages)...');
     const res = syncVersions({ check: true });
     if (!res.ok) {
       console.error('❌ Version drift detected:');
@@ -411,7 +329,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToP
     }
     console.log('✅ All versions are in sync.');
   } else {
-    console.log('📦 Syncing versions from specs & skills & mcp into samples.ts, manifest/source.yaml, and packages...');
+    console.log('📦 Syncing versions from specs & mcp into samples.ts and packages...');
     const res = syncVersions({ check: false });
     if (!res.ok) {
       console.error('❌ Failed to sync versions:');

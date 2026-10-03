@@ -8,6 +8,7 @@ export {
   parseMarkdownTable,
   getSectionType,
   normalizeSeparators,
+  slugify,
 } from './parser/index.js'
 export {
   CONCEPT_DEFINITION,
@@ -39,13 +40,25 @@ export {
   validateFormatSyntax,
   validateWorkspaceReferences,
   validateWorkspaceSources,
+  validateCitations,
 } from './validator/index.js'
-export type { DocumentValidation, ReferenceDiagnostic, SourceResolver } from './validator/index.js'
+export type {
+  DocumentValidation,
+  ReferenceDiagnostic,
+  SourceResolver,
+  CitationSite,
+  CitationDiagnostic,
+} from './validator/index.js'
 
-export { parseSourceRef, slugifyHeading, extractHeadings, resolveHeadingSection } from './sourceRef.js'
-export type { SourceRef, HeadingInfo, ResolvedHeadingSection } from './sourceRef.js'
 export {
-  parseKnowledgeUnitRef,
+  parseCitation,
+  resolveUnitPath,
+  slugifyHeading,
+  extractHeadings,
+  resolveHeadingSection,
+} from './sourceRef.js'
+export type { Citation, SourceRef, HeadingInfo, ResolvedHeadingSection } from './sourceRef.js'
+export {
   serializeKnowledgeUnitRef,
   slugifyUnitHeading,
   normalizeName,
@@ -115,3 +128,4 @@ export {
   SpecResolutionError,
 } from './resolver.js'
 export type { SpecResolver } from './resolver.js'
+export * from './lineage/index.js'

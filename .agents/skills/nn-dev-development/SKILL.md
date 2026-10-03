@@ -62,6 +62,14 @@ node scripts/nn-session.mjs start --id <session-id>
 `node_modules`, and creates the branch `session/<id>` off `dev`. Never write to the
 primary checkout; the primary-tree guard blocks it.
 
+⚠️ It junctions the root `node_modules`, `iNNfo/node_modules`, and every workspace
+(`iNNfo/packages/*`, `iNNfo/apps/*`) and skill `node_modules` that exists in the primary.
+A dependency missing from the **local install** (a partial / `--omit=dev` install — e.g.
+`vitest` present in neither the root nor the workspace) still breaks local `npm run
+typecheck`; that is an environment gap, not a code error. CI installs with `npm ci`. For a
+change that touches no TypeScript, `git push --no-verify` is acceptable (CI re-runs
+`typecheck` on the pushed ref); otherwise run `npm install` in the working tree first.
+
 ### 1b. Informational concurrency scan
 
 Run and report (do **not** block on it — isolation already makes collisions impossible):
@@ -166,9 +174,7 @@ automatically.
 When the maintainer says the accumulated `dev` work is ready:
 
 1. **Pre-push integrity gate**: `node scripts/check-integrity.js` and
-   `npm run check:versions`. Resolve drift before pushing. Any change under `skills/**`
-   or `iNNfo/specs/templates/**/spec_NN.md` requires cutting a new `skills-v*`/`templates-v*`
-   tag **and** re-pinning `manifest/source.yaml` in the SAME batch. Ensure the tree is
+   `npm run check:versions`. Resolve drift before pushing. Ensure the tree is
    clean and `git push origin dev` succeeds.
 2. **Server-side fast-forward (`dev → main`)** — never checks out `main`, leaves the tree
    untouched:
@@ -180,11 +186,15 @@ When the maintainer says the accumulated `dev` work is ready:
    On rejection: `git fetch origin && git merge origin/main` on `dev`. If tagging, tag
    immediately after this push, before any further commit on `dev`.
 3. **Post-push CI gate on `main` — blocking**: poll `gh run list --branch main` until the
-   run for the pushed sha completes; require `verify`, `quality`, `deploy-pages` all
-   `success`. Distinguish red-caused-by-batch (fix-forward) from pre-existing red
+   run for the pushed sha completes; require `verify`, `quality`, `spec-integrity`, `site`,
+   `publish-web` all `success`. Distinguish red-caused-by-batch (fix-forward) from pre-existing red
    (maintainer-approved `MERGE-GATE EXCEPTION`).
-4. **Release tagging** (only for a version bump): run `nn-dev-release`; a red `main`
-   blocks tagging.
+   - **Release freeze:** once a release tag is cut, no session may push `dev`/`main`
+     until that tag's workflow concludes — a moved `origin/main` breaks the tag's own
+     verification and its already-limited re-run. See `nn-dev-release` §4/§4b.
+4. **Release tagging** (only for a version bump): run `nn-dev-release` to create and push
+   an annotated release tag (`<key>-v<semver>`: `skills-v*`, `blueprints-v*`, `innfo-mcp-v*`,
+   `innfo-console-v*`); a red `main` blocks tagging.
 5. **Persist the milestone** in Engram for sibling sessions.
 
 ---
@@ -193,8 +203,9 @@ When the maintainer says the accumulated `dev` work is ready:
 
 Before high-impact changes, establish an immutable restore point.
 
-- **Formal release** (`dev` clean + gates green): merge `dev → main`, bump the version,
-  tag `v<version>` / `innfo-mcp-v<version>`, `gh release create`.
+- **Formal release** (`dev` clean + gates green): merge `dev → main`, create annotated
+  tag `<key>-v<semver>` (e.g. `innfo-console-v0.6.0`, `skills-v0.12.0`), push tag to trigger
+  `release.yml`.
 - **Checkpoint tag** (mid-flight): `git tag -a checkpoint/<topic>-YYYYMMDD -m ...` and push.
 
 ### Rollback (scoped, non-destructive)

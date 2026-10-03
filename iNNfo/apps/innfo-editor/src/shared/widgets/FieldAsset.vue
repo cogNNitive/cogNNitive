@@ -224,8 +224,21 @@ watch(
 
     let fileHandle: any = null
 
+    // 0. Prefer the parser-resolved canonical asset path stored on the node
+    //    (`{modelDir}/assets/{slug}/{value}`). It already encodes nested
+    //    subpaths (e.g. `evidence/…`) that the raw field value omits.
+    const declaredPath = (currentNode.value?.assets ?? []).find(
+      (candidate) => candidate === cleanPath || candidate.endsWith('/' + cleanPath),
+    )
+    if (declaredPath) {
+      const declaredParts = declaredPath.replace(/\\/g, '/').split('/').filter(Boolean)
+      fileHandle = await findFileInDir(handle, declaredParts)
+    }
+
     // 1. Try workspace root direct path
-    fileHandle = await findFileInDir(handle, parts)
+    if (!fileHandle) {
+      fileHandle = await findFileInDir(handle, parts)
+    }
 
     // 2. Try model directory handle
     if (!fileHandle && modelDirHandle && modelDirHandle !== handle) {

@@ -38,8 +38,9 @@ describe('model-viewer renderer packaging', () => {
     expect(renderer).toContain("getElementById('rail')")
   })
 
-  it('keeps the domain behaviors: chips, relations, matrices, hash routing', () => {
-    for (const token of ['chip', 'rel-list', 'matrix-block', 'hashchange', 'conceptColor']) {
+  it('keeps the domain behaviors: markers, relations, matrices, hash routing', () => {
+    // chip/conceptColor moved into InnfoUI; the viewer keeps these behaviors.
+    for (const token of ['rel-list', 'matrix-block', 'hashchange', 'InnfoUI', 'ConceptPill', 'ElementCard']) {
       expect(renderer).toContain(token)
     }
   })

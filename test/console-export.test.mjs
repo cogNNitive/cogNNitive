@@ -123,7 +123,7 @@ level: 3
     dom.window.InnfoConsole.boot(doc)
 
     // Verify banner and reviewer chip
-    const banner = doc.getElementById('innfo-banner')
+    const banner = doc.getElementById('innfo-feedback-banner') || doc.getElementById('innfo-banner')
     assert.ok(banner)
     assert.match(banner.textContent, /Offline Business Model/)
     const reviewerChip = banner.querySelector('.innfo-reviewer-chip')

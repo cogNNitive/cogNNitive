@@ -12,15 +12,12 @@ permissions:
 
 jobs:
   # ── Workspace-level deterministic checks (template inventory, script
-  #    typecheck, manifest validity, docs build gate).
+  #    typecheck, drift guards, test suites). Offline.
   verify:
     runs-on: ubuntu-latest
     steps:
-      # fetch-depth: 0 gives this job full history + all tags, required by
-      # `scripts/freshness.js` (`git rev-list --count <tag>..HEAD -- <path>`).
-      # The default shallow (depth 1, no tags) checkout would fail that lookup
-      # with "unknown revision". Scoped to this job only — quality,
-      # spec-integrity, and deploy-pages stay shallow.
+      # fetch-depth: 0 gives this job full history, which the local-history
+      # guards (template immutability) read. Local only; no remote lookups.
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -40,33 +37,49 @@ jobs:
       - name: Install nn-trannsform skill dependencies
         run: npm ci --prefix skills/nn-trannsform
 
-      # Build first: `verify.js` step 0 (MCP Version Square) reads the staged CDN
-      # bundle `docs/innfo/cdn/innfo-mcp-v<version>.bundle.js`, which is a
-      # gitignored build artifact created here — a fresh checkout has none.
-      - name: Build Docs & Bundles Gate
-        run: npm run build:docs
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Docs facts drift check in verify.js imports innfo-mcp's built dist/server.js
+      # to inspect MCP tool definitions.
+      - name: Build MCP packages for facts check
+        run: npm --workspace=@cognnitive/innfo-core run build && npm --workspace=@cognnitive/innfo-mcp run build && npm --workspace=@cognnitive/innfo-video-parser run build
 
+      # Offline and deterministic: no network, no release tags, no token. Each
+      # step logs to .verify-logs/; a failing step's tail is shown in a log group.
       - name: Run Deterministic Verification
-        run: "node scripts/verify.js ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && '--release' || '' }}"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/verify.js
 
-      # Detection, not pre-merge prevention: this step evaluates state already
-      # merged to `main` against the pinned template tag. It does not evaluate
-      # an unmerged PR's prospective effect on `main`, so a red run here is the
-      # first automated signal of drift after a merge, not a gate that could
-      # have stopped it before.
-      - name: Stable-manifest coherence check (dev)
-        if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
-        continue-on-error: true
-        run: node scripts/manifest/validate-manifest.js --channel stable
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload verify logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verify-logs
+          path: .verify-logs
+          include-hidden-files: true
+          retention-days: 7
+
+  # ── Site build: docs + the MCP CDN bundle, handed to publish-web. Separate
+  #    from `verify` so the offline gate never depends on the editor build.
+  site:
+    runs-on: ubuntu-latest
+    steps:
+      # fetch-depth: 0 gives full history + all tags, required by
+      # `scripts/freshness.js` (`git rev-list --count <tag>..HEAD -- <path>`).
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Docs
+        run: npm run build:docs
 
       # Per-subsystem channel drift (how far main has moved past each
-      # subsystem's pinned stable tag), local git only. Never blocking:
+      # subsystem's pinned stable tag), local history only. Never blocking:
       # a measurement failure must not redden main or block the Pages
       # deploy — that would be worse than the silence it replaces.
       - name: Compute channel freshness
@@ -75,7 +88,7 @@ jobs:
         run: node scripts/freshness.js
 
       # Hand the built docs to publish-web so the public distribution repo
-      # publishes exactly what this job verified instead of rebuilding. Only
+      # publishes exactly what this job built instead of rebuilding. Only
       # produced on main (the only ref publish-web runs on).
       - name: Upload built docs (publish artifact)
         if: github.ref == 'refs/heads/main'
@@ -168,10 +181,10 @@ jobs:
   # One-way publish of the built site to the public distribution repo
   # (`cogNNitive-web`), which owns the GitHub Pages deployment for
   # `cognnitive.com`. The monorepo no longer serves Pages from itself: this job
-  # pushes the artifact `verify` already built and validated, append-only and
+  # pushes the artifact `site` built (gated by `verify`), append-only and
   # idempotent (a byte-identical artifact is a no-op — no empty commit).
   publish-web:
-    needs: [verify, quality, spec-integrity]
+    needs: [verify, site, quality, spec-integrity]
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     concurrency:
@@ -180,7 +193,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Publish exactly what `verify` built and validated — no npm ci, no rebuild.
+      # Publish exactly what `site` built (with `verify` green) — no npm ci, no rebuild.
       - name: Download built docs
         uses: actions/download-artifact@v4
         with:

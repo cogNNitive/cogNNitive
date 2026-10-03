@@ -4,8 +4,7 @@
 import {
   parseCsvTable,
   parseFrontmatter,
-  parseKnowledgeUnitRef,
-  parseSourceRef,
+  parseCitation,
   resolveHeadingSection,
   resolveUnit,
   extractHeadings,
@@ -40,6 +39,8 @@ export interface ResolvedCitation {
   excerpt?: string
   truncated?: boolean
   sha256?: string
+  /** Derivative hash of a normalized source's companion media (`media_sha256`). */
+  media_sha256?: string
   version?: string
   error?: 'MALFORMED' | 'DANGLING_FILE' | 'UNKNOWN_ANCHOR' | 'ELEMENT_NOT_FOUND' | 'MODEL_NOT_FOUND'
 }
@@ -175,7 +176,7 @@ export function resolveCitation(
   resolver: SourceResolver,
   modelPath: string = '',
 ): ResolvedCitation {
-  const ref = parseKnowledgeUnitRef(raw) ?? parseSourceRef(raw)
+  const ref = parseCitation(raw)
   if (!ref) {
     return { path: raw, exists: false, field, origin: 'document', error: 'MALFORMED' }
   }
@@ -192,9 +193,17 @@ export function resolveCitation(
   }
 
   const fm = parseFrontmatter(content) as
-    | { sha256?: string; version?: string; knowledge_version?: string; source_type?: string; author?: string }
+    | {
+        sha256?: string
+        media_sha256?: string
+        version?: string
+        knowledge_version?: string
+        source_type?: string
+        author?: string
+      }
     | null
   const sha256 = fm?.sha256
+  const mediaSha256 = fm?.media_sha256
   const version = fm?.version ?? fm?.knowledge_version
 
   let excerpt: { text: string; truncated: boolean } | undefined
@@ -242,6 +251,7 @@ export function resolveCitation(
     ...(classified.author ? { author: classified.author } : {}),
     ...(excerpt ? { excerpt: excerpt.text, ...(excerpt.truncated ? { truncated: true } : {}) } : {}),
     ...(sha256 ? { sha256 } : {}),
+    ...(mediaSha256 ? { media_sha256: mediaSha256 } : {}),
     ...(version ? { version } : {}),
   }
 }

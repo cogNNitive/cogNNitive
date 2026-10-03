@@ -132,9 +132,9 @@ async function main() {
   {
     const mod = freshGeneratorModule();
     const source = mod.parseSourceYaml(BASIC_SOURCE);
-    const resolveRef = fakeResolveRef({ 'skills-v1.0.0': 'd60a7109315820085ab127b70412992db6986c88' }, {});
-    const first = await mod.renderManifest(source, 'stable', BASIC_BODY, resolveRef);
-    const second = await mod.renderManifest(source, 'stable', BASIC_BODY, resolveRef);
+    const resolveRef = fakeResolveRef({}, { 'feat/innfo-v0-2-0-adoption': 'cccccccccccccccccccccccccccccccccccccccc' });
+    const first = await mod.renderManifest(source, 'preview', BASIC_BODY, resolveRef);
+    const second = await mod.renderManifest(source, 'preview', BASIC_BODY, resolveRef);
     assert.strictEqual(typeof first, 'string');
     assert.strictEqual(first, second, 'regeneration with no upstream change must be byte-identical');
     console.log('✔ Determinism (byte-identical re-render) test passed');
@@ -144,8 +144,8 @@ async function main() {
   {
     const mod = freshGeneratorModule();
     const source = mod.parseSourceYaml(BASIC_SOURCE);
-    const resolveRef = fakeResolveRef({ 'skills-v1.0.0': 'd60a7109315820085ab127b70412992db6986c88' }, {});
-    const rendered = await mod.renderManifest(source, 'stable', BASIC_BODY, resolveRef);
+    const resolveRef = fakeResolveRef({}, { 'feat/innfo-v0-2-0-adoption': 'cccccccccccccccccccccccccccccccccccccccc' });
+    const rendered = await mod.renderManifest(source, 'preview', BASIC_BODY, resolveRef);
     assert.ok(!rendered.includes('\r'), 'output must not contain CR');
     assert.ok(rendered.endsWith('\n') && !rendered.endsWith('\n\n'), 'output must end with exactly one trailing newline');
     for (const line of rendered.split('\n')) {
@@ -170,11 +170,6 @@ skills:
 templates: []
 workflows: []
 channels:
-  stable:
-    refs:
-      - key: skills
-        repo: cogNNitive/cogNNitive
-        ref: skills-v1.0.0
   preview:
     refs:
       - key: skills
@@ -182,8 +177,8 @@ channels:
         ref: feat/innfo-v0-2-0-adoption
 `;
     const source = mod.parseSourceYaml(sourceWithNote);
-    const resolveRef = fakeResolveRef({ 'skills-v1.0.0': 'd60a7109315820085ab127b70412992db6986c88' }, {});
-    const rendered = await mod.renderManifest(source, 'stable', BASIC_BODY, resolveRef);
+    const resolveRef = fakeResolveRef({}, { 'feat/innfo-v0-2-0-adoption': 'cccccccccccccccccccccccccccccccccccccccc' });
+    const rendered = await mod.renderManifest(source, 'preview', BASIC_BODY, resolveRef);
     assert.match(rendered, /# provisional pin, re-check after next release\r?\n\s*- name: nn-router/, 'note must render as a # comment line directly above its entry');
     console.log('✔ note: rendering test passed');
   }
@@ -193,9 +188,9 @@ channels:
     const tmpDir = createTempSourceDir({ source: BASIC_SOURCE, body: BASIC_BODY });
     try {
       const mod = freshGeneratorModule();
-      const outPath = path.join(tmpDir, 'docs', 'use', 'manifest.md');
+      const outPath = path.join(tmpDir, 'docs', 'use', 'manifest-next.md');
       const resolveRef = fakeResolveRef({}, {}); // nothing resolves -> forces failure
-      const exitCode = await mod.run(['--channel', 'stable'], { cwd: tmpDir, resolveRef, log: () => {}, logError: () => {} });
+      const exitCode = await mod.run(['--channel', 'preview'], { cwd: tmpDir, resolveRef, log: () => {}, logError: () => {} });
       assert.strictEqual(exitCode, 2, 'resolution failure must exit 2');
       assert.ok(!fs.existsSync(outPath), 'no manifest file must be written on resolution failure');
       console.log('✔ All-or-nothing on resolution failure test passed');
@@ -209,11 +204,11 @@ channels:
     const tmpDir = createTempSourceDir({ source: BASIC_SOURCE, body: BASIC_BODY });
     try {
       const mod = freshGeneratorModule();
-      const outPath = path.join(tmpDir, 'docs', 'use', 'manifest.md');
+      const outPath = path.join(tmpDir, 'docs', 'use', 'manifest-next.md');
       fs.writeFileSync(outPath, 'stale hand-edited content\n', 'utf-8');
-      const resolveRef = fakeResolveRef({ 'skills-v1.0.0': 'd60a7109315820085ab127b70412992db6986c88' }, {});
+      const resolveRef = fakeResolveRef({}, { 'feat/innfo-v0-2-0-adoption': 'cccccccccccccccccccccccccccccccccccccccc' });
       const errors = [];
-      const exitCode = await mod.run(['--channel', 'stable', '--check'], { cwd: tmpDir, resolveRef, log: () => {}, logError: (msg) => errors.push(msg) });
+      const exitCode = await mod.run(['--channel', 'preview', '--check'], { cwd: tmpDir, resolveRef, log: () => {}, logError: (msg) => errors.push(msg) });
       assert.strictEqual(exitCode, 1, '--check drift must exit 1');
       assert.strictEqual(fs.readFileSync(outPath, 'utf-8'), 'stale hand-edited content\n', '--check must not modify the on-disk file');
       assert.ok(errors.length > 0, '--check drift must report a diff on stderr');
@@ -228,10 +223,10 @@ channels:
     const tmpDir = createTempSourceDir({ source: BASIC_SOURCE, body: BASIC_BODY });
     try {
       const mod = freshGeneratorModule();
-      const resolveRef = fakeResolveRef({ 'skills-v1.0.0': 'd60a7109315820085ab127b70412992db6986c88' }, {});
-      const writeExit = await mod.run(['--channel', 'stable'], { cwd: tmpDir, resolveRef, log: () => {}, logError: () => {} });
+      const resolveRef = fakeResolveRef({}, { 'feat/innfo-v0-2-0-adoption': 'cccccccccccccccccccccccccccccccccccccccc' });
+      const writeExit = await mod.run(['--channel', 'preview'], { cwd: tmpDir, resolveRef, log: () => {}, logError: () => {} });
       assert.strictEqual(writeExit, 0, 'initial write must succeed');
-      const checkExit = await mod.run(['--channel', 'stable', '--check'], { cwd: tmpDir, resolveRef, log: () => {}, logError: () => {} });
+      const checkExit = await mod.run(['--channel', 'preview', '--check'], { cwd: tmpDir, resolveRef, log: () => {}, logError: () => {} });
       assert.strictEqual(checkExit, 0, '--check must pass when the file is already up to date');
       console.log('✔ --check up-to-date test passed');
     } finally {
@@ -245,8 +240,8 @@ channels:
     try {
       const mod = freshGeneratorModule();
       const customOut = path.join(tmpDir, 'custom-manifest.md');
-      const resolveRef = fakeResolveRef({ 'skills-v1.0.0': 'd60a7109315820085ab127b70412992db6986c88' }, {});
-      const exitCode = await mod.run(['--channel', 'stable', '--out', customOut], { cwd: tmpDir, resolveRef, log: () => {}, logError: () => {} });
+      const resolveRef = fakeResolveRef({}, { 'feat/innfo-v0-2-0-adoption': 'cccccccccccccccccccccccccccccccccccccccc' });
+      const exitCode = await mod.run(['--channel', 'preview', '--out', customOut], { cwd: tmpDir, resolveRef, log: () => {}, logError: () => {} });
       assert.strictEqual(exitCode, 0);
       assert.ok(fs.existsSync(customOut), '--out must write to the given path');
       console.log('✔ --out custom path test passed');
@@ -275,106 +270,48 @@ channels:
     }
   }
 
-  // An mcp entry carries its own display version. The validator requires the
-  // field on mcp bundles, so the renderer must emit it, or generate and validate
-  // disagree about a manifest the generator itself produced.
+  // 9. Stable channel is rejected (assembled strictly by release workflow)
+  {
+    const mod = freshGeneratorModule();
+    const source = mod.parseSourceYaml(BASIC_SOURCE);
+    const resolveRef = fakeResolveRef({ 'skills-v1.0.0': 'd60a7109315820085ab127b70412992db6986c88' }, {});
+    const result = await mod.renderManifest(source, 'stable', BASIC_BODY, resolveRef);
+    assert.strictEqual(typeof result, 'object');
+    assert.match(String(result.error), /release workflow/i);
+
+    const errors = [];
+    const exitCode = await mod.run(['--channel', 'stable'], { cwd: process.cwd(), resolveRef, log: () => {}, logError: (msg) => errors.push(msg) });
+    assert.strictEqual(exitCode, 2);
+    assert.ok(errors.some((e) => /preview is required/i.test(e)));
+    console.log('✔ stable channel is rejected by generate-manifest test passed');
+  }
+
+  // 10. An mcp entry carries its own display version in preview.
   {
     const mod = freshGeneratorModule();
     const source = mod.parseSourceYaml(MCP_SOURCE);
-    const resolveRef = fakeResolveRef({
-      'skills-v1.0.0': 'd60a7109315820085ab127b70412992db6986c88',
-      'innfo-mcp-v0.2.1': '3bd4501e75915e8f2365fd7c547d9384a3e0c837',
-    }, {});
-    const rendered = await mod.renderManifest(source, 'stable', BASIC_BODY, resolveRef);
+    const resolveRef = fakeResolveRef({}, {
+      'feat/innfo-v0-2-0-adoption': 'cccccccccccccccccccccccccccccccccccccccc',
+      'feat/business-template-decomposition': 'dddddddddddddddddddddddddddddddddddddddd',
+    });
+    const rendered = await mod.renderManifest(source, 'preview', BASIC_BODY, resolveRef);
     assert.match(rendered, /version: "0\.2\.1"/, 'mcp entry must render its version field');
-    console.log('✔ mcp version field is rendered test passed');
+    console.log('✔ mcp version field is rendered in preview test passed');
   }
 
-  // The stable channel must never pin a branch tip — that is the exact defect
-  // this change exists to remove. The generator has to reject it at generation
-  // time rather than leave it for the validator: the design's guarantee is that
-  // a bad pin is unrepresentable, not merely detectable. Kind is judged by what
-  // the ref resolves to, never by what it is named.
-  {
-    const mod = freshGeneratorModule();
-    const source = mod.parseSourceYaml(BASIC_SOURCE);
-    // 'skills-v1.0.0' is named like a tag but resolves as a branch.
-    const resolveRef = fakeResolveRef({}, { 'skills-v1.0.0': 'b'.repeat(40) });
-    const result = await mod.renderManifest(source, 'stable', BASIC_BODY, resolveRef);
-    assert.strictEqual(typeof result, 'object', 'stable must refuse a branch-kind ref');
-    assert.match(String(result.error), /branch/i, 'error must name the offending ref kind');
-    console.log('✔ stable channel rejects a branch-kind ref test passed');
-  }
-
-  // Preview is the inverse: branches are exactly what it is for.
-  {
-    const mod = freshGeneratorModule();
-    const source = mod.parseSourceYaml(BASIC_SOURCE);
-    const resolveRef = fakeResolveRef({}, { 'feat/innfo-v0-2-0-adoption': 'c'.repeat(40) });
-    const result = await mod.renderManifest(source, 'preview', BASIC_BODY, resolveRef);
-    assert.strictEqual(typeof result, 'string', 'preview must accept a branch-kind ref');
-    console.log('✔ preview channel accepts a branch-kind ref test passed');
-  }
-
-  // Console assets: the published single-file console bundle is a distributable
-  // with its own ref_key; the renderer emits file/version/ref/commit plus a
-  // commit-pinned raw URL (no branch in the stable url).
+  // 11. Console assets in preview
   {
     const mod = freshGeneratorModule();
     const source = mod.parseSourceYaml(CONSOLE_SOURCE);
     const commit = 'a'.repeat(40);
-    const resolveRef = fakeResolveRef({ 'innfo-console-v0.1.0': commit }, {});
-    const rendered = await mod.renderManifest(source, 'stable', BASIC_BODY, resolveRef);
-    assert.strictEqual(typeof rendered, 'string', 'console asset must resolve on the stable channel');
+    const resolveRef = fakeResolveRef({}, { main: commit });
+    const rendered = await mod.renderManifest(source, 'preview', BASIC_BODY, resolveRef);
+    assert.strictEqual(typeof rendered, 'string', 'console asset must resolve on the preview channel');
     assert.match(rendered, /\n  console-assets:\n/, 'console-assets block must be emitted');
     assert.match(rendered, /- file: iNNfo\/specs\/templates\/console\/innfo-console\.bundle\.js/, 'file must render');
-    assert.match(rendered, /ref: "innfo-console-v0\.1\.0"/, 'ref must render');
+    assert.match(rendered, /ref: "main"/, 'ref must render');
     assert.match(rendered, new RegExp(`commit: "${commit}"`), 'commit must render');
-    assert.match(rendered, /url: https:\/\/raw\.githubusercontent\.com\/cogNNitive\/cogNNitive\/a{40}\/iNNfo\/specs\/templates\/console\/innfo-console\.bundle\.js/, 'url must be commit-pinned');
-    console.log('✔ console-assets block rendering test passed');
-  }
-
-  // Derived channel versions: source with version: "2.1.0" or inherited artifact versions
-  {
-    const mod = freshGeneratorModule();
-    const DERIVED_SOURCE = `version: "2.0"
-entrypoint: "workspace_NN.md"
-skills:
-  - name: nn-innfo
-    repo: cogNNitive/cogNNitive
-    path: actioNN/skills/nn-innfo
-    version: "V_0-1-0"
-    ref_key: skills
-    description: Author and validate iNNfo models.
-    mcp:
-      - name: innfo-mcp
-        repo: cogNNitive/cogNNitive
-        path: iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js
-        version: "0.10.0"
-        ref_key: innfo-mcp
-templates: []
-workflows: []
-channels:
-  stable:
-    refs:
-      - key: skills
-        repo: cogNNitive/cogNNitive
-        version: "2.1.0"
-      - key: innfo-mcp
-        repo: cogNNitive/cogNNitive
-`;
-    const commitSkills = '1'.repeat(40);
-    const commitMcp = '2'.repeat(40);
-    const resolveRef = fakeResolveRef({
-      'skills-v2.1.0': commitSkills,
-      'innfo-mcp-v0.10.0': commitMcp,
-    }, {});
-    const source = mod.parseSourceYaml(DERIVED_SOURCE);
-    const rendered = await mod.renderManifest(source, 'stable', BASIC_BODY, resolveRef);
-    assert.strictEqual(typeof rendered, 'string');
-    assert.match(rendered, /ref: "skills-v2\.1\.0"/);
-    assert.match(rendered, /ref: "innfo-mcp-v0\.10\.0"/);
-    console.log('✔ derived channel ref reaches rendered manifest test passed');
+    console.log('✔ console-assets block rendering in preview test passed');
   }
 
   console.log('All generate-manifest unit tests passed successfully!');

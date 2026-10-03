@@ -490,3 +490,36 @@ describe('validateWorkspaceSources — LEGACY_DERIVATION_KEY (D3)', () => {
     expect(diags.some((d) => d.code === 'LEGACY_DERIVATION_KEY')).toBe(false)
   })
 })
+
+describe('validateWorkspaceSources — single citation edge updates', () => {
+  it('accepts file-level bare paths without emitting KU_DEPRECATED_HASH', () => {
+    const diags = validateWorkspaceSources(
+      resultWith(['kNNowledge/Client_NN.md', 'sources/export/report.md', 'sources/nn/guide.md']),
+      resolver({
+        'kNNowledge/Client_NN.md': true,
+        'sources/export/report.md': true,
+        'sources/nn/guide.md': true,
+      }),
+    )
+    expect(diags).toEqual([])
+  })
+
+  it('reports KU_DANGLING_FILE for dangling file-level bare paths', () => {
+    const diags = validateWorkspaceSources(
+      resultWith('kNNowledge/Missing_NN.md'),
+      resolver({}),
+    )
+    expect(diags).toHaveLength(1)
+    expect(diags[0].code).toBe('KU_DANGLING_FILE')
+  })
+
+  it('rejects models/ prefix with explicit KU_MALFORMED diagnostic', () => {
+    const diags = validateWorkspaceSources(
+      resultWith('models/Client_NN.md@## NN Stakeholders: Enterprise Clients'),
+      resolver({}),
+    )
+    expect(diags).toHaveLength(1)
+    expect(diags[0].code).toBe('KU_MALFORMED')
+    expect(diags[0].message).toContain('`models/` was removed; use `kNNowledge/`')
+  })
+})

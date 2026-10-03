@@ -5,7 +5,7 @@ import { printTaxonomyNode } from './taxonomy.js'
 import { parsePropertyValue, parseTagList } from './sections.js'
 import {
   SOURCE_FIELD_NAMES,
-  parseKnowledgeUnitRef,
+  parseCitation,
   serializeKnowledgeUnitRef,
 } from '../sourceRef.js'
 
@@ -127,10 +127,12 @@ function dedupeCitationList(value: unknown): unknown {
   const kept: unknown[] = []
   for (const item of value) {
     const text = String(item).trim()
-    const parsed = parseKnowledgeUnitRef(text)
-    const key = parsed
-      ? serializeKnowledgeUnitRef(parsed.filePath, parsed.unit!, parsed.subunits ?? [])
-      : text.toLowerCase()
+    const parsed = parseCitation(text)
+    const key = parsed?.unit
+      ? serializeKnowledgeUnitRef(parsed.filePath, parsed.unit, parsed.subunits ?? [])
+      : parsed?.filePath
+        ? (parsed.slug ? `${parsed.filePath}#${parsed.slug}` : parsed.filePath)
+        : text.toLowerCase()
     if (seen.has(key)) continue
     seen.add(key)
     kept.push(item)

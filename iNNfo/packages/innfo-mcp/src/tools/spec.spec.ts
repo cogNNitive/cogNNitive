@@ -503,3 +503,27 @@ describe('Spec Tools Integration (URL- and model-derived, no hardcoding)', () =>
     expect(Array.isArray(skills.skills)).toBe(true)
   })
 })
+
+/**
+ * The shipped `visual-catalog` blueprint is an UNVERSIONED package directory
+ * (`bluepriNNts/visual-catalog/spec_NN.md` + `procedures/`) — the canonical
+ * Level-2 source layout. Requesting its procedures by bluepriNNt name must
+ * report `ingest-visual-catalog` sourced from `visual-catalog`. This reads the
+ * REAL package, so it stays RED until the schema + SOP exist and the package
+ * resolver understands the unversioned layout.
+ */
+const iNNfoRootDir = join(import.meta.dirname!, '..', '..', '..', '..')
+
+describe('visual-catalog blueprint procedure discovery (real package)', () => {
+  it('listBlueprintProcedures reports ingest-visual-catalog and its source blueprint', async () => {
+    const { procedures } = await listBlueprintProcedures(iNNfoRootDir, {
+      blueprint_name: 'visual-catalog',
+    })
+    expect(procedures).toContainEqual({
+      id: 'ingest-visual-catalog',
+      name: 'Ingest Visual Catalog Procedure',
+      path: 'procedures/ingest_visual_catalog_NN.md',
+      source_template: 'visual-catalog',
+    })
+  })
+})

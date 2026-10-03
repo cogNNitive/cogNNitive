@@ -67,6 +67,7 @@ export {
   parseQualifiedRef,
   validateWorkspaceReferences,
   validateWorkspaceSources,
+  validateCitations,
 } from './validator/index.js'
 export type {
   ReferenceDiagnostic,
@@ -76,10 +77,13 @@ export type {
   QualifiedRef,
   SourceResolver,
   SourceResolution,
+  CitationSite,
+  CitationDiagnostic,
 } from './validator/index.js'
 
 export {
-  parseSourceRef,
+  parseCitation,
+  resolveUnitPath,
   splitSourceFieldValue,
   levenshteinDistance,
   slugifyHeading,
@@ -88,9 +92,8 @@ export {
   SOURCE_FIELD_NAMES,
   CONFLICT_FIELD_NAMES,
 } from './sourceRef.js'
-export type { SourceRef, HeadingInfo, ResolvedHeadingSection } from './sourceRef.js'
+export type { Citation, SourceRef, HeadingInfo, ResolvedHeadingSection } from './sourceRef.js'
 export {
-  parseKnowledgeUnitRef,
   serializeKnowledgeUnitRef,
   slugifyUnitHeading,
   normalizeName,
@@ -161,3 +164,5 @@ export { deriveMatrixWidgetType, normalizeMatrixDecl, scaleRangeFor } from './ma
 export type { MatrixWidgetType } from './matrix.js'
 export { mergeKnowledge } from './merge.js'
 export * from './console/index.js'
+export * from './lineage/index.js'
+export { readLineageSnapshot } from './lineage/fs-snapshot.js'

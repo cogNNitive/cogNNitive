@@ -7,33 +7,29 @@
  * Enforces template inventory parity, scripts static type safety, orchestrator
  * line-count limits, and generated-manifest freshness.
  *
- * The live stable-manifest publication check (resolving pins to tags on
- * main-reachable commits over the GitHub API) depends on release state, so it
- * only runs with `--release` — CI on push to `main`, and the release flow after
- * tagging. Dev/pre-push runs skip it, because a release pin cannot exist before
- * its tag is cut (release order: merge -> tag -> pin).
+ * Verification is OFFLINE and deterministic in every mode (quality-gates spec):
+ * no network, no GitHub API, no release tags. `NN_OFFLINE=1` is set for every
+ * child process and the GitHub client throws when it is set. Release state
+ * (pins, tags, the published manifest) is checked by the release workflow, not
+ * here. `--release` is accepted for compatibility and changes nothing.
+ *
+ * Output is quiet: each step writes to `.verify-logs/<id>.log`; passing steps
+ * print one line, failing steps print the last 60 lines. `--verbose` streams.
+ * Every step runs; the run ends with a summary and exits 1 if any step failed.
  */
 
-const { execSync, execFileSync } = require('child_process');
+const { execFileSync } = require('child_process');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { pathToFileURL } = require('url');
+const { runStep } = require('./lib/verify-reporter.js');
 
 // Ensure local node_modules/.bin is accessible on PATH for standalone node invocations
 const binDir = path.join(__dirname, '..', 'node_modules', '.bin');
 const pathKey = Object.keys(process.env).find(k => k.toLowerCase() === 'path') || 'PATH';
 if (fs.existsSync(binDir) && !(process.env[pathKey] || '').includes(binDir)) {
   process.env[pathKey] = `${binDir}${path.delimiter}${process.env[pathKey] || ''}`;
-}
-
-if (!process.env.GITHUB_TOKEN) {
-  try {
-    const token = execSync('gh auth token', { encoding: 'utf8' }).trim();
-    if (token) process.env.GITHUB_TOKEN = token;
-  } catch (_) {
-    // gh not installed or not logged in, fallback to unauthenticated
-  }
 }
 
 function extractDeclaredBlueprints(sourceText) {
@@ -51,16 +47,55 @@ function extractDeclaredBlueprints(sourceText) {
   return declaredBlueprints;
 }
 
-function checkBlueprintInventory(blueprintsDir, sourceYamlPath) {
+function checkBlueprintInventory(blueprintsDir, sourceYamlPath, repoRoot = null) {
   const sourceText = fs.readFileSync(sourceYamlPath, 'utf8');
   const declaredBlueprints = extractDeclaredBlueprints(sourceText);
 
-  const diskFolders = fs.readdirSync(blueprintsDir, { withFileTypes: true })
-    .filter(d => d.isDirectory() && d.name !== 'assets')
-    .map(d => d.name);
+  let diskFolders = [];
+  if (fs.existsSync(blueprintsDir)) {
+    diskFolders = fs.readdirSync(blueprintsDir, { withFileTypes: true })
+      .filter(d => d.isDirectory() && d.name !== 'assets')
+      .map(d => d.name);
+  }
 
   const missing = diskFolders.filter(name => !declaredBlueprints.has(name));
-  return { ok: missing.length === 0, missing, diskFolders };
+  const missingPaths = [];
+
+  if (repoRoot) {
+    const { parseFocusedYaml } = require('./lib/yaml-parser.js');
+    try {
+      const doc = parseFocusedYaml(sourceText) || {};
+      for (const s of (doc.skills || [])) {
+        if (s.path && !fs.existsSync(path.join(repoRoot, s.path, 'SKILL.md'))) {
+          missingPaths.push(`Skill '${s.name || s.path}' missing at ${s.path}/SKILL.md`);
+        }
+        for (const m of (s.mcp || [])) {
+          if (m.path && !fs.existsSync(path.join(repoRoot, m.path))) {
+            missingPaths.push(`Skill MCP '${m.name || m.path}' missing at ${m.path}`);
+          }
+        }
+      }
+      for (const b of (doc.blueprints || [])) {
+        if (b.path && !fs.existsSync(path.join(repoRoot, b.path))) {
+          missingPaths.push(`Blueprint '${b.name || b.path}' missing at ${b.path}`);
+        }
+      }
+      for (const b of (doc.frozen_blueprints || [])) {
+        if (b.path && !fs.existsSync(path.join(repoRoot, b.path))) {
+          missingPaths.push(`Frozen blueprint '${b.name || b.path}' missing at ${b.path}`);
+        }
+      }
+      for (const a of (doc.console_assets || [])) {
+        if (a.file && !fs.existsSync(path.join(repoRoot, a.file))) {
+          missingPaths.push(`Console asset '${a.name || a.file}' missing at ${a.file}`);
+        }
+      }
+    } catch (err) {
+      missingPaths.push(`Failed to parse source.yaml: ${err.message}`);
+    }
+  }
+
+  return { ok: missing.length === 0 && missingPaths.length === 0, missing, missingPaths, diskFolders };
 }
 
 /**
@@ -220,228 +255,236 @@ function collectTestSuites(dir, found = []) {
   return found.sort();
 }
 
+const OFFLINE_GUARD = path.join(__dirname, 'lib', 'offline-guard.js').split(path.sep).join('/');
+
 /**
- * Executes a verification step synchronously, tracking output and halting on error.
- * @param {string} cmd - CLI command string to execute.
- * @param {string} desc - Descriptive label for the verification step.
- * @returns {void}
+ * Environment for every child process: offline mode is enforced, never optional.
+ * `NN_OFFLINE=1` plus a `--require` preload that refuses non-loopback connections
+ * at the net/tls/dns/fetch level, so even a suite that bypasses the GitHub client
+ * (or stubs the wrong transport) fails closed. Existing NODE_OPTIONS are kept.
+ * @param {NodeJS.ProcessEnv} [base]
+ * @returns {NodeJS.ProcessEnv}
  */
-function run(cmd, desc) {
-  console.log(`\n▶ ${desc} (${cmd})...`);
-  try {
-    execSync(cmd, { stdio: 'inherit' });
-  } catch (err) {
-    console.error(`❌ ${desc} failed.`);
-    process.exit(1);
+function childEnv(base = process.env) {
+  /** @type {NodeJS.ProcessEnv} */
+  const childEnvironment = { ...base, NN_OFFLINE: '1' };
+  const options = childEnvironment.NODE_OPTIONS || '';
+  if (!options.includes(OFFLINE_GUARD)) {
+    childEnvironment.NODE_OPTIONS = `${options} --require "${OFFLINE_GUARD}"`.trim();
   }
+  return childEnvironment;
 }
 
 /**
- * @param {{ release?: boolean }} [options] - `release: true` also runs the live
- *   stable-manifest publication check (network + tags). Defaults to dev mode.
- * @returns {void}
+ * Wraps an in-process check so its console output lands in the step's log
+ * instead of the console.
+ * @param {() => { ok: boolean, lines: string[] }} check
+ * @returns {() => { ok: boolean, output: string }}
  */
-function runVerification(options = {}) {
-  const release = options.release === true;
-  console.log('🔍 [cogNNitive Verify] Running workspace verification...');
+function inline(check) {
+  return () => {
+    const { ok, lines } = check();
+    return { ok, output: lines.join('\n') + '\n' };
+  };
+}
 
-  // 0. CDN Bundle Staging: asserts the staged CDN bundle for the current innfo-mcp
-  //    version exists on disk. Build-ordering check covering CI and local gates.
-  const { checkCdnBundleStaged } = require('./lib/cdn-bundle-staged.js');
-  const bundleCheck = checkCdnBundleStaged(path.join(__dirname, '..'));
-  if (!bundleCheck.ok) {
-    console.error('❌ CDN Bundle check failed:');
-    bundleCheck.errors.forEach((e) => console.error(`  - ${e}`));
-    process.exit(1);
-  }
-  console.log(`▶ CDN Bundle Staged: v${bundleCheck.version} bundle present on disk.`);
+/**
+ * Builds the ordered list of verification steps. Pure: nothing runs here.
+ * @param {string} repoRoot
+ * @param {{ release?: boolean }} [_options] - accepted for CLI compatibility;
+ *   verification does not depend on release state, so it changes nothing.
+ * @returns {Array<{ id: string, desc: string, cmd?: string, args?: string[], run?: () => { ok: boolean, output?: string } }>}
+ */
+function buildSteps(repoRoot, _options = {}) {
+  const node = (id, desc, ...args) => ({ id, desc, cmd: process.execPath, args });
+  const steps = [];
 
-  // 0b. Every `*.test.js` / `*.test.mjs` suite under scripts/ and skills/,
-  //     discovered by shape rather than enumerated. These are self-contained
-  //     unit suites with no ordering dependency on each other or on the drift
-  //     guards below, so they run first: a broken tester should fail before the
-  //     slower network- and git-dependent steps. Ordering-sensitive checks
-  //     (every `--check` invocation) stay in their numbered positions.
-  const repoRoot = path.join(__dirname, '..');
+  // 0b. Every `*.test.js` / `*.test.mjs` suite under scripts/, skills/ and test/,
+  //     discovered by shape rather than enumerated (the allowlist this replaced
+  //     drifted twice). Self-contained, so they run first.
   const suites = [
     ...collectTestSuites(path.join(repoRoot, 'scripts')),
     ...collectTestSuites(path.join(repoRoot, 'skills')),
     ...collectTestSuites(path.join(repoRoot, 'test')),
   ];
-  console.log(`
-▶ Discovered ${suites.length} script/skill test suites.`);
-  const suiteFailures = [];
   for (const suite of suites) {
     const rel = path.relative(repoRoot, suite).split(path.sep).join('/');
-    console.log(`\n▶ Test ${rel} (node ${rel})...`);
-    try {
-      execSync(`node ${rel}`, { stdio: 'inherit' });
-    } catch {
-      console.error(`❌ Test ${rel} failed.`);
-      suiteFailures.push(rel);
-    }
-  }
-  if (suiteFailures.length > 0) {
-    console.error(`\n❌ ${suiteFailures.length} test suite(s) failed:`);
-    suiteFailures.forEach((f) => console.error(`  - ${f}`));
-    process.exit(1);
+    steps.push(node('test-' + rel.replace(/[^A-Za-z0-9]+/g, '-'), 'Test ' + rel, rel));
   }
 
-  // 0c. Suites whose filenames do not match the `*.test.*` shape, so the
-  //     discovery above cannot find them. Keep them explicit.
-  run('node skills/nn-trannsform/test/run.js', 'Test nn-trannsform Skill Suite');
-  run('node iNNfo/specs/scripts/test-vocabulary.js', 'Test Canonical Vocabulary Guard');
-  run('node scripts/generate-vocabulary-doc.mjs --check', 'Check Canonical Vocabulary Doc Fresh');
+  // 0c. Suites whose filenames do not match the `*.test.*` shape. Keep explicit.
+  steps.push(node('test-nn-trannsform', 'Test nn-trannsform Skill Suite', 'skills/nn-trannsform/test/run.js'));
+  steps.push(node('test-vocabulary', 'Test Canonical Vocabulary Guard', 'iNNfo/specs/scripts/test-vocabulary.js'));
+  steps.push(node('vocabulary-doc', 'Check Canonical Vocabulary Doc Fresh', 'scripts/generate-vocabulary-doc.mjs', '--check'));
 
-// 1. Template Inventory Guard: ensure every template folder is declared in manifest/source.yaml
-  const blueprintsDir = path.join(__dirname, '..', 'iNNfo', 'specs', 'bluepriNNts');
-  const sourceYamlPath = path.join(__dirname, '..', 'manifest', 'source.yaml');
-
-  if (fs.existsSync(blueprintsDir) && fs.existsSync(sourceYamlPath)) {
-    const { ok, missing, diskFolders } = checkBlueprintInventory(blueprintsDir, sourceYamlPath);
-    if (!ok) {
-      console.error(`❌ Template Inventory Mismatch! Folders exist in specs/bluepriNNts/ but are missing from manifest/source.yaml: ${missing.join(', ')}`);
-      process.exit(1);
-    }
-    console.log(`▶ Template Inventory Guard: all ${diskFolders.length} template folders are registered in manifest.`);
-  }
-
-  // 1b. Console Shell Integrity Guard: ensures all shells match needs registry & pins
-  const { checkConsoleShellIntegrity } = require('./lib/console-shell-guard.js');
-  const consoleShellCheck = checkConsoleShellIntegrity(repoRoot);
-  if (!consoleShellCheck.ok) {
-    console.error('❌ Console Shell Integrity check failed:');
-    consoleShellCheck.errors.forEach((e) => console.error(`  - ${e}`));
-    process.exit(1);
-  }
-  console.log(`▶ Console Shell Integrity Guard: all ${consoleShellCheck.shells.length} shells adhere to contract.`);
-
-  // 2. Orchestrator Line-Count Guard: enforce strictly < 200 physical lines per orchestrator
-  const ORCHESTRATORS = [
-    'scripts/manifest/validate-manifest.js',
-    'scripts/manifest/check-parity.js',
-    'scripts/skills-manager.js',
-    'skills/nn-trannsform/scripts/scanner.js',
-    'skills/nn-trannsform/scripts/provenance.js',
-  ];
-
-  const MAX_LINES = 200;
-  let lineCountFailed = false;
-
-  for (const relPath of ORCHESTRATORS) {
-    const fullPath = path.join(__dirname, '..', relPath);
-    if (fs.existsSync(fullPath)) {
-      const lineCount = fs.readFileSync(fullPath, 'utf8').split('\n').length;
-      if (lineCount >= MAX_LINES) {
-        console.error(`❌ Line-Count Guard Violation: ${relPath} has ${lineCount} lines (limit: strictly < ${MAX_LINES}).`);
-        lineCountFailed = true;
-      } else {
-        console.log(`▶ Line-Count Guard: ${relPath} (${lineCount} lines < ${MAX_LINES}).`);
+  // 1. Template Inventory Guard: every template folder is declared in manifest/source.yaml.
+  steps.push({
+    id: 'blueprint-inventory',
+    desc: 'Template Inventory Guard',
+    run: inline(() => {
+      const blueprintsDir = path.join(repoRoot, 'iNNfo', 'specs', 'bluepriNNts');
+      const sourceYamlPath = path.join(repoRoot, 'manifest', 'source.yaml');
+      if (!fs.existsSync(blueprintsDir) || !fs.existsSync(sourceYamlPath)) {
+        return { ok: true, lines: ['skipped: blueprints dir or source.yaml missing'] };
       }
-    }
+      const { ok, missing, missingPaths, diskFolders } = checkBlueprintInventory(blueprintsDir, sourceYamlPath, repoRoot);
+      const errLines = [];
+      if (missing && missing.length > 0) {
+        errLines.push(`Folders exist in specs/bluepriNNts/ but are missing from manifest/source.yaml: ${missing.join(', ')}`);
+      }
+      if (missingPaths && missingPaths.length > 0) {
+        errLines.push(...missingPaths.map((p) => `Missing source path: ${p}`));
+      }
+      return ok
+        ? { ok, lines: [`all ${diskFolders.length} template folders and declared source paths exist.`] }
+        : { ok: false, lines: errLines };
+    }),
+  });
+
+  // 1b. Console Shell Integrity Guard: shells match needs registry & pins.
+  steps.push({
+    id: 'console-shell',
+    desc: 'Console Shell Integrity Guard',
+    run: inline(() => {
+      const { checkConsoleShellIntegrity } = require('./lib/console-shell-guard.js');
+      const res = checkConsoleShellIntegrity(repoRoot);
+      return res.ok
+        ? { ok: true, lines: [`all ${res.shells.length} shells adhere to contract.`] }
+        : { ok: false, lines: res.errors.map((e) => `  - ${e}`) };
+    }),
+  });
+
+  // 2. Orchestrator Line-Count Guard: strictly < 200 physical lines per orchestrator.
+  steps.push({
+    id: 'line-count',
+    desc: 'Orchestrator Line-Count Guard',
+    run: inline(() => {
+      const ORCHESTRATORS = [
+        'scripts/manifest/validate-manifest.js',
+        'scripts/skills-manager.js',
+        'scripts/release/run-release.js',
+        'skills/nn-trannsform/scripts/scanner.js',
+        'skills/nn-trannsform/scripts/provenance.js',
+      ];
+      const MAX_LINES = 200;
+      const lines = [];
+      let ok = true;
+      for (const relPath of ORCHESTRATORS) {
+        const fullPath = path.join(repoRoot, relPath);
+        if (!fs.existsSync(fullPath)) continue;
+        const lineCount = fs.readFileSync(fullPath, 'utf8').split('\n').length;
+        if (lineCount >= MAX_LINES) {
+          ok = false;
+          lines.push(`${relPath} has ${lineCount} lines (limit: strictly < ${MAX_LINES}).`);
+        } else {
+          lines.push(`${relPath} (${lineCount} lines < ${MAX_LINES}).`);
+        }
+      }
+      return { ok, lines };
+    }),
+  });
+
+  // 4. Script static type checking.
+  steps.push(node('typecheck-scripts', 'Typecheck Scripts', 'node_modules/typescript/bin/tsc', '--noEmit', '-p', 'tsconfig.scripts.json'));
+
+  // 5. Preflight Primitives Drift Guard (committed bundle matches innfo-core source).
+  steps.push(node('preflight-primitives', 'Check Preflight Primitives Bundle Fresh', 'scripts/build-preflight-primitives.mjs', '--check'));
+  // 7. Blueprint Catalog Drift Guard.
+  steps.push(node('blueprint-catalog', 'Check Blueprint Catalog Fresh', 'scripts/blueprint-catalog.mjs', '--check'));
+  // 7b. nn-trannsform core mirror drift guard (render of innfo-core trannsform primitives).
+  steps.push(node('core-mirror', 'Check Trannsform Core Mirror Fresh', 'scripts/build-trannsform-core-mirror.mjs', '--check'));
+  // 7b-bis. Console payload mirror drift guard.
+  steps.push(node('console-payload', 'Check Console Payload Mirror Fresh', 'scripts/build-console-payload.mjs', '--check'));
+  // 7c. Samples SSOT Drift Guard.
+  steps.push(node('samples-parity', 'Check Samples Parity with _samples_nn', 'scripts/sync-samples.mjs', '--check'));
+  // 7d. Version SSOT Drift Guard (SHIPPED_BLUEPRINT_VERSIONS, manifest/source.yaml vs specs and SKILL.md).
+  steps.push(node('version-parity', 'Check Version Parity with Specs and Skills', 'scripts/sync-versions.mjs', '--check'));
+
+  // 7e. Docs-Derived Facts Drift Guard, checked against HEAD, never the working tree (design D5).
+  steps.push({
+    id: 'docs-facts-drift',
+    desc: 'Docs-Derived Facts Drift Guard (against HEAD)',
+    run: inline(() => {
+      const res = checkDocsFactsDriftAtRef(repoRoot, 'HEAD');
+      return res.ok
+        ? { ok: true, lines: ['no drift detected against HEAD.'] }
+        : { ok: false, lines: res.failures.map((f) => `  - ${f}`) };
+    }),
+  });
+
+  // 12-15. Repository guards.
+  steps.push(node('template-immutability', 'Template Immutability Guard', 'scripts/guard-template-immutability.js'));
+  steps.push(node('console-shells-fresh', 'Check Generated Console Shells Fresh', 'scripts/build-console-shells.mjs', '--check'));
+  steps.push(node('text-encoding', 'Guard Tracked Text Encoding', 'scripts/guard-text-encoding.js'));
+  steps.push(node('legacy-ledger', 'Legacy Ledger & Quarantine Guard', 'scripts/lib/legacy-ledger-guard.js'));
+  steps.push(node('brand-purge', 'Retired Product Name Guard', 'scripts/lib/brand-purge-guard.js'));
+  steps.push(node('legacy-write', 'Legacy Write Guard', 'scripts/lib/legacy-write-guard.js'));
+
+  return steps;
+}
+
+/**
+ * Runs every step (never stops at the first failure), then prints a summary.
+ * @param {ReturnType<typeof buildSteps>} steps
+ * @param {{ logDir: string, verbose?: boolean, ci?: boolean, cwd?: string, env?: NodeJS.ProcessEnv, write?: (l: string) => void }} options
+ * @returns {{ ok: boolean, results: any[], failed: any[] }}
+ */
+function runSteps(steps, options) {
+  const write = options.write || ((line) => console.log(line));
+  const results = steps.map((step) => runStep(step, { ...options, write }));
+  const failed = results.filter((r) => !r.ok);
+  if (failed.length > 0) {
+    write(`\n❌ ${failed.length} of ${results.length} step(s) failed:`);
+    failed.forEach((f) => write(`  - ${f.desc}${f.logPath ? ` → ${f.logPath}` : ''}`));
   }
+  return { ok: failed.length === 0, results, failed };
+}
 
-  if (lineCountFailed) {
-    process.exit(1);
+/**
+ * @param {{ release?: boolean, verbose?: boolean }} [options]
+ * @returns {boolean} true when every step passed
+ */
+function runVerification(options = {}) {
+  const repoRoot = path.join(__dirname, '..');
+  // In-process checks (and the children they spawn) must be offline too.
+  const previousOffline = process.env.NN_OFFLINE;
+  process.env.NN_OFFLINE = '1';
+  console.log('🔍 [cogNNitive Verify] Running workspace verification (offline)...');
+
+  const steps = buildSteps(repoRoot, options);
+  console.log(`▶ ${steps.length} steps.`);
+  let ok;
+  try {
+    ({ ok } = runSteps(steps, {
+      logDir: path.join(repoRoot, '.verify-logs'),
+      verbose: options.verbose === true,
+      ci: Boolean(process.env.GITHUB_ACTIONS),
+      cwd: repoRoot,
+      env: childEnv(),
+    }));
+  } finally {
+    // Do not leak offline mode into a caller (check-integrity runs more after us).
+    if (previousOffline === undefined) delete process.env.NN_OFFLINE;
+    else process.env.NN_OFFLINE = previousOffline;
   }
-
-  // 3. Workspace Parity Guard: ensure all local skills, templates, and MCP bundles match manifest/source.yaml
-  run('node scripts/manifest/check-parity.js', 'Check Workspace Parity');
-
-  // 4. Script static type checking
-  run('tsc --noEmit -p tsconfig.scripts.json', 'Typecheck Scripts');
-
-  // 5. Preflight Primitives Drift Guard: the committed version-status.generated.cjs
-  //    must match the innfo-core source it is bundled from (single classifier, no
-  //    hand-maintained copy). Its unit tests run in step 0b with the rest; this is
-  //    the drift check against the real bundle. Runs BEFORE the stable-manifest
-  //    validation (step 9), which halts on pre-existing pinned-tag drift and would
-  //    otherwise make this unreachable in CI (W2/W3, slice-1 verify report).
-  run('node scripts/build-preflight-primitives.mjs --check', 'Check Preflight Primitives Bundle Fresh');
-
-  // 7. Blueprint Catalog Drift Guard: the committed iNNfo/specs/bluepriNNts/catalog.json
-  //    must match the on-disk bluepriNNts tree (workspace-blueprint-upgrade, shared
-  //    classifier input for check_domain and the preflight CLI).
-  run('node scripts/blueprint-catalog.mjs --check', 'Check Blueprint Catalog Fresh');
-
-  // 7b. nn-trannsform slug mirror drift guard: the committed generated mirror must
-  //     match a fresh esbuild render of innfo-core's slug primitives (single
-  //     shared implementation, no hand-maintained copy).
-  run('node scripts/build-trannsform-slug-mirror.mjs --check', 'Check Trannsform Slug Mirror Fresh');
-
-  // 7b-bis. Console payload mirror drift guard: the committed generated mirror must
-  //         match a fresh esbuild render of innfo-core's console subsystem.
-  run('node scripts/build-console-payload.mjs --check', 'Check Console Payload Mirror Fresh');
-
-  // 7c. Samples SSOT Drift Guard: ensure template sample files match _samples_nn/models/ SSOT
-  run('node scripts/sync-samples.mjs --check', 'Check Samples Parity with _samples_nn');
-
-  // 7d. Version SSOT Drift Guard: ensure SHIPPED_BLUEPRINT_VERSIONS and
-  //     manifest/source.yaml versions match specs and SKILL.md.
-  //     Runs before step 8 so a stale manifest/source.yaml fails here first,
-  //     not as a confusing rendered-doc diff.
-  run('node scripts/sync-versions.mjs --check', 'Check Version Parity with Specs and Skills');
-
-  // 7e. Docs-Derived Facts Drift Guard: generated regions (innfo-mcp.md
-  //     mcp-tools, README.md skills-catalog) and the about.md twin must match
-  //     what regenerating them from their canonical sources at HEAD would
-  //     produce, and no hand-typed MCP tool count or skill version literal
-  //     may have reappeared in docs/innfo/** or docs/skills/** (spec
-  //     docs-derived-facts, "CI Drift Guard"). Checked against HEAD, never
-  //     the working tree (design D5) — CI's build:docs step already ran
-  //     write mode before this runs.
-  console.log('\n▶ Docs-Derived Facts Drift Guard (against HEAD)...');
-  const driftResult = checkDocsFactsDriftAtRef(repoRoot, 'HEAD');
-  if (!driftResult.ok) {
-    console.error('❌ Docs-Derived Facts Drift Guard failed:');
-    driftResult.failures.forEach((f) => console.error(`  - ${f}`));
-    process.exit(1);
-  }
-  console.log('▶ Docs-Derived Facts Drift Guard: no drift detected against HEAD.');
-
-  // 8. Rendered stable manifest doc must be in sync with manifest/source.yaml.
-  //    Deterministic (renders source.yaml and compares bytes). Runs BEFORE the
-  //    live validation so a hand-edited generated manifest fails fast with a
-  //    drift message instead of a misleading 404 from the tag check.
-  run('node scripts/manifest/generate-manifest.js --channel stable --check', 'Check Stable Manifest Doc Fresh');
-
-  // 9. Live stable-manifest publication check: every pin must resolve to a tag on
-  //    a main-reachable commit. Release-state dependent (network + existing tags),
-  //    so it only runs with --release (CI on push to main, and the release flow
-  //    after tagging). Dev/pre-push skips it, because a release pin cannot exist
-  //    before its tag is cut (release order: merge -> tag -> pin).
-  if (release) {
-    run('node scripts/manifest/validate-manifest.js --channel stable', 'Validate Stable Manifest');
-  } else {
-    console.log('\n▶ Skipping live stable-manifest validation (dev mode; run with --release after tagging).');
-  }
-
-  // 12. Template Immutability Guard (against real git state)
-  run('node scripts/guard-template-immutability.js', 'Template Immutability Guard');
-
-  // 13. Tracked-text encoding guard: fail on U+FFFD or undecodable UTF-8 bytes in
-  //     any git-visible text file (binary and generated bundles skipped by rule).
-  run('node scripts/guard-text-encoding.js', 'Guard Tracked Text Encoding');
-
-  // 14. Legacy Ledger & Quarantine Marker Guard
-  run('node scripts/lib/legacy-ledger-guard.js', 'Legacy Ledger & Quarantine Guard');
-
-  // 14b. Retired product names must not reappear anywhere in tracked files
-  run('node scripts/lib/brand-purge-guard.js', 'Retired Product Name Guard');
-
-  // 15. Legacy Write Guard: retired vocabulary tokens must not reappear in runtime source
-  run('node scripts/lib/legacy-write-guard.js', 'Legacy Write Guard');
-
-  console.log('\n✅ [cogNNitive Verify] All deterministic pre-checks passed.');
+  if (ok) console.log('\n✅ [cogNNitive Verify] All deterministic pre-checks passed.');
+  return ok;
 }
 
 if (require.main === module) {
-  runVerification({ release: process.argv.includes('--release') });
+  const ok = runVerification({
+    release: process.argv.includes('--release'),
+    verbose: process.argv.includes('--verbose'),
+  });
+  process.exit(ok ? 0 : 1);
 }
 
 module.exports = {
   checkBlueprintInventory,
   runVerification,
+  buildSteps,
+  runSteps,
+  childEnv,
   extractDeclaredBlueprints,
   checkHandTypedFactsAtRef,
   checkDocsFactsDriftAtRef,

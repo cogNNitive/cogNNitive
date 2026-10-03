@@ -189,4 +189,9 @@ describe('useBlueprintVersionNotice', () => {
     expect(notice.value?.current).toBe('V_0-1-0')
     expect(notice.value?.latest).toBe(SHIPPED_BLUEPRINT_VERSIONS.procedures)
   })
+
+  it('includes updated blueprint versions for domaiNN and artifacts in SHIPPED_BLUEPRINT_VERSIONS', () => {
+    expect(SHIPPED_BLUEPRINT_VERSIONS.domaiNN).toBe('V_0-2-0')
+    expect(SHIPPED_BLUEPRINT_VERSIONS.artifacts).toBe('V_0-4-0')
+  })
 })

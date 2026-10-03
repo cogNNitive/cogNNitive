@@ -40,6 +40,7 @@ lead:: [[NonExistentElement]]
     })
 
     expect(payload.model.meta.modelId).toBe('kNNowledge/business/Ghostbusters_V_1-0-0')
+    expect(payload.model.meta.sources).toEqual(['kNNowledge/business/Ghostbusters_V_1-0-0_NN.md'])
     expect(payload.model.meta.title).toBe('Ghostbusters Business Model')
     expect(payload.model.meta.template).toBe('business_V_0-2-1')
     expect(payload.model.meta.modelVersion).toBe('V_1-0-0')

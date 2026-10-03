@@ -216,20 +216,41 @@ dev/default mode (not just `--pre-push`/`--release`) — see
 maintainer's job; this check only catches the local half (the unpinned
 manifest), not the missing tag itself.
 
-### Group 2 — CDN Bundle Staging & Version SSOT
+### Group 1d — Release workflow auth & trigger sanity — blocking on release-shaped changes
+
+**Expediente:** 2026-10-02 — every tag-driven release failed for most of a day
+because the `Post-Publish Smoke Test` step in `.github/workflows/release.yml`
+ran **without a token**: its validator (`validateManifestText`) calls the GitHub
+API and, unauthenticated, got HTTP 403/429 — surfacing only as an opaque
+`Live manifest … failed validation`. A second attempt then died in the template
+immutability guard because its base was the moved-on `origin/main` (see
+`nn-dev-release` §4b). Both are local, static checks:
+
+```powershell
+# 1. Every networked step must carry a token (Run Release AND the smoke test).
+Select-String -Path .github/workflows/release.yml -Pattern 'GITHUB_TOKEN|WEB_RELEASE_TOKEN'
+# 2. A tag push only publishes when the repo variable is enabled.
+gh variable get RELEASE_ENABLED
+```
+
+- ❌ a step that calls the manifest validator / GitHub API has no token in its
+  `env:` block.
+- ❌ `RELEASE_ENABLED` is unset or not `true` while a real (non-dry-run) release
+  is expected — tag pushes then silently dry-run and publish nothing.
+- ❌ a **tag cut before the guard/smoke fix** cannot be re-run green: the workflow
+  runs the scripts *from the tag*. Recovery is a new version tag, never a re-run.
+
+### Group 2 — Version SSOT & Inventory Coherence
 **Expediente:** `mcp-two-distribution-channels.md` — CDN frozen at v0.2.1 while the repo
 was at v0.2.4 (5 MCP tools missing in production).
 
-With single-source versioning (`sync-versions.mjs`), `iNNfo/packages/innfo-mcp/package.json` `version`
-is the single authored source. Dependent version sites (`innfo-core/package.json`, `@cognnitive/innfo-core`
-dep range, `manifest/source.yaml` `skills[].mcp[].version`, derived stable ref, and `docs/innfo/cdn/manifest.json`
-`latest`) are generated automatically via `npm run sync:versions`.
+With single-source versioning (`sync-versions.mjs`), version declarations live in their primary files (`iNNfo/packages/innfo-mcp/package.json`, blueprint `spec_NN.md`, and skill `SKILL.md` frontmatter). `manifest/source.yaml` serves as an inventory list of components.
 
 Group 2 verifies:
-1. `docs/innfo/cdn/innfo-mcp-v<x.y.z>.bundle.js` → file exists on disk (build-ordering check via `scripts/lib/cdn-bundle-staged.js`).
-2. Version SSOT → `node scripts/sync-versions.mjs --check` verifies zero drift across template specs, `SKILL.md` frontmatter, MCP package, and `manifest/source.yaml`.
-- ❌ missing staged bundle or version drift.
-- Fix hints: run `npm run build:docs` to produce the staged bundle; run `npm run sync:versions` to synchronize all generated version sites.
+1. Version SSOT → `node scripts/sync-versions.mjs --check` verifies zero drift between packages and samples.
+2. Inventory Integrity → `node scripts/verify.js` verifies that every path declared in `manifest/source.yaml` exists on disk and follows canonical naming.
+- ❌ version drift or missing inventory paths.
+- Fix hints: run `npm run sync:versions` to synchronize version sites; fix path references in `manifest/source.yaml`.
 
 ### Group 3 — Immutability of published `_V_x-y-z_` specs
 **Expediente:** `spec-files-are-write-once.md` — six `_V_0-1-0_` template files edited in
@@ -251,14 +272,12 @@ incident 3 — PR #29 broke CI on every push because `base/` was added under
 `specs/templates/` without a `manifest/source.yaml` entry. Also happened with `documentation`.
 
 ```powershell
-node scripts/verify.js            # Template Inventory Guard + line-count guard + generated-manifest freshness (live stable validation is release-only: add --release)
-node scripts/manifest/check-parity.js
+node scripts/verify.js            # Template Inventory Guard + line-count guard + generated-manifest freshness
 node scripts/template-catalog.mjs --check # validates iNNfo/specs/templates/catalog.json freshness
 ```
 - ❌ any folder under `iNNfo/specs/templates/` (except `assets`) with no `- name: <folder>`
-  in `manifest/source.yaml`; any parity mismatch (SKILL.md ↔ manifest ↔ template
-  frontmatter ↔ `innfo-mcp/package.json`); stale `catalog.json`.
-- Fix: add the `templates:` entry (name, repo, path, version) in the **same** change; run `node scripts/template-catalog.mjs` to regenerate `catalog.json`.
+  in `manifest/source.yaml`; stale `catalog.json`.
+- Fix: add the `templates:` entry (name, repo, path) in the **same** change; run `node scripts/template-catalog.mjs` to regenerate `catalog.json`.
 
 ### Group 5 — CI mirror (slow; run before push)
 **Expedientes:** `innfo-core-dist-staleness-breaks-mcp-tests.md` (stale `dist/` →

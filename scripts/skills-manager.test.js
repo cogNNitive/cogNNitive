@@ -201,6 +201,48 @@ agent-bootstrap:
 
   const manifestServer = await serveManifestOnce(manifestFixture);
 
+  // Hermetic GitHub: build the pinned repo tarball locally and serve it from a
+  // loopback server. The CLI is spawned with a preload that rewrites GitHub URLs
+  // to that server, so nothing leaves the machine (and the offline guard stays on).
+  const commit = '535ab18b738280bb479015968f8ec38dee6397a9';
+  const repoDirName = `cogNNitive-web-${commit.slice(0, 7)}`;
+  const specRel = 'iNNfo/specs/bluepriNNts/domaiNN/spec_NN.md';
+  const fixtureRoot = path.join(tmpDir, 'fixture');
+  fs.mkdirSync(path.join(fixtureRoot, repoDirName, path.dirname(specRel)), { recursive: true });
+  fs.writeFileSync(path.join(fixtureRoot, repoDirName, specRel), 'ROUTE=tarball\n', 'utf-8');
+  // On Windows a Git-for-Windows GNU tar earlier on PATH reads `C:\...` as a remote
+  // host and cannot extract. Put the Windows bsdtar (System32) first so the CLI's
+  // tarball route is exercised on every OS this suite runs on.
+  const baseEnv = { ...process.env };
+  const bsdtar = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'tar.exe');
+  if (process.platform === 'win32') {
+    assert(fs.existsSync(bsdtar), `Windows bsdtar not found at ${bsdtar}; the tarball route cannot be exercised`);
+    const pathKey = Object.keys(baseEnv).find((k) => k.toLowerCase() === 'path') || 'PATH';
+    baseEnv[pathKey] = `${path.dirname(bsdtar)}${path.delimiter}${baseEnv[pathKey] || ''}`;
+  }
+  const tarName = 'repo.tar.gz';
+  const tarRes = spawnSync('tar', ['-czf', tarName, repoDirName], { cwd: fixtureRoot, encoding: 'utf-8', env: baseEnv });
+  assert.strictEqual(tarRes.status, 0, `fixture tarball must build. Got: ${tarRes.stderr}`);
+  const tarBytes = fs.readFileSync(path.join(fixtureRoot, tarName));
+  const requestedPaths = [];
+  const githubServer = http.createServer((req, res) => {
+    requestedPaths.push(req.url);
+    if (req.url === `/codeload.github.com/cogNNitive/cogNNitive-web/tar.gz/${commit}`) {
+      res.writeHead(200, { 'Content-Type': 'application/gzip' });
+      res.end(tarBytes);
+    } else if (req.url === `/raw.githubusercontent.com/cogNNitive/cogNNitive-web/${commit}/${specRel}`) {
+      // Fallback route: the CLI uses it when tarball extraction fails (e.g. GNU tar
+      // on Windows reads `C:` as a remote host).
+      res.writeHead(200, { 'Content-Type': 'text/markdown' });
+      res.end('ROUTE=raw\n');
+    } else {
+      res.writeHead(404);
+      res.end('not found');
+    }
+  });
+  await new Promise((resolve) => githubServer.listen(0, '127.0.0.1', resolve));
+  const githubPreload = path.join(__dirname, 'lib', 'test-fixtures', 'github-loopback-preload.js').split(path.sep).join('/');
+
   try {
     const res = await spawnAsync(
       [
@@ -213,7 +255,12 @@ agent-bootstrap:
         '--yes',
       ],
       {
-        env: { ...process.env, SM_MANIFEST_URL: manifestServer.url },
+        env: {
+          ...baseEnv,
+          SM_MANIFEST_URL: manifestServer.url,
+          SM_TEST_GITHUB_PORT: String(githubServer.address().port),
+          NODE_OPTIONS: `${process.env.NODE_OPTIONS || ''} --require "${githubPreload}"`.trim(),
+        },
       }
     );
 
@@ -225,10 +272,19 @@ agent-bootstrap:
     assert.strictEqual(stateContent.charCodeAt(0), 123, 'State file written without BOM');
     const parsedState = JSON.parse(stateContent);
     assert(parsedState.blueprints.domaiNN, 'State records bootstrapped template');
+    assert.strictEqual(parsedState.blueprints.domaiNN.commit, commit, 'State records the pinned commit');
+    assert(requestedPaths.length > 0 && requestedPaths.every((p) => /^\/(codeload\.github\.com|raw\.githubusercontent\.com)\//.test(p)),
+      'every GitHub download was served by the loopback fixture');
+
+    // Assert the route actually taken: the installed template body says which
+    // fixture route served it. The tarball route is the primary path.
+    const installed = fs.readFileSync(path.join(targetTemplatesDir, 'domaiNN.md'), 'utf-8');
+    assert.strictEqual(installed.trim(), 'ROUTE=tarball', `expected the tarball route, got: ${installed.trim()}`);
 
     console.log('✔ Bootstrap command with --yes test passed');
   } finally {
     await manifestServer.close();
+    await new Promise((resolve) => githubServer.close(resolve));
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
 }
@@ -369,6 +425,16 @@ agent-bootstrap:
 
   console.log('✔ ADR-2 unmanaged directory protection test passed');
   fs.rmSync(tmpDir, { recursive: true, force: true });
+}
+
+// ADR / Monorepo release manifest fallback URL agreement test
+{
+  const { FALLBACK_MANIFEST_URL: smFallback } = require('./lib/skills-commands.js');
+  const { FALLBACK_MANIFEST_URL: pfFallback } = require('../skills/nn-preflight/scripts/preflight-check.js');
+  const expectedUrl = 'https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/docs/use/manifest.md';
+  assert.strictEqual(smFallback, expectedUrl, 'skills-commands FALLBACK_MANIFEST_URL must point to cogNNitive-web');
+  assert.strictEqual(pfFallback, expectedUrl, 'preflight-check FALLBACK_MANIFEST_URL must point to cogNNitive-web');
+  console.log('✔ Fallback manifest URL agreement test passed');
 }
 
 console.log('All skills-manager unit tests passed successfully!');

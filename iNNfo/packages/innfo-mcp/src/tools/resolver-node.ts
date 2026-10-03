@@ -118,6 +118,39 @@ export function normalizeVersion(versionStr: string): string {
   return v.trim()
 }
 
+/**
+ * Canonical blueprint package directories that are NOT version directories.
+ * Canonical Level-2 packages are unversioned (`<name>/spec_NN.md` + optional
+ * `procedures/`, `samples/`, `assets/`), so when the package resolver scans
+ * `<name>/*` for a version sub-directory it must skip these siblings — otherwise
+ * `procedures` is mistaken for the version and the resolver points at a
+ * procedure file instead of `spec_NN.md`. Mirrors the skip list `listBlueprints`
+ * already applies when walking the same tree.
+ */
+const PACKAGE_NON_VERSION_DIRS = new Set([
+  'procedures',
+  'samples',
+  'assets',
+  'web',
+  'node_modules',
+  '.git',
+  'dist',
+  '.spec-cache',
+  'backups',
+  'archive',
+])
+
+function isVersionDirName(name: string): boolean {
+  if (PACKAGE_NON_VERSION_DIRS.has(name.toLowerCase())) return false
+  // A version directory is `<something>_V_x-y-z`, `V_x-y-z`, or a bare
+  // `<x.y.z>` / `<x_y_z>` / `<x-y-z>`.
+  return (
+    /_V_\d+[-_.]\d+[-_.]\d+/i.test(name) ||
+    /^V[_.-]?\d+[-_.]\d+[-_.]\d+$/i.test(name) ||
+    /^\d+[-_.]\d+[-_.]\d+$/.test(name)
+  )
+}
+
 export function parseSpecName(name: string) {
   // Strip file extensions and NN/FORMAT suffixes
   const clean = name.replace(/\.(md|markdown)$/i, '').replace(/_(NN|FORMAT|F)$/i, '')
@@ -355,9 +388,10 @@ export async function resolveBlueprintPackage(
 
   // Tier 1: Workspace Package Directory (./specs/bluepriNNts/<name>/<version>/)
   const wsPackageBaseDir = join(rootDir, 'specs', 'bluepriNNts', base)
+
   try {
     const entries = await readdir(wsPackageBaseDir, { withFileTypes: true })
-    const verDirs = entries.filter((e) => e.isDirectory())
+    const verDirs = entries.filter((e) => e.isDirectory() && isVersionDirName(e.name))
     let matchDir: string | null = null
     let matchVer: string | undefined
 
@@ -423,9 +457,10 @@ export async function resolveBlueprintPackage(
 
   // Tier 3: Global User Cache (~/.agents/bluepriNNts/<name>/<version>/)
   const globalBaseDir = join(globalDir, base)
+
   try {
     const entries = await readdir(globalBaseDir, { withFileTypes: true })
-    const verDirs = entries.filter((e) => e.isDirectory())
+    const verDirs = entries.filter((e) => e.isDirectory() && isVersionDirName(e.name))
     let matchDir: string | null = null
     let matchVer: string | undefined
 
@@ -486,9 +521,10 @@ export async function resolveBlueprintPackage(
 
     for (const skillName of skillDirs) {
       const skillPkgBase = join(skillsDir, skillName, 'bluepriNNts', base)
+
       try {
         const entries = await readdir(skillPkgBase, { withFileTypes: true })
-        const verDirs = entries.filter((e) => e.isDirectory())
+        const verDirs = entries.filter((e) => e.isDirectory() && isVersionDirName(e.name))
         let matchDir: string | null = null
         let matchVer: string | undefined
 

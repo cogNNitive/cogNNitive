@@ -10,6 +10,10 @@
 
 const { parseFocusedYaml, parseFrontmatter } = require('../../lib/yaml-parser.js');
 const {
+  readSkillVersion,
+  readBlueprintVersion,
+} = require('./entry-version.js');
+const {
   apiRequest,
   fetchString,
   resolveRef,
@@ -203,74 +207,18 @@ async function checkVersionParity(skill) {
   } catch (err) {
     return `${skill.name}: could not fetch SKILL.md at ${skill.commit} (${err.message})`;
   }
-  const meta = parseFocusedYaml(parseFrontmatter(text));
-  const declared = meta.version !== undefined ? meta.version : (meta.metadata && meta.metadata.version);
+  const declared = readSkillVersion(text);
   if (declared === undefined || declared === null) {
     return `${skill.name}: SKILL.md at ${skill.commit} declares no version`;
   }
   if (String(declared) !== String(skill.version)) {
     return `${skill.name}: version mismatch — manifest '${skill.version}' vs SKILL.md '${declared}'`;
   }
+  let meta = {};
+  try {
+    meta = parseFocusedYaml(parseFrontmatter(text)) || {};
+  } catch {}
   return { bundled_blueprints: meta.bundled_blueprints || [] };
-}
-
-/**
- * Strips a leading UTF-8 BOM and converts CRLF to LF. Zero dependencies.
- * @param {string} text
- * @returns {string}
- */
-function normalizeBlueprintText(text) {
-  return text.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n');
-}
-
-/**
- * Builds a fetch-failure violation for one side of the pin<->main comparison,
- * appending RATE_LIMIT_HINT when the error carries a rate-limit status.
- * @param {{ name: string, path: string }} template
- * @param {string} revision - 'main' or the pinned commit.
- * @param {string} message - The underlying error message.
- * @returns {string}
- */
-function coherenceFetchViolation(template, revision, message) {
-  let violation = `${template.name}: could not fetch ${template.path} at ${revision} (${message})`;
-  if (/status:\s*(403|429)/.test(message)) violation += `; ${RATE_LIMIT_HINT}`;
-  return violation;
-}
-
-/**
- * Compares a template's content at its pinned commit with the same path on main.
- * Coherence means the normalized texts are equal; drift in either direction and
- * fetch failures become violations — the rule never throws (fail closed).
- * @param {{ name: string, repo: string, path: string, commit: string, ref?: string }} template
- * @returns {Promise<string[]>} empty array = pinned content is coherent with main
- */
-async function checkBlueprintMainCoherence(template) {
-  const violations = [];
-  const pinUrl = `https://raw.githubusercontent.com/${template.repo}/${template.commit}/${template.path}`;
-  const mainUrl = `https://raw.githubusercontent.com/${template.repo}/main/${template.path}`;
-
-  let pinnedText = null;
-  try {
-    pinnedText = await fetchString(pinUrl);
-  } catch (err) {
-    violations.push(coherenceFetchViolation(template, template.commit, err.message));
-  }
-
-  let mainText = null;
-  try {
-    mainText = await fetchString(mainUrl);
-  } catch (err) {
-    violations.push(coherenceFetchViolation(template, 'main', err.message));
-  }
-
-  if (pinnedText !== null && mainText !== null &&
-      normalizeBlueprintText(pinnedText) !== normalizeBlueprintText(mainText)) {
-    violations.push(
-      `${template.name}: content at ${template.path} differs between pinned commit ${template.commit} and main in ${template.repo} — pin is not coherent with main (reconcile the release with main before shipping)`
-    );
-  }
-
-  return violations;
 }
 
 /**
@@ -475,14 +423,7 @@ async function validateBlueprint(template, policy) {
   const rawUrl = `https://raw.githubusercontent.com/${template.repo}/${template.commit}/${template.path}`;
   try {
     const text = await fetchString(rawUrl);
-    let declared = null;
-    try {
-      const meta = parseFocusedYaml(parseFrontmatter(text));
-      declared = meta.version !== undefined ? meta.version : (meta.spec_version !== undefined ? meta.spec_version : (meta.metadata && meta.metadata.version));
-    } catch {
-      const versionMatch = text.match(/V_\d+-\d+-\d+/i) || text.match(/version:\s*["']?([^"'\r\n]+)/i);
-      if (versionMatch) declared = versionMatch[1] || versionMatch[0];
-    }
+    const declared = readBlueprintVersion(text);
     if (declared === undefined || declared === null) {
       violations.push(`${template.name}: template at ${template.commit} declares no version`);
     } else if (String(declared) !== String(template.version)) {
@@ -490,13 +431,6 @@ async function validateBlueprint(template, policy) {
     }
   } catch (err) {
     violations.push(`${template.name}: could not fetch template at ${template.commit} (${err.message})`);
-  }
-
-  // Stable-channel templates must stay coherent with main: the content pinned by
-  // the release must equal the content at the same path on main (normalized).
-  // preview pins main and is gated out by requireProvenance === false.
-  if (policy.requireProvenance) {
-    violations.push(...await checkBlueprintMainCoherence(template));
   }
 
   return violations;
@@ -616,7 +550,6 @@ module.exports = {
   checkMcpUrlPinned,
   checkMinVersion,
   compareSemver,
-  checkBlueprintMainCoherence,
   validateMcp,
   validateConsoleAsset,
   validateSkill,

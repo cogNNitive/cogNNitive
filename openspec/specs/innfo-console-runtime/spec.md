@@ -8,35 +8,40 @@ One shared versioned runtime (`innfo-runtime.js`) plus a thin console shell (`ar
 
 ### Requirement: Shared UMD/IIFE Runtime
 
-The system MUST ship a single versioned `innfo-runtime.js` as a UMD/IIFE global (`window.InnfoConsole`). The runtime MUST NOT use `fetch()` and MUST NOT use `type=module`. It MUST be hosted on GitHub Pages and jsDelivr, with a vendored local fallback for offline use.
+The system MUST ship a single versioned `innfo-runtime.js` as a UMD/IIFE global (`window.InnfoConsole`). The console bundle MUST also include `ui-kit.js` (`window.InnfoUI`), ordered before any module that consumes it, and MUST inject the design tokens at boot. The runtime and kit MUST NOT use `fetch()` and MUST NOT use `type=module`. They MUST be hosted on GitHub Pages and jsDelivr, with a vendored local fallback for offline use.
+(Previously: the bundle did not include `ui-kit.js` or token injection.)
 
 #### Scenario: Offline file:// open
-
 - GIVEN a generated console referencing the runtime
 - WHEN opened via `file://` double-click with no network
 - THEN the console renders fully from the local fallback
 
 #### Scenario: No module primitives in runtime
-
-- GIVEN the published `innfo-runtime.js`
+- GIVEN the published `innfo-runtime.js` and bundle
 - WHEN scanned for `fetch(` and `type=module`
 - THEN neither token appears
 
+#### Scenario: Kit available before consumers
+- GIVEN the bundle loaded
+- WHEN `InnfoConsole` and `InnfoModelViewer` initialize
+- THEN `window.InnfoUI` is already defined
+
 ### Requirement: Console Shell with Config and JSON Slots
 
-`artifact_shell.html` MUST declare an `innfo-config` block with a `needs[]` capability list and exactly two JSON slots: `innfo-schema` and `innfo-model`. Generated consoles MUST declare only `needs[]` plus slot payloads and MUST NOT inline runtime code.
+`artifact_shell.html` MUST declare an `innfo-config` block with a `needs[]` capability list and exactly two JSON slots: `innfo-schema` and `innfo-model`. Generated consoles MUST declare only `needs[]` plus slot payloads, MUST NOT inline runtime code, and MUST NOT supply feedback UI markup.
+(Previously: did not forbid feedback markup, which the runtime needed as anchors.)
 
 #### Scenario: Thin console renders from slots
 
 - GIVEN a console with `needs: ["feedback-export"]` and populated slots
 - WHEN opened via `file://`
-- THEN the runtime hydrates the view and gates features absent from `needs[]`
+- THEN the runtime hydrates the view and injects the feedback UI
 
 #### Scenario: Undeclared capability stays dormant
 
 - GIVEN a console whose `needs[]` omits `feedback-export`
 - WHEN the runtime boots
-- THEN export UI is not rendered
+- THEN no export UI is injected or rendered
 
 ### Requirement: No Duplicated Inline Runtime
 
@@ -100,3 +105,89 @@ The compile procedure file MUST move from `business/procedures/compile_model_vie
 - WHEN `check:integrity` and `validate-manifest` run
 - THEN neither reports a reference to `business/procedures/compile_model_viewer_NN.md`
 - AND both checks pass
+
+### Requirement: Bundle-Injected Feedback UI
+
+When `needs[]` declares `feedback-export`, `InnfoConsole` MUST inject the banner, export button and modal itself through an idempotent routine, creating one `[data-innfo-feedback-root]` with `#innfo-feedback-banner`, `#innfo-feedback-open` and `#innfo-feedback-modal`. It MUST read `needs[]` from the DOM so boot order does not matter. Shells MUST NOT need feedback markup; the old `#innfo-banner`, `#innfo-export-open` and `#innfo-export-modal` markup and CSS MUST be removed from `artifact_shell.html` and `metrics/assets/timeline.html`. Injection MUST happen once even if the bundle boots more than once, MUST work offline via `file://`, and MUST NOT use `fetch` or `type=module`. The new ids MUST NOT clash with the procedure stepper's `#innfo-export-modal`. Styling MUST be minimal CSS classes.
+
+#### Scenario: Canonical console gains feedback unchanged
+
+- GIVEN `model_console.html` with unchanged markup declaring `feedback-export`
+- WHEN opened
+- THEN the export button is present and the modal opens
+
+#### Scenario: Single injection
+
+- GIVEN a console where the bundle boots twice
+- WHEN the page loads
+- THEN exactly one feedback root, one banner and one export button exist
+
+#### Scenario: No clash with the stepper
+
+- GIVEN a procedure console that has its own `#innfo-export-modal`
+- WHEN the feedback UI is injected
+- THEN both dialogs coexist with distinct ids
+
+### Requirement: Needs Registry Without Feedback Anchors
+
+`needs-registry.json` MUST declare `feedback-export` with empty anchors (`[]`). The shell guard (`scripts/lib/console-shell-guard.js`) MUST NOT contain a hard-coded exemption for `model_console.html` or for `feedback-export`.
+
+#### Scenario: Exemption gone
+
+- GIVEN the guard after this change
+- WHEN it runs over the repository shells
+- THEN `model_console.html` passes through the registry rule alone, and the source has no `model_console.html`-specific branch
+
+#### Scenario: No anchors required
+
+- GIVEN a shell declaring `feedback-export` with no feedback markup
+- WHEN the guard runs
+- THEN it passes
+
+### Requirement: Bundle Matches Its Sources
+
+`innfo-console.bundle.js` MUST equal the output of `scripts/build-console-bundle.mjs` over its declared `SOURCES`, which MUST include `ui-kit.js`. Root npm scripts `build:console` (build) and `check:console-bundle` (drift check) MUST exist. A node:test drift suite, wired into `verify.js` and `check-integrity.js`, MUST fail when the checked-in bundle differs from a fresh build. The build process MUST be documented.
+
+#### Scenario: Fresh bundle passes
+- GIVEN sources unchanged since the last build
+- WHEN `check:console-bundle` runs
+- THEN it passes
+
+#### Scenario: Stale bundle fails
+- GIVEN `ui-kit.js` edited without rebuilding
+- WHEN the drift suite runs
+- THEN it fails naming the bundle
+
+#### Scenario: Drift check can go red
+- GIVEN the checked-in bundle with one byte altered
+- WHEN the drift suite runs
+- THEN it fails
+
+#### Scenario: Preexisting drift is absorbed
+- GIVEN the checked-in bundle differs from a fresh build before this change
+- WHEN the first slice lands
+- THEN the bundle is regenerated so the drift suite passes
+
+### Requirement: Released Bundle Is Versioned
+
+A changed bundle MUST ship under a new `innfo-console-v*` tag and a new CDN file; a published tagged bundle MUST NOT be overwritten. This change and change C (`2026-10-01-console-review-ux`) MUST ship under ONE `innfo-console-v*` tag. Version references MUST be produced by `channel-refs.js` and `sync-versions.mjs`, never hand-edited. Shell edits under `bluepriNNts/**` MUST be accompanied by a `blueprints-v*` tag (not `templates-v*`) and a repin in the same batch. Frozen vendored bundle copies (the three sample/export copies and two innfo-core test fixtures) MUST each be declared frozen or regenerated explicitly.
+
+#### Scenario: Refs are derived
+- GIVEN the release batch
+- WHEN `validate-manifest` and `check-integrity` run
+- THEN both pass with generated refs only
+
+#### Scenario: One tag for B and C
+- GIVEN B and C both merged
+- WHEN the release is cut
+- THEN a single `innfo-console-v*` tag covers both and no tag ships B's kit without C
+
+#### Scenario: Shell edit requires blueprints tag
+- GIVEN a shell under `bluepriNNts/**` changed
+- WHEN the release batch is validated
+- THEN a new `blueprints-v*` tag and repin are present
+
+#### Scenario: Vendored copies
+- GIVEN the five vendored bundle copies
+- WHEN the bundle is rebuilt
+- THEN each is regenerated or declared frozen

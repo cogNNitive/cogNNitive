@@ -42,10 +42,10 @@ describe('artifact_shell.html (console shell)', () => {
     expect(html).not.toContain('fetch(')
   })
 
-  it('provides the review banner and export modal containers', () => {
+  it('does not contain hardcoded review banner or export modal (bundle-injected)', () => {
     const html = readShell()
-    expect(html).toContain('id="innfo-banner"')
-    expect(html).toContain('id="innfo-export-modal"')
+    expect(html).not.toContain('id="innfo-banner"')
+    expect(html).not.toContain('id="innfo-export-modal"')
   })
 })
 
@@ -103,17 +103,13 @@ describe('innfo-console.bundle.js (single-file distribution)', () => {
   })
 
   it('matches the runtime version stamp', () => {
-    // Derive the expected version from manifest/source.yaml rather than
-    // hardcoding it. A literal here was a fourth copy of the console version
-    // and went stale silently: the bundle stamped 0.1.0 while the manifest
-    // declared 0.2.0, and this assertion agreed with the stale bundle instead
-    // of catching it. Derived, it now fails on exactly that drift.
+    // Single source of truth for console version is iNNfo/specs/bluepriNNts/console/package.json (AD-6).
     const repoRoot = join(here, '..', '..', '..', '..')
-    const sourceYaml = readFileSync(join(repoRoot, 'manifest', 'source.yaml'), 'utf8')
-    const consoleBlock = sourceYaml.split(/^console_assets:/m)[1] ?? ''
-    const declared = consoleBlock.match(/version:\s*"([^"]+)"/)?.[1]
+    const consolePkgPath = join(repoRoot, 'iNNfo', 'specs', 'bluepriNNts', 'console', 'package.json')
+    const consolePkg = JSON.parse(readFileSync(consolePkgPath, 'utf8'))
+    const declared = consolePkg.version
 
-    expect(declared, 'manifest/source.yaml must declare a console_assets version').toBeTruthy()
+    expect(declared, 'console package.json must declare a version').toBeTruthy()
 
     const bundle = readFileSync(bundlePath, 'utf8')
     expect(bundle).toContain(`Version ${declared}`)

@@ -13,6 +13,7 @@ const {
   extractShellConfig,
   discoverConsoleShells,
   checkConsoleShellIntegrity,
+  findRootColorDeclarations,
 } = require('./console-shell-guard.js');
 
 console.log('Running console-shell-guard unit tests...');
@@ -105,8 +106,84 @@ console.log('Running console-shell-guard unit tests...');
   }
   assert.strictEqual(result.ok, true);
   assert.ok(result.shells.length >= 4, `Expected at least 4 shells, got ${result.shells.length}`);
+  assert.ok(result.shells.some((s) => s.includes('model_console.html')), 'model_console.html must be among checked shells');
   console.log(`✔ Live repository check passes on all ${result.shells.length} shells:`);
   result.shells.forEach((s) => console.log(`  - ${s}`));
+}
+
+// 5. Guard source contains no model_console.html literal (A5.5)
+{
+  const fs = require('node:fs');
+  const guardSource = fs.readFileSync(path.join(__dirname, 'console-shell-guard.js'), 'utf8');
+  assert.strictEqual(
+    guardSource.includes('model_console.html'),
+    false,
+    'guard source must contain no model_console.html literal (exemption removed)',
+  );
+  console.log('✔ Guard source contains no model_console.html literal');
+}
+
+// 6. Shell declaring feedback-export with no markup passes (A5.5)
+{
+  const { extractDomIds } = require('./console-shell-guard.js');
+  const domIds = extractDomIds('<div>No feedback markup here</div>');
+  const registry = JSON.parse(
+    require('node:fs').readFileSync(
+      path.join(__dirname, '..', '..', 'iNNfo', 'specs', 'bluepriNNts', 'console', 'needs-registry.json'),
+      'utf8',
+    ),
+  );
+  const anchorSets = registry['feedback-export'].anchors || [];
+  assert.deepStrictEqual(anchorSets, [], 'feedback-export must declare empty anchors');
+  const satisfied = anchorSets.length === 0 || anchorSets.some((set) => set.every((id) => domIds.has(id)));
+  assert.strictEqual(satisfied, true, 'shell declaring feedback-export with no markup must satisfy anchor check');
+  console.log('[ok] Shell declaring feedback-export with no markup passes anchor check');
+}
+
+// 7. findRootColorDeclarations: flags hard-coded colors in :root, allows layout vars
+{
+  const fs = require('node:fs');
+  const clean = `:root { --sidebar-w: 280px; --innfo-bg: var(--innfo-surface); }`;
+  assert.deepStrictEqual(findRootColorDeclarations(clean), []);
+
+  const hexRoot = `:root { --accent: #1f2937; }`;
+  const hexFound = findRootColorDeclarations(hexRoot);
+  assert.strictEqual(hexFound.length, 1);
+  assert.match(hexFound[0].selector, /:root/);
+  assert.strictEqual(hexFound[0].line, 1);
+
+  const mediaRoot = `@media (prefers-color-scheme: dark) {\n  :root {\n    --accent: rgb(15, 23, 42);\n  }\n}`;
+  const mediaFound = findRootColorDeclarations(mediaRoot);
+  assert.strictEqual(mediaFound.length, 1);
+  assert.strictEqual(mediaFound[0].line, 3);
+
+  const hslaRoot = `:root {\n  --x: hsla(210, 40%, 20%, .5);\n}`;
+  assert.strictEqual(findRootColorDeclarations(hslaRoot).length, 1);
+
+  // All four live shells must be fully tokenized (d1 + d2).
+  const repoRoot = path.join(__dirname, '..', '..');
+  const fourShells = [
+    'iNNfo/specs/bluepriNNts/console/artifact_shell.html',
+    'iNNfo/specs/bluepriNNts/metrics/assets/timeline.html',
+    'iNNfo/specs/bluepriNNts/procedures/assets/procedure_console.html',
+    'iNNfo/specs/bluepriNNts/workspace/assets/model_console.html',
+  ];
+  for (const rel of fourShells) {
+    const html = fs.readFileSync(path.join(repoRoot, rel), 'utf8');
+    const offenders = findRootColorDeclarations(html);
+    assert.deepStrictEqual(offenders, [], `${rel} must carry no :root color literals`);
+  }
+  console.log('✔ findRootColorDeclarations flags root colors and passes tokenized shells');
+
+  // d2.1: timeline.html must drop the legacy class-based dark mechanism.
+  const timeline = fs.readFileSync(path.join(repoRoot, fourShells[1]), 'utf8');
+  assert.strictEqual(timeline.includes('.dark'), false, 'timeline.html must not carry a .dark block');
+  assert.strictEqual(
+    /:root:not\(\.light\)/.test(timeline),
+    false,
+    'timeline.html must not carry a :root:not(.light) block',
+  );
+  console.log('✔ timeline.html dropped the class-based dark mechanism');
 }
 
 console.log('\nAll console-shell-guard unit tests passed! ✨');

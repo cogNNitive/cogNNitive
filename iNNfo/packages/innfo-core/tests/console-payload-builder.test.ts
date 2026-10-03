@@ -41,6 +41,7 @@ price:: 5000
     expect(payload.model).toBeDefined()
     expect(payload.model.meta).toBeDefined()
     expect(payload.model.meta.modelId).toBe('kNNowledge/biz/Ghostbusters')
+    expect(payload.model.meta.sources).toEqual(['kNNowledge/biz/Ghostbusters_NN.md'])
     expect(payload.model.meta.modelVersion).toBe('V_1-0-0')
     expect(payload.model.meta.sha256).toBe(computeSha256(sampleMarkdown))
     expect(Array.isArray(payload.model.elements)).toBe(true)
