@@ -80,7 +80,7 @@ describe('cognitivize: text-native subjects', () => {
 
   it('stores source_file workspace-relative with forward slashes', async () => {
     put('sources/import/notes.md', 'x')
-    await cognitivize(root, 'sources\\import\\notes.md', { now: NOW })
+    await cognitivize(root, path.join('sources', 'import', 'notes.md'), { now: NOW })
     expect(readSidecar('sources/import/notes.md').fm['source_file']).toBe('sources/import/notes.md')
   })
 
