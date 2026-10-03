@@ -390,8 +390,9 @@ function applyOps(ws, ops, { journal, journalFile, backupTarget, failAfter }) {
 }
 
 // legacy:cognitivize-in-place/upgrade-flow
-// Second Flow A step, after the nn-rename step: export/ to artifacts/, sources/original/ to
-// sources/import/, the `* -text` policy, and sidecars carrying preserved mirror bodies.
+// Second Flow A step, after the nn-rename step: the retired folders move to the current layout
+// (see core `planLayoutMigration`), the `* -text` policy is written, and sidecars carry the
+// preserved mirror bodies.
 
 /** Repo paths holding frozen history: such domains are skipped and reported, never migrated. */
 const FROZEN_DOMAIN_MARKERS = ['/docs/innfo/samples/', '/docs/cognitive_nn/use-cases/']
@@ -472,8 +473,12 @@ async function runLayoutStep(ws, reader, opts, renamePlan) {
     console.log('Moves:')
     plan.report.moved.forEach((m) => console.log(`  ${m.from} -> ${m.to}`))
     if (plan.report.deleted.length > 0) {
-      console.log('\nDeletes (byte-identical duplicates only):')
+      console.log('\nDeletes (byte-identical duplicates and retired mirrors only):')
       plan.report.deleted.forEach((p) => console.log(`  ${p}`))
+    }
+    if (plan.report.preservedBodies.length > 0) {
+      console.log('\nSidecars written after apply (old mirror body preserved when the subject is binary):')
+      plan.report.preservedBodies.forEach((p) => console.log(`  ${p}`))
     }
     console.log('\nRewrites:')
     plan.report.rewrittenFiles.forEach((f) => console.log(`  ${f}`))
@@ -504,7 +509,7 @@ async function runLayoutStep(ws, reader, opts, renamePlan) {
   try {
     applyOps(ws, plan.ops, { journal, journalFile, backupTarget, failAfter: opts.failAfter })
 
-    for (const d of ['export', path.join('sources', 'original')]) {
+    for (const d of ['export', path.join('sources', 'original'), path.join('sources', 'nn'), path.join('sources', 'export')]) {
       const leftovers = removeEmptyDirsBottomUp(path.join(ws, d))
       if (leftovers.length > 0) journal.leftovers.push(...leftovers.map((l) => `${d}/${l}`))
     }

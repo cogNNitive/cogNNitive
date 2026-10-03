@@ -3,6 +3,7 @@
 import type { DomainReader } from '../detect.js'
 import type { Op, Problem } from '../index.js'
 import { computePlanHash } from '../language-map.js'
+import { bareCitationRewriter, planMirrors } from './mirrors.js'
 
 export interface LayoutPlanDeps {
   /**
@@ -16,6 +17,8 @@ export interface LayoutPlanDeps {
 export interface LayoutMigrationReport {
   moved: Array<{ from: string; to: string }>
   deleted: string[]
+  /** Subjects whose old `sources/nn/` mirror body is staged to become their sidecar body. */
+  preservedBodies: string[]
   rewrittenFiles: string[]
   /** Retired content with no destination in the new layout, left in place. */
   unmigrated: string[]
@@ -36,6 +39,7 @@ export interface LayoutPlanResult {
 const FOLDER_MAP: ReadonlyArray<readonly [string, string]> = [
   ['export/', 'artifacts/'],
   ['sources/original/', 'sources/import/'],
+  ['sources/export/', 'artifacts/'],
 ]
 
 /** Retired content with no destination in the new layout; reported, never touched. */
@@ -46,10 +50,16 @@ const OLD_STAMP = /_(\d{8}-\d{6})(?=\.[^./]+$)/
 const TEXT_POLICY_LINE = '* -text'
 
 // A path-like token: stops at whitespace, quotes, brackets, and the citation unit separators.
-const PATH_TOKEN = '[^\\s"\'`)\\]\\[<>,;|#@]*'
-const MOVED_PATH_RE = new RegExp(`(?<![\\w/.-])(?:export|sources/original)/${PATH_TOKEN}`, 'g')
+const PATH_CHARS = '[^\\s"\'`)\\]\\[<>,;|#@]'
+const PATH_TOKEN = `${PATH_CHARS}*`
+const MOVED_PATH_RE = new RegExp(
+  `(?<![\\w/.-])(?:export|sources/original|sources/export|sources/nn)/${PATH_TOKEN}`,
+  'g',
+)
+/** The workspace field naming the sources folder; the retired default pointed at the mirror tree. */
+const SOURCES_DIR_RE = /^(sources_dir::[ \t]*)sources\/nn\/?[ \t]*$/gm
 const ARCHIVE_CITATION_RE = new RegExp(
-  `(?<![\\w/.-])(sources/archive/${PATH_TOKEN})(@[^"'\`\\]\\n,]*)?`,
+  `(?<![\\w/.-])(sources/archive/${PATH_CHARS}+)(@[^"'\`\\]\\n,]*)?`,
   'g',
 )
 
@@ -141,15 +151,38 @@ export async function planLayoutMigration(
     finalPath.set(from, to)
   }
 
+  // 1b. The retired `sources/nn/` mirror tree: relocated or retired, bodies staged for sidecars.
+  const mirrors = planMirrors({
+    text,
+    opaque,
+    finalPath,
+    remap: (p) => destinationOf(p, deps, []) ?? p,
+  })
+  ops.push(...mirrors.ops)
+  moved.push(...mirrors.moved)
+  deleted.push(...mirrors.deleted)
+  problems.push(...mirrors.problems)
+
+  const rewriteToken = (token: string): string => {
+    if (!token.startsWith('sources/nn/')) return destinationOf(token, deps, []) ?? token
+    const rest = token.slice('sources/nn/'.length)
+    if (rest === '') return token
+    const trailing = /\.+$/.exec(rest)?.[0] ?? ''
+    const target = mirrors.citationTargets.get(token.slice(0, token.length - trailing.length))
+    return target === undefined ? token : `${target}${trailing}`
+  }
+
+  const rewriteBare = bareCitationRewriter(mirrors.citationTargets)
+
   // 2. Citation rewrites in markdown (archive snapshots and staging are inert).
   const rewrittenFiles: string[] = []
   for (const [path, content] of [...text.entries()].sort(([a], [b]) => a.localeCompare(b))) {
     if (isInert(path) || !path.endsWith('.md')) continue
     if (deleted.includes(path)) continue
-    const rewritten = content.replace(MOVED_PATH_RE, (token) => {
-      const to = destinationOf(token, deps, [])
-      return to ?? token
-    })
+    const rewritten = rewriteBare(content.replace(MOVED_PATH_RE, rewriteToken)).replace(
+      SOURCES_DIR_RE,
+      '$1sources/',
+    )
     if (rewritten === content) continue
     const target = finalPath.get(path) ?? path
     ops.push({ op: 'write', path: target, content: rewritten })
@@ -194,6 +227,7 @@ export async function planLayoutMigration(
     report: {
       moved,
       deleted,
+      preservedBodies: mirrors.preserved,
       rewrittenFiles,
       unmigrated,
       archiveCitations,

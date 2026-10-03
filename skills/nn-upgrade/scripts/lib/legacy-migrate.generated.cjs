@@ -49,7 +49,7 @@ var require_identity = __commonJS({
     var SEQ = /* @__PURE__ */ Symbol.for("yaml.seq");
     var NODE_TYPE = /* @__PURE__ */ Symbol.for("yaml.node.type");
     var isAlias = (node) => !!node && typeof node === "object" && node[NODE_TYPE] === ALIAS;
-    var isDocument = (node) => !!node && typeof node === "object" && node[NODE_TYPE] === DOC;
+    var isDocument2 = (node) => !!node && typeof node === "object" && node[NODE_TYPE] === DOC;
     var isMap = (node) => !!node && typeof node === "object" && node[NODE_TYPE] === MAP;
     var isPair = (node) => !!node && typeof node === "object" && node[NODE_TYPE] === PAIR;
     var isScalar = (node) => !!node && typeof node === "object" && node[NODE_TYPE] === SCALAR;
@@ -85,7 +85,7 @@ var require_identity = __commonJS({
     exports2.hasAnchor = hasAnchor;
     exports2.isAlias = isAlias;
     exports2.isCollection = isCollection;
-    exports2.isDocument = isDocument;
+    exports2.isDocument = isDocument2;
     exports2.isMap = isMap;
     exports2.isNode = isNode;
     exports2.isPair = isPair;
@@ -7381,7 +7381,14 @@ __export(index_exports, {
 module.exports = __toCommonJS(index_exports);
 
 // iNNfo/packages/innfo-core/src/legacy/layout/detect.ts
-var RETIRED_LAYOUT_FOLDERS = ["export", "sources/original"];
+var RETIRED_LAYOUT_FOLDERS = [
+  "export",
+  "sources/original",
+  "sources/nn",
+  "sources/export",
+  "sources/archive"
+];
+var INERT_FOLDERS = /* @__PURE__ */ new Set(["sources/archive"]);
 async function hasContent(r, dir) {
   return (await r.list(dir)).length > 0;
 }
@@ -7392,7 +7399,7 @@ async function detectLegacyLayout(r) {
       signals.push({
         type: "legacy-layout",
         path: folder,
-        detail: `Retired folder '${folder}/' still holds content (see the nn-upgrade layout migration)`
+        detail: INERT_FOLDERS.has(folder) ? `Retired folder '${folder}/' holds archived snapshots: they are inert, listed by the nn-upgrade layout migration, and never moved or deleted` : `Retired folder '${folder}/' still holds content (see the nn-upgrade layout migration)`
       });
     }
   }
@@ -7973,19 +7980,192 @@ async function planMigration(r, deps) {
   };
 }
 
+// iNNfo/packages/innfo-core/src/naming/contract.ts
+var SPEC_FILENAME = "spec_NN.md";
+var SIDECAR_BLUEPRINT = "sidecar";
+var NN_SUFFIX_RE = /_NN\.md$/i;
+var SIDECAR_PATH_RE = /^(.*\.[^./\\]+)_sidecar_NN\.md$/i;
+var STAMP_SUFFIX_RE = /^(.+)_(\d{8}T\d{6}Z)(?:-(\d+))?$/;
+function baseOf(path3) {
+  const i = Math.max(path3.lastIndexOf("/"), path3.lastIndexOf("\\"));
+  return i < 0 ? path3 : path3.slice(i + 1);
+}
+function parseName(basename2) {
+  if (NN_SUFFIX_RE.test(basename2)) {
+    const stem2 = basename2.replace(NN_SUFFIX_RE, "");
+    const sidecar = SIDECAR_PATH_RE.exec(basename2);
+    return sidecar ? { kind: "nn", basename: basename2, stem: stem2, sidecarOf: sidecar[1] } : { kind: "nn", basename: basename2, stem: stem2 };
+  }
+  const dot = basename2.lastIndexOf(".");
+  const hasExt = dot > 0;
+  const stem = hasExt ? basename2.slice(0, dot) : basename2;
+  const ext = hasExt ? basename2.slice(dot + 1) : "";
+  const m = STAMP_SUFFIX_RE.exec(stem);
+  if (!m) return { kind: "file", basename: basename2, key: stem, ext };
+  return {
+    kind: "file",
+    basename: basename2,
+    key: m[1],
+    ext,
+    stamp: { stamp: m[2], seq: m[3] ? Number(m[3]) : 1 }
+  };
+}
+function sidecarPathOf(rawPath) {
+  return `${rawPath}_sidecar_NN.md`;
+}
+var IGNORED_DIRECTORIES = /* @__PURE__ */ new Set(["backups", "archive", "specs"]);
+function segmentsOf(path3) {
+  return path3.replace(/\\/g, "/").split("/").filter((s) => s && s !== ".");
+}
+function isExcludedPath(path3) {
+  const segs = segmentsOf(path3);
+  if (segs.length > 0 && IGNORED_DIRECTORIES.has(segs[0])) return true;
+  return segs.some((s) => s === "staging" || s.startsWith(".") && s !== "..");
+}
+var WIN32_PATH_LIMIT = 259;
+function checkPathBudget(absPath, platform) {
+  if (platform === "win32" && absPath.length > WIN32_PATH_LIMIT) {
+    return { ok: false, limit: WIN32_PATH_LIMIT, length: absPath.length };
+  }
+  return { ok: true };
+}
+function isNNName(nameOrPath) {
+  return NN_SUFFIX_RE.test(baseOf(nameOrPath));
+}
+function isSidecarName(nameOrPath) {
+  return SIDECAR_PATH_RE.test(nameOrPath);
+}
+
+// iNNfo/packages/innfo-core/src/legacy/layout/mirrors.ts
+var NN_ROOT = "sources/nn/";
+var INDEX_PATH = "sources/nn/index.md";
+var STAGING_ROOT = "staging/migration/";
+var TEXT_NATIVE = /* @__PURE__ */ new Set(["md", "csv", "json"]);
+var STAGED_MARKER = "Sidecar created by the layout migration.\n";
+var FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
+var DECLARED_RAW_RE = /^(?:source_file|raw_path):\s*(.*?)\s*$/m;
+var extOf = (p) => {
+  const base = p.slice(p.lastIndexOf("/") + 1);
+  const dot = base.lastIndexOf(".");
+  return dot > 0 ? base.slice(dot + 1).toLowerCase() : "";
+};
+var dirOf = (p) => p.slice(0, Math.max(0, p.lastIndexOf("/")));
+var stemOf = (p) => {
+  const base = p.slice(p.lastIndexOf("/") + 1);
+  const dot = base.lastIndexOf(".");
+  return dot > 0 ? base.slice(0, dot) : base;
+};
+var isDocument = (p) => /(_sidecar_NN|_NN)\.md$/.test(p);
+function declaredRaw(content) {
+  const fm = FRONTMATTER_RE.exec(content);
+  const raw = fm ? DECLARED_RAW_RE.exec(fm[1]) : null;
+  return raw ? raw[1].replace(/^["']|["']$/g, "").replace(/\\/g, "/") : null;
+}
+function stripFrontmatter(content) {
+  return content.replace(FRONTMATTER_RE, "").replace(/^\r?\n/, "");
+}
+function standaloneDestination(rel) {
+  if (rel.startsWith("import/")) return `sources/${rel}`;
+  if (rel.startsWith("conversations/")) return `sources/${rel}`;
+  return `sources/import/${rel}`;
+}
+function planMirrors(i) {
+  const plan = { ops: [], problems: [], moved: [], deleted: [], preserved: [], citationTargets: /* @__PURE__ */ new Map() };
+  const present = /* @__PURE__ */ new Set([...i.text.keys(), ...i.opaque]);
+  const taken = new Set([...present].map((p) => i.finalPath.get(p) ?? p));
+  const staged = /* @__PURE__ */ new Set();
+  function rawFor(mirror, rel, content) {
+    const declared = declaredRaw(content);
+    if (declared) {
+      for (const candidate of [declared, i.remap(declared)]) {
+        if (candidate !== mirror && present.has(candidate)) return candidate;
+      }
+    }
+    const folders = /^(import|conversations)(\/|$)/.test(rel) ? [`sources/${dirOf(rel)}`.replace(/\/$/, "")] : [`sources/import/${dirOf(rel)}`.replace(/\/$/, ""), `sources/original/${dirOf(rel)}`.replace(/\/$/, "")];
+    const found = /* @__PURE__ */ new Set();
+    for (const p of present) {
+      if (p === mirror || p.startsWith(NN_ROOT) || isDocument(p) || extOf(p) === extOf(mirror)) continue;
+      if (folders.includes(dirOf(p)) && stemOf(p) === stemOf(rel)) found.add(p);
+    }
+    return found.size === 1 ? [...found][0] : null;
+  }
+  function stage(subject, body) {
+    if (staged.has(subject)) return;
+    staged.add(subject);
+    plan.preserved.push(subject);
+    plan.ops.push({ op: "write", path: `${STAGING_ROOT}${subject}.md`, content: body });
+  }
+  for (const mirror of [...present].filter((p) => p.startsWith(NN_ROOT)).sort()) {
+    const rel = mirror.slice(NN_ROOT.length);
+    const content = i.text.get(mirror);
+    if (mirror === INDEX_PATH) {
+      plan.ops.push({ op: "delete", path: mirror });
+      plan.deleted.push(mirror);
+      continue;
+    }
+    const raw = content === void 0 ? null : rawFor(mirror, rel, content);
+    if (raw !== null && content !== void 0) {
+      const subject = i.finalPath.get(raw) ?? raw;
+      const native = TEXT_NATIVE.has(extOf(subject));
+      plan.ops.push({ op: "delete", path: mirror });
+      plan.deleted.push(mirror);
+      stage(subject, native ? STAGED_MARKER : stripFrontmatter(content));
+      plan.citationTargets.set(mirror, native ? subject : sidecarPathOf(subject));
+      continue;
+    }
+    const dest = standaloneDestination(rel);
+    if (taken.has(dest)) {
+      if (content !== void 0 && i.text.get(dest) === content) {
+        plan.ops.push({ op: "delete", path: mirror });
+        plan.deleted.push(mirror);
+        plan.citationTargets.set(mirror, dest);
+      } else {
+        plan.problems.push({
+          path: mirror,
+          message: `Cannot move '${mirror}' to '${dest}': the destination already exists with different (or unreadable) content`,
+          severity: "error"
+        });
+      }
+      continue;
+    }
+    taken.add(dest);
+    plan.ops.push({ op: "move", from: mirror, to: dest });
+    plan.moved.push({ from: mirror, to: dest });
+    i.finalPath.set(mirror, dest);
+    plan.citationTargets.set(mirror, dest);
+    if (content !== void 0 && TEXT_NATIVE.has(extOf(dest))) stage(dest, STAGED_MARKER);
+  }
+  return plan;
+}
+var SOURCES_LINE_RE = /^[ \t]*(?:-[ \t]*)?(?:sources|source|derived_from)::?[^\n]*$/gm;
+function bareCitationRewriter(citationTargets) {
+  const targets = /* @__PURE__ */ new Map();
+  for (const [mirror, target] of citationTargets) targets.set(mirror.slice(NN_ROOT.length), target);
+  if (targets.size === 0) return (content) => content;
+  const escaped = [...targets.keys()].sort((a, b) => b.length - a.length).map((rel) => rel.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  const bare = new RegExp(`(?<![\\w/.-])(${escaped.join("|")})(?=[@#,\\]\\s"']|$)`, "g");
+  return (content) => content.replace(SOURCES_LINE_RE, (line) => line.replace(bare, (rel) => targets.get(rel) ?? rel));
+}
+
 // iNNfo/packages/innfo-core/src/legacy/layout/plan.ts
 var FOLDER_MAP = [
   ["export/", "artifacts/"],
-  ["sources/original/", "sources/import/"]
+  ["sources/original/", "sources/import/"],
+  ["sources/export/", "artifacts/"]
 ];
 var UNMIGRATED_PREFIXES = ["sources/archive/"];
 var IGNORED_ROOT_DIRS = /* @__PURE__ */ new Set([".git", "node_modules", "dist", "coverage", "backups"]);
 var OLD_STAMP = /_(\d{8}-\d{6})(?=\.[^./]+$)/;
 var TEXT_POLICY_LINE = "* -text";
-var PATH_TOKEN = "[^\\s\"'`)\\]\\[<>,;|#@]*";
-var MOVED_PATH_RE = new RegExp(`(?<![\\w/.-])(?:export|sources/original)/${PATH_TOKEN}`, "g");
+var PATH_CHARS = "[^\\s\"'`)\\]\\[<>,;|#@]";
+var PATH_TOKEN = `${PATH_CHARS}*`;
+var MOVED_PATH_RE = new RegExp(
+  `(?<![\\w/.-])(?:export|sources/original|sources/export|sources/nn)/${PATH_TOKEN}`,
+  "g"
+);
+var SOURCES_DIR_RE = /^(sources_dir::[ \t]*)sources\/nn\/?[ \t]*$/gm;
 var ARCHIVE_CITATION_RE = new RegExp(
-  `(?<![\\w/.-])(sources/archive/${PATH_TOKEN})(@[^"'\`\\]\\n,]*)?`,
+  `(?<![\\w/.-])(sources/archive/${PATH_CHARS}+)(@[^"'\`\\]\\n,]*)?`,
   "g"
 );
 async function readDomain(r) {
@@ -8060,14 +8240,33 @@ async function planLayoutMigration(r, deps) {
     moved.push({ from, to });
     finalPath.set(from, to);
   }
+  const mirrors = planMirrors({
+    text,
+    opaque,
+    finalPath,
+    remap: (p) => destinationOf(p, deps, []) ?? p
+  });
+  ops.push(...mirrors.ops);
+  moved.push(...mirrors.moved);
+  deleted.push(...mirrors.deleted);
+  problems.push(...mirrors.problems);
+  const rewriteToken = (token) => {
+    if (!token.startsWith("sources/nn/")) return destinationOf(token, deps, []) ?? token;
+    const rest = token.slice("sources/nn/".length);
+    if (rest === "") return token;
+    const trailing = /\.+$/.exec(rest)?.[0] ?? "";
+    const target = mirrors.citationTargets.get(token.slice(0, token.length - trailing.length));
+    return target === void 0 ? token : `${target}${trailing}`;
+  };
+  const rewriteBare = bareCitationRewriter(mirrors.citationTargets);
   const rewrittenFiles = [];
   for (const [path3, content] of [...text.entries()].sort(([a], [b]) => a.localeCompare(b))) {
     if (isInert(path3) || !path3.endsWith(".md")) continue;
     if (deleted.includes(path3)) continue;
-    const rewritten = content.replace(MOVED_PATH_RE, (token) => {
-      const to = destinationOf(token, deps, []);
-      return to ?? token;
-    });
+    const rewritten = rewriteBare(content.replace(MOVED_PATH_RE, rewriteToken)).replace(
+      SOURCES_DIR_RE,
+      "$1sources/"
+    );
     if (rewritten === content) continue;
     const target = finalPath.get(path3) ?? path3;
     ops.push({ op: "write", path: target, content: rewritten });
@@ -8107,6 +8306,7 @@ async function planLayoutMigration(r, deps) {
     report: {
       moved,
       deleted,
+      preservedBodies: mirrors.preserved,
       rewrittenFiles,
       unmigrated,
       archiveCitations,
@@ -8129,62 +8329,6 @@ var path2 = __toESM(require("node:path"), 1);
 var import_node_fs = require("node:fs");
 var path = __toESM(require("node:path"), 1);
 
-// iNNfo/packages/innfo-core/src/naming/contract.ts
-var SPEC_FILENAME = "spec_NN.md";
-var SIDECAR_BLUEPRINT = "sidecar";
-var NN_SUFFIX_RE = /_NN\.md$/i;
-var SIDECAR_PATH_RE = /^(.*\.[^./\\]+)_sidecar_NN\.md$/i;
-var STAMP_SUFFIX_RE = /^(.+)_(\d{8}T\d{6}Z)(?:-(\d+))?$/;
-function baseOf(path3) {
-  const i = Math.max(path3.lastIndexOf("/"), path3.lastIndexOf("\\"));
-  return i < 0 ? path3 : path3.slice(i + 1);
-}
-function parseName(basename2) {
-  if (NN_SUFFIX_RE.test(basename2)) {
-    const stem2 = basename2.replace(NN_SUFFIX_RE, "");
-    const sidecar = SIDECAR_PATH_RE.exec(basename2);
-    return sidecar ? { kind: "nn", basename: basename2, stem: stem2, sidecarOf: sidecar[1] } : { kind: "nn", basename: basename2, stem: stem2 };
-  }
-  const dot = basename2.lastIndexOf(".");
-  const hasExt = dot > 0;
-  const stem = hasExt ? basename2.slice(0, dot) : basename2;
-  const ext = hasExt ? basename2.slice(dot + 1) : "";
-  const m = STAMP_SUFFIX_RE.exec(stem);
-  if (!m) return { kind: "file", basename: basename2, key: stem, ext };
-  return {
-    kind: "file",
-    basename: basename2,
-    key: m[1],
-    ext,
-    stamp: { stamp: m[2], seq: m[3] ? Number(m[3]) : 1 }
-  };
-}
-function sidecarPathOf(rawPath) {
-  return `${rawPath}_sidecar_NN.md`;
-}
-var IGNORED_DIRECTORIES = /* @__PURE__ */ new Set(["backups", "archive", "specs"]);
-function segmentsOf(path3) {
-  return path3.replace(/\\/g, "/").split("/").filter((s) => s && s !== ".");
-}
-function isExcludedPath(path3) {
-  const segs = segmentsOf(path3);
-  if (segs.length > 0 && IGNORED_DIRECTORIES.has(segs[0])) return true;
-  return segs.some((s) => s === "staging" || s.startsWith(".") && s !== "..");
-}
-var WIN32_PATH_LIMIT = 259;
-function checkPathBudget(absPath, platform) {
-  if (platform === "win32" && absPath.length > WIN32_PATH_LIMIT) {
-    return { ok: false, limit: WIN32_PATH_LIMIT, length: absPath.length };
-  }
-  return { ok: true };
-}
-function isNNName(nameOrPath) {
-  return NN_SUFFIX_RE.test(baseOf(nameOrPath));
-}
-function isSidecarName(nameOrPath) {
-  return SIDECAR_PATH_RE.test(nameOrPath);
-}
-
 // iNNfo/packages/innfo-core/src/writeOnce/fs.ts
 var import_node_crypto = require("node:crypto");
 
@@ -8205,9 +8349,9 @@ var OWNED_KEYS = /* @__PURE__ */ new Set([
   // A sidecar's upstream edge is `sources`; the projection derives `derived_from` itself.
   "derived_from"
 ]);
-var FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/;
+var FRONTMATTER_RE2 = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/;
 function parseSidecarFrontmatter(text) {
-  const match = FRONTMATTER_RE.exec(text);
+  const match = FRONTMATTER_RE2.exec(text);
   if (!match) return null;
   try {
     const value = (0, import_yaml.parse)(match[1]);

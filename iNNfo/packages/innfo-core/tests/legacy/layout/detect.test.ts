@@ -30,6 +30,9 @@ describe('detectLegacyLayout', () => {
   it.each([
     ['export/report.md', 'export'],
     ['sources/original/raw.pdf', 'sources/original'],
+    ['sources/nn/import/raw.md', 'sources/nn'],
+    ['sources/export/brief.md', 'sources/export'],
+    ['sources/archive/metrics/V1/metrics.md', 'sources/archive'],
   ])('reports %s as a legacy-layout signal on %s', async (file, folder) => {
     const signals = await detectLegacyLayout(memoryReader({ ...CURRENT, [file]: 'x' }))
     expect(signals).toEqual([
@@ -61,16 +64,29 @@ describe('detectLegacyLayout', () => {
     expect(signals.map((s) => s.path)).toEqual(['export', 'sources/original'])
   })
 
-  it('keeps the live scanner mirror folders current until the ingest cutover', async () => {
+  it('reports the ingest-cutover folders in a stable order', async () => {
     const signals = await detectLegacyLayout(
       memoryReader({
         ...CURRENT,
-        'sources/nn/a.md': 'x',
-        'sources/export/b.md': 'x',
         'sources/archive/metrics/V1/metrics.md': 'x',
+        'sources/export/b.md': 'x',
+        'sources/nn/a.md': 'x',
+        'export/r.md': 'x',
       }),
     )
-    expect(signals).toEqual([])
+    expect(signals.map((s) => s.path)).toEqual([
+      'export',
+      'sources/nn',
+      'sources/export',
+      'sources/archive',
+    ])
+  })
+
+  it('explains that sources/archive is inert and never deleted', async () => {
+    const signals = await detectLegacyLayout(
+      memoryReader({ ...CURRENT, 'sources/archive/metrics/V1/metrics.md': 'x' }),
+    )
+    expect(signals[0].detail).toMatch(/never (moved|deleted)/i)
   })
 
   it('does not report an empty retired folder', async () => {

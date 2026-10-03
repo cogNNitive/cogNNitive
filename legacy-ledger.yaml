@@ -88,9 +88,10 @@ entries:
     owner: 2026-10-02-cognitivize-in-place
 
   - id: layout-migrate
-    what: Layout migration planner and post-apply preserved-body step (export/ and sources/original/ moves, duplicate deletes, old local-time stamps converted via the injected localToUtc, citation path map)
+    what: Layout migration planner and post-apply preserved-body step (export/, sources/export/ and sources/original/ moves, sources/nn mirror retirement and relocation with bodies staged for sidecars, duplicate deletes, old local-time stamps converted via the injected localToUtc, citation path map)
     paths:
       - iNNfo/packages/innfo-core/src/legacy/layout/plan.ts
+      - iNNfo/packages/innfo-core/src/legacy/layout/mirrors.ts
       - iNNfo/packages/innfo-core/src/legacy/layout/finalize.ts
     why: Existing domaiNNs must move to the artifacts/ and sources/import/ layout without runtime code resolving old folders
     removal: "every non-frozen repo domaiNN and fixture reports current + a skills-v release shipping the migrator + maintainer-sign-off"

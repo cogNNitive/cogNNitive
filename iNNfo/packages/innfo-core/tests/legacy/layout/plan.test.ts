@@ -212,7 +212,7 @@ describe('planLayoutMigration', () => {
   })
 
   describe('citation path rewriting', () => {
-    it('rewrites export/ and sources/original/ paths but not sources/export/', async () => {
+    it('rewrites export/, sources/original/ and sources/export/ paths', async () => {
       const content = [
         '---',
         'sources: ["export/report.md@## A", "sources/original/data.csv@104", "sources/export/brief.md"]',
@@ -234,9 +234,9 @@ describe('planLayoutMigration', () => {
       if (write?.op !== 'write') throw new Error('expected a write op')
       expect(write.content).toContain('"artifacts/report.md@## A"')
       expect(write.content).toContain('"sources/import/data.csv@104"')
-      expect(write.content).toContain('"sources/export/brief.md"')
+      expect(write.content).toContain('"artifacts/brief.md"')
       expect(write.content).toContain('`artifacts/report.md`')
-      expect(write.content).toContain(' sources/export/brief.md.')
+      expect(write.content).toContain(' artifacts/brief.md.')
     })
 
     it('writes a moved markdown file to its destination with rewritten content', async () => {
@@ -353,14 +353,228 @@ describe('planLayoutMigration', () => {
     })
   })
 
-  it('leaves the live scanner mirror folders alone until the ingest cutover', async () => {
-    const plan = await planLayoutMigration(
-      memoryReader({ ...BASE, 'sources/nn/a.md': 'a', 'sources/export/b.md': 'b' }),
-      deps,
-    )
-    expect(plan.status).toBe('noop')
-    expect(plan.ops).toEqual([])
-    expect(plan.report.unmigrated).toEqual([])
+  describe('sources/nn mirrors', () => {
+    const mirror = (rawPath: string, body: string): string =>
+      `---\nsource_file: "${rawPath}"\nsha256: "abc"\nnormalized_by: "traNNsform"\n---\n\n${body}`
+    const writes = (ops: Op[]): Record<string, string> =>
+      Object.fromEntries(ops.flatMap((o) => (o.op === 'write' ? [[o.path, o.content]] : [])))
+
+    it('retires the mirror of a binary raw: body staged for the sidecar, citation points at the sidecar', async () => {
+      const plan = await planLayoutMigration(
+        memoryReader(
+          {
+            ...BASE,
+            'sources/nn/scan.md': mirror('sources/original/scan.pdf', '# Scan\n\n## Extracted\n\nOld body.\n'),
+            'kNNowledge/plan_NN.md': 'sources:: [sources/nn/scan.md@## Extracted]\n',
+          },
+          ['sources/original/scan.pdf'],
+        ),
+        deps,
+      )
+      expect(plan.status).toBe('ready')
+      expect(plan.ops).toEqual(
+        expect.arrayContaining([
+          { op: 'move', from: 'sources/original/scan.pdf', to: 'sources/import/scan.pdf' },
+          { op: 'delete', path: 'sources/nn/scan.md' },
+        ]),
+      )
+      const out = writes(plan.ops)
+      expect(out['staging/migration/sources/import/scan.pdf.md']).toBe('# Scan\n\n## Extracted\n\nOld body.\n')
+      expect(out['kNNowledge/plan_NN.md']).toBe(
+        'sources:: [sources/import/scan.pdf_sidecar_NN.md@## Extracted]\n',
+      )
+      expect(plan.report.deleted).toContain('sources/nn/scan.md')
+    })
+
+    it('retires the mirror of a text-native raw and cites the raw itself', async () => {
+      const plan = await planLayoutMigration(
+        memoryReader({
+          ...BASE,
+          'sources/import/notes.md': '# Notes\n\n## H\n',
+          'sources/nn/import/notes.md': mirror('sources/import/notes.md', '# Notes\n\n## H\n'),
+          'kNNowledge/plan_NN.md': 'sources:: [sources/nn/import/notes.md@## H]\n',
+        }),
+        deps,
+      )
+      expect(plan.ops).toContainEqual({ op: 'delete', path: 'sources/nn/import/notes.md' })
+      const out = writes(plan.ops)
+      expect(out['kNNowledge/plan_NN.md']).toBe('sources:: [sources/import/notes.md@## H]\n')
+      // A staged entry makes core cognitivize write the (bodyless) sidecar of the raw.
+      expect(Object.keys(out)).toContain('staging/migration/sources/import/notes.md.md')
+    })
+
+    it('finds the raw by name when the mirror has no source_file', async () => {
+      const plan = await planLayoutMigration(
+        memoryReader({
+          ...BASE,
+          'sources/import/market.txt': 'raw text',
+          'sources/nn/market.md': '# Market\n\n## Outlook\n',
+          'kNNowledge/plan_NN.md': 'sources:: [sources/nn/market.md@## Outlook]\n',
+        }),
+        deps,
+      )
+      expect(plan.ops).toContainEqual({ op: 'delete', path: 'sources/nn/market.md' })
+      const out = writes(plan.ops)
+      expect(out['staging/migration/sources/import/market.txt.md']).toBe('# Market\n\n## Outlook\n')
+      expect(out['kNNowledge/plan_NN.md']).toBe(
+        'sources:: [sources/import/market.txt_sidecar_NN.md@## Outlook]\n',
+      )
+    })
+
+    it('relocates a mirror with no raw into sources/import and rewrites its citations', async () => {
+      const plan = await planLayoutMigration(
+        memoryReader({
+          ...BASE,
+          'sources/nn/costs.csv': 'sku,cost\nA,1\n',
+          'kNNowledge/plan_NN.md': 'sources:: [sources/nn/costs.csv@A&cost]\n',
+        }),
+        deps,
+      )
+      expect(plan.ops).toContainEqual({ op: 'move', from: 'sources/nn/costs.csv', to: 'sources/import/costs.csv' })
+      expect(writes(plan.ops)['kNNowledge/plan_NN.md']).toBe('sources:: [sources/import/costs.csv@A&cost]\n')
+      expect(Object.keys(writes(plan.ops))).toContain('staging/migration/sources/import/costs.csv.md')
+    })
+
+    it('maps the old import/ and conversations/ mirror subfolders onto the new raw folders', async () => {
+      const plan = await planLayoutMigration(
+        memoryReader({
+          ...BASE,
+          'sources/nn/import/a.md': '# A\n',
+          'sources/nn/conversations/2026-10-01_talk_source.md': '# Talk\n',
+        }),
+        deps,
+      )
+      expect(plan.ops).toEqual(
+        expect.arrayContaining([
+          { op: 'move', from: 'sources/nn/import/a.md', to: 'sources/import/a.md' },
+          {
+            op: 'move',
+            from: 'sources/nn/conversations/2026-10-01_talk_source.md',
+            to: 'sources/conversations/2026-10-01_talk_source.md',
+          },
+        ]),
+      )
+    })
+
+    it('deletes the generated ingestion manifest sources/nn/index.md', async () => {
+      const plan = await planLayoutMigration(
+        memoryReader({ ...BASE, 'sources/nn/index.md': '# Ingestion manifest\n' }),
+        deps,
+      )
+      expect(plan.ops).toEqual([{ op: 'delete', path: 'sources/nn/index.md' }])
+    })
+
+    it('blocks a relocation whose destination already holds different content, deletes an identical one', async () => {
+      const blocked = await planLayoutMigration(
+        memoryReader({
+          ...BASE,
+          'sources/nn/data.csv': 'a\n',
+          'sources/import/data.csv': 'b\n',
+        }),
+        deps,
+      )
+      expect(blocked.status).toBe('blocked')
+      const dup = await planLayoutMigration(
+        memoryReader({
+          ...BASE,
+          'sources/nn/data.csv': 'a\n',
+          'sources/import/data.csv': 'a\n',
+        }),
+        deps,
+      )
+      expect(dup.status).toBe('ready')
+      expect(dup.ops).toContainEqual({ op: 'delete', path: 'sources/nn/data.csv' })
+    })
+
+    it('rewrites unqualified citations (the old implicit sources/nn prefix) in sources fields only', async () => {
+      const plan = await planLayoutMigration(
+        memoryReader({
+          ...BASE,
+          'sources/import/market.txt': 'raw text',
+          'sources/nn/market.md': '# Market\n\n## Outlook\n',
+          'sources/nn/costs.csv': 'sku,cost\nA,1\n',
+          'kNNowledge/plan_NN.md': [
+            'sources:: [market.md@## Outlook, costs.csv@A&cost]',
+            'See market.md for the narrative and the xmarket.md file.',
+            '',
+          ].join('\n'),
+        }),
+        deps,
+      )
+      expect(writes(plan.ops)['kNNowledge/plan_NN.md']).toBe(
+        [
+          'sources:: [sources/import/market.txt_sidecar_NN.md@## Outlook, sources/import/costs.csv@A&cost]',
+          'See market.md for the narrative and the xmarket.md file.',
+          '',
+        ].join('\n'),
+      )
+    })
+
+    it('points the sources_dir field at sources/ and leaves prose directory mentions alone', async () => {
+      const plan = await planLayoutMigration(
+        memoryReader({
+          ...BASE,
+          'domaiNN_NN.md': 'sources_dir:: sources/nn/\nNormalize into sources/nn/ with care.\n',
+          'sources/nn/a.md': '# A\n',
+        }),
+        deps,
+      )
+      expect(writes(plan.ops)['domaiNN_NN.md']).toBe(
+        'sources_dir:: sources/\nNormalize into sources/nn/ with care.\n',
+      )
+    })
+
+    it('moves sources/export to artifacts without duplicating a byte-identical file', async () => {
+      const plan = await planLayoutMigration(
+        memoryReader({
+          ...BASE,
+          'sources/export/brief.md': '# Brief',
+          'sources/export/dup.md': 'same',
+          'artifacts/dup.md': 'same',
+        }),
+        deps,
+      )
+      expect(plan.ops).toEqual(
+        expect.arrayContaining([
+          { op: 'move', from: 'sources/export/brief.md', to: 'artifacts/brief.md' },
+          { op: 'delete', path: 'sources/export/dup.md' },
+        ]),
+      )
+    })
+
+    it('does not flag a bare sources/archive/ mention as a citation', async () => {
+      const plan = await planLayoutMigration(
+        memoryReader({ ...BASE, 'procedures/p_NN.md': 'Skip hashes already registered in sources/archive/ or assets/.' }),
+        deps,
+      )
+      expect(plan.report.archiveCitations).toEqual([])
+      expect(plan.problems).toEqual([])
+    })
+
+    it('leaves sources/archive alone as inert content (reported, never moved)', async () => {
+      const plan = await planLayoutMigration(
+        memoryReader({ ...BASE, 'sources/archive/x/V1/x.md': '# V1', 'sources/nn/a.md': '# A\n' }),
+        deps,
+      )
+      expect(plan.ops.some((o) => JSON.stringify(o).includes('sources/archive'))).toBe(false)
+      expect(plan.report.unmigrated).toEqual(['sources/archive/x/V1/x.md'])
+    })
+  })
+
+  it('is idempotent over mirrors: applying the plan leaves nothing to do', async () => {
+    const files = {
+      ...BASE,
+      'sources/import/market.txt': 'raw',
+      'sources/nn/market.md': '# Market\n\n## Outlook\n',
+      'sources/nn/costs.csv': 'a,b\n',
+      'sources/nn/index.md': '# idx\n',
+      'sources/export/brief.md': '# Brief',
+      'kNNowledge/plan_NN.md': 'sources:: [sources/nn/market.md@## Outlook, sources/nn/costs.csv@1]\n',
+    }
+    const first = await planLayoutMigration(memoryReader(files), deps)
+    expect(first.status).toBe('ready')
+    const second = await planLayoutMigration(memoryReader(apply(files, first.ops)), deps)
+    expect(second.status).toBe('noop')
   })
 
   it('is idempotent: applying the plan leaves nothing to do', async () => {

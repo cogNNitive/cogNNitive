@@ -21,12 +21,13 @@ const SKIP_DIRS = new Set(['node_modules', 'dist', '.git', 'fixtures'])
 const SCANNED_EXT = /\.(ts|vue|js|mjs|cjs)$/
 const SKIPPED_FILE = /(\.generated\.|\.test\.|\.spec\.|bundle|canonical-registry\.ts$)/
 
-// Retired layouts: `export/` (now `artifacts/`) and `sources/original/` (now `sources/import/`).
-// `sources/export/` belongs to the ingest cutover and is matched by neither pattern.
+// Retired layouts: `export/` and `sources/export/` (now `artifacts/`), `sources/original/` (now
+// `sources/import/`), the `sources/nn/` mirror tree (sidecars are co-located), and `sources/archive/`.
 const RETIRED: Array<{ name: string; re: RegExp }> = [
   { name: 'export/ folder', re: /(?<![\w/.-])export\//},
   { name: 'innfo/export/ folder', re: /innfo\/export\// },
   { name: 'sources/original', re: /sources\/original|sources['"`, ]+original\b|\(sourcesDir, 'original'\)/ },
+  { name: 'sources/nn|export|archive', re: /sources\/(nn|export|archive)|sources['\"`, ]+(nn|export|archive)/ },
   { name: "join(root, 'export')", re: /join\(\s*(?:projectDir|rootDir|root|cwd|workspaceRoot)\s*,\s*'export'/ },
   { name: "'export' directory entry", re: /^\s*'export',?\s*(\/\/.*)?$|,\s*'export',\s*'artifacts'/ },
 ]
@@ -48,7 +49,7 @@ function walk(dir: string, out: string[]): void {
 }
 
 describe('retired layout paths are absent from live code', () => {
-  it('names neither export/ nor sources/original outside marked legacy files', () => {
+  it('names no retired folder outside marked legacy files', () => {
     const files: string[] = []
     for (const root of LIVE_ROOTS) walk(join(repoRoot, root), files)
     expect(files.length).toBeGreaterThan(50)

@@ -192,6 +192,59 @@ test('layout step: apply migrates, backs up, writes preserved-body sidecars, and
   }
 })
 
+test('layout step: retires the sources/nn mirror tree into co-located sidecars', () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'nn-layout-mirrors-'))
+  try {
+    const domainDir = path.join(tmp, 'domain')
+    write(domainDir, 'domaiNN_NN.md', '---\nknowledge_version: "V_0-1-0"\n---\n# NN index\n\n* [[domaiNN]]\n')
+    write(
+      domainDir,
+      'kNNowledge/Plan_NN.md',
+      'sources:: [sources/nn/scan.md@## Extracted, sources/nn/costs.csv@A, sources/nn/index.md]\n',
+    )
+    fs.mkdirSync(path.join(domainDir, 'sources', 'original'), { recursive: true })
+    fs.writeFileSync(
+      path.join(domainDir, 'sources', 'original', 'scan.pdf'),
+      Buffer.from([0x25, 0x50, 0x44, 0x46, 0x2d, 0x00, 0xff, 0xfe]),
+    )
+    write(
+      domainDir,
+      'sources/nn/scan.md',
+      '---\nsource_file: "sources/original/scan.pdf"\nsha256: "abc"\n---\n\n# Scan\n\n## Extracted\n\nBody of the old mirror.\n',
+    )
+    write(domainDir, 'sources/nn/costs.csv', 'sku,cost\nA,1\n')
+    write(domainDir, 'sources/nn/index.md', '# Ingestion manifest\n')
+    write(domainDir, 'sources/export/brief.md', '# Brief\n')
+
+    const plan = JSON.parse(runCli(['--domain-dir', domainDir, '--json']).stdout)
+    assert.strictEqual(plan.status, 'ready')
+    assert.deepStrictEqual(plan.report.preservedBodies.sort(), [
+      'sources/import/costs.csv',
+      'sources/import/scan.pdf',
+    ])
+
+    const res = runCli(['--domain-dir', domainDir, '--apply', '--plan-hash', plan.planHash, '--yes'])
+    assert.strictEqual(res.status, 0, res.stderr + res.stdout)
+
+    for (const gone of ['sources/nn', 'sources/export', 'sources/original', 'staging']) {
+      assert.ok(!fs.existsSync(path.join(domainDir, ...gone.split('/'))), `${gone} must be gone`)
+    }
+    assert.ok(fs.existsSync(path.join(domainDir, 'artifacts', 'brief.md')))
+    const pdfSidecar = fs.readFileSync(path.join(domainDir, 'sources', 'import', 'scan.pdf_sidecar_NN.md'), 'utf8')
+    assert.ok(pdfSidecar.includes('Body of the old mirror.'))
+    assert.ok(!pdfSidecar.includes('sha256: "abc"'), 'the old mirror frontmatter is not carried over')
+    const csvSidecar = fs.readFileSync(path.join(domainDir, 'sources', 'import', 'costs.csv_sidecar_NN.md'), 'utf8')
+    assert.ok(csvSidecar.includes('source_file'))
+    const plan_md = fs.readFileSync(path.join(domainDir, 'kNNowledge', 'Plan_NN.md'), 'utf8')
+    assert.ok(plan_md.includes('sources/import/scan.pdf_sidecar_NN.md@## Extracted'))
+    assert.ok(plan_md.includes('sources/import/costs.csv@A'))
+
+    assert.strictEqual(JSON.parse(runCli(['--domain-dir', domainDir, '--json']).stdout).status, 'noop')
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true })
+  }
+})
+
 test('layout step: a frozen sample workspace is skipped and left unchanged', () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'nn-layout-frozen-'))
   try {
