@@ -27,10 +27,31 @@ var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: tru
 // iNNfo/packages/innfo-core/src/legacy/index.ts
 var index_exports = {};
 __export(index_exports, {
+  RETIRED_LAYOUT_FOLDERS: () => RETIRED_LAYOUT_FOLDERS,
   detectLegacy: () => detectLegacy,
+  detectLegacyLayout: () => detectLegacyLayout,
   planMigration: () => planMigration
 });
 module.exports = __toCommonJS(index_exports);
+
+// iNNfo/packages/innfo-core/src/legacy/layout/detect.ts
+var RETIRED_LAYOUT_FOLDERS = ["export", "sources/original"];
+async function hasContent(r, dir) {
+  return (await r.list(dir)).length > 0;
+}
+async function detectLegacyLayout(r) {
+  const signals = [];
+  for (const folder of RETIRED_LAYOUT_FOLDERS) {
+    if (await hasContent(r, folder)) {
+      signals.push({
+        type: "legacy-layout",
+        path: folder,
+        detail: `Retired folder '${folder}/' still holds content (see the nn-upgrade layout migration)`
+      });
+    }
+  }
+  return signals;
+}
 
 // iNNfo/packages/innfo-core/src/legacy/detect.ts
 var LEGACY_KEYS = [
@@ -187,6 +208,7 @@ async function detectLegacy(r) {
       });
     }
   }
+  signals.push(...await detectLegacyLayout(r));
   if (signals.length === 0) {
     return { kind: "current" };
   }

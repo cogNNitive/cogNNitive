@@ -1,5 +1,7 @@
 // legacy:nn-rename/detector
 
+import { detectLegacyLayout } from './layout/detect.js'
+
 export interface DomainReader {
   list(dir: string): Promise<string[]>
   read(path: string): Promise<string | null>
@@ -14,6 +16,7 @@ export type LegacySignalType =
   | 'legacy-parent-spec'
   | 'legacy-l1-parent'
   | 'case-mismatch'
+  | 'legacy-layout'
 
 export interface LegacySignal {
   type: LegacySignalType
@@ -222,6 +225,9 @@ export async function detectLegacy(r: DomainReader): Promise<DetectLegacyResult>
       })
     }
   }
+
+  // legacy:cognitivize-in-place/layout-detect
+  signals.push(...(await detectLegacyLayout(r)))
 
   if (signals.length === 0) {
     return { kind: 'current' }

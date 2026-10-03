@@ -7,6 +7,7 @@ export type {
   DetectLegacyResult,
 } from './detect.js'
 export { detectLegacy } from './detect.js'
+export { detectLegacyLayout, RETIRED_LAYOUT_FOLDERS } from './layout/detect.js'
 
 export type Op =
   | { op: 'move'; from: string; to: string }

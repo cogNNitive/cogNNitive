@@ -78,4 +78,11 @@ entries:
     removal: no-#slug-left-outside-frozen-paths + maintainer-sign-off
     owner: 2026-10-01-lineage-single-edge
 
-
+  - id: layout-detect
+    what: Detection of the retired export/ and sources/original/ layout (legacy-layout signal)
+    paths:
+      - iNNfo/packages/innfo-core/src/legacy/layout/detect.ts
+      - iNNfo/packages/innfo-core/src/legacy/detect.ts
+    why: Preflight, MCP, and the editor must report domains still using the retired folders
+    removal: "every non-frozen repo domaiNN and fixture reports current + a skills-v release shipping the migrator + maintainer-sign-off"
+    owner: 2026-10-02-cognitivize-in-place
