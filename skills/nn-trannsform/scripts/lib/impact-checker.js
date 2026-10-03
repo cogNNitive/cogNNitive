@@ -254,7 +254,7 @@ function buildImpactReport(audit, date) {
 
 /**
  * Write a structured Markdown impact audit report to
- * `export/Impact_Audit_<date>_report.md` inside the workspace.
+ * `artifacts/Impact_Audit_<date>_report.md` inside the workspace.
  *
  * @param {string} projectDir
  * @param {ReturnType<typeof auditModelCitations>} audit
@@ -263,9 +263,9 @@ function buildImpactReport(audit, date) {
  */
 function writeImpactReport(projectDir, audit, date) {
   const d = date || new Date().toISOString().slice(0, 10);
-  const exportDir = path.join(projectDir, 'export');
-  fs.mkdirSync(exportDir, { recursive: true });
-  const reportPath = path.join(exportDir, `Impact_Audit_${d}_report.md`);
+  const artifactsDir = path.join(projectDir, 'artifacts');
+  fs.mkdirSync(artifactsDir, { recursive: true });
+  const reportPath = path.join(artifactsDir, `Impact_Audit_${d}_report.md`);
   const content = buildImpactReport(audit, d);
   fs.writeFileSync(reportPath, content, 'utf8');
   return { reportPath: reportPath.replace(/\\/g, '/'), content };

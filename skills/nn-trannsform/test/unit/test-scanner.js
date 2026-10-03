@@ -90,9 +90,9 @@ function run() {
     assertEqual(hash1.length, 64, 'computeFileHash returns 64-char hex');
 
     // Test 7: generateSourceFrontmatter produces the canonical flat schema (no nesting, no source_id)
-    const fm = scanner.generateSourceFrontmatter(testFile, 'sources/original/hash-test.txt');
+    const fm = scanner.generateSourceFrontmatter(testFile, 'sources/import/hash-test.txt');
     assertTrue(fm.startsWith('---\n'), 'frontmatter starts with ---');
-    assertTrue(fm.includes('source_file: "sources/original/hash-test.txt"'), 'frontmatter includes flat source_file');
+    assertTrue(fm.includes('source_file: "sources/import/hash-test.txt"'), 'frontmatter includes flat source_file');
     assertMatch(fm, /\nsha256: "[a-f0-9]{64}"\n/, 'frontmatter includes flat sha256 (no "sha256:" prefix inside the value)');
     assertMatch(fm, /\nsize_bytes: \d+\n/, 'frontmatter includes flat size_bytes');
     assertMatch(fm, /\nnormalized_at: "[^"]+"\n/, 'frontmatter includes normalized_at');
@@ -112,7 +112,7 @@ function run() {
     );
 
     // Test 8: generateSourceFrontmatter merges optional web-import extras
-    const fmWeb = scanner.generateSourceFrontmatter(testFile, 'sources/original/page.html', {
+    const fmWeb = scanner.generateSourceFrontmatter(testFile, 'sources/import/page.html', {
       source_url: 'https://example.com/page',
       downloaded_at: '2026-08-02T13:30:00.000Z',
       title: 'Example Page',
@@ -129,15 +129,15 @@ function run() {
     assertEqual(typeof scanner.generateSourceRegistry, 'undefined', 'generateSourceRegistry no longer exists');
     assertEqual(typeof scanner.flattenOriginalToRaw, 'undefined', 'flattenOriginalToRaw no longer exists');
 
-    // Test 10: scanAndProcess mirrors sources/original/ subfolders into sources/nn/ (no flattening)
+    // Test 10: scanAndProcess mirrors sources/import/ subfolders into sources/nn/import/ (no flattening)
     const projDir = path.join(TEST_TEMP, 'mirror-project');
-    const originalDir = path.join(projDir, 'sources', 'original');
-    fs.mkdirSync(path.join(originalDir, 'clientA', 'nested'), { recursive: true });
-    fs.mkdirSync(path.join(originalDir, 'clientB'), { recursive: true });
-    fs.writeFileSync(path.join(originalDir, 'root.txt'), 'Root level document.', 'utf8');
-    fs.writeFileSync(path.join(originalDir, 'clientA', 'report.txt'), 'Client A report.', 'utf8');
-    fs.writeFileSync(path.join(originalDir, 'clientA', 'nested', 'deep.txt'), 'Deeply nested document.', 'utf8');
-    fs.writeFileSync(path.join(originalDir, 'clientB', 'notes.txt'), 'Client B notes.', 'utf8');
+    const projImportDir = path.join(projDir, 'sources', 'import');
+    fs.mkdirSync(path.join(projImportDir, 'clientA', 'nested'), { recursive: true });
+    fs.mkdirSync(path.join(projImportDir, 'clientB'), { recursive: true });
+    fs.writeFileSync(path.join(projImportDir, 'root.txt'), 'Root level document.', 'utf8');
+    fs.writeFileSync(path.join(projImportDir, 'clientA', 'report.txt'), 'Client A report.', 'utf8');
+    fs.writeFileSync(path.join(projImportDir, 'clientA', 'nested', 'deep.txt'), 'Deeply nested document.', 'utf8');
+    fs.writeFileSync(path.join(projImportDir, 'clientB', 'notes.txt'), 'Client B notes.', 'utf8');
 
     return scanner.scanAndProcess(projDir, { autoAcceptPrompt: true }).then((result) => {
       const nnDir = path.join(projDir, 'sources', 'nn');
@@ -145,16 +145,16 @@ function run() {
       assertEqual(result.totalDiscovered, 4, 'scanAndProcess discovers all files across subfolders');
       assertEqual(result.processedCount, 4, 'scanAndProcess processes all plain-text files');
 
-      assertTrue(fs.existsSync(path.join(nnDir, 'root.txt'.replace('.txt', '.md'))), 'root-level file normalized at sources/nn/root.md');
-      assertTrue(fs.existsSync(path.join(nnDir, 'clientA', 'report.md')), 'clientA/report.md mirrors sources/original/clientA/');
-      assertTrue(fs.existsSync(path.join(nnDir, 'clientA', 'nested', 'deep.md')), 'clientA/nested/deep.md mirrors nested subfolders');
-      assertTrue(fs.existsSync(path.join(nnDir, 'clientB', 'notes.md')), 'clientB/notes.md mirrors sources/original/clientB/');
+      assertTrue(fs.existsSync(path.join(nnDir, 'import', 'root.md')), 'root-level file normalized at sources/nn/import/root.md');
+      assertTrue(fs.existsSync(path.join(nnDir, 'import', 'clientA', 'report.md')), 'clientA/report.md mirrors sources/import/clientA/');
+      assertTrue(fs.existsSync(path.join(nnDir, 'import', 'clientA', 'nested', 'deep.md')), 'clientA/nested/deep.md mirrors nested subfolders');
+      assertTrue(fs.existsSync(path.join(nnDir, 'import', 'clientB', 'notes.md')), 'clientB/notes.md mirrors sources/import/clientB/');
       assertTrue(!fs.existsSync(path.join(nnDir, 'clientA__report.md')), 'output is not flattened with __ separators');
 
-      const nestedContent = fs.readFileSync(path.join(nnDir, 'clientA', 'nested', 'deep.md'), 'utf8');
+      const nestedContent = fs.readFileSync(path.join(nnDir, 'import', 'clientA', 'nested', 'deep.md'), 'utf8');
       assertTrue(
-        nestedContent.includes('source_file: "sources/original/clientA/nested/deep.txt"'),
-        'nested file frontmatter records the full sources/original/ relative path'
+        nestedContent.includes('source_file: "sources/import/clientA/nested/deep.txt"'),
+        'nested file frontmatter records the full sources/import/ relative path'
       );
 
       assertTrue(!fs.existsSync(path.join(projDir, 'sources', 'raw')), 'sources/raw/ is never created by scanAndProcess');
@@ -164,15 +164,15 @@ function run() {
       assertEqual(scanner.EXT_LABELS['.vtt'], 'vtt', 'EXT_LABELS .vtt');
 
       // Test 12: staging directory is ignored in walkOriginal and detectFormats
-      const stagingDir = path.join(originalDir, 'staging');
+      const stagingDir = path.join(projImportDir, 'staging');
       fs.mkdirSync(stagingDir, { recursive: true });
       fs.writeFileSync(path.join(stagingDir, 'intermediate.txt'), 'transient data');
-      const formatsAfterStaging = scanner.detectFormats(originalDir);
-      const walkAfterStaging = scanner.walkOriginal(originalDir);
+      const formatsAfterStaging = scanner.detectFormats(projImportDir);
+      const walkAfterStaging = scanner.walkOriginal(projImportDir);
       assertTrue(!walkAfterStaging.some(f => f.relPath.includes('staging')), 'walkOriginal ignores staging directory');
 
       // Test 13: generateSourceFrontmatter with extended metadata (canonical, cited_works, staging_file)
-      const fmExtended = scanner.generateSourceFrontmatter(testFile, 'sources/original/interview.mp3', {
+      const fmExtended = scanner.generateSourceFrontmatter(testFile, 'sources/import/interview.mp3', {
         staging_file: 'sources/staging/interview.srt',
         canonical: {
           title: 'Strategic Vision 2026',
@@ -192,7 +192,7 @@ function run() {
       assertTrue(fmExtended.includes('is_primary: true'), 'frontmatter cited_works includes is_primary: true');
 
       // Test 13b: `references` is still accepted as a deprecated input alias.
-      const fmAlias = scanner.generateSourceFrontmatter(testFile, 'sources/original/x.mp3', {
+      const fmAlias = scanner.generateSourceFrontmatter(testFile, 'sources/import/x.mp3', {
         references: [{ id: 'legacy1', citation: 'Legacy (2020)' }]
       });
       assertTrue(fmAlias.includes('cited_works:\n  - id: "legacy1"'), 'deprecated `references` input still emits cited_works');
@@ -319,18 +319,15 @@ function run() {
         assertTrue(!expFm.includes('is_synthetic:'), 'promoted deliverable has no is_synthetic');
         assertTrue(!expFm.includes('derived_from:'), 'promoted deliverable has no derived_from');
 
-        // Test 17: Legacy fallback resolution (sources/original/ when sources/import/ does not exist)
+        // Test 17: sources/original/ is retired — it is never scanned and never falls back
         const legacyProj = path.join(TEST_TEMP, 'legacy-project');
         const legacyOrigDir = path.join(legacyProj, 'sources', 'original');
         fs.mkdirSync(legacyOrigDir, { recursive: true });
         fs.writeFileSync(path.join(legacyOrigDir, 'legacy_note.txt'), 'Legacy content.', 'utf8');
 
         return scanner.scanAndProcess(legacyProj, { autoAcceptPrompt: true }).then((legacyResult) => {
-          assertEqual(legacyResult.totalDiscovered, 1, 'legacy scan discovers file in sources/original');
-          const legacyNnFile = path.join(legacyProj, 'sources', 'nn', 'legacy_note.md');
-          assertTrue(fs.existsSync(legacyNnFile), 'legacy file normalized to sources/nn/legacy_note.md');
-          const legacyContent = fs.readFileSync(legacyNnFile, 'utf8');
-          assertTrue(legacyContent.includes('source_file: "sources/original/legacy_note.txt"'), 'legacy source_file preserved');
+          assertEqual(legacyResult.totalDiscovered, 0, 'retired sources/original is not scanned');
+          assertTrue(!fs.existsSync(path.join(legacyProj, 'sources', 'nn', 'legacy_note.md')), 'retired folder content is not normalized');
 
           // Test 18: Snapshot-on-change, hash-idempotency, version counter, and walk exclusion
           const snapProj = path.join(TEST_TEMP, 'snap-project');

@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 /**
- * webImport.js — download a resource from a URL directly into sources/original/,
+ * webImport.js — download a resource from a URL directly into sources/import/,
  * so it flows through the normal scan/normalize pipeline like any manually
  * dropped file (no new branches, no separate ingestion path).
  *
@@ -141,7 +141,7 @@ function extractHtmlMetadata(html) {
 }
 
 /**
- * Download `url` straight into `targetDir` (sources/import/, with fallback to sources/original/),
+ * Download `url` straight into `targetDir` (sources/import/),
  * the same dropbox the user drags manually-collected files into. The extension is
  * decided from the response's Content-Type header, falling back to the URL's
  * own extension.

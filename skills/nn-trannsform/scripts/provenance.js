@@ -3,7 +3,7 @@
  *
  * Builds and refreshes an iNNfo Level 3 lineage record that registers every
  * Source ingested, every Model authored under `kNNowledge/`, and every Artifact
- * under `export/` as first-class iNNfo elements with explicit derivation.
+ * under `artifacts/` as first-class iNNfo elements with explicit derivation.
  * The `# NN Sources`, `# NN ModelRecords` and `# NN Artifacts` sections are
  * re-synced from the filesystem on every run; `# NN Procedures` is an
  * append-only run log.

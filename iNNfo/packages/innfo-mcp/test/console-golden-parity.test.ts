@@ -133,7 +133,7 @@ parent_spec:
     const cliRes = await runCli([tempDir, '--all'])
     expect(cliRes.code).toBe(0)
 
-    const cliHtmlPath = join(tempDir, 'export', 'Ghostbusters_console', 'Ghostbusters_console.html')
+    const cliHtmlPath = join(tempDir, 'artifacts', 'Ghostbusters_console', 'Ghostbusters_console.html')
     expect(existsSync(cliHtmlPath)).toBe(true)
     const cliHtml = await readFile(cliHtmlPath, 'utf-8')
 
@@ -147,7 +147,7 @@ parent_spec:
       model: 'Ghostbusters',
     })
 
-    expect(mcpResult.outputPath).toBe('export/Ghostbusters_console/Ghostbusters_console.html')
+    expect(mcpResult.outputPath).toBe('artifacts/Ghostbusters_console/Ghostbusters_console.html')
 
     // 3. Compare normalized slots
     const normCliSchema = normalizeSlot(cliSchemaMatch![1])

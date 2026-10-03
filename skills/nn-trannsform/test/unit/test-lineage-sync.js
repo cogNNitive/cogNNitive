@@ -22,7 +22,7 @@ function run() {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'nnt-lineage-'));
   try {
     const proj = path.join(tmp, 'Acme');
-    for (const d of ['sources/nn', 'kNNowledge', 'export']) {
+    for (const d of ['sources/nn', 'kNNowledge', 'artifacts']) {
       fs.mkdirSync(path.join(proj, d), { recursive: true });
     }
     fs.writeFileSync(
@@ -34,7 +34,7 @@ function run() {
       '---\nlevel: 3\nknowledge_version: "V_1-0-0"\nparent_spec:\n  name: "business_V_0-1-0"\ntitle: "Business Plan"\n---\n\n# NN Stakeholders\n\n## NN Stakeholders: Clients\nsources:: [sources/nn/report.md@# Overview]\n',
     );
     fs.writeFileSync(
-      path.join(proj, 'export', 'Exec_Summary_V_1-0-0.md'),
+      path.join(proj, 'artifacts', 'Exec_Summary_V_1-0-0.md'),
       '---\ntype: "report"\nsources: ["kNNowledge/Plan_V_1-0-0_NN.md@## NN Stakeholders: Clients"]\n---\n\n# Executive Summary\n',
     );
 
@@ -63,7 +63,7 @@ function run() {
 
     // Append a procedure run — survives a later section refresh.
     provenance.appendProcedureRun(proj, { command: 'scan', inputs: ['sources/import/'], outputs: ['sources/nn/'] });
-    provenance.appendProcedureRun(proj, { command: 'apply Foo', inputs: ['kNNowledge/'], outputs: ['export/'] });
+    provenance.appendProcedureRun(proj, { command: 'apply Foo', inputs: ['kNNowledge/'], outputs: ['artifacts/'] });
     let mp = fs.readFileSync(r1.modelPath, 'utf8');
     ok((mp.match(/## NN Procedures:/g) || []).length === 2, 'two procedure entries appended');
     provenance.buildProvenanceKnowledge(proj, { projectName: 'Acme' });
@@ -97,13 +97,13 @@ function run() {
       path.join(proj, 'kNNowledge', 'Plan_V_1-0-0_NN.md'),
       '---\nlevel: 3\nknowledge_version: "V_1-0-0"\ntitle: "Business Plan"\n---\n\n# NN S\n\n## NN S: X\nsources:: [sources/nn/report.md@# Overview]\n',
     );
-    fs.rmSync(path.join(proj, 'export', 'Exec_Summary_V_1-0-0.md'));
+    fs.rmSync(path.join(proj, 'artifacts', 'Exec_Summary_V_1-0-0.md'));
     provenance.buildProvenanceKnowledge(proj, { projectName: 'Acme' });
     ok(checkLineage(proj).errors.length === 0, '--check clean on a synced workspace');
 
-    // Test export/ promotion & sidecar in # NN Sources
+    // Test artifacts/ promotion & sidecar in # NN Sources
     fs.writeFileSync(
-      path.join(proj, 'export', 'Proposal_V_1-0-0.md'),
+      path.join(proj, 'artifacts', 'Proposal_V_1-0-0.md'),
       '---\ntype: "proposal"\nsources: ["kNNowledge/Plan_V_1-0-0_NN.md@## NN S: X"]\n---\n\n# Proposal\n',
     );
     fs.mkdirSync(path.join(proj, 'sources', 'export'), { recursive: true });
@@ -113,8 +113,8 @@ function run() {
     );
     provenance.buildProvenanceKnowledge(proj, { projectName: 'Acme' });
     const mExport = fs.readFileSync(r1.modelPath, 'utf8');
-    ok(/## NN Artifacts: Proposal_V_1-0-0/.test(mExport), 'deliverable in export/ rendered under # NN Artifacts');
-    ok(/artifact_ref:: export\/Proposal_V_1-0-0\.md/.test(mExport), 'artifact_ref points to export/');
+    ok(/## NN Artifacts: Proposal_V_1-0-0/.test(mExport), 'deliverable in artifacts/ rendered under # NN Artifacts');
+    ok(/artifact_ref:: artifacts\/Proposal_V_1-0-0\.md/.test(mExport), 'artifact_ref points to artifacts/');
     ok(!/is_synthetic:: true/.test(mExport), '# NN Sources does NOT include is_synthetic');
     ok(/derived_from:: \[kNNowledge\/Plan_V_1-0-0_NN\.md@## NN S: X\]/.test(mExport), '# NN Sources includes derived_from for promoted export source');
 

@@ -7519,7 +7519,6 @@ function parseSourceRef(input) {
   );
   if (unqualified) {
     const rawPath = unqualified[1].trim();
-    if (rawPath.startsWith("sources/original/")) return null;
     if (rawPath.startsWith("models/")) return null;
     const filePath = `sources/nn/${rawPath}`;
     return {
@@ -7730,7 +7729,6 @@ function resolveUnitPath(rawPath) {
   const segments = trimmed.split(/[/\\]/);
   if (segments.some((s) => s === "..")) return null;
   const forward = segments.join("/");
-  if (forward.startsWith("sources/original/")) return null;
   const isMd = /\.md$/i.test(forward);
   const isCsv = /\.csv$/i.test(forward);
   const isJson = /\.json$/i.test(forward);
@@ -8925,7 +8923,7 @@ function extractFileCitations(files) {
   const sites = [];
   for (const file of files) {
     const p = posixPath(file.path);
-    if (p.startsWith("export/")) {
+    if (p.startsWith("artifacts/")) {
       const ext = getExtension(p);
       if (ext === "md") {
         const fm = parseFrontmatter(file.content) || {};
@@ -9211,7 +9209,7 @@ function projectLineage(files) {
       citations
     });
   }
-  const artifactFiles = normalizedFiles.filter((f) => f.path.startsWith("export/")).sort((a, b) => a.path.localeCompare(b.path));
+  const artifactFiles = normalizedFiles.filter((f) => f.path.startsWith("artifacts/")).sort((a, b) => a.path.localeCompare(b.path));
   const artifacts = [];
   for (const af of artifactFiles) {
     const ext = getExtension(af.path);
@@ -9346,7 +9344,7 @@ function validateCitations(sites, resolver) {
     if (!cit) {
       diagnostics.push({
         path: path4,
-        message: `Malformed source reference "${value}" \u2014 use "<path>@<unit>" (e.g. "file.md@## Section", "data.csv@104"); line ranges like #L10-L20 and src-NNN ids are not allowed, and sources/original/ is not citable`,
+        message: `Malformed source reference "${value}" \u2014 use "<path>@<unit>" (e.g. "file.md@## Section", "data.csv@104"); line ranges like #L10-L20 and src-NNN ids are not allowed`,
         severity: "error",
         code: "KU_MALFORMED",
         site,
@@ -9607,7 +9605,7 @@ function listSectionFieldsFor(content, heading) {
 // iNNfo/packages/innfo-core/src/lineage/render.ts
 var SOURCES_GUIDANCE = "No sources ingested yet. Place files in sources/import and run a scan.";
 var MODELS_GUIDANCE = "Auto-synced from kNNowledge/ on every --scan/--import-url/--lineage. One ModelRecords element per Level 3 model.";
-var ARTIFACTS_GUIDANCE = "Auto-synced from export/ on every --scan/--import-url/--lineage. One element per generated deliverable.";
+var ARTIFACTS_GUIDANCE = "Auto-synced from artifacts/ on every --scan/--import-url/--lineage. One element per generated deliverable.";
 function renderSourcesSection(sources) {
   let out = "# NN Sources\n";
   if (sources.length === 0) {
@@ -9805,17 +9803,17 @@ function readLineageSnapshot(root) {
       });
     }
   }
-  const exportDir = path.join(rootDir, "export");
-  if (fs.existsSync(exportDir)) {
-    const rels = walkDir(exportDir, (_, name, isDir) => {
+  const artifactsDir = path.join(rootDir, "artifacts");
+  if (fs.existsSync(artifactsDir)) {
+    const rels = walkDir(artifactsDir, (_, name, isDir) => {
       if (isDir) return true;
       const ext = path.extname(name).toLowerCase();
       if (isSidecarName(name)) return false;
       return [".md", ".html", ".htm", ".csv", ".json"].includes(ext);
     });
     for (const rel of rels) {
-      const p = `export/${rel}`;
-      const full = path.join(exportDir, rel);
+      const p = `artifacts/${rel}`;
+      const full = path.join(artifactsDir, rel);
       snapshots.push({
         path: p,
         content: fs.readFileSync(full, "utf8")

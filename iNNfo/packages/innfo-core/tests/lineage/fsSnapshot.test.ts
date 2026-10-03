@@ -24,11 +24,11 @@ describe('readLineageSnapshot', () => {
       'sources/export/Report_Promoted.md': '---\nsources: []\n---\n# Promoted',
       'kNNowledge/Strategy_NN.md': '---\ntitle: Strategy\n---\n# Strategy',
       'kNNowledge/Lineage_Record_NN.md': '---\ntitle: Lineage\nparent_spec:\n  name: cogNNitive\n---\n# Record',
-      'export/Report.md': '---\ntitle: Report\n---\n# Report',
-      'export/Console.html': '<html><script id="innfo-model"></script></html>',
-      'export/data.csv': 'a,b\n1,2',
-      'export/data.json': '{"a": 1}',
-      'export/image.png': 'binary-ignored',
+      'artifacts/Report.md': '---\ntitle: Report\n---\n# Report',
+      'artifacts/Console.html': '<html><script id="innfo-model"></script></html>',
+      'artifacts/data.csv': 'a,b\n1,2',
+      'artifacts/data.json': '{"a": 1}',
+      'artifacts/image.png': 'binary-ignored',
       'random_dir/foo.md': '# Ignored',
     }
 
@@ -46,15 +46,15 @@ describe('readLineageSnapshot', () => {
     expect(paths).toContain('sources/archive/interview/V1/interview.md')
     expect(paths).toContain('sources/export/Report_Promoted.md')
     expect(paths).toContain('kNNowledge/Strategy_NN.md')
-    expect(paths).toContain('export/Report.md')
-    expect(paths).toContain('export/Console.html')
-    expect(paths).toContain('export/data.csv')
-    expect(paths).toContain('export/data.json')
+    expect(paths).toContain('artifacts/Report.md')
+    expect(paths).toContain('artifacts/Console.html')
+    expect(paths).toContain('artifacts/data.csv')
+    expect(paths).toContain('artifacts/data.json')
 
     // Excluded files
     expect(paths).not.toContain('sources/nn/staging/draft.md')
     expect(paths).not.toContain('kNNowledge/Lineage_Record_NN.md')
-    expect(paths).not.toContain('export/image.png')
+    expect(paths).not.toContain('artifacts/image.png')
     expect(paths).not.toContain('random_dir/foo.md')
 
     // Content verification
@@ -69,7 +69,7 @@ describe('readLineageSnapshot', () => {
       'kNNowledge/report.pdf_sidecar_NN.md': sidecar,
       'kNNowledge/sources_NN.md': '---\nparent_spec:\n  name: sources\n---\n',
       'sources/nn/prices.csv_sidecar_NN.md': sidecar,
-      'export/Report.md_sidecar_NN.md': sidecar,
+      'artifacts/Report.md_sidecar_NN.md': sidecar,
     }
     for (const [relPath, content] of Object.entries(filesToCreate)) {
       const fullPath = path.join(tempDir, relPath)

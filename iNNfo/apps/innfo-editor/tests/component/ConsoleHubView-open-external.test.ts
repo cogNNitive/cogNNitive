@@ -98,8 +98,6 @@ describe('ConsoleHubView — Open External (F-16)', () => {
     workspaceStore.handle = buildFakeTree('workspace', {
       artifacts: {
         'workspace_hub.html': '<html class="h-full bg-slate-900 text-slate-100"><body class="bg-slate-950"><div class="bg-slate-900/90 text-white border-slate-800">Legacy Hub</div></body></html>',
-      },
-      export: {
         iNNtrevistas_V_0_1_0_console: {
           'iNNtrevistas_V_0_1_0_console.html': '<html><body>iNNtrevistas Console Content</body></html>',
         },
@@ -116,7 +114,7 @@ describe('ConsoleHubView — Open External (F-16)', () => {
           type: 'innfo:select-console',
           modelId: 'iNNtrevistas',
           title: 'iNNtrevistas - Innovaciones y Creadores',
-          consolePath: 'export/iNNtrevistas_V_0_1_0_console/iNNtrevistas_V_0_1_0_console.html',
+          consolePath: 'artifacts/iNNtrevistas_V_0_1_0_console/iNNtrevistas_V_0_1_0_console.html',
         },
       })
     )
@@ -135,8 +133,6 @@ describe('ConsoleHubView — Open External (F-16)', () => {
     workspaceStore.handle = buildFakeTree('workspace', {
       artifacts: {
         'workspace_hub.html': '<html><body>Hub</body></html>',
-      },
-      export: {
         'iNNtrevistas_V_0-1-0_console': {
           'iNNtrevistas_V_0-1-0_console.html': '<html><body>iNNtrevistas Resolved Content</body></html>',
         },
@@ -153,7 +149,7 @@ describe('ConsoleHubView — Open External (F-16)', () => {
           type: 'innfo:select-console',
           modelId: 'iNNtrevistas',
           title: 'iNNtrevistas',
-          consolePath: '../export/iNNtrevistas_V_0-1-0_console/iNNtrevistas_V_0-1-0_console.html',
+          consolePath: '../artifacts/iNNtrevistas_V_0-1-0_console/iNNtrevistas_V_0-1-0_console.html',
         },
       })
     )
@@ -171,8 +167,6 @@ describe('ConsoleHubView — Open External (F-16)', () => {
     workspaceStore.handle = buildFakeTree('workspace', {
       artifacts: {
         'workspace_hub.html': '<html><body>Hub</body></html>',
-      },
-      export: {
         'iNNtrevistas_V_0-1-0_console': {
           'iNNtrevistas_V_0-1-0_console.html': `<!DOCTYPE html>
 <html>
@@ -201,7 +195,7 @@ describe('ConsoleHubView — Open External (F-16)', () => {
           type: 'innfo:select-console',
           modelId: 'iNNtrevistas',
           title: 'iNNtrevistas',
-          consolePath: 'export/iNNtrevistas_V_0-1-0_console/iNNtrevistas_V_0-1-0_console.html',
+          consolePath: 'artifacts/iNNtrevistas_V_0-1-0_console/iNNtrevistas_V_0-1-0_console.html',
         },
       })
     )

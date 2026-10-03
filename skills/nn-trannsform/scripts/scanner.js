@@ -4,8 +4,8 @@ const core = require('./lib/scanner-core');
 const converters = require('./lib/scanner-converters');
 
 /**
- * Scan active source trees (sources/import/, sources/conversations/, sources/export/,
- * with legacy fallback to sources/original/) and normalize straight into sources/nn/,
+ * Scan active source trees (sources/import/, sources/conversations/, sources/export/)
+ * and normalize straight into sources/nn/,
  * mirroring the source subtree structure.
  * @param {string} projectDir
  * @param {Record<string, any>} [options]
@@ -14,11 +14,10 @@ const converters = require('./lib/scanner-converters');
 async function scanAndProcess(projectDir, options = {}) {
   const sourcesDir = path.join(projectDir, 'sources');
   const importDir = path.join(sourcesDir, 'import');
-  const originalDir = path.join(sourcesDir, 'original');
   const nnDir = path.join(sourcesDir, 'nn');
   const indexFile = path.join(nnDir, 'index.md');
 
-  if (!fs.existsSync(importDir) && !fs.existsSync(originalDir)) {
+  if (!fs.existsSync(importDir)) {
     fs.mkdirSync(importDir, { recursive: true });
   }
   fs.mkdirSync(nnDir, { recursive: true });

@@ -228,11 +228,6 @@ describe('parseCitation', () => {
       expect(parseCitation('src-123 sources/nn/a.md')).toBeNull()
     })
 
-    it('rejects sources/original/ paths', () => {
-      expect(parseCitation('sources/original/doc.pdf')).toBeNull()
-      expect(parseCitation('sources/original/doc.md@## Intro')).toBeNull()
-    })
-
     it('rejects URLs and empty inputs', () => {
       expect(parseCitation('')).toBeNull()
       expect(parseCitation(null as unknown as string)).toBeNull()

@@ -21,7 +21,7 @@
  *   node scripts/export-console.mjs <workspaceRoot> --filter <pattern>
  *   node scripts/export-console.mjs <workspaceRoot> <ModelNameSubstring>
  *
- * Output: <workspaceRoot>/export/<Model>_V_<version>_console/<Model>_V_<version>_console.html
+ * Output: <workspaceRoot>/artifacts/<Model>_V_<version>_console/<Model>_V_<version>_console.html
  */
 
 import { readdir, readFile, writeFile, mkdir, cp } from 'node:fs/promises'
@@ -133,7 +133,7 @@ function parseArgs(argv) {
 /** Recursively find every non-sidecar `*_NN.md` file under `dir`, skipping heavy dirs. */
 async function findModelFiles(dir) {
   const out = []
-  const skip = new Set(['node_modules', '.git', '.cogNNitive', 'export', 'dist', 'docs'])
+  const skip = new Set(['node_modules', '.git', '.cogNNitive', 'artifacts', 'dist', 'docs'])
   async function walk(d) {
     let entries
     try {
@@ -200,7 +200,7 @@ function extractModelMetaFromHtml(htmlContent) {
 
 async function inspectModelStatus(model, rootDir) {
   const stem = model.name
-  const targetHtmlPath = join(rootDir, 'export', `${stem}_console`, `${stem}_console.html`)
+  const targetHtmlPath = join(rootDir, 'artifacts', `${stem}_console`, `${stem}_console.html`)
 
   if (!existsSync(targetHtmlPath)) {
     return { status: 'uncompiled', targetHtmlPath }
@@ -460,7 +460,7 @@ async function main() {
       ledgerEntries,
     })
 
-    const outDir = join(root, 'export', `${stem}_console`)
+    const outDir = join(root, 'artifacts', `${stem}_console`)
     await mkdir(outDir, { recursive: true })
     const outFile = join(outDir, `${stem}_console.html`)
     const html = injectSlots(resolvedShell, config, payload.schema, payload.model)

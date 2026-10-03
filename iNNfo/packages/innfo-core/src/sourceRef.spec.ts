@@ -55,11 +55,6 @@ describe('parseSourceRef', () => {
     expect(parseSourceRef('src-12')).toBeNull()
   })
 
-  it('rejects a sources/original/ path', () => {
-    expect(parseSourceRef('sources/original/report.pdf')).toBeNull()
-    expect(parseSourceRef('sources/original/a.md#x')).toBeNull()
-  })
-
   it('rejects http(s) URLs and parent-relative paths', () => {
     expect(parseSourceRef('https://example.com/a.md')).toBeNull()
     expect(parseSourceRef('../outside.md#x')).toBeNull()

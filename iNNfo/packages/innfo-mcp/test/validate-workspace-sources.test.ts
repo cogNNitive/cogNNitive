@@ -215,16 +215,16 @@ sources:: [missing_folder/report.md#summary, annual_repots.md#intro]
     expect(fuzzyMatch!.message).toContain("did you mean 'annual_reports.md'?")
   })
 
-  it('reports dangling citations in artifact frontmatter under export/', async () => {
-    await mkdir(join(rootDir, 'export'), { recursive: true })
+  it('reports dangling citations in artifact frontmatter under artifacts/', async () => {
+    await mkdir(join(rootDir, 'artifacts'), { recursive: true })
     await writeFile(
-      join(rootDir, 'export', 'Report.md'),
+      join(rootDir, 'artifacts', 'Report.md'),
       '---\ntitle: "Deliverable"\nsources: ["sources/nn/dangling.md@## Section"]\n---\n# Content',
       'utf-8',
     )
     const diags = await collectWorkspaceDiagnostics(rootDir, null)
     const dangling = diags.find(
-      (d) => d.path.startsWith('export/Report.md') && d.code === 'KU_DANGLING_FILE',
+      (d) => d.path.startsWith('artifacts/Report.md') && d.code === 'KU_DANGLING_FILE',
     )
     expect(dangling).toBeDefined()
     expect(dangling?.message).toContain('sources/nn/dangling.md')

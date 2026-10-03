@@ -56,12 +56,12 @@ describe('renderLineageSections', () => {
     artifacts: [
       {
         name: 'Report',
-        artifact_ref: 'export/Report.md',
+        artifact_ref: 'artifacts/Report.md',
         artifact_format: 'report',
         citations: [
           {
             value: 'kNNowledge/Strategy_V_1-0-0_NN.md@## NN Strategy: Positioning',
-            referringPath: 'export/Report.md',
+            referringPath: 'artifacts/Report.md',
             field: 'sources',
           },
         ],
@@ -106,7 +106,7 @@ describe('renderLineageSections', () => {
     // Artifacts section
     expect(rendered.artifacts).toContain('# NN Artifacts\n')
     expect(rendered.artifacts).toContain('## NN Artifacts: Report\n')
-    expect(rendered.artifacts).toContain('artifact_ref:: export/Report.md\n')
+    expect(rendered.artifacts).toContain('artifact_ref:: artifacts/Report.md\n')
     expect(rendered.artifacts).toContain('artifact_format:: report\n')
     expect(rendered.artifacts).toContain(
       'derived_from:: [kNNowledge/Strategy_V_1-0-0_NN.md@## NN Strategy: Positioning]\n',
@@ -128,7 +128,7 @@ describe('renderLineageSections', () => {
       '# NN ModelRecords\n\n<!-- Auto-synced from kNNowledge/ on every --scan/--import-url/--lineage. One ModelRecords element per Level 3 model. -->\n',
     )
     expect(rendered.artifacts).toBe(
-      '# NN Artifacts\n\n<!-- Auto-synced from export/ on every --scan/--import-url/--lineage. One element per generated deliverable. -->\n',
+      '# NN Artifacts\n\n<!-- Auto-synced from artifacts/ on every --scan/--import-url/--lineage. One element per generated deliverable. -->\n',
     )
   })
 

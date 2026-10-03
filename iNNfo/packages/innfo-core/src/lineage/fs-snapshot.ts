@@ -1,6 +1,6 @@
 /**
  * Node filesystem snapshot reader for workspace lineage.
- * Scans sources/nn, sources/archive, sources/export, kNNowledge, and export.
+ * Scans sources/nn, sources/archive, sources/export, kNNowledge, and artifacts.
  * Node-only: NOT exported from browser.ts.
  */
 import * as fs from 'node:fs'
@@ -117,18 +117,18 @@ export function readLineageSnapshot(root: string): FileSnapshot[] {
     }
   }
 
-  // 5. export: **/*.{md,html,csv,json}
-  const exportDir = path.join(rootDir, 'export')
-  if (fs.existsSync(exportDir)) {
-    const rels = walkDir(exportDir, (_, name, isDir) => {
+  // 5. artifacts: **/*.{md,html,csv,json}
+  const artifactsDir = path.join(rootDir, 'artifacts')
+  if (fs.existsSync(artifactsDir)) {
+    const rels = walkDir(artifactsDir, (_, name, isDir) => {
       if (isDir) return true
       const ext = path.extname(name).toLowerCase()
       if (isSidecarName(name)) return false
       return ['.md', '.html', '.htm', '.csv', '.json'].includes(ext)
     })
     for (const rel of rels) {
-      const p = `export/${rel}`
-      const full = path.join(exportDir, rel)
+      const p = `artifacts/${rel}`
+      const full = path.join(artifactsDir, rel)
       snapshots.push({
         path: p,
         content: fs.readFileSync(full, 'utf8'),

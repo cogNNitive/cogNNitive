@@ -760,31 +760,20 @@ agent-bootstrap:
     }
   }
 
-  // Test 13: scanWorkspaceSources — Legacy alias sources/original/ fallback
+  // Test 13: scanWorkspaceSources — retired sources/original/ is not scanned (no fallback)
   {
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'preflight-sources-legacy-'));
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'preflight-sources-retired-'));
     try {
       const ws = path.join(tmpDir, 'ws');
       const originalDir = path.join(ws, 'sources', 'original');
-      const nnDir = path.join(ws, 'sources', 'nn');
       fs.mkdirSync(originalDir, { recursive: true });
-      fs.mkdirSync(nnDir, { recursive: true });
-
-      const content = 'Legacy original document';
-      const hash = crypto.createHash('sha256').update(content).digest('hex');
-      fs.writeFileSync(path.join(originalDir, 'legacy.txt'), content);
-      fs.writeFileSync(
-        path.join(nnDir, 'legacy.md'),
-        `---\nsource_file: "sources/original/legacy.txt"\nsha256: "${hash}"\n---\n# legacy\n`,
-      );
+      fs.mkdirSync(path.join(ws, 'sources', 'nn'), { recursive: true });
+      fs.writeFileSync(path.join(originalDir, 'retired.txt'), 'Retired original document');
 
       const res = scanWorkspaceSources(ws);
-      assert.strictEqual(res.total, 1);
-      assert.strictEqual(res.normalized, 1);
-      assert.strictEqual(res.unnormalized, 0);
-      assert.strictEqual(res.dangling, 0);
-      assert.strictEqual(res.sources_integrity.ok, true);
-      console.log('✔ scanWorkspaceSources supports legacy alias sources/original/ cleanly');
+      assert.strictEqual(res.total, 0);
+      assert.strictEqual(res.sources_integrity.subtrees.original, undefined);
+      console.log('✔ scanWorkspaceSources ignores the retired sources/original/ folder');
     } finally {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }

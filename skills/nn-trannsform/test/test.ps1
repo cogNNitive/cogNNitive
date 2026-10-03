@@ -116,7 +116,7 @@ try {
   Assert-True (Test-Path "$TEST_DIR\test-project\traNNsformations") "traNNsformations/ directory created"
   Assert-True (Test-Path "$TEST_DIR\test-project\models") "models/ directory created"
   Assert-True (Test-Path "$TEST_DIR\test-project\procedures") "procedures/ directory created"
-  Assert-True (Test-Path "$TEST_DIR\test-project\export") "export/ directory created"
+  Assert-True (Test-Path "$TEST_DIR\test-project\artifacts") "artifacts/ directory created"
   Assert-True (Test-Path "$TEST_DIR\test-project\sources\import\hello.txt") "Source file copied to sources/import/"
 } finally {
   Pop-Location

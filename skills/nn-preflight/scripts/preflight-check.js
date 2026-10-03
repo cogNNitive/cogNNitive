@@ -328,7 +328,7 @@ function walkSourceDir(dir, onFile) {
 
 /**
  * Universal source integrity audit across sources/import/, sources/conversations/,
- * sources/export/, and legacy sources/original/ against sources/nn/.
+ * and sources/export/ against sources/nn/.
  */
 function scanWorkspaceSources(workspaceDir) {
   const sourcesDir = path.join(workspaceDir, 'sources');
@@ -457,12 +457,11 @@ function scanWorkspaceSources(workspaceDir) {
     }
   }
 
-  // 3. Scan active source trees (import, conversations, export, original)
+  // 3. Scan active source trees (import, conversations, export)
   const sourceTreesToCheck = [
     { name: 'import', dir: path.join(sourcesDir, 'import') },
     { name: 'conversations', dir: path.join(sourcesDir, 'conversations') },
     { name: 'export', dir: path.join(sourcesDir, 'export') },
-    { name: 'original', dir: path.join(sourcesDir, 'original') },
   ];
 
   for (const tree of sourceTreesToCheck) {

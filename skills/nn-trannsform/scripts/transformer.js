@@ -16,7 +16,7 @@ function listBlueprints(projectDir) {
 
 /**
  * Recursively collect *.md files under sources/nn/, preserving the path
- * relative to that directory (it mirrors sources/original/'s subfolders).
+ * relative to that directory.
  * The top-level ingestion manifest (index.md) is excluded.
  */
 function collectMarkdownFiles(mdDir) {
@@ -50,9 +50,7 @@ async function applyTransformation(projectDir, templateName, options = {}) {
   const mdDir = path.join(projectDir, 'sources', 'nn');
 
   const cleanBlueprintName = path.basename(templateName, '.md').replace(/\s+/g, '_');
-  const exportDir = path.join(projectDir, 'export');
-  const legacyArtDir = path.join(projectDir, 'artifacts');
-  const outputDir = fs.existsSync(legacyArtDir) && !fs.existsSync(exportDir) ? legacyArtDir : exportDir;
+  const outputDir = path.join(projectDir, 'artifacts');
 
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true });

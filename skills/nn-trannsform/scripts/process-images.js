@@ -15,7 +15,7 @@ function isDepInstalled(pkgName) {
 
 async function main() {
   const args = process.argv.slice(2);
-  const inputDir = args[0] || './sources/original/photos';
+  const inputDir = args[0] || './sources/import/photos';
   const outputDir = args[1] || './sources/processed/photos';
 
   if (!fs.existsSync(inputDir)) {

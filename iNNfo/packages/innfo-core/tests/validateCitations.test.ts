@@ -84,7 +84,7 @@ describe('validateCitations', () => {
 
     const rowSite: CitationSite = {
       value: 'sources/nn/data.csv@999',
-      referringPath: 'export/summary.md',
+      referringPath: 'artifacts/summary.md',
       field: 'sources',
     }
     const rowDiags = validateCitations([rowSite], resolver)
@@ -92,14 +92,14 @@ describe('validateCitations', () => {
     expect(rowDiags[0]).toMatchObject({
       code: 'KU_UNKNOWN_ROW',
       severity: 'error',
-      path: 'export/summary.md#sources',
+      path: 'artifacts/summary.md#sources',
       target: 'sources/nn/data.csv',
       site: rowSite,
     })
 
     const colSite: CitationSite = {
       value: 'sources/nn/data.csv@101&nonexistent_col',
-      referringPath: 'export/summary.md',
+      referringPath: 'artifacts/summary.md',
       field: 'sources',
     }
     const colDiags = validateCitations([colSite], resolver)
@@ -107,7 +107,7 @@ describe('validateCitations', () => {
     expect(colDiags[0]).toMatchObject({
       code: 'KU_UNKNOWN_COLUMN',
       severity: 'error',
-      path: 'export/summary.md#sources',
+      path: 'artifacts/summary.md#sources',
       target: 'sources/nn/data.csv',
       site: colSite,
     })
@@ -116,7 +116,7 @@ describe('validateCitations', () => {
   it('reports KU_MALFORMED for models/ prefix with explicit message', () => {
     const site: CitationSite = {
       value: 'models/Client_NN.md@## Overview',
-      referringPath: 'export/report.md',
+      referringPath: 'artifacts/report.md',
       field: 'sources',
     }
 
@@ -125,7 +125,7 @@ describe('validateCitations', () => {
     expect(diags[0]).toMatchObject({
       code: 'KU_MALFORMED',
       severity: 'error',
-      path: 'export/report.md#sources',
+      path: 'artifacts/report.md#sources',
       target: 'models/Client_NN.md@## Overview',
       site,
     })
@@ -135,7 +135,7 @@ describe('validateCitations', () => {
   it('validates file-level bare paths without anchor and without KU_DEPRECATED_HASH', () => {
     const site: CitationSite = {
       value: 'kNNowledge/Client_NN.md',
-      referringPath: 'export/console.html',
+      referringPath: 'artifacts/console.html',
       field: 'meta.sources',
     }
     const resolver: SourceResolver = (p) => ({ exists: p === 'kNNowledge/Client_NN.md' })

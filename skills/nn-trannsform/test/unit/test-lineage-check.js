@@ -33,7 +33,7 @@ function run() {
   const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'nnt-lineage-check-'));
   try {
     const proj = path.join(TMP, 'CheckProj');
-    for (const d of ['sources/nn', 'kNNowledge', 'export', 'sources/archive/sample/V1']) {
+    for (const d of ['sources/nn', 'kNNowledge', 'artifacts', 'sources/archive/sample/V1']) {
       fs.mkdirSync(path.join(proj, d), { recursive: true });
     }
 
@@ -65,7 +65,7 @@ function run() {
 
     // Export artifact citing model
     fs.writeFileSync(
-      path.join(proj, 'export', 'summary.md'),
+      path.join(proj, 'artifacts', 'summary.md'),
       `---\ntype: "report"\nsources: ["kNNowledge/Plan_V_1-0-0_NN.md@## NN Items: Point 1"]\n---\n# Summary\n`,
     );
 

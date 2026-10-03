@@ -92,9 +92,9 @@ parent_spec:
 # NN Sources
 `,
     },
-    // Markdown artifact in export/
+    // Markdown artifact in artifacts/
     {
-      path: 'export/Report.md',
+      path: 'artifacts/Report.md',
       content: `---
 title: "Quarterly Report"
 format: "report"
@@ -106,7 +106,7 @@ sources:
     },
     // HTML Console artifact with innfo-model.meta.sources
     {
-      path: 'export/Strategy_Console.html',
+      path: 'artifacts/Strategy_Console.html',
       content: `<!DOCTYPE html>
 <html>
 <head>
@@ -125,14 +125,14 @@ sources:
     },
     // CSV artifact with sources column
     {
-      path: 'export/summary.csv',
+      path: 'artifacts/summary.csv',
       content: `item,sources,count
 Enterprise,sources/nn/interview.md@## Clients,42
 `,
     },
     // JSON artifact with sources array
     {
-      path: 'export/data.json',
+      path: 'artifacts/data.json',
       content: JSON.stringify([
         { id: 1, name: 'A', sources: ['sources/nn/interview.md@## Clients'] },
         { id: 2, name: 'B', sources: 'sources/nn/interview.md@## Clients' },
@@ -140,12 +140,12 @@ Enterprise,sources/nn/interview.md@## Clients,42
     },
     // Terminal CSV artifact (no sources column)
     {
-      path: 'export/terminal.csv',
+      path: 'artifacts/terminal.csv',
       content: `colA,colB\n1,2\n`,
     },
     // Legacy export-meta HTML (must be ignored)
     {
-      path: 'export/legacy.html',
+      path: 'artifacts/legacy.html',
       content: `<!DOCTYPE html>
 <html>
 <head>
@@ -162,7 +162,7 @@ Enterprise,sources/nn/interview.md@## Clients,42
     },
     // Artifact with model/knowledge_version fallback (must not create edges)
     {
-      path: 'export/fallback_doc.md',
+      path: 'artifacts/fallback_doc.md',
       content: `---
 title: "Doc with legacy model fallback"
 model: "Strategy"
@@ -234,7 +234,7 @@ knowledge_version: "V_1-0-0"
 
     const report = projection.artifacts.find((a) => a.name === 'Report')
     expect(report).toBeDefined()
-    expect(report?.artifact_ref).toBe('export/Report.md')
+    expect(report?.artifact_ref).toBe('artifacts/Report.md')
     expect(report?.artifact_format).toBe('report')
     expect(report?.citations).toHaveLength(1)
     expect(report?.citations[0].value).toBe(
@@ -247,7 +247,7 @@ knowledge_version: "V_1-0-0"
     expect(consoleHtml?.citations).toEqual([
       {
         value: 'kNNowledge/Strategy_V_1-0-0_NN.md',
-        referringPath: 'export/Strategy_Console.html',
+        referringPath: 'artifacts/Strategy_Console.html',
         field: 'meta.sources',
       },
     ])
@@ -278,8 +278,8 @@ knowledge_version: "V_1-0-0"
     const sites = extractFileCitations(fixtureFiles)
     expect(sites.length).toBeGreaterThan(0)
     const paths = sites.map((s) => s.referringPath)
-    expect(paths).toContain('export/Report.md')
-    expect(paths).toContain('export/Strategy_Console.html')
+    expect(paths).toContain('artifacts/Report.md')
+    expect(paths).toContain('artifacts/Strategy_Console.html')
     expect(paths).toContain('sources/export/Market_Analysis_V_1-0-0.md')
   })
 })

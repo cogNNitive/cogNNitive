@@ -6,7 +6,7 @@ import type { LineageProjection, LineageSource, LineageKnowledge, LineageArtifac
 
 const SOURCES_GUIDANCE = 'No sources ingested yet. Place files in sources/import and run a scan.'
 const MODELS_GUIDANCE = 'Auto-synced from kNNowledge/ on every --scan/--import-url/--lineage. One ModelRecords element per Level 3 model.'
-const ARTIFACTS_GUIDANCE = 'Auto-synced from export/ on every --scan/--import-url/--lineage. One element per generated deliverable.'
+const ARTIFACTS_GUIDANCE = 'Auto-synced from artifacts/ on every --scan/--import-url/--lineage. One element per generated deliverable.'
 
 export function renderSourcesSection(sources: LineageSource[]): string {
   let out = '# NN Sources\n'

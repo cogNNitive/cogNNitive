@@ -88,7 +88,6 @@ describe('parseKnowledgeUnitRef grammar', () => {
     'C:\\temp\\file.md@## Title',
     'https://example.com/a.md@## Title',
     '../outside.md@## Title',
-    'sources/original/a.csv@104',
     'kNNowledge/x.md#L12-L45',
   ])('rejects %s', (input) => {
     expect(parseKnowledgeUnitRef(input)).toBeNull()

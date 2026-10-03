@@ -7910,7 +7910,6 @@ function parseSourceRef(input) {
   );
   if (unqualified) {
     const rawPath = unqualified[1].trim();
-    if (rawPath.startsWith("sources/original/")) return null;
     if (rawPath.startsWith("models/")) return null;
     const filePath = `sources/nn/${rawPath}`;
     return {
@@ -8121,7 +8120,6 @@ function resolveUnitPath(rawPath) {
   const segments = trimmed.split(/[/\\]/);
   if (segments.some((s) => s === "..")) return null;
   const forward = segments.join("/");
-  if (forward.startsWith("sources/original/")) return null;
   const isMd = /\.md$/i.test(forward);
   const isCsv = /\.csv$/i.test(forward);
   const isJson = /\.json$/i.test(forward);

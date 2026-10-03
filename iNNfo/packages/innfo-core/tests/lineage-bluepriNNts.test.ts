@@ -185,7 +185,7 @@ describe('Lineage single-edge bluepriNNt schemas and contracts (S6)', () => {
       '',
       '# NN Artifacts',
       '## NN Artifacts: Report',
-      'artifact_ref:: export/report.md',
+      'artifact_ref:: artifacts/report.md',
       'artifact_format:: report',
       'derived_from:: [kNNowledge/Domain_NN.md@## Section]',
       '',

@@ -189,7 +189,7 @@ function walkOriginal(originalDir) {
 
 /**
  * Recursively walk all active source subtrees:
- * - sources/import/ (or legacy sources/original/)
+ * - sources/import/
  * - sources/conversations/
  * - sources/export/
  *
@@ -203,14 +203,13 @@ function walkSourceTrees(projectOrSourcesDir, options = {}) {
   }
 
   const importDir = path.join(sourcesDir, 'import');
-  const originalDir = path.join(sourcesDir, 'original');
   const convDir = path.join(sourcesDir, 'conversations');
   const exportDir = path.join(sourcesDir, 'export');
   const nnDir = path.join(sourcesDir, 'nn');
 
   const items = [];
 
-  // 1. Ingestion subtree: sources/import/ with legacy fallback to sources/original/
+  // 1. Ingestion subtree: sources/import/
   if (fs.existsSync(importDir)) {
     const files = walkOriginal(importDir);
     for (const f of files) {
@@ -232,20 +231,6 @@ function walkSourceTrees(projectOrSourcesDir, options = {}) {
         relPath: f.relPath,
         sourceFileField: `sources/import/${relPosix}`,
         destRelPath,
-        isSynthetic: false,
-      });
-    }
-  } else if (fs.existsSync(originalDir)) {
-    console.warn("[DEPRECATION] 'sources/original/' is deprecated; migrate folder to 'sources/import/'");
-    const files = walkOriginal(originalDir);
-    for (const f of files) {
-      const relPosix = f.relPath.replace(/\\/g, '/');
-      items.push({
-        tree: 'original',
-        absPath: f.absPath,
-        relPath: f.relPath,
-        sourceFileField: `sources/original/${relPosix}`,
-        destRelPath: relPosix.replace(/\.[^.]+$/, '.md'),
         isSynthetic: false,
       });
     }
@@ -586,11 +571,11 @@ function processOkFile(ext, absPath, sourceFileField, destPath, displayOutPath, 
     return { format, status: '⚠️ Skipped', action: `Format ${EXT_LABELS[ext]} excluded by user selection.`, outcome: 'skipped' };
   }
 
-  // Reviewer-feedback drop zone: sources/import/feedback/ (legacy sources/original/feedback/).
+  // Reviewer-feedback drop zone: sources/import/feedback/.
   // Feedback docs always normalize as synthetic feedback sources; invalid JSON throws
   // inside convertOkFormat and is caught below so the run skips-and-reports the file.
   const feedbackRelPosix = String(sourceFileField || '').replace(/\\/g, '/');
-  const isFeedbackDoc = ext === '.json' && /(^|\/)(import|original)\/feedback\//.test(feedbackRelPosix);
+  const isFeedbackDoc = ext === '.json' && /(^|\/)import\/feedback\//.test(feedbackRelPosix);
 
   // Destination collision guard: verify destPath is not already owned by a different source_file
   const sourceFilePosix = String(sourceFileField || '').replace(/\\/g, '/');

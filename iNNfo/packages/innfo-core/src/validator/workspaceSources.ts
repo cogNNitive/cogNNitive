@@ -98,7 +98,7 @@ export function validateCitations(
     if (!cit) {
       diagnostics.push({
         path,
-        message: `Malformed source reference "${value}" — use "<path>@<unit>" (e.g. "file.md@## Section", "data.csv@104"); line ranges like #L10-L20 and src-NNN ids are not allowed, and sources/original/ is not citable`,
+        message: `Malformed source reference "${value}" — use "<path>@<unit>" (e.g. "file.md@## Section", "data.csv@104"); line ranges like #L10-L20 and src-NNN ids are not allowed`,
         severity: 'error',
         code: 'KU_MALFORMED',
         site,

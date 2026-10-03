@@ -81,14 +81,14 @@ function getExtension(p: string): string {
 }
 
 /**
- * Extract all citation sites across files in `export/**` and `sources/export/**`.
+ * Extract all citation sites across files in `artifacts/**` and `sources/export/**`.
  */
 export function extractFileCitations(files: FileSnapshot[]): CitationSite[] {
   const sites: CitationSite[] = []
 
   for (const file of files) {
     const p = posixPath(file.path)
-    if (p.startsWith('export/')) {
+    if (p.startsWith('artifacts/')) {
       const ext = getExtension(p)
       if (ext === 'md') {
         const fm = (parseFrontmatter(file.content) || {}) as Record<string, unknown>
@@ -433,9 +433,9 @@ export function projectLineage(files: FileSnapshot[]): LineageProjection {
     })
   }
 
-  // 3. Process Artifacts (export/**/*.{md,html,csv,json})
+  // 3. Process Artifacts (artifacts/**/*.{md,html,csv,json})
   const artifactFiles = normalizedFiles
-    .filter((f) => f.path.startsWith('export/'))
+    .filter((f) => f.path.startsWith('artifacts/'))
     .sort((a, b) => a.path.localeCompare(b.path))
 
   const artifacts: LineageArtifact[] = []

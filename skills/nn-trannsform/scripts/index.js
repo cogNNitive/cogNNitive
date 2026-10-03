@@ -98,7 +98,7 @@ async function handleCliMode(argv) {
     if (bootstrap.agentsMdPath) {
       console.log(`Scaffolded workspace AGENTS.md entrypoint at: ${bootstrap.agentsMdPath}`);
     }
-    console.log(`\n📌 Place your files to import into: ${bootstrap.importDir || bootstrap.originalDir}\n`);
+    console.log(`\n📌 Place your files to import into: ${bootstrap.importDir}\n`);
   }
 
   if (!fs.existsSync(projectDir)) {
@@ -345,8 +345,7 @@ async function handleCliMode(argv) {
   let importResult = null;
   if (argv['import-url']) {
     const importDir = path.join(projectDir, 'sources', 'import');
-    const legacyDir = path.join(projectDir, 'sources', 'original');
-    const targetDir = fs.existsSync(legacyDir) && !fs.existsSync(importDir) ? legacyDir : importDir;
+    const targetDir = importDir;
     fs.mkdirSync(targetDir, { recursive: true });
     const targetLabel = path.relative(projectDir, targetDir).replace(/\\/g, '/');
     console.log(`Downloading "${argv['import-url']}" into ${targetLabel}/...`);
@@ -552,7 +551,7 @@ function unlinkSource(projectDir, targetPattern) {
     return { deleted: [] };
   }
 
-  const cleanPattern = targetPattern.replace(/\\/g, '/').replace(/^sources\/(import|original|nn|archive)\//, '');
+  const cleanPattern = targetPattern.replace(/\\/g, '/').replace(/^sources\/(import|nn|archive)\//, '');
   const baseTarget = path.basename(cleanPattern).replace(/\.[^.]+$/, '');
 
   const slugifyHelper = (s) => String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
@@ -626,7 +625,7 @@ async function handleInteractiveMode() {
 
   let projectDir = getActiveProjectDir();
   let projectExists = fs.existsSync(projectDir) &&
-    (fs.existsSync(path.join(projectDir, 'sources', 'import')) || fs.existsSync(path.join(projectDir, 'sources', 'original')));
+    fs.existsSync(path.join(projectDir, 'sources', 'import'));
 
   const choices = [];
   if (projectExists) {
@@ -685,7 +684,7 @@ async function runBootstrapperFlow() {
     {
       type: 'text',
       name: 'src',
-      message: 'Enter the source directory containing raw files to import (will be copied to sources/original):',
+      message: 'Enter the source directory containing raw files to import (will be copied to sources/import):',
       validate: value => {
         const clean = value.replace(/^["']|["']$/g, '').trim();
         return fs.existsSync(clean) ? true : 'Source directory does not exist';
@@ -734,7 +733,7 @@ async function runBootstrapperFlow() {
   config.saveConfig({ lastProjectPath: projectDir });
 
   console.log(`Project successfully bootstrapped at: ${projectDir}\n`);
-  console.log(`\n📌 Place your files to import into: ${bootstrap.importDir || bootstrap.originalDir}\n`);
+  console.log(`\n📌 Place your files to import into: ${bootstrap.importDir}\n`);
   return projectDir;
 }
 
@@ -939,7 +938,7 @@ ${answers.structure || ''}
 
 function getActiveProjectDir() {
   const cwd = process.cwd();
-  if (fs.existsSync(path.join(cwd, 'sources', 'original'))) {
+  if (fs.existsSync(path.join(cwd, 'sources', 'import'))) {
     return cwd;
   }
 

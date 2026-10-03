@@ -33,7 +33,7 @@ level: 3
       expect(result).toBeDefined()
       expect(result.schemaSlot).toBeDefined()
       expect(result.modelSlot).toBeDefined()
-      expect(result.outputPath).toBe('export/Ghostbusters_console/Ghostbusters_console.html')
+      expect(result.outputPath).toBe('artifacts/Ghostbusters_console/Ghostbusters_console.html')
       expect(result.schemaSource).toBeDefined()
       expect(Array.isArray(result.warnings)).toBe(true)
 

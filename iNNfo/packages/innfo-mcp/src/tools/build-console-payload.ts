@@ -113,7 +113,7 @@ export async function buildConsolePayloadTool(
 
   const schemaSlot = serializeConsoleSlot(payload.schema)
   const modelSlot = serializeConsoleSlot(payload.model)
-  const outputPath = `export/${stem}_console/${stem}_console.html`
+  const outputPath = `artifacts/${stem}_console/${stem}_console.html`
 
   return {
     schemaSlot,

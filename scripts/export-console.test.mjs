@@ -98,14 +98,14 @@ level: 3
       assert.match(res.stderr, /Usage:/)
     })
 
-    it('lists all Level 3 models with --list and does not create export folder', async () => {
+    it('lists all Level 3 models with --list and does not create artifacts folder', async () => {
       const res = await runCli([tempDir, '--list'])
       assert.equal(res.code, 0)
       assert.match(res.stdout, /business_V_0-2-5_NN\.md/)
       assert.match(res.stdout, /procedures_V_0-1-0_NN\.md/)
       assert.match(res.stdout, /metrics_V_0-1-0_NN\.md/)
       assert.match(res.stdout, /\(3 models\)/)
-      assert.equal(existsSync(join(tempDir, 'export')), false)
+      assert.equal(existsSync(join(tempDir, 'artifacts')), false)
     })
 
     it('exits with code 1 when no models match filter and not in read-only mode', async () => {
@@ -122,7 +122,7 @@ level: 3
 
       const htmlPath = join(
         tempDir,
-        'export',
+        'artifacts',
         'business_V_0-2-5_console',
         'business_V_0-2-5_console.html',
       )
@@ -151,7 +151,7 @@ level: 3
 
       const htmlPath = join(
         tempDir,
-        'export',
+        'artifacts',
         'business_V_0-2-5_console',
         'business_V_0-2-5_console.html',
       )
@@ -174,7 +174,7 @@ level: 3
       assert.match(res.stdout, /business_V_0-2-5_NN\.md\s+\[uncompiled\]/)
       assert.match(res.stdout, /procedures_V_0-1-0_NN\.md\s+\[uncompiled\]/)
       assert.match(res.stdout, /metrics_V_0-1-0_NN\.md\s+\[uncompiled\]/)
-      assert.equal(existsSync(join(tempDir, 'export')), false, 'Status check must not create export dir')
+      assert.equal(existsSync(join(tempDir, 'artifacts')), false, 'Status check must not create artifacts dir')
 
       // Compile business model
       const compileRes = await runCli([tempDir, 'business'])
@@ -217,7 +217,7 @@ level: 3
       assert.match(res.stdout, /subdomains\//)
       assert.match(res.stdout, /business_V_0-2-5_NN\.md/)
       assert.match(res.stdout, /\[uncompiled\]/)
-      assert.equal(existsSync(join(tempDir, 'export')), false)
+      assert.equal(existsSync(join(tempDir, 'artifacts')), false)
     })
 
     it('exports all models with --all', async () => {
@@ -225,15 +225,15 @@ level: 3
       assert.equal(res.code, 0)
       assert.match(res.stdout, /Exported 3 console artifact\(s\)/)
       assert.equal(
-        existsSync(join(tempDir, 'export', 'business_V_0-2-5_console', 'business_V_0-2-5_console.html')),
+        existsSync(join(tempDir, 'artifacts', 'business_V_0-2-5_console', 'business_V_0-2-5_console.html')),
         true,
       )
       assert.equal(
-        existsSync(join(tempDir, 'export', 'procedures_V_0-1-0_console', 'procedures_V_0-1-0_console.html')),
+        existsSync(join(tempDir, 'artifacts', 'procedures_V_0-1-0_console', 'procedures_V_0-1-0_console.html')),
         true,
       )
       assert.equal(
-        existsSync(join(tempDir, 'export', 'metrics_V_0-1-0_console', 'metrics_V_0-1-0_console.html')),
+        existsSync(join(tempDir, 'artifacts', 'metrics_V_0-1-0_console', 'metrics_V_0-1-0_console.html')),
         true,
       )
     })
@@ -277,7 +277,7 @@ level: 3
 
       const htmlPath = join(
         tempDir,
-        'export',
+        'artifacts',
         'business_V_0-2-5_console',
         'business_V_0-2-5_console.html',
       )
@@ -305,7 +305,7 @@ level: 3
 
       const htmlPath = join(
         tempDir,
-        'export',
+        'artifacts',
         'business_V_0-2-5_console',
         'business_V_0-2-5_console.html',
       )
@@ -352,7 +352,7 @@ level: 3
       )
       assert.match(stdout, /business_V_0-2-5_console\.html/)
       assert.equal(
-        existsSync(join(tempDir, 'export', 'business_V_0-2-5_console', 'business_V_0-2-5_console.html')),
+        existsSync(join(tempDir, 'artifacts', 'business_V_0-2-5_console', 'business_V_0-2-5_console.html')),
         true,
       )
     })
@@ -377,7 +377,7 @@ level: 3
       )
       assert.match(stdout, /business_V_0-2-5_console\.html/)
       assert.equal(
-        existsSync(join(tempDir, 'export', 'business_V_0-2-5_console', 'business_V_0-2-5_console.html')),
+        existsSync(join(tempDir, 'artifacts', 'business_V_0-2-5_console', 'business_V_0-2-5_console.html')),
         true,
       )
     })
@@ -402,7 +402,7 @@ level: 3
         { cwd: tempDir, env: { ...process.env, INNFO_CONSOLE_DIR: assetsDir } },
       )
       const out = await readFile(
-        join(tempDir, 'export', 'business_V_0-2-5_console', 'business_V_0-2-5_console.html'),
+        join(tempDir, 'artifacts', 'business_V_0-2-5_console', 'business_V_0-2-5_console.html'),
         'utf-8',
       )
       assert.equal(out.includes('STALE-LEGACY'), false)
@@ -433,7 +433,7 @@ level: 3
       )
       assert.match(stdout, /business_V_0-2-5_console\.html/)
       assert.equal(
-        existsSync(join(tempDir, 'export', 'business_V_0-2-5_console', 'business_V_0-2-5_console.html')),
+        existsSync(join(tempDir, 'artifacts', 'business_V_0-2-5_console', 'business_V_0-2-5_console.html')),
         true,
       )
     })
@@ -480,7 +480,7 @@ metricValue:: 56
 
       const htmlPath = join(
         tempDir,
-        'export',
+        'artifacts',
         'matrix_V_0-1-0_console',
         'matrix_V_0-1-0_console.html',
       )

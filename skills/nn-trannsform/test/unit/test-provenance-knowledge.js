@@ -62,13 +62,13 @@ function run() {
 
     // Export artifact (proper)
     fs.writeFileSync(
-      path.join(proj, 'export', 'summary.md'),
+      path.join(proj, 'artifacts', 'summary.md'),
       `---\ntype: "report"\nsources: ["kNNowledge/Doc_V_1-0-0_NN.md#spec"]\n---\n# Summary\n`,
     );
 
     // Legacy artifact folder (should be ignored)
     fs.writeFileSync(
-      path.join(proj, 'artifacts', 'ignored_artifact.md'),
+      path.join(proj, 'export', 'ignored_artifact.md'),
       `---\ntype: "report"\nsources: ["kNNowledge/Doc_V_1-0-0_NN.md"]\n---\n# Ignored\n`,
     );
 
@@ -84,8 +84,8 @@ function run() {
     // 2. No is_synthetic in sources
     ok(!content1.includes('is_synthetic::'), 'no is_synthetic emitted in lineage record');
 
-    // 3. No artifacts/ fallback: ignored_artifact.md not present
-    ok(!content1.includes('ignored_artifact'), 'files under artifacts/ are ignored');
+    // 3. No export/ fallback (retired folder): ignored_artifact.md not present
+    ok(!content1.includes('ignored_artifact'), 'files under the retired export/ are ignored');
 
     // 4. Hand-authored blocks and journal preserved byte-for-byte in refreshExistingModel
     const handAuthoredSection = '\n# NN External Watch Roots\n\n- root: /data/external\n  pattern: **/*.pdf\n';
@@ -104,7 +104,7 @@ function run() {
 
     // 5. Deprecated model / knowledge_version fallback removed
     fs.writeFileSync(
-      path.join(proj, 'export', 'legacy_header_artifact.md'),
+      path.join(proj, 'artifacts', 'legacy_header_artifact.md'),
       `---\nmodel: "Business Doc"\nknowledge_version: "V_1-0-0"\ntype: "report"\n---\n# Legacy\n`,
     );
     const r3 = provenance.buildProvenanceKnowledge(proj, { projectName: 'TestProj' });

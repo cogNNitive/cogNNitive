@@ -133,15 +133,11 @@ function getCandidatePaths(target: string): string[] {
   if (target === 'hub') {
     const candidates = [
       'artifacts/workspace_hub.html',
-      'export/workspace_hub/workspace_hub.html',
-      'export/workspace_hub/master.html',
-      'export/workspace_hub.html',
+      'artifacts/workspace_hub/workspace_hub.html',
+      'artifacts/workspace_hub/master.html',
       'artifacts/workspace_console.html',
-      'export/workspace_console/workspace_console.html',
-      'export/workspace_console.html',
+      'artifacts/workspace_console/workspace_console.html',
       'innfo/artifacts/workspace_hub.html',
-      'innfo/export/workspace_hub/workspace_hub.html',
-      'innfo/export/workspace_hub.html',
     ]
 
     // Check registered artifacts in knowledgeStore
@@ -212,36 +208,29 @@ function getCandidatePaths(target: string): string[] {
 
   // 3. Known exported console structures
   if (sourceBasename) {
-    candidates.push(`export/${sourceBasename}_console/${sourceBasename}_console.html`)
-    candidates.push(`export/${sourceBasename}_console/master.html`)
-    candidates.push(`export/${sourceBasename}/${sourceBasename}.html`)
-    candidates.push(`export/${sourceBasename}/master.html`)
+    candidates.push(`artifacts/${sourceBasename}_console/${sourceBasename}_console.html`)
+    candidates.push(`artifacts/${sourceBasename}_console/master.html`)
+    candidates.push(`artifacts/${sourceBasename}/${sourceBasename}.html`)
+    candidates.push(`artifacts/${sourceBasename}/master.html`)
     candidates.push(`artifacts/exports/${sourceBasename}.html`)
     candidates.push(`artifacts/exports/${sourceBasename}_Strategic_Master_V_0-1-0.html`)
-    candidates.push(`innfo/export/${sourceBasename}_console/${sourceBasename}_console.html`)
-    candidates.push(`innfo/export/${sourceBasename}_console/master.html`)
-    candidates.push(`innfo/export/${sourceBasename}/${sourceBasename}.html`)
     candidates.push(`innfo/artifacts/exports/${sourceBasename}.html`)
   }
 
   if (sourceSlug && sourceSlug !== sourceBasename) {
-    candidates.push(`export/${sourceSlug}_console/${sourceSlug}_console.html`)
-    candidates.push(`export/${sourceSlug}_console/master.html`)
-    candidates.push(`export/${sourceSlug}/${sourceSlug}.html`)
-    candidates.push(`export/${sourceSlug}/master.html`)
+    candidates.push(`artifacts/${sourceSlug}_console/${sourceSlug}_console.html`)
+    candidates.push(`artifacts/${sourceSlug}_console/master.html`)
+    candidates.push(`artifacts/${sourceSlug}/${sourceSlug}.html`)
+    candidates.push(`artifacts/${sourceSlug}/master.html`)
     candidates.push(`artifacts/exports/${sourceSlug}.html`)
-    candidates.push(`innfo/export/${sourceSlug}_console/${sourceSlug}_console.html`)
-    candidates.push(`innfo/export/${sourceSlug}/${sourceSlug}.html`)
   }
 
   if (modelSlug) {
-    candidates.push(`export/${modelSlug}_console/${modelSlug}_console.html`)
-    candidates.push(`export/${modelSlug}_console/master.html`)
-    candidates.push(`export/${modelSlug}/${modelSlug}.html`)
+    candidates.push(`artifacts/${modelSlug}_console/${modelSlug}_console.html`)
+    candidates.push(`artifacts/${modelSlug}_console/master.html`)
+    candidates.push(`artifacts/${modelSlug}/${modelSlug}.html`)
     candidates.push(`artifacts/exports/${modelSlug}.html`)
     candidates.push(`artifacts/${modelSlug}_console.html`)
-    candidates.push(`innfo/export/${modelSlug}_console/${modelSlug}_console.html`)
-    candidates.push(`innfo/export/${modelSlug}/${modelSlug}.html`)
     candidates.push(`innfo/artifacts/${modelSlug}_console.html`)
   }
 
@@ -366,9 +355,7 @@ async function resolveFlexibleFileHandle(
     normalized.replace(/^innfo\//i, ''),
     `innfo/${normalized}`,
     filename ? `artifacts/${filename}` : '',
-    filename ? `export/${filename}` : '',
     filename ? `innfo/artifacts/${filename}` : '',
-    filename ? `innfo/export/${filename}` : '',
   ].filter(Boolean)
 
   const uniquePaths = Array.from(new Set(variations))
@@ -449,7 +436,6 @@ async function inlineConsoleResources(
       const candidatePaths = [
         consoleDir ? `${consoleDir}/${filename}` : '',
         filename,
-        `export/${filename}`,
         `artifacts/${filename}`,
         `specs/bluepriNNts/console/${filename}`,
         `innfo/specs/bluepriNNts/console/${filename}`,
@@ -534,7 +520,6 @@ async function inlineConsoleResources(
         consoleDir ? `${consoleDir}/${filename}` : '',
         filename,
         `artifacts/${filename}`,
-        `export/${filename}`,
       ].filter(Boolean)
       for (const candidate of candidatePaths) {
         try {

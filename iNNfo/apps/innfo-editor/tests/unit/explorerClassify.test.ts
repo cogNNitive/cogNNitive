@@ -7,20 +7,20 @@ import {
 } from '../../src/utils/explorerClassify'
 
 describe('explorerClassify', () => {
-  it('classifies export/ files as artifact', () => {
-    const item = { name: 'report.md', path: 'export/report.md', kind: 'file' as const }
-    expect(checkIsArtifact(item)).toBe(true)
-    expect(classifyExplorerItem(item)).toBe('artifact')
-  })
-
-  it('classifies nested export/ files as artifact', () => {
-    const item = { name: 'summary.csv', path: 'export/nested/summary.csv', kind: 'file' as const }
-    expect(checkIsArtifact(item)).toBe(true)
-    expect(classifyExplorerItem(item)).toBe('artifact')
-  })
-
-  it('does NOT classify artifacts/ as artifact (no artifacts/ fallback)', () => {
+  it('classifies artifacts/ files as artifact', () => {
     const item = { name: 'report.md', path: 'artifacts/report.md', kind: 'file' as const }
+    expect(checkIsArtifact(item)).toBe(true)
+    expect(classifyExplorerItem(item)).toBe('artifact')
+  })
+
+  it('classifies nested artifacts/ files as artifact', () => {
+    const item = { name: 'summary.csv', path: 'artifacts/nested/summary.csv', kind: 'file' as const }
+    expect(checkIsArtifact(item)).toBe(true)
+    expect(classifyExplorerItem(item)).toBe('artifact')
+  })
+
+  it('does NOT classify the retired export/ folder as artifact (no fallback)', () => {
+    const item = { name: 'report.md', path: 'export/report.md', kind: 'file' as const }
     expect(checkIsArtifact(item)).toBe(false)
     expect(classifyExplorerItem(item)).toBeNull()
   })
@@ -38,7 +38,7 @@ describe('explorerClassify', () => {
   })
 
   it('returns null for directories and unclassified files', () => {
-    expect(classifyExplorerItem({ name: 'export', path: 'export', kind: 'directory' })).toBeNull()
+    expect(classifyExplorerItem({ name: 'artifacts', path: 'artifacts', kind: 'directory' })).toBeNull()
     expect(classifyExplorerItem({ name: 'readme.txt', path: 'docs/readme.txt', kind: 'file' })).toBeNull()
   })
 })
