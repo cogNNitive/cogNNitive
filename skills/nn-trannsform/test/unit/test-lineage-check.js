@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const { spawnSync } = require('child_process');
 
 const { checkLineage } = require('../../scripts/lib/lineage-check');
 const provenance = require('../../scripts/provenance');
@@ -8,6 +9,12 @@ const { put, cognitivizeAll } = require('./_fixtures');
 
 const PLAN = (cite) =>
   `---\nlevel: 3\nknowledge_version: "V_1-0-0"\nparent_spec:\n  name: "business"\ntitle: "Business Plan"\n---\n# NN Items\n## NN Items: Point 1\nsources:: [${cite}]\n`;
+
+const INDEX = path.resolve(__dirname, '..', '..', 'scripts', 'index.js');
+
+function cli(args) {
+  return spawnSync(process.execPath, [INDEX, ...args], { encoding: 'utf8' });
+}
 
 function listTree(root) {
   return fs.readdirSync(root, { recursive: true }).map(String).sort();
@@ -103,7 +110,11 @@ async function run() {
       '(e) raw bytes that differ from the sidecar sha256 are an error',
     );
     await cognitivizeAll(proj, ['sources/import/data.csv']);
-    eq(checkLineage(proj).errors.length, 0, '(e) cognitivizing again clears the mismatch');
+    const afterRefresh = checkLineage(proj).errors;
+    ok(!afterRefresh.some((e) => /hash mismatch/i.test(e)), '(e) cognitivizing again clears the mismatch');
+    ok(afterRefresh.some((e) => /drift/i.test(e)), '(e) the record still lists the old hash, which is drift');
+    provenance.buildProvenanceKnowledge(proj, { projectName: 'CheckProj' });
+    eq(checkLineage(proj).errors.length, 0, '(e) regenerating the record clears the drift');
 
     // (f) orphaned sidecar: a warning, never an error, nothing is touched
     fs.rmSync(path.join(proj, 'sources/import/report.pdf'));
@@ -120,6 +131,32 @@ async function run() {
     const archive = checkLineage(proj);
     ok(!archive.warnings.some((w) => /ghost_chain|archive/i.test(w)), '(g) an empty archive chain directory is not checked');
     ok(!archive.errors.some((e) => /ghost_chain|archive/i.test(e)), '(g) the archive produces no error');
+
+    // (h) Drift gate: managed sections must equal a fresh projection, nothing else is compared
+    provenance.buildProvenanceKnowledge(proj, { projectName: 'CheckProj' });
+    const synced = fs.readFileSync(recordPath, 'utf8');
+    eq(checkLineage(proj).errors.length, 0, '(h) an in-sync record has no drift error');
+    eq(cli(['--src', proj, '--lineage', '--check']).status, 0, '(h) --lineage --check exits 0 on an in-sync record');
+
+    fs.writeFileSync(recordPath, synced.replace(/^size:: .*$/m, 'size:: 1'));
+    const drifted = checkLineage(proj);
+    ok(
+      drifted.errors.some((e) => /drift/i.test(e) && /# NN Sources/.test(e)),
+      '(h) a hand-edited managed line is a drift error naming the section',
+    );
+    const drift = cli(['--src', proj, '--lineage', '--check']);
+    ok(drift.status !== 0, '(h) --lineage --check exits non-zero on drift');
+    ok(/# NN Sources/.test(drift.stderr + drift.stdout), '(h) --lineage --check names the drifted section');
+    eq(fs.readFileSync(recordPath, 'utf8'), synced.replace(/^size:: .*$/m, 'size:: 1'), '(h) the check never rewrites the record');
+
+    fs.writeFileSync(
+      recordPath,
+      synced +
+        '\n## NN Procedures: scan @ 2026-10-01T00:00:00Z\ncommand:: scan --edited\n' +
+        '\n# NN External Watch Roots\n\n- root: /edited\n',
+    );
+    eq(checkLineage(proj).errors.length, 0, '(h) journal and hand-authored edits do not drift');
+    fs.writeFileSync(recordPath, synced);
   } catch (err) {
     console.error(`  ERROR: ${err.message}`);
     console.error(err.stack);

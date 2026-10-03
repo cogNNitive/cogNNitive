@@ -2,11 +2,13 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const modelLib = require('./provenance-knowledge');
-const indexLib = require('./workspace-index');
 const { collectCitationSites } = require('./impact-checker');
 const {
   readLineageSnapshot,
+  readLineageRecord,
   projectLineage,
+  renderLineageSections,
+  checkLineageDrift,
   createFsSourceResolver,
   validateCitations,
 } = require('./innfo-core.generated.cjs');
@@ -36,7 +38,9 @@ function readRecordSources(recordText) {
  *  (c) a Source family member on disk has no element in `# NN Sources`;
  *  (d) a `superseded_by::` value resolves to no element or file;
  *  (e) a sidecar `sha256` differs from the hash of its raw bytes;
- *  (f) a sidecar names a subject other than the one its name derives.
+ *  (f) a sidecar names a subject other than the one its name derives;
+ *  (g) a managed section of the record differs from a fresh projection
+ *      (the core drift comparator; the journal and hand-authored blocks are not compared).
  * Warnings: an orphaned sidecar (its raw file is missing). Nothing is moved,
  * archived or deleted.
  *
@@ -47,9 +51,8 @@ function checkLineage(projectDir) {
   const errors = [];
   const warnings = [];
 
-  const projectName = path.basename(projectDir);
-  const best = modelLib.resolveLatestModelFile(projectDir, projectName, indexLib.compareVersions);
-  if (!best) {
+  const record = readLineageRecord(projectDir);
+  if (!record) {
     errors.push('No lineage record found. Run `--scan` (or `--lineage`) to create one.');
     return { errors, warnings };
   }
@@ -69,7 +72,7 @@ function checkLineage(projectDir) {
   }
 
   // Family validation against the record on disk.
-  const recordText = fs.readFileSync(path.join(projectDir, best), 'utf8');
+  const recordText = record.content;
   const { names, supersededBy } = readRecordSources(recordText);
   const knownPaths = new Set(projection.sources.map((s) => s.raw_filename));
 
@@ -88,6 +91,13 @@ function checkLineage(projectDir) {
       if (actual !== String(source.raw_hash).toLowerCase()) {
         errors.push(`Hash mismatch: "${source.raw_filename}" differs from the sha256 in "${source.normalized_content}". Run \`--cognitivize\` on it again.`);
       }
+    }
+  }
+
+  const drift = checkLineageDrift(recordText, renderLineageSections(projection));
+  if (!drift.ok) {
+    for (const d of drift.diffs) {
+      errors.push(`Lineage drift in ${d.section} of "${record.path}": ${d.firstDiff}. Run \`--lineage\` to regenerate the record.`);
     }
   }
 

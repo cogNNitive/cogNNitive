@@ -122,6 +122,12 @@ async function run() {
     ok(refreshed.includes('# NN ModelRecords'), 'refresh produces # NN ModelRecords');
     ok(refreshed.includes('* [[Models]]'), 'legacy [[Models]] index link is not rewritten');
 
+    // 7. The record is a single living file: no version key in its frontmatter, none in the generator source
+    ok(!/^knowledge_version:\s/m.test(content3), 'a generated record carries no knowledge_version frontmatter key');
+    ok(!/^knowledge_version:\s/m.test(refreshed), 'refreshing a record drops a legacy knowledge_version key');
+    const generatorSource = fs.readFileSync(path.join(__dirname, '..', '..', 'scripts', 'lib', 'provenance-knowledge.js'), 'utf8');
+    ok(!/knowledge_version|export-meta|sources\/(nn|original|export|archive)\//.test(generatorSource), 'no knowledge_version, export-meta, or retired-folder inference in the generator');
+
     fs.rmSync(TMP, { recursive: true, force: true });
   } catch (err) {
     fs.rmSync(TMP, { recursive: true, force: true });
