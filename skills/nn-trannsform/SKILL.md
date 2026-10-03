@@ -321,6 +321,20 @@ is a no-op:
 node scripts/index.js --converge-mark <family> --version <V_x-y-z> [--src <project-dir>]
 ```
 
+#### 2a-bis. Garbage collection of superseded members (`--gc`)
+
+Write-once families (`artifacts/`, `sources/import/`, console exports) only grow.
+`--gc` is a dry run that lists the members that are neither the latest of their
+family nor cited anywhere (a cited sidecar keeps its subject). It deletes nothing:
+
+```bash
+node scripts/index.js --gc [--json] [--src <project-dir>]
+node scripts/index.js --gc --apply --yes --paths <path>[,<path>...] [--src <project-dir>]
+```
+
+`--apply` deletes only the confirmed `--paths` that are still in a freshly computed
+plan (each with its sidecar) and refuses without `--yes` and `--paths`. CI never applies.
+
 #### 2b. Progressive Disclosure & Source Naming Convention
 
 To prevent LLM context degradation (*Lost in the Middle*) and maintain workspace clarity:

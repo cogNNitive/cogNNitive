@@ -7,6 +7,7 @@ function members(dir, key, ext) {
   if (!existsSync(dir)) return []
   const re = new RegExp(`^${key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}${STAMP}\\.${ext}$`)
   // Unsuffixed member first, then (stamp, seq) ascending, compared numerically (`-10` after `-2`).
+  /** @returns {[string, number]} */
   const order = (name) => {
     const m = /_(\d{8}T\d{6}Z)(?:-(\d+))?\.[^.]+$/.exec(name)
     return m ? [m[1], Number(m[2] ?? 1)] : ['', 0]

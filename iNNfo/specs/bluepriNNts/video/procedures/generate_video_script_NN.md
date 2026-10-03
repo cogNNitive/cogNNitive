@@ -87,7 +87,7 @@ output:: [[Registered Script Artifact]]
 output_status:: verified
 tool:: [[File Editor]]
 scope:: internal
-Write the script to the video's own folder — `series/{series-slug}/assets/{video-slug}/script.md` when the Video belongs to a Series, or `{modelDir}/assets/{video-slug}/script.md` for a standalone Video — set `script::` on the owning Video Element, and set `status:: scripting`.
+Write the script write-once into the video's own folder — a new member `script_<UTC YYYYMMDDTHHmmssZ>.md` under `series/{series-slug}/assets/{video-slug}/` when the Video belongs to a Series, or under `{modelDir}/assets/{video-slug}/` for a standalone Video. Never overwrite an earlier script, and write nothing when the latest member has identical bytes. Set `script::` on the owning Video Element to the latest member, and set `status:: scripting`.
 
 ## NN Work: Plan and Estimate Asset Generation
 parent:: [[Generate Video Script Workflow]]
@@ -104,17 +104,18 @@ Before triggering synthesis of any image, video motion, audio/TTS, or multimodal
 2. **Interactive Provider & Model Consultation**: Present and explain the available provider options and models to the user:
    - **Image Generation Providers**: WaveSpeed AI (`wavespeed-ai/z-image/turbo`, `flux-schnell`, `flux-1-dev`), Replicate (`black-forest-labs/flux-schnell`, `flux-1-dev`), or Local SVG/Static Compositor, detailing quality, generation latency, and unit pricing.
    - **Voiceover / TTS Providers**: ElevenLabs (`eleven_multilingual_v2`, `eleven_turbo_v2`), OpenAI TTS (`tts-1`, `tts-1-hd`), or Windows SAPI / Edge-TTS (Local/Free), detailing voice realism, multi-language support, and per-thousand character pricing.
-3. **Per-Scene & Total Cost Estimation**: Run `node scripts/asset-cost-estimator.mjs <script.md> --out assets/{video-slug}/asset_plan.md` to compute exact character counts, scene by scene, and calculate:
+3. **Per-Scene & Total Cost Estimation**: Run `node scripts/asset-cost-estimator.mjs <script.md> --out staging/video/{video-slug}/asset_plan.md` to compute exact character counts, scene by scene, and calculate:
    - Itemized per-scene cost (visual model cost + TTS voiceover cost).
    - Grand total estimated production budget ($ USD).
    - Comparison across Budget, Professional Studio, Cinema, and Offline/Free quality tiers.
+   - Store the resulting plan write-once as a new member `assets/{video-slug}/asset_plan_<UTC YYYYMMDDTHHmmssZ>.md` (identical bytes write nothing; earlier plans stay untouched).
 4. **Mandatory User Approval Gate**: Display the formatted cost and tier comparison table to the user and request explicit approval of the selected providers and estimated budget before executing any asset synthesis or spending API credits.
 
 ## NN Work: Compile Composition and Synthesize Assets
 parent:: [[Generate Video Script Workflow]]
 step_type:: task
 next:: [[Render Master Video]]
-condition:: Script is registered and asset_plan.md is approved by the user
+condition:: Script is registered and the latest asset plan is approved by the user
 input:: [[Registered Script Artifact]], [[Asset Generation and Cost Plan]]
 output:: [[Compiled Composition Manifest]]
 output_status:: verified
@@ -217,7 +218,7 @@ description:: The validated cogNNitive Video script stored in the video's own fo
 
 ## NN Artifact: Asset Generation and Cost Plan
 type:: intermediate
-description:: A markdown document (`asset_plan.md`) stored in the video's own folder containing the itemized asset inventory, generation prompts/descriptions, assigned AI models and providers (Replicate, ElevenLabs, etc.), unit rates looked up from provider pricing pages, estimated costs per asset, and total projected generation budget.
+description:: A write-once markdown document (family `asset_plan`, latest member current) stored in the video's own folder containing the itemized asset inventory, generation prompts/descriptions, assigned AI models and providers (Replicate, ElevenLabs, etc.), unit rates looked up from provider pricing pages, estimated costs per asset, and total projected generation budget.
 
 ## NN Artifact: Compiled Composition Manifest
 type:: intermediate

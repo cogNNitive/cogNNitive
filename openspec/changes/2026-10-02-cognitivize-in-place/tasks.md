@@ -116,9 +116,9 @@ Spec links: `write-once-artifacts` ("Producers adopt write-once"), `console-expo
 - [x] 4.1 RED: `export-console.mjs` run twice writes nothing new; changed input writes a new suffixed file and leaves prior sha256 identical; output has `meta.sources` (W4: routed through core `buildConsolePayload`). GREEN: `scripts/export-console.mjs` via `console-payload.generated.cjs` + `writeOnce`.
 - [x] 4.2 RED/GREEN: same twice-run test for `impact-checker.js` report, `transformer.js`, `curate-csv.js` (`artifacts/curated/`), `workspace-index.js`, `scanner.js`.
 - [x] 4.3 RED: ConsoleHub resolves latest via `latestOfFamily` (no hand-written paths). GREEN: `ConsoleHubView.vue`.
-- [ ] 4.4 RED: `--gc` dry run lists only non-latest uncited; `--gc --apply --yes --paths` deletes only confirmed intersect plan; CI never applies. GREEN: nn-trannsform `index.js`, wired to core `planGc`/`applyGc`.
-- [ ] 4.5 Edit in place for behavior: `workspace/procedures/compile_*_NN.md` (names kept, Resolved Q1) and `video/procedures/*`; `template_version` bumps; `sync:versions`, registry, `catalog.json`.
-- [ ] 4.6 Gate: nn-trannsform, editor, core, `verify.js`, `check:integrity`, typecheck, lint; regenerate console bundle and payload mirror.
+- [x] 4.4 RED: `--gc` dry run lists only non-latest uncited; `--gc --apply --yes --paths` deletes only confirmed intersect plan; CI never applies. GREEN: nn-trannsform `index.js`, wired to core `planGc`/`applyGc`.
+- [x] 4.5 Edit in place for behavior: `workspace/procedures/compile_*_NN.md` (names kept, Resolved Q1) and `video/procedures/*`; `template_version` bumps; `sync:versions`, registry, `catalog.json`.
+- [x] 4.6 Gate: nn-trannsform, editor, core, `verify.js`, `check:integrity`, typecheck, lint; regenerate console bundle and payload mirror.
 
 ## S5: Lineage drift gate
 

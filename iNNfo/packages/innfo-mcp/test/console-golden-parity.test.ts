@@ -1,5 +1,5 @@
 import { describe, it, beforeEach, afterEach, expect } from 'vitest'
-import { mkdtemp, rm, mkdir, writeFile, readFile } from 'node:fs/promises'
+import { mkdtemp, rm, mkdir, writeFile, readFile, readdir } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve, dirname } from 'node:path'
@@ -133,7 +133,11 @@ parent_spec:
     const cliRes = await runCli([tempDir, '--all'])
     expect(cliRes.code).toBe(0)
 
-    const cliHtmlPath = join(tempDir, 'artifacts', 'Ghostbusters_console', 'Ghostbusters_console.html')
+    // The CLI writes a new suffixed member of the console family; the MCP outputPath names the family.
+    const consoleDir = join(tempDir, 'artifacts', 'Ghostbusters_console')
+    const members = (await readdir(consoleDir)).filter((n) => /^Ghostbusters_console_\d{8}T\d{6}Z(-\d+)?\.html$/.test(n))
+    expect(members).toHaveLength(1)
+    const cliHtmlPath = join(consoleDir, members[0])
     expect(existsSync(cliHtmlPath)).toBe(true)
     const cliHtml = await readFile(cliHtmlPath, 'utf-8')
 

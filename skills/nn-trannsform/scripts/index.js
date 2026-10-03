@@ -17,6 +17,7 @@ const { promoteConversation, PROMOTION_OPTIONS } = require('./lib/conversations'
 const externalScanner = require('./lib/external-scanner');
 const watchDigestStore = require('./lib/watch-digest-store');
 const curateCsv = require('./lib/curate-csv');
+const gc = require('./lib/gc');
 const convergence = require('./lib/convergence-delta');
 const { sidecarPathOf } = require('./lib/innfo-core.generated.cjs');
 
@@ -51,7 +52,8 @@ async function main() {
     argv['remove-source'] ||
     argv['curate-csv'] ||
     argv.converge ||
-    argv['converge-mark'];
+    argv['converge-mark'] ||
+    argv.gc;
 
   if (hasArgs) {
     await handleCliMode(argv);
@@ -105,6 +107,44 @@ function reportScanImpact(projectDir) {
   }
 }
 
+/**
+ * Garbage collection of write-once families. Dry run by default: lists the
+ * non-latest, uncited members. `--apply` deletes only the user-confirmed
+ * `--paths` that are still in a freshly computed plan, and needs `--yes`.
+ * CI never applies.
+ */
+async function handleGc(projectDir, argv) {
+  if (!argv.apply) {
+    const { candidates } = await gc.planProjectGc(projectDir);
+    if (argv.json) {
+      console.log(JSON.stringify({ candidates }, null, 2));
+      process.exit(0);
+    }
+    if (candidates.length === 0) {
+      console.log('✅ Nothing to collect: every superseded member is cited or there is none.');
+      process.exit(0);
+    }
+    console.log(`Superseded and uncited members (${candidates.length}). Nothing was deleted:`);
+    for (const c of candidates) console.log(`  ${c}`);
+    console.log('\nTo delete a confirmed subset: --gc --apply --yes --paths <path>[,<path>...]');
+    process.exit(0);
+  }
+
+  if (process.env.CI) {
+    console.error('Error: --gc --apply never runs in CI. Run it interactively and confirm the paths.');
+    process.exit(1);
+  }
+  const confirmed = gc.parsePathsArg(argv.paths);
+  if (!argv.yes || confirmed.length === 0) {
+    console.error('Error: --gc --apply needs --yes and --paths <path>[,<path>...] naming the members to delete.');
+    process.exit(2);
+  }
+  const { deleted, kept } = await gc.applyProjectGc(projectDir, confirmed);
+  for (const d of deleted) console.log(`🗑️  Deleted ${d} (and its sidecar)`);
+  for (const k of kept) console.warn(`⚠️  Kept ${k}: not in the current plan (latest member, cited, or unknown).`);
+  process.exit(0);
+}
+
 async function handleCliMode(argv) {
   let projectDir = '';
 
@@ -131,6 +171,10 @@ async function handleCliMode(argv) {
     console.error(`Error: Project directory "${projectDir}" does not exist.`);
     console.error('Please specify valid --src, --dest and --name to bootstrap it first.');
     process.exit(1);
+  }
+
+  if (argv.gc) {
+    await handleGc(projectDir, argv);
   }
 
   if (argv.check) {
