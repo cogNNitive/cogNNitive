@@ -168,3 +168,4 @@ export * from './lineage/index.js'
 export { readLineageSnapshot } from './lineage/fs-snapshot.js'
 
 export * from './naming/index.js'
+export * from './writeOnce/index.js'
