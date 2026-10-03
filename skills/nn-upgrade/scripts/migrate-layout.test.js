@@ -207,3 +207,35 @@ test('layout step: a frozen sample workspace is skipped and left unchanged', () 
     fs.rmSync(tmp, { recursive: true, force: true })
   }
 })
+
+test('layout step: --layout-only skips the nn-rename step and plans just the layout', () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'nn-layout-only-'))
+  try {
+    const domainDir = path.join(tmp, 'domain')
+    seedLegacyLayoutDomain(domainDir)
+    // Legacy concept names make the nn-rename step non-empty.
+    write(
+      domainDir,
+      'domaiNN_NN.md',
+      '---\nknowledge_version: "V_0-1-0"\n---\n# NN index\n\n* [[Workspace]]\n\n# NN Workspace\n\n## NN Workspace: Demo\nknowledge_dir:: kNNowledge/\n',
+    )
+
+    const renameFirst = JSON.parse(runCli(['--domain-dir', domainDir, '--json']).stdout)
+    assert.strictEqual(renameFirst.step, undefined)
+    assert.ok(renameFirst.report.rewrittenFiles.includes('domaiNN_NN.md'))
+
+    const layoutOnly = JSON.parse(runCli(['--domain-dir', domainDir, '--layout-only', '--json']).stdout)
+    assert.strictEqual(layoutOnly.step, 'layout')
+    assert.ok(layoutOnly.report.moved.some((m) => m.from === 'export/dup.md' || m.from === 'export/Summary_20261002-101500.md'))
+
+    const res = runCli(['--domain-dir', domainDir, '--layout-only', '--apply', '--plan-hash', layoutOnly.planHash, '--yes'])
+    assert.strictEqual(res.status, 0, res.stderr + res.stdout)
+    assert.ok(fs.existsSync(path.join(domainDir, 'artifacts', 'dup.md')))
+    assert.ok(
+      fs.readFileSync(path.join(domainDir, 'domaiNN_NN.md'), 'utf8').includes('[[Workspace]]'),
+      'the nn-rename step must not have run',
+    )
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true })
+  }
+})

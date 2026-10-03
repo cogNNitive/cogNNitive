@@ -532,6 +532,7 @@ async function main() {
   const isJson = process.argv.includes('--json')
   const isApply = process.argv.includes('--apply')
   const hasConsent = process.argv.includes('--yes')
+  const isLayoutOnly = process.argv.includes('--layout-only')
   const planHashArg = getArg('--plan-hash')
   const domainDirArg = getArg('--domain-dir') || getArg('--workspace-dir')
   const restoreArg = getArg('--restore')
@@ -542,7 +543,7 @@ async function main() {
 
   if (!domainDirArg) {
     console.error(
-      'Usage: node migrate-domain.js --domain-dir <dir> [--apply --plan-hash <hash> --yes] [--restore <backupDir>] [--import-as-source --new-domain-dir <dir>]',
+      'Usage: node migrate-domain.js --domain-dir <dir> [--layout-only] [--apply --plan-hash <hash> --yes] [--restore <backupDir>] [--import-as-source --new-domain-dir <dir>]',
     )
     process.exit(1)
   }
@@ -603,6 +604,12 @@ async function main() {
     validate(_tree, _targets) {
       return []
     },
+  }
+
+  // `--layout-only` runs just the layout step (fixtures, domaiNNs whose nn-rename step is pending).
+  if (isLayoutOnly) {
+    await runLayoutStep(ws, reader, { isJson, isApply, hasConsent, planHashArg, failAfter }, null)
+    return
   }
 
   const plan = await planMigration(reader, deps)
