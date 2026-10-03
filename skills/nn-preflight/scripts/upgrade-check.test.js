@@ -160,6 +160,23 @@ async function runTests() {
     }
   }
 
+  // Test 5b: a seeded sidecar is never discovered as a model
+  {
+    const ws = buildWorkspace();
+    try {
+      fs.writeFileSync(
+        path.join(ws, 'models', 'report.pdf_sidecar_NN.md'),
+        '---\nlevel: 3\nparent_spec:\n  name: "sidecar"\n  url: "https://x/main/iNNfo/specs/bluepriNNts/sidecar/spec_NN.md"\n---\n',
+      );
+      const rels = discoverModels(ws).map((m) => m.rel);
+      assert.strictEqual(rels.length, 4, 'sidecar must not be a model');
+      assert.ok(!rels.some((r) => r.includes('_sidecar_')));
+      console.log('✔ discoverModels never returns a sidecar');
+    } finally {
+      fs.rmSync(ws, { recursive: true, force: true });
+    }
+  }
+
   // Test 6: CLI mode with --json
   {
     const ws = buildWorkspace();

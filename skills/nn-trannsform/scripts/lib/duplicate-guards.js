@@ -15,7 +15,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { parseCitation } = require('./innfo-core.generated.cjs');
+const { parseCitation, isNNName, isSidecarName } = require('./innfo-core.generated.cjs');
 
 /** Canonicalize whitespace + ordering for structural comparison. */
 function canonicalize(text) {
@@ -332,7 +332,7 @@ function auditUncitedSources(workspaceRoot, opts = {}) {
         if (ent.name.startsWith('.')) continue;
         const full = path.join(dir, ent.name);
         if (ent.isDirectory()) walkModels(full);
-        else if (ent.isFile() && ent.name.endsWith('_NN.md')) modelFiles.push(full);
+        else if (ent.isFile() && isNNName(ent.name) && !isSidecarName(ent.name)) modelFiles.push(full);
       }
     }
     walkModels(modelsDir);

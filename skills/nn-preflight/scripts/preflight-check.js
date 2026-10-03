@@ -35,6 +35,7 @@ const { parseFocusedYaml, parseFrontmatter } = require('./lib/yaml-lite');
 const { discoverModels, scanWorkspaceUpgrades } = require('./upgrade-check');
 const { isProjectableName, classifyProjection, hashTree } = require('./lib/projection');
 const { detectLegacy } = require('./lib/legacy-detect.generated.cjs');
+const { SPEC_FILENAME, ensureNNFilename } = require('./lib/naming-contract.generated.cjs');
 
 const DEFAULT_MANIFEST_URL = process.env.SM_MANIFEST_URL ||
   'https://cognnitive.com/use/manifest.md';
@@ -667,21 +668,21 @@ function validateBlueprintCompositions(options = {}) {
       candidates.push(
         path.resolve(parentDir, n),
         path.resolve(parentDir, `${n}.md`),
-        path.resolve(parentDir, `${n}_NN.md`),
-        path.resolve(parentDir, n, 'spec_NN.md'),
-        path.resolve(parentDir, n, `${n}_NN.md`),
+        path.resolve(parentDir, ensureNNFilename(n)),
+        path.resolve(parentDir, n, SPEC_FILENAME),
+        path.resolve(parentDir, n, ensureNNFilename(n)),
         path.resolve(parentDir, '..', n),
         path.resolve(parentDir, '..', `${n}.md`),
-        path.resolve(parentDir, '..', `${n}_NN.md`),
-        path.resolve(parentDir, '..', n, 'spec_NN.md')
+        path.resolve(parentDir, '..', ensureNNFilename(n)),
+        path.resolve(parentDir, '..', n, SPEC_FILENAME)
       );
       for (const searchDir of resolverDirs) {
         candidates.push(
           path.join(searchDir, n),
           path.join(searchDir, `${n}.md`),
-          path.join(searchDir, `${n}_NN.md`),
-          path.join(searchDir, n, 'spec_NN.md'),
-          path.join(searchDir, n, `${n}_NN.md`)
+          path.join(searchDir, ensureNNFilename(n)),
+          path.join(searchDir, n, SPEC_FILENAME),
+          path.join(searchDir, n, ensureNNFilename(n))
         );
       }
     }

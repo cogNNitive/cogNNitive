@@ -3,7 +3,6 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const {
-  formatTimestamp,
   formatTimestampedBasename,
   parseSourceStem,
   parseWatchRoots,
@@ -31,19 +30,16 @@ async function run() {
 
   console.log('\n--- test-external-scanner ---');
 
-  it('formats timestamp and timestamped basename correctly', () => {
-    const fixedDate = new Date(2026, 8, 12, 18, 55, 36); // Sept 12, 2026, 18:55:36
-    const ts = formatTimestamp(fixedDate);
-    assert.strictEqual(ts, '20260912-185536');
-
+  it('formats the timestamped basename with the UTC contract stamp', () => {
+    const fixedDate = new Date(Date.UTC(2026, 8, 12, 18, 55, 36));
     const tsName = formatTimestampedBasename('quarterly_forecast.xlsx', fixedDate);
-    assert.strictEqual(tsName, 'quarterly_forecast_20260912-185536.xlsx');
+    assert.strictEqual(tsName, 'quarterly_forecast_20260912T185536Z.xlsx');
   });
 
   it('parses source stem and timestamp correctly', () => {
-    const parsed1 = parseSourceStem('quarterly_forecast_20260912-185536.xlsx');
+    const parsed1 = parseSourceStem('quarterly_forecast_20260912T185536Z.xlsx');
     assert.strictEqual(parsed1.stem, 'quarterly_forecast');
-    assert.strictEqual(parsed1.timestamp, '20260912-185536');
+    assert.strictEqual(parsed1.timestamp, '20260912T185536Z');
     assert.strictEqual(parsed1.ext, '.xlsx');
 
     const parsed2 = parseSourceStem('simple_doc.md');
@@ -133,7 +129,7 @@ async function run() {
       const extFile = path.join(tempExtDir, 'weekly_metrics.csv');
       fs.writeFileSync(extFile, 'week,active_users\n1,1200\n2,1450', 'utf8');
 
-      const fixedDate = new Date(2026, 8, 12, 12, 0, 0);
+      const fixedDate = new Date(Date.UTC(2026, 8, 12, 12, 0, 0));
       const candidates = [
         {
           fullPath: extFile,
@@ -144,9 +140,9 @@ async function run() {
 
       const imported = importExternalFiles(candidates, tempWorkDir, { timestampDate: fixedDate });
       assert.strictEqual(imported.length, 1);
-      assert.strictEqual(imported[0].importedAs, 'weekly_metrics_20260912-120000.csv');
+      assert.strictEqual(imported[0].importedAs, 'weekly_metrics_20260912T120000Z.csv');
 
-      const importedPath = path.join(tempWorkDir, 'sources', 'import', 'weekly_metrics_20260912-120000.csv');
+      const importedPath = path.join(tempWorkDir, 'sources', 'import', 'weekly_metrics_20260912T120000Z.csv');
       assert.strictEqual(fs.existsSync(importedPath), true);
       assert.strictEqual(fs.readFileSync(importedPath, 'utf8'), fs.readFileSync(extFile, 'utf8'));
 

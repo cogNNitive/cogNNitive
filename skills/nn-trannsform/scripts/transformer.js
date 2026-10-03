@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { formatUtcStamp, isSidecarName } = require('./lib/innfo-core.generated.cjs');
 
 /**
  * Lists templates in the traNNsformations directory
@@ -28,7 +29,7 @@ function collectMarkdownFiles(mdDir) {
       if (entry.isDirectory()) {
         walk(abs, relPath);
       } else if (entry.isFile() && entry.name.endsWith('.md')) {
-        if (relPath === 'index.md') continue;
+        if (relPath === 'index.md' || isSidecarName(entry.name)) continue;
         results.push(relPath);
       }
     }
@@ -80,7 +81,7 @@ async function applyTransformation(projectDir, templateName, options = {}) {
 
   const transformedOutput = runHeuristicTransformation(templateName, sourceContent);
 
-  const timestamp = getFormattedTimestamp();
+  const timestamp = formatUtcStamp(new Date());
   const outputFileName = `${cleanBlueprintName}_${timestamp}.md`;
   const outputPath = path.join(outputDir, outputFileName);
 
@@ -107,17 +108,6 @@ function runHeuristicTransformation(templateName, sourceContent) {
     sourceContent.trim() +
     '\n'
   );
-}
-
-function getFormattedTimestamp() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  const hour = String(now.getHours()).padStart(2, '0');
-  const min = String(now.getMinutes()).padStart(2, '0');
-  const sec = String(now.getSeconds()).padStart(2, '0');
-  return `${year}${month}${day}-${hour}${min}${sec}`;
 }
 
 module.exports = {

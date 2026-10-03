@@ -94,7 +94,7 @@ function testComputeDelta() {
 }
 
 function testBuildProposal() {
-  const common = { family: 'fam', key: 'video_id', fromFile: 'fam_20260101-000000.csv', toFile: 'fam_20260201-000000.csv' };
+  const common = { family: 'fam', key: 'video_id', fromFile: 'fam_20260101T000000Z.csv', toFile: 'fam_20260201T000000Z.csv' };
 
   const citeOnly = buildProposal({ ...common, strategy: 'cite-only', fromContent: CSV_FROM, toContent: CSV_TO });
   assert.strictEqual(citeOnly.empty, true);
@@ -156,15 +156,15 @@ function testResolveFamilySnapshots() {
   try {
     const nnDir = path.join(dir, 'sources', 'nn', 'import');
     fs.mkdirSync(nnDir, { recursive: true });
-    fs.writeFileSync(path.join(nnDir, 'fam_20260101-000000.csv'), CSV_FROM);
-    fs.writeFileSync(path.join(nnDir, 'fam_20260201-000000.csv'), CSV_TO);
-    fs.writeFileSync(path.join(nnDir, 'other_20260201-000000.csv'), CSV_FROM);
-    fs.writeFileSync(path.join(nnDir, 'fam_20260301-000000.md'), 'profile, not citable\n');
+    fs.writeFileSync(path.join(nnDir, 'fam_20260101T000000Z.csv'), CSV_FROM);
+    fs.writeFileSync(path.join(nnDir, 'fam_20260201T000000Z.csv'), CSV_TO);
+    fs.writeFileSync(path.join(nnDir, 'other_20260201T000000Z.csv'), CSV_FROM);
+    fs.writeFileSync(path.join(nnDir, 'fam_20260301T000000Z.md'), 'profile, not citable\n');
 
     const snaps = resolveFamilySnapshots(dir, 'fam');
     assert.strictEqual(snaps.length, 2);
-    assert.strictEqual(snaps[0].timestamp, '20260101-000000');
-    assert.strictEqual(snaps[1].timestamp, '20260201-000000');
+    assert.strictEqual(snaps[0].timestamp, '20260101T000000Z');
+    assert.strictEqual(snaps[1].timestamp, '20260201T000000Z');
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }

@@ -55,6 +55,11 @@ async function main() {
     totalPassed += coreMirrorResult.passed;
     totalFailed += coreMirrorResult.failed;
 
+    const sidecarDiscoveryTest = require('./unit/test-sidecar-discovery');
+    const sidecarDiscoveryResult = await sidecarDiscoveryTest.run();
+    totalPassed += sidecarDiscoveryResult.passed;
+    totalFailed += sidecarDiscoveryResult.failed;
+
     const scannerTest = require('./unit/test-scanner');
     const scannerResult = await scannerTest.run();
     totalPassed += scannerResult.passed;

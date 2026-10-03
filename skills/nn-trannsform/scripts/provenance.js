@@ -22,6 +22,9 @@ const {
   renderLineageSections,
 } = require('./lib/innfo-core.generated.cjs');
 
+/** Suffix of the pre-rename lineage record, migrated in place to `_cogNNitive_NN.md`. */
+const LEGACY_RECORD_SUFFIX = '_workspace_NN.md';
+
 /**
  * Resolve the canonical `cogNNitive` lineage-record path for a project: the
  * existing latest record, a legacy `_workspace_NN.md` record migrated in place,
@@ -35,10 +38,10 @@ function resolveModelPath(projectDir, projectName) {
     projectDir,
     projectName,
     indexLib.compareVersions,
-    '_workspace_NN.md',
+    LEGACY_RECORD_SUFFIX,
   );
   if (legacy) {
-    const migrated = legacy.replace(/_workspace_NN\.md$/, '_cogNNitive_NN.md');
+    const migrated = legacy.slice(0, legacy.length - LEGACY_RECORD_SUFFIX.length) + '_cogNNitive_NN.md';
     fs.renameSync(path.join(projectDir, legacy), path.join(projectDir, migrated));
     return { modelPath: path.join(projectDir, migrated), created: false };
   }

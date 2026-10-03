@@ -193,22 +193,22 @@ sources:: [sources/nn/metrics.csv@1&nonexistent_col]
 
     // Test 8: Source Family Evolution
     const tsDir = path.join(tmpDir, 'sources', 'nn');
-    fs.writeFileSync(path.join(tsDir, 'quarterly_strategy_20260901-100000.md'), '# Strategy\n## Goal\n');
-    fs.writeFileSync(path.join(tsDir, 'quarterly_strategy_20260915-120000.md'), '# Strategy\n## Goal\n');
+    fs.writeFileSync(path.join(tsDir, 'quarterly_strategy_20260901T100000Z.md'), '# Strategy\n## Goal\n');
+    fs.writeFileSync(path.join(tsDir, 'quarterly_strategy_20260915T120000Z.md'), '# Strategy\n## Goal\n');
 
     const families = groupSourceFamilies(tmpDir);
     ok(families['quarterly_strategy'] && families['quarterly_strategy'].length === 2, 'groups quarterly_strategy family correctly');
 
     fs.writeFileSync(
       path.join(modelsDir, 'Evolving_V_1-0-0_NN.md'),
-      `---\nlevel: 3\nparent_spec:\n  name: "business"\n---\n# NN O\n## NN O: Goal\nsources:: [sources/nn/quarterly_strategy_20260901-100000.md@## Goal]\n`,
+      `---\nlevel: 3\nparent_spec:\n  name: "business"\n---\n# NN O\n## NN O: Goal\nsources:: [sources/nn/quarterly_strategy_20260901T100000Z.md@## Goal]\n`,
     );
 
     const evolutions = detectSourceFamilyEvolution(tmpDir);
     ok(evolutions.length > 0, 'detects source family evolution opportunity');
     eq(evolutions[0].family, 'quarterly_strategy', 'identifies correct family stem');
-    eq(evolutions[0].currentSnapshot, 'quarterly_strategy_20260901-100000.md', 'identifies current snapshot');
-    eq(evolutions[0].latestSnapshot, 'quarterly_strategy_20260915-120000.md', 'identifies latest snapshot');
+    eq(evolutions[0].currentSnapshot, 'quarterly_strategy_20260901T100000Z.md', 'identifies current snapshot');
+    eq(evolutions[0].latestSnapshot, 'quarterly_strategy_20260915T120000Z.md', 'identifies latest snapshot');
     eq(evolutions[0].headingPreserved, true, 'detects heading preserved in newer snapshot');
 
     fs.rmSync(tmpDir, { recursive: true, force: true });

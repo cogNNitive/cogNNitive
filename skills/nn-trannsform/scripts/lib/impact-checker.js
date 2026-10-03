@@ -6,6 +6,8 @@ const {
   createFsSourceResolver,
   validateCitations,
   parseCitation,
+  parseName,
+  compareMembers,
 } = require('./innfo-core.generated.cjs');
 
 /**
@@ -270,12 +272,6 @@ function writeImpactReport(projectDir, audit, date) {
 }
 
 /**
- * Regular expression matching timestamped normalized source files
- * e.g. "quarterly_forecast_20260912-185536.md"
- */
-const TIMESTAMP_REGEX = /^(.+)_(\d{8}-\d{6})(?:\.md)?$/i;
-
-/**
  * Groups normalized Markdown source files under sources/nn/ into time-series families.
  *
  * @param {string} projectDir
@@ -295,10 +291,10 @@ function groupSourceFamilies(projectDir) {
       if (ent.isDirectory()) walk(abs, relPath);
       else if (ent.isFile() && ent.name.endsWith('.md')) {
         const base = ent.name;
-        const m = base.match(TIMESTAMP_REGEX);
-        if (m) {
-          const stem = m[1];
-          const timestamp = m[2];
+        const parsed = parseName(base);
+        if (parsed.kind === 'file' && parsed.stamp) {
+          const stem = parsed.key;
+          const timestamp = parsed.stamp.stamp;
           if (!families[stem]) {
             families[stem] = [];
           }
@@ -315,7 +311,7 @@ function groupSourceFamilies(projectDir) {
   walk(nnDir, '');
 
   for (const stem of Object.keys(families)) {
-    families[stem].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+    families[stem].sort((a, b) => compareMembers(a.fileName, b.fileName));
   }
 
   return families;
@@ -356,16 +352,15 @@ function detectSourceFamilyEvolution(projectDir) {
       if (!parsed) continue;
 
       const baseFile = path.basename(parsed.filePath);
-      const match = baseFile.match(TIMESTAMP_REGEX);
-      if (!match) continue;
+      const citedName = parseName(baseFile);
+      if (citedName.kind !== 'file' || !citedName.stamp) continue;
 
-      const stem = match[1];
-      const citedTs = match[2];
+      const stem = citedName.key;
       const snapshots = families[stem];
       if (!snapshots || snapshots.length <= 1) continue;
 
       const latest = snapshots[snapshots.length - 1];
-      if (latest.timestamp > citedTs) {
+      if (compareMembers(latest.fileName, baseFile) > 0) {
         let headingPreserved = true;
         let slugPart = '';
         if (parsed.unit && parsed.unit.kind === 'header') {
@@ -400,7 +395,6 @@ function detectSourceFamilyEvolution(projectDir) {
 }
 
 module.exports = {
-  TIMESTAMP_REGEX,
   auditModelCitations,
   checkScanImpact,
   findClosestSlugs,

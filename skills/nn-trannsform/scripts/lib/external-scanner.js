@@ -1,12 +1,13 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-
-/**
- * Regex matching timestamped source filenames:
- * e.g. "report_20260912-185536.md" or "forecast_20260912-185536.xlsx"
- */
-const TIMESTAMP_REGEX = /^(.+)_(\d{8}-\d{6})(\.[^.]+)?$/;
+const {
+  parseName,
+  formatMemberName,
+  nextStamp,
+  isNNName,
+  isSidecarName,
+} = require('./innfo-core.generated.cjs');
 
 /**
  * Filename tokens that identify the workspace lineage / entrypoint record — the
@@ -17,24 +18,8 @@ const TIMESTAMP_REGEX = /^(.+)_(\d{8}-\d{6})(\.[^.]+)?$/;
 const RECORD_TOKENS = ['cogNNitive', 'domaiNN', 'workspace'];
 
 /**
- * Formats a Date object to YYYYMMDD-HHmmss
- * @param {Date} [date]
- * @returns {string}
- */
-function formatTimestamp(date = new Date()) {
-  const pad = (n) => String(n).padStart(2, '0');
-  const YYYY = date.getFullYear();
-  const MM = pad(date.getMonth() + 1);
-  const DD = pad(date.getDate());
-  const HH = pad(date.getHours());
-  const mm = pad(date.getMinutes());
-  const ss = pad(date.getSeconds());
-  return `${YYYY}${MM}${DD}-${HH}${mm}${ss}`;
-}
-
-/**
  * Computes a timestamped filename from an original basename.
- * e.g. "metrics.xlsx" -> "metrics_20260912-195800.xlsx"
+ * e.g. "metrics.xlsx" -> "metrics_20260912T195800Z.xlsx" (UTC contract stamp)
  * @param {string} originalBasename
  * @param {Date} [date]
  * @returns {string}
@@ -42,13 +27,12 @@ function formatTimestamp(date = new Date()) {
 function formatTimestampedBasename(originalBasename, date = new Date()) {
   const ext = path.extname(originalBasename);
   const stem = path.basename(originalBasename, ext);
-  const ts = formatTimestamp(date);
-  return `${stem}_${ts}${ext}`;
+  return formatMemberName(stem, ext.replace(/^\./, ''), nextStamp(date));
 }
 
 /**
  * Extracts stem from a potentially timestamped filename.
- * e.g. "metrics_20260912-195800.xlsx" -> "metrics"
+ * e.g. "metrics_20260912T195800Z.xlsx" -> "metrics"
  * e.g. "metrics.xlsx" -> "metrics"
  * @param {string} filename
  * @returns {{ stem: string, timestamp: string | null, ext: string }}
@@ -56,12 +40,12 @@ function formatTimestampedBasename(originalBasename, date = new Date()) {
 function parseSourceStem(filename) {
   const base = path.basename(filename);
   const ext = path.extname(base);
-  const match = base.match(TIMESTAMP_REGEX);
-  if (match) {
+  const parsed = parseName(base);
+  if (parsed.kind === 'file' && parsed.stamp) {
     return {
-      stem: match[1],
-      timestamp: match[2],
-      ext: match[3] || ext,
+      stem: parsed.key,
+      timestamp: parsed.stamp.stamp,
+      ext: parsed.ext ? `.${parsed.ext}` : '',
     };
   }
   return {
@@ -306,14 +290,14 @@ function scanAllWatchRoots(projectDir, cache = {}) {
     const dir = path.join(projectDir, dirName);
     if (!fs.existsSync(dir)) continue;
     const files = fs.readdirSync(dir);
-    const prov = files.find((f) => RECORD_TOKENS.some((t) => f.includes(t)));
+    const prov = files.find((f) => !isSidecarName(f) && RECORD_TOKENS.some((t) => f.includes(t)));
     if (prov) modelPath = path.join(dir, prov);
   }
 
   // Also check workspace root records.
   if (!modelPath) {
     const rootFiles = fs.readdirSync(projectDir);
-    const prov = rootFiles.find((f) => f.endsWith('_NN.md') && RECORD_TOKENS.some((t) => f.includes(t)));
+    const prov = rootFiles.find((f) => isNNName(f) && !isSidecarName(f) && RECORD_TOKENS.some((t) => f.includes(t)));
     if (prov) modelPath = path.join(projectDir, prov);
   }
 
@@ -413,8 +397,6 @@ function serializeScanResult(scanResult) {
 }
 
 module.exports = {
-  TIMESTAMP_REGEX,
-  formatTimestamp,
   formatTimestampedBasename,
   parseSourceStem,
   computeFileHash,

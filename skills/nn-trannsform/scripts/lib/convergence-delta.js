@@ -20,10 +20,10 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { parseCsv } = require('./scanner-converters');
+const { parseName, compareMembers, isNNName, isSidecarName } = require('./innfo-core.generated.cjs');
 
 const STRATEGIES = ['cite-only', 'upsert', 'replace-values'];
 const SNAPSHOT_EXTS = ['.csv', '.json'];
-const TIMESTAMP_RE = /_(\d{8}-\d{6})(\.[a-z0-9]+)$/i;
 
 function sha256(text) {
   return crypto.createHash('sha256').update(text, 'utf8').digest('hex');
@@ -71,7 +71,7 @@ function findFamilyManifest(projectDir) {
   for (const dir of [projectDir, path.join(projectDir, 'kNNowledge')]) {
     if (!fs.existsSync(dir)) continue;
     for (const name of fs.readdirSync(dir)) {
-      if (name.endsWith('_NN.md')) candidates.push(path.join(dir, name));
+      if (isNNName(name) && !isSidecarName(name)) candidates.push(path.join(dir, name));
     }
   }
   for (const file of candidates) {
@@ -86,7 +86,7 @@ function findFamilyManifest(projectDir) {
 
 /* ── Snapshot resolution ──────────────────────────────────────── */
 
-/** Walks `sources/nn` for `<family>_<YYYYMMDD-HHmmss>.<csv|json>` snapshots. */
+/** Walks `sources/nn` for `<family>_<YYYYMMDDTHHmmssZ>.<csv|json>` snapshots. */
 function resolveFamilySnapshots(projectDir, family) {
   const root = path.join(projectDir, 'sources', 'nn');
   const found = [];
@@ -102,20 +102,19 @@ function resolveFamilySnapshots(projectDir, family) {
       if (entry.isDirectory()) {
         walk(full);
       } else if (entry.isFile() && SNAPSHOT_EXTS.includes(path.extname(entry.name).toLowerCase())) {
-        const tm = entry.name.match(TIMESTAMP_RE);
-        if (!tm) continue;
-        const stem = entry.name.slice(0, entry.name.length - tm[0].length);
-        if (stem !== family) continue;
+        const parsed = parseName(entry.name);
+        if (parsed.kind !== 'file' || !parsed.stamp || parsed.key !== family) continue;
         found.push({
           relPath: path.relative(projectDir, full).replace(/\\/g, '/'),
           absPath: full,
-          timestamp: tm[1],
+          timestamp: parsed.stamp.stamp,
+          fileName: entry.name,
         });
       }
     }
   };
   walk(root);
-  found.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+  found.sort((a, b) => compareMembers(a.fileName, b.fileName));
   return found;
 }
 
