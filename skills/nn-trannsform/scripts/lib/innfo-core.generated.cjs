@@ -7369,16 +7369,34 @@ var require_dist = __commonJS({
 // iNNfo/packages/innfo-core/src/trannsformPrimitives.ts
 var trannsformPrimitives_exports = {};
 __export(trannsformPrimitives_exports, {
+  ENTRYPOINT_FILENAME: () => ENTRYPOINT_FILENAME,
+  IGNORED_DIRECTORIES: () => IGNORED_DIRECTORIES,
+  SIDECAR_BLUEPRINT: () => SIDECAR_BLUEPRINT,
+  SPEC_FILENAME: () => SPEC_FILENAME,
+  checkPathBudget: () => checkPathBudget,
+  compareMembers: () => compareMembers,
   createFsSourceResolver: () => createFsSourceResolver,
+  displayStem: () => displayStem,
   extractFileCitations: () => extractFileCitations,
   extractHeadings: () => extractHeadings,
+  familyOf: () => familyOf,
+  formatMemberName: () => formatMemberName,
+  formatNNName: () => formatNNName,
+  formatUtcStamp: () => formatUtcStamp,
   headingSlugParts: () => headingSlugParts,
+  isExcludedPath: () => isExcludedPath,
+  nextStamp: () => nextStamp,
   normalizeName: () => normalizeName,
   parseCitation: () => parseCitation,
+  parseName: () => parseName,
+  procedureIdOf: () => procedureIdOf,
   projectLineage: () => projectLineage,
+  rawPathOfSidecar: () => rawPathOfSidecar,
   readLineageSnapshot: () => readLineageSnapshot,
   renderLineageSections: () => renderLineageSections,
+  roleOf: () => roleOf,
   serializeKnowledgeUnitRef: () => serializeKnowledgeUnitRef,
+  sidecarPathOf: () => sidecarPathOf,
   slugifyHeading: () => slugifyHeading,
   slugifyUnitHeading: () => slugifyUnitHeading,
   validateCitations: () => validateCitations
@@ -9527,18 +9545,161 @@ function readLineageSnapshot(root) {
   snapshots.sort((a, b) => a.path.localeCompare(b.path));
   return snapshots;
 }
+
+// iNNfo/packages/innfo-core/src/naming/contract.ts
+var ENTRYPOINT_FILENAME = "domaiNN_NN.md";
+var SPEC_FILENAME = "spec_NN.md";
+var SIDECAR_BLUEPRINT = "sidecar";
+var NN_SUFFIX_RE = /_NN\.md$/i;
+var SIDECAR_PATH_RE = /^(.*\.[^./\\]+)_sidecar_NN\.md$/i;
+var STAMP_SUFFIX_RE = /^(.+)_(\d{8}T\d{6}Z)(?:-(\d+))?$/;
+function baseOf(path2) {
+  const i = Math.max(path2.lastIndexOf("/"), path2.lastIndexOf("\\"));
+  return i < 0 ? path2 : path2.slice(i + 1);
+}
+function parseName(basename3) {
+  if (NN_SUFFIX_RE.test(basename3)) {
+    const stem2 = basename3.replace(NN_SUFFIX_RE, "");
+    const sidecar = SIDECAR_PATH_RE.exec(basename3);
+    return sidecar ? { kind: "nn", basename: basename3, stem: stem2, sidecarOf: sidecar[1] } : { kind: "nn", basename: basename3, stem: stem2 };
+  }
+  const dot = basename3.lastIndexOf(".");
+  const hasExt = dot > 0;
+  const stem = hasExt ? basename3.slice(0, dot) : basename3;
+  const ext = hasExt ? basename3.slice(dot + 1) : "";
+  const m = STAMP_SUFFIX_RE.exec(stem);
+  if (!m) return { kind: "file", basename: basename3, key: stem, ext };
+  return {
+    kind: "file",
+    basename: basename3,
+    key: m[1],
+    ext,
+    stamp: { stamp: m[2], seq: m[3] ? Number(m[3]) : 1 }
+  };
+}
+function formatNNName(stem, blueprint) {
+  const s = stem.toLowerCase();
+  const bp = blueprint.toLowerCase();
+  const conforms = s === bp || s.endsWith(`_${bp}`);
+  return conforms ? `${stem}_NN.md` : `${stem}_${blueprint}_NN.md`;
+}
+function formatMemberName(key, ext, stamp) {
+  const suffix = stamp ? `_${stamp.stamp}${stamp.seq > 1 ? `-${stamp.seq}` : ""}` : "";
+  return `${key}${suffix}${ext ? `.${ext}` : ""}`;
+}
+function sidecarPathOf(rawPath) {
+  return `${rawPath}_sidecar_NN.md`;
+}
+function rawPathOfSidecar(sidecarPath) {
+  const m = SIDECAR_PATH_RE.exec(sidecarPath);
+  return m ? m[1] : null;
+}
+function displayStem(basename3) {
+  const base = baseOf(basename3);
+  if (NN_SUFFIX_RE.test(base)) return base.replace(NN_SUFFIX_RE, "");
+  return base.replace(/\.md$/i, "");
+}
+function procedureIdOf(basename3) {
+  return displayStem(basename3).replace(/_procedures$/i, "").toLowerCase().replace(/_/g, "-");
+}
+var IGNORED_DIRECTORIES = /* @__PURE__ */ new Set(["backups", "archive", "specs"]);
+var NON_KNOWLEDGE_BLUEPRINT_RE = /^(cognnitive|workspace|procedures|sources|artifacts|sidecar)(?:_|$)/i;
+function segmentsOf(path2) {
+  return path2.replace(/\\/g, "/").split("/").filter((s) => s && s !== ".");
+}
+function roleOf(i) {
+  const base = baseOf(i.path);
+  const parsed = parseName(base);
+  if (parsed.kind === "file") return i.hasSidecar ? "source" : "artifact";
+  if (parsed.sidecarOf !== void 0) return "sidecar";
+  const lower = base.toLowerCase();
+  if (lower === ENTRYPOINT_FILENAME.toLowerCase()) return "entrypoint";
+  if (lower === SPEC_FILENAME.toLowerCase()) return "spec";
+  const bp = NON_KNOWLEDGE_BLUEPRINT_RE.exec((i.parentSpecName ?? "").trim())?.[1].toLowerCase();
+  switch (bp) {
+    case "cognnitive":
+      return "lineage-record";
+    case "sidecar":
+      return "sidecar";
+    case "procedures":
+      return parsed.stem.toLowerCase() === "procedures" ? "catalog" : "procedure";
+    case "workspace":
+    case "sources":
+    case "artifacts":
+      return "catalog";
+    default:
+      return "knowledge";
+  }
+}
+function isExcludedPath(path2) {
+  const segs = segmentsOf(path2);
+  if (segs.length > 0 && IGNORED_DIRECTORIES.has(segs[0])) return true;
+  return segs.some((s) => s === "staging" || s.startsWith(".") && s !== "..");
+}
+function familyOf(path2) {
+  const normalized = path2.replace(/\\/g, "/");
+  const parsed = parseName(baseOf(normalized));
+  if (parsed.kind !== "file") return null;
+  const slash = normalized.lastIndexOf("/");
+  return { dir: slash < 0 ? "" : normalized.slice(0, slash), key: parsed.key, ext: parsed.ext };
+}
+function compareMembers(a, b) {
+  const pa = parseName(baseOf(a));
+  const pb = parseName(baseOf(b));
+  const sa = pa.kind === "file" ? pa.stamp : void 0;
+  const sb = pb.kind === "file" ? pb.stamp : void 0;
+  if (!sa && !sb) return 0;
+  if (!sa) return -1;
+  if (!sb) return 1;
+  if (sa.stamp !== sb.stamp) return sa.stamp < sb.stamp ? -1 : 1;
+  return sa.seq - sb.seq;
+}
+var pad = (n, width = 2) => String(n).padStart(width, "0");
+function formatUtcStamp(at) {
+  return `${pad(at.getUTCFullYear(), 4)}${pad(at.getUTCMonth() + 1)}${pad(at.getUTCDate())}T${pad(at.getUTCHours())}${pad(at.getUTCMinutes())}${pad(at.getUTCSeconds())}Z`;
+}
+function nextStamp(at, latest) {
+  const now = formatUtcStamp(at);
+  if (!latest || latest.stamp < now) return { stamp: now, seq: 1 };
+  return { stamp: latest.stamp, seq: latest.seq + 1 };
+}
+var WIN32_PATH_LIMIT = 259;
+function checkPathBudget(absPath, platform) {
+  if (platform === "win32" && absPath.length > WIN32_PATH_LIMIT) {
+    return { ok: false, limit: WIN32_PATH_LIMIT, length: absPath.length };
+  }
+  return { ok: true };
+}
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
+  ENTRYPOINT_FILENAME,
+  IGNORED_DIRECTORIES,
+  SIDECAR_BLUEPRINT,
+  SPEC_FILENAME,
+  checkPathBudget,
+  compareMembers,
   createFsSourceResolver,
+  displayStem,
   extractFileCitations,
   extractHeadings,
+  familyOf,
+  formatMemberName,
+  formatNNName,
+  formatUtcStamp,
   headingSlugParts,
+  isExcludedPath,
+  nextStamp,
   normalizeName,
   parseCitation,
+  parseName,
+  procedureIdOf,
   projectLineage,
+  rawPathOfSidecar,
   readLineageSnapshot,
   renderLineageSections,
+  roleOf,
   serializeKnowledgeUnitRef,
+  sidecarPathOf,
   slugifyHeading,
   slugifyUnitHeading,
   validateCitations

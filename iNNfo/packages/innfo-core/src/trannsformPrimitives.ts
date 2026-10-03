@@ -36,3 +36,5 @@ export {
 export {
   readLineageSnapshot,
 } from './lineage/fs-snapshot.js'
+
+export * from './naming/index.js'

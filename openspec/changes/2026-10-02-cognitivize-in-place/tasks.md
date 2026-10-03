@@ -31,18 +31,18 @@ Inputs: `proposal.md`, `design.md` (authoritative, incl. "Clarifications"; decis
 
 ## S-pre: Sync with dev
 
-- [ ] P.1 Sync `session/cognitivize-in-place` with `dev` containing `lineage-single-edge` (merge or rebase; no stash). Run `npm ci`, `npm --prefix skills/nn-trannsform ci`, build innfo-core dist.
-- [ ] P.2 Re-verify every file:line ref in `design.md` File Changes against the synced tree (`rg`); record drifted refs in the S0 commit message. Confirm the base gates are green: `node scripts/verify.js`, `npm run check:integrity`, all four test commands.
-- [ ] P.3 Confirm `lineage-single-edge` ledger entries and `legacy-ledger-guard` pass before adding new markers.
+- [x] P.1 Sync `session/cognitivize-in-place` with `dev` containing `lineage-single-edge` (merge or rebase; no stash). Run `npm ci`, `npm --prefix skills/nn-trannsform ci`, build innfo-core dist.
+- [x] P.2 Re-verify every file:line ref in `design.md` File Changes against the synced tree (`rg`); record drifted refs in the S0 commit message. Confirm the base gates are green: `node scripts/verify.js`, `npm run check:integrity`, all four test commands.
+- [x] P.3 Confirm `lineage-single-edge` ledger entries and `legacy-ledger-guard` pass before adding new markers.
 
 ## S0: Naming contract, sidecar bluepriNNt, one discovery predicate
 
 Spec links: `nn-naming-contract`, `model-discovery-predicate`, `sidecar-blueprint`, `canonical-vocabulary`, `lineage-single-edge` ("Node role derives from the naming contract").
 
-- [ ] 0.1 RED: `innfo-core/tests/naming/contract.test.ts` table tests: `parseName`/`formatMemberName` round trips (digits in key, `-10` after `-2`, `.csv_sidecar`), `formatNNName` (stem===bp), `sidecarPathOf`/`rawPathOfSidecar`, `displayStem`, `procedureIdOf`. Run core test; must fail.
-- [ ] 0.2 GREEN: create `innfo-core/src/naming/{contract,index}.ts` (D1/D2/D4 grammar, the only `_NN.md` pattern). Export from `index.ts`, `browser.ts`, `trannsformPrimitives.ts`.
-- [ ] 0.3 RED: `roleOf` folder-blindness, `isExcludedPath` (IGNORED_DIRECTORIES + `staging` + dot segments), `familyOf`/`compareMembers` (unsuffixed first, numeric `(stamp, seq)`). GREEN: implement in `contract.ts`.
-- [ ] 0.4 RED: `formatUtcStamp`/`nextStamp` under `TZ=America/Santiago`, skewed clock, equality bumps `seq`; `checkPathBudget` (259 on win32). GREEN: implement (single UTC helper, D5).
+- [x] 0.1 RED: `innfo-core/tests/naming/contract.test.ts` table tests: `parseName`/`formatMemberName` round trips (digits in key, `-10` after `-2`, `.csv_sidecar`), `formatNNName` (stem===bp), `sidecarPathOf`/`rawPathOfSidecar`, `displayStem`, `procedureIdOf`. Run core test; must fail.
+- [x] 0.2 GREEN: create `innfo-core/src/naming/{contract,index}.ts` (D1/D2/D4 grammar, the only `_NN.md` pattern). Export from `index.ts`, `browser.ts`, `trannsformPrimitives.ts`.
+- [x] 0.3 RED: `roleOf` folder-blindness, `isExcludedPath` (IGNORED_DIRECTORIES + `staging` + dot segments), `familyOf`/`compareMembers` (unsuffixed first, numeric `(stamp, seq)`). GREEN: implement in `contract.ts`.
+- [x] 0.4 RED: `formatUtcStamp`/`nextStamp` under `TZ=America/Santiago`, skewed clock, equality bumps `seq`; `checkPathBudget` (259 on win32). GREEN: implement (single UTC helper, D5).
 - [ ] 0.5 RED: `isModelCandidate` excludes sidecars, cognnitive/workspace/procedures/sources/artifacts/sidecar parent_specs, staging; `list_models` and `## NN Models` agree. GREEN: rewrite `workspace/discoverModels.ts` (delete `NN_FILENAME_RE`, `NON_KNOWLEDGE_SPEC_RE`; keep manifest self-reference in `isReconcilableModel`); update `recursiveParser/{paths,knowledge,workspace}.ts`, `validator/content.ts`, `console/{payload-builder,feedback-ledger}.ts`, `lineage/{project,fs-snapshot}.ts`.
 - [ ] 0.6 RED (MCP): `list_knowledge`, `spec`, `validate`, `init-knowledge`, `workspace-sync`, `preview-server`, `build-console-payload`, `apply-change`, `resolver-node` never list a seeded sidecar fixture. GREEN: move those MCP files to contract imports (design S0 row).
 - [ ] 0.7 RED (editor): discovery parity and `explorerClassify` with a seeded sidecar. GREEN: `explorerClassify.ts`, `knowledgeMatching.ts`, `submodelPath.ts`, `HomeView.vue`, `useMediaScanner.ts`, `WorkspaceSyncService.ts`, `WorkspacePersistenceService.ts`, `ConsoleHubView.vue`, `ConceptTreeNode.vue`, `SaveWorkspaceModal.vue`, `KnowledgeInfoPanel.vue` use contract exports.

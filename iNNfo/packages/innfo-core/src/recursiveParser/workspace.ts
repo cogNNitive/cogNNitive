@@ -15,14 +15,15 @@ import { parseKnowledge, parseFrontmatter, stripFrontmatter } from '../parser/in
 import { computeModelDagTopology } from './topology.js'
 import { detectLegacy, type DomainReader } from '../legacy/detect.js'
 import { CANONICAL_DOMAIN_ENTRYPOINT } from '../layout.js'
+import { IGNORED_DIRECTORIES } from '../naming/contract.js'
 
 const INNFO_FILE_SUFFIX = '.md'
 const INDEX_MD = 'index.md'
 
 export const MAX_DEPTH = 10
 
-/** Directories whose contents are never parsed as models. */
-export const IGNORED_DIRECTORIES = new Set(['backups', 'archive', 'specs'])
+/** Directories whose contents are never parsed as models (owned by the naming contract). */
+export { IGNORED_DIRECTORIES }
 
 /**
  * Returns true when the error indicates a file/directory was not found.

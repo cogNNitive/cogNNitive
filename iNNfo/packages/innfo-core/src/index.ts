@@ -166,3 +166,5 @@ export { mergeKnowledge } from './merge.js'
 export * from './console/index.js'
 export * from './lineage/index.js'
 export { readLineageSnapshot } from './lineage/fs-snapshot.js'
+
+export * from './naming/index.js'
