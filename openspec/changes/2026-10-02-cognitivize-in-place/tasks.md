@@ -124,7 +124,7 @@ Spec links: `write-once-artifacts` ("Producers adopt write-once"), `console-expo
 
 Spec links: `lineage-drift-gate`, `lineage-record-sync`, `lineage-version-status`.
 
-- [ ] 5.1 RED: `tests/lineage/drift.test.ts`: edit of a managed section gives `{ok:false}` with section + `firstDiff`; journal and hand-authored edits pass; no EOL normalization; absent record tolerated; read-only. GREEN: `lineage/{record,drift}.ts` (move `splitTopLevelSections`, `managedSections`, `refreshExistingModel`; `findLineageRecord`).
+- [x] 5.1 RED: `tests/lineage/drift.test.ts`: edit of a managed section gives `{ok:false}` with section + `firstDiff`; journal and hand-authored edits pass; no EOL normalization; absent record tolerated; read-only. GREEN: `lineage/{record,drift}.ts` (move `splitTopLevelSections`, `managedSections`, `refreshExistingModel`; `findLineageRecord`).
 - [ ] 5.2 RED: `--lineage --check` exits non-zero on drift. GREEN: `provenance-knowledge.js` delegates to core; `index.js`.
 - [ ] 5.3 RED: `scripts/lib/lineage-drift-guard.js` over a committed core-tests fixture domaiNN only, proven red on a seeded edit. GREEN: guard + `verify.js` step `lineage-drift`.
 - [ ] 5.4 RED (MCP): `check_workspace` emits `LINEAGE_DRIFT`. GREEN: `check-workspace.ts`.

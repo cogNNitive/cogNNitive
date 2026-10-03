@@ -7371,6 +7371,9 @@ var trannsformPrimitives_exports = {};
 __export(trannsformPrimitives_exports, {
   ENTRYPOINT_FILENAME: () => ENTRYPOINT_FILENAME,
   IGNORED_DIRECTORIES: () => IGNORED_DIRECTORIES,
+  RECORD_BLUEPRINT: () => RECORD_BLUEPRINT,
+  RECORD_INNFO_URL: () => RECORD_INNFO_URL,
+  RECORD_TEMPLATE_URL: () => RECORD_TEMPLATE_URL,
   SIDECAR_BLUEPRINT: () => SIDECAR_BLUEPRINT,
   SIDECAR_SPEC_URL: () => SIDECAR_SPEC_URL,
   SPEC_FILENAME: () => SPEC_FILENAME,
@@ -7378,6 +7381,7 @@ __export(trannsformPrimitives_exports, {
   WriteOnceError: () => WriteOnceError,
   applyGc: () => applyGc,
   buildSidecar: () => buildSidecar,
+  checkLineageDrift: () => checkLineageDrift,
   checkPathBudget: () => checkPathBudget,
   cognitivize: () => cognitivize,
   collectFamilies: () => collectFamilies,
@@ -7389,6 +7393,7 @@ __export(trannsformPrimitives_exports, {
   extractFileCitations: () => extractFileCitations,
   extractHeadings: () => extractHeadings,
   familyOf: () => familyOf,
+  findLineageRecord: () => findLineageRecord,
   formatMemberName: () => formatMemberName,
   formatNNName: () => formatNNName,
   formatUtcStamp: () => formatUtcStamp,
@@ -7410,9 +7415,12 @@ __export(trannsformPrimitives_exports, {
   procedureIdOf: () => procedureIdOf,
   projectLineage: () => projectLineage,
   rawPathOfSidecar: () => rawPathOfSidecar,
+  readLineageRecord: () => readLineageRecord,
   readLineageSnapshot: () => readLineageSnapshot,
   readSidecarSha256: () => readSidecarSha256,
+  refreshExistingModel: () => refreshExistingModel,
   renderLineageSections: () => renderLineageSections,
+  renderRecordFrontmatter: () => renderRecordFrontmatter,
   resolveJsonPointer: () => resolveJsonPointer,
   roleOf: () => roleOf,
   serializeKnowledgeUnitRef: () => serializeKnowledgeUnitRef,
@@ -7420,6 +7428,7 @@ __export(trannsformPrimitives_exports, {
   sidecarPathOf: () => sidecarPathOf,
   slugifyHeading: () => slugifyHeading,
   slugifyUnitHeading: () => slugifyUnitHeading,
+  splitTopLevelSections: () => splitTopLevelSections2,
   validateCitations: () => validateCitations,
   writeOnce: () => writeOnce
 });
@@ -9490,6 +9499,94 @@ function renderLineageSections(p) {
 // iNNfo/packages/innfo-core/src/lineage/fs-snapshot.ts
 var fs = __toESM(require("node:fs"), 1);
 var path = __toESM(require("node:path"), 1);
+
+// iNNfo/packages/innfo-core/src/lineage/record.ts
+var RECORD_BLUEPRINT = "cogNNitive";
+var RECORD_TEMPLATE_URL = "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/cogNNitive/spec_NN.md";
+var RECORD_INNFO_URL = "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-3-0_NN.md";
+var FRONTMATTER_RE = /^(---\r?\n[\s\S]*?\r?\n---(?:\r?\n)?)/;
+function splitFrontmatter(text) {
+  const match = FRONTMATTER_RE.exec(text);
+  const frontmatter = match ? match[1] : "";
+  return { frontmatter, body: text.slice(frontmatter.length) };
+}
+function splitTopLevelSections2(body) {
+  const blocks = [];
+  const preamble = [];
+  let current = null;
+  for (const line of body.split("\n")) {
+    if (/^# (?!#)/.test(line)) {
+      if (current) blocks.push(current);
+      current = { heading: line, lines: [] };
+    } else if (current) {
+      current.lines.push(line);
+    } else {
+      preamble.push(line);
+    }
+  }
+  if (current) blocks.push(current);
+  return { preamble: preamble.join("\n"), blocks };
+}
+function managedSections(sections) {
+  return [
+    { name: "# NN Sources", re: /^# NN Sources\b/, render: () => sections.sources },
+    { name: "# NN ModelRecords", re: /^# NN ModelRecords\b/, render: () => sections.modelRecords },
+    { name: "# NN Artifacts", re: /^# NN Artifacts\b/, render: () => sections.artifacts }
+  ];
+}
+function blockText(heading, lines) {
+  return (heading + "\n" + lines.join("\n")).replace(/\n+$/, "") + "\n";
+}
+function renderRecordFrontmatter(title) {
+  return `---
+specification_version: "V_0-3-0"
+specification_url: "${RECORD_INNFO_URL}"
+level: 3
+parent_spec:
+  name: "${RECORD_BLUEPRINT}"
+  url: "${RECORD_TEMPLATE_URL}"
+title: "${title}"
+---
+`;
+}
+function refreshExistingModel(existing, sections) {
+  const { body } = splitFrontmatter(existing);
+  const titleMatch = /^title:\s*"?(.*?)"?\s*$/m.exec(existing);
+  const { preamble, blocks } = splitTopLevelSections2(body);
+  const managed = managedSections(sections);
+  const rendered = managed.map((m) => m.render().replace(/\n+$/, "") + "\n");
+  const present = new Array(managed.length).fill(false);
+  const rebuilt = blocks.map((b) => {
+    const idx = managed.findIndex((m) => m.re.test(b.heading));
+    if (idx !== -1) {
+      present[idx] = true;
+      return rendered[idx];
+    }
+    return blockText(b.heading, b.lines);
+  });
+  const anchor = rebuilt.findIndex((s) => /^# NN index\b/.test(s));
+  let insertAt = anchor >= 0 ? anchor + 1 : 0;
+  for (let i = 0; i < managed.length; i++) {
+    if (present[i]) {
+      insertAt = rebuilt.findIndex((s) => managed[i].re.test(s)) + 1;
+      continue;
+    }
+    rebuilt.splice(insertAt, 0, rendered[i]);
+    insertAt++;
+  }
+  const notice = preamble.replace(/^\n+|\n+$/g, "");
+  return renderRecordFrontmatter(titleMatch ? titleMatch[1] : "Provenance") + "\n" + notice + "\n\n" + rebuilt.join("\n") + "\n";
+}
+function findLineageRecord(files) {
+  const candidates = files.filter((f) => isNNName(f.path) && !isExcludedPath(f.path)).sort((a, b) => a.path < b.path ? -1 : a.path > b.path ? 1 : 0);
+  for (const file of candidates) {
+    const parentSpecName = parseKnowledge(file.content).frontmatter?.parent_spec?.name;
+    if (roleOf({ path: file.path, parentSpecName }) === "lineage-record") return file;
+  }
+  return null;
+}
+
+// iNNfo/packages/innfo-core/src/lineage/fs-snapshot.ts
 var TEXT_EXTENSIONS = /* @__PURE__ */ new Set([".md", ".csv", ".json", ".html", ".htm"]);
 function walkDir(dir, baseDir, out) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -9522,6 +9619,49 @@ function readLineageSnapshot(root) {
   }
   snapshots.sort((a, b) => a.path < b.path ? -1 : a.path > b.path ? 1 : 0);
   return snapshots;
+}
+function readLineageRecord(root) {
+  const rootDir = path.resolve(root);
+  if (!fs.existsSync(rootDir)) return null;
+  const rels = [];
+  walkDir(rootDir, rootDir, rels);
+  const candidates = rels.filter((rel) => isNNName(rel)).map((rel) => ({ path: rel, content: fs.readFileSync(path.join(rootDir, rel), "utf8") }));
+  return findLineageRecord(candidates);
+}
+
+// iNNfo/packages/innfo-core/src/lineage/drift.ts
+function describeFirstDiff(expected, actual) {
+  const exp = expected.split("\n");
+  const act = actual.split("\n");
+  const max = Math.max(exp.length, act.length);
+  let element;
+  for (let i = 0; i < max; i++) {
+    const e = exp[i];
+    const a = act[i];
+    if (e !== void 0 && e.startsWith("## ")) element = e;
+    if (e === a) continue;
+    if (element === void 0 && a !== void 0 && a.startsWith("## ")) element = a;
+    const where = element ? `${element}: ` : "";
+    const want = e === void 0 ? "<end of section>" : JSON.stringify(e);
+    const found = a === void 0 ? "<end of section>" : JSON.stringify(a);
+    return `${where}line ${i + 1}: expected ${want}, found ${found}`;
+  }
+  return "sections differ";
+}
+function checkLineageDrift(record, rendered) {
+  const { blocks } = splitTopLevelSections2(splitFrontmatter(record).body);
+  const diffs = [];
+  for (const managed of managedSections(rendered)) {
+    const expected = managed.render().replace(/\n+$/, "") + "\n";
+    const block = blocks.find((b) => managed.re.test(b.heading));
+    if (!block) {
+      diffs.push({ section: managed.name, firstDiff: `missing section ${managed.name} in the record` });
+      continue;
+    }
+    const actual = blockText(block.heading, block.lines);
+    if (actual !== expected) diffs.push({ section: managed.name, firstDiff: describeFirstDiff(expected, actual) });
+  }
+  return diffs.length === 0 ? { ok: true } : { ok: false, diffs };
 }
 
 // iNNfo/packages/innfo-core/src/writeOnce/plan.ts
@@ -9573,9 +9713,9 @@ var OWNED_KEYS = /* @__PURE__ */ new Set([
   // A sidecar's upstream edge is `sources`; the projection derives `derived_from` itself.
   "derived_from"
 ]);
-var FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/;
+var FRONTMATTER_RE2 = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/;
 function parseSidecarFrontmatter(text) {
-  const match = FRONTMATTER_RE.exec(text);
+  const match = FRONTMATTER_RE2.exec(text);
   if (!match) return null;
   try {
     const value = (0, import_yaml7.parse)(match[1]);
@@ -9851,6 +9991,9 @@ async function importRaw(root, externalAbs, o = {}) {
 0 && (module.exports = {
   ENTRYPOINT_FILENAME,
   IGNORED_DIRECTORIES,
+  RECORD_BLUEPRINT,
+  RECORD_INNFO_URL,
+  RECORD_TEMPLATE_URL,
   SIDECAR_BLUEPRINT,
   SIDECAR_SPEC_URL,
   SPEC_FILENAME,
@@ -9858,6 +10001,7 @@ async function importRaw(root, externalAbs, o = {}) {
   WriteOnceError,
   applyGc,
   buildSidecar,
+  checkLineageDrift,
   checkPathBudget,
   cognitivize,
   collectFamilies,
@@ -9869,6 +10013,7 @@ async function importRaw(root, externalAbs, o = {}) {
   extractFileCitations,
   extractHeadings,
   familyOf,
+  findLineageRecord,
   formatMemberName,
   formatNNName,
   formatUtcStamp,
@@ -9890,9 +10035,12 @@ async function importRaw(root, externalAbs, o = {}) {
   procedureIdOf,
   projectLineage,
   rawPathOfSidecar,
+  readLineageRecord,
   readLineageSnapshot,
   readSidecarSha256,
+  refreshExistingModel,
   renderLineageSections,
+  renderRecordFrontmatter,
   resolveJsonPointer,
   roleOf,
   serializeKnowledgeUnitRef,
@@ -9900,6 +10048,7 @@ async function importRaw(root, externalAbs, o = {}) {
   sidecarPathOf,
   slugifyHeading,
   slugifyUnitHeading,
+  splitTopLevelSections,
   validateCitations,
   writeOnce
 });

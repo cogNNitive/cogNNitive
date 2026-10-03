@@ -9,6 +9,7 @@ import * as path from 'node:path'
 import { parseKnowledge } from '../parser/core.js'
 import type { FileSnapshot } from '../queryUnits.js'
 import { isExcludedPath, isNNName, isSidecarName, roleOf } from '../naming/contract.js'
+import { findLineageRecord } from './record.js'
 
 /** Formats read as text; any other extension is a binary represented by its sidecar. */
 const TEXT_EXTENSIONS = new Set(['.md', '.csv', '.json', '.html', '.htm'])
@@ -49,4 +50,21 @@ export function readLineageSnapshot(root: string): FileSnapshot[] {
 
   snapshots.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0))
   return snapshots
+}
+
+/**
+ * The lineage record of the domaiNN (role `lineage-record`, at most one), read
+ * as-is with no line-ending conversion, or `null` when there is none.
+ * `readLineageSnapshot` skips the record, so the gate reads it here.
+ */
+export function readLineageRecord(root: string): FileSnapshot | null {
+  const rootDir = path.resolve(root)
+  if (!fs.existsSync(rootDir)) return null
+
+  const rels: string[] = []
+  walkDir(rootDir, rootDir, rels)
+  const candidates = rels
+    .filter((rel) => isNNName(rel))
+    .map((rel) => ({ path: rel, content: fs.readFileSync(path.join(rootDir, rel), 'utf8') }))
+  return findLineageRecord(candidates)
 }
