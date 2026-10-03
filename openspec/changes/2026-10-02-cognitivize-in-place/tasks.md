@@ -86,9 +86,9 @@ Commits: (a) rename `artifacts/` + drop `sources/original`; (b) detector; (c) pl
 
 Spec links: `citation-parser-resolver` ("no implicit prefix"), `cognitivize-in-place` ("MCP never converts binaries", "CLI surface"), `workspace-sources-resolution`, `typed-source-references`.
 
-- [ ] 3a.1 RED: `resolveUnitPath` accepts any domaiNN-relative md/csv/json path; binary raw returns `KU_BINARY_TARGET` with sidecar suggestion; `kind` is `model` iff role `knowledge`; staging target gives `KU_EXCLUDED_PATH` (Clarifications). GREEN: `sourceRef.ts`, `validator/workspaceSources.ts`, `unitResolve.ts`.
-- [ ] 3a.2 RED (MCP): `cognitivize` tool: md written, pdf returns `{status:'requires-cli'}`, traversal rejected, sidecar/`_NN.md` rejected. GREEN: create `innfo-mcp/src/tools/cognitivize.ts`, register in the server.
-- [ ] 3a.3 Generated: mirrors; rebuild core dist before MCP. Gate: core, MCP, `verify.js`, typecheck, lint.
+- [x] 3a.1 RED: `resolveUnitPath` accepts any domaiNN-relative md/csv/json path; binary raw returns `KU_BINARY_TARGET` with sidecar suggestion; `kind` is `model` iff role `knowledge`; staging target gives `KU_EXCLUDED_PATH` (Clarifications). GREEN: `sourceRef.ts`, `validator/workspaceSources.ts`, `unitResolve.ts`.
+- [x] 3a.2 RED (MCP): `cognitivize` tool: md written, pdf returns `{status:'requires-cli'}`, traversal rejected, sidecar/`_NN.md` rejected. GREEN: create `innfo-mcp/src/tools/cognitivize.ts`, register in the server.
+- [x] 3a.3 Generated: mirrors; rebuild core dist before MCP. Gate: core, MCP, `verify.js`, typecheck, lint.
 
 ## S3b: Ingest cutover and projection re-key (`size:exception`)
 

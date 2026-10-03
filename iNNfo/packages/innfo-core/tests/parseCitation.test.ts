@@ -97,7 +97,7 @@ describe('parseCitation', () => {
     it('parses unqualified CSV row citation', () => {
       const cit = parseCitation('data.csv@RowID&col')
       expect(cit).toEqual({
-        filePath: 'sources/nn/data.csv',
+        filePath: 'data.csv',
         fileName: 'data.csv',
         kind: 'source',
         raw: 'data.csv@RowID&col',
@@ -148,10 +148,10 @@ describe('parseCitation', () => {
       expect(cit?.legacyHash).toBeUndefined()
     })
 
-    it('parses unqualified bare path as sources/nn/', () => {
+    it('parses an unqualified bare path as written', () => {
       const cit = parseCitation('notes.md')
       expect(cit).toEqual({
-        filePath: 'sources/nn/notes.md',
+        filePath: 'notes.md',
         fileName: 'notes.md',
         kind: 'source',
         raw: 'notes.md',
@@ -211,10 +211,8 @@ describe('parseCitation', () => {
   })
 
   describe('rejected and invalid citations', () => {
-    it('rejects models/ prefix', () => {
-      expect(parseCitation('models/Client_NN.md@## Stakeholders')).toBeNull()
+    it('keeps the legacy hash form rejecting models/ (removed in S3b)', () => {
       expect(parseCitation('models/Client_NN.md#intro')).toBeNull()
-      expect(parseCitation('models/Client_NN.md')).toBeNull()
     })
 
     it('rejects line-range anchors', () => {
@@ -238,34 +236,46 @@ describe('parseCitation', () => {
 })
 
 describe('resolveUnitPath', () => {
-  it('accepts sources/nn/, sources/export/, and kNNowledge/', () => {
-    expect(resolveUnitPath('sources/nn/a.md')).toEqual({
-      filePath: 'sources/nn/a.md',
+  it('accepts any domaiNN-relative md/csv/json path with no implicit prefix', () => {
+    expect(resolveUnitPath('sources/import/a.md')).toEqual({
+      filePath: 'sources/import/a.md',
       kind: 'source',
     })
-    expect(resolveUnitPath('sources/export/report.md')).toEqual({
-      filePath: 'sources/export/report.md',
+    expect(resolveUnitPath('custom.md')).toEqual({ filePath: 'custom.md', kind: 'source' })
+    expect(resolveUnitPath('data/prices.csv')).toEqual({
+      filePath: 'data/prices.csv',
       kind: 'source',
     })
+    expect(resolveUnitPath('sources/import/d.json')).toEqual({
+      filePath: 'sources/import/d.json',
+      kind: 'source',
+    })
+  })
+
+  it('treats retired prefixes as plain paths (they dangle later, not here)', () => {
+    expect(resolveUnitPath('sources/nn/a.md')).toEqual({ filePath: 'sources/nn/a.md', kind: 'source' })
+    expect(resolveUnitPath('models/x.md')).toEqual({ filePath: 'models/x.md', kind: 'source' })
+    expect(resolveUnitPath('sources/archive/m/V1/m.md')).toEqual({
+      filePath: 'sources/archive/m/V1/m.md',
+      kind: 'source',
+    })
+  })
+
+  it('derives kind from the naming-contract role: model iff knowledge', () => {
     expect(resolveUnitPath('kNNowledge/Client_NN.md')).toEqual({
       filePath: 'kNNowledge/Client_NN.md',
       kind: 'model',
     })
+    expect(resolveUnitPath('anywhere/Client_business_NN.md')?.kind).toBe('model')
+    expect(resolveUnitPath('sources/import/report.pdf_sidecar_NN.md')?.kind).toBe('source')
+    expect(resolveUnitPath('domaiNN_NN.md')?.kind).toBe('source')
   })
 
-  it('rejects models/ prefix', () => {
-    expect(resolveUnitPath('models/Client_NN.md')).toBeNull()
-    expect(resolveUnitPath('models/x.md')).toBeNull()
-  })
-
-  it('resolves unqualified paths to sources/nn/', () => {
-    expect(resolveUnitPath('custom.md')).toEqual({
-      filePath: 'sources/nn/custom.md',
-      kind: 'source',
-    })
-    expect(resolveUnitPath('data.csv')).toEqual({
-      filePath: 'sources/nn/data.csv',
-      kind: 'source',
-    })
+  it('rejects traversal, absolute paths, URLs, and unsupported extensions', () => {
+    expect(resolveUnitPath('../a.md')).toBeNull()
+    expect(resolveUnitPath('/etc/a.md')).toBeNull()
+    expect(resolveUnitPath('C:\\a.md')).toBeNull()
+    expect(resolveUnitPath('https://x.io/a.md')).toBeNull()
+    expect(resolveUnitPath('sources/import/report.pdf')).toBeNull()
   })
 })

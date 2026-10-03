@@ -13,6 +13,7 @@ import {
   splitSourceFieldValue,
   type SourceRef,
 } from '../sourceRef.js'
+import { sidecarPathOf } from '../naming/index.js'
 import { listSectionFields, resolveUnit } from '../unitResolve.js'
 import type { KnowledgeNode } from '../types/index.js'
 import type { BlueprintSchema } from '../schema/index.js'
@@ -82,14 +83,27 @@ export function validateCitations(
       continue
     }
 
-    if (/^models\//i.test(value.trim())) {
+    const targetPath = citationTargetPath(value)
+    if (targetPath && targetPath.split('/').includes('staging')) {
       diagnostics.push({
         path,
-        message: `Malformed source reference "${value}" — \`models/\` was removed; use \`kNNowledge/\``,
+        message: `Excluded source reference "${value}" — "staging/" is scratch space and is not citable`,
         severity: 'error',
-        code: 'KU_MALFORMED',
+        code: 'KU_EXCLUDED_PATH',
         site,
-        target: value,
+        target: targetPath,
+      })
+      continue
+    }
+
+    if (targetPath && value.includes('@') && isBinaryTarget(targetPath)) {
+      diagnostics.push({
+        path,
+        message: `Binary source reference "${value}" — a unit cannot address a binary file; cite its sidecar "${sidecarPathOf(targetPath)}" instead`,
+        severity: 'error',
+        code: 'KU_BINARY_TARGET',
+        site,
+        target: targetPath,
       })
       continue
     }
@@ -261,6 +275,20 @@ export function validateWorkspaceSources(
   }
 
   return diagnostics
+}
+
+/** Forward-slash path part of a citation (text before the first `@` or `#`), or null. */
+function citationTargetPath(value: string): string | null {
+  const trimmed = value.trim()
+  const cut = trimmed.search(/[@#]/)
+  const path = (cut === -1 ? trimmed : trimmed.slice(0, cut)).replace(/\\/g, '/')
+  return path || null
+}
+
+/** True when the path has an extension that is neither md, csv, nor json. */
+function isBinaryTarget(path: string): boolean {
+  const ext = /\.([A-Za-z0-9]+)$/.exec(path)?.[1]?.toLowerCase()
+  return ext !== undefined && ext !== 'md' && ext !== 'csv' && ext !== 'json'
 }
 
 function formatDanglingMessage(ref: SourceRef, resolved?: SourceResolution | null): string {

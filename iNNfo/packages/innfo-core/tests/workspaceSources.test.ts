@@ -182,52 +182,52 @@ const contentResolver =
   }
 
 describe('validateWorkspaceSources knowledge-unit pointers', () => {
-  const md = { 'sources/nn/g.md': MD_FIXTURE }
-  const csv = { 'sources/nn/m.csv': CSV_FIXTURE }
+  const md = { 'sources/import/g.md': MD_FIXTURE }
+  const csv = { 'sources/import/m.csv': CSV_FIXTURE }
 
   it('is silent for valid header, field, row, cell, and matrix pointers', () => {
     const diags = validateWorkspaceSources(
       resultWith([
-        'g.md@## NN Person: Dr. Egon Spengler',
-        'g.md@## NN Person: Dr. Egon Spengler&compensation',
-        'g.md@# NN matrices: journey map&First Contact&Relief',
+        'sources/import/g.md@## NN Person: Dr. Egon Spengler',
+        'sources/import/g.md@## NN Person: Dr. Egon Spengler&compensation',
+        'sources/import/g.md@# NN matrices: journey map&First Contact&Relief',
       ]),
       contentResolver(md),
     )
     expect(diags).toEqual([])
     const csvDiags = validateWorkspaceSources(
-      resultWith(['m.csv@104', 'm.csv@104&mrr_usd']),
+      resultWith(['sources/import/m.csv@104', 'sources/import/m.csv@104&mrr_usd']),
       contentResolver(csv),
     )
     expect(csvDiags).toEqual([])
   })
 
   it('errors unknown row-id, unknown column, and duplicate/empty keys with stable codes', () => {
-    const row = validateWorkspaceSources(resultWith('m.csv@999'), contentResolver(csv))
+    const row = validateWorkspaceSources(resultWith('sources/import/m.csv@999'), contentResolver(csv))
     expect(row).toHaveLength(1)
     expect(row[0]).toMatchObject({ severity: 'error', code: 'KU_UNKNOWN_ROW' })
 
-    const col = validateWorkspaceSources(resultWith('m.csv@104&nope'), contentResolver(csv))
+    const col = validateWorkspaceSources(resultWith('sources/import/m.csv@104&nope'), contentResolver(csv))
     expect(col).toHaveLength(1)
     expect(col[0]).toMatchObject({ severity: 'error', code: 'KU_UNKNOWN_COLUMN' })
 
     const dup = validateWorkspaceSources(
-      resultWith('m.csv@1'),
-      contentResolver({ 'sources/nn/m.csv': 'id,v\n1,a\n1,b\n,empty\n' }),
+      resultWith('sources/import/m.csv@1'),
+      contentResolver({ 'sources/import/m.csv': 'id,v\n1,a\n1,b\n,empty\n' }),
     )
     expect(dup.map((d) => d.code).sort()).toEqual(['KU_DUPLICATE_KEY', 'KU_EMPTY_KEY'])
   })
 
   it('errors a field outside its section and an unresolvable matrix cell', () => {
     const field = validateWorkspaceSources(
-      resultWith('g.md@## NN Person: Dr. Egon Spengler&nope'),
+      resultWith('sources/import/g.md@## NN Person: Dr. Egon Spengler&nope'),
       contentResolver(md),
     )
     expect(field).toHaveLength(1)
     expect(field[0]).toMatchObject({ severity: 'error', code: 'KU_FIELD_OUTSIDE_SECTION' })
 
     const cell = validateWorkspaceSources(
-      resultWith('g.md@# NN matrices: journey map&Nobody&Relief'),
+      resultWith('sources/import/g.md@# NN matrices: journey map&Nobody&Relief'),
       contentResolver(md),
     )
     expect(cell).toHaveLength(1)
@@ -236,14 +236,14 @@ describe('validateWorkspaceSources knowledge-unit pointers', () => {
 
   it('degrades to existence-only without content (no false positives)', () => {
     const diags = validateWorkspaceSources(
-      resultWith(['g.md@## NN Person: Dr. Egon Spengler&compensation', 'm.csv@104&mrr_usd']),
-      resolver({ 'sources/nn/g.md': true, 'sources/nn/m.csv': true }),
+      resultWith(['sources/import/g.md@## NN Person: Dr. Egon Spengler&compensation', 'sources/import/m.csv@104&mrr_usd']),
+      resolver({ 'sources/import/g.md': true, 'sources/import/m.csv': true }),
     )
     expect(diags).toEqual([])
   })
 
   it('suggests the level-precise canonical form for legacy refs when content is available', () => {
-    const diags = validateWorkspaceSources(resultWith('g.md#overview'), contentResolver(md))
+    const diags = validateWorkspaceSources(resultWith('g.md#overview'), contentResolver({ 'sources/nn/g.md': MD_FIXTURE }))
     const deprecation = diags.find((d) => d.code === 'KU_DEPRECATED_HASH')
     expect(deprecation?.message).toContain('@#overview')
   })
@@ -513,13 +513,13 @@ describe('validateWorkspaceSources — single citation edge updates', () => {
     expect(diags[0].code).toBe('KU_DANGLING_FILE')
   })
 
-  it('rejects models/ prefix with explicit KU_MALFORMED diagnostic', () => {
+  it('reports a models/ citation as a plain dangling file', () => {
     const diags = validateWorkspaceSources(
       resultWith('models/Client_NN.md@## NN Stakeholders: Enterprise Clients'),
       resolver({}),
     )
     expect(diags).toHaveLength(1)
-    expect(diags[0].code).toBe('KU_MALFORMED')
-    expect(diags[0].message).toContain('`models/` was removed; use `kNNowledge/`')
+    expect(diags[0].code).toBe('KU_DANGLING_FILE')
+    expect(diags[0].message).not.toContain('removed')
   })
 })

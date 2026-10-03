@@ -16,6 +16,7 @@
 import { nfc, stripCombiningMarks } from './parser/slug.js'
 import { assertNever } from './assertNever.js'
 import { isJsonPointer } from './jsonPointer.js'
+import { roleOf } from './naming/index.js'
 
 export interface HeaderUnit {
   /** Markdown heading unit: level is structural rank, slug is the canonical form. */
@@ -493,17 +494,8 @@ export function resolveUnitPath(
   const isCsv = /\.csv$/i.test(forward)
   const isJson = /\.json$/i.test(forward)
   if (!isMd && !isCsv && !isJson) return null
-  if (forward.startsWith('sources/nn/')) return { filePath: forward, kind: 'source' }
-  if (forward.startsWith('sources/export/')) return { filePath: forward, kind: 'source' }
-  if (forward.startsWith('kNNowledge/')) {
-    if (!isMd) return null
-    return { filePath: forward, kind: 'model' }
-  }
-  if (/^models\//i.test(forward)) {
-    return null
-  }
   if (/^[a-zA-Z]:[/\\]/.test(trimmed) || trimmed.startsWith('/')) return null
-  return { filePath: `sources/nn/${forward}`, kind: 'source' }
+  return { filePath: forward, kind: roleOf({ path: forward }) === 'knowledge' ? 'model' : 'source' }
 }
 
 function decodeSegment(segment: string): string | null {

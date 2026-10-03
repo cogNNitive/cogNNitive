@@ -243,7 +243,7 @@ describe('collectWorkspaceDiagnostics / filterDiagnosticsForModel (AD-4 split)',
         join(modelsDir, 'gamma_V_0-1-0_linked_test_NN.md'),
         modelContent(
           'Gamma',
-          '## NN Roles: RoleC\nsources:: metricas_q3.csv@999\n\n## NN Roles: RoleD\nsources:: metricas_q3.csv@101\n',
+          '## NN Roles: RoleC\nsources:: sources/nn/metricas_q3.csv@999\n\n## NN Roles: RoleD\nsources:: sources/nn/metricas_q3.csv@101\n',
         ),
         'utf-8',
       )

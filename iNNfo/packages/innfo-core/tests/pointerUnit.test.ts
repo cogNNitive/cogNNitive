@@ -17,7 +17,7 @@ const DOC = JSON.stringify({
   'R&D': 3,
   '100%': 4,
 })
-const FILE = 'sources/nn/d.json'
+const FILE = 'sources/import/d.json'
 
 describe('JSON Pointer unit: parse and serialize', () => {
   it('parses a pointer citation into a pointer unit with no subunits', () => {

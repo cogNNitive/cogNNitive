@@ -40,9 +40,9 @@ describe('parseKnowledgeUnitRef grammar', () => {
     })
   })
 
-  it('resolves unqualified markdown under sources/nn', () => {
+  it('resolves unqualified markdown as written', () => {
     const r = parseKnowledgeUnitRef('notes.md@## Background')
-    expect(r).toMatchObject({ filePath: 'sources/nn/notes.md', kind: 'source' })
+    expect(r).toMatchObject({ filePath: 'notes.md', kind: 'source' })
   })
 
   it('parses a CSV row by explicit key value', () => {

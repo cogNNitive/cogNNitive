@@ -7863,6 +7863,92 @@ function resolveJsonPointer(content, pointer) {
   return { ok: true, value: current };
 }
 
+// iNNfo/packages/innfo-core/src/naming/contract.ts
+var ENTRYPOINT_FILENAME = "domaiNN_NN.md";
+var SPEC_FILENAME = "spec_NN.md";
+var SIDECAR_BLUEPRINT = "sidecar";
+var NN_SUFFIX_RE = /_NN\.md$/i;
+var SIDECAR_PATH_RE = /^(.*\.[^./\\]+)_sidecar_NN\.md$/i;
+var STAMP_SUFFIX_RE = /^(.+)_(\d{8}T\d{6}Z)(?:-(\d+))?$/;
+function baseOf(path) {
+  const i = Math.max(path.lastIndexOf("/"), path.lastIndexOf("\\"));
+  return i < 0 ? path : path.slice(i + 1);
+}
+function parseName(basename4) {
+  if (NN_SUFFIX_RE.test(basename4)) {
+    const stem2 = basename4.replace(NN_SUFFIX_RE, "");
+    const sidecar = SIDECAR_PATH_RE.exec(basename4);
+    return sidecar ? { kind: "nn", basename: basename4, stem: stem2, sidecarOf: sidecar[1] } : { kind: "nn", basename: basename4, stem: stem2 };
+  }
+  const dot = basename4.lastIndexOf(".");
+  const hasExt = dot > 0;
+  const stem = hasExt ? basename4.slice(0, dot) : basename4;
+  const ext = hasExt ? basename4.slice(dot + 1) : "";
+  const m = STAMP_SUFFIX_RE.exec(stem);
+  if (!m) return { kind: "file", basename: basename4, key: stem, ext };
+  return {
+    kind: "file",
+    basename: basename4,
+    key: m[1],
+    ext,
+    stamp: { stamp: m[2], seq: m[3] ? Number(m[3]) : 1 }
+  };
+}
+function displayStem(basename4) {
+  if (NN_SUFFIX_RE.test(basename4)) return basename4.replace(NN_SUFFIX_RE, "");
+  return basename4.replace(/\.md$/i, "");
+}
+var IGNORED_DIRECTORIES = /* @__PURE__ */ new Set(["backups", "archive", "specs"]);
+var NON_KNOWLEDGE_BLUEPRINT_RE = /^(cognnitive|workspace|procedures|sources|artifacts|sidecar)(?:_|$)/i;
+function segmentsOf(path) {
+  return path.replace(/\\/g, "/").split("/").filter((s) => s && s !== ".");
+}
+function roleOf(i) {
+  const base = baseOf(i.path);
+  const parsed = parseName(base);
+  if (parsed.kind === "file") return i.hasSidecar ? "source" : "artifact";
+  if (parsed.sidecarOf !== void 0) return "sidecar";
+  const lower = base.toLowerCase();
+  if (lower === ENTRYPOINT_FILENAME.toLowerCase()) return "entrypoint";
+  if (lower === SPEC_FILENAME.toLowerCase()) return "spec";
+  const bp = NON_KNOWLEDGE_BLUEPRINT_RE.exec((i.parentSpecName ?? "").trim())?.[1].toLowerCase();
+  switch (bp) {
+    case "cognnitive":
+      return "lineage-record";
+    case "sidecar":
+      return "sidecar";
+    case "procedures":
+      return parsed.stem.toLowerCase() === "procedures" ? "catalog" : "procedure";
+    case "workspace":
+    case "sources":
+    case "artifacts":
+      return "catalog";
+    default:
+      return "knowledge";
+  }
+}
+function isExcludedPath(path) {
+  const segs = segmentsOf(path);
+  if (segs.length > 0 && IGNORED_DIRECTORIES.has(segs[0])) return true;
+  return segs.some((s) => s === "staging" || s.startsWith(".") && s !== "..");
+}
+function parentSpecNameOf(frontmatter) {
+  const parentSpec = frontmatter["parent_spec"];
+  if (!parentSpec) return void 0;
+  if (typeof parentSpec === "string") return parentSpec;
+  if (typeof parentSpec === "object") {
+    const name = parentSpec.name;
+    return typeof name === "string" ? name : void 0;
+  }
+  return void 0;
+}
+function isNNName(nameOrPath) {
+  return NN_SUFFIX_RE.test(baseOf(nameOrPath));
+}
+function isSidecarName(nameOrPath) {
+  return SIDECAR_PATH_RE.test(nameOrPath);
+}
+
 // iNNfo/packages/innfo-core/src/sourceRef.ts
 var SLUG = "[a-z0-9]+(?:-[a-z0-9]+)*";
 var SOURCE_FIELD_NAMES = /* @__PURE__ */ new Set(["sources", "source"]);
@@ -8124,17 +8210,8 @@ function resolveUnitPath(rawPath) {
   const isCsv = /\.csv$/i.test(forward);
   const isJson = /\.json$/i.test(forward);
   if (!isMd && !isCsv && !isJson) return null;
-  if (forward.startsWith("sources/nn/")) return { filePath: forward, kind: "source" };
-  if (forward.startsWith("sources/export/")) return { filePath: forward, kind: "source" };
-  if (forward.startsWith("kNNowledge/")) {
-    if (!isMd) return null;
-    return { filePath: forward, kind: "model" };
-  }
-  if (/^models\//i.test(forward)) {
-    return null;
-  }
   if (/^[a-zA-Z]:[/\\]/.test(trimmed) || trimmed.startsWith("/")) return null;
-  return { filePath: `sources/nn/${forward}`, kind: "source" };
+  return { filePath: forward, kind: roleOf({ path: forward }) === "knowledge" ? "model" : "source" };
 }
 function decodeSegment(segment) {
   try {
@@ -8528,92 +8605,6 @@ function computeSha256(content) {
     ];
   }
   return H.map((x) => (x >>> 0).toString(16).padStart(8, "0")).join("");
-}
-
-// iNNfo/packages/innfo-core/src/naming/contract.ts
-var ENTRYPOINT_FILENAME = "domaiNN_NN.md";
-var SPEC_FILENAME = "spec_NN.md";
-var SIDECAR_BLUEPRINT = "sidecar";
-var NN_SUFFIX_RE = /_NN\.md$/i;
-var SIDECAR_PATH_RE = /^(.*\.[^./\\]+)_sidecar_NN\.md$/i;
-var STAMP_SUFFIX_RE = /^(.+)_(\d{8}T\d{6}Z)(?:-(\d+))?$/;
-function baseOf(path) {
-  const i = Math.max(path.lastIndexOf("/"), path.lastIndexOf("\\"));
-  return i < 0 ? path : path.slice(i + 1);
-}
-function parseName(basename4) {
-  if (NN_SUFFIX_RE.test(basename4)) {
-    const stem2 = basename4.replace(NN_SUFFIX_RE, "");
-    const sidecar = SIDECAR_PATH_RE.exec(basename4);
-    return sidecar ? { kind: "nn", basename: basename4, stem: stem2, sidecarOf: sidecar[1] } : { kind: "nn", basename: basename4, stem: stem2 };
-  }
-  const dot = basename4.lastIndexOf(".");
-  const hasExt = dot > 0;
-  const stem = hasExt ? basename4.slice(0, dot) : basename4;
-  const ext = hasExt ? basename4.slice(dot + 1) : "";
-  const m = STAMP_SUFFIX_RE.exec(stem);
-  if (!m) return { kind: "file", basename: basename4, key: stem, ext };
-  return {
-    kind: "file",
-    basename: basename4,
-    key: m[1],
-    ext,
-    stamp: { stamp: m[2], seq: m[3] ? Number(m[3]) : 1 }
-  };
-}
-function displayStem(basename4) {
-  if (NN_SUFFIX_RE.test(basename4)) return basename4.replace(NN_SUFFIX_RE, "");
-  return basename4.replace(/\.md$/i, "");
-}
-var IGNORED_DIRECTORIES = /* @__PURE__ */ new Set(["backups", "archive", "specs"]);
-var NON_KNOWLEDGE_BLUEPRINT_RE = /^(cognnitive|workspace|procedures|sources|artifacts|sidecar)(?:_|$)/i;
-function segmentsOf(path) {
-  return path.replace(/\\/g, "/").split("/").filter((s) => s && s !== ".");
-}
-function roleOf(i) {
-  const base = baseOf(i.path);
-  const parsed = parseName(base);
-  if (parsed.kind === "file") return i.hasSidecar ? "source" : "artifact";
-  if (parsed.sidecarOf !== void 0) return "sidecar";
-  const lower = base.toLowerCase();
-  if (lower === ENTRYPOINT_FILENAME.toLowerCase()) return "entrypoint";
-  if (lower === SPEC_FILENAME.toLowerCase()) return "spec";
-  const bp = NON_KNOWLEDGE_BLUEPRINT_RE.exec((i.parentSpecName ?? "").trim())?.[1].toLowerCase();
-  switch (bp) {
-    case "cognnitive":
-      return "lineage-record";
-    case "sidecar":
-      return "sidecar";
-    case "procedures":
-      return parsed.stem.toLowerCase() === "procedures" ? "catalog" : "procedure";
-    case "workspace":
-    case "sources":
-    case "artifacts":
-      return "catalog";
-    default:
-      return "knowledge";
-  }
-}
-function isExcludedPath(path) {
-  const segs = segmentsOf(path);
-  if (segs.length > 0 && IGNORED_DIRECTORIES.has(segs[0])) return true;
-  return segs.some((s) => s === "staging" || s.startsWith(".") && s !== "..");
-}
-function parentSpecNameOf(frontmatter) {
-  const parentSpec = frontmatter["parent_spec"];
-  if (!parentSpec) return void 0;
-  if (typeof parentSpec === "string") return parentSpec;
-  if (typeof parentSpec === "object") {
-    const name = parentSpec.name;
-    return typeof name === "string" ? name : void 0;
-  }
-  return void 0;
-}
-function isNNName(nameOrPath) {
-  return NN_SUFFIX_RE.test(baseOf(nameOrPath));
-}
-function isSidecarName(nameOrPath) {
-  return SIDECAR_PATH_RE.test(nameOrPath);
 }
 
 // iNNfo/packages/innfo-core/src/csvTable.ts

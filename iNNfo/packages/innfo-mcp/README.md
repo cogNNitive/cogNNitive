@@ -18,6 +18,7 @@ Model Context Protocol (MCP) server wrapping `@cognnitive/innfo-core` for the `c
 - **`init_knowledge`**: Initializes or scaffolds a Level-3 knowledge file with canonical frontmatter and section structure.
 - **`apply_change`**: Applies deterministic intent mutations (add field, rename concept/element, `bump_version`).
 - **`query_units`**: Queries atomic knowledge units and citations across the domain.
+- **`cognitivize`**: Creates or refreshes the sidecar of one raw markdown, CSV, or JSON file in place; binaries return `requires-cli`.
 - **`resolve_sources`**: Resolves raw source provenance links and citations.
 
 ### Blueprint Package & Discovery Tools

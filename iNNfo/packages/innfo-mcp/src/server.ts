@@ -46,6 +46,7 @@ import {
 } from './tools/mutate.js'
 import { checkDomain } from './tools/check-workspace.js'
 import { queryUnits } from './tools/query-units.js'
+import { cognitivizeTool } from './tools/cognitivize.js'
 import { resolveSources } from './tools/resolve-sources.js'
 import { buildConsolePayloadTool } from './tools/build-console-payload.js'
 import {
@@ -559,6 +560,32 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
   },
   {
     definition: {
+      name: 'cognitivize',
+      description:
+        'Create or refresh the sidecar (`<file>_sidecar_NN.md`) of one raw markdown, CSV, or JSON file in place, so it can be cited. Binary formats (pdf, docx, images, ...) are never converted here: the result has status `requires-cli` and nothing is written (use the nn-trannsform CLI). Paths outside the workspace, sidecars, and NN documents are rejected.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          path: {
+            type: 'string',
+            description: 'Domain-relative path of the raw file, e.g. "sources/import/notes.md"',
+          },
+          domain: {
+            type: 'string',
+            description: 'Optional domain root directory override (default: server root)',
+          },
+          root: {
+            type: 'string',
+            description: 'Optional domain root directory override (alias for domain)',
+          },
+        },
+        required: ['path'],
+      },
+    },
+    handler: handleCognitivize,
+  },
+  {
+    definition: {
       name: 'resolve_sources',
       description:
         'Read-only: resolve an element\'s citation-typed field(s) to their underlying file, anchor, and content. Returns one entry per citation reference: {path, anchor, exists, field, origin, author?, excerpt?, sha256?, version?, error?}. `origin` classifies who produced the cited content ("agent" | "human" | "reviewer" | "document"), resolved from the heading the citation anchors to. Omit fieldName to resolve across every citation-typed field on the element (name-based sources/source plus any schema-declared type:: citation field). Never writes files.',
@@ -927,6 +954,17 @@ async function handleQueryUnits(args: Record<string, unknown>): Promise<CallTool
     max_values_chars: args.max_values_chars as number | undefined,
   })
   return textResult(JSON.stringify(envelope('innfo-query-units', result), null, 2))
+}
+
+async function handleCognitivize(args: Record<string, unknown>): Promise<CallToolResult> {
+  const root = (args.domain as string) || (args.root as string) || ROOT_DIR
+  const legacyErr = await checkDomainLegacy(root)
+  if (legacyErr) return legacyErr
+  const path = String(args.path ?? '')
+  if (!path) return errorResult('Missing required argument: path')
+  const result = await cognitivizeTool(root, path)
+  const text = JSON.stringify(envelope('innfo-cognitivize', result), null, 2)
+  return result.status === 'rejected' ? errorResult(text) : textResult(text)
 }
 
 async function handleResolveSources(args: Record<string, unknown>): Promise<CallToolResult> {

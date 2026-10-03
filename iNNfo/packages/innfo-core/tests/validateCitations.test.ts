@@ -113,25 +113,6 @@ describe('validateCitations', () => {
     })
   })
 
-  it('reports KU_MALFORMED for models/ prefix with explicit message', () => {
-    const site: CitationSite = {
-      value: 'models/Client_NN.md@## Overview',
-      referringPath: 'artifacts/report.md',
-      field: 'sources',
-    }
-
-    const diags = validateCitations([site], emptyResolver)
-    expect(diags).toHaveLength(1)
-    expect(diags[0]).toMatchObject({
-      code: 'KU_MALFORMED',
-      severity: 'error',
-      path: 'artifacts/report.md#sources',
-      target: 'models/Client_NN.md@## Overview',
-      site,
-    })
-    expect(diags[0].message).toContain('`models/` was removed; use `kNNowledge/`')
-  })
-
   it('validates file-level bare paths without anchor and without KU_DEPRECATED_HASH', () => {
     const site: CitationSite = {
       value: 'kNNowledge/Client_NN.md',
@@ -142,5 +123,47 @@ describe('validateCitations', () => {
 
     const diags = validateCitations([site], resolver)
     expect(diags).toEqual([])
+  })
+})
+
+describe('validateCitations: any domaiNN-relative path (S3a)', () => {
+  const site = (value: string): CitationSite => ({
+    value,
+    referringPath: 'kNNowledge/Client_NN.md',
+    element: 'Enterprise Clients',
+    field: 'sources',
+  })
+  const seen: string[] = []
+  const resolver: SourceResolver = (refPath) => {
+    seen.push(refPath)
+    return refPath === 'sources/import/a.md'
+      ? { exists: true, headings: ['intro'], content: '## Intro\n' }
+      : { exists: false }
+  }
+
+  it('resolves a sources/import path as written', () => {
+    expect(validateCitations([site('sources/import/a.md@## Intro')], resolver)).toEqual([])
+    expect(seen).toContain('sources/import/a.md')
+  })
+
+  it('reports KU_DANGLING_FILE for retired prefixes with no special message', () => {
+    const diags = validateCitations(
+      [site('sources/nn/a.md@## Intro'), site('models/Client_NN.md@## NN Stakeholders: X')],
+      resolver,
+    )
+    expect(diags.map((d) => d.code)).toEqual(['KU_DANGLING_FILE', 'KU_DANGLING_FILE'])
+    expect(diags[1].message).not.toMatch(/removed/)
+  })
+
+  it('reports KU_BINARY_TARGET suggesting the sidecar', () => {
+    const diags = validateCitations([site('sources/import/report.pdf@## Summary')], resolver)
+    expect(diags).toHaveLength(1)
+    expect(diags[0].code).toBe('KU_BINARY_TARGET')
+    expect(diags[0].message).toContain('sources/import/report.pdf_sidecar_NN.md')
+  })
+
+  it('reports KU_EXCLUDED_PATH for a staging target', () => {
+    const diags = validateCitations([site('staging/scratch.md@## Intro')], resolver)
+    expect(diags.map((d) => d.code)).toEqual(['KU_EXCLUDED_PATH'])
   })
 })

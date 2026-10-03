@@ -55,7 +55,7 @@ describe('attachSourceCitations', () => {
   it('is case-insensitive on the field name', () => {
     const node = elementNode({ Source: 'a.md' })
     attachSourceCitations(node)
-    expect(node.sources?.[0].filePath).toBe('sources/nn/a.md')
+    expect(node.sources?.[0].filePath).toBe('a.md')
   })
 
   it('does not populate node.sources when no value parses', () => {
