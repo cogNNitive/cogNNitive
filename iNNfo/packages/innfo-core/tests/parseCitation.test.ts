@@ -173,22 +173,22 @@ describe('parseCitation', () => {
   })
 
   describe('legacy #slug citations', () => {
-    it('parses legacy #slug on sources/nn/ path with legacyHash: true', () => {
-      const cit = parseCitation('sources/nn/a.md#intro')
+    it('parses legacy #slug on a domaiNN-relative path with legacyHash: true', () => {
+      const cit = parseCitation('sources/import/a.md#intro')
       expect(cit).toEqual({
-        filePath: 'sources/nn/a.md',
+        filePath: 'sources/import/a.md',
         fileName: 'a.md',
         slug: 'intro',
         kind: 'source',
-        raw: 'sources/nn/a.md#intro',
+        raw: 'sources/import/a.md#intro',
         legacyHash: true,
       })
     })
 
-    it('parses legacy #slug on unqualified path with legacyHash: true', () => {
+    it('parses legacy #slug on an unqualified path as written, with no sources/nn/ prefix', () => {
       const cit = parseCitation('a.md#intro')
       expect(cit).toEqual({
-        filePath: 'sources/nn/a.md',
+        filePath: 'a.md',
         fileName: 'a.md',
         slug: 'intro',
         kind: 'source',
@@ -211,8 +211,15 @@ describe('parseCitation', () => {
   })
 
   describe('rejected and invalid citations', () => {
-    it('keeps the legacy hash form rejecting models/ (removed in S3b)', () => {
-      expect(parseCitation('models/Client_NN.md#intro')).toBeNull()
+    it('gives the retired models/ prefix no special meaning in the legacy hash form', () => {
+      expect(parseCitation('models/Client_NN.md#intro')).toEqual({
+        filePath: 'models/Client_NN.md',
+        fileName: 'Client_NN.md',
+        slug: 'intro',
+        kind: 'model',
+        raw: 'models/Client_NN.md#intro',
+        legacyHash: true,
+      })
     })
 
     it('rejects line-range anchors', () => {

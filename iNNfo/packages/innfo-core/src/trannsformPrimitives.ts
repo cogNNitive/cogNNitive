@@ -26,6 +26,7 @@ export {
 
 export {
   projectLineage,
+  extractDeclaredCitations,
   extractFileCitations,
 } from './lineage/project.js'
 

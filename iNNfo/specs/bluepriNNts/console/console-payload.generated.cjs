@@ -7957,56 +7957,17 @@ function parseSourceRef(input) {
   const clean = input.trim();
   if (/#L\d+(-L\d+)?$/i.test(clean)) return null;
   if (/^src-\d+/i.test(clean)) return null;
-  if (/^models\//i.test(clean)) return null;
-  const explicit = clean.match(new RegExp(`^(sources/nn/[^#]+?)(?:#(${SLUG}))?$`));
-  if (explicit) {
-    const filePath = explicit[1].trim();
-    return {
-      filePath,
-      fileName: basename(filePath),
-      slug: explicit[2] || void 0,
-      kind: "source",
-      raw: clean
-    };
-  }
-  const exportSource = clean.match(new RegExp(`^(sources/export/[^#]+?)(?:#(${SLUG}))?$`));
-  if (exportSource) {
-    const filePath = exportSource[1].trim();
-    return {
-      filePath,
-      fileName: basename(filePath),
-      slug: exportSource[2] || void 0,
-      kind: "source",
-      raw: clean
-    };
-  }
-  const model = clean.match(new RegExp(`^(kNNowledge/[^#]+?\\.md)(?:#(${SLUG}))?$`));
-  if (model) {
-    const filePath = model[1].trim();
-    return {
-      filePath,
-      fileName: basename(filePath),
-      slug: model[2] || void 0,
-      kind: "model",
-      raw: clean
-    };
-  }
-  const unqualified = clean.match(
-    new RegExp(`^((?!https?://)(?!\\.\\.?/)[^#:]+?\\.md)(?:#(${SLUG}))?$`)
-  );
-  if (unqualified) {
-    const rawPath = unqualified[1].trim();
-    if (rawPath.startsWith("models/")) return null;
-    const filePath = `sources/nn/${rawPath}`;
-    return {
-      filePath,
-      fileName: basename(rawPath),
-      slug: unqualified[2] || void 0,
-      kind: "source",
-      raw: clean
-    };
-  }
-  return null;
+  const legacy = clean.match(new RegExp(`^([^#:]+?)(?:#(${SLUG}))?$`));
+  if (!legacy) return null;
+  const resolved = resolveUnitPath(legacy[1]);
+  if (!resolved) return null;
+  return {
+    filePath: resolved.filePath,
+    fileName: basename(resolved.filePath),
+    slug: legacy[2] || void 0,
+    kind: resolved.kind,
+    raw: clean
+  };
 }
 function parseCitation(input) {
   if (!input || typeof input !== "string") return null;

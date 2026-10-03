@@ -7385,6 +7385,7 @@ __export(trannsformPrimitives_exports, {
   createFsSourceResolver: () => createFsSourceResolver,
   displayStem: () => displayStem,
   ensureNNFilename: () => ensureNNFilename,
+  extractDeclaredCitations: () => extractDeclaredCitations,
   extractFileCitations: () => extractFileCitations,
   extractHeadings: () => extractHeadings,
   familyOf: () => familyOf,
@@ -7631,56 +7632,17 @@ function parseSourceRef(input) {
   const clean = input.trim();
   if (/#L\d+(-L\d+)?$/i.test(clean)) return null;
   if (/^src-\d+/i.test(clean)) return null;
-  if (/^models\//i.test(clean)) return null;
-  const explicit = clean.match(new RegExp(`^(sources/nn/[^#]+?)(?:#(${SLUG}))?$`));
-  if (explicit) {
-    const filePath = explicit[1].trim();
-    return {
-      filePath,
-      fileName: basename(filePath),
-      slug: explicit[2] || void 0,
-      kind: "source",
-      raw: clean
-    };
-  }
-  const exportSource = clean.match(new RegExp(`^(sources/export/[^#]+?)(?:#(${SLUG}))?$`));
-  if (exportSource) {
-    const filePath = exportSource[1].trim();
-    return {
-      filePath,
-      fileName: basename(filePath),
-      slug: exportSource[2] || void 0,
-      kind: "source",
-      raw: clean
-    };
-  }
-  const model = clean.match(new RegExp(`^(kNNowledge/[^#]+?\\.md)(?:#(${SLUG}))?$`));
-  if (model) {
-    const filePath = model[1].trim();
-    return {
-      filePath,
-      fileName: basename(filePath),
-      slug: model[2] || void 0,
-      kind: "model",
-      raw: clean
-    };
-  }
-  const unqualified = clean.match(
-    new RegExp(`^((?!https?://)(?!\\.\\.?/)[^#:]+?\\.md)(?:#(${SLUG}))?$`)
-  );
-  if (unqualified) {
-    const rawPath = unqualified[1].trim();
-    if (rawPath.startsWith("models/")) return null;
-    const filePath = `sources/nn/${rawPath}`;
-    return {
-      filePath,
-      fileName: basename(rawPath),
-      slug: unqualified[2] || void 0,
-      kind: "source",
-      raw: clean
-    };
-  }
-  return null;
+  const legacy = clean.match(new RegExp(`^([^#:]+?)(?:#(${SLUG}))?$`));
+  if (!legacy) return null;
+  const resolved = resolveUnitPath(legacy[1]);
+  if (!resolved) return null;
+  return {
+    filePath: resolved.filePath,
+    fileName: basename(resolved.filePath),
+    slug: legacy[2] || void 0,
+    kind: resolved.kind,
+    raw: clean
+  };
 }
 function parseCitation(input) {
   if (!input || typeof input !== "string") return null;
@@ -8885,6 +8847,7 @@ var REQUIRED_BY_PRIMITIVE = {
 
 // iNNfo/packages/innfo-core/src/lineage/project.ts
 var SOURCE_FORMAT_OPTIONS = /* @__PURE__ */ new Set(["txt", "md", "csv", "json", "docx", "pdf", "xlsx"]);
+var ARTIFACT_EXTENSIONS = /* @__PURE__ */ new Set(["md", "html", "htm", "csv", "json"]);
 function mapSourceFormat(ext) {
   const clean = ext.toLowerCase().replace(/^\./, "");
   return SOURCE_FORMAT_OPTIONS.has(clean) ? clean : "md";
@@ -8892,13 +8855,9 @@ function mapSourceFormat(ext) {
 function posixPath(p) {
   return p.split("\\").join("/");
 }
-function getBasename(p, ext) {
+function getBasename(p) {
   const norm = posixPath(p);
-  const last = norm.split("/").pop() || norm;
-  if (ext && last.endsWith(ext)) {
-    return last.slice(0, -ext.length);
-  }
-  return last;
+  return norm.split("/").pop() || norm;
 }
 function getDirname(p) {
   const norm = posixPath(p);
@@ -8910,273 +8869,155 @@ function getExtension(p) {
   const idx = base.lastIndexOf(".");
   return idx === -1 ? "" : base.slice(idx + 1).toLowerCase();
 }
-function extractFileCitations(files) {
+function compareStrings(a, b) {
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+function frontmatterOf(content) {
+  return parseFrontmatter(content) || {};
+}
+function extractDeclaredCitations(file) {
+  const p = posixPath(file.path);
+  const ext = getExtension(p);
   const sites = [];
-  for (const file of files) {
-    const p = posixPath(file.path);
-    if (p.startsWith("artifacts/")) {
-      const ext = getExtension(p);
-      if (ext === "md") {
-        const fm = parseFrontmatter(file.content) || {};
-        if (fm.sources) {
-          for (const raw of splitSourceFieldValue(fm.sources)) {
-            sites.push({
-              value: raw,
-              referringPath: p,
-              field: "sources"
-            });
+  const push = (value, field) => {
+    sites.push({ value, referringPath: p, field });
+  };
+  if (ext === "md") {
+    const fm = frontmatterOf(file.content);
+    if (fm.sources) {
+      for (const raw of splitSourceFieldValue(fm.sources)) push(raw, "sources");
+    }
+  } else if (ext === "html" || ext === "htm") {
+    const modelMatch = file.content.match(/<script[^>]+id=["']innfo-model["'][^>]*>([\s\S]*?)<\/script>/i);
+    if (modelMatch) {
+      try {
+        const parsed = JSON.parse(modelMatch[1].trim());
+        if (Array.isArray(parsed?.meta?.sources)) {
+          for (const raw of parsed.meta.sources) {
+            if (typeof raw === "string" && raw.trim()) push(raw.trim(), "meta.sources");
           }
         }
-      } else if (ext === "html" || ext === "htm") {
-        const modelMatch = file.content.match(
-          /<script[^>]+id=["']innfo-model["'][^>]*>([\s\S]*?)<\/script>/i
-        );
-        if (modelMatch) {
-          try {
-            const parsed = JSON.parse(modelMatch[1].trim());
-            if (Array.isArray(parsed?.meta?.sources)) {
-              for (const raw of parsed.meta.sources) {
-                if (typeof raw === "string" && raw.trim()) {
-                  sites.push({
-                    value: raw.trim(),
-                    referringPath: p,
-                    field: "meta.sources"
-                  });
-                }
-              }
-            }
-          } catch {
-          }
-        }
-      } else if (ext === "csv") {
-        const lines = file.content.split(/\r?\n/);
-        if (lines.length > 0) {
-          const header = lines[0].split(",").map((h) => h.trim().toLowerCase().replace(/^["']|["']$/g, ""));
-          const sourcesIdx = header.indexOf("sources");
-          if (sourcesIdx !== -1) {
-            for (let i = 1; i < lines.length; i++) {
-              const line = lines[i].trim();
-              if (!line) continue;
-              const cols = line.split(",");
-              const cell = cols[sourcesIdx]?.trim().replace(/^["']|["']$/g, "");
-              if (cell) {
-                sites.push({
-                  value: cell,
-                  referringPath: p,
-                  field: "sources"
-                });
-              }
-            }
-          }
-        }
-      } else if (ext === "json") {
-        try {
-          const parsed = JSON.parse(file.content);
-          const items = Array.isArray(parsed) ? parsed : [parsed];
-          for (const item of items) {
-            if (item && typeof item === "object" && "sources" in item) {
-              for (const raw of splitSourceFieldValue(item.sources)) {
-                sites.push({
-                  value: raw,
-                  referringPath: p,
-                  field: "sources"
-                });
-              }
-            }
-          }
-        } catch {
-        }
+      } catch {
       }
-    } else if (p.startsWith("sources/export/") || p.startsWith("sources/nn/export/")) {
-      if (p.endsWith(".md")) {
-        const fm = parseFrontmatter(file.content) || {};
-        if (fm.sources) {
-          for (const raw of splitSourceFieldValue(fm.sources)) {
-            sites.push({
-              value: raw,
-              referringPath: p,
-              field: "sources"
-            });
+    }
+  } else if (ext === "csv") {
+    const lines = file.content.split(/\r?\n/);
+    const header = lines[0].split(",").map((h) => h.trim().toLowerCase().replace(/^["']|["']$/g, ""));
+    const sourcesIdx = header.indexOf("sources");
+    if (sourcesIdx !== -1) {
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+        const cell = line.split(",")[sourcesIdx]?.trim().replace(/^["']|["']$/g, "");
+        if (cell) push(cell, "sources");
+      }
+    }
+  } else if (ext === "json") {
+    try {
+      const parsed = JSON.parse(file.content);
+      const items = Array.isArray(parsed) ? parsed : [parsed];
+      for (const item of items) {
+        if (item && typeof item === "object" && "sources" in item) {
+          for (const raw of splitSourceFieldValue(item.sources)) {
+            push(raw, "sources");
           }
         }
       }
+    } catch {
     }
   }
   return sites;
 }
+function extractFileCitations(files) {
+  const sites = [];
+  for (const file of files) {
+    const p = posixPath(file.path);
+    if (isExcludedPath(p)) continue;
+    const parsed = parseName(getBasename(p));
+    if (parsed.kind === "nn" && parsed.sidecarOf === void 0) continue;
+    sites.push(...extractDeclaredCitations(file));
+  }
+  return sites;
+}
+function familyKey(path4) {
+  const family = familyOf(path4);
+  return family ? `${family.dir}\0${family.key}\0${family.ext}` : null;
+}
 function projectLineage(files) {
-  const normalizedFiles = files.map((f) => ({
-    path: posixPath(f.path),
-    content: f.content
-  }));
-  const activeSourceFiles = normalizedFiles.filter(
-    (f) => f.path.startsWith("sources/nn/") && f.path.endsWith(".md") && !f.path.startsWith("sources/nn/staging/") && !f.path.startsWith("sources/nn/archive/") && f.path !== "sources/nn/index.md"
-  ).sort((a, b) => a.path.localeCompare(b.path));
-  const activeSources = [];
-  for (const f of activeSourceFiles) {
-    const fm = parseFrontmatter(f.content) || {};
-    const sourceFile = (typeof fm.source_file === "string" ? fm.source_file : typeof fm.file === "string" ? fm.file : f.path).trim();
-    const rawBase = getBasename(sourceFile);
-    const ext = getExtension(rawBase);
-    const mediaFile = typeof fm.media_file === "string" ? fm.media_file : typeof fm.media_filename === "string" ? fm.media_filename : void 0;
-    const sha = typeof fm.sha256 === "string" ? fm.sha256 : typeof fm.hash === "string" ? fm.hash : void 0;
-    const size = fm.size_bytes != null ? String(fm.size_bytes) : fm.size != null ? String(fm.size) : void 0;
-    const normalizedAt = typeof fm.normalized_at === "string" ? fm.normalized_at : void 0;
-    const normalizedBy = typeof fm.normalized_by === "string" ? fm.normalized_by : void 0;
-    let derivedFrom = [];
-    if (sourceFile.startsWith("sources/export/")) {
-      const promotedFile = normalizedFiles.find((p) => p.path === sourceFile);
-      if (promotedFile) {
-        const promotedFm = parseFrontmatter(promotedFile.content) || {};
-        if (promotedFm.sources) {
-          derivedFrom = splitSourceFieldValue(promotedFm.sources);
-        }
-      }
-    }
-    const baseStem = getBasename(f.path, ".md");
-    const archivePattern = `sources/archive/${baseStem}/`;
-    const vNums = [];
-    for (const af of normalizedFiles) {
-      if (af.path.startsWith(archivePattern) && af.path.endsWith(".md")) {
-        const m = af.path.match(/\/V(\d+)\//);
-        if (m) {
-          vNums.push(parseInt(m[1], 10));
-        }
-      }
-    }
-    let version = "V1";
-    let archivePath;
-    if (vNums.length > 0) {
-      const maxN = Math.max(...vNums);
-      version = `V${maxN + 1}`;
-      archivePath = `sources/archive/${baseStem}/V${maxN}/${baseStem}.md`;
-    }
-    activeSources.push({
-      name: rawBase,
-      raw_filename: sourceFile,
-      media_filename: mediaFile,
-      raw_hash: sha,
-      size,
-      source_format: mapSourceFormat(ext),
-      normalized_at: normalizedAt,
-      normalized_by: normalizedBy,
-      normalized_content: f.path,
-      version,
-      archive_path: archivePath,
-      derived_from: derivedFrom,
-      mdRelPath: f.path.slice("sources/nn/".length)
-    });
-  }
-  const csvFiles = normalizedFiles.filter(
-    (f) => f.path.startsWith("sources/nn/") && f.path.endsWith(".csv") && !f.path.startsWith("sources/nn/staging/") && !f.path.startsWith("sources/nn/archive/")
-  ).sort((a, b) => a.path.localeCompare(b.path));
-  for (const csv of csvFiles) {
-    const stemMd = csv.path.replace(/\.csv$/i, ".md");
-    const owner = activeSources.find((s) => s.normalized_content === stemMd);
-    if (owner) {
-      owner.curated_csv = csv.path;
-      continue;
-    }
-    const relCsv = csv.path.slice("sources/nn/".length);
-    const rawCandidate = `sources/import/${relCsv}`;
-    const rawFilename = normalizedFiles.some((f) => f.path === rawCandidate) ? rawCandidate : csv.path;
-    activeSources.push({
-      name: getBasename(csv.path),
-      raw_filename: rawFilename,
-      source_format: "csv",
-      normalized_content: csv.path,
-      curated_csv: csv.path,
-      version: "V1",
-      derived_from: [],
-      mdRelPath: relCsv
-    });
-  }
-  const nameCounts = {};
-  for (const s of activeSources) {
-    nameCounts[s.name] = (nameCounts[s.name] || 0) + 1;
-  }
-  for (const s of activeSources) {
-    if (nameCounts[s.name] > 1) {
-      const parentDir = getDirname(s.mdRelPath);
-      if (parentDir && parentDir !== ".") {
-        s.name = `${parentDir} ${s.name}`;
-      }
-    }
-  }
-  const archiveFiles = normalizedFiles.filter((f) => f.path.startsWith("sources/archive/") && f.path.endsWith(".md")).sort((a, b) => a.path.localeCompare(b.path));
-  const archivedGroups = /* @__PURE__ */ new Map();
-  for (const af of archiveFiles) {
-    const match = af.path.match(/^sources\/archive\/([^/]+)\/(V\d+)\/([^/]+)\.md$/);
-    if (match) {
-      const base = match[1];
-      const vName = match[2];
-      const vNum = parseInt(vName.replace(/^V/, ""), 10);
-      const fm = parseFrontmatter(af.content) || {};
-      const list = archivedGroups.get(base) || [];
-      list.push({ vNum, vName, file: af, fm });
-      archivedGroups.set(base, list);
-    }
-  }
-  const archivedSources = [];
-  const sortedBases = Array.from(archivedGroups.keys()).sort();
-  for (const base of sortedBases) {
-    const vInfos = archivedGroups.get(base);
-    vInfos.sort((a, b) => a.vNum - b.vNum);
-    const maxArchived = vInfos.length > 0 ? Math.max(...vInfos.map((v) => v.vNum)) : 0;
-    const hasActive = activeSources.some((s) => getBasename(s.normalized_content, ".md") === base);
-    for (const vi of vInfos) {
-      const sourceFile = (typeof vi.fm.source_file === "string" ? vi.fm.source_file : typeof vi.fm.file === "string" ? vi.fm.file : vi.file.path).trim();
-      const rawBase = getBasename(sourceFile);
-      const ext = getExtension(rawBase);
-      let supersededBy;
-      if (hasActive) {
-        supersededBy = `${rawBase} V${vi.vNum + 1}`;
-      } else if (vi.vNum < maxArchived) {
-        supersededBy = `${rawBase} V${vi.vNum + 1}`;
-      }
-      archivedSources.push({
-        name: `${rawBase} ${vi.vName}`,
-        raw_filename: sourceFile,
-        raw_hash: typeof vi.fm.sha256 === "string" ? vi.fm.sha256 : typeof vi.fm.hash === "string" ? vi.fm.hash : void 0,
-        size: vi.fm.size_bytes != null ? String(vi.fm.size_bytes) : vi.fm.size != null ? String(vi.fm.size) : void 0,
-        source_format: mapSourceFormat(ext),
-        normalized_at: typeof vi.fm.normalized_at === "string" ? vi.fm.normalized_at : void 0,
-        normalized_by: typeof vi.fm.normalized_by === "string" ? vi.fm.normalized_by : void 0,
-        normalized_content: vi.file.path,
-        status: "archived",
-        version: vi.vName,
-        superseded_by: supersededBy,
-        derived_from: []
+  const live = files.map((f) => ({ path: posixPath(f.path), content: f.content })).filter((f) => !isExcludedPath(f.path)).sort((a, b) => compareStrings(a.path, b.path));
+  const byFilePath = new Map(live.map((f) => [f.path, f]));
+  const diagnostics = [];
+  const subjects = [];
+  for (const sidecar of live) {
+    const subject = rawPathOfSidecar(sidecar.path);
+    if (subject === null) continue;
+    const fm = frontmatterOf(sidecar.content);
+    const declared = typeof fm.source_file === "string" ? posixPath(fm.source_file.trim()) : void 0;
+    if (declared !== subject) {
+      diagnostics.push({
+        code: "SIDECAR_SUBJECT_MISMATCH",
+        path: sidecar.path,
+        message: `Sidecar source_file "${declared ?? ""}" does not match the subject "${subject}" derived from its name`
       });
     }
+    subjects.push({ subject, sidecar, fm });
   }
-  const allSources = [
-    ...activeSources.map(({ mdRelPath, ...rest }) => rest),
-    ...archivedSources
-  ];
-  const knowledgeFiles = normalizedFiles.filter((f) => f.path.startsWith("kNNowledge/") && parseName(getBasename(f.path)).kind === "nn").sort((a, b) => a.path.localeCompare(b.path));
+  subjects.sort((a, b) => compareStrings(a.subject, b.subject));
+  const families = /* @__PURE__ */ new Map();
+  for (const { subject } of subjects) {
+    const key = familyKey(subject);
+    if (key === null) continue;
+    families.set(key, [...families.get(key) ?? [], subject]);
+  }
+  for (const members of families.values()) {
+    members.sort((a, b) => compareMembers(a, b) || compareStrings(a, b));
+  }
+  const sources = subjects.map(({ subject, sidecar, fm }) => {
+    const key = familyKey(subject);
+    const members = key === null ? [subject] : families.get(key);
+    const rank = members.indexOf(subject);
+    const subjectFile = byFilePath.get(subject);
+    const derivedFrom = subjectFile ? extractDeclaredCitations(subjectFile).map((c) => c.value) : fm.sources ? splitSourceFieldValue(fm.sources) : [];
+    return {
+      name: getBasename(subject),
+      raw_filename: subject,
+      raw_hash: typeof fm.sha256 === "string" ? fm.sha256 : void 0,
+      size: fm.size_bytes != null ? String(fm.size_bytes) : void 0,
+      source_format: mapSourceFormat(getExtension(subject)),
+      normalized_at: typeof fm.normalized_at === "string" ? fm.normalized_at : void 0,
+      normalized_by: typeof fm.normalized_by === "string" ? fm.normalized_by : void 0,
+      normalized_content: sidecar.path,
+      version: `V${rank + 1}`,
+      superseded_by: members[rank + 1],
+      derived_from: Array.from(new Set(derivedFrom))
+    };
+  });
+  const nameCounts = {};
+  for (const s of sources) nameCounts[s.name] = (nameCounts[s.name] || 0) + 1;
+  for (const s of sources) {
+    if (nameCounts[s.name] > 1) {
+      const parentDir = getDirname(s.raw_filename);
+      if (parentDir) s.name = `${parentDir} ${s.name}`;
+    }
+  }
   const knowledge = [];
-  for (const kf of knowledgeFiles) {
+  for (const kf of live) {
+    const parsedName = parseName(getBasename(kf.path));
+    if (parsedName.kind !== "nn" || parsedName.sidecarOf !== void 0) continue;
     const parsed = parseKnowledge(kf.content);
-    if (roleOf({ path: kf.path, parentSpecName: parsed.frontmatter?.parent_spec?.name }) !== "knowledge") {
+    if (!isModelCandidate({ path: kf.path, frontmatter: parsed.frontmatter ?? {} })) {
       continue;
     }
-    const baseName = displayStem(getBasename(kf.path));
-    const name = parsed.frontmatter?.title || baseName;
+    const name = parsed.frontmatter?.title || displayStem(getBasename(kf.path));
     const modelTemplate = parsed.frontmatter?.parent_spec?.name;
     const knowledgeVersion = parsed.frontmatter?.knowledge_version || (typeof parsed.frontmatter?.model === "string" ? parsed.frontmatter.model : void 0);
     const citations = [];
-    for (const [conceptName, elements] of parsed.elements.entries()) {
+    for (const [, elements] of parsed.elements.entries()) {
       for (const el of elements) {
         for (const [fieldName, val] of Object.entries(el.fields)) {
           if (SOURCE_FIELD_NAMES.has(fieldName.toLowerCase())) {
             for (const raw of splitSourceFieldValue(val)) {
-              citations.push({
-                value: raw,
-                referringPath: kf.path,
-                element: el.name,
-                field: fieldName
-              });
+              citations.push({ value: raw, referringPath: kf.path, element: el.name, field: fieldName });
             }
           }
         }
@@ -9185,11 +9026,7 @@ function projectLineage(files) {
     const fm = parsed.frontmatter;
     if (fm?.sources) {
       for (const raw of splitSourceFieldValue(fm.sources)) {
-        citations.push({
-          value: raw,
-          referringPath: kf.path,
-          field: "sources"
-        });
+        citations.push({ value: raw, referringPath: kf.path, field: "sources" });
       }
     }
     knowledge.push({
@@ -9200,106 +9037,41 @@ function projectLineage(files) {
       citations
     });
   }
-  const artifactFiles = normalizedFiles.filter((f) => f.path.startsWith("artifacts/")).sort((a, b) => a.path.localeCompare(b.path));
+  const sourcePaths = new Set(subjects.map((s) => s.subject));
+  const familySizes = /* @__PURE__ */ new Map();
+  for (const f of live) {
+    const key = familyKey(f.path);
+    if (key !== null) familySizes.set(key, (familySizes.get(key) ?? 0) + 1);
+  }
   const artifacts = [];
-  for (const af of artifactFiles) {
+  for (const af of live) {
+    const parsedName = parseName(getBasename(af.path));
+    if (parsedName.kind !== "file" || sourcePaths.has(af.path)) continue;
     const ext = getExtension(af.path);
-    if (!["md", "html", "htm", "csv", "json"].includes(ext)) continue;
-    const baseName = getBasename(af.path).replace(/\.[^.]+$/, "");
+    if (!ARTIFACT_EXTENSIONS.has(ext)) continue;
+    const citations = extractDeclaredCitations(af);
+    const isFamilyMember = parsedName.stamp !== void 0 || (familySizes.get(familyKey(af.path)) ?? 0) > 1;
+    if (!isFamilyMember && citations.length === 0) continue;
     let format = "document";
-    const citations = [];
     if (ext === "md") {
-      const fm = parseFrontmatter(af.content) || {};
-      const declaredFormat = typeof fm.format === "string" ? fm.format : typeof fm.type === "string" ? fm.type : void 0;
-      if (declaredFormat === "report" || declaredFormat === "board" || declaredFormat === "dataset" || declaredFormat === "document") {
-        format = declaredFormat;
-      } else {
-        format = "document";
-      }
-      if (fm.sources) {
-        for (const raw of splitSourceFieldValue(fm.sources)) {
-          citations.push({
-            value: raw,
-            referringPath: af.path,
-            field: "sources"
-          });
-        }
+      const fm = frontmatterOf(af.content);
+      const declared = typeof fm.format === "string" ? fm.format : typeof fm.type === "string" ? fm.type : void 0;
+      if (declared === "report" || declared === "board" || declared === "dataset" || declared === "document") {
+        format = declared;
       }
     } else if (ext === "html" || ext === "htm") {
       format = "board";
-      const modelMatch = af.content.match(
-        /<script[^>]+id=["']innfo-model["'][^>]*>([\s\S]*?)<\/script>/i
-      );
-      if (modelMatch) {
-        try {
-          const parsed = JSON.parse(modelMatch[1].trim());
-          if (Array.isArray(parsed?.meta?.sources)) {
-            for (const raw of parsed.meta.sources) {
-              if (typeof raw === "string" && raw.trim()) {
-                citations.push({
-                  value: raw.trim(),
-                  referringPath: af.path,
-                  field: "meta.sources"
-                });
-              }
-            }
-          }
-        } catch {
-        }
-      }
-    } else if (ext === "csv") {
+    } else if (ext === "csv" || ext === "json") {
       format = "dataset";
-      const lines = af.content.split(/\r?\n/);
-      if (lines.length > 0) {
-        const header = lines[0].split(",").map((h) => h.trim().toLowerCase().replace(/^["']|["']$/g, ""));
-        const sourcesIdx = header.indexOf("sources");
-        if (sourcesIdx !== -1) {
-          for (let i = 1; i < lines.length; i++) {
-            const line = lines[i].trim();
-            if (!line) continue;
-            const cols = line.split(",");
-            const cell = cols[sourcesIdx]?.trim().replace(/^["']|["']$/g, "");
-            if (cell) {
-              citations.push({
-                value: cell,
-                referringPath: af.path,
-                field: "sources"
-              });
-            }
-          }
-        }
-      }
-    } else if (ext === "json") {
-      format = "dataset";
-      try {
-        const parsed = JSON.parse(af.content);
-        const items = Array.isArray(parsed) ? parsed : [parsed];
-        for (const item of items) {
-          if (item && typeof item === "object" && "sources" in item) {
-            for (const raw of splitSourceFieldValue(item.sources)) {
-              citations.push({
-                value: raw,
-                referringPath: af.path,
-                field: "sources"
-              });
-            }
-          }
-        }
-      } catch {
-      }
     }
     artifacts.push({
-      name: baseName,
+      name: getBasename(af.path).replace(/\.[^.]+$/, ""),
       artifact_ref: af.path,
       artifact_format: format,
       citations
     });
   }
-  return {
-    sources: allSources,
-    knowledge,
-    artifacts
-  };
+  return { sources, knowledge, artifacts, diagnostics };
 }
 
 // iNNfo/packages/innfo-core/src/validator/workspaceSources.ts
@@ -9633,8 +9405,6 @@ function renderSourcesSection(sources) {
 `;
     out += `raw_filename:: ${s.raw_filename}
 `;
-    if (s.media_filename) out += `media_filename:: ${s.media_filename}
-`;
     if (s.raw_hash) out += `raw_hash:: ${s.raw_hash}
 `;
     if (s.size) out += `size:: ${s.size}
@@ -9647,13 +9417,7 @@ function renderSourcesSection(sources) {
 `;
     out += `normalized_content:: ${s.normalized_content}
 `;
-    if (s.curated_csv) out += `curated_csv:: ${s.curated_csv}
-`;
-    if (s.status) out += `status:: ${s.status}
-`;
     if (s.version) out += `version:: ${s.version}
-`;
-    if (s.archive_path) out += `archive_path:: ${s.archive_path}
 `;
     if (s.superseded_by) out += `superseded_by:: ${s.superseded_by}
 `;
@@ -9725,115 +9489,37 @@ function renderLineageSections(p) {
 // iNNfo/packages/innfo-core/src/lineage/fs-snapshot.ts
 var fs = __toESM(require("node:fs"), 1);
 var path = __toESM(require("node:path"), 1);
-function walkDir(dir, filter, baseDir = dir) {
-  if (!fs.existsSync(dir)) return [];
-  const results = [];
-  const entries = fs.readdirSync(dir, { withFileTypes: true });
-  for (const entry of entries) {
+var TEXT_EXTENSIONS = /* @__PURE__ */ new Set([".md", ".csv", ".json", ".html", ".htm"]);
+function walkDir(dir, baseDir, out) {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     if (entry.name.startsWith(".")) continue;
     const fullPath = path.join(dir, entry.name);
     const relPath = path.relative(baseDir, fullPath).split("\\").join("/");
+    if (isExcludedPath(relPath)) continue;
     if (entry.isDirectory()) {
-      if (filter(relPath, entry.name, true)) {
-        results.push(...walkDir(fullPath, filter, baseDir));
-      }
-    } else if (entry.isFile()) {
-      if (filter(relPath, entry.name, false)) {
-        results.push(relPath);
-      }
+      walkDir(fullPath, baseDir, out);
+    } else if (entry.isFile() && TEXT_EXTENSIONS.has(path.extname(entry.name).toLowerCase())) {
+      out.push(relPath);
     }
   }
-  return results;
 }
 function readLineageSnapshot(root) {
-  const snapshots = [];
   const rootDir = path.resolve(root);
-  const sourcesNnDir = path.join(rootDir, "sources", "nn");
-  if (fs.existsSync(sourcesNnDir)) {
-    const rels = walkDir(sourcesNnDir, (rel, name, isDir) => {
-      const lower = name.toLowerCase();
-      if (isDir) {
-        return lower !== "staging" && lower !== "archive";
-      }
-      if (isSidecarName(name)) return false;
-      return name.endsWith(".md") || name.endsWith(".csv");
-    });
-    for (const rel of rels) {
-      const p = `sources/nn/${rel}`;
-      const full = path.join(sourcesNnDir, rel);
-      snapshots.push({
-        path: p,
-        content: fs.readFileSync(full, "utf8")
-      });
-    }
-  }
-  const sourcesArchiveDir = path.join(rootDir, "sources", "archive");
-  if (fs.existsSync(sourcesArchiveDir)) {
-    const rels = walkDir(sourcesArchiveDir, (_, name, isDir) => {
-      if (isDir) return true;
-      return name.endsWith(".md");
-    });
-    for (const rel of rels) {
-      const p = `sources/archive/${rel}`;
-      const full = path.join(sourcesArchiveDir, rel);
-      snapshots.push({
-        path: p,
-        content: fs.readFileSync(full, "utf8")
-      });
-    }
-  }
-  const sourcesExportDir = path.join(rootDir, "sources", "export");
-  if (fs.existsSync(sourcesExportDir)) {
-    const rels = walkDir(sourcesExportDir, (_, name, isDir) => {
-      if (isDir) return true;
-      return name.endsWith(".md");
-    });
-    for (const rel of rels) {
-      const p = `sources/export/${rel}`;
-      const full = path.join(sourcesExportDir, rel);
-      snapshots.push({
-        path: p,
-        content: fs.readFileSync(full, "utf8")
-      });
-    }
-  }
-  const knowledgeDir = path.join(rootDir, "kNNowledge");
-  if (fs.existsSync(knowledgeDir)) {
-    const rels = walkDir(knowledgeDir, (_, name, isDir) => {
-      if (isDir) return true;
-      return isNNName(name) && !isSidecarName(name);
-    });
-    for (const rel of rels) {
-      const full = path.join(knowledgeDir, rel);
-      const content = fs.readFileSync(full, "utf8");
+  if (!fs.existsSync(rootDir)) return [];
+  const rels = [];
+  walkDir(rootDir, rootDir, rels);
+  const snapshots = [];
+  for (const rel of rels) {
+    const content = fs.readFileSync(path.join(rootDir, rel), "utf8");
+    if (isNNName(rel) && !isSidecarName(rel)) {
       const parsed = parseKnowledge(content);
       if (roleOf({ path: rel, parentSpecName: parsed.frontmatter?.parent_spec?.name }) !== "knowledge") {
         continue;
       }
-      snapshots.push({
-        path: `kNNowledge/${rel}`,
-        content
-      });
     }
+    snapshots.push({ path: rel, content });
   }
-  const artifactsDir = path.join(rootDir, "artifacts");
-  if (fs.existsSync(artifactsDir)) {
-    const rels = walkDir(artifactsDir, (_, name, isDir) => {
-      if (isDir) return true;
-      const ext = path.extname(name).toLowerCase();
-      if (isSidecarName(name)) return false;
-      return [".md", ".html", ".htm", ".csv", ".json"].includes(ext);
-    });
-    for (const rel of rels) {
-      const p = `artifacts/${rel}`;
-      const full = path.join(artifactsDir, rel);
-      snapshots.push({
-        path: p,
-        content: fs.readFileSync(full, "utf8")
-      });
-    }
-  }
-  snapshots.sort((a, b) => a.path.localeCompare(b.path));
+  snapshots.sort((a, b) => a.path < b.path ? -1 : a.path > b.path ? 1 : 0);
   return snapshots;
 }
 
@@ -10178,6 +9864,7 @@ async function importRaw(root, externalAbs, o = {}) {
   createFsSourceResolver,
   displayStem,
   ensureNNFilename,
+  extractDeclaredCitations,
   extractFileCitations,
   extractHeadings,
   familyOf,

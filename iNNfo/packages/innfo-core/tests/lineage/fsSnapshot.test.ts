@@ -4,6 +4,8 @@ import * as path from 'path'
 import * as os from 'os'
 import { readLineageSnapshot } from '../../src/lineage/fs-snapshot.js'
 
+const SIDECAR = '---\nlevel: 3\nparent_spec:\n  name: sidecar\n---\n'
+
 describe('readLineageSnapshot', () => {
   let tempDir: string
 
@@ -15,67 +17,65 @@ describe('readLineageSnapshot', () => {
     fs.rmSync(tempDir, { recursive: true, force: true })
   })
 
-  it('scans only in-scope files and excludes staging and cogNNitive record', () => {
-    const filesToCreate: Record<string, string> = {
-      'sources/nn/interview.md': '---\nsource_file: interview.txt\n---\n# Notes',
-      'sources/nn/metrics.csv': 'metric,value\nmrr,100',
-      'sources/nn/staging/draft.md': '# Draft should be ignored',
-      'sources/archive/interview/V1/interview.md': '---\nversion: V1\n---\n# Archived',
-      'sources/export/Report_Promoted.md': '---\nsources: []\n---\n# Promoted',
-      'kNNowledge/Strategy_NN.md': '---\ntitle: Strategy\n---\n# Strategy',
-      'kNNowledge/Lineage_Record_NN.md': '---\ntitle: Lineage\nparent_spec:\n  name: cogNNitive\n---\n# Record',
+  function seed(files: Record<string, string | Buffer>): void {
+    for (const [relPath, content] of Object.entries(files)) {
+      const fullPath = path.join(tempDir, relPath)
+      fs.mkdirSync(path.dirname(fullPath), { recursive: true })
+      fs.writeFileSync(fullPath, content)
+    }
+  }
+
+  it('walks the whole domaiNN, reads text formats, and prunes excluded paths', () => {
+    seed({
+      'sources/import/metrics.csv': 'metric,value\nmrr,100',
+      'sources/import/metrics.csv_sidecar_NN.md': SIDECAR,
+      'sources/import/staging/draft.md': '# Draft should be ignored',
+      'sources/conversations/chat_20261002T101500Z.md': '# Chat',
+      'kNNowledge/Strategy_NN.md': '---\ntitle: Strategy\nlevel: 3\nparent_spec:\n  name: business\n---\n# Strategy',
       'artifacts/Report.md': '---\ntitle: Report\n---\n# Report',
       'artifacts/Console.html': '<html><script id="innfo-model"></script></html>',
-      'artifacts/data.csv': 'a,b\n1,2',
+      'artifacts/page.htm': '<html></html>',
       'artifacts/data.json': '{"a": 1}',
-      'artifacts/image.png': 'binary-ignored',
-      'random_dir/foo.md': '# Ignored',
-    }
+      'random_dir/foo.md': '# Loose docs are read too: the projection decides',
+      'archive/old.md': '# Ignored root',
+      'backups/b.md': '# Ignored root',
+      '.hidden/h.md': '# Dot folder',
+    })
 
-    for (const [relPath, content] of Object.entries(filesToCreate)) {
-      const fullPath = path.join(tempDir, relPath)
-      fs.mkdirSync(path.dirname(fullPath), { recursive: true })
-      fs.writeFileSync(fullPath, content, 'utf8')
-    }
+    const paths = readLineageSnapshot(tempDir).map((s) => s.path)
 
-    const snapshots = readLineageSnapshot(tempDir)
-    const paths = snapshots.map((s) => s.path)
-
-    expect(paths).toContain('sources/nn/interview.md')
-    expect(paths).toContain('sources/nn/metrics.csv')
-    expect(paths).toContain('sources/archive/interview/V1/interview.md')
-    expect(paths).toContain('sources/export/Report_Promoted.md')
-    expect(paths).toContain('kNNowledge/Strategy_NN.md')
-    expect(paths).toContain('artifacts/Report.md')
-    expect(paths).toContain('artifacts/Console.html')
-    expect(paths).toContain('artifacts/data.csv')
-    expect(paths).toContain('artifacts/data.json')
-
-    // Excluded files
-    expect(paths).not.toContain('sources/nn/staging/draft.md')
-    expect(paths).not.toContain('kNNowledge/Lineage_Record_NN.md')
-    expect(paths).not.toContain('artifacts/image.png')
-    expect(paths).not.toContain('random_dir/foo.md')
-
-    // Content verification
-    const interview = snapshots.find((s) => s.path === 'sources/nn/interview.md')
-    expect(interview?.content).toContain('# Notes')
+    expect(paths).toEqual([
+      'artifacts/Console.html',
+      'artifacts/Report.md',
+      'artifacts/data.json',
+      'artifacts/page.htm',
+      'kNNowledge/Strategy_NN.md',
+      'random_dir/foo.md',
+      'sources/conversations/chat_20261002T101500Z.md',
+      'sources/import/metrics.csv',
+      'sources/import/metrics.csv_sidecar_NN.md',
+    ])
   })
 
-  it('never snapshots a seeded sidecar or a catalog document as knowledge', () => {
-    const sidecar = '---\nlevel: 3\nparent_spec:\n  name: business\n---\n'
-    const filesToCreate: Record<string, string> = {
-      'kNNowledge/Strategy_NN.md': '---\ntitle: Strategy\n---\n# Strategy',
-      'kNNowledge/report.pdf_sidecar_NN.md': sidecar,
+  it('skips binaries (their sidecars represent them) and the lineage record', () => {
+    seed({
+      'sources/import/report.pdf': Buffer.from([0x25, 0x50, 0x44, 0x46, 0x00, 0xff]),
+      'sources/import/report.pdf_sidecar_NN.md': SIDECAR,
+      'artifacts/image.png': Buffer.from([0x89, 0x50]),
+      'kNNowledge/Acme_cogNNitive_NN.md': '---\nlevel: 3\nparent_spec:\n  name: cogNNitive\n---\n# NN Sources',
+      'domaiNN_NN.md': '---\ntitle: Entry\n---\n',
+    })
+
+    const paths = readLineageSnapshot(tempDir).map((s) => s.path)
+
+    expect(paths).toEqual(['sources/import/report.pdf_sidecar_NN.md'])
+  })
+
+  it('never snapshots a catalog document as knowledge', () => {
+    seed({
+      'kNNowledge/Strategy_NN.md': '---\ntitle: Strategy\nlevel: 3\nparent_spec:\n  name: business\n---\n# Strategy',
       'kNNowledge/sources_NN.md': '---\nparent_spec:\n  name: sources\n---\n',
-      'sources/nn/prices.csv_sidecar_NN.md': sidecar,
-      'artifacts/Report.md_sidecar_NN.md': sidecar,
-    }
-    for (const [relPath, content] of Object.entries(filesToCreate)) {
-      const fullPath = path.join(tempDir, relPath)
-      fs.mkdirSync(path.dirname(fullPath), { recursive: true })
-      fs.writeFileSync(fullPath, content, 'utf8')
-    }
+    })
 
     const paths = readLineageSnapshot(tempDir).map((s) => s.path)
 

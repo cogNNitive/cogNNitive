@@ -17,17 +17,13 @@ export function renderSourcesSection(sources: LineageSource[]): string {
   for (const s of sources) {
     out += `\n## NN Sources: ${s.name}\n`
     out += `raw_filename:: ${s.raw_filename}\n`
-    if (s.media_filename) out += `media_filename:: ${s.media_filename}\n`
     if (s.raw_hash) out += `raw_hash:: ${s.raw_hash}\n`
     if (s.size) out += `size:: ${s.size}\n`
     if (s.source_format) out += `source_format:: ${s.source_format}\n`
     if (s.normalized_at) out += `normalized_at:: ${s.normalized_at}\n`
     if (s.normalized_by) out += `normalized_by:: ${s.normalized_by}\n`
     out += `normalized_content:: ${s.normalized_content}\n`
-    if (s.curated_csv) out += `curated_csv:: ${s.curated_csv}\n`
-    if (s.status) out += `status:: ${s.status}\n`
     if (s.version) out += `version:: ${s.version}\n`
-    if (s.archive_path) out += `archive_path:: ${s.archive_path}\n`
     if (s.superseded_by) out += `superseded_by:: ${s.superseded_by}\n`
     if (s.derived_from && s.derived_from.length > 0) {
       out += `derived_from:: [${s.derived_from.join(', ')}]\n`

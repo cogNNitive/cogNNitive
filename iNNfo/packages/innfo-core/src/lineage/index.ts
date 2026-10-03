@@ -1,6 +1,8 @@
 export {
   projectLineage,
+  extractDeclaredCitations,
   extractFileCitations,
+  type LineageDiagnostic,
   type LineageSource,
   type LineageKnowledge,
   type LineageArtifact,

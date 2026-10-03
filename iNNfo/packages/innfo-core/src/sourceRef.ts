@@ -5,12 +5,11 @@
  * `innfo-editor` (which re-exports this module). Previously duplicated in
  * `apps/innfo-editor/src/utils/sourceRef.ts`.
  *
- * Canonical source-reference form is a workspace-relative path under
- * `sources/nn/`, optionally followed by a heading-slug anchor:
- * `sources/nn/<path>.md#<heading-slug>`. Unqualified paths (`<path>.md#<slug>`)
- * resolve under `sources/nn/`. A `models/<path>.md#<slug>` form is accepted for
- * cross-domain model references. Line-range anchors (`#L12-L45`) and the legacy
- * `src-NNN` wrapper are rejected.
+ * A source reference is a domaiNN-relative path to a `.md`, `.csv`, or `.json`
+ * file, optionally followed by a heading-slug anchor (`<path>.md#<heading-slug>`).
+ * The path is taken as written: no folder is implied and no retired folder
+ * (`sources/nn/`, `sources/export/`, `models/`) has a special meaning.
+ * Line-range anchors (`#L12-L45`) and the legacy `src-NNN` wrapper are rejected.
  */
 
 import { nfc, stripCombiningMarks } from './parser/slug.js'
@@ -42,13 +41,13 @@ export interface PointerUnit {
 export type KnowledgeUnit = HeaderUnit | RowUnit | PointerUnit
 
 export interface SourceRef {
-  /** Workspace-relative path, always normalised to start with `sources/nn/`, `sources/export/`, or `kNNowledge/`. */
+  /** Workspace-relative path, as written. */
   filePath: string
   /** Last path segment. */
   fileName: string
   /** Heading slug after `#`, if present. */
   slug?: string
-  /** `model` for a `kNNowledge/…` reference, `source` for a `sources/…` one. */
+  /** `model` when the target's role is `knowledge`, otherwise `source`. */
   kind: 'source' | 'model'
   /** Original string as authored. */
   raw: string
@@ -93,61 +92,17 @@ export function parseSourceRef(input: string): SourceRef | null {
   // Reject src-NNN wrapper
   if (/^src-\d+/i.test(clean)) return null
 
-  if (/^models\//i.test(clean)) return null
-
-  const explicit = clean.match(new RegExp(`^(sources/nn/[^#]+?)(?:#(${SLUG}))?$`))
-  if (explicit) {
-    const filePath = explicit[1].trim()
-    return {
-      filePath,
-      fileName: basename(filePath),
-      slug: explicit[2] || undefined,
-      kind: 'source',
-      raw: clean,
-    }
+  const legacy = clean.match(new RegExp(`^([^#:]+?)(?:#(${SLUG}))?$`))
+  if (!legacy) return null
+  const resolved = resolveUnitPath(legacy[1])
+  if (!resolved) return null
+  return {
+    filePath: resolved.filePath,
+    fileName: basename(resolved.filePath),
+    slug: legacy[2] || undefined,
+    kind: resolved.kind,
+    raw: clean,
   }
-
-  const exportSource = clean.match(new RegExp(`^(sources/export/[^#]+?)(?:#(${SLUG}))?$`))
-  if (exportSource) {
-    const filePath = exportSource[1].trim()
-    return {
-      filePath,
-      fileName: basename(filePath),
-      slug: exportSource[2] || undefined,
-      kind: 'source',
-      raw: clean,
-    }
-  }
-
-  const model = clean.match(new RegExp(`^(kNNowledge/[^#]+?\\.md)(?:#(${SLUG}))?$`))
-  if (model) {
-    const filePath = model[1].trim()
-    return {
-      filePath,
-      fileName: basename(filePath),
-      slug: model[2] || undefined,
-      kind: 'model',
-      raw: clean,
-    }
-  }
-
-  const unqualified = clean.match(
-    new RegExp(`^((?!https?://)(?!\\.\\.?/)[^#:]+?\\.md)(?:#(${SLUG}))?$`),
-  )
-  if (unqualified) {
-    const rawPath = unqualified[1].trim()
-    if (rawPath.startsWith('models/')) return null
-    const filePath = `sources/nn/${rawPath}`
-    return {
-      filePath,
-      fileName: basename(rawPath),
-      slug: unqualified[2] || undefined,
-      kind: 'source',
-      raw: clean,
-    }
-  }
-
-  return null
 }
 
 /**
