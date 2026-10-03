@@ -55,6 +55,8 @@ function auditModelCitations(projectDir) {
     KU_UNKNOWN_SLUG: 'missing_heading',
     KU_UNKNOWN_ROW: 'missing_row',
     KU_UNKNOWN_COLUMN: 'missing_column',
+    KU_UNKNOWN_POINTER: 'missing_pointer',
+    KU_INVALID_JSON: 'invalid_json',
   };
 
   for (const diag of diagnostics) {
@@ -69,6 +71,8 @@ function auditModelCitations(projectDir) {
         headingSlug = parsed.unit.slug;
       } else if (parsed.unit.kind === 'row') {
         headingSlug = parsed.unit.id;
+      } else if (parsed.unit.kind === 'pointer') {
+        headingSlug = parsed.unit.pointer;
       }
     } else if (parsed && parsed.slug) {
       headingSlug = parsed.slug;

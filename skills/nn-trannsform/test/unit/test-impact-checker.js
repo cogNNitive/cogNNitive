@@ -169,10 +169,32 @@ sources:: [sources/nn/metrics.csv@1&nonexistent_col]
     ok(Boolean(driftedCol), 'records missing column citation');
     eq(driftedCol.reason, 'missing_column', 'reason is missing_column for KU_UNKNOWN_COLUMN');
 
+    // Test 5b: Unknown JSON Pointer detection (KU_UNKNOWN_POINTER -> missing_pointer)
+    fs.writeFileSync(path.join(nnDir, 'plan.json'), JSON.stringify({ items: [{ name: 'alpha' }] }), 'utf8');
+    const missingPointerModel = `---
+level: 3
+parent_spec:
+  name: "business"
+---
+
+# NN Objectives
+
+## NN Objectives: Missing Pointer
+sources:: [sources/nn/plan.json@/items/9/name]
+`;
+    fs.writeFileSync(path.join(modelsDir, 'MissingPointer_V_1-0-0_NN.md'), missingPointerModel, 'utf8');
+
+    const auditMissingPointer = auditModelCitations(tmpDir);
+    const driftedPointer = auditMissingPointer.driftedCitations.find((c) => c.citation.includes('plan.json@/items/9/name'));
+    ok(Boolean(driftedPointer), 'records unknown pointer citation');
+    eq(driftedPointer && driftedPointer.reason, 'missing_pointer', 'reason is missing_pointer for KU_UNKNOWN_POINTER');
+    eq(driftedPointer && driftedPointer.headingSlug, '/items/9/name', 'the pointer is reported as the cited unit');
+
     // Clean up error models for impact report testing
     fs.rmSync(path.join(modelsDir, 'MissingFile_V_1-0-0_NN.md'));
     fs.rmSync(path.join(modelsDir, 'MissingRow_V_1-0-0_NN.md'));
     fs.rmSync(path.join(modelsDir, 'MissingCol_V_1-0-0_NN.md'));
+    fs.rmSync(path.join(modelsDir, 'MissingPointer_V_1-0-0_NN.md'));
 
     // Test 6: checkScanImpact
     const scanImpact = checkScanImpact(
