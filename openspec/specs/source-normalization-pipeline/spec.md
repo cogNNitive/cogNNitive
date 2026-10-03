@@ -2,65 +2,46 @@
 
 ## Purpose
 
-Extend the `nn-trannsform` normalization scanner to cover every active source subtree — `sources/import/`, `sources/export/`, and `sources/conversations/` — emitting canonical Markdown under `sources/nn/` with the subtree structure mirrored. Conversation transcripts and summaries are normalized with distinct `source_type` frontmatter and their `origin_transcript:` link preserved; deliverables promoted back into `sources/export/` are ingested as synthetic sources (`is_synthetic: true`, retained `derived_from:`); the ad-hoc Slack/Teams JSON parser is removed in favour of the canonical conversation lifecycle.
+Normalization is cognitivization in place: every active source subtree gets co-located sidecars, with no mirror tree. Promoting deliverables into a sources folder disappears because any file can be cognitivized where it lives.
 
-> Sync note: the source change (`2026-09-06-sources-conversations-lifecycle`) authored these as `## MODIFIED Requirements` against a pre-monorepo base spec that was never carried into this `openspec/specs/` tree. They are transcribed here as the current requirement state.
 ## Requirements
+
 ### Requirement: Multi-Subtree Normalization Scanning
 
-The normalization scanner (`nn-trannsform` / `scanAndProcess`) MUST recursively scan all active source subtrees:
-- `sources/import/`
-- `sources/export/`
-- `sources/conversations/`
+The scanner (`nn-trannsform --scan` / `scanAndProcess`) MUST recursively scan `sources/import/` and `sources/conversations/` and MUST cognitivize every file in them that has no up-to-date sidecar, through the single `cognitivize` operation. Sidecars MUST be co-located with their raw file; no `sources/nn/` mirror and no `sources/export/` subtree exist. Sidecar files and `staging/` MUST be skipped.
 
-The scanner MUST normalize discovered files into canonical Markdown representations under `sources/nn/`. The output path structure within `sources/nn/` MUST mirror the subtree structure (e.g., `sources/nn/import/...`, `sources/nn/export/...`, `sources/nn/conversations/...` or preserve distinct non-colliding relative paths).
-
-(Previously: identical — only the scenario's conversation example file is updated to the transcript form now produced by the standard flow.)
-
-#### Scenario: Normalization across multiple source subtrees
-- GIVEN `sources/import/guide.pdf`, `sources/export/whitepaper.md`, and `sources/conversations/meeting_source.md` exist in the workspace
+#### Scenario: Normalization across subtrees
+- GIVEN `sources/import/guide.pdf` and `sources/conversations/meeting_20261002T101500Z.md`
 - WHEN `scanAndProcess` runs
-- THEN `sources/nn/` receives normalized files corresponding to all three inputs
-- AND each normalized file records its originating path in its frontmatter `file:` field
+- THEN `sources/import/guide.pdf_sidecar_NN.md` and `sources/conversations/meeting_20261002T101500Z.md_sidecar_NN.md` exist next to their raw files
+- AND each sidecar `source_file` records the raw file's workspace-relative path
+
+#### Scenario: No mirror tree
+- GIVEN a completed scan
+- WHEN the workspace is listed
+- THEN no `sources/nn/` directory exists
+
+#### Scenario: Sidecars are not rescanned
+- GIVEN existing sidecars
+- WHEN `--scan` runs again with unchanged raws
+- THEN nothing is written
 
 ---
 
 ### Requirement: Conversation Transcript and Summary Normalization
 
-Files promoted from `conversations/` into `sources/conversations/` by the standard promotion flow MUST be treated as verbatim transcripts, and the pipeline MUST NOT require an executive-summary `_summary.md` normalization path in the standard flow (see `conversations-lifecycle`):
-1. Files ending with `_source.md`: The normalizer MUST treat the file as a verbatim transcript. It MUST preserve dialogue structure, speaker labels, and timestamps, and generate normalized Markdown with frontmatter `source_type: conversation_transcript`.
-2. The standard flow MUST NOT emit `_summary.md` files, and the pipeline MUST NOT require a `_summary.md` normalization branch for the standard flow.
+Files promoted from `conversations/` into `sources/conversations/` by the standard promotion flow MUST be verbatim transcripts and MUST be cognitivized in place. The transcript is markdown, so its sidecar has no body and its turn structure (speaker labels, `## NN Turn NN: <author-id>` headings, timestamps) is preserved by the raw file, which is the citation target. The sidecar MUST record `source_type: conversation_transcript`. The pipeline MUST NOT require an executive-summary `_summary.md` path. The raw file's `origin_transcript:` frontmatter MUST be preserved.
 
-Transcript promotions MUST preserve the `origin_transcript:` reference pointing to the raw file in `conversations/`.
-
-(Previously: the requirement also mandated validating and structuring `_summary.md` executive summaries into standardized sections with `source_type: conversation_summary`, including a scenario normalizing a summary file.)
-
-#### Scenario: Normalizing a conversation transcript file
-- GIVEN `sources/conversations/2026-09-06_auth_architecture_source.md`
+#### Scenario: Transcript cognitivized in place
+- GIVEN `sources/conversations/2026-09-06_auth_architecture_20260906T120000Z.md`
 - WHEN normalization runs
-- THEN the normalized file in `sources/nn/conversations/2026-09-06_auth_architecture_source.md` is generated
-- AND its frontmatter specifies `source_type: conversation_transcript`
-- AND its dialogue turn structure is preserved
+- THEN a co-located sidecar exists with `source_type: conversation_transcript`
+- AND the raw transcript's dialogue structure is byte-unchanged
 
 #### Scenario: Summary files are not part of the standard flow
-- GIVEN a conversation promoted only as `sources/conversations/2026-09-06_auth_architecture_source.md`
+- GIVEN a conversation promoted only as a transcript
 - WHEN normalization runs
-- THEN the transcript is normalized with `source_type: conversation_transcript`
-- AND no `_summary.md` counterpart is generated or required by the pipeline
-
-### Requirement: Synthetic Deliverable Ingestion
-
-When deliverables are promoted from `export/` into `sources/export/` to serve as inputs for secondary models, the pipeline MUST ingest them as synthetic sources:
-1. The file frontmatter in `sources/nn/` MUST include `is_synthetic: true`.
-2. The frontmatter MUST retain the `derived_from:` field referencing the antecedent models from which the deliverable was originally generated.
-3. The provenance builder (`buildProvenanceModel`) MUST record `is_synthetic:: true` in `# NN Sources` for these entries, allowing downstream lineage consumers to differentiate primary external inputs from generated intermediate artifacts.
-
-#### Scenario: Ingestion of a promoted deliverable
-- GIVEN `export/Market_Analysis_V_1-0-0.md` derived from model `Market_Strategy_V_1-0-0_NN.md`
-- AND it is promoted to `sources/export/Market_Analysis_V_1-0-0.md`
-- WHEN normalization and lineage synchronization run
-- THEN the normalized file in `sources/nn/` includes `is_synthetic: true` and `derived_from: [Market_Strategy_V_1-0-0_NN.md]`
-- AND the lineage record `# NN Sources` marks the entry with `is_synthetic:: true`
+- THEN no `_summary.md` counterpart is generated or required
 
 ### Requirement: Removal of Legacy Slack/Teams JSON Parser
 
@@ -77,7 +58,7 @@ Ingestion of `.json` files in `sources/import/` SHALL treat JSON as structured d
 #### Scenario: Chat transcripts ingested via conversations lifecycle
 - GIVEN a team interaction transcript
 - WHEN captured and imported into the workspace
-- THEN it is routed through `conversations/` and normalized under `sources/conversations/` rather than relying on legacy Slack JSON parsers
+- THEN it is routed through `conversations/` and cognitivized under `sources/conversations/` rather than relying on legacy Slack JSON parsers
 
 #### Scenario: Feedback JSON bypasses the generic branch
 - GIVEN `sources/import/feedback/x_feedback_20260909-120000.json`
@@ -86,13 +67,13 @@ Ingestion of `.json` files in `sources/import/` SHALL treat JSON as structured d
 
 ### Requirement: Feedback JSON Ingestion
 
-The normalization scanner (`nn-trannsform --scan`) MUST ingest `sources/import/feedback/*.json` conforming to the `innfo-console-feedback` schema into canonical Markdown under `sources/nn/` (mirrored path). Emitted frontmatter MUST include `file:` (origin path), `source_type: feedback`, and `is_synthetic: true`. Normalized feedback MUST be citable via `sources::` per `document-citations`, using Source/Citation/Lineage vocabulary per `provenance-vocabulary`.
+The scanner MUST cognitivize `sources/import/feedback/*.json` files conforming to the `innfo-console-feedback` schema in place. The sidecar MUST record `source_type: feedback` and MUST NOT include `is_synthetic`. The raw JSON is the citation target, addressed by JSON Pointer per `citation-parser-resolver`. Invalid feedback MUST be skipped with a report without aborting the run.
 
-#### Scenario: Feedback scan to sources/nn
-- GIVEN `sources/import/feedback/Client_V_0-2-0_round-2_feedback_20260909-120000.json`
-- WHEN `nn-trannsform --scan` runs
-- THEN `sources/nn/import/feedback/` gains the normalized file with `is_synthetic: true`
-- AND its items are addressable via `sources::`
+#### Scenario: Feedback scan produces a sidecar
+- GIVEN `sources/import/feedback/Client_round-2_feedback_20260909T120000Z.json`
+- WHEN `--scan` runs
+- THEN a co-located sidecar exists with `source_type: feedback`
+- AND an item is citable as `sources/import/feedback/Client_round-2_feedback_20260909T120000Z.json@/items/0`
 
 #### Scenario: Invalid feedback skipped with report
 - GIVEN a feedback JSON failing schema validation
@@ -124,8 +105,6 @@ reviewer attention is spent on doubtful pairs only.
 
 Every doubtful or unmatched pair MUST enter a review queue. Reviewers confirm or reject each queued pair through the recorded confirm path, and no source SHALL be dropped without a recorded decision. Undecided pairs MUST remain queued across sessions; cross-session persistence stays caller-owned and no store is added by this change.
 
-(Previously: confirm path was covered but not pinned, and caller-owned persistence was unstated.)
-
 #### Scenario: Reviewer confirms a doubtful pair
 
 - GIVEN doubtful pairs waiting in the queue
@@ -145,4 +124,5 @@ Every doubtful or unmatched pair MUST enter a review queue. Reviewers confirm or
 - WHEN the queue is inspected
 - THEN undecided pairs remain queued
 - AND none are treated as excluded
+
 

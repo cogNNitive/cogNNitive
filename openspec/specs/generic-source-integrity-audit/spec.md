@@ -2,73 +2,59 @@
 
 ## Purpose
 
-Broaden the preflight integrity check so it audits every source subtree (`sources/import/`, `sources/export/`, `sources/conversations/`) against the canonical representations in `sources/nn/`. The auditor detects unnormalized sources (missing or hash-mismatched normalized counterparts), dangling normalized sources (whose raw file no longer exists), and reports findings both in human-readable Preflight sections and as a machine-readable `sources_integrity` payload under `--json`.
+Preflight audits the co-located sidecars against their raw files: missing sidecars, hash mismatches (the hash guard), and orphaned sidecars.
 
 ## Requirements
 
 ### Requirement: Universal Source Subtree Scanning
 
-The preflight integrity check runner (`preflight-check.js`) and audit verification commands MUST inspect all three source subtrees within a workspace:
-1. `sources/import/`: External raw source documents, images, and data.
-2. `sources/export/`: Deliverables promoted from `export/` into the knowledge base.
-3. `sources/conversations/`: Transcripts and summaries promoted from `conversations/`.
-
-The auditor MUST evaluate each discovered source file against the canonical representations in `sources/nn/`.
+The preflight runner (`preflight-check.js`) and audit commands MUST inspect `sources/import/` and `sources/conversations/` and MUST evaluate each raw file there against its co-located sidecar. Sidecar files MUST NOT be treated as raw files. `staging/` MUST be ignored.
 
 #### Scenario: Workspace with multiple source subtrees
-- GIVEN a workspace containing:
-  - `sources/import/specs/api.pdf`
-  - `sources/export/reports/summary.md`
-  - `sources/conversations/2026-09-06_planning_summary.md`
+- GIVEN `sources/import/specs/api.pdf` and `sources/conversations/2026-09-06_planning_20260906T120000Z.md`
 - WHEN the integrity audit runs
-- THEN it discovers source files across all three subtrees
-- AND it inspects `sources/nn/` for the corresponding normalized artifacts for each file
+- THEN both raw files are discovered and each is checked against its own co-located sidecar path
 
 ### Requirement: Detection of Unnormalized Sources
 
-The audit runner MUST detect and report any source file present in `sources/import/`, `sources/export/`, or `sources/conversations/` that does not possess an up-to-date normalized counterpart in `sources/nn/`. A source file SHALL be flagged as unnormalized if:
-1. No corresponding Markdown file exists in `sources/nn/`; OR
-2. The normalized Markdown file exists in `sources/nn/`, but the `hash:` stored in its frontmatter does not match the current SHA-256 hash of the source file.
+The audit MUST report a raw file as unnormalized when (1) no co-located sidecar exists (`missing`), or (2) the sidecar `sha256` differs from the SHA-256 of the raw bytes (`hash_mismatch`). Findings MUST appear under `## Warnings` and MUST suggest `nn-trannsform --scan` or `--cognitivize <path>`.
 
-Unnormalized sources MUST be reported under `## Warnings` in human-readable output and MUST prompt or suggest running normalization (`nn-trannsform --scan`).
+#### Scenario: Newly added import not yet cognitivized
+- GIVEN `sources/import/contract.pdf` with no `contract.pdf_sidecar_NN.md`
+- WHEN the audit runs
+- THEN a Warning reports it as unnormalized with reason `missing`
+- AND the exit code is `1`
 
-#### Scenario: Newly added import file not yet normalized
-- GIVEN `sources/import/contract.pdf` exists
-- AND no corresponding file exists in `sources/nn/import/contract.md` (or `sources/nn/contract.md`)
-- WHEN the preflight audit runs
-- THEN the audit reports a Warning indicating `sources/import/contract.pdf` is unnormalized
-- AND the exit code is `1` (requiring user confirmation/action or alerting to pending sync)
-
-#### Scenario: Source file modified after normalization
-- GIVEN `sources/conversations/2026-09-06_kickoff_summary.md` has been modified since its initial normalization
-- AND the normalized file in `sources/nn/` has an outdated hash in frontmatter
-- WHEN the preflight audit runs
-- THEN the audit detects the hash discrepancy and reports `sources/conversations/2026-09-06_kickoff_summary.md` as outdated/unnormalized
+#### Scenario: Raw modified after cognitivizing
+- GIVEN a raw file whose bytes changed after its sidecar was written
+- WHEN the audit runs
+- THEN it is reported with reason `hash_mismatch`
 
 ### Requirement: Detection of Dangling Normalized Sources
 
-The audit runner MUST verify that every normalized Markdown file in `sources/nn/` (excluding `index.md`) points to a raw source file that physically exists in one of the active source subtrees (`sources/import/`, `sources/export/`, or `sources/conversations/`). If the target `file:` or `source_file:` referenced in frontmatter cannot be resolved on disk, the auditor MUST report the file as an orphaned/dangling normalized source.
+The audit MUST report any sidecar whose `source_file` does not resolve to an existing raw file as an orphaned sidecar. It MUST NOT delete it.
 
-#### Scenario: Source file deleted while normalized file remains
-- GIVEN `sources/nn/import/old_notes.md` referencing `sources/import/old_notes.txt`
-- AND `sources/import/old_notes.txt` has been deleted from the filesystem
-- WHEN the preflight audit runs
-- THEN the audit reports a Warning identifying `sources/nn/import/old_notes.md` as an orphaned source reference
+#### Scenario: Raw deleted while sidecar remains
+- GIVEN `sources/import/old_notes.txt_sidecar_NN.md` and no `old_notes.txt`
+- WHEN the audit runs
+- THEN a Warning identifies the sidecar as orphaned and nothing is deleted
 
 ### Requirement: Structured Audit Reporting and Machine-Readable Output
 
-When invoked with `--json`, `preflight-check.js` MUST emit a `sources_integrity` property within the JSON payload detailing:
-- `ok`: Boolean indicating whether all sources are synchronized and normalized.
-- `subtrees`: An object tracking file counts and statuses for `import`, `export`, and `conversations`.
-- `unnormalized`: An array of objects each containing `{ path: string, subtree: string, reason: "missing" | "hash_mismatch" }`.
-- `orphaned`: An array of objects each containing `{ path: string, missing_source: string }`.
+With `--json`, `preflight-check.js` MUST emit `sources_integrity` with:
+- `ok`: true when every raw has an up-to-date sidecar and no orphan exists.
+- `subtrees`: counts and statuses for `import` and `conversations`.
+- `unnormalized`: array of `{ path, subtree, reason: "missing" | "hash_mismatch" }`.
+- `orphaned`: array of `{ path, missing_source }` where `path` is the sidecar.
 
-In human-readable mode, source integrity findings MUST be output in the standard Preflight report sections (`## Warnings`, `## Blockers`, `## OK`).
+In human-readable mode findings MUST appear in `## Warnings`, `## Blockers`, and `## OK`. The audit MUST also warn when the domaiNN has no `.gitattributes` containing `* -text`.
 
-#### Scenario: All sources normalized and verified
-- GIVEN a workspace where all files in `sources/import/`, `sources/export/`, and `sources/conversations/` have matching hashes in `sources/nn/`
-- AND no orphaned files exist in `sources/nn/`
+#### Scenario: All sources cognitivized and verified
+- GIVEN every raw has a matching sidecar and there are no orphans
 - WHEN `node scripts/preflight-check.js --json` runs
-- THEN `sources_integrity.ok` evaluates to `true`
-- AND `sources_integrity.unnormalized` is empty
-- AND the command exits `0` (assuming other preflight checks pass)
+- THEN `sources_integrity.ok` is `true`, `unnormalized` is empty, and the exit is `0` (other checks passing)
+
+#### Scenario: Missing text policy
+- GIVEN a domaiNN without `* -text` in `.gitattributes`
+- WHEN preflight runs
+- THEN a Warning reports the missing policy

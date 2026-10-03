@@ -8,9 +8,9 @@ Define the full lifecycle of an interactive cogNNitive session transcript: silen
 
 ### Requirement: Silent Session Transcript Reservation
 
-When an interactive cogNNitive session is initialized, the system MUST immediately allocate a session transcript file at `conversations/YYYY-MM-DD_HHmmss.md` (where `YYYY-MM-DD_HHmmss` corresponds to the session start local timestamp). The file MUST be created silently without prompting the user, initialized with standard frontmatter metadata:
+When an interactive cogNNitive session is initialized, the system MUST immediately allocate a session transcript file at `conversations/<YYYYMMDDTHHmmssZ>.md`, where the token is the session start instant formatted by the contract's UTC helper. The file MUST be created silently without prompting the user, initialized with standard frontmatter metadata:
 - `session_id`: Unique identifier for the interaction session.
-- `started_at`: ISO 8601 timestamp.
+- `started_at`: ISO 8601 UTC timestamp.
 - `status`: `in_progress`.
 - `turns`: 0.
 - `mutations`: false.
@@ -18,9 +18,14 @@ When an interactive cogNNitive session is initialized, the system MUST immediate
 #### Scenario: New interactive session starts
 - GIVEN a clean workspace with no active session
 - WHEN a user initiates an interaction with an agent skill (e.g., `nn-router`, `nn-innfo`)
-- THEN a new transcript file `conversations/YYYY-MM-DD_HHmmss.md` is created immediately
+- THEN a file `conversations/<YYYYMMDDTHHmmssZ>.md` is created immediately
 - AND its initial frontmatter has `status: in_progress`, `turns: 0`, `mutations: false`
 - AND the session start does not require user confirmation to reserve the file
+
+#### Scenario: Timestamp is UTC
+- GIVEN a session starting at 2026-10-02T23:30:00Z on a machine in UTC-3
+- WHEN the file is reserved
+- THEN its name is `conversations/20261002T233000Z.md`
 
 ### Requirement: Guaranteed All-Session Retention (Zero Discard)
 
@@ -68,23 +73,28 @@ Upon conclusion of a session, the agent MUST present 3 suggested title options t
 ### Requirement: Interactive Transcript Promotion Prompt
 
 After titling a concluded session, the agent MUST prompt the user whether to promote the conversation transcript into the workspace knowledge sources (`sources/conversations/`). The prompt MUST offer two options:
-- `[full] (Recommended)`: Promotes the full verbatim transcript to `sources/conversations/<session-slug>_source.md`.
-- `[none]`: Leaves the transcript solely in `conversations/` without source promotion.
+- `[full] (Recommended)`: writes the verbatim transcript through `writeOnce` as `sources/conversations/<session-slug>_<UTC suffix>.md` (the suffix is the contract UTC timestamp) and cognitivizes it in place.
+- `[none]`: leaves the transcript solely in `conversations/`.
 
-The prompt MUST NOT offer an executive-summary option (`[summary]`) or a combined option (`[both]`). The raw transcript in `conversations/` MUST always be registered regardless of the choice.
+The prompt MUST NOT offer an executive-summary option (`[summary]`) or a combined option (`[both]`). The raw transcript in `conversations/` MUST always be retained regardless of the choice. Promoting identical bytes again MUST write nothing (dedup). Existing `YYYY-MM-DD_*` transcripts stay as unsuffixed family members and are not renamed. The `sources/nn/conversations/` mirror MUST NOT exist.
 
 Before promoting a transcript on the `[full]` path, the agent MUST present an author-naming step for the transcript's participants. The agent MUST suggest the human author's name (derived from `git config user.name` or OS user) and the agent's tool id.
 
-When the `_source.md` file is generated, each conversation turn MUST be rendered as a `## NN Turn NN: <author-id>` heading, where NN is the 1-based sequential turn number and `<author-id>` is the resolved participant name. When a participant is left unnamed, the agent MUST use the deterministic neutral placeholder `unnamed`.
+Each conversation turn MUST be rendered as a `## NN Turn NN: <author-id>` heading, where NN is the 1-based sequential turn number and `<author-id>` is the resolved participant name. When a participant is left unnamed, the agent MUST use the deterministic neutral placeholder `unnamed`.
 
-Promoted files in `sources/conversations/` MUST include frontmatter linking them to `origin_transcript: conversations/YYYY-MM-DD_<slug>.md`.
+Promoted files in `sources/conversations/` MUST include frontmatter linking them to `origin_transcript: conversations/<file>.md`.
 
 #### Scenario: User promotes transcript as source
 - GIVEN a finalized transcript `conversations/2026-09-13_api-gateway.md`
 - WHEN prompted for promotion and the user selects `[full]`
-- THEN `sources/conversations/2026-09-13_api-gateway_source.md` is generated
-- AND it contains the verbatim transcript and frontmatter `origin_transcript: conversations/2026-09-13_api-gateway.md`
+- THEN `sources/conversations/2026-09-13_api-gateway_<UTC suffix>.md` exists with the verbatim transcript and `origin_transcript: conversations/2026-09-13_api-gateway.md`
+- AND a co-located sidecar exists
 - AND `conversations/2026-09-13_api-gateway.md` remains intact in `conversations/`
+
+#### Scenario: Promoting twice without changes
+- GIVEN an already promoted, unchanged transcript
+- WHEN the user selects `[full]` again
+- THEN no new file is written
 
 #### Scenario: User declines promotion
 - GIVEN a finalized transcript `conversations/2026-09-13_api-gateway.md`
