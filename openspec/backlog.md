@@ -627,15 +627,17 @@ removing it.
 **Behaviour:** single source of truth in `innfo-core`; adapters wrap it; parity suites
 collapse. Needs `sdd-explore` first.
 
-## 26. `chore/console-feedback-vocabulary-alignment` - finish the `knowledge_*` sweep before A ships
+## 26. `chore/console-feedback-vocabulary-alignment` - finish the `knowledge_*` sweep
 
-**Type:** chore · **Size:** small-medium
+**Type:** chore · **Size:** small-medium · **Status:** open, re-scoped (2026-10-03)
+
+**Re-scope:** the premise "must land before the format ships" no longer holds. Change A shipped (innfo-console-v0.8.0 / blueprints-v0.20.0) with `model_id`/`model_version` in the feedback ledger wire format (`iNNfo/packages/innfo-core/src/console/feedback-ledger.ts`). The sweep is now a wire-format change on a shipped format and needs an explicit format-version/compat decision from the maintainer. Note: the maintainer prefers no backwards-compat code and is the sole user today, so a hard rename without a compat reader is a viable option.
 
 **Why:** the Legacy Write Guard caught `model_version` in the new console feedback ledger.
 This session renamed the guarded field (commit `dd801c0a`) and allowlisted the legitimate
 fallback/reject/migration cases, but the full `model_*` → `knowledge_*` sweep (`model_id`
 → `knowledge_id`, remaining `model_version`, the `reconcile_feedback_NN.md` procedure, and
-samples) is deferred. Must land before the format ships (change A is unreleased).
+samples) is deferred. Originally scheduled to land before the format shipped (change A was then unreleased).
 
 **Behaviour:** sweep the ledger + procedure + samples to `knowledge_*`; drop the
 allowlist entries added in `dd801c0a` once clean.
