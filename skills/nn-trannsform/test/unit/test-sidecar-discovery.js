@@ -51,8 +51,13 @@ async function run() {
   });
 
   it('a sidecar never counts as a model that cites a source', (root) => {
-    write(root, 'sources/nn/notes.md', '# Notes\n\nbody\n');
-    write(root, 'kNNowledge/notes.pdf_sidecar_NN.md', SIDECAR + 'sources:: [sources/nn/notes.md]\n');
+    write(root, 'sources/import/notes.md', '# Notes\n\nbody\n');
+    write(
+      root,
+      'sources/import/notes.md_sidecar_NN.md',
+      `---\nlevel: 3\nparent_spec:\n  name: sidecar\nsource_file: sources/import/notes.md\nsha256: ${'a'.repeat(64)}\n---\n`,
+    );
+    write(root, 'kNNowledge/notes.pdf_sidecar_NN.md', SIDECAR + 'sources:: [sources/import/notes.md]\n');
     const audit = guards.auditUncitedSources(root);
     assert.strictEqual(audit.citedCount, 0);
     assert.strictEqual(audit.uncitedCount, 1);

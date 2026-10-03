@@ -120,11 +120,6 @@ async function main() {
     totalPassed += duplicateGuardsResult.passed;
     totalFailed += duplicateGuardsResult.failed;
 
-    const scannerCollisionTest = require('./unit/test-scanner-collision');
-    const scannerCollisionResult = await scannerCollisionTest.run();
-    totalPassed += scannerCollisionResult.passed;
-    totalFailed += scannerCollisionResult.failed;
-
     const duplicateBodyHashTest = require('./unit/test-duplicate-body-hash');
     const duplicateBodyHashResult = await duplicateBodyHashTest.run();
     totalPassed += duplicateBodyHashResult.passed;

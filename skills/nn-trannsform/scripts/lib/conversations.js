@@ -329,7 +329,7 @@ function finalizeConversationSession({
 }
 
 /**
- * Promote conversation transcript into sources/conversations/ and normalize into sources/nn/conversations/.
+ * Promote conversation transcript into sources/conversations/ and cognitivize it in place.
  * @param {Object} options
  * @param {string} options.workspaceRoot
  * @param {string} options.sessionFile

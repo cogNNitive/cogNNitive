@@ -256,21 +256,19 @@ async function run() {
       fs.existsSync(sourceFullFile),
       "source full transcript created in sources/conversations/",
     );
-    const nnFullFile = path.join(
-      TEST_TEMP,
-      "sources",
-      "nn",
-      "conversations",
-      "2026-09-06_api-gateway-refactor_source.md",
+    const sidecarFile = `${sourceFullFile}_sidecar_NN.md`;
+    assertTrue(
+      fs.existsSync(sidecarFile),
+      "transcript is cognitivized in place: its sidecar sits next to it",
     );
     assertTrue(
-      fs.existsSync(nnFullFile),
-      "normalized full file created in sources/nn/conversations/",
+      !fs.existsSync(path.join(TEST_TEMP, "sources", "nn")),
+      "no sources/nn mirror is created",
     );
-    const nnFullContent = fs.readFileSync(nnFullFile, "utf8");
+    const sidecarContent = fs.readFileSync(sidecarFile, "utf8");
     assertTrue(
-      nnFullContent.includes('conversation_format: "full"'),
-      "normalized frontmatter has conversation_format full",
+      /source_type: conversation_transcript/.test(sidecarContent),
+      "sidecar records source_type conversation_transcript",
     );
 
     const nonePromo = await conv.promoteConversation({

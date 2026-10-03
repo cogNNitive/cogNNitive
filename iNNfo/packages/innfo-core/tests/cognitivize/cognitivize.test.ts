@@ -88,6 +88,32 @@ describe('cognitivize: text-native subjects', () => {
     put('notes.md', 'x')
     expect((await cognitivize(root, 'notes.md', { now: NOW })).status).toBe('written')
   })
+
+  it('records the metadata an injected normalizer returns, but never a body', async () => {
+    put('sources/conversations/chat.md', '# Chat\n')
+    const tagging: Normalizer = async () => ({
+      body: '# Should never be written\n',
+      normalizedBy: 'test-normalizer',
+      metadata: { source_type: 'conversation_transcript' },
+    })
+    await cognitivize(root, 'sources/conversations/chat.md', { now: NOW, normalizer: tagging })
+    const { fm, body } = readSidecar('sources/conversations/chat.md')
+    expect(fm).toMatchObject({ source_type: 'conversation_transcript', normalized_by: 'test-normalizer' })
+    expect(body.trim()).toBe('')
+  })
+
+  it('does not call the normalizer when a text-native sidecar is already current', async () => {
+    put('notes.md', 'x')
+    await cognitivize(root, 'notes.md', { now: NOW })
+    let calls = 0
+    const counting: Normalizer = async () => {
+      calls++
+      return { body: '', normalizedBy: 'test-normalizer' }
+    }
+    const r = await cognitivize(root, 'notes.md', { now: NOW, normalizer: counting })
+    expect(r.status).toBe('unchanged')
+    expect(calls).toBe(0)
+  })
 })
 
 describe('cognitivize: idempotence and refresh', () => {

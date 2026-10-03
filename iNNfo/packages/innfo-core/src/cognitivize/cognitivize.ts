@@ -90,11 +90,11 @@ export async function cognitivize(
   }
 
   const format = parsed.ext.toLowerCase()
-  let normalized: Awaited<ReturnType<Normalizer>> | undefined
-  if (!TEXT_NATIVE_FORMATS.has(format)) {
-    if (!o.normalizer) return { status: 'requires-normalizer', path: relPath }
-    normalized = await o.normalizer({ path: relPath, ext: format, bytes })
-  }
+  // Text-native subjects are their own text, so the sidecar never gets a body;
+  // an injected normalizer is still consulted for the metadata it adds.
+  const textNative = TEXT_NATIVE_FORMATS.has(format)
+  if (!textNative && !o.normalizer) return { status: 'requires-normalizer', path: relPath }
+  const normalized = o.normalizer ? await o.normalizer({ path: relPath, ext: format, bytes }) : undefined
   const text = buildSidecar({
     sourceFile: relPath,
     sha256,
@@ -104,7 +104,7 @@ export async function cognitivize(
     normalizedBy: normalized?.normalizedBy,
     previous,
     metadata: normalized?.metadata,
-    body: normalized?.body,
+    body: textNative ? undefined : normalized?.body,
   })
   await fsp.writeFile(sidecarAbs, text, 'utf8')
   return { status: existing ? 'refreshed' : 'written', sidecar: sidecarRel, sha256 }

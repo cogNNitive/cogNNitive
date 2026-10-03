@@ -8288,11 +8288,9 @@ async function cognitivize(root, rel, o = {}) {
     return { status: "unchanged", sidecar: sidecarRel, sha256 };
   }
   const format = parsed.ext.toLowerCase();
-  let normalized;
-  if (!TEXT_NATIVE_FORMATS.has(format)) {
-    if (!o.normalizer) return { status: "requires-normalizer", path: relPath };
-    normalized = await o.normalizer({ path: relPath, ext: format, bytes });
-  }
+  const textNative = TEXT_NATIVE_FORMATS.has(format);
+  if (!textNative && !o.normalizer) return { status: "requires-normalizer", path: relPath };
+  const normalized = o.normalizer ? await o.normalizer({ path: relPath, ext: format, bytes }) : void 0;
   const text = buildSidecar({
     sourceFile: relPath,
     sha256,
@@ -8302,7 +8300,7 @@ async function cognitivize(root, rel, o = {}) {
     normalizedBy: normalized?.normalizedBy,
     previous,
     metadata: normalized?.metadata,
-    body: normalized?.body
+    body: textNative ? void 0 : normalized?.body
   });
   await import_node_fs.promises.writeFile(sidecarAbs, text, "utf8");
   return { status: existing ? "refreshed" : "written", sidecar: sidecarRel, sha256 };

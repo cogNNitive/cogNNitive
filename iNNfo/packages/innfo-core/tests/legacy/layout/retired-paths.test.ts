@@ -35,12 +35,6 @@ const RETIRED: Array<{ name: string; re: RegExp }> = [
 // (the ledger guard enforces marker to ledger entry 1:1) and may name retired layouts.
 const MARKER = 'legacy:cognitivize-in-place/'
 
-// Lines deleted by the ingest cutover (S3b), which removes the whole `sources/nn` mirror writer.
-// `sources/nn/export/` is the mirror of `sources/export/`, not the retired top-level `export/`.
-const ALLOWED_UNTIL_INGEST_CUTOVER = [
-  { file: 'skills/nn-trannsform/scripts/lib/scanner-core.js', text: 'destRelPath: `export/${relPosix' },
-]
-
 function walk(dir: string, out: string[]): void {
   for (const name of readdirSync(dir)) {
     const full = join(dir, name)
@@ -65,7 +59,6 @@ describe('retired layout paths are absent from live code', () => {
       if (text.includes(MARKER)) continue
       text.split('\n').forEach((line, i) => {
         const rel = relative(repoRoot, file).replace(/\\/g, '/')
-        if (ALLOWED_UNTIL_INGEST_CUTOVER.some((a) => a.file === rel && line.includes(a.text))) return
         for (const { name, re } of RETIRED) {
           if (re.test(line)) {
             hits.push(`${rel}:${i + 1} [${name}] ${line.trim().slice(0, 100)}`)
