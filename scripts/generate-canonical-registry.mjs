@@ -40,6 +40,7 @@ const MAP = {
   PROCEDURES_SPEC_CONTENT: 'bluepriNNts/procedures/spec_NN.md',
   SOURCES_SPEC_CONTENT: 'bluepriNNts/sources/spec_NN.md',
   ARTIFACTS_SPEC_CONTENT: 'bluepriNNts/artifacts/spec_NN.md',
+  SIDECAR_SPEC_CONTENT: 'bluepriNNts/sidecar/spec_NN.md',
   ORGANIZATION_SPEC_CONTENT: 'bluepriNNts/organization/spec_NN.md',
   METRICS_SPEC_CONTENT: 'bluepriNNts/metrics/spec_NN.md',
   WORKSPACE_SPEC_CONTENT: 'bluepriNNts/workspace_spec_NN.md',

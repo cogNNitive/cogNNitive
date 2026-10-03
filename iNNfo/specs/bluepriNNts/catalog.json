@@ -169,6 +169,18 @@
         }
       ]
     },
+    "sidecar": {
+      "name": "sidecar",
+      "adopted": "V_0-1-0",
+      "versions": [
+        {
+          "blueprint_version": "V_0-1-0",
+          "spec_version": "V_0-3-0",
+          "title": "Sidecar App",
+          "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/sidecar/spec_NN.md"
+        }
+      ]
+    },
     "sources": {
       "name": "sources",
       "adopted": "V_0-2-0",

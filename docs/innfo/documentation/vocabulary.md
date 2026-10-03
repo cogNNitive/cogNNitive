@@ -17,6 +17,8 @@ this page is the human-readable rendering of it.
 | Level 3 | **kNNowledge** | `model` | Level-3 domain data model (formerly Model). Uncountable noun. |
 | Level 3 | **domaiNN** | `workspace` | Container of kNNowledge, bluepriNNts, sources, procedures and related assets (formerly Workspace). A domaiNN is itself a kNNowledge document. |
 | Ecosystem / Role | **ageNNt** | `actioNN` | Skill ecosystem, execution engine, and dynamic AI persona framework for cogNNitive |
+| Level 3 | **sidecar** | *(none)* | Co-located <file>.<ext>_sidecar_NN.md document that carries a file's hash, size, metadata and, for binary files, a normalized body. A concept, not a new level: a kNNowledge-level document that is never a model. |
+| Ecosystem / Role | **cognitivize** | *(none)* | Operation that creates or refreshes a sidecar in place, leaving the original file untouched. |
 | Ecosystem / Role | **assistant** | `coach`, `architecture coach` | Interactive architecture mentor and modeling guide persona in iNNfo |
 
 ## Level Terms Detail
@@ -62,6 +64,15 @@ this page is the human-readable rendering of it.
 - **Sense**: Skill ecosystem, execution engine, and dynamic AI persona framework for cogNNitive
 - **Deprecated Aliases**: `actioNN`
 - **Excluded Senses** (not renamed): `generic-agent`, `subagent-runtime`
+
+### **sidecar**
+
+- **Sense**: Co-located <file>.<ext>_sidecar_NN.md document that carries a file's hash, size, metadata and, for binary files, a normalized body. A concept, not a new level: a kNNowledge-level document that is never a model.
+- **Excluded Senses** (not renamed): `motorcycle-sidecar`, `sidecar-container`
+
+### **cognitivize**
+
+- **Sense**: Operation that creates or refreshes a sidecar in place, leaving the original file untouched.
 
 ### **assistant**
 

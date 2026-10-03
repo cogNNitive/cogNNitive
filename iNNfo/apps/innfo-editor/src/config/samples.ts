@@ -48,6 +48,7 @@ export const SHIPPED_BLUEPRINT_VERSIONS: Record<string, string> = {
   procedures: 'V_0-3-0',
   projects: 'V_0-3-1',
   repository: 'V_0-2-0',
+  sidecar: 'V_0-1-0',
   sources: 'V_0-2-0',
   video: 'V_0-6-0',
   'visual-catalog': 'V_0-1-0',

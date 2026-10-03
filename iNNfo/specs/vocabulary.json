@@ -76,6 +76,19 @@
         "actioNN URL references"
       ]
     },
+    "sidecar": {
+      "canonical": true,
+      "level": 3,
+      "sense": "Co-located <file>.<ext>_sidecar_NN.md document that carries a file's hash, size, metadata and, for binary files, a normalized body. A concept, not a new level: a kNNowledge-level document that is never a model.",
+      "excludes": ["motorcycle-sidecar", "sidecar-container"],
+      "stable_identifiers": ["_sidecar_NN.md", "bluepriNNts/sidecar/"]
+    },
+    "cognitivize": {
+      "canonical": true,
+      "sense": "Operation that creates or refreshes a sidecar in place, leaving the original file untouched.",
+      "excludes": [],
+      "stable_identifiers": ["cognitivize", "--cognitivize"]
+    },
     "assistant": {
       "canonical": true,
       "aliases": ["coach", "architecture coach"],

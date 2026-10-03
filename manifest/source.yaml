@@ -120,6 +120,10 @@ blueprints:
     repo: cogNNitive/cogNNitive-web
     path: iNNfo/specs/bluepriNNts/artifacts/spec_NN.md
     ref_key: blueprints
+  - name: sidecar
+    repo: cogNNitive/cogNNitive-web
+    path: iNNfo/specs/bluepriNNts/sidecar/spec_NN.md
+    ref_key: blueprints
   - name: design-presets
     repo: cogNNitive/cogNNitive-web
     path: iNNfo/specs/bluepriNNts/design-presets/spec_NN.md
