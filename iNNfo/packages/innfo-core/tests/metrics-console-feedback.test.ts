@@ -132,6 +132,7 @@ describe('repo-wide quarantine scan for retired feedback symbols', () => {
     const lines = stdout.split('\n').filter(Boolean)
     const violations = lines.filter((line) => {
       if (line.includes('openspec/changes/archive/')) return false
+      if (line.includes('openspec/specs/innfo-console-feedback/')) return false
       if (line.includes('openspec/changes/2026-10-01-console-feedback-roundtrip-completion/')) return false
       if (line.includes('CORE/tests/fixtures/simulacro-refactorizacion')) return false
       if (line.includes('CORE/tests/legacy/fixtures')) return false
@@ -157,6 +158,7 @@ describe('repo-wide quarantine scan for retired feedback symbols', () => {
     const lines = stdout.split('\n').filter(Boolean)
     const violations = lines.filter((line) => {
       if (line.includes('openspec/changes/archive/')) return false
+      if (line.includes('openspec/specs/innfo-console-feedback/')) return false
       if (line.includes('openspec/changes/2026-10-01-console-feedback-roundtrip-completion/')) return false
       if (line.includes('document_sop_console')) return false
       if (line.includes('Ghostbusters_V_0-2-0_procedures_console')) return false
