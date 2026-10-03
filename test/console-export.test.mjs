@@ -68,7 +68,7 @@ level: 3
     const res = await runCli([tempDir, '--all'])
     assert.equal(res.code, 0)
 
-    const exportDir = join(tempDir, 'export', 'business_V_1-0-0_console')
+    const exportDir = join(tempDir, 'artifacts', 'business_V_1-0-0_console')
     const htmlPath = join(exportDir, 'business_V_1-0-0_console.html')
     const bundlePath = join(exportDir, 'innfo-console.bundle.js')
 
@@ -87,13 +87,13 @@ level: 3
 
     const htmlPath = join(
       tempDir,
-      'export',
+      'artifacts',
       'business_V_1-0-0_console',
       'business_V_1-0-0_console.html',
     )
     const bundlePath = join(
       tempDir,
-      'export',
+      'artifacts',
       'business_V_1-0-0_console',
       'innfo-console.bundle.js',
     )
@@ -172,7 +172,7 @@ level: 3
     const res = await runCli([tempDir, '--all'])
     assert.equal(res.code, 0)
 
-    const htmlPath = join(tempDir, 'export', 'xss_V_1-0-0_console', 'xss_V_1-0-0_console.html')
+    const htmlPath = join(tempDir, 'artifacts', 'xss_V_1-0-0_console', 'xss_V_1-0-0_console.html')
     const htmlContent = await readFile(htmlPath, 'utf-8')
 
     // Inside the script tag for innfo-model, there must be no literal </script> or <script> or <div>
@@ -218,7 +218,7 @@ level: 3
     const res = await runCli([tempDir, '--all'])
     assert.equal(res.code, 0)
 
-    const htmlPath = join(tempDir, 'export', 'business_V_1-0-0_console', 'business_V_1-0-0_console.html')
+    const htmlPath = join(tempDir, 'artifacts', 'business_V_1-0-0_console', 'business_V_1-0-0_console.html')
     const htmlContent = await readFile(htmlPath, 'utf-8')
     assert.ok(htmlContent.includes('fb-001'), 'Root ledger entry fb-001 included in feedbackState')
     assert.equal(htmlContent.includes('fb-999-decoy'), false, 'Decoy legacy ledger entry ignored')
@@ -247,7 +247,7 @@ level: 3
     const res = await runCli([tempDir, '--all'])
     assert.equal(res.code, 0)
 
-    const htmlPath = join(tempDir, 'export', 'cited_V_1-0-0_console', 'cited_V_1-0-0_console.html')
+    const htmlPath = join(tempDir, 'artifacts', 'cited_V_1-0-0_console', 'cited_V_1-0-0_console.html')
     const htmlContent = await readFile(htmlPath, 'utf-8')
     assert.ok(htmlContent.includes('citationsResolvedAt'))
     assert.ok(htmlContent.includes('sources/brief.md'))
@@ -286,7 +286,7 @@ level: 3
       })
       assert.equal(res.code, 0, `Standalone export should exit with 0. stderr: ${res.stderr}`)
 
-      const htmlPath = join(tempDir, 'export', 'business_V_1-0-0_console', 'business_V_1-0-0_console.html')
+      const htmlPath = join(tempDir, 'artifacts', 'business_V_1-0-0_console', 'business_V_1-0-0_console.html')
       assert.equal(existsSync(htmlPath), true, 'Artifact produced in standalone mode')
     } finally {
       await rm(standaloneDir, { recursive: true, force: true })
