@@ -1,6 +1,12 @@
 import { readFile, writeFile, readdir } from 'node:fs/promises'
 import { join, relative, basename as pathBasename } from 'node:path'
-import { reconcileManifest, isReconcilableModel, parseFrontmatter } from '@cognnitive/innfo-core'
+import {
+  reconcileManifest,
+  isReconcilableModel,
+  parseFrontmatter,
+  parentSpecNameOf,
+  displayStem,
+} from '@cognnitive/innfo-core'
 import type { DiscoveredModel, ManifestChange, CandidateFile } from '@cognnitive/innfo-core'
 
 /**
@@ -27,10 +33,6 @@ const SKIP_DIR_NAMES = new Set(['node_modules', '.git'])
 
 function toRelative(root: string, filePath: string): string {
   return relative(root, filePath).replace(/\\/g, '/')
-}
-
-function stripMdSuffix(filename: string): string {
-  return filename.replace(/_NN\.md$/i, '').replace(/\.md$/i, '')
 }
 
 async function walkMarkdownFiles(dir: string, out: string[] = []): Promise<string[]> {
@@ -80,17 +82,6 @@ async function findManifestPath(root: string): Promise<string | null> {
   return match ? join(root, match.name) : null
 }
 
-function parentSpecBlueprintName(frontmatter: Record<string, unknown>): string | undefined {
-  const parentSpec = frontmatter['parent_spec']
-  if (!parentSpec) return undefined
-  if (typeof parentSpec === 'string') return parentSpec
-  if (typeof parentSpec === 'object') {
-    const name = (parentSpec as { name?: unknown }).name
-    return typeof name === 'string' ? name : undefined
-  }
-  return undefined
-}
-
 async function discoverCandidates(
   root: string,
   manifestRelPath: string,
@@ -119,8 +110,8 @@ async function discoverCandidates(
       typeof frontmatter['title'] === 'string' ? (frontmatter['title'] as string).trim() : ''
     discovered.push({
       path: relPath,
-      name: title !== '' ? title : stripMdSuffix(pathBasename(relPath)),
-      template: parentSpecBlueprintName(frontmatter),
+      name: title !== '' ? title : displayStem(pathBasename(relPath)),
+      template: parentSpecNameOf(frontmatter),
     })
   }
 

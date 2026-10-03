@@ -8474,6 +8474,13 @@ function computeSha256(content) {
   return H.map((x) => (x >>> 0).toString(16).padStart(8, "0")).join("");
 }
 
+// iNNfo/packages/innfo-core/src/naming/contract.ts
+var NN_SUFFIX_RE = /_NN\.md$/i;
+function displayStem(basename4) {
+  if (NN_SUFFIX_RE.test(basename4)) return basename4.replace(NN_SUFFIX_RE, "");
+  return basename4.replace(/\.md$/i, "");
+}
+
 // iNNfo/packages/innfo-core/src/csvTable.ts
 function parseCsvTable(content, options = {}) {
   const delimiter = options.delimiter ?? ",";
@@ -8915,11 +8922,11 @@ function effectiveStatusFor(entries) {
   return latestByKey;
 }
 function feedbackStateFor(entries, modelId) {
-  const normalizedModelId = modelId.replace(/^(kNNowledge\/|models\/)/i, "").replace(/(\.md|_NN\.md)$/i, "");
+  const normalizedModelId = displayStem(modelId.replace(/^(kNNowledge\/|models\/)/i, ""));
   const latest = effectiveStatusFor(entries);
   const result = [];
   for (const entry of latest.values()) {
-    const entryModelId = entry.model_id.replace(/^(kNNowledge\/|models\/)/i, "").replace(/(\.md|_NN\.md)$/i, "");
+    const entryModelId = displayStem(entry.model_id.replace(/^(kNNowledge\/|models\/)/i, ""));
     if (entryModelId === normalizedModelId) {
       result.push({
         id: entry.item,
@@ -9158,14 +9165,14 @@ function extractWikilinksFromValue(val) {
 function normalizeModelId(filePath, fallbackTitle) {
   if (!filePath) return fallbackTitle ? slugify(fallbackTitle) : "model";
   const normalized = filePath.split("\\").join("/");
-  return normalized.replace(/^.*?\/(kNNowledge|models)\//i, "$1/").replace(/(\.md|_NN\.md)$/i, "");
+  return displayStem(normalized.replace(/^.*?\/(kNNowledge|models)\//i, "$1/"));
 }
 function buildConsolePayload(options) {
   const { content, path: modelPath, schema: inputSchema, resolver, ledgerEntries, generated } = options;
   const rawSha256 = computeSha256(content);
   const parsed = parseKnowledge(content);
   const fm = parsed.frontmatter || parseFrontmatter(content) || {};
-  const title = fm.title || fm.name || (modelPath ? modelPath.split(/[/\\]/).pop()?.replace(/(\.md|_NN\.md)$/i, "") : "Model") || "Model";
+  const title = fm.title || fm.name || (modelPath ? displayStem(modelPath.split(/[/\\]/).pop() ?? "") : "Model") || "Model";
   const template = fm.target_blueprint || fm.target_template || fm.blueprint || fm.template || void 0;
   const modelVersion = fm.knowledge_version || fm.version || "V_0-1-0";
   const modelId = normalizeModelId(modelPath, title);

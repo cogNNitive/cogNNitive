@@ -8,6 +8,7 @@ import {
   parseFrontmatter,
   SpecResolutionError,
   findCanonicalBlueprint,
+  SPEC_FILENAME,
 } from '@cognnitive/innfo-core'
 import type {
   SpecCache,
@@ -674,7 +675,7 @@ export async function hydrateBlueprintPackageAtomically(
   const stagingDir = join(baseBlueprintsDir, `.staging-${uniqueSuffix()}`)
   await mkdir(stagingDir, { recursive: true })
 
-  const specFileName = 'spec_NN.md'
+  const specFileName = SPEC_FILENAME
   const namedFileName = `${base}_${verSegment}_NN.md`
   await writeFile(join(stagingDir, specFileName), pkg.spec, 'utf-8')
   await writeFile(join(stagingDir, namedFileName), pkg.spec, 'utf-8')
@@ -728,7 +729,7 @@ export async function fetchBlueprintPackageFromRemote(
   const repo = options.repo ?? 'cogNNitive/cogNNitive'
   const timeout = options.timeout ?? 10000
   const dirInRepo = `iNNfo/specs/bluepriNNts/${base}`
-  const specName = 'spec_NN.md'
+  const specName = SPEC_FILENAME
   const rawBase = `https://raw.githubusercontent.com/${repo}/${ref}/${dirInRepo}`
 
   const spec = await download(`${rawBase}/${specName}`, timeout)

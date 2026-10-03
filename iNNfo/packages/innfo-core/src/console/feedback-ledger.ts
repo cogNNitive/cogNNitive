@@ -4,6 +4,7 @@
  */
 
 import type { ConsolePayload } from './payload-builder.js'
+import { displayStem } from '../naming/contract.js'
 
 export const FEEDBACK_LEDGER_FILENAME = 'feedback-ledger.jsonl'
 
@@ -227,12 +228,12 @@ export function effectiveStatusFor(entries: FeedbackVerdictEntry[]): Map<string,
  * Derives `meta.feedbackState` for a given model from effective ledger statuses.
  */
 export function feedbackStateFor(entries: FeedbackVerdictEntry[], modelId: string): FeedbackStateItem[] {
-  const normalizedModelId = modelId.replace(/^(kNNowledge\/|models\/)/i, '').replace(/(\.md|_NN\.md)$/i, '')
+  const normalizedModelId = displayStem(modelId.replace(/^(kNNowledge\/|models\/)/i, ''))
   const latest = effectiveStatusFor(entries)
   const result: FeedbackStateItem[] = []
 
   for (const entry of latest.values()) {
-    const entryModelId = entry.model_id.replace(/^(kNNowledge\/|models\/)/i, '').replace(/(\.md|_NN\.md)$/i, '')
+    const entryModelId = displayStem(entry.model_id.replace(/^(kNNowledge\/|models\/)/i, ''))
     if (entryModelId === normalizedModelId) {
       result.push({
         id: entry.item,

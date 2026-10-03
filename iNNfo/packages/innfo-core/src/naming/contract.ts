@@ -81,16 +81,15 @@ export function rawPathOfSidecar(sidecarPath: string): string | null {
   return m ? m[1] : null
 }
 
-/** Display name of a document: drops `_NN.md`, else a plain `.md`, else unchanged. */
+/** Display name of a document name or path: drops `_NN.md`, else a plain `.md`, else unchanged. */
 export function displayStem(basename: string): string {
-  const base = baseOf(basename)
-  if (NN_SUFFIX_RE.test(base)) return base.replace(NN_SUFFIX_RE, '')
-  return base.replace(/\.md$/i, '')
+  if (NN_SUFFIX_RE.test(basename)) return basename.replace(NN_SUFFIX_RE, '')
+  return basename.replace(/\.md$/i, '')
 }
 
 /** Procedure id: the stem minus a trailing `_procedures`, lower-cased, underscores to hyphens. */
 export function procedureIdOf(basename: string): string {
-  return displayStem(basename).replace(/_procedures$/i, '').toLowerCase().replace(/_/g, '-')
+  return displayStem(baseOf(basename)).replace(/_procedures$/i, '').toLowerCase().replace(/_/g, '-')
 }
 
 export type Role =
@@ -206,4 +205,29 @@ export function checkPathBudget(
     return { ok: false, limit: WIN32_PATH_LIMIT, length: absPath.length }
   }
   return { ok: true }
+}
+
+/** Reads `frontmatter.parent_spec.name`, tolerating a bare-string `parent_spec`. */
+export function parentSpecNameOf(frontmatter: Record<string, unknown>): string | undefined {
+  const parentSpec = frontmatter['parent_spec']
+  if (!parentSpec) return undefined
+  if (typeof parentSpec === 'string') return parentSpec
+  if (typeof parentSpec === 'object') {
+    const name = (parentSpec as { name?: unknown }).name
+    return typeof name === 'string' ? name : undefined
+  }
+  return undefined
+}
+
+/**
+ * THE discovery predicate: an `_NN.md` document of role `knowledge`, Level 3
+ * with a `parent_spec`, outside every excluded path. Sidecars, lineage
+ * records, catalogs, procedures, the entrypoint and specs are never models.
+ */
+export function isModelCandidate(f: { path: string; frontmatter: Record<string, unknown> }): boolean {
+  if (f.frontmatter['level'] !== 3) return false
+  if (!f.frontmatter['parent_spec']) return false
+  if (isExcludedPath(f.path)) return false
+  if (parseName(baseOf(f.path)).kind !== 'nn') return false
+  return roleOf({ path: f.path, parentSpecName: parentSpecNameOf(f.frontmatter) }) === 'knowledge'
 }

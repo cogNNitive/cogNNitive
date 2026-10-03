@@ -127,9 +127,10 @@ describe('readKnowledge', () => {
   })
 
   it('discovers domaiNN_NN.md entrypoints and parses type:: knowledge submodels', async () => {
-    // H6: the workspace manifest follows the same `_NN.md` + `level: 3` +
-    // `parent_spec` convention as any other discoverable model
-    // (`domaiNN_NN.md`, per `iNNfo/specs/bluepriNNts/base/spec_NN.md`).
+    // The entrypoint is still a readable document, but it is not a model:
+    // the naming contract gives `domaiNN_NN.md` the `entrypoint` role, and
+    // `list_knowledge` and `## NN Models` share the one `isModelCandidate`
+    // predicate, which requires role `knowledge`.
     const wsContent = [
       '---',
       'spec_version: "V_0-2-0"',
@@ -149,7 +150,7 @@ describe('readKnowledge', () => {
     await writeFile(join(rootDir, 'domaiNN_NN.md'), wsContent, 'utf-8')
 
     const models = await listKnowledge(rootDir)
-    expect(models.some((m) => m.id === 'domaiNN_NN')).toBe(true)
+    expect(models.some((m) => m.id === 'domaiNN_NN')).toBe(false)
 
     const model = await readKnowledge(rootDir, 'domaiNN')
     expect(model?.frontmatter.title).toBe('Root Workspace')

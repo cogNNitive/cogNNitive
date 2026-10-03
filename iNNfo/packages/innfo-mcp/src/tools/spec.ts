@@ -20,6 +20,7 @@ import {
   resolveBlueprintPath,
   getBlueprintSearchPaths,
   UnresolvedBlueprintError,
+  procedureIdOf,
 } from '@cognnitive/innfo-core'
 import { mkdir, copyFile, readdir } from 'node:fs/promises'
 import { homedir } from 'node:os'
@@ -747,7 +748,7 @@ export async function discoverTransitiveAssets(
         for (const pe of procEntries) {
           if (pe.isFile() && pe.name.endsWith('.md')) {
             const procStem = pe.name.replace(/\.md$/i, '')
-            const procId = procStem.replace(/_NN$/i, '').toLowerCase().replace(/_/g, '-')
+            const procId = procedureIdOf(pe.name)
             if (!seenProcIds.has(procId)) {
               seenProcIds.add(procId)
               let procName = procStem

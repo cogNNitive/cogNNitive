@@ -3,6 +3,7 @@ import { parseKnowledge, stripFrontmatter } from '../parser/index.js'
 import { VERSION_RE, WIKILINK_RE, SECTION_NN_RE, RESERVED_CONCEPT_NAMES } from './constants.js'
 import { CONCEPT_DEFINITION } from '../schema/index.js'
 import { QUALIFIED_REF_RE } from './workspaceReferences.js'
+import { parseName } from '../naming/contract.js'
 
 /**
  * Validates iNNfo document content (frontmatter + body syntax + conventions).
@@ -418,7 +419,8 @@ export function validateFormatContent(
   // ── Conventions ────────────────────────────────────────────────
 
   // 11. File naming
-  const namingOk = fileName.endsWith('_NN.md')
+  const isNnFile = parseName(fileName).kind === 'nn'
+  const namingOk = isNnFile
   checks.push({
     id: 'conv-file-naming',
     label: 'File naming convention',
@@ -430,7 +432,7 @@ export function validateFormatContent(
   })
 
   // 12. Type field for distributed _NN.md files (§5.1.2) - applies to N2 templates / OKF packages, excluded for canonical N3 models
-  if (fileName.endsWith('_NN.md') && fm.level !== 3) {
+  if (isNnFile && fm.level !== 3) {
     const typeOk = typeof fm.type === 'string' && fm.type.length > 0
     checks.push({
       id: 'conv-type-field',

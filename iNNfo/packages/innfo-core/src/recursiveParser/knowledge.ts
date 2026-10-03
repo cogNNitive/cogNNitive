@@ -3,6 +3,7 @@ import type { ParsedKnowledge, KnowledgeNode } from '../types/index.js'
 import { IdentityRegistry } from '../identity.js'
 import { normalizeMatrixDecl } from '../matrix.js'
 import { resolveGraphEdgeTarget } from './paths.js'
+import { parseName } from '../naming/contract.js'
 import { nowIso, toLocalMetamodel, toFieldValues, normalizeElementsIntoGraph } from './normalize.js'
 import type { ParseContext, ParseIssue } from './types.js'
 
@@ -55,7 +56,7 @@ export function normalizeSingleKnowledge(
 
   if (!hasSpecVersion && !hasLevel && !hasParent) {
     const isNnNamed =
-      refName.toLowerCase().endsWith('_nn') || refPath.toLowerCase().endsWith('_nn.md')
+      refName.toLowerCase().endsWith('_nn') || parseName(refPath).kind === 'nn'
     if (isNnNamed) {
       ctx.issues.push({
         path: refPath,

@@ -6,7 +6,7 @@
 import { readdir, readFile } from 'node:fs/promises'
 import { join, relative } from 'node:path'
 import { parseFrontmatter } from './parser/index.js'
-import { isDiscoverableModel, NN_FILENAME_RE as KNOWLEDGE_NN_FILENAME_RE } from './workspace/discoverModels.js'
+import { isModelCandidate, isExcludedPath, parseName } from './naming/contract.js'
 
 /* ── Version resolution ──────────────────────────────────────── */
 
@@ -47,8 +47,8 @@ function isIgnoredDir(name: string): boolean {
 
 /**
  * `collectModels()` and `isReconcilableModel()` share ONE discoverable-model
- * predicate (`isDiscoverableModel`, `workspace/discoverModels.ts`) instead of
- * two divergent ones (H6). Walk-level directory pruning stays here: it walks
+ * predicate (`isModelCandidate`, `naming/contract.ts`) instead of two
+ * divergent ones (H6). Walk-level directory pruning stays here: it walks
  * ABSOLUTE paths and prunes `node_modules`, `.git`, dot-dirs and
  * `IGNORED_DIRS` at every level, which `isIgnoredPath` (workspace-relative,
  * first-segment only) does not replace.
@@ -68,10 +68,11 @@ async function collectModels(dir: string, rootDir: string, models: KnowledgeInfo
     if (!entry.isFile()) continue
     if (!MD_FILE_RE.test(entry.name)) continue
     if (entry.name.toLowerCase() === 'index.md') continue
-    if (!KNOWLEDGE_NN_FILENAME_RE.test(entry.name)) continue
+    if (parseName(entry.name).kind !== 'nn') continue
 
     const filePath = join(dir, entry.name)
     const relPath = relative(rootDir, filePath).split('\\').join('/')
+    if (isExcludedPath(relPath)) continue
 
     let frontmatter: Record<string, unknown> | null = null
     try {
@@ -86,7 +87,7 @@ async function collectModels(dir: string, rootDir: string, models: KnowledgeInfo
       continue
     }
     if (!frontmatter) continue
-    if (!isDiscoverableModel({ path: relPath, frontmatter })) continue
+    if (!isModelCandidate({ path: relPath, frontmatter })) continue
 
     const id = entry.name.replace(MD_FILE_RE, '')
     const version = resolveSpecVersionFromFilename(entry.name)
@@ -98,7 +99,7 @@ async function collectModels(dir: string, rootDir: string, models: KnowledgeInfo
 /**
  * Scan a root directory (recursively) for discoverable iNNfo model files
  * (`_NN.md`, `level: 3`, resolvable `parent_spec` — see
- * `isDiscoverableModel`). Skips `backups`, `archive`, `specs`,
+ * `isModelCandidate`). Skips `backups`, `archive`, `specs`,
  * `node_modules`, `.git`, and any dot-directory. Returns an array of
  * `KnowledgeInfo` sorted by id.
  */

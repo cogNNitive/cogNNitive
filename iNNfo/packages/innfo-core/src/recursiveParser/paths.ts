@@ -1,9 +1,11 @@
+import { displayStem } from '../naming/contract.js'
+
 /**
  * Strips the final `.md` suffix from a filename to derive the model name.
- * Handles both `_NN.md` and bare `.md` filenames.
+ * Handles both `_NN.md` and bare `.md` filenames (the contract owns the pattern).
  */
 export function stripMdSuffix(filename: string): string {
-  return filename.replace(/_NN\.md$/i, '').replace(/\.md$/i, '')
+  return displayStem(filename)
 }
 
 /**

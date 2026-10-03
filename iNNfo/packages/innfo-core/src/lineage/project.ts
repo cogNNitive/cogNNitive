@@ -7,6 +7,7 @@ import { parseKnowledge } from '../parser/core.js'
 import { SOURCE_FIELD_NAMES, splitSourceFieldValue } from '../sourceRef.js'
 import type { CitationSite } from '../validator/workspaceSources.js'
 import type { FileSnapshot } from '../queryUnits.js'
+import { displayStem, parseName, roleOf } from '../naming/contract.js'
 
 export interface LineageSource {
   name: string
@@ -374,19 +375,19 @@ export function projectLineage(files: FileSnapshot[]): LineageProjection {
     ...archivedSources,
   ]
 
-  // 2. Process Knowledge Models (kNNowledge/**/*_NN.md, excluding cogNNitive parent_spec)
+  // 2. Process Knowledge Models (kNNowledge/**/*_NN.md of role `knowledge`: no records, catalogs, or sidecars)
   const knowledgeFiles = normalizedFiles
-    .filter((f) => f.path.startsWith('kNNowledge/') && f.path.endsWith('_NN.md'))
+    .filter((f) => f.path.startsWith('kNNowledge/') && parseName(getBasename(f.path)).kind === 'nn')
     .sort((a, b) => a.path.localeCompare(b.path))
 
   const knowledge: LineageKnowledge[] = []
   for (const kf of knowledgeFiles) {
     const parsed = parseKnowledge(kf.content)
-    if (parsed.frontmatter?.parent_spec?.name === 'cogNNitive') {
+    if (roleOf({ path: kf.path, parentSpecName: parsed.frontmatter?.parent_spec?.name }) !== 'knowledge') {
       continue
     }
 
-    const baseName = getBasename(kf.path, '_NN.md')
+    const baseName = displayStem(getBasename(kf.path))
     const name = parsed.frontmatter?.title || baseName
     const modelTemplate = parsed.frontmatter?.parent_spec?.name
     const knowledgeVersion = parsed.frontmatter?.knowledge_version || (typeof parsed.frontmatter?.model === 'string' ? parsed.frontmatter.model : undefined)

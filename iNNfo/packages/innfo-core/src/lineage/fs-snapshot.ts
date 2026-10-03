@@ -7,6 +7,13 @@ import * as fs from 'node:fs'
 import * as path from 'node:path'
 import { parseKnowledge } from '../parser/core.js'
 import type { FileSnapshot } from '../queryUnits.js'
+import { parseName, roleOf } from '../naming/contract.js'
+
+/** Sidecars represent their subject; they are never snapshotted as files of their own. */
+function isSidecarName(name: string): boolean {
+  const parsed = parseName(name)
+  return parsed.kind === 'nn' && parsed.sidecarOf !== undefined
+}
 
 function walkDir(
   dir: string,
@@ -48,6 +55,7 @@ export function readLineageSnapshot(root: string): FileSnapshot[] {
       if (isDir) {
         return lower !== 'staging' && lower !== 'archive'
       }
+      if (isSidecarName(name)) return false
       return name.endsWith('.md') || name.endsWith('.csv')
     })
     for (const rel of rels) {
@@ -94,18 +102,18 @@ export function readLineageSnapshot(root: string): FileSnapshot[] {
     }
   }
 
-  // 4. kNNowledge: **/*_NN.md, excluding models with parent_spec.name: cogNNitive
+  // 4. kNNowledge: **/*_NN.md of role `knowledge` (no cogNNitive records, catalogs, or sidecars)
   const knowledgeDir = path.join(rootDir, 'kNNowledge')
   if (fs.existsSync(knowledgeDir)) {
     const rels = walkDir(knowledgeDir, (_, name, isDir) => {
       if (isDir) return true
-      return name.endsWith('_NN.md')
+      return parseName(name).kind === 'nn' && !isSidecarName(name)
     })
     for (const rel of rels) {
       const full = path.join(knowledgeDir, rel)
       const content = fs.readFileSync(full, 'utf8')
       const parsed = parseKnowledge(content)
-      if (parsed.frontmatter?.parent_spec?.name === 'cogNNitive') {
+      if (roleOf({ path: rel, parentSpecName: parsed.frontmatter?.parent_spec?.name }) !== 'knowledge') {
         continue
       }
       snapshots.push({
@@ -121,6 +129,7 @@ export function readLineageSnapshot(root: string): FileSnapshot[] {
     const rels = walkDir(exportDir, (_, name, isDir) => {
       if (isDir) return true
       const ext = path.extname(name).toLowerCase()
+      if (isSidecarName(name)) return false
       return ['.md', '.html', '.htm', '.csv', '.json'].includes(ext)
     })
     for (const rel of rels) {

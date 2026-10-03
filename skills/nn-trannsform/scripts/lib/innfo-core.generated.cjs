@@ -7385,8 +7385,10 @@ __export(trannsformPrimitives_exports, {
   formatUtcStamp: () => formatUtcStamp,
   headingSlugParts: () => headingSlugParts,
   isExcludedPath: () => isExcludedPath,
+  isModelCandidate: () => isModelCandidate,
   nextStamp: () => nextStamp,
   normalizeName: () => normalizeName,
+  parentSpecNameOf: () => parentSpecNameOf,
   parseCitation: () => parseCitation,
   parseName: () => parseName,
   procedureIdOf: () => procedureIdOf,
@@ -8648,6 +8650,147 @@ var REQUIRED_BY_PRIMITIVE = {
   [MATRIX_DEFINITION]: ["source", "target"]
 };
 
+// iNNfo/packages/innfo-core/src/naming/contract.ts
+var ENTRYPOINT_FILENAME = "domaiNN_NN.md";
+var SPEC_FILENAME = "spec_NN.md";
+var SIDECAR_BLUEPRINT = "sidecar";
+var NN_SUFFIX_RE = /_NN\.md$/i;
+var SIDECAR_PATH_RE = /^(.*\.[^./\\]+)_sidecar_NN\.md$/i;
+var STAMP_SUFFIX_RE = /^(.+)_(\d{8}T\d{6}Z)(?:-(\d+))?$/;
+function baseOf(path2) {
+  const i = Math.max(path2.lastIndexOf("/"), path2.lastIndexOf("\\"));
+  return i < 0 ? path2 : path2.slice(i + 1);
+}
+function parseName(basename3) {
+  if (NN_SUFFIX_RE.test(basename3)) {
+    const stem2 = basename3.replace(NN_SUFFIX_RE, "");
+    const sidecar = SIDECAR_PATH_RE.exec(basename3);
+    return sidecar ? { kind: "nn", basename: basename3, stem: stem2, sidecarOf: sidecar[1] } : { kind: "nn", basename: basename3, stem: stem2 };
+  }
+  const dot = basename3.lastIndexOf(".");
+  const hasExt = dot > 0;
+  const stem = hasExt ? basename3.slice(0, dot) : basename3;
+  const ext = hasExt ? basename3.slice(dot + 1) : "";
+  const m = STAMP_SUFFIX_RE.exec(stem);
+  if (!m) return { kind: "file", basename: basename3, key: stem, ext };
+  return {
+    kind: "file",
+    basename: basename3,
+    key: m[1],
+    ext,
+    stamp: { stamp: m[2], seq: m[3] ? Number(m[3]) : 1 }
+  };
+}
+function formatNNName(stem, blueprint) {
+  const s = stem.toLowerCase();
+  const bp = blueprint.toLowerCase();
+  const conforms = s === bp || s.endsWith(`_${bp}`);
+  return conforms ? `${stem}_NN.md` : `${stem}_${blueprint}_NN.md`;
+}
+function formatMemberName(key, ext, stamp) {
+  const suffix = stamp ? `_${stamp.stamp}${stamp.seq > 1 ? `-${stamp.seq}` : ""}` : "";
+  return `${key}${suffix}${ext ? `.${ext}` : ""}`;
+}
+function sidecarPathOf(rawPath) {
+  return `${rawPath}_sidecar_NN.md`;
+}
+function rawPathOfSidecar(sidecarPath) {
+  const m = SIDECAR_PATH_RE.exec(sidecarPath);
+  return m ? m[1] : null;
+}
+function displayStem(basename3) {
+  if (NN_SUFFIX_RE.test(basename3)) return basename3.replace(NN_SUFFIX_RE, "");
+  return basename3.replace(/\.md$/i, "");
+}
+function procedureIdOf(basename3) {
+  return displayStem(baseOf(basename3)).replace(/_procedures$/i, "").toLowerCase().replace(/_/g, "-");
+}
+var IGNORED_DIRECTORIES = /* @__PURE__ */ new Set(["backups", "archive", "specs"]);
+var NON_KNOWLEDGE_BLUEPRINT_RE = /^(cognnitive|workspace|procedures|sources|artifacts|sidecar)(?:_|$)/i;
+function segmentsOf(path2) {
+  return path2.replace(/\\/g, "/").split("/").filter((s) => s && s !== ".");
+}
+function roleOf(i) {
+  const base = baseOf(i.path);
+  const parsed = parseName(base);
+  if (parsed.kind === "file") return i.hasSidecar ? "source" : "artifact";
+  if (parsed.sidecarOf !== void 0) return "sidecar";
+  const lower = base.toLowerCase();
+  if (lower === ENTRYPOINT_FILENAME.toLowerCase()) return "entrypoint";
+  if (lower === SPEC_FILENAME.toLowerCase()) return "spec";
+  const bp = NON_KNOWLEDGE_BLUEPRINT_RE.exec((i.parentSpecName ?? "").trim())?.[1].toLowerCase();
+  switch (bp) {
+    case "cognnitive":
+      return "lineage-record";
+    case "sidecar":
+      return "sidecar";
+    case "procedures":
+      return parsed.stem.toLowerCase() === "procedures" ? "catalog" : "procedure";
+    case "workspace":
+    case "sources":
+    case "artifacts":
+      return "catalog";
+    default:
+      return "knowledge";
+  }
+}
+function isExcludedPath(path2) {
+  const segs = segmentsOf(path2);
+  if (segs.length > 0 && IGNORED_DIRECTORIES.has(segs[0])) return true;
+  return segs.some((s) => s === "staging" || s.startsWith(".") && s !== "..");
+}
+function familyOf(path2) {
+  const normalized = path2.replace(/\\/g, "/");
+  const parsed = parseName(baseOf(normalized));
+  if (parsed.kind !== "file") return null;
+  const slash = normalized.lastIndexOf("/");
+  return { dir: slash < 0 ? "" : normalized.slice(0, slash), key: parsed.key, ext: parsed.ext };
+}
+function compareMembers(a, b) {
+  const pa = parseName(baseOf(a));
+  const pb = parseName(baseOf(b));
+  const sa = pa.kind === "file" ? pa.stamp : void 0;
+  const sb = pb.kind === "file" ? pb.stamp : void 0;
+  if (!sa && !sb) return 0;
+  if (!sa) return -1;
+  if (!sb) return 1;
+  if (sa.stamp !== sb.stamp) return sa.stamp < sb.stamp ? -1 : 1;
+  return sa.seq - sb.seq;
+}
+var pad = (n, width = 2) => String(n).padStart(width, "0");
+function formatUtcStamp(at) {
+  return `${pad(at.getUTCFullYear(), 4)}${pad(at.getUTCMonth() + 1)}${pad(at.getUTCDate())}T${pad(at.getUTCHours())}${pad(at.getUTCMinutes())}${pad(at.getUTCSeconds())}Z`;
+}
+function nextStamp(at, latest) {
+  const now = formatUtcStamp(at);
+  if (!latest || latest.stamp < now) return { stamp: now, seq: 1 };
+  return { stamp: latest.stamp, seq: latest.seq + 1 };
+}
+var WIN32_PATH_LIMIT = 259;
+function checkPathBudget(absPath, platform) {
+  if (platform === "win32" && absPath.length > WIN32_PATH_LIMIT) {
+    return { ok: false, limit: WIN32_PATH_LIMIT, length: absPath.length };
+  }
+  return { ok: true };
+}
+function parentSpecNameOf(frontmatter) {
+  const parentSpec = frontmatter["parent_spec"];
+  if (!parentSpec) return void 0;
+  if (typeof parentSpec === "string") return parentSpec;
+  if (typeof parentSpec === "object") {
+    const name = parentSpec.name;
+    return typeof name === "string" ? name : void 0;
+  }
+  return void 0;
+}
+function isModelCandidate(f) {
+  if (f.frontmatter["level"] !== 3) return false;
+  if (!f.frontmatter["parent_spec"]) return false;
+  if (isExcludedPath(f.path)) return false;
+  if (parseName(baseOf(f.path)).kind !== "nn") return false;
+  return roleOf({ path: f.path, parentSpecName: parentSpecNameOf(f.frontmatter) }) === "knowledge";
+}
+
 // iNNfo/packages/innfo-core/src/lineage/project.ts
 var SOURCE_FORMAT_OPTIONS = /* @__PURE__ */ new Set(["txt", "md", "csv", "json", "docx", "pdf", "xlsx"]);
 function mapSourceFormat(ext) {
@@ -8919,14 +9062,14 @@ function projectLineage(files) {
     ...activeSources.map(({ mdRelPath, ...rest }) => rest),
     ...archivedSources
   ];
-  const knowledgeFiles = normalizedFiles.filter((f) => f.path.startsWith("kNNowledge/") && f.path.endsWith("_NN.md")).sort((a, b) => a.path.localeCompare(b.path));
+  const knowledgeFiles = normalizedFiles.filter((f) => f.path.startsWith("kNNowledge/") && parseName(getBasename(f.path)).kind === "nn").sort((a, b) => a.path.localeCompare(b.path));
   const knowledge = [];
   for (const kf of knowledgeFiles) {
     const parsed = parseKnowledge(kf.content);
-    if (parsed.frontmatter?.parent_spec?.name === "cogNNitive") {
+    if (roleOf({ path: kf.path, parentSpecName: parsed.frontmatter?.parent_spec?.name }) !== "knowledge") {
       continue;
     }
-    const baseName = getBasename(kf.path, "_NN.md");
+    const baseName = displayStem(getBasename(kf.path));
     const name = parsed.frontmatter?.title || baseName;
     const modelTemplate = parsed.frontmatter?.parent_spec?.name;
     const knowledgeVersion = parsed.frontmatter?.knowledge_version || (typeof parsed.frontmatter?.model === "string" ? parsed.frontmatter.model : void 0);
@@ -9436,6 +9579,10 @@ function renderLineageSections(p) {
 // iNNfo/packages/innfo-core/src/lineage/fs-snapshot.ts
 var fs = __toESM(require("node:fs"), 1);
 var path = __toESM(require("node:path"), 1);
+function isSidecarName(name) {
+  const parsed = parseName(name);
+  return parsed.kind === "nn" && parsed.sidecarOf !== void 0;
+}
 function walkDir(dir, filter, baseDir = dir) {
   if (!fs.existsSync(dir)) return [];
   const results = [];
@@ -9466,6 +9613,7 @@ function readLineageSnapshot(root) {
       if (isDir) {
         return lower !== "staging" && lower !== "archive";
       }
+      if (isSidecarName(name)) return false;
       return name.endsWith(".md") || name.endsWith(".csv");
     });
     for (const rel of rels) {
@@ -9511,13 +9659,13 @@ function readLineageSnapshot(root) {
   if (fs.existsSync(knowledgeDir)) {
     const rels = walkDir(knowledgeDir, (_, name, isDir) => {
       if (isDir) return true;
-      return name.endsWith("_NN.md");
+      return parseName(name).kind === "nn" && !isSidecarName(name);
     });
     for (const rel of rels) {
       const full = path.join(knowledgeDir, rel);
       const content = fs.readFileSync(full, "utf8");
       const parsed = parseKnowledge(content);
-      if (parsed.frontmatter?.parent_spec?.name === "cogNNitive") {
+      if (roleOf({ path: rel, parentSpecName: parsed.frontmatter?.parent_spec?.name }) !== "knowledge") {
         continue;
       }
       snapshots.push({
@@ -9531,6 +9679,7 @@ function readLineageSnapshot(root) {
     const rels = walkDir(exportDir, (_, name, isDir) => {
       if (isDir) return true;
       const ext = path.extname(name).toLowerCase();
+      if (isSidecarName(name)) return false;
       return [".md", ".html", ".htm", ".csv", ".json"].includes(ext);
     });
     for (const rel of rels) {
@@ -9544,131 +9693,6 @@ function readLineageSnapshot(root) {
   }
   snapshots.sort((a, b) => a.path.localeCompare(b.path));
   return snapshots;
-}
-
-// iNNfo/packages/innfo-core/src/naming/contract.ts
-var ENTRYPOINT_FILENAME = "domaiNN_NN.md";
-var SPEC_FILENAME = "spec_NN.md";
-var SIDECAR_BLUEPRINT = "sidecar";
-var NN_SUFFIX_RE = /_NN\.md$/i;
-var SIDECAR_PATH_RE = /^(.*\.[^./\\]+)_sidecar_NN\.md$/i;
-var STAMP_SUFFIX_RE = /^(.+)_(\d{8}T\d{6}Z)(?:-(\d+))?$/;
-function baseOf(path2) {
-  const i = Math.max(path2.lastIndexOf("/"), path2.lastIndexOf("\\"));
-  return i < 0 ? path2 : path2.slice(i + 1);
-}
-function parseName(basename3) {
-  if (NN_SUFFIX_RE.test(basename3)) {
-    const stem2 = basename3.replace(NN_SUFFIX_RE, "");
-    const sidecar = SIDECAR_PATH_RE.exec(basename3);
-    return sidecar ? { kind: "nn", basename: basename3, stem: stem2, sidecarOf: sidecar[1] } : { kind: "nn", basename: basename3, stem: stem2 };
-  }
-  const dot = basename3.lastIndexOf(".");
-  const hasExt = dot > 0;
-  const stem = hasExt ? basename3.slice(0, dot) : basename3;
-  const ext = hasExt ? basename3.slice(dot + 1) : "";
-  const m = STAMP_SUFFIX_RE.exec(stem);
-  if (!m) return { kind: "file", basename: basename3, key: stem, ext };
-  return {
-    kind: "file",
-    basename: basename3,
-    key: m[1],
-    ext,
-    stamp: { stamp: m[2], seq: m[3] ? Number(m[3]) : 1 }
-  };
-}
-function formatNNName(stem, blueprint) {
-  const s = stem.toLowerCase();
-  const bp = blueprint.toLowerCase();
-  const conforms = s === bp || s.endsWith(`_${bp}`);
-  return conforms ? `${stem}_NN.md` : `${stem}_${blueprint}_NN.md`;
-}
-function formatMemberName(key, ext, stamp) {
-  const suffix = stamp ? `_${stamp.stamp}${stamp.seq > 1 ? `-${stamp.seq}` : ""}` : "";
-  return `${key}${suffix}${ext ? `.${ext}` : ""}`;
-}
-function sidecarPathOf(rawPath) {
-  return `${rawPath}_sidecar_NN.md`;
-}
-function rawPathOfSidecar(sidecarPath) {
-  const m = SIDECAR_PATH_RE.exec(sidecarPath);
-  return m ? m[1] : null;
-}
-function displayStem(basename3) {
-  const base = baseOf(basename3);
-  if (NN_SUFFIX_RE.test(base)) return base.replace(NN_SUFFIX_RE, "");
-  return base.replace(/\.md$/i, "");
-}
-function procedureIdOf(basename3) {
-  return displayStem(basename3).replace(/_procedures$/i, "").toLowerCase().replace(/_/g, "-");
-}
-var IGNORED_DIRECTORIES = /* @__PURE__ */ new Set(["backups", "archive", "specs"]);
-var NON_KNOWLEDGE_BLUEPRINT_RE = /^(cognnitive|workspace|procedures|sources|artifacts|sidecar)(?:_|$)/i;
-function segmentsOf(path2) {
-  return path2.replace(/\\/g, "/").split("/").filter((s) => s && s !== ".");
-}
-function roleOf(i) {
-  const base = baseOf(i.path);
-  const parsed = parseName(base);
-  if (parsed.kind === "file") return i.hasSidecar ? "source" : "artifact";
-  if (parsed.sidecarOf !== void 0) return "sidecar";
-  const lower = base.toLowerCase();
-  if (lower === ENTRYPOINT_FILENAME.toLowerCase()) return "entrypoint";
-  if (lower === SPEC_FILENAME.toLowerCase()) return "spec";
-  const bp = NON_KNOWLEDGE_BLUEPRINT_RE.exec((i.parentSpecName ?? "").trim())?.[1].toLowerCase();
-  switch (bp) {
-    case "cognnitive":
-      return "lineage-record";
-    case "sidecar":
-      return "sidecar";
-    case "procedures":
-      return parsed.stem.toLowerCase() === "procedures" ? "catalog" : "procedure";
-    case "workspace":
-    case "sources":
-    case "artifacts":
-      return "catalog";
-    default:
-      return "knowledge";
-  }
-}
-function isExcludedPath(path2) {
-  const segs = segmentsOf(path2);
-  if (segs.length > 0 && IGNORED_DIRECTORIES.has(segs[0])) return true;
-  return segs.some((s) => s === "staging" || s.startsWith(".") && s !== "..");
-}
-function familyOf(path2) {
-  const normalized = path2.replace(/\\/g, "/");
-  const parsed = parseName(baseOf(normalized));
-  if (parsed.kind !== "file") return null;
-  const slash = normalized.lastIndexOf("/");
-  return { dir: slash < 0 ? "" : normalized.slice(0, slash), key: parsed.key, ext: parsed.ext };
-}
-function compareMembers(a, b) {
-  const pa = parseName(baseOf(a));
-  const pb = parseName(baseOf(b));
-  const sa = pa.kind === "file" ? pa.stamp : void 0;
-  const sb = pb.kind === "file" ? pb.stamp : void 0;
-  if (!sa && !sb) return 0;
-  if (!sa) return -1;
-  if (!sb) return 1;
-  if (sa.stamp !== sb.stamp) return sa.stamp < sb.stamp ? -1 : 1;
-  return sa.seq - sb.seq;
-}
-var pad = (n, width = 2) => String(n).padStart(width, "0");
-function formatUtcStamp(at) {
-  return `${pad(at.getUTCFullYear(), 4)}${pad(at.getUTCMonth() + 1)}${pad(at.getUTCDate())}T${pad(at.getUTCHours())}${pad(at.getUTCMinutes())}${pad(at.getUTCSeconds())}Z`;
-}
-function nextStamp(at, latest) {
-  const now = formatUtcStamp(at);
-  if (!latest || latest.stamp < now) return { stamp: now, seq: 1 };
-  return { stamp: latest.stamp, seq: latest.seq + 1 };
-}
-var WIN32_PATH_LIMIT = 259;
-function checkPathBudget(absPath, platform) {
-  if (platform === "win32" && absPath.length > WIN32_PATH_LIMIT) {
-    return { ok: false, limit: WIN32_PATH_LIMIT, length: absPath.length };
-  }
-  return { ok: true };
 }
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
@@ -9688,8 +9712,10 @@ function checkPathBudget(absPath, platform) {
   formatUtcStamp,
   headingSlugParts,
   isExcludedPath,
+  isModelCandidate,
   nextStamp,
   normalizeName,
+  parentSpecNameOf,
   parseCitation,
   parseName,
   procedureIdOf,

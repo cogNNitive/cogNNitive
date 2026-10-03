@@ -7,6 +7,7 @@ import { readFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { basename, join, relative } from 'node:path'
 import {
+  displayStem,
   buildConsolePayload,
   createFsSourceResolver,
   serializeConsoleSlot,
@@ -55,7 +56,7 @@ export async function buildConsolePayloadTool(
   }
 
   const content = await readFile(modelPath, 'utf-8')
-  const stem = basename(modelPath).replace(/(_NN)?\.md$/i, '')
+  const stem = displayStem(basename(modelPath))
   const relPath = relative(rootDir, modelPath).replace(/\\/g, '/')
 
   const warnings: string[] = []

@@ -61,4 +61,24 @@ describe('readLineageSnapshot', () => {
     const interview = snapshots.find((s) => s.path === 'sources/nn/interview.md')
     expect(interview?.content).toContain('# Notes')
   })
+
+  it('never snapshots a seeded sidecar or a catalog document as knowledge', () => {
+    const sidecar = '---\nlevel: 3\nparent_spec:\n  name: business\n---\n'
+    const filesToCreate: Record<string, string> = {
+      'kNNowledge/Strategy_NN.md': '---\ntitle: Strategy\n---\n# Strategy',
+      'kNNowledge/report.pdf_sidecar_NN.md': sidecar,
+      'kNNowledge/sources_NN.md': '---\nparent_spec:\n  name: sources\n---\n',
+      'sources/nn/prices.csv_sidecar_NN.md': sidecar,
+      'export/Report.md_sidecar_NN.md': sidecar,
+    }
+    for (const [relPath, content] of Object.entries(filesToCreate)) {
+      const fullPath = path.join(tempDir, relPath)
+      fs.mkdirSync(path.dirname(fullPath), { recursive: true })
+      fs.writeFileSync(fullPath, content, 'utf8')
+    }
+
+    const paths = readLineageSnapshot(tempDir).map((s) => s.path)
+
+    expect(paths).toEqual(['kNNowledge/Strategy_NN.md'])
+  })
 })
