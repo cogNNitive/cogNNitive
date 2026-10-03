@@ -48,6 +48,24 @@ describe('workspace_hub.html (Workspace Console Hub)', () => {
     expect(html).toContain('compile_business_console_NN.md')
     expect(html).toContain('compile_workspace_hub_NN.md')
   })
+
+  it('maps every procedure under the bluepriNNts root (no dead specs/templates routes)', () => {
+    const html = readHub()
+    expect(html).not.toContain('iNNfo/specs/templates/')
+    expect(html).toContain('iNNfo/specs/bluepriNNts/')
+  })
+
+  it('resolves its accent from the host token with a standalone fallback', () => {
+    const html = readHub()
+    expect(html).toContain('var(--nn-accent')
+    expect(html).toContain('var(--nn-accent-foreground')
+  })
+
+  it('does not hard-code the brand accent on the primary actions', () => {
+    const html = readHub()
+    expect(html).not.toContain('bg-indigo-600')
+    expect(html).not.toContain('bg-blue-600 hover:bg-blue-500')
+  })
 })
 
 describe('compile_workspace_hub_NN.md (Procedure Spec)', () => {
