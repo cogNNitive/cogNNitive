@@ -130,7 +130,7 @@ function parseArgs(argv) {
   return args
 }
 
-/** Recursively find every `*_NN.md` file under `dir`, skipping heavy dirs. */
+/** Recursively find every non-sidecar `*_NN.md` file under `dir`, skipping heavy dirs. */
 async function findModelFiles(dir) {
   const out = []
   const skip = new Set(['node_modules', '.git', '.cogNNitive', 'export', 'dist', 'docs'])
@@ -144,7 +144,7 @@ async function findModelFiles(dir) {
     for (const e of entries) {
       if (e.isDirectory()) {
         if (!skip.has(e.name)) await walk(join(d, e.name))
-      } else if (e.isFile() && /_NN\.md$/i.test(e.name)) {
+      } else if (e.isFile() && payloadHelper.isNNName(e.name) && !payloadHelper.isSidecarName(e.name)) {
         out.push(join(d, e.name))
       }
     }
@@ -170,6 +170,13 @@ function frontmatterOf(content) {
     if (m) out[m[1]] = m[2].replace(/^"|"$/g, '').trim()
   }
   return out
+}
+
+/** A model is an `_NN.md` document of role `knowledge` outside every excluded path. */
+function isModelDocument(relPath, content) {
+  if (payloadHelper.isExcludedPath(relPath)) return false
+  const parentSpecName = payloadHelper.parentSpecNameOf(frontmatterOf(content))
+  return payloadHelper.roleOf({ path: relPath, parentSpecName }) === 'knowledge'
 }
 
 function isLevel3(content) {
@@ -305,8 +312,8 @@ async function main() {
   const models = []
   for (const f of await findModelFiles(root)) {
     const content = await readFile(f, 'utf-8')
-    if (isLevel3(content)) {
-      const stem = basename(f).replace(/(_NN)?\.md$/i, '')
+    if (isModelDocument(relative(root, f).replace(/\\/g, '/'), content) && isLevel3(content)) {
+      const stem = payloadHelper.displayStem(basename(f))
       models.push({
         filePath: f,
         name: stem,

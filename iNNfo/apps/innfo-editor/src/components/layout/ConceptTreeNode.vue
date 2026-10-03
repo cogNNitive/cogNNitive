@@ -331,7 +331,7 @@ function isModelFieldEntry(key: string, fieldVal: string, conceptDef: any, nType
   }
 
   const cleanVal = normalizeModelPath(fieldVal)
-  if (cleanVal.endsWith('.md') || cleanVal.endsWith('_NN.md') || cleanVal.includes('_V_')) {
+  if (cleanVal.endsWith('.md') || cleanVal.includes('_V_')) {
     return true
   }
 

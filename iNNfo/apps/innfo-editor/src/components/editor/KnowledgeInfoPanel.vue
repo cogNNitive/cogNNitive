@@ -477,6 +477,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { ensureNNFilename } from '@cognnitive/innfo-core'
 import { useWorkspaceStore } from '../../stores/workspaceStore'
 import { useKnowledgeStore } from '../../stores/knowledgeStore'
 import { useUiStore } from '../../stores/uiStore'
@@ -669,7 +670,7 @@ const specFileName = computed(() => {
 const templateFileName = computed(() => {
   const name = fullBlueprintName.value
   if (!name) return ''
-  return name.endsWith('_NN') ? `${name}.md` : `${name}_NN.md`
+  return ensureNNFilename(name)
 })
 
 const templateRemoteUrl = computed(() => {

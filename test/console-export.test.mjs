@@ -293,6 +293,24 @@ level: 3
     }
   })
 
+  it('never lists a seeded sidecar, staging file, or lineage record as a model', async () => {
+    const doc = (parent) => `---\ntitle: "X"\nlevel: 3\nparent_spec:\n  name: "${parent}"\n---\n\n# NN Item\n`
+    await mkdir(join(tempDir, 'sources', 'import'), { recursive: true })
+    await mkdir(join(tempDir, 'staging'), { recursive: true })
+    await writeFile(join(tempDir, 'sources', 'import', 'report.pdf_sidecar_NN.md'), doc('sidecar'), 'utf-8')
+    await writeFile(join(tempDir, 'sources', 'import', 'prices.csv_sidecar_NN.md'), doc('business_V_0-2-0'), 'utf-8')
+    await writeFile(join(tempDir, 'staging', 'Draft_business_NN.md'), doc('business_V_0-2-0'), 'utf-8')
+    await writeFile(join(tempDir, 'Acme_cogNNitive_NN.md'), doc('cogNNitive'), 'utf-8')
+
+    const res = await runCli([tempDir, '--list'])
+    assert.equal(res.code, 0)
+    assert.match(res.stdout, /models\/business_V_1-0-0_NN\.md/)
+    assert.doesNotMatch(res.stdout, /sidecar/)
+    assert.doesNotMatch(res.stdout, /staging/)
+    assert.doesNotMatch(res.stdout, /cogNNitive/)
+    assert.match(res.stdout, /\(1 models\)/)
+  })
+
   it('prints stderr WARNING when parent_spec is not found at Tier 1', async () => {
     const modelWithParentSpec = `---
 title: "Parent Spec Test Model"

@@ -6,7 +6,13 @@ import {
   formatVersionString,
 } from '../utils/version'
 import { buildSpecificationUrl } from '../utils/constants'
-import { parseFrontmatter, parseKnowledge, serializeKnowledge, mergeKnowledge } from '@cognnitive/innfo-core'
+import {
+  parseFrontmatter,
+  parseKnowledge,
+  serializeKnowledge,
+  mergeKnowledge,
+  ensureNNFilename,
+} from '@cognnitive/innfo-core'
 import { reconcileWorkspaceManifest } from './WorkspaceSyncService'
 import type { DirectoryHandleLike, FileHandleLike } from '../model/fs-types'
 import type { BumpLevel } from '../utils/version'
@@ -264,7 +270,7 @@ export async function saveActiveFile(
   for (const [id, node] of Object.entries(knowledgeStore.nodes)) {
     if (id.startsWith('spec:') && node.rawContent) {
       const specName = node.name || id.substring(5)
-      const filename = specName.endsWith('_NN') ? `${specName}.md` : `${specName}_NN.md`
+      const filename = ensureNNFilename(specName)
       const alreadyPresent = await specsDir
         .getFileHandle(filename)
         .then(() => true)

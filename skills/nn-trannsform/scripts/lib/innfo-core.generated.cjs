@@ -7377,6 +7377,7 @@ __export(trannsformPrimitives_exports, {
   compareMembers: () => compareMembers,
   createFsSourceResolver: () => createFsSourceResolver,
   displayStem: () => displayStem,
+  ensureNNFilename: () => ensureNNFilename,
   extractFileCitations: () => extractFileCitations,
   extractHeadings: () => extractHeadings,
   familyOf: () => familyOf,
@@ -7386,6 +7387,8 @@ __export(trannsformPrimitives_exports, {
   headingSlugParts: () => headingSlugParts,
   isExcludedPath: () => isExcludedPath,
   isModelCandidate: () => isModelCandidate,
+  isNNName: () => isNNName,
+  isSidecarName: () => isSidecarName,
   nextStamp: () => nextStamp,
   normalizeName: () => normalizeName,
   parentSpecNameOf: () => parentSpecNameOf,
@@ -8790,6 +8793,16 @@ function isModelCandidate(f) {
   if (parseName(baseOf(f.path)).kind !== "nn") return false;
   return roleOf({ path: f.path, parentSpecName: parentSpecNameOf(f.frontmatter) }) === "knowledge";
 }
+function isNNName(nameOrPath) {
+  return NN_SUFFIX_RE.test(baseOf(nameOrPath));
+}
+function isSidecarName(nameOrPath) {
+  return SIDECAR_PATH_RE.test(nameOrPath);
+}
+function ensureNNFilename(name) {
+  if (NN_SUFFIX_RE.test(name)) return name;
+  return /_NN$/i.test(name) ? `${name}.md` : `${name}_NN.md`;
+}
 
 // iNNfo/packages/innfo-core/src/lineage/project.ts
 var SOURCE_FORMAT_OPTIONS = /* @__PURE__ */ new Set(["txt", "md", "csv", "json", "docx", "pdf", "xlsx"]);
@@ -9579,10 +9592,6 @@ function renderLineageSections(p) {
 // iNNfo/packages/innfo-core/src/lineage/fs-snapshot.ts
 var fs = __toESM(require("node:fs"), 1);
 var path = __toESM(require("node:path"), 1);
-function isSidecarName(name) {
-  const parsed = parseName(name);
-  return parsed.kind === "nn" && parsed.sidecarOf !== void 0;
-}
 function walkDir(dir, filter, baseDir = dir) {
   if (!fs.existsSync(dir)) return [];
   const results = [];
@@ -9659,7 +9668,7 @@ function readLineageSnapshot(root) {
   if (fs.existsSync(knowledgeDir)) {
     const rels = walkDir(knowledgeDir, (_, name, isDir) => {
       if (isDir) return true;
-      return parseName(name).kind === "nn" && !isSidecarName(name);
+      return isNNName(name) && !isSidecarName(name);
     });
     for (const rel of rels) {
       const full = path.join(knowledgeDir, rel);
@@ -9704,6 +9713,7 @@ function readLineageSnapshot(root) {
   compareMembers,
   createFsSourceResolver,
   displayStem,
+  ensureNNFilename,
   extractFileCitations,
   extractHeadings,
   familyOf,
@@ -9713,6 +9723,8 @@ function readLineageSnapshot(root) {
   headingSlugParts,
   isExcludedPath,
   isModelCandidate,
+  isNNName,
+  isSidecarName,
   nextStamp,
   normalizeName,
   parentSpecNameOf,

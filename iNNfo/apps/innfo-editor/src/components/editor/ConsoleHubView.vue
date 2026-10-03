@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { displayStem, roleOf } from '@cognnitive/innfo-core'
 import { useKnowledgeStore } from '../../stores/knowledgeStore'
 import { useWorkspaceStore } from '../../stores/workspaceStore'
 import { useUiStore } from '../../stores/uiStore'
@@ -60,7 +61,7 @@ const discoveredModels = computed(() => {
       }
 
       const sourcePath = (node.source?.path || '').toLowerCase()
-      if (sourcePath.endsWith('domaiNN_NN.md') || sourcePath.endsWith('index.md')) {
+      if (roleOf({ path: sourcePath }) === 'entrypoint' || sourcePath.endsWith('index.md')) {
         return false
       }
 
@@ -72,7 +73,7 @@ const discoveredModels = computed(() => {
         (typeof node?.fields?.['title']?.value === 'string' ? node.fields['title'].value : null) ||
         (typeof node?.fields?.['name']?.value === 'string' ? node.fields['name'].value : null)
       const fileBasename = node?.source?.path
-        ? node.source.path.split('/').pop()?.replace(/_NN\.md$/i, '')
+        ? displayStem(node.source.path.split('/').pop() ?? '')
         : null
       const name = rawTitle || fileBasename || node?.name || rootId
 
@@ -189,7 +190,7 @@ function getCandidatePaths(target: string): string[] {
   const modelName = model.name
   const modelSlug = normalizeSlug(modelName)
   const sourceBasename = model.sourcePath
-    ? model.sourcePath.split('/').pop()?.replace(/_NN\.md$/i, '') || ''
+    ? displayStem(model.sourcePath.split('/').pop() ?? '')
     : ''
   const sourceSlug = normalizeSlug(sourceBasename)
 

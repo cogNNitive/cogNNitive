@@ -7,13 +7,7 @@ import * as fs from 'node:fs'
 import * as path from 'node:path'
 import { parseKnowledge } from '../parser/core.js'
 import type { FileSnapshot } from '../queryUnits.js'
-import { parseName, roleOf } from '../naming/contract.js'
-
-/** Sidecars represent their subject; they are never snapshotted as files of their own. */
-function isSidecarName(name: string): boolean {
-  const parsed = parseName(name)
-  return parsed.kind === 'nn' && parsed.sidecarOf !== undefined
-}
+import { isNNName, isSidecarName, roleOf } from '../naming/contract.js'
 
 function walkDir(
   dir: string,
@@ -107,7 +101,7 @@ export function readLineageSnapshot(root: string): FileSnapshot[] {
   if (fs.existsSync(knowledgeDir)) {
     const rels = walkDir(knowledgeDir, (_, name, isDir) => {
       if (isDir) return true
-      return parseName(name).kind === 'nn' && !isSidecarName(name)
+      return isNNName(name) && !isSidecarName(name)
     })
     for (const rel of rels) {
       const full = path.join(knowledgeDir, rel)

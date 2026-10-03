@@ -1,4 +1,4 @@
-import { parseFrontmatter } from '@cognnitive/innfo-core'
+import { parseFrontmatter, displayStem, isNNName } from '@cognnitive/innfo-core'
 import type { KnowledgeNode } from '../model/types'
 
 /**
@@ -18,7 +18,7 @@ export function isBlueprintNode(node: KnowledgeNode | undefined): boolean {
     }
   }
   const pathOrName = node.source?.path || node.name || ''
-  if (/_template_NN\.md$/i.test(pathOrName) || /_spec_NN\.md$/i.test(pathOrName)) return true
+  if (isNNName(pathOrName) && /_(template|spec)$/i.test(displayStem(pathOrName))) return true
   return false
 }
 
@@ -106,14 +106,8 @@ export function findMatchingKnowledgeNode(
  * (deep-link workspace resolution).
  */
 export function modelStemMatches(fileName: string, modelId: string): boolean {
-  const fileStem = fileName
-    .replace(/_NN\.md$/i, '')
-    .replace(/\.md$/i, '')
-    .toLowerCase()
-  const target = extractModelBasename(modelId)
-    .replace(/_NN\.md$/i, '')
-    .replace(/\.md$/i, '')
-    .toLowerCase()
+  const fileStem = displayStem(fileName).toLowerCase()
+  const target = displayStem(extractModelBasename(modelId)).toLowerCase()
   if (!fileStem || !target) return false
   if (fileStem === target) return true
   return fileStem.endsWith(`_${target}`)

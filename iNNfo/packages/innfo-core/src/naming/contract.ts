@@ -231,3 +231,19 @@ export function isModelCandidate(f: { path: string; frontmatter: Record<string, 
   if (parseName(baseOf(f.path)).kind !== 'nn') return false
   return roleOf({ path: f.path, parentSpecName: parentSpecNameOf(f.frontmatter) }) === 'knowledge'
 }
+
+/** True for any `_NN.md` document name (sidecars included); reads the basename of a path. */
+export function isNNName(nameOrPath: string): boolean {
+  return NN_SUFFIX_RE.test(baseOf(nameOrPath))
+}
+
+/** True for a `<file>.<ext>_sidecar_NN.md` name or path. */
+export function isSidecarName(nameOrPath: string): boolean {
+  return SIDECAR_PATH_RE.test(nameOrPath)
+}
+
+/** Completes a bare name, or one ending in `_NN`, into a `_NN.md` filename. */
+export function ensureNNFilename(name: string): string {
+  if (NN_SUFFIX_RE.test(name)) return name
+  return /_NN$/i.test(name) ? `${name}.md` : `${name}_NN.md`
+}
