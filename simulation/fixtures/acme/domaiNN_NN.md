@@ -14,7 +14,7 @@ title: "Acme Simulation Workspace"
 
 ## NN Workspace: Acme Simulation Workspace
 knowledge_dir:: kNNowledge/
-sources_dir:: sources/nn/
+sources_dir:: sources/
 Synthetic workspace used by the simulation to exercise source ingestion, citation traceability and model mutation end to end.
 
 # NN Models

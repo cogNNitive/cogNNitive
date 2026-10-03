@@ -6,7 +6,7 @@ parent_spec:
 knowledge_version: "V_0-1-0"
 title: "Executive Remediation Report 1984"
 prov:wasGeneratedBy: "procedures/compile_workspace_hub_NN.md"
-prov:wasDerivedFrom: "sources/nn/nyc-paranormal-activity-report-1984.md"
+prov:wasDerivedFrom: "sources/import/nyc-paranormal-activity-report-1984.md"
 prov:generatedAtTime: "1984-12-01T10:00:00Z"
 prov:wasAttributedTo: "Peter Venkman"
 ---

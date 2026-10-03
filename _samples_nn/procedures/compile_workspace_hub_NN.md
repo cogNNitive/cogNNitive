@@ -46,7 +46,7 @@ output:: [[Aggregated Console Registry]]
 output_status:: verified
 tool:: [[AI Agent]]
 scope:: internal
-Inspect `artifacts/` or `export/` to map existing generated canonical consoles (`*_console.html`) to their respective models, detecting active vs pending artifact status.
+Inspect `artifacts/` to map existing generated canonical consoles (`*_console.html`) to their respective models, detecting active vs pending artifact status.
 
 ## NN Work: Generate Hub Document
 parent:: [[Compile Workspace Hub]]
