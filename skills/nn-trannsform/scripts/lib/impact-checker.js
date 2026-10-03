@@ -1,18 +1,76 @@
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const {
   readLineageSnapshot,
   projectLineage,
+  extractFileCitations,
   createFsSourceResolver,
   validateCitations,
   parseCitation,
   parseName,
   compareMembers,
+  familyOf,
+  formatMemberName,
+  isSidecarName,
+  rawPathOfSidecar,
+  sidecarPathOf,
+  parseSidecarFrontmatter,
 } = require('./innfo-core.generated.cjs');
+
+const toPosix = (p) => p.replace(/\\/g, '/');
+
+/**
+ * Every citation site of the projection: kNNowledge bodies, artifact
+ * frontmatter, console meta, and the sidecars/sources that declare upstream.
+ *
+ * @param {Array<{ path: string, content: string }>} snapshot
+ * @param {ReturnType<typeof projectLineage>} projection
+ */
+function collectCitationSites(snapshot, projection) {
+  const sites = [];
+  for (const k of projection.knowledge) sites.push(...k.citations);
+  for (const a of projection.artifacts) sites.push(...a.citations);
+  for (const s of extractFileCitations(snapshot)) {
+    if (!sites.some((e) => e.referringPath === s.referringPath && e.value === s.value && e.element === s.element && e.field === s.field)) {
+      sites.push(s);
+    }
+  }
+  return sites;
+}
+
+/**
+ * The hash guard: workspace-relative files whose co-located sidecar records a
+ * sha256 that no longer matches the raw bytes. A cited sidecar is checked
+ * against its subject.
+ *
+ * @param {string} projectDir
+ * @param {Iterable<string>} relPaths
+ * @returns {string[]}
+ */
+function findStaleSources(projectDir, relPaths) {
+  const stale = [];
+  const seen = new Set();
+  for (const rel of relPaths) {
+    const subject = isSidecarName(rel) ? rawPathOfSidecar(rel) : rel;
+    if (!subject || seen.has(subject)) continue;
+    seen.add(subject);
+    const sidecarAbs = path.join(projectDir, sidecarPathOf(subject));
+    const rawAbs = path.join(projectDir, subject);
+    if (!fs.existsSync(sidecarAbs) || !fs.existsSync(rawAbs)) continue;
+    const recorded = parseSidecarFrontmatter(fs.readFileSync(sidecarAbs, 'utf8'));
+    const expected = recorded && recorded.sha256 ? String(recorded.sha256).toLowerCase() : '';
+    const actual = crypto.createHash('sha256').update(fs.readFileSync(rawAbs)).digest('hex');
+    if (expected && expected !== actual) stale.push(subject);
+  }
+  return stale;
+}
 
 /**
  * Audit all models in the workspace to verify that every `sources::` citation
- * resolves to an existing normalized source file AND an existing unit anchor.
+ * resolves to an existing source file AND an existing unit anchor. Anchor and
+ * row checks are core's (`validateCitations`); this module only maps them to
+ * reasons and adds the hash guard over the cited sources.
  *
  * @param {string} projectDir
  * @returns {{
@@ -63,7 +121,7 @@ function auditModelCitations(projectDir) {
     const rawVal = diag.site.value;
     const parsed = parseCitation(rawVal);
     const reason = CODE_TO_REASON[diag.code] || 'missing_heading';
-    const sourceFile = parsed ? parsed.filePath.replace(/^sources\/nn\//, '') : rawVal;
+    const sourceFile = parsed ? parsed.filePath : rawVal;
 
     let headingSlug = '';
     if (parsed && parsed.unit) {
@@ -102,6 +160,15 @@ function auditModelCitations(projectDir) {
     });
   }
 
+  const cited = new Set();
+  for (const site of sites) {
+    const parsed = parseCitation(site.value);
+    if (parsed) cited.add(toPosix(parsed.filePath));
+  }
+  for (const stale of findStaleSources(projectDir, cited)) {
+    warnings.push(`Cited source "${stale}" changed since it was cognitivized (hash mismatch with its sidecar sha256). Run \`--cognitivize\` on it before trusting this audit.`);
+  }
+
   const validCitations = totalCitations - driftedCitations.length;
 
   return {
@@ -132,45 +199,6 @@ function findClosestSlugs(targetSlug, availableSlugs) {
     .sort((a, b) => b.score - a.score)
     .slice(0, 3)
     .map((s) => s.slug);
-}
-
-/**
- * Check impact on models specifically for a set of recently modified/archived sources.
- *
- * @param {Array<{ baseName: string, displayOutPath: string, snapshot?: { version: string, archivePath: string } }>} changedSources
- * @param {string} projectDir
- * @returns {Array<{ source: string, affectedModels: Array<{ modelFile: string, element?: string, citation: string, status: string }> }>}
- */
-function checkScanImpact(changedSources, projectDir) {
-  if (!changedSources || changedSources.length === 0) return [];
-
-  const audit = auditModelCitations(projectDir);
-  const results = [];
-
-  for (const changed of changedSources) {
-    const matchName = changed.baseName.toLowerCase();
-    const matchPath = changed.displayOutPath.toLowerCase();
-
-    const affected = audit.driftedCitations.filter((dc) => {
-      const dcSource = dc.sourceFile.toLowerCase();
-      return dcSource === matchPath || dcSource === `${matchName}.md` || dcSource.endsWith(`/${matchName}.md`) || dcSource === matchName;
-    });
-
-    if (affected.length > 0) {
-      results.push({
-        source: changed.displayOutPath,
-        affectedModels: affected.map((a) => ({
-          modelFile: a.modelFile,
-          element: a.elementName,
-          citation: a.citation,
-          status: a.reason,
-          suggestions: a.suggestions,
-        })),
-      });
-    }
-  }
-
-  return results;
 }
 
 /**
@@ -233,7 +261,7 @@ function buildImpactReport(audit, date) {
       lines.push('| Field | Value |');
       lines.push('|-------|-------|');
       lines.push(`| Citation | \`${dc.citation}\` |`);
-      lines.push(`| Source file | \`sources/nn/${dc.sourceFile}\` |`);
+      lines.push(`| Source file | \`${dc.sourceFile}\` |`);
       lines.push(`| Heading slug | \`${dc.headingSlug || '(whole file)'}\` |`);
       lines.push(`| Status | \`${dc.reason}\` |`);
       if (dc.suggestions && dc.suggestions.length > 0) {
@@ -275,55 +303,59 @@ function writeImpactReport(projectDir, audit, date) {
   return { reportPath: reportPath.replace(/\\/g, '/'), content };
 }
 
+/** Canonical (unsuffixed) name of a family: `<dir>/<key>.<ext>`. */
+function familyName(family) {
+  const name = formatMemberName(family.key, family.ext);
+  return family.dir ? `${family.dir}/${name}` : name;
+}
+
 /**
- * Groups normalized Markdown source files under sources/nn/ into time-series families.
+ * Groups the files of the domaiNN into write-once families `(dir, key, ext)`:
+ * every plain file, plus the subject of every sidecar (binaries are not read
+ * as text but are represented by their sidecar). Members are ordered with the
+ * unsuffixed member first, then by stamp.
  *
  * @param {string} projectDir
+ * @param {{ snapshot?: Array<{ path: string }>, projection?: ReturnType<typeof projectLineage> }} [preloaded]
  * @returns {Record<string, Array<{ relPath: string, fullPath: string, fileName: string, timestamp: string }>>}
  */
-function groupSourceFamilies(projectDir) {
-  const nnDir = path.join(projectDir, 'sources', 'nn');
+function groupSourceFamilies(projectDir, preloaded = {}) {
+  const snapshot = preloaded.snapshot || readLineageSnapshot(projectDir);
+  const projection = preloaded.projection || projectLineage(snapshot);
+
+  const paths = new Set();
+  for (const file of snapshot) {
+    const parsed = parseName(path.posix.basename(toPosix(file.path)));
+    if (parsed.kind === 'file') paths.add(toPosix(file.path));
+  }
+  for (const source of projection.sources) paths.add(source.raw_filename);
+
   /** @type {Record<string, Array<{ relPath: string, fullPath: string, fileName: string, timestamp: string }>>} */
   const families = {};
-  if (!fs.existsSync(nnDir)) return families;
-
-  const walk = (d, rel) => {
-    for (const ent of fs.readdirSync(d, { withFileTypes: true })) {
-      if (ent.name.startsWith('.')) continue;
-      const abs = path.join(d, ent.name);
-      const relPath = rel ? `${rel}/${ent.name}` : ent.name;
-      if (ent.isDirectory()) walk(abs, relPath);
-      else if (ent.isFile() && ent.name.endsWith('.md')) {
-        const base = ent.name;
-        const parsed = parseName(base);
-        if (parsed.kind === 'file' && parsed.stamp) {
-          const stem = parsed.key;
-          const timestamp = parsed.stamp.stamp;
-          if (!families[stem]) {
-            families[stem] = [];
-          }
-          families[stem].push({
-            relPath: relPath.replace(/\\/g, '/'),
-            fullPath: abs.replace(/\\/g, '/'),
-            fileName: base,
-            timestamp,
-          });
-        }
-      }
-    }
-  };
-  walk(nnDir, '');
-
-  for (const stem of Object.keys(families)) {
-    families[stem].sort((a, b) => compareMembers(a.fileName, b.fileName));
+  for (const relPath of paths) {
+    const family = familyOf(relPath);
+    if (!family) continue;
+    const parsed = parseName(path.posix.basename(relPath));
+    const name = familyName(family);
+    (families[name] = families[name] || []).push({
+      relPath,
+      fullPath: toPosix(path.join(projectDir, relPath)),
+      fileName: path.posix.basename(relPath),
+      timestamp: parsed.kind === 'file' && parsed.stamp ? parsed.stamp.stamp : '',
+    });
   }
 
+  for (const members of Object.values(families)) {
+    members.sort((a, b) => compareMembers(a.fileName, b.fileName) || (a.fileName < b.fileName ? -1 : 1));
+  }
   return families;
 }
 
 /**
- * Detects models that cite an earlier snapshot when a newer timestamped snapshot
- * in the same source family is available.
+ * Detects citations that target an older member of a write-once family when a
+ * newer member exists. Whether the cited unit still resolves in the latest
+ * member is decided by core: the same citation is re-validated against the
+ * latest member's path. Read-only: no family member is ever changed.
  *
  * @param {string} projectDir
  * @returns {Array<{
@@ -333,69 +365,107 @@ function groupSourceFamilies(projectDir) {
  *   family: string,
  *   currentSnapshot: string,
  *   latestSnapshot: string,
+ *   latestPath: string,
  *   headingSlug?: string,
  *   headingPreserved: boolean,
+ *   diagnostics: string[],
+ *   latestStale: boolean,
  *   advisory: string
  * }>}
  */
 function detectSourceFamilyEvolution(projectDir) {
-  const families = groupSourceFamilies(projectDir);
+  const snapshot = readLineageSnapshot(projectDir);
+  const projection = projectLineage(snapshot);
+  const families = groupSourceFamilies(projectDir, { snapshot, projection });
   const evolutions = [];
 
-  if (Object.keys(families).length === 0) {
+  if (Object.values(families).every((members) => members.length <= 1)) {
     return evolutions;
   }
 
-  const snapshot = readLineageSnapshot(projectDir);
-  const projection = projectLineage(snapshot);
+  const byPath = new Map();
+  for (const [name, members] of Object.entries(families)) {
+    for (const m of members) byPath.set(m.relPath, { name, members });
+  }
+
   const resolver = createFsSourceResolver(projectDir);
+  const sites = collectCitationSites(snapshot, projection);
 
-  for (const k of projection.knowledge) {
-    for (const cit of k.citations) {
-      const parsed = parseCitation(cit.value);
-      if (!parsed) continue;
+  for (const site of sites) {
+    const parsed = parseCitation(site.value);
+    if (!parsed) continue;
 
-      const baseFile = path.basename(parsed.filePath);
-      const citedName = parseName(baseFile);
-      if (citedName.kind !== 'file' || !citedName.stamp) continue;
+    const citedPath = toPosix(parsed.filePath);
+    const viaSidecar = isSidecarName(citedPath);
+    const subject = viaSidecar ? rawPathOfSidecar(citedPath) : citedPath;
+    const entry = subject ? byPath.get(subject) : undefined;
+    if (!entry || entry.members.length < 2) continue;
 
-      const stem = citedName.key;
-      const snapshots = families[stem];
-      if (!snapshots || snapshots.length <= 1) continue;
+    const citedName = path.posix.basename(subject);
+    const latest = entry.members[entry.members.length - 1];
+    if (compareMembers(latest.fileName, citedName) <= 0) continue;
 
-      const latest = snapshots[snapshots.length - 1];
-      if (compareMembers(latest.fileName, baseFile) > 0) {
-        let headingPreserved = true;
-        let slugPart = '';
-        if (parsed.unit && parsed.unit.kind === 'header') {
-          slugPart = parsed.unit.slug;
-          const targetPath = latest.relPath.startsWith('sources/nn/') ? latest.relPath : `sources/nn/${latest.relPath}`;
-          const res = resolver(targetPath);
-          if (res && res.exists && res.headings) {
-            headingPreserved = res.headings.includes(slugPart);
-          } else {
-            headingPreserved = false;
-          }
-        }
-
-        evolutions.push({
-          modelFile: cit.referringPath,
-          elementName: cit.element,
-          citation: cit.value,
-          family: stem,
-          currentSnapshot: baseFile,
-          latestSnapshot: latest.fileName,
-          headingSlug: slugPart || undefined,
-          headingPreserved,
-          advisory: `Model cites previous snapshot "${baseFile}". Newer snapshot "${latest.fileName}" is available${
-            slugPart ? (headingPreserved ? ' (heading preserved)' : ' (heading missing in newer snapshot)') : ''
-          }.`,
-        });
-      }
+    const latestPath = viaSidecar ? sidecarPathOf(latest.relPath) : latest.relPath;
+    let diagnostics = [];
+    if (parsed.unit && site.value.startsWith(parsed.filePath)) {
+      const rewritten = `${latestPath}${site.value.slice(parsed.filePath.length)}`;
+      diagnostics = validateCitations([{ ...site, value: rewritten }], resolver).map((d) => d.message);
     }
+    const headingPreserved = diagnostics.length === 0;
+    const latestStale = findStaleSources(projectDir, [latest.relPath]).length > 0;
+
+    let slugPart = '';
+    if (parsed.unit && parsed.unit.kind === 'header') slugPart = parsed.unit.slug;
+
+    evolutions.push({
+      modelFile: site.referringPath,
+      elementName: site.element,
+      citation: site.value,
+      family: entry.name,
+      currentSnapshot: citedName,
+      latestSnapshot: latest.fileName,
+      latestPath,
+      headingSlug: slugPart || undefined,
+      headingPreserved,
+      diagnostics,
+      latestStale,
+      advisory:
+        `Citation targets "${citedName}". Newer member "${latest.fileName}" is available` +
+        (parsed.unit ? (headingPreserved ? ' (cited unit still resolves)' : ' (cited unit does not resolve in the latest member)') : '') +
+        (latestStale ? '; its sidecar hash is stale, cognitivize it again before trusting this check' : '') +
+        '.',
+    });
   }
 
   return evolutions;
+}
+
+/**
+ * Impact of newer family members on the citations that still target older ones.
+ * Superseded citations are listed; those whose cited unit no longer resolves in
+ * the latest member are flagged `unresolved_in_latest` (a warning).
+ *
+ * @param {string} projectDir
+ * @param {{ families?: string[] }} [options] Restrict to these family names (`<dir>/<key>.<ext>`).
+ * @returns {Array<{ source: string, latest: string, affectedModels: Array<{ modelFile: string, element?: string, citation: string, status: 'superseded' | 'unresolved_in_latest', message: string }> }>}
+ */
+function checkScanImpact(projectDir, options = {}) {
+  const wanted = options.families ? new Set(options.families) : null;
+  const byFamily = new Map();
+
+  for (const evo of detectSourceFamilyEvolution(projectDir)) {
+    if (wanted && !wanted.has(evo.family)) continue;
+    if (!byFamily.has(evo.family)) byFamily.set(evo.family, { source: evo.family, latest: evo.latestPath, affectedModels: [] });
+    byFamily.get(evo.family).affectedModels.push({
+      modelFile: evo.modelFile,
+      element: evo.elementName,
+      citation: evo.citation,
+      status: evo.headingPreserved ? 'superseded' : 'unresolved_in_latest',
+      message: evo.advisory,
+    });
+  }
+
+  return [...byFamily.values()].sort((a, b) => (a.source < b.source ? -1 : a.source > b.source ? 1 : 0));
 }
 
 module.exports = {
@@ -406,4 +476,6 @@ module.exports = {
   writeImpactReport,
   groupSourceFamilies,
   detectSourceFamilyEvolution,
+  collectCitationSites,
+  findStaleSources,
 };

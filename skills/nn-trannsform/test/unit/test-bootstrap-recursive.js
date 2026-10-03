@@ -71,8 +71,6 @@ async function runAsync() {
       'conversations',
       path.join('sources', 'import'),
       path.join('sources', 'conversations'),
-      path.join('sources', 'export'),
-      path.join('sources', 'nn'),
     ]) {
       check(
         fs.existsSync(path.join(destParent, 'Proj', d)),
@@ -80,6 +78,24 @@ async function runAsync() {
       );
     }
     check(!fs.existsSync(path.join(destParent, 'Proj', 'export')), 'retired export/ not created');
+    for (const retired of ['nn', 'export', 'original', 'archive']) {
+      check(!fs.existsSync(path.join(destParent, 'Proj', 'sources', retired)), 'retired sources/' + retired + '/ not created');
+    }
+    const entrypoint = fs.readFileSync(path.join(destParent, 'Proj', 'domaiNN_NN.md'), 'utf8');
+    check(/sources_dir:: sources\/\n/.test(entrypoint), 'entrypoint sources_dir:: names sources/');
+    check(
+      !/sources\/nn/.test(entrypoint) && !/sources\/nn/.test(require('../../scripts/lib/bootstrap').generateAgentsMd('Proj')),
+      'no sources/nn reference is written',
+    );
+    // The README of a project named "trannsform" is the only other text bootstrap writes.
+    const readmeDest = fs.mkdtempSync(path.join(os.tmpdir(), 'nnt-bootstrap-readme-'));
+    try {
+      require('../../scripts/lib/bootstrap').bootstrapProject(null, readmeDest, 'trannsform');
+      const readme = fs.readFileSync(path.join(readmeDest, 'trannsform', 'README.md'), 'utf8');
+      check(!/sources\/nn/.test(readme) && /cognitivize/.test(readme), 'README describes in-place cognitivizing, not a sources/nn mirror');
+    } finally {
+      fs.rmSync(readmeDest, { recursive: true, force: true });
+    }
     check(!fs.existsSync(path.join(destParent, 'Proj', 'sources', 'original')), 'deprecated sources/original/ not created');
     check(fs.existsSync(result.provModelPath), 'provenance model initialized');
     check(fs.existsSync(path.join(destParent, 'Proj', 'domaiNN_NN.md')), 'domaiNN_NN.md entrypoint created');

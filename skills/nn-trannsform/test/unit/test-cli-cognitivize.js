@@ -113,6 +113,47 @@ async function run() {
     }
   });
 
+  await it('--scan runs the family impact check: superseded and unresolved citations are reported', () => {
+    const root = tmp();
+    try {
+      put(root, 'sources/import/strategy_20261001T090000Z.md', '# S\n\n## Vision\nv\n\n## Risks\nr\n');
+      put(root, 'sources/import/strategy_20261002T101500Z.md', '# S\n\n## Vision\nv2\n');
+      put(
+        root,
+        'kNNowledge/Plan_business_NN.md',
+        '---\nlevel: 3\nparent_spec:\n  name: "business"\ntitle: "Plan"\n---\n# NN O\n## NN O: Vision\nsources:: [sources/import/strategy_20261001T090000Z.md@## Vision]\n\n## NN O: Risk\nsources:: [sources/import/strategy_20261001T090000Z.md@## Risks]\n',
+      );
+      const res = cli(['--src', root, '--scan']);
+      assert.strictEqual(res.status, 0, res.stderr + res.stdout);
+      const out = res.stdout + res.stderr;
+      assert.ok(/IMPACT WARNING/.test(out), `an unresolved unit is a warning: ${out}`);
+      assert.ok(/Plan_business_NN\.md/.test(out) && /Risk/.test(out), 'the warning names the citing file and element');
+      assert.ok(/superseded/i.test(out), 'the surviving citation is listed as superseded');
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  await it('--unlink removes a raw file together with its sidecar and leaves no orphan', () => {
+    const root = tmp();
+    try {
+      put(root, 'sources/import/old.md', '# Old\n');
+      put(root, 'sources/import/keep.md', '# Keep\n');
+      assert.strictEqual(cli(['--src', root, '--scan']).status, 0);
+      assert.ok(fs.existsSync(path.join(root, 'sources/import/old.md_sidecar_NN.md')));
+
+      const res = cli(['--src', root, '--unlink', 'sources/import/old.md']);
+      assert.strictEqual(res.status, 0, res.stderr + res.stdout);
+      assert.ok(!fs.existsSync(path.join(root, 'sources/import/old.md')), 'raw file removed');
+      assert.ok(!fs.existsSync(path.join(root, 'sources/import/old.md_sidecar_NN.md')), 'its sidecar is removed with it');
+      assert.ok(fs.existsSync(path.join(root, 'sources/import/keep.md')), 'other sources untouched');
+      assert.ok(fs.existsSync(path.join(root, 'sources/import/keep.md_sidecar_NN.md')), 'other sidecars untouched');
+      assert.ok(!/Orphaned sidecar/.test(res.stdout + res.stderr), 'no orphaned sidecar is reported afterwards');
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   await it('--flat is gone: the CLI source no longer reads it and --scan ignores it', () => {
     const src = fs.readFileSync(INDEX, 'utf8');
     assert.ok(!/argv\.flat|preserve-layout/.test(src), 'index.js still reads --flat');

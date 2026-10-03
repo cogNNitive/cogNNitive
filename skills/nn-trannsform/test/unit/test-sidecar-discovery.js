@@ -83,13 +83,13 @@ async function run() {
   });
 
   it('source families ignore sidecars next to stamped files', (root) => {
-    write(root, 'sources/nn/q_20260901T100000Z.md', '# One\n');
-    write(root, 'sources/nn/q_20260915T120000Z.md', '# Two\n');
-    write(root, 'sources/nn/q_20260915T120000Z.md_sidecar_NN.md', SIDECAR);
+    write(root, 'sources/import/q_20260901T100000Z.md', '# One\n');
+    write(root, 'sources/import/q_20260915T120000Z.md', '# Two\n');
+    write(root, 'sources/import/q_20260915T120000Z.md_sidecar_NN.md', SIDECAR);
     const families = groupSourceFamilies(root);
-    assert.deepStrictEqual(Object.keys(families), ['q']);
+    assert.deepStrictEqual(Object.keys(families), ['sources/import/q.md']);
     assert.deepStrictEqual(
-      families.q.map((m) => m.fileName),
+      families['sources/import/q.md'].map((m) => m.fileName),
       ['q_20260901T100000Z.md', 'q_20260915T120000Z.md'],
     );
   });

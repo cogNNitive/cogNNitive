@@ -10,8 +10,6 @@ const provenance = require('../provenance');
 const WORKSPACE_DIRS = [
   path.join('sources', 'import'),
   path.join('sources', 'conversations'),
-  path.join('sources', 'export'),
-  path.join('sources', 'nn'),
   'conversations',
   'artifacts',
   'kNNowledge',
@@ -40,7 +38,7 @@ const TRANNSFORM_README = `# Transform
 
 Transform (traNNsform) is a tool to structure and process unstructured documents:
 1. Place files in \`sources/import/\`.
-2. Scan and normalize to \`sources/nn/\`.
+2. Scan to cognitivize them in place (a co-located \`_sidecar_NN.md\` next to each file).
 3. Track lineage with \`<Project>_V_0-2-0_cogNNitive_NN.md\`.
 `;
 
@@ -127,7 +125,7 @@ function bootstrapProject(srcDir, destParentDir, projectName, options = {}) {
       `# NN Workspace\n\n` +
       `## NN Workspace: ${projectName} Workspace\n` +
       `knowledge_dir:: kNNowledge/\n` +
-      `sources_dir:: sources/nn/\n` +
+      `sources_dir:: sources/\n` +
       `Operational workspace for ${projectName}.\n`;
     fs.writeFileSync(domainnPath, domainnContent, 'utf8');
   }

@@ -87,13 +87,7 @@ async function cognitivizeItems(projectDir, files, options) {
     } else {
       skippedCount++;
     }
-    registry.push({
-      name: item.sourceFileField,
-      format: entry.format,
-      size: fs.statSync(item.absPath).size,
-      status: entry.status,
-      action: entry.action,
-    });
+    registry.push({ name: item.sourceFileField, format: entry.format, size: fs.statSync(item.absPath).size, status: entry.status, action: entry.action });
   }
 
   // Orphaned sidecars are reported, never deleted (Zero Unilateral Mutation).
@@ -102,14 +96,7 @@ async function cognitivizeItems(projectDir, files, options) {
     console.warn(`⚠️  Warning: Orphaned sidecar \`${orphan.sidecar}\` — raw file \`${orphan.sourceFile}\` no longer exists on disk. Preserved.`);
   }
 
-  return {
-    totalDiscovered: files.length,
-    processedCount,
-    skippedCount,
-    registry,
-    orphans,
-    refreshed,
-  };
+  return { totalDiscovered: files.length, processedCount, skippedCount, registry, orphans, refreshed };
 }
 
 /**

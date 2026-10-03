@@ -135,6 +135,11 @@ async function main() {
     totalPassed += impactCheckerResult.passed;
     totalFailed += impactCheckerResult.failed;
 
+    const transformerTest = require('./unit/test-transformer');
+    const transformerResult = await transformerTest.run();
+    totalPassed += transformerResult.passed;
+    totalFailed += transformerResult.failed;
+
     const importInPlaceTest = require('./unit/test-import-in-place');
     const importInPlaceResult = await importInPlaceTest.run();
     totalPassed += importInPlaceResult.passed;

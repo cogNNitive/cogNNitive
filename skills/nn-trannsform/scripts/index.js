@@ -18,6 +18,7 @@ const externalScanner = require('./lib/external-scanner');
 const watchDigestStore = require('./lib/watch-digest-store');
 const curateCsv = require('./lib/curate-csv');
 const convergence = require('./lib/convergence-delta');
+const { sidecarPathOf } = require('./lib/innfo-core.generated.cjs');
 
 async function main() {
   const argv = minimist(process.argv.slice(2));
@@ -78,6 +79,30 @@ function printConvergenceProposal(proposal) {
   console.log(`\nRemoved keys (${proposal.removed.length}) — flag only, never deleted:`);
   for (const r of proposal.removed) console.log(`  - ${r.key}`);
   console.log(`\nThis is a read-only proposal. Apply it through the reviewed model mutation path, then mark it with --converge-mark.`);
+}
+
+/**
+ * Reports the citations that still target an older member of a write-once family
+ * (the family impact check): superseded ones as information, ones whose cited unit
+ * no longer resolves in the latest member as warnings.
+ */
+function reportScanImpact(projectDir) {
+  for (const impact of checkScanImpact(projectDir)) {
+    const unresolved = impact.affectedModels.filter((a) => a.status === 'unresolved_in_latest');
+    if (unresolved.length > 0) {
+      console.warn(`\n⚠️  [IMPACT WARNING] A newer member of "${impact.source}" exists (${impact.latest}); cited units that do not resolve in it:`);
+      for (const aff of unresolved) {
+        console.warn(`    - ${aff.modelFile}${aff.element ? ` (${aff.element})` : ''}: "${aff.citation}"`);
+      }
+    }
+    const superseded = impact.affectedModels.filter((a) => a.status === 'superseded');
+    if (superseded.length > 0) {
+      console.log(`\nℹ️  Superseded citations of "${impact.source}" (still resolve in ${impact.latest}):`);
+      for (const aff of superseded) {
+        console.log(`    - ${aff.modelFile}${aff.element ? ` (${aff.element})` : ''}: "${aff.citation}"`);
+      }
+    }
+  }
 }
 
 async function handleCliMode(argv) {
@@ -245,7 +270,7 @@ async function handleCliMode(argv) {
     const family = String(argv['converge-mark']);
     const snaps = convergence.resolveFamilySnapshots(projectDir, family);
     if (snaps.length < 2) {
-      console.error(`Error: family "${family}" needs at least two snapshots under sources/nn to mark as applied.`);
+      console.error(`Error: family "${family}" needs at least two snapshots under sources/ to mark as applied.`);
       process.exit(1);
     }
     const to = snaps[snaps.length - 1];
@@ -289,7 +314,7 @@ async function handleCliMode(argv) {
 
     const snaps = convergence.resolveFamilySnapshots(projectDir, family);
     if (snaps.length < 2) {
-      console.error(`Error: family "${family}" needs at least two snapshots under sources/nn (found ${snaps.length}).`);
+      console.error(`Error: family "${family}" needs at least two snapshots under sources/ (found ${snaps.length}).`);
       process.exit(1);
     }
     const from = snaps[snaps.length - 2];
@@ -377,15 +402,7 @@ async function handleCliMode(argv) {
     const result = await scanner.scanAndProcess(projectDir, scanOptions);
     console.log(`Normalization completed! Discovered: ${result.totalDiscovered}, Processed: ${result.processedCount}, Skipped: ${result.skippedCount}`);
 
-    if (result.changedSnapshots && result.changedSnapshots.length > 0) {
-      const impacts = checkScanImpact(result.changedSnapshots, projectDir);
-      for (const impact of impacts) {
-        console.warn(`\n⚠️  [IMPACT WARNING] Updated source "${impact.source}" affects downstream models:`);
-        for (const aff of impact.affectedModels) {
-          console.warn(`    - ${aff.modelFile}${aff.element ? ` (${aff.element})` : ''}: references "${aff.citation}" [${aff.status}]`);
-        }
-      }
-    }
+    reportScanImpact(projectDir);
 
     const prov = provenance.buildProvenanceKnowledge(projectDir);
     console.log(
@@ -463,15 +480,7 @@ async function handleCliMode(argv) {
     const result = await scanner.scanAndProcess(projectDir, scanOptions);
     console.log(`Scan completed! Discovered: ${result.totalDiscovered}, Processed: ${result.processedCount}, Skipped: ${result.skippedCount}`);
 
-    if (result.changedSnapshots && result.changedSnapshots.length > 0) {
-      const impacts = checkScanImpact(result.changedSnapshots, projectDir);
-      for (const impact of impacts) {
-        console.warn(`\n⚠️  [IMPACT WARNING] Updated source "${impact.source}" affects downstream models:`);
-        for (const aff of impact.affectedModels) {
-          console.warn(`    - ${aff.modelFile}${aff.element ? ` (${aff.element})` : ''}: references "${aff.citation}" [${aff.status}]`);
-        }
-      }
-    }
+    reportScanImpact(projectDir);
 
     const prov = provenance.buildProvenanceKnowledge(projectDir);
     console.log(
@@ -531,7 +540,7 @@ async function handleCliMode(argv) {
       provenance.buildProvenanceKnowledge(projectDir);
       provenance.appendProcedureRun(projectDir, {
         command: `apply ${templateName}`,
-        inputs: ['sources/nn/', 'kNNowledge/'],
+        inputs: ['sources/', 'kNNowledge/'],
         outputs: [result.outputPath.replace(projectDir, '').replace(/^[\\/]/, '')],
       });
     } catch (err) {
@@ -587,7 +596,7 @@ function unlinkSource(projectDir, targetPattern) {
     return { deleted: [] };
   }
 
-  const cleanPattern = targetPattern.replace(/\\/g, '/').replace(/^sources\/(import|nn|archive)\//, '');
+  const cleanPattern = targetPattern.replace(/\\/g, '/').replace(/^sources\/(import|conversations)\//, '');
   const baseTarget = path.basename(cleanPattern).replace(/\.[^.]+$/, '');
 
   const slugifyHelper = (s) => String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
@@ -603,6 +612,12 @@ function unlinkSource(projectDir, targetPattern) {
         if (stat.isFile()) {
           fs.unlinkSync(filePath);
           deleted.push(filePath);
+          // A raw file and its co-located sidecar go together: no orphaned sidecar is left behind.
+          const sidecar = sidecarPathOf(filePath);
+          if (fs.existsSync(sidecar)) {
+            fs.unlinkSync(sidecar);
+            deleted.push(sidecar);
+          }
         } else if (stat.isDirectory()) {
           fs.rmSync(filePath, { recursive: true, force: true });
           deleted.push(filePath);

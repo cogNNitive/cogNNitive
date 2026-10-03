@@ -20,7 +20,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { parseCsv } = require('./scanner-converters');
-const { parseName, compareMembers, isNNName, isSidecarName } = require('./innfo-core.generated.cjs');
+const { parseName, compareMembers, isNNName, isSidecarName, isExcludedPath } = require('./innfo-core.generated.cjs');
 
 const STRATEGIES = ['cite-only', 'upsert', 'replace-values'];
 const SNAPSHOT_EXTS = ['.csv', '.json'];
@@ -86,9 +86,9 @@ function findFamilyManifest(projectDir) {
 
 /* ── Snapshot resolution ──────────────────────────────────────── */
 
-/** Walks `sources/nn` for `<family>_<YYYYMMDDTHHmmssZ>.<csv|json>` snapshots. */
+/** Walks `sources/` for the members of a write-once family: `<family>[_<UTC stamp>].<csv|json>`. */
 function resolveFamilySnapshots(projectDir, family) {
-  const root = path.join(projectDir, 'sources', 'nn');
+  const root = path.join(projectDir, 'sources');
   const found = [];
   const walk = (dir) => {
     let entries;
@@ -99,15 +99,16 @@ function resolveFamilySnapshots(projectDir, family) {
     }
     for (const entry of entries) {
       const full = path.join(dir, entry.name);
+      if (isExcludedPath(path.relative(projectDir, full).replace(/\\/g, '/'))) continue;
       if (entry.isDirectory()) {
         walk(full);
       } else if (entry.isFile() && SNAPSHOT_EXTS.includes(path.extname(entry.name).toLowerCase())) {
         const parsed = parseName(entry.name);
-        if (parsed.kind !== 'file' || !parsed.stamp || parsed.key !== family) continue;
+        if (parsed.kind !== 'file' || parsed.key !== family) continue;
         found.push({
           relPath: path.relative(projectDir, full).replace(/\\/g, '/'),
           absPath: full,
-          timestamp: parsed.stamp.stamp,
+          timestamp: parsed.stamp ? parsed.stamp.stamp : '',
           fileName: entry.name,
         });
       }
