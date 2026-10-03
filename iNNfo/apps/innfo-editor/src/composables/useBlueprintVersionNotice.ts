@@ -120,14 +120,13 @@ export function buildMigrationPrompt(opts: {
   return innfoPrompt(
     `My model "${modelFileName}" pins parent_spec.name "${currentName}" (blueprint_version ` +
       `${currentVersion}), but a newer template version is available: "${latestName}" ` +
-      `(blueprint_version ${latestVersion}). Migrate it: create a NEW model file — do NOT edit or ` +
-      `delete "${modelFileName}" — with knowledge_version bumped one MAJOR version. In the new file, ` +
-      `rewrite parent_spec.name from "${currentName}" to "${latestName}" by replacing only the ` +
-      `trailing _V_x-y-z version segment (mirror the parent_spec.name rewrite pattern used for ` +
-      `template version bumps; do NOT reuse any operation that deletes the original model or ` +
-      `template file). Update parent_spec.url to point at the "${latestName}" template file. Map ` +
-      `any renamed concepts or fields introduced by the new template version. Then run ` +
-      `validate_model to confirm the migrated file is valid.`,
+      `(blueprint_version ${latestVersion}). Migrate it in place: rewrite parent_spec.name from ` +
+      `"${currentName}" to "${latestName}" by replacing only the trailing _V_x-y-z version ` +
+      `segment (mirror the parent_spec.name rewrite pattern used for template version bumps), ` +
+      `update parent_spec.url to point at the "${latestName}" template file, and bump ` +
+      `knowledge_version one MAJOR version in the same file. Map any renamed concepts or fields ` +
+      `introduced by the new template version. Then run validate_model to confirm the migrated ` +
+      `file is valid.`,
   )
 }
 

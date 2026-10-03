@@ -118,15 +118,16 @@ describe('buildMigrationPrompt', () => {
     expect(prompt).toContain('V_0-1-2')
   })
 
-  it('instructs a new-file migration and forbids editing/deleting the original', () => {
+  it('instructs an in-place migration that rewrites parent_spec.name and bumps knowledge_version', () => {
     const prompt = buildMigrationPrompt({
       modelFileName: 'MyModel_NN.md',
       templateSlug: 'procedures',
       currentVersion: 'V_0-1-0',
       latestVersion: 'V_0-2-0',
     })
-    expect(prompt).toContain('NEW model file')
-    expect(prompt).toMatch(/do NOT edit or delete "MyModel_NN\.md"/)
+    expect(prompt).toContain('in place')
+    expect(prompt).toContain('parent_spec.name')
+    expect(prompt).toContain('knowledge_version')
     expect(prompt).toContain('validate_model')
   })
 })

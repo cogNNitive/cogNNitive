@@ -374,7 +374,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (!handle.value) throw new Error('No workspace handle')
     const knowledgeStore = useKnowledgeStore()
     const uiStore = useUiStore()
-    await persistSaveActiveFileWithVersionBump(handle.value, knowledgeStore, uiStore, level, targetRootId)
+    await persistSaveActiveFileWithVersionBump(knowledgeStore, uiStore, level, targetRootId)
     await saveActiveFile()
   }
 

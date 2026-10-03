@@ -129,7 +129,7 @@ describe('workspaceStore.open()', () => {
     expect(workspaceStore.error).toBeNull()
   })
 
-  it('updates source.path of all child nodes when performing a version bump', async () => {
+  it('bumps knowledge_version in place without changing source.path', async () => {
     const workspaceStore = useWorkspaceStore()
     const knowledgeStore = useKnowledgeStore()
 
@@ -180,8 +180,10 @@ describe('workspaceStore.open()', () => {
     const updatedRoot = knowledgeStore.getNode(rootId)
     const updatedChild = knowledgeStore.getNode('child-1')
 
-    expect(updatedRoot?.source.path).toBe('kNNowledge/Test_V_1-0-1_business_NN.md')
-    expect(updatedChild?.source.path).toBe('kNNowledge/Test_V_1-0-1_business_NN.md')
+    // The name is a stable identity; only the frontmatter version changes.
+    expect(updatedRoot?.source.path).toBe(rootId)
+    expect(updatedChild?.source.path).toBe(rootId)
+    expect(updatedRoot?.rawContent).toContain('knowledge_version: "V_1-0-1"')
   })
 
   it('saveActiveFile writes dirty nodes back to handle when driver is null', async () => {
