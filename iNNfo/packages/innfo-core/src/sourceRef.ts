@@ -14,6 +14,8 @@
  */
 
 import { nfc, stripCombiningMarks } from './parser/slug.js'
+import { assertNever } from './assertNever.js'
+import { isJsonPointer } from './jsonPointer.js'
 
 export interface HeaderUnit {
   /** Markdown heading unit: level is structural rank, slug is the canonical form. */
@@ -30,7 +32,13 @@ export interface RowUnit {
   id: string
 }
 
-export type KnowledgeUnit = HeaderUnit | RowUnit
+export interface PointerUnit {
+  /** JSON Pointer (RFC 6901) unit for `.json` targets, in raw (escaped) form. The empty pointer is the file-level citation. */
+  kind: 'pointer'
+  pointer: string
+}
+
+export type KnowledgeUnit = HeaderUnit | RowUnit | PointerUnit
 
 export interface SourceRef {
   /** Workspace-relative path, always normalised to start with `sources/nn/`, `sources/export/`, or `kNNowledge/`. */
@@ -485,7 +493,8 @@ export function resolveUnitPath(
   if (forward.startsWith('sources/original/')) return null
   const isMd = /\.md$/i.test(forward)
   const isCsv = /\.csv$/i.test(forward)
-  if (!isMd && !isCsv) return null
+  const isJson = /\.json$/i.test(forward)
+  if (!isMd && !isCsv && !isJson) return null
   if (forward.startsWith('sources/nn/')) return { filePath: forward, kind: 'source' }
   if (forward.startsWith('sources/export/')) return { filePath: forward, kind: 'source' }
   if (forward.startsWith('kNNowledge/')) {
@@ -511,6 +520,29 @@ function decodeSegment(segment: string): string | null {
 const HEADER_UNIT = /^(#{1,6})\s*(.+?)\s*$/
 
 /**
+ * JSON Pointer citation: everything after `@` is one RFC 6901 pointer (no
+ * subunits). A literal `&` is written `%26` and decoded here; an unencoded `&`
+ * is malformed.
+ */
+function parsePointerRef(
+  resolved: { filePath: string; kind: 'source' | 'model' },
+  rawPointer: string,
+  raw: string,
+): SourceRef | null {
+  if (rawPointer.includes('&')) return null
+  const pointer = decodeSegment(rawPointer)
+  if (pointer === null || !isJsonPointer(pointer)) return null
+  return {
+    filePath: resolved.filePath,
+    fileName: basename(resolved.filePath),
+    kind: resolved.kind,
+    unit: { kind: 'pointer', pointer },
+    subunits: [],
+    raw,
+  }
+}
+
+/**
  * Parse a knowledge-unit pointer: `path "@" unit *("&" subunit)`.
  * The file extension disambiguates the unit grammar (`.md` → `#`-level header,
  * `.csv` → explicit key-column value). Subunits are names only, never values.
@@ -524,6 +556,7 @@ export function parseKnowledgeUnitRef(input: string): SourceRef | null {
   if (at === -1) return null
   const resolved = resolveUnitPath(clean.slice(0, at))
   if (!resolved) return null
+  if (/\.json$/i.test(resolved.filePath)) return parsePointerRef(resolved, clean.slice(at + 1), clean)
   const rawSegments = clean.slice(at + 1).split('&')
   if (rawSegments.some((s) => s.trim() === '')) return null
   const decoded: string[] = []
@@ -579,9 +612,44 @@ export function serializeKnowledgeUnitRef(
   // way an author would type them and the way they appear in the source file.
   // The slug stays a READ-side derivation: emitting `@##q4-outlook` turned
   // every citation into something nobody could read back against the document.
-  const head = unit.kind === 'header' ? `${'#'.repeat(unit.level)} ${unit.text}` : unit.id
+  let head: string
+  switch (unit.kind) {
+    case 'header':
+      head = `${'#'.repeat(unit.level)} ${unit.text}`
+      break
+    case 'row':
+      head = unit.id
+      break
+    case 'pointer':
+      // No subunits; `%` and `&` are percent-encoded so parse(serialize(x)) is stable.
+      return `${filePath}@${unit.pointer.replace(/%/g, '%25').replace(/&/g, '%26')}`
+    default:
+      return assertNever(unit, 'knowledge unit kind')
+  }
   const tail = subunits.map((s) => normalizeName(s)).filter((s) => s !== '')
   return tail.length > 0 ? `${filePath}@${head}&${tail.join('&')}` : `${filePath}@${head}`
+}
+
+/**
+ * Compact unit label for pills and badges (`104&mrr_usd`, `##nn-person--dr-egon-spengler&compensation`,
+ * `/items/0/name`). Header units use the slug form; this is a display label, not a citation.
+ */
+export function unitLabel(unit: KnowledgeUnit, subunits: string[] = []): string {
+  let head: string
+  switch (unit.kind) {
+    case 'header':
+      head = `${'#'.repeat(unit.level)}${unit.slug}`
+      break
+    case 'row':
+      head = unit.id
+      break
+    case 'pointer':
+      head = unit.pointer
+      break
+    default:
+      return assertNever(unit, 'knowledge unit kind')
+  }
+  return subunits.length > 0 ? `${head}&${subunits.join('&')}` : head
 }
 
 /**

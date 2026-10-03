@@ -13,7 +13,6 @@ import {
   resolveHeadingSection,
   type HeadingInfo,
   type ResolvedHeadingSection,
-  type KnowledgeUnit,
 } from '@cognnitive/innfo-core'
 
 export { slugifyHeading, extractHeadings, resolveHeadingSection }
@@ -25,6 +24,8 @@ export {
   serializeKnowledgeUnitRef,
   parseCitation,
   normalizeName,
+  unitLabel,
+  assertNever,
 } from '@cognnitive/innfo-core'
 export type { KnowledgeUnit, ResolvedUnit, SourceRef, Citation } from '@cognnitive/innfo-core'
 
@@ -46,11 +47,3 @@ export function parseSourceRef(input: string): ParsedSourceRef {
   return { filePath: ref.filePath, fileName: ref.fileName, slug: ref.slug, isValid: true }
 }
 
-/**
- * Compact `file@unit` label for pills and badges
- * (`m.csv@104&mrr_usd`, `G.md@##nn-person--dr-egon-spengler&compensation`).
- */
-export function unitLabel(unit: KnowledgeUnit, subunits: string[] = []): string {
-  const head = unit.kind === 'header' ? `${'#'.repeat(unit.level)}${unit.slug}` : unit.id
-  return subunits.length > 0 ? `${head}&${subunits.join('&')}` : head
-}

@@ -398,6 +398,7 @@ import {
   parseCsvTable,
   normalizeName,
   unitLabel,
+  assertNever,
   type KnowledgeUnit,
 } from '../../utils/sourceRef'
 import { useUnitResolution } from '../../composables/useUnitResolution'
@@ -648,8 +649,17 @@ const resolvedUnit = computed(() => {
 })
 
 const unitSection = computed(() => {
-  if (!props.unit || props.unit.kind !== 'header' || !rawContent.value) return null
-  return resolveHeadingSection(rawContent.value, props.unit.slug)
+  const unit = props.unit
+  if (!unit || !rawContent.value) return null
+  switch (unit.kind) {
+    case 'header':
+      return resolveHeadingSection(rawContent.value, unit.slug)
+    case 'row':
+    case 'pointer':
+      return null
+    default:
+      return assertNever(unit, 'knowledge unit kind')
+  }
 })
 
 const csvTable = computed(() => {

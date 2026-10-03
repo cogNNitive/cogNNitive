@@ -38,3 +38,9 @@ export {
 } from './lineage/fs-snapshot.js'
 
 export * from './naming/index.js'
+
+export * from './writeOnce/index.js'
+
+export * from './cognitivize/index.js'
+
+export { resolveJsonPointer, isJsonPointer } from './jsonPointer.js'

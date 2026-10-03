@@ -7826,6 +7826,43 @@ function getSectionType(rawTitle) {
 // iNNfo/packages/innfo-core/src/parser/serializer.ts
 var import_yaml3 = __toESM(require_dist(), 1);
 
+// iNNfo/packages/innfo-core/src/assertNever.ts
+function assertNever(value, context = "value") {
+  throw new Error(`Unhandled ${context}: ${JSON.stringify(value)}`);
+}
+
+// iNNfo/packages/innfo-core/src/jsonPointer.ts
+var POINTER_RE = /^(?:\/(?:[^~/]|~[01])*)*$/;
+var ARRAY_INDEX_RE = /^(?:0|[1-9]\d*)$/;
+function isJsonPointer(pointer) {
+  return POINTER_RE.test(pointer);
+}
+var unescapeToken = (token) => token.replace(/~1/g, "/").replace(/~0/g, "~");
+function resolveJsonPointer(content, pointer) {
+  let current;
+  try {
+    current = JSON.parse(content);
+  } catch {
+    return { ok: false, reason: "invalid-json" };
+  }
+  if (!isJsonPointer(pointer)) return { ok: false, reason: "unknown-pointer" };
+  if (pointer === "") return { ok: true, value: current };
+  for (const raw of pointer.slice(1).split("/")) {
+    const token = unescapeToken(raw);
+    if (Array.isArray(current)) {
+      if (!ARRAY_INDEX_RE.test(token) || Number(token) >= current.length) {
+        return { ok: false, reason: "unknown-pointer" };
+      }
+      current = current[Number(token)];
+    } else if (current !== null && typeof current === "object" && Object.hasOwn(current, token)) {
+      current = current[token];
+    } else {
+      return { ok: false, reason: "unknown-pointer" };
+    }
+  }
+  return { ok: true, value: current };
+}
+
 // iNNfo/packages/innfo-core/src/sourceRef.ts
 var SLUG = "[a-z0-9]+(?:-[a-z0-9]+)*";
 var SOURCE_FIELD_NAMES = /* @__PURE__ */ new Set(["sources", "source"]);
@@ -8087,7 +8124,8 @@ function resolveUnitPath(rawPath) {
   if (forward.startsWith("sources/original/")) return null;
   const isMd = /\.md$/i.test(forward);
   const isCsv = /\.csv$/i.test(forward);
-  if (!isMd && !isCsv) return null;
+  const isJson = /\.json$/i.test(forward);
+  if (!isMd && !isCsv && !isJson) return null;
   if (forward.startsWith("sources/nn/")) return { filePath: forward, kind: "source" };
   if (forward.startsWith("sources/export/")) return { filePath: forward, kind: "source" };
   if (forward.startsWith("kNNowledge/")) {
@@ -8108,6 +8146,19 @@ function decodeSegment(segment) {
   }
 }
 var HEADER_UNIT = /^(#{1,6})\s*(.+?)\s*$/;
+function parsePointerRef(resolved, rawPointer, raw) {
+  if (rawPointer.includes("&")) return null;
+  const pointer = decodeSegment(rawPointer);
+  if (pointer === null || !isJsonPointer(pointer)) return null;
+  return {
+    filePath: resolved.filePath,
+    fileName: basename(resolved.filePath),
+    kind: resolved.kind,
+    unit: { kind: "pointer", pointer },
+    subunits: [],
+    raw
+  };
+}
 function parseKnowledgeUnitRef(input) {
   if (!input || typeof input !== "string") return null;
   const clean = input.trim();
@@ -8115,6 +8166,7 @@ function parseKnowledgeUnitRef(input) {
   if (at === -1) return null;
   const resolved = resolveUnitPath(clean.slice(0, at));
   if (!resolved) return null;
+  if (/\.json$/i.test(resolved.filePath)) return parsePointerRef(resolved, clean.slice(at + 1), clean);
   const rawSegments = clean.slice(at + 1).split("&");
   if (rawSegments.some((s) => s.trim() === "")) return null;
   const decoded = [];
@@ -8483,6 +8535,7 @@ function computeSha256(content) {
 // iNNfo/packages/innfo-core/src/naming/contract.ts
 var ENTRYPOINT_FILENAME = "domaiNN_NN.md";
 var SPEC_FILENAME = "spec_NN.md";
+var SIDECAR_BLUEPRINT = "sidecar";
 var NN_SUFFIX_RE = /_NN\.md$/i;
 var SIDECAR_PATH_RE = /^(.*\.[^./\\]+)_sidecar_NN\.md$/i;
 var STAMP_SUFFIX_RE = /^(.+)_(\d{8}T\d{6}Z)(?:-(\d+))?$/;
@@ -8693,8 +8746,18 @@ function resolveUnit(content, ref) {
   const unit = ref.unit;
   if (!unit) return null;
   const subunits = ref.subunits ?? [];
-  if (unit.kind === "row") return resolveCsvUnit(content, unit.id, subunits);
-  return resolveHeaderUnit(content, unit, subunits);
+  switch (unit.kind) {
+    case "header":
+      return resolveHeaderUnit(content, unit, subunits);
+    case "row":
+      return resolveCsvUnit(content, unit.id, subunits);
+    case "pointer": {
+      const found = resolveJsonPointer(content, unit.pointer);
+      return found.ok ? { kind: "pointer", pointer: unit.pointer, value: found.value } : null;
+    }
+    default:
+      return assertNever(unit, "knowledge unit kind");
+  }
 }
 function sectionOwnLines(content, slug) {
   const headings = extractHeadings(content);
@@ -8727,6 +8790,10 @@ function sectionOwnLines(content, slug) {
   }
   return owned;
 }
+
+// iNNfo/packages/innfo-core/src/cognitivize/sidecar.ts
+var import_yaml7 = __toESM(require_dist(), 1);
+var SIDECAR_SPEC_URL = `https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/${SIDECAR_BLUEPRINT}/${SPEC_FILENAME}`;
 
 // iNNfo/packages/innfo-core/src/console/citations.ts
 var EXCERPT_CHAR_CAP = 500;
@@ -8780,10 +8847,37 @@ function classifyFromFrontmatter(fm) {
   }
   return { origin: "document" };
 }
+function headingMatcher(ref) {
+  const unit = ref.unit;
+  if (!unit) return (h) => h.slug === ref.slug;
+  switch (unit.kind) {
+    case "header":
+      return (h) => h.slug === ref.slug && h.level === unit.level;
+    case "row":
+    case "pointer":
+      return (h) => h.slug === ref.slug;
+    default:
+      return assertNever(unit, "knowledge unit kind");
+  }
+}
+function anchorOf(ref) {
+  const unit = ref.unit;
+  if (!unit) return ref.slug;
+  switch (unit.kind) {
+    case "header":
+      return ref.slug;
+    case "row":
+      return ref.slug ?? unit.id;
+    case "pointer":
+      return unit.pointer;
+    default:
+      return assertNever(unit, "knowledge unit kind");
+  }
+}
 function classifyOrigin(content, fm, ref) {
   if (ref.slug) {
     const headings = extractHeadings(content);
-    const idx = ref.unit?.kind === "header" ? headings.findIndex((h) => h.slug === ref.slug && h.level === ref.unit.level) : headings.findIndex((h) => h.slug === ref.slug);
+    const idx = headings.findIndex(headingMatcher(ref));
     if (idx !== -1) {
       const amHeading = findEnclosingAgentModification(headings, idx);
       if (amHeading) return readAgentModificationAuthor(content, amHeading);
@@ -8797,25 +8891,29 @@ function capExcerpt(text) {
 }
 function extractExcerpt(content, unit) {
   const lines = content.split("\n");
-  if (unit.kind === "section") {
-    return capExcerpt(lines.slice(unit.startLine, unit.endLine).join("\n"));
+  switch (unit.kind) {
+    case "section":
+      return capExcerpt(lines.slice(unit.startLine, unit.endLine).join("\n"));
+    case "field":
+      return capExcerpt(unit.lines.map((i) => lines[i]).join("\n"));
+    case "cell":
+      return capExcerpt(String(unit.value));
+    case "row": {
+      const row = parseCsvTable(content).rows[unit.index];
+      return capExcerpt(row ? row.join(",") : "");
+    }
+    case "pointer":
+      return capExcerpt(typeof unit.value === "string" ? unit.value : JSON.stringify(unit.value));
+    default:
+      return assertNever(unit, "resolved unit kind");
   }
-  if (unit.kind === "field") {
-    return capExcerpt(unit.lines.map((i) => lines[i]).join("\n"));
-  }
-  if (unit.kind === "cell") {
-    return capExcerpt(String(unit.value));
-  }
-  const table = parseCsvTable(content);
-  const row = table.rows[unit.index];
-  return capExcerpt(row ? row.join(",") : "");
 }
 function resolveCitation(raw, field, resolver, modelPath = "") {
   const ref = parseCitation(raw);
   if (!ref) {
     return { path: raw, exists: false, field, origin: "document", error: "MALFORMED" };
   }
-  const anchor = ref.slug ?? (ref.unit?.kind === "row" ? ref.unit.id : void 0);
+  const anchor = anchorOf(ref);
   const resolved = resolver(ref.filePath, modelPath);
   if (!resolved || !resolved.exists) {
     return { path: ref.filePath, anchor, exists: false, field, origin: "document", error: "DANGLING_FILE" };

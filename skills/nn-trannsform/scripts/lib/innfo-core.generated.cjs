@@ -113,17 +113,17 @@ var require_visit = __commonJS({
     visit.BREAK = BREAK;
     visit.SKIP = SKIP;
     visit.REMOVE = REMOVE;
-    function visit_(key, node, visitor, path2) {
-      const ctrl = callVisitor(key, node, visitor, path2);
+    function visit_(key, node, visitor, path4) {
+      const ctrl = callVisitor(key, node, visitor, path4);
       if (identity.isNode(ctrl) || identity.isPair(ctrl)) {
-        replaceNode(key, path2, ctrl);
-        return visit_(key, ctrl, visitor, path2);
+        replaceNode(key, path4, ctrl);
+        return visit_(key, ctrl, visitor, path4);
       }
       if (typeof ctrl !== "symbol") {
         if (identity.isCollection(node)) {
-          path2 = Object.freeze(path2.concat(node));
+          path4 = Object.freeze(path4.concat(node));
           for (let i = 0; i < node.items.length; ++i) {
-            const ci = visit_(i, node.items[i], visitor, path2);
+            const ci = visit_(i, node.items[i], visitor, path4);
             if (typeof ci === "number")
               i = ci - 1;
             else if (ci === BREAK)
@@ -134,13 +134,13 @@ var require_visit = __commonJS({
             }
           }
         } else if (identity.isPair(node)) {
-          path2 = Object.freeze(path2.concat(node));
-          const ck = visit_("key", node.key, visitor, path2);
+          path4 = Object.freeze(path4.concat(node));
+          const ck = visit_("key", node.key, visitor, path4);
           if (ck === BREAK)
             return BREAK;
           else if (ck === REMOVE)
             node.key = null;
-          const cv = visit_("value", node.value, visitor, path2);
+          const cv = visit_("value", node.value, visitor, path4);
           if (cv === BREAK)
             return BREAK;
           else if (cv === REMOVE)
@@ -161,17 +161,17 @@ var require_visit = __commonJS({
     visitAsync.BREAK = BREAK;
     visitAsync.SKIP = SKIP;
     visitAsync.REMOVE = REMOVE;
-    async function visitAsync_(key, node, visitor, path2) {
-      const ctrl = await callVisitor(key, node, visitor, path2);
+    async function visitAsync_(key, node, visitor, path4) {
+      const ctrl = await callVisitor(key, node, visitor, path4);
       if (identity.isNode(ctrl) || identity.isPair(ctrl)) {
-        replaceNode(key, path2, ctrl);
-        return visitAsync_(key, ctrl, visitor, path2);
+        replaceNode(key, path4, ctrl);
+        return visitAsync_(key, ctrl, visitor, path4);
       }
       if (typeof ctrl !== "symbol") {
         if (identity.isCollection(node)) {
-          path2 = Object.freeze(path2.concat(node));
+          path4 = Object.freeze(path4.concat(node));
           for (let i = 0; i < node.items.length; ++i) {
-            const ci = await visitAsync_(i, node.items[i], visitor, path2);
+            const ci = await visitAsync_(i, node.items[i], visitor, path4);
             if (typeof ci === "number")
               i = ci - 1;
             else if (ci === BREAK)
@@ -182,13 +182,13 @@ var require_visit = __commonJS({
             }
           }
         } else if (identity.isPair(node)) {
-          path2 = Object.freeze(path2.concat(node));
-          const ck = await visitAsync_("key", node.key, visitor, path2);
+          path4 = Object.freeze(path4.concat(node));
+          const ck = await visitAsync_("key", node.key, visitor, path4);
           if (ck === BREAK)
             return BREAK;
           else if (ck === REMOVE)
             node.key = null;
-          const cv = await visitAsync_("value", node.value, visitor, path2);
+          const cv = await visitAsync_("value", node.value, visitor, path4);
           if (cv === BREAK)
             return BREAK;
           else if (cv === REMOVE)
@@ -215,23 +215,23 @@ var require_visit = __commonJS({
       }
       return visitor;
     }
-    function callVisitor(key, node, visitor, path2) {
+    function callVisitor(key, node, visitor, path4) {
       if (typeof visitor === "function")
-        return visitor(key, node, path2);
+        return visitor(key, node, path4);
       if (identity.isMap(node))
-        return visitor.Map?.(key, node, path2);
+        return visitor.Map?.(key, node, path4);
       if (identity.isSeq(node))
-        return visitor.Seq?.(key, node, path2);
+        return visitor.Seq?.(key, node, path4);
       if (identity.isPair(node))
-        return visitor.Pair?.(key, node, path2);
+        return visitor.Pair?.(key, node, path4);
       if (identity.isScalar(node))
-        return visitor.Scalar?.(key, node, path2);
+        return visitor.Scalar?.(key, node, path4);
       if (identity.isAlias(node))
-        return visitor.Alias?.(key, node, path2);
+        return visitor.Alias?.(key, node, path4);
       return void 0;
     }
-    function replaceNode(key, path2, node) {
-      const parent = path2[path2.length - 1];
+    function replaceNode(key, path4, node) {
+      const parent = path4[path4.length - 1];
       if (identity.isCollection(parent)) {
         parent.items[key] = node;
       } else if (identity.isPair(parent)) {
@@ -843,10 +843,10 @@ var require_Collection = __commonJS({
     var createNode = require_createNode();
     var identity = require_identity();
     var Node = require_Node();
-    function collectionFromPath(schema, path2, value) {
+    function collectionFromPath(schema, path4, value) {
       let v = value;
-      for (let i = path2.length - 1; i >= 0; --i) {
-        const k = path2[i];
+      for (let i = path4.length - 1; i >= 0; --i) {
+        const k = path4[i];
         if (typeof k === "number" && Number.isInteger(k) && k >= 0) {
           const a = [];
           a[k] = v;
@@ -865,7 +865,7 @@ var require_Collection = __commonJS({
         sourceObjects: /* @__PURE__ */ new Map()
       });
     }
-    var isEmptyPath = (path2) => path2 == null || typeof path2 === "object" && !!path2[Symbol.iterator]().next().done;
+    var isEmptyPath = (path4) => path4 == null || typeof path4 === "object" && !!path4[Symbol.iterator]().next().done;
     var Collection = class extends Node.NodeBase {
       constructor(type, schema) {
         super(type);
@@ -895,11 +895,11 @@ var require_Collection = __commonJS({
        * be a Pair instance or a `{ key, value }` object, which may not have a key
        * that already exists in the map.
        */
-      addIn(path2, value) {
-        if (isEmptyPath(path2))
+      addIn(path4, value) {
+        if (isEmptyPath(path4))
           this.add(value);
         else {
-          const [key, ...rest] = path2;
+          const [key, ...rest] = path4;
           const node = this.get(key, true);
           if (identity.isCollection(node))
             node.addIn(rest, value);
@@ -913,8 +913,8 @@ var require_Collection = __commonJS({
        * Removes a value from the collection.
        * @returns `true` if the item was found and removed.
        */
-      deleteIn(path2) {
-        const [key, ...rest] = path2;
+      deleteIn(path4) {
+        const [key, ...rest] = path4;
         if (rest.length === 0)
           return this.delete(key);
         const node = this.get(key, true);
@@ -928,8 +928,8 @@ var require_Collection = __commonJS({
        * scalar values from their surrounding node; to disable set `keepScalar` to
        * `true` (collections are always returned intact).
        */
-      getIn(path2, keepScalar) {
-        const [key, ...rest] = path2;
+      getIn(path4, keepScalar) {
+        const [key, ...rest] = path4;
         const node = this.get(key, true);
         if (rest.length === 0)
           return !keepScalar && identity.isScalar(node) ? node.value : node;
@@ -947,8 +947,8 @@ var require_Collection = __commonJS({
       /**
        * Checks if the collection includes a value with the key `key`.
        */
-      hasIn(path2) {
-        const [key, ...rest] = path2;
+      hasIn(path4) {
+        const [key, ...rest] = path4;
         if (rest.length === 0)
           return this.has(key);
         const node = this.get(key, true);
@@ -958,8 +958,8 @@ var require_Collection = __commonJS({
        * Sets a value in this collection. For `!!set`, `value` needs to be a
        * boolean to add/remove the item from the set.
        */
-      setIn(path2, value) {
-        const [key, ...rest] = path2;
+      setIn(path4, value) {
+        const [key, ...rest] = path4;
         if (rest.length === 0) {
           this.set(key, value);
         } else {
@@ -3474,9 +3474,9 @@ var require_Document = __commonJS({
           this.contents.add(value);
       }
       /** Adds a value to the document. */
-      addIn(path2, value) {
+      addIn(path4, value) {
         if (assertCollection(this.contents))
-          this.contents.addIn(path2, value);
+          this.contents.addIn(path4, value);
       }
       /**
        * Create a new `Alias` node, ensuring that the target `node` has the required anchor.
@@ -3551,14 +3551,14 @@ var require_Document = __commonJS({
        * Removes a value from the document.
        * @returns `true` if the item was found and removed.
        */
-      deleteIn(path2) {
-        if (Collection.isEmptyPath(path2)) {
+      deleteIn(path4) {
+        if (Collection.isEmptyPath(path4)) {
           if (this.contents == null)
             return false;
           this.contents = null;
           return true;
         }
-        return assertCollection(this.contents) ? this.contents.deleteIn(path2) : false;
+        return assertCollection(this.contents) ? this.contents.deleteIn(path4) : false;
       }
       /**
        * Returns item at `key`, or `undefined` if not found. By default unwraps
@@ -3573,10 +3573,10 @@ var require_Document = __commonJS({
        * scalar values from their surrounding node; to disable set `keepScalar` to
        * `true` (collections are always returned intact).
        */
-      getIn(path2, keepScalar) {
-        if (Collection.isEmptyPath(path2))
+      getIn(path4, keepScalar) {
+        if (Collection.isEmptyPath(path4))
           return !keepScalar && identity.isScalar(this.contents) ? this.contents.value : this.contents;
-        return identity.isCollection(this.contents) ? this.contents.getIn(path2, keepScalar) : void 0;
+        return identity.isCollection(this.contents) ? this.contents.getIn(path4, keepScalar) : void 0;
       }
       /**
        * Checks if the document includes a value with the key `key`.
@@ -3587,10 +3587,10 @@ var require_Document = __commonJS({
       /**
        * Checks if the document includes a value at `path`.
        */
-      hasIn(path2) {
-        if (Collection.isEmptyPath(path2))
+      hasIn(path4) {
+        if (Collection.isEmptyPath(path4))
           return this.contents !== void 0;
-        return identity.isCollection(this.contents) ? this.contents.hasIn(path2) : false;
+        return identity.isCollection(this.contents) ? this.contents.hasIn(path4) : false;
       }
       /**
        * Sets a value in this document. For `!!set`, `value` needs to be a
@@ -3607,13 +3607,13 @@ var require_Document = __commonJS({
        * Sets a value in this document. For `!!set`, `value` needs to be a
        * boolean to add/remove the item from the set.
        */
-      setIn(path2, value) {
-        if (Collection.isEmptyPath(path2)) {
+      setIn(path4, value) {
+        if (Collection.isEmptyPath(path4)) {
           this.contents = value;
         } else if (this.contents == null) {
-          this.contents = Collection.collectionFromPath(this.schema, Array.from(path2), value);
+          this.contents = Collection.collectionFromPath(this.schema, Array.from(path4), value);
         } else if (assertCollection(this.contents)) {
-          this.contents.setIn(path2, value);
+          this.contents.setIn(path4, value);
         }
       }
       /**
@@ -5574,9 +5574,9 @@ var require_cst_visit = __commonJS({
     visit.BREAK = BREAK;
     visit.SKIP = SKIP;
     visit.REMOVE = REMOVE;
-    visit.itemAtPath = (cst, path2) => {
+    visit.itemAtPath = (cst, path4) => {
       let item = cst;
-      for (const [field, index] of path2) {
+      for (const [field, index] of path4) {
         const tok = item?.[field];
         if (tok && "items" in tok) {
           item = tok.items[index];
@@ -5585,23 +5585,23 @@ var require_cst_visit = __commonJS({
       }
       return item;
     };
-    visit.parentCollection = (cst, path2) => {
-      const parent = visit.itemAtPath(cst, path2.slice(0, -1));
-      const field = path2[path2.length - 1][0];
+    visit.parentCollection = (cst, path4) => {
+      const parent = visit.itemAtPath(cst, path4.slice(0, -1));
+      const field = path4[path4.length - 1][0];
       const coll = parent?.[field];
       if (coll && "items" in coll)
         return coll;
       throw new Error("Parent collection not found");
     };
-    function _visit(path2, item, visitor) {
-      let ctrl = visitor(item, path2);
+    function _visit(path4, item, visitor) {
+      let ctrl = visitor(item, path4);
       if (typeof ctrl === "symbol")
         return ctrl;
       for (const field of ["key", "value"]) {
         const token = item[field];
         if (token && "items" in token) {
           for (let i = 0; i < token.items.length; ++i) {
-            const ci = _visit(Object.freeze(path2.concat([[field, i]])), token.items[i], visitor);
+            const ci = _visit(Object.freeze(path4.concat([[field, i]])), token.items[i], visitor);
             if (typeof ci === "number")
               i = ci - 1;
             else if (ci === BREAK)
@@ -5612,10 +5612,10 @@ var require_cst_visit = __commonJS({
             }
           }
           if (typeof ctrl === "function" && field === "key")
-            ctrl = ctrl(item, path2);
+            ctrl = ctrl(item, path4);
         }
       }
-      return typeof ctrl === "function" ? ctrl(item, path2) : ctrl;
+      return typeof ctrl === "function" ? ctrl(item, path4) : ctrl;
     }
     exports2.visit = visit;
   }
@@ -7372,8 +7372,15 @@ __export(trannsformPrimitives_exports, {
   ENTRYPOINT_FILENAME: () => ENTRYPOINT_FILENAME,
   IGNORED_DIRECTORIES: () => IGNORED_DIRECTORIES,
   SIDECAR_BLUEPRINT: () => SIDECAR_BLUEPRINT,
+  SIDECAR_SPEC_URL: () => SIDECAR_SPEC_URL,
   SPEC_FILENAME: () => SPEC_FILENAME,
+  TEXT_NATIVE_FORMATS: () => TEXT_NATIVE_FORMATS,
+  WriteOnceError: () => WriteOnceError,
+  applyGc: () => applyGc,
+  buildSidecar: () => buildSidecar,
   checkPathBudget: () => checkPathBudget,
+  cognitivize: () => cognitivize,
+  collectFamilies: () => collectFamilies,
   compareMembers: () => compareMembers,
   createFsSourceResolver: () => createFsSourceResolver,
   displayStem: () => displayStem,
@@ -7385,26 +7392,35 @@ __export(trannsformPrimitives_exports, {
   formatNNName: () => formatNNName,
   formatUtcStamp: () => formatUtcStamp,
   headingSlugParts: () => headingSlugParts,
+  importRaw: () => importRaw,
   isExcludedPath: () => isExcludedPath,
+  isJsonPointer: () => isJsonPointer,
   isModelCandidate: () => isModelCandidate,
   isNNName: () => isNNName,
   isSidecarName: () => isSidecarName,
+  latestOfFamily: () => latestOfFamily,
   nextStamp: () => nextStamp,
   normalizeName: () => normalizeName,
   parentSpecNameOf: () => parentSpecNameOf,
   parseCitation: () => parseCitation,
   parseName: () => parseName,
+  parseSidecarFrontmatter: () => parseSidecarFrontmatter,
+  planGc: () => planGc,
   procedureIdOf: () => procedureIdOf,
   projectLineage: () => projectLineage,
   rawPathOfSidecar: () => rawPathOfSidecar,
   readLineageSnapshot: () => readLineageSnapshot,
+  readSidecarSha256: () => readSidecarSha256,
   renderLineageSections: () => renderLineageSections,
+  resolveJsonPointer: () => resolveJsonPointer,
   roleOf: () => roleOf,
   serializeKnowledgeUnitRef: () => serializeKnowledgeUnitRef,
+  sha256Hex: () => sha256Hex,
   sidecarPathOf: () => sidecarPathOf,
   slugifyHeading: () => slugifyHeading,
   slugifyUnitHeading: () => slugifyUnitHeading,
-  validateCitations: () => validateCitations
+  validateCitations: () => validateCitations,
+  writeOnce: () => writeOnce
 });
 module.exports = __toCommonJS(trannsformPrimitives_exports);
 
@@ -7417,6 +7433,43 @@ function stripCombiningMarks(text) {
 }
 function slugify(name) {
   return name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim().replace(/[\s_]+/g, "-").replace(/[^a-z0-9-]/g, "").replace(/-+/g, "-").replace(/^-+|-+$/g, "");
+}
+
+// iNNfo/packages/innfo-core/src/assertNever.ts
+function assertNever(value, context = "value") {
+  throw new Error(`Unhandled ${context}: ${JSON.stringify(value)}`);
+}
+
+// iNNfo/packages/innfo-core/src/jsonPointer.ts
+var POINTER_RE = /^(?:\/(?:[^~/]|~[01])*)*$/;
+var ARRAY_INDEX_RE = /^(?:0|[1-9]\d*)$/;
+function isJsonPointer(pointer) {
+  return POINTER_RE.test(pointer);
+}
+var unescapeToken = (token) => token.replace(/~1/g, "/").replace(/~0/g, "~");
+function resolveJsonPointer(content, pointer) {
+  let current;
+  try {
+    current = JSON.parse(content);
+  } catch {
+    return { ok: false, reason: "invalid-json" };
+  }
+  if (!isJsonPointer(pointer)) return { ok: false, reason: "unknown-pointer" };
+  if (pointer === "") return { ok: true, value: current };
+  for (const raw of pointer.slice(1).split("/")) {
+    const token = unescapeToken(raw);
+    if (Array.isArray(current)) {
+      if (!ARRAY_INDEX_RE.test(token) || Number(token) >= current.length) {
+        return { ok: false, reason: "unknown-pointer" };
+      }
+      current = current[Number(token)];
+    } else if (current !== null && typeof current === "object" && Object.hasOwn(current, token)) {
+      current = current[token];
+    } else {
+      return { ok: false, reason: "unknown-pointer" };
+    }
+  }
+  return { ok: true, value: current };
 }
 
 // iNNfo/packages/innfo-core/src/sourceRef.ts
@@ -7680,7 +7733,8 @@ function resolveUnitPath(rawPath) {
   if (forward.startsWith("sources/original/")) return null;
   const isMd = /\.md$/i.test(forward);
   const isCsv = /\.csv$/i.test(forward);
-  if (!isMd && !isCsv) return null;
+  const isJson = /\.json$/i.test(forward);
+  if (!isMd && !isCsv && !isJson) return null;
   if (forward.startsWith("sources/nn/")) return { filePath: forward, kind: "source" };
   if (forward.startsWith("sources/export/")) return { filePath: forward, kind: "source" };
   if (forward.startsWith("kNNowledge/")) {
@@ -7701,6 +7755,19 @@ function decodeSegment(segment) {
   }
 }
 var HEADER_UNIT = /^(#{1,6})\s*(.+?)\s*$/;
+function parsePointerRef(resolved, rawPointer, raw) {
+  if (rawPointer.includes("&")) return null;
+  const pointer = decodeSegment(rawPointer);
+  if (pointer === null || !isJsonPointer(pointer)) return null;
+  return {
+    filePath: resolved.filePath,
+    fileName: basename(resolved.filePath),
+    kind: resolved.kind,
+    unit: { kind: "pointer", pointer },
+    subunits: [],
+    raw
+  };
+}
 function parseKnowledgeUnitRef(input) {
   if (!input || typeof input !== "string") return null;
   const clean = input.trim();
@@ -7708,6 +7775,7 @@ function parseKnowledgeUnitRef(input) {
   if (at === -1) return null;
   const resolved = resolveUnitPath(clean.slice(0, at));
   if (!resolved) return null;
+  if (/\.json$/i.test(resolved.filePath)) return parsePointerRef(resolved, clean.slice(at + 1), clean);
   const rawSegments = clean.slice(at + 1).split("&");
   if (rawSegments.some((s) => s.trim() === "")) return null;
   const decoded = [];
@@ -7750,7 +7818,19 @@ function parseKnowledgeUnitRef(input) {
   };
 }
 function serializeKnowledgeUnitRef(filePath, unit, subunits = []) {
-  const head = unit.kind === "header" ? `${"#".repeat(unit.level)} ${unit.text}` : unit.id;
+  let head;
+  switch (unit.kind) {
+    case "header":
+      head = `${"#".repeat(unit.level)} ${unit.text}`;
+      break;
+    case "row":
+      head = unit.id;
+      break;
+    case "pointer":
+      return `${filePath}@${unit.pointer.replace(/%/g, "%25").replace(/&/g, "%26")}`;
+    default:
+      return assertNever(unit, "knowledge unit kind");
+  }
   const tail = subunits.map((s) => normalizeName(s)).filter((s) => s !== "");
   return tail.length > 0 ? `${filePath}@${head}&${tail.join("&")}` : `${filePath}@${head}`;
 }
@@ -7961,8 +8041,18 @@ function resolveUnit(content, ref) {
   const unit = ref.unit;
   if (!unit) return null;
   const subunits = ref.subunits ?? [];
-  if (unit.kind === "row") return resolveCsvUnit(content, unit.id, subunits);
-  return resolveHeaderUnit(content, unit, subunits);
+  switch (unit.kind) {
+    case "header":
+      return resolveHeaderUnit(content, unit, subunits);
+    case "row":
+      return resolveCsvUnit(content, unit.id, subunits);
+    case "pointer": {
+      const found = resolveJsonPointer(content, unit.pointer);
+      return found.ok ? { kind: "pointer", pointer: unit.pointer, value: found.value } : null;
+    }
+    default:
+      return assertNever(unit, "knowledge unit kind");
+  }
 }
 function listSectionFields(content, slug) {
   const owned = sectionOwnLines(content, slug);
@@ -8660,25 +8750,25 @@ var SIDECAR_BLUEPRINT = "sidecar";
 var NN_SUFFIX_RE = /_NN\.md$/i;
 var SIDECAR_PATH_RE = /^(.*\.[^./\\]+)_sidecar_NN\.md$/i;
 var STAMP_SUFFIX_RE = /^(.+)_(\d{8}T\d{6}Z)(?:-(\d+))?$/;
-function baseOf(path2) {
-  const i = Math.max(path2.lastIndexOf("/"), path2.lastIndexOf("\\"));
-  return i < 0 ? path2 : path2.slice(i + 1);
+function baseOf(path4) {
+  const i = Math.max(path4.lastIndexOf("/"), path4.lastIndexOf("\\"));
+  return i < 0 ? path4 : path4.slice(i + 1);
 }
-function parseName(basename3) {
-  if (NN_SUFFIX_RE.test(basename3)) {
-    const stem2 = basename3.replace(NN_SUFFIX_RE, "");
-    const sidecar = SIDECAR_PATH_RE.exec(basename3);
-    return sidecar ? { kind: "nn", basename: basename3, stem: stem2, sidecarOf: sidecar[1] } : { kind: "nn", basename: basename3, stem: stem2 };
+function parseName(basename4) {
+  if (NN_SUFFIX_RE.test(basename4)) {
+    const stem2 = basename4.replace(NN_SUFFIX_RE, "");
+    const sidecar = SIDECAR_PATH_RE.exec(basename4);
+    return sidecar ? { kind: "nn", basename: basename4, stem: stem2, sidecarOf: sidecar[1] } : { kind: "nn", basename: basename4, stem: stem2 };
   }
-  const dot = basename3.lastIndexOf(".");
+  const dot = basename4.lastIndexOf(".");
   const hasExt = dot > 0;
-  const stem = hasExt ? basename3.slice(0, dot) : basename3;
-  const ext = hasExt ? basename3.slice(dot + 1) : "";
+  const stem = hasExt ? basename4.slice(0, dot) : basename4;
+  const ext = hasExt ? basename4.slice(dot + 1) : "";
   const m = STAMP_SUFFIX_RE.exec(stem);
-  if (!m) return { kind: "file", basename: basename3, key: stem, ext };
+  if (!m) return { kind: "file", basename: basename4, key: stem, ext };
   return {
     kind: "file",
-    basename: basename3,
+    basename: basename4,
     key: m[1],
     ext,
     stamp: { stamp: m[2], seq: m[3] ? Number(m[3]) : 1 }
@@ -8701,17 +8791,17 @@ function rawPathOfSidecar(sidecarPath) {
   const m = SIDECAR_PATH_RE.exec(sidecarPath);
   return m ? m[1] : null;
 }
-function displayStem(basename3) {
-  if (NN_SUFFIX_RE.test(basename3)) return basename3.replace(NN_SUFFIX_RE, "");
-  return basename3.replace(/\.md$/i, "");
+function displayStem(basename4) {
+  if (NN_SUFFIX_RE.test(basename4)) return basename4.replace(NN_SUFFIX_RE, "");
+  return basename4.replace(/\.md$/i, "");
 }
-function procedureIdOf(basename3) {
-  return displayStem(baseOf(basename3)).replace(/_procedures$/i, "").toLowerCase().replace(/_/g, "-");
+function procedureIdOf(basename4) {
+  return displayStem(baseOf(basename4)).replace(/_procedures$/i, "").toLowerCase().replace(/_/g, "-");
 }
 var IGNORED_DIRECTORIES = /* @__PURE__ */ new Set(["backups", "archive", "specs"]);
 var NON_KNOWLEDGE_BLUEPRINT_RE = /^(cognnitive|workspace|procedures|sources|artifacts|sidecar)(?:_|$)/i;
-function segmentsOf(path2) {
-  return path2.replace(/\\/g, "/").split("/").filter((s) => s && s !== ".");
+function segmentsOf(path4) {
+  return path4.replace(/\\/g, "/").split("/").filter((s) => s && s !== ".");
 }
 function roleOf(i) {
   const base = baseOf(i.path);
@@ -8737,13 +8827,13 @@ function roleOf(i) {
       return "knowledge";
   }
 }
-function isExcludedPath(path2) {
-  const segs = segmentsOf(path2);
+function isExcludedPath(path4) {
+  const segs = segmentsOf(path4);
   if (segs.length > 0 && IGNORED_DIRECTORIES.has(segs[0])) return true;
   return segs.some((s) => s === "staging" || s.startsWith(".") && s !== "..");
 }
-function familyOf(path2) {
-  const normalized = path2.replace(/\\/g, "/");
+function familyOf(path4) {
+  const normalized = path4.replace(/\\/g, "/");
   const parsed = parseName(baseOf(normalized));
   if (parsed.kind !== "file") return null;
   const slash = normalized.lastIndexOf("/");
@@ -9229,10 +9319,10 @@ function validateCitations(sites, resolver) {
   const checkedCsvKeys = /* @__PURE__ */ new Set();
   for (const site of sites) {
     const value = site.value;
-    const path2 = site.element ? `${site.referringPath}#${site.element}.${site.field}` : `${site.referringPath}#${site.field}`;
+    const path4 = site.element ? `${site.referringPath}#${site.element}.${site.field}` : `${site.referringPath}#${site.field}`;
     if (value.includes("?") && parseKnowledgeQuery(value)) {
       diagnostics.push({
-        path: path2,
+        path: path4,
         message: `Queries are not valid citations: "${value}" selects a set, not a unit \u2014 resolve it to pointers first (e.g. run it as a query, then cite the resulting "@" references)`,
         severity: "error",
         code: "QU_NOT_PROVENANCE",
@@ -9243,7 +9333,7 @@ function validateCitations(sites, resolver) {
     }
     if (/^models\//i.test(value.trim())) {
       diagnostics.push({
-        path: path2,
+        path: path4,
         message: `Malformed source reference "${value}" \u2014 \`models/\` was removed; use \`kNNowledge/\``,
         severity: "error",
         code: "KU_MALFORMED",
@@ -9255,7 +9345,7 @@ function validateCitations(sites, resolver) {
     const cit = parseCitation(value);
     if (!cit) {
       diagnostics.push({
-        path: path2,
+        path: path4,
         message: `Malformed source reference "${value}" \u2014 use "<path>@<unit>" (e.g. "file.md@## Section", "data.csv@104"); line ranges like #L10-L20 and src-NNN ids are not allowed, and sources/original/ is not citable`,
         severity: "error",
         code: "KU_MALFORMED",
@@ -9268,7 +9358,7 @@ function validateCitations(sites, resolver) {
       validateUnitPointer(
         cit,
         site.referringPath,
-        path2,
+        path4,
         resolver,
         diagnostics,
         checkedCsvKeys,
@@ -9279,7 +9369,7 @@ function validateCitations(sites, resolver) {
     const resolved = resolver(cit.filePath, site.referringPath);
     if (!resolved || !resolved.exists) {
       diagnostics.push({
-        path: path2,
+        path: path4,
         message: formatDanglingMessage(cit, resolved),
         severity: "error",
         code: "KU_DANGLING_FILE",
@@ -9290,7 +9380,7 @@ function validateCitations(sites, resolver) {
     }
     if (cit.slug && resolved.headings && !resolved.headings.includes(cit.slug)) {
       diagnostics.push({
-        path: path2,
+        path: path4,
         message: `Source reference "${cit.raw}" points at heading "#${cit.slug}" which does not exist in "${cit.fileName}"`,
         severity: "warning",
         code: "KU_UNKNOWN_SLUG",
@@ -9300,7 +9390,7 @@ function validateCitations(sites, resolver) {
     }
     if (cit.legacyHash) {
       diagnostics.push({
-        path: path2,
+        path: path4,
         message: `Legacy "#slug" form is deprecated \u2014 prefer "@" pointers${suggestCanonical(resolved, cit)}`,
         severity: "warning",
         code: "KU_DEPRECATED_HASH",
@@ -9327,13 +9417,13 @@ function suggestCanonical(resolved, ref) {
   }
   return ` (e.g. "${ref.filePath}@## Section")`;
 }
-function validateUnitPointer(ref, referringPath, path2, resolver, diagnostics, checkedCsvKeys, site) {
+function validateUnitPointer(ref, referringPath, path4, resolver, diagnostics, checkedCsvKeys, site) {
   const unit = ref.unit;
   const subunits = ref.subunits ?? [];
   const resolved = resolver(ref.filePath, referringPath);
   if (!resolved || !resolved.exists) {
     diagnostics.push({
-      path: path2,
+      path: path4,
       message: formatDanglingMessage(ref, resolved),
       severity: "error",
       code: "KU_DANGLING_FILE",
@@ -9342,18 +9432,50 @@ function validateUnitPointer(ref, referringPath, path2, resolver, diagnostics, c
     });
     return;
   }
-  if (unit.kind === "header") {
-    validateHeaderUnit(ref, unit.slug, unit.level, subunits, resolved, path2, diagnostics, site);
-  } else {
-    validateRowUnit(ref, unit.id, subunits, resolved, path2, diagnostics, checkedCsvKeys, site);
+  switch (unit.kind) {
+    case "header":
+      validateHeaderUnit(ref, unit.slug, unit.level, subunits, resolved, path4, diagnostics, site);
+      return;
+    case "row":
+      validateRowUnit(ref, unit.id, subunits, resolved, path4, diagnostics, checkedCsvKeys, site);
+      return;
+    case "pointer":
+      validatePointerUnit(ref, unit.pointer, resolved, path4, diagnostics, site);
+      return;
+    default:
+      return assertNever(unit, "knowledge unit kind");
   }
 }
-function validateHeaderUnit(ref, slug, _level, subunits, resolved, path2, diagnostics, site) {
+function validatePointerUnit(ref, pointer, resolved, path4, diagnostics, site) {
+  if (!resolved.content) return;
+  const found = resolveJsonPointer(resolved.content, pointer);
+  if (found.ok) return;
+  if (found.reason === "invalid-json") {
+    diagnostics.push({
+      path: path4,
+      message: `Source file "${ref.filePath}" cannot be parsed as JSON`,
+      severity: "error",
+      code: "KU_INVALID_JSON",
+      site,
+      target: ref.filePath
+    });
+    return;
+  }
+  diagnostics.push({
+    path: path4,
+    message: `Source reference "${ref.raw}" points at pointer "${pointer}" which does not exist in "${ref.fileName}"`,
+    severity: "error",
+    code: "KU_UNKNOWN_POINTER",
+    site,
+    target: ref.filePath
+  });
+}
+function validateHeaderUnit(ref, slug, _level, subunits, resolved, path4, diagnostics, site) {
   const headings = resolved.headings ?? (resolved.content ? extractHeadings(resolved.content).map((h) => h.slug) : void 0);
   const heading = resolved.content ? extractHeadings(resolved.content).find((h) => h.slug === slug) : void 0;
   if (headings && !headings.includes(slug)) {
     diagnostics.push({
-      path: path2,
+      path: path4,
       message: `Source reference "${ref.raw}" points at heading "@${slug}" which does not exist in "${ref.fileName}"`,
       severity: "warning",
       code: "KU_UNKNOWN_SLUG",
@@ -9368,7 +9490,7 @@ function validateHeaderUnit(ref, slug, _level, subunits, resolved, path2, diagno
     if (fields === void 0) return;
     if (!fields.includes(normalizeName(subunits[0]))) {
       diagnostics.push({
-        path: path2,
+        path: path4,
         message: `Source reference "${ref.raw}" points at field "&${subunits[0]}" which does not exist in section "@${slug}" of "${ref.fileName}"`,
         severity: "error",
         code: "KU_FIELD_OUTSIDE_SECTION",
@@ -9382,7 +9504,7 @@ function validateHeaderUnit(ref, slug, _level, subunits, resolved, path2, diagno
     if (!resolved.content) return;
     if (!resolveUnit(resolved.content, ref)) {
       diagnostics.push({
-        path: path2,
+        path: path4,
         message: `Source reference "${ref.raw}" points at matrix cell "&${subunits[0]}&${subunits[1]}" which does not resolve in "${ref.fileName}"`,
         severity: "error",
         code: "KU_UNKNOWN_MATRIX_CELL",
@@ -9393,7 +9515,7 @@ function validateHeaderUnit(ref, slug, _level, subunits, resolved, path2, diagno
     return;
   }
   diagnostics.push({
-    path: path2,
+    path: path4,
     message: `Malformed source reference "${ref.raw}" \u2014 a header pointer takes at most one field (&field) or one matrix cell (&row&column)`,
     severity: "error",
     code: "KU_MALFORMED",
@@ -9401,12 +9523,12 @@ function validateHeaderUnit(ref, slug, _level, subunits, resolved, path2, diagno
     target: ref.filePath
   });
 }
-function validateRowUnit(ref, id, subunits, resolved, path2, diagnostics, checkedCsvKeys, site) {
+function validateRowUnit(ref, id, subunits, resolved, path4, diagnostics, checkedCsvKeys, site) {
   if (!resolved.content) return;
   const table = parseCsvTable(resolved.content);
   if (table.malformed) {
     diagnostics.push({
-      path: path2,
+      path: path4,
       message: `Source file "${ref.filePath}" cannot be parsed as CSV`,
       severity: "error",
       code: "KU_MALFORMED",
@@ -9422,7 +9544,7 @@ function validateRowUnit(ref, id, subunits, resolved, path2, diagnostics, checke
     for (const key of keys) {
       if (key === "") {
         diagnostics.push({
-          path: path2,
+          path: path4,
           message: `Source file "${ref.filePath}" has a row with an empty key in the first column`,
           severity: "error",
           code: "KU_EMPTY_KEY",
@@ -9431,7 +9553,7 @@ function validateRowUnit(ref, id, subunits, resolved, path2, diagnostics, checke
         });
       } else if (seen.has(key)) {
         diagnostics.push({
-          path: path2,
+          path: path4,
           message: `Source file "${ref.filePath}" has duplicate key "${key}" in the first column`,
           severity: "error",
           code: "KU_DUPLICATE_KEY",
@@ -9445,7 +9567,7 @@ function validateRowUnit(ref, id, subunits, resolved, path2, diagnostics, checke
   const rowIdx = table.rows.findIndex((r) => (r[0] ?? "").trim() === id.trim());
   if (rowIdx === -1) {
     diagnostics.push({
-      path: path2,
+      path: path4,
       message: `Source reference "${ref.raw}" points at row "@${id}" which does not exist in "${ref.fileName}"`,
       severity: "error",
       code: "KU_UNKNOWN_ROW",
@@ -9457,7 +9579,7 @@ function validateRowUnit(ref, id, subunits, resolved, path2, diagnostics, checke
   if (subunits.length === 0) return;
   if (subunits.length > 1) {
     diagnostics.push({
-      path: path2,
+      path: path4,
       message: `Malformed source reference "${ref.raw}" \u2014 a CSV row takes at most one column (&column)`,
       severity: "error",
       code: "KU_MALFORMED",
@@ -9468,7 +9590,7 @@ function validateRowUnit(ref, id, subunits, resolved, path2, diagnostics, checke
   }
   if (!table.headers.includes(normalizeName(subunits[0]))) {
     diagnostics.push({
-      path: path2,
+      path: path4,
       message: `Source reference "${ref.raw}" points at column "&${subunits[0]}" which does not exist in "${ref.fileName}"`,
       severity: "error",
       code: "KU_UNKNOWN_COLUMN",
@@ -9703,13 +9825,344 @@ function readLineageSnapshot(root) {
   snapshots.sort((a, b) => a.path.localeCompare(b.path));
   return snapshots;
 }
+
+// iNNfo/packages/innfo-core/src/writeOnce/plan.ts
+function latestOfFamily(members) {
+  let latest;
+  for (const member of members) {
+    if (!latest || compareMembers(latest.path, member.path) <= 0) latest = member;
+  }
+  return latest;
+}
+function planGc(i) {
+  const cited = /* @__PURE__ */ new Set();
+  for (const p of i.citedPaths) {
+    cited.add(p);
+    const subject = rawPathOfSidecar(p);
+    if (subject) cited.add(subject);
+  }
+  const candidates = [];
+  for (const family of i.families) {
+    const members = family.filter((member) => familyOf(member.path) !== null);
+    const latest = latestOfFamily(members);
+    for (const member of members) {
+      if (member === latest || cited.has(member.path)) continue;
+      candidates.push(member.path);
+    }
+  }
+  return { candidates: candidates.sort() };
+}
+
+// iNNfo/packages/innfo-core/src/writeOnce/fs.ts
+var import_node_fs2 = require("node:fs");
+var path2 = __toESM(require("node:path"), 1);
+var import_node_crypto = require("node:crypto");
+
+// iNNfo/packages/innfo-core/src/cognitivize/sidecar.ts
+var import_yaml7 = __toESM(require_dist(), 1);
+var TEXT_NATIVE_FORMATS = /* @__PURE__ */ new Set(["md", "csv", "json"]);
+var SIDECAR_SPEC_URL = `https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/${SIDECAR_BLUEPRINT}/${SPEC_FILENAME}`;
+var OWNED_KEYS = /* @__PURE__ */ new Set([
+  "level",
+  "parent_spec",
+  "source_file",
+  "sha256",
+  "size_bytes",
+  "source_format",
+  "normalized_at",
+  "normalized_by",
+  "sources",
+  // A sidecar's upstream edge is `sources`; the projection derives `derived_from` itself.
+  "derived_from"
+]);
+var FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/;
+function parseSidecarFrontmatter(text) {
+  const match = FRONTMATTER_RE.exec(text);
+  if (!match) return null;
+  try {
+    const value = (0, import_yaml7.parse)(match[1]);
+    return value && typeof value === "object" && !Array.isArray(value) ? value : null;
+  } catch {
+    return null;
+  }
+}
+function buildSidecar(i) {
+  const fm = {
+    level: 3,
+    parent_spec: { name: SIDECAR_BLUEPRINT, url: SIDECAR_SPEC_URL },
+    source_file: i.sourceFile,
+    sha256: i.sha256,
+    size_bytes: i.sizeBytes,
+    source_format: i.sourceFormat,
+    normalized_at: i.normalizedAt
+  };
+  if (i.normalizedBy) fm["normalized_by"] = i.normalizedBy;
+  const sources = i.previous?.["sources"];
+  if (sources !== void 0) fm["sources"] = sources;
+  for (const extras of [i.previous ?? {}, i.metadata ?? {}]) {
+    for (const [key, value] of Object.entries(extras)) {
+      if (!OWNED_KEYS.has(key)) fm[key] = value;
+    }
+  }
+  const head = `---
+${(0, import_yaml7.stringify)(fm, { lineWidth: 0 })}---
+`;
+  const body = i.body?.trim();
+  return body ? `${head}
+${body}
+` : head;
+}
+
+// iNNfo/packages/innfo-core/src/writeOnce/fs.ts
+var WriteOnceError = class extends Error {
+  code;
+  /** The offending workspace-relative path (the stale input, or the over-long target). */
+  path;
+  constructor(code, offending, detail) {
+    super(`${code}: ${offending}: ${detail}`);
+    this.name = "WriteOnceError";
+    this.code = code;
+    this.path = offending;
+  }
+};
+function sha256Hex(bytes) {
+  return (0, import_node_crypto.createHash)("sha256").update(bytes).digest("hex");
+}
+var toPosix = (p) => p.replace(/\\/g, "/");
+function resolveInside(root, rel) {
+  const rootAbs = path2.resolve(root);
+  const target = path2.resolve(rootAbs, rel);
+  const within = path2.relative(rootAbs, target);
+  if (within.startsWith("..") || path2.isAbsolute(within)) {
+    throw new WriteOnceError("OUTSIDE_ROOT", rel, "path escapes the workspace root");
+  }
+  return target;
+}
+async function readOrNull(file) {
+  try {
+    return await import_node_fs2.promises.readFile(file);
+  } catch (e) {
+    if (e.code === "ENOENT") return null;
+    throw e;
+  }
+}
+async function readSidecarSha256(root, rawRel) {
+  const text = await readOrNull(resolveInside(root, sidecarPathOf(rawRel)));
+  if (text === null) return null;
+  const value = parseSidecarFrontmatter(text.toString("utf8"))?.["sha256"];
+  return typeof value === "string" ? value.toLowerCase() : "";
+}
+async function guardInputs(root, inputs) {
+  for (const input of inputs) {
+    const recorded = await readSidecarSha256(root, input);
+    if (recorded === null) continue;
+    const raw = await readOrNull(resolveInside(root, input));
+    const actual = raw === null ? "(missing)" : sha256Hex(raw);
+    if (recorded !== actual) {
+      throw new WriteOnceError("HASH_MISMATCH", toPosix(input), "raw bytes differ from the sidecar sha256; cognitivize it again");
+    }
+  }
+}
+async function listFamily(root, t) {
+  let names;
+  try {
+    names = await import_node_fs2.promises.readdir(resolveInside(root, t.dir));
+  } catch (e) {
+    if (e.code === "ENOENT") return [];
+    throw e;
+  }
+  const dir = toPosix(t.dir).replace(/^\/+|\/+$/g, "");
+  return names.filter((name) => {
+    const parsed = parseName(name);
+    return parsed.kind === "file" && parsed.key === t.key && parsed.ext === t.ext;
+  }).map((name) => ({ path: dir ? `${dir}/${name}` : name }));
+}
+function stampOf(member) {
+  if (!member) return void 0;
+  const parsed = parseName(member.path.slice(member.path.lastIndexOf("/") + 1));
+  return parsed.kind === "file" ? parsed.stamp : void 0;
+}
+function budgetOrThrow(root, rel, platform) {
+  const abs = resolveInside(root, rel);
+  const budget = checkPathBudget(abs, platform);
+  if (!budget.ok) {
+    throw new WriteOnceError("PATH_TOO_LONG", toPosix(rel), `${budget.length} characters exceeds the ${budget.limit} limit`);
+  }
+}
+async function writeOnce(root, t, bytes, o = {}) {
+  const now = o.now ?? (() => /* @__PURE__ */ new Date());
+  const platform = o.platform ?? process.platform;
+  const dirRel = toPosix(t.dir).replace(/^\/+|\/+$/g, "");
+  const memberRel = (stamp2) => {
+    const name = formatMemberName(t.key, t.ext, stamp2);
+    return dirRel ? `${dirRel}/${name}` : name;
+  };
+  const buffer = typeof bytes === "string" ? Buffer.from(bytes, "utf8") : Buffer.from(bytes);
+  budgetOrThrow(root, memberRel(nextStamp(now())), platform);
+  await guardInputs(root, o.inputs ?? []);
+  const latest = latestOfFamily(await listFamily(root, t));
+  if (latest) {
+    const recorded = await readSidecarSha256(root, latest.path);
+    const stored = recorded ? recorded : sha256Hex(await readOrNull(resolveInside(root, latest.path)) ?? Buffer.alloc(0));
+    if (stored === sha256Hex(buffer)) return { status: "deduplicated", path: latest.path };
+  }
+  await import_node_fs2.promises.mkdir(resolveInside(root, dirRel), { recursive: true });
+  let stamp = nextStamp(now(), stampOf(latest));
+  for (; ; ) {
+    const rel = memberRel(stamp);
+    budgetOrThrow(root, rel, platform);
+    try {
+      const handle = await import_node_fs2.promises.open(resolveInside(root, rel), "wx");
+      try {
+        await handle.writeFile(buffer);
+      } finally {
+        await handle.close();
+      }
+      return { status: "written", path: rel };
+    } catch (e) {
+      if (e.code !== "EEXIST") throw e;
+      stamp = { stamp: stamp.stamp, seq: stamp.seq + 1 };
+    }
+  }
+}
+async function collectFamilies(root) {
+  const rootAbs = path2.resolve(root);
+  const families = /* @__PURE__ */ new Map();
+  const walk = async (rel) => {
+    const entries = await import_node_fs2.promises.readdir(path2.join(rootAbs, rel), { withFileTypes: true });
+    for (const entry of entries) {
+      const entryRel = rel ? `${rel}/${entry.name}` : entry.name;
+      if (isExcludedPath(entryRel)) continue;
+      if (entry.isDirectory()) {
+        await walk(entryRel);
+      } else if (entry.isFile()) {
+        const family = familyOf(entryRel);
+        if (!family) continue;
+        const id = JSON.stringify([family.dir, family.key, family.ext]);
+        const members = families.get(id) ?? [];
+        members.push({ path: entryRel });
+        families.set(id, members);
+      }
+    }
+  };
+  await walk("");
+  return [...families.values()];
+}
+async function applyGc(root, confirmed, o) {
+  if (confirmed.length === 0) return { deleted: [] };
+  const plan = planGc({ families: await collectFamilies(root), citedPaths: await o.citedPaths() });
+  const allowed = new Set(plan.candidates);
+  const deleted = [];
+  for (const rel of confirmed.map(toPosix)) {
+    if (!allowed.has(rel)) continue;
+    await import_node_fs2.promises.rm(resolveInside(root, rel), { force: true });
+    await import_node_fs2.promises.rm(resolveInside(root, sidecarPathOf(rel)), { force: true });
+    deleted.push(rel);
+  }
+  return { deleted: deleted.sort() };
+}
+
+// iNNfo/packages/innfo-core/src/cognitivize/cognitivize.ts
+var import_node_fs3 = require("node:fs");
+var path3 = __toESM(require("node:path"), 1);
+var toPosix2 = (p) => p.replace(/\\/g, "/");
+async function readOrNull2(file) {
+  try {
+    return await import_node_fs3.promises.readFile(file);
+  } catch (e) {
+    if (e.code === "ENOENT") return null;
+    throw e;
+  }
+}
+var isoSeconds = (at) => at.toISOString().replace(/\.\d{3}Z$/, "Z");
+async function cognitivize(root, rel, o = {}) {
+  const rootAbs = path3.resolve(root);
+  const abs = path3.resolve(rootAbs, rel);
+  const within = path3.relative(rootAbs, abs);
+  if (within === "" || within.startsWith("..") || path3.isAbsolute(within)) {
+    throw new RangeError(`${rel}: path escapes the workspace root`);
+  }
+  const relPath = toPosix2(within);
+  const reject = (reason) => ({ status: "rejected", path: relPath, reason });
+  if (isSidecarName(relPath)) return reject("sidecar");
+  if (isNNName(relPath)) return reject("nn-document");
+  if (isExcludedPath(relPath)) return reject("excluded");
+  const sidecarRel = sidecarPathOf(relPath);
+  if (!checkPathBudget(path3.join(rootAbs, sidecarRel), o.platform ?? process.platform).ok) {
+    return reject("path-too-long");
+  }
+  const parsed = parseName(relPath.slice(relPath.lastIndexOf("/") + 1));
+  if (parsed.kind !== "file" || parsed.ext === "") return reject("no-extension");
+  const stat = await import_node_fs3.promises.stat(abs).catch(() => null);
+  if (!stat?.isFile()) return reject("not-found");
+  const bytes = await import_node_fs3.promises.readFile(abs);
+  const sha256 = sha256Hex(bytes);
+  const sidecarAbs = path3.join(rootAbs, sidecarRel);
+  const existing = await readOrNull2(sidecarAbs);
+  const previous = existing ? parseSidecarFrontmatter(existing.toString("utf8")) : null;
+  if (previous && String(previous["sha256"] ?? "").toLowerCase() === sha256) {
+    return { status: "unchanged", sidecar: sidecarRel, sha256 };
+  }
+  const format = parsed.ext.toLowerCase();
+  let normalized;
+  if (!TEXT_NATIVE_FORMATS.has(format)) {
+    if (!o.normalizer) return { status: "requires-normalizer", path: relPath };
+    normalized = await o.normalizer({ path: relPath, ext: format, bytes });
+  }
+  const text = buildSidecar({
+    sourceFile: relPath,
+    sha256,
+    sizeBytes: bytes.byteLength,
+    sourceFormat: format,
+    normalizedAt: isoSeconds((o.now ?? (() => /* @__PURE__ */ new Date()))()),
+    normalizedBy: normalized?.normalizedBy,
+    previous,
+    metadata: normalized?.metadata,
+    body: normalized?.body
+  });
+  await import_node_fs3.promises.writeFile(sidecarAbs, text, "utf8");
+  return { status: existing ? "refreshed" : "written", sidecar: sidecarRel, sha256 };
+}
+var IMPORT_DIR = "sources/import";
+async function importRaw(root, externalAbs, o = {}) {
+  const base = path3.basename(externalAbs);
+  const rejected = (reason) => ({
+    status: "rejected",
+    path: externalAbs,
+    reason
+  });
+  if (isSidecarName(base)) return rejected("sidecar");
+  if (isNNName(base)) return rejected("nn-document");
+  const bytes = await readOrNull2(externalAbs).catch(() => null);
+  const parsed = parseName(base);
+  if (bytes === null || parsed.kind !== "file") return rejected("not-found");
+  const written = await writeOnce(
+    root,
+    { dir: IMPORT_DIR, key: parsed.key, ext: parsed.ext },
+    bytes,
+    { now: o.now, platform: o.platform }
+  );
+  const result = await cognitivize(root, written.path, o);
+  return {
+    status: written.status === "written" ? "imported" : "deduplicated",
+    path: written.path,
+    cognitivize: result
+  };
+}
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   ENTRYPOINT_FILENAME,
   IGNORED_DIRECTORIES,
   SIDECAR_BLUEPRINT,
+  SIDECAR_SPEC_URL,
   SPEC_FILENAME,
+  TEXT_NATIVE_FORMATS,
+  WriteOnceError,
+  applyGc,
+  buildSidecar,
   checkPathBudget,
+  cognitivize,
+  collectFamilies,
   compareMembers,
   createFsSourceResolver,
   displayStem,
@@ -9721,24 +10174,33 @@ function readLineageSnapshot(root) {
   formatNNName,
   formatUtcStamp,
   headingSlugParts,
+  importRaw,
   isExcludedPath,
+  isJsonPointer,
   isModelCandidate,
   isNNName,
   isSidecarName,
+  latestOfFamily,
   nextStamp,
   normalizeName,
   parentSpecNameOf,
   parseCitation,
   parseName,
+  parseSidecarFrontmatter,
+  planGc,
   procedureIdOf,
   projectLineage,
   rawPathOfSidecar,
   readLineageSnapshot,
+  readSidecarSha256,
   renderLineageSections,
+  resolveJsonPointer,
   roleOf,
   serializeKnowledgeUnitRef,
+  sha256Hex,
   sidecarPathOf,
   slugifyHeading,
   slugifyUnitHeading,
-  validateCitations
+  validateCitations,
+  writeOnce
 });

@@ -1,6 +1,8 @@
 import type { RecursiveParseResult } from '../recursiveParser/types.js'
 import type { ReferenceDiagnostic } from './references.js'
 import { parseCsvTable } from '../csvTable.js'
+import { assertNever } from '../assertNever.js'
+import { resolveJsonPointer } from '../jsonPointer.js'
 import { parseKnowledgeQuery } from '../queryUnits.js'
 import {
   SOURCE_FIELD_NAMES,
@@ -305,11 +307,51 @@ function validateUnitPointer(
     })
     return
   }
-  if (unit.kind === 'header') {
-    validateHeaderUnit(ref, unit.slug, unit.level, subunits, resolved, path, diagnostics, site)
-  } else {
-    validateRowUnit(ref, unit.id, subunits, resolved, path, diagnostics, checkedCsvKeys, site)
+  switch (unit.kind) {
+    case 'header':
+      validateHeaderUnit(ref, unit.slug, unit.level, subunits, resolved, path, diagnostics, site)
+      return
+    case 'row':
+      validateRowUnit(ref, unit.id, subunits, resolved, path, diagnostics, checkedCsvKeys, site)
+      return
+    case 'pointer':
+      validatePointerUnit(ref, unit.pointer, resolved, path, diagnostics, site)
+      return
+    default:
+      return assertNever(unit, 'knowledge unit kind')
   }
+}
+
+function validatePointerUnit(
+  ref: SourceRef,
+  pointer: string,
+  resolved: { content?: string },
+  path: string,
+  diagnostics: CitationDiagnostic[],
+  site: CitationSite,
+): void {
+  if (!resolved.content) return // Degraded: file-existence-only without content.
+  const found = resolveJsonPointer(resolved.content, pointer)
+  if (found.ok) return
+  if (found.reason === 'invalid-json') {
+    diagnostics.push({
+      path,
+      message: `Source file "${ref.filePath}" cannot be parsed as JSON`,
+      severity: 'error',
+      code: 'KU_INVALID_JSON',
+      site,
+      target: ref.filePath,
+    })
+    return
+  }
+  diagnostics.push({
+    path,
+    message: `Source reference "${ref.raw}" points at pointer "${pointer}" which does not exist in "${ref.fileName}"`,
+    severity: 'error',
+    code: 'KU_UNKNOWN_POINTER',
+    site,
+    target: ref.filePath,
+  })
 }
 
 function validateHeaderUnit(
