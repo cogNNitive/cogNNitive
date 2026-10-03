@@ -113,7 +113,7 @@ Commits: (a) core re-key; (b) scanner/curate/collision/archive deletion; (c) con
 
 Spec links: `write-once-artifacts` ("Producers adopt write-once"), `console-export-cli`, `dynamic-sources-impact-check`.
 
-- [ ] 4.1 RED: `export-console.mjs` run twice writes nothing new; changed input writes a new suffixed file and leaves prior sha256 identical; output has `meta.sources` (W4: routed through core `buildConsolePayload`). GREEN: `scripts/export-console.mjs` via `console-payload.generated.cjs` + `writeOnce`.
+- [x] 4.1 RED: `export-console.mjs` run twice writes nothing new; changed input writes a new suffixed file and leaves prior sha256 identical; output has `meta.sources` (W4: routed through core `buildConsolePayload`). GREEN: `scripts/export-console.mjs` via `console-payload.generated.cjs` + `writeOnce`.
 - [ ] 4.2 RED/GREEN: same twice-run test for `impact-checker.js` report, `transformer.js`, `curate-csv.js` (`artifacts/curated/`), `workspace-index.js`, `scanner.js`.
 - [ ] 4.3 RED: ConsoleHub resolves latest via `latestOfFamily` (no hand-written paths). GREEN: `ConsoleHubView.vue`.
 - [ ] 4.4 RED: `--gc` dry run lists only non-latest uncited; `--gc --apply --yes --paths` deletes only confirmed intersect plan; CI never applies. GREEN: nn-trannsform `index.js`, wired to core `planGc`/`applyGc`.

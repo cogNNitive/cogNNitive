@@ -15,6 +15,10 @@ export {
   isNNName,
   isSidecarName,
   parentSpecNameOf,
+  parseName,
   roleOf,
 } from '../naming/contract.js'
 
+// Write-once producer primitives for scripts that load only the console payload mirror.
+export { latestOfFamily } from '../writeOnce/plan.js'
+export { writeOnce } from '../writeOnce/fs.js'

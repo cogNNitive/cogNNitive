@@ -21,10 +21,14 @@
  *   node scripts/export-console.mjs <workspaceRoot> --filter <pattern>
  *   node scripts/export-console.mjs <workspaceRoot> <ModelNameSubstring>
  *
- * Output: <workspaceRoot>/artifacts/<Model>_V_<version>_console/<Model>_V_<version>_console.html
+ * Output (write-once, never overwritten):
+ *   <workspaceRoot>/artifacts/<stem>_console/<stem>_console_<UTC stamp>.html
+ *   <workspaceRoot>/artifacts/<stem>_console/innfo-console.bundle_<UTC stamp>.js
+ * Re-running on an unchanged model writes nothing; a changed model adds a new
+ * member and leaves earlier consoles byte-identical.
  */
 
-import { readdir, readFile, writeFile, mkdir, cp } from 'node:fs/promises'
+import { readdir, readFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { join, relative, basename, resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -198,13 +202,41 @@ function extractModelMetaFromHtml(htmlContent) {
   }
 }
 
+const BUNDLE_KEY = 'innfo-console.bundle'
+const consoleDirRel = (stem) => `artifacts/${stem}_console`
+
+/** Workspace-relative members of the family `(dir, key, ext)`, via the core name contract. */
+async function familyMembers(rootDir, dir, key, ext) {
+  let names
+  try {
+    names = await readdir(join(rootDir, dir))
+  } catch {
+    return []
+  }
+  return names
+    .filter((n) => {
+      const parsed = payloadHelper.parseName(n)
+      return parsed.kind === 'file' && parsed.key === key && parsed.ext === ext
+    })
+    .map((n) => ({ path: `${dir}/${n}` }))
+}
+
+/** Latest console HTML for a stem (core `latestOfFamily`), or null when none exists. */
+async function latestConsole(rootDir, stem) {
+  const latest = payloadHelper.latestOfFamily(
+    await familyMembers(rootDir, consoleDirRel(stem), `${stem}_console`, 'html'),
+  )
+  return latest ? latest.path : null
+}
+
 async function inspectModelStatus(model, rootDir) {
   const stem = model.name
-  const targetHtmlPath = join(rootDir, 'artifacts', `${stem}_console`, `${stem}_console.html`)
+  const latestRel = await latestConsole(rootDir, stem)
 
-  if (!existsSync(targetHtmlPath)) {
-    return { status: 'uncompiled', targetHtmlPath }
+  if (!latestRel) {
+    return { status: 'uncompiled', targetHtmlPath: join(rootDir, consoleDirRel(stem)) }
   }
+  const targetHtmlPath = join(rootDir, latestRel)
 
   let htmlContent
   try {
@@ -287,6 +319,12 @@ function injectSlots(shell, config, schema, model) {
       (_m, open, close) => `${open}\n${serialize(json)}\n${close}`,
     )
   return slot(slot(slot(shell, 'innfo-config', config), 'innfo-schema', schema), 'innfo-model', model)
+}
+
+/** Console HTML for one model: the bundle name is injected so each console loads its own pinned bundle. */
+function renderConsole(shell, bundleName, config, payload) {
+  const pinned = bundleName ? shell.replace('./innfo-console.bundle.js', `./${bundleName}`) : shell
+  return injectSlots(pinned, config, payload.schema, payload.model)
 }
 
 async function main() {
@@ -435,6 +473,8 @@ async function main() {
 
   const resolver = payloadHelper.createFsSourceResolver ? payloadHelper.createFsSourceResolver(root) : undefined
 
+  let written = 0
+  let unchanged = 0
   for (const m of selected) {
     const stem = m.name
     const relPath = relative(root, m.filePath).replace(/\\/g, '/')
@@ -452,23 +492,49 @@ async function main() {
       }
     }
 
-    const payload = payloadHelper.buildConsolePayload({
-      content: m.content,
-      path: relPath,
-      schema,
-      resolver,
-      ledgerEntries,
-    })
+    const build = (generated) =>
+      payloadHelper.buildConsolePayload({
+        content: m.content,
+        path: relPath,
+        schema,
+        resolver,
+        ledgerEntries,
+        generated,
+      })
 
-    const outDir = join(root, 'artifacts', `${stem}_console`)
-    await mkdir(outDir, { recursive: true })
-    const outFile = join(outDir, `${stem}_console.html`)
-    const html = injectSlots(resolvedShell, config, payload.schema, payload.model)
-    await writeFile(outFile, html, 'utf-8')
-    if (bundle) await cp(bundlePath, join(outDir, 'innfo-console.bundle.js'))
-    console.log(`✔ ${stem}_console.html → ${outFile.replace(root, '.')}`)
+    const dir = consoleDirRel(stem)
+    // The bundle is its own write-once family per folder; an unchanged bundle is deduplicated.
+    let bundleName = null
+    if (bundle) {
+      const vendored = await payloadHelper.writeOnce(root, { dir, key: BUNDLE_KEY, ext: 'js' }, bundle)
+      bundleName = basename(vendored.path)
+    }
+
+    // Re-render with the previous `generated` stamp: identical bytes mean nothing changed.
+    const latestRel = await latestConsole(root, stem)
+    if (latestRel) {
+      const previous = await readFile(join(root, latestRel), 'utf-8')
+      const previousGenerated = extractModelMetaFromHtml(previous)?.generated
+      if (previousGenerated && renderConsole(resolvedShell, bundleName, config, build(previousGenerated)) === previous) {
+        unchanged++
+        console.log(`= ${basename(latestRel)} unchanged`)
+        continue
+      }
+    }
+
+    const html = renderConsole(resolvedShell, bundleName, config, build(undefined))
+    const result = await payloadHelper.writeOnce(root, { dir, key: `${stem}_console`, ext: 'html' }, html, {
+      inputs: [relPath],
+    })
+    if (result.status === 'deduplicated') {
+      unchanged++
+      console.log(`= ${basename(result.path)} unchanged`)
+    } else {
+      written++
+      console.log(`✔ ${basename(result.path)} → ./${result.path}`)
+    }
   }
-  console.log(`Exported ${selected.length} console artifact(s).`)
+  console.log(`Exported ${written} console artifact(s)${unchanged > 0 ? ` (${unchanged} unchanged)` : ''}.`)
 }
 
 main().catch((err) => {

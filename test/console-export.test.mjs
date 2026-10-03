@@ -3,10 +3,11 @@ import assert from 'node:assert/strict'
 import { mkdtemp, rm, mkdir, writeFile, readFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join, resolve, dirname } from 'node:path'
+import { join, resolve, dirname, basename } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
+import { consoleHtml, consoleBundle, consoleMembers } from './helpers/console-artifacts.mjs'
 import { JSDOM } from 'jsdom'
 
 const execFileAsync = promisify(execFile)
@@ -68,14 +69,17 @@ level: 3
     const res = await runCli([tempDir, '--all'])
     assert.equal(res.code, 0)
 
-    const exportDir = join(tempDir, 'artifacts', 'business_V_1-0-0_console')
-    const htmlPath = join(exportDir, 'business_V_1-0-0_console.html')
-    const bundlePath = join(exportDir, 'innfo-console.bundle.js')
+    const htmlPath = consoleHtml(tempDir, 'business_V_1-0-0')
+    const bundlePath = consoleBundle(tempDir, 'business_V_1-0-0')
 
     assert.equal(existsSync(htmlPath), true, 'HTML artifact was generated')
-    assert.equal(existsSync(bundlePath), true, 'innfo-console.bundle.js vendored alongside HTML')
+    assert.equal(existsSync(bundlePath), true, 'console bundle vendored alongside HTML')
 
     const htmlContent = await readFile(htmlPath, 'utf-8')
+    assert.ok(
+      htmlContent.includes(`./${basename(bundlePath)}`),
+      'the HTML loads the exact bundle member vendored next to it',
+    )
     assert.match(htmlContent, /<script type="application\/json" id="innfo-config">/)
     assert.match(htmlContent, /<script type="application\/json" id="innfo-schema">/)
     assert.match(htmlContent, /<script type="application\/json" id="innfo-model">/)
@@ -85,18 +89,8 @@ level: 3
   it('hydrates Level 1 primitives and Review tab offline in JSDOM without remote network requests', async () => {
     await runCli([tempDir, '--all'])
 
-    const htmlPath = join(
-      tempDir,
-      'artifacts',
-      'business_V_1-0-0_console',
-      'business_V_1-0-0_console.html',
-    )
-    const bundlePath = join(
-      tempDir,
-      'artifacts',
-      'business_V_1-0-0_console',
-      'innfo-console.bundle.js',
-    )
+    const htmlPath = consoleHtml(tempDir, 'business_V_1-0-0')
+    const bundlePath = consoleBundle(tempDir, 'business_V_1-0-0')
 
     const html = await readFile(htmlPath, 'utf-8')
     const bundleJs = await readFile(bundlePath, 'utf-8')
@@ -172,7 +166,7 @@ level: 3
     const res = await runCli([tempDir, '--all'])
     assert.equal(res.code, 0)
 
-    const htmlPath = join(tempDir, 'artifacts', 'xss_V_1-0-0_console', 'xss_V_1-0-0_console.html')
+    const htmlPath = consoleHtml(tempDir, 'xss_V_1-0-0')
     const htmlContent = await readFile(htmlPath, 'utf-8')
 
     // Inside the script tag for innfo-model, there must be no literal </script> or <script> or <div>
@@ -218,7 +212,7 @@ level: 3
     const res = await runCli([tempDir, '--all'])
     assert.equal(res.code, 0)
 
-    const htmlPath = join(tempDir, 'artifacts', 'business_V_1-0-0_console', 'business_V_1-0-0_console.html')
+    const htmlPath = consoleHtml(tempDir, 'business_V_1-0-0')
     const htmlContent = await readFile(htmlPath, 'utf-8')
     assert.ok(htmlContent.includes('fb-001'), 'Root ledger entry fb-001 included in feedbackState')
     assert.equal(htmlContent.includes('fb-999-decoy'), false, 'Decoy legacy ledger entry ignored')
@@ -247,7 +241,7 @@ level: 3
     const res = await runCli([tempDir, '--all'])
     assert.equal(res.code, 0)
 
-    const htmlPath = join(tempDir, 'artifacts', 'cited_V_1-0-0_console', 'cited_V_1-0-0_console.html')
+    const htmlPath = consoleHtml(tempDir, 'cited_V_1-0-0')
     const htmlContent = await readFile(htmlPath, 'utf-8')
     assert.ok(htmlContent.includes('citationsResolvedAt'))
     assert.ok(htmlContent.includes('sources/brief.md'))
@@ -286,7 +280,7 @@ level: 3
       })
       assert.equal(res.code, 0, `Standalone export should exit with 0. stderr: ${res.stderr}`)
 
-      const htmlPath = join(tempDir, 'artifacts', 'business_V_1-0-0_console', 'business_V_1-0-0_console.html')
+      const htmlPath = consoleHtml(tempDir, 'business_V_1-0-0')
       assert.equal(existsSync(htmlPath), true, 'Artifact produced in standalone mode')
     } finally {
       await rm(standaloneDir, { recursive: true, force: true })
