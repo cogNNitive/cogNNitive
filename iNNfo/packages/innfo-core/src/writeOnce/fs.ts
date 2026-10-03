@@ -6,7 +6,7 @@
 import { promises as fsp } from 'node:fs'
 import * as path from 'node:path'
 import { createHash } from 'node:crypto'
-import { parseFrontmatter } from '../parser/yaml.js'
+import { parseSidecarFrontmatter } from '../cognitivize/sidecar.js'
 import {
   checkPathBudget,
   familyOf,
@@ -80,7 +80,7 @@ async function readOrNull(file: string): Promise<Buffer | null> {
 export async function readSidecarSha256(root: string, rawRel: string): Promise<string | null> {
   const text = await readOrNull(resolveInside(root, sidecarPathOf(rawRel)))
   if (text === null) return null
-  const value = (parseFrontmatter(text.toString('utf8')) as Record<string, unknown> | null)?.['sha256']
+  const value = parseSidecarFrontmatter(text.toString('utf8'))?.['sha256']
   return typeof value === 'string' ? value.toLowerCase() : ''
 }
 

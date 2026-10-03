@@ -132,3 +132,4 @@ export * from './lineage/index.js'
 
 export * from './naming/index.js'
 export * from './writeOnce/plan.js'
+export type { Normalizer } from './cognitivize/sidecar.js'
