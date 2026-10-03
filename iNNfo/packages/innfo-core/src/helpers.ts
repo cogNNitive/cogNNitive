@@ -11,18 +11,13 @@ import { isModelCandidate, isExcludedPath, parseName } from './naming/contract.j
 /* ── Version resolution ──────────────────────────────────────── */
 
 /**
- * SemVer pattern as used in iNNfo filenames: `_V_MAJOR-MINOR-PATCH_`
+ * Read a model's own version from its frontmatter `knowledge_version`
+ * (e.g. `V_1-0-0`). The legacy `model_version` key is NOT a version source
+ * (the legacy detector flags it). Returns `null` when absent or empty.
  */
-const VERSION_FILENAME_RE = /_V_(\d+-\d+-\d+)_/
-
-/**
- * Extract the SemVer (e.g. `0-1-1`) from an iNNfo filename like
- * `Ghostbusters_V_0-1-0_business_NN.md` → `0-1-0`.
- * Returns `null` if no version marker is found.
- */
-export function resolveSpecVersionFromFilename(filename: string): string | null {
-  const match = filename.match(VERSION_FILENAME_RE)
-  return match ? match[1] : null
+export function resolveKnowledgeVersion(frontmatter: Record<string, unknown>): string | null {
+  const v = frontmatter.knowledge_version
+  return typeof v === 'string' && v.trim() !== '' ? v.trim() : null
 }
 
 /* ── Model scanning ──────────────────────────────────────────── */
@@ -32,7 +27,7 @@ export interface KnowledgeInfo {
   id: string
   /** Absolute filesystem path */
   path: string
-  /** SemVer extracted from filename, e.g. `0-1-2` */
+  /** Version read from frontmatter `knowledge_version`, e.g. `V_0-1-2` */
   version: string | null
 }
 
@@ -90,7 +85,7 @@ async function collectModels(dir: string, rootDir: string, models: KnowledgeInfo
     if (!isModelCandidate({ path: relPath, frontmatter })) continue
 
     const id = entry.name.replace(MD_FILE_RE, '')
-    const version = resolveSpecVersionFromFilename(entry.name)
+    const version = resolveKnowledgeVersion(frontmatter)
 
     models.push({ id, path: filePath, version })
   }

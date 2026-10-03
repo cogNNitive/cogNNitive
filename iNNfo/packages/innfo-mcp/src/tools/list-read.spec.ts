@@ -51,6 +51,7 @@ describe('listKnowledge', () => {
     const modelFrontmatter = [
       '---',
       'level: 3',
+      'knowledge_version: V_1-0-0',
       'parent_spec:',
       '  name: business_V_0-2-0',
       '  url: https://example.com/business_V_0-2-0_NN.md',
@@ -68,7 +69,7 @@ describe('listKnowledge', () => {
       'Alpha_V_1-0-0_business_NN',
       'Beta_V_1-0-0_business_NN',
     ])
-    expect(models[0].version).toBe('1-0-0')
+    expect(models[0].version).toBe('V_1-0-0')
   })
 
   it('returns an empty array for a non-existent directory', async () => {

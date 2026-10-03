@@ -7380,8 +7380,10 @@ __export(trannsformPrimitives_exports, {
   TEXT_NATIVE_FORMATS: () => TEXT_NATIVE_FORMATS,
   WriteOnceError: () => WriteOnceError,
   applyGc: () => applyGc,
+  blueprintNameOf: () => blueprintNameOf,
   buildSidecar: () => buildSidecar,
   checkLineageDrift: () => checkLineageDrift,
+  checkNameInvariant: () => checkNameInvariant,
   checkPathBudget: () => checkPathBudget,
   cognitivize: () => cognitivize,
   collectFamilies: () => collectFamilies,
@@ -7621,6 +7623,27 @@ function isModelCandidate(f) {
   if (isExcludedPath(f.path)) return false;
   if (parseName(baseOf(f.path)).kind !== "nn") return false;
   return roleOf({ path: f.path, parentSpecName: parentSpecNameOf(f.frontmatter) }) === "knowledge";
+}
+var VERSION_TOKEN_RE = /_V_\d+-\d+-\d+/i;
+var STRUCTURAL_STEM_RE = /^(?:iNNfo|defiNNition|defiNNe|meta-bluepriNNt)(?:_V_\d+-\d+-\d+)?$/i;
+function blueprintNameOf(parentSpecName) {
+  return parentSpecName.trim().replace(/_V_\d+-\d+-\d+$/i, "");
+}
+function checkNameInvariant(path4, bp) {
+  const base = baseOf(path4);
+  const parsed = parseName(base);
+  if (parsed.kind !== "nn") return null;
+  const lower = base.toLowerCase();
+  if (lower === ENTRYPOINT_FILENAME.toLowerCase() || lower === SPEC_FILENAME.toLowerCase()) return null;
+  if (STRUCTURAL_STEM_RE.test(parsed.stem)) return null;
+  const hasVersion = VERSION_TOKEN_RE.test(parsed.stem);
+  const stem = parsed.stem.replace(VERSION_TOKEN_RE, "");
+  const blueprint = bp?.trim();
+  if (!blueprint) return hasVersion ? { expected: `${stem}_NN.md` } : null;
+  const s = stem.toLowerCase();
+  const b = blueprint.toLowerCase();
+  const conforms = !hasVersion && (s === b || s.endsWith(`_${b}`));
+  return conforms ? null : { expected: formatNNName(stem, blueprint) };
 }
 function isNNName(nameOrPath) {
   return NN_SUFFIX_RE.test(baseOf(nameOrPath));
@@ -10000,8 +10023,10 @@ async function importRaw(root, externalAbs, o = {}) {
   TEXT_NATIVE_FORMATS,
   WriteOnceError,
   applyGc,
+  blueprintNameOf,
   buildSidecar,
   checkLineageDrift,
+  checkNameInvariant,
   checkPathBudget,
   cognitivize,
   collectFamilies,

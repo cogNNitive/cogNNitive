@@ -232,6 +232,40 @@ export function isModelCandidate(f: { path: string; frontmatter: Record<string, 
   return roleOf({ path: f.path, parentSpecName: parentSpecNameOf(f.frontmatter) }) === 'knowledge'
 }
 
+/** A published-spec style version token inside a stem: `_V_<major>-<minor>-<patch>`. */
+const VERSION_TOKEN_RE = /_V_\d+-\d+-\d+/i
+/** Stems of the Level 0 / Level 1 specifications, exempt from the invariant (optionally versioned). */
+const STRUCTURAL_STEM_RE = /^(?:iNNfo|defiNNition|defiNNe|meta-bluepriNNt)(?:_V_\d+-\d+-\d+)?$/i
+
+/** Blueprint name of a `parent_spec` name: trimmed, without a trailing `_V_x-y-z` version. */
+export function blueprintNameOf(parentSpecName: string): string {
+  return parentSpecName.trim().replace(/_V_\d+-\d+-\d+$/i, '')
+}
+
+/**
+ * The `_NN` invariant: the stem of a `*_NN.md` document equals `<bp>` or ends
+ * with `_<bp>` (case-insensitive) and carries no `_V_<version>` token.
+ * Returns `null` when the name conforms, is exempt (entrypoint, `spec_NN.md`,
+ * Level 0 / Level 1 specs), is not an `_NN.md` name, or `bp` is unknown and the
+ * version rule is not violated. Otherwise returns the conforming file name.
+ */
+export function checkNameInvariant(path: string, bp?: string): { expected: string } | null {
+  const base = baseOf(path)
+  const parsed = parseName(base)
+  if (parsed.kind !== 'nn') return null
+  const lower = base.toLowerCase()
+  if (lower === ENTRYPOINT_FILENAME.toLowerCase() || lower === SPEC_FILENAME.toLowerCase()) return null
+  if (STRUCTURAL_STEM_RE.test(parsed.stem)) return null
+  const hasVersion = VERSION_TOKEN_RE.test(parsed.stem)
+  const stem = parsed.stem.replace(VERSION_TOKEN_RE, '')
+  const blueprint = bp?.trim()
+  if (!blueprint) return hasVersion ? { expected: `${stem}_NN.md` } : null
+  const s = stem.toLowerCase()
+  const b = blueprint.toLowerCase()
+  const conforms = !hasVersion && (s === b || s.endsWith(`_${b}`))
+  return conforms ? null : { expected: formatNNName(stem, blueprint) }
+}
+
 /** True for any `_NN.md` document name (sidecars included); reads the basename of a path. */
 export function isNNName(nameOrPath: string): boolean {
   return NN_SUFFIX_RE.test(baseOf(nameOrPath))

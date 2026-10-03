@@ -153,7 +153,7 @@ export type {
   FreshnessField,
   TemplateResolution,
 } from './workspace/integrity/report.js'
-export { listKnowledge, resolveSpecVersionFromFilename } from './helpers.js'
+export { listKnowledge, resolveKnowledgeVersion } from './helpers.js'
 export type { KnowledgeInfo } from './helpers.js'
 export { applyMutation, updateReferenceString, updateWikiLinks } from './mutate.js'
 export type { MutationResult } from './mutate.js'

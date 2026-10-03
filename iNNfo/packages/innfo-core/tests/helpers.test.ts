@@ -16,6 +16,7 @@ async function makeRoot(): Promise<string> {
 const MODEL_FRONTMATTER = [
   '---',
   'level: 3',
+  'knowledge_version: V_0-2-0',
   'parent_spec:',
   '  name: business_V_0-2-0',
   '  url: https://example.com/business_V_0-2-0_NN.md',
@@ -71,7 +72,7 @@ describe('listKnowledge (recursive scan)', () => {
 
     const nested = models.find((m) => m.id === 'Nested_V_0-2-0_NN')
     expect(nested).toBeDefined()
-    expect(nested!.version).toBe('0-2-0')
+    expect(nested!.version).toBe('V_0-2-0')
     expect(nested!.path).toBe(join(root, 'kNNowledge', 'subdir', 'Nested_V_0-2-0_NN.md'))
   })
 
