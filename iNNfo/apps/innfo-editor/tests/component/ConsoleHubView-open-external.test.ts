@@ -309,3 +309,105 @@ describe('ConsoleHubView — Open External (F-16)', () => {
   })
 })
 
+describe('ConsoleHubView — generation entry point and onboarding', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('renders the primary generation CTA when no console artifact exists', async () => {
+    const wrapper = mount(ConsoleHubView)
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="console-hub-empty-state"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="console-hub-empty-cta"]').exists()).toBe(true)
+    // The header action is always reachable, artifact or not.
+    expect(wrapper.find('[data-testid="console-hub-generate-btn"]').exists()).toBe(true)
+
+    wrapper.unmount()
+  })
+
+  it('opens the prompt modal from the empty-state CTA and generates a prompt', async () => {
+    const knowledgeStore = useKnowledgeStore()
+    knowledgeStore.setGraph(
+      {
+        'business-model': {
+          id: 'business-model',
+          name: 'Business Model',
+          parentId: null,
+          childIds: [],
+          storageMode: 'FILE',
+          type: 'business',
+          fields: { template: { value: 'business' } },
+          markers: {},
+          relationships: [],
+          rawSections: {},
+          source: { path: 'kNNowledge/Business_NN.md' },
+        },
+      },
+      ['business-model']
+    )
+
+    const wrapper = mount(ConsoleHubView)
+    await flushPromises()
+
+    await wrapper.find('[data-testid="console-hub-empty-cta"]').trigger('click')
+    await flushPromises()
+
+    const modal = wrapper.find('[data-testid="console-hub-prompt-modal"]')
+    expect(modal.exists()).toBe(true)
+    expect(modal.text()).toContain('Business Model')
+    expect(modal.text()).toContain('iNNfo/specs/bluepriNNts/business/procedures/compile_business_console_NN.md')
+    expect(modal.text()).not.toContain('specs/templates/')
+
+    wrapper.unmount()
+  })
+
+  it('lists discovered models as pending previews in the empty state', async () => {
+    const knowledgeStore = useKnowledgeStore()
+    knowledgeStore.setGraph(
+      {
+        'business-model': {
+          id: 'business-model',
+          name: 'Business Model',
+          parentId: null,
+          childIds: [],
+          storageMode: 'FILE',
+          type: 'business',
+          fields: { template: { value: 'business' } },
+          markers: {},
+          relationships: [],
+          rawSections: {},
+          source: { path: 'kNNowledge/Business_NN.md' },
+        },
+      },
+      ['business-model']
+    )
+
+    const wrapper = mount(ConsoleHubView)
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="console-hub-empty-state"]').text()).toContain('Business Model')
+    wrapper.unmount()
+  })
+
+  it('injects the host design tokens and suppresses the artifact header in embedded mode', async () => {
+    const workspaceStore = useWorkspaceStore()
+    workspaceStore.handle = buildFakeTree('workspace', {
+      artifacts: {
+        'workspace_hub.html': '<html><head></head><body><header>Artifact Header</header>Hub</body></html>',
+      },
+    })
+
+    const wrapper = mount(ConsoleHubView)
+    await flushPromises()
+
+    const iframe = wrapper.find('iframe')
+    expect(iframe.exists()).toBe(true)
+    const srcdoc = iframe.attributes('srcdoc') || ''
+    expect(srcdoc).toContain('--nn-accent')
+    expect(srcdoc).toContain('header { display: none !important; }')
+
+    wrapper.unmount()
+  })
+})
+
