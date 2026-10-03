@@ -294,3 +294,26 @@ describe('importRaw', () => {
     expect(importDir()).toEqual([])
   })
 })
+
+describe('cognitivize: declared upstream', () => {
+  const CSV = 'id\na\n'
+
+  it('records the sources a derived artifact declares in its sidecar', async () => {
+    put('artifacts/curated/m_20261002T101500Z.csv', CSV)
+    await cognitivize(root, 'artifacts/curated/m_20261002T101500Z.csv', {
+      now: NOW,
+      sources: ['sources/import/m.csv'],
+    })
+    expect(readSidecar('artifacts/curated/m_20261002T101500Z.csv').fm['sources']).toEqual(['sources/import/m.csv'])
+  })
+
+  it('refreshes a current sidecar when the declared sources differ and is unchanged when they match', async () => {
+    put('artifacts/m.csv', CSV)
+    expect((await cognitivize(root, 'artifacts/m.csv', { now: NOW })).status).toBe('written')
+    const declared = { now: NOW, sources: ['sources/import/m.csv'] }
+    expect((await cognitivize(root, 'artifacts/m.csv', declared)).status).toBe('refreshed')
+    expect(readSidecar('artifacts/m.csv').fm['sources']).toEqual(['sources/import/m.csv'])
+    expect((await cognitivize(root, 'artifacts/m.csv', declared)).status).toBe('unchanged')
+    expect((await cognitivize(root, 'artifacts/m.csv', { now: NOW })).status).toBe('unchanged')
+  })
+})

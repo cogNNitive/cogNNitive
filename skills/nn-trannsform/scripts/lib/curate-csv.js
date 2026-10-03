@@ -147,7 +147,8 @@ async function curateCsvFile(input, options = {}) {
     serializeCsv(curated.rows),
     { inputs: insideProject ? [relInput] : [] },
   );
-  await cognitivize(projectDir, written.path);
+  // The curated CSV cannot carry frontmatter, so its upstream edge (the raw file) lives in its sidecar.
+  await cognitivize(projectDir, written.path, insideProject ? { sources: [relInput] } : {});
 
   const firstKey = curated.rows[1] ? curated.rows[1][0] : '<key>';
 

@@ -26,6 +26,26 @@ ${extra}---
   }
 }
 
+describe('projectLineage: sidecar-declared upstream', () => {
+  it('uses the sidecar sources as the upstream edge of a text-native subject that cannot declare one', () => {
+    const csv = 'artifacts/curated/m_20261002T101500Z.csv'
+    const { sources } = projectLineage([
+      { path: csv, content: 'id\na\n' },
+      sidecar(csv, 'sources:\n  - sources/import/m.csv\n'),
+    ])
+    expect(sources[0].derived_from).toEqual(['sources/import/m.csv'])
+  })
+
+  it('prefers the citations the subject declares itself', () => {
+    const md = 'artifacts/Report_20261002T101500Z.md'
+    const { sources } = projectLineage([
+      { path: md, content: '---\nsources: [kNNowledge/A_business_NN.md]\n---\n# R\n' },
+      sidecar(md, 'sources:\n  - sources/import/other.csv\n'),
+    ])
+    expect(sources[0].derived_from).toEqual(['kNNowledge/A_business_NN.md'])
+  })
+})
+
 describe('projectLineage (name-derived roles)', () => {
   const fixtureFiles: FileSnapshot[] = [
     // Binary subject: only its sidecar is in the snapshot; the sidecar carries the upstream edge.

@@ -6,6 +6,14 @@ import { useWorkspaceStore } from '../../stores/workspaceStore'
 import { useUiStore } from '../../stores/uiStore'
 import { resolveFileHandleForRead } from '../../services/WorkspacePersistenceService'
 import {
+  consoleFamilyKey,
+  consoleKeyOf,
+  latestInFamilyOf,
+  latestOfFamilyKey,
+  sameConsoleFamily,
+  scanHtmlArtifacts,
+} from '../../utils/consoleArtifacts'
+import {
   Layers,
   ExternalLink,
   RefreshCw,
@@ -129,125 +137,82 @@ const allModelTargets = computed(() => {
 
 const selectedConsoleTarget = ref<string>('hub')
 
-function getCandidatePaths(target: string): string[] {
-  if (target === 'hub') {
-    const candidates = [
-      'artifacts/workspace_hub.html',
-      'artifacts/workspace_hub/workspace_hub.html',
-      'artifacts/workspace_hub/master.html',
-      'artifacts/workspace_console.html',
-      'artifacts/workspace_console/workspace_console.html',
-      'innfo/artifacts/workspace_hub.html',
-    ]
+/**
+ * What identifies a target's console: explicit references (a `console` field, registered
+ * artifacts, a launch path) and write-once family keys. Neither names a file: the file is
+ * the latest member of the family, found by `resolveCandidates`.
+ */
+interface ConsoleRefs {
+  refs: string[]
+  keys: string[]
+}
 
-    // Check registered artifacts in knowledgeStore
-    for (const node of Object.values(knowledgeStore.nodes)) {
-      const isArtifact = node.type === 'Artifacts' || node.conceptBinding?.name === 'Artifacts'
-      const ref = typeof node.fields?.['artifact_ref']?.value === 'string' ? node.fields['artifact_ref'].value : ''
-      if (isArtifact && ref.endsWith('.html') && (ref.includes('workspace') || ref.includes('hub'))) {
-        candidates.unshift(ref)
-      }
-    }
-
-    return Array.from(new Set(candidates))
-  }
-
-  // Check dynamic targets first
-  const dyn = dynamicConsoles.value.find((d) => d.id === target)
-  if (dyn) {
-    const candidates = [dyn.consolePath]
-    if (!dyn.consolePath.startsWith('innfo/')) candidates.push(`innfo/${dyn.consolePath}`)
-    if (dyn.consolePath.startsWith('innfo/')) candidates.push(dyn.consolePath.replace(/^innfo\//, ''))
-    return Array.from(new Set(candidates))
-  }
-
-  const model = allModelTargets.value.find((m) => m.id === target)
-  if (!model) {
-    // If target itself looks like a direct file path
-    if (target.endsWith('.html') || target.includes('/')) {
-      const directCandidates = [target]
-      if (!target.startsWith('innfo/')) directCandidates.push(`innfo/${target}`)
-      if (target.startsWith('innfo/')) directCandidates.push(target.replace(/^innfo\//, ''))
-      return Array.from(new Set(directCandidates))
-    }
-    return ['artifacts/workspace_hub.html']
-  }
-
-  const candidates: string[] = []
-
-  // 1. Explicit console if specified on node
-  if (model.explicitConsole) {
-    candidates.push(model.explicitConsole)
-    if (!model.explicitConsole.startsWith('innfo/')) {
-      candidates.push(`innfo/${model.explicitConsole}`)
-    }
-  }
-
-  const modelName = model.name
-  const modelSlug = normalizeSlug(modelName)
-  const sourceBasename = model.sourcePath
-    ? displayStem(model.sourcePath.split('/').pop() ?? '')
-    : ''
-  const sourceSlug = normalizeSlug(sourceBasename)
-
-  // 2. Scan registered artifact references in graph
+function registeredArtifactRefs(accept: (ref: string) => boolean): string[] {
+  const out: string[] = []
   for (const node of Object.values(knowledgeStore.nodes)) {
     const isArtifact = node.type === 'Artifacts' || node.conceptBinding?.name === 'Artifacts'
     const ref = typeof node.fields?.['artifact_ref']?.value === 'string' ? node.fields['artifact_ref'].value : ''
-    if (isArtifact && ref.endsWith('.html')) {
-      const lowerRef = ref.toLowerCase()
-      if (
-        (modelSlug && lowerRef.includes(modelSlug)) ||
-        (sourceSlug && lowerRef.includes(sourceSlug)) ||
-        (sourceBasename && lowerRef.includes(sourceBasename.toLowerCase()))
-      ) {
-        candidates.push(ref)
-      }
-    }
+    if (isArtifact && ref.endsWith('.html') && accept(ref)) out.push(ref)
   }
-
-  // 3. Known exported console structures
-  if (sourceBasename) {
-    candidates.push(`artifacts/${sourceBasename}_console/${sourceBasename}_console.html`)
-    candidates.push(`artifacts/${sourceBasename}_console/master.html`)
-    candidates.push(`artifacts/${sourceBasename}/${sourceBasename}.html`)
-    candidates.push(`artifacts/${sourceBasename}/master.html`)
-    candidates.push(`artifacts/exports/${sourceBasename}.html`)
-    candidates.push(`artifacts/exports/${sourceBasename}_Strategic_Master_V_0-1-0.html`)
-    candidates.push(`innfo/artifacts/exports/${sourceBasename}.html`)
-  }
-
-  if (sourceSlug && sourceSlug !== sourceBasename) {
-    candidates.push(`artifacts/${sourceSlug}_console/${sourceSlug}_console.html`)
-    candidates.push(`artifacts/${sourceSlug}_console/master.html`)
-    candidates.push(`artifacts/${sourceSlug}/${sourceSlug}.html`)
-    candidates.push(`artifacts/${sourceSlug}/master.html`)
-    candidates.push(`artifacts/exports/${sourceSlug}.html`)
-  }
-
-  if (modelSlug) {
-    candidates.push(`artifacts/${modelSlug}_console/${modelSlug}_console.html`)
-    candidates.push(`artifacts/${modelSlug}_console/master.html`)
-    candidates.push(`artifacts/${modelSlug}/${modelSlug}.html`)
-    candidates.push(`artifacts/exports/${modelSlug}.html`)
-    candidates.push(`artifacts/${modelSlug}_console.html`)
-    candidates.push(`innfo/artifacts/${modelSlug}_console.html`)
-  }
-
-  // 4. Canonical template locations
-  candidates.push(`artifacts/${model.template}_console.html`)
-  candidates.push(`artifacts/${modelName}_console.html`)
-  candidates.push(`innfo/artifacts/${model.template}_console.html`)
-  candidates.push(`innfo/artifacts/${modelName}_console.html`)
-
-  return Array.from(new Set(candidates))
+  return out
 }
 
-const currentFrameUrl = computed<string>(() => {
-  if (resolvedUrl.value) return resolvedUrl.value
-  const candidates = getCandidatePaths(selectedConsoleTarget.value)
-  return candidates[0] || 'artifacts/workspace_hub.html'
-})
+const HUB_KEYS = ['workspace_hub', 'workspace_console']
+
+function consoleRefsFor(target: string): ConsoleRefs {
+  const hub = (): ConsoleRefs => ({
+    refs: registeredArtifactRefs((ref) => ref.includes('workspace') || ref.includes('hub')),
+    keys: HUB_KEYS,
+  })
+  if (target === 'hub') return hub()
+
+  const dyn = dynamicConsoles.value.find((d) => d.id === target)
+  if (dyn) return { refs: [dyn.consolePath], keys: [] }
+
+  const model = allModelTargets.value.find((m) => m.id === target)
+  if (!model) {
+    // The target itself may be a direct file path
+    return target.endsWith('.html') || target.includes('/') ? { refs: [target], keys: [] } : hub()
+  }
+
+  const sourceBasename = model.sourcePath ? displayStem(model.sourcePath.split('/').pop() ?? '') : ''
+  const modelSlug = normalizeSlug(model.name)
+  const sourceSlug = normalizeSlug(sourceBasename)
+  const refs = model.explicitConsole ? [model.explicitConsole] : []
+  refs.push(
+    ...registeredArtifactRefs((ref) => {
+      const lowerRef = ref.toLowerCase()
+      return (
+        (modelSlug !== '' && lowerRef.includes(modelSlug)) ||
+        (sourceSlug !== '' && lowerRef.includes(sourceSlug)) ||
+        (sourceBasename !== '' && lowerRef.includes(sourceBasename.toLowerCase()))
+      )
+    }),
+  )
+  const stems = [sourceBasename, sourceSlug, modelSlug, model.template, model.name].filter(Boolean)
+  return { refs, keys: stems.map(consoleFamilyKey) }
+}
+
+/**
+ * Files to try for a target, best first: the latest member of every family the target
+ * names. Without a folder handle (hosted/sample mode) there is nothing to scan, so the
+ * unsuffixed family name is the only guess.
+ */
+async function resolveCandidates(target: string): Promise<string[]> {
+  const { refs, keys } = consoleRefsFor(target)
+  const handle = workspaceStore.handle
+  const paths = handle ? await scanHtmlArtifacts(handle) : []
+  const out: string[] = []
+  for (const ref of refs) out.push(latestInFamilyOf(paths, ref) ?? ref)
+  for (const key of keys) {
+    const latest = latestOfFamilyKey(paths, key)
+    if (latest) out.push(latest)
+    else if (!handle) out.push(`artifacts/${key}.html`)
+  }
+  return Array.from(new Set(out))
+}
+
+const currentFrameUrl = computed<string>(() => resolvedUrl.value || 'artifacts/workspace_hub.html')
 
 const currentConsoleTitle = computed<string>(() => {
   if (selectedConsoleTarget.value === 'hub') {
@@ -561,7 +526,7 @@ async function inlineConsoleResources(
 async function loadConsole() {
   loadState.value = 'loading'
   isFrameLoading.value = true
-  const candidates = getCandidatePaths(selectedConsoleTarget.value)
+  const candidates = await resolveCandidates(selectedConsoleTarget.value)
 
   try {
     if (workspaceStore.handle) {
@@ -638,8 +603,12 @@ function onWindowMessage(event: MessageEvent) {
 
     if (!match && consolePath) {
       match = discoveredModels.value.find((m) => {
-        const candidates = getCandidatePaths(m.id)
-        return candidates.some((c) => c === consolePath || c.endsWith(consolePath) || consolePath.endsWith(c))
+        const { refs, keys } = consoleRefsFor(m.id)
+        const launchedKey = consoleKeyOf(consolePath)
+        return (
+          refs.some((ref) => sameConsoleFamily(ref, consolePath)) ||
+          keys.some((key) => key.toLowerCase() === launchedKey)
+        )
       })
     }
 

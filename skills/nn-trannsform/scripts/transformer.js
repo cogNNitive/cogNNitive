@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { formatUtcStamp, isSidecarName, isExcludedPath, rawPathOfSidecar } = require('./lib/innfo-core.generated.cjs');
+const { writeOnce, isSidecarName, isExcludedPath, rawPathOfSidecar } = require('./lib/innfo-core.generated.cjs');
 
 /**
  * Lists templates in the traNNsformations directory
@@ -62,11 +62,6 @@ async function applyTransformation(projectDir, templateName, options = {}) {
   const transDir = path.join(projectDir, 'traNNsformations');
 
   const cleanBlueprintName = path.basename(templateName, '.md').replace(/\s+/g, '_');
-  const outputDir = path.join(projectDir, 'artifacts');
-
-  if (!fs.existsSync(outputDir)) {
-    fs.mkdirSync(outputDir, { recursive: true });
-  }
 
   const templatePath = path.join(transDir, templateName);
   if (!fs.existsSync(templatePath)) {
@@ -85,16 +80,20 @@ async function applyTransformation(projectDir, templateName, options = {}) {
 
   const transformedOutput = runHeuristicTransformation(templateName, sourceContent);
 
-  const timestamp = formatUtcStamp(new Date());
-  const outputFileName = `${cleanBlueprintName}_${timestamp}.md`;
-  const outputPath = path.join(outputDir, outputFileName);
-
-  fs.writeFileSync(outputPath, transformedOutput, 'utf8');
+  // Write-once: identical output deduplicates against the latest member, and a
+  // cognitivized source edited since its sidecar was written blocks the write.
+  const written = await writeOnce(
+    projectDir,
+    { dir: 'artifacts', key: cleanBlueprintName, ext: 'md' },
+    transformedOutput,
+    { inputs: sources.map((s) => s.path) },
+  );
 
   return {
-    outputFileName,
-    outputPath,
-    content: transformedOutput
+    outputFileName: path.posix.basename(written.path),
+    outputPath: path.join(projectDir, written.path),
+    content: transformedOutput,
+    status: written.status
   };
 }
 

@@ -60,6 +60,8 @@ export interface SidecarInput {
   metadata?: Record<string, string | number>
   /** Normalized markdown body; only binary subjects have one. */
   body?: string
+  /** Upstream the subject derives from (workspace-relative paths); replaces any carried-over `sources`. */
+  sources?: string[]
 }
 
 export function buildSidecar(i: SidecarInput): string {
@@ -73,7 +75,7 @@ export function buildSidecar(i: SidecarInput): string {
     normalized_at: i.normalizedAt,
   }
   if (i.normalizedBy) fm['normalized_by'] = i.normalizedBy
-  const sources = i.previous?.['sources']
+  const sources = i.sources ?? i.previous?.['sources']
   if (sources !== undefined) fm['sources'] = sources
   for (const extras of [i.previous ?? {}, i.metadata ?? {}]) {
     for (const [key, value] of Object.entries(extras)) {

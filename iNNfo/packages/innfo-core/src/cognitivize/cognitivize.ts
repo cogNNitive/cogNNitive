@@ -25,6 +25,11 @@ export interface CognitivizeOptions {
   now?: () => Date
   /** Platform whose path budget applies; defaults to `process.platform`. A test seam. */
   platform?: string
+  /**
+   * Upstream files the subject derives from. A derived text-native artifact (a curated CSV)
+   * cannot carry frontmatter, so its sidecar is where the edge lives.
+   */
+  sources?: string[]
 }
 
 export type RejectReason =
@@ -85,7 +90,8 @@ export async function cognitivize(
   const sidecarAbs = path.join(rootAbs, sidecarRel)
   const existing = await readOrNull(sidecarAbs)
   const previous = existing ? parseSidecarFrontmatter(existing.toString('utf8')) : null
-  if (previous && String(previous['sha256'] ?? '').toLowerCase() === sha256) {
+  const sourcesCurrent = o.sources === undefined || JSON.stringify(previous?.['sources']) === JSON.stringify(o.sources)
+  if (previous && String(previous['sha256'] ?? '').toLowerCase() === sha256 && sourcesCurrent) {
     return { status: 'unchanged', sidecar: sidecarRel, sha256 }
   }
 
@@ -105,6 +111,7 @@ export async function cognitivize(
     previous,
     metadata: normalized?.metadata,
     body: textNative ? undefined : normalized?.body,
+    sources: o.sources,
   })
   await fsp.writeFile(sidecarAbs, text, 'utf8')
   return { status: existing ? 'refreshed' : 'written', sidecar: sidecarRel, sha256 }

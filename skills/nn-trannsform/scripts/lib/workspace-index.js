@@ -301,6 +301,14 @@ function writeWorkspaceIndex(projectDir) {
   if (!finalContent.endsWith('\n')) {
     finalContent += '\n';
   }
+  // index.md is the living, hand-merged navigation file (the MCP server and the
+  // editor read it by this exact name), not a produced artifact: it stays a fixed
+  // name, but an unchanged workspace must not touch it.
+  const current = existed ? fs.readFileSync(indexPath, 'utf8') : null;
+  if (current === finalContent) {
+    console.log('Workspace index.md is up to date');
+    return;
+  }
   fs.writeFileSync(indexPath, finalContent, 'utf8');
 
   if (existed) {

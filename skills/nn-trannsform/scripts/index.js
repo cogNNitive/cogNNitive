@@ -154,8 +154,12 @@ async function handleCliMode(argv) {
       console.error(`\nFound ${audit.errors.length} citation drift issue(s) across models.`);
     }
     if (argv.report) {
-      const { reportPath } = writeImpactReport(projectDir, audit);
-      console.log(`📊 Impact audit report written to: ${reportPath}`);
+      const { reportPath, status } = await writeImpactReport(projectDir, audit);
+      console.log(
+        status === 'deduplicated'
+          ? `📊 Impact audit report unchanged (latest: ${reportPath})`
+          : `📊 Impact audit report written to: ${reportPath}`,
+      );
     }
     process.exit(audit.errors.length > 0 ? 1 : 0);
   }

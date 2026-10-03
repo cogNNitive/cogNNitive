@@ -236,11 +236,11 @@ export function projectLineage(files: FileSnapshot[]): LineageProjection {
     const members = key === null ? [subject] : families.get(key)!
     const rank = members.indexOf(subject)
     const subjectFile = byFilePath.get(subject)
-    const derivedFrom = subjectFile
-      ? extractDeclaredCitations(subjectFile).map((c) => c.value)
-      : fm.sources
-        ? splitSourceFieldValue(fm.sources)
-        : []
+    // The subject's own declared citations win; a binary or a frontmatter-less text file
+    // (a curated CSV) carries its upstream in the sidecar instead.
+    const declared = subjectFile ? extractDeclaredCitations(subjectFile).map((c) => c.value) : []
+    const derivedFrom =
+      declared.length > 0 ? declared : fm.sources ? splitSourceFieldValue(fm.sources) : []
     return {
       name: getBasename(subject),
       raw_filename: subject,

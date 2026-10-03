@@ -16,6 +16,7 @@ const {
   rawPathOfSidecar,
   sidecarPathOf,
   parseSidecarFrontmatter,
+  writeOnce,
 } = require('./innfo-core.generated.cjs');
 
 const toPosix = (p) => p.replace(/\\/g, '/');
@@ -226,22 +227,22 @@ function remediationFor(reason, suggestions) {
  * Render a structured Markdown audit report from an impact audit result.
  *
  * @param {ReturnType<typeof auditModelCitations>} audit
- * @param {string} date ISO date string used for the filename/header (e.g. "2026-09-12").
  * @returns {string}
  */
-function buildImpactReport(audit, date) {
-  const d = date || new Date().toISOString().slice(0, 10);
+function buildImpactReport(audit) {
   const lines = [];
+  // No date: the write-once name carries the UTC suffix, and identical findings must be byte-identical.
+  const upstream = [...new Set(audit.driftedCitations.map((dc) => dc.sourceFile).filter(Boolean))].sort();
   lines.push('---');
-  lines.push('type: report');
   lines.push('title: Dynamic Sources Impact Audit Report');
-  lines.push(`date: ${d}`);
   lines.push('generated_by: auditModelCitations');
+  if (upstream.length > 0) {
+    lines.push('sources:');
+    for (const source of upstream) lines.push(`  - ${source}`);
+  }
   lines.push('---');
   lines.push('');
   lines.push('# Dynamic Sources Impact Audit Report');
-  lines.push('');
-  lines.push(`Generated on **${d}**.`);
   lines.push('');
   lines.push('## Summary');
   lines.push('');
@@ -285,22 +286,20 @@ function buildImpactReport(audit, date) {
 }
 
 /**
- * Write a structured Markdown impact audit report to
- * `artifacts/Impact_Audit_<date>_report.md` inside the workspace.
+ * Write the impact audit report as a write-once member of the family
+ * `artifacts/Impact_Audit_report_<UTC suffix>.md`. Identical findings
+ * deduplicate against the latest report; changed findings add a member and
+ * leave the earlier report untouched. No input hash guard: the report exists
+ * to describe stale and drifted sources, so a stale input must not block it.
  *
  * @param {string} projectDir
  * @param {ReturnType<typeof auditModelCitations>} audit
- * @param {string} [date] ISO date string used for the filename (defaults to today).
- * @returns {{ reportPath: string, content: string }}
+ * @returns {Promise<{ reportPath: string, content: string, status: 'written' | 'deduplicated' }>}
  */
-function writeImpactReport(projectDir, audit, date) {
-  const d = date || new Date().toISOString().slice(0, 10);
-  const artifactsDir = path.join(projectDir, 'artifacts');
-  fs.mkdirSync(artifactsDir, { recursive: true });
-  const reportPath = path.join(artifactsDir, `Impact_Audit_${d}_report.md`);
-  const content = buildImpactReport(audit, d);
-  fs.writeFileSync(reportPath, content, 'utf8');
-  return { reportPath: reportPath.replace(/\\/g, '/'), content };
+async function writeImpactReport(projectDir, audit) {
+  const content = buildImpactReport(audit);
+  const result = await writeOnce(projectDir, { dir: 'artifacts', key: 'Impact_Audit_report', ext: 'md' }, content);
+  return { reportPath: toPosix(path.join(projectDir, result.path)), content, status: result.status };
 }
 
 /** Canonical (unsuffixed) name of a family: `<dir>/<key>.<ext>`. */

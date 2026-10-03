@@ -8977,7 +8977,8 @@ function projectLineage(files) {
     const members = key === null ? [subject] : families.get(key);
     const rank = members.indexOf(subject);
     const subjectFile = byFilePath.get(subject);
-    const derivedFrom = subjectFile ? extractDeclaredCitations(subjectFile).map((c) => c.value) : fm.sources ? splitSourceFieldValue(fm.sources) : [];
+    const declared = subjectFile ? extractDeclaredCitations(subjectFile).map((c) => c.value) : [];
+    const derivedFrom = declared.length > 0 ? declared : fm.sources ? splitSourceFieldValue(fm.sources) : [];
     return {
       name: getBasename(subject),
       raw_filename: subject,
@@ -9594,7 +9595,7 @@ function buildSidecar(i) {
     normalized_at: i.normalizedAt
   };
   if (i.normalizedBy) fm["normalized_by"] = i.normalizedBy;
-  const sources = i.previous?.["sources"];
+  const sources = i.sources ?? i.previous?.["sources"];
   if (sources !== void 0) fm["sources"] = sources;
   for (const extras of [i.previous ?? {}, i.metadata ?? {}]) {
     for (const [key, value] of Object.entries(extras)) {
@@ -9797,7 +9798,8 @@ async function cognitivize(root, rel, o = {}) {
   const sidecarAbs = path3.join(rootAbs, sidecarRel);
   const existing = await readOrNull2(sidecarAbs);
   const previous = existing ? parseSidecarFrontmatter(existing.toString("utf8")) : null;
-  if (previous && String(previous["sha256"] ?? "").toLowerCase() === sha256) {
+  const sourcesCurrent = o.sources === void 0 || JSON.stringify(previous?.["sources"]) === JSON.stringify(o.sources);
+  if (previous && String(previous["sha256"] ?? "").toLowerCase() === sha256 && sourcesCurrent) {
     return { status: "unchanged", sidecar: sidecarRel, sha256 };
   }
   const format = parsed.ext.toLowerCase();
@@ -9813,7 +9815,8 @@ async function cognitivize(root, rel, o = {}) {
     normalizedBy: normalized?.normalizedBy,
     previous,
     metadata: normalized?.metadata,
-    body: textNative ? void 0 : normalized?.body
+    body: textNative ? void 0 : normalized?.body,
+    sources: o.sources
   });
   await import_node_fs3.promises.writeFile(sidecarAbs, text, "utf8");
   return { status: existing ? "refreshed" : "written", sidecar: sidecarRel, sha256 };

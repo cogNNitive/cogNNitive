@@ -219,6 +219,93 @@ describe('ConsoleHubView — Open External (F-16)', () => {
     wrapper.unmount()
   })
 
+  describe('write-once console families resolve to the latest member', () => {
+    const businessNode = {
+      id: 'Business',
+      name: 'Business',
+      parentId: null,
+      childIds: [],
+      storageMode: 'FILE' as const,
+      type: 'business',
+      fields: { template: { value: 'business' } },
+      markers: {},
+      relationships: [],
+      rawSections: {},
+      source: { path: 'kNNowledge/Business_NN.md' },
+    }
+
+    it('loads the latest suffixed member for a discovered model, with no hand-written path', async () => {
+      const workspaceStore = useWorkspaceStore()
+      const knowledgeStore = useKnowledgeStore()
+      workspaceStore.handle = buildFakeTree('workspace', {
+        artifacts: {
+          business_console: {
+            'business_console_20261001T100000Z.html': '<html><body>OLDEST</body></html>',
+            'business_console_20261003T100000Z.html': '<html><body>MIDDLE</body></html>',
+            'business_console_20261003T100000Z-10.html': '<html><body>NEWEST</body></html>',
+            'business_console_20261003T100000Z-2.html': '<html><body>SECOND</body></html>',
+          },
+        },
+      })
+      knowledgeStore.setGraph({ Business: businessNode }, ['Business'])
+
+      const wrapper = mount(ConsoleHubView)
+      await flushPromises()
+      window.dispatchEvent(
+        new MessageEvent('message', { data: { type: 'innfo:select-console', modelId: 'Business', title: 'Business' } }),
+      )
+      await flushPromises()
+
+      expect(wrapper.find('iframe').attributes('srcdoc')).toContain('NEWEST')
+      wrapper.unmount()
+    })
+
+    it('resolves a launch path that names an older member to the latest member of its family', async () => {
+      const workspaceStore = useWorkspaceStore()
+      workspaceStore.handle = buildFakeTree('workspace', {
+        artifacts: {
+          metrics_console: {
+            'metrics_console_20261001T100000Z.html': '<html><body>OLD METRICS</body></html>',
+            'metrics_console_20261002T100000Z.html': '<html><body>LATEST METRICS</body></html>',
+          },
+        },
+      })
+
+      const wrapper = mount(ConsoleHubView)
+      await flushPromises()
+      window.dispatchEvent(
+        new MessageEvent('message', {
+          data: {
+            type: 'innfo:select-console',
+            modelId: 'metrics',
+            title: 'Metrics',
+            consolePath: 'artifacts/metrics_console/metrics_console_20261001T100000Z.html',
+          },
+        }),
+      )
+      await flushPromises()
+
+      expect(wrapper.find('iframe').attributes('srcdoc')).toContain('LATEST METRICS')
+      wrapper.unmount()
+    })
+
+    it('resolves the workspace hub family to its latest member', async () => {
+      const workspaceStore = useWorkspaceStore()
+      workspaceStore.handle = buildFakeTree('workspace', {
+        artifacts: {
+          'workspace_hub_20261001T100000Z.html': '<html><body>OLD HUB</body></html>',
+          'workspace_hub_20261002T100000Z.html': '<html><body>NEW HUB</body></html>',
+        },
+      })
+
+      const wrapper = mount(ConsoleHubView)
+      await flushPromises()
+
+      expect(wrapper.find('iframe').attributes('srcdoc')).toContain('NEW HUB')
+      wrapper.unmount()
+    })
+  })
+
   it('filters out spec nodes and workspace root manifests from model console switcher tabs', async () => {
     const knowledgeStore = useKnowledgeStore()
     knowledgeStore.setGraph(

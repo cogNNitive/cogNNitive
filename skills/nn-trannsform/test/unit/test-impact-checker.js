@@ -139,13 +139,13 @@ async function run() {
     eq(auditModelCitations(tmpDir).warnings.length, 0, 'cognitivizing again clears the hash warning');
 
     // Test 7: buildImpactReport and writeImpactReport
-    const reportText = buildImpactReport(auditDrift, '2026-10-01');
-    ok(reportText.includes('type: report'), 'report carries type: report frontmatter');
+    const reportText = buildImpactReport(auditDrift);
+    ok(!reportText.includes('type: report') && !/^date:/m.test(reportText), 'report carries no type or date frontmatter');
     ok(reportText.includes('generated_by: auditModelCitations'), 'report carries generated_by frontmatter');
     ok(reportText.includes('Drifted_business_NN.md'), 'report names each affected model');
     ok(reportText.includes('`sources/import/strategy.md`'), 'report names the cited source by its real path');
     ok(!/sources\/nn/.test(reportText), 'report never invents a sources/nn path');
-    const { reportPath } = writeImpactReport(tmpDir, auditDrift, '2026-10-01');
+    const { reportPath } = await writeImpactReport(tmpDir, auditDrift);
     ok(fs.existsSync(reportPath), 'report file is created on disk');
 
     fs.rmSync(path.join(modelsDir, 'Drifted_business_NN.md'));
