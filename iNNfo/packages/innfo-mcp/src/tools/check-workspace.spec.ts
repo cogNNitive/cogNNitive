@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { join } from 'node:path'
-import { mkdir, writeFile, readFile, readdir } from 'node:fs/promises'
+import { mkdir, writeFile, readFile, readdir, rm } from 'node:fs/promises'
 import {
   cognitivize,
   projectLineage,
@@ -228,6 +228,62 @@ describe('checkWorkspace (AD-5)', () => {
     const pkgDir = join(specsDir, 'bluepriNNts', 'business', 'V_0-2-0')
     const files = await readdir(pkgDir)
     expect(files).toContain('spec_NN.md')
+  })
+
+  it('does not re-pollute a current-layout domain with legacy packages (issue #109)', async () => {
+    stubNetwork()
+    // Build a clean canonical domain: `domaiNN_NN.md` entrypoint, models under
+    // `kNNowledge/` (NOT `models/`), and a canonical parent URL. Any legacy
+    // signal (`models/`, an L1 `iNNfo_V_0-2-1` parent, a legacy key) would flip
+    // the detector to mixed and defeat the point of this test.
+    await writeFile(
+      join(rootDir, 'domaiNN_NN.md'),
+      [
+        '---',
+        'level: 3',
+        'knowledge_version: "V_0-1-0"',
+        'title: "Canonical Domain"',
+        'parent_spec:',
+        '  name: "domaiNN_V_0-1-0"',
+        '  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/domaiNN/spec_NN.md"',
+        '---',
+        '',
+        '# NN domaiNN',
+        '',
+        'Canonical domain.',
+      ].join('\n'),
+      'utf-8',
+    )
+    await mkdir(join(rootDir, 'kNNowledge'), { recursive: true })
+    // The shared beforeEach creates `models/`; remove it so the domain is not
+    // classified legacy (a `models/` folder is itself a legacy signal).
+    await rm(join(rootDir, 'models'), { recursive: true, force: true })
+    await writeFile(
+      join(rootDir, 'kNNowledge', 'model0_V_0-1-0_business_NN.md'),
+      [
+        '---',
+        'level: 3',
+        'title: "Model 0"',
+        'knowledge_version: "V_0-1-0"',
+        'parent_spec:',
+        '  name: "business_V_0-2-0"',
+        '  url: "' + TEMPLATE_URL + '"',
+        '---',
+        '',
+        '# NN Stakeholders',
+        '',
+        '## NN Stakeholders: Stakeholder 0',
+      ].join('\n'),
+      'utf-8',
+    )
+
+    const report = await checkWorkspace(rootDir)
+    expect(report.models).toHaveLength(1)
+    expect(report.models[0].templateResolved).not.toBe('not-checked')
+
+    // Nothing is written into the current-layout tree.
+    const inTree = await readdir(join(specsDir, 'bluepriNNts')).catch(() => [])
+    expect(inTree).not.toContain('business')
   })
 
   it('never overwrites an existing spec file during hydration', async () => {
