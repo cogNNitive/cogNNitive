@@ -1,9 +1,9 @@
 ---
 level: 3
 parent_spec:
-  name: "metrics_V_0-4-1"
+  name: "metrics_V_0-4-2"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/metrics/spec_NN.md"
-knowledge_version: "V_0-4-1"
+knowledge_version: "V_0-4-2"
 title: "Ghostbusters Containment Revenue Projection"
 ---
 

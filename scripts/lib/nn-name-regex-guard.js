@@ -43,6 +43,7 @@ const ALLOWLIST = [
   { pattern: 'scripts/check-spec-version.mjs', reason: 'published-spec URL tooling: identifies the published L0-L2 spec files, not workspace files' },
   { pattern: 'scripts/migrate-spec-urls.mjs', reason: 'historical one-time codemod over published-spec URLs' },
   { pattern: 'scripts/lib/legacy-write-guard.js', reason: 'carries the retired workspace-entrypoint token table; matches a retired name, not the live pattern' },
+  { pattern: 'scripts/lib/tag-pin-freshness.js', reason: 'matches the canonical blueprint spec filename (a fixed package asset identity), not the workspace model name pattern' },
   { pattern: 'scripts/lib/nn-name-regex-guard.js', reason: 'this guard carries the pattern table itself' },
   { pattern: 'iNNfo/packages/innfo-core/src/schema/canonical-registry.ts', reason: 'published-spec URL matching in the offline registry (spec identity, not workspace files)' },
   { pattern: 'iNNfo/packages/innfo-core/src/workspace/integrity/versionStatus.ts', reason: 'parses pinned published-spec URLs (spec identity, not workspace files)' },

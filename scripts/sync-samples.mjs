@@ -24,15 +24,15 @@ const BLUEPRINTS_ROOT = path.join(REPO_ROOT, 'iNNfo', 'specs', 'bluepriNNts');
 export const SAMPLE_MAPPINGS = [
   {
     source: 'Ghostbusters_analysis_NN.md',
-    target: path.join('analysis', 'samples', 'Ghostbusters_V_0-3-2_analysis_NN.md')
+    target: path.join('analysis', 'samples', 'Ghostbusters_V_0-3-3_analysis_NN.md')
   },
   {
     source: 'Ghostbusters_business_NN.md',
-    target: path.join('business', 'samples', 'Ghostbusters_V_0-4-0_business_NN.md')
+    target: path.join('business', 'samples', 'Ghostbusters_V_0-4-1_business_NN.md')
   },
   {
     source: 'Ghostbusters_business-model_NN.md',
-    target: path.join('business-model', 'samples', 'Ghostbusters_V_0-3-0_business-model_NN.md')
+    target: path.join('business-model', 'samples', 'Ghostbusters_V_0-3-1_business-model_NN.md')
   },
   {
     source: 'Ghostbusters_documentation_NN.md',
@@ -40,15 +40,15 @@ export const SAMPLE_MAPPINGS = [
   },
   {
     source: 'Ghostbusters_innovation_NN.md',
-    target: path.join('innovation', 'samples', 'Ghostbusters_V_0-3-2_innovation_NN.md')
+    target: path.join('innovation', 'samples', 'Ghostbusters_V_0-3-3_innovation_NN.md')
   },
   {
     source: 'Ghostbusters_metrics_NN.md',
-    target: path.join('metrics', 'samples', 'Ghostbusters_V_0-4-1_metrics_NN.md')
+    target: path.join('metrics', 'samples', 'Ghostbusters_V_0-4-2_metrics_NN.md')
   },
   {
     source: 'Ghostbusters_organization_NN.md',
-    target: path.join('organization', 'samples', 'Ghostbusters_V_0-3-2_organization_NN.md')
+    target: path.join('organization', 'samples', 'Ghostbusters_V_0-3-3_organization_NN.md')
   },
   {
     source: 'Ghostbusters_procedures_NN.md',
@@ -56,7 +56,7 @@ export const SAMPLE_MAPPINGS = [
   },
   {
     source: 'Ghostbusters_projects_NN.md',
-    target: path.join('projects', 'samples', 'Ghostbusters_V_0-3-2_projects_NN.md')
+    target: path.join('projects', 'samples', 'Ghostbusters_V_0-3-3_projects_NN.md')
   },
   {
     source: 'Ghostbusters_repository_NN.md',
