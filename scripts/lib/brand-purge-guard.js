@@ -29,6 +29,10 @@ const PATH_EXCLUSIONS = [
     reason: 'Vendored VUS spec pinned by sha256; the upstream text cannot be edited.',
   },
   {
+    prefix: 'skills/nn-video-script/scripts/lib/innfo-video-parser.generated.mjs',
+    reason: 'Generated bundle of the excluded vendored spec; regenerate, never hand-edit.',
+  },
+  {
     prefix: 'openspec/changes/',
     reason: 'Planning artifacts and archived changes are permanent history of the retired names.',
   },
