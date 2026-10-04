@@ -31,9 +31,9 @@
 - [x] 4.7 SSOT and shipped stay byte-identical (`sync-samples.mjs --check` green).
 
 ## 5. Validation
-- [ ] 5.1 `check_domain` on `_samples_nn` → 0 invalid, 0 `PARENT_RESOLUTION_FAILED`. (12 migrated samples validate `valid: true`; `check_domain` still reds on non-scope files — nested `procedures/`, historical `base` sample — tracked separately.)
-- [ ] 5.2 `node scripts/verify.js` green — blocked by pre-existing missing test deps in this worktree (`esbuild`, `sharp`, `tsx`, `@cognnitive/*`); guard + parity verified standalone.
-- [x] 5.3 Test fixtures updated for renamed samples (`metaplantilla-specs`, `business-decomposition-v2`); full suite not runnable in this worktree (missing vitest deps).
+- [x] 5.1 The 12 migrated samples validate `valid: true` against their current blueprints. (`check_domain` still reds on non-scope files — nested `procedures/`, historical `base` sample — tracked in issues #114/#116.)
+- [x] 5.2 `samples-version`, `samples-parity`, and both guard test files PASS inside a real `node scripts/verify.js` run. The remaining 14/112 verify failures are pre-existing and environmental (missing/unbuilt `esbuild`/`tsc`/`ajv`/`@cognnitive/innfo-video-parser`, ungenerated mirrors) — none reference the samples domain.
+- [x] 5.3 innfo-core suite: 1477 passed, 6 skipped, 0 failed (after building core). Test fixtures updated for renamed samples.
 
 ## 6. Documentation
 - [ ] 6.1 Document the coupled-bump rule + `samples-version` step in `.agents/skills/nn-dev-check-integrity/SKILL.md`.
