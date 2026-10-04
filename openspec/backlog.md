@@ -970,3 +970,177 @@ version-pinned banner), each behind a green CI, and only after the pin-injection
 change has settled.
 
 **Suggested trigger:** `/sdd-explore console-bundle-derived-on-release`.
+
+---
+
+## `feature/okf-v0-2-alignment` — adopt the valuable parts of Open Knowledge Format v0.2 (provenance, trust, attested computation) + an OKF export projector *(working progress)*
+
+**Type:** functional / architecture · **Size:** large (split into independent slices) · **Status:** open — *working progress* · **Added:** 2026-10-03
+
+**Source:** Analysis session 2026-10-03, "Open Knowledge Format v0.2 vs cogNNitive"
+(OpenCode session id `okf-v2-compliance`, worktree
+`D:/Users/lucas/Documents/GitHub/cogNNitive-okf-v2-compliance`). The full conversation
+is captured in Engram (project `cognnitive`, topic `architecture/okf-v2-alignment`) and
+this entry is the durable, quotable digest of it.
+
+**Context — what OKF is and what actually shipped.** Google Cloud Platform published the
+**Open Knowledge Format (OKF)** in June 2026 (v0.1) and **v0.2** in July 2026. Note: there
+is **no "OKF v2"** — the current spec is **v0.2**, a minor, additive, backward-compatible
+bump over v0.1. Authoritative sources:
+- Spec: `github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md` (the
+  portada repo is `github.com/GoogleCloudPlatform/open-knowledge-format`).
+- Blog: `cloud.google.com/blog/products/data-analytics/okf-v0-2-adds-trust-signals`.
+- License: Apache-2.0. It is a *format*, not a platform: "if you can `cat` a file, you can
+  read OKF". No schema registry, no central authority, no required tooling.
+
+**OKF in one paragraph.** A **bundle** is a directory tree of markdown files with YAML
+frontmatter. A **concept document** = one `.md` = frontmatter + body; the file path is the
+concept's identity. `index.md` (progressive disclosure) and `log.md` (change history) are
+reserved filenames. Cross-links are ordinary markdown links. Conformance (§11) is only:
+(1) every non-reserved `.md` has parseable YAML frontmatter; (2) every frontmatter has a
+non-empty `type` (the only always-required field); (3) `index.md`/`log.md` follow the
+spec when present.
+
+**OKF v0.2 added five families of frontmatter signals (all opt-in):**
+1. **Provenance** — `sources` (materials the concept derives from; each entry may carry
+   `author`, `usage_count`, `last_modified`). Deliberately **records signals, not a
+   credibility score** (a score is subjective, unportable, and goes stale).
+2. **Trust** — `generated: { by, at }` (how the content was produced, when it last
+   meaningfully changed) and `verified: [ { by, at } ]` (independent confirmations). These
+   are distinct because who *wrote* a concept need not be who *confirmed* it. Trust tiers
+   are **derived**: no `verified` → unverified; machine actors only → machine-confirmed;
+   a `human:` actor → human-reviewed.
+3. **Lifecycle** — `status: draft | stable | deprecated` (absent = stable) and
+   `stale_after` (a single **absolute date**, chosen over a relative TTL so staleness is a
+   plain date comparison with no read-time dependence).
+4. **Actor convention** (§7) — `human:`, `process:`, `agent:` prefixes.
+5. **Attested Computation** (new concept type, §10) — a concept carrying a *sanctioned way
+   to compute a value*: `computation`, `executor` (`resource` + `receipt` fields a run must
+   return), and `attester` (deterministic, **no-LLM** code that inspects a receipt and
+   returns a verdict). OKF records the computation and how to check it; it never executes
+   anything.
+
+**Two deliberate breaking renames from v0.1 → v0.2** (with fallbacks): `timestamp` is
+superseded by `generated.at`, and the body `# Citations` list is superseded by the
+`sources` frontmatter family. A v0.1 bundle drops in unchanged as a v0.2 bundle.
+
+---
+
+### Diagnostic: where cogNNitive actually stands
+
+**Bottom line:** cogNNitive is **not aligned with OKF v0.2**; it claims (in docs) alignment
+with **v0.1**, and several specs actively *forbid* mentioning OKF. The underlying
+architecture is **conceptually analogous** to v0.2's families, so the gap is **vocabulary
+and location of fields**, not mental model. iNNfo is in several respects **richer** than
+OKF (finer-grained provenance; a fourth `reviewer` role OKF does not have).
+
+**Conformance gaps (vs §11 + v0.2):**
+
+| Gap | Detail | Evidence |
+|---|---|---|
+| G1 — no `type` field | OKF requires a non-empty `type`; iNNfo uses `level: N` + `parent_spec.name` as conceptual type. Tolerated as an extra key, but §9.2/§11 needs the key present. | every `_NN.md`; `docs/innfo/documentation/ecosystem.md:38` self-declares the substitution |
+| G2 — no literal `index.md` | The index is embedded as `# NN index` *inside* `domaiNN_NN.md`, not a reserved `index.md` file. A consumer looking for `index.md` finds nothing. | `workspace_NN/domaiNN_NN.md`; the docs claim same-convention (`ecosystem.md:39`) |
+| G3 — granularity mismatch | OKF: one concept = one file. iNNfo: one file = many concepts/elements (`# NN Stakeholders`, `## NN Stakeholders: X`, …). Not a tolerated extension — a different granularity axiom. | `_samples_nn/kNNowledge/Ghostbusters_business_NN.md` |
+| G4 — zero adoption of the v0.2 families | `generated`/`verified`/`status`/`stale_after` do not exist anywhere (verified: `rg stale_after` → 0 hits). `sources::` exists but lives in the element **body**, not frontmatter. | `iNNfo/packages/innfo-core/src/**` |
+| G5 — docs contradict each other | `provenance-vocabulary` and `lineage-bluepriNNts-docs` require OKF to appear **only** under "Planned, not implemented" (and the archived `lineage-single-edge` spec said the rewritten pages MUST NOT contain "OKF"); meanwhile `ecosystem.md`, `specifications.md`, `about.md`, `documentation_NN.md` still advertise "OKF v0.1 compatible". | conflicting living specs |
+| G6 — no `okf_version` declaration | A bundle MAY declare `okf_version: "0.2"` at the bundle root. cogNNitive declares nothing. | none |
+
+**Why G5 exists (root cause).** The archived `2026-10-01-lineage-single-edge` change was a
+**documentation-coherence cleanup**: the docs described a grammar the code no longer used
+(`#slug` instead of `@`, `sources/original/` which no longer exists, an unimplemented
+"canonical view"). Rewriting those two pages, the cheapest way to guarantee coherence was a
+blanket "no OKF" rule — because OKF was part of the same stale claim block. Side effect: a
+**style cleanup rule became a concept prohibition**, while `ecosystem.md` kept selling
+compatibility. This is an accident, not a design decision. **The reasonable rule is not "no
+OKF" but "do not assert compatibility the code does not back".**
+
+### Conceptual mapping: cogNNitive ↔ OKF v0.2
+
+| cogNNitive (today) | OKF v0.2 | Relationship |
+|---|---|---|
+| `sources::` on an **element** (and per **field**) | `sources:` in **frontmatter** (concept) + `[^id]` footnotes | cogNNitive is **finer-grained** (field-level; `@` can point into a CSV cell) — a superset |
+| `path@## Heading&subunit` grammar | footnote `id` → source | iNNfo grammar is more precise |
+| `# NN Agent Modification` + `author::` | `generated: { by, at }` | equivalent intent |
+| `feedback-ledger.jsonl` `.by`/`.at` | `verified: [ { by, at } ]` | ledger is the SSOT; `verified` would be a view |
+| `editAttribution { author, timestamp }` | `generated` (per field, not persisted) | equivalent |
+| `origin: agent \| human \| reviewer \| document` | trust tiers (unverified/machine/human) | same philosophy (signals, not scores); cogNNitive has **one extra tier** (`reviewer`) |
+| `stale` (hash compare, computed) | `stale_after` (absolute date, stored) | **complementary**, not competing: "changed since review" vs "expired by calendar" |
+| `model_version` drift diagnostics | `status: draft\|stable\|deprecated` | analogous intent |
+| `# NN Executions` (`command`, `run_at`, `inputs`, `outputs`) | `Attested Computation` (`executor`/`receipt`/`attester`) | cogNNitive has the **receipt**; it lacks the **attester** (mechanical check that the sanctioned computation ran) |
+| role from folder + contract (not stored) | `type` (declared) | different, both valid |
+
+**The three differences that matter:**
+1. **Granularity** — cogNNitive = field/element; OKF = file/concept. cogNNitive is more
+   precise.
+2. **Temporal determinism** — cogNNitive `stale` is exact but must read+hash the target;
+   OKF `stale_after` is cheap but heuristic. Complementary.
+3. **Attestation** — OKF has the formal `executor` + `receipt` + `attester` contract;
+   cogNNitive has the receipt (`# NN Executions`) but **no deterministic attester**. This is
+   the single most valuable thing to borrow.
+
+### Shared problem space (why v0.2 is worth studying at all)
+
+OKF v0.2 answers three questions cogNNitive also tries to answer, but for the console:
+- "Can I trust this value before reading the body?" → OKF: frontmatter signals; cogNNitive:
+  `meta.feedbackState` + citation `origin` (console only, not the raw `_NN.md`).
+- "Is this still current?" → OKF: `stale_after`; cogNNitive: hash compare + version drift.
+- "Was this number computed the sanctioned way?" → OKF: Attested Computation; cogNNitive:
+  execution trace without attestation.
+Both also **share the philosophy of signals-not-scores** — which is already cogNNitive's
+principle (`origin` is a signal; `lineage-single-edge` forbids a stored score).
+
+---
+
+### Decisions taken (2026-10-03)
+
+- **Opportunity B (unify trust signals into a field) — DEFERRED / do nothing now.** The
+  scattered signals (`sidecar.normalized_at/by`, `editAttribution`, `feedback-ledger`) all
+  already exist; nothing is missing, only *not centralized*. Materializing `generated`/
+  `verified` **as persisted fields would duplicate the ledger inside the `.md`** and create
+  two sources of truth — explicitly against `lineage-single-edge` ("No other location… MAY
+  carry the same relationship"). If a consumer ever needs one-read trust, the right shape is
+  **a derived projection** (a pure `trustFor(element)` function in `innfo-core`, exactly
+  like `feedbackStateFor()`), never a stored field. YAGNI until a consumer asks.
+- **`stale_after` — DEFERRED / someday-maybe.** Confirmed YAGNI: no content today expires by
+  calendar, and cogNNitive staleness (content-hash) is strictly more exact. Revisit only when
+  a knowledge type with date-validity appears (annual policy, quarterly price), where a
+  deterministic date comparison *without reading the target* is worth the maintenance cost.
+- **OKF export projector — ACCEPTED.** Do **not** turn iNNfo into OKF. Instead, add a
+  **domaiNN-level procedure** that emits a conformant OKF v0.2 **bundle as a derived
+  artifact** — exactly the pattern already used by `export-console`. Each iNNfo element
+  projects to one OKF concept `.md`, each directory gets an `index.md`, and frontmatter
+  carries `type` + (`sources`/`generated`/`verified` when derivable). The domaiNN stays
+  SSOT; the OKF bundle is regenerable output. This gives real OKF interoperability *without*
+  touching the model format and *without* duplicating information.
+- **Documentation policy (G5) — RESOLVED as a direction.** Stop forbidding the *word* OKF;
+  instead forbid asserting **unsupported compatibility** ("OKF v0.1 compatible" is a claim
+  the code does not back today). Either commit to "iNNfo is a superset of OKF v0.2" (then
+  update `ecosystem.md` to v0.2 and amend the "no OKF" spec clauses) or "iNNfo is not OKF"
+  (then delete the compatibility page and the claims). Pick one; the current two-sided state
+  is the defect.
+- **Attested Computation adoption — the highest-value borrow.** Formalize `# NN Executions`
+  into an attested-computation contract: keep the receipt (`command`/`run_at`/`inputs`/
+  `outputs`), add `executor` (how it is run) and `attester` (deterministic, no-LLM check
+  computing a verdict from the receipt). This is net-new capability, not reorganization.
+
+### Non-goals (explicitly rejected)
+
+- Reformatting `_NN.md` into one-concept-per-file to satisfy G3. iNNfo's granularity is a
+  feature; the projector handles the boundary instead.
+- Persisting duplicated provenance/trust fields in the SSOT documents (see Opportunity B).
+- Adding `stale_after` now.
+- Adopting OKF's `# Citations` (the `@`/`sources::` grammar is more precise and already
+  shipped — OKF's is the one that was superseded).
+
+### Proposed slices (independent; each can be its own SDD change)
+
+| Slice | Contents | Size | Depends on |
+|---|---|---|---|
+| S1 — **OKF export procedure** | DomaiNN-level `nn-trannsform`/procedure that projects a domaiNN to an OKF v0.2 bundle (per-element `.md`, generated `index.md`, `type` + derivable `sources`/`generated`/`verified`, `okf_version: "0.2"`); `--check` drift mode; docs page. **This is the "future, relatively easy" deliverable the maintainer endorsed.** | medium | — |
+| S2 — **`type` frontmatter emission** | Add a `type` normalizer alongside `level` in `parser/yaml.ts` (`NORMALIZERS`) so every `_NN.md` carries `type` (kNNowledge/bluepriNNt/domaiNN/…). Cheapest path to §9.2 conformance without changing the model. | small | — |
+| S3 — **Attested computation contract** | Formalize the `Attested Computation` concept type over `# NN Executions`: `executor` + `attester` (deterministic receipt check), wired to the existing verdict ledger. Highest-value borrow. | medium-large | — |
+| S4 — **Docs policy resolution (G5)** | Decide superset-vs-not; amend the conflicting spec clauses; fix `ecosystem.md`/`specifications.md`/`about.md`/`documentation_NN.md` to match reality (v0.1 → v0.2, or drop the claim). | small | decision |
+| S5 — **Derived trust projection** *(conditional)* | Only if a consumer materializes: pure `trustFor(element)` in `innfo-core` composing sidecar + `editAttribution` + ledger — a function, never a stored field. | small | a real consumer |
+
+**Suggested trigger:** `/sdd-explore okf-v2-alignment` (S1 is the natural first slice; S3 is
+the highest-value).
