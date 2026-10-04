@@ -10,13 +10,13 @@ bundled_blueprints:
   - name: workspace_spec_NN
     path: templates/workspace_spec_NN.md
 description: |
-  Domain skill for creating, editing, validating, scaffolding, or discussing iNNfo models, apps, specializations, samples, or specification files. Includes the conversational Model Creation Wizard and Architecture Assistant. Triggers: innfo, iNNfo, info, /nn-innfo, model, modelo, template, plantilla, spec, wizard, *_NN.md, procedures_V_0-1-0_NN.md.
+  Domain skill for creating, editing, validating, scaffolding, or discussing iNNfo models, apps, specializations, samples, or specification files. Includes the conversational Model Creation Wizard and Architecture Assistant. Triggers: innfo, iNNfo, info, /nn-innfo, model, modelo, template, plantilla, spec, wizard, *_NN.md.
   This includes but is not limited to:
   - Creating a new model step-by-step using apps (Business, Procedures, Organization, Metrics, Blank)
   - Creating or editing any file matching *_NN.md
   - Authoring or modifying business models, procedure models, or any model following an iNNfo app
   - Creating, editing, or modifying apps or specializations under docs/bluepriNNts/
-  - Discussing the iNNfo V_0-2-0 specification, meta-templates, primitives, matrices, or naming conventions
+  - Discussing the iNNfo specification, meta-templates, primitives, matrices, or naming conventions
   - Any conversation about how iNNfo works, how to use it, or how to structure iNNfo files
   - Executing procedures declared in a model
 ---
@@ -36,15 +36,15 @@ description: |
 
 ## Activation Contract
 
-Activates when the user invokes `/nn-innfo`, mentions domain keywords `innfo`, `iNNfo`, `model`, `template`, references files matching `*_NN.md` or `procedures_V_0-1-0_NN.md`, or explicitly asks to:
+Activates when the user invokes `/nn-innfo`, mentions domain keywords `innfo`, `iNNfo`, `model`, `template`, references files matching `*_NN.md`, or explicitly asks to:
 - Create a new model step-by-step using apps (Business, Procedures, Organization, Metrics, Blank).
 - Create or edit any file matching `*_NN.md`.
 - Author or modify business models, procedure models, or any model following an iNNfo app.
 - Create, edit, or modify apps or specializations under `docs/bluepriNNts/`.
-- Discuss the iNNfo V_0-2-0 specification, meta-templates, primitives, matrices, or naming conventions.
+- Discuss the iNNfo specification, meta-templates, primitives, matrices, or naming conventions.
 - Execute procedures declared in a model.
 
-This skill guides LLMs and agents in authoring, creating from scratch (wizard), editing, auditing, and validating **iNNfo-compliant files** (V_0-2-0 Meta-template specification with unified `NN` syntax: `# NN`, `## NN`, and `key:: value`).
+This skill guides LLMs and agents in authoring, creating from scratch (wizard), editing, auditing, and validating **iNNfo-compliant files** (Meta-template specification with unified `NN` syntax: `# NN`, `## NN`, and `key:: value`).
 
 **Resolution, validation, and mutation are delegated to the `innfo-mcp` server** — a deterministic engine wrapping `@cognnitive/innfo-core`. The agent does NOT hand-resolve spec chains, hand-validate models, or guess syntax when the MCP is available. See §1 (MCP Operating Model) and §7 (Delegation Contract).
 
@@ -258,7 +258,7 @@ Validate via `innfo-mcp_validate_knowledge` and output the Visual Expectation Ch
 
 When the user selects option `[w]` (View & consult documentation):
 1. Present available iNNfo documentation categories and guides:
-   - **Level 1 Core Specification**: `iNNfo_V_0-2-0_NN.md` (Primitives: Concepts, Fields, Matrices, Markers).
+   - **Level 1 Core Specification**: the iNNfo specification, fetched with `innfo-mcp_get_spec` (Primitives: Concepts, Fields, Matrices, Markers).
    - **Level 2 Canonical Templates**: Business, Procedures, Organization, Metrics, Projects, Innovation, Analysis, Documentation.
    - **Syntactic & Structural Rules**: Heading conventions (`# NN`, `## NN`), typing heuristics, WikiLink reference formatting (`[[...]]`), and source citation grammar (`sources:: [...]`).
    - **Artifact & Console Architecture**: Console shell, slot payloads, and interactive console runtimes.
@@ -283,7 +283,7 @@ as its very first output — before any questions, analysis, or tool calls. Sess
 > [!NOTE]
 > **The MCP server (`innfo-mcp`) and the canonical specifications are the ONLY source of truth (SSOT) for syntax and data types.** The agent does NOT reproduce grammar rules from memory; it queries them dynamically via MCP (`innfo-mcp_get_spec` / `innfo-mcp_get_blueprint`).
 
-### iNNfo Level Summary (V_0-2-0)
+### iNNfo Level Summary
 
 | Level | Role | Canonical Term | Syntax & Structure |
 |---|---|---|---|
@@ -324,11 +324,10 @@ The `innfo-mcp` server exposes 17 deterministic tools built on `@cognnitive/innf
 
 ## 2. Canonical Specification Reference
 
-Stable reference URLs (the version lives in the file name — `main` is already content-pinned):
-- **iNNfo (Level 1):** `https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-2-0_NN.md`
-- **Business (Level 2):** `https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/business/business_V_0-2-0_NN.md`
-- **Procedures (Level 2):** `https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/procedures/procedures_V_0-2-0_NN.md`
-- **Organization (Level 2):** `https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/organization/organization_V_0-2-0_NN.md`
+Do NOT hardcode specification URLs or versions in this skill: spec file names and versions change between releases. Resolve specs at runtime:
+
+- **iNNfo (Level 1) and any Level 2 blueprint:** `innfo-mcp_get_spec` / `innfo-mcp_get_blueprint` (list available ones with `innfo-mcp_list_blueprints`).
+- **A model's own parent:** the `parent_spec.url` declared in its frontmatter.
 
 ### The `parent_spec.url` Rule for Level 3 Models
 
@@ -365,7 +364,7 @@ Stable reference URLs (the version lives in the file name — `main` is already 
     - Markdown units keep their header level (`@#`, `@##`, `@###`) and slugify GitHub-style, except the `Concept: Element` boundary which stays visible as `--` (e.g. `@## NN Person: Dr. Egon Spengler` → slug `nn-person--dr-egon-spengler`).
     - Numeric line ranges (`#L1-L10`) and legacy `#slug` fragments are **deprecated** (the latter still validates with a warning during transition) — ranges are fragile under reformatting, bare slugs are level-blind.
     - Every unit must resolve in the cited document; queries (`?filter=…`) are NEVER valid inside `sources::` — they belong to retrieval tools, not citations.
-5. **`sources::` is ALWAYS a bracketed list `[...]`, even for a single source.** The L1 spec requires `sources:: [sources/nn/<filename>@<unit>, ...]` — it MUST always be formatted as a list enclosed in brackets `[...]`, even when referencing a single source document. There is no scalar syntax and no bracket omission for a single value (see `iNNfo/specs/iNNfo_V_0-2-0_NN.md`). In `type:: reference` fields, the WikiLink syntax `[[...]]` is separately mandatory (see §8d and Core Rule 12):
+5. **`sources::` is ALWAYS a bracketed list `[...]`, even for a single source.** The L1 spec requires `sources:: [sources/nn/<filename>@<unit>, ...]` — it MUST always be formatted as a list enclosed in brackets `[...]`, even when referencing a single source document. There is no scalar syntax and no bracket omission for a single value (see the iNNfo specification via `innfo-mcp_get_spec`). In `type:: reference` fields, the WikiLink syntax `[[...]]` is separately mandatory (see §8d and Core Rule 12):
    ```markdown
    ## NN Stakeholders: Enterprise Customer
     sources:: [sources/nn/client_interview_transcript.md@## Key Feedback, sources/nn/notes_source.md@## Key Points]
@@ -793,7 +792,7 @@ Each session MUST record per-intent call and token counts via the `usage-counter
 
 ## Core Rules
 
-1. **Strict V_0-2-0 Meta-template:** Level 2 apps define primitives in the body (`# NN Concept Definition`). NEVER put `concepts: [...]` or `fields: [...]` in the Level 2 YAML frontmatter.
+1. **Strict Meta-template:** Level 2 apps define primitives in the body (`# NN Concept Definition`). NEVER put `concepts: [...]` or `fields: [...]` in the Level 2 YAML frontmatter.
 2. **Unified NN syntax:** Use `# NN <Concept>`, `## NN <Concept>: <Element>`, `key:: value`. Do not use obsolete `_NN` bullets or ````yaml` code blocks.
 3. **Optional, up-to-date Source Citations:** `sources::` is optional; it resolves canonically against the Source Collection (`sources/nn/`) without a redundant prefix, anchors to knowledge units (`@<unit>`), and takes bracketed lists `[a, b]` for multiple sources (no `src-xxx` IDs, no `#L...` line ranges, no `sources/staging/` buffer).
 4. **Zero Unilateral Mutation:** Never rename or move files without explicit confirmation.
@@ -810,7 +809,7 @@ Each session MUST record per-intent call and token counts via the `usage-counter
 15. **Dynamic Quick Actions:** Only list procedure shortcuts in next steps if the model contains declared procedures.
 16. **Free-form Tags (`tags::`)**: Any Element or Concept in a Level 3 model may declare `tags:: [tag1, tag2]` for free-form categorization without modifying the Level 2 app. Multi-tag syntax requires brackets `[...]`. Agents should use this field to filter and scope actions to tagged elements.
 17. **Step 0 Schema Integrity Gate (MANDATORY)**: Always verify that `parent_spec` resolves cleanly before diagnosing or repairing child element fields, matrices, or references. If unresolved, halt and resolve schema reachability first.
-18. **Mechanical Linting & BOM Encoding Sanitization**: Always enforce UTF-8 without BOM (`\uFEFF`), detect and disambiguate heading/slug collisions, and enforce clean V_0-2-0 frontmatter.
+18. **Mechanical Linting & BOM Encoding Sanitization**: Always enforce UTF-8 without BOM (`\uFEFF`), detect and disambiguate heading/slug collisions, and enforce clean frontmatter.
 
 ---
 
@@ -827,7 +826,7 @@ Deterministic instructions for identifying and mechanically repairing legacy syn
 3. **Heading and Slug Collision Detection**:
    - Detect duplicate `## NN <Concept>: <Element>` headings within a model file that yield identical slugs (e.g. `## NN Person: Alice` and another `## NN Person: Alice`).
    - Prompt the user for disambiguation or rename duplicate elements deterministically using `innfo-mcp_apply_change` (`rename_element`).
-4. **Frontmatter Standardization (V_0-2-0)**:
+4. **Frontmatter Standardization**:
    - Ensure Level 3 frontmatter contains only valid metadata: `knowledge_version`, `parent_spec: { name, url }`, `title`, and optional workspace/lineage tags.
    - Remove forbidden legacy frontmatter structures such as `concepts: []` or `fields: []` embedded in YAML frontmatter.
 
