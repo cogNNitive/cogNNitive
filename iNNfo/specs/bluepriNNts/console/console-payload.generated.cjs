@@ -7398,6 +7398,7 @@ __export(index_exports, {
   parseName: () => parseName,
   parseYaml: () => parseYaml,
   readAgentModificationAuthor: () => readAgentModificationAuthor,
+  resolveBlueprintSchema: () => resolveBlueprintSchema,
   resolveCitation: () => resolveCitation,
   roleOf: () => roleOf,
   serializeConsoleSlot: () => serializeConsoleSlot,
@@ -8465,6 +8466,367 @@ var CONCEPT_DEFINITION = "Concept Definition";
 var FIELD_DEFINITION = "Field Definition";
 var MARKER_DEFINITION = "Marker Definition";
 var MATRIX_DEFINITION = "Matrix Definition";
+function asString(v) {
+  return typeof v === "string" && v.trim() !== "" ? v : void 0;
+}
+function asStringArray(v) {
+  if (Array.isArray(v)) return v.map(String);
+  return void 0;
+}
+function asNumber(v) {
+  if (typeof v === "number") return v;
+  if (typeof v === "string" && v.trim() !== "" && !isNaN(Number(v))) return Number(v);
+  return void 0;
+}
+function asObject(v) {
+  return v && typeof v === "object" && !Array.isArray(v) ? v : void 0;
+}
+function cleanWikilink(v) {
+  const str2 = asString(v);
+  if (!str2) return void 0;
+  const trimmed = str2.trim();
+  if (trimmed.startsWith("[[") && trimmed.endsWith("]]")) {
+    const inner = trimmed.slice(2, -2).trim();
+    return inner !== "" ? inner : void 0;
+  }
+  return trimmed !== "" ? trimmed : void 0;
+}
+function extractBlueprintSchema(parsed) {
+  const concepts = [];
+  const fieldsByConcept = /* @__PURE__ */ new Map();
+  for (const el of parsed.elements.get(CONCEPT_DEFINITION) ?? []) {
+    const parent = cleanWikilink(el.fields["parent"]);
+    const concept = {
+      name: el.name,
+      parent,
+      type: asString(el.fields["type"]) ?? "text",
+      icon: asString(el.fields["icon"]),
+      color: asString(el.fields["color"]),
+      weight: asNumber(el.fields["weight"])
+    };
+    concepts.push(concept);
+    fieldsByConcept.set(concept.name, []);
+  }
+  for (const el of parsed.elements.get(FIELD_DEFINITION) ?? []) {
+    const owner = asString(el.fields["concept"]);
+    if (!owner) continue;
+    const targetBlueprint = asString(el.fields["target_blueprint"]);
+    const field = {
+      name: el.name,
+      type: asString(el.fields["type"]) ?? "string",
+      options: asStringArray(el.fields["options"]),
+      target_concepts: asStringArray(el.fields["target_concepts"]),
+      target_blueprint: targetBlueprint
+    };
+    const list = fieldsByConcept.get(owner);
+    if (list) {
+      list.push(field);
+    } else {
+      fieldsByConcept.set(owner, [field]);
+    }
+  }
+  for (const concept of concepts) {
+    const fields = fieldsByConcept.get(concept.name);
+    if (fields && fields.length > 0) concept.fields = fields;
+  }
+  const markers = (parsed.elements.get(MARKER_DEFINITION) ?? []).map((el) => {
+    const marker = {
+      name: el.name,
+      symbol: asString(el.fields["symbol"]),
+      icon: asString(el.fields["icon"]),
+      color: asString(el.fields["color"]),
+      weight: asNumber(el.fields["weight"])
+    };
+    const appliesTo = asStringArray(el.fields["applies_to"]);
+    if (appliesTo) marker.applies_to = appliesTo;
+    const values = asStringArray(el.fields["values"]);
+    if (values) marker.values = values;
+    const widget = asString(el.fields["widget"]);
+    if (widget) marker.widgetType = widget;
+    const widgetConfig = asObject(el.fields["widget_config"]);
+    if (widgetConfig) marker.widgetConfig = widgetConfig;
+    return marker;
+  });
+  const matrices = (parsed.elements.get(MATRIX_DEFINITION) ?? []).map((el) => {
+    const values = asStringArray(el.fields["values"]);
+    const widget = asString(el.fields["widget"]) ?? asString(el.fields["widgetType"]);
+    const decl = {
+      name: el.name,
+      source: asString(el.fields["source"]) ?? "",
+      target: asString(el.fields["target"]) ?? "",
+      params: ""
+    };
+    if (values) decl.values = values;
+    if (widget) decl.widgetType = widget;
+    const widgetConfig = asObject(el.fields["widget_config"]);
+    if (widgetConfig) decl.widgetConfig = widgetConfig;
+    const description = asString(el.fields["description"]);
+    if (description) decl.description = description;
+    return decl;
+  });
+  let taxonomy = [];
+  const hasParentField = concepts.some((c) => c.parent !== void 0);
+  if (hasParentField) {
+    for (const concept of concepts) {
+      taxonomy.push({
+        parent: concept.parent ?? "",
+        child: concept.name
+      });
+    }
+  } else {
+    taxonomy = parsed.taxonomy;
+  }
+  return { concepts, markers, matrices, taxonomy };
+}
+
+// iNNfo/packages/innfo-core/src/schema/compose.ts
+var SET_LIKE_KEYS = /* @__PURE__ */ new Set(["applies_to", "options", "target_concepts"]);
+function canonicalValue(v, key) {
+  if (Array.isArray(v)) {
+    const items = v.map((x) => canonicalValue(x));
+    if (key === "fields") {
+      return [...items].map((x) => JSON.stringify(x)).sort().map((s) => JSON.parse(s));
+    }
+    if (key && SET_LIKE_KEYS.has(key)) {
+      return [...items].map((x) => JSON.stringify(x)).sort();
+    }
+    return items;
+  }
+  if (v && typeof v === "object") {
+    const out = {};
+    for (const k of Object.keys(v).sort()) {
+      const val = v[k];
+      if (val === void 0 || val === null) continue;
+      out[k] = canonicalValue(val, k);
+    }
+    return out;
+  }
+  if (typeof v === "string") return v.trim();
+  return v;
+}
+function canonicalizeDefinition(def) {
+  return JSON.stringify(canonicalValue(def));
+}
+function applyAliasToSchema(schema, alias) {
+  if (!alias || !alias.concepts && !alias.fields) {
+    return schema;
+  }
+  const conceptMap = alias.concepts ?? {};
+  const fieldMap = alias.fields ?? {};
+  const conceptRenameLookup = /* @__PURE__ */ new Map();
+  for (const [oldName, newName] of Object.entries(conceptMap)) {
+    conceptRenameLookup.set(oldName.toLowerCase(), newName);
+  }
+  const fieldRenameLookup = /* @__PURE__ */ new Map();
+  for (const [oldKey, newKey] of Object.entries(fieldMap)) {
+    fieldRenameLookup.set(oldKey.toLowerCase(), newKey);
+  }
+  const concepts = schema.concepts.map((c) => {
+    const oldName = c.name;
+    const newConceptName = conceptRenameLookup.get(oldName.toLowerCase()) ?? oldName;
+    const fields = c.fields?.map((f) => {
+      const oldFieldKey = `${oldName.toLowerCase()}.${f.name.toLowerCase()}`;
+      const aliasVal = fieldRenameLookup.get(oldFieldKey);
+      let newFieldName = f.name;
+      if (aliasVal) {
+        newFieldName = aliasVal.includes(".") ? aliasVal.split(".").pop() : aliasVal;
+      }
+      let target_concepts = f.target_concepts;
+      if (target_concepts) {
+        target_concepts = target_concepts.map(
+          (tc) => conceptRenameLookup.get(tc.toLowerCase()) ?? tc
+        );
+      }
+      return {
+        ...f,
+        name: newFieldName,
+        ...target_concepts ? { target_concepts } : {}
+      };
+    });
+    return {
+      ...c,
+      name: newConceptName,
+      ...fields ? { fields } : {}
+    };
+  });
+  const markers = schema.markers.map((m) => {
+    let applies_to = m.applies_to;
+    if (applies_to) {
+      applies_to = applies_to.map((ac) => conceptRenameLookup.get(ac.toLowerCase()) ?? ac);
+    }
+    return {
+      ...m,
+      ...applies_to ? { applies_to } : {}
+    };
+  });
+  const matrices = schema.matrices.map((mx) => {
+    const source = conceptRenameLookup.get(mx.source.toLowerCase()) ?? mx.source;
+    const target = conceptRenameLookup.get(mx.target.toLowerCase()) ?? mx.target;
+    return {
+      ...mx,
+      source,
+      target
+    };
+  });
+  const taxonomy = schema.taxonomy.map((edge) => {
+    const parent = conceptRenameLookup.get(edge.parent.toLowerCase()) ?? edge.parent;
+    const child = conceptRenameLookup.get(edge.child.toLowerCase()) ?? edge.child;
+    return { parent, child };
+  });
+  return { concepts, markers, matrices, taxonomy };
+}
+function mergeDefinition(incoming, incomingSource, kindLabel, seen, target, errors, isHost = false) {
+  const key = incoming.name.toLowerCase();
+  const prior = seen.get(key);
+  if (prior) {
+    if (canonicalizeDefinition(prior.def) !== canonicalizeDefinition(incoming)) {
+      if (!isHost && prior.source !== incomingSource) {
+        errors.push({
+          path: `includes.${kindLabel}.${incoming.name}`,
+          message: `[COMPOSITION_COLLISION] ${kindLabel} Definition "${incoming.name}" collision detected between included templates "${prior.source}" and "${incomingSource}". Use frontmatter \`alias\` to resolve collisions.`,
+          severity: "error"
+        });
+      } else {
+        errors.push({
+          path: `includes.${kindLabel}.${incoming.name}`,
+          message: `${kindLabel} Definition "${incoming.name}" is declared with different bodies by both "${prior.source}" and "${incomingSource}" \u2014 \`includes\` composition is additive and MUST NOT redeclare a Definition differently`,
+          severity: "error"
+        });
+      }
+    }
+    return false;
+  }
+  seen.set(key, { source: incomingSource, def: incoming });
+  target.push(incoming);
+  return true;
+}
+function mergeSchemaInto(acc, incoming, incomingSource, provenance, errors, isHost = false) {
+  for (const c of incoming.concepts) {
+    mergeDefinition(c, incomingSource, "Concept", provenance.concept, acc.concepts, errors, isHost);
+    for (const f of c.fields ?? []) {
+      const fieldKey = `${c.name.toLowerCase()}.${f.name.toLowerCase()}`;
+      const priorFieldSource = provenance.field.get(fieldKey);
+      if (priorFieldSource && priorFieldSource !== incomingSource && !isHost) {
+        const existingConcept = acc.concepts.find(
+          (ac) => ac.name.toLowerCase() === c.name.toLowerCase()
+        );
+        const existingField = existingConcept?.fields?.find(
+          (af) => af.name.toLowerCase() === f.name.toLowerCase()
+        );
+        if (existingField && JSON.stringify(existingField) !== JSON.stringify(f)) {
+          errors.push({
+            path: `includes.Field.${c.name}.${f.name}`,
+            message: `[COMPOSITION_COLLISION] Field "${c.name}.${f.name}" collision detected between included templates "${priorFieldSource}" and "${incomingSource}". Use frontmatter \`alias\` to resolve collisions.`,
+            severity: "error"
+          });
+        }
+      } else {
+        provenance.field.set(fieldKey, incomingSource);
+      }
+    }
+  }
+  for (const m of incoming.markers) {
+    mergeDefinition(m, incomingSource, "Marker", provenance.marker, acc.markers, errors, isHost);
+  }
+  for (const mx of incoming.matrices) {
+    mergeDefinition(mx, incomingSource, "Matrix", provenance.matrix, acc.matrices, errors, isHost);
+  }
+  for (const edge of incoming.taxonomy) {
+    const existingIndex = acc.taxonomy.findIndex(
+      (e) => e.child.toLowerCase() === edge.child.toLowerCase()
+    );
+    if (existingIndex !== -1) {
+      if (isHost) {
+        acc.taxonomy[existingIndex] = edge;
+      }
+    } else {
+      acc.taxonomy.push(edge);
+    }
+  }
+}
+function resolveBlueprintSchema(templateContent, resolveInclude, _seen = /* @__PURE__ */ new Set(), _depth = 0) {
+  const parsed = parseKnowledge(templateContent);
+  const local = extractBlueprintSchema(parsed);
+  const includes = parsed.frontmatter?.includes ?? [];
+  if (!resolveInclude || includes.length === 0) {
+    return { schema: local, errors: [] };
+  }
+  if (_depth >= 10) {
+    return {
+      schema: local,
+      errors: [
+        {
+          path: "includes",
+          message: "Max inclusion depth of 10 exceeded",
+          severity: "error"
+        }
+      ]
+    };
+  }
+  const selfLabel = String(parsed.frontmatter?.title ?? "this template");
+  const errors = [];
+  const base = { concepts: [], markers: [], matrices: [], taxonomy: [] };
+  const provenance = {
+    concept: /* @__PURE__ */ new Map(),
+    marker: /* @__PURE__ */ new Map(),
+    matrix: /* @__PURE__ */ new Map(),
+    field: /* @__PURE__ */ new Map()
+  };
+  for (const ref of includes) {
+    const key = ref.name.toLowerCase();
+    if (_seen.has(key)) {
+      errors.push({
+        path: `includes.${ref.name}`,
+        message: `Cyclic \`includes\`: "${ref.name}" is already being composed further up the chain`,
+        severity: "error"
+      });
+      continue;
+    }
+    const content = resolveInclude(ref);
+    if (content === null) {
+      errors.push({
+        path: `includes.${ref.name}`,
+        message: `Included template "${ref.name}" could not be resolved${ref.url ? ` from "${ref.url}"` : ""}`,
+        severity: "error"
+      });
+      continue;
+    }
+    const nested = resolveBlueprintSchema(
+      content,
+      resolveInclude,
+      /* @__PURE__ */ new Set([..._seen, key]),
+      _depth + 1
+    );
+    errors.push(...nested.errors);
+    const aliasedSchema = ref.alias ? applyAliasToSchema(nested.schema, ref.alias) : nested.schema;
+    const includedLabel = String(parseKnowledge(content).frontmatter?.title ?? ref.name);
+    mergeSchemaInto(base, aliasedSchema, includedLabel, provenance, errors, false);
+  }
+  mergeSchemaInto(base, local, selfLabel, provenance, errors, true);
+  if (_depth === 0) {
+    const conceptNames = new Set(base.concepts.map((c) => c.name.toLowerCase()));
+    const BUILTIN_TARGETS = /* @__PURE__ */ new Set(["marker", "element", "item"]);
+    for (const mx of base.matrices) {
+      const srcKey = mx.source.toLowerCase();
+      const tgtKey = mx.target.toLowerCase();
+      if (!conceptNames.has(srcKey) && !BUILTIN_TARGETS.has(srcKey)) {
+        errors.push({
+          path: `matrix.${mx.name}.source`,
+          message: `Matrix "${mx.name}" source concept "${mx.source}" does not resolve to any concept in the composed template schema`,
+          severity: "error"
+        });
+      }
+      if (!conceptNames.has(tgtKey) && !BUILTIN_TARGETS.has(tgtKey)) {
+        errors.push({
+          path: `matrix.${mx.name}.target`,
+          message: `Matrix "${mx.name}" target concept "${mx.target}" does not resolve to any concept in the composed template schema`,
+          severity: "error"
+        });
+      }
+    }
+  }
+  return { schema: base, errors };
+}
 
 // iNNfo/packages/innfo-core/src/schema/metaschema.ts
 var REQUIRED_BY_PRIMITIVE = {
@@ -9652,6 +10014,7 @@ function buildConsolePayload(options) {
   parseName,
   parseYaml,
   readAgentModificationAuthor,
+  resolveBlueprintSchema,
   resolveCitation,
   roleOf,
   serializeConsoleSlot,

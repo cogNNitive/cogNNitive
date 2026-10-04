@@ -391,6 +391,24 @@ export async function resolveBlueprintPackage(
   const wsPackageBaseDir = join(rootDir, 'specs', 'bluepriNNts', base)
 
   try {
+    // Tier 1a: canonical unversioned layout `specs/bluepriNNts/<base>/spec_NN.md`,
+    // the layout real domains use. Without it, a domain-local blueprint is missed
+    // and resolution falls through to the canonical fallback registry, so the MCP
+    // derives a different schema slot than the CLI (which reads Tier 1 directly).
+    // Only the blueprint manifest counts - never another `.md` in the directory.
+    for (const directSpec of [join(wsPackageBaseDir, 'spec_NN.md'), join(wsPackageBaseDir, `${base}_NN.md`)]) {
+      const content = await readFile(directSpec, 'utf-8').catch(() => null)
+      if (content === null) continue
+      return {
+        name: base,
+        version: targetVersion || versionFromFrontmatter(content) || 'V_0-1-0',
+        packagePath: wsPackageBaseDir,
+        specFilePath: directSpec,
+        isPackageDir: true,
+        tier: 'workspace-package',
+      }
+    }
+
     const entries = await readdir(wsPackageBaseDir, { withFileTypes: true })
     const verDirs = entries.filter((e) => e.isDirectory() && isVersionDirName(e.name))
     let matchDir: string | null = null
