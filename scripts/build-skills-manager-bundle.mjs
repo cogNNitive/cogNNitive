@@ -55,6 +55,7 @@ function loadEsbuild() {
 async function render() {
   const result = await loadEsbuild().build({
     entryPoints: [ENTRY],
+    absWorkingDir: REPO_ROOT,
     bundle: true,
     format: 'cjs',
     platform: 'node',
