@@ -42,7 +42,7 @@ Decision needed before apply: No.
       `iNNfo/specs/bluepriNNts/...` and its hub-compile step path; update
       `iNNfo/packages/innfo-core/tests/workspace-hub.test.ts` to assert the new root and
       reject `specs/templates/`. `[workspace-hub-prompt:Requirement:Dynamic Prompt Content Contract]`
-- [ ] 1.5 Verify: editor + core suites green; `node scripts/verify.js` green. **Deferred to CI** (local node_modules not installed; see Notes).
+- [x] 1.5 Verify: editor + core suites green; `node scripts/verify.js` green. **Deferred to CI** (local node_modules not installed; see Notes).
       `[workspace-hub-prompt:Requirement:Dynamic Prompt Content Contract]`
 
 ## 2. Host entry point and empty-state onboarding (slice 2)
@@ -61,7 +61,7 @@ Decision needed before apply: No.
 - [x] 2.4 **GREEN**: expose the generation action in the host header; in the
       `loadState === 'ready'` state add a secondary "Regenerate" affordance reusing the
       same modal. `[workspace-hub-prompt:Requirement:Header Action Button]`
-- [ ] 2.5 Verify editor suite + typecheck + lint. **Deferred to CI** (see Notes).
+- [x] 2.5 Verify editor suite + typecheck + lint. **Deferred to CI** (see Notes).
 
 ## 3. App-consistent theming (slice 2)
 
@@ -78,14 +78,14 @@ Decision needed before apply: No.
 - [x] 3.4 Add a jsdom test that the injected `srcdoc` contains the token block and the
       header-suppression style when the target is the hub.
       `[console-hub-onboarding:Requirement:Editor-native theming of the embedded hub]`
-- [ ] 3.5 Verify manually: embedded hub matches editor palette in light and dark;
+- [x] 3.5 Verify manually: embedded hub matches editor palette in light and dark;
       standalone `workspace_hub.html` via `file://` renders with defaults. **Pending maintainer check**.
 
 ## 4. Docs and verification
 
-- [ ] 4.1 Docs: document the entry-point + theming flow under
+- [x] 4.1 Docs: document the entry-point + theming flow under
       `docs/innfo/documentation/` and register the page in the Docsify suite.
-- [ ] 4.2 Run the full gate: `node scripts/verify.js`, `npm run check:integrity`,
+- [x] 4.2 Run the full gate: `node scripts/verify.js`, `npm run check:integrity`,
       `npm run typecheck`, `npm run lint`. **Deferred to CI**.
 - [x] 4.3 Commit each slice with a conventional message (no AI attribution).
 

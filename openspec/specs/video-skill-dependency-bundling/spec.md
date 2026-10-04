@@ -1,11 +1,8 @@
 # video-skill-dependency-bundling Specification
 
 ## Purpose
-
-The `nn-video-script` skill MUST be fully self-contained: it vendors its VUS parser as a committed, drift-checked ESM artifact and installs its Remotion renderer runtime on demand, behind user consent, with an accurate size notice.
-
+TBD - created by archiving change 2026-10-03-self-contained-video-skill-deps. Update Purpose after archive.
 ## Requirements
-
 ### Requirement: Vendored Self-Contained Parser Artifact
 
 The skill MUST resolve the VUS parser from a committed, self-contained ESM artifact shipped inside the skill directory. The artifact MUST bundle all of its runtime dependencies (including `zod`) so that parser resolution requires no npm registry access, no node_modules, and no TypeScript loader (`tsx`). The artifact MUST be drift-checked against the parser source by `scripts/verify.js`.
@@ -36,3 +33,4 @@ The skill MUST install its Remotion renderer runtime on demand via a single idem
 - GIVEN the Remotion runtime is already installed
 - WHEN the install command is invoked again
 - THEN it reports the engine as present and performs no reinstall
+
