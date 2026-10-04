@@ -2,7 +2,7 @@
 
 > **Status: RETIRED** — superseded by `canonical-template-package-distribution`.
 > Canonical unversioned source files plus immutable tag-hydrated, write-once
-> workspace package directories (`specs/templates/<name>/<version>/`) replace
+> workspace package directories (`specs/bluepriNNts/<name>/<version>/`) replace
 > reachability analysis and orphaned-spec pruning. The `prune_orphaned_specs`
 > MCP tool is removed. The requirements below are kept for historical record.
 
@@ -14,7 +14,7 @@ Establish reference reachability analysis across workspace models, mandate inter
 
 ### Requirement: Workspace Spec Reference Reachability Analysis
 
-The `innfo-mcp` engine MUST analyze workspace models (`models/`), root entrypoints (`workspace_NN.md`, `index.md`), and Level 2 templates (`templates/`) to build a complete spec reference graph. The graph MUST include parent spec references and transitive `includes` inheritance dependencies. Any spec version in `specs/` or `specs/templates/` not present in the active reference set MUST be marked as an orphan candidate.
+The `innfo-mcp` engine MUST analyze workspace models (`models/`), root entrypoints (`workspace_NN.md`, `index.md`), and Level 2 templates (`templates/`) to build a complete spec reference graph. The graph MUST include parent spec references and transitive `includes` inheritance dependencies. Any spec version in `specs/` or `specs/bluepriNNts/` not present in the active reference set MUST be marked as an orphan candidate.
 
 #### Scenario: Active spec reachable via model parent reference is preserved
 - GIVEN a model `models/ProjectAlpha_NN.md` declaring `parent_spec: "projects_V_0-2-0"`
@@ -28,7 +28,7 @@ The `innfo-mcp` engine MUST analyze workspace models (`models/`), root entrypoin
 - THEN both `business` `V_0-2-0` and `taxonomy` `V_0-1-0` are included in the active set
 
 #### Scenario: Unreferenced old template version identified as orphan candidate
-- GIVEN `specs/templates/business/V_0-1-0/` exists on disk
+- GIVEN `specs/bluepriNNts/business/V_0-1-0/` exists on disk
 - BUT no active model or template references `business` `V_0-1-0`
 - WHEN reachability analysis runs
 - THEN `business` `V_0-1-0` is flagged as an orphaned spec candidate
@@ -57,14 +57,14 @@ Before executing `bump_version` or spec pruning operations, the system MUST veri
 `innfo-mcp` MUST expose a `prune_orphaned_specs` tool with parameters `dry_run` (default `true`) and `backup` (default `true`). In `dry_run` mode, the tool MUST list all orphaned spec files/directories without deleting them. When `dry_run: false`, the tool MUST create a backup snapshot (if `backup: true`) and delete orphaned files.
 
 #### Scenario: Dry-run execution lists candidates without deleting
-- GIVEN orphaned spec package `specs/templates/legacy/V_0-1-0/`
+- GIVEN orphaned spec package `specs/bluepriNNts/legacy/V_0-1-0/`
 - WHEN `prune_orphaned_specs` is executed with `dry_run: true`
-- THEN the tool returns a report listing `specs/templates/legacy/V_0-1-0/` as a deletion candidate
+- THEN the tool returns a report listing `specs/bluepriNNts/legacy/V_0-1-0/` as a deletion candidate
 - AND no files are deleted from disk
 
 #### Scenario: Pruning execution with backup snapshot
 - GIVEN `prune_orphaned_specs` is executed with `dry_run: false` and `backup: true`
 - WHEN execution starts
 - THEN a `.backup/specs_<timestamp>.zip` archive is written containing all candidate specs
-- AND orphaned spec files are permanently deleted from `specs/templates/`
+- AND orphaned spec files are permanently deleted from `specs/bluepriNNts/`
 - AND execution returns a detailed summary of removed files and created archive path

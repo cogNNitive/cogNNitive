@@ -2,30 +2,30 @@
 
 ## Purpose
 
-Standardize template packaging into canonical unversioned files in source control (`main`), hydrate complete packages into versioned local workspace directories (`specs/templates/<name>/<version>/`), establish multi-tier resolution precedence across workspace and global locations, and implement atomic, immutable hydration for local template caches.
+Standardize template packaging into canonical unversioned files in source control (`main`), hydrate complete packages into versioned local workspace directories (`specs/bluepriNNts/<name>/<version>/`), establish multi-tier resolution precedence across workspace and global locations, and implement atomic, immutable hydration for local template caches.
 
 ## Requirements
 
 ### Requirement: Canonical Source Layout (repository `main`)
 
-Template packages in the source repository MUST use canonical unversioned filenames under `iNNfo/specs/templates/<template-name>/`:
+Template packages in the source repository MUST use canonical unversioned filenames under `iNNfo/specs/bluepriNNts/<template-name>/`:
 - The primary Level 2 specification MUST be named `spec_NN.md` (the root workspace template is `workspace_spec_NN.md`).
 - `procedures/`, `samples/`, and `assets/` (static layouts / media, e.g. `assets/model_viewer.html`) MUST also use unversioned filenames; `skills/` MAY carry agent skill manifests.
 - Source paths MUST NOT encode a semantic version. The authoritative version MUST be declared in frontmatter as `template_version` (`V_x-y-z` or dotted `x.y.z`).
 
 #### Scenario: Canonical source template on `main`
 - GIVEN the `business` template on `main`
-- WHEN it is stored at `iNNfo/specs/templates/business/spec_NN.md`
+- WHEN it is stored at `iNNfo/specs/bluepriNNts/business/spec_NN.md`
 - THEN the file carries `template_version` in its frontmatter
 - AND no `_V_x-y-z_` token appears in the path
 
 ### Requirement: Standardized Hydrated Package Directory Layout
 
-When hydrated into a local workspace or global user cache, template packages MUST be written into a versioned directory `specs/templates/<template-name>/<version>/` containing the canonical package assets (`spec_NN.md`, and — when present upstream — `procedures/`, `samples/`, `assets/`, `skills/`). A backward-compatible alias `<name>_V_<version>_NN.md` MUST accompany `spec_NN.md` so parsed legacy references (`parent_spec: "<name>_V_<version>"`) resolve.
+When hydrated into a local workspace or global user cache, template packages MUST be written into a versioned directory `specs/bluepriNNts/<template-name>/<version>/` containing the canonical package assets (`spec_NN.md`, and — when present upstream — `procedures/`, `samples/`, `assets/`, `skills/`). A backward-compatible alias `<name>_V_<version>_NN.md` MUST accompany `spec_NN.md` so parsed legacy references (`parent_spec: "<name>_V_<version>"`) resolve.
 
 #### Scenario: Validating hydrated package directory structure
 - GIVEN a hydrated template package for `business` version `V_0-2-1`
-- WHEN the package is stored at `specs/templates/business/V_0-2-1/`
+- WHEN the package is stored at `specs/bluepriNNts/business/V_0-2-1/`
 - THEN `spec_NN.md` is present as the main Level 2 template specification
 - AND the backward-compatible alias `business_V_0-2-1_NN.md` is present alongside it
 - AND subdirectories `samples/`, `procedures/`, and `assets/` store any upstream package assets
@@ -33,25 +33,25 @@ When hydrated into a local workspace or global user cache, template packages MUS
 #### Scenario: Backward-compatible resolution of legacy flat templates
 - GIVEN a workspace containing a flat template file at `./templates/business_V_0-1-0_NN.md`
 - WHEN `resolver.ts` resolves the template request for `business` `V_0-1-0`
-- THEN resolution falls back to the legacy flat file if `specs/templates/business/V_0-1-0/` does not exist
+- THEN resolution falls back to the legacy flat file if `specs/bluepriNNts/business/V_0-1-0/` does not exist
 
 ---
 
 ### Requirement: Multi-Tier Local Cache and Resolution Precedence
 
 Template resolution MUST traverse local and global locations in deterministic order:
-1. Workspace package directory: `./specs/templates/<name>/<version>/`
+1. Workspace package directory: `./specs/bluepriNNts/<name>/<version>/`
 2. Workspace flat fallback: `./templates/<name>_V_<version>_NN.md` or `./specs/`
 3. Global user cache: `~/.agents/templates/<name>/<version>/`
 4. Installed skill directories: `~/.agents/skills/*/templates/<name>/<version>/`
 
 #### Scenario: Resolving template from workspace package directory first
-- GIVEN a template available in both `./specs/templates/business/V_0-2-0/` and `~/.agents/templates/business/V_0-2-0/`
+- GIVEN a template available in both `./specs/bluepriNNts/business/V_0-2-0/` and `~/.agents/templates/business/V_0-2-0/`
 - WHEN `innfo-core` or `innfo-mcp` resolves `business` `V_0-2-0`
-- THEN the workspace package version `./specs/templates/business/V_0-2-0/` is selected
+- THEN the workspace package version `./specs/bluepriNNts/business/V_0-2-0/` is selected
 
 #### Scenario: Resolution fallback to global user cache
-- GIVEN a template `projects` `V_0-2-0` that is absent in the current workspace `./specs/templates/`
+- GIVEN a template `projects` `V_0-2-0` that is absent in the current workspace `./specs/bluepriNNts/`
 - BUT present in `~/.agents/templates/projects/V_0-2-0/`
 - WHEN template resolution is executed
 - THEN the global user cache directory `~/.agents/templates/projects/V_0-2-0/` is returned
@@ -65,15 +65,15 @@ Template resolution MUST traverse local and global locations in deterministic or
 
 ### Requirement: Immutable Atomic Hydration and Remote Fetching
 
-When a requested template package is not available locally, `innfo-mcp` MUST download and extract the remote package into `specs/templates/<name>/<version>/` using an atomic directory swap operation. Once populated, versioned package directories MUST be treated as immutable write-once caches.
+When a requested template package is not available locally, `innfo-mcp` MUST download and extract the remote package into `specs/bluepriNNts/<name>/<version>/` using an atomic directory swap operation. Once populated, versioned package directories MUST be treated as immutable write-once caches.
 
 #### Scenario: Atomic remote download and package extraction
-- GIVEN a remote template URL `https://raw.githubusercontent.com/.../specs/templates/business/V_0-2-0/spec_NN.md`
+- GIVEN a remote template URL `https://raw.githubusercontent.com/.../specs/bluepriNNts/business/V_0-2-0/spec_NN.md`
 - WHEN `innfo-mcp` fetches the missing template package
 - THEN package contents are downloaded into a temporary staging directory
-- AND atomically renamed to `specs/templates/business/V_0-2-0/` upon completion
+- AND atomically renamed to `specs/bluepriNNts/business/V_0-2-0/` upon completion
 
 #### Scenario: Write-once immutability enforcement
-- GIVEN an existing local package directory at `specs/templates/business/V_0-2-0/`
+- GIVEN an existing local package directory at `specs/bluepriNNts/business/V_0-2-0/`
 - WHEN a fetch operation is requested for the same version
 - THEN existing cached contents are preserved without redundant re-downloading or accidental modification

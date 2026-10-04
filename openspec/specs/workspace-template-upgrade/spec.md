@@ -2,15 +2,15 @@
 
 ## Purpose
 
-Give workspaces a safe, consent-gated path to adopt newer canonical template versions. A committed, generator-produced Level-2 template catalog (`iNNfo/specs/templates/catalog.json`) records every published template version and the `adopted` (highest) version; the preflight runner performs a non-mutating Tier-3 scan classifying each Level-3 model as `current` / `upgrade-available` / `ahead` / `unlisted`; and a dedicated `nn-upgrade` skill owns the detect → consent → backup → impact analysis → migrate → confirm flow, asking mapping questions only on real schema impact and never targeting local specialization templates.
+Give workspaces a safe, consent-gated path to adopt newer canonical template versions. A committed, generator-produced Level-2 template catalog (`iNNfo/specs/bluepriNNts/catalog.json`) records every published template version and the `adopted` (highest) version; the preflight runner performs a non-mutating Tier-3 scan classifying each Level-3 model as `current` / `upgrade-available` / `ahead` / `unlisted`; and a dedicated `nn-upgrade` skill owns the detect → consent → backup → impact analysis → migrate → confirm flow, asking mapping questions only on real schema impact and never targeting local specialization templates.
 
 ## Requirements
 
 ### Requirement: Template Catalog Artifact
 
 A Level-2 template catalog MUST exist as a committed, machine-readable JSON file at
-`iNNfo/specs/templates/catalog.json`. For every canonical template discovered in the
-`iNNfo/specs/templates/` tree, the catalog MUST record:
+`iNNfo/specs/bluepriNNts/catalog.json`. For every canonical template discovered in the
+`iNNfo/specs/bluepriNNts/` tree, the catalog MUST record:
 
 - `name` — the canonical template name (e.g. `business`, `workspace`, `documentation`).
 - `versions` — the published immutable versions found on disk, each with its

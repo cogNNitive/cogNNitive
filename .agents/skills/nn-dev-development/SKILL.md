@@ -150,7 +150,7 @@ Always compare remote tracking refs (`origin/main..origin/dev`), never local `ma
 ```powershell
 git log --oneline origin/main..origin/dev
 git diff --stat origin/main..origin/dev
-git diff --name-only origin/main..origin/dev | grep '^iNNfo/specs/templates/'
+git diff --name-only origin/main..origin/dev | grep '^iNNfo/specs/bluepriNNts/'
 ```
 
 ### 4c. Ghost-branch sweep

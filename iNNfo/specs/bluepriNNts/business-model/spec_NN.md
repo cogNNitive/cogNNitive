@@ -802,8 +802,8 @@ The application will resolve the `parent` URL, download this template, and use i
 
 This template has no sample of its own — its concepts are exercised by the
 `business` umbrella sample at
-`specs/templates/business/samples/Ghostbusters_V_0-2-0_business_NN.md`, whose
-`parent_spec` is `business_V_0-2-0` (which `includes` this template and
+`specs/bluepriNNts/business/samples/Ghostbusters_V_0-4-0_business_NN.md`, whose
+`parent_spec` is `business_V_0-4-0` (which `includes` this template and
 `analysis`).
 
 ### Parent Chain

@@ -306,11 +306,11 @@ incident 3 — PR #29 broke CI on every push because `base/` was added under
 
 ```powershell
 node scripts/verify.js            # Template Inventory Guard + line-count guard + generated-manifest freshness
-node scripts/template-catalog.mjs --check # validates iNNfo/specs/templates/catalog.json freshness
+node scripts/blueprint-catalog.mjs --check # validates iNNfo/specs/bluepriNNts/catalog.json freshness
 ```
-- ❌ any folder under `iNNfo/specs/templates/` (except `assets`) with no `- name: <folder>`
+- ❌ any folder under `iNNfo/specs/bluepriNNts/` (except `assets`) with no `- name: <folder>`
   in `manifest/source.yaml`; stale `catalog.json`.
-- Fix: add the `templates:` entry (name, repo, path) in the **same** change; run `node scripts/template-catalog.mjs` to regenerate `catalog.json`.
+- Fix: add the `blueprints:` entry (name, repo, path) in the **same** change; run `node scripts/blueprint-catalog.mjs` to regenerate `catalog.json`.
 
 ### Group 5 — CI mirror (slow; run before push)
 **Expedientes:** `innfo-core-dist-staleness-breaks-mcp-tests.md` (stale `dist/` →

@@ -153,21 +153,21 @@ validate.
 
 ### Requirement: Comprehensive template version synchronization and verification
 
-`npm run sync:versions` MUST regenerate all generated artifacts invalidated by template version changes (including `iNNfo/specs/templates/catalog.json`), and `npm run check:versions` MUST verify the freshness of all generated artifacts (including `catalog.json`) against their source definitions. Neither command MUST generate or check a stable manifest or channel refs, because those are release outputs.
+`npm run sync:versions` MUST regenerate all generated artifacts invalidated by template version changes (including `iNNfo/specs/bluepriNNts/catalog.json`), and `npm run check:versions` MUST verify the freshness of all generated artifacts (including `catalog.json`) against their source definitions. Neither command MUST generate or check a stable manifest or channel refs, because those are release outputs.
 
 #### Scenario: Sync regenerates template catalog alongside version copies
 
 - **GIVEN** a template version bump or template file modification
 - **WHEN** `npm run sync:versions` is executed
 - **THEN** it SHALL synchronize remaining code-coupled generated version copies (template versions, `samples.ts`, innfo-core version and dependency range)
-- **AND** it SHALL regenerate `iNNfo/specs/templates/catalog.json` via `scripts/template-catalog.mjs`
+- **AND** it SHALL regenerate `iNNfo/specs/bluepriNNts/catalog.json` via `scripts/blueprint-catalog.mjs`
 - **AND** it SHALL NOT generate a stable manifest.
 
 #### Scenario: Version freshness check detects stale template catalog
 
-- **GIVEN** `iNNfo/specs/templates/catalog.json` is missing or out-of-sync with template definitions
+- **GIVEN** `iNNfo/specs/bluepriNNts/catalog.json` is missing or out-of-sync with template definitions
 - **WHEN** `npm run check:versions` is executed
-- **THEN** it SHALL detect the catalog drift via `scripts/template-catalog.mjs --check`
+- **THEN** it SHALL detect the catalog drift via `scripts/blueprint-catalog.mjs --check`
 - **AND** it SHALL exit with a non-zero status code.
 
 #### Scenario: Version check passes when all artifacts are synchronized

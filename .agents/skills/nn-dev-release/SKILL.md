@@ -34,7 +34,7 @@ The monorepo defines four distinct release keys. Each release tag MUST match `<k
 | Release Key | Target Subsystem | Authored Version Source | Target in Manifest |
 |-------------|------------------|-------------------------|--------------------|
 | `skills` | Agent Skills suite | `skills/*/SKILL.md` (individual) | `skills[*]` |
-| `blueprints` | Domain templates & specs | `iNNfo/specs/templates/*/spec_NN.md` | `templates[*]` |
+| `blueprints` | Domain templates & specs | `iNNfo/specs/bluepriNNts/*/spec_NN.md` | `templates[*]` |
 | `innfo-mcp` | MCP server & tools bundle | `iNNfo/packages/innfo-mcp/package.json` | `mcp` bundle |
 | `innfo-console` | Interactive blueprint console | `iNNfo/specs/bluepriNNts/console/package.json` | `console_assets` |
 

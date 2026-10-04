@@ -71,7 +71,7 @@ The parser MUST extract referenced submodels from both traditional markdown/wiki
 
 ### Requirement: Level 2 Workspace Template Definition
 
-The canonical Level 2 workspace template MUST be the versioned `workspace_V_0-3-0_spec_NN.md` provided under `iNNfo/specs/templates/`. It MUST define core workspace concept primitives including `Workspace` (`type:: text`), `Models` (`type:: model`), and `Tag` (`type:: category`), with standard properties (`path`, `template`, `status`). The unversioned alias `workspace_spec_NN.md` SHALL NOT be used as the distribution or conformance name; the alias file MUST be physically removed from `iNNfo/specs/templates/` and from `actioNN/skills/nn-innfo/templates/`, while git history preserves it byte-identical.
+The canonical Level 2 workspace template MUST be the versioned `workspace_V_0-3-0_spec_NN.md` provided under `iNNfo/specs/bluepriNNts/`. It MUST define core workspace concept primitives including `Workspace` (`type:: text`), `Models` (`type:: model`), and `Tag` (`type:: category`), with standard properties (`path`, `template`, `status`). The unversioned alias `workspace_spec_NN.md` SHALL NOT be used as the distribution or conformance name; the alias file MUST be physically removed from `iNNfo/specs/bluepriNNts/` and from `actioNN/skills/nn-innfo/templates/`, while git history preserves it byte-identical.
 
 #### Scenario: Workspace model validates against the versioned template
 - GIVEN `workspace_01.md` declaring `parent_spec:: workspace_V_0-3-0_spec_NN.md`
@@ -81,5 +81,5 @@ The canonical Level 2 workspace template MUST be the versioned `workspace_V_0-3-
 #### Scenario: Alias is absent from distribution surfaces
 - GIVEN the change is applied
 - WHEN the template directories are inspected
-- THEN `workspace_spec_NN.md` exists in neither `iNNfo/specs/templates/` nor `actioNN/skills/nn-innfo/templates/`
+- THEN `workspace_spec_NN.md` exists in neither `iNNfo/specs/bluepriNNts/` nor `actioNN/skills/nn-innfo/templates/`
 - AND the canonical versioned copy is present in the nn-innfo skill bundle
