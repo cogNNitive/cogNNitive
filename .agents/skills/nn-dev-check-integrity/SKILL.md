@@ -74,6 +74,7 @@ If the maintainer explicitly requests the menu, wants to customize groups, or pr
   [x] 0. Working tree & sesiones concurrentes
   [x] 1. Sync con GitHub: commit / push / merge / deploy
   [x] 2. Cuadrado de versión del MCP (pkg · core · server.ts · manifest · CDN)
+  [x] 2b. Coherencia de versión de samples (bump de blueprint ↔ refresh de sample)
   [x] 3. Inmutabilidad de specs _V_x-y-z_ publicados
   [x] 4. Registro de templates nuevos en manifest/source.yaml
   [ ] 5. Espejo de CI (build core → lint → typecheck → 3 suites → app build → verify → build:docs → spec-urls)   · LENTO
@@ -251,6 +252,36 @@ Group 2 verifies:
 2. Inventory Integrity → `node scripts/verify.js` verifies that every path declared in `manifest/source.yaml` exists on disk and follows canonical naming.
 - ❌ version drift or missing inventory paths.
 - Fix hints: run `npm run sync:versions` to synchronize version sites; fix path references in `manifest/source.yaml`.
+
+### Group 2b — Sample version coherence (blueprint bump ↔ sample refresh)
+**Expediente:** `samples-version-coherence-guard` (2026-10-04). `scripts/sync-samples.mjs`
+compared the SSOT (`_samples_nn/`) and shipped (`iNNfo/specs/bluepriNNts/*/samples/`)
+copies byte-for-byte **against each other** with a hardcoded target filename, so both
+copies advanced in lockstep and the `samples-parity` step stayed GREEN while every sample
+pinned an obsolete blueprint version (business pinned V_0-2-3 while the blueprint shipped
+V_0-4-0; video pinned V_0-1-0 vs V_0-7-1). Nothing compared the sample's pin to the
+blueprint's current version.
+
+```powershell
+node scripts/check-samples-version.mjs           # exit 1 on drift
+node scripts/check-samples-version.mjs --json    # machine-readable failures
+```
+Runs automatically in `scripts/verify.js` as the `samples-version` step (next to
+`samples-parity`). Rules, each emitted as a named failure:
+- `NO_CURRENT_SAMPLE` — a blueprint has no sample pinned to its current
+  `blueprint_version` (historical samples are allowed, but ≥1 must track current).
+- `MALFORMED_PIN` — a sample's `parent_spec.name` has no parseable `V_x-y-z`.
+- `MISSING_BLUEPRINT_SPEC` — the shipped `spec_NN.md` / its `blueprint_version` is absent.
+
+- ❌ any failure. The guard **fails, it never auto-fixes** — a blueprint bump changes the
+  sample's schema/content, not only its version number; auto-renaming yields
+  "updated filename, broken body".
+- Authoritative source is the **shipped** `iNNfo/specs/bluepriNNts/<bp>/spec_NN.md`
+  `blueprint_version` — never the global cache under `~/.agents/bluepriNNts/` (it
+  diverges, and `verify.js` must stay offline/deterministic).
+- Fix: re-pin + refresh the sample at BOTH sites and update `SAMPLE_MAPPINGS` in
+  `scripts/sync-samples.mjs`; then run `node scripts/sync-samples.mjs` to keep SSOT and
+  shipped byte-identical.
 
 ### Group 3 — Immutability of published `_V_x-y-z_` specs
 **Expediente:** `spec-files-are-write-once.md` — six `_V_0-1-0_` template files edited in
