@@ -192,3 +192,74 @@ description:: High-level strategic knowledge.
 ## Examples
 
 A domaiNN that links one business kNNowledge document and one shared tag uses three concepts only: `domaiNN` for the container, `kNNowledge` for the linked document, and `Tags` for the taxonomy entry. No other structure is required.
+
+# Concept Guidance Documentation
+
+## domaiNN
+
+### Summary
+
+The `domaiNN` concept is the container: it holds the prose description of the domain, its entry point, and the directory conventions that the rest of the documents follow.
+
+### Description
+
+A domaiNN is both a container and an ordinary Level-3 kNNowledge document, so a domaiNN can nest inside another without a special case. The `domaiNN` concept carries the free-form description of purpose, scope and conventions, and fixes the two directory paths (`knowledge_dir`, `blueprints_dir`) that tooling uses to resolve the rest of the tree. The root document is named exactly `domaiNN_NN.md`.
+
+### Methodologies
+
+1. State the domain's purpose and scope in prose so a reader understands what belongs here.
+2. Declare `knowledge_dir` and `blueprints_dir` to match the on-disk layout.
+3. Keep the entry point named `domaiNN_NN.md`; legacy names (`workspace*.md`, `*_base_NN.md`) are detected and never loaded by current tooling.
+4. Nest a child domaiNN as an ordinary linked kNNowledge document rather than inventing a new structure.
+
+### Prompts
+
+- "Describe this domain: what it is, what it contains, and what it deliberately excludes."
+- "Confirm the directory conventions (`kNNowledge/`, `specs/bluepriNNts/`) match the actual tree."
+- "Does this domain need to nest inside another domaiNN, or is it a single level?"
+
+## kNNowledge
+
+### Summary
+
+The `kNNowledge` concept links the Level-3 kNNowledge documents that live inside the domain, each with its path, blueprint binding, status and author.
+
+### Description
+
+Each `kNNowledge` entry is a pointer-plus-metadata record: `path` locates the document (`kNNowledge/<stem>_NN.md`), `blueprint` names the schema it instantiates, and `status`/`author` describe its lifecycle. Links are declarative, so the domain is navigable without reading every target file.
+
+### Methodologies
+
+1. Add one `kNNowledge` entry per Level-3 document under `kNNowledge/`.
+2. Set `path` to the `kNNowledge/<stem>_NN.md` location and `blueprint` to the schema name.
+3. Track lifecycle with `status` (`active`, `draft`, …) and attribute it with `author`.
+4. Keep the entry a link: do not inline the target document's content here.
+
+### Prompts
+
+- "List the Level-3 kNNowledge documents this domain links and their blueprint bindings."
+- "Which linked documents are `draft` vs `active`, and who authored each?"
+- "Does every `path` resolve to a real `kNNowledge/<stem>_NN.md` file?"
+
+## Tags
+
+### Summary
+
+The `Tags` concept is the domain's centralized taxonomy catalog: each tag carries a `color`, an `icon` and a `description` reused across the domain.
+
+### Description
+
+A tag is a taxonomy entry, not a per-document label. Centralizing them here keeps colors and icons consistent and lets any linked document reference a tag by name. `color` (a hex value), `icon` (an icon name) and `description` (its meaning) are the three fields a tag defines.
+
+### Methodologies
+
+1. Define a tag once, here, with `color`, `icon` and `description`.
+2. Use a stable, human-readable tag name so documents can reference it.
+3. Choose a color and icon that stay legible in both light and dark themes and are distinct from neighbouring tags.
+4. Reference the tag by name from documents; never restate its color/icon locally.
+
+### Prompts
+
+- "List this domain's tags with their color, icon and description."
+- "Is any tag name ambiguous or colliding with another?"
+- "Do neighbouring tags have visually distinct colors and icons?"
