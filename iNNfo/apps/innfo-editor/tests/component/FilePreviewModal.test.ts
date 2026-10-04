@@ -187,13 +187,14 @@ describe('FilePreviewModal', () => {
       attachTo: document.body,
     })
 
-    // Wait for loadSourceContent() to resolve frontmatter metadata and render the button.
+    // The Original File row is always present; wait for loadSourceContent() to
+    // resolve frontmatter metadata so the open action is enabled with a source.
     const openButton = await vi.waitFor(() => {
       const el = document.body.querySelector(
         'button[title="Open original file in a new tab"]',
-      )
-      if (!el) throw new Error('open-original button not yet rendered')
-      return el as HTMLElement
+      ) as HTMLButtonElement | null
+      if (!el || el.disabled) throw new Error('open-original button not yet enabled')
+      return el
     })
 
     openButton.click()
@@ -252,12 +253,22 @@ describe('FilePreviewModal', () => {
       expect(document.body.textContent ?? '').toContain('sources/import/clientA/report.docx')
     })
 
-    const lineageButton = Array.from(document.body.querySelectorAll('button')).find((btn) =>
-      btn.textContent?.includes('Lineage'),
-    )
+    const lineageButton = document.body.querySelector(
+      'button[aria-label="Lineage"]',
+    ) as HTMLButtonElement | null
     expect(lineageButton).toBeTruthy()
 
     lineageButton!.click()
+    // The Lineage tab opens on Timeline by default; select Graph to assert the
+    // Mermaid definition.
+    const graphButton = await vi.waitFor(() => {
+      const btn = Array.from(document.body.querySelectorAll('button')).find((b) =>
+        b.textContent?.includes('Graph'),
+      )
+      if (!btn) throw new Error('Graph style button not rendered yet')
+      return btn as HTMLButtonElement
+    })
+    graphButton.click()
     await vi.waitFor(() => {
       expect(document.body.querySelector('.widget-mermaid')).toBeTruthy()
     })
@@ -296,10 +307,19 @@ describe('FilePreviewModal', () => {
       expect(document.body.textContent ?? '').toContain('sources/import/clientA/report.docx')
     })
 
-    const lineageButton = Array.from(document.body.querySelectorAll('button')).find((btn) =>
-      btn.textContent?.includes('Lineage'),
-    )
+    const lineageButton = document.body.querySelector(
+      'button[aria-label="Lineage"]',
+    ) as HTMLButtonElement | null
     lineageButton!.click()
+
+    const graphButton = await vi.waitFor(() => {
+      const btn = Array.from(document.body.querySelectorAll('button')).find((b) =>
+        b.textContent?.includes('Graph'),
+      )
+      if (!btn) throw new Error('Graph style button not rendered yet')
+      return btn as HTMLButtonElement
+    })
+    graphButton.click()
 
     await vi.waitFor(() => {
       expect(document.body.querySelector('.widget-mermaid')).toBeTruthy()
@@ -367,10 +387,19 @@ describe('FilePreviewModal', () => {
       expect(document.body.textContent ?? '').toContain('sources/import/clientA/report.docx')
     })
 
-    const lineageButton = Array.from(document.body.querySelectorAll('button')).find((btn) =>
-      btn.textContent?.includes('Lineage'),
-    )
+    const lineageButton = document.body.querySelector(
+      'button[aria-label="Lineage"]',
+    ) as HTMLButtonElement | null
     lineageButton!.click()
+
+    const graphButton = await vi.waitFor(() => {
+      const btn = Array.from(document.body.querySelectorAll('button')).find((b) =>
+        b.textContent?.includes('Graph'),
+      )
+      if (!btn) throw new Error('Graph style button not rendered yet')
+      return btn as HTMLButtonElement
+    })
+    graphButton.click()
 
     await vi.waitFor(() => {
       expect(document.body.querySelector('.widget-mermaid')).toBeTruthy()
@@ -452,10 +481,19 @@ describe('FilePreviewModal', () => {
       expect(document.body.textContent ?? '').toContain('sources/import/clientA/report.docx')
     })
 
-    const lineageButton = Array.from(document.body.querySelectorAll('button')).find((btn) =>
-      btn.textContent?.includes('Lineage'),
-    )
+    const lineageButton = document.body.querySelector(
+      'button[aria-label="Lineage"]',
+    ) as HTMLButtonElement | null
     lineageButton!.click()
+
+    const graphButton = await vi.waitFor(() => {
+      const btn = Array.from(document.body.querySelectorAll('button')).find((b) =>
+        b.textContent?.includes('Graph'),
+      )
+      if (!btn) throw new Error('Graph style button not rendered yet')
+      return btn as HTMLButtonElement
+    })
+    graphButton.click()
 
     await vi.waitFor(() => {
       expect(document.body.querySelector('.widget-mermaid')).toBeTruthy()
@@ -496,6 +534,195 @@ describe('FilePreviewModal', () => {
     expect(text).not.toContain('Código')
     expect(text).not.toContain('Normalizado')
     expect(text).not.toContain('Cerrar')
+  })
+
+  it('keeps the Original File row visible and disabled when there is no source_file', async () => {
+    const tree: FakeTree = {
+      sources: { import: { 'plain.md': '# Title\n\nBody without frontmatter.\n' } },
+    }
+    const handle = buildFakeTree('workspace', tree)
+    useWorkspaceStore().handle = handle
+
+    wrapper = mount(FilePreviewModal, {
+      props: {
+        isOpen: true,
+        kind: 'source',
+        filePath: 'sources/import/plain.md',
+        fileName: 'plain.md',
+      },
+      attachTo: document.body,
+    })
+
+    await vi.waitFor(() => {
+      const label = Array.from(document.body.querySelectorAll('span')).find((s) =>
+        s.textContent?.includes('Original File'),
+      )
+      if (!label) throw new Error('Original File row not rendered yet')
+    })
+
+    const openButton = document.body.querySelector(
+      'button[title="Open original file in a new tab"]',
+    ) as HTMLButtonElement
+    expect(openButton).toBeTruthy()
+    expect(openButton.disabled).toBe(true)
+    expect(document.body.textContent ?? '').toContain('No source in frontmatter')
+  })
+
+  it('hides low-signal metadata by default and reveals it from the more-menu', async () => {
+    const tree: FakeTree = {
+      sources: { import: { 'report.md': markdownWithFrontmatter } },
+    }
+    const handle = buildFakeTree('workspace', tree)
+    useWorkspaceStore().handle = handle
+
+    wrapper = mount(FilePreviewModal, {
+      props: {
+        isOpen: true,
+        kind: 'source',
+        filePath: 'sources/import/report.md',
+        fileName: 'report.md',
+      },
+      attachTo: document.body,
+    })
+
+    await vi.waitFor(() => {
+      expect(document.body.textContent ?? '').toContain('sources/import/clientA/report.docx')
+    })
+
+    expect(document.body.textContent ?? '').not.toContain('SHA-256 Hash')
+    expect(document.body.textContent ?? '').not.toContain('Size / Status')
+    expect(document.body.textContent ?? '').not.toContain('Normalized At')
+
+    const moreButton = document.body.querySelector(
+      'button[aria-label="File metadata"]',
+    ) as HTMLButtonElement
+    moreButton.click()
+
+    await vi.waitFor(() => {
+      expect(document.body.textContent ?? '').toContain('SHA-256 Hash')
+    })
+    expect(document.body.textContent ?? '').toContain('Size / Status')
+    expect(document.body.textContent ?? '').toContain('Normalized At')
+  })
+
+  it('opens a unit-pointed Markdown file in Preview (not Code)', async () => {
+    const tree: FakeTree = {
+      sources: { import: { 'g.md': unitMd } },
+    }
+    const handle = buildFakeTree('workspace', tree)
+    useWorkspaceStore().handle = handle
+
+    wrapper = mount(FilePreviewModal, {
+      props: {
+        isOpen: true,
+        kind: 'source',
+        filePath: 'sources/import/g.md',
+        fileName: 'g.md',
+        unit: {
+          kind: 'header',
+          level: 2,
+          text: 'NN Person: Dr. Egon Spengler',
+          slug: 'nn-person--dr-egon-spengler',
+        },
+        subunits: [],
+      },
+      attachTo: document.body,
+    })
+
+    await vi.waitFor(() => {
+      expect(document.body.querySelector('.markdown-body')).toBeTruthy()
+    })
+    expect(document.body.querySelector('.markdown-body')!.textContent ?? '').toContain(
+      'Dr. Egon Spengler',
+    )
+  })
+
+  it('opens the Lineage tab on Timeline and shows the element id and slug', async () => {
+    const tree: FakeTree = {
+      sources: { import: { 'report.md': markdownWithFrontmatter } },
+    }
+    const handle = buildFakeTree('workspace', tree)
+    useWorkspaceStore().handle = handle
+
+    const knowledgeStore = useKnowledgeStore()
+    knowledgeStore.nodes['Compras/Pagos/Registrar'] = {
+      id: 'Compras/Pagos/Registrar',
+      name: 'Registrar Pago',
+      type: 'Procedure',
+      slug: 'registrar-pago',
+      parentId: 'Compras',
+      childIds: [],
+      fields: {},
+      markers: {},
+      relationships: [],
+      rawSections: {},
+      source: { path: 'kNNowledge/compras_V_0-1-0_business_NN.md' },
+      sources: [
+        {
+          filePath: 'sources/import/report.md',
+          fileName: 'report.md',
+          kind: 'source',
+          raw: 'sources/import/report.md',
+        },
+      ],
+    } as any
+
+    wrapper = mount(FilePreviewModal, {
+      props: {
+        isOpen: true,
+        kind: 'source',
+        filePath: 'sources/import/report.md',
+        fileName: 'report.md',
+      },
+      attachTo: document.body,
+    })
+
+    await vi.waitFor(() => {
+      expect(document.body.textContent ?? '').toContain('sources/import/clientA/report.docx')
+    })
+
+    const lineageButton = document.body.querySelector(
+      'button[aria-label="Lineage"]',
+    ) as HTMLButtonElement
+    lineageButton.click()
+
+    await vi.waitFor(() => {
+      expect(document.body.textContent ?? '').toContain('Compras/Pagos/Registrar')
+    })
+
+    // Timeline is the default style: no Mermaid widget until Graph is selected.
+    expect(document.body.querySelector('.widget-mermaid')).toBeFalsy()
+    const text = document.body.textContent ?? ''
+    expect(text).toContain('Procedure: Registrar Pago')
+    expect(text).toContain('slug: registrar-pago')
+  })
+
+  it('does not render the traceability footer band', async () => {
+    const tree: FakeTree = {
+      sources: { import: { 'report.md': markdownWithFrontmatter } },
+    }
+    const handle = buildFakeTree('workspace', tree)
+    useWorkspaceStore().handle = handle
+
+    wrapper = mount(FilePreviewModal, {
+      props: {
+        isOpen: true,
+        kind: 'source',
+        filePath: 'sources/import/report.md',
+        fileName: 'report.md',
+      },
+      attachTo: document.body,
+    })
+
+    await vi.waitFor(() => {
+      expect(document.body.textContent ?? '').toContain('sources/import/clientA/report.docx')
+    })
+
+    expect(document.body.textContent ?? '').not.toContain('Traceability verified with iNNfo')
+    const closeButton = document.body.querySelector(
+      'button[title="Close (Esc)"]',
+    ) as HTMLButtonElement
+    expect(closeButton).toBeTruthy()
   })
 })
 
