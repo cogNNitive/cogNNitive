@@ -79,6 +79,16 @@ There is no "undo release". Run **all** of these before `git tag`:
 1. **Branch is clean and merged:** the changes to release are on `main` and the
    latest `CI & Verify` run on the **exact** `origin/main` tip is `success`
    (`gh run list --branch main --workflow "CI & Verify" --limit 1`).
+   - **A red `dev` blocks the whole pipeline, and not every red is yours.** The tag
+     release runs `verify.js`; a red `dev` means no tag can be cut. Before stopping: is
+     the red pre-existing? Run the failing step against the batch base (`origin/main`) in
+     a trustworthy checkout (primary with real deps — NOT a junctioned worktree, see
+     `nn-dev-development` §1a) or find a CI run of the base. If it reproduces on the base,
+     it is pre-existing: file it as its own issue (e.g. 2026-10-04 `console-golden-parity`,
+     issue #122), record the exception, and do not fold an unrelated fix into the release
+     batch. If it does not reproduce on the base, it is yours: fix-forward on `dev` first.
+   - **Never cut a tag "to see if it passes."** The tag is irreversible; a red main blocks
+     tagging outright (§4).
 2. **The tagged commit already contains the CURRENT release scripts.** The workflow
    checks out the tag and runs `scripts/**` **from that commit** — a fix merged
    after the tag does NOT reach the tag's re-run. If you are about to tag the tip

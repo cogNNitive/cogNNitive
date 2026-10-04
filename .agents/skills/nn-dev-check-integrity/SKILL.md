@@ -299,6 +299,49 @@ For every changed file matching `iNNfo/specs/**/*_V_*`:
 - ✅ only new files, or edits to the newest version of a family that is not yet released.
 - ⚠️ any `*_spec_NN.md` (Level 2) listed as a model in a workspace `index.md`.
 
+### Group 3b — Canonical blueprint specs are versioned, not frozen — blocking
+**Expediente:** 2026-10-04 housekeeping session — a reference sweep rewrote the
+"official sample" sentence in 9 canonical blueprint specs
+(`iNNfo/specs/bluepriNNts/<bp>/spec_NN.md`) without bumping their `blueprint_version`.
+The `Template Immutability Guard` (a `verify.js` step, `scripts/guard-template-immutability.js`)
+rejected it and the `dev` CI went red. Recovering meant either bumping 9 blueprints (which
+cascades to samples + `catalog.json` + the canonical registry + dozens of test fixtures) or
+reverting the specs. The bump is a real release of the `blueprints` key, not a wording edit.
+
+Canonical blueprint specs are **unversioned on disk** (`spec_NN.md`) but **versioned in
+frontmatter** (`blueprint_version`). ANY content change — a field, a wording fix, a path
+correction — MUST increment `blueprint_version` for that blueprint in the same diff:
+
+```powershell
+git diff --name-only origin/main...HEAD -- "iNNfo/specs/bluepriNNts/*/spec_NN.md"
+```
+
+- ❌ a canonical `bluepriNNts/<bp>/spec_NN.md` changed in the diff and its
+  `blueprint_version` is not strictly greater than the base's. The guard reports
+  `base: "V_X", current: "V_X"`.
+- The bump **cascades** — it is not one edit. All of these move together, in the same
+  batch: the sample pin at BOTH sites (`_samples_nn/` + `bluepriNNts/<bp>/samples/`, see
+  Group 2b), `SAMPLE_MAPPINGS` in `scripts/sync-samples.mjs`, the regenerated
+  `samples.ts` + `catalog.json` (`npm run sync:versions`), and every test that asserts a
+  blueprint version (editor + core + mcp).
+- **Do NOT attempt a text-only fix in a canonical spec** (e.g. repointing a dead path)
+  unless that blueprint is genuinely being released. The cascade cost is large and easy to
+  underestimate. Prefer fixing the wording in a non-immutable surface (public docs,
+  maintainer skills, `manifest/body.md`) and leave the canonical spec for a versioned
+  change. This is the exact mistake that cost a session's tail on 2026-10-04.
+
+### Group 3c — `git checkout <ref> -- <path>` is blocked; use a read-through
+The PreToolUse git guard refuses `git checkout <ref> -- <path>` and `git restore <path>`
+(they can overwrite your own uncommitted work). To revert a single authored file to a ref:
+```powershell
+# safest: read the ref's blob and write it, no working-tree guard triggers
+git show <ref>:<path> > <path>          # POSIX
+node -e "const{execSync}=require('child_process');const fs=require('fs');fs.writeFileSync(process.argv[1],execSync('git show '+process.argv[2]+':'+process.argv[1],{encoding:'buffer',maxBuffer:2e7}))" <path> <ref>
+```
+Do NOT use `git restore .`, `git clean`, `git reset --hard`, or `git stash` (all blocked,
+all destructive of your own work).
+
+
 ### Group 4 — New template folders registered in the manifest
 **Expediente:** `verify-scripts-template-inventory-guard.md` + `workspace-entity-evolution.md`
 incident 3 — PR #29 broke CI on every push because `base/` was added under

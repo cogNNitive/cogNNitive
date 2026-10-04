@@ -71,6 +71,20 @@ typecheck with a clear message**, because the workspace symlinks resolve `@cognn
 primary checkout and a local typecheck would check the wrong tree. CI runs the real typecheck
 on the pushed ref; watch the run. No `--no-verify` and no per-session `npm install` needed.
 
+⚠️ The same junction problem makes a session worktree a **poor baseline for test
+diagnosis**. `node_modules/@cognnitive/*` resolves to the **primary**, so a test run
+"at main" in a junctioned worktree is not really main — it may fail (or pass) for the
+wrong reason. When you need a trustworthy baseline to decide whether a failure is
+pre-existing:
+- Do NOT `git worktree add --detach <tmp> <sha>` + junction — that is contaminated.
+- Prefer the **primary checkout** if it has real `npm ci` deps and a built
+  `innfo-core/dist`; run the test there with the workspace's own `vitest`.
+- The `innfo-mcp` suite is also **slow** in a worktree (junctions + Windows fs):
+  several cascade tests take ~5-7s and cross vitest's default 5s timeout, which
+  surfaces as misleading `expected false to be true` assertion errors, not "timed out".
+  When a fast-looking assertion error appears on a test known to be slow, re-run it
+  alone with `--testTimeout=30000` before believing it.
+
 ### 1b. Informational concurrency scan
 
 Run and report (do **not** block on it ΓÇö isolation already makes collisions impossible):
@@ -190,6 +204,21 @@ When the maintainer says the accumulated `dev` work is ready:
    run for the pushed sha completes; require `verify`, `quality`, `spec-integrity`, `site`,
    `publish-web` all `success`. Distinguish red-caused-by-batch (fix-forward) from pre-existing red
    (maintainer-approved `MERGE-GATE EXCEPTION`).
+   - **Confirm pre-existing red before attributing it.** A red job on `dev` is not proof
+     the batch caused it. Before fixing: run the failing test/guard against the batch
+     base (`origin/main`) in a trustworthy checkout (see §1a - not a junctioned worktree),
+     or compare against a CI run of the batch base. Only a failure that reproduces on the
+     base is pre-existing. On 2026-10-04 a red `console-golden-parity` (mcp suite) looked
+     batch-caused and cost hours of guessing; it reproduced on `main` and was a
+     pre-existing resolver bug (issue #122), unrelated to the batch.
+   - **Do not fix pre-existing red as a rider.** A pre-existing failure gets its own issue
+     and its own verified change; folding an unrelated fix into the batch mixes scopes and
+     multiplies blast radius. Record the exception and proceed, or stop and ask the
+     maintainer - never silently expand the batch.
+   - **A partial fix that does not turn CI green is worse than none.** If a fix removes
+     one blocker but exposes a second (the 2026-10-04 resolver fix exposed a schema-parity
+     diff AND regressed `listBlueprintProcedures`), revert it and file the finding - a fix
+     that leaves CI red adds churn and hides the real state.
    - **Release freeze:** once a release tag is cut, no session may push `dev`/`main`
      until that tag's workflow concludes ΓÇö a moved `origin/main` breaks the tag's own
      verification and its already-limited re-run. See `nn-dev-release` ┬º4/┬º4b.
