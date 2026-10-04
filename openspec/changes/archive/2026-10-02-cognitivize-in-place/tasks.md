@@ -152,10 +152,10 @@ Spec links: `canonical-vocabulary`, all modified capabilities (living-spec sync)
 `size:exception` justification: docs/spec bulk edits (about 45 pages, 12 living specs) with no code; reviewable by search-and-replace diff.
 
 - [x] 7.1 Update `iNNfo/specs/vocabulary.json` prose and regenerate `docs/innfo/documentation/vocabulary.md`. Test: `node scripts/verify.js`.
-- [ ] 7.2 Rewrite the ~45 docs pages (layout, `artifacts/`, sidecars, write-once, drift gate); skip frozen use-cases/samples. Test: `verify.js` docs/link checks.
+- [x] 7.2 Rewrite the ~45 docs pages (layout, `artifacts/`, sidecars, write-once, drift gate); skip frozen use-cases/samples. Test: `verify.js` docs/link checks.
 - [x] 7.3 Sync delta specs into `openspec/specs/` (about 12 living specs); no bare `cogNNitive/iNNfo` slug (split code spans). Test: `npm run check:spec-urls`.
 - [x] 7.4 Regenerate samples, `innfo-mcp.bundle.js` source inputs, console bundle; release notes list procedure and layout renames (Resolved Q3).
-- [ ] 7.5 Final success-criteria sweep:
+- [x] 7.5 Final success-criteria sweep (closed 2026-10-04; residual of the first bullet below is carried to `openspec/backlog.md`):
   - `rg -n "sources/(nn|original|export|archive)/" iNNfo/packages iNNfo/apps skills scripts -g '!*.generated.*' -g '!**/fixtures/**'` returns only marked lines
   - `_NN.md` regex only in `src/naming/`
   - one timestamp helper
