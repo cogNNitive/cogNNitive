@@ -120,7 +120,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToP
   const isCheck = process.argv.includes('--check');
 
   if (isCheck) {
-    console.log('🔍 Checking samples parity (_samples_nn/models/ <-> iNNfo/specs/bluepriNNts/*/samples/)...');
+    console.log('🔍 Checking samples parity (_samples_nn/kNNowledge/ <-> iNNfo/specs/bluepriNNts/*/samples/)...');
     const res = syncSamples({ check: true });
     if (!res.ok) {
       console.error('❌ Samples drift detected:');
@@ -132,7 +132,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToP
     }
     console.log('✅ All template samples are in sync with _samples_nn.');
   } else {
-    console.log('📦 Projecting samples from _samples_nn/models/ into template packages...');
+    console.log('📦 Projecting samples from _samples_nn/kNNowledge/ into blueprint packages...');
     const res = syncSamples({ check: false });
     if (!res.ok) {
       console.error('❌ Failed to sync samples:');
