@@ -117,33 +117,31 @@ export function checkBlueprintDocumentation(
   d: Diagnostics,
 ): void {
   const sections = scanGuidanceSections(templateRawContent)
-  const undocumented: string[] = []
+  const incomplete: Array<{ name: string; missing: string[] }> = []
 
   for (const concept of templateConcepts) {
     const section = sections.find((s) => s.title === concept.name)
-    if (!section) {
-      undocumented.push(concept.name)
-      continue
-    }
-    const missing = REQUIRED_GUIDANCE_H3S.filter((req) => !section.subheadings.includes(req))
-    if (missing.length > 0) {
-      undocumented.push(`${concept.name} (missing: ${missing.join(', ')})`)
-    }
+    const missing = section
+      ? REQUIRED_GUIDANCE_H3S.filter((req) => !section.subheadings.includes(req))
+      : [...REQUIRED_GUIDANCE_H3S]
+    if (missing.length > 0) incomplete.push({ name: concept.name, missing })
   }
 
-  if (undocumented.length === 0) return
+  if (incomplete.length === 0) return
 
-  if (undocumented.length === 1) {
-    d.warn(
-      'parent.concepts',
-      `Concept '${undocumented[0]}' lacks complete guidance section in parent template`,
-    )
-  } else {
-    d.warn(
-      'parent.concepts',
-      `${undocumented.length} template concepts lack complete guidance sections: ${undocumented.join(', ')}`,
-    )
-  }
+  const describe = (c: { name: string; missing: string[] }) =>
+    `'${c.name}' (missing: ${c.missing.join(', ')})`
+  const message =
+    incomplete.length === 1
+      ? `Concept ${describe(incomplete[0])} lacks complete guidance section in parent template`
+      : `${incomplete.length} template concepts lack complete guidance sections: ${incomplete.map(describe).join('; ')}`
+
+  const headings = REQUIRED_GUIDANCE_H3S.map((h) => `\`### ${h}\``).join(', ')
+  d.warn('parent.concepts', message, {
+    code: 'PARENT_CONCEPT_GUIDANCE_INCOMPLETE',
+    promptHint: `In the parent template, add a \`## <ConceptName>\` section for each listed concept containing the subsections ${headings}.`,
+    meta: { concepts: incomplete },
+  })
 }
 
 /**

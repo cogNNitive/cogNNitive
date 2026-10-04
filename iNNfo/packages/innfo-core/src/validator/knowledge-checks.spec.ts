@@ -123,6 +123,41 @@ describe('diagnostic-signal-quality (H8) — aggregate template documentation wa
     expect(d.valid).toBe(true)
   })
 
+  it('carries a stable code, an actionable promptHint and meta', () => {
+    const d = new Diagnostics()
+    const concepts = [
+      { name: 'Partial', type: 'list' as const },
+      { name: 'Absent', type: 'list' as const },
+    ]
+    const templateRaw = ['# NN Concept Definition', '## Partial', '### Summary'].join('\n')
+    checkBlueprintDocumentation(concepts, templateRaw, d)
+
+    expect(d.warnings).toHaveLength(1)
+    const w = d.warnings[0]
+    expect(w.code).toBe('PARENT_CONCEPT_GUIDANCE_INCOMPLETE')
+    expect(w.promptHint).toContain('## <ConceptName>')
+    for (const h of ['Summary', 'Description', 'Methodologies', 'Prompts']) {
+      expect(w.promptHint).toContain(`### ${h}`)
+    }
+    expect(w.meta).toEqual({
+      concepts: [
+        { name: 'Partial', missing: ['Description', 'Methodologies', 'Prompts'] },
+        { name: 'Absent', missing: ['Summary', 'Description', 'Methodologies', 'Prompts'] },
+      ],
+    })
+  })
+
+  it('names the concept and its missing headings separately for a single concept', () => {
+    const d = new Diagnostics()
+    const concepts = [{ name: 'Foo', type: 'list' as const }]
+    const templateRaw = ['## Foo', '### Description', '### Methodologies', '### Prompts'].join('\n')
+    checkBlueprintDocumentation(concepts, templateRaw, d)
+
+    expect(d.warnings[0].message).toContain("Concept 'Foo'")
+    expect(d.warnings[0].message).toContain('missing: Summary')
+    expect(d.warnings[0].message).not.toContain("'Foo (missing")
+  })
+
   it('emits no warning when all concepts have complete guidance', () => {
     const d = new Diagnostics()
     const concepts = [{ name: 'Documented', type: 'list' as const }]

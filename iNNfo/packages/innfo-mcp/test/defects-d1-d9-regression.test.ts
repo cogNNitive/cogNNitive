@@ -75,6 +75,8 @@ title: "Test Model"
     expect(warning).toBeDefined()
     expect(warning!.message).toContain('Sources')
     expect(warning!.message).toContain('lacks complete guidance section')
+    expect(warning!.code).toBe('PARENT_CONCEPT_GUIDANCE_INCOMPLETE')
+    expect(warning!.promptHint).toContain('### Summary')
   })
 
   it('D4: Slug/name collisions are reported as validation ERRORs', async () => {
