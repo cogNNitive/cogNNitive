@@ -7,10 +7,8 @@ import {
   applyMutation as coreApplyMutation,
   resolveBlueprintSchema,
   buildAgentModificationBlock,
-  isModelCandidate,
   isExcludedPath,
   isNNName,
-  parseFrontmatter,
 } from '@cognnitive/innfo-core'
 import type { SpecDocument, ParsedKnowledge, BlueprintSchema } from '@cognnitive/innfo-core'
 import { findKnowledgeFile } from './spec.js'
@@ -110,20 +108,15 @@ async function findAllWorkspaceModelFiles(
       isNNName(entry.name) &&
       entry.name.toLowerCase() !== 'index.md'
     ) {
-      // Only real models participate in the reference cascade — the same
-      // predicate the discovery scanner uses. Without this, the pre-check
-      // reads non-model markdown (session transcripts under `conversations/`,
-      // notes, docs) and reports phantom "missing level/parent_spec" errors.
+      // Only `_NN.md` files can carry model references. Without this the
+      // pre-check reads non-model markdown (session transcripts under
+      // `conversations/`, notes, docs) and reports phantom
+      // "missing level/parent_spec" errors (issue #110). Deliberately a
+      // name-only check: reading+parsing every candidate's frontmatter here
+      // cost seconds on large trees and tripped the test timeout.
       const filePath = join(dir, entry.name)
       const relPath = relative(rootDir, filePath).split('\\').join('/')
       if (isExcludedPath(relPath)) continue
-      try {
-        const raw = await readFile(filePath, 'utf-8')
-        const frontmatter = parseFrontmatter(raw)
-        if (!frontmatter || !isModelCandidate({ path: relPath, frontmatter })) continue
-      } catch {
-        continue
-      }
       results.push(filePath)
     }
   }
