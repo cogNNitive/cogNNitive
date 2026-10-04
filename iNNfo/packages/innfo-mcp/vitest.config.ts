@@ -18,6 +18,11 @@ export default defineConfig({
   },
   test: {
     clearMocks: true,
+    // Several suite tests resolve blueprints and touch the filesystem; on a
+    // loaded CI runner they cross vitest's default 5s timeout, surfacing as
+    // misleading assertion errors ("expected false to be true") rather than a
+    // timeout. 30s gives them headroom without hiding a genuinely hung test.
+    testTimeout: 30000,
     pool: 'forks',
     poolOptions: {
       forks: {
