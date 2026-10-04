@@ -389,6 +389,20 @@ function buildSteps(repoRoot, _options = {}) {
 
   // 5. Preflight Primitives Drift Guard (committed bundle matches innfo-core source).
   steps.push(node('preflight-primitives', 'Check Preflight Primitives Bundle Fresh', 'scripts/build-preflight-primitives.mjs', '--check'));
+  // 5b. nn-skills-lifecycle bundled skills-manager drift guard.
+  steps.push(node('skills-manager-bundle', 'Check Skills Manager Bundle Fresh', 'scripts/build-skills-manager-bundle.mjs', '--check'));
+  // 5c. Distributed skills are self-contained: referenced `node scripts/<file>` exists in the skill folder.
+  steps.push({
+    id: 'skill-script-refs',
+    desc: 'Distributed Skill Script References Guard',
+    run: inline(() => {
+      const { checkSkillScriptReferences } = require('./lib/skill-script-refs.js');
+      const res = checkSkillScriptReferences(repoRoot);
+      return res.ok
+        ? { ok: true, lines: [`${res.checked} script reference(s) resolve inside their skill folders.`] }
+        : { ok: false, lines: res.errors.map((e) => `  - ${e}`) };
+    }),
+  });
   // 7. Blueprint Catalog Drift Guard.
   steps.push(node('blueprint-catalog', 'Check Blueprint Catalog Fresh', 'scripts/blueprint-catalog.mjs', '--check'));
   // 7b. nn-trannsform core mirror drift guard (render of innfo-core trannsform primitives).
