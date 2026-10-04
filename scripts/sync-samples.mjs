@@ -4,8 +4,8 @@
  * scripts/sync-samples.mjs
  *
  * Synchronizes and validates canonical sample models from the Single Source of Truth
- * (_samples_nn/models/) into their respective Level-2 template distribution folders
- * (iNNfo/specs/bluepriNNts/<template>/samples/).
+ * (_samples_nn/kNNowledge/) into their respective Level-2 blueprint distribution folders
+ * (iNNfo/specs/bluepriNNts/<blueprint>/samples/).
  *
  * Usage:
  *   node scripts/sync-samples.mjs          # Syncs files from _samples_nn to templates
@@ -18,9 +18,7 @@ import { fileURLToPath } from 'node:url';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(SCRIPT_DIR, '..');
-const SAMPLES_SSOT_DIR = fs.existsSync(path.join(REPO_ROOT, '_samples_nn', 'kNNowledge'))
-  ? path.join(REPO_ROOT, '_samples_nn', 'kNNowledge')
-  : path.join(REPO_ROOT, '_samples_nn', 'models');
+const SAMPLES_SSOT_DIR = path.join(REPO_ROOT, '_samples_nn', 'kNNowledge');
 const BLUEPRINTS_ROOT = path.join(REPO_ROOT, 'iNNfo', 'specs', 'bluepriNNts');
 
 export const SAMPLE_MAPPINGS = [
