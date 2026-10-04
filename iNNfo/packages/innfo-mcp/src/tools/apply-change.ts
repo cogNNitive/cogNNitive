@@ -9,6 +9,7 @@ import {
   buildAgentModificationBlock,
   isModelCandidate,
   isExcludedPath,
+  isNNName,
   parseFrontmatter,
 } from '@cognnitive/innfo-core'
 import type { SpecDocument, ParsedKnowledge, BlueprintSchema } from '@cognnitive/innfo-core'
@@ -106,7 +107,7 @@ async function findAllWorkspaceModelFiles(
       results.push(...sub)
     } else if (
       entry.isFile() &&
-      entry.name.endsWith('_NN.md') &&
+      isNNName(entry.name) &&
       entry.name.toLowerCase() !== 'index.md'
     ) {
       // Only real models participate in the reference cascade — the same
