@@ -19,7 +19,7 @@ if ($latest) {
     $cached = if (Test-Path $VersionFile) { (Get-Content $VersionFile -Raw).Trim() } else { $null }
     if ($latest -ne $cached) {
         Write-Host "Downloading innfo-mcp $latest..."
-        $bundleUrl = "https://cognnitive.com/innfo/cdn/innfo-mcp-$latest.bundle.js"
+        $bundleUrl = "https://cognnitive.com/innfo/cdn/innfo-mcp-v$latest.bundle.js"
         Invoke-WebRequest -Uri $bundleUrl -OutFile $BundleFile
         Set-Content -Path $VersionFile -Value $latest
         Write-Host "Done."
