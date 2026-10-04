@@ -399,6 +399,8 @@ function buildSteps(repoRoot, _options = {}) {
   steps.push(node('video-parser-mirror', 'Check Video Parser Mirror Fresh', 'scripts/build-video-parser-mirror.mjs', '--check'));
   // 7c. Samples SSOT Drift Guard.
   steps.push(node('samples-parity', 'Check Samples Parity with _samples_nn', 'scripts/sync-samples.mjs', '--check'));
+  // 7c-bis. Samples version coherence: every sample tracks a current shipped blueprint_version.
+  steps.push(node('samples-version', 'Check Samples Version Coherence', 'scripts/check-samples-version.mjs'));
   // 7d. Version SSOT Drift Guard (SHIPPED_BLUEPRINT_VERSIONS, manifest/source.yaml vs specs and SKILL.md).
   steps.push(node('version-parity', 'Check Version Parity with Specs and Skills', 'scripts/sync-versions.mjs', '--check'));
 
