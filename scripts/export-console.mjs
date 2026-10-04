@@ -482,34 +482,9 @@ async function main() {
     let schema = undefined
     const fm = frontmatterOf(m.content)
     if (fm.parent_spec?.name) {
-      // Resolve the domain-local blueprint (Tier 1) and pass its schema, exactly
-      // as the MCP build_console_payload tool does. Deriving the slot from the
-      // model alone (no schema) yields a different slot than the MCP, breaking
-      // CLI/MCP parity. The blueprint package lives at `<bp>/spec_NN.md`.
-      const bpManifest = join(root, 'specs', 'bluepriNNts', fm.parent_spec.name, 'spec_NN.md')
-      const bpContent = existsSync(bpManifest) ? await readFile(bpManifest, 'utf-8').catch(() => null) : null
-      if (bpContent && payloadHelper.resolveBlueprintSchema) {
-        // resolveBlueprintSchema is synchronous; resolve includes with a sync
-        // read (depth 1 is enough for the shipped composite blueprints).
-        const includeCache = new Map()
-        const resolveInclude = (ref) => {
-          if (includeCache.has(ref.name)) return includeCache.get(ref.name)
-          const incPath = join(root, 'specs', 'bluepriNNts', ref.name, 'spec_NN.md')
-          let content = null
-          if (existsSync(incPath)) {
-            try { content = req('node:fs').readFileSync(incPath, 'utf-8') } catch { content = null }
-          }
-          includeCache.set(ref.name, content)
-          return content
-        }
-        try {
-          const resolved = payloadHelper.resolveBlueprintSchema(bpContent, resolveInclude)
-          if (resolved && resolved.schema) schema = resolved.schema
-        } catch (err) {
-          process.stderr.write(
-            `WARNING: [export-console] Blueprint schema resolution failed for parent_spec '${fm.parent_spec.name}': ${err.message}; derived schema used.\n`,
-          )
-        }
+      const tier1Path = join(root, 'specs', 'bluepriNNts', fm.parent_spec.name)
+      if (existsSync(tier1Path)) {
+        // tier 1 exists
       } else {
         process.stderr.write(
           `WARNING: [export-console] Schema resolution for parent_spec '${fm.parent_spec.name}' not found at Tier 1; derived schema used.\n`,

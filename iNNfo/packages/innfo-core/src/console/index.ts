@@ -22,8 +22,3 @@ export {
 // Write-once producer primitives for scripts that load only the console payload mirror.
 export { latestOfFamily } from '../writeOnce/plan.js'
 export { writeOnce } from '../writeOnce/fs.js'
-
-// Blueprint schema resolution for scripts that load only the console payload mirror
-// (e.g. scripts/export-console.mjs), so the CLI and the MCP derive the SAME schema slot.
-export { resolveBlueprintSchema } from '../schema/index.js'
-export type { ResolvedBlueprintSchema } from '../schema/index.js'
