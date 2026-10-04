@@ -7,10 +7,12 @@
  */
 
 import React from 'react';
-import { AbsoluteFill, Audio, Img, Sequence, useVideoConfig } from 'remotion';
+import { AbsoluteFill, Audio, Img, OffthreadVideo, Sequence, staticFile, useVideoConfig } from 'remotion';
 import { LowerThird } from './overlays/LowerThird';
 import { KineticTitle } from './overlays/KineticTitle';
 import { ConceptCallout } from './overlays/ConceptCallout';
+import { AvatarFrame } from './AvatarFrame';
+import { pickLayerPrimitive, layerSource } from './layer-primitive.mjs';
 
 type Overlay = {
   id: string;
@@ -36,6 +38,20 @@ type SceneTrack = {
   props?: Record<string, unknown>;
 };
 
+type Layer = Record<string, unknown>;
+
+/**
+ * Drawable layers in paint order: lower `layer_level` first, so a level-0 video
+ * or image sits behind a level-50 avatar/title. Layers without an asset source
+ * (e.g. pure `text`) are not drawn here — overlays handle text.
+ */
+function drawableLayers(props: Record<string, unknown>): Layer[] {
+  const layers = (props.layers as Layer[]) || [];
+  return layers
+    .filter((l) => layerSource(l).length > 0)
+    .sort((a, b) => Number(a.layer_level ?? 0) - Number(b.layer_level ?? 0));
+}
+
 export const Scene: React.FC<{
   scene: SceneTrack;
   audio?: AudioBinding[];
@@ -44,17 +60,17 @@ export const Scene: React.FC<{
   const { fps } = useVideoConfig();
   const props = scene.props || {};
 
-  const backgroundImage = resolveBackgroundImage(props);
+  const layers = drawableLayers(props);
   const title = (props.title as string) || '';
 
   return (
     <Sequence from={scene.fromFrame} durationInFrames={scene.durationInFrames}>
       <AbsoluteFill style={{ backgroundColor: '#0b0b0f' }}>
-        {backgroundImage ? (
-          <AbsoluteFill>
-            <Img src={backgroundImage} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          </AbsoluteFill>
-        ) : null}
+        {layers.map((layer, index) => (
+          <React.Fragment key={`${scene.id}-layer-${index}`}>
+            {renderLayer(layer)}
+          </React.Fragment>
+        ))}
 
         {scene.sceneType === 'chapter_title' && title ? (
           <AbsoluteFill
@@ -75,7 +91,7 @@ export const Scene: React.FC<{
 
         {audio.map((track) => (
           <Sequence key={track.id} from={track.fromFrame - scene.fromFrame} durationInFrames={track.durationInFrames}>
-            <Audio src={track.assetPath} volume={track.volume ?? 1} />
+            <Audio src={staticFile(track.assetPath)} volume={track.volume ?? 1} />
           </Sequence>
         ))}
 
@@ -87,13 +103,29 @@ export const Scene: React.FC<{
   );
 };
 
-function resolveBackgroundImage(props: Record<string, unknown>): string | null {
-  const layers = (props.layers as Record<string, unknown>[]) || [];
-  for (const layer of layers) {
-    const src = (layer.layer_asset_source as string) || (layer.src as string);
-    if (src) return src;
+/**
+ * Draws one media layer with the Remotion primitive its `layer_type` maps to.
+ * The manifest already holds a staged, bundle-relative name, so `staticFile()`
+ * is the only path work here — the component stays presentational.
+ */
+function renderLayer(layer: Layer): React.ReactNode {
+  const src = staticFile(layerSource(layer));
+  switch (pickLayerPrimitive(layer.layer_type)) {
+    case 'video':
+      return (
+        <AbsoluteFill>
+          <OffthreadVideo src={src} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        </AbsoluteFill>
+      );
+    case 'avatar':
+      return <AvatarFrame src={src} />;
+    default:
+      return (
+        <AbsoluteFill>
+          <Img src={src} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        </AbsoluteFill>
+      );
   }
-  return null;
 }
 
 function renderOverlay(overlay: Overlay, localFrom: number, fps: number): React.ReactNode {

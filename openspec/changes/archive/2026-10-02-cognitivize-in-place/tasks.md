@@ -136,12 +136,12 @@ Spec links: `nn-naming-contract` (invariant, exceptions, carve-out, procedure na
 
 `size:exception` justification: mechanical file renames and `procedure_model::` rewrites in git count as large deleted+added diffs; reviewed as rename-only commits separate from logic.
 
-- [ ] 6.1 RED: `checkNameInvariant` table (stem equals bp or ends `_bp`, case-insensitive, structural exemptions). GREEN: `naming/contract.ts`; validator rule `NN_NAME_INVARIANT` as warning (`validator/content.ts`).
-- [ ] 6.2 RED: `scripts/lib/nn-name-invariant-guard.js` is an error in the repo, proven red on a seeded violation; carve-out reads `manifest/source.yaml` `frozen_blueprints` (:128-140) plus fixed globs naming `iNNfo/specs/bluepriNNts/workspace/procedures/**` explicitly. GREEN: guard + verify step.
-- [ ] 6.3 RED: version read from frontmatter, not filename (`helpers.ts`, editor `utils/version.ts`, `useBlueprintVersionNotice.ts`). GREEN: those files.
-- [ ] 6.4 Extend `legacy/layout/plan.ts` (renames, citation path map, `procedure_model::` rewrite); RED test on a legacy fixture, then GREEN.
-- [ ] 6.5 Rename the 15 non-frozen procedure files and rewrite `procedure_model::`; the 9 frozen `workspace/procedures/` keep names. Rename kNNowledge in `_samples_nn/`, `workspace_NN/`, `simulation/fixtures/` (drop `_V_`) using the migration tool. Bump `template_version`; `npm run sync:versions`, registry, `catalog.json`.
-- [ ] 6.6 Generated + gate: all mirrors, all test commands (empty-home), `verify.js`, `check:integrity`, ledger guard, typecheck(s), lint.
+- [x] 6.1 RED: `checkNameInvariant` table (stem equals bp or ends `_bp`, case-insensitive, structural exemptions). GREEN: `naming/contract.ts`; validator rule `NN_NAME_INVARIANT` as warning (`validator/content.ts`).
+- [x] 6.2 RED: `scripts/lib/nn-name-invariant-guard.js` is an error in the repo, proven red on a seeded violation; carve-out reads `manifest/source.yaml` `frozen_blueprints` (:128-140) plus fixed globs naming `iNNfo/specs/bluepriNNts/workspace/procedures/**` explicitly. GREEN: guard + verify step.
+- [x] 6.3 RED: version read from frontmatter, not filename (`helpers.ts`, editor `utils/version.ts`, `useBlueprintVersionNotice.ts`). GREEN: those files.
+- [x] 6.4 Extend `legacy/layout/plan.ts` (renames, citation path map, `procedure_model::` rewrite); RED test on a legacy fixture, then GREEN.
+- [x] 6.5 Rename the 15 non-frozen procedure files and rewrite `procedure_model::`; the 9 frozen `workspace/procedures/` keep names. Rename kNNowledge in `_samples_nn/`, `workspace_NN/`, `simulation/fixtures/` (drop `_V_`) using the migration tool. Bump `template_version`; `npm run sync:versions`, registry, `catalog.json`.
+- [x] 6.6 Generated + gate: all mirrors, all test commands (empty-home), `verify.js`, `check:integrity`, ledger guard, typecheck(s), lint.
 
 Commits: (a) contract rule + guard + version-from-frontmatter; (b) planner extension; (c) rename-only commit; (d) generated.
 
@@ -151,18 +151,18 @@ Spec links: `canonical-vocabulary`, all modified capabilities (living-spec sync)
 
 `size:exception` justification: docs/spec bulk edits (about 45 pages, 12 living specs) with no code; reviewable by search-and-replace diff.
 
-- [ ] 7.1 Update `iNNfo/specs/vocabulary.json` prose and regenerate `docs/innfo/documentation/vocabulary.md`. Test: `node scripts/verify.js`.
-- [ ] 7.2 Rewrite the ~45 docs pages (layout, `artifacts/`, sidecars, write-once, drift gate); skip frozen use-cases/samples. Test: `verify.js` docs/link checks.
-- [ ] 7.3 Sync delta specs into `openspec/specs/` (about 12 living specs); no bare `cogNNitive/iNNfo` slug (split code spans). Test: `npm run check:spec-urls`.
-- [ ] 7.4 Regenerate samples, `innfo-mcp.bundle.js` source inputs, console bundle; release notes list procedure and layout renames (Resolved Q3).
-- [ ] 7.5 Final success-criteria sweep:
+- [x] 7.1 Update `iNNfo/specs/vocabulary.json` prose and regenerate `docs/innfo/documentation/vocabulary.md`. Test: `node scripts/verify.js`.
+- [x] 7.2 Rewrite the ~45 docs pages (layout, `artifacts/`, sidecars, write-once, drift gate); skip frozen use-cases/samples. Test: `verify.js` docs/link checks.
+- [x] 7.3 Sync delta specs into `openspec/specs/` (about 12 living specs); no bare `cogNNitive/iNNfo` slug (split code spans). Test: `npm run check:spec-urls`.
+- [x] 7.4 Regenerate samples, `innfo-mcp.bundle.js` source inputs, console bundle; release notes list procedure and layout renames (Resolved Q3).
+- [x] 7.5 Final success-criteria sweep (closed 2026-10-04; residual of the first bullet below is carried to `openspec/backlog.md`):
   - `rg -n "sources/(nn|original|export|archive)/" iNNfo/packages iNNfo/apps skills scripts -g '!*.generated.*' -g '!**/fixtures/**'` returns only marked lines
   - `_NN.md` regex only in `src/naming/`
   - one timestamp helper
   - zero sidecars in `list_knowledge`, `## NN Models`, console targets, editor detection
   - record managed-section edit fails all three gate sites; journal edit passes
   - ledger markers map 1:1
-- [ ] 7.6 Final gate: `node scripts/verify.js`, `npm run check:integrity`, `node scripts/lib/legacy-ledger-guard.js`, `npm run typecheck`, `npm run typecheck:scripts`, `npm run lint`, all four workspace test commands plus preflight and upgrade (empty `USERPROFILE`/`HOME` under `temp/`).
+- [x] 7.6 Final gate: `node scripts/verify.js`, `npm run check:integrity`, `node scripts/lib/legacy-ledger-guard.js`, `npm run typecheck`, `npm run typecheck:scripts`, `npm run lint`, all four workspace test commands plus preflight and upgrade (empty `USERPROFILE`/`HOME` under `temp/`).
 
 Release coupling (out of scope): S0 (`sidecar`), S3b (cogNNitive), S4 (procedures), S6 (renames) change `templates-v*` bytes, and the MCP tool needs an innfo-mcp release. Merging S0-S7 to `main` without a new `templates-v*` tag + repin turns `verify --release` red. Keep the whole chain on `dev`; batch to `main` only with the release (tags, manifest repin, CDN bundle, skills-v*, innfo-mcp version are a separate change).
 

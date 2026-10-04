@@ -16,6 +16,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { RemotionSceneCompiler } from './remotion-scene-compiler.mjs';
 import { CacheManager } from './cache-manager.mjs';
@@ -49,6 +50,81 @@ export function resolveRemotionEntryPoint(scriptsDir = SCRIPTS_DIR) {
 }
 
 /**
+ * Resolves a media source against the script directory and stages it into a
+ * Remotion-served public directory, returning the bundle-relative name. The name
+ * is `<basename>_<sha256-prefix><ext>` so two sources that share a basename (an
+ * in-dir `assets/x.mp4` and an out-of-dir `../shared/x.mp4`) never collide, and
+ * the same source referenced twice stages once.
+ * @param {string} src
+ * @param {string} scriptDir
+ * @param {string} publicDir
+ * @returns {{ name: string, staged: boolean } | null} null when the source is empty or missing.
+ */
+export function stageAsset(src, scriptDir, publicDir) {
+  if (!src || typeof src !== 'string') return null;
+  const abs = path.isAbsolute(src) ? src : path.resolve(scriptDir, src);
+  if (!fs.existsSync(abs)) return null;
+
+  const buf = fs.readFileSync(abs);
+  const ext = path.extname(abs) || '';
+  const base = path.basename(abs, ext).replace(/[^a-zA-Z0-9._-]+/g, '_') || 'asset';
+  const hash = crypto.createHash('sha256').update(buf).digest('hex').slice(0, 12);
+  const name = `${base}_${hash}${ext}`;
+  const dest = path.join(publicDir, name);
+
+  let staged = false;
+  if (!fs.existsSync(dest) || !fs.readFileSync(dest).equals(buf)) {
+    fs.mkdirSync(publicDir, { recursive: true });
+    fs.writeFileSync(dest, buf);
+    staged = true;
+  }
+  return { name, staged };
+}
+
+/**
+ * Rewrites every media reference in a compiled manifest to a staged,
+ * bundle-relative name, copying the resolved source into `publicDir`.
+ *
+ * Sources are resolved against `scriptDir` — NOT the current working directory —
+ * so both in-dir (`assets/…`) and out-of-dir (`../shared/…`) paths resolve.
+ * A referenced source that cannot be resolved is collected into `missing`; the
+ * caller decides how to fail. Pure filesystem work: imports no Remotion module,
+ * so it is the test seam.
+ *
+ * @param {object} manifest
+ * @param {{ scriptDir: string, publicDir: string }} opts
+ * @returns {{ staged: number, missing: string[] }}
+ */
+export function resolveMediaLayers(manifest, opts) {
+  const { scriptDir, publicDir } = opts;
+  const missing = [];
+  let staged = 0;
+
+  const stageField = (obj, field) => {
+    const src = obj?.[field];
+    if (!src || typeof src !== 'string') return;
+    const res = stageAsset(src, scriptDir, publicDir);
+    if (res) {
+      obj[field] = res.name;
+      if (res.staged) staged++;
+    } else {
+      missing.push(src);
+    }
+  };
+
+  const scenes = manifest?.tracks?.scenes || [];
+  for (const scene of scenes) {
+    const layers = scene?.props?.layers;
+    if (!Array.isArray(layers)) continue;
+    for (const layer of layers) stageField(layer, 'layer_asset_source');
+  }
+
+  for (const track of manifest?.tracks?.audio || []) stageField(track, 'assetPath');
+
+  return { staged, missing };
+}
+
+/**
  * Attempts to render video using Remotion programmatic renderer.
  * Never throws; returns { rendered: true } or { rendered: false, reason: string }.
  * @param {{ manifest: object, outputPath: string, concurrency?: number }} input
@@ -73,9 +149,18 @@ export async function tryRemotionRender(input, deps = {}) {
       return { rendered: false, reason: `entry-point-missing: ${entryPoint}` };
     }
 
+    // Serve the staged media so `staticFile()` in the composition resolves both
+    // in-dir and out-of-dir assets. Read from the manifest so a render from a
+    // persisted manifest (no in-process compile) still finds the media.
+    const publicDir = manifest?.metadata?.publicDir;
+    if (typeof publicDir === 'string' && !fs.existsSync(publicDir)) {
+      return { rendered: false, reason: `public-dir-missing: ${publicDir}` };
+    }
+
     const serveUrl = await remotionBundler.bundle({
       entryPoint,
       webpackOverride: (config) => config,
+      ...(typeof publicDir === 'string' ? { publicDir } : {}),
     });
 
     // The official contract: resolve the composition from the bundle, then render it.
@@ -226,11 +311,18 @@ export async function compileVideo(options) {
     scriptSource: scriptPath,
   });
 
-  // Stage synthesized media and audio locally next to script for developer visibility
+  // Stage every media reference (layers + audio) into a Remotion-served public
+  // dir next to the script, and rewrite the manifest to bundle-relative names.
+  // Sources resolve against the script dir, not the cwd, so in-dir (`assets/…`)
+  // and out-of-dir (`../shared/…`) paths both work. A missing asset is a loud
+  // failure — never a silently dropped layer.
   const scriptDir = path.dirname(scriptPath);
-  const localLayersDir = path.join(scriptDir, 'layers');
+  const publicDir = path.join(scriptDir, 'public');
+  const staging = resolveMediaLayers(manifest, { scriptDir, publicDir });
+  manifest.metadata.publicDir = publicDir;
+
+  // Keep the human-visible local audio staging dir next to the script (developer aid).
   const localAudioDir = path.join(scriptDir, 'audio');
-  fs.mkdirSync(localLayersDir, { recursive: true });
   fs.mkdirSync(localAudioDir, { recursive: true });
 
   for (const [scId, audioInfo] of Object.entries(audioAssets)) {
@@ -240,18 +332,11 @@ export async function compileVideo(options) {
     }
   }
 
-  for (const sc of parsed.scenes) {
-    if (Array.isArray(sc.layers)) {
-      for (const layer of sc.layers) {
-        const src = layer.properties?.layer_asset_source;
-        if (src && fs.existsSync(src)) {
-          const ext = path.extname(src) || '.png';
-          const layerSlug = (layer.name || 'layer').toLowerCase().replace(/[^a-z0-9]+/g, '_');
-          const destLayer = path.join(localLayersDir, `${sc.id}_${layerSlug}${ext}`);
-          fs.copyFileSync(src, destLayer);
-        }
-      }
-    }
+  if (staging.missing.length > 0) {
+    throw new VideoRenderError(
+      `Cannot render: ${staging.missing.length} referenced asset(s) not found ` +
+        `(resolved against ${scriptDir}): ${staging.missing.join(', ')}`,
+    );
   }
 
   if (options.outputPath) {
