@@ -668,7 +668,11 @@ export async function discoverTransitiveAssets(
         const fm = parseFrontmatter(content)
         if (fm) {
           queue.push({
-            docName: basename(pkg.specFilePath, '.md') || opts.blueprint_name || pkg.name,
+            // The doc name IS the requested blueprint name, not the basename of
+            // its file: a canonical package ships `spec_NN.md`, whose basename
+            // would leak as `spec_NN` into `source_template`. `blueprint_name`
+            // is what the caller asked for; fall back to the resolved name.
+            docName: opts.blueprint_name || pkg.name || basename(pkg.specFilePath, '.md'),
             fm,
             depth: 0,
             filePath: pkg.specFilePath,
