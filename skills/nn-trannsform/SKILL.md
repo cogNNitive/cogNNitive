@@ -368,7 +368,7 @@ When the user pastes a URL in chat and wants it ingested:
 
 #### 2d. Lineage Record Filesystem Sync
 
-The cogNNitive **lineage record** (a `*_cogNNitive_NN.md` document; a new one is created as `<Project>_V_0-2-0_cogNNitive_NN.md`, and an existing one is found by its role, never by its file name or version) keeps three of its four sections in sync with the workspace filesystem on every build/refresh (bootstrap, `--scan`, `--cognitivize`, `--import-url`, or the standalone `--lineage` flag). The projection walks the whole domaiNN (scratch such as `staging/` is skipped) and derives everything from names and sidecars, not from folders:
+The cogNNitive **lineage record** (a `*_cogNNitive_NN.md` document; a new one is created as `<Project>_cogNNitive_NN.md`, and an existing one is found by its role, never by its file name or version) keeps three of its four sections in sync with the workspace filesystem on every build/refresh (bootstrap, `--scan`, `--cognitivize`, `--import-url`, or the standalone `--lineage` flag). The projection walks the whole domaiNN (scratch such as `staging/` is skipped) and derives everything from names and sidecars, not from folders:
 
 - **`# NN Sources`** — one entry per cognitivized raw file (the subject of each sidecar), carrying `raw_filename`, `raw_hash`, `normalized_content` (the sidecar), `version::` (its rank in its UTC-suffixed family, `V1`, `V2`...), `superseded_by::` (the next family member, when there is one) and `derived_from::` (the upstream the file declares via `sources`).
 - **`# NN ModelRecords`** — one entry per knowledge document (`kNNowledge/*_NN.md`), with `model_ref`, `knowledge_version`, `model_template`, and `derived_from::` projected from that model's `sources::` Citations.

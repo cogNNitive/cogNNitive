@@ -86,7 +86,7 @@ Luis,28,Technician
 - ✅ OpenCode executes `node scripts/index.js --scan --src test-docs`
 - ✅ Summary appears: "Discovered: X, Processed: Y, Skipped: Z"
 - ✅ `test-docs/index.md` (semantic `# NN index`) is created
-- ✅ `test-docs/<name>_V_0-2-0_cogNNitive_NN.md` (provenance model) is created with the Sources populated
+- ✅ `test-docs/<name>_cogNNitive_NN.md` (provenance model) is created with the Sources populated
 - ✅ `test-docs/sources/import/report.txt_sidecar_NN.md` is created next to `report.txt` with the normalized text as its body and flat frontmatter (`source_file`, `sha256`, `size_bytes`, `source_format`, `normalized_at`, `normalized_by`)
 - ✅ `test-docs/sources/import/data.csv_sidecar_NN.md` is created next to `data.csv` with the same frontmatter and no body (the CSV itself is the citation target)
 - ✅ If the source files live in subfolders under `sources/import/`, each sidecar sits in the same subfolder as its raw file; no mirror tree exists and no raw file is moved or changed

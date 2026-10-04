@@ -717,7 +717,7 @@ This is the headless / CLI-equivalent path for actioNN — there is no separate 
 ## 15. External Watch Roots & Pre-Authoring Scanner Integration
 
 When authoring or auditing models that rely on external data drops (e.g. client spreadsheets, RFPs, audio transcripts):
-1. **Detect Declarative Watch Roots**: Check if the workspace Lineage record (`domaiNN_NN.md` or `<Project>_V_0-2-0_cogNNitive_NN.md`) defines a `## NN External Watch Roots:` section.
+1. **Detect Declarative Watch Roots**: Check if the workspace Lineage record (`domaiNN_NN.md` or `<Project>_cogNNitive_NN.md`) defines a `## NN External Watch Roots:` section.
 2. **Pre-Authoring Scan Check**: Before updating or creating a model citing dynamic sources, offer to scan external roots:
    > *"This workspace defines external watch roots. Would you like to scan for new or evolved primary sources before authoring?"*
 3. **Execution**: Invoke `node skills/nn-trannsform/scripts/index.js --scan-external --check-impact` to inspect external changes, import timestamped snapshots (`YYYYMMDD-HHmmss`), and check source family evolutions.
