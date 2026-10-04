@@ -696,6 +696,29 @@ need a maintainer decision or a template bump. None blocks a release.
   SKILL.md says no longer exists; simulation scenarios 01, 05, 07 and `FINDINGS.md` still
   assume `sources/nn`.
 
+## 29. `feature/lineage-recursive-upstream` — recursive upstream chaining in the preview Lineage Timeline
+
+**Type:** functional · **Size:** medium · **Added:** 2026-10-04
+
+**Why:** the Lineage view's new **Timeline** style (`2026-10-04-lineage-modal-simplify`) renders
+only one upstream hop — the focal file's own `source_file` — plus its downstream citations. The
+real provenance story the maintainer asked for is recursive: *this came from that, which came from
+that, which came from…*. That chaining is explicitly deferred from the simplify change
+(`openspec/changes/2026-10-04-lineage-modal-simplify/proposal.md`, "Deferred (iteration 2)").
+
+**Behaviour (as requested):** the Timeline walks `source_file` backwards through every upstream
+file and appends each hop as an upstream step, so the chain reads top-to-bottom from the oldest
+ancestor to the focal file and its citing elements. The graph style mirrors the same depth.
+
+**Approach (open):** `iNNfo/apps/innfo-editor/src/components/editor/lineageChain.ts`
+(`buildLineageChain`) is the seam — iteration 2 extends its input/loop with further upstream hops;
+the render contract does not change. Needs cycle protection (A→B→A) and a bounded depth. Reading
+each upstream file's frontmatter requires the workspace handle (async), so the chain builder likely
+becomes async or takes a pre-resolved upstream path list. Consider whether upstream files' own
+`sources`/citations should also surface.
+
+**Suggested trigger:** `/sdd-explore lineage-recursive-upstream`.
+
 ## Intra-document element identity: key on the slug, not the display name
 
 **Status:** explicit NON-GOAL of `2026-09-13-document-fidelity-and-provenance-integrity`.
