@@ -207,15 +207,17 @@ git diff --name-only origin/main...HEAD
 ```
 
 If any changed path matches `skills/**` or
-`iNNfo/specs/templates/**/spec_NN.md`, the SAME diff MUST also touch
-`manifest/source.yaml` — else ❌, naming which category (skills or templates)
-triggered it and listing the matched paths.
+`iNNfo/specs/{bluepriNNts,templates}/**/spec_NN.md` (the nested sample specs are
+excluded — only the top-level `spec_NN.md` of a blueprint counts), the SAME diff
+MUST also touch `manifest/source.yaml` — else ❌, naming which category (skills
+or blueprints) triggered it and listing the matched paths.
 
-This now runs automatically inside `node scripts/check-integrity.js`, even in
+This runs automatically inside `node scripts/check-integrity.js`, even in
 dev/default mode (not just `--pre-push`/`--release`) — see
-`scripts/lib/tag-pin-freshness.js`. Cutting the actual tag is still the
-maintainer's job; this check only catches the local half (the unpinned
-manifest), not the missing tag itself.
+`scripts/lib/tag-pin-freshness.js` (unit-tested in
+`scripts/lib/tag-pin-freshness.test.js`). It compares `origin/main...HEAD`.
+Cutting the actual tag is still the maintainer's job; this check only catches the
+local half (the unpinned manifest), not the missing tag itself.
 
 ### Group 1d — Release workflow auth & trigger sanity — blocking on release-shaped changes
 
