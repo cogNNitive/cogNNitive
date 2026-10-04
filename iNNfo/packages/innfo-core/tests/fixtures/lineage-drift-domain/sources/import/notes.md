@@ -1,0 +1,4 @@
+# Notes
+
+## Pricing
+Tiered pricing.

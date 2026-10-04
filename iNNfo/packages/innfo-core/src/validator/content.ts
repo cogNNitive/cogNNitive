@@ -3,6 +3,7 @@ import { parseKnowledge, stripFrontmatter } from '../parser/index.js'
 import { VERSION_RE, WIKILINK_RE, SECTION_NN_RE, RESERVED_CONCEPT_NAMES } from './constants.js'
 import { CONCEPT_DEFINITION } from '../schema/index.js'
 import { QUALIFIED_REF_RE } from './workspaceReferences.js'
+import { parseName, checkNameInvariant, blueprintNameOf } from '../naming/contract.js'
 
 /**
  * Validates iNNfo document content (frontmatter + body syntax + conventions).
@@ -418,7 +419,8 @@ export function validateFormatContent(
   // ── Conventions ────────────────────────────────────────────────
 
   // 11. File naming
-  const namingOk = fileName.endsWith('_NN.md')
+  const isNnFile = parseName(fileName).kind === 'nn'
+  const namingOk = isNnFile
   checks.push({
     id: 'conv-file-naming',
     label: 'File naming convention',
@@ -429,8 +431,24 @@ export function validateFormatContent(
     message: namingOk ? undefined : `"${fileName}" does not end with _NN.md`,
   })
 
+  // 11b. NN_NAME_INVARIANT: stem equals or ends with the declared blueprint (a warning in user domaiNNs).
+  const declaredParent = fm.parent_spec && typeof fm.parent_spec === 'object' ? fm.parent_spec.name : fm.parent_spec
+  const declaredBp = typeof declaredParent === 'string' ? blueprintNameOf(declaredParent) : undefined
+  const invariant = isNnFile ? checkNameInvariant(fileName, declaredBp) : null
+  if (invariant) {
+    checks.push({
+      id: 'NN_NAME_INVARIANT',
+      label: 'NN name invariant',
+      description: 'The stem of a _NN.md file must equal or end with its blueprint name and carry no _V_ version',
+      category: 'convention',
+      severity: 'warning',
+      passed: false,
+      message: `"${fileName}" violates the NN name invariant (blueprint: ${declaredBp ?? 'unknown'}); expected "${invariant.expected}"`,
+    })
+  }
+
   // 12. Type field for distributed _NN.md files (§5.1.2) - applies to N2 templates / OKF packages, excluded for canonical N3 models
-  if (fileName.endsWith('_NN.md') && fm.level !== 3) {
+  if (isNnFile && fm.level !== 3) {
     const typeOk = typeof fm.type === 'string' && fm.type.length > 0
     checks.push({
       id: 'conv-type-field',

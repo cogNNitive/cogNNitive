@@ -1,9 +1,9 @@
 ---
 level: 3
 parent_spec:
-  name: "business-model_V_0-2-1"
+  name: "business-model_V_0-3-0"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/business-model/spec_NN.md"
-knowledge_version: "V_0-2-1"
+knowledge_version: "V_0-3-0"
 title: "Ghostbusters Inc. Core Business Model"
 ---
 
@@ -17,7 +17,7 @@ Ghostbusters Inc. is the premier professional paranormal investigation and entit
 # NN Stakeholders
 
 ## NN Stakeholders: Commercial Property Managers
-sources:: [sources/nn/nyc-paranormal-activity-report-1984.md@## Market Demand]
+sources:: [sources/import/nyc-paranormal-activity-report-1984.md@## Market Demand]
 tags:: [b2b, primary-revenue, high-rise]
 Corporate real estate and property management companies operating commercial towers, hotels, and historic structures in Manhattan.
 

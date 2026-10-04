@@ -5,15 +5,17 @@
  * `innfo-editor` (which re-exports this module). Previously duplicated in
  * `apps/innfo-editor/src/utils/sourceRef.ts`.
  *
- * Canonical source-reference form is a workspace-relative path under
- * `sources/nn/`, optionally followed by a heading-slug anchor:
- * `sources/nn/<path>.md#<heading-slug>`. Unqualified paths (`<path>.md#<slug>`)
- * resolve under `sources/nn/`. A `models/<path>.md#<slug>` form is accepted for
- * cross-domain model references. Line-range anchors (`#L12-L45`) and the legacy
- * `src-NNN` wrapper are rejected.
+ * A source reference is a domaiNN-relative path to a `.md`, `.csv`, or `.json`
+ * file, optionally followed by a heading-slug anchor (`<path>.md#<heading-slug>`).
+ * The path is taken as written: no folder is implied and no folder name
+ * has a special meaning.
+ * Line-range anchors (`#L12-L45`) and the legacy `src-NNN` wrapper are rejected.
  */
 
 import { nfc, stripCombiningMarks } from './parser/slug.js'
+import { assertNever } from './assertNever.js'
+import { isJsonPointer } from './jsonPointer.js'
+import { roleOf } from './naming/index.js'
 
 export interface HeaderUnit {
   /** Markdown heading unit: level is structural rank, slug is the canonical form. */
@@ -30,16 +32,22 @@ export interface RowUnit {
   id: string
 }
 
-export type KnowledgeUnit = HeaderUnit | RowUnit
+export interface PointerUnit {
+  /** JSON Pointer (RFC 6901) unit for `.json` targets, in raw (escaped) form. The empty pointer is the file-level citation. */
+  kind: 'pointer'
+  pointer: string
+}
+
+export type KnowledgeUnit = HeaderUnit | RowUnit | PointerUnit
 
 export interface SourceRef {
-  /** Workspace-relative path, always normalised to start with `sources/nn/`, `sources/export/`, or `kNNowledge/`. */
+  /** Workspace-relative path, as written. */
   filePath: string
   /** Last path segment. */
   fileName: string
   /** Heading slug after `#`, if present. */
   slug?: string
-  /** `model` for a `kNNowledge/…` reference, `source` for a `sources/…` one. */
+  /** `model` when the target's role is `knowledge`, otherwise `source`. */
   kind: 'source' | 'model'
   /** Original string as authored. */
   raw: string
@@ -84,62 +92,17 @@ export function parseSourceRef(input: string): SourceRef | null {
   // Reject src-NNN wrapper
   if (/^src-\d+/i.test(clean)) return null
 
-  if (/^models\//i.test(clean)) return null
-
-  const explicit = clean.match(new RegExp(`^(sources/nn/[^#]+?)(?:#(${SLUG}))?$`))
-  if (explicit) {
-    const filePath = explicit[1].trim()
-    return {
-      filePath,
-      fileName: basename(filePath),
-      slug: explicit[2] || undefined,
-      kind: 'source',
-      raw: clean,
-    }
+  const legacy = clean.match(new RegExp(`^([^#:]+?)(?:#(${SLUG}))?$`))
+  if (!legacy) return null
+  const resolved = resolveUnitPath(legacy[1])
+  if (!resolved) return null
+  return {
+    filePath: resolved.filePath,
+    fileName: basename(resolved.filePath),
+    slug: legacy[2] || undefined,
+    kind: resolved.kind,
+    raw: clean,
   }
-
-  const exportSource = clean.match(new RegExp(`^(sources/export/[^#]+?)(?:#(${SLUG}))?$`))
-  if (exportSource) {
-    const filePath = exportSource[1].trim()
-    return {
-      filePath,
-      fileName: basename(filePath),
-      slug: exportSource[2] || undefined,
-      kind: 'source',
-      raw: clean,
-    }
-  }
-
-  const model = clean.match(new RegExp(`^(kNNowledge/[^#]+?\\.md)(?:#(${SLUG}))?$`))
-  if (model) {
-    const filePath = model[1].trim()
-    return {
-      filePath,
-      fileName: basename(filePath),
-      slug: model[2] || undefined,
-      kind: 'model',
-      raw: clean,
-    }
-  }
-
-  const unqualified = clean.match(
-    new RegExp(`^((?!https?://)(?!\\.\\.?/)[^#:]+?\\.md)(?:#(${SLUG}))?$`),
-  )
-  if (unqualified) {
-    const rawPath = unqualified[1].trim()
-    if (rawPath.startsWith('sources/original/')) return null
-    if (rawPath.startsWith('models/')) return null
-    const filePath = `sources/nn/${rawPath}`
-    return {
-      filePath,
-      fileName: basename(rawPath),
-      slug: unqualified[2] || undefined,
-      kind: 'source',
-      raw: clean,
-    }
-  }
-
-  return null
 }
 
 /**
@@ -482,21 +445,12 @@ export function resolveUnitPath(
   const segments = trimmed.split(/[/\\]/)
   if (segments.some((s) => s === '..')) return null
   const forward = segments.join('/')
-  if (forward.startsWith('sources/original/')) return null
   const isMd = /\.md$/i.test(forward)
   const isCsv = /\.csv$/i.test(forward)
-  if (!isMd && !isCsv) return null
-  if (forward.startsWith('sources/nn/')) return { filePath: forward, kind: 'source' }
-  if (forward.startsWith('sources/export/')) return { filePath: forward, kind: 'source' }
-  if (forward.startsWith('kNNowledge/')) {
-    if (!isMd) return null
-    return { filePath: forward, kind: 'model' }
-  }
-  if (/^models\//i.test(forward)) {
-    return null
-  }
+  const isJson = /\.json$/i.test(forward)
+  if (!isMd && !isCsv && !isJson) return null
   if (/^[a-zA-Z]:[/\\]/.test(trimmed) || trimmed.startsWith('/')) return null
-  return { filePath: `sources/nn/${forward}`, kind: 'source' }
+  return { filePath: forward, kind: roleOf({ path: forward }) === 'knowledge' ? 'model' : 'source' }
 }
 
 function decodeSegment(segment: string): string | null {
@@ -509,6 +463,29 @@ function decodeSegment(segment: string): string | null {
 }
 
 const HEADER_UNIT = /^(#{1,6})\s*(.+?)\s*$/
+
+/**
+ * JSON Pointer citation: everything after `@` is one RFC 6901 pointer (no
+ * subunits). A literal `&` is written `%26` and decoded here; an unencoded `&`
+ * is malformed.
+ */
+function parsePointerRef(
+  resolved: { filePath: string; kind: 'source' | 'model' },
+  rawPointer: string,
+  raw: string,
+): SourceRef | null {
+  if (rawPointer.includes('&')) return null
+  const pointer = decodeSegment(rawPointer)
+  if (pointer === null || !isJsonPointer(pointer)) return null
+  return {
+    filePath: resolved.filePath,
+    fileName: basename(resolved.filePath),
+    kind: resolved.kind,
+    unit: { kind: 'pointer', pointer },
+    subunits: [],
+    raw,
+  }
+}
 
 /**
  * Parse a knowledge-unit pointer: `path "@" unit *("&" subunit)`.
@@ -524,6 +501,7 @@ export function parseKnowledgeUnitRef(input: string): SourceRef | null {
   if (at === -1) return null
   const resolved = resolveUnitPath(clean.slice(0, at))
   if (!resolved) return null
+  if (/\.json$/i.test(resolved.filePath)) return parsePointerRef(resolved, clean.slice(at + 1), clean)
   const rawSegments = clean.slice(at + 1).split('&')
   if (rawSegments.some((s) => s.trim() === '')) return null
   const decoded: string[] = []
@@ -579,9 +557,44 @@ export function serializeKnowledgeUnitRef(
   // way an author would type them and the way they appear in the source file.
   // The slug stays a READ-side derivation: emitting `@##q4-outlook` turned
   // every citation into something nobody could read back against the document.
-  const head = unit.kind === 'header' ? `${'#'.repeat(unit.level)} ${unit.text}` : unit.id
+  let head: string
+  switch (unit.kind) {
+    case 'header':
+      head = `${'#'.repeat(unit.level)} ${unit.text}`
+      break
+    case 'row':
+      head = unit.id
+      break
+    case 'pointer':
+      // No subunits; `%` and `&` are percent-encoded so parse(serialize(x)) is stable.
+      return `${filePath}@${unit.pointer.replace(/%/g, '%25').replace(/&/g, '%26')}`
+    default:
+      return assertNever(unit, 'knowledge unit kind')
+  }
   const tail = subunits.map((s) => normalizeName(s)).filter((s) => s !== '')
   return tail.length > 0 ? `${filePath}@${head}&${tail.join('&')}` : `${filePath}@${head}`
+}
+
+/**
+ * Compact unit label for pills and badges (`104&mrr_usd`, `##nn-person--dr-egon-spengler&compensation`,
+ * `/items/0/name`). Header units use the slug form; this is a display label, not a citation.
+ */
+export function unitLabel(unit: KnowledgeUnit, subunits: string[] = []): string {
+  let head: string
+  switch (unit.kind) {
+    case 'header':
+      head = `${'#'.repeat(unit.level)}${unit.slug}`
+      break
+    case 'row':
+      head = unit.id
+      break
+    case 'pointer':
+      head = unit.pointer
+      break
+    default:
+      return assertNever(unit, 'knowledge unit kind')
+  }
+  return subunits.length > 0 ? `${head}&${subunits.join('&')}` : head
 }
 
 /**

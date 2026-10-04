@@ -9,6 +9,7 @@
  *
  * The scanner tries per-element first, then falls back to centralized.
  */
+import { isNNName } from '@cognnitive/innfo-core'
 import type { DirectoryHandleLike } from '@cognnitive/innfo-core'
 import { isImageExtension } from '../utils/imageDetection'
 
@@ -59,7 +60,7 @@ async function scanDir(dir: DirectoryHandleLike): Promise<ScanResult> {
   for await (const [name, entry] of dir.entries()) {
     if (entry.kind !== 'file') continue
     // Skip iNNfo model files and hidden files
-    if (name.startsWith('.') || name.endsWith('_NN.md') || name === 'index.md') continue
+    if (name.startsWith('.') || isNNName(name) || name === 'index.md') continue
 
     const ext = name.split('.').pop() ?? ''
     const cleanExt = ext.toLowerCase()

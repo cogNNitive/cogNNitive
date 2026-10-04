@@ -189,8 +189,8 @@ describe('FieldViewer.vue — R-SC-06', () => {
       {
         Root: makeNode('Root', {
           sources: [
-            'sources/nn/The_Goonies.md#opening-scene',
-            'sources/nn/interviews/interview.md#background',
+            'sources/import/The_Goonies.md#opening-scene',
+            'sources/import/interviews/interview.md#background',
           ],
         }),
       },

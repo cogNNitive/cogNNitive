@@ -14,8 +14,8 @@ describe('Lineage single-edge bluepriNNt schemas and contracts (S6)', () => {
     const content = fs.readFileSync(COGNNITIVE_SPEC_PATH, 'utf-8')
     const parsed = parseKnowledge(content)
 
-    // template_version V_0-3-0
-    expect((parsed.frontmatter as any)?.template_version).toBe('V_0-3-0')
+    // template_version V_0-4-0
+    expect((parsed.frontmatter as any)?.template_version).toBe('V_0-4-0')
 
     const fieldNodes =
       parsed.elements.get('NN Field Definition') ||
@@ -33,17 +33,13 @@ describe('Lineage single-edge bluepriNNt schemas and contracts (S6)', () => {
 
     const expectedSourcesFields = [
       'raw_filename',
-      'media_filename',
       'raw_hash',
       'size',
       'source_format',
       'normalized_at',
       'normalized_by',
       'normalized_content',
-      'curated_csv',
-      'status',
       'version',
-      'archive_path',
       'superseded_by',
       'derived_from',
     ]
@@ -74,8 +70,12 @@ describe('Lineage single-edge bluepriNNt schemas and contracts (S6)', () => {
     const artifactsDerivedFrom = fieldsByConcept['Artifacts']?.find((f) => f.name === 'derived_from')
     expect(artifactsDerivedFrom?.type).toBe('citation')
 
-    // Removed fields absent
+    // Removed fields absent (the last four left with the sources/nn mirror and the archive flow)
     const removedFields = [
+      'media_filename',
+      'curated_csv',
+      'status',
+      'archive_path',
       'generated_by',
       'produced_by',
       'derived_from_inputs',
@@ -101,7 +101,7 @@ describe('Lineage single-edge bluepriNNt schemas and contracts (S6)', () => {
 
     // Stale section removed and example uses @
     expect(content).not.toContain('validator currently checks intra-model references only')
-    expect(content).not.toContain('<!-- cite: sources/nn/file.md#heading-slug -->')
+    expect(content).not.toMatch(/sources\/(nn|original|export|archive)\//)
     expect(content).toMatch(/@/)
   })
 
@@ -168,12 +168,12 @@ describe('Lineage single-edge bluepriNNt schemas and contracts (S6)', () => {
       '',
       '# NN Sources',
       '## NN Sources: input.md',
-      'raw_filename:: sources/nn/input.md',
+      'raw_filename:: sources/import/input.md',
       'raw_hash:: sha256:abc123',
       'size:: 100',
       'source_format:: md',
-      'normalized_content:: sources/nn/input.md',
-      'version:: V_1-0-0',
+      'normalized_content:: sources/import/input.md',
+      'version:: V1',
       'derived_from:: []',
       '',
       '# NN ModelRecords',
@@ -181,11 +181,11 @@ describe('Lineage single-edge bluepriNNt schemas and contracts (S6)', () => {
       'model_ref:: kNNowledge/Domain_NN.md',
       'knowledge_version:: V_0-1-0',
       'model_template:: business',
-      'derived_from:: [sources/nn/input.md@## Overview]',
+      'derived_from:: [sources/import/input.md@## Overview]',
       '',
       '# NN Artifacts',
       '## NN Artifacts: Report',
-      'artifact_ref:: export/report.md',
+      'artifact_ref:: artifacts/report.md',
       'artifact_format:: report',
       'derived_from:: [kNNowledge/Domain_NN.md@## Section]',
       '',

@@ -8,7 +8,7 @@ import { recursiveSerialize } from '../../model/recursiveSerializer'
 import { parseFormatFilename } from '../../utils/version'
 import { addToHistory } from '../../stores/historyStore'
 import { useToast } from '../../shared/useToast'
-import { serializeKnowledge } from '@cognnitive/innfo-core'
+import { serializeKnowledge, ensureNNFilename } from '@cognnitive/innfo-core'
 import { _ensureGeneralSpec } from '../../services/WorkspacePersistenceService'
 import type { DirectoryHandleLike } from '../../model/fs-types'
 
@@ -71,7 +71,7 @@ async function handleSaveWorkspace(): Promise<void> {
 
     if (!targetFilename) {
       const rootName = rootNode.value?.name ?? 'Untitled'
-      targetFilename = rootName.endsWith('_NN') ? `${rootName}.md` : `${rootName}_NN.md`
+      targetFilename = ensureNNFilename(rootName)
     }
 
     targetFilename = sanitizeFilename(targetFilename)
@@ -87,7 +87,7 @@ async function handleSaveWorkspace(): Promise<void> {
         const isRoot =
           rootNode.value &&
           (path === rootNode.value.source.path ||
-            path.endsWith(rootNode.value.name + '_NN.md') ||
+            path.endsWith(ensureNNFilename(rootNode.value.name)) ||
             path.endsWith(targetFilename))
         const rawFilename = isRoot ? targetFilename : (path.split('/').pop() ?? path)
         const filename = sanitizeFilename(rawFilename)
@@ -145,7 +145,7 @@ async function handleSaveWorkspace(): Promise<void> {
     for (const [id, node] of Object.entries(knowledgeStore.nodes)) {
       if (id.startsWith('spec:') && node.rawContent) {
         const specName = node.name || id.substring(5)
-        const filename = specName.endsWith('_NN') ? `${specName}.md` : `${specName}_NN.md`
+        const filename = ensureNNFilename(specName)
         const specFileHandle = await specsDir.getFileHandle(filename, { create: true })
         if (specFileHandle.createWritable) {
           const specWritable = await specFileHandle.createWritable()

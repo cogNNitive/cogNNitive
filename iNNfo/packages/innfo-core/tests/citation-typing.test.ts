@@ -84,7 +84,7 @@ describe('citation fields are resolved from the schema', () => {
 
   it('validates a field declared `citation` regardless of its name', () => {
     const diags = validateWorkspaceSources(
-      resultWith('evidence', 'sources/nn/missing.md@## Q4 Outlook', schemaWith('evidence', 'citation')),
+      resultWith('evidence', 'sources/import/missing.md@## Q4 Outlook', schemaWith('evidence', 'citation')),
       emptyResolver,
     )
     expect(diags.some((d) => d.code === 'KU_DANGLING_FILE')).toBe(true)
@@ -92,7 +92,7 @@ describe('citation fields are resolved from the schema', () => {
 
   it('falls back to name matching when no schema resolved', () => {
     const diags = validateWorkspaceSources(
-      resultWith('source', 'sources/nn/missing.md@## Q4 Outlook'),
+      resultWith('source', 'sources/import/missing.md@## Q4 Outlook'),
       emptyResolver,
     )
     expect(diags.some((d) => d.code === 'KU_DANGLING_FILE')).toBe(true)
@@ -120,36 +120,36 @@ describe('citation lists are deduplicated on write', () => {
 
   it('removes a repeated pointer, first occurrence winning', () => {
     const serialized = serializeKnowledge(
-      parseKnowledge(doc('[sources/nn/a.md@## Intro, sources/nn/b.md@## Other, sources/nn/a.md@## Intro]')),
+      parseKnowledge(doc('[sources/import/a.md@## Intro, sources/import/b.md@## Other, sources/import/a.md@## Intro]')),
     )
-    expect(serialized).toContain('sources:: [sources/nn/a.md@## Intro, sources/nn/b.md@## Other]')
+    expect(serialized).toContain('sources:: [sources/import/a.md@## Intro, sources/import/b.md@## Other]')
   })
 
   it('leaves a duplicate-free citation list byte-identical', () => {
-    const source = doc('[sources/nn/a.md@## Intro, sources/nn/b.md@## Other]')
+    const source = doc('[sources/import/a.md@## Intro, sources/import/b.md@## Other]')
     expect(serializeKnowledge(parseKnowledge(source))).toBe(source)
   })
 })
 
 describe('citation text fidelity', () => {
   it('emits the human-readable heading, not its slug', () => {
-    const ref = parseCitation('sources/nn/report.md@## Q4 Outlook')
+    const ref = parseCitation('sources/import/report.md@## Q4 Outlook')
     expect(ref?.unit).toBeDefined()
-    expect(serializeKnowledgeUnitRef('sources/nn/report.md', ref!.unit!)).toBe(
-      'sources/nn/report.md@## Q4 Outlook',
+    expect(serializeKnowledgeUnitRef('sources/import/report.md', ref!.unit!)).toBe(
+      'sources/import/report.md@## Q4 Outlook',
     )
   })
 
   it('still derives the slug on read', () => {
-    const ref = parseCitation('sources/nn/report.md@## Q4 Outlook')
+    const ref = parseCitation('sources/import/report.md@## Q4 Outlook')
     expect(ref!.unit!.kind).toBe('header')
     expect((ref!.unit as { slug: string }).slug).toBe('q4-outlook')
   })
 
   it('round-trips a subunit pointer', () => {
-    const ref = parseCitation('sources/nn/report.md@## Q4 Outlook&owner')
-    expect(serializeKnowledgeUnitRef('sources/nn/report.md', ref!.unit!, ['owner'])).toBe(
-      'sources/nn/report.md@## Q4 Outlook&owner',
+    const ref = parseCitation('sources/import/report.md@## Q4 Outlook&owner')
+    expect(serializeKnowledgeUnitRef('sources/import/report.md', ref!.unit!, ['owner'])).toBe(
+      'sources/import/report.md@## Q4 Outlook&owner',
     )
   })
 })

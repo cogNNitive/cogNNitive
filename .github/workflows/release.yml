@@ -10,9 +10,14 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Release tag to inspect (forced dry-run)'
+        description: 'Release tag to publish'
         required: true
         type: string
+      publish:
+        description: 'Publish for real (unchecked = dry-run)'
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -51,7 +56,7 @@ jobs:
         id: run_release
         env:
           RELEASE_TAG: ${{ github.event.inputs.tag || github.ref_name }}
-          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' || vars.RELEASE_ENABLED != 'true' }}
+          DRY_RUN: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.publish != 'true') || vars.RELEASE_ENABLED != 'true' }}
           WEB_RELEASE_TOKEN: ${{ secrets.WEB_RELEASE_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.WEB_RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
@@ -73,10 +78,10 @@ jobs:
       # NOT gate the release status — a transient failure here is not an un-publish.
       # Investigate a red smoke step, but the release itself is done regardless.
       - name: Run Post-Publish Smoke Test (advisory)
-        if: github.event_name != 'workflow_dispatch' && vars.RELEASE_ENABLED == 'true'
+        if: (github.event_name != 'workflow_dispatch' || github.event.inputs.publish == 'true') && vars.RELEASE_ENABLED == 'true'
         continue-on-error: true
         env:
-          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_TAG: ${{ github.event.inputs.tag || github.ref_name }}
           GITHUB_TOKEN: ${{ secrets.WEB_RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
           node -e "

@@ -2,81 +2,58 @@
 
 ## Purpose
 
-Track active and archived source versions in `# NN Sources` of the lineage record with version metadata (`status::`, `version::`, `archive_path::`, `superseded_by::`), validating snapshot integrity and archive pointers via `--check`.
+Versions are write-once family members. `version` is `V<rank>` in the family, `superseded_by` is the path of the next member, and `archive_path` no longer exists. The unmodified requirement "New lineage records reference current spec versions" is not touched by this change.
 
 ## Requirements
 
-### Requirement: `# NN Sources` lists active and archived versions with version metadata
+### Requirement: `# NN Sources` lists every family member with version metadata
 
-`buildProvenanceModel` MUST emit one element per active source (name = raw
-basename) and one element per archived snapshot (name = `<basename> V<N>`),
-collected from `sources/archive/`. Active elements MUST carry `version::` and
-`archive_path::`. Archived elements MUST carry `status:: archived`, `version::`,
-and `normalized_content::` pointing at the archive snapshot. A non-final
-archived element MUST carry `superseded_by::` naming its successor element
-(`<basename> V<N+1>`). The section MUST remain regenerated idempotently on every
-run, with no duplicate entries.
+`buildProvenanceModel` (the core projection) MUST emit one element per Source file, named by the raw file's basename. Within a family (per `nn-naming-contract`) each element MUST carry `version::` equal to `V<rank>`, where rank is its 1-based position in the family order. Every element except the latest MUST carry `superseded_by::` holding the workspace-relative path of the next member; the latest MUST NOT. An element's `derived_from` MUST be the subject's declared `sources` (or, for a binary subject, the sidecar's `sources`). No element MAY carry `archive_path::`, `status::`, `curated_csv::`, `media_filename::`, or `normalized_content::` pointing at an archive. Pre-existing `sources/archive/` snapshots are not family members and are excluded from the version chain. The section MUST be regenerated idempotently with no duplicate entries.
 
-#### Scenario: Changed source produces active and archived elements
+#### Scenario: Two members of a family
+- GIVEN `sources/import/metrics.csv` and `sources/import/metrics_20261002T101500Z.csv`
+- WHEN the projection runs
+- THEN `# NN Sources` contains `## NN Sources: metrics.csv` with `version:: V1` and `superseded_by:: sources/import/metrics_20261002T101500Z.csv`
+- AND `## NN Sources: metrics_20261002T101500Z.csv` with `version:: V2` and no `superseded_by::`
 
-- GIVEN `sources/nn/metricas_q3.md` at `version:: V2`
-- AND `sources/archive/metricas_q3/V1/metricas_q3.md`
-- WHEN `buildProvenanceModel` runs
-- THEN `# NN Sources` contains:
-  - `## NN Sources: metricas_q3.csv` with `version:: V2` and
-    `archive_path:: sources/archive/metricas_q3/V1/metricas_q3.md`
-  - `## NN Sources: metricas_q3.csv V1` with `status:: archived`,
-    `version:: V1`, `normalized_content:: sources/archive/metricas_q3/V1/metricas_q3.md`,
-    and `superseded_by:: metricas_q3.csv V2`
+#### Scenario: No archive fields
+- GIVEN any workspace
+- WHEN the projection runs
+- THEN no element contains `archive_path::`
 
 #### Scenario: Idempotent re-run
+- GIVEN a record already synced
+- WHEN the projection runs again with no filesystem change
+- THEN `# NN Sources` is byte-identical
 
-- GIVEN a lineage record already synced with version fields
-- WHEN `buildProvenanceModel` runs again with no filesystem change
-- THEN `# NN Sources` is byte-identical to the previous run
+### Requirement: Family members are validated by `--check`
 
-### Requirement: Archived elements are validated by `--check`
+`nn-trannsform --lineage --check` MUST report and exit non-zero for these error-level conditions:
+1. a family member on disk with no element in `# NN Sources` (unlisted member);
+2. a `superseded_by::` value that resolves to no element or file (dangling pointer);
+3. a sidecar `sha256` that differs from the hash of the raw bytes (hash mismatch).
 
-`node scripts/index.js --check` MUST report and exit non-zero when any of the
-following `error`-level drift exists:
+An orphaned sidecar (raw missing) MUST be reported as a warning and not change the exit code.
 
-1. a file under `sources/archive/` with no `status:: archived` element in the
-   lineage record (unlisted snapshot);
-2. an `archive_path::` or `superseded_by::` value that resolves nowhere
-   (dangling archive pointer);
-3. an archived element whose `raw_hash` differs from the `sha256` in its own
-   snapshot frontmatter (hash mismatch).
-
-A chain directory with neither an active source nor an archived element MUST be
-reported as a `warning` (orphan chain).
-
-#### Scenario: Unlisted snapshot is flagged
-
-- GIVEN `sources/archive/metricas_q3/V2/metricas_q3.md` on disk
-- AND the lineage record has no `## NN Sources: metricas_q3.csv V2` element
+#### Scenario: Unlisted member is flagged
+- GIVEN `sources/import/metrics_20261003T080000Z.csv` on disk and no matching element
 - WHEN `--check` runs
-- THEN it reports the unlisted snapshot and exits non-zero
+- THEN it reports the unlisted member and exits non-zero
 
-#### Scenario: Dangling archive pointer is flagged
-
-- GIVEN an active element with `archive_path:: sources/archive/metricas_q3/V9/metricas_q3.md`
-- AND no such file exists
+#### Scenario: Dangling pointer is flagged
+- GIVEN an element with `superseded_by:: sources/import/metrics_20269999T000000Z.csv` and no such file
 - WHEN `--check` runs
 - THEN it reports the dangling pointer and exits non-zero
 
 #### Scenario: Hash mismatch is flagged
-
-- GIVEN `## NN Sources: metricas_q3.csv V1` with `raw_hash:: abc…`
-- AND `sources/archive/metricas_q3/V1/metricas_q3.md` frontmatter `sha256:: def…`
+- GIVEN a Source whose raw bytes no longer match its sidecar `sha256`
 - WHEN `--check` runs
 - THEN it reports the mismatch and exits non-zero
 
-#### Scenario: Orphan chain is a warning only
-
-- GIVEN `sources/archive/estrategia_corporativa/V1/` with no active source and
-  no archived element
+#### Scenario: Orphan sidecar is a warning only
+- GIVEN a sidecar whose raw file is missing
 - WHEN `--check` runs
-- THEN it reports the orphan chain as a warning and exits zero
+- THEN it is reported as a warning and the exit code is unaffected
 
 ### Requirement: New lineage records reference current spec versions
 
@@ -97,11 +74,14 @@ reported as a `warning` (orphan chain).
 
 ### Requirement: Workspace-Conforming Lineage Records Are Excluded from Manifest Reconciliation
 
-`innfo-core` workspace discovery MUST classify model files whose name matches `/^(cognnitive|workspace)(_|$)/i` as workspace-conforming lineage records via a non-navigation exclusion matcher. Such records MUST NOT be treated as navigation candidates and MUST NOT be included in workspace manifest reconciliation.
+Workspace discovery MUST classify a document whose role is `lineage-record` (bluepriNNt `cogNNitive`) or whose bluepriNNt is `workspace` as a non-navigation record through the single contract predicate (`isModelCandidate`, whose non-knowledge bluepriNNt set includes both). The reconciliation helper `isReconcilableModel` keeps only its manifest self-reference check. Such records MUST NOT be navigation candidates and MUST NOT take part in manifest reconciliation.
 
 #### Scenario: Lineage record stays out of manifest reconciliation
+- GIVEN `Acme_cogNNitive_NN.md` with `parent_spec` naming `cogNNitive`
+- WHEN workspace discovery runs
+- THEN it is classified as a lineage record and is not a manifest candidate
 
-- GIVEN a lineage record named `<project>_V_0-2-0_workspace_NN.md` in the workspace
-- WHEN `discoverModels.ts` scans the workspace
-- THEN the record is matched by the non-navigation exclusion matcher
-- AND it is not treated as a workspace manifest candidate
+#### Scenario: No local regex
+- GIVEN `discoverModels.ts`
+- WHEN searched for the `cognnitive|workspace` filename regex
+- THEN none exists

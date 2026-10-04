@@ -23,7 +23,7 @@ title: "Ghostbusters Inc. Operations Workspace"
 
 ## NN Workspace: Ghostbusters Headquarters Workspace
 knowledge_dir:: kNNowledge/
-sources_dir:: sources/nn/
+sources_dir:: sources/
 Primary operational workspace for Ghostbusters Inc. paranormal investigation, containment engineering, and elimination services across the New York metropolitan area.
 
 # NN Tags

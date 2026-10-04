@@ -192,8 +192,6 @@ export function runMigration({ workspaceRoot = REPO_ROOT, dryRun = false, verbos
 
     const candidatePaths = [
       join(root, normalized),
-      join(root, 'sources', 'nn', normalized),
-      join(root, 'sources', normalized),
     ]
 
     for (const cand of candidatePaths) {

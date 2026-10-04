@@ -18,19 +18,19 @@ Operational analysis for the Acme simulation workspace.
 
 ## NN Assumptions: Demand Grows In Q4
 tags:: [market, seasonality]
-sources:: [market-report-2026.md@## Q4 Outlook]
+sources:: [sources/import/market-report-2026.txt_sidecar_NN.md@## Q4 Outlook]
 Seasonal demand in the north-east region grows during the fourth quarter.
 
 ## NN Assumptions: Unit Cost Falls
 tags:: [cost]
-sources:: [market-report-2026.md@## Cost Curve, unit-costs.csv@SKU-014]
+sources:: [sources/import/market-report-2026.txt_sidecar_NN.md@## Cost Curve, sources/import/unit-costs.csv@SKU-014]
 Unit cost declines as production volume increases.
 
 # NN Risks
 
 ## NN Risks: Supplier Concentration
 tags:: [supply-chain]
-sources:: [market-report-2026.md@## Supplier Landscape]
+sources:: [sources/import/market-report-2026.txt_sidecar_NN.md@## Supplier Landscape]
 A single supplier covers most of the critical component volume.
 
 # NN Keys

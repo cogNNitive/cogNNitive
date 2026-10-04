@@ -1,3 +1,5 @@
+import { isNNName, isSidecarName } from '@cognnitive/innfo-core'
+
 export type ExplorerItemKind = 'model' | 'artifact' | 'source' | null
 
 function normalizePath(p: string): string {
@@ -12,12 +14,12 @@ export interface ExplorerClassifiable {
 
 export function checkIsModel(item: ExplorerClassifiable): boolean {
   if (item.kind !== 'file') return false
-  return item.name.endsWith('_NN.md') || item.name.endsWith('_nn.md')
+  return isNNName(item.name) && !isSidecarName(item.name)
 }
 
 export function checkIsArtifact(item: ExplorerClassifiable): boolean {
   if (item.kind !== 'file') return false
-  return normalizePath(item.path).startsWith('export/')
+  return normalizePath(item.path).startsWith('artifacts/')
 }
 
 export function checkIsSource(item: ExplorerClassifiable): boolean {

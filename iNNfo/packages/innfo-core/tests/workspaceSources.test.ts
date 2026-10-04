@@ -54,7 +54,7 @@ describe('validateWorkspaceSources', () => {
   it('warns (not errors) on a resolvable legacy file + heading: dual-accept with deprecation', () => {
     const diags = validateWorkspaceSources(
       resultWith('report.md#q3-milestones'),
-      resolver({ 'sources/nn/report.md': ['q3-milestones', 'intro'] }),
+      resolver({ 'report.md': ['q3-milestones', 'intro'] }),
     )
     expect(diags).toHaveLength(1)
     expect(diags[0].severity).toBe('warning')
@@ -66,14 +66,14 @@ describe('validateWorkspaceSources', () => {
     const diags = validateWorkspaceSources(resultWith('missing.md#intro'), resolver({}))
     expect(diags).toHaveLength(1)
     expect(diags[0].severity).toBe('error')
-    expect(diags[0].message).toContain('sources/nn/missing.md')
+    expect(diags[0].message).toContain('missing.md')
     expect(diags[0].path).toBe('kNNowledge/Plan_V_1-0-0_NN.md#Enterprise Clients.sources')
   })
 
   it('warns when the heading slug is absent (plus the legacy deprecation warning)', () => {
     const diags = validateWorkspaceSources(
       resultWith('report.md#nope'),
-      resolver({ 'sources/nn/report.md': ['intro'] }),
+      resolver({ 'report.md': ['intro'] }),
     )
     expect(diags).toHaveLength(2)
     expect(diags[0].severity).toBe('warning')
@@ -85,7 +85,7 @@ describe('validateWorkspaceSources', () => {
   it('errors on a malformed (line-range) reference', () => {
     const diags = validateWorkspaceSources(
       resultWith('report.md#L10-L20'),
-      resolver({ 'sources/nn/report.md': true }),
+      resolver({ 'report.md': true }),
     )
     expect(diags).toHaveLength(1)
     expect(diags[0].severity).toBe('error')
@@ -95,7 +95,7 @@ describe('validateWorkspaceSources', () => {
   it('checks each entry of a list (legacy entries also carry deprecation warnings)', () => {
     const diags = validateWorkspaceSources(
       resultWith(['ok.md#intro', 'gone.md#x', 'ok.md#missing']),
-      resolver({ 'sources/nn/ok.md': ['intro'] }),
+      resolver({ 'ok.md': ['intro'] }),
     )
     expect(diags.map((d) => d.severity).sort()).toEqual(['error', 'warning', 'warning', 'warning'])
   })
@@ -182,52 +182,52 @@ const contentResolver =
   }
 
 describe('validateWorkspaceSources knowledge-unit pointers', () => {
-  const md = { 'sources/nn/g.md': MD_FIXTURE }
-  const csv = { 'sources/nn/m.csv': CSV_FIXTURE }
+  const md = { 'sources/import/g.md': MD_FIXTURE }
+  const csv = { 'sources/import/m.csv': CSV_FIXTURE }
 
   it('is silent for valid header, field, row, cell, and matrix pointers', () => {
     const diags = validateWorkspaceSources(
       resultWith([
-        'g.md@## NN Person: Dr. Egon Spengler',
-        'g.md@## NN Person: Dr. Egon Spengler&compensation',
-        'g.md@# NN matrices: journey map&First Contact&Relief',
+        'sources/import/g.md@## NN Person: Dr. Egon Spengler',
+        'sources/import/g.md@## NN Person: Dr. Egon Spengler&compensation',
+        'sources/import/g.md@# NN matrices: journey map&First Contact&Relief',
       ]),
       contentResolver(md),
     )
     expect(diags).toEqual([])
     const csvDiags = validateWorkspaceSources(
-      resultWith(['m.csv@104', 'm.csv@104&mrr_usd']),
+      resultWith(['sources/import/m.csv@104', 'sources/import/m.csv@104&mrr_usd']),
       contentResolver(csv),
     )
     expect(csvDiags).toEqual([])
   })
 
   it('errors unknown row-id, unknown column, and duplicate/empty keys with stable codes', () => {
-    const row = validateWorkspaceSources(resultWith('m.csv@999'), contentResolver(csv))
+    const row = validateWorkspaceSources(resultWith('sources/import/m.csv@999'), contentResolver(csv))
     expect(row).toHaveLength(1)
     expect(row[0]).toMatchObject({ severity: 'error', code: 'KU_UNKNOWN_ROW' })
 
-    const col = validateWorkspaceSources(resultWith('m.csv@104&nope'), contentResolver(csv))
+    const col = validateWorkspaceSources(resultWith('sources/import/m.csv@104&nope'), contentResolver(csv))
     expect(col).toHaveLength(1)
     expect(col[0]).toMatchObject({ severity: 'error', code: 'KU_UNKNOWN_COLUMN' })
 
     const dup = validateWorkspaceSources(
-      resultWith('m.csv@1'),
-      contentResolver({ 'sources/nn/m.csv': 'id,v\n1,a\n1,b\n,empty\n' }),
+      resultWith('sources/import/m.csv@1'),
+      contentResolver({ 'sources/import/m.csv': 'id,v\n1,a\n1,b\n,empty\n' }),
     )
     expect(dup.map((d) => d.code).sort()).toEqual(['KU_DUPLICATE_KEY', 'KU_EMPTY_KEY'])
   })
 
   it('errors a field outside its section and an unresolvable matrix cell', () => {
     const field = validateWorkspaceSources(
-      resultWith('g.md@## NN Person: Dr. Egon Spengler&nope'),
+      resultWith('sources/import/g.md@## NN Person: Dr. Egon Spengler&nope'),
       contentResolver(md),
     )
     expect(field).toHaveLength(1)
     expect(field[0]).toMatchObject({ severity: 'error', code: 'KU_FIELD_OUTSIDE_SECTION' })
 
     const cell = validateWorkspaceSources(
-      resultWith('g.md@# NN matrices: journey map&Nobody&Relief'),
+      resultWith('sources/import/g.md@# NN matrices: journey map&Nobody&Relief'),
       contentResolver(md),
     )
     expect(cell).toHaveLength(1)
@@ -236,14 +236,14 @@ describe('validateWorkspaceSources knowledge-unit pointers', () => {
 
   it('degrades to existence-only without content (no false positives)', () => {
     const diags = validateWorkspaceSources(
-      resultWith(['g.md@## NN Person: Dr. Egon Spengler&compensation', 'm.csv@104&mrr_usd']),
-      resolver({ 'sources/nn/g.md': true, 'sources/nn/m.csv': true }),
+      resultWith(['sources/import/g.md@## NN Person: Dr. Egon Spengler&compensation', 'sources/import/m.csv@104&mrr_usd']),
+      resolver({ 'sources/import/g.md': true, 'sources/import/m.csv': true }),
     )
     expect(diags).toEqual([])
   })
 
   it('suggests the level-precise canonical form for legacy refs when content is available', () => {
-    const diags = validateWorkspaceSources(resultWith('g.md#overview'), contentResolver(md))
+    const diags = validateWorkspaceSources(resultWith('g.md#overview'), contentResolver({ 'g.md': MD_FIXTURE }))
     const deprecation = diags.find((d) => d.code === 'KU_DEPRECATED_HASH')
     expect(deprecation?.message).toContain('@#overview')
   })
@@ -308,7 +308,7 @@ note:: keep
 
     const diags = validateWorkspaceSources(
       parseResult,
-      contentResolver({ 'sources/nn/present.md': '# Intro\n' }),
+      contentResolver({ 'present.md': '# Intro\n' }),
     )
     expect(diags.filter((d) => d.severity === 'error')).toEqual([])
   })
@@ -329,7 +329,7 @@ note:: keep
     const errors = diags.filter((d) => d.severity === 'error')
     expect(errors).toHaveLength(1)
     expect(errors[0]).toMatchObject({ code: 'KU_DANGLING_FILE' })
-    expect(errors[0].message).toContain('sources/nn/missing.md')
+    expect(errors[0].message).toContain('missing.md')
   })
 
   it('a line-range anchor citation is rejected with KU_MALFORMED, not silently accepted', () => {
@@ -346,7 +346,7 @@ note:: keep
 
     const diags = validateWorkspaceSources(
       parseResult,
-      resolver({ 'sources/nn/report.md': true }),
+      resolver({ 'report.md': true }),
     )
     expect(diags).toHaveLength(1)
     expect(diags[0]).toMatchObject({ severity: 'error', code: 'KU_MALFORMED' })
@@ -415,7 +415,7 @@ describe('validateWorkspaceSources — conflicts:: (D5)', () => {
   it('produces the same KU_MALFORMED code a malformed sources:: value would', () => {
     const diags = validateWorkspaceSources(
       resultWith('report.md#L10-L20', 'conflicts'),
-      resolver({ 'sources/nn/report.md': true }),
+      resolver({ 'report.md': true }),
     )
     expect(diags).toHaveLength(1)
     expect(diags[0]).toMatchObject({ severity: 'error', code: 'KU_MALFORMED' })
@@ -424,7 +424,7 @@ describe('validateWorkspaceSources — conflicts:: (D5)', () => {
   it('a valid conflicts:: pointer produces SRC_CONFLICT_FLAGGED and no KU_* error', () => {
     const diags = validateWorkspaceSources(
       resultWith('report.md#intro', 'conflicts'),
-      resolver({ 'sources/nn/report.md': ['intro'] }),
+      resolver({ 'report.md': ['intro'] }),
     )
     expect(diags.some((d) => d.severity === 'error')).toBe(false)
     expect(diags.some((d) => d.code === 'SRC_CONFLICT_FLAGGED')).toBe(true)
@@ -494,11 +494,11 @@ describe('validateWorkspaceSources — LEGACY_DERIVATION_KEY (D3)', () => {
 describe('validateWorkspaceSources — single citation edge updates', () => {
   it('accepts file-level bare paths without emitting KU_DEPRECATED_HASH', () => {
     const diags = validateWorkspaceSources(
-      resultWith(['kNNowledge/Client_NN.md', 'sources/export/report.md', 'sources/nn/guide.md']),
+      resultWith(['kNNowledge/Client_NN.md', 'artifacts/report.md', 'sources/import/guide.md']),
       resolver({
         'kNNowledge/Client_NN.md': true,
-        'sources/export/report.md': true,
-        'sources/nn/guide.md': true,
+        'artifacts/report.md': true,
+        'sources/import/guide.md': true,
       }),
     )
     expect(diags).toEqual([])
@@ -513,13 +513,13 @@ describe('validateWorkspaceSources — single citation edge updates', () => {
     expect(diags[0].code).toBe('KU_DANGLING_FILE')
   })
 
-  it('rejects models/ prefix with explicit KU_MALFORMED diagnostic', () => {
+  it('reports a models/ citation as a plain dangling file', () => {
     const diags = validateWorkspaceSources(
       resultWith('models/Client_NN.md@## NN Stakeholders: Enterprise Clients'),
       resolver({}),
     )
     expect(diags).toHaveLength(1)
-    expect(diags[0].code).toBe('KU_MALFORMED')
-    expect(diags[0].message).toContain('`models/` was removed; use `kNNowledge/`')
+    expect(diags[0].code).toBe('KU_DANGLING_FILE')
+    expect(diags[0].message).not.toContain('removed')
   })
 })

@@ -15,6 +15,7 @@ import { createServer, type Server, type ServerResponse } from 'node:http'
 import { randomBytes } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import { basename } from 'node:path'
+import { displayStem } from '@cognnitive/innfo-core'
 
 /** Public web app the live link opens. */
 export const PREVIEW_APP_URL = 'https://cognnitive.com/innfo/app/'
@@ -52,7 +53,7 @@ export function previewEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
 
 /** Canonical model id (filename stem, canonical `_NN` suffix stripped) for a model file. */
 export function modelIdForFile(filePath: string): string {
-  return basename(filePath).replace(/_NN\.md$/i, '').replace(/\.md$/i, '')
+  return displayStem(basename(filePath))
 }
 
 /** `GET /model/:id` URL carrying the session token. */

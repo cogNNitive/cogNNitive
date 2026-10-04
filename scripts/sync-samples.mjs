@@ -4,8 +4,8 @@
  * scripts/sync-samples.mjs
  *
  * Synchronizes and validates canonical sample models from the Single Source of Truth
- * (_samples_nn/models/) into their respective Level-2 template distribution folders
- * (iNNfo/specs/bluepriNNts/<template>/samples/).
+ * (_samples_nn/kNNowledge/) into their respective Level-2 blueprint distribution folders
+ * (iNNfo/specs/bluepriNNts/<blueprint>/samples/).
  *
  * Usage:
  *   node scripts/sync-samples.mjs          # Syncs files from _samples_nn to templates
@@ -18,59 +18,57 @@ import { fileURLToPath } from 'node:url';
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(SCRIPT_DIR, '..');
-const SAMPLES_SSOT_DIR = fs.existsSync(path.join(REPO_ROOT, '_samples_nn', 'kNNowledge'))
-  ? path.join(REPO_ROOT, '_samples_nn', 'kNNowledge')
-  : path.join(REPO_ROOT, '_samples_nn', 'models');
+const SAMPLES_SSOT_DIR = path.join(REPO_ROOT, '_samples_nn', 'kNNowledge');
 const BLUEPRINTS_ROOT = path.join(REPO_ROOT, 'iNNfo', 'specs', 'bluepriNNts');
 
 export const SAMPLE_MAPPINGS = [
   {
     source: 'Ghostbusters_analysis_NN.md',
-    target: path.join('analysis', 'samples', 'Ghostbusters_V_0-2-0_analysis_NN.md')
+    target: path.join('analysis', 'samples', 'Ghostbusters_V_0-3-2_analysis_NN.md')
   },
   {
     source: 'Ghostbusters_business_NN.md',
-    target: path.join('business', 'samples', 'Ghostbusters_V_0-2-3_business_NN.md')
+    target: path.join('business', 'samples', 'Ghostbusters_V_0-4-0_business_NN.md')
   },
   {
     source: 'Ghostbusters_business-model_NN.md',
-    target: path.join('business-model', 'samples', 'Ghostbusters_V_0-2-1_business-model_NN.md')
+    target: path.join('business-model', 'samples', 'Ghostbusters_V_0-3-0_business-model_NN.md')
   },
   {
     source: 'Ghostbusters_documentation_NN.md',
-    target: path.join('documentation', 'samples', 'Ghostbusters_V_0-2-0_documentation_NN.md')
+    target: path.join('documentation', 'samples', 'Ghostbusters_V_0-3-2_documentation_NN.md')
   },
   {
     source: 'Ghostbusters_innovation_NN.md',
-    target: path.join('innovation', 'samples', 'Ghostbusters_V_0-2-0_innovation_NN.md')
+    target: path.join('innovation', 'samples', 'Ghostbusters_V_0-3-2_innovation_NN.md')
   },
   {
     source: 'Ghostbusters_metrics_NN.md',
-    target: path.join('metrics', 'samples', 'Ghostbusters_V_0-1-0_metrics_NN.md')
+    target: path.join('metrics', 'samples', 'Ghostbusters_V_0-4-1_metrics_NN.md')
   },
   {
     source: 'Ghostbusters_organization_NN.md',
-    target: path.join('organization', 'samples', 'Ghostbusters_V_0-2-0_organization_NN.md')
+    target: path.join('organization', 'samples', 'Ghostbusters_V_0-3-2_organization_NN.md')
   },
   {
     source: 'Ghostbusters_procedures_NN.md',
-    target: path.join('procedures', 'samples', 'Ghostbusters_V_0-2-0_procedures_NN.md')
+    target: path.join('procedures', 'samples', 'Ghostbusters_V_0-3-1_procedures_NN.md')
   },
   {
     source: 'Ghostbusters_projects_NN.md',
-    target: path.join('projects', 'samples', 'Ghostbusters_V_0-2-0_projects_NN.md')
+    target: path.join('projects', 'samples', 'Ghostbusters_V_0-3-2_projects_NN.md')
   },
   {
     source: 'Ghostbusters_repository_NN.md',
-    target: path.join('repository', 'samples', 'Ghostbusters_V_0-1-0_repository_NN.md')
+    target: path.join('repository', 'samples', 'Ghostbusters_V_0-2-0_repository_NN.md')
   },
   {
     source: 'Ghostbusters_video_NN.md',
-    target: path.join('video', 'samples', 'Ghostbusters_V_0-1-0_video_NN.md')
+    target: path.join('video', 'samples', 'Ghostbusters_V_0-7-1_video_NN.md')
   },
   {
     source: 'Ghostbusters_design-presets_NN.md',
-    target: path.join('design-presets', 'samples', 'Ghostbusters_V_0-1-0_design-presets_NN.md')
+    target: path.join('design-presets', 'samples', 'Ghostbusters_V_0-3-0_design-presets_NN.md')
   }
 ];
 
@@ -122,7 +120,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToP
   const isCheck = process.argv.includes('--check');
 
   if (isCheck) {
-    console.log('🔍 Checking samples parity (_samples_nn/models/ <-> iNNfo/specs/bluepriNNts/*/samples/)...');
+    console.log('🔍 Checking samples parity (_samples_nn/kNNowledge/ <-> iNNfo/specs/bluepriNNts/*/samples/)...');
     const res = syncSamples({ check: true });
     if (!res.ok) {
       console.error('❌ Samples drift detected:');
@@ -134,7 +132,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToP
     }
     console.log('✅ All template samples are in sync with _samples_nn.');
   } else {
-    console.log('📦 Projecting samples from _samples_nn/models/ into template packages...');
+    console.log('📦 Projecting samples from _samples_nn/kNNowledge/ into blueprint packages...');
     const res = syncSamples({ check: false });
     if (!res.ok) {
       console.error('❌ Failed to sync samples:');

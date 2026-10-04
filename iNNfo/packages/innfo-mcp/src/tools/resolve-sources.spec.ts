@@ -63,7 +63,7 @@ async function stubPricingTemplate() {
 
 async function writeWorkspace(): Promise<void> {
   await mkdir(join(rootDir, 'models'), { recursive: true })
-  await mkdir(join(rootDir, 'sources', 'nn'), { recursive: true })
+  await mkdir(join(rootDir, 'sources', 'import'), { recursive: true })
 
   await writeFile(
     join(rootDir, 'models', 'Plan_V_1-0-0_NN.md'),
@@ -80,28 +80,28 @@ async function writeWorkspace(): Promise<void> {
       '# NN Producto',
       '',
       '## NN Producto: Widget',
-      'sources:: sources/nn/pricing.md@## Q3 Pricing',
-      'precio_source:: sources/nn/pricing.md@## Q3 Pricing',
-      'dangling_source:: sources/nn/missing.md@## Ghost',
-      'unknown_anchor_source:: sources/nn/report.md@## Nonexistent Heading',
-      'long_source:: sources/nn/long.md@## Long Section',
-      'short_source:: sources/nn/short.md@## Short Section',
-      'agent_known_source:: sources/nn/agent-mod.md@## NN Agent Modification: update-field-precio',
-      'agent_unknown_marker_source:: sources/nn/agent-mod-unknown.md@## NN Agent Modification: update-field-precio',
-      'agent_missing_author_source:: sources/nn/agent-mod-missing.md@## NN Agent Modification: update-field-precio',
-      'human_source:: sources/nn/agent-mod-human.md@## NN Agent Modification: update-field-precio',
-      'nested_source:: sources/nn/agent-mod-nested.md@### Sub Detail',
-      'sibling_source:: sources/nn/agent-mod-sibling.md@## Sibling Heading',
-      'reviewer_source:: sources/nn/reviewer-with-author.md@## Feedback Note',
-      'reviewer_no_author_source:: sources/nn/reviewer-no-author.md@## Feedback Note',
-      'document_source:: sources/nn/plain-doc.md@## Plain Heading',
+      'sources:: sources/import/pricing.md@## Q3 Pricing',
+      'precio_source:: sources/import/pricing.md@## Q3 Pricing',
+      'dangling_source:: sources/import/missing.md@## Ghost',
+      'unknown_anchor_source:: sources/import/report.md@## Nonexistent Heading',
+      'long_source:: sources/import/long.md@## Long Section',
+      'short_source:: sources/import/short.md@## Short Section',
+      'agent_known_source:: sources/import/agent-mod.md@## NN Agent Modification: update-field-precio',
+      'agent_unknown_marker_source:: sources/import/agent-mod-unknown.md@## NN Agent Modification: update-field-precio',
+      'agent_missing_author_source:: sources/import/agent-mod-missing.md@## NN Agent Modification: update-field-precio',
+      'human_source:: sources/import/agent-mod-human.md@## NN Agent Modification: update-field-precio',
+      'nested_source:: sources/import/agent-mod-nested.md@### Sub Detail',
+      'sibling_source:: sources/import/agent-mod-sibling.md@## Sibling Heading',
+      'reviewer_source:: sources/import/reviewer-with-author.md@## Feedback Note',
+      'reviewer_no_author_source:: sources/import/reviewer-no-author.md@## Feedback Note',
+      'document_source:: sources/import/plain-doc.md@## Plain Heading',
       '',
     ].join('\n'),
     'utf-8',
   )
 
   await writeFile(
-    join(rootDir, 'sources', 'nn', 'pricing.md'),
+    join(rootDir, 'sources', 'import', 'pricing.md'),
     [
       '---',
       'sha256: "abc123"',
@@ -115,7 +115,7 @@ async function writeWorkspace(): Promise<void> {
   )
 
   await writeFile(
-    join(rootDir, 'sources', 'nn', 'report.md'),
+    join(rootDir, 'sources', 'import', 'report.md'),
     ['---', 'sha256: "def456"', '---', '', '## Some Other Heading', 'Unrelated content.', ''].join(
       '\n',
     ),
@@ -123,19 +123,19 @@ async function writeWorkspace(): Promise<void> {
   )
 
   await writeFile(
-    join(rootDir, 'sources', 'nn', 'long.md'),
+    join(rootDir, 'sources', 'import', 'long.md'),
     ['---', 'sha256: "longhash"', '---', '', '## Long Section', 'x'.repeat(2000), ''].join('\n'),
     'utf-8',
   )
 
   await writeFile(
-    join(rootDir, 'sources', 'nn', 'short.md'),
+    join(rootDir, 'sources', 'import', 'short.md'),
     ['---', 'sha256: "shorthash"', '---', '', '## Short Section', 'y'.repeat(120), ''].join('\n'),
     'utf-8',
   )
 
   await writeFile(
-    join(rootDir, 'sources', 'nn', 'agent-mod.md'),
+    join(rootDir, 'sources', 'import', 'agent-mod.md'),
     [
       '## NN Agent Modification: update-field-precio',
       '',
@@ -153,7 +153,7 @@ async function writeWorkspace(): Promise<void> {
   )
 
   await writeFile(
-    join(rootDir, 'sources', 'nn', 'agent-mod-unknown.md'),
+    join(rootDir, 'sources', 'import', 'agent-mod-unknown.md'),
     [
       '## NN Agent Modification: update-field-precio',
       '',
@@ -171,7 +171,7 @@ async function writeWorkspace(): Promise<void> {
   )
 
   await writeFile(
-    join(rootDir, 'sources', 'nn', 'agent-mod-missing.md'),
+    join(rootDir, 'sources', 'import', 'agent-mod-missing.md'),
     [
       '## NN Agent Modification: update-field-precio',
       '',
@@ -188,7 +188,7 @@ async function writeWorkspace(): Promise<void> {
   )
 
   await writeFile(
-    join(rootDir, 'sources', 'nn', 'agent-mod-human.md'),
+    join(rootDir, 'sources', 'import', 'agent-mod-human.md'),
     [
       '## NN Agent Modification: update-field-precio',
       '',
@@ -206,7 +206,7 @@ async function writeWorkspace(): Promise<void> {
   )
 
   await writeFile(
-    join(rootDir, 'sources', 'nn', 'agent-mod-nested.md'),
+    join(rootDir, 'sources', 'import', 'agent-mod-nested.md'),
     [
       '## NN Agent Modification: update-field-precio',
       '',
@@ -228,7 +228,7 @@ async function writeWorkspace(): Promise<void> {
   )
 
   await writeFile(
-    join(rootDir, 'sources', 'nn', 'agent-mod-sibling.md'),
+    join(rootDir, 'sources', 'import', 'agent-mod-sibling.md'),
     [
       '## NN Agent Modification: update-field-precio',
       '',
@@ -250,7 +250,7 @@ async function writeWorkspace(): Promise<void> {
   )
 
   await writeFile(
-    join(rootDir, 'sources', 'nn', 'reviewer-with-author.md'),
+    join(rootDir, 'sources', 'import', 'reviewer-with-author.md'),
     [
       '---',
       'source_type: feedback',
@@ -265,7 +265,7 @@ async function writeWorkspace(): Promise<void> {
   )
 
   await writeFile(
-    join(rootDir, 'sources', 'nn', 'reviewer-no-author.md'),
+    join(rootDir, 'sources', 'import', 'reviewer-no-author.md'),
     [
       '---',
       'source_type: feedback',
@@ -279,7 +279,7 @@ async function writeWorkspace(): Promise<void> {
   )
 
   await writeFile(
-    join(rootDir, 'sources', 'nn', 'plain-doc.md'),
+    join(rootDir, 'sources', 'import', 'plain-doc.md'),
     ['---', 'sha256: "plaindoc1"', '---', '', '## Plain Heading', 'Just prose.', ''].join('\n'),
     'utf-8',
   )
@@ -303,7 +303,7 @@ describe('resolve_sources', () => {
       fieldName: 'sources',
     })
     expect(results).toHaveLength(1)
-    expect(results[0].path).toBe('sources/nn/pricing.md')
+    expect(results[0].path).toBe('sources/import/pricing.md')
     expect(results[0].anchor).toBe('q3-pricing')
     expect(results[0].exists).toBe(true)
     expect(results[0].sha256).toBe('abc123')
@@ -318,7 +318,7 @@ describe('resolve_sources', () => {
       fieldName: 'precio_source',
     })
     expect(results).toHaveLength(1)
-    expect(results[0].path).toBe('sources/nn/pricing.md')
+    expect(results[0].path).toBe('sources/import/pricing.md')
   })
 
   it('reports a dangling file without throwing', async () => {
@@ -374,7 +374,7 @@ describe('resolve_sources', () => {
     // Both the name-based `sources` field and the schema-typed `precio_source`
     // field resolve to the same target here, so the same path appears twice —
     // once per field — proving both selection paths fired.
-    expect(paths.filter((p) => p === 'sources/nn/pricing.md')).toHaveLength(2)
+    expect(paths.filter((p) => p === 'sources/import/pricing.md')).toHaveLength(2)
   })
 
   it('truncates a long section to the excerpt cap', async () => {
@@ -529,7 +529,7 @@ describe('resolve_sources', () => {
       const headingLine = block!.split('\n')[0]
       const headingText = headingLine.replace(/^#{1,6}\s+/, '')
 
-      await writeFile(join(rootDir, 'sources', 'nn', 'contract-block.md'), block!, 'utf-8')
+      await writeFile(join(rootDir, 'sources', 'import', 'contract-block.md'), block!, 'utf-8')
 
       // Add the citation field dynamically, referencing the block's own real heading text.
       const modelFile = join(rootDir, 'models', 'Plan_V_1-0-0_NN.md')
@@ -537,7 +537,7 @@ describe('resolve_sources', () => {
       const modelContent = await readFile(modelFile, 'utf-8')
       const withContractField = modelContent.replace(
         '## NN Producto: Widget\n',
-        `## NN Producto: Widget\ncontract_source:: sources/nn/contract-block.md@${headingLine}\n`,
+        `## NN Producto: Widget\ncontract_source:: sources/import/contract-block.md@${headingLine}\n`,
       )
       await writeFile(modelFile, withContractField, 'utf-8')
 

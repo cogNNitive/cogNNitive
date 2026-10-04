@@ -163,7 +163,7 @@ function migrateJsonObject(value: unknown): unknown {
 }
 
 // Pure 64-bit deterministic hash for planHash (browser-safe, zero dependencies)
-function computePlanHash(ops: Op[]): string {
+export function computePlanHash(ops: Op[]): string {
   const serialized = JSON.stringify(ops)
   let h1 = 0xdeadbeef ^ 0
   let h2 = 0x41c6ce57 ^ 0

@@ -1,12 +1,17 @@
 import { recursiveSerialize } from '../model/recursiveSerializer'
 import {
-  parseFormatFilename,
-  buildFormatFilename,
   bumpVersion,
   formatVersionString,
+  parseVersionString,
 } from '../utils/version'
 import { buildSpecificationUrl } from '../utils/constants'
-import { parseFrontmatter, parseKnowledge, serializeKnowledge, mergeKnowledge } from '@cognnitive/innfo-core'
+import {
+  parseFrontmatter,
+  parseKnowledge,
+  serializeKnowledge,
+  mergeKnowledge,
+  ensureNNFilename,
+} from '@cognnitive/innfo-core'
 import { reconcileWorkspaceManifest } from './WorkspaceSyncService'
 import type { DirectoryHandleLike, FileHandleLike } from '../model/fs-types'
 import type { BumpLevel } from '../utils/version'
@@ -264,7 +269,7 @@ export async function saveActiveFile(
   for (const [id, node] of Object.entries(knowledgeStore.nodes)) {
     if (id.startsWith('spec:') && node.rawContent) {
       const specName = node.name || id.substring(5)
-      const filename = specName.endsWith('_NN') ? `${specName}.md` : `${specName}_NN.md`
+      const filename = ensureNNFilename(specName)
       const alreadyPresent = await specsDir
         .getFileHandle(filename)
         .then(() => true)
@@ -367,22 +372,18 @@ export async function renameActiveFile(
 }
 
 /**
- * Renames the active file to a version-bumped filename, archives the
- * previous version, and marks the root node dirty so the caller's
- * subsequent `saveActiveFile()` persists the change. Does NOT itself
- * perform that final save — the caller (workspaceStore) owns the
- * `saving`/`error` state transitions around its own `saveActiveFile()`
- * action, so this function stops once the rename/archive/dirty-mark is done.
+ * Bumps the active model's `knowledge_version` in place. Models are
+ * stable-identity documents: the version lives only in the frontmatter, so no
+ * new file is created and no archive is written (git is the version history).
+ * Marks the root node dirty so the caller's subsequent `saveActiveFile()`
+ * persists the change — this function does not itself save.
  */
 export async function saveActiveFileWithVersionBump(
-  handle: DirectoryHandleLike | null,
   knowledgeStore: ModelStore,
   uiStore: UiStore,
   level: BumpLevel,
   targetRootId?: string,
 ): Promise<void> {
-  if (!handle) throw new Error('No workspace handle')
-
   const rootId =
     targetRootId ??
     (uiStore.activeModelId && knowledgeStore.nodes[uiStore.activeModelId]
@@ -393,69 +394,19 @@ export async function saveActiveFileWithVersionBump(
   const rootNode = knowledgeStore.getNode(rootId)
   if (!rootNode) throw new Error('No root node found for version bump')
 
-  const oldPath = rootNode.source.path.replace(/\\/g, '/')
-  const pathSegments = oldPath.split('/')
-  const oldFilenameOnly = pathSegments.pop() || ''
-  const dirPath = pathSegments.join('/')
-
-  const parsed = parseFormatFilename(oldFilenameOnly)
-  if (!parsed) throw new Error('Could not parse filename for version bump')
-
-  const newVersion = bumpVersion(parsed.version, level)
-  const newFilenameOnly = buildFormatFilename(parsed.baseName, parsed.templateName, newVersion)
-  const versionStr = formatVersionString(newVersion)
-  const oldFilename = rootNode.source.path
-
-  const cleanNewFilenameOnly = newFilenameOnly.replace(/[^a-zA-Z0-9._-]/g, '_').trim()
-  const cleanNewFilename = dirPath ? `${dirPath}/${cleanNewFilenameOnly}` : cleanNewFilenameOnly
-
-  // Create the new file and write current content
-  const newFileHandle = await resolveFileHandleForWrite(handle, cleanNewFilename)
-  if (!newFileHandle.createWritable) {
-    throw new Error(`New file handle "${cleanNewFilename}" does not support writing`)
+  const raw = rootNode.rawContent ?? ''
+  const current = raw.match(/^knowledge_version:\s*["']?([^"'\n]+)["']?/m)?.[1]?.trim()
+  const semver = current ? parseVersionString(current) : null
+  if (!semver) {
+    throw new Error(`Could not parse knowledge_version${current ? ` "${current}"` : ''} for version bump`)
   }
-  const writable = await newFileHandle.createWritable()
-  await writable.write(rootNode.rawContent ?? '')
-  await writable.close()
+  const versionStr = formatVersionString(bumpVersion(semver, level))
 
-  // Archive the previous version (non-blocking)
-  if (oldFilename !== cleanNewFilename) {
-    try {
-      const archiveDir = await handle.getDirectoryHandle('Archive', { create: true })
-      const oldFileHandle = await resolveFileHandleForWrite(handle, oldFilename)
-      const oldFile = await oldFileHandle.getFile()
-      const oldContent = await oldFile.text()
-      const archiveFileHandle = await resolveFileHandleForWrite(archiveDir, oldFilename)
-      if (archiveFileHandle.createWritable) {
-        const archiveWritable = await archiveFileHandle.createWritable()
-        await archiveWritable.write(oldContent)
-        await archiveWritable.close()
-      }
-      await removeFileByPath(handle, oldFilename)
-    } catch (err) {
-      console.warn('[version-bump] Failed to archive previous version:', err)
-    }
-  }
+  rootNode.rawContent = raw.replace(
+    /^(knowledge_version|version):\s*["']?V_\d+-\d+-\d+["']?/m,
+    (_, key: string) => `${key}: "${versionStr}"`,
+  )
 
-  // Update the root node's in-memory frontmatter version
-  if (rootNode.rawContent) {
-    rootNode.rawContent = rootNode.rawContent.replace(
-      /^(knowledge_version|version):\s*"V_\d+-\d+-\d+"/m,
-      `$1: "${versionStr}"`,
-    )
-  }
-
-  // Update the root node's source path and all child nodes belonging to this model
-  rootNode.source.path = cleanNewFilename
-  for (const node of Object.values(knowledgeStore.nodes)) {
-    if (
-      node.source &&
-      (node.source.path === oldFilename || knowledgeStore.getKnowledgeRootForNode(node.id) === rootId)
-    ) {
-      node.source.path = cleanNewFilename
-    }
-  }
-
-  // Mark root node dirty so the caller's saveActiveFile() persists changes
+  // Mark root node dirty so the caller's saveActiveFile() persists the change.
   knowledgeStore.markDirty(rootId)
 }

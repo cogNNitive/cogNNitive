@@ -9,7 +9,7 @@ import type { FileSnapshot } from '../../src/queryUnits.js'
 
 describe('validateWorkspaceSources with FileSnapshot[]', () => {
   const mockResolver: SourceResolver = (p: string) => {
-    if (p === 'sources/nn/existing.md') {
+    if (p === 'sources/import/existing.md') {
       return {
         exists: true,
         content: '# Overview\nValid content',
@@ -62,7 +62,7 @@ describe('validateWorkspaceSources with FileSnapshot[]', () => {
         elements: {},
         fields: {
           derived_from: {
-            value: 'sources/nn/existing.md@## Overview',
+            value: 'sources/import/existing.md@## Overview',
           },
         },
         templateSchema: modelRecordsSchema,
@@ -73,15 +73,15 @@ describe('validateWorkspaceSources with FileSnapshot[]', () => {
 
   const snapshots: FileSnapshot[] = [
     {
-      path: 'export/DanglingReport.md',
+      path: 'artifacts/DanglingReport.md',
       content: `---
 title: "Dangling Report"
-sources: ["sources/nn/missing.md@## Section"]
+sources: ["sources/import/missing.md@## Section"]
 ---
 `,
     },
     {
-      path: 'export/DanglingConsole.html',
+      path: 'artifacts/DanglingConsole.html',
       content: `<html><head><script id="innfo-model" type="application/json">
 {
   "meta": {
@@ -91,10 +91,10 @@ sources: ["sources/nn/missing.md@## Section"]
 </script></head><body></body></html>`,
     },
     {
-      path: 'export/ValidReport.md',
+      path: 'artifacts/ValidReport.md',
       content: `---
 title: "Valid Report"
-sources: ["sources/nn/existing.md@## Overview"]
+sources: ["sources/import/existing.md@## Overview"]
 ---
 `,
     },
@@ -103,15 +103,15 @@ sources: ["sources/nn/existing.md@## Overview"]
   it('validates artifact frontmatter and console meta citations from snapshot without false positives on ModelRecords.derived_from', () => {
     const diagnostics = validateWorkspaceSources(recursiveResult, mockResolver, snapshots)
 
-    // Should contain errors for dangling citations in export/ files
+    // Should contain errors for dangling citations in artifacts/ files
     const missingFileDiags = diagnostics.filter((d) => d.code === 'KU_DANGLING_FILE')
     expect(missingFileDiags.length).toBe(2)
 
-    const reportDiag = missingFileDiags.find((d) => d.path.startsWith('export/DanglingReport.md'))
+    const reportDiag = missingFileDiags.find((d) => d.path.startsWith('artifacts/DanglingReport.md'))
     expect(reportDiag).toBeDefined()
-    expect(reportDiag?.message).toContain('sources/nn/missing.md')
+    expect(reportDiag?.message).toContain('sources/import/missing.md')
 
-    const consoleDiag = missingFileDiags.find((d) => d.path.startsWith('export/DanglingConsole.html'))
+    const consoleDiag = missingFileDiags.find((d) => d.path.startsWith('artifacts/DanglingConsole.html'))
     expect(consoleDiag).toBeDefined()
     expect(consoleDiag?.message).toContain('kNNowledge/MissingModel_NN.md')
 
@@ -120,7 +120,7 @@ sources: ["sources/nn/existing.md@## Overview"]
     expect(legacyDiags).toHaveLength(0)
 
     // No errors on valid report
-    const validDiags = diagnostics.filter((d) => d.path.startsWith('export/ValidReport.md'))
+    const validDiags = diagnostics.filter((d) => d.path.startsWith('artifacts/ValidReport.md'))
     expect(validDiags).toHaveLength(0)
   })
 })

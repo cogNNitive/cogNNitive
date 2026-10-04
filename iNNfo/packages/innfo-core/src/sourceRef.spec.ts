@@ -11,9 +11,9 @@ import {
 } from './sourceRef.js'
 
 describe('parseSourceRef', () => {
-  it('resolves a bare path under sources/nn/', () => {
+  it('resolves a bare path as written, with no implicit folder', () => {
     expect(parseSourceRef('clientA/report.md#market-overview')).toEqual({
-      filePath: 'sources/nn/clientA/report.md',
+      filePath: 'clientA/report.md',
       fileName: 'report.md',
       slug: 'market-overview',
       kind: 'source',
@@ -21,10 +21,12 @@ describe('parseSourceRef', () => {
     })
   })
 
-  it('keeps an explicit sources/nn/ prefix', () => {
-    const r = parseSourceRef('sources/nn/report.md#intro')
-    expect(r?.filePath).toBe('sources/nn/report.md')
+  it('accepts any domaiNN-relative path and gives retired prefixes no special meaning', () => {
+    const r = parseSourceRef('sources/import/report.md#intro')
+    expect(r?.filePath).toBe('sources/import/report.md')
     expect(r?.kind).toBe('source')
+    expect(parseSourceRef('sources/import/report.md#intro')?.filePath).toBe('sources/import/report.md')
+    expect(parseSourceRef('artifacts/report.md#intro')?.filePath).toBe('artifacts/report.md')
   })
 
   it('recognises a kNNowledge/ cross-domain reference', () => {
@@ -37,7 +39,7 @@ describe('parseSourceRef', () => {
   it('parses a reference with no slug', () => {
     const r = parseSourceRef('notes.md')
     expect(r).toEqual({
-      filePath: 'sources/nn/notes.md',
+      filePath: 'notes.md',
       fileName: 'notes.md',
       slug: undefined,
       kind: 'source',
@@ -53,11 +55,6 @@ describe('parseSourceRef', () => {
   it('rejects a src-NNN wrapper', () => {
     expect(parseSourceRef('src-007 report.md#intro')).toBeNull()
     expect(parseSourceRef('src-12')).toBeNull()
-  })
-
-  it('rejects a sources/original/ path', () => {
-    expect(parseSourceRef('sources/original/report.pdf')).toBeNull()
-    expect(parseSourceRef('sources/original/a.md#x')).toBeNull()
   })
 
   it('rejects http(s) URLs and parent-relative paths', () => {

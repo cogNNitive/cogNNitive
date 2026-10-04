@@ -403,10 +403,10 @@ title: "DomaiNN Index"
         type: 'Concept',
         sources: [
           {
-            filePath: 'sources/nn/a/report.md',
+            filePath: 'sources/import/a/report.md',
             fileName: 'report.md',
             kind: 'source',
-            raw: 'sources/nn/a/report.md@## Intro',
+            raw: 'sources/import/a/report.md@## Intro',
             slug: 'intro',
           },
         ],
@@ -416,10 +416,10 @@ title: "DomaiNN Index"
         type: 'Concept',
         sources: [
           {
-            filePath: 'sources/nn/b/report.md',
+            filePath: 'sources/import/b/report.md',
             fileName: 'report.md',
             kind: 'source',
-            raw: 'sources/nn/b/report.md@## Intro',
+            raw: 'sources/import/b/report.md@## Intro',
             slug: 'intro',
           },
         ],
@@ -429,7 +429,7 @@ title: "DomaiNN Index"
         type: 'Concept',
         sources: [
           {
-            filePath: 'sources/nn/report.md',
+            filePath: 'sources/import/report.md',
             fileName: 'report.md',
             kind: 'source',
             raw: 'report.md@## Intro',
@@ -443,16 +443,16 @@ title: "DomaiNN Index"
         ['Model/A', 'Model/B', 'Model/Bare'],
       )
 
-      // Querying for sources/nn/a/report.md returns ONLY nodeA (no suffix match to b or bare)
-      const resA = knowledgeStore.getSourceCitations('sources/nn/a/report.md')
+      // Querying for sources/import/a/report.md returns ONLY nodeA (no suffix match to b or bare)
+      const resA = knowledgeStore.getSourceCitations('sources/import/a/report.md')
       expect(resA.map((r) => r.nodeId)).toEqual(['Model/A'])
 
-      // Querying for sources/nn/b/report.md returns ONLY nodeB
-      const resB = knowledgeStore.getSourceCitations('sources/nn/b/report.md')
+      // Querying for sources/import/b/report.md returns ONLY nodeB
+      const resB = knowledgeStore.getSourceCitations('sources/import/b/report.md')
       expect(resB.map((r) => r.nodeId)).toEqual(['Model/B'])
 
-      // Querying for sources/nn/report.md returns ONLY nodeBare
-      const resBare = knowledgeStore.getSourceCitations('sources/nn/report.md')
+      // Querying for sources/import/report.md returns ONLY nodeBare
+      const resBare = knowledgeStore.getSourceCitations('sources/import/report.md')
       expect(resBare.map((r) => r.nodeId)).toEqual(['Model/Bare'])
     })
 

@@ -98,7 +98,11 @@ export {
   slugifyUnitHeading,
   normalizeName,
 } from './sourceRef.js'
-export type { KnowledgeUnit, HeaderUnit, RowUnit } from './sourceRef.js'
+export type { KnowledgeUnit, HeaderUnit, RowUnit, PointerUnit } from './sourceRef.js'
+export { unitLabel } from './sourceRef.js'
+export { assertNever } from './assertNever.js'
+export { resolveJsonPointer, isJsonPointer } from './jsonPointer.js'
+export type { JsonPointerResult } from './jsonPointer.js'
 export { parseCsvTable } from './csvTable.js'
 export type { CsvTable, CsvTableOptions } from './csvTable.js'
 export { resolveUnit } from './unitResolve.js'
@@ -149,7 +153,7 @@ export type {
   FreshnessField,
   TemplateResolution,
 } from './workspace/integrity/report.js'
-export { listKnowledge, resolveSpecVersionFromFilename } from './helpers.js'
+export { listKnowledge, resolveKnowledgeVersion } from './helpers.js'
 export type { KnowledgeInfo } from './helpers.js'
 export { applyMutation, updateReferenceString, updateWikiLinks } from './mutate.js'
 export type { MutationResult } from './mutate.js'
@@ -165,4 +169,8 @@ export type { MatrixWidgetType } from './matrix.js'
 export { mergeKnowledge } from './merge.js'
 export * from './console/index.js'
 export * from './lineage/index.js'
-export { readLineageSnapshot } from './lineage/fs-snapshot.js'
+export { readLineageSnapshot, readLineageRecord } from './lineage/fs-snapshot.js'
+
+export * from './naming/index.js'
+export * from './writeOnce/index.js'
+export * from './cognitivize/index.js'

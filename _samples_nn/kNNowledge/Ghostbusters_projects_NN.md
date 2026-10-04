@@ -1,14 +1,14 @@
 ---
 level: 3
 parent_spec:
-  name: "projects_V_0-2-0"
-  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/projects/projects_V_0-2-0_NN.md"
-knowledge_version: "V_0-2-0"
+  name: "projects_V_0-3-2"
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/projects/spec_NN.md"
+knowledge_version: "V_0-3-2"
 title: "Ghostbusters Subterranean Containment Upgrade Project"
 ---
 
 > [!NOTE]
-> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor or view and edit it with [cogNNitive](https://cognnitive.com/innfo/app/).
+> This is an **iNNfo document** â€” a plain-text Markdown file. Open it with any text editor or view and edit it with [cogNNitive](https://cognnitive.com/innfo/app/).
 
 # NN Project
 
@@ -73,7 +73,6 @@ Automatic transfer switch coupling main city power to the auxiliary diesel gener
 ## NN Task: Calibrate Particle Accelerators
 status:: done
 priority:: high
-depends_on:: -
 duration:: 4d
 start_date:: "2026-08-01"
 due_date:: "2026-08-05"

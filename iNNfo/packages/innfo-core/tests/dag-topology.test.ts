@@ -89,11 +89,11 @@ title: Sources Catalog
 type:: local_file
 format:: md
 summary:: Comprehensive NYC market analysis.
-source_model:: sources/nn/market_report_NN.md
+source_model:: sources/import/market_report_NN.md
 `,
-      'sources/nn/market_report_NN.md': `---
+      'sources/import/market_report_NN.md': `---
 sha256: 1234567890abcdef
-raw_path: sources/original/market.pdf
+raw_path: sources/import/market.pdf
 ---
 # NYC Market Report
 Evidence content.

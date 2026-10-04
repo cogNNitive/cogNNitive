@@ -1,6 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { join } from 'node:path'
 import { mkdir, writeFile, readFile, readdir } from 'node:fs/promises'
+import {
+  cognitivize,
+  projectLineage,
+  readLineageSnapshot,
+  refreshExistingModel,
+  renderLineageSections,
+} from '@cognnitive/innfo-core'
 import { checkWorkspace, resolveCatalog, toIntegrityDiagnostics } from './check-workspace'
 import { rmWithRetry } from '../../test/helpers/fs-retry'
 
@@ -283,6 +290,87 @@ describe('checkWorkspace (AD-5)', () => {
       report.models.every((m) => m.errors.length > 0 || m.versionStatus === 'upgrade-available'),
     ).toBe(true)
   }, 30000)
+})
+
+describe('checkWorkspace lineage drift gate', () => {
+  const RECORD = 'Acme_cogNNitive_NN.md'
+  const origGlobal = process.env.INNFO_GLOBAL_DIR
+  const origSkills = process.env.INNFO_SKILLS_DIR
+
+  /** A domaiNN with one cognitivized source and, optionally, an in-sync record. */
+  async function seedDomain(withRecord: boolean): Promise<string> {
+    await mkdir(join(rootDir, 'sources', 'import'), { recursive: true })
+    await writeFile(join(rootDir, 'sources', 'import', 'a.md'), ['# A', '', '## Item', 'text', ''].join('\n'), 'utf-8')
+    await cognitivize(rootDir, 'sources/import/a.md', { now: () => new Date('2026-10-02T10:15:00Z') })
+    const recordPath = join(rootDir, RECORD)
+    if (withRecord) {
+      const sections = renderLineageSections(projectLineage(readLineageSnapshot(rootDir)))
+      await writeFile(recordPath, refreshExistingModel('', sections), 'utf-8')
+    }
+    return recordPath
+  }
+
+  beforeEach(async () => {
+    process.env.INNFO_GLOBAL_DIR = join(rootDir, 'isolated-global')
+    process.env.INNFO_SKILLS_DIR = join(rootDir, 'isolated-skills')
+    await rmWithRetry(rootDir)
+    await mkdir(rootDir, { recursive: true })
+    vi.restoreAllMocks()
+  })
+
+  afterEach(async () => {
+    if (origGlobal !== undefined) process.env.INNFO_GLOBAL_DIR = origGlobal
+    else delete process.env.INNFO_GLOBAL_DIR
+    if (origSkills !== undefined) process.env.INNFO_SKILLS_DIR = origSkills
+    else delete process.env.INNFO_SKILLS_DIR
+    vi.restoreAllMocks()
+    await rmWithRetry(rootDir)
+  })
+
+  it('emits no diagnostic for an in-sync record', async () => {
+    await seedDomain(true)
+    const report = await checkWorkspace(rootDir, { offline: true })
+    expect(report.lineage).toEqual({ record: RECORD, diagnostics: [] })
+  })
+
+  it('emits an error LINEAGE_DRIFT naming the record and the section for a hand-edited managed line', async () => {
+    const recordPath = await seedDomain(true)
+    const text = await readFile(recordPath, 'utf-8')
+    await writeFile(recordPath, text.replace('version:: V1', 'version:: V9'), 'utf-8')
+    const report = await checkWorkspace(rootDir, { offline: true })
+    expect(report.lineage.record).toBe(RECORD)
+    expect(report.lineage.diagnostics).toHaveLength(1)
+    const [diag] = report.lineage.diagnostics
+    expect(diag.code).toBe('LINEAGE_DRIFT')
+    expect(diag.severity).toBe('error')
+    expect(diag.path).toBe(RECORD)
+    expect(diag.message).toContain('# NN Sources')
+    expect(diag.message).toContain('V9')
+  })
+
+  it('keeps the lineage result in the summary_only report', async () => {
+    const recordPath = await seedDomain(true)
+    const text = await readFile(recordPath, 'utf-8')
+    await writeFile(recordPath, text.replace('version:: V1', 'version:: V9'), 'utf-8')
+    const report = await checkWorkspace(rootDir, { offline: true, summaryOnly: true })
+    expect(report.lineage.diagnostics.map((d) => d.code)).toEqual(['LINEAGE_DRIFT'])
+  })
+
+  it('tolerates a domaiNN with no lineage record', async () => {
+    await seedDomain(false)
+    const report = await checkWorkspace(rootDir, { offline: true })
+    expect(report.lineage).toEqual({ record: null, diagnostics: [] })
+  })
+
+  it('does not write anything: the drifted record is byte-identical afterwards', async () => {
+    const recordPath = await seedDomain(true)
+    const drifted = (await readFile(recordPath, 'utf-8')).replace('version:: V1', 'version:: V9')
+    await writeFile(recordPath, drifted, 'utf-8')
+    const before = (await readdir(rootDir)).sort()
+    await checkWorkspace(rootDir, { offline: true })
+    expect(await readFile(recordPath, 'utf-8')).toBe(drifted)
+    expect((await readdir(rootDir)).sort()).toEqual(before)
+  })
 })
 
 describe('toIntegrityDiagnostics info demotion (robustness-coda 1.4)', () => {

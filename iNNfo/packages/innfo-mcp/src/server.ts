@@ -46,6 +46,7 @@ import {
 } from './tools/mutate.js'
 import { checkDomain } from './tools/check-workspace.js'
 import { queryUnits } from './tools/query-units.js'
+import { cognitivizeTool } from './tools/cognitivize.js'
 import { resolveSources } from './tools/resolve-sources.js'
 import { buildConsolePayloadTool } from './tools/build-console-payload.js'
 import {
@@ -82,9 +83,19 @@ export const server = new Server(
 
 /* ── Legacy domain interceptor ───────────────────────────────── */
 
-async function checkDomainLegacy(root: string): Promise<CallToolResult | null> {
+/**
+ * Refuses a tool call on a legacy domain. A domain whose only legacy signal is the
+ * retired layout (frozen samples keep it) stays readable: reads pass,
+ * writes are refused until nn-upgrade migrates it.
+ */
+async function checkDomainLegacy(
+  root: string,
+  access: 'read' | 'write' = 'read',
+): Promise<CallToolResult | null> {
   const legacy = await checkLegacyDomain(root)
-  if (legacy.kind !== 'current') {
+  const layoutOnly =
+    legacy.kind !== 'current' && legacy.signals.every((s) => s.type === 'legacy-layout')
+  if (legacy.kind !== 'current' && !(layoutOnly && access === 'read')) {
     return textResult(
       JSON.stringify(
         {
@@ -495,7 +506,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
     definition: {
       name: 'check_domain',
       description:
-        'Run one consolidated domain integrity pass over every Level-3 knowledge document: validate each against its blueprint and traceability, self-heal missing blueprint packages/specs (write-once hydration), classify each pinned blueprint version against the published catalog, and return one report with a per-knowledge status and a domain aggregate. Non-blocking and informational — validation failures never fail the tool.',
+        'Run one consolidated domain integrity pass over every Level-3 knowledge document: validate each against its blueprint and traceability, self-heal missing blueprint packages/specs (write-once hydration), classify each pinned blueprint version against the published catalog, compare the managed sections of the lineage record with a fresh projection (error LINEAGE_DRIFT in the lineage field of the report; read-only), and return one report with a per-knowledge status and a domain aggregate. Non-blocking and informational — validation failures never fail the tool.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -532,7 +543,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
         properties: {
           query: {
             type: 'string',
-            description: 'Query string, e.g. "sources/nn/m.csv?segmento=Enterprise&mrr_usd"',
+            description: 'Query string, e.g. "sources/import/m.csv?segmento=Enterprise&mrr_usd"',
           },
           domain: {
             type: 'string',
@@ -556,6 +567,32 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
       },
     },
     handler: handleQueryUnits,
+  },
+  {
+    definition: {
+      name: 'cognitivize',
+      description:
+        'Create or refresh the sidecar (`<file>_sidecar_NN.md`) of one raw markdown, CSV, or JSON file in place, so it can be cited. Binary formats (pdf, docx, images, ...) are never converted here: the result has status `requires-cli` and nothing is written (use the nn-trannsform CLI). Paths outside the workspace, sidecars, and NN documents are rejected.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          path: {
+            type: 'string',
+            description: 'Domain-relative path of the raw file, e.g. "sources/import/notes.md"',
+          },
+          domain: {
+            type: 'string',
+            description: 'Optional domain root directory override (default: server root)',
+          },
+          root: {
+            type: 'string',
+            description: 'Optional domain root directory override (alias for domain)',
+          },
+        },
+        required: ['path'],
+      },
+    },
+    handler: handleCognitivize,
   },
   {
     definition: {
@@ -823,7 +860,7 @@ async function handleApplyChange(args: Record<string, unknown>): Promise<CallToo
     return errorResult('Missing required arguments: id, op, args')
   }
   const root = (args.domain as string) || (args.root as string) || ROOT_DIR
-  const legacyErr = await checkDomainLegacy(root)
+  const legacyErr = await checkDomainLegacy(root, 'write')
   if (legacyErr) return legacyErr
   const result = await applyChange(root, id, op, opArgs)
   let payload: Record<string, unknown> = { ...result }
@@ -866,7 +903,7 @@ async function handleInitKnowledge(args: Record<string, unknown>): Promise<CallT
   if (!id || !blueprintUrl || !blueprintName) {
     return errorResult('Missing required arguments: id, blueprint_url, blueprint_name')
   }
-  const legacyErr = await checkDomainLegacy(root)
+  const legacyErr = await checkDomainLegacy(root, 'write')
   if (legacyErr) return legacyErr
   const result = await initKnowledge(
     root,
@@ -889,7 +926,7 @@ async function handleHydrateBlueprint(args: Record<string, unknown>): Promise<Ca
   const blueprintName = args.blueprint_name as string
   if (!blueprintName) return errorResult('Missing required argument: blueprint_name')
   const root = (args.domain as string) || (args.root as string) || ROOT_DIR
-  const legacyErr = await checkDomainLegacy(root)
+  const legacyErr = await checkDomainLegacy(root, 'write')
   if (legacyErr) return legacyErr
   const targetDir = args.target_dir as string | undefined
   const result = await hydrateBlueprint(root, blueprintName, { targetDir })
@@ -898,7 +935,7 @@ async function handleHydrateBlueprint(args: Record<string, unknown>): Promise<Ca
 
 async function handleSyncDomainManifest(args: Record<string, unknown>): Promise<CallToolResult> {
   const root = (args.domain as string) || (args.root as string) || ROOT_DIR
-  const legacyErr = await checkDomainLegacy(root)
+  const legacyErr = await checkDomainLegacy(root, 'write')
   if (legacyErr) return legacyErr
   const dryRun = args.dry_run !== undefined ? Boolean(args.dry_run) : true
   const result = await syncDomainManifest(root, { dry_run: dryRun })
@@ -927,6 +964,17 @@ async function handleQueryUnits(args: Record<string, unknown>): Promise<CallTool
     max_values_chars: args.max_values_chars as number | undefined,
   })
   return textResult(JSON.stringify(envelope('innfo-query-units', result), null, 2))
+}
+
+async function handleCognitivize(args: Record<string, unknown>): Promise<CallToolResult> {
+  const root = (args.domain as string) || (args.root as string) || ROOT_DIR
+  const legacyErr = await checkDomainLegacy(root, 'write')
+  if (legacyErr) return legacyErr
+  const path = String(args.path ?? '')
+  if (!path) return errorResult('Missing required argument: path')
+  const result = await cognitivizeTool(root, path)
+  const text = JSON.stringify(envelope('innfo-cognitivize', result), null, 2)
+  return result.status === 'rejected' ? errorResult(text) : textResult(text)
 }
 
 async function handleResolveSources(args: Record<string, unknown>): Promise<CallToolResult> {
@@ -962,7 +1010,7 @@ async function handleBuildConsolePayload(args: Record<string, unknown>): Promise
 
 async function handleRecordFeedbackVerdict(args: Record<string, unknown>): Promise<CallToolResult> {
   const root = (args.domain as string) || (args.root as string) || ROOT_DIR
-  const legacyErr = await checkDomainLegacy(root)
+  const legacyErr = await checkDomainLegacy(root, 'write')
   if (legacyErr) return legacyErr
   try {
     const result = await recordFeedbackVerdictTool(root, {

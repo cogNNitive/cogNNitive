@@ -10,6 +10,7 @@ import {
   extractHeadings,
   SOURCE_FIELD_NAMES,
 } from '../index.js'
+import { assertNever } from '../assertNever.js'
 import type {
   SourceResolver,
   ResolvedUnit,
@@ -122,6 +123,37 @@ export function classifyFromFrontmatter(fm: { source_type?: string; author?: str
   return { origin: 'document' }
 }
 
+/** Matches the heading a citation addresses: header units also pin the level. */
+function headingMatcher(ref: SourceRef): (h: HeadingInfo) => boolean {
+  const unit = ref.unit
+  if (!unit) return (h) => h.slug === ref.slug
+  switch (unit.kind) {
+    case 'header':
+      return (h) => h.slug === ref.slug && h.level === unit.level
+    case 'row':
+    case 'pointer':
+      return (h) => h.slug === ref.slug
+    default:
+      return assertNever(unit, 'knowledge unit kind')
+  }
+}
+
+/** The anchor reported for a citation: heading slug, CSV row id, or JSON Pointer. */
+function anchorOf(ref: SourceRef): string | undefined {
+  const unit = ref.unit
+  if (!unit) return ref.slug
+  switch (unit.kind) {
+    case 'header':
+      return ref.slug
+    case 'row':
+      return ref.slug ?? unit.id
+    case 'pointer':
+      return unit.pointer
+    default:
+      return assertNever(unit, 'knowledge unit kind')
+  }
+}
+
 /**
  * Classify a citation origin by inspecting headings, enclosing Agent Modification blocks, or frontmatter.
  */
@@ -132,10 +164,7 @@ export function classifyOrigin(
 ): { origin: CitationOrigin; author?: string } {
   if (ref.slug) {
     const headings = extractHeadings(content)
-    const idx =
-      ref.unit?.kind === 'header'
-        ? headings.findIndex((h) => h.slug === ref.slug && h.level === (ref.unit as { level: number }).level)
-        : headings.findIndex((h) => h.slug === ref.slug)
+    const idx = headings.findIndex(headingMatcher(ref))
 
     if (idx !== -1) {
       const amHeading = findEnclosingAgentModification(headings, idx)
@@ -153,18 +182,22 @@ export function capExcerpt(text: string): { text: string; truncated: boolean } {
 
 export function extractExcerpt(content: string, unit: ResolvedUnit): { text: string; truncated: boolean } {
   const lines = content.split('\n')
-  if (unit.kind === 'section') {
-    return capExcerpt(lines.slice(unit.startLine, unit.endLine).join('\n'))
+  switch (unit.kind) {
+    case 'section':
+      return capExcerpt(lines.slice(unit.startLine, unit.endLine).join('\n'))
+    case 'field':
+      return capExcerpt(unit.lines.map((i) => lines[i]).join('\n'))
+    case 'cell':
+      return capExcerpt(String(unit.value))
+    case 'row': {
+      const row = parseCsvTable(content).rows[unit.index]
+      return capExcerpt(row ? row.join(',') : '')
+    }
+    case 'pointer':
+      return capExcerpt(typeof unit.value === 'string' ? unit.value : JSON.stringify(unit.value))
+    default:
+      return assertNever(unit, 'resolved unit kind')
   }
-  if (unit.kind === 'field') {
-    return capExcerpt(unit.lines.map((i) => lines[i]).join('\n'))
-  }
-  if (unit.kind === 'cell') {
-    return capExcerpt(String(unit.value))
-  }
-  const table = parseCsvTable(content)
-  const row = table.rows[unit.index]
-  return capExcerpt(row ? row.join(',') : '')
 }
 
 /**
@@ -181,7 +214,7 @@ export function resolveCitation(
     return { path: raw, exists: false, field, origin: 'document', error: 'MALFORMED' }
   }
 
-  const anchor = ref.slug ?? (ref.unit?.kind === 'row' ? ref.unit.id : undefined)
+  const anchor = anchorOf(ref)
   const resolved = resolver(ref.filePath, modelPath)
   if (!resolved || !resolved.exists) {
     return { path: ref.filePath, anchor, exists: false, field, origin: 'document', error: 'DANGLING_FILE' }

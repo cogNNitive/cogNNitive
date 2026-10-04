@@ -10,30 +10,25 @@ describe('renderLineageSections', () => {
       {
         name: 'interview.txt',
         raw_filename: 'sources/import/interview.txt',
-        media_filename: 'sources/media/interview.mp3',
         raw_hash: 'abc123def456',
         size: '1024',
         source_format: 'txt',
         normalized_at: '2026-09-01T10:00:00Z',
         normalized_by: 'scanner',
-        normalized_content: 'sources/nn/interview.md',
-        curated_csv: 'sources/nn/interview.csv',
-        version: 'V2',
-        archive_path: 'sources/archive/interview/V1/interview.md',
-        derived_from: ['sources/export/doc.md@## Overview'],
+        normalized_content: 'sources/import/interview.txt_sidecar_NN.md',
+        version: 'V1',
+        superseded_by: 'sources/import/interview_20261002T101500Z.txt',
+        derived_from: ['artifacts/doc_20261002T101500Z.md@## Overview'],
       },
       {
-        name: 'interview.txt V1',
-        raw_filename: 'sources/import/interview.txt',
-        raw_hash: 'oldhash111',
+        name: 'interview_20261002T101500Z.txt',
+        raw_filename: 'sources/import/interview_20261002T101500Z.txt',
+        raw_hash: 'newhash222',
         size: '900',
         source_format: 'txt',
-        normalized_at: '2026-08-01T10:00:00Z',
-        normalized_by: 'scanner',
-        normalized_content: 'sources/archive/interview/V1/interview.md',
-        status: 'archived',
-        version: 'V1',
-        superseded_by: 'interview.txt V2',
+        normalized_at: '2026-10-02T10:15:00Z',
+        normalized_content: 'sources/import/interview_20261002T101500Z.txt_sidecar_NN.md',
+        version: 'V2',
         derived_from: [],
       },
     ],
@@ -45,7 +40,7 @@ describe('renderLineageSections', () => {
         model_template: 'business',
         citations: [
           {
-            value: 'sources/nn/interview.md@## Clients',
+            value: 'sources/import/interview.md@## Clients',
             referringPath: 'kNNowledge/Strategy_V_1-0-0_NN.md',
             element: 'Positioning',
             field: 'sources',
@@ -56,17 +51,18 @@ describe('renderLineageSections', () => {
     artifacts: [
       {
         name: 'Report',
-        artifact_ref: 'export/Report.md',
+        artifact_ref: 'artifacts/Report.md',
         artifact_format: 'report',
         citations: [
           {
             value: 'kNNowledge/Strategy_V_1-0-0_NN.md@## NN Strategy: Positioning',
-            referringPath: 'export/Report.md',
+            referringPath: 'artifacts/Report.md',
             field: 'sources',
           },
         ],
       },
     ],
+    diagnostics: [],
   }
 
   it('renders exact fields for Sources, ModelRecords, and Artifacts', () => {
@@ -76,22 +72,26 @@ describe('renderLineageSections', () => {
     expect(rendered.sources).toContain('# NN Sources\n')
     expect(rendered.sources).toContain('## NN Sources: interview.txt\n')
     expect(rendered.sources).toContain('raw_filename:: sources/import/interview.txt\n')
-    expect(rendered.sources).toContain('media_filename:: sources/media/interview.mp3\n')
     expect(rendered.sources).toContain('raw_hash:: abc123def456\n')
     expect(rendered.sources).toContain('size:: 1024\n')
     expect(rendered.sources).toContain('source_format:: txt\n')
     expect(rendered.sources).toContain('normalized_at:: 2026-09-01T10:00:00Z\n')
     expect(rendered.sources).toContain('normalized_by:: scanner\n')
-    expect(rendered.sources).toContain('normalized_content:: sources/nn/interview.md\n')
-    expect(rendered.sources).toContain('curated_csv:: sources/nn/interview.csv\n')
-    expect(rendered.sources).toContain('version:: V2\n')
-    expect(rendered.sources).toContain('archive_path:: sources/archive/interview/V1/interview.md\n')
-    expect(rendered.sources).toContain('derived_from:: [sources/export/doc.md@## Overview]\n')
+    expect(rendered.sources).toContain('normalized_content:: sources/import/interview.txt_sidecar_NN.md\n')
+    expect(rendered.sources).toContain('version:: V1\n')
+    expect(rendered.sources).toContain(
+      'superseded_by:: sources/import/interview_20261002T101500Z.txt\n',
+    )
+    expect(rendered.sources).toContain('derived_from:: [artifacts/doc_20261002T101500Z.md@## Overview]\n')
 
-    // Archived source
-    expect(rendered.sources).toContain('## NN Sources: interview.txt V1\n')
-    expect(rendered.sources).toContain('status:: archived\n')
-    expect(rendered.sources).toContain('superseded_by:: interview.txt V2\n')
+    // Latest family member
+    expect(rendered.sources).toContain('## NN Sources: interview_20261002T101500Z.txt\n')
+    expect(rendered.sources).toContain('version:: V2\n')
+
+    // Removed fields never render
+    for (const removed of ['archive_path::', 'status::', 'curated_csv::', 'media_filename::']) {
+      expect(rendered.sources).not.toContain(removed)
+    }
 
     // ModelRecords section
     expect(rendered.modelRecords).toContain('# NN ModelRecords\n')
@@ -100,13 +100,13 @@ describe('renderLineageSections', () => {
     expect(rendered.modelRecords).toContain('knowledge_version:: V_1-0-0\n')
     expect(rendered.modelRecords).toContain('model_template:: business\n')
     expect(rendered.modelRecords).toContain(
-      'derived_from:: [sources/nn/interview.md@## Clients]\n',
+      'derived_from:: [sources/import/interview.md@## Clients]\n',
     )
 
     // Artifacts section
     expect(rendered.artifacts).toContain('# NN Artifacts\n')
     expect(rendered.artifacts).toContain('## NN Artifacts: Report\n')
-    expect(rendered.artifacts).toContain('artifact_ref:: export/Report.md\n')
+    expect(rendered.artifacts).toContain('artifact_ref:: artifacts/Report.md\n')
     expect(rendered.artifacts).toContain('artifact_format:: report\n')
     expect(rendered.artifacts).toContain(
       'derived_from:: [kNNowledge/Strategy_V_1-0-0_NN.md@## NN Strategy: Positioning]\n',
@@ -118,6 +118,7 @@ describe('renderLineageSections', () => {
       sources: [],
       knowledge: [],
       artifacts: [],
+      diagnostics: [],
     }
 
     const rendered = renderLineageSections(emptyProjection)
@@ -128,7 +129,7 @@ describe('renderLineageSections', () => {
       '# NN ModelRecords\n\n<!-- Auto-synced from kNNowledge/ on every --scan/--import-url/--lineage. One ModelRecords element per Level 3 model. -->\n',
     )
     expect(rendered.artifacts).toBe(
-      '# NN Artifacts\n\n<!-- Auto-synced from export/ on every --scan/--import-url/--lineage. One element per generated deliverable. -->\n',
+      '# NN Artifacts\n\n<!-- Auto-synced from artifacts/ on every --scan/--import-url/--lineage. One element per generated deliverable. -->\n',
     )
   })
 

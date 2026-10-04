@@ -26,8 +26,8 @@ export interface ParsedFormatName {
   isBusinessModel: boolean
   /** The template name if present (e.g. 'business' or 'procedures'). */
   templateName?: string
-  /** The document's own version. */
-  version: SemVer
+  /** The document's own version (from the filename). `null` for a name that carries no `_V_` (version lives in frontmatter). */
+  version: SemVer | null
 }
 
 /** Renders a SemVer as the iNNfo version string, e.g. `V_0-1-0`. */
@@ -40,7 +40,7 @@ export function formatVersionString(v: SemVer): string {
  * Returns null when the name does not match the iNNfo V_0-2-1 "Identity & Naming" convention.
  */
 export function parseFormatFilename(fileName: string): ParsedFormatName | null {
-  // 1. Try New: <ModelName>_V_x-y-z_<TemplateName>_NN.md
+  // 1. Try New (legacy): <ModelName>_V_x-y-z_<TemplateName>_NN.md
   const newMatch = fileName.match(/^(.+?)_V_(\d+)-(\d+)-(\d+)(?:_(.+?))?_NN\.md$/)
   if (newMatch) {
     const templateName = newMatch[5]
@@ -56,7 +56,7 @@ export function parseFormatFilename(fileName: string): ParsedFormatName | null {
     }
   }
 
-  // 2. Try Old: <ModelName>_BM_V_x-y-z_NN.md
+  // 2. Try Old (legacy): <ModelName>_BM_V_x-y-z_NN.md
   const oldMatch = fileName.match(/^(.+?)_BM_V_(\d+)-(\d+)-(\d+)_NN\.md$/)
   if (oldMatch) {
     return {
@@ -71,18 +71,26 @@ export function parseFormatFilename(fileName: string): ParsedFormatName | null {
     }
   }
 
+  // 3. Try unversioned (current): <ModelName>_<TemplateName>_NN.md — no `_V_`, version comes from frontmatter.
+  const unversionedMatch = fileName.match(/^(.+?)_([^_]+)_NN\.md$/)
+  if (unversionedMatch) {
+    const templateName = unversionedMatch[2]
+    return {
+      baseName: unversionedMatch[1],
+      isBusinessModel: templateName === 'business' || templateName === 'BM',
+      templateName,
+      version: null,
+    }
+  }
+
   return null
 }
 
-/** Builds an iNNfo-compliant file name from its parts (iNNfo V_0-2-1 — "Identity & Naming"). */
-export function buildFormatFilename(
-  baseName: string,
-  templateName: string | undefined,
-  version: SemVer,
-): string {
+/** Builds a new iNNfo-compliant file name from its parts. New names carry no `_V_` (the version lives in frontmatter). */
+export function buildFormatFilename(baseName: string, templateName: string | undefined): string {
   const sanitizedBase = baseName.replace(/\s+/g, '-')
   const suffix = templateName ? `_${templateName}` : ''
-  return `${sanitizedBase}_V_${version.major}-${version.minor}-${version.patch}${suffix}_NN.md`
+  return `${sanitizedBase}${suffix}_NN.md`
 }
 
 /** Compares two SemVer values: negative if `a` < `b`, positive if `a` > `b`, zero if equal. */
@@ -101,5 +109,16 @@ export function bumpVersion(v: SemVer, level: BumpLevel): SemVer {
       return { major: v.major, minor: v.minor + 1, patch: 0 }
     case 'patch':
       return { major: v.major, minor: v.minor, patch: v.patch + 1 }
+  }
+}
+
+/** Parses a "V_Major-Minor-Patch" string into a SemVer tuple; null when it does not match. */
+export function parseVersionString(str: string): SemVer | null {
+  const match = str.match(/^V_(\d+)-(\d+)-(\d+)$/)
+  if (!match) return null
+  return {
+    major: Number(match[1]),
+    minor: Number(match[2]),
+    patch: Number(match[3]),
   }
 }

@@ -35,13 +35,13 @@ describe('attachSourceCitations', () => {
     attachSourceCitations(node)
 
     expect(node.sources?.map((s) => s.filePath)).toEqual([
-      'sources/nn/interview.md',
-      'sources/nn/notes/kickoff.md',
+      'interview.md',
+      'notes/kickoff.md',
     ])
     const sourceEdges = node.relationships.filter((r) => r.origin === 'source')
     expect(sourceEdges).toEqual([
-      { targetId: 'sources/nn/interview.md', label: 'sources', origin: 'source' },
-      { targetId: 'sources/nn/notes/kickoff.md', label: 'sources', origin: 'source' },
+      { targetId: 'interview.md', label: 'sources', origin: 'source' },
+      { targetId: 'notes/kickoff.md', label: 'sources', origin: 'source' },
     ])
   })
 
@@ -55,7 +55,7 @@ describe('attachSourceCitations', () => {
   it('is case-insensitive on the field name', () => {
     const node = elementNode({ Source: 'a.md' })
     attachSourceCitations(node)
-    expect(node.sources?.[0].filePath).toBe('sources/nn/a.md')
+    expect(node.sources?.[0].filePath).toBe('a.md')
   })
 
   it('does not populate node.sources when no value parses', () => {
@@ -68,7 +68,7 @@ describe('attachSourceCitations', () => {
   it('keeps only the parseable subset', () => {
     const node = elementNode({ sources: ['ok.md#intro', 'bad.md#L4'] })
     attachSourceCitations(node)
-    expect(node.sources?.map((s) => s.filePath)).toEqual(['sources/nn/ok.md'])
+    expect(node.sources?.map((s) => s.filePath)).toEqual(['ok.md'])
   })
 
   it('ignores nodes with no source field', () => {

@@ -1,4 +1,4 @@
-import raw from './procedure_NN.md?raw'
+import raw from './procedure_procedures_NN.md?raw'
 import { innfoPrompt } from './prompt'
 
 export interface ToolEntry {

@@ -1,35 +1,33 @@
 # Console Export CLI
 
 ## Purpose
-Provide status inspection, hierarchical tree visualization, hash-based freshness/staleness detection, and selective compilation in the console export CLI (`scripts/export-console.mjs`).
+Console exports become write-once artifacts under `artifacts/`, targets come from the contract predicate, and the script builds payloads through the core builder (carried over from base-change verify W4).
 
 ## Requirements
 
 ### Requirement: Status Reporting and Staleness Detection
 
-The console export CLI MUST support a `--status` flag to report compilation state for all Level 3 models in the workspace.
-- The status report MUST classify each model as `fresh`, `stale`, `uncompiled`, or `version_mismatch`.
-- Staleness MUST be determined by comparing the source model content SHA-256 against `meta.sha256` of the existing compiled console under `export/<stem>_console/`. A console built by either path carries `meta.sha256` and MUST be `fresh` when content is unchanged.
-(Previously: SHA-256 or modification timestamp; procedure consoles lacked `sha256` and always read `stale`.)
+The CLI MUST support `--status` reporting for every model chosen by the contract discovery predicate. Each model MUST be `fresh`, `stale`, `uncompiled`, or `version_mismatch`. Staleness MUST compare the model's content hash with `meta.sha256` embedded in the latest member of the console family under `artifacts/`; no member means `uncompiled`.
 
-#### Scenario: Inspecting model compilation status
-- **GIVEN** a workspace containing compiled, modified, and newly created Level 3 models
-- **WHEN** running `node scripts/export-console.mjs <workspaceRoot> --status`
-- **THEN** the CLI outputs each model's path and status tag (`[fresh]`, `[stale]`, `[uncompiled]`, or `[mismatch]`)
-- **AND** no console artifacts are compiled or written to disk during status inspection
+#### Scenario: Inspecting compilation status
+- GIVEN compiled, modified, and new models
+- WHEN `node scripts/export-console.mjs <workspaceRoot> --status` runs
+- THEN each model prints a tag (`[fresh]`, `[stale]`, `[uncompiled]`, `[mismatch]`)
+- AND no file is written
 
-#### Scenario: Procedure-built console is fresh
-- **GIVEN** a console compiled by `compile_model_console` from unchanged content
-- **WHEN** running `--status`
-- **THEN** it is tagged `[fresh]`
+#### Scenario: Sidecars are not targets
+- GIVEN a workspace with sidecars
+- WHEN `--status` runs
+- THEN no sidecar appears in the output
 
 ---
 
 ### Requirement: Tree Hierarchy Visualization
-The console export CLI MUST support a `--tree` flag to render a hierarchical view of workspace models and their corresponding console export artifacts.
 
-#### Scenario: Visualizing model hierarchy and artifacts
-- **GIVEN** a workspace with models in subdirectories and compiled artifacts in `export/`
+`--tree` MUST render models and their console family members under `artifacts/` and exit `0`.
+
+#### Scenario: Visualizing hierarchy
+- **GIVEN** models in subdirectories and compiled consoles in `artifacts/`
 - **WHEN** running `node scripts/export-console.mjs <workspaceRoot> --tree`
 - **THEN** the CLI prints a structured tree representation showing models and linked console HTML files
 - **AND** exits with status code 0
@@ -37,22 +35,46 @@ The console export CLI MUST support a `--tree` flag to render a hierarchical vie
 ---
 
 ### Requirement: Selective Compilation and Filtering
-The console export CLI MUST support targeted compilation flags while maintaining backward compatibility with existing arguments.
-- The CLI MUST support `--stale` to compile only models detected as stale or uncompiled.
-- The CLI MUST support `--filter <pattern>` to compile only models whose name or relative path matches `<pattern>`.
-- The CLI MUST support `--all` to compile all discovered Level 3 models.
-- The CLI MUST retain support for `--list` and positional substring arguments.
+
+The CLI MUST support `--stale`, `--filter <pattern>`, `--all`, `--list`, and positional substring arguments. Every compile MUST write through `writeOnce` into `artifacts/`.
 
 #### Scenario: Compiling only stale models
-- **GIVEN** a workspace where 1 model was modified since last export and 2 models remain unchanged
-- **WHEN** running `node scripts/export-console.mjs <workspaceRoot> --stale`
-- **THEN** only the modified model is compiled into `export/<stem>_console/<stem>_console.html`
-- **AND** unchanged models are skipped with an informational notice
+- **GIVEN** one modified and two unchanged models
+- **WHEN** `--stale` runs
+- **THEN** one new suffixed console file is written and the others are skipped with a notice
 
-#### Scenario: Filtering compilation by pattern
-- **GIVEN** a workspace with multiple models
-- **WHEN** running `node scripts/export-console.mjs <workspaceRoot> --filter business`
-- **THEN** only models matching substring `business` in name or path are compiled
+#### Scenario: Filtering by pattern
+- **GIVEN** several models
+- **WHEN** `--filter business` runs
+- **THEN** only matching models are compiled
+
+### Requirement: Console exports are write-once
+
+The console HTML family key MUST be `<stem>_console` and each export MUST be a new suffixed member. Re-running on an unchanged model MUST write nothing (dedup). A changed model MUST add a member and leave earlier consoles byte-identical.
+
+#### Scenario: Unchanged model
+- GIVEN a compiled model with unchanged content
+- WHEN `--all` runs
+- THEN no file is written
+
+#### Scenario: Changed model
+- GIVEN the model changed
+- WHEN `--stale` runs
+- THEN a new `<stem>_console_<UTC suffix>.html` exists and the previous console's SHA-256 is unchanged
+
+### Requirement: Export uses the core payload builder
+
+`export-console.mjs` MUST obtain payloads from innfo-core `buildConsolePayload` and MUST NOT scan models independently. Exported consoles MUST contain `innfo-model.meta.sources` when the model has citations.
+
+#### Scenario: Meta sources present
+- GIVEN a model with one citation
+- WHEN its console is exported
+- THEN the embedded `innfo-model.meta.sources` lists that citation
+
+#### Scenario: No private scanner
+- GIVEN `scripts/export-console.mjs`
+- WHEN inspected
+- THEN it contains no model-discovery regex or directory walk of its own
 
 ### Requirement: CLI Delegates to the Shared Builder and Fails Loudly
 

@@ -88,7 +88,7 @@ describe('innfo-runtime.js — renderCitationDialog', () => {
     const api = loadRuntime()
     api.renderCitationDialog(document, 'sources', [
       {
-        path: 'sources/nn/conversations/s1_source.md',
+        path: 'sources/import/conversations/s1_source.md',
         anchor: 'nn-agent-modification--update-field',
         exists: true,
         origin: 'agent',
@@ -100,7 +100,7 @@ describe('innfo-runtime.js — renderCitationDialog', () => {
     const dialog = document.getElementById('innfo-citation-dialog') as HTMLDialogElement
     expect(dialog.open).toBe(true)
     const text = dialog.textContent ?? ''
-    expect(text).toContain('sources/nn/conversations/s1_source.md')
+    expect(text).toContain('sources/import/conversations/s1_source.md')
     expect(text).toContain('nn-agent-modification--update-field')
     expect(text).toContain('the resolved excerpt text')
   })
@@ -126,7 +126,7 @@ describe('innfo-runtime.js — renderCitationDialog', () => {
     const api = loadRuntime()
     api.renderCitationDialog(document, 'sources', [
       {
-        path: 'sources/nn/conversations/r1_feedback.md',
+        path: 'sources/import/conversations/r1_feedback.md',
         exists: true,
         origin: 'reviewer',
       },

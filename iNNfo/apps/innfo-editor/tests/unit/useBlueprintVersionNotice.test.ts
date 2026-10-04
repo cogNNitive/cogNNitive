@@ -118,15 +118,16 @@ describe('buildMigrationPrompt', () => {
     expect(prompt).toContain('V_0-1-2')
   })
 
-  it('instructs a new-file migration and forbids editing/deleting the original', () => {
+  it('instructs an in-place migration that rewrites parent_spec.name and bumps knowledge_version', () => {
     const prompt = buildMigrationPrompt({
       modelFileName: 'MyModel_NN.md',
       templateSlug: 'procedures',
       currentVersion: 'V_0-1-0',
       latestVersion: 'V_0-2-0',
     })
-    expect(prompt).toContain('NEW model file')
-    expect(prompt).toMatch(/do NOT edit or delete "MyModel_NN\.md"/)
+    expect(prompt).toContain('in place')
+    expect(prompt).toContain('parent_spec.name')
+    expect(prompt).toContain('knowledge_version')
     expect(prompt).toContain('validate_model')
   })
 })
@@ -149,17 +150,17 @@ describe('useBlueprintVersionNotice', () => {
 
     expect(notice.value).not.toBeNull()
     expect(notice.value?.current).toBe('V_0-2-1')
-    expect(notice.value?.latest).toBe('V_0-3-1')
+    expect(notice.value?.latest).toBe('V_0-3-2')
     expect(notice.value?.prompt).toMatch(/^innfo: /)
   })
 
   it('leaves notice null when the model already pins the newest known version', async () => {
-    // `analysis` ships V_0-3-1 in the bundled map, matching the pin here.
+    // `analysis` ships V_0-3-2 in the bundled map, matching the pin here.
     const handle = buildFakeTree('workspace', {
-      specs: { 'analysis_V_0-3-1_NN.md': '---\nlevel: 2\n---\n' },
+      specs: { 'analysis_V_0-3-2_NN.md': '---\nlevel: 2\n---\n' },
     })
     const { notice, refresh } = useBlueprintVersionNotice({
-      templateName: ref('analysis_V_0-3-1'),
+      templateName: ref('analysis_V_0-3-2'),
       modelFileName: ref('StartupValidation_NN.md'),
       handle: ref(handle),
     })

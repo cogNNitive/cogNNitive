@@ -20,6 +20,11 @@ import {
   summarizeWorkspaceIntegrity,
   parseFrontmatter,
   SpecResolutionError,
+  checkLineageDrift,
+  projectLineage,
+  readLineageRecord,
+  readLineageSnapshot,
+  renderLineageSections,
   type TemplateCatalog,
   type WorkspaceIntegrityPorts,
   type WorkspaceModelRef,
@@ -54,6 +59,13 @@ const FRESHNESS_TIMEOUT_MS = 10000
 export interface CheckWorkspaceOptions {
   summaryOnly?: boolean
   offline?: boolean
+}
+
+/** Result of the lineage drift gate (site 3 of the gate; the record is not a model). */
+export interface LineageGateReport {
+  /** Workspace-relative path of the lineage record, or `null` when the domaiNN has none. */
+  record: string | null
+  diagnostics: IntegrityDiagnostic[]
 }
 
 interface CheckContext {
@@ -312,6 +324,45 @@ export function buildCheckWorkspacePorts(ctx: CheckContext): WorkspaceIntegrityP
 }
 
 /**
+ * Lineage drift gate: compares the managed sections of the lineage record with
+ * a fresh projection through the one core comparator. Read-only; a domaiNN
+ * without a record passes with `record: null`.
+ */
+export function checkLineageGate(rootDir: string): LineageGateReport {
+  try {
+    const record = readLineageRecord(rootDir)
+    if (!record) return { record: null, diagnostics: [] }
+    const rendered = renderLineageSections(projectLineage(readLineageSnapshot(rootDir)))
+    const result = checkLineageDrift(record.content, rendered)
+    if (result.ok) return { record: record.path, diagnostics: [] }
+    return {
+      record: record.path,
+      diagnostics: result.diffs.map((d) => ({
+        path: record.path,
+        message: `Lineage record drift in ${d.section}: ${d.firstDiff}. Run nn-trannsform --lineage to regenerate the record.`,
+        severity: 'error' as const,
+        code: 'LINEAGE_DRIFT',
+      })),
+    }
+  } catch (err) {
+    /* v8 ignore start */
+    // never fail the pass: an unreadable workspace degrades to a warning.
+    return {
+      record: null,
+      diagnostics: [
+        {
+          path: '.',
+          message: `Lineage drift check could not run: ${errorMessage(err)}`,
+          severity: 'warning',
+          code: 'LINEAGE_CHECK_FAILED',
+        },
+      ],
+    }
+    /* v8 ignore stop */
+  }
+}
+
+/**
  * Run the workspace integrity check. Returns the builder's consolidated
  * report. With `summaryOnly`, `models` carries only rows with validation
  * errors or `upgrade-available` (capped at 25) plus `truncated: true` when the
@@ -320,7 +371,7 @@ export function buildCheckWorkspacePorts(ctx: CheckContext): WorkspaceIntegrityP
 export async function checkWorkspace(
   rootDir: string,
   options: CheckWorkspaceOptions = {},
-): Promise<WorkspaceIntegrityReport & { truncated?: boolean }> {
+): Promise<WorkspaceIntegrityReport & { truncated?: boolean; lineage: LineageGateReport }> {
   const ctx: CheckContext = {
     rootDir,
     offline: options.offline ?? false,
@@ -329,7 +380,8 @@ export async function checkWorkspace(
     mergedCache: newSpecCache(),
     absByPath: new Map(),
   }
-  const report = await buildWorkspaceIntegrityReport(buildCheckWorkspacePorts(ctx))
+  const base = await buildWorkspaceIntegrityReport(buildCheckWorkspacePorts(ctx))
+  const report = { ...base, lineage: checkLineageGate(rootDir) }
 
   if (!options.summaryOnly) return report
 

@@ -384,10 +384,6 @@
                 class="block text-[10px] text-slate-400 dark:text-slate-500 font-normal mt-0.5 font-mono"
                 >{{ versionPreview(level) }}</span
               >
-              <span
-                class="block text-[9px] text-slate-400 dark:text-slate-500/70 truncate mt-1 font-mono max-w-full"
-                >{{ filenamePreview(level) }}</span
-              >
             </button>
           </div>
           <p class="text-[11px] text-slate-400 dark:text-slate-500 leading-relaxed">
@@ -414,7 +410,7 @@
             @click="saveVersion"
           >
             <Save class="w-3.5 h-3.5" />
-            Save New Version
+            Bump Version
           </button>
         </div>
       </div>
@@ -477,6 +473,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { ensureNNFilename } from '@cognnitive/innfo-core'
 import { useWorkspaceStore } from '../../stores/workspaceStore'
 import { useKnowledgeStore } from '../../stores/knowledgeStore'
 import { useUiStore } from '../../stores/uiStore'
@@ -574,16 +571,19 @@ const selectedLevel = ref<BumpLevel | null>(null)
 
 const bumpLevels: BumpLevel[] = ['major', 'minor', 'patch']
 
-const { currentModelSemVer, currentVersionStr, versionPreview, filenamePreview, currentFilename } =
-  useVersionBump({ rawModelVersion, templateName, sourcePath: filePath })
+const { currentVersionStr, versionPreview } = useVersionBump({
+  rawModelVersion,
+  templateName,
+  sourcePath: filePath,
+})
 
 /**
- * Computes the tooltip text for a bump button (R-VM-04 filename preview)
+ * Computes the tooltip text for a bump button (R-VM-04 version preview)
  */
 function versionButtonTitle(level: BumpLevel): string {
   if (isVersionDisabled.value)
     return versionDisabledReason.value || 'Version management is unavailable'
-  return `${currentFilename()} → ${filenamePreview(level)}`
+  return `${currentVersionStr.value} → ${versionPreview(level)}`
 }
 
 // ── Disabled states ─────────────────────────────────────────────────────
@@ -669,7 +669,7 @@ const specFileName = computed(() => {
 const templateFileName = computed(() => {
   const name = fullBlueprintName.value
   if (!name) return ''
-  return name.endsWith('_NN') ? `${name}.md` : `${name}_NN.md`
+  return ensureNNFilename(name)
 })
 
 const templateRemoteUrl = computed(() => {

@@ -11,34 +11,39 @@ TBD - created by archiving change 2026-10-01-lineage-single-edge. Update Purpose
 `iNNfo/apps/innfo-editor/src/utils/sourceRef.ts` MUST NOT define `parseForPill`; pill rendering MUST use innfo-core `parseCitation`. `knowledgeStore.ts` `getSourceCitations` MUST resolve citations through the core resolver, not a case-insensitive basename-suffix match. The stale header comment at `sourceRef.ts:8-13` MUST be corrected.
 
 #### Scenario: `@` citation renders a pill
-- GIVEN an element with `sources:: sources/nn/interview.md@## Clients`
+- GIVEN an element with `sources:: sources/import/interview.md@## Clients`
 - WHEN the editor renders the source pill
 - THEN the pill shows the file and heading and opens the preview modal
 
 #### Scenario: Ambiguous basename is not fuzzy-matched
-- GIVEN `sources/nn/a/report.md` and `sources/nn/b/report.md`, and an element citing `sources/nn/a/report.md@## Intro`
-- WHEN `getSourceCitations` is called for `sources/nn/b/report.md`
+- GIVEN `sources/import/a/report.md` and `sources/import/b/report.md`, and an element citing `sources/import/a/report.md@## Intro`
+- WHEN `getSourceCitations` is called for `sources/import/b/report.md`
 - THEN the element is not returned as a downstream citation of `b/report.md`
-- AND when called for `sources/nn/a/report.md` it is returned
+- AND when called for `sources/import/a/report.md` it is returned
 
 #### Scenario: Unresolved ambiguous bare name
 - GIVEN a bare citation `report.md@## Intro` matching two Sources
 - WHEN the editor resolves it
 - THEN it is shown as unresolved or ambiguous, not silently bound to one file
 
-### Requirement: Explorer classifies `export/` as artifact
+### Requirement: Explorer classifies files by contract role
 
-`utils/explorerClassify.ts` MUST classify files under `export/` as artifacts and MUST NOT classify `artifacts/` as artifacts (no fallback). `FileTreeNode.vue` and `WorkspaceExplorer.vue` MUST show `export/` items in the artifact group.
+The editor explorer (`explorerClassify.ts`) MUST classify files through the `nn-naming-contract` role function, not by folder name or locally defined patterns. Sidecars MUST NOT be offered as models, MUST NOT count toward workspace detection, and MUST NOT appear in the home view's model list. The `ConsoleHubView` MUST locate console artifacts as members of the `<stem>_console` family under `artifacts/`, resolved by latest-of-family, without hand-written candidate paths.
 
-#### Scenario: Export file classified
-- GIVEN `export/report.md`
-- WHEN `explorerClassify` runs
-- THEN it returns the artifact classification
+#### Scenario: Artifact classified by name
+- GIVEN `artifacts/report_20261002T101500Z.md` without a sidecar
+- WHEN the explorer classifies it
+- THEN it is an artifact
 
-#### Scenario: No `artifacts/` fallback
-- GIVEN `artifacts/report.md`
-- WHEN `explorerClassify` runs
-- THEN it does not return the artifact classification
+#### Scenario: Sidecar hidden from models
+- GIVEN `sources/import/report.pdf_sidecar_NN.md` in a loaded workspace
+- WHEN the home view and workspace detection run
+- THEN the sidecar is not listed as a model and does not make the folder a workspace
+
+#### Scenario: Console hub finds the latest console
+- GIVEN two members of a console family in `artifacts/`
+- WHEN the hub looks up the console for a model
+- THEN it opens the later member
 
 ### Requirement: Preview modal UI strings are English
 
@@ -60,12 +65,12 @@ The Lineage tab upstream list MUST come from the sidecar's origin metadata and t
 
 ### Requirement: Editor reverse lookup uses canonical path equality
 
-`getSourceCitations` MUST match citers by exact canonical `filePath` equality, as normalized by `parseCitation`. A bare name resolves to `sources/nn/<name>`, so ambiguity surfaces as unresolved.
+`getSourceCitations` MUST match citers by exact canonical `filePath` equality, as normalized by `parseCitation`. A bare name resolves only against the workspace root (no implicit prefix), so ambiguity surfaces as unresolved.
 
 #### Scenario: Exact path only
-- GIVEN citations to `sources/nn/a/report.md` and `sources/nn/b/report.md`
+- GIVEN citations to `sources/import/a/report.md` and `sources/import/b/report.md`
 - WHEN downstream citers of `a/report.md` are requested
-- THEN only citers with canonical path `sources/nn/a/report.md` are returned
+- THEN only citers with canonical path `sources/import/a/report.md` are returned
 
 ### Requirement: New bluepriNNt versions are registered
 

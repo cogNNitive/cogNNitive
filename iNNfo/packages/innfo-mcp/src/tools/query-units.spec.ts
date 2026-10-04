@@ -7,12 +7,12 @@ import { queryUnits } from './query-units'
 const rootDir = join(import.meta.dirname!, '..', '..', 'temp-test-query-units')
 
 async function writeWorkspace(): Promise<void> {
-  await mkdir(join(rootDir, 'sources', 'nn'), { recursive: true })
+  await mkdir(join(rootDir, 'sources', 'import'), { recursive: true })
   const rows = ['cliente_id,segmento,mrr_usd']
   for (let i = 1; i <= 250; i++) rows.push(`${i},Enterprise,${i * 100}`)
-  await writeFile(join(rootDir, 'sources', 'nn', 'big.csv'), rows.join('\n') + '\n', 'utf-8')
+  await writeFile(join(rootDir, 'sources', 'import', 'big.csv'), rows.join('\n') + '\n', 'utf-8')
   await writeFile(
-    join(rootDir, 'sources', 'nn', 'small.csv'),
+    join(rootDir, 'sources', 'import', 'small.csv'),
     'cliente_id,segmento,mrr_usd\n101,Enterprise,45000\n102,SMB,5500\n',
     'utf-8',
   )
@@ -29,25 +29,25 @@ describe('query_units', () => {
   })
 
   it('round-trips a filter+projection query', async () => {
-    const result = await queryUnits(rootDir, 'sources/nn/small.csv?segmento=Enterprise&mrr_usd')
-    expect(result.uris).toEqual(['sources/nn/small.csv@101'])
+    const result = await queryUnits(rootDir, 'sources/import/small.csv?segmento=Enterprise&mrr_usd')
+    expect(result.uris).toEqual(['sources/import/small.csv@101'])
     expect(result.values).toEqual(['45000'])
     expect(result.truncated).toBe(false)
     expect(result.diagnostics).toEqual([])
   })
 
   it('caps large result sets at 100 with truncated=true', async () => {
-    const result = await queryUnits(rootDir, 'sources/nn/big.csv?segmento=Enterprise')
+    const result = await queryUnits(rootDir, 'sources/import/big.csv?segmento=Enterprise')
     expect(result.uris).toHaveLength(100)
     expect(result.truncated).toBe(true)
-    expect(result.uris[0]).toBe('sources/nn/big.csv@1')
+    expect(result.uris[0]).toBe('sources/import/big.csv@1')
     expect(result.values).toBeUndefined()
   })
 
   it('rejects malformed queries without touching the workspace', async () => {
-    const target = join(rootDir, 'sources', 'nn', 'small.csv')
+    const target = join(rootDir, 'sources', 'import', 'small.csv')
     const before = readFileSync(target, 'utf-8')
-    const result = await queryUnits(rootDir, 'sources/nn/small.csv@101?segmento=Enterprise')
+    const result = await queryUnits(rootDir, 'sources/import/small.csv@101?segmento=Enterprise')
     expect(result.uris).toEqual([])
     expect(result.diagnostics).toHaveLength(1)
     expect(result.diagnostics[0].severity).toBe('error')
@@ -55,9 +55,9 @@ describe('query_units', () => {
   })
 
   it('slice-only projection: max_values_chars caps projected values with truncated=true', async () => {
-    const full = await queryUnits(rootDir, 'sources/nn/small.csv?segmento=Enterprise&mrr_usd')
+    const full = await queryUnits(rootDir, 'sources/import/small.csv?segmento=Enterprise&mrr_usd')
     expect(full.values).toEqual(['45000'])
-    const capped = await queryUnits(rootDir, 'sources/nn/small.csv?segmento=Enterprise&mrr_usd', {
+    const capped = await queryUnits(rootDir, 'sources/import/small.csv?segmento=Enterprise&mrr_usd', {
       max_values_chars: 2,
     })
     expect(capped.values).toBeDefined()
@@ -67,7 +67,7 @@ describe('query_units', () => {
   })
 
   it('leaves small projections untouched when under max_values_chars', async () => {
-    const result = await queryUnits(rootDir, 'sources/nn/small.csv?segmento=Enterprise&mrr_usd', {
+    const result = await queryUnits(rootDir, 'sources/import/small.csv?segmento=Enterprise&mrr_usd', {
       max_values_chars: 1000,
     })
     expect(result.values).toEqual(['45000'])

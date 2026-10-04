@@ -125,11 +125,11 @@ describe('innfo-mcp server (dispatch/handler layer, real MCP client/server round
     expect(info?.version).toBe(pkgVersion)
   })
 
-  it('lists exactly the 20 canonical tools and no retired names', async () => {
+  it('lists exactly the 21 canonical tools and no retired names', async () => {
     const { tools } = await client.listTools()
     const names = tools.map((t) => t.name).sort()
     expect(names).toEqual(toolDefinitions.map((t) => t.name).sort())
-    expect(tools).toHaveLength(20)
+    expect(tools).toHaveLength(21)
 
     const canonicalNames = [
       'list_knowledge',
@@ -146,6 +146,7 @@ describe('innfo-mcp server (dispatch/handler layer, real MCP client/server round
       'sync_domain_manifest',
       'check_domain',
       'query_units',
+      'cognitivize',
       'resolve_sources',
       'build_console_payload',
       'record_feedback_verdict',
@@ -400,6 +401,23 @@ describe('innfo-mcp server (dispatch/handler layer, real MCP client/server round
       expect(parsed.isLegacy).toBe(true)
       expect(parsed.message).toContain('legacy layout')
       expect(parsed.hint).toContain('nn-upgrade')
+    })
+
+    it('lets reads through but refuses writes when the only legacy signal is the retired layout', async () => {
+      await mkdir(join(rootDir, 'sources', 'nn'), { recursive: true })
+      await writeFile(join(rootDir, 'sources', 'nn', 'raw_NN.md'), '# raw\n', 'utf-8')
+
+      const read = await client.callTool({ name: 'list_knowledge', arguments: {} })
+      expect(read.isError).toBeFalsy()
+      expect(JSON.parse(textOf(read as CallToolResult)).isLegacy).toBeUndefined()
+
+      const write = await client.callTool({
+        name: 'init_knowledge',
+        arguments: { id: 'x', blueprint_url: 'u', blueprint_name: 'n', knowledge_version: '0.1.0' },
+      })
+      const parsed = JSON.parse(textOf(write as CallToolResult))
+      expect(parsed.isLegacy).toBe(true)
+      expect(parsed.signals.every((s: { type: string }) => s.type === 'legacy-layout')).toBe(true)
     })
   })
 })

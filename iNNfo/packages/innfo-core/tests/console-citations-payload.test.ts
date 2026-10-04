@@ -59,7 +59,7 @@ describe.skip('compile_model_console_NN.md — procedure contract', () => {
 })
 
 /**
- * `citation-source-resolution` delta: a normalized source under `sources/nn/`
+ * `citation-source-resolution` delta: a normalized source under `sources/import/`
  * carries BOTH the original `sha256` and, when a derivative exists, the
  * `media_sha256` of its companion. `resolveCitation` must surface both so the
  * `ingest-visual-catalog` SOP can verify original <-> derivative traceability.
@@ -68,7 +68,7 @@ describe.skip('compile_model_console_NN.md — procedure contract', () => {
 describe('resolveCitation — media_sha256 provenance', () => {
   it('surfaces sha256 and media_sha256 from the cited normalized source frontmatter', () => {
     const resolver = (filePath: string) =>
-      filePath === 'sources/nn/photo.md'
+      filePath === 'sources/import/photo.md'
         ? {
             exists: true,
             content: [
@@ -85,7 +85,7 @@ describe('resolveCitation — media_sha256 provenance', () => {
           }
         : { exists: false }
 
-    const result = resolveCitation('sources/nn/photo.md@## Capture', 'source', resolver)
+    const result = resolveCitation('sources/import/photo.md@## Capture', 'source', resolver)
 
     expect(result.exists).toBe(true)
     expect(result.sha256).toBe('abc123')
@@ -94,14 +94,14 @@ describe('resolveCitation — media_sha256 provenance', () => {
 
   it('omits media_sha256 when the source declares no derivative hash', () => {
     const resolver = (filePath: string) =>
-      filePath === 'sources/nn/photo.md'
+      filePath === 'sources/import/photo.md'
         ? {
             exists: true,
             content: ['---', 'sha256: "abc123"', '---', '', '## Capture', 'A photo.', ''].join('\n'),
           }
         : { exists: false }
 
-    const result = resolveCitation('sources/nn/photo.md@## Capture', 'source', resolver)
+    const result = resolveCitation('sources/import/photo.md@## Capture', 'source', resolver)
 
     expect(result.sha256).toBe('abc123')
     expect(result.media_sha256).toBeUndefined()

@@ -87,56 +87,70 @@
       </div>
     </div>
 
-    <!-- Primary Workspace View Switcher -->
-    <div
-      v-if="hasRootNode"
-      class="flex items-center gap-1 p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 shrink-0 mr-4"
-      data-testid="header-view-switcher"
-    >
+    <!-- Primary Workspace View Switcher (collapsed into a hamburger) -->
+    <div v-if="hasRootNode" class="relative shrink-0 mr-4" ref="viewMenuRef">
       <button
-        class="flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-md transition-all cursor-pointer capitalize border border-transparent"
+        @click="viewMenuOpen = !viewMenuOpen"
+        class="p-1.5 rounded-md text-slate-500 dark:text-slate-400 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer border border-slate-200/80 dark:border-slate-700/80"
         :class="
-          uiStore.activeView === 'editor'
-            ? 'bg-white dark:bg-slate-700 text-primary shadow-xs'
-            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+          viewMenuOpen ? 'bg-primary/10 text-primary ring-1 ring-primary/20 border-primary/30' : ''
         "
-        @click="uiStore.setActiveView('editor')"
-        data-testid="header-view-editor"
-        title="Editor View"
+        title="Views"
+        data-testid="header-view-menu-button"
       >
-        <FileText class="w-3.5 h-3.5 shrink-0" />
-        <span>Editor</span>
+        <component :is="activeViewIcon" class="w-4 h-4" />
       </button>
 
-      <button
-        class="flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-md transition-all cursor-pointer capitalize border border-transparent"
-        :class="
-          uiStore.activeView === 'graph'
-            ? 'bg-white dark:bg-slate-700 text-primary shadow-xs'
-            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-        "
-        @click="uiStore.setActiveView('graph')"
-        data-testid="header-view-graph"
-        title="Graph View"
+      <div
+        v-show="viewMenuOpen"
+        class="absolute left-0 top-full mt-2 w-40 flex flex-col gap-0.5 p-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xl z-[100]"
+        data-testid="header-view-switcher"
       >
-        <LayoutDashboard class="w-3.5 h-3.5 shrink-0" />
-        <span>Graph</span>
-      </button>
+        <button
+          class="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs font-semibold rounded-md transition-all cursor-pointer capitalize border border-transparent"
+          :class="
+            uiStore.activeView === 'editor'
+              ? 'bg-white dark:bg-slate-700 text-primary shadow-xs'
+              : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+          "
+          @click="selectView('editor')"
+          data-testid="header-view-editor"
+          title="Editor View"
+        >
+          <FileText class="w-3.5 h-3.5 shrink-0" />
+          <span>Editor</span>
+        </button>
 
-      <button
-        class="flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-md transition-all cursor-pointer capitalize border border-transparent"
-        :class="
-          uiStore.activeView === 'consoles'
-            ? 'bg-white dark:bg-slate-700 text-primary shadow-xs'
-            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-        "
-        @click="uiStore.setActiveView('consoles')"
-        data-testid="header-view-consoles"
-        title="Workspace Consoles & Hub"
-      >
-        <Layers class="w-3.5 h-3.5 shrink-0" />
-        <span>Consoles</span>
-      </button>
+        <button
+          class="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs font-semibold rounded-md transition-all cursor-pointer capitalize border border-transparent"
+          :class="
+            uiStore.activeView === 'graph'
+              ? 'bg-white dark:bg-slate-700 text-primary shadow-xs'
+              : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+          "
+          @click="selectView('graph')"
+          data-testid="header-view-graph"
+          title="Graph View"
+        >
+          <LayoutDashboard class="w-3.5 h-3.5 shrink-0" />
+          <span>Graph</span>
+        </button>
+
+        <button
+          class="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs font-semibold rounded-md transition-all cursor-pointer capitalize border border-transparent"
+          :class="
+            uiStore.activeView === 'consoles'
+              ? 'bg-white dark:bg-slate-700 text-primary shadow-xs'
+              : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+          "
+          @click="selectView('consoles')"
+          data-testid="header-view-consoles"
+          title="Workspace Consoles & Hub"
+        >
+          <Layers class="w-3.5 h-3.5 shrink-0" />
+          <span>Consoles</span>
+        </button>
+      </div>
     </div>
 
     <!-- Right Section Actions -->
@@ -145,66 +159,69 @@
       <div v-if="hasRootNode" class="relative" ref="searchContainerRef">
         <button
           @click="uiStore.toggleSearchOpen()"
-          class="inline-flex items-center gap-2 px-2.5 py-1 rounded-md text-slate-600 dark:text-slate-300 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer border border-slate-200/80 dark:border-slate-700/80 bg-slate-50/70 dark:bg-slate-800/70"
-          :class="uiStore.isSearchOpen ? 'bg-primary/10 text-primary ring-1 ring-primary/20 border-primary/30' : ''"
+          class="inline-flex items-center gap-1.5 p-1.5 rounded-md text-slate-500 dark:text-slate-400 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer border border-slate-200/80 dark:border-slate-700/80"
+          :class="
+            uiStore.isSearchOpen
+              ? 'bg-primary/10 text-primary ring-1 ring-primary/20 border-primary/30'
+              : ''
+          "
           title="Buscar conceptos o elementos"
           data-testid="header-search-button"
         >
-          <Search
-            class="w-4 h-4 shrink-0 text-slate-500 dark:text-slate-400"
-            :class="{ 'text-primary': uiStore.isSearchOpen }"
-          />
+          <Search class="w-4 h-4 shrink-0" />
 
-          <!-- Concepts status badge -->
-          <span
-            class="inline-flex items-center px-1.5 py-0.5 rounded text-2xs font-mono font-semibold"
-            :class="
-              uiStore.isAllConceptsSelected
-                ? 'bg-slate-200/70 dark:bg-slate-700/80 text-slate-600 dark:text-slate-300'
-                : 'bg-primary/15 text-primary dark:text-primary-300 ring-1 ring-primary/25'
-            "
-            data-testid="header-concept-status-badge"
-          >
-            {{ conceptStatusText }}
-          </span>
-
-          <!-- Workspace primary tags badges (shown only if not all tags are selected) -->
-          <template v-if="!isAllTagsSelected && selectedPrimaryTags.length > 0">
+          <span v-show="uiStore.isSearchOpen" class="inline-flex items-center gap-1.5">
+            <!-- Concepts status badge -->
             <span
-              v-for="tag in selectedPrimaryTags"
-              :key="tag.name"
-              class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-2xs font-mono font-medium border shrink-0"
-              :style="
-                tag.color
-                  ? {
-                      borderColor: tag.color,
-                      color: tag.color,
-                      backgroundColor: `${tag.color}18`,
-                    }
-                  : {
-                      borderColor: 'var(--slate-300, #cbd5e1)',
-                      backgroundColor: 'rgba(148, 163, 184, 0.1)',
-                    }
+              class="inline-flex items-center px-1.5 py-0.5 rounded text-2xs font-mono font-semibold"
+              :class="
+                uiStore.isAllConceptsSelected
+                  ? 'bg-slate-200/70 dark:bg-slate-700/80 text-slate-600 dark:text-slate-300'
+                  : 'bg-primary/15 text-primary dark:text-primary-300 ring-1 ring-primary/25'
               "
-              :title="tag.description || `Etiqueta primaria: ${tag.name}`"
-              data-testid="header-primary-tag-badge"
+              data-testid="header-concept-status-badge"
             >
-              <IconRenderer :icon="tag.icon || 'tag'" custom-class="w-3 h-3 shrink-0" />
-              <span>{{ tag.name }}</span>
+              {{ conceptStatusText }}
             </span>
-          </template>
 
-          <!-- Tags status badge -->
-          <span
-            class="inline-flex items-center px-1.5 py-0.5 rounded text-2xs font-mono font-semibold"
-            :class="
-              isAllTagsSelected
-                ? 'bg-slate-200/70 dark:bg-slate-700/80 text-slate-600 dark:text-slate-300'
-                : 'bg-primary/15 text-primary dark:text-primary-300 ring-1 ring-primary/25'
-            "
-            data-testid="header-tag-status-badge"
-          >
-            {{ tagStatusText }}
+            <!-- Workspace primary tags badges (shown only if not all tags are selected) -->
+            <template v-if="!isAllTagsSelected && selectedPrimaryTags.length > 0">
+              <span
+                v-for="tag in selectedPrimaryTags"
+                :key="tag.name"
+                class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-2xs font-mono font-medium border shrink-0"
+                :style="
+                  tag.color
+                    ? {
+                        borderColor: tag.color,
+                        color: tag.color,
+                        backgroundColor: `${tag.color}18`,
+                      }
+                    : {
+                        borderColor: 'var(--slate-300, #cbd5e1)',
+                        backgroundColor: 'rgba(148, 163, 184, 0.1)',
+                      }
+                "
+                :title="tag.description || `Etiqueta primaria: ${tag.name}`"
+                data-testid="header-primary-tag-badge"
+              >
+                <IconRenderer :icon="tag.icon || 'tag'" custom-class="w-3 h-3 shrink-0" />
+                <span>{{ tag.name }}</span>
+              </span>
+            </template>
+
+            <!-- Tags status badge -->
+            <span
+              class="inline-flex items-center px-1.5 py-0.5 rounded text-2xs font-mono font-semibold"
+              :class="
+                isAllTagsSelected
+                  ? 'bg-slate-200/70 dark:bg-slate-700/80 text-slate-600 dark:text-slate-300'
+                  : 'bg-primary/15 text-primary dark:text-primary-300 ring-1 ring-primary/25'
+              "
+              data-testid="header-tag-status-badge"
+            >
+              {{ tagStatusText }}
+            </span>
           </span>
         </button>
 
@@ -434,21 +451,55 @@
         </div>
       </div>
 
-      <!-- Use AI Button — opens unified modal -->
-      <button
-        @click="uiStore.setActiveView(uiStore.activeView === 'ai-guide' ? 'editor' : 'ai-guide')"
-        class="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold ring-1 ring-inset transition-all cursor-pointer"
-        :class="
-          uiStore.activeView === 'ai-guide'
-            ? 'bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 ring-purple-500 shadow-xs'
-            : 'bg-white dark:bg-slate-800 text-purple-600 dark:text-purple-400 ring-purple-300 dark:ring-purple-700/50 hover:bg-purple-50 dark:hover:bg-purple-950/30'
-        "
-        :title="uiStore.activeView === 'ai-guide' ? 'Exit AI Guide and return to Editor' : 'Use AI to edit models'"
-        data-testid="header-use-ai-button"
-      >
-        <Sparkles class="w-3.5 h-3.5" />
-        <span>Use AI</span>
-      </button>
+      <!-- Overflow menu: Use AI + external links -->
+      <div class="relative" ref="moreMenuRef">
+        <button
+          @click="moreMenuOpen = !moreMenuOpen"
+          class="p-1.5 rounded-md text-slate-500 dark:text-slate-400 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer border border-slate-200/80 dark:border-slate-700/80"
+          :class="
+            moreMenuOpen
+              ? 'bg-primary/10 text-primary ring-1 ring-primary/20 border-primary/30'
+              : ''
+          "
+          title="More"
+          data-testid="header-more-menu-button"
+        >
+          <MoreHorizontal class="w-4 h-4" />
+        </button>
+
+        <div
+          v-show="moreMenuOpen"
+          class="absolute right-0 top-full mt-2 w-40 flex flex-col gap-0.5 p-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xl z-[100]"
+          data-testid="header-more-menu"
+        >
+          <div
+            @click="toggleAiView"
+            class="flex items-center px-2.5 py-1.5 rounded text-xs font-medium text-slate-400 dark:text-slate-500 hover:text-primary hover:bg-primary/5 transition-colors cursor-pointer"
+            :title="
+              uiStore.activeView === 'ai-guide'
+                ? 'Exit AI Guide and return to Editor'
+                : 'Use AI to edit models'
+            "
+            data-testid="header-use-ai-button"
+          >
+            Use AI
+          </div>
+          <a
+            href="https://cognnitive.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="flex items-center px-2.5 py-1.5 rounded text-xs font-medium text-slate-400 dark:text-slate-500 hover:text-primary hover:bg-primary/5 transition-colors"
+            >Web</a
+          >
+          <a
+            href="https://innfo.cognnitive.com/documentation"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="flex items-center px-2.5 py-1.5 rounded text-xs font-medium text-slate-400 dark:text-slate-500 hover:text-primary hover:bg-primary/5 transition-colors"
+            >Docs</a
+          >
+        </div>
+      </div>
 
       <!-- Read-only live preview indicator -->
       <span
@@ -542,24 +593,6 @@
           </div>
         </div>
       </div>
-
-      <!-- External links -->
-      <div class="flex items-center gap-0.5 pl-1.5">
-        <a
-          href="https://cognnitive.com"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="px-2 py-1 rounded text-xs font-medium text-slate-400 dark:text-slate-505 hover:text-primary hover:bg-primary/5 transition-colors"
-          >Web</a
-        >
-        <a
-          href="https://innfo.cognnitive.com/documentation"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="px-2 py-1 rounded text-xs font-medium text-slate-400 dark:text-slate-505 hover:text-primary hover:bg-primary/5 transition-colors"
-          >Docs</a
-        >
-      </div>
     </div>
   </header>
 </template>
@@ -575,13 +608,14 @@ import {
   CheckCircle,
   AlertTriangle,
   XCircle,
-  Sparkles,
   Search,
   X,
   FileText,
   LayoutDashboard,
   Layers,
   Eye,
+  Menu,
+  MoreHorizontal,
 } from 'lucide-vue-next'
 
 import { useWorkspaceStore } from '../../stores/workspaceStore'
@@ -606,11 +640,13 @@ const commitDate = typeof __COMMIT_DATE__ !== 'undefined' ? __COMMIT_DATE__ : ''
 const hasErrors = computed(() => (knowledgeStore.validationReport?.summary.errors ?? 0) > 0)
 const hasWarnings = computed(
   () =>
-    (knowledgeStore.validationReport?.summary.warnings ?? 0) > 0 || knowledgeStore.parseIssues.length > 0,
+    (knowledgeStore.validationReport?.summary.warnings ?? 0) > 0 ||
+    knowledgeStore.parseIssues.length > 0,
 )
 const totalErrors = computed(() => knowledgeStore.validationReport?.summary.errors ?? 0)
 const totalWarnings = computed(
-  () => (knowledgeStore.validationReport?.summary.warnings ?? 0) + knowledgeStore.parseIssues.length,
+  () =>
+    (knowledgeStore.validationReport?.summary.warnings ?? 0) + knowledgeStore.parseIssues.length,
 )
 
 const statusClass = computed(() => {
@@ -662,7 +698,11 @@ function triggerBlink(): void {
 }
 
 watch(
-  () => [workspaceStore.parseCount, knowledgeStore.validationReport, knowledgeStore.parseIssues.length],
+  () => [
+    workspaceStore.parseCount,
+    knowledgeStore.validationReport,
+    knowledgeStore.parseIssues.length,
+  ],
   () => {
     triggerBlink()
   },
@@ -672,6 +712,21 @@ watch(
 const saveDropdownOpen = ref(false)
 const saveDropdownRef = ref<HTMLElement | null>(null)
 const bumpError = ref('')
+
+const viewMenuOpen = ref(false)
+const viewMenuRef = ref<HTMLElement | null>(null)
+const moreMenuOpen = ref(false)
+const moreMenuRef = ref<HTMLElement | null>(null)
+
+function selectView(view: 'editor' | 'graph' | 'consoles'): void {
+  uiStore.setActiveView(view)
+  viewMenuOpen.value = false
+}
+
+function toggleAiView(): void {
+  uiStore.setActiveView(uiStore.activeView === 'ai-guide' ? 'editor' : 'ai-guide')
+  moreMenuOpen.value = false
+}
 
 // ── Root node frontmatter extraction ────────────────────────────
 
@@ -687,6 +742,19 @@ const rootNode = computed(() => {
 })
 
 const hasRootNode = computed(() => rootNode.value !== null)
+
+const activeViewIcon = computed(() => {
+  switch (uiStore.activeView) {
+    case 'editor':
+      return FileText
+    case 'graph':
+      return LayoutDashboard
+    case 'consoles':
+      return Layers
+    default:
+      return Menu
+  }
+})
 
 const availableConcepts = computed(() => {
   const concepts = new Set<string>()
@@ -873,6 +941,12 @@ function toggleSaveDropdown(): void {
 function closeDropdown(e: MouseEvent): void {
   if (saveDropdownRef.value && !saveDropdownRef.value.contains(e.target as Node)) {
     saveDropdownOpen.value = false
+  }
+  if (viewMenuRef.value && !viewMenuRef.value.contains(e.target as Node)) {
+    viewMenuOpen.value = false
+  }
+  if (moreMenuRef.value && !moreMenuRef.value.contains(e.target as Node)) {
+    moreMenuOpen.value = false
   }
   if (
     uiStore.isSearchOpen &&

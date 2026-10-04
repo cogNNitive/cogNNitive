@@ -409,8 +409,12 @@ function buildSteps(repoRoot, _options = {}) {
   steps.push(node('core-mirror', 'Check Trannsform Core Mirror Fresh', 'scripts/build-trannsform-core-mirror.mjs', '--check'));
   // 7b-bis. Console payload mirror drift guard.
   steps.push(node('console-payload', 'Check Console Payload Mirror Fresh', 'scripts/build-console-payload.mjs', '--check'));
+  // 7b-ter. nn-video-script parser mirror drift guard (render of innfo-video-parser).
+  steps.push(node('video-parser-mirror', 'Check Video Parser Mirror Fresh', 'scripts/build-video-parser-mirror.mjs', '--check'));
   // 7c. Samples SSOT Drift Guard.
   steps.push(node('samples-parity', 'Check Samples Parity with _samples_nn', 'scripts/sync-samples.mjs', '--check'));
+  // 7c-bis. Samples version coherence: every sample tracks a current shipped blueprint_version.
+  steps.push(node('samples-version', 'Check Samples Version Coherence', 'scripts/check-samples-version.mjs'));
   // 7d. Version SSOT Drift Guard (SHIPPED_BLUEPRINT_VERSIONS, manifest/source.yaml vs specs and SKILL.md).
   steps.push(node('version-parity', 'Check Version Parity with Specs and Skills', 'scripts/sync-versions.mjs', '--check'));
 
@@ -433,6 +437,9 @@ function buildSteps(repoRoot, _options = {}) {
   steps.push(node('legacy-ledger', 'Legacy Ledger & Quarantine Guard', 'scripts/lib/legacy-ledger-guard.js'));
   steps.push(node('brand-purge', 'Retired Product Name Guard', 'scripts/lib/brand-purge-guard.js'));
   steps.push(node('legacy-write', 'Legacy Write Guard', 'scripts/lib/legacy-write-guard.js'));
+  steps.push(node('nn-name-regex', 'NN Name Regex Guard', 'scripts/lib/nn-name-regex-guard.js'));
+  steps.push(node('nn-name-invariant', 'NN Name Invariant Guard', 'scripts/lib/nn-name-invariant-guard.js'));
+  steps.push(node('lineage-drift', 'Lineage Drift Guard', 'scripts/lib/lineage-drift-guard.js'));
 
   return steps;
 }

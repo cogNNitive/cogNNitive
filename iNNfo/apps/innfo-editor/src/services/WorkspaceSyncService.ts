@@ -1,4 +1,10 @@
-import { reconcileManifest, isReconcilableModel, parseFrontmatter } from '@cognnitive/innfo-core'
+import {
+  reconcileManifest,
+  isReconcilableModel,
+  parseFrontmatter,
+  parentSpecNameOf,
+  displayStem,
+} from '@cognnitive/innfo-core'
 import type { DiscoveredModel, ManifestChange, CandidateFile } from '@cognnitive/innfo-core'
 import type { DirectoryHandleLike, FileHandleLike } from '../model/fs-types'
 
@@ -14,27 +20,12 @@ import type { DirectoryHandleLike, FileHandleLike } from '../model/fs-types'
 
 const NN_MD_RE = /\.md$/i
 
-function stripMdSuffix(filename: string): string {
-  return filename.replace(/_NN\.md$/i, '').replace(/\.md$/i, '')
-}
-
 function basename(path: string): string {
   const segments = path
     .replace(/\\/g, '/')
     .split('/')
     .filter(Boolean)
   return segments[segments.length - 1] ?? path
-}
-
-function parentSpecBlueprintName(frontmatter: Record<string, unknown>): string | undefined {
-  const parentSpec = frontmatter['parent_spec']
-  if (!parentSpec) return undefined
-  if (typeof parentSpec === 'string') return parentSpec
-  if (typeof parentSpec === 'object') {
-    const name = (parentSpec as { name?: unknown }).name
-    return typeof name === 'string' ? name : undefined
-  }
-  return undefined
 }
 
 interface WalkedFile {
@@ -104,8 +95,8 @@ export async function enumerateReconcilableModels(
       typeof frontmatter['title'] === 'string' ? (frontmatter['title'] as string).trim() : ''
     discovered.push({
       path,
-      name: title !== '' ? title : stripMdSuffix(basename(path)),
-      template: parentSpecBlueprintName(frontmatter),
+      name: title !== '' ? title : displayStem(basename(path)),
+      template: parentSpecNameOf(frontmatter),
     })
   }
 

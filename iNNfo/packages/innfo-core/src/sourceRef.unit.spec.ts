@@ -28,27 +28,27 @@ describe('parseKnowledgeUnitRef grammar', () => {
   })
 
   it('parses level-1 and level-3 headers', () => {
-    expect(parseKnowledgeUnitRef('sources/nn/notes.md@# Overview')?.unit).toMatchObject({
+    expect(parseKnowledgeUnitRef('sources/import/notes.md@# Overview')?.unit).toMatchObject({
       kind: 'header',
       level: 1,
       slug: 'overview',
     })
-    expect(parseKnowledgeUnitRef('sources/nn/notes.md@### Deep Dive')?.unit).toMatchObject({
+    expect(parseKnowledgeUnitRef('sources/import/notes.md@### Deep Dive')?.unit).toMatchObject({
       kind: 'header',
       level: 3,
       slug: 'deep-dive',
     })
   })
 
-  it('resolves unqualified markdown under sources/nn', () => {
+  it('resolves unqualified markdown as written', () => {
     const r = parseKnowledgeUnitRef('notes.md@## Background')
-    expect(r).toMatchObject({ filePath: 'sources/nn/notes.md', kind: 'source' })
+    expect(r).toMatchObject({ filePath: 'notes.md', kind: 'source' })
   })
 
   it('parses a CSV row by explicit key value', () => {
-    const r = parseKnowledgeUnitRef('sources/nn/metricas_q3.csv@104')
+    const r = parseKnowledgeUnitRef('sources/import/metricas_q3.csv@104')
     expect(r).toMatchObject({
-      filePath: 'sources/nn/metricas_q3.csv',
+      filePath: 'sources/import/metricas_q3.csv',
       kind: 'source',
       unit: { kind: 'row', id: '104' },
       subunits: [],
@@ -64,7 +64,7 @@ describe('parseKnowledgeUnitRef grammar', () => {
       'kNNowledge/G_V_0-2-3_business_NN.md@## NN Person: Dr. Egon Spengler&compensation',
     )
     expect(md?.subunits).toEqual(['compensation'])
-    const csv = parseKnowledgeUnitRef('sources/nn/metricas_q3.csv@104&mrr_usd')
+    const csv = parseKnowledgeUnitRef('sources/import/metricas_q3.csv@104&mrr_usd')
     expect(csv?.subunits).toEqual(['mrr_usd'])
   })
 
@@ -76,26 +76,25 @@ describe('parseKnowledgeUnitRef grammar', () => {
   })
 
   it('decodes percent-escaped names split-safely', () => {
-    const r = parseKnowledgeUnitRef('sources/nn/notes.md@## R%26D Results')
+    const r = parseKnowledgeUnitRef('sources/import/notes.md@## R%26D Results')
     expect(r?.unit).toMatchObject({ kind: 'header', text: 'R&D Results' })
   })
 
   it.each([
-    'sources/nn/report.md',
+    'sources/import/report.md',
     'kNNowledge/x.md@',
     'kNNowledge/x.md@## ',
     'kNNowledge/x.md@## Title&',
     'C:\\temp\\file.md@## Title',
     'https://example.com/a.md@## Title',
     '../outside.md@## Title',
-    'sources/original/a.csv@104',
     'kNNowledge/x.md#L12-L45',
   ])('rejects %s', (input) => {
     expect(parseKnowledgeUnitRef(input)).toBeNull()
   })
 
   it('rejects a lone percent sign (must be authored as %25)', () => {
-    expect(parseKnowledgeUnitRef('sources/nn/notes.md@## 100%')).toBeNull()
+    expect(parseKnowledgeUnitRef('sources/import/notes.md@## 100%')).toBeNull()
   })
 })
 
@@ -142,7 +141,7 @@ describe('serializeKnowledgeUnitRef', () => {
   it('round-trips canonical pointers', () => {
     const inputs = [
       'kNNowledge/G_V_0-2-3_business_NN.md@## NN Person: Dr. Egon Spengler&compensation',
-      'sources/nn/metricas_q3.csv@104&mrr_usd',
+      'sources/import/metricas_q3.csv@104&mrr_usd',
     ]
     for (const input of inputs) {
       const ref = parseKnowledgeUnitRef(input)

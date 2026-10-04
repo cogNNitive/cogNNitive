@@ -338,7 +338,7 @@ function getModelInfo(rootId: string): { baseName: string; version: SemVer } {
   const filename = path.split('/').pop()?.split('\\').pop() || rootNode?.name || ''
 
   const parsed = parseFormatFilename(filename)
-  if (parsed) {
+  if (parsed && parsed.version) {
     return { baseName: parsed.baseName, version: parsed.version }
   }
 

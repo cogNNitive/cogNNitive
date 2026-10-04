@@ -1,54 +1,58 @@
 # Sample Workspaces
 
 ## Purpose
-Standardize the documentation sample use case directories (`startup-founder`, `consulting-sales`, `freelance-designer`, `youtube-creator`) into full, self-contained, canonical Level 1-4 iNNfo workspaces with valid workspace manifests, normalized directory trees, and catalog index files.
+Standardize the documentation sample use case directories into full, self-contained, canonical iNNfo workspaces following the new layout and naming. Content covered by the frozen carve-out in `nn-naming-contract` is exempt.
 
 ## Requirements
 
 ### Requirement: Canonical Workspace Manifests
-Each sample use case directory (`startup-founder`, `consulting-sales`, `freelance-designer`, `youtube-creator`) MUST contain a valid `workspace_NN.md` manifest file that conforms to the Level 2/3 workspace template specification (`workspace_spec_NN.md`).
+Each non-frozen sample workspace MUST contain a valid `workspace_NN.md` manifest declaring `level`, `parent_spec`, `knowledge_version`, and `title`, an `# NN index` block, and sections `# NN Workspace`, `# NN Specs`, `# NN Templates`, `# NN Models`, `# NN Sources`, `# NN Procedures`, and `# NN Artifacts`. `# NN Models` MUST list only models per the contract predicate and MUST NOT list sidecars.
 
-1. The manifest MUST declare standard frontmatter including `level`, `parent_spec`, `model_version`, and `title`.
-2. The manifest MUST declare an `# NN index` block referencing standard workspace sections.
-3. The manifest MUST declare `# NN Workspace`, `# NN Specs`, `# NN Templates`, `# NN Models`, `# NN Sources`, `# NN Procedures`, and `# NN Artifacts` sections with relative paths to constituent assets.
-
-#### Scenario: Inspecting sample workspace manifest
-- GIVEN any sample use case directory under `docs/cognitive_nn/use-cases/`
-- WHEN the workspace manifest `workspace_NN.md` is parsed by the workspace parser
-- THEN all declared models, sources, procedures, and artifacts are resolved against the local folder tree without broken paths.
+#### Scenario: Inspecting a sample manifest
+- GIVEN a non-frozen sample workspace
+- WHEN `workspace_NN.md` is parsed
+- THEN all declared paths resolve and `# NN Models` has zero sidecars
 
 ---
 
 ### Requirement: Standardized Directory Hierarchy and Artifacts Migration
-All sample use case workspaces MUST adhere to the standard iNNfo directory structure:
-1. Deliverable output files previously located in `export/` MUST be migrated to `artifacts/`. The legacy `export/` directory MUST be removed.
-2. Raw multi-modal imported files MUST reside under `sources/import/`.
-3. Semantically normalized markdown sources MUST reside under `sources/nn/`.
-4. Domain models MUST reside under `models/`.
-5. Operating procedures and procedural models MUST reside under `procedures/`.
+Non-frozen sample workspaces MUST use the canonical layout from `workspace-directory-conventions`:
+1. Producer outputs under `artifacts/`; no `export/` directory.
+2. Raw files under `sources/import/` (and `sources/conversations/`), each with a co-located sidecar; no `sources/nn/`.
+3. kNNowledge under `kNNowledge/` with names satisfying the `nn-naming-contract` invariant and carrying no `_V_`.
+4. Procedures under `procedures/`, named `<verb>_<noun>_procedures_NN.md`.
 
-#### Scenario: Resolving deliverable artifacts
-- GIVEN a sample workspace containing generated deliverables (such as pitch deck summary, commercial proposals, dashboard blue-prints, or script cue sheets)
-- WHEN inspecting the workspace directory structure
-- THEN all deliverables are located under `artifacts/`
-- AND no legacy `export/` folder exists in the workspace.
+#### Scenario: Resolving deliverables
+- GIVEN a sample with generated deliverables
+- WHEN the tree is inspected
+- THEN deliverables are under `artifacts/` and no `export/` exists
+
+#### Scenario: Sidecars co-located
+- GIVEN a sample with a PDF in `sources/import/`
+- WHEN the tree is inspected
+- THEN `<file>.pdf_sidecar_NN.md` sits beside it and no mirror tree exists
+
+#### Scenario: Frozen samples are untouched
+- GIVEN `docs/innfo/samples/lifecycle-ghostbusters/workspace`
+- WHEN the repository check runs
+- THEN it is reported as carved out and not required to satisfy this requirement
 
 ---
 
 ### Requirement: Procedure Relocation to Dedicated Subdirectory
-Procedural models and workflow execution definitions MUST be located in the `procedures/` subdirectory rather than `models/`.
+Procedural models MUST be located in `procedures/` and named `<verb>_<noun>_procedures_NN.md`.
 
-#### Scenario: Relocating YouTube Creator production procedure
-- GIVEN the `youtube-creator` sample use case
-- WHEN inspecting procedural workflows for episode production
-- THEN `Episode_42_Production_V_1-0-0_procedures_NN.md` is located under `procedures/`
-- AND the workspace manifest `workspace_NN.md` references the procedure under the `# NN Procedures` section.
+#### Scenario: Relocating a production procedure
+- GIVEN a non-frozen `youtube-creator`-style sample
+- WHEN inspecting episode production procedures
+- THEN `Episode_42_Production_procedures_NN.md` is under `procedures/`
+- AND the manifest `# NN Procedures` section references it
 
 ---
 
 ### Requirement: Catalog Index Declarations
 Workspaces MUST provide canonical index catalog files (`sources_NN.md`, `procedures_NN.md`, `artifacts_NN.md`) where appropriate:
-1. Index catalog files MUST declare valid frontmatter referencing corresponding Level 2 catalog templates (`sources_spec_NN.md`, `procedures_spec_NN.md`, `artifacts_spec_NN.md`).
+1. Index catalog files MUST declare valid frontmatter referencing corresponding Level 2 catalog bluepriNNts.
 2. Catalog files MUST list constituent sources, procedures, or artifacts with their format, provenance, and relative paths.
 
 #### Scenario: Cataloging workspace sources and artifacts
@@ -59,13 +63,18 @@ Workspaces MUST provide canonical index catalog files (`sources_NN.md`, `procedu
 ---
 
 ### Requirement: Multi-Level Epistemic Coverage (Levels 1 to 4)
-The sample workspaces MUST collectively demonstrate all four levels of the cogNNitive knowledge evolution framework:
-1. **Level 1 (Multi-Modal Normalization)**: Raw multi-format files in `sources/import/` normalized into traceable markdown in `sources/nn/`.
-2. **Level 2 (Domain Modeling)**: Template-governed domain models in `models/` with explicit semantic entity relationships.
-3. **Level 3 (Workspace Composition & Cross-Model References)**: Multi-model cohesion governed by `workspace_NN.md`.
-4. **Level 4 (Closed-Loop Procedures & Artifacts)**: Automated multi-step procedures producing verifiable artifacts in `artifacts/`.
+The sample workspaces MUST collectively demonstrate:
+1. **Level 1**: raw multi-format files in `sources/import/` made citable by co-located sidecars.
+2. **Level 2**: bluepriNNt-governed kNNowledge in `kNNowledge/`.
+3. **Level 3**: multi-model cohesion governed by `workspace_NN.md`.
+4. **Level 4**: procedures producing write-once artifacts in `artifacts/`.
 
-#### Scenario: End-to-end provenance verification in Level 4 workspace
-- GIVEN the `youtube-creator` Level 4 sample workspace
-- WHEN tracing a cue sheet or B-roll checklist artifact in `artifacts/`
-- THEN the artifact traces back through the procedure in `procedures/` to the script model in `models/` and original research sources in `sources/nn/` and `sources/import/`.
+#### Scenario: End-to-end provenance
+- GIVEN a Level 4 sample
+- WHEN tracing a cue sheet in `artifacts/`
+- THEN it traces through its `sources` citation to a kNNowledge document and to raw files in `sources/import/` (or their sidecars for binaries)
+
+#### Scenario: Zero sidecars as models
+- GIVEN each non-frozen sample
+- WHEN models are listed by `list_knowledge`, `## NN Models`, and `export-console` targets
+- THEN no sidecar appears

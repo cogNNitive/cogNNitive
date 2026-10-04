@@ -2,57 +2,49 @@
 
 ## Purpose
 
-`innfo-core` had two independent, divergent predicates deciding what counts
-as a discoverable iNNfo model: `collectModels()` in `helpers.ts` (extension +
-ignored-directory filter only) and `isReconcilableModel()` in
-`workspace/discoverModels.ts` (filename pattern + frontmatter filter). This
-spec establishes ONE shared predicate used by both call sites.
+The shared discoverable-model predicate becomes the contract predicate in `nn-naming-contract`, used by every consumer. It excludes sidecars.
 
 ## Requirements
 
 ### Requirement: Single Shared Discoverable-Model Predicate
 
-`collectModels()` and `isReconcilableModel()` MUST share one predicate
-function deciding whether a file is a discoverable iNNfo model. The predicate
-MUST require the `_NN.md` filename suffix (`NN_FILENAME_RE`) and MUST require
-the parsed frontmatter to indicate a model document (`level: 3` and a
-resolvable `parent_spec`), not merely an ignored-directory-and-extension
-filter.
+`collectModels()` MUST call the one contract predicate (`isModelCandidate`), and `isReconcilableModel()` MUST keep only its manifest self-reference check on top of it. The predicate MUST require the `_NN.md` filename pattern, a role of `knowledge` (so sidecars, lineage records, and catalog documents are excluded), frontmatter indicating a model (`level: 3` and a resolvable `parent_spec`), and a path that is not excluded (`isExcludedPath`). `discoverModels.ts` MUST delete its local filename and non-knowledge regexes. No other module MAY define a filename pattern for `_NN.md`.
 
 #### Scenario: Non-NN markdown file excluded
-
-- GIVEN a `.md` file that does not match `NN_FILENAME_RE` (e.g. a `README.md`)
-- WHEN the shared predicate evaluates it
-- THEN the file is excluded from discovery
+- GIVEN a `README.md`
+- WHEN the predicate evaluates it
+- THEN it is excluded
 
 #### Scenario: NN-suffixed model file included
-
-- GIVEN a file matching `NN_FILENAME_RE` with `level: 3` and a resolvable `parent_spec`
-- WHEN the shared predicate evaluates it
-- THEN the file is included as a discoverable model
+- GIVEN `kNNowledge/Client_business_NN.md` with `level: 3` and a resolvable `parent_spec`
+- WHEN the predicate evaluates it
+- THEN it is included
 
 #### Scenario: NN-suffixed non-model file excluded
+- GIVEN an `_NN.md` file with mismatched `level` or `parent_spec`
+- WHEN the predicate evaluates it
+- THEN it is excluded
 
-- GIVEN a file matching `NN_FILENAME_RE` but whose frontmatter is not a model (missing/mismatched `level` or `parent_spec`)
-- WHEN the shared predicate evaluates it
-- THEN the file is excluded from discovery
+#### Scenario: Sidecar excluded
+- GIVEN `sources/import/report.pdf_sidecar_NN.md` with `level: 3` and a resolvable `parent_spec`
+- WHEN the predicate evaluates it
+- THEN it is excluded
 
 ### Requirement: list_models Honors root and Returns Only Discoverable Models
 
-`list_models` called with `root` at the monorepo root MUST return only files
-satisfying the shared discoverable-model predicate. It MUST NOT return
-READMEs, CHANGELOGs, fixtures, or openspec proposal files, and MUST continue
-to honor an explicit `root` scope as before.
+`list_models` and the MCP `list_knowledge` tool MUST return only files satisfying the contract predicate, honor an explicit `root`, and MUST NOT return READMEs, CHANGELOGs, fixtures, openspec proposal files, or sidecars.
 
 #### Scenario: Monorepo-root scan excludes irrelevant files
-
-- GIVEN `list_models` is called with `root` set to the monorepo root
+- GIVEN `list_models` called with `root` at the monorepo root
 - WHEN the scan runs
-- THEN only `_NN.md` model files matching the shared predicate are returned
-- AND no READMEs, CHANGELOGs, fixtures, or openspec proposals appear in the result
+- THEN only files matching the predicate are returned
 
 #### Scenario: Explicit root scope still honored
-
-- GIVEN `list_models` is called with a `root` narrower than the monorepo root
+- GIVEN a narrower `root`
 - WHEN the scan runs
-- THEN only discoverable models under that `root` are returned
+- THEN only discoverable models under it are returned
+
+#### Scenario: Sidecars absent from MCP listing
+- GIVEN a workspace containing sidecars
+- WHEN `list_knowledge` runs
+- THEN no sidecar is listed

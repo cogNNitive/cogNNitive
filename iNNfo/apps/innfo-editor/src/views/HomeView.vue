@@ -19,6 +19,7 @@ import {
   ChevronDown,
 } from 'lucide-vue-next'
 import { useRouter, useRoute } from 'vue-router'
+import { isNNName, isSidecarName } from '@cognnitive/innfo-core'
 import { useWorkspaceStore } from '../stores/workspaceStore'
 import type { DirectoryHandleLike } from '../model/fs-types'
 import type { FolderHistoryEntry } from '../shared/validation-types'
@@ -177,18 +178,23 @@ onUnmounted(() => {
   stopBootstrapPolling()
 })
 
+/** A `*_NN.md` document that can hold a model; sidecars never count. */
+function isModelFileName(name: string): boolean {
+  return isNNName(name) && !isSidecarName(name)
+}
+
 /**
  * Checks whether a directory handle contains at least one `*_NN.md` model file.
  */
 async function checkFolderHasModels(handle: DirectoryHandleLike): Promise<boolean> {
   try {
     for await (const [name, child] of handle.entries()) {
-      if (child.kind === 'file' && name.endsWith('_NN.md')) {
+      if (child.kind === 'file' && isModelFileName(name)) {
         return true
       }
       if (child.kind === 'directory') {
         for await (const [subName, subChild] of child.entries()) {
-          if (subChild.kind === 'file' && subName.endsWith('_NN.md')) {
+          if (subChild.kind === 'file' && isModelFileName(subName)) {
             return true
           }
         }
@@ -441,7 +447,7 @@ async function onFolderInputChange(event: Event): Promise<void> {
 
   folderBusy.value = true
   try {
-    const nnFiles = Array.from(files).filter((f) => f.name.endsWith('_NN.md'))
+    const nnFiles = Array.from(files).filter((f) => isModelFileName(f.name))
     if (nnFiles.length === 0) {
       error.value = 'No iNNfo model files (_NN.md) found in this folder.'
       return

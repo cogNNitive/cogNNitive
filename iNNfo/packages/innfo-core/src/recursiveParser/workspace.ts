@@ -15,14 +15,15 @@ import { parseKnowledge, parseFrontmatter, stripFrontmatter } from '../parser/in
 import { computeModelDagTopology } from './topology.js'
 import { detectLegacy, type DomainReader } from '../legacy/detect.js'
 import { CANONICAL_DOMAIN_ENTRYPOINT } from '../layout.js'
+import { IGNORED_DIRECTORIES, isExcludedPath } from '../naming/contract.js'
 
 const INNFO_FILE_SUFFIX = '.md'
 const INDEX_MD = 'index.md'
 
 export const MAX_DEPTH = 10
 
-/** Directories whose contents are never parsed as models. */
-export const IGNORED_DIRECTORIES = new Set(['backups', 'archive', 'specs'])
+/** Directories whose contents are never parsed as models (owned by the naming contract). */
+export { IGNORED_DIRECTORIES }
 
 /**
  * Returns true when the error indicates a file/directory was not found.
@@ -43,9 +44,7 @@ export function isNotFound(err: unknown): boolean {
  * (backups/, archive/, specs/).
  */
 export function isIgnoredPath(filePath: string): boolean {
-  const normalized = filePath.replace(/\\/g, '/')
-  const firstSegment = normalized.split('/')[0]
-  return IGNORED_DIRECTORIES.has(firstSegment)
+  return isExcludedPath(filePath)
 }
 
 /**
@@ -64,9 +63,9 @@ function pathSegments(refPath: string): string[] {
  * directory segments with getDirectoryHandle before the final getFileHandle.
  *
  * The File System Access API rejects any name that contains a path separator
- * (e.g. "sources/nn/model.md" or "./models/a_NN.md") with
+ * (e.g. "sources/import/model.md" or "./models/a_NN.md") with
  * "Name is not allowed", so references like `[[./models/a_NN.md]]` or
- * `[a](./sources/nn/a.md)` must be resolved segment by segment.
+ * `[a](./sources/import/a.md)` must be resolved segment by segment.
  *
  * References that escape the workspace root (`..`) are treated as not found
  * (unsupported) instead of surfacing a "Name is not allowed" error.
@@ -388,7 +387,23 @@ export async function recursiveParse(
   // Step 0: Check for legacy signals using DomainReader and detectLegacy
   const reader = makeDomainReader(root, driver)
   const legacyCheck = await detectLegacy(reader)
-  if (legacyCheck.kind === 'legacy' || legacyCheck.kind === 'mixed') {
+  // A domain whose ONLY legacy signals are retired layout folders still parses:
+  // the frozen samples and use cases keep the retired layout by design and must open
+  // with their content. The signal stays visible as a warning plus `legacyResult`
+  // so the editor banner and nn-upgrade can act on it. Any other signal blocks.
+  const layoutOnly =
+    legacyCheck.kind !== 'current' && legacyCheck.signals.every((s) => s.type === 'legacy-layout')
+  const legacyReport: Pick<RecursiveParseResult, 'legacyResult'> = layoutOnly
+    ? { legacyResult: legacyCheck }
+    : {}
+  if (layoutOnly) {
+    ctx.issues.push({
+      path: '<root>',
+      message: legacyCheck.hint,
+      code: 'LEGACY_DOMAIN',
+      severity: 'warning',
+    })
+  } else if (legacyCheck.kind === 'legacy' || legacyCheck.kind === 'mixed') {
     return {
       nodes: {},
       rootIds: [],
@@ -482,7 +497,7 @@ export async function recursiveParse(
       severity: 'warning',
     })
 
-    return { nodes: ctx.nodes, rootIds: topology.rootIds, issues: ctx.issues, topology }
+    return { nodes: ctx.nodes, rootIds: topology.rootIds, issues: ctx.issues, topology, ...legacyReport }
   }
 
   // Step 3: Iterative worklist traversal
@@ -624,5 +639,12 @@ export async function recursiveParse(
 
   const topology = computeModelDagTopology(ctx.nodes, entrypointPath)
 
-  return { nodes: ctx.nodes, rootIds: topology.rootIds, issues: ctx.issues, entrypointPath, topology }
+  return {
+    nodes: ctx.nodes,
+    rootIds: topology.rootIds,
+    issues: ctx.issues,
+    entrypointPath,
+    topology,
+    ...legacyReport,
+  }
 }

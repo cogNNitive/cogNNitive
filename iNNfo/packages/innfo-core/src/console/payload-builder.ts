@@ -9,6 +9,7 @@ import {
   splitSourceFieldValue,
 } from '../index.js'
 import { computeSha256 } from '../validator/crypto.js'
+import { displayStem } from '../naming/contract.js'
 import type { SourceResolver } from '../index.js'
 import {
   resolveCitation,
@@ -151,9 +152,7 @@ function extractWikilinksFromValue(val: unknown): { target: string; label?: stri
 export function normalizeModelId(filePath?: string, fallbackTitle?: string): string {
   if (!filePath) return fallbackTitle ? slugify(fallbackTitle) : 'model'
   const normalized = filePath.split('\\').join('/')
-  return normalized
-    .replace(/^.*?\/(kNNowledge|models)\//i, '$1/')
-    .replace(/(\.md|_NN\.md)$/i, '')
+  return displayStem(normalized.replace(/^.*?\/(kNNowledge|models)\//i, '$1/'))
 }
 
 /**
@@ -165,7 +164,7 @@ export function buildConsolePayload(options: BuildConsolePayloadOptions): Consol
   const parsed = parseKnowledge(content)
   const fm = (parsed.frontmatter || parseFrontmatter(content) || {}) as Record<string, any>
 
-  const title = fm.title || fm.name || (modelPath ? modelPath.split(/[/\\]/).pop()?.replace(/(\.md|_NN\.md)$/i, '') : 'Model') || 'Model'
+  const title = fm.title || fm.name || (modelPath ? displayStem(modelPath.split(/[/\\]/).pop() ?? '') : 'Model') || 'Model'
   const template = fm.target_blueprint || fm.target_template || fm.blueprint || fm.template || undefined
   const modelVersion = fm.knowledge_version || fm.version || 'V_0-1-0'
   const modelId = normalizeModelId(modelPath, title)

@@ -21,7 +21,7 @@ export const ORIGIN_COLORS: Record<RelationshipOrigin, string> = {
   field: '#22c55e',
   mention: '#f59e0b',
   graph_edge: '#a855f7',
-  // `source` edges point at a `sources/nn/…` file path, not a graph node id, so
+  // `source` edges point at a source file path, not a graph node id, so
   // they are filtered out before rendering (see `allEdges`); this entry only
   // keeps the map exhaustive.
   source: '#64748b',
@@ -105,7 +105,7 @@ export function useGraphData(localNodeId: Ref<string>) {
     for (const node of Object.values(knowledgeStore.nodes)) {
       if (node.relationships && node.relationships.length > 0) {
         for (const rel of node.relationships) {
-          // `source` edges target a `sources/nn/…` file, not a graph node.
+          // `source` edges target a source file, not a graph node.
           if (rel.origin === 'source') continue
           const sourceId = `inst:${node.id}`
           const targetId = `inst:${rel.targetId}`

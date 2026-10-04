@@ -1,9 +1,18 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { displayStem, roleOf } from '@cognnitive/innfo-core'
 import { useKnowledgeStore } from '../../stores/knowledgeStore'
 import { useWorkspaceStore } from '../../stores/workspaceStore'
 import { useUiStore } from '../../stores/uiStore'
 import { resolveFileHandleForRead } from '../../services/WorkspacePersistenceService'
+import {
+  consoleFamilyKey,
+  consoleKeyOf,
+  latestInFamilyOf,
+  latestOfFamilyKey,
+  sameConsoleFamily,
+  scanHtmlArtifacts,
+} from '../../utils/consoleArtifacts'
 import {
   Layers,
   ExternalLink,
@@ -11,7 +20,12 @@ import {
   FileText,
   AlertCircle,
   Terminal,
+  Sparkles,
+  Check,
+  X,
+  Copy,
 } from 'lucide-vue-next'
+import { generateConsolePrompt, type ConsolePromptInput } from '../../services/consolePrompt'
 
 const knowledgeStore = useKnowledgeStore()
 const workspaceStore = useWorkspaceStore()
@@ -60,7 +74,7 @@ const discoveredModels = computed(() => {
       }
 
       const sourcePath = (node.source?.path || '').toLowerCase()
-      if (sourcePath.endsWith('domaiNN_NN.md') || sourcePath.endsWith('index.md')) {
+      if (roleOf({ path: sourcePath }) === 'entrypoint' || sourcePath.endsWith('index.md')) {
         return false
       }
 
@@ -72,7 +86,7 @@ const discoveredModels = computed(() => {
         (typeof node?.fields?.['title']?.value === 'string' ? node.fields['title'].value : null) ||
         (typeof node?.fields?.['name']?.value === 'string' ? node.fields['name'].value : null)
       const fileBasename = node?.source?.path
-        ? node.source.path.split('/').pop()?.replace(/_NN\.md$/i, '')
+        ? displayStem(node.source.path.split('/').pop() ?? '')
         : null
       const name = rawTitle || fileBasename || node?.name || rootId
 
@@ -128,136 +142,82 @@ const allModelTargets = computed(() => {
 
 const selectedConsoleTarget = ref<string>('hub')
 
-function getCandidatePaths(target: string): string[] {
-  if (target === 'hub') {
-    const candidates = [
-      'artifacts/workspace_hub.html',
-      'export/workspace_hub/workspace_hub.html',
-      'export/workspace_hub/master.html',
-      'export/workspace_hub.html',
-      'artifacts/workspace_console.html',
-      'export/workspace_console/workspace_console.html',
-      'export/workspace_console.html',
-      'innfo/artifacts/workspace_hub.html',
-      'innfo/export/workspace_hub/workspace_hub.html',
-      'innfo/export/workspace_hub.html',
-    ]
+/**
+ * What identifies a target's console: explicit references (a `console` field, registered
+ * artifacts, a launch path) and write-once family keys. Neither names a file: the file is
+ * the latest member of the family, found by `resolveCandidates`.
+ */
+interface ConsoleRefs {
+  refs: string[]
+  keys: string[]
+}
 
-    // Check registered artifacts in knowledgeStore
-    for (const node of Object.values(knowledgeStore.nodes)) {
-      const isArtifact = node.type === 'Artifacts' || node.conceptBinding?.name === 'Artifacts'
-      const ref = typeof node.fields?.['artifact_ref']?.value === 'string' ? node.fields['artifact_ref'].value : ''
-      if (isArtifact && ref.endsWith('.html') && (ref.includes('workspace') || ref.includes('hub'))) {
-        candidates.unshift(ref)
-      }
-    }
-
-    return Array.from(new Set(candidates))
-  }
-
-  // Check dynamic targets first
-  const dyn = dynamicConsoles.value.find((d) => d.id === target)
-  if (dyn) {
-    const candidates = [dyn.consolePath]
-    if (!dyn.consolePath.startsWith('innfo/')) candidates.push(`innfo/${dyn.consolePath}`)
-    if (dyn.consolePath.startsWith('innfo/')) candidates.push(dyn.consolePath.replace(/^innfo\//, ''))
-    return Array.from(new Set(candidates))
-  }
-
-  const model = allModelTargets.value.find((m) => m.id === target)
-  if (!model) {
-    // If target itself looks like a direct file path
-    if (target.endsWith('.html') || target.includes('/')) {
-      const directCandidates = [target]
-      if (!target.startsWith('innfo/')) directCandidates.push(`innfo/${target}`)
-      if (target.startsWith('innfo/')) directCandidates.push(target.replace(/^innfo\//, ''))
-      return Array.from(new Set(directCandidates))
-    }
-    return ['artifacts/workspace_hub.html']
-  }
-
-  const candidates: string[] = []
-
-  // 1. Explicit console if specified on node
-  if (model.explicitConsole) {
-    candidates.push(model.explicitConsole)
-    if (!model.explicitConsole.startsWith('innfo/')) {
-      candidates.push(`innfo/${model.explicitConsole}`)
-    }
-  }
-
-  const modelName = model.name
-  const modelSlug = normalizeSlug(modelName)
-  const sourceBasename = model.sourcePath
-    ? model.sourcePath.split('/').pop()?.replace(/_NN\.md$/i, '') || ''
-    : ''
-  const sourceSlug = normalizeSlug(sourceBasename)
-
-  // 2. Scan registered artifact references in graph
+function registeredArtifactRefs(accept: (ref: string) => boolean): string[] {
+  const out: string[] = []
   for (const node of Object.values(knowledgeStore.nodes)) {
     const isArtifact = node.type === 'Artifacts' || node.conceptBinding?.name === 'Artifacts'
     const ref = typeof node.fields?.['artifact_ref']?.value === 'string' ? node.fields['artifact_ref'].value : ''
-    if (isArtifact && ref.endsWith('.html')) {
-      const lowerRef = ref.toLowerCase()
-      if (
-        (modelSlug && lowerRef.includes(modelSlug)) ||
-        (sourceSlug && lowerRef.includes(sourceSlug)) ||
-        (sourceBasename && lowerRef.includes(sourceBasename.toLowerCase()))
-      ) {
-        candidates.push(ref)
-      }
-    }
+    if (isArtifact && ref.endsWith('.html') && accept(ref)) out.push(ref)
   }
-
-  // 3. Known exported console structures
-  if (sourceBasename) {
-    candidates.push(`export/${sourceBasename}_console/${sourceBasename}_console.html`)
-    candidates.push(`export/${sourceBasename}_console/master.html`)
-    candidates.push(`export/${sourceBasename}/${sourceBasename}.html`)
-    candidates.push(`export/${sourceBasename}/master.html`)
-    candidates.push(`artifacts/exports/${sourceBasename}.html`)
-    candidates.push(`artifacts/exports/${sourceBasename}_Strategic_Master_V_0-1-0.html`)
-    candidates.push(`innfo/export/${sourceBasename}_console/${sourceBasename}_console.html`)
-    candidates.push(`innfo/export/${sourceBasename}_console/master.html`)
-    candidates.push(`innfo/export/${sourceBasename}/${sourceBasename}.html`)
-    candidates.push(`innfo/artifacts/exports/${sourceBasename}.html`)
-  }
-
-  if (sourceSlug && sourceSlug !== sourceBasename) {
-    candidates.push(`export/${sourceSlug}_console/${sourceSlug}_console.html`)
-    candidates.push(`export/${sourceSlug}_console/master.html`)
-    candidates.push(`export/${sourceSlug}/${sourceSlug}.html`)
-    candidates.push(`export/${sourceSlug}/master.html`)
-    candidates.push(`artifacts/exports/${sourceSlug}.html`)
-    candidates.push(`innfo/export/${sourceSlug}_console/${sourceSlug}_console.html`)
-    candidates.push(`innfo/export/${sourceSlug}/${sourceSlug}.html`)
-  }
-
-  if (modelSlug) {
-    candidates.push(`export/${modelSlug}_console/${modelSlug}_console.html`)
-    candidates.push(`export/${modelSlug}_console/master.html`)
-    candidates.push(`export/${modelSlug}/${modelSlug}.html`)
-    candidates.push(`artifacts/exports/${modelSlug}.html`)
-    candidates.push(`artifacts/${modelSlug}_console.html`)
-    candidates.push(`innfo/export/${modelSlug}_console/${modelSlug}_console.html`)
-    candidates.push(`innfo/export/${modelSlug}/${modelSlug}.html`)
-    candidates.push(`innfo/artifacts/${modelSlug}_console.html`)
-  }
-
-  // 4. Canonical template locations
-  candidates.push(`artifacts/${model.template}_console.html`)
-  candidates.push(`artifacts/${modelName}_console.html`)
-  candidates.push(`innfo/artifacts/${model.template}_console.html`)
-  candidates.push(`innfo/artifacts/${modelName}_console.html`)
-
-  return Array.from(new Set(candidates))
+  return out
 }
 
-const currentFrameUrl = computed<string>(() => {
-  if (resolvedUrl.value) return resolvedUrl.value
-  const candidates = getCandidatePaths(selectedConsoleTarget.value)
-  return candidates[0] || 'artifacts/workspace_hub.html'
-})
+const HUB_KEYS = ['workspace_hub', 'workspace_console']
+
+function consoleRefsFor(target: string): ConsoleRefs {
+  const hub = (): ConsoleRefs => ({
+    refs: registeredArtifactRefs((ref) => ref.includes('workspace') || ref.includes('hub')),
+    keys: HUB_KEYS,
+  })
+  if (target === 'hub') return hub()
+
+  const dyn = dynamicConsoles.value.find((d) => d.id === target)
+  if (dyn) return { refs: [dyn.consolePath], keys: [] }
+
+  const model = allModelTargets.value.find((m) => m.id === target)
+  if (!model) {
+    // The target itself may be a direct file path
+    return target.endsWith('.html') || target.includes('/') ? { refs: [target], keys: [] } : hub()
+  }
+
+  const sourceBasename = model.sourcePath ? displayStem(model.sourcePath.split('/').pop() ?? '') : ''
+  const modelSlug = normalizeSlug(model.name)
+  const sourceSlug = normalizeSlug(sourceBasename)
+  const refs = model.explicitConsole ? [model.explicitConsole] : []
+  refs.push(
+    ...registeredArtifactRefs((ref) => {
+      const lowerRef = ref.toLowerCase()
+      return (
+        (modelSlug !== '' && lowerRef.includes(modelSlug)) ||
+        (sourceSlug !== '' && lowerRef.includes(sourceSlug)) ||
+        (sourceBasename !== '' && lowerRef.includes(sourceBasename.toLowerCase()))
+      )
+    }),
+  )
+  const stems = [sourceBasename, sourceSlug, modelSlug, model.template, model.name].filter(Boolean)
+  return { refs, keys: stems.map(consoleFamilyKey) }
+}
+
+/**
+ * Files to try for a target, best first: the latest member of every family the target
+ * names. Without a folder handle (hosted/sample mode) there is nothing to scan, so the
+ * unsuffixed family name is the only guess.
+ */
+async function resolveCandidates(target: string): Promise<string[]> {
+  const { refs, keys } = consoleRefsFor(target)
+  const handle = workspaceStore.handle
+  const paths = handle ? await scanHtmlArtifacts(handle) : []
+  const out: string[] = []
+  for (const ref of refs) out.push(latestInFamilyOf(paths, ref) ?? ref)
+  for (const key of keys) {
+    const latest = latestOfFamilyKey(paths, key)
+    if (latest) out.push(latest)
+    else if (!handle) out.push(`artifacts/${key}.html`)
+  }
+  return Array.from(new Set(out))
+}
+
+const currentFrameUrl = computed<string>(() => resolvedUrl.value || 'artifacts/workspace_hub.html')
 
 const currentConsoleTitle = computed<string>(() => {
   if (selectedConsoleTarget.value === 'hub') {
@@ -271,6 +231,56 @@ const currentTargetModel = computed(() => {
   if (selectedConsoleTarget.value === 'hub') return null
   return allModelTargets.value.find((m) => m.id === selectedConsoleTarget.value) || null
 })
+
+// --- Agent prompt generation (shared seam) -------------------------------
+// The prompt lives in `services/consolePrompt.ts` so the editor and the
+// standalone artifact agree on the procedure mapping (see the SDD change
+// `2026-10-03-console-hub-entry-and-theming`).
+const promptModalOpen = ref(false)
+const promptCopied = ref(false)
+
+const workspaceTitle = computed<string>(() => {
+  const firstRoot = discoveredModels.value[0]
+  return firstRoot?.name || 'Workspace'
+})
+
+const consolePrompt = computed<string>(() => {
+  const input: ConsolePromptInput = {
+    title: workspaceTitle.value,
+    version: '1.0.0',
+    models: discoveredModels.value.map((m) => ({
+      title: m.name,
+      template: m.template,
+      modelPath: m.sourcePath,
+      consolePath: m.consolePath,
+      hasConsole: true,
+    })),
+  }
+  return generateConsolePrompt(input)
+})
+
+function openPromptModal(): void {
+  promptCopied.value = false
+  promptModalOpen.value = true
+}
+
+function closePromptModal(): void {
+  promptModalOpen.value = false
+}
+
+async function copyConsolePrompt(): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(consolePrompt.value)
+    promptCopied.value = true
+    setTimeout(() => {
+      promptCopied.value = false
+    }, 3000)
+  } catch {
+    // Clipboard API unavailable (restricted context); leave the text selectable.
+    promptCopied.value = false
+  }
+}
+
 
 async function findFileHandleCaseInsensitive(
   dir: any,
@@ -365,9 +375,7 @@ async function resolveFlexibleFileHandle(
     normalized.replace(/^innfo\//i, ''),
     `innfo/${normalized}`,
     filename ? `artifacts/${filename}` : '',
-    filename ? `export/${filename}` : '',
     filename ? `innfo/artifacts/${filename}` : '',
-    filename ? `innfo/export/${filename}` : '',
   ].filter(Boolean)
 
   const uniquePaths = Array.from(new Set(variations))
@@ -448,7 +456,6 @@ async function inlineConsoleResources(
       const candidatePaths = [
         consoleDir ? `${consoleDir}/${filename}` : '',
         filename,
-        `export/${filename}`,
         `artifacts/${filename}`,
         `specs/bluepriNNts/console/${filename}`,
         `innfo/specs/bluepriNNts/console/${filename}`,
@@ -533,7 +540,6 @@ async function inlineConsoleResources(
         consoleDir ? `${consoleDir}/${filename}` : '',
         filename,
         `artifacts/${filename}`,
-        `export/${filename}`,
       ].filter(Boolean)
       for (const candidate of candidatePaths) {
         try {
@@ -575,7 +581,7 @@ async function inlineConsoleResources(
 async function loadConsole() {
   loadState.value = 'loading'
   isFrameLoading.value = true
-  const candidates = getCandidatePaths(selectedConsoleTarget.value)
+  const candidates = await resolveCandidates(selectedConsoleTarget.value)
 
   try {
     if (workspaceStore.handle) {
@@ -652,8 +658,12 @@ function onWindowMessage(event: MessageEvent) {
 
     if (!match && consolePath) {
       match = discoveredModels.value.find((m) => {
-        const candidates = getCandidatePaths(m.id)
-        return candidates.some((c) => c === consolePath || c.endsWith(consolePath) || consolePath.endsWith(c))
+        const { refs, keys } = consoleRefsFor(m.id)
+        const launchedKey = consoleKeyOf(consolePath)
+        return (
+          refs.some((ref) => sameConsoleFamily(ref, consolePath)) ||
+          keys.some((key) => key.toLowerCase() === launchedKey)
+        )
       })
     }
 
@@ -684,6 +694,38 @@ watch([selectedConsoleTarget, () => workspaceStore.handle, iframeKey], () => {
   loadConsole()
 })
 
+// Design tokens the embedded hub consumes. Reading them from the live editor
+// document keeps the artifact esthetically consistent with the app in both
+// themes; the artifact falls back to its own defaults when opened standalone.
+// See SDD change `2026-10-03-console-hub-entry-and-theming`.
+const HOST_TOKEN_VARS = [
+  '--primary',
+  '--primary-foreground',
+  '--muted',
+  '--muted-foreground',
+  '--border',
+  '--card',
+  '--card-foreground',
+] as const
+
+function hostTokenBlock(): string {
+  if (typeof document === 'undefined') return ''
+  const root = document.documentElement
+  const style = getComputedStyle(root)
+  const decls: string[] = []
+  for (const name of HOST_TOKEN_VARS) {
+    const value = style.getPropertyValue(name).trim()
+    if (value) decls.push(`${name}: ${value};`)
+  }
+  // The artifact's accent resolves from `--nn-accent`; map it to the editor's
+  // `--primary` (an HSL triplet) wrapped in hsl() with an opaque fallback.
+  const primary = style.getPropertyValue('--primary').trim()
+  const primaryFg = style.getPropertyValue('--primary-foreground').trim()
+  decls.push(`--nn-accent: ${primary ? `hsl(${primary})` : '#4D0E4E'};`)
+  decls.push(`--nn-accent-foreground: ${primaryFg ? `hsl(${primaryFg})` : '#ffffff'};`)
+  return `:root { ${decls.join(' ')} }`
+}
+
 const processedHtmlContent = computed<string | null>(() => {
   if (!htmlContent.value) return null
   let content = htmlContent.value
@@ -693,9 +735,15 @@ const processedHtmlContent = computed<string | null>(() => {
   if (selectedConsoleTarget.value === 'hub') {
     const injectedStyle = isDark
       ? `<style>
+          ${hostTokenBlock()}
+          /* Embedded mode: the editor Console Hub header is the only chrome. */
+          header { display: none !important; }
           #preview-panel { display: none !important; }
         </style>`
       : `<style>
+          ${hostTokenBlock()}
+          /* Embedded mode: the editor Console Hub header is the only chrome. */
+          header { display: none !important; }
           html, body {
             background-color: #f8fafc !important;
             color: #0f172a !important;
@@ -838,8 +886,17 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <!-- Actions: Refresh & Open in New Window -->
+        <!-- Actions: Generate Prompt, Refresh & Open in New Window -->
         <div class="flex items-center gap-2 shrink-0 ml-auto">
+          <button
+            @click="openPromptModal"
+            class="px-2.5 py-1.5 rounded-lg text-primary hover:bg-accent transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-semibold border border-border bg-card"
+            title="Generate an AI agent prompt to regenerate all workspace consoles"
+            data-testid="console-hub-generate-btn"
+          >
+            <Sparkles class="w-3.5 h-3.5" />
+            <span>{{ loadState === 'not_found' ? 'Generate Consoles' : 'Regenerate' }}</span>
+          </button>
           <button
             @click="reloadIframe"
             class="px-2.5 py-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-medium border border-slate-200 dark:border-slate-700"
@@ -910,52 +967,142 @@ onUnmounted(() => {
         sandbox="allow-scripts allow-forms allow-popups"
       ></iframe>
 
-      <!-- Not Found / Pending Build Empty State -->
+      <!-- Not Found / Pending Build Empty State: onboarding, not a dead end -->
       <div
         v-else
-        class="max-w-xl w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-8 shadow-xl flex flex-col gap-5 text-center items-center"
+        class="max-w-2xl w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-8 shadow-xl flex flex-col gap-6 text-center items-center"
+        data-testid="console-hub-empty-state"
       >
-        <div class="w-12 h-12 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xl">
+        <div class="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center">
           <AlertCircle class="w-6 h-6" />
         </div>
 
-        <div>
-          <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20 text-2xs font-mono font-medium mb-2">
-            Artifact Pending Compilation
+        <div class="flex flex-col gap-2">
+          <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 text-2xs font-mono font-medium mx-auto">
+            Consoles Pending Compilation
           </div>
-          <h3 class="text-base font-bold text-slate-900 dark:text-white mb-1">
-            Console Deliverable Not Found
+          <h3 class="text-lg font-bold text-slate-900 dark:text-white">
+            Build interactive consoles for this workspace
           </h3>
-          <p class="text-xs font-mono text-slate-500 dark:text-slate-400">
+          <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed max-w-lg mx-auto">
+            This workspace has no compiled console yet. Generate a ready-to-paste prompt for your
+            AI agent and it will build every model console plus the Workspace Hub.
+          </p>
+          <p class="text-2xs font-mono text-slate-400 dark:text-slate-500">
             {{ currentFrameUrl }}
           </p>
         </div>
 
-        <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed max-w-md">
-          This workspace does not have a compiled console HTML file at this location yet. In iNNfo, interactive consoles are generated deliverables produced by running model compilation procedures.
+        <!-- Discovered models preview (what the compilation will produce) -->
+        <div v-if="discoveredModels.length" class="w-full flex flex-col gap-2 text-left">
+          <div class="text-2xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            Will build {{ discoveredModels.length }} console{{ discoveredModels.length === 1 ? '' : 's' }}
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div
+              v-for="m in discoveredModels"
+              :key="m.id"
+              class="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800"
+            >
+              <Terminal class="w-3.5 h-3.5 text-primary shrink-0" />
+              <span class="text-xs text-slate-700 dark:text-slate-300 truncate">{{ m.name }}</span>
+              <span class="ml-auto text-2xs font-mono text-slate-400">{{ m.template }}</span>
+            </div>
+          </div>
+        </div>
+        <p v-else class="text-xs text-slate-500 dark:text-slate-400">
+          No domain models discovered yet — you can still generate the workspace prompt.
         </p>
 
-        <div class="w-full bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl p-4 text-left flex flex-col gap-2 font-mono text-xs">
-          <div class="flex items-center gap-2 text-slate-700 dark:text-slate-300 font-semibold text-2xs uppercase tracking-wider">
-            <Terminal class="w-3.5 h-3.5 text-blue-500 dark:text-blue-400" />
-            <span>How to compile this console</span>
-          </div>
-          <p v-if="selectedConsoleTarget === 'hub'" class="text-slate-600 dark:text-slate-400 text-2xs">
-            Run procedure: <span class="text-indigo-600 dark:text-indigo-400 font-semibold">compile_workspace_hub_NN.md</span> to aggregate all workspace models into <span class="text-emerald-600 dark:text-emerald-400">artifacts/workspace_hub.html</span>.
-          </p>
-          <p v-else class="text-slate-600 dark:text-slate-400 text-2xs">
-            Run template procedure for <span class="text-indigo-600 dark:text-indigo-400 font-semibold">{{ currentTargetModel?.template || 'model' }}</span>: <span class="text-blue-600 dark:text-blue-400">compile_{{ currentTargetModel?.template }}_console_NN.md</span>.
-          </p>
-        </div>
-
+        <!-- Primary action: generate the agent prompt -->
         <div class="flex items-center gap-3">
+          <button
+            @click="openPromptModal"
+            class="px-4 py-2.5 text-xs font-semibold rounded-lg bg-primary hover:opacity-90 text-primary-foreground shadow-xs transition-all flex items-center gap-2 cursor-pointer"
+            data-testid="console-hub-empty-cta"
+          >
+            <Sparkles class="w-4 h-4" />
+            <span>Generate Consoles with AI</span>
+          </button>
           <button
             @click="reloadIframe"
             class="px-4 py-2 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-colors flex items-center gap-1.5 cursor-pointer"
           >
             <RefreshCw class="w-3.5 h-3.5" />
-            <span>Re-check Artifact</span>
+            <span>Re-check</span>
           </button>
+        </div>
+
+        <!-- Secondary: reveal the compile procedure for advanced users -->
+        <div class="w-full bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-xl p-4 text-left flex flex-col gap-2 font-mono text-xs">
+          <div class="flex items-center gap-2 text-slate-700 dark:text-slate-300 font-semibold text-2xs uppercase tracking-wider">
+            <Terminal class="w-3.5 h-3.5 text-primary" />
+            <span>Compilation procedure</span>
+          </div>
+          <p v-if="selectedConsoleTarget === 'hub'" class="text-slate-600 dark:text-slate-400 text-2xs">
+            Run <span class="text-primary font-semibold">compile_workspace_hub_NN.md</span> to aggregate all workspace models into <span class="text-emerald-600 dark:text-emerald-400">artifacts/workspace_hub.html</span>.
+          </p>
+          <p v-else class="text-slate-600 dark:text-slate-400 text-2xs">
+            Run template procedure for <span class="text-primary font-semibold">{{ currentTargetModel?.template || 'model' }}</span>: <span class="text-primary">compile_{{ currentTargetModel?.template }}_console_NN.md</span>.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Agent Prompt Modal (host-side, so it works without the artifact) -->
+    <div
+      v-if="promptModalOpen"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+      data-testid="console-hub-prompt-modal"
+      @click.self="closePromptModal"
+    >
+      <div class="relative w-full max-w-3xl bg-white dark:bg-slate-900 border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-border bg-slate-50 dark:bg-slate-950/50">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+              <Sparkles class="w-4 h-4" />
+            </div>
+            <div>
+              <h3 class="text-sm font-bold text-slate-900 dark:text-white">AI Agent Instructions: Regenerate Consoles</h3>
+              <p class="text-2xs text-slate-500 dark:text-slate-400">Copy this prompt and give it to your AI agent to refresh all workspace artifacts</p>
+            </div>
+          </div>
+          <button
+            @click="closePromptModal"
+            class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors cursor-pointer"
+            title="Close Modal"
+          >
+            <X class="w-4 h-4" />
+          </button>
+        </div>
+
+        <div class="p-6 flex flex-col gap-4 max-h-[65vh] overflow-y-auto">
+          <div class="bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 p-4 font-mono text-xs text-slate-800 dark:text-slate-300 leading-relaxed select-all overflow-x-auto shadow-inner">
+            <pre class="whitespace-pre-wrap break-words font-mono text-xs">{{ consolePrompt }}</pre>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between px-6 py-4 border-t border-border bg-slate-50 dark:bg-slate-950/50">
+          <span v-if="promptCopied" class="text-xs text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1.5">
+            <Check class="w-4 h-4" />
+            Prompt copied to clipboard!
+          </span>
+          <div class="flex items-center gap-3 ml-auto">
+            <button
+              @click="closePromptModal"
+              class="px-4 py-2 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer"
+            >
+              Close
+            </button>
+            <button
+              @click="copyConsolePrompt"
+              class="px-4 py-2 text-xs font-semibold rounded-lg bg-primary hover:opacity-90 text-primary-foreground shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+              data-testid="console-hub-copy-btn"
+            >
+              <Copy class="w-3.5 h-3.5" />
+              <span>Copy Prompt</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>

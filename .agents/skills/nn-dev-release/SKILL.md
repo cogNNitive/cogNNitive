@@ -1,6 +1,6 @@
 ---
 name: nn-dev-release
-version: "3.0.0"
+version: "3.1.0"
 description: Internal developer skill for cogNNitive maintainers. Manages monorepo git status, gate checks, version bumping, release tagging, manifest generation, and distribution validation.
 ---
 
@@ -99,6 +99,13 @@ There is no "undo release". Run **all** of these before `git tag`:
 7. **Release freeze.** No other session/agent may push to `dev`/`main` while the
    release workflow is in flight: a moved `origin/main` breaks the tag's own
    verification (see §4). Announce the freeze before tagging.
+8. **Release order for a batch with a new blueprint.** When several keys ship
+   together and the `blueprints` release adds a blueprint absent from
+   `manifest/source.yaml`'s published manifest, dispatch **`blueprints` first**.
+   `assemble-manifest.js` retains each blueprint's pin from the previous
+   manifest for every key except `blueprints`; a blueprint with no prior pin
+   renders as `version/ref/commit: "undefined"` and fails manifest validation.
+   The `blueprints` run is what creates that pin on `cogNNitive-web`.
 
 ### Step 2: Create Annotated Tag
 
@@ -128,6 +135,15 @@ gh run list --workflow release.yml --limit 1
 gh run watch <run-id> --exit-status
 ```
 
+**A pushed tag does not guarantee a run.** GitHub occasionally drops the
+`on: push: tags` event: the tag lands on `origin`, but no `Tag-Driven Release`
+run appears (`gh run list --workflow release.yml --limit 1` still shows the
+previous run). Confirm the miss before acting — the workflow is `active`, the
+tag is present (`git ls-remote --tags origin | Select-String <tag>`), and
+`CI & Verify` still fires on branch pushes in the same window. Run the
+**Dispatch Fallback** (`§2 Step 3b`) instead of waiting; the wait does not
+resolve it.
+
 The release workflow (`release.yml`) will:
 1. Validate the tag and compute the release decision matrix (`scripts/release/publish-decision.js`).
 2. Sync the published assets to `cogNNitive-web` and stage versioned CDN bundles (commit C).
@@ -135,6 +151,30 @@ The release workflow (`release.yml`) will:
 4. Assemble the updated manifest from the previous published manifest + tagged inventory (`scripts/release/assemble-manifest.js`).
 5. Save snapshot to `docs/use/manifests/<tag>.md` and publish manifest (commit M).
 6. Run live smoke tests (`scripts/release/smoke.js`).
+
+### Step 3b: Dispatch Fallback (when the tag-push event is dropped)
+
+`release.yml` carries a `workflow_dispatch` trigger with a `publish` input. With
+`publish=true` the run sets `DRY_RUN=false` and publishes for real — the same
+release the tag-push would have produced, on the same tagged commit:
+
+```powershell
+gh workflow run release.yml --ref main -f tag=<key>-v<semver> -f publish=true
+gh run watch <run-id> --exit-status
+```
+
+The dispatch runs the workflow **from `main`**, so `main` must already carry the
+release-script fixes and the bumps the tag points at (§2 Step 1 items 2–3). The
+tag itself is still the source of `RELEASE_TAG`; the mirror tag, manifest
+commit, and manifest publish are identical to a tag-triggered run.
+
+**Keep the tag.** Do not delete or move it to force the event: the tag is
+correct and immutable, and re-creating an identical ref does not re-fire the
+event. The dispatch is the recovery, not a re-tag.
+
+**Respect the release order** (see §2 Step 1 item 8). When several tags ship
+together and any is a `blueprints` release introducing a new blueprint, dispatch
+`blueprints` **first** and let it finish before the others.
 
 ---
 
@@ -183,6 +223,8 @@ If a release workflow run fails, inspect the failing stage below. Re-running on 
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
+| Tag is on `origin` but no `Tag-Driven Release` run ever appears | GitHub dropped the `on: push: tags` event (the workflow stays `active`, `CI & Verify` fires normally) | dispatch the tag with `publish=true` (§2 Step 3b) — do **not** delete or re-create the tag |
+| `Staged manifest validation failed for <tag>` on a batch that adds a new blueprint | the run's key is not `blueprints`, so the new blueprint has no prior pin and renders `version/ref/commit: "undefined"` (`assemble-manifest.js`) | dispatch the `blueprints` release **first** (§2 Step 1 item 8), then the others |
 | `Post-Publish Smoke Test` fails with `Live manifest … failed validation` although the manifest already reached byte-equality | the smoke step ran **without a token**; `validateManifestText`'s GitHub API calls returned 403/429 | add `GITHUB_TOKEN: ${{ secrets.WEB_RELEASE_TOKEN || secrets.GITHUB_TOKEN }}` to that step's `env:` |
 | `Template Immutability Guard` fails on a tag with `base: "V_0-X-0", current: "V_0-(X-1)-0"` — especially on a **re-run** | the guard diffed the tag against a moved-on `origin/main` | base is now `merge-base(HEAD, origin/main)`; if it still fires on an old tag, cut a new version |
 | Workflow concludes without publishing anything | `vars.RELEASE_ENABLED` is not `'true'` → silent dry run | set the repo variable to `true`, then re-tag |
@@ -211,7 +253,7 @@ Every release saves an immutable snapshot of the stable manifest to `docs/use/ma
 
 ### Concurrency & Cancelled Runs
 
-The release workflow uses `concurrency: group: release, cancel-in-progress: false` to ensure releases do not clobber each other. If a pending release run is cancelled or failed due to GitHub Actions infrastructure, simply trigger a re-run on the tag via `gh run rerun <run-id>` or `workflow_dispatch`.
+The release workflow uses `concurrency: group: release, cancel-in-progress: false` to ensure releases do not clobber each other. If a pending release run is cancelled or failed due to GitHub Actions infrastructure, re-run it with `gh run rerun <run-id>`, or dispatch the tag again with `publish=true` (§2 Step 3b).
 
 ---
 
@@ -221,3 +263,5 @@ The release workflow uses `concurrency: group: release, cancel-in-progress: fals
 2. **Never push untagged release commits:** Releases are driven purely by git tags.
 3. **Always verify `main` CI before tagging:** Releases must only be cut from verified `main` commits.
 4. **Never delete published mirror tags:** Published mirror tags on `cogNNitive-web` are immutable restore points.
+5. **Dispatch `blueprints` first in a batch that adds a blueprint:** the `blueprints` release creates the blueprint's pin; every other key retains pins from the published manifest and fails on an unpinned new blueprint (§2 Step 1 item 8).
+6. **A dropped tag-push event is recovered by dispatch, never by a re-tag:** the tag is correct and immutable; dispatch it with `publish=true` (§2 Step 3b).

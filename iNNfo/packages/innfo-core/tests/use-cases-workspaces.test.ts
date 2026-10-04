@@ -103,8 +103,14 @@ describe('Canonical Use Case Workspaces', () => {
           },
         })
 
+        // The use cases are frozen content: they keep the retired `sources/nn` layout by design and
+        // are never migrated. The layout detector reports them (and nothing else) as legacy.
+        const frozenLayout =
+          parsed.legacyResult !== undefined &&
+          parsed.legacyResult.kind !== 'current' &&
+          parsed.legacyResult.signals.every((s) => s.type === 'legacy-layout')
         const errors = parsed.issues
-          .filter((i) => i.severity === 'error')
+          .filter((i) => i.severity === 'error' && !(frozenLayout && i.code === 'LEGACY_DOMAIN'))
           .map((i) => `${i.severity}: ${i.path} — ${i.message}`)
         expect(errors).toEqual([])
       })
@@ -112,7 +118,7 @@ describe('Canonical Use Case Workspaces', () => {
       it('citations resolve to existing source files', async () => {
         const parsed = await recursiveParse(nodeHandle(wsPath), undefined)
         const diagnostics = validateWorkspaceSources(parsed, (refPath: string) => {
-          // Check both sources/nn/ and sources/import/ or direct path
+          // Check both sources/import/ and sources/import/ or direct path
           let full = join(wsPath, refPath)
           if (!existsSync(full)) full = join(wsPath, 'sources', 'nn', refPath)
           if (!existsSync(full)) full = join(wsPath, 'sources', 'import', refPath)

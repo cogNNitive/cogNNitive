@@ -32,12 +32,12 @@ title: "Plan"
 # NN Stakeholders
 
 ## NN Stakeholders: Enterprise Clients
-sources:: [present.md#overview, missing.md#intro]
+sources:: [sources/import/present.md#overview, sources/import/missing.md#intro]
 relationship_model:: B2B
 `
 
 const PRESENT_SOURCE = `---
-source_file: "sources/original/present.txt"
+source_file: "sources/import/present.md"
 sha256: "0"
 ---
 
@@ -50,10 +50,10 @@ describe('validate_model workspace mode — sources:: Citations', () => {
   beforeEach(async () => {
     await rm(rootDir, { recursive: true, force: true })
     await mkdir(join(rootDir, 'kNNowledge'), { recursive: true })
-    await mkdir(join(rootDir, 'sources', 'nn'), { recursive: true })
+    await mkdir(join(rootDir, 'sources', 'import'), { recursive: true })
     await writeFile(join(rootDir, 'domaiNN_NN.md'), INDEX, 'utf-8')
     await writeFile(join(rootDir, 'kNNowledge', 'Plan_V_1-0-0_NN.md'), MODEL, 'utf-8')
-    await writeFile(join(rootDir, 'sources', 'nn', 'present.md'), PRESENT_SOURCE, 'utf-8')
+    await writeFile(join(rootDir, 'sources', 'import', 'present.md'), PRESENT_SOURCE, 'utf-8')
   })
 
   afterEach(async () => {
@@ -108,7 +108,7 @@ title: "Finance Plan"
 sources:: [budget.md@## Budget Summary]
 `
     const budgetSource = `---
-source_file: "sources/original/budget.txt"
+source_file: "sources/import/budget.txt"
 sha256: "0"
 ---
 
@@ -151,7 +151,7 @@ title: "Fallback Plan"
 sources:: [shared_policy.md@## Policy Overview]
 `
     const rootPolicySource = `---
-source_file: "sources/original/shared_policy.txt"
+source_file: "sources/import/shared_policy.txt"
 sha256: "0"
 ---
 
@@ -159,7 +159,7 @@ sha256: "0"
 Root policy details.
 `
     await writeFile(join(subprojectDir, 'kNNowledge', 'fallback_NN.md'), nestedModel, 'utf-8')
-    await writeFile(join(rootDir, 'sources', 'nn', 'shared_policy.md'), rootPolicySource, 'utf-8')
+    await writeFile(join(rootDir, 'sources', 'import', 'shared_policy.md'), rootPolicySource, 'utf-8')
     await writeFile(
       join(rootDir, 'domaiNN_NN.md'),
       INDEX + '\n* [Fallback](./subproject_fallback/kNNowledge/fallback_NN.md)\n',
@@ -188,11 +188,11 @@ title: "Error Plan"
 # NN Stakeholders
 
 ## NN Stakeholders: Error Reviewers
-sources:: [missing_folder/report.md#summary, annual_repots.md#intro]
+sources:: [missing_folder/report.md#summary, sources/import/annual_repots.md#intro]
 `
     await writeFile(join(rootDir, 'kNNowledge', 'Error_V_1-0-0_NN.md'), modelWithErrors, 'utf-8')
     await writeFile(
-      join(rootDir, 'sources', 'nn', 'annual_reports.md'),
+      join(rootDir, 'sources', 'import', 'annual_reports.md'),
       '# Annual Reports\nData\n',
       'utf-8',
     )
@@ -215,18 +215,18 @@ sources:: [missing_folder/report.md#summary, annual_repots.md#intro]
     expect(fuzzyMatch!.message).toContain("did you mean 'annual_reports.md'?")
   })
 
-  it('reports dangling citations in artifact frontmatter under export/', async () => {
-    await mkdir(join(rootDir, 'export'), { recursive: true })
+  it('reports dangling citations in artifact frontmatter under artifacts/', async () => {
+    await mkdir(join(rootDir, 'artifacts'), { recursive: true })
     await writeFile(
-      join(rootDir, 'export', 'Report.md'),
-      '---\ntitle: "Deliverable"\nsources: ["sources/nn/dangling.md@## Section"]\n---\n# Content',
+      join(rootDir, 'artifacts', 'Report.md'),
+      '---\ntitle: "Deliverable"\nsources: ["sources/import/dangling.md@## Section"]\n---\n# Content',
       'utf-8',
     )
     const diags = await collectWorkspaceDiagnostics(rootDir, null)
     const dangling = diags.find(
-      (d) => d.path.startsWith('export/Report.md') && d.code === 'KU_DANGLING_FILE',
+      (d) => d.path.startsWith('artifacts/Report.md') && d.code === 'KU_DANGLING_FILE',
     )
     expect(dangling).toBeDefined()
-    expect(dangling?.message).toContain('sources/nn/dangling.md')
+    expect(dangling?.message).toContain('sources/import/dangling.md')
   })
 })

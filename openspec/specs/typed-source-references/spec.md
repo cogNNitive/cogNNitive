@@ -2,123 +2,103 @@
 
 ## Purpose
 
-Give cited sources first-class typed representation on the parsed model graph: one shared `parseSourceRef` / `slugifyHeading` implementation in `innfo-core` consumed by `innfo-editor` and `innfo-mcp`, a `SourceRef[]` array and `origin: "source"` relationships materialised on every `ModelNode` that declares a `sources` field, and a workspace-scoped validator (`validateWorkspaceSources`) that surfaces dangling files, missing heading slugs, and malformed references as diagnostics.
+Typed source references follow the base change's single `parseCitation` and add a third unit kind, JSON Pointer. Paths are workspace-relative with no default prefix, and unit dispatch is exhaustive over unit kinds.
 
 ## Requirements
 
 ### Requirement: Single shared source-reference parser
 
-`@cognnitive/innfo-core` MUST expose `parseSourceRef(value: string): SourceRef | null`
-and `slugifyHeading(text: string): string`. `innfo-editor` and `innfo-mcp` MUST
-consume these rather than defining their own. `innfo-editor/src/utils/sourceRef.ts`
-MUST become a re-export of the core module with no independent logic.
+`@cognnitive/innfo-core` MUST expose `parseCitation(value)` and `slugifyHeading(text)`. `innfo-editor` and `innfo-mcp` MUST consume them. The structured result MUST carry the workspace-relative `path` and an optional `unit` whose `kind` is one of `header`, `row`, or `pointer` (`{kind:'pointer', pointer}` is the new third kind). `kind` MUST be derived from the target file extension (`.md` to `header`, `.csv` to `row`, `.json` to `pointer`). A value with no `@` MUST parse as a file-level citation with no `unit`. No default prefix MUST be added to `path`.
 
 #### Scenario: Editor and core agree on a slug
-
 - GIVEN the heading text `Visión Estratégica`
-- WHEN `slugifyHeading` is called in `innfo-core` and (via re-export) in `innfo-editor`
-- THEN both return the identical string `vision-estrategica`
+- WHEN `slugifyHeading` runs in innfo-core and via the editor re-export
+- THEN both return `vision-estrategica`
 
-#### Scenario: Bare path resolves under sources/nn/
+#### Scenario: Path is kept as written
+- GIVEN the value `sources/import/clientA/report.md@## Market overview`
+- WHEN `parseCitation` runs
+- THEN the result has `path` `sources/import/clientA/report.md` and a `header` unit
 
-- GIVEN the value `clientA/report.md#market-overview`
-- WHEN `parseSourceRef` is called
-- THEN it returns `{ filePath: "sources/nn/clientA/report.md", fileName: "report.md", slug: "market-overview", kind: "source" }`
+#### Scenario: JSON citation
+- GIVEN the value `sources/import/feedback/f.json@/items/0/text`
+- WHEN `parseCitation` runs
+- THEN the result has a `pointer` unit with `pointer` `/items/0/text`
 
 #### Scenario: Line-range anchor is rejected
-
-- GIVEN the value `report.md#L12-L45`
-- WHEN `parseSourceRef` is called
-- THEN it returns `null`
+- GIVEN the value `report.md@L12-L45`
+- WHEN `parseCitation` runs
+- THEN it returns a failure result and does not throw
 
 #### Scenario: src-NNN wrapper is rejected
-
-- GIVEN the value `src-007 report.md#intro`
-- WHEN `parseSourceRef` is called
-- THEN it returns `null`
-
-#### Scenario: sources/original is not citable
-
-- GIVEN the value `sources/original/report.pdf`
-- WHEN `parseSourceRef` is called
-- THEN it returns `null`
+- GIVEN the value `src-007 report.md@## Intro`
+- WHEN `parseCitation` runs
+- THEN it returns a failure result
 
 ### Requirement: Source fields are typed onto the graph
 
-When `recursiveParse` normalises an element that declares a field named `sources`
-(case-insensitive, scalar or list), the resulting `ModelNode` MUST carry a
-`sources: SourceRef[]` array holding every value that parsed as a reference, and
-MUST emit one `Relationship` per ref with `origin: "source"` and `label:
-"sources"`. Values that do not parse MUST NOT populate `node.sources` silently —
-they surface as diagnostics (see workspace validation).
-
-In addition to the name-based path above, any field whose schema declares
-`type:: citation` MUST also be resolved the same way: its parsed value MUST be
-appended to `node.sources` and MUST emit an `origin: "source"` relationship,
-regardless of the field's name. The name-based path (`SOURCE_FIELD_NAMES`)
-MUST remain unchanged and continues to apply independently — the two paths are
-additive, not mutually exclusive.
-(Previously: only fields literally named `sources`/`source` were typed onto the graph; schema-typed `citation` fields under other names were invisible to `node.sources` and the relationship graph.)
+When `recursiveParse` normalises an element declaring a field named `sources` (case-insensitive, scalar or list), or any field whose schema type is `citation`, the resulting `ModelNode` MUST carry a `sources` array of every value that parsed as a citation and MUST emit one `Relationship` per citation with `origin: "source"`. Values that do not parse MUST surface as diagnostics. Every dispatch over `unit.kind` (`workspaceSources.ts`, `unitResolve.ts`, `sourceRef.ts`, `console/citations.ts`, and the editor's `FilePreviewModal.vue`) MUST be an exhaustive `switch` ending in `assertNever`: a new `unit.kind` that is not handled MUST be a compile-time error, and a unit kind the validator cannot handle MUST NOT be silently ignored. The editor's duplicate citation serializer MUST be deleted in favor of the core one.
 
 #### Scenario: Element with two source pointers
-
-- GIVEN a Level 3 element with `sources:: [interview.md#clients, notes.md#priorities]`
+- GIVEN an element with `sources:: [sources/import/interview.md@## Clients, sources/import/notes.md@## Priorities]`
 - WHEN the model is parsed
-- THEN the element's `ModelNode.sources` has two entries with `filePath`
-  `sources/nn/interview.md` and `sources/nn/notes.md`
-- AND the node has two relationships with `origin: "source"`
+- THEN `ModelNode.sources` has two entries and two `origin: "source"` relationships exist
 
 #### Scenario: Graph consumers skip source edges
-
-- GIVEN a `ModelNode` with an `origin: "source"` relationship whose `targetId` is a path
+- GIVEN a relationship with `origin: "source"` whose `targetId` is a path
 - WHEN a consumer resolves relationship targets by node id
-- THEN `origin: "source"` edges are skipped and cause no "dangling node" error
+- THEN source edges are skipped without a dangling-node error
 
-#### Scenario: Schema-typed citation field is typed onto the graph
-
-- GIVEN a Level 3 element with a field `precio_source:: type:: citation` valued
-  `sources/nn/pricing.md#q3-pricing`
+#### Scenario: Schema-typed citation field
+- GIVEN a field `price_source:: type:: citation` valued `sources/import/pricing.csv@R3&price`
 - WHEN the model is parsed
-- THEN the element's `ModelNode.sources` includes an entry with `filePath`
-  `sources/nn/pricing.md`
-- AND the node has a relationship with `origin: "source"` for that entry
+- THEN `ModelNode.sources` includes that citation
 
 #### Scenario: Round-trip stays byte-identical
+- GIVEN a model with `sources::`, a `type:: citation` field, and a JSON Pointer citation
+- WHEN parsed and re-serialized
+- THEN the output is byte-identical to the input
 
-- GIVEN a model containing both a `sources::` field and a schema-typed
-  `type:: citation` field
-- WHEN the model is parsed and re-serialized
-- THEN `tests/roundtrip-fidelity.test.ts` confirms the output is byte-identical
-  to the input
+#### Scenario: Exhaustive dispatch
+- GIVEN the union of `unit.kind` values
+- WHEN the validator's dispatch is type-checked and unit-tested
+- THEN every kind has a handler, and adding a kind without a handler fails compilation
 
 ### Requirement: Workspace-scoped source validation
 
-`innfo-core` MUST expose `validateWorkspaceSources(result, resolver)` returning
-`ReferenceDiagnostic[]`. The `innfo-mcp` `validate` tool MUST call it with a
-disk-backed resolver and include its diagnostics in the response.
+`innfo-core` MUST expose `validateWorkspaceSources(result, resolver)` returning `ReferenceDiagnostic[]`, and the innfo-mcp `validate` tool MUST include its diagnostics. A unit citation (`@`) whose target is a binary raw file MUST produce an error diagnostic with code `KU_BINARY_TARGET` that names the sidecar path to cite instead. A citation to a sidecar of a text-native file MUST produce an anchor diagnostic because that sidecar has no body.
 
 #### Scenario: Dangling source file
+- GIVEN `sources:: sources/import/missing.md@## Intro` and no such file
+- WHEN validation runs
+- THEN an `error` names `sources/import/missing.md`
 
-- GIVEN a model element with `sources:: missing.md#intro`
-- AND no file `sources/nn/missing.md` in the workspace
-- WHEN `validateWorkspaceSources` runs
-- THEN it emits an `error` diagnostic naming `sources/nn/missing.md`
+#### Scenario: Missing heading
+- GIVEN `sources:: sources/import/report.md@## Nonexistent` and no such heading
+- WHEN validation runs
+- THEN an anchor-resolution diagnostic is emitted
 
-#### Scenario: Missing heading slug
+#### Scenario: Binary raw cited directly
+- GIVEN `sources:: sources/import/report.pdf@## Summary`
+- WHEN validation runs
+- THEN a `KU_BINARY_TARGET` error states the citation must target `sources/import/report.pdf_sidecar_NN.md`
 
-- GIVEN a model element with `sources:: report.md#nonexistent-heading`
-- AND `sources/nn/report.md` exists but has no heading slugging to `nonexistent-heading`
-- WHEN `validateWorkspaceSources` runs
-- THEN it emits a `warning` diagnostic
+#### Scenario: Binary cited through its sidecar
+- GIVEN `sources:: sources/import/report.pdf_sidecar_NN.md@## Summary` and a sidecar body with `## Summary`
+- WHEN validation runs
+- THEN no diagnostic is emitted
 
-#### Scenario: Malformed reference on a declared source field
+#### Scenario: Unresolved JSON Pointer
+- GIVEN `sources:: sources/import/f.json@/items/9/text` and a file with only three items
+- WHEN validation runs
+- THEN a `KU_UNKNOWN_POINTER` diagnostic is emitted
 
-- GIVEN a model element with `sources:: report.md#L10-L20`
-- WHEN `validateWorkspaceSources` runs
-- THEN it emits an `error` diagnostic explaining line ranges are not allowed
+#### Scenario: JSON target is not valid JSON
+- GIVEN `sources:: sources/import/broken.json@/items/0` and a file that does not parse
+- WHEN validation runs
+- THEN a `KU_INVALID_JSON` diagnostic is emitted
 
-#### Scenario: MCP validate surfaces source diagnostics
-
-- GIVEN a workspace passed to the `innfo-mcp` `validate` tool with a dangling `sources::`
-- WHEN the tool runs
-- THEN the returned diagnostics include the dangling-source `error`
+#### Scenario: MCP validate surfaces diagnostics
+- GIVEN a workspace with a dangling `sources::`
+- WHEN the MCP `validate` tool runs
+- THEN the response includes the error

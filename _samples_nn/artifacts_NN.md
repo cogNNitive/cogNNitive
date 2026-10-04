@@ -30,6 +30,6 @@ format:: model
 summary:: Structured synthesis of 1984 NYC paranormal elimination operations, client billing totals, and municipal indemnity compliance.
 status:: verified
 produced_by:: Compile Workspace Hub
-sources:: [sources/nn/nyc-paranormal-activity-report-1984.md]
-artifact_model:: artifacts/models/executive_remediation_report_NN.md
+sources:: [sources/import/nyc-paranormal-activity-report-1984.md]
+artifact_model:: artifacts/models/executive_remediation_report_business_NN.md
 tags:: [report, executive, compliance]

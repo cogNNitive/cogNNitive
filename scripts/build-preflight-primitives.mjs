@@ -10,6 +10,7 @@
  *   1. skills/nn-preflight/scripts/lib/version-status.generated.cjs (versionStatus.ts)
  *   2. skills/nn-preflight/scripts/lib/legacy-detect.generated.cjs (legacy/detect.ts)
  *   3. skills/nn-upgrade/scripts/lib/legacy-migrate.generated.cjs (legacy/index.ts)
+ *   4. skills/nn-preflight/scripts/lib/naming-contract.generated.cjs (naming/index.ts)
  *
  * Usage:
  *   node scripts/build-preflight-primitives.mjs [--check]
@@ -88,6 +89,8 @@ const BUNDLE_TARGETS = [
   },
   {
     name: 'legacy-migrate',
+    // The post-apply cognitivize step reads and writes the domain, so this bundle is Node-only.
+    platform: 'node',
     entry: path.join(
       REPO_ROOT,
       'iNNfo',
@@ -116,6 +119,25 @@ const BUNDLE_TARGETS = [
       'legacy:' +
       'nn-rename/quarantine',
   },
+  {
+    name: 'naming-contract',
+    entry: path.join(REPO_ROOT, 'iNNfo', 'packages', 'innfo-core', 'src', 'naming', 'index.ts'),
+    out: path.join(
+      REPO_ROOT,
+      'skills',
+      'nn-preflight',
+      'scripts',
+      'lib',
+      'naming-contract.generated.cjs',
+    ),
+    banner:
+      '/**\n' +
+      ' * GENERATED FILE — DO NOT EDIT.\n' +
+      ' * Source: iNNfo/packages/innfo-core/src/naming/index.ts\n' +
+      ' * Regenerate: node scripts/build-preflight-primitives.mjs\n' +
+      ' * Drift-guarded by scripts/verify.js (build-preflight-primitives --check).\n' +
+      ' */',
+  },
 ]
 
 /** Resolve esbuild from the hoisted iNNfo workspace (root has no node_modules). */
@@ -138,7 +160,7 @@ async function renderTarget(target) {
     entryPoints: [target.entry],
     bundle: true,
     format: 'cjs',
-    platform: 'neutral',
+    platform: target.platform ?? 'neutral',
     target: 'node20',
     write: false,
     legalComments: 'none',

@@ -10,7 +10,7 @@ describe('Console Citations', () => {
   it('groups citations by field and omits field property from children', () => {
     const citations: ResolvedCitation[] = [
       {
-        path: 'sources/nn/brief.md',
+        path: 'sources/import/brief.md',
         anchor: 'intro',
         exists: true,
         field: 'sources',
@@ -18,7 +18,7 @@ describe('Console Citations', () => {
         excerpt: 'Brief excerpt',
       },
       {
-        path: 'sources/nn/pricing.md',
+        path: 'sources/import/pricing.md',
         anchor: 'table',
         exists: true,
         field: 'precio_source',
@@ -27,7 +27,7 @@ describe('Console Citations', () => {
         excerpt: 'Pricing excerpt',
       },
       {
-        path: 'sources/nn/extra.md',
+        path: 'sources/import/extra.md',
         exists: true,
         field: 'sources',
         origin: 'human',
@@ -38,21 +38,21 @@ describe('Console Citations', () => {
     expect(grouped).toEqual({
       sources: [
         {
-          path: 'sources/nn/brief.md',
+          path: 'sources/import/brief.md',
           anchor: 'intro',
           exists: true,
           origin: 'document',
           excerpt: 'Brief excerpt',
         },
         {
-          path: 'sources/nn/extra.md',
+          path: 'sources/import/extra.md',
           exists: true,
           origin: 'human',
         },
       ],
       precio_source: [
         {
-          path: 'sources/nn/pricing.md',
+          path: 'sources/import/pricing.md',
           anchor: 'table',
           exists: true,
           origin: 'reviewer',
@@ -83,8 +83,8 @@ describe('Console Citations', () => {
     }
 
     const fields = {
-      sources: 'sources/nn/brief.md',
-      precio_source: 'sources/nn/pricing.md',
+      sources: 'sources/import/brief.md',
+      precio_source: 'sources/import/pricing.md',
       regular_field: 'Some text',
       other_field: 'Other text',
     }
@@ -101,8 +101,8 @@ knowledge_version: "V_1-0-0"
 
 # NN Services
 ## NN Services: Ghost Capture
-sources:: sources/nn/brief.md#intro
-precio_source:: sources/nn/pricing.md#rates
+sources:: sources/import/brief.md#intro
+precio_source:: sources/import/pricing.md#rates
 `
     const mockSchema = {
       concepts: [{ name: 'Services' }],
@@ -118,13 +118,13 @@ precio_source:: sources/nn/pricing.md#rates
     }
 
     const mockResolver = (filePath: string) => {
-      if (filePath === 'sources/nn/brief.md') {
+      if (filePath === 'sources/import/brief.md') {
         return {
           exists: true,
           content: '## Intro\nGhost capture services intro.\n',
         }
       }
-      if (filePath === 'sources/nn/pricing.md') {
+      if (filePath === 'sources/import/pricing.md') {
         return {
           exists: true,
           content: '## Rates\nStandard rate is $5000.\n',
@@ -146,9 +146,9 @@ precio_source:: sources/nn/pricing.md#rates
     expect(el.citations).toBeDefined()
     expect(el.citations!.sources).toBeDefined()
     expect(el.citations!.precio_source).toBeDefined()
-    expect(el.citations!.sources[0].path).toBe('sources/nn/brief.md')
+    expect(el.citations!.sources[0].path).toBe('sources/import/brief.md')
     expect(el.citations!.sources[0].anchor).toBe('intro')
     expect((el.citations!.sources[0] as any).field).toBeUndefined()
-    expect(el.citations!.precio_source[0].path).toBe('sources/nn/pricing.md')
+    expect(el.citations!.precio_source[0].path).toBe('sources/import/pricing.md')
   })
 })

@@ -114,7 +114,7 @@ describe('FieldString (field-type widget for string fields)', () => {
   it('renders one FileRefPill per valid entry when modelValue is an array of source refs (readonly)', () => {
     const wrapper = mount(FieldString, {
       props: {
-        modelValue: ['sources/nn/a.md#intro', 'sources/nn/b/c.md#methodology'],
+        modelValue: ['sources/import/a.md#intro', 'sources/import/b/c.md#methodology'],
         readonly: true,
       },
       global: { plugins: [createPinia()] },
@@ -127,7 +127,7 @@ describe('FieldString (field-type widget for string fields)', () => {
   it('falls back to plain text for array entries that are not valid source refs (readonly)', () => {
     const wrapper = mount(FieldString, {
       props: {
-        modelValue: ['not a ref', 'sources/nn/valid.md'],
+        modelValue: ['not a ref', 'sources/import/valid.md'],
         readonly: true,
       },
       global: { plugins: [createPinia()] },
@@ -139,13 +139,13 @@ describe('FieldString (field-type widget for string fields)', () => {
   it('does not crash when modelValue is an array in edit mode, and joins values for the raw text input', () => {
     const wrapper = mount(FieldString, {
       props: {
-        modelValue: ['sources/nn/a.md', 'sources/nn/b.md'],
+        modelValue: ['sources/import/a.md', 'sources/import/b.md'],
         readonly: false,
       },
     })
     const input = wrapper.get('input')
     expect((input.element as HTMLInputElement).value).toBe(
-      'sources/nn/a.md, sources/nn/b.md',
+      'sources/import/a.md, sources/import/b.md',
     )
   })
 })

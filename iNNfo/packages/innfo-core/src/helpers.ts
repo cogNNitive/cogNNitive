@@ -6,23 +6,18 @@
 import { readdir, readFile } from 'node:fs/promises'
 import { join, relative } from 'node:path'
 import { parseFrontmatter } from './parser/index.js'
-import { isDiscoverableModel, NN_FILENAME_RE as KNOWLEDGE_NN_FILENAME_RE } from './workspace/discoverModels.js'
+import { isModelCandidate, isExcludedPath, parseName } from './naming/contract.js'
 
 /* ── Version resolution ──────────────────────────────────────── */
 
 /**
- * SemVer pattern as used in iNNfo filenames: `_V_MAJOR-MINOR-PATCH_`
+ * Read a model's own version from its frontmatter `knowledge_version`
+ * (e.g. `V_1-0-0`). Returns `null` when absent or empty; the legacy version
+ * key is not used as a source (the legacy detector flags it).
  */
-const VERSION_FILENAME_RE = /_V_(\d+-\d+-\d+)_/
-
-/**
- * Extract the SemVer (e.g. `0-1-1`) from an iNNfo filename like
- * `Ghostbusters_V_0-1-0_business_NN.md` → `0-1-0`.
- * Returns `null` if no version marker is found.
- */
-export function resolveSpecVersionFromFilename(filename: string): string | null {
-  const match = filename.match(VERSION_FILENAME_RE)
-  return match ? match[1] : null
+export function resolveKnowledgeVersion(frontmatter: Record<string, unknown>): string | null {
+  const v = frontmatter.knowledge_version
+  return typeof v === 'string' && v.trim() !== '' ? v.trim() : null
 }
 
 /* ── Model scanning ──────────────────────────────────────────── */
@@ -32,7 +27,7 @@ export interface KnowledgeInfo {
   id: string
   /** Absolute filesystem path */
   path: string
-  /** SemVer extracted from filename, e.g. `0-1-2` */
+  /** Version read from frontmatter `knowledge_version`, e.g. `V_0-1-2` */
   version: string | null
 }
 
@@ -47,8 +42,8 @@ function isIgnoredDir(name: string): boolean {
 
 /**
  * `collectModels()` and `isReconcilableModel()` share ONE discoverable-model
- * predicate (`isDiscoverableModel`, `workspace/discoverModels.ts`) instead of
- * two divergent ones (H6). Walk-level directory pruning stays here: it walks
+ * predicate (`isModelCandidate`, `naming/contract.ts`) instead of two
+ * divergent ones (H6). Walk-level directory pruning stays here: it walks
  * ABSOLUTE paths and prunes `node_modules`, `.git`, dot-dirs and
  * `IGNORED_DIRS` at every level, which `isIgnoredPath` (workspace-relative,
  * first-segment only) does not replace.
@@ -68,10 +63,11 @@ async function collectModels(dir: string, rootDir: string, models: KnowledgeInfo
     if (!entry.isFile()) continue
     if (!MD_FILE_RE.test(entry.name)) continue
     if (entry.name.toLowerCase() === 'index.md') continue
-    if (!KNOWLEDGE_NN_FILENAME_RE.test(entry.name)) continue
+    if (parseName(entry.name).kind !== 'nn') continue
 
     const filePath = join(dir, entry.name)
     const relPath = relative(rootDir, filePath).split('\\').join('/')
+    if (isExcludedPath(relPath)) continue
 
     let frontmatter: Record<string, unknown> | null = null
     try {
@@ -86,10 +82,10 @@ async function collectModels(dir: string, rootDir: string, models: KnowledgeInfo
       continue
     }
     if (!frontmatter) continue
-    if (!isDiscoverableModel({ path: relPath, frontmatter })) continue
+    if (!isModelCandidate({ path: relPath, frontmatter })) continue
 
     const id = entry.name.replace(MD_FILE_RE, '')
-    const version = resolveSpecVersionFromFilename(entry.name)
+    const version = resolveKnowledgeVersion(frontmatter)
 
     models.push({ id, path: filePath, version })
   }
@@ -98,7 +94,7 @@ async function collectModels(dir: string, rootDir: string, models: KnowledgeInfo
 /**
  * Scan a root directory (recursively) for discoverable iNNfo model files
  * (`_NN.md`, `level: 3`, resolvable `parent_spec` — see
- * `isDiscoverableModel`). Skips `backups`, `archive`, `specs`,
+ * `isModelCandidate`). Skips `backups`, `archive`, `specs`,
  * `node_modules`, `.git`, and any dot-directory. Returns an array of
  * `KnowledgeInfo` sorted by id.
  */

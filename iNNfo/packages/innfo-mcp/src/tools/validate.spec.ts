@@ -233,9 +233,9 @@ describe('collectWorkspaceDiagnostics / filterDiagnosticsForModel (AD-4 split)',
   describe('knowledge-unit pointers in workspace mode', () => {
     async function writeUnitWorkspace(): Promise<void> {
       await mkdir(modelsDir, { recursive: true })
-      await mkdir(join(rootDir, 'sources', 'nn'), { recursive: true })
+      await mkdir(join(rootDir, 'sources', 'import'), { recursive: true })
       await writeFile(
-        join(rootDir, 'sources', 'nn', 'metricas_q3.csv'),
+        join(rootDir, 'sources', 'import', 'metricas_q3.csv'),
         'cliente_id,segmento\n101,Enterprise\n102,SMB\n',
         'utf-8',
       )
@@ -243,7 +243,7 @@ describe('collectWorkspaceDiagnostics / filterDiagnosticsForModel (AD-4 split)',
         join(modelsDir, 'gamma_V_0-1-0_linked_test_NN.md'),
         modelContent(
           'Gamma',
-          '## NN Roles: RoleC\nsources:: metricas_q3.csv@999\n\n## NN Roles: RoleD\nsources:: metricas_q3.csv@101\n',
+          '## NN Roles: RoleC\nsources:: sources/import/metricas_q3.csv@999\n\n## NN Roles: RoleD\nsources:: sources/import/metricas_q3.csv@101\n',
         ),
         'utf-8',
       )

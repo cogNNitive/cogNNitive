@@ -1,6 +1,8 @@
 import type { RecursiveParseResult } from '../recursiveParser/types.js'
 import type { ReferenceDiagnostic } from './references.js'
 import { parseCsvTable } from '../csvTable.js'
+import { assertNever } from '../assertNever.js'
+import { resolveJsonPointer } from '../jsonPointer.js'
 import { parseKnowledgeQuery } from '../queryUnits.js'
 import {
   SOURCE_FIELD_NAMES,
@@ -11,6 +13,7 @@ import {
   splitSourceFieldValue,
   type SourceRef,
 } from '../sourceRef.js'
+import { sidecarPathOf } from '../naming/index.js'
 import { listSectionFields, resolveUnit } from '../unitResolve.js'
 import type { KnowledgeNode } from '../types/index.js'
 import type { BlueprintSchema } from '../schema/index.js'
@@ -28,7 +31,7 @@ export interface SourceResolution {
 
 /**
  * Host-supplied callback that resolves a workspace-relative source path
- * (`sources/nn/<path>.md`, `sources/nn/<path>.csv`, or `kNNowledge/<path>.md`) to
+ * (for example `sources/import/<path>.csv` or `kNNowledge/<path>.md`) to
  * whether the file exists and, when cheap to compute, its heading slugs and/or
  * raw content (content unlocks row/column/field checks and precise `@` suggestions).
  */
@@ -80,14 +83,27 @@ export function validateCitations(
       continue
     }
 
-    if (/^models\//i.test(value.trim())) {
+    const targetPath = citationTargetPath(value)
+    if (targetPath && targetPath.split('/').includes('staging')) {
       diagnostics.push({
         path,
-        message: `Malformed source reference "${value}" — \`models/\` was removed; use \`kNNowledge/\``,
+        message: `Excluded source reference "${value}" — "staging/" is scratch space and is not citable`,
         severity: 'error',
-        code: 'KU_MALFORMED',
+        code: 'KU_EXCLUDED_PATH',
         site,
-        target: value,
+        target: targetPath,
+      })
+      continue
+    }
+
+    if (targetPath && value.includes('@') && isBinaryTarget(targetPath)) {
+      diagnostics.push({
+        path,
+        message: `Binary source reference "${value}" — a unit cannot address a binary file; cite its sidecar "${sidecarPathOf(targetPath)}" instead`,
+        severity: 'error',
+        code: 'KU_BINARY_TARGET',
+        site,
+        target: targetPath,
       })
       continue
     }
@@ -96,7 +112,7 @@ export function validateCitations(
     if (!cit) {
       diagnostics.push({
         path,
-        message: `Malformed source reference "${value}" — use "<path>@<unit>" (e.g. "file.md@## Section", "data.csv@104"); line ranges like #L10-L20 and src-NNN ids are not allowed, and sources/original/ is not citable`,
+        message: `Malformed source reference "${value}" — use "<path>@<unit>" (e.g. "file.md@## Section", "data.csv@104"); line ranges like #L10-L20 and src-NNN ids are not allowed`,
         severity: 'error',
         code: 'KU_MALFORMED',
         site,
@@ -261,6 +277,20 @@ export function validateWorkspaceSources(
   return diagnostics
 }
 
+/** Forward-slash path part of a citation (text before the first `@` or `#`), or null. */
+function citationTargetPath(value: string): string | null {
+  const trimmed = value.trim()
+  const cut = trimmed.search(/[@#]/)
+  const path = (cut === -1 ? trimmed : trimmed.slice(0, cut)).replace(/\\/g, '/')
+  return path || null
+}
+
+/** True when the path has an extension that is neither md, csv, nor json. */
+function isBinaryTarget(path: string): boolean {
+  const ext = /\.([A-Za-z0-9]+)$/.exec(path)?.[1]?.toLowerCase()
+  return ext !== undefined && ext !== 'md' && ext !== 'csv' && ext !== 'json'
+}
+
 function formatDanglingMessage(ref: SourceRef, resolved?: SourceResolution | null): string {
   let msg = `Dangling source reference: "${ref.filePath}" is not present in this workspace`
   if (resolved?.parentExists === false) {
@@ -305,11 +335,51 @@ function validateUnitPointer(
     })
     return
   }
-  if (unit.kind === 'header') {
-    validateHeaderUnit(ref, unit.slug, unit.level, subunits, resolved, path, diagnostics, site)
-  } else {
-    validateRowUnit(ref, unit.id, subunits, resolved, path, diagnostics, checkedCsvKeys, site)
+  switch (unit.kind) {
+    case 'header':
+      validateHeaderUnit(ref, unit.slug, unit.level, subunits, resolved, path, diagnostics, site)
+      return
+    case 'row':
+      validateRowUnit(ref, unit.id, subunits, resolved, path, diagnostics, checkedCsvKeys, site)
+      return
+    case 'pointer':
+      validatePointerUnit(ref, unit.pointer, resolved, path, diagnostics, site)
+      return
+    default:
+      return assertNever(unit, 'knowledge unit kind')
   }
+}
+
+function validatePointerUnit(
+  ref: SourceRef,
+  pointer: string,
+  resolved: { content?: string },
+  path: string,
+  diagnostics: CitationDiagnostic[],
+  site: CitationSite,
+): void {
+  if (!resolved.content) return // Degraded: file-existence-only without content.
+  const found = resolveJsonPointer(resolved.content, pointer)
+  if (found.ok) return
+  if (found.reason === 'invalid-json') {
+    diagnostics.push({
+      path,
+      message: `Source file "${ref.filePath}" cannot be parsed as JSON`,
+      severity: 'error',
+      code: 'KU_INVALID_JSON',
+      site,
+      target: ref.filePath,
+    })
+    return
+  }
+  diagnostics.push({
+    path,
+    message: `Source reference "${ref.raw}" points at pointer "${pointer}" which does not exist in "${ref.fileName}"`,
+    severity: 'error',
+    code: 'KU_UNKNOWN_POINTER',
+    site,
+    target: ref.filePath,
+  })
 }
 
 function validateHeaderUnit(

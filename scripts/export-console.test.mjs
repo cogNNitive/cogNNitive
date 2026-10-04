@@ -1,12 +1,13 @@
 import { describe, it, beforeEach, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, rm, mkdir, writeFile, readFile, copyFile } from 'node:fs/promises'
+import { mkdtemp, rm, mkdir, writeFile, readFile, copyFile, readdir } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join, resolve, dirname } from 'node:path'
+import { join, resolve, dirname, basename, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
+import { consoleHtml, consoleBundle, consoleMembers } from '../test/helpers/console-artifacts.mjs'
 import { createHash } from 'node:crypto'
 
 const execFileAsync = promisify(execFile)
@@ -98,14 +99,14 @@ level: 3
       assert.match(res.stderr, /Usage:/)
     })
 
-    it('lists all Level 3 models with --list and does not create export folder', async () => {
+    it('lists all Level 3 models with --list and does not create artifacts folder', async () => {
       const res = await runCli([tempDir, '--list'])
       assert.equal(res.code, 0)
       assert.match(res.stdout, /business_V_0-2-5_NN\.md/)
       assert.match(res.stdout, /procedures_V_0-1-0_NN\.md/)
       assert.match(res.stdout, /metrics_V_0-1-0_NN\.md/)
       assert.match(res.stdout, /\(3 models\)/)
-      assert.equal(existsSync(join(tempDir, 'export')), false)
+      assert.equal(existsSync(join(tempDir, 'artifacts')), false)
     })
 
     it('exits with code 1 when no models match filter and not in read-only mode', async () => {
@@ -120,12 +121,7 @@ level: 3
       const res = await runCli([tempDir, 'business'])
       assert.equal(res.code, 0)
 
-      const htmlPath = join(
-        tempDir,
-        'export',
-        'business_V_0-2-5_console',
-        'business_V_0-2-5_console.html',
-      )
+      const htmlPath = consoleHtml(tempDir, 'business_V_0-2-5')
       assert.equal(existsSync(htmlPath), true)
 
       const htmlContent = await readFile(htmlPath, 'utf-8')
@@ -149,12 +145,7 @@ level: 3
       const res = await runCli([tempDir, 'business'])
       assert.equal(res.code, 0)
 
-      const htmlPath = join(
-        tempDir,
-        'export',
-        'business_V_0-2-5_console',
-        'business_V_0-2-5_console.html',
-      )
+      const htmlPath = consoleHtml(tempDir, 'business_V_0-2-5')
       const htmlContent = await readFile(htmlPath, 'utf-8')
       const jsonMatch = htmlContent.match(
         /<script type="application\/json" id="innfo-model">([\s\S]*?)<\/script>/,
@@ -174,7 +165,7 @@ level: 3
       assert.match(res.stdout, /business_V_0-2-5_NN\.md\s+\[uncompiled\]/)
       assert.match(res.stdout, /procedures_V_0-1-0_NN\.md\s+\[uncompiled\]/)
       assert.match(res.stdout, /metrics_V_0-1-0_NN\.md\s+\[uncompiled\]/)
-      assert.equal(existsSync(join(tempDir, 'export')), false, 'Status check must not create export dir')
+      assert.equal(existsSync(join(tempDir, 'artifacts')), false, 'Status check must not create artifacts dir')
 
       // Compile business model
       const compileRes = await runCli([tempDir, 'business'])
@@ -217,7 +208,7 @@ level: 3
       assert.match(res.stdout, /subdomains\//)
       assert.match(res.stdout, /business_V_0-2-5_NN\.md/)
       assert.match(res.stdout, /\[uncompiled\]/)
-      assert.equal(existsSync(join(tempDir, 'export')), false)
+      assert.equal(existsSync(join(tempDir, 'artifacts')), false)
     })
 
     it('exports all models with --all', async () => {
@@ -225,15 +216,15 @@ level: 3
       assert.equal(res.code, 0)
       assert.match(res.stdout, /Exported 3 console artifact\(s\)/)
       assert.equal(
-        existsSync(join(tempDir, 'export', 'business_V_0-2-5_console', 'business_V_0-2-5_console.html')),
+        existsSync(consoleHtml(tempDir, 'business_V_0-2-5')),
         true,
       )
       assert.equal(
-        existsSync(join(tempDir, 'export', 'procedures_V_0-1-0_console', 'procedures_V_0-1-0_console.html')),
+        existsSync(consoleHtml(tempDir, 'procedures_V_0-1-0')),
         true,
       )
       assert.equal(
-        existsSync(join(tempDir, 'export', 'metrics_V_0-1-0_console', 'metrics_V_0-1-0_console.html')),
+        existsSync(consoleHtml(tempDir, 'metrics_V_0-1-0')),
         true,
       )
     })
@@ -255,17 +246,17 @@ level: 3
       // Now --stale should compile only procedures
       res = await runCli([tempDir, '--stale'])
       assert.equal(res.code, 0)
-      assert.match(res.stdout, /procedures_V_0-1-0_console\.html/)
-      assert.doesNotMatch(res.stdout, /business_V_0-2-5_console\.html/)
+      assert.match(res.stdout, /procedures_V_0-1-0_console(?:_\d{8}T\d{6}Z(?:-\d+)?)?\.html/)
+      assert.doesNotMatch(res.stdout, /business_V_0-2-5_console(?:_\d{8}T\d{6}Z(?:-\d+)?)?\.html/)
       assert.match(res.stdout, /Exported 1 console artifact\(s\)/)
     })
 
     it('filters models by pattern with --filter', async () => {
       const res = await runCli([tempDir, '--filter', 'metrics'])
       assert.equal(res.code, 0)
-      assert.match(res.stdout, /metrics_V_0-1-0_console\.html/)
-      assert.doesNotMatch(res.stdout, /business_V_0-2-5_console\.html/)
-      assert.doesNotMatch(res.stdout, /procedures_V_0-1-0_console\.html/)
+      assert.match(res.stdout, /metrics_V_0-1-0_console(?:_\d{8}T\d{6}Z(?:-\d+)?)?\.html/)
+      assert.doesNotMatch(res.stdout, /business_V_0-2-5_console(?:_\d{8}T\d{6}Z(?:-\d+)?)?\.html/)
+      assert.doesNotMatch(res.stdout, /procedures_V_0-1-0_console(?:_\d{8}T\d{6}Z(?:-\d+)?)?\.html/)
       assert.match(res.stdout, /Exported 1 console artifact\(s\)/)
     })
   })
@@ -275,12 +266,7 @@ level: 3
       const res = await runCli([tempDir, 'business'])
       assert.equal(res.code, 0)
 
-      const htmlPath = join(
-        tempDir,
-        'export',
-        'business_V_0-2-5_console',
-        'business_V_0-2-5_console.html',
-      )
+      const htmlPath = consoleHtml(tempDir, 'business_V_0-2-5')
       const htmlContent = await readFile(htmlPath, 'utf-8')
       const configMatch = htmlContent.match(
         /<script type="application\/json" id="innfo-config">([\s\S]*?)<\/script>/,
@@ -303,12 +289,7 @@ level: 3
       const res = await runCli([tempDir, 'business'])
       assert.equal(res.code, 0)
 
-      const htmlPath = join(
-        tempDir,
-        'export',
-        'business_V_0-2-5_console',
-        'business_V_0-2-5_console.html',
-      )
+      const htmlPath = consoleHtml(tempDir, 'business_V_0-2-5')
       const htmlContent = await readFile(htmlPath, 'utf-8')
 
       const bundle = await readFile(
@@ -350,9 +331,9 @@ level: 3
         [join(toolsDir, 'export-console.mjs'), tempDir, 'business'],
         { cwd: tempDir },
       )
-      assert.match(stdout, /business_V_0-2-5_console\.html/)
+      assert.match(stdout, /business_V_0-2-5_console(?:_\d{8}T\d{6}Z(?:-\d+)?)?\.html/)
       assert.equal(
-        existsSync(join(tempDir, 'export', 'business_V_0-2-5_console', 'business_V_0-2-5_console.html')),
+        existsSync(consoleHtml(tempDir, 'business_V_0-2-5')),
         true,
       )
     })
@@ -375,9 +356,9 @@ level: 3
         [join(toolsDir, 'export-console.mjs'), tempDir, 'business'],
         { cwd: tempDir, env: { ...process.env, INNFO_CONSOLE_DIR: assetsDir } },
       )
-      assert.match(stdout, /business_V_0-2-5_console\.html/)
+      assert.match(stdout, /business_V_0-2-5_console(?:_\d{8}T\d{6}Z(?:-\d+)?)?\.html/)
       assert.equal(
-        existsSync(join(tempDir, 'export', 'business_V_0-2-5_console', 'business_V_0-2-5_console.html')),
+        existsSync(consoleHtml(tempDir, 'business_V_0-2-5')),
         true,
       )
     })
@@ -402,7 +383,7 @@ level: 3
         { cwd: tempDir, env: { ...process.env, INNFO_CONSOLE_DIR: assetsDir } },
       )
       const out = await readFile(
-        join(tempDir, 'export', 'business_V_0-2-5_console', 'business_V_0-2-5_console.html'),
+        consoleHtml(tempDir, 'business_V_0-2-5'),
         'utf-8',
       )
       assert.equal(out.includes('STALE-LEGACY'), false)
@@ -431,11 +412,75 @@ level: 3
         [join(toolsDir, 'export-console.mjs'), tempDir, 'business'],
         { cwd: tempDir, env: { ...process.env, INNFO_CONSOLE_DIR: assetsDir } },
       )
-      assert.match(stdout, /business_V_0-2-5_console\.html/)
+      assert.match(stdout, /business_V_0-2-5_console(?:_\d{8}T\d{6}Z(?:-\d+)?)?\.html/)
       assert.equal(
-        existsSync(join(tempDir, 'export', 'business_V_0-2-5_console', 'business_V_0-2-5_console.html')),
+        existsSync(consoleHtml(tempDir, 'business_V_0-2-5')),
         true,
       )
+    })
+  })
+
+  describe('Phase 6: Write-once exports', () => {
+    const sha = async (file) => computeHash(await readFile(file, 'utf-8'))
+    const tree = async (root) => {
+      const out = []
+      const walk = async (dir) => {
+        for (const e of await readdir(dir, { withFileTypes: true })) {
+          const p = join(dir, e.name)
+          if (e.isDirectory()) await walk(p)
+          else out.push(`${relative(root, p).replace(/\\/g, '/')}:${await sha(p)}`)
+        }
+      }
+      await walk(join(root, 'artifacts'))
+      return out.sort()
+    }
+
+    it('writes nothing new when run twice on unchanged input', async () => {
+      assert.equal((await runCli([tempDir, '--all'])).code, 0)
+      const first = await tree(tempDir)
+      const again = await runCli([tempDir, '--all'])
+      assert.equal(again.code, 0)
+      assert.match(again.stdout, /Exported 0 console artifact\(s\)/)
+      assert.deepEqual(await tree(tempDir), first)
+      assert.equal(consoleMembers(tempDir, 'business_V_0-2-5').length, 1)
+    })
+
+    it('adds a suffixed member for a changed model and leaves the earlier console byte-identical', async () => {
+      await runCli([tempDir, 'business'])
+      const [original] = consoleMembers(tempDir, 'business_V_0-2-5')
+      const before = await sha(original)
+
+      const file = join(tempDir, 'models', 'business_V_0-2-5_NN.md')
+      await writeFile(file, (await readFile(file, 'utf-8')) + '\n## NN Stakeholders: Partner\n  budget:: "$10k"\n', 'utf-8')
+      const res = await runCli([tempDir, '--stale'])
+      assert.equal(res.code, 0)
+
+      const members = consoleMembers(tempDir, 'business_V_0-2-5')
+      assert.equal(members.length, 2)
+      assert.match(basename(members[1]), /^business_V_0-2-5_console_\d{8}T\d{6}Z(-\d+)?\.html$/)
+      assert.equal(await sha(original), before)
+      assert.equal(members[0], original)
+      assert.equal(consoleHtml(tempDir, 'business_V_0-2-5'), members[1])
+      const meta = JSON.parse(
+        (await readFile(members[1], 'utf-8')).match(/id="innfo-model">([\s\S]*?)<\/script>/)[1],
+      ).meta
+      assert.equal(meta.sha256, computeHash(await readFile(file, 'utf-8')))
+    })
+
+    it('embeds meta.sources from the core payload builder', async () => {
+      await runCli([tempDir, 'business'])
+      const html = await readFile(consoleHtml(tempDir, 'business_V_0-2-5'), 'utf-8')
+      const meta = JSON.parse(html.match(/id="innfo-model">([\s\S]*?)<\/script>/)[1]).meta
+      assert.ok(Array.isArray(meta.sources) && meta.sources.length > 0)
+      assert.ok(meta.sources[0].endsWith('business_V_0-2-5_NN.md'))
+    })
+
+    it('vendors the bundle as its own write-once member and points the HTML at it', async () => {
+      await runCli([tempDir, 'business'])
+      const html = await readFile(consoleHtml(tempDir, 'business_V_0-2-5'), 'utf-8')
+      const bundle = consoleBundle(tempDir, 'business_V_0-2-5')
+      assert.equal(existsSync(bundle), true)
+      assert.ok(html.includes(`./${basename(bundle)}`))
     })
   })
 
@@ -478,12 +523,7 @@ metricValue:: 56
       const res = await runCli([tempDir, 'matrix_V_0-1-0'])
       assert.equal(res.code, 0)
 
-      const htmlPath = join(
-        tempDir,
-        'export',
-        'matrix_V_0-1-0_console',
-        'matrix_V_0-1-0_console.html',
-      )
+      const htmlPath = consoleHtml(tempDir, 'matrix_V_0-1-0')
       const htmlContent = await readFile(htmlPath, 'utf-8')
       const modelJson = JSON.parse(
         htmlContent.match(/<script type="application\/json" id="innfo-model">([\s\S]*?)<\/script>/)[1],

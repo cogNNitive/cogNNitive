@@ -26,6 +26,7 @@ export {
 
 export {
   projectLineage,
+  extractDeclaredCitations,
   extractFileCitations,
 } from './lineage/project.js'
 
@@ -35,4 +36,25 @@ export {
 
 export {
   readLineageSnapshot,
+  readLineageRecord,
 } from './lineage/fs-snapshot.js'
+
+export {
+  RECORD_TEMPLATE_URL,
+  RECORD_INNFO_URL,
+  RECORD_BLUEPRINT,
+  splitTopLevelSections,
+  renderRecordFrontmatter,
+  refreshExistingModel,
+  findLineageRecord,
+} from './lineage/record.js'
+
+export { checkLineageDrift } from './lineage/drift.js'
+
+export * from './naming/index.js'
+
+export * from './writeOnce/index.js'
+
+export * from './cognitivize/index.js'
+
+export { resolveJsonPointer, isJsonPointer } from './jsonPointer.js'

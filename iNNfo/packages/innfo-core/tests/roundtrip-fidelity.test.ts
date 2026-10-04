@@ -3,6 +3,7 @@ import { readFileSync, readdirSync } from 'fs'
 import { join, dirname, relative } from 'path'
 import { fileURLToPath } from 'url'
 import { parseKnowledge, serializeKnowledge } from '../src/parser/index.js'
+import { rawPathOfSidecar } from '../src/naming/index.js'
 
 /**
  * Requirement 1 (round-trip identity) and Requirement 2 (idempotency) of
@@ -22,7 +23,8 @@ function findModelDocuments(dir: string): string[] {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const full = join(dir, entry.name)
     if (entry.isDirectory()) found.push(...findModelDocuments(full))
-    else if (entry.name.endsWith('_NN.md')) found.push(full)
+    // Sidecars are machine-written by `cognitivize`, never loaded or saved through the serializer.
+    else if (entry.name.endsWith('_NN.md') && rawPathOfSidecar(entry.name) === null) found.push(full)
   }
   return found
 }

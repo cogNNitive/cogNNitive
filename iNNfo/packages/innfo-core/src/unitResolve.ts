@@ -1,4 +1,6 @@
 import { parseCsvTable } from './csvTable.js'
+import { assertNever } from './assertNever.js'
+import { resolveJsonPointer } from './jsonPointer.js'
 import { extractHeadings, normalizeName, resolveHeadingSection, type SourceRef } from './sourceRef.js'
 
 export type ResolvedUnit =
@@ -6,6 +8,7 @@ export type ResolvedUnit =
   | { kind: 'field'; lines: number[] }
   | { kind: 'row'; index: number }
   | { kind: 'cell'; row: number; column: string; value: string }
+  | { kind: 'pointer'; pointer: string; value: unknown }
 
 export const FIELD_LINE = /^\s*([^\s:][^:]*?)\s*::/
 
@@ -97,8 +100,18 @@ export function resolveUnit(content: string, ref: SourceRef): ResolvedUnit | nul
   const unit = ref.unit
   if (!unit) return null
   const subunits = ref.subunits ?? []
-  if (unit.kind === 'row') return resolveCsvUnit(content, unit.id, subunits)
-  return resolveHeaderUnit(content, unit, subunits)
+  switch (unit.kind) {
+    case 'header':
+      return resolveHeaderUnit(content, unit, subunits)
+    case 'row':
+      return resolveCsvUnit(content, unit.id, subunits)
+    case 'pointer': {
+      const found = resolveJsonPointer(content, unit.pointer)
+      return found.ok ? { kind: 'pointer', pointer: unit.pointer, value: found.value } : null
+    }
+    default:
+      return assertNever(unit, 'knowledge unit kind')
+  }
 }
 
 /**

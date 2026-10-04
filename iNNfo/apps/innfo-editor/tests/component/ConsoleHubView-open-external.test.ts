@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
 import ConsoleHubView from '../../src/components/editor/ConsoleHubView.vue'
@@ -98,8 +98,6 @@ describe('ConsoleHubView — Open External (F-16)', () => {
     workspaceStore.handle = buildFakeTree('workspace', {
       artifacts: {
         'workspace_hub.html': '<html class="h-full bg-slate-900 text-slate-100"><body class="bg-slate-950"><div class="bg-slate-900/90 text-white border-slate-800">Legacy Hub</div></body></html>',
-      },
-      export: {
         iNNtrevistas_V_0_1_0_console: {
           'iNNtrevistas_V_0_1_0_console.html': '<html><body>iNNtrevistas Console Content</body></html>',
         },
@@ -116,7 +114,7 @@ describe('ConsoleHubView — Open External (F-16)', () => {
           type: 'innfo:select-console',
           modelId: 'iNNtrevistas',
           title: 'iNNtrevistas - Innovaciones y Creadores',
-          consolePath: 'export/iNNtrevistas_V_0_1_0_console/iNNtrevistas_V_0_1_0_console.html',
+          consolePath: 'artifacts/iNNtrevistas_V_0_1_0_console/iNNtrevistas_V_0_1_0_console.html',
         },
       })
     )
@@ -135,8 +133,6 @@ describe('ConsoleHubView — Open External (F-16)', () => {
     workspaceStore.handle = buildFakeTree('workspace', {
       artifacts: {
         'workspace_hub.html': '<html><body>Hub</body></html>',
-      },
-      export: {
         'iNNtrevistas_V_0-1-0_console': {
           'iNNtrevistas_V_0-1-0_console.html': '<html><body>iNNtrevistas Resolved Content</body></html>',
         },
@@ -153,7 +149,7 @@ describe('ConsoleHubView — Open External (F-16)', () => {
           type: 'innfo:select-console',
           modelId: 'iNNtrevistas',
           title: 'iNNtrevistas',
-          consolePath: '../export/iNNtrevistas_V_0-1-0_console/iNNtrevistas_V_0-1-0_console.html',
+          consolePath: '../artifacts/iNNtrevistas_V_0-1-0_console/iNNtrevistas_V_0-1-0_console.html',
         },
       })
     )
@@ -171,8 +167,6 @@ describe('ConsoleHubView — Open External (F-16)', () => {
     workspaceStore.handle = buildFakeTree('workspace', {
       artifacts: {
         'workspace_hub.html': '<html><body>Hub</body></html>',
-      },
-      export: {
         'iNNtrevistas_V_0-1-0_console': {
           'iNNtrevistas_V_0-1-0_console.html': `<!DOCTYPE html>
 <html>
@@ -201,7 +195,7 @@ describe('ConsoleHubView — Open External (F-16)', () => {
           type: 'innfo:select-console',
           modelId: 'iNNtrevistas',
           title: 'iNNtrevistas',
-          consolePath: 'export/iNNtrevistas_V_0-1-0_console/iNNtrevistas_V_0-1-0_console.html',
+          consolePath: 'artifacts/iNNtrevistas_V_0-1-0_console/iNNtrevistas_V_0-1-0_console.html',
         },
       })
     )
@@ -223,6 +217,93 @@ describe('ConsoleHubView — Open External (F-16)', () => {
     expect(srcdoc).toContain('<!-- [Inlined render-model-viewer.js earlier] -->')
 
     wrapper.unmount()
+  })
+
+  describe('write-once console families resolve to the latest member', () => {
+    const businessNode = {
+      id: 'Business',
+      name: 'Business',
+      parentId: null,
+      childIds: [],
+      storageMode: 'FILE' as const,
+      type: 'business',
+      fields: { template: { value: 'business' } },
+      markers: {},
+      relationships: [],
+      rawSections: {},
+      source: { path: 'kNNowledge/Business_NN.md' },
+    }
+
+    it('loads the latest suffixed member for a discovered model, with no hand-written path', async () => {
+      const workspaceStore = useWorkspaceStore()
+      const knowledgeStore = useKnowledgeStore()
+      workspaceStore.handle = buildFakeTree('workspace', {
+        artifacts: {
+          business_console: {
+            'business_console_20261001T100000Z.html': '<html><body>OLDEST</body></html>',
+            'business_console_20261003T100000Z.html': '<html><body>MIDDLE</body></html>',
+            'business_console_20261003T100000Z-10.html': '<html><body>NEWEST</body></html>',
+            'business_console_20261003T100000Z-2.html': '<html><body>SECOND</body></html>',
+          },
+        },
+      })
+      knowledgeStore.setGraph({ Business: businessNode }, ['Business'])
+
+      const wrapper = mount(ConsoleHubView)
+      await flushPromises()
+      window.dispatchEvent(
+        new MessageEvent('message', { data: { type: 'innfo:select-console', modelId: 'Business', title: 'Business' } }),
+      )
+      await flushPromises()
+
+      expect(wrapper.find('iframe').attributes('srcdoc')).toContain('NEWEST')
+      wrapper.unmount()
+    })
+
+    it('resolves a launch path that names an older member to the latest member of its family', async () => {
+      const workspaceStore = useWorkspaceStore()
+      workspaceStore.handle = buildFakeTree('workspace', {
+        artifacts: {
+          metrics_console: {
+            'metrics_console_20261001T100000Z.html': '<html><body>OLD METRICS</body></html>',
+            'metrics_console_20261002T100000Z.html': '<html><body>LATEST METRICS</body></html>',
+          },
+        },
+      })
+
+      const wrapper = mount(ConsoleHubView)
+      await flushPromises()
+      window.dispatchEvent(
+        new MessageEvent('message', {
+          data: {
+            type: 'innfo:select-console',
+            modelId: 'metrics',
+            title: 'Metrics',
+            consolePath: 'artifacts/metrics_console/metrics_console_20261001T100000Z.html',
+          },
+        }),
+      )
+      await flushPromises()
+
+      expect(wrapper.find('iframe').attributes('srcdoc')).toContain('LATEST METRICS')
+      wrapper.unmount()
+    })
+
+    it('resolves the workspace hub family to its latest member', async () => {
+      const workspaceStore = useWorkspaceStore()
+      workspaceStore.handle = buildFakeTree('workspace', {
+        artifacts: {
+          'workspace_hub_20261001T100000Z.html': '<html><body>OLD HUB</body></html>',
+          'workspace_hub_20261002T100000Z.html': '<html><body>NEW HUB</body></html>',
+        },
+      })
+
+      const wrapper = mount(ConsoleHubView)
+      await flushPromises()
+
+      expect(wrapper.find('iframe').attributes('srcdoc')).toContain('NEW HUB')
+      wrapper.unmount()
+    })
   })
 
   it('filters out spec nodes and workspace root manifests from model console switcher tabs', async () => {
@@ -304,6 +385,116 @@ describe('ConsoleHubView — Open External (F-16)', () => {
     expect(text).not.toContain('Spec:Business')
     // Duplicate workspace manifest tab is excluded (since Workspace Hub covers it)
     expect(text).not.toContain('INNTrevistas Workspace')
+
+    wrapper.unmount()
+  })
+})
+
+describe('ConsoleHubView — generation entry point and onboarding', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    // No folder handle is active in these cases, so loadConsole falls through to
+    // fetch() for hosted/sample mode. Stub it so every candidate 404s, which is
+    // what "no console artifact exists" means without a real dev server.
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }))
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('renders the primary generation CTA when no console artifact exists', async () => {
+    const wrapper = mount(ConsoleHubView)
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="console-hub-empty-state"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="console-hub-empty-cta"]').exists()).toBe(true)
+    // The header action is always reachable, artifact or not.
+    expect(wrapper.find('[data-testid="console-hub-generate-btn"]').exists()).toBe(true)
+
+    wrapper.unmount()
+  })
+
+  it('opens the prompt modal from the empty-state CTA and generates a prompt', async () => {
+    const knowledgeStore = useKnowledgeStore()
+    knowledgeStore.setGraph(
+      {
+        'business-model': {
+          id: 'business-model',
+          name: 'Business Model',
+          parentId: null,
+          childIds: [],
+          storageMode: 'FILE',
+          type: 'business',
+          fields: { template: { value: 'business' }, title: { value: 'Business Model' } },
+          markers: {},
+          relationships: [],
+          rawSections: {},
+          source: { path: 'kNNowledge/Business_NN.md' },
+        },
+      },
+      ['business-model']
+    )
+
+    const wrapper = mount(ConsoleHubView)
+    await flushPromises()
+
+    await wrapper.find('[data-testid="console-hub-empty-cta"]').trigger('click')
+    await flushPromises()
+
+    const modal = wrapper.find('[data-testid="console-hub-prompt-modal"]')
+    expect(modal.exists()).toBe(true)
+    expect(modal.text()).toContain('Business Model')
+    expect(modal.text()).toContain('iNNfo/specs/bluepriNNts/business/procedures/compile_business_console_NN.md')
+    expect(modal.text()).not.toContain('specs/templates/')
+
+    wrapper.unmount()
+  })
+
+  it('lists discovered models as pending previews in the empty state', async () => {
+    const knowledgeStore = useKnowledgeStore()
+    knowledgeStore.setGraph(
+      {
+        'business-model': {
+          id: 'business-model',
+          name: 'Business Model',
+          parentId: null,
+          childIds: [],
+          storageMode: 'FILE',
+          type: 'business',
+          fields: { template: { value: 'business' }, title: { value: 'Business Model' } },
+          markers: {},
+          relationships: [],
+          rawSections: {},
+          source: { path: 'kNNowledge/Business_NN.md' },
+        },
+      },
+      ['business-model']
+    )
+
+    const wrapper = mount(ConsoleHubView)
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="console-hub-empty-state"]').text()).toContain('Business Model')
+    wrapper.unmount()
+  })
+
+  it('injects the host design tokens and suppresses the artifact header in embedded mode', async () => {
+    const workspaceStore = useWorkspaceStore()
+    workspaceStore.handle = buildFakeTree('workspace', {
+      artifacts: {
+        'workspace_hub.html': '<html><head></head><body><header>Artifact Header</header>Hub</body></html>',
+      },
+    })
+
+    const wrapper = mount(ConsoleHubView)
+    await flushPromises()
+
+    const iframe = wrapper.find('iframe')
+    expect(iframe.exists()).toBe(true)
+    const srcdoc = iframe.attributes('srcdoc') || ''
+    expect(srcdoc).toContain('--nn-accent')
+    expect(srcdoc).toContain('header { display: none !important; }')
 
     wrapper.unmount()
   })
