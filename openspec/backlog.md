@@ -659,6 +659,43 @@ item 22. The console work (changes A/B/C) continues on `dev` under session isola
 merges cleanly later. The CI-only publish-web test bug is already fixed on `dev`
 (`48792c2c`).
 
+## 28. `chore/cognitivize-in-place-followups` - residuals left when `2026-10-02-cognitivize-in-place` closed
+
+**Type:** chore / decision · **Size:** small-medium · **Added:** 2026-10-04
+
+**Why:** the change shipped and was archived, but its closing sweep and review left items that
+need a maintainer decision or a template bump. None blocks a release.
+
+- **`sources` bluepriNNt still names retired folders.** `iNNfo/specs/bluepriNNts/sources/spec_NN.md`
+  defines `raw_path` (lines 59, 116), `source_model` (lines 80, 121) and `origin_uri` (115) with
+  `sources/original/` and `sources/nn/`. Fixing it needs a `template_version` bump,
+  `sync:versions`, canonical registry and `catalog.json` regeneration. It is the source of the
+  two matches left in `canonical-registry.ts` (the other, `iNNfo_V_0-3-0_NN.md`, is a frozen
+  published spec). The `visual-catalog` and `video` blueprints and
+  `_samples_nn/sources_NN.md` may carry the same wording; check with `rg`.
+- **`sources/archive` is not a detector signal** (task 2.3 wording said it was). A permanent
+  signal can never clear, and a layout-legacy signal used to block parsing. Confirm the
+  decision or define a non-blocking "has archive" report.
+- **GC never proposes `sources/archive/` files** (design D16 expects it): old archive stamps
+  are not contract stamps, so `planGc` treats each file as its own latest. Needs a ledgered
+  `legacy:` marker and a core rule if the maintainer wants it.
+- **`workspace-index` `index.md` keeps a fixed name** (skip-if-unchanged, not `writeOnce`)
+  because MCP `apply_change` and the editor read it by name; this deviates from the
+  `write-once-artifacts` spec. Decide whether to amend the spec or migrate the readers.
+- **Four published `_V_` Ghostbusters samples were edited by `sync-samples`** (business-model
+  V_0-2-1, metrics V_0-1-0, organization V_0-2-0, video V_0-1-0; one citation path each) to
+  keep parity with `_samples_nn`. Parity and immutability gates pass, but published `_V_` files
+  are meant to be write-once.
+- **Smaller:** `export-console.mjs` keeps its own `findModelFiles` walk; MCP
+  `build_console_payload` `outputPath` returns the unsuffixed family name;
+  `workspace/assets/workspace_hub.html` prompt text still uses unsuffixed console names;
+  `meta.sources` holds the model path, not citation-level entries; conversation reservation
+  still writes `conversations/YYYY-MM-DD_HHmmss.md` where the spec says
+  `<YYYYMMDDTHHmmssZ>.md`; `--lineage --check` errors on a missing record while the shared
+  drift gate tolerates it; `TESTING.md` Test 4 still expects a `_draft` deliverable that
+  SKILL.md says no longer exists; simulation scenarios 01, 05, 07 and `FINDINGS.md` still
+  assume `sources/nn`.
+
 ## Intra-document element identity: key on the slug, not the display name
 
 **Status:** explicit NON-GOAL of `2026-09-13-document-fidelity-and-provenance-integrity`.

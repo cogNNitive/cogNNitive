@@ -10,14 +10,14 @@ Welcome to the **cogNNitive** monorepo. cogNNitive turns scattered ideas in huma
 
 ```
 0. External World       ➔ 1. IMPORT             ➔ 2. MANAGE              ➔ 3. EXPORT
-[Brains & Files/URLs]     [sources/import/ + nn/]   [models/*_NN.md (SSOT)]   [export/ Deliverables]
+[Brains & Files/URLs]     [sources/import/ + sidecars] [kNNowledge/*_NN.md (SSOT)] [artifacts/ Deliverables]
           ▲                                                                           │
           └───────────────────── Human Revision & Feedback Loop ──────────────────────┘
 ```
 
 1. **External World**: Knowledge originates in human brains (internal & external) and is elicited into digital files/URLs without altering how contributors capture information.
-2. **Phase 1 (IMPORT)**: Ingests immutable originals with SHA-256 (`sources/import/`), uses staging buffers for extraction (`sources/staging/`), normalizes content into Markdown (`sources/nn/`), and archives snapshots on change (`sources/archive/`).
-3. **Phase 2 (MANAGE)**: Structures knowledge into iNNfo Level 3 models (`models/*_NN.md`) with explicit heading-level citations (`sources:: [file.md#heading-slug]`). Accessible via text editors (Obsidian, VS Code), visual web apps (`iNNfo Modeler`), or AI pair-programming agents (`OpenCode`, `Antigravity`, `Claude Code`).
+2. **Phase 1 (IMPORT)**: Ingests immutable originals verbatim into `sources/import/` and cognitivizes them in place: a co-located sidecar (`<file>.<ext>_sidecar_NN.md`) records the SHA-256 and origin metadata (plus a normalized Markdown body for binaries), uses scratch `staging/` folders for extraction, and never overwrites anything: a changed import is a new UTC-suffixed file.
+3. **Phase 2 (MANAGE)**: Structures knowledge into iNNfo Level 3 models (`kNNowledge/*_NN.md`) with explicit heading-level citations (`sources:: [sources/import/file.md@## Heading]`). Accessible via text editors (Obsidian, VS Code), visual web apps (`iNNfo Modeler`), or AI pair-programming agents (`OpenCode`, `Antigravity`, `Claude Code`).
 4. **Phase 3 (EXPORT)**: Generates tailored deliverables (dashboards, Word, PDF) and re-ingests reviewed documents back into the knowledge loop.
 
 ---
