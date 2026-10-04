@@ -129,7 +129,7 @@ The application will resolve the `parent` URL, download this template, and use i
 
 ### Canonical Sample
 
-The Blank Template intentionally ships without a domain sample, because a blank model is defined entirely by its author. For a guided example of a fully populated template, see the Business (`specs/bluepriNNts/business/`), Organization (`specs/bluepriNNts/organization/`), Procedures (`specs/bluepriNNts/procedures/`), or Projects (`specs/bluepriNNts/projects/`) templates.
+The Blank Template intentionally ships without a domain sample, because a blank model is defined entirely by its author. For a guided example of a fully populated template, see the Business (`specs/templates/business/`), Organization (`specs/templates/organization/`), Procedures (`specs/templates/procedures/`), or Projects (`specs/templates/projects/`) templates.
 
 ### Parent Chain
 

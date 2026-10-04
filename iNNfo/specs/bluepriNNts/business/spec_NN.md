@@ -160,7 +160,8 @@ Concept / Field / Marker / Matrix Definition to validate and render the model.
 ### Canonical Sample
 
 The official sample for this template is
-`specs/bluepriNNts/business/samples/Ghostbusters_V_0-4-0_business_NN.md`.
+`specs/templates/business/samples/Ghostbusters_V_0-2-3_business_NN.md` — the
+`V_0-2-1` Ghostbusters sample re-pointed at this version.
 `Ghostbusters_V_0-2-1_business_NN.md` is kept for consumers still pinned to
 `V_0-2-1`. `V_0-2-1` added the `Compile Strategic Master` procedure; `V_0-2-2`
 added `Compile Model Viewer` (`procedures/compile_model_viewer_NN.md`), which

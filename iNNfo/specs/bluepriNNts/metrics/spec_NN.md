@@ -273,7 +273,7 @@ title: "<Metrics Model Title>"
 
 ### Canonical Sample
 
-The official sample for this template is at `specs/bluepriNNts/metrics/samples/Ghostbusters_V_0-4-1_metrics_NN.md`. It exercises typed metric rows, input variables, evolution rules, scenarios, the three evaluable matrices, and the item-markers matrix.
+The official sample for this template is at `specs/templates/metrics/samples/Ghostbusters_V_0-1-0_metrics_NN.md`. It exercises typed metric rows, input variables, evolution rules, scenarios, the three evaluable matrices, and the item-markers matrix.
 
 ### Parent Chain
 
