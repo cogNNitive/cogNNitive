@@ -59,9 +59,9 @@ export function resolveInstalledEngine() {
 /** Default installer: npm install the Remotion runtime into the skill directory. */
 async function defaultInstallEngine() {
   const res = spawnSync(
-    process.platform === 'win32' ? 'npm.cmd' : 'npm',
+    'npm',
     ['install', '--no-save', 'remotion', '@remotion/bundler', '@remotion/renderer', 'react', 'react-dom'],
-    { cwd: path.join(__dirname, '..'), encoding: 'utf8', stdio: 'inherit' },
+    { cwd: path.join(__dirname, '..'), encoding: 'utf8', stdio: 'inherit', shell: true },
   );
   if (res.status !== 0) {
     throw new Error(`engine install failed (exit ${res.status})`);
