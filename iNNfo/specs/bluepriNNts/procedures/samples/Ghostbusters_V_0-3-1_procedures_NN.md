@@ -1,20 +1,19 @@
 ---
 level: 3
 parent_spec:
-  name: "procedures_V_0-2-0"
-  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/procedures/procedures_V_0-2-0_NN.md"
-knowledge_version: "V_0-2-0"
+  name: "procedures_V_0-3-1"
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/procedures/spec_NN.md"
+knowledge_version: "V_0-3-1"
 title: "Ghostbusters Inc. Standard Containment Procedure Model"
 ---
 
 > [!NOTE]
-> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor or view and edit it with [cogNNitive](https://cognnitive.com/innfo/app/).
+> This is an **iNNfo document** â€” a plain-text Markdown file. Open it with any text editor or view and edit it with [cogNNitive](https://cognnitive.com/innfo/app/).
 
 # NN Work
 
 ## NN Work: Standard Ghost Containment Protocol
 step_type:: task
-parent:: -
 next:: [[Subterranean Containment Grid Shutdown Recovery]]
 condition:: Emergency call received
 input:: [[Client Emergency Intake Call]]
@@ -80,7 +79,6 @@ Dr. Peter Venkman slides the muon trap beneath the entrapped entity, steps on th
 ## NN Work: Subterranean Facility Transfer
 parent:: [[Standard Ghost Containment Protocol]]
 step_type:: task
-next:: -
 condition:: Sealed trap returned to headquarters
 input:: [[Sealed Ghost Trap Unit]]
 output:: [[Vault Containment Log]]
@@ -92,8 +90,6 @@ The crew returns to headquarters, inserts the sealed trap into the containment v
 
 ## NN Work: Subterranean Containment Grid Shutdown Recovery
 step_type:: task
-parent:: -
-next:: -
 condition:: Voltage drop detected in subterranean vault
 input:: [[Power Failure Alarm]]
 output:: [[Restored High-Voltage Grid]]
@@ -119,7 +115,6 @@ Detection of voltage drop in the subterranean vault, triggering immediate audio-
 ## NN Work: Backup Generator Coupling
 parent:: [[Subterranean Containment Grid Shutdown Recovery]]
 step_type:: task
-next:: -
 condition:: Fault diagnostic confirms main grid failure
 input:: [[System Fault Diagnostic]]
 output:: [[Restored High-Voltage Grid]]
