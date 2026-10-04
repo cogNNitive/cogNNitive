@@ -980,6 +980,9 @@ async function runCheck(options = {}) {
     },
     manifest: {
       url: manifestUrl,
+      source: null,
+      primaryUrl: null,
+      primaryError: null,
       reachable: true,
       error: null,
     },
@@ -1141,16 +1144,21 @@ async function runCheck(options = {}) {
   let manifestFetchError = null;
   const manifestUrlsToTry = options.manifestUrl
     ? [options.manifestUrl]
-    : [manifestUrl, FALLBACK_MANIFEST_URL];
+    : [manifestUrl, options.fallbackManifestUrl || FALLBACK_MANIFEST_URL];
+  let primaryError = null;
 
-  for (const url of manifestUrlsToTry) {
+  for (const [index, url] of manifestUrlsToTry.entries()) {
     try {
       const raw = await fetchString(url);
       manifest = parseManifest(raw);
       results.manifest.url = url;
+      results.manifest.source = options.manifestUrl ? 'override' : index === 0 ? 'primary' : 'fallback';
+      results.manifest.primaryError = index === 0 ? null : primaryError;
+      results.manifest.primaryUrl = index === 0 ? null : manifestUrlsToTry[0];
       manifestFetchError = null;
       break;
     } catch (err) {
+      if (index === 0) primaryError = err.message;
       manifestFetchError = err.message;
     }
   }
@@ -1469,6 +1477,12 @@ function printHumanReport(results) {
     console.log('');
   }
 
+  if (results.manifest.source === 'fallback') {
+    console.log(`Manifest: fallback ${results.manifest.url} (primary ${results.manifest.primaryUrl} failed: ${results.manifest.primaryError})`);
+  } else if (results.manifest.source) {
+    console.log(`Manifest: ${results.manifest.source} ${results.manifest.url}`);
+  }
+
   if (!results.manifest.reachable) {
     console.log(`⚠️  Remote manifest unreachable: ${results.manifest.error}`);
     console.log('Operating in offline cache mode.\n');
@@ -1567,6 +1581,7 @@ if (require.main === module) {
 
 module.exports = {
   runCheck,
+  printHumanReport,
   parseManifest,
   loadState,
   scanWorkspaceSources,
