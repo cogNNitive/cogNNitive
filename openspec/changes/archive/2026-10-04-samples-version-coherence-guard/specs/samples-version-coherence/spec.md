@@ -1,4 +1,4 @@
-# Samples Version Coherence
+# Delta for samples-version-coherence
 
 ## ADDED Requirements
 
@@ -33,6 +33,8 @@ diverges from the shipped specs and is unavailable to an offline, deterministic
 - WHEN the guard runs
 - THEN both samples are accepted and the guard does not fail.
 
+---
+
 ### Requirement: The Guard Fails, It Does Not Auto-Fix
 
 The version-coherence guard MUST report drift and exit non-zero. It MUST NOT
@@ -46,26 +48,27 @@ would produce an updated filename over an obsolete body.
 - THEN it exits non-zero and prints the offending sample and versions
 - AND no file on disk is modified.
 
+---
+
 ### Requirement: Malformed Pins Are Reported
 
-A sample whose `parent_spec.name` (or `knowledge_version`) carries no parseable
-`V_<major>-<minor>-<patch>` version MUST be reported as `MALFORMED_PIN`. A
-versionless pin MUST NOT be silently skipped.
+A sample whose `parent_spec.name` (or `knowledge_version`) MUST be reported as
+`MALFORMED_PIN` when it carries no parseable `V_<major>-<minor>-<patch>` version.
+A versionless pin MUST NOT be silently skipped.
 
 #### Scenario: Versionless parent spec name
 - GIVEN a sample pinning `parent_spec.name: "video"` (no version)
 - WHEN the guard runs
 - THEN the guard FAILS with `MALFORMED_PIN` for that sample.
 
-## MODIFIED Requirements
+---
 
 ### Requirement: Template Sample Coherence
 
-*(Extends the existing `template-package-structure` contract.)*
-
 A Level 2 template package's `samples/` directory MUST contain at least one
-sample pinned to the blueprint's current `blueprint_version`. Additional
-historical samples MAY remain, provided the current-version tracker exists.
+sample pinned to the blueprint's current `blueprint_version` (extending the
+existing `template-package-structure` contract). Additional historical samples
+MAY remain, provided the current-version tracker exists.
 
 #### Scenario: Package has only historical samples
 - GIVEN a template package with samples at `V_0-1-0` and `V_0-2-3`
