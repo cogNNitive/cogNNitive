@@ -15,7 +15,7 @@ const INNFO_V2 = readSpec('iNNfo_V_0-2-0_NN.md')
 
 const resolver = decomposedResolver()
 
-describe('business-model_V_0-2-0 — composite of organization + projects', () => {
+describe('business-model_V_0-2-0 â€” composite of organization + projects', () => {
   it('resolves with zero errors', () => {
     const { errors } = resolveBlueprintSchema(BUSINESS_MODEL, resolver)
     expect(errors, JSON.stringify(errors)).toEqual([])
@@ -94,7 +94,7 @@ describe('business-model_V_0-2-0 — composite of organization + projects', () =
   })
 })
 
-describe('analysis_V_0-1-0 — standalone strategic-review template', () => {
+describe('analysis_V_0-1-0 â€” standalone strategic-review template', () => {
   it('resolves standalone with zero errors and the review concepts', () => {
     const { schema, errors } = resolveBlueprintSchema(ANALYSIS, () => null)
     expect(errors).toEqual([])
@@ -123,10 +123,10 @@ describe('analysis_V_0-1-0 — standalone strategic-review template', () => {
   })
 })
 
-describe('analysis_V_0-2-0 — sample model validates', () => {
+describe('analysis_V_0-2-0 â€” sample model validates', () => {
   it('the Ghostbusters analysis sample has no "not defined in template" errors', () => {
     const modelContent = readSpec(
-      'bluepriNNts/analysis/samples/Ghostbusters_V_0-2-0_analysis_NN.md',
+      'bluepriNNts/analysis/samples/Ghostbusters_V_0-3-2_analysis_NN.md',
     )
     const model = parseKnowledge(modelContent)
     const template = {
@@ -141,8 +141,8 @@ describe('analysis_V_0-2-0 — sample model validates', () => {
   })
 })
 
-describe('business_V_0-2-0 — umbrella composite (D1 marker dedup)', () => {
-  it('resolves with ZERO errors — the 5 shared markers merge, no collision', () => {
+describe('business_V_0-2-0 â€” umbrella composite (D1 marker dedup)', () => {
+  it('resolves with ZERO errors â€” the 5 shared markers merge, no collision', () => {
     const { errors } = resolveBlueprintSchema(BUSINESS_V2, resolver)
     expect(errors, JSON.stringify(errors)).toEqual([])
   })
@@ -207,7 +207,7 @@ describe('business_V_0-2-0 — umbrella composite (D1 marker dedup)', () => {
   })
 })
 
-describe('business_V_0-2-0 — collision is still an ERROR (REQ-B4)', () => {
+describe('business_V_0-2-0 â€” collision is still an ERROR (REQ-B4)', () => {
   it('a divergent same-named Definition across sources fails composition, naming both', () => {
     const divergentAnalysis = ANALYSIS.replace('symbol:: *', 'symbol:: @')
     const clashResolver = (ref: { name: string }): string | null => {
@@ -221,7 +221,7 @@ describe('business_V_0-2-0 — collision is still an ERROR (REQ-B4)', () => {
   })
 })
 
-describe('Ghostbusters_V_0-2-0 — sample validates against the composed umbrella', () => {
+describe('Ghostbusters_V_0-2-0 â€” sample validates against the composed umbrella', () => {
   it('parsing the sample against the resolved umbrella yields no "not defined in template" errors', () => {
     const modelContent = readSpec('bluepriNNts/business/samples/Ghostbusters_V_0-2-0_business_NN.md')
     const model = parseKnowledge(modelContent)
@@ -243,10 +243,10 @@ describe('Ghostbusters_V_0-2-0 — sample validates against the composed umbrell
   })
 })
 
-describe('business_V_0-2-4 — composed umbrella with Metrics-Organizational goals', () => {
+describe('business_V_0-2-4 â€” composed umbrella with Metrics-Organizational goals', () => {
   const BUSINESS_V024 = BUSINESS_V2
 
-  it('resolves with ZERO errors — all 5 sub-templates compose without collision', () => {
+  it('resolves with ZERO errors â€” all 5 sub-templates compose without collision', () => {
     const { schema, errors } = resolveBlueprintSchema(BUSINESS_V024, resolver)
     expect(errors, JSON.stringify(errors)).toEqual([])
     const conceptNames = new Set(schema.concepts.map((c) => c.name))
