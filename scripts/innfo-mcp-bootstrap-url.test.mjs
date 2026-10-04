@@ -22,15 +22,15 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'
 
 const VERSIONED_BUNDLE = /innfo-mcp-v\$\{?(latest|LATEST)\}?\.bundle\.js/;
 
-const targets = [
-  ['scripts/innfo-mcp.ps1', /\$bundleUrl = "([^"]+)"/],
-  ['scripts/innfo-mcp.sh', /BUNDLE_URL="([^"]+)"/],
-  ['docs/innfo/mcp-setup.md', /BUNDLE_URL="([^"]+)"/],
-];
+const targets = /** @type {const} */ ([
+  { file: 'scripts/innfo-mcp.ps1', pattern: /\$bundleUrl = "([^"]+)"/ },
+  { file: 'scripts/innfo-mcp.sh', pattern: /BUNDLE_URL="([^"]+)"/ },
+  { file: 'docs/innfo/mcp-setup.md', pattern: /BUNDLE_URL="([^"]+)"/ },
+]);
 
 let failures = 0;
 
-for (const [rel, pattern] of targets) {
+for (const { file: rel, pattern } of targets) {
   const full = path.join(repoRoot, rel);
   const text = fs.readFileSync(full, 'utf8');
   const match = text.match(pattern);
