@@ -1,9 +1,9 @@
 ---
 level: 3
 parent_spec:
-  name: "business_V_0-4-1"
+  name: "business_V_0-4-0"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/business/spec_NN.md"
-knowledge_version: "V_0-4-1"
+knowledge_version: "V_0-4-0"
 title: "Ghostbusters"
 ---
 

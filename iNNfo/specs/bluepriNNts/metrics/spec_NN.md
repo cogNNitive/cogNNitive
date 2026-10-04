@@ -5,7 +5,7 @@ level: 2
 parent_spec:
   name: "iNNfo_V_0-3-0"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-3-0_NN.md"
-blueprint_version: "V_0-4-2"
+blueprint_version: "V_0-4-1"
 title: "Metrics App"
 relationship_types:
   hierarchy:
@@ -273,7 +273,7 @@ title: "<Metrics Model Title>"
 
 ### Canonical Sample
 
-The official sample for this template is at `specs/bluepriNNts/metrics/samples/Ghostbusters_V_0-4-2_metrics_NN.md`. It exercises typed metric rows, input variables, evolution rules, scenarios, the three evaluable matrices, and the item-markers matrix.
+The official sample for this template is at `specs/bluepriNNts/metrics/samples/Ghostbusters_V_0-4-1_metrics_NN.md`. It exercises typed metric rows, input variables, evolution rules, scenarios, the three evaluable matrices, and the item-markers matrix.
 
 ### Parent Chain
 

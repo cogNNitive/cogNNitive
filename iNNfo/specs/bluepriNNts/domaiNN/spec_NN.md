@@ -7,7 +7,7 @@ parent_spec:
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-3-0_NN.md"
 title: "DomaiNN Blueprint"
 blueprint_name: "domaiNN"
-blueprint_version: "V_0-2-1"
+blueprint_version: "V_0-2-0"
 relationship_types:
   hierarchy:
     enabled: true
