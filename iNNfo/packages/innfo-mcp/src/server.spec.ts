@@ -340,6 +340,30 @@ describe('innfo-mcp server (dispatch/handler layer, real MCP client/server round
       const onDisk = await readFile(join(rootDir, 'Mutable_NN.md'), 'utf-8')
       expect(onDisk).toContain('Work: Review')
     })
+
+    it('ignores non-model markdown (session transcripts) during the pre-check', async () => {
+      await stubBlueprintChain()
+      await writeFile(join(rootDir, 'Mutable_NN.md'), MUTABLE_KNOWLEDGE_CONTENT, 'utf-8')
+      // A session transcript: not a `_NN.md` model, no `level`/`parent_spec`.
+      await mkdir(join(rootDir, 'conversations'), { recursive: true })
+      await writeFile(
+        join(rootDir, 'conversations', '2026-10-01_192904.md'),
+        '# Session log\n\nNo frontmatter here — this is a transcript, not a model.\n',
+        'utf-8',
+      )
+
+      const result = await client.callTool({
+        name: 'apply_change',
+        arguments: {
+          id: 'Mutable',
+          op: 'add_element',
+          args: { conceptName: 'Work', elementName: 'Transcribe', description: 'A step.' },
+        },
+      })
+      expect(result.isError).toBeFalsy()
+      const parsed = JSON.parse(textOf(result as CallToolResult))
+      expect(parsed.success).toBe(true)
+    })
   })
 
   describe('init_knowledge', () => {

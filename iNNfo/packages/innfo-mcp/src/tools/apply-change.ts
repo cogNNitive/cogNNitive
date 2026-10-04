@@ -7,6 +7,9 @@ import {
   applyMutation as coreApplyMutation,
   resolveBlueprintSchema,
   buildAgentModificationBlock,
+  isModelCandidate,
+  isExcludedPath,
+  parseFrontmatter,
 } from '@cognnitive/innfo-core'
 import type { SpecDocument, ParsedKnowledge, BlueprintSchema } from '@cognnitive/innfo-core'
 import { findKnowledgeFile } from './spec.js'
@@ -89,20 +92,38 @@ function computeNewVersion(
   return { version: formatVersion(parts) }
 }
 
-async function findAllWorkspaceModelFiles(dir: string, ignore: Set<string>): Promise<string[]> {
+async function findAllWorkspaceModelFiles(
+  dir: string,
+  ignore: Set<string>,
+  rootDir: string,
+): Promise<string[]> {
   const results: string[] = []
   const entries = await readdir(dir, { withFileTypes: true }).catch(() => [])
   for (const entry of entries) {
     if (entry.isDirectory()) {
       if (entry.name.startsWith('.') || ignore.has(entry.name.toLowerCase())) continue
-      const sub = await findAllWorkspaceModelFiles(join(dir, entry.name), ignore)
+      const sub = await findAllWorkspaceModelFiles(join(dir, entry.name), ignore, rootDir)
       results.push(...sub)
     } else if (
       entry.isFile() &&
-      entry.name.endsWith('.md') &&
+      entry.name.endsWith('_NN.md') &&
       entry.name.toLowerCase() !== 'index.md'
     ) {
-      results.push(join(dir, entry.name))
+      // Only real models participate in the reference cascade — the same
+      // predicate the discovery scanner uses. Without this, the pre-check
+      // reads non-model markdown (session transcripts under `conversations/`,
+      // notes, docs) and reports phantom "missing level/parent_spec" errors.
+      const filePath = join(dir, entry.name)
+      const relPath = relative(rootDir, filePath).split('\\').join('/')
+      if (isExcludedPath(relPath)) continue
+      try {
+        const raw = await readFile(filePath, 'utf-8')
+        const frontmatter = parseFrontmatter(raw)
+        if (!frontmatter || !isModelCandidate({ path: relPath, frontmatter })) continue
+      } catch {
+        continue
+      }
+      results.push(filePath)
     }
   }
   return results
@@ -394,7 +415,7 @@ async function bumpVersion(
   const affectedModels: Array<{ filePath: string; model: ParsedKnowledge }> = []
   const oldBaseResolved = resolve(filePath)
   const oldStem = base.replace(/\.md$/i, '')
-  const allModelFiles = await findAllWorkspaceModelFiles(rootDir, DEFAULT_WORKSPACE_IGNORE)
+  const allModelFiles = await findAllWorkspaceModelFiles(rootDir, DEFAULT_WORKSPACE_IGNORE, rootDir)
 
   for (const mFile of allModelFiles) {
     if (resolve(mFile) === oldBaseResolved) continue
