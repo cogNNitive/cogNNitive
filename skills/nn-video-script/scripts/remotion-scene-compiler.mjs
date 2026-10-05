@@ -51,6 +51,15 @@ import { parse as parseVus } from './lib/innfo-video-parser.generated.mjs';
  */
 
 /**
+ * @typedef {Object} RemotionLayerProps A layer entry inside `RemotionSceneTrack.props.layers`.
+ * @property {string} layer_type "image" | "video" | "talking_avatar" | "text" | ...
+ * @property {string} layer_asset_source Bundle-relative media name after staging.
+ * @property {number} [layer_level] Paint order (lower first).
+ * @property {boolean | "true" | "false"} [layer_muted] Video layers only: mute the clip's own audio. Set to true by compile
+ *   for cached avatar clips (narration is a separate Audio track); undefined for every other layer.
+ */
+
+/**
  * @typedef {Object} RemotionSceneTrack
  * @property {string} id
  * @property {"chapter_title" | "image_motion" | "kinetic_text" | "concept_diagram" | "split_screen"} sceneType
