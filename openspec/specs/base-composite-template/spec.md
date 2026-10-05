@@ -23,7 +23,7 @@ The `base_V_0-1-0` Level-2 template is **frozen and legacy**. It SHALL remain by
 
 #### Scenario: Frozen base file is byte-identical and unadvertised
 - GIVEN the change is applied
-- WHEN the git diff of `iNNfo/specs/templates/base/base_V_0-1-0_spec_NN.md` is inspected
+- WHEN the git diff of `iNNfo/specs/bluepriNNts/base/base_V_0-1-0_spec_NN.md` is inspected
 - THEN it is empty
 - AND the file is absent from every ACTIVE `templates:` distribution list
 
@@ -67,7 +67,7 @@ The claim that `base_V_0-1-0` is the one sanctioned composer of `workspace_V_0-2
 - AND they are absent from `templates`
 
 #### Scenario: Inventory guard accepts frozen folders
-- GIVEN `iNNfo/specs/templates/cogNNitive/` and `iNNfo/specs/templates/base/` still on disk
+- GIVEN `iNNfo/specs/bluepriNNts/cogNNitive/` and `iNNfo/specs/bluepriNNts/base/` still on disk
 - AND `manifest/source.yaml` declares them under `frozen_templates:`
 - WHEN `scripts/verify.js` runs the template inventory guard
 - THEN the guard passes with no missing-declaration error

@@ -54,6 +54,35 @@ try {
   console.log(`  ℹ️ Git state check skipped: ${e.message}`);
 }
 
+// Step 1b: Tag/pin freshness (Group 1c) — a skills or blueprint-spec change
+// must re-pin manifest/source.yaml in the same diff.
+console.log('\n[Group 1c] Tag/pin freshness (skills & blueprints ↔ manifest/source.yaml):');
+try {
+  const { checkTagPinFreshness } = require('./lib/tag-pin-freshness.js');
+  // Prefer the batched-merge range; fall back to the branch-vs-main range.
+  const range = execSync('git rev-parse --verify --quiet origin/main', { cwd: repoRoot, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
+    ? 'origin/main...HEAD'
+    : 'HEAD~1...HEAD';
+  const changed = execSync(`git diff --name-only ${range}`, { cwd: repoRoot, encoding: 'utf8' })
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean);
+  const pinResult = checkTagPinFreshness(changed);
+  if (!pinResult.ok) {
+    console.error('❌ Tag/pin freshness check failed:');
+    pinResult.errors.forEach((err) => console.error(`  - ${err}`));
+    process.exit(1);
+  }
+  const n = pinResult.triggered.skills.length + pinResult.triggered.blueprints.length;
+  console.log(
+    n > 0
+      ? `  ✅ Skill/blueprint changes re-pin the manifest (${n} matched paths).`
+      : '  ✅ No skill/blueprint changes in this diff.',
+  );
+} catch (e) {
+  console.log(`  ℹ️ Tag/pin freshness check skipped: ${e.message}`);
+}
+
 // Step 2b: Version SSOT Guard (spec_NN.md & SKILL.md -> samples.ts + manifest/source.yaml)
 console.log('\n[Group 2b] Version SSOT (spec_NN.md & SKILL.md <-> samples.ts <-> manifest/source.yaml):');
 try {

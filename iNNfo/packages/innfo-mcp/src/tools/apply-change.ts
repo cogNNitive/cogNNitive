@@ -7,6 +7,8 @@ import {
   applyMutation as coreApplyMutation,
   resolveBlueprintSchema,
   buildAgentModificationBlock,
+  isExcludedPath,
+  isNNName,
 } from '@cognnitive/innfo-core'
 import type { SpecDocument, ParsedKnowledge, BlueprintSchema } from '@cognnitive/innfo-core'
 import { findKnowledgeFile } from './spec.js'
@@ -89,20 +91,33 @@ function computeNewVersion(
   return { version: formatVersion(parts) }
 }
 
-async function findAllWorkspaceModelFiles(dir: string, ignore: Set<string>): Promise<string[]> {
+async function findAllWorkspaceModelFiles(
+  dir: string,
+  ignore: Set<string>,
+  rootDir: string,
+): Promise<string[]> {
   const results: string[] = []
   const entries = await readdir(dir, { withFileTypes: true }).catch(() => [])
   for (const entry of entries) {
     if (entry.isDirectory()) {
       if (entry.name.startsWith('.') || ignore.has(entry.name.toLowerCase())) continue
-      const sub = await findAllWorkspaceModelFiles(join(dir, entry.name), ignore)
+      const sub = await findAllWorkspaceModelFiles(join(dir, entry.name), ignore, rootDir)
       results.push(...sub)
     } else if (
       entry.isFile() &&
-      entry.name.endsWith('.md') &&
+      isNNName(entry.name) &&
       entry.name.toLowerCase() !== 'index.md'
     ) {
-      results.push(join(dir, entry.name))
+      // Only `_NN.md` files can carry model references. Without this the
+      // pre-check reads non-model markdown (session transcripts under
+      // `conversations/`, notes, docs) and reports phantom
+      // "missing level/parent_spec" errors (issue #110). Deliberately a
+      // name-only check: reading+parsing every candidate's frontmatter here
+      // cost seconds on large trees and tripped the test timeout.
+      const filePath = join(dir, entry.name)
+      const relPath = relative(rootDir, filePath).split('\\').join('/')
+      if (isExcludedPath(relPath)) continue
+      results.push(filePath)
     }
   }
   return results
@@ -394,7 +409,7 @@ async function bumpVersion(
   const affectedModels: Array<{ filePath: string; model: ParsedKnowledge }> = []
   const oldBaseResolved = resolve(filePath)
   const oldStem = base.replace(/\.md$/i, '')
-  const allModelFiles = await findAllWorkspaceModelFiles(rootDir, DEFAULT_WORKSPACE_IGNORE)
+  const allModelFiles = await findAllWorkspaceModelFiles(rootDir, DEFAULT_WORKSPACE_IGNORE, rootDir)
 
   for (const mFile of allModelFiles) {
     if (resolve(mFile) === oldBaseResolved) continue

@@ -11,6 +11,7 @@ export interface SourceCitation {
   conceptType: string
   modelPath: string
   headingSlug?: string
+  slug?: string
   relationships: ModelRelationship[]
 }
 import { recursiveParse } from '../model/recursiveParser'
@@ -235,6 +236,7 @@ export const useKnowledgeStore = defineStore('model', () => {
             conceptType: node.type,
             modelPath: node.source?.path ?? '',
             headingSlug: ref.slug,
+            slug: node.slug,
             relationships: node.relationships ?? [],
           })
           break

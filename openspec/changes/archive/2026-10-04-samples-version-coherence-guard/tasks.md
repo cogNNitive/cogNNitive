@@ -36,7 +36,7 @@
 - [x] 5.3 innfo-core suite: 1477 passed, 6 skipped, 0 failed (after building core). Test fixtures updated for renamed samples.
 
 ## 6. Documentation
-- [ ] 6.1 Document the coupled-bump rule + `samples-version` step in `.agents/skills/nn-dev-check-integrity/SKILL.md`.
+- [x] 6.1 Document the coupled-bump rule + `samples-version` step in `.agents/skills/nn-dev-check-integrity/SKILL.md`.
 
 ## 7. Coordination
 - [x] 7.1 Rebase on `origin/dev` before wiring `verify.js` (done: fast-forward to a83a4894).

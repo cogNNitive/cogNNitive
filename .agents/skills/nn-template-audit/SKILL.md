@@ -8,7 +8,7 @@ description: Skill for auditing, validating, and refactoring iNNfo Level 2 apps 
 
 ## Overview
 
-`nn-template-audit` is the authoritative skill for verifying, auditing, and refactoring **iNNfo Level 2 Apps** (`_spec_NN.md`) and **Level 3 Canonical Samples** under `iNNfo/specs/templates/`.
+`nn-template-audit` is the authoritative skill for verifying, auditing, and refactoring **iNNfo Level 2 Apps** (`_spec_NN.md`) and **Level 3 Canonical Samples** under `iNNfo/specs/bluepriNNts/`.
 
 It enforces syntactic compliance with `iNNfo_V_0-1-0_NN.md` and `iNNfo_V_0-2-0_NN.md`, guarantees structural integrity, enforces the **Ghostbusters Inc.** unified sample universe, and validates 100% English technical copy.
 
@@ -48,7 +48,7 @@ When activated, present the following interactive options:
 
 ## 1. The 7 Core Verification Criteria
 
-Every Level 2 app and Level 3 sample in `iNNfo/specs/templates/` MUST pass all 7 criteria:
+Every Level 2 app and Level 3 sample in `iNNfo/specs/bluepriNNts/` MUST pass all 7 criteria:
 
 ### Criterion 1: Strict Syntactic Compliance (iNNfo Grammar)
 - **Level 2 Frontmatter:** MUST declare `level: 2`, `spec_version`, `spec_url`, `parent_spec` (name & url), `template_version`, `title`, and `relationship_types`.
@@ -98,13 +98,13 @@ Every Level 2 app and Level 3 sample in `iNNfo/specs/templates/` MUST pass all 7
     ```yaml
     includes:
       - name: "business-model"
-        url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/templates/business-model/business-model_V_0-2-0_NN.md"
+        url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/business-model/spec_NN.md"
       - name: "analysis"
-        url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/templates/analysis/analysis_V_0-2-0_NN.md"
+        url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/analysis/spec_NN.md"
       - name: "organization"
-        url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/templates/organization/organization_V_0-2-0_NN.md"
+        url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/organization/spec_NN.md"
       - name: "projects"
-        url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/templates/projects/projects_V_0-2-0_NN.md"
+        url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/projects/spec_NN.md"
     ```
 - **Standalone Domain Apps (`business-model`, `analysis`, `organization`, `projects`, `procedures`, `innovation`):**
   - Define their own domain concepts, fields, markers, and matrices.
@@ -116,7 +116,7 @@ Every Level 2 app and Level 3 sample in `iNNfo/specs/templates/` MUST pass all 7
 
 ## 3. Audit Protocol & Execution Steps
 
-1. **Scan Workspace:** Discover all files matching `iNNfo/specs/templates/**/*.md`.
+1. **Scan Workspace:** Discover all files matching `iNNfo/specs/bluepriNNts/**/*.md`.
 2. **Validate Frontmatter & Version Alignment:** Confirm filename version matches `spec_version` and `template_version`.
 3. **Verify Field Types:** Convert any `string` fields pointing to entities into `type:: reference` with `target_concepts:: [...]`.
 4. **Audit Concept Descriptions:** Ensure every concept has rich UI sidebar text.

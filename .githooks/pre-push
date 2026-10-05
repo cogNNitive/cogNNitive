@@ -13,7 +13,21 @@
 # "<local_ref> <local_sha> <remote_ref> <remote_sha>"), so it now:
 #   - skips typecheck entirely for pushes whose remote ref is not
 #     refs/heads/* (tag pushes, e.g. a release cutting up to four tags),
-#   - skips ref deletions (local sha is all zeros).
+#   - skips ref deletions (local sha is all zeros),
+#   - skips typecheck inside a session worktree: there the node_modules
+#     junction and the npm workspace symlinks resolve @cognnitive/* to the
+#     PRIMARY checkout (usually main), so `tsc` would typecheck the wrong
+#     tree. CI runs the real typecheck on the pushed ref, so delegating there
+#     is correct and avoids training people to reach for --no-verify.
+
+# A linked worktree has a git-dir distinct from the shared common-dir; the
+# primary checkout has them equal (or git-dir is the common-dir).
+git_dir=$(git rev-parse --git-dir 2>/dev/null)
+git_common_dir=$(git rev-parse --git-common-dir 2>/dev/null)
+in_worktree=0
+if [ -n "$git_dir" ] && [ -n "$git_common_dir" ] && [ "$git_dir" != "$git_common_dir" ]; then
+  in_worktree=1
+fi
 
 typechecked=0
 
@@ -26,14 +40,22 @@ while read -r local_ref local_sha remote_ref remote_sha; do
   case "$remote_ref" in
     refs/heads/*)
       if [ "$typechecked" -eq 0 ]; then
-        export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=4096}"
-        npm run typecheck
-        status=$?
-        if [ "$status" -ne 0 ]; then
+        if [ "$in_worktree" -eq 1 ]; then
           echo ""
-          echo "pre-push: typecheck failed (exit $status). Push blocked."
-          echo "pre-push: fix the errors above, or bypass with: git push --no-verify"
-          exit "$status"
+          echo "pre-push: session worktree detected — skipping local typecheck."
+          echo "pre-push: node_modules here resolves @cognnitive/* to the primary checkout,"
+          echo "pre-push: so a local typecheck would check the wrong tree. CI runs it on"
+          echo "pre-push: the pushed ref; watch the run after the push."
+        else
+          export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=4096}"
+          npm run typecheck
+          status=$?
+          if [ "$status" -ne 0 ]; then
+            echo ""
+            echo "pre-push: typecheck failed (exit $status). Push blocked."
+            echo "pre-push: fix the errors above, or bypass with: git push --no-verify"
+            exit "$status"
+          fi
         fi
         typechecked=1
       fi

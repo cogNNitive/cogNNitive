@@ -51,137 +51,154 @@
               </p>
             </div>
 
-            <!-- Toggle Mode (only if Markdown, HTML or source) -->
+            <!-- Toggle Mode (icon toggles; only if Markdown, HTML or source) -->
             <div
               v-if="isMarkdown || isHtml || kind === 'source'"
-              class="flex items-center gap-1 p-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg text-2xs ml-4 shrink-0"
+              class="flex items-center gap-0.5 p-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg ml-4 shrink-0"
             >
               <button
+                type="button"
                 @click="viewMode = 'preview'"
-                class="px-2.5 py-1 rounded-md font-semibold transition-all cursor-pointer"
+                class="p-1.5 rounded-md transition-all cursor-pointer"
                 :class="
                   viewMode === 'preview'
-                    ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-2xs font-bold'
+                    ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-2xs'
                     : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
                 "
+                title="Preview"
+                aria-label="Preview"
               >
-                Preview
+                <Eye class="w-4 h-4" />
               </button>
               <button
+                type="button"
                 @click="viewMode = 'code'"
-                class="px-2.5 py-1 rounded-md font-semibold transition-all cursor-pointer"
+                class="p-1.5 rounded-md transition-all cursor-pointer"
                 :class="
                   viewMode === 'code'
-                    ? 'bg-white dark:bg-slate-700 text-slate-850 dark:text-white shadow-2xs font-bold'
+                    ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-2xs'
                     : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
                 "
+                title="Code"
+                aria-label="Code"
               >
-                Code
+                <Code2 class="w-4 h-4" />
               </button>
               <button
+                v-if="isMarkdown || kind === 'source'"
+                type="button"
                 @click="viewMode = 'lineage'"
-                class="px-2.5 py-1 rounded-md font-semibold transition-all cursor-pointer flex items-center gap-1"
+                class="p-1.5 rounded-md transition-all cursor-pointer"
                 :class="
                   viewMode === 'lineage'
-                    ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-2xs font-bold'
+                    ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-2xs'
                     : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
                 "
+                title="Lineage"
+                aria-label="Lineage"
               >
-                <GitFork class="w-3 h-3" />
-                Lineage
+                <GitFork class="w-4 h-4" />
               </button>
             </div>
           </div>
-          <button
-            @click="close"
-            class="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-all cursor-pointer"
-            title="Close (Esc)"
+
+          <div class="flex items-center gap-1 shrink-0">
+            <!-- Metadata more-menu -->
+            <div class="relative" data-meta-menu>
+              <button
+                type="button"
+                @click="showMetaMenu = !showMetaMenu"
+                class="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-all cursor-pointer"
+                title="File metadata"
+                aria-label="File metadata"
+              >
+                <MoreVertical class="w-5 h-5" />
+              </button>
+              <div
+                v-if="showMetaMenu"
+                class="absolute right-0 top-full mt-2 z-10 w-72 p-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xl flex flex-col gap-2 text-xs"
+                role="dialog"
+                aria-label="File metadata"
+              >
+                <div class="flex items-center gap-2 text-slate-600 dark:text-slate-300">
+                  <Hash class="w-4 h-4 text-indigo-500 shrink-0" />
+                  <div class="min-w-0 flex-1">
+                    <span class="text-[10px] uppercase font-bold text-slate-400 block leading-none"
+                      >SHA-256 Hash</span
+                    >
+                    <span class="font-mono text-[11px] truncate block font-medium" :title="metadata.sha256 || 'N/A'">
+                      {{ metadata.sha256 || 'Traceable' }}
+                    </span>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2 text-slate-600 dark:text-slate-300">
+                  <HardDrive class="w-4 h-4 text-emerald-500 shrink-0" />
+                  <div class="min-w-0 flex-1">
+                    <span class="text-[10px] uppercase font-bold text-slate-400 block leading-none"
+                      >Size / Status</span
+                    >
+                    <span class="font-mono text-[11px] truncate block font-medium">
+                      {{ metadata.size_bytes ? formatBytes(metadata.size_bytes) : 'Normalized' }}
+                    </span>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2 text-slate-600 dark:text-slate-300">
+                  <Clock class="w-4 h-4 text-amber-500 shrink-0" />
+                  <div class="min-w-0 flex-1">
+                    <span class="text-[10px] uppercase font-bold text-slate-400 block leading-none"
+                      >Normalized At</span
+                    >
+                    <span class="font-mono text-[11px] truncate block font-medium">
+                      {{ metadata.normalized_at ? formatDate(metadata.normalized_at) : 'Recent' }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <button
+              @click="close"
+              class="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-all cursor-pointer"
+              title="Close (Esc)"
+            >
+              <X class="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        <!-- Original File row (always visible) -->
+        <div
+          class="flex items-center gap-2 px-6 py-2 bg-slate-100/60 dark:bg-slate-900/60 border-b border-slate-200/80 dark:border-slate-800 shrink-0 text-xs"
+        >
+          <FileText class="w-4 h-4 shrink-0" :class="meta.metaIcon" />
+          <span class="text-[10px] uppercase font-bold text-slate-400 shrink-0">Original File</span>
+          <span
+            class="font-mono text-xs truncate font-medium text-slate-600 dark:text-slate-300"
+            :title="metadata.source_file || filePath"
           >
-            <X class="w-5 h-5" />
+            {{ metadata.source_file || 'No source in frontmatter' }}
+          </span>
+          <button
+            type="button"
+            class="ml-auto flex items-center gap-1 px-2 py-1 rounded-md text-xs font-semibold transition-colors shrink-0"
+            :class="
+              metadata.source_file
+                ? `cursor-pointer ${meta.openHover}`
+                : 'text-slate-300 dark:text-slate-600 cursor-not-allowed'
+            "
+            :disabled="!metadata.source_file"
+            title="Open original file in a new tab"
+            @click="openOriginalFile"
+          >
+            <ExternalLink class="w-3.5 h-3.5" />
+            Open
           </button>
         </div>
-
-        <!-- Metadata Panel -->
-        <div
-          class="px-6 py-3 bg-slate-100/60 dark:bg-slate-855 border-b border-slate-200/80 dark:border-slate-800 shrink-0"
+        <p
+          v-if="openOriginalError"
+          class="px-6 py-1 text-[11px] text-red-500 dark:text-red-400 shrink-0"
         >
-          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-            <div
-              class="flex items-center gap-2 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 p-2 rounded-lg border border-slate-200/60 dark:border-slate-700"
-            >
-              <FileText class="w-4 h-4 shrink-0" :class="meta.metaIcon" />
-              <div class="min-w-0 flex-1">
-                <span class="text-[10px] uppercase font-bold text-slate-400 block leading-none"
-                  >Original File</span
-                >
-                <span
-                  class="font-mono text-xs truncate block font-medium"
-                  :title="metadata.source_file || filePath"
-                >
-                  {{ metadata.source_file || 'N/A' }}
-                </span>
-              </div>
-              <button
-                v-if="metadata.source_file"
-                type="button"
-                class="p-1 rounded-md text-slate-400 transition-colors cursor-pointer shrink-0"
-                :class="meta.openHover"
-                title="Open original file in a new tab"
-                @click="openOriginalFile"
-              >
-                <ExternalLink class="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-            <div
-              class="flex items-center gap-2 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 p-2 rounded-lg border border-slate-200/60 dark:border-slate-700"
-            >
-              <Hash class="w-4 h-4 text-indigo-500 shrink-0" />
-              <div class="min-w-0">
-                <span class="text-[10px] uppercase font-bold text-slate-400 block leading-none"
-                  >SHA-256 Hash</span
-                >
-                <span
-                  class="font-mono text-[11px] truncate block font-medium"
-                  :title="metadata.sha256 || 'N/A'"
-                >
-                  {{ metadata.sha256 ? metadata.sha256.substring(0, 14) + '...' : 'Traceable' }}
-                </span>
-              </div>
-            </div>
-
-            <div
-              class="flex items-center gap-2 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 p-2 rounded-lg border border-slate-200/60 dark:border-slate-700"
-            >
-              <HardDrive class="w-4 h-4 text-emerald-500 shrink-0" />
-              <div class="min-w-0">
-                <span class="text-[10px] uppercase font-bold text-slate-400 block leading-none"
-                  >Size / Status</span
-                >
-                <span class="font-mono text-xs truncate block font-medium">
-                  {{ metadata.size_bytes ? formatBytes(metadata.size_bytes) : 'Normalized' }}
-                </span>
-              </div>
-            </div>
-
-            <div
-              class="flex items-center gap-2 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 p-2 rounded-lg border border-slate-200/60 dark:border-slate-700"
-            >
-              <Clock class="w-4 h-4 text-amber-500 shrink-0" />
-              <div class="min-w-0">
-                <span class="text-[10px] uppercase font-bold text-slate-400 block leading-none"
-                  >Normalized At</span
-                >
-                <span class="font-mono text-[11px] truncate block font-medium">
-                  {{ metadata.normalized_at ? formatDate(metadata.normalized_at) : 'Recent' }}
-                </span>
-              </div>
-            </div>
-          </div>
-          <p v-if="openOriginalError" class="mt-2 text-[11px] text-red-500 dark:text-red-400">
-            Could not open original file: {{ openOriginalError }}
-          </p>
-        </div>
+          Could not open original file: {{ openOriginalError }}
+        </p>
 
         <!-- File Content Display Area -->
         <div
@@ -252,6 +269,7 @@
           <!-- Preview Mode for Markdown -->
           <div
             v-else-if="viewMode === 'preview' && isMarkdown"
+            ref="markdownBody"
             class="markdown-body"
             v-html="formattedHtml"
           ></div>
@@ -298,17 +316,118 @@
             </table>
           </div>
 
-          <!-- Lineage Mode (Mermaid) -->
+          <!-- Lineage Mode (Timeline default, Graph alternate) -->
           <div
             v-else-if="viewMode === 'lineage'"
             class="flex flex-col items-center justify-center min-h-[300px] w-full"
           >
+            <div
+              class="flex items-center gap-0.5 p-0.5 bg-slate-100 dark:bg-slate-800 rounded-lg self-end mb-3 text-2xs"
+            >
+              <button
+                type="button"
+                @click="lineageStyle = 'timeline'"
+                class="px-2.5 py-1 rounded-md font-semibold transition-all cursor-pointer"
+                :class="
+                  lineageStyle === 'timeline'
+                    ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-2xs'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                "
+              >
+                Timeline
+              </button>
+              <button
+                type="button"
+                @click="lineageStyle = 'graph'"
+                class="px-2.5 py-1 rounded-md font-semibold transition-all cursor-pointer"
+                :class="
+                  lineageStyle === 'graph'
+                    ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-2xs'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                "
+              >
+                Graph
+              </button>
+            </div>
+
             <div
               v-if="!lineageMermaidCode"
               class="text-center text-slate-400 py-12 text-xs font-sans"
             >
               No lineage information available for this file.
             </div>
+
+            <template v-else-if="lineageStyle === 'timeline'">
+              <button
+                v-if="hiddenOutgoingCount > 0"
+                type="button"
+                class="mb-3 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer self-end"
+                @click="showOutgoing = !showOutgoing"
+              >
+                {{ showOutgoing ? 'Hide outgoing relationships' : `Show +${hiddenOutgoingCount} hidden` }}
+              </button>
+              <ol class="w-full max-w-2xl">
+                <li
+                  v-for="(step, idx) in lineageChain"
+                  :key="idx"
+                  class="relative flex gap-3 pb-4 last:pb-0"
+                >
+                  <div class="flex flex-col items-center shrink-0">
+                    <span
+                      class="w-7 h-7 rounded-full flex items-center justify-center text-sm border bg-white dark:bg-slate-800"
+                      :class="TIMELINE_ROLE_CLASS[step.role]"
+                    >
+                      {{ step.icon }}
+                    </span>
+                    <span
+                      v-if="idx < lineageChain.length - 1"
+                      class="flex-1 w-px bg-slate-300 dark:bg-slate-700 my-1"
+                    ></span>
+                  </div>
+                  <div class="min-w-0 pt-0.5">
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <span class="text-xs font-semibold text-slate-800 dark:text-slate-100">
+                        {{ step.label }}
+                      </span>
+                      <span
+                        class="px-1.5 py-0.5 rounded text-[10px] uppercase font-bold"
+                        :class="TIMELINE_ROLE_CLASS[step.role]"
+                      >
+                        {{ step.role }}
+                      </span>
+                    </div>
+                    <p
+                      v-if="step.id"
+                      class="font-mono text-[11px] text-slate-500 dark:text-slate-400 truncate"
+                      :title="step.id"
+                    >
+                      id: {{ step.id }}
+                    </p>
+                    <p
+                      v-if="step.slug"
+                      class="font-mono text-[11px] text-slate-500 dark:text-slate-400 truncate"
+                      :title="step.slug"
+                    >
+                      slug: {{ step.slug }}
+                    </p>
+                    <p
+                      v-if="step.ref"
+                      class="font-mono text-[11px] text-slate-400 dark:text-slate-500 truncate"
+                      :title="step.ref"
+                    >
+                      {{ step.ref }}
+                    </p>
+                    <p
+                      v-if="step.subtitle"
+                      class="font-mono text-[11px] text-slate-400 dark:text-slate-500 truncate"
+                    >
+                      {{ step.subtitle }}
+                    </p>
+                  </div>
+                </li>
+              </ol>
+            </template>
+
             <template v-else>
               <button
                 v-if="hiddenOutgoingCount > 0"
@@ -316,11 +435,7 @@
                 class="mb-3 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer self-end"
                 @click="showOutgoing = !showOutgoing"
               >
-                {{
-                  showOutgoing
-                    ? 'Hide outgoing relationships'
-                    : `Show +${hiddenOutgoingCount} hidden`
-                }}
+                {{ showOutgoing ? 'Hide outgoing relationships' : `Show +${hiddenOutgoingCount} hidden` }}
               </button>
               <div class="w-full overflow-auto py-4">
                 <div class="w-max mx-auto">
@@ -354,22 +469,6 @@
             </div>
           </div>
         </div>
-
-        <!-- Modal Footer -->
-        <div
-          class="px-6 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex items-center justify-between shrink-0"
-        >
-          <span class="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-            <CheckCircle2 class="w-4 h-4 text-emerald-500" />
-            Traceability verified with iNNfo specification
-          </span>
-          <button
-            @click="close"
-            class="px-4 py-2 text-xs font-semibold rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors cursor-pointer"
-          >
-            Close
-          </button>
-        </div>
       </div>
     </div>
   </Teleport>
@@ -386,10 +485,13 @@ import {
   Hash,
   HardDrive,
   Clock,
-  CheckCircle2,
   ExternalLink,
   GitFork,
+  Eye,
+  Code2,
+  MoreVertical,
 } from 'lucide-vue-next'
+import { buildLineageChain, type LineageStep, type LineageRole } from './lineageChain'
 import { useWorkspaceStore } from '../../stores/workspaceStore'
 import { useKnowledgeStore } from '../../stores/knowledgeStore'
 import MermaidWidget from '../../shared/widgets/MermaidWidget.vue'
@@ -491,7 +593,31 @@ const metadata = ref<{
 const openOriginalError = ref<string | null>(null)
 
 const viewMode = ref<'preview' | 'code' | 'lineage'>('preview')
+const lineageStyle = ref<'timeline' | 'graph'>('timeline')
+const showMetaMenu = ref(false)
 const objectUrl = ref('')
+const markdownBody = ref<HTMLElement | null>(null)
+
+const TIMELINE_ROLE_CLASS: Record<LineageRole, string> = {
+  upstream: 'border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400',
+  focal: 'border-indigo-400 text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40',
+  citation: 'border-emerald-400 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40',
+  related: 'border-fuchsia-400 text-fuchsia-600 dark:text-fuchsia-400 bg-fuchsia-50 dark:bg-fuchsia-950/40',
+}
+
+const lineageChain = computed<LineageStep[]>(() => {
+  if (props.kind !== 'source' && !isMarkdown.value) return []
+  return buildLineageChain({
+    sourceFile: metadata.value.source_file,
+    sha256: metadata.value.sha256,
+    filePath: props.filePath,
+    fileName: props.fileName,
+    unitLabel: props.unit ? unitLabel(props.unit, props.subunits ?? []) : undefined,
+    slug: props.slug,
+    citations: knowledgeStore.getSourceCitations(props.filePath),
+    showOutgoing: showOutgoing.value,
+  })
+})
 
 // 4th-level outgoing relationships (from a citing element) are collapsed by
 // default; see lineage-graph-legibility spec.
@@ -558,7 +684,7 @@ const lineageMermaidCode = computed(() => {
 
     citations.forEach((c, idx) => {
       const nodeId = `N_${idx}`
-      const nodeLabel = `🧩 ${sanitize(c.conceptType)}: ${sanitize(c.nodeName)}`
+      const nodeLabel = `🧩 ${sanitize(c.conceptType)}: ${sanitize(c.nodeName)} · ${sanitize(c.nodeId)}`
       if (!seenNodes.has(c.nodeId)) {
         seenNodes.add(c.nodeId)
         chartLines.push(`  ${nodeId}["${nodeLabel}"]:::modelNode`)
@@ -786,14 +912,25 @@ async function loadFileContent(): Promise<void> {
         props.subunits ?? [],
       )
       await nextTick()
-      scrollToResolved(resolved)
+      // Preview renders CSV rows with `data-csv-row`, so the shared scroll
+      // helper works in both Preview and Code. Markdown has no line anchors in
+      // Preview, so scroll the rendered heading instead.
+      if (viewMode.value === 'preview' && isMarkdown.value) {
+        scrollPreviewToHeading(headingTextForUnit())
+      } else {
+        scrollToResolved(resolved)
+      }
     } else if (props.slug) {
       const section = resolveHeadingSection(textContent, props.slug)
       if (section) {
         await nextTick()
-        const targetEl = document.getElementById(`line-${section.startLine + 1}`)
-        if (targetEl) {
-          targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        if (viewMode.value === 'preview' && isMarkdown.value) {
+          scrollPreviewToHeading(section.heading.text)
+        } else {
+          const targetEl = document.getElementById(`line-${section.startLine + 1}`)
+          if (targetEl) {
+            targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          }
         }
       }
     }
@@ -804,6 +941,36 @@ async function loadFileContent(): Promise<void> {
   }
 }
 
+function headingTextForUnit(): string | null {
+  const unit = props.unit
+  if (!unit) return null
+  switch (unit.kind) {
+    case 'header':
+      return unit.text
+    case 'row':
+    case 'pointer':
+      return null
+    default:
+      return assertNever(unit, 'knowledge unit kind')
+  }
+}
+
+/**
+ * Scroll the rendered Markdown preview to the heading whose text matches. The
+ * preview is rendered via `v-html`, so the target heading is located by text.
+ */
+function scrollPreviewToHeading(headingText: string | null | undefined): void {
+  if (!headingText || !markdownBody.value) return
+  const target = headingText.trim().toLowerCase()
+  const headings = markdownBody.value.querySelectorAll('h1, h2, h3, h4, h5, h6')
+  for (const heading of headings) {
+    if ((heading.textContent ?? '').trim().toLowerCase() === target) {
+      heading.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      return
+    }
+  }
+}
+
 async function openOriginalFile(): Promise<void> {
   if (!metadata.value.source_file) return
   openOriginalError.value = null
@@ -811,7 +978,6 @@ async function openOriginalFile(): Promise<void> {
   try {
     const handle = workspaceStore.handle
     const sourceFile = metadata.value.source_file
-
     if (handle) {
       const blob = await workspaceStore.readFileBlob(sourceFile)
       if (!blob) throw new Error(`Source file not found: ${sourceFile}`)
@@ -833,13 +999,20 @@ watch(
   () => props.isOpen,
   (val) => {
     if (val) {
-      if (props.slug || props.unit) {
-        // Slugs and field pointers need code lines for highlight; CSV units
-        // render their table in the preview slot.
-        viewMode.value = isCsv.value ? 'preview' : 'code'
+      // Section/row deep links open in Preview and scroll to the target. A
+      // heading targeted at a sub-field resolves to a raw code line, so it
+      // stays in Code. Plain opens fall back to the content-type default.
+      const unit = props.unit
+      if (unit?.kind === 'header' && (props.subunits?.length ?? 0) > 0) {
+        viewMode.value = 'code'
+      } else if (props.slug || unit) {
+        viewMode.value = 'preview'
       } else {
         viewMode.value = isMarkdown.value || isImage.value || isPdf.value ? 'preview' : 'code'
       }
+      lineageStyle.value = 'timeline'
+      showMetaMenu.value = false
+      showOutgoing.value = false
       loadFileContent()
     } else {
       cleanupObjectUrl()
@@ -847,6 +1020,21 @@ watch(
   },
   { immediate: true },
 )
+
+function onDocumentClick(event: MouseEvent): void {
+  if (!showMetaMenu.value) return
+  const target = event.target as HTMLElement | null
+  if (target && target.closest('[data-meta-menu]')) return
+  showMetaMenu.value = false
+}
+
+watch(showMetaMenu, (open) => {
+  if (open) {
+    document.addEventListener('click', onDocumentClick)
+  } else {
+    document.removeEventListener('click', onDocumentClick)
+  }
+})
 </script>
 
 <style scoped>

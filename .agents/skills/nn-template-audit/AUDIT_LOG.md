@@ -1,6 +1,6 @@
 # iNNfo Template & Sample Audit Log
 
-This document records the official compliance audit status for all iNNfo Level 2 Templates and Level 3 Canonical Samples under `iNNfo/specs/templates/`.
+This document records the official compliance audit status for all iNNfo Level 2 Templates and Level 3 Canonical Samples under `iNNfo/specs/bluepriNNts/`.
 
 ---
 
