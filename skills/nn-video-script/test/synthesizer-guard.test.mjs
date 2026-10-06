@@ -32,7 +32,7 @@ function setup(configOverrides = {}, guardOpts = {}) {
 const MP4_BYTES = Buffer.concat([Buffer.from([0, 0, 0, 24]), Buffer.from('ftypisom0000')]);
 
 /** Fake WaveSpeed/Replicate: records every request, never touches the network. */
-function fakeProvider({ never = false, status = 'completed' } = {}) {
+function fakeProvider({ never = false, status = 'completed', holdUntilInFlight = 0 } = {}) {
   const state = { posts: [], bodies: [], urls: [], inFlight: 0, peak: 0 };
   const fetch = async (url, init = {}) => {
     const u = String(url);
@@ -48,7 +48,14 @@ function fakeProvider({ never = false, status = 'completed' } = {}) {
       const body = never ? { data: { status: 'processing' } } : { data: { status, outputs: ['https://cdn.fake/out.bin'] } };
       return { ok: true, status: 200, json: async () => body };
     }
-    await new Promise((r) => setTimeout(r, 5));
+    // Keep the request in flight long enough for concurrency to be observable. A fixed 5 ms
+    // window lost the race on CI (the lock layer sleeps 25 ms between retries), so a test that
+    // asserts a peak can instead hold the download until that many requests overlap (bounded,
+    // so a serializing guard still fails the assertion rather than hanging).
+    const t0 = Date.now();
+    do {
+      await new Promise((r) => setTimeout(r, 5));
+    } while (state.inFlight < holdUntilInFlight && Date.now() - t0 < 300);
     state.inFlight--;
     return { ok: true, status: 200, arrayBuffer: async () => new Uint8Array(MP4_BYTES).buffer };
   };
@@ -322,7 +329,7 @@ describe('avatar jobs', () => {
 
   it('honours a higher maxAvatarConcurrency', async () => {
     const ctx = setup({ budgetPerRunUsd: 50, dailyCapUsd: 50, maxAvatarConcurrency: 2 });
-    const provider = fakeProvider();
+    const provider = fakeProvider({ holdUntilInFlight: 2 });
     const synth = makeSynth(ctx, provider);
     const names = ['a', 'b', 'c', 'd'];
     await Promise.all(names.map((n) => synth.resolveTalkingAvatar(P('img.png'), P(n + '.mp3'), { model: FAST, durationSeconds: 4 })));
