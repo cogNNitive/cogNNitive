@@ -90,7 +90,65 @@ description:: Public YouTube URL of the uploaded video (optional).
 ## NN Field Definition: preset
 concept:: Video
 type:: string
-description:: Design preset reference (e.g. [[Ghostbusters Tech Noir]], [[morado-nazareno]]) for typography and illustration style.
+description:: Design preset reference (e.g. [[Ghostbusters Tech Noir]], [[morado-nazareno]]) for typography and illustration style. Resolved by skills/nn-video-script as style tokens; scene props override it.
+
+## NN Field Definition: aspect
+concept:: Video
+type:: select
+options:: [16:9, 9:16, 1:1]
+description:: Target aspect ratio. Compiled to video_width/height by skills/nn-video-script.
+
+## NN Field Definition: caption_style
+concept:: Video
+type:: select
+options:: [none, tiktok, karaoke]
+description:: Default word-level captions style for all scenes (overridable per scene via caption_style).
+
+## NN Field Definition: voice_default
+concept:: Video
+type:: string
+description:: Default voice profile for scenes that declare no scene_voice.
+
+## NN Field Definition: style_preset
+concept:: Video
+type:: string
+description:: Reference to a StylePreset element holding font, palette, caption, and transition defaults.
+
+## NN Concept Definition: StylePreset
+icon:: palette
+type:: category
+color:: purple
+weight:: 50
+
+## NN Field Definition: font_family
+concept:: StylePreset
+type:: string
+description:: Default font family applied to overlays and captions.
+
+## NN Field Definition: palette
+concept:: StylePreset
+type:: string
+description:: Color tokens (e.g. accent, highlight, background) shared by overlays and thumbnails.
+
+## NN Field Definition: caption_size
+concept:: StylePreset
+type:: number
+description:: Default caption font size in px.
+
+## NN Field Definition: text_stroke
+concept:: StylePreset
+type:: string
+description:: Default text stroke color for legibility over video.
+
+## NN Field Definition: transition_default
+concept:: StylePreset
+type:: string
+description:: Default scene transition with optional easing (e.g. fade with bezier(0.16,1,0.3,1)).
+
+## NN Field Definition: caption_highlight
+concept:: StylePreset
+type:: string
+description:: Active-word highlight color for TikTok-style captions.
 
 # Video App
 

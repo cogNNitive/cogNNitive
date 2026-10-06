@@ -17,11 +17,31 @@ import { fileURLToPath } from 'node:url';
 import { parse as parseVus } from './lib/innfo-video-parser.generated.mjs';
 
 /**
+ * @typedef {Object} StyleTokens Resolved style tokens: style.json < video frontmatter < scene props.
+ * @property {string} [fontFamily]
+ * @property {string} [captionStyle] "none" | "tiktok" | "karaoke"
+ * @property {number} [captionSize]
+ * @property {string} [captionHighlight]
+ * @property {string} [transition] Default scene transition.
+ */
+
+/**
+ * @typedef {Object} CaptionsProps
+ * @property {string} [style] "tiktok" | "karaoke" | "none"
+ * @property {number} [size]
+ * @property {string} [highlight]
+ * @property {string} [fontFamily]
+ */
+
+/**
  * @typedef {Object} LowerThirdProps
  * @property {string} title
  * @property {string} [subtitle]
  * @property {string} [speakerTag]
  * @property {string} [accentColor]
+ * @property {string} [fontFamily]
+ * @property {number} [fontSize]
+ * @property {string} [textStroke]
  * @property {"bottom-left" | "bottom-right" | "bottom-center"} [position]
  */
 
@@ -30,6 +50,10 @@ import { parse as parseVus } from './lib/innfo-video-parser.generated.mjs';
  * @property {string} heading
  * @property {string} [subheading]
  * @property {"dark" | "light" | "accent"} [theme]
+ * @property {string} [fontFamily]
+ * @property {number} [fontSize]
+ * @property {number} [fontWeight]
+ * @property {string} [textStroke]
  * @property {"pop" | "typewriter" | "spring-up"} [animationStyle]
  */
 
@@ -39,12 +63,14 @@ import { parse as parseVus } from './lib/innfo-video-parser.generated.mjs';
  * @property {string} description
  * @property {string} [icon]
  * @property {string} [highlightColor]
+ * @property {string} [fontFamily]
+ * @property {number} [fontSize]
  */
 
 /**
  * @typedef {Object} VisualOverlayConfig
  * @property {string} id
- * @property {"lowerThird" | "kineticTitle" | "conceptCallout"} type
+ * @property {"lowerThird" | "kineticTitle" | "conceptCallout" | "captions"} type
  * @property {number} fromFrame
  * @property {number} durationInFrames
  * @property {LowerThirdProps | KineticTitleProps | ConceptCalloutProps} config
@@ -160,6 +186,9 @@ export class RemotionSceneCompiler {
         subtitle: props.subtitle || props.layer_subtitle || '',
         speakerTag: props.speakerTag || props.speaker_tag || props.layer_speaker_tag || '',
         accentColor: props.accentColor || props.accent_color || props.layer_accent_color || '#3b82f6',
+        fontFamily: props.fontFamily || props.font_family || props.layer_text_font || undefined,
+        fontSize: props.fontSize ?? props.font_size ?? props.layer_text_size ?? undefined,
+        textStroke: props.textStroke || props.text_stroke || undefined,
         position: props.position || props.layer_position || 'bottom-left',
       },
     };
@@ -184,6 +213,10 @@ export class RemotionSceneCompiler {
         heading: props.heading || props.layer_heading || props.title || props.layer_title || props.layer_text_content || '',
         subheading: props.subheading || props.layer_subheading || props.subtitle || props.layer_subtitle || '',
         theme: props.theme || props.layer_theme || 'dark',
+        fontFamily: props.fontFamily || props.font_family || props.layer_text_font || undefined,
+        fontSize: props.fontSize ?? props.font_size ?? props.layer_text_size ?? undefined,
+        fontWeight: props.fontWeight ?? props.font_weight ?? undefined,
+        textStroke: props.textStroke || props.text_stroke || undefined,
         animationStyle: props.animationStyle || props.animation_style || props.layer_animation_style || 'spring-up',
       },
     };
@@ -209,6 +242,28 @@ export class RemotionSceneCompiler {
         description: props.description || props.layer_description || '',
         icon: props.icon || props.layer_icon || 'info',
         highlightColor: props.highlightColor || props.highlight_color || props.layer_highlight_color || '#eab308',
+        fontFamily: props.fontFamily || props.font_family || props.layer_text_font || undefined,
+        fontSize: props.fontSize ?? props.font_size ?? props.layer_text_size ?? undefined,
+      },
+    };
+  }
+
+  /**
+   * Creates a word-level captions overlay descriptor (TikTok-style).
+   * The renderer highlights the active token; narration text is the source.
+   */
+  createCaptionsOverlay({ id, fromFrame, durationInFrames, props, narration }) {
+    return {
+      id,
+      type: 'captions',
+      fromFrame,
+      durationInFrames,
+      config: {
+        text: props.text || narration || '',
+        style: props.style || props.caption_style || 'tiktok',
+        size: props.size ?? props.caption_size ?? 80,
+        highlight: props.highlight || props.caption_highlight || '#39E508',
+        fontFamily: props.fontFamily || props.font_family || undefined,
       },
     };
   }
@@ -245,6 +300,17 @@ export class RemotionSceneCompiler {
           fps: Number(cfg.video_fps) || this.fps,
           width: Number(cfg.video_width) || this.width,
           height: Number(cfg.video_height) || this.height,
+          // First-class style tokens (A): carried through for compile-time resolution.
+          // Precedence: options.style < video props < scene props.
+          videoProps: {
+            video_aspect: cfg.video_aspect,
+            video_font: cfg.video_font || cfg.video_font_family,
+            video_caption_style: cfg.video_caption_style || cfg.caption_style,
+            video_caption_size: cfg.video_caption_size !== undefined ? Number(cfg.video_caption_size) : undefined,
+            video_caption_highlight: cfg.video_caption_highlight || cfg.caption_highlight,
+            video_transition: cfg.video_transition,
+            video_transition_easing: cfg.video_transition_easing,
+          },
           scenes: [],
         };
 
@@ -320,6 +386,7 @@ export class RemotionSceneCompiler {
       fps: this.fps,
       width: this.width,
       height: this.height,
+      videoProps: {},
       scenes: [],
     };
 
@@ -344,6 +411,16 @@ export class RemotionSceneCompiler {
       if (line.startsWith('- video_fps:')) {
         const val = parseInt(line.replace(/^- video_fps:\s*/, ''), 10);
         if (!isNaN(val)) result.fps = val;
+        continue;
+      }
+      // First-class video style tokens (A): aspect / font / caption defaults / transition.
+      // Kept flat in videoProps so compile() can resolve style.json < video < scene.
+      if (/^- video_(aspect|font|font_family|caption_style|caption_size|caption_highlight|transition|transition_easing):/.test(line)) {
+        const m = line.match(/^- (video_[a-z_]+):\s*(.*)$/);
+        if (m) {
+          const v = m[2].replace(/<!--.*-->$/, '').trim().replace(/^"|"$/g, '');
+          result.videoProps[m[1]] = /^\d+$/.test(v) ? Number(v) : v;
+        }
         continue;
       }
 
@@ -532,6 +609,8 @@ export class RemotionSceneCompiler {
     const height = options.height || parsed.height || this.height;
     const audioDurations = options.audioDurations || {};
     const audioAssets = options.audioAssets || {};
+    // Style precedence: style.json (options.style) < video props < scene props (applied per scene below).
+    const videoStyle = { ...(options.style || {}), ...(parsed.videoProps || {}) };
 
     const compositionId = (parsed.title || 'composition')
       .toLowerCase()
@@ -583,29 +662,41 @@ export class RemotionSceneCompiler {
         sceneType = 'kinetic_text';
       }
 
-      // 3. Transition Configuration
+      // 3. Transition Configuration (A: default from video/style + easing passthrough)
       let transition = undefined;
       const transIn = sc.properties?.transition_in;
       const transOut = sc.properties?.transition_out;
-      const rawTransition = sc.properties?.scene_transition || sc.properties?.transition;
+      const rawTransition = sc.properties?.scene_transition || sc.properties?.transition
+        || videoStyle.video_transition;
       if (transIn || transOut || rawTransition) {
         const transType = transIn || transOut || (typeof rawTransition === 'string' ? rawTransition : rawTransition.type || 'fade');
         const transDuration = typeof rawTransition === 'object' && rawTransition.durationInFrames
           ? rawTransition.durationInFrames
-          : Math.round(fps * 0.5);
+          : sc.properties?.scene_transition_duration !== undefined
+            ? Number(sc.properties.scene_transition_duration)
+            : Math.round(fps * 0.5);
+        const easing = (typeof rawTransition === 'object' && rawTransition.easing)
+          || sc.properties?.scene_transition_easing
+          || videoStyle.video_transition_easing
+          || 'bezier(0.16,1,0.3,1)';
         transition = {
           type: transType,
           durationInFrames: transDuration,
+          easing,
           ...(transIn ? { in: transIn } : {}),
           ...(transOut ? { out: transOut } : {}),
         };
       }
 
-      // Collect scene props
+      // Collect scene props (style tokens resolved here so the renderer stays presentational)
       const sceneProps = {
         title: sc.name || `Scene ${i + 1}`,
         narration: sc.narration || '',
         ...sc.properties,
+        fontFamily: sc.properties?.font_family || sc.properties?.fontFamily
+          || videoStyle.video_font || videoStyle.fontFamily,
+        captionStyle: sc.properties?.caption_style || sc.properties?.captionStyle
+          || videoStyle.video_caption_style || videoStyle.captionStyle || 'none',
         layers: sc.layers.map((l) => ({
           name: l.name,
           ...l.properties,
@@ -704,7 +795,43 @@ export class RemotionSceneCompiler {
               },
             })
           );
+        } else if (lType === 'captions' || lType === 'caption' || lType === 'subtitles' || layerName.includes('caption') || layerName.includes('subtitle')) {
+          overlayTracks.push(
+            this.createCaptionsOverlay({
+              id: `overlay_${sceneId}_${j + 1}`,
+              fromFrame: overlayFromFrame,
+              durationInFrames: overlayDuration,
+              props: {
+                ...layerProps,
+                style: layerProps.style || layerProps.caption_style || sceneProps.captionStyle,
+                size: layerProps.size ?? layerProps.caption_size ?? videoStyle.video_caption_size,
+                highlight: layerProps.highlight || layerProps.caption_highlight || videoStyle.video_caption_highlight,
+                fontFamily: layerProps.fontFamily || layerProps.font_family || sceneProps.fontFamily,
+              },
+              narration: sc.narration,
+            })
+          );
         }
+      }
+
+      // Scene-level caption default: no captions layer authored, but caption_style != none.
+      const sceneCaptionStyle = sc.properties?.caption_style || sceneProps.captionStyle;
+      const hasCaptionsLayer = overlayTracks.some((o) => o.id.startsWith(`overlay_${sceneId}_`) && o.type === 'captions');
+      if (!hasCaptionsLayer && sceneCaptionStyle && sceneCaptionStyle !== 'none' && sc.narration) {
+        overlayTracks.push(
+          this.createCaptionsOverlay({
+            id: `overlay_${sceneId}_captions`,
+            fromFrame,
+            durationInFrames,
+            props: {
+              style: sceneCaptionStyle,
+              size: sc.properties?.caption_size ?? videoStyle.video_caption_size,
+              highlight: sc.properties?.caption_highlight || videoStyle.video_caption_highlight,
+              fontFamily: sceneProps.fontFamily,
+            },
+            narration: sc.narration,
+          })
+        );
       }
 
       currentFrame += durationInFrames;

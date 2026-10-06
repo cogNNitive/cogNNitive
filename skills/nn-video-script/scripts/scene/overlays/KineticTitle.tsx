@@ -19,6 +19,10 @@ export const KineticTitle: React.FC<{ config: Record<string, unknown>; fps?: num
   const heading = (config.heading as string) || '';
   const subheading = (config.subheading as string) || '';
   const theme = THEME[(config.theme as string) || 'dark'] || THEME.dark;
+  const fontFamily = (config.fontFamily as string) || 'sans-serif';
+  const fontSize = Number(config.fontSize) || 88;
+  const fontWeight = Number(config.fontWeight) || 800;
+  const stroke = config.textStroke as string | undefined;
 
   const scale = interpolate(frame, [0, 12], [0.85, 1], { extrapolateRight: 'clamp' });
 
@@ -29,12 +33,13 @@ export const KineticTitle: React.FC<{ config: Record<string, unknown>; fps?: num
           transform: `scale(${scale})`,
           background: theme.background,
           color: theme.color,
-          fontFamily: 'sans-serif',
+          fontFamily,
+          ...(stroke ? { WebkitTextStroke: `1px ${stroke}` } : {}),
           padding: '32px 56px',
           textAlign: 'center',
         }}
       >
-        <div style={{ fontSize: 88, fontWeight: 800 }}>{heading}</div>
+        <div style={{ fontSize, fontWeight: fontWeight }}>{heading}</div>
         {subheading ? <div style={{ fontSize: 40, opacity: 0.85 }}>{subheading}</div> : null}
       </div>
     </AbsoluteFill>
