@@ -119,15 +119,18 @@ There is no "undo release". Run **all** of these before `git tag`:
 
 ### Step 2: Create Annotated Tag
 
-Create an annotated git tag locally on the `main` commit:
+Tag the **remote** `origin/main` tip explicitly — never the bare local `main`, which can be
+many commits behind and would silently tag stale code:
 
 ```powershell
-git tag -a <key>-v<semver> -m "release: <key> v<semver>"
+git fetch origin
+git tag -a <key>-v<semver> origin/main -m "release: <key> v<semver>"
+git rev-parse "<key>-v<semver>^{commit}"; git rev-parse origin/main   # must match
 ```
 
 *Example:*
 ```powershell
-git tag -a skills-v2.9.0 -m "release: skills v2.9.0"
+git tag -a skills-v2.9.0 origin/main -m "release: skills v2.9.0"
 ```
 
 ### Step 3: Push Tag & Watch Release Workflow
@@ -219,7 +222,7 @@ If a release workflow run fails, inspect the failing stage below. Re-running on 
 
 | Stage | Failure State | Recovery Action |
 |-------|---------------|-----------------|
-| **1. Parse & Decision Matrix** | No assets pushed; tag rejected (e.g. invalid key, non-increasing semver, or authored version mismatch). | Delete local/remote tag if incorrect, fix source files or version, merge to `main`, and re-tag. |
+| **1. Parse & Decision Matrix** | No assets pushed; tag rejected (e.g. invalid key, non-increasing semver, or authored version mismatch). | Nothing was published, but a tag that reached `origin` is still immutable: do **not** delete it. Fix source files or version, merge to `main`, and cut the next version tag. Only a tag that was never pushed may be deleted locally. |
 | **2. Web Commit C (Additive Sync)** | Commit C failed to push to `cogNNitive-web`. No mirror tag created. | Re-run workflow for the tag (`gh run rerun <run-id>`). |
 | **3. Mirror Tag Creation** | Commit C pushed, but mirror tag failed to create. | Re-run workflow. Mirror tag creation is retried. |
 | **4. Manifest Assembly** | Commit C and mirror tag exist; manifest assembly failed. | Re-run workflow. Re-assembles manifest against published history. |

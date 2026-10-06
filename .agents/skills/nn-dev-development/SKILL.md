@@ -10,8 +10,8 @@ description: Internal developer skill for cogNNitive maintainers. Enforces sessi
 
 `nn-dev-development` is the maintainer-only session guard for `cogNNitive`. This repo is
 operated by **one developer** driving several AI agents (OpenCode, Claude Code, Antigravity)
-that may run concurrently. The recurring failure is mechanical ΓÇö N processes writing one
-directory ΓÇö and the fix is **isolation, not attribution** (attribution already failed twice;
+that may run concurrently. The recurring failure is mechanical — N processes writing one
+directory — and the fix is **isolation, not attribution** (attribution already failed twice;
 it is undecidable from git alone).
 
 ### The model
@@ -40,7 +40,7 @@ Scope: cogNNitive repository root only.
 When this skill is loaded, the agent MUST print as its very first line:
 
 ```
-≡ƒöº You're using skill: nn-dev-development (≡ƒî┐)
+🔧 You're using skill: nn-dev-development (🌿)
 ```
 
 Session-scoped: once per conversation.
@@ -62,9 +62,9 @@ node scripts/nn-session.mjs start --id <session-id>
 `node_modules`, and creates the branch `session/<id>` off `dev`. Never write to the
 primary checkout; the primary-tree guard blocks it.
 
-ΓÜá∩╕Å It junctions the root `node_modules`, `iNNfo/node_modules`, and every workspace
+⚠️ It junctions the root `node_modules`, `iNNfo/node_modules`, and every workspace
 (`iNNfo/packages/*`, `iNNfo/apps/*`) and skill `node_modules` that exists in the primary.
-A dependency missing from the **local install** (a partial / `--omit=dev` install ΓÇö e.g.
+A dependency missing from the **local install** (a partial / `--omit=dev` install — e.g.
 `vitest` present in neither the root nor the workspace) is an environment gap, not a code error. The `pre-push` hook detects a session
 worktree (its `git-dir` differs from the shared `git-common-dir`) and **skips the local
 typecheck with a clear message**, because the workspace symlinks resolve `@cognnitive/*` to the
@@ -85,48 +85,48 @@ pre-existing:
   When a fast-looking assertion error appears on a test known to be slow, re-run it
   alone with `--testTimeout=30000` before believing it.
 
-### 1b. Informational concurrency scan
+### 1b. Primary-tree health check
 
-Run and report (do **not** block on it ΓÇö isolation already makes collisions impossible):
+Isolation makes write collisions impossible, so there is no process scan. What *does*
+drift is the primary checkout itself: it must stay on `dev`, clean, and in sync with
+`origin/dev` (it is the base every session worktree is cut from). Check and report, one line:
 
 ```powershell
-Get-CimInstance Win32_Process | Where-Object { $_.Name -match 'code|Cursor|claude|opencode|copilot|gemini' } | Select ProcessId,Name
-git status -sb
-git rev-parse HEAD
 git fetch origin
-git rev-list --left-right --count origin/main...dev
+git status -sb                                       # expect: ## dev...origin/dev, no files
+git rev-list --left-right --count origin/dev...dev   # expect 0 0
 git worktree list
-git stash list
+git reflog show refs/stash                           # parked work nobody owns
 ```
 
-Report the block, then proceed:
-
-```
-≡ƒî┐ Concurrent work scan:
-- Active agent processes: <list>
-- Branch: dev ┬╖ HEAD <sha> ┬╖ ahead/behind origin/dev
-- origin/main vs dev: <0/N> (dev-only commits pending merge)
-- Worktrees: <list>
-```
-
-Flag only if `origin/main` advanced since the session baseline (rebase before the batched
-merge).
+If the primary is not on `dev`, is dirty, or is behind, **say so first** — do not write
+into it. A clean-but-behind primary may be fast-forwarded (`git switch dev` then
+`git merge --ff-only origin/dev`). A dirty one is someone's residue: save the diff as a patch
+outside the repo, then revert it with `git apply --reverse <patch>`, and tell the maintainer.
+Flag `origin/main` advancing past the session baseline (rebase before the batched merge).
 
 ### 1c. Record the baseline
 
-`$baselineHead`, `$baselineBranch`, `$baselineMain` ΓÇö anchor points for the merge checks
+`$baselineHead`, `$baselineBranch`, `$baselineMain` — anchor points for the merge checks
 in Section 4.
 
 ---
 
 ## 2. Branch Discipline
 
-- **Work on `dev`** via the session worktree (`session/<id>`). No per-feature branches.
-- **Commit early and often** on `dev`. A `wip:<session-id>: <reason>` commit is the
-  durability mechanism, not a first-write gate.
+- **Work on `session/<id>`** inside the session worktree. It is cut from `dev`; `dev` is
+  the integration branch, never a place to edit directly. No other per-feature branches.
+- **Commit early and often** on the session branch. A `wip:<session-id>: <reason>` commit is
+  the durability mechanism, not a first-write gate.
+- **A commit that exists only locally is not durable.** Push the session branch
+  (`git push origin session/<id>`) as soon as it holds anything you would mind losing.
+- **Landing on `dev`:** push the session branch and merge it into `dev` (a PR on GitHub is
+  the normal path; a local `--ff-only` merge in the primary is fine for a single clean
+  commit). Run `git merge origin/dev` into the session branch first if `dev` moved.
+  Then `nn-session.mjs stop`.
 - `git add -A` / `git add .` / `git commit -a` are **permitted** (the worktree only holds
   your own work). The destructive commands `reset --hard`, `clean`, `stash`, `branch -D`,
-  and `checkout/restore .` stay **blocked** by `.claude/hooks/block-dangerous-git.mjs` ΓÇö
+  and `checkout/restore .` stay **blocked** by `.claude/hooks/block-dangerous-git.mjs` —
   they can still erase your own uncommitted work.
 
 ### 2a. Maintainer requests a dedicated branch
@@ -139,10 +139,16 @@ shape `<tipo>/<kebab-case>`; treat it as the session's integration target.
 ## 3. Worktree Lifecycle
 
 - `node scripts/nn-session.mjs stop --id <session-id>` removes the worktree and its
-  `session/<id>` branch **only if** the branch is merged into `dev` or pushed; otherwise it
-  refuses and lists the unique commits.
-- `node scripts/nn-session.mjs list` shows session worktrees and flags abandoned ones.
-- Never auto-delete worktrees or branches; abandoned ones are surfaced to the maintainer.
+  `session/<id>` branch **only if** the branch is merged into `dev` (local or `origin/dev`);
+  otherwise it refuses and lists the unique commits. It also refuses a dirty worktree:
+  save what matters, then revert the rest (`git apply --reverse` of a saved patch).
+- `node scripts/nn-session.mjs list` shows each session worktree and its branch.
+- A worktree that is clean **and** merged is safe to `stop` as soon as the session ends;
+  do not let them pile up. Never remove one whose branch has unique commits, and never
+  delete other branches automatically (ghost branches are candidates for the maintainer).
+- Known noise: `skills/nn-upgrade/scripts/lib/legacy-migrate.generated.cjs` shows as modified
+  in worktrees (esbuild writes `../<repo>/node_modules/...` paths through the junction).
+  Never commit it from a worktree; revert it before `stop`.
 
 ---
 
@@ -176,12 +182,12 @@ automatically.
 ### 4d. Handoff block
 
 ```markdown
-≡ƒî┐ Session guard:
-- Branch: dev ┬╖ based on origin/main @ <sha> ┬╖ clean/dirty
-- Session: <session-id> ┬╖ worktree <path>
+🌿 Session guard:
+- Branch: dev · based on origin/main @ <sha> · clean/dirty
+- Session: <session-id> · worktree <path>
 - origin/main advanced during session: <yes|no>
-- Pending batch (origin/main..dev): <commits> ┬╖ <stat>
-- Next: run nn-dev-check-integrity, then nn-dev-release to merge dev ΓåÆ main
+- Pending batch (origin/main..dev): <commits> · <stat>
+- Next: run nn-dev-check-integrity, then nn-dev-release to merge dev → main
 ```
 
 ### 4e. Batched merge orchestration
@@ -191,7 +197,7 @@ When the maintainer says the accumulated `dev` work is ready:
 1. **Pre-push integrity gate**: `node scripts/check-integrity.js` and
    `npm run check:versions`. Resolve drift before pushing. Ensure the tree is
    clean and `git push origin dev` succeeds.
-2. **Server-side fast-forward (`dev ΓåÆ main`)** ΓÇö never checks out `main`, leaves the tree
+2. **Server-side fast-forward (`dev → main`)** — never checks out `main`, leaves the tree
    untouched:
    ```powershell
    git push origin dev
@@ -200,7 +206,7 @@ When the maintainer says the accumulated `dev` work is ready:
    ```
    On rejection: `git fetch origin && git merge origin/main` on `dev`. If tagging, tag
    immediately after this push, before any further commit on `dev`.
-3. **Post-push CI gate on `main` ΓÇö blocking**: poll `gh run list --branch main` until the
+3. **Post-push CI gate on `main` — blocking**: poll `gh run list --branch main` until the
    run for the pushed sha completes; require `verify`, `quality`, `spec-integrity`, `site`,
    `publish-web` all `success`. Distinguish red-caused-by-batch (fix-forward) from pre-existing red
    (maintainer-approved `MERGE-GATE EXCEPTION`).
@@ -220,8 +226,8 @@ When the maintainer says the accumulated `dev` work is ready:
      diff AND regressed `listBlueprintProcedures`), revert it and file the finding - a fix
      that leaves CI red adds churn and hides the real state.
    - **Release freeze:** once a release tag is cut, no session may push `dev`/`main`
-     until that tag's workflow concludes ΓÇö a moved `origin/main` breaks the tag's own
-     verification and its already-limited re-run. See `nn-dev-release` ┬º4/┬º4b.
+     until that tag's workflow concludes — a moved `origin/main` breaks the tag's own
+     verification and its already-limited re-run. See `nn-dev-release` §4/§4b.
 4. **Release tagging** (only for a version bump): run `nn-dev-release` to create and push
    an annotated release tag (`<key>-v<semver>`: `skills-v*`, `blueprints-v*`, `innfo-mcp-v*`,
    `innfo-console-v*`); a red `main` blocks tagging.
@@ -229,11 +235,11 @@ When the maintainer says the accumulated `dev` work is ready:
 
 ---
 
-## 6. Pre-Refactor Snapshot & Rollback Protocol (Restore Point Gate)
+## 5. Pre-Refactor Snapshot & Rollback Protocol (Restore Point Gate)
 
 Before high-impact changes, establish an immutable restore point.
 
-- **Formal release** (`dev` clean + gates green): merge `dev ΓåÆ main`, create annotated
+- **Formal release** (`dev` clean + gates green): merge `dev → main`, create annotated
   tag `<key>-v<semver>` (e.g. `innfo-console-v0.6.0`, `skills-v0.12.0`), push tag to trigger
   `release.yml`.
 - **Checkpoint tag** (mid-flight): `git tag -a checkpoint/<topic>-YYYYMMDD -m ...` and push.
@@ -241,7 +247,7 @@ Before high-impact changes, establish an immutable restore point.
 ### Rollback (scoped, non-destructive)
 
 ```powershell
-git checkout HEAD -- <explicit/path>                       # revert one authored file
+git diff -- <explicit/path> > ../backup.patch; git apply --reverse ../backup.patch   # revert one file, with a backup (a bare `checkout <ref> -- path` is blocked)
 git worktree add --detach temp/rollback <tag>              # inspect a tag without touching the tree
 git update-ref refs/heads/dev '<tag>^{commit}' <old-sha>   # atomic compare-and-swap
 git push origin dev --force-with-lease                     # only with maintainer consent
@@ -253,18 +259,18 @@ git push origin dev --force-with-lease                     # only with maintaine
 
 ## Core Rules
 
-1. **Isolate first** ΓÇö enter a session worktree (`nn-session.mjs start`) before any write;
+1. **Isolate first** — enter a session worktree (`nn-session.mjs start`) before any write;
    never write to the primary checkout.
-2. **Never guess git state** ΓÇö re-read `git status -sb` / `HEAD` right before reporting
+2. **Never guess git state** — re-read `git status -sb` / `HEAD` right before reporting
    or writing.
-3. **Single branch** ΓÇö day-to-day work lands on `dev`; `main` only absorbs batched merges.
-4. **Commit early** ΓÇö prefer a `wip:<session-id>` commit over a dirty tree.
-5. **Never run destructive git** ΓÇö `reset --hard`, `clean`, `stash`, `branch -D`,
+3. **Single branch** — day-to-day work lands on `dev`; `main` only absorbs batched merges.
+4. **Commit early** — prefer a `wip:<session-id>` commit over a dirty tree.
+5. **Never run destructive git** — `reset --hard`, `clean`, `stash`, `branch -D`,
    `checkout/restore .` are blocked and must not be prescribed.
-6. **Never delete branches automatically** ΓÇö ghost branches are candidates, the maintainer
+6. **Never delete branches automatically** — ghost branches are candidates, the maintainer
    deletes.
-7. **Read-only inspection** ΓÇö this skill detects and asks; it never moves, renames, or
+7. **Read-only inspection** — this skill detects and asks; it never moves, renames, or
    deletes user files, and never stages/commits on its own.
-8. **Monorepo scope** ΓÇö cogNNitive repository root only.
-9. **Disposable scratch lives in `temp/`** ΓÇö throwaway fixtures and workspaces go under
+8. **Monorepo scope** — cogNNitive repository root only.
+9. **Disposable scratch lives in `temp/`** — throwaway fixtures and workspaces go under
    the gitignored `temp/` directory, deleted after the run.
