@@ -50,6 +50,6 @@ export const SHIPPED_BLUEPRINT_VERSIONS: Record<string, string> = {
   repository: 'V_0-2-0',
   sidecar: 'V_0-1-0',
   sources: 'V_0-2-0',
-  video: 'V_0-7-1',
+  video: 'V_0-7-2',
   'visual-catalog': 'V_0-1-1',
 }
