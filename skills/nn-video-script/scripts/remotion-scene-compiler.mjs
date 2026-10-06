@@ -31,6 +31,9 @@ import { parse as parseVus } from './lib/innfo-video-parser.generated.mjs';
  * @property {string} [subheading]
  * @property {"dark" | "light" | "accent"} [theme]
  * @property {"pop" | "typewriter" | "spring-up"} [animationStyle]
+ * @property {number} [headingSize] Heading px size (default 88). Setting it enables "big" mode (shadow + wrapping cap).
+ * @property {number} [subheadingSize] Subheading px size (default 40).
+ * @property {"top" | "center" | "bottom"} [anchor] Vertical placement (default center).
  */
 
 /**
@@ -92,6 +95,11 @@ import { parse as parseVus } from './lib/innfo-video-parser.generated.mjs';
  * @property {{ scenes: RemotionSceneTrack[], audio: AudioTrackBinding[], overlays: VisualOverlayConfig[] }} tracks
  * @property {{ generator: string, generatedAt: string, scriptSource: string }} metadata
  */
+
+/** Drops keys whose value is undefined/null/empty-string so optional config never leaks defaults. */
+function optionalKeys(obj) {
+  return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined && v !== null && v !== ''));
+}
 
 /**
  * Splits raw scene prose into spoken narration and overlay hints.
@@ -185,6 +193,12 @@ export class RemotionSceneCompiler {
         subheading: props.subheading || props.layer_subheading || props.subtitle || props.layer_subtitle || '',
         theme: props.theme || props.layer_theme || 'dark',
         animationStyle: props.animationStyle || props.animation_style || props.layer_animation_style || 'spring-up',
+        // Optional big-text controls: only present when set, so existing manifests stay byte-identical.
+        ...optionalKeys({
+          headingSize: props.headingSize ?? props.heading_size ?? props.layer_heading_size,
+          subheadingSize: props.subheadingSize ?? props.subheading_size ?? props.layer_subheading_size,
+          anchor: props.anchor ?? props.layer_anchor,
+        }),
       },
     };
   }

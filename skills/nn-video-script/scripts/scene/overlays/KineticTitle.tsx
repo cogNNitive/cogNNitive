@@ -7,6 +7,7 @@
 
 import React from 'react';
 import { AbsoluteFill, interpolate, useCurrentFrame } from 'remotion';
+import { resolveKineticTitleLayout } from '../kinetic-title-layout.mjs';
 
 const THEME: Record<string, { color: string; background: string }> = {
   dark: { color: '#ffffff', background: 'rgba(0,0,0,0.55)' },
@@ -20,10 +21,12 @@ export const KineticTitle: React.FC<{ config: Record<string, unknown>; fps?: num
   const subheading = (config.subheading as string) || '';
   const theme = THEME[(config.theme as string) || 'dark'] || THEME.dark;
 
+  const layout = resolveKineticTitleLayout(config);
+
   const scale = interpolate(frame, [0, 12], [0.85, 1], { extrapolateRight: 'clamp' });
 
   return (
-    <AbsoluteFill style={{ justifyContent: 'center', alignItems: 'center' }}>
+    <AbsoluteFill style={{ justifyContent: layout.justifyContent, alignItems: 'center', padding: layout.big ? '48px 0' : 0 }}>
       <div
         style={{
           transform: `scale(${scale})`,
@@ -32,10 +35,13 @@ export const KineticTitle: React.FC<{ config: Record<string, unknown>; fps?: num
           fontFamily: 'sans-serif',
           padding: '32px 56px',
           textAlign: 'center',
+          maxWidth: layout.maxWidth,
+          textShadow: layout.textShadow,
+          textWrap: layout.textWrap,
         }}
       >
-        <div style={{ fontSize: 88, fontWeight: 800 }}>{heading}</div>
-        {subheading ? <div style={{ fontSize: 40, opacity: 0.85 }}>{subheading}</div> : null}
+        <div style={{ fontSize: layout.headingSize, fontWeight: 800, lineHeight: layout.big ? 1.08 : undefined }}>{heading}</div>
+        {subheading ? <div style={{ fontSize: layout.subheadingSize, opacity: 0.85 }}>{subheading}</div> : null}
       </div>
     </AbsoluteFill>
   );
