@@ -5,7 +5,7 @@ level: 2
 parent_spec:
   name: "iNNfo_V_0-3-0"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-3-0_NN.md"
-blueprint_version: "V_0-7-1"
+blueprint_version: "V_0-7-2"
 title: "Video App"
 procedures:
   - id: "generate-video-script"
