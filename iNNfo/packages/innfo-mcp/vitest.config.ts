@@ -38,11 +38,8 @@ export default defineConfig({
     testTimeout: 30000,
     exclude: [...configDefaults.exclude, ...skipNonWindows],
     pool: 'forks',
-    poolOptions: {
-      forks: {
-        singleFork: true,
-      },
-    },
+    // Vitest 4: poolOptions removed; fileParallelism:false is the singleFork replacement.
+    fileParallelism: false,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],
