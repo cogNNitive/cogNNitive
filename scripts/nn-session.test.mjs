@@ -118,6 +118,38 @@ test('stop refuses an unmerged session branch', () => {
   }
 })
 
+test('list shows the branch of each session worktree, not (detached)', () => {
+  const base = mkdtempSync(join(tmpdir(), 'nn-session-'))
+  const repo = makeRepo(base)
+  try {
+    run(['start', '--id', 's6', '--root', repo])
+    const l = run(['list', '--root', repo])
+    assert.equal(l.code, 0)
+    assert.ok(l.out.includes('[session/s6]'), 'session branch listed')
+    assert.ok(!l.out.includes('(detached)'), 'nothing reported as detached')
+  } finally {
+    rmSync(base, { recursive: true, force: true })
+  }
+})
+
+test('stop refuses a dirty worktree with an explanation instead of crashing', () => {
+  const base = mkdtempSync(join(tmpdir(), 'nn-session-'))
+  const repo = makeRepo(base)
+  const target = join(dirname(repo), 'cogNNitive-s7')
+  try {
+    run(['start', '--id', 's7', '--root', repo])
+    writeFileSync(join(target, 'f.txt'), 'changed')
+
+    const st = run(['stop', '--id', 's7', '--root', repo])
+    assert.notEqual(st.code, 0)
+    assert.ok(st.out.includes('uncommitted changes'), 'names the dirty-tree refusal')
+    assert.ok(!st.out.includes('at genericNodeError'), 'no raw stack trace')
+    assert.ok(existsSync(target), 'worktree NOT removed')
+  } finally {
+    rmSync(base, { recursive: true, force: true })
+  }
+})
+
 test('stop removes the node_modules junction without deleting primary sources', () => {
   const base = mkdtempSync(join(tmpdir(), 'nn-session-'))
   const repo = makeRepo(base)

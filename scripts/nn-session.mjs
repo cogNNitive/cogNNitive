@@ -125,7 +125,13 @@ function list(argv) {
   for (let i = 0; i < lines.length; i++) {
     const w = lines[i].match(/^worktree (.+)$/)
     if (w) {
-      const branch = lines[i + 1]?.match(/^branch refs\/heads\/(.+)$/)?.[1] || '(detached)'
+      // Porcelain order is `worktree`, `HEAD`, then `branch` (absent when detached),
+      // so look through the block instead of assuming the next line.
+      let branch = '(detached)'
+      for (let j = i + 1; j < lines.length && lines[j] !== ''; j++) {
+        const b = lines[j].match(/^branch refs\/heads\/(.+)$/)
+        if (b) branch = b[1]
+      }
       console.log(`${w[1]}  [${branch}]`)
     }
   }
@@ -140,15 +146,31 @@ function stop(argv) {
     process.exit(1)
   }
   const branch = `session/${id}`
-  let merged = true
-  try {
-    git(['merge-base', '--is-ancestor', branch, 'dev'], root)
-  } catch {
-    merged = false
+  const isIn = (ref) => {
+    try {
+      git(['merge-base', '--is-ancestor', branch, ref], root)
+      return true
+    } catch {
+      return false
+    }
   }
-  if (!merged) {
-    const unique = git(['log', '--oneline', `dev..${branch}`], root)
-    console.error(`refusing: ${branch} has commits not in dev:\n${unique}`)
+  // `dev` may be stale locally while `origin/dev` already carries the branch.
+  if (!isIn('dev') && !isIn('origin/dev')) {
+    const bases = ['dev', 'origin/dev'].filter((ref) => {
+      try {
+        git(['rev-parse', '--verify', '--quiet', ref], root)
+        return true
+      } catch {
+        return false
+      }
+    })
+    const unique = git(['log', '--oneline', branch, '--not', ...bases], root)
+    console.error(`refusing: ${branch} has commits not in dev or origin/dev:\n${unique}`)
+    process.exit(1)
+  }
+  const dirty = git(['status', '--porcelain'], target)
+  if (dirty) {
+    console.error(`refusing: ${target} has uncommitted changes:\n${dirty}\nsave what matters and revert the rest, then stop again.`)
     process.exit(1)
   }
   removeNodeModulesLinks(target)
