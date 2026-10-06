@@ -81,6 +81,8 @@ import { parse as parseVus } from './lib/innfo-video-parser.generated.mjs';
  * @property {number} durationInFrames
  * @property {number} volume
  * @property {string} sha256
+ * @property {"music"} [kind] Set on per-scene background music tracks only.
+ * @property {boolean} [loop] Music tracks: loop the file for the scene's duration.
  */
 
 /**
@@ -95,6 +97,9 @@ import { parse as parseVus } from './lib/innfo-video-parser.generated.mjs';
  * @property {{ scenes: RemotionSceneTrack[], audio: AudioTrackBinding[], overlays: VisualOverlayConfig[] }} tracks
  * @property {{ generator: string, generatedAt: string, scriptSource: string }} metadata
  */
+
+/** Background music volume when a scene declares music but no `scene_background_audio_volume`. */
+export const DEFAULT_BG_MUSIC_VOLUME = 0.2;
 
 /** Drops keys whose value is undefined/null/empty-string so optional config never leaks defaults. */
 function optionalKeys(obj) {
@@ -649,6 +654,29 @@ export class RemotionSceneCompiler {
           durationInFrames,
           volume: sc.properties?.audio_volume !== undefined ? Number(sc.properties.audio_volume) : 1.0,
           sha256,
+        });
+      }
+
+      // 4b. Background music (per-scene `scene_background_audio`): plays for ITS scene only,
+      // looping if the file is shorter. Volume: explicit `scene_background_audio_volume` wins
+      // (0 included), otherwise DEFAULT_BG_MUSIC_VOLUME (the parser spec's default).
+      const bgMusic = sc.properties?.scene_background_audio;
+      if (bgMusic && typeof bgMusic === 'string') {
+        if (path.isAbsolute(bgMusic) || /^[A-Za-z]:[\\/]/.test(bgMusic) || /^[a-z]+:\/\//i.test(bgMusic)) {
+          throw new Error(`Invalid background audio "${bgMusic}" in scene "${sceneId}": use a path relative to the script, inside the series tree.`);
+        }
+        const rawVolume = sc.properties?.scene_background_audio_volume;
+        const bgVolume = rawVolume !== undefined && Number.isFinite(Number(rawVolume)) ? Number(rawVolume) : DEFAULT_BG_MUSIC_VOLUME;
+        audioTracks.push({
+          id: `bgmusic_${sceneId}`,
+          sceneId,
+          kind: 'music',
+          assetPath: bgMusic,
+          fromFrame,
+          durationInFrames,
+          volume: bgVolume,
+          loop: true,
+          sha256: crypto.createHash('sha256').update(`bgmusic:${bgMusic}`).digest('hex'),
         });
       }
 

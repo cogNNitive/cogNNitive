@@ -58,6 +58,28 @@ export function resolveRemotionEntryPoint(scriptsDir = SCRIPTS_DIR) {
   return path.resolve(scriptsDir, 'remotion-entry.tsx');
 }
 
+/** True when `target` is `root` or lives under it. */
+function isInside(root, target) {
+  const rel = path.relative(path.resolve(root), path.resolve(target));
+  return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel));
+}
+
+/**
+ * The series folder that owns a script: the nearest ancestor (inclusive) holding
+ * `series_rules.md` or `script_template.md`. Undefined for scripts outside a series.
+ * @param {string} startDir
+ * @returns {string | undefined}
+ */
+export function findSeriesRoot(startDir) {
+  let dir = path.resolve(startDir);
+  for (;;) {
+    if (fs.existsSync(path.join(dir, 'series_rules.md')) || fs.existsSync(path.join(dir, 'script_template.md'))) return dir;
+    const parent = path.dirname(dir);
+    if (parent === dir) return undefined;
+    dir = parent;
+  }
+}
+
 /**
  * Resolves a media source against the script directory and stages it into a
  * Remotion-served public directory, returning the bundle-relative name. The name
@@ -101,12 +123,13 @@ export function stageAsset(src, scriptDir, publicDir) {
  * so it is the test seam.
  *
  * @param {object} manifest
- * @param {{ scriptDir: string, publicDir: string }} opts
- * @returns {{ staged: number, missing: string[] }}
+ * @param {{ scriptDir: string, publicDir: string, seriesRoot?: string }} opts
+ * @returns {{ staged: number, missing: string[], escaped: string[] }}
  */
 export function resolveMediaLayers(manifest, opts) {
-  const { scriptDir, publicDir } = opts;
+  const { scriptDir, publicDir, seriesRoot } = opts;
   const missing = [];
+  const escaped = [];
   let staged = 0;
 
   const stageField = (obj, field) => {
@@ -128,9 +151,16 @@ export function resolveMediaLayers(manifest, opts) {
     for (const layer of layers) stageField(layer, 'layer_asset_source');
   }
 
-  for (const track of manifest?.tracks?.audio || []) stageField(track, 'assetPath');
+  for (const track of manifest?.tracks?.audio || []) {
+    // Music must stay inside the series tree (no-upward-escape rule). Narration is cache-produced and exempt.
+    if (track?.kind === 'music' && seriesRoot && typeof track.assetPath === 'string' && !isInside(seriesRoot, path.resolve(scriptDir, track.assetPath))) {
+      escaped.push(track.assetPath);
+      continue;
+    }
+    stageField(track, 'assetPath');
+  }
 
-  return { staged, missing };
+  return { staged, missing, escaped };
 }
 
 /**
@@ -403,7 +433,7 @@ export async function compileVideo(options) {
   // and out-of-dir (`../shared/…`) paths both work. A missing asset is a loud
   // failure — never a silently dropped layer.
   const publicDir = path.join(scriptDir, 'public');
-  const staging = resolveMediaLayers(manifest, { scriptDir, publicDir });
+  const staging = resolveMediaLayers(manifest, { scriptDir, publicDir, seriesRoot: findSeriesRoot(scriptDir) });
   manifest.metadata.publicDir = publicDir;
 
   // Keep the human-visible local audio staging dir next to the script (developer aid).
@@ -415,6 +445,12 @@ export async function compileVideo(options) {
       const destAudio = path.join(localAudioDir, `${scId}_voiceover.mp3`);
       fs.copyFileSync(audioInfo.assetPath, destAudio);
     }
+  }
+
+  if (staging.escaped.length > 0) {
+    throw new VideoRenderError(
+      `Background audio escapes the series folder (no-upward-escape rule): ${staging.escaped.join(', ')}`,
+    );
   }
 
   if (staging.missing.length > 0) {
