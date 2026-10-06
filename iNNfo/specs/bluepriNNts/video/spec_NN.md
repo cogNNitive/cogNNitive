@@ -44,6 +44,12 @@ type:: category
 color:: blue
 weight:: 100
 
+## NN Concept Definition: StylePreset
+icon:: palette
+type:: category
+color:: purple
+weight:: 50
+
 # NN Field Definition
 
 ## NN Field Definition: title
@@ -114,12 +120,6 @@ concept:: Video
 type:: string
 description:: Reference to a StylePreset element holding font, palette, caption, and transition defaults.
 
-## NN Concept Definition: StylePreset
-icon:: palette
-type:: category
-color:: purple
-weight:: 50
-
 ## NN Field Definition: font_family
 concept:: StylePreset
 type:: string
@@ -132,8 +132,8 @@ description:: Color tokens (e.g. accent, highlight, background) shared by overla
 
 ## NN Field Definition: caption_size
 concept:: StylePreset
-type:: number
-description:: Default caption font size in px.
+type:: string
+description:: Default caption font size in px (numeric string).
 
 ## NN Field Definition: text_stroke
 concept:: StylePreset
