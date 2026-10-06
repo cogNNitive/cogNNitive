@@ -146,6 +146,12 @@ shape `<tipo>/<kebab-case>`; treat it as the session's integration target.
 - A worktree that is clean **and** merged is safe to `stop` as soon as the session ends;
   do not let them pile up. Never remove one whose branch has unique commits, and never
   delete other branches automatically (ghost branches are candidates for the maintainer).
+- **A session worktree you did not create may be live.** Ids get reused, and another agent
+  can start editing in a worktree minutes after you last looked at it. Before reverting or
+  stopping one, re-run `git status --porcelain` on it, and revert **only the named paths**
+  (`git diff -- <path> > patch`), never a bare `git diff`/`git apply --reverse` of the
+  whole tree. On 2026-10-06 a whole-tree revert silently undid another session's
+  uncommitted edits; they were recoverable only because the patch had been saved first.
 - Known noise: `skills/nn-upgrade/scripts/lib/legacy-migrate.generated.cjs` shows as modified
   in worktrees (esbuild writes `../<repo>/node_modules/...` paths through the junction).
   Never commit it from a worktree; revert it before `stop`.
