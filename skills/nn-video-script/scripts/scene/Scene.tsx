@@ -29,6 +29,8 @@ type AudioBinding = {
   fromFrame: number;
   durationInFrames: number;
   volume?: number;
+  /** Background music: loop the file for the scene's duration. */
+  loop?: boolean;
 };
 
 type SceneTrack = {
@@ -92,7 +94,7 @@ export const Scene: React.FC<{
 
         {audio.map((track) => (
           <Sequence key={track.id} from={track.fromFrame - scene.fromFrame} durationInFrames={track.durationInFrames}>
-            <Audio src={staticFile(track.assetPath)} volume={track.volume ?? 1} />
+            <Audio src={staticFile(track.assetPath)} volume={track.volume ?? 1} loop={track.loop === true} />
           </Sequence>
         ))}
 

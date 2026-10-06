@@ -55,6 +55,9 @@ import { parse as parseVus } from './lib/innfo-video-parser.generated.mjs';
  * @property {number} [fontWeight]
  * @property {string} [textStroke]
  * @property {"pop" | "typewriter" | "spring-up"} [animationStyle]
+ * @property {number} [headingSize] Heading px size (default 88). Setting it enables "big" mode (shadow + wrapping cap).
+ * @property {number} [subheadingSize] Subheading px size (default 40).
+ * @property {"top" | "center" | "bottom"} [anchor] Vertical placement (default center).
  */
 
 /**
@@ -104,6 +107,8 @@ import { parse as parseVus } from './lib/innfo-video-parser.generated.mjs';
  * @property {number} durationInFrames
  * @property {number} volume
  * @property {string} sha256
+ * @property {"music"} [kind] Set on per-scene background music tracks only.
+ * @property {boolean} [loop] Music tracks: loop the file for the scene's duration.
  */
 
 /**
@@ -118,6 +123,14 @@ import { parse as parseVus } from './lib/innfo-video-parser.generated.mjs';
  * @property {{ scenes: RemotionSceneTrack[], audio: AudioTrackBinding[], overlays: VisualOverlayConfig[] }} tracks
  * @property {{ generator: string, generatedAt: string, scriptSource: string }} metadata
  */
+
+/** Background music volume when a scene declares music but no `scene_background_audio_volume`. */
+export const DEFAULT_BG_MUSIC_VOLUME = 0.2;
+
+/** Drops keys whose value is undefined/null/empty-string so optional config never leaks defaults. */
+function optionalKeys(obj) {
+  return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined && v !== null && v !== ''));
+}
 
 /**
  * Splits raw scene prose into spoken narration and overlay hints.
@@ -218,6 +231,12 @@ export class RemotionSceneCompiler {
         fontWeight: props.fontWeight ?? props.font_weight ?? undefined,
         textStroke: props.textStroke || props.text_stroke || undefined,
         animationStyle: props.animationStyle || props.animation_style || props.layer_animation_style || 'spring-up',
+        // Optional big-text controls: only present when set, so existing manifests stay byte-identical.
+        ...optionalKeys({
+          headingSize: props.headingSize ?? props.heading_size ?? props.layer_heading_size,
+          subheadingSize: props.subheadingSize ?? props.subheading_size ?? props.layer_subheading_size,
+          anchor: props.anchor ?? props.layer_anchor,
+        }),
       },
     };
   }
@@ -726,6 +745,29 @@ export class RemotionSceneCompiler {
           durationInFrames,
           volume: sc.properties?.audio_volume !== undefined ? Number(sc.properties.audio_volume) : 1.0,
           sha256,
+        });
+      }
+
+      // 4b. Background music (per-scene `scene_background_audio`): plays for ITS scene only,
+      // looping if the file is shorter. Volume: explicit `scene_background_audio_volume` wins
+      // (0 included), otherwise DEFAULT_BG_MUSIC_VOLUME (the parser spec's default).
+      const bgMusic = sc.properties?.scene_background_audio;
+      if (bgMusic && typeof bgMusic === 'string') {
+        if (path.isAbsolute(bgMusic) || /^[A-Za-z]:[\\/]/.test(bgMusic) || /^[a-z]+:\/\//i.test(bgMusic)) {
+          throw new Error(`Invalid background audio "${bgMusic}" in scene "${sceneId}": use a path relative to the script, inside the series tree.`);
+        }
+        const rawVolume = sc.properties?.scene_background_audio_volume;
+        const bgVolume = rawVolume !== undefined && Number.isFinite(Number(rawVolume)) ? Number(rawVolume) : DEFAULT_BG_MUSIC_VOLUME;
+        audioTracks.push({
+          id: `bgmusic_${sceneId}`,
+          sceneId,
+          kind: 'music',
+          assetPath: bgMusic,
+          fromFrame,
+          durationInFrames,
+          volume: bgVolume,
+          loop: true,
+          sha256: crypto.createHash('sha256').update(`bgmusic:${bgMusic}`).digest('hex'),
         });
       }
 
