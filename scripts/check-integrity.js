@@ -58,7 +58,7 @@ try {
 // must re-pin manifest/source.yaml in the same diff.
 console.log('\n[Group 1c] Tag/pin freshness (skills & blueprints ↔ manifest/source.yaml):');
 try {
-  const { checkTagPinFreshness } = require('./lib/tag-pin-freshness.js');
+  const { checkTagPinFreshness, structuralChanges } = require('./lib/tag-pin-freshness.js');
   // Prefer the batched-merge range; fall back to the branch-vs-main range.
   const range = execSync('git rev-parse --verify --quiet origin/main', { cwd: repoRoot, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
     ? 'origin/main...HEAD'
@@ -67,7 +67,8 @@ try {
     .split('\n')
     .map((l) => l.trim())
     .filter(Boolean);
-  const pinResult = checkTagPinFreshness(changed);
+  const nameStatus = execSync(`git diff --name-status -M ${range}`, { cwd: repoRoot, encoding: 'utf8' });
+  const pinResult = checkTagPinFreshness(changed, structuralChanges(nameStatus));
   if (!pinResult.ok) {
     console.error('❌ Tag/pin freshness check failed:');
     pinResult.errors.forEach((err) => console.error(`  - ${err}`));

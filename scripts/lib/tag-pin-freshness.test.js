@@ -7,7 +7,7 @@
  */
 
 const assert = require('node:assert');
-const { checkTagPinFreshness, MANIFEST_PATH } = require('./tag-pin-freshness.js');
+const { checkTagPinFreshness, structuralChanges, MANIFEST_PATH } = require('./tag-pin-freshness.js');
 
 function testSkillsChangeWithoutManifestFails() {
   const r = checkTagPinFreshness(['skills/nn-innfo/SKILL.md', 'docs/x.md']);
@@ -61,7 +61,41 @@ function testEmptyInputPasses() {
   assert.strictEqual(r.ok, true);
 }
 
+function testSkillContentEditIsNotStructural() {
+  // 36 files edited inside an existing skill: no inventory change, no re-pin needed
+  const changed = ['skills/nn-video-script/SKILL.md', 'skills/nn-video-script/scripts/a.mjs'];
+  const structural = structuralChanges('M\tskills/nn-video-script/SKILL.md\nA\tskills/nn-video-script/scripts/a.mjs');
+  const r = checkTagPinFreshness(changed, structural);
+  assert.strictEqual(r.ok, true, 'content edits and new files inside a skill must pass');
+  assert.strictEqual(r.triggered.skills.length, 0);
+}
+
+function testAddedSkillWithoutManifestFails() {
+  const structural = structuralChanges('A\tskills/nn-new/SKILL.md');
+  const r = checkTagPinFreshness(['skills/nn-new/SKILL.md'], structural);
+  assert.strictEqual(r.ok, false, 'a new skill must be inventoried in the manifest');
+  assert.deepStrictEqual(r.triggered.skills, ['skills/nn-new/SKILL.md']);
+}
+
+function testRenamedAndDeletedSkillsAreStructural() {
+  const structural = structuralChanges('R100\tskills/old/SKILL.md\tskills/new/SKILL.md\nD\tskills/gone/SKILL.md');
+  assert.deepStrictEqual(structural, ['skills/old/SKILL.md', 'skills/new/SKILL.md', 'skills/gone/SKILL.md']);
+  const r = checkTagPinFreshness(['skills/new/SKILL.md'], structural);
+  assert.strictEqual(r.ok, false);
+  assert.strictEqual(r.triggered.skills.length, 3);
+}
+
+function testAddedSkillWithManifestPasses() {
+  const structural = structuralChanges('A\tskills/nn-new/SKILL.md');
+  const r = checkTagPinFreshness(['skills/nn-new/SKILL.md', MANIFEST_PATH], structural);
+  assert.strictEqual(r.ok, true);
+}
+
 function runAll() {
+  testSkillContentEditIsNotStructural();
+  testAddedSkillWithoutManifestFails();
+  testRenamedAndDeletedSkillsAreStructural();
+  testAddedSkillWithManifestPasses();
   testSkillsChangeWithoutManifestFails();
   testBlueprintSpecChangeWithoutManifestFails();
   testLegacyTemplatesRootStillCovered();
