@@ -29,7 +29,7 @@ Align the `nn` front controller and ecosystem governance rules with standardized
 All agent sessions bootstrapped via `AGENTS.md` and routed through `nn` MUST enforce the cogNNitive UX protocol:
 1. **Zero Unilateral Mutation (Consent First)**: No renaming or restructuring of user files without explicit consent.
 2. **Recommended Option First**: Mark default recommendation with `(Recommended)` based on domain probe state.
-3. **Conversations as Reference & Source**: Allocate turn logging in `conversations/` silently and prompt for promotion at close.
+3. **Conversations as Reference & Source**: Allocate turn logging in `conversations/` silently and auto-promote at close (opt-out with `[none]`).
 4. **Optimistic Execution & Reversibility**: Proceed immediately on safe, standard actions without redundant blocking confirmations.
 
 #### Scenario: Agent follows UX governance during session

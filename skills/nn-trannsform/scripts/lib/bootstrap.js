@@ -64,7 +64,7 @@ At the beginning of every interactive session in this workspace, AI coding agent
 - **Zero Unilateral Mutation (Consent First)**: NEVER move, rename, or delete user files (including raw files in \`sources/import/\`) without explicit confirmation.
 - **Recommended Option First**: In all menus or option lists, present the \`(Recommended)\` option first based on domain state.
 - **Optimistic Execution & Informative Grace**: Proceed immediately on safe, standard, non-destructive actions while clearly announcing intent and providing an easy interruption path.
-- **Conversations as Reference & Source**: Continuously log session turns and offer promotion to \`sources/conversations/\` at session completion.
+- **Conversations as Reference & Source**: Continuously log session turns and auto-promote to \`sources/conversations/\` at session completion (the user can opt out).
 `;
 }
 

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Define the full lifecycle of an interactive cogNNitive session transcript: silent reservation of a timestamped file in `conversations/` at session start, guaranteed retention of all sessions (zero automatic discard), continuous incremental turn logging, post-session title suggestion and rename, and an interactive prompt to promote the finalized transcript into `sources/conversations/` as a verbatim source with per-turn author attribution, or to decline promotion.
+Define the full lifecycle of an interactive cogNNitive session transcript: silent reservation of a timestamped file in `conversations/` at session start, guaranteed retention of all sessions (zero automatic discard), continuous incremental turn logging, post-session title suggestion and rename, and automatic promotion of the finalized transcript into `sources/conversations/` as a verbatim source with per-turn author attribution, with an opt-out instead of an approval prompt.
 
 ## Requirements
 
@@ -69,14 +69,14 @@ Upon conclusion of a session, the agent MUST present 3 suggested title options t
 - AND WHEN the user chooses option `1`
 - THEN the file is renamed to `conversations/2026-09-13_user-auth-design.md`
 - AND the frontmatter `status` is set to `completed`
+### Requirement: Automatic Transcript Promotion with Opt-Out
 
-### Requirement: Interactive Transcript Promotion Prompt
+After titling a concluded session, the agent MUST promote the conversation transcript into the workspace knowledge sources (`sources/conversations/`) by default, without asking for approval. The agent MUST announce the promotion and offer a single opt-out:
 
-After titling a concluded session, the agent MUST prompt the user whether to promote the conversation transcript into the workspace knowledge sources (`sources/conversations/`). The prompt MUST offer two options:
-- `[full] (Recommended)`: writes the verbatim transcript through `writeOnce` as `sources/conversations/<session-slug>_<UTC suffix>.md` (the suffix is the contract UTC timestamp) and cognitivizes it in place.
-- `[none]`: leaves the transcript solely in `conversations/`.
+- `[full]` (default, applied unless the user objects): writes the verbatim transcript through `writeOnce` as `sources/conversations/<session-slug>_<UTC suffix>.md` (the suffix is the contract UTC timestamp) and cognitivizes it in place.
+- `[none]`: the user says so (e.g. "no la promociones", "skip promotion") — leaves the transcript solely in `conversations/`.
 
-The prompt MUST NOT offer an executive-summary option (`[summary]`) or a combined option (`[both]`). The raw transcript in `conversations/` MUST always be retained regardless of the choice. Promoting identical bytes again MUST write nothing (dedup). Existing `YYYY-MM-DD_*` transcripts stay as unsuffixed family members and are not renamed. The `sources/nn/conversations/` mirror MUST NOT exist.
+There is no executive-summary promotion path and no approval prompt. The raw transcript in `conversations/` MUST always be retained regardless of the choice. Promoting identical bytes again MUST write nothing (dedup). Existing `YYYY-MM-DD_*` transcripts stay as unsuffixed family members and are not renamed. The `sources/nn/conversations/` mirror MUST NOT exist.
 
 Before promoting a transcript on the `[full]` path, the agent MUST present an author-naming step for the transcript's participants. The agent MUST suggest the human author's name (derived from `git config user.name` or OS user) and the agent's tool id.
 
@@ -84,20 +84,20 @@ Each conversation turn MUST be rendered as a `## NN Turn NN: <author-id>` headin
 
 Promoted files in `sources/conversations/` MUST include frontmatter linking them to `origin_transcript: conversations/<file>.md`.
 
-#### Scenario: User promotes transcript as source
+#### Scenario: User session auto-promotes
 - GIVEN a finalized transcript `conversations/2026-09-13_api-gateway.md`
-- WHEN prompted for promotion and the user selects `[full]`
+- WHEN the session closes and the user does not opt out
 - THEN `sources/conversations/2026-09-13_api-gateway_<UTC suffix>.md` exists with the verbatim transcript and `origin_transcript: conversations/2026-09-13_api-gateway.md`
 - AND a co-located sidecar exists
 - AND `conversations/2026-09-13_api-gateway.md` remains intact in `conversations/`
 
 #### Scenario: Promoting twice without changes
 - GIVEN an already promoted, unchanged transcript
-- WHEN the user selects `[full]` again
+- WHEN the session closes again (auto-promote path)
 - THEN no new file is written
 
-#### Scenario: User declines promotion
+#### Scenario: User opts out of promotion
 - GIVEN a finalized transcript `conversations/2026-09-13_api-gateway.md`
-- WHEN prompted for promotion and the user selects `[none]`
+- WHEN the user opts out ("no la promociones" / `[none]`)
 - THEN no file is written to `sources/conversations/`
 - AND `conversations/2026-09-13_api-gateway.md` remains in `conversations/`
