@@ -155,7 +155,7 @@ export type {
 } from './workspace/integrity/report.js'
 export { listKnowledge, resolveKnowledgeVersion } from './helpers.js'
 export type { KnowledgeInfo } from './helpers.js'
-export { applyMutation, freeze_slugs, updateReferenceString, updateWikiLinks } from './mutate.js'
+export { applyMutation, freeze_slugs, updateReferenceString, updateWikiLinks, rewriteFieldCitation } from './mutate.js'
 export type { MutationResult } from './mutate.js'
 export { buildAgentModificationBlock } from './agentModification.js'
 export type { AgentModificationContext } from './agentModification.js'
@@ -174,3 +174,5 @@ export { readLineageSnapshot, readLineageRecord } from './lineage/fs-snapshot.js
 export * from './naming/index.js'
 export * from './writeOnce/index.js'
 export * from './cognitivize/index.js'
+export * from './changeset/index.js'
+

@@ -55,9 +55,10 @@ describe('isExcludedPath', () => {
     expect(isExcludedPath('specs/a.md')).toBe(true)
   })
 
-  it('excludes roots only at the first segment', () => {
-    expect(isExcludedPath('sources/archive/a.md')).toBe(false)
+  it('excludes root-only directories at the first segment, and archive at any segment', () => {
+    expect(isExcludedPath('sources/backups/a.md')).toBe(false)
     expect(isExcludedPath('kNNowledge/specs/a_NN.md')).toBe(false)
+    expect(isExcludedPath('sources/archive/a.md')).toBe(true)
   })
 
   it('excludes any staging segment', () => {

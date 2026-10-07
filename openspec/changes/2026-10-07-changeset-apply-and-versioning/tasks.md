@@ -39,7 +39,7 @@ Each task adheres to a strict Test-Driven Development (TDD) cycle:
 
 **Goal**: Extend role classification for changesets, exclude changesets from model discovery, and enforce deep `archive` directory exclusion at any path depth per decisions **D7** and **D9**.
 
-- [ ] **1.1 [Test First] Contract tests: Deep archive exclusion & changeset role**
+- [x] **1.1 [Test First] Contract tests: Deep archive exclusion & changeset role**
   - **File**: [`contract.test.ts`](file:///D:/Users/lucas/Documents/GitHub/cogNNitive-stable-element-identity/iNNfo/packages/innfo-core/tests/naming/contract.test.ts)
   - **Description**: Add unit tests in `innfo-core` testing deep archive exclusion and changeset role classification.
   - **Tests to Author**:
@@ -52,7 +52,7 @@ Each task adheres to a strict Test-Driven Development (TDD) cycle:
     - Verify `isModelCandidate` returns `false` for files classified as `'changeset'` role or with `parentSpecName: 'changes'`.
   - **Traceability**: [`changeset-document-model/spec.md`](file:///D:/Users/lucas/Documents/GitHub/cogNNitive-stable-element-identity/openspec/changes/2026-10-07-changeset-apply-and-versioning/specs/changeset-document-model/spec.md#L36-L51), [`knowledge-version-and-snapshot/spec.md`](file:///D:/Users/lucas/Documents/GitHub/cogNNitive-stable-element-identity/openspec/changes/2026-10-07-changeset-apply-and-versioning/specs/knowledge-version-and-snapshot/spec.md#L62-L83)
 
-- [ ] **1.2 [Implement] Update `contract.ts`: `Role`, `NON_KNOWLEDGE_BLUEPRINT_RE`, `roleOf`, and deep `archive` exclusion**
+- [x] **1.2 [Implement] Update `contract.ts`: `Role`, `NON_KNOWLEDGE_BLUEPRINT_RE`, `roleOf`, and deep `archive` exclusion**
   - **File**: [`contract.ts`](file:///D:/Users/lucas/Documents/GitHub/cogNNitive-stable-element-identity/iNNfo/packages/innfo-core/src/naming/contract.ts)
   - **Description**:
     - Add `'changeset'` to the `Role` union type.
@@ -68,7 +68,7 @@ Each task adheres to a strict Test-Driven Development (TDD) cycle:
       ```
   - **Traceability**: Proposal Section 1, Backlog **D7**, **D9**.
 
-- [ ] **1.3 [Verify & Refactor] Run contract tests**
+- [x] **1.3 [Verify & Refactor] Run contract tests**
   - **Command**: `npm --workspace=@cognnitive/innfo-core test -- tests/naming/contract.test.ts`
   - **Description**: Confirm all new assertions pass and existing naming invariant tests remain fully green.
 
@@ -78,7 +78,7 @@ Each task adheres to a strict Test-Driven Development (TDD) cycle:
 
 **Goal**: Author normative Level-2 blueprint specification for changesets and embed it into the offline canonical template registry per decision **D7**.
 
-- [ ] **2.1 [Test First] Canonical blueprint resolution for `changes`**
+- [x] **2.1 [Test First] Canonical blueprint resolution for `changes`**
   - **File**: [`canonical-registry.test.ts`](file:///D:/Users/lucas/Documents/GitHub/cogNNitive-stable-element-identity/iNNfo/packages/innfo-core/tests/canonical-registry.test.ts) (or create if not existing)
   - **Description**: Author tests verifying:
     - `findCanonicalBlueprint('changes')` returns the registered canonical blueprint with name `'changes'`.
@@ -87,7 +87,7 @@ Each task adheres to a strict Test-Driven Development (TDD) cycle:
     - Resolving the embedded specification content via `resolveBlueprintSchema` yields valid concepts (`Change`) and fields (`op`, `target`, `from`, `to`, `concept`, `name`, `slug`, `fields`, `author`, `notes`, `status`, `resolution`, `resolved_slug`).
   - **Traceability**: [`changeset-document-model/spec.md`](file:///D:/Users/lucas/Documents/GitHub/cogNNitive-stable-element-identity/openspec/changes/2026-10-07-changeset-apply-and-versioning/specs/changeset-document-model/spec.md#L9-L34)
 
-- [ ] **2.2 [Implement] Author normative Level-2 blueprint `iNNfo/specs/bluepriNNts/changes/spec_NN.md`**
+- [x] **2.2 [Implement] Author normative Level-2 blueprint `iNNfo/specs/bluepriNNts/changes/spec_NN.md`**
   - **File**: `iNNfo/specs/bluepriNNts/changes/spec_NN.md`
   - **Description**: Create normative Level-2 blueprint conforming to `iNNfo_V_0-4-0_NN.md`:
     - Frontmatter: `spec_version: "V_0-4-0"`, `level: 2`, `parent_spec: { name: "iNNfo_V_0-4-0", url: "..." }`, `blueprint_name: "changes"`, `blueprint_version: "0.1.0"`.
@@ -109,12 +109,12 @@ Each task adheres to a strict Test-Driven Development (TDD) cycle:
     - Body prose: Required Level-2 sections (`Philosophy`, `Objectives`, `Specification`, `Template`, `Examples`).
   - **Traceability**: Design Document Section 4.3, Proposal Section 2.
 
-- [ ] **2.3 [Implement] Register `changes` in `canonical-registry.ts`**
+- [x] **2.3 [Implement] Register `changes` in `canonical-registry.ts`**
   - **File**: [`canonical-registry.ts`](file:///D:/Users/lucas/Documents/GitHub/cogNNitive-stable-element-identity/iNNfo/packages/innfo-core/src/schema/canonical-registry.ts)
   - **Description**: Embed `CHANGES_SPEC_CONTENT` matching `spec_NN.md` and add the `changes` record to `CANONICAL_BLUEPRINTS` map with aliases (`changes`, `changes_spec_NN`, `changes_v_0-1-0`, `changes_v_0-1-0_nn`, `specs/bluepriNNts/changes/spec_NN.md`).
   - **Traceability**: Design Document Section 6.1.
 
-- [ ] **2.4 [Verify & Refactor] Verify canonical registry resolution**
+- [x] **2.4 [Verify & Refactor] Verify canonical registry resolution**
   - **Command**: `npm --workspace=@cognnitive/innfo-core test -- tests/canonical-registry.test.ts`
   - **Description**: Ensure offline resolution passes and schema compiler creates valid `BlueprintSchema` without filesystem or network access.
 
@@ -124,7 +124,7 @@ Each task adheres to a strict Test-Driven Development (TDD) cycle:
 
 **Goal**: Build the normative changeset document model, cryptographic proposal hasher, Markdown parser/serializer, and single-writer lock manager.
 
-- [ ] **3.1 [Data Models & Types] Implement TypeScript interfaces in `types.ts`**
+- [x] **3.1 [Data Models & Types] Implement TypeScript interfaces in `types.ts`**
   - **File**: `iNNfo/packages/innfo-core/src/changeset/types.ts`
   - **Description**: Define:
     - `ChangeOp` union: `'update_field' | 'add_element' | 'remove_element' | 'rename_element' | 'rename_concept' | 'update_matrix_cell' | 'comment'`
@@ -138,7 +138,7 @@ Each task adheres to a strict Test-Driven Development (TDD) cycle:
     - `LockHandle` interface: `lockPath: string`, `payload: LockPayload`, `release: () => Promise<void>`
   - **Traceability**: Design Document Section 4.1 & 4.2.
 
-- [ ] **3.2 [Test First] Proposal hasher unit tests (`tests/changeset/hasher.test.ts`)**
+- [x] **3.2 [Test First] Proposal hasher unit tests (`tests/changeset/hasher.test.ts`)**
   - **File**: `iNNfo/packages/innfo-core/tests/changeset/hasher.test.ts`
   - **Description**: Author unit tests verifying:
     - `computeProposalSha` produces deterministic 64-character lowercase SHA-256 hex string over proposed changes.
@@ -147,12 +147,12 @@ Each task adheres to a strict Test-Driven Development (TDD) cycle:
     - `verifyProposalSha` returns `true` when hash matches, `false` when proposed content is altered.
   - **Traceability**: [`changeset-document-model/spec.md`](file:///D:/Users/lucas/Documents/GitHub/cogNNitive-stable-element-identity/openspec/changes/2026-10-07-changeset-apply-and-versioning/specs/changeset-document-model/spec.md#L84-L107)
 
-- [ ] **3.3 [Implement] Deterministic proposal hasher (`hasher.ts`)**
+- [x] **3.3 [Implement] Deterministic proposal hasher (`hasher.ts`)**
   - **File**: `iNNfo/packages/innfo-core/src/changeset/hasher.ts`
   - **Description**: Implement `computeProposalSha(changes: ChangeItem[]): string` using Node `crypto` (`createHash('sha256')`). Canonicalize object keys and values of proposed attributes (`id`, `op`, `target`, `from`, `to`, `concept`, `name`, `slug`, `fields`, `author`, `notes`). Implement `verifyProposalSha(doc: ChangesetDocument): boolean`.
   - **Traceability**: Proposal Section 3, Design Document Section 6.1.
 
-- [ ] **3.4 [Test First] Parser and serializer unit tests (`tests/changeset/parser.test.ts`)**
+- [x] **3.4 [Test First] Parser and serializer unit tests (`tests/changeset/parser.test.ts`)**
   - **File**: `iNNfo/packages/innfo-core/tests/changeset/parser.test.ts`
   - **Description**: Author unit tests verifying:
     - Parses `_changes_NN.md` document frontmatter and multiple `## NN Change: <id>` element blocks.
@@ -162,7 +162,7 @@ Each task adheres to a strict Test-Driven Development (TDD) cycle:
     - Round-trip fidelity: parsing $\to$ serializing $\to$ parsing retains all data.
   - **Traceability**: [`changeset-document-model/spec.md`](file:///D:/Users/lucas/Documents/GitHub/cogNNitive-stable-element-identity/openspec/changes/2026-10-07-changeset-apply-and-versioning/specs/changeset-document-model/spec.md#L53-L82, #L109-L118)
 
-- [ ] **3.5 [Implement] Changeset parser (`parser.ts`)**
+- [x] **3.5 [Implement] Changeset parser (`parser.ts`)**
   - **File**: `iNNfo/packages/innfo-core/src/changeset/parser.ts`
   - **Description**: Implement `parseChangeset(rawContent: string): ChangesetDocument`:
     - Parse frontmatter with YAML parser.
@@ -170,7 +170,7 @@ Each task adheres to a strict Test-Driven Development (TDD) cycle:
     - Validate required fields according to `op`.
   - **Traceability**: Design Document Section 6.1.
 
-- [ ] **3.6 [Implement] Changeset serializer (`serializer.ts`)**
+- [x] **3.6 [Implement] Changeset serializer (`serializer.ts`)**
   - **File**: `iNNfo/packages/innfo-core/src/changeset/serializer.ts`
   - **Description**: Implement `serializeChangeset(doc: ChangesetDocument): string`:
     - Format frontmatter block (`yaml.stringify`), preserving `status`, `proposal_sha`, `applied_at`, `models`.
@@ -178,7 +178,7 @@ Each task adheres to a strict Test-Driven Development (TDD) cycle:
     - Emit each `## NN Change: <id>` block with all proposed properties followed by resolution annotations (`status::`, `resolution::`, `resolved_slug::`).
   - **Traceability**: Design Document Section 6.1.
 
-- [ ] **3.7 [Test First] Single-writer lock manager unit tests (`tests/changeset/lock.test.ts`)**
+- [x] **3.7 [Test First] Single-writer lock manager unit tests (`tests/changeset/lock.test.ts`)**
   - **File**: `iNNfo/packages/innfo-core/tests/changeset/lock.test.ts`
   - **Description**: Author unit tests for filesystem mutex at `changes/.lock`:
     - Acquires lock via exclusive file creation (`wx`) writing PID, timestamp, changeset identifier.
@@ -188,12 +188,12 @@ Each task adheres to a strict Test-Driven Development (TDD) cycle:
     - Failure inside a transaction guarantees lock release when executed in `finally`.
   - **Traceability**: [`changeset-apply-engine/spec.md`](file:///D:/Users/lucas/Documents/GitHub/cogNNitive-stable-element-identity/openspec/changes/2026-10-07-changeset-apply-and-versioning/specs/changeset-apply-engine/spec.md#L9-L36)
 
-- [ ] **3.8 [Implement] Single-writer lock manager (`lock.ts`)**
+- [x] **3.8 [Implement] Single-writer lock manager (`lock.ts`)**
   - **File**: `iNNfo/packages/innfo-core/src/changeset/lock.ts`
   - **Description**: Implement `acquireLock(rootDir: string, changesetName: string, timeoutMs?: number): Promise<LockHandle>` and `releaseLock(handle: LockHandle): Promise<void>`. Implement stale lock recovery (>60s) and clean unlinking.
   - **Traceability**: Design Document Section 3 & 6.1.
 
-- [ ] **3.9 [Module Exports & Verify] Changeset barrel export (`index.ts`) and `innfo-core` integration**
+- [x] **3.9 [Module Exports & Verify] Changeset barrel export (`index.ts`) and `innfo-core` integration**
   - **Files**: `iNNfo/packages/innfo-core/src/changeset/index.ts`, [`innfo-core/src/index.ts`](file:///D:/Users/lucas/Documents/GitHub/cogNNitive-stable-element-identity/iNNfo/packages/innfo-core/src/index.ts)
   - **Description**: Export all types, parser, serializer, hasher, and lock manager from `changeset/index.ts`, re-export them in root `src/index.ts`. Run `npm --workspace=@cognnitive/innfo-core test -- tests/changeset/` to verify all changeset module tests pass cleanly.
 
@@ -203,7 +203,7 @@ Each task adheres to a strict Test-Driven Development (TDD) cycle:
 
 **Goal**: Extend core mutation engine with `update_matrix_cell`, slug-aware target resolution, and field citation rewriting helper per decision **D20**.
 
-- [ ] **4.1 [Test First] Matrix cell mutation & slug target tests**
+- [x] **4.1 [Test First] Matrix cell mutation & slug target tests**
   - **File**: [`tests/mutate.test.ts`](file:///D:/Users/lucas/Documents/GitHub/cogNNitive-stable-element-identity/iNNfo/packages/innfo-core/tests/mutate.test.ts) (or create/update)
   - **Description**: Author unit tests verifying:
     - `update_matrix_cell` updates an existing cell's value in a matrix by row and column identifiers.
@@ -212,7 +212,7 @@ Each task adheres to a strict Test-Driven Development (TDD) cycle:
     - Supports row/col lookup by slug or name.
   - **Traceability**: [`changeset-document-model/spec.md`](file:///D:/Users/lucas/Documents/GitHub/cogNNitive-stable-element-identity/openspec/changes/2026-10-07-changeset-apply-and-versioning/specs/changeset-document-model/spec.md#L76-L82)
 
-- [ ] **4.2 [Implement] Add `update_matrix_cell` handler in `mutate.ts`**
+- [x] **4.2 [Implement] Add `update_matrix_cell` handler in `mutate.ts`**
   - **File**: [`mutate.ts`](file:///D:/Users/lucas/Documents/GitHub/cogNNitive-stable-element-identity/iNNfo/packages/innfo-core/src/mutate.ts)
   - **Description**:
     - Implement `updateMatrixCell(model, args, schema): MutationResult` handling `{ matrixName?, matrixSlug?, row, col, value }`.
@@ -221,19 +221,19 @@ Each task adheres to a strict Test-Driven Development (TDD) cycle:
     - Register `update_matrix_cell` in `MUTATION_HANDLERS`.
   - **Traceability**: Proposal Section 4, Design Document Section 6.1.
 
-- [ ] **4.3 [Implement] Support slug-aware targeting and D5 address resolution in mutation handlers**
+- [x] **4.3 [Implement] Support slug-aware targeting and D5 address resolution in mutation handlers**
   - **File**: [`mutate.ts`](file:///D:/Users/lucas/Documents/GitHub/cogNNitive-stable-element-identity/iNNfo/packages/innfo-core/src/mutate.ts)
   - **Description**: Enhance element and matrix lookup helpers to look up by explicit `slug` property as primary/fallback when matching target elements.
   - **Traceability**: Design Document Section 6.1.
 
-- [ ] **4.4 [Test First & Implement] Field citation rewriting helper per D20**
+- [x] **4.4 [Test First & Implement] Field citation rewriting helper per D20**
   - **Files**: [`tests/mutate.test.ts`](file:///D:/Users/lucas/Documents/GitHub/cogNNitive-stable-element-identity/iNNfo/packages/innfo-core/tests/mutate.test.ts), [`mutate.ts`](file:///D:/Users/lucas/Documents/GitHub/cogNNitive-stable-element-identity/iNNfo/packages/innfo-core/src/mutate.ts) (or `sourceRef.ts`)
   - **Description**:
     - Author test asserting `rewriteFieldCitation(element, fieldName, citationRef)` updates the field-level citation to `changes/<changeset_file>@## NN Change: <id>`, leaves untouched fields on the element unchanged, and records the reference in element sources.
     - Implement and export `rewriteFieldCitation` helper function.
   - **Traceability**: [`field-citation-provenance/spec.md`](file:///D:/Users/lucas/Documents/GitHub/cogNNitive-stable-element-identity/openspec/changes/2026-10-07-changeset-apply-and-versioning/specs/field-citation-provenance/spec.md#L9-L28), Backlog **D20**.
 
-- [ ] **4.5 [Verify & Refactor] Run `mutate.test.ts` suite**
+- [x] **4.5 [Verify & Refactor] Run `mutate.test.ts` suite**
   - **Command**: `npm --workspace=@cognnitive/innfo-core test -- tests/mutate.test.ts`
   - **Description**: Ensure all mutation handler tests pass.
 

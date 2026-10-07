@@ -9,7 +9,7 @@ import {
 } from './schema/index.js'
 import { slugify } from './parser/slug.js'
 import { RESERVED_CONCEPT_NAMES } from './validator/constants.js'
-import { levenshteinDistance, slugifyHeading } from './sourceRef.js'
+import { levenshteinDistance, slugifyHeading, splitSourceFieldValue } from './sourceRef.js'
 
 export interface MutationResult {
   success: boolean
@@ -174,6 +174,7 @@ const MUTATION_HANDLERS: Record<string, MutationHandler> = {
   remove_element: (model, args) => removeElement(model, args),
   rename_concept: (model, args) => renameConcept(model, args),
   rename_element: (model, args, schema) => renameElement(model, args, schema),
+  update_matrix_cell: (model, args) => updateMatrixCell(model, args),
   generate_index: (model, args) => generateIndex(model, args),
   freeze_slugs: (model) => freeze_slugs(model),
 }
@@ -425,27 +426,163 @@ function addElement(
   return { success: true }
 }
 
+function matchesElement(e: ElementNode, target: string): boolean {
+  const tLower = target.toLowerCase()
+  if (e.name.toLowerCase() === tLower) return true
+  if (e.slug && e.slug.toLowerCase() === tLower) return true
+  if (slugify(e.name).toLowerCase() === tLower) return true
+  if (slugifyHeading(e.name).toLowerCase() === tLower) return true
+  return false
+}
+
 /** Edits a single field on an already-existing element (overwrite semantics). */
 function updateField(model: ParsedKnowledge, args: Record<string, unknown>): MutationResult {
-  const req = requireArgs(args, ['conceptName', 'elementName', 'fieldName'])
-  if (!req.ok) return req.result
-  const { conceptName, elementName, fieldName } = req.values
-  if (args.value === undefined) {
+  let elementName = (args.elementName as string) || (args.elementSlug as string) || (args.slug as string) || ''
+  let fieldName = (args.fieldName as string) || ''
+  let conceptName = (args.conceptName as string) || ''
+  let val = args.value !== undefined ? args.value : args.to
+
+  if (args.target && typeof args.target === 'string') {
+    let clean = args.target.trim()
+    if (clean.includes('@')) {
+      clean = clean.slice(clean.indexOf('@') + 1)
+    }
+    const parts = clean.split('&')
+    if (parts.length >= 2) {
+      elementName = parts[0]
+      fieldName = parts[1]
+    } else if (parts.length === 1 && !elementName) {
+      elementName = parts[0]
+    }
+  }
+
+  if (!elementName || !fieldName) {
+    const missing: string[] = []
+    if (!elementName) missing.push('elementName')
+    if (!fieldName) missing.push('fieldName')
+    return {
+      success: false,
+      errors: [{ path: '', message: `${missing.join(', ')} ${missing.length === 1 ? 'is' : 'are'} required` }],
+    }
+  }
+
+  if (val === undefined) {
     return { success: false, errors: [{ path: '', message: 'value is required' }] }
   }
 
-  const existingElements = model.elements.get(conceptName)
-  if (!existingElements) {
-    return { success: false, errors: [{ path: '', message: `Concept "${conceptName}" not found` }] }
+  let foundElement: ElementNode | undefined
+  let foundConcept: string | undefined
+
+  if (conceptName) {
+    const existingElements = model.elements.get(conceptName)
+    if (!existingElements) {
+      return { success: false, errors: [{ path: '', message: `Concept "${conceptName}" not found` }] }
+    }
+    foundElement = existingElements.find((e) => matchesElement(e, elementName))
+    foundConcept = conceptName
+  } else {
+    for (const [cName, elements] of model.elements.entries()) {
+      const el = elements.find((e) => matchesElement(e, elementName))
+      if (el) {
+        foundElement = el
+        foundConcept = cName
+        break
+      }
+    }
   }
 
-  const element = existingElements.find((e) => e.name.toLowerCase() === elementName.toLowerCase())
-  if (!element) {
-    return { success: false, errors: [{ path: '', message: `Element "${elementName}" not found in concept "${conceptName}"` }] }
+  if (!foundElement || !foundConcept) {
+    return {
+      success: false,
+      errors: [
+        {
+          path: '',
+          message: `Element "${elementName}" not found${conceptName ? ` in concept "${conceptName}"` : ''}`,
+        },
+      ],
+    }
   }
 
-  element.fields[fieldName] = args.value
-  model.elements.set(conceptName, existingElements)
+  foundElement.fields[fieldName] = val
+  if (foundElement.rawFields && fieldName in foundElement.rawFields) {
+    delete foundElement.rawFields[fieldName]
+  }
+  return { success: true }
+}
+
+function updateMatrixCell(
+  model: ParsedKnowledge,
+  args: Record<string, unknown>,
+): MutationResult {
+  let matrixName = (args.matrixName as string) || ''
+  let matrixSlug = (args.matrixSlug as string) || ''
+  let row = (args.row as string) || ''
+  let col = (args.col as string) || ''
+  let val = args.value !== undefined ? String(args.value) : (args.to !== undefined ? String(args.to) : undefined)
+
+  if (args.target && typeof args.target === 'string') {
+    let clean = args.target.trim()
+    if (clean.includes('@')) {
+      clean = clean.slice(clean.indexOf('@') + 1)
+    }
+    const parts = clean.split('&')
+    if (parts.length >= 3) {
+      matrixSlug = parts[0]
+      row = parts[1]
+      col = parts[2]
+    }
+  }
+
+  if (!row || !col) {
+    return { success: false, errors: [{ path: '', message: 'row and col are required' }] }
+  }
+  if (val === undefined) {
+    return { success: false, errors: [{ path: '', message: 'value is required' }] }
+  }
+
+  const matchesMatrix = (name: string, candidateSlug?: string): boolean => {
+    if (matrixName && name.toLowerCase() === matrixName.toLowerCase()) return true
+    if (matrixSlug) {
+      if (candidateSlug && candidateSlug.toLowerCase() === matrixSlug.toLowerCase()) return true
+      if (slugify(name).toLowerCase() === matrixSlug.toLowerCase()) return true
+      if (slugifyHeading(name).toLowerCase() === matrixSlug.toLowerCase()) return true
+    }
+    if (matrixName) {
+      if (slugify(name).toLowerCase() === slugify(matrixName).toLowerCase()) return true
+      if (slugifyHeading(name).toLowerCase() === slugifyHeading(matrixName).toLowerCase()) return true
+    }
+    return false
+  }
+
+  let matrix = model.matrices.find((m) => matchesMatrix(m.name, (m as any).slug))
+
+  if (!matrix && model.frontmatter?.matrices) {
+    const decl = model.frontmatter.matrices.find((d) => matchesMatrix(d.name, d.slug))
+    if (decl) {
+      matrix = model.matrices.find((m) => m.name.toLowerCase() === decl.name.toLowerCase())
+    }
+  }
+
+  if (!matrix) {
+    return {
+      success: false,
+      errors: [{ path: '', message: `Matrix "${matrixName || matrixSlug}" not found` }],
+    }
+  }
+
+  const matchesCoord = (actual: string, requested: string): boolean => {
+    const a = actual.toLowerCase()
+    const r = requested.toLowerCase()
+    return a === r || slugify(a) === slugify(r) || slugifyHeading(a) === slugifyHeading(r)
+  }
+
+  const cell = matrix.cells.find((c) => matchesCoord(c.row, row) && matchesCoord(c.col, col))
+  if (cell) {
+    cell.value = val
+  } else {
+    matrix.cells.push({ row, col, value: val })
+  }
+
   return { success: true }
 }
 
@@ -455,7 +592,12 @@ function removeElement(model: ParsedKnowledge, args: Record<string, unknown>): M
   const { conceptName, elementName } = req.values
 
   const existingElements = model.elements.get(conceptName) ?? []
-  const filtered = existingElements.filter((e) => e.name.toLowerCase() !== elementName.toLowerCase())
+  const filtered = existingElements.filter(
+    (e) =>
+      e.name.toLowerCase() !== elementName.toLowerCase() &&
+      (!e.slug || e.slug.toLowerCase() !== elementName.toLowerCase()) &&
+      slugifyHeading(e.name).toLowerCase() !== elementName.toLowerCase(),
+  )
   if (filtered.length === existingElements.length) {
     return { success: false, errors: [{ path: '', message: `Element "${elementName}" not found in concept "${conceptName}"` }] }
   }
@@ -630,7 +772,7 @@ function renameElement(
   if (!req.ok) return req.result
   const { conceptName, elementName, newName } = req.values
 
-  const lowerOld = elementName.toLowerCase()
+  let lowerOld = elementName.toLowerCase()
   const lowerNew = newName.toLowerCase()
   if (lowerOld === lowerNew) return { success: false, errors: [{ path: '', message: 'newName must differ from elementName' }] }
 
@@ -638,8 +780,13 @@ function renameElement(
   const existingElements = model.elements.get(conceptName)
   if (!existingElements) return { success: false, errors: [{ path: '', message: `Concept "${conceptName}" not found` }] }
 
+  const element = existingElements.find((e) => matchesElement(e, elementName))
+  if (!element) return { success: false, errors: [{ path: '', message: `Element "${elementName}" not found in concept "${conceptName}"` }] }
+
+  const oldDisplayName = element.name
+  lowerOld = oldDisplayName.toLowerCase()
   const duplicateSibling = existingElements.find(
-    (e) => e.name.toLowerCase() === lowerNew && e.name.toLowerCase() !== lowerOld,
+    (e) => e !== element && e.name.toLowerCase() === lowerNew,
   )
   if (duplicateSibling) {
     return {
@@ -648,16 +795,13 @@ function renameElement(
     }
   }
 
-  const element = existingElements.find((e) => e.name.toLowerCase() === lowerOld)
-  if (!element) return { success: false, errors: [{ path: '', message: `Element "${elementName}" not found in concept "${conceptName}"` }] }
-
   element.name = newName
   // element.slug remains untouched and immutable (D1)
 
   // Update nodeMarkers key
-  if (model.nodeMarkers[elementName] !== undefined) {
-    model.nodeMarkers[newName] = model.nodeMarkers[elementName]
-    delete model.nodeMarkers[elementName]
+  if (model.nodeMarkers[oldDisplayName] !== undefined) {
+    model.nodeMarkers[newName] = model.nodeMarkers[oldDisplayName]
+    delete model.nodeMarkers[oldDisplayName]
   }
 
   // Update taxonomy entries (R-IE-03)
@@ -787,3 +931,71 @@ function generateIndex(model: ParsedKnowledge, args: Record<string, unknown>): M
   model.taxonomy = finalEdges
   return { success: true }
 }
+
+/**
+ * Rewrites the field-level citation for a specific touched field on an element per D20.
+ * Updates the companion citation field (e.g. `<fieldName>_source` or `<fieldName>_sources`),
+ * preserves untouched fields on the element, and records the citation in element sources.
+ */
+export function rewriteFieldCitation(
+  element: ElementNode,
+  fieldName: string,
+  citationRef: string,
+): void {
+  if (!element.fields) {
+    element.fields = {}
+  }
+
+  const isSourcesField = fieldName.toLowerCase() === 'sources' || fieldName.toLowerCase() === 'source'
+  let targetCitationField: string
+  let oldCitation: string | undefined
+
+  if (isSourcesField) {
+    targetCitationField = fieldName
+  } else if (element.fields[`${fieldName}_sources`] !== undefined) {
+    targetCitationField = `${fieldName}_sources`
+    oldCitation = typeof element.fields[targetCitationField] === 'string'
+      ? (element.fields[targetCitationField] as string)
+      : Array.isArray(element.fields[targetCitationField])
+        ? (element.fields[targetCitationField] as string[])[0]
+        : undefined
+  } else if (element.fields[`${fieldName}_source`] !== undefined) {
+    targetCitationField = `${fieldName}_source`
+    oldCitation = typeof element.fields[targetCitationField] === 'string'
+      ? (element.fields[targetCitationField] as string)
+      : undefined
+  } else {
+    targetCitationField = `${fieldName}_source`
+  }
+
+  if (Array.isArray(element.fields[targetCitationField])) {
+    element.fields[targetCitationField] = [citationRef]
+  } else {
+    element.fields[targetCitationField] = citationRef
+  }
+
+  const sourcesKey = element.fields['source'] !== undefined && element.fields['sources'] === undefined
+    ? 'source'
+    : 'sources'
+
+  const existingSources = splitSourceFieldValue(element.fields[sourcesKey] ?? [])
+  let newSources: string[]
+
+  if (existingSources.length === 0) {
+    newSources = [citationRef]
+  } else if (oldCitation && existingSources.includes(oldCitation)) {
+    newSources = existingSources.map((s) => (s === oldCitation ? citationRef : s))
+  } else if (!existingSources.includes(citationRef)) {
+    newSources = [...existingSources, citationRef]
+  } else {
+    newSources = existingSources
+  }
+
+  element.fields[sourcesKey] = newSources
+
+  if (element.rawFields) {
+    delete element.rawFields[targetCitationField]
+    delete element.rawFields[sourcesKey]
+  }
+}
+

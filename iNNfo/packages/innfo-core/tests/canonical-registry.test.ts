@@ -204,5 +204,47 @@ describe('Canonical Template Registry & Offline Fallback', () => {
       )
     }
   })
+
+  it('resolves canonical blueprint for changes and compiles valid schema', () => {
+    const changesBp = findCanonicalBlueprint('changes')
+    expect(changesBp).not.toBeNull()
+    expect(changesBp?.name).toBe('changes')
+
+    expect(findCanonicalBlueprint('changes_V_0-1-0_NN.md')?.name).toBe('changes')
+    expect(findCanonicalBlueprint('changes_spec_NN')?.name).toBe('changes')
+    expect(findCanonicalBlueprint('changes_v_0-1-0')?.name).toBe('changes')
+    expect(findCanonicalBlueprint('specs/bluepriNNts/changes/spec_NN.md')?.name).toBe('changes')
+
+    const content = getCanonicalSpecContent('changes')
+    expect(content).not.toBeNull()
+    expect(content).toContain('blueprint_name: "changes"')
+    const changesDisk = readFileSync(join(specsRoot, 'bluepriNNts/changes/spec_NN.md'), 'utf-8')
+    expect(content).toBe(changesDisk)
+
+    const resolved = resolveBlueprintSchema(content!, () => null)
+    expect(resolved.schema.concepts.map((c) => c.name)).toContain('Change')
+
+    const changeConcept = resolved.schema.concepts.find((c) => c.name === 'Change')
+    expect(changeConcept).toBeDefined()
+    const fieldNames = changeConcept?.fields.map((f) => f.name) ?? []
+    expect(fieldNames).toEqual(
+      expect.arrayContaining([
+        'op',
+        'target',
+        'from',
+        'to',
+        'concept',
+        'name',
+        'slug',
+        'fields',
+        'author',
+        'notes',
+        'status',
+        'resolution',
+        'resolved_slug',
+      ]),
+    )
+  })
 })
+
 
