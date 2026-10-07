@@ -200,38 +200,13 @@ export async function initKnowledge(
     body = body ? notice + '\n\n' + body : notice
   }
 
-  // Version-aware frontmatter (model-scaffold-robustness): infer the version
-  // from the resolved parent template's own `spec_version` or `blueprint_version`. An explicit
-  // version wins only when there is nothing to contradict it (parent
-  // unresolved, or exact match); when both exist and differ the scaffold
-  // refuses with VERSION_MISMATCH rather than emit a differing version.
+  // Version-aware frontmatter: decoupled knowledge_version per D9.
+  // Explicit knowledge_version is used when provided, otherwise falls back to inferred
+  // blueprint version or default 'V_0-1-0'. No VERSION_MISMATCH rejection is enforced.
   const inferredVersion =
     template?.frontmatter && typeof (template.frontmatter.blueprint_version ?? template.frontmatter.spec_version) === 'string'
       ? String(template.frontmatter.blueprint_version ?? template.frontmatter.spec_version)
       : null
-  if (
-    requestedVersion &&
-    inferredVersion &&
-    normalizeVersion(requestedVersion) !== normalizeVersion(inferredVersion)
-  ) {
-    const message =
-      `[VERSION_MISMATCH] Explicit version "${requestedVersion}" differs ` +
-      `from the resolved parent blueprint spec_version "${inferredVersion}". ` +
-      `Omit knowledge_version to inherit "${inferredVersion}".`
-    return {
-      success: false,
-      templateResolved,
-      scaffolded: false,
-      warnings,
-      validation: {
-        valid: false,
-        errors: [
-          { path: 'knowledge_version', message, code: 'VERSION_MISMATCH', severity: 'error' as const },
-        ],
-        warnings: [],
-      },
-    }
-  }
 
   const knowledgeVersion = requestedVersion || inferredVersion || 'V_0-1-0'
   const specVersion = 'V_0-4-0'
