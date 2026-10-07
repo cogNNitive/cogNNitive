@@ -155,7 +155,7 @@ export type {
 } from './workspace/integrity/report.js'
 export { listKnowledge, resolveKnowledgeVersion } from './helpers.js'
 export type { KnowledgeInfo } from './helpers.js'
-export { applyMutation, updateReferenceString, updateWikiLinks } from './mutate.js'
+export { applyMutation, freeze_slugs, updateReferenceString, updateWikiLinks } from './mutate.js'
 export type { MutationResult } from './mutate.js'
 export { buildAgentModificationBlock } from './agentModification.js'
 export type { AgentModificationContext } from './agentModification.js'

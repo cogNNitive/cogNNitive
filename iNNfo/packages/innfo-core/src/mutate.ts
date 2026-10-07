@@ -9,7 +9,7 @@ import {
 } from './schema/index.js'
 import { slugify } from './parser/slug.js'
 import { RESERVED_CONCEPT_NAMES } from './validator/constants.js'
-import { levenshteinDistance } from './sourceRef.js'
+import { levenshteinDistance, slugifyHeading } from './sourceRef.js'
 
 export interface MutationResult {
   success: boolean
@@ -129,6 +129,42 @@ type MutationHandler = (
   schema?: BlueprintSchema,
 ) => MutationResult
 
+export function freeze_slugs(model: ParsedKnowledge): MutationResult {
+  const existingSlugs = new Set<string>()
+  for (const [, elements] of model.elements.entries()) {
+    for (const el of elements) {
+      if (el.slugExplicit && el.slug) {
+        existingSlugs.add(el.slug.toLowerCase())
+      }
+    }
+  }
+  for (const [, elements] of model.elements.entries()) {
+    for (const el of elements) {
+      if (!el.slugExplicit) {
+        const baseSlug = el.slug || slugifyHeading(el.name)
+        let candidate = baseSlug
+        let counter = 1
+        while (existingSlugs.has(candidate.toLowerCase())) {
+          candidate = `${baseSlug}-${counter++}`
+        }
+        el.slug = candidate
+        el.slugExplicit = true
+        existingSlugs.add(candidate.toLowerCase())
+      }
+    }
+  }
+  return { success: true }
+}
+
+function modelHasUnfrozenElements(model: ParsedKnowledge): boolean {
+  for (const [, elements] of model.elements.entries()) {
+    for (const el of elements) {
+      if (!el.slugExplicit) return true
+    }
+  }
+  return false
+}
+
 const MUTATION_HANDLERS: Record<string, MutationHandler> = {
   add_concept: (model, args) => addConcept(model, args),
   add_field: (model, args) => addField(model, args),
@@ -139,6 +175,7 @@ const MUTATION_HANDLERS: Record<string, MutationHandler> = {
   rename_concept: (model, args) => renameConcept(model, args),
   rename_element: (model, args, schema) => renameElement(model, args, schema),
   generate_index: (model, args) => generateIndex(model, args),
+  freeze_slugs: (model) => freeze_slugs(model),
 }
 
 /**
@@ -173,6 +210,9 @@ function runMutation(
           },
         ],
       }
+    }
+    if (op !== 'freeze_slugs' && modelHasUnfrozenElements(model)) {
+      freeze_slugs(model)
     }
     return handler(model, args, schema)
   } catch (err) {
@@ -293,12 +333,27 @@ function addElement(
     }
   }
 
-  // Model-wide uniqueness check (R-IE-02)
-  const existingNames = getKnowledgeWideElementNames(model)
-  if (existingNames.has(elementName)) {
+  // Concept-scoped sibling uniqueness check (D3)
+  const existingElements = model.elements.get(conceptName) ?? []
+  if (existingElements.some((e) => e.name.toLowerCase() === elementName.toLowerCase())) {
     return {
       success: false,
-      errors: [{ path: '', message: `Element "${elementName}" already exists in this model — element names must be unique model-wide` }],
+      errors: [{ path: '', message: `Element "${elementName}" already exists in concept "${conceptName}"` }],
+    }
+  }
+
+  // Slug uniqueness check if requested
+  const requestedSlug = typeof args.slug === 'string' && args.slug.trim() ? args.slug.trim() : undefined
+  if (requestedSlug) {
+    for (const [, elements] of model.elements.entries()) {
+      for (const el of elements) {
+        if (el.slug?.toLowerCase() === requestedSlug.toLowerCase()) {
+          return {
+            success: false,
+            errors: [{ path: 'slug', message: `Slug "${requestedSlug}" already exists in this model — element slugs must be unique model-wide` }],
+          }
+        }
+      }
     }
   }
 
@@ -306,6 +361,7 @@ function addElement(
   const reservedArgsKeys = new Set([
     'conceptName',
     'elementName',
+    'slug',
     'description',
     'fields',
     'sources',
@@ -330,10 +386,28 @@ function addElement(
     fields['sources'] = args.sources
   }
 
-  const existingElements = model.elements.get(conceptName) ?? []
   if (existingElements.length > 0) {
     const prevLast = existingElements[existingElements.length - 1]
     prevLast.trailingBlankLine = true
+  }
+
+  let elementSlug: string
+  if (requestedSlug) {
+    elementSlug = requestedSlug
+  } else {
+    const existingSlugs = new Set<string>()
+    for (const [, elements] of model.elements.entries()) {
+      for (const el of elements) {
+        if (el.slug) existingSlugs.add(el.slug.toLowerCase())
+      }
+    }
+    const baseSlug = slugifyHeading(elementName)
+    let candidate = baseSlug
+    let counter = 1
+    while (existingSlugs.has(candidate.toLowerCase())) {
+      candidate = `${baseSlug}-${counter++}`
+    }
+    elementSlug = candidate
   }
 
   const newElement: ElementNode = {
@@ -342,6 +416,8 @@ function addElement(
     description: (args.description as string) ?? '',
     fields,
     markers: {},
+    slug: elementSlug,
+    slugExplicit: true,
     trailingBlankLine: true,
   }
   existingElements.push(newElement)
@@ -558,24 +634,25 @@ function renameElement(
   const lowerNew = newName.toLowerCase()
   if (lowerOld === lowerNew) return { success: false, errors: [{ path: '', message: 'newName must differ from elementName' }] }
 
-  // Model-wide uniqueness check (R-IE-02)
-  const existingNames = getKnowledgeWideElementNames(model)
-  existingNames.delete(elementName) // Remove current name for rename check
-  if (existingNames.has(newName)) {
-    return {
-      success: false,
-      errors: [{ path: '', message: `Element "${newName}" already exists in this model — element names must be unique model-wide` }],
-    }
-  }
-
+  // Concept-scoped sibling uniqueness check (D3)
   const existingElements = model.elements.get(conceptName)
   if (!existingElements) return { success: false, errors: [{ path: '', message: `Concept "${conceptName}" not found` }] }
+
+  const duplicateSibling = existingElements.find(
+    (e) => e.name.toLowerCase() === lowerNew && e.name.toLowerCase() !== lowerOld,
+  )
+  if (duplicateSibling) {
+    return {
+      success: false,
+      errors: [{ path: '', message: `Element "${newName}" already exists in concept "${conceptName}"` }],
+    }
+  }
 
   const element = existingElements.find((e) => e.name.toLowerCase() === lowerOld)
   if (!element) return { success: false, errors: [{ path: '', message: `Element "${elementName}" not found in concept "${conceptName}"` }] }
 
   element.name = newName
-  element.slug = undefined
+  // element.slug remains untouched and immutable (D1)
 
   // Update nodeMarkers key
   if (model.nodeMarkers[elementName] !== undefined) {

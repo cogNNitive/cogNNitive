@@ -1,6 +1,6 @@
-import type { Concept, ParsedKnowledge } from '../types/index.js'
+import type { Concept, ElementNode, ParsedKnowledge } from '../types/index.js'
 import { normalizeSeparators } from '../parser/slug.js'
-import { conceptsByElementName, IMPLICIT_REF_FIELDS } from './elementIndex.js'
+import { IMPLICIT_REF_FIELDS } from './elementIndex.js'
 import { matchesTargetBlueprint } from './blueprintMatching.js'
 
 export interface ReferenceDiagnostic {
@@ -25,48 +25,113 @@ export type SubmodelResolver = (
   referringPath?: string,
 ) => { exists: boolean; templateName?: string; templateUrl?: string } | null
 
-/** Collect all element names model-wide (lowercased for case-insensitive matching). */
-function collectElementNames(model: ParsedKnowledge): Set<string> {
-  const names = new Set<string>()
-  for (const [, elements] of model.elements.entries()) {
-    for (const el of elements) {
-      names.add(el.name.toLowerCase())
-    }
-  }
-  return names
+export interface ElementResolutionResult {
+  found: boolean
+  exact: boolean
+  ambiguous?: boolean
+  matchedName?: string
+  elements?: ElementNode[]
+  matchedBy?: 'slug' | 'name' | 'normalized'
 }
 
-/**
- * Map from separator-normalized + lowercased element name -> original element
- * name, used as a fallback lookup when an exact (case-insensitive) match
- * fails, to tolerate hyphen/dash typographic variants (Fix 3).
- */
-function collectNormalizedElementNames(model: ParsedKnowledge): Map<string, string> {
-  const names = new Map<string, string>()
-  for (const [, elements] of model.elements.entries()) {
-    for (const el of elements) {
-      const key = normalizeSeparators(el.name.toLowerCase())
-      if (!names.has(key)) names.set(key, el.name)
-    }
-  }
-  return names
+export interface ElementIndexes {
+  bySlug: Map<string, ElementNode[]>
+  byName: Map<string, ElementNode[]>
+  byNormName: Map<string, ElementNode[]>
 }
 
-/**
- * Resolves a reference value against the known element names. Returns the
- * exact-match result when found; otherwise falls back to a separator-
- * normalized match (hyphen vs en/em dash/minus) and flags it as inexact so
- * callers can emit a WARNING instead of treating it as a clean match.
- */
-function resolveElementName(
+export function buildElementIndexes(model: ParsedKnowledge): ElementIndexes {
+  const bySlug = new Map<string, ElementNode[]>()
+  const byName = new Map<string, ElementNode[]>()
+  const byNormName = new Map<string, ElementNode[]>()
+
+  for (const [, elements] of model.elements.entries()) {
+    for (const el of elements) {
+      if (el.slug) {
+        const lowerSlug = el.slug.toLowerCase()
+        const sList = bySlug.get(lowerSlug) ?? []
+        sList.push(el)
+        bySlug.set(lowerSlug, sList)
+      }
+      const lowerName = el.name.toLowerCase()
+      const nList = byName.get(lowerName) ?? []
+      nList.push(el)
+      byName.set(lowerName, nList)
+
+      const normName = normalizeSeparators(lowerName)
+      const nnList = byNormName.get(normName) ?? []
+      nnList.push(el)
+      byNormName.set(normName, nnList)
+    }
+  }
+
+  return { bySlug, byName, byNormName }
+}
+
+export function resolveReferenceTarget(
   value: string,
-  elementNames: Set<string>,
-  normalizedElementNames: Map<string, string>,
-): { found: boolean; exact: boolean; matchedName?: string } {
-  const lower = value.toLowerCase()
-  if (elementNames.has(lower)) return { found: true, exact: true }
-  const normalizedMatch = normalizedElementNames.get(normalizeSeparators(lower))
-  if (normalizedMatch) return { found: true, exact: false, matchedName: normalizedMatch }
+  indexes: ElementIndexes,
+): ElementResolutionResult {
+  const trimmed = value.trim()
+  const lower = trimmed.toLowerCase()
+
+  // 1. Exact slug match (D6)
+  const slugMatches = indexes.bySlug.get(lower)
+  if (slugMatches && slugMatches.length > 0) {
+    return {
+      found: true,
+      exact: true,
+      elements: slugMatches,
+      matchedName: slugMatches[0].name,
+      matchedBy: 'slug',
+    }
+  }
+
+  // legacy:stable-element-identity/lineage-reference-name-fallback
+  // legacy:lineage-reference-name-fallback
+  // 2. Exact display name match (legacy fallback)
+  const nameMatches = indexes.byName.get(lower)
+  if (nameMatches && nameMatches.length > 0) {
+    if (nameMatches.length > 1) {
+      return {
+        found: true,
+        exact: true,
+        ambiguous: true,
+        elements: nameMatches,
+        matchedBy: 'name',
+      }
+    }
+    return {
+      found: true,
+      exact: true,
+      elements: nameMatches,
+      matchedName: nameMatches[0].name,
+      matchedBy: 'name',
+    }
+  }
+
+  // 3. Separator-normalized display name match (legacy fallback)
+  const normKey = normalizeSeparators(lower)
+  const normMatches = indexes.byNormName.get(normKey)
+  if (normMatches && normMatches.length > 0) {
+    if (normMatches.length > 1) {
+      return {
+        found: true,
+        exact: false,
+        ambiguous: true,
+        elements: normMatches,
+        matchedBy: 'normalized',
+      }
+    }
+    return {
+      found: true,
+      exact: false,
+      elements: normMatches,
+      matchedName: normMatches[0].name,
+      matchedBy: 'normalized',
+    }
+  }
+
   return { found: false, exact: false }
 }
 
@@ -76,18 +141,24 @@ function resolveElementName(
  */
 export function validateReferences(model: ParsedKnowledge): ReferenceDiagnostic[] {
   const diagnostics: ReferenceDiagnostic[] = []
-  const elementNames = collectElementNames(model)
-  const normalizedElementNames = collectNormalizedElementNames(model)
+  const indexes = buildElementIndexes(model)
 
   for (const matrix of model.matrices) {
     for (const cell of matrix.cells) {
       if (cell.row) {
-        const resolved = resolveElementName(cell.row, elementNames, normalizedElementNames)
+        const resolved = resolveReferenceTarget(cell.row, indexes)
         if (!resolved.found) {
           diagnostics.push({
             path: `matrices.${matrix.name}.row`,
             message: `Dangling reference: matrix "${matrix.name}" row "${cell.row}" does not match any element name`,
             severity: 'error',
+          })
+        } else if (resolved.ambiguous) {
+          diagnostics.push({
+            path: `matrices.${matrix.name}.row`,
+            message: `Ambiguous element reference "${cell.row}" in matrix "${matrix.name}": matches multiple elements across concepts (${resolved.elements!.map((e) => `${e.type}/${e.name}`).join(', ')}). Use element slug or qualify reference.`,
+            severity: 'warning',
+            code: 'AMBIGUOUS_ELEMENT_NAME',
           })
         } else if (!resolved.exact) {
           diagnostics.push({
@@ -98,12 +169,19 @@ export function validateReferences(model: ParsedKnowledge): ReferenceDiagnostic[
         }
       }
       if (cell.col) {
-        const resolved = resolveElementName(cell.col, elementNames, normalizedElementNames)
+        const resolved = resolveReferenceTarget(cell.col, indexes)
         if (!resolved.found) {
           diagnostics.push({
             path: `matrices.${matrix.name}.col`,
             message: `Dangling reference: matrix "${matrix.name}" column "${cell.col}" does not match any element name`,
             severity: 'error',
+          })
+        } else if (resolved.ambiguous) {
+          diagnostics.push({
+            path: `matrices.${matrix.name}.col`,
+            message: `Ambiguous element reference "${cell.col}" in matrix "${matrix.name}": matches multiple elements across concepts (${resolved.elements!.map((e) => `${e.type}/${e.name}`).join(', ')}). Use element slug or qualify reference.`,
+            severity: 'warning',
+            code: 'AMBIGUOUS_ELEMENT_NAME',
           })
         } else if (!resolved.exact) {
           diagnostics.push({
@@ -134,8 +212,7 @@ export function validateElementFieldReferences(
   },
 ): ReferenceDiagnostic[] {
   const diagnostics: ReferenceDiagnostic[] = []
-  const elementNames = collectElementNames(model)
-  const conceptsByElement = conceptsByElementName(model)
+  const indexes = buildElementIndexes(model)
 
   for (const [conceptName, elements] of model.elements.entries()) {
     const conceptDef = templateConcepts.find(
@@ -224,7 +301,8 @@ export function validateElementFieldReferences(
             continue
           }
 
-          if (!elementNames.has(value.toLowerCase())) {
+          const resolved = resolveReferenceTarget(value, indexes)
+          if (!resolved.found) {
             diagnostics.push({
               path: `elements.${conceptName}.${el.name}.fields.${fieldDef?.name ?? fieldName}`,
               message: `Dangling reference: field "${fieldDef?.name ?? fieldName}" value "${rawValue}" does not match any element name`,
@@ -233,14 +311,24 @@ export function validateElementFieldReferences(
             continue
           }
 
+          if (resolved.ambiguous) {
+            diagnostics.push({
+              path: `elements.${conceptName}.${el.name}.fields.${fieldDef?.name ?? fieldName}`,
+              message: `Ambiguous element reference "${rawValue}": matches multiple elements across concepts (${resolved.elements!.map((e) => `${e.type}/${e.name}`).join(', ')}). Use element slug or qualify reference.`,
+              severity: 'warning',
+              code: 'AMBIGUOUS_ELEMENT_NAME',
+            })
+            continue
+          }
+
           if (fieldDef?.target_concepts && fieldDef.target_concepts.length > 0) {
-            const owningConcepts = conceptsByElement.get(value.toLowerCase()) ?? new Set<string>()
+            const owningConcepts = new Set(resolved.elements!.map((e) => e.type.toLowerCase()))
             const allowed = fieldDef.target_concepts.map((c) => c.toLowerCase())
-            const allowedMatch = [...owningConcepts].some((c) => allowed.includes(c.toLowerCase()))
+            const allowedMatch = [...owningConcepts].some((c) => allowed.includes(c))
             if (!allowedMatch) {
               diagnostics.push({
                 path: `elements.${conceptName}.${el.name}.fields.${fieldDef.name}`,
-                message: `Reference "${rawValue}" in field "${fieldDef.name}" resolves to element "${value}" but that element belongs to concept(s) "${[...owningConcepts].join(', ')}" which is not in target_concepts of the field`,
+                message: `Reference "${rawValue}" in field "${fieldDef.name}" resolves to element "${resolved.matchedName ?? value}" but that element belongs to concept(s) "${[...resolved.elements!.map((e) => e.type)].join(', ')}" which is not in target_concepts of the field`,
                 severity: 'error',
               })
             }

@@ -1,6 +1,6 @@
 import { readFile, writeFile, stat } from 'node:fs/promises'
 import { basename, join } from 'node:path'
-import { resolveBlueprintSchema, validateDocument } from '@cognnitive/innfo-core'
+import { resolveBlueprintSchema, validateDocument, slugify } from '@cognnitive/innfo-core'
 import type { SpecDocument, ValidationError } from '@cognnitive/innfo-core'
 import { resolveBlueprintWithCache, findKnowledgeFile, normalizeId } from './spec.js'
 import { normalizeVersion } from './resolver-node.js'
@@ -41,12 +41,16 @@ function scaffoldBodyFromSchema(schema: {
     lines.push(`# NN ${c.name}`)
     if (c.type === 'text') {
       if (listConcepts.length === 0) {
-        lines.push(`## NN ${c.name}: ${exampleFor(c.name)}`)
+        const ex = exampleFor(c.name)
+        lines.push(`## NN ${c.name}: ${ex}`)
+        lines.push(`slug:: ${slugify(ex)}`)
       }
       lines.push(`_Describe ${c.name} here._`, '')
       continue
     }
-    lines.push(`## NN ${c.name}: ${exampleFor(c.name)}`)
+    const ex = exampleFor(c.name)
+    lines.push(`## NN ${c.name}: ${ex}`)
+    lines.push(`slug:: ${slugify(ex)}`)
     for (const f of c.fields ?? []) {
       if (f.type === 'reference') {
         continue
@@ -89,6 +93,7 @@ export interface InitKnowledgeArgs {
   blueprint_name?: string
   title?: string
   knowledge_version?: string
+  model_slug?: string
 }
 
 export async function initKnowledge(
@@ -229,14 +234,16 @@ export async function initKnowledge(
   }
 
   const knowledgeVersion = requestedVersion || inferredVersion || 'V_0-1-0'
-  const specVersion = 'V_0-3-0'
+  const specVersion = 'V_0-4-0'
   const title = args.title || cleanId
+  const modelSlug = args.model_slug || slugify(cleanId)
 
   const esc = (s: string) => JSON.stringify(s)
   const frontmatter = [
     '---',
     `spec_version: ${esc(specVersion)}`,
-    'spec_url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-3-0_NN.md"',
+    'spec_url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-4-0_NN.md"',
+    `model_slug: ${esc(modelSlug)}`,
     'level: 3',
     'parent_spec:',
     `  name: ${esc(blueprintName)}`,

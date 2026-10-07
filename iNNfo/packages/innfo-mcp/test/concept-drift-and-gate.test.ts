@@ -6,8 +6,11 @@ import { validateKnowledge } from '../src/tools/validate.js'
 const rootDir = join(import.meta.dirname!, '..', 'temp-test-drift-and-gate')
 
 describe('Phase 2 Hard-Gate & Concept Drift Diagnostics (innfo-validation-resilience)', () => {
+  let oldCache: string | undefined
   beforeEach(async () => {
     vi.restoreAllMocks()
+    oldCache = process.env.INNFO_CACHE_DIR
+    process.env.INNFO_CACHE_DIR = join(rootDir, '.cache')
     await rm(rootDir, { recursive: true, force: true })
     await mkdir(join(rootDir, 'models'), { recursive: true })
     await mkdir(join(rootDir, 'specs'), { recursive: true })
@@ -15,6 +18,11 @@ describe('Phase 2 Hard-Gate & Concept Drift Diagnostics (innfo-validation-resili
 
   afterEach(async () => {
     vi.restoreAllMocks()
+    if (oldCache !== undefined) {
+      process.env.INNFO_CACHE_DIR = oldCache
+    } else {
+      delete process.env.INNFO_CACHE_DIR
+    }
     await rm(rootDir, { recursive: true, force: true })
   })
 

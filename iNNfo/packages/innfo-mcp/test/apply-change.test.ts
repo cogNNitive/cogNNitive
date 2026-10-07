@@ -68,7 +68,10 @@ description:: See details in [[strategy_V_0-1-0_NN]].
 `
 
 describe('bump_version cascading references and pre-mutation validation', () => {
+  let oldCache: string | undefined
   beforeEach(async () => {
+    oldCache = process.env.INNFO_CACHE_DIR
+    process.env.INNFO_CACHE_DIR = join(rootDir, '.cache')
     await rm(rootDir, { recursive: true, force: true })
     await mkdir(join(rootDir, 'models'), { recursive: true })
     await writeFile(join(rootDir, 'models', 'strategy_V_0-1-0_NN.md'), STRATEGY_MODEL, 'utf-8')
@@ -77,6 +80,11 @@ describe('bump_version cascading references and pre-mutation validation', () => 
   })
 
   afterEach(async () => {
+    if (oldCache !== undefined) {
+      process.env.INNFO_CACHE_DIR = oldCache
+    } else {
+      delete process.env.INNFO_CACHE_DIR
+    }
     await rm(rootDir, { recursive: true, force: true })
   })
 

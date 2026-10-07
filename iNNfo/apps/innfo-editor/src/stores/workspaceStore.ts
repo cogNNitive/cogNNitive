@@ -1,9 +1,9 @@
 import { defineStore } from 'pinia'
-import { ref, markRaw } from 'vue'
+import { ref, markRaw, computed } from 'vue'
 import { useKnowledgeStore } from './knowledgeStore'
 import { useUiStore } from './uiStore'
 import { IndexedDbWorkspaceRepository } from '../repositories/IndexedDbWorkspaceRepository'
-import type { WorkspaceIntegrityReport } from '@cognnitive/innfo-core'
+import { roleOf, type WorkspaceIntegrityReport, type KnowledgeNode } from '@cognnitive/innfo-core'
 import { useUrlDocLoader } from '../composables/useUrlDocLoader'
 import { createWorkspaceIntegrityPorts } from '../services/workspaceIntegrityPorts'
 import {
@@ -18,6 +18,25 @@ import type { KnowledgeDriver } from '@cognnitive/innfo-core'
 import type { ActiveView } from './uiStore'
 
 export type { DirectoryHandleLike }
+
+export const READ_ONLY_KNOWLEDGE_ERROR =
+  'kNNowledge models are read-only in the Vue editor per architectural decision D18. Please use agent-assisted changesets.'
+
+export function isReadOnlyModelNode(node: KnowledgeNode | undefined): boolean {
+  if (!node) return false
+  const levelVal = node.fields?.level?.value ?? (node.localMetamodel as { level?: unknown } | undefined)?.level
+  if (levelVal === 1 || levelVal === '1' || levelVal === 2 || levelVal === '2') {
+    return false
+  }
+  if (levelVal === 3 || levelVal === '3') {
+    return true
+  }
+  if (node.source?.path) {
+    const role = roleOf({ path: node.source.path })
+    if (role === 'knowledge') return true
+  }
+  return false
+}
 
 export interface WorkspaceState {
   handle: DirectoryHandleLike | null
@@ -319,6 +338,19 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     previewReadOnly.value = false
   }
 
+  const isReadOnlyActiveDocument = computed<boolean>(() => {
+    if (previewReadOnly.value) return true
+    const knowledgeStore = useKnowledgeStore()
+    const uiStore = useUiStore()
+    const targetRootId =
+      (uiStore.activeModelId && knowledgeStore.nodes[uiStore.activeModelId]
+        ? uiStore.activeModelId
+        : knowledgeStore.rootIds.find((id) => !id.startsWith('spec:')))
+    if (!targetRootId) return false
+    const rootNode = knowledgeStore.getNode(targetRootId)
+    return isReadOnlyModelNode(rootNode)
+  })
+
   /**
    * Serializes all dirty nodes and writes them back to disk via
    * recursiveSerialize. Clears dirty flags on success.
@@ -330,13 +362,22 @@ export const useWorkspaceStore = defineStore('workspace', () => {
    * OpenSpec `2026-09-13-simple-refactors-batch`, task 4) — this action
    * keeps only the `saving`/`error` state management.
    */
-  async function saveActiveFile(): Promise<void> {
+  async function saveActiveFile(targetRootId?: string): Promise<void> {
     if (previewReadOnly.value) throw new Error('Read-only live preview — saving is disabled')
     if (!handle.value) throw new Error('No workspace handle')
+    const knowledgeStore = useKnowledgeStore()
+    const uiStore = useUiStore()
+    const activeRootId =
+      targetRootId ??
+      (uiStore.activeModelId && knowledgeStore.nodes[uiStore.activeModelId]
+        ? uiStore.activeModelId
+        : knowledgeStore.rootIds.find((id) => !id.startsWith('spec:')))
+    const activeNode = activeRootId ? knowledgeStore.getNode(activeRootId) : undefined
+    if (isReadOnlyModelNode(activeNode)) {
+      throw new Error(READ_ONLY_KNOWLEDGE_ERROR)
+    }
     saving.value = true
     try {
-      const knowledgeStore = useKnowledgeStore()
-      const uiStore = useUiStore()
       await persistSaveActiveFile(
         handle.value,
         driver.value,
@@ -374,8 +415,17 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (!handle.value) throw new Error('No workspace handle')
     const knowledgeStore = useKnowledgeStore()
     const uiStore = useUiStore()
+    const activeRootId =
+      targetRootId ??
+      (uiStore.activeModelId && knowledgeStore.nodes[uiStore.activeModelId]
+        ? uiStore.activeModelId
+        : knowledgeStore.rootIds.find((id) => !id.startsWith('spec:')))
+    const activeNode = activeRootId ? knowledgeStore.getNode(activeRootId) : undefined
+    if (isReadOnlyModelNode(activeNode)) {
+      throw new Error(READ_ONLY_KNOWLEDGE_ERROR)
+    }
     await persistSaveActiveFileWithVersionBump(knowledgeStore, uiStore, level, targetRootId)
-    await saveActiveFile()
+    await saveActiveFile(targetRootId)
   }
 
   /**
@@ -422,6 +472,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     integrityReport,
     integrityRunning,
     previewReadOnly,
+    isReadOnlyActiveDocument,
     setPreviewReadOnly,
     open,
     _runIntegrityCheck,
