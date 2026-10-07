@@ -137,7 +137,6 @@ blueprints:
   - name: changes
     repo: cogNNitive/cogNNitive-web
     path: iNNfo/specs/bluepriNNts/changes/spec_NN.md
-    version: "0.1.0"
     ref_key: blueprints
 
 frozen_blueprints:

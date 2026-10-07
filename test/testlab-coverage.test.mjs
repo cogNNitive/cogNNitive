@@ -103,8 +103,8 @@ describe('TestLab coverage domain fixtures', () => {
 
   it('declares the Concept 1 x Concept 2 matrix with crossings', () => {
     const model = read('kNNowledge/TestLab_coverage_TestLab_NN.md')
-    assert.match(model, /NN Concept 1-Concept 2 Matrix/)
-    assert.match(model, /Element 1A <> Element 2A: relevant/)
+    assert.match(model, /NN matrices: Concept 1-Concept 2 Matrix/)
+    assert.match(model, /\| Element 1A \| relevant \|/)
   })
 
   it('ships a workspace hub whose registry points at a real console', () => {
