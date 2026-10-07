@@ -808,7 +808,7 @@ export async function executeChangesetApply(
 
     // All-Conflicted Exit Guard (D10): Zero model writes, zero snapshots
     const actionableClean = cleanSubset.filter((c) => c.op !== 'comment')
-    if (actionableClean.length === 0) {
+    if (actionableClean.length === 0 && conflictedSubset.length > 0) {
       for (const change of csDoc.changes) {
         if (change.op === 'comment') continue
         change.status = 'conflict'

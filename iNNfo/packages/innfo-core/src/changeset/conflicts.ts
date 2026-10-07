@@ -60,6 +60,12 @@ export async function partitionChangeset(
     }
 
     const targetModelSlug = extractModelSlug(change.target)
+    if (!targetModelSlug) {
+      // Modeless target: skipped without mutating
+      cleanSubset.push(change)
+      continue
+    }
+
     const model =
       loadedModels.get(targetModelSlug) ||
       Array.from(loadedModels.values()).find(
