@@ -83,11 +83,8 @@ export default defineConfig({
     setupFiles: ['./tests/setup.ts'],
     clearMocks: true,
     pool: 'forks',
-    poolOptions: {
-      forks: {
-        singleFork: true,
-      },
-    },
+    // Vitest 4: poolOptions removed; fileParallelism:false is the singleFork replacement.
+    fileParallelism: false,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],

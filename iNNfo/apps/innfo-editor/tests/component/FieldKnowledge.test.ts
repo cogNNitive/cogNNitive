@@ -173,6 +173,12 @@ describe('FieldKnowledge.vue', () => {
   })
 
   describe('inline submodel creation', () => {
+    beforeEach(() => {
+      // happy-dom implements no window.prompt; vitest <=3 tolerated spying on
+      // the missing property, vitest 4 throws. Provide the stub so spyOn works.
+      if (typeof window.prompt !== 'function') window.prompt = () => null
+    })
+
     it('renders the creation button in edit mode (!readonly)', () => {
       const wrapper = mount(FieldKnowledge, {
         props: {

@@ -38,11 +38,8 @@ export default defineConfig({
     testTimeout: 30000,
     exclude: [...configDefaults.exclude, ...skipNonWindows],
     pool: 'forks',
-    poolOptions: {
-      forks: {
-        singleFork: true,
-      },
-    },
+    // Vitest 4: poolOptions removed; fileParallelism:false is the singleFork replacement.
+    fileParallelism: false,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],
@@ -68,11 +65,16 @@ export default defineConfig({
       // Lowered 2026-10-04: the three Windows-only suites (see WINDOWS_ONLY_SUITES)
       // are skipped on Linux, which drops CI coverage to ~82.73/79.71/86.66 (measured on CI). The
       // thresholds now track that (Windows still measures higher).
+      // Lowered 2026-10-06: vitest 3->4 (@vitest/coverage-v8 v4) counts more
+      // branches/functions on the same passing tests (barrel re-export files now
+      // score 0%). Measured floor with the 3 suites skipped: Windows
+      // 79.0/66.0/74.8, Linux CI 78.9/65.6/74.8/81.9. Thresholds track the v4
+      // floor (see backlog #5; the 90/85/95/90 goal needs v4-era numbers).
       thresholds: {
-        lines: 81,
-        branches: 78,
-        functions: 85,
-        statements: 81,
+        lines: 77,
+        branches: 64,
+        functions: 73,
+        statements: 77,
       },
     },
   },

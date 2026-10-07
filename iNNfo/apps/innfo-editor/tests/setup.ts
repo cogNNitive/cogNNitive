@@ -3,7 +3,7 @@ import { IDBFactory } from 'fake-indexeddb'
 import { beforeEach } from 'vitest'
 
 // `fake-indexeddb/auto` installs ONE shared database on globalThis, and this
-// project runs Vitest with `pool: 'forks'` + `singleFork: true`, so every test
+// project runs Vitest with `pool: 'forks'` + `fileParallelism: false`, so every test
 // file shares that instance for the whole run. A file that persists a workspace
 // (the HomeView resume specs) therefore leaks it into files that mount a view
 // which restores from storage, failing at random depending on file order.
