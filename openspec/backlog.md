@@ -1167,3 +1167,26 @@ principle (`origin` is a signal; `lineage-single-edge` forbids a stored score).
 
 **Suggested trigger:** `/sdd-explore okf-v2-alignment` (S1 is the natural first slice; S3 is
 the highest-value).
+
+---
+
+## `docs/manual-editing-risks` — tell users that hand-editing `_NN.md` is unsafe, and have the validator say so
+
+**Type:** docs + validator UX · **Size:** small
+
+**Why:** the planned editing model routes every graph change through console changesets
+applied by the AI agent. Editing `_NN.md` by hand stays possible but bypasses provenance,
+and a copy-pasted `## NN` section duplicates the element's immutable `slug::`. Preventing
+hand edits is a non-goal; the user owns that risk, but must be told.
+
+**Behaviour:**
+
+1. User-facing docs state that hand-editing models is unsupported for routine changes
+   and that changes should go through a console changeset or the agent.
+2. The validator reports a duplicated `slug::` (and other hand-edit fingerprints, such as a
+   changed value with no changeset behind it) as a clear, actionable diagnostic that names
+   the fix. It warns; it does not block or auto-repair.
+
+**Depends on:** the stable-identity / single-changeset redesign (immutable slugs).
+
+**Suggested trigger:** `/sdd-new manual-editing-risks` once immutable slugs land.
