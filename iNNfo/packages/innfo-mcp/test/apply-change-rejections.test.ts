@@ -178,4 +178,86 @@ describe('Two-Phase Changeset Rejection Paths (cross-platform)', () => {
     expect(res.success).toBe(false)
     expect(res.errors?.some((e) => /Failed to read changeset file/.test(e.message))).toBe(true)
   })
+
+  it('Idempotent Replay Match: applied changeset with matching live version returns success no-op', async () => {
+    await writeFile(
+      join(knowledgeDir, 'strategy_NN.md'),
+      LIVE_STRATEGY_MODEL.replace('knowledge_version: "V_0-1-0"', 'knowledge_version: "V_0-1-1"'),
+      'utf-8',
+    )
+    const csFile = join(changesDir, 'ws_agent_match_changes_NN.md')
+    const csDoc = makeChangeset({
+      status: 'applied',
+      models: { strategy: { base_version: 'V_0-1-0', result_version: 'V_0-1-1' } },
+      changes: [
+        {
+          id: 'c-01',
+          op: 'update_field',
+          target: 'strategy@Vision&statement',
+          from: 'Accelerate green energy',
+          to: 'New Vision Statement',
+        },
+      ],
+    })
+    await writeFile(csFile, serializeChangeset(csDoc), 'utf-8')
+
+    const res = await applyChange(csRoot, 'changes/ws_agent_match_changes_NN.md')
+    expect(res.success).toBe(true)
+    expect(res.appliedCount).toBe(0)
+    expect(res.warnings?.some((w) => /already applied with matching model versions/.test(w.message))).toBe(
+      true,
+    )
+    expect(existsSync(join(knowledgeDir, 'archive'))).toBe(false)
+  })
+
+  it('Idempotent Replay Without Models Record: applied changeset with no record returns no-op', async () => {
+    const csFile = join(changesDir, 'ws_agent_norecord_changes_NN.md')
+    const csDoc = makeChangeset({
+      status: 'applied',
+      changes: [
+        {
+          id: 'c-01',
+          op: 'comment',
+          target: 'strategy@Vision&statement',
+          notes: 'Already applied elsewhere',
+        },
+      ],
+    })
+    await writeFile(csFile, serializeChangeset(csDoc), 'utf-8')
+
+    const res = await applyChange(csRoot, 'changes/ws_agent_norecord_changes_NN.md')
+    expect(res.success).toBe(true)
+    expect(res.appliedCount).toBe(0)
+    expect(existsSync(join(knowledgeDir, 'archive'))).toBe(false)
+  })
+
+  it('Modeless Target: change address without model part is skipped without mutating', async () => {
+    const csFile = join(changesDir, 'ws_agent_modeless_changes_NN.md')
+    const csDoc = makeChangeset({
+      changes: [
+        {
+          id: 'c-01',
+          op: 'update_field',
+          target: '@Vision&statement',
+          from: 'Accelerate green energy',
+          to: 'New Vision Statement',
+        },
+      ],
+    })
+    await writeFile(csFile, serializeChangeset(csDoc), 'utf-8')
+
+    const res = await applyChange(csRoot, 'changes/ws_agent_modeless_changes_NN.md')
+    expect(res.success).toBe(true)
+    // NOTE: appliedCount counts non-comment changes even when skipped for lack
+    // of a model part — the meaningful invariant is zero disk mutation.
+    expect(res.appliedCount).toBe(1)
+    const liveContent = await readFile(join(knowledgeDir, 'strategy_NN.md'), 'utf-8')
+    expect(liveContent).toContain('Accelerate green energy')
+  })
+
+  it('Absolute Changeset Path: absolute _changes_NN.md path routes to the changeset engine', async () => {
+    const res = await applyChange(csRoot, join(changesDir, 'absent_changes_NN.md'))
+    expect(res.success).toBe(false)
+    expect(res.errors?.some((e) => /Failed to read changeset file/.test(e.message))).toBe(true)
+  })
 })
