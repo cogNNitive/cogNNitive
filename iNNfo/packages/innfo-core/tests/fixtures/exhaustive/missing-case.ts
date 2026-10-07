@@ -7,6 +7,11 @@ export function label(u: KnowledgeUnit): string {
       return u.slug
     case 'row':
       return u.id
+    case 'pointer':
+      return u.pointer
+    case 'element':
+      return u.slug
+    // matrix omitted intentionally
     default:
       return assertNever(u)
   }

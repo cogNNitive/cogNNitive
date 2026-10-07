@@ -57,6 +57,48 @@ export function checkFrontmatterInvariants(model: ParsedKnowledge, d: Diagnostic
     )
   }
 
+  // Stable Element Identity: explicit slug uniqueness per model (DUPLICATE_SLUG)
+  const elementsBySlug = new Map<string, string[]>()
+  for (const [, elements] of model.elements.entries()) {
+    for (const el of elements) {
+      if (el.slug) {
+        const list = elementsBySlug.get(el.slug) ?? []
+        list.push(el.name)
+        elementsBySlug.set(el.slug, list)
+      }
+    }
+  }
+  for (const [slug, names] of elementsBySlug.entries()) {
+    if (names.length > 1) {
+      d.error(
+        'elements',
+        `Duplicate slug "${slug}" shared by elements: ${names.join(', ')}`,
+        { code: 'DUPLICATE_SLUG' },
+      )
+    }
+  }
+
+  // Stable Element Identity: unfrozen level-3 models trigger warning (UNFROZEN_MODEL)
+  if (fm.level === 3 && model.elements.size > 0) {
+    let hasUnfrozen = false
+    for (const [, elements] of model.elements.entries()) {
+      for (const el of elements) {
+        if (!el.slugExplicit) {
+          hasUnfrozen = true
+          break
+        }
+      }
+      if (hasUnfrozen) break
+    }
+    if (hasUnfrozen) {
+      d.warn(
+        'model',
+        'Model contains elements without explicit slugs and is not frozen. Any mutation will automatically freeze slugs.',
+        { code: 'UNFROZEN_MODEL' },
+      )
+    }
+  }
+
   // R-MM-02: reserved concept names in the template frontmatter.
   for (const concept of fm.concepts ?? []) {
     if (RESERVED_CONCEPT_NAMES.has(concept.name)) {

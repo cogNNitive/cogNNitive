@@ -57,12 +57,11 @@ describe('applyMutation transactionality', () => {
     expect(JSON.stringify(model)).toBe(before)
   })
 
-  it('does not partially apply a rename that fails a model-wide uniqueness check', () => {
+  it('does not partially apply a rename that fails a sibling uniqueness check', () => {
     const model = parseKnowledge(TEMPLATE)
-    applyMutation(model, 'add_concept', { conceptName: 'Task', type: 'list' })
-    applyMutation(model, 'add_element', { conceptName: 'Task', elementName: 'Second' })
+    applyMutation(model, 'add_element', { conceptName: 'Phase', elementName: 'Second' })
     const before = JSON.stringify(model)
-    // "Second" already exists model-wide -> rename must be rejected whole
+    // "Second" already exists in concept "Phase" -> rename must be rejected whole
     const result = applyMutation(model, 'rename_element', {
       conceptName: 'Phase',
       elementName: 'First',

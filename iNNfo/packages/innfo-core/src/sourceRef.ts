@@ -38,7 +38,22 @@ export interface PointerUnit {
   pointer: string
 }
 
-export type KnowledgeUnit = HeaderUnit | RowUnit | PointerUnit
+export interface ElementUnit {
+  /** Semantic model element unit kind (D5). */
+  kind: 'element'
+  /** Immutable element slug within the model. */
+  slug: string
+}
+
+export interface MatrixUnit {
+  /** Semantic model matrix unit kind (D5). */
+  kind: 'matrix'
+  matrixSlug: string
+  rowSlug?: string
+  colSlug?: string
+}
+
+export type KnowledgeUnit = HeaderUnit | RowUnit | PointerUnit | ElementUnit | MatrixUnit
 
 export interface SourceRef {
   /** Workspace-relative path, as written. */
@@ -448,7 +463,12 @@ export function resolveUnitPath(
   const isMd = /\.md$/i.test(forward)
   const isCsv = /\.csv$/i.test(forward)
   const isJson = /\.json$/i.test(forward)
-  if (!isMd && !isCsv && !isJson) return null
+  if (!isMd && !isCsv && !isJson) {
+    if (new RegExp(`^${SLUG}$`).test(trimmed)) {
+      return { filePath: trimmed, kind: 'model' }
+    }
+    return null
+  }
   if (/^[a-zA-Z]:[/\\]/.test(trimmed) || trimmed.startsWith('/')) return null
   return { filePath: forward, kind: roleOf({ path: forward }) === 'knowledge' ? 'model' : 'source' }
 }
@@ -511,6 +531,54 @@ export function parseKnowledgeUnitRef(input: string): SourceRef | null {
     decoded.push(text.trim())
   }
   const [unitRaw, ...subunits] = decoded
+  if (!/\.(md|csv|json)$/i.test(resolved.filePath)) {
+    if (!new RegExp(`^${SLUG}$`).test(unitRaw)) return null
+    if (subunits.length === 2) {
+      const unit: MatrixUnit = {
+        kind: 'matrix',
+        matrixSlug: unitRaw,
+        rowSlug: subunits[0],
+        colSlug: subunits[1],
+      }
+      return {
+        filePath: resolved.filePath,
+        fileName: basename(resolved.filePath),
+        slug: unitRaw,
+        kind: 'model',
+        unit,
+        subunits,
+        raw: clean,
+      }
+    }
+    if (subunits.length === 0 && /(?:^matrix-|-matrix$)/i.test(unitRaw)) {
+      const unit: MatrixUnit = {
+        kind: 'matrix',
+        matrixSlug: unitRaw,
+      }
+      return {
+        filePath: resolved.filePath,
+        fileName: basename(resolved.filePath),
+        slug: unitRaw,
+        kind: 'model',
+        unit,
+        subunits,
+        raw: clean,
+      }
+    }
+    const unit: ElementUnit = {
+      kind: 'element',
+      slug: unitRaw,
+    }
+    return {
+      filePath: resolved.filePath,
+      fileName: basename(resolved.filePath),
+      slug: unitRaw,
+      kind: 'model',
+      unit,
+      subunits,
+      raw: clean,
+    }
+  }
   const isCsv = /\.csv$/i.test(resolved.filePath)
   if (isCsv) {
     if (resolved.kind === 'model') return null
@@ -568,6 +636,17 @@ export function serializeKnowledgeUnitRef(
     case 'pointer':
       // No subunits; `%` and `&` are percent-encoded so parse(serialize(x)) is stable.
       return `${filePath}@${unit.pointer.replace(/%/g, '%25').replace(/&/g, '%26')}`
+    case 'element':
+      head = unit.slug
+      break
+    case 'matrix': {
+      const row = unit.rowSlug ?? subunits[0]
+      const col = unit.colSlug ?? subunits[1]
+      if (row && col) {
+        return `${filePath}@${unit.matrixSlug}&${normalizeName(row)}&${normalizeName(col)}`
+      }
+      return `${filePath}@${unit.matrixSlug}`
+    }
     default:
       return assertNever(unit, 'knowledge unit kind')
   }
@@ -591,6 +670,17 @@ export function unitLabel(unit: KnowledgeUnit, subunits: string[] = []): string 
     case 'pointer':
       head = unit.pointer
       break
+    case 'element':
+      head = unit.slug
+      break
+    case 'matrix': {
+      const row = unit.rowSlug ?? subunits[0]
+      const col = unit.colSlug ?? subunits[1]
+      if (row && col) {
+        return `${unit.matrixSlug}&${normalizeName(row)}&${normalizeName(col)}`
+      }
+      return unit.matrixSlug
+    }
     default:
       return assertNever(unit, 'knowledge unit kind')
   }

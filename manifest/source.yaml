@@ -111,7 +111,7 @@ blueprints:
   - name: video
     repo: cogNNitive/cogNNitive-web
     path: iNNfo/specs/bluepriNNts/video/spec_NN.md
-    version: "V_0-7-2"
+    version: "V_0-7-2" # pinned to match video spec_NN.md
     ref_key: blueprints
   - name: sources
     repo: cogNNitive/cogNNitive-web

@@ -11,6 +11,10 @@ export function label(u: WithFakeKind): string {
       return u.id
     case 'pointer':
       return u.pointer
+    case 'element':
+      return u.slug
+    case 'matrix':
+      return u.matrixSlug
     default:
       return assertNever(u)
   }

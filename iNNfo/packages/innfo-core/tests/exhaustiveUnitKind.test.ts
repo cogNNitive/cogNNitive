@@ -40,7 +40,7 @@ describe('exhaustive unit.kind dispatch', () => {
   it('a switch missing a kind is a compile error', { timeout: 60_000 }, () => {
     const r = compile('missing-case')
     expect(r.status).not.toBe(0)
-    expect(r.output).toMatch(/pointer/i)
+    expect(r.output).toMatch(/matrix/i)
     expect(r.output).toMatch(/never/)
   })
 

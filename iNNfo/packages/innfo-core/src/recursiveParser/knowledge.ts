@@ -208,11 +208,13 @@ export async function parseAndRegisterKnowledge(
     if (node.kind === 'element') {
       if (elementNameToModel.has(node.name)) {
         const existingModel = elementNameToModel.get(node.name)!
-        ctx.issues.push({
-          path: '<root>',
-          severity: 'info',
-          message: `Element "${node.name}" resolves across multiple models ("${existingModel}" and "${refName}"). Use "${existingModel} :: ${node.name}" or "${refName} :: ${node.name}" to address a specific one.`,
-        })
+        if (existingModel !== refName) {
+          ctx.issues.push({
+            path: '<root>',
+            severity: 'info',
+            message: `Element "${node.name}" resolves across multiple models ("${existingModel}" and "${refName}"). Use "${existingModel} :: ${node.name}" or "${refName} :: ${node.name}" to address a specific one.`,
+          })
+        }
       } else {
         elementNameToModel.set(node.name, refName)
       }
