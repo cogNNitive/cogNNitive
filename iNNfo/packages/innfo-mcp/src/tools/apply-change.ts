@@ -12,7 +12,6 @@ import {
   acquireLock,
   computeProposalSha,
   verifyProposalSha,
-  displayStem,
   parseChangeset,
   serializeChangeset,
   rewriteFieldCitation,
