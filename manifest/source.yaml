@@ -111,7 +111,7 @@ blueprints:
   - name: video
     repo: cogNNitive/cogNNitive-web
     path: iNNfo/specs/bluepriNNts/video/spec_NN.md
-    version: "V_0-7-2" # pinned to match video spec_NN.md
+    version: "V_0-7-3" # pinned to match video spec_NN.md
     ref_key: blueprints
   - name: sources
     repo: cogNNitive/cogNNitive-web
@@ -133,6 +133,10 @@ blueprints:
     repo: cogNNitive/cogNNitive-web
     path: iNNfo/specs/bluepriNNts/visual-catalog/spec_NN.md
     version: "V_0-1-0"
+    ref_key: blueprints
+  - name: changes
+    repo: cogNNitive/cogNNitive-web
+    path: iNNfo/specs/bluepriNNts/changes/spec_NN.md
     ref_key: blueprints
 
 frozen_blueprints:
