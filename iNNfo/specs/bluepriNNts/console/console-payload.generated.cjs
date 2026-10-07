@@ -7909,7 +7909,7 @@ function displayStem(basename4) {
   return basename4.replace(/\.md$/i, "");
 }
 var IGNORED_DIRECTORIES = /* @__PURE__ */ new Set(["backups", "archive", "specs"]);
-var NON_KNOWLEDGE_BLUEPRINT_RE = /^(cognnitive|workspace|procedures|sources|artifacts|sidecar)(?:_|$)/i;
+var NON_KNOWLEDGE_BLUEPRINT_RE = /^(cognnitive|workspace|procedures|sources|artifacts|sidecar|changes)(?:_|$)/i;
 function segmentsOf(path2) {
   return path2.replace(/\\/g, "/").split("/").filter((s) => s && s !== ".");
 }
@@ -7927,6 +7927,8 @@ function roleOf(i) {
       return "lineage-record";
     case "sidecar":
       return "sidecar";
+    case "changes":
+      return "changeset";
     case "procedures":
       return parsed.stem.toLowerCase() === "procedures" ? "catalog" : "procedure";
     case "workspace":
@@ -7940,7 +7942,7 @@ function roleOf(i) {
 function isExcludedPath(path2) {
   const segs = segmentsOf(path2);
   if (segs.length > 0 && IGNORED_DIRECTORIES.has(segs[0])) return true;
-  return segs.some((s) => s === "staging" || s.startsWith(".") && s !== "..");
+  return segs.some((s) => s === "archive" || s === "staging" || s.startsWith(".") && s !== "..");
 }
 function compareMembers(a, b) {
   const pa = parseName(baseOf(a));
@@ -9046,6 +9048,12 @@ async function writeOnce(root, t, bytes, o = {}) {
     }
   }
 }
+
+// iNNfo/packages/innfo-core/src/changeset/parser.ts
+var import_yaml8 = __toESM(require_dist(), 1);
+
+// iNNfo/packages/innfo-core/src/changeset/serializer.ts
+var import_yaml9 = __toESM(require_dist(), 1);
 
 // iNNfo/packages/innfo-core/src/console/citations.ts
 var EXCERPT_CHAR_CAP = 500;

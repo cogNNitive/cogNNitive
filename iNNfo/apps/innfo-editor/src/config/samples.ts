@@ -39,6 +39,7 @@ export const SHIPPED_BLUEPRINT_VERSIONS: Record<string, string> = {
   blank: 'V_0-3-0',
   business: 'V_0-4-0',
   'business-model': 'V_0-3-0',
+  changes: '0.1.0',
   'design-presets': 'V_0-3-0',
   documentation: 'V_0-3-2',
   domaiNN: 'V_0-2-0',
@@ -50,6 +51,6 @@ export const SHIPPED_BLUEPRINT_VERSIONS: Record<string, string> = {
   repository: 'V_0-2-0',
   sidecar: 'V_0-1-0',
   sources: 'V_0-2-0',
-  video: 'V_0-7-2',
+  video: 'V_0-7-3',
   'visual-catalog': 'V_0-1-1',
 }

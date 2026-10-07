@@ -8,6 +8,7 @@ import {
   resolveBlueprintSchema,
   isExcludedPath,
   isNNName,
+  displayStem,
   acquireLock,
   computeProposalSha,
   verifyProposalSha,
@@ -600,7 +601,7 @@ export async function executeChangesetApply(
     ? changesetPathInput
     : join(rootDir, changesetPathInput)
 
-  const changesetStem = basename(resolvedChangesetPath).replace(/_NN\.md$/i, '').replace(/\.md$/i, '')
+  const changesetStem = displayStem(basename(resolvedChangesetPath))
   const relChangesetPath = relative(rootDir, resolvedChangesetPath).replace(/\\/g, '/')
 
   // 1. Single-writer lock acquisition at changes/.lock
@@ -997,7 +998,7 @@ export async function executeChangesetApply(
       }
 
       const modelFile = entry.filePath
-      const modelStem = basename(modelFile).replace(/_NN\.md$/i, '').replace(/\.md$/i, '')
+      const modelStem = displayStem(basename(modelFile))
       const stagingPath = join(dirname(modelFile), `${modelStem}.tmp`)
       const archivePath = join(
         archiveDir,

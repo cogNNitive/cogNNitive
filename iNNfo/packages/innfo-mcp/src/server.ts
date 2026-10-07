@@ -865,8 +865,8 @@ async function handleApplyChange(args: Record<string, unknown>): Promise<CallToo
   const op = args.op as string | undefined
   const opArgs = (args.args as Record<string, unknown>) || {}
 
-  if (!changesetPath && (!id || !op)) {
-    return errorResult('Missing required arguments: provide changeset_path or (id, op, args)')
+  if (!changesetPath && (!id || !op || !args.args)) {
+    return errorResult('Missing required arguments: id, op, args')
   }
 
   const root = (args.domain as string) || (args.root as string) || ROOT_DIR

@@ -1,7 +1,7 @@
 # Implementation Tasks: Changeset Apply and Versioning (Slice S2a)
 
 **Change ID**: `2026-10-07-changeset-apply-and-versioning`  
-**Status**: `Draft`  
+**Status**: `Complete`  
 **Author**: `sdd-tasks subagent`  
 **Delivery Strategy**: `exception-ok` (User pre-approved line budget exception for foundational architectural slices)  
 **Chain Strategy**: `size-exception`  
@@ -243,7 +243,7 @@ Each task adheres to a strict Test-Driven Development (TDD) cycle:
 
 **Goal**: Refactor `apply_change` into an atomic two-phase transaction engine guarded by `changes/.lock`, supporting in-memory validation, model snapshot archival to `kNNowledge/archive/`, frontmatter version bumping, D20 citation rewriting, and idempotent replays.
 
-- [ ] **5.1 [Test First] Apply engine integration tests (`test/apply-change.test.ts`)**
+- [x] **5.1 [Test First] Apply engine integration tests (`test/apply-change.test.ts`)**
   - **File**: [`apply-change.test.ts`](file:///D:/Users/lucas/Documents/GitHub/cogNNitive-stable-element-identity/iNNfo/packages/innfo-mcp/test/apply-change.test.ts)
   - **Description**: Author comprehensive integration tests covering:
     - **Single-Writer Lock**: Active lock blocks concurrent execution with `CONCURRENT_APPLY_ACTIVE`; lock is released on error or success.
@@ -256,7 +256,7 @@ Each task adheres to a strict Test-Driven Development (TDD) cycle:
     - **Bare Operation Synthesis**: Calling `apply_change` with legacy bare arguments (`op`, `args`) synthesizes, seals, and executes a valid changeset file in `changes/`.
   - **Traceability**: [`changeset-apply-engine/spec.md`](file:///D:/Users/lucas/Documents/GitHub/cogNNitive-stable-element-identity/openspec/changes/2026-10-07-changeset-apply-and-versioning/specs/changeset-apply-engine/spec.md), [`knowledge-version-and-snapshot/spec.md`](file:///D:/Users/lucas/Documents/GitHub/cogNNitive-stable-element-identity/openspec/changes/2026-10-07-changeset-apply-and-versioning/specs/knowledge-version-and-snapshot/spec.md), Backlog **D8**, **D9**, **D20**.
 
-- [ ] **5.2 [Implement] Phase 1 Transaction: In-Memory Compute, Validation & Citation Rewriting**
+- [x] **5.2 [Implement] Phase 1 Transaction: In-Memory Compute, Validation & Citation Rewriting**
   - **File**: [`apply-change.ts`](file:///D:/Users/lucas/Documents/GitHub/cogNNitive-stable-element-identity/iNNfo/packages/innfo-mcp/src/tools/apply-change.ts)
   - **Description**:
     - Acquire lock at `changes/.lock` via `acquireLock`.
@@ -270,7 +270,7 @@ Each task adheres to a strict Test-Driven Development (TDD) cycle:
     - Run `validateKnowledge` across all touched models against their blueprints. If any model has errors, abort transaction immediately: release lock and return `VALIDATION_FAILED`.
   - **Traceability**: Design Document Section 5.1 & 6.3.
 
-- [ ] **5.3 [Implement] Phase 2 Transaction: Atomic Persistence & Snapshot Archival**
+- [x] **5.3 [Implement] Phase 2 Transaction: Atomic Persistence & Snapshot Archival**
   - **File**: [`apply-change.ts`](file:///D:/Users/lucas/Documents/GitHub/cogNNitive-stable-element-identity/iNNfo/packages/innfo-mcp/src/tools/apply-change.ts)
   - **Description**:
     - Ensure directory `<rootDir>/kNNowledge/archive/` exists.
@@ -286,14 +286,14 @@ Each task adheres to a strict Test-Driven Development (TDD) cycle:
     - Return `ChangesetApplyResult`.
   - **Traceability**: Design Document Section 5.1, 5.4 & 6.3.
 
-- [ ] **5.4 [Implement] Idempotent Replay Handling & Bare Argument Synthesis**
+- [x] **5.4 [Implement] Idempotent Replay Handling & Bare Argument Synthesis**
   - **File**: [`apply-change.ts`](file:///D:/Users/lucas/Documents/GitHub/cogNNitive-stable-element-identity/iNNfo/packages/innfo-mcp/src/tools/apply-change.ts)
   - **Description**:
     - When `status === 'applied'`, perform fast-path verification of target model versions against `result_version`.
     - When called with legacy bare mutation arguments (`op`, `args`), synthesize a valid sealed changeset document (`<workspace_id>_agent_<stamp>_changes_NN.md`), compute `proposal_sha`, write to `changes/`, and execute via the transaction engine.
   - **Traceability**: Proposal Section 6, Backlog **D8**.
 
-- [ ] **5.5 [Implement] Update MCP Tool Registration & Schemas in `server.ts`**
+- [x] **5.5 [Implement] Update MCP Tool Registration & Schemas in `server.ts`**
   - **File**: [`server.ts`](file:///D:/Users/lucas/Documents/GitHub/cogNNitive-stable-element-identity/iNNfo/packages/innfo-mcp/src/server.ts)
   - **Description**: Update `apply_change` tool definition in MCP server:
     - Add `changeset_path` string parameter.
@@ -301,7 +301,7 @@ Each task adheres to a strict Test-Driven Development (TDD) cycle:
     - Update documentation to describe atomic two-phase changeset execution.
   - **Traceability**: Proposal Section 6, Design Document Section 6.3.
 
-- [ ] **5.6 [Verify & Refactor] Run `apply-change.test.ts` suite**
+- [x] **5.6 [Verify & Refactor] Run `apply-change.test.ts` suite**
   - **Command**: `npm --workspace=@cognnitive/innfo-mcp test -- test/apply-change.test.ts`
   - **Description**: Confirm all two-phase apply, locking, archival, and idempotency tests pass.
 
@@ -311,14 +311,14 @@ Each task adheres to a strict Test-Driven Development (TDD) cycle:
 
 **Goal**: Remove blueprint version coupling in model initialization per decision **D9**, allowing models to declare `knowledge_version: "V_0-1-0"` independently of parent blueprint `spec_version: "V_0-4-0"`.
 
-- [ ] **6.1 [Test First] Scaffolding decoupling tests in `init-knowledge.spec.ts`**
+- [x] **6.1 [Test First] Scaffolding decoupling tests in `init-knowledge.spec.ts`**
   - **File**: [`init-knowledge.spec.ts`](file:///D:/Users/lucas/Documents/GitHub/cogNNitive-stable-element-identity/iNNfo/packages/innfo-mcp/src/tools/init-knowledge.spec.ts)
   - **Description**:
     - Update test `Mismatch refused: a differing explicit version fails with VERSION_MISMATCH` to assert that an explicit differing version (`knowledge_version: "V_0-1-0"` with blueprint `spec_version: "V_0-4-0"`) now **succeeds** and sets `knowledge_version: "V_0-1-0"`.
     - Assert that no `VERSION_MISMATCH` error is returned.
   - **Traceability**: [`knowledge-version-and-snapshot/spec.md`](file:///D:/Users/lucas/Documents/GitHub/cogNNitive-stable-element-identity/openspec/changes/2026-10-07-changeset-apply-and-versioning/specs/knowledge-version-and-snapshot/spec.md#L85-L101), Backlog **D9**.
 
-- [ ] **6.2 [Implement] Decouple `knowledge_version` in `init-knowledge.ts`**
+- [x] **6.2 [Implement] Decouple `knowledge_version` in `init-knowledge.ts`**
   - **File**: [`init-knowledge.ts`](file:///D:/Users/lucas/Documents/GitHub/cogNNitive-stable-element-identity/iNNfo/packages/innfo-mcp/src/tools/init-knowledge.ts)
   - **Description**:
     - Remove the `VERSION_MISMATCH` validation failure block (lines ~208–234).
@@ -326,7 +326,7 @@ Each task adheres to a strict Test-Driven Development (TDD) cycle:
     - Update docstrings and comments.
   - **Traceability**: Proposal Section 7, Design Document Section 6.3.
 
-- [ ] **6.3 [Verify & Refactor] Run `init-knowledge.spec.ts`**
+- [x] **6.3 [Verify & Refactor] Run `init-knowledge.spec.ts`**
   - **Command**: `npm --workspace=@cognnitive/innfo-mcp test -- src/tools/init-knowledge.spec.ts`
   - **Description**: Confirm model initialization tests pass cleanly with decoupled versions.
 
@@ -336,7 +336,7 @@ Each task adheres to a strict Test-Driven Development (TDD) cycle:
 
 **Goal**: Completely eliminate `## NN Agent Modification` generation, the `modification` result string, and the verbatim-paste requirement per decision **D8**.
 
-- [ ] **7.1 [Implement & Refactor] Remove `modification` property and `buildAgentModificationBlock` from `applyChange`**
+- [x] **7.1 [Implement & Refactor] Remove `modification` property and `buildAgentModificationBlock` from `applyChange`**
   - **Files**: [`apply-change.ts`](file:///D:/Users/lucas/Documents/GitHub/cogNNitive-stable-element-identity/iNNfo/packages/innfo-mcp/src/tools/apply-change.ts), [`ApplyChangeResult`](file:///D:/Users/lucas/Documents/GitHub/cogNNitive-stable-element-identity/iNNfo/packages/innfo-mcp/src/tools/apply-change.ts#L20-L33)
   - **Description**:
     - Remove `modification?: string` from `ApplyChangeResult` interface.
@@ -345,12 +345,12 @@ Each task adheres to a strict Test-Driven Development (TDD) cycle:
     - Return structured changeset apply outcome (`changesetPath`, `status`, `models`, `appliedCount`).
   - **Traceability**: [`changeset-apply-engine/spec.md`](file:///D:/Users/lucas/Documents/GitHub/cogNNitive-stable-element-identity/openspec/changes/2026-10-07-changeset-apply-and-versioning/specs/changeset-apply-engine/spec.md#L101-L114), Backlog **D8**.
 
-- [ ] **7.2 [Verify & Update Tests] Update tests asserting on `modification` block**
+- [x] **7.2 [Verify & Update Tests] Update tests asserting on `modification` block**
   - **Files**: [`test/apply-change.test.ts`](file:///D:/Users/lucas/Documents/GitHub/cogNNitive-stable-element-identity/iNNfo/packages/innfo-mcp/test/apply-change.test.ts), [`src/tools/mutate.spec.ts`](file:///D:/Users/lucas/Documents/GitHub/cogNNitive-stable-element-identity/iNNfo/packages/innfo-mcp/src/tools/mutate.spec.ts)
   - **Description**: Update test assertions expecting `result.modification` to assert on structured changeset return properties instead.
   - **Traceability**: Proposal Section 9.
 
-- [ ] **7.3 [Audit] Audit codebase for remaining verbatim-paste references**
+- [x] **7.3 [Audit] Audit codebase for remaining verbatim-paste references**
   - **Description**: Verify that no production tool prompts or documentation mandate verbatim-pasting markdown blocks into LLM chat responses.
 
 ---
@@ -359,19 +359,19 @@ Each task adheres to a strict Test-Driven Development (TDD) cycle:
 
 **Goal**: Execute comprehensive test suites, TypeScript typechecking, and integrity gates across the entire repository.
 
-- [ ] **8.1 [Package Test Suites] Run test suites across `innfo-core` and `innfo-mcp`**
+- [x] **8.1 [Package Test Suites] Run test suites across `innfo-core` and `innfo-mcp`**
   - **Command**: `npm --workspace=@cognnitive/innfo-core test && npm --workspace=@cognnitive/innfo-mcp test`
   - **Description**: Confirm all unit and integration tests across both packages execute green.
 
-- [ ] **8.2 [Workspace Typecheck] Run TypeScript typecheck**
+- [x] **8.2 [Workspace Typecheck] Run TypeScript typecheck**
   - **Command**: `npm run typecheck`
   - **Description**: Verify zero TypeScript errors across `innfo-core`, `innfo-mcp`, `innfo-editor`, and other workspaces.
 
-- [ ] **8.3 [Integrity Gates] Run repository integrity check**
+- [x] **8.3 [Integrity Gates] Run repository integrity check**
   - **Command**: `node scripts/check-integrity.js`
   - **Description**: Run repository check-integrity script to verify blueprints, schemas, and naming invariants.
 
-- [ ] **8.4 [Success Criteria Validation] Verify all criteria from `proposal.md`**
+- [x] **8.4 [Success Criteria Validation] Verify all criteria from `proposal.md`**
   - **Description**: Verify that all checklist items in `proposal.md` Section 9 (Deep archive exclusion, role classification, changeset model, single-writer lock, two-phase apply, idempotency, citation rewriting, and legacy retirement) are satisfied.
 
 ---
