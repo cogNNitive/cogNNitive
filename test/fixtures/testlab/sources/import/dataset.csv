@@ -1,0 +1,4 @@
+id,metric,value
+m-001,capture_rate,0.94
+m-002,handover_delay_min,12
+m-003,photo_log_trust,0.98
