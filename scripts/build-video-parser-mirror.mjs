@@ -98,7 +98,20 @@ async function render() {
     define: { __VUS_SPEC_SHA256__: JSON.stringify(specSha256()) },
   })
   const rawCode = result.outputFiles[0].text.replace(/\r\n/g, '\n')
-  return rawCode.replace(/(?:\.\.\/)+node_modules\//g, 'node_modules/')
+  // Install-layout-independent output: esbuild annotates each bundled module
+  // with a `// <path>` comment, and the path of hoisted vs nested
+  // `node_modules` copies differs between installs (local nested copy vs CI
+  // `npm ci` hoisting) and platforms (worktree junctions). Normalize every
+  // full-line path comment to start at `node_modules/` so `--check` compares
+  // module content, never install layout. Code lines are left untouched.
+  return rawCode
+    .replace(/(?:\.\.\/)+node_modules\//g, 'node_modules/')
+    .split('\n')
+    .map((line) => {
+      const m = /^(\/\/\s*)\S*?node_modules\//.exec(line)
+      return m ? line.replace(/^\/\/\s*\S*?node_modules\//, '// node_modules/') : line
+    })
+    .join('\n')
 }
 
 function getArg(flag) {

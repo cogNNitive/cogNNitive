@@ -70,9 +70,7 @@ export async function acquireLock(
           lockPath,
           payload,
           release: async () => {
-            try {
-              await unlink(lockPath)
-            } catch {}
+            await unlink(lockPath).catch(() => undefined)
           },
         }
       }
@@ -84,9 +82,7 @@ export async function acquireLock(
           lockPath,
           payload,
           release: async () => {
-            try {
-              await unlink(lockPath)
-            } catch {}
+            await unlink(lockPath).catch(() => undefined)
           },
         }
       }
