@@ -11,6 +11,7 @@ const read = (p) => readFileSync(join(lab, p), 'utf8')
 describe('TestLab coverage domain fixtures', () => {
   it('ships the blueprint, model, sources, and artifacts', () => {
     for (const f of [
+      'domaiNN_NN.md',
       'specs/TestLab_V_0-1-0_spec_NN.md',
       'kNNowledge/TestLab_coverage_TestLab_NN.md',
       'sources/import/field-notes.md',
