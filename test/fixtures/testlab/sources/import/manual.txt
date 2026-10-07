@@ -1,0 +1,5 @@
+TestLab operations manual (plain-text stand-in for a binary attachment).
+
+Section 1: intake. Fill the form before touching any equipment.
+Section 2: photo log. One photo per step, no exceptions.
+Section 3: handover. The note you write is the shift you hand over.
