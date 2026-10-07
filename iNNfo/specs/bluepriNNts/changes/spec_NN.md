@@ -6,7 +6,7 @@ parent_spec:
   name: "iNNfo_V_0-4-0"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-4-0_NN.md"
 blueprint_name: "changes"
-blueprint_version: "0.1.0"
+blueprint_version: "V_0-1-0"
 title: "Changeset Blueprint"
 description: "Level-2 blueprint defining the normative document model for graph mutations, proposals, reviews, and version transitions in cogNNitive."
 ---
@@ -130,7 +130,7 @@ Each change is declared as an element of concept Change:
 ---
 spec_version: "V_0-4-0"
 parent_spec: "changes"
-blueprint_version: "0.1.0"
+blueprint_version: "V_0-1-0"
 status: proposed
 proposal_sha: "<64-character-sha256-hex>"
 title: "<Changeset Title>"
