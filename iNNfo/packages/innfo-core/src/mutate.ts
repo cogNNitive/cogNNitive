@@ -440,8 +440,8 @@ function matchesElement(e: ElementNode, target: string): boolean {
 function updateField(model: ParsedKnowledge, args: Record<string, unknown>): MutationResult {
   let elementName = (args.elementName as string) || (args.elementSlug as string) || (args.slug as string) || ''
   let fieldName = (args.fieldName as string) || ''
-  let conceptName = (args.conceptName as string) || ''
-  let val = args.value !== undefined ? args.value : args.to
+  const conceptName = (args.conceptName as string) || ''
+  const val = args.value !== undefined ? args.value : args.to
 
   if (args.target && typeof args.target === 'string') {
     let clean = args.target.trim()
@@ -515,11 +515,11 @@ function updateMatrixCell(
   model: ParsedKnowledge,
   args: Record<string, unknown>,
 ): MutationResult {
-  let matrixName = (args.matrixName as string) || ''
+  const matrixName = (args.matrixName as string) || ''
   let matrixSlug = (args.matrixSlug as string) || ''
   let row = (args.row as string) || ''
   let col = (args.col as string) || ''
-  let val = args.value !== undefined ? String(args.value) : (args.to !== undefined ? String(args.to) : undefined)
+  const val = args.value !== undefined ? String(args.value) : (args.to !== undefined ? String(args.to) : undefined)
 
   if (args.target && typeof args.target === 'string') {
     let clean = args.target.trim()

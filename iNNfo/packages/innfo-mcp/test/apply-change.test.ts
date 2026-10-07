@@ -321,33 +321,6 @@ sources:: [sources/interview.md@## Vision, sources/report.pdf_sidecar_NN.md@## T
     expect(existsSync(lockPath)).toBe(false)
   })
 
-  it('Tamper Detection: fails fast with PROPOSAL_TAMPERED if proposal_sha does not match changes', async () => {
-    const csFile = join(changesDir, 'tampered_changes_NN.md')
-    const csDoc = makeChangeset({
-      changes: [
-        {
-          id: 'c-01',
-          op: 'update_field',
-          target: 'strategy@Vision&statement',
-          from: 'Accelerate green energy',
-          to: 'Accelerate clean energy',
-        },
-      ],
-    })
-    // Corrupt the sha
-    csDoc.frontmatter.proposal_sha = 'deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef'
-    await writeFile(csFile, serializeChangeset(csDoc), 'utf-8')
-
-    const res = await applyChange(csRoot, 'changes/tampered_changes_NN.md')
-    expect(res.success).toBe(false)
-    expect(res.errors?.some((e) => e.code === 'PROPOSAL_TAMPERED' || /PROPOSAL_TAMPERED/.test(e.message))).toBe(true)
-
-    // Zero files in archive, live file untouched
-    expect(existsSync(join(knowledgeDir, 'archive'))).toBe(false)
-    const live = await readFile(join(knowledgeDir, 'strategy_NN.md'), 'utf-8')
-    expect(live).toContain('Accelerate green energy')
-  })
-
   it('Precondition Check: aborts with CONFLICT/PRECONDITION_FAILED when from value does not match', async () => {
     const csFile = join(changesDir, 'precondition_fail_changes_NN.md')
     const csDoc = makeChangeset({

@@ -188,6 +188,30 @@ describe('innfo-mcp server (dispatch/handler layer, real MCP client/server round
     expect(textOf(result2 as CallToolResult)).toBe('Unknown tool: list_models')
   })
 
+  describe('apply_change dispatch (changeset vs legacy bare calls)', () => {
+    it('rejects when neither changeset nor (id, op) is provided', async () => {
+      const result = await client.callTool({ name: 'apply_change', arguments: {} })
+      expect(result.isError).toBe(true)
+      expect(textOf(result as CallToolResult)).toMatch(/Missing required arguments/)
+    })
+
+    it('routes changeset_path to the changeset engine', async () => {
+      const result = await client.callTool({
+        name: 'apply_change',
+        arguments: { changeset_path: 'changes/does_not_exist_changes_NN.md' },
+      })
+      expect(textOf(result as CallToolResult)).toMatch(/Failed to read changeset file/)
+    })
+
+    it('routes the changeset alias to the changeset engine', async () => {
+      const result = await client.callTool({
+        name: 'apply_change',
+        arguments: { changeset: 'changes/does_not_exist_changes_NN.md' },
+      })
+      expect(textOf(result as CallToolResult)).toMatch(/Failed to read changeset file/)
+    })
+  })
+
   describe('list_knowledge', () => {
     const docFrontmatter = [
       '---',
