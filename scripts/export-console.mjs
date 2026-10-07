@@ -578,6 +578,7 @@ async function main() {
         meta: {
           title: basename(root) + ' Domain',
           model: basename(root),
+          modelId: basename(root),
           modelVersion: 'V_1-0-0',
           generated: new Date().toISOString(),
         },
