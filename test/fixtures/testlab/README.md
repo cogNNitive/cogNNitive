@@ -4,6 +4,7 @@ Synthetic English-only test domain. It exercises every field type, the Concept 1
 
 ## Layout
 
+- `domaiNN_NN.md` — workspace manifest (entrypoint the app opens; declares the model below).
 - `specs/TestLab_V_0-1-0_spec_NN.md` — Level 2 blueprint (Concept 1, Concept 2, Edge Cases).
 - `kNNowledge/TestLab_coverage_TestLab_NN.md` — Level 3 model. `parent_spec.url` is repo-relative; validate with the repo root as MCP root.
 - `sources/import/` — primary sources. Binaries (`pdf`, `png`, `mp4`, `mp3`) are placeholders; always cite their `*_sidecar_NN.md`.
