@@ -587,7 +587,10 @@ async function main() {
       },
     }
 
-    const domainHtml = renderConsole(resolvedShell, null, config, domainPayload)
+    let domainHtml = renderConsole(resolvedShell, null, config, domainPayload)
+    if (!domainHtml.includes('data-theme=')) {
+      domainHtml = domainHtml.replace('<html lang="en">', '<html lang="en" data-theme="light">')
+    }
     await writeFile(domainHtmlPath, domainHtml, 'utf-8')
     if (bundle) {
       await writeFile(join(root, 'innfo-console.bundle.js'), bundle, 'utf-8')

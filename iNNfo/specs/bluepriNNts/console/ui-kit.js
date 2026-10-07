@@ -140,8 +140,10 @@
     '.innfo-rail-progress{color:var(--innfo-muted);font-size:.75rem}',
     '.innfo-review-toggle,.innfo-changed-filter{appearance:none;border:1px solid var(--innfo-border);background:var(--innfo-surface);color:var(--innfo-text);font:inherit;font-size:.82rem;font-weight:600;padding:6px 14px;border-radius:var(--innfo-radius-sm);cursor:pointer}',
     '.innfo-review-toggle[aria-pressed=true],.innfo-changed-filter[aria-pressed=true]{background:var(--innfo-accent);color:var(--innfo-surface)}',
-    '.innfo-review-anchor{appearance:none;border:1px solid var(--innfo-border);background:var(--innfo-surface-2);color:var(--innfo-text);font:inherit;font-size:.75rem;padding:.05em .4em;border-radius:var(--innfo-radius-sm);cursor:pointer;margin-left:.4em}',
-    '.innfo-review-anchor:focus-visible{outline:2px solid var(--innfo-focus);outline-offset:1px}',
+    '.innfo-review-anchor{appearance:none;border:1px solid var(--innfo-border);background:var(--innfo-surface-2);color:var(--innfo-text);font:inherit;font-size:.78rem;padding:.1em .45em;border-radius:var(--innfo-radius-sm);cursor:pointer;margin-left:.4em;opacity:.35;transition:opacity .15s ease, background .15s ease}',
+    '.innfo-review-anchor:hover{opacity:1;background:var(--innfo-surface);border-color:var(--innfo-focus)}',
+    '[data-innfo-component=element-card]:hover .innfo-review-anchor,[data-innfo-component=field-row]:hover .innfo-review-anchor{opacity:.85}',
+    '.innfo-review-anchor:focus-visible{outline:2px solid var(--innfo-focus);outline-offset:1px;opacity:1}',
     '.innfo-reviewed-toggle{appearance:none;border:1px solid var(--innfo-border);background:var(--innfo-surface-2);color:var(--innfo-text);font:inherit;font-size:.72rem;padding:.1em .5em;border-radius:var(--innfo-radius-sm);cursor:pointer;margin-left:.4em}',
     '.innfo-reviewed-toggle[data-state=reviewed]{color:var(--innfo-status-applied);background:var(--innfo-status-applied-bg)}',
     '.innfo-reviewed-toggle[data-state=changed]{color:var(--innfo-status-stale);background:var(--innfo-status-stale-bg)}',
@@ -167,6 +169,16 @@
     '.innfo-edit-btn{padding:7px 16px;border-radius:var(--innfo-radius-sm);font:inherit;font-size:.85rem;font-weight:600;cursor:pointer}',
     '.innfo-edit-btn-save{background:var(--innfo-accent);color:var(--innfo-bg);border:1px solid var(--innfo-accent)}',
     '.innfo-edit-btn-cancel{background:var(--innfo-surface);color:var(--innfo-text);border:1px solid var(--innfo-border)}',
+    '.innfo-modal-tabs{display:flex;border-bottom:1px solid var(--innfo-border);background:var(--innfo-surface-2);padding:0 12px;gap:4px}',
+    '.innfo-modal-tab-btn{padding:8px 16px;border:none;border-bottom:2px solid transparent;background:transparent;color:var(--innfo-muted);font:inherit;font-size:.85rem;font-weight:600;cursor:pointer}',
+    '.innfo-modal-tab-btn.active{color:var(--innfo-text);border-bottom-color:var(--innfo-accent);background:var(--innfo-surface)}',
+    '.innfo-modal-tab-panel{padding:20px}',
+    '.innfo-history-section{margin-bottom:16px}',
+    '.innfo-history-title{font-size:.85rem;font-weight:700;margin:0 0 8px;color:var(--innfo-text)}',
+    '.innfo-history-item{padding:8px 10px;border:1px solid var(--innfo-border);border-radius:var(--innfo-radius-sm);background:var(--innfo-surface-2);margin-bottom:6px;font-size:.82rem}',
+    '.innfo-history-meta{color:var(--innfo-muted);font-size:.75rem;margin-bottom:3px}',
+    '.innfo-history-notes{font-weight:500;color:var(--innfo-text)}',
+    '.innfo-history-empty{color:var(--innfo-muted);font-size:.82rem;font-style:italic}',
   ]
   for (var slot = 1; slot <= 12; slot++) {
     COMPONENT_CSS.push(
@@ -682,7 +694,19 @@
     head.appendChild(closeBtn)
     modal.appendChild(head)
 
-    var body = makeEl(doc, 'div', 'innfo-edit-modal-body')
+    // Unified Modal Navigation: Tabs (Edit vs History & Provenance)
+    var navTabs = makeEl(doc, 'div', 'innfo-modal-tabs')
+    var tabBtnEdit = makeEl(doc, 'button', 'innfo-modal-tab-btn active', 'Edit')
+    tabBtnEdit.setAttribute('type', 'button')
+    var tabBtnHistory = makeEl(doc, 'button', 'innfo-modal-tab-btn', 'History & Provenance')
+    tabBtnHistory.setAttribute('type', 'button')
+    navTabs.appendChild(tabBtnEdit)
+    navTabs.appendChild(tabBtnHistory)
+    modal.appendChild(navTabs)
+
+    // Panel 1: Edit Form
+    var panelEdit = makeEl(doc, 'div', 'innfo-modal-tab-panel innfo-edit-modal-body')
+    panelEdit.setAttribute('data-tab', 'edit')
 
     // Mode Selector: Propose Value vs Comment (D15)
     var modeWrap = makeEl(doc, 'div', 'innfo-edit-mode-selector')
@@ -693,7 +717,7 @@
     btnComment.setAttribute('type', 'button')
     modeWrap.appendChild(btnPropose)
     modeWrap.appendChild(btnComment)
-    body.appendChild(modeWrap)
+    panelEdit.appendChild(modeWrap)
 
     var formPropose = makeEl(doc, 'div', 'innfo-edit-form-propose')
     formPropose.style.display = isComment ? 'none' : 'block'
@@ -747,9 +771,63 @@
     fieldsContainer.appendChild(widgetRef)
     formPropose.appendChild(fieldsContainer)
 
-    body.appendChild(formPropose)
-    body.appendChild(formComment)
-    modal.appendChild(body)
+    panelEdit.appendChild(formPropose)
+    panelEdit.appendChild(formComment)
+    modal.appendChild(panelEdit)
+
+    // Panel 2: History & Provenance
+    var panelHistory = makeEl(doc, 'div', 'innfo-modal-tab-panel innfo-history-modal-body')
+    panelHistory.setAttribute('data-tab', 'history')
+    panelHistory.style.display = 'none'
+
+    // History section
+    var histSection = makeEl(doc, 'div', 'innfo-history-section')
+    histSection.appendChild(makeEl(doc, 'h3', 'innfo-history-title', 'Changeset Lineage & Revision History'))
+    var historyItems = Array.isArray(data.history) ? data.history : []
+    if (historyItems.length) {
+      historyItems.forEach(function (h) {
+        var item = makeEl(doc, 'div', 'innfo-history-item')
+        var metaStr = (h.author ? 'Author: ' + h.author : '') + (h.timestamp ? ' \u2022 ' + h.timestamp : '')
+        item.appendChild(makeEl(doc, 'div', 'innfo-history-meta', metaStr))
+        if (h.notes) item.appendChild(makeEl(doc, 'div', 'innfo-history-notes', h.notes))
+        histSection.appendChild(item)
+      })
+    } else {
+      histSection.appendChild(makeEl(doc, 'div', 'innfo-history-empty', 'No recorded prior changesets.'))
+    }
+    panelHistory.appendChild(histSection)
+
+    // Provenance & Citations section
+    var citeSection = makeEl(doc, 'div', 'innfo-history-section')
+    citeSection.appendChild(makeEl(doc, 'h3', 'innfo-history-title', 'Source Provenance & Citations'))
+    var citeItems = Array.isArray(data.citations) ? data.citations : []
+    if (citeItems.length) {
+      citeItems.forEach(function (c) {
+        var item = makeEl(doc, 'div', 'innfo-history-item')
+        var srcStr = (c.origin ? '[' + c.origin + '] ' : '') + (c.source || '')
+        item.appendChild(makeEl(doc, 'div', 'innfo-history-meta', srcStr))
+        if (c.quote) item.appendChild(makeEl(doc, 'div', 'innfo-history-notes', '"' + c.quote + '"'))
+        citeSection.appendChild(item)
+      })
+    } else {
+      citeSection.appendChild(makeEl(doc, 'div', 'innfo-history-empty', 'No origin citations linked.'))
+    }
+    panelHistory.appendChild(citeSection)
+    modal.appendChild(panelHistory)
+
+    // Tab switcher events
+    tabBtnEdit.addEventListener('click', function () {
+      tabBtnEdit.className = 'innfo-modal-tab-btn active'
+      tabBtnHistory.className = 'innfo-modal-tab-btn'
+      panelEdit.style.display = 'block'
+      panelHistory.style.display = 'none'
+    })
+    tabBtnHistory.addEventListener('click', function () {
+      tabBtnHistory.className = 'innfo-modal-tab-btn active'
+      tabBtnEdit.className = 'innfo-modal-tab-btn'
+      panelEdit.style.display = 'none'
+      panelHistory.style.display = 'block'
+    })
 
     var actions = makeEl(doc, 'div', 'innfo-edit-modal-actions')
     var saveBtn = makeEl(doc, 'button', 'innfo-edit-btn innfo-edit-btn-save', 'Save draft')

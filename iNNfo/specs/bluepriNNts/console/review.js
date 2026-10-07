@@ -338,6 +338,12 @@
           schemaField = options.schema.fields.filter(function (f) { return f.name === anchorData.field })[0]
         }
         var fieldType = schemaField && schemaField.type ? schemaField.type : (typeof fieldVal === 'number' ? 'number' : typeof fieldVal === 'boolean' ? 'boolean' : 'string')
+        var citations = []
+        if (Array.isArray(elForEdit.citations)) {
+          citations = elForEdit.citations.filter(function (c) {
+            return !c.field || c.field === anchorData.field
+          })
+        }
         var modal = UI.EditModal({
           title: 'Edit ' + (elForEdit.name || anchorData.elementId) + ' \u2192 ' + anchorData.field,
           fieldName: anchorData.field,
@@ -345,6 +351,8 @@
           value: fieldVal,
           options: schemaField ? schemaField.options : undefined,
           candidates: schemaField && (schemaField.type === 'reference' || fieldType === 'reference') ? elements : undefined,
+          citations: citations,
+          history: Array.isArray(elForEdit.history) ? elForEdit.history : [],
           isComment: false,
         }, {
           doc: doc,

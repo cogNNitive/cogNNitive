@@ -341,5 +341,51 @@ describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
       assert.match(res.text, /op:: remove_element/)
       assert.match(res.text, /target:: BusinessModel@legacy_tier/)
     })
+
+    it('renders tab headers for "Edit" and "History & Provenance" in unified modal', () => {
+      let saved = null
+      const modal = UI.EditModal(
+        {
+          title: 'Unified Modal Test',
+          fieldName: 'relationship_model',
+          type: 'string',
+          value: 'Founder',
+          history: [
+            { author: 'Jane Doe', timestamp: '2026-10-07T12:00:00Z', notes: 'Initial definition' },
+          ],
+          citations: [
+            { origin: 'document', source: 'handbook.md@12', quote: 'Founding member agreement' },
+          ],
+        },
+        { doc: document, onSave: (r) => { saved = r } },
+      )
+      document.body.appendChild(modal)
+
+      const tabs = modal.querySelectorAll('.innfo-modal-tab-btn')
+      assert.equal(tabs.length, 2, 'Renders exactly 2 tabs')
+      assert.equal(tabs[0].textContent, 'Edit')
+      assert.equal(tabs[1].textContent, 'History & Provenance')
+
+      const tabEdit = modal.querySelector('.innfo-modal-tab-panel[data-tab="edit"]')
+      const tabHistory = modal.querySelector('.innfo-modal-tab-panel[data-tab="history"]')
+      assert.ok(tabEdit, 'Edit tab panel exists')
+      assert.ok(tabHistory, 'History tab panel exists')
+
+      // Default active tab is edit
+      assert.equal(tabEdit.style.display !== 'none', true)
+      assert.equal(tabHistory.style.display, 'none')
+
+      // Clicking history tab switches view
+      tabs[1].dispatchEvent(new window.Event('click', { bubbles: true }))
+      assert.equal(tabEdit.style.display, 'none')
+      assert.equal(tabHistory.style.display !== 'none', true)
+
+      // Verify history and provenance contents rendered
+      assert.match(tabHistory.textContent, /Jane Doe/)
+      assert.match(tabHistory.textContent, /Initial definition/)
+      assert.match(tabHistory.textContent, /handbook\.md@12/)
+      assert.match(tabHistory.textContent, /Founding member agreement/)
+    })
   })
 })
+
