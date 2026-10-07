@@ -1283,7 +1283,9 @@ and the change-log half of `feature/kb-change-governance`.
 
 ## 30. `chore/trannsformations-vigencia` — evaluate whether `traNNsformations/` is still vigente
 
-**Type:** chore / decision · **Size:** small · **Added:** 2026-10-07
+**Type:** chore / decision · **Size:** small · **Status:** decided (2026-10-07, keep + document)
+
+**Decision:** KEEP. `traNNsformations/` is live code (single-shot `--apply` templates via `transformer.js`), a different concept from multi-step `procedures/` SOPs. Documented the templates-vs-procedures rule in `skills/nn-trannsform/SKILL.md` (section 5 table + note). No merge, no rename — the CLI vocabulary depends on it.
 
 **Situation today (verified):** `traNNsformations/` is NOT dead, but it is
 near-vestigial. It holds single-shot transformation templates applied with
