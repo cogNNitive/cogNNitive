@@ -92,6 +92,7 @@ export interface ConceptField {
 
 export interface Concept {
   name: string
+  slug?: string
   parent?: string
   icon?: string
   type: ConceptType
@@ -119,6 +120,7 @@ export interface Marker {
 
 export interface MatrixDecl {
   name: string
+  slug?: string
   source: string
   target: string
   params: string
@@ -155,6 +157,8 @@ export interface SpecFrontmatter {
   spec_version: string
   spec_url: string
   level: SpecLevel
+  model_slug?: string
+  workspace_id?: string
   parent?: string | ParentRef
   parent_spec?: ParentRef
   /**

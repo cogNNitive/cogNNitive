@@ -1,0 +1,91 @@
+/**
+ * Changeset data models, types, and interfaces.
+ * Normative document model for changesets conforming to blueprint 'changes'.
+ */
+
+export type ChangeOp =
+  | 'update_field'
+  | 'add_element'
+  | 'remove_element'
+  | 'rename_element'
+  | 'rename_concept'
+  | 'update_matrix_cell'
+  | 'comment'
+
+export type ChangeStatus = 'proposed' | 'applied' | 'rejected' | 'conflict'
+
+export interface ChangeItem {
+  id: string
+  op: ChangeOp
+  /** Canonical D5 target address: model@element&field or model@matrix&row&col or model@concept */
+  target: string
+  from?: string
+  to?: string
+  concept?: string
+  name?: string
+  slug?: string
+  fields?: Record<string, string>
+  author?: string
+  notes?: string
+  /** Execution / Resolution annotations (excluded from proposal_sha) */
+  status?: ChangeStatus
+  resolution?: string
+  resolved_slug?: string
+}
+
+export interface ModelVersionTransition {
+  base_version: string
+  result_version: string
+}
+
+export interface ChangesetFrontmatter {
+  spec_version: string
+  parent_spec: 'changes' | string
+  blueprint_version: string
+  status: ChangeStatus
+  /** Deterministic SHA-256 seal computed over canonical proposed changes */
+  proposal_sha: string
+  applied_at?: string
+  /** Map of affected model slugs to base and result versions */
+  models?: Record<string, ModelVersionTransition>
+  title?: string
+  author?: string
+  workspace_id?: string
+  [key: string]: unknown
+}
+
+export interface ChangesetDocument {
+  frontmatter: ChangesetFrontmatter
+  changes: ChangeItem[]
+  rawContent?: string
+}
+
+export interface ChangesetApplyResult {
+  success: boolean
+  changesetPath: string
+  status: ChangeStatus
+  models: Record<string, ModelVersionTransition>
+  appliedCount: number
+  errors?: Array<{ path: string; message: string; code?: string }>
+  warnings?: Array<{ path: string; message: string }>
+}
+
+export interface SnapshotRecord {
+  modelStem: string
+  baseVersion: string
+  timestamp: string
+  changesetStem: string
+  archivePath: string
+}
+
+export interface LockPayload {
+  pid: number
+  timestamp: number
+  changeset: string
+}
+
+export interface LockHandle {
+  lockPath: string
+  payload: LockPayload
+  release: () => Promise<void>
+}

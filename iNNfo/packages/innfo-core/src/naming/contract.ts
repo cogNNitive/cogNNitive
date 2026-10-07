@@ -102,6 +102,7 @@ export type Role =
   | 'knowledge'
   | 'source'
   | 'artifact'
+  | 'changeset'
 
 /**
  * Workspace roots whose contents are never discovered, cited, or projected.
@@ -113,7 +114,7 @@ export const IGNORED_DIRECTORIES: ReadonlySet<string> = new Set(['backups', 'arc
  * Parent-spec names whose Level-3 documents are never models (any version,
  * any `_suffix`). Maps the leading token to the role those documents play.
  */
-const NON_KNOWLEDGE_BLUEPRINT_RE = /^(cognnitive|workspace|procedures|sources|artifacts|sidecar)(?:_|$)/i
+const NON_KNOWLEDGE_BLUEPRINT_RE = /^(cognnitive|workspace|procedures|sources|artifacts|sidecar|changes)(?:_|$)/i
 
 function segmentsOf(path: string): string[] {
   return path.replace(/\\/g, '/').split('/').filter((s) => s && s !== '.')
@@ -134,6 +135,8 @@ export function roleOf(i: { path: string; parentSpecName?: string; hasSidecar?: 
       return 'lineage-record'
     case 'sidecar':
       return 'sidecar'
+    case 'changes':
+      return 'changeset'
     case 'procedures':
       return parsed.stem.toLowerCase() === 'procedures' ? 'catalog' : 'procedure'
     case 'workspace':
@@ -145,11 +148,11 @@ export function roleOf(i: { path: string; parentSpecName?: string; hasSidecar?: 
   }
 }
 
-/** Scope rule (not a role): ignored roots, any `staging` segment, any dot-prefixed segment. */
+/** Scope rule (not a role): ignored roots, any `archive` or `staging` segment, any dot-prefixed segment. */
 export function isExcludedPath(path: string): boolean {
   const segs = segmentsOf(path)
   if (segs.length > 0 && IGNORED_DIRECTORIES.has(segs[0])) return true
-  return segs.some((s) => s === 'staging' || (s.startsWith('.') && s !== '..'))
+  return segs.some((s) => s === 'archive' || s === 'staging' || (s.startsWith('.') && s !== '..'))
 }
 
 /** Family identity `(dir, key, ext)`; `null` for `_NN.md` documents, which are not write-once families. */

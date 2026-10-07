@@ -10,6 +10,9 @@ import {
   rawPathOfSidecar,
   displayStem,
   procedureIdOf,
+  isExcludedPath,
+  roleOf,
+  isModelCandidate,
 } from '../../src/naming/contract.js'
 
 describe('naming contract constants', () => {
@@ -187,3 +190,45 @@ describe('entry points', () => {
     }
   })
 })
+
+describe('deep archive exclusion & changeset role', () => {
+  it('excludes archive directory at any depth', () => {
+    expect(isExcludedPath('kNNowledge/archive/model_NN.md')).toBe(true)
+    expect(isExcludedPath('sources/archive/data.csv')).toBe(true)
+    expect(isExcludedPath('deeply/nested/archive/file_NN.md')).toBe(true)
+    expect(isExcludedPath('kNNowledge/pricing_NN.md')).toBe(false)
+  })
+
+  it('classifies changes blueprint documents as changeset role', () => {
+    expect(roleOf({ path: 'changes/c1_changes_NN.md', parentSpecName: 'changes' })).toBe('changeset')
+    expect(
+      roleOf({
+        path: 'changes/workspace_agent_20261007T120000Z_changes_NN.md',
+        parentSpecName: 'changes',
+      }),
+    ).toBe('changeset')
+  })
+
+  it('excludes changeset documents from model discovery', () => {
+    expect(
+      isModelCandidate({
+        path: 'changes/c1_changes_NN.md',
+        frontmatter: {
+          level: 3,
+          parent_spec: 'changes',
+        },
+      }),
+    ).toBe(false)
+    expect(
+      isModelCandidate({
+        path: 'changes/workspace_agent_20261007T120000Z_changes_NN.md',
+        frontmatter: {
+          level: 3,
+          parent_spec: { name: 'changes' },
+        },
+      }),
+    ).toBe(false)
+  })
+})
+
+

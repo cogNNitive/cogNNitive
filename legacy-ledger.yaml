@@ -107,3 +107,11 @@ entries:
     why: Delivers the layout migration to users through the existing consent-gated upgrade flow
     removal: "every non-frozen repo domaiNN and fixture reports current + a skills-v release shipping the migrator + maintainer-sign-off"
     owner: 2026-10-02-cognitivize-in-place
+
+  - id: lineage-reference-name-fallback
+    what: Fallback resolution by element display name for un-slugged references
+    paths:
+      - iNNfo/packages/innfo-core/src/validator/references.ts
+    why: Maintain backwards compatibility for references targeting models that do not use explicit slugs
+    removal: all-models-slug-frozen + maintainer-sign-off
+    owner: 2026-10-07-stable-element-identity

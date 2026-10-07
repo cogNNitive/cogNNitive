@@ -129,9 +129,9 @@ summary:: Probe with no sources field on purpose.
 long_description:: No sources property here at all. Omission is legal: the element simply has no citation edges, and lineage queries must return empty instead of erroring.
 Absence of sources is valid.
 
-# NN matrices
-
-## NN Concept 1-Concept 2 Matrix
-Element 1A <> Element 2A: relevant
-Element 1C <> Element 2B: relevant
-Element 1B <> Element 2A: archived
+# NN matrices: Concept 1-Concept 2 Matrix
+| Concept 1 \ Concept 2 | Element 2A | Element 2B |
+| :--- | :---: | :---: |
+| Element 1A | relevant | - |
+| Element 1B | archived | - |
+| Element 1C | - | relevant |

@@ -38,9 +38,12 @@ function normalizeSlot(slotStr: string): string {
 
 describe('Console Golden Parity (MCP build_console_payload vs CLI export-console)', () => {
   let tempDir: string
+  let oldCacheDir: string | undefined
 
   beforeEach(async () => {
+    oldCacheDir = process.env.INNFO_CACHE_DIR
     tempDir = await mkdtemp(join(tmpdir(), 'console-golden-test-'))
+    process.env.INNFO_CACHE_DIR = join(tempDir, '.cache')
     const modelsDir = join(tempDir, 'models')
     const sourcesDir = join(tempDir, 'sources')
     const blueprintsDir = join(tempDir, 'specs', 'bluepriNNts', 'business')
@@ -123,6 +126,11 @@ parent_spec:
   })
 
   afterEach(async () => {
+    if (oldCacheDir !== undefined) {
+      process.env.INNFO_CACHE_DIR = oldCacheDir
+    } else {
+      delete process.env.INNFO_CACHE_DIR
+    }
     if (tempDir && existsSync(tempDir)) {
       await rm(tempDir, { recursive: true, force: true })
     }
@@ -130,7 +138,9 @@ parent_spec:
 
   it('MCP slot strings match CLI slot text exactly and procedure outputPath reports fresh in status', async () => {
     // 1. Export via CLI
-    const cliRes = await runCli([tempDir, '--all'])
+    const cliRes = await runCli([tempDir, '--all'], {
+      env: { INNFO_CACHE_DIR: join(tempDir, '.cache') },
+    })
     expect(cliRes.code).toBe(0)
 
     // The CLI writes a new suffixed member of the console family; the MCP outputPath names the family.

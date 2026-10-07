@@ -345,8 +345,96 @@ function validateUnitPointer(
     case 'pointer':
       validatePointerUnit(ref, unit.pointer, resolved, path, diagnostics, site)
       return
+    case 'element':
+      validateElementUnit(ref, unit.slug, subunits, resolved, path, diagnostics, site)
+      return
+    case 'matrix':
+      validateMatrixUnit(ref, unit.matrixSlug, unit.rowSlug, unit.colSlug, resolved, path, diagnostics, site)
+      return
     default:
       return assertNever(unit, 'knowledge unit kind')
+  }
+}
+
+function validateElementUnit(
+  ref: SourceRef,
+  slug: string,
+  subunits: string[],
+  resolved: { content?: string },
+  path: string,
+  diagnostics: CitationDiagnostic[],
+  site: CitationSite,
+): void {
+  if (!resolved.content) return
+  const unitResult = resolveUnit(resolved.content, ref)
+  if (!unitResult) {
+    if (subunits.length > 0) {
+      const baseRef: SourceRef = { ...ref, subunits: [] }
+      const baseResult = resolveUnit(resolved.content, baseRef)
+      if (!baseResult) {
+        diagnostics.push({
+          path,
+          message: `Source reference "${ref.raw}" points at element "@${slug}" which does not exist in "${ref.fileName}"`,
+          severity: 'error',
+          code: 'KU_UNKNOWN_ELEMENT_SLUG',
+          site,
+          target: ref.filePath,
+        })
+      } else {
+        diagnostics.push({
+          path,
+          message: `Source reference "${ref.raw}" points at field "&${subunits[0]}" which does not exist in element "@${slug}" of "${ref.fileName}"`,
+          severity: 'error',
+          code: 'KU_FIELD_OUTSIDE_SECTION',
+          site,
+          target: ref.filePath,
+        })
+      }
+    } else {
+      diagnostics.push({
+        path,
+        message: `Source reference "${ref.raw}" points at element "@${slug}" which does not exist in "${ref.fileName}"`,
+        severity: 'error',
+        code: 'KU_UNKNOWN_ELEMENT_SLUG',
+        site,
+        target: ref.filePath,
+      })
+    }
+  }
+}
+
+function validateMatrixUnit(
+  ref: SourceRef,
+  matrixSlug: string,
+  rowSlug: string | undefined,
+  colSlug: string | undefined,
+  resolved: { content?: string },
+  path: string,
+  diagnostics: CitationDiagnostic[],
+  site: CitationSite,
+): void {
+  if (!resolved.content) return
+  const unitResult = resolveUnit(resolved.content, ref)
+  if (!unitResult) {
+    if (rowSlug && colSlug) {
+      diagnostics.push({
+        path,
+        message: `Source reference "${ref.raw}" points at matrix cell "&${rowSlug}&${colSlug}" which does not resolve in "${ref.fileName}"`,
+        severity: 'error',
+        code: 'KU_UNKNOWN_MATRIX_CELL',
+        site,
+        target: ref.filePath,
+      })
+    } else {
+      diagnostics.push({
+        path,
+        message: `Source reference "${ref.raw}" points at matrix "@${matrixSlug}" which does not exist in "${ref.fileName}"`,
+        severity: 'error',
+        code: 'KU_UNKNOWN_MATRIX_SLUG',
+        site,
+        target: ref.filePath,
+      })
+    }
   }
 }
 
