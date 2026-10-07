@@ -588,6 +588,9 @@ async function main() {
 
     const domainHtml = renderConsole(resolvedShell, null, config, domainPayload)
     await writeFile(domainHtmlPath, domainHtml, 'utf-8')
+    if (bundle) {
+      await writeFile(join(root, 'innfo-console.bundle.js'), bundle, 'utf-8')
+    }
     console.log(`✔ domaiNN_console.html → ./domaiNN_console.html (${candidateModels.length} models, ${allElements.length} elements)`)
   }
 
