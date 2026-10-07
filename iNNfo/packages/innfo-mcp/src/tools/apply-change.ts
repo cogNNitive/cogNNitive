@@ -15,6 +15,9 @@ import {
   parseChangeset,
   serializeChangeset,
   rewriteFieldCitation,
+  resolveBatchSlugs,
+  evaluateBatchDeleteImpact,
+  partitionChangeset,
 } from '@cognnitive/innfo-core'
 import type {
   SpecDocument,
@@ -38,6 +41,7 @@ export interface ApplyChangeResult {
   status?: ChangeStatus | string
   models?: Record<string, ModelVersionTransition>
   appliedCount?: number
+  conflictedCount?: number
   model?: ParsedKnowledge
   newPath?: string
   errors?: Array<{ path: string; message: string; code?: string }>
@@ -100,13 +104,15 @@ async function findAllWorkspaceModelFiles(
   const entries = await readdir(dir, { withFileTypes: true }).catch(() => [])
   for (const entry of entries) {
     if (entry.isDirectory()) {
-      if (entry.name.startsWith('.') || ignore.has(entry.name.toLowerCase())) continue
+      const lowerDir = entry.name.toLowerCase()
+      if (entry.name.startsWith('.') || ignore.has(lowerDir) || lowerDir === 'changes' || lowerDir === 'archive') continue
       const sub = await findAllWorkspaceModelFiles(join(dir, entry.name), ignore, rootDir)
       results.push(...sub)
     } else if (
       entry.isFile() &&
       isNNName(entry.name) &&
-      entry.name.toLowerCase() !== 'index.md'
+      entry.name.toLowerCase() !== 'index.md' &&
+      !entry.name.endsWith('_changes_NN.md')
     ) {
       // Only `_NN.md` files can carry model references. Without this the
       // pre-check reads non-model markdown (session transcripts under
@@ -116,7 +122,7 @@ async function findAllWorkspaceModelFiles(
       // cost seconds on large trees and tripped the test timeout.
       const filePath = join(dir, entry.name)
       const relPath = relative(rootDir, filePath).split('\\').join('/')
-      if (isExcludedPath(relPath)) continue
+      if (isExcludedPath(relPath) || relPath.startsWith('changes/') || relPath.includes('/archive/') || relPath.startsWith('archive/')) continue
       results.push(filePath)
     }
   }
@@ -644,7 +650,7 @@ export async function executeChangesetApply(
     }
 
     // 4. Idempotent replay check
-    if (csDoc.frontmatter.status === 'applied') {
+    if (csDoc.frontmatter.status === 'applied' || csDoc.frontmatter.status === 'partially_applied') {
       const recordedModels = csDoc.frontmatter.models ?? {}
       let allMatch = Object.keys(recordedModels).length > 0
       for (const [modelSlug, transition] of Object.entries(recordedModels)) {
@@ -669,22 +675,25 @@ export async function executeChangesetApply(
         }
       }
 
+      const csStatus = csDoc.frontmatter.status
       if (allMatch) {
         return {
           success: true,
           changesetPath: relChangesetPath,
-          status: 'applied',
+          status: csStatus,
           models: recordedModels,
           appliedCount: 0,
+          conflictedCount: csDoc.changes.filter((c) => c.status === 'conflict').length,
           warnings: [{ path: '', message: 'Idempotent replay: changeset already applied with matching model versions' }],
         }
       } else {
         return {
           success: true,
           changesetPath: relChangesetPath,
-          status: 'applied',
+          status: csStatus,
           models: recordedModels,
           appliedCount: 0,
+          conflictedCount: csDoc.changes.filter((c) => c.status === 'conflict').length,
           warnings: [{ path: '', message: 'Changeset already applied; no mutations performed' }],
         }
       }
@@ -736,96 +745,106 @@ export async function executeChangesetApply(
       }
     }
 
-    // Precondition checks (from value)
-    for (const change of csDoc.changes) {
-      if (change.op === 'comment') continue
-      if (change.from === undefined) continue
-
-      const { modelSlug, parts } = parseTargetAddress(change.target)
-      const entry = loadedModels.get(modelSlug.toLowerCase())
-      if (!entry) continue
-
-      if (change.op === 'update_field') {
-        const elIdent = parts[0]
-        const fieldIdent = parts.length > 1 ? parts[1] : ''
-        const found = findElementInModel(entry.model, change.concept, elIdent)
-
-        if (!found) {
-          return {
-            success: false,
-            changesetPath: relChangesetPath,
-            status: 'conflict',
-            models: {},
-            appliedCount: 0,
-            errors: [
-              {
-                path: change.target,
-                message: `PRECONDITION_FAILED: Target element "${elIdent}" not found in model "${modelSlug}"`,
-                code: 'PRECONDITION_FAILED',
-              },
-            ],
-          }
-        }
-
-        const currentVal = found.element.fields?.[fieldIdent] !== undefined
-          ? String(found.element.fields[fieldIdent])
-          : found.element.description !== undefined && fieldIdent === 'description'
-            ? String(found.element.description)
-            : ''
-
-        if (currentVal !== change.from) {
-          return {
-            success: false,
-            changesetPath: relChangesetPath,
-            status: 'conflict',
-            models: {},
-            appliedCount: 0,
-            errors: [
-              {
-                path: change.target,
-                message: `PRECONDITION_FAILED: Current field value "${currentVal}" does not match expected from value "${change.from}"`,
-                code: 'PRECONDITION_FAILED',
-              },
-            ],
-          }
-        }
-      } else if (change.op === 'update_matrix_cell') {
-        const matrixIdent = parts[0]
-        const rowIdent = parts[1]
-        const colIdent = parts[2]
-
-        const matrix = entry.model.matrices.find(
-          (m) =>
-            m.name.toLowerCase() === matrixIdent.toLowerCase() ||
-            (m as any).slug?.toLowerCase() === matrixIdent.toLowerCase(),
-        )
-        const cell = matrix?.cells.find(
-          (c) =>
-            c.row.toLowerCase() === rowIdent.toLowerCase() &&
-            c.col.toLowerCase() === colIdent.toLowerCase(),
-        )
-        const currentVal = cell ? String(cell.value) : ''
-        if (currentVal !== change.from) {
-          return {
-            success: false,
-            changesetPath: relChangesetPath,
-            status: 'conflict',
-            models: {},
-            appliedCount: 0,
-            errors: [
-              {
-                path: change.target,
-                message: `PRECONDITION_FAILED: Matrix cell value "${currentVal}" does not match expected from value "${change.from}"`,
-                code: 'PRECONDITION_FAILED',
-              },
-            ],
+    // Load workspace models (for delete impact analysis)
+    const workspaceModels = new Map<string, ParsedKnowledge>()
+    for (const [, v] of loadedModels) {
+      workspaceModels.set(v.modelSlug, v.model)
+      if (v.model.frontmatter.knowledge_slug) {
+        workspaceModels.set(v.model.frontmatter.knowledge_slug.toLowerCase(), v.model)
+      }
+    }
+    if (csDoc.changes.some((c) => c.op === 'remove_element')) {
+      const allFiles = await findAllWorkspaceModelFiles(rootDir, DEFAULT_WORKSPACE_IGNORE, rootDir)
+      for (const f of allFiles) {
+        const fStem = displayStem(basename(f)).toLowerCase()
+        if (!workspaceModels.has(fStem)) {
+          try {
+            const m = await loadKnowledge(f)
+            workspaceModels.set(fStem, m)
+            if (m.frontmatter.knowledge_slug) {
+              workspaceModels.set(m.frontmatter.knowledge_slug.toLowerCase(), m)
+            }
+          } catch {
+            // ignore unparseable
           }
         }
       }
     }
 
-    // Apply mutations in memory
-    for (const change of csDoc.changes) {
+    // D11: Batch Slug Resolution & Intra-Batch Rewriting
+    const loadedModelAsts = new Map<string, ParsedKnowledge>()
+    for (const [, v] of loadedModels) {
+      loadedModelAsts.set(v.modelSlug, v.model)
+      if (v.model.frontmatter.knowledge_slug) {
+        loadedModelAsts.set(v.model.frontmatter.knowledge_slug.toLowerCase(), v.model)
+      }
+    }
+    const slugResolution = resolveBatchSlugs(csDoc.changes, loadedModelAsts)
+    csDoc.changes = slugResolution.changes
+
+    // D12: Delete Impact Pre-Computation & Reference Scanning
+    const { matrixCascades, referenceConflicts } = evaluateBatchDeleteImpact(
+      csDoc.changes,
+      loadedModelAsts,
+      workspaceModels,
+    )
+
+    // D10: Precondition, Staleness & Reference Conflict Partitioning
+    const modelBaseVersions = new Map<string, string>()
+    for (const [, v] of loadedModels) {
+      modelBaseVersions.set(v.modelSlug, v.baseVersion)
+      if (v.model.frontmatter.knowledge_slug) {
+        modelBaseVersions.set(v.model.frontmatter.knowledge_slug.toLowerCase(), v.baseVersion)
+      }
+    }
+    const changesDir = join(rootDir, 'changes')
+    const { cleanSubset, conflictedSubset, conflictDiagnostics } = await partitionChangeset(
+      csDoc.changes,
+      loadedModelAsts,
+      changesDir,
+      modelBaseVersions,
+      referenceConflicts,
+    )
+
+    // All-Conflicted Exit Guard (D10): Zero model writes, zero snapshots
+    const actionableClean = cleanSubset.filter((c) => c.op !== 'comment')
+    if (actionableClean.length === 0) {
+      for (const change of csDoc.changes) {
+        if (change.op === 'comment') continue
+        change.status = 'conflict'
+        const diag = conflictDiagnostics.get(change.id)
+        change.resolution = diag ? diag.message : (change.resolution || 'Precondition failed')
+      }
+      csDoc.frontmatter.status = 'conflict'
+      csDoc.frontmatter.applied_at = new Date().toISOString()
+      const serializedCs = serializeChangeset(csDoc)
+      await writeFile(resolvedChangesetPath, serializedCs, 'utf-8')
+
+      return {
+        success: false,
+        changesetPath: relChangesetPath,
+        changeset: relChangesetPath,
+        status: 'conflict',
+        models: {},
+        appliedCount: 0,
+        conflictedCount: conflictedSubset.length,
+        errors: Array.from(conflictDiagnostics.values()).map((d) => ({
+          path: relChangesetPath,
+          message: d.message,
+          code: d.code,
+        })),
+      }
+    }
+
+    // Mark conflicted changes with conflict annotations
+    for (const change of conflictedSubset) {
+      change.status = 'conflict'
+      const diag = conflictDiagnostics.get(change.id)
+      change.resolution = diag ? diag.message : (change.resolution || 'Precondition failed')
+    }
+
+    // Apply mutations for clean subset in memory
+    for (const change of cleanSubset) {
       if (change.op === 'comment') continue
       const { modelSlug, parts, remainder } = parseTargetAddress(change.target)
       const entry = loadedModels.get(modelSlug.toLowerCase())
@@ -863,7 +882,7 @@ export async function executeChangesetApply(
         mutationArgs = {
           conceptName,
           elementName,
-          slug: change.slug,
+          slug: change.resolved_slug || change.slug,
           description: change.notes || '',
         }
         if (change.fields) {
@@ -917,6 +936,17 @@ export async function executeChangesetApply(
         }
       }
 
+      // Record successful resolution annotation
+      change.status = 'applied'
+      if (change.op === 'remove_element') {
+        const cascadedCount = mutRes.cascadedMatrixCells ?? (matrixCascades.get(change.id)?.length ?? 0)
+        change.resolution = cascadedCount > 0
+          ? `Removed element and cascaded ${cascadedCount} matrix cell(s)`
+          : 'Removed element successfully'
+      } else {
+        change.resolution = 'Applied successfully'
+      }
+
       // Citation rewriting per D20
       const citationRef = `${relChangesetPath}@## NN Change: ${change.id}`
       if (change.op === 'update_field') {
@@ -941,14 +971,14 @@ export async function executeChangesetApply(
       }
     }
 
-    // Bump knowledge_version in frontmatter of touched models
+    // Bump knowledge_version in frontmatter of touched models ONLY
     for (const [, entry] of loadedModels) {
       if (entry.mutated) {
         entry.model.frontmatter.knowledge_version = entry.nextVersion
       }
     }
 
-    // Schema validation across all touched models
+    // Schema validation across touched models ONLY
     for (const [, entry] of loadedModels) {
       if (!entry.mutated) continue
       let template: SpecDocument | null = null
@@ -982,7 +1012,7 @@ export async function executeChangesetApply(
       }
     }
 
-    // Phase 2: Atomic Persistence & Archival
+    // Phase 2: Atomic Persistence & Archival (touched models ONLY)
     const stamp = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z'
     const archiveDir = join(rootDir, 'kNNowledge', 'archive')
     await mkdir(archiveDir, { recursive: true })
@@ -1037,15 +1067,12 @@ export async function executeChangesetApply(
       }
     }
 
-    // Update changeset file on disk
-    for (const change of csDoc.changes) {
-      change.status = 'applied'
-      change.resolution = 'Applied successfully'
-      if (!change.resolved_slug && change.slug) {
-        change.resolved_slug = change.slug
-      }
-    }
-    csDoc.frontmatter.status = 'applied'
+    // Annotate changeset document
+    const totalActionable = csDoc.changes.filter((c) => c.op !== 'comment').length
+    const cleanAppliedCount = cleanSubset.filter((c) => c.op !== 'comment').length
+    const overallStatus: ChangeStatus = cleanAppliedCount === totalActionable ? 'applied' : 'partially_applied'
+
+    csDoc.frontmatter.status = overallStatus
     csDoc.frontmatter.applied_at = new Date().toISOString()
     csDoc.frontmatter.models = modelsTransitionMap
 
@@ -1056,9 +1083,10 @@ export async function executeChangesetApply(
       success: true,
       changesetPath: relChangesetPath,
       changeset: relChangesetPath,
-      status: 'applied',
+      status: overallStatus,
       models: modelsTransitionMap,
-      appliedCount: csDoc.changes.filter((c) => c.op !== 'comment').length,
+      appliedCount: cleanAppliedCount,
+      conflictedCount: conflictedSubset.length,
       model: loadedModels.size === 1 ? loadedModels.values().next().value?.model : undefined,
       newPath: loadedModels.size === 1 ? loadedModels.values().next().value?.filePath : undefined,
     }

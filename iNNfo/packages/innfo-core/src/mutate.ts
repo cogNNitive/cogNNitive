@@ -15,6 +15,7 @@ export interface MutationResult {
   success: boolean
   errors?: Array<{ path: string; message: string }>
   warnings?: Array<{ path: string; message: string }>
+  cascadedMatrixCells?: number
 }
 
 type RequireArgsResult =
@@ -592,6 +593,13 @@ function removeElement(model: ParsedKnowledge, args: Record<string, unknown>): M
   const { conceptName, elementName } = req.values
 
   const existingElements = model.elements.get(conceptName) ?? []
+  const targetEl = existingElements.find(
+    (e) =>
+      e.name.toLowerCase() === elementName.toLowerCase() ||
+      (e.slug && e.slug.toLowerCase() === elementName.toLowerCase()) ||
+      slugifyHeading(e.name).toLowerCase() === elementName.toLowerCase(),
+  )
+
   const filtered = existingElements.filter(
     (e) =>
       e.name.toLowerCase() !== elementName.toLowerCase() &&
@@ -602,7 +610,35 @@ function removeElement(model: ParsedKnowledge, args: Record<string, unknown>): M
     return { success: false, errors: [{ path: '', message: `Element "${elementName}" not found in concept "${conceptName}"` }] }
   }
   model.elements.set(conceptName, filtered)
-  return { success: true }
+
+  // Cascade matrix cell deletion
+  let cascadedCells = 0
+  if (model.matrices) {
+    const targetIdent = elementName.toLowerCase()
+    const targetSlug = targetEl?.slug?.toLowerCase()
+    const targetHeading = targetEl ? slugifyHeading(targetEl.name).toLowerCase() : undefined
+
+    for (const matrix of model.matrices) {
+      if (!matrix.cells) continue
+      const initialCount = matrix.cells.length
+      matrix.cells = matrix.cells.filter((c) => {
+        const rLower = c.row.toLowerCase()
+        const colLower = c.col.toLowerCase()
+        const rowMatches =
+          rLower === targetIdent ||
+          (targetSlug !== undefined && rLower === targetSlug) ||
+          (targetHeading !== undefined && rLower === targetHeading)
+        const colMatches =
+          colLower === targetIdent ||
+          (targetSlug !== undefined && colLower === targetSlug) ||
+          (targetHeading !== undefined && colLower === targetHeading)
+        return !rowMatches && !colMatches
+      })
+      cascadedCells += (initialCount - matrix.cells.length)
+    }
+  }
+
+  return { success: true, cascadedMatrixCells: cascadedCells }
 }
 
 /** Renames a `Concept Definition` element, re-pointing its `Field Definition`

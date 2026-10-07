@@ -12,7 +12,12 @@ export type ChangeOp =
   | 'update_matrix_cell'
   | 'comment'
 
-export type ChangeStatus = 'proposed' | 'applied' | 'rejected' | 'conflict'
+export type ChangeStatus =
+  | 'proposed'
+  | 'applied'
+  | 'partially_applied'
+  | 'rejected'
+  | 'conflict'
 
 export interface ChangeItem {
   id: string
@@ -63,11 +68,38 @@ export interface ChangesetDocument {
 export interface ChangesetApplyResult {
   success: boolean
   changesetPath: string
+  changeset?: string
   status: ChangeStatus
   models: Record<string, ModelVersionTransition>
   appliedCount: number
+  conflictedCount?: number
   errors?: Array<{ path: string; message: string; code?: string }>
   warnings?: Array<{ path: string; message: string }>
+}
+
+export function isChangeStatus(val: unknown): val is ChangeStatus {
+  return (
+    typeof val === 'string' &&
+    ['proposed', 'applied', 'partially_applied', 'rejected', 'conflict'].includes(val)
+  )
+}
+
+export function isPartiallyApplied(statusOrResult: ChangeStatus | { status?: ChangeStatus | string }): boolean {
+  if (typeof statusOrResult === 'string') {
+    return statusOrResult === 'partially_applied'
+  }
+  return statusOrResult?.status === 'partially_applied'
+}
+
+export function isApplied(statusOrResult: ChangeStatus | { status?: ChangeStatus | string }): boolean {
+  if (typeof statusOrResult === 'string') {
+    return statusOrResult === 'applied'
+  }
+  return statusOrResult?.status === 'applied'
+}
+
+export function hasConflicts(result: { status?: ChangeStatus | string; conflictedCount?: number }): boolean {
+  return result?.status === 'conflict' || (result?.conflictedCount !== undefined && result.conflictedCount > 0)
 }
 
 export interface SnapshotRecord {

@@ -260,7 +260,7 @@ sources:: [sources/interview.md@## Vision, sources/report.pdf_sidecar_NN.md@## T
   })
 
   function makeChangeset(doc: {
-    status?: 'proposed' | 'applied'
+    status?: 'proposed' | 'applied' | 'partially_applied'
     models?: Record<string, { base_version: string; result_version: string }>
     changes: ChangeItem[]
   }): ChangesetDocument {
@@ -545,5 +545,288 @@ sources:: [sources/interview.md@## Vision, sources/report.pdf_sidecar_NN.md@## T
     expect(parsedCs.frontmatter.status).toBe('applied')
     expect(parsedCs.frontmatter.proposal_sha).toBeDefined()
     expect(parsedCs.changes.length).toBe(1)
+  })
+
+  describe('Slice S2b: Partitioning, Slugs, and Delete Impact', () => {
+    it('mixed batch applies clean subset and annotates partially_applied', async () => {
+      const csFile = join(changesDir, 'mixed_batch_changes_NN.md')
+      const csDoc = makeChangeset({
+        changes: [
+          {
+            id: 'c-clean',
+            op: 'update_field',
+            target: 'strategy@Vision&statement',
+            from: 'Accelerate green energy',
+            to: 'Accelerate clean energy',
+          },
+          {
+            id: 'c-conflict',
+            op: 'update_field',
+            target: 'strategy@Vision&target_year',
+            from: '2099',
+            to: '2040',
+          },
+        ],
+      })
+      await writeFile(csFile, serializeChangeset(csDoc), 'utf-8')
+
+      const res = await applyChange(csRoot, 'changes/mixed_batch_changes_NN.md')
+      expect(res.success).toBe(true)
+      expect(res.status).toBe('partially_applied')
+      expect(res.appliedCount).toBe(1)
+      expect(res.conflictedCount).toBe(1)
+
+      // Live model received clean update
+      const live = await readFile(join(knowledgeDir, 'strategy_NN.md'), 'utf-8')
+      expect(live).toContain('Accelerate clean energy')
+      expect(live).toContain('target_year:: 2030') // Unchanged
+
+      // Changeset document annotated
+      const annotated = parseChangeset(await readFile(csFile, 'utf-8'))
+      expect(annotated.frontmatter.status).toBe('partially_applied')
+      expect(annotated.changes[0].status).toBe('applied')
+      expect(annotated.changes[1].status).toBe('conflict')
+      expect(annotated.changes[1].resolution).toContain('PRECONDITION_FAILED')
+    })
+
+    it('all-conflicted batch makes zero disk writes and emits zero snapshots', async () => {
+      const csFile = join(changesDir, 'all_conflicted_changes_NN.md')
+      const csDoc = makeChangeset({
+        changes: [
+          {
+            id: 'c-bad',
+            op: 'update_field',
+            target: 'strategy@Vision&statement',
+            from: 'Incorrect From',
+            to: 'New Statement',
+          },
+        ],
+      })
+      await writeFile(csFile, serializeChangeset(csDoc), 'utf-8')
+
+      const res = await applyChange(csRoot, 'changes/all_conflicted_changes_NN.md')
+      expect(res.success).toBe(false)
+      expect(res.status).toBe('conflict')
+      expect(res.appliedCount).toBe(0)
+
+      // Zero snapshots in archive
+      expect(existsSync(join(knowledgeDir, 'archive'))).toBe(false)
+
+      // Live model untouched
+      const live = await readFile(join(knowledgeDir, 'strategy_NN.md'), 'utf-8')
+      expect(live).toContain('Accelerate green energy')
+
+      // Changeset annotated with conflict status
+      const annotated = parseChangeset(await readFile(csFile, 'utf-8'))
+      expect(annotated.frontmatter.status).toBe('conflict')
+      expect(annotated.changes[0].status).toBe('conflict')
+    })
+
+    it('untouched models in mixed batch emit no version bump and no snapshot', async () => {
+      // Create a second model execution_NN.md
+      const EXEC_MODEL = `---
+spec_version: "V_0-4-0"
+level: 3
+parent_spec:
+  name: "strategy_V_0-2-0"
+  url: "specs/strategy_V_0-2-0_NN.md"
+knowledge_version: "V_0-1-0"
+title: "Execution"
+---
+
+# NN index
+* [[Work]]
+
+# NN Work
+## NN Work: Task1
+statement:: Execute plan
+`
+      await writeFile(join(knowledgeDir, 'execution_NN.md'), EXEC_MODEL, 'utf-8')
+
+      const csFile = join(changesDir, 'multi_model_mixed_changes_NN.md')
+      const csDoc = makeChangeset({
+        changes: [
+          {
+            id: 'c-strat',
+            op: 'update_field',
+            target: 'strategy@Vision&statement',
+            from: 'Accelerate green energy',
+            to: 'Accelerate clean energy',
+          },
+          {
+            id: 'c-exec',
+            op: 'update_field',
+            target: 'execution@Task1&statement',
+            from: 'Wrong from',
+            to: 'New task',
+          },
+        ],
+      })
+      await writeFile(csFile, serializeChangeset(csDoc), 'utf-8')
+
+      const res = await applyChange(csRoot, 'changes/multi_model_mixed_changes_NN.md')
+      expect(res.success).toBe(true)
+      expect(res.status).toBe('partially_applied')
+
+      // strategy was bumped and archived
+      const liveStrat = await readFile(join(knowledgeDir, 'strategy_NN.md'), 'utf-8')
+      expect(liveStrat).toContain('knowledge_version: "V_0-1-1"')
+
+      // execution was untouched (retains V_0-1-0)
+      const liveExec = await readFile(join(knowledgeDir, 'execution_NN.md'), 'utf-8')
+      expect(liveExec).toContain('knowledge_version: "V_0-1-0"')
+
+      // Only 1 archive file created (for strategy, none for execution)
+      const archives = await readdir(join(knowledgeDir, 'archive'))
+      expect(archives.length).toBe(1)
+      expect(archives[0]).toContain('strategy_')
+    })
+
+    it('idempotent replay of partially_applied changeset is safe no-op', async () => {
+      const csFile = join(changesDir, 'replay_partial_changes_NN.md')
+      const csDoc = makeChangeset({
+        status: 'partially_applied',
+        models: {
+          strategy: {
+            base_version: 'V_0-1-0',
+            result_version: 'V_0-1-0',
+          },
+        },
+        changes: [
+          {
+            id: 'c-1',
+            op: 'update_field',
+            target: 'strategy@Vision&statement',
+            from: 'Accelerate green energy',
+            to: 'Accelerate clean energy',
+          },
+        ],
+      })
+      await writeFile(csFile, serializeChangeset(csDoc), 'utf-8')
+
+      const res = await applyChange(csRoot, 'changes/replay_partial_changes_NN.md')
+      expect(res.success).toBe(true)
+      expect(res.status).toBe('partially_applied')
+      expect(res.appliedCount).toBe(0)
+    })
+
+    it('batch slug collision auto-suffixes and permits intra-batch field update', async () => {
+      const csFile = join(changesDir, 'slug_collision_changes_NN.md')
+      const csDoc = makeChangeset({
+        changes: [
+          {
+            id: 'add-1',
+            op: 'add_element',
+            target: 'strategy@Work',
+            name: 'Vision 2',
+            slug: 'vision', // Collides with existing Vision (slug: vision)
+          },
+          {
+            id: 'upd-1',
+            op: 'update_field',
+            target: 'strategy@vision&statement',
+            to: 'Suffixed vision statement',
+          },
+        ],
+      })
+      await writeFile(csFile, serializeChangeset(csDoc), 'utf-8')
+
+      const res = await applyChange(csRoot, 'changes/slug_collision_changes_NN.md')
+      expect(res.success).toBe(true)
+      expect(res.appliedCount).toBe(2)
+
+      const live = await readFile(join(knowledgeDir, 'strategy_NN.md'), 'utf-8')
+      expect(live).toContain('slug:: vision-1')
+      expect(live).toContain('Suffixed vision statement')
+    })
+
+    it('remove_element cascades matrix cells and records count in resolution', async () => {
+      // Add Matrix Definition to template
+      const templateWithMatrix = BLUEPRINT_CONTENT + `
+# NN Matrix Definition
+## NN Matrix Definition: Access
+concept:: Work
+type:: binary
+`
+      await writeFile(join(specsDir, 'strategy_V_0-2-0_NN.md'), templateWithMatrix, 'utf-8')
+
+      // Add a matrix with a cell referencing Vision to strategy_NN.md
+      const modelWithMatrix = LIVE_STRATEGY_MODEL + `
+# NN matrices: Access
+| Work \\ Work | read |
+| :--- | :---: |
+| Vision | allow |
+`
+      await writeFile(join(knowledgeDir, 'strategy_NN.md'), modelWithMatrix, 'utf-8')
+
+      const csFile = join(changesDir, 'delete_cascade_changes_NN.md')
+      const csDoc = makeChangeset({
+        changes: [
+          {
+            id: 'del-1',
+            op: 'remove_element',
+            target: 'strategy@Vision',
+          },
+        ],
+      })
+      await writeFile(csFile, serializeChangeset(csDoc), 'utf-8')
+
+      const res = await applyChange(csRoot, 'changes/delete_cascade_changes_NN.md')
+      expect(res.success).toBe(true)
+      expect(res.appliedCount).toBe(1)
+
+      const live = await readFile(join(knowledgeDir, 'strategy_NN.md'), 'utf-8')
+      expect(live).not.toContain('## NN Work: Vision')
+      expect(live).not.toContain('| Vision | allow |')
+
+      const annotated = parseChangeset(await readFile(csFile, 'utf-8'))
+      expect(annotated.changes[0].resolution).toContain('cascaded 1 matrix cell')
+    })
+
+    it('remove_element blocked by active reference records conflict', async () => {
+      // Create marketing model referencing Vision
+      const MARKETING_MODEL = `---
+spec_version: "V_0-4-0"
+level: 3
+parent_spec:
+  name: "strategy_V_0-2-0"
+  url: "specs/strategy_V_0-2-0_NN.md"
+knowledge_version: "V_0-1-0"
+title: "Marketing"
+---
+
+# NN index
+* [[Work]]
+
+# NN Work
+## NN Work: Launch
+statement:: Depends on [[strategy@vision]]
+`
+      await writeFile(join(knowledgeDir, 'marketing_NN.md'), MARKETING_MODEL, 'utf-8')
+
+      const csFile = join(changesDir, 'delete_blocked_changes_NN.md')
+      const csDoc = makeChangeset({
+        changes: [
+          {
+            id: 'del-blocked',
+            op: 'remove_element',
+            target: 'strategy@Vision',
+          },
+        ],
+      })
+      await writeFile(csFile, serializeChangeset(csDoc), 'utf-8')
+
+      const res = await applyChange(csRoot, 'changes/delete_blocked_changes_NN.md')
+      expect(res.success).toBe(false)
+      expect(res.status).toBe('conflict')
+
+      // Vision should NOT be deleted
+      const live = await readFile(join(knowledgeDir, 'strategy_NN.md'), 'utf-8')
+      expect(live).toContain('## NN Work: Vision')
+
+      const annotated = parseChangeset(await readFile(csFile, 'utf-8'))
+      expect(annotated.changes[0].status).toBe('conflict')
+      expect(annotated.changes[0].resolution).toContain('REFERENCED_BY')
+    })
   })
 })

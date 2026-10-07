@@ -158,6 +158,7 @@ export interface SpecFrontmatter {
   spec_url: string
   level: SpecLevel
   model_slug?: string
+  knowledge_slug?: string
   workspace_id?: string
   parent?: string | ParentRef
   parent_spec?: ParentRef
