@@ -1,0 +1,181 @@
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { join } from 'node:path'
+import { rm, mkdir, writeFile, readFile } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
+import { applyChange } from '../src/tools/apply-change.js'
+import { computeProposalSha, serializeChangeset } from '@cognnitive/innfo-core'
+import type { ChangesetDocument, ChangeItem } from '@cognnitive/innfo-core'
+
+// Linux-safe rejection paths of the two-phase changeset engine: none of these
+// reach blueprint resolution (pre-validation failures, idempotent replay and
+// comment-only applies), so they run on every platform — unlike
+// test/apply-change.test.ts, which exercises schema validation tiers and is
+// Windows-only (see vitest.config.ts WINDOWS_ONLY_SUITES).
+
+const csRoot = join(import.meta.dirname!, '..', 'temp-test-changeset-rejections')
+const knowledgeDir = join(csRoot, 'kNNowledge')
+const changesDir = join(csRoot, 'changes')
+
+const LIVE_STRATEGY_MODEL = `---
+spec_version: "V_0-4-0"
+level: 3
+parent_spec:
+  name: "strategy_V_0-2-0"
+  url: "specs/strategy_V_0-2-0_NN.md"
+knowledge_version: "V_0-1-0"
+title: "Strategy"
+---
+
+# NN index
+* [[Work]]
+
+# NN Work
+## NN Work: Vision
+statement:: Accelerate green energy
+target_year:: 2030
+`
+
+function makeChangeset(doc: {
+  status?: 'proposed' | 'applied'
+  models?: Record<string, { base_version: string; result_version: string }>
+  changes: ChangeItem[]
+}): ChangesetDocument {
+  return {
+    frontmatter: {
+      spec_version: 'V_0-4-0',
+      parent_spec: 'changes',
+      blueprint_version: '0.1.0',
+      status: doc.status ?? 'proposed',
+      proposal_sha: computeProposalSha(doc.changes),
+      title: 'Test Changeset',
+      author: 'agent-writer',
+      workspace_id: 'ws-1',
+      models: doc.models,
+    },
+    changes: doc.changes,
+  }
+}
+
+describe('Two-Phase Changeset Rejection Paths (cross-platform)', () => {
+  beforeEach(async () => {
+    await rm(csRoot, { recursive: true, force: true })
+    await mkdir(knowledgeDir, { recursive: true })
+    await mkdir(changesDir, { recursive: true })
+    await writeFile(join(knowledgeDir, 'strategy_NN.md'), LIVE_STRATEGY_MODEL, 'utf-8')
+  })
+
+  afterEach(async () => {
+    await rm(csRoot, { recursive: true, force: true })
+  })
+
+  it('Missing Changeset File: applying a nonexistent changeset path rejects with zero disk changes', async () => {
+    const res = await applyChange(csRoot, 'changes/does_not_exist_changes_NN.md')
+    expect(res.success).toBe(false)
+    expect(res.status).toBe('rejected')
+    expect(res.errors?.some((e) => /Failed to read changeset file/.test(e.message))).toBe(true)
+    expect(existsSync(join(knowledgeDir, 'archive'))).toBe(false)
+  })
+
+  it('Model Not Found: changeset targeting an unknown model rejects', async () => {
+    const csFile = join(changesDir, 'unknown_model_changes_NN.md')
+    const csDoc = makeChangeset({
+      changes: [
+        {
+          id: 'c-01',
+          op: 'update_field',
+          target: 'ghost@Vision&statement',
+          from: 'Whatever',
+          to: 'Something else',
+        },
+      ],
+    })
+    await writeFile(csFile, serializeChangeset(csDoc), 'utf-8')
+
+    const res = await applyChange(csRoot, 'changes/unknown_model_changes_NN.md')
+    expect(res.success).toBe(false)
+    expect(res.status).toBe('rejected')
+    expect(res.errors?.some((e) => /Model not found: ghost/.test(e.message))).toBe(true)
+    expect(existsSync(join(knowledgeDir, 'archive'))).toBe(false)
+  })
+
+  it('Tamper Detection: mismatched proposal_sha rejects before touching disk', async () => {
+    const csFile = join(changesDir, 'tampered_changes_NN.md')
+    const csDoc = makeChangeset({
+      changes: [
+        {
+          id: 'c-01',
+          op: 'update_field',
+          target: 'strategy@Vision&statement',
+          from: 'Accelerate green energy',
+          to: 'Accelerate clean energy',
+        },
+      ],
+    })
+    csDoc.frontmatter.proposal_sha = 'deadbeef'.repeat(8)
+    await writeFile(csFile, serializeChangeset(csDoc), 'utf-8')
+
+    const res = await applyChange(csRoot, 'changes/tampered_changes_NN.md')
+    expect(res.success).toBe(false)
+    expect(
+      res.errors?.some((e) => e.code === 'PROPOSAL_TAMPERED' || /PROPOSAL_TAMPERED/.test(e.message)),
+    ).toBe(true)
+    const live = await readFile(join(knowledgeDir, 'strategy_NN.md'), 'utf-8')
+    expect(live).toContain('Accelerate green energy')
+    expect(existsSync(join(knowledgeDir, 'archive'))).toBe(false)
+  })
+
+  it('Idempotent Replay Mismatch: applied changeset whose live version drifted reports no-op without mutating', async () => {
+    const csFile = join(changesDir, 'ws_agent_drift_changes_NN.md')
+    const csDoc = makeChangeset({
+      status: 'applied',
+      models: { strategy: { base_version: 'V_0-1-0', result_version: 'V_9-9-9' } },
+      changes: [
+        {
+          id: 'c-01',
+          op: 'update_field',
+          target: 'strategy@Vision&statement',
+          from: 'Accelerate green energy',
+          to: 'New Vision Statement',
+        },
+      ],
+    })
+    await writeFile(csFile, serializeChangeset(csDoc), 'utf-8')
+
+    const res = await applyChange(csRoot, 'changes/ws_agent_drift_changes_NN.md')
+    expect(res.success).toBe(true)
+    expect(res.appliedCount).toBe(0)
+    expect(res.warnings?.some((w) => /no mutations performed/.test(w.message))).toBe(true)
+
+    const liveContent = await readFile(join(knowledgeDir, 'strategy_NN.md'), 'utf-8')
+    expect(liveContent).toContain('knowledge_version: "V_0-1-0"')
+    expect(existsSync(join(knowledgeDir, 'archive'))).toBe(false)
+  })
+
+  it('Comment-Only Changeset: applies cleanly with zero mutations and bumps nothing', async () => {
+    const csFile = join(changesDir, 'ws_agent_notes_changes_NN.md')
+    const csDoc = makeChangeset({
+      changes: [
+        {
+          id: 'c-01',
+          op: 'comment',
+          target: 'strategy@Vision&statement',
+          notes: 'Reviewer note with no mutation',
+        },
+      ],
+    })
+    await writeFile(csFile, serializeChangeset(csDoc), 'utf-8')
+
+    const res = await applyChange(csRoot, 'changes/ws_agent_notes_changes_NN.md')
+    expect(res.success).toBe(true)
+    expect(res.appliedCount).toBe(0)
+
+    const liveContent = await readFile(join(knowledgeDir, 'strategy_NN.md'), 'utf-8')
+    expect(liveContent).toContain('knowledge_version: "V_0-1-0"')
+  })
+
+  it('Dispatch Without Op: id without op routes to the changeset path and rejects on missing file', async () => {
+    const res = await applyChange(csRoot, 'strategy')
+    expect(res.success).toBe(false)
+    expect(res.errors?.some((e) => /Failed to read changeset file/.test(e.message))).toBe(true)
+  })
+})
