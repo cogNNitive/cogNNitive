@@ -234,4 +234,112 @@ describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
       assert.ok(card.classList.contains('innfo-highlight'), 'Card received highlight animation class')
     })
   })
+
+  describe('EditModal & Changeset Export Contract (D13, D15)', () => {
+    const UI = require(join(here, '..', 'iNNfo', 'specs', 'bluepriNNts', 'console', 'ui-kit.js'))
+
+    it('renders EditModal in Propose value mode and returns proposed result', () => {
+      let saved = null
+      const modal = UI.EditModal(
+        {
+          title: 'Edit Element -> Field',
+          fieldName: 'status',
+          type: 'string',
+          value: 'active',
+          isComment: false,
+        },
+        {
+          doc: document,
+          onSave: (res) => {
+            saved = res
+          },
+        },
+      )
+      document.body.appendChild(modal)
+      assert.ok(modal.querySelector('[data-innfo-widget="string"]'))
+
+      const input = modal.querySelector('input.innfo-edit-input')
+      input.value = 'archived'
+
+      const saveBtn = modal.querySelector('.innfo-edit-btn-save')
+      saveBtn.dispatchEvent(new window.Event('click', { bubbles: true }))
+
+      assert.deepEqual(saved, {
+        isComment: false,
+        comment: '',
+        proposed: 'archived',
+      })
+    })
+
+    it('renders EditModal in Comment mode and returns review comment', () => {
+      let saved = null
+      const modal = UI.EditModal(
+        {
+          title: 'Comment Element',
+          fieldName: 'status',
+          type: 'string',
+          value: 'active',
+          isComment: true,
+          comment: 'Initial note',
+        },
+        {
+          doc: document,
+          onSave: (res) => {
+            saved = res
+          },
+        },
+      )
+      document.body.appendChild(modal)
+      const ta = modal.querySelector('.innfo-edit-form-comment textarea')
+      assert.equal(ta.value, 'Initial note')
+      ta.value = 'Verify with legal team'
+
+      const saveBtn = modal.querySelector('.innfo-edit-btn-save')
+      saveBtn.dispatchEvent(new window.Event('click', { bubbles: true }))
+
+      assert.deepEqual(saved, {
+        isComment: true,
+        comment: 'Verify with legal team',
+      })
+    })
+
+    it('generates normative Changeset Markdown via composeChangesetExport', () => {
+      const state = {
+        modelTitle: 'BusinessModel',
+        modelVersion: 'V_1-0-0',
+        store: {
+          drafts: () => [
+            {
+              id: 'c-01',
+              element_id: 'enterprise_plan',
+              field: 'price',
+              original: '100',
+              proposed: '150',
+              comment: 'Inflation adjustment',
+            },
+            {
+              id: 'c-02',
+              element_id: 'legacy_tier',
+              kind: 'delete',
+            },
+          ],
+        },
+      }
+
+      const res = InnfoConsole.composeChangesetExport(state, 'author_jane')
+      assert.equal(res.ok, true)
+      assert.match(res.filename, /^BusinessModel_[a-zA-Z0-9_-]+_\d+-\d+_changes_NN\.md$/)
+      assert.match(res.text, /blueprint_version: "0.1.0"/)
+      assert.match(res.text, /status: proposed/)
+      assert.match(res.text, /## NN Change: c-01/)
+      assert.match(res.text, /op:: update_field/)
+      assert.match(res.text, /target:: BusinessModel@enterprise_plan&price/)
+      assert.match(res.text, /from:: 100/)
+      assert.match(res.text, /to:: 150/)
+      assert.match(res.text, /notes:: "Inflation adjustment"/)
+      assert.match(res.text, /## NN Change: c-02/)
+      assert.match(res.text, /op:: remove_element/)
+      assert.match(res.text, /target:: BusinessModel@legacy_tier/)
+    })
+  })
 })

@@ -340,6 +340,24 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     'html[data-innfo-filter=changed] [data-innfo-component=element-card]:not([data-innfo-changed]){display:none}',
     '.innfo-popover-comment,.innfo-popover-proposed{display:block;width:100%;font:inherit;box-sizing:border-box}',
     '@media (max-width:640px){.innfo-annotation-popover{width:100%}.innfo-review-toggle,.innfo-changed-filter{width:100%}}',
+    '.innfo-edit-modal{border:1px solid var(--innfo-border);border-radius:var(--innfo-radius-lg);padding:0;max-width:540px;width:100%;background:var(--innfo-surface);color:var(--innfo-text);box-shadow:0 12px 40px rgba(0,0,0,.15)}',
+    '.innfo-edit-modal::backdrop{background:rgba(0,0,0,.35)}',
+    '.innfo-edit-modal-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--innfo-border)}',
+    '.innfo-edit-modal-head h2{margin:0;font-size:1.05rem;font-weight:700}',
+    '.innfo-edit-modal-close{border:1px solid var(--innfo-border);background:var(--innfo-surface);color:var(--innfo-muted);border-radius:var(--innfo-radius-sm);width:28px;height:28px;cursor:pointer;font-size:1.1rem;font-weight:700;display:flex;align-items:center;justify-content:center}',
+    '.innfo-edit-modal-body{padding:20px}',
+    '.innfo-edit-mode-selector{display:flex;gap:8px;margin-bottom:16px}',
+    '.innfo-edit-mode-btn{padding:6px 14px;border:1px solid var(--innfo-border);background:var(--innfo-surface-2);color:var(--innfo-text);border-radius:var(--innfo-radius-sm);cursor:pointer;font:inherit;font-size:.85rem;font-weight:600}',
+    '.innfo-edit-mode-btn.active{background:var(--innfo-accent);color:var(--innfo-bg);border-color:var(--innfo-accent)}',
+    '.innfo-edit-field-label{display:block;font-size:.82rem;font-weight:600;color:var(--innfo-muted);margin-bottom:6px}',
+    '.innfo-edit-input,.innfo-edit-select,.innfo-edit-textarea{width:100%;padding:8px 10px;border:1px solid var(--innfo-border);border-radius:var(--innfo-radius-sm);background:var(--innfo-surface);color:var(--innfo-text);font:inherit;font-size:.88rem}',
+    '.innfo-edit-input:focus,.innfo-edit-select:focus,.innfo-edit-textarea:focus{outline:none;border-color:var(--innfo-focus);box-shadow:0 0 0 2px rgba(37,99,235,.2)}',
+    '.innfo-edit-checkbox-label{display:inline-flex;align-items:center;gap:6px;font-size:.85rem;cursor:pointer}',
+    '.innfo-edit-multiselect{display:flex;flex-direction:column;gap:6px}',
+    '.innfo-edit-modal-actions{display:flex;justify-content:flex-end;gap:10px;padding:14px 20px;border-top:1px solid var(--innfo-border);background:var(--innfo-surface-2);border-radius:0 0 var(--innfo-radius-lg) var(--innfo-radius-lg)}',
+    '.innfo-edit-btn{padding:7px 16px;border-radius:var(--innfo-radius-sm);font:inherit;font-size:.85rem;font-weight:600;cursor:pointer}',
+    '.innfo-edit-btn-save{background:var(--innfo-accent);color:var(--innfo-bg);border:1px solid var(--innfo-accent)}',
+    '.innfo-edit-btn-cancel{background:var(--innfo-surface);color:var(--innfo-text);border:1px solid var(--innfo-border)}',
   ]
   for (var slot = 1; slot <= 12; slot++) {
     COMPONENT_CSS.push(
@@ -729,6 +747,241 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return ul
   }
 
+  // ---- Core Edit Widgets (D13 / S3) ----
+
+  function FieldInput(type, value, opts) {
+    var doc = resolveDoc(opts)
+    var input = makeEl(doc, 'input', 'innfo-edit-input')
+    input.setAttribute('type', type)
+    if (value != null) input.value = String(value)
+    input.setAttribute('data-innfo-widget', type)
+    return input
+  }
+
+  function FieldStringWidget(value, opts) {
+    var inp = FieldInput('text', value, opts)
+    inp.setAttribute('data-innfo-widget', 'string')
+    return inp
+  }
+
+  function FieldNumberWidget(value, opts) {
+    return FieldInput('number', value, opts)
+  }
+
+  function FieldBooleanWidget(value, opts) {
+    var doc = resolveDoc(opts)
+    var label = makeEl(doc, 'label', 'innfo-edit-checkbox-label')
+    var input = makeEl(doc, 'input', 'innfo-edit-checkbox')
+    input.setAttribute('type', 'checkbox')
+    input.setAttribute('data-innfo-widget', 'boolean')
+    input.checked = Boolean(value === true || value === 'true')
+    label.appendChild(input)
+    label.appendChild(doc.createTextNode(input.checked ? ' true' : ' false'))
+    input.addEventListener('change', function () {
+      label.lastChild.textContent = input.checked ? ' true' : ' false'
+    })
+    return label
+  }
+
+  function FieldSelectWidget(value, options, opts) {
+    var doc = resolveDoc(opts)
+    var select = makeEl(doc, 'select', 'innfo-edit-select')
+    select.setAttribute('data-innfo-widget', 'select')
+    var list = Array.isArray(options) ? options : []
+    list.forEach(function (opt) {
+      var op = makeEl(doc, 'option', null, opt)
+      op.value = opt
+      if (String(opt) === String(value)) op.selected = true
+      select.appendChild(op)
+    })
+    return select
+  }
+
+  function FieldMultiSelectWidget(values, options, opts) {
+    var doc = resolveDoc(opts)
+    var wrap = makeEl(doc, 'div', 'innfo-edit-multiselect')
+    wrap.setAttribute('data-innfo-widget', 'multiselect')
+    var current = Array.isArray(values) ? values.map(String) : []
+    var list = Array.isArray(options) ? options : []
+    list.forEach(function (opt) {
+      var label = makeEl(doc, 'label', 'innfo-edit-checkbox-label')
+      var input = makeEl(doc, 'input')
+      input.setAttribute('type', 'checkbox')
+      input.value = opt
+      if (current.indexOf(String(opt)) !== -1) input.checked = true
+      label.appendChild(input)
+      label.appendChild(doc.createTextNode(' ' + opt))
+      wrap.appendChild(label)
+    })
+    return wrap
+  }
+
+  function FieldReferenceWidget(value, candidates, opts) {
+    var doc = resolveDoc(opts)
+    var wrap = makeEl(doc, 'div', 'innfo-edit-reference')
+    wrap.setAttribute('data-innfo-widget', 'reference')
+    var input = makeEl(doc, 'input', 'innfo-edit-input')
+    input.setAttribute('type', 'text')
+    input.setAttribute('placeholder', 'target-slug or [[slug]]')
+    if (value != null) input.value = String(value)
+    wrap.appendChild(input)
+
+    var datalistId = 'innfo-ref-list-' + Math.random().toString(36).slice(2, 8)
+    input.setAttribute('list', datalistId)
+    var dl = makeEl(doc, 'datalist')
+    dl.id = datalistId
+    var list = Array.isArray(candidates) ? candidates : []
+    list.forEach(function (c) {
+      var op = makeEl(doc, 'option')
+      var slugVal = typeof c === 'string' ? c : c.slug || c.id || c.name
+      var labelVal = typeof c === 'string' ? c : (c.name ? c.name + ' (' + slugVal + ')' : slugVal)
+      op.value = slugVal
+      op.textContent = labelVal
+      dl.appendChild(op)
+    })
+    wrap.appendChild(dl)
+    return wrap
+  }
+
+  function FieldMarkdownWidget(value, opts) {
+    var doc = resolveDoc(opts)
+    var ta = makeEl(doc, 'textarea', 'innfo-edit-textarea')
+    ta.setAttribute('data-innfo-widget', 'markdown')
+    ta.setAttribute('rows', '6')
+    if (value != null) ta.value = String(value)
+    return ta
+  }
+
+  function EditModal(data, opts) {
+    if (!data || typeof data !== 'object') throw new TypeError('InnfoUI.EditModal: data required')
+    var doc = resolveDoc(opts)
+    var modal = makeEl(doc, 'dialog', 'innfo-edit-modal')
+    modal.setAttribute('data-innfo-component', 'edit-modal')
+    modal.setAttribute('role', 'dialog')
+    modal.setAttribute('aria-modal', 'true')
+
+    var head = makeEl(doc, 'div', 'innfo-edit-modal-head')
+    var title = makeEl(doc, 'h2', null, data.title || 'Edit Component')
+    head.appendChild(title)
+    var closeBtn = makeEl(doc, 'button', 'innfo-edit-modal-close', '\u00D7')
+    closeBtn.setAttribute('type', 'button')
+    closeBtn.addEventListener('click', function () {
+      if (typeof modal.close === 'function') modal.close()
+      else modal.removeAttribute('open')
+      if (opts && typeof opts.onCancel === 'function') opts.onCancel()
+    })
+    head.appendChild(closeBtn)
+    modal.appendChild(head)
+
+    var body = makeEl(doc, 'div', 'innfo-edit-modal-body')
+
+    // Mode Selector: Propose Value vs Comment (D15)
+    var modeWrap = makeEl(doc, 'div', 'innfo-edit-mode-selector')
+    var isComment = Boolean(data.isComment)
+    var btnPropose = makeEl(doc, 'button', 'innfo-edit-mode-btn' + (!isComment ? ' active' : ''), 'Propose value')
+    var btnComment = makeEl(doc, 'button', 'innfo-edit-mode-btn' + (isComment ? ' active' : ''), 'Comment')
+    btnPropose.setAttribute('type', 'button')
+    btnComment.setAttribute('type', 'button')
+    modeWrap.appendChild(btnPropose)
+    modeWrap.appendChild(btnComment)
+    body.appendChild(modeWrap)
+
+    var formPropose = makeEl(doc, 'div', 'innfo-edit-form-propose')
+    formPropose.style.display = isComment ? 'none' : 'block'
+
+    var formComment = makeEl(doc, 'div', 'innfo-edit-form-comment')
+    formComment.style.display = isComment ? 'block' : 'none'
+    var commentLabel = makeEl(doc, 'label', 'innfo-edit-field-label', 'Reviewer Notes / Comment')
+    var commentTa = makeEl(doc, 'textarea', 'innfo-edit-textarea')
+    commentTa.setAttribute('placeholder', 'Enter review comment or note...')
+    if (data.comment != null) commentTa.value = String(data.comment)
+    formComment.appendChild(commentLabel)
+    formComment.appendChild(commentTa)
+
+    btnPropose.addEventListener('click', function () {
+      isComment = false
+      btnPropose.className = 'innfo-edit-mode-btn active'
+      btnComment.className = 'innfo-edit-mode-btn'
+      formPropose.style.display = 'block'
+      formComment.style.display = 'none'
+    })
+    btnComment.addEventListener('click', function () {
+      isComment = true
+      btnComment.className = 'innfo-edit-mode-btn active'
+      btnPropose.className = 'innfo-edit-mode-btn'
+      formPropose.style.display = 'none'
+      formComment.style.display = 'block'
+    })
+
+    // Field Editor in Propose mode
+    var fieldsContainer = makeEl(doc, 'div', 'innfo-edit-fields')
+    var widgetRef = null
+    var fieldType = data.type || 'string'
+    var fieldLabel = makeEl(doc, 'label', 'innfo-edit-field-label', data.fieldName ? data.fieldName : 'Value')
+    fieldsContainer.appendChild(fieldLabel)
+
+    if (fieldType === 'number') {
+      widgetRef = FieldNumberWidget(data.value, opts)
+    } else if (fieldType === 'boolean') {
+      widgetRef = FieldBooleanWidget(data.value, opts)
+    } else if (fieldType === 'select') {
+      widgetRef = FieldSelectWidget(data.value, data.options, opts)
+    } else if (fieldType === 'multiselect') {
+      widgetRef = FieldMultiSelectWidget(data.value, data.options, opts)
+    } else if (fieldType === 'reference') {
+      widgetRef = FieldReferenceWidget(data.value, data.candidates, opts)
+    } else if (fieldType === 'markdown' || fieldType === 'markdown_inline') {
+      widgetRef = FieldMarkdownWidget(data.value, opts)
+    } else {
+      widgetRef = FieldStringWidget(data.value, opts)
+    }
+    fieldsContainer.appendChild(widgetRef)
+    formPropose.appendChild(fieldsContainer)
+
+    body.appendChild(formPropose)
+    body.appendChild(formComment)
+    modal.appendChild(body)
+
+    var actions = makeEl(doc, 'div', 'innfo-edit-modal-actions')
+    var saveBtn = makeEl(doc, 'button', 'innfo-edit-btn innfo-edit-btn-save', 'Save draft')
+    saveBtn.setAttribute('type', 'button')
+    saveBtn.addEventListener('click', function () {
+      var result = {
+        isComment: isComment,
+        comment: commentTa.value,
+      }
+      if (!isComment) {
+        if (fieldType === 'boolean') {
+          var cb = widgetRef.querySelector('input[type="checkbox"]')
+          result.proposed = cb ? cb.checked : false
+        } else if (fieldType === 'multiselect') {
+          var checkedBoxes = widgetRef.querySelectorAll('input[type="checkbox"]:checked')
+          result.proposed = Array.prototype.map.call(checkedBoxes, function (b) { return b.value })
+        } else if (fieldType === 'reference') {
+          var refInp = widgetRef.querySelector('input')
+          result.proposed = refInp ? refInp.value : ''
+        } else {
+          result.proposed = widgetRef.value
+        }
+      }
+      if (opts && typeof opts.onSave === 'function') opts.onSave(result)
+      if (typeof modal.close === 'function') modal.close()
+      else modal.removeAttribute('open')
+    })
+    var cancelBtn = makeEl(doc, 'button', 'innfo-edit-btn innfo-edit-btn-cancel', 'Cancel')
+    cancelBtn.setAttribute('type', 'button')
+    cancelBtn.addEventListener('click', function () {
+      if (typeof modal.close === 'function') modal.close()
+      else modal.removeAttribute('open')
+      if (opts && typeof opts.onCancel === 'function') opts.onCancel()
+    })
+    actions.appendChild(saveBtn)
+    actions.appendChild(cancelBtn)
+    modal.appendChild(actions)
+
+    return modal
+  }
+
   function AnnotationPopover(data, opts) {
     if (!data || typeof data !== 'object') {
       throw new TypeError('InnfoUI.AnnotationPopover: data required')
@@ -793,6 +1046,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     })
     return pop
   }
+
 
   var REVIEW_STATES = ['none', 'reviewed', 'changed']
 
@@ -874,6 +1128,14 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     AnnotationPopover: AnnotationPopover,
     ReviewedToggle: ReviewedToggle,
     RailProgress: RailProgress,
+    EditModal: EditModal,
+    FieldStringWidget: FieldStringWidget,
+    FieldNumberWidget: FieldNumberWidget,
+    FieldBooleanWidget: FieldBooleanWidget,
+    FieldSelectWidget: FieldSelectWidget,
+    FieldMultiSelectWidget: FieldMultiSelectWidget,
+    FieldReferenceWidget: FieldReferenceWidget,
+    FieldMarkdownWidget: FieldMarkdownWidget,
   }
 })
 
@@ -1209,6 +1471,48 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     function openFor(anchor, anchorData) {
       closePopover()
       lastAnchor = anchor
+
+      if (anchorData.field && elementsById[anchorData.elementId] && typeof UI.EditModal === 'function') {
+        var elForEdit = elementsById[anchorData.elementId]
+        var fieldVal = elForEdit.fields ? elForEdit.fields[anchorData.field] : undefined
+        var schemaField = null
+        if (options.schema && Array.isArray(options.schema.fields)) {
+          schemaField = options.schema.fields.filter(function (f) { return f.name === anchorData.field })[0]
+        }
+        var fieldType = schemaField && schemaField.type ? schemaField.type : (typeof fieldVal === 'number' ? 'number' : typeof fieldVal === 'boolean' ? 'boolean' : 'string')
+        var modal = UI.EditModal({
+          title: 'Edit ' + (elForEdit.name || anchorData.elementId) + ' \u2192 ' + anchorData.field,
+          fieldName: anchorData.field,
+          type: fieldType,
+          value: fieldVal,
+          options: schemaField ? schemaField.options : undefined,
+          candidates: schemaField && (schemaField.type === 'reference' || fieldType === 'reference') ? elements : undefined,
+          isComment: false,
+        }, {
+          doc: doc,
+          onSave: function (res) {
+            if (res.isComment) {
+              saveDraft(anchorData, { kind: 'comment', comment: res.comment })
+            } else {
+              saveDraft(anchorData, { kind: 'correction', proposed: res.proposed, comment: res.comment })
+            }
+            closePopover()
+          },
+          onCancel: function () {
+            closePopover()
+            if (lastAnchor && typeof lastAnchor.focus === 'function') lastAnchor.focus()
+          },
+        })
+        doc.body.appendChild(modal)
+        openPopover = modal
+        if (typeof modal.showModal === 'function') {
+          modal.showModal()
+        } else {
+          modal.setAttribute('open', 'open')
+        }
+        return
+      }
+
       var kinds = anchorData.field ? ['comment', 'correction'] : ['comment', 'delete']
       var activeKind = kinds[0]
       var data = {
@@ -3822,7 +4126,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       '<textarea data-innfo="export-json" readonly></textarea>' +
       '<div class="innfo-feedback-actions">' +
       '<button data-innfo="download" type="button">Download feedback JSON</button>' +
+      '<button data-innfo="download-changeset" type="button">Download _changes_NN.md</button>' +
       '<button data-innfo="copy" type="button">Copy to clipboard</button>' +
+      '<button data-innfo="copy-changeset-prompt" type="button">Copy Changeset Prompt</button>' +
       '<span data-innfo="copy-status" role="status" aria-live="polite"></span>' +
       '</div>' +
       '<h3>Instructions</h3>' +
@@ -3844,6 +4150,103 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
 
     return root
+  }
+
+  function formatChangesetValue(val) {
+    if (val === undefined || val === null) return '""'
+    var str = typeof val === 'object' ? JSON.stringify(val) : String(val)
+    if (str.indexOf('"') !== -1 || str.indexOf('\n') !== -1 || str.indexOf(':') !== -1 || str.indexOf(' ') !== -1) {
+      return JSON.stringify(str)
+    }
+    return str
+  }
+
+  function draftToChange(draft, index, modelTitle) {
+    var d = isObject(draft) ? draft : {}
+    var id = d.id || 'c-' + String(index + 1).padStart(2, '0')
+    var model = modelTitle || 'model'
+    var elementTarget = d.element_id || d.element || 'elem'
+    var target = d.field ? model + '@' + elementTarget + '&' + d.field : model + '@' + elementTarget
+    var op = 'update_field'
+    if (d.kind === 'delete') {
+      op = 'remove_element'
+      target = model + '@' + elementTarget
+    } else if (d.kind === 'comment' || (!d.proposed && !d.field)) {
+      op = 'comment'
+    }
+
+    var lines = []
+    lines.push('## NN Change: ' + id)
+    lines.push('op:: ' + op)
+    lines.push('target:: ' + target)
+    if (op === 'update_field') {
+      if (d.original !== undefined) lines.push('from:: ' + formatChangesetValue(d.original))
+      if (d.proposed !== undefined) lines.push('to:: ' + formatChangesetValue(d.proposed))
+    }
+    if (d.comment) {
+      lines.push('notes:: ' + formatChangesetValue(d.comment))
+    }
+    return lines.join('\n')
+  }
+
+  function serializeChangesetMarkdown(meta, drafts) {
+    var title = meta.title || meta.source_knowledge || 'Proposed Changes'
+    var author = meta.author || 'reviewer'
+    var lines = [
+      '---',
+      'spec_version: "V_0-4-0"',
+      'parent_spec: "changes"',
+      'blueprint_version: "0.1.0"',
+      'status: proposed',
+      'title: ' + JSON.stringify(title),
+      'author: ' + JSON.stringify(author),
+      '---',
+      '',
+      '> [!NOTE]',
+      '> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor or view and edit it with [cogNNitive](https://cognnitive.com/innfo/app/).',
+      '',
+      '# NN index',
+      '',
+      '* [[Change]]',
+      '',
+      '# NN Change',
+      '',
+    ]
+    var modelName = meta.source_knowledge || 'model'
+    var blocks = drafts.map(function (d, i) {
+      return draftToChange(d, i, modelName)
+    })
+    lines.push(blocks.join('\n\n'))
+    lines.push('')
+    return lines.join('\n')
+  }
+
+  function composeChangesetExport(state, identifier) {
+    var reviewer = identifier && String(identifier).trim() ? String(identifier).trim() : getReviewerName()
+    var drafts = state && state.store ? state.store.drafts() : []
+    var model = state && state.modelTitle ? state.modelTitle : 'Model'
+    var version = state && state.modelVersion ? state.modelVersion : '1-0-0'
+    var reviewerSlug = slugify(reviewer) || 'reviewer'
+    var stamp = stampFromDate(new Date())
+
+    var exportMeta = {
+      source_knowledge: model,
+      title: 'Review Changes: ' + model,
+      author: reviewer,
+    }
+
+    if (!reviewer || reviewer === DEFAULT_REVIEWER_NAME) {
+      return { ok: false, errors: ['Reviewer identifier is required.'] }
+    }
+
+    var text = serializeChangesetMarkdown(exportMeta, drafts)
+    var filename = model + '_' + reviewerSlug + '_' + stamp + '_changes_NN.md'
+    return {
+      ok: true,
+      text: text,
+      filename: filename,
+      items: drafts.length,
+    }
   }
 
   function composeExport(state, identifier) {
@@ -3887,11 +4290,17 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var check = validateFeedback(payload)
     if (!check.ok) return { ok: false, errors: check.errors }
 
+    var stamp = stampFromDate(state && state.exportedAt ? new Date(state.exportedAt) : new Date())
+    var changesetMd = serializeChangesetMarkdown(exportMeta, drafts)
+    var changesetFilename = model + '_' + reviewerSlug + '_' + stamp + '_changes_NN.md'
+
     return {
       ok: true,
       payload: payload,
       text: serializeFeedback(payload),
       filename: buildFeedbackFilename(model, String(version).replace(/^V_/, ''), reviewer),
+      changesetText: changesetMd,
+      changesetFilename: changesetFilename,
       items: payload.items.length,
     }
   }
@@ -3911,6 +4320,70 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       }).join('') +
       '</ul>'
     errorContainer.style.display = 'block'
+  }
+
+  function downloadChangesetExport(doc, state) {
+    var identifierInput = doc.querySelector('#innfo-feedback-modal [data-innfo="identifier"]')
+    var identifier = identifierInput && identifierInput.value ? String(identifierInput.value).trim() : ''
+    var composed = composeExport(state, identifier)
+    if (!composed.ok) {
+      renderErrors(doc, composed.errors)
+      return composed
+    }
+    renderErrors(doc, [])
+    var blob = new Blob([composed.changesetText], { type: 'text/markdown;charset=utf-8' })
+    var url = URL.createObjectURL(blob)
+    var anchor = doc.createElement('a')
+    anchor.href = url
+    anchor.download = composed.changesetFilename
+    doc.body.appendChild(anchor)
+    anchor.click()
+    anchor.remove()
+    setTimeout(function () {
+      URL.revokeObjectURL(url)
+    }, 1000)
+    return { ok: true, filename: composed.changesetFilename, items: composed.items }
+  }
+
+  function copyChangesetPrompt(doc, state) {
+    var modal = doc.getElementById('innfo-feedback-modal')
+    var status = modal && modal.querySelector('[data-innfo="copy-status"]')
+    var textarea = modal && modal.querySelector('[data-innfo="export-json"]')
+    function announce(msg) {
+      if (status) status.textContent = msg
+    }
+    var composed = composeExport(state, _readIdentifier(modal))
+    if (!composed.ok) {
+      announce('Cannot copy: fix the validation errors first.')
+      return composed
+    }
+    var promptText =
+      'Please apply the following changeset to update ' +
+      (state ? state.modelTitle : 'the model') +
+      ':\n\n```markdown\n' +
+      composed.changesetText +
+      '```\n'
+    try {
+      if (
+        typeof navigator !== 'undefined' &&
+        navigator.clipboard &&
+        typeof navigator.clipboard.writeText === 'function'
+      ) {
+        navigator.clipboard.writeText(promptText).then(
+          function () {
+            announce('Copied changeset prompt to clipboard.')
+          },
+          function () {
+            announce(fallbackCopy(doc, textarea, promptText))
+          },
+        )
+        return composed
+      }
+      announce(fallbackCopy(doc, textarea, promptText))
+    } catch {
+      announce('Copy failed. Select the text and press Ctrl+C.')
+    }
+    return composed
   }
 
   function downloadFeedbackExport(doc, state) {
@@ -3955,19 +4428,25 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     var composed = composeExport(state, identifier)
     var downloadBtn = modal.querySelector('[data-innfo="download"]')
+    var downloadCsBtn = modal.querySelector('[data-innfo="download-changeset"]')
     var copyBtn = modal.querySelector('[data-innfo="copy"]')
+    var copyCsBtn = modal.querySelector('[data-innfo="copy-changeset-prompt"]')
     var textarea = modal.querySelector('[data-innfo="export-json"]')
 
     if (composed.ok) {
       renderErrors(doc, [])
       if (textarea) textarea.value = composed.text
       if (downloadBtn) downloadBtn.disabled = false
+      if (downloadCsBtn) downloadCsBtn.disabled = false
       if (copyBtn) copyBtn.disabled = false
+      if (copyCsBtn) copyCsBtn.disabled = false
     } else {
       renderErrors(doc, composed.errors)
       if (textarea) textarea.value = ''
       if (downloadBtn) downloadBtn.disabled = true
+      if (downloadCsBtn) downloadCsBtn.disabled = true
       if (copyBtn) copyBtn.disabled = true
+      if (copyCsBtn) copyCsBtn.disabled = true
     }
     return composed
   }
@@ -4050,11 +4529,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       instructions.textContent =
         'Review ' +
         drafts.length +
-        ' pending draft(s), then download or copy the feedback JSON.'
+        ' pending draft(s), then download or copy the feedback JSON or Changeset.'
     }
     if (agentPrompt) {
       agentPrompt.textContent =
-        'Apply the attached feedback JSON to ' +
+        'Apply the attached feedback JSON or Changeset to ' +
         (state ? state.modelTitle : 'Model') +
         ' (' +
         (state ? state.modelVersion : '') +
@@ -4091,6 +4570,21 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       })
     }
 
+    var downloadCsBtn = modal.querySelector('[data-innfo="download-changeset"]')
+    if (downloadCsBtn && !downloadCsBtn.getAttribute('data-innfo-bound')) {
+      downloadCsBtn.setAttribute('data-innfo-bound', '1')
+      downloadCsBtn.addEventListener('click', function () {
+        var identifier = identifierInput && identifierInput.value ? String(identifierInput.value).trim() : ''
+        if (!identifier || identifier === DEFAULT_REVIEWER_NAME) return
+        setReviewerName(identifier)
+        var res = downloadChangesetExport(doc, state)
+        if (res && res.ok) {
+          if (typeof modal.close === 'function') modal.close()
+          else modal.removeAttribute('open')
+        }
+      })
+    }
+
     var copyBtn = modal.querySelector('[data-innfo="copy"]')
     if (copyBtn && !copyBtn.getAttribute('data-innfo-bound')) {
       copyBtn.setAttribute('data-innfo-bound', '1')
@@ -4098,6 +4592,16 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         var identifier = identifierInput && identifierInput.value ? String(identifierInput.value).trim() : ''
         if (identifier && identifier !== DEFAULT_REVIEWER_NAME) setReviewerName(identifier)
         copyExport(doc, state)
+      })
+    }
+
+    var copyCsBtn = modal.querySelector('[data-innfo="copy-changeset-prompt"]')
+    if (copyCsBtn && !copyCsBtn.getAttribute('data-innfo-bound')) {
+      copyCsBtn.setAttribute('data-innfo-bound', '1')
+      copyCsBtn.addEventListener('click', function () {
+        var identifier = identifierInput && identifierInput.value ? String(identifierInput.value).trim() : ''
+        if (identifier && identifier !== DEFAULT_REVIEWER_NAME) setReviewerName(identifier)
+        copyChangesetPrompt(doc, state)
       })
     }
   }
@@ -4321,6 +4825,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     draftToItem: draftToItem,
     downloadFeedbackExport: downloadFeedbackExport,
     composeExport: composeExport,
+    composeChangesetExport: composeChangesetExport,
+    downloadChangesetExport: downloadChangesetExport,
+    copyChangesetPrompt: copyChangesetPrompt,
     serializeFeedback: serializeFeedback,
     downloadExport: downloadExport,
     buildExportDoc: buildExportDoc,

@@ -149,6 +149,24 @@
     'html[data-innfo-filter=changed] [data-innfo-component=element-card]:not([data-innfo-changed]){display:none}',
     '.innfo-popover-comment,.innfo-popover-proposed{display:block;width:100%;font:inherit;box-sizing:border-box}',
     '@media (max-width:640px){.innfo-annotation-popover{width:100%}.innfo-review-toggle,.innfo-changed-filter{width:100%}}',
+    '.innfo-edit-modal{border:1px solid var(--innfo-border);border-radius:var(--innfo-radius-lg);padding:0;max-width:540px;width:100%;background:var(--innfo-surface);color:var(--innfo-text);box-shadow:0 12px 40px rgba(0,0,0,.15)}',
+    '.innfo-edit-modal::backdrop{background:rgba(0,0,0,.35)}',
+    '.innfo-edit-modal-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--innfo-border)}',
+    '.innfo-edit-modal-head h2{margin:0;font-size:1.05rem;font-weight:700}',
+    '.innfo-edit-modal-close{border:1px solid var(--innfo-border);background:var(--innfo-surface);color:var(--innfo-muted);border-radius:var(--innfo-radius-sm);width:28px;height:28px;cursor:pointer;font-size:1.1rem;font-weight:700;display:flex;align-items:center;justify-content:center}',
+    '.innfo-edit-modal-body{padding:20px}',
+    '.innfo-edit-mode-selector{display:flex;gap:8px;margin-bottom:16px}',
+    '.innfo-edit-mode-btn{padding:6px 14px;border:1px solid var(--innfo-border);background:var(--innfo-surface-2);color:var(--innfo-text);border-radius:var(--innfo-radius-sm);cursor:pointer;font:inherit;font-size:.85rem;font-weight:600}',
+    '.innfo-edit-mode-btn.active{background:var(--innfo-accent);color:var(--innfo-bg);border-color:var(--innfo-accent)}',
+    '.innfo-edit-field-label{display:block;font-size:.82rem;font-weight:600;color:var(--innfo-muted);margin-bottom:6px}',
+    '.innfo-edit-input,.innfo-edit-select,.innfo-edit-textarea{width:100%;padding:8px 10px;border:1px solid var(--innfo-border);border-radius:var(--innfo-radius-sm);background:var(--innfo-surface);color:var(--innfo-text);font:inherit;font-size:.88rem}',
+    '.innfo-edit-input:focus,.innfo-edit-select:focus,.innfo-edit-textarea:focus{outline:none;border-color:var(--innfo-focus);box-shadow:0 0 0 2px rgba(37,99,235,.2)}',
+    '.innfo-edit-checkbox-label{display:inline-flex;align-items:center;gap:6px;font-size:.85rem;cursor:pointer}',
+    '.innfo-edit-multiselect{display:flex;flex-direction:column;gap:6px}',
+    '.innfo-edit-modal-actions{display:flex;justify-content:flex-end;gap:10px;padding:14px 20px;border-top:1px solid var(--innfo-border);background:var(--innfo-surface-2);border-radius:0 0 var(--innfo-radius-lg) var(--innfo-radius-lg)}',
+    '.innfo-edit-btn{padding:7px 16px;border-radius:var(--innfo-radius-sm);font:inherit;font-size:.85rem;font-weight:600;cursor:pointer}',
+    '.innfo-edit-btn-save{background:var(--innfo-accent);color:var(--innfo-bg);border:1px solid var(--innfo-accent)}',
+    '.innfo-edit-btn-cancel{background:var(--innfo-surface);color:var(--innfo-text);border:1px solid var(--innfo-border)}',
   ]
   for (var slot = 1; slot <= 12; slot++) {
     COMPONENT_CSS.push(
@@ -538,6 +556,241 @@
     return ul
   }
 
+  // ---- Core Edit Widgets (D13 / S3) ----
+
+  function FieldInput(type, value, opts) {
+    var doc = resolveDoc(opts)
+    var input = makeEl(doc, 'input', 'innfo-edit-input')
+    input.setAttribute('type', type)
+    if (value != null) input.value = String(value)
+    input.setAttribute('data-innfo-widget', type)
+    return input
+  }
+
+  function FieldStringWidget(value, opts) {
+    var inp = FieldInput('text', value, opts)
+    inp.setAttribute('data-innfo-widget', 'string')
+    return inp
+  }
+
+  function FieldNumberWidget(value, opts) {
+    return FieldInput('number', value, opts)
+  }
+
+  function FieldBooleanWidget(value, opts) {
+    var doc = resolveDoc(opts)
+    var label = makeEl(doc, 'label', 'innfo-edit-checkbox-label')
+    var input = makeEl(doc, 'input', 'innfo-edit-checkbox')
+    input.setAttribute('type', 'checkbox')
+    input.setAttribute('data-innfo-widget', 'boolean')
+    input.checked = Boolean(value === true || value === 'true')
+    label.appendChild(input)
+    label.appendChild(doc.createTextNode(input.checked ? ' true' : ' false'))
+    input.addEventListener('change', function () {
+      label.lastChild.textContent = input.checked ? ' true' : ' false'
+    })
+    return label
+  }
+
+  function FieldSelectWidget(value, options, opts) {
+    var doc = resolveDoc(opts)
+    var select = makeEl(doc, 'select', 'innfo-edit-select')
+    select.setAttribute('data-innfo-widget', 'select')
+    var list = Array.isArray(options) ? options : []
+    list.forEach(function (opt) {
+      var op = makeEl(doc, 'option', null, opt)
+      op.value = opt
+      if (String(opt) === String(value)) op.selected = true
+      select.appendChild(op)
+    })
+    return select
+  }
+
+  function FieldMultiSelectWidget(values, options, opts) {
+    var doc = resolveDoc(opts)
+    var wrap = makeEl(doc, 'div', 'innfo-edit-multiselect')
+    wrap.setAttribute('data-innfo-widget', 'multiselect')
+    var current = Array.isArray(values) ? values.map(String) : []
+    var list = Array.isArray(options) ? options : []
+    list.forEach(function (opt) {
+      var label = makeEl(doc, 'label', 'innfo-edit-checkbox-label')
+      var input = makeEl(doc, 'input')
+      input.setAttribute('type', 'checkbox')
+      input.value = opt
+      if (current.indexOf(String(opt)) !== -1) input.checked = true
+      label.appendChild(input)
+      label.appendChild(doc.createTextNode(' ' + opt))
+      wrap.appendChild(label)
+    })
+    return wrap
+  }
+
+  function FieldReferenceWidget(value, candidates, opts) {
+    var doc = resolveDoc(opts)
+    var wrap = makeEl(doc, 'div', 'innfo-edit-reference')
+    wrap.setAttribute('data-innfo-widget', 'reference')
+    var input = makeEl(doc, 'input', 'innfo-edit-input')
+    input.setAttribute('type', 'text')
+    input.setAttribute('placeholder', 'target-slug or [[slug]]')
+    if (value != null) input.value = String(value)
+    wrap.appendChild(input)
+
+    var datalistId = 'innfo-ref-list-' + Math.random().toString(36).slice(2, 8)
+    input.setAttribute('list', datalistId)
+    var dl = makeEl(doc, 'datalist')
+    dl.id = datalistId
+    var list = Array.isArray(candidates) ? candidates : []
+    list.forEach(function (c) {
+      var op = makeEl(doc, 'option')
+      var slugVal = typeof c === 'string' ? c : c.slug || c.id || c.name
+      var labelVal = typeof c === 'string' ? c : (c.name ? c.name + ' (' + slugVal + ')' : slugVal)
+      op.value = slugVal
+      op.textContent = labelVal
+      dl.appendChild(op)
+    })
+    wrap.appendChild(dl)
+    return wrap
+  }
+
+  function FieldMarkdownWidget(value, opts) {
+    var doc = resolveDoc(opts)
+    var ta = makeEl(doc, 'textarea', 'innfo-edit-textarea')
+    ta.setAttribute('data-innfo-widget', 'markdown')
+    ta.setAttribute('rows', '6')
+    if (value != null) ta.value = String(value)
+    return ta
+  }
+
+  function EditModal(data, opts) {
+    if (!data || typeof data !== 'object') throw new TypeError('InnfoUI.EditModal: data required')
+    var doc = resolveDoc(opts)
+    var modal = makeEl(doc, 'dialog', 'innfo-edit-modal')
+    modal.setAttribute('data-innfo-component', 'edit-modal')
+    modal.setAttribute('role', 'dialog')
+    modal.setAttribute('aria-modal', 'true')
+
+    var head = makeEl(doc, 'div', 'innfo-edit-modal-head')
+    var title = makeEl(doc, 'h2', null, data.title || 'Edit Component')
+    head.appendChild(title)
+    var closeBtn = makeEl(doc, 'button', 'innfo-edit-modal-close', '\u00D7')
+    closeBtn.setAttribute('type', 'button')
+    closeBtn.addEventListener('click', function () {
+      if (typeof modal.close === 'function') modal.close()
+      else modal.removeAttribute('open')
+      if (opts && typeof opts.onCancel === 'function') opts.onCancel()
+    })
+    head.appendChild(closeBtn)
+    modal.appendChild(head)
+
+    var body = makeEl(doc, 'div', 'innfo-edit-modal-body')
+
+    // Mode Selector: Propose Value vs Comment (D15)
+    var modeWrap = makeEl(doc, 'div', 'innfo-edit-mode-selector')
+    var isComment = Boolean(data.isComment)
+    var btnPropose = makeEl(doc, 'button', 'innfo-edit-mode-btn' + (!isComment ? ' active' : ''), 'Propose value')
+    var btnComment = makeEl(doc, 'button', 'innfo-edit-mode-btn' + (isComment ? ' active' : ''), 'Comment')
+    btnPropose.setAttribute('type', 'button')
+    btnComment.setAttribute('type', 'button')
+    modeWrap.appendChild(btnPropose)
+    modeWrap.appendChild(btnComment)
+    body.appendChild(modeWrap)
+
+    var formPropose = makeEl(doc, 'div', 'innfo-edit-form-propose')
+    formPropose.style.display = isComment ? 'none' : 'block'
+
+    var formComment = makeEl(doc, 'div', 'innfo-edit-form-comment')
+    formComment.style.display = isComment ? 'block' : 'none'
+    var commentLabel = makeEl(doc, 'label', 'innfo-edit-field-label', 'Reviewer Notes / Comment')
+    var commentTa = makeEl(doc, 'textarea', 'innfo-edit-textarea')
+    commentTa.setAttribute('placeholder', 'Enter review comment or note...')
+    if (data.comment != null) commentTa.value = String(data.comment)
+    formComment.appendChild(commentLabel)
+    formComment.appendChild(commentTa)
+
+    btnPropose.addEventListener('click', function () {
+      isComment = false
+      btnPropose.className = 'innfo-edit-mode-btn active'
+      btnComment.className = 'innfo-edit-mode-btn'
+      formPropose.style.display = 'block'
+      formComment.style.display = 'none'
+    })
+    btnComment.addEventListener('click', function () {
+      isComment = true
+      btnComment.className = 'innfo-edit-mode-btn active'
+      btnPropose.className = 'innfo-edit-mode-btn'
+      formPropose.style.display = 'none'
+      formComment.style.display = 'block'
+    })
+
+    // Field Editor in Propose mode
+    var fieldsContainer = makeEl(doc, 'div', 'innfo-edit-fields')
+    var widgetRef = null
+    var fieldType = data.type || 'string'
+    var fieldLabel = makeEl(doc, 'label', 'innfo-edit-field-label', data.fieldName ? data.fieldName : 'Value')
+    fieldsContainer.appendChild(fieldLabel)
+
+    if (fieldType === 'number') {
+      widgetRef = FieldNumberWidget(data.value, opts)
+    } else if (fieldType === 'boolean') {
+      widgetRef = FieldBooleanWidget(data.value, opts)
+    } else if (fieldType === 'select') {
+      widgetRef = FieldSelectWidget(data.value, data.options, opts)
+    } else if (fieldType === 'multiselect') {
+      widgetRef = FieldMultiSelectWidget(data.value, data.options, opts)
+    } else if (fieldType === 'reference') {
+      widgetRef = FieldReferenceWidget(data.value, data.candidates, opts)
+    } else if (fieldType === 'markdown' || fieldType === 'markdown_inline') {
+      widgetRef = FieldMarkdownWidget(data.value, opts)
+    } else {
+      widgetRef = FieldStringWidget(data.value, opts)
+    }
+    fieldsContainer.appendChild(widgetRef)
+    formPropose.appendChild(fieldsContainer)
+
+    body.appendChild(formPropose)
+    body.appendChild(formComment)
+    modal.appendChild(body)
+
+    var actions = makeEl(doc, 'div', 'innfo-edit-modal-actions')
+    var saveBtn = makeEl(doc, 'button', 'innfo-edit-btn innfo-edit-btn-save', 'Save draft')
+    saveBtn.setAttribute('type', 'button')
+    saveBtn.addEventListener('click', function () {
+      var result = {
+        isComment: isComment,
+        comment: commentTa.value,
+      }
+      if (!isComment) {
+        if (fieldType === 'boolean') {
+          var cb = widgetRef.querySelector('input[type="checkbox"]')
+          result.proposed = cb ? cb.checked : false
+        } else if (fieldType === 'multiselect') {
+          var checkedBoxes = widgetRef.querySelectorAll('input[type="checkbox"]:checked')
+          result.proposed = Array.prototype.map.call(checkedBoxes, function (b) { return b.value })
+        } else if (fieldType === 'reference') {
+          var refInp = widgetRef.querySelector('input')
+          result.proposed = refInp ? refInp.value : ''
+        } else {
+          result.proposed = widgetRef.value
+        }
+      }
+      if (opts && typeof opts.onSave === 'function') opts.onSave(result)
+      if (typeof modal.close === 'function') modal.close()
+      else modal.removeAttribute('open')
+    })
+    var cancelBtn = makeEl(doc, 'button', 'innfo-edit-btn innfo-edit-btn-cancel', 'Cancel')
+    cancelBtn.setAttribute('type', 'button')
+    cancelBtn.addEventListener('click', function () {
+      if (typeof modal.close === 'function') modal.close()
+      else modal.removeAttribute('open')
+      if (opts && typeof opts.onCancel === 'function') opts.onCancel()
+    })
+    actions.appendChild(saveBtn)
+    actions.appendChild(cancelBtn)
+    modal.appendChild(actions)
+
+    return modal
+  }
+
   function AnnotationPopover(data, opts) {
     if (!data || typeof data !== 'object') {
       throw new TypeError('InnfoUI.AnnotationPopover: data required')
@@ -602,6 +855,7 @@
     })
     return pop
   }
+
 
   var REVIEW_STATES = ['none', 'reviewed', 'changed']
 
@@ -683,5 +937,13 @@
     AnnotationPopover: AnnotationPopover,
     ReviewedToggle: ReviewedToggle,
     RailProgress: RailProgress,
+    EditModal: EditModal,
+    FieldStringWidget: FieldStringWidget,
+    FieldNumberWidget: FieldNumberWidget,
+    FieldBooleanWidget: FieldBooleanWidget,
+    FieldSelectWidget: FieldSelectWidget,
+    FieldMultiSelectWidget: FieldMultiSelectWidget,
+    FieldReferenceWidget: FieldReferenceWidget,
+    FieldMarkdownWidget: FieldMarkdownWidget,
   }
 })

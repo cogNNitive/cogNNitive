@@ -2225,7 +2225,9 @@
       '<textarea data-innfo="export-json" readonly></textarea>' +
       '<div class="innfo-feedback-actions">' +
       '<button data-innfo="download" type="button">Download feedback JSON</button>' +
+      '<button data-innfo="download-changeset" type="button">Download _changes_NN.md</button>' +
       '<button data-innfo="copy" type="button">Copy to clipboard</button>' +
+      '<button data-innfo="copy-changeset-prompt" type="button">Copy Changeset Prompt</button>' +
       '<span data-innfo="copy-status" role="status" aria-live="polite"></span>' +
       '</div>' +
       '<h3>Instructions</h3>' +
@@ -2247,6 +2249,103 @@
     }
 
     return root
+  }
+
+  function formatChangesetValue(val) {
+    if (val === undefined || val === null) return '""'
+    var str = typeof val === 'object' ? JSON.stringify(val) : String(val)
+    if (str.indexOf('"') !== -1 || str.indexOf('\n') !== -1 || str.indexOf(':') !== -1 || str.indexOf(' ') !== -1) {
+      return JSON.stringify(str)
+    }
+    return str
+  }
+
+  function draftToChange(draft, index, modelTitle) {
+    var d = isObject(draft) ? draft : {}
+    var id = d.id || 'c-' + String(index + 1).padStart(2, '0')
+    var model = modelTitle || 'model'
+    var elementTarget = d.element_id || d.element || 'elem'
+    var target = d.field ? model + '@' + elementTarget + '&' + d.field : model + '@' + elementTarget
+    var op = 'update_field'
+    if (d.kind === 'delete') {
+      op = 'remove_element'
+      target = model + '@' + elementTarget
+    } else if (d.kind === 'comment' || (!d.proposed && !d.field)) {
+      op = 'comment'
+    }
+
+    var lines = []
+    lines.push('## NN Change: ' + id)
+    lines.push('op:: ' + op)
+    lines.push('target:: ' + target)
+    if (op === 'update_field') {
+      if (d.original !== undefined) lines.push('from:: ' + formatChangesetValue(d.original))
+      if (d.proposed !== undefined) lines.push('to:: ' + formatChangesetValue(d.proposed))
+    }
+    if (d.comment) {
+      lines.push('notes:: ' + formatChangesetValue(d.comment))
+    }
+    return lines.join('\n')
+  }
+
+  function serializeChangesetMarkdown(meta, drafts) {
+    var title = meta.title || meta.source_knowledge || 'Proposed Changes'
+    var author = meta.author || 'reviewer'
+    var lines = [
+      '---',
+      'spec_version: "V_0-4-0"',
+      'parent_spec: "changes"',
+      'blueprint_version: "0.1.0"',
+      'status: proposed',
+      'title: ' + JSON.stringify(title),
+      'author: ' + JSON.stringify(author),
+      '---',
+      '',
+      '> [!NOTE]',
+      '> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor or view and edit it with [cogNNitive](https://cognnitive.com/innfo/app/).',
+      '',
+      '# NN index',
+      '',
+      '* [[Change]]',
+      '',
+      '# NN Change',
+      '',
+    ]
+    var modelName = meta.source_knowledge || 'model'
+    var blocks = drafts.map(function (d, i) {
+      return draftToChange(d, i, modelName)
+    })
+    lines.push(blocks.join('\n\n'))
+    lines.push('')
+    return lines.join('\n')
+  }
+
+  function composeChangesetExport(state, identifier) {
+    var reviewer = identifier && String(identifier).trim() ? String(identifier).trim() : getReviewerName()
+    var drafts = state && state.store ? state.store.drafts() : []
+    var model = state && state.modelTitle ? state.modelTitle : 'Model'
+    var version = state && state.modelVersion ? state.modelVersion : '1-0-0'
+    var reviewerSlug = slugify(reviewer) || 'reviewer'
+    var stamp = stampFromDate(new Date())
+
+    var exportMeta = {
+      source_knowledge: model,
+      title: 'Review Changes: ' + model,
+      author: reviewer,
+    }
+
+    if (!reviewer || reviewer === DEFAULT_REVIEWER_NAME) {
+      return { ok: false, errors: ['Reviewer identifier is required.'] }
+    }
+
+    var text = serializeChangesetMarkdown(exportMeta, drafts)
+    var filename = model + '_' + reviewerSlug + '_' + stamp + '_changes_NN.md'
+    return {
+      ok: true,
+      text: text,
+      filename: filename,
+      items: drafts.length,
+    }
   }
 
   function composeExport(state, identifier) {
@@ -2290,11 +2389,17 @@
     var check = validateFeedback(payload)
     if (!check.ok) return { ok: false, errors: check.errors }
 
+    var stamp = stampFromDate(state && state.exportedAt ? new Date(state.exportedAt) : new Date())
+    var changesetMd = serializeChangesetMarkdown(exportMeta, drafts)
+    var changesetFilename = model + '_' + reviewerSlug + '_' + stamp + '_changes_NN.md'
+
     return {
       ok: true,
       payload: payload,
       text: serializeFeedback(payload),
       filename: buildFeedbackFilename(model, String(version).replace(/^V_/, ''), reviewer),
+      changesetText: changesetMd,
+      changesetFilename: changesetFilename,
       items: payload.items.length,
     }
   }
@@ -2314,6 +2419,70 @@
       }).join('') +
       '</ul>'
     errorContainer.style.display = 'block'
+  }
+
+  function downloadChangesetExport(doc, state) {
+    var identifierInput = doc.querySelector('#innfo-feedback-modal [data-innfo="identifier"]')
+    var identifier = identifierInput && identifierInput.value ? String(identifierInput.value).trim() : ''
+    var composed = composeExport(state, identifier)
+    if (!composed.ok) {
+      renderErrors(doc, composed.errors)
+      return composed
+    }
+    renderErrors(doc, [])
+    var blob = new Blob([composed.changesetText], { type: 'text/markdown;charset=utf-8' })
+    var url = URL.createObjectURL(blob)
+    var anchor = doc.createElement('a')
+    anchor.href = url
+    anchor.download = composed.changesetFilename
+    doc.body.appendChild(anchor)
+    anchor.click()
+    anchor.remove()
+    setTimeout(function () {
+      URL.revokeObjectURL(url)
+    }, 1000)
+    return { ok: true, filename: composed.changesetFilename, items: composed.items }
+  }
+
+  function copyChangesetPrompt(doc, state) {
+    var modal = doc.getElementById('innfo-feedback-modal')
+    var status = modal && modal.querySelector('[data-innfo="copy-status"]')
+    var textarea = modal && modal.querySelector('[data-innfo="export-json"]')
+    function announce(msg) {
+      if (status) status.textContent = msg
+    }
+    var composed = composeExport(state, _readIdentifier(modal))
+    if (!composed.ok) {
+      announce('Cannot copy: fix the validation errors first.')
+      return composed
+    }
+    var promptText =
+      'Please apply the following changeset to update ' +
+      (state ? state.modelTitle : 'the model') +
+      ':\n\n```markdown\n' +
+      composed.changesetText +
+      '```\n'
+    try {
+      if (
+        typeof navigator !== 'undefined' &&
+        navigator.clipboard &&
+        typeof navigator.clipboard.writeText === 'function'
+      ) {
+        navigator.clipboard.writeText(promptText).then(
+          function () {
+            announce('Copied changeset prompt to clipboard.')
+          },
+          function () {
+            announce(fallbackCopy(doc, textarea, promptText))
+          },
+        )
+        return composed
+      }
+      announce(fallbackCopy(doc, textarea, promptText))
+    } catch {
+      announce('Copy failed. Select the text and press Ctrl+C.')
+    }
+    return composed
   }
 
   function downloadFeedbackExport(doc, state) {
@@ -2358,19 +2527,25 @@
 
     var composed = composeExport(state, identifier)
     var downloadBtn = modal.querySelector('[data-innfo="download"]')
+    var downloadCsBtn = modal.querySelector('[data-innfo="download-changeset"]')
     var copyBtn = modal.querySelector('[data-innfo="copy"]')
+    var copyCsBtn = modal.querySelector('[data-innfo="copy-changeset-prompt"]')
     var textarea = modal.querySelector('[data-innfo="export-json"]')
 
     if (composed.ok) {
       renderErrors(doc, [])
       if (textarea) textarea.value = composed.text
       if (downloadBtn) downloadBtn.disabled = false
+      if (downloadCsBtn) downloadCsBtn.disabled = false
       if (copyBtn) copyBtn.disabled = false
+      if (copyCsBtn) copyCsBtn.disabled = false
     } else {
       renderErrors(doc, composed.errors)
       if (textarea) textarea.value = ''
       if (downloadBtn) downloadBtn.disabled = true
+      if (downloadCsBtn) downloadCsBtn.disabled = true
       if (copyBtn) copyBtn.disabled = true
+      if (copyCsBtn) copyCsBtn.disabled = true
     }
     return composed
   }
@@ -2453,11 +2628,11 @@
       instructions.textContent =
         'Review ' +
         drafts.length +
-        ' pending draft(s), then download or copy the feedback JSON.'
+        ' pending draft(s), then download or copy the feedback JSON or Changeset.'
     }
     if (agentPrompt) {
       agentPrompt.textContent =
-        'Apply the attached feedback JSON to ' +
+        'Apply the attached feedback JSON or Changeset to ' +
         (state ? state.modelTitle : 'Model') +
         ' (' +
         (state ? state.modelVersion : '') +
@@ -2494,6 +2669,21 @@
       })
     }
 
+    var downloadCsBtn = modal.querySelector('[data-innfo="download-changeset"]')
+    if (downloadCsBtn && !downloadCsBtn.getAttribute('data-innfo-bound')) {
+      downloadCsBtn.setAttribute('data-innfo-bound', '1')
+      downloadCsBtn.addEventListener('click', function () {
+        var identifier = identifierInput && identifierInput.value ? String(identifierInput.value).trim() : ''
+        if (!identifier || identifier === DEFAULT_REVIEWER_NAME) return
+        setReviewerName(identifier)
+        var res = downloadChangesetExport(doc, state)
+        if (res && res.ok) {
+          if (typeof modal.close === 'function') modal.close()
+          else modal.removeAttribute('open')
+        }
+      })
+    }
+
     var copyBtn = modal.querySelector('[data-innfo="copy"]')
     if (copyBtn && !copyBtn.getAttribute('data-innfo-bound')) {
       copyBtn.setAttribute('data-innfo-bound', '1')
@@ -2501,6 +2691,16 @@
         var identifier = identifierInput && identifierInput.value ? String(identifierInput.value).trim() : ''
         if (identifier && identifier !== DEFAULT_REVIEWER_NAME) setReviewerName(identifier)
         copyExport(doc, state)
+      })
+    }
+
+    var copyCsBtn = modal.querySelector('[data-innfo="copy-changeset-prompt"]')
+    if (copyCsBtn && !copyCsBtn.getAttribute('data-innfo-bound')) {
+      copyCsBtn.setAttribute('data-innfo-bound', '1')
+      copyCsBtn.addEventListener('click', function () {
+        var identifier = identifierInput && identifierInput.value ? String(identifierInput.value).trim() : ''
+        if (identifier && identifier !== DEFAULT_REVIEWER_NAME) setReviewerName(identifier)
+        copyChangesetPrompt(doc, state)
       })
     }
   }
@@ -2724,6 +2924,9 @@
     draftToItem: draftToItem,
     downloadFeedbackExport: downloadFeedbackExport,
     composeExport: composeExport,
+    composeChangesetExport: composeChangesetExport,
+    downloadChangesetExport: downloadChangesetExport,
+    copyChangesetPrompt: copyChangesetPrompt,
     serializeFeedback: serializeFeedback,
     downloadExport: downloadExport,
     buildExportDoc: buildExportDoc,

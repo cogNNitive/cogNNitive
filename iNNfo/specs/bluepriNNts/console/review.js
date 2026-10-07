@@ -329,6 +329,48 @@
     function openFor(anchor, anchorData) {
       closePopover()
       lastAnchor = anchor
+
+      if (anchorData.field && elementsById[anchorData.elementId] && typeof UI.EditModal === 'function') {
+        var elForEdit = elementsById[anchorData.elementId]
+        var fieldVal = elForEdit.fields ? elForEdit.fields[anchorData.field] : undefined
+        var schemaField = null
+        if (options.schema && Array.isArray(options.schema.fields)) {
+          schemaField = options.schema.fields.filter(function (f) { return f.name === anchorData.field })[0]
+        }
+        var fieldType = schemaField && schemaField.type ? schemaField.type : (typeof fieldVal === 'number' ? 'number' : typeof fieldVal === 'boolean' ? 'boolean' : 'string')
+        var modal = UI.EditModal({
+          title: 'Edit ' + (elForEdit.name || anchorData.elementId) + ' \u2192 ' + anchorData.field,
+          fieldName: anchorData.field,
+          type: fieldType,
+          value: fieldVal,
+          options: schemaField ? schemaField.options : undefined,
+          candidates: schemaField && (schemaField.type === 'reference' || fieldType === 'reference') ? elements : undefined,
+          isComment: false,
+        }, {
+          doc: doc,
+          onSave: function (res) {
+            if (res.isComment) {
+              saveDraft(anchorData, { kind: 'comment', comment: res.comment })
+            } else {
+              saveDraft(anchorData, { kind: 'correction', proposed: res.proposed, comment: res.comment })
+            }
+            closePopover()
+          },
+          onCancel: function () {
+            closePopover()
+            if (lastAnchor && typeof lastAnchor.focus === 'function') lastAnchor.focus()
+          },
+        })
+        doc.body.appendChild(modal)
+        openPopover = modal
+        if (typeof modal.showModal === 'function') {
+          modal.showModal()
+        } else {
+          modal.setAttribute('open', 'open')
+        }
+        return
+      }
+
       var kinds = anchorData.field ? ['comment', 'correction'] : ['comment', 'delete']
       var activeKind = kinds[0]
       var data = {

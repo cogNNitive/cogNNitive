@@ -28,7 +28,7 @@
  * member and leaves earlier consoles byte-identical.
  */
 
-import { readdir, readFile } from 'node:fs/promises'
+import { readdir, readFile, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { join, relative, basename, resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -104,6 +104,7 @@ function parseArgs(argv) {
     tree: false,
     all: false,
     stale: false,
+    domain: false,
     filter: null,
     model: null,
   }
@@ -120,6 +121,8 @@ function parseArgs(argv) {
       args.all = true
     } else if (a === '--stale') {
       args.stale = true
+    } else if (a === '--domain') {
+      args.domain = true
     } else if (a === '--filter') {
       i++
       if (i < slice.length) {
@@ -414,13 +417,13 @@ async function main() {
       console.log('All models are fresh. Nothing to export.')
       return
     }
-  } else if (args.all || args.filter || args.model) {
+  } else if (args.all || args.filter || args.model || args.domain) {
     selected = candidateModels
   }
 
-  if (selected.length === 0) {
+  if (selected.length === 0 && !args.domain) {
     console.error(
-      'No models selected. Use --all, --stale, --filter <pattern>, or pass a model name/id substring.',
+      'No models selected. Use --all, --stale, --domain, --filter <pattern>, or pass a model name/id substring.',
     )
     process.exit(1)
   }
@@ -534,6 +537,60 @@ async function main() {
       console.log(`✔ ${basename(result.path)} → ./${result.path}`)
     }
   }
+
+  if (args.domain) {
+    const domainHtmlPath = join(root, 'domaiNN_console.html')
+    // Build combined payload aggregating all models in the workspace
+    const allElements = []
+    const allMatrices = []
+    const allConcepts = []
+    const seenConcepts = new Set()
+
+    for (const m of candidateModels) {
+      const relPath = relative(root, m.filePath).replace(/\\/g, '/')
+      const payload = payloadHelper.buildConsolePayload({
+        content: m.content,
+        path: relPath,
+        resolver,
+        ledgerEntries,
+      })
+      if (payload && payload.model) {
+        if (Array.isArray(payload.model.elements)) {
+          allElements.push(...payload.model.elements)
+        }
+        if (Array.isArray(payload.model.matrices)) {
+          allMatrices.push(...payload.model.matrices)
+        }
+      }
+      if (payload && payload.schema && Array.isArray(payload.schema.concepts)) {
+        for (const c of payload.schema.concepts) {
+          if (c && c.name && !seenConcepts.has(c.name)) {
+            seenConcepts.add(c.name)
+            allConcepts.push(c)
+          }
+        }
+      }
+    }
+
+    const domainPayload = {
+      schema: { concepts: allConcepts },
+      model: {
+        meta: {
+          title: basename(root) + ' Domain',
+          model: basename(root),
+          modelVersion: 'V_1-0-0',
+          generated: new Date().toISOString(),
+        },
+        elements: allElements,
+        matrices: allMatrices,
+      },
+    }
+
+    const domainHtml = renderConsole(resolvedShell, null, config, domainPayload)
+    await writeFile(domainHtmlPath, domainHtml, 'utf-8')
+    console.log(`✔ domaiNN_console.html → ./domaiNN_console.html (${candidateModels.length} models, ${allElements.length} elements)`)
+  }
+
   console.log(`Exported ${written} console artifact(s)${unchanged > 0 ? ` (${unchanged} unchanged)` : ''}.`)
 }
 
