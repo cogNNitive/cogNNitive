@@ -1190,3 +1190,70 @@ hand edits is a non-goal; the user owns that risk, but must be told.
 **Depends on:** the stable-identity / single-changeset redesign (immutable slugs).
 
 **Suggested trigger:** `/sdd-new manual-editing-risks` once immutable slugs land.
+
+---
+
+## `refactor/stable-identity-and-changesets` — one identity, one change record, one editing UI *(planned, 6 slices)*
+
+**Type:** architecture · **Size:** large (6 independent SDD changes)
+
+**Status:** vision settled in a grilling session on 2026-10-07. Not started. Open each slice
+with its own `/sdd-new` only after the previous one is archived, so its specs are written
+against the code the earlier slices produced.
+
+**Why:** discovery-driven development left four writers to the graph (hand edits, the MCP
+`apply_change`, the Vue editor writing directly through the File System Access API, review
+artifacts) and four provenance formats (pasted `## NN Agent Modification` blocks in promoted
+transcripts, `feedback-ledger.jsonl`, editor `editAttribution`, nothing at all for direct
+editor writes). Element identity is derived from display names (`slugify(name)`, matrix cells
+keyed `matrix||row||col` by name), so a rename breaks citations, and a repeated name inside a
+document silently drops an element from the graph. The editor and the core even slugify
+differently (`_` vs `-`, `knowledgeStore.ts:668` vs `parser/slug.ts`).
+
+**Target model:** every graph change is a changeset proposed from a console and applied by
+the agent; every graph component has one stable, human-readable address.
+
+### Decisions
+
+| # | Decision | Reason |
+|---|---|---|
+| D1 | Every element carries an explicit, immutable `slug::`; concepts and matrices get one in their bluepriNNt definition. A missing slug is tolerated (warning), derived and frozen on the element's next mutation. A rename freezes the OLD derived slug before changing the name. | Identity must survive renames; tolerance keeps unmigrated domains usable. |
+| D2 | No history section is persisted inside models. Changesets are the single source of truth; the agent computes per-element history when it generates a console, and on demand via MCP. | Single source of truth; an in-model index is derivable and would drift. |
+| D3 | Slugs are unique per model, and the slug (not the name) is the node identity. Two elements may share a display name inside one model. | Models are the unit that moves between domains; supersedes the intra-document identity item above. |
+| D4 | Each model carries an immutable `model_slug` in frontmatter. | Filenames change on every version bump and cannot be identity. |
+| D5 | One address grammar for the whole domain, extending the existing citation grammar `<doc>@<unit>&<subunit>`: `doc` is a file path (sources, unchanged) or a `model_slug` (graph). Element `m@el`, field `m@el&field`, matrix cell `m@matrix&row&col`. No concept segment (redundant with per-model uniqueness), no domain segment (the changeset header carries `workspace_id`). | One resolver for citations, changeset targets and graph references; `::` would collide with `key:: value`. |
+| D6 | In the `.md` body, `reference` fields and matrix row/column headers are written as slugs; prose wikilinks accept a slug or a name (slug first, warning on an ambiguous name). | Structural links must not depend on names; prose stays human. |
+| D7 | Changesets live in `changes/` at the domain root as `_NN.md` documents of a `changes` bluepriNNt, named `<workspace_id>_changes_<author>_<YYYYMMDD-HHmmss>.md`. The proposed content is immutable; the agent writes `status::` and `resolution::` per change. A changeset is a user-input source, not a primary one. | Sources under `sources/` are sha-audited and must stay immutable; one file tells what was asked and what happened. |
+| D8 | Every graph mutation is a changeset: console, chat request, source import and `cognitivize` alike, told apart by `origin::` and `author::`. `apply_change` always applies a changeset (creating one when called without). The Agent Modification block, its verbatim-paste mandate and transcript promotion as provenance are retired, with no compatibility layer. | Provenance stops depending on two manual steps that fail silently. |
+| D9 | The live model file has no version in its name; the version lives in frontmatter. Applying a changeset bumps each affected model once (patch by default, the agent asks for minor/major) and MOVES the previous version to `kNNowledge/archive/<model_slug>_V_x-y-z_<YYYYMMDD-HHmmss>_NN.md` (today `bump_version` deletes it). The changeset records `base_version` and `result_version` per model. | Snapshots without git; stable paths; `archive/` is already excluded by `isIgnoredPath`. |
+| D10 | Apply per change, decided in bulk with the agent. A change conflicts when the current value differs from its `from`, or when its slug was deleted after `base_version`. A conflict is resolved by a NEW changeset that cites the original. | One conflict must not block the clean changes; proposals stay immutable. |
+| D11 | A console proposes the slug of a new element (core `slugify`, available in `browser.ts`), checked against the snapshot and the batch. The writer confirms it, or suffixes it and rewrites the references inside the same batch. No temporary ids. | Changesets read the same before and after apply. |
+| D12 | Deleting shows the impact first. Matrix cells cascade; `reference` fields and cross-model references become conflicts decided in the batch. Slugs MAY be reused: history starts at the last `add_element`, and a pending batch whose `base_version` predates a delete of that slug conflicts. | Everything needed is already in the changesets. |
+| D13 | The vanilla console stack (`iNNfo/specs/bluepriNNts/console/`) is the only UI stack. The Vue `innfo-editor` is retired; only the widgets actually needed are ported to `ui-kit.js`. Consoles open by double-click, never write files, and edit every component through one shared modal. Console states: `draft`, `proposed`; import states: `approved`, `applied`, `rejected`, `conflict`. A "direct apply" state is rejected. | One modal, one widget set, one slugify; editing complexity moves to the single writer. |
+| D14 | One `domaiNN_console.html` at the domain root embeds every model, precomputed history and the source index (heavy sources are linked, not embedded). The agent regenerates it after every changeset import and on demand. Specific consoles remain as views sharing the bundle and the modal. | The domain is the navigation root; the console is never older than the last apply. |
+| D15 | Review feedback becomes `op: comment` changes (target, author, notes, no `to`). The feedback JSON export, `feedback-ledger.jsonl`, and the MCP tools `evaluate_feedback_items` / `record_feedback_verdict` are retired into the changeset import. The modal offers "propose value" or "comment". | One provenance format. |
+| D16 | Existing domains migrate through one consent-gated `nn-upgrade` step (slugs, `model_slug`, version-free filenames, slug references and citations, removal of retired blocks and ledgers). Until then the core reads name-based references tolerantly and each mutation rewrites what it touches. That tolerant read is legacy code with a `legacy:` marker and a `legacy-ledger.yaml` entry. | Domains converge even if the migration is never run. |
+| D17 | The user-facing term stays "console": "domain console" for the master, "model console", "procedures console", and so on for the specific ones. | `app` is a deprecated alias of bluepriNNt (`iNNfo/specs/vocabulary.json`); "editor" implies direct writes and names the component being retired. |
+
+### Non-goals (explicitly rejected)
+
+- A change log JSON under `.cognnitive/` (a fourth source of truth that is lost when the folder is copied).
+- An opaque dual id (UUID/ULID plus slug): the immutable slug is both readable and stable.
+- Any console writing graph files directly, including through a local launcher.
+- Concept or domain segments inside addresses.
+- Preventing hand edits; they are the user's risk (see `docs/manual-editing-risks`).
+
+### Slices
+
+| # | Slice | Contents | Depends on |
+|---|---|---|---|
+| S1 | `stable-element-identity` | D1, D3, D4, D5, D6: immutable `slug::`/`model_slug`, unified address grammar and resolver, validator diagnostics (duplicate slug, ambiguous name), editor/core slugify unified. | — |
+| S2 | `changeset-single-writer` | D7–D12: `changes` bluepriNNt, `changes/` folder, changeset apply in the MCP, versioning plus `kNNowledge/archive/`, conflicts and deletes, retire Agent Modification. | S1 |
+| S3 | `feedback-as-changes` | D15. | S2 |
+| S4 | `domain-console-and-edit-modal` | D13, D14, D17 on the vanilla stack, with computed history. | S2, S3 |
+| S5 | `domain-identity-migration` | D16 in `nn-upgrade`. | S1, S2 |
+| S6 | `retire-innfo-editor` | Delete the Vue editor once S4 covers what is actually used. | S4 |
+
+**Closes:** "Intra-document element identity: key on the slug, not the display name" (above).
+
+**Suggested trigger:** `/sdd-new stable-element-identity` (S1).
