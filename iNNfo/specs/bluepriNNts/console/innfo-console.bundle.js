@@ -678,7 +678,20 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var s = size || 14
     var c = cls ? ' ' + cls : ''
     var body = ICON_PATHS[name]
-    if (!body) throw new TypeError('InnfoUI.icon: unknown icon "' + name + '"')
+    if (!body) {
+      if (typeof InnfoIcons !== 'undefined' && typeof InnfoIcons.getSvg === 'function') {
+        return InnfoIcons.getSvg(name, { size: s, class: 'innfo-icon' + c })
+      }
+      return (
+        '<svg class="innfo-icon' +
+        c +
+        '" width="' +
+        s +
+        '" height="' +
+        s +
+        '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>'
+      )
+    }
     return (
       '<svg class="innfo-icon' +
       c +
@@ -899,29 +912,55 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var doc = resolveDoc(opts)
     var drafts = Array.isArray(data.drafts) ? data.drafts : []
     var byId = data.byId && typeof data.byId === 'object' ? data.byId : {}
-    var ul = makeEl(doc, 'ul', 'innfo-draft-list')
+    var ul = makeEl(doc, 'ul', 'innfo-draft-list flex flex-col gap-3 list-none p-0 m-0')
     ul.setAttribute('data-innfo-component', 'draft-list')
     drafts.forEach(function (d) {
       if (!d || typeof d !== 'object') return
       var el = byId[String(d.element_id)]
       var changed = !el || el.hash !== d.base_hash
-      var li = makeEl(doc, 'li', 'innfo-draft-row')
+      var li = makeEl(doc, 'li', 'innfo-draft-row card bg-base-100 border border-base-200 shadow-xs')
       li.setAttribute('data-draft-id', String(d.id))
       if (changed) li.setAttribute('data-target-changed', 'true')
-      li.appendChild(makeEl(doc, 'span', 'innfo-draft-kind', d.kind))
+
+      var cardBody = makeEl(doc, 'div', 'card-body p-4 flex flex-row items-center justify-between gap-4')
+
+      var left = makeEl(doc, 'div', 'flex items-center gap-3 flex-wrap')
+      var badgeCls = d.kind === 'correction' ? 'badge badge-primary' : d.kind === 'comment' ? 'badge badge-neutral' : 'badge badge-ghost'
+      var kindBadge = makeEl(doc, 'span', 'innfo-draft-kind ' + badgeCls, d.kind)
+      left.appendChild(kindBadge)
+
       var targetLabel = el ? el.name || d.element_id : d.element || d.element_id
-      li.appendChild(
-        makeEl(doc, 'span', 'innfo-draft-target', targetLabel + (d.field ? '.' + d.field : '')),
+      var targetSpan = makeEl(
+        doc,
+        'span',
+        'innfo-draft-target font-semibold text-sm',
+        targetLabel + (d.field ? '.' + d.field : '')
       )
+      left.appendChild(targetSpan)
+
       var text = d.comment != null ? d.comment : d.proposed != null ? d.proposed : ''
-      li.appendChild(makeEl(doc, 'span', 'innfo-draft-text', text))
-      if (changed) li.appendChild(makeEl(doc, 'span', 'innfo-draft-target-changed', 'target changed'))
-      var del = makeEl(doc, 'button', 'innfo-draft-delete', 'Delete')
+      var textSpan = makeEl(doc, 'span', 'innfo-draft-text text-sm opacity-80', text)
+      left.appendChild(textSpan)
+      cardBody.appendChild(left)
+
+      var right = makeEl(doc, 'div', 'flex items-center gap-2 shrink-0')
+      if (changed) {
+        var warnBadge = makeEl(doc, 'span', 'innfo-draft-target-changed badge badge-error badge-sm', 'target changed')
+        right.appendChild(warnBadge)
+      }
+
+      var del = makeEl(doc, 'button', 'innfo-draft-delete btn btn-sm btn-ghost text-error', 'Delete')
       del.setAttribute('type', 'button')
+      if (typeof InnfoIcons !== 'undefined' && typeof InnfoIcons.getSvg === 'function') {
+        del.innerHTML = InnfoIcons.getSvg('trash-2', { size: 14 }) + '<span>Delete</span>'
+      }
       del.addEventListener('click', function () {
         if (opts && typeof opts.onDelete === 'function') opts.onDelete(d.id)
       })
-      li.appendChild(del)
+      right.appendChild(del)
+      cardBody.appendChild(right)
+
+      li.appendChild(cardBody)
       ul.appendChild(li)
     })
     return ul
@@ -3941,6 +3980,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     tabsNav.innerHTML = ''
     tabsNav.style.display = 'flex'
+    tabsNav.className = 'innfo-view-tabs tabs tabs-boxed bg-base-200 p-1 rounded-lg gap-1 mb-4 inline-flex'
 
     var initialHash = String(doc.location ? doc.location.hash || '' : '').replace(/^#/, '')
     var activeTabId = initialHash || (hasDomain ? 'canonical' : tabs[0].id)
@@ -3955,7 +3995,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         var btn = tabsNav.querySelector('.innfo-view-tab[data-tab="' + t.id + '"]')
         var panel = doc.getElementById(t.targetId)
         var isActive = t.id === tabId
-        if (btn) btn.classList.toggle('active', isActive)
+        if (btn) {
+          btn.classList.toggle('active', isActive)
+          btn.classList.toggle('tab-active', isActive)
+        }
         if (panel) panel.classList.toggle('active', isActive)
       })
 
@@ -3973,13 +4016,14 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
 
     tabs.forEach(function (t) {
-      var btn = el('button', 'innfo-view-tab' + (t.id === activeTabId ? ' active' : ''))
+      var btn = el('button', 'innfo-view-tab tab flex items-center gap-2' + (t.id === activeTabId ? ' active tab-active' : ''))
       if (!btn) return
       btn.setAttribute('type', 'button')
       btn.dataset.tab = t.id
-      var iconHtml = UI.icon(t.icon, 15)
+      var iconName = t.icon === 'chart' ? 'bar-chart-2' : t.icon === 'matrices' ? 'table' : t.icon === 'explorer' ? 'boxes' : t.icon === 'review' ? 'edit' : t.icon
+      var iconHtml = UI.icon(iconName, 15)
       var countBadge =
-        t.count > 0 ? '<span class="innfo-rail-badge">' + t.count + '</span>' : ''
+        t.count > 0 ? '<span class="innfo-rail-badge badge badge-sm badge-neutral">' + t.count + '</span>' : ''
       btn.innerHTML = iconHtml + '<span>' + t.label + '</span>' + countBadge
       btn.addEventListener('click', function () {
         selectTab(t.id)
@@ -3997,23 +4041,28 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     host.innerHTML = ''
 
     var drafts = state && state.store ? state.store.drafts() : []
-    var root = el('div', 'innfo-review-tab-content')
+    var root = el('div', 'innfo-review-tab-content p-6 max-w-5xl mx-auto')
     if (!root) return
 
-    var head = el('section', 'innfo-review-head')
+    var head = el('section', 'innfo-review-head flex justify-between items-center mb-6 pb-4 border-b border-base-200')
     if (head) {
-      head.appendChild(el('h2', null, 'Proposed Changes'))
+      var titleWrap = el('div')
+      titleWrap.appendChild(el('h2', 'text-2xl font-bold tracking-tight', 'Proposed Changes'))
       var count = el(
         'p',
-        'innfo-review-count',
+        'innfo-review-count text-sm opacity-70 mt-1',
         drafts.length + (drafts.length === 1 ? ' pending change' : ' pending changes'),
       )
-      if (count) head.appendChild(count)
+      if (count) titleWrap.appendChild(count)
+      head.appendChild(titleWrap)
+
       if (drafts.length > 0) {
-        var exportBtn = el('button', 'innfo-btn innfo-btn-primary innfo-tab-export-btn', 'Export changes')
+        var exportBtn = el('button', 'innfo-btn innfo-tab-export-btn btn btn-primary btn-sm flex items-center gap-2 shadow-sm', 'Export changes')
         if (exportBtn) {
           exportBtn.setAttribute('type', 'button')
-          exportBtn.style.marginTop = '8px'
+          if (typeof InnfoIcons !== 'undefined' && typeof InnfoIcons.getSvg === 'function') {
+            exportBtn.innerHTML = InnfoIcons.getSvg('download', { size: 14 }) + '<span>Export changes</span>'
+          }
           exportBtn.addEventListener('click', function () {
             openExportModal(doc, state)
           })
@@ -4026,9 +4075,13 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var listSection = el('section', 'innfo-review-list-section')
     if (listSection) {
       if (drafts.length === 0) {
-        listSection.appendChild(
-          el('div', 'empty-state', 'No proposed changes yet. Annotate an element in review mode.'),
-        )
+        var empty = el('div', 'empty-state alert alert-info bg-base-100 border border-base-200 text-sm p-4 rounded-lg flex items-center gap-3')
+        if (typeof InnfoIcons !== 'undefined' && typeof InnfoIcons.getSvg === 'function') {
+          empty.innerHTML = InnfoIcons.getSvg('info', { size: 18 }) + '<span>No proposed changes yet. Annotate an element in review mode.</span>'
+        } else {
+          empty.textContent = 'No proposed changes yet. Annotate an element in review mode.'
+        }
+        listSection.appendChild(empty)
       } else {
         var byId = {}
         ;(state && state.elements ? state.elements : []).forEach(function (e) {

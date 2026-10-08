@@ -319,7 +319,20 @@
     var s = size || 14
     var c = cls ? ' ' + cls : ''
     var body = ICON_PATHS[name]
-    if (!body) throw new TypeError('InnfoUI.icon: unknown icon "' + name + '"')
+    if (!body) {
+      if (typeof InnfoIcons !== 'undefined' && typeof InnfoIcons.getSvg === 'function') {
+        return InnfoIcons.getSvg(name, { size: s, class: 'innfo-icon' + c })
+      }
+      return (
+        '<svg class="innfo-icon' +
+        c +
+        '" width="' +
+        s +
+        '" height="' +
+        s +
+        '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>'
+      )
+    }
     return (
       '<svg class="innfo-icon' +
       c +
@@ -540,29 +553,55 @@
     var doc = resolveDoc(opts)
     var drafts = Array.isArray(data.drafts) ? data.drafts : []
     var byId = data.byId && typeof data.byId === 'object' ? data.byId : {}
-    var ul = makeEl(doc, 'ul', 'innfo-draft-list')
+    var ul = makeEl(doc, 'ul', 'innfo-draft-list flex flex-col gap-3 list-none p-0 m-0')
     ul.setAttribute('data-innfo-component', 'draft-list')
     drafts.forEach(function (d) {
       if (!d || typeof d !== 'object') return
       var el = byId[String(d.element_id)]
       var changed = !el || el.hash !== d.base_hash
-      var li = makeEl(doc, 'li', 'innfo-draft-row')
+      var li = makeEl(doc, 'li', 'innfo-draft-row card bg-base-100 border border-base-200 shadow-xs')
       li.setAttribute('data-draft-id', String(d.id))
       if (changed) li.setAttribute('data-target-changed', 'true')
-      li.appendChild(makeEl(doc, 'span', 'innfo-draft-kind', d.kind))
+
+      var cardBody = makeEl(doc, 'div', 'card-body p-4 flex flex-row items-center justify-between gap-4')
+
+      var left = makeEl(doc, 'div', 'flex items-center gap-3 flex-wrap')
+      var badgeCls = d.kind === 'correction' ? 'badge badge-primary' : d.kind === 'comment' ? 'badge badge-neutral' : 'badge badge-ghost'
+      var kindBadge = makeEl(doc, 'span', 'innfo-draft-kind ' + badgeCls, d.kind)
+      left.appendChild(kindBadge)
+
       var targetLabel = el ? el.name || d.element_id : d.element || d.element_id
-      li.appendChild(
-        makeEl(doc, 'span', 'innfo-draft-target', targetLabel + (d.field ? '.' + d.field : '')),
+      var targetSpan = makeEl(
+        doc,
+        'span',
+        'innfo-draft-target font-semibold text-sm',
+        targetLabel + (d.field ? '.' + d.field : '')
       )
+      left.appendChild(targetSpan)
+
       var text = d.comment != null ? d.comment : d.proposed != null ? d.proposed : ''
-      li.appendChild(makeEl(doc, 'span', 'innfo-draft-text', text))
-      if (changed) li.appendChild(makeEl(doc, 'span', 'innfo-draft-target-changed', 'target changed'))
-      var del = makeEl(doc, 'button', 'innfo-draft-delete', 'Delete')
+      var textSpan = makeEl(doc, 'span', 'innfo-draft-text text-sm opacity-80', text)
+      left.appendChild(textSpan)
+      cardBody.appendChild(left)
+
+      var right = makeEl(doc, 'div', 'flex items-center gap-2 shrink-0')
+      if (changed) {
+        var warnBadge = makeEl(doc, 'span', 'innfo-draft-target-changed badge badge-error badge-sm', 'target changed')
+        right.appendChild(warnBadge)
+      }
+
+      var del = makeEl(doc, 'button', 'innfo-draft-delete btn btn-sm btn-ghost text-error', 'Delete')
       del.setAttribute('type', 'button')
+      if (typeof InnfoIcons !== 'undefined' && typeof InnfoIcons.getSvg === 'function') {
+        del.innerHTML = InnfoIcons.getSvg('trash-2', { size: 14 }) + '<span>Delete</span>'
+      }
       del.addEventListener('click', function () {
         if (opts && typeof opts.onDelete === 'function') opts.onDelete(d.id)
       })
-      li.appendChild(del)
+      right.appendChild(del)
+      cardBody.appendChild(right)
+
+      li.appendChild(cardBody)
       ul.appendChild(li)
     })
     return ul

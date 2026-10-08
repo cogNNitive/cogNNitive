@@ -1786,6 +1786,7 @@
 
     tabsNav.innerHTML = ''
     tabsNav.style.display = 'flex'
+    tabsNav.className = 'innfo-view-tabs tabs tabs-boxed bg-base-200 p-1 rounded-lg gap-1 mb-4 inline-flex'
 
     var initialHash = String(doc.location ? doc.location.hash || '' : '').replace(/^#/, '')
     var activeTabId = initialHash || (hasDomain ? 'canonical' : tabs[0].id)
@@ -1800,7 +1801,10 @@
         var btn = tabsNav.querySelector('.innfo-view-tab[data-tab="' + t.id + '"]')
         var panel = doc.getElementById(t.targetId)
         var isActive = t.id === tabId
-        if (btn) btn.classList.toggle('active', isActive)
+        if (btn) {
+          btn.classList.toggle('active', isActive)
+          btn.classList.toggle('tab-active', isActive)
+        }
         if (panel) panel.classList.toggle('active', isActive)
       })
 
@@ -1818,13 +1822,14 @@
     }
 
     tabs.forEach(function (t) {
-      var btn = el('button', 'innfo-view-tab' + (t.id === activeTabId ? ' active' : ''))
+      var btn = el('button', 'innfo-view-tab tab flex items-center gap-2' + (t.id === activeTabId ? ' active tab-active' : ''))
       if (!btn) return
       btn.setAttribute('type', 'button')
       btn.dataset.tab = t.id
-      var iconHtml = UI.icon(t.icon, 15)
+      var iconName = t.icon === 'chart' ? 'bar-chart-2' : t.icon === 'matrices' ? 'table' : t.icon === 'explorer' ? 'boxes' : t.icon === 'review' ? 'edit' : t.icon
+      var iconHtml = UI.icon(iconName, 15)
       var countBadge =
-        t.count > 0 ? '<span class="innfo-rail-badge">' + t.count + '</span>' : ''
+        t.count > 0 ? '<span class="innfo-rail-badge badge badge-sm badge-neutral">' + t.count + '</span>' : ''
       btn.innerHTML = iconHtml + '<span>' + t.label + '</span>' + countBadge
       btn.addEventListener('click', function () {
         selectTab(t.id)
@@ -1842,23 +1847,28 @@
     host.innerHTML = ''
 
     var drafts = state && state.store ? state.store.drafts() : []
-    var root = el('div', 'innfo-review-tab-content')
+    var root = el('div', 'innfo-review-tab-content p-6 max-w-5xl mx-auto')
     if (!root) return
 
-    var head = el('section', 'innfo-review-head')
+    var head = el('section', 'innfo-review-head flex justify-between items-center mb-6 pb-4 border-b border-base-200')
     if (head) {
-      head.appendChild(el('h2', null, 'Proposed Changes'))
+      var titleWrap = el('div')
+      titleWrap.appendChild(el('h2', 'text-2xl font-bold tracking-tight', 'Proposed Changes'))
       var count = el(
         'p',
-        'innfo-review-count',
+        'innfo-review-count text-sm opacity-70 mt-1',
         drafts.length + (drafts.length === 1 ? ' pending change' : ' pending changes'),
       )
-      if (count) head.appendChild(count)
+      if (count) titleWrap.appendChild(count)
+      head.appendChild(titleWrap)
+
       if (drafts.length > 0) {
-        var exportBtn = el('button', 'innfo-btn innfo-btn-primary innfo-tab-export-btn', 'Export changes')
+        var exportBtn = el('button', 'innfo-btn innfo-tab-export-btn btn btn-primary btn-sm flex items-center gap-2 shadow-sm', 'Export changes')
         if (exportBtn) {
           exportBtn.setAttribute('type', 'button')
-          exportBtn.style.marginTop = '8px'
+          if (typeof InnfoIcons !== 'undefined' && typeof InnfoIcons.getSvg === 'function') {
+            exportBtn.innerHTML = InnfoIcons.getSvg('download', { size: 14 }) + '<span>Export changes</span>'
+          }
           exportBtn.addEventListener('click', function () {
             openExportModal(doc, state)
           })
@@ -1871,9 +1881,13 @@
     var listSection = el('section', 'innfo-review-list-section')
     if (listSection) {
       if (drafts.length === 0) {
-        listSection.appendChild(
-          el('div', 'empty-state', 'No proposed changes yet. Annotate an element in review mode.'),
-        )
+        var empty = el('div', 'empty-state alert alert-info bg-base-100 border border-base-200 text-sm p-4 rounded-lg flex items-center gap-3')
+        if (typeof InnfoIcons !== 'undefined' && typeof InnfoIcons.getSvg === 'function') {
+          empty.innerHTML = InnfoIcons.getSvg('info', { size: 18 }) + '<span>No proposed changes yet. Annotate an element in review mode.</span>'
+        } else {
+          empty.textContent = 'No proposed changes yet. Annotate an element in review mode.'
+        }
+        listSection.appendChild(empty)
       } else {
         var byId = {}
         ;(state && state.elements ? state.elements : []).forEach(function (e) {
