@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, afterEach, vi } from 'vitest'
 import { join } from 'node:path'
 import { createRequire } from 'node:module'
 
@@ -125,9 +125,29 @@ describe('InnfoUI exports', () => {
 })
 
 describe('InnfoUI.icon', () => {
-  it('returns the same SVG for a known name and throws on unknown', () => {
+  const iconsPath = join(consoleDir, 'innfo-icons.js')
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('returns an SVG for a built-in name', () => {
     expect(UI.icon('pin', 12)).toContain('<svg')
     expect(UI.icon('cite-agent', 12)).toContain('<svg')
-    expect(() => UI.icon('no-such-icon')).toThrow(TypeError)
+  })
+
+  it('falls back to a generic SVG for an unknown name instead of throwing', () => {
+    // Without the lucide catalog loaded: inline help-circle fallback.
+    const svg = UI.icon('no-such-icon', 20)
+    expect(svg).toContain('<svg')
+    expect(svg).toContain('width="20"')
+    expect(svg).toContain('innfo-icon')
+  })
+
+  it('resolves non-built-in names through the lucide catalog when it is loaded', () => {
+    vi.stubGlobal('InnfoIcons', req(iconsPath))
+    const svg = UI.icon('trash-2', 14)
+    expect(svg).toContain('lucide-trash-2')
+    expect(svg).toContain('innfo-icon')
   })
 })

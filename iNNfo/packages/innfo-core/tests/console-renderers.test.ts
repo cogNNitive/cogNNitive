@@ -40,9 +40,13 @@ describe('model-viewer renderer packaging', () => {
 
   it('keeps the domain behaviors: markers, relations, matrices, hash routing', () => {
     // chip/conceptColor moved into InnfoUI; the viewer keeps these behaviors.
-    for (const token of ['rel-list', 'matrix-block', 'hashchange', 'InnfoUI', 'ConceptPill', 'ElementCard']) {
+    for (const token of ['matrix-block', 'hashchange', 'InnfoUI', 'ConceptPill', 'ElementCard']) {
       expect(renderer).toContain(token)
     }
+    // The relation list markup (rel-list) now lives in InnfoUI.ElementCard; the
+    // viewer only feeds it the element's relations.
+    expect(renderer).toContain('relations: relData')
+    expect(readFileSync(join(consoleDir, 'ui-kit.js'), 'utf8')).toContain('rel-list')
   })
 })
 
