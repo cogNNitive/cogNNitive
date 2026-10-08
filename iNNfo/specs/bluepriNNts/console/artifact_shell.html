@@ -56,7 +56,7 @@
       }
       body {
         margin: 0;
-        background: var(--bg);
+        background: #f1f5f9;
         color: var(--text);
         font-family: var(--font);
         line-height: 1.55;
@@ -70,6 +70,7 @@
       #innfo-layout {
         display: flex;
         min-height: 100vh;
+        background: #f1f5f9;
       }
       .innfo-drawer-wrapper {
         display: flex;
@@ -83,7 +84,7 @@
         top: 0;
         height: 100vh;
         border-right: 1px solid var(--border);
-        background: var(--surface);
+        background: #ffffff;
         padding: 20px 12px;
         display: flex;
         flex-direction: column;
@@ -135,6 +136,55 @@
         max-width: 1200px;
         min-width: 0;
         box-sizing: border-box;
+        background: #f1f5f9;
+      }
+      /* Dashboard KPI Stats Cards */
+      .innfo-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+      .innfo-stat-card {
+        background: #ffffff;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 16px 20px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+      }
+      .innfo-stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      }
+      .innfo-stat-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .innfo-stat-body {
+        min-width: 0;
+      }
+      .innfo-stat-label {
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 2px;
+      }
+      .innfo-stat-value {
+        font-size: 1.6rem;
+        font-weight: 800;
+        line-height: 1.1;
+        color: var(--text);
       }
       .innfo-navbar {
         display: flex;
@@ -575,6 +625,7 @@
           </div>
         </div>
         <nav id="innfo-view-tabs" class="innfo-view-tabs" style="display: none;"></nav>
+        <div id="innfo-stats-bar" class="innfo-stats-grid"></div>
         <div id="innfo-tab-explorer" class="innfo-tab-panel active">
           <div id="innfo-doc"></div>
           <div id="innfo-content"></div>

@@ -656,6 +656,66 @@
     }
   }
 
+  function renderStatsBar(doc, elements, concepts, matrices, draftCount) {
+    var host = doc.getElementById('innfo-stats-bar')
+    if (!host) return
+    host.innerHTML = ''
+
+    var totalElements = Array.isArray(elements) ? elements.length : 0
+    var totalConcepts = Array.isArray(concepts) ? concepts.length : 0
+    var totalMatrices = Array.isArray(matrices) ? matrices.length : 0
+    var pendingReviews = typeof draftCount === 'number' ? draftCount : 0
+
+    var stats = [
+      {
+        label: 'Total Elements',
+        value: totalElements,
+        icon: 'boxes',
+        color: '#3b82f6',
+        bg: '#eff6ff',
+      },
+      {
+        label: 'Active Concepts',
+        value: totalConcepts,
+        icon: 'layers',
+        color: '#8b5cf6',
+        bg: '#f5f3ff',
+      },
+      {
+        label: 'Matrices',
+        value: totalMatrices,
+        icon: 'table',
+        color: '#10b981',
+        bg: '#ecfdf5',
+      },
+      {
+        label: 'Review Notes',
+        value: pendingReviews,
+        icon: 'file-text',
+        color: pendingReviews > 0 ? '#ef4444' : '#6b7280',
+        bg: pendingReviews > 0 ? '#fef2f2' : '#f3f4f6',
+      },
+    ]
+
+    stats.forEach(function (s) {
+      var card = el('div', 'innfo-stat-card')
+      var iconWrap = el('div', 'innfo-stat-icon')
+      iconWrap.style.backgroundColor = s.bg
+      iconWrap.style.color = s.color
+      iconWrap.innerHTML = UI.icon(s.icon, 22)
+
+      var body = el('div', 'innfo-stat-body')
+      var label = el('div', 'innfo-stat-label', s.label)
+      var val = el('div', 'innfo-stat-value', s.value)
+
+      body.appendChild(label)
+      body.appendChild(val)
+      card.appendChild(iconWrap)
+      card.appendChild(body)
+      host.appendChild(card)
+    })
+  }
+
   function renderRail(doc, concepts, counts, draftCountsByConcept, onSelect) {
     var rail = doc.getElementById('innfo-rail')
     if (!rail) return
@@ -2810,6 +2870,7 @@
       renderViewTabs(active, config, model, meta, state, function () {
         refresh(activeSearchQuery)
       })
+      renderStatsBar(active, elements, concepts, matrices, currentDrafts.length)
 
       var content = active.getElementById('innfo-content') || active.getElementById('content')
       if (content) {
