@@ -861,27 +861,34 @@
 
       models.forEach(function (m) {
         var details = (doc.createElement ? doc.createElement('details') : el('details'))
-        details.className = 'collapse collapse-arrow bg-base-100 border border-base-200 rounded-box mb-2'
+        details.className = 'innfo-rail-model-card'
         details.setAttribute('open', 'open')
 
         var summary = (doc.createElement ? doc.createElement('summary') : el('summary'))
-        summary.className = 'collapse-title text-xs font-bold p-2 min-h-0 cursor-pointer flex items-center justify-between gap-1'
+        summary.className = 'innfo-rail-model-summary'
+
         var titleLeft = (doc.createElement ? doc.createElement('div') : el('div'))
-        titleLeft.className = 'flex items-center gap-1.5 truncate flex-1 min-w-0'
-        titleLeft.innerHTML = (typeof InnfoIcons !== 'undefined' ? InnfoIcons.getSvg('file-text', { size: 14, class: 'text-primary' }) : '📄') + ' <span class="truncate" title="' + (m.filePath || m.title) + '">' + (m.title || m.filePath) + '</span>'
+        titleLeft.className = 'flex items-center gap-2 truncate flex-1 min-w-0'
+        var iconHtml = typeof InnfoIcons !== 'undefined' ? InnfoIcons.getSvg('file-text', { size: 14, class: 'text-primary shrink-0' }) : '📄'
+        var chevronHtml = '<svg class="innfo-rail-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>'
+        var modelDisplayName = m.title || m.filePath || 'Model'
+        titleLeft.innerHTML = chevronHtml + ' ' + iconHtml + ' <span class="truncate text-xs font-semibold text-slate-800" title="' + (m.filePath || modelDisplayName) + '">' + modelDisplayName + '</span>'
+
         var countBadge = (doc.createElement ? doc.createElement('span') : el('span'))
-        countBadge.className = 'badge badge-xs shrink-0'
+        countBadge.className = 'badge badge-xs badge-ghost shrink-0 font-mono text-[10px]'
         countBadge.textContent = String(m.elementCount || 0)
+
         summary.appendChild(titleLeft)
         summary.appendChild(countBadge)
 
         var contentDiv = (doc.createElement ? doc.createElement('div') : el('div'))
-        contentDiv.className = 'collapse-content px-2 pb-2 pt-0 space-y-1'
+        contentDiv.className = 'innfo-rail-model-body'
 
         // Button to filter by entire model
         var modelFilterBtn = (doc.createElement ? doc.createElement('button') : el('button'))
-        modelFilterBtn.className = 'btn btn-ghost btn-xs w-full justify-start text-xs font-medium text-slate-600'
-        modelFilterBtn.textContent = 'View all in ' + (m.title || m.filePath)
+        modelFilterBtn.className = 'btn btn-ghost btn-xs w-full justify-start text-[11px] font-medium text-slate-500 hover:text-primary px-2 mb-1 gap-1.5'
+        var filterIconHtml = typeof InnfoIcons !== 'undefined' ? InnfoIcons.getSvg('filter', { size: 11 }) : '🔍'
+        modelFilterBtn.innerHTML = filterIconHtml + ' <span>Filter all in model</span>'
         modelFilterBtn.addEventListener('click', function (e) {
           e.stopPropagation()
           if (typeof onSelect === 'function') onSelect('model:' + (m.id || m.filePath))
@@ -905,7 +912,7 @@
           if (cCount === 0) cCount = counts[cName] || 0
 
           var cBtn = (doc.createElement ? doc.createElement('button') : el('button'))
-          cBtn.className = 'innfo-rail-item py-1 px-2 text-xs'
+          cBtn.className = 'innfo-rail-item py-1 px-2 text-xs w-full'
           cBtn.setAttribute('data-concept', String(cName))
           cBtn.setAttribute('data-model', String(m.id || m.filePath))
 
@@ -2546,9 +2553,9 @@
       var style = active.createElement('style')
       style.setAttribute('data-innfo-feedback', '')
       style.textContent =
-        '[data-innfo-feedback-root]{display:block;}' +
-        '#innfo-feedback-banner{padding:16px 24px;background:var(--surface,#ffffff);border-bottom:1px solid var(--border,#e5e7eb);display:flex;gap:12px;align-items:center;flex-wrap:wrap;}' +
-        '#innfo-feedback-banner strong{font-size:1.1rem;font-weight:700;}' +
+        '[data-innfo-feedback-root]{display:block;position:sticky;top:0;z-index:40;background:var(--surface,#ffffff);}' +
+        '#innfo-feedback-banner{padding:12px 24px;background:var(--surface,#ffffff);border-bottom:1px solid var(--border,#e5e7eb);display:flex;gap:12px;align-items:center;flex-wrap:wrap;box-shadow:0 1px 2px rgba(0,0,0,0.03);}' +
+        '#innfo-feedback-banner strong{font-size:1.05rem;font-weight:700;letter-spacing:-0.01em;}' +
         '#innfo-feedback-banner .innfo-banner-version,#innfo-feedback-banner .innfo-banner-needs,#innfo-feedback-banner .innfo-banner-drafts{color:var(--muted,#6b7280);font-size:0.8rem;}' +
         '#innfo-feedback-open{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--surface,#ffffff);color:var(--text,#111827);font:inherit;font-size:0.82rem;font-weight:600;padding:6px 14px;border-radius:var(--radius-sm,4px);cursor:pointer;margin-left:auto;}' +
         '#innfo-feedback-open:hover{background:var(--surface-2,#f3f4f6);}' +

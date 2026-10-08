@@ -69,7 +69,8 @@
       /* Layout: Clean responsive Admin Dashboard with DaisyUI Drawer & Sticky Header */
       #innfo-layout {
         display: flex;
-        min-height: 100vh;
+        flex: 1 1 auto;
+        min-height: calc(100vh - 65px);
         background: #f1f5f9;
       }
       .innfo-drawer-wrapper {
@@ -78,14 +79,15 @@
         min-height: 100vh;
       }
       #innfo-rail {
-        width: 250px;
-        min-width: 250px;
+        width: 320px;
+        min-width: 320px;
+        max-width: 360px;
         position: sticky;
-        top: 0;
-        height: 100vh;
+        top: 65px;
+        height: calc(100vh - 65px);
         border-right: 1px solid var(--border);
         background: #ffffff;
-        padding: 20px 12px;
+        padding: 16px 12px 32px;
         display: flex;
         flex-direction: column;
         gap: 6px;
@@ -99,7 +101,9 @@
         #innfo-rail {
           width: 100%;
           min-width: 100%;
+          max-width: 100%;
           position: static;
+          top: auto;
           height: auto;
           border-right: none;
           border-bottom: 1px solid var(--border);
@@ -113,9 +117,9 @@
         background: transparent;
         border: 1px solid transparent;
         border-radius: var(--radius-sm);
-        padding: 8px 12px;
+        padding: 6px 10px;
         cursor: pointer;
-        font-size: 0.85rem;
+        font-size: 0.82rem;
         color: var(--text);
         font: inherit;
         font-weight: 500;
@@ -130,9 +134,56 @@
         color: var(--primary);
         font-weight: 700;
       }
+      .innfo-rail-model-card {
+        background: #ffffff;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        margin-bottom: 8px;
+        overflow: hidden;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease;
+      }
+      .innfo-rail-model-card:hover {
+        border-color: #cbd5e1;
+      }
+      .innfo-rail-model-summary {
+        padding: 8px 12px;
+        cursor: pointer;
+        user-select: none;
+        list-style: none;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        background: #f8fafc;
+        border-bottom: 1px solid transparent;
+        transition: background 0.15s ease;
+      }
+      .innfo-rail-model-summary::-webkit-details-marker {
+        display: none;
+      }
+      .innfo-rail-model-summary:hover {
+        background: #f1f5f9;
+      }
+      details[open] > .innfo-rail-model-summary {
+        border-bottom-color: var(--border);
+      }
+      .innfo-rail-model-body {
+        padding: 6px 8px 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .innfo-rail-chevron {
+        transition: transform 0.2s ease;
+        flex-shrink: 0;
+        color: var(--muted);
+      }
+      details[open] .innfo-rail-chevron {
+        transform: rotate(90deg);
+      }
       main {
         flex: 1;
-        padding: 28px 36px 96px;
+        padding: 24px 32px 96px;
         max-width: 1200px;
         min-width: 0;
         box-sizing: border-box;
