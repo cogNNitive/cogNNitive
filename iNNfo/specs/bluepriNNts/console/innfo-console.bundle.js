@@ -2628,7 +2628,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     if (existingOpen) {
       banner.appendChild(existingOpen)
     } else if (banner.id === 'innfo-feedback-banner') {
-      var openBtn = el('button', 'innfo-feedback-open', 'Export feedback')
+      var openBtn = el('button', 'innfo-feedback-open', 'Export changes')
       if (openBtn) {
         openBtn.id = 'innfo-feedback-open'
         openBtn.setAttribute('type', 'button')
@@ -3765,7 +3765,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
     tabs.push({
       id: 'review',
-      label: 'Review Summary',
+      label: 'Changes',
       icon: 'review',
       targetId: 'innfo-tab-review',
       count: draftCount,
@@ -3834,13 +3834,24 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     var head = el('section', 'innfo-review-head')
     if (head) {
-      head.appendChild(el('h2', null, 'Review Summary & Pending Feedback'))
+      head.appendChild(el('h2', null, 'Proposed Changes'))
       var count = el(
         'p',
         'innfo-review-count',
-        drafts.length + (drafts.length === 1 ? ' pending draft' : ' pending drafts'),
+        drafts.length + (drafts.length === 1 ? ' pending change' : ' pending changes'),
       )
       if (count) head.appendChild(count)
+      if (drafts.length > 0) {
+        var exportBtn = el('button', 'innfo-btn innfo-btn-primary innfo-tab-export-btn', 'Export changes')
+        if (exportBtn) {
+          exportBtn.setAttribute('type', 'button')
+          exportBtn.style.marginTop = '8px'
+          exportBtn.addEventListener('click', function () {
+            openExportModal(doc, state)
+          })
+          head.appendChild(exportBtn)
+        }
+      }
       root.appendChild(head)
     }
 
@@ -3848,7 +3859,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     if (listSection) {
       if (drafts.length === 0) {
         listSection.appendChild(
-          el('div', 'empty-state', 'No review drafts yet. Annotate an element in review mode.'),
+          el('div', 'empty-state', 'No proposed changes yet. Annotate an element in review mode.'),
         )
       } else {
         var byId = {}
@@ -4200,21 +4211,21 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     // Modal
     var modal = active.createElement('dialog')
     modal.id = 'innfo-feedback-modal'
-    modal.setAttribute('aria-label', 'Export reviewer feedback')
+    modal.setAttribute('aria-label', 'Export proposed changes')
     modal.innerHTML =
-      '<h2>Export reviewer feedback</h2>' +
+      '<h2>Export proposed changes</h2>' +
       '<div data-innfo="preview"></div>' +
-      '<label>Reviewer identifier (required)' +
+      '<label>Author / Reviewer identifier (required)' +
       '<input data-innfo="identifier" type="text" placeholder="e.g. round-2" />' +
       '</label>' +
       '<div data-innfo="errors" style="display: none;"></div>' +
-      '<h3>Export JSON</h3>' +
-      '<textarea data-innfo="export-json" readonly></textarea>' +
+      '<h3>Proposed Changeset (_changes_NN.md)</h3>' +
+      '<textarea data-innfo="export-json" data-innfo-changeset="true" readonly></textarea>' +
       '<div class="innfo-feedback-actions">' +
-      '<button data-innfo="download" type="button">Download feedback JSON</button>' +
       '<button data-innfo="download-changeset" type="button">Download _changes_NN.md</button>' +
-      '<button data-innfo="copy" type="button">Copy to clipboard</button>' +
       '<button data-innfo="copy-changeset-prompt" type="button">Copy Changeset Prompt</button>' +
+      '<button data-innfo="download" type="button" style="display: none;">Download feedback JSON</button>' +
+      '<button data-innfo="copy" type="button" style="display: none;">Copy to clipboard</button>' +
       '<span data-innfo="copy-status" role="status" aria-live="polite"></span>' +
       '</div>' +
       '<h3>Instructions</h3>' +
@@ -4521,7 +4532,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     if (composed.ok) {
       renderErrors(doc, [])
-      if (textarea) textarea.value = composed.text
+      if (textarea) textarea.value = composed.changesetText || composed.text
       if (downloadBtn) downloadBtn.disabled = false
       if (downloadCsBtn) downloadCsBtn.disabled = false
       if (copyBtn) copyBtn.disabled = false
