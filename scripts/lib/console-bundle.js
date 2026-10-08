@@ -12,8 +12,12 @@ const { getConsoleReleaseInfo } = require('./console-release-info.js');
 
 const SOURCES = [
   ['innfo-slug.generated.js', 'InnfoSlug'],
+  ['vendor/preact.umd.js', 'preact'],
+  ['vendor/htm.umd.js', 'htm'],
+  ['innfo-preact-init.js', 'InnfoPreact'],
   ['uplot.iife.min.js', 'uPlot'],
   ['visuals.js', 'InnfoVisuals'],
+  ['innfo-icons.js', 'InnfoIcons'],
   ['ui-kit.js', 'InnfoUI'],
   ['review.js', 'InnfoReview'],
   ['innfo-runtime.js', 'InnfoConsole'],
