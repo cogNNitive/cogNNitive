@@ -50,17 +50,78 @@ describe('Domain Console Hierarchy & Faceted Omnibar Contract', () => {
     assert.equal(byTag.length, 1)
     assert.equal(byTag[0].id, 'el-2')
 
-    // Combined multi-facet query
+    // Combined multi-facet query (AND between facets, OR within same facet)
     const combined = InnfoConsole.filterElements(elements, 'model:business tag:executive')
     assert.equal(combined.length, 1)
     assert.equal(combined[0].id, 'el-1')
+
+    // Multi-model OR filtering
+    const multiModel = InnfoConsole.filterElements(elements, 'model:business model:analysis')
+    assert.equal(multiModel.length, 2)
 
     // Non-matching facet
     const noMatch = InnfoConsole.filterElements(elements, 'model:analysis tag:executive')
     assert.equal(noMatch.length, 0)
   })
 
-  test('renderRail renders hierarchical accordion when meta.models has multiple models', () => {
+  test('renderFilterBar renders facet dropdowns and toggles checkboxes', () => {
+    const dom = new JSDOM(
+      `<!doctype html>
+      <html>
+        <body>
+          <div class="innfo-toolbar">
+            <input id="innfo-search" type="search" />
+            <div id="innfo-filter-facets"></div>
+            <div id="innfo-active-filters"></div>
+          </div>
+        </body>
+      </html>`,
+    )
+    const { document } = dom.window
+    global.window = dom.window
+    global.document = document
+
+    const state = {
+      meta: {
+        models: [
+          { id: 'business-model', title: 'Business Model', filePath: 'business_model.md', elementCount: 1 },
+          { id: 'analysis', title: 'Analysis', filePath: 'analysis.md', elementCount: 1 },
+        ],
+      },
+      elements: [
+        { id: 'el-1', concept: 'Stakeholders', modelId: 'business-model' },
+        { id: 'el-2', concept: 'Risks', modelId: 'analysis' },
+      ],
+    }
+
+    let emittedQuery = null
+    InnfoConsole.renderFilterBar(
+      document,
+      state,
+      (q) => {
+        emittedQuery = q
+      },
+      'model:business-model',
+    )
+
+    const host = document.getElementById('innfo-filter-facets')
+    const dropdowns = host.querySelectorAll('.innfo-facet-dropdown')
+    assert.equal(dropdowns.length, 2, 'renders 2 dropdowns (models, concepts)')
+
+    // Check that model:business-model checkbox is checked
+    const checkboxes = dropdowns[0].querySelectorAll('input[type="checkbox"]')
+    assert.equal(checkboxes.length, 2)
+    assert.equal(checkboxes[0].checked, true)
+    assert.equal(checkboxes[1].checked, false)
+
+    // Ticking second checkbox emits multi-model query
+    checkboxes[1].checked = true
+    checkboxes[1].dispatchEvent(new dom.window.Event('change'))
+    assert.ok(emittedQuery.includes('model:business-model'))
+    assert.ok(emittedQuery.includes('analysis'))
+  })
+
+  test('renderRail renders clean model and concept lists', () => {
     const dom = new JSDOM(
       `<!doctype html>
       <html>
@@ -80,20 +141,8 @@ describe('Domain Console Hierarchy & Faceted Omnibar Contract', () => {
     const state = {
       meta: {
         models: [
-          {
-            id: 'business-model',
-            title: 'Business Model',
-            filePath: 'business_model.md',
-            conceptNames: ['Stakeholders'],
-            elementCount: 1,
-          },
-          {
-            id: 'analysis',
-            title: 'Strategic Analysis',
-            filePath: 'analysis.md',
-            conceptNames: ['Risks'],
-            elementCount: 1,
-          },
+          { id: 'business-model', title: 'Business Model', filePath: 'business_model.md', elementCount: 1 },
+          { id: 'analysis', title: 'Analysis', filePath: 'analysis.md', elementCount: 1 },
         ],
       },
       elements: [
@@ -115,19 +164,16 @@ describe('Domain Console Hierarchy & Faceted Omnibar Contract', () => {
     )
 
     const rail = document.getElementById('innfo-rail')
-    const details = rail.querySelectorAll('details')
-    assert.equal(details.length, 2, 'renders 2 model accordion details')
+    const modelItems = rail.querySelectorAll('[data-model]')
+    assert.equal(modelItems.length, 2, 'renders 2 model rail items')
 
-    // Click model filter button
-    const modelBtn = details[0].querySelector('button[class*="btn-ghost"]')
-    assert.ok(modelBtn, 'found model filter button')
-    modelBtn.click()
+    modelItems[0].click()
     assert.equal(selectedFilter, 'model:business-model')
 
-    // Click concept item under model
-    const conceptBtn = details[0].querySelector('[data-concept="Stakeholders"]')
-    assert.ok(conceptBtn, 'found concept item button')
-    conceptBtn.click()
-    assert.equal(selectedFilter, 'model:business-model concept:Stakeholders')
+    const conceptItems = rail.querySelectorAll('[data-concept]')
+    assert.equal(conceptItems.length, 2, 'renders 2 concept rail items')
+
+    conceptItems[1].click()
+    assert.equal(selectedFilter, 'concept:Risks')
   })
 })
