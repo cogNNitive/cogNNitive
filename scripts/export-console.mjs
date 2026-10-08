@@ -595,6 +595,10 @@ async function main() {
     if (bundle) {
       await writeFile(join(root, 'innfo-console.bundle.js'), bundle, 'utf-8')
     }
+    const uiCssPath = join(consoleDir, 'innfo-ui.css')
+    if (existsSync(uiCssPath)) {
+      await writeFile(join(root, 'innfo-ui.css'), await readFile(uiCssPath, 'utf-8'), 'utf-8')
+    }
     console.log(`✔ domaiNN_console.html → ./domaiNN_console.html (${candidateModels.length} models, ${allElements.length} elements)`)
   }
 
