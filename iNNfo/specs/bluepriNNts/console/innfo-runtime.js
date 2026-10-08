@@ -208,14 +208,74 @@
       .toLowerCase()
   }
 
-  function filterElements(elements, query) {
+  function parseFilterQuery(query) {
+    var raw = String(query == null ? '' : query).trim()
+    if (!raw) return { textTokens: [], operators: [] }
+    var parts = raw.match(/(?:[^\s"]+|"[^"]*")+/g) || []
+    var textTokens = []
+    var operators = []
+
+    parts.forEach(function (part) {
+      var unquoted = part.replace(/^"|"$/g, '')
+      var colonIdx = unquoted.indexOf(':')
+      if (colonIdx > 0) {
+        var key = unquoted.slice(0, colonIdx).toLowerCase()
+        var val = unquoted.slice(colonIdx + 1).toLowerCase()
+        operators.push({ key: key, val: val, raw: unquoted })
+      } else {
+        textTokens.push(unquoted.toLowerCase())
+      }
+    })
+    return { textTokens: textTokens, operators: operators }
+  }
+
+  function filterElements(elements, query, context) {
     var list = Array.isArray(elements) ? elements : []
-    var q = String(query == null ? '' : query)
-      .trim()
-      .toLowerCase()
-    if (!q) return list.slice()
+    var parsed = parseFilterQuery(query)
+    if (!parsed.textTokens.length && !parsed.operators.length) return list.slice()
+
+    var ctx = context && typeof context === 'object' ? context : {}
+    var draftsById = ctx.draftsById || {}
+    var reviewedMap = ctx.reviewed || {}
+
     return list.filter(function (el) {
-      return isObject(el) && elementHaystack(el).indexOf(q) !== -1
+      if (!isObject(el)) return false
+      var haystack = elementHaystack(el)
+
+      for (var i = 0; i < parsed.textTokens.length; i++) {
+        if (haystack.indexOf(parsed.textTokens[i]) === -1) return false
+      }
+
+      for (var j = 0; j < parsed.operators.length; j++) {
+        var op = parsed.operators[j]
+        if (op.key === 'concept') {
+          var elConcept = String(el.concept || '').toLowerCase()
+          if (elConcept.indexOf(op.val) === -1) return false
+        } else if (op.key === 'is') {
+          if (op.val === 'draft') {
+            if (!draftsById[el.id]) return false
+          } else if (op.val === 'reviewed') {
+            if (!reviewedMap[el.id]) return false
+          } else if (op.val === 'changed') {
+            if (!reviewedMap[el.id] || reviewedMap[el.id] === el.hash) return false
+          }
+        } else if (op.key === '!is') {
+          if (op.val === 'draft') {
+            if (draftsById[el.id]) return false
+          } else if (op.val === 'reviewed') {
+            if (reviewedMap[el.id]) return false
+          }
+        } else if (op.key === 'has') {
+          if (!el.fields || el.fields[op.val] === undefined || el.fields[op.val] === null || el.fields[op.val] === '') {
+            return false
+          }
+        } else if (op.key === '!has') {
+          if (el.fields && el.fields[op.val] !== undefined && el.fields[op.val] !== null && el.fields[op.val] !== '') {
+            return false
+          }
+        }
+      }
+      return true
     })
   }
 
@@ -743,14 +803,54 @@
     })
   }
 
-  // Cards are review-agnostic: C's controller decorates them after render
-  // (the B D19 Suggest button and per-card draft badge are gone).
+  // Cards project live drafts: active draft edits and notes are visually badged,
+  // new draft elements are projected, and deleted elements are styled.
   function mountElementCards(doc, elements, drafts, refs) {
     var content = doc.getElementById('innfo-content')
     if (!content) return
     content.innerHTML = ''
 
-    elements.forEach(function (element) {
+    var draftsByElementId = {}
+    var newDrafts = []
+    ;(Array.isArray(drafts) ? drafts : []).forEach(function (d) {
+      if (!d) return
+      if (d.kind === 'new') {
+        newDrafts.push(d)
+      } else if (d.element_id) {
+        draftsByElementId[String(d.element_id)] = d
+      }
+    })
+
+    var projectedElements = (Array.isArray(elements) ? elements : []).map(function (el) {
+      if (!isObject(el)) return el
+      var clone = Object.assign({}, el)
+      if (clone.fields && isObject(clone.fields)) {
+        clone.fields = Object.assign({}, clone.fields)
+      } else {
+        clone.fields = {}
+      }
+      var draft = draftsByElementId[clone.id]
+      if (draft) {
+        clone._draft = draft
+        if (draft.kind === 'correction' && draft.field && draft.proposed !== undefined) {
+          clone.fields[draft.field] = draft.proposed
+        }
+      }
+      return clone
+    })
+
+    newDrafts.forEach(function (nd) {
+      projectedElements.push({
+        id: nd.element_id || ('new-' + nd.id),
+        name: nd.element || 'New Draft Element',
+        concept: nd.concept || 'Draft',
+        description: nd.comment || 'Draft element pending application',
+        fields: nd.fields && isObject(nd.fields) ? nd.fields : {},
+        _draft: nd,
+      })
+    })
+
+    projectedElements.forEach(function (element) {
       var fields = []
       if (isObject(element.fields)) {
         Object.keys(element.fields).forEach(function (k) {
@@ -781,6 +881,29 @@
           },
         },
       )
+
+      if (element._draft) {
+        var d = element._draft
+        var badgeCls = 'badge badge-sm ' + (d.kind === 'correction' ? 'badge-warning' : d.kind === 'new' ? 'badge-info' : d.kind === 'delete' ? 'badge-error' : 'badge-neutral')
+        var badgeText = d.kind === 'correction' ? 'Draft Edit' : d.kind === 'new' ? 'New Draft' : d.kind === 'delete' ? 'Delete Proposed' : 'Has Comment'
+        var draftBadge = doc.createElement('span')
+        draftBadge.className = 'innfo-card-draft-badge ' + badgeCls + ' ml-2'
+        draftBadge.textContent = badgeText
+
+        var titleEl = card.querySelector('.innfo-card-title, h3, header')
+        if (titleEl) {
+          titleEl.appendChild(draftBadge)
+        }
+
+        if (d.kind === 'delete') {
+          card.classList.add('opacity-50', 'line-through')
+        } else if (d.kind === 'correction') {
+          card.classList.add('border-l-4', 'border-warning')
+        } else if (d.kind === 'new') {
+          card.classList.add('border-l-4', 'border-info')
+        }
+      }
+
       content.appendChild(card)
     })
   }
@@ -2853,7 +2976,16 @@
         }
       })
 
-      mountElementCards(active, filterElements(elements, activeSearchQuery || ''), currentDrafts, refs)
+      var draftsById = {}
+      currentDrafts.forEach(function (d) {
+        if (d && d.element_id) draftsById[d.element_id] = true
+      })
+      var filterCtx = {
+        draftsById: draftsById,
+        reviewed: state.store && typeof state.store.reviewed === 'function' ? state.store.reviewed() : {},
+      }
+
+      mountElementCards(active, filterElements(elements, activeSearchQuery || '', filterCtx), currentDrafts, refs)
       renderBanner(active, meta, config.needs, currentDrafts.length, function () {
         refresh(activeSearchQuery)
       }, state)
