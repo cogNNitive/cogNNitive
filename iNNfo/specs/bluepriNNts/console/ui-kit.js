@@ -179,6 +179,40 @@
     '.innfo-history-meta{color:var(--innfo-muted);font-size:.75rem;margin-bottom:3px}',
     '.innfo-history-notes{font-weight:500;color:var(--innfo-text)}',
     '.innfo-history-empty{color:var(--innfo-muted);font-size:.82rem;font-style:italic}',
+    // Element-card redesign: hover-reveal edit anchors (same pattern as
+    // .innfo-review-anchor), per-card edit toggle, QKUD chip, tags, relations.
+    '.innfo-edit-anchor{appearance:none;border:1px solid var(--innfo-border);background:var(--innfo-surface-2);color:var(--innfo-text);font:inherit;font-size:.78rem;padding:.1em .45em;border-radius:var(--innfo-radius-sm);cursor:pointer;margin-left:.4em;opacity:.35;transition:opacity .15s ease, background .15s ease;display:inline-flex;align-items:center;justify-content:center;min-width:1.9em;min-height:1.6em}',
+    '.innfo-edit-anchor:hover{opacity:1;background:var(--innfo-surface);border-color:var(--innfo-focus)}',
+    '[data-innfo-component=element-card]:hover .innfo-edit-anchor,[data-innfo-component=field-row]:hover .innfo-edit-anchor{opacity:.85}',
+    '.innfo-edit-anchor:focus-visible{outline:2px solid var(--innfo-focus);outline-offset:1px;opacity:1}',
+    '[data-innfo-component=element-card][data-editing] .innfo-edit-anchor,[data-innfo-component=element-card][data-editing] .innfo-review-anchor{opacity:.9}',
+    '.innfo-edit-toggle{appearance:none;border:1px solid var(--innfo-border);background:var(--innfo-surface-2);color:var(--innfo-muted);font:inherit;padding:.25em .5em;border-radius:var(--innfo-radius-sm);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;margin-left:auto}',
+    '.innfo-edit-toggle:hover{color:var(--innfo-text);border-color:var(--innfo-focus)}',
+    '[data-innfo-component=element-card][data-editing] .innfo-edit-toggle{color:var(--innfo-link);border-color:var(--innfo-link);background:var(--innfo-surface)}',
+    '.innfo-edit-toggle:focus-visible{outline:2px solid var(--innfo-focus);outline-offset:1px}',
+    '.innfo-qud{display:inline-flex;align-items:center;gap:.35em;font-family:var(--innfo-mono);font-size:.75rem;color:var(--innfo-muted);background:var(--innfo-surface-2);border:1px solid var(--innfo-border);border-radius:var(--innfo-radius-sm);padding:.15em .3em .15em .6em;max-width:100%}',
+    '.innfo-qud-id{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+    '.innfo-qud-btn{appearance:none;border:1px solid transparent;background:transparent;color:var(--innfo-muted);font:inherit;padding:.1em .35em;border-radius:var(--innfo-radius-sm);cursor:pointer;display:inline-flex;align-items:center;justify-content:center}',
+    '.innfo-qud-btn:hover{color:var(--innfo-text);border-color:var(--innfo-border);background:var(--innfo-surface)}',
+    '.innfo-qud-detail{display:none;font-family:var(--innfo-mono);font-size:.75rem;color:var(--innfo-muted);background:var(--innfo-surface-2);border:1px solid var(--innfo-border);border-radius:var(--innfo-radius-sm);padding:.5em .7em;margin:.5em 0 0;word-break:break-all}',
+    '[data-qud-open] .innfo-qud-detail{display:block}',
+    '.innfo-card-path{font-family:var(--innfo-mono);font-size:.75rem;color:var(--innfo-muted);border-top:1px solid var(--innfo-border);padding:.5em 0 0;margin:.7em 0 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+    '.innfo-tag-row{display:flex;gap:.4em;flex-wrap:wrap;align-items:center;margin:.6em 0 0}',
+    '.innfo-tag{display:inline-flex;align-items:center;gap:.3em;font-size:.78rem;background:var(--innfo-surface-2);border:1px solid var(--innfo-border);border-radius:var(--innfo-radius-sm);padding:.1em .3em .1em .55em}',
+    '.innfo-tag-remove{appearance:none;border:none;background:none;color:var(--innfo-muted);font:inherit;cursor:pointer;display:inline-flex;padding:.1em;border-radius:4px}',
+    '.innfo-tag-remove:hover{color:var(--innfo-status-rejected)}',
+    '.innfo-tag-add{appearance:none;border:1px dashed var(--innfo-border);background:none;color:var(--innfo-muted);font:inherit;font-size:.78rem;border-radius:var(--innfo-radius-sm);padding:.1em .55em;cursor:pointer}',
+    '.innfo-tag-add:hover{color:var(--innfo-link);border-color:var(--innfo-link)}',
+    '.innfo-rel-list{list-style:none;margin:.6em 0 0;padding:0;display:flex;flex-direction:column;gap:.35em}',
+    '.innfo-rel-row{display:flex;align-items:center;gap:.5em;font-size:.85rem}',
+    '.innfo-rel-field{color:var(--innfo-muted);font-size:.78rem;min-width:5em}',
+    '.innfo-rel-act{appearance:none;border:1px solid transparent;background:none;color:var(--innfo-muted);font:inherit;cursor:pointer;display:inline-flex;padding:.15em;border-radius:4px;opacity:.45}',
+    '.innfo-rel-row:hover .innfo-rel-act,.innfo-rel-act:focus-visible{opacity:1}',
+    '.innfo-rel-act:hover{color:var(--innfo-link);border-color:var(--innfo-border)}',
+    '.innfo-rel-act.danger:hover{color:var(--innfo-status-rejected)}',
+    '.innfo-rel-add{appearance:none;border:1px dashed var(--innfo-border);background:none;color:var(--innfo-muted);font:inherit;font-size:.78rem;border-radius:var(--innfo-radius-sm);padding:.1em .55em;cursor:pointer;align-self:flex-start}',
+    '.innfo-rel-add:hover{color:var(--innfo-link);border-color:var(--innfo-link)}',
+    '@media (max-width:640px){.innfo-edit-anchor,.innfo-edit-toggle,.innfo-qud-btn,.innfo-rel-act{min-width:32px;min-height:32px}.innfo-qud{font-size:.7rem}}',
   ]
   for (var slot = 1; slot <= 12; slot++) {
     COMPONENT_CSS.push(
@@ -297,6 +331,7 @@
   // SVG bodies (everything after viewBox="0 0 24 24", before </svg>). Moved out
   // of innfo-runtime.js's former svgIcon.
   var ICON_PATHS = {
+    pencil: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path><path d="m15 5 4 4"></path>',
     pin: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a1 1 0 0 0 0-2H8a1 1 0 0 0 0 2h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"></path>',
     chart: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line>',
     target: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle>',
@@ -405,8 +440,165 @@
     return chip
   }
 
-  var STATUSES = ['pending', 'applied', 'rejected', 'stale']
+  // ---- Element-card redesign: QKUD chip, tags, relations, edit toggle ----
+  //
+  // Rule: the QKUD (unique knowledge-unit id) is READ-ONLY — copy + info only,
+  // never a pencil. Pencils live on editable KUs (name, description, markers,
+  // fields) and are owned by the review controller, not the kit.
 
+  function copyText(text) {
+    var value = String(text == null ? '' : text)
+    try {
+      if (
+        typeof navigator !== 'undefined' &&
+        navigator.clipboard &&
+        typeof navigator.clipboard.writeText === 'function'
+      ) {
+        var pending = navigator.clipboard.writeText(value)
+        if (pending && typeof pending.catch === 'function') {
+          pending.catch(function () {
+            /* clipboard denied; the id stays visible for manual copy */
+          })
+        }
+        return
+      }
+      if (typeof document !== 'undefined' && typeof document.execCommand === 'function') {
+        var ta = document.createElement('textarea')
+        ta.value = value
+        ta.setAttribute('readonly', '')
+        ta.style.position = 'absolute'
+        ta.style.left = '-9999px'
+        document.body.appendChild(ta)
+        ta.select()
+        document.execCommand('copy')
+        document.body.removeChild(ta)
+      }
+    } catch {
+      /* copy is best-effort; never break the card */
+    }
+  }
+
+  function QudChip(data, opts) {
+    if (!data || typeof data !== 'object') throw new TypeError('InnfoUI.QudChip: data required')
+    var doc = resolveDoc(opts)
+    var wrap = makeEl(doc, 'span', 'innfo-qud-wrap')
+    wrap.setAttribute('data-innfo-component', 'qud-chip')
+    wrap.setAttribute('data-qud', String(data.id == null ? '' : data.id))
+
+    var chip = makeEl(doc, 'span', 'innfo-qud')
+    var id = makeEl(doc, 'span', 'innfo-qud-id', data.id)
+    id.setAttribute('title', String(data.id == null ? '' : data.id))
+    chip.appendChild(id)
+
+    var copy = makeEl(doc, 'button', 'innfo-qud-btn')
+    copy.setAttribute('type', 'button')
+    copy.setAttribute('aria-label', 'Copy knowledge unit ID')
+    copy.setAttribute('title', 'Copy knowledge unit ID')
+    copy.innerHTML = icon('copy', 13)
+    copy.addEventListener('click', function (ev) {
+      if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation()
+      copyText(data.id)
+    })
+    chip.appendChild(copy)
+
+    var info = makeEl(doc, 'button', 'innfo-qud-btn')
+    info.setAttribute('type', 'button')
+    info.setAttribute('aria-label', 'Knowledge unit ID details')
+    info.setAttribute('title', 'Knowledge unit ID details')
+    info.setAttribute('aria-expanded', 'false')
+    info.innerHTML = icon('info', 13)
+    info.addEventListener('click', function (ev) {
+      if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation()
+      var host = wrap.closest
+        ? wrap.closest('[data-innfo-component="element-card"]') || wrap
+        : wrap
+      var open = host.getAttribute('data-qud-open') === 'true'
+      host.setAttribute('data-qud-open', open ? 'false' : 'true')
+      info.setAttribute('aria-expanded', open ? 'false' : 'true')
+    })
+    chip.appendChild(info)
+    wrap.appendChild(chip)
+
+    var detail = makeEl(doc, 'div', 'innfo-qud-detail')
+    var lines = []
+    if (data.id != null) lines.push(['id', String(data.id)])
+    if (data.concept != null) lines.push(['concept', String(data.concept)])
+    if (data.path != null) lines.push(['path', String(data.path)])
+    if (data.hash != null) lines.push(['hash', String(data.hash)])
+    lines.forEach(function (pair, i) {
+      if (i > 0) detail.appendChild(doc.createElement('br'))
+      detail.appendChild(doc.createTextNode(pair[0] + ': ' + pair[1]))
+    })
+    wrap.appendChild(detail)
+    return wrap
+  }
+
+  function TagRow(data, opts) {
+    if (!data || typeof data !== 'object') throw new TypeError('InnfoUI.TagRow: data required')
+    var doc = resolveDoc(opts)
+    var tags = Array.isArray(data.tags) ? data.tags : []
+    var row = makeEl(doc, 'div', 'innfo-tag-row')
+    row.setAttribute('data-innfo-component', 'tag-row')
+    tags.forEach(function (t) {
+      var tag = makeEl(doc, 'span', 'innfo-tag')
+      tag.setAttribute('data-tag', String(t))
+      tag.appendChild(doc.createTextNode(String(t)))
+      row.appendChild(tag)
+    })
+    return row
+  }
+
+  function RelList(data, opts) {
+    if (!data || typeof data !== 'object') throw new TypeError('InnfoUI.RelList: data required')
+    var doc = resolveDoc(opts)
+    var rels = Array.isArray(data.relations) ? data.relations : []
+    var byId = data.byId && typeof data.byId === 'object' ? data.byId : {}
+    var ul = makeEl(doc, 'ul', 'innfo-rel-list')
+    ul.setAttribute('data-innfo-component', 'rel-list')
+    rels.forEach(function (r) {
+      if (!r || typeof r !== 'object') return
+      var li = makeEl(doc, 'li', 'innfo-rel-row')
+      if (r.field) li.setAttribute('data-rel-field', String(r.field))
+      if (r.target) li.setAttribute('data-rel-target', String(r.target))
+      li.appendChild(makeEl(doc, 'span', 'innfo-rel-field', (r.field || 'related') + ' \u2192'))
+      var label = r.targetLabel || (byId[r.target] && byId[r.target].name) || r.target || '?'
+      if (r.target) {
+        li.appendChild(
+          ElementPill({ id: r.target, label: label }, { href: '#el-' + r.target }),
+        )
+      } else {
+        li.appendChild(doc.createTextNode(String(label)))
+      }
+      ul.appendChild(li)
+    })
+    return ul
+  }
+
+  function EditToggle(data, opts) {
+    var doc = resolveDoc(opts)
+    var btn = makeEl(doc, 'button', 'innfo-edit-toggle')
+    btn.setAttribute('data-innfo-component', 'edit-toggle')
+    btn.setAttribute('type', 'button')
+    btn.setAttribute('aria-pressed', 'false')
+    btn.setAttribute('aria-label', 'Toggle edit controls on this card')
+    btn.setAttribute('title', 'Toggle edit controls on this card')
+    btn.innerHTML = icon('pencil', 14)
+    return btn
+  }
+
+  function EditAnchor(data, opts) {
+    var doc = resolveDoc(opts)
+    var btn = makeEl(doc, 'button', 'innfo-edit-anchor')
+    btn.setAttribute('data-innfo-component', 'edit-anchor')
+    btn.setAttribute('type', 'button')
+    var label = (data && data.label) || 'Edit'
+    btn.setAttribute('aria-label', label)
+    btn.setAttribute('title', label)
+    btn.innerHTML = icon('pencil', 13)
+    return btn
+  }
+
+  var STATUSES = ['pending', 'applied', 'rejected', 'stale']
   function StatusBadge(data) {
     if (!data || typeof data !== 'object') throw new TypeError('InnfoUI.StatusBadge: data required')
     if (STATUSES.indexOf(data.status) === -1) {
@@ -511,6 +703,11 @@
         if (m) head.appendChild(MarkerChip(m))
       })
     }
+    if (data.qud && (data.qud.id || data.qud === true)) {
+      var qudData = data.qud === true ? { id: data.id } : data.qud
+      if (qudData && qudData.id == null) qudData.id = data.id
+      head.appendChild(QudChip(qudData || { id: data.id }))
+    }
     if (Array.isArray(opts && opts.head)) {
       ;(opts.head || []).forEach(function (n) {
         if (n) head.appendChild(n)
@@ -544,7 +741,14 @@
         if (n) body.appendChild(n)
       })
     }
+    var tags = Array.isArray(data.tags) ? data.tags : null
+    if (tags) body.appendChild(TagRow({ tags: tags }))
+    var relations = Array.isArray(data.relations) ? data.relations : null
+    if (relations) {
+      body.appendChild(RelList({ relations: relations, byId: (opts && opts.byId) || {} }))
+    }
     card.appendChild(body)
+    if (data.path) card.appendChild(makeEl(doc, 'footer', 'innfo-card-path', data.path))
     return card
   }
 
@@ -1045,6 +1249,11 @@
     ConceptPill: ConceptPill,
     ElementPill: ElementPill,
     MarkerChip: MarkerChip,
+    QudChip: QudChip,
+    TagRow: TagRow,
+    RelList: RelList,
+    EditToggle: EditToggle,
+    EditAnchor: EditAnchor,
     StatusBadge: StatusBadge,
     CitationIcon: CitationIcon,
     FieldRow: FieldRow,

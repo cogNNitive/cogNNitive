@@ -275,6 +275,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   "zoom-in": "<circle cx=\"11\" cy=\"11\" r=\"8\" /> <line x1=\"21\" x2=\"16.65\" y1=\"21\" y2=\"16.65\" /> <line x1=\"11\" x2=\"11\" y1=\"8\" y2=\"14\" /> <line x1=\"8\" x2=\"14\" y1=\"11\" y2=\"11\" />",
   "zoom-out": "<circle cx=\"11\" cy=\"11\" r=\"8\" /> <line x1=\"21\" x2=\"16.65\" y1=\"21\" y2=\"16.65\" /> <line x1=\"8\" x2=\"14\" y1=\"11\" y2=\"11\" />",
   "trash-2": "<path d=\"M3 6h18\" /> <path d=\"M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6\" /> <path d=\"M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2\" /> <line x1=\"10\" x2=\"10\" y1=\"11\" y2=\"17\" /> <line x1=\"14\" x2=\"14\" y1=\"11\" y2=\"17\" />",
+  "pencil": "<path d=\"M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z\" /> <path d=\"m15 5 4 4\" />",
   "database": "<ellipse cx=\"12\" cy=\"5\" rx=\"9\" ry=\"3\" /> <path d=\"M3 5V19A9 3 0 0 0 21 19V5\" /> <path d=\"M3 12A9 3 0 0 0 21 12\" />",
   "table": "<path d=\"M12 3v18\" /> <rect width=\"18\" height=\"18\" x=\"3\" y=\"3\" rx=\"2\" /> <path d=\"M3 9h18\" /> <path d=\"M3 15h18\" />",
   "layers": "<path d=\"m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z\" /> <path d=\"m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65\" /> <path d=\"m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65\" />",
@@ -538,6 +539,40 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     '.innfo-history-meta{color:var(--innfo-muted);font-size:.75rem;margin-bottom:3px}',
     '.innfo-history-notes{font-weight:500;color:var(--innfo-text)}',
     '.innfo-history-empty{color:var(--innfo-muted);font-size:.82rem;font-style:italic}',
+    // Element-card redesign: hover-reveal edit anchors (same pattern as
+    // .innfo-review-anchor), per-card edit toggle, QKUD chip, tags, relations.
+    '.innfo-edit-anchor{appearance:none;border:1px solid var(--innfo-border);background:var(--innfo-surface-2);color:var(--innfo-text);font:inherit;font-size:.78rem;padding:.1em .45em;border-radius:var(--innfo-radius-sm);cursor:pointer;margin-left:.4em;opacity:.35;transition:opacity .15s ease, background .15s ease;display:inline-flex;align-items:center;justify-content:center;min-width:1.9em;min-height:1.6em}',
+    '.innfo-edit-anchor:hover{opacity:1;background:var(--innfo-surface);border-color:var(--innfo-focus)}',
+    '[data-innfo-component=element-card]:hover .innfo-edit-anchor,[data-innfo-component=field-row]:hover .innfo-edit-anchor{opacity:.85}',
+    '.innfo-edit-anchor:focus-visible{outline:2px solid var(--innfo-focus);outline-offset:1px;opacity:1}',
+    '[data-innfo-component=element-card][data-editing] .innfo-edit-anchor,[data-innfo-component=element-card][data-editing] .innfo-review-anchor{opacity:.9}',
+    '.innfo-edit-toggle{appearance:none;border:1px solid var(--innfo-border);background:var(--innfo-surface-2);color:var(--innfo-muted);font:inherit;padding:.25em .5em;border-radius:var(--innfo-radius-sm);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;margin-left:auto}',
+    '.innfo-edit-toggle:hover{color:var(--innfo-text);border-color:var(--innfo-focus)}',
+    '[data-innfo-component=element-card][data-editing] .innfo-edit-toggle{color:var(--innfo-link);border-color:var(--innfo-link);background:var(--innfo-surface)}',
+    '.innfo-edit-toggle:focus-visible{outline:2px solid var(--innfo-focus);outline-offset:1px}',
+    '.innfo-qud{display:inline-flex;align-items:center;gap:.35em;font-family:var(--innfo-mono);font-size:.75rem;color:var(--innfo-muted);background:var(--innfo-surface-2);border:1px solid var(--innfo-border);border-radius:var(--innfo-radius-sm);padding:.15em .3em .15em .6em;max-width:100%}',
+    '.innfo-qud-id{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+    '.innfo-qud-btn{appearance:none;border:1px solid transparent;background:transparent;color:var(--innfo-muted);font:inherit;padding:.1em .35em;border-radius:var(--innfo-radius-sm);cursor:pointer;display:inline-flex;align-items:center;justify-content:center}',
+    '.innfo-qud-btn:hover{color:var(--innfo-text);border-color:var(--innfo-border);background:var(--innfo-surface)}',
+    '.innfo-qud-detail{display:none;font-family:var(--innfo-mono);font-size:.75rem;color:var(--innfo-muted);background:var(--innfo-surface-2);border:1px solid var(--innfo-border);border-radius:var(--innfo-radius-sm);padding:.5em .7em;margin:.5em 0 0;word-break:break-all}',
+    '[data-qud-open] .innfo-qud-detail{display:block}',
+    '.innfo-card-path{font-family:var(--innfo-mono);font-size:.75rem;color:var(--innfo-muted);border-top:1px solid var(--innfo-border);padding:.5em 0 0;margin:.7em 0 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+    '.innfo-tag-row{display:flex;gap:.4em;flex-wrap:wrap;align-items:center;margin:.6em 0 0}',
+    '.innfo-tag{display:inline-flex;align-items:center;gap:.3em;font-size:.78rem;background:var(--innfo-surface-2);border:1px solid var(--innfo-border);border-radius:var(--innfo-radius-sm);padding:.1em .3em .1em .55em}',
+    '.innfo-tag-remove{appearance:none;border:none;background:none;color:var(--innfo-muted);font:inherit;cursor:pointer;display:inline-flex;padding:.1em;border-radius:4px}',
+    '.innfo-tag-remove:hover{color:var(--innfo-status-rejected)}',
+    '.innfo-tag-add{appearance:none;border:1px dashed var(--innfo-border);background:none;color:var(--innfo-muted);font:inherit;font-size:.78rem;border-radius:var(--innfo-radius-sm);padding:.1em .55em;cursor:pointer}',
+    '.innfo-tag-add:hover{color:var(--innfo-link);border-color:var(--innfo-link)}',
+    '.innfo-rel-list{list-style:none;margin:.6em 0 0;padding:0;display:flex;flex-direction:column;gap:.35em}',
+    '.innfo-rel-row{display:flex;align-items:center;gap:.5em;font-size:.85rem}',
+    '.innfo-rel-field{color:var(--innfo-muted);font-size:.78rem;min-width:5em}',
+    '.innfo-rel-act{appearance:none;border:1px solid transparent;background:none;color:var(--innfo-muted);font:inherit;cursor:pointer;display:inline-flex;padding:.15em;border-radius:4px;opacity:.45}',
+    '.innfo-rel-row:hover .innfo-rel-act,.innfo-rel-act:focus-visible{opacity:1}',
+    '.innfo-rel-act:hover{color:var(--innfo-link);border-color:var(--innfo-border)}',
+    '.innfo-rel-act.danger:hover{color:var(--innfo-status-rejected)}',
+    '.innfo-rel-add{appearance:none;border:1px dashed var(--innfo-border);background:none;color:var(--innfo-muted);font:inherit;font-size:.78rem;border-radius:var(--innfo-radius-sm);padding:.1em .55em;cursor:pointer;align-self:flex-start}',
+    '.innfo-rel-add:hover{color:var(--innfo-link);border-color:var(--innfo-link)}',
+    '@media (max-width:640px){.innfo-edit-anchor,.innfo-edit-toggle,.innfo-qud-btn,.innfo-rel-act{min-width:32px;min-height:32px}.innfo-qud{font-size:.7rem}}',
   ]
   for (var slot = 1; slot <= 12; slot++) {
     COMPONENT_CSS.push(
@@ -656,6 +691,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   // SVG bodies (everything after viewBox="0 0 24 24", before </svg>). Moved out
   // of innfo-runtime.js's former svgIcon.
   var ICON_PATHS = {
+    pencil: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path><path d="m15 5 4 4"></path>',
     pin: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"></line><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a1 1 0 0 0 0-2H8a1 1 0 0 0 0 2h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"></path>',
     chart: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line>',
     target: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle>',
@@ -764,8 +800,165 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return chip
   }
 
-  var STATUSES = ['pending', 'applied', 'rejected', 'stale']
+  // ---- Element-card redesign: QKUD chip, tags, relations, edit toggle ----
+  //
+  // Rule: the QKUD (unique knowledge-unit id) is READ-ONLY — copy + info only,
+  // never a pencil. Pencils live on editable KUs (name, description, markers,
+  // fields) and are owned by the review controller, not the kit.
 
+  function copyText(text) {
+    var value = String(text == null ? '' : text)
+    try {
+      if (
+        typeof navigator !== 'undefined' &&
+        navigator.clipboard &&
+        typeof navigator.clipboard.writeText === 'function'
+      ) {
+        var pending = navigator.clipboard.writeText(value)
+        if (pending && typeof pending.catch === 'function') {
+          pending.catch(function () {
+            /* clipboard denied; the id stays visible for manual copy */
+          })
+        }
+        return
+      }
+      if (typeof document !== 'undefined' && typeof document.execCommand === 'function') {
+        var ta = document.createElement('textarea')
+        ta.value = value
+        ta.setAttribute('readonly', '')
+        ta.style.position = 'absolute'
+        ta.style.left = '-9999px'
+        document.body.appendChild(ta)
+        ta.select()
+        document.execCommand('copy')
+        document.body.removeChild(ta)
+      }
+    } catch {
+      /* copy is best-effort; never break the card */
+    }
+  }
+
+  function QudChip(data, opts) {
+    if (!data || typeof data !== 'object') throw new TypeError('InnfoUI.QudChip: data required')
+    var doc = resolveDoc(opts)
+    var wrap = makeEl(doc, 'span', 'innfo-qud-wrap')
+    wrap.setAttribute('data-innfo-component', 'qud-chip')
+    wrap.setAttribute('data-qud', String(data.id == null ? '' : data.id))
+
+    var chip = makeEl(doc, 'span', 'innfo-qud')
+    var id = makeEl(doc, 'span', 'innfo-qud-id', data.id)
+    id.setAttribute('title', String(data.id == null ? '' : data.id))
+    chip.appendChild(id)
+
+    var copy = makeEl(doc, 'button', 'innfo-qud-btn')
+    copy.setAttribute('type', 'button')
+    copy.setAttribute('aria-label', 'Copy knowledge unit ID')
+    copy.setAttribute('title', 'Copy knowledge unit ID')
+    copy.innerHTML = icon('copy', 13)
+    copy.addEventListener('click', function (ev) {
+      if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation()
+      copyText(data.id)
+    })
+    chip.appendChild(copy)
+
+    var info = makeEl(doc, 'button', 'innfo-qud-btn')
+    info.setAttribute('type', 'button')
+    info.setAttribute('aria-label', 'Knowledge unit ID details')
+    info.setAttribute('title', 'Knowledge unit ID details')
+    info.setAttribute('aria-expanded', 'false')
+    info.innerHTML = icon('info', 13)
+    info.addEventListener('click', function (ev) {
+      if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation()
+      var host = wrap.closest
+        ? wrap.closest('[data-innfo-component="element-card"]') || wrap
+        : wrap
+      var open = host.getAttribute('data-qud-open') === 'true'
+      host.setAttribute('data-qud-open', open ? 'false' : 'true')
+      info.setAttribute('aria-expanded', open ? 'false' : 'true')
+    })
+    chip.appendChild(info)
+    wrap.appendChild(chip)
+
+    var detail = makeEl(doc, 'div', 'innfo-qud-detail')
+    var lines = []
+    if (data.id != null) lines.push(['id', String(data.id)])
+    if (data.concept != null) lines.push(['concept', String(data.concept)])
+    if (data.path != null) lines.push(['path', String(data.path)])
+    if (data.hash != null) lines.push(['hash', String(data.hash)])
+    lines.forEach(function (pair, i) {
+      if (i > 0) detail.appendChild(doc.createElement('br'))
+      detail.appendChild(doc.createTextNode(pair[0] + ': ' + pair[1]))
+    })
+    wrap.appendChild(detail)
+    return wrap
+  }
+
+  function TagRow(data, opts) {
+    if (!data || typeof data !== 'object') throw new TypeError('InnfoUI.TagRow: data required')
+    var doc = resolveDoc(opts)
+    var tags = Array.isArray(data.tags) ? data.tags : []
+    var row = makeEl(doc, 'div', 'innfo-tag-row')
+    row.setAttribute('data-innfo-component', 'tag-row')
+    tags.forEach(function (t) {
+      var tag = makeEl(doc, 'span', 'innfo-tag')
+      tag.setAttribute('data-tag', String(t))
+      tag.appendChild(doc.createTextNode(String(t)))
+      row.appendChild(tag)
+    })
+    return row
+  }
+
+  function RelList(data, opts) {
+    if (!data || typeof data !== 'object') throw new TypeError('InnfoUI.RelList: data required')
+    var doc = resolveDoc(opts)
+    var rels = Array.isArray(data.relations) ? data.relations : []
+    var byId = data.byId && typeof data.byId === 'object' ? data.byId : {}
+    var ul = makeEl(doc, 'ul', 'innfo-rel-list')
+    ul.setAttribute('data-innfo-component', 'rel-list')
+    rels.forEach(function (r) {
+      if (!r || typeof r !== 'object') return
+      var li = makeEl(doc, 'li', 'innfo-rel-row')
+      if (r.field) li.setAttribute('data-rel-field', String(r.field))
+      if (r.target) li.setAttribute('data-rel-target', String(r.target))
+      li.appendChild(makeEl(doc, 'span', 'innfo-rel-field', (r.field || 'related') + ' \u2192'))
+      var label = r.targetLabel || (byId[r.target] && byId[r.target].name) || r.target || '?'
+      if (r.target) {
+        li.appendChild(
+          ElementPill({ id: r.target, label: label }, { href: '#el-' + r.target }),
+        )
+      } else {
+        li.appendChild(doc.createTextNode(String(label)))
+      }
+      ul.appendChild(li)
+    })
+    return ul
+  }
+
+  function EditToggle(data, opts) {
+    var doc = resolveDoc(opts)
+    var btn = makeEl(doc, 'button', 'innfo-edit-toggle')
+    btn.setAttribute('data-innfo-component', 'edit-toggle')
+    btn.setAttribute('type', 'button')
+    btn.setAttribute('aria-pressed', 'false')
+    btn.setAttribute('aria-label', 'Toggle edit controls on this card')
+    btn.setAttribute('title', 'Toggle edit controls on this card')
+    btn.innerHTML = icon('pencil', 14)
+    return btn
+  }
+
+  function EditAnchor(data, opts) {
+    var doc = resolveDoc(opts)
+    var btn = makeEl(doc, 'button', 'innfo-edit-anchor')
+    btn.setAttribute('data-innfo-component', 'edit-anchor')
+    btn.setAttribute('type', 'button')
+    var label = (data && data.label) || 'Edit'
+    btn.setAttribute('aria-label', label)
+    btn.setAttribute('title', label)
+    btn.innerHTML = icon('pencil', 13)
+    return btn
+  }
+
+  var STATUSES = ['pending', 'applied', 'rejected', 'stale']
   function StatusBadge(data) {
     if (!data || typeof data !== 'object') throw new TypeError('InnfoUI.StatusBadge: data required')
     if (STATUSES.indexOf(data.status) === -1) {
@@ -870,6 +1063,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         if (m) head.appendChild(MarkerChip(m))
       })
     }
+    if (data.qud && (data.qud.id || data.qud === true)) {
+      var qudData = data.qud === true ? { id: data.id } : data.qud
+      if (qudData && qudData.id == null) qudData.id = data.id
+      head.appendChild(QudChip(qudData || { id: data.id }))
+    }
     if (Array.isArray(opts && opts.head)) {
       ;(opts.head || []).forEach(function (n) {
         if (n) head.appendChild(n)
@@ -903,7 +1101,14 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         if (n) body.appendChild(n)
       })
     }
+    var tags = Array.isArray(data.tags) ? data.tags : null
+    if (tags) body.appendChild(TagRow({ tags: tags }))
+    var relations = Array.isArray(data.relations) ? data.relations : null
+    if (relations) {
+      body.appendChild(RelList({ relations: relations, byId: (opts && opts.byId) || {} }))
+    }
     card.appendChild(body)
+    if (data.path) card.appendChild(makeEl(doc, 'footer', 'innfo-card-path', data.path))
     return card
   }
 
@@ -1404,6 +1609,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     ConceptPill: ConceptPill,
     ElementPill: ElementPill,
     MarkerChip: MarkerChip,
+    QudChip: QudChip,
+    TagRow: TagRow,
+    RelList: RelList,
+    EditToggle: EditToggle,
+    EditAnchor: EditAnchor,
     StatusBadge: StatusBadge,
     CitationIcon: CitationIcon,
     FieldRow: FieldRow,
@@ -1732,12 +1942,18 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         base_hash: el.hash,
         kind: payload.kind,
       }
-      if (anchorData.field) {
-        draft.field = anchorData.field
-        draft.original = el.fields ? el.fields[anchorData.field] : undefined
-        draft.proposed = payload.proposed
-      } else {
-        draft.comment = payload.comment
+      if (payload.field !== undefined || anchorData.field) {
+        draft.field = payload.field !== undefined ? payload.field : anchorData.field
+        draft.original =
+          payload.original !== undefined
+            ? payload.original
+            : el.fields
+              ? el.fields[anchorData.field]
+              : undefined
+        if (payload.proposed !== undefined) draft.proposed = payload.proposed
+      }
+      if (payload.comment !== undefined && payload.comment !== null) {
+        draft.comment = String(payload.comment)
       }
       store.addDraft(draft)
       refreshCount()
@@ -1753,41 +1969,129 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       applyDecorations()
     }
 
-    function openFor(anchor, anchorData) {
-      closePopover()
-      lastAnchor = anchor
+    // Resolve an anchor to a KU-modal target. Returns null when the anchor is
+    // not modal-editable (card comments, tag/relation proposals use popovers
+    // or immediate comment drafts instead).
+    function kuModalTarget(anchorData) {
+      var el = elementsById[anchorData.elementId]
+      if (!el || typeof UI.EditModal !== 'function') return null
+      var base = {
+        citations: Array.isArray(el.citations) ? el.citations : [],
+        history: Array.isArray(el.history) ? el.history : [],
+      }
+      if (anchorData.relRetarget) {
+        return {
+          title: 'Retarget ' + (el.name || anchorData.elementId) + ' \u2192 ' + anchorData.relField,
+          fieldName: anchorData.relField,
+          type: 'reference',
+          value: anchorData.relTarget,
+          candidates: elements,
+          draftField: anchorData.relField,
+          original: anchorData.relTarget,
+          citations: base.citations,
+          history: base.history,
+        }
+      }
+      var field = anchorData.field
+      if (!field) return null
+      if (field === '__name') {
+        return {
+          title: 'Edit ' + (el.name || anchorData.elementId) + ' \u2192 name',
+          fieldName: 'name',
+          type: 'string',
+          value: el.name,
+          draftField: 'name',
+          original: el.name,
+          citations: base.citations,
+          history: base.history,
+        }
+      }
+      if (field === '__description') {
+        return {
+          title: 'Edit ' + (el.name || anchorData.elementId) + ' \u2192 description',
+          fieldName: 'description',
+          type: 'markdown',
+          value: el.description,
+          draftField: 'description',
+          original: el.description,
+          citations: base.citations,
+          history: base.history,
+        }
+      }
+      if (field.indexOf('marker:') === 0) {
+        var markerId = field.slice('marker:'.length)
+        var markers = el.markers || {}
+        return {
+          title: 'Edit ' + (el.name || anchorData.elementId) + ' \u2192 marker ' + markerId,
+          fieldName: field,
+          type: 'string',
+          value: markers[markerId],
+          draftField: field,
+          original: markers[markerId],
+          citations: base.citations,
+          history: base.history,
+        }
+      }
+      var fieldVal = el.fields ? el.fields[field] : undefined
+      var schemaField = null
+      if (options.schema && Array.isArray(options.schema.fields)) {
+        schemaField = options.schema.fields.filter(function (f) {
+          return f.name === field
+        })[0]
+      }
+      var fieldType =
+        schemaField && schemaField.type
+          ? schemaField.type
+          : typeof fieldVal === 'number'
+            ? 'number'
+            : typeof fieldVal === 'boolean'
+              ? 'boolean'
+              : 'string'
+      return {
+        title: 'Edit ' + (el.name || anchorData.elementId) + ' \u2192 ' + field,
+        fieldName: field,
+        type: fieldType,
+        value: fieldVal,
+        options: schemaField ? schemaField.options : undefined,
+        candidates:
+          schemaField && (schemaField.type === 'reference' || fieldType === 'reference')
+            ? elements
+            : undefined,
+        draftField: field,
+        original: fieldVal,
+        citations: base.citations.filter(function (c) {
+          return !c.field || c.field === field
+        }),
+        history: base.history,
+      }
+    }
 
-      if (anchorData.field && elementsById[anchorData.elementId] && typeof UI.EditModal === 'function') {
-        var elForEdit = elementsById[anchorData.elementId]
-        var fieldVal = elForEdit.fields ? elForEdit.fields[anchorData.field] : undefined
-        var schemaField = null
-        if (options.schema && Array.isArray(options.schema.fields)) {
-          schemaField = options.schema.fields.filter(function (f) { return f.name === anchorData.field })[0]
-        }
-        var fieldType = schemaField && schemaField.type ? schemaField.type : (typeof fieldVal === 'number' ? 'number' : typeof fieldVal === 'boolean' ? 'boolean' : 'string')
-        var citations = []
-        if (Array.isArray(elForEdit.citations)) {
-          citations = elForEdit.citations.filter(function (c) {
-            return !c.field || c.field === anchorData.field
-          })
-        }
-        var modal = UI.EditModal({
-          title: 'Edit ' + (elForEdit.name || anchorData.elementId) + ' \u2192 ' + anchorData.field,
-          fieldName: anchorData.field,
-          type: fieldType,
-          value: fieldVal,
-          options: schemaField ? schemaField.options : undefined,
-          candidates: schemaField && (schemaField.type === 'reference' || fieldType === 'reference') ? elements : undefined,
-          citations: citations,
-          history: Array.isArray(elForEdit.history) ? elForEdit.history : [],
+    function openModalFor(anchorData, target) {
+      var modal = UI.EditModal(
+        {
+          title: target.title,
+          fieldName: target.fieldName,
+          type: target.type,
+          value: target.value,
+          options: target.options,
+          candidates: target.candidates,
+          citations: target.citations,
+          history: target.history,
           isComment: false,
-        }, {
+        },
+        {
           doc: doc,
           onSave: function (res) {
             if (res.isComment) {
               saveDraft(anchorData, { kind: 'comment', comment: res.comment })
             } else {
-              saveDraft(anchorData, { kind: 'correction', proposed: res.proposed, comment: res.comment })
+              saveDraft(anchorData, {
+                kind: 'correction',
+                field: target.draftField,
+                original: target.original,
+                proposed: res.proposed,
+                comment: res.comment,
+              })
             }
             closePopover()
           },
@@ -1795,22 +2099,62 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
             closePopover()
             if (lastAnchor && typeof lastAnchor.focus === 'function') lastAnchor.focus()
           },
+        },
+      )
+      doc.body.appendChild(modal)
+      openPopover = modal
+      if (typeof modal.showModal === 'function') {
+        modal.showModal()
+      } else {
+        modal.setAttribute('open', 'open')
+      }
+    }
+
+    function openFor(anchor, anchorData) {
+      closePopover()
+      lastAnchor = anchor
+
+      // Tag / relation membership has no core draft op yet: record proposals
+      // as comment drafts (never auto-applied corrections).
+      if (anchorData.tagRemove) {
+        saveDraft(anchorData, {
+          kind: 'comment',
+          field: 'tags',
+          comment: 'Propose removing tag "' + anchorData.tagRemove + '"',
         })
-        doc.body.appendChild(modal)
-        openPopover = modal
-        if (typeof modal.showModal === 'function') {
-          modal.showModal()
-        } else {
-          modal.setAttribute('open', 'open')
-        }
+        refreshCount()
+        return
+      }
+      if (anchorData.relUnlink) {
+        saveDraft(anchorData, {
+          kind: 'comment',
+          field: 'relations',
+          comment:
+            'Propose unlinking ' + anchorData.relField + ' \u2192 ' + anchorData.relUnlink,
+        })
+        refreshCount()
+        return
+      }
+
+      var target = kuModalTarget(anchorData)
+      if (target) {
+        openModalFor(anchorData, target)
         return
       }
 
       var kinds = anchorData.field ? ['comment', 'correction'] : ['comment', 'delete']
+      if (anchorData.tagAdd) kinds = ['comment']
+      if (anchorData.relAdd) kinds = ['comment']
       var activeKind = kinds[0]
       var data = {
         kinds: kinds,
-        label: anchorData.field ? 'Annotate field' : 'Annotate element',
+        label: anchorData.tagAdd
+          ? 'Propose tag'
+          : anchorData.relAdd
+            ? 'Propose relation'
+            : anchorData.field
+              ? 'Annotate field'
+              : 'Annotate element',
       }
       if (anchorData.field && elementsById[anchorData.elementId]) {
         var el = elementsById[anchorData.elementId]
@@ -1820,7 +2164,20 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         doc: doc,
         onSave: function () {
           var ta = pop.querySelector('textarea')
-          if (activeKind === 'delete') {
+          var text = ta ? ta.value : ''
+          if (anchorData.tagAdd) {
+            saveDraft(anchorData, {
+              kind: 'comment',
+              field: 'tags',
+              comment: 'Propose tag: ' + text,
+            })
+          } else if (anchorData.relAdd) {
+            saveDraft(anchorData, {
+              kind: 'comment',
+              field: 'relations',
+              comment: 'Propose relation: ' + text,
+            })
+          } else if (activeKind === 'delete') {
             saveDraft(anchorData, { kind: 'delete' })
           } else if (anchorData.field && activeKind === 'correction' && ta) {
             saveDraft(anchorData, { kind: 'correction', proposed: ta.value })
@@ -1854,11 +2211,55 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
 
     function annotateControl(anchorData, label) {
-      var b = makeEl(doc, 'button', 'innfo-review-anchor', label || '+')
+      var b =
+        typeof UI.EditAnchor === 'function'
+          ? UI.EditAnchor({ label: label || 'Annotate' })
+          : makeEl(doc, 'button', 'innfo-review-anchor', label || '+')
       b.setAttribute('data-innfo-review-ctl', '1')
       b.setAttribute('data-innfo-ctl', anchorData.field ? 'field-anchor' : 'card-anchor')
+      if (anchorData.field) b.setAttribute('data-field', String(anchorData.field))
       b.setAttribute('type', 'button')
       b.setAttribute('aria-label', anchorData.field ? 'Annotate field' : 'Annotate element')
+      b.addEventListener('click', function () {
+        openFor(b, anchorData)
+      })
+      return b
+    }
+
+    // Pencil toggle (card redesign): pins all hover-reveal edit anchors on one
+    // card via [data-editing]. Rendered top-right by decorateCard; review-owned,
+    // so disable() removes it with the other controls.
+    function editToggleControl(card) {
+      var t =
+        typeof UI.EditToggle === 'function'
+          ? UI.EditToggle()
+          : makeEl(doc, 'button', 'innfo-review-anchor', '\u270e')
+      t.setAttribute('data-innfo-review-ctl', '1')
+      t.setAttribute('data-innfo-ctl', 'edit-toggle')
+      t.setAttribute('type', 'button')
+      t.setAttribute('aria-pressed', 'false')
+      t.setAttribute('aria-label', 'Toggle edit controls on this card')
+      t.setAttribute('title', 'Toggle edit controls on this card')
+      t.addEventListener('click', function () {
+        var on = card.getAttribute('data-editing') === 'true'
+        card.setAttribute('data-editing', on ? 'false' : 'true')
+        t.setAttribute('aria-pressed', on ? 'false' : 'true')
+      })
+      return t
+    }
+
+    // Pencils for name / description / marker KUs. They reuse openFor with a
+    // virtual field so every editable KU funnels into the same KU modal.
+    function kuEditControl(anchorData, label) {
+      var b =
+        typeof UI.EditAnchor === 'function'
+          ? UI.EditAnchor({ label: label })
+          : makeEl(doc, 'button', 'innfo-review-anchor', '\u270e')
+      b.setAttribute('data-innfo-review-ctl', '1')
+      b.setAttribute('data-innfo-ctl', anchorData.ctl || 'ku-anchor')
+      b.setAttribute('type', 'button')
+      b.setAttribute('aria-label', label)
+      b.setAttribute('title', label)
       b.addEventListener('click', function () {
         openFor(b, anchorData)
       })
@@ -1921,8 +2322,41 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       var elId = card.getAttribute('data-element-id')
       var head = card.querySelector('.innfo-card-head') || card
       if (!card.querySelector('[data-innfo-ctl="card-anchor"]')) {
-        head.appendChild(annotateControl({ elementId: elId }, '\u270e'))
+        head.appendChild(annotateControl({ elementId: elId }, 'Annotate element'))
       }
+      if (!card.querySelector('[data-innfo-ctl="edit-toggle"]')) {
+        head.appendChild(editToggleControl(card))
+      }
+      var nameEl = card.querySelector('.innfo-card-name')
+      if (nameEl && !nameEl.querySelector('[data-innfo-ctl="name-anchor"]')) {
+        nameEl.appendChild(
+          kuEditControl({ elementId: elId, field: '__name', ctl: 'name-anchor' }, 'Edit element name'),
+        )
+      }
+      var descEl = card.querySelector('.innfo-card-desc')
+      if (descEl && !descEl.querySelector('[data-innfo-ctl="desc-anchor"]')) {
+        descEl.appendChild(
+          kuEditControl(
+            { elementId: elId, field: '__description', ctl: 'desc-anchor' },
+            'Edit description',
+          ),
+        )
+      }
+      Array.prototype.forEach.call(
+        card.querySelectorAll('[data-marker-id]'),
+        function (chip) {
+          if (chip.querySelector('[data-innfo-ctl="marker-anchor"]')) return
+          var markerId = chip.getAttribute('data-marker-id')
+          chip.appendChild(
+            kuEditControl(
+              { elementId: elId, field: 'marker:' + markerId, ctl: 'marker-anchor' },
+              'Edit marker ' + markerId,
+            ),
+          )
+        },
+      )
+      decorateTagRow(card, elId)
+      decorateRelList(card, elId)
       if (!head.querySelector('[data-innfo-component="reviewed-toggle"]') && store) {
         var el = elementsById[elId]
         var state = el ? reviewState(el, store.reviewed()) : 'none'
@@ -1942,12 +2376,88 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       }
     }
 
+    // Tags are not KUs (no sub-ID, no modal): membership is proposed with
+    // +/x controls that record comment drafts. Marker chips keep pencils.
+    function decorateTagRow(card, elId) {
+      var row = card.querySelector('[data-innfo-component="tag-row"]')
+      if (!row) return
+      Array.prototype.forEach.call(row.querySelectorAll('.innfo-tag'), function (tag) {
+        if (tag.querySelector('[data-innfo-ctl="tag-remove"]')) return
+        var name = tag.getAttribute('data-tag') || tag.textContent
+        var x = makeEl(doc, 'button', 'innfo-tag-remove', '\u00d7')
+        x.setAttribute('data-innfo-review-ctl', '1')
+        x.setAttribute('data-innfo-ctl', 'tag-remove')
+        x.setAttribute('type', 'button')
+        x.setAttribute('aria-label', 'Propose removing tag ' + name)
+        x.setAttribute('title', 'Propose removing tag ' + name)
+        x.addEventListener('click', function () {
+          openFor(x, { elementId: elId, tagRemove: name })
+        })
+        tag.appendChild(x)
+      })
+      if (!row.querySelector('[data-innfo-ctl="tag-add"]')) {
+        var add = makeEl(doc, 'button', 'innfo-tag-add', '+ tag')
+        add.setAttribute('data-innfo-review-ctl', '1')
+        add.setAttribute('data-innfo-ctl', 'tag-add')
+        add.setAttribute('type', 'button')
+        add.setAttribute('aria-label', 'Propose a new tag')
+        add.addEventListener('click', function () {
+          openFor(add, { elementId: elId, tagAdd: true })
+        })
+        row.appendChild(add)
+      }
+    }
+
+    // Relations are reference-KUs: pencil = retarget (KU modal with a
+    // reference widget), x = unlink proposal, link = navigate (kit-owned).
+    function decorateRelList(card, elId) {
+      var list = card.querySelector('[data-innfo-component="rel-list"]')
+      if (!list) return
+      Array.prototype.forEach.call(
+        list.querySelectorAll('.innfo-rel-row'),
+        function (rowItem) {
+          var field = rowItem.getAttribute('data-rel-field') || 'related'
+          var target = rowItem.getAttribute('data-rel-target') || ''
+          if (!rowItem.querySelector('[data-innfo-ctl="rel-retarget"]')) {
+            var re = kuEditControl(
+              { elementId: elId, relRetarget: true, relField: field, relTarget: target, ctl: 'rel-retarget' },
+              'Retarget relation ' + field,
+            )
+            rowItem.appendChild(re)
+          }
+          if (!rowItem.querySelector('[data-innfo-ctl="rel-unlink"]')) {
+            var un = makeEl(doc, 'button', 'innfo-rel-act danger', '\u00d7')
+            un.setAttribute('data-innfo-review-ctl', '1')
+            un.setAttribute('data-innfo-ctl', 'rel-unlink')
+            un.setAttribute('type', 'button')
+            un.setAttribute('aria-label', 'Propose unlinking ' + field)
+            un.setAttribute('title', 'Propose unlinking ' + field)
+            un.addEventListener('click', function () {
+              openFor(un, { elementId: elId, relUnlink: target, relField: field })
+            })
+            rowItem.appendChild(un)
+          }
+        },
+      )
+      if (!card.querySelector('[data-innfo-ctl="rel-add"]')) {
+        var add = makeEl(doc, 'button', 'innfo-rel-add', '+ relation')
+        add.setAttribute('data-innfo-review-ctl', '1')
+        add.setAttribute('data-innfo-ctl', 'rel-add')
+        add.setAttribute('type', 'button')
+        add.setAttribute('aria-label', 'Propose a new relation')
+        add.addEventListener('click', function () {
+          openFor(add, { elementId: elId, relAdd: true })
+        })
+        list.appendChild(add)
+      }
+    }
+
     function decorateFieldRow(row) {
       if (row.querySelector('[data-innfo-ctl="field-anchor"]')) return
       var card = row.closest('[data-innfo-component="element-card"]')
       var elId = card ? card.getAttribute('data-element-id') : ''
       var field = row.getAttribute('data-field')
-      row.appendChild(annotateControl({ elementId: elId, field: field }, '\u270e'))
+      row.appendChild(annotateControl({ elementId: elId, field: field }, 'Annotate field'))
     }
 
     function decorateBadges() {
@@ -5655,29 +6165,19 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       })
 
       var rels = Array.isArray(el.relations) ? el.relations : []
-      var body = []
-      if (rels.length) {
-        var ul = document.createElement('ul')
-        ul.className = 'rel-list'
-        rels.forEach(function (r) {
-          var li = document.createElement('li')
-          li.appendChild(
-            document.createTextNode(String(r.field || 'related') + ' \u2192 '),
-          )
-          if (r.target && byId[r.target]) {
-            li.appendChild(
-              UI.ElementPill(
-                { id: r.target, label: r.targetLabel || r.target },
-                { href: '#el-' + r.target },
-              ),
-            )
-          } else {
-            li.appendChild(document.createTextNode(String(r.targetLabel || r.target || '?')))
-          }
-          ul.appendChild(li)
-        })
-        body.push(ul)
-      }
+      var relData = rels.map(function (r) {
+        return {
+          field: r.field || 'related',
+          target: r.target,
+          targetLabel: r.targetLabel || (r.target && byId[r.target] && byId[r.target].name) || r.target,
+        }
+      })
+
+      var pathBits = []
+      if (meta.template) pathBits.push(meta.template)
+      if (el.concept) pathBits.push(el.concept)
+      if (el.id) pathBits.push(el.id)
+      var cardPath = pathBits.length ? pathBits.join(' / ') : null
 
       return UI.ElementCard(
         {
@@ -5687,12 +6187,16 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           description: el.description,
           fields: fieldData,
           markers: markerData,
+          qud: { id: el.id, concept: el.concept, hash: el.hash, path: cardPath },
+          path: cardPath,
+          tags: Array.isArray(el.tags) ? el.tags.map(String) : null,
+          relations: relData.length ? relData : null,
         },
         {
           domId: 'el-' + (el.id || UI.slug(el.name || 'x')),
           collapsible: true,
           head: headerCite,
-          body: body,
+          byId: byId,
         },
       )
     }
