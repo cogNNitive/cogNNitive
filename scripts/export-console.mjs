@@ -545,9 +545,12 @@ async function main() {
     const allMatrices = []
     const allConcepts = []
     const seenConcepts = new Set()
+    const modelSummaries = []
 
     for (const m of candidateModels) {
       const relPath = relative(root, m.filePath).replace(/\\/g, '/')
+      const fileName = basename(relPath)
+      const modelStem = fileName.replace(/\.[^/.]+$/, '')
       const payload = payloadHelper.buildConsolePayload({
         content: m.content,
         path: relPath,
@@ -555,12 +558,43 @@ async function main() {
         ledgerEntries,
       })
       if (payload && payload.model) {
+        const mTitle = (payload.model.meta && (payload.model.meta.title || payload.model.meta.model)) || modelStem
+        const mId = (payload.model.meta && payload.model.meta.modelId) || modelStem
+        const modelConcepts = new Set()
         if (Array.isArray(payload.model.elements)) {
-          allElements.push(...payload.model.elements)
+          for (const el of payload.model.elements) {
+            if (el) {
+              el.modelId = mId
+              el.modelTitle = mTitle
+              el.modelFile = fileName
+              const cName = el.concept || 'Element'
+              const eName = el.name || el.id || ''
+              const cSlug = cName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+              const eSlug = eName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+              el.unitSlug = `${fileName}@${cSlug}--${eSlug}`
+              el.canonicalUnit = `${fileName}@## ${cName}: ${eName}`
+              allElements.push(el)
+              if (el.concept) modelConcepts.add(el.concept)
+            }
+          }
         }
         if (Array.isArray(payload.model.matrices)) {
-          allMatrices.push(...payload.model.matrices)
+          for (const mat of payload.model.matrices) {
+            if (mat) {
+              mat.modelId = mId
+              mat.modelTitle = mTitle
+              mat.modelFile = fileName
+              allMatrices.push(mat)
+            }
+          }
         }
+        modelSummaries.push({
+          id: mId,
+          title: mTitle,
+          filePath: fileName,
+          conceptNames: Array.from(modelConcepts),
+          elementCount: Array.isArray(payload.model.elements) ? payload.model.elements.length : 0,
+        })
       }
       if (payload && payload.schema && Array.isArray(payload.schema.concepts)) {
         for (const c of payload.schema.concepts) {
@@ -581,6 +615,7 @@ async function main() {
           modelId: basename(root),
           modelVersion: 'V_1-0-0',
           generated: new Date().toISOString(),
+          models: modelSummaries,
         },
         elements: allElements,
         matrices: allMatrices,

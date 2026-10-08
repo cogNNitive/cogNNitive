@@ -2383,7 +2383,19 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   }
 
   function elementHaystack(element) {
-    var parts = [element.concept, element.name, element.description]
+    var parts = [
+      element.concept,
+      element.name,
+      element.description,
+      element.modelId,
+      element.modelFile,
+      element.modelTitle,
+      element.unitSlug,
+      element.canonicalUnit,
+    ]
+    if (Array.isArray(element.tags)) {
+      parts.push(element.tags.join(' '))
+    }
     if (isObject(element.fields)) {
       parts.push(Object.keys(element.fields).join(' '))
       parts.push(
@@ -2445,6 +2457,46 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         if (op.key === 'concept') {
           var elConcept = String(el.concept || '').toLowerCase()
           if (elConcept.indexOf(op.val) === -1) return false
+        } else if (op.key === '!concept') {
+          var elConceptNot = String(el.concept || '').toLowerCase()
+          if (elConceptNot.indexOf(op.val) !== -1) return false
+        } else if (op.key === 'model' || op.key === 'file') {
+          var modelHaystack = (
+            String(el.modelId || '') +
+            ' ' +
+            String(el.modelFile || '') +
+            ' ' +
+            String(el.modelTitle || '')
+          ).toLowerCase()
+          if (modelHaystack.indexOf(op.val) === -1) return false
+        } else if (op.key === '!model' || op.key === '!file') {
+          var modelHaystackNot = (
+            String(el.modelId || '') +
+            ' ' +
+            String(el.modelFile || '') +
+            ' ' +
+            String(el.modelTitle || '')
+          ).toLowerCase()
+          if (modelHaystackNot.indexOf(op.val) !== -1) return false
+        } else if (op.key === 'tag') {
+          var hasTag = false
+          if (Array.isArray(el.tags)) {
+            hasTag = el.tags.some(function (t) {
+              return String(t).toLowerCase().indexOf(op.val) !== -1
+            })
+          }
+          if (!hasTag && el.fields && isObject(el.fields)) {
+            if (Array.isArray(el.fields.tags)) {
+              hasTag = el.fields.tags.some(function (t) {
+                return String(t).toLowerCase().indexOf(op.val) !== -1
+              })
+            } else if (typeof el.fields.tags === 'string') {
+              hasTag = el.fields.tags.toLowerCase().indexOf(op.val) !== -1
+            } else if (typeof el.fields.tag === 'string') {
+              hasTag = el.fields.tag.toLowerCase().indexOf(op.val) !== -1
+            }
+          }
+          if (!hasTag) return false
         } else if (op.key === 'is') {
           if (op.val === 'draft') {
             if (!draftsById[el.id]) return false
@@ -2970,18 +3022,124 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     })
   }
 
-  function renderRail(doc, concepts, counts, draftCountsByConcept, onSelect) {
+  function renderRail(doc, concepts, counts, draftCountsByConcept, onSelect, state) {
     var rail = doc.getElementById('innfo-rail')
     if (!rail) return
     rail.innerHTML = ''
+
+    var models = state && state.meta && Array.isArray(state.meta.models) && state.meta.models.length > 1
+      ? state.meta.models
+      : null
+
+    if (models) {
+      // Hierarchical Multi-Model Rail
+      var header = (doc.createElement ? doc.createElement('div') : el('div', 'px-2 py-1 mb-2 text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center justify-between'))
+      header.className = 'px-2 py-1 mb-2 text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center justify-between'
+      header.innerHTML = '<span>Models (' + models.length + ')</span>'
+      rail.appendChild(header)
+
+      // Button to clear / view all domain
+      var allBtn = (doc.createElement ? doc.createElement('button') : el('button', 'innfo-rail-item mb-2 font-bold'))
+      allBtn.className = 'innfo-rail-item mb-2 font-bold'
+      allBtn.innerHTML = (typeof InnfoIcons !== 'undefined' ? InnfoIcons.getSvg('layers', { size: 14 }) : '🗂️') + ' <span class="ml-2 flex-1 text-left">Entire Domain</span> <span class="badge badge-xs">' + (state.elements ? state.elements.length : 0) + '</span>'
+      allBtn.addEventListener('click', function () {
+        if (typeof onSelect === 'function') onSelect('')
+      })
+      rail.appendChild(allBtn)
+
+      var conceptMap = {}
+      ;(Array.isArray(concepts) ? concepts : []).forEach(function (c, idx) {
+        var cName = typeof c === 'string' ? c : c.name
+        conceptMap[cName] = { def: c, index: idx }
+      })
+
+      models.forEach(function (m) {
+        var details = (doc.createElement ? doc.createElement('details') : el('details'))
+        details.className = 'collapse collapse-arrow bg-base-100 border border-base-200 rounded-box mb-2'
+        details.setAttribute('open', 'open')
+
+        var summary = (doc.createElement ? doc.createElement('summary') : el('summary'))
+        summary.className = 'collapse-title text-xs font-bold p-2 min-h-0 cursor-pointer flex items-center justify-between gap-1'
+        var titleLeft = (doc.createElement ? doc.createElement('div') : el('div'))
+        titleLeft.className = 'flex items-center gap-1.5 truncate flex-1 min-w-0'
+        titleLeft.innerHTML = (typeof InnfoIcons !== 'undefined' ? InnfoIcons.getSvg('file-text', { size: 14, class: 'text-primary' }) : '📄') + ' <span class="truncate" title="' + (m.filePath || m.title) + '">' + (m.title || m.filePath) + '</span>'
+        var countBadge = (doc.createElement ? doc.createElement('span') : el('span'))
+        countBadge.className = 'badge badge-xs shrink-0'
+        countBadge.textContent = String(m.elementCount || 0)
+        summary.appendChild(titleLeft)
+        summary.appendChild(countBadge)
+
+        var contentDiv = (doc.createElement ? doc.createElement('div') : el('div'))
+        contentDiv.className = 'collapse-content px-2 pb-2 pt-0 space-y-1'
+
+        // Button to filter by entire model
+        var modelFilterBtn = (doc.createElement ? doc.createElement('button') : el('button'))
+        modelFilterBtn.className = 'btn btn-ghost btn-xs w-full justify-start text-xs font-medium text-slate-600'
+        modelFilterBtn.textContent = 'View all in ' + (m.title || m.filePath)
+        modelFilterBtn.addEventListener('click', function (e) {
+          e.stopPropagation()
+          if (typeof onSelect === 'function') onSelect('model:' + (m.id || m.filePath))
+        })
+        contentDiv.appendChild(modelFilterBtn)
+
+        // List concepts in this model
+        var mConcepts = Array.isArray(m.conceptNames) ? m.conceptNames : []
+        mConcepts.forEach(function (cName) {
+          var cInfo = conceptMap[cName]
+          var cDef = cInfo ? cInfo.def : { name: cName }
+          var cIdx = cInfo ? cInfo.index : 0
+          var cCount = 0
+          if (state && Array.isArray(state.elements)) {
+            state.elements.forEach(function (el) {
+              if (el && el.concept === cName && (el.modelId === m.id || el.modelFile === m.filePath)) {
+                cCount++
+              }
+            })
+          }
+          if (cCount === 0) cCount = counts[cName] || 0
+
+          var cBtn = (doc.createElement ? doc.createElement('button') : el('button'))
+          cBtn.className = 'innfo-rail-item py-1 px-2 text-xs'
+          cBtn.setAttribute('data-concept', String(cName))
+          cBtn.setAttribute('data-model', String(m.id || m.filePath))
+
+          var pill = UI.ConceptPill({ id: cName, label: cName, index: cIdx, count: cCount }, { document: doc })
+          if (pill) cBtn.appendChild(pill)
+
+          var draftCount = draftCountsByConcept ? draftCountsByConcept[cName] || 0 : 0
+          if (draftCount > 0) {
+            var badge = (doc.createElement ? doc.createElement('span') : el('span'))
+            badge.className = 'innfo-rail-badge'
+            badge.textContent = String(draftCount)
+            cBtn.appendChild(badge)
+          }
+
+          cBtn.addEventListener('click', function (e) {
+            e.stopPropagation()
+            if (typeof onSelect === 'function') {
+              onSelect('model:' + (m.id || m.filePath) + ' concept:' + cName)
+            }
+          })
+          contentDiv.appendChild(cBtn)
+        })
+
+        details.appendChild(summary)
+        details.appendChild(contentDiv)
+        rail.appendChild(details)
+      })
+      return
+    }
+
+    // Single-model flat rail (default / backward-compatibility)
     concepts.forEach(function (concept, index) {
       var name = typeof concept === 'string' ? concept : concept.name
       var count = counts[name] || 0
       var draftCount = draftCountsByConcept ? draftCountsByConcept[name] || 0 : 0
-      var btn = el('button', 'innfo-rail-item')
+      var btn = (doc.createElement ? doc.createElement('button') : el('button'))
       if (!btn) return
+      btn.className = 'innfo-rail-item'
       btn.setAttribute('data-concept', String(name))
-      var pill = UI.ConceptPill({ id: name, label: name, index: index, count: count })
+      var pill = UI.ConceptPill({ id: name, label: name, index: index, count: count }, { document: doc })
       if (pill) btn.appendChild(pill)
       if (draftCount > 0) {
         var badge = el('span', 'innfo-rail-badge', String(draftCount))
@@ -2991,7 +3149,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         }
       }
       btn.addEventListener('click', function () {
-        if (typeof onSelect === 'function') onSelect(String(name))
+        if (typeof onSelect === 'function') onSelect('concept:' + String(name))
       })
       rail.appendChild(btn)
     })
@@ -2999,7 +3157,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
   // Cards project live drafts: active draft edits and notes are visually badged,
   // new draft elements are projected, and deleted elements are styled.
-  function mountElementCards(doc, elements, drafts, refs) {
+  function mountElementCards(doc, elements, drafts, refs, concepts) {
     var content = doc.getElementById('innfo-content')
     if (!content) return
     content.innerHTML = ''
@@ -3044,6 +3202,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       })
     })
 
+    var visuals = typeof self !== 'undefined' && self.InnfoVisuals ? self.InnfoVisuals : null
+
     projectedElements.forEach(function (element) {
       var fields = []
       if (isObject(element.fields)) {
@@ -3075,6 +3235,51 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           },
         },
       )
+
+      // Discrete concept color left border & badge affordance
+      var cDef = (Array.isArray(concepts) ? concepts : []).find(function (c) {
+        return c && (typeof c === 'string' ? c : c.name) === element.concept
+      })
+      var cColor = (cDef && cDef.color) || '#3b82f6'
+      var hexColor = visuals && typeof visuals.getHexColor === 'function' ? visuals.getHexColor(cColor) : cColor
+      card.style.borderLeft = '3px solid ' + hexColor
+
+      var head = card.querySelector('.innfo-card-head, header')
+      if (head) {
+        var metaWrap = el('div', 'flex items-center gap-1.5 flex-wrap ml-auto mr-2')
+        if (element.concept) {
+          var cBadge = el('span', 'badge badge-outline badge-xs text-xs font-semibold')
+          cBadge.style.borderColor = hexColor
+          cBadge.style.color = hexColor
+          cBadge.textContent = element.concept
+          metaWrap.appendChild(cBadge)
+        }
+        if (element.modelFile) {
+          var mBadge = el('span', 'badge badge-ghost badge-xs text-xs font-mono', element.modelFile)
+          mBadge.setAttribute('title', 'Knowledge Unit: ' + (element.canonicalUnit || element.unitSlug || element.modelFile))
+          metaWrap.appendChild(mBadge)
+
+          var kuText = element.canonicalUnit || element.unitSlug || (element.modelFile + '@' + element.id)
+          var copyBtn = el('button', 'btn btn-ghost btn-xs p-0.5 text-slate-400 hover:text-primary transition-colors cursor-pointer')
+          copyBtn.setAttribute('type', 'button')
+          copyBtn.setAttribute('title', 'Copy Knowledge Unit locator: ' + kuText)
+          copyBtn.setAttribute('aria-label', 'Copy Knowledge Unit locator')
+          copyBtn.innerHTML = typeof InnfoIcons !== 'undefined' ? InnfoIcons.getSvg('copy', { size: 12 }) : '📋'
+          copyBtn.addEventListener('click', function (ev) {
+            ev.stopPropagation()
+            if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(kuText)
+              copyBtn.innerHTML = typeof InnfoIcons !== 'undefined' ? InnfoIcons.getSvg('check', { size: 12, class: 'text-success' }) : '✓'
+              setTimeout(function () {
+                copyBtn.innerHTML = typeof InnfoIcons !== 'undefined' ? InnfoIcons.getSvg('copy', { size: 12 }) : '📋'
+              }, 2000)
+            }
+          })
+          metaWrap.appendChild(copyBtn)
+        }
+        var insertBeforeNode = head.children && head.children.length > 1 ? head.children[1] : null
+        head.insertBefore(metaWrap, insertBeforeNode)
+      }
 
       if (element._draft) {
         var d = element._draft
@@ -5179,17 +5384,17 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         reviewed: state.store && typeof state.store.reviewed === 'function' ? state.store.reviewed() : {},
       }
 
-      mountElementCards(active, filterElements(elements, activeSearchQuery || '', filterCtx), currentDrafts, refs)
+      mountElementCards(active, filterElements(elements, activeSearchQuery || '', filterCtx), currentDrafts, refs, concepts)
       renderBanner(active, meta, config.needs, currentDrafts.length, function () {
         refresh(activeSearchQuery)
       }, state)
-      renderRail(active, concepts, counts, draftCountsByConcept, function (concept) {
+      renderRail(active, concepts, counts, draftCountsByConcept, function (token) {
         var search = active.getElementById('innfo-search')
         if (search) {
-          search.value = concept
-          refresh(concept)
+          search.value = token
+          refresh(token)
         }
-      })
+      }, state)
       renderReviewTab(active, state, config, function () {
         refresh(activeSearchQuery)
       })
@@ -5197,6 +5402,14 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         refresh(activeSearchQuery)
       })
       renderStatsBar(active, elements, concepts, matrices, currentDrafts.length)
+
+      if (typeof history !== 'undefined' && history.replaceState && active.location) {
+        if (activeSearchQuery) {
+          history.replaceState(null, '', '#q=' + encodeURIComponent(activeSearchQuery))
+        } else if (active.location.hash && active.location.hash.indexOf('#q=') === 0) {
+          history.replaceState(null, '', active.location.pathname + active.location.search)
+        }
+      }
 
       var content = active.getElementById('innfo-content') || active.getElementById('content')
       if (content) {
@@ -5208,7 +5421,22 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       ensureFeedbackUi(active, state)
     }
 
-    refresh('')
+    var initialQuery = ''
+    if (typeof active.location !== 'undefined' && active.location.hash) {
+      var hashMatch = active.location.hash.match(/^#q=(.+)$/)
+      if (hashMatch) {
+        try {
+          initialQuery = decodeURIComponent(hashMatch[1])
+        } catch {}
+      }
+    }
+
+    var searchBox = active.getElementById('innfo-search')
+    if (searchBox && initialQuery) {
+      searchBox.value = initialQuery
+    }
+
+    refresh(initialQuery)
 
     // C3: the controller builds the toggle into the (now rendered) banner and
     // listens for innfo:rendered; created after the first paint so the banner
