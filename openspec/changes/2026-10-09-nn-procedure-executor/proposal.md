@@ -1,80 +1,106 @@
 # Proposal: nn-procedure-executor
 
-Status: DRAFT, NOT READY. Do NOT run `sdd-spec` / `sdd-design` until the
-proposal question round below is answered by the maintainer and this file is
-updated. Evidence: `exploration.md`.
+Status: READY for `sdd-spec` + `sdd-design`. Question round answered by the
+maintainer on 2026-10-09. Evidence: `exploration.md`.
 
 ## Intent
 
-`nn`, `nn-innfo` and `nn-trannsform` each describe procedure execution
-differently, and no code executes a procedure spec. Behavior depends on which
-skill the agent loaded. nn-trannsform also carries a legacy transformation path
-that overlaps with bluepriNNt procedures.
+`nn`, `nn-innfo` and `nn-trannsform` each describe how to run a procedure, and no
+single place owns the protocol — behavior depends on which skill the agent
+loaded. The maintainer confirmed the model: the **agent runs a procedure by
+following a documented skill protocol** (not an MCP executor engine). This change
+consolidates that protocol into ONE owner skill, dedupes the rest, and shrinks
+`nn-trannsform` to ingestion/lineage only under the new name **`nn-sources`**.
 
-## Scope (provisional)
+## Decisions (question round, 2026-10-09)
+
+- **Q1 Ownership/determinism — agent + skill (option b).** The agent runs the
+  procedure by following the protocol; no MCP executor tool now. Rationale: it is
+  the status quo, it is versatile (handles under-specified procedures and adapts
+  to the domaiNN context), and it needs no new engine. Determinism is NOT required
+  for the first slice. Trigger to add a targeted MCP tool later: a specific
+  procedure whose output must be reproducible/byte-identical (e.g. run in CI) —
+  then a tool for THAT procedure only, not a generic engine.
+- **Q2 Audit/resume — not needed now.** Retained conversations are the audit
+  trail. No dedicated run-log kNNowledge document and no resume state.
+- **Q3 Human gates — postponed** (out of scope for this change).
+- **Q4 nn-trannsform — rename to `nn-sources`** (ingestion + lineage only). No
+  backwards-compat shims (maintainer is the sole user).
+- **Q5 First slice — one documented protocol in one skill.**
+
+Assumptions confirmed: sole user; precedence `model > blueprint > domain > workspace`
+stands; `workspace/procedures/*_NN.md` are in discovery scope.
+
+## Scope
 
 ### In Scope
-- One owner and one protocol for discovering and running bluepriNNt procedures.
-- Removing the duplicate descriptions from the other skills.
-- Shrinking nn-trannsform to ingestion and lineage; dropping the
-  "V_0-1-0 template" option and possibly `--apply`/`transformer.js`.
+- One owner skill holds the canonical procedure-execution protocol; the other
+  skills link to it instead of restating it.
+- Dedupe the procedure-execution text out of the non-owner skills.
+- Rename `nn-trannsform` → `nn-sources`: triggers, `manifest/source.yaml`, docs
+  pages (`checkSkillPageSet`), generated docs, tests, and a documented reinstall
+  on user machines. Drop the "[a] iNNfo V_0-1-0 template" option and the
+  `--apply`/`transformer.js` path that overlaps with blueprint procedures.
+- Discovery covers: blueprint `procedures:` + `## NN Procedure:` sections +
+  `workspace/procedures/*_NN.md`.
 
 ### Out of Scope
-- Shared-rule dedupe (`2026-10-09-nn-skills-hygiene`).
-- New procedures or changes to procedure content in bluepriNNts.
+- MCP executor engine / `run_procedure`-style tool (deferred; see Q1 trigger).
+- Human-gate declaration in procedure specs.
+- Procedure-run audit/resume log.
+- Shared-rule dedupe (delivered by `2026-10-09-nn-skills-hygiene`).
 
 ## Capabilities
 
-To be fixed after the question round. Candidates: new `procedure-execution`;
-modified `router-governance`, `innfo-skill-menu`, `template-procedures-manifest-and-discovery`.
+### New Capabilities
+- `procedure-execution`: a single documented agent protocol for discovering and
+  running a procedure (precedence, discovery sources, step order, where outputs
+  go, when to delegate to another skill).
+
+### Modified Capabilities
+- `router-governance` (procedure discovery/name-clash precedence).
+- `template-procedures-manifest-and-discovery` (discovery sources).
+- `innfo-skill-menu` (procedure menu references).
+- Research existing `openspec/specs/` before adding any new capability.
 
 ## Approach
 
-Not decided. Options (a) MCP FSM tool, (b) single owner skill, (c) status quo +
-dedupe are compared in `exploration.md`.
+Option (b): **one owner skill holds the protocol; the others link to it.** Text
+only — no code executor. Keep the protocol short enough that an agent actually
+follows it; it is a protocol, not a spec engine. Candidate owner skill: `nn-innfo`
+(decide in design, weighing where procedures are surfaced in the menu).
 
-## Proposal question round
+## Affected Areas
 
-1. **Ownership and determinism**: who should run a procedure, the MCP server
-   (deterministic, testable) or the agent following a skill? Which parts must be
-   deterministic: step order, inputs/outputs, validation, all of it?
-2. **Audit and resume**: must a procedure run be resumable after an interrupted
-   session, and auditable later? Should the run log be a kNNowledge document
-   (citable, in the domaiNN graph) or transient session state?
-3. **Human gates**: which procedures need user approval mid-run (e.g. the
-   delegated plan approval of `generate_video_script`, PR #127)? How should a
-   procedure author declare a gate in the spec?
-4. **nn-trannsform identity**: keep the name, or rename to reflect
-   ingestion/lineage only (e.g. nn-sources, nn-ingest), with no compat shims and
-   reinstalls on user machines?
-5. **First slice**: what is the smallest useful outcome, e.g. a single
-   documented protocol in one skill, or an MCP tool that runs one linear
-   procedure end to end?
-
-### Assumptions needing review
-- No backwards-compat shims; the maintainer is the sole user.
-- Precedence model > blueprint > domain (from `nn`) remains the rule.
-- `workspace/procedures/*_NN.md` (no `_procedures_` infix) are in scope for discovery.
+| Area | Impact |
+|---|---|
+| `skills/<owner>/SKILL.md` | New/expanded `procedure-execution` protocol section |
+| `skills/{nn,nn-innfo}/SKILL.md` | Dedupe; link to the owner |
+| `skills/nn-trannsform/` → `skills/nn-sources/` | Rename; shrink to ingestion/lineage |
+| `manifest/source.yaml`, `docs/skills/**` | Rename entry + regenerate docs |
+| `~/.agents/skills/nn-trannsform` | Reinstall as `nn-sources` |
 
 ## Risks
 
 | Risk | Likelihood | Mitigation |
 |---|---|---|
-| Overbuilding an engine for 23 mostly-linear procedures | Med | Question 5 bounds the slice |
-| Stacking edits on skills touched by other in-flight changes | High | Dependencies below |
-| Rename breaks installed copies | Med | Explicit reinstall step in release |
+| Rename breaks installed copies | Med | Documented reinstall; no shims per decision |
+| Protocol too large → agents skip it | Med | Keep it short; single owner |
+| Rename touches many refs; collides with in-flight `session/qw-skills-cleanups` (edits `nn-trannsform/README.md`) | High | Enumerate refs in spec/design; re-sync before landing |
 
 ## Rollback
 
-Per slice revert; an MCP tool is additive until skills switch to it.
+Per slice revert. The rename is one commit; the protocol addition is text-only
+and additive.
 
 ## Dependencies
 
-- `2026-10-09-embed-video-script-skill` released first.
-- `2026-10-09-nn-skills-hygiene` landed first (shared rules).
+- `2026-10-09-embed-video-script-skill` released — DONE (deployed 2026-10-09).
+- `2026-10-09-nn-skills-hygiene` landed (shared rules) — DONE (dev `519b7000`).
 
 ## Success Criteria
 
-- [ ] Question round answered and recorded here.
 - [ ] Exactly one place describes procedure execution; the others link to it.
-- [ ] (If option a) a procedure run is covered by a test that can go red.
+- [ ] No procedure-execution duplication remains in `nn` / `nn-innfo` / `nn-sources`.
+- [ ] `nn-sources` renamed everywhere (manifest, docs, triggers); reinstall documented.
+- [ ] Discovery covers blueprint procedures + `## NN Procedure:` sections + workspace procedures.
