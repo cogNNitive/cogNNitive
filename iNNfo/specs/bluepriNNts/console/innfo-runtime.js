@@ -2312,6 +2312,7 @@
      otherwise visible only in devtools). */
   var VIEW_ID_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/
   var RESERVED_VIEW_IDS = ['explorer', 'matrices', 'review']
+  var ICON_NAME_RE = /^[a-z0-9-]+$/
   var VIEW_KINDS = ['editable', 'readonly']
 
   function nonEmptyString(v) {
@@ -2326,7 +2327,9 @@
     if (!VIEW_ID_RE.test(id)) return at + 'id must be a slug of lowercase alphanumerics and hyphens'
     if (RESERVED_VIEW_IDS.indexOf(id) >= 0) return at + 'id is reserved'
     if (!nonEmptyString(def.title)) return at + 'title must be a non-empty string'
-    if (!nonEmptyString(def.icon)) return at + 'icon must be a non-empty string'
+    if (typeof def.icon !== 'string' || !ICON_NAME_RE.test(def.icon)) {
+      return at + 'icon must be a slug of lowercase alphanumerics and hyphens'
+    }
     if (typeof def.order !== 'number' || !isFinite(def.order)) return at + 'order must be a finite number'
     if (VIEW_KINDS.indexOf(def.kind) < 0) return at + 'kind must be "editable" or "readonly"'
     if (typeof def.mount !== 'function') return at + 'mount must be a function'

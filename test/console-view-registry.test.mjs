@@ -1,6 +1,10 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { InnfoConsole, MODEL, bootConsole } from './helpers/console-boot.mjs'
+import { createRequire } from 'node:module'
+import { join } from 'node:path'
+import { InnfoConsole, MODEL, bootConsole, consoleDir } from './helpers/console-boot.mjs'
+
+const InnfoUI = createRequire(import.meta.url)(join(consoleDir, 'ui-kit.js'))
 
 const def = (over = {}) => ({
   id: 'pipeline',
@@ -42,6 +46,23 @@ describe('registerView contract', () => {
       assert.equal(registry.list().length, 0)
     })
   }
+
+  it('rejects an icon that is not a slug, so it cannot inject markup', () => {
+    const registry = InnfoConsole.createViewRegistry()
+    for (const icon of ['x"><img onerror=1>', 'Chart', 'a b', '<b>']) {
+      assert.throws(() => registry.register(def({ icon })), /icon/, icon)
+    }
+    assert.equal(registry.list().length, 0)
+  })
+
+  it('icon helper never interpolates an unvalidated name into attributes', () => {
+    const svg = global.InnfoIcons.getSvg('x"><img onerror=1>', { size: 15 })
+    assert.ok(!svg.includes('<img'), svg)
+    assert.match(svg.match(/class="([^"]*)"/)[1], /^[a-z0-9 -]+$/)
+    const kit = InnfoUI.icon('x"><img onerror=1>', 15)
+    assert.ok(!kit.includes('<img'), kit)
+    assert.match(kit.match(/class="([^"]*)"/)[1], /^[a-z0-9 -]+$/)
+  })
 
   it('rejects ids that are not slugs', () => {
     const registry = InnfoConsole.createViewRegistry()

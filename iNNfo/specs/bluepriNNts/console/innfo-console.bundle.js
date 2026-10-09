@@ -328,13 +328,18 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return ICONS[key] || ICONS['help-circle'] || ICONS['box'] || '';
   }
 
+  // The name lands in a class attribute: keep only slug characters.
+  function safeClassName(name) {
+    return String(name || '').toLowerCase().replace(/[^a-z0-9-]/g, '') || 'default';
+  }
+
   function getSvg(name, options) {
     var opts = options || {};
     var size = opts.size || 16;
     var cls = opts.class || opts.className || '';
     var strokeWidth = opts.strokeWidth || 2;
     var paths = getIconPaths(name);
-    return '<svg class="lucide lucide-' + (name || 'default') + (cls ? ' ' + cls : '') + '" width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="' + strokeWidth + '" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + paths + '</svg>';
+    return '<svg class="lucide lucide-' + safeClassName(name) + (cls ? ' ' + cls : '') + '" width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="' + strokeWidth + '" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + paths + '</svg>';
   }
 
   function Icon(props) {
@@ -344,7 +349,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var strokeWidth = p.strokeWidth || 2;
     var paths = getIconPaths(p.name);
     if (typeof window !== 'undefined' && window.html) {
-      return window.html`<svg class=${"lucide lucide-" + (p.name || "default") + (cls ? " " + cls : "")} width=${size} height=${size} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width=${strokeWidth} stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" dangerouslySetInnerHTML=${{ __html: paths }}></svg>`;
+      return window.html`<svg class=${"lucide lucide-" + safeClassName(p.name) + (cls ? " " + cls : "")} width=${size} height=${size} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width=${strokeWidth} stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" dangerouslySetInnerHTML=${{ __html: paths }}></svg>`;
     }
     return getSvg(p.name, p);
   }
@@ -5011,6 +5016,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
      otherwise visible only in devtools). */
   var VIEW_ID_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/
   var RESERVED_VIEW_IDS = ['explorer', 'matrices', 'review']
+  var ICON_NAME_RE = /^[a-z0-9-]+$/
   var VIEW_KINDS = ['editable', 'readonly']
 
   function nonEmptyString(v) {
@@ -5025,7 +5031,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     if (!VIEW_ID_RE.test(id)) return at + 'id must be a slug of lowercase alphanumerics and hyphens'
     if (RESERVED_VIEW_IDS.indexOf(id) >= 0) return at + 'id is reserved'
     if (!nonEmptyString(def.title)) return at + 'title must be a non-empty string'
-    if (!nonEmptyString(def.icon)) return at + 'icon must be a non-empty string'
+    if (typeof def.icon !== 'string' || !ICON_NAME_RE.test(def.icon)) {
+      return at + 'icon must be a slug of lowercase alphanumerics and hyphens'
+    }
     if (typeof def.order !== 'number' || !isFinite(def.order)) return at + 'order must be a finite number'
     if (VIEW_KINDS.indexOf(def.kind) < 0) return at + 'kind must be "editable" or "readonly"'
     if (typeof def.mount !== 'function') return at + 'mount must be a function'
