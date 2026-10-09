@@ -41,7 +41,7 @@ Direct generative diffusion of typography produces distorted, illegible text and
 
 ### Phase B: Programmatic Typography Overlay
 - Output: `thumbnail_[topic].jpeg`
-- Tool: `node skills/nn-video-script/scripts/render-thumbnail.mjs`
+- Tool: `node ~/.agents/skills/nn-video-script/scripts/render-thumbnail.mjs`
 - Composes deterministic SVG typography over the clean base:
   - **High-impact bold headline** with heavy outer stroke (`#000000`) and drop-shadow for 100% legibility on mobile feeds.
   - **Subtitle / Metadata line** for creator, year, or episode number.
@@ -50,7 +50,7 @@ Direct generative diffusion of typography produces distorted, illegible text and
 
 ### CLI Usage Example
 ```bash
-node skills/nn-video-script/scripts/render-thumbnail.mjs \
+node ~/.agents/skills/nn-video-script/scripts/render-thumbnail.mjs \
   --base series/inntrevistas/assets/la-rueda/thumbnail_rueda_base.jpeg \
   --title "LA RUEDA" \
   --subtitle "Mesopotamia · 3500 a.C." \
