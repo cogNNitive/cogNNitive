@@ -12,6 +12,11 @@ const def = (over = {}) => ({
   ...over,
 })
 
+async function until(cond, ms = 2000) {
+  const end = Date.now() + ms
+  while (!cond() && Date.now() < end) await new Promise((r) => setTimeout(r, 10))
+}
+
 describe('registerView contract', () => {
   it('accepts a valid definition without mounting it', () => {
     const registry = InnfoConsole.createViewRegistry()
@@ -126,7 +131,7 @@ describe('tabs from the registry', () => {
     const { dom, document } = bootConsole({ registry: reg2, url: 'http://localhost/#explorer' })
     assert.ok(document.getElementById('innfo-tab-explorer').classList.contains('active'))
     dom.window.location.hash = '#pipeline'
-    await new Promise((r) => setTimeout(r, 20))
+    await until(() => document.getElementById('innfo-tab-pipeline').classList.contains('active'))
     assert.ok(document.getElementById('innfo-tab-pipeline').classList.contains('active'))
     assert.ok(!document.getElementById('innfo-tab-explorer').classList.contains('active'))
     document.querySelector('.innfo-view-tab[data-tab="explorer"]').click()
