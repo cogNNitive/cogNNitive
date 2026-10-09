@@ -386,3 +386,43 @@ describe('S2b review follow-up: draft change listeners', () => {
     assert.equal(calls, 0)
   })
 })
+
+describe('S2b review follow-up: openEdit side effects and focus', () => {
+  it('an invalid call leaves an open modal untouched', () => {
+    const { document, ctxs } = bootViews([def('alpha')])
+    ctxs.alpha.modal.edit({ elementId: 'ecto-1', field: 'role' })
+    const open = document.querySelector('.innfo-edit-modal')
+    assert.equal(ctxs.alpha.modal.edit({ elementId: 'nope', field: 'role' }), false)
+    assert.equal(ctxs.alpha.modal.edit({ elementId: 'ecto-1' }), false, 'no field and no comment mode')
+    assert.equal(ctxs.alpha.modal.comment({ elementId: 'nope' }), false)
+    assert.equal(document.querySelectorAll('.innfo-edit-modal').length, 1)
+    assert.equal(document.querySelector('.innfo-edit-modal'), open, 'same modal node survives')
+  })
+
+  it('cancel restores focus to the element focused when the view opened the modal', () => {
+    const { document, ctxs } = bootViews([def('alpha')])
+    const opener = document.createElement('button')
+    opener.textContent = 'edit from view'
+    ctxs.alpha.container.appendChild(opener)
+    opener.focus()
+    assert.equal(document.activeElement, opener)
+    ctxs.alpha.modal.edit({ elementId: 'ecto-1', field: 'role' })
+    document.querySelector('.innfo-edit-modal textarea, .innfo-edit-modal input').focus()
+    assert.notEqual(document.activeElement, opener)
+    document.querySelector('.innfo-edit-btn-cancel').click()
+    assert.equal(document.querySelectorAll('.innfo-edit-modal').length, 0)
+    assert.equal(document.activeElement, opener)
+  })
+
+  it('a second open does not capture the first modal as the focus anchor', () => {
+    const { document, ctxs } = bootViews([def('alpha')])
+    const opener = document.createElement('button')
+    ctxs.alpha.container.appendChild(opener)
+    opener.focus()
+    ctxs.alpha.modal.edit({ elementId: 'ecto-1', field: 'role' })
+    document.querySelector('.innfo-edit-modal textarea, .innfo-edit-modal input').focus()
+    ctxs.alpha.modal.comment({ elementId: 'ecto-1' })
+    document.querySelector('.innfo-edit-btn-cancel').click()
+    assert.equal(document.activeElement, opener)
+  })
+})

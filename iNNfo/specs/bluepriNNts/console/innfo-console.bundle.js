@@ -2134,8 +2134,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     // anchorData.comment it opens in comment mode (an element-level comment
     // when there is no field). Returns false when the anchor has no modal.
     function openEdit(anchorData) {
-      closePopover()
-      lastAnchor = null
+      // Validate first: an invalid call must not close the open popover or
+      // move the focus anchor.
       var target = kuModalTarget(anchorData)
       var el = elementsById[anchorData.elementId]
       if (!target && anchorData.comment && el) {
@@ -2150,6 +2150,12 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         }
       }
       if (!target) return false
+      // Cancel returns focus to whatever had it when the view asked; focus
+      // inside the modal being replaced does not count.
+      var focused = doc.activeElement
+      if (openPopover && focused && openPopover.contains(focused)) focused = lastAnchor
+      closePopover()
+      lastAnchor = focused && focused !== doc.body ? focused : null
       if (anchorData.comment) target = Object.assign({}, target, { isComment: true })
       openModalFor(anchorData, target)
       return true
