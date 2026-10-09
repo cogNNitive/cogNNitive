@@ -2451,11 +2451,20 @@
     return { nav: tabsNav, main: mainEl, review: reviewPanel, explorer: explorerPanel }
   }
 
+  // meta.consoleScope = { view: id } marks a standalone --view export: no built-in
+  // tabs, only that view, and drafts kept apart from the domain console's.
+  function consoleScopeOf(meta) {
+    var scope = meta && meta.consoleScope
+    return isObject(scope) && nonEmptyString(scope.view) ? scope.view : ''
+  }
+
   // Built-in tabs, registered per boot (they are not in the registry). The
   // canonical/studio pair keeps the legacy metrics panels until the timeline
   // becomes a view.
   function builtinViews(doc, config, model, meta, shell) {
     var views = []
+    // A standalone --view artifact mounts that view alone.
+    if (consoleScopeOf(meta)) return views
     var hasDomain =
       hasNeed(config, 'timeline-grid') ||
       (Array.isArray(model && model.rows) && model.rows.length > 0 && meta && meta.months)
@@ -2536,7 +2545,10 @@
     function report(id, sources, reason) {
       bootErrors.push({ id: id, sources: sources, reason: reason })
     }
+    var scopedView = consoleScopeOf(opts.meta)
+    if (scopedView && shell.explorer) shell.explorer.classList.remove('active')
     registry.list().forEach(function (v) {
+      if (scopedView && v.id !== scopedView) return
       var clash = tabs.filter(function (t) {
         return t.id === v.id
       })[0]
@@ -3820,18 +3832,30 @@
             return { name: c }
           })
 
+    var scopedView = consoleScopeOf(meta)
+    var scopedDef = scopedView
+      ? registry.list().filter(function (v) {
+          return v.id === scopedView
+        })[0]
+      : null
+    var baseTitle = String(meta.title || meta.model || 'Model')
+    var baseId = String(meta.modelId || meta.model || meta.title || 'model')
+
     var state = {
-      modelTitle: String(meta.title || meta.model || 'Model'),
+      modelTitle: scopedView ? baseTitle + ' - ' + (scopedDef ? scopedDef.title : scopedView) : baseTitle,
       modelVersion: String(meta.modelVersion || meta.knowledge_version || 'V_0-0-0'),
       artifactName: String(meta.title || 'console') + '_console.html',
       modelId: meta.modelId || meta.model || meta.title || 'model',
-      modelSlug: meta.model_slug || meta.modelSlug || undefined,
+      modelSlug: scopedView
+        ? modelSlugOf({ modelSlug: meta.model_slug || meta.modelSlug, modelId: baseId, modelTitle: baseTitle }) + '-' + scopedView
+        : meta.model_slug || meta.modelSlug || undefined,
       sourceSha256: meta.sha256 || meta.source_sha256,
-      meta: meta,
+      // The changeset title comes from meta.title; a scoped export names its view there.
+      meta: scopedView ? Object.assign({}, meta, { title: baseTitle + ' - ' + (scopedDef ? scopedDef.title : scopedView) }) : meta,
       elements: elements,
       store: Review.createDraftStore(
         typeof localStorage !== 'undefined' ? localStorage : null,
-        String(meta.modelId || meta.model || meta.title || 'model'),
+        baseId + (scopedView ? '::view:' + scopedView : ''),
       ),
     }
 

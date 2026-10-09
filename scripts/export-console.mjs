@@ -108,6 +108,7 @@ function parseArgs(argv) {
     all: false,
     stale: false,
     domain: false,
+    view: null,
     filter: null,
     model: null,
   }
@@ -126,6 +127,9 @@ function parseArgs(argv) {
       args.stale = true
     } else if (a === '--domain') {
       args.domain = true
+    } else if (a === '--view') {
+      i++
+      if (i < slice.length) args.view = slice[i]
     } else if (a === '--filter') {
       i++
       if (i < slice.length) {
@@ -337,8 +341,12 @@ async function main() {
   const args = parseArgs(process.argv)
   if (!args.root) {
     console.error(
-      'Usage: node scripts/export-console.mjs <workspaceRoot> [--status] [--tree] [--list] [--all] [--stale] [--filter <pattern>] [<ModelName>]',
+      'Usage: node scripts/export-console.mjs <workspaceRoot> [--status] [--tree] [--list] [--all] [--stale] [--domain] [--view <id>] [--filter <pattern>] [<ModelName>]',
     )
+    process.exit(2)
+  }
+  if (args.view && args.domain) {
+    console.error('Error: --view and --domain are mutually exclusive.')
     process.exit(2)
   }
   const root = resolve(args.root)
@@ -424,7 +432,7 @@ async function main() {
     selected = candidateModels
   }
 
-  if (selected.length === 0 && !args.domain) {
+  if (selected.length === 0 && !args.domain && !args.view) {
     console.error(
       'No models selected. Use --all, --stale, --domain, --filter <pattern>, or pass a model name/id substring.',
     )
@@ -454,7 +462,7 @@ async function main() {
   let uiCss = ''
   let viewsLib = null
   let preparedAssets = null
-  if (args.domain) {
+  if (args.domain || args.view) {
     // Loaded lazily: every other mode keeps running as a lone copy of this file, and
     // only --domain needs the sibling lib. The lib sits NEXT TO this script (not in a
     // lib/ folder) because the installer places every console asset flat by basename.
@@ -491,6 +499,15 @@ async function main() {
     } catch (err) {
       console.error(`Error: ${err.message}`)
       process.exit(1)
+    }
+    if (args.view) {
+      const wanted = domainViews.find((v) => v.id === args.view)
+      if (!wanted) {
+        const ids = domainViews.map((v) => v.id)
+        console.error(`Error: unknown view "${args.view}"; available views: ${ids.length ? ids.join(', ') : '(none)'}`)
+        process.exit(1)
+      }
+      domainViews = [wanted]
     }
     try {
       preparedAssets = viewsLib.assertInlinable(resolvedShell, { bundle, css: uiCss, views: domainViews })
@@ -531,70 +548,8 @@ async function main() {
 
   const resolver = payloadHelper.createFsSourceResolver ? payloadHelper.createFsSourceResolver(root) : undefined
 
-  let written = 0
-  let unchanged = 0
-  for (const m of selected) {
-    const stem = m.name
-    const relPath = relative(root, m.filePath).replace(/\\/g, '/')
-
-    let schema = undefined
-    const fm = frontmatterOf(m.content)
-    if (fm.parent_spec?.name) {
-      const tier1Path = join(root, 'specs', 'bluepriNNts', fm.parent_spec.name)
-      if (existsSync(tier1Path)) {
-        // tier 1 exists
-      } else {
-        process.stderr.write(
-          `WARNING: [export-console] Schema resolution for parent_spec '${fm.parent_spec.name}' not found at Tier 1; derived schema used.\n`,
-        )
-      }
-    }
-
-    const build = (generated) =>
-      payloadHelper.buildConsolePayload({
-        content: m.content,
-        path: relPath,
-        schema,
-        resolver,
-        ledgerEntries,
-        generated,
-      })
-
-    const dir = consoleDirRel(stem)
-    // The bundle is its own write-once family per folder; an unchanged bundle is deduplicated.
-    let bundleName = null
-    if (bundle) {
-      const vendored = await payloadHelper.writeOnce(root, { dir, key: BUNDLE_KEY, ext: 'js' }, bundle)
-      bundleName = basename(vendored.path)
-    }
-
-    // Re-render with the previous `generated` stamp: identical bytes mean nothing changed.
-    const latestRel = await latestConsole(root, stem)
-    if (latestRel) {
-      const previous = await readFile(join(root, latestRel), 'utf-8')
-      const previousGenerated = extractModelMetaFromHtml(previous)?.generated
-      if (previousGenerated && renderConsole(resolvedShell, bundleName, config, build(previousGenerated)) === previous) {
-        unchanged++
-        console.log(`= ${basename(latestRel)} unchanged`)
-        continue
-      }
-    }
-
-    const html = renderConsole(resolvedShell, bundleName, config, build(undefined))
-    const result = await payloadHelper.writeOnce(root, { dir, key: `${stem}_console`, ext: 'html' }, html, {
-      inputs: [relPath],
-    })
-    if (result.status === 'deduplicated') {
-      unchanged++
-      console.log(`= ${basename(result.path)} unchanged`)
-    } else {
-      written++
-      console.log(`✔ ${basename(result.path)} → ./${result.path}`)
-    }
-  }
-
-  if (args.domain) {
-    const domainHtmlPath = join(root, 'domaiNN_console.html')
+  let standalone = null
+  if (args.domain || args.view) {
     // Build combined payload aggregating all models in the workspace
     const allElements = []
     const allMatrices = []
@@ -677,13 +632,96 @@ async function main() {
       },
     }
 
+    if (args.view) domainPayload.model.meta.consoleScope = { view: args.view }
     let domainHtml = viewsLib.inlineConsoleAssets(renderConsole(resolvedShell, null, config, domainPayload), preparedAssets)
     if (!domainHtml.includes('data-theme=')) {
       domainHtml = domainHtml.replace('<html lang="en">', '<html lang="en" data-theme="light">')
     }
-    await writeFile(domainHtmlPath, domainHtml, 'utf-8')
+    // Final size gate, before the first write of this run.
+    const bytes = (text) => Buffer.byteLength(text, 'utf8')
+    const budget = viewsLib.evaluateSizeBudget({
+      bundle: bytes(preparedAssets.bundleScript) + bytes(preparedAssets.css),
+      models: bytes(JSON.stringify(domainPayload.schema)) + bytes(JSON.stringify(domainPayload.model)),
+      views: preparedAssets.viewScripts.reduce((sum, script) => sum + bytes(script), 0),
+      total: bytes(domainHtml),
+    })
+    if (budget.status === 'fail') {
+      console.error(`Error: ${budget.message}`)
+      process.exit(1)
+    }
+    if (budget.status === 'warn') process.stderr.write(`WARNING: [export-console] ${budget.message}
+`)
+    console.log(budget.breakdown)
+    standalone = { html: domainHtml, elements: allElements.length }
+  }
+
+  let written = 0
+  let unchanged = 0
+  for (const m of selected) {
+    const stem = m.name
+    const relPath = relative(root, m.filePath).replace(/\\/g, '/')
+
+    let schema = undefined
+    const fm = frontmatterOf(m.content)
+    if (fm.parent_spec?.name) {
+      const tier1Path = join(root, 'specs', 'bluepriNNts', fm.parent_spec.name)
+      if (existsSync(tier1Path)) {
+        // tier 1 exists
+      } else {
+        process.stderr.write(
+          `WARNING: [export-console] Schema resolution for parent_spec '${fm.parent_spec.name}' not found at Tier 1; derived schema used.\n`,
+        )
+      }
+    }
+
+    const build = (generated) =>
+      payloadHelper.buildConsolePayload({
+        content: m.content,
+        path: relPath,
+        schema,
+        resolver,
+        ledgerEntries,
+        generated,
+      })
+
+    const dir = consoleDirRel(stem)
+    // The bundle is its own write-once family per folder; an unchanged bundle is deduplicated.
+    let bundleName = null
+    if (bundle) {
+      const vendored = await payloadHelper.writeOnce(root, { dir, key: BUNDLE_KEY, ext: 'js' }, bundle)
+      bundleName = basename(vendored.path)
+    }
+
+    // Re-render with the previous `generated` stamp: identical bytes mean nothing changed.
+    const latestRel = await latestConsole(root, stem)
+    if (latestRel) {
+      const previous = await readFile(join(root, latestRel), 'utf-8')
+      const previousGenerated = extractModelMetaFromHtml(previous)?.generated
+      if (previousGenerated && renderConsole(resolvedShell, bundleName, config, build(previousGenerated)) === previous) {
+        unchanged++
+        console.log(`= ${basename(latestRel)} unchanged`)
+        continue
+      }
+    }
+
+    const html = renderConsole(resolvedShell, bundleName, config, build(undefined))
+    const result = await payloadHelper.writeOnce(root, { dir, key: `${stem}_console`, ext: 'html' }, html, {
+      inputs: [relPath],
+    })
+    if (result.status === 'deduplicated') {
+      unchanged++
+      console.log(`= ${basename(result.path)} unchanged`)
+    } else {
+      written++
+      console.log(`✔ ${basename(result.path)} → ./${result.path}`)
+    }
+  }
+
+  if (args.domain) {
+    const domainHtmlPath = join(root, 'domaiNN_console.html')
+    await writeFile(domainHtmlPath, standalone.html, 'utf-8')
     console.log(
-      `✔ domaiNN_console.html → ./domaiNN_console.html (${candidateModels.length} models, ${allElements.length} elements, ${domainViews.length} views)`,
+      `✔ domaiNN_console.html → ./domaiNN_console.html (${candidateModels.length} models, ${standalone.elements} elements, ${domainViews.length} views)`,
     )
     // Earlier exports wrote these beside the page; it inlines both now. Nothing is deleted.
     const leftovers = ['innfo-console.bundle.js', 'innfo-ui.css'].filter((name) => existsSync(join(root, name)))
@@ -692,6 +730,18 @@ async function main() {
         `WARNING: [export-console] ${leftovers.join(' and ')} in the workspace root are leftover from an earlier export; domaiNN_console.html no longer uses them and they were not removed.\n`,
       )
     }
+  }
+
+  if (args.view) {
+    // Write-once family per view; the bundle is inlined, so no sibling file exists.
+    const result = await payloadHelper.writeOnce(
+      root,
+      { dir: `artifacts/${args.view}_view`, key: `${args.view}_view`, ext: 'html' },
+      standalone.html,
+      { inputs: candidateModels.map((m) => relative(root, m.filePath).replace(/\\/g, '/')) },
+    )
+    written++
+    console.log(`✔ ${basename(result.path)} → ./${result.path} (view ${args.view}, ${standalone.elements} elements)`)
   }
 
   console.log(`Exported ${written} console artifact(s)${unchanged > 0 ? ` (${unchanged} unchanged)` : ''}.`)
