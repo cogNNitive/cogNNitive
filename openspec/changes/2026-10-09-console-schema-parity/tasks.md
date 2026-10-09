@@ -44,8 +44,12 @@ Chain strategy: pending
 
 ## Phase 3: Producers + fixture
 
-- [ ] 3.1 RED: isolate `INNFO_GLOBAL_DIR`/`INNFO_SKILLS_DIR` in `console-golden-parity.test.ts` (`beforeEach` + `runCli` env, restore `afterEach`); parity assert at `:169` fails first.
-- [ ] 3.2 Replace CLI no-op `scripts/export-console.mjs:485-496` (+ `:554`) with awaited `resolveConsoleSchema`.
-- [ ] 3.3 Converge MCP `build-console-payload.ts:64-88` on `resolveConsoleSchema`; drop `resolveBlueprintWithCache` + `buildBlueprintSchemaResolverFromCache`.
-- [ ] 3.4 GREEN: `npx vitest run test/console-golden-parity.test.ts` (Windows); `npm --workspace=@cognnitive/innfo-mcp test`.
-- [ ] 3.5 Verify (CI gates): `npx vitest run src/tools/spec.spec.ts`; `node scripts/verify.js`; `npm run lint`; `npm run typecheck`; `npm run format:check`.
+- [x] 3.1 RED: isolate `INNFO_GLOBAL_DIR`/`INNFO_SKILLS_DIR` in `console-golden-parity.test.ts` (`beforeEach` + `runCli` env, restore `afterEach`); parity assert at `:169` fails first.
+- [x] 3.2 Replace CLI no-op `scripts/export-console.mjs:485-496` (+ `:554`) with awaited `resolveConsoleSchema`.
+- [x] 3.3 Converge MCP `build-console-payload.ts:64-88` on `resolveConsoleSchema`; drop `resolveBlueprintWithCache` + `buildBlueprintSchemaResolverFromCache`.
+- [x] 3.4 GREEN: `npx vitest run test/console-golden-parity.test.ts` (Windows); `npm --workspace=@cognnitive/innfo-mcp test`.
+- [x] 3.5 Verify (CI gates): `npx vitest run src/tools/spec.spec.ts`; `node scripts/verify.js`; `npm run lint`; `npm run typecheck`; `npm run format:check`.
+
+## Follow-ups
+
+- Added a package-local node_modules junction (`innfo-mcp/node_modules/@cognnitive/innfo-core` → worktree core) so `tsc` resolves the worktree build, not the junctioned primary checkout. Local-only, untracked.
