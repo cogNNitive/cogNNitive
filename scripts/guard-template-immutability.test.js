@@ -225,6 +225,17 @@ async function runTests() {
       );
       console.log('✔ owner spec already reported by the template check is not reported twice');
 
+      // Owner resolution anchors on the FIRST bluepriNNts/<bp>/skills/ segment: a nested
+      // lookalike path must not redirect the check to an innermost "owner".
+      const nestedFx = writeFixture([
+        'M\tiNNfo/specs/bluepriNNts/video2/skills/s/vendor/bluepriNNts/evil/skills/y/SKILL.md',
+      ], 'skill-nested.txt');
+      const nestedRes = await runGuard(args(nestedFx), tmpDir);
+      assert.strictEqual(nestedRes.status, 1, 'the outermost owner (video2, unbumped) must be enforced');
+      assert.ok(nestedRes.stdout.includes('bluepriNNts/video2/spec_NN.md'), 'names the outermost owner');
+      assert.ok(!nestedRes.stdout.includes('evil/spec_NN.md'), 'never resolves to the innermost lookalike');
+      console.log('✔ owner resolution anchors on the first bluepriNNts/<bp>/skills/ segment');
+
       // Base-less owner (brand new bluepriNNt) passes with a valid version, fails without one.
       writeWork('fresh/spec_NN.md', tpl('V_0-1-0'));
       const freshFx = writeFixture(['A\tiNNfo/specs/bluepriNNts/fresh/skills/s/SKILL.md'], 'skill-fresh.txt');

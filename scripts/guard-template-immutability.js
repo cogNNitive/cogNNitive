@@ -109,11 +109,12 @@ function isCanonicalBlueprint(relPath) {
 
 /**
  * Owning spec of a file embedded under `<...>/bluepriNNts/<bp>/skills/...`, or null.
- * Pure path mapping: `.../bluepriNNts/video/skills/x/SKILL.md` -> `.../bluepriNNts/video/spec_NN.md`.
+ * Anchored on the FIRST `bluepriNNts/<bp>/skills/` segment (lazy prefix), so a nested lookalike
+ * path cannot redirect the owner. Pure path mapping: `.../bluepriNNts/video/skills/x/SKILL.md` -> `.../bluepriNNts/video/spec_NN.md`.
  */
 function ownerSpecOf(relPath) {
-  const m = relPath.replace(/\\/g, '/').match(/^(.*\/)?(bluepriNNts\/[^/]+)\/skills\/.+/);
-  return m ? `${m[1] || ''}${m[2]}/spec_NN.md` : null;
+  const m = relPath.replace(/\\/g, '/').match(/^((?:.*?\/)??)(bluepriNNts\/[^/]+)\/skills\/.+/);
+  return m ? `${m[1]}${m[2]}/spec_NN.md` : null;
 }
 
 function isUnderRoot(filePath, root) {

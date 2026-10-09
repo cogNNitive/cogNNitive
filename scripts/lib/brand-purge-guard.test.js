@@ -25,6 +25,11 @@ assert.strictEqual(
   0,
   'the skill-vendored copy of the pinned spec is byte-identical to the excluded source',
 );
+assert.strictEqual(
+  hits([['iNNfo/specs/bluepriNNts/video/skills/nn-video-script/specs/notes.md', A]]).length,
+  1,
+  'only the exact vendored spec file is exempt, not the whole specs/ dir of the skill',
+);
 assert.strictEqual(hits([['openspec/changes/archive/x/tasks.md', V]]).length, 0);
 assert.strictEqual(hits([['openspec/specs/x/spec.md', V]]).length, 1);
 

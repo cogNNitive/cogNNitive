@@ -29,7 +29,7 @@ const PATH_EXCLUSIONS = [
     reason: 'Vendored VUS spec pinned by sha256; the upstream text cannot be edited.',
   },
   {
-    prefix: 'iNNfo/specs/bluepriNNts/video/skills/nn-video-script/specs/',
+    prefix: 'iNNfo/specs/bluepriNNts/video/skills/nn-video-script/specs/V_0-3-3.json',
     reason: 'Byte-identical vendored copy of the excluded VUS spec, hash-pinned by the skill; cannot be edited.',
   },
   {
