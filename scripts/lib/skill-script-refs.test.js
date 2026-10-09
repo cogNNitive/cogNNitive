@@ -74,6 +74,25 @@ function runTests() {
     }
   }
 
+  // Test 3b: skills embedded in a bluepriNNt package are held to the same gate
+  {
+    const root = makeRepo({ a: { skillMd: 'ok\n' } });
+    const embedded = path.join(root, 'iNNfo', 'specs', 'bluepriNNts', 'video', 'skills', 'emb');
+    fs.mkdirSync(path.join(embedded, 'scripts'), { recursive: true });
+    fs.writeFileSync(path.join(embedded, 'SKILL.md'), 'Run `node scripts/there.js` and `node scripts/gone.js`.\n');
+    fs.writeFileSync(path.join(embedded, 'scripts', 'there.js'), '// x\n');
+    try {
+      const res = checkSkillScriptReferences(root);
+      assert.strictEqual(res.ok, false, 'an embedded skill with a dangling reference must fail');
+      assert.strictEqual(res.errors.length, 1, res.errors.join('\n'));
+      assert.ok(res.errors[0].includes('emb') && res.errors[0].includes('scripts/gone.js'), res.errors[0]);
+      assert.strictEqual(res.checked, 2, 'both embedded references are checked');
+      console.log('✔ embedded bluepriNNt skills are checked too');
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  }
+
   // Test 4: the real repo is clean
   {
     const res = checkSkillScriptReferences(path.resolve(__dirname, '..', '..'));

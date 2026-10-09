@@ -328,13 +328,60 @@ async function installSkillAtCommit(skill, skillsDir, state) {
 }
 
 /**
+ * Projects the skills embedded in an installed bluepriNNt package (`<pkgDir>/skills/<name>/`)
+ * into the canonical skills directory. An existing destination (for example a former standalone
+ * install) is replaced atomically with its `node_modules` carried over.
+ * @param {string} pkgDir installed package directory
+ * @param {string} skillsDir canonical skills directory
+ * @param {object} template
+ * @param {object} state
+ * @returns {string[]} names of the projected skills
+ */
+function installEmbeddedSkills(pkgDir, skillsDir, template, state) {
+  const embeddedRoot = path.join(pkgDir, 'skills');
+  if (!fs.existsSync(embeddedRoot)) return [];
+
+  const names = [];
+  try {
+    for (const entry of fs.readdirSync(embeddedRoot, { withFileTypes: true })) {
+      if (!entry.isDirectory() || entry.name.startsWith('.') || entry.name === 'node_modules') continue;
+      const src = path.join(embeddedRoot, entry.name);
+      const skillFile = path.join(src, 'SKILL.md');
+      if (!fs.existsSync(skillFile)) continue;
+
+      const dest = path.join(skillsDir, entry.name);
+      fs.mkdirSync(skillsDir, { recursive: true });
+      if (fs.existsSync(dest)) replaceDirAtomic(src, dest);
+      else copyDirAtomic(src, dest);
+
+      const frontmatter = /^---\r?\n([\s\S]*?)\r?\n---/.exec(fs.readFileSync(skillFile, 'utf8'));
+      const versionMatch = frontmatter && /^version:\s*["']?([^"'\r\n]+?)["']?\s*$/m.exec(frontmatter[1]);
+      state.skills[entry.name] = {
+        commit: template.commit,
+        version: versionMatch ? versionMatch[1] : undefined,
+        source_blueprint: template.name,
+        updated_at: new Date().toISOString(),
+      };
+      names.push(entry.name);
+    }
+  } catch (err) {
+    // Skills projected before the failure stay recorded in state and on disk; hand their names
+    // to the caller so they still reach the agent directories instead of being lost silently.
+    err.projectedSkills = names;
+    throw err;
+  }
+  return names;
+}
+
+/**
  * Installs or updates a template from GitHub at specified commit.
  * @param {object} template
  * @param {string} blueprintsDir
  * @param {object} state
- * @returns {Promise<void>}
+ * @param {string} [skillsDir] when set, skills embedded in the package are projected here
+ * @returns {Promise<string[]>} names of the embedded skills projected
  */
-async function installBlueprintAtCommit(template, blueprintsDir, state) {
+async function installBlueprintAtCommit(template, blueprintsDir, state, skillsDir) {
   const isMdFile = template.path.endsWith('.md') || template.path.endsWith('.markdown');
   const fileName = template.name.endsWith('.md') ? template.name : `${template.name}.md`;
   const flatDestPath = path.join(blueprintsDir, fileName);
@@ -343,6 +390,7 @@ async function installBlueprintAtCommit(template, blueprintsDir, state) {
   fs.mkdirSync(blueprintsDir, { recursive: true });
 
   let recordedPath = isMdFile ? flatDestPath : pkgDestPath;
+  const pkgExistedBefore = fs.existsSync(pkgDestPath);
 
   const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'actioNN-blueprints-'));
   try {
@@ -397,12 +445,28 @@ async function installBlueprintAtCommit(template, blueprintsDir, state) {
     fs.rmSync(tmpRoot, { recursive: true, force: true });
   }
 
+  // The blueprint is recorded only AFTER its embedded skills projected successfully. Recording it
+  // first would let a projection failure (EBUSY/EPERM, a later skill failing) be persisted as a
+  // success: bootstrap skips an existing package and update sees an equal commit, so the skill
+  // would never be retried. On failure the previous state entry stays (update sees it outdated)
+  // and a freshly created package dir is removed (bootstrap sees it missing and retries).
+  let projected = [];
+  if (skillsDir && recordedPath === pkgDestPath) {
+    try {
+      projected = installEmbeddedSkills(pkgDestPath, skillsDir, template, state);
+    } catch (err) {
+      if (!pkgExistedBefore) fs.rmSync(pkgDestPath, { recursive: true, force: true });
+      throw err;
+    }
+  }
+
   state.blueprints[template.name] = {
     commit: template.commit,
     version: template.version,
     path: recordedPath,
     updated_at: new Date().toISOString(),
   };
+  return projected;
 }
 
 /**
@@ -676,6 +740,7 @@ async function cmdInstall(args) {
   if (!proceed) return;
 
   let failures = 0;
+  const embeddedSkillNames = [];
 
   for (const skill of toInstallSkills) {
     try {
@@ -689,10 +754,11 @@ async function cmdInstall(args) {
 
   for (const template of toInstallBlueprints) {
     try {
-      await installBlueprintAtCommit(template, args.blueprintsDir, state);
+      embeddedSkillNames.push(...await installBlueprintAtCommit(template, args.blueprintsDir, state, args.skillsDir));
       console.log(`  installed template ${template.name} (${template.version}) @ ${template.commit.slice(0, 7)}`);
     } catch (err) {
       failures++;
+      if (err.projectedSkills) embeddedSkillNames.push(...err.projectedSkills);
       console.error(`  FAIL template ${template.name}: ${err.message}`);
     }
   }
@@ -712,7 +778,7 @@ async function cmdInstall(args) {
     targetAgent: args.agent,
     scope: args.scope,
     state,
-    skillNames: toInstallSkills.map(s => s.name),
+    skillNames: [...toInstallSkills.map(s => s.name), ...embeddedSkillNames],
   });
 
   saveState(args.stateFile, state);
@@ -793,6 +859,7 @@ async function cmdUpdate(args) {
   if (!proceed) return;
 
   let failures = 0;
+  const embeddedSkillNames = [];
 
   for (const skill of selectedSkills) {
     try {
@@ -806,10 +873,11 @@ async function cmdUpdate(args) {
 
   for (const template of selectedBlueprints) {
     try {
-      await installBlueprintAtCommit(template, args.blueprintsDir, state);
+      embeddedSkillNames.push(...await installBlueprintAtCommit(template, args.blueprintsDir, state, args.skillsDir));
       console.log(`  updated template ${template.name} -> ${template.version} (${template.commit.slice(0, 7)})`);
     } catch (err) {
       failures++;
+      if (err.projectedSkills) embeddedSkillNames.push(...err.projectedSkills);
       console.error(`  FAIL template ${template.name}: ${err.message}`);
     }
   }
@@ -829,7 +897,9 @@ async function cmdUpdate(args) {
     targetAgent: args.agent,
     scope: args.scope,
     state,
-    skillNames: args.positional.length > 0 ? args.positional : undefined,
+    // A positional filter names blueprint or skill entries; skills embedded in an updated blueprint have
+    // their own directory names, so they must be added or they are never projected to the agents.
+    skillNames: args.positional.length > 0 ? [...args.positional, ...embeddedSkillNames] : undefined,
   });
 
   saveState(args.stateFile, state);
@@ -960,7 +1030,7 @@ async function cmdBootstrap(args) {
     const tmplPresent = fs.existsSync(path.join(args.blueprintsDir, fileName)) || fs.existsSync(path.join(args.blueprintsDir, tmpl.name));
     const entry = state.blueprints[tmpl.name];
     if (!tmplPresent || !entry || entry.commit !== tmpl.commit) {
-      await installBlueprintAtCommit(tmpl, args.blueprintsDir, state);
+      await installBlueprintAtCommit(tmpl, args.blueprintsDir, state, args.skillsDir);
       console.log(`  ✓ template ${tmpl.name} (${tmpl.version}) @ ${tmpl.commit.slice(0, 7)}`);
     } else {
       console.log(`  ✓ template ${tmpl.name} (${tmpl.version}) up-to-date`);
@@ -1298,6 +1368,7 @@ module.exports = {
   fetchCompareSummary,
   installSkillAtCommit,
   installBlueprintAtCommit,
+  installEmbeddedSkills,
   installMcpAtCommit,
   installConsoleAssetAtCommit,
   projectSkillsToAgents,

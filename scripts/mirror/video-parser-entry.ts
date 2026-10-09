@@ -2,7 +2,7 @@
  * scripts/mirror/video-parser-entry.ts
  *
  * esbuild entry for the committed ESM mirror
- * `skills/nn-video-script/scripts/lib/innfo-video-parser.generated.mjs`.
+ * `iNNfo/specs/bluepriNNts/video/skills/nn-video-script/scripts/lib/innfo-video-parser.generated.mjs`.
  *
  * Why a wrapper instead of bundling `iNNfo/packages/innfo-video-parser/src/index.ts`
  * directly: that index resolves the VUS spec with `readFileSync(join(packageRoot(),

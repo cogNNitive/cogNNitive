@@ -63,8 +63,8 @@ function testEmptyInputPasses() {
 
 function testSkillContentEditIsNotStructural() {
   // 36 files edited inside an existing skill: no inventory change, no re-pin needed
-  const changed = ['skills/nn-video-script/SKILL.md', 'skills/nn-video-script/scripts/a.mjs'];
-  const structural = structuralChanges('M\tskills/nn-video-script/SKILL.md\nA\tskills/nn-video-script/scripts/a.mjs');
+  const changed = ['skills/nn-fixture-skill/SKILL.md', 'skills/nn-fixture-skill/scripts/a.mjs'];
+  const structural = structuralChanges('M\tskills/nn-fixture-skill/SKILL.md\nA\tskills/nn-fixture-skill/scripts/a.mjs');
   const r = checkTagPinFreshness(changed, structural);
   assert.strictEqual(r.ok, true, 'content edits and new files inside a skill must pass');
   assert.strictEqual(r.triggered.skills.length, 0);

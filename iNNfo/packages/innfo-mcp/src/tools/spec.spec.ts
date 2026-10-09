@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { join } from 'node:path'
-import { rm, mkdir, writeFile } from 'node:fs/promises'
+import { join, isAbsolute, resolve } from 'node:path'
+import { rm, mkdir, writeFile, stat } from 'node:fs/promises'
 import {
   getSpec,
   getBlueprintFromUrl,
@@ -324,7 +324,7 @@ describe('Spec Tools Integration (URL- and model-derived, no hardcoding)', () =>
     const skillsRes = await listBlueprintSkills(rootDir, { blueprint_name: 'base_spec_NN' })
     expect(skillsRes.skills).toHaveLength(2)
     expect(skillsRes.skills.map((s) => s.name)).toEqual(['nn-base', 'nn-included'])
-    expect(skillsRes.skills[0].source_template).toBe('base_spec_NN')
+    expect((skillsRes.skills[0] as { source_template?: string }).source_template).toBe('base_spec_NN')
   })
 
   it('S-01: discoverTransitiveAssets parses version strings from inc.url to resolve package templates', async () => {
@@ -402,6 +402,86 @@ describe('Spec Tools Integration (URL- and model-derived, no hardcoding)', () =>
     expect(scriptProc).toBeDefined()
     expect(scriptProc?.name).toBe('Generate Script SOP')
     expect(scriptProc?.path).toBe('procedures/generate_script_NN.md')
+  })
+
+  describe('embedded skills (skills/<name>/SKILL.md inside a bluepriNNt package)', () => {
+    const embeddedPkgDir = () => join(rootDir, 'specs', 'bluepriNNts', 'emb_pkg', 'V_1-0-0')
+
+    async function writeOwnerSpec(extraFrontmatter: string[] = []) {
+      await mkdir(embeddedPkgDir(), { recursive: true })
+      await writeFile(
+        join(embeddedPkgDir(), 'spec_NN.md'),
+        ['---', 'level: 2', 'spec_version: "V_1-0-0"', 'title: "Embedded"', ...extraFrontmatter, '---'].join(
+          '\n',
+        ),
+        'utf-8',
+      )
+    }
+
+    async function writeSkill(name: string, frontmatter: string[]) {
+      const dir = join(embeddedPkgDir(), 'skills', name)
+      await mkdir(dir, { recursive: true })
+      await writeFile(join(dir, 'SKILL.md'), ['---', ...frontmatter, '---', '# Skill'].join('\n'), 'utf-8')
+      return dir
+    }
+
+    it('lists an on-disk skill with embedded:true and a resolved absolute path', async () => {
+      await writeOwnerSpec()
+      const skillDir = await writeSkill('x', ['name: x', 'version: "V_0-4-0"', 'description: "An embedded skill"'])
+
+      const res = await listBlueprintSkills(rootDir, { blueprint_name: 'emb_pkg' })
+      expect(res.skills).toHaveLength(1)
+      const entry = res.skills[0] as unknown as Record<string, unknown>
+      expect(entry).toMatchObject({
+        name: 'x',
+        source_blueprint: 'emb_pkg',
+        embedded: true,
+        version: 'V_0-4-0',
+        description: 'An embedded skill',
+      })
+      expect(isAbsolute(entry.path as string)).toBe(true)
+      expect(resolve(entry.path as string)).toBe(resolve(skillDir))
+      expect((await stat(join(entry.path as string, 'SKILL.md'))).isFile()).toBe(true)
+    })
+
+    it('lets the embedded entry win over a same-name frontmatter skills: entry', async () => {
+      await writeOwnerSpec([
+        'skills:',
+        '  - name: "x"',
+        '    repo: "cogNNitive/actioNN"',
+        '    path: "skills/x"',
+      ])
+      await writeSkill('x', ['version: "V_0-4-0"'])
+
+      const res = await listBlueprintSkills(rootDir, { blueprint_name: 'emb_pkg' })
+      expect(res.skills).toHaveLength(1)
+      expect((res.skills[0] as { embedded?: true }).embedded).toBe(true)
+    })
+
+    it('ignores node_modules and dot directories and dirs without a readable SKILL.md', async () => {
+      await writeOwnerSpec()
+      await writeSkill('real', ['version: "V_0-1-0"'])
+      await writeSkill('node_modules', ['version: "V_0-1-0"'])
+      await writeSkill('.hidden', ['version: "V_0-1-0"'])
+      await mkdir(join(embeddedPkgDir(), 'skills', 'empty'), { recursive: true })
+
+      const res = await listBlueprintSkills(rootDir, { blueprint_name: 'emb_pkg' })
+      expect(res.skills.map((s) => s.name)).toEqual(['real'])
+    })
+
+    it('leaves external frontmatter skills without embedded:true', async () => {
+      await writeOwnerSpec([
+        'skills:',
+        '  - name: "nn-ext"',
+        '    repo: "cogNNitive/actioNN"',
+        '    path: "skills/nn-ext"',
+      ])
+
+      const res = await listBlueprintSkills(rootDir, { blueprint_name: 'emb_pkg' })
+      expect(res.skills).toHaveLength(1)
+      expect(res.skills[0].name).toBe('nn-ext')
+      expect('embedded' in res.skills[0]).toBe(false)
+    })
   })
 
   it('M1: findKnowledgeFile skips specs/ by default but descends with includeSpecs', async () => {

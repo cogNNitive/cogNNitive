@@ -64,11 +64,11 @@ export const SAMPLE_MAPPINGS = [
   },
   {
     source: 'Ghostbusters_video_NN.md',
-    target: path.join('video', 'samples', 'Ghostbusters_V_0-7-3_video_NN.md')
+    target: path.join('video', 'samples', 'Ghostbusters_V_0-8-0_video_NN.md')
   },
   {
     source: 'Ghostbusters_design-presets_NN.md',
-    target: path.join('design-presets', 'samples', 'Ghostbusters_V_0-3-0_design-presets_NN.md')
+    target: path.join('design-presets', 'samples', 'Ghostbusters_V_0-3-1_design-presets_NN.md')
   }
 ];
 

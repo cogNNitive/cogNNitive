@@ -10,7 +10,7 @@ const assert = require('node:assert');
 const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
-const { checkBlueprintInventory } = require('./verify.js');
+const { checkBlueprintInventory, buildSteps } = require('./verify.js');
 
 function main() {
   console.log('Running verify-inventory unit tests...');
@@ -162,6 +162,20 @@ blueprints:
     } finally {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }
+  }
+
+  // 6. Suites embedded in a bluepriNNt package are discovered, not silently dropped.
+  {
+    const repoRoot = path.resolve(__dirname, '..');
+    const ids = buildSteps(repoRoot).map((s) => s.desc);
+    const embedded = 'Test iNNfo/specs/bluepriNNts/video/skills/nn-video-script/test/vus-parse.test.mjs';
+    assert.ok(ids.includes(embedded), `buildSteps must include a step for ${embedded}`);
+    assert.strictEqual(
+      ids.filter((d) => d === embedded).length,
+      1,
+      'an embedded suite must be scheduled exactly once',
+    );
+    console.log('✔ Embedded bluepriNNt skill suites are discovered by verify');
   }
 
   console.log('All verify-inventory unit tests passed successfully!');

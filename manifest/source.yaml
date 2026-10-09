@@ -52,12 +52,6 @@ skills:
     ref_key: skills
     requires: [nn-preflight]
     description: Audit, update, and maintain cogNNitive skills.
-  - name: nn-video-script
-    repo: cogNNitive/cogNNitive-web
-    path: skills/nn-video-script
-    ref_key: skills
-    requires: [nn-innfo]
-    description: Author, gate, and finalize cogNNitive-video (VUS) video scripts, asset pipeline, and thumbnails inside iNNfo Series.
 
 blueprints:
   - name: domaiNN
@@ -111,7 +105,6 @@ blueprints:
   - name: video
     repo: cogNNitive/cogNNitive-web
     path: iNNfo/specs/bluepriNNts/video/spec_NN.md
-    version: "V_0-7-3" # pinned to match video spec_NN.md
     ref_key: blueprints
   - name: sources
     repo: cogNNitive/cogNNitive-web
