@@ -11,3 +11,4 @@
 
 # Vendored VUS spec is hash-pinned: never let git rewrite its bytes.
 iNNfo/packages/innfo-video-parser/specs/*.json -text
+iNNfo/specs/bluepriNNts/video/skills/nn-video-script/specs/*.json -text

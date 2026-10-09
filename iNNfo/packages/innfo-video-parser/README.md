@@ -28,5 +28,8 @@ this one.
 
 ## Consumers
 
-`skills/nn-video-script/scripts/vus-parse.mjs` runs the TypeScript source under the `tsx`
-loader; `skills/nn-video-script/scripts/vus-spec.mjs` reads and verifies the spec file.
+The `nn-video-script` skill, embedded in the `video` bluepriNNt at
+`iNNfo/specs/bluepriNNts/video/skills/nn-video-script/`, consumes this package:
+`scripts/vus-parse.mjs` runs the TypeScript source under the `tsx` loader, and
+`scripts/vus-spec.mjs` reads and verifies the skill's own byte-identical copy of the spec
+(`specs/V_0-3-3.json`, checked against this file by the skill's `vus-spec-pin` test).
