@@ -34,7 +34,7 @@ Switching tabs SHALL toggle display visibility of the corresponding panels: one 
 
 ### Requirement: R4: Layout Separation
 
-In the `Timeline & Projections` view the content SHALL contain KPI Summary Cards (`.innfo-timeline-cards`), the Timeline & P&L Projection Table (`.innfo-timeline-table-wrap`), Interactive Growth Selectors and Variable Overrides, and the Charts section (`#innfo-charts`). In the `Model Explorer` tab it SHALL contain the Concept Rail (`#innfo-rail`), the search toolbar (`.innfo-toolbar`) and the element cards list (`#innfo-content`). The `Matrices` tab SHALL have its own panel `#innfo-tab-matrices` containing the relational matrix grids (`#innfo-matrices`), as a sibling of the explorer panel and not nested in it.
+In the `Timeline & Projections` view the content SHALL contain the Timeline & P&L Projection Table (`.innfo-timeline-table`), Interactive Growth Selectors and Variable Overrides, and the scenario studio; charts (`#innfo-charts`) are retired from the domain console with the legacy `timeline.html` shell. In the `Model Explorer` tab it SHALL contain the Concept Rail (`#innfo-rail`), the search toolbar (`.innfo-toolbar`) and the element cards list (`#innfo-content`). The `Matrices` tab SHALL have its own panel `#innfo-tab-matrices` containing the relational matrix grids (`#innfo-matrices`), as a sibling of the explorer panel and not nested in it.
 (Previously: the Matrices panel was specified but never created, so the tab rendered empty.)
 
 #### Scenario: Matrices render in own panel

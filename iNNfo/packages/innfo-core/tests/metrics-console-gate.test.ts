@@ -98,15 +98,15 @@ describe('activation gate: procedure encodes the gate as a pre-step', () => {
     expect(procedure.toLowerCase()).toContain('activation gate')
   })
 
-  it('states the inline dashboard stays canonical while the gate is closed', () => {
+  it('states the timeline view is not offered while the gate is closed', () => {
     const procedure = readFileSync(procedurePath, 'utf8')
-    expect(procedure.toLowerCase()).toMatch(/inline[^.]*canonical|canonical[^.]*inline/)
+    expect(procedure.toLowerCase()).toMatch(/no console containing the `timeline` view is produced/)
     expect(procedure.toLowerCase()).toMatch(/gate\s+(is\s+)?closed/)
   })
 
   it('does not produce a console when the gate is closed', () => {
     const procedure = readFileSync(procedurePath, 'utf8')
-    expect(procedure.toLowerCase()).toContain('no `*_console.html`')
+    expect(procedure.toLowerCase()).toContain('no console containing the `timeline` view is produced')
   })
 
   it('requires the charts capability to be registered before thinning', () => {
