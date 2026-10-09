@@ -907,24 +907,29 @@ var require_skills_commands = __commonJS({
       const embeddedRoot = path2.join(pkgDir, "skills");
       if (!fs.existsSync(embeddedRoot)) return [];
       const names = [];
-      for (const entry of fs.readdirSync(embeddedRoot, { withFileTypes: true })) {
-        if (!entry.isDirectory() || entry.name.startsWith(".") || entry.name === "node_modules") continue;
-        const src = path2.join(embeddedRoot, entry.name);
-        const skillFile = path2.join(src, "SKILL.md");
-        if (!fs.existsSync(skillFile)) continue;
-        const dest = path2.join(skillsDir, entry.name);
-        fs.mkdirSync(skillsDir, { recursive: true });
-        if (fs.existsSync(dest)) replaceDirAtomic(src, dest);
-        else copyDirAtomic(src, dest);
-        const frontmatter = /^---\r?\n([\s\S]*?)\r?\n---/.exec(fs.readFileSync(skillFile, "utf8"));
-        const versionMatch = frontmatter && /^version:\s*["']?([^"'\r\n]+?)["']?\s*$/m.exec(frontmatter[1]);
-        state.skills[entry.name] = {
-          commit: template.commit,
-          version: versionMatch ? versionMatch[1] : void 0,
-          source_blueprint: template.name,
-          updated_at: (/* @__PURE__ */ new Date()).toISOString()
-        };
-        names.push(entry.name);
+      try {
+        for (const entry of fs.readdirSync(embeddedRoot, { withFileTypes: true })) {
+          if (!entry.isDirectory() || entry.name.startsWith(".") || entry.name === "node_modules") continue;
+          const src = path2.join(embeddedRoot, entry.name);
+          const skillFile = path2.join(src, "SKILL.md");
+          if (!fs.existsSync(skillFile)) continue;
+          const dest = path2.join(skillsDir, entry.name);
+          fs.mkdirSync(skillsDir, { recursive: true });
+          if (fs.existsSync(dest)) replaceDirAtomic(src, dest);
+          else copyDirAtomic(src, dest);
+          const frontmatter = /^---\r?\n([\s\S]*?)\r?\n---/.exec(fs.readFileSync(skillFile, "utf8"));
+          const versionMatch = frontmatter && /^version:\s*["']?([^"'\r\n]+?)["']?\s*$/m.exec(frontmatter[1]);
+          state.skills[entry.name] = {
+            commit: template.commit,
+            version: versionMatch ? versionMatch[1] : void 0,
+            source_blueprint: template.name,
+            updated_at: (/* @__PURE__ */ new Date()).toISOString()
+          };
+          names.push(entry.name);
+        }
+      } catch (err) {
+        err.projectedSkills = names;
+        throw err;
       }
       return names;
     }
@@ -935,6 +940,7 @@ var require_skills_commands = __commonJS({
       const pkgDestPath = path2.join(blueprintsDir, template.name);
       fs.mkdirSync(blueprintsDir, { recursive: true });
       let recordedPath = isMdFile ? flatDestPath : pkgDestPath;
+      const pkgExistedBefore = fs.existsSync(pkgDestPath);
       const tmpRoot = fs.mkdtempSync(path2.join(os.tmpdir(), "actioNN-blueprints-"));
       try {
         const tarball = path2.join(tmpRoot, "tmpl.tar.gz");
@@ -978,16 +984,22 @@ var require_skills_commands = __commonJS({
       } finally {
         fs.rmSync(tmpRoot, { recursive: true, force: true });
       }
+      let projected = [];
+      if (skillsDir && recordedPath === pkgDestPath) {
+        try {
+          projected = installEmbeddedSkills(pkgDestPath, skillsDir, template, state);
+        } catch (err) {
+          if (!pkgExistedBefore) fs.rmSync(pkgDestPath, { recursive: true, force: true });
+          throw err;
+        }
+      }
       state.blueprints[template.name] = {
         commit: template.commit,
         version: template.version,
         path: recordedPath,
         updated_at: (/* @__PURE__ */ new Date()).toISOString()
       };
-      if (skillsDir && recordedPath === pkgDestPath) {
-        return installEmbeddedSkills(pkgDestPath, skillsDir, template, state);
-      }
-      return [];
+      return projected;
     }
     async function installMcpAtCommit(mcp, mcpDir, state) {
       fs.mkdirSync(mcpDir, { recursive: true });
@@ -1200,6 +1212,7 @@ var require_skills_commands = __commonJS({
           console.log(`  installed template ${template.name} (${template.version}) @ ${template.commit.slice(0, 7)}`);
         } catch (err) {
           failures++;
+          if (err.projectedSkills) embeddedSkillNames.push(...err.projectedSkills);
           console.error(`  FAIL template ${template.name}: ${err.message}`);
         }
       }
@@ -1287,6 +1300,7 @@ Installed ${toInstallSkills.length} skill(s), ${toInstallBlueprints.length} temp
       );
       if (!proceed) return;
       let failures = 0;
+      const embeddedSkillNames = [];
       for (const skill of selectedSkills) {
         try {
           await installSkillAtCommit(skill, args.skillsDir, state);
@@ -1298,10 +1312,11 @@ Installed ${toInstallSkills.length} skill(s), ${toInstallBlueprints.length} temp
       }
       for (const template of selectedBlueprints) {
         try {
-          await installBlueprintAtCommit(template, args.blueprintsDir, state, args.skillsDir);
+          embeddedSkillNames.push(...await installBlueprintAtCommit(template, args.blueprintsDir, state, args.skillsDir));
           console.log(`  updated template ${template.name} -> ${template.version} (${template.commit.slice(0, 7)})`);
         } catch (err) {
           failures++;
+          if (err.projectedSkills) embeddedSkillNames.push(...err.projectedSkills);
           console.error(`  FAIL template ${template.name}: ${err.message}`);
         }
       }
@@ -1319,7 +1334,9 @@ Installed ${toInstallSkills.length} skill(s), ${toInstallBlueprints.length} temp
         targetAgent: args.agent,
         scope: args.scope,
         state,
-        skillNames: args.positional.length > 0 ? args.positional : void 0
+        // A positional filter names blueprints/skills; skills embedded in an updated blueprint have
+        // their own directory names, so they must be added or they are never projected to the agents.
+        skillNames: args.positional.length > 0 ? [...args.positional, ...embeddedSkillNames] : void 0
       });
       saveState(args.stateFile, state);
       if (failures > 0) {

@@ -532,8 +532,88 @@ agent-bootstrap:
       console.log('✔ Package without skills/ projects nothing');
     }
 
+    // 3.3 Projection failure: the blueprint must NOT be recorded (so a later run retries), skills
+    //     projected before the failure stay recorded, and a fresh package dir is rolled back.
+    //     Failure injected with a skill whose SKILL.md is a directory (readFileSync -> EISDIR),
+    //     ordered after a good skill ("a" < "b").
+    {
+      const blueprintsDir = path.join(tmpDir, 'd', 'bluepriNNts');
+      const skillsDir = path.join(tmpDir, 'd', 'skills');
+      const state = newState();
+      const root = path.join(tmpDir, 'repo-fail');
+      const pkg = path.join(root, 'repo-abc', 'video');
+      fs.mkdirSync(path.join(pkg, 'skills', 'a'), { recursive: true });
+      fs.writeFileSync(path.join(pkg, 'skills', 'a', 'SKILL.md'), '---\nname: a\nversion: V_0-1-0\n---\n', 'utf-8');
+      fs.mkdirSync(path.join(pkg, 'skills', 'b', 'SKILL.md'), { recursive: true });
+      fs.writeFileSync(path.join(pkg, 'spec_NN.md'), '# video', 'utf-8');
+      currentFixture = root;
+
+      let caught = null;
+      try {
+        await installBlueprintAtCommit(template, blueprintsDir, state, skillsDir);
+      } catch (err) {
+        caught = err;
+      }
+      assert.ok(caught, 'a projection failure must propagate');
+      assert.strictEqual(state.blueprints.video, undefined, 'blueprint must not be recorded after a failed projection');
+      assert.ok(state.skills.a, 'skill projected before the failure must stay recorded');
+      assert.deepStrictEqual(caught.projectedSkills, ['a'], 'partial projections must be reported to the caller');
+      assert.strictEqual(fs.existsSync(path.join(blueprintsDir, 'video')), false, 'fresh package dir must be rolled back so bootstrap retries');
+      console.log('✔ Projection failure leaves the blueprint unrecorded and retryable');
+    }
+
+    // 3.4 cmdUpdate with a positional blueprint name projects the embedded skills to the agent dir
+    {
+      const { cmdUpdate } = require('./lib/skills-commands.js');
+      const blueprintsDir = path.join(tmpDir, 'e', 'bluepriNNts');
+      const skillsDir = path.join(tmpDir, 'e', 'skills');
+      const fakeHome = path.join(tmpDir, 'e', 'home');
+      const stateFile = path.join(tmpDir, 'e', 'state.json');
+      fs.mkdirSync(path.join(blueprintsDir, 'video'), { recursive: true });
+      fs.mkdirSync(fakeHome, { recursive: true });
+      fs.writeFileSync(
+        stateFile,
+        JSON.stringify({ manifest: 'dummy', skills: {}, blueprints: { video: { commit: 'old0000', version: 'V_0-7-2', path: path.join(blueprintsDir, 'video') } }, projections: {} }),
+        'utf-8',
+      );
+      currentFixture = buildTarball('four', true);
+      const manifest = `---
+agent-bootstrap:
+  version: "2.0"
+  skills: []
+  blueprints:
+    - name: video
+      repo: o/r
+      path: video
+      version: "V_0-8-0"
+      commit: "abc1234"
+---
+# Manifest`;
+      const manifestServer = await serveManifestOnce(manifest);
+      const envKeys = ['SM_MANIFEST_URL', 'HOME', 'USERPROFILE'];
+      const savedEnv = Object.fromEntries(envKeys.map((k) => [k, process.env[k]]));
+      process.env.SM_MANIFEST_URL = manifestServer.url;
+      process.env.HOME = fakeHome;
+      process.env.USERPROFILE = fakeHome;
+      try {
+        await cmdUpdate({ skillsDir, blueprintsDir, stateFile, positional: ['video'], yes: true, agent: 'claude', scope: 'global' });
+        assert.ok(fs.existsSync(path.join(skillsDir, 'x', 'SKILL.md')), 'embedded skill must be installed');
+        assert.ok(
+          fs.existsSync(path.join(fakeHome, '.claude', 'skills', 'x')),
+          'embedded skill must be projected to the agent dir on a positional blueprint update',
+        );
+        console.log('✔ Positional blueprint update projects embedded skills to agents');
+      } finally {
+        for (const k of envKeys) {
+          if (savedEnv[k] === undefined) delete process.env[k];
+          else process.env[k] = savedEnv[k];
+        }
+        await manifestServer.close();
+      }
+    }
+
     // Stub self-check: the fake must be what ran (never the real network/home dir)
-    assert.ok(downloads.length >= 3, 'downloadFile fake must have been exercised');
+    assert.ok(downloads.length >= 5, 'downloadFile fake must have been exercised');
   } finally {
     require(githubClientPath).downloadFile = realDownload;
     require(atomicFsPath).extractTarball = realExtract;
