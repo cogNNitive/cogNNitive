@@ -21,7 +21,7 @@ const SUBSYSTEM_PATHS = {
   blueprints: ['iNNfo/specs/bluepriNNts/'],
   templates: ['iNNfo/specs/bluepriNNts/'],
   'innfo-mcp': ['iNNfo/packages/innfo-mcp/'],
-  'innfo-console': ['iNNfo/specs/bluepriNNts/console/'],
+  'innfo-console': ['iNNfo/specs/bluepriNNts/console/', 'scripts/export-console.mjs', 'scripts/console-views.mjs'],
 };
 
 function parseSemver(v) {

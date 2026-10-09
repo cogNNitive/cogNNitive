@@ -65,8 +65,8 @@ function main() {
 
       'rev-parse innfo-console-v0.2.0^{commit}': 'cccccccccccccccccccccccccccccccccccccccc\n',
       'log -1 --format=%cI innfo-console-v0.2.0': '2026-08-01T00:00:00+00:00\n',
-      'rev-list --count innfo-console-v0.2.0..HEAD -- iNNfo/specs/bluepriNNts/console/': '0\n',
-      'diff --name-only innfo-console-v0.2.0..HEAD -- iNNfo/specs/bluepriNNts/console/': '',
+      'rev-list --count innfo-console-v0.2.0..HEAD -- iNNfo/specs/bluepriNNts/console/ scripts/export-console.mjs scripts/console-views.mjs': '0\n',
+      'diff --name-only innfo-console-v0.2.0..HEAD -- iNNfo/specs/bluepriNNts/console/ scripts/export-console.mjs scripts/console-views.mjs': '',
     });
     const subsystems = mod.computeFreshness({ runGit, head: HEAD });
     assert.strictEqual(subsystems.skills.commitsSincePin, 9, 'skills drift must be 9');
@@ -105,8 +105,8 @@ function main() {
       'diff --name-only innfo-mcp-v0.9.0..HEAD -- iNNfo/packages/innfo-mcp/': '',
       'rev-parse innfo-console-v0.2.0^{commit}': 'cccccccccccccccccccccccccccccccccccccccc\n',
       'log -1 --format=%cI innfo-console-v0.2.0': '2026-08-01T00:00:00+00:00\n',
-      'rev-list --count innfo-console-v0.2.0..HEAD -- iNNfo/specs/bluepriNNts/console/': '0\n',
-      'diff --name-only innfo-console-v0.2.0..HEAD -- iNNfo/specs/bluepriNNts/console/': '',
+      'rev-list --count innfo-console-v0.2.0..HEAD -- iNNfo/specs/bluepriNNts/console/ scripts/export-console.mjs scripts/console-views.mjs': '0\n',
+      'diff --name-only innfo-console-v0.2.0..HEAD -- iNNfo/specs/bluepriNNts/console/ scripts/export-console.mjs scripts/console-views.mjs': '',
     });
     const subsystems = mod.computeFreshness({ runGit, head: HEAD });
     assert.strictEqual(subsystems.skills.commitsSincePin, null, 'unresolved tag must report null, never 0');
@@ -139,8 +139,8 @@ function main() {
       'diff --name-only innfo-mcp-v0.9.0..HEAD -- iNNfo/packages/innfo-mcp/': '',
       'rev-parse innfo-console-v0.2.0^{commit}': 'cccccccccccccccccccccccccccccccccccccccc\n',
       'log -1 --format=%cI innfo-console-v0.2.0': '2026-08-01T00:00:00+00:00\n',
-      'rev-list --count innfo-console-v0.2.0..HEAD -- iNNfo/specs/bluepriNNts/console/': '0\n',
-      'diff --name-only innfo-console-v0.2.0..HEAD -- iNNfo/specs/bluepriNNts/console/': '',
+      'rev-list --count innfo-console-v0.2.0..HEAD -- iNNfo/specs/bluepriNNts/console/ scripts/export-console.mjs scripts/console-views.mjs': '0\n',
+      'diff --name-only innfo-console-v0.2.0..HEAD -- iNNfo/specs/bluepriNNts/console/ scripts/export-console.mjs scripts/console-views.mjs': '',
     });
     const subsystems = mod.computeFreshness({ runGit, head: HEAD });
     assert.strictEqual(subsystems.skills.commitsSincePin, 0, 'zero drift must be reported as 0, not omitted');
@@ -174,8 +174,8 @@ function main() {
       'diff --name-only innfo-mcp-v0.9.0..HEAD -- iNNfo/packages/innfo-mcp/': '',
       'rev-parse innfo-console-v0.2.0^{commit}': 'cccccccccccccccccccccccccccccccccccccccc\n',
       'log -1 --format=%cI innfo-console-v0.2.0': '2026-08-01T00:00:00+00:00\n',
-      'rev-list --count innfo-console-v0.2.0..HEAD -- iNNfo/specs/bluepriNNts/console/': '0\n',
-      'diff --name-only innfo-console-v0.2.0..HEAD -- iNNfo/specs/bluepriNNts/console/': '',
+      'rev-list --count innfo-console-v0.2.0..HEAD -- iNNfo/specs/bluepriNNts/console/ scripts/export-console.mjs scripts/console-views.mjs': '0\n',
+      'diff --name-only innfo-console-v0.2.0..HEAD -- iNNfo/specs/bluepriNNts/console/ scripts/export-console.mjs scripts/console-views.mjs': '',
     });
     const subsystems = mod.computeFreshness({ runGit, head: HEAD });
     assert.strictEqual(subsystems.skills.commitsSincePin, null, 'a mid-computation git failure must unresolve only that subsystem');
@@ -208,8 +208,8 @@ function main() {
       'diff --name-only innfo-mcp-v0.9.0..HEAD -- iNNfo/packages/innfo-mcp/': '',
       'rev-parse innfo-console-v0.2.0^{commit}': 'cccccccccccccccccccccccccccccccccccccccc\n',
       'log -1 --format=%cI innfo-console-v0.2.0': '2026-08-01T00:00:00+00:00\n',
-      'rev-list --count innfo-console-v0.2.0..HEAD -- iNNfo/specs/bluepriNNts/console/': '0\n',
-      'diff --name-only innfo-console-v0.2.0..HEAD -- iNNfo/specs/bluepriNNts/console/': '',
+      'rev-list --count innfo-console-v0.2.0..HEAD -- iNNfo/specs/bluepriNNts/console/ scripts/export-console.mjs scripts/console-views.mjs': '0\n',
+      'diff --name-only innfo-console-v0.2.0..HEAD -- iNNfo/specs/bluepriNNts/console/ scripts/export-console.mjs scripts/console-views.mjs': '',
     });
     const first = mod.computeFreshness({ runGit, head: HEAD });
     const second = mod.computeFreshness({ runGit, head: HEAD });
@@ -250,8 +250,8 @@ function main() {
 
       'rev-parse innfo-console-v0.6.0^{commit}': 'cccccccccccccccccccccccccccccccccccccccc\n',
       'log -1 --format=%cI innfo-console-v0.6.0': '2026-08-01T00:00:00+00:00\n',
-      'rev-list --count innfo-console-v0.6.0..HEAD -- iNNfo/specs/bluepriNNts/console/': '0\n',
-      'diff --name-only innfo-console-v0.6.0..HEAD -- iNNfo/specs/bluepriNNts/console/': '',
+      'rev-list --count innfo-console-v0.6.0..HEAD -- iNNfo/specs/bluepriNNts/console/ scripts/export-console.mjs scripts/console-views.mjs': '0\n',
+      'diff --name-only innfo-console-v0.6.0..HEAD -- iNNfo/specs/bluepriNNts/console/ scripts/export-console.mjs scripts/console-views.mjs': '',
     });
     const subsystems = mod.computeFreshness({ runGit, head: HEAD });
     assert.strictEqual(subsystems.skills.pinnedTag, 'skills-v2.10.0', 'baseline must be the newest semver tag');
@@ -288,8 +288,8 @@ function main() {
 
       'rev-parse innfo-console-v0.2.0^{commit}': 'cccccccccccccccccccccccccccccccccccccccc\n',
       'log -1 --format=%cI innfo-console-v0.2.0': '2026-08-01T00:00:00+00:00\n',
-      'rev-list --count innfo-console-v0.2.0..HEAD -- iNNfo/specs/bluepriNNts/console/': '0\n',
-      'diff --name-only innfo-console-v0.2.0..HEAD -- iNNfo/specs/bluepriNNts/console/': '',
+      'rev-list --count innfo-console-v0.2.0..HEAD -- iNNfo/specs/bluepriNNts/console/ scripts/export-console.mjs scripts/console-views.mjs': '0\n',
+      'diff --name-only innfo-console-v0.2.0..HEAD -- iNNfo/specs/bluepriNNts/console/ scripts/export-console.mjs scripts/console-views.mjs': '',
     });
     const subsystems = mod.computeFreshness({ runGit, head: HEAD });
     for (const key of ['subsystem', 'pinnedTag', 'pinnedTagDate', 'commitsSincePin', 'filesTouched']) {
