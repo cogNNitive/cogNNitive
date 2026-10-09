@@ -19,6 +19,8 @@ import {
   viewsHeader,
   inlineConsoleAssets,
   assertInlinable,
+  CONSOLE_SIZE_BUDGET,
+  evaluateSizeBudget,
 } from '../scripts/console-views.mjs'
 import { JSDOM } from 'jsdom'
 import { InnfoConsole, consoleDir } from './helpers/console-boot.mjs'
@@ -580,5 +582,39 @@ describe('console-views lib', () => {
       const a = inlineConsoleAssets(shell, { bundle: 'b', css: 'c', views: [] })
       assert.equal(a, inlineConsoleAssets(shell, { bundle: 'b', css: 'c', views: [] }))
     })
+  })
+})
+
+describe('size budget', () => {
+  const parts = (total) => ({ bundle: 1_000_000, models: 2_000, views: 3_000, total })
+
+  it('keeps both thresholds in one constant', () => {
+    assert.deepEqual({ ...CONSOLE_SIZE_BUDGET }, { warnBytes: 5_000_000, failBytes: 15_000_000 })
+  })
+
+  it('is ok at or below the warn threshold', () => {
+    assert.equal(evaluateSizeBudget(parts(5_000_000)).status, 'ok')
+  })
+
+  it('warns above 5 MB and above 15 MB fails, with the three-part breakdown on every outcome', () => {
+    const warn = evaluateSizeBudget(parts(6_000_000))
+    assert.equal(warn.status, 'warn')
+    const fail = evaluateSizeBudget(parts(16_000_000))
+    assert.equal(fail.status, 'fail')
+    for (const r of [evaluateSizeBudget(parts(10)), warn, fail]) {
+      assert.match(r.breakdown, /bundle 1000000 B/)
+      assert.match(r.breakdown, /models 2000 B/)
+      assert.match(r.breakdown, /views 3000 B/)
+      assert.match(r.breakdown, new RegExp('total ' + r.total + ' B'))
+    }
+    assert.match(warn.message, /larger than 5000000 B/)
+    assert.match(fail.message, /larger than 15000000 B/)
+    assert.match(fail.message, /bundle 1000000 B/)
+  })
+
+  it('is exactly at the thresholds: warn above warnBytes, fail above failBytes', () => {
+    assert.equal(evaluateSizeBudget(parts(5_000_001)).status, 'warn')
+    assert.equal(evaluateSizeBudget(parts(15_000_000)).status, 'warn')
+    assert.equal(evaluateSizeBudget(parts(15_000_001)).status, 'fail')
   })
 })

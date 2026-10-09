@@ -410,3 +410,23 @@ export function inlineConsoleAssets(shell, assets) {
     .replace(VIEWPORT, (meta) => (header ? `${meta}\n${header}` : meta))
     .replace(BUNDLE_TAGS, () => [bundleScript, ...viewScripts].join('\n'))
 }
+
+/** The only place the size thresholds live (bytes of the final HTML). */
+export const CONSOLE_SIZE_BUDGET = Object.freeze({ warnBytes: 5_000_000, failBytes: 15_000_000 })
+
+/**
+ * Pure size gate. Inputs are UTF-8 byte counts: bundle = inlined bundle + CSS, models =
+ * schema + model slots, views = wrapped view scripts, total = the final HTML.
+ */
+export function evaluateSizeBudget({ bundle, models, views, total }) {
+  const breakdown = `size: total ${total} B (bundle ${bundle} B, models ${models} B, views ${views} B)`
+  const { warnBytes, failBytes } = CONSOLE_SIZE_BUDGET
+  const status = total > failBytes ? 'fail' : total > warnBytes ? 'warn' : 'ok'
+  const limit = status === 'fail' ? failBytes : warnBytes
+  const message =
+    status === 'ok'
+      ? breakdown
+      : `console is larger than ${limit} B; ${breakdown}` +
+        (status === 'fail' ? '. Views are not split lazily: remove or slim what is inlined.' : '')
+  return { status, total, breakdown, message }
+}
