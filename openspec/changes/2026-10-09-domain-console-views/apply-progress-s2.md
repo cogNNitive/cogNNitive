@@ -366,3 +366,28 @@ Status: tasks 3.1-3.8 done. Branch `session/deepseek-s2d`. The reviewer-guide wa
 - The editor suite passes in full (753 tests); `vue-tsc` is not installed in this worktree (partial install), so the editor typecheck ran only via CI/the pre-push hook in non-worktree checkouts. The affected editor tests were run directly and pass.
 - `check-integrity` stays green except `Docs-Derived Facts Drift Guard` (worktree dist provenance, see S2d).
 - `workspace` has no parseable `blueprint_version` and `_samples_nn` is unversioned, so S3 needed no version bump.
+
+## Release preparation (2c1.8 / 2d.11 / 2e.6)
+
+Status: console release PREPARED on the branch; nothing irreversible was done (no tag, no `dev`/`main` push) — those are the maintainer's, and a pushed tag is immutable + triggers a release freeze.
+
+### Done
+
+- `iNNfo/specs/bluepriNNts/console/package.json` bumped `0.9.0` -> `0.9.2` (above the newest existing tag `innfo-console-v0.9.1`).
+- `node scripts/build-console-bundle.mjs` -> bundle banner now `Version 0.9.2.` (fresh; `--check` green).
+- `node scripts/build-console-shells.mjs` -> the two marked shells (`console/artifact_shell.html`, `workspace/assets/model_console.html`) re-pinned to `@innfo-console-v0.9.2` (fresh; `--check` green).
+- `node scripts/sync-versions.mjs --check` green; `node scripts/check-integrity.js` green except the worktree `Docs-Derived Facts Drift Guard`.
+
+### Deliberately left to the maintainer / CI (NOT done here)
+
+- **Cutting the tag** `innfo-console-v0.9.2` and the batched `dev -> main` merge. Per the release-constraint decision: merge `dev` into the tracker, then tag `innfo-console-v*` BEFORE the tracker reaches `main` and before any other release; then ONE `templates-v*` release after S2e. Tag pushes are irreversible and start a release freeze, so they are the maintainer's action (`nn-dev-release`).
+- **MCP bundle restage** (`npm --workspace=@cognnitive/innfo-mcp run build:bundle`): the tracked `bin/innfo-mcp.bundle.js` still embeds the pre-S2d metrics spec. Regenerating it from this worktree would embed junction paths (the skill's generated-bundle hazard); do it from a non-worktree checkout or let CI regenerate it.
+- **Ghostbusters sample console regeneration** (2d.11): the metrics sample is a frozen fixture (the thinning guard asserts its legacy inline colors); regenerating it to carry the `timeline` view is a templates-release step, not a quick edit. `verify.harness.js` currently accommodates the legacy `model.rows` shape so the harness test passes.
+
+### Merge / tag runbook (maintainer)
+
+1. Land the chain: merge each stacked PR (#130 -> #133 -> #136 -> #138 -> #141 -> #142 -> #143) into the tracker `feat/domain-console-views`.
+2. Merge `dev` into the tracker; confirm CI green on the exact commit.
+3. Push the tracker/`dev` batch to `origin/main` only when green.
+4. `git tag -a innfo-console-v0.9.2 origin/main -m "release: innfo-console v0.9.2"`; push the tag; watch `release.yml` (this pins the new `console_assets` before any other release publishes).
+5. After S2e's templates: one `templates-v*` release + repin; regenerate the Ghostbusters sample and restage the MCP bundle in that batch.
