@@ -723,7 +723,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
     definition: {
       name: 'list_blueprint_skills',
       description:
-        'List all agent skills defined in a blueprint and its transitively included blueprints up to depth 10',
+        'List all agent skills defined in a blueprint and its transitively included blueprints up to depth 10. Skills shipped inside a package under skills/<name>/SKILL.md are returned with embedded: true and a resolved absolute path.',
       inputSchema: {
         type: 'object',
         properties: {

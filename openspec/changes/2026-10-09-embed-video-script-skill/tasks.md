@@ -70,27 +70,27 @@ Start: no embedded-skill concept in `list_blueprint_skills`. End: on-disk
 `skills/<name>/SKILL.md` is discovered and returned with `embedded: true` and a resolved
 absolute `path`. Out of scope: remote hydration, installer, the move.
 
-- [ ] 1.1 **RED**: in `iNNfo/packages/innfo-mcp/src/tools/spec.spec.ts` add a fixture package
+- [x] 1.1 **RED**: in `iNNfo/packages/innfo-mcp/src/tools/spec.spec.ts` add a fixture package
       `skills/x/SKILL.md` (with `version`, `description` frontmatter) and assert the entry
       is `{ name: 'x', source_blueprint, embedded: true, path (absolute, exists), version,
       description }`. Run the suite and watch it fail (no scan exists).
       `[template-procedures-manifest-and-discovery:R-TPD-04:Embedded skill is listed with a resolved path]`
-- [ ] 1.2 **RED**: add cases: an embedded entry wins over a same-name frontmatter `skills:`
+- [x] 1.2 **RED**: add cases: an embedded entry wins over a same-name frontmatter `skills:`
       entry (precedence D3, shared `seenSkillNames`); `node_modules` and dot dirs are
       ignored; a dir without a readable `SKILL.md` is skipped; external frontmatter skills
       (no `skills/` folder) stay without `embedded: true`.
       `[template-procedures-manifest-and-discovery:R-TPD-04:External frontmatter skills are unchanged]`
-- [ ] 1.3 **GREEN**: add `EmbeddedBlueprintSkill` to `tools/spec.ts` (D2) and widen the
+- [x] 1.3 **GREEN**: add `EmbeddedBlueprintSkill` to `tools/spec.ts` (D2) and widen the
       `skills` array type to `Array<TemplateSkill | EmbeddedBlueprintSkill>`. Identity is the
       folder name (D1).
-- [ ] 1.4 **GREEN**: in `discoverTransitiveAssets`, after the `procedures/` scan and inside
+- [x] 1.4 **GREEN**: in `discoverTransitiveAssets`, after the `procedures/` scan and inside
       `if (templateDir)`, scan `join(templateDir,'skills')`; skip entries starting with `.`
       and `node_modules`; read `SKILL.md`, `parseFrontmatter`, push the entry before the
       frontmatter `skills:` handling. Unreadable dir: skip, as procedures do.
-- [ ] 1.5 Docs (same unit): update the `list_blueprint_skills` tool description in
+- [x] 1.5 Docs (same unit): update the `list_blueprint_skills` tool description in
       `iNNfo/packages/innfo-mcp/src/server.ts` (~724), `skills/nn-innfo/SKILL.md` (~316,
       ~729) and `manifest/body.md:34` to describe `embedded: true` and `path`.
-- [ ] 1.6 Verify (targeted): innfo-mcp `spec.spec.ts` suite green; typecheck of innfo-mcp
+- [x] 1.6 Verify (targeted): innfo-mcp `spec.spec.ts` suite green; typecheck of innfo-mcp
       if it is a build-only command available without install. Then ONE
       `node scripts/verify.js` at slice end. If `skills/nn-innfo/SKILL.md` or
       `manifest/body.md` edits trigger manifest/doc render checks, regenerate per

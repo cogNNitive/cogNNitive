@@ -10,7 +10,7 @@
  * the self-describing parent chain up to level 0, caching locally.
  */
 
-import { join, basename, dirname } from 'node:path'
+import { join, basename, dirname, resolve } from 'node:path'
 import { readFile, stat } from 'node:fs/promises'
 import {
   getBlueprint as coreGetBlueprint,
@@ -623,9 +623,31 @@ export interface ListBlueprintSkillsOptions {
   url?: string
 }
 
+/** A skill shipped inside a bluepriNNt package under `skills/<name>/`. */
+export interface EmbeddedBlueprintSkill {
+  /** Folder name under skills/ (also the install destination name) */
+  name: string
+  /** Owning bluepriNNt name */
+  source_blueprint: string
+  embedded: true
+  /** Absolute resolved skill directory */
+  path: string
+  /** SKILL.md frontmatter `version` */
+  version?: string
+  /** SKILL.md frontmatter `description` */
+  description?: string
+}
+
 interface DiscoveredAssets {
   procedures: TemplateProcedure[]
-  skills: TemplateSkill[]
+  skills: Array<TemplateSkill | EmbeddedBlueprintSkill>
+}
+
+/** Package name for a spec file: the package folder (above any V_x dir) for spec_NN.md, else the doc name. */
+function blueprintOwnerName(templateDir: string, docName: string): string {
+  if (docName.toLowerCase() !== 'spec_nn') return docName
+  const leaf = basename(templateDir)
+  return /^V_/i.test(leaf) ? basename(dirname(templateDir)) : leaf
 }
 
 export async function discoverTransitiveAssets(
@@ -703,7 +725,7 @@ export async function discoverTransitiveAssets(
   }
 
   const procedures: TemplateProcedure[] = []
-  const skills: TemplateSkill[] = []
+  const skills: Array<TemplateSkill | EmbeddedBlueprintSkill> = []
   const seenProcIds = new Set<string>()
   const seenSkillNames = new Set<string>()
   const seenBlueprints = new Set<string>()
@@ -774,6 +796,35 @@ export async function discoverTransitiveAssets(
         }
       } catch (_) {
         /* procedures directory unreadable — skip discovery for this template */
+      }
+
+      // Embedded skills: on-disk skills/<name>/SKILL.md is canonical (wins over frontmatter skills:)
+      const skillsDir = join(templateDir, 'skills')
+      try {
+        const skillEntries = await readdir(skillsDir, { withFileTypes: true })
+        for (const se of skillEntries) {
+          if (!se.isDirectory() || se.name.startsWith('.') || se.name === 'node_modules') continue
+          if (seenSkillNames.has(se.name)) continue
+          const skillPath = resolve(skillsDir, se.name)
+          let skillContent: string
+          try {
+            skillContent = await readFile(join(skillPath, 'SKILL.md'), 'utf-8')
+          } catch (_) {
+            continue // no readable SKILL.md — not a skill
+          }
+          const skillFm = parseFrontmatter(skillContent)
+          seenSkillNames.add(se.name)
+          skills.push({
+            name: se.name,
+            source_blueprint: blueprintOwnerName(templateDir, item.docName),
+            embedded: true,
+            path: skillPath,
+            ...(skillFm?.version ? { version: String(skillFm.version) } : {}),
+            ...(skillFm?.description ? { description: String(skillFm.description) } : {}),
+          })
+        }
+      } catch (_) {
+        /* skills directory unreadable — skip embedded skill discovery for this template */
       }
     }
 
@@ -889,7 +940,7 @@ export async function listBlueprintProcedures(
 export async function listBlueprintSkills(
   rootDir: string,
   opts?: ListBlueprintSkillsOptions,
-): Promise<{ skills: TemplateSkill[] }> {
+): Promise<{ skills: Array<TemplateSkill | EmbeddedBlueprintSkill> }> {
   const assets = await discoverTransitiveAssets(rootDir, opts)
   return { skills: assets.skills }
 }
