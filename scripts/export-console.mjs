@@ -24,6 +24,9 @@
  * Output (write-once, never overwritten):
  *   <workspaceRoot>/artifacts/<stem>_console/<stem>_console_<UTC stamp>.html
  *   <workspaceRoot>/artifacts/<stem>_console/innfo-console.bundle_<UTC stamp>.js
+ * `--domain` additionally writes ONE self-contained, fixed-name file that is
+ * overwritten on every export: <workspaceRoot>/domaiNN_console.html (bundle, CSS,
+ * slots and the discovered views inlined; see scripts/lib/console-views.mjs).
  * Re-running on an unchanged model writes nothing; a changed model adds a new
  * member and leaves earlier consoles byte-identical.
  */
@@ -35,6 +38,7 @@ import { fileURLToPath } from 'node:url'
 import { createHash } from 'node:crypto'
 import { homedir } from 'node:os'
 import { createRequire } from 'node:module'
+import { discoverViews, inlineConsoleAssets } from './lib/console-views.mjs'
 
 const req = createRequire(import.meta.url)
 const here = dirname(fileURLToPath(import.meta.url))
@@ -445,6 +449,29 @@ async function main() {
     `@${consoleCdnRef}`,
   )
 
+  // Views are discovered, validated and the inline assets read before anything is
+  // written, so a bad view or a missing asset leaves the workspace untouched.
+  let domainViews = []
+  let uiCss = ''
+  if (args.domain) {
+    const uiCssPath = join(consoleDir, 'innfo-ui.css')
+    if (!existsSync(uiCssPath)) {
+      console.error(`Error: ${uiCssPath} not found; --domain inlines the console CSS.`)
+      process.exit(1)
+    }
+    uiCss = await readFile(uiCssPath, 'utf-8')
+    try {
+      domainViews = await discoverViews({
+        domainRoot: root,
+        specNames: candidateModels.map((m) => payloadHelper.parentSpecNameOf(m.fm)).filter(Boolean),
+        packagesDir: dirname(consoleDir),
+      })
+    } catch (err) {
+      console.error(`Error: ${err.message}`)
+      process.exit(1)
+    }
+  }
+
   const config = {
     needs: [
       'concept-rail',
@@ -622,19 +649,18 @@ async function main() {
       },
     }
 
-    let domainHtml = renderConsole(resolvedShell, null, config, domainPayload)
+    let domainHtml = inlineConsoleAssets(renderConsole(resolvedShell, null, config, domainPayload), {
+      bundle,
+      css: uiCss,
+      views: domainViews,
+    })
     if (!domainHtml.includes('data-theme=')) {
       domainHtml = domainHtml.replace('<html lang="en">', '<html lang="en" data-theme="light">')
     }
     await writeFile(domainHtmlPath, domainHtml, 'utf-8')
-    if (bundle) {
-      await writeFile(join(root, 'innfo-console.bundle.js'), bundle, 'utf-8')
-    }
-    const uiCssPath = join(consoleDir, 'innfo-ui.css')
-    if (existsSync(uiCssPath)) {
-      await writeFile(join(root, 'innfo-ui.css'), await readFile(uiCssPath, 'utf-8'), 'utf-8')
-    }
-    console.log(`✔ domaiNN_console.html → ./domaiNN_console.html (${candidateModels.length} models, ${allElements.length} elements)`)
+    console.log(
+      `✔ domaiNN_console.html → ./domaiNN_console.html (${candidateModels.length} models, ${allElements.length} elements, ${domainViews.length} views)`,
+    )
   }
 
   console.log(`Exported ${written} console artifact(s)${unchanged > 0 ? ` (${unchanged} unchanged)` : ''}.`)

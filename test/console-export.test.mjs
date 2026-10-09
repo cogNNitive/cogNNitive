@@ -1,6 +1,6 @@
 import { describe, it, beforeEach, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, rm, mkdir, writeFile, readFile } from 'node:fs/promises'
+import { mkdtemp, rm, mkdir, writeFile, readFile, readdir } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve, dirname, basename } from 'node:path'
@@ -334,6 +334,130 @@ level: 3
     const content = await readFile(domainPath, 'utf-8')
     assert.ok(content.includes('id="innfo-model"'))
     assert.ok(content.includes('Domain'))
+  })
+
+  describe('--domain single-file console with views (S2c1)', () => {
+    const PIPELINE = `registerView({
+  title: 'Pipeline', icon: 'layout', order: 1, kind: 'readonly',
+  mount(ctx) { ctx.container.textContent = 'pipeline mounted with ' + ctx.payload.model.elements.length + ' elements' },
+})
+`
+    const METRICS_MODEL =
+      '---\ntitle: "M"\nlevel: 3\nparent_spec:\n  name: "metrics_V_0-4-1"\n---\n\n# NN Item\n## NN Item: A\n  name:: "A"\n'
+    const domainFile = () => join(tempDir, 'domaiNN_console.html')
+    const addView = async (slug, code = PIPELINE, dir = join(tempDir, 'consoles', 'views')) => {
+      await mkdir(dir, { recursive: true })
+      await writeFile(join(dir, slug + '.js'), code, 'utf-8')
+    }
+    const metricsViews = () => join(tempDir, 'specs', 'bluepriNNts', 'metrics', 'assets', 'consoles', 'views')
+    const rootFiles = async () =>
+      (await readdir(tempDir, { withFileTypes: true })).filter((e) => e.isFile()).map((e) => e.name)
+    const banner = async () => {
+      const bundle = await readFile(
+        resolve(here, '..', 'iNNfo', 'specs', 'bluepriNNts', 'console', 'innfo-console.bundle.js'),
+        'utf-8',
+      )
+      return bundle.match(/innfo-console\.bundle\.js — single-file console runtime/)[0]
+    }
+    const stripStamp = (html) => html.replace(/"generated": "[^"]*"/g, '"generated": "<stamp>"')
+
+    it('writes exactly one root file, overwrites it, and leaves old root bundle files alone', async () => {
+      await writeFile(join(tempDir, 'innfo-console.bundle.js'), '// old sibling', 'utf-8')
+      await writeFile(join(tempDir, 'innfo-ui.css'), '/* old css */', 'utf-8')
+      assert.equal((await runCli([tempDir, '--domain'])).code, 0)
+      assert.equal((await runCli([tempDir, '--domain'])).code, 0)
+      assert.deepEqual((await rootFiles()).sort(), ['domaiNN_console.html', 'innfo-console.bundle.js', 'innfo-ui.css'])
+      assert.equal(await readFile(join(tempDir, 'innfo-console.bundle.js'), 'utf-8'), '// old sibling')
+      assert.equal(await readFile(join(tempDir, 'innfo-ui.css'), 'utf-8'), '/* old css */')
+    })
+
+    it('creates no sibling files on a fresh domain', async () => {
+      assert.equal((await runCli([tempDir, '--domain'])).code, 0)
+      assert.deepEqual(await rootFiles(), ['domaiNN_console.html'])
+    })
+
+    it('inlines the bundle once, with no external script or stylesheet tags', async () => {
+      assert.equal((await runCli([tempDir, '--domain'])).code, 0)
+      const html = await readFile(domainFile(), 'utf-8')
+      assert.equal(/<script[^>]*\ssrc=/.test(html), false, 'no script src')
+      assert.equal(/<link[^>]*stylesheet/.test(html), false, 'no stylesheet link')
+      assert.equal(html.split(await banner()).length - 1, 1, 'one bundle copy')
+      assert.match(html, /<style>[\s\S]*--innfo-bg[\s\S]*<\/style>/, 'css inlined')
+    })
+
+    it('lists every view in the header and tags its script', async () => {
+      await addView('pipeline')
+      await addView('timeline', PIPELINE.replace('Pipeline', 'Timeline'), metricsViews())
+      await writeFile(join(tempDir, 'models', 'm_V_1-0-0_NN.md'), METRICS_MODEL, 'utf-8')
+      const res = await runCli([tempDir, '--domain'])
+      assert.equal(res.code, 0, res.stderr)
+      const html = await readFile(domainFile(), 'utf-8')
+      const header = html.match(/<!-- innfo-views[\s\S]*?-->/)[0]
+      assert.match(header, /^pipeline domaiNN domaiNN:consoles\/views\/pipeline\.js sha256:[0-9a-f]{12}$/m)
+      assert.match(
+        header,
+        /^timeline bluepriNNt bluepriNNt:metrics\/assets\/consoles\/views\/timeline\.js sha256:[0-9a-f]{12}$/m,
+      )
+      assert.ok(html.includes('data-innfo-view="pipeline" data-innfo-view-source="domaiNN:consoles/views/pipeline.js"'))
+      assert.ok(html.includes('data-innfo-view="timeline"'))
+    })
+
+    it('boots under jsdom, registers each view with id == slug and mounts the first tab', async () => {
+      await addView('pipeline')
+      await addView('other', PIPELINE.replace('order: 1', 'order: 2').replace('Pipeline', 'Other'))
+      assert.equal((await runCli([tempDir, '--domain'])).code, 0)
+      const dom = new JSDOM(await readFile(domainFile(), 'utf-8'), {
+        url: 'http://localhost',
+        runScripts: 'dangerously',
+        beforeParse(w) {
+          w.matchMedia = () => ({
+            matches: false,
+            addListener() {},
+            removeListener() {},
+            addEventListener() {},
+            removeEventListener() {},
+            dispatchEvent: () => false,
+          })
+        },
+      })
+      await new Promise((ok) => dom.window.addEventListener('load', ok))
+      const doc = dom.window.document
+      const tabs = [...doc.querySelectorAll('#innfo-view-tabs [data-tab]')].map((b) => b.dataset.tab)
+      assert.deepEqual(tabs.slice(0, 2), ['pipeline', 'other'], 'tabs come from the registry, ordered')
+      assert.equal(doc.getElementById('innfo-view-errors'), null, 'no registration errors')
+      assert.match(doc.getElementById('innfo-tab-pipeline').textContent, /pipeline mounted with 2 elements/)
+    })
+
+    it('fails before writing when a view is not a classic script', async () => {
+      await addView('esm', "import x from './x.js'\n")
+      const res = await runCli([tempDir, '--domain'])
+      assert.notEqual(res.code, 0)
+      assert.match(res.stderr, /domaiNN:consoles\/views\/esm\.js.*ES module syntax/)
+      assert.equal(existsSync(domainFile()), false)
+      assert.equal(existsSync(join(tempDir, 'artifacts')), false, 'no per-model console is written either')
+    })
+
+    it('fails naming both sources when a bluepriNNt and a domaiNN view share an id', async () => {
+      await addView('timeline')
+      await addView('timeline', PIPELINE, metricsViews())
+      await writeFile(join(tempDir, 'models', 'm_V_1-0-0_NN.md'), METRICS_MODEL, 'utf-8')
+      const res = await runCli([tempDir, '--domain'])
+      assert.notEqual(res.code, 0)
+      assert.match(res.stderr, /duplicate view id "timeline"/)
+      assert.ok(res.stderr.includes('bluepriNNt:metrics/assets/consoles/views/timeline.js'))
+      assert.ok(res.stderr.includes('domaiNN:consoles/views/timeline.js'))
+      assert.equal(existsSync(domainFile()), false)
+    })
+
+    it('produces identical bytes for identical input apart from the generated stamp', async () => {
+      await addView('pipeline')
+      assert.equal((await runCli([tempDir, '--domain'])).code, 0)
+      const first = await readFile(domainFile(), 'utf-8')
+      assert.equal((await runCli([tempDir, '--domain'])).code, 0)
+      const second = await readFile(domainFile(), 'utf-8')
+      assert.equal(stripStamp(second), stripStamp(first))
+      assert.ok(first.includes('"generated"'), 'the stamp convention is still present')
+    })
   })
 })
 
