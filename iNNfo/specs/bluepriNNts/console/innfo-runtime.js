@@ -2553,6 +2553,12 @@
 
     function mountView(t) {
       var panel = doc.getElementById(t.panelId)
+      if (!panel) {
+        mounted[t.id] = { api: {}, failed: true }
+        registry.report(t.id, [t.source], 'view "' + t.id + '": no panel #' + t.panelId + ' to mount into')
+        showErrors()
+        return
+      }
       try {
         var ctx = {
           id: t.id,

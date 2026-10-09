@@ -257,3 +257,37 @@ describe('panel id collisions', () => {
     })
   }
 })
+
+describe('shell without <main>', () => {
+  it('reports a view that has no panel instead of throwing out of boot or click', () => {
+    const registry = InnfoConsole.createViewRegistry()
+    let mounts = 0
+    registry.register(
+      def({
+        mount() {
+          mounts++
+          throw new Error('boom')
+        },
+      }),
+    )
+    let booted
+    assert.doesNotThrow(() => {
+      booted = bootConsole({
+        registry,
+        before(doc) {
+          const nav = doc.createElement('nav')
+          nav.id = 'innfo-view-tabs'
+          doc.body.appendChild(nav)
+          doc.querySelector('main').remove()
+        },
+      })
+    })
+    const { document } = booted
+    assert.equal(mounts, 0)
+    assert.match(document.getElementById('innfo-view-errors').textContent, /pipeline.*panel/)
+    assert.doesNotThrow(() => {
+      document.querySelector('.innfo-view-tab[data-tab="explorer"]').click()
+      document.querySelector('.innfo-view-tab[data-tab="pipeline"]').click()
+    })
+  })
+})
