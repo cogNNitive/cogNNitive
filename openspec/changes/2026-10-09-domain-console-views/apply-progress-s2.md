@@ -338,3 +338,31 @@ Status: tasks 2e.1-2e.4 done, 2e.5 verified (node --test green, innfo-core green
 - `check-integrity` stays green except `Docs-Derived Facts Drift Guard` (worktree dist provenance, see S2d).
 - The bundle was rebuilt after every stepper edit; `build-console-bundle.mjs --check` is fresh.
 - The stepper file is eslint-ignored (`iNNfo/specs/bluepriNNts/**`), so the now-unused `hooks` parameter of `mount` is not flagged.
+
+## S3 Hub retirement
+
+Status: tasks 3.1-3.8 done. Branch `session/deepseek-s2d`. The reviewer-guide was left unchanged (it carries no hub reference). The templates release/repin (task 2d.11/2e.6) and `sdd-verify`/`sdd-archive` remain.
+
+### Commits
+
+- `c0222b86` feat(console): retire the Workspace Hub and its editor view; guard against hub references
+- `9e3854bf` fix(console): tighten the hub guard, drop dead consoleArtifacts helpers and relabel the [d] menu entry
+
+### What changed
+
+- New guard `test/no-workspace-hub-references.test.mjs`: requires the 7 hub files deleted and scans every tracked file for `workspacehub` / `workspaceconsoleshub` / `workspaceconsolehub` / `consolehubview` / `compileworkspacehub` / `compilehub` (normalized, case- and separator-insensitive), allowlisting the SDD archive, this change folder, `openspec/specs/`, the legacy/refactor fixtures, the testlab fixture, `simulation/FINDINGS.md`, `simulation/results/` and `openspec/backlog.md`.
+- Deleted: `workspace/assets/workspace_hub.html`, `workspace/procedures/compile_workspace_hub_NN.md`, `_samples_nn/procedures/compile_workspace_hub_procedures_NN.md`, `docs/.../workspace-console-hub.md`, `innfo-core/tests/workspace-hub.test.ts`, editor `ConsoleHubView.vue` + `ConsoleHubView-open-external.test.ts`, and the now-dead `consolePrompt.ts(+test)` and `utils/consoleArtifacts.ts(+test)`.
+- Repointed: `_samples_nn/procedures_NN.md`, `_samples_nn/artifacts_NN.md`, the executive report `prov:wasGeneratedBy`, `skills/nn-innfo/SKILL.md` (prose + the `[d]` menu label), docs `innfo-editor.md`/`_sidebar.md`/`ai-index.yaml`/`documentation_NN.md`/`llms.txt`, the testlab-coverage hub subtest, and the two naming tests (gap 8 -> `compile_model_console`).
+- Editor wiring removed: `WorkspaceView.vue` (async import + consoles branch), `Header.vue` (Consoles button, `selectView` union, `Layers` import, `activeViewIcon`), `stores/uiStore.ts` (`activeView` union), `composables/useViewSync.ts` (valid-views list); the affected tests (`Header.test.ts`, `LeftSidebar-navigation.test.ts`, `uiStore-selectNode.test.ts`, `safe-url.test.ts`) updated.
+
+### Deviations and decisions
+
+1. `consolePrompt.ts` and `utils/consoleArtifacts.ts` were deleted, not merely edited: after `ConsoleHubView.vue` was gone they had no non-test consumer, so editing them would have left dead code.
+2. `openspec/specs/**` is allowlisted in the guard: the canonical SDD spec store is synced from the delta specs at `sdd-archive`, so it legitimately still names the hub until then. The `console-architecture` delta scenario now says "outside the reference guard's allowlist" to match.
+3. `simulation/results/**` and the testlab fixture are allowlisted as frozen/generated history; the orphan `test/fixtures/testlab/artifacts/workspace_hub_*.html` stays as a frozen fixture.
+
+### Surprises and limits
+
+- The editor suite passes in full (753 tests); `vue-tsc` is not installed in this worktree (partial install), so the editor typecheck ran only via CI/the pre-push hook in non-worktree checkouts. The affected editor tests were run directly and pass.
+- `check-integrity` stays green except `Docs-Derived Facts Drift Guard` (worktree dist provenance, see S2d).
+- `workspace` has no parseable `blueprint_version` and `_samples_nn` is unversioned, so S3 needed no version bump.
