@@ -2488,6 +2488,34 @@
     })
   }
 
+  /* The hash carries the active tab and the search query together:
+     "#<tab>&q=<encoded query>", "#<tab>", "#q=<encoded query>" or empty. */
+  function parseViewHash(hash) {
+    var out = { tab: '', q: '' }
+    String(hash || '')
+      .replace(/^#/, '')
+      .split('&')
+      .forEach(function (part) {
+        if (part.indexOf('q=') === 0) {
+          try {
+            out.q = decodeURIComponent(part.slice(2))
+          } catch {
+            out.q = ''
+          }
+        } else if (part && !out.tab) {
+          out.tab = part
+        }
+      })
+    return out
+  }
+
+  function buildViewHash(tab, query) {
+    var parts = []
+    if (tab) parts.push(tab)
+    if (query) parts.push('q=' + encodeURIComponent(query))
+    return parts.length ? '#' + parts.join('&') : ''
+  }
+
   var TAB_ICONS = { chart: 'bar-chart-2', matrices: 'table', explorer: 'boxes', review: 'edit' }
 
   // Builds the tabs once from built-ins plus registered views. Panels are
@@ -2609,9 +2637,10 @@
         if (mounted[tabId]) hook(tabId, 'onShow')
         else mountView(next)
       }
-      if (!fromHash && doc.location && doc.location.hash !== '#' + tabId) {
+      var nextHash = buildViewHash(tabId, opts.getQuery ? opts.getQuery() : '')
+      if (!fromHash && doc.location && doc.location.hash !== nextHash) {
         try {
-          doc.location.hash = tabId
+          doc.location.hash = nextHash
         } catch {
           // ignore navigation errors in iframe or file://
         }
@@ -2619,7 +2648,7 @@
     }
 
     function tabFromHash() {
-      var id = String(doc.location ? doc.location.hash || '' : '').replace(/^#/, '')
+      var id = parseViewHash(doc.location ? doc.location.hash : '').tab
       return tabs.some(function (t) {
         return t.id === id
       })
@@ -2640,6 +2669,7 @@
         return current
       },
       select: select,
+      hashTab: tabFromHash,
       // Runs after the review controller exists so ctx.modal is ready for the
       // first mount. A tab already chosen during boot (search) is kept.
       activateInitial: function () {
@@ -3636,7 +3666,10 @@
       renderRail(active, concepts, counts, draftCountsOf(currentDrafts), selectRailToken, state)
     }
 
-    function refresh(query) {
+    // keepTab: the caller already chose the tab (hash navigation), so a
+    // changed query must not switch to Explorer.
+    function refresh(query, keepTab) {
+      var queryChanged = query !== undefined && query !== activeSearchQuery
       if (query !== undefined) activeSearchQuery = query
       var currentDrafts = state.store.drafts()
       var draftCountsByConcept = draftCountsOf(currentDrafts)
@@ -3667,15 +3700,10 @@
         docHost.style.display = activeSearchQuery ? 'none' : ''
       }
 
-      // If filtering and not currently on Explorer, activate Explorer tab
-      if (activeSearchQuery) {
-        var tabsNav = active.getElementById('innfo-view-tabs')
-        if (tabsNav) {
-          var explorerBtn = tabsNav.querySelector('.innfo-view-tab[data-tab="explorer"]')
-          if (explorerBtn && !explorerBtn.classList.contains('active') && typeof explorerBtn.click === 'function') {
-            explorerBtn.click()
-          }
-        }
+      // A new query moves to Explorer; the hash is rewritten below, so this
+      // switch does not push a history entry.
+      if (activeSearchQuery && queryChanged && !keepTab && tabs) {
+        tabs.select('explorer', true)
       }
 
       renderReviewTab(active, state, config, function () {
@@ -3684,11 +3712,14 @@
       updateTabBadges(active, state)
       renderStatsBar(active, elements, concepts, matrices, currentDrafts.length)
 
-      if (typeof history !== 'undefined' && history.replaceState && active.location) {
-        if (activeSearchQuery) {
-          history.replaceState(null, '', '#q=' + encodeURIComponent(activeSearchQuery))
-        } else if (active.location.hash && active.location.hash.indexOf('#q=') === 0) {
-          history.replaceState(null, '', active.location.pathname + active.location.search)
+      var hist = active.defaultView && active.defaultView.history ? active.defaultView.history : typeof history !== 'undefined' ? history : null
+      if (hist && hist.replaceState && active.location) {
+        var shownTab = tabs ? tabs.current() || tabs.hashTab() : ''
+        var nextHash = buildViewHash(shownTab, activeSearchQuery)
+        if (activeSearchQuery || parseViewHash(active.location.hash).q) {
+          if (nextHash !== active.location.hash) {
+            hist.replaceState(null, '', nextHash || active.location.pathname + active.location.search)
+          }
         }
       }
 
@@ -3704,12 +3735,7 @@
 
     var initialQuery = ''
     if (typeof active.location !== 'undefined' && active.location.hash) {
-      var hashMatch = active.location.hash.match(/^#q=(.+)$/)
-      if (hashMatch) {
-        try {
-          initialQuery = decodeURIComponent(hashMatch[1])
-        } catch {}
-      }
+      initialQuery = parseViewHash(active.location.hash).q
     }
 
     var searchBox = active.getElementById('innfo-search')
@@ -3719,6 +3745,9 @@
 
     // Tabs are built once, before the first refresh, and never remounted.
     var tabs = mountTabs(active, {
+      getQuery: function () {
+        return activeSearchQuery
+      },
       registry: registry,
       config: config,
       schema: schema,
@@ -3730,7 +3759,7 @@
       },
     })
 
-    refresh(initialQuery)
+    refresh(initialQuery, !!(tabs && tabs.hashTab()))
 
     // C3: the controller builds the toggle into the (now rendered) banner and
     // listens for innfo:rendered; created after the first paint so the banner
@@ -3777,6 +3806,13 @@
     }
 
     function onHash() {
+      var parsed = parseViewHash(active.location ? active.location.hash : '')
+      if (parsed.q !== activeSearchQuery) {
+        // Back/forward to an entry with a different query: follow it.
+        var box = active.getElementById('innfo-search')
+        if (box) box.value = parsed.q
+        refresh(parsed.q, true)
+      }
       var id = String(active.location ? active.location.hash || '' : '').replace(/^#/, '')
       if (!id) return
       var target = active.getElementById(id)
