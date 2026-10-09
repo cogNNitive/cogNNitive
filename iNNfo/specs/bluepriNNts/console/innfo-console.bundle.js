@@ -5230,6 +5230,12 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     if (!shell) return null
     var nav = shell.nav
     var tabs = builtinViews(doc, opts.config, opts.model, opts.meta, shell)
+    // Problems found while mounting belong to this boot; the registry only
+    // keeps registration errors, so booting again never duplicates notices.
+    var bootErrors = []
+    function report(id, sources, reason) {
+      bootErrors.push({ id: id, sources: sources, reason: reason })
+    }
     registry.list().forEach(function (v) {
       var clash = tabs.filter(function (t) {
         return t.id === v.id
@@ -5237,10 +5243,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       var panelId = 'innfo-tab-' + v.id
       var existing = doc.getElementById(panelId)
       if (clash) {
-        registry.report(v.id, [clash.id + ' (built-in)', v.source], 'view "' + v.id + '": duplicate id (a built-in tab already uses it)')
+        report(v.id, [clash.id + ' (built-in)', v.source], 'view "' + v.id + '": duplicate id (a built-in tab already uses it)')
       } else if (existing && existing.getAttribute('data-innfo-view') !== v.id) {
         // The panel belongs to the shell or a built-in tab; never mount into it.
-        registry.report(v.id, [v.source], 'view "' + v.id + '": panel #' + panelId + ' already exists and is not owned by this view')
+        report(v.id, [v.source], 'view "' + v.id + '": panel #' + panelId + ' already exists and is not owned by this view')
       } else {
         tabs.push(Object.assign({}, v, { panelId: 'innfo-tab-' + v.id, external: true }))
       }
@@ -5280,17 +5286,18 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var mounted = {}
 
     function showErrors() {
-      renderViewErrors(doc, registry.errors(), nav)
+      renderViewErrors(doc, registry.errors().concat(bootErrors), nav)
     }
 
     function mountView(t) {
       var panel = doc.getElementById(t.panelId)
       if (!panel) {
         mounted[t.id] = { api: {}, failed: true }
-        registry.report(t.id, [t.source], 'view "' + t.id + '": no panel #' + t.panelId + ' to mount into')
+        report(t.id, [t.source], 'view "' + t.id + '": no panel #' + t.panelId + ' to mount into')
         showErrors()
         return
       }
+      panel.innerHTML = ''
       try {
         var ctx = {
           id: t.id,
@@ -5304,7 +5311,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         var msg = String(err && err.message ? err.message : err)
         mounted[t.id] = { api: {}, failed: true }
         panel.appendChild(el('div', 'innfo-view-error alert alert-error text-sm', 'View "' + t.id + '" failed to mount: ' + msg))
-        registry.report(t.id, [t.source], 'view "' + t.id + '": mount failed: ' + msg)
+        report(t.id, [t.source], 'view "' + t.id + '": mount failed: ' + msg)
         showErrors()
       }
     }
@@ -5315,7 +5322,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         try {
           m.api[name]()
         } catch (err) {
-          registry.report(id, [], 'view "' + id + '": ' + name + ' failed: ' + String(err && err.message ? err.message : err))
+          report(id, [], 'view "' + id + '": ' + name + ' failed: ' + String(err && err.message ? err.message : err))
           showErrors()
         }
       }
@@ -5360,12 +5367,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         : ''
     }
 
-    if (doc.defaultView) {
-      doc.defaultView.addEventListener('hashchange', function () {
-        var id = tabFromHash()
-        if (id) select(id, true)
-      })
+    var onHashChange = function () {
+      var id = tabFromHash()
+      if (id) select(id, true)
     }
+    if (doc.defaultView) doc.defaultView.addEventListener('hashchange', onHashChange)
     showErrors()
     return {
       tabs: tabs,
@@ -5373,6 +5379,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         return current
       },
       select: select,
+      destroy: function () {
+        if (doc.defaultView) doc.defaultView.removeEventListener('hashchange', onHashChange)
+      },
       hashTab: tabFromHash,
       // Runs after the review controller exists so ctx.modal is ready for the
       // first mount. A tab already chosen during boot (search) is kept.
@@ -6289,10 +6298,31 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return downloadFeedbackExport(doc, state)
   }
 
+  // Listeners a boot adds to the document/window, removed when the same
+  // document boots again so a re-boot never doubles them.
+  var bootTeardowns = typeof WeakMap === 'function' ? new WeakMap() : null
+
   function boot(doc, opts) {
     var registry = (opts && opts.registry) || defaultViewRegistry
     var active = doc || (typeof document !== 'undefined' ? document : null)
     if (!active) return { ok: false, reason: 'no-document' }
+    var cleanups = []
+    if (bootTeardowns) {
+      var previous = bootTeardowns.get(active)
+      if (previous) previous()
+      bootTeardowns.set(active, function () {
+        cleanups.forEach(function (fn) {
+          fn()
+        })
+        cleanups = []
+      })
+    }
+    function listen(target, type, fn) {
+      target.addEventListener(type, fn)
+      cleanups.push(function () {
+        target.removeEventListener(type, fn)
+      })
+    }
     var config = parseConfig(slotText(active, 'innfo-config'))
     var slots = parseSlots(slotText(active, 'innfo-schema'), slotText(active, 'innfo-model'))
     var schema = slots.schema
@@ -6463,6 +6493,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       },
     })
 
+    if (tabs) cleanups.push(tabs.destroy)
     refresh(initialQuery, !!(tabs && tabs.hashTab()))
 
     // C3: the controller builds the toggle into the (now rendered) banner and
@@ -6494,7 +6525,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     var searchBox = active.getElementById('innfo-search')
     if (searchBox) {
-      searchBox.addEventListener('input', function (event) {
+      listen(searchBox, 'input', function (event) {
         refresh(event.target && event.target.value ? event.target.value : '')
       })
     }
@@ -6523,9 +6554,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       if (target && typeof target.scrollIntoView === 'function') target.scrollIntoView()
     }
     if (typeof active.defaultView !== 'undefined' && active.defaultView) {
-      active.defaultView.addEventListener('hashchange', onHash)
+      listen(active.defaultView, 'hashchange', onHash)
     } else if (typeof window !== 'undefined' && window.addEventListener) {
-      window.addEventListener('hashchange', onHash)
+      listen(window, 'hashchange', onHash)
     }
     onHash()
 

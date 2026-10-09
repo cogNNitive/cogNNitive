@@ -291,3 +291,60 @@ describe('shell without <main>', () => {
     })
   })
 })
+
+describe('booting twice on one document', () => {
+  const failing = () =>
+    def({
+      order: -10,
+      mount() {
+        throw new Error('boom')
+      },
+    })
+
+  it('does not duplicate notices or error content', () => {
+    const registry = InnfoConsole.createViewRegistry()
+    registry.register(failing())
+    registry.register(def({ id: 'canonical' }))
+    const model = { ...MODEL, rows: [{}], meta: { ...MODEL.meta, months: 3 } }
+    const { document } = bootConsole({ registry, model })
+    const before = document.querySelectorAll('#innfo-view-errors p').length
+    assert.equal(before, 2)
+    InnfoConsole.boot(document, { registry })
+    assert.equal(document.querySelectorAll('#innfo-view-errors p').length, before)
+    assert.equal(document.querySelectorAll('#innfo-tab-pipeline .innfo-view-error').length, 1)
+    assert.equal(registry.errors().length, 0)
+  })
+
+  it('tears down the previous boot listeners', () => {
+    const registry = InnfoConsole.createViewRegistry()
+    registry.register(def())
+    const { dom, document } = bootConsole({
+      registry,
+      before(doc) {
+        const win = doc.defaultView
+        const live = new Set()
+        const add = win.addEventListener.bind(win)
+        const remove = win.removeEventListener.bind(win)
+        win.addEventListener = (type, fn, o) => (type === 'hashchange' && live.add(fn), add(type, fn, o))
+        win.removeEventListener = (type, fn, o) => (live.delete(fn), remove(type, fn, o))
+        win.__live = live
+      },
+    })
+    const one = dom.window.__live.size
+    InnfoConsole.boot(document, { registry })
+    assert.equal(dom.window.__live.size, one)
+  })
+
+  it('renders once per search input after a second boot', () => {
+    const registry = InnfoConsole.createViewRegistry()
+    registry.register(def())
+    const { dom, document } = bootConsole({ registry })
+    InnfoConsole.boot(document, { registry })
+    let rendered = 0
+    document.addEventListener('innfo:rendered', () => rendered++)
+    const box = document.getElementById('innfo-search')
+    box.value = 'ecto'
+    box.dispatchEvent(new dom.window.Event('input'))
+    assert.equal(rendered, 1)
+  })
+})
