@@ -213,3 +213,32 @@ jobs:
           WEB_PUBLISH_SUBDIR: docs
           GITHUB_SHA: ${{ github.sha }}
         run: node scripts/publish-web.mjs
+
+  # UI smoke: Playwright (Chromium) over the committed TestLab console + hub
+  # artifacts via file://. Standalone job — never blocks verify/quality/site,
+  # never gates publishing. Run locally with `npm run test:ui`.
+  ui-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Playwright + Chromium
+        run: |
+          pip install playwright
+          python -m playwright install --with-deps chromium
+
+      - name: UI smoke (TestLab console + hub)
+        run: npm run test:ui
+
+      - name: Upload UI screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-smoke-screenshots
+          path: temp/ui-smoke
+          retention-days: 7
