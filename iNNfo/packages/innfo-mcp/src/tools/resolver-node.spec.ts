@@ -537,6 +537,27 @@ describe('NodeSpecResolver', () => {
       expect(miss).toBeNull()
     })
 
+    it('Tier 3 flat install matches a requested version against spec_version OR blueprint_version', async () => {
+      const { resolveBlueprintPackage } = await import('./resolver-node')
+      const globalDir = join(rootDir, 'global_agents')
+      const flatDir = join(globalDir, 'video')
+      await mkdir(flatDir, { recursive: true })
+      await writeFile(
+        join(flatDir, 'spec_NN.md'),
+        '---\nspec_version: "V_0-3-0"\nblueprint_version: "V_0-8-0"\n---',
+      )
+
+      const byBlueprint = await resolveBlueprintPackage(rootDir, 'video_V_0-8-0', undefined, { globalDir })
+      expect(byBlueprint?.tier).toBe('global-cache')
+      expect(byBlueprint?.packagePath).toBe(flatDir)
+      expect(byBlueprint?.version).toBe('0.8.0')
+
+      const bySpec = await resolveBlueprintPackage(rootDir, 'video_V_0-3-0', undefined, { globalDir })
+      expect(bySpec?.packagePath).toBe(flatDir)
+
+      expect(await resolveBlueprintPackage(rootDir, 'video_V_0-9-9', undefined, { globalDir })).toBeNull()
+    })
+
     it('markdown scans ignore node_modules and dot directories', async () => {
       const { resolveBlueprintPackage } = await import('./resolver-node')
       const vendored = join(specsDir, 'skills', 'x', 'node_modules', 'dep')
@@ -803,6 +824,62 @@ describe('fetchBlueprintPackageFromRemote', () => {
     })
     expect(pkg.samples).toEqual({ 'a_NN.md': '# Sample' })
     expect(spy.mock.calls.map((c) => String(c[0])).some((u) => u.includes('samples/nested'))).toBe(false)
+  })
+
+  it('rejects (never returns a partial skills tree) when a nested skills/ listing fails', async () => {
+    const dir = (name: string) => ({ name, type: 'dir', path: name })
+    mockFetch(
+      { '/video/spec_NN.md': '# Video spec', '/video/skills/nn-video-script/SKILL.md': '# Skill' },
+      {
+        // the nested `scripts` listing is absent -> 404 mid-tree
+        'video/skills/nn-video-script?': [file('SKILL.md'), dir('scripts')],
+        'video/skills?': [dir('nn-video-script')],
+      },
+    )
+
+    await expect(
+      fetchBlueprintPackageFromRemote('video', 'V_0-8-0', { ref: 'blueprints-v0.18.0' }),
+    ).rejects.toThrow(/skills\/ tree is incomplete/)
+  })
+
+  it('rejects when a single skills/ file download fails', async () => {
+    mockFetch(
+      {
+        '/video/spec_NN.md': '# Video spec',
+        '/video/skills/nn-video-script/SKILL.md': '# Skill',
+        '/video/skills/nn-video-script/run.mjs': null,
+      },
+      {
+        'video/skills/nn-video-script?': [file('SKILL.md'), file('run.mjs')],
+        'video/skills?': [{ name: 'nn-video-script', type: 'dir', path: 'nn-video-script' }],
+      },
+    )
+
+    await expect(
+      fetchBlueprintPackageFromRemote('video', 'V_0-8-0', { ref: 'blueprints-v0.18.0' }),
+    ).rejects.toThrow(/skills\/ tree is incomplete/)
+  })
+
+  it('does not hydrate (or freeze) a version dir when the skills fetch is incomplete', async () => {
+    const cacheDir = join(rootDir, 'cache-incomplete')
+    await mkdir(cacheDir, { recursive: true })
+    mockFetch(
+      { '/video/spec_NN.md': '---\nspec_version: "V_0-8-0"\n---\n# Video spec' },
+      {
+        // listing for skills/ itself fails with a non-404-shaped miss on a nested dir
+        'video/skills?': [{ name: 'nn-video-script', type: 'dir', path: 'nn-video-script' }],
+      },
+    )
+
+    // The network tier misses (the offline canonical registry may still answer); what matters
+    // is that nothing was hydrated, so a later run can retry the fetch.
+    await resolveParentChainNode(
+      rootDir,
+      'https://raw.githubusercontent.com/o/r/blueprints-v0.18.0/iNNfo/specs/bluepriNNts/video/spec_NN.md',
+      'video',
+      { cacheDir },
+    )
+    expect(existsSync(join(cacheDir, 'bluepriNNts', 'video'))).toBe(false)
   })
 
   it('requires ref and rejects invalid refs like templates-v0.17.0', async () => {

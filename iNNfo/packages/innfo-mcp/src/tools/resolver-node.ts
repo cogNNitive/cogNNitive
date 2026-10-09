@@ -237,6 +237,12 @@ function versionFromFrontmatter(content: string): string | undefined {
   return v ? normalizeVersion(String(v)) : undefined
 }
 
+/** Normalized `blueprint_version` declared by a bluepriNNt spec's frontmatter, if any. */
+function blueprintVersionFromFrontmatter(content: string): string | undefined {
+  const v = parseFrontmatter(content)?.blueprint_version
+  return v ? normalizeVersion(String(v)) : undefined
+}
+
 /**
  * Canonical local filename for a resolved document.
  *
@@ -506,8 +512,13 @@ export async function resolveBlueprintPackage(
       // frontmatter.
       const specFile = await findSpecInPackageDir(globalBaseDir, base)
       if (specFile) {
-        const fmVersion = versionFromFrontmatter(await readFile(specFile, 'utf-8').catch(() => ''))
-        if (!targetVersion || fmVersion === targetVersion) {
+        const specContent = await readFile(specFile, 'utf-8').catch(() => '')
+        const fmVersion = versionFromFrontmatter(specContent)
+        // A bluepriNNt carries two version axes: `spec_version` (the spec format) and
+        // `blueprint_version` (the package, and what version dirs and requests like
+        // `video_V_0-8-0` name). A request matches either.
+        const bpVersion = blueprintVersionFromFrontmatter(specContent)
+        if (!targetVersion || fmVersion === targetVersion || bpVersion === targetVersion) {
           return {
             name: base,
             version: targetVersion || fmVersion || '0.1.0',
@@ -729,6 +740,20 @@ export async function hydrateBlueprintPackageAtomically(
 }
 
 /**
+ * Thrown when a package's `skills/` tree could not be fetched completely.
+ *
+ * Hydration is write-once: a version dir that exists is never rewritten. Hydrating a partial
+ * `skills/` tree would therefore freeze a broken package forever. Failing the fetch (and
+ * skipping hydration) keeps the version dir absent, so the next resolution retries cleanly.
+ */
+export class IncompleteSkillsTreeError extends Error {
+  constructor(detail: string) {
+    super(`skills/ tree is incomplete: ${detail}`)
+    this.name = 'IncompleteSkillsTreeError'
+  }
+}
+
+/**
  * Fetch a complete template package from a tag-pinned GitHub release.
  *
  * `spec_NN.md` is fetched from the raw host at `<ref>`; `procedures/`,
@@ -759,9 +784,12 @@ export async function fetchBlueprintPackageFromRemote(
   const spec = await download(`${rawBase}/${specName}`, timeout)
 
   // `recursive` is opt-in (only `skills/`): samples/assets keep their flat payload.
+  // `strict` (used for `skills/` only) turns every failure into IncompleteSkillsTreeError instead
+  // of a warn-and-skip: a top-level 404 still means "no skills/ dir" (absent), but any other
+  // listing failure, a vanished nested dir, or an undownloadable file means the tree is partial.
   const fetchSubdir = async (
     name: string,
-    opts: { recursive?: boolean } = {},
+    opts: { recursive?: boolean; strict?: boolean; nested?: boolean } = {},
   ): Promise<Record<string, string> | undefined> => {
     let entries: Array<{ name: string; type: string; path: string }>
     try {
@@ -769,6 +797,9 @@ export async function fetchBlueprintPackageFromRemote(
       const listing = JSON.parse(await download(apiUrl, timeout))
       entries = Array.isArray(listing) ? listing : []
     } catch (err) {
+      if (opts.strict && (opts.nested || !/HTTP 404/.test(String(err)))) {
+        throw new IncompleteSkillsTreeError(`listing ${dirInRepo}/${name} failed: ${err}`)
+      }
       /* v8 ignore start */
       // log + continue: fetchSubdir is best effort — a missing subdirectory is
       // simply absent from the payload.
@@ -779,7 +810,7 @@ export async function fetchBlueprintPackageFromRemote(
     const out: Record<string, string> = {}
     for (const entry of entries) {
       if (entry.type === 'dir' && opts.recursive) {
-        const nested = await fetchSubdir(`${name}/${entry.name}`, opts)
+        const nested = await fetchSubdir(`${name}/${entry.name}`, { ...opts, nested: true })
         for (const [rel, body] of Object.entries(nested ?? {})) {
           out[`${entry.name}/${rel}`] = body
         }
@@ -789,6 +820,9 @@ export async function fetchBlueprintPackageFromRemote(
       try {
         out[entry.name] = await download(`${rawBase}/${name}/${entry.name}`, timeout)
       } catch (err) {
+        if (opts.strict) {
+          throw new IncompleteSkillsTreeError(`fetching ${name}/${entry.name} failed: ${err}`)
+        }
         /* v8 ignore start */
         // log + continue: an unfetchable asset is skipped — the package
         // hydrates without it.
@@ -804,7 +838,7 @@ export async function fetchBlueprintPackageFromRemote(
     procedures: await fetchSubdir('procedures'),
     samples: await fetchSubdir('samples'),
     assets: await fetchSubdir('assets'),
-    skills: await fetchSubdir('skills', { recursive: true }),
+    skills: await fetchSubdir('skills', { recursive: true, strict: true }),
   }
 }
 
@@ -932,7 +966,13 @@ export async function resolveParentChainNode(
             repo: tagMatch[1],
             ref: tagMatch[2],
             timeout,
-          }).catch(() => content as string)
+          }).catch((err) => {
+            // An incomplete skills/ tree must not degrade to spec-only hydration: that would
+            // freeze a skill-less version dir (write-once). Propagate so nothing is hydrated
+            // and the next resolution retries.
+            if (err instanceof IncompleteSkillsTreeError) throw err
+            return content as string
+          })
         }
         await hydrateBlueprintPackageAtomically(rootDir, baseName, fmVer, payload, {
           baseDir: blueprintsBaseDir,
