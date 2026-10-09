@@ -2589,32 +2589,50 @@
 
     var observers = []
 
-    // Editable views share the draft store and must stay iframe-free: an
-    // iframe could host script that reaches the drafts. Removes any iframe
-    // under root and reports it with the view id.
+    // Embedding guard. Only ctx.mountHtml may create a frame: editable views
+    // share the draft store, so an embedded document could try to reach it,
+    // and a readonly view is limited to the sandboxed static frame. Any
+    // iframe, object, embed or frame that mountHtml did not create is removed
+    // and reported with the view id.
+    //
+    // This is an accident guard for trusted view code (a MutationObserver
+    // reacts after insertion), NOT a security boundary. Shadow roots are out
+    // of scope: the observer does not see into them.
+    var FRAME_TAGS = ['IFRAME', 'OBJECT', 'EMBED', 'FRAME']
+    var FRAME_SELECTOR = 'iframe, object, embed, frame'
+    var ownFrames = []
     function stripIframes(t, root) {
-      var found = root.nodeName === 'IFRAME' ? [root] : []
-      if (root.querySelectorAll) found = found.concat([].slice.call(root.querySelectorAll('iframe')))
+      var found = FRAME_TAGS.indexOf(root.nodeName) >= 0 ? [root] : []
+      if (root.querySelectorAll) found = found.concat([].slice.call(root.querySelectorAll(FRAME_SELECTOR)))
+      found = found.filter(function (f) {
+        return ownFrames.indexOf(f) < 0
+      })
       found.forEach(function (f) {
         if (f.parentNode) f.parentNode.removeChild(f)
       })
       if (found.length) {
-        report(t.id, [t.source], 'view "' + t.id + '": editable views must not mount iframes (removed)')
+        report(
+          t.id,
+          [t.source],
+          'view "' + t.id + '": views must not mount iframes, objects or embeds; use ctx.mountHtml (removed)',
+        )
         showErrors()
       }
     }
 
-    function guardIframes(t, panel) {
+    // scope: the subtree watched. Editable views are watched across the whole
+    // body (they hold the draft store); readonly views inside their panel.
+    function guardIframes(t, scope) {
       var View = doc.defaultView
       if (!View || typeof View.MutationObserver !== 'function') return
       var observer = new View.MutationObserver(function (records) {
         records.forEach(function (r) {
           ;[].slice.call(r.addedNodes).forEach(function (n) {
-            if (n.nodeType === 1 && panel.contains(n)) stripIframes(t, n)
+            if (n.nodeType === 1 && scope.contains(n)) stripIframes(t, n)
           })
         })
       })
-      observer.observe(panel, { childList: true, subtree: true })
+      observer.observe(scope, { childList: true, subtree: true })
       observers.push(observer)
     }
 
@@ -2717,8 +2735,12 @@
       ;[].slice.call(panel.querySelectorAll('iframe')).forEach(function (f) {
         f.parentNode.removeChild(f)
       })
+      ownFrames = ownFrames.filter(function (f) {
+        return f.parentNode
+      })
+      ownFrames.push(frame)
       panel.appendChild(frame)
-      return frame
+      // No handle is returned: the view never holds the live frame.
     }
 
     function mountView(t) {
@@ -2731,7 +2753,8 @@
       }
       panel.innerHTML = ''
       var editable = t.kind !== 'readonly'
-      if (editable) guardIframes(t, panel)
+      var scope = editable ? doc.body || panel : panel
+      guardIframes(t, scope)
       try {
         var ctx = {
           id: t.id,
@@ -2758,7 +2781,7 @@
         report(t.id, [t.source], 'view "' + t.id + '": mount failed: ' + msg)
         showErrors()
       }
-      if (editable) stripIframes(t, panel)
+      stripIframes(t, scope)
     }
 
     function hook(id, name) {

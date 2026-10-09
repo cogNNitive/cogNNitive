@@ -426,3 +426,80 @@ describe('S2b review follow-up: openEdit side effects and focus', () => {
     assert.equal(document.activeElement, opener)
   })
 })
+
+describe('S2b review follow-up: embedding guard hardening', () => {
+  const tick = () => new Promise((r) => setTimeout(r, 0))
+
+  for (const tag of ['object', 'embed', 'frame']) {
+    it(`an editable view's <${tag}> is removed during mount and reported`, () => {
+      const { document, ctxs } = bootViews([
+        def('sneaky', {
+          mount(ctx) {
+            ctx.container.appendChild(ctx.doc.createElement(tag))
+          },
+        }),
+      ])
+      assert.equal(ctxs.sneaky.container.querySelectorAll(tag).length, 0)
+      assert.match(noticeText(document), /sneaky/)
+    })
+
+    it(`an editable view's <${tag}> added later is removed by the observer`, async () => {
+      const { document, ctxs } = bootViews([def('late')])
+      ctxs.late.container.appendChild(document.createElement(tag))
+      await tick()
+      assert.equal(ctxs.late.container.querySelectorAll(tag).length, 0)
+      assert.match(noticeText(document), /late/)
+    })
+  }
+
+  it('an editable view cannot park an iframe outside its panel in the document body', async () => {
+    const { document, ctxs } = bootViews([def('alpha')])
+    document.body.appendChild(document.createElement('iframe'))
+    await tick()
+    assert.equal(document.querySelectorAll('iframe').length, 0)
+    assert.match(noticeText(document), /alpha/)
+    assert.ok(ctxs.alpha)
+  })
+
+  it('mountHtml hands back no frame handle', () => {
+    let returned = 'unset'
+    bootViews([
+      def('doc', {
+        kind: 'readonly',
+        mount(ctx) {
+          returned = ctx.mountHtml('<p>x</p>')
+        },
+      }),
+    ])
+    assert.equal(returned, undefined)
+  })
+
+  it('a readonly view may only create frames through mountHtml', async () => {
+    const { document, ctxs } = bootViews([
+      def('doc', {
+        kind: 'readonly',
+        mount(ctx) {
+          ctx.container.appendChild(ctx.doc.createElement('iframe'))
+        },
+      }),
+    ])
+    assert.equal(ctxs.doc.container.querySelectorAll('iframe').length, 0)
+    assert.match(noticeText(document), /doc/)
+    ctxs.doc.container.appendChild(document.createElement('iframe'))
+    await tick()
+    assert.equal(ctxs.doc.container.querySelectorAll('iframe').length, 0, 'late frame removed too')
+    ctxs.doc.mountHtml('<p>ok</p>')
+    await tick()
+    assert.equal(ctxs.doc.container.querySelectorAll('iframe').length, 1, 'mountHtml still works')
+  })
+
+  it('the editable guard does not strip a readonly view mountHtml frame', async () => {
+    const { document } = bootViews([
+      def('alpha'),
+      def('doc', { kind: 'readonly', order: 30, mount: (ctx) => void ctx.mountHtml('<p>x</p>') }),
+    ])
+    await tick()
+    assert.equal(document.querySelectorAll('#innfo-tab-doc iframe').length, 1)
+    assert.equal(noticeText(document), '')
+  })
+})
