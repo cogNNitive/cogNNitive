@@ -8,6 +8,7 @@
 import React from 'react';
 import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from 'remotion';
 import { resolveKineticTitleLayout } from '../kinetic-title-layout.mjs';
+import { resolveOverlayAnimation } from '../overlay-animation.mjs';
 
 const THEME: Record<string, { color: string; background: string }> = {
   dark: { color: '#ffffff', background: 'rgba(0,0,0,0.55)' },
@@ -15,7 +16,13 @@ const THEME: Record<string, { color: string; background: string }> = {
   accent: { color: '#ffffff', background: 'rgba(59,130,246,0.85)' },
 };
 
-export const KineticTitle: React.FC<{ config: Record<string, unknown>; fps?: number }> = ({ config }) => {
+export const KineticTitle: React.FC<{
+  config: Record<string, unknown>;
+  fps?: number;
+  durationInFrames?: number;
+  enterAnimation?: string;
+  exitAnimation?: string;
+}> = ({ config, durationInFrames = 0, enterAnimation, exitAnimation }) => {
   const frame = useCurrentFrame();
   const { width } = useVideoConfig();
   const s = width / 1920;
@@ -28,15 +35,16 @@ export const KineticTitle: React.FC<{ config: Record<string, unknown>; fps?: num
   const stroke = config.textStroke as string | undefined;
 
   const layout = resolveKineticTitleLayout(config);
+  const motion = resolveOverlayAnimation({ frame, durationInFrames, enterAnimation, exitAnimation });
 
   const scale = interpolate(frame, [0, 12], [0.85, 1], { extrapolateRight: 'clamp' });
   const headingSize = (layout.big ? layout.headingSize : fontSize) * s;
 
   return (
-    <AbsoluteFill style={{ justifyContent: layout.justifyContent, alignItems: 'center', padding: layout.big ? `${48 * s}px 0` : 0 }}>
+    <AbsoluteFill style={{ justifyContent: layout.justifyContent, alignItems: 'center', opacity: motion.opacity, padding: layout.big ? `${48 * s}px 0` : 0 }}>
       <div
         style={{
-          transform: `scale(${scale})`,
+          transform: `scale(${scale}) ${motion.transform}`,
           background: theme.background,
           color: theme.color,
           fontFamily,

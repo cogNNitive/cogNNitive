@@ -138,29 +138,34 @@ function renderLayer(layer: Layer): React.ReactNode {
 
 function renderOverlay(overlay: Overlay, localFrom: number, fps: number): React.ReactNode {
   const common = { durationInFrames: overlay.durationInFrames };
+  const animation = {
+    durationInFrames: overlay.durationInFrames,
+    enterAnimation: (overlay as { enterAnimation?: string }).enterAnimation,
+    exitAnimation: (overlay as { exitAnimation?: string }).exitAnimation,
+  };
   switch (overlay.type) {
     case 'lowerThird':
       return (
         <Sequence key={overlay.id} from={localFrom} {...common}>
-          <LowerThird config={overlay.config} />
+          <LowerThird config={overlay.config} {...animation} />
         </Sequence>
       );
     case 'kineticTitle':
       return (
         <Sequence key={overlay.id} from={localFrom} {...common}>
-          <KineticTitle config={overlay.config} fps={fps} />
+          <KineticTitle config={overlay.config} fps={fps} {...animation} />
         </Sequence>
       );
     case 'conceptCallout':
       return (
         <Sequence key={overlay.id} from={localFrom} {...common}>
-          <ConceptCallout config={overlay.config} />
+          <ConceptCallout config={overlay.config} {...animation} />
         </Sequence>
       );
     case 'captions':
       return (
         <Sequence key={overlay.id} from={localFrom} {...common}>
-          <Captions config={overlay.config} durationInFrames={overlay.durationInFrames} />
+          <Captions config={overlay.config} durationInFrames={overlay.durationInFrames} {...animation} />
         </Sequence>
       );
     default:

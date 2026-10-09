@@ -127,6 +127,74 @@ import { parse as parseVus } from './lib/innfo-video-parser.generated.mjs';
 /** Background music volume when a scene declares music but no `scene_background_audio_volume`. */
 export const DEFAULT_BG_MUSIC_VOLUME = 0.2;
 
+/**
+ * System default contract for each markdown-native (`>`) overlay kind. A resolved
+ * blueprint `@template` / `@broll_template` overrides every field per series.
+ */
+const OVERLAY_EVENT_SPECS = {
+  quote: { type: 'quote', template: 'template', defaultSeconds: 3, enter: 'fade-in', exit: 'fade-out' },
+  'lower-third': { type: 'lowerThird', template: 'template', defaultSeconds: 4, enter: 'slide-in-left', exit: 'slide-out-left' },
+  broll: { type: 'broll', template: 'broll_template', defaultSeconds: 4, enter: 'fade-in', exit: 'fade-out' },
+};
+
+const BLUEPRINT_TEMPLATE_RE = /^@(caption_template|broll_template|template)\b/;
+
+/**
+ * Parses `@template` / `@caption_template` / `@broll_template` VUS blocks (and their
+ * `- key: value` properties) from blueprint markdown.
+ * @param {string} text
+ * @returns {Record<string, Record<string, string>>}
+ */
+export function parseBlueprintTemplates(text) {
+  const templates = {};
+  let current = null;
+  for (const raw of String(text).split(/\r?\n/)) {
+    const line = raw.trim();
+    const head = BLUEPRINT_TEMPLATE_RE.exec(line);
+    if (head) {
+      current = head[1];
+      templates[current] = templates[current] || {};
+      continue;
+    }
+    if (!current) continue;
+    const prop = /^-\s*([a-zA-Z0-9_]+):\s*(.*)$/.exec(line);
+    if (prop) templates[current][prop[1]] = prop[2].trim().replace(/^"|"$/g, '');
+    else if (line) current = null;
+  }
+  return templates;
+}
+
+/** Duration in seconds from `6`, `6s`, or a blueprint default. */
+function eventDurationSeconds(options, spec, blueprint) {
+  const raw = options?.duration ?? blueprint?.duration;
+  if (raw === undefined) return spec.defaultSeconds;
+  const seconds = Number(String(raw).replace(/s$/i, ''));
+  return Number.isFinite(seconds) && seconds > 0 ? seconds : spec.defaultSeconds;
+}
+
+/** Builds the presentational config for one overlay event kind. */
+function overlayEventConfig(kind, event, blueprint) {
+  const options = event.options || {};
+  const withSource = options.source ? { source: options.source } : {};
+  if (kind === 'lower-third') {
+    return optionalKeys({
+      title: event.payload,
+      subtitle: options.subtitle,
+      position: options.position,
+      ...withSource,
+    });
+  }
+  if (kind === 'broll') {
+    return optionalKeys({
+      assetPath: event.payload,
+      fit: options.fit || blueprint?.fit || 'cover',
+      position: options.position || blueprint?.position || 'bottom',
+      ...withSource,
+    });
+  }
+  return optionalKeys({ text: event.payload, ...withSource });
+}
+
 /** Drops keys whose value is undefined/null/empty-string so optional config never leaks defaults. */
 function optionalKeys(obj) {
   return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined && v !== null && v !== ''));
@@ -139,13 +207,19 @@ function optionalKeys(obj) {
  *  - the remaining prose is one space-joined line, like the line scanner always produced (so the TTS
  *    cache key does not depend on how the paragraph was wrapped).
  * \param {string} content
- * \returns {{ narration: string, overlays: { type: string, data: Record<string, unknown> }[] }}
+ * \returns {{ narration: string, overlays: { type: string, data: Record<string, unknown> }[], legacy: boolean }}
  */
+// legacy:video-overlay/html-comment-overlays
+// Quarantined compatibility path for inline HTML overlay directives. Prefer the
+// markdown-native `>` blockquote events parsed by the VUS grammar. Remove once
+// every series script has migrated (see legacy-ledger.yaml).
 export function extractNarrationAndOverlays(content) {
   const overlays = [];
+  let legacy = false;
   const stripped = String(content).replace(/<!--([\s\S]*?)-->/g, (_all, inner) => {
     const m = /^\s*overlay:\s*([A-Za-z0-9_-]+)\s*(\{[\S\s]*\})\s*$/.exec(inner);
     if (m) {
+      legacy = true;
       try {
         overlays.push({ type: m[1], data: JSON.parse(m[2]) });
       } catch {
@@ -159,7 +233,7 @@ export function extractNarrationAndOverlays(content) {
     .map((l) => l.replace(/[ \t]{2,}/g, ' ').trim())
     .filter(Boolean)
     .join(' ');
-  return { narration, overlays };
+  return { narration, overlays, legacy };
 }
 
 export class RemotionSceneCompiler {
@@ -177,6 +251,42 @@ export class RemotionSceneCompiler {
     this.height = options.height || 1080;
     this.wordsPerSecond = options.wordsPerSecond || 2.5;
     this.defaultSceneDuration = options.defaultSceneDuration || 5;
+    /** Non-fatal compiler warnings (missing blueprint, deprecated syntax). */
+    this.warnings = [];
+  }
+
+  /** Records a non-fatal warning and keeps it for inspection by callers/tests. */
+  warn(message) {
+    this.warnings.push(message);
+    console.warn(`[remotion-scene-compiler] ${message}`);
+  }
+
+  /**
+   * Resolves blueprint templates with the documented precedence: the nearest
+   * series `series_blueprint.md` overrides the referenced `video_blueprint`, which
+   * overrides the system defaults baked into OVERLAY_EVENT_SPECS.
+   * @param {string} scriptSource
+   * @param {string} [videoBlueprint] relative path declared via `- video_blueprint:`
+   * @returns {Record<string, Record<string, string>>}
+   */
+  resolveBlueprintTemplates(scriptSource, videoBlueprint) {
+    const templates = {};
+    const dir = path.dirname(path.resolve(scriptSource || '.'));
+    if (videoBlueprint) {
+      const bpPath = path.isAbsolute(videoBlueprint)
+        ? videoBlueprint
+        : path.resolve(dir, videoBlueprint);
+      if (fs.existsSync(bpPath)) {
+        Object.assign(templates, parseBlueprintTemplates(fs.readFileSync(bpPath, 'utf8')));
+      } else {
+        this.warn(`video_blueprint "${videoBlueprint}" not found; applying system defaults`);
+      }
+    }
+    const seriesBlueprint = path.join(dir, 'series_blueprint.md');
+    if (fs.existsSync(seriesBlueprint)) {
+      Object.assign(templates, parseBlueprintTemplates(fs.readFileSync(seriesBlueprint, 'utf8')));
+    }
+    return templates;
   }
 
   /**
@@ -293,6 +403,7 @@ export class RemotionSceneCompiler {
    * @returns {Object}
    */
   parseScript(scriptText) {
+    this.warnings = [];
     try {
       const origLog = console.log;
       let parseResult;
@@ -329,10 +440,12 @@ export class RemotionSceneCompiler {
             video_caption_highlight: cfg.video_caption_highlight || cfg.caption_highlight,
             video_transition: cfg.video_transition,
             video_transition_easing: cfg.video_transition_easing,
+            video_blueprint: cfg.video_blueprint,
           },
           scenes: [],
         };
 
+        let legacyWarned = false;
         for (let i = 0; i < allScenes.length; i++) {
           const { sec, sc } = allScenes[i];
           const secHeading = (sec.title || sec.name || '').trim();
@@ -373,7 +486,13 @@ export class RemotionSceneCompiler {
           // The vendored parser hands back the raw scene prose, HTML comments included. Overlay
           // hints (<!-- overlay: type { json } -->) become overlay layers, and NO comment may ever be
           // spoken: the narration is what goes to the paid TTS and into its cache key.
-          const { narration, overlays } = extractNarrationAndOverlays(sc.scene_content || '');
+          const { narration, overlays, legacy } = extractNarrationAndOverlays(sc.scene_content || '');
+          if (legacy && !legacyWarned) {
+            legacyWarned = true;
+            this.warn(
+              'deprecated inline HTML overlay syntax (<!-- overlay: ... -->); migrate to the markdown-native ">" blockquote syntax',
+            );
+          }
           for (const ov of overlays) {
             sceneLayers.push({
               id: `${sceneId}_overlay_${sceneLayers.length + 1}`,
@@ -389,6 +508,7 @@ export class RemotionSceneCompiler {
             template: (sc.scene_templates && sc.scene_templates[0]) || null,
             properties: props,
             narration,
+            overlayEvents: sc.overlay_events || [],
             layers: sceneLayers,
           });
         }
@@ -610,6 +730,7 @@ export class RemotionSceneCompiler {
   compile(scriptInput, options = {}) {
     let parsed;
     let scriptSource = options.scriptSource || 'script.md';
+    this.warnings = [];
 
     if (typeof scriptInput === 'string') {
       parsed = this.parseScript(scriptInput);
@@ -622,6 +743,13 @@ export class RemotionSceneCompiler {
     } else {
       throw new Error('Invalid script input: expected string or parsed object');
     }
+
+    // Resolve reusable template definitions once per compile (series > referenced
+    // blueprint > system default). Never fatal: a missing blueprint warns only.
+    const blueprintTemplates = this.resolveBlueprintTemplates(
+      scriptSource,
+      parsed.videoProps?.video_blueprint || parsed.videoProps?.videoBlueprint,
+    );
 
     const fps = options.fps || parsed.fps || this.fps;
     const width = options.width || parsed.width || this.width;
@@ -874,6 +1002,42 @@ export class RemotionSceneCompiler {
             narration: sc.narration,
           })
         );
+      }
+
+      // 5b. Markdown-native blockquote overlay events: one track per `>` event,
+      // scheduled sequentially from the scene start so timelines never collide.
+      const eventSource = sc.overlayEvents || [];
+      if (eventSource.length > 0) {
+        const sceneEnd = fromFrame + durationInFrames;
+        let eventCursor = fromFrame;
+        for (let k = 0; k < eventSource.length; k++) {
+          const event = eventSource[k];
+          const kind = event.kind || 'quote';
+          const spec = OVERLAY_EVENT_SPECS[kind] || OVERLAY_EVENT_SPECS.quote;
+          const blueprint = blueprintTemplates[spec.template] || {};
+          const seconds = eventDurationSeconds(event.options, spec, blueprint);
+          let eventFrames = Math.max(1, Math.round(seconds * fps));
+          // ponytail: clamp to the remaining scene time; upgrade to per-event
+          // timeline scaling if scripts routinely overflow a scene.
+          const remaining = sceneEnd - eventCursor;
+          if (remaining <= 0) {
+            eventFrames = 1;
+            eventCursor = Math.max(fromFrame, sceneEnd - 1);
+          } else {
+            eventFrames = Math.min(eventFrames, remaining);
+          }
+          overlayTracks.push({
+            id: `overlay_${sceneId}_event_${k + 1}`,
+            type: spec.type,
+            fromFrame: eventCursor,
+            durationInFrames: eventFrames,
+            enterAnimation:
+              event.options?.enter_animation || blueprint.enter_animation || spec.enter,
+            exitAnimation: event.options?.exit_animation || blueprint.exit_animation || spec.exit,
+            config: overlayEventConfig(kind, event, blueprint),
+          });
+          eventCursor += eventFrames;
+        }
       }
 
       currentFrame += durationInFrames;

@@ -8,11 +8,14 @@
 
 import React from 'react';
 import { AbsoluteFill, interpolate, useCurrentFrame } from 'remotion';
+import { resolveOverlayAnimation } from '../overlay-animation.mjs';
 
-export const Captions: React.FC<{ config: Record<string, unknown>; durationInFrames: number }> = ({
-  config,
-  durationInFrames,
-}) => {
+export const Captions: React.FC<{
+  config: Record<string, unknown>;
+  durationInFrames: number;
+  enterAnimation?: string;
+  exitAnimation?: string;
+}> = ({ config, durationInFrames, enterAnimation, exitAnimation }) => {
   const frame = useCurrentFrame();
   const text = ((config.text as string) || '').trim();
   const size = Number(config.size) || 80;
@@ -23,7 +26,9 @@ export const Captions: React.FC<{ config: Record<string, unknown>; durationInFra
   const activeIdx = words.length
     ? Math.min(words.length - 1, Math.floor((frame / Math.max(1, durationInFrames)) * words.length))
     : -1;
-  const opacity = interpolate(frame, [0, 6], [0, 1], { extrapolateRight: 'clamp' });
+  const enter = interpolate(frame, [0, 6], [0, 1], { extrapolateRight: 'clamp' });
+  const motion = resolveOverlayAnimation({ frame, durationInFrames, enterAnimation, exitAnimation });
+  const opacity = enter * motion.opacity;
 
   if (!words.length) return null;
 

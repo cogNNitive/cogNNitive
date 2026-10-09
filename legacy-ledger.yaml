@@ -115,3 +115,11 @@ entries:
     why: Maintain backwards compatibility for references targeting models that do not use explicit slugs
     removal: all-models-slug-frozen + maintainer-sign-off
     owner: 2026-10-07-stable-element-identity
+
+  - id: html-comment-overlays
+    what: "Legacy inline HTML-comment overlay directives in the Remotion scene compiler"
+    paths:
+      - iNNfo/specs/bluepriNNts/video/skills/nn-video-script/scripts/remotion-scene-compiler.mjs
+    why: "Compatibility window while series scripts migrate to markdown-native '>' blockquote overlay events"
+    removal: all-series-scripts-migrated + maintainer-sign-off
+    owner: 2026-10-09-video-blueprint-architecture
