@@ -35,7 +35,7 @@ export const MODEL = {
   ],
 }
 
-export function bootConsole() {
+export function bootConsole({ registry, model = MODEL, url = 'http://localhost' } = {}) {
   const dom = new JSDOM(
     `<!doctype html><html><head></head><body>
       <div id="innfo-layout">
@@ -50,15 +50,15 @@ export function bootConsole() {
       </div>
       <script type="application/json" id="innfo-config">{"needs":["feedback-export"]}</script>
       <script type="application/json" id="innfo-schema">{"concepts":[{"name":"Fleet"}]}</script>
-      <script type="application/json" id="innfo-model">${JSON.stringify(MODEL)}</script>
+      <script type="application/json" id="innfo-model">${JSON.stringify(model)}</script>
     </body></html>`,
-    { url: 'http://localhost' },
+    { url },
   )
   global.window = dom.window
   global.document = dom.window.document
   global.localStorage = dom.window.localStorage
   global.CustomEvent = dom.window.CustomEvent
-  const res = InnfoConsole.boot(dom.window.document)
+  const res = InnfoConsole.boot(dom.window.document, registry ? { registry } : undefined)
   return { dom, document: dom.window.document, res }
 }
 

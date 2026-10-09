@@ -5004,6 +5004,86 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     renderStudioView(doc, model, meta, rows, totalMonths, labels, rowMap, overrides, growthState, historyCount, onStateChange)
   }
 
+  /* View registry. A view is a classic script that calls the registerView
+     bound by viewRegistrar(id, source); the id is the file slug. A rejected
+     registration throws AND is recorded in registry.errors(), which boot
+     renders as the #innfo-view-errors notice (a throw inside a <script> is
+     otherwise visible only in devtools). */
+  var VIEW_ID_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/
+  var RESERVED_VIEW_IDS = ['explorer', 'matrices', 'review']
+  var VIEW_KINDS = ['editable', 'readonly']
+
+  function nonEmptyString(v) {
+    return typeof v === 'string' && v.trim() !== ''
+  }
+
+  // Returns '' when valid, otherwise a message naming the view id and field.
+  function validateViewDef(def) {
+    if (!def || typeof def !== 'object') return 'view "(missing id)": definition must be an object'
+    var id = typeof def.id === 'string' ? def.id : ''
+    var at = 'view "' + (id || '(missing id)') + '": '
+    if (!VIEW_ID_RE.test(id)) return at + 'id must be a slug of lowercase alphanumerics and hyphens'
+    if (RESERVED_VIEW_IDS.indexOf(id) >= 0) return at + 'id is reserved'
+    if (!nonEmptyString(def.title)) return at + 'title must be a non-empty string'
+    if (!nonEmptyString(def.icon)) return at + 'icon must be a non-empty string'
+    if (typeof def.order !== 'number' || !isFinite(def.order)) return at + 'order must be a finite number'
+    if (VIEW_KINDS.indexOf(def.kind) < 0) return at + 'kind must be "editable" or "readonly"'
+    if (typeof def.mount !== 'function') return at + 'mount must be a function'
+    return ''
+  }
+
+  function createViewRegistry() {
+    var views = []
+    var errors = []
+
+    function report(id, sources, reason) {
+      errors.push({ id: id, sources: sources, reason: reason })
+    }
+
+    function reject(id, sources, reason) {
+      report(id, sources, reason)
+      throw new Error(reason)
+    }
+
+    function register(def) {
+      var id = def && typeof def.id === 'string' && def.id ? def.id : '(missing id)'
+      var source = def && def.source ? String(def.source) : 'registerView'
+      var reason = validateViewDef(def)
+      if (reason) reject(id, [source], reason)
+      for (var i = 0; i < views.length; i++) {
+        if (views[i].id === id) {
+          reject(id, [views[i].source, source], 'view "' + id + '": duplicate id (already registered by ' + views[i].source + ')')
+        }
+      }
+      views.push(Object.assign({}, def, { source: source }))
+      return id
+    }
+
+    // Binds the file slug and source; a declared id that differs is rejected.
+    function registrar(id, source) {
+      return function (def) {
+        if (def && def.id !== undefined && def.id !== id) {
+          reject(id, [source], 'view "' + id + '": declared id "' + def.id + '" does not match the file slug')
+        }
+        return register(Object.assign({}, def, { id: id, source: source }))
+      }
+    }
+
+    return {
+      register: register,
+      registrar: registrar,
+      report: report,
+      list: function () {
+        return views.slice()
+      },
+      errors: function () {
+        return errors.slice()
+      },
+    }
+  }
+
+  var defaultViewRegistry = createViewRegistry()
+
   function renderViewTabs(doc, config, model, meta, state, onRefresh) {
     var mainEl = doc && typeof doc.querySelector === 'function' ? doc.querySelector('main') : null
     var tabsNav = doc && typeof doc.getElementById === 'function' ? doc.getElementById('innfo-view-tabs') : null
@@ -6357,6 +6437,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     monthAxis: monthAxis,
     renderCharts: renderCharts,
     renderTimelineGrid: renderTimelineGrid,
+    createViewRegistry: createViewRegistry,
+    registerView: defaultViewRegistry.register,
+    viewRegistrar: defaultViewRegistry.registrar,
     renderViewTabs: renderViewTabs,
     renderReviewTab: renderReviewTab,
     focusElementCard: focusElementCard,
