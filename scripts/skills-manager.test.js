@@ -427,6 +427,122 @@ agent-bootstrap:
   fs.rmSync(tmpDir, { recursive: true, force: true });
 }
 
+// 10. Embedded skill projection: a bluepriNNt package carrying skills/<name>/ installs each
+//     skill into skillsDir, preserving node_modules, without touching the real home dir.
+//     downloadFile and extractTarball are faked by patching github-client / atomic-fs BEFORE a
+//     fresh load of skills-commands (both are destructured at require time), so there is no
+//     network, no tar binary dependency and no ~/.agents access.
+{
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'actioNN-test-embedded-'));
+  const githubClientPath = require.resolve('./lib/github-client.js');
+  const commandsPath = require.resolve('./lib/skills-commands.js');
+  const atomicFsPath = require.resolve('./lib/atomic-fs.js');
+  const realDownload = require(githubClientPath).downloadFile;
+  const realExtract = require(atomicFsPath).extractTarball;
+  const realCommands = require.cache[commandsPath];
+
+  const buildTarball = (variant, withSkills) => {
+    const root = path.join(tmpDir, `repo-${variant}`, 'repo-abc');
+    const pkg = path.join(root, 'video');
+    fs.mkdirSync(pkg, { recursive: true });
+    fs.writeFileSync(path.join(pkg, 'spec_NN.md'), '# video', 'utf-8');
+    if (withSkills) {
+      fs.mkdirSync(path.join(pkg, 'skills', 'x', 'scripts'), { recursive: true });
+      fs.writeFileSync(
+        path.join(pkg, 'skills', 'x', 'SKILL.md'),
+        `---\nname: x\nversion: V_0-4-0\ndescription: embedded\n---\n# x ${variant}\n`,
+        'utf-8',
+      );
+      fs.writeFileSync(path.join(pkg, 'skills', 'x', 'scripts', 'run.mjs'), `// ${variant}\n`, 'utf-8');
+    }
+    return path.join(tmpDir, `repo-${variant}`);
+  };
+
+  let currentFixture = null;
+  const downloads = [];
+  require(githubClientPath).downloadFile = async (url, dest) => {
+    downloads.push(url);
+    assert.ok(currentFixture, 'downloadFile fake needs a fixture tree');
+    fs.writeFileSync(dest, 'fake-tarball', 'utf-8');
+  };
+  require(atomicFsPath).extractTarball = (tarFile, destDir) => {
+    assert.strictEqual(fs.readFileSync(tarFile, 'utf-8'), 'fake-tarball', 'extract must receive the faked download');
+    fs.cpSync(currentFixture, destDir, { recursive: true });
+  };
+  delete require.cache[commandsPath];
+  const { installBlueprintAtCommit } = require('./lib/skills-commands.js');
+
+  const template = { name: 'video', repo: 'o/r', path: 'video', commit: 'abc1234', version: 'V_0-8-0' };
+  const newState = () => ({ manifest: 'dummy', skills: {}, blueprints: {}, projections: {} });
+
+  try {
+    // 3.1 Install projects skills/x to skillsDir/x and records state
+    {
+      const blueprintsDir = path.join(tmpDir, 'a', 'bluepriNNts');
+      const skillsDir = path.join(tmpDir, 'a', 'skills');
+      const state = newState();
+      currentFixture = buildTarball('one', true);
+      const names = await installBlueprintAtCommit(template, blueprintsDir, state, skillsDir);
+
+      assert.deepStrictEqual(names, ['x'], 'must report the projected skill names');
+      assert.ok(fs.existsSync(path.join(skillsDir, 'x', 'SKILL.md')), 'SKILL.md must be projected');
+      assert.ok(fs.existsSync(path.join(skillsDir, 'x', 'scripts', 'run.mjs')), 'nested files must be projected');
+      assert.strictEqual(state.skills.x.commit, 'abc1234');
+      assert.strictEqual(state.skills.x.version, 'V_0-4-0');
+      assert.strictEqual(state.skills.x.source_blueprint, 'video');
+      assert.ok(state.skills.x.updated_at, 'updated_at must be recorded');
+      assert.ok(downloads.every((u) => u.includes('codeload.github.com')), 'fake saw the expected URL');
+      console.log('✔ Embedded skill projects to skillsDir and records state');
+    }
+
+    // 3.2a Re-install keeps node_modules and updates changed files; standalone dir is overwritten
+    {
+      const blueprintsDir = path.join(tmpDir, 'b', 'bluepriNNts');
+      const skillsDir = path.join(tmpDir, 'b', 'skills');
+      const state = newState();
+      fs.mkdirSync(path.join(skillsDir, 'x', 'node_modules', 'remotion'), { recursive: true });
+      fs.writeFileSync(path.join(skillsDir, 'x', 'node_modules', 'remotion', 'index.js'), 'dep', 'utf-8');
+      fs.writeFileSync(path.join(skillsDir, 'x', 'SKILL.md'), '# standalone leftover', 'utf-8');
+      fs.writeFileSync(path.join(skillsDir, 'x', 'stale.txt'), 'old', 'utf-8');
+
+      currentFixture = buildTarball('two', true);
+      await installBlueprintAtCommit(template, blueprintsDir, state, skillsDir);
+
+      assert.ok(
+        fs.existsSync(path.join(skillsDir, 'x', 'node_modules', 'remotion', 'index.js')),
+        'node_modules must survive a re-install',
+      );
+      assert.match(fs.readFileSync(path.join(skillsDir, 'x', 'SKILL.md'), 'utf-8'), /# x two/, 'standalone dir must be overwritten');
+      assert.strictEqual(fs.existsSync(path.join(skillsDir, 'x', 'stale.txt')), false, 'stale files must be removed');
+      assert.match(fs.readFileSync(path.join(skillsDir, 'x', 'scripts', 'run.mjs'), 'utf-8'), /two/);
+      console.log('✔ Embedded skill re-install keeps node_modules and overwrites standalone dir');
+    }
+
+    // 3.2b A package without skills/ projects nothing
+    {
+      const blueprintsDir = path.join(tmpDir, 'c', 'bluepriNNts');
+      const skillsDir = path.join(tmpDir, 'c', 'skills');
+      const state = newState();
+      currentFixture = buildTarball('three', false);
+      const names = await installBlueprintAtCommit(template, blueprintsDir, state, skillsDir);
+
+      assert.deepStrictEqual(names, []);
+      assert.deepStrictEqual(state.skills, {});
+      assert.strictEqual(fs.existsSync(skillsDir), false, 'no skillsDir must be created');
+      console.log('✔ Package without skills/ projects nothing');
+    }
+
+    // Stub self-check: the fake must be what ran (never the real network/home dir)
+    assert.ok(downloads.length >= 3, 'downloadFile fake must have been exercised');
+  } finally {
+    require(githubClientPath).downloadFile = realDownload;
+    require(atomicFsPath).extractTarball = realExtract;
+    delete require.cache[commandsPath];
+    if (realCommands) require.cache[commandsPath] = realCommands;
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+}
+
 // ADR / Monorepo release manifest fallback URL agreement test
 {
   const { FALLBACK_MANIFEST_URL: smFallback } = require('./lib/skills-commands.js');

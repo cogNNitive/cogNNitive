@@ -23,6 +23,10 @@
  *     one-time path migration — it only has to carry a valid `blueprint_version`,
  *     not increment one.
  *   - status D (deleted): always passes (history lives in git tags).
+ *   - embedded skills: any A/M/D/R under `<bluepriNNt>/skills/**` requires the
+ *     owning `<bluepriNNt>/spec_NN.md` to carry a `blueprint_version` strictly
+ *     greater than its base version (a base-less owner only needs a valid one),
+ *     even when the owner spec itself is unchanged.
  *   - non-template files and files under samples/ or assets/: ignored.
  *
  * Usage:
@@ -97,10 +101,19 @@ function templateVersionOf(content) {
 function isCanonicalBlueprint(relPath) {
   const p = relPath.replace(/\\/g, '/');
   if (!/\.md$/i.test(p)) return false;
-  if (p.includes('/samples/') || p.includes('/assets/') || p.includes('/procedures/')) return false;
+  if (p.includes('/samples/') || p.includes('/assets/') || p.includes('/procedures/') || p.includes('/skills/')) return false;
   const base = path.basename(p);
   // Level-2 template specs: `spec_NN.md`, `<name>_spec_NN.md`, `<name>_NN.md`.
   return /^(spec_NN|.*_spec_NN|.*_NN)\.md$/i.test(base);
+}
+
+/**
+ * Owning spec of a file embedded under `<...>/bluepriNNts/<bp>/skills/...`, or null.
+ * Pure path mapping: `.../bluepriNNts/video/skills/x/SKILL.md` -> `.../bluepriNNts/video/spec_NN.md`.
+ */
+function ownerSpecOf(relPath) {
+  const m = relPath.replace(/\\/g, '/').match(/^(.*\/)?(bluepriNNts\/[^/]+)\/skills\/.+/);
+  return m ? `${m[1] || ''}${m[2]}/spec_NN.md` : null;
 }
 
 function isUnderRoot(filePath, root) {
@@ -269,6 +282,36 @@ function checkAdded(relPath, workingContent, errors) {
   }
 }
 
+/** Every skill change forces a version bump on its owning bluepriNNt spec. */
+function checkEmbeddedSkillOwner(ownerPath, changedFiles, base, baseRoot, errors) {
+  // Already reported by the template check for the same owner: do not repeat it.
+  if (errors.some((e) => e.includes(ownerPath))) return;
+
+  const workingContent = readWorkingContent(ownerPath);
+  if (workingContent == null) return; // owning bluepriNNt removed: nothing to bump
+  const files = changedFiles.join(', ');
+
+  const workV = templateVersionOf(workingContent);
+  if (!workV || !semver(workV)) {
+    errors.push(
+      `ERROR: embedded skill change(s) (${files}) require a valid blueprint_version in ${ownerPath} (got "${workV ?? 'missing'}").`,
+    );
+    return;
+  }
+
+  const baseContent = readBaseContent(ownerPath, base, baseRoot);
+  if (baseContent == null) return; // brand-new bluepriNNt: any valid version is fine
+  const baseV = templateVersionOf(baseContent);
+  if (!baseV || !semver(baseV)) return;
+
+  if (compareSemver(workV, baseV) <= 0) {
+    errors.push(
+      `ERROR: embedded skill change(s) (${files}) were made without incrementing blueprint_version in ${ownerPath} ` +
+        `(base: "${baseV}", current: "${workV}"). Bump blueprint_version on every skill change.`,
+    );
+  }
+}
+
 function main() {
   const root = getArg('--root') || DEFAULT_ROOT;
   const diffFile = getArg('--diff-file');
@@ -281,11 +324,21 @@ function main() {
     : diffLinesFromGit(base, root, staged);
 
   const errors = [];
+  const skillOwners = new Map(); // owner spec path -> changed skill files
   for (const line of lines) {
     const parsed = parseDiffLine(line);
     if (!parsed) continue;
     const { status, target, oldPath } = parsed;
     if (!isUnderRoot(target, root)) continue;
+
+    for (const touched of [target, oldPath].filter(Boolean)) {
+      const owner = ownerSpecOf(touched);
+      if (owner) {
+        if (!skillOwners.has(owner)) skillOwners.set(owner, []);
+        skillOwners.get(owner).push(underBlueprints(touched));
+      }
+    }
+
     if (!isCanonicalBlueprint(target)) continue;
 
     if (status === 'D') continue;
@@ -307,6 +360,10 @@ function main() {
       errors,
       isCanonicalMigrationRename(status, oldPath, target),
     );
+  }
+
+  for (const [owner, changed] of skillOwners) {
+    checkEmbeddedSkillOwner(owner, [...new Set(changed)], base, baseRoot, errors);
   }
 
   if (errors.length > 0) {

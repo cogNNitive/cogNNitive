@@ -135,37 +135,37 @@ non-`*_NN.md` files. End: installing a bluepriNNt with `skills/` projects each s
 preserves `node_modules`; the guard enforces a bump on any `skills/**` change.
 Out of scope: the move itself.
 
-- [ ] 3.1 **RED**: in `scripts/skills-manager.test.js` add: a blueprint package with
+- [x] 3.1 **RED**: in `scripts/skills-manager.test.js` add: a blueprint package with
       `skills/x/SKILL.md` projects to `skillsDir/x/` and records
       `state.skills.x = { commit, version, source_blueprint, updated_at }`.
       `[template-procedures-manifest-and-discovery:R-TPD-05:Install projects the embedded skill]`
-- [ ] 3.2 **RED**: re-install with an existing `skillsDir/x/node_modules/` keeps it and
+- [x] 3.2 **RED**: re-install with an existing `skillsDir/x/node_modules/` keeps it and
       updates changed files; a pre-existing standalone `skillsDir/x/` is overwritten (D7); a
       package with no `skills/` projects nothing.
       `[template-procedures-manifest-and-discovery:R-TPD-05:Re-install keeps Remotion dependencies]`
-- [ ] 3.3 **GREEN**: in `scripts/lib/skills-commands.js` add
+- [x] 3.3 **GREEN**: in `scripts/lib/skills-commands.js` add
       `installEmbeddedSkills(pkgDir, skillsDir, template, state): string[]` using
       `replaceDirAtomic` when the dest exists, `copyDirAtomic` otherwise (D6, no
       `classifyProjection`/`mirrorDir`). Source is the installed copy
       `<pkgDestPath>/skills/<name>/`.
-- [ ] 3.4 **GREEN**: `installBlueprintAtCommit(template, blueprintsDir, state, skillsDir)`
+- [x] 3.4 **GREEN**: `installBlueprintAtCommit(template, blueprintsDir, state, skillsDir)`
       calls it when `recordedPath === pkgDestPath` and returns the names; pass
       `args.skillsDir` from `cmdInstall`, `cmdUpdate`, `cmdBootstrap`; `cmdInstall` appends
       names to `projectSkillsToAgents.skillNames` (the other two rely on the existing
       `state.skills` filter).
-- [ ] 3.5 Regenerate the bundle: `node scripts/build-skills-manager-bundle.mjs`. Confirm the
+- [x] 3.5 Regenerate the bundle: `node scripts/build-skills-manager-bundle.mjs`. Confirm the
       generated diff matches the source change only.
-- [ ] 3.6 **RED**: in `scripts/guard-template-immutability.test.js` (use `--diff-file`): A/M
+- [x] 3.6 **RED**: in `scripts/guard-template-immutability.test.js` (use `--diff-file`): A/M
       under `video/skills/**` with NO owner-spec bump fails naming the package and file;
       the same with a `blueprint_version` bump passes; also fails when `spec_NN.md` itself
       is unchanged; a base-less owner passes with a valid version.
       `[template-package-structure:Immutability Guard Covers Embedded Skills:Skill edit without version bump is rejected]`
-- [ ] 3.7 **GREEN**: in `scripts/guard-template-immutability.js` add pure
+- [x] 3.7 **GREEN**: in `scripts/guard-template-immutability.js` add pure
       `ownerSpecOf(relPath)` (`.../bluepriNNts/<bp>/skills/...` to
       `.../bluepriNNts/<bp>/spec_NN.md`); in `main`, any A/M/D/R under `skills/` adds the
       owner spec to a set; each owner needs a working `blueprint_version` greater than the
       base version.
-- [ ] 3.8 Verify (targeted): `scripts/skills-manager.test.js` and
+- [x] 3.8 Verify (targeted): `scripts/skills-manager.test.js` and
       `scripts/guard-template-immutability.test.js` green. Then ONE
       `node scripts/verify.js`.
 - Rollback: revert the slice commit and regenerate the bundle (or revert both files

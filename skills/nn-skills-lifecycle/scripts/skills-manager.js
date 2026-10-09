@@ -903,7 +903,32 @@ var require_skills_commands = __commonJS({
         fs.rmSync(tmpRoot, { recursive: true, force: true });
       }
     }
-    async function installBlueprintAtCommit(template, blueprintsDir, state) {
+    function installEmbeddedSkills(pkgDir, skillsDir, template, state) {
+      const embeddedRoot = path2.join(pkgDir, "skills");
+      if (!fs.existsSync(embeddedRoot)) return [];
+      const names = [];
+      for (const entry of fs.readdirSync(embeddedRoot, { withFileTypes: true })) {
+        if (!entry.isDirectory() || entry.name.startsWith(".") || entry.name === "node_modules") continue;
+        const src = path2.join(embeddedRoot, entry.name);
+        const skillFile = path2.join(src, "SKILL.md");
+        if (!fs.existsSync(skillFile)) continue;
+        const dest = path2.join(skillsDir, entry.name);
+        fs.mkdirSync(skillsDir, { recursive: true });
+        if (fs.existsSync(dest)) replaceDirAtomic(src, dest);
+        else copyDirAtomic(src, dest);
+        const frontmatter = /^---\r?\n([\s\S]*?)\r?\n---/.exec(fs.readFileSync(skillFile, "utf8"));
+        const versionMatch = frontmatter && /^version:\s*["']?([^"'\r\n]+?)["']?\s*$/m.exec(frontmatter[1]);
+        state.skills[entry.name] = {
+          commit: template.commit,
+          version: versionMatch ? versionMatch[1] : void 0,
+          source_blueprint: template.name,
+          updated_at: (/* @__PURE__ */ new Date()).toISOString()
+        };
+        names.push(entry.name);
+      }
+      return names;
+    }
+    async function installBlueprintAtCommit(template, blueprintsDir, state, skillsDir) {
       const isMdFile = template.path.endsWith(".md") || template.path.endsWith(".markdown");
       const fileName = template.name.endsWith(".md") ? template.name : `${template.name}.md`;
       const flatDestPath = path2.join(blueprintsDir, fileName);
@@ -959,6 +984,10 @@ var require_skills_commands = __commonJS({
         path: recordedPath,
         updated_at: (/* @__PURE__ */ new Date()).toISOString()
       };
+      if (skillsDir && recordedPath === pkgDestPath) {
+        return installEmbeddedSkills(pkgDestPath, skillsDir, template, state);
+      }
+      return [];
     }
     async function installMcpAtCommit(mcp, mcpDir, state) {
       fs.mkdirSync(mcpDir, { recursive: true });
@@ -1155,6 +1184,7 @@ var require_skills_commands = __commonJS({
       const proceed = await consentOrAbort("install missing skills, templates, and console assets", names, menu, args.yes);
       if (!proceed) return;
       let failures = 0;
+      const embeddedSkillNames = [];
       for (const skill of toInstallSkills) {
         try {
           await installSkillAtCommit(skill, args.skillsDir, state);
@@ -1166,7 +1196,7 @@ var require_skills_commands = __commonJS({
       }
       for (const template of toInstallBlueprints) {
         try {
-          await installBlueprintAtCommit(template, args.blueprintsDir, state);
+          embeddedSkillNames.push(...await installBlueprintAtCommit(template, args.blueprintsDir, state, args.skillsDir));
           console.log(`  installed template ${template.name} (${template.version}) @ ${template.commit.slice(0, 7)}`);
         } catch (err) {
           failures++;
@@ -1187,7 +1217,7 @@ var require_skills_commands = __commonJS({
         targetAgent: args.agent,
         scope: args.scope,
         state,
-        skillNames: toInstallSkills.map((s) => s.name)
+        skillNames: [...toInstallSkills.map((s) => s.name), ...embeddedSkillNames]
       });
       saveState(args.stateFile, state);
       if (failures > 0) {
@@ -1268,7 +1298,7 @@ Installed ${toInstallSkills.length} skill(s), ${toInstallBlueprints.length} temp
       }
       for (const template of selectedBlueprints) {
         try {
-          await installBlueprintAtCommit(template, args.blueprintsDir, state);
+          await installBlueprintAtCommit(template, args.blueprintsDir, state, args.skillsDir);
           console.log(`  updated template ${template.name} -> ${template.version} (${template.commit.slice(0, 7)})`);
         } catch (err) {
           failures++;
@@ -1388,7 +1418,7 @@ Installing/verifying ${manifest.blueprints.length} template(s)...`);
         const tmplPresent = fs.existsSync(path2.join(args.blueprintsDir, fileName)) || fs.existsSync(path2.join(args.blueprintsDir, tmpl.name));
         const entry = state.blueprints[tmpl.name];
         if (!tmplPresent || !entry || entry.commit !== tmpl.commit) {
-          await installBlueprintAtCommit(tmpl, args.blueprintsDir, state);
+          await installBlueprintAtCommit(tmpl, args.blueprintsDir, state, args.skillsDir);
           console.log(`  \u2713 template ${tmpl.name} (${tmpl.version}) @ ${tmpl.commit.slice(0, 7)}`);
         } else {
           console.log(`  \u2713 template ${tmpl.name} (${tmpl.version}) up-to-date`);
@@ -1672,6 +1702,7 @@ Projected skills to agent directories:`);
       fetchCompareSummary,
       installSkillAtCommit,
       installBlueprintAtCommit,
+      installEmbeddedSkills,
       installMcpAtCommit,
       installConsoleAssetAtCommit,
       projectSkillsToAgents,

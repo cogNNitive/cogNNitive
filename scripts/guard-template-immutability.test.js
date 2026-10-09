@@ -178,6 +178,72 @@ async function runTests() {
       console.log('✔ edits to samples/assets/procedures are not flagged');
     }
 
+    // 8b. Embedded skill edits: any A/M/D/R under <bluepriNNt>/skills/** requires the owning
+    //     spec_NN.md to carry a blueprint_version greater than its base, even when the
+    //     owner spec itself is not part of the diff.
+    {
+      writeBase('video/spec_NN.md', tpl('V_0-7-2', 'Owner body.'));
+      writeWork('video/spec_NN.md', tpl('V_0-7-2', 'Owner body.'));
+      const skillFile = 'iNNfo/specs/bluepriNNts/video/skills/nn-video-script/SKILL.md';
+
+      for (const status of ['M', 'A', 'D']) {
+        const fx = writeFixture([`${status}\t${skillFile}`], `skill-${status}.txt`);
+        const res = await runGuard(args(fx), tmpDir);
+        assert.strictEqual(res.status, 1, `${status} under skills/ without an owner bump must exit 1`);
+        assert.ok(res.stdout.includes('video/spec_NN.md'), 'names the owning package spec');
+        assert.ok(res.stdout.includes('skills/nn-video-script/SKILL.md'), 'names the changed skill file');
+        assert.ok(/blueprint_version/.test(res.stdout), 'carries the bump remediation');
+      }
+      console.log('✔ skill edit (M/A/D) without an owner blueprint_version bump fails');
+
+      const renameFx = writeFixture([
+        `R100\tiNNfo/specs/bluepriNNts/video/skills/old-name/SKILL.md\t${skillFile}`,
+      ], 'skill-R.txt');
+      const renameRes = await runGuard(args(renameFx), tmpDir);
+      assert.strictEqual(renameRes.status, 1, 'a skill rename without an owner bump must exit 1');
+      console.log('✔ skill rename without an owner bump fails');
+
+      writeWork('video/spec_NN.md', tpl('V_0-8-0', 'Owner body.'));
+      const okFx = writeFixture([`M\t${skillFile}`], 'skill-ok.txt');
+      const okRes = await runGuard(args(okFx), tmpDir);
+      assert.strictEqual(okRes.status, 0, `owner bump must satisfy the guard. stdout: ${okRes.stdout}`);
+      console.log('✔ skill edit with an owner blueprint_version bump passes');
+
+      // Owner spec in the same diff with a body change and no bump is reported once.
+      writeBase('video2/spec_NN.md', tpl('V_0-7-2', 'Old.'));
+      writeWork('video2/spec_NN.md', tpl('V_0-7-2', 'New.'));
+      const dupFx = writeFixture([
+        'M\tiNNfo/specs/bluepriNNts/video2/spec_NN.md',
+        'M\tiNNfo/specs/bluepriNNts/video2/skills/s/SKILL.md',
+      ], 'skill-dup.txt');
+      const dupRes = await runGuard(args(dupFx), tmpDir);
+      assert.strictEqual(dupRes.status, 1);
+      assert.strictEqual(
+        dupRes.stdout.split('\n').filter((l) => l.includes('video2/spec_NN.md')).length,
+        1,
+        'the same owner must not be reported twice',
+      );
+      console.log('✔ owner spec already reported by the template check is not reported twice');
+
+      // Base-less owner (brand new bluepriNNt) passes with a valid version, fails without one.
+      writeWork('fresh/spec_NN.md', tpl('V_0-1-0'));
+      const freshFx = writeFixture(['A\tiNNfo/specs/bluepriNNts/fresh/skills/s/SKILL.md'], 'skill-fresh.txt');
+      const freshRes = await runGuard(args(freshFx), tmpDir);
+      assert.strictEqual(freshRes.status, 0, `a base-less owner with a valid version must pass. stdout: ${freshRes.stdout}`);
+
+      writeWork('nover/spec_NN.md', '---\nlevel: 2\ntitle: "T"\n---\n\n# T\n');
+      const noVerFx = writeFixture(['A\tiNNfo/specs/bluepriNNts/nover/skills/s/SKILL.md'], 'skill-nover.txt');
+      const noVerRes = await runGuard(args(noVerFx), tmpDir);
+      assert.strictEqual(noVerRes.status, 1, 'an owner without a valid version must exit 1');
+      console.log('✔ base-less owner passes only with a valid blueprint_version');
+
+      // Markdown inside skills/ is never mistaken for a canonical bluepriNNt spec.
+      const mdFx = writeFixture(['A\tiNNfo/specs/bluepriNNts/fresh/skills/s/docs/extra_spec_NN.md'], 'skill-md.txt');
+      const mdRes = await runGuard(args(mdFx), tmpDir);
+      assert.strictEqual(mdRes.status, 0, `skill docs must not be validated as a template. stdout: ${mdRes.stdout}`);
+      console.log('✔ *_NN.md files inside skills/ are not treated as bluepriNNt specs');
+    }
+
     // 9. Release-tag build: HEAD is an exact tag that is an ANCESTOR of a
     //    moved-on origin/main (the v0.7.2 re-run failure). The guard must diff
     //    against the merge-base (the tag itself), not origin/main, or it reports
