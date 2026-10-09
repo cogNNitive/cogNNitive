@@ -734,7 +734,7 @@ Executable procedures and agent skills are content declared dynamically in model
 
 Additionally, procedures are discovered by reading the `## NN Procedure: ...` sections of the active model and the workspace's `procedures/` folder (predicate: Level 3 documents whose `parent_spec` resolves to the procedures bluepriNNt).
 
-The template console procedure (historically referred to as "master.html", "showroom", or "gallery") generates the canonical interactive console for a model (e.g. `business_console.html`, `procedures_console.html`). For multi-model workspaces, the `workspace_hub` procedure generates the aggregated workspace portal (`artifacts/workspace_hub.html`). If the user asks for a "console", "master", "hub", "showroom", "gallery", or "visual framework", offer to generate the corresponding canonical console or workspace hub.
+The template console procedure (historically referred to as "master.html", "showroom", or "gallery") generates the canonical interactive console for a model (e.g. `business_console.html`, `procedures_console.html`). A domaiNN console aggregates every model and registered view into one self-contained `domaiNN_console.html` (see `console-architecture`). If the user asks for a "console", "master", "showroom", "gallery", or "visual framework", offer to generate the corresponding canonical console.
 
 ---
 

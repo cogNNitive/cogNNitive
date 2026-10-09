@@ -16,14 +16,6 @@ title: "Procedures Catalog"
 
 # NN Procedure
 
-## NN Procedure: Compile Workspace Hub
-category:: transformation
-summary:: Automated compilation procedure to generate the unified interactive Workspace Hub HTML dashboard from workspace models and catalogs.
-inputs_required:: Ghostbusters Business Model
-outputs_expected:: Workspace Hub Interactive Dashboard
-executed_by:: Egon Spengler
-procedure_model:: procedures/compile_workspace_hub_procedures_NN.md
-
 ## NN Procedure: Import and Structure Tabular Data
 category:: ingestion
 summary:: Ingestion workflow to normalize Excel/CSV incident reports into structured tabular knowledge units.

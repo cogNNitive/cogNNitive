@@ -74,14 +74,14 @@ describe('scanHtmlArtifacts', () => {
   it('lists every html file under artifacts/ with workspace-relative paths', async () => {
     const root = buildFakeTree('ws', {
       artifacts: {
-        'workspace_hub.html': '<html></html>',
+        'portal_console.html': '<html></html>',
         business_console: { 'business_console_20261003T100000Z.html': '<html></html>', 'notes.md': 'x' },
       },
       'elsewhere.html': '<html></html>',
     })
     expect((await scanHtmlArtifacts(root)).sort()).toEqual([
       'artifacts/business_console/business_console_20261003T100000Z.html',
-      'artifacts/workspace_hub.html',
+      'artifacts/portal_console.html',
     ])
   })
 
@@ -103,6 +103,6 @@ describe('sameConsoleFamily', () => {
 describe('consoleKeyOf', () => {
   it('returns the lower-cased family key regardless of the suffix', () => {
     expect(consoleKeyOf('artifacts/X/Business_Console_20261001T100000Z-2.html')).toBe('business_console')
-    expect(consoleKeyOf('..\\artifacts\\workspace_hub.html')).toBe('workspace_hub')
+    expect(consoleKeyOf('..\\artifacts\\portal_console.html')).toBe('portal_console')
   })
 })

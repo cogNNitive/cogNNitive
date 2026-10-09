@@ -7,7 +7,6 @@ export type ActiveView =
   | 'graph'
   | 'matrices'
   | 'info'
-  | 'consoles'
   | 'ai-guide'
 
 export type SidebarMode = 'workspace' | 'focused_model'

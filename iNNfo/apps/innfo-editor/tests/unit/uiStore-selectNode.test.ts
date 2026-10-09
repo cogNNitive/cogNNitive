@@ -19,7 +19,6 @@ describe('uiStore.selectNode', () => {
 
   it.each([
     'graph',
-    'consoles',
     'matrices',
     'info',
     'ai-guide',

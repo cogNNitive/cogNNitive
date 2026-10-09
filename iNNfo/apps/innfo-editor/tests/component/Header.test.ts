@@ -233,17 +233,16 @@ describe('Header.vue', () => {
       expect(wrapper.find('[data-testid="header-view-switcher"]').exists()).toBe(false)
     })
 
-    it('renders view switcher with editor, graph, and consoles buttons when root node exists', () => {
+    it('renders view switcher with editor and graph buttons when root node exists', () => {
       setupRootModel()
       const wrapper = mount(Header)
 
       expect(wrapper.find('[data-testid="header-view-switcher"]').exists()).toBe(true)
       expect(wrapper.find('[data-testid="header-view-editor"]').exists()).toBe(true)
       expect(wrapper.find('[data-testid="header-view-graph"]').exists()).toBe(true)
-      expect(wrapper.find('[data-testid="header-view-consoles"]').exists()).toBe(true)
     })
 
-    it('clicking view buttons switches uiStore.activeView to graph, consoles, and editor', async () => {
+    it('clicking view buttons switches uiStore.activeView to graph and editor', async () => {
       const { uiStore } = setupRootModel()
       const wrapper = mount(Header)
 
@@ -251,9 +250,6 @@ describe('Header.vue', () => {
 
       await wrapper.find('[data-testid="header-view-graph"]').trigger('click')
       expect(uiStore.activeView).toBe('graph')
-
-      await wrapper.find('[data-testid="header-view-consoles"]').trigger('click')
-      expect(uiStore.activeView).toBe('consoles')
 
       await wrapper.find('[data-testid="header-view-editor"]').trigger('click')
       expect(uiStore.activeView).toBe('editor')
@@ -265,24 +261,15 @@ describe('Header.vue', () => {
 
       const editorBtn = wrapper.find('[data-testid="header-view-editor"]')
       const graphBtn = wrapper.find('[data-testid="header-view-graph"]')
-      const consolesBtn = wrapper.find('[data-testid="header-view-consoles"]')
 
       // Editor is active by default
       expect(editorBtn.classes()).toContain('text-primary')
       expect(graphBtn.classes()).toContain('text-slate-500')
-      expect(consolesBtn.classes()).toContain('text-slate-500')
 
       // Switch to graph
       await graphBtn.trigger('click')
       expect(graphBtn.classes()).toContain('text-primary')
       expect(editorBtn.classes()).toContain('text-slate-500')
-      expect(consolesBtn.classes()).toContain('text-slate-500')
-
-      // Switch to consoles
-      await consolesBtn.trigger('click')
-      expect(consolesBtn.classes()).toContain('text-primary')
-      expect(editorBtn.classes()).toContain('text-slate-500')
-      expect(graphBtn.classes()).toContain('text-slate-500')
     })
 
     it('collapses the switcher behind the hamburger and closes it on selection', async () => {

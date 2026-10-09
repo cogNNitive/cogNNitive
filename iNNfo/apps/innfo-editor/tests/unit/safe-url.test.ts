@@ -51,7 +51,6 @@ describe('iframe sandboxing of document-supplied HTML', () => {
   // the sandbox: the frame inherits the host origin and can reach window.parent.
   const files = [
     'components/editor/FilePreviewModal.vue',
-    'components/editor/ConsoleHubView.vue',
   ]
 
   for (const file of files) {

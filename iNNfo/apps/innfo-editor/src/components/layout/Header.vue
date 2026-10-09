@@ -135,21 +135,6 @@
           <LayoutDashboard class="w-3.5 h-3.5 shrink-0" />
           <span>Graph</span>
         </button>
-
-        <button
-          class="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs font-semibold rounded-md transition-all cursor-pointer capitalize border border-transparent"
-          :class="
-            uiStore.activeView === 'consoles'
-              ? 'bg-white dark:bg-slate-700 text-primary shadow-xs'
-              : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-          "
-          @click="selectView('consoles')"
-          data-testid="header-view-consoles"
-          title="Workspace Consoles & Hub"
-        >
-          <Layers class="w-3.5 h-3.5 shrink-0" />
-          <span>Consoles</span>
-        </button>
       </div>
     </div>
 
@@ -612,7 +597,6 @@ import {
   X,
   FileText,
   LayoutDashboard,
-  Layers,
   Eye,
   Menu,
   MoreHorizontal,
@@ -718,7 +702,7 @@ const viewMenuRef = ref<HTMLElement | null>(null)
 const moreMenuOpen = ref(false)
 const moreMenuRef = ref<HTMLElement | null>(null)
 
-function selectView(view: 'editor' | 'graph' | 'consoles'): void {
+function selectView(view: 'editor' | 'graph'): void {
   uiStore.setActiveView(view)
   viewMenuOpen.value = false
 }
@@ -749,8 +733,6 @@ const activeViewIcon = computed(() => {
       return FileText
     case 'graph':
       return LayoutDashboard
-    case 'consoles':
-      return Layers
     default:
       return Menu
   }

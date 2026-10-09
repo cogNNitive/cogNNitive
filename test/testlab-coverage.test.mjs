@@ -106,18 +106,4 @@ describe('TestLab coverage domain fixtures', () => {
     assert.match(model, /NN matrices: Concept 1-Concept 2 Matrix/)
     assert.match(model, /\| Element 1A \| relevant \|/)
   })
-
-  it('ships a workspace hub whose registry points at a real console', () => {
-    const hubs = readdirSync(join(lab, 'artifacts')).filter((f) => /^workspace_hub_\d{8}T\d{6}Z\.html$/.test(f))
-    assert.ok(hubs.length > 0, 'no workspace_hub member found')
-    const hub = read(`artifacts/${hubs.sort().at(-1)}`)
-    const slot = hub.match(/<script id="innfo-workspace-data" type="application\/json">([\s\S]*?)<\/script>/)
-    assert.ok(slot, 'hub data slot missing')
-    const data = JSON.parse(slot[1])
-    assert.equal(data.workspace.title, 'TestLab Coverage Workspace')
-    assert.equal(data.models.length, 1)
-    const consoleRel = data.models[0].consolePath.replace(/^artifacts\//, '')
-    assert.equal(existsSync(join(lab, 'artifacts', consoleRel)), true, `hub console target missing: ${consoleRel}`)
-    assert.equal(data.models[0].hasConsole, true)
-  })
 })

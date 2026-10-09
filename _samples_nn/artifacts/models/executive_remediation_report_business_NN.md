@@ -5,7 +5,7 @@ parent_spec:
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/business/spec_NN.md"
 knowledge_version: "V_0-1-0"
 title: "Executive Remediation Report 1984"
-prov:wasGeneratedBy: "procedures/compile_workspace_hub_procedures_NN.md"
+prov:wasGeneratedBy: "procedures/reconcile_artifact_feedback_procedures_NN.md"
 prov:wasDerivedFrom: "sources/import/nyc-paranormal-activity-report-1984.md"
 prov:generatedAtTime: "1984-12-01T10:00:00Z"
 prov:wasAttributedTo: "Peter Venkman"
