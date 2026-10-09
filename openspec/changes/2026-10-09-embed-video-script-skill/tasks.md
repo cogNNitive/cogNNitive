@@ -182,23 +182,23 @@ Commit order inside the slice (so the rename is excludable from review): (a) pur
 
 ### 4A. Move and path fixes (mechanical, no new tests)
 
-- [ ] 4.1 Record BEFORE state: list of suites from `collectTestSuites` (names/paths, count)
+- [x] 4.1 Record BEFORE state: list of suites from `collectTestSuites` (names/paths, count)
       saved to the scratchpad. This is the baseline for 4.9.
-- [ ] 4.2 `git mv skills/nn-video-script iNNfo/specs/bluepriNNts/video/skills/nn-video-script`
+- [x] 4.2 `git mv skills/nn-video-script iNNfo/specs/bluepriNNts/video/skills/nn-video-script`
       (71 tracked files, own commit).
       `[video-script-skill:Skill Is Installed By Projection From The video bluepriNNt:Old standalone location is gone]`
-- [ ] 4.3 Vendor the spec: add `<skill>/specs/V_0-3-3.json` (byte-identical copy of
+- [x] 4.3 Vendor the spec: add `<skill>/specs/V_0-3-3.json` (byte-identical copy of
       `iNNfo/packages/innfo-video-parser/specs/V_0-3-3.json`); update `scripts/vus-spec.mjs`
       so `VENDORED_SPECS_DIR = join(__dirname,'..','specs')` (D10), keep the sha256 pin, no
       env var.
       `[video-script-skill:Self-Hosted Spec Pin:Pin check passes against the vendored copy]`
-- [ ] 4.4 Fix paths: `scripts/build-video-parser-mirror.mjs` (7, 14, 49 `DEFAULT_OUT`) and
+- [x] 4.4 Fix paths: `scripts/build-video-parser-mirror.mjs` (7, 14, 49 `DEFAULT_OUT`) and
       `scripts/mirror/video-parser-entry.ts:5`; `scripts/verify.js:412` (mirror `--check`);
       `scripts/lib/brand-purge-guard.js:32`; fixtures in
       `scripts/lib/tag-pin-freshness.test.js:66-67` and `scripts/lib/docs-facts.test.mjs:180-182`;
       `REPO_ROOT` in moved `parser-mirror.test.mjs` and `rebranding-scan.test.mjs`
       (6 levels up).
-- [ ] 4.5 Rewrite `vus-spec-pin.test.mjs` assertion: replace the monorepo-resolution check
+- [x] 4.5 Rewrite `vus-spec-pin.test.mjs` assertion: replace the monorepo-resolution check
       with "vendored spec sha256 equals the pin AND equals
       `iNNfo/packages/innfo-video-parser/specs/<pin>.json`" (this is the VUS byte-check, in
       the gated suite, not a new `verify.js` step). Existing suite change, still a RED/GREEN
@@ -207,44 +207,44 @@ Commit order inside the slice (so the rename is excludable from review): (a) pur
 
 ### 4B. Verify suite discovery (new behavior, TDD)
 
-- [ ] 4.6 **RED**: add a verify test (e.g. `scripts/verify-inventory.test.js`, or the
+- [x] 4.6 **RED**: add a verify test (e.g. `scripts/verify-inventory.test.js`, or the
       existing verify-steps test): `buildSteps` includes a step for
       `iNNfo/specs/bluepriNNts/video/skills/nn-video-script/test/vus-parse.test.mjs`. Watch it
       fail.
       `[video-script-skill:Embedded Skill Tests Run In Verify:Moved suites still run]`
-- [ ] 4.7 **GREEN**: in `scripts/verify.js` `buildSteps` add
+- [x] 4.7 **GREEN**: in `scripts/verify.js` `buildSteps` add
       `...collectTestSuites(path.join(repoRoot,'iNNfo','specs','bluepriNNts'))`. Confirm no
       vitest double-run: that tree has no other `*.test.{js,mjs}` and no vitest config
       includes it (vitest suites are `*.spec.ts` under `iNNfo/packages`).
-- [ ] 4.8 Update `skill-script-refs.js` (D12) to also walk
+- [x] 4.8 Update `skill-script-refs.js` (D12) to also walk
       `iNNfo/specs/bluepriNNts/*/skills/*/SKILL.md`, so the self-containment guard is kept
       once the skill leaves `source.yaml`.
-- [ ] 4.9 EXPLICIT CHECK: compare the suite list AFTER (same listing as 4.1). Every
+- [x] 4.9 EXPLICIT CHECK: compare the suite list AFTER (same listing as 4.1). Every
       pre-move skill suite appears at its new path, and the total count is >= the BEFORE
       count. Record both lists in the PR body. Fail the slice if any suite is missing.
       `[video-script-skill:Embedded Skill Tests Run In Verify:Moved suites still run]`
 
 ### 4C. bluepriNNt content and versions
 
-- [ ] 4.10 `video/procedures/generate_video_script_procedures_NN.md` (lines ~25, 40, 64, 76,
+- [x] 4.10 `video/procedures/generate_video_script_procedures_NN.md` (lines ~25, 40, 64, 76,
       146, 158, 253-259): NN Tools paths become
       `~/.agents/skills/nn-video-script/scripts/...` (D9). `video/spec_NN.md` (109, 115, 169,
       281): describe the skill as embedded; internal package-relative mentions stay.
       `design-presets/spec_NN.md:103`: edit to the embedded wording.
       `[video-template:Procedures Reference The Installed Skill Path]`
-- [ ] 4.11 Version bumps (D11): `video` `blueprint_version` V_0-7-2 to V_0-8-0 (and
+- [x] 4.11 Version bumps (D11): `video` `blueprint_version` V_0-7-2 to V_0-8-0 (and
       `template_version` per the repo's frontmatter rule); `design-presets` patch bump; update
       `SHIPPED_BLUEPRINT_VERSIONS` in `iNNfo/apps/innfo-editor/src/config/samples.ts:53`
       (this recurring registration gap is caught late by tests; do it in the same commit).
       Skill `version` stays V_0-4-0.
-- [ ] 4.12 `manifest/source.yaml`: remove the `nn-video-script` skill entry (55-59) and the
+- [x] 4.12 `manifest/source.yaml`: remove the `nn-video-script` skill entry (55-59) and the
       `video` `version:` override line (it holds blueprint_version, the latent two-axes
       defect; `version:` must derive spec_version V_0-3-0).
       `[template-procedures-manifest-and-discovery:R-TPD-06:No standalone manifest entry]`
 
 ### 4D. Docs and registries cleanup
 
-- [ ] 4.13 Delete `docs/skills/documentation/skills/nn-video-script.md` and its entries in
+- [x] 4.13 Delete `docs/skills/documentation/skills/nn-video-script.md` and its entries in
       `docs/skills/documentation_NN.md:150-153`, both `ai-index.yaml`, `llms.txt`,
       `llms-full.txt`, `sitemap.xml`, `index.md`, `_sidebar.md`. Drop the pins in
       `docs/use/manifest-next.md` and `docs/update/manifest-next.md`. Update
@@ -256,24 +256,38 @@ Commit order inside the slice (so the rename is excludable from review): (a) pur
 
 ### 4E. Audits of generic skill mechanisms (confirm or adapt)
 
-- [ ] 4.14 Audit, one line of evidence each in the PR body: `scripts/sync-versions.mjs`
+- [x] 4.14 Audit, one line of evidence each in the PR body: `scripts/sync-versions.mjs`
       (106-118), `verify.js` 50-75, `scripts/freshness.js:20`, `tag-pin-freshness.js` (SKILL.md
       delete ships with the `source.yaml` change), `.github/workflows/release.yml`.
-- [ ] 4.15 Design open question 1: confirm `scripts/manifest/lib/assemble-manifest.js` DROPS a
+- [x] 4.15 Design open question 1: confirm `scripts/manifest/lib/assemble-manifest.js` DROPS a
       skill removed from `source.yaml` rather than carrying it over from the previously
       published manifest. If it carries it over, adapt before merging.
-- [ ] 4.16 Design open question 2: run `node scripts/check-samples-version.mjs` and
+- [x] 4.16 Design open question 2: run `node scripts/check-samples-version.mjs` and
       `node scripts/sync-versions.mjs --check`; both must accept V_0-8-0 and the derived
       `video` manifest version. Fix inputs, not the checks.
 
 ### 4F. Slice verification
 
-- [ ] 4.17 Targeted suites: moved skill suites (`vus-spec-pin`, `vus-parse`,
+- [x] 4.17 Targeted suites: moved skill suites (`vus-spec-pin`, `vus-parse`,
       `parser-mirror`, `rebranding-scan`), the verify-inventory test, `tag-pin-freshness`,
       `docs-facts`. Then ONE `node scripts/verify.js` (expect it green with the suite count
       from 4.9; the `blueprints-v*` byte-check may be red pre-tag, see 4.18).
 - Rollback: revert the slice 4 commits (move commit included) and repin to the previous
   `blueprints-v*` tag. Slices 1-3 stay valid (additive).
+
+## Slice 4 apply record
+
+- Commits: pure rename (71 files, 0 line changes), path fixes + vendored spec + verify
+  discovery + skill-script-refs, bluepriNNt content/bump, docs cleanup, brand-purge exemption.
+- 4.9: verify step count 137 before and after; the 27 `nn-video-script` suites (the brief
+  said 26; the real count is 27) all run at their new path.
+- 4.15: `assemble-manifest.js` iterates `source.skills` only, so a removed skill is DROPPED,
+  not carried over from the previous manifest (`prev.skills` is only a pin lookup).
+- 4.16: `check-samples-version` forced a sample re-point (precedent 62b9c2d7): video sample
+  to V_0-8-0 and design-presets sample to V_0-3-1; `sync-versions --check` green.
+- 4.17: only the known environment failures remain red (core-mirror, video-parser-mirror and
+  `parser-mirror.test.mjs`: the regenerated bundle differs only in the `node_modules`
+  comment path of zod/yaml because worktree `node_modules` are junctions). Not regenerated.
 
 ## Release sequence (after the tracker merges to main with a MERGE commit)
 
