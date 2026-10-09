@@ -1,0 +1,1305 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>iNNfo Console</title>
+    <!--
+    artifact_shell.html — thin console shell for innfo-console artifacts.
+
+    Generating agents MUST only:
+      1. Declare capabilities in the innfo-config needs[] list below
+         (pins resolve via needs-registry.json — never hand-edit URLs).
+      2. Paste the Schema JSON Contract into #innfo-schema.
+      3. Paste the Model JSON Contract into #innfo-model.
+    Nothing else in this file is edited. The shared runtime
+    (innfo-runtime.js, window.InnfoConsole) renders banner, rail, search,
+    cards, matrices, drafts, and the export modal. Do NOT inline runtime
+    code here — the no-inline-runtime scan rejects it.
+
+    Runtime loading (static script tags only — file:// compatible, no modules,
+    no network fetch calls):
+      - Primary: jsDelivr pin @innfo-console-v0.9.0 (tag cut at release;
+        pre-tag dev uses @main with the SRI hash recorded by the release).
+      - Fallback: raw.githubusercontent mirror, then the vendored copy
+        shipped next to the generated console for offline double-click.
+      The runtime no-ops on re-execution, so the fallback tags below are
+      safe: exactly one copy boots.
+  -->
+    <link rel="stylesheet" href="./innfo-ui.css" />
+    <style>
+      /* Semantic tokens come from InnfoUI (data-theme driven). Local aliases keep
+         this shell's layout variables working without hard-coded colors. */
+      :root {
+        --bg: var(--innfo-bg);
+        --surface: var(--innfo-surface);
+        --surface-2: var(--innfo-surface-2);
+        --text: var(--innfo-text);
+        --muted: var(--innfo-muted);
+        --faint: var(--innfo-muted);
+        --border: var(--innfo-border);
+        --primary: var(--innfo-accent);
+        --primary-hover: var(--innfo-text);
+        --success: var(--innfo-status-applied);
+        --danger: var(--innfo-status-rejected);
+        --warning: var(--innfo-status-pending);
+        --link: var(--innfo-link);
+        --radius-sm: var(--innfo-radius-sm);
+        --radius: var(--innfo-radius);
+        --radius-lg: var(--innfo-radius-lg);
+        --shadow-card: var(--innfo-shadow);
+        --font: var(--innfo-font);
+        --mono: var(--innfo-mono);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #f1f5f9;
+        color: var(--text);
+        font-family: var(--font);
+        line-height: 1.55;
+        -webkit-font-smoothing: antialiased;
+      }
+      code {
+        font-family: var(--mono);
+        font-size: 0.85em;
+      }
+      /* Layout: Clean responsive Admin Dashboard with DaisyUI Drawer & Sticky Header */
+      #innfo-layout {
+        display: flex;
+        flex: 1 1 auto;
+        min-height: calc(100vh - 65px);
+        background: #f1f5f9;
+      }
+      .innfo-drawer-wrapper {
+        display: flex;
+        width: 100%;
+        min-height: 100vh;
+      }
+      #innfo-rail {
+        width: 320px;
+        min-width: 320px;
+        max-width: 360px;
+        position: sticky;
+        top: 65px;
+        height: calc(100vh - 65px);
+        border-right: 1px solid var(--border);
+        background: #ffffff;
+        padding: 16px 12px 32px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        overflow-y: auto;
+        box-sizing: border-box;
+      }
+      @media (max-width: 820px) {
+        #innfo-layout {
+          flex-direction: column;
+        }
+        #innfo-rail {
+          width: 100%;
+          min-width: 100%;
+          max-width: 100%;
+          position: static;
+          top: auto;
+          height: auto;
+          border-right: none;
+          border-bottom: 1px solid var(--border);
+        }
+      }
+      .innfo-rail-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        text-align: left;
+        background: transparent;
+        border: 1px solid transparent;
+        border-radius: var(--radius-sm);
+        padding: 6px 10px;
+        cursor: pointer;
+        font-size: 0.82rem;
+        color: var(--text);
+        font: inherit;
+        font-weight: 500;
+        transition: background 0.15s ease, border-color 0.15s ease;
+      }
+      .innfo-rail-item:hover {
+        background: var(--surface-2);
+      }
+      .innfo-rail-item.active {
+        background: var(--surface-2);
+        border-color: var(--border);
+        color: var(--primary);
+        font-weight: 700;
+      }
+      .innfo-rail-header {
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--muted);
+        padding: 4px 8px;
+        margin-top: 10px;
+        margin-bottom: 4px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .innfo-facet-dropdown {
+        position: relative;
+        display: inline-block;
+      }
+      .innfo-facet-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 12px;
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: var(--text);
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        transition: background 0.15s ease, border-color 0.15s ease;
+      }
+      .innfo-facet-btn:hover {
+        background: var(--surface-2);
+        border-color: #cbd5e1;
+      }
+      .innfo-facet-btn.active {
+        border-color: var(--primary);
+        color: var(--primary);
+        background: rgba(37, 99, 235, 0.05);
+      }
+      .innfo-facet-menu {
+        position: absolute;
+        top: calc(100% + 4px);
+        left: 0;
+        z-index: 50;
+        min-width: 260px;
+        max-width: 380px;
+        max-height: 360px;
+        overflow-y: auto;
+        background: #ffffff;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        padding: 6px;
+        display: none;
+      }
+      .innfo-facet-menu.open {
+        display: block;
+      }
+      .innfo-facet-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 8px;
+        border-radius: var(--radius-sm);
+        font-size: 0.82rem;
+        cursor: pointer;
+        user-select: none;
+        transition: background 0.1s ease;
+      }
+      .innfo-facet-item:hover {
+        background: var(--surface-2);
+      }
+      .innfo-facet-checkbox {
+        cursor: pointer;
+      }
+      details[open] .innfo-rail-chevron {
+        transform: rotate(90deg);
+      }
+      main {
+        flex: 1;
+        padding: 24px 32px 96px;
+        max-width: 1200px;
+        min-width: 0;
+        box-sizing: border-box;
+        background: #f1f5f9;
+      }
+      /* Dashboard KPI Stats Cards */
+      .innfo-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+      .innfo-stat-card {
+        background: #ffffff;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 16px 20px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+      }
+      .innfo-stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      }
+      .innfo-stat-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .innfo-stat-body {
+        min-width: 0;
+      }
+      .innfo-stat-label {
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 2px;
+      }
+      .innfo-stat-value {
+        font-size: 1.6rem;
+        font-weight: 800;
+        line-height: 1.1;
+        color: var(--text);
+      }
+      .innfo-navbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 12px 24px;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        position: sticky;
+        top: 0;
+        z-index: 30;
+      }
+      .innfo-toolbar {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+      }
+      #innfo-search-wrap {
+        position: relative;
+        flex: 1 1 280px;
+        max-width: 460px;
+      }
+      #innfo-search-wrap .search-icon {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--muted);
+        pointer-events: none;
+        display: flex;
+        align-items: center;
+      }
+      #innfo-search {
+        width: 100%;
+        padding: 9px 14px 9px 38px;
+        font: inherit;
+        font-size: 0.9rem;
+        color: var(--text);
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+        box-sizing: border-box;
+      }
+      #innfo-search:focus-visible {
+        outline: none;
+        background: var(--surface);
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+      }
+      .innfo-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 18px 20px;
+        margin-bottom: 14px;
+        scroll-margin-top: 14px;
+        box-shadow: var(--shadow-card);
+        transition: border-color 0.15s ease, box-shadow 0.15s ease;
+      }
+      .innfo-card:hover {
+        border-color: rgba(37, 99, 235, 0.4);
+      }
+      .innfo-card h3 {
+        margin: 0 0 4px 0;
+        font-size: 1.05rem;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+      }
+      .innfo-card-concept {
+        color: var(--muted);
+        font-size: 0.78rem;
+        margin: 0 0 8px 0;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+      }
+      .innfo-card-fields {
+        display: grid;
+        grid-template-columns: 170px 1fr;
+        gap: 4px 12px;
+        font-size: 0.84rem;
+        margin: 10px 0 0;
+      }
+      .innfo-card-fields dt {
+        color: var(--muted);
+        font-weight: 600;
+      }
+      .innfo-card-fields dd {
+        margin: 0;
+      }
+      .innfo-matrix {
+        margin: 24px 0;
+      }
+      .innfo-matrix h3 {
+        font-size: 0.95rem;
+        font-weight: 700;
+        margin: 0 0 8px;
+      }
+      .innfo-matrix table {
+        border-collapse: collapse;
+        font-size: 0.82rem;
+        width: 100%;
+      }
+      .innfo-matrix th,
+      .innfo-matrix td {
+        border: 1px solid var(--border);
+        padding: 6px 10px;
+        text-align: left;
+      }
+      .innfo-matrix thead th,
+      .innfo-matrix tbody th:first-child {
+        background: var(--surface-2);
+        font-weight: 600;
+      }
+      #innfo-ref-dialog {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 0;
+        max-width: 480px;
+        width: 100%;
+        background: var(--surface);
+        color: var(--text);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.14);
+      }
+      #innfo-ref-dialog::backdrop {
+        background: rgba(0, 0, 0, 0.35);
+      }
+      #innfo-ref-dialog .innfo-ref-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border);
+      }
+      #innfo-ref-dialog .innfo-ref-head h2 {
+        margin: 0;
+        font-size: 1.05rem;
+        font-weight: 700;
+      }
+      #innfo-ref-dialog .innfo-ref-close {
+        border: 1px solid var(--border);
+        background: var(--surface);
+        color: var(--muted);
+        border-radius: var(--radius-sm);
+        width: 28px;
+        height: 28px;
+        cursor: pointer;
+        font-size: 0.85rem;
+        font-weight: 700;
+      }
+      #innfo-ref-dialog .innfo-ref-body {
+        padding: 16px 20px 20px;
+      }
+      #innfo-ref-dialog .innfo-ref-tag {
+        display: inline-block;
+        font-size: 0.64rem;
+        font-weight: 600;
+        color: var(--muted);
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        padding: 1px 8px;
+        border-radius: 999px;
+        margin-bottom: 10px;
+      }
+      #innfo-ref-dialog .innfo-ref-desc {
+        margin: 0 0 12px;
+        font-size: 0.88rem;
+      }
+      #innfo-ref-dialog .innfo-ref-fields {
+        display: grid;
+        grid-template-columns: 170px 1fr;
+        gap: 3px 14px;
+        margin: 0;
+        font-size: 0.8rem;
+      }
+      #innfo-ref-dialog .innfo-ref-fields dt {
+        color: var(--muted);
+        font-weight: 600;
+      }
+      #innfo-ref-dialog .innfo-ref-fields dd {
+        margin: 0;
+      }
+      .innfo-ref-pill {
+        appearance: none;
+        border: 1px solid var(--border);
+        background: var(--surface-2);
+        color: var(--link);
+        border-radius: 999px;
+        padding: 1px 8px;
+        font: inherit;
+        font-size: 0.78rem;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .innfo-ref-pill:hover {
+        border-color: var(--link);
+        background: rgba(37, 99, 235, 0.06);
+      }
+      /* Generic document view (renderDocument) */
+      #innfo-doc .doc-root {
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--surface);
+        padding: 20px 22px;
+        margin-bottom: 14px;
+        box-shadow: var(--shadow-card);
+      }
+      #innfo-doc .doc-root h2 {
+        margin: 0 0 8px;
+        font-size: 1.15rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      #innfo-doc .doc-root p.desc,
+      #innfo-doc .doc-step p.desc {
+        margin: 0 0 10px;
+        font-size: 0.9rem;
+      }
+      #innfo-doc .doc-step {
+        border-left: 3px solid var(--border);
+        padding: 12px 16px;
+        margin: 0 0 10px 8px;
+        background: var(--surface);
+      }
+      #innfo-doc .doc-step h3 {
+        margin: 0 0 6px;
+        font-size: 0.98rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      #innfo-doc .doc-icon {
+        color: var(--muted);
+      }
+      #innfo-doc .doc-fields {
+        display: grid;
+        grid-template-columns: 170px 1fr;
+        gap: 3px 14px;
+        margin: 8px 0 0;
+        font-size: 0.8rem;
+      }
+      #innfo-doc .doc-fields dt {
+        color: var(--muted);
+        font-weight: 600;
+      }
+      #innfo-doc .doc-fields dd {
+        margin: 0;
+      }
+      .empty-state {
+        color: var(--muted);
+        font-size: 0.9rem;
+        padding: 40px 0;
+      }
+      .innfo-reviewer-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 4px 12px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        margin-left: auto;
+        cursor: pointer;
+        user-select: none;
+        transition: border-color 0.15s ease, background 0.15s ease;
+      }
+      .innfo-reviewer-chip:hover {
+        border-color: var(--primary);
+        background: var(--surface);
+      }
+      .innfo-reviewer-label {
+        color: var(--muted);
+      }
+      .innfo-reviewer-name {
+        font-weight: 600;
+        color: var(--text);
+      }
+      .innfo-reviewer-edit {
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        padding: 0;
+        font-size: 0.85rem;
+        line-height: 1;
+        display: flex;
+        align-items: center;
+        opacity: 0.8;
+      }
+      .innfo-reviewer-edit:hover {
+        opacity: 1;
+      }
+      .innfo-card-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--danger);
+        color: #ffffff;
+        font-size: 0.72rem;
+        font-weight: 700;
+        border-radius: 999px;
+        padding: 1px 7px;
+        min-width: 18px;
+        height: 18px;
+        line-height: 1;
+      }
+      .innfo-rail-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--danger);
+        color: #ffffff;
+        font-size: 0.7rem;
+        font-weight: 700;
+        border-radius: 999px;
+        padding: 1px 6px;
+        min-width: 16px;
+        height: 16px;
+        line-height: 1;
+        margin-left: 6px;
+      }
+      .innfo-card-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 4px;
+      }
+      .innfo-card-head h3 {
+        margin: 0;
+      }
+      .innfo-concept-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: var(--surface-2);
+        font-size: 0.78rem;
+        font-weight: 600;
+      }
+      .innfo-concept-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+      }
+      .innfo-concept-count {
+        color: var(--muted);
+        font-size: 0.72rem;
+      }
+      .innfo-element-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .innfo-cite-icon-wrap {
+        display: inline-flex;
+        align-items: center;
+      }
+      .innfo-view-tabs {
+        display: flex;
+        gap: 8px;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 20px;
+        padding-bottom: 4px;
+      }
+      .innfo-view-tab {
+        appearance: none;
+        border: 1px solid transparent;
+        border-bottom: 2px solid transparent;
+        background: transparent;
+        color: var(--muted);
+        font: inherit;
+        font-size: 0.85rem;
+        font-weight: 600;
+        padding: 8px 14px;
+        border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .innfo-view-tab:hover {
+        color: var(--text);
+        background: var(--surface-2);
+      }
+      .innfo-view-tab.active {
+        color: var(--text);
+        border-bottom-color: var(--primary);
+        background: var(--surface-2);
+      }
+      .innfo-tab-panel {
+        display: none;
+      }
+      .innfo-tab-panel.active {
+        display: block;
+      }
+      .innfo-highlight {
+        animation: innfo-pulse-glow 2.5s ease-out;
+      }
+      @keyframes innfo-pulse-glow {
+        0% {
+          box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.5);
+          border-color: var(--link);
+        }
+        100% {
+          box-shadow: var(--shadow-card);
+          border-color: var(--border);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="innfo-layout">
+      <nav id="innfo-rail" aria-label="Concept rail"></nav>
+      <main>
+        <div class="innfo-toolbar">
+          <div id="innfo-search-wrap">
+            <span class="search-icon" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            </span>
+            <input
+              id="innfo-search"
+              type="search"
+              placeholder="Search elements…"
+              aria-label="Search elements"
+            />
+          </div>
+          <div id="innfo-filter-facets" class="flex items-center gap-2 flex-wrap"></div>
+          <div id="innfo-active-filters" class="flex items-center gap-1.5 flex-wrap w-full mt-1"></div>
+        </div>
+        <nav id="innfo-view-tabs" class="innfo-view-tabs" style="display: none;"></nav>
+        <div id="innfo-stats-bar" class="innfo-stats-grid"></div>
+        <div id="innfo-tab-explorer" class="innfo-tab-panel active">
+          <div id="innfo-doc"></div>
+          <div id="innfo-content"></div>
+          <div id="innfo-matrices"></div>
+          <div id="innfo-charts"></div>
+        </div>
+        <div id="innfo-tab-domain" class="innfo-tab-panel"></div>
+        <div id="innfo-tab-studio" class="innfo-tab-panel"></div>
+        <div id="innfo-tab-review" class="innfo-tab-panel"></div>
+      </main>
+    </div>
+
+    <dialog id="innfo-ref-dialog" aria-label="Referenced element details"></dialog>
+
+    <script type="application/json" id="innfo-config">
+{
+  "needs": [
+    "concept-rail",
+    "fulltext-search",
+    "matrix-grids",
+    "hash-routing",
+    "reference-popup",
+    "document-view",
+    "feedback-export"
+  ],
+  "runtime": {
+    "cdn": "https://cdn.jsdelivr.net/gh/cogNNitive/cogNNitive@innfo-console-v0.9.0/iNNfo/specs/bluepriNNts/console/innfo-console.bundle.js",
+    "fallback": "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/console/innfo-console.bundle.js"
+  }
+}
+</script>
+    <script type="application/json" id="innfo-schema">
+{
+  "concepts": [
+    {
+      "name": "Concept 1"
+    },
+    {
+      "name": "Concept 2"
+    },
+    {
+      "name": "Edge Cases"
+    }
+  ],
+  "fields": [],
+  "markers": [],
+  "matrices": []
+}
+</script>
+    <script type="application/json" id="innfo-model">
+{
+  "meta": {
+    "modelId": "kNNowledge/TestLab_coverage_TestLab",
+    "title": "TestLab Coverage Model",
+    "modelVersion": "V_0-1-0",
+    "sha256": "59fa170b9afc7f4111d03a0ac30172dabde14f1fe4089e8c6b452e17ca3f89c9",
+    "sources": [
+      "kNNowledge/TestLab_coverage_TestLab_NN.md"
+    ],
+    "generated": "2026-10-09T12:19:06.778Z",
+    "feedbackState": [],
+    "citationsResolvedAt": "2026-10-09T12:19:06.778Z"
+  },
+  "elements": [
+    {
+      "id": "concept-1-element-1a",
+      "concept": "Concept 1",
+      "name": "Element 1A",
+      "description": "Element 1A is the intake baseline. It is cited by the weekly report and referenced back from Concept 2.",
+      "fields": {
+        "sources": [
+          "test/fixtures/testlab/sources/import/field-notes.md@## Findings"
+        ],
+        "summary": "Intake tray baseline element.",
+        "long_description": "Baseline element with a short description. It cites the field notes findings section.",
+        "manual": "test/fixtures/testlab/sources/import/manual.txt",
+        "sibling": "[[Element 2A]]",
+        "status": "draft"
+      },
+      "markers": {},
+      "hash": "2e167cda4bf3e770",
+      "relations": [
+        {
+          "field": "sibling",
+          "target": "concept-2-element-2a",
+          "targetLabel": "Element 2A"
+        }
+      ],
+      "citations": {
+        "sources": [
+          {
+            "path": "test/fixtures/testlab/sources/import/field-notes.md",
+            "anchor": "findings",
+            "exists": false,
+            "origin": "document",
+            "error": "DANGLING_FILE"
+          }
+        ]
+      }
+    },
+    {
+      "id": "concept-1-element-1b",
+      "concept": "Concept 1",
+      "name": "Element 1B",
+      "description": "Element 1B is the review target. See the console feedback item fb-001 in artifacts/testlab-review.json.",
+      "fields": {
+        "sources": [
+          "test/fixtures/testlab/sources/import/field-notes.md@## Key Points",
+          "test/fixtures/testlab/sources/import/dataset.csv@m-001"
+        ],
+        "summary": "Photo log element with image and file fields.",
+        "long_description": "Element 1B carries the image and file stress fields. The photo is the most trusted record on the bench and the handover note decides the next shift, so this element is the one the review pass targets first.",
+        "photo": "test/fixtures/testlab/sources/import/photo.png",
+        "photo_metadata": {
+          "title": "Three-tray workbench",
+          "author": "TestLab crew",
+          "source": "field photo 2026-10-07"
+        },
+        "attachment": "test/fixtures/testlab/sources/import/manual.txt",
+        "sibling": "[[Element 2A]]",
+        "status": "reviewed"
+      },
+      "markers": {},
+      "hash": "c9d63b0a7681953c",
+      "relations": [
+        {
+          "field": "sibling",
+          "target": "concept-2-element-2a",
+          "targetLabel": "Element 2A"
+        }
+      ],
+      "citations": {
+        "sources": [
+          {
+            "path": "test/fixtures/testlab/sources/import/field-notes.md",
+            "anchor": "key-points",
+            "exists": false,
+            "origin": "document",
+            "error": "DANGLING_FILE"
+          },
+          {
+            "path": "test/fixtures/testlab/sources/import/dataset.csv",
+            "anchor": "m-001",
+            "exists": false,
+            "origin": "document",
+            "error": "DANGLING_FILE"
+          }
+        ]
+      }
+    },
+    {
+      "id": "concept-1-element-1c",
+      "concept": "Concept 1",
+      "name": "Element 1C",
+      "description": "Element 1C closes the Concept 1 triangle.",
+      "fields": {
+        "sources": [
+          "test/fixtures/testlab/sources/import/dataset.json@/items/0/name"
+        ],
+        "summary": "Multi-node traceability source element.",
+        "long_description": "Element 1C exists so multi-node traceability has three legs: 1A cites markdown, 1B cites CSV plus image, 1C cites a JSON pointer. A traversal from any Concept 2 owner back through siblings must touch all three.",
+        "sibling": "[[Element 2B]]",
+        "status": "published"
+      },
+      "markers": {},
+      "hash": "5689a82b61da6d62",
+      "relations": [
+        {
+          "field": "sibling",
+          "target": "concept-2-element-2b",
+          "targetLabel": "Element 2B"
+        }
+      ],
+      "citations": {
+        "sources": [
+          {
+            "path": "test/fixtures/testlab/sources/import/dataset.json",
+            "anchor": "/items/0/name",
+            "exists": false,
+            "origin": "document",
+            "error": "DANGLING_FILE"
+          }
+        ]
+      }
+    },
+    {
+      "id": "concept-2-element-2a",
+      "concept": "Concept 2",
+      "name": "Element 2A",
+      "description": "Element 2A owns the intake baseline and is the first crossing of the Concept 1-Concept 2 matrix.",
+      "fields": {
+        "sources": [
+          "test/fixtures/testlab/sources/import/field-notes.md@## Findings"
+        ],
+        "summary": "Shift owner element.",
+        "attachment": "test/fixtures/testlab/sources/import/manual.txt",
+        "owner": "[[Element 1A]]"
+      },
+      "markers": {},
+      "hash": "a9bdd341055b3943",
+      "relations": [
+        {
+          "field": "owner",
+          "target": "concept-1-element-1a",
+          "targetLabel": "Element 1A"
+        }
+      ],
+      "citations": {
+        "sources": [
+          {
+            "path": "test/fixtures/testlab/sources/import/field-notes.md",
+            "anchor": "findings",
+            "exists": false,
+            "origin": "document",
+            "error": "DANGLING_FILE"
+          }
+        ]
+      }
+    },
+    {
+      "id": "concept-2-element-2b",
+      "concept": "Concept 2",
+      "name": "Element 2B",
+      "description": "Element 2B owns the multi-node element and is the second crossing of the Concept 1-Concept 2 matrix.",
+      "fields": {
+        "sources": [
+          "test/fixtures/testlab/sources/import/dataset.csv@m-002"
+        ],
+        "summary": "Handover owner element.",
+        "attachment": "test/fixtures/testlab/sources/import/manual.txt",
+        "owner": "[[Element 1C]]"
+      },
+      "markers": {},
+      "hash": "01cbfa4ad3d0f540",
+      "relations": [
+        {
+          "field": "owner",
+          "target": "concept-1-element-1c",
+          "targetLabel": "Element 1C"
+        }
+      ],
+      "citations": {
+        "sources": [
+          {
+            "path": "test/fixtures/testlab/sources/import/dataset.csv",
+            "anchor": "m-002",
+            "exists": false,
+            "origin": "document",
+            "error": "DANGLING_FILE"
+          }
+        ]
+      }
+    },
+    {
+      "id": "edge-cases-image-traceability-probe",
+      "concept": "Edge Cases",
+      "name": "Image traceability probe",
+      "description": "Image traceability passes only via the sidecar path.",
+      "fields": {
+        "sources": [
+          "test/fixtures/testlab/sources/import/photo.png_sidecar_NN.md@## Caption"
+        ],
+        "summary": "Probe that image traceability resolves through the sidecar.",
+        "long_description": "This probe cites the photo sidecar caption, never the binary. A resolver that accepts a direct photo.png citation without the sidecar is wrong.",
+        "photo": "test/fixtures/testlab/sources/import/photo.png",
+        "photo_metadata": {
+          "title": "Three-tray workbench",
+          "author": "TestLab crew",
+          "source": "field photo 2026-10-07"
+        },
+        "attachment": "test/fixtures/testlab/sources/import/manual.txt"
+      },
+      "markers": {},
+      "hash": "35ccda5bf585eb0a",
+      "citations": {
+        "sources": [
+          {
+            "path": "test/fixtures/testlab/sources/import/photo.png_sidecar_NN.md",
+            "anchor": "caption",
+            "exists": false,
+            "origin": "document",
+            "error": "DANGLING_FILE"
+          }
+        ]
+      }
+    },
+    {
+      "id": "edge-cases-multi-node-traceability-probe",
+      "concept": "Edge Cases",
+      "name": "Multi-node traceability probe",
+      "description": "Multi-node traceability converges here.",
+      "fields": {
+        "sources": [
+          "test/fixtures/testlab/sources/import/field-notes.md@## Findings",
+          "test/fixtures/testlab/sources/import/dataset.csv@m-001",
+          "test/fixtures/testlab/sources/import/dataset.json@/items/0/name"
+        ],
+        "summary": "Probe that three source families resolve on one element.",
+        "long_description": "Markdown plus CSV row plus JSON pointer on a single element. If any one of the three fails to resolve, the probe fails as a whole."
+      },
+      "markers": {},
+      "hash": "196715b29e15a475",
+      "citations": {
+        "sources": [
+          {
+            "path": "test/fixtures/testlab/sources/import/field-notes.md",
+            "anchor": "findings",
+            "exists": false,
+            "origin": "document",
+            "error": "DANGLING_FILE"
+          },
+          {
+            "path": "test/fixtures/testlab/sources/import/dataset.csv",
+            "anchor": "m-001",
+            "exists": false,
+            "origin": "document",
+            "error": "DANGLING_FILE"
+          },
+          {
+            "path": "test/fixtures/testlab/sources/import/dataset.json",
+            "anchor": "/items/0/name",
+            "exists": false,
+            "origin": "document",
+            "error": "DANGLING_FILE"
+          }
+        ]
+      }
+    },
+    {
+      "id": "edge-cases-review-traceability-probe",
+      "concept": "Edge Cases",
+      "name": "Review traceability probe",
+      "description": "Review traceability closes the artifact loop.",
+      "fields": {
+        "sources": [
+          "test/fixtures/testlab/artifacts/testlab-report.md@## Result"
+        ],
+        "summary": "Probe that an artifact works as a second-hop source.",
+        "long_description": "This probe cites the generated weekly report result section. The report itself derives from Concept 1 elements, so the lineage is artifact to model to source. Dropping the upstream section must break this probe loudly."
+      },
+      "markers": {},
+      "hash": "caf44b0a83bb952c",
+      "citations": {
+        "sources": [
+          {
+            "path": "test/fixtures/testlab/artifacts/testlab-report.md",
+            "anchor": "result",
+            "exists": false,
+            "origin": "document",
+            "error": "DANGLING_FILE"
+          }
+        ]
+      }
+    },
+    {
+      "id": "edge-cases-downloaded-video-probe",
+      "concept": "Edge Cases",
+      "name": "Downloaded video probe",
+      "description": "Video probe covers the video field path end to end.",
+      "fields": {
+        "sources": [
+          "test/fixtures/testlab/sources/import/demo.mp4_sidecar_NN.md@## Transcript"
+        ],
+        "summary": "Probe that a downloaded video resolves through its transcript sidecar.",
+        "long_description": "The video binary is never cited. The transcript section of the sidecar is the citable unit. Players render demo_video below while the citation points at the transcript."
+      },
+      "markers": {},
+      "hash": "bb9885cab9e9dd34",
+      "citations": {
+        "sources": [
+          {
+            "path": "test/fixtures/testlab/sources/import/demo.mp4_sidecar_NN.md",
+            "anchor": "transcript",
+            "exists": false,
+            "origin": "document",
+            "error": "DANGLING_FILE"
+          }
+        ]
+      }
+    },
+    {
+      "id": "edge-cases-transcribed-audio-probe",
+      "concept": "Edge Cases",
+      "name": "Transcribed audio probe",
+      "description": "Audio probe covers the audio field path end to end.",
+      "fields": {
+        "sources": [
+          "test/fixtures/testlab/sources/import/interview.mp3_sidecar_NN.md@## Transcript"
+        ],
+        "summary": "Probe that downloaded audio resolves through its transcription sidecar.",
+        "long_description": "The audio binary is never cited. The transcript section carries the operator quote about the manual being ignored and the photo log being trusted."
+      },
+      "markers": {},
+      "hash": "f13128ae2f2e30c9",
+      "citations": {
+        "sources": [
+          {
+            "path": "test/fixtures/testlab/sources/import/interview.mp3_sidecar_NN.md",
+            "anchor": "transcript",
+            "exists": false,
+            "origin": "document",
+            "error": "DANGLING_FILE"
+          }
+        ]
+      }
+    },
+    {
+      "id": "edge-cases-transcribed-pdf-probe",
+      "concept": "Edge Cases",
+      "name": "Transcribed PDF probe",
+      "description": "PDF probe covers the binary-to-sidecar rule.",
+      "fields": {
+        "sources": [
+          "test/fixtures/testlab/sources/import/report.pdf_sidecar_NN.md@## Findings"
+        ],
+        "summary": "Probe that a downloaded PDF resolves through its normalized sidecar.",
+        "long_description": "The PDF binary is never cited because binaries are not citation targets. The sidecar findings section holds the normalized markdown and is the only valid pointer."
+      },
+      "markers": {},
+      "hash": "3bfe1390dd33dd3d",
+      "citations": {
+        "sources": [
+          {
+            "path": "test/fixtures/testlab/sources/import/report.pdf_sidecar_NN.md",
+            "anchor": "findings",
+            "exists": false,
+            "origin": "document",
+            "error": "DANGLING_FILE"
+          }
+        ]
+      }
+    },
+    {
+      "id": "edge-cases-very-long-description-probe",
+      "concept": "Edge Cases",
+      "name": "Very long description probe",
+      "description": "Length is the feature being tested here.",
+      "fields": {
+        "sources": [
+          "test/fixtures/testlab/sources/import/field-notes.md@## Key Points"
+        ],
+        "summary": "Probe with a very long inline description field.",
+        "long_description": "The handover note is the only text that matters on this bench, and this paragraph exists to prove that a very long inline description renders, validates, exports to console, and round-trips without truncation or line-joining damage. Intake starts the flow: the form is filled before any equipment is touched, because an undocumented item effectively does not exist once the shift gets busy. The active phase lives in tray two, where exactly one photo per step is taken with no exceptions, since the photo log is the most trusted record and the only evidence the next shift will actually believe. Handover closes the loop in tray three: the note names what is done, what is blocked, and what the next hands must touch first, and the wall clock minute is written down so lateness is visible instead of arguable. Volume can grow fivefold in a quarter and quality still holds as long as these three habits hold with it, because rework disappears when the trays, the photos, and the note agree with each other. That is the whole workflow, repeated here deliberately at length so renderers, validators, exporters, and tests all meet a description field that cannot be skimmed in one glance.",
+        "photo": "test/fixtures/testlab/sources/import/photo.png",
+        "attachment": "test/fixtures/testlab/sources/import/manual.txt"
+      },
+      "markers": {},
+      "hash": "bf368406030a5fd9",
+      "citations": {
+        "sources": [
+          {
+            "path": "test/fixtures/testlab/sources/import/field-notes.md",
+            "anchor": "key-points",
+            "exists": false,
+            "origin": "document",
+            "error": "DANGLING_FILE"
+          }
+        ]
+      }
+    },
+    {
+      "id": "edge-cases-file-field-probe",
+      "concept": "Edge Cases",
+      "name": "File field probe",
+      "description": "File field probe stays deliberately plain.",
+      "fields": {
+        "sources": [
+          "test/fixtures/testlab/sources/import/field-notes.md@## Key Points"
+        ],
+        "summary": "Probe for the generic file field type.",
+        "long_description": "The attachment field points at the plain-text manual stand-in. It exercises the file type path without involving image, video, or audio rendering.",
+        "attachment": "test/fixtures/testlab/sources/import/manual.txt"
+      },
+      "markers": {},
+      "hash": "d252f224724d06ce",
+      "citations": {
+        "sources": [
+          {
+            "path": "test/fixtures/testlab/sources/import/field-notes.md",
+            "anchor": "key-points",
+            "exists": false,
+            "origin": "document",
+            "error": "DANGLING_FILE"
+          }
+        ]
+      }
+    },
+    {
+      "id": "edge-cases-artifact-as-source-probe",
+      "concept": "Edge Cases",
+      "name": "Artifact as source probe",
+      "description": "The artifact is a source, not just an output.",
+      "fields": {
+        "sources": [
+          "test/fixtures/testlab/artifacts/testlab-report.md@## Result"
+        ],
+        "summary": "Probe for the modify-and-reuse artifact cycle.",
+        "long_description": "Edit artifacts/testlab-report.md, keep the Result heading stable, and this probe keeps passing. Rename or delete that heading and this probe must fail, proving the artifact is a live source and not a dead copy."
+      },
+      "markers": {},
+      "hash": "4567d69813bb172a",
+      "citations": {
+        "sources": [
+          {
+            "path": "test/fixtures/testlab/artifacts/testlab-report.md",
+            "anchor": "result",
+            "exists": false,
+            "origin": "document",
+            "error": "DANGLING_FILE"
+          }
+        ]
+      }
+    },
+    {
+      "id": "edge-cases-broken-reference-probe",
+      "concept": "Edge Cases",
+      "name": "Broken reference probe",
+      "description": "Broken by design, quarantined by name.",
+      "fields": {
+        "sources": [
+          "test/fixtures/testlab/sources/import/field-notes.md@## Findings"
+        ],
+        "summary": "Probe with a deliberately dangling reference (expected validation warning).",
+        "long_description": "This probe points at an element that does not exist. Validators must flag it while every other element stays green, so tests can assert the broken case in isolation."
+      },
+      "markers": {},
+      "hash": "16b452becf1e8e63",
+      "citations": {
+        "sources": [
+          {
+            "path": "test/fixtures/testlab/sources/import/field-notes.md",
+            "anchor": "findings",
+            "exists": false,
+            "origin": "document",
+            "error": "DANGLING_FILE"
+          }
+        ]
+      }
+    },
+    {
+      "id": "edge-cases-sourceless-probe",
+      "concept": "Edge Cases",
+      "name": "Sourceless probe",
+      "description": "Absence of sources is valid.",
+      "fields": {
+        "summary": "Probe with no sources field on purpose.",
+        "long_description": "No sources property here at all. Omission is legal: the element simply has no citation edges, and lineage queries must return empty instead of erroring."
+      },
+      "markers": {},
+      "hash": "81caf92482543aa5"
+    }
+  ],
+  "matrices": [
+    {
+      "name": "Concept 1-Concept 2 Matrix",
+      "source": "Concept 1",
+      "target": "Concept 2",
+      "rows": [
+        "Element 1A",
+        "Element 1B",
+        "Element 1C"
+      ],
+      "cols": [
+        "Element 2A",
+        "Element 2B"
+      ],
+      "cells": {
+        "Element 1A": {
+          "Element 2A": "relevant",
+          "Element 2B": "-"
+        },
+        "Element 1B": {
+          "Element 2A": "archived",
+          "Element 2B": "-"
+        },
+        "Element 1C": {
+          "Element 2A": "-",
+          "Element 2B": "relevant"
+        }
+      }
+    }
+  ]
+}
+</script>
+
+    <script src="./innfo-console.bundle_20261009T121906Z.js"></script>
+<!-- nn:console-shell:start -->
+<script src="https://cdn.jsdelivr.net/gh/cogNNitive/cogNNitive@innfo-console-v0.9.0/iNNfo/specs/bluepriNNts/console/innfo-console.bundle.js"></script>
+    <script src="https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/console/innfo-console.bundle.js"></script>
+<!-- nn:console-shell:end -->
+  </body>
+</html>
