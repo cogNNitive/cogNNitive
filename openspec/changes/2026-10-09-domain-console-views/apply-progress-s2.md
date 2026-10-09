@@ -208,3 +208,50 @@ Packaging re-review of S2c1. Findings 1-5 and 7 fixed; finding 6 (escape semanti
 7. Single compile (1f33c370). `prepareAssets` escapes and compiles the bundle and views once; `assertInlinable` returns the prepared assets and `inlineConsoleAssets` accepts them, so the exporter pays once. A test counts `vm.Script` compiles of the bundle (2 for two raw calls, 0 for prepared).
 
 Open: none. The real fix for finding 1 is operational (cut the release before merging to main); the code only turns a silent bad manifest into a loud failure.
+
+## S2c2 Budget, --view, sample
+
+Status: tasks 2c2.1-2c2.6 done; 2c2.7 verification done except the fresh-context review (owned by the orchestrator). Not pushed. Branch `session/domain-console-views-s2c2`.
+
+### Commits
+
+- `496bc469` feat(console): add the console size budget constant and pure evaluateSizeBudget (2c2.1-2c2.2 lib)
+- `fec0fef4` feat(console): gate export size and add standalone --view <id> with a scoped draft store (2c2.3-2c2.4), bundle rebuilt
+- `d778db31` feat(console): add the missing-descriptions sample custom view (2c2.5-2c2.6)
+- docs(openspec) commit: tasks marked, this section
+
+### TDD evidence
+
+- RED 2c2.1: `test/console-views-lib.test.mjs` failed with `does not provide an export named 'CONSOLE_SIZE_BUDGET'`; GREEN: 68 pass.
+- RED 2c2.3: all 9 tests of `test/console-export-view.test.mjs` failed against the untouched exporter (no gate, no `--view`). After the exporter change 8 passed; the scoped-key/title test stayed red until the runtime change. GREEN: 9 pass.
+- RED 2c2.5: `test/console-sample-custom-view.test.mjs` 3 of 3 failed without the sample file; GREEN: 3 pass.
+- Mutations (each reverted afterwards, bundle rebuilt and `--check` fresh): unscoped store key, built-ins kept when scoped, gate disabled (`budget.status === 'fail'` -> `false`), `--view` not narrowing the views, and the fail threshold raised by 5 MB in the lib. Each turned the matching tests red (1, 1, 2, 1 and 4 failures).
+
+### Design as built
+
+- `CONSOLE_SIZE_BUDGET` (frozen) and the pure `evaluateSizeBudget({ bundle, models, views, total })` live in `scripts/console-views.mjs`; no new distributed file. It returns `{ status, total, breakdown, message }`. The exporter prints the breakdown on stdout on every `--domain`/`--view` export, warns on stderr above 5,000,000 B and exits 1 above 15,000,000 B. The only knob is the constant (no env flag); the tests build real 6 MB and 16 MB views.
+- The domain/standalone HTML is now rendered and measured before the per-model loop, so a failing budget leaves the workspace untouched (previously the per-model consoles were written first). Bundle = inlined bundle script + CSS, models = schema + model JSON, views = wrapped scripts.
+- `--view <id>` reuses the `--domain` aggregate payload and discovery, narrows the views to the one id (unknown id: error listing the available ids, or `(none)`, before any write), adds `meta.consoleScope = { view }` and writes only `artifacts/<id>_view/<id>_view_<stamp>.html` (write-once family, bundle inlined, no per-model consoles, no domain file). `--view` with `--domain` exits 2.
+- Runtime: `consoleScopeOf(meta)`. When scoped: no built-in tabs, only that view is listed, the explorer panel is not active, the draft store key is `<modelId>::view:<id>`, the export slug is `<slug>-<id>`, and the title (`state.modelTitle` and the changeset `meta.title`) becomes `<domain title> - <view title>`. The changeset schema is untouched.
+- Sample: `_samples_nn/consoles/views/missing-descriptions.js` (the sample domaiNN is the `_samples_nn` root). Editable, one row per element without a description (25 in the sample), an input plus a "Propose description" button calling `ctx.store.propose` with a `correction` on `description`.
+
+### Deviations and decisions
+
+1. The sample proposes through `ctx.store.propose` with an inline input, not `ctx.modal.edit` as the File Changes row in design.md says: it is directly testable under jsdom and the maintainer brief named `ctx.store`.
+2. Changeset title: the changeset uses `meta.title` verbatim, so a scoped export has `title: "<domain> Domain - <view title>"` (no "Review Changes:" prefix; that string is only the JSON feedback's own meta title). The view title is read from the registry at boot, so the exporter does not run the view.
+3. The stem test checks `changesetFilename` (`<slug>-<id>_<reviewer>_<stamp>_changes_NN.md`); the JSON feedback filename shares the same slug.
+4. Unlike `--domain`, `--view` writes nothing besides its single file.
+5. The sample test drives the final changeset through the runtime's `composeExport` with a state built from the stored drafts, because the page does not expose its state.
+
+### Surprises and limits
+
+- The working copy of `innfo-runtime.js` is CRLF while git stores LF; edits were made with a CRLF-preserving script.
+- A scoped page still shows the rail and the search toolbar (they belong to the explorer). Only the explorer panel is deactivated; hiding the chrome is not specified.
+- `--view` output is never deduplicated (the payload carries a fresh `meta.generated`), like the `--domain` file.
+- Not done here: the docs (`offline-consoles.md`, SKILL.md) do not yet mention `--view`; S2d repoints those.
+
+### Review items for the fresh-context review (2c2.7)
+
+- The reorder in `export-console.mjs` (aggregation moved above the per-model loop) against the old `--domain` behaviour.
+- `mountTabs` filtering the registry by scope and the explorer panel left in the DOM.
+- Draft-store key and slug when a modelId already contains `::view:`.

@@ -112,13 +112,13 @@ Rollback: revert PR 3 (restores sibling-bundle export).
 Goal: size gate, standalone `--view <id>`, sample custom view.
 Traceability: Size budget, Standalone view export, Sample custom view.
 
-- [ ] 2c2.1 RED lib tests: `evaluateSizeBudget` 6e6 warns, 16e6 fails, breakdown line printed (Size budget)
-- [ ] 2c2.2 GREEN `CONSOLE_SIZE_BUDGET` and `evaluateSizeBudget` in lib; exporter gate exits 1 before writing
-- [ ] 2c2.3 RED: `--view nope` exits non-zero, lists ids, writes nothing; `--view x` mounts only x, `meta.consoleScope`, key `modelId::view:x`, filename stem, changeset title, output `artifacts/<id>_view/` (Standalone view export)
-- [ ] 2c2.4 GREEN runtime (`consoleScope` skips built-ins, scoped key) and exporter `--view`; rebuild bundle
-- [ ] 2c2.5 RED `test/console-sample-custom-view.test.mjs` on a tmp copy of `_samples_nn`: view registered, proposes a description change that lands in the changeset (Sample custom view)
-- [ ] 2c2.6 GREEN create `_samples_nn/consoles/views/missing-descriptions.js`
-- [ ] 2c2.7 Verify: node --test, check-integrity, fresh-context review before push
+- [x] 2c2.1 RED lib tests: `evaluateSizeBudget` 6e6 warns, 16e6 fails, breakdown line printed (Size budget)
+- [x] 2c2.2 GREEN `CONSOLE_SIZE_BUDGET` and `evaluateSizeBudget` in lib; exporter gate exits 1 before writing
+- [x] 2c2.3 RED: `--view nope` exits non-zero, lists ids, writes nothing; `--view x` mounts only x, `meta.consoleScope`, key `modelId::view:x`, filename stem, changeset title, output `artifacts/<id>_view/` (Standalone view export)
+- [x] 2c2.4 GREEN runtime (`consoleScope` skips built-ins, scoped key) and exporter `--view`; rebuild bundle
+- [x] 2c2.5 RED `test/console-sample-custom-view.test.mjs` on a tmp copy of `_samples_nn`: view registered, proposes a description change that lands in the changeset (Sample custom view)
+- [x] 2c2.6 GREEN create `_samples_nn/consoles/views/missing-descriptions.js`
+- [x] 2c2.7 Verify: node --test, check-integrity, fresh-context review before push
 
 Rollback: revert PR 4 (S2c1 export still works).
 
