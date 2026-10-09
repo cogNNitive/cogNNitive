@@ -56,6 +56,14 @@ function fixtureTree(opts = {}) {
     : ['# innfo-mcp', '', '## Tools', '', '| Tool | Description |', '|------|-------------|', ''].join('\n');
   fs.writeFileSync(path.join(docsDir, 'innfo-mcp.md'), body, 'utf8');
 
+  // The mcp-tools job also renders into the nn-innfo skill's own mcp-tools region (design D4).
+  const nnInnfoDir = path.join(root, 'skills', 'nn-innfo');
+  fs.mkdirSync(nnInnfoDir, { recursive: true });
+  const skillBody = withMarkers
+    ? ['# nn-innfo', '', OPEN_MARKER, 'STALE HAND-TYPED SKILL TOOLS', CLOSE_MARKER, ''].join('\n')
+    : ['# nn-innfo', '', '17 deterministic tools', ''].join('\n');
+  fs.writeFileSync(path.join(nnInnfoDir, 'SKILL.md'), skillBody, 'utf8');
+
   // Populate skills catalog fixture files
   const manifestDir = path.join(root, 'manifest');
   fs.mkdirSync(manifestDir, { recursive: true });
@@ -87,6 +95,10 @@ function runCli(cwd, args = []) {
 
 function readTarget(root) {
   return fs.readFileSync(path.join(root, 'docs', 'innfo', 'documentation', 'innfo-mcp.md'), 'utf8');
+}
+
+function readSkillTarget(root) {
+  return fs.readFileSync(path.join(root, 'skills', 'nn-innfo', 'SKILL.md'), 'utf8');
 }
 
 function main() {
@@ -175,6 +187,25 @@ function main() {
       const res = runCli(root);
       assert.strictEqual(res.status, 2, `expected exit 2 for missing markers, got ${res.status}: ${res.stderr}`);
       assert.ok(res.stderr.includes('generated:mcp-tools'), `stderr must name the missing region, got: ${res.stderr}`);
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  }
+
+  // 7. The mcp-tools job also renders into skills/nn-innfo/SKILL.md's own region (design D4).
+  {
+    const root = fixtureTree();
+    try {
+      const res = runCli(root);
+      assert.strictEqual(res.status, 0, `write must succeed: ${res.stderr}`);
+      const skill = readSkillTarget(root);
+      assert.ok(skill.includes('**2** tools'), 'the skill region reflects the registry tool count');
+      assert.ok(skill.includes('| `list_models` |'), 'the skill region lists the registered tools');
+      assert.ok(!skill.includes('STALE HAND-TYPED SKILL TOOLS'), 'the stale skill body is replaced');
+      assert.ok(!skill.includes('17 deterministic tools'), 'the hand-typed count is gone');
+
+      const check = runCli(root, ['--check']);
+      assert.strictEqual(check.status, 0, `--check must pass right after the skill write: ${check.stderr}`);
     } finally {
       fs.rmSync(root, { recursive: true, force: true });
     }

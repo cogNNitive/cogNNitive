@@ -1,6 +1,6 @@
 ---
 name: nn-innfo
-version: "V_0-5-6"
+version: "V_0-5-7"
 last_updated: 2026-10-04
 metadata:
   source_type: "original"
@@ -23,14 +23,73 @@ description: |
 
 # iNNfo Skill
 
-## 0. Activation Gate & Conversation Lifecycle Gate
+## 0. Activation Gate
+
 1. **Activation Gate**: Execute the canonical activation gate defined in `nn-preflight` (session greeting + deterministic preflight integrity check). If already executed by `nn` in the current session, skip duplicate preflight execution.
-2. **Conversation Lifecycle Gate**: Follow the conversation lifecycle protocol:
-   - Silently reserve `conversations/YYYY-MM-DD_HHmmss.md` upon session start (`status: in_progress`).
-   - Upon session exit or wizard completion:
-     - Zero Discard Policy: all sessions are retained unconditionally in `conversations/`.
-     - For non-trivial sessions, present 3 suggested titles (`[1] (Recommended)`), finalize frontmatter (`status: completed`), and rename to `conversations/YYYY-MM-DD_<slug>.md`.
-           - Auto-promote to `sources/conversations/` (announce it; `[none]` opts out — the raw transcript is always registered in `conversations/`; a promoted transcript is a write-once `<slug>_<UTC stamp>.md` cognitivized in place) for ingestion into the workspace knowledge graph and model citations (`sources:: [sources/conversations/<file>.md@<unit>]`).
+
+<!-- generated:shared-rules (source: scripts/skill-shared-rules.md; run node scripts/build-skill-shared-rules.mjs) -->
+### Shared Rules (generated — do not edit)
+
+**System Governance & UX Protocol (MANDATORY)**
+
+1. **Zero Unilateral Mutation (Consent First)**: NEVER move, rename, delete, or
+   restructure user files without prior explicit confirmation.
+2. **Recommended Option First**: In every decision menu, the computed default
+   option carries the `(Recommended)` tag and is presented first (option `[a]`
+   or `[1]`). When the choices are non-exclusive, also include the notice:
+   *"You can select one option or a combination (e.g. A and B)"*.
+3. **Conversations as Reference & Source (Zero Discard)**: Allocate the session
+   transcript in `conversations/` silently at session start (`status: in_progress`)
+   and auto-promote it at close (the user may opt out with `[none]`). All sessions
+   are retained unconditionally.
+4. **Optimistic Execution & Reversibility**: Proceed immediately on safe,
+   standard, reversible actions (e.g. creating the standard directory layout,
+   cognitivizing documents in place) without redundant blocking confirmations.
+   Reserve explicit confirmation for destructive mutations only.
+
+**Conversation Lifecycle & Closing UX**
+
+1. **Silent reservation**: at session start, silently allocate
+   `conversations/YYYY-MM-DD_HHmmss.md` with `status: in_progress`.
+2. **Close triggers**: conclude the session on natural-language triggers such as
+   `/close`, `cerrar`, `terminar sesión`, `listo por hoy`, or `done`.
+3. **Zero Discard**: transcripts are retained unconditionally.
+4. **3-title prompt**: on close, present 3 suggested titles plus a manual entry
+   option `[m]`, e.g. `[1] user-auth-design`, `[2] api-gateway-refactor`,
+   `[3] telemetry-setup`.
+5. **Finalize**: rename the file to `conversations/YYYY-MM-DD_<slug>.md`, set the
+   frontmatter `title` to the chosen title, `status: completed`, and `ended_at`
+   to the ISO 8601 completion timestamp.
+6. **Promote**: auto-promote the transcript to `sources/conversations/` (announce
+   it; `[none]` opts out).
+
+**Canonical Source Taxonomy & Citation Contract**
+
+1. **Primary Source**: the immutable, original evidence files under
+   `sources/import/` or watched via `## NN External Watch Roots:` (read-only).
+2. **Normalized / Secondary Source**: cognitivized in place — a co-located sidecar
+   `<file>.<ext>_sidecar_NN.md` carries origin metadata (`source_file`, `sha256`,
+   `size_bytes`, `source_format`, `normalized_at`); binary sources also carry the
+   normalized Markdown body. Text-native files (`md`, `csv`, `json`) are cited
+   directly; binaries are cited through their sidecar.
+3. **Synthetic Source**: derived deliverables under `artifacts/`, cognitivized in
+   place; their upstream is the `sources` they declare.
+4. **User Input Source**: in-line interactive input (`source_file: "inline:..."`),
+   exempt from physical disk file existence.
+
+Citations use the pointer grammar `sources:: [<path>@<unit>, ...]` — ALWAYS a
+bracketed list, with a domaiNN-relative path written in full (no implicit prefix).
+A `<unit>` is `@## Heading` (Markdown), `@RowID&col` (CSV), or
+`@/items/0/name` (JSON Pointer, RFC 6901). No `src-NNN` IDs, no line-number
+ranges, and never a `staging/` target.
+
+**Informative Grace**
+
+Safe, standard, reversible actions proceed without a blocking confirmation.
+Announce the action in the user's active session language, then continue; the
+user may interrupt. Example (English): *"Proceeding with the standard {action}.
+If you'd prefer a different location or want to stop, tell me before I begin."*
+<!-- /generated:shared-rules -->
 
 ---
 
@@ -53,23 +112,6 @@ This skill guides LLMs and agents in authoring, creating from scratch (wizard), 
 > 2. When resolving apps/specs without MCP: if a git fallback clone is required, the agent MUST clone into the system temporary directory (`$env:TEMP/innfo_tmp` or `~/.agents/tmp/`), read the required file, and **immediately delete the temporary folder**. The agent MUST NEVER clone git repositories or leave checkouts inside the user's workspace directory.
 > 3. **Windows Network Resilience**: In Windows environments, do NOT execute bare `curl` in PowerShell (which aliases to `Invoke-WebRequest` and fails SSL handshakes). Use `curl.exe` explicitly, Node.js native fetch (`node -e "fetch(...)"`), or git archive.
 > 4. **Web GUI & Preview Integration**: When asked to preview a model or element in Web GUI environments, prefer generating structured Markdown cards with interactive deep links (`https://cognnitive.com/innfo/app/?view=editor&model={model_id}#{element_id}`) or inline SVG diagrams instead of un-sanitizable `<iframe>` tags.
-
----
-
-## Canonical Source Taxonomy & Citation Contract
-
-The iNNfo ecosystem establishes an explicit taxonomy for sources and evidence:
-
-1. **Primary Source (Fuente Primaria)**:
-   - The immutable, original evidence files located in `sources/import/` or watched via `## NN External Watch Roots:` (read-only).
-   - Includes raw text documents, spreadsheets, PDFs, and raw media (`.mp3`, `.wav`, `.mp4`).
-2. **Normalized Source / Secondary Source (Fuente Normalizada / Secundaria)**:
-   - Cognitivized in place: a co-located sidecar `<file>.<ext>_sidecar_NN.md` sits next to each raw file and carries the canonical origin metadata in frontmatter (`source_file`, `sha256`, `size_bytes`, `source_format`, `normalized_at`). Binary sources (PDF, DOCX, XLSX) also carry the normalized Markdown body in the sidecar; `md`, `csv` and `json` files are their own text, so their sidecar has no body.
-   - Cited in Level 3 model elements via a full domaiNN-relative path: `sources:: [sources/import/path.md@## Heading]` for text files, or the sidecar for a binary (`sources/import/report_20261001T101500Z.pdf_sidecar_NN.md@## Heading`).
-3. **Synthetic Source (Fuente Sintética)**:
-   - Derived deliverables (files under `artifacts/`) cognitivized in place; their upstream is the `sources` they declare.
-4. **User Input Source (Fuente de Entrada de Usuario)**:
-   - In-line interactive input (`source_file: "inline:..."`) exempt from physical disk file existence.
 
 ---
 
@@ -116,7 +158,7 @@ Before executing options **[b]**, **[c]**, **[d]**, or **[x]**, the agent MUST e
 1. **Verify Session Context:** Check if a model is currently being edited/active in the session.
 2. **Dynamic Discovery:** If no model is active, call `innfo-mcp_list_knowledge` to scan the workspace:
    - **If 0 models found:** Inform the user that no models exist in `kNNowledge/` and suggest creating one (redirecting to option **[a]**).
-   - **If 1 model found (Auto-Bind with Informative Grace):** Bind it automatically as the active model (`active_model_path`) without asking. Announce: *"Vinculando `kNNowledge/{ModelName}_NN.md` (único modelo detectado en el workspace). Voy a avanzar con este modelo; si querés usar otro o crear uno nuevo, avisame antes de empezar."* Proceed immediately.
+   - **If 1 model found (Auto-Bind with Informative Grace):** Bind it automatically as the active model (`active_model_path`) without asking. Announce it in the user's active session language — e.g. (English) *"Binding `kNNowledge/{ModelName}_NN.md` (the only model detected in the workspace). Proceeding with this model; tell me if you want to use another or create a new one before I start."* Proceed immediately.
    - **If multiple models found:** Present a numbered list of all models found and ask the user to select one: *"Multiple models detected. Please select which one you want to work with:"*. Set the selected file as `active_model_path` and proceed.
 3. **Session Persistence:** Once a model is selected or created, save its path in context. Subsequent actions (validation, edits, audits, console exports) MUST default to this active model. To switch models, the user can explicitly ask to "switch model" or select the change option in the quick actions menu.
 
@@ -167,8 +209,7 @@ Creating **any** model — with a canonical app, custom app, or without an app �
 **A2a. If a canonical app was selected ([a]/[b]/[c]/[d]) (Optimistic Execution with Informative Grace):**
 Resolve the app with `innfo-mcp_get_blueprint` and display an informative summary of the Concepts, Fields, Matrices, and Markers it already defines. Then discover its procedures with `innfo-mcp_list_blueprint_procedures`: if the app declares an explicit empty procedures block, announce it — *"This app declares no executable procedures yet."* — instead of silently presenting an app with nothing executable.
 
-**Do NOT block on an intermediate customization menu.** By default, canonical apps are used as-is. Announce with Informative Grace:
-*"Usando la plantilla estándar {App}. Voy a avanzar con el diseño de elementos del modelo; si preferís personalizar la plantilla o crear una especialización, avisame antes de empezar."*
+**Do NOT block on an intermediate customization menu.** By default, canonical apps are used as-is. Announce with Informative Grace in the user's active session language — e.g. (English): *"Using the standard {App} blueprint. Proceeding with the model's element design; tell me before I start if you'd prefer to customize the blueprint or create a specialization."*
 Proceed directly to **Phase B (Model Design)**. Only branch to customization if the user explicitly asks to customize or interrupts.
 
 **A2b. If [e] Blank was selected, or the user confirmed customization in A2a [b]:**
@@ -215,7 +256,7 @@ Confirm this design, or would you like to adjust anything before creating the ap
 - [x] Cancel
 ```
 
-Only upon confirming [a] is the app file written: `<Template>_V_0-1-0_spec_NN.md` if completely new, or `<Model>_<Template>_V_x-y-z_spec_NN.md` if specializing an existing base (see §9).
+Only upon confirming [a] is the app file written: `<Template>_spec_NN.md` if completely new, or `<Model>_<Template>_spec_NN.md` if specializing an existing base (see §9). The version lives in the `spec_version` frontmatter key, not in the file name.
 
 ---
 
@@ -293,27 +334,35 @@ as its very first output — before any questions, analysis, or tool calls. Sess
 
 ## 1. MCP Operating Model
 
-The `innfo-mcp` server exposes 17 deterministic tools built on `@cognnitive/innfo-core`.
+The `innfo-mcp` server exposes a deterministic tool set built on `@cognnitive/innfo-core`.
 
-| Tool | Purpose |
-|---|---|
-| `list_knowledge` | Scans the directory for valid iNNfo models. |
-| `read_knowledge` | Parses a model into a structured AST / JSON. |
-| `get_spec` | Dynamically resolves the Level 1 specification. |
-| `get_blueprint` | Dynamically resolves the Level 2 app and its primitives. |
-| `validate_knowledge` | Runs deterministic syntactic and schema validation (with a `(searched: ...)` diagnostic when the parent chain does not resolve). |
-| `check_domain` | Runs one consolidated workspace integrity pass over every Level-3 model: validates each against its app and traceability, self-heals missing app packages/specs (write-once hydration), classifies each pinned app version against the published catalog, and returns one report with a per-model status and a workspace aggregate. Non-blocking and informational — validation failures never fail the tool. Accepts `root`, `summary_only` (aggregate + failing/upgrade-available models only, capped at 25), and `offline`. The editor runs the same pass on workspace open. |
-| `validate_knowledge_url` | Validates a model from a URL without writing it to disk. |
-| `validate_blueprint` | Validates a Level 2 app against its parent Level 1 specification. |
-| `apply_change` | Runs deterministic mutations (add field, rename, `bump_version`, etc.). |
-| `init_knowledge` | Initializes a new Level 3 model document from a blueprint. |
-| `list_blueprints` | Lists Level 2 apps in the workspace, the global cache, and installed skills. |
-| `hydrate_blueprint` | Atomically and immutably copies a Level 2 app into the workspace. |
-| `sync_domain_manifest` | Additively reconciles the `## NN kNNowledge` entries of the manifest against the Level 3 models discovered on disk (`dry_run` defaults to `true`). See §14. |
-| `query_units` | Queries specific units/elements within a knowledge document or source. |
-| `resolve_sources` | Resolves source citations and evidence linkages. |
-| `list_blueprint_procedures` | Discovers SOP procedures transitively across the `includes` tree (depth 10). |
-| `list_blueprint_skills` | Discovers agent skills transitively across the `includes` tree (depth 10). Skills embedded in a package (`skills/<name>/SKILL.md`) are returned with `embedded: true` and a resolved absolute `path`. |
+<!-- generated:mcp-tools (source: innfo-mcp TOOL_REGISTRY; run node scripts/generate-docs-facts.mjs) -->
+**21** tools
+
+| Tool | Description |
+|------|-------------|
+| `list_knowledge` | Scan the knowledge directory and list all iNNfo knowledge documents |
+| `read_knowledge` | Parse and return an iNNfo knowledge document's full structure by its id. For surgical work prefer bounded slices: pass concept (+ element) with max_lines (default 150); slices over the cap truncate with truncated=true unless override_reason records a manual override |
+| `get_spec` | Resolve the iNNfo specification (level-1) from an explicit url or from a loaded knowledge document. Provide either url or knowledge_id — the URL is never taken from an internal constant |
+| `get_blueprint` | Resolve an iNNfo blueprint (level-2) from an explicit url or from a loaded knowledge document. Provide either url or knowledge_id — blueprint names/URLs are never hardcoded |
+| `validate_knowledge` | Validate an iNNfo knowledge document against its blueprint. Provide id (file on disk) or content (raw text). The blueprint is resolved from the knowledge parent_spec.url, or from an optional blueprint_url |
+| `apply_change` | Apply an intent-level change or changeset to knowledge documents and re-validate. Supports two-phase transactional execution from changes/ documents or legacy intent operations. |
+| `validate_knowledge_url` | Validate an iNNfo knowledge document fetched from a URL without writing to disk. Accepts a knowledge URL and optional blueprint_url. Returns validation results. |
+| `validate_blueprint` | Validate a Level 2 blueprint against its Level 1 parent spec with frontmatter level-2 auto-detection and parent resolution failure diagnostics |
+| `init_knowledge` | Initialize or repair a level-3 knowledge document file: writes canonical YAML frontmatter and, when the file has no concept sections and the blueprint resolves, scaffolds a starter body (index block + one section per Concept) from the blueprint schema. Returns blueprintResolved / scaffolded / warnings. |
+| `list_blueprints` | List all available Level 2 spec blueprints across local domain, global environment, and installed skills |
+| `hydrate_blueprint` | Hydrate (copy) a Level 2 spec blueprint from global or skill store into active domain blueprints directory |
+| `sync_domain_manifest` | Reconcile the domain manifest ## NN Knowledge entries against discovered Level-3 knowledge files: additively appends new entries, archives entries whose file disappeared, and reactivates tool-owned entries whose file returned. Never touches hand-authored entries lacking the <!-- nn:auto --> ownership marker. Defaults to a dry run. |
+| `check_domain` | Run one consolidated domain integrity pass over every Level-3 knowledge document: validate each against its blueprint and traceability, self-heal missing blueprint packages/specs (write-once hydration), classify each pinned blueprint version against the published catalog, compare the managed sections of the lineage record with a fresh projection (error LINEAGE_DRIFT in the lineage field of the report; read-only), and return one report with a per-knowledge status and a domain aggregate. Non-blocking and informational — validation failures never fail the tool. |
+| `query_units` | Run a read-only content query over one workspace file and return matching knowledge-unit URIs: "path?filter=value[&filter...][&projection]". Filters use exact match (trimmed, case-insensitive); a trailing bare segment projects one column/field over the matches. Capped at 100 results with truncated=true. Pass max_values_chars to cap projected value characters for slice-only surgical reads. Never writes files. |
+| `cognitivize` | Create or refresh the sidecar (`<file>_sidecar_NN.md`) of one raw markdown, CSV, or JSON file in place, so it can be cited. Binary formats (pdf, docx, images, ...) are never converted here: the result has status `requires-cli` and nothing is written (use the nn-trannsform CLI). Paths outside the workspace, sidecars, and NN documents are rejected. |
+| `resolve_sources` | Read-only: resolve an element's citation-typed field(s) to their underlying file, anchor, and content. Returns one entry per citation reference: {path, anchor, exists, field, origin, author?, excerpt?, sha256?, version?, error?}. `origin` classifies who produced the cited content ("agent" \| "human" \| "reviewer" \| "document"), resolved from the heading the citation anchors to. Omit fieldName to resolve across every citation-typed field on the element (name-based sources/source plus any schema-declared type:: citation field). Never writes files. |
+| `build_console_payload` | Compile canonical schema and model JSON slot strings for an iNNfo model console artifact. Returns escaped slot strings and outputPath. |
+| `record_feedback_verdict` | Append a validated verdict entry to the root feedback-ledger.jsonl. Refuses writes if item is orphaned or stale without confirm_stale. |
+| `evaluate_feedback_items` | Evaluate feedback items staleness and orphan status against current model. Appends stale entries to the root feedback-ledger.jsonl idempotently. |
+| `list_blueprint_procedures` | List all procedures defined in a blueprint and its transitively included blueprints up to depth 10 |
+| `list_blueprint_skills` | List all agent skills defined in a blueprint and its transitively included blueprints up to depth 10. Skills shipped inside a package under skills/<name>/SKILL.md are returned with embedded: true and a resolved absolute path. |
+<!-- /generated:mcp-tools -->
 
 **Golden Rule:** The specification/app URL always comes from `parent_spec.url` or from the user. Never hardcode or invent URLs.
 
@@ -328,7 +377,7 @@ Do NOT hardcode specification URLs or versions in this skill: spec file names an
 
 ### The `parent_spec.url` Rule for Level 3 Models
 
-1. A Level 3 model's `parent_spec.url` must be a **STABLE (http/https)** URL pointing at the Level 2 app, or a **workspace-relative path** (e.g. `specs/MyTemplate_V_0-1-0_spec_NN.md`).
+1. A Level 3 model's `parent_spec.url` must be a **STABLE (http/https)** URL pointing at the Level 2 app, or a **workspace-relative path** (e.g. `specs/MyBlueprint_spec_NN.md`). The version lives in that file's `spec_version` frontmatter key, not in the path.
 2. **FORBIDDEN: absolute Windows paths** (e.g. `C:/Users/.../MyTemplate_spec_NN.md`): they break resolution in the Modeler (fetch over a local path) and in the MCP. The `innfo-mcp` resolver (`resolver-node.ts`) looks for the app only under the workspace's `specs/` (recursively); the canonical form is the stable http URL.
 3. After setting `parent_spec.url`, ALWAYS verify resolution (see §5, parent-chain pre-check) before declaring the model done.
 4. **Relative paths resolve against the MCP server's root** (the `INNFO_MODELS_DIR` environment variable, or the process cwd when the server starts), NOT against the model file's own folder. Therefore, to validate a workspace with relative paths, the MCP root MUST be the workspace root; `root:` overrides only apply where the tool accepts them (`validate_knowledge` with `root`, `get_spec`/`get_blueprint` with `url`).
@@ -421,7 +470,7 @@ To raise the version of a Level 3 model and its associated app (parent_spec), us
 innfo-mcp_apply_change({
   id: "<model_id>",
   op: "bump_version",
-  args: { 
+  args: {
     version: "V_0-5-0",
     parent_version: "V_0-5-0" // Optional: to re-version and rename the associated app
   }
@@ -565,7 +614,7 @@ When a model needs custom concepts or fields beyond the base app:
 3. Point the Level 3 model's `parent_spec.url` at the specialization file.
 4. **The workspace `index.md` lists ONLY Level 3 models.** A `_spec_NN.md` file (Level 2 app / specialization) MUST NOT be listed as a model in `index.md`: it is resolved as an app via `parent_spec.url` and rendered as a `spec:` node, never as a model in the navigation tree.
 
-> **Note — 100% new app (no base to specialize):** When Phase A (§0c) results in a from-scratch design, with no canonical app as a base, the file is named `<Template>_V_0-1-0_spec_NN.md` (without the `<Model>_` prefix, because there is no base to specialize). The rest of the flow — the Level 3 model's `parent_spec.url`, `index.md` listing only Level 3 models — applies the same.
+> **Note — 100% new app (no base to specialize):** When Phase A (§0c) results in a from-scratch design, with no canonical app as a base, the file is named `<Template>_spec_NN.md` (without the `<Model>_` prefix, because there is no base to specialize). The rest of the flow — the Level 3 model's `parent_spec.url`, `index.md` listing only Level 3 models — applies the same.
 
 ### 9-bis. `includes` vs. specialization
 
@@ -602,14 +651,14 @@ When the project scales to multiple sub-models, present the **4 Architectural Al
 💡 Architecture Scaling Selection (1 to N Models):
 
   [a] (Recommended) Option 4: Hybrid Master Aggregator with `file_ref::` references
-      - Files: `kNNowledge/Master_V_0-1-0_NN.md` and `kNNowledge/subsystems/`
-      - iNNfo code: The main model references subsystems via `file_ref:: ./subsystems/auth_V_0-1-0_NN.md`
+      - Files: `kNNowledge/Master_NN.md` and `kNNowledge/subsystems/`
+      - iNNfo code: The main model references subsystems via `file_ref:: ./subsystems/auth_NN.md`
 
   [b] Option 1: Single Monolithic Model
-      - File: `kNNowledge/System_V_0-1-0_NN.md`
+      - File: `kNNowledge/System_NN.md`
 
   [c] Option 2: Independent Models in the same directory
-      - Files: `kNNowledge/DomainA_V_0-1-0_NN.md`, `kNNowledge/DomainB_V_0-1-0_NN.md`
+      - Files: `kNNowledge/DomainA_NN.md`, `kNNowledge/DomainB_NN.md`
 
   [d] Option 3: Multi-Folder Hybrid per Project
       - Files: `projects/domainA/kNNowledge/index.md`, `projects/domainB/kNNowledge/index.md`
@@ -794,21 +843,18 @@ Each session MUST record per-intent call and token counts via the `usage-counter
 1. **Strict Meta-template:** Level 2 apps define primitives in the body (`# NN Concept Definition`). NEVER put `concepts: [...]` or `fields: [...]` in the Level 2 YAML frontmatter.
 2. **Unified NN syntax:** Use `# NN <Concept>`, `## NN <Concept>: <Element>`, `key:: value`. Do not use obsolete `_NN` bullets or ````yaml` code blocks.
 3. **Optional, up-to-date Source Citations:** `sources::` is optional; its paths are domaiNN-relative and written in full (no implicit prefix; binaries are cited through their sidecar), it anchors to knowledge units (`@<unit>`), and takes bracketed lists `[a, b]` for multiple sources (no `src-xxx` IDs, no `#L...` line ranges, no `staging/` buffer).
-4. **Zero Unilateral Mutation:** Never rename or move files without explicit confirmation.
-5. **Recommended Option First:** Always prefix option `[a]` with `(Recommended)`.
-6. **Multi-Selection Notice:** Include `"You can select one option or a combination (e.g. A and B)"` when applicable.
-7. **Change Preview with Diff:** Show a natural-language summary before applying any MCP mutation.
-8. **Architecture Assistant Mode:** In the `[c]` audit, explain business/functional risks and offer 1-click fixes.
-9. **Contextual Shortcuts:** End every response by offering 2-3 suggested next actions (Quick Actions).
-10. **Full MCP Delegation:** Query types, schemas, and validation from the `innfo-mcp` server; do not guess or duplicate the grammar.
-11. **Index Block Scope (`# NN index`):** The `# NN index` is reserved exclusively for workspace manifest documents (`domaiNN_NN.md` / `index.md`) and Level 2 templates (defining the taxonomy hierarchy of Concepts). Level 3 domain data models (`kNNowledge/*_NN.md`) MUST NOT contain a root `# NN index` block; navigation in Level 3 models is derived dynamically from Concept and Element headings.
-12. **Mandatory WikiLink syntax in references:** In every reference field (`type:: reference`), the value MUST be formatted using WikiLink syntax (`key:: [[Element]]`). Plain text without WikiLink brackets is forbidden.
-13. **Element descriptions in prose:** The description/explanation of an element in a Level 3 model must NEVER be written as a `description::` field. It must always be free-form Markdown prose below the `key:: value` field list, separated by a blank line.
-14. **Active Model Selection Gate:** Never perform editing, validation, audits, console export, or model procedure execution without a validated active model in context. Run workspace discovery first if none is set.
-15. **Dynamic Quick Actions:** Only list procedure shortcuts in next steps if the model contains declared procedures.
-16. **Free-form Tags (`tags::`)**: Any Element or Concept in a Level 3 model may declare `tags:: [tag1, tag2]` for free-form categorization without modifying the Level 2 app. Multi-tag syntax requires brackets `[...]`. Agents should use this field to filter and scope actions to tagged elements.
-17. **Step 0 Schema Integrity Gate (MANDATORY)**: Always verify that `parent_spec` resolves cleanly before diagnosing or repairing child element fields, matrices, or references. If unresolved, halt and resolve schema reachability first.
-18. **Mechanical Linting & BOM Encoding Sanitization**: Always enforce UTF-8 without BOM (`\uFEFF`), detect and disambiguate heading/slug collisions, and enforce clean frontmatter.
+4. **Change Preview with Diff:** Show a natural-language summary before applying any MCP mutation.
+5. **Architecture Assistant Mode:** In the `[c]` audit, explain business/functional risks and offer 1-click fixes.
+6. **Contextual Shortcuts:** End every response by offering 2-3 suggested next actions (Quick Actions).
+7. **Full MCP Delegation:** Query types, schemas, and validation from the `innfo-mcp` server; do not guess or duplicate the grammar.
+8. **Index Block Scope (`# NN index`):** The `# NN index` is reserved exclusively for workspace manifest documents (`domaiNN_NN.md` / `index.md`) and Level 2 templates (defining the taxonomy hierarchy of Concepts). Level 3 domain data models (`kNNowledge/*_NN.md`) MUST NOT contain a root `# NN index` block; navigation in Level 3 models is derived dynamically from Concept and Element headings.
+9. **Mandatory WikiLink syntax in references:** In every reference field (`type:: reference`), the value MUST be formatted using WikiLink syntax (`key:: [[Element]]`). Plain text without WikiLink brackets is forbidden.
+10. **Element descriptions in prose:** The description/explanation of an element in a Level 3 model must NEVER be written as a `description::` field. It must always be free-form Markdown prose below the `key:: value` field list, separated by a blank line.
+11. **Active Model Selection Gate:** Never perform editing, validation, audits, console export, or model procedure execution without a validated active model in context. Run workspace discovery first if none is set.
+12. **Dynamic Quick Actions:** Only list procedure shortcuts in next steps if the model contains declared procedures.
+13. **Free-form Tags (`tags::`)**: Any Element or Concept in a Level 3 model may declare `tags:: [tag1, tag2]` for free-form categorization without modifying the Level 2 app. Multi-tag syntax requires brackets `[...]`. Agents should use this field to filter and scope actions to tagged elements.
+14. **Step 0 Schema Integrity Gate (MANDATORY)**: Always verify that `parent_spec` resolves cleanly before diagnosing or repairing child element fields, matrices, or references. If unresolved, halt and resolve schema reachability first.
+15. **Mechanical Linting & BOM Encoding Sanitization**: Always enforce UTF-8 without BOM (`\uFEFF`), detect and disambiguate heading/slug collisions, and enforce clean frontmatter.
 
 ---
 

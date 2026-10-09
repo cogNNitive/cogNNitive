@@ -126,7 +126,7 @@ function testRenderSkillsCatalogRegion() {
   // 1. Source.yaml order preserved, count derived from array length; no Triggers column.
   {
     const body = renderSkillsCatalogRegion([
-      { name: 'nn-start', version: 'V_3-4-1', description: 'Central system governance and start router.' },
+      { name: 'nn', version: 'V_3-4-1', description: 'Central system governance and start router.' },
       { name: 'nn-innfo', version: 'V_0-5-3', description: 'Author, edit, and validate iNNfo models.' },
     ]);
     assert.ok(body.startsWith('**2** skills'), 'count line reflects the input length');
@@ -135,7 +135,7 @@ function testRenderSkillsCatalogRegion() {
     assert.deepStrictEqual(
       rows,
       [
-        '| [`nn-start`](skills/nn-start.md) | `V_3-4-1` | Central system governance and start router. |',
+        '| [`nn`](skills/nn.md) | `V_3-4-1` | Central system governance and start router. |',
         '| [`nn-innfo`](skills/nn-innfo.md) | `V_0-5-3` | Author, edit, and validate iNNfo models. |',
       ],
       'rows render in source.yaml (input) order, linking to the conventional skills/<name>.md page',
@@ -171,13 +171,13 @@ function testRenderSkillsCatalogRegion() {
 function testCheckSkillPageSet() {
   // 1. Equal sets: ok, no missing or extra pages.
   {
-    const result = checkSkillPageSet(['nn-start', 'nn-innfo'], ['nn-start', 'nn-innfo']);
+    const result = checkSkillPageSet(['nn', 'nn-innfo'], ['nn', 'nn-innfo']);
     assert.deepStrictEqual(result, { ok: true, missingPages: [], extraPages: [] });
   }
 
   // 2. A skill in source.yaml with no matching Page is reported as missing.
   {
-    const result = checkSkillPageSet(['nn-start'], ['nn-start', 'nn-fixture-skill']);
+    const result = checkSkillPageSet(['nn'], ['nn', 'nn-fixture-skill']);
     assert.strictEqual(result.ok, false, 'a skill without a page fails the guard');
     assert.deepStrictEqual(result.missingPages, ['nn-fixture-skill']);
     assert.deepStrictEqual(result.extraPages, []);
@@ -185,7 +185,7 @@ function testCheckSkillPageSet() {
 
   // 3. Triangulation: a Page with no matching skill entry is reported as extra (proves both directions are checked).
   {
-    const result = checkSkillPageSet(['nn-start', 'nn-router'], ['nn-start']);
+    const result = checkSkillPageSet(['nn', 'nn-router'], ['nn']);
     assert.strictEqual(result.ok, false, 'a page without a skill entry fails the guard');
     assert.deepStrictEqual(result.missingPages, []);
     assert.deepStrictEqual(result.extraPages, ['nn-router']);
@@ -231,8 +231,8 @@ function testFindHandTypedFacts() {
   // 4. A registered skill name paired with a version literal on the same line is flagged.
   {
     const violations = findHandTypedFacts(
-      [{ path: 'docs/skills/documentation/README.md', content: 'nn-start is pinned at V_1-2-0 in this doc.' }],
-      { skillNames: ['nn-start'] },
+      [{ path: 'docs/skills/documentation/README.md', content: 'nn is pinned at V_1-2-0 in this doc.' }],
+      { skillNames: ['nn'] },
     );
     assert.strictEqual(violations.length, 1, 'skill name + version literal is flagged when skillNames is provided');
     assert.strictEqual(violations[0].rule, 'skill-version');
@@ -242,7 +242,7 @@ function testFindHandTypedFacts() {
   {
     const violations = findHandTypedFacts(
       [{ path: 'docs/skills/documentation/README.md', content: 'The spec pins V_1-2-0 for an unrelated reason.' }],
-      { skillNames: ['nn-start'] },
+      { skillNames: ['nn'] },
     );
     assert.strictEqual(violations.length, 0, 'version literal alone (no skill name on the line) is not a violation');
   }

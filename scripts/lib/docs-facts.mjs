@@ -76,7 +76,7 @@ export function replaceRegion(content, name, body) {
  * @param {string} content
  * @returns {string}
  */
-function stripGeneratedRegions(content) {
+export function stripGeneratedRegions(content) {
   return content.replace(
     /<!--\s*generated:([\w-]+)\b[^>]*-->[\s\S]*?<!--\s*\/generated:\1\s*-->/g,
     (_full, name) => `<!-- generated:${name} --><!-- /generated:${name} -->`,
@@ -162,7 +162,7 @@ const NUMBER_WORDS =
 const TOOL_COUNT_RE = new RegExp(`\\b(\\d+|${NUMBER_WORDS})\\s+(semantic\\s+|MCP\\s+)?tools\\b`, 'i');
 
 // A registered skill name followed by a version literal on the same line,
-// e.g. "nn-start (V_1-2-0)" — versions must come from manifest/source.yaml,
+// e.g. "nn-innfo (V_0-5-7)" — versions must come from manifest/source.yaml,
 // never be hand-typed alongside the skill name (design "Interfaces / Contracts").
 const VERSION_LITERAL_RE = /(?<!\w)V_\d+-\d+-\d+/;
 

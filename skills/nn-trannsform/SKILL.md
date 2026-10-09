@@ -1,7 +1,7 @@
 ---
 name: nn-trannsform
-description: "Bootstrap projects, scan raw documents, normalize them to Markdown with mandatory Source frontmatter, apply V_0-1-0 template-based transformations, and execute multi-step transformation procedures compliant with procedures_V_0-1-0_NN.md. Includes document ingestion, format conversion (txt, md, csv, json, docx, pdf, xlsx), procedure orchestration, and export generation. Triggers: trannsform, transform, workflow, pipeline, procedure, normalize, scan documents, document ingestion, document transformation, document processing, markdown conversion, project bootstrap"
-version: "V_3-4-2"
+description: "Bootstrap projects, scan raw documents, normalize them to Markdown with mandatory Source frontmatter, apply template-based transformations, and execute multi-step transformation procedures compliant with iNNfo/specs/bluepriNNts/procedures/spec_NN.md. Includes document ingestion, format conversion (txt, md, csv, json, docx, pdf, xlsx), procedure orchestration, and export generation. Triggers: trannsform, transform, workflow, pipeline, procedure, normalize, scan documents, document ingestion, document transformation, document processing, markdown conversion, project bootstrap"
+version: "V_3-4-3"
 last_updated: 2026-09-30
 empty_sections_mode: "ask-per-section"
 license: MIT
@@ -21,29 +21,75 @@ bundled_blueprints: []
 ## 0. Activation Gate
 Execute the canonical activation gate defined in `nn-preflight` (session greeting + deterministic preflight integrity check). If already executed by `nn` in the current session, skip duplicate preflight execution.
 
-## System & UX Governance (MANDATORY)
+<!-- generated:shared-rules (source: scripts/skill-shared-rules.md; run node scripts/build-skill-shared-rules.mjs) -->
+### Shared Rules (generated — do not edit)
 
-1. **Zero Unilateral Mutation (Consent First)**:
-   - NEVER move, rename, or delete user files (e.g. moving PDFs into `sources/import/` or changing folder structure) without prior explicit confirmation from the user.
-2. **Recommended Option First**:
-   - In all decision menus, option `[a]` or `[1]` MUST carry the `(Recommended)` prefix.
-3. **Multi-Selection Clarification**:
-   - When choices are non-exclusive, include the notice: `"You can select one option or a combination (e.g. A and B)"`.
-4. **Optimistic Execution & Reversibility Protocol (Informative Grace)**:
-   - Safe, standard, and reversible actions (e.g. creating standard directory layout, cognitivizing documents in place, running scanner passes) MUST NOT block with confirmation prompts.
-   - Announce intent with Informative Grace: `"Avanzando con [acción estándar]. Si preferís cambiar la ubicación o interrumpir, avisame antes de empezar."`
-   - Explicit confirmation is reserved exclusively for destructive mutations (deleting orphaned sources, moving external user files without copy).
-5. **Mandatory Canonical Toolchain for Normalization (No Manual Parsing Bypass)**:
-   - NEVER manually calculate SHA-256 hashes, handcraft converted markdown tables, or manually edit source frontmatter to bypass layout mismatches.
-   - When updating or refreshing a single source file, always use the atomic command: `node scripts/index.js --normalize-file "<source-path>" --src "<project-dir>"`. To cognitivize a file or a whole folder in place, use `node scripts/index.js --cognitivize "<file-or-dir>" --src "<project-dir>"` (recursive; skips sidecars and `staging/`).
-   - The canonical toolchain guarantees write-once handling (imports, promotions and generated artifacts never overwrite: changed bytes add a new UTC-suffixed family member, identical bytes are deduplicated), sidecar refresh when a raw file's bytes change, downstream `[IMPACT WARNING]` audits, and lineage-record synchronization.
+**System Governance & UX Protocol (MANDATORY)**
 
-## Preflight Gate (MANDATORY — run before any transformation)
+1. **Zero Unilateral Mutation (Consent First)**: NEVER move, rename, delete, or
+   restructure user files without prior explicit confirmation.
+2. **Recommended Option First**: In every decision menu, the computed default
+   option carries the `(Recommended)` tag and is presented first (option `[a]`
+   or `[1]`). When the choices are non-exclusive, also include the notice:
+   *"You can select one option or a combination (e.g. A and B)"*.
+3. **Conversations as Reference & Source (Zero Discard)**: Allocate the session
+   transcript in `conversations/` silently at session start (`status: in_progress`)
+   and auto-promote it at close (the user may opt out with `[none]`). All sessions
+   are retained unconditionally.
+4. **Optimistic Execution & Reversibility**: Proceed immediately on safe,
+   standard, reversible actions (e.g. creating the standard directory layout,
+   cognitivizing documents in place) without redundant blocking confirmations.
+   Reserve explicit confirmation for destructive mutations only.
 
-Before any other action:
-1. Ensure the Integrity & Preflight Check above passed.
-2. If the task involves iNNfo model output (business, procedure, catalog, etc.), verify Tier 2 model structure.
-3. Read the report. If any blocker exists, ask the user before continuing. If all checks pass (or user overrides), continue.
+**Conversation Lifecycle & Closing UX**
+
+1. **Silent reservation**: at session start, silently allocate
+   `conversations/YYYY-MM-DD_HHmmss.md` with `status: in_progress`.
+2. **Close triggers**: conclude the session on natural-language triggers such as
+   `/close`, `cerrar`, `terminar sesión`, `listo por hoy`, or `done`.
+3. **Zero Discard**: transcripts are retained unconditionally.
+4. **3-title prompt**: on close, present 3 suggested titles plus a manual entry
+   option `[m]`, e.g. `[1] user-auth-design`, `[2] api-gateway-refactor`,
+   `[3] telemetry-setup`.
+5. **Finalize**: rename the file to `conversations/YYYY-MM-DD_<slug>.md`, set the
+   frontmatter `title` to the chosen title, `status: completed`, and `ended_at`
+   to the ISO 8601 completion timestamp.
+6. **Promote**: auto-promote the transcript to `sources/conversations/` (announce
+   it; `[none]` opts out).
+
+**Canonical Source Taxonomy & Citation Contract**
+
+1. **Primary Source**: the immutable, original evidence files under
+   `sources/import/` or watched via `## NN External Watch Roots:` (read-only).
+2. **Normalized / Secondary Source**: cognitivized in place — a co-located sidecar
+   `<file>.<ext>_sidecar_NN.md` carries origin metadata (`source_file`, `sha256`,
+   `size_bytes`, `source_format`, `normalized_at`); binary sources also carry the
+   normalized Markdown body. Text-native files (`md`, `csv`, `json`) are cited
+   directly; binaries are cited through their sidecar.
+3. **Synthetic Source**: derived deliverables under `artifacts/`, cognitivized in
+   place; their upstream is the `sources` they declare.
+4. **User Input Source**: in-line interactive input (`source_file: "inline:..."`),
+   exempt from physical disk file existence.
+
+Citations use the pointer grammar `sources:: [<path>@<unit>, ...]` — ALWAYS a
+bracketed list, with a domaiNN-relative path written in full (no implicit prefix).
+A `<unit>` is `@## Heading` (Markdown), `@RowID&col` (CSV), or
+`@/items/0/name` (JSON Pointer, RFC 6901). No `src-NNN` IDs, no line-number
+ranges, and never a `staging/` target.
+
+**Informative Grace**
+
+Safe, standard, reversible actions proceed without a blocking confirmation.
+Announce the action in the user's active session language, then continue; the
+user may interrupt. Example (English): *"Proceeding with the standard {action}.
+If you'd prefer a different location or want to stop, tell me before I begin."*
+<!-- /generated:shared-rules -->
+
+## Mandatory Canonical Toolchain for Normalization (No Manual Parsing Bypass)
+
+1. **NEVER manually calculate SHA-256 hashes**, handcraft converted markdown tables, or manually edit source frontmatter to bypass layout mismatches.
+2. When updating or refreshing a single source file, always use the atomic command: `node scripts/index.js --normalize-file "<source-path>" --src "<project-dir>"`. To cognitivize a file or a whole folder in place, use `node scripts/index.js --cognitivize "<file-or-dir>" --src "<project-dir>"` (recursive; skips sidecars and `staging/`).
+3. The canonical toolchain guarantees write-once handling (imports, promotions and generated artifacts never overwrite: changed bytes add a new UTC-suffixed family member, identical bytes are deduplicated), sidecar refresh when a raw file's bytes change, downstream `[IMPACT WARNING]` audits, and lineage-record synchronization.
 
 This skill enables the agent to interactively guide the user through document ingestion, normalization, and transformation.
 
@@ -101,24 +147,6 @@ node scripts/index.js --src "<source-folder>" --dest "<destination-parent-folder
 ---
 
 ### 2. Capability Scan & Source Ingestion Protocol (MANDATORY)
-
-#### 2a-0. Canonical Source Taxonomy (Taxonomía Canónica de Fuentes)
-
-The cogNNitive ecosystem operates on four clearly differentiated categories of sources:
-
-1. **Primary Source (Fuente Primaria)**:
-   - The immutable, raw original evidence or external watch root (`sources/import/`, `## NN External Watch Roots:`).
-   - Encompasses documents (PDF, DOCX, XLSX, TXT, CSV, JSON), raw audio/video recordings (`.mp3`, `.wav`, `.m4a`, `.mp4`), and external file drops.
-   - The scanner **never mutates, moves, or deletes** primary sources without explicit confirmation.
-2. **Normalized / Secondary Source (Fuente Normalizada / Secundaria)**:
-   - The co-located sidecar `<file>.<ext>_sidecar_NN.md` written next to a raw file when it is cognitivized. For binaries (PDF, DOCX, XLSX...) the sidecar body holds the normalized Markdown; for `md`, `csv` and `json` files the sidecar is bodyless metadata, because the raw file is already text.
-   - Contains mandatory scanner traceability frontmatter (`source_file`, `sha256`, `size_bytes`, `source_format`, `normalized_at`).
-   - Serves as the canonical citation target for Level 3 models: text-native files are cited directly (`sources:: [sources/import/notes.md@## Heading]`) and binaries through their sidecar (`sources:: [sources/import/report_20261001T101500Z.pdf_sidecar_NN.md@## Heading]`).
-3. **Synthetic / Derived Source (Fuente Sintética)**:
-   - An internal deliverable or consolidated summary re-ingested into the workspace graph: any file under `artifacts/` (or elsewhere) that is cognitivized in place. It is not moved or copied; its upstream lineage is the `sources` it declares (in its own frontmatter, or in its sidecar for non-markdown files).
-4. **User Input / Interactive Source (Fuente de Entrada de Usuario)**:
-   - In-line sources provided interactively during conversations (e.g. pasted data, calendars).
-   - Marked with `source_file: "inline:..."` and exempt from physical file existence checks.
 
 #### 2a-1. Cognitivize `sources/import/` in Place and Raw Media
 
@@ -396,15 +424,9 @@ The filesystem sync (§2d) covers files that went through the standard `nn-trann
 
 #### 2f. Conversation Transcripts & Knowledge Promotion Protocol
 
-Interaction dialogues are first-class source streams. The transcript lifecycle follows:
-1. **Silent Reservation**: When an interactive session begins, immediately allocate `conversations/YYYY-MM-DD_HHmmss.md` with initial frontmatter (`status: in_progress`, `turns: 0`, `mutations: false`).
-2. **Zero Discard Policy**: Transcripts are retained unconditionally (Zero Discard). Trivial sessions (`turns < 2` AND `mutations === false`) are preserved in `conversations/` with `status: completed`.
-3. **Title Suggestions & Renaming**: For non-trivial sessions, present 3 suggested title options with `[1] (Recommended) <slug>` plus a manual entry option. Update frontmatter (`status: completed`, `ended_at: <ISO>`) and rename the file to `conversations/YYYY-MM-DD_<slug>.md`.
-4. **Promotion to Knowledge Sources (`sources/conversations/`)**: The raw transcript is **always** registered in `conversations/`. Promotion to a normalized source is optional — prompt the user with two choices only:
-   - `[full] (Recommended) Full Transcript`: Promotes verbatim dialogue turns to `sources/conversations/<session-slug>_<YYYYMMDDTHHmmssZ>.md` (write-once, UTC stamp; promoting identical bytes again writes nothing, and existing `YYYY-MM-DD_*` transcripts stay as they are, never renamed).
-   - `[none]`: Keeps the transcript in `conversations/` only, without promotion.
-   - `_summary.md` promotion is **retired** — there is no executive-summary option and no `_summary.md` is produced.
-5. **Author Naming (before promoting on the `[full]` path)**: Before writing the promoted transcript, present an author-naming step for the transcript's participants — human first, agent second. Suggest the human name from `git config user.name` and/or the OS user (`$env:USERNAME`), offer a manual entry and a skip, then confirm the agent's own tool id (e.g. `OpenCode`, `Antigravity`, `ClaudeCode`). The user may confirm or edit each suggestion before the promoted file is written:
+Interaction dialogues are first-class source streams. The transcript lifecycle — silent reservation, close triggers, the 3-title prompt, rename, and promotion — is defined in the generated **Conversation Lifecycle** block above (do not restate it). The nn-trannsform-specific mechanics are:
+
+1. **Author Naming (before promoting on the `[full]` path)**: Before writing the promoted transcript, present an author-naming step for the transcript's participants — human first, agent second. Suggest the human name from `git config user.name` and/or the OS user (`$env:USERNAME`), offer a manual entry and a skip, then confirm the agent's own tool id (e.g. `OpenCode`, `Antigravity`, `ClaudeCode`). The user may confirm or edit each suggestion before the promoted file is written:
 
    ```
    📋 Author naming (before promoting to sources/conversations/):
@@ -420,13 +442,13 @@ Interaction dialogues are first-class source streams. The transcript lifecycle f
    ```
 
    A participant the user declines to name (or skips) renders the deterministic placeholder `unnamed`; promotion still completes — a missing name never blocks or aborts the promotion.
-6. **Cognitivize in Place**: Promoted transcripts link to their origin (`origin_transcript: conversations/...`) and render each turn under a `## NN Turn NN: <author-id>` heading (1-based, 2-digit zero-padded: `## NN Turn 01: Architect`, …, `## NN Turn 100: X`). The promoted file is Markdown, so its co-located sidecar (`<slug>_<stamp>.md_sidecar_NN.md`) is bodyless and records `source_type: conversation_transcript`; the transcript itself is the citation target. The sequential number makes every turn heading unique and addressable under the workspace heading rules. Downstream models cite these sources using canonical `@` pointer grammar: `sources:: [sources/conversations/<session-slug>_<YYYYMMDDTHHmmssZ>.md@## NN Turn 01: Architect]`. Turn headings carry no `author::` key: embedded modification blocks self-describe as they travel across turns.
-7. **CLI Promotion**:
+2. **Cognitivize in Place**: Promoted transcripts link to their origin (`origin_transcript: conversations/...`) and render each turn under a `## NN Turn NN: <author-id>` heading (1-based, 2-digit zero-padded: `## NN Turn 01: Architect`, …, `## NN Turn 100: X`). The promoted file is Markdown, so its co-located sidecar (`<slug>_<stamp>.md_sidecar_NN.md`) is bodyless and records `source_type: conversation_transcript`; the transcript itself is the citation target. The sequential number makes every turn heading unique and addressable under the workspace heading rules. Downstream models cite these sources using canonical `@` pointer grammar: `sources:: [sources/conversations/<session-slug>_<YYYYMMDDTHHmmssZ>.md@## NN Turn 01: Architect]`. Turn headings carry no `author::` key: embedded modification blocks self-describe as they travel across turns.
+3. **CLI Promotion**:
    ```bash
    node scripts/index.js --promote-conv "conversations/YYYY-MM-DD_<slug>.md" --format full
    ```
    The CLI path is a mechanical verbatim copy (no turn headings added); the agent-driven path — naming step + turn-structured body passed as `fullContent` — produces the author-attributed promoted transcript.
-8. **Agent Modification lineage**: When an agent turn in the transcript pasted a `## NN Agent Modification: <slug>` block (per `nn-innfo` §5), that heading survives promotion into the promoted transcript and is citeable via the `@` pointer grammar: `sources:: [sources/conversations/<session-slug>_<YYYYMMDDTHHmmssZ>.md@## NN Agent Modification: <scope>]`. This is how synthetic agent reasoning enters the workspace Lineage graph.
+4. **Agent Modification lineage**: When an agent turn in the transcript pasted a `## NN Agent Modification: <slug>` block (per `nn-innfo` §5), that heading survives promotion into the promoted transcript and is citeable via the `@` pointer grammar: `sources:: [sources/conversations/<session-slug>_<YYYYMMDDTHHmmssZ>.md@## NN Agent Modification: <scope>]`. This is how synthetic agent reasoning enters the workspace Lineage graph.
 
 #### 2g. Capability Assessment — Decision Matrix
 
@@ -504,7 +526,7 @@ When creating a new transformation, ask the user:
 
 **"What kind of template do you want to create?"**
 
-- **[a] (Recommended)** iNNfo V_0-1-0 template — structured model with typed concepts, fields, markers, and matrices
+- **[a] (Recommended)** iNNfo template — structured model with typed concepts, fields, markers, and matrices
 - **[b]** Generic Markdown template — free-form document with narrative sections
 - **[x]** Cancel
 
@@ -583,7 +605,7 @@ Derived deliverables are generated in a single pass directly to `artifacts/[Deli
 | **Deliverable** | `artifacts/` | `artifacts/Executive_Summary_20261001T101500Z.md` | Clean deliverable in user-selected citation format; write-once, UTC-suffixed |
 | **Validation Report** | `artifacts/` | `artifacts/Impact_Audit_report_20261001T101500Z.md` | Written by `--check-impact --report`; identical findings write nothing new |
 | **Curated CSV** | `artifacts/curated/` | `artifacts/curated/prices_20261001T101500Z.csv` | Citation-ready CSV from `--curate-csv` |
-| **Procedure Spec** | `procedures/` | `procedures/Document_Ingest_V_1-0-0_procedures_NN.md` | Procedure spec compliant with `procedures_V_0-1-0_NN.md` |
+| **Procedure Spec** | `procedures/` | `procedures/Document_Ingest_V_1-0-0_procedures_NN.md` | Procedure spec compliant with `iNNfo/specs/bluepriNNts/procedures/spec_NN.md` |
 | **Transformation Template** | `traNNsformations/` | `traNNsformations/Summary.md` | Single-shot template applied with `--apply <name>` |
 
 > **Templates vs Procedures (backlog 30, decided 2026-10-07: keep both).**
@@ -627,14 +649,10 @@ At the end of transformation:
 
 ## Core Rules
 
-1. **Zero Unilateral Mutation**: NEVER move, rename, or delete files in `sources/import/` (or any user file) without prior explicit confirmation.
-2. **Recommended Option First**: Always prefix option `[a]` with `(Recommended)`.
-3. **Multi-Selection Notice**: Add `"You can select one option or a combination (e.g. A and B)"` when applicable.
-4. **Mandatory Scanner Origin Metadata**: Every cognitivized raw file MUST have a co-located `<file>.<ext>_sidecar_NN.md` whose frontmatter records `source_file`, `sha256`, `size_bytes`, `source_format` and `normalized_at` (plus `normalized_by` when a converter ran, and optional `canonical` and `cited_works`). Only `cognitivize` writes sidecars; never handcraft one. No `source_id`/`src-NNN`.
-5. **Mandatory Model Citations**: Level 3 elements MUST include `sources:: sources/import/<path.md>@## Heading` (or a list `sources:: [sources/import/a.md@## H1, sources/import/b.pdf_sidecar_NN.md@## H2]`) with a domaiNN-relative path and no implicit prefix; binaries are cited through their sidecar — no `src-NNN` IDs, no line-number ranges.
-6. **V_0-1-0 Compliance**: Target iNNfo V_0-1-0 meta-template specification and unified NN syntax (`# NN`, `## NN`, `key:: value`).
-7. **Saved Procedure Proactive Check**: When starting `nn-trannsform` or `nn`, check for existing procedures in `procedures/` and offer them as runnable options to the user before starting standard ingestion.
-7a. **Lineage Record Sync**: `# NN Sources`, `# NN ModelRecords` and `# NN Artifacts` re-sync from the filesystem (sidecars, `kNNowledge/`, `artifacts/`) on every `--scan`/`--cognitivize`/`--import-url`/`--lineage` run — idempotent replace, removed files drop out. `# NN Procedures` is an append-only log: scripted runs (`--scan`, `--cognitivize`, `--import-url`, `--apply`) append their own entry; the agent still adds `## NN Procedures:` entries by hand for non-scripted research/analysis steps (see §2d). `node scripts/index.js --lineage --check` reports drift, including hand-edited managed sections.
-8. **Prose Description in Level 3 Models**: The description of an element in a Level 3 model must NEVER be formatted as a `description::` property field. It must always be written as free-form Markdown prose below the `key:: value` fields list, separated from them by a blank line.
-9. **Scored Matching, Never Silent Exclusion**: normalized sources map to model elements through `scorePairs` (`scripts/lib/score-matcher.js`, threshold 0.7); below-threshold pairs enter the review queue with a recorded decision, and undecided pairs stay queued across sessions.
-
+1. **Mandatory Scanner Origin Metadata**: Every cognitivized raw file MUST have a co-located `<file>.<ext>_sidecar_NN.md` whose frontmatter records `source_file`, `sha256`, `size_bytes`, `source_format` and `normalized_at` (plus `normalized_by` when a converter ran, and optional `canonical` and `cited_works`). Only `cognitivize` writes sidecars; never handcraft one. No `source_id`/`src-NNN`.
+2. **Mandatory Model Citations**: Level 3 elements MUST include `sources:: sources/import/<path.md>@## Heading` (or a list `sources:: [sources/import/a.md@## H1, sources/import/b.pdf_sidecar_NN.md@## H2]`) with a domaiNN-relative path and no implicit prefix; binaries are cited through their sidecar — no `src-NNN` IDs, no line-number ranges.
+3. **V_0-1-0 Compliance**: Target iNNfo V_0-1-0 meta-template specification and unified NN syntax (`# NN`, `## NN`, `key:: value`).
+4. **Saved Procedure Proactive Check**: When starting `nn-trannsform` or `nn`, check for existing procedures in `procedures/` and offer them as runnable options to the user before starting standard ingestion.
+4a. **Lineage Record Sync**: `# NN Sources`, `# NN ModelRecords` and `# NN Artifacts` re-sync from the filesystem (sidecars, `kNNowledge/`, `artifacts/`) on every `--scan`/`--cognitivize`/`--import-url`/`--lineage` run — idempotent replace, removed files drop out. `# NN Procedures` is an append-only log: scripted runs (`--scan`, `--cognitivize`, `--import-url`, `--apply`) append their own entry; the agent still adds `## NN Procedures:` entries by hand for non-scripted research/analysis steps (see §2d). `node scripts/index.js --lineage --check` reports drift, including hand-edited managed sections.
+5. **Prose Description in Level 3 Models**: The description of an element in a Level 3 model must NEVER be formatted as a `description::` property field. It must always be written as free-form Markdown prose below the `key:: value` fields list, separated from them by a blank line.
+6. **Scored Matching, Never Silent Exclusion**: normalized sources map to model elements through `scorePairs` (`scripts/lib/score-matcher.js`, threshold 0.7); below-threshold pairs enter the review queue with a recorded decision, and undecided pairs stay queued across sessions.

@@ -6,7 +6,7 @@
 
 - [Home](https://cognnitive.com/skills/index.md): Skills catalog landing page with skill cards, architecture overview, and installation instructions
 - [Documentation](https://cognnitive.com/skills/documentation/README.md): Full documentation for all skills
-- [nn-start](https://cognnitive.com/skills/documentation/skills/nn-start.md): Front controller, setup, environment readiness gate, and skill routing
+- [nn](https://cognnitive.com/skills/documentation/skills/nn.md): Front controller, setup, environment readiness gate, and skill routing
 - [nn-preflight](https://cognnitive.com/skills/documentation/skills/nn-preflight.md): Environment readiness gate (Node.js, MCP availability, workspace layout)
 - [nn-innfo](https://cognnitive.com/skills/documentation/skills/nn-innfo.md): iNNfo model authoring, validation, and Model Creation Wizard
 - [nn-trannsform](https://cognnitive.com/skills/documentation/skills/nn-trannsform.md): Document ingestion and transformation pipeline (PDF, DOCX, XLSX to Markdown)

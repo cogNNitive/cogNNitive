@@ -12,7 +12,7 @@ skills:
     path: skills/nn-trannsform
     ref_key: skills
     requires: [nn-innfo, nn-preflight]
-    description: Ingest documents (PDF, DOCX, XLSX), transform using blueprints, and execute multi-step procedures (procedures_V_0-1-0_NN.md).
+    description: Ingest documents (PDF, DOCX, XLSX), transform using blueprints, and execute multi-step procedures.
   - name: nn-innfo
     repo: cogNNitive/cogNNitive-web
     path: skills/nn-innfo

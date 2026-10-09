@@ -10,7 +10,7 @@ Site: https://cognnitive.com/skills
 
 ### Skills
 
-**nn-start** — Front controller and system governance. Handles setup, the environment readiness gate (Preflight), and routes requests to the right skill.
+**nn** — Front controller and system governance. Handles setup, the environment readiness gate (Preflight), and routes requests to the right skill.
 
 **nn-preflight** — Environment readiness gate. Checks Node.js version, MCP availability, and workspace layout in three tiers.
 

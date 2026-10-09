@@ -395,6 +395,8 @@ function buildSteps(repoRoot, _options = {}) {
   steps.push(node('preflight-primitives', 'Check Preflight Primitives Bundle Fresh', 'scripts/build-preflight-primitives.mjs', '--check'));
   // 5b. nn-skills-lifecycle bundled skills-manager drift guard.
   steps.push(node('skills-manager-bundle', 'Check Skills Manager Bundle Fresh', 'scripts/build-skills-manager-bundle.mjs', '--check'));
+  // 5b-bis. Shared rules rendered into the end-user skills match their source.
+  steps.push(node('skill-shared-rules', 'Check Skill Shared Rules Fresh', 'scripts/build-skill-shared-rules.mjs', '--check'));
   // 5c. Distributed skills are self-contained: referenced `node scripts/<file>` exists in the skill folder.
   steps.push({
     id: 'skill-script-refs',

@@ -13,7 +13,7 @@ generator: https://cognnitive.com/skills/nn-design-presets
 
 ## 1. Overview
 
-Rather than relying on ambiguous conversational narrative, user-agent interactions in **cogNNitive** are architected as a **Deterministic State Machine (FSM)** coordinated by a **Front Controller** (`nn-start`). 
+Rather than relying on ambiguous conversational narrative, user-agent interactions in **cogNNitive** are architected as a **Deterministic State Machine (FSM)** coordinated by a **Front Controller** (`nn`). 
 
 Whenever a user inputs `nn` or any domain trigger into an agent such as OpenCode, Claude Code, or Antigravity, the system transitions across explicit states with strict guards and governance protocols.
 
@@ -37,7 +37,7 @@ stateDiagram-v2
     Input_NN --> Gate
     Gate --> RouterTriage: Gate passed (Zero Interruption if OK)
 
-    state "1. Front Controller (nn-start)" as RouterTriage {
+    state "1. Front Controller (nn)" as RouterTriage {
         [*] --> EvaluateContext: Check for intent keywords
         EvaluateContext --> IntentMenu: Ambiguous or bare "nn"
         EvaluateContext --> DispatchSkill: Clear domain intent detected
@@ -59,14 +59,14 @@ stateDiagram-v2
                 ConfirmA --> PhaseB_Model: "Yes -> Phase B: Populate Model (Level 3)"
                 ConfirmA --> PhaseA_Template: Adjust template
                 PhaseB_Model --> ConfirmB: User approves Level 3 model?
-                ConfirmB --> SaveModel: "Yes -> Persist to models/"
+                ConfirmB --> SaveModel: "Yes -> Persist to kNNowledge/"
             }
         }
 
         state "nn-trannsform (Ingestion & Pipelines)" as Trannsform {
-            [*] --> WorkspaceCheck: Validate sources/ and models/
-            WorkspaceCheck --> Normalize: Ingest (sources/original -> sources/nn)
-            Normalize --> ProcedureExecution: Execute procedures_V_0-2-0_NN.md
+            [*] --> WorkspaceCheck: Validate sources/ and kNNowledge/
+            WorkspaceCheck --> Normalize: Ingest (cognitivize raw sources in place)
+            Normalize --> ProcedureExecution: Execute the procedures blueprint (iNNfo/specs/bluepriNNts/procedures/spec_NN.md)
             ProcedureExecution --> ExportArtifacts: Persist deliverables to artifacts/
         }
 

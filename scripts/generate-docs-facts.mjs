@@ -57,7 +57,13 @@ const { parseSourceYaml } = require('./manifest/generate-manifest.js');
 
 const MCP_TOOLS_REGION = 'mcp-tools';
 const DIST_RELATIVE_PATH = path.join('iNNfo', 'packages', 'innfo-mcp', 'dist', 'server.js');
-const MCP_TARGET_RELATIVE_PATH = path.join('docs', 'innfo', 'documentation', 'innfo-mcp.md');
+// The mcp-tools region is rendered into the docs page and into the nn-innfo
+// skill's own SKILL.md (design D4), so the skill ships an accurate tool
+// inventory instead of a hand-typed count.
+const MCP_TARGET_RELATIVE_PATHS = [
+  path.join('docs', 'innfo', 'documentation', 'innfo-mcp.md'),
+  path.join('skills', 'nn-innfo', 'SKILL.md'),
+];
 
 const SKILLS_CATALOG_REGION = 'skills-catalog';
 const SOURCE_YAML_RELATIVE_PATH = path.join('manifest', 'source.yaml');
@@ -161,32 +167,42 @@ async function runMcpToolsJob(cwd, check, against, execFile, log, logError) {
     return 2;
   }
 
-  const targetPath = path.join(cwd, MCP_TARGET_RELATIVE_PATH);
-  const current = readCurrentContent(cwd, targetPath, against, execFile);
-  if ('error' in current) {
-    logError(`FAIL: ${current.error}`);
-    return 2;
-  }
-
   const body = renderMcpToolsRegion(tools);
+  let exitCode = 0;
 
-  let rendered;
-  try {
-    rendered = normalizeOutput(replaceRegion(current.content, MCP_TOOLS_REGION, body));
-  } catch (err) {
-    logError(`FAIL: ${err.message} in ${against ? `${targetPath} at ref '${against}'` : targetPath}`);
-    return 2;
+  for (const relPath of MCP_TARGET_RELATIVE_PATHS) {
+    const targetPath = path.join(cwd, relPath);
+    const current = readCurrentContent(cwd, targetPath, against, execFile);
+    if ('error' in current) {
+      logError(`FAIL: ${current.error}`);
+      exitCode = Math.max(exitCode, 2);
+      continue;
+    }
+
+    let rendered;
+    try {
+      rendered = normalizeOutput(replaceRegion(current.content, MCP_TOOLS_REGION, body));
+    } catch (err) {
+      logError(`FAIL: ${err.message} in ${against ? `${targetPath} at ref '${against}'` : targetPath}`);
+      exitCode = Math.max(exitCode, 2);
+      continue;
+    }
+
+    exitCode = Math.max(
+      exitCode,
+      writeOrCheck({
+        targetPath,
+        currentContent: current.content,
+        rendered,
+        check,
+        log,
+        logError,
+        describeCount: `${tools.length} tools`,
+      }),
+    );
   }
 
-  return writeOrCheck({
-    targetPath,
-    currentContent: current.content,
-    rendered,
-    check,
-    log,
-    logError,
-    describeCount: `${tools.length} tools`,
-  });
+  return exitCode;
 }
 
 /**
