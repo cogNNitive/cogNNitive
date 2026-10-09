@@ -20,6 +20,11 @@ assert.strictEqual(hits([[`procedures/generate_${A.toLowerCase()}_script_NN.md`,
 
 // 3. Excluded paths are never scanned.
 assert.strictEqual(hits([['iNNfo/packages/innfo-video-parser/specs/V_0-3-3.json', A]]).length, 0);
+assert.strictEqual(
+  hits([['iNNfo/specs/bluepriNNts/video/skills/nn-video-script/specs/V_0-3-3.json', A]]).length,
+  0,
+  'the skill-vendored copy of the pinned spec is byte-identical to the excluded source',
+);
 assert.strictEqual(hits([['openspec/changes/archive/x/tasks.md', V]]).length, 0);
 assert.strictEqual(hits([['openspec/specs/x/spec.md', V]]).length, 1);
 

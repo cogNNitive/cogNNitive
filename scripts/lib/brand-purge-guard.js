@@ -29,6 +29,10 @@ const PATH_EXCLUSIONS = [
     reason: 'Vendored VUS spec pinned by sha256; the upstream text cannot be edited.',
   },
   {
+    prefix: 'iNNfo/specs/bluepriNNts/video/skills/nn-video-script/specs/',
+    reason: 'Byte-identical vendored copy of the excluded VUS spec, hash-pinned by the skill; cannot be edited.',
+  },
+  {
     prefix: 'iNNfo/specs/bluepriNNts/video/skills/nn-video-script/scripts/lib/innfo-video-parser.generated.mjs',
     reason: 'Generated bundle of the excluded vendored spec; regenerate, never hand-edit.',
   },
