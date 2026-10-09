@@ -185,7 +185,7 @@ describe('S2b readonly views and sandboxed iframes', () => {
       assert.ok(!f.getAttribute('sandbox').split(' ').includes(bad), bad)
     }
     const csp =
-      '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; img-src data: blob:; style-src \'unsafe-inline\'">'
+      '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; base-uri \'none\'; form-action \'none\'; img-src data: blob:; style-src \'unsafe-inline\'">'
     assert.ok(f.getAttribute('srcdoc').startsWith(csp), 'CSP meta leads the srcdoc')
     assert.ok(f.getAttribute('srcdoc').endsWith(html), 'view html follows unchanged')
   })

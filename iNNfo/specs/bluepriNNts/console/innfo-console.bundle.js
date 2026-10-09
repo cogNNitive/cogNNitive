@@ -5068,8 +5068,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   var RESERVED_VIEW_IDS = ['explorer', 'matrices', 'review']
   var ICON_NAME_RE = /^[a-z0-9-]+$/
   var VIEW_KINDS = ['editable', 'readonly']
+  // The frame has no scripts and no same-origin access, so a meta-refresh
+  // navigation inside it is accepted and out of scope here.
   var VIEW_CSP_META =
-    '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; img-src data: blob:; style-src \'unsafe-inline\'">'
+    '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; base-uri \'none\'; form-action \'none\'; img-src data: blob:; style-src \'unsafe-inline\'">'
 
   function nonEmptyString(v) {
     return typeof v === 'string' && v.trim() !== ''
