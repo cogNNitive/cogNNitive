@@ -156,7 +156,9 @@ const BUNDLE_TAGS =
  * `window.InnfoConsole`), then the views, whose scripts run after it.
  */
 export function inlineConsoleAssets(shell, { bundle, css, views }) {
-  for (const [name, re] of [['stylesheet link', CSS_LINK], ['viewport meta', VIEWPORT], ['bundle script tags', BUNDLE_TAGS]]) {
+  /** @type {[string, RegExp][]} */
+  const anchors = [['stylesheet link', CSS_LINK], ['viewport meta', VIEWPORT], ['bundle script tags', BUNDLE_TAGS]]
+  for (const [name, re] of anchors) {
     if (!re.test(shell)) throw new Error(`console shell has no ${name} to replace (anchor missing)`)
   }
   const header = viewsHeader(views)

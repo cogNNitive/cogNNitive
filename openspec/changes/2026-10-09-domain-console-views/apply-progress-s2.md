@@ -117,3 +117,52 @@ A fresh-context review of a4ae234a and ca81ec4d raised eight items; each was fix
 - Editable views are watched across the whole body, so any non-`mountHtml` frame anywhere in the document is removed and reported while such a view is mounted. The console has no other frame producers today.
 - Mutation checks (fix switched off, tests went RED, fix restored): fix 1 (toggle + blank-comment guard: 2 red), fix 2 (kind check + `name` original: 2 red), fix 3 (re-entrancy guard, listener cleanup, error reporting: 3 red), fix 6 (CSP string: 1 red), item 8 (html parsed into the parent: 1 red).
 - Hand-written delta since ca81ec4d: runtime +126/-33, review.js +14/-2, ui-kit.js +15/-2, tests +295/-7.
+
+## S2c1 Exporter lib
+
+Status: tasks 2c1.1-2c1.5 done; 2c1.6 (verification) done except the fresh-context review (owned by the orchestrator). Not pushed. Branch `session/domain-console-views-s2c1`.
+
+### Commits
+
+- `49998822` feat(console): add view discovery, wrapping and inlining lib for the exporter (2c1.1-2c1.3)
+- `ec43a2e0` feat(console): export --domain as one self-contained file with discovered views (2c1.4-2c1.5)
+- fix(console): load the view lib lazily so the exporter still runs standalone (follow-up to `ec43a2e0`, found by check-integrity)
+
+### TDD evidence
+
+- RED 2c1.1-2c1.2: `node --test test/console-views-lib.test.mjs` failed with `ERR_MODULE_NOT_FOUND` for `scripts/lib/console-views.mjs`; GREEN: 22 pass, 0 fail.
+- RED 2c1.4: with the exporter untouched, 7 of the 8 new `--domain` tests failed (sibling bundle and CSS written, three bundle tags, no header, no view scripts, no early failure); the eighth (determinism) passed already and stays as a guard. GREEN: `test/console-export.test.mjs` 19 pass, 0 fail.
+- Final: `node --test test/console-*.test.mjs test/*export*.test.mjs` run twice, 168 pass, 0 fail both times.
+
+### Design as built
+
+- `scripts/lib/console-views.mjs` exports `parseSpecName`, `viewRootCandidates`, `discoverViews`, `assertClassicScript`, `escapeScript`, `wrapView`, `viewsHeader`, `inlineConsoleAssets`. S2c2 adds `CONSOLE_SIZE_BUDGET` and `evaluateSizeBudget` beside them; `inlineConsoleAssets` already receives bundle, css and views separately so the three sizes are measurable.
+- The shell and the bundle are unchanged (`build-console-bundle.mjs --check` reports fresh), so nothing generated needed rebuilding. `inlineConsoleAssets` anchors on three existing shell patterns (CSS link, viewport meta, local bundle tag plus the `nn:console-shell` block) and throws if one is missing, so a shell edit cannot silently reintroduce a second bundle copy.
+- ES module detection compiles the exact emitted wrapper with `vm.Script`, so comments and strings cannot fool it, and ordinary syntax errors are reported too (`<source>: syntax error: ...`). Dynamic `import()` still passes (legal in a classic script).
+- Discovery runs before anything is written: a bad view, a duplicate or a missing `innfo-ui.css` exits 1 with no per-model consoles and no domain file.
+
+### Deviations and decisions
+
+1. Header `kind` is the origin (`bluepriNNt` or `domaiNN`). The editable/readonly kind is declared at runtime inside the view, so the exporter cannot know it.
+2. "First existing root wins" is evaluated on the views directory itself (`.../assets/consoles/views`), not on the package directory, so a domain copy of a package without views falls through to the next root.
+3. Several models sharing a base (`metrics_V_0-4-1`, `metrics_V_0-3-0`) read one package: the first spec name wins.
+4. `--domain` no longer writes `innfo-console.bundle.js` and `innfo-ui.css` at the domain root; existing ones are left alone, never deleted.
+5. Reserved ids and the id regex are duplicated from the UMD runtime (the lib is ESM); a lib test registers each reserved id against the runtime registry so drift fails.
+6. No `innfo-views` header comment is written when there are no views.
+7. Source labels are stable (`bluepriNNt:<base>/assets/consoles/views/<slug>.js`, `domaiNN:consoles/views/<slug>.js`), independent of which root resolved, so output does not vary by machine paths.
+
+### Surprises and known limits
+
+- check-integrity caught a standalone-contract break: `scripts/export-console.mjs` is distributed as a lone file (manifest `innfo-console-export-cli`, `release-keys` `DISTRIBUTION_PATHS`) and `scripts/export-console.test.mjs` runs a lone copy. A static import of the lib broke 4 of those tests (`ERR_MODULE_NOT_FOUND`), and a `tsc` error in the lib (`RegExp` tuple typing) failed Typecheck Scripts. Fix: the lib is imported dynamically only for `--domain`, with a clear error when it is absent. OPEN DECISION: a lone distributed exporter cannot run `--domain` until `scripts/lib/console-views.mjs` is also distributed (manifest entry, `DISTRIBUTION_PATHS`, `innfo-console` repoPaths, installer). Not done here: it touches release plumbing.
+- `--domain` still writes the per-model consoles under `artifacts/` first (existing behaviour: `args.domain` selects every model). Only the domain file is single-file.
+- The shell config JSON still carries `runtime.cdn` and `runtime.fallback` URL strings; they are data, not script tags, and nothing loads them in the inlined page. Left as is.
+- Only `</script` and `</style` are escaped. A view with `<!--` followed by `<script` inside a string could still confuse the HTML parser; the spec does not cover it.
+- Determinism holds apart from `meta.generated` (the domain payload uses `new Date()`); the test strips that stamp.
+- Hand-written lines: lib 167, exporter +34/-10, tests 358 (232 lib, 126 export).
+
+### Review items for the fresh-context review (2c1.6)
+
+- Anchors in `inlineConsoleAssets` versus the generated `nn:console-shell` block (does `console-shell-sync` ever change its shape?).
+- `assertClassicScript` message matching on other Node versions' SyntaxError wording.
+- First-wins base dedupe and views-dir-level root selection (deviations 2 and 3).
+- The jsdom boot test relies on `load` and the default tab mounting; it exercises no click or hash route.

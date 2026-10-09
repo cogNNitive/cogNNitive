@@ -38,7 +38,6 @@ import { fileURLToPath } from 'node:url'
 import { createHash } from 'node:crypto'
 import { homedir } from 'node:os'
 import { createRequire } from 'node:module'
-import { discoverViews, inlineConsoleAssets } from './lib/console-views.mjs'
 
 const req = createRequire(import.meta.url)
 const here = dirname(fileURLToPath(import.meta.url))
@@ -453,7 +452,17 @@ async function main() {
   // written, so a bad view or a missing asset leaves the workspace untouched.
   let domainViews = []
   let uiCss = ''
+  let viewsLib = null
   if (args.domain) {
+    // Loaded lazily: every other mode keeps running as a lone copy of this file
+    // (see "runs standalone next to the console assets"), and only --domain needs the lib.
+    try {
+      viewsLib = await import('./lib/console-views.mjs')
+    } catch (err) {
+      if (err.code !== 'ERR_MODULE_NOT_FOUND') throw err
+      console.error('Error: --domain needs scripts/lib/console-views.mjs next to this script.')
+      process.exit(1)
+    }
     const uiCssPath = join(consoleDir, 'innfo-ui.css')
     if (!existsSync(uiCssPath)) {
       console.error(`Error: ${uiCssPath} not found; --domain inlines the console CSS.`)
@@ -461,7 +470,7 @@ async function main() {
     }
     uiCss = await readFile(uiCssPath, 'utf-8')
     try {
-      domainViews = await discoverViews({
+      domainViews = await viewsLib.discoverViews({
         domainRoot: root,
         specNames: candidateModels.map((m) => payloadHelper.parentSpecNameOf(m.fm)).filter(Boolean),
         packagesDir: dirname(consoleDir),
@@ -649,7 +658,7 @@ async function main() {
       },
     }
 
-    let domainHtml = inlineConsoleAssets(renderConsole(resolvedShell, null, config, domainPayload), {
+    let domainHtml = viewsLib.inlineConsoleAssets(renderConsole(resolvedShell, null, config, domainPayload), {
       bundle,
       css: uiCss,
       views: domainViews,
