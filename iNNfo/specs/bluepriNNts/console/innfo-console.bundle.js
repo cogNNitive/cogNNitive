@@ -5198,8 +5198,13 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       var clash = tabs.filter(function (t) {
         return t.id === v.id
       })[0]
+      var panelId = 'innfo-tab-' + v.id
+      var existing = doc.getElementById(panelId)
       if (clash) {
         registry.report(v.id, [clash.id + ' (built-in)', v.source], 'view "' + v.id + '": duplicate id (a built-in tab already uses it)')
+      } else if (existing && existing.getAttribute('data-innfo-view') !== v.id) {
+        // The panel belongs to the shell or a built-in tab; never mount into it.
+        registry.report(v.id, [v.source], 'view "' + v.id + '": panel #' + panelId + ' already exists and is not owned by this view')
       } else {
         tabs.push(Object.assign({}, v, { panelId: 'innfo-tab-' + v.id, external: true }))
       }
@@ -5213,6 +5218,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       if (t.external && !doc.getElementById(t.panelId) && shell.main) {
         var panel = el('div', 'innfo-tab-panel')
         panel.id = t.panelId
+        panel.setAttribute('data-innfo-view', t.id)
         shell.main.insertBefore(panel, shell.review)
       }
     })

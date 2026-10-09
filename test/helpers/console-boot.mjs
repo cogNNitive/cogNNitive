@@ -35,7 +35,7 @@ export const MODEL = {
   ],
 }
 
-export function bootConsole({ registry, model = MODEL, url = 'http://localhost' } = {}) {
+export function bootConsole({ registry, model = MODEL, url = 'http://localhost', before } = {}) {
   const dom = new JSDOM(
     `<!doctype html><html><head></head><body>
       <div id="innfo-layout">
@@ -58,6 +58,7 @@ export function bootConsole({ registry, model = MODEL, url = 'http://localhost' 
   global.document = dom.window.document
   global.localStorage = dom.window.localStorage
   global.CustomEvent = dom.window.CustomEvent
+  if (before) before(dom.window.document)
   const res = InnfoConsole.boot(dom.window.document, registry ? { registry } : undefined)
   return { dom, document: dom.window.document, res }
 }

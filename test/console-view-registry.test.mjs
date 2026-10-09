@@ -212,3 +212,27 @@ describe('duplicate and invalid view ids', () => {
     assert.match(document.getElementById('innfo-view-errors').textContent, /canonical.*duplicate/)
   })
 })
+
+describe('panel id collisions', () => {
+  for (const id of ['domain', 'studio']) {
+    it(`rejects an external "${id}" view instead of mounting into the existing panel`, () => {
+      const registry = InnfoConsole.createViewRegistry()
+      let mounts = 0
+      registry.register(def({ id, mount: () => mounts++ }))
+      const { document } = bootConsole({
+        registry,
+        before(doc) {
+          const legacy = doc.createElement('div')
+          legacy.id = `innfo-tab-${id}`
+          legacy.innerHTML = '<p id="legacy-content">legacy</p>'
+          doc.querySelector('main').appendChild(legacy)
+        },
+      })
+      const panel = document.getElementById(`innfo-tab-${id}`)
+      assert.equal(mounts, 0)
+      assert.equal(panel.innerHTML, '<p id="legacy-content">legacy</p>')
+      assert.equal(document.querySelector(`.innfo-view-tab[data-tab="${id}"]`), null)
+      assert.match(document.getElementById('innfo-view-errors').textContent, new RegExp(`${id}.*panel`))
+    })
+  }
+})
