@@ -35,12 +35,12 @@ Chain strategy: pending
 
 ## Phase 2: Core console helper + mirror
 
-- [ ] 2.1 RED: add `src/console/schema-resolution.spec.ts` — tier order (workspace pkg beats global), canonical fallback, recursive `includes`, graceful `derived` on miss.
-- [ ] 2.2 Implement `resolveConsoleSchema({rootDir,parentName,parentUrl,globalDir?,skillsDir?})` in `src/console/schema-resolution.ts` (pre-collect includes → sync map → `resolveBlueprintSchema(...).schema`).
-- [ ] 2.3 Export from `src/console/index.ts` (`export * from './schema-resolution.js'`).
-- [ ] 2.4 GREEN: `npm --workspace=@cognnitive/innfo-core test`.
-- [ ] 2.5 Rebuild mirror `iNNfo/specs/bluepriNNts/console/console-payload.generated.cjs` (`node scripts/build-console-payload.mjs`).
-- [ ] 2.6 Verify: `node scripts/verify.js` (mirror drift); `npm run lint`; `npm run format:check`; `npm run typecheck`.
+- [x] 2.1 RED: add `src/console/schema-resolution.spec.ts` — tier order (workspace pkg beats global), canonical fallback, recursive `includes`, graceful `derived` on miss.
+- [x] 2.2 Implement `resolveConsoleSchema({rootDir,parentName,parentUrl,globalDir?,skillsDir?})` in `src/console/schema-resolution.ts` (pre-collect includes → sync map → `resolveBlueprintSchema(...).schema`).
+- [x] 2.3 Export from `src/console/index.ts` (`export * from './schema-resolution.js'`).
+- [x] 2.4 GREEN: `npm --workspace=@cognnitive/innfo-core test`.
+- [x] 2.5 Rebuild mirror `iNNfo/specs/bluepriNNts/console/console-payload.generated.cjs` (`node scripts/build-console-payload.mjs`).
+- [x] 2.6 Verify: `node scripts/verify.js` (mirror drift); `npm run lint`; `npm run format:check`; `npm run typecheck`.
 
 ## Phase 3: Producers + fixture
 

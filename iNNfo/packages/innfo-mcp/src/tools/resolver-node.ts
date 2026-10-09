@@ -184,7 +184,6 @@ export function canonicalSpecFilename(requestName: string, content: string): str
   return `${base}_V_${fmVersion.replace(/\./g, '-')}`
 }
 
-
 /**
  * A complete template package: the primary Level 2 specification plus the
  * accompanying SOP procedures, sample models, and static layout assets, each as
@@ -333,7 +332,9 @@ export async function fetchBlueprintPackageFromRemote(
     throw new Error('ref is required for fetchBlueprintPackageFromRemote')
   }
   if (!/^blueprints-v\d+\.\d+\.\d+$/.test(options.ref)) {
-    throw new Error(`Invalid blueprint ref "${options.ref}": must match ^blueprints-v\\d+\\.\\d+\\.\\d+$`)
+    throw new Error(
+      `Invalid blueprint ref "${options.ref}": must match ^blueprints-v\\d+\\.\\d+\\.\\d+$`,
+    )
   }
   const ref = options.ref
   const repo = options.repo ?? 'cogNNitive/cogNNitive'
@@ -558,7 +559,8 @@ export async function resolveParentChainNode(
       // offline fallback registry. Matching any cogNNitive raw repo keeps this
       // working across future host moves.
       const isCanonicalRemote =
-        isRemote && /raw\.githubusercontent\.com\/cogNNitive\/[^/]+\/(main|v[\d.]+)\//i.test(currentUrl)
+        isRemote &&
+        /raw\.githubusercontent\.com\/cogNNitive\/[^/]+\/(main|v[\d.]+)\//i.test(currentUrl)
       if (!isRemote || isCanonicalRemote) {
         attempted.push(`canonical fallback registry for "${currentName}"`)
         const canonical =
@@ -644,9 +646,7 @@ export async function fetchSpecContent(
   cacheDir?: string,
 ): Promise<string | null> {
   const localPath =
-    url && isLocalPath(url)
-      ? toLocalFilePath(url, specsDir.replace(/[/\\]specs[/\\]?$/, ''))
-      : null
+    url && isLocalPath(url) ? toLocalFilePath(url, specsDir.replace(/[/\\]specs[/\\]?$/, '')) : null
   if (localPath) {
     const direct = await readFile(localPath, 'utf-8').catch(() => null)
     if (direct !== null) return direct

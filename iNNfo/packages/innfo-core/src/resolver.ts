@@ -96,8 +96,7 @@ async function buildBlueprintCandidates(
 
   const workspaceDir = options?.domainDir ?? options?.workspaceDir ?? process.cwd()
   const globalBlueprintsDir =
-    options?.globalBlueprintsDir ??
-    path.join(os.homedir(), '.agents', 'bluepriNNts')
+    options?.globalBlueprintsDir ?? path.join(os.homedir(), '.agents', 'bluepriNNts')
   const skillsDir = options?.skillsDir ?? path.join(os.homedir(), '.agents', 'skills')
 
   const candidateNames = templateName.endsWith('.md')
@@ -410,7 +409,11 @@ export async function findSpecInPackageDir(dir: string, base: string): Promise<s
  */
 function isDirectSpecEntryName(filePath: string, base: string): boolean {
   const entry = basename(filePath).toLowerCase()
-  return entry === 'spec_nn.md' || entry === `${base.toLowerCase()}_nn.md` || entry.startsWith(`${base.toLowerCase()}_v_`)
+  return (
+    entry === 'spec_nn.md' ||
+    entry === `${base.toLowerCase()}_nn.md` ||
+    entry.startsWith(`${base.toLowerCase()}_v_`)
+  )
 }
 
 /**

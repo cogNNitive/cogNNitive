@@ -36,7 +36,10 @@ describe('Multi-Store Template Resolver (innfo-core)', () => {
 
   it('resolves workspace-local template first (Precedence 1)', async () => {
     const tmplName = 'test_spec_NN'
-    fs.writeFileSync(path.join(workspaceDir, 'specs', 'bluepriNNts', `${tmplName}.md`), '# NN concept: Local')
+    fs.writeFileSync(
+      path.join(workspaceDir, 'specs', 'bluepriNNts', `${tmplName}.md`),
+      '# NN concept: Local',
+    )
     fs.writeFileSync(path.join(globalDir, `${tmplName}.md`), '# NN concept: Global')
     fs.writeFileSync(
       path.join(skillsDir, 'nn-innfo', 'bluepriNNts', `${tmplName}.md`),
@@ -99,7 +102,9 @@ describe('Multi-Store Template Resolver (innfo-core)', () => {
     // The diagnostics must list the real precedence list, not an approximation:
     // every tier resolveBlueprintPath walks has to appear in the searched paths.
     const checkedPaths = await getBlueprintSearchPaths(missingName, opts)
-    expect(checkedPaths).toContain(path.join(workspaceDir, 'specs', 'bluepriNNts', `${missingName}.md`))
+    expect(checkedPaths).toContain(
+      path.join(workspaceDir, 'specs', 'bluepriNNts', `${missingName}.md`),
+    )
     expect(checkedPaths).toContain(path.join(workspaceDir, `${missingName}.md`))
     expect(checkedPaths).toContain(path.join(workspaceDir, 'specs', `${missingName}.md`))
     expect(checkedPaths).toContain(path.join(globalDir, `${missingName}.md`))
