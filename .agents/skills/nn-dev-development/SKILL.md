@@ -62,6 +62,13 @@ node scripts/nn-session.mjs start --id <session-id>
 `node_modules`, and creates the branch `session/<id>` off `dev`. Never write to the
 primary checkout; the primary-tree guard blocks it.
 
+**Testing in a worktree.** A junctioned worktree resolves `@cognnitive/*` to the
+**primary's** source, so a test or gate there exercises the wrong tree. When the session
+needs a trustworthy local test run, start a fresh one with `--fresh` (one-time `npm ci`
+inside the worktree, ~60s): `node scripts/nn-session.mjs start --id <id> --fresh`. Otherwise
+run tests/gates in the primary, or rely on CI. `--fresh` only applies to a new worktree —
+it prints a note and does nothing if the worktree already exists.
+
 ⚠️ It junctions the root `node_modules`, `iNNfo/node_modules`, and every workspace
 (`iNNfo/packages/*`, `iNNfo/apps/*`) and skill `node_modules` that exists in the primary.
 A dependency missing from the **local install** (a partial / `--omit=dev` install — e.g.

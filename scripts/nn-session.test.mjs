@@ -246,3 +246,18 @@ test('stop tolerates a deregistered, empty leftover dir without crashing', () =>
     rmSync(base, { recursive: true, force: true })
   }
 })
+
+test('start --fresh on an existing worktree prints a note instead of reinstalling', () => {
+  const base = mkdtempSync(join(tmpdir(), 'nn-session-'))
+  const repo = makeRepo(base)
+  const target = join(dirname(repo), 'cogNNitive-s10')
+  try {
+    run(['start', '--id', 's10', '--root', repo])
+    const s = runAll(['start', '--id', 's10', '--root', repo, '--fresh'])
+    assert.equal(s.code, 0)
+    assert.ok(s.out.includes('--fresh ignores an existing worktree'), 'notes the no-op')
+  } finally {
+    run(['stop', '--id', 's10', '--root', repo])
+    rmSync(base, { recursive: true, force: true })
+  }
+})

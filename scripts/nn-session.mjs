@@ -196,13 +196,24 @@ function start(argv) {
   const root = repoRoot(argv)
   const id = sessionId(argv)
   const target = worktreePath(root, id)
+  const fresh = argv.includes('--fresh')
   if (!existsSync(target)) {
     git(['worktree', 'add', '-b', `session/${id}`, target, 'dev'], root)
-    junctionNodeModules(root, target)
+    if (fresh) {
+      // A real install makes @cognnitive/* resolve to THIS worktree's source,
+      // so tests and gates exercise the session's own edits. Junctions resolve
+      // them to the primary instead — a silent stale-source baseline. (#1624/#2009)
+      console.error(`nn-session: installing a real dependency tree in ${target} (npm ci)…`)
+      execFileSync('npm', ['ci'], { cwd: target, stdio: 'inherit', shell: process.platform === 'win32' })
+    } else {
+      junctionNodeModules(root, target)
+    }
+  } else if (fresh) {
+    console.error(`nn-session: --fresh ignores an existing worktree; use a new id or remove ${target} first.`)
   }
-  // Junctions make the worktree inherit the primary's install; a stale primary
-  // silently poisons every test/gate here. Warn loudly, never silently. (#2009)
-  reportFreshness(checkDependencyFreshness(target), root)
+  // Junctions inherit the primary's install; a stale primary poisons every test
+  // and gate here. Warn loudly, never silently. (§1a/#2009)
+  if (!fresh) reportFreshness(checkDependencyFreshness(target), root)
   console.log(target)
 }
 
@@ -326,6 +337,6 @@ else if (cmd === 'list') list(process.argv.slice(2))
 else if (cmd === 'status') status(process.argv.slice(2))
 else if (cmd === 'stop') stop(process.argv.slice(2))
 else {
-  console.error('usage: nn-session.mjs start|list|status|stop [--id <id>] [--root <path>]')
+  console.error('usage: nn-session.mjs start|list|status|stop [--id <id>] [--fresh] [--root <path>]')
   process.exit(2)
 }
