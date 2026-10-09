@@ -4,7 +4,7 @@ import { mkdtemp, rm, mkdir, writeFile, readFile, readdir } from 'node:fs/promis
 import { existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve, dirname, basename } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { JSDOM } from 'jsdom'
@@ -13,10 +13,11 @@ const execFileAsync = promisify(execFile)
 const here = dirname(fileURLToPath(import.meta.url))
 const scriptPath = resolve(here, '..', 'scripts', 'export-console.mjs')
 
-async function runCli(args) {
+async function runCli(args, env) {
   try {
     const { stdout, stderr } = await execFileAsync(process.execPath, [scriptPath, ...args], {
       maxBuffer: 64 * 1024 * 1024,
+      env: env ? { ...process.env, ...env } : process.env,
     })
     return { code: 0, stdout, stderr }
   } catch (err) {
@@ -152,6 +153,43 @@ describe('export-console size budget and --view (S2c2)', () => {
       assert.notEqual(res.code, 0)
       assert.match(res.stderr, /--view and --domain/)
       await untouched()
+    })
+
+    for (const extra of [['--all'], ['--filter', 'view'], ['--stale'], ['ViewModel']]) {
+      it(`refuses --view together with ${extra.join(' ')}, exit 2, nothing written`, async () => {
+        await addView('alpha', editableView('Alpha'))
+        const res = await runCli([root, '--view', 'alpha', ...extra])
+        assert.equal(res.code, 2, res.stdout + res.stderr)
+        assert.match(res.stderr, /--view cannot be combined with --all, --stale, --filter or a model name/)
+        await untouched()
+      })
+    }
+
+    it('exits 2 with a clear message when --view has no value', async () => {
+      await addView('alpha', editableView('Alpha'))
+      for (const argv of [[root, '--view'], [root, '--view', '--all']]) {
+        const res = await runCli(argv)
+        assert.equal(res.code, 2, res.stdout + res.stderr)
+        assert.match(res.stderr, /--view needs a view id/)
+        await untouched()
+      }
+    })
+
+    it('reports a deduplicated write as unchanged, not as written', async () => {
+      await addView('alpha', editableView('Alpha'))
+      // Freeze the generated stamp so two runs produce identical bytes.
+      const preload = join(root, 'freeze-date.mjs')
+      await writeFile(preload, 'Date.prototype.toISOString = () => "2026-01-01T00:00:00.000Z"\n', 'utf-8')
+      const env = { NODE_OPTIONS: `--import=${pathToFileURL(preload).href}` }
+      const first = await runCli([root, '--view', 'alpha'], env)
+      assert.equal(first.code, 0, first.stderr)
+      assert.match(first.stdout, /Exported 1 console artifact\(s\)\./)
+      const second = await runCli([root, '--view', 'alpha'], env)
+      assert.equal(second.code, 0, second.stderr)
+      assert.match(second.stdout, /= alpha_view_\S+\.html unchanged/)
+      assert.doesNotMatch(second.stdout, /✔ alpha_view/)
+      assert.match(second.stdout, /Exported 0 console artifact\(s\) \(1 unchanged\)\./)
+      assert.equal((await viewOutputs('alpha')).length, 1)
     })
 
     it('writes one file under artifacts/<id>_view/ with the bundle once, one view and a one-line header', async () => {

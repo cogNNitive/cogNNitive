@@ -109,6 +109,7 @@ function parseArgs(argv) {
     stale: false,
     domain: false,
     view: null,
+    viewMissing: false,
     filter: null,
     model: null,
   }
@@ -129,7 +130,11 @@ function parseArgs(argv) {
       args.domain = true
     } else if (a === '--view') {
       i++
-      if (i < slice.length) args.view = slice[i]
+      if (i < slice.length && !slice[i].startsWith('--')) args.view = slice[i]
+      else {
+        args.viewMissing = true
+        if (i < slice.length) i--
+      }
     } else if (a === '--filter') {
       i++
       if (i < slice.length) {
@@ -341,12 +346,20 @@ async function main() {
   const args = parseArgs(process.argv)
   if (!args.root) {
     console.error(
-      'Usage: node scripts/export-console.mjs <workspaceRoot> [--status] [--tree] [--list] [--all] [--stale] [--domain] [--view <id>] [--filter <pattern>] [<ModelName>]',
+      'Usage: node scripts/export-console.mjs <workspaceRoot> [--status] [--tree] [--list] [--all] [--stale] [--domain] [--view <id> (whole domain, one view; no model selection)] [--filter <pattern>] [<ModelName>]',
     )
+    process.exit(2)
+  }
+  if (args.viewMissing) {
+    console.error('Error: --view needs a view id.')
     process.exit(2)
   }
   if (args.view && args.domain) {
     console.error('Error: --view and --domain are mutually exclusive.')
+    process.exit(2)
+  }
+  if (args.view && (args.all || args.stale || args.filter || args.model)) {
+    console.error('Error: --view cannot be combined with --all, --stale, --filter or a model name; it always exports the whole domain.')
     process.exit(2)
   }
   const root = resolve(args.root)
@@ -740,8 +753,13 @@ async function main() {
       standalone.html,
       { inputs: candidateModels.map((m) => relative(root, m.filePath).replace(/\\/g, '/')) },
     )
-    written++
-    console.log(`✔ ${basename(result.path)} → ./${result.path} (view ${args.view}, ${standalone.elements} elements)`)
+    if (result.status === 'deduplicated') {
+      unchanged++
+      console.log(`= ${basename(result.path)} unchanged`)
+    } else {
+      written++
+      console.log(`✔ ${basename(result.path)} → ./${result.path} (view ${args.view}, ${standalone.elements} elements)`)
+    }
   }
 
   console.log(`Exported ${written} console artifact(s)${unchanged > 0 ? ` (${unchanged} unchanged)` : ''}.`)
