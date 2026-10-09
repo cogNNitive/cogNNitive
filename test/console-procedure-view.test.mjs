@@ -78,10 +78,12 @@ describe('procedure view (bluepriNNt)', () => {
     assert.equal(handle.ok, true)
     assert.ok(container.querySelector('.innfo-procedure-view'), 'built inside the container')
 
-    // No global shell ids / no collision with the runtime's feedback modal.
+    // No global shell ids / no collision with the runtime's feedback modal, and
+    // no id at all inside the mounted view (container-scoped DOM only).
     for (const id of ['innfo-export-modal', 'audit-log-container', 'run-timer', 'doc-title', 'proc-tabs']) {
       assert.equal(doc.getElementById(id), null, `must not create the global id #${id}`)
     }
+    assert.equal(container.querySelectorAll('[id]').length, 0, 'no element in the view carries an id')
 
     // The execution-log dialog is created inside the container, not as #innfo-export-modal.
     const exportBtn = container.querySelector('.btn-export-log')

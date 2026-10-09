@@ -168,10 +168,6 @@
       )
     metaEl.innerHTML = bits.join('')
 
-    if (!tabsHost || !stepBody) {
-      return { ok: false, reason: 'missing-shell' }
-    }
-
     // ---- Execution Runtime State ----
     var activeProcedure = procedures[0] || null
     var currentStepIndex = 0
@@ -751,7 +747,7 @@
         outCard.innerHTML =
           '<div class="io-panel-label">' + vIcon('package', 12) + ' Produced Output</div>' +
           '<div class="io-panel-name">' + esc(cur.fields.output) + '</div>' +
-          '<label class="io-check-label"><input type="checkbox" ' + (isDone ? 'checked' : '') + ' id="chk-output-done" /> Status: <code>' + esc(cur.fields.output_status || 'verified') + '</code></label>'
+          '<label class="io-check-label"><input type="checkbox" ' + (isDone ? 'checked' : '') + ' /> Status: <code>' + esc(cur.fields.output_status || 'verified') + '</code></label>'
         ioGrid.appendChild(outCard)
       }
 
@@ -793,15 +789,15 @@
         decBox.innerHTML =
           '<div class="exec-box-title" style="color:var(--warning)">' + vIcon('decision', 13) + ' Decision Gate: Choose Branch Path</div>' +
           '<div class="decision-btn-row">' +
-            '<button class="btn-branch btn-primary" type="button" id="btn-branch-pass">Proceed Path (Standard) ▶</button>' +
-            '<button class="btn-branch" type="button" id="btn-branch-alt">Rework / Alternate Path ↺</button>' +
+            '<button class="btn-branch btn-primary btn-branch-pass" type="button">Proceed Path (Standard) ▶</button>' +
+            '<button class="btn-branch btn-branch-alt" type="button">Rework / Alternate Path ↺</button>' +
           '</div>'
 
-        decBox.querySelector('#btn-branch-pass').addEventListener('click', function () {
+        decBox.querySelector('.btn-branch-pass').addEventListener('click', function () {
           addLog('Decision Gate: Passed standard branch on step "' + cur.el.name + '"', 'Operator', 'done')
           completeCurrentStep(chain)
         })
-        decBox.querySelector('#btn-branch-alt').addEventListener('click', function () {
+        decBox.querySelector('.btn-branch-alt').addEventListener('click', function () {
           addLog('Decision Gate: Selected rework / alternative branch on step "' + cur.el.name + '"', 'Operator', 'warning')
           currentStepIndex = Math.max(0, currentStepIndex - 1)
           renderExecutionWorkspace()
@@ -1000,6 +996,13 @@
       procedures: procedures.length,
       steps: activeProcedure ? chainOf(activeProcedure).length : 0,
       matrices: matrices.length,
+      onHide: function () {
+        if (timerInterval) clearInterval(timerInterval)
+        timerInterval = null
+      },
+      onShow: function () {
+        startTimer()
+      },
       unmount: function () {
         if (timerInterval) clearInterval(timerInterval)
         timerInterval = null

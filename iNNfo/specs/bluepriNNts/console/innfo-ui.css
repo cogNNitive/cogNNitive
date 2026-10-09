@@ -5396,8 +5396,7 @@ details.collapse summary {
     button.subtab:hover { border-color: var(--muted); color: var(--text); }
     button.subtab.active { background: var(--primary); border-color: var(--primary); color: #ffffff; }
     button.subtab:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--text); }
-    #wizard-body.hidden { display: none; }
-    #doc-body.hidden { display: none; }
+    .hidden { display: none; }
 
     /* Document view */
     .doc-root {
@@ -5422,7 +5421,7 @@ details.collapse summary {
     .doc-step p.desc { margin: 0 0 10px; font-size: 0.88rem; color: var(--muted); }
 
     /* Procedure switcher tabs */
-    #proc-tabs {
+    .proc-tabs {
       display: flex;
       flex-wrap: wrap;
       gap: 6px;

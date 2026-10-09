@@ -17,14 +17,11 @@ registerView({
       ctx.container.appendChild(empty)
       return
     }
-    var handle = stepper.mount(ctx.container, {
-      schema: ctx.payload.schema,
-      model: ctx.payload.model,
-    })
-    return {
-      unmount: function () {
-        if (handle && typeof handle.unmount === 'function') handle.unmount()
-      },
-    }
+    return (
+      stepper.mount(ctx.container, {
+        schema: ctx.payload.schema,
+        model: ctx.payload.model,
+      }) || {}
+    )
   },
 })
