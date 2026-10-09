@@ -21,6 +21,7 @@ import {
   assertInlinable,
   CONSOLE_SIZE_BUDGET,
   evaluateSizeBudget,
+  deriveProjection,
 } from '../scripts/console-views.mjs'
 import { JSDOM } from 'jsdom'
 import { InnfoConsole, consoleDir } from './helpers/console-boot.mjs'
@@ -72,7 +73,7 @@ describe('console-views lib', () => {
     })
 
     it('stays silent when views were found', async () => {
-      await put(join(pkgs, 'metrics', 'assets', 'consoles', 'views', 'timeline.js'))
+      await put(join(pkgs, 'metrics', 'assets', 'console-view-timeline.js'))
       assert.deepEqual(await collect(['metrics_V_0-4-1']), [])
     })
 
@@ -124,26 +125,26 @@ describe('console-views lib', () => {
       assert.deepEqual(
         roots.map((r) => r.replace(/\\/g, '/').replace(domain.replace(/\\/g, '/'), '<d>').replace(pkgs.replace(/\\/g, '/'), '<p>')),
         [
-          '<d>/specs/bluepriNNts/metrics/V_0-4-1/assets/consoles/views',
-          '<d>/specs/bluepriNNts/metrics/assets/consoles/views',
-          '<p>/metrics/assets/consoles/views',
+          '<d>/specs/bluepriNNts/metrics/V_0-4-1/assets',
+          '<d>/specs/bluepriNNts/metrics/assets',
+          '<p>/metrics/assets',
         ],
       )
     })
 
     it('the first existing root wins and roots are never merged', async () => {
-      await put(join(pkgs, 'metrics', 'assets', 'consoles', 'views', 'timeline.js'))
-      await put(join(pkgs, 'metrics', 'assets', 'consoles', 'views', 'extra.js'))
-      await put(join(domain, 'specs', 'bluepriNNts', 'metrics', 'assets', 'consoles', 'views', 'timeline.js'), GOOD + '// domain copy\n')
+      await put(join(pkgs, 'metrics', 'assets', 'console-view-timeline.js'))
+      await put(join(pkgs, 'metrics', 'assets', 'console-view-extra.js'))
+      await put(join(domain, 'specs', 'bluepriNNts', 'metrics', 'assets', 'console-view-timeline.js'), GOOD + '// domain copy\n')
       const views = await discover(['metrics_V_0-4-1'])
       assert.deepEqual(views.map((v) => v.id), ['timeline'])
       assert.match(views[0].code, /domain copy/)
-      assert.equal(views[0].source, 'bluepriNNt:metrics/assets/consoles/views/timeline.js')
+      assert.equal(views[0].source, 'bluepriNNt:metrics/assets/console-view-timeline.js')
       assert.equal(views[0].origin, 'bluepriNNt')
     })
 
     it('reads each base once even when several models share it', async () => {
-      await put(join(pkgs, 'metrics', 'assets', 'consoles', 'views', 'timeline.js'))
+      await put(join(pkgs, 'metrics', 'assets', 'console-view-timeline.js'))
       const views = await discover(['metrics_V_0-4-1', 'metrics_V_0-3-0', 'metrics_V_0-4-1'])
       assert.deepEqual(views.map((v) => v.id), ['timeline'])
     })
@@ -161,7 +162,7 @@ describe('console-views lib', () => {
     }
 
     it('does not read views from a traversal target', async () => {
-      await put(join(pkgs, '..', 'x-traversal-probe', 'assets', 'consoles', 'views', 'evil.js'))
+      await put(join(pkgs, '..', 'x-traversal-probe', 'assets', 'console-view-evil.js'))
       try {
         await assert.rejects(discover(['../x-traversal-probe_V_0-1-0']), /parent_spec/)
       } finally {
@@ -176,19 +177,19 @@ describe('console-views lib', () => {
 
   describe('selection among several models', () => {
     const domainViews = (base, version) =>
-      join(domain, 'specs', 'bluepriNNts', base, ...(version ? [version] : []), 'assets', 'consoles', 'views')
-    const pkgViews = (base) => join(pkgs, base, 'assets', 'consoles', 'views')
+      join(domain, 'specs', 'bluepriNNts', base, ...(version ? [version] : []), 'assets')
+    const pkgViews = (base) => join(pkgs, base, 'assets')
 
     it('gives the same result for every input order', async () => {
-      await put(join(pkgViews('metrics'), 'timeline.js'))
+      await put(join(pkgViews('metrics'), 'console-view-timeline.js'))
       const a = await discover(['metrics_V_0-3-0', 'metrics_V_0-4-1', 'other_V_0-1-0'])
       const b = await discover(['other_V_0-1-0', 'metrics_V_0-4-1', 'metrics_V_0-3-0'])
       assert.deepEqual(a, b)
     })
 
     it('fails naming both models when two versions of one base resolve to different view sets', async () => {
-      await put(join(domainViews('metrics', 'V_0-3-0'), 'old.js'))
-      await put(join(domainViews('metrics', 'V_0-4-1'), 'new.js'))
+      await put(join(domainViews('metrics', 'V_0-3-0'), 'console-view-old.js'))
+      await put(join(domainViews('metrics', 'V_0-4-1'), 'console-view-new.js'))
       const expected = (err) =>
         /metrics_V_0-3-0/.test(err.message) && /metrics_V_0-4-1/.test(err.message) && /different views/.test(err.message)
       await assert.rejects(discover(['metrics_V_0-4-1', 'metrics_V_0-3-0']), expected)
@@ -196,28 +197,28 @@ describe('console-views lib', () => {
     })
 
     it('fails the same way when one version has its own views and the other uses the package', async () => {
-      await put(join(domainViews('metrics', 'V_0-4-1'), 'new.js'))
-      await put(join(pkgViews('metrics'), 'timeline.js'))
+      await put(join(domainViews('metrics', 'V_0-4-1'), 'console-view-new.js'))
+      await put(join(pkgViews('metrics'), 'console-view-timeline.js'))
       await assert.rejects(discover(['metrics_V_0-3-0', 'metrics_V_0-4-1']), /different views/)
     })
 
     it('is fine when only one version resolves to any views', async () => {
-      await put(join(domainViews('metrics', 'V_0-4-1'), 'new.js'))
+      await put(join(domainViews('metrics', 'V_0-4-1'), 'console-view-new.js'))
       assert.deepEqual((await discover(['metrics_V_0-3-0', 'metrics_V_0-4-1'])).map((v) => v.id), ['new'])
     })
 
     it('treats an existing but empty candidate directory as absent', async () => {
       await mkdir(domainViews('metrics', 'V_0-4-1'), { recursive: true })
       await put(join(domainViews('metrics'), 'readme.md'), '# no views here')
-      await put(join(pkgViews('metrics'), 'timeline.js'))
+      await put(join(pkgViews('metrics'), 'console-view-timeline.js'))
       const views = await discover(['metrics_V_0-4-1'])
       assert.deepEqual(views.map((v) => v.id), ['timeline'])
-      assert.equal(views[0].source, 'bluepriNNt:metrics/assets/consoles/views/timeline.js')
+      assert.equal(views[0].source, 'bluepriNNt:metrics/assets/console-view-timeline.js')
     })
 
     it('orders bases by plain code units, not by locale', async () => {
-      await put(join(pkgViews('Zeta'), 'x.js'))
-      await put(join(pkgViews('alpha'), 'x.js'))
+      await put(join(pkgViews('Zeta'), 'console-view-x.js'))
+      await put(join(pkgViews('alpha'), 'console-view-x.js'))
       const expected = (err) => err.message.indexOf('Zeta') < err.message.indexOf('alpha')
       await assert.rejects(discover(['alpha_V_0-1-0', 'Zeta_V_0-1-0']), expected)
       await assert.rejects(discover(['Zeta_V_0-1-0', 'alpha_V_0-1-0']), expected)
@@ -312,13 +313,13 @@ describe('console-views lib', () => {
     })
 
     it('rejects a duplicate id across bluepriNNt and domaiNN, naming both sources', async () => {
-      await put(join(pkgs, 'metrics', 'assets', 'consoles', 'views', 'timeline.js'))
+      await put(join(pkgs, 'metrics', 'assets', 'console-view-timeline.js'))
       await put(join(domain, 'consoles', 'views', 'timeline.js'))
       await assert.rejects(
         discover(['metrics_V_0-4-1']),
         (err) =>
           /duplicate view id "timeline"/.test(err.message) &&
-          err.message.includes('bluepriNNt:metrics/assets/consoles/views/timeline.js') &&
+          err.message.includes('bluepriNNt:metrics/assets/console-view-timeline.js') &&
           err.message.includes('domaiNN:consoles/views/timeline.js'),
       )
     })
@@ -616,5 +617,64 @@ describe('size budget', () => {
     assert.equal(evaluateSizeBudget(parts(5_000_001)).status, 'warn')
     assert.equal(evaluateSizeBudget(parts(15_000_000)).status, 'warn')
     assert.equal(evaluateSizeBudget(parts(15_000_001)).status, 'fail')
+  })
+})
+
+describe('deriveProjection', () => {
+  const mk = (concept, name, fields = {}, relations = []) => ({
+    id: `${concept.toLowerCase()}-${name.toLowerCase().replace(/\s+/g, '-')}`,
+    concept,
+    name,
+    fields,
+    relations,
+  })
+  const evolution = mk('Evolution', 'Compound', { evolutionType: 'compound', evolutionFactor: '5' })
+  const scenario = mk('Scenario', 'Year 1', { scenarioMonths: '12' })
+  const wider = mk('Scenario', 'Expansion', { scenarioMonths: '36' })
+  const variable = mk('Variables', 'Monthly Incidents', { variableValue: '20', variableType: 'count', variableUnit: 'incidents' })
+  const revenue = mk(
+    'Metrics',
+    'Revenue',
+    { metricValue: '<calculated>', metricFormula: 'incidents x fee', metricType: 'revenue', metricUnit: 'USD' },
+    [{ field: 'evolution', target: evolution.id, targetLabel: 'Compound' }],
+  )
+  const payroll = mk('Metrics', 'Payroll', { metricValue: '35000', metricFormula: '<fixed>', metricType: 'expense', metricUnit: 'USD' }, [
+    { field: 'evolution', target: evolution.id, targetLabel: 'Compound' },
+  ])
+
+  it('returns null when the model has no Scenario horizon', () => {
+    assert.equal(deriveProjection([variable, revenue]), null)
+    assert.equal(deriveProjection([]), null)
+    assert.equal(deriveProjection(undefined), null)
+  })
+
+  it('uses the widest Scenario as months and keeps element ids for the edit modal', () => {
+    const p = deriveProjection([evolution, scenario, wider, variable, revenue])
+    assert.equal(p.months, 36)
+    assert.equal(p.rows.length, 2)
+    const rev = p.rows.find((r) => r.label === 'Revenue')
+    assert.equal(rev.id, revenue.id)
+    assert.equal(rev.metricUnit, 'USD')
+    assert.equal(rev.metricType, 'revenue')
+  })
+
+  it('marks a formula row with its formula + growth and a value row as a variable', () => {
+    const p = deriveProjection([evolution, scenario, variable, revenue, payroll])
+    const rev = p.rows.find((r) => r.label === 'Revenue')
+    assert.equal(rev.formula, 'incidents x fee')
+    assert.equal(rev.variable, undefined)
+    assert.deepEqual(rev.growth, { mode: 'compound', factor: 5 })
+    const pay = p.rows.find((r) => r.label === 'Payroll')
+    assert.equal(pay.formula, undefined, 'a <...> placeholder is not a usable formula')
+    assert.equal(pay.variable, true)
+    assert.equal(pay.base, 35000)
+  })
+
+  it('turns a Variables element into a variable row with its unit and base', () => {
+    const p = deriveProjection([scenario, variable])
+    assert.deepEqual(
+      p.rows.map((r) => ({ label: r.label, variable: r.variable, base: r.base, metricUnit: r.metricUnit, grp: r.grp })),
+      [{ label: 'Monthly Incidents', variable: true, base: 20, metricUnit: 'incidents', grp: 'Variables' }],
+    )
   })
 })

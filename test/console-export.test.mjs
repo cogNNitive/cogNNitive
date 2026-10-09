@@ -349,7 +349,7 @@ level: 3
       await mkdir(dir, { recursive: true })
       await writeFile(join(dir, slug + '.js'), code, 'utf-8')
     }
-    const metricsViews = () => join(tempDir, 'specs', 'bluepriNNts', 'metrics', 'assets', 'consoles', 'views')
+    const metricsViews = () => join(tempDir, 'specs', 'bluepriNNts', 'metrics', 'assets')
     const rootFiles = async () =>
       (await readdir(tempDir, { withFileTypes: true })).filter((e) => e.isFile()).map((e) => e.name)
     const banner = async () => {
@@ -397,7 +397,7 @@ level: 3
 
     it('lists every view in the header and tags its script', async () => {
       await addView('pipeline')
-      await addView('timeline', PIPELINE.replace('Pipeline', 'Timeline'), metricsViews())
+      await addView('console-view-timeline', PIPELINE.replace('Pipeline', 'Timeline'), metricsViews())
       await writeFile(join(tempDir, 'models', 'm_V_1-0-0_NN.md'), METRICS_MODEL, 'utf-8')
       const res = await runCli([tempDir, '--domain'])
       assert.equal(res.code, 0, res.stderr)
@@ -406,10 +406,55 @@ level: 3
       assert.match(header, /^pipeline domaiNN domaiNN:consoles\/views\/pipeline\.js sha256:[0-9a-f]{12}$/m)
       assert.match(
         header,
-        /^timeline bluepriNNt bluepriNNt:metrics\/assets\/consoles\/views\/timeline\.js sha256:[0-9a-f]{12}$/m,
+        /^timeline bluepriNNt bluepriNNt:metrics\/assets\/console-view-timeline\.js sha256:[0-9a-f]{12}$/m,
       )
       assert.ok(html.includes('data-innfo-view="pipeline" data-innfo-view-source="domaiNN:consoles/views/pipeline.js"'))
       assert.ok(html.includes('data-innfo-view="timeline"'))
+    })
+
+    it('projects the timeline data of a metrics model into meta.models[]', async () => {
+      const metricsModel = `---
+title: "M"
+level: 3
+parent_spec:
+  name: "metrics_V_0-4-1"
+---
+
+# NN Metrics
+## NN Metrics: Revenue
+metricValue:: <calculated>
+metricFormula:: incidents x fee
+metricType:: revenue
+metricUnit:: USD
+evolution:: [[Compound]]
+
+# NN Variables
+## NN Variables: Incidents
+variableValue:: 20
+variableType:: count
+variableUnit:: incidents
+
+# NN Evolution
+## NN Evolution: Compound
+evolutionType:: compound
+evolutionFactor:: 5
+
+# NN Scenario
+## NN Scenario: Year 1
+scenarioMonths:: 12
+`
+      await writeFile(join(tempDir, 'models', 'm_V_1-0-0_NN.md'), metricsModel, 'utf-8')
+      assert.equal((await runCli([tempDir, '--domain'])).code, 0)
+      const html = await readFile(domainFile(), 'utf-8')
+      const slot = JSON.parse(html.match(/<script type="application\/json" id="innfo-model">([\s\S]*?)<\/script>/)[1])
+      const summary = slot.meta.models.find((s) => s.projection)
+      assert.equal(summary.blueprint, 'metrics', JSON.stringify(summary))
+      assert.equal(summary.projection.months, 12)
+      const byLabel = Object.fromEntries(summary.projection.rows.map((r) => [r.label, r]))
+      assert.equal(byLabel.Revenue.formula, 'incidents x fee')
+      assert.deepEqual(byLabel.Revenue.growth, { mode: 'compound', factor: 5 })
+      assert.equal(byLabel.Incidents.variable, true)
+      assert.equal(byLabel.Incidents.base, 20)
     })
 
     it('boots under jsdom, registers each view with id == slug and mounts the first tab', async () => {
@@ -449,12 +494,12 @@ level: 3
 
     it('fails naming both sources when a bluepriNNt and a domaiNN view share an id', async () => {
       await addView('timeline')
-      await addView('timeline', PIPELINE, metricsViews())
+      await addView('console-view-timeline', PIPELINE, metricsViews())
       await writeFile(join(tempDir, 'models', 'm_V_1-0-0_NN.md'), METRICS_MODEL, 'utf-8')
       const res = await runCli([tempDir, '--domain'])
       assert.notEqual(res.code, 0)
       assert.match(res.stderr, /duplicate view id "timeline"/)
-      assert.ok(res.stderr.includes('bluepriNNt:metrics/assets/consoles/views/timeline.js'))
+      assert.ok(res.stderr.includes('bluepriNNt:metrics/assets/console-view-timeline.js'))
       assert.ok(res.stderr.includes('domaiNN:consoles/views/timeline.js'))
       assert.equal(existsSync(domainFile()), false)
     })

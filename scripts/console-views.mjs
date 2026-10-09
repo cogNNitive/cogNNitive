@@ -6,8 +6,11 @@
  * `registerView` injected by the wrapper emitted here; its id is the file slug.
  *
  * Discovery by convention, no manifest:
- *   bluepriNNt views  <pkg>/assets/consoles/views/<slug>.js, one pkg per parent_spec base
+ *   bluepriNNt views  <pkg>/assets/console-view-<slug>.js, one pkg per parent_spec base
  *   domaiNN views     <domainRoot>/consoles/views/<slug>.js
+ * BluepriNNt views are FLAT under `assets/` (prefix `console-view-`) because the MCP
+ * installer's fetchSubdir('assets') copies files only, never nested directories, so a
+ * deeply nested `assets/consoles/views/` does not survive an install.
  * Everything here is trusted domain-owner code and runs with full page access;
  * the header comment written by `viewsHeader` lets a reviewer see what is included.
  */
@@ -21,7 +24,9 @@ import { Script } from 'node:vm'
 export const VIEW_ID_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/
 export const RESERVED_VIEW_IDS = ['explorer', 'matrices', 'review']
 
-const VIEWS_SUBPATH = ['assets', 'consoles', 'views']
+const DOMAIN_VIEWS_SUBPATH = ['consoles', 'views']
+const BLUEPRINT_VIEWS_SUBPATH = ['assets']
+const BLUEPRINT_VIEW_PREFIX = 'console-view-'
 const HASH_DISPLAY_LENGTH = 12
 
 const SPEC_BASE_RE = /^[A-Za-z0-9_-]+$/
@@ -41,9 +46,9 @@ export function viewRootCandidates({ domainRoot, specName, packagesDir }) {
   }
   const tier1 = join(domainRoot, 'specs', 'bluepriNNts', base)
   return [
-    ...(version ? [join(tier1, version, ...VIEWS_SUBPATH)] : []),
-    join(tier1, ...VIEWS_SUBPATH),
-    join(packagesDir, base, ...VIEWS_SUBPATH),
+    ...(version ? [join(tier1, version, ...BLUEPRINT_VIEWS_SUBPATH)] : []),
+    join(tier1, ...BLUEPRINT_VIEWS_SUBPATH),
+    join(packagesDir, base, ...BLUEPRINT_VIEWS_SUBPATH),
   ]
 }
 
@@ -58,30 +63,43 @@ async function dirExists(dir) {
 
 const compareCodeUnits = (a, b) => (a < b ? -1 : a > b ? 1 : 0)
 
-async function jsFilesIn(dir) {
-  let entries
+/** Directory entries, or null when the folder is absent (never for a permission error). */
+async function listEntries(dir) {
   try {
-    entries = await readdir(dir, { withFileTypes: true })
+    return await readdir(dir, { withFileTypes: true })
   } catch (err) {
     // Only "there is nothing there" means "no views"; permission or I/O errors must surface.
     if (err.code === 'ENOENT' || err.code === 'ENOTDIR') return null
     throw err
   }
-  const names = []
+}
+
+/**
+ * `{ name, slug }` for every view file in a listing. BluepriNNt roots are flat `assets/`
+ * folders, so only `console-view-<slug>.js` counts; domaiNN roots take every `*.js`.
+ */
+function viewFiles(dir, entries, blueprint) {
+  const files = []
   for (const entry of entries) {
     if (!entry.name.endsWith('.js')) continue
+    if (blueprint && !entry.name.startsWith(BLUEPRINT_VIEW_PREFIX)) continue
     if (entry.isSymbolicLink()) {
       throw new Error(`${join(dir, entry.name)} is a symbolic link; symlinked views are not supported, copy the file instead`)
     }
-    if (entry.isFile()) names.push(entry.name)
+    if (entry.isFile()) {
+      const slug = blueprint
+        ? entry.name.slice(BLUEPRINT_VIEW_PREFIX.length, -'.js'.length)
+        : entry.name.slice(0, -'.js'.length)
+      files.push({ name: entry.name, slug })
+    }
   }
-  return names.sort()
+  return files.sort((a, b) => compareCodeUnits(a.name, b.name))
 }
 
-async function readViews(dir, names, origin, sourcePrefix) {
+async function readViews(dir, files, origin, sourcePrefix) {
   const views = []
-  for (const name of names) {
-    const id = name.slice(0, -'.js'.length)
+  for (const { name, slug } of files) {
+    const id = slug
     const source = `${sourcePrefix}/${name}`
     if (!VIEW_ID_RE.test(id)) {
       throw new Error(`invalid view id "${id}" from ${source}: the file name must be a slug of lowercase alphanumerics and hyphens`)
@@ -107,14 +125,15 @@ export async function discoverViews({ domainRoot, specNames = [], packagesDir, o
   // Plain code-unit order (not localeCompare) so the result and the messages never depend
   // on the machine's locale or on the order the models were found in.
   const sortedNames = [...new Set(specNames)].sort(compareCodeUnits)
-  /** @type {Map<string, { specName: string, dir: string, names: string[] }[]>} */
+  /** @type {Map<string, { specName: string, dir: string, files: {name: string, slug: string}[] }[]>} */
   const hitsByBase = new Map()
   for (const specName of sortedNames) {
     const { base } = parseSpecName(specName)
     for (const dir of viewRootCandidates({ domainRoot, specName, packagesDir })) {
-      const names = await jsFilesIn(dir)
-      if (names === null || names.length === 0) continue // missing or empty: next tier
-      hitsByBase.set(base, [...(hitsByBase.get(base) ?? []), { specName, dir, names }])
+      const entries = await listEntries(dir)
+      const files = entries ? viewFiles(dir, entries, true) : null
+      if (files === null || files.length === 0) continue // missing or empty: next tier
+      hitsByBase.set(base, [...(hitsByBase.get(base) ?? []), { specName, dir, files }])
       break
     }
     if (!hitsByBase.has(base)) {
@@ -139,10 +158,11 @@ export async function discoverViews({ domainRoot, specNames = [], packagesDir, o
         `models on blueprint "${base}" resolve to different views: ${hits[0].specName} (${hits[0].dir}) and ${other.specName} (${other.dir}); keep views for one version, or move them to the shared folder`,
       )
     }
-    found.push(...(await readViews(hits[0].dir, hits[0].names, 'bluepriNNt', `bluepriNNt:${base}/${VIEWS_SUBPATH.join('/')}`)))
+    found.push(...(await readViews(hits[0].dir, hits[0].files, 'bluepriNNt', `bluepriNNt:${base}/${BLUEPRINT_VIEWS_SUBPATH.join('/')}`)))
   }
-  const domainDir = join(domainRoot, 'consoles', 'views')
-  found.push(...(await readViews(domainDir, (await jsFilesIn(domainDir)) ?? [], 'domaiNN', 'domaiNN:consoles/views')))
+  const domainDir = join(domainRoot, ...DOMAIN_VIEWS_SUBPATH)
+  const domainEntries = await listEntries(domainDir)
+  found.push(...(await readViews(domainDir, domainEntries ? viewFiles(domainDir, domainEntries, false) : [], 'domaiNN', 'domaiNN:consoles/views')))
 
   const bySlug = new Map()
   for (const v of found) {
@@ -411,10 +431,85 @@ export function inlineConsoleAssets(shell, assets) {
     .replace(BUNDLE_TAGS, () => [bundleScript, ...viewScripts].join('\n'))
 }
 
-/** The only place the size thresholds live (bytes of the final HTML). */
-export const CONSOLE_SIZE_BUDGET = Object.freeze({ warnBytes: 5_000_000, failBytes: 15_000_000 })
+function finiteNumber(value) {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null
+  const n = Number(String(value == null ? '' : value).trim())
+  return Number.isFinite(n) ? n : null
+}
 
 /**
+ * Projects one model's elements onto a timeline: the metric and variable rows the
+ * `renderTimelineGrid` runtime consumes, plus the forecast horizon taken from the
+ * widest Scenario. Returns null when the model carries no Scenario horizon, so a
+ * non-metrics model simply has no projection. Rows keep the element id so a view
+ * can open the shared edit modal for the underlying element (D13).
+ * @param {Array<{ id?: string, concept?: string, name?: string, fields?: Record<string, unknown>, relations?: Array<{ field: string, target: string, targetLabel: string }> }>} elements
+ */
+export function deriveProjection(elements) {
+  if (!Array.isArray(elements)) return null
+  const byId = new Map()
+  for (const e of elements) {
+    if (e && e.id) byId.set(String(e.id).toLowerCase(), e)
+  }
+  const scenarioMonths = []
+  for (const e of elements) {
+    if (e && e.concept === 'Scenario') {
+      const m = finiteNumber(e.fields && e.fields.scenarioMonths)
+      if (m != null) scenarioMonths.push(m)
+    }
+  }
+  if (scenarioMonths.length === 0) return null
+  const months = Math.max(...scenarioMonths)
+
+  const growthOf = (e) => {
+    const rel = (e.relations || []).filter((r) => r.field === 'evolution')[0]
+    const target = rel ? byId.get(String(rel.target).toLowerCase()) : null
+    const type = target && target.fields ? target.fields.evolutionType : null
+    const factor = target && target.fields ? finiteNumber(target.fields.evolutionFactor) : null
+    return { mode: typeof type === 'string' && type.trim() ? type.trim() : 'fixed', factor: factor != null ? factor : 0 }
+  }
+
+  const rows = []
+  for (const e of elements) {
+    if (!e) continue
+    const f = e.fields || {}
+    if (e.concept === 'Metrics') {
+      const raw = typeof f.metricFormula === 'string' ? f.metricFormula.trim() : ''
+      const formula = raw && !/^<.*>$/.test(raw) ? raw : ''
+      const row = {
+        id: e.id,
+        label: e.name,
+        grp: 'Metrics',
+        metricType: typeof f.metricType === 'string' ? f.metricType : '',
+        metricUnit: typeof f.metricUnit === 'string' ? f.metricUnit : '',
+        growth: growthOf(e),
+      }
+      if (formula) row.formula = formula
+      else row.variable = true
+      const base = finiteNumber(f.metricValue)
+      if (base != null) row.base = base
+      rows.push(row)
+    } else if (e.concept === 'Variables') {
+      const row = {
+        id: e.id,
+        label: e.name,
+        grp: 'Variables',
+        variable: true,
+        metricType: typeof f.variableType === 'string' ? f.variableType : '',
+        metricUnit: typeof f.variableUnit === 'string' ? f.variableUnit : '',
+        growth: { mode: 'fixed', factor: 0 },
+      }
+      const base = finiteNumber(f.variableValue)
+      if (base != null) row.base = base
+      rows.push(row)
+    }
+  }
+  if (rows.length === 0) return null
+  return { rows, months }
+}
+
+/** The only place the size thresholds live (bytes of the final HTML). */
+export const CONSOLE_SIZE_BUDGET = Object.freeze({ warnBytes: 5_000_000, failBytes: 15_000_000 })/**
  * Pure size gate. Inputs are UTF-8 byte counts: bundle = inlined bundle + CSS, models =
  * schema + model slots, views = wrapped view scripts, total = the final HTML.
  */

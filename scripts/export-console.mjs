@@ -611,12 +611,16 @@ async function main() {
             }
           }
         }
+        const blueprintName = payloadHelper.parentSpecNameOf(m.fm)
+        const projection = viewsLib.deriveProjection(payload.model.elements)
         modelSummaries.push({
           id: mId,
           title: mTitle,
           filePath: fileName,
+          blueprint: blueprintName ? viewsLib.parseSpecName(blueprintName).base : null,
           conceptNames: Array.from(modelConcepts),
           elementCount: Array.isArray(payload.model.elements) ? payload.model.elements.length : 0,
+          ...(projection ? { projection } : {}),
         })
       }
       if (payload && payload.schema && Array.isArray(payload.schema.concepts)) {

@@ -448,11 +448,11 @@ level: 3
       await mkdir(dir, { recursive: true })
       await writeFile(join(dir, slug + '.js'), VIEW(title), 'utf-8')
     }
-    const viewsOf = (packagesRoot) => join(packagesRoot, 'metrics', 'assets', 'consoles', 'views')
+    const viewsOf = (packagesRoot) => join(packagesRoot, 'metrics', 'assets')
     const setUpViews = async (packagesRoot) => {
       await writeFile(join(tempDir, 'models', 'm_V_1-0-0_NN.md'), METRICS_MODEL, 'utf-8')
       await putView(join(tempDir, 'consoles', 'views'), 'pipeline', 'Pipeline')
-      if (packagesRoot) await putView(viewsOf(packagesRoot), 'timeline', 'Timeline')
+      if (packagesRoot) await putView(viewsOf(packagesRoot), 'console-view-timeline', 'Timeline')
     }
     const domainHtml = () => readFile(join(tempDir, 'domaiNN_console.html'), 'utf-8')
     const assertWholeConsole = async (html) => {
@@ -518,7 +518,7 @@ level: 3
       await assertWholeConsole(html)
       assert.ok(
         html.includes(
-          'data-innfo-view="timeline" data-innfo-view-source="bluepriNNt:metrics/assets/consoles/views/timeline.js"',
+          'data-innfo-view="timeline" data-innfo-view-source="bluepriNNt:metrics/assets/console-view-timeline.js"',
         ),
       )
       assert.doesNotMatch(stderr, /no bluepriNNt package/)
