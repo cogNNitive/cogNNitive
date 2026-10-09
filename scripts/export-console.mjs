@@ -680,6 +680,13 @@ async function main() {
     console.log(
       `✔ domaiNN_console.html → ./domaiNN_console.html (${candidateModels.length} models, ${allElements.length} elements, ${domainViews.length} views)`,
     )
+    // Earlier exports wrote these beside the page; it inlines both now. Nothing is deleted.
+    const leftovers = ['innfo-console.bundle.js', 'innfo-ui.css'].filter((name) => existsSync(join(root, name)))
+    if (leftovers.length > 0) {
+      process.stderr.write(
+        `WARNING: [export-console] ${leftovers.join(' and ')} in the workspace root are leftover from an earlier export; domaiNN_console.html no longer uses them and they were not removed.\n`,
+      )
+    }
   }
 
   console.log(`Exported ${written} console artifact(s)${unchanged > 0 ? ` (${unchanged} unchanged)` : ''}.`)

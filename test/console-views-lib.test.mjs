@@ -481,6 +481,19 @@ describe('console-views lib', () => {
       assert.throws(() => inlineConsoleAssets('<html></html>', { bundle: 'b', css: 'c', views: [] }), /anchor/)
     })
 
+    it('fails when the shell carries two bundle blocks, instead of replacing only the first', () => {
+      const block = '<script src="./innfo-console.bundle.js"></script>\n<!-- nn:console-shell:start -->\n<!-- nn:console-shell:end -->'
+      const twice = shell.replace('</body>', block + '\n</body>')
+      const args = { bundle: 'b', css: 'c', views: [] }
+      assert.throws(() => assertInlinable(twice, args), /2 bundle script blocks/)
+      assert.throws(() => inlineConsoleAssets(twice, args), /2 bundle script blocks/)
+    })
+
+    it('fails on a bundle script tag left outside the replaced block', () => {
+      const stray = shell.replace('</body>', '<script src="https://cdn.example/innfo-console.bundle.js"></script>\n</body>')
+      assert.throws(() => inlineConsoleAssets(stray, { bundle: 'b', css: 'c', views: [] }), /outside the shell block/)
+    })
+
     it('assertInlinable throws on a missing bundle or css, and each missing anchor, without output', () => {
       assert.throws(() => assertInlinable(shell, { bundle: null, css: 'c', views: [] }), /bundle is missing/)
       assert.throws(() => assertInlinable(shell, { bundle: 'b', css: undefined, views: [] }), /stylesheet is missing/)

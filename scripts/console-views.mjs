@@ -327,6 +327,8 @@ const VIEWPORT = /<meta name="viewport"[^>]*>/
 const BUNDLE_TAGS =
   /<script src="\.\/innfo-console\.bundle\.js"><\/script>\s*<!-- nn:console-shell:start -->[\s\S]*?<!-- nn:console-shell:end -->/
 
+const STRAY_BUNDLE_TAG = /<script[^>]*\ssrc="[^"]*innfo-console\.bundle[^"]*"/
+
 /**
  * Everything `inlineConsoleAssets` needs to succeed, checked without producing output, so a
  * caller can call it before its first write. Throws on a missing shell anchor, a missing
@@ -337,6 +339,13 @@ export function assertInlinable(shell, { bundle, css, views }) {
   const anchors = [['stylesheet link', CSS_LINK], ['viewport meta', VIEWPORT], ['bundle script tags', BUNDLE_TAGS]]
   for (const [name, re] of anchors) {
     if (!re.test(shell)) throw new Error(`console shell has no ${name} to replace (anchor missing)`)
+  }
+  // Every block is replaced by a full copy of the bundle, and a second copy would replace
+  // `window.InnfoConsole`; so exactly one block, and no stray bundle tag next to it.
+  const blocks = [...shell.matchAll(new RegExp(BUNDLE_TAGS.source, 'g'))].length
+  if (blocks !== 1) throw new Error(`console shell has ${blocks} bundle script blocks; exactly 1 is expected`)
+  if (STRAY_BUNDLE_TAG.test(shell.replace(BUNDLE_TAGS, ''))) {
+    throw new Error('console shell has a bundle script tag outside the shell block, which would stay external')
   }
   if (typeof bundle !== 'string' || bundle === '') throw new Error('console bundle is missing or empty')
   if (typeof css !== 'string') throw new Error('console stylesheet is missing')

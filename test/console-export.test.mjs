@@ -365,7 +365,11 @@ level: 3
       await writeFile(join(tempDir, 'innfo-console.bundle.js'), '// old sibling', 'utf-8')
       await writeFile(join(tempDir, 'innfo-ui.css'), '/* old css */', 'utf-8')
       assert.equal((await runCli([tempDir, '--domain'])).code, 0)
-      assert.equal((await runCli([tempDir, '--domain'])).code, 0)
+      const second = await runCli([tempDir, '--domain'])
+      assert.equal(second.code, 0)
+      assert.equal(second.stderr.match(/leftover from an earlier export/g)?.length, 1, 'warned once')
+      assert.match(second.stderr, /innfo-console\.bundle\.js and innfo-ui\.css/)
+      assert.match(second.stderr, /not removed/)
       assert.deepEqual((await rootFiles()).sort(), ['domaiNN_console.html', 'innfo-console.bundle.js', 'innfo-ui.css'])
       assert.equal(await readFile(join(tempDir, 'innfo-console.bundle.js'), 'utf-8'), '// old sibling')
       assert.equal(await readFile(join(tempDir, 'innfo-ui.css'), 'utf-8'), '/* old css */')
@@ -374,6 +378,12 @@ level: 3
     it('creates no sibling files on a fresh domain', async () => {
       assert.equal((await runCli([tempDir, '--domain'])).code, 0)
       assert.deepEqual(await rootFiles(), ['domaiNN_console.html'])
+    })
+
+    it('does not warn about leftovers when there are none', async () => {
+      const res = await runCli([tempDir, '--domain'])
+      assert.equal(res.code, 0)
+      assert.doesNotMatch(res.stderr, /leftover/)
     })
 
     it('inlines the bundle once, with no external script or stylesheet tags', async () => {
