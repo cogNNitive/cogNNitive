@@ -50,12 +50,23 @@ export function viewRootCandidates({ domainRoot, specName, packagesDir }) {
 const compareCodeUnits = (a, b) => (a < b ? -1 : a > b ? 1 : 0)
 
 async function jsFilesIn(dir) {
+  let entries
   try {
-    const entries = await readdir(dir, { withFileTypes: true })
-    return entries.filter((e) => e.isFile() && e.name.endsWith('.js')).map((e) => e.name).sort()
-  } catch {
-    return null // missing or unreadable: not a views dir
+    entries = await readdir(dir, { withFileTypes: true })
+  } catch (err) {
+    // Only "there is nothing there" means "no views"; permission or I/O errors must surface.
+    if (err.code === 'ENOENT' || err.code === 'ENOTDIR') return null
+    throw err
   }
+  const names = []
+  for (const entry of entries) {
+    if (!entry.name.endsWith('.js')) continue
+    if (entry.isSymbolicLink()) {
+      throw new Error(`${join(dir, entry.name)} is a symbolic link; symlinked views are not supported, copy the file instead`)
+    }
+    if (entry.isFile()) names.push(entry.name)
+  }
+  return names.sort()
 }
 
 async function readViews(dir, names, origin, sourcePrefix) {

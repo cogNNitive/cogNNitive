@@ -1,8 +1,9 @@
 import { describe, it, beforeEach, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, rm, mkdir, writeFile } from 'node:fs/promises'
+import fsp, { mkdtemp, rm, mkdir, writeFile, symlink } from 'node:fs/promises'
+import { syncBuiltinESMExports } from 'node:module'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, dirname } from 'node:path'
 import { createHash } from 'node:crypto'
 import {
   RESERVED_VIEW_IDS,
@@ -192,6 +193,54 @@ describe('console-views lib', () => {
       await mkdir(join(dir, 'folder.js'), { recursive: true })
       await put(join(dir, 'ok.js'))
       assert.deepEqual((await discover()).map((v) => v.id), ['ok'])
+    })
+  })
+
+  describe('nothing is skipped silently', () => {
+    // A file symlink needs a privilege on Windows; a junction to a folder does not, and both
+    // show up as symbolic links in a directory listing.
+    const link = async (target, at) => {
+      for (const [to, type] of [[target, 'file'], [dirname(target), 'junction']]) {
+        try {
+          await symlink(to, at, type)
+          return true
+        } catch {
+          // try the next kind
+        }
+      }
+      return false
+    }
+
+    it('rejects a symlinked *.js view, naming the file', async (t) => {
+      const dir = join(domain, 'consoles', 'views')
+      await put(join(domain, 'real', 'timeline.js'))
+      await mkdir(dir, { recursive: true })
+      if (!(await link(join(domain, 'real', 'timeline.js'), join(dir, 'timeline.js')))) {
+        return t.skip('cannot create a symlink or junction here')
+      }
+      await assert.rejects(discover(), (err) => /timeline.js/.test(err.message) && /symbolic link/.test(err.message))
+    })
+
+    it('rethrows a read error that is not "does not exist" instead of reporting no views', async (t) => {
+      const dir = join(domain, 'consoles', 'views')
+      await put(join(dir, 'ok.js'))
+      const real = fsp.readdir
+      t.mock.method(fsp, 'readdir', async (path, ...rest) => {
+        if (path === dir) throw Object.assign(new Error('EACCES: permission denied'), { code: 'EACCES' })
+        return real(path, ...rest)
+      })
+      syncBuiltinESMExports()
+      try {
+        await assert.rejects(discover(), /EACCES/)
+      } finally {
+        t.mock.restoreAll()
+        syncBuiltinESMExports()
+      }
+    })
+
+    it('treats a missing folder and a file where a folder should be as no views', async () => {
+      await put(join(domain, 'consoles'), 'not a folder')
+      assert.deepEqual(await discover(), [])
     })
   })
 
