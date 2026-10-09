@@ -3395,16 +3395,51 @@
     var refs = hasNeed(config, 'reference-popup') ? buildRefsByName(elements) : null
     var activeSearchQuery = ''
 
-    function refresh(query) {
-      if (query !== undefined) activeSearchQuery = query
-      var currentDrafts = state.store.drafts()
-      var draftCountsByConcept = {}
+    function draftCountsOf(currentDrafts) {
+      var byConcept = {}
       currentDrafts.forEach(function (d) {
         if (d) {
           var c = d.concept || (d.target && d.target.concept)
-          if (c) draftCountsByConcept[c] = (draftCountsByConcept[c] || 0) + 1
+          if (c) byConcept[c] = (byConcept[c] || 0) + 1
         }
       })
+      return byConcept
+    }
+
+    function selectRailToken(token) {
+      var search = active.getElementById('innfo-search')
+      if (search) {
+        search.value = token
+        refresh(token)
+      }
+    }
+
+    // Lightweight update after a draft is saved: refreshes only the draft-count
+    // surfaces and leaves the mounted element cards (and their focus) intact.
+    function refreshDraftCounts() {
+      var currentDrafts = state.store.drafts()
+      var n = currentDrafts.length
+      var bannerCount = active.querySelector('.innfo-banner-drafts')
+      if (bannerCount) bannerCount.textContent = ' drafts: ' + n
+      var tabBtn = active.querySelector('.innfo-view-tab[data-tab="review"]')
+      if (tabBtn) {
+        var oldBadge = tabBtn.querySelector('.innfo-rail-badge')
+        if (oldBadge && oldBadge.parentNode) oldBadge.parentNode.removeChild(oldBadge)
+        if (n > 0) {
+          tabBtn.appendChild(el('span', 'innfo-rail-badge badge badge-sm badge-neutral', String(n)))
+        }
+      }
+      renderReviewTab(active, state, config, function () {
+        refresh(activeSearchQuery)
+      })
+      renderStatsBar(active, elements, concepts, matrices, n)
+      renderRail(active, concepts, counts, draftCountsOf(currentDrafts), selectRailToken, state)
+    }
+
+    function refresh(query) {
+      if (query !== undefined) activeSearchQuery = query
+      var currentDrafts = state.store.drafts()
+      var draftCountsByConcept = draftCountsOf(currentDrafts)
 
       var draftsById = {}
       currentDrafts.forEach(function (d) {
@@ -3424,13 +3459,7 @@
       renderBanner(active, meta, config.needs, currentDrafts.length, function () {
         refresh(activeSearchQuery)
       }, state)
-      renderRail(active, concepts, counts, draftCountsByConcept, function (token) {
-        var search = active.getElementById('innfo-search')
-        if (search) {
-          search.value = token
-          refresh(token)
-        }
-      }, state)
+      renderRail(active, concepts, counts, draftCountsByConcept, selectRailToken, state)
 
       // Hide documentation overview tree when filtering elements so filtered cards are immediately visible
       var docHost = active.getElementById('innfo-doc')
@@ -3501,9 +3530,7 @@
         elements: elements,
         needs: config.needs,
         store: state.store,
-        onDraftsChanged: function () {
-          refresh(activeSearchQuery)
-        },
+        onDraftsChanged: refreshDraftCounts,
       })
     }
 

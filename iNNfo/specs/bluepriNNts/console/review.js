@@ -323,12 +323,10 @@
     }
 
     // The host owns every draft-count surface (banner, Review tab badge,
-    // pending text); it re-renders them all through onDraftsChanged.
+    // pending text) and updates them through onDraftsChanged without
+    // remounting the cards; decorations are re-applied here.
     function refreshCount() {
-      if (typeof options.onDraftsChanged === 'function') {
-        options.onDraftsChanged()
-        return
-      }
+      if (typeof options.onDraftsChanged === 'function') options.onDraftsChanged()
       applyDecorations()
     }
 
@@ -485,7 +483,6 @@
           field: 'tags',
           comment: 'Propose removing tag "' + anchorData.tagRemove + '"',
         })
-        refreshCount()
         return
       }
       if (anchorData.relUnlink) {
@@ -495,7 +492,6 @@
           comment:
             'Propose unlinking ' + anchorData.relField + ' \u2192 ' + anchorData.relUnlink,
         })
-        refreshCount()
         return
       }
 
@@ -733,7 +729,6 @@
             store.markReviewed(elId, el.hash)
           }
           applyDecorations()
-          refreshCount()
         })
         head.appendChild(rt)
       }
