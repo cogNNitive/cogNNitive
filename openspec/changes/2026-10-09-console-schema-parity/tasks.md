@@ -26,12 +26,12 @@ Chain strategy: pending
 
 ## Phase 1: Foundation — resolver relocation (innfo-core)
 
-- [ ] 1.1 Characterize first: run `npx vitest run src/tools/spec.spec.ts` (MCP), record `listBlueprintProcedures` incl. `visual-catalog` (#122 baseline).
-- [ ] 1.2 RED: add `src/resolver.spec.ts` — unversioned match returns `isPackageDir:true`, `packagePath=<root>/specs/bluepriNNts/<name>`, `specFilePath=<found>`; empty dir not matched.
-- [ ] 1.3 Move `resolveBlueprintPackage` + leaves (`normalizeVersion`, `isVersionDirName`, `parseSpecName`, `getMarkdownFiles`, `versionFromFrontmatter`, `blueprintVersionFromFrontmatter`, `compareVersions`, `matchSpecPath`, `preferHighestVersion`, `findLocalSpec`, `findSpecInPackageDir`) into `innfo-core/src/resolver.ts`; export via `src/index.ts`.
-- [ ] 1.4 GREEN: add unversioned Tier-1 guard before version-dir matching, gated on a direct spec file.
-- [ ] 1.5 Update `innfo-mcp/src/tools/resolver-node.ts` to re-export relocated symbols; keep network/hydration there.
-- [ ] 1.6 Verify: `npm --workspace=@cognnitive/innfo-core test`; `npm --workspace=@cognnitive/innfo-mcp test`; re-run `spec.spec.ts`; `npm run typecheck`.
+- [x] 1.1 Characterize first: run `npx vitest run src/tools/spec.spec.ts` (MCP), record `listBlueprintProcedures` incl. `visual-catalog` (#122 baseline).
+- [x] 1.2 RED: add `src/resolver.spec.ts` — unversioned match returns `isPackageDir:true`, `packagePath=<root>/specs/bluepriNNts/<name>`, `specFilePath=<found>`; empty dir not matched.
+- [x] 1.3 Move `resolveBlueprintPackage` + leaves (`normalizeVersion`, `isVersionDirName`, `parseSpecName`, `getMarkdownFiles`, `versionFromFrontmatter`, `blueprintVersionFromFrontmatter`, `compareVersions`, `matchSpecPath`, `preferHighestVersion`, `findLocalSpec`, `findSpecInPackageDir`) into `innfo-core/src/resolver.ts`; export via `src/index.ts`.
+- [x] 1.4 GREEN: add unversioned Tier-1 guard before version-dir matching, gated on a direct spec file.
+- [x] 1.5 Update `innfo-mcp/src/tools/resolver-node.ts` to re-export relocated symbols; keep network/hydration there.
+- [x] 1.6 Verify: `npm --workspace=@cognnitive/innfo-core test`; `npm --workspace=@cognnitive/innfo-mcp test`; re-run `spec.spec.ts`; `npm run typecheck`.
 
 ## Phase 2: Core console helper + mirror
 

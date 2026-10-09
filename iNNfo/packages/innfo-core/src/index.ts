@@ -52,6 +52,12 @@ export {
   resolveBlueprintPath,
   getBlueprintSearchPaths,
   UnresolvedBlueprintError,
+  resolveBlueprintPackage,
+  normalizeVersion,
+  parseSpecName,
+  findSpecInPackageDir,
+  findLocalSpec,
+  versionFromFrontmatter,
 } from './resolver.js'
 export type { SpecResolver, MultiStoreResolverOptions, SpecBlueprintLocation } from './resolver.js'
 
