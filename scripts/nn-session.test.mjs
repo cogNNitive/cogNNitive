@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, existsSync, symlinkSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
-import { execFileSync } from 'node:child_process'
+import { execFileSync, spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 
 const here = dirname(fileURLToPath(import.meta.url))
@@ -23,6 +23,12 @@ function run(args) {
   } catch (e) {
     return { code: e.status ?? 1, out: `${e.stdout ?? ''}${e.stderr ?? ''}` }
   }
+}
+
+/** Like run(), but keeps stderr too — for the informational warnings. */
+function runAll(args) {
+  const r = spawnSync(process.execPath, [SCRIPT, ...args], { encoding: 'utf8' })
+  return { code: r.status ?? 1, out: `${r.stdout ?? ''}${r.stderr ?? ''}` }
 }
 
 function makeRepo(base) {
@@ -177,6 +183,81 @@ test('stop removes the node_modules junction without deleting primary sources', 
     assert.ok(!existsSync(target), 'worktree removed')
     assert.ok(existsSync(join(srcDir, 'keep.txt')), 'primary source survived the worktree removal')
   } finally {
+    rmSync(base, { recursive: true, force: true })
+  }
+})
+
+test('status prints a one-block health report and exits 0', () => {
+  const base = mkdtempSync(join(tmpdir(), 'nn-session-'))
+  const repo = makeRepo(base)
+  try {
+    const s = run(['status', '--root', repo])
+    assert.equal(s.code, 0)
+    assert.ok(s.out.includes('nn-session status'), 'header')
+    assert.ok(s.out.includes('primary:'), 'primary line')
+    assert.ok(s.out.includes('worktrees:'), 'worktree block')
+    assert.ok(s.out.includes('deps:'), 'dependency freshness line')
+  } finally {
+    rmSync(base, { recursive: true, force: true })
+  }
+})
+
+test('start warns loudly when the inherited install is stale', () => {
+  const base = mkdtempSync(join(tmpdir(), 'nn-session-'))
+  const repo = makeRepo(base)
+  mkdirSync(join(repo, 'node_modules', 'vitest'), { recursive: true })
+  writeFileSync(join(repo, 'node_modules', 'vitest', 'package.json'), JSON.stringify({ name: 'vitest', version: '3.2.7' }))
+  mkdirSync(join(repo, 'iNNfo', 'packages', 'p'), { recursive: true })
+  writeFileSync(
+    join(repo, 'iNNfo', 'packages', 'p', 'package.json'),
+    JSON.stringify({ name: 'p', version: '0.0.1', devDependencies: { vitest: '^4.1.11' } }),
+  )
+  writeFileSync(join(repo, '.gitignore'), 'node_modules\n')
+  git(['add', '.gitignore', 'iNNfo'], repo)
+  git(['commit', '-m', 'deps'], repo)
+  const target = join(dirname(repo), 'cogNNitive-s8')
+  try {
+    const s = runAll(['start', '--id', 's8', '--root', repo])
+    assert.equal(s.code, 0)
+    assert.ok(s.out.includes('STALE DEPENDENCIES'), 'warns about the stale baseline')
+    assert.ok(s.out.includes('vitest: installed 3.2.7'), 'names the mismatched dep')
+  } finally {
+    run(['stop', '--id', 's8', '--root', repo])
+    rmSync(base, { recursive: true, force: true })
+  }
+})
+
+test('stop tolerates a deregistered, empty leftover dir without crashing', () => {
+  const base = mkdtempSync(join(tmpdir(), 'nn-session-'))
+  const repo = makeRepo(base)
+  const target = join(dirname(repo), 'cogNNitive-s9')
+  try {
+    run(['start', '--id', 's9', '--root', repo])
+    // Simulate #1982: the worktree is deregistered and removed, but a Windows
+    // process lock leaves an empty directory behind.
+    git(['worktree', 'remove', target], repo)
+    mkdirSync(target, { recursive: true })
+
+    const st = runAll(['stop', '--id', 's9', '--root', repo])
+    assert.equal(st.code, 0)
+    assert.ok(!st.out.includes('at Object.'), 'no raw stack trace')
+    assert.ok(!existsSync(target), 'empty leftover dir cleaned up')
+  } finally {
+    rmSync(base, { recursive: true, force: true })
+  }
+})
+
+test('start --fresh on an existing worktree prints a note instead of reinstalling', () => {
+  const base = mkdtempSync(join(tmpdir(), 'nn-session-'))
+  const repo = makeRepo(base)
+  const target = join(dirname(repo), 'cogNNitive-s10')
+  try {
+    run(['start', '--id', 's10', '--root', repo])
+    const s = runAll(['start', '--id', 's10', '--root', repo, '--fresh'])
+    assert.equal(s.code, 0)
+    assert.ok(s.out.includes('--fresh ignores an existing worktree'), 'notes the no-op')
+  } finally {
+    run(['stop', '--id', 's10', '--root', repo])
     rmSync(base, { recursive: true, force: true })
   }
 })
