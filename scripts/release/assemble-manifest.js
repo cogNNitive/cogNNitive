@@ -350,6 +350,11 @@ function assembleManifest(params) {
       aVersion = readVersion ? readVersion({ ...asset, section: 'console' }) : asset.version || newVersion;
       aUrl = `https://raw.githubusercontent.com/${asset.repo}/${contentSha}/${asset.file}`;
     } else {
+      if (!prevAsset.ref || !prevAsset.commit) {
+        throw new AssembleManifestError(
+          `Console asset '${asset.file}' has no previous pin in the published manifest, so release '${releaseTag}' cannot retain it. Cut an innfo-console release (innfo-console-v*) that carries this asset before any other release.`
+        );
+      }
       aRef = prevAsset.ref;
       aCommit = prevAsset.commit;
       aVersion = prevAsset.version;

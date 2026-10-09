@@ -127,6 +127,8 @@ S2 exceeds 400 lines, so it ships as S2a -> S2b -> S2c1 -> S2c2 -> S2d -> S2e, w
 
 **Rollback.** Revert slices in reverse order. S2a and S2b are additive. Reverting S2c restores the sibling-bundle export. Reverting S2d or S2e restores the shells and the renderer signatures together. Reverting S3 restores the hub files and specs.
 
+**Risk: release ordering.** S2c1 adds `console_assets` entries that have no pin in the published manifest, and the latest `innfo-console-v0.9.0` tag does not contain `scripts/console-views.mjs`. Any non-console release assembled with these entries would have nothing to retain. `assemble-manifest` now fails fast with a message naming the asset. The tracker must not reach main before an `innfo-console-v*` release (package.json bumped above the previous pin) is cut and has pinned all console assets.
+
 ## Open Questions
 
 - [x] Spec addendum for S2d, S2e and S3 written (2026-10-09): MODIFIED deltas for `metrics-console-adoption`, `innfo-console-runtime`, `nn-naming-contract`, `template-procedures-manifest-and-discovery`, `editor-navigation`, `editor-lineage-ui` and `innfo-skill-menu`.

@@ -130,13 +130,13 @@ Status: tasks 2c1.1-2c1.5 done; 2c1.6 (verification) done except the fresh-conte
 
 ### TDD evidence
 
-- RED 2c1.1-2c1.2: `node --test test/console-views-lib.test.mjs` failed with `ERR_MODULE_NOT_FOUND` for `scripts/lib/console-views.mjs`; GREEN: 22 pass, 0 fail.
+- RED 2c1.1-2c1.2: `node --test test/console-views-lib.test.mjs` failed with `ERR_MODULE_NOT_FOUND` for `scripts/console-views.mjs`; GREEN: 22 pass, 0 fail.
 - RED 2c1.4: with the exporter untouched, 7 of the 8 new `--domain` tests failed (sibling bundle and CSS written, three bundle tags, no header, no view scripts, no early failure); the eighth (determinism) passed already and stays as a guard. GREEN: `test/console-export.test.mjs` 19 pass, 0 fail.
 - Final: `node --test test/console-*.test.mjs test/*export*.test.mjs` run twice, 168 pass, 0 fail both times.
 
 ### Design as built
 
-- `scripts/lib/console-views.mjs` exports `parseSpecName`, `viewRootCandidates`, `discoverViews`, `assertClassicScript`, `escapeScript`, `wrapView`, `viewsHeader`, `inlineConsoleAssets`. S2c2 adds `CONSOLE_SIZE_BUDGET` and `evaluateSizeBudget` beside them; `inlineConsoleAssets` already receives bundle, css and views separately so the three sizes are measurable.
+- `scripts/console-views.mjs` exports `parseSpecName`, `viewRootCandidates`, `discoverViews`, `assertClassicScript`, `escapeScript`, `wrapView`, `viewsHeader`, `inlineConsoleAssets`. S2c2 adds `CONSOLE_SIZE_BUDGET` and `evaluateSizeBudget` beside them; `inlineConsoleAssets` already receives bundle, css and views separately so the three sizes are measurable.
 - The shell and the bundle are unchanged (`build-console-bundle.mjs --check` reports fresh), so nothing generated needed rebuilding. `inlineConsoleAssets` anchors on three existing shell patterns (CSS link, viewport meta, local bundle tag plus the `nn:console-shell` block) and throws if one is missing, so a shell edit cannot silently reintroduce a second bundle copy.
 - ES module detection compiles the exact emitted wrapper with `vm.Script`, so comments and strings cannot fool it, and ordinary syntax errors are reported too (`<source>: syntax error: ...`). Dynamic `import()` still passes (legal in a classic script).
 - Discovery runs before anything is written: a bad view, a duplicate or a missing `innfo-ui.css` exits 1 with no per-model consoles and no domain file.
@@ -153,7 +153,7 @@ Status: tasks 2c1.1-2c1.5 done; 2c1.6 (verification) done except the fresh-conte
 
 ### Surprises and known limits
 
-- check-integrity caught a standalone-contract break: `scripts/export-console.mjs` is distributed as a lone file (manifest `innfo-console-export-cli`, `release-keys` `DISTRIBUTION_PATHS`) and `scripts/export-console.test.mjs` runs a lone copy. A static import of the lib broke 4 of those tests (`ERR_MODULE_NOT_FOUND`), and a `tsc` error in the lib (`RegExp` tuple typing) failed Typecheck Scripts. Fix: the lib is imported dynamically only for `--domain`, with a clear error when it is absent. OPEN DECISION: a lone distributed exporter cannot run `--domain` until `scripts/lib/console-views.mjs` is also distributed (manifest entry, `DISTRIBUTION_PATHS`, `innfo-console` repoPaths, installer). Not done here: it touches release plumbing.
+- check-integrity caught a standalone-contract break: `scripts/export-console.mjs` is distributed as a lone file (manifest `innfo-console-export-cli`, `release-keys` `DISTRIBUTION_PATHS`) and `scripts/export-console.test.mjs` runs a lone copy. A static import of the lib broke 4 of those tests (`ERR_MODULE_NOT_FOUND`), and a `tsc` error in the lib (`RegExp` tuple typing) failed Typecheck Scripts. Fix: the lib is imported dynamically only for `--domain`, with a clear error when it is absent. Resolved below (see the decision on the distributed lib path): a lone distributed exporter cannot run `--domain` until `scripts/console-views.mjs` is also distributed (manifest entry, `DISTRIBUTION_PATHS`, `innfo-console` repoPaths, installer). Not done here: it touches release plumbing.
 - `--domain` still writes the per-model consoles under `artifacts/` first (existing behaviour: `args.domain` selects every model). Only the domain file is single-file.
 - The shell config JSON still carries `runtime.cdn` and `runtime.fallback` URL strings; they are data, not script tags, and nothing loads them in the inlined page. Left as is.
 - Only `</script` and `</style` are escaped. A view with `<!--` followed by `<script` inside a string could still confuse the HTML parser; the spec does not cover it.

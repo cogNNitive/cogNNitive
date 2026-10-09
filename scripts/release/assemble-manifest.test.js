@@ -176,3 +176,40 @@ test('assembleManifest fails if retained pin does not resolve in clone', () => {
     (err) => err instanceof AssembleManifestError && /does not resolve/i.test(err.message)
   );
 });
+
+test('assembleManifest fails with a clear message when a console asset has no previous pin on a non-console release', () => {
+  const source = {
+    ...SOURCE_YAML,
+    consoleAssets: [
+      ...SOURCE_YAML.consoleAssets,
+      { name: 'console-new', file: 'scripts/console-views.mjs', repo: 'cogNNitive/cogNNitive-web', ref_key: 'innfo-console' },
+    ],
+  };
+  assert.throws(
+    () =>
+      assembleManifest({
+        releaseTag: 'skills-v2.10.0',
+        contentSha: 'eeee5555eeee5555eeee5555eeee5555eeee5555',
+        source,
+        prevManifestText: PREV_MANIFEST,
+        readVersion: () => '2.10.0',
+        resolveGitRef: () => true,
+      }),
+    (err) =>
+      err instanceof AssembleManifestError &&
+      /scripts\/console-views\.mjs/.test(err.message) &&
+      /innfo-console release/i.test(err.message)
+  );
+});
+
+test('assembleManifest never emits an undefined pin for a console asset', () => {
+  const result = assembleManifest({
+    releaseTag: 'skills-v2.10.0',
+    contentSha: 'eeee5555eeee5555eeee5555eeee5555eeee5555',
+    source: SOURCE_YAML,
+    prevManifestText: PREV_MANIFEST,
+    readVersion: () => '2.10.0',
+    resolveGitRef: () => true,
+  });
+  assert.ok(!/undefined/.test(result.manifestText));
+});
