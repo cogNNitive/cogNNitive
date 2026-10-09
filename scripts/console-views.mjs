@@ -174,16 +174,29 @@ const BUNDLE_TAGS =
   /<script src="\.\/innfo-console\.bundle\.js"><\/script>\s*<!-- nn:console-shell:start -->[\s\S]*?<!-- nn:console-shell:end -->/
 
 /**
- * One self-contained page: the bundle appears once (the vendored, CDN and raw
- * mirror tags collapse into it, because each extra copy would replace
- * `window.InnfoConsole`), then the views, whose scripts run after it.
+ * Everything `inlineConsoleAssets` needs to succeed, checked without producing output, so a
+ * caller can call it before its first write. Throws on a missing shell anchor, a missing
+ * bundle or CSS, or a view or bundle that cannot be embedded.
  */
-export function inlineConsoleAssets(shell, { bundle, css, views }) {
+export function assertInlinable(shell, { bundle, css, views }) {
   /** @type {[string, RegExp][]} */
   const anchors = [['stylesheet link', CSS_LINK], ['viewport meta', VIEWPORT], ['bundle script tags', BUNDLE_TAGS]]
   for (const [name, re] of anchors) {
     if (!re.test(shell)) throw new Error(`console shell has no ${name} to replace (anchor missing)`)
   }
+  if (typeof bundle !== 'string' || bundle === '') throw new Error('console bundle is missing or empty')
+  if (typeof css !== 'string') throw new Error('console stylesheet is missing')
+  escapeChecked(bundle, 'console bundle')
+  views.forEach(wrapView)
+}
+
+/**
+ * One self-contained page: the bundle appears once (the vendored, CDN and raw
+ * mirror tags collapse into it, because each extra copy would replace
+ * `window.InnfoConsole`), then the views, whose scripts run after it.
+ */
+export function inlineConsoleAssets(shell, { bundle, css, views }) {
+  assertInlinable(shell, { bundle, css, views })
   const header = viewsHeader(views)
   return shell
     .replace(CSS_LINK, () => `<style>${escapeStyle(css)}</style>`)

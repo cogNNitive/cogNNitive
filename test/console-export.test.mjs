@@ -449,6 +449,71 @@ level: 3
       assert.equal(existsSync(domainFile()), false)
     })
 
+    describe('validates everything before the first write', () => {
+      const consoleSrc = resolve(here, '..', 'iNNfo', 'specs', 'bluepriNNts', 'console')
+      const ASSETS = ['artifact_shell.html', 'innfo-console.bundle.js', 'console-payload.generated.cjs', 'innfo-ui.css']
+      const assetsWith = async (name, { shell = (s) => s, omit = [] } = {}) => {
+        const dir = join(tempDir, name)
+        await mkdir(dir, { recursive: true })
+        for (const file of ASSETS.filter((f) => !omit.includes(f))) {
+          const text = await readFile(join(consoleSrc, file), 'utf-8')
+          await writeFile(join(dir, file), file === 'artifact_shell.html' ? shell(text) : text, 'utf-8')
+        }
+        return { INNFO_CONSOLE_DIR: dir }
+      }
+      const untouched = async () => {
+        assert.equal(existsSync(domainFile()), false, 'no domain file')
+        assert.equal(existsSync(join(tempDir, 'artifacts')), false, 'no artifacts dir')
+      }
+
+      it('rejects a shell without the stylesheet link', async () => {
+        const env = await assetsWith('no-css', { shell: (s) => s.replace(/<link rel="stylesheet" href="\.\/innfo-ui\.css" ?\/>/, '') })
+        const res = await runCli([tempDir, '--domain'], { env })
+        assert.notEqual(res.code, 0)
+        assert.match(res.stderr, /stylesheet link/)
+        await untouched()
+      })
+
+      it('rejects a shell without the viewport meta', async () => {
+        const env = await assetsWith('no-meta', { shell: (s) => s.replace(/<meta name="viewport"[^>]*>/, '') })
+        const res = await runCli([tempDir, '--domain'], { env })
+        assert.notEqual(res.code, 0)
+        assert.match(res.stderr, /viewport meta/)
+        await untouched()
+      })
+
+      it('rejects a shell without the nn:console-shell block', async () => {
+        const env = await assetsWith('no-block', { shell: (s) => s.replace('<!-- nn:console-shell:end -->', '') })
+        const res = await runCli([tempDir, '--domain'], { env })
+        assert.notEqual(res.code, 0)
+        assert.match(res.stderr, /bundle script tags/)
+        await untouched()
+      })
+
+      it('rejects a missing bundle', async () => {
+        const env = await assetsWith('no-bundle', { omit: ['innfo-console.bundle.js'] })
+        const res = await runCli([tempDir, '--domain'], { env })
+        assert.notEqual(res.code, 0)
+        await untouched()
+      })
+
+      it('rejects a missing stylesheet file', async () => {
+        const env = await assetsWith('no-css-file', { omit: ['innfo-ui.css'] })
+        const res = await runCli([tempDir, '--domain'], { env })
+        assert.notEqual(res.code, 0)
+        assert.match(res.stderr, /innfo-ui\.css/)
+        await untouched()
+      })
+
+      it('rejects a view that cannot be embedded', async () => {
+        await addView('bad', 'var script = 3; var r = 1 <script >2\nregisterView({})\n')
+        const res = await runCli([tempDir, '--domain'])
+        assert.notEqual(res.code, 0)
+        assert.match(res.stderr, /cannot be embedded/)
+        await untouched()
+      })
+    })
+
     it('produces identical bytes for identical input apart from the generated stamp', async () => {
       await addView('pipeline')
       assert.equal((await runCli([tempDir, '--domain'])).code, 0)

@@ -483,6 +483,12 @@ async function main() {
       console.error(`Error: ${err.message}`)
       process.exit(1)
     }
+    try {
+      viewsLib.assertInlinable(resolvedShell, { bundle, css: uiCss, views: domainViews })
+    } catch (err) {
+      console.error(`Error: ${err.message}`)
+      process.exit(1)
+    }
   }
 
   const config = {

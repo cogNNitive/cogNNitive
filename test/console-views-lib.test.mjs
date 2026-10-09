@@ -15,6 +15,7 @@ import {
   wrapView,
   viewsHeader,
   inlineConsoleAssets,
+  assertInlinable,
 } from '../scripts/console-views.mjs'
 import { JSDOM } from 'jsdom'
 import { InnfoConsole } from './helpers/console-boot.mjs'
@@ -291,6 +292,19 @@ describe('console-views lib', () => {
 
     it('fails when the shell lacks an expected anchor', () => {
       assert.throws(() => inlineConsoleAssets('<html></html>', { bundle: 'b', css: 'c', views: [] }), /anchor/)
+    })
+
+    it('assertInlinable throws on a missing bundle or css, and each missing anchor, without output', () => {
+      assert.throws(() => assertInlinable(shell, { bundle: null, css: 'c', views: [] }), /bundle is missing/)
+      assert.throws(() => assertInlinable(shell, { bundle: 'b', css: undefined, views: [] }), /stylesheet is missing/)
+      for (const [name, re] of [
+        ['stylesheet link', /<link[^>]*>/],
+        ['viewport meta', /<meta[^>]*>/],
+        ['bundle script tags', /<!-- nn:console-shell:end -->/],
+      ]) {
+        assert.throws(() => assertInlinable(shell.replace(re, ''), { bundle: 'b', css: 'c', views: [] }), new RegExp(name))
+      }
+      assert.doesNotThrow(() => assertInlinable(shell, { bundle: 'b', css: 'c', views: [] }))
     })
 
     it('is deterministic', () => {
