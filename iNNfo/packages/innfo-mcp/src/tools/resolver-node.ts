@@ -375,6 +375,35 @@ export async function findSpecInPackageDir(dir: string, base: string): Promise<s
 }
 
 /**
+ * Resolves a bluepriNNt package that sits flat in `dir` (`<dir>/spec_NN.md`, no `V_x/`
+ * subdirs): the repository's own layout and what the installer writes. A requested version is
+ * honored through the document's own frontmatter. A bluepriNNt carries two version axes:
+ * `spec_version` (the spec format) and `blueprint_version` (the package, and what version dirs
+ * and requests like `video_V_0-8-0` name), so a request matches either.
+ */
+async function resolveFlatPackage(
+  dir: string,
+  base: string,
+  targetVersion: string | undefined,
+  tier: ResolvedBlueprintPackage['tier'],
+): Promise<ResolvedBlueprintPackage | null> {
+  const specFile = await findSpecInPackageDir(dir, base)
+  if (!specFile) return null
+  const specContent = await readFile(specFile, 'utf-8').catch(() => '')
+  const fmVersion = versionFromFrontmatter(specContent)
+  const bpVersion = blueprintVersionFromFrontmatter(specContent)
+  if (targetVersion && fmVersion !== targetVersion && bpVersion !== targetVersion) return null
+  return {
+    name: base,
+    version: targetVersion || fmVersion || '0.1.0',
+    packagePath: dir,
+    specFilePath: specFile,
+    isPackageDir: true,
+    tier,
+  }
+}
+
+/**
  * 4-Tier Template Package Resolver:
  *   Tier 1: Workspace package directory: ./specs/bluepriNNts/<name>/<version>/
  *   Tier 2: Workspace flat fallback: ./templates/<name>_V_<version>_NN.md or ./specs/
@@ -437,6 +466,11 @@ export async function resolveBlueprintPackage(
           tier: 'workspace-package',
         }
       }
+    }
+    else if (verDirs.length === 0) {
+      // The repository's own layout: specs/bluepriNNts/<name>/spec_NN.md, no V_x/ subdirs.
+      const flat = await resolveFlatPackage(wsPackageBaseDir, base, targetVersion, 'workspace-package')
+      if (flat) return flat
     }
   } catch (err) {
     /* v8 ignore start */
@@ -507,28 +541,8 @@ export async function resolveBlueprintPackage(
         }
       }
     } else if (verDirs.length === 0) {
-      // Flat install: the installer writes <globalDir>/<name>/spec_NN.md with
-      // no V_x/ subdirs. Honor a requested version via the document's own
-      // frontmatter.
-      const specFile = await findSpecInPackageDir(globalBaseDir, base)
-      if (specFile) {
-        const specContent = await readFile(specFile, 'utf-8').catch(() => '')
-        const fmVersion = versionFromFrontmatter(specContent)
-        // A bluepriNNt carries two version axes: `spec_version` (the spec format) and
-        // `blueprint_version` (the package, and what version dirs and requests like
-        // `video_V_0-8-0` name). A request matches either.
-        const bpVersion = blueprintVersionFromFrontmatter(specContent)
-        if (!targetVersion || fmVersion === targetVersion || bpVersion === targetVersion) {
-          return {
-            name: base,
-            version: targetVersion || fmVersion || '0.1.0',
-            packagePath: globalBaseDir,
-            specFilePath: specFile,
-            isPackageDir: true,
-            tier: 'global-cache',
-          }
-        }
-      }
+      const flat = await resolveFlatPackage(globalBaseDir, base, targetVersion, 'global-cache')
+      if (flat) return flat
     }
   } catch {
     // Check flat global file

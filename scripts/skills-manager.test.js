@@ -633,6 +633,37 @@ agent-bootstrap:
   console.log('✔ Fallback manifest URL agreement test passed');
 }
 
+// End to end on the REAL video package: project its embedded skill into a temp skills dir and run
+// the projected CLI from a cwd with no monorepo around it. The vendored VUS spec must be the only
+// thing it needs; removing it must fail, otherwise this test could pass on the monorepo fallback.
+{
+  const { installEmbeddedSkills } = require('./lib/skills-commands.js');
+  const videoPkgDir = path.join(__dirname, '..', 'iNNfo', 'specs', 'bluepriNNts', 'video');
+  const e2eDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sm-e2e-embedded-'));
+  try {
+    const skillsDir = path.join(e2eDir, 'skills');
+    const state = { skills: {} };
+    const names = installEmbeddedSkills(videoPkgDir, skillsDir, { name: 'video', commit: 'e2e' }, state);
+    assert.deepStrictEqual(names, ['nn-video-script'], 'the real video package projects exactly nn-video-script');
+    assert.strictEqual(state.skills['nn-video-script'].source_blueprint, 'video');
+
+    const projected = path.join(skillsDir, 'nn-video-script');
+    const cli = path.join(projected, 'scripts', 'vus-spec.mjs');
+    assert.ok(fs.existsSync(path.join(projected, 'SKILL.md')), 'SKILL.md is projected');
+
+    const ok = spawnSync(process.execPath, [cli, 'voices'], { cwd: e2eDir, encoding: 'utf8' });
+    assert.strictEqual(ok.status, 0, `projected vus-spec.mjs must run outside the monorepo: ${ok.stderr}`);
+    assert.ok(Array.isArray(JSON.parse(ok.stdout)), 'voices prints a JSON array');
+
+    fs.rmSync(path.join(projected, 'specs'), { recursive: true, force: true });
+    const broken = spawnSync(process.execPath, [cli, 'voices'], { cwd: e2eDir, encoding: 'utf8' });
+    assert.notStrictEqual(broken.status, 0, 'without the vendored spec the CLI must fail, proving it is what the CLI reads');
+    console.log('✔ End-to-end embedded video skill projection test passed');
+  } finally {
+    fs.rmSync(e2eDir, { recursive: true, force: true });
+  }
+}
+
 console.log('All skills-manager unit tests passed successfully!');
 }
 
