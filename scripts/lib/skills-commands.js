@@ -846,7 +846,7 @@ async function cmdUpdate(args) {
     targetAgent: args.agent,
     scope: args.scope,
     state,
-    // A positional filter names blueprints/skills; skills embedded in an updated blueprint have
+    // A positional filter names blueprint or skill entries; skills embedded in an updated blueprint have
     // their own directory names, so they must be added or they are never projected to the agents.
     skillNames: args.positional.length > 0 ? [...args.positional, ...embeddedSkillNames] : undefined,
   });
