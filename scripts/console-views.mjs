@@ -24,6 +24,8 @@ export const RESERVED_VIEW_IDS = ['explorer', 'matrices', 'review']
 const VIEWS_SUBPATH = ['assets', 'consoles', 'views']
 const HASH_DISPLAY_LENGTH = 12
 
+const SPEC_BASE_RE = /^[A-Za-z0-9_-]+$/
+
 /** `metrics_V_0-4-1` -> `{ base: 'metrics', version: 'V_0-4-1' }`. */
 export function parseSpecName(name) {
   const m = /^(.+?)_(V_\d+-\d+-\d+)$/.exec(name)
@@ -33,6 +35,10 @@ export function parseSpecName(name) {
 /** View directories for one parent_spec, in priority order; the first that exists wins. */
 export function viewRootCandidates({ domainRoot, specName, packagesDir }) {
   const { base, version } = parseSpecName(specName)
+  // The base becomes a path segment: a name like `../../x` must never reach `join`.
+  if (!SPEC_BASE_RE.test(base)) {
+    throw new Error(`parent_spec "${specName}" is not a valid name: the part before the version may only use letters, digits, "_" and "-"`)
+  }
   const tier1 = join(domainRoot, 'specs', 'bluepriNNts', base)
   return [
     ...(version ? [join(tier1, version, ...VIEWS_SUBPATH)] : []),

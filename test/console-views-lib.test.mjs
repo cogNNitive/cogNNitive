@@ -92,6 +92,31 @@ describe('console-views lib', () => {
     })
   })
 
+  describe('parent_spec base validation', () => {
+    for (const name of ['../../x_V_0-1-0', 'a/b_V_0-1-0', 'a\\b', '..', 'a.b_V_0-1-0', 'x y', '']) {
+      it('refuses ' + JSON.stringify(name) + ' before building any path', async () => {
+        assert.throws(
+          () => viewRootCandidates({ domainRoot: domain, specName: name, packagesDir: pkgs }),
+          /parent_spec.*not a valid name/,
+        )
+        await assert.rejects(discover([name]), /parent_spec.*not a valid name/)
+      })
+    }
+
+    it('does not read views from a traversal target', async () => {
+      await put(join(pkgs, '..', 'x-traversal-probe', 'assets', 'consoles', 'views', 'evil.js'))
+      try {
+        await assert.rejects(discover(['../x-traversal-probe_V_0-1-0']), /parent_spec/)
+      } finally {
+        await rm(join(pkgs, '..', 'x-traversal-probe'), { recursive: true, force: true })
+      }
+    })
+
+    it('accepts letters, digits, underscores and hyphens', () => {
+      assert.doesNotThrow(() => viewRootCandidates({ domainRoot: domain, specName: 'My_Spec-2_V_0-1-0', packagesDir: pkgs }))
+    })
+  })
+
   describe('discovery by convention', () => {
     it('finds domaiNN custom views sorted by id with source and sha256', async () => {
       await put(join(domain, 'consoles', 'views', 'pipeline.js'))
