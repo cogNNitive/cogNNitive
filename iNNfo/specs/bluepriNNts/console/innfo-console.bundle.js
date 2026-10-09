@@ -5383,8 +5383,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         if (doc.defaultView) doc.defaultView.removeEventListener('hashchange', onHashChange)
       },
       hashTab: tabFromHash,
-      // Runs after the review controller exists so ctx.modal is ready for the
-      // first mount. A tab already chosen during boot (search) is kept.
+      // Runs after the first refresh so a tab already chosen during boot (an
+      // initial search) is kept and the default view is not mounted for
+      // nothing. The view ctx has no modal/store/changeset yet (S2b).
       activateInitial: function () {
         if (!current) select(tabFromHash() || tabs[0].id, true)
       },
@@ -6509,7 +6510,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       })
     }
 
-    // The first view mounts here, once the review controller exists.
+    // The first view mounts here, after the initial search had its say.
     if (tabs) tabs.activateInitial()
 
     if (hasNeed(config, 'document-view')) {
