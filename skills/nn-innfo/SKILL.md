@@ -554,6 +554,8 @@ When the user selects option `[d]` (Export / update console artifacts):
    - The CLI resolves its console assets from `$INNFO_CONSOLE_DIR`, then the repo's `iNNfo/specs/bluepriNNts/console/`, then `~/.agents/console/`. The installed set is `export-console.mjs`, `console-views.mjs`, `artifact_shell.html`, `innfo-console.bundle.js`, `innfo-ui.css` and `console-payload.generated.cjs`, all flat in one folder; `--domain` needs every one of them. Set `INNFO_CONSOLE_DIR` when running outside a checkout.
    - After upgrading, run `skills-manager install` (or `update`, which also adds the console files a newer release introduced) so the set is complete; `--domain` fails with a clear error when `console-views.mjs` or `innfo-ui.css` is missing.
    - `--domain` also reads bluepriNNt console views from the installed bluepriNNt packages in `$INNFO_BLUEPRINTS_DIR`, defaulting to `~/.agents/bluepriNNts/`, and warns on stderr when a model's bluepriNNt package cannot be found there.
+   - `--view <id>` writes one console holding only that custom view, for the whole domain, to `artifacts/<id>_view/`. It cannot be combined with `--domain`, `--all`, `--stale`, `--filter` or a model name (exit 2), and it needs the same assets as `--domain`. Its drafts are kept apart from the domain console's.
+   - `--domain` and `--view` print a size breakdown, warn on stderr above 5 MB and fail above 15 MB without writing anything.
    - If the user requests inspection or status, invoke with `--status` or `--tree` (read-only mode).
 3. Present the compiled artifact path (the latest member of the write-once family, e.g. `artifacts/<stem>_console/<stem>_console_<UTC stamp>.html`; earlier exports are never overwritten) with instructions for opening offline or in browser.
 

@@ -255,3 +255,18 @@ Status: tasks 2c2.1-2c2.6 done; 2c2.7 verification done except the fresh-context
 - The reorder in `export-console.mjs` (aggregation moved above the per-model loop) against the old `--domain` behaviour.
 - `mountTabs` filtering the registry by scope and the explorer panel left in the DOM.
 - Draft-store key and slug when a modelId already contains `::view:`.
+
+## S2c2 review follow-up
+
+A fresh review of S2c2 found seven points. Resolution:
+
+1. `--view` is now strictly the whole-domain scoped export. Combined with `--all`, `--stale`, `--filter` or a model name it exits 2 before anything is written, like `--view` + `--domain`. This also removes the draft-key mixing between filtered and unfiltered exports. Usage text updated.
+2. `--view` with no value (last argument, or followed by another flag) exits 2 with "--view needs a view id".
+4. A scoped console removes the search toolbar, concept rail and stats bar (removed, not `[hidden]`, because the rail's `display:flex` would override the attribute), ignores URL search queries, and `focusElementCard` is a no-op (the `<html>` element carries `data-innfo-scope`). The export button, banner and changeset are unchanged. The unscoped console is unchanged (tested).
+5. The `--view` branch reports a deduplicated write as `= <file> unchanged` and counts it as unchanged. Tested end to end by freezing `Date.prototype.toISOString` through `NODE_OPTIONS=--import` so two runs produce identical bytes.
+6. (a) The sample test boots the real generated `--view missing-descriptions` page, proposes, and downloads the changeset through the console's own export modal (the old hand-built state test is replaced). (b) A two-view test proposes through `ctx.store` in one domain console (one store, one changeset), then boots scoped alpha and beta consoles in the same jsdom window over the same real `localStorage` and asserts three distinct keys with the expected drafts. (c) The sample locks a row with a pending description draft (disabled input and button, "Proposed") and unlocks it when the draft is removed; repeated clicks create one draft.
+7. `skills/nn-innfo/SKILL.md` documents `--view <id>` and the size budget next to the `--domain` notes. No page under `docs/` describes the exporter's flags (`offline-consoles.md` does not), so nothing else changed.
+
+Skipped by decision: stale draft keys across same-named roots (pre-existing, out of scope).
+
+Mutation checks (fix reverted, RED seen, restored): view/selection guard, missing view id, runtime scoped chrome removal, `focusElementCard` guard, scoped draft key, scoped changeset title, sample lock.
