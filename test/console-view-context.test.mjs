@@ -333,3 +333,56 @@ describe('S2b review follow-up: store.propose validates its input', () => {
     assert.equal(role.original, 'Interceptor')
   })
 })
+
+describe('S2b review follow-up: draft change listeners', () => {
+  it('a listener that proposes terminates and the final state is shown', () => {
+    const { document, ctxs } = bootViews([def('alpha')])
+    let calls = 0
+    ctxs.alpha.store.onChange(() => {
+      calls++
+      if (calls < 100) ctxs.alpha.store.propose({ elementId: 'ecto-1', kind: 'comment', comment: 'again' })
+    })
+    ctxs.alpha.store.propose({ elementId: 'ecto-1', kind: 'comment', comment: 'first' })
+    assert.ok(calls <= 3, `listener ran ${calls} times`)
+    const n = ctxs.alpha.store.drafts().length
+    assert.equal(document.querySelector('.innfo-banner-drafts').textContent.trim(), `drafts: ${n}`)
+  })
+
+  it('a listener that removes inside onChange also terminates', () => {
+    const { ctxs } = bootViews([def('alpha')])
+    let calls = 0
+    ctxs.alpha.store.onChange(() => {
+      calls++
+      const [d] = ctxs.alpha.store.drafts()
+      if (d && calls < 100) ctxs.alpha.store.remove(d.id)
+    })
+    ctxs.alpha.store.propose({ elementId: 'ecto-1', kind: 'comment', comment: 'x' })
+    assert.ok(calls <= 3, `listener ran ${calls} times`)
+    assert.equal(ctxs.alpha.store.drafts().length, 0)
+  })
+
+  it('a throwing listener is reported in the view error notice and does not block others', () => {
+    const { document, ctxs } = bootViews([def('alpha')])
+    let healthy = 0
+    ctxs.alpha.store.onChange(() => {
+      throw new Error('listener boom')
+    })
+    ctxs.alpha.store.onChange(() => healthy++)
+    ctxs.alpha.store.propose({ elementId: 'ecto-1', kind: 'comment', comment: 'x' })
+    assert.equal(healthy, 1)
+    const text = noticeText(document)
+    assert.match(text, /alpha/)
+    assert.match(text, /listener boom/)
+  })
+
+  it('a listener from a destroyed boot is not called after re-boot', () => {
+    const { document, ctxs, registry } = bootViews([def('alpha')])
+    const old = ctxs.alpha
+    let calls = 0
+    old.store.onChange(() => calls++)
+    InnfoConsole.boot(document, { registry })
+    assert.notEqual(ctxs.alpha, old, 're-boot mounted a fresh ctx')
+    old.store.propose({ elementId: 'ecto-1', kind: 'comment', comment: 'x' })
+    assert.equal(calls, 0)
+  })
+})

@@ -5369,7 +5369,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     // The same facades for every editable view: one store, one modal slot
     // (the review controller's), one changeset. The controller exists only
     // with the feedback-export need.
-    function editableParts() {
+    function editableParts(t) {
       function controller() {
         var c = opts.getController()
         if (!c) throw new Error('review is not enabled (feedback-export need missing)')
@@ -5426,7 +5426,12 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
             opts.state.store.removeDraft(id)
             opts.onDraftsChanged()
           },
-          onChange: opts.subscribe,
+          onChange: function (fn) {
+            return opts.subscribe(fn, function (err) {
+              report(t.id, [t.source], 'view "' + t.id + '": onChange listener failed: ' + String(err && err.message ? err.message : err))
+              showErrors()
+            })
+          },
         },
         modal: {
           edit: function (a) {
@@ -5488,7 +5493,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
             models: Array.isArray(opts.meta && opts.meta.models) ? opts.meta.models : [],
           },
         }
-        if (editable) Object.assign(ctx, editableParts())
+        if (editable) Object.assign(ctx, editableParts(t))
         else
           ctx.mountHtml = function (html) {
             return mountHtml(panel, html)
@@ -6581,16 +6586,21 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     // Lightweight update after a draft is saved: refreshes only the draft-count
     // surfaces and leaves the mounted element cards (and their focus) intact.
     var draftListeners = []
-    function subscribeDrafts(fn) {
-      draftListeners.push(fn)
+    function subscribeDrafts(fn, onError) {
+      var entry = { fn: fn, onError: onError }
+      draftListeners.push(entry)
       return function () {
         draftListeners = draftListeners.filter(function (l) {
-          return l !== fn
+          return l !== entry
         })
       }
     }
+    // A destroyed or re-booted console must never call its views again.
+    cleanups.push(function () {
+      draftListeners = []
+    })
 
-    function refreshDraftCounts() {
+    function updateDraftSurfaces() {
       var currentDrafts = state.store.drafts()
       var n = currentDrafts.length
       var bannerCount = active.querySelector('.innfo-banner-drafts')
@@ -6601,13 +6611,39 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       })
       renderStatsBar(active, elements, concepts, matrices, n)
       renderRail(active, concepts, counts, draftCountsOf(currentDrafts), selectRailToken, state)
-      draftListeners.slice().forEach(function (fn) {
-        try {
-          fn()
-        } catch {
-          // a view listener must not break the host's draft surfaces
-        }
-      })
+    }
+
+    // A listener may propose or remove drafts, which re-enters this function.
+    // Nested notifications are coalesced: at most one extra full pass runs,
+    // and a last surfaces-only pass guarantees the counts show the final state.
+    var refreshingDrafts = false
+    var refreshQueued = false
+    function refreshDraftCounts() {
+      if (refreshingDrafts) {
+        refreshQueued = true
+        return
+      }
+      refreshingDrafts = true
+      try {
+        var extra = 0
+        do {
+          refreshQueued = false
+          updateDraftSurfaces()
+          draftListeners.slice().forEach(function (entry) {
+            try {
+              entry.fn()
+            } catch (err) {
+              // A listener must not break the host's draft surfaces; the
+              // owning view reports it in the view error notice.
+              if (entry.onError) entry.onError(err)
+            }
+          })
+        } while (refreshQueued && ++extra <= 1)
+        if (refreshQueued) updateDraftSurfaces()
+      } finally {
+        refreshingDrafts = false
+        refreshQueued = false
+      }
     }
 
     // keepTab: the caller already chose the tab (hash navigation), so a
