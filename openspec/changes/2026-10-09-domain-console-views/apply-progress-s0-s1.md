@@ -42,3 +42,13 @@ Neither touches console files. Console bundle freshness steps pass.
 - `meta.model_slug` is not yet emitted by `scripts/export-console.mjs` (D4 slice); the runtime falls back to slugified `modelId`.
 - The controller's old `data-innfo="draft-count"` hook never existed in the DOM.
 - A frozen testlab fixture bundle (`test/fixtures/testlab/artifacts/.../innfo-console.bundle_*.js`) contains an old copy of the code; left untouched.
+
+## Review follow-up
+
+A fresh review found three issues; each was fixed in its own commit with the bundle rebuilt (`node scripts/build-console-bundle.mjs`).
+
+- `e994d51a` test(console): cover the Matrices panel against the real artifact shell. New helper `bootConsoleFromShell()` loads `artifact_shell.html` (where `#innfo-matrices` starts inside `#innfo-tab-explorer`) and asserts the sibling `#innfo-tab-matrices` panel, host relocation and tab switching. RED proof: temporarily skipping the host move in `renderViewTabs` failed both the toy and shell tests; restored. No source change, so no bundle change.
+- `d4c5cbb5` fix(console): update draft counts without remounting the element cards. `onDraftsChanged` now maps to `refreshDraftCounts()` in `boot()`: it updates the banner count in place, the Review tab badge in place, and re-renders the review tab, stats bar and rail; cards are never remounted. `review.js` `refreshCount()` always re-applies decorations afterwards; the duplicate `refreshCount()` calls after `saveDraft` (tag remove, relation unlink) and in the reviewed toggle were removed. RED (fix reverted): card node identity not preserved, reviewed toggle remounted cards. GREEN: same node, focus retained on a sibling control, three counters correct, 54 console tests pass. Note: per-card "Has Comment"/"Draft Edit" badges and projected correction values are still only refreshed by a full refresh (search, reviewer change, review-tab delete); this matches the behaviour before `036f8f12`.
+- `5465d525` fix(console): derive a stable hashed model slug for non-Latin titles. `modelSlugOf` falls back to `model-<8 hex FNV-1a of the title>` instead of the constant `model`, always matching `^[A-Za-z0-9-]+$`. Added the missing boot test (`meta.model_slug` -> `state.modelSlug` -> downloaded filename); RED proof by removing the mapping, restored. RED for the fallback: two non-Latin titles both produced `model`.
+
+`node --test test/console-*.test.mjs`: 57 pass, 0 fail.
