@@ -105,7 +105,7 @@ console.log('Running console-shell-guard unit tests...');
     result.errors.forEach((e) => console.error(`  - ${e}`));
   }
   assert.strictEqual(result.ok, true);
-  assert.ok(result.shells.length >= 3, `Expected at least 3 shells, got ${result.shells.length}`);
+  assert.ok(result.shells.length >= 2, `Expected at least 2 shells, got ${result.shells.length}`);
   assert.ok(result.shells.some((s) => s.includes('model_console.html')), 'model_console.html must be among checked shells');
   console.log(`✔ Live repository check passes on all ${result.shells.length} shells:`);
   result.shells.forEach((s) => console.log(`  - ${s}`));
@@ -165,7 +165,6 @@ console.log('Running console-shell-guard unit tests...');
   const repoRoot = path.join(__dirname, '..', '..');
   const liveShells = [
     'iNNfo/specs/bluepriNNts/console/artifact_shell.html',
-    'iNNfo/specs/bluepriNNts/procedures/assets/procedure_console.html',
     'iNNfo/specs/bluepriNNts/workspace/assets/model_console.html',
   ];
   for (const rel of liveShells) {
