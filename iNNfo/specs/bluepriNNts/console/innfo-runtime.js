@@ -53,6 +53,21 @@
     return raw || 'feedback'
   }
 
+  // D4: exports are named after the immutable model_slug, never the human
+  // title. An explicit slug wins; otherwise the model id (then title) is slugified.
+  function modelSlugOf(state) {
+    var s = isObject(state) ? state : {}
+    var slugMod = getInnfoSlug()
+    var candidates = [s.modelSlug, s.modelId, s.modelTitle]
+    for (var i = 0; i < candidates.length; i++) {
+      var c = candidates[i]
+      if (typeof c !== 'string' || !c.trim()) continue
+      var out = slugMod ? slugMod.slugify(c) : ''
+      if (out) return out
+    }
+    return 'model'
+  }
+
   function slugifyReviewer(value) {
     var text = String(value == null ? '' : value)
       .toLowerCase()
@@ -2942,7 +2957,7 @@
     }
 
     var text = serializeChangesetMarkdown(exportMeta, drafts)
-    var filename = model + '_' + reviewerSlug + '_' + stamp + '_changes_NN.md'
+    var filename = modelSlugOf(state) + '_' + reviewerSlug + '_' + stamp + '_changes_NN.md'
     return {
       ok: true,
       text: text,
@@ -2994,13 +3009,14 @@
 
     var stamp = stampFromDate(state && state.exportedAt ? new Date(state.exportedAt) : new Date())
     var changesetMd = serializeChangesetMarkdown(exportMeta, drafts)
-    var changesetFilename = model + '_' + reviewerSlug + '_' + stamp + '_changes_NN.md'
+    var modelSlug = modelSlugOf(state)
+    var changesetFilename = modelSlug + '_' + reviewerSlug + '_' + stamp + '_changes_NN.md'
 
     return {
       ok: true,
       payload: payload,
       text: serializeFeedback(payload),
-      filename: buildFeedbackFilename(model, String(version).replace(/^V_/, ''), reviewer),
+      filename: buildFeedbackFilename(modelSlug, String(version).replace(/^V_/, ''), reviewer),
       changesetText: changesetMd,
       changesetFilename: changesetFilename,
       items: payload.items.length,
@@ -3343,6 +3359,7 @@
       modelVersion: String(meta.modelVersion || meta.knowledge_version || 'V_0-0-0'),
       artifactName: String(meta.title || 'console') + '_console.html',
       modelId: meta.modelId || meta.model || meta.title || 'model',
+      modelSlug: meta.model_slug || meta.modelSlug || undefined,
       sourceSha256: meta.sha256 || meta.source_sha256,
       meta: meta,
       elements: elements,
