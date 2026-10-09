@@ -2336,6 +2336,24 @@
       }
     }
 
+    // Matrices get their own panel; the host must not stay inside the
+    // explorer panel, which is hidden while the Matrices tab is active.
+    var matricesPanel = doc.getElementById('innfo-tab-matrices')
+    var hasMatricesData = Array.isArray(model && model.matrices) && model.matrices.length > 0
+    if (!matricesPanel && hasMatricesData && explorerPanel && explorerPanel.parentNode) {
+      matricesPanel = el('div', 'innfo-tab-panel')
+      if (matricesPanel) {
+        matricesPanel.id = 'innfo-tab-matrices'
+        var matricesHostEl = doc.getElementById('innfo-matrices')
+        if (!matricesHostEl) {
+          matricesHostEl = el('div')
+          matricesHostEl.id = 'innfo-matrices'
+        }
+        matricesPanel.appendChild(matricesHostEl)
+        explorerPanel.parentNode.insertBefore(matricesPanel, explorerPanel.nextSibling)
+      }
+    }
+
     var reviewPanel = doc.getElementById('innfo-tab-review')
     if (!reviewPanel && mainEl) {
       reviewPanel = el('div', 'innfo-tab-panel')
