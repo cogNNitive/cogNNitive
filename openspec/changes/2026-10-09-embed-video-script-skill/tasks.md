@@ -307,8 +307,63 @@ strictly greater than its predecessor of the same family.
 - [ ] 4.22 Check after each step: `~/.agents/skills/nn-video-script` still works at every
       intermediate published state. Note: after step 3, an install must come through the
       `video` bluepriNNt projection.
+- [ ] 4.23 Mitigation (review W3, no compat code): tag `blueprints-v*` and `skills-v*` in the
+      SAME release window and repin once. Known flip-flop in the gap: while the manifest still
+      lists a standalone `nn-video-script`, a `video` blueprint install projects the embedded
+      skill over `~/.agents/skills/nn-video-script`, and then `isOutdatedSkill` (state commit
+      differs from the standalone pin) reinstalls the standalone over it on every update until
+      `skills-v*` removes the standalone entry. The window must stay short; do not ship
+      `blueprints-v*` alone.
 
 ---
+
+## Remediation
+
+Findings from the adversarial review and `verify-report.md`. Behavior fixes were TDD (RED seen
+first for A, C, D, E; B and F covered by a test added with the fix).
+
+- [x] A. `installBlueprintAtCommit` records the blueprint only after the embedded skills
+      projected; on failure the previous state entry is kept (update retries), a freshly created
+      package dir is removed (bootstrap retries), and skills projected before the failure stay
+      recorded and are reported via `err.projectedSkills`. Test: injected failure in
+      `scripts/skills-manager.test.js` (3.3).
+- [x] B. `cmdUpdate` adds the embedded skill names returned by the blueprint install to the
+      `skillNames` filter of `projectSkillsToAgents` on a positional update. Test 3.4.
+- [x] C. Tier-3 flat fallback in `resolver-node.ts` matches the requested version against
+      `spec_version` OR `blueprint_version`. Test fixture carries both fields.
+- [x] D. `skills/` fetch is strict: any nested listing failure or file download failure throws
+      `IncompleteSkillsTreeError`, and `resolveParentChainNode` does NOT degrade it to
+      spec-only hydration (that would freeze a skill-less version dir; hydration is write-once).
+      Nothing is hydrated, so the next resolution retries. A top-level 404 still means "no skills/".
+- [x] E. `ownerSpecOf` anchors on the first `bluepriNNts/<bp>/skills/` segment. Test added.
+- [x] F. Brand-purge exemption narrowed to the exact `specs/V_0-3-3.json`. Test added.
+- [x] G. W1/W2: thumbnail reference and the procedure body steps now use
+      `node ~/.agents/skills/nn-video-script/scripts/...`. Leftover `rg` classification:
+      in-skill `node scripts/...` in SKILL.md, references and script hints is skill-relative by
+      design (run from the skill dir); the rest are comments/generator docs (mirror builder),
+      openspec history, and the manifest-independent resolver test fixtures. No repo-root
+      `node skills/nn-video-script` command remains.
+- [x] H. `vus-spec-pin.test.mjs` skips the monorepo byte-compare with an explicit SKIP line when
+      `iNNfo/packages/innfo-video-parser` is absent (installed copy); pin check still runs.
+      One-byte-drift regression case added.
+- [x] I. Release-sequence mitigation recorded as 4.23 above.
+- [x] J. innfo-mcp vitest: 352/353 tests, 37/38 files pass. The only failure is the pre-existing
+      `test/console-golden-parity.test.ts` (business concept payload ordering/content differs between
+      the MCP payload and CLI export-console: "Business summary" vs "Mission"); unrelated to video or skills.
+
+## Audit notes (task 4.14 evidence, verify-report W6)
+
+- `scripts/sync-versions.mjs` collectSkillVersions: walks only top-level `skills/<name>/SKILL.md`;
+  the embedded skill under `bluepriNNts/video/skills/` is never counted as a distributed skill.
+- `scripts/verify.js` checkBlueprintInventory: compares blueprint folders to `source.yaml` and
+  checks that declared skill paths exist; the embedded skill is undeclared, so it neither
+  satisfies nor violates it once the standalone `source.yaml` entry is removed.
+- `scripts/freshness.js` SUBSYSTEM_PATHS: `blueprints` covers `iNNfo/specs/bluepriNNts/`, so
+  embedded-skill churn counts as blueprint churn; `skills` (`skills/`) no longer includes it.
+- `scripts/lib/tag-pin-freshness.js`: SKILL_MARKER_RE is `^skills/[^/]+/SKILL.md$`, so the
+  embedded SKILL.md is not a skill marker; its removal-side trigger ships with the source.yaml change.
+- `.github/workflows/release.yml`: tag families `skills-v*`, `blueprints-v*`, `innfo-mcp-v*`,
+  `innfo-console-v*` publish independently; hence 4.23 (same window for blueprints+skills).
 
 ## Notes
 
