@@ -39,11 +39,21 @@ function normalizeSlot(slotStr: string): string {
 describe('Console Golden Parity (MCP build_console_payload vs CLI export-console)', () => {
   let tempDir: string
   let oldCacheDir: string | undefined
+  let oldGlobalDir: string | undefined
+  let oldSkillsDir: string | undefined
 
   beforeEach(async () => {
     oldCacheDir = process.env.INNFO_CACHE_DIR
+    oldGlobalDir = process.env.INNFO_GLOBAL_DIR
+    oldSkillsDir = process.env.INNFO_SKILLS_DIR
     tempDir = await mkdtemp(join(tmpdir(), 'console-golden-test-'))
     process.env.INNFO_CACHE_DIR = join(tempDir, '.cache')
+    // Isolate the global/skill tiers so resolution exercises the fixture
+    // blueprint, never a developer's real ~/.agents install.
+    process.env.INNFO_GLOBAL_DIR = join(tempDir, 'global-bluepriNNts')
+    process.env.INNFO_SKILLS_DIR = join(tempDir, 'global-skills')
+    await mkdir(process.env.INNFO_GLOBAL_DIR, { recursive: true })
+    await mkdir(process.env.INNFO_SKILLS_DIR, { recursive: true })
     const modelsDir = join(tempDir, 'models')
     const sourcesDir = join(tempDir, 'sources')
     const blueprintsDir = join(tempDir, 'specs', 'bluepriNNts', 'business')
@@ -131,6 +141,16 @@ parent_spec:
     } else {
       delete process.env.INNFO_CACHE_DIR
     }
+    if (oldGlobalDir !== undefined) {
+      process.env.INNFO_GLOBAL_DIR = oldGlobalDir
+    } else {
+      delete process.env.INNFO_GLOBAL_DIR
+    }
+    if (oldSkillsDir !== undefined) {
+      process.env.INNFO_SKILLS_DIR = oldSkillsDir
+    } else {
+      delete process.env.INNFO_SKILLS_DIR
+    }
     if (tempDir && existsSync(tempDir)) {
       await rm(tempDir, { recursive: true, force: true })
     }
@@ -139,20 +159,30 @@ parent_spec:
   it('MCP slot strings match CLI slot text exactly and procedure outputPath reports fresh in status', async () => {
     // 1. Export via CLI
     const cliRes = await runCli([tempDir, '--all'], {
-      env: { INNFO_CACHE_DIR: join(tempDir, '.cache') },
+      env: {
+        INNFO_CACHE_DIR: join(tempDir, '.cache'),
+        INNFO_GLOBAL_DIR: join(tempDir, 'global-bluepriNNts'),
+        INNFO_SKILLS_DIR: join(tempDir, 'global-skills'),
+      },
     })
     expect(cliRes.code).toBe(0)
 
     // The CLI writes a new suffixed member of the console family; the MCP outputPath names the family.
     const consoleDir = join(tempDir, 'artifacts', 'Ghostbusters_console')
-    const members = (await readdir(consoleDir)).filter((n) => /^Ghostbusters_console_\d{8}T\d{6}Z(-\d+)?\.html$/.test(n))
+    const members = (await readdir(consoleDir)).filter((n) =>
+      /^Ghostbusters_console_\d{8}T\d{6}Z(-\d+)?\.html$/.test(n),
+    )
     expect(members).toHaveLength(1)
     const cliHtmlPath = join(consoleDir, members[0])
     expect(existsSync(cliHtmlPath)).toBe(true)
     const cliHtml = await readFile(cliHtmlPath, 'utf-8')
 
-    const cliSchemaMatch = cliHtml.match(/<script type="application\/json" id="innfo-schema">([\s\S]*?)<\/script>/)
-    const cliModelMatch = cliHtml.match(/<script type="application\/json" id="innfo-model">([\s\S]*?)<\/script>/)
+    const cliSchemaMatch = cliHtml.match(
+      /<script type="application\/json" id="innfo-schema">([\s\S]*?)<\/script>/,
+    )
+    const cliModelMatch = cliHtml.match(
+      /<script type="application\/json" id="innfo-model">([\s\S]*?)<\/script>/,
+    )
     expect(cliSchemaMatch).toBeDefined()
     expect(cliModelMatch).toBeDefined()
 
@@ -163,9 +193,16 @@ parent_spec:
 
     expect(mcpResult.outputPath).toBe('artifacts/Ghostbusters_console/Ghostbusters_console.html')
 
+    // The fixture blueprint MUST resolve through the shared path. Without this
+    // guard the parity assertion below could pass trivially with both producers
+    // emitting the derived stub.
+    expect(mcpResult.schemaSource).toBe('blueprint')
+
     // 3. Compare normalized slots
     const normCliSchema = normalizeSlot(cliSchemaMatch![1])
     const normMcpSchema = normalizeSlot(mcpResult.schemaSlot)
+    expect(normCliSchema).toContain('"type": "map"')
+    expect(normMcpSchema).toContain('"type": "map"')
     expect(normMcpSchema).toBe(normCliSchema)
 
     const normCliModel = normalizeSlot(cliModelMatch![1])

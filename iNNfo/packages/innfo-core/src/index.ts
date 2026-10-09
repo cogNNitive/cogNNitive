@@ -52,6 +52,12 @@ export {
   resolveBlueprintPath,
   getBlueprintSearchPaths,
   UnresolvedBlueprintError,
+  resolveBlueprintPackage,
+  normalizeVersion,
+  parseSpecName,
+  findSpecInPackageDir,
+  findLocalSpec,
+  versionFromFrontmatter,
 } from './resolver.js'
 export type { SpecResolver, MultiStoreResolverOptions, SpecBlueprintLocation } from './resolver.js'
 
@@ -93,11 +99,7 @@ export {
   CONFLICT_FIELD_NAMES,
 } from './sourceRef.js'
 export type { Citation, SourceRef, HeadingInfo, ResolvedHeadingSection } from './sourceRef.js'
-export {
-  serializeKnowledgeUnitRef,
-  slugifyUnitHeading,
-  normalizeName,
-} from './sourceRef.js'
+export { serializeKnowledgeUnitRef, slugifyUnitHeading, normalizeName } from './sourceRef.js'
 export type { KnowledgeUnit, HeaderUnit, RowUnit, PointerUnit } from './sourceRef.js'
 export { unitLabel } from './sourceRef.js'
 export { assertNever } from './assertNever.js'
@@ -108,7 +110,12 @@ export type { CsvTable, CsvTableOptions } from './csvTable.js'
 export { resolveUnit } from './unitResolve.js'
 export type { ResolvedUnit } from './unitResolve.js'
 export { parseKnowledgeQuery, runQuery } from './queryUnits.js'
-export type { KnowledgeQuery, KnowledgeQueryFilter, FileSnapshot, QueryResult } from './queryUnits.js'
+export type {
+  KnowledgeQuery,
+  KnowledgeQueryFilter,
+  FileSnapshot,
+  QueryResult,
+} from './queryUnits.js'
 export { scanSections } from './querySections.js'
 export type { SectionFields } from './querySections.js'
 
@@ -155,14 +162,25 @@ export type {
 } from './workspace/integrity/report.js'
 export { listKnowledge, resolveKnowledgeVersion } from './helpers.js'
 export type { KnowledgeInfo } from './helpers.js'
-export { applyMutation, freeze_slugs, updateReferenceString, updateWikiLinks, rewriteFieldCitation } from './mutate.js'
+export {
+  applyMutation,
+  freeze_slugs,
+  updateReferenceString,
+  updateWikiLinks,
+  rewriteFieldCitation,
+} from './mutate.js'
 export type { MutationResult } from './mutate.js'
 export { buildAgentModificationBlock } from './agentModification.js'
 export type { AgentModificationContext } from './agentModification.js'
 export { envelope, envelopeList, envelopeVersion, ENVELOPE_MAJOR } from './envelope.js'
 export type { VersionedEnvelope } from './envelope.js'
 export { Diagnostics } from './diagnostics.js'
-export { loadBaseline, fingerprint, diffNewOnly, normalizeBaselinePath } from './validator/baseline.js'
+export {
+  loadBaseline,
+  fingerprint,
+  diffNewOnly,
+  normalizeBaselinePath,
+} from './validator/baseline.js'
 export type { ValidationBaseline, BaselineEntry, BaselineDiff } from './validator/baseline.js'
 export { deriveMatrixWidgetType, normalizeMatrixDecl, scaleRangeFor } from './matrix.js'
 export type { MatrixWidgetType } from './matrix.js'
@@ -175,4 +193,3 @@ export * from './naming/index.js'
 export * from './writeOnce/index.js'
 export * from './cognitivize/index.js'
 export * from './changeset/index.js'
-

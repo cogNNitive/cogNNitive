@@ -13,11 +13,11 @@ import {
   serializeConsoleSlot,
   parseFeedbackLedger,
   FEEDBACK_LEDGER_FILENAME,
+  resolveConsoleSchema,
 } from '@cognnitive/innfo-core'
 import type { BlueprintSchema, FeedbackVerdictEntry } from '@cognnitive/innfo-core'
-import { findKnowledgeFile, resolveBlueprintWithCache } from './spec.js'
+import { findKnowledgeFile } from './spec.js'
 import { readKnowledge } from './list-read.js'
-import { buildBlueprintSchemaResolverFromCache } from './validate.js'
 import { getFeedbackLedgerPath } from './feedback-verdict.js'
 
 export interface BuildConsolePayloadInput {
@@ -61,30 +61,21 @@ export async function buildConsolePayloadTool(
 
   const warnings: string[] = []
 
-  // Resolve Schema via resolveBlueprintWithCache
+  // Resolve the `innfo-schema` slot through the single shared core path so the
+  // CLI (`scripts/export-console.mjs`) and this tool emit byte-identical slots.
   let schema: BlueprintSchema | undefined
   let schemaSource: 'blueprint' | 'derived' = 'derived'
 
   const parent = parsed.frontmatter?.parent_spec
-  if (parent?.url && parent?.name) {
-    try {
-      const { cache } = await resolveBlueprintWithCache(rootDir, parent.url, parent.name)
-      if (cache) {
-        const resolveSchema = buildBlueprintSchemaResolverFromCache(cache)
-        const resolved = resolveSchema({
-          path: '',
-          name: parent.name,
-          content: '',
-          frontmatter: parsed.frontmatter,
-        })
-        if (resolved) {
-          schema = resolved
-          schemaSource = 'blueprint'
-        }
-      }
-    } catch (err) {
-      warnings.push(`Schema resolution warning: ${err instanceof Error ? err.message : String(err)}`)
-    }
+  if (parent?.name) {
+    const resolution = await resolveConsoleSchema({
+      rootDir,
+      parentName: parent.name,
+      parentUrl: parent.url,
+    })
+    schema = resolution.schema
+    schemaSource = resolution.schemaSource
+    warnings.push(...resolution.warnings)
   }
 
   // Resolve Feedback Verdict Ledger

@@ -9,6 +9,7 @@ import {
   validateKnowledge,
   parseKnowledge,
   resolveBlueprintSchema,
+  resolveBlueprintPackage,
 } from './index.js'
 import type { SpecDocument } from './types/index.js'
 
@@ -35,7 +36,10 @@ describe('Multi-Store Template Resolver (innfo-core)', () => {
 
   it('resolves workspace-local template first (Precedence 1)', async () => {
     const tmplName = 'test_spec_NN'
-    fs.writeFileSync(path.join(workspaceDir, 'specs', 'bluepriNNts', `${tmplName}.md`), '# NN concept: Local')
+    fs.writeFileSync(
+      path.join(workspaceDir, 'specs', 'bluepriNNts', `${tmplName}.md`),
+      '# NN concept: Local',
+    )
     fs.writeFileSync(path.join(globalDir, `${tmplName}.md`), '# NN concept: Global')
     fs.writeFileSync(
       path.join(skillsDir, 'nn-innfo', 'bluepriNNts', `${tmplName}.md`),
@@ -98,7 +102,9 @@ describe('Multi-Store Template Resolver (innfo-core)', () => {
     // The diagnostics must list the real precedence list, not an approximation:
     // every tier resolveBlueprintPath walks has to appear in the searched paths.
     const checkedPaths = await getBlueprintSearchPaths(missingName, opts)
-    expect(checkedPaths).toContain(path.join(workspaceDir, 'specs', 'bluepriNNts', `${missingName}.md`))
+    expect(checkedPaths).toContain(
+      path.join(workspaceDir, 'specs', 'bluepriNNts', `${missingName}.md`),
+    )
     expect(checkedPaths).toContain(path.join(workspaceDir, `${missingName}.md`))
     expect(checkedPaths).toContain(path.join(workspaceDir, 'specs', `${missingName}.md`))
     expect(checkedPaths).toContain(path.join(globalDir, `${missingName}.md`))
@@ -354,5 +360,76 @@ includes:
     })
 
     expect(errors.some((e) => e.message.includes('Max inclusion depth of 10 exceeded'))).toBe(true)
+  })
+})
+
+const SPEC_CONTENT = `---
+level: 2
+spec_version: V_0-3-0
+title: "Business"
+---
+
+# NN Concept Definition
+## NN Concept Definition: Mission
+type:: text
+`
+
+describe('resolveBlueprintPackage — unversioned workspace package (Tier 1)', () => {
+  let rootDir: string
+  let emptyGlobal: string
+  let emptySkills: string
+
+  beforeEach(() => {
+    rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'innfo-pkg-resolver-'))
+    emptyGlobal = fs.mkdtempSync(path.join(os.tmpdir(), 'innfo-pkg-global-'))
+    emptySkills = fs.mkdtempSync(path.join(os.tmpdir(), 'innfo-pkg-skills-'))
+  })
+
+  afterEach(() => {
+    fs.rmSync(rootDir, { recursive: true, force: true })
+    fs.rmSync(emptyGlobal, { recursive: true, force: true })
+    fs.rmSync(emptySkills, { recursive: true, force: true })
+  })
+
+  function options() {
+    return { globalDir: emptyGlobal, skillsDir: emptySkills }
+  }
+
+  it('matches an unversioned package dir and returns package-dir shape', async () => {
+    const pkgDir = path.join(rootDir, 'specs', 'bluepriNNts', 'business')
+    fs.mkdirSync(path.join(pkgDir, 'procedures'), { recursive: true })
+    fs.writeFileSync(path.join(pkgDir, 'spec_NN.md'), SPEC_CONTENT)
+
+    const pkg = await resolveBlueprintPackage(rootDir, 'business', undefined, options())
+
+    expect(pkg).not.toBeNull()
+    expect(pkg?.isPackageDir).toBe(true)
+    expect(pkg?.packagePath).toBe(pkgDir)
+    expect(pkg?.specFilePath).toBe(path.join(pkgDir, 'spec_NN.md'))
+    expect(pkg?.tier).toBe('workspace-package')
+  })
+
+  it('prefers the unversioned package over the global cache', async () => {
+    const pkgDir = path.join(rootDir, 'specs', 'bluepriNNts', 'business')
+    fs.mkdirSync(pkgDir, { recursive: true })
+    fs.writeFileSync(path.join(pkgDir, 'spec_NN.md'), SPEC_CONTENT)
+    const globalBusiness = path.join(emptyGlobal, 'business', 'V_0-9-0')
+    fs.mkdirSync(globalBusiness, { recursive: true })
+    fs.writeFileSync(path.join(globalBusiness, 'spec_NN.md'), SPEC_CONTENT)
+
+    const pkg = await resolveBlueprintPackage(rootDir, 'business', undefined, options())
+
+    expect(pkg?.tier).toBe('workspace-package')
+    expect(pkg?.packagePath).toBe(pkgDir)
+  })
+
+  it('does not match a directory that exists with no spec file', async () => {
+    const pkgDir = path.join(rootDir, 'specs', 'bluepriNNts', 'empty-pkg')
+    fs.mkdirSync(path.join(pkgDir, 'procedures'), { recursive: true })
+    fs.writeFileSync(path.join(pkgDir, 'procedures', 'x.md'), '# procedure')
+
+    const pkg = await resolveBlueprintPackage(rootDir, 'empty-pkg', undefined, options())
+
+    expect(pkg).toBeNull()
   })
 })
