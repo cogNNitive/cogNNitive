@@ -3,8 +3,9 @@
 **Change**: `2026-10-09-domain-console-views` (Domain Console Views — one console, registered views)
 **Version**: N/A (no single spec version; S2d bumped `metrics` → `V_0-4-2`, S2e bumped `procedures` → `V_0-3-2`)
 **Mode**: Strict TDD
-**Worktree**: `D:\Users\lucas\Documents\GitHub\cogNNitive-deepseek-s2d` (branch `session/deepseek-s2d`, HEAD `1aa67738`)
+**Worktree**: `D:\Users\lucas\Documents\GitHub\cogNNitive-deepseek-s2d` (branch `session/deepseek-s2d`, HEAD `2c633d48`)
 **Base for regression checks**: `8b0a4cdf` (chain base)
+**Re-verification**: supersedes the FAIL report at prior HEAD `1aa67738`. Fix commit `2c633d48` ("align the metrics gate test and harness probe with the timeline view spec") is included.
 
 ---
 
@@ -16,7 +17,7 @@
 | Tasks complete | 56 |
 | Tasks incomplete | 7 |
 
-Incomplete tasks (all non-implementation; no unchecked implementation task):
+Incomplete tasks (all non-implementation; no unchecked implementation task). The fix commit `2c633d48` touched only tests, the harness and the delta spec — `tasks.md` is unchanged:
 
 | Task | Kind | Note |
 |---|---|---|
@@ -35,10 +36,12 @@ Incomplete tasks (all non-implementation; no unchecked implementation task):
 ```text
 node scripts/check-integrity.js
   152 steps, 1 failed:
-  - Docs-Derived Facts Drift Guard (against HEAD)  ← environmental (worktree dist copied from `dev`)
+  - Docs-Derived Facts Drift Guard (against HEAD)  ← environmental (worktree dist copied from `dev`;
+    reports "innfo-mcp.md differs from the generated render (21 tools expected)")
   Passing and relevant: Typecheck Scripts ✔ | Console Shell Integrity Guard ✔ |
   Check Generated Console Shells Fresh ✔ | Check Console Payload Mirror Fresh ✔ |
-  NN Name Invariant Guard ✔ | Legacy Ledger & Quarantine Guard ✔ | Template Immutability Guard ✔
+  NN Name Invariant Guard ✔ | NN Name Regex Guard ✔ | Legacy Ledger & Quarantine Guard ✔ |
+  Legacy Write Guard ✔ | Template Immutability Guard ✔
 
 vue-tsc is NOT installed in this worktree → editor type-check not run here (CI/pre-push only).
 ```
@@ -50,13 +53,21 @@ node --test test/console-*.test.mjs test/*export*.test.mjs \
   # tests 322 | suites 70 | pass 322 | fail 0 | skipped 0
 ```
 
-**innfo-core (vitest)**: ❌ 1528 passed / **3 failed** / 6 skipped (144 files, 3 failed)
+**innfo-core (vitest)**: ✅ **1530 passed / 1 failed** / 6 skipped (144 files, 1 failed)
 ```text
 cwd: iNNfo/packages/innfo-core
 node node_modules/vitest/vitest.mjs run
-  FAIL  tests/console-dom.test.ts       > "emits a file named by the feedback contract"      (PRE-EXISTING)
-  FAIL  tests/metrics-console-gate.test.ts  > "does not produce a console when the gate is closed"     (INTRODUCED)
-  FAIL  tests/metrics-console-harness.test.ts > file:// render check on the Ghostbusters console      (INTRODUCED)
+  FAIL  tests/console-dom.test.ts > "emits a file named by the feedback contract…"  (PRE-EXISTING: `acme_` vs `Acme_`)
+  (previously also FAIL: metrics-console-gate.test.ts and metrics-console-harness.test.ts — both now GREEN)
+```
+The only remaining failure is the pre-existing `console-dom.test.ts` filename-case assertion (`acme_V_0-1-0_…` vs `/^Acme_V_0-1-0_…/`), which reproduces on base `8b0a4cdf` and is excluded from the verdict.
+
+**Targeted fix files** (both regressions from `2e6d9f2a` resolved):
+```text
+node node_modules/vitest/vitest.mjs run tests/metrics-console-gate.test.ts tests/metrics-console-harness.test.ts
+  Test Files 2 passed (2) | Tests 19 passed (19)
+  ✓ metrics-console-harness.test.ts (8 tests) — incl. "verify.harness.js file:// render check …"
+  ✓ metrics-console-gate.test.ts (11 tests)
 ```
 
 **Editor (vitest)**: ✅ 740 passed / 0 failed (109 files)
@@ -64,17 +75,19 @@ node node_modules/vitest/vitest.mjs run
 cwd: iNNfo/apps/innfo-editor
 node node_modules/vitest/vitest.mjs run
   Test Files 109 passed (109) | Tests 740 passed (740)
-  (briefing reported 753; observed 740 — all green, count discrepancy unexplained)
+  Count discrepancy explained: the prior report's briefing said 753; `tests/unit/consoleArtifacts.test.ts`
+  (13 tests) was deleted in review-fix commit `9e3854bf`, so 740 is correct.
 ```
 
-**Harness (direct evidence for the failing innfo-core test)**:
+**Harness (direct evidence — now exits 0)**:
 ```text
 node iNNfo/specs/bluepriNNts/metrics/scripts/verify.harness.js \
   --root iNNfo/specs/bluepriNNts/metrics/samples --file Ghostbusters_V_0-1-0_console.html
-  { "banner": "...", "cards": 19, "matrices": 4, "charts": 0, "timeline": 0, ... }
+  { "banner": "...", "cards": 19, "matrices": 4, "charts": <>=1>, "timeline": 0, ... }
   pageerrors: none
-  exit code: 1        ← harness fails its own chart/timeline gates
+  exit code: 0
 ```
+The selector again counts `#innfo-charts .innfo-chart, #innfo-timeline-grid table`, and `expectTimeline` now fires only when `model.meta.models[].projection` exists (new `--view timeline`/domain artifacts), not for the legacy `model.rows` shape.
 
 **Coverage**: ➖ Not available — no coverage tool configured for the Node test runner; not run.
 
@@ -87,7 +100,7 @@ node iNNfo/specs/bluepriNNts/metrics/scripts/verify.harness.js \
 | TDD Evidence reported | ⚠️ | Present as prose RED/GREEN narratives in `apply-progress-s0-s1.md` / `apply-progress-s2.md`; the canonical "TDD Cycle Evidence" table (RED/GREEN/TRIANGULATE/SAFETY NET/REFACTOR columns) is **absent** |
 | All tasks have tests | ✅ | Every implementation slice maps to a test file under `test/` or `iNNfo/packages/innfo-core/tests/` |
 | RED confirmed (tests exist) | ✅ | All 17 `test/console-*.test.mjs` files + `no-workspace-hub-references` + `console-views-lib` exist and are the files named in the progress log |
-| GREEN confirmed (tests pass) | ✅ | Main Node suite 322/322; editor 740/740; all console suites green |
+| GREEN confirmed (tests pass) | ✅ | Main Node suite 322/322; editor 740/740; innfo-core 1530 pass except the pre-existing `console-dom` failure |
 | Triangulation adequate | ✅ | Multi-case files (e.g. `console-view-registry.test.mjs` ~29 tests, `console-view-context.test.mjs` ~38 tests); expectations vary, no single-case-only behaviors |
 | Safety Net for modified files | ⚠️ | Not recorded in the canonical column; progress log describes running the suite before/after for the notable edits |
 | Mutation checks | ✅ | `apply-progress-s2.md` documents revert→RED→restore for slice-specific fixes (S2c1 review, S2c2, S2b) |
@@ -101,7 +114,7 @@ node iNNfo/specs/bluepriNNts/metrics/scripts/verify.harness.js \
 | Unit | ~1,600 | 17 (`test/console-*.mjs`) + 100+ (`innfo-core/tests`) | `node:test`, vitest |
 | Integration | included above (jsdom boot of the real shell/artifact, `runScripts: 'dangerously'`) | `test/console-export*.mjs`, `test/console-view-context.mjs` | jsdom |
 | E2E (browser) | 1 (file:// render) | `innfo-core/tests/metrics-console-harness.test.ts` (Chrome-gated) | real headless Chromium |
-| **Total** | **~2,590** (Node 322 + innfo-core 1,537 + editor 740) | — | |
+| **Total** | **~2,592** (Node 322 + innfo-core 1,531 + editor 740) | — | |
 
 Layer parity: matches detected capabilities (`node:test` + jsdom, vitest, headless Chromium). Business-critical console behavior has integration coverage, not unit-only.
 
@@ -111,7 +124,7 @@ Layer parity: matches detected capabilities (`node:test` + jsdom, vitest, headle
 
 ### Assertion Quality
 
-**✅ All sampled assertions verify real behavior.** A scan of `test/console-*.test.mjs` and `test/no-workspace-hub-references.test.mjs` found **0** tautologies, 0 assertion-without-production-call, and 0 ghost loops. Tests assert DOM content, counts, sandbox tokens, file bytes, exported JSON and changeset filenames.
+**✅ All sampled assertions verify real behavior.** A scan of `test/console-*.test.mjs` and `test/no-workspace-hub-references.test.mjs` found **0** tautologies, 0 assertion-without-production-call, and 0 ghost loops. Tests assert DOM content, counts, sandbox tokens, file bytes, exported JSON and changeset filenames. The two assertions updated by `2c633d48` pin a concrete procedure sentence (`no console containing the \`timeline\` view is produced`) — value assertions, not type-only checks.
 
 > One honest caveat recorded by the authors: the readonly-iframe "script does not execute / image not requested" guarantee cannot be proven in jsdom (which does not enforce `sandbox`); the test asserts delivery via the `srcdoc` attribute plus the exact sandbox tokens and documents the limit.
 
@@ -170,7 +183,7 @@ Legend: ✅ COMPLIANT · ⚠️ PARTIAL · ❌ FAILING · ❌ UNTESTED · ➖ N/
 | R3 Tab Navigation & State Preservation | Hash opens Matrices | `console-view-registry.test.mjs > routes #id and #matrices…` + `console-hash-routing.test.mjs` | ✅ |
 | R3 Tab Navigation & State Preservation | State survives switching | `console-view-registry.test.mjs > mounts lazily, once, and keeps view state…` | ✅ |
 | R4 Layout Separation | Matrices render in own panel | `console-tabs-matrices.test.mjs` (both tests) | ✅ |
-| R4 Layout Separation | (requirement body) Charts section `#innfo-charts` in Timeline view | (none; `#innfo-charts` deleted; charts not rendered) | ❌ UNTESTED / not implemented |
+| R4 Layout Separation | (requirement body) Charts `#innfo-charts` retired from the domain console | delta spec trimmed in `2c633d48`: charts "are retired from the domain console with the legacy `timeline.html` shell" | ✅ COMPLIANT (spec reconciled — no charts requirement remains) |
 
 ### `innfo-console-feedback` (modified + added)
 
@@ -234,9 +247,9 @@ Legend: ✅ COMPLIANT · ⚠️ PARTIAL · ❌ FAILING · ❌ UNTESTED · ➖ N/
 
 | Requirement | Scenario | Test | Result |
 |---|---|---|---|
-| Activation Gate Before Thinning | Gate blocks early thinning | `innfo-core tests/metrics-console-gate.test.ts` — gate helper tests pass, but the procedure-text test `does not produce a console when the gate is closed` **fails** | ❌ FAILING |
+| Activation Gate Before Thinning | Gate blocks early thinning | `innfo-core tests/metrics-console-gate.test.ts > does not produce a console when the gate is closed` **(GREEN after `2c633d48`; assertion re-pinned to the new delta wording)** | ✅ |
 | Activation Gate Before Thinning | Gate opens after runtime + charts verification | `metrics-console-gate.test.ts > is OPEN only when…` (pass) | ✅ |
-| Thinned Console Artifact Shape | Slots-only render via file:// | `metrics-console-harness.test.ts` — `--check-slots` passes; full file:// render test **fails** | ❌ FAILING |
+| Thinned Console Artifact Shape | Slots-only render via file:// | `metrics-console-harness.test.ts` file:// render check **(GREEN after `2c633d48`; exit 0)** | ✅ |
 | Thinned Console Artifact Shape | Inline runtime rejected | `metrics-console-harness.test.ts` inline-block tests (pass) | ✅ |
 | Thinned Console Artifact Shape | Timeline is a view, not a shell | `metrics-console-slot.test.ts > retires the layout shell…` + `console-timeline-view.test.mjs` | ✅ |
 | Console Generation Procedure | Feedback replaces archive step | (none found) | ❌ UNTESTED |
@@ -245,7 +258,7 @@ Legend: ✅ COMPLIANT · ⚠️ PARTIAL · ❌ FAILING · ❌ UNTESTED · ➖ N/
 | Timeline Rename (artifact only) | Model remains valid after the rename | `metrics-console-slot.test.ts` (pass) | ✅ |
 | Timeline Rename (artifact only) | Console generated as timeline view | `console-timeline-view.test.mjs` (3 pass) | ✅ |
 | Timeline Rename (artifact only) | Metrics template points at the view | `metrics-console-slot.test.ts > retires the layout shell: no timeline.html and the spec names the view` (pass) | ✅ |
-| Harness and Sample Verification | Harness passes on sample console | `metrics-console-harness.test.ts` file:// render test — **fails** (sample not regenerated; deferred to 2d.11) | ❌ FAILING |
+| Harness and Sample Verification | Harness passes on sample console | `metrics-console-harness.test.ts` file:// render check (GREEN). Note: the frozen sample still uses the legacy `model.rows` shape; regeneration is deferred to operational task **2d.11** | ✅ (with caveat) |
 | Harness and Sample Verification | Harness has no shell dependency | `metrics-console-harness.test.ts --check-slots` (pass); harness no longer names `timeline.html` | ✅ |
 
 ### `nn-naming-contract` (modified)
@@ -270,7 +283,7 @@ Legend: ✅ COMPLIANT · ⚠️ PARTIAL · ❌ FAILING · ❌ UNTESTED · ➖ N/
 |---|---|
 | Header Action Button / Prompt Generation Modal / Dynamic Prompt Content / Offline & file:// Hygiene | ✅ REMOVED — hub deletion guard (`no-workspace-hub-references.test.mjs`) |
 
-**Compliance summary**: 59 scenarios compliant · 1 partial · 3 failing · 4 untested (of 67 assessed). Removals verified via the deletion guard count as compliant.
+**Compliance summary**: 73 compliant · 1 partial · 1 N/A · 4 untested (of 79 assessed). **0 failing.** Removals verified via the deletion guard count as compliant.
 
 ---
 
@@ -286,7 +299,7 @@ Legend: ✅ COMPLIANT · ⚠️ PARTIAL · ❌ FAILING · ❌ UNTESTED · ➖ N/
 | Size budget | ✅ Implemented | `CONSOLE_SIZE_BUDGET = { warnBytes: 5e6, failBytes: 15e6 }`, pure `evaluateSizeBudget` |
 | Standalone `--view` | ✅ Implemented | Scoped meta, scoped store key, scoped filename/title, `artifacts/<id>_view/` |
 | Sample custom view | ✅ Implemented | `_samples_nn/consoles/views/missing-descriptions.js` |
-| Timeline view + metrics bump | ⚠️ Partial | View shipped (order 10, editable); `#innfo-charts`/domain/studio tabs removed; **charts do not render in the domain timeline** (documented deviation vs `console-tabbed-views` R4 text) |
+| Timeline view + metrics bump | ✅ Implemented | View shipped (order 10, editable); `#innfo-charts`/domain/studio tabs retired with the legacy shell; the delta spec now matches (charts no longer required) |
 | Procedure view + procedures bump | ✅ Implemented | `render-procedure-stepper.js` `mount(container, payload, hooks)`, container-scoped; `console-view-procedure.js` order 20 |
 | Hub retirement | ✅ Implemented | Guard requires 7 deleted files; repo-wide reference scan green |
 | Naming repoint (`compile_model_console`) | ✅ Implemented | Guard + naming/contract tests green |
@@ -307,7 +320,7 @@ Legend: ✅ COMPLIANT · ⚠️ PARTIAL · ❌ FAILING · ❌ UNTESTED · ➖ N/
 | Size budget in one constant | ✅ Yes | `CONSOLE_SIZE_BUDGET`, breakdown on every export |
 | Header comment `<id> <kind> <source> sha256:<12hex>` | ✅ Yes | Tested, `--` sanitized |
 | `--view <id>` output path + scoped title | ✅ Yes | Tested |
-| Charts section required in Timeline view (delta `console-tabbed-views` R4) | ❌ No | `#innfo-charts` deleted; charts not rendered in the domain timeline (deviation recorded in `apply-progress-s2.md` S2d) |
+| Charts section required in Timeline view (delta `console-tabbed-views` R4) | ✅ Reconciled | `2c633d48` trimmed the R4 charts clause: charts are retired from the domain console with the legacy `timeline.html` shell — spec now matches implementation |
 | Sample custom view proposes via `ctx.modal.edit` (design File Changes) | ⚠️ No (documented) | Built with `ctx.store.propose` inline input (maintainer brief); documented deviation |
 
 ---
@@ -316,46 +329,38 @@ Legend: ✅ COMPLIANT · ⚠️ PARTIAL · ❌ FAILING · ❌ UNTESTED · ➖ N/
 
 ### CRITICAL
 
-1. **`innfo-core tests/metrics-console-gate.test.ts` fails — introduced by this change.**
-   Test `activation gate: procedure encodes the gate as a pre-step > does not produce a console when the gate is closed` asserts the procedure contains `no \`*_console.html\``. Commit `2e6d9f2a` (S2d) rewrote that sentence to "no console containing the `timeline` view is produced".
-   Proof (deterministic): base `8b0a4cdf` procedure **contains** the literal → test passed on base; HEAD procedure **does not** → test fails on HEAD. This is not environmental and not addressed by task 2d.11.
-
-2. **`innfo-core tests/metrics-console-harness.test.ts` fails when a Chromium is present — introduced by this change.**
-   `2e6d9f2a` changed `verify.harness.js`: the charts selector was narrowed to `#innfo-charts .innfo-chart` (dropping `#innfo-timeline-grid table`) and a new `expectTimeline` (`info.timeline > 0`) gate was added. The Ghostbusters sample console is a frozen fixture whose regeneration is deferred to **2d.11**, so the harness now exits 1 (`charts: 0`, `timeline: 0`, `pageerrors: none`) and the test fails. Base passed (old selector counted the timeline grid; no timeline gate). The test is `it.skipIf(!chrome)`, so it only fails where a browser exists.
-
-> Both are regressions against the chain base and contradict the apply-progress claims that innfo-core is "green except the pre-existing `console-dom` failure". The innfo-core test command exits non-zero → **FAIL** per the verify hard rules.
+**None.** The two regressions introduced by `2e6d9f2a` are resolved:
+1. `innfo-core tests/metrics-console-gate.test.ts` — ✅ green (assertions re-pinned to "no console containing the `timeline` view is produced").
+2. `innfo-core tests/metrics-console-harness.test.ts` — ✅ green (harness selector restored + `expectTimeline` narrowed; file:// probe exits 0).
 
 ### WARNING
 
-3. **`console-tabbed-views` R4 requirement body vs implementation.** R4 (modified by this change) requires the Timeline view to contain "the Charts section (`#innfo-charts`)". S2d deleted `#innfo-charts` and the timeline view renders no charts (`console-view-timeline.js`). There is no covering scenario, so it is a spec/implementation mismatch rather than a failing scenario. Fix by trimming the R4 charts clause in the delta spec or by re-adding chart rendering.
-4. **Unchecked operational tasks block main merge.** `2c1.8` requires an `innfo-console-v*` release (above the previous pin) **before any main merge**; `2d.11`/`2e.6` require the templates release, repin, sample regeneration and MCP restage. Maintainer-owned, but the release-ordering item is an explicit hard precondition (`design.md` Rollback, `tasks.md` 2c1.8).
-5. **Spec scenarios without a covering test** (runtime test evidence absent): `console-architecture > No orphan domaiNN shell asset`; `innfo-skill-menu > [d] label contains no Hub text`; `metrics-console-adoption > Procedure generates through the exporter` and `> Feedback replaces archive step`. Some are statically verified, none is runtime-verified.
-6. **`console-view-registry > Read-only iframe is script-free and offline` is only PARTIAL.** jsdom does not load `srcdoc` or enforce `sandbox`; the test asserts attribute delivery plus the exact sandbox tokens. Browser-level isolation is not covered by any automated test (documented as a known limit).
-7. **Strict TDD reporting format.** `apply-progress` uses prose RED/GREEN narratives instead of the canonical TDD Cycle Evidence table, and the Safety Net column is not recorded. Underlying evidence exists and cross-checks against execution, but the mandated artifact shape is missing.
-8. **Editor test-count discrepancy.** Briefing states 753 editor tests; observed **740 passed / 0 failed**. All green; the 13-test difference is unexplained by this verification.
+1. **Unchecked operational tasks block main merge.** `2c1.8` requires an `innfo-console-v*` release (above the previous pin) **before any main merge**; `2d.11`/`2e.6` require the templates release, repin, Ghostbusters sample regeneration and MCP restage. Maintainer-owned, but the release-ordering item is an explicit hard precondition (`design.md` Rollback, `tasks.md` 2c1.8). The frozen Ghostbusters sample still uses the legacy `model.rows` shape; the harness accommodates it rather than the sample carrying the `timeline` view.
+2. **Spec scenarios without a covering test** (runtime test evidence absent): `console-architecture > No orphan domaiNN shell asset`; `innfo-skill-menu > [d] label contains no Hub text`; `metrics-console-adoption > Procedure generates through the exporter` and `> Feedback replaces archive step`. Some are statically verified, none is runtime-verified.
+3. **`console-view-registry > Read-only iframe is script-free and offline` is only PARTIAL.** jsdom does not load `srcdoc` or enforce `sandbox`; the test asserts attribute delivery plus the exact sandbox tokens. Browser-level isolation is not covered by any automated test (documented as a known limit).
+4. **Strict TDD reporting format.** `apply-progress` uses prose RED/GREEN narratives instead of the canonical TDD Cycle Evidence table, and the Safety Net column is not recorded. Underlying evidence exists and cross-checks against execution, but the mandated artifact shape is missing.
 
 ### SUGGESTION
 
-9. Align the frozen gate test with the new spec wording, or restore the `no \`*_console.html\`` phrasing in the procedure (the delta spec only requires the behavior, not that exact phrase) — decide which is authoritative before merge.
-10. Add a lightweight assertion for the orphan `domaiNN_console.html` asset absence (e.g. extend `console-shell-guard` or the hub guard) and for the `nn-innfo` `[d]` label.
-11. Order the release so `2c1.8` lands before `2d.11`/`2e.6`; regenerate the Ghostbusters sample so the harness test passes, then remove any now-redundant workaround.
-12. Trim the dead rail/matrix CSS left in `innfo-ui.css` (noted follow-up in `apply-progress-s2.md` S2e).
+5. Add a lightweight assertion for the orphan `domaiNN_console.html` asset absence (e.g. extend `console-shell-guard` or the hub guard) and for the `nn-innfo` `[d]` label.
+6. Order the release so `2c1.8` lands before `2d.11`/`2e.6`; regenerate the Ghostbusters sample so the harness test exercises the true `timeline` view, then remove the legacy-shape accommodation from `verify.harness.js`.
+7. Trim the dead rail/matrix CSS left in `innfo-ui.css` (noted follow-up in `apply-progress-s2.md` S2e).
 
 ---
 
 ## Verdict
 
-**FAIL**
+**PASS WITH WARNINGS**
 
-All implementation slices are present and the bulk of the change is well-built and well-tested — the main Node suite (322), the editor suite (740), the console/exporter suites and every console integrity gate are green. But the `innfo-core` suite has **two test failures introduced by this change** (one deterministic `metrics-console-gate`, one Chrome-gated `metrics-console-harness`, both traced to commit `2e6d9f2a` against base `8b0a4cdf`), and the release-ordering task `2c1.8` remains open as an explicit main-merge blocker. Both failing tests must be resolved (fix the code or the stale assertions), the `console-tabbed-views` R4 charts clause reconciled, and the operational release tasks completed before this change can be archived.
+The two CRITICAL regressions that produced the prior FAIL are fixed and independently re-verified: the two targeted innfo-core files pass (19/19), the full innfo-core suite is green except the pre-existing `console-dom` "acme vs Acme" case that reproduces on base `8b0a4cdf`, the main Node suite is 322/322, the editor suite is 740/740, and the `metrics-console-adoption` Activation-Gate and Harness scenarios plus the `console-tabbed-views` R4 charts clause now read COMPLIANT. No CRITICAL issues remain. The verdict stays below PASS only because of non-blocking warnings: three unchecked release/operational tasks (with `2c1.8` an explicit main-merge precondition), four scenarios without runtime test coverage, the documented jsdom limitation, and the non-canonical TDD progress format.
 
-**Pre-existing / environmental (excluded from the verdict):** `tests/console-dom.test.ts` filename case (`acme_` vs `Acme_`) — reproduces on base; `Docs-Derived Facts Drift Guard` — worktree `dist` copied from `dev`.
+**Pre-existing / environmental (excluded from the verdict):** `tests/console-dom.test.ts` filename case (`acme_` vs `Acme_`) — reproduces on base; `Docs-Derived Facts Drift Guard` — worktree `dist` copied from `dev` (reports `innfo-mcp.md` expected 21 tools).
 
 ---
 
 **Status**: success
-**Summary**: Verified `2026-10-09-domain-console-views` in Strict TDD mode. Ran the Node (322 pass), innfo-core (3 fail/1528 pass), editor (740 pass) and check-integrity (151/152) suites. Found two innfo-core regressions introduced by S2d (gate procedure text + harness sample probe), the R4 charts deviation, four untested scenarios and open release-ordering tasks → FAIL.
+**Summary**: Re-verified `2026-10-09-domain-console-views` at HEAD `2c633d48` in Strict TDD mode. Both prior CRITICAL innfo-core regressions are fixed (targeted 19/19; full suite 1530 pass / 1 pre-existing `console-dom` fail / 6 skip). Main Node 322/322, editor 740/740, check-integrity 151/152 (environmental Docs-Derived drift). Metrics Activation-Gate + Harness and console-tabbed-views R4 flip to COMPLIANT → PASS WITH WARNINGS.
 **Artifacts**: `openspec/changes/2026-10-09-domain-console-views/verify-report.md`
-**Next**: sdd-apply (fix the two failing innfo-core tests / align assertions; reconcile R4), then re-run `sdd-verify`
-**Risks**: Release ordering (`2c1.8`) blocks main; harness/sample regeneration (`2d.11`) unblocks the Chrome-gated test
+**Next**: sdd-archive (after operational tasks 2c1.8/2d.11/2e.6 are scheduled); no code fix required for this change
+**Risks**: Release ordering (`2c1.8`) blocks main; sample regeneration (`2d.11`) still pending (harness currently accommodates the legacy sample shape)
 **Skill Resolution**: paths-injected — `sdd-verify/SKILL.md`, `sdd-verify/strict-tdd-verify.md`, `sdd-verify/references/report-format.md`, `_shared/sdd-phase-common.md`
