@@ -2696,7 +2696,9 @@
           },
           remove: function (id) {
             opts.state.store.removeDraft(id)
-            opts.onDraftsChanged()
+            var c = opts.getController()
+            if (c) c.refresh()
+            else opts.onDraftsChanged()
           },
           onChange: function (fn) {
             return opts.subscribe(fn, function (err) {

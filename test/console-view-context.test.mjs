@@ -503,3 +503,39 @@ describe('S2b review follow-up: embedding guard hardening', () => {
     assert.equal(noticeText(document), '')
   })
 })
+
+describe('S2b review follow-up: remove refreshes decorations and counts', () => {
+  const pending = (document) => {
+    const p = document.querySelector('[data-innfo-component="rail-progress"]')
+    return p ? p.getAttribute('data-pending') : null
+  }
+
+  it('after store.remove the rail progress mark is refreshed', () => {
+    const { document, ctxs, res } = bootViews([def('alpha')])
+    res.controller.enable()
+    ctxs.alpha.store.propose({ elementId: 'ecto-1', kind: 'comment', comment: 'x' })
+    assert.equal(pending(document), '1')
+    ctxs.alpha.store.remove(ctxs.alpha.store.drafts()[0].id)
+    assert.equal(pending(document), '0', 'decoration is not left stale')
+  })
+
+  it('after store.remove banner, Review badge and pending text follow', () => {
+    const { document, ctxs, res } = bootViews([def('alpha')])
+    res.controller.enable()
+    ctxs.alpha.store.propose({ elementId: 'ecto-1', kind: 'comment', comment: 'x' })
+    ctxs.alpha.store.propose({ elementId: 'ecto-1', kind: 'comment', comment: 'y' })
+    ctxs.alpha.store.remove(ctxs.alpha.store.drafts()[0].id)
+    assert.match(document.querySelector('.innfo-banner-drafts').textContent, /drafts:\s*1/)
+    assert.equal(
+      document.querySelector('.innfo-view-tab[data-tab="review"] .innfo-rail-badge').textContent,
+      '1',
+    )
+    assert.match(document.querySelector('.innfo-review-count').textContent, /^1 pending change/)
+    ctxs.alpha.store.remove(ctxs.alpha.store.drafts()[0].id)
+    assert.match(document.querySelector('.innfo-banner-drafts').textContent, /drafts:\s*0/)
+    assert.equal(
+      document.querySelector('.innfo-view-tab[data-tab="review"] .innfo-rail-badge'),
+      null,
+    )
+  })
+})

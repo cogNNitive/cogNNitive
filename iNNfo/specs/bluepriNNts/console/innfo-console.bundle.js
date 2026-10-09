@@ -2729,6 +2729,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       decorate: decorate,
       openEdit: openEdit,
       propose: saveDraft,
+      // Re-renders the host's count surfaces and re-applies decorations after
+      // the store changed outside saveDraft (e.g. a draft removed by a view).
+      refresh: refreshCount,
       destroy: destroy,
       isEnabled: function () {
         return enabled
@@ -5450,7 +5453,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           },
           remove: function (id) {
             opts.state.store.removeDraft(id)
-            opts.onDraftsChanged()
+            var c = opts.getController()
+            if (c) c.refresh()
+            else opts.onDraftsChanged()
           },
           onChange: function (fn) {
             return opts.subscribe(fn, function (err) {

@@ -1074,6 +1074,9 @@
       decorate: decorate,
       openEdit: openEdit,
       propose: saveDraft,
+      // Re-renders the host's count surfaces and re-applies decorations after
+      // the store changed outside saveDraft (e.g. a draft removed by a view).
+      refresh: refreshCount,
       destroy: destroy,
       isEnabled: function () {
         return enabled
