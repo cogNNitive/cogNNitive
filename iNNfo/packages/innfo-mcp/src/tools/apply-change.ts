@@ -1,16 +1,33 @@
-import { readFile, writeFile, rm, stat, rename, readdir } from 'node:fs/promises'
-import { basename, dirname, join, relative, resolve } from 'node:path'
+import { readFile, writeFile, rm, stat, rename, readdir, mkdir } from 'node:fs/promises'
+import { basename, dirname, join, relative, resolve, isAbsolute } from 'node:path'
 import {
   parseKnowledge,
   serializeKnowledge,
   validateKnowledge as coreValidate,
   applyMutation as coreApplyMutation,
   resolveBlueprintSchema,
-  buildAgentModificationBlock,
   isExcludedPath,
   isNNName,
+  displayStem,
+  acquireLock,
+  computeProposalSha,
+  verifyProposalSha,
+  parseChangeset,
+  serializeChangeset,
+  rewriteFieldCitation,
+  resolveBatchSlugs,
+  evaluateBatchDeleteImpact,
+  partitionChangeset,
 } from '@cognnitive/innfo-core'
-import type { SpecDocument, ParsedKnowledge, BlueprintSchema } from '@cognnitive/innfo-core'
+import type {
+  SpecDocument,
+  ParsedKnowledge,
+  BlueprintSchema,
+  ChangesetDocument,
+  ChangeItem,
+  ModelVersionTransition,
+  ChangeStatus,
+} from '@cognnitive/innfo-core'
 import { findKnowledgeFile } from './spec.js'
 import { isLocalPath, toLocalFilePath, saveSpecOnce } from './resolver-node.js'
 import { createSpecsBackupZip } from './spec-backup.js'
@@ -19,29 +36,16 @@ import { DEFAULT_WORKSPACE_IGNORE } from './validate.js'
 
 export interface ApplyChangeResult {
   success: boolean
+  changesetPath?: string
+  changeset?: string
+  status?: ChangeStatus | string
+  models?: Record<string, ModelVersionTransition>
+  appliedCount?: number
+  conflictedCount?: number
   model?: ParsedKnowledge
   newPath?: string
-  errors?: Array<{ path: string; message: string }>
+  errors?: Array<{ path: string; message: string; code?: string }>
   warnings?: Array<{ path: string; message: string }>
-  /**
-   * Agent Modification provenance block for a SUCCESSFUL mutation — the
-   * canonical `## NN Agent Modification` block the agent pastes verbatim into
-   * its reply. Absent on every failure. Optional and backward-compatible.
-   */
-  modification?: string
-}
-
-/** Read the optional provenance context the caller threaded through `args`. */
-function modificationContext(args: Record<string, unknown>): {
-  rationale?: string
-  approvedBy?: 'user' | 'agent'
-  author?: string
-} {
-  const rationale = typeof args.rationale === 'string' ? args.rationale : undefined
-  const approvedBy = args.approved_by === 'user' ? 'user' : undefined
-  const author =
-    typeof args.author === 'string' && args.author.trim() !== '' ? args.author.trim() : undefined
-  return { rationale, approvedBy, author }
 }
 
 /** Matches the `_V_<major>-<minor>-<patch>_` segment in iNNfo filenames. */
@@ -100,13 +104,15 @@ async function findAllWorkspaceModelFiles(
   const entries = await readdir(dir, { withFileTypes: true }).catch(() => [])
   for (const entry of entries) {
     if (entry.isDirectory()) {
-      if (entry.name.startsWith('.') || ignore.has(entry.name.toLowerCase())) continue
+      const lowerDir = entry.name.toLowerCase()
+      if (entry.name.startsWith('.') || ignore.has(lowerDir) || lowerDir === 'changes' || lowerDir === 'archive') continue
       const sub = await findAllWorkspaceModelFiles(join(dir, entry.name), ignore, rootDir)
       results.push(...sub)
     } else if (
       entry.isFile() &&
       isNNName(entry.name) &&
-      entry.name.toLowerCase() !== 'index.md'
+      entry.name.toLowerCase() !== 'index.md' &&
+      !entry.name.endsWith('_changes_NN.md')
     ) {
       // Only `_NN.md` files can carry model references. Without this the
       // pre-check reads non-model markdown (session transcripts under
@@ -116,7 +122,7 @@ async function findAllWorkspaceModelFiles(
       // cost seconds on large trees and tripped the test timeout.
       const filePath = join(dir, entry.name)
       const relPath = relative(rootDir, filePath).split('\\').join('/')
-      if (isExcludedPath(relPath)) continue
+      if (isExcludedPath(relPath) || relPath.startsWith('changes/') || relPath.includes('/archive/') || relPath.startsWith('archive/')) continue
       results.push(filePath)
     }
   }
@@ -534,158 +540,683 @@ async function bumpVersion(
     model,
     newPath,
     warnings: validationResult.warnings,
-    modification:
-      buildAgentModificationBlock('bump_version', args, {
-        model: id,
-        knowledge: id,
-        knowledgeVersion: next.version,
-        modelVersion: next.version,
-        versionTransition: { from: prevVersion, to: next.version },
-        ...modificationContext(args),
-      }) ?? undefined,
   }
 }
 
+async function safeMoveFile(src: string, dest: string): Promise<void> {
+  try {
+    await rename(src, dest)
+  } catch {
+    const data = await readFile(src)
+    await writeFile(dest, data)
+    await rm(src, { force: true })
+  }
+}
+
+function parseTargetAddress(target: string): {
+  modelSlug: string
+  remainder: string
+  parts: string[]
+} {
+  const atIdx = target.indexOf('@')
+  if (atIdx === -1) {
+    return { modelSlug: target.trim(), remainder: '', parts: [] }
+  }
+  const modelSlug = target.slice(0, atIdx).trim()
+  const remainder = target.slice(atIdx + 1).trim()
+  const parts = remainder.split('&').map((p) => p.trim())
+  return { modelSlug, remainder, parts }
+}
+
+function findElementInModel(
+  model: ParsedKnowledge,
+  conceptName?: string,
+  elementIdent?: string,
+): { concept: string; element: any } | null {
+  if (!elementIdent) return null
+  const lowerIdent = elementIdent.toLowerCase()
+  if (conceptName) {
+    const list = model.elements.get(conceptName)
+    if (list) {
+      for (const el of list) {
+        if (el.name.toLowerCase() === lowerIdent || (el.slug && el.slug.toLowerCase() === lowerIdent)) {
+          return { concept: conceptName, element: el }
+        }
+      }
+    }
+  }
+  for (const [c, list] of model.elements.entries()) {
+    for (const el of list) {
+      if (el.name.toLowerCase() === lowerIdent || (el.slug && el.slug.toLowerCase() === lowerIdent)) {
+        return { concept: c, element: el }
+      }
+    }
+  }
+  return null
+}
+
 /**
- * Apply an intent-level change to a model.
- * Semantics: parse → mutate → serialize → validate.
- * On failure: reject-without-writing (file unchanged, errors returned).
+ * Execute a two-phase transactional apply of a changeset file.
+ * Guaranteed mutual exclusion via changes/.lock.
  */
-export async function applyChange(
+export async function executeChangesetApply(
+  rootDir: string,
+  changesetPathInput: string,
+): Promise<ApplyChangeResult> {
+  const resolvedChangesetPath = isAbsolute(changesetPathInput)
+    ? changesetPathInput
+    : join(rootDir, changesetPathInput)
+
+  const changesetStem = displayStem(basename(resolvedChangesetPath))
+  const relChangesetPath = relative(rootDir, resolvedChangesetPath).replace(/\\/g, '/')
+
+  // 1. Single-writer lock acquisition at changes/.lock
+  const lockHandle = await acquireLock(rootDir, changesetStem)
+
+  try {
+    // 2. Read and parse changeset document
+    let rawChangeset: string
+    try {
+      rawChangeset = await readFile(resolvedChangesetPath, 'utf-8')
+    } catch (err) {
+      return {
+        success: false,
+        changesetPath: relChangesetPath,
+        status: 'rejected',
+        models: {},
+        appliedCount: 0,
+        errors: [{ path: relChangesetPath, message: `Failed to read changeset file: ${err}` }],
+      }
+    }
+
+    const csDoc = parseChangeset(rawChangeset)
+
+    // 3. Verify proposal_sha (tamper detection)
+    if (!verifyProposalSha(csDoc)) {
+      return {
+        success: false,
+        changesetPath: relChangesetPath,
+        status: 'conflict',
+        models: {},
+        appliedCount: 0,
+        errors: [
+          {
+            path: 'frontmatter.proposal_sha',
+            message: 'PROPOSAL_TAMPERED: proposal_sha does not match canonical proposed changes',
+            code: 'PROPOSAL_TAMPERED',
+          },
+        ],
+      }
+    }
+
+    // 4. Idempotent replay check
+    if (csDoc.frontmatter.status === 'applied' || csDoc.frontmatter.status === 'partially_applied') {
+      const recordedModels = csDoc.frontmatter.models ?? {}
+      let allMatch = Object.keys(recordedModels).length > 0
+      for (const [modelSlug, transition] of Object.entries(recordedModels)) {
+        const modelFile = await findKnowledgeFile(rootDir, modelSlug)
+        if (!modelFile) {
+          allMatch = false
+          break
+        }
+        try {
+          const liveRaw = await readFile(modelFile, 'utf-8')
+          const liveModel = parseKnowledge(liveRaw)
+          const liveVersion = String(
+            liveModel.frontmatter.knowledge_version ?? liveModel.frontmatter.blueprint_version ?? '',
+          )
+          if (liveVersion !== transition.result_version) {
+            allMatch = false
+            break
+          }
+        } catch {
+          allMatch = false
+          break
+        }
+      }
+
+      const csStatus = csDoc.frontmatter.status
+      if (allMatch) {
+        return {
+          success: true,
+          changesetPath: relChangesetPath,
+          status: csStatus,
+          models: recordedModels,
+          appliedCount: 0,
+          conflictedCount: csDoc.changes.filter((c) => c.status === 'conflict').length,
+          warnings: [{ path: '', message: 'Idempotent replay: changeset already applied with matching model versions' }],
+        }
+      } else {
+        return {
+          success: true,
+          changesetPath: relChangesetPath,
+          status: csStatus,
+          models: recordedModels,
+          appliedCount: 0,
+          conflictedCount: csDoc.changes.filter((c) => c.status === 'conflict').length,
+          warnings: [{ path: '', message: 'Changeset already applied; no mutations performed' }],
+        }
+      }
+    }
+
+    // Phase 1: In-Memory Compute & Validate
+    interface LoadedModelEntry {
+      modelSlug: string
+      filePath: string
+      model: ParsedKnowledge
+      baseVersion: string
+      nextVersion: string
+      mutated: boolean
+    }
+    const loadedModels = new Map<string, LoadedModelEntry>()
+
+    for (const change of csDoc.changes) {
+      if (change.op === 'comment') continue
+      const { modelSlug } = parseTargetAddress(change.target)
+      if (!modelSlug) continue
+
+      if (!loadedModels.has(modelSlug.toLowerCase())) {
+        const modelFile = await findKnowledgeFile(rootDir, modelSlug)
+        if (!modelFile) {
+          return {
+            success: false,
+            changesetPath: relChangesetPath,
+            status: 'rejected',
+            models: {},
+            appliedCount: 0,
+            errors: [{ path: change.target, message: `Model not found: ${modelSlug}` }],
+          }
+        }
+        const model = await loadKnowledge(modelFile)
+        const baseVersion = String(
+          model.frontmatter.knowledge_version ?? model.frontmatter.blueprint_version ?? 'V_0-1-0',
+        )
+        const nextVer = computeNewVersion(baseVersion, { bump: 'patch' })
+        const nextVersion = nextVer ? nextVer.version : 'V_0-1-1'
+
+        loadedModels.set(modelSlug.toLowerCase(), {
+          modelSlug,
+          filePath: modelFile,
+          model,
+          baseVersion,
+          nextVersion,
+          mutated: false,
+        })
+      }
+    }
+
+    // Load workspace models (for delete impact analysis)
+    const workspaceModels = new Map<string, ParsedKnowledge>()
+    for (const [, v] of loadedModels) {
+      workspaceModels.set(v.modelSlug, v.model)
+      if (v.model.frontmatter.knowledge_slug) {
+        workspaceModels.set(v.model.frontmatter.knowledge_slug.toLowerCase(), v.model)
+      }
+    }
+    if (csDoc.changes.some((c) => c.op === 'remove_element')) {
+      const allFiles = await findAllWorkspaceModelFiles(rootDir, DEFAULT_WORKSPACE_IGNORE, rootDir)
+      for (const f of allFiles) {
+        const fStem = displayStem(basename(f)).toLowerCase()
+        if (!workspaceModels.has(fStem)) {
+          try {
+            const m = await loadKnowledge(f)
+            workspaceModels.set(fStem, m)
+            if (m.frontmatter.knowledge_slug) {
+              workspaceModels.set(m.frontmatter.knowledge_slug.toLowerCase(), m)
+            }
+          } catch {
+            // ignore unparseable
+          }
+        }
+      }
+    }
+
+    // D11: Batch Slug Resolution & Intra-Batch Rewriting
+    const loadedModelAsts = new Map<string, ParsedKnowledge>()
+    for (const [, v] of loadedModels) {
+      loadedModelAsts.set(v.modelSlug, v.model)
+      if (v.model.frontmatter.knowledge_slug) {
+        loadedModelAsts.set(v.model.frontmatter.knowledge_slug.toLowerCase(), v.model)
+      }
+    }
+    const slugResolution = resolveBatchSlugs(csDoc.changes, loadedModelAsts)
+    csDoc.changes = slugResolution.changes
+
+    // D12: Delete Impact Pre-Computation & Reference Scanning
+    const { matrixCascades, referenceConflicts } = evaluateBatchDeleteImpact(
+      csDoc.changes,
+      loadedModelAsts,
+      workspaceModels,
+    )
+
+    // D10: Precondition, Staleness & Reference Conflict Partitioning
+    const modelBaseVersions = new Map<string, string>()
+    for (const [, v] of loadedModels) {
+      modelBaseVersions.set(v.modelSlug, v.baseVersion)
+      if (v.model.frontmatter.knowledge_slug) {
+        modelBaseVersions.set(v.model.frontmatter.knowledge_slug.toLowerCase(), v.baseVersion)
+      }
+    }
+    const changesDir = join(rootDir, 'changes')
+    const { cleanSubset, conflictedSubset, conflictDiagnostics } = await partitionChangeset(
+      csDoc.changes,
+      loadedModelAsts,
+      changesDir,
+      modelBaseVersions,
+      referenceConflicts,
+    )
+
+    // All-Conflicted Exit Guard (D10): Zero model writes, zero snapshots
+    const actionableClean = cleanSubset.filter((c) => c.op !== 'comment')
+    if (actionableClean.length === 0 && conflictedSubset.length > 0) {
+      for (const change of csDoc.changes) {
+        if (change.op === 'comment') continue
+        change.status = 'conflict'
+        const diag = conflictDiagnostics.get(change.id)
+        change.resolution = diag ? diag.message : (change.resolution || 'Precondition failed')
+      }
+      csDoc.frontmatter.status = 'conflict'
+      csDoc.frontmatter.applied_at = new Date().toISOString()
+      const serializedCs = serializeChangeset(csDoc)
+      await writeFile(resolvedChangesetPath, serializedCs, 'utf-8')
+
+      return {
+        success: false,
+        changesetPath: relChangesetPath,
+        changeset: relChangesetPath,
+        status: 'conflict',
+        models: {},
+        appliedCount: 0,
+        conflictedCount: conflictedSubset.length,
+        errors: Array.from(conflictDiagnostics.values()).map((d) => ({
+          path: relChangesetPath,
+          message: d.message,
+          code: d.code,
+        })),
+      }
+    }
+
+    // Mark conflicted changes with conflict annotations
+    for (const change of conflictedSubset) {
+      change.status = 'conflict'
+      const diag = conflictDiagnostics.get(change.id)
+      change.resolution = diag ? diag.message : (change.resolution || 'Precondition failed')
+    }
+
+    // Apply mutations for clean subset in memory
+    for (const change of cleanSubset) {
+      if (change.op === 'comment') continue
+      const { modelSlug, parts, remainder } = parseTargetAddress(change.target)
+      const entry = loadedModels.get(modelSlug.toLowerCase())
+      if (!entry) continue
+
+      entry.mutated = true
+
+      let renameSchema: BlueprintSchema | undefined
+      if (change.op === 'rename_element') {
+        try {
+          const { template: schemaBlueprint, resolveInclude: schemaInclude } =
+            await resolveBlueprintForKnowledge(rootDir, entry.model)
+          if (schemaBlueprint) {
+            renameSchema = resolveBlueprintSchema(schemaBlueprint.rawContent, schemaInclude).schema
+          }
+        } catch {
+          renameSchema = undefined
+        }
+      }
+
+      let mutationArgs: Record<string, unknown> = {}
+      if (change.op === 'update_field') {
+        const elIdent = parts[0]
+        const fieldIdent = parts.length > 1 ? parts[1] : ''
+        mutationArgs = {
+          elementName: elIdent,
+          fieldName: fieldIdent,
+          value: change.to,
+          to: change.to,
+          target: change.target,
+        }
+      } else if (change.op === 'add_element') {
+        const conceptName = change.concept || (remainder && !remainder.includes('&') ? remainder : '')
+        const elementName = change.name || change.slug || ''
+        mutationArgs = {
+          conceptName,
+          elementName,
+          slug: change.resolved_slug || change.slug,
+          description: change.notes || '',
+        }
+        if (change.fields) {
+          Object.assign(mutationArgs, change.fields)
+        }
+      } else if (change.op === 'update_matrix_cell') {
+        mutationArgs = {
+          matrixSlug: parts[0],
+          row: parts[1],
+          col: parts[2],
+          value: change.to,
+          to: change.to,
+        }
+      } else if (change.op === 'remove_element') {
+        const elIdent = change.name || parts[0] || remainder
+        let conceptName = change.concept
+        if (!conceptName) {
+          const found = findElementInModel(entry.model, undefined, elIdent)
+          conceptName = found?.concept
+        }
+        mutationArgs = { conceptName, elementName: elIdent }
+      } else if (change.op === 'rename_element') {
+        const elIdent = parts[0] || remainder
+        let conceptName = change.concept
+        if (!conceptName) {
+          const found = findElementInModel(entry.model, undefined, elIdent)
+          conceptName = found?.concept
+        }
+        mutationArgs = {
+          conceptName,
+          elementName: elIdent,
+          newName: change.name || change.to,
+        }
+      } else if (change.op === 'rename_concept') {
+        const conceptName = change.concept || remainder
+        mutationArgs = { conceptName, newName: change.name || change.to }
+      } else {
+        mutationArgs = { target: change.target, value: change.to, to: change.to }
+      }
+
+      const mutRes = coreApplyMutation(entry.model, change.op, mutationArgs, renameSchema)
+      if (!mutRes.success) {
+        return {
+          success: false,
+          changesetPath: relChangesetPath,
+          status: 'rejected',
+          models: {},
+          appliedCount: 0,
+          errors: mutRes.errors,
+          warnings: mutRes.warnings,
+        }
+      }
+
+      // Record successful resolution annotation
+      change.status = 'applied'
+      if (change.op === 'remove_element') {
+        const cascadedCount = mutRes.cascadedMatrixCells ?? (matrixCascades.get(change.id)?.length ?? 0)
+        change.resolution = cascadedCount > 0
+          ? `Removed element and cascaded ${cascadedCount} matrix cell(s)`
+          : 'Removed element successfully'
+      } else {
+        change.resolution = 'Applied successfully'
+      }
+
+      // Citation rewriting per D20
+      const citationRef = `${relChangesetPath}@## NN Change: ${change.id}`
+      if (change.op === 'update_field') {
+        const elIdent = parts[0]
+        const fieldIdent = parts.length > 1 ? parts[1] : ''
+        const found = findElementInModel(entry.model, change.concept, elIdent)
+        if (found) {
+          rewriteFieldCitation(found.element, fieldIdent, citationRef)
+        }
+      } else if (change.op === 'add_element') {
+        const conceptName = (mutationArgs.conceptName as string) || change.concept
+        if (conceptName) {
+          const list = entry.model.elements.get(conceptName)
+          if (list && list.length > 0) {
+            const addedEl = list[list.length - 1]
+            if (addedEl.slug) {
+              change.resolved_slug = addedEl.slug
+            }
+            rewriteFieldCitation(addedEl, 'sources', citationRef)
+          }
+        }
+      }
+    }
+
+    // Bump knowledge_version in frontmatter of touched models ONLY
+    for (const [, entry] of loadedModels) {
+      if (entry.mutated) {
+        entry.model.frontmatter.knowledge_version = entry.nextVersion
+      }
+    }
+
+    // Schema validation across touched models ONLY
+    for (const [, entry] of loadedModels) {
+      if (!entry.mutated) continue
+      let template: SpecDocument | null = null
+      let resolveInclude: (ref: { name: string; url: string }) => string | null = () => null
+      try {
+        const r = await resolveBlueprintForKnowledge(rootDir, entry.model)
+        template = r.template
+        resolveInclude = r.resolveInclude
+      } catch (err) {
+        return {
+          success: false,
+          changesetPath: relChangesetPath,
+          status: 'rejected',
+          models: {},
+          appliedCount: 0,
+          errors: [{ path: entry.modelSlug, message: `Failed to resolve blueprint: ${err}` }],
+        }
+      }
+
+      const valRes = coreValidate(entry.model, template, null, resolveInclude)
+      if (!valRes.valid) {
+        return {
+          success: false,
+          changesetPath: relChangesetPath,
+          status: 'rejected',
+          models: {},
+          appliedCount: 0,
+          errors: valRes.errors,
+          warnings: valRes.warnings,
+        }
+      }
+    }
+
+    // Phase 2: Atomic Persistence & Archival (touched models ONLY)
+    const stamp = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z'
+    const archiveDir = join(rootDir, 'kNNowledge', 'archive')
+    await mkdir(archiveDir, { recursive: true })
+
+    const modelsTransitionMap: Record<string, ModelVersionTransition> = {}
+
+    for (const [, entry] of loadedModels) {
+      if (!entry.mutated) continue
+
+      modelsTransitionMap[entry.modelSlug] = {
+        base_version: entry.baseVersion,
+        result_version: entry.nextVersion,
+      }
+
+      const modelFile = entry.filePath
+      const modelStem = displayStem(basename(modelFile))
+      const stagingPath = join(dirname(modelFile), `${modelStem}.tmp`)
+      const archivePath = join(
+        archiveDir,
+        `${modelStem}_${entry.baseVersion}_${stamp}_${changesetStem}_NN.md`,
+      )
+
+      const serialized = serializeKnowledge(entry.model)
+      await writeFile(stagingPath, serialized, 'utf-8')
+      await safeMoveFile(modelFile, archivePath)
+      await safeMoveFile(stagingPath, modelFile)
+
+      if (
+        csDoc.changes.some(
+          (c) =>
+            c.op === 'rename_element' &&
+            parseTargetAddress(c.target).modelSlug.toLowerCase() === entry.modelSlug.toLowerCase(),
+        )
+      ) {
+        for (const c of csDoc.changes) {
+          if (c.op === 'rename_element') {
+            try {
+              const modelDir = dirname(modelFile)
+              const oldSlug = parseTargetAddress(c.target).parts[0].toLowerCase().replace(/[^a-z0-9-]/g, '_')
+              const newSlug = (c.name || c.to || '').toLowerCase().replace(/[^a-z0-9-]/g, '_')
+              const oldAssetDir = join(modelDir, 'assets', oldSlug)
+              const newAssetDir = join(modelDir, 'assets', newSlug)
+              const st = await stat(oldAssetDir).catch(() => null)
+              if (st && st.isDirectory()) {
+                await rename(oldAssetDir, newAssetDir)
+              }
+            } catch (err) {
+              console.warn(`[apply-change] Asset dir rename failed: ${err}`)
+            }
+          }
+        }
+      }
+    }
+
+    // Annotate changeset document
+    const totalActionable = csDoc.changes.filter((c) => c.op !== 'comment').length
+    const cleanAppliedCount = cleanSubset.filter((c) => c.op !== 'comment').length
+    const overallStatus: ChangeStatus = cleanAppliedCount === totalActionable ? 'applied' : 'partially_applied'
+
+    csDoc.frontmatter.status = overallStatus
+    csDoc.frontmatter.applied_at = new Date().toISOString()
+    csDoc.frontmatter.models = modelsTransitionMap
+
+    const serializedCs = serializeChangeset(csDoc)
+    await writeFile(resolvedChangesetPath, serializedCs, 'utf-8')
+
+    return {
+      success: true,
+      changesetPath: relChangesetPath,
+      changeset: relChangesetPath,
+      status: overallStatus,
+      models: modelsTransitionMap,
+      appliedCount: cleanAppliedCount,
+      conflictedCount: conflictedSubset.length,
+      model: loadedModels.size === 1 ? loadedModels.values().next().value?.model : undefined,
+      newPath: loadedModels.size === 1 ? loadedModels.values().next().value?.filePath : undefined,
+    }
+  } finally {
+    await lockHandle.release()
+  }
+}
+
+async function synthesizeAndExecuteChangeset(
   rootDir: string,
   id: string,
   op: string,
-  args: Record<string, unknown>,
+  opArgs: Record<string, unknown>,
 ): Promise<ApplyChangeResult> {
-  const filePath = await findKnowledgeFile(rootDir, id)
-  if (!filePath) {
-    return { success: false, errors: [{ path: '', message: `Model not found: ${id}` }] }
+  const stamp = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z'
+  const changesDir = join(rootDir, 'changes')
+  await mkdir(changesDir, { recursive: true })
+
+  const csFileName = `${id}_agent_${stamp}_changes_NN.md`
+  const csFilePath = join(changesDir, csFileName)
+
+  let target = id
+  if (op === 'update_field') {
+    const el = (opArgs.elementName as string) || (opArgs.slug as string) || ''
+    const field = (opArgs.fieldName as string) || ''
+    target = `${id}@${el}&${field}`
+  } else if (op === 'add_element') {
+    const concept = (opArgs.conceptName as string) || ''
+    target = `${id}@${concept}`
+  } else if (op === 'update_matrix_cell') {
+    const m = (opArgs.matrixName as string) || (opArgs.matrixSlug as string) || ''
+    const r = (opArgs.row as string) || ''
+    const c = (opArgs.col as string) || ''
+    target = `${id}@${m}&${r}&${c}`
+  } else if (op === 'rename_element') {
+    const el = (opArgs.elementName as string) || (opArgs.slug as string) || ''
+    target = `${id}@${el}`
+  } else if (op === 'remove_element') {
+    const el = (opArgs.elementName as string) || (opArgs.slug as string) || ''
+    target = `${id}@${el}`
+  } else if (op === 'rename_concept') {
+    const c = (opArgs.conceptName as string) || ''
+    target = `${id}@${c}`
+  } else if (opArgs.target && typeof opArgs.target === 'string') {
+    target = opArgs.target.includes('@') ? opArgs.target : `${id}@${opArgs.target}`
   }
 
-  let model: ParsedKnowledge
-  try {
-    model = await loadKnowledge(filePath)
-  } catch (err) {
-    return { success: false, errors: [{ path: '', message: `Failed to load model: ${err}` }] }
+  const changeItem: ChangeItem = {
+    id: 'c-01',
+    op: op as any,
+    target,
+    from: opArgs.from !== undefined ? String(opArgs.from) : undefined,
+    to: opArgs.value !== undefined ? String(opArgs.value) : (opArgs.to !== undefined ? String(opArgs.to) : (opArgs.newName as string | undefined)),
+    concept: (opArgs.conceptName as string) || undefined,
+    name: (opArgs.newName as string) || (opArgs.elementName as string) || undefined,
+    slug: (opArgs.slug as string) || undefined,
+    fields: (opArgs.fields as Record<string, string>) || undefined,
+    author: (opArgs.author as string) || 'agent',
+    notes: (opArgs.rationale as string) || undefined,
   }
+
+  const sha = computeProposalSha([changeItem])
+  const doc: ChangesetDocument = {
+    frontmatter: {
+      spec_version: 'V_0-4-0',
+      parent_spec: 'changes',
+      blueprint_version: '0.1.0',
+      status: 'proposed',
+      proposal_sha: sha,
+      title: `Synthesized change: ${op}`,
+      author: (opArgs.author as string) || 'agent',
+      workspace_id: 'workspace',
+    },
+    changes: [changeItem],
+  }
+
+  await writeFile(csFilePath, serializeChangeset(doc), 'utf-8')
+  return executeChangesetApply(rootDir, join('changes', csFileName))
+}
+
+/**
+ * Apply an intent-level change or changeset to a model.
+ */
+export async function applyChange(
+  rootDir: string,
+  idOrChangesetPath: string,
+  op?: string,
+  args?: Record<string, unknown>,
+): Promise<ApplyChangeResult> {
+  if (!op || idOrChangesetPath.endsWith('_changes_NN.md') || idOrChangesetPath.startsWith('changes/')) {
+    return executeChangesetApply(rootDir, idOrChangesetPath)
+  }
+
+  const id = idOrChangesetPath
+  const opArgs = args || {}
 
   if (op === 'bump_version') {
-    return bumpVersion(rootDir, filePath, model, args, id)
+    const filePath = await findKnowledgeFile(rootDir, id)
+    if (!filePath) {
+      return { success: false, errors: [{ path: '', message: `Model not found: ${id}` }] }
+    }
+    const model = await loadKnowledge(filePath)
+    return bumpVersion(rootDir, filePath, model, opArgs, id)
   }
 
   if (op === 'generate_index') {
+    const filePath = await findKnowledgeFile(rootDir, id)
+    if (!filePath) {
+      return { success: false, errors: [{ path: '', message: `Model not found: ${id}` }] }
+    }
+    const model = await loadKnowledge(filePath)
     try {
       const { template: idxBlueprint, resolveInclude: idxInclude } = await resolveBlueprintForKnowledge(
         rootDir,
         model,
       )
       if (idxBlueprint) {
-        // Compose the taxonomy across `includes` too, not just the composite.
         const { schema } = resolveBlueprintSchema(idxBlueprint.rawContent, idxInclude)
-        args.taxonomy = schema.taxonomy.length
+        opArgs.taxonomy = schema.taxonomy.length
           ? schema.taxonomy
           : parseKnowledge(idxBlueprint.rawContent).taxonomy
       }
     } catch (err) {
-      // log + continue: template not resolvable — generate_index falls back to
-      // the model taxonomy.
       console.warn(`[apply-change] Index template resolution failed; using model taxonomy: ${err}`)
     }
-  }
-
-  // Apply the mutation via the core enforcement engine (R-IE-01). For
-  // `rename_element`, pass the resolved parent-template schema so the
-  // reference rewrite is gated on `type:: reference` fields (C3): plain
-  // string fields are never rewritten as bare scalars.
-  let renameSchema: BlueprintSchema | undefined
-  if (op === 'rename_element') {
-    try {
-      const { template: schemaBlueprint, resolveInclude: schemaInclude } =
-        await resolveBlueprintForKnowledge(rootDir, model)
-      if (schemaBlueprint) {
-        renameSchema = resolveBlueprintSchema(schemaBlueprint.rawContent, schemaInclude).schema
-      }
-    } catch (err) {
-      // log + continue: without the resolved schema the rename runs untyped
-      // (no reference-field gating), never aborts.
-      console.warn(`[apply-change] Schema resolution failed for rename; untyped rename: ${err}`)
-      renameSchema = undefined
-    }
-  }
-  const mutationResult = coreApplyMutation(
-    model,
-    op,
-    args as unknown as Record<string, unknown>,
-    renameSchema,
-  )
-  if (!mutationResult.success) {
-    return mutationResult
-  }
-
-  // Validate after mutation — template resolved only from parent_spec.url.
-  // Schema + structural conformance only (mutations are structurally enforced
-  // by the core engine above); document-hygiene is the job of `validate_model`
-  // / `init_model` on the resulting file, not of every intermediate mutation.
-  let template: SpecDocument | null
-  let resolveInclude: (ref: { name: string; url: string }) => string | null = () => null
-  try {
-    const r = await resolveBlueprintForKnowledge(rootDir, model)
-    template = r.template
-    resolveInclude = r.resolveInclude
-  } catch (err) {
-    return {
-      success: false,
-      errors: [{ path: 'parent_spec', message: err instanceof Error ? err.message : String(err) }],
-    }
-  }
-  const validationResult = coreValidate(model, template, null, resolveInclude)
-
-  if (!validationResult.valid) {
-    // Reject without writing
-    return {
-      success: false,
-      errors: validationResult.errors,
-      warnings: validationResult.warnings,
-    }
-  }
-
-  // Write updated model
-  try {
+    const mutRes = coreApplyMutation(model, op, opArgs)
+    if (!mutRes.success) return mutRes
     await saveKnowledge(filePath, model)
-    if (
-      op === 'rename_element' &&
-      typeof args.elementName === 'string' &&
-      typeof args.newName === 'string'
-    ) {
-      try {
-        const modelDir = dirname(filePath)
-        const oldSlug = args.elementName.toLowerCase().replace(/[^a-z0-9-]/g, '_')
-        const newSlug = args.newName.toLowerCase().replace(/[^a-z0-9-]/g, '_')
-        const oldAssetDir = join(modelDir, 'assets', oldSlug)
-        const newAssetDir = join(modelDir, 'assets', newSlug)
-        const st = await stat(oldAssetDir).catch(() => null)
-        if (st && st.isDirectory()) {
-          await rename(oldAssetDir, newAssetDir)
-        }
-      } catch (err) {
-        // log + continue: asset directory rename is best effort.
-        console.warn(`[apply-change] Asset dir rename failed: ${err}`)
-      }
-    }
-  } catch (err) {
-    return { success: false, errors: [{ path: '', message: `Failed to write model: ${err}` }] }
+    return { success: true, model, newPath: filePath }
   }
 
-  return {
-    success: true,
-    model,
-    warnings: validationResult.warnings,
-    modification:
-      buildAgentModificationBlock(op, args, {
-        model: id,
-        knowledge: id,
-    knowledgeVersion: String(model.frontmatter.knowledge_version ?? model.frontmatter.blueprint_version ?? ''),
-        ...modificationContext(args),
-      }) ?? undefined,
-  }
+  return synthesizeAndExecuteChangeset(rootDir, id, op, opArgs)
 }

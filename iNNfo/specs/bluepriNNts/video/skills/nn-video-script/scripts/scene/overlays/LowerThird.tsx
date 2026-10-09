@@ -5,7 +5,8 @@
  */
 
 import React from 'react';
-import { AbsoluteFill, useVideoConfig } from 'remotion';
+import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion';
+import { resolveOverlayAnimation } from '../overlay-animation.mjs';
 
 const POSITION: Record<string, React.CSSProperties> = {
   'bottom-left': { justifyContent: 'flex-end', alignItems: 'flex-start' },
@@ -13,7 +14,15 @@ const POSITION: Record<string, React.CSSProperties> = {
   'bottom-center': { justifyContent: 'flex-end', alignItems: 'center' },
 };
 
-export const LowerThird: React.FC<{ config: Record<string, unknown> }> = ({ config }) => {
+export const LowerThird: React.FC<
+  {
+    config: Record<string, unknown>;
+    durationInFrames?: number;
+    enterAnimation?: string;
+    exitAnimation?: string;
+  }
+> = ({ config, durationInFrames = 0, enterAnimation, exitAnimation }) => {
+  const frame = useCurrentFrame();
   const { width, height } = useVideoConfig();
   const s = width / 1920;
   const title = (config.title as string) || '';
@@ -24,8 +33,17 @@ export const LowerThird: React.FC<{ config: Record<string, unknown> }> = ({ conf
   const fontSize = Number(config.fontSize) || 40;
   const stroke = config.textStroke as string | undefined;
 
+  const motion = resolveOverlayAnimation({ frame, durationInFrames, enterAnimation, exitAnimation });
+
   return (
-    <AbsoluteFill style={{ padding: 64 * s, ...(POSITION[position] || POSITION['bottom-left']) }}>
+    <AbsoluteFill
+      style={{
+        padding: 64 * s,
+        opacity: motion.opacity,
+        transform: motion.transform,
+        ...(POSITION[position] || POSITION['bottom-left']),
+      }}
+    >
       <div
         style={{
           background: 'rgba(10,10,15,0.82)',

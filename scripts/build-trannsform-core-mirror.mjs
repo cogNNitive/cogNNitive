@@ -78,7 +78,10 @@ async function render() {
     banner: { js: BANNER },
   })
   const rawCode = result.outputFiles[0].text.replace(/\r\n/g, '\n')
-  return rawCode.replace(/(?:\.\.\/)+node_modules\//g, 'node_modules/')
+  // Collapse the relative prefix before node_modules. When node_modules is a
+  // junction/symlink to another checkout (session worktrees), esbuild reports
+  // `../<checkout-dir>/node_modules/...`; on CI it is `node_modules/...`.
+  return rawCode.replace(/(?:\.\.\/)+(?:[\w.-]+\/)?node_modules\//g, 'node_modules/')
 }
 
 function getArg(flag) {

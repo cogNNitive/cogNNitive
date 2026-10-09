@@ -88,7 +88,7 @@ describe('console-review-popover (annotation)', () => {
     expect(kinds).not.toContain('correction')
   })
 
-  it('field row anchor offers comment and correction, prefilled original from the payload', () => {
+  it('field row anchor opens the unified edit modal, prefilled with the payload value', () => {
     enableReview()
     const fieldRow = env.document.querySelector(
       '[data-innfo-component="field-row"][data-field="owner"]',
@@ -96,14 +96,18 @@ describe('console-review-popover (annotation)', () => {
     const anchor = fieldRow.querySelector('[data-innfo-ctl="field-anchor"]') as HTMLElement
     anchor.dispatchEvent(new env.window.Event('click', { bubbles: true }))
 
-    const pop = env.document.querySelector('[data-innfo-component="annotation-popover"]')!
-    const kinds = Array.from(pop.querySelectorAll('.innfo-popover-kind')).map((b) =>
-      b.getAttribute('data-kind'),
+    // Field edits moved from the inline annotation popover to the edit modal.
+    expect(env.document.querySelector('[data-innfo-component="annotation-popover"]')).toBeNull()
+    const modal = env.document.querySelector('[data-innfo-component="edit-modal"]')!
+    expect(modal).not.toBeNull()
+    const modes = Array.from(modal.querySelectorAll('.innfo-edit-mode-btn')).map((b) =>
+      b.textContent,
     )
-    expect(kinds).toContain('comment')
-    expect(kinds).toContain('correction')
-    const original = pop.querySelector('.innfo-popover-original')
-    expect(original!.textContent).toBe('A')
+    expect(modes).toEqual(['Propose value', 'Comment'])
+    const input = modal.querySelector('.innfo-edit-fields input, .innfo-edit-fields textarea') as
+      | HTMLInputElement
+      | HTMLTextAreaElement
+    expect(input.value).toBe('A')
   })
 
   it('saving a field correction writes target.field, original and current hash as base_hash', () => {
@@ -115,13 +119,12 @@ describe('console-review-popover (annotation)', () => {
       new env.window.Event('click', { bubbles: true }),
     )
 
-    const pop = env.document.querySelector('[data-innfo-component="annotation-popover"]')!
-    ;(pop.querySelector('.innfo-popover-kind[data-kind="correction"]') as HTMLElement).dispatchEvent(
-      new env.window.Event('click', { bubbles: true }),
-    )
-    const ta = pop.querySelector('textarea') as HTMLTextAreaElement
-    ta.value = 'B'
-    ;(pop.querySelector('.innfo-popover-save') as HTMLElement).dispatchEvent(
+    const modal = env.document.querySelector('[data-innfo-component="edit-modal"]')!
+    const input = modal.querySelector(
+      '.innfo-edit-fields input, .innfo-edit-fields textarea',
+    ) as HTMLInputElement
+    input.value = 'B'
+    ;(modal.querySelector('.innfo-edit-btn-save') as HTMLElement).dispatchEvent(
       new env.window.Event('click', { bubbles: true }),
     )
 

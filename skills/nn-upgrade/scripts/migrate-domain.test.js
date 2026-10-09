@@ -16,7 +16,7 @@ const { spawnSync } = require('node:child_process')
 const SCRIPT_DIR = __dirname
 const MIGRATE_CLI = path.join(SCRIPT_DIR, 'migrate-domain.js')
 const BACKUP_CLI = path.join(SCRIPT_DIR, 'backup-workspace.js')
-const { isOpaqueFile, removeEmptyDirsBottomUp } = require('./migrate-domain.js')
+const { isOpaqueFile, removeEmptyDirsBottomUp, freezeDomainSlugs, migrateDomainReferences } = require('./migrate-domain.js')
 const TARGETS_FIXTURE_DIR = path.resolve(
   SCRIPT_DIR,
   '../../../iNNfo/packages/innfo-core/tests/legacy/fixtures/targets',
@@ -360,6 +360,132 @@ async function runTests() {
         badRestoreRes.stderr.includes('Backup domain mismatch') || badRestoreRes.stdout.includes('Backup domain mismatch'),
       )
       console.log('✔ restore refuses backups created for different domain directories')
+    }
+
+    // 14. freezeDomainSlugs scans and freezes unfrozen Level-3 models
+    {
+      const freezeDir = path.join(tmpRoot, 'domain-freeze')
+      const kDir = path.join(freezeDir, 'kNNowledge')
+      fs.mkdirSync(kDir, { recursive: true })
+
+      const modelPath = path.join(kDir, 'product_V_0-1-0_NN.md')
+      fs.writeFileSync(
+        modelPath,
+        `---
+spec_version: "V_0-4-0"
+level: 3
+title: "Product"
+parent_spec:
+  name: "business"
+  url: "https://example.com/business.md"
+knowledge_version: "V_0-1-0"
+---
+
+# NN Item
+
+## NN Item: Widget One
+field:: value
+
+## NN Item: Widget Two
+field:: other
+`,
+        'utf8',
+      )
+
+      // Dry run via function
+      const dryResult = await freezeDomainSlugs(freezeDir, { dryRun: true })
+      assert.strictEqual(dryResult.scanned, 1)
+      assert.strictEqual(dryResult.modified, 1)
+      assert.strictEqual(dryResult.frozenModels[0].frozenCount, 2)
+      // verify file not modified yet
+      assert.ok(!fs.readFileSync(modelPath, 'utf8').includes('slug::'))
+
+      // Apply via function
+      const applyResult = await freezeDomainSlugs(freezeDir, { dryRun: false })
+      assert.strictEqual(applyResult.modified, 1)
+      const updatedContent = fs.readFileSync(modelPath, 'utf8')
+      assert.ok(updatedContent.includes('slug:: widget-one'))
+      assert.ok(updatedContent.includes('slug:: widget-two'))
+
+      // Second run is a noop
+      const noopResult = await freezeDomainSlugs(freezeDir, { dryRun: false })
+      assert.strictEqual(noopResult.modified, 0)
+
+      // Test CLI flag --freeze-slugs
+      const cliRes = runCli(['--domain-dir', freezeDir, '--freeze-slugs', '--json'])
+      assert.strictEqual(cliRes.status, 0)
+      const cliJson = JSON.parse(cliRes.stdout)
+      assert.strictEqual(cliJson.scanned, 1)
+      assert.strictEqual(cliJson.modified, 0) // already frozen
+
+      console.log('✔ freezeDomainSlugs routine scans Level-3 models and freezes all unfrozen slugs in place')
+    }
+
+    // 15. migrateDomainReferences scans and rewrites display-name references to slugs (D16 / Slice S4)
+    {
+      const refMigrateDir = path.join(tmpRoot, 'test-domain-ref-migrate')
+      const kDir = path.join(refMigrateDir, 'kNNowledge')
+      fs.mkdirSync(kDir, { recursive: true })
+
+      const modelPath = path.join(kDir, 'tasks_NN.md')
+      fs.writeFileSync(
+        modelPath,
+        `---
+spec_version: "V_0-4-0"
+parent_spec:
+  name: "tasks"
+  url: "https://example.com/tasks.md"
+knowledge_version: "V_0-1-0"
+---
+
+# NN Task
+
+## NN Task: Alpha Task
+slug:: alpha-task
+related:: [[Beta Task]]
+
+## NN Task: Beta Task
+slug:: beta-task
+related:: [[Alpha Task|My Alpha]]
+
+# NN Metrics
+
+## NN Matrix: Task Matrix
+| Task | Alpha Task | Beta Task |
+|---|---|---|
+| Alpha Task | - | 1 |
+| Beta Task | 0 | - |
+`,
+        'utf8',
+      )
+
+      // Dry run
+      const dryResult = await migrateDomainReferences(refMigrateDir, { dryRun: true })
+      assert.strictEqual(dryResult.scanned, 1)
+      assert.strictEqual(dryResult.modified, 1)
+      assert.ok(dryResult.rewrittenModels[0].rewrites >= 2)
+      // verify not written yet
+      assert.ok(fs.readFileSync(modelPath, 'utf8').includes('[[Beta Task]]'))
+
+      // Apply
+      const applyResult = await migrateDomainReferences(refMigrateDir, { dryRun: false })
+      assert.strictEqual(applyResult.modified, 1)
+      const updated = fs.readFileSync(modelPath, 'utf8')
+      assert.ok(updated.includes('[[beta-task]]'))
+      assert.ok(updated.includes('[[alpha-task|My Alpha]]'))
+
+      // Second run is a clean no-op
+      const noopResult = await migrateDomainReferences(refMigrateDir, { dryRun: false })
+      assert.strictEqual(noopResult.modified, 0)
+
+      // CLI test
+      const cliRes = runCli(['--domain-dir', refMigrateDir, '--migrate-references', '--json'])
+      assert.strictEqual(cliRes.status, 0)
+      const cliJson = JSON.parse(cliRes.stdout)
+      assert.strictEqual(cliJson.scanned, 1)
+      assert.strictEqual(cliJson.modified, 0)
+
+      console.log('✔ migrateDomainReferences rewrites display-name references and matrix cells to slugs in place')
     }
   } finally {
     fs.rmSync(tmpRoot, { recursive: true, force: true })

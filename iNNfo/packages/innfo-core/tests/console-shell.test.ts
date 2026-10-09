@@ -87,10 +87,12 @@ describe('innfo-runtime.js (module hygiene)', () => {
 describe('innfo-console.bundle.js (single-file distribution)', () => {
   const bundlePath = join(consoleDir, 'innfo-console.bundle.js')
 
-  it('exists and embeds all four console globals in order', () => {
+  it('exists and embeds console globals in order', () => {
     expect(existsSync(bundlePath)).toBe(true)
     const bundle = readFileSync(bundlePath, 'utf8')
+    expect(bundle).toContain('InnfoPreact')
     expect(bundle).toContain('InnfoVisuals')
+    expect(bundle).toContain('InnfoIcons')
     expect(bundle).toContain('InnfoConsole')
     expect(bundle).toContain('InnfoModelViewer')
     expect(bundle).toContain('InnfoProcedureStepper')

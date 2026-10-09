@@ -133,6 +133,10 @@ function headingMatcher(ref: SourceRef): (h: HeadingInfo) => boolean {
     case 'row':
     case 'pointer':
       return (h) => h.slug === ref.slug
+    case 'element':
+      return (h) => h.slug === ref.slug || h.element === unit.slug
+    case 'matrix':
+      return (h) => h.slug === ref.slug || h.slug === unit.matrixSlug
     default:
       return assertNever(unit, 'knowledge unit kind')
   }
@@ -149,6 +153,10 @@ function anchorOf(ref: SourceRef): string | undefined {
       return ref.slug ?? unit.id
     case 'pointer':
       return unit.pointer
+    case 'element':
+      return ref.slug ?? unit.slug
+    case 'matrix':
+      return ref.slug ?? unit.matrixSlug
     default:
       return assertNever(unit, 'knowledge unit kind')
   }

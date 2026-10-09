@@ -171,7 +171,7 @@ describe('console-review-export (preview + clipboard)', () => {
     ).toBeTruthy()
   })
 
-  it('exported items carry base_hash and no status', () => {
+  it('the export textarea previews the _changes_NN.md changeset, not the legacy JSON', () => {
     seedDraft()
     boot()
     openModal()
@@ -184,7 +184,34 @@ describe('console-review-export (preview + clipboard)', () => {
     const textarea = env.document.querySelector(
       '#innfo-feedback-modal [data-innfo="export-json"]',
     ) as HTMLTextAreaElement
-    const doc = JSON.parse(textarea.value)
+    expect(textarea.getAttribute('data-innfo-changeset')).toBe('true')
+    expect(textarea.value).toContain('parent_spec: "changes"')
+    expect(textarea.value).toContain('## NN Change: fb-001')
+    expect(textarea.value).toContain('op:: update_field')
+    expect(textarea.value).toContain('target:: GhostbustersModel@threat-slimer&owner')
+    expect(textarea.value).toContain('from:: A')
+    expect(textarea.value).toContain('to:: B')
+    expect(() => JSON.parse(textarea.value)).toThrow()
+  })
+
+  it('the legacy JSON export (hidden actions) still carries base_hash and no status', () => {
+    seedDraft()
+    boot()
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    vi.stubGlobal('navigator', { clipboard: { writeText } })
+    openModal()
+    const idInput = env.document.querySelector(
+      '#innfo-feedback-modal [data-innfo="identifier"]',
+    ) as HTMLInputElement
+    idInput.value = 'Egon Spengler'
+    idInput.dispatchEvent(new env.window.Event('input', { bubbles: true }))
+
+    const copy = env.document.querySelector(
+      '#innfo-feedback-modal [data-innfo="copy"]',
+    ) as HTMLButtonElement
+    copy.dispatchEvent(new env.window.Event('click', { bubbles: true }))
+
+    const doc = JSON.parse(writeText.mock.calls[0][0])
     expect(doc.items[0].base_hash).toBe('abcdef0123456789')
     expect('status' in doc.items[0]).toBe(false)
   })

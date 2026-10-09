@@ -236,6 +236,13 @@ export function lowerAst(script: ScriptNode, options: LoweringOptions = {}): Pro
 
       case 'Comment':
         break
+
+      case 'OverlayEvent':
+        if (currentScene) {
+          if (!currentScene.overlay_events) currentScene.overlay_events = []
+          currentScene.overlay_events.push(node)
+        }
+        break
     }
   }
 
@@ -286,6 +293,7 @@ function lowerScene(
     properties: explicitProps,
     layers: (node.layers || []).map((l) => lowerLayer(l)),
     scene_templates: node.scene_templates || [],
+    overlay_events: [],
     startLine: node.loc?.start.line || 1,
     propertyMetadata: {},
     finalProperties: {},

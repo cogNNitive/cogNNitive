@@ -324,6 +324,17 @@ level: 3
     assert.ok(res.stderr.includes('WARNING: [export-console] Schema resolution for parent_spec'))
     assert.ok(res.stderr.includes('missing_blueprint_V_0-1-0'))
   })
+
+  it('exports Master Domain Console domaiNN_console.html at workspace root with --domain (D14)', async () => {
+    const res = await runCli([tempDir, '--domain'])
+    assert.equal(res.code, 0)
+    assert.match(res.stdout, /domaiNN_console\.html/)
+
+    const domainPath = join(tempDir, 'domaiNN_console.html')
+    const content = await readFile(domainPath, 'utf-8')
+    assert.ok(content.includes('id="innfo-model"'))
+    assert.ok(content.includes('Domain'))
+  })
 })
 
 

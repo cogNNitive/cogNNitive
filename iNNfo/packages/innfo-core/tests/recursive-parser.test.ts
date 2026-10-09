@@ -472,7 +472,7 @@ describe('recursiveParse (domaiNN_NN.md-driven)', () => {
       }
     })
 
-    it('still flags a name collision within a single document (intra-model collisions keep their severity)', async () => {
+    it('still flags a sibling name collision within a single concept (intra-concept collisions keep their severity)', async () => {
       const modelA = makeModel(
         'Model A',
         `
@@ -485,10 +485,8 @@ describe('recursiveParse (domaiNN_NN.md-driven)', () => {
 ## NN Components: Database
   The database component.
 
-# NN Storage
-
-## NN Storage: Database
-  A second element with the same name in the SAME model.
+## NN Components: Database
+  A second element with the same name in the SAME concept.
 `,
       )
 
@@ -500,7 +498,7 @@ describe('recursiveParse (domaiNN_NN.md-driven)', () => {
       const result = await recursiveParse(root)
 
       const duplicateIssues = result.issues.filter((i) =>
-        i.message.toLowerCase().includes('duplicate element name'),
+        i.message.toLowerCase().includes('duplicate'),
       )
       expect(duplicateIssues.length).toBeGreaterThan(0)
       expect(duplicateIssues[0].message).toContain('"Database"')

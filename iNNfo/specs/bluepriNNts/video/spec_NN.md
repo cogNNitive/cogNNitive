@@ -5,7 +5,7 @@ level: 2
 parent_spec:
   name: "iNNfo_V_0-3-0"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-3-0_NN.md"
-blueprint_version: "V_0-8-0"
+blueprint_version: "V_0-9-0"
 title: "Video App"
 procedures:
   - id: "generate-video-script"
@@ -214,6 +214,45 @@ The cogNNitive Video Engine compiles scripts into typed Remotion Composition Man
 - **Audio Bindings**: Precise TTS voiceover track synchronization probed to prevent audio clipping.
 - **Visual Overlays**: Frame-timed `lowerThird`, `kineticTitle`, and `conceptCallout` overlays.
 - **Headless CLI**: Headless Remotion rendering and preview server execution via `video-engine-cli.mjs`.
+
+## Video Blueprint Templates
+
+This blueprint is the canonical home for the three reusable template definitions shared by every series that inherits it. They are authored in cogNNitive Video syntax and resolved by `nn-video-script`; the Level 3 script authors no JSON or CSS for them.
+
+**Inheritance and override precedence.** Template resolution walks from the most specific to the most general source: a script-local `@…_template` block wins, then the nearest series `series_blueprint.md` (a sibling of `series_rules.md`), then this domain blueprint (`spec_NN.md`), then the built-in system default. A series-level override for a template name always takes precedence over the domain default, and a referenced template that cannot be resolved falls back to the system default without failing compilation.
+
+### @template
+
+Scene-level style contract inherited by every scene unless the scene overrides it.
+
+- font_family: Inter
+- transition_default: fade
+- transition_easing: bezier(0.16,1,0.3,1)
+- caption_style: none
+- enter_animation: fade-in
+- exit_animation: fade-out
+
+### @caption_template
+
+Caption overlay contract: typography, active-word highlight, positioning, and enter/exit animation.
+
+- caption_style: tiktok
+- caption_size: 80
+- caption_highlight: "#39E508"
+- font_family: Inter
+- position: bottom
+- enter_animation: fade-in
+- exit_animation: fade-out
+
+### @broll_template
+
+B-Roll overlay contract: default duration, fit mode, positioning, and enter/exit animation.
+
+- duration: 4
+- fit: cover
+- position: bottom
+- enter_animation: fade-in
+- exit_animation: fade-out
 
 ## Objectives
 

@@ -782,6 +782,8 @@ const unitSection = computed(() => {
       return resolveHeadingSection(rawContent.value, unit.slug)
     case 'row':
     case 'pointer':
+    case 'element':
+    case 'matrix':
       return null
     default:
       return assertNever(unit, 'knowledge unit kind')
@@ -949,6 +951,8 @@ function headingTextForUnit(): string | null {
       return unit.text
     case 'row':
     case 'pointer':
+    case 'element':
+    case 'matrix':
       return null
     default:
       return assertNever(unit, 'knowledge unit kind')

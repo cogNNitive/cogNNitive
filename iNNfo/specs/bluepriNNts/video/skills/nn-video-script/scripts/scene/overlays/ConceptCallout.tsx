@@ -5,9 +5,16 @@
  */
 
 import React from 'react';
-import { AbsoluteFill, useVideoConfig } from 'remotion';
+import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion';
+import { resolveOverlayAnimation } from '../overlay-animation.mjs';
 
-export const ConceptCallout: React.FC<{ config: Record<string, unknown> }> = ({ config }) => {
+export const ConceptCallout: React.FC<{
+  config: Record<string, unknown>;
+  durationInFrames?: number;
+  enterAnimation?: string;
+  exitAnimation?: string;
+}> = ({ config, durationInFrames = 0, enterAnimation, exitAnimation }) => {
+  const frame = useCurrentFrame();
   const { width, height } = useVideoConfig();
   const s = width / 1920;
   const label = (config.label as string) || '';
@@ -16,8 +23,18 @@ export const ConceptCallout: React.FC<{ config: Record<string, unknown> }> = ({ 
   const fontFamily = (config.fontFamily as string) || 'sans-serif';
   const fontSize = Number(config.fontSize) || 34;
 
+  const motion = resolveOverlayAnimation({ frame, durationInFrames, enterAnimation, exitAnimation });
+
   return (
-    <AbsoluteFill style={{ padding: 64 * s, justifyContent: 'flex-start', alignItems: 'flex-start' }}>
+    <AbsoluteFill
+      style={{
+        padding: 64 * s,
+        opacity: motion.opacity,
+        transform: motion.transform,
+        justifyContent: 'flex-start',
+        alignItems: 'flex-start',
+      }}
+    >
       <div
         style={{
           background: 'rgba(10,10,15,0.85)',

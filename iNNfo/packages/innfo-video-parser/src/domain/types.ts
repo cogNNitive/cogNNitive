@@ -91,6 +91,7 @@ export const SceneSchema = z
       .optional()
       .default([])
       .transform((val) => (Array.isArray(val) ? val : val ? [val] : [])),
+    overlay_events: z.array(z.record(z.string(), z.any())).optional(),
     scene_background_audio_volume: z.number().optional().default(0.2),
     scene_tts_model: z.string().optional(),
     scene_voice: z.string().optional(),

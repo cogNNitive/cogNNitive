@@ -177,6 +177,12 @@ export function serializeKnowledge(model: ParsedKnowledge): string {
     if (fm.spec_url) {
       lines.push(`spec_url: "${fm.spec_url}"`)
     }
+    if (fm.model_slug) {
+      lines.push(`model_slug: "${fm.model_slug}"`)
+    }
+    if (fm.workspace_id) {
+      lines.push(`workspace_id: "${fm.workspace_id}"`)
+    }
     if (fm.level !== undefined) lines.push(`level: ${fm.level}`)
     if (fm.parent_spec) {
       lines.push('parent_spec:')
@@ -217,6 +223,7 @@ export function serializeKnowledge(model: ParsedKnowledge): string {
     const matrices = fm.matrices as
       | Array<{
           name: string
+          slug?: string
           source: string
           target: string
           params?: string
@@ -232,6 +239,7 @@ export function serializeKnowledge(model: ParsedKnowledge): string {
       lines.push('matrices:')
       for (const m of matrices) {
         lines.push(`  - name: "${m.name}"`)
+        if (m.slug) lines.push(`    slug: "${m.slug}"`)
         lines.push(`    source: "${m.source}"`)
         lines.push(`    target: "${m.target}"`)
         if (m.values && m.values.length > 0) {
@@ -252,6 +260,7 @@ export function serializeKnowledge(model: ParsedKnowledge): string {
       lines.push('concepts:')
       for (const c of fm.concepts) {
         lines.push(`  - name: "${c.name}"`)
+        if (c.slug) lines.push(`    slug: "${c.slug}"`)
         if (c.icon) lines.push(`    icon: "${c.icon}"`)
         if (c.type) lines.push(`    type: "${c.type}"`)
         if (c.color) lines.push(`    color: "${c.color}"`)

@@ -13,6 +13,7 @@ export type AstNode =
   | SetNode
   | NoteNode
   | CommentNode
+  | OverlayEventNode
 
 export interface BaseNode {
   type: string
@@ -79,6 +80,18 @@ export interface ContentNode extends BaseNode {
 export interface NoteNode extends BaseNode {
   type: 'Note'
   content: string
+}
+
+/**
+ * A markdown-native ephemeral overlay event declared with a `>` blockquote line,
+ * e.g. `> lower-third: "Dr. Alice Smith" [subtitle="Quantum Researcher"]`.
+ * Owned by the parser so narration/TTS prose never contains directive tokens.
+ */
+export interface OverlayEventNode extends BaseNode {
+  type: 'OverlayEvent'
+  kind: 'quote' | 'lower-third' | 'broll'
+  payload: string
+  options: Record<string, string>
 }
 
 /**

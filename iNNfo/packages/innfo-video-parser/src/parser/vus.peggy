@@ -17,6 +17,7 @@ Block
   / Scene
   / GlobalProperty
   / Comment
+  / BlockQuoteEvent
   / Content
   / TopLevelAssetShortcut
   / Whitespace { return null; }
@@ -30,6 +31,7 @@ Node
   / Scene 
   / GlobalProperty 
   / Comment 
+  / BlockQuoteEvent
   / Content
   / TopLevelAssetShortcut
 
@@ -161,6 +163,33 @@ Comment
   / _ "#" !(" " / "#") content:[^\n]* { return makeNode("Comment", { content: content.join("") }); }
   / _ "#" content:[^\n]* { return makeNode("Comment", { content: content.join("") }); }
 
+// Markdown-native ephemeral overlay: `> kind: payload [key=value]...`
+// Owned by the grammar so the directive never reaches Content and thus never
+// pollutes narration/TTS prose.
+BlockQuoteEvent
+  = _ ">" _ kind:BlockQuoteKind _ ":" _ payload:$([^\[\n\r]*) opts:OptionList? _ EOL {
+      const raw = payload.trim();
+      const clean = raw.length >= 2 && raw.startsWith('"') && raw.endsWith('"') ? raw.slice(1, -1) : raw;
+      return makeNode("OverlayEvent", { kind, payload: clean, options: opts || {}, loc: location() });
+    }
+
+BlockQuoteKind = "lower-third" / "quote" / "broll"
+
+OptionList
+  = items:OptionItem+ {
+      return items.reduce((acc, item) => { acc[item.key] = item.value; return acc; }, {});
+    }
+
+OptionItem
+  = _ "[" _ key:Key _ "=" _ value:OptionValue _ "]" {
+      return { key, value };
+    }
+
+OptionValue
+  = '"' chars:$([^"\]]*) '"' { return chars; }
+  / "'" chars:$([^'\]]*) "'" { return chars; }
+  / $([^\]\n\r]*) { return text().trim(); }
+
 Content
   = (!MarkerLine [^\n\r]+ EOL)+ { 
       const textStr = text().trim();
@@ -175,6 +204,8 @@ MarkerLine
   / _ "//"
 
   / _ "!["
+
+  / _ ">"
 
 GlobalKey = $([a-zA-Z0-9_().\-/]+)
 

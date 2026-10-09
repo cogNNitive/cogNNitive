@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync, existsSync } from 'node:fs'
+import { readFileSync, existsSync, readdirSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -11,6 +11,7 @@ const read = (p) => readFileSync(join(lab, p), 'utf8')
 describe('TestLab coverage domain fixtures', () => {
   it('ships the blueprint, model, sources, and artifacts', () => {
     for (const f of [
+      'domaiNN_NN.md',
       'specs/TestLab_V_0-1-0_spec_NN.md',
       'kNNowledge/TestLab_coverage_TestLab_NN.md',
       'sources/import/field-notes.md',
@@ -102,7 +103,21 @@ describe('TestLab coverage domain fixtures', () => {
 
   it('declares the Concept 1 x Concept 2 matrix with crossings', () => {
     const model = read('kNNowledge/TestLab_coverage_TestLab_NN.md')
-    assert.match(model, /NN Concept 1-Concept 2 Matrix/)
-    assert.match(model, /Element 1A <> Element 2A: relevant/)
+    assert.match(model, /NN matrices: Concept 1-Concept 2 Matrix/)
+    assert.match(model, /\| Element 1A \| relevant \|/)
+  })
+
+  it('ships a workspace hub whose registry points at a real console', () => {
+    const hubs = readdirSync(join(lab, 'artifacts')).filter((f) => /^workspace_hub_\d{8}T\d{6}Z\.html$/.test(f))
+    assert.ok(hubs.length > 0, 'no workspace_hub member found')
+    const hub = read(`artifacts/${hubs.sort().at(-1)}`)
+    const slot = hub.match(/<script id="innfo-workspace-data" type="application\/json">([\s\S]*?)<\/script>/)
+    assert.ok(slot, 'hub data slot missing')
+    const data = JSON.parse(slot[1])
+    assert.equal(data.workspace.title, 'TestLab Coverage Workspace')
+    assert.equal(data.models.length, 1)
+    const consoleRel = data.models[0].consolePath.replace(/^artifacts\//, '')
+    assert.equal(existsSync(join(lab, 'artifacts', consoleRel)), true, `hub console target missing: ${consoleRel}`)
+    assert.equal(data.models[0].hasConsole, true)
   })
 })

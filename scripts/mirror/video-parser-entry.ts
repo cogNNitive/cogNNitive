@@ -28,6 +28,7 @@ export * from '../../iNNfo/packages/innfo-video-parser/src/parser/Parser.js';
 export * from '../../iNNfo/packages/innfo-video-parser/src/parser/Serializer.js';
 export * from '../../iNNfo/packages/innfo-video-parser/src/parser/validation/types.js';
 export * from '../../iNNfo/packages/innfo-video-parser/src/domain/types.js';
+export type { OverlayEventNode } from '../../iNNfo/packages/innfo-video-parser/src/parser/ast.js';
 export { SemanticValidator } from '../../iNNfo/packages/innfo-video-parser/src/parser/SemanticValidator.js';
 
 // Injected at build time (see build-video-parser-mirror.mjs). Referencing it through

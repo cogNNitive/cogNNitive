@@ -154,51 +154,51 @@ export function normalizeElementsIntoGraph(
   const byName = new Map<string, ElementNode>()
   for (const el of allElements) byName.set(el.name, el)
 
-  function resolveParentQualifiedId(elementName: string, seen: Set<string>): string {
-    const taxonomyParentName = parentOfTaxonomy.get(elementName)
-    if (!taxonomyParentName || seen.has(elementName)) {
-      return rootId
+  function resolveParentQualifiedId(el: ElementNode, seen: Set<string>): string {
+    const taxonomyParentName = parentOfTaxonomy.get(el.name)
+    if (taxonomyParentName && !seen.has(el.name)) {
+      if (qualifiedIdByElementName.has(taxonomyParentName)) {
+        return qualifiedIdByElementName.get(taxonomyParentName)!
+      }
+      if (byName.has(taxonomyParentName)) {
+        seen.add(el.name)
+        return resolveParentQualifiedId(byName.get(taxonomyParentName)!, seen)
+      }
     }
-    if (qualifiedIdByElementName.has(taxonomyParentName)) {
-      return qualifiedIdByElementName.get(taxonomyParentName)!
-    }
-    if (byName.has(taxonomyParentName)) {
-      seen.add(elementName)
-      return resolveParentQualifiedId(taxonomyParentName, seen)
-    }
-    return rootId
+    return rootId ? `${rootId}/${el.type}` : el.type
   }
 
-  // Model-wide element-name uniqueness (R-IE-02).
-  //
-  // NOTE: an element that fails this check is DROPPED from the graph, not just
-  // reported — which is why the issue below carries `severity: 'error'`.
-  // Keying this on the element SLUG instead (so an explicit `slug::` could
-  // legitimise the same display name under two concepts) was considered and
-  // deliberately NOT done here: `IdentityRegistry` independently enforces
-  // sibling-name uniqueness and derives each node's qualified id FROM THE
-  // NAME, so changing the rule in one place only would leave the two gates
-  // disagreeing and would move `[[wikilink]]` resolution underneath every
-  // consumer. That belongs in its own change.
-  const modelWideElementNames = new Set<string>()
+  function resolveActualParentId(el: ElementNode, seen: Set<string>): string | null {
+    const taxonomyParentName = parentOfTaxonomy.get(el.name)
+    if (taxonomyParentName && !seen.has(el.name)) {
+      if (qualifiedIdByElementName.has(taxonomyParentName)) {
+        return qualifiedIdByElementName.get(taxonomyParentName)!
+      }
+      if (byName.has(taxonomyParentName)) {
+        seen.add(el.name)
+        return resolveActualParentId(byName.get(taxonomyParentName)!, seen)
+      }
+    }
+    return rootId || null
+  }
 
   for (const el of allElements) {
     try {
-      if (modelWideElementNames.has(el.name)) {
-        throw new Error(
-          `Duplicate element name "${el.name}" — element names must be unique within the whole model`,
-        )
-      }
-      modelWideElementNames.add(el.name)
-
-      const parentQualifiedId = resolveParentQualifiedId(el.name, new Set())
+      const parentQualifiedId = resolveParentQualifiedId(el, new Set())
+      const actualParentId = resolveActualParentId(el, new Set())
       const qualifiedId = ctx.identity.register(parentQualifiedId, el.name)
-      qualifiedIdByElementName.set(el.name, qualifiedId)
+      if (!qualifiedIdByElementName.has(el.name)) {
+        qualifiedIdByElementName.set(el.name, qualifiedId)
+      }
+      qualifiedIdByElementName.set(`${el.type}/${el.name}`, qualifiedId)
+      if (el.slug) {
+        qualifiedIdByElementName.set(el.slug, qualifiedId)
+      }
 
       const node: KnowledgeNode = {
         id: qualifiedId,
         name: el.name,
-        parentId: parentQualifiedId,
+        parentId: actualParentId,
         childIds: [],
         type: el.type,
         kind: 'element',
@@ -212,9 +212,11 @@ export function normalizeElementsIntoGraph(
       }
       attachSourceCitations(node)
       ctx.nodes[qualifiedId] = node
-      const parent = ctx.nodes[parentQualifiedId]
-      if (parent && !parent.childIds.includes(qualifiedId)) {
-        parent.childIds.push(qualifiedId)
+      if (actualParentId && ctx.nodes[actualParentId] && !ctx.nodes[actualParentId].childIds.includes(qualifiedId)) {
+        ctx.nodes[actualParentId].childIds.push(qualifiedId)
+      }
+      if (ctx.nodes[rootId] && !ctx.nodes[rootId].childIds.includes(qualifiedId)) {
+        ctx.nodes[rootId].childIds.push(qualifiedId)
       }
     } catch (err) {
       ctx.issues.push({

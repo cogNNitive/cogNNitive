@@ -25,13 +25,8 @@ function createTempConsoleFixture(repoRoot) {
   const targetConsole = path.join(tmpDir, 'iNNfo', 'specs', 'bluepriNNts', 'console');
   fs.mkdirSync(targetConsole, { recursive: true });
 
-  for (const entry of fs.readdirSync(srcConsole)) {
-    const srcFile = path.join(srcConsole, entry);
-    const stat = fs.statSync(srcFile);
-    if (stat.isFile()) {
-      fs.copyFileSync(srcFile, path.join(targetConsole, entry));
-    }
-  }
+  // Recursive: SOURCES now includes vendor/*.umd.js (preact, htm).
+  fs.cpSync(srcConsole, targetConsole, { recursive: true });
 
   return { tmpDir, targetConsole };
 }
@@ -54,8 +49,12 @@ function main() {
   {
     const expectedSources = [
       'innfo-slug.generated.js',
+      'vendor/preact.umd.js',
+      'vendor/htm.umd.js',
+      'innfo-preact-init.js',
       'uplot.iife.min.js',
       'visuals.js',
+      'innfo-icons.js',
       'ui-kit.js',
       'review.js',
       'innfo-runtime.js',

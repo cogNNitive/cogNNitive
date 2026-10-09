@@ -133,21 +133,23 @@ describe('workspaceStore.open()', () => {
     const workspaceStore = useWorkspaceStore()
     const knowledgeStore = useKnowledgeStore()
 
-    const rootId = 'kNNowledge/Test_V_1-0-0_business_NN.md'
+    const rootId = 'bluepriNNts/business/spec_NN.md'
     knowledgeStore.setGraph(
       {
         [rootId]: {
           id: rootId,
-          name: 'Test_V_1-0-0_business',
+          name: 'business_spec',
           parentId: null,
           childIds: ['child-1'],
           kind: 'concept',
           type: 'root',
-          fields: {},
+          fields: {
+            level: { value: 2 },
+          },
           markers: {},
           relationships: [],
           rawSections: {},
-          rawContent: '---\nknowledge_version: "V_1-0-0"\n---\n# Test',
+          rawContent: '---\nlevel: 2\nknowledge_version: "V_1-0-0"\n---\n# Test',
           source: { path: rootId },
         },
         'child-1': {
@@ -168,8 +170,10 @@ describe('workspaceStore.open()', () => {
     )
 
     const handle = buildFakeTree('workspace', {
-      kNNowledge: {
-        'Test_V_1-0-0_business_NN.md': '---\nknowledge_version: "V_1-0-0"\n---\n# Test',
+      bluepriNNts: {
+        business: {
+          'spec_NN.md': '---\nlevel: 2\nknowledge_version: "V_1-0-0"\n---\n# Test',
+        },
       },
     })
 
@@ -190,21 +194,23 @@ describe('workspaceStore.open()', () => {
     const workspaceStore = useWorkspaceStore()
     const knowledgeStore = useKnowledgeStore()
 
-    const rootId = 'kNNowledge/Test_V_1-0-0_business_NN.md'
+    const rootId = 'bluepriNNts/business/spec_NN.md'
     knowledgeStore.setGraph(
       {
         [rootId]: {
           id: rootId,
-          name: 'Test_V_1-0-0_business',
+          name: 'business_spec',
           parentId: null,
           childIds: ['child-1'],
           kind: 'root',
           type: 'document',
-          fields: {},
+          fields: {
+            level: { value: 2 },
+          },
           markers: {},
           relationships: [],
           rawSections: {},
-          rawContent: '---\nspec_version: "V_0-3-0"\ntitle: "Test Model"\n---\n# NN Business\n',
+          rawContent: '---\nlevel: 2\nspec_version: "V_0-3-0"\ntitle: "Test Model"\n---\n# NN Business\n',
           source: { path: rootId },
         },
         'child-1': {
@@ -230,8 +236,10 @@ describe('workspaceStore.open()', () => {
     )
 
     const handle = buildFakeTree('workspace', {
-      kNNowledge: {
-        'Test_V_1-0-0_business_NN.md': '---\nspec_version: "V_0-3-0"\ntitle: "Test Model"\n---\n# NN Business\n',
+      bluepriNNts: {
+        business: {
+          'spec_NN.md': '---\nlevel: 2\nspec_version: "V_0-3-0"\ntitle: "Test Model"\n---\n# NN Business\n',
+        },
       },
     })
 

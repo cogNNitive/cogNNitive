@@ -324,11 +324,19 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
     definition: {
       name: 'apply_change',
       description:
-        'Apply an intent-level change to a knowledge document and re-validate. Returns updated knowledge or validation errors',
+        'Apply an intent-level change or changeset to knowledge documents and re-validate. Supports two-phase transactional execution from changes/ documents or legacy intent operations.',
       inputSchema: {
         type: 'object',
         properties: {
-          id: { type: 'string', description: 'Knowledge id' },
+          changeset: {
+            type: 'string',
+            description: 'Path to changeset document in changes/ (e.g. changes/ws_agent_changes_NN.md)',
+          },
+          changeset_path: {
+            type: 'string',
+            description: 'Path to changeset document (alias for changeset)',
+          },
+          id: { type: 'string', description: 'Knowledge id (for legacy bare mutation calls)' },
           knowledge_id: { type: 'string', description: 'Knowledge id (alias for id)' },
           domain: {
             type: 'string',
@@ -342,7 +350,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
           },
           op: {
             type: 'string',
-            description: 'Operation to perform',
+            description: 'Operation to perform (for legacy bare mutation calls)',
             enum: [
               'add_concept',
               'add_field',
@@ -359,10 +367,9 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
           args: {
             type: 'object',
             description:
-              'Operation-specific arguments. For update_field: { conceptName, elementName, fieldName, value }. For generate_index: { taxonomy? }. For bump_version: { version: "V_0-5-0" } or { bump: "major" | "minor" | "patch" }. Any op also accepts optional { rationale: string, approved_by: "user" | "agent" }.',
+              'Operation-specific arguments for legacy bare mutation calls. For update_field: { conceptName, elementName, fieldName, value }. For generate_index: { taxonomy? }. For bump_version: { version: "V_0-5-0" } or { bump: "major" | "minor" | "patch" }.',
           },
         },
-        required: ['op', 'args'],
       },
     },
     handler: handleApplyChange,
@@ -853,18 +860,25 @@ async function handleValidateKnowledgeUrl(args: Record<string, unknown>): Promis
 }
 
 async function handleApplyChange(args: Record<string, unknown>): Promise<CallToolResult> {
+  const changesetPath = (args.changeset_path as string) || (args.changeset as string)
   const id = (args.knowledge_id as string) || (args.id as string)
-  const op = args.op as string
-  const opArgs = args.args as Record<string, unknown>
-  if (!id || !op || !opArgs) {
+  const op = args.op as string | undefined
+  const opArgs = (args.args as Record<string, unknown>) || {}
+
+  if (!changesetPath && (!id || !op || !args.args)) {
     return errorResult('Missing required arguments: id, op, args')
   }
+
   const root = (args.domain as string) || (args.root as string) || ROOT_DIR
   const legacyErr = await checkDomainLegacy(root, 'write')
   if (legacyErr) return legacyErr
-  const result = await applyChange(root, id, op, opArgs)
+
+  const result = changesetPath
+    ? await applyChange(root, changesetPath)
+    : await applyChange(root, id!, op!, opArgs)
+
   let payload: Record<string, unknown> = { ...result }
-  if (result.success) {
+  if (result.success && id && op) {
     const filePath = result.newPath ?? (await findKnowledgeFile(root, id))
     const modelRootId = filePath ? modelIdForFile(filePath) : id
     payload = await withPreview(

@@ -20,7 +20,7 @@ const templatesDir = join(import.meta.dirname!, '..', '..', '..', '..', 'specs',
 
 function frontmatterTemplateVersion(absPath: string): string | null {
   const text = readFileSync(absPath, 'utf-8')
-  const match = text.match(/^blueprint_version:\s*"?(V_\d+-\d+-\d+)"?\s*$/m)
+  const match = text.match(/^blueprint_version:\s*"?(V_\d+-\d+-\d+|\d+\.\d+\.\d+)"?\s*$/m)
   return match ? match[1] : null
 }
 

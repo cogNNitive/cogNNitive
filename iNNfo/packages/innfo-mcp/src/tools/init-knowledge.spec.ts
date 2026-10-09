@@ -259,7 +259,7 @@ describe('initKnowledge', () => {
       expect(result.content).toContain('knowledge_version: "V_0-2-0"')
     })
 
-    it('Mismatch refused: a differing explicit version fails with VERSION_MISMATCH and writes nothing', async () => {
+    it('Explicit differing version accepted: decoupled knowledge_version succeeds without VERSION_MISMATCH (D9)', async () => {
       const { existsSync } = await import('node:fs')
       await stubBusinessTemplate()
 
@@ -269,11 +269,11 @@ describe('initKnowledge', () => {
         knowledge_version: 'V_9-9-9',
       })
 
-      expect(result.success).toBe(false)
+      expect(result.success).toBe(true)
       expect(result.templateResolved).toBe(true)
-      expect(result.validation.valid).toBe(false)
-      expect(result.validation.errors.some((e) => e.code === 'VERSION_MISMATCH')).toBe(true)
-      expect(existsSync(join(rootDir, 'Mismatch_NN.md'))).toBe(false)
+      expect(result.validation.valid).toBe(true)
+      expect(result.content).toContain('knowledge_version: "V_9-9-9"')
+      expect(existsSync(join(rootDir, 'Mismatch_NN.md'))).toBe(true)
     })
   })
 

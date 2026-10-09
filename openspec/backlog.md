@@ -1279,3 +1279,26 @@ address.
 and the change-log half of `feature/kb-change-governance`.
 
 **Suggested trigger:** `/sdd-new stable-element-identity` (S1).
+---
+
+## 30. `chore/trannsformations-vigencia` — evaluate whether `traNNsformations/` is still vigente
+
+**Type:** chore / decision · **Size:** small · **Status:** decided (2026-10-07, keep + document)
+
+**Decision:** KEEP. `traNNsformations/` is live code (single-shot `--apply` templates via `transformer.js`), a different concept from multi-step `procedures/` SOPs. Documented the templates-vs-procedures rule in `skills/nn-trannsform/SKILL.md` (section 5 table + note). No merge, no rename — the CLI vocabulary depends on it.
+
+**Situation today (verified):** `traNNsformations/` is NOT dead, but it is
+near-vestigial. It holds single-shot transformation templates applied with
+`--apply <name>` (`skills/nn-trannsform/scripts/transformer.js`,
+`scripts/index.js:998`; created by `scripts/lib/bootstrap.js`). It is a
+*different concept* from `procedures/` (multi-step SOPs compliant with
+`procedures_V_0-1-0_NN.md`) — deliberately excluded from the vocabulary rename
+(`iNNfo/specs/vocabulary.json`). Real usage has drifted to `procedures/`;
+`traNNsformations/` ships as an empty dir per bootstrap at zero cost.
+
+**Decision to make:** keep (and document when to use template vs procedure),
+merge into `procedures/`, or retire (stop scaffolding + migrate the `--apply`
+path). Do NOT touch the `template` identifier blindly — the CLI vocabulary
+depends on it (precedent: `2026-09-12-vocabulary-simplification`).
+
+**Suggested trigger:** `/sdd-explore trannsformations-vigencia`.

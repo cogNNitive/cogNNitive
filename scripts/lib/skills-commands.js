@@ -43,6 +43,14 @@ const { registerMcpAuto } = require('./mcp-config-adapter.js');
 
 const DEFAULT_MANIFEST_URL = 'https://cognnitive.com/use/manifest.md';
 const FALLBACK_MANIFEST_URL = 'https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/docs/use/manifest.md';
+// Repos retired from distribution: pins pointing here 404 on codeload/raw.
+// The fix is re-bootstrap from the canonical manifest, never `update`.
+const RETIRED_SKILL_REPOS = ['cogNNitive/cogNNitive'];
+const RETIRED_REPO_NOTICE =
+  'Your install points at the retired repo cogNNitive/cogNNitive (404). ' +
+  'Back up ~/.agents/bootstrap-state.json and ~/.agents/skills/, then re-bootstrap: ' +
+  'tell your agent "I want to use https://cognnitive.com/use". ' +
+  'Do NOT downgrade to older public pins — they lack nn-upgrade and skills-manager.js.';
 const DEFAULT_SKILLS_DIR = path.join(os.homedir(), '.agents', 'skills');
 const DEFAULT_BLUEPRINTS_DIR = path.join(os.homedir(), '.agents', 'bluepriNNts');
 const DEFAULT_MCP_DIR = path.join(os.homedir(), '.agents', 'mcp');
@@ -158,6 +166,40 @@ function saveState(file, state) {
   saveJsonAtomic(file, state, 2);
 }
 
+/**
+ * Returns true when a manifest pin targets a retired distribution repo.
+ * @param {{ repo?: string }} item
+ * @returns {boolean}
+ */
+function isRetiredPin(item) {
+  return !!item && RETIRED_SKILL_REPOS.includes(item.repo);
+}
+
+/**
+ * Warns when the active manifest still pins the retired repo, so the user
+ * gets migration instructions instead of a raw 404 from codeload.
+ * @param {Array<object>} pins
+ * @returns {void}
+ */
+function warnOnRetiredPins(pins) {
+  if ((pins || []).some(isRetiredPin)) {
+    console.log(`\nNOTICE (retired repo): ${RETIRED_REPO_NOTICE}\n`);
+  }
+}
+
+/**
+ * Rewrites a raw codeload/raw 404 on a retired repo into the migration notice.
+ * @param {object} item
+ * @param {Error} err
+ * @returns {Error}
+ */
+function withRetiredHint(item, err) {
+  if (isRetiredPin(item) && /status:\s*404|Failed to (fetch|download).*404/.test(err.message)) {
+    return new Error(`${err.message}\n${RETIRED_REPO_NOTICE}`);
+  }
+  return err;
+}
+
 // ---------------------------------------------------------------------------
 // Tarball handling helpers
 // ---------------------------------------------------------------------------
@@ -229,7 +271,11 @@ async function installSkillAtCommit(skill, skillsDir, state) {
   try {
     const tarball = path.join(tmpRoot, 'skill.tar.gz');
     const url = `https://codeload.github.com/${skill.repo}/tar.gz/${skill.commit}`;
-    await downloadFile(url, tarball);
+    try {
+      await downloadFile(url, tarball);
+    } catch (err) {
+      throw withRetiredHint(skill, err);
+    }
 
     const extractDir = path.join(tmpRoot, 'x');
     extractTarball(tarball, extractDir);
@@ -350,7 +396,11 @@ async function installBlueprintAtCommit(template, blueprintsDir, state, skillsDi
   try {
     const tarball = path.join(tmpRoot, 'tmpl.tar.gz');
     const url = `https://codeload.github.com/${template.repo}/tar.gz/${template.commit}`;
-    await downloadFile(url, tarball);
+    try {
+      await downloadFile(url, tarball);
+    } catch (err) {
+      throw withRetiredHint(template, err);
+    }
 
     const extractDir = path.join(tmpRoot, 'x');
     extractTarball(tarball, extractDir);
@@ -559,6 +609,7 @@ async function consentOrAbort(label, names, menu, yes) {
 async function cmdStatus(args) {
   const manifestRaw = await fetchManifestString();
   const { skills, blueprints, consoleAssets } = parseManifest(manifestRaw);
+  warnOnRetiredPins([...skills, ...blueprints]);
   const state = loadState(args.stateFile);
 
   const rows = [];
@@ -1330,4 +1381,8 @@ module.exports = {
   cmdUpdate,
   cmdSync,
   cmdBootstrap,
+  RETIRED_SKILL_REPOS,
+  RETIRED_REPO_NOTICE,
+  isRetiredPin,
+  withRetiredHint,
 };

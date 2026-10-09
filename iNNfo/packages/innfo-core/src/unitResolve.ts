@@ -1,7 +1,13 @@
 import { parseCsvTable } from './csvTable.js'
 import { assertNever } from './assertNever.js'
 import { resolveJsonPointer } from './jsonPointer.js'
-import { extractHeadings, normalizeName, resolveHeadingSection, type SourceRef } from './sourceRef.js'
+import {
+  extractHeadings,
+  normalizeName,
+  resolveHeadingSection,
+  slugifyHeading,
+  type SourceRef,
+} from './sourceRef.js'
 
 export type ResolvedUnit =
   | { kind: 'section'; startLine: number; endLine: number }
@@ -11,6 +17,93 @@ export type ResolvedUnit =
   | { kind: 'pointer'; pointer: string; value: unknown }
 
 export const FIELD_LINE = /^\s*([^\s:][^:]*?)\s*::/
+
+function resolveElementUnit(
+  content: string,
+  unit: { slug: string },
+  subunits: string[],
+): ResolvedUnit | null {
+  const headings = extractHeadings(content)
+  const lines = content.split('\n')
+  let matchedHeading: (typeof headings)[0] | undefined
+  for (const h of headings) {
+    if (h.level === 2) {
+      const section = resolveHeadingSection(content, h.slug)
+      if (section) {
+        for (let i = section.startLine + 1; i < section.endLine; i++) {
+          const m = lines[i].match(/^\s*slug\s*::\s*([^\s]+)/)
+          if (m && m[1].toLowerCase() === unit.slug.toLowerCase()) {
+            matchedHeading = h
+            break
+          }
+          if (/^#{1,6}\s/.test(lines[i])) break
+        }
+      }
+    }
+    if (matchedHeading) break
+  }
+  if (!matchedHeading) {
+    matchedHeading = headings.find(
+      (h) =>
+        h.slug === unit.slug ||
+        (h.element && slugifyHeading(h.element) === unit.slug) ||
+        h.slug.endsWith(`--${unit.slug}`),
+    )
+  }
+  if (!matchedHeading) return null
+  const section = resolveHeadingSection(content, matchedHeading.slug)
+  if (!section) return null
+  if (subunits.length === 0) {
+    return { kind: 'section', startLine: section.startLine, endLine: section.endLine }
+  }
+  if (subunits.length === 1) {
+    const owned = sectionOwnLines(content, matchedHeading.slug)
+    if (!owned) return null
+    const wanted = normalizeName(subunits[0])
+    const found: number[] = []
+    for (const i of owned) {
+      const field = lines[i].match(FIELD_LINE)
+      if (field && normalizeName(field[1]) === wanted) found.push(i)
+    }
+    return found.length > 0 ? { kind: 'field', lines: found } : null
+  }
+  return null
+}
+
+function resolveMatrixUnit(
+  content: string,
+  unit: { matrixSlug: string; rowSlug?: string; colSlug?: string },
+  subunits: string[],
+): ResolvedUnit | null {
+  const headings = extractHeadings(content)
+  const lines = content.split('\n')
+  const matchedHeading = headings.find(
+    (h) =>
+      h.slug === unit.matrixSlug ||
+      h.slug === `matrices--${unit.matrixSlug}` ||
+      h.text.toLowerCase().includes(unit.matrixSlug.toLowerCase()),
+  )
+  if (!matchedHeading) return null
+  const section = resolveHeadingSection(content, matchedHeading.slug)
+  if (!section) return null
+
+  const row = unit.rowSlug ?? subunits[0]
+  const col = unit.colSlug ?? subunits[1]
+  if (row && col) {
+    const table = parseMarkdownTable(lines.slice(section.startLine, section.endLine))
+    if (!table) return null
+    const wantedRow = normalizeName(row)
+    const wantedCol = normalizeName(col)
+    const rowIdx = table.rows.findIndex((r) => normalizeName(r[0] ?? '') === wantedRow)
+    if (rowIdx === -1) return null
+    const colIdx = table.headers.findIndex((h) => normalizeName(h) === wantedCol)
+    if (colIdx === -1) return null
+    const value = table.rows[rowIdx][colIdx]
+    if (value === undefined) return null
+    return { kind: 'cell', row: rowIdx, column: table.headers[colIdx], value }
+  }
+  return { kind: 'section', startLine: section.startLine, endLine: section.endLine }
+}
 
 function resolveHeaderUnit(
   content: string,
@@ -109,6 +202,10 @@ export function resolveUnit(content: string, ref: SourceRef): ResolvedUnit | nul
       const found = resolveJsonPointer(content, unit.pointer)
       return found.ok ? { kind: 'pointer', pointer: unit.pointer, value: found.value } : null
     }
+    case 'element':
+      return resolveElementUnit(content, unit, subunits)
+    case 'matrix':
+      return resolveMatrixUnit(content, unit, subunits)
     default:
       return assertNever(unit, 'knowledge unit kind')
   }

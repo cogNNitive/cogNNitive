@@ -414,7 +414,7 @@ describe('identity collision throws error (R-IE-02)', () => {
     expect(hasHashSuffix).toBe(false)
   })
 
-  it('same-named elements across concepts are reported in normalizeSingleKnowledge', async () => {
+  it('same-named elements across concepts are allowed in normalizeSingleKnowledge (reversing R-IE-02)', async () => {
     const { normalizeSingleKnowledge } = await import('../src/recursiveParser')
     const content = [
       '---',
@@ -444,10 +444,12 @@ describe('identity collision throws error (R-IE-02)', () => {
     const collisionIssues = result.issues.filter((i) =>
       i.message.toLowerCase().includes('duplicate'),
     )
-    expect(collisionIssues.length).toBeGreaterThan(0)
+    expect(collisionIssues.length).toBe(0)
+    const elements = Object.values(result.nodes).filter((n) => n.kind === 'element')
+    expect(elements).toHaveLength(2)
   })
 
-  it('catches matching names under different taxonomy parents', async () => {
+  it('allows matching names under different taxonomy parents (D3)', async () => {
     const { normalizeSingleKnowledge } = await import('../src/recursiveParser')
     const content = [
       '---',
@@ -480,7 +482,9 @@ describe('identity collision throws error (R-IE-02)', () => {
     const collisionIssues = result.issues.filter((i) =>
       i.message.toLowerCase().includes('duplicate'),
     )
-    expect(collisionIssues.length).toBeGreaterThan(0)
+    expect(collisionIssues.length).toBe(0)
+    const elements = Object.values(result.nodes).filter((n) => n.kind === 'element')
+    expect(elements).toHaveLength(2)
   })
 })
 
@@ -550,13 +554,11 @@ describe('applyMutation (R-IE-01)', () => {
     expect(elements.some((e) => e.name === 'Review')).toBe(true)
   })
 
-  it('rejects duplicate element across concepts (model-wide)', () => {
-    // Add a second concept, then try adding an element with same name
+  it('rejects duplicate sibling element in the same concept', () => {
     const model = makeModel()
-    applyMutation(model, 'add_concept', { conceptName: 'Steps', type: 'list' })
-    // Triage already exists in Work; try adding Triage in Steps
+    // Triage already exists in Work; try adding Triage in Work
     const result = applyMutation(model, 'add_element', {
-      conceptName: 'Steps',
+      conceptName: 'Work',
       elementName: 'Triage',
     })
     expect(result.success).toBe(false)
@@ -603,17 +605,13 @@ describe('applyMutation (R-IE-01)', () => {
     expect(elements.some((e) => e.name === 'Triage')).toBe(false)
   })
 
-  it('rejects rename to existing element name (model-wide)', () => {
+  it('rejects rename to existing element name in the same concept', () => {
     const model = makeModel()
-    applyMutation(model, 'add_concept', { conceptName: 'Steps', type: 'list' })
-    applyMutation(model, 'add_element', {
-      conceptName: 'Steps',
-      elementName: 'Prioritize',
-    })
+    applyMutation(model, 'add_element', { conceptName: 'Work', elementName: 'Review' })
     const result = applyMutation(model, 'rename_element', {
       conceptName: 'Work',
-      elementName: 'Triage',
-      newName: 'Prioritize',
+      elementName: 'Review',
+      newName: 'Triage',
     })
     expect(result.success).toBe(false)
   })

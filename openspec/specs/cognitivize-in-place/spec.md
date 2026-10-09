@@ -177,6 +177,6 @@ The ingest path MUST NOT read or write `sources/nn/`, `sources/original/`, `sour
 A transcript promoted to `sources/conversations/` MUST be a write-once markdown raw file, cognitivized in place. The `sources/nn/conversations/` mirror MUST NOT exist.
 
 #### Scenario: Promoted transcript has a co-located sidecar
-- GIVEN a finalized transcript promoted with `[full]`
+- GIVEN a finalized transcript promoted (auto-promote default path)
 - WHEN promotion completes
 - THEN `sources/conversations/<slug>_<UTC suffix>.md` (the suffix is the contract UTC timestamp) and its `_sidecar_NN.md` sit side by side

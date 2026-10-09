@@ -1117,7 +1117,7 @@ export async function fetchSpecContent(
   }
   const isRemote = url && /^https?:\/\//i.test(url)
   const isCanonicalRemote =
-    isRemote && /raw\.githubusercontent\.com\/cogNNitive\/cogNNitive\//i.test(url)
+    isRemote && /raw\.githubusercontent\.com\/cogNNitive\/[^/]+\/(main|v[\d.]+)\//i.test(url)
   if (!isRemote || isCanonicalRemote) {
     const canonical = findCanonicalBlueprint(name) || (url ? findCanonicalBlueprint(url) : null)
     if (canonical) return canonical.specContent
