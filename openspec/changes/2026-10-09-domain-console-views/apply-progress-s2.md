@@ -270,3 +270,40 @@ A fresh review of S2c2 found seven points. Resolution:
 Skipped by decision: stale draft keys across same-named roots (pre-existing, out of scope).
 
 Mutation checks (fix reverted, RED seen, restored): view/selection guard, missing view id, runtime scoped chrome removal, `focusElementCard` guard, scoped draft key, scoped changeset title, sample lock.
+
+## S2d Timeline view
+
+Status: tasks 2d.1-2d.9 done, 2d.10 verified (node --test green, innfo-core green except one pre-existing failure, check-integrity green except a worktree-only dist-provenance guard), fresh-context review done and its findings fixed. Branch `session/deepseek-s2d` (5 commits, pushed). 2d.11 (templates release + sample regeneration + MCP restage) is operational, pending the maintainer.
+
+### Commits
+
+- `664b93af` feat(console): flatten bluepriNNt view discovery and project timeline rows into meta.models[]
+- `a4612317` feat(console): make timeline renderers host-scoped and ship the metrics timeline view
+- `ff87fcb5` feat(console): retire the metrics timeline shell, point consumers at the view, bump metrics to V_0-4-2
+- `d7950672` chore(versions): sync metrics V_0-4-2 across samples, catalog and editor shipped versions
+- `2e6d9f2a` fix(console): align S2d spec paths, harness timeline probe and chart claims with the flat view
+
+### 2d.1 (verified fork 4)
+
+`fetchSubdir('assets')` in `resolver-node.ts` iterates the GitHub contents API and takes only `entry.type === 'file'`, so nested `assets/consoles/views/` never survives an install. Decision taken: bluepriNNt views are FLAT at `<pkg>/assets/console-view-<slug>.js`; the domaiNN root stays `<domainRoot>/consoles/views/<slug>.js`. `scripts/console-views.mjs` walks the `/assets` roots and filters `console-view-*.js`; source labels stay `bluepriNNt:<base>/assets/console-view-<slug>.js`.
+
+### Design as built
+
+- `deriveProjection(elements)` (in `console-views.mjs`) turns a metrics model's `Metrics`/`Variables` elements into timeline rows (growth from `Evolution` relations via element id, formula unless `<placeholder>`, `months` from the widest `Scenario.scenarioMonths`), and returns `null` without a scenario horizon. `export-console.mjs` adds `blueprint` (parent_spec base) and `projection` to each `meta.models[]` entry only when non-null.
+- `renderCharts(host, ...)`, `renderStudioView(host, ...)`, `renderTimelineGrid(container, model, meta, hooks)` take elements (no `getElementById`); `renderTimelineGrid` creates its own grid and studio hosts and renders an edit-row action when `hooks.onEditRow` is given. `builtinViews` loses the `canonical`/`studio` pair; boot loses the `renderCharts`/`renderTimelineGrid` calls; `artifact_shell.html` drops `#innfo-charts`, `#innfo-tab-domain`, `#innfo-tab-studio`.
+- `metrics/assets/console-view-timeline.js`: order 10, editable, reads `ctx.payload.models[].projection`, calls `InnfoConsole.renderTimelineGrid(host, {rows}, {months}, { onEditRow: (id) => ctx.modal.edit({ elementId: id }) })`, empty state when no projection.
+
+### Deviations and decisions
+
+1. `projection.rows` is an array derived by the EXPORTER (maintainer chose option A), so the view stays thin and the derivation is unit-testable in the lib.
+2. `renderStudioView` stays internal to the runtime; the timeline view renders the grid, and `renderTimelineGrid` mounts the studio into its own child host, preserving the old canonical+studio behaviour inside one tab.
+3. Charts do not render in the domain timeline: the aggregate payload has no per-model `series`, and the change is a non-goal on the schema. `renderCharts` keeps its host-element signature for the reference shells; the metrics procedure text no longer claims charts render.
+4. The metrics blueprint bumps to `V_0-4-2`; `sync-versions`/`blueprint-catalog`/`sync-samples` regenerated `samples.ts`, `catalog.json` and the versioned sample (`Ghostbusters_V_0-4-2_metrics_NN.md`).
+
+### Surprises and limits
+
+- `metrics-console-slot.test.ts` and `console-thinning.test.ts` read `timeline.html`; repointed to the view file. `console-shell-guard.test.js` asserted four live shells and a `.dark` check on `timeline.html`; both removed (three shells now).
+- `console-dom.test.ts` "emits a file named by the feedback contract" fails with `acme_...` vs `Acme_...` — reproduced on the chain tip (`8b0a4cdf`), so it is pre-existing, not S2d. Its feedback export filename is unchanged by this slice.
+- `check-integrity` is green except `Docs-Derived Facts Drift Guard`; the worktree has no built `dist`, so `innfo-core`/`innfo-mcp` dist was copied from the primary (which is on `dev`), and the guard compares the primary's MCP tool facts against this chain's HEAD — a worktree/artifacts-provenance artifact, not an S2d regression.
+- The Ghostbusters sample console (`metrics/samples/Ghostbusters_V_0-1-0_console.html`) is a frozen fixture (the thinning guard asserts its legacy inline colors); regenerating it to carry the timeline view is deferred to 2d.11 with the templates release.
+- The tracked `iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js` still embeds the pre-S2d metrics spec; restage it (`stage-mcp-bundle.mjs`) before release.
