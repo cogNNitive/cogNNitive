@@ -94,36 +94,33 @@ Luis,28,Technician
 
 ---
 
-## Test 4: Agent (LLM) transformation — Draft
+## Test 4: Agent (LLM) transformation with citations
 
 **Instruction for OpenCode:**
 
-> I want to generate a draft summary of the project documents. Use the skill to do a "summary" type transformation in draft format.
+> I want to generate a summary of the project documents. Use the skill to do a "summary" type transformation.
 
 **Expected result:**
-- ✅ OpenCode asks you what type of transformation you want
+- ✅ OpenCode asks what kind of template you want (Markdown or iNNfo V_0-1-0)
 - ✅ You choose "Create new" (or "Summary" if offered)
-- ✅ OpenCode asks if you want draft or final version
-- ✅ You choose "Draft"
-- ✅ OpenCode generates a new write-once file `artifacts/[name]_draft_<YYYYMMDDTHHmmssZ>.md`
-- ✅ The draft includes the header `# DRAFT FOR REVIEW — NOT FINAL VERSION`
-- ✅ The draft includes source citations (e.g., `— Source: sources/import/informe.txt`)
-- ✅ If unsure about any data, it includes markers like `[unconfirmed data — review]`
+- ✅ OpenCode asks which citation and export format to use
+- ✅ You pick a format (e.g. Standard Markdown Footnotes)
+- ✅ OpenCode generates a new write-once file `artifacts/[name]_<YYYYMMDDTHHmmssZ>.md`
+- ✅ The file includes source citations in the chosen format (e.g., footnotes resolving into `sources/import/...`)
 
 ---
 
-## Test 5: Transformation — Final version
+## Test 5: Transformation — no sources
 
 **Instruction for OpenCode:**
 
-> Now generate a clean final version of the same summary.
+> Now generate a clean version of the same summary with no source references.
 
 **Expected result:**
-- ✅ OpenCode asks if you want to include source references
-- ✅ You answer yes (or no)
-- ✅ OpenCode generates a new `artifacts/[name]_<YYYYMMDDTHHmmssZ>.md` (the earlier draft is untouched)
-- ✅ The file has NO draft markers or annotations
-- ✅ (Optional) Includes source references if you said yes
+- ✅ OpenCode asks which citation and export format to use
+- ✅ You pick `[i] No sources`
+- ✅ OpenCode generates a new `artifacts/[name]_<YYYYMMDDTHHmmssZ>.md` (the earlier output is untouched)
+- ✅ The file has no citation markers, reference list, or lineage markers
 
 ---
 
@@ -185,8 +182,8 @@ If you have a docx or pdf file in the source folder, when running the scan:
 | 1 | Skill installation | — |
 | 2 | Project bootstrap | — |
 | 3 | Scan and detection | — |
-| 4 | Draft transformation | — |
-| 5 | Final transformation | — |
+| 4 | Transformation with citations | — |
+| 5 | Transformation — no sources | — |
 | 6 | Traceability (if applicable) | — |
 | 7 | CLI fallback | — |
 | 8 | Import from the web | — |
