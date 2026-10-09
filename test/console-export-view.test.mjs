@@ -300,4 +300,65 @@ describe('export-console size budget and --view (S2c2)', () => {
       assert.ok(doc.querySelector('.innfo-highlight'), 'the explorer card is highlighted')
     })
   })
+
+  describe('draft isolation between views', () => {
+    // Each view stashes its ctx per mount so the test can drive several consoles in one window.
+    const proposingView = (title) => `registerView({
+  title: '${title}', icon: 'layout', order: 1, kind: 'editable',
+  mount(ctx) {
+    ctx.container.textContent = '${title} mounted'
+    ;(window.__ctxs = window.__ctxs || []).push({ title: '${title}', ctx })
+  },
+})
+`
+    const storedDrafts = (win, key) => JSON.parse(win.localStorage.getItem(key)).drafts
+
+    it('puts two views of one domain console in the same changeset and keeps scoped consoles apart', async () => {
+      await addView('alpha', proposingView('Alpha'))
+      await addView('beta', proposingView('Beta'))
+      for (const argv of [['--domain'], ['--view', 'alpha'], ['--view', 'beta']]) {
+        assert.equal((await runCli([root, ...argv])).code, 0)
+      }
+      const domain = await boot(await readFile(domainFile(), 'utf-8'))
+      const win = domain.window
+      const elementId = modelOf(domain).elements[0].id
+      for (const id of ['alpha', 'beta']) win.document.querySelector(`#innfo-view-tabs [data-tab="${id}"]`).click()
+      const byTitle = (title) => win.__ctxs.filter((c) => c.title === title).pop().ctx
+
+      // Two views, one console: both drafts land in the same store and the same changeset.
+      byTitle('Alpha').store.propose({ kind: 'comment', elementId, comment: 'from alpha view' })
+      byTitle('Beta').store.propose({ kind: 'comment', elementId, comment: 'from beta view' })
+      const [domainKey, ...others] = Object.keys(win.localStorage)
+      assert.deepEqual(others, [])
+      assert.equal(storedDrafts(win, domainKey).length, 2)
+      const composed = byTitle('Alpha').changeset.compose('tester')
+      assert.equal(composed.ok, true, String(composed.errors))
+      assert.match(composed.changesetText, /from alpha view/)
+      assert.match(composed.changesetText, /from beta view/)
+
+      // Scoped consoles booted in the same window, over the same real localStorage.
+      const scopedDoc = async (id) => {
+        const html = await readFile((await viewOutputs(id))[0], 'utf-8')
+        const doc = new win.DOMParser().parseFromString(html, 'text/html')
+        assert.equal(win.InnfoConsole.boot(doc).ok, true)
+        doc.querySelector(`#innfo-view-tabs [data-tab="${id}"]`).click()
+        return win.__ctxs.filter((c) => c.ctx.container.ownerDocument === doc).pop().ctx
+      }
+      const alphaCtx = await scopedDoc('alpha')
+      alphaCtx.store.propose({ kind: 'comment', elementId, comment: 'scoped alpha only' })
+      const betaCtx = await scopedDoc('beta')
+      betaCtx.store.propose({ kind: 'comment', elementId, comment: 'scoped beta only' })
+
+      const keys = Object.keys(win.localStorage)
+      assert.equal(keys.length, 3)
+      const alphaKey = keys.find((k) => k.endsWith('::view:alpha'))
+      const betaKey = keys.find((k) => k.endsWith('::view:beta'))
+      assert.ok(alphaKey && betaKey && alphaKey !== betaKey)
+      assert.deepEqual(storedDrafts(win, alphaKey).map((d) => d.comment), ['scoped alpha only'])
+      assert.deepEqual(storedDrafts(win, betaKey).map((d) => d.comment), ['scoped beta only'])
+      assert.equal(storedDrafts(win, domainKey).length, 2, 'the domain drafts are untouched')
+      assert.equal(alphaCtx.changeset.count(), 1)
+      assert.equal(betaCtx.changeset.count(), 1)
+    })
+  })
 })

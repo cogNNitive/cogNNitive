@@ -1,6 +1,6 @@
 import { describe, it, before, after } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, rm, cp, readFile } from 'node:fs/promises'
+import { mkdtemp, rm, cp, readFile, readdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -17,6 +17,7 @@ const VIEW_ID = 'missing-descriptions'
 describe('sample custom view (_samples_nn/consoles/views/missing-descriptions.js)', () => {
   let tmp
   let html
+  let scopedHtml
 
   before(async () => {
     tmp = await mkdtemp(join(tmpdir(), 'nn-sample-view-'))
@@ -26,14 +27,18 @@ describe('sample custom view (_samples_nn/consoles/views/missing-descriptions.js
     })
     assert.match(stdout, /size: total \d+ B/)
     html = await readFile(join(tmp, 'domaiNN_console.html'), 'utf-8')
+    await execFileAsync(process.execPath, [scriptPath, tmp, '--view', VIEW_ID], { maxBuffer: 64 * 1024 * 1024 })
+    const dir = join(tmp, 'artifacts', `${VIEW_ID}_view`)
+    const [name] = await readdir(dir)
+    scopedHtml = await readFile(join(dir, name), 'utf-8')
   })
 
   after(async () => {
     await rm(tmp, { recursive: true, force: true })
   })
 
-  const boot = async () => {
-    const dom = new JSDOM(html, {
+  const boot = async (source = html) => {
+    const dom = new JSDOM(source, {
       url: 'http://localhost',
       runScripts: 'dangerously',
       beforeParse(w) {
@@ -70,37 +75,67 @@ describe('sample custom view (_samples_nn/consoles/views/missing-descriptions.js
     assert.equal(rows.length, missing.length, 'exactly the elements without a description')
   })
 
-  it('proposes a description change that lands in the single changeset', async () => {
-    const dom = await boot()
+  // Drives the console's own export UI and captures the changeset it would download.
+  const exportChangeset = (dom) => {
     const doc = dom.window.document
-    doc.querySelector(`#innfo-view-tabs [data-tab="${VIEW_ID}"]`).click()
+    const downloads = []
+    dom.window.Blob = class {
+      constructor(parts) {
+        this.text = parts.join('')
+      }
+    }
+    dom.window.URL.createObjectURL = (blob) => {
+      downloads.push({ text: blob.text })
+      return 'blob:test'
+    }
+    dom.window.URL.revokeObjectURL = () => {}
+    dom.window.HTMLAnchorElement.prototype.click = function () {
+      if (this.download) downloads[downloads.length - 1].filename = this.download
+    }
+    doc.getElementById('innfo-feedback-open').click()
+    const identifier = doc.querySelector('#innfo-feedback-modal [data-innfo="identifier"]')
+    identifier.value = 'tester'
+    identifier.dispatchEvent(new dom.window.Event('input'))
+    doc.querySelector('#innfo-feedback-modal [data-innfo="download-changeset"]').click()
+    return downloads
+  }
+
+  it('proposes a description in the scoped console and exports it in the single changeset', async () => {
+    const dom = await boot(scopedHtml)
+    const doc = dom.window.document
+    assert.equal(doc.getElementById('innfo-view-errors'), null)
     const row = doc.querySelector(`#innfo-tab-${VIEW_ID} [data-element-id]`)
     const id = row.dataset.elementId
     row.querySelector('input').value = 'A proposed description.'
     row.querySelector('button').click()
 
-    const hostWindow = dom.window
-    const state = hostWindow.InnfoConsole
-    assert.ok(state, 'runtime present')
-    // The Changes tab count and the exported changeset both see the draft.
     const reviewTab = doc.querySelector('#innfo-view-tabs [data-tab="review"]')
     assert.match(reviewTab.textContent, /1/)
-    reviewTab.click()
-    assert.match(doc.getElementById('innfo-tab-review').textContent, /A proposed description\./)
-    const key = Object.keys(hostWindow.localStorage)[0]
-    const stored = JSON.parse(hostWindow.localStorage.getItem(key))
+    const downloads = exportChangeset(dom)
+    assert.equal(downloads.length, 1, 'a single changeset')
+    const [{ text, filename }] = downloads
+    assert.match(filename, new RegExp(`-${VIEW_ID}_tester_.+_changes_NN\.md$`))
+    assert.match(text, new RegExp(`title: "[^"]+ - Missing descriptions"`))
+    assert.ok(text.includes(id), 'the element id is in the changeset')
+    assert.equal(text.match(/A proposed description./g).length, 1, 'one proposal')
+  })
+
+  it('locks a proposed row so repeated clicks cannot stack duplicate proposals', async () => {
+    const dom = await boot()
+    const doc = dom.window.document
+    const row = doc.querySelector(`#innfo-tab-${VIEW_ID} [data-element-id]`)
+    const input = row.querySelector('input')
+    const button = row.querySelector('button')
+    input.value = 'First.'
+    button.click()
+    assert.equal(button.disabled, true)
+    assert.equal(input.disabled, true)
+    assert.equal(button.textContent, 'Proposed')
+    input.value = 'Second.'
+    button.click()
+    button.click()
+    const stored = JSON.parse(dom.window.localStorage.getItem(Object.keys(dom.window.localStorage)[0]))
     assert.equal(stored.drafts.length, 1)
-    assert.equal(stored.drafts[0].proposed, 'A proposed description.')
-    assert.equal(stored.drafts[0].field, 'description')
-    assert.equal(stored.drafts[0].element_id, id)
-    // The runtime's own export composer turns that draft into the changeset.
-    const composed = state.composeExport(
-      { store: { drafts: () => stored.drafts }, modelTitle: 'Sample', modelVersion: 'V_1-0-0', modelId: 'sample', meta: {} },
-      'tester',
-    )
-    assert.equal(composed.ok, true, String(composed.errors))
-    assert.equal(composed.items, 1)
-    assert.match(composed.changesetText, /A proposed description./)
-    assert.ok(composed.changesetText.includes(id))
+    assert.equal(stored.drafts[0].proposed, 'First.')
   })
 })

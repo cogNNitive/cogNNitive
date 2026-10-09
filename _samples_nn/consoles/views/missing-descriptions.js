@@ -13,6 +13,24 @@ registerView({
     heading.textContent = missing.length + ' element(s) without a description'
     ctx.container.appendChild(heading)
 
+    const rows = []
+    // A row with a pending description draft is locked, so a repeated click cannot
+    // stack duplicate proposals; removing the draft in Changes unlocks it again.
+    const sync = () => {
+      const pending = new Set(
+        ctx.store
+          .drafts()
+          .filter((d) => d.field === 'description')
+          .map((d) => d.element_id),
+      )
+      rows.forEach((r) => {
+        const locked = pending.has(r.id)
+        r.input.disabled = locked
+        r.button.disabled = locked
+        r.button.textContent = locked ? 'Proposed' : 'Propose description'
+      })
+    }
+
     missing.forEach((el) => {
       const row = doc.createElement('div')
       row.dataset.elementId = el.id
@@ -34,9 +52,13 @@ registerView({
           proposed: text,
         })
         input.value = ''
+        sync()
       })
+      rows.push({ id: el.id, input, button })
       row.append(label, input, button)
       ctx.container.appendChild(row)
     })
+    sync()
+    ctx.store.onChange(sync)
   },
 })
