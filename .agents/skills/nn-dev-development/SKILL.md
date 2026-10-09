@@ -65,7 +65,9 @@ primary checkout; the primary-tree guard blocks it.
 ⚠️ It junctions the root `node_modules`, `iNNfo/node_modules`, and every workspace
 (`iNNfo/packages/*`, `iNNfo/apps/*`) and skill `node_modules` that exists in the primary.
 A dependency missing from the **local install** (a partial / `--omit=dev` install — e.g.
-`vitest` present in neither the root nor the workspace) is an environment gap, not a code error. The `pre-push` hook detects a session
+`vitest` present in neither the root nor the workspace) is an environment gap, not a code error. `start` now
+detects a stale install (declared range vs installed version) and prints a `STALE DEPENDENCIES`
+warning naming the fix — do not trust the worktree as a test baseline until that warning is gone. The `pre-push` hook detects a session
 worktree (its `git-dir` differs from the shared `git-common-dir`) and **skips the local
 typecheck with a clear message**, because the workspace symlinks resolve `@cognnitive/*` to the
 primary checkout and a local typecheck would check the wrong tree. CI runs the real typecheck
@@ -89,15 +91,18 @@ pre-existing:
 
 Isolation makes write collisions impossible, so there is no process scan. What *does*
 drift is the primary checkout itself: it must stay on `dev`, clean, and in sync with
-`origin/dev` (it is the base every session worktree is cut from). Check and report, one line:
+`origin/dev` (it is the base every session worktree is cut from). One command reports it
+all — branch, dirtiness, `origin/dev` sync, pending batch, worktrees, stash, and stale deps:
 
 ```powershell
-git fetch origin
-git status -sb                                       # expect: ## dev...origin/dev, no files
-git rev-list --left-right --count origin/dev...dev   # expect 0 0
-git worktree list
-git reflog show refs/stash                           # parked work nobody owns
+node scripts/nn-session.mjs status
 ```
+
+`status` fetches (best-effort, offline-safe) and prints one block; it always exits 0.
+It also flags **stale dependencies** — an installed version below the declared range —
+because a session worktree inherits the primary's install through junctions, so a stale
+primary silently poisons every test and gate run in the worktree (the false-baseline trap
+of issue #122). `start` prints the same warning. The fix is `npm install` in the **primary**.
 
 If the primary is not on `dev`, is dirty, or is behind, **say so first** — do not write
 into it. A clean-but-behind primary may be fast-forwarded (`git switch dev` then
@@ -131,8 +136,33 @@ in Section 4.
 
 ### 2a. Maintainer requests a dedicated branch
 
-If the maintainer explicitly asks for a dedicated branch, honor it with the conventional
+If the maintainer explicitly requests a dedicated branch, honor it with the conventional
 shape `<tipo>/<kebab-case>`; treat it as the session's integration target.
+
+---
+
+## 2b. Change size decides the process lane
+
+For a solo developer driving agents, the full SDD + integrity ceremony on every change is
+the main source of drag. Match the ceremony to the blast radius — never run the heavy lane
+"just in case":
+
+- **Light lane (default).** A change that touches one module, adds no public contract, and
+  needs no release: work in the session worktree, commit on `session/<id>`, push, open a PR,
+  and let CI be the verifier. **No** OpenSpec proposal/design/spec/tasks, **no** full
+  `check-integrity`. This covers most bug fixes and internal refactors.
+- **Heavy lane.** Public contract changes, product behavior, a release/version bump, a
+  migration, or anything cross-cutting: run the full SDD cycle (`nn-dev-check-integrity`
+  after apply) and the batched merge in §4.
+
+Rule of thumb: if CI can catch a mistake before it reaches `main`, the light lane is enough.
+
+### 2c. Keep the backlog shrinking
+
+Do not register a new OpenSpec change while the active backlog is large. At the time of
+writing there were **14 active changes against 154 archived** — the backlog was growing
+faster than it drained, which is bureaucracy feeding itself. Prefer draining over proposing:
+fix in place, or fold a small finding into the change already open for that area.
 
 ---
 
@@ -142,6 +172,9 @@ shape `<tipo>/<kebab-case>`; treat it as the session's integration target.
   `session/<id>` branch **only if** the branch is merged into `dev` (local or `origin/dev`);
   otherwise it refuses and lists the unique commits. It also refuses a dirty worktree:
   save what matters, then revert the rest (`git apply --reverse` of a saved patch).
+  A missing, empty, or process-locked leftover dir is tolerated: `stop` deregisters the
+  worktree, deletes the merged branch, cleans an empty leftover dir, and reports any dir a
+  live process still holds — it never crashes on one (recovery for the 2026-10-08 lock bug).
 - `node scripts/nn-session.mjs list` shows each session worktree and its branch.
 - A worktree that is clean **and** merged is safe to `stop` as soon as the session ends;
   do not let them pile up. Never remove one whose branch has unique commits, and never
