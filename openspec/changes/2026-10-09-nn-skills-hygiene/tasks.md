@@ -26,12 +26,12 @@ Chain strategy: pending
 
 ## Phase 1: Generator + `--check` (Strict TDD)
 
-- [ ] 1.1 RED: create `scripts/build-skill-shared-rules.test.mjs` — assert `renderSharedRules` selects mapped sections only (`nn` excludes taxonomy/grace), byte-stable across two calls; run, confirm fail.
-- [ ] 1.2 RED: in same suite, spawn CLI `--root <tmp>` fixture — in-sync→0, hand-edited block→1 `DRIFT`, missing markers→2; run, confirm fail.
-- [ ] 1.3 Create `scripts/skill-shared-rules.md` with `## rule: <id>` sections: `governance`, `conversation-lifecycle`, `citation-taxonomy`, `informative-grace` (grace = language-neutral instruction + English example, D5).
-- [ ] 1.4 Create `scripts/build-skill-shared-rules.mjs`: exports `renderSharedRules`, `SECTION_IDS`, `SKILL_SECTION_MAP`, `run`; CLI `[--check] [--root]` using `replaceRegion`; exit 1 drift, 2 missing markers (D2/D3).
-- [ ] 1.5 GREEN: `node scripts/build-skill-shared-rules.test.mjs` passes.
-- [ ] 1.6 `npm run lint` + `npm run typecheck:scripts` + `npm run format:check` clean on new files. `verify.js` NOT wired (repo stays green).
+- [x] 1.1 RED: create `scripts/build-skill-shared-rules.test.mjs` — assert `renderSharedRules` selects mapped sections only (`nn` excludes taxonomy/grace), byte-stable across two calls; run, confirm fail.
+- [x] 1.2 RED: in same suite, spawn CLI `--root <tmp>` fixture — in-sync→0, hand-edited block→1 `DRIFT`, missing markers→2; run, confirm fail.
+- [x] 1.3 Create `scripts/skill-shared-rules.md` with `## rule: <id>` sections: `governance`, `conversation-lifecycle`, `citation-taxonomy`, `informative-grace` (grace = language-neutral instruction + English example, D5).
+- [x] 1.4 Create `scripts/build-skill-shared-rules.mjs`: exports `renderSharedRules`, `SECTION_IDS`, `SKILL_SECTION_MAP`, `run`; CLI `[--check] [--root]` using `replaceRegion`; exit 1 drift, 2 missing markers (D2/D3).
+- [x] 1.5 GREEN: `node scripts/build-skill-shared-rules.test.mjs` passes.
+- [x] 1.6 `npm run lint` + `npm run typecheck:scripts` + `npm run format:check` clean on new files. `verify.js` NOT wired (repo stays green).
 
 ## Phase 2: Apply to 3 Skills — GATED
 
