@@ -1,4 +1,5 @@
 import { JSDOM } from 'jsdom'
+import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -53,6 +54,30 @@ export function bootConsole() {
     </body></html>`,
     { url: 'http://localhost' },
   )
+  global.window = dom.window
+  global.document = dom.window.document
+  global.localStorage = dom.window.localStorage
+  global.CustomEvent = dom.window.CustomEvent
+  const res = InnfoConsole.boot(dom.window.document)
+  return { dom, document: dom.window.document, res }
+}
+
+// Boots the console from the REAL artifact shell, where #innfo-matrices already
+// sits inside #innfo-tab-explorer. Scripts are stripped (the runtime is loaded
+// above) and the model/schema slots are filled with the test model.
+export function bootConsoleFromShell() {
+  const shell = readFileSync(join(consoleDir, 'artifact_shell.html'), 'utf8')
+  const html = shell
+    .replace(/<script\s+src=[^>]*><\/script>/g, '')
+    .replace(
+      /(<script type="application\/json" id="innfo-model">)[\s\S]*?(<\/script>)/,
+      (_m, open, close) => open + JSON.stringify(MODEL) + close,
+    )
+    .replace(
+      /(<script type="application\/json" id="innfo-schema">)[\s\S]*?(<\/script>)/,
+      (_m, open, close) => open + JSON.stringify({ concepts: [{ name: 'Fleet' }] }) + close,
+    )
+  const dom = new JSDOM(html, { url: 'http://localhost' })
   global.window = dom.window
   global.document = dom.window.document
   global.localStorage = dom.window.localStorage
