@@ -105,6 +105,7 @@ Wrapper emitted per view, after the inlined bundle:
 | | `procedures/assets/procedure_console.html` | Delete; bump `procedures` `template_version` |
 | S3 hub | `workspace/assets/workspace_hub.html`, `workspace/procedures/compile_workspace_hub_NN.md`, `_samples_nn/procedures/compile_workspace_hub_procedures_NN.md`, `docs/innfo/documentation/workspace-console-hub.md`, `innfo-core/tests/workspace-hub.test.ts`, editor `ConsoleHubView.vue` + `ConsoleHubView-open-external.test.ts` | Delete |
 | | `_samples_nn/procedures_NN.md`, `_samples_nn/artifacts_NN.md`, `_samples_nn/artifacts/models/executive_remediation_report_business_NN.md`, `WorkspaceView.vue`, `consolePrompt.ts(+test)`, `consoleArtifacts.test.ts`, `safe-url.test.ts`, `skills/nn-innfo/SKILL.md`, `reviewer-guide.md`, the two naming tests (gap 8) | Modify |
+| | editor `components/Header.vue` (Consoles button, `selectView`), `stores/uiStore.ts` (`activeView` union drops `consoles`), `composables/useViewSync.ts` (drop the `consoles` mapping), alongside `WorkspaceView.vue` / `ConsoleHubView.vue` | Modify: remove the editor `consoles` view wiring so no dead button remains; the editor build, typecheck and tests stay green |
 | | `test/no-workspace-hub-references.test.mjs` | Create (allowlist from gap 7) |
 
 ## Testing Strategy
@@ -114,7 +115,7 @@ Strict TDD per slice: write the failing test first, record the RED, then go GREE
 | Slice | RED tests |
 |---|---|
 | S2a | Lazy mount; an invalid definition names field and id; reserved ids; a duplicate throws, the first view stays and the notice appears; `(order, id)` ordering; an input value survives tab switches; `#id` and `#matrices` routing; no Matrices tab without matrices |
-| S2b | Two views produce one store and one `composeExport`; the modal goes through the controller's single slot; readonly ctx has no store, modal or changeset; exact `sandbox` value and no `allow-same-origin`; CSP present; an editable iframe is removed and reported with the id (sync and after awaiting the observer); a mount throw stays isolated; a propose from a view updates all three count surfaces |
+| S2b | Two views produce one store and one `composeExport`; the modal goes through the controller's single slot; readonly ctx has no store, modal or changeset; exact `sandbox` value and no `allow-same-origin`; no `allow-scripts` (an inline script in the srcdoc does not execute); CSP present; an editable iframe is removed and reported with the id (sync and after awaiting the observer); a mount throw stays isolated; a propose from a view updates all three count surfaces |
 | S2c1 | Pure lib tests (discovery roots, slug/reserved/dupe errors naming both sources, `</script` escaping, header text); CLI writes one file, the header lists views, and the artifact boots under jsdom `runScripts: 'dangerously'` |
 | S2c2 | Budget at 6e6 warns and at 16e6 fails, with the breakdown; `--view nope` exits non-zero, lists ids and writes nothing; `--view` mounts only that view, with a scoped key and filename; the sample view proposes a change that lands in the changeset |
 | S2d/S2e | Tabs present; panel rendering uses no global ids; a draft from timeline and one from procedure export in one changeset |
@@ -130,5 +131,5 @@ S2 exceeds 400 lines, so it ships as S2a -> S2b -> S2c1 -> S2c2 -> S2d -> S2e, w
 
 - [x] Spec addendum for S2d, S2e and S3 written (2026-10-09): MODIFIED deltas for `metrics-console-adoption`, `innfo-console-runtime`, `nn-naming-contract`, `template-procedures-manifest-and-discovery`, `editor-navigation`, `editor-lineage-ui` and `innfo-skill-menu`.
 - [x] Decided (maintainer, 2026-10-09): the readonly iframe stays script-free (gap 3): no `allow-scripts`, no `allow-same-origin`. Gap 3 and `console-view-registry` already match; no design change. A future view that needs JS would require a new decision.
-- [ ] Gap found by the addendum: the editor `consoles` view is also wired in `Header.vue` (button, `selectView`), `stores/uiStore.ts` (`activeView` union) and `composables/useViewSync.ts`. File Changes (S3) must add them as Modify, otherwise deleting `ConsoleHubView.vue` leaves a dead button. The `editor-navigation` delta assumes the `consoles` view is removed.
+- [x] Resolved (2026-10-09): the editor `consoles` view is also wired in `Header.vue` (button, `selectView`), `stores/uiStore.ts` (`activeView` union) and `composables/useViewSync.ts`. S3 File Changes now lists them as Modify, so deleting `ConsoleHubView.vue` leaves no dead button. The `editor-navigation` delta assumes the `consoles` view is removed.
 - [ ] Verify in S2d that the MCP `fetchSubdir('assets')` copies nested `assets/consoles/views/`. If it does not, flatten to `assets/console-view-<slug>.js` (exporter-only change).
