@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * skills/nn-video-script/scripts/synthesize-avatar.mjs
+ * nn-video-script/scripts/synthesize-avatar.mjs
  *
  * Talking-avatar (lip-sync) video synthesis through the SAME spend guard as compile.
  * Avatars must be produced with this script, never with ad-hoc API/MCP calls.

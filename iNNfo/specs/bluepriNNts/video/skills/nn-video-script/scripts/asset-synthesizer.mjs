@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * skills/nn-video-script/scripts/asset-synthesizer.mjs
+ * nn-video-script/scripts/asset-synthesizer.mjs
  *
  * Deterministic TTS and media asset synthesis with content-addressed caching.
  * Adapts ElevenLabs, Edge-TTS, and Replicate media providers with graceful local fallbacks.

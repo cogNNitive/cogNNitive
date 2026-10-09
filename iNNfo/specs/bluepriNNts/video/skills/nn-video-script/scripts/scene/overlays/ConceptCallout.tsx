@@ -1,5 +1,5 @@
 /**
- * skills/nn-video-script/scripts/scene/overlays/ConceptCallout.tsx
+ * nn-video-script/scripts/scene/overlays/ConceptCallout.tsx
  *
  * Labeled callout box with a highlight accent, anchored top-left.
  */

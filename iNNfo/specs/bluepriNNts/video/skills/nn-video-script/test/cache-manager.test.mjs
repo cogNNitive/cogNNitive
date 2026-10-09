@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * skills/nn-video-script/test/cache-manager.test.mjs
+ * nn-video-script/test/cache-manager.test.mjs
  *
  * Unit tests for CacheManager and AssetSynthesizer:
  * - SHA-256 hash determinism across runs and option key orders

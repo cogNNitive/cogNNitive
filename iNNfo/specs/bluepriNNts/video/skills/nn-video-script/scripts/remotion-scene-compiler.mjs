@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * skills/nn-video-script/scripts/remotion-scene-compiler.mjs
+ * nn-video-script/scripts/remotion-scene-compiler.mjs
  *
  * Transforms parsed VUS / Markdown video scripts into typed Remotion Composition Manifests.
  * Computes frame-accurate timings, sequence tracks, audio bindings, transitions, and

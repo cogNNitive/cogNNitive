@@ -1,5 +1,5 @@
 /**
- * skills/nn-video-script/scripts/lib/avatar-jobs.mjs
+ * nn-video-script/scripts/lib/avatar-jobs.mjs
  *
  * One avatar job = one scene's audio + the avatar still image. This module is the single
  * definition of (a) which layers are avatar layers, (b) where a scene's audio comes from and

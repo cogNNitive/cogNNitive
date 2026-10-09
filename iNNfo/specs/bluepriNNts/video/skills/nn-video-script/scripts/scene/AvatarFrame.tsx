@@ -1,5 +1,5 @@
 /**
- * skills/nn-video-script/scripts/scene/AvatarFrame.tsx
+ * nn-video-script/scripts/scene/AvatarFrame.tsx
  *
  * Distinct visual treatment for a `talking_avatar` layer: a still avatar image
  * presented as a framed portrait (contained, centered, with a border and a soft

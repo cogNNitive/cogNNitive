@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * skills/nn-video-script/test/video-engine-cli.test.mjs
+ * nn-video-script/test/video-engine-cli.test.mjs
  *
  * Integration tests for video-engine-cli:
  * - CLI compilation of script to manifest

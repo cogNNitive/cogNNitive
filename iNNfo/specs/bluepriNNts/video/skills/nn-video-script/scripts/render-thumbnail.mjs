@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * skills/nn-video-script/scripts/render-thumbnail.mjs
+ * nn-video-script/scripts/render-thumbnail.mjs
  *
  * Programmatic typography and branding compositor for video thumbnails
  * (two-phase-thumbnail spec). Takes a clean 16:9 base image, composites

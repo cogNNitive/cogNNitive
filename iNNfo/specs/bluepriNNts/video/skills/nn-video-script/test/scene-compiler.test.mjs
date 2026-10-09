@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * skills/nn-video-script/test/scene-compiler.test.mjs
+ * nn-video-script/test/scene-compiler.test.mjs
  *
  * Unit tests for RemotionSceneCompiler:
  * - VUS/markdown script parsing and manifest generation

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * skills/nn-video-script/scripts/asset-cost-estimator.mjs
+ * nn-video-script/scripts/asset-cost-estimator.mjs
  *
  * Pre-generation asset planning, provider & model catalog, and per-scene cost estimator.
  * Aligned with VUS V_0-3-3 specification for MiniMax TTS, WaveSpeed & Replicate

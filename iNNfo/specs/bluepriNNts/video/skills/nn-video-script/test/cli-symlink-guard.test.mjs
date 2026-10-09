@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * skills/nn-video-script/test/cli-symlink-guard.test.mjs
+ * nn-video-script/test/cli-symlink-guard.test.mjs
  *
  * Regression test for the symlink/junction-safe CLI entry guard. Every
  * `scripts/*.mjs` with a self-execution guard is invoked both through a

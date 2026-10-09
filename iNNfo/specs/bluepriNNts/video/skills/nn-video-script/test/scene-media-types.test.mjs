@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * skills/nn-video-script/test/scene-media-types.test.mjs
+ * nn-video-script/test/scene-media-types.test.mjs
  *
  * Guards the media-type coverage of the composition:
  *  1. `pickLayerPrimitive` maps every layer type to the right Remotion primitive.

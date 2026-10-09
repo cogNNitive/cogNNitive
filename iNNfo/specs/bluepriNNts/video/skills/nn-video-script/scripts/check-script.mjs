@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * skills/nn-video-script/scripts/check-script.mjs
+ * nn-video-script/scripts/check-script.mjs
  *
  * The Zero-Unresolved-Placeholder Gate plus the No-Upward-Escape asset check
  * for series `script.md` files (series-script-templates, video-folder-contract).

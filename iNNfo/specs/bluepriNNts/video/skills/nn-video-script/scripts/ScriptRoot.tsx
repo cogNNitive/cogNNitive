@@ -1,5 +1,5 @@
 /**
- * skills/nn-video-script/scripts/ScriptRoot.tsx
+ * nn-video-script/scripts/ScriptRoot.tsx
  *
  * Remotion composition root. Registers a single `<Composition>` whose `id` is the
  * stable `COMPOSITION_ID` the CLI passes to `selectComposition({ serveUrl, id, inputProps })`.

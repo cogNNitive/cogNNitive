@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * skills/nn-video-script/test/vus-spec-pin.test.mjs
+ * nn-video-script/test/vus-spec-pin.test.mjs
  *
  * Regression test for the pinned VUS spec. The spec is vendored INSIDE this skill
  * (`<skill>/specs/<version>.json`) so an installed copy is self-contained; nothing

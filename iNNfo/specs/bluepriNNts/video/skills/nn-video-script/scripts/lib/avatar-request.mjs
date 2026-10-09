@@ -1,5 +1,5 @@
 /**
- * skills/nn-video-script/scripts/lib/avatar-request.mjs
+ * nn-video-script/scripts/lib/avatar-request.mjs
  *
  * The ONE place the talking-avatar request body is built. The WaveSpeed infinitetalk request
  * schema is UNVERIFIED (taken from the earlier asset-synthesizer code); if it turns out to be

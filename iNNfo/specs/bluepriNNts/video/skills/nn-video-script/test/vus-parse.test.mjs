@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * skills/nn-video-script/test/vus-parse.test.mjs
+ * nn-video-script/test/vus-parse.test.mjs
  *
  * Tests for vus-parse.mjs. The parser is the self-contained mirror committed
  * inside the skill (`scripts/lib/innfo-video-parser.generated.mjs`), so every test

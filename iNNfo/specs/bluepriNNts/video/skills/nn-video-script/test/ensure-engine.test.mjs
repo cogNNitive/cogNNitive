@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * skills/nn-video-script/test/ensure-engine.test.mjs
+ * nn-video-script/test/ensure-engine.test.mjs
  *
  * Guards the consent-gated, idempotent engine install:
  *  1. Idempotent no-op when @remotion/renderer resolves and the version pin matches.

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * skills/nn-video-script/scripts/vus-parse-runner.mjs
+ * nn-video-script/scripts/vus-parse-runner.mjs
  *
  * Internal helper. Imports the vendored VUS parser mirror
  * (`./lib/innfo-video-parser.generated.mjs`, committed inside the skill) and parses

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * skills/nn-video-script/scripts/finalize-video.mjs
+ * nn-video-script/scripts/finalize-video.mjs
  *
  * The finalize/register step (video-folder-contract — "Finalize/Register Step
  * Promotes Rendered Output"). Copies `master`/`thumbnail`/`voiceover` out of

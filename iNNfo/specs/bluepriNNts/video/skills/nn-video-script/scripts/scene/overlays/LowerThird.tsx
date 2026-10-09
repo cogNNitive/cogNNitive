@@ -1,5 +1,5 @@
 /**
- * skills/nn-video-script/scripts/scene/overlays/LowerThird.tsx
+ * nn-video-script/scripts/scene/overlays/LowerThird.tsx
  *
  * Simple lower-third name/label graphic anchored to a corner.
  */

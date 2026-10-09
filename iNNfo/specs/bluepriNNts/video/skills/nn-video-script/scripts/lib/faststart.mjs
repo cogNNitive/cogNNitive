@@ -1,5 +1,5 @@
 /**
- * skills/nn-video-script/scripts/lib/faststart.mjs
+ * nn-video-script/scripts/lib/faststart.mjs
  *
  * WaveSpeed MP4 outputs carry the moov atom at the end, which breaks the Remotion proxy.
  * When ffmpeg is on PATH this remuxes with `-c copy -movflags +faststart` (no re-encode),

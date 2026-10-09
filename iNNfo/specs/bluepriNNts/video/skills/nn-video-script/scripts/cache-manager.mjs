@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * skills/nn-video-script/scripts/cache-manager.mjs
+ * nn-video-script/scripts/cache-manager.mjs
  *
  * Deterministic SHA-256 asset cache manager for media & TTS synthesis.
  * Implements content-addressed storage under `.cognnitive/cache/video/`

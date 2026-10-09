@@ -1,5 +1,5 @@
 /**
- * skills/nn-video-script/scripts/remotion-entry.tsx
+ * nn-video-script/scripts/remotion-entry.tsx
  *
  * Remotion entry point. `@remotion/bundler` bundles this file; the renderer then
  * resolves the composition registered here by id. Loaded only when the Remotion

@@ -1,5 +1,5 @@
 /**
- * skills/nn-video-script/scripts/lib/cli-args.mjs
+ * nn-video-script/scripts/lib/cli-args.mjs
  *
  * Small strict argv parser: `--flag value`, `--flag=value`, booleans that never
  * swallow a following positional, repeatable flags, and loud errors for a missing

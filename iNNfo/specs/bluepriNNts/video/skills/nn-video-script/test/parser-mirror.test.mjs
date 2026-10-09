@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * skills/nn-video-script/test/parser-mirror.test.mjs
+ * nn-video-script/test/parser-mirror.test.mjs
  *
  * Guards the self-contained VUS parser mirror:
  *  1. The committed ESM artifact imports and parses a valid script with zero issues,

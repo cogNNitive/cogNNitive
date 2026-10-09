@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * skills/nn-video-script/scripts/ensure-engine.mjs
+ * nn-video-script/scripts/ensure-engine.mjs
  *
  * Idempotent, consent-gated installer for the Remotion renderer runtime. The parser
  * is already vendored (no npm needed); this only brings in the renderer + bundler and,

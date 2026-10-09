@@ -1,5 +1,5 @@
 /**
- * skills/nn-video-script/scripts/scene/overlays/Captions.tsx
+ * nn-video-script/scripts/scene/overlays/Captions.tsx
  *
  * TikTok-style word-level captions. The manifest carries plain narration text;
  * this component splits it into evenly-timed tokens across its own duration

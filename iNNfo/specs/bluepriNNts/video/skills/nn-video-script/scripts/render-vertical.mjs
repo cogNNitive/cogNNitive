@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * skills/nn-video-script/scripts/render-vertical.mjs
+ * nn-video-script/scripts/render-vertical.mjs
  *
  * Cheap 16:9 -> 9:16 reframe fallback (no provider cost): blur background +
  * centered video + series header + episode title. Prefer the native path

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * skills/nn-video-script/scripts/vus-parse.mjs
+ * nn-video-script/scripts/vus-parse.mjs
  *
  * Runs the vendored VUS parser over a script and fails only on parser ERRORS.
  * Warnings are reported but never block authoring - a scene may legitimately

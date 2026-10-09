@@ -1,5 +1,5 @@
 /**
- * skills/nn-video-script/scripts/lib/video-guard.mjs
+ * nn-video-script/scripts/lib/video-guard.mjs
  *
  * Spend guardrails for billable video-provider calls: workspace config
  * (`video-guard.json`), model allow/block lists, a per-run budget, a rolling

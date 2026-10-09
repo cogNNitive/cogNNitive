@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * skills/nn-video-script/scripts/vus-spec.mjs
+ * nn-video-script/scripts/vus-spec.mjs
  *
  * Reads the VUS spec vendored inside this skill (`<skill>/specs/<v>.json`, a
  * byte-identical copy of `iNNfo/packages/innfo-video-parser/specs/<v>.json`), verifies the pinned

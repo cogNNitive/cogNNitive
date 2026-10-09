@@ -1,5 +1,5 @@
 /**
- * skills/nn-video-script/scripts/scene/overlays/KineticTitle.tsx
+ * nn-video-script/scripts/scene/overlays/KineticTitle.tsx
  *
  * Centered heading/subheading with a simple scale-up entrance. Motion is kept
  * minimal on purpose (no spring choreography in this change).

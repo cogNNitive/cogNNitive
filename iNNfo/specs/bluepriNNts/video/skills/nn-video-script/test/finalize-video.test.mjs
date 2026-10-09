@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * skills/nn-video-script/test/finalize-video.test.mjs
+ * nn-video-script/test/finalize-video.test.mjs
  *
  * Unit tests for finalize-video.mjs — the finalize/register step that
  * promotes `master`/`thumbnail`/`voiceover` out of `renders/<ref>/` into the

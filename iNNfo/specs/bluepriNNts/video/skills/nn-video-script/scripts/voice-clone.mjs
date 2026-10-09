@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * skills/nn-video-script/scripts/voice-clone.mjs
+ * nn-video-script/scripts/voice-clone.mjs
  *
  * Usage: node voice-clone.mjs <name> <sample-audio> [--series <slug>] [--force]
  *

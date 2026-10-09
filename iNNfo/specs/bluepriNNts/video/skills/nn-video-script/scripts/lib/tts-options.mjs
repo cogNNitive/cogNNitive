@@ -1,5 +1,5 @@
 /**
- * skills/nn-video-script/scripts/lib/tts-options.mjs
+ * nn-video-script/scripts/lib/tts-options.mjs
  *
  * The single definition of the TTS cache identity of a scene's narration: the voice options
  * compile builds and the registered-voice resolution the synthesizer applies. compile,

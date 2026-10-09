@@ -1,5 +1,5 @@
 /**
- * skills/nn-video-script/scripts/scene/Scene.tsx
+ * nn-video-script/scripts/scene/Scene.tsx
  *
  * Renders one Remotion scene: background (image or color), narration audio, the
  * scene title, and any overlay components. Purely presentational — all timing and

@@ -1,5 +1,5 @@
 /**
- * skills/nn-video-script/scripts/scene/layer-primitive.mjs
+ * nn-video-script/scripts/scene/layer-primitive.mjs
  *
  * Pure mapping from a VUS `layer_type` to the Remotion primitive kind that draws
  * it. Kept in a plain `.mjs` module with zero Remotion/React imports so the

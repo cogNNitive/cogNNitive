@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * skills/nn-video-script/scripts/approve-plan.mjs
+ * nn-video-script/scripts/approve-plan.mjs
  *
  * Usage: node approve-plan.mjs <asset_plan.md> [--allow-model <name>]...
  *

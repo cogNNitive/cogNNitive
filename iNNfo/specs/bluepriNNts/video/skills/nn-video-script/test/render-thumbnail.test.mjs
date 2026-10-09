@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * skills/nn-video-script/test/render-thumbnail.test.mjs
+ * nn-video-script/test/render-thumbnail.test.mjs
  *
  * Unit tests for render-thumbnail.mjs: SVG generation, text escaping,
  * CLI argument parsing, and Sharp image compositing.

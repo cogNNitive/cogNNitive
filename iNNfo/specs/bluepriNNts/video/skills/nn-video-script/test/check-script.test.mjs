@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * skills/nn-video-script/test/check-script.test.mjs
+ * nn-video-script/test/check-script.test.mjs
  *
  * Unit tests for check-script.mjs — the Zero-Unresolved-Placeholder Gate and
  * the No-Upward-Escape asset check. Zero external test framework dependencies

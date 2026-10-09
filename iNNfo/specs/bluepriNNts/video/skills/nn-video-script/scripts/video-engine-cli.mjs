@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * skills/nn-video-script/scripts/video-engine-cli.mjs
+ * nn-video-script/scripts/video-engine-cli.mjs
  *
  * Headless CLI and programmatic engine for Remotion compilation, rendering,
  * and preview server initialization.

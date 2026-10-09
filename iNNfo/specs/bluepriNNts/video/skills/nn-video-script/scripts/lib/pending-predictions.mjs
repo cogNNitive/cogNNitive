@@ -1,5 +1,5 @@
 /**
- * skills/nn-video-script/scripts/lib/pending-predictions.mjs
+ * nn-video-script/scripts/lib/pending-predictions.mjs
  *
  * Append-only journal of long-running provider tasks at
  * `<workspaceRoot>/.cognnitive/pending-predictions.jsonl`. A task id is written the moment

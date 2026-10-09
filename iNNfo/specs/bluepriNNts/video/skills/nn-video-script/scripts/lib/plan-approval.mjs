@@ -1,5 +1,5 @@
 /**
- * skills/nn-video-script/scripts/lib/plan-approval.mjs
+ * nn-video-script/scripts/lib/plan-approval.mjs
  *
  * Plan approval as an artifact. The cost estimator stamps `plan_hash` (sha256 of
  * the normalized script text + explicitly chosen models), the estimated total and

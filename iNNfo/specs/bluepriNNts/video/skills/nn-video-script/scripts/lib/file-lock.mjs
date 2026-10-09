@@ -1,5 +1,5 @@
 /**
- * skills/nn-video-script/scripts/lib/file-lock.mjs
+ * nn-video-script/scripts/lib/file-lock.mjs
  *
  * Cross-process advisory locks built on exclusive file creation (`openSync` flag "wx").
  *

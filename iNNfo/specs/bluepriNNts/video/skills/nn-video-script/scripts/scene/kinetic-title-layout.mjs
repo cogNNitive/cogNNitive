@@ -1,5 +1,5 @@
 /**
- * skills/nn-video-script/scripts/scene/kinetic-title-layout.mjs
+ * nn-video-script/scripts/scene/kinetic-title-layout.mjs
  *
  * Pure layout resolution for the kineticTitle overlay. Plain `.mjs` with no
  * Remotion/React imports so it is unit-testable without the renderer.

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * skills/nn-video-script/test/asset-synthesizer.test.mjs
+ * nn-video-script/test/asset-synthesizer.test.mjs
  *
  * Guards the FFmpeg-free audio duration path:
  *  1. probeAudioDuration accepts an injectable `parseMedia` seam and calls it with

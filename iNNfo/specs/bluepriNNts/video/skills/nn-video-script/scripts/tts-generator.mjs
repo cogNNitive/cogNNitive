@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * skills/nn-video-script/scripts/tts-generator.mjs
+ * nn-video-script/scripts/tts-generator.mjs
  *
  * TTS generator module providing direct TTS synthesis, duration probing,
  * and deterministic caching.

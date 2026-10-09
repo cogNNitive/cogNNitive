@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * skills/nn-video-script/test/rebranding-scan.test.mjs
+ * nn-video-script/test/rebranding-scan.test.mjs
  *
  * Automated test / lint checking:
  * 1. The canonical procedure `generate_video_script_procedures_NN.md` renders through the cogNNitive Video Engine.
