@@ -206,6 +206,7 @@ function extractModelMetaFromHtml(htmlContent) {
 }
 
 const BUNDLE_KEY = 'innfo-console.bundle'
+const UI_CSS_KEY = 'innfo-ui'
 const consoleDirRel = (stem) => `artifacts/${stem}_console`
 
 /** Workspace-relative members of the family `(dir, key, ext)`, via the core name contract. */
@@ -324,9 +325,10 @@ function injectSlots(shell, config, schema, model) {
   return slot(slot(slot(shell, 'innfo-config', config), 'innfo-schema', schema), 'innfo-model', model)
 }
 
-/** Console HTML for one model: the bundle name is injected so each console loads its own pinned bundle. */
-function renderConsole(shell, bundleName, config, payload) {
-  const pinned = bundleName ? shell.replace('./innfo-console.bundle.js', `./${bundleName}`) : shell
+/** Console HTML for one model: the vendored bundle/css names are injected so each console loads its own pinned assets. */
+function renderConsole(shell, bundleName, cssName, config, payload) {
+  let pinned = bundleName ? shell.replace('./innfo-console.bundle.js', `./${bundleName}`) : shell
+  if (cssName) pinned = pinned.replace('./innfo-ui.css', `./${cssName}`)
   return injectSlots(pinned, config, payload.schema, payload.model)
 }
 
@@ -513,19 +515,28 @@ async function main() {
       bundleName = basename(vendored.path)
     }
 
+    // The stylesheet is its own write-once family per folder too; an unchanged css is deduplicated.
+    let cssName = null
+    const uiCssPath = join(consoleDir, 'innfo-ui.css')
+    if (existsSync(uiCssPath)) {
+      const css = await readFile(uiCssPath, 'utf-8')
+      const vendoredCss = await payloadHelper.writeOnce(root, { dir, key: UI_CSS_KEY, ext: 'css' }, css)
+      cssName = basename(vendoredCss.path)
+    }
+
     // Re-render with the previous `generated` stamp: identical bytes mean nothing changed.
     const latestRel = await latestConsole(root, stem)
     if (latestRel) {
       const previous = await readFile(join(root, latestRel), 'utf-8')
       const previousGenerated = extractModelMetaFromHtml(previous)?.generated
-      if (previousGenerated && renderConsole(resolvedShell, bundleName, config, build(previousGenerated)) === previous) {
+      if (previousGenerated && renderConsole(resolvedShell, bundleName, cssName, config, build(previousGenerated)) === previous) {
         unchanged++
         console.log(`= ${basename(latestRel)} unchanged`)
         continue
       }
     }
 
-    const html = renderConsole(resolvedShell, bundleName, config, build(undefined))
+    const html = renderConsole(resolvedShell, bundleName, cssName, config, build(undefined))
     const result = await payloadHelper.writeOnce(root, { dir, key: `${stem}_console`, ext: 'html' }, html, {
       inputs: [relPath],
     })
@@ -622,7 +633,7 @@ async function main() {
       },
     }
 
-    let domainHtml = renderConsole(resolvedShell, null, config, domainPayload)
+    let domainHtml = renderConsole(resolvedShell, null, null, config, domainPayload)
     if (!domainHtml.includes('data-theme=')) {
       domainHtml = domainHtml.replace('<html lang="en">', '<html lang="en" data-theme="light">')
     }
