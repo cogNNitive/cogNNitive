@@ -133,6 +133,58 @@ describe('tabs from the registry', () => {
     assert.ok(document.getElementById('innfo-tab-pipeline').classList.contains('active'))
   })
 
+  it('does not remount on a search refresh', () => {
+    const registry = InnfoConsole.createViewRegistry()
+    let mounts = 0
+    registry.register(def({ mount: () => mounts++ }))
+    const { dom, document } = bootConsole({ registry })
+    document.querySelector('.innfo-view-tab[data-tab="explorer"]').click()
+    document.querySelector('.innfo-view-tab[data-tab="pipeline"]').click()
+    assert.equal(mounts, 1)
+    const box = document.getElementById('innfo-search')
+    box.value = 'ecto'
+    box.dispatchEvent(new dom.window.Event('input'))
+    box.value = ''
+    box.dispatchEvent(new dom.window.Event('input'))
+    document.querySelector('.innfo-view-tab[data-tab="pipeline"]').click()
+    assert.equal(mounts, 1)
+  })
+
+  it('does not mount the default view when an initial search picks Explorer', () => {
+    const registry = InnfoConsole.createViewRegistry()
+    let mounts = 0
+    registry.register(def({ mount: () => mounts++ }))
+    const { document } = bootConsole({ registry, url: 'http://localhost/#q=ecto' })
+    assert.equal(mounts, 0)
+    assert.ok(document.getElementById('innfo-tab-explorer').classList.contains('active'))
+  })
+
+  it('isolates a throwing onShow or onHide and keeps switching tabs', () => {
+    const registry = InnfoConsole.createViewRegistry()
+    registry.register(
+      def({
+        mount: () => ({
+          onShow() {
+            throw new Error('show-fail')
+          },
+          onHide() {
+            throw new Error('hide-fail')
+          },
+        }),
+      }),
+    )
+    const { document } = bootConsole({ registry })
+    const tab = (id) => document.querySelector(`.innfo-view-tab[data-tab="${id}"]`)
+    assert.doesNotThrow(() => {
+      tab('explorer').click()
+      tab('pipeline').click()
+    })
+    assert.ok(document.getElementById('innfo-tab-pipeline').classList.contains('active'))
+    const text = document.getElementById('innfo-view-errors').textContent
+    assert.match(text, /pipeline.*hide-fail/)
+    assert.match(text, /pipeline.*show-fail/)
+  })
+
   it('does not mount a view whose tab is never activated', () => {
     const registry = InnfoConsole.createViewRegistry()
     let mounts = 0
@@ -231,6 +283,11 @@ describe('duplicate and invalid view ids', () => {
     registry.register(def({ id: 'canonical' }))
     const { document } = bootConsole({ registry, model: { ...MODEL, rows: [{}], meta: { ...MODEL.meta, months: 3 } } })
     assert.match(document.getElementById('innfo-view-errors').textContent, /canonical.*duplicate/)
+    const tabs = document.querySelectorAll('.innfo-view-tab[data-tab="canonical"]')
+    assert.equal(tabs.length, 1)
+    assert.match(tabs[0].textContent, /Canonical Spreadsheet/)
+    assert.equal(document.getElementById('innfo-tab-canonical'), null)
+    assert.equal(document.querySelectorAll('.innfo-tab-panel[data-innfo-view]').length, 0)
   })
 })
 
