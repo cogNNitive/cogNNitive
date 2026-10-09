@@ -28,7 +28,7 @@
  * member and leaves earlier consoles byte-identical.
  */
 
-import { readdir, readFile, writeFile } from 'node:fs/promises'
+import { readdir, readFile, writeFile, mkdir } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { join, relative, basename, resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -206,7 +206,7 @@ function extractModelMetaFromHtml(htmlContent) {
 }
 
 const BUNDLE_KEY = 'innfo-console.bundle'
-const UI_CSS_KEY = 'innfo-ui'
+const UI_CSS_FILENAME = 'innfo-ui.css'
 const consoleDirRel = (stem) => `artifacts/${stem}_console`
 
 /** Workspace-relative members of the family `(dir, key, ext)`, via the core name contract. */
@@ -325,10 +325,9 @@ function injectSlots(shell, config, schema, model) {
   return slot(slot(slot(shell, 'innfo-config', config), 'innfo-schema', schema), 'innfo-model', model)
 }
 
-/** Console HTML for one model: the vendored bundle/css names are injected so each console loads its own pinned assets. */
-function renderConsole(shell, bundleName, cssName, config, payload) {
-  let pinned = bundleName ? shell.replace('./innfo-console.bundle.js', `./${bundleName}`) : shell
-  if (cssName) pinned = pinned.replace('./innfo-ui.css', `./${cssName}`)
+/** Console HTML for one model: the bundle name is injected so each console loads its own pinned bundle. */
+function renderConsole(shell, bundleName, config, payload) {
+  const pinned = bundleName ? shell.replace('./innfo-console.bundle.js', `./${bundleName}`) : shell
   return injectSlots(pinned, config, payload.schema, payload.model)
 }
 
@@ -515,13 +514,11 @@ async function main() {
       bundleName = basename(vendored.path)
     }
 
-    // The stylesheet is its own write-once family per folder too; an unchanged css is deduplicated.
-    let cssName = null
-    const uiCssPath = join(consoleDir, 'innfo-ui.css')
+    // The shared stylesheet ships once per console folder (fixed name, like the domain export).
+    const uiCssPath = join(consoleDir, UI_CSS_FILENAME)
     if (existsSync(uiCssPath)) {
-      const css = await readFile(uiCssPath, 'utf-8')
-      const vendoredCss = await payloadHelper.writeOnce(root, { dir, key: UI_CSS_KEY, ext: 'css' }, css)
-      cssName = basename(vendoredCss.path)
+      await mkdir(join(root, dir), { recursive: true })
+      await writeFile(join(root, dir, UI_CSS_FILENAME), await readFile(uiCssPath, 'utf-8'), 'utf-8')
     }
 
     // Re-render with the previous `generated` stamp: identical bytes mean nothing changed.
@@ -529,14 +526,14 @@ async function main() {
     if (latestRel) {
       const previous = await readFile(join(root, latestRel), 'utf-8')
       const previousGenerated = extractModelMetaFromHtml(previous)?.generated
-      if (previousGenerated && renderConsole(resolvedShell, bundleName, cssName, config, build(previousGenerated)) === previous) {
+      if (previousGenerated && renderConsole(resolvedShell, bundleName, config, build(previousGenerated)) === previous) {
         unchanged++
         console.log(`= ${basename(latestRel)} unchanged`)
         continue
       }
     }
 
-    const html = renderConsole(resolvedShell, bundleName, cssName, config, build(undefined))
+    const html = renderConsole(resolvedShell, bundleName, config, build(undefined))
     const result = await payloadHelper.writeOnce(root, { dir, key: `${stem}_console`, ext: 'html' }, html, {
       inputs: [relPath],
     })
@@ -633,7 +630,7 @@ async function main() {
       },
     }
 
-    let domainHtml = renderConsole(resolvedShell, null, null, config, domainPayload)
+    let domainHtml = renderConsole(resolvedShell, null, config, domainPayload)
     if (!domainHtml.includes('data-theme=')) {
       domainHtml = domainHtml.replace('<html lang="en">', '<html lang="en" data-theme="light">')
     }
@@ -641,9 +638,9 @@ async function main() {
     if (bundle) {
       await writeFile(join(root, 'innfo-console.bundle.js'), bundle, 'utf-8')
     }
-    const uiCssPath = join(consoleDir, 'innfo-ui.css')
+    const uiCssPath = join(consoleDir, UI_CSS_FILENAME)
     if (existsSync(uiCssPath)) {
-      await writeFile(join(root, 'innfo-ui.css'), await readFile(uiCssPath, 'utf-8'), 'utf-8')
+      await writeFile(join(root, UI_CSS_FILENAME), await readFile(uiCssPath, 'utf-8'), 'utf-8')
     }
     console.log(`✔ domaiNN_console.html → ./domaiNN_console.html (${candidateModels.length} models, ${allElements.length} elements)`)
   }
