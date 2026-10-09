@@ -68,13 +68,20 @@ Custom views MUST be treated as trusted domain-owner code with no sandbox. The e
 
 ### Requirement: Read-only HTML in sandboxed iframes
 
-A view with `kind: readonly` MAY mount static HTML in an `iframe` using `srcdoc` and a `sandbox` attribute, with no access to the draft store, the modal or the changeset. A view with `kind: editable` MUST NOT mount any `iframe`.
+A view with `kind: readonly` MAY mount static HTML through `ctx.mountHtml(html)`, which MUST create an `iframe` with `srcdoc`, `referrerpolicy="no-referrer"` and a `sandbox` attribute whose value is exactly `allow-popups allow-popups-to-escape-sandbox`. The sandbox MUST NOT contain `allow-scripts` (the mounted HTML is static and script-free), `allow-same-origin`, `allow-forms`, `allow-modals`, `allow-downloads` or `allow-top-navigation`. The `srcdoc` MUST be prefixed with a CSP `<meta>` whose policy is `default-src 'none'; img-src data: blob:; style-src 'unsafe-inline'`. The iframe has no access to the draft store, the modal or the changeset, and its `ctx` MUST carry none of them. A view with `kind: editable` MUST NOT mount any `iframe`.
 
 #### Scenario: Readonly iframe is isolated
 - GIVEN a readonly view mounting HTML in an iframe
 - WHEN the iframe is inspected
-- THEN it has `srcdoc` and a `sandbox` attribute without `allow-same-origin`
-- AND its `ctx` carries no draft store or changeset
+- THEN it has `srcdoc`, `referrerpolicy="no-referrer"` and `sandbox="allow-popups allow-popups-to-escape-sandbox"` exactly
+- AND the sandbox contains neither `allow-same-origin` nor `allow-scripts`
+- AND its `ctx` carries no draft store, modal or changeset
+
+#### Scenario: Readonly iframe is script-free and offline
+- GIVEN a readonly view mounting HTML that contains a `<script>` element and a remote `<img src>`
+- WHEN the iframe renders
+- THEN the script does not execute and the remote image is not requested
+- AND the `srcdoc` begins with the CSP `<meta>` declaring `default-src 'none'`
 
 #### Scenario: Editable iframe refused
 - GIVEN an editable view that appends an iframe to its container

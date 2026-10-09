@@ -128,6 +128,7 @@ S2 exceeds 400 lines, so it ships as S2a -> S2b -> S2c1 -> S2c2 -> S2d -> S2e, w
 
 ## Open Questions
 
-- [ ] Spec addendum needed before tasks for S2d, S2e and S3 (no decision required): MODIFIED deltas for `metrics-console-adoption` (it still requires generation from `timeline.html` and the harness), the `innfo-console-runtime` lines that name `timeline.html`, plus the two gap-8 specs.
-- [ ] Confirm the readonly iframe stays script-free (gap 3). Adding `allow-scripts` alone (still without `allow-same-origin`) would be safe if a future view needs JS.
+- [x] Spec addendum for S2d, S2e and S3 written (2026-10-09): MODIFIED deltas for `metrics-console-adoption`, `innfo-console-runtime`, `nn-naming-contract`, `template-procedures-manifest-and-discovery`, `editor-navigation`, `editor-lineage-ui` and `innfo-skill-menu`.
+- [x] Decided (maintainer, 2026-10-09): the readonly iframe stays script-free (gap 3): no `allow-scripts`, no `allow-same-origin`. Gap 3 and `console-view-registry` already match; no design change. A future view that needs JS would require a new decision.
+- [ ] Gap found by the addendum: the editor `consoles` view is also wired in `Header.vue` (button, `selectView`), `stores/uiStore.ts` (`activeView` union) and `composables/useViewSync.ts`. File Changes (S3) must add them as Modify, otherwise deleting `ConsoleHubView.vue` leaves a dead button. The `editor-navigation` delta assumes the `consoles` view is removed.
 - [ ] Verify in S2d that the MCP `fetchSubdir('assets')` copies nested `assets/consoles/views/`. If it does not, flatten to `assets/console-view-<slug>.js` (exporter-only change).
