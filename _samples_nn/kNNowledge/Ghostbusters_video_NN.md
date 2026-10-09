@@ -1,9 +1,9 @@
 ---
 level: 3
 parent_spec:
-  name: "video_V_0-7-2"
+  name: "video_V_0-8-0"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/video/spec_NN.md"
-knowledge_version: "V_0-7-2"
+knowledge_version: "V_0-8-0"
 title: "Ghostbusters Inc. Recruitment Video"
 ---
 

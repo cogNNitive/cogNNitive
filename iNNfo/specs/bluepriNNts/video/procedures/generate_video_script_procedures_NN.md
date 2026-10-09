@@ -22,7 +22,7 @@ title: "Generate cogNNitive Video Script Procedure"
 
 ## NN Procedure: Generate Video Script
 category:: transformation
-summary:: Frame a Video from its bound Subject and Series, author and gate a cogNNitive Video script with skills/nn-video-script, register it, generate an asset generation and cost estimation plan (asset_plan.md), compile Remotion manifests and render headlessly via video-engine-cli.mjs, finalize and register the rendered assets, and conduct a closing conversation retrospective for continuous improvement.
+summary:: Frame a Video from its bound Subject and Series, author and gate a cogNNitive Video script with the nn-video-script skill (installed at ~/.agents/skills/nn-video-script), register it, generate an asset generation and cost estimation plan (asset_plan.md), compile Remotion manifests and render headlessly via video-engine-cli.mjs, finalize and register the rendered assets, and conduct a closing conversation retrospective for continuous improvement.
 inputs_required:: Subject Element (via sources::) and Series registry model
 outputs_expected:: Registered Video Assets
 executed_by:: Video Producer
@@ -252,11 +252,11 @@ description:: Actionable suggestions for refining Series rules, script templates
 
 ## NN Tools: nn-video-script Skill
 type:: automated
-description:: The skills/nn-video-script skill authoring (from script_template.md), gating (check-script.mjs, remotion-scene-compiler.mjs), and finalizing (finalize-video.mjs) script syntax inside a Series folder.
+description:: The nn-video-script skill (embedded in this bluepriNNt, installed at ~/.agents/skills/nn-video-script) authoring (from script_template.md), gating (check-script.mjs, remotion-scene-compiler.mjs), and finalizing (finalize-video.mjs) script syntax inside a Series folder.
 
 ## NN Tools: cogNNitive Video Tool
 type:: automated
-description:: Embedded programmatic video compilation and headless Remotion rendering engine (skills/nn-video-script/scripts/video-engine-cli.mjs) with deterministic SHA-256 asset caching and frame-accurate timeline synthesis.
+description:: Embedded programmatic video compilation and headless Remotion rendering engine (~/.agents/skills/nn-video-script/scripts/video-engine-cli.mjs) with deterministic SHA-256 asset caching and frame-accurate timeline synthesis.
 
 ## NN Tools: AI Agent
 type:: automated

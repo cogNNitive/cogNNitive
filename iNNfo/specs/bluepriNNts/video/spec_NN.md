@@ -5,7 +5,7 @@ level: 2
 parent_spec:
   name: "iNNfo_V_0-3-0"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-3-0_NN.md"
-blueprint_version: "V_0-7-2"
+blueprint_version: "V_0-8-0"
 title: "Video App"
 procedures:
   - id: "generate-video-script"
@@ -166,7 +166,7 @@ description:: Active-word highlight color for TikTok-style captions.
 
 ## Philosophy
 
-The Video App models one video as a single Element that owns its own media folder. The script is a **generated artifact** authored in cogNNitive Video syntax (scenes `@`, layers `@@`, `layer_type`, `scene_templates`, `scene_tts_model`, overlays, transitions) and compiled by the [`skills/nn-video-script`](https://github.com/cogNNitive/cogNNitive/tree/main/skills/nn-video-script) skill into Remotion Composition Manifests — it is not re-modelled as iNNfo data. The Element records where its files live and which sources it derives from (`sources::`), so the model never re-encodes structure the video engine already expresses.
+The Video App models one video as a single Element that owns its own media folder. The script is a **generated artifact** authored in cogNNitive Video syntax (scenes `@`, layers `@@`, `layer_type`, `scene_templates`, `scene_tts_model`, overlays, transitions) and compiled by the [`skills/nn-video-script`](https://github.com/cogNNitive/cogNNitive/tree/main/iNNfo/specs/bluepriNNts/video/skills/nn-video-script) skill embedded in this bluepriNNt into Remotion Composition Manifests — it is not re-modelled as iNNfo data. The Element records where its files live and which sources it derives from (`sources::`), so the model never re-encodes structure the video engine already expresses.
 
 ## Production Hierarchy: Workspace → Subject → Series → Video
 
@@ -278,7 +278,7 @@ The `Video` concept is the only concept of this template. One `## NN Video: <nam
 ### Methodologies
 
 - One `Video` Element per video, kept as the single entry point of the model.
-- Treat the script as an external artifact: point at it with `script`, never inline it. Author, gate, and finalize it with `skills/nn-video-script`.
+- Treat the script as an external artifact: point at it with `script`, never inline it. Author, gate, and finalize it with the embedded `skills/nn-video-script` skill.
 - Keep all of a video's media in its own folder; never scatter files across the workspace, and never let a script's asset paths climb above their own Series folder (D4).
 - Keep `sources::` as the single traceability channel back to normalized sources, and — for a Video that is part of the Subject/Series hierarchy — as the same channel that binds its one Subject Element.
 - When grouping videos into a Series, reuse this template as the Series' own Level-3 model (a `series:` frontmatter block on a model that itself contains the Series' Video Elements) instead of inventing a separate registry format.
