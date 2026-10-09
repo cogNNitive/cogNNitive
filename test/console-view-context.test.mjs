@@ -190,18 +190,26 @@ describe('S2b readonly views and sandboxed iframes', () => {
     assert.ok(f.getAttribute('srcdoc').endsWith(html), 'view html follows unchanged')
   })
 
-  it('an inline script in the srcdoc does not execute', async () => {
-    // jsdom does not load srcdoc documents, so this guards against a future
-    // regression that evaluates the html in the parent; the sandbox tokens
-    // asserted above are what stop a real browser.
+  // Honesty note: jsdom does not load srcdoc documents and does not enforce
+  // the sandbox, so this cannot prove a real browser blocks the script. It
+  // asserts the two things this code controls: the markup travels only in
+  // the srcdoc attribute (never parsed into the parent), and no sandbox
+  // token would let the framed script run.
+  it('the view html is delivered via the srcdoc attribute only', async () => {
     const { dom, ctxs } = bootViews(
       [def('doc', { kind: 'readonly', mount: (ctx) => void ctx.mountHtml(html) })],
       { runScripts: 'dangerously' },
     )
     await new Promise((r) => setTimeout(r, 50))
+    const { container } = ctxs.doc
+    assert.equal(container.querySelector('#hello'), null, 'markup not parsed into the parent')
+    assert.equal(container.querySelector('script'), null, 'no script element in the parent')
     assert.equal(dom.window.__pwned, undefined)
-    const f = ctxs.doc.container.querySelector('iframe')
-    assert.ok(!f.getAttribute('sandbox').includes('allow-scripts'))
+    const f = container.querySelector('iframe')
+    assert.ok(f.getAttribute('srcdoc').includes('<script>window.parent.__pwned = 1</script>'))
+    assert.equal(f.children.length, 0, 'the frame element itself holds no content')
+    const tokens = f.getAttribute('sandbox').split(' ')
+    assert.ok(!tokens.includes('allow-scripts') && !tokens.includes('allow-same-origin'))
   })
 
   it('mountHtml replaces the previous iframe instead of stacking', () => {
