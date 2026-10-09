@@ -22,7 +22,8 @@ import { createHash } from 'node:crypto';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SKILL_DIR = path.join(__dirname, '..');
-const REPO_ROOT = path.join(SKILL_DIR, '..', '..');
+// nn-video-script -> skills -> video -> bluepriNNts -> specs -> iNNfo -> repo root
+const REPO_ROOT = path.join(SKILL_DIR, '..', '..', '..', '..', '..', '..');
 const MIRROR_PATH = path.join(SKILL_DIR, 'scripts', 'lib', 'innfo-video-parser.generated.mjs');
 const BUILDER = path.join(REPO_ROOT, 'scripts', 'build-video-parser-mirror.mjs');
 const SKILL_MD = path.join(SKILL_DIR, 'SKILL.md');

@@ -3,16 +3,16 @@
 /**
  * skills/nn-video-script/scripts/vus-spec.mjs
  *
- * Reads the VUS spec vendored in `@cognnitive/innfo-video-parser`
- * (`iNNfo/packages/innfo-video-parser/specs/<v>.json`), verifies the pinned
+ * Reads the VUS spec vendored inside this skill (`<skill>/specs/<v>.json`, a
+ * byte-identical copy of `iNNfo/packages/innfo-video-parser/specs/<v>.json`), verifies the pinned
  * sha256 declared in this skill's own SKILL.md frontmatter (`vus_spec:`), and
  * exposes `voices` / `props <scope>` queries against the pinned spec.
  *
  * This is the single place the skill reads VUS-syntax facts (voice IDs,
  * property names/scopes) at run time — see video-script-skill's
  * No-Prose-Copy requirement. Nothing here is restated as literal prose
- * anywhere else in this skill's documentation. The spec lives in this
- * monorepo: no external checkout, no environment variable, never skips.
+ * anywhere else in this skill's documentation. The spec ships with
+ * the skill: no external checkout, no environment variable, never skips.
  *
  * Zero dependencies. Requires Node >= 18.
  *
@@ -29,17 +29,8 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_SKILL_MD_PATH = path.join(__dirname, '..', 'SKILL.md');
 
-/** Specs directory of the in-repo VUS parser package. */
-export const VENDORED_SPECS_DIR = path.resolve(
-  __dirname,
-  '..',
-  '..',
-  '..',
-  'iNNfo',
-  'packages',
-  'innfo-video-parser',
-  'specs',
-);
+/** Specs directory vendored inside this skill, so an installed copy is self-contained. */
+export const VENDORED_SPECS_DIR = path.join(__dirname, '..', 'specs');
 
 /**
  * Reads the `vus_spec: { version, sha256 }` block from SKILL.md frontmatter.
@@ -97,7 +88,7 @@ export function loadVusSpec({ specsDir = VENDORED_SPECS_DIR, skillMdPath = DEFAU
   const actualSha256 = computeSha256(specPath);
   if (actualSha256 !== pin.sha256) {
     throw new Error(
-      `VUS spec hash drift at ${specPath}: pinned ${pin.sha256}, actual ${actualSha256}. The canonical source is iNNfo/packages/innfo-video-parser/specs/; a new spec version means vendoring a new file and updating the pin together.`,
+      `VUS spec hash drift at ${specPath}: pinned ${pin.sha256}, actual ${actualSha256}. The canonical source is iNNfo/packages/innfo-video-parser/specs/; a new spec version means re-vendoring the file into this skill's specs/ and updating the pin together.`,
     );
   }
   const spec = JSON.parse(fs.readFileSync(specPath, 'utf8'));

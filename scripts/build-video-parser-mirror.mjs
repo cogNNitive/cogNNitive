@@ -4,14 +4,14 @@
  * scripts/build-video-parser-mirror.mjs
  *
  * Bundles the VUS parser from `iNNfo/packages/innfo-video-parser` into a committed,
- * self-contained ESM artifact the DISTRIBUTED `nn-video-script` skill imports by
+ * self-contained ESM artifact the EMBEDDED `nn-video-script` skill imports by
  * relative path. The skill is installed at `~/.agents/skills/` where neither the
  * monorepo path (`../../../iNNfo/...`) nor `@cognnitive/innfo-video-parser` exists,
  * and the package ships TypeScript source requiring a `tsx` loader — so this bundle
  * IS the single self-contained implementation (zod + the VUS spec are embedded).
  *
  *   entry : scripts/mirror/video-parser-entry.ts
- *   output: skills/nn-video-script/scripts/lib/innfo-video-parser.generated.mjs
+ *   output: iNNfo/specs/bluepriNNts/video/skills/nn-video-script/scripts/lib/innfo-video-parser.generated.mjs
  *
  * Usage:
  *   node scripts/build-video-parser-mirror.mjs [--check] [--out <file>]
@@ -45,6 +45,10 @@ const SPEC_FILE = path.join(
 )
 const DEFAULT_OUT = path.join(
   REPO_ROOT,
+  'iNNfo',
+  'specs',
+  'bluepriNNts',
+  'video',
   'skills',
   'nn-video-script',
   'scripts',

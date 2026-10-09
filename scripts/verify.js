@@ -299,13 +299,17 @@ function buildSteps(repoRoot, _options = {}) {
   const node = (id, desc, ...args) => ({ id, desc, cmd: process.execPath, args });
   const steps = [];
 
-  // 0b. Every `*.test.js` / `*.test.mjs` suite under scripts/, skills/ and test/,
+  // 0b. Every `*.test.js` / `*.test.mjs` suite under scripts/, skills/, test/ and the skills
+  //     embedded in bluepriNNt packages,
   //     discovered by shape rather than enumerated (the allowlist this replaced
   //     drifted twice). Self-contained, so they run first.
   const suites = [
     ...collectTestSuites(path.join(repoRoot, 'scripts')),
     ...collectTestSuites(path.join(repoRoot, 'skills')),
     ...collectTestSuites(path.join(repoRoot, 'test')),
+    // Skills embedded in a bluepriNNt (e.g. video/skills/nn-video-script). Vitest suites
+    // are `*.spec.ts` under iNNfo/packages, so this tree is never double-run.
+    ...collectTestSuites(path.join(repoRoot, 'iNNfo', 'specs', 'bluepriNNts')),
   ];
   for (const suite of suites) {
     const rel = path.relative(repoRoot, suite).split(path.sep).join('/');

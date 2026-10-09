@@ -17,7 +17,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.resolve(__dirname, '../../..');
+const repoRoot = path.resolve(__dirname, '../../../../../../..');
 
 async function runTests() {
   console.log('Running Rebranding & Procedure Regression scan...');
@@ -60,7 +60,7 @@ async function runTests() {
 
   // 4. SKILL.md verification
   {
-    const skillPath = path.join(repoRoot, 'skills/nn-video-script/SKILL.md');
+    const skillPath = path.join(repoRoot, 'iNNfo/specs/bluepriNNts/video/skills/nn-video-script/SKILL.md');
     assert.ok(fs.existsSync(skillPath), 'SKILL.md must exist');
     const content = fs.readFileSync(skillPath, 'utf8');
 

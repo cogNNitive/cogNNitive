@@ -3,13 +3,15 @@
 /**
  * skills/nn-video-script/test/vus-spec-pin.test.mjs
  *
- * Regression test for the pinned VUS spec. The spec is vendored inside the
- * monorepo (`@cognnitive/innfo-video-parser`), so nothing here depends on an
- * external checkout or on any environment variable:
+ * Regression test for the pinned VUS spec. The spec is vendored INSIDE this skill
+ * (`<skill>/specs/<version>.json`) so an installed copy is self-contained; nothing
+ * here depends on an external checkout or on any environment variable:
  *  1. Mechanism: `loadVusSpec` accepts a spec whose bytes hash to the pin and
  *     rejects it loudly on drift, using throwaway fixtures.
  *  2. Live pin: the pin committed in SKILL.md must match the real vendored
  *     `V_0-3-3.json`, and the CLI must serve voices from it (never skipping).
+ *  3. Vendored copy: the skill's copy must stay byte-identical to the package
+ *     source `iNNfo/packages/innfo-video-parser/specs/<pin>.json`.
  */
 
 import assert from 'node:assert';
@@ -31,6 +33,9 @@ import {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SKILL_MD = path.join(__dirname, '..', 'SKILL.md');
 const VUS_SPEC_CLI = path.join(__dirname, '..', 'scripts', 'vus-spec.mjs');
+const SKILL_DIR = path.join(__dirname, '..');
+// test -> nn-video-script -> skills -> video -> bluepriNNts -> specs -> iNNfo -> repo root
+const REPO_ROOT = path.join(SKILL_DIR, '..', '..', '..', '..', '..', '..');
 
 // 1. Deterministic mechanism test against a fixture specs directory.
 {
@@ -80,7 +85,26 @@ const VUS_SPEC_CLI = path.join(__dirname, '..', 'scripts', 'vus-spec.mjs');
   console.log(`✔ live pin matches the vendored spec (${listVoices(live.spec).length} voices)`);
 }
 
-// 3. The CLI serves the vendored spec with no environment variable and no skip line.
+// 3. The vendored copy is byte-identical to the package source (the VUS byte-check).
+{
+  const pin = readPinnedVusSpec(SKILL_MD);
+  const vendored = path.join(SKILL_DIR, 'specs', `${pin.version}.json`);
+  const source = path.join(REPO_ROOT, 'iNNfo', 'packages', 'innfo-video-parser', 'specs', `${pin.version}.json`);
+  assert.strictEqual(
+    resolveVusSpecPath(pin.version),
+    vendored,
+    'the skill must resolve its spec from its own specs/ directory',
+  );
+  assert.ok(fs.existsSync(vendored), `vendored spec missing at ${vendored}`);
+  assert.ok(fs.existsSync(source), `package source spec missing at ${source}`);
+  assert.ok(
+    fs.readFileSync(vendored).equals(fs.readFileSync(source)),
+    'vendored spec diverges from iNNfo/packages/innfo-video-parser/specs; re-copy it and update the pin together',
+  );
+  console.log('✔ vendored spec is byte-identical to the package source');
+}
+
+// 4. The CLI serves the vendored spec with no environment variable and no skip line.
 {
   const env = { ...process.env };
   for (const name of ['EXTERNAL_SPEC_ROOT', 'VUS_ROOT', 'SPEC_ROOT']) delete env[name];

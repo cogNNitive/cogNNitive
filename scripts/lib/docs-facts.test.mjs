@@ -177,9 +177,9 @@ function testCheckSkillPageSet() {
 
   // 2. A skill in source.yaml with no matching Page is reported as missing.
   {
-    const result = checkSkillPageSet(['nn-start'], ['nn-start', 'nn-video-script']);
+    const result = checkSkillPageSet(['nn-start'], ['nn-start', 'nn-fixture-skill']);
     assert.strictEqual(result.ok, false, 'a skill without a page fails the guard');
-    assert.deepStrictEqual(result.missingPages, ['nn-video-script']);
+    assert.deepStrictEqual(result.missingPages, ['nn-fixture-skill']);
     assert.deepStrictEqual(result.extraPages, []);
   }
 
