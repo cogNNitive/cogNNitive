@@ -1,15 +1,9 @@
 ---
 level: 3
 parent_spec:
-<<<<<<<< HEAD:iNNfo/specs/bluepriNNts/video/samples/Ghostbusters_V_0-7-3_video_NN.md
-  name: "video_V_0-7-3"
-  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/video/spec_NN.md"
-knowledge_version: "V_0-7-3"
-========
   name: "video_V_0-8-0"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/video/spec_NN.md"
 knowledge_version: "V_0-8-0"
->>>>>>>> session/skills-and-session-tooling:iNNfo/specs/bluepriNNts/video/samples/Ghostbusters_V_0-8-0_video_NN.md
 title: "Ghostbusters Inc. Recruitment Video"
 ---
 
