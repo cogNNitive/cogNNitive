@@ -26,7 +26,7 @@
  *   <workspaceRoot>/artifacts/<stem>_console/innfo-console.bundle_<UTC stamp>.js
  * `--domain` additionally writes ONE self-contained, fixed-name file that is
  * overwritten on every export: <workspaceRoot>/domaiNN_console.html (bundle, CSS,
- * slots and the discovered views inlined; see scripts/lib/console-views.mjs).
+ * slots and the discovered views inlined; see scripts/console-views.mjs).
  * Re-running on an unchanged model writes nothing; a changed model adds a new
  * member and leaves earlier consoles byte-identical.
  */
@@ -454,13 +454,17 @@ async function main() {
   let uiCss = ''
   let viewsLib = null
   if (args.domain) {
-    // Loaded lazily: every other mode keeps running as a lone copy of this file
-    // (see "runs standalone next to the console assets"), and only --domain needs the lib.
+    // Loaded lazily: every other mode keeps running as a lone copy of this file, and
+    // only --domain needs the sibling lib. The lib sits NEXT TO this script (not in a
+    // lib/ folder) because the installer places every console asset flat by basename.
+    const viewsLibUrl = new URL('./console-views.mjs', import.meta.url).href
     try {
-      viewsLib = await import('./lib/console-views.mjs')
+      viewsLib = await import(viewsLibUrl)
     } catch (err) {
-      if (err.code !== 'ERR_MODULE_NOT_FOUND') throw err
-      console.error('Error: --domain needs scripts/lib/console-views.mjs next to this script.')
+      // Only the lib itself being absent is reported here; a missing module imported
+      // from inside it (err.url is that module) is a real fault and must surface.
+      if (err.code !== 'ERR_MODULE_NOT_FOUND' || err.url !== viewsLibUrl) throw err
+      console.error(`Error: --domain needs console-views.mjs next to this script (${fileURLToPath(viewsLibUrl)}).`)
       process.exit(1)
     }
     const uiCssPath = join(consoleDir, 'innfo-ui.css')

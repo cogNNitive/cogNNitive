@@ -15,7 +15,7 @@ import {
   wrapView,
   viewsHeader,
   inlineConsoleAssets,
-} from '../scripts/lib/console-views.mjs'
+} from '../scripts/console-views.mjs'
 import { InnfoConsole } from './helpers/console-boot.mjs'
 
 const GOOD = "registerView({ title: 'T', icon: 'x', order: 1, kind: 'readonly', mount() {} })\n"

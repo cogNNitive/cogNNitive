@@ -1,5 +1,5 @@
 /**
- * scripts/lib/console-views.mjs
+ * scripts/console-views.mjs
  *
  * Exporter side of console view discovery and inlining (change
  * 2026-10-09-domain-console-views). A view is a classic script that calls the

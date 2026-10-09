@@ -1,7 +1,7 @@
 import { describe, it, beforeEach, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdtemp, rm, mkdir, writeFile, readFile, copyFile, readdir } from 'node:fs/promises'
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve, dirname, basename, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -417,6 +417,85 @@ level: 3
         existsSync(consoleHtml(tempDir, 'business_V_0-2-5')),
         true,
       )
+    })
+  })
+
+  describe('distributed exporter set', () => {
+    // The installer places every manifest console_assets file flat, by basename, in one
+    // folder (skills-commands installConsoleAssetAtCommit). Rebuild exactly that.
+    const manifestConsoleFiles = () => {
+      const yaml = readFileSync(resolve(here, '..', 'manifest', 'source.yaml'), 'utf-8')
+      const block = yaml.split('\nconsole_assets:\n')[1].split(/\n\S/)[0]
+      return [...block.matchAll(/^\s+file:\s*(\S+)\s*$/gm)].map((m) => m[1])
+    }
+    const install = async (dir, { skip = [] } = {}) => {
+      await mkdir(dir, { recursive: true })
+      for (const rel of manifestConsoleFiles()) {
+        if (skip.includes(basename(rel))) continue
+        await copyFile(resolve(here, '..', rel), join(dir, basename(rel)))
+      }
+    }
+    const runInstalled = (dir, args) =>
+      execFileAsync(process.execPath, [join(dir, 'export-console.mjs'), tempDir, ...args], {
+        cwd: tempDir,
+        env: { ...process.env, INNFO_CONSOLE_DIR: dir },
+      })
+    const failure = async (promise) => {
+      try {
+        await promise
+      } catch (err) {
+        return err
+      }
+      assert.fail('expected the exporter to exit non-zero')
+    }
+
+    it('lists the exporter, its view lib and the assets --domain reads in the manifest', () => {
+      const names = manifestConsoleFiles().map((f) => basename(f))
+      for (const need of [
+        'export-console.mjs',
+        'console-views.mjs',
+        'innfo-ui.css',
+        'console-payload.generated.cjs',
+        'innfo-console.bundle.js',
+        'artifact_shell.html',
+      ]) {
+        assert.ok(names.includes(need), need + ' must be a console_assets entry')
+      }
+    })
+
+    it('runs --domain from an installed set alone, with no repo tree around it', async () => {
+      const dir = join(tempDir, 'installed')
+      await install(dir)
+      const { stdout } = await runInstalled(dir, ['--domain'])
+      assert.match(stdout, /domaiNN_console\.html/)
+      const html = await readFile(join(tempDir, 'domaiNN_console.html'), 'utf-8')
+      assert.equal(/<script[^>]*\ssrc=/.test(html), false, 'self-contained')
+    })
+
+    it('fails with a clear message when the view lib is not next to the exporter', async () => {
+      const dir = join(tempDir, 'installed')
+      await install(dir, { skip: ['console-views.mjs'] })
+      const err = await failure(runInstalled(dir, ['--domain']))
+      assert.notEqual(err.code, 0)
+      assert.match(err.stderr, /--domain needs console-views\.mjs next to this script/)
+      assert.equal(existsSync(join(tempDir, 'domaiNN_console.html')), false)
+    })
+
+    it('does not turn a missing module inside the lib into the "lib absent" message', async () => {
+      const dir = join(tempDir, 'installed')
+      await install(dir)
+      const lib = join(dir, 'console-views.mjs')
+      await writeFile(lib, "import './not-there.mjs'\n" + (await readFile(lib, 'utf-8')), 'utf-8')
+      const err = await failure(runInstalled(dir, ['--domain']))
+      assert.match(err.stderr, /not-there\.mjs/)
+      assert.doesNotMatch(err.stderr, /next to this script/)
+    })
+
+    it('still exports a single model without the view lib', async () => {
+      const dir = join(tempDir, 'installed')
+      await install(dir, { skip: ['console-views.mjs'] })
+      await runInstalled(dir, ['business'])
+      assert.equal(existsSync(consoleHtml(tempDir, 'business_V_0-2-5')), true)
     })
   })
 
