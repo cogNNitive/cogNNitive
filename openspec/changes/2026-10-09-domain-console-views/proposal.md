@@ -39,7 +39,7 @@ Backlog decision D14 is confirmed: a domaiNN has ONE self-contained `domaiNN_con
 - `console-architecture`: replace "Level 3 … register in the Workspace Hub" with "views register in the domaiNN console runtime". Single domain console per D14.
 - `console-tabbed-views`: tabs come from the registry. Matrices gets its own panel.
 - `innfo-console-feedback`: the export filename derives from the model slug. The draft count is live across banner, tab badge and Review panel.
-- `console-hub-onboarding`: removed with the hub, since the Vue editor is retired by D13/D18 (pending OQ5).
+- `console-hub-onboarding`: removed with the hub, since the Vue editor is retired by D13/D18 (OQ5 resolved).
 
 ## Approach
 
@@ -59,9 +59,9 @@ Keep the D14 single-artifact model. Views are JS modules registered at runtime a
 
 | Risk | Likelihood | Mitigation |
 |---|---|---|
-| User-authored view code runs with full page access | High | OQ2 is decided in design before S2 apply. |
-| Inlining every model and view breaks the D14 size budget | Med | OQ4 plus a measured budget check in export. |
-| The editor Consoles view depends on the hub | Med | S3 runs after S2. OQ5 is resolved first. |
+| User-authored view code runs with full page access | High | Trusted by decision (OQ2); the exporter lists included views in the header. |
+| Inlining every model and view breaks the D14 size budget | Med | Warn 5 MB / fail 15 MB measured in export (OQ4). |
+| The editor Consoles view depends on the hub | Med | S3 runs after S2. OQ5 resolved: onboarding is removed. |
 | The bundle is stale after source edits | Med | Rebuild before tests. `check-integrity` catches it. |
 
 ## Rollback
@@ -75,11 +75,11 @@ Each slice is an independent commit set. Revert S3 to restore the hub files and 
 - [ ] A sample custom view in `_samples_nn` is registered, exported and proposes a change.
 - [ ] Zero references to `workspace_hub` remain. `console-shell-guard` and `check-integrity` are green.
 
-## Open questions (proposal question round, needs maintainer review)
+## Resolved questions (maintainer, 2026-10-09)
 
-1. **Custom view location and discovery.** Where do custom views live in a domaiNN (for example `consoles/views/<slug>.js`), and is a manifest or naming convention what `export-console.mjs` discovers?
-2. **Trust and sandboxing.** User-authored view code is inlined into an artifact that reviewers open. Should views be sandboxed, restricted to a declarative or API-only surface, or trusted as the domain owner's own code?
-3. **Read-only arbitrary HTML.** May non-editing HTML (for example a static report) still be embedded, possibly in an iframe, since it never touches the changeset?
-4. **Size budget (D14).** What is the maximum artifact size, and what happens when it is exceeded: warn, fail, or lazy-split?
-5. **Editor Consoles view.** D13/D18 already retire the Vue `innfo-editor` (read-only until deleted). Is `console-hub-onboarding` therefore REMOVED with the hub (default assumption), or retargeted to `domaiNN_console.html` until the editor is deleted?
-6. **Standalone view export.** Is this the same exporter with a view filter (one changeset scope per view), or is it out of scope for the first slice?
+1. **Custom view location and discovery.** Convention over configuration: every `consoles/views/<slug>.js` in a domaiNN is discovered by `export-console.mjs`; the slug is the file name. No manifest.
+2. **Trust and sandboxing.** Trusted: a custom view is the domain owner's own code, the same trust level as any repo script. No sandbox. The exporter lists the included views in the artifact header so a reviewer can see what runs. This is the only model compatible with a shared edit modal and draft store without an iframe (D13).
+3. **Read-only arbitrary HTML.** Allowed. A view declared `readonly` may mount static HTML in a sandboxed `iframe srcdoc` with no access to the draft store or the changeset. D14 forbids iframes only for editable views.
+4. **Size budget (D14).** The exporter measures the final HTML: warn above 5 MB, fail above 15 MB, with a breakdown (bundle / models / views). No lazy-split in this change. Thresholds live in one constant.
+5. **Editor Consoles view.** `console-hub-onboarding` is REMOVED together with the hub. No retargeting, no bridge code.
+6. **Standalone view export.** In scope for S2: the same exporter with a view filter (`export-console.mjs --view <id>`), producing the bundle plus that single view and a changeset scoped to it. This keeps `timeline` and `procedure` deliverable on their own after migration.
