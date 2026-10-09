@@ -12,7 +12,7 @@ const LIVE_ROOTS = [
   'iNNfo/packages/innfo-mcp/src',
   'iNNfo/apps/innfo-editor/src',
   'scripts',
-  'skills/nn-trannsform/scripts',
+  'skills/nn-sources/scripts',
   'skills/nn-preflight/scripts',
   'skills/nn-upgrade/scripts',
 ]

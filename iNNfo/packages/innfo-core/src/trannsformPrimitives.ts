@@ -1,8 +1,8 @@
 /**
  * Trannsform primitives bundle entry.
  *
- * Single source of innfo-core primitives needed by the distributed `nn-trannsform` skill.
- * Bundled into `skills/nn-trannsform/scripts/lib/innfo-core.generated.cjs` by
+ * Single source of innfo-core primitives needed by the distributed `nn-sources` skill.
+ * Bundled into `skills/nn-sources/scripts/lib/innfo-core.generated.cjs` by
  * `scripts/build-trannsform-core-mirror.mjs`.
  */
 

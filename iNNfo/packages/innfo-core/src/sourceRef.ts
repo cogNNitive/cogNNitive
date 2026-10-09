@@ -290,7 +290,7 @@ export function levenshteinDistance(a: string, b: string): number {
 
 /**
  * Slugify one Markdown heading's text into a GitHub-style anchor slug. THE
- * single algorithm — `skills/nn-trannsform/scripts/markdown-utils.js`
+ * single algorithm — `skills/nn-sources/scripts/markdown-utils.js`
  * mirrors it exactly (parity is asserted by that skill's `test-slug-parity.js`).
  *
  * Steps: strip a leading `#` marker and `* _ \`` emphasis characters,
