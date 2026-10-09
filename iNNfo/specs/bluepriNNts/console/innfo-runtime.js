@@ -2636,11 +2636,41 @@
             return opts.state.store.drafts()
           },
           propose: function (p) {
-            var saved = controller().propose(anchor(p), {
-              kind: p.kind,
-              proposed: p.proposed,
-              comment: p.comment,
-            })
+            p = p && typeof p === 'object' ? p : {}
+            if (ITEM_KINDS.indexOf(p.kind) < 0) {
+              throw new Error(
+                'cannot propose: kind must be one of ' + ITEM_KINDS.join(', ') + ' (got "' + p.kind + '")',
+              )
+            }
+            if (p.kind === 'comment' && !nonEmptyString(p.comment)) {
+              throw new Error('cannot propose: a comment needs non-empty comment text')
+            }
+            if (p.kind === 'correction') {
+              if (!nonEmptyString(p.field)) throw new Error('cannot propose: a correction needs a field')
+              if (p.proposed === undefined || p.proposed === null) {
+                throw new Error('cannot propose: a correction needs a proposed value')
+              }
+            }
+            var payload = { kind: p.kind, proposed: p.proposed, comment: p.comment }
+            if (p.kind === 'correction') {
+              // Same source the modal path uses (kuModalTarget): name and
+              // description live on the element, other fields under fields.
+              var src = (opts.state.elements || []).filter(function (e) {
+                return e && e.id === p.elementId
+              })[0]
+              if (src) {
+                payload.field = p.field
+                payload.original =
+                  p.field === 'name'
+                    ? src.name
+                    : p.field === 'description'
+                      ? src.description
+                      : src.fields
+                        ? src.fields[p.field]
+                        : undefined
+              }
+            }
+            var saved = controller().propose(anchor(p), payload)
             if (!saved) throw new Error('cannot propose: unknown element "' + p.elementId + '"')
             return saved
           },

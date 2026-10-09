@@ -294,3 +294,42 @@ describe('S2b review follow-up: comment-only modal', () => {
     assert.equal(modal.querySelector('.innfo-edit-error').style.display, 'block')
   })
 })
+
+describe('S2b review follow-up: store.propose validates its input', () => {
+  const rejects = (propose, pattern) => {
+    const { ctxs } = bootViews([def('alpha')])
+    assert.throws(() => ctxs.alpha.store.propose(propose), pattern)
+    assert.equal(ctxs.alpha.store.drafts().length, 0, 'nothing stored on rejection')
+  }
+
+  it('an unknown kind throws instead of being coerced to a comment', () => {
+    rejects({ elementId: 'ecto-1', kind: 'bogus', comment: 'x' }, /kind.*bogus/)
+    rejects({ elementId: 'ecto-1', comment: 'x' }, /kind/)
+  })
+
+  it('a comment needs non-empty text', () => {
+    rejects({ elementId: 'ecto-1', kind: 'comment' }, /comment/)
+    rejects({ elementId: 'ecto-1', kind: 'comment', comment: '  ' }, /comment/)
+  })
+
+  it('a correction needs a field and a proposed value', () => {
+    rejects({ elementId: 'ecto-1', kind: 'correction', proposed: 'x' }, /field/)
+    rejects({ elementId: 'ecto-1', kind: 'correction', field: 'role' }, /proposed/)
+  })
+
+  it('name and description corrections carry the original element value', () => {
+    const { ctxs } = bootViews([def('alpha')])
+    ctxs.alpha.store.propose({ elementId: 'ecto-1', kind: 'correction', field: 'name', proposed: 'Ecto-2' })
+    ctxs.alpha.store.propose({
+      elementId: 'ecto-1',
+      kind: 'correction',
+      field: 'description',
+      proposed: 'Hearse.',
+    })
+    ctxs.alpha.store.propose({ elementId: 'ecto-1', kind: 'correction', field: 'role', proposed: 'Hearse' })
+    const [name, description, role] = ctxs.alpha.store.drafts()
+    assert.equal(name.original, 'Ecto-1')
+    assert.equal(description.original, 'Car.')
+    assert.equal(role.original, 'Interceptor')
+  })
+})
