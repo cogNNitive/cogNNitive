@@ -1,6 +1,7 @@
 import { describe, it, beforeEach, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
 import fsp, { mkdtemp, rm, mkdir, writeFile, symlink } from 'node:fs/promises'
+import vm from 'node:vm'
 import { syncBuiltinESMExports } from 'node:module'
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
@@ -539,6 +540,40 @@ describe('console-views lib', () => {
         assert.throws(() => assertInlinable(shell.replace(re, ''), { bundle: 'b', css: 'c', views: [] }), new RegExp(name))
       }
       assert.doesNotThrow(() => assertInlinable(shell, { bundle: 'b', css: 'c', views: [] }))
+    })
+
+    it('compiles the bundle once when the caller checks first and inlines later', () => {
+      const bundle = 'var s = "</script>"; /*BUNDLE*/'
+      const assets = { bundle, css: 'c', views: [] }
+      const countCompiles = (run) => {
+        const original = vm.Script
+        let count = 0
+        vm.Script = class extends original {
+          constructor(...args) {
+            super(...args)
+            if (args[1]?.filename === 'console bundle') count++
+          }
+        }
+        syncBuiltinESMExports()
+        try {
+          run()
+        } finally {
+          vm.Script = original
+          syncBuiltinESMExports()
+        }
+        return count
+      }
+      const prepared = assertInlinable(shell, assets)
+      assert.equal(
+        countCompiles(() => {
+          assertInlinable(shell, assets)
+          inlineConsoleAssets(shell, assets)
+        }),
+        2,
+        'raw assets are compiled per call, so this counter sees the work',
+      )
+      assert.equal(countCompiles(() => inlineConsoleAssets(shell, prepared)), 0, 'prepared assets are not compiled again')
+      assert.equal(inlineConsoleAssets(shell, prepared), inlineConsoleAssets(shell, assets), 'same output either way')
     })
 
     it('is deterministic', () => {

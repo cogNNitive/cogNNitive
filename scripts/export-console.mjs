@@ -453,6 +453,7 @@ async function main() {
   let domainViews = []
   let uiCss = ''
   let viewsLib = null
+  let preparedAssets = null
   if (args.domain) {
     // Loaded lazily: every other mode keeps running as a lone copy of this file, and
     // only --domain needs the sibling lib. The lib sits NEXT TO this script (not in a
@@ -492,7 +493,7 @@ async function main() {
       process.exit(1)
     }
     try {
-      viewsLib.assertInlinable(resolvedShell, { bundle, css: uiCss, views: domainViews })
+      preparedAssets = viewsLib.assertInlinable(resolvedShell, { bundle, css: uiCss, views: domainViews })
     } catch (err) {
       console.error(`Error: ${err.message}`)
       process.exit(1)
@@ -676,11 +677,7 @@ async function main() {
       },
     }
 
-    let domainHtml = viewsLib.inlineConsoleAssets(renderConsole(resolvedShell, null, config, domainPayload), {
-      bundle,
-      css: uiCss,
-      views: domainViews,
-    })
+    let domainHtml = viewsLib.inlineConsoleAssets(renderConsole(resolvedShell, null, config, domainPayload), preparedAssets)
     if (!domainHtml.includes('data-theme=')) {
       domainHtml = domainHtml.replace('<html lang="en">', '<html lang="en" data-theme="light">')
     }

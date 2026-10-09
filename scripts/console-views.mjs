@@ -349,12 +349,29 @@ const BUNDLE_TAGS =
 
 const STRAY_BUNDLE_TAG = /<script[^>]*\ssrc="[^"]*innfo-console\.bundle[^"]*"/
 
+const PREPARED = Symbol('prepared console assets')
+
 /**
- * Everything `inlineConsoleAssets` needs to succeed, checked without producing output, so a
- * caller can call it before its first write. Throws on a missing shell anchor, a missing
- * bundle or CSS, or a view or bundle that cannot be embedded.
+ * Validates the assets and does the expensive work once: the bundle and every view are
+ * escaped and compiled here, so a caller that checks before writing and inlines after
+ * passes the result to both and pays for it a single time. Throws on a missing bundle or
+ * CSS, or a view or bundle that cannot be embedded.
  */
-export function assertInlinable(shell, { bundle, css, views }) {
+export function prepareAssets({ bundle, css, views }) {
+  if (typeof bundle !== 'string' || bundle === '') throw new Error('console bundle is missing or empty')
+  if (typeof css !== 'string') throw new Error('console stylesheet is missing')
+  return {
+    [PREPARED]: true,
+    css,
+    header: viewsHeader(views),
+    bundleScript: `<script>\n${escapeChecked(bundle, 'console bundle')}\n</script>`,
+    viewScripts: views.map(wrapView),
+  }
+}
+
+const prepared = (assets) => (assets[PREPARED] ? assets : prepareAssets(assets))
+
+function assertShell(shell) {
   /** @type {[string, RegExp][]} */
   const anchors = [['stylesheet link', CSS_LINK], ['viewport meta', VIEWPORT], ['bundle script tags', BUNDLE_TAGS]]
   for (const [name, re] of anchors) {
@@ -367,10 +384,16 @@ export function assertInlinable(shell, { bundle, css, views }) {
   if (STRAY_BUNDLE_TAG.test(shell.replace(BUNDLE_TAGS, ''))) {
     throw new Error('console shell has a bundle script tag outside the shell block, which would stay external')
   }
-  if (typeof bundle !== 'string' || bundle === '') throw new Error('console bundle is missing or empty')
-  if (typeof css !== 'string') throw new Error('console stylesheet is missing')
-  escapeChecked(bundle, 'console bundle')
-  views.forEach(wrapView)
+}
+
+/**
+ * Everything `inlineConsoleAssets` needs to succeed, checked without producing output, so a
+ * caller can call it before its first write. Returns the prepared assets; pass them to
+ * `inlineConsoleAssets` to skip the repeated escaping and compiling.
+ */
+export function assertInlinable(shell, assets) {
+  assertShell(shell)
+  return prepared(assets)
 }
 
 /**
@@ -378,11 +401,11 @@ export function assertInlinable(shell, { bundle, css, views }) {
  * mirror tags collapse into it, because each extra copy would replace
  * `window.InnfoConsole`), then the views, whose scripts run after it.
  */
-export function inlineConsoleAssets(shell, { bundle, css, views }) {
-  assertInlinable(shell, { bundle, css, views })
-  const header = viewsHeader(views)
+export function inlineConsoleAssets(shell, assets) {
+  assertShell(shell)
+  const { css, header, bundleScript, viewScripts } = prepared(assets)
   return shell
     .replace(CSS_LINK, () => `<style>${escapeStyle(css)}</style>`)
     .replace(VIEWPORT, (meta) => (header ? `${meta}\n${header}` : meta))
-    .replace(BUNDLE_TAGS, () => [`<script>\n${escapeChecked(bundle, 'console bundle')}\n</script>`, ...views.map(wrapView)].join('\n'))
+    .replace(BUNDLE_TAGS, () => [bundleScript, ...viewScripts].join('\n'))
 }
