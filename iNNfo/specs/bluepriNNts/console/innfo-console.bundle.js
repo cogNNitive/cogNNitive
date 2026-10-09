@@ -4146,8 +4146,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   // Boot-gated by hasNeed(config,'charts'); missing/invalid series skip the
   // chart with a console warning; requires the vendored uPlot global that ships
   // inside innfo-console.bundle.js. Never evaluates slot JavaScript.
-  function renderCharts(doc, model, meta) {
-    var host = doc && typeof doc.getElementById === 'function' ? doc.getElementById('innfo-charts') : null
+  function renderCharts(host, model, meta) {
     if (!host) return
     var compiled = compileChartSeries(isObject(model) ? model.series : {}, meta)
     compiled.missing.forEach(function (c) {
@@ -4434,8 +4433,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
   }
 
-  function renderStudioView(doc, model, meta, rows, totalMonths, labels, rowMap, overrides, growthState, historyCount, onStateChange) {
-    var studioHost = doc && typeof doc.getElementById === 'function' ? doc.getElementById('innfo-studio-view') : null
+  function renderStudioView(host, model, meta, rows, totalMonths, labels, rowMap, overrides, growthState, historyCount, onStateChange) {
+    var studioHost = host
     if (!studioHost) return
 
     function computeValues() {
@@ -4653,9 +4652,13 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     studioHost.appendChild(studioWrap)
   }
 
-  function renderTimelineGrid(doc, model, meta) {
-    var host = doc && typeof doc.getElementById === 'function' ? doc.getElementById('innfo-timeline-grid') : null
-    if (!host) return
+  function renderTimelineGrid(container, model, meta, hooks) {
+    if (!container) return
+    var editRow = hooks && typeof hooks.onEditRow === 'function' ? hooks.onEditRow : null
+    var host = el('div', 'innfo-timeline-grid-host')
+    container.appendChild(host)
+    var studioHost = el('div', 'innfo-studio-host')
+    container.appendChild(studioHost)
     var rows = Array.isArray(model && model.rows) ? model.rows : []
     if (!rows.length) {
       host.innerHTML = ''
@@ -4866,6 +4869,17 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           })
           actionsSpan.appendChild(filterBtn)
         }
+        if (editRow) {
+          var editBtn = el('button', 'innfo-row-btn innfo-edit-btn')
+          editBtn.setAttribute('type', 'button')
+          editBtn.setAttribute('title', 'Propose a change to ' + (r.label || r.id))
+          editBtn.innerHTML = UI.icon('edit', 12)
+          editBtn.addEventListener('click', function (e) {
+            e.stopPropagation()
+            editRow(r.id)
+          })
+          actionsSpan.appendChild(editBtn)
+        }
         tdMetric.appendChild(actionsSpan)
 
         var markerSvg = r.variable ? UI.icon('star', 11) : r.source === 'derived' ? UI.icon('derived', 11) : UI.icon('calc', 11)
@@ -5055,11 +5069,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     function onStateChange() {
       renderView()
-      renderStudioView(doc, model, meta, rows, totalMonths, labels, rowMap, overrides, growthState, historyCount, onStateChange)
+      renderStudioView(studioHost, model, meta, rows, totalMonths, labels, rowMap, overrides, growthState, historyCount, onStateChange)
     }
 
     renderView()
-    renderStudioView(doc, model, meta, rows, totalMonths, labels, rowMap, overrides, growthState, historyCount, onStateChange)
+    renderStudioView(studioHost, model, meta, rows, totalMonths, labels, rowMap, overrides, growthState, historyCount, onStateChange)
   }
 
   /* View registry. A view is a classic script that calls the registerView
@@ -5169,7 +5183,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     if (!explorerPanel && mainEl) {
       explorerPanel = el('div', 'innfo-tab-panel active')
       explorerPanel.id = 'innfo-tab-explorer'
-      var hosts = ['innfo-doc', 'innfo-content', 'innfo-matrices', 'innfo-charts']
+      var hosts = ['innfo-doc', 'innfo-content', 'innfo-matrices']
         .map(function (id) {
           return doc.getElementById(id)
         })
@@ -5215,22 +5229,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return isObject(scope) && nonEmptyString(scope.view) ? scope.view : ''
   }
 
-  // Built-in tabs, registered per boot (they are not in the registry). The
-  // canonical/studio pair keeps the legacy metrics panels until the timeline
-  // becomes a view.
+  // Built-in tabs, registered per boot (they are not in the registry).
   function builtinViews(doc, config, model, meta, shell) {
     var views = []
     // A standalone --view artifact mounts that view alone.
     if (consoleScopeOf(meta)) return views
-    var hasDomain =
-      hasNeed(config, 'timeline-grid') ||
-      (Array.isArray(model && model.rows) && model.rows.length > 0 && meta && meta.months)
-    if (hasDomain) {
-      views.push({ id: 'canonical', title: 'Canonical Spreadsheet', icon: 'timeline', order: -2, panelId: 'innfo-tab-domain' })
-      if (doc.getElementById('innfo-tab-studio')) {
-        views.push({ id: 'studio', title: 'Domain Studio', icon: 'chart', order: -1, panelId: 'innfo-tab-studio' })
-      }
-    }
     if ((Array.isArray(model && model.elements) && model.elements.length > 0) || shell.explorer) {
       views.push({ id: 'explorer', title: 'Model Explorer', icon: 'explorer', order: 100, panelId: 'innfo-tab-explorer' })
     }
@@ -6840,12 +6843,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       renderDocumentView(active, elements, concepts)
     }
     renderMatrices(active, matrices)
-    if (hasNeed(config, 'charts')) {
-      renderCharts(active, model, meta)
-    }
-    if (hasNeed(config, 'timeline-grid') || (Array.isArray(model.rows) && model.rows.length > 0)) {
-      renderTimelineGrid(active, model, meta)
-    }
 
     var searchBox = active.getElementById('innfo-search')
     if (searchBox) {

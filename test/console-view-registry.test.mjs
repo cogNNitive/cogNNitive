@@ -278,16 +278,15 @@ describe('duplicate and invalid view ids', () => {
     assert.match(panel.textContent, /boom/)
   })
 
-  it('rejects an external id that collides with a built-in tab at boot', () => {
+  it('mounts an external "canonical" view (no built-in uses that id anymore)', () => {
     const registry = InnfoConsole.createViewRegistry()
-    registry.register(def({ id: 'canonical' }))
-    const { document } = bootConsole({ registry, model: { ...MODEL, rows: [{}], meta: { ...MODEL.meta, months: 3 } } })
-    assert.match(document.getElementById('innfo-view-errors').textContent, /canonical.*duplicate/)
-    const tabs = document.querySelectorAll('.innfo-view-tab[data-tab="canonical"]')
-    assert.equal(tabs.length, 1)
-    assert.match(tabs[0].textContent, /Canonical Spreadsheet/)
-    assert.equal(document.getElementById('innfo-tab-canonical'), null)
-    assert.equal(document.querySelectorAll('.innfo-tab-panel[data-innfo-view]').length, 0)
+    let mounts = 0
+    registry.register(def({ id: 'canonical', mount: () => mounts++ }))
+    const { document } = bootConsole({ registry })
+    assert.equal(document.getElementById('innfo-view-errors'), null)
+    assert.ok(document.getElementById('innfo-tab-canonical'))
+    document.querySelector('.innfo-view-tab[data-tab="canonical"]').click()
+    assert.equal(mounts, 1)
   })
 })
 
@@ -361,11 +360,10 @@ describe('booting twice on one document', () => {
   it('does not duplicate notices or error content', () => {
     const registry = InnfoConsole.createViewRegistry()
     registry.register(failing())
-    registry.register(def({ id: 'canonical' }))
     const model = { ...MODEL, rows: [{}], meta: { ...MODEL.meta, months: 3 } }
     const { document } = bootConsole({ registry, model })
     const before = document.querySelectorAll('#innfo-view-errors p').length
-    assert.equal(before, 2)
+    assert.equal(before, 1)
     InnfoConsole.boot(document, { registry })
     assert.equal(document.querySelectorAll('#innfo-view-errors p').length, before)
     assert.equal(document.querySelectorAll('#innfo-tab-pipeline .innfo-view-error').length, 1)

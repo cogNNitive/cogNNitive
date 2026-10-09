@@ -457,6 +457,65 @@ scenarioMonths:: 12
       assert.equal(byLabel.Incidents.base, 20)
     })
 
+    it('mounts the discovered timeline view as a tab, with no canonical/studio tabs and no global ids', async () => {
+      const metricsModel = `---
+title: "M"
+level: 3
+parent_spec:
+  name: "metrics_V_0-4-1"
+---
+
+# NN Metrics
+## NN Metrics: Revenue
+metricValue:: <calculated>
+metricFormula:: incidents x fee
+metricType:: revenue
+metricUnit:: USD
+evolution:: [[Compound]]
+
+# NN Variables
+## NN Variables: Incidents
+variableValue:: 20
+variableType:: count
+variableUnit:: incidents
+
+# NN Evolution
+## NN Evolution: Compound
+evolutionType:: compound
+evolutionFactor:: 5
+
+# NN Scenario
+## NN Scenario: Year 1
+scenarioMonths:: 12
+`
+      await writeFile(join(tempDir, 'models', 'm_V_1-0-0_NN.md'), metricsModel, 'utf-8')
+      assert.equal((await runCli([tempDir, '--domain'])).code, 0)
+      const dom = new JSDOM(await readFile(domainFile(), 'utf-8'), {
+        url: 'http://localhost',
+        runScripts: 'dangerously',
+        beforeParse(w) {
+          w.matchMedia = () => ({
+            matches: false,
+            addListener() {},
+            removeListener() {},
+            addEventListener() {},
+            removeEventListener() {},
+            dispatchEvent: () => false,
+          })
+        },
+      })
+      await new Promise((ok) => dom.window.addEventListener('load', ok))
+      const doc = dom.window.document
+      const tabs = [...doc.querySelectorAll('#innfo-view-tabs [data-tab]')].map((b) => b.dataset.tab)
+      assert.ok(tabs.includes('timeline'), JSON.stringify(tabs))
+      assert.equal(tabs.includes('canonical'), false)
+      assert.equal(tabs.includes('studio'), false)
+      assert.ok(tabs.indexOf('timeline') < tabs.indexOf('review'), 'timeline precedes Changes')
+      const panel = doc.getElementById('innfo-tab-timeline')
+      assert.ok(panel.querySelector('.innfo-timeline-table'), 'timeline grid rendered into its own panel')
+      assert.equal(doc.getElementById('innfo-timeline-grid'), null, 'no global timeline host id')
+    })
+
     it('boots under jsdom, registers each view with id == slug and mounts the first tab', async () => {
       await addView('pipeline')
       await addView('other', PIPELINE.replace('order: 1', 'order: 2').replace('Pipeline', 'Other'))
