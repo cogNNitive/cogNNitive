@@ -294,26 +294,42 @@ Commit order inside the slice (so the rename is excludable from review): (a) pur
 Not applied by `sdd-apply`; executed by the maintainer per `nn-dev-release`. Each tag is
 strictly greater than its predecessor of the same family.
 
-- [ ] 4.18 Do NOT merge slice 4 content to main without the tag and repin: validate-manifest
+- [x] 4.18 Do NOT merge slice 4 content to main without the tag and repin: validate-manifest
       rejects unmerged tags and byte-checks content on main against the pin, so an untagged
       merge turns main red and skips the Pages deploy (PR CI will not warn). Rehearse in a
       detached worktree first (`git worktree add --detach <tmp> <sha>`).
-- [ ] 4.19 Step 1: tag `innfo-mcp-v*` (additive MCP discovery + resolver).
-- [ ] 4.20 Step 2: tag `blueprints-v*` for the `video` and `design-presets` content; repin
+- [x] 4.19 Step 1: tag `innfo-mcp-v*` (additive MCP discovery + resolver).
+- [x] 4.20 Step 2: tag `blueprints-v*` for the `video` and `design-presets` content; repin
       the manifest so main's verify byte-check passes. The standalone skill is still
       published at this point, so existing procedures keep working.
-- [ ] 4.21 Step 3: tag `skills-v*` (removes `nn-video-script`, ships the projecting
+- [x] 4.21 Step 3: tag `skills-v*` (removes `nn-video-script`, ships the projecting
       installer).
-- [ ] 4.22 Check after each step: `~/.agents/skills/nn-video-script` still works at every
+- [x] 4.22 Check after each step: `~/.agents/skills/nn-video-script` still works at every
       intermediate published state. Note: after step 3, an install must come through the
       `video` bluepriNNt projection.
-- [ ] 4.23 Mitigation (review W3, no compat code): tag `blueprints-v*` and `skills-v*` in the
+- [x] 4.23 Mitigation (review W3, no compat code): tag `blueprints-v*` and `skills-v*` in the
       SAME release window and repin once. Known flip-flop in the gap: while the manifest still
       lists a standalone `nn-video-script`, a `video` blueprint install projects the embedded
       skill over `~/.agents/skills/nn-video-script`, and then `isOutdatedSkill` (state commit
       differs from the standalone pin) reinstalls the standalone over it on every update until
       `skills-v*` removes the standalone entry. The window must stay short; do not ship
       `blueprints-v*` alone.
+
+### Release record — 2026-10-09
+
+Batch merged to `main` with PR #135 (`origin/main` = `4feae594`). All four keys cut in
+one window; deployed legs verified (monorepo tags, `release.yml` success, mirror tags on
+`cogNNitive-web`, live manifest).
+
+- `innfo-mcp-v0.15.0` — additive MCP discovery + resolver. Workflow first run CANCELLED
+  (the `release` concurrency group cancels the oldest *pending* run when a newer one
+  arrives); recovered by re-running the same tag (`gh run rerun`), success.
+- `blueprints-v0.24.0` — `video` V_0-9-0 + `design-presets` V_0-3-1; one repin.
+- `skills-v2.15.0` — removes standalone `nn-video-script`, ships the projecting installer.
+- `innfo-console-v0.9.1` — shipped in the same window (owned by the MCP/console session).
+
+`~/.agents/skills/nn-video-script` still present locally at V_0-4-0 (standalone dropped
+from the manifest; new installs come through the `video` bluepriNNt projection).
 
 ---
 
