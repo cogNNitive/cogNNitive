@@ -60,6 +60,21 @@ function runTests() {
     }
   }
 
+  // Test 2b: a `node scripts/...` inside an HTML comment is documentation, not a runtime reference.
+  {
+    const root = makeRepo({
+      a: { skillMd: '<!-- run node scripts/build-skill-shared-rules.mjs to regenerate -->\nRun `node scripts/tool.js`.\n', files: ['scripts/tool.js'] },
+    });
+    try {
+      const res = checkSkillScriptReferences(root);
+      assert.strictEqual(res.ok, true, res.errors.join('\n'));
+      assert.strictEqual(res.checked, 1, 'only the non-comment reference is counted');
+      console.log('✔ ignores node scripts references inside HTML comments');
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  }
+
   // Test 3: ignores cross-skill paths and skills outside the manifest
   {
     const root = makeRepo({ a: { skillMd: 'Run `node skills/other/scripts/x.js`.\n' } });

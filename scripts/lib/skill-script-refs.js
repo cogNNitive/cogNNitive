@@ -57,7 +57,11 @@ function checkSkillScriptReferences(repoRoot) {
     const skillMd = path.join(skillDir, 'SKILL.md');
     if (!fs.existsSync(skillMd)) continue;
     const text = fs.readFileSync(skillMd, 'utf8');
-    const refs = new Set([...text.matchAll(SCRIPT_REF)].map((m) => m[1]));
+    // Documentation annotations (e.g. generated-region markers carrying the
+    // `node scripts/...` regeneration command) live inside HTML comments and
+    // are not runtime references a distributed skill must ship.
+    const scannable = text.replace(/<!--[\s\S]*?-->/g, '');
+    const refs = new Set([...scannable.matchAll(SCRIPT_REF)].map((m) => m[1]));
     for (const ref of refs) {
       checked++;
       if (!fs.existsSync(path.join(skillDir, 'scripts', ref))) {
