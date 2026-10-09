@@ -94,3 +94,26 @@ Status: tasks 2b.1-2b.9 done. 2b.10 verification run (below); the fresh-context 
 - Whether `store.propose` throwing for a missing controller is acceptable versus exposing a draft-only store.
 - Observer ordering: it is created before `t.mount`, and `stripIframes` is called after mount; check there is no double report for one iframe.
 - `onChange` fires after the host surfaces refresh, inside `refreshDraftCounts`; confirm a listener that proposes again cannot loop.
+
+## S2b review follow-up
+
+A fresh-context review of a4ae234a and ca81ec4d raised eight items; each was fixed test-first (RED observed before the fix) in its own commit, with the console bundle rebuilt in every code commit.
+
+| # | Item | Resolution |
+|---|------|------------|
+| 1 | commentOnly target could be flipped to "Propose value" and saved empty | `UI.EditModal` takes `commentOnly` (mode toggle not rendered, mode fixed) and rejects a blank comment with a visible `.innfo-edit-error`; `review.js` also refuses to store a blank comment draft |
+| 2 | `store.propose` coerced unknown kinds and accepted empty input | Throws for an unknown kind, a blank comment, a correction without field or `proposed`; `original` for `name`/`description` now comes from the element, matching the modal path |
+| 3 | `onChange` re-entrancy, swallowed errors, stale listeners | Nested notifications are coalesced (at most one extra pass, then a surfaces-only pass so counts show the final state); a throwing listener is reported in `#innfo-view-errors` under its view id; the listener list is cleared on destroy/re-boot |
+| 4 | `openEdit` side effects and focus | Validation runs before `closePopover`; focus anchor is `document.activeElement` at call time (ignoring focus inside the modal being replaced) and Cancel restores it |
+| 5 | Iframe guard gaps | Guard covers `iframe`, `object`, `embed`, `frame`; editable views are watched across `ctx.doc.body`, readonly views inside their panel; only frames created by `mountHtml` are exempt; `mountHtml` returns nothing |
+| 6 | CSP | `base-uri 'none'` and `form-action 'none'` added; comment records that meta-refresh navigation in the frame is accepted |
+| 7 | Stale decorations after `store.remove` | Controller exposes `refresh()` (count surfaces + decorations); `remove` uses it when a controller exists |
+| 8 | Decorative srcdoc test | Rewritten to assert delivery via the attribute only plus the sandbox tokens; carries an honesty note that jsdom does not enforce the sandbox |
+
+### Decisions and limits
+
+- The embedding guard is an accident guard for trusted view code, not a security boundary: a MutationObserver reacts after insertion and shadow roots are out of scope (stated in a code comment).
+- `store.propose` accepts every kind in `ITEM_KINDS` (including `new` and `delete`); only `comment` and `correction` have extra input rules.
+- Editable views are watched across the whole body, so any non-`mountHtml` frame anywhere in the document is removed and reported while such a view is mounted. The console has no other frame producers today.
+- Mutation checks (fix switched off, tests went RED, fix restored): fix 1 (toggle + blank-comment guard: 2 red), fix 2 (kind check + `name` original: 2 red), fix 3 (re-entrancy guard, listener cleanup, error reporting: 3 red), fix 6 (CSP string: 1 red), item 8 (html parsed into the parent: 1 red).
+- Hand-written delta since ca81ec4d: runtime +126/-33, review.js +14/-2, ui-kit.js +15/-2, tests +295/-7.
