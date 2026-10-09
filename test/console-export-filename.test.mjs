@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { InnfoConsole } from './helpers/console-boot.mjs'
+import { InnfoConsole, MODEL, bootConsole, addCommentDraft } from './helpers/console-boot.mjs'
 
 describe('S1c: export filename uses the model slug', () => {
   it('composeExport succeeds for a model with a human title', () => {
@@ -38,5 +38,60 @@ describe('S1c: export filename uses the model slug', () => {
     const res = InnfoConsole.composeExport(state, 'jane')
     assert.equal(res.ok, true, JSON.stringify(res.errors))
     assert.match(res.filename, /^ghost-busters_V_1-0-0_/)
+  })
+
+  const stateFor = (title) => ({
+    modelTitle: title,
+    modelId: title,
+    modelVersion: 'V_1-0-0',
+    store: { drafts: () => [] },
+  })
+  const modelPart = (res) => res.filename.split('_V_')[0]
+
+  it('gives different non-Latin titles different valid filenames', () => {
+    const a = InnfoConsole.composeExport(stateFor('幕府モデル'), 'jane')
+    const b = InnfoConsole.composeExport(stateFor('موديل'), 'jane')
+    assert.equal(a.ok, true, JSON.stringify(a.errors))
+    assert.equal(b.ok, true, JSON.stringify(b.errors))
+    assert.match(modelPart(a), /^[A-Za-z0-9-]+$/)
+    assert.match(modelPart(b), /^[A-Za-z0-9-]+$/)
+    assert.notEqual(modelPart(a), modelPart(b))
+    assert.notEqual(a.changesetFilename.split('_')[0], b.changesetFilename.split('_')[0])
+  })
+
+  it('is deterministic for the same non-Latin title', () => {
+    const a = InnfoConsole.composeExport(stateFor('幕府モデル'), 'jane')
+    const b = InnfoConsole.composeExport(stateFor('幕府モデル'), 'jane')
+    assert.equal(modelPart(a), modelPart(b))
+    assert.match(modelPart(a), /^model-[0-9a-f]{8}$/)
+  })
+})
+
+describe('S1c: boot maps meta.model_slug to state.modelSlug', () => {
+  it('names the downloaded feedback file after meta.model_slug', () => {
+    const saved = MODEL.meta
+    MODEL.meta = { ...saved, model_slug: 'ghost-busters-slug' }
+    try {
+      const { dom, document, res } = bootConsole()
+      res.controller.enable()
+      addCommentDraft(document)
+      const downloads = []
+      dom.window.HTMLAnchorElement.prototype.click = function () {
+        if (this.download) downloads.push(this.download)
+      }
+      dom.window.URL.createObjectURL = () => 'blob:test'
+      dom.window.URL.revokeObjectURL = () => {}
+      globalThis.URL.createObjectURL = () => 'blob:test'
+      globalThis.URL.revokeObjectURL = () => {}
+      document.getElementById('innfo-feedback-open').click()
+      const identifier = document.querySelector('#innfo-feedback-modal [data-innfo="identifier"]')
+      identifier.value = 'jane'
+      identifier.dispatchEvent(new dom.window.Event('input'))
+      document.querySelector('#innfo-feedback-modal [data-innfo="download"]').click()
+      assert.equal(downloads.length, 1, 'one file downloaded')
+      assert.match(downloads[0], /^ghost-busters-slug_V_1-0-0_jane_feedback_/)
+    } finally {
+      MODEL.meta = saved
+    }
   })
 })

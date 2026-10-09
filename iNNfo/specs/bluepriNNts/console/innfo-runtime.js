@@ -65,7 +65,23 @@
       var out = slugMod ? slugMod.slugify(c) : ''
       if (out) return out
     }
-    return 'model'
+    // Nothing slugifies (e.g. a non-Latin title with no ASCII id): derive a
+    // stable suffix from the title so distinct models never share a filename.
+    var seed = [s.modelTitle, s.modelId].filter(function (v) {
+      return typeof v === 'string' && v.trim()
+    })[0]
+    return 'model-' + shortHash(seed || '')
+  }
+
+  // FNV-1a (32-bit) rendered as 8 lowercase hex digits; deterministic across runs.
+  function shortHash(text) {
+    var h = 0x811c9dc5
+    var str = String(text)
+    for (var i = 0; i < str.length; i++) {
+      h ^= str.charCodeAt(i)
+      h = Math.imul(h, 0x01000193) >>> 0
+    }
+    return ('00000000' + h.toString(16)).slice(-8)
   }
 
   function slugifyReviewer(value) {
