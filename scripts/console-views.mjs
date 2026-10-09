@@ -101,6 +101,7 @@ async function readViews(dir, names, origin, sourcePrefix) {
  * returning on a bad id, a duplicate id, ES module syntax or such a conflict.
  * `onWarning` receives a message when a base has no bluepriNNt package anywhere it
  * looks, because its views (if it has any) cannot be found.
+ * @param {{ domainRoot: string, specNames?: string[], packagesDir: string, onWarning?: (message: string) => void }} options
  */
 export async function discoverViews({ domainRoot, specNames = [], packagesDir, onWarning = () => {} }) {
   // Plain code-unit order (not localeCompare) so the result and the messages never depend
