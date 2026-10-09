@@ -34,7 +34,7 @@ const DELETED = [
   'iNNfo/apps/innfo-editor/tests/component/ConsoleHubView-open-external.test.ts',
 ]
 
-const NEEDLES = ['workspacehub', 'workspaceconsolehub', 'consolehubview', 'compileworkspacehub']
+const NEEDLES = ['workspacehub', 'workspaceconsoleshub', 'workspaceconsolehub', 'consolehubview', 'compileworkspacehub', 'compilehub']
 const normalize = (s) => s.toLowerCase().replace(/[^a-z0-9]/g, '')
 
 function trackedFiles() {

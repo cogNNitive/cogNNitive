@@ -169,7 +169,7 @@ describe('procedureIdOf', () => {
   })
 
   it('lower-cases the id, matching the existing list_procedures ids', () => {
-    expect(procedureIdOf('Compile_Hub_NN.md')).toBe('compile-hub')
+    expect(procedureIdOf('Generate_Report_NN.md')).toBe('generate-report')
   })
 
   it('keeps the stem of a frozen procedure that has no _procedures', () => {

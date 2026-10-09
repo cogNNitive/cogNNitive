@@ -36,7 +36,7 @@ A domaiNN MUST have exactly one self-contained `domaiNN_console.html` generated 
 #### Scenario: No hub reference
 - GIVEN the repository after this change
 - WHEN searched for `workspace_hub`
-- THEN there are zero hits outside `openspec/changes/archive/`
+- THEN there are zero hits outside the reference guard's allowlist (`test/no-workspace-hub-references.test.mjs`)
 
 #### Scenario: No orphan domaiNN shell asset
 - GIVEN the domaiNN bluepriNNt assets

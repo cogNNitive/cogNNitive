@@ -160,13 +160,13 @@ Rollback: revert PR 6 (restores shell and stepper signatures).
 Goal: delete the Workspace Hub and its editor wiring; update specs and docs to the D14 model.
 Traceability: workspace-hub-prompt (4 requirements removed); console-hub-onboarding (3 removed); console-architecture: Level 2 Template Domain Consoles, Level 3 Model Custom Consoles; editor-navigation (3); editor-lineage-ui: Explorer classifies files by contract role; innfo-skill-menu: Canonical Entry Menu Structure; nn-naming-contract: Procedure file names; template-procedures-manifest-and-discovery: R-TPD-02; innfo-console-runtime: Exclude Internal Specs... (removed).
 
-- [ ] 3.1 RED `test/no-workspace-hub-references.test.mjs` with the gap 7 allowlist (fails on current refs)
-- [ ] 3.2 Repoint frozen-procedure examples to `workspace/procedures/compile_model_console_NN.md` (`compile-model-console`) in `scripts/lib/nn-name-invariant-guard.test.js` and `innfo-core/tests/naming/contract.test.ts` (gap 8)
-- [ ] 3.3 Delete `workspace/assets/workspace_hub.html`, `workspace/procedures/compile_workspace_hub_NN.md`, `_samples_nn/procedures/compile_workspace_hub_procedures_NN.md`, `docs/innfo/documentation/workspace-console-hub.md`, `innfo-core/tests/workspace-hub.test.ts`
-- [ ] 3.4 Modify `_samples_nn/procedures_NN.md`, `_samples_nn/artifacts_NN.md`, `executive_remediation_report_business_NN.md`, `skills/nn-innfo/SKILL.md`, `reviewer-guide.md`
-- [ ] 3.5 Editor: delete `ConsoleHubView.vue` and `ConsoleHubView-open-external.test.ts`; modify `WorkspaceView.vue`, `Header.vue` (button, `selectView`), `stores/uiStore.ts` (`activeView` union), `composables/useViewSync.ts`, `consolePrompt.ts(+test)`, `consoleArtifacts.test.ts`, `safe-url.test.ts`
-- [ ] 3.6 Bump template versions for any template spec touched in 3.3/3.4 (workspace, `_samples_nn` if versioned); templates release and repin if required
-- [ ] 3.7 GREEN: guard passes; editor build, typecheck and tests green; `console-shell-guard` green
-- [ ] 3.8 Verify: node --test, check-integrity, editor build; fresh-context review before push
+- [x] 3.1 RED `test/no-workspace-hub-references.test.mjs` with the gap 7 allowlist (fails on current refs)
+- [x] 3.2 Repoint frozen-procedure examples to `workspace/procedures/compile_model_console_NN.md` (`compile-model-console`) in `scripts/lib/nn-name-invariant-guard.test.js` and `innfo-core/tests/naming/contract.test.ts` (gap 8)
+- [x] 3.3 Delete `workspace/assets/workspace_hub.html`, `workspace/procedures/compile_workspace_hub_NN.md`, `_samples_nn/procedures/compile_workspace_hub_procedures_NN.md`, `docs/innfo/documentation/workspace-console-hub.md`, `innfo-core/tests/workspace-hub.test.ts`
+- [x] 3.4 Modify `_samples_nn/procedures_NN.md`, `_samples_nn/artifacts_NN.md`, `executive_remediation_report_business_NN.md`, `skills/nn-innfo/SKILL.md`, plus docs (`innfo-editor.md`, `_sidebar.md`, `ai-index.yaml`, `documentation_NN.md`, `llms.txt`)
+- [x] 3.5 Editor: delete `ConsoleHubView.vue`, `ConsoleHubView-open-external.test.ts`, and the now-dead `consolePrompt.ts(+test)` / `utils/consoleArtifacts.ts(+test)`; modify `WorkspaceView.vue`, `Header.vue` (button, `selectView`, `Layers`), `stores/uiStore.ts` (`activeView` union), `composables/useViewSync.ts`, and the affected tests (`Header.test.ts`, `LeftSidebar-navigation.test.ts`, `uiStore-selectNode.test.ts`, `safe-url.test.ts`)
+- [x] 3.6 No version bump: the `workspace` package has no parseable `blueprint_version` and `_samples_nn` is unversioned
+- [x] 3.7 GREEN: guard passes; editor suite green (753 tests); `console-shell-guard` green
+- [x] 3.8 Verify: node --test green, check-integrity green except the worktree dist guard; fresh-context review done and fixed
 
 Rollback: revert PR 7 (restores hub files, editor wiring and specs).

@@ -102,7 +102,7 @@ When the user invokes the skill without an explicit intent (e.g., bare `/nn-innf
 - **[a] (Recommended)** Create a new model (Conversational Wizard)
 - **[b]** Edit / extend an existing model (Conversational Wizard)
 - **[c]** Audit & validate model (MCP Syntax + Architecture Coherence)
-- **[d]** Export / update console artifacts (Workspace Consoles & Hub)
+- **[d]** Export / update console artifacts (domaiNN console)
 - **[x]** Execute a model procedure — list procedures declared in the model and execute the chosen one
 - **[w]** View & consult documentation — browse iNNfo specs, primitives, and guides
 - **[y]** Cancel / help
