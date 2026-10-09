@@ -32,7 +32,7 @@ export function parseSpecName(name) {
   return m ? { base: m[1], version: m[2] } : { base: name, version: null }
 }
 
-/** View directories for one parent_spec, in priority order; the first that exists wins. */
+/** View directories for one parent_spec, in priority order; the first that holds views wins. */
 export function viewRootCandidates({ domainRoot, specName, packagesDir }) {
   const { base, version } = parseSpecName(specName)
   // The base becomes a path segment: a name like `../../x` must never reach `join`.
@@ -47,6 +47,8 @@ export function viewRootCandidates({ domainRoot, specName, packagesDir }) {
   ]
 }
 
+const compareCodeUnits = (a, b) => (a < b ? -1 : a > b ? 1 : 0)
+
 async function jsFilesIn(dir) {
   try {
     const entries = await readdir(dir, { withFileTypes: true })
@@ -56,8 +58,7 @@ async function jsFilesIn(dir) {
   }
 }
 
-async function readViews(dir, origin, sourcePrefix) {
-  const names = (await jsFilesIn(dir)) ?? []
+async function readViews(dir, names, origin, sourcePrefix) {
   const views = []
   for (const name of names) {
     const id = name.slice(0, -'.js'.length)
@@ -75,23 +76,41 @@ async function readViews(dir, origin, sourcePrefix) {
 
 /**
  * Finds every view for a domaiNN. `specNames` are the parent_spec names of the
- * exported models (one package per base, first name wins). Throws before
- * returning on a bad id, a duplicate id or ES module syntax.
+ * exported models; each base resolves to one views folder, and models on several
+ * versions of a base that resolve to different folders are an error. Throws before
+ * returning on a bad id, a duplicate id, ES module syntax or such a conflict.
  */
 export async function discoverViews({ domainRoot, specNames = [], packagesDir }) {
-  const found = []
-  const seenBases = new Set()
-  for (const specName of specNames) {
+  // Plain code-unit order (not localeCompare) so the result and the messages never depend
+  // on the machine's locale or on the order the models were found in.
+  const sortedNames = [...new Set(specNames)].sort(compareCodeUnits)
+  /** @type {Map<string, { specName: string, dir: string, names: string[] }[]>} */
+  const hitsByBase = new Map()
+  for (const specName of sortedNames) {
     const { base } = parseSpecName(specName)
-    if (seenBases.has(base)) continue
-    seenBases.add(base)
     for (const dir of viewRootCandidates({ domainRoot, specName, packagesDir })) {
-      if ((await jsFilesIn(dir)) === null) continue
-      found.push(...(await readViews(dir, 'bluepriNNt', `bluepriNNt:${base}/${VIEWS_SUBPATH.join('/')}`)))
+      const names = await jsFilesIn(dir)
+      if (names === null || names.length === 0) continue // missing or empty: next tier
+      hitsByBase.set(base, [...(hitsByBase.get(base) ?? []), { specName, dir, names }])
       break
     }
   }
-  found.push(...(await readViews(join(domainRoot, 'consoles', 'views'), 'domaiNN', 'domaiNN:consoles/views')))
+
+  const found = []
+  for (const base of [...hitsByBase.keys()].sort(compareCodeUnits)) {
+    const hits = hitsByBase.get(base)
+    const other = hits.find((h) => h.dir !== hits[0].dir)
+    // Models on different versions of one blueprint may ship different views; picking one
+    // silently would hide the other, so the domain owner has to resolve it.
+    if (other) {
+      throw new Error(
+        `models on blueprint "${base}" resolve to different views: ${hits[0].specName} (${hits[0].dir}) and ${other.specName} (${other.dir}); keep views for one version, or move them to the shared folder`,
+      )
+    }
+    found.push(...(await readViews(hits[0].dir, hits[0].names, 'bluepriNNt', `bluepriNNt:${base}/${VIEWS_SUBPATH.join('/')}`)))
+  }
+  const domainDir = join(domainRoot, 'consoles', 'views')
+  found.push(...(await readViews(domainDir, (await jsFilesIn(domainDir)) ?? [], 'domaiNN', 'domaiNN:consoles/views')))
 
   const bySlug = new Map()
   for (const v of found) {
@@ -99,7 +118,7 @@ export async function discoverViews({ domainRoot, specNames = [], packagesDir })
     if (first) throw new Error(`duplicate view id "${v.id}": ${first.source} and ${v.source}`)
     bySlug.set(v.id, v)
   }
-  return [...found].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+  return [...found].sort((a, b) => compareCodeUnits(a.id, b.id))
 }
 
 /** The exact text that runs, shared by the syntax check and the emitted script. */

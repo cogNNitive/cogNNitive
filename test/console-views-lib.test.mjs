@@ -117,6 +117,56 @@ describe('console-views lib', () => {
     })
   })
 
+  describe('selection among several models', () => {
+    const domainViews = (base, version) =>
+      join(domain, 'specs', 'bluepriNNts', base, ...(version ? [version] : []), 'assets', 'consoles', 'views')
+    const pkgViews = (base) => join(pkgs, base, 'assets', 'consoles', 'views')
+
+    it('gives the same result for every input order', async () => {
+      await put(join(pkgViews('metrics'), 'timeline.js'))
+      const a = await discover(['metrics_V_0-3-0', 'metrics_V_0-4-1', 'other_V_0-1-0'])
+      const b = await discover(['other_V_0-1-0', 'metrics_V_0-4-1', 'metrics_V_0-3-0'])
+      assert.deepEqual(a, b)
+    })
+
+    it('fails naming both models when two versions of one base resolve to different view sets', async () => {
+      await put(join(domainViews('metrics', 'V_0-3-0'), 'old.js'))
+      await put(join(domainViews('metrics', 'V_0-4-1'), 'new.js'))
+      const expected = (err) =>
+        /metrics_V_0-3-0/.test(err.message) && /metrics_V_0-4-1/.test(err.message) && /different views/.test(err.message)
+      await assert.rejects(discover(['metrics_V_0-4-1', 'metrics_V_0-3-0']), expected)
+      await assert.rejects(discover(['metrics_V_0-3-0', 'metrics_V_0-4-1']), expected)
+    })
+
+    it('fails the same way when one version has its own views and the other uses the package', async () => {
+      await put(join(domainViews('metrics', 'V_0-4-1'), 'new.js'))
+      await put(join(pkgViews('metrics'), 'timeline.js'))
+      await assert.rejects(discover(['metrics_V_0-3-0', 'metrics_V_0-4-1']), /different views/)
+    })
+
+    it('is fine when only one version resolves to any views', async () => {
+      await put(join(domainViews('metrics', 'V_0-4-1'), 'new.js'))
+      assert.deepEqual((await discover(['metrics_V_0-3-0', 'metrics_V_0-4-1'])).map((v) => v.id), ['new'])
+    })
+
+    it('treats an existing but empty candidate directory as absent', async () => {
+      await mkdir(domainViews('metrics', 'V_0-4-1'), { recursive: true })
+      await put(join(domainViews('metrics'), 'readme.md'), '# no views here')
+      await put(join(pkgViews('metrics'), 'timeline.js'))
+      const views = await discover(['metrics_V_0-4-1'])
+      assert.deepEqual(views.map((v) => v.id), ['timeline'])
+      assert.equal(views[0].source, 'bluepriNNt:metrics/assets/consoles/views/timeline.js')
+    })
+
+    it('orders bases by plain code units, not by locale', async () => {
+      await put(join(pkgViews('Zeta'), 'x.js'))
+      await put(join(pkgViews('alpha'), 'x.js'))
+      const expected = (err) => err.message.indexOf('Zeta') < err.message.indexOf('alpha')
+      await assert.rejects(discover(['alpha_V_0-1-0', 'Zeta_V_0-1-0']), expected)
+      await assert.rejects(discover(['Zeta_V_0-1-0', 'alpha_V_0-1-0']), expected)
+    })
+  })
+
   describe('discovery by convention', () => {
     it('finds domaiNN custom views sorted by id with source and sha256', async () => {
       await put(join(domain, 'consoles', 'views', 'pipeline.js'))
