@@ -141,15 +141,133 @@ function wrapperText(view) {
   )
 }
 
-/** Views are classic scripts: compile them so `import`/`export` and other syntax errors fail the export. */
+const WORDS_BEFORE_REGEX = new Set([
+  'return', 'typeof', 'instanceof', 'in', 'of', 'new', 'delete', 'void', 'throw', 'case', 'do', 'else', 'yield', 'await',
+])
+const IMPORT_DECLARATION = /^\s*[A-Za-z_$*{'"]/
+const EXPORT_DECLARATION = /^\s*(?:default\b|const\b|let\b|var\b|function\b|class\b|async\b|[{*])/
+const TOP_LEVEL_AWAIT = /^\s*[A-Za-z_$([{'"`0-9]/
+
+/**
+ * Which ES-module-only construct `code` uses, or null. A small token scanner (strings,
+ * template literals with nested `${}`, regex literals, comments) so look-alike text inside
+ * them is not mistaken for syntax, and so the answer never depends on the engine's message
+ * wording. It only runs after the script already failed to compile, to explain why.
+ * @returns {'import' | 'export' | 'import.meta' | 'top-level await' | null}
+ */
+export function findModuleSyntax(code) {
+  const n = code.length
+  const templateDepths = [] // brace depth at which each open `${` sits
+  let i = 0
+  let depth = 0
+  let prev = '' // kind of the last token: '' start, 'o' operator/punctuation, 'w' word or number, ')' ']' '}' closers, 's' literal
+  let prevChar = ''
+  let prevWord = ''
+
+  const skipTemplate = () => {
+    while (i < n) {
+      const c = code[i]
+      if (c === '\\') i += 2
+      else if (c === '`') return void i++
+      else if (c === '$' && code[i + 1] === '{') {
+        i += 2
+        templateDepths.push(depth++)
+        return
+      } else i++
+    }
+  }
+  const skipRegex = () => {
+    let inClass = false
+    i++
+    while (i < n && code[i] !== '\n') {
+      const c = code[i]
+      if (c === '\\') i++
+      else if (c === '[') inClass = true
+      else if (c === ']') inClass = false
+      else if (c === '/' && !inClass) break
+      i++
+    }
+    i++
+    while (i < n && /[a-z]/i.test(code[i])) i++
+  }
+
+  while (i < n) {
+    const c = code[i]
+    const next = code[i + 1]
+    if (/\s/.test(c)) {
+      i++
+    } else if (c === '/' && next === '/') {
+      while (i < n && code[i] !== '\n') i++
+    } else if (c === '/' && next === '*') {
+      const end = code.indexOf('*/', i + 2)
+      i = end < 0 ? n : end + 2
+    } else if (c === '"' || c === "'") {
+      i++
+      while (i < n && code[i] !== c && code[i] !== '\n') i += code[i] === '\\' ? 2 : 1
+      i++
+      prev = 's'
+      prevChar = c
+    } else if (c === '`') {
+      i++
+      skipTemplate()
+      prev = 's'
+      prevChar = c
+    } else if (c === '/' && (prev === '' || prev === 'o' || prev === '}' || (prev === 'w' && WORDS_BEFORE_REGEX.has(prevWord)))) {
+      skipRegex()
+      prev = 's'
+      prevChar = '/'
+    } else if (/[A-Za-z_$]/.test(c)) {
+      let j = i
+      while (j < n && /[\w$]/.test(code[j])) j++
+      const word = code.slice(i, j)
+      const rest = code.slice(j)
+      if (prevChar !== '.') {
+        if (word === 'import' && /^\s*\./.test(rest)) return 'import.meta'
+        if (word === 'import' && depth === 0 && IMPORT_DECLARATION.test(rest)) return 'import'
+        if (word === 'export' && depth === 0 && EXPORT_DECLARATION.test(rest)) return 'export'
+        if (word === 'await' && depth === 0 && prevChar !== '>' && TOP_LEVEL_AWAIT.test(rest)) return 'top-level await'
+      }
+      i = j
+      prev = 'w'
+      prevChar = word.at(-1)
+      prevWord = word
+    } else if (/[0-9]/.test(c)) {
+      while (i < n && /[\w.]/.test(code[i])) i++
+      prev = 'w'
+      prevChar = '0'
+      prevWord = ''
+    } else if (c === '}' && templateDepths.at(-1) === depth - 1) {
+      templateDepths.pop()
+      depth--
+      i++
+      skipTemplate()
+      prev = 's'
+      prevChar = '`'
+    } else {
+      if (c === '{') depth++
+      else if (c === '}') depth--
+      prev = c === ')' || c === ']' || c === '}' ? c : 'o'
+      prevChar = c
+      i++
+    }
+  }
+  return null
+}
+
+/**
+ * Views are classic scripts: compile them so module syntax and other syntax errors fail the
+ * export. The compiled text is the real wrapper, which starts with `'use strict'`, so sloppy-only
+ * code (`with`, legacy octals, ...) is rejected here as an ordinary syntax error, exactly as it
+ * would fail in the page.
+ */
 export function assertClassicScript(code, source) {
   try {
     new Script(wrapperText({ id: 'x', source, code }), { filename: source })
   } catch (err) {
-    const esm = /\bimport\b|'export'/.test(err.message)
+    const module = err instanceof SyntaxError ? findModuleSyntax(code) : null
     throw new Error(
-      esm
-        ? `${source}: ES module syntax (import/export) is not supported; a view is a classic script`
+      module
+        ? `${source}: ES module syntax (${module}) is not supported; a view is a classic script`
         : `${source}: syntax error: ${err.message}`,
     )
   }

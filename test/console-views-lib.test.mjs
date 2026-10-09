@@ -5,6 +5,7 @@ import { syncBuiltinESMExports } from 'node:module'
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { createHash } from 'node:crypto'
+import { readFileSync } from 'node:fs'
 import {
   RESERVED_VIEW_IDS,
   VIEW_ID_RE,
@@ -19,7 +20,7 @@ import {
   assertInlinable,
 } from '../scripts/console-views.mjs'
 import { JSDOM } from 'jsdom'
-import { InnfoConsole } from './helpers/console-boot.mjs'
+import { InnfoConsole, consoleDir } from './helpers/console-boot.mjs'
 
 const GOOD = "registerView({ title: 'T', icon: 'x', order: 1, kind: 'readonly', mount() {} })\n"
 
@@ -44,16 +45,34 @@ describe('console-views lib', () => {
   const discover = (specNames = []) => discoverViews({ domainRoot: domain, specNames, packagesDir: pkgs })
 
   describe('constants', () => {
-    it('reserved ids match the ids the runtime refuses', () => {
-      for (const id of RESERVED_VIEW_IDS) {
-        const reg = InnfoConsole.createViewRegistry()
-        assert.throws(
-          () => reg.register({ id, title: 't', icon: 'x', order: 1, kind: 'readonly', mount() {} }),
-          /reserved/,
-        )
+    const runtimeSource = readFileSync(join(consoleDir, 'innfo-runtime.js'), 'utf8')
+    const accepted = (id) => {
+      try {
+        InnfoConsole.createViewRegistry().register({ id, title: 't', icon: 'x', order: 1, kind: 'readonly', mount() {} })
+        return true
+      } catch {
+        return false
       }
-      assert.equal(RESERVED_VIEW_IDS.length, 3)
-      assert.ok(VIEW_ID_RE.test('a-b1') && !VIEW_ID_RE.test('A') && !VIEW_ID_RE.test('a_b'))
+    }
+
+    it('reserved ids are the same set the runtime declares, in both directions', () => {
+      const declared = runtimeSource.match(/var RESERVED_VIEW_IDS = \[([^\]]*)\]/)[1]
+      const runtimeReserved = [...declared.matchAll(/'([^']+)'/g)].map((m) => m[1])
+      assert.ok(runtimeReserved.length > 0, 'the runtime list was found')
+      assert.deepEqual([...RESERVED_VIEW_IDS].sort(), [...runtimeReserved].sort())
+      for (const id of RESERVED_VIEW_IDS) assert.equal(accepted(id), false, id + ' is refused by the runtime')
+    })
+
+    it('the id pattern is the runtime pattern, and both agree on a wide set of probes', () => {
+      const declared = runtimeSource.match(/var VIEW_ID_RE = \/(.*)\/\s*$/m)[1]
+      assert.equal(VIEW_ID_RE.source, declared)
+      const probes = [
+        'a', 'a-b', 'a-b1', '1', '0-1', 'a1-b2-c3', 'a--b', '-a', 'a-', '-', '', 'A', 'aB', 'a_b', 'a b', 'a.b', 'a/b',
+        'é', 'aé', 'a\n', 'a-b\n', ' a', 'a ', 'x'.repeat(200), 'timeline', 'review', 'explorer', 'matrices', 'Review',
+      ]
+      for (const id of probes) {
+        assert.equal(accepted(id), VIEW_ID_RE.test(id) && !RESERVED_VIEW_IDS.includes(id), JSON.stringify(id))
+      }
     })
 
     it('splits a parent_spec name into base and version', () => {
@@ -276,6 +295,50 @@ describe('console-views lib', () => {
 
     it('assertClassicScript accepts dynamic import() and strings that mention import', () => {
       assert.doesNotThrow(() => assertClassicScript("var s = 'import x'; // export y\nimport('./a.js')", 'src'))
+    })
+
+    describe('module syntax is found from the tokens, not from the engine message', () => {
+      const esm = (code) => assert.throws(() => assertClassicScript(code, 'src'), /^Error: src: ES module syntax/, code)
+      const plain = (code) =>
+        assert.throws(() => assertClassicScript(code, 'src'), (e) => /syntax error/.test(e.message) && !/ES module/.test(e.message), code)
+
+      it('names import, export, import.meta and top-level await', () => {
+        esm("import x from 'y'\nregisterView({})")
+        esm("import { a } from 'y'")
+        esm("import * as ns from 'y'")
+        esm("import 'side-effect'")
+        esm('export const a = 1')
+        esm('export default function () {}')
+        esm('export { a }')
+        esm('var u = import.meta.url')
+        esm('function f() { return import.meta.url }')
+        esm('const v = await fetch("x")')
+      })
+
+      it('sees the statement through strings, templates, regexes and comments that hide look-alikes', () => {
+        esm("var s = 'import nothing'; // export nothing\nimport x from 'y'")
+        esm("var r = /'/\nimport x from 'y'")
+        esm("var r = /[/']/g\nimport x from 'y'")
+        esm('var t = `a ${ "}" + `b ${1}` } c`\nexport const a = 1')
+        esm("/* import x from 'y' */\nexport const a = 1")
+      })
+
+      it('does not call a plain syntax error a module because of look-alikes', () => {
+        plain("var = ; // import x from 'y'")
+        plain("var s = 'export const a'; var = ;")
+        plain('var t = `import x from "y"`; var = ;')
+        plain('var import = 1')
+        plain('var export = 1')
+        plain('obj.import = 1; obj.export = 2; var = ;')
+        plain("var = ; import('./a.js')")
+        plain('function f() { var = ; }\nvar r = /import x from y/')
+        plain('var n = (async () => await 1)(); var = ;')
+      })
+
+      it('rejects sloppy-only code because views run under "use strict"', () => {
+        plain('with (Math) { max(1, 2) }')
+        plain('var o = 010')
+      })
     })
 
     it('reports other syntax errors as syntax errors, not as modules', () => {
