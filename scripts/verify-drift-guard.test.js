@@ -114,6 +114,17 @@ function buildFixtureRepo() {
     'utf-8',
   );
 
+  // design D4: the mcp-tools region is ALSO rendered into the nn-innfo skill's
+  // own SKILL.md, so the skill ships an accurate tool inventory. The fixture
+  // must pre-create that target with its region markers, as the real skill has.
+  const nnInnfoSkillDir = path.join(root, 'skills', 'nn-innfo');
+  fs.mkdirSync(nnInnfoSkillDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(nnInnfoSkillDir, 'SKILL.md'),
+    ['---', 'name: nn-innfo', '---', '# nn-innfo', '', '## Tools', '', OPEN_MCP, 'placeholder', CLOSE_MCP, ''].join('\n'),
+    'utf-8',
+  );
+
   const aboutDir = path.join(root, 'docs', 'innfo');
   fs.mkdirSync(aboutDir, { recursive: true });
   fs.writeFileSync(path.join(aboutDir, 'about.html'), ABOUT_HTML, 'utf-8');
