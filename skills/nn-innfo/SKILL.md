@@ -1,7 +1,7 @@
 ---
 name: nn-innfo
-version: "V_0-5-7"
-last_updated: 2026-10-04
+version: "V_0-5-8"
+last_updated: 2026-10-09
 metadata:
   source_type: "original"
   mcp: "innfo-mcp"
@@ -145,7 +145,7 @@ When the user invokes the skill without an explicit intent (e.g., bare `/nn-innf
 - **[b]** Edit / extend an existing model (Conversational Wizard)
 - **[c]** Audit & validate model (MCP Syntax + Architecture Coherence)
 - **[d]** Export / update console artifacts (Workspace Consoles & Hub)
-- **[x]** Execute a model procedure — list procedures declared in the model and execute the chosen one
+- **[x]** Execute a model procedure — delegate selection and execution to the canonical Procedure Execution Protocol (§16-bis), which discovers procedures from model `## NN Procedure:` sections, blueprint frontmatter, and `workspace/procedures/`
 - **[w]** View & consult documentation — browse iNNfo specs, primitives, and guides
 - **[y]** Cancel / help
 
@@ -780,6 +780,51 @@ Executable procedures and agent skills are content declared dynamically in model
 Additionally, procedures are discovered by reading the `## NN Procedure: ...` sections of the active model and the workspace's `procedures/` folder (predicate: Level 3 documents whose `parent_spec` resolves to the procedures bluepriNNt).
 
 The template console procedure (historically referred to as "master.html", "showroom", or "gallery") generates the canonical interactive console for a model (e.g. `business_console.html`, `procedures_console.html`). For multi-model workspaces, the `workspace_hub` procedure generates the aggregated workspace portal (`artifacts/workspace_hub.html`). If the user asks for a "console", "master", "hub", "showroom", "gallery", or "visual framework", offer to generate the corresponding canonical console or workspace hub.
+
+---
+
+## 16-bis. Procedure Execution Protocol
+
+Canonical owner protocol for discovering and running a procedure. Every other
+skill that runs a procedure links here and MUST NOT restate these steps.
+
+### 16-bis.1 Trigger
+
+Run a procedure when the user selects a discovered procedure or names one. If no
+source declares the named procedure, report it as unknown — never invent one.
+
+### 16-bis.2 Discovery
+
+Discover candidate procedures from every source: (a) the active model's
+`## NN Procedure:` sections, (b) bluepriNNt `procedures:` frontmatter (also via
+MCP `list_blueprint_procedures`), and (c) `workspace/procedures/*_NN.md` files.
+Discovery does not require an executor tool. List each result with its id and
+source; if none is found, say so. When the same name appears in more than one
+source, resolve it by precedence: model > blueprint > domain > workspace.
+
+### 16-bis.3 Step order (FSM)
+
+Read the procedure's step `Work` elements. The start step is the one no other
+step's `next::` reference targets; follow each `next::` to build the ordered
+list. If a `next::` targets a step that does not exist, stop and report the
+broken reference.
+
+### 16-bis.4 Output routing
+
+Write each step's output to the destination the procedure declares (write-once
+under `artifacts/`); when none is declared, ask the user before writing. Append
+`## NN Procedures:` lineage entries via the existing provenance path.
+
+### 16-bis.5 Delegation
+
+When a step declares an NN Tool or an embedded skill, load that skill and let it
+run the step (e.g. CLI ingestion → `nn-sources`); do not inline another skill's
+commands.
+
+### 16-bis.6 Adaptation
+
+When execution deviates from the declared procedure, capture the deviation and
+offer to update the procedure spec.
 
 ---
 

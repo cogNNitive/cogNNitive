@@ -2,8 +2,8 @@
 name: nn
 description: Primary Front Controller, ecosystem entry point, job loop menu ([s] Sources, [m] Models, [r] Review/Artifacts, [p] Procedures, [h] Help, [x] Cancel), system governance, and preflight readiness gate. Triggers: /nn, NN, nn, cognnitive, cognitive, start, router.
 disable-model-invocation: false
-version: "V_3-4-1"
-last_updated: 2026-10-01
+version: "V_3-4-2"
+last_updated: 2026-10-09
 license: MIT
 compatibility: opencode, claude-code, cursor, any agent supporting skills
 metadata:
@@ -78,6 +78,11 @@ When the user selects `[p]` or requests procedure execution, `nn` aggregates ava
 If duplicate procedure names exist across scopes, precedence is:
 $$\text{Model Scope} > \text{Blueprint Scope} > \text{Domain Scope}$$
 Each option displays its origin badge (e.g. `[p1] Extract Key Risks [blueprint:business]`).
+
+### Execution Owner
+Once a procedure is selected, execution follows the canonical Procedure
+Execution Protocol in `nn-innfo` §16-bis; `nn` routes the intent to that owner
+and does not execute steps from its own text. Do not restate the protocol here.
 
 ---
 

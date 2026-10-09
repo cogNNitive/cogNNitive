@@ -24,16 +24,16 @@ Chain strategy: size-exception
 
 ## Phase 0: Preflight & Collision Resolution
 
-- [ ] 0.1 `git fetch`; re-sync `dev`; confirm `git log --all -- skills/nn-trannsform/README.md` shows no unmerged edits (D8).
-- [ ] 0.2 Land `session/qw-skills-cleanups` overlap onto `skills/nn-trannsform/README.md` + `TESTING.md` BEFORE any rename (straight merge would resurrect the old path).
-- [ ] 0.3 Record installed-copy paths (`~/.agents/skills/nn-trannsform`, `~/.claude/...`) for Phase 2.11.
+- [x] 0.1 `git fetch`; re-sync `dev`; confirm `git log --all -- skills/nn-trannsform/README.md` shows no unmerged edits (D8). `origin/dev` (`519b7000`) is already an ancestor of the branch — no merge needed.
+- [ ] 0.2 Land `session/qw-skills-cleanups` overlap onto `skills/nn-trannsform/README.md` + `TESTING.md` BEFORE any rename (straight merge would resurrect the old path). BLOCKED by another session's branch.
+- [x] 0.3 Record installed-copy paths for Phase 2.11: both `~/.agents/skills/nn-trannsform` and `~/.claude/skills/nn-trannsform` exist (also `.bak-2026-10-03` backups alongside).
 
 ## Phase 1: Protocol Consolidation (owner + links)
 
-- [ ] 1.1 Add "Procedure Execution Protocol" section to `skills/nn-innfo/SKILL.md` — six subsections per D2 (Trigger, Discovery, Step order FSM, Output routing, Delegation, Adaptation); bump `version:`.
-- [ ] 1.2 Update `nn-innfo` menu `[x]` to link to the protocol, not restate it (innfo-skill-menu spec); bump version.
-- [ ] 1.3 Dedupe `skills/nn/SKILL.md` §3 → one-line pointer to owner; keep `[p]` catalog + precedence (router-governance spec); bump version.
-- [ ] 1.4 Run `node scripts/verify.js`; then `npm run lint`, `npm run typecheck`, `npm run format:check`.
+- [x] 1.1 Add "Procedure Execution Protocol" section to `skills/nn-innfo/SKILL.md` — six subsections per D2 (Trigger, Discovery, Step order FSM, Output routing, Delegation, Adaptation); bump `version:` (`V_0-5-7` → `V_0-5-8`).
+- [x] 1.2 Update `nn-innfo` menu `[x]` to link to the protocol, not restate it (innfo-skill-menu spec); same-file version bump covers it.
+- [x] 1.3 Dedupe `skills/nn/SKILL.md` §3 → "Execution Owner" pointer to owner; keep `[p]` catalog + precedence (router-governance spec); bump version (`V_3-4-1` → `V_3-4-2`).
+- [x] 1.4 Run `node scripts/verify.js`; then `npm run lint`, `npm run typecheck`, `npm run format:check`.
 
 ## Phase 2: Rename `nn-trannsform` → `nn-sources` + Shrink
 
