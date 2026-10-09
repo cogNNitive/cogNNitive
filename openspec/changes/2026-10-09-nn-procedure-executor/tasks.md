@@ -1,0 +1,56 @@
+# Tasks: nn-procedure-executor
+
+## Review Workload Forecast
+
+| Field | Value |
+|-------|-------|
+| Estimated changed lines | ~450–650 (rename touches ~25 surfaces) |
+| 400-line budget risk | High |
+| Chained PRs recommended | No |
+| Suggested split | Single PR with `size:exception` |
+| Delivery strategy | single-pr |
+| Chain strategy | size-exception |
+
+Decision needed before apply: No
+Chained PRs recommended: No
+Chain strategy: size-exception
+400-line budget risk: High
+
+### Suggested Work Units
+
+| Unit | Goal | Likely PR | Notes |
+|------|------|-----------|-------|
+| 1 | Protocol + rename + shrink | PR 1 | Single PR; size:exception accepted |
+
+## Phase 0: Preflight & Collision Resolution
+
+- [ ] 0.1 `git fetch`; re-sync `dev`; confirm `git log --all -- skills/nn-trannsform/README.md` shows no unmerged edits (D8).
+- [ ] 0.2 Land `session/qw-skills-cleanups` overlap onto `skills/nn-trannsform/README.md` + `TESTING.md` BEFORE any rename (straight merge would resurrect the old path).
+- [ ] 0.3 Record installed-copy paths (`~/.agents/skills/nn-trannsform`, `~/.claude/...`) for Phase 2.11.
+
+## Phase 1: Protocol Consolidation (owner + links)
+
+- [ ] 1.1 Add "Procedure Execution Protocol" section to `skills/nn-innfo/SKILL.md` — six subsections per D2 (Trigger, Discovery, Step order FSM, Output routing, Delegation, Adaptation); bump `version:`.
+- [ ] 1.2 Update `nn-innfo` menu `[x]` to link to the protocol, not restate it (innfo-skill-menu spec); bump version.
+- [ ] 1.3 Dedupe `skills/nn/SKILL.md` §3 → one-line pointer to owner; keep `[p]` catalog + precedence (router-governance spec); bump version.
+- [ ] 1.4 Run `node scripts/verify.js`; then `npm run lint`, `npm run typecheck`, `npm run format:check`.
+
+## Phase 2: Rename `nn-trannsform` → `nn-sources` + Shrink
+
+- [ ] 2.1 RED — update name assertions to `nn-sources` and run to see them fail: `skills/nn-trannsform/test/test.ps1` regex, `scripts/build-skill-shared-rules.test.mjs` `SKILL_SECTION_MAP` key, docs page-set assertion.
+- [ ] 2.2 `git mv skills/nn-trannsform skills/nn-sources`.
+- [ ] 2.3 GREEN — update `SKILL.md` frontmatter (`name`, `description` triggers, `# Skill:` heading, internal refs); `package.json`/lock → `nn-sources-scripts`; `test/` assertions; `examples/workflows/*.md` prose; bump version.
+- [ ] 2.4 Update path/map constants: `scripts/build-skill-shared-rules.mjs` (`SKILL_SECTION_MAP`), `scripts/build-trannsform-core-mirror.mjs`, `scripts/migrate-hash-citations.mjs` (keep `trannsformPrimitives` names).
+- [ ] 2.5 Update `manifest/source.yaml`: skill `name`/`path`/`description` + `workflows[transform].skill`.
+- [ ] 2.6 Update `.github/workflows/{ci,release}.yml` (`npm ci --prefix`), `.gitignore`, `test/console-slug.test.mjs`, `test/feedback-validators-parity.test.mjs`, `openspec/config.yaml` (context, `per_package.nn-trannsform`, integration tool path).
+- [ ] 2.7 Regenerate docs (`build:docs` → `generate-docs-facts`/`generate-docsify-suite`); hand-fix `documentation_NN.md` Page block + `skills/nn-sources.md`; hand-fix landing twins, docs prose, `.agents/skills/nn-dev-*` refs.
+- [ ] 2.8 Shrink `/nn-sources` (D5): drop §3a "[a] iNNfo V_0-1-0 template", `[b]` Markdown menu, `--apply`/`traNNsformations/`/`transformer.js`; delete §6 Execution → link to protocol; keep CLI list + local converters.
+- [ ] 2.9 Verify: `node scripts/verify.js`, `node scripts/build-skill-shared-rules.mjs --check`, `node scripts/generate-docs-facts.mjs --check`, `npm --prefix skills/nn-sources test`, plus lint/typecheck/format.
+- [ ] 2.10 Grep guard: no `nn-trannsform`, `--apply`, `traNNsformations`, or `[a] iNNfo template` remains in skill or docs.
+- [ ] 2.11 Document + perform reinstall: delete installed `nn-trannsform` copies, install `nn-sources`; no shim (procedure-execution rename scenario).
+
+## Phase 3: Verification & Landing Prep
+
+- [ ] 3.1 Run final gate: `node scripts/verify.js` + `node scripts/check-integrity.js`.
+- [ ] 3.2 Walk spec scenarios (procedure-execution, router-governance, template-procedures-manifest-and-discovery, innfo-skill-menu) and confirm success criteria.
+- [ ] 3.3 Commit per slice; open single PR with `size:exception`; note rollback = per-slice revert.
