@@ -1959,12 +1959,12 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       refreshCount()
     }
 
+    // The host owns every draft-count surface (banner, Review tab badge,
+    // pending text); it re-renders them all through onDraftsChanged.
     function refreshCount() {
-      if (!doc.querySelector) return
-      var counter = doc.querySelector('[data-innfo="draft-count"]')
-      if (counter && store) {
-        var n = store.drafts().length
-        counter.textContent = counter.textContent.replace(/drafts:\s*\d+/, 'drafts: ' + n)
+      if (typeof options.onDraftsChanged === 'function') {
+        options.onDraftsChanged()
+        return
       }
       applyDecorations()
     }
@@ -6187,6 +6187,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         elements: elements,
         needs: config.needs,
         store: state.store,
+        onDraftsChanged: function () {
+          refresh(activeSearchQuery)
+        },
       })
     }
 

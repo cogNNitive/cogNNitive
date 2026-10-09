@@ -322,12 +322,12 @@
       refreshCount()
     }
 
+    // The host owns every draft-count surface (banner, Review tab badge,
+    // pending text); it re-renders them all through onDraftsChanged.
     function refreshCount() {
-      if (!doc.querySelector) return
-      var counter = doc.querySelector('[data-innfo="draft-count"]')
-      if (counter && store) {
-        var n = store.drafts().length
-        counter.textContent = counter.textContent.replace(/drafts:\s*\d+/, 'drafts: ' + n)
+      if (typeof options.onDraftsChanged === 'function') {
+        options.onDraftsChanged()
+        return
       }
       applyDecorations()
     }

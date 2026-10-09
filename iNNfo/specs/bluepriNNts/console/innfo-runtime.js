@@ -3483,6 +3483,9 @@
         elements: elements,
         needs: config.needs,
         store: state.store,
+        onDraftsChanged: function () {
+          refresh(activeSearchQuery)
+        },
       })
     }
 
