@@ -119,9 +119,32 @@ export function assertClassicScript(code, source) {
   }
 }
 
-/** Keeps embedded text from closing its host `<script>`. */
+// `</script` ends the element; `<script` + whitespace, `/` or `>` after a `<!--` puts the HTML
+// tokenizer into the "script data double escaped" state, where `</script>` no longer ends it
+// and the rest of the page is swallowed. `<!--` alone is harmless once `<script` is neutralized
+// (it needs both), and rewriting it is not safe: in code position it is a comment, and `\!` is
+// an error in a `u`-flag regex. `\x3C` is the same character in a string, template (cooked
+// value), regex (also with `u`) and a comment, so the program does not change.
+const SCRIPT_TAG_OPEN = /<(?=\/script|script[\s/>])/gi
+
+/** Keeps embedded text from closing or double-escaping its host `<script>`. */
 export function escapeScript(text) {
-  return text.replace(/<\/(script)/gi, '<\\/$1')
+  return text.replace(SCRIPT_TAG_OPEN, '\\x3C')
+}
+
+/** `escapeScript` for code that is compiled afterwards, so a sequence in code position fails loudly. */
+function escapeChecked(text, label) {
+  const out = escapeScript(text)
+  if (out !== text) {
+    try {
+      new Script(out, { filename: label })
+    } catch {
+      throw new Error(
+        `${label}: "<script" or "</script" outside a string, regex, template or comment cannot be embedded in an HTML script`,
+      )
+    }
+  }
+  return out
 }
 
 const escapeStyle = (text) => text.replace(/<\/(style)/gi, '<\\/$1')
@@ -130,7 +153,7 @@ const escapeAttr = (s) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').repla
 export function wrapView(view) {
   return (
     `<script data-innfo-view="${escapeAttr(view.id)}" data-innfo-view-source="${escapeAttr(view.source)}">\n` +
-    `${escapeScript(wrapperText(view))}\n</script>`
+    `${escapeChecked(wrapperText(view), view.source)}\n</script>`
   )
 }
 
@@ -165,5 +188,5 @@ export function inlineConsoleAssets(shell, { bundle, css, views }) {
   return shell
     .replace(CSS_LINK, () => `<style>${escapeStyle(css)}</style>`)
     .replace(VIEWPORT, (meta) => (header ? `${meta}\n${header}` : meta))
-    .replace(BUNDLE_TAGS, () => [`<script>\n${escapeScript(bundle)}\n</script>`, ...views.map(wrapView)].join('\n'))
+    .replace(BUNDLE_TAGS, () => [`<script>\n${escapeChecked(bundle, 'console bundle')}\n</script>`, ...views.map(wrapView)].join('\n'))
 }

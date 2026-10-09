@@ -16,6 +16,7 @@ import {
   viewsHeader,
   inlineConsoleAssets,
 } from '../scripts/console-views.mjs'
+import { JSDOM } from 'jsdom'
 import { InnfoConsole } from './helpers/console-boot.mjs'
 
 const GOOD = "registerView({ title: 'T', icon: 'x', order: 1, kind: 'readonly', mount() {} })\n"
@@ -167,7 +168,75 @@ describe('console-views lib', () => {
     }
 
     it('escapes every </script in any case', () => {
-      assert.equal(escapeScript("a</script>b</SCRIPT >c"), 'a<\\/script>b<\\/SCRIPT >c')
+      assert.equal(escapeScript('a</script>b</SCRIPT >c'), String.raw`a\x3C/script>b\x3C/SCRIPT >c`)
+    })
+
+    it('escapes <script followed by whitespace, / or > in any case, but not identifiers', () => {
+      for (const open of ['<script>', '<SCRIPT ', '<ScRiPt\n', '<script\t', '<script/', '<sCript\r']) {
+        assert.equal(/<script[\s/>]/i.test(escapeScript('x ' + open + ' y')), false, JSON.stringify(open))
+      }
+      assert.equal(escapeScript('i<script.length && a<scripts'), 'i<script.length && a<scripts')
+    })
+
+    it('keeps the string value of what it escapes', () => {
+      const src = "'<!-- <script> </script> <ScRiPt/> <\/script'"
+      assert.equal(eval(escapeScript(src)), eval(src))
+    })
+
+    describe('script data double-escaped state', () => {
+      const registrar = '<script>window.InnfoConsole = { viewRegistrar: () => (def) => { window.__view = def } }</script>'
+      const parse = async (markup) => {
+        const dom = new JSDOM(markup, { runScripts: 'dangerously' })
+        await new Promise((ok) => dom.window.addEventListener('load', ok))
+        return dom.window
+      }
+      const page = (inner) =>
+        '<!doctype html><html><head></head><body><div id="elements"></div>' +
+        registrar +
+        inner +
+        '<script>window.__after = 1</script><div id="after-div"></div></body></html>'
+
+      for (const code of [
+        "// <!-- <script>\nregisterView({ title: 'T' })\n",
+        "var s = '<!-- <script>'\nregisterView({ title: s })\n",
+        "/* <!-- <SCRIPT x> */\nregisterView({ title: 'T' })\n",
+        "var s = '<!-- <ScRiPt/>'\nregisterView({ title: s })\n",
+        "var s = '<!--\\n<script\\t>'\nregisterView({ title: 'T' })\n",
+        "var r = /<!--\s*<script/u\nregisterView({ title: 'T' })\n",
+      ]) {
+        it('a view with ' + JSON.stringify(code.slice(0, 24)) + ' does not swallow the rest of the page', async () => {
+          const win = await parse(page(wrapView({ ...view, code })))
+          assert.ok(win.__view, 'the view itself ran')
+          assert.equal(win.__after, 1, 'the following script ran')
+          assert.ok(win.document.getElementById('after-div'), 'following markup parsed')
+          assert.ok(win.document.getElementById('elements'))
+        })
+      }
+
+      it('a bundle with the same strings does not swallow the rest of the page', async () => {
+        const shell =
+          '<head><meta name="viewport" content="x" /><link rel="stylesheet" href="./innfo-ui.css" /></head><body>' +
+          '<div id="elements"></div>' +
+          '<script src="./innfo-console.bundle.js"></script>\n<!-- nn:console-shell:start -->\n<!-- nn:console-shell:end -->' +
+          '<script>window.__after = 1</script><div id="after-div"></div></body>'
+        const bundle = "window.__bundle = '<!-- <script>' + ' </script>'"
+        const win = await parse(inlineConsoleAssets(shell, { bundle, css: '', views: [] }))
+        assert.equal(win.__bundle, '<!-- <script> </script>')
+        assert.equal(win.__after, 1)
+        assert.ok(win.document.getElementById('after-div'))
+      })
+
+      it('fails clearly when the sequence sits in code, where it cannot be escaped', () => {
+        const code = 'var script = 3; var r = 1 <script >2\nregisterView({})\n'
+        assert.doesNotThrow(() => assertClassicScript(code, 'src'))
+        assert.throws(() => wrapView({ ...view, code }), /domaiNN:consoles\/views\/pipeline\.js.*cannot be embedded/s)
+        const shell = [
+          '<head><meta name="viewport" content="x" /><link rel="stylesheet" href="./innfo-ui.css" /></head>',
+          '<script src="./innfo-console.bundle.js"></script>',
+          '<!-- nn:console-shell:start --><!-- nn:console-shell:end -->',
+        ].join('\n')
+        assert.throws(() => inlineConsoleAssets(shell, { bundle: code, css: '', views: [] }), /console bundle.*cannot be embedded/s)
+      })
     })
 
     it('wraps a view with the registrar for its slug and tags the script', () => {
