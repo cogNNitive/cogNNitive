@@ -35,7 +35,7 @@ export const MODEL = {
   ],
 }
 
-export function bootConsole({ registry, model = MODEL, url = 'http://localhost', before } = {}) {
+export function bootConsole({ registry, model = MODEL, url = 'http://localhost', before, runScripts } = {}) {
   const dom = new JSDOM(
     `<!doctype html><html><head></head><body>
       <div id="innfo-layout">
@@ -52,7 +52,7 @@ export function bootConsole({ registry, model = MODEL, url = 'http://localhost',
       <script type="application/json" id="innfo-schema">{"concepts":[{"name":"Fleet"}]}</script>
       <script type="application/json" id="innfo-model">${JSON.stringify(model)}</script>
     </body></html>`,
-    { url },
+    runScripts ? { url, runScripts } : { url },
   )
   global.window = dom.window
   global.document = dom.window.document

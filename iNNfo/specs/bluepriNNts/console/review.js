@@ -295,9 +295,9 @@
     }
 
     function saveDraft(anchorData, payload) {
-      if (!store) return
+      if (!store) return null
       var el = elementsById[anchorData.elementId]
-      if (!el) return
+      if (!el) return null
       var draft = {
         element_id: anchorData.elementId,
         concept: el.concept,
@@ -318,8 +318,9 @@
       if (payload.comment !== undefined && payload.comment !== null) {
         draft.comment = String(payload.comment)
       }
-      store.addDraft(draft)
+      var saved = store.addDraft(draft)
       refreshCount()
+      return saved
     }
 
     // The host owns every draft-count surface (banner, Review tab badge,
@@ -438,12 +439,12 @@
           candidates: target.candidates,
           citations: target.citations,
           history: target.history,
-          isComment: false,
+          isComment: !!target.isComment,
         },
         {
           doc: doc,
           onSave: function (res) {
-            if (res.isComment) {
+            if (res.isComment || target.commentOnly) {
               saveDraft(anchorData, { kind: 'comment', comment: res.comment })
             } else {
               saveDraft(anchorData, {
@@ -469,6 +470,31 @@
       } else {
         modal.setAttribute('open', 'open')
       }
+    }
+
+    // Entry point for registered views: opens the one shared edit modal. With
+    // anchorData.comment it opens in comment mode (an element-level comment
+    // when there is no field). Returns false when the anchor has no modal.
+    function openEdit(anchorData) {
+      closePopover()
+      lastAnchor = null
+      var target = kuModalTarget(anchorData)
+      var el = elementsById[anchorData.elementId]
+      if (!target && anchorData.comment && el) {
+        target = {
+          title: 'Comment on ' + (el.name || anchorData.elementId),
+          fieldName: 'comment',
+          type: 'string',
+          value: '',
+          commentOnly: true,
+          citations: [],
+          history: [],
+        }
+      }
+      if (!target) return false
+      if (anchorData.comment) target = Object.assign({}, target, { isComment: true })
+      openModalFor(anchorData, target)
+      return true
     }
 
     function openFor(anchor, anchorData) {
@@ -1037,6 +1063,8 @@
       enable: enable,
       disable: disable,
       decorate: decorate,
+      openEdit: openEdit,
+      propose: saveDraft,
       destroy: destroy,
       isEnabled: function () {
         return enabled

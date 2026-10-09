@@ -1937,9 +1937,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
 
     function saveDraft(anchorData, payload) {
-      if (!store) return
+      if (!store) return null
       var el = elementsById[anchorData.elementId]
-      if (!el) return
+      if (!el) return null
       var draft = {
         element_id: anchorData.elementId,
         concept: el.concept,
@@ -1960,8 +1960,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       if (payload.comment !== undefined && payload.comment !== null) {
         draft.comment = String(payload.comment)
       }
-      store.addDraft(draft)
+      var saved = store.addDraft(draft)
       refreshCount()
+      return saved
     }
 
     // The host owns every draft-count surface (banner, Review tab badge,
@@ -2080,12 +2081,12 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           candidates: target.candidates,
           citations: target.citations,
           history: target.history,
-          isComment: false,
+          isComment: !!target.isComment,
         },
         {
           doc: doc,
           onSave: function (res) {
-            if (res.isComment) {
+            if (res.isComment || target.commentOnly) {
               saveDraft(anchorData, { kind: 'comment', comment: res.comment })
             } else {
               saveDraft(anchorData, {
@@ -2111,6 +2112,31 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       } else {
         modal.setAttribute('open', 'open')
       }
+    }
+
+    // Entry point for registered views: opens the one shared edit modal. With
+    // anchorData.comment it opens in comment mode (an element-level comment
+    // when there is no field). Returns false when the anchor has no modal.
+    function openEdit(anchorData) {
+      closePopover()
+      lastAnchor = null
+      var target = kuModalTarget(anchorData)
+      var el = elementsById[anchorData.elementId]
+      if (!target && anchorData.comment && el) {
+        target = {
+          title: 'Comment on ' + (el.name || anchorData.elementId),
+          fieldName: 'comment',
+          type: 'string',
+          value: '',
+          commentOnly: true,
+          citations: [],
+          history: [],
+        }
+      }
+      if (!target) return false
+      if (anchorData.comment) target = Object.assign({}, target, { isComment: true })
+      openModalFor(anchorData, target)
+      return true
     }
 
     function openFor(anchor, anchorData) {
@@ -2679,6 +2705,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       enable: enable,
       disable: disable,
       decorate: decorate,
+      openEdit: openEdit,
+      propose: saveDraft,
       destroy: destroy,
       isEnabled: function () {
         return enabled
@@ -5018,6 +5046,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   var RESERVED_VIEW_IDS = ['explorer', 'matrices', 'review']
   var ICON_NAME_RE = /^[a-z0-9-]+$/
   var VIEW_KINDS = ['editable', 'readonly']
+  var VIEW_CSP_META =
+    '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; img-src data: blob:; style-src \'unsafe-inline\'">'
 
   function nonEmptyString(v) {
     return typeof v === 'string' && v.trim() !== ''
@@ -5289,6 +5319,105 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       renderViewErrors(doc, registry.errors().concat(bootErrors), nav)
     }
 
+    var observers = []
+
+    // Editable views share the draft store and must stay iframe-free: an
+    // iframe could host script that reaches the drafts. Removes any iframe
+    // under root and reports it with the view id.
+    function stripIframes(t, root) {
+      var found = root.nodeName === 'IFRAME' ? [root] : []
+      if (root.querySelectorAll) found = found.concat([].slice.call(root.querySelectorAll('iframe')))
+      found.forEach(function (f) {
+        if (f.parentNode) f.parentNode.removeChild(f)
+      })
+      if (found.length) {
+        report(t.id, [t.source], 'view "' + t.id + '": editable views must not mount iframes (removed)')
+        showErrors()
+      }
+    }
+
+    function guardIframes(t, panel) {
+      var View = doc.defaultView
+      if (!View || typeof View.MutationObserver !== 'function') return
+      var observer = new View.MutationObserver(function (records) {
+        records.forEach(function (r) {
+          ;[].slice.call(r.addedNodes).forEach(function (n) {
+            if (n.nodeType === 1 && panel.contains(n)) stripIframes(t, n)
+          })
+        })
+      })
+      observer.observe(panel, { childList: true, subtree: true })
+      observers.push(observer)
+    }
+
+    // The same facades for every editable view: one store, one modal slot
+    // (the review controller's), one changeset. The controller exists only
+    // with the feedback-export need.
+    function editableParts() {
+      function controller() {
+        var c = opts.getController()
+        if (!c) throw new Error('review is not enabled (feedback-export need missing)')
+        return c
+      }
+      function anchor(a) {
+        return { elementId: a.elementId, field: a.field }
+      }
+      return {
+        store: {
+          drafts: function () {
+            return opts.state.store.drafts()
+          },
+          propose: function (p) {
+            var saved = controller().propose(anchor(p), {
+              kind: p.kind,
+              proposed: p.proposed,
+              comment: p.comment,
+            })
+            if (!saved) throw new Error('cannot propose: unknown element "' + p.elementId + '"')
+            return saved
+          },
+          remove: function (id) {
+            opts.state.store.removeDraft(id)
+            opts.onDraftsChanged()
+          },
+          onChange: opts.subscribe,
+        },
+        modal: {
+          edit: function (a) {
+            return controller().openEdit(anchor(a))
+          },
+          comment: function (a) {
+            return controller().openEdit(Object.assign(anchor(a), { comment: true }))
+          },
+        },
+        changeset: {
+          count: function () {
+            return opts.state.store.drafts().length
+          },
+          compose: function (identifier) {
+            return composeExport(opts.state, identifier)
+          },
+          openExport: function () {
+            openExportModal(doc, opts.state)
+          },
+        },
+      }
+    }
+
+    // Static HTML only: an opaque-origin sandbox without scripts, forms or
+    // top navigation, and a CSP that keeps the document offline.
+    function mountHtml(panel, html) {
+      var frame = el('iframe')
+      frame.setAttribute('sandbox', 'allow-popups allow-popups-to-escape-sandbox')
+      frame.setAttribute('referrerpolicy', 'no-referrer')
+      frame.setAttribute('srcdoc', VIEW_CSP_META + String(html))
+      ;[].slice.call(panel.querySelectorAll('iframe')).forEach(function (f) {
+        f.parentNode.removeChild(f)
+      })
+      panel.appendChild(frame)
+      return frame
+    }
+
     function mountView(t) {
       var panel = doc.getElementById(t.panelId)
       if (!panel) {
@@ -5298,14 +5427,26 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         return
       }
       panel.innerHTML = ''
+      var editable = t.kind !== 'readonly'
+      if (editable) guardIframes(t, panel)
       try {
         var ctx = {
           id: t.id,
           container: panel,
           doc: doc,
           ui: UI,
-          payload: { schema: opts.schema, model: opts.model, meta: opts.meta },
+          payload: {
+            schema: opts.schema,
+            model: opts.model,
+            meta: opts.meta,
+            models: Array.isArray(opts.meta && opts.meta.models) ? opts.meta.models : [],
+          },
         }
+        if (editable) Object.assign(ctx, editableParts())
+        else
+          ctx.mountHtml = function (html) {
+            return mountHtml(panel, html)
+          }
         mounted[t.id] = { api: t.mount(ctx) || {} }
       } catch (err) {
         var msg = String(err && err.message ? err.message : err)
@@ -5314,6 +5455,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         report(t.id, [t.source], 'view "' + t.id + '": mount failed: ' + msg)
         showErrors()
       }
+      if (editable) stripIframes(t, panel)
     }
 
     function hook(id, name) {
@@ -5381,11 +5523,15 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       select: select,
       destroy: function () {
         if (doc.defaultView) doc.defaultView.removeEventListener('hashchange', onHashChange)
+        observers.forEach(function (o) {
+          o.disconnect()
+        })
+        observers = []
       },
       hashTab: tabFromHash,
       // Runs after the first refresh so a tab already chosen during boot (an
       // initial search) is kept and the default view is not mounted for
-      // nothing. The view ctx has no modal/store/changeset yet (S2b).
+      // nothing, and after the review controller exists (ctx.modal needs it).
       activateInitial: function () {
         if (!current) select(tabFromHash() || tabs[0].id, true)
       },
@@ -6388,6 +6534,16 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     // Lightweight update after a draft is saved: refreshes only the draft-count
     // surfaces and leaves the mounted element cards (and their focus) intact.
+    var draftListeners = []
+    function subscribeDrafts(fn) {
+      draftListeners.push(fn)
+      return function () {
+        draftListeners = draftListeners.filter(function (l) {
+          return l !== fn
+        })
+      }
+    }
+
     function refreshDraftCounts() {
       var currentDrafts = state.store.drafts()
       var n = currentDrafts.length
@@ -6399,6 +6555,13 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       })
       renderStatsBar(active, elements, concepts, matrices, n)
       renderRail(active, concepts, counts, draftCountsOf(currentDrafts), selectRailToken, state)
+      draftListeners.slice().forEach(function (fn) {
+        try {
+          fn()
+        } catch {
+          // a view listener must not break the host's draft surfaces
+        }
+      })
     }
 
     // keepTab: the caller already chose the tab (hash navigation), so a
@@ -6484,6 +6647,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         return activeSearchQuery
       },
       registry: registry,
+      getController: function () {
+        return state.controller
+      },
+      subscribe: subscribeDrafts,
+      onDraftsChanged: refreshDraftCounts,
       config: config,
       schema: schema,
       model: model,
