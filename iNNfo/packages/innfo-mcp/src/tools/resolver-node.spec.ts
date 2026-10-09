@@ -484,6 +484,71 @@ describe('NodeSpecResolver', () => {
       expect(await readFile(join(pkgPath, 'assets', 'master.html'), 'utf-8')).toContain('doctype')
     })
 
+    it('hydrateBlueprintPackageAtomically writes nested skills/ files under the version dir', async () => {
+      const { hydrateBlueprintPackageAtomically } = await import('./resolver-node')
+      const pkgPath = await hydrateBlueprintPackageAtomically(rootDir, 'video', 'V_0-8-0', {
+        spec: '---\nblueprint_version: "V_0-8-0"\n---\n# Video\n',
+        skills: {
+          'nn-video-script/SKILL.md': '# Skill\n',
+          'nn-video-script/scripts/lib/x.mjs': 'export const x = 1\n',
+        },
+      })
+
+      expect(await readFile(join(pkgPath, 'skills', 'nn-video-script', 'SKILL.md'), 'utf-8')).toBe(
+        '# Skill\n',
+      )
+      expect(
+        await readFile(join(pkgPath, 'skills', 'nn-video-script', 'scripts', 'lib', 'x.mjs'), 'utf-8'),
+      ).toContain('export const x')
+      // atomic: no staging dir is left beside the final version dir
+      const siblings = await readdir(join(pkgPath, '..'))
+      expect(siblings.filter((n) => n.startsWith('.staging-'))).toEqual([])
+    })
+
+    it('Tier 3 resolves a flat installed bluepriNNt (<name>/spec_NN.md) by name', async () => {
+      const { resolveBlueprintPackage } = await import('./resolver-node')
+      const globalDir = join(rootDir, 'global_agents')
+      const flatDir = join(globalDir, 'video')
+      await mkdir(join(flatDir, 'skills', 'nn-video-script'), { recursive: true })
+      await writeFile(join(flatDir, 'spec_NN.md'), '---\nspec_version: "V_0-3-0"\n---')
+      await writeFile(join(flatDir, 'skills', 'nn-video-script', 'SKILL.md'), '# Skill')
+
+      const res = await resolveBlueprintPackage(rootDir, 'video', undefined, { globalDir })
+      expect(res).not.toBeNull()
+      expect(res?.tier).toBe('global-cache')
+      expect(res?.isPackageDir).toBe(true)
+      expect(res?.packagePath).toBe(flatDir)
+      expect(res?.specFilePath).toBe(join(flatDir, 'spec_NN.md'))
+      expect(existsSync(join(res!.packagePath, 'skills', 'nn-video-script', 'SKILL.md'))).toBe(true)
+    })
+
+    it('Tier 3 flat install honors a requested version only when the frontmatter version matches', async () => {
+      const { resolveBlueprintPackage } = await import('./resolver-node')
+      const globalDir = join(rootDir, 'global_agents')
+      const flatDir = join(globalDir, 'video')
+      await mkdir(flatDir, { recursive: true })
+      await writeFile(join(flatDir, 'spec_NN.md'), '---\nspec_version: "V_0-3-0"\n---')
+
+      const hit = await resolveBlueprintPackage(rootDir, 'video_V_0-3-0', undefined, { globalDir })
+      expect(hit?.tier).toBe('global-cache')
+      expect(hit?.packagePath).toBe(flatDir)
+
+      const miss = await resolveBlueprintPackage(rootDir, 'video_V_0-9-9', undefined, { globalDir })
+      expect(miss).toBeNull()
+    })
+
+    it('markdown scans ignore node_modules and dot directories', async () => {
+      const { resolveBlueprintPackage } = await import('./resolver-node')
+      const vendored = join(specsDir, 'skills', 'x', 'node_modules', 'dep')
+      const hidden = join(specsDir, '.cache')
+      await mkdir(vendored, { recursive: true })
+      await mkdir(hidden, { recursive: true })
+      await writeFile(join(vendored, 'ghost_V_0-1-0_NN.md'), '---\nspec_version: "V_0-1-0"\n---')
+      await writeFile(join(hidden, 'ghost_V_0-1-0_NN.md'), '---\nspec_version: "V_0-1-0"\n---')
+
+      expect(await resolveBlueprintPackage(rootDir, 'ghost')).toBeNull()
+    })
+
     it('W-01: buildIncludeContentMap normalizes case lookup for frontmatter includes', async () => {
       const { buildIncludeContentMap } = await import('./resolver-node')
 
@@ -707,6 +772,37 @@ describe('fetchBlueprintPackageFromRemote', () => {
     expect(pkg.procedures).toEqual({ 'compile_NN.md': '# Compile procedure' }) // the sub-dir entry is skipped
     expect(pkg.samples).toEqual({ 'Ghostbusters_business_NN.md': '# Sample' })
     expect(pkg.assets).toEqual({ 'master.html': '<!doctype html>' })
+  })
+
+  it('hydrates nested skills/ recursively (keys relative to skills/) while samples stay non-recursive', async () => {
+    const dir = (name: string) => ({ name, type: 'dir', path: name })
+    const spy = mockFetch(
+      {
+        '/video/spec_NN.md': '# Video spec',
+        '/video/skills/nn-video-script/SKILL.md': '# Skill',
+        '/video/skills/nn-video-script/scripts/lib/x.mjs': 'export const x = 1',
+        '/video/samples/a_NN.md': '# Sample',
+        '/video/samples/nested/b_NN.md': '# Nested sample',
+      },
+      {
+        'video/skills/nn-video-script/scripts/lib?': [file('x.mjs')],
+        'video/skills/nn-video-script/scripts?': [dir('lib')],
+        'video/skills/nn-video-script?': [file('SKILL.md'), dir('scripts')],
+        'video/skills?': [dir('nn-video-script')],
+        'video/samples?': [file('a_NN.md'), dir('nested')],
+      },
+    )
+
+    const pkg = await fetchBlueprintPackageFromRemote('video', 'V_0-8-0', {
+      ref: 'blueprints-v0.18.0',
+    })
+
+    expect(pkg.skills).toEqual({
+      'nn-video-script/SKILL.md': '# Skill',
+      'nn-video-script/scripts/lib/x.mjs': 'export const x = 1',
+    })
+    expect(pkg.samples).toEqual({ 'a_NN.md': '# Sample' })
+    expect(spy.mock.calls.map((c) => String(c[0])).some((u) => u.includes('samples/nested'))).toBe(false)
   })
 
   it('requires ref and rejects invalid refs like templates-v0.17.0', async () => {

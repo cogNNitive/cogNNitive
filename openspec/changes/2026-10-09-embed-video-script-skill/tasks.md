@@ -102,29 +102,29 @@ absolute `path`. Out of scope: remote hydration, installer, the move.
 Start: remote hydration skips `skills/`; flat installs do not resolve by name. End: nested
 `skills/` hydrated atomically; tier-3 flat install resolves by name. Out of scope: installer.
 
-- [ ] 2.1 **RED**: in `iNNfo/packages/innfo-mcp/src/tools/resolver-node.spec.ts` (or the
+- [x] 2.1 **RED**: in `iNNfo/packages/innfo-mcp/src/tools/resolver-node.spec.ts` (or the
       existing resolver spec file) test `fetchBlueprintPackageFromRemote` with a fetch spy
       returning a nested `dir` listing: `skills` keys are prefixed relative to `skills/`
       (`nn-video-script/scripts/lib/x.mjs`), while `samples` stays NON-recursive (D4).
       `[template-package-structure:Remote Hydration Includes Embedded Skills:Nested skill files are hydrated]`
-- [ ] 2.2 **RED**: hydration test: `hydrateBlueprintPackageAtomically` writes nested
+- [x] 2.2 **RED**: hydration test: `hydrateBlueprintPackageAtomically` writes nested
       `skills/` files under the version dir, and the dir appears only after full fetch
       (atomic, write-once).
-- [ ] 2.3 **RED**: tier-3 test: a flat `<globalBaseDir>/<name>/spec_NN.md` resolves by name;
+- [x] 2.3 **RED**: tier-3 test: a flat `<globalBaseDir>/<name>/spec_NN.md` resolves by name;
       with `targetVersion` it resolves only when frontmatter version matches (D5);
       `skills/nn-video-script/` is reachable beneath the returned dir.
       `[template-package-structure:Flat Installed bluepriNNt Resolves By Name:Flat install resolves]`
-- [ ] 2.4 **RED**: `getMarkdownFiles` ignores `node_modules` and dot dirs (fixture with a
+- [x] 2.4 **RED**: `getMarkdownFiles` ignores `node_modules` and dot dirs (fixture with a
       `skills/x/node_modules/**/*.md`; tier-4 recursive fallback must not return them).
-- [ ] 2.5 **GREEN**: add `skills?: Record<string,string>` to `TemplatePackagePayload`; add
+- [x] 2.5 **GREEN**: add `skills?: Record<string,string>` to `TemplatePackagePayload`; add
       `writeStagedTree(stagingDir,'skills',pkg.skills)` in hydration; add the
       `entry.type === 'dir'` recursive branch to `fetchSubdir` gated by
       `{ recursive: true }`, and return `skills: await fetchSubdir('skills',{recursive:true})`.
-- [ ] 2.6 **GREEN**: tier-3 flat fix in `resolver-node.ts`: when no version dir matches, try
+- [x] 2.6 **GREEN**: tier-3 flat fix in `resolver-node.ts`: when no version dir matches, try
       `findSpecInPackageDir(globalBaseDir, base)` honoring `targetVersion` (D5). Update
       `matchSpecPath` use accordingly (basename `spec` vs name).
-- [ ] 2.7 **GREEN**: `getMarkdownFiles` skips `node_modules` and dot dirs.
-- [ ] 2.8 Verify (targeted): resolver and `spec.spec.ts` suites green. Then ONE
+- [x] 2.7 **GREEN**: `getMarkdownFiles` skips `node_modules` and dot dirs.
+- [x] 2.8 Verify (targeted): resolver and `spec.spec.ts` suites green. Then ONE
       `node scripts/verify.js`.
 - Rollback: revert the slice commit (additive; the payload field is optional).
 

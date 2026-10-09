@@ -737,6 +737,10 @@ export async function discoverTransitiveAssets(
     seenBlueprints.add(key)
 
     const fm = item.fm
+    // A spec_NN.md package is named by its folder, not by the file stem.
+    const ownerName = item.filePath
+      ? blueprintOwnerName(dirname(item.filePath), item.docName)
+      : item.docName
 
     if (Array.isArray(fm.procedures)) {
       for (const p of fm.procedures) {
@@ -746,7 +750,7 @@ export async function discoverTransitiveAssets(
             id: String(p.id),
             name: String(p.name ?? p.id),
             path: String(p.path ?? ''),
-            source_template: p.source_template ? String(p.source_template) : item.docName,
+            source_template: p.source_template ? String(p.source_template) : ownerName,
           })
         }
       }
@@ -789,7 +793,7 @@ export async function discoverTransitiveAssets(
                 id: procId,
                 name: procName,
                 path: `procedures/${pe.name}`,
-                source_template: item.docName,
+                source_template: blueprintOwnerName(templateDir, item.docName),
               })
             }
           }
