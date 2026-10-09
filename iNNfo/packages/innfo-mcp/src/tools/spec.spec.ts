@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { join, isAbsolute, resolve } from 'node:path'
+import { existsSync } from 'node:fs'
 import { rm, mkdir, writeFile, stat } from 'node:fs/promises'
 import {
   getSpec,
@@ -605,5 +606,20 @@ describe('visual-catalog blueprint procedure discovery (real package)', () => {
       path: 'procedures/ingest_visual_catalog_procedures_NN.md',
       source_template: 'visual-catalog',
     })
+  })
+})
+
+describe('video blueprint embedded skill discovery (real package)', () => {
+  it('listBlueprintSkills reports nn-video-script with a path that holds the real skill', async () => {
+    const { skills } = await listBlueprintSkills(iNNfoRootDir, { blueprint_name: 'video' })
+    const skill = skills.find((s) => s.name === 'nn-video-script')
+    expect(skill).toBeDefined()
+    if (!skill || !('embedded' in skill)) throw new Error('nn-video-script must be an embedded skill')
+    expect(skill.embedded).toBe(true)
+    expect(skill.source_blueprint).toBe('video')
+    expect(existsSync(join(skill.path, 'SKILL.md'))).toBe(true)
+    expect(existsSync(join(skill.path, 'scripts', 'vus-spec.mjs'))).toBe(true)
+    expect(skill.version).toMatch(/^V_\d+-\d+-\d+$/)
+    expect(skill.description).toBeTruthy()
   })
 })

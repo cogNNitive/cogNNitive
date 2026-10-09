@@ -1302,3 +1302,39 @@ path). Do NOT touch the `template` identifier blindly — the CLI vocabulary
 depends on it (precedent: `2026-09-12-vocabulary-simplification`).
 
 **Suggested trigger:** `/sdd-explore trannsformations-vigencia`.
+
+---
+
+## 31. `fix/console-schema-parity` — the CLI and MCP must resolve the same blueprint schema
+
+**Type:** fix / refactor · **Size:** medium · **Status:** open (2026-10-09) · **Refs:** #122
+
+**Why:** `console-golden-parity` (`iNNfo/packages/innfo-mcp/test/console-golden-parity.test.ts`)
+is red on `dev`, keeping the `quality` job red and blocking the tag-driven release. Issue #122
+was closed `COMPLETED` but still reproduces on 2026-10-09 in the **primary checkout** (real deps,
+not a junctioned worktree), so the close was premature. Root cause is blueprint-resolution
+fragmentation, not a one-liner:
+
+- `scripts/export-console.mjs` never resolves a schema: the `if (fm.parent_spec?.name)` branch
+  (≈ lines 485-496) is a **no-op**, so the CLI always passes `schema: undefined` and
+  `buildConsoleSchemaSlot` derives a minimal schema from the model's own elements.
+- The MCP `build_console_payload` resolves through `resolveBlueprintWithCache` →
+  `resolveParentChainNode`. When the model's `parent_spec.url` is unresolvable and the workspace
+  blueprint lives at `specs/bluepriNNts/<name>/spec_NN.md` (the canonical **unversioned L2
+  package** layout), the 4-tier `resolveBlueprintPackage` misses it (Tier 1 accepts only version
+  subdirs; Tier 2 scans `specs/`), so it falls through to the **canonical fallback registry** and
+  loads a different blueprint.
+- Three resolvers are in play — core `resolveBlueprintPath` (flat files only), MCP
+  `resolveBlueprintPackage`, MCP `resolveParentChainNode` — the duplication item 25 targets.
+
+**Behaviour:** one resolution path shared by both producers. The domain-local blueprint
+(preferring `specs/bluepriNNts/<name>/spec_NN.md` and `specs/bluepriNNts/<name>/<version>/`) MUST
+win over the canonical fallback registry, and CLI and MCP MUST emit byte-identical `schema` slots
+for the same model. Must not regress `listBlueprintProcedures` (the resolved package must still
+expose `procedures/` and `samples/`).
+
+**Note:** a prior attempt unified both producers and got the local suite green but stayed red in
+CI (environment divergence: global `~/.agents` cache, built `dist`). Verify in a CI-equivalent
+checkout; this is not a rider — it needs its own verified change.
+
+**Suggested trigger:** `/sdd-explore console-schema-parity`.
