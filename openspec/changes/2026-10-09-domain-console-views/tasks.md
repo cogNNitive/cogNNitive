@@ -20,18 +20,18 @@ Strict TDD: every GREEN task is preceded by a RED task (write the test, run it, 
 | Estimated changed lines | ~2,300-2,900 hand-written across slices, plus the generated bundle |
 | Suggested split | S2a -> S2b -> S2c1 -> S2c2 -> S2d -> S2e -> S3 (one PR each) |
 | Delivery strategy | ask-on-risk |
-| Chain strategy | pending |
+| Chain strategy | feature-branch-chain (tracker branch; PR #1 targets the tracker, later PRs target the previous PR branch; only the tracker merges to main) |
 
-Decision needed before apply: Yes
+Decision needed before apply: No (resolved 2026-10-09)
 Chained PRs recommended: Yes
-Chain strategy: pending
+Chain strategy: feature-branch-chain
 400-line budget risk: High
 
-Decisions needed from the maintainer before apply:
-1. Chain strategy: `stacked-to-main` or `feature-branch-chain`. Each slice below is independently reviewable either way (own tests, own bundle rebuild, own rollback).
-2. Templates release timing: S2d and S2e change bluepriNNt package content (`template_version` bump plus templates release and repin). Cut one templates release after S2e (S2d on `dev` meanwhile) or one per slice? Recommended: one release after S2e. Note `main` goes red if a template spec is merged without a new `templates-v*` tag and repin.
-3. `size:exception` for whole-file deletions in S2d, S2e, S3: accept now or decide per PR.
-4. S2d only: if MCP `fetchSubdir('assets')` does not copy nested `assets/consoles/views/`, flatten to `assets/console-view-<slug>.js` (exporter-only change). This is a verification outcome, not a pre-apply decision.
+Decisions resolved by the maintainer (2026-10-09):
+1. Chain strategy: `feature-branch-chain`.
+2. Templates release: ONE release after S2e (S2d stays on the tracker until then; nothing touching a template spec reaches `main` without the new `templates-v*` tag and repin).
+3. `size:exception` is accepted for whole-file deletions in S2d, S2e and S3 only. Deleted lines and the regenerated bundle do not count against the 400-line budget; hand-written code does, and a slice over 400 hand-written lines is split instead of excepted.
+4. S2d only (verification outcome, not a decision): if MCP `fetchSubdir('assets')` does not copy nested `assets/consoles/views/`, flatten to `assets/console-view-<slug>.js` (exporter-only change).
 
 ### Suggested Work Units
 
