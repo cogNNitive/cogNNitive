@@ -395,6 +395,63 @@ agent-bootstrap:
   fs.rmSync(tmpDir, { recursive: true, force: true });
 }
 
+// 8b. cmdUpdate completes a partially installed console asset set, but does not start one
+{
+  const mkManifest = (base) => `---
+agent-bootstrap:
+  version: "2.0"
+  skills: []
+  blueprints: []
+  console-assets:
+    - file: scripts/export-console.mjs
+      version: "0.10.0"
+      ref: "innfo-console-v0.10.0"
+      commit: "2222222222222222222222222222222222222222"
+      url: ${base}/export-console.mjs
+    - file: scripts/console-views.mjs
+      version: "0.10.0"
+      ref: "innfo-console-v0.10.0"
+      commit: "2222222222222222222222222222222222222222"
+      url: ${base}/console-views.mjs
+---
+# Manifest`;
+  const run = async (preinstall) => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'actioNN-test-update-console-'));
+    const consoleDir = path.join(tmpDir, 'console');
+    const stateFile = path.join(tmpDir, 'bootstrap-state.json');
+    fs.mkdirSync(consoleDir, { recursive: true });
+    if (preinstall) fs.writeFileSync(path.join(consoleDir, 'export-console.mjs'), '// old', 'utf-8');
+    const srv = await new Promise((resolve) => {
+      const http2 = require('node:http');
+      let base = '';
+      const sv = http2.createServer((req, res) => {
+        res.writeHead(200, { 'Content-Type': 'text/plain' });
+        res.end(req.url === '/manifest.md' ? mkManifest(base) : '// new');
+      });
+      sv.listen(0, '127.0.0.1', () => {
+        base = 'http://127.0.0.1:' + sv.address().port;
+        resolve({ url: base + '/manifest.md', close: () => new Promise((r) => sv.close(r)) });
+      });
+    });
+    try {
+      fs.writeFileSync(stateFile, JSON.stringify({ manifest: srv.url, skills: {}, blueprints: {}, console: {} }), 'utf-8');
+      const res = await spawnAsync([managerScript, 'update', '--skills-dir', path.join(tmpDir, 'skills'), '--templates-dir', path.join(tmpDir, 'bp'), '--console-dir', consoleDir, '--state', stateFile, '--scope', 'workspace', '--yes'], {
+        env: { ...process.env, USERPROFILE: tmpDir, HOME: tmpDir, SM_MANIFEST_URL: srv.url },
+      });
+      assert.strictEqual(res.status, 0, `update should succeed. stderr: ${res.stderr}`);
+      return { consoleDir, res };
+    } finally {
+      await srv.close();
+    }
+  };
+  const partial = await run(true);
+  assert(fs.existsSync(path.join(partial.consoleDir, 'console-views.mjs')), 'update installs the missing member of a partially installed console set');
+  assert.strictEqual(fs.readFileSync(path.join(partial.consoleDir, 'export-console.mjs'), 'utf-8'), '// new', 'update refreshes the present member');
+  const empty = await run(false);
+  assert(!fs.existsSync(path.join(empty.consoleDir, 'console-views.mjs')), 'update does not start a console set that was never installed');
+  console.log('✔ cmdUpdate completes a partial console asset set test passed');
+}
+
 // 9. ADR-2 Ownership and unmanaged link/dir handling
 {
   const { projectSkillsToAgents } = require('./lib/skills-commands.js');
