@@ -41,3 +41,16 @@ The bundle was rebuilt (`node scripts/build-console-bundle.mjs`) and committed w
 - The hashchange test was flaky with a fixed 20 ms wait under the parallel test runner; it now polls up to 2 s.
 - `mountTabs` runs before the first `refresh()` (panels and host moves first) while the first view mounts in `activateInitial()` after the review controller exists. A search query present at boot clicks the Explorer tab during that first refresh, which now also decides the initial tab.
 - `renderViewTabs` used to rebuild the nav on every refresh; the new flow never rebuilds it, so a refresh cannot remount a view.
+
+### S2a review follow-up
+
+Fresh review of `afcc5384`, `2588eb0c`, `ceb6651a`. One commit per fix, bundle rebuilt each time.
+
+1. Panel-id collision. RED: external `domain` / `studio` views mounted into the existing `#innfo-tab-<id>` panel (2 failures). GREEN: `mountTabs` rejects a view whose panel exists and lacks `data-innfo-view=<id>`; panels it creates carry that marker (so a re-boot recognises its own).
+2. Icon injection. RED: `InnfoIcons.getSvg('x"><img onerror=1>')` emitted `class="lucide lucide-x"><img onerror=1>"` and `registerView` accepted it (2 failures). GREEN: icon must match `/^[a-z0-9-]+$/`; `getSvg`/`Icon` reduce the name to slug characters before the class attribute.
+3. Missing `<main>`. RED: `Cannot read properties of null (reading 'appendChild')` out of boot. GREEN: a view with no panel is reported in the notice and its `mount` is not called; panel is non-null in the mount catch.
+4. Hash. RED: 5 of 6 new tests in `test/console-hash-routing.test.mjs`. GREEN: hash is `#<tab>&q=<query>` (`#q=` alone still opens Explorer); `parseViewHash`/`buildViewHash`; refresh rewrites the hash with replaceState (also fixed: it used the bare `history` global, absent in tests, so that path was never exercised); Explorer is auto-selected only when the query changed and the hash did not name a tab, via `select(..., true)` (no history push); hashchange back/forward also follows the query.
+5. Re-boot. RED: 3 failures (notices 2 -> 4, hashchange listeners 2 -> 4, 2 renders per input). GREEN: per-document teardown (WeakMap) removes the previous boot's hashchange and search-input listeners; mount/hook/collision reports are per-boot (`bootErrors`), the registry keeps registration errors only; owned panels are cleared before a re-mount. Not covered: the review controller's own listeners still stack on re-boot (pre-existing, out of scope).
+6. Comments fixed. The reorder in `activateInitial` is kept: it buys that an initial `#q=` search picks Explorer without first mounting the default view (new test).
+7. Tests added: skipped built-in is absent (tab count, no panel; mutation `if (clash)` -> `if (false)` turns it red), onShow/onHide throwing, no remount across search input, no default mount on initial search. These are characterization tests of existing behavior, so they were green on first run.
+
