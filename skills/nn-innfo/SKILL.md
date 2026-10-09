@@ -551,7 +551,9 @@ When the user selects option `[d]` (Export / update console artifacts):
 1. Verify active model context via the Active Model Selection Gate (§0a-bis).
 2. Execute console compilation for the active model:
    - Run `node <path-to>/export-console.mjs . <model_name>` (or `--stale` / `--all` depending on user intent). The CLI ships in the cogNNitive repo at `scripts/export-console.mjs`; run it from a checkout, or from the copy installed under `~/.agents/console/` once console assets are distributed.
-   - The CLI resolves its console assets (`artifact_shell.html` + `innfo-console.bundle.js`) from `$INNFO_CONSOLE_DIR`, then `~/.agents/console/`, then the repo's `iNNfo/specs/bluepriNNts/console/`. Set `INNFO_CONSOLE_DIR` when running outside a checkout.
+   - The CLI resolves its console assets from `$INNFO_CONSOLE_DIR`, then the repo's `iNNfo/specs/bluepriNNts/console/`, then `~/.agents/console/`. The installed set is `export-console.mjs`, `console-views.mjs`, `artifact_shell.html`, `innfo-console.bundle.js`, `innfo-ui.css` and `console-payload.generated.cjs`, all flat in one folder; `--domain` needs every one of them. Set `INNFO_CONSOLE_DIR` when running outside a checkout.
+   - After upgrading, run `skills-manager install` (or `update`, which also adds the console files a newer release introduced) so the set is complete; `--domain` fails with a clear error when `console-views.mjs` or `innfo-ui.css` is missing.
+   - `--domain` also reads bluepriNNt console views from the installed bluepriNNt packages in `$INNFO_BLUEPRINTS_DIR`, defaulting to `~/.agents/bluepriNNts/`, and warns on stderr when a model's bluepriNNt package cannot be found there.
    - If the user requests inspection or status, invoke with `--status` or `--tree` (read-only mode).
 3. Present the compiled artifact path (the latest member of the write-once family, e.g. `artifacts/<stem>_console/<stem>_console_<UTC stamp>.html`; earlier exports are never overwritten) with instructions for opening offline or in browser.
 
