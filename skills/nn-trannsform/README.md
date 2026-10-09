@@ -74,12 +74,12 @@ The agent presents a decision matrix to the user for non-plain-text formats, let
 
 ## Output types
 
-The transformation step produces two kinds of output:
-
-- **Draft** (`_draft`) — Includes source citations, revision notes, uncertainty markers, and GitHub-style alert blocks (`[!NOTE]`, `[!WARNING]`, `[!TIP]`). Intended for review.
-- **Final** — Clean output. Optionally includes source references.
-
-Both are written under `artifacts/` as new UTC-suffixed files (for example `Summary_draft_20261001T101500Z.md`); an earlier output is never overwritten.
+The transformation step produces a single deliverable in the citation and
+export format selected at generation time (see `SKILL.md` §3c): Markdown
+footnotes, inline attribution, a bibliography style (APA/MLA/Chicago/IEEE/
+Vancouver), BibTeX export (with a companion `.bib` file), or plain text with
+no sources. It is written under `artifacts/` as a new UTC-suffixed file (for
+example `Summary_20261001T101500Z.md`); an earlier output is never overwritten.
 
 ## For maintainers
 
