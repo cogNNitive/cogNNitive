@@ -12,7 +12,7 @@ The runtime (`innfo-runtime.js`, UMD global `InnfoConsole`) gets a view registry
 export-console.mjs --domain | --view <id>
   models (*_NN.md) ──> buildConsolePayload ──> domain payload (+ meta.models[] extras)
   parent_spec bases ──> <pkg>/assets/consoles/views/*.js ─┐
-  <domain>/consoles/views/*.js ───────────────────────────┤ lib/console-views.mjs
+  <domain>/consoles/views/*.js ───────────────────────────┤ console-views.mjs
                                                           │ validate ids, dupes, wrap, header
   artifact_shell.html ─ inline bundle+css ─ slots ─ views ┴─> size budget ─> write | fail
 browser: bundle ─> InnfoConsole (registry) <── <script data-innfo-view> registerView(def)
@@ -67,7 +67,7 @@ Wrapper emitted per view, after the inlined bundle:
 | 7 | `<domainRoot>/domaiNN_console.html` is a fixed name and is overwritten on every export (D14), with no siblings. Existing `innfo-console.bundle.js`/`innfo-ui.css` files at the root are left alone, never deleted. Hub mentions are **not ledgered**: they are not temporary code, and AGENTS.md says permanent history is never ledgered. Exemptions live as an allowlist in `test/no-workspace-hub-references.test.mjs`: `openspec/changes/archive/**`, this change folder until archive, `iNNfo/packages/innfo-core/tests/legacy/**`, `iNNfo/packages/innfo-core/tests/fixtures/simulacro-refactorizacion/**`, `test/fixtures/testlab/**`, `simulation/FINDINGS.md` and `openspec/backlog.md`. |
 | 8 | The frozen-procedure examples move to `iNNfo/specs/bluepriNNts/workspace/procedures/compile_model_console_NN.md`, id `compile-model-console`, in `nn-naming-contract` and `template-procedures-manifest-and-discovery`. This needs two MODIFIED delta specs. The same repoint applies to `scripts/lib/nn-name-invariant-guard.test.js` and `iNNfo/packages/innfo-core/tests/naming/contract.test.ts`. |
 
-**Size budget.** `scripts/lib/console-views.mjs` exports `CONSOLE_SIZE_BUDGET = { warnBytes: 5_000_000, failBytes: 15_000_000 }`. A pure `evaluateSizeBudget({ bundle, models, views, total })` measures UTF-8 bytes: bundle = inlined bundle + CSS, models = schema + model slots, views = wrapped scripts, total = the final HTML. Every export prints the breakdown line. Above `warnBytes` it warns. Above `failBytes` it exits 1 before writing.
+**Size budget.** `scripts/console-views.mjs` exports `CONSOLE_SIZE_BUDGET = { warnBytes: 5_000_000, failBytes: 15_000_000 }`. A pure `evaluateSizeBudget({ bundle, models, views, total })` measures UTF-8 bytes: bundle = inlined bundle + CSS, models = schema + model slots, views = wrapped scripts, total = the final HTML. Every export prints the breakdown line. Above `warnBytes` it warns. Above `failBytes` it exits 1 before writing.
 
 ## Architecture Decisions
 
@@ -88,7 +88,7 @@ Wrapper emitted per view, after the inlined bundle:
 | | `test/console-view-registry.test.mjs`, `test/helpers/console-boot.mjs` | Create / modify (`registry` option) |
 | S2b mount context | `innfo-runtime.js`, `review.js` (`openEdit`, `propose`) | Modify: ctx facades, `mountHtml`, editable-iframe guard (synchronous check plus a `MutationObserver` that removes the iframe and reports the id) |
 | | `test/console-view-context.test.mjs` | Create |
-| S2c1 exporter | `scripts/lib/console-views.mjs` | Create: discover, validate, wrap, escape, header, inline, budget |
+| S2c1 exporter | `scripts/console-views.mjs` | Create: discover, validate, wrap, escape, header, inline, budget |
 | | `scripts/export-console.mjs` | Modify: `--domain` uses the lib and writes one file |
 | | `test/console-views-lib.test.mjs`, `test/console-export.test.mjs` | Create / modify |
 | S2c2 budget, `--view`, sample | `scripts/export-console.mjs` | Modify: `--view`, budget gate |

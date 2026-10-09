@@ -93,14 +93,15 @@ Rollback: revert PR 2 (S2a stays valid; no views use ctx yet).
 
 ## S2c1 Exporter lib
 
-Goal: `scripts/lib/console-views.mjs` plus a single self-contained `domaiNN_console.html` from `--domain`.
+Goal: `scripts/console-views.mjs` plus a single self-contained `domaiNN_console.html` from `--domain`.
 Traceability: Discovery of bluepriNNt and custom views, Trust model and header listing, registerView contract (wrapper, no import/export), Size budget (measurement inputs).
 
 - [x] 2c1.1 RED `test/console-views-lib.test.mjs`: discovery roots in order (first existing wins), base from `parent_spec.name`, slug/reserved/dupe errors naming both sources
 - [x] 2c1.2 RED: `</script` escaped; top-level `import`/`export` fails; header line `<id> <kind> <source> sha256:<12 hex>`, `--` sanitized
-- [x] 2c1.3 GREEN create `scripts/lib/console-views.mjs`: discover, validate, wrap, escape, header
+- [x] 2c1.3 GREEN create `scripts/console-views.mjs`: discover, validate, wrap, escape, header
 - [x] 2c1.4 RED `test/console-export.test.mjs`: `--domain` writes one file, fixed name overwritten, no siblings, no CDN tags, header lists views; artifact boots under jsdom `runScripts: 'dangerously'` and mounts a view
 - [x] 2c1.5 GREEN `scripts/export-console.mjs`: `--domain` inlines bundle, CSS, slots, views; leaves old root bundle files alone
+- [x] 2c1.7 Distribute the lib: `scripts/console-views.mjs` beside the exporter in manifest `console_assets`, `innfo-console` repoPaths and `DISTRIBUTION_PATHS`, with a test that runs `--domain` from an installed set
 - [ ] 2c1.6 Verify: node --test, check-integrity, fresh-context review before push
 
 Rollback: revert PR 3 (restores sibling-bundle export).
