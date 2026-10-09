@@ -283,7 +283,7 @@ if (require.main === module) {
       .filter((x) => x.length),
   );
   const ROOT = path.resolve(args.root || 'artifacts');
-  const FILE = args.file || 'timeline.html';
+  const FILE = args.file || 'domaiNN_console.html';
   const PORT = Number(args.port || 0);
   const SHOT = args.shot || path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'proy-verify-')), 'verify.png');
 

@@ -103,7 +103,6 @@ still load the pre-bundle `innfo-runtime.js` from the CDN and the mirror **only*
 | Asset | Runtime loaded |
 | :--- | :--- |
 | `business/assets/model_viewer.html` | `innfo-runtime.js` (CDN + mirror) |
-| `metrics/assets/timeline.html` | `innfo-runtime.js` (CDN + mirror) |
 
 Do not assume every artifact uses the bundle. `innfo-runtime.js` is a legacy
 per-shell runtime, **not** the canonical runtime.

@@ -123,6 +123,7 @@ describe('sample custom view (_samples_nn/consoles/views/missing-descriptions.js
   it('locks a proposed row so repeated clicks cannot stack duplicate proposals', async () => {
     const dom = await boot()
     const doc = dom.window.document
+    doc.querySelector(`#innfo-view-tabs [data-tab="${VIEW_ID}"]`).click()
     const row = doc.querySelector(`#innfo-tab-${VIEW_ID} [data-element-id]`)
     const input = row.querySelector('input')
     const button = row.querySelector('button')

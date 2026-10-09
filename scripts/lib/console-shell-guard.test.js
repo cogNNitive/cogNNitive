@@ -105,7 +105,7 @@ console.log('Running console-shell-guard unit tests...');
     result.errors.forEach((e) => console.error(`  - ${e}`));
   }
   assert.strictEqual(result.ok, true);
-  assert.ok(result.shells.length >= 4, `Expected at least 4 shells, got ${result.shells.length}`);
+  assert.ok(result.shells.length >= 3, `Expected at least 3 shells, got ${result.shells.length}`);
   assert.ok(result.shells.some((s) => s.includes('model_console.html')), 'model_console.html must be among checked shells');
   console.log(`✔ Live repository check passes on all ${result.shells.length} shells:`);
   result.shells.forEach((s) => console.log(`  - ${s}`));
@@ -160,30 +160,20 @@ console.log('Running console-shell-guard unit tests...');
   const hslaRoot = `:root {\n  --x: hsla(210, 40%, 20%, .5);\n}`;
   assert.strictEqual(findRootColorDeclarations(hslaRoot).length, 1);
 
-  // All four live shells must be fully tokenized (d1 + d2).
+  // All live shells must be fully tokenized (d1 + d2). The metrics timeline is
+  // a registered view now, not a shell, so it is no longer a shell-guard target.
   const repoRoot = path.join(__dirname, '..', '..');
-  const fourShells = [
+  const liveShells = [
     'iNNfo/specs/bluepriNNts/console/artifact_shell.html',
-    'iNNfo/specs/bluepriNNts/metrics/assets/timeline.html',
     'iNNfo/specs/bluepriNNts/procedures/assets/procedure_console.html',
     'iNNfo/specs/bluepriNNts/workspace/assets/model_console.html',
   ];
-  for (const rel of fourShells) {
+  for (const rel of liveShells) {
     const html = fs.readFileSync(path.join(repoRoot, rel), 'utf8');
     const offenders = findRootColorDeclarations(html);
     assert.deepStrictEqual(offenders, [], `${rel} must carry no :root color literals`);
   }
   console.log('✔ findRootColorDeclarations flags root colors and passes tokenized shells');
-
-  // d2.1: timeline.html must drop the legacy class-based dark mechanism.
-  const timeline = fs.readFileSync(path.join(repoRoot, fourShells[1]), 'utf8');
-  assert.strictEqual(timeline.includes('.dark'), false, 'timeline.html must not carry a .dark block');
-  assert.strictEqual(
-    /:root:not\(\.light\)/.test(timeline),
-    false,
-    'timeline.html must not carry a :root:not(.light) block',
-  );
-  console.log('✔ timeline.html dropped the class-based dark mechanism');
 }
 
 console.log('\nAll console-shell-guard unit tests passed! ✨');

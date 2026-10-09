@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { readFileSync } from 'node:fs'
+import { readFileSync, existsSync } from 'node:fs'
 import { createRequire } from 'node:module'
 
 // RED phase for task 1.1 (Series-as-Data slot contract) and task 3.1 (harness
@@ -290,24 +290,29 @@ describe('metrics slot contract: MODEL_DATA.template.json series snapshot', () =
   })
 })
 
-describe('metrics slot contract: generated console shape', () => {
-  it('thinned timeline.html carries the shell slots and zero dashboard runtime', () => {
-    const api = loadContract()
-    const html = readFileSync(join(metricsDir, 'assets', 'timeline.html'), 'utf8')
-    expect(html).toContain('id="innfo-config"')
-    expect(html).toContain('id="innfo-schema"')
-    expect(html).toContain('id="innfo-model"')
-    expect(html).toContain('id="innfo-timeline-grid"')
-    const scan = api.scanInlineRuntime(html)
-    expect(scan.ok).toBe(true)
-    expect(scan.blocks).toEqual([])
+describe('metrics slot contract: timeline is a view, not a shell', () => {
+  const viewPath = join(metricsDir, 'assets', 'console-view-timeline.js')
+
+  it('ships the timeline as a classic registered view that reads the projection', () => {
+    const code = readFileSync(viewPath, 'utf8')
+    expect(code).toContain('registerView(')
+    expect(code).toContain("title: 'Timeline'")
+    expect(code).toContain('renderTimelineGrid')
+    expect(code).not.toMatch(/^\s*(import|export)\b/m)
   })
 
-  it('timeline.html declares the charts capability in needs[]', () => {
+  it('retires the layout shell: no timeline.html and the spec names the view', () => {
+    expect(existsSync(join(metricsDir, 'assets', 'timeline.html'))).toBe(false)
+    const spec = readFileSync(join(metricsDir, 'spec_NN.md'), 'utf8')
+    expect(spec).not.toContain('timeline.html')
+    expect(spec).not.toContain('timeline-layout')
+  })
+
+  it('keeps a pure-data MODEL_DATA series snapshot and explicit growth rules', () => {
     const api = loadContract()
-    const html = readFileSync(join(metricsDir, 'assets', 'timeline.html'), 'utf8')
-    const slots = api.parseSlotsFromHtml(html)
-    const needs = slots.config && Array.isArray(slots.config.needs) ? slots.config.needs : []
-    expect(needs).toContain('charts')
+    const template = JSON.parse(
+      readFileSync(join(metricsDir, 'assets', 'MODEL_DATA.template.json'), 'utf8'),
+    ) as { meta: { charts: Array<{ id: string }> }; series: Record<string, unknown> }
+    expect(api.guardPureDataSeries(template.series).ok).toBe(true)
   })
 })
