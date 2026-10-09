@@ -61,14 +61,14 @@ Decisions resolved by the maintainer (2026-10-09):
 Goal: `InnfoConsole` registry, validation, tabs from registry, lazy mount, hash routing, errors notice. Additive.
 Traceability: registerView contract, Tabs mounted from the registry, Duplicate and invalid view ids, R1 Dynamic View Tab Generation, R3 Tab Navigation & State Preservation.
 
-- [ ] 2a.1 Add `registry` option to `test/helpers/console-boot.mjs`
-- [ ] 2a.2 RED `test/console-view-registry.test.mjs`: valid def accepted; invalid field names field and id; reserved ids (`explorer`, `matrices`, `review`); id regex (registerView contract)
-- [ ] 2a.3 GREEN `console/innfo-runtime.js`: `createViewRegistry`, `registerView`, `viewRegistrar(id, source)`, validation, mismatched-id rejection
-- [ ] 2a.4 RED same file: `(order, id)` ordering; Changes tab last; lazy mount once; input value survives tab switches; `#id` and `#matrices` routing; no Matrices tab without matrices (Tabs mounted, R1, R3)
-- [ ] 2a.5 GREEN runtime: built-ins as registered views, split `renderViewTabs` into `mountTabs`/`updateTabBadges`, panels `#innfo-tab-<id>`, hashchange routing, boot order
-- [ ] 2a.6 RED: duplicate throws, first stays mounted, `#innfo-view-errors` `role="alert"` shows id, both sources, reason; mount throw isolated inline (Duplicate and invalid view ids)
-- [ ] 2a.7 GREEN runtime: `registry.errors()` and the notice
-- [ ] 2a.8 Rebuild bundle and commit it with the runtime change
+- [x] 2a.1 Add `registry` option to `test/helpers/console-boot.mjs`
+- [x] 2a.2 RED `test/console-view-registry.test.mjs`: valid def accepted; invalid field names field and id; reserved ids (`explorer`, `matrices`, `review`); id regex (registerView contract)
+- [x] 2a.3 GREEN `console/innfo-runtime.js`: `createViewRegistry`, `registerView`, `viewRegistrar(id, source)`, validation, mismatched-id rejection
+- [x] 2a.4 RED same file: `(order, id)` ordering; Changes tab last; lazy mount once; input value survives tab switches; `#id` and `#matrices` routing; no Matrices tab without matrices (Tabs mounted, R1, R3)
+- [x] 2a.5 GREEN runtime: built-ins as registered views, split `renderViewTabs` into `mountTabs`/`updateTabBadges`, panels `#innfo-tab-<id>`, hashchange routing, boot order
+- [x] 2a.6 RED: duplicate throws, first stays mounted, `#innfo-view-errors` `role="alert"` shows id, both sources, reason; mount throw isolated inline (Duplicate and invalid view ids)
+- [x] 2a.7 GREEN runtime: `registry.errors()` and the notice
+- [x] 2a.8 Rebuild bundle and commit it with the runtime change
 - [ ] 2a.9 Verify: `node --test test/console-*.test.mjs`; `node scripts/check-integrity.js`; fresh-context review before push
 
 Rollback: revert PR 1 (additive; S1 behaviour intact).
