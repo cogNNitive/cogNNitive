@@ -498,7 +498,10 @@ describe('NodeSpecResolver', () => {
         '# Skill\n',
       )
       expect(
-        await readFile(join(pkgPath, 'skills', 'nn-video-script', 'scripts', 'lib', 'x.mjs'), 'utf-8'),
+        await readFile(
+          join(pkgPath, 'skills', 'nn-video-script', 'scripts', 'lib', 'x.mjs'),
+          'utf-8',
+        ),
       ).toContain('export const x')
       // atomic: no staging dir is left beside the final version dir
       const siblings = await readdir(join(pkgPath, '..'))
@@ -547,15 +550,21 @@ describe('NodeSpecResolver', () => {
         '---\nspec_version: "V_0-3-0"\nblueprint_version: "V_0-8-0"\n---',
       )
 
-      const byBlueprint = await resolveBlueprintPackage(rootDir, 'video_V_0-8-0', undefined, { globalDir })
+      const byBlueprint = await resolveBlueprintPackage(rootDir, 'video_V_0-8-0', undefined, {
+        globalDir,
+      })
       expect(byBlueprint?.tier).toBe('global-cache')
       expect(byBlueprint?.packagePath).toBe(flatDir)
       expect(byBlueprint?.version).toBe('0.8.0')
 
-      const bySpec = await resolveBlueprintPackage(rootDir, 'video_V_0-3-0', undefined, { globalDir })
+      const bySpec = await resolveBlueprintPackage(rootDir, 'video_V_0-3-0', undefined, {
+        globalDir,
+      })
       expect(bySpec?.packagePath).toBe(flatDir)
 
-      expect(await resolveBlueprintPackage(rootDir, 'video_V_0-9-9', undefined, { globalDir })).toBeNull()
+      expect(
+        await resolveBlueprintPackage(rootDir, 'video_V_0-9-9', undefined, { globalDir }),
+      ).toBeNull()
     })
 
     it('markdown scans ignore node_modules and dot directories', async () => {
@@ -823,7 +832,9 @@ describe('fetchBlueprintPackageFromRemote', () => {
       'nn-video-script/scripts/lib/x.mjs': 'export const x = 1',
     })
     expect(pkg.samples).toEqual({ 'a_NN.md': '# Sample' })
-    expect(spy.mock.calls.map((c) => String(c[0])).some((u) => u.includes('samples/nested'))).toBe(false)
+    expect(spy.mock.calls.map((c) => String(c[0])).some((u) => u.includes('samples/nested'))).toBe(
+      false,
+    )
   })
 
   it('rejects (never returns a partial skills tree) when a nested skills/ listing fails', async () => {
@@ -871,19 +882,30 @@ describe('fetchBlueprintPackageFromRemote', () => {
       },
     )
 
-    // The network tier misses (the offline canonical registry may still answer); what matters
-    // is that nothing was hydrated, so a later run can retry the fetch.
-    await resolveParentChainNode(
-      rootDir,
-      'https://raw.githubusercontent.com/o/r/blueprints-v0.18.0/iNNfo/specs/bluepriNNts/video/spec_NN.md',
-      'video',
-      { cacheDir },
-    )
+    // Hermetic: pin the user-global tiers (Tier 3/4) so a developer's ~/.agents
+    // cache cannot mask the network miss. CI has no ~/.agents, so the parent
+    // stays unresolved and the resolver reports it instead of hydrating a
+    // skill-less version dir (write-once freeze).
+    await expect(
+      resolveParentChainNode(
+        rootDir,
+        'https://raw.githubusercontent.com/o/r/blueprints-v0.18.0/iNNfo/specs/bluepriNNts/video/spec_NN.md',
+        'video',
+        {
+          cacheDir,
+          globalDir: join(rootDir, 'isolated-global-incomplete'),
+          skillsDir: join(rootDir, 'isolated-skills-incomplete'),
+        },
+      ),
+    ).rejects.toThrow(/Failed to resolve parent "video"/)
+    // The incomplete skills tree must never freeze a version dir: a later run retries.
     expect(existsSync(join(cacheDir, 'bluepriNNts', 'video'))).toBe(false)
   })
 
   it('requires ref and rejects invalid refs like templates-v0.17.0', async () => {
-    await expect(fetchBlueprintPackageFromRemote('analysis', '0.2.0')).rejects.toThrow('ref is required')
+    await expect(fetchBlueprintPackageFromRemote('analysis', '0.2.0')).rejects.toThrow(
+      'ref is required',
+    )
     await expect(
       fetchBlueprintPackageFromRemote('analysis', '0.2.0', { ref: 'templates-v0.17.0' }),
     ).rejects.toThrow(/Invalid blueprint ref/)
