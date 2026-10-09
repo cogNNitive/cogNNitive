@@ -44,6 +44,40 @@ describe('console-views lib', () => {
 
   const discover = (specNames = []) => discoverViews({ domainRoot: domain, specNames, packagesDir: pkgs })
 
+  describe('unresolvable bluepriNNt packages', () => {
+    const collect = async (specNames) => {
+      const warnings = []
+      await discoverViews({ domainRoot: domain, specNames, packagesDir: pkgs, onWarning: (w) => warnings.push(w) })
+      return warnings
+    }
+
+    it('warns, naming the spec and the folder searched, when no package for the base can be found', async () => {
+      const warnings = await collect(['metrics_V_0-4-1'])
+      assert.equal(warnings.length, 1)
+      assert.match(warnings[0], /metrics_V_0-4-1/)
+      assert.ok(warnings[0].includes(join(pkgs, 'metrics')))
+    })
+
+    it('stays silent when the package exists but ships no views', async () => {
+      await mkdir(join(pkgs, 'metrics'), { recursive: true })
+      assert.deepEqual(await collect(['metrics_V_0-4-1']), [])
+    })
+
+    it('stays silent when the domain carries its own copy of the bluepriNNt', async () => {
+      await mkdir(join(domain, 'specs', 'bluepriNNts', 'metrics'), { recursive: true })
+      assert.deepEqual(await collect(['metrics_V_0-4-1']), [])
+    })
+
+    it('stays silent when views were found', async () => {
+      await put(join(pkgs, 'metrics', 'assets', 'consoles', 'views', 'timeline.js'))
+      assert.deepEqual(await collect(['metrics_V_0-4-1']), [])
+    })
+
+    it('does not require an onWarning callback', async () => {
+      await discover(['metrics_V_0-4-1'])
+    })
+  })
+
   describe('constants', () => {
     const runtimeSource = readFileSync(join(consoleDir, 'innfo-runtime.js'), 'utf8')
     const accepted = (id) => {

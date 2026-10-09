@@ -467,6 +467,12 @@ async function main() {
       console.error(`Error: --domain needs console-views.mjs next to this script (${fileURLToPath(viewsLibUrl)}).`)
       process.exit(1)
     }
+    // Where bluepriNNt packages (and their console views) live. In a repo checkout the
+    // console dir sits inside the packages folder; an installed set is flat in
+    // ~/.agents/console and the packages are installed beside it in ~/.agents/bluepriNNts.
+    const packagesDir =
+      process.env.INNFO_BLUEPRINTS_DIR ||
+      (consoleDir === repoConsoleDir ? dirname(consoleDir) : join(homedir(), '.agents', 'bluepriNNts'))
     const uiCssPath = join(consoleDir, 'innfo-ui.css')
     if (!existsSync(uiCssPath)) {
       console.error(`Error: ${uiCssPath} not found; --domain inlines the console CSS.`)
@@ -477,7 +483,9 @@ async function main() {
       domainViews = await viewsLib.discoverViews({
         domainRoot: root,
         specNames: candidateModels.map((m) => payloadHelper.parentSpecNameOf(m.fm)).filter(Boolean),
-        packagesDir: dirname(consoleDir),
+        packagesDir,
+        onWarning: (message) => process.stderr.write(`WARNING: [export-console] ${message}
+`),
       })
     } catch (err) {
       console.error(`Error: ${err.message}`)

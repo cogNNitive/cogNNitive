@@ -435,11 +435,39 @@ level: 3
         await copyFile(resolve(here, '..', rel), join(dir, basename(rel)))
       }
     }
-    const runInstalled = (dir, args) =>
+    const runInstalled = (dir, args, env = {}) =>
       execFileAsync(process.execPath, [join(dir, 'export-console.mjs'), tempDir, ...args], {
         cwd: tempDir,
-        env: { ...process.env, INNFO_CONSOLE_DIR: dir },
+        env: { ...process.env, INNFO_CONSOLE_DIR: dir, ...env },
       })
+    const VIEW = (title) =>
+      `registerView({ title: '${title}', icon: 'layout', order: 1, kind: 'readonly', mount() {} })\n`
+    const METRICS_MODEL =
+      '---\ntitle: "M"\nlevel: 3\nparent_spec:\n  name: "metrics_V_0-4-1"\n---\n\n# NN Item\n## NN Item: A\n  name:: "A"\n'
+    const putView = async (dir, slug, title) => {
+      await mkdir(dir, { recursive: true })
+      await writeFile(join(dir, slug + '.js'), VIEW(title), 'utf-8')
+    }
+    const viewsOf = (packagesRoot) => join(packagesRoot, 'metrics', 'assets', 'consoles', 'views')
+    const setUpViews = async (packagesRoot) => {
+      await writeFile(join(tempDir, 'models', 'm_V_1-0-0_NN.md'), METRICS_MODEL, 'utf-8')
+      await putView(join(tempDir, 'consoles', 'views'), 'pipeline', 'Pipeline')
+      if (packagesRoot) await putView(viewsOf(packagesRoot), 'timeline', 'Timeline')
+    }
+    const domainHtml = () => readFile(join(tempDir, 'domaiNN_console.html'), 'utf-8')
+    const assertWholeConsole = async (html) => {
+      const bundle = await readFile(
+        resolve(here, '..', 'iNNfo', 'specs', 'bluepriNNts', 'console', 'innfo-console.bundle.js'),
+        'utf-8',
+      )
+      const banner = bundle.match(/innfo-console\.bundle\.js — single-file console runtime/)[0]
+      assert.equal(html.split(banner).length - 1, 1, 'bundle inlined once')
+      assert.match(html, /<style>[\s\S]*--innfo-bg[\s\S]*<\/style>/, 'css inlined')
+      assert.ok(
+        html.includes('data-innfo-view="pipeline" data-innfo-view-source="domaiNN:consoles/views/pipeline.js"'),
+        'domain view present',
+      )
+    }
     const failure = async (promise) => {
       try {
         await promise
@@ -470,6 +498,50 @@ level: 3
       assert.match(stdout, /domaiNN_console\.html/)
       const html = await readFile(join(tempDir, 'domaiNN_console.html'), 'utf-8')
       assert.equal(/<script[^>]*\ssrc=/.test(html), false, 'self-contained')
+    })
+
+    it('inlines the bundle, the CSS and a domain-local view from an installed set', async () => {
+      const dir = join(tempDir, 'installed')
+      await install(dir)
+      await setUpViews(null)
+      await runInstalled(dir, ['--domain'], { INNFO_BLUEPRINTS_DIR: join(tempDir, 'no-packages') })
+      await assertWholeConsole(await domainHtml())
+    })
+
+    it('resolves bluepriNNt views from INNFO_BLUEPRINTS_DIR for an installed set', async () => {
+      const dir = join(tempDir, 'installed')
+      const packages = join(tempDir, 'packages')
+      await install(dir)
+      await setUpViews(packages)
+      const { stderr } = await runInstalled(dir, ['--domain'], { INNFO_BLUEPRINTS_DIR: packages })
+      const html = await domainHtml()
+      await assertWholeConsole(html)
+      assert.ok(
+        html.includes(
+          'data-innfo-view="timeline" data-innfo-view-source="bluepriNNt:metrics/assets/consoles/views/timeline.js"',
+        ),
+      )
+      assert.doesNotMatch(stderr, /no bluepriNNt package/)
+    })
+
+    it('looks for installed bluepriNNt packages in ~/.agents/bluepriNNts by default', async () => {
+      const dir = join(tempDir, 'installed')
+      const home = join(tempDir, 'home')
+      await install(dir)
+      await setUpViews(join(home, '.agents', 'bluepriNNts'))
+      await runInstalled(dir, ['--domain'], { HOME: home, USERPROFILE: home, INNFO_BLUEPRINTS_DIR: '' })
+      assert.ok((await domainHtml()).includes('data-innfo-view="timeline"'))
+    })
+
+    it('warns on stderr, and still exports, when the bluepriNNt package cannot be found', async () => {
+      const dir = join(tempDir, 'installed')
+      await install(dir)
+      await setUpViews(null)
+      const packages = join(tempDir, 'empty-packages')
+      const { stderr } = await runInstalled(dir, ['--domain'], { INNFO_BLUEPRINTS_DIR: packages })
+      assert.match(stderr, /WARNING: \[export-console\] no bluepriNNt package for "metrics_V_0-4-1"/)
+      assert.ok(stderr.includes(join(packages, 'metrics')))
+      await assertWholeConsole(await domainHtml())
     })
 
     it('fails with a clear message when the view lib is not next to the exporter', async () => {

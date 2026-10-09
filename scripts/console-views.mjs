@@ -12,7 +12,7 @@
  * the header comment written by `viewsHeader` lets a reviewer see what is included.
  */
 
-import { readdir, readFile } from 'node:fs/promises'
+import { readdir, readFile, stat } from 'node:fs/promises'
 import { join } from 'node:path'
 import { createHash } from 'node:crypto'
 import { Script } from 'node:vm'
@@ -45,6 +45,15 @@ export function viewRootCandidates({ domainRoot, specName, packagesDir }) {
     join(tier1, ...VIEWS_SUBPATH),
     join(packagesDir, base, ...VIEWS_SUBPATH),
   ]
+}
+
+async function dirExists(dir) {
+  try {
+    return (await stat(dir)).isDirectory()
+  } catch (err) {
+    if (err.code === 'ENOENT' || err.code === 'ENOTDIR') return false
+    throw err
+  }
 }
 
 const compareCodeUnits = (a, b) => (a < b ? -1 : a > b ? 1 : 0)
@@ -90,8 +99,10 @@ async function readViews(dir, names, origin, sourcePrefix) {
  * exported models; each base resolves to one views folder, and models on several
  * versions of a base that resolve to different folders are an error. Throws before
  * returning on a bad id, a duplicate id, ES module syntax or such a conflict.
+ * `onWarning` receives a message when a base has no bluepriNNt package anywhere it
+ * looks, because its views (if it has any) cannot be found.
  */
-export async function discoverViews({ domainRoot, specNames = [], packagesDir }) {
+export async function discoverViews({ domainRoot, specNames = [], packagesDir, onWarning = () => {} }) {
   // Plain code-unit order (not localeCompare) so the result and the messages never depend
   // on the machine's locale or on the order the models were found in.
   const sortedNames = [...new Set(specNames)].sort(compareCodeUnits)
@@ -104,6 +115,15 @@ export async function discoverViews({ domainRoot, specNames = [], packagesDir })
       if (names === null || names.length === 0) continue // missing or empty: next tier
       hitsByBase.set(base, [...(hitsByBase.get(base) ?? []), { specName, dir, names }])
       break
+    }
+    if (!hitsByBase.has(base)) {
+      const packageDirs = [join(domainRoot, 'specs', 'bluepriNNts', base), join(packagesDir, base)]
+      const present = await Promise.all(packageDirs.map(dirExists))
+      if (!present.some(Boolean)) {
+        onWarning(
+          `no bluepriNNt package for "${specName}" found in ${packageDirs.join(' or ')}; its console views, if any, are not included`,
+        )
+      }
     }
   }
 
