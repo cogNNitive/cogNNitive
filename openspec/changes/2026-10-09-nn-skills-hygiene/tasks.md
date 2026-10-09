@@ -53,10 +53,10 @@ Chain strategy: pending
 - [x] 3.6 Add `mcp-tools` region to `skills/nn-innfo/SKILL.md` (replaces "17 deterministic tools" hand count); regenerate.
 - [x] 3.7 Delete `docs/skills/documentation/skills/nn-start.md`; fix hand pages `skills/nn.md`, `skills/interaction-flows.md`; regenerate `docs/skills/**`.
 - [x] 3.8 `nn-design-presets/SKILL.md` "all 5 styles"â†’"6"; remove `original/` refs in `nn-domain-git` `.gitignore` template (~98,~107), `test/skill-contract.test.js:37`, and `.agents/skills/nn-dev-check-integrity/SKILL.md`.
-- [ ] 3.9 Verify: `rg "procedures_V_0-1-0|nn-start"` returns only archived/permanent history; lint/typecheck/format clean.
+- [x] 3.9 Verify: `rg "procedures_V_0-1-0|nn-start"` returns only archived/permanent history; lint/typecheck/format clean.
 
 ## Phase 4: Final Gate
 
-- [ ] 4.1 `node scripts/verify.js` green.
-- [ ] 4.2 `node scripts/check-integrity.js` green.
-- [ ] 4.3 Confirm all spec scenarios covered (in-sync drift, missing markers, non-Spanish grace, no dead refs, accurate MCP inventory).
+- [x] 4.1 `node scripts/verify.js` green.
+- [x] 4.2 `node scripts/check-integrity.js` green.
+- [x] 4.3 Confirm all spec scenarios covered (in-sync drift, missing markers, non-Spanish grace, no dead refs, accurate MCP inventory).
