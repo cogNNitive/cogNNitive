@@ -307,3 +307,34 @@ Status: tasks 2d.1-2d.9 done, 2d.10 verified (node --test green, innfo-core gree
 - `check-integrity` is green except `Docs-Derived Facts Drift Guard`; the worktree has no built `dist`, so `innfo-core`/`innfo-mcp` dist was copied from the primary (which is on `dev`), and the guard compares the primary's MCP tool facts against this chain's HEAD — a worktree/artifacts-provenance artifact, not an S2d regression.
 - The Ghostbusters sample console (`metrics/samples/Ghostbusters_V_0-1-0_console.html`) is a frozen fixture (the thinning guard asserts its legacy inline colors); regenerating it to carry the timeline view is deferred to 2d.11 with the templates release.
 - The tracked `iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js` still embeds the pre-S2d metrics spec; restage it (`stage-mcp-bundle.mjs`) before release.
+
+## S2e Procedure view
+
+Status: tasks 2e.1-2e.4 done, 2e.5 verified (node --test green, innfo-core green except the pre-existing `console-dom` failure, check-integrity green except the worktree-only dist guard), fresh-context review done and its 3 HIGH findings fixed. Branch `session/deepseek-s2d`. 2e.6 (templates release + repin) is operational, pending the maintainer.
+
+### Commits
+
+- `2ab46cb0` feat(console): make the procedures stepper a scoped console view and retire its shell
+- `bc9884c1` fix(console): scope the procedure view DOM, wire its lifecycle hooks and repoint the procedures sample
+
+### Design as built
+
+- `render-procedure-stepper.js` exposes `mount(container, payload, hooks)` (the UMD factory returns `{ version, RENDERER_VERSION, mount }`). It builds the procedures-view DOM inside `container` (header, procedure tabs, wizard/document subtabs, progress, step body, scoped ref/log dialogs) and shadows `document` with `container.ownerDocument`, so every node it creates lives in the view tree. No `document.getElementById`; no `id` at all. `autoBoot` and the rail/matrices/concept views are gone.
+- The stepper's execution-log dialog is now created inside the container (no `#innfo-export-modal`, no `#audit-log-container`, no `#run-timer`).
+- The stepper returns lifecycle hooks `{ onHide, onShow, unmount }`; the `procedure` view returns the stepper handle so the registry's `onHide`/`onShow` pause and restart the run timer.
+- `procedures/assets/console-view-procedure.js`: order 20, editable, delegates to `InnfoProcedureStepper.mount(ctx.container, { schema, model })`.
+- The stepper CSS (~700 lines) moved from the deleted shell into `innfo-ui.css`, with the id-keyed selectors converted to classes (`#proc-tabs` -> `.proc-tabs`, `#doc-body.hidden`/`#wizard-body.hidden` -> a generic `.hidden`).
+- `procedures` blueprint bumps to `V_0-3-2`; `sync-versions`/`blueprint-catalog`/`sync-samples` regenerated the sample, catalog and editor shipped versions; `canonical-registry.ts` and `metaplantilla-specs.test.ts` repointed.
+
+### Deviations and decisions
+
+1. The stepper CSS moved to `innfo-ui.css` (the shared console stylesheet the exporter inlines) rather than staying with a shell: the shell is deleted and the exporter only inlines one CSS file plus the view scripts.
+2. The stepper's `matrices` RACI lookup stays (it feeds the step RACI box); only the matrices/concept *views* and the rail are dropped.
+3. The dead-view CSS (rail, matrix, concept-card rules) is still present in `innfo-ui.css`; trimming it is a follow-up, kept now to avoid a fragile hand-trim.
+
+### Surprises and limits
+
+- `console-dom.test.ts` "emits a file named by the feedback contract" fails with `acme_...` vs `Acme_...`; it reproduces on the chain tip, so it is pre-existing, not S2d/S2e.
+- `check-integrity` stays green except `Docs-Derived Facts Drift Guard` (worktree dist provenance, see S2d).
+- The bundle was rebuilt after every stepper edit; `build-console-bundle.mjs --check` is fresh.
+- The stepper file is eslint-ignored (`iNNfo/specs/bluepriNNts/**`), so the now-unused `hooks` parameter of `mount` is not flagged.

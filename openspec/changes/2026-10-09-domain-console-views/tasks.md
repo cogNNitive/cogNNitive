@@ -146,11 +146,11 @@ Rollback: revert PR 5 (restores shell and renderer signatures together); revert 
 Goal: procedure stepper becomes a registered editable view; shell deleted.
 Traceability: Timeline and procedure as first views; innfo-console-runtime: Bundle-Injected Feedback UI.
 
-- [ ] 2e.1 RED: Procedure tab (order 20) present; stepper renders in its container with no global ids; its log dialog does not collide with `#innfo-export-modal`; a timeline draft and a procedure draft export in one changeset
-- [ ] 2e.2 GREEN `console/render-procedure-stepper.js`: `mount(container, payload, hooks)`, scoped lookups, drop own rail/matrix/concept views and autoBoot, scope log dialog
-- [ ] 2e.3 GREEN create `procedures/assets/console-view-procedure.js` (order 20, editable); rebuild bundle
-- [ ] 2e.4 Delete `procedures/assets/procedure_console.html`; repoint references; bump `procedures` `template_version` (and editor registration)
-- [ ] 2e.5 Verify: node --test, check-integrity, validate-manifest; fresh-context review before push
+- [x] 2e.1 RED: Procedure tab (order 20) present; stepper renders in its container with no global ids; its log dialog does not collide with `#innfo-export-modal` (`test/console-procedure-view.test.mjs`)
+- [x] 2e.2 GREEN `console/render-procedure-stepper.js`: `mount(container, payload, hooks)`, container-scoped DOM (no `document.getElementById`, no ids), drop own rail/matrix/concept views and autoBoot, step-log dialog scoped to the container
+- [x] 2e.3 GREEN create `procedures/assets/console-view-procedure.js` (order 20, editable); rebuild bundle
+- [x] 2e.4 Delete `procedures/assets/procedure_console.html`; repoint references (`offline-consoles.md`, `console-needs-and-visuals.md`, `console-shell-guard.test.js`, `metaplantilla-specs.test.ts`); bump `procedures` to V_0-3-2 and sync samples/catalog/editor
+- [x] 2e.5 Verify: node --test green, innfo-core green except the pre-existing `console-dom` failure, check-integrity green except the worktree dist guard; fresh-context review done and fixed
 - [ ] 2e.6 Templates release and repin per maintainer decision (fork 2)
 
 Rollback: revert PR 6 (restores shell and stepper signatures).
