@@ -60,9 +60,9 @@ describe('export-console size budget and --view (S2c2)', () => {
     const dir = join(root, 'artifacts', `${id}_view`)
     return existsSync(dir) ? (await readdir(dir)).map((n) => join(dir, n)) : []
   }
-  const boot = async (html) => {
+  const boot = async (html, hash = '') => {
     const dom = new JSDOM(html, {
-      url: 'http://localhost',
+      url: 'http://localhost/' + hash,
       runScripts: 'dangerously',
       beforeParse(w) {
         w.matchMedia = () => ({
@@ -248,6 +248,56 @@ describe('export-console size budget and --view (S2c2)', () => {
       const domainKeys = Object.keys(domain.window.localStorage)
       assert.equal(domainKeys.length, 1)
       assert.equal(domainKeys[0], scopedKeys[0].replace('::view:beta', ''), 'the domain key is the unscoped one')
+    })
+  })
+
+  describe('scoped runtime hides explorer-only UI', () => {
+    const EXPLORER_ONLY = ['#innfo-rail', '.innfo-toolbar', '#innfo-search', '#innfo-stats-bar']
+
+    it('renders no toolbar, rail or stats bar, and search-related entry points are inert', async () => {
+      await addView('beta', editableView('Beta'))
+      assert.equal((await runCli([root, '--view', 'beta'])).code, 0)
+      const html = await readFile((await viewOutputs('beta'))[0], 'utf-8')
+      const scoped = await boot(html, '#q=Enterprise')
+      const doc = scoped.window.document
+      for (const sel of EXPLORER_ONLY) assert.equal(doc.querySelector(sel), null, sel)
+
+      // A search query in the URL never moves a scoped console to the hidden explorer.
+      const active = [...doc.querySelectorAll('.innfo-view-tab.active')].map((b) => b.dataset.tab)
+      assert.deepEqual(active, ['beta'])
+      scoped.window.location.hash = '#q=Other'
+      scoped.window.dispatchEvent(new scoped.window.Event('hashchange'))
+      assert.deepEqual([...doc.querySelectorAll('.innfo-view-tab.active')].map((b) => b.dataset.tab), ['beta'])
+
+      // Focusing an element card has nothing to focus in a scoped console.
+      const id = modelOf(scoped).elements[0].id
+      assert.doesNotThrow(() => scoped.window.InnfoConsole.focusElementCard(doc, id))
+      assert.equal(doc.querySelector('.innfo-highlight'), null)
+      assert.deepEqual([...doc.querySelectorAll('.innfo-view-tab.active')].map((b) => b.dataset.tab), ['beta'])
+    })
+
+    it('keeps the export feedback and the changeset working', async () => {
+      await addView('beta', editableView('Beta'))
+      assert.equal((await runCli([root, '--view', 'beta'])).code, 0)
+      const scoped = await boot(await readFile((await viewOutputs('beta'))[0], 'utf-8'))
+      const doc = scoped.window.document
+      scoped.window.__ctx.store.propose({ kind: 'comment', elementId: modelOf(scoped).elements[0].id, comment: 'keep me' })
+      doc.getElementById('innfo-feedback-open').click()
+      assert.match(doc.querySelector('#innfo-feedback-modal [data-innfo="instructions"]').textContent, /Review 1 pending/)
+      assert.match(doc.querySelector('.innfo-banner-drafts').textContent, /drafts: 1/)
+      assert.equal(scoped.window.__ctx.changeset.compose('tester').ok, true)
+    })
+
+    it('leaves the unscoped domain console unchanged', async () => {
+      await addView('beta', editableView('Beta'))
+      assert.equal((await runCli([root, '--domain'])).code, 0)
+      const domain = await boot(await readFile(domainFile(), 'utf-8'), '#q=Enterprise')
+      const doc = domain.window.document
+      for (const sel of EXPLORER_ONLY) assert.ok(doc.querySelector(sel), sel)
+      assert.equal(doc.querySelector('#innfo-view-tabs [data-tab="explorer"]').classList.contains('active'), true)
+      const id = modelOf(domain).elements[0].id
+      domain.window.InnfoConsole.focusElementCard(doc, id)
+      assert.ok(doc.querySelector('.innfo-highlight'), 'the explorer card is highlighted')
     })
   })
 })

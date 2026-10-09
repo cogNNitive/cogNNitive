@@ -5717,6 +5717,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
   function focusElementCard(doc, elementId) {
     if (!doc || !elementId) return
+    // A scoped console has no explorer to focus a card in.
+    if (doc.documentElement && doc.documentElement.hasAttribute('data-innfo-scope')) return
     // 1. Switch active tab to explorer if view tabs exist
     var tabsNav = doc.getElementById('innfo-view-tabs')
     if (tabsNav) {
@@ -6595,6 +6597,17 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           return v.id === scopedView
         })[0]
       : null
+    if (scopedView) {
+      // The search toolbar, concept rail and stats bar only serve the explorer, which a
+      // scoped console does not show. Removed, not hidden: their CSS would override [hidden].
+      ;['innfo-rail', 'innfo-stats-bar'].forEach(function (id) {
+        var node = active.getElementById(id)
+        if (node && node.parentNode) node.parentNode.removeChild(node)
+      })
+      var scopedToolbar = active.querySelector('.innfo-toolbar')
+      if (scopedToolbar && scopedToolbar.parentNode) scopedToolbar.parentNode.removeChild(scopedToolbar)
+      if (active.documentElement) active.documentElement.setAttribute('data-innfo-scope', scopedView)
+    }
     var baseTitle = String(meta.title || meta.model || 'Model')
     var baseId = String(meta.modelId || meta.model || meta.title || 'model')
 
@@ -6742,7 +6755,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
       // A new query moves to Explorer; the hash is rewritten below, so this
       // switch does not push a history entry.
-      if (activeSearchQuery && queryChanged && !keepTab && tabs) {
+      if (activeSearchQuery && queryChanged && !keepTab && tabs && !scopedView) {
         tabs.select('explorer', true)
       }
 
@@ -6774,7 +6787,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
 
     var initialQuery = ''
-    if (typeof active.location !== 'undefined' && active.location.hash) {
+    if (!scopedView && typeof active.location !== 'undefined' && active.location.hash) {
       initialQuery = parseViewHash(active.location.hash).q
     }
 
@@ -6853,7 +6866,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     function onHash() {
       var parsed = parseViewHash(active.location ? active.location.hash : '')
-      if (parsed.q !== activeSearchQuery) {
+      if (!scopedView && parsed.q !== activeSearchQuery) {
         // Back/forward to an entry with a different query: follow it.
         var box = active.getElementById('innfo-search')
         if (box) box.value = parsed.q
