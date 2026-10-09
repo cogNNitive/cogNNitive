@@ -1,6 +1,6 @@
 # Delta for metrics-console-adoption
 
-The Metrics timeline stops being a standalone shell generated from `timeline.html`. It becomes the registered `timeline` view (`metrics/assets/consoles/views/timeline.js`, see `console-view-registry`), delivered as a tab of `domaiNN_console.html` or standalone via `export-console.mjs --view timeline`. Requirements not listed here (Series-as-Data Slot Contract, Shared Console Charts Capability, Code-as-Slot Resolution Record) are unchanged.
+The Metrics timeline stops being a standalone shell generated from `timeline.html`. It becomes the registered `timeline` view (`metrics/assets/console-view-timeline.js`, see `console-view-registry`), delivered as a tab of `domaiNN_console.html` or standalone via `export-console.mjs --view timeline`. Requirements not listed here (Series-as-Data Slot Contract, Shared Console Charts Capability, Code-as-Slot Resolution Record) are unchanged.
 
 ## MODIFIED Requirements
 
@@ -42,7 +42,7 @@ A Metrics console MUST declare only `needs[]` plus `innfo-schema`/`innfo-model` 
 
 - GIVEN the Metrics bluepriNNt assets
 - WHEN listed
-- THEN `assets/consoles/views/timeline.js` exists and `assets/timeline.html` does not
+- THEN `assets/console-view-timeline.js` exists and `assets/timeline.html` does not
 
 ### Requirement: Console Generation Procedure
 

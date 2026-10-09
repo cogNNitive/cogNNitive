@@ -127,17 +127,17 @@ Rollback: revert PR 4 (S2c1 export still works).
 Goal: timeline becomes a registered editable view; standalone shell deleted.
 Traceability: Timeline and procedure as first views; metrics-console-adoption: Activation Gate Before Thinning, Thinned Console Artifact Shape, Console Generation Procedure, Timeline Rename, Harness and Sample Verification; innfo-console-runtime: No Duplicated Inline Runtime.
 
-- [ ] 2d.1 Verify MCP `fetchSubdir('assets')` copies nested `assets/consoles/views/`; else flatten (see fork 4)
-- [ ] 2d.2 RED: exporter adds `blueprint` and `projection { rows, months }` to `meta.models[]`
-- [ ] 2d.3 GREEN `scripts/export-console.mjs` meta extras
-- [ ] 2d.4 RED: domain console has a Timeline tab (order 10), no `canonical`/`studio` tabs, panel renders into its host (no global ids); a timeline draft lands in the changeset
-- [ ] 2d.5 GREEN `innfo-runtime.js`: `renderTimelineGrid`/`renderStudioView`/`renderCharts` take host elements; drop old tabs and boot calls; `artifact_shell.html` drop `#innfo-tab-domain`, `#innfo-tab-studio`, `#innfo-charts`
-- [ ] 2d.6 GREEN create `metrics/assets/consoles/views/timeline.js` (order 10, editable, row action -> `ctx.modal.edit`); rebuild bundle
-- [ ] 2d.7 Delete `metrics/assets/timeline.html`
-- [ ] 2d.8 Repoint to `--view timeline`: `metrics/spec_NN.md`, `create_timeline_procedures_NN.md`, `verify.harness.js`, core `metrics-console-slot.test.ts`, `console-thinning.test.ts`, `canonical-registry.ts`, `docs/.../offline-consoles.md`
-- [ ] 2d.9 Bump metrics `template_version` (and register in editor `SHIPPED_TEMPLATE_VERSIONS`); do NOT edit published `_V_x-y-z_` specs
-- [ ] 2d.10 Verify: node --test, innfo-core tests, check-integrity, validate-manifest; fresh-context review before push
-- [ ] 2d.11 Templates release and repin per maintainer decision (fork 2)
+- [x] 2d.1 Verified: MCP `fetchSubdir('assets')` copies files only (never nested dirs, `resolver-node.ts`), so bluepriNNt views are FLAT at `assets/console-view-<slug>.js` (fork 4)
+- [x] 2d.2 RED: exporter adds `blueprint` and `projection { rows, months }` to `meta.models[]`
+- [x] 2d.3 GREEN `scripts/export-console.mjs` meta extras (`deriveProjection` in `scripts/console-views.mjs`)
+- [x] 2d.4 RED: domain console has a Timeline tab (order 10), no `canonical`/`studio` tabs, panel renders into its host (no global ids)
+- [x] 2d.5 GREEN `innfo-runtime.js`: `renderTimelineGrid`/`renderStudioView`/`renderCharts` take host elements; drop old tabs and boot calls; `artifact_shell.html` drop `#innfo-tab-domain`, `#innfo-tab-studio`, `#innfo-charts`
+- [x] 2d.6 GREEN create `metrics/assets/console-view-timeline.js` (order 10, editable, row action -> `ctx.modal.edit`); rebuild bundle
+- [x] 2d.7 Delete `metrics/assets/timeline.html`
+- [x] 2d.8 Repoint to the view: `metrics/spec_NN.md`, `create_timeline_procedures_NN.md`, `verify.harness.js`, core `metrics-console-slot.test.ts`, `console-thinning.test.ts`, `canonical-registry.ts`, `console-shell-guard.test.js`, `docs/.../offline-consoles.md`
+- [x] 2d.9 Bump metrics `blueprint_version` to V_0-4-2 and sync `samples.ts`/catalog/samples; do NOT edit published `_V_x-y-z_` specs
+- [ ] 2d.10 Verify: node --test, innfo-core tests, check-integrity, validate-manifest; fresh-context review before push (in progress)
+- [ ] 2d.11 Templates release and repin per maintainer decision (fork 2); regenerate the Ghostbusters sample console and restage the MCP bundle
 
 Rollback: revert PR 5 (restores shell and renderer signatures together); revert the repin if already cut.
 
@@ -148,7 +148,7 @@ Traceability: Timeline and procedure as first views; innfo-console-runtime: Bund
 
 - [ ] 2e.1 RED: Procedure tab (order 20) present; stepper renders in its container with no global ids; its log dialog does not collide with `#innfo-export-modal`; a timeline draft and a procedure draft export in one changeset
 - [ ] 2e.2 GREEN `console/render-procedure-stepper.js`: `mount(container, payload, hooks)`, scoped lookups, drop own rail/matrix/concept views and autoBoot, scope log dialog
-- [ ] 2e.3 GREEN create `procedures/assets/consoles/views/procedure.js` (order 20, editable); rebuild bundle
+- [ ] 2e.3 GREEN create `procedures/assets/console-view-procedure.js` (order 20, editable); rebuild bundle
 - [ ] 2e.4 Delete `procedures/assets/procedure_console.html`; repoint references; bump `procedures` `template_version` (and editor registration)
 - [ ] 2e.5 Verify: node --test, check-integrity, validate-manifest; fresh-context review before push
 - [ ] 2e.6 Templates release and repin per maintainer decision (fork 2)

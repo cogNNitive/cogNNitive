@@ -512,7 +512,8 @@ if (require.main === module) {
       rail: document.querySelectorAll('#innfo-rail button').length,
       cards: document.querySelectorAll('#innfo-content .innfo-card').length,
       matrices: document.querySelectorAll('#innfo-matrices table').length,
-      charts: document.querySelectorAll('#innfo-charts .innfo-chart, #innfo-timeline-grid table').length,
+      charts: document.querySelectorAll('#innfo-charts .innfo-chart').length,
+      timeline: document.querySelectorAll('#innfo-tab-timeline .innfo-timeline-table').length,
       exportOpen: Boolean(document.getElementById('innfo-export-open') || document.getElementById('innfo-feedback-open')),
     }));
     console.log(JSON.stringify(info, null, 1));
@@ -524,12 +525,16 @@ if (require.main === module) {
     const needs = slots.config && Array.isArray(slots.config.needs) ? slots.config.needs : [];
     const expectExport = needs.indexOf('feedback-export') !== -1;
     const expectCharts = needs.indexOf('charts') !== -1;
+    const expectTimeline =
+      (Array.isArray(model.rows) && model.rows.length > 0) ||
+      (model.meta && Array.isArray(model.meta.models) && model.meta.models.some((m) => m && m.projection));
     const ok =
       errs.length === 0 &&
       info.banner.length > 0 &&
       info.cards > 0 &&
       (!expectMatrices || info.matrices > 0) &&
       (!expectCharts || info.charts > 0) &&
+      (!expectTimeline || info.timeline > 0) &&
       (!expectExport || info.exportOpen);
     await browser.close();
       if (useHttp) server.close();

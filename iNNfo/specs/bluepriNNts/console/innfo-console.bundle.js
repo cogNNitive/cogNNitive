@@ -4143,7 +4143,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   }
 
   // Renders uPlot charts from the pure-data series mapping (charts capability).
-  // Boot-gated by hasNeed(config,'charts'); missing/invalid series skip the
+  // Called by a view with a host element; a missing/invalid series skips the
   // chart with a console warning; requires the vendored uPlot global that ships
   // inside innfo-console.bundle.js. Never evaluates slot JavaScript.
   function renderCharts(host, model, meta) {
