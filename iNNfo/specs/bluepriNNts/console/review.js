@@ -440,11 +440,14 @@
           citations: target.citations,
           history: target.history,
           isComment: !!target.isComment,
+          commentOnly: !!target.commentOnly,
         },
         {
           doc: doc,
           onSave: function (res) {
             if (res.isComment || target.commentOnly) {
+              // Defence in depth: the kit already blocks an empty comment.
+              if (String(res.comment == null ? '' : res.comment).trim() === '') return
               saveDraft(anchorData, { kind: 'comment', comment: res.comment })
             } else {
               saveDraft(anchorData, {

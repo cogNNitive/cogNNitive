@@ -259,3 +259,38 @@ describe('S2b editable views never hold an iframe', () => {
     assert.equal(noticeText(document), '')
   })
 })
+
+describe('S2b review follow-up: comment-only modal', () => {
+  it('a comment-only target has no mode toggle to flip into Propose value', () => {
+    const { document, ctxs } = bootViews([def('alpha')])
+    ctxs.alpha.modal.comment({ elementId: 'ecto-1' })
+    const modal = document.querySelector('.innfo-edit-modal')
+    assert.ok(modal)
+    assert.equal(modal.querySelector('.innfo-edit-mode-selector'), null)
+    assert.equal(modal.querySelector('.innfo-edit-mode-btn'), null)
+  })
+
+  it('an empty comment is rejected with a visible message and no draft', () => {
+    const { document, ctxs } = bootViews([def('alpha')])
+    ctxs.alpha.modal.comment({ elementId: 'ecto-1' })
+    const modal = document.querySelector('.innfo-edit-modal')
+    modal.querySelector('.innfo-edit-form-comment textarea').value = '   '
+    modal.querySelector('.innfo-edit-btn-save').click()
+    assert.equal(ctxs.alpha.store.drafts().length, 0)
+    const err = document.querySelector('.innfo-edit-modal .innfo-edit-error')
+    assert.ok(err, 'validation message rendered in the modal')
+    assert.equal(err.style.display, 'block')
+    assert.match(err.textContent, /comment/i)
+    assert.equal(document.querySelectorAll('.innfo-edit-modal').length, 1, 'modal stays open')
+  })
+
+  it('a field comment modal also rejects an empty comment but keeps the toggle', () => {
+    const { document, ctxs } = bootViews([def('alpha')])
+    ctxs.alpha.modal.comment({ elementId: 'ecto-1', field: 'role' })
+    const modal = document.querySelector('.innfo-edit-modal')
+    assert.ok(modal.querySelector('.innfo-edit-mode-selector'), 'field targets may still propose')
+    modal.querySelector('.innfo-edit-btn-save').click()
+    assert.equal(ctxs.alpha.store.drafts().length, 0)
+    assert.equal(modal.querySelector('.innfo-edit-error').style.display, 'block')
+  })
+})
