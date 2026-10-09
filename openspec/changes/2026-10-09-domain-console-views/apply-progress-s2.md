@@ -54,3 +54,43 @@ Fresh review of `afcc5384`, `2588eb0c`, `ceb6651a`. One commit per fix, bundle r
 6. Comments fixed. The reorder in `activateInitial` is kept: it buys that an initial `#q=` search picks Explorer without first mounting the default view (new test).
 7. Tests added: skipped built-in is absent (tab count, no panel; mutation `if (clash)` -> `if (false)` turns it red), onShow/onHide throwing, no remount across search input, no default mount on initial search. These are characterization tests of existing behavior, so they were green on first run.
 
+
+## S2b Mount context
+
+Status: tasks 2b.1-2b.9 done. 2b.10 verification run (below); the fresh-context review is owned by the orchestrator. Not pushed.
+
+### Commits
+
+- `feat(console): give registered views a shared mount context and sandboxed readonly iframes (2b.1-2b.9)` (code, tests and rebuilt bundle in one commit, see Deviations)
+
+### RED / GREEN
+
+- RED (2b.1, 2b.4, 2b.5, 2b.7 in one new file `test/console-view-context.test.mjs`, 17 tests): 15 failed for the right reason (`Cannot read properties of undefined (reading 'propose' | 'onChange' | 'edit')`, ctx key list mismatch, no iframe, no notice). 2 passed by accident of the old behavior: "editable ctx has no mountHtml" and "editable view calling mountHtml throws and stays isolated" (the call hit `undefined`, a TypeError the S2a catch already isolates). Both are kept as guards.
+- GREEN (2b.2, 2b.3, 2b.6, 2b.8): 17/17. `review.js` gains `openEdit(anchorData)` and `propose` (= `saveDraft`, now returning the saved draft or `null`). Runtime: `editableParts()` facades, `subscribeDrafts` listener list fired from `refreshDraftCounts`, `mountHtml`, `stripIframes` (synchronous, after mount, also after a throwing mount) plus a per-view `MutationObserver` created before mount and disconnected in `destroy`.
+- 2b.9: bundle rebuilt (`node scripts/build-console-bundle.mjs`, 12 sources, 0.9.0).
+- 2b.10: `node --test test/console-*.test.mjs` twice: 112 pass, 0 fail both runs. `node scripts/check-integrity.js`: all gates passed.
+
+### Deviations and decisions
+
+1. One code commit instead of one per 2b task pair: the facades, iframe code and tests touch the same two files and the bundle, so splitting would have meant artificial intermediate bundles.
+2. `modal.comment` needs a comment-only target. `openEdit({ comment: true })` opens the shared `UI.EditModal` in comment mode; with no field it builds a synthetic `commentOnly` target (the kit modal has no element-level mode). If the user flips the modal to "Propose value", `commentOnly` forces a comment draft rather than a field-less correction.
+3. `payload.models` is `meta.models` when an array, else `[]` (the design lists the key but not its source).
+4. Without the `feedback-export` need there is no review controller: `store.propose` and `modal.*` throw `review is not enabled (feedback-export need missing)`; `drafts()`, `remove`, `onChange` and `changeset.*` still work on the draft store.
+5. `store.propose` throws for an unknown `elementId` (the controller used to drop it silently).
+6. An editable view's `ctx` has no `mountHtml`; "an editable view calling mountHtml" is covered as a TypeError isolated by the mount catch, and the iframe guard is covered by appending an iframe directly (sync, nested, and via the observer).
+7. `ctx.mountHtml` replaces the panel's previous iframe, so a readonly view cannot stack frames; it returns the iframe.
+8. `test/helpers/console-boot.mjs` gained a `runScripts` option (jsdom) for the script test.
+
+### Surprises and known limits
+
+- jsdom does not load `srcdoc` documents and does not enforce `sandbox`, so "an inline script in the srcdoc does not execute" is true in jsdom even without a sandbox. The test (booted with `runScripts: 'dangerously'`) is a regression guard against the html being evaluated in the parent; the actual guarantee is the exact sandbox value, asserted token by token. Browser behavior is not covered by any automated test.
+- Readonly ctx still exposes `doc`, `ui` and `payload` (trusted view code per the spec); the iframe contents are what is isolated.
+- The view listener list is per boot and not cleared on re-boot; a re-booted document gets a fresh list, stale listeners die with the old boot.
+- Hand-written lines: about 175 added (runtime 142, review.js 33) plus 261 test lines.
+
+### Review items for the fresh-context review (2b.10)
+
+- `openEdit`/`commentOnly` path in `review.js` (`openModalFor`, `isComment` flag) and the lost `lastAnchor` focus restore when a view opens the modal.
+- Whether `store.propose` throwing for a missing controller is acceptable versus exposing a draft-only store.
+- Observer ordering: it is created before `t.mount`, and `stripIframes` is called after mount; check there is no double report for one iframe.
+- `onChange` fires after the host surfaces refresh, inside `refreshDraftCounts`; confirm a listener that proposes again cannot loop.

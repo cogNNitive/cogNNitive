@@ -78,15 +78,15 @@ Rollback: revert PR 1 (additive; S1 behaviour intact).
 Goal: editable and readonly `ctx`, one draft store and controller modal, sandboxed readonly iframe.
 Traceability: Shared mount context, Read-only HTML in sandboxed iframes, Live draft count.
 
-- [ ] 2b.1 RED `test/console-view-context.test.mjs`: two views share one store and one `composeExport`; modal uses the controller single slot (Shared mount context)
-- [ ] 2b.2 GREEN `console/review.js`: `openEdit(anchorData)`, `propose(anchorData, payload)`
-- [ ] 2b.3 GREEN runtime: editable ctx facades (`store.onChange` fed from `refreshDraftCounts`, `modal`, `changeset`)
-- [ ] 2b.4 RED: a propose from a view updates banner, Review badge and pending text (Live draft count)
-- [ ] 2b.5 RED: readonly ctx has no store, modal, changeset; exact `sandbox` value; no `allow-same-origin`; no `allow-scripts` (an inline script in the srcdoc does not execute); CSP meta present
-- [ ] 2b.6 GREEN runtime: `mountHtml` iframe srcdoc with CSP prefix
-- [ ] 2b.7 RED: an editable view calling `mountHtml` has the iframe removed and reported with the id, synchronously and after the `MutationObserver`; mount throw stays isolated
-- [ ] 2b.8 GREEN runtime: editable-iframe guard
-- [ ] 2b.9 Rebuild bundle
+- [x] 2b.1 RED `test/console-view-context.test.mjs`: two views share one store and one `composeExport`; modal uses the controller single slot (Shared mount context)
+- [x] 2b.2 GREEN `console/review.js`: `openEdit(anchorData)`, `propose(anchorData, payload)`
+- [x] 2b.3 GREEN runtime: editable ctx facades (`store.onChange` fed from `refreshDraftCounts`, `modal`, `changeset`)
+- [x] 2b.4 RED: a propose from a view updates banner, Review badge and pending text (Live draft count)
+- [x] 2b.5 RED: readonly ctx has no store, modal, changeset; exact `sandbox` value; no `allow-same-origin`; no `allow-scripts` (an inline script in the srcdoc does not execute); CSP meta present
+- [x] 2b.6 GREEN runtime: `mountHtml` iframe srcdoc with CSP prefix
+- [x] 2b.7 RED: an editable view calling `mountHtml` has the iframe removed and reported with the id, synchronously and after the `MutationObserver`; mount throw stays isolated
+- [x] 2b.8 GREEN runtime: editable-iframe guard
+- [x] 2b.9 Rebuild bundle
 - [ ] 2b.10 Verify: node --test, check-integrity, fresh-context review before push
 
 Rollback: revert PR 2 (S2a stays valid; no views use ctx yet).
