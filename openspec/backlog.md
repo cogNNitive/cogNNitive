@@ -1307,10 +1307,12 @@ depends on it (precedent: `2026-09-12-vocabulary-simplification`).
 
 ## 31. `fix/console-schema-parity` — the CLI and MCP must resolve the same blueprint schema
 
-**Type:** fix / refactor · **Size:** medium · **Status:** open (2026-10-09) · **Refs:** #122
+**Type:** fix / refactor · **Size:** medium · **Status:** shipped (2026-10-09, PR #137) · **Refs:** #122
 
 **Why:** `console-golden-parity` (`iNNfo/packages/innfo-mcp/test/console-golden-parity.test.ts`)
-is red on `dev`, keeping the `quality` job red and blocking the tag-driven release. Issue #122
+is red on `dev`. **Correction (2026-10-09):** the suite is in `WINDOWS_ONLY_SUITES`
+(`vitest.config.ts`), so it does **not** run on Linux CI and is **not** a CI/release blocker — it is a
+local defect (dev on Windows). Issue #122
 was closed `COMPLETED` but still reproduces on 2026-10-09 in the **primary checkout** (real deps,
 not a junctioned worktree), so the close was premature. Root cause is blueprint-resolution
 fragmentation, not a one-liner:
@@ -1337,4 +1339,8 @@ expose `procedures/` and `samples/`).
 CI (environment divergence: global `~/.agents` cache, built `dist`). Verify in a CI-equivalent
 checkout; this is not a rider — it needs its own verified change.
 
-**Suggested trigger:** `/sdd-explore console-schema-parity`.
+**Shipped:** 2026-10-09 via the SDD change `console-schema-parity` (PR #137, merged to `dev`,
+merge commit `827ed67f`). Both producers now share one `innfo-core` resolution path (relocated
+`resolveBlueprintPackage` + unversioned L2 Tier-1); `listBlueprintProcedures`/`visual-catalog`
+green; golden-parity passes (non-derived guard). Specs synced; change archived under
+`openspec/changes/archive/2026-10-09-console-schema-parity/`.
