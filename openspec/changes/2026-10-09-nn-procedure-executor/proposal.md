@@ -59,9 +59,17 @@ stands; `workspace/procedures/*_NN.md` are in discovery scope.
 
 ### Modified Capabilities
 - `router-governance` (procedure discovery/name-clash precedence).
-- `template-procedures-manifest-and-discovery` (discovery sources).
 - `innfo-skill-menu` (procedure menu references).
 - Research existing `openspec/specs/` before adding any new capability.
+
+**Re-scoped (2026-10-09, after verify):** `template-procedures-manifest-and-discovery`
+is **NOT modified**. Discovery of model `## NN Procedure:` sections and
+`workspace/procedures/*_NN.md` is **agent-side**, owned by the new
+`procedure-execution` spec ("Procedure Discovery Sources"). Per decision Q1
+(agent + skill, no executor engine) the MCP `listTemplateProcedures` /
+`discoverTransitiveAssets` capability stays unchanged; the earlier R-TPD-02 delta
+wrongly demanded MCP code for that discovery and was removed. `openspec/config.yaml`
+`nn-trannsform` references were corrected to `nn-sources`.
 
 ## Approach
 
