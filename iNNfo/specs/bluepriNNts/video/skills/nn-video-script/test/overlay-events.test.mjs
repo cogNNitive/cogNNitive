@@ -219,6 +219,85 @@ describe('video blueprint resolution', () => {
       fs.rmSync(dir, { recursive: true, force: true });
     }
   });
+
+  it('loads the domain spec_NN.md as the default template tier', () => {
+    const compiler = new RemotionSceneCompiler();
+    const templates = compiler.resolveBlueprintTemplates(path.join(os.tmpdir(), 'no-such-script.md'));
+    assert.ok(templates.broll_template, 'domain @broll_template is loaded as the default tier');
+    assert.equal(templates.broll_template.fit, 'cover');
+    assert.ok(templates.template, 'domain @template is loaded as the default tier');
+  });
+
+  it('lets a series override win over the domain default', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nn-video-blueprint-domain-'));
+    try {
+      fs.writeFileSync(
+        path.join(dir, 'series_blueprint.md'),
+        ['@broll_template', '- duration: 9', ''].join('\n'),
+      );
+      const compiler = new RemotionSceneCompiler();
+      const templates = compiler.resolveBlueprintTemplates(path.join(dir, 'script.md'));
+      assert.equal(templates.broll_template.duration, '9', 'series override wins over the domain default');
+      assert.equal(templates.broll_template.fit, 'cover', 'unspecified fields still fall back to the domain default');
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('caption template resolution', () => {
+  it('sources caption styling and animation from the blueprint @caption_template', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nn-video-caption-template-'));
+    try {
+      fs.writeFileSync(
+        path.join(dir, 'blueprint.md'),
+        [
+          '@caption_template',
+          '- caption_style: karaoke',
+          '- caption_size: 64',
+          '- caption_highlight: "#abcdef"',
+          '- font_family: Fira Code',
+          '- enter_animation: zoom-in',
+          '- exit_animation: zoom-out',
+          '',
+        ].join('\n'),
+      );
+      const text = sceneScript({
+        video: ['- video_blueprint: blueprint.md', '- video_caption_style: tiktok'],
+        body: ['Narration words here.'],
+      });
+      const { manifest } = compile(text, { scriptSource: path.join(dir, 'script.md') });
+      const captions = manifest.tracks.overlays.find((o) => o.type === 'captions');
+      assert.ok(captions, 'a captions overlay is emitted');
+      assert.equal(captions.config.style, 'tiktok', 'explicit script style wins over the blueprint default');
+      assert.equal(captions.config.size, 64, 'size sourced from @caption_template');
+      assert.equal(captions.config.highlight, '#abcdef');
+      assert.equal(captions.config.fontFamily, 'Fira Code');
+      assert.equal(captions.enterAnimation, 'zoom-in');
+      assert.equal(captions.exitAnimation, 'zoom-out');
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('lets explicit script caption props win over the blueprint @caption_template', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nn-video-caption-override-'));
+    try {
+      fs.writeFileSync(
+        path.join(dir, 'blueprint.md'),
+        ['@caption_template', '- caption_size: 64', '- caption_highlight: "#abcdef"', ''].join('\n'),
+      );
+      const text = sceneScript({
+        video: ['- video_blueprint: blueprint.md', '- video_caption_style: tiktok', '- video_caption_size: 100'],
+        body: ['Narration words here.'],
+      });
+      const { manifest } = compile(text, { scriptSource: path.join(dir, 'script.md') });
+      const captions = manifest.tracks.overlays.find((o) => o.type === 'captions');
+      assert.equal(captions.config.size, 100, 'script caption_size wins over the blueprint default');
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });
 
 describe('legacy inline overlay quarantine', () => {

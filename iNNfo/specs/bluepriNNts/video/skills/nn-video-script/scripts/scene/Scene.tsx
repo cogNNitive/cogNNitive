@@ -12,12 +12,15 @@ import { LowerThird } from './overlays/LowerThird';
 import { KineticTitle } from './overlays/KineticTitle';
 import { ConceptCallout } from './overlays/ConceptCallout';
 import { Captions } from './overlays/Captions';
+import { Quote } from './overlays/Quote';
+import { Broll } from './overlays/Broll';
 import { AvatarFrame } from './AvatarFrame';
 import { pickLayerPrimitive, layerSource } from './layer-primitive.mjs';
+import { rendererForOverlay } from './overlay-registry.mjs';
 
 type Overlay = {
   id: string;
-  type: 'lowerThird' | 'kineticTitle' | 'conceptCallout' | 'captions';
+  type: 'lowerThird' | 'kineticTitle' | 'conceptCallout' | 'captions' | 'quote' | 'broll';
   fromFrame: number;
   durationInFrames: number;
   config: Record<string, unknown>;
@@ -143,29 +146,41 @@ function renderOverlay(overlay: Overlay, localFrom: number, fps: number): React.
     enterAnimation: (overlay as { enterAnimation?: string }).enterAnimation,
     exitAnimation: (overlay as { exitAnimation?: string }).exitAnimation,
   };
-  switch (overlay.type) {
-    case 'lowerThird':
+  switch (rendererForOverlay(overlay.type)) {
+    case 'LowerThird':
       return (
         <Sequence key={overlay.id} from={localFrom} {...common}>
           <LowerThird config={overlay.config} {...animation} />
         </Sequence>
       );
-    case 'kineticTitle':
+    case 'KineticTitle':
       return (
         <Sequence key={overlay.id} from={localFrom} {...common}>
           <KineticTitle config={overlay.config} fps={fps} {...animation} />
         </Sequence>
       );
-    case 'conceptCallout':
+    case 'ConceptCallout':
       return (
         <Sequence key={overlay.id} from={localFrom} {...common}>
           <ConceptCallout config={overlay.config} {...animation} />
         </Sequence>
       );
-    case 'captions':
+    case 'Captions':
       return (
         <Sequence key={overlay.id} from={localFrom} {...common}>
           <Captions config={overlay.config} durationInFrames={overlay.durationInFrames} {...animation} />
+        </Sequence>
+      );
+    case 'Quote':
+      return (
+        <Sequence key={overlay.id} from={localFrom} {...common}>
+          <Quote config={overlay.config} {...animation} />
+        </Sequence>
+      );
+    case 'Broll':
+      return (
+        <Sequence key={overlay.id} from={localFrom} {...common}>
+          <Broll config={overlay.config} {...animation} />
         </Sequence>
       );
     default:

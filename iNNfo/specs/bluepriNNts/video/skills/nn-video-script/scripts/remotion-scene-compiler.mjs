@@ -137,7 +137,16 @@ const OVERLAY_EVENT_SPECS = {
   broll: { type: 'broll', template: 'broll_template', defaultSeconds: 4, enter: 'fade-in', exit: 'fade-out' },
 };
 
-const BLUEPRINT_TEMPLATE_RE = /^@(caption_template|broll_template|template)\b/;
+const BLUEPRINT_TEMPLATE_RE = /^#{0,3}\s*@(caption_template|broll_template|template)\b/;
+
+/** Shipped domain video blueprint spec, used as the default template tier. */
+const DOMAIN_BLUEPRINT_SPEC = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '..',
+  '..',
+  '..',
+  'spec_NN.md',
+);
 
 /**
  * Parses `@template` / `@caption_template` / `@broll_template` VUS blocks (and their
@@ -159,9 +168,19 @@ export function parseBlueprintTemplates(text) {
     if (!current) continue;
     const prop = /^-\s*([a-zA-Z0-9_]+):\s*(.*)$/.exec(line);
     if (prop) templates[current][prop[1]] = prop[2].trim().replace(/^"|"$/g, '');
-    else if (line) current = null;
+    // A new markdown heading ends the block; prose/blank lines inside it are ignored
+    // so the blueprint's descriptive sentence before the property list is tolerated.
+    else if (/^#/.test(line)) current = null;
   }
   return templates;
+}
+
+/** Field-level merge so a higher-precedence blueprint only overrides declared fields. */
+function mergeBlueprintTemplates(target, source) {
+  for (const [name, fields] of Object.entries(source || {})) {
+    target[name] = { ...(target[name] || {}), ...(fields || {}) };
+  }
+  return target;
 }
 
 /** Duration in seconds from `6`, `6s`, or a blueprint default. */
@@ -264,7 +283,8 @@ export class RemotionSceneCompiler {
   /**
    * Resolves blueprint templates with the documented precedence: the nearest
    * series `series_blueprint.md` overrides the referenced `video_blueprint`, which
-   * overrides the system defaults baked into OVERLAY_EVENT_SPECS.
+   * overrides the shipped domain `spec_NN.md`, which overrides the system defaults
+   * baked into OVERLAY_EVENT_SPECS.
    * @param {string} scriptSource
    * @param {string} [videoBlueprint] relative path declared via `- video_blueprint:`
    * @returns {Record<string, Record<string, string>>}
@@ -272,19 +292,26 @@ export class RemotionSceneCompiler {
   resolveBlueprintTemplates(scriptSource, videoBlueprint) {
     const templates = {};
     const dir = path.dirname(path.resolve(scriptSource || '.'));
+
+    // Domain default tier: the shipped video blueprint (`spec_NN.md`). Applied
+    // first so any referenced or series blueprint overrides it.
+    if (fs.existsSync(DOMAIN_BLUEPRINT_SPEC)) {
+      mergeBlueprintTemplates(templates, parseBlueprintTemplates(fs.readFileSync(DOMAIN_BLUEPRINT_SPEC, 'utf8')));
+    }
+
     if (videoBlueprint) {
       const bpPath = path.isAbsolute(videoBlueprint)
         ? videoBlueprint
         : path.resolve(dir, videoBlueprint);
       if (fs.existsSync(bpPath)) {
-        Object.assign(templates, parseBlueprintTemplates(fs.readFileSync(bpPath, 'utf8')));
+        mergeBlueprintTemplates(templates, parseBlueprintTemplates(fs.readFileSync(bpPath, 'utf8')));
       } else {
         this.warn(`video_blueprint "${videoBlueprint}" not found; applying system defaults`);
       }
     }
     const seriesBlueprint = path.join(dir, 'series_blueprint.md');
     if (fs.existsSync(seriesBlueprint)) {
-      Object.assign(templates, parseBlueprintTemplates(fs.readFileSync(seriesBlueprint, 'utf8')));
+      mergeBlueprintTemplates(templates, parseBlueprintTemplates(fs.readFileSync(seriesBlueprint, 'utf8')));
     }
     return templates;
   }
@@ -380,19 +407,25 @@ export class RemotionSceneCompiler {
   /**
    * Creates a word-level captions overlay descriptor (TikTok-style).
    * The renderer highlights the active token; narration text is the source.
+   * Styling falls back to the blueprint `@caption_template` before hardcoded defaults.
+   * @param {{ id: string, fromFrame: number, durationInFrames: number, props: Object, narration: string, blueprint?: Record<string, string> }} params
    */
-  createCaptionsOverlay({ id, fromFrame, durationInFrames, props, narration }) {
+  createCaptionsOverlay({ id, fromFrame, durationInFrames, props, narration, blueprint = {} }) {
     return {
       id,
       type: 'captions',
       fromFrame,
       durationInFrames,
+      enterAnimation: blueprint.enter_animation,
+      exitAnimation: blueprint.exit_animation,
       config: {
         text: props.text || narration || '',
-        style: props.style || props.caption_style || 'tiktok',
-        size: props.size ?? props.caption_size ?? 80,
-        highlight: props.highlight || props.caption_highlight || '#39E508',
-        fontFamily: props.fontFamily || props.font_family || undefined,
+        style: props.style || props.caption_style || blueprint.caption_style || 'tiktok',
+        size: props.size ?? props.caption_size
+          ?? (blueprint.caption_size !== undefined ? Number(blueprint.caption_size) : undefined)
+          ?? 80,
+        highlight: props.highlight || props.caption_highlight || blueprint.caption_highlight || '#39E508',
+        fontFamily: props.fontFamily || props.font_family || blueprint.font_family || undefined,
       },
     };
   }
@@ -750,6 +783,9 @@ export class RemotionSceneCompiler {
       scriptSource,
       parsed.videoProps?.video_blueprint || parsed.videoProps?.videoBlueprint,
     );
+    // Resolved `@caption_template` contract: applied as defaults to every caption
+    // overlay, below explicit script/scene caption props and above code defaults.
+    const captionTemplate = blueprintTemplates.caption_template || {};
 
     const fps = options.fps || parsed.fps || this.fps;
     const width = options.width || parsed.width || this.width;
@@ -979,6 +1015,7 @@ export class RemotionSceneCompiler {
                 fontFamily: layerProps.fontFamily || layerProps.font_family || sceneProps.fontFamily,
               },
               narration: sc.narration,
+              blueprint: captionTemplate,
             })
           );
         }
@@ -1000,6 +1037,7 @@ export class RemotionSceneCompiler {
               fontFamily: sceneProps.fontFamily,
             },
             narration: sc.narration,
+            blueprint: captionTemplate,
           })
         );
       }

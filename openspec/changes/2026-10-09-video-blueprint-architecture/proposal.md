@@ -68,7 +68,7 @@ Revert changes to `vus.peggy` and rebuild mirror via `node scripts/build-video-p
 
 ## Success Criteria
 
-- [ ] New video script using only `>` syntax and an external blueprint compiles and renders identical or superior video output.
-- [ ] Narration TTS prose is 100% clean of overlay directive tokens.
-- [ ] Existing scripts render with zero regressions under compatibility mode.
-- [ ] Monorepo integrity passes cleanly (`scripts/verify.js` and `legacy-ledger-guard.js`).
+- [x] New video script using only `>` syntax and an external blueprint compiles and renders identical or superior video output.
+- [x] Narration TTS prose is 100% clean of overlay directive tokens.
+- [x] Existing scripts render with zero regressions under compatibility mode.
+- [x] Monorepo integrity passes cleanly (`scripts/verify.js` and `legacy-ledger-guard.js`).
