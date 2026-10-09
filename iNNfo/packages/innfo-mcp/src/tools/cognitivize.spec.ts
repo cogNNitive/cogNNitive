@@ -39,7 +39,7 @@ describe('cognitivize tool', () => {
     const before = await readdir(importDir)
     const result = await cognitivizeTool(rootDir, 'sources/import/report.pdf')
     expect(result.status).toBe('requires-cli')
-    expect((result as { message: string }).message).toContain('use the nn-trannsform CLI')
+    expect((result as { message: string }).message).toContain('use the nn-sources CLI')
     expect(await readdir(importDir)).toEqual(before)
   })
 

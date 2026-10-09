@@ -89,9 +89,9 @@ condition:: Transcripts staged in sources/import/
 input:: [[Staged Source Import Files]]
 output:: [[Normalized Markdown Sources]]
 output_status:: verified
-tool:: [[nn-trannsform Scanner]]
+tool:: [[nn-sources Scanner]]
 scope:: internal
-Run the nn-trannsform scanner to convert staged text into sources/nn/ Markdown files with mandatory provenance frontmatter (source_file, media_file, sha256, normalized_at).
+Run the nn-sources scanner to convert staged text into sources/nn/ Markdown files with mandatory provenance frontmatter (source_file, media_file, sha256, normalized_at).
 
 ## NN Work: Bind Normalized Source to Target Entity
 parent:: [[Import and Transcribe Audio Sources]]
@@ -131,7 +131,7 @@ Terminal environment for directory inspection, hash calculations, and file manag
 scope:: external
 External speech-to-text tool (e.g., faster-whisper, Whisper API, whisper.cpp, ffmpeg) providing automated audio transcription.
 
-## NN Tools: nn-trannsform Scanner
+## NN Tools: nn-sources Scanner
 scope:: internal
 Built-in scanner script normalizing staged imports into Markdown with provenance frontmatter.
 
@@ -210,7 +210,7 @@ Human owner reviewing transcripts, confirming entity mappings, and approving mod
 
 # NN matrices: work-tools matrix
 
-| Work \ Tools | AI Agent | Command Line Interface | ASR Transcription Engine | nn-trannsform Scanner | File Editor | innfo-mcp |
+| Work \ Tools | AI Agent | Command Line Interface | ASR Transcription Engine | nn-sources Scanner | File Editor | innfo-mcp |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
 | Import and Transcribe Audio Sources | Uses | - | - | - | - | - |
 | Discover Raw Audio Files | - | Uses | - | - | - | - |

@@ -59,13 +59,13 @@ function testRootForbidden() {
 
 function testManifestAllowlist() {
   const root = mkTree({
-    'skills/nn-trannsform/package.json': '{"name":"allowed"}',
-    'skills/nn-trannsform/package-lock.json': '{"lock":true}',
+    'skills/nn-sources/package.json': '{"name":"allowed"}',
+    'skills/nn-sources/package-lock.json': '{"lock":true}',
     'skills/nn-other/package.json': '{"name":"forbidden"}',
   });
 
   const offenders = findSourceOffenders(root, ['skills'], {
-    manifestAllowlist: ['skills/nn-trannsform'],
+    manifestAllowlist: ['skills/nn-sources'],
   });
   assert.deepStrictEqual(offenders, ['skills/nn-other/package.json']);
   console.log('PASS: allowlisted manifests permitted, non-allowlisted flagged');
@@ -73,14 +73,14 @@ function testManifestAllowlist() {
 
 function testAllowlistDoesNotRelaxNodeModules() {
   const root = mkTree({
-    'skills/nn-trannsform/package.json': '{"name":"allowed"}',
-    'skills/nn-trannsform/node_modules/pkg/index.js': 'forbidden',
+    'skills/nn-sources/package.json': '{"name":"allowed"}',
+    'skills/nn-sources/node_modules/pkg/index.js': 'forbidden',
   });
 
   const offenders = findSourceOffenders(root, ['skills'], {
-    manifestAllowlist: ['skills/nn-trannsform'],
+    manifestAllowlist: ['skills/nn-sources'],
   });
-  assert.deepStrictEqual(offenders, ['skills/nn-trannsform/node_modules/']);
+  assert.deepStrictEqual(offenders, ['skills/nn-sources/node_modules/']);
   console.log('PASS: allowlist does not relax node_modules restriction');
 }
 

@@ -43,8 +43,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Install nn-trannsform skill dependencies
-        run: npm ci --prefix skills/nn-trannsform
+      - name: Install nn-sources skill dependencies
+        run: npm ci --prefix skills/nn-sources
 
       - name: Build MCP packages for facts check
         run: npm --workspace=@cognnitive/innfo-core run build && npm --workspace=@cognnitive/innfo-mcp run build && npm --workspace=@cognnitive/innfo-video-parser run build

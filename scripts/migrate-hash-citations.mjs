@@ -26,7 +26,7 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url))
 const REPO_ROOT = resolve(__dirname, '..')
 
 function loadCoreMirror() {
-  const mirrorPath = join(REPO_ROOT, 'skills', 'nn-trannsform', 'scripts', 'lib', 'innfo-core.generated.cjs')
+  const mirrorPath = join(REPO_ROOT, 'skills', 'nn-sources', 'scripts', 'lib', 'innfo-core.generated.cjs')
   return req(mirrorPath)
 }
 

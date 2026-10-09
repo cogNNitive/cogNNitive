@@ -16,7 +16,7 @@ Teach your AI agent domain capabilities: iNNfo model authoring, document transfo
 
 - **nn**: Front controller and system governance. Handles setup, the environment readiness gate (Preflight), and routes requests to the right skill.
 - **nn-innfo**: Author, edit, and validate iNNfo models, including the conversational Model Creation Wizard.
-- **nn-trannsform**: Multi-modal document ingestion (PDF, DOCX, XLSX), normalization, and multi-step procedure execution.
+- **nn-sources**: Multi-modal document ingestion (PDF, DOCX, XLSX), normalization, and multi-step procedure execution.
 - **nn-site-generator**: Static website generation, markdown twin hydration, and Docsify documentation suites.
 - **nn-design-presets**: Complete design system with the Morado Nazareno palette, systematic typography, and an 8px grid.
 - **nn-skills-lifecycle**: Skill ecosystem lifecycle, manifest pinning, and lockfile auditing.

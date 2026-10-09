@@ -49,7 +49,7 @@ function emptySection(concept, guidance) {
 }
 
 const PROCEDURES_GUIDANCE =
-  'Append-only. One entry per pipeline run (--scan, --import-url, --apply). Never regenerated.';
+  'Append-only. One entry per pipeline run (--scan, --import-url). Never regenerated.';
 
 function buildFreshModel(title, sections) {
   const index =

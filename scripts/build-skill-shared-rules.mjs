@@ -48,7 +48,7 @@ export const SECTION_IDS = [
 export const SKILL_SECTION_MAP = {
   nn: ['governance', 'conversation-lifecycle'],
   'nn-innfo': ['governance', 'conversation-lifecycle', 'citation-taxonomy', 'informative-grace'],
-  'nn-trannsform': [
+  'nn-sources': [
     'governance',
     'conversation-lifecycle',
     'citation-taxonomy',

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * nn-trannsform — Test Runner
+ * nn-sources — Test Runner
  *
  * Runs unit tests (Node assert, zero deps) and exits with code 0/1.
  *
@@ -134,11 +134,6 @@ async function main() {
     const impactCheckerResult = await impactCheckerTest.run();
     totalPassed += impactCheckerResult.passed;
     totalFailed += impactCheckerResult.failed;
-
-    const transformerTest = require('./unit/test-transformer');
-    const transformerResult = await transformerTest.run();
-    totalPassed += transformerResult.passed;
-    totalFailed += transformerResult.failed;
 
     const importInPlaceTest = require('./unit/test-import-in-place');
     const importInPlaceResult = await importInPlaceTest.run();

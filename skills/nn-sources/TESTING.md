@@ -1,11 +1,11 @@
-# nn-trannsform — Testing
+# nn-sources — Testing
 
 ## Automated Tests (Zero-Dependency)
 
 Unit tests cover `config.js`, `scanner.js`, `provenance.js`, `webImport.js`, `lib/bootstrap.js`, and `lib/conversations.js` using Node's built-in `assert`:
 
 ```bash
-cd skills/nn-trannsform
+cd skills/nn-sources
 
 # All unit tests
 npm test
@@ -56,7 +56,7 @@ Luis,28,Technician
 
 **Instruction for OpenCode:**
 
-> Install the `nn-trannsform` skill in my session. Look for it in `~/.agents/skills/nn-trannsform/SKILL.md` or in the `skills/nn-trannsform/` repository.
+> Install the `nn-sources` skill in my session. Look for it in `~/.agents/skills/nn-sources/SKILL.md` or in the `skills/nn-sources/` repository.
 
 **Expected result:** OpenCode loads the skill successfully.
 
@@ -66,10 +66,10 @@ Luis,28,Technician
 
 **Instruction for OpenCode:**
 
-> Using the nn-trannsform skill, bootstrap a project with the files in the current folder as source. Project name: "test-docs".
+> Using the nn-sources skill, bootstrap a project with the files in the current folder as source. Project name: "test-docs".
 
 **Expected result:**
-- ✅ OpenCode creates the structure `test-docs/sources/import/`, `test-docs/sources/conversations/`, `test-docs/conversations/`, `test-docs/artifacts/`, `test-docs/kNNowledge/`, `test-docs/procedures/`, `test-docs/traNNsformations/`
+- ✅ OpenCode creates the structure `test-docs/sources/import/`, `test-docs/sources/conversations/`, `test-docs/conversations/`, `test-docs/artifacts/`, `test-docs/kNNowledge/`, `test-docs/procedures/`
 - ✅ `test-docs/.gitattributes` contains the line `* -text` (raw-byte hashes survive a checkout on any platform)
 - ✅ Files are copied to `test-docs/sources/import/` (names unchanged, subfolders preserved)
 - ✅ OpenCode reports no errors
@@ -101,8 +101,6 @@ Luis,28,Technician
 > I want to generate a summary of the project documents. Use the skill to do a "summary" type transformation.
 
 **Expected result:**
-- ✅ OpenCode asks what kind of template you want (Markdown or iNNfo V_0-1-0)
-- ✅ You choose "Create new" (or "Summary" if offered)
 - ✅ OpenCode asks which citation and export format to use
 - ✅ You pick a format (e.g. Standard Markdown Footnotes)
 - ✅ OpenCode generates a new write-once file `artifacts/[name]_<YYYYMMDDTHHmmssZ>.md`
@@ -134,19 +132,7 @@ If you have a docx or pdf file in the source folder, when running the scan:
 
 ---
 
-## Test 7: CLI transformer fallback
-
-**Instruction for OpenCode:**
-
-> Run the CLI fallback transformer with `node scripts/index.js --apply Generic_Normalizer --src test-docs`. Place the template in test-docs/traNNsformations/ first.
-
-**Expected result:**
-- ✅ OpenCode runs the command
-- ✅ `artifacts/Generic_Normalizer_<YYYYMMDDTHHmmssZ>.md` is generated; running the command again with unchanged sources writes nothing new
-
----
-
-## Test 8: Import from the web
+## Test 7: Import from the web
 
 **Instruction for OpenCode:**
 
@@ -162,7 +148,7 @@ If you have a docx or pdf file in the source folder, when running the scan:
 
 ---
 
-## Test 9: Conversation lifecycle & promotion
+## Test 8: Conversation lifecycle & promotion
 
 **Instruction for OpenCode:**
 
@@ -185,5 +171,4 @@ If you have a docx or pdf file in the source folder, when running the scan:
 | 4 | Transformation with citations | — |
 | 5 | Transformation — no sources | — |
 | 6 | Traceability (if applicable) | — |
-| 7 | CLI fallback | — |
-| 8 | Import from the web | — |
+| 7 | Import from the web | — |

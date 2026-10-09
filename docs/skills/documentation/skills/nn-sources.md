@@ -1,15 +1,15 @@
 ---
-title: "nn-trannsform — Document Ingestion & Transformation Pipeline"
-description: "Scan raw documents, normalize them to Markdown with mandatory provenance frontmatter, and execute multi-step transformation procedures."
-html_url: https://cognnitive.com/skills/documentation/#/skills/nn-trannsform
+title: "nn-sources — Document Ingestion & Source Lineage"
+description: "Scan raw documents, normalize them into citable sources with mandatory sidecar provenance, and keep the domaiNN lineage record in sync."
+html_url: https://cognnitive.com/skills/documentation/#/skills/nn-sources
 generator: https://cognnitive.com/skills/nn-design-presets
 ---
 
-# nn-trannsform
+# nn-sources
 
-**Skill**: `nn-trannsform` · **Role**: Document Ingestion & Transformation Pipeline
+**Skill**: `nn-sources` · **Role**: Document Ingestion & Source Lineage
 
-Bootstrap projects, scan raw multi-modal documents, normalize them to Markdown with mandatory provenance frontmatter, apply template-based transformations, and execute multi-step procedures compliant with `procedures_V_0-1-0_NN.md`.
+Bootstrap projects, scan raw multi-modal documents, normalize them into citable sources with mandatory sidecar provenance, and keep the domaiNN lineage record in sync. Multi-step procedure execution is owned by the canonical procedure-execution protocol in `nn-innfo`; this skill links to it.
 
 ---
 
@@ -26,7 +26,7 @@ Every project workspace adheres to this standard structure:
 ├── conversations/        # Live session transcripts (scratch)
 ├── assets/               # Materialized source copies for attachments & media
 ├── kNNowledge/           # Structured semantic iNNfo Level 3 documents (*_NN.md)
-├── procedures/           # Reusable transformation procedure specs (<verb>_<noun>_procedures_NN.md)
+├── procedures/           # Reusable procedure specs (<verb>_<noun>_procedures_NN.md)
 ├── artifacts/            # Every producer output, write-once (UTC-suffixed names)
 ├── staging/              # Scratch extraction buffer — never cited, never projected
 └── domaiNN_NN.md         # Workspace entrypoint (# NN index)
@@ -64,7 +64,7 @@ sha256: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 size_bytes: 1048576
 source_format: pdf
 normalized_at: "2026-09-05T12:00:00Z"
-normalized_by: "traNNsform V_2-0-0"
+normalized_by: "nn-sources V_3-5-0"
 ---
 ```
 

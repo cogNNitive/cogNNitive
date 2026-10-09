@@ -12,7 +12,7 @@
  * trannsform mirror, which a separate verify step keeps fresh.
  *
  * To refresh the fixture record after an intended projection change, run
- * `node skills/nn-trannsform/scripts/index.js --src <fixture> --lineage`
+ * `node skills/nn-sources/scripts/index.js --src <fixture> --lineage`
  * and keep the record file name.
  */
 
@@ -44,7 +44,7 @@ function checkLineageDriftGuard(options = {}) {
     projectLineage,
     renderLineageSections,
     checkLineageDrift,
-  } = require(path.join(repoRoot, 'skills', 'nn-trannsform', 'scripts', 'lib', 'innfo-core.generated.cjs'));
+  } = require(path.join(repoRoot, 'skills', 'nn-sources', 'scripts', 'lib', 'innfo-core.generated.cjs'));
 
   const label = insideRepo ? relToRepo : domainDir;
   const record = readLineageRecord(domainDir);

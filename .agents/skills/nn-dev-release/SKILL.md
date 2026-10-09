@@ -58,7 +58,7 @@ The console shells carry an `<!-- nn:console-shell:start/end -->` marker; the pi
 them is generated from `console/package.json` and `node scripts/build-console-shells.mjs
 --check` (a `verify.js` step) fails a stale one. Never hand-edit the pin.
 
-> ⚠️ Do **not** commit a `skills/nn-trannsform/scripts/lib/innfo-core.generated.cjs`
+> ⚠️ Do **not** commit a `skills/nn-sources/scripts/lib/innfo-core.generated.cjs`
 > regen authored from a worktree: esbuild resolves the `node_modules` junction's real
 > path and emits non-canonical `../cogNNitive/node_modules/...` comments. CI (`npm ci`)
 > resolves the canonical path. Leave that file alone unless you regenerate it from a

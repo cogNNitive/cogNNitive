@@ -9,7 +9,6 @@ const core = require('../scripts/lib/innfo-core.generated.cjs');
 const { writeImpactReport } = require('../scripts/lib/impact-checker');
 const { writeWorkspaceIndex } = require('../scripts/lib/workspace-index');
 const { curateCsvFile } = require('../scripts/lib/curate-csv');
-const transformer = require('../scripts/transformer');
 const scanner = require('../scripts/scanner');
 
 const sha = (file) => createHash('sha256').update(fs.readFileSync(file)).digest('hex');
@@ -86,36 +85,6 @@ test('impact report: declares its upstream sources and carries no date', async (
   assert.match(content, /^---\n[\s\S]*\nsources:\n {2}- sources\/import\/strategy\.md\n/);
   assert.ok(!/^date:/m.test(content), 'no date frontmatter: identical findings must be byte-identical');
   assert.ok(!/^type: report/m.test(content));
-});
-
-test('transformer: running twice on unchanged sources writes no new file', async (t) => {
-  const root = workspace(t);
-  put(root, 'traNNsformations/Summary.md', '# Transformation: Summary\n');
-  put(root, 'sources/import/notes.md', '# Notes\n\nBody.\n');
-  await core.cognitivize(root, 'sources/import/notes.md');
-
-  const first = await transformer.applyTransformation(root, 'Summary.md');
-  assert.match(first.outputFileName, /^Summary_\d{8}T\d{6}Z\.md$/);
-  const before = listing(path.join(root, 'artifacts'));
-  const again = await transformer.applyTransformation(root, 'Summary.md');
-  assert.equal(again.outputPath, first.outputPath);
-  assert.deepEqual(listing(path.join(root, 'artifacts')), before);
-
-  put(root, 'sources/import/notes.md', '# Notes\n\nChanged body.\n');
-  await core.cognitivize(root, 'sources/import/notes.md');
-  const changed = await transformer.applyTransformation(root, 'Summary.md');
-  assert.notEqual(changed.outputPath, first.outputPath);
-  assert.equal(listing(path.join(root, 'artifacts'))[first.outputFileName], before[first.outputFileName]);
-});
-
-test('transformer: a stale cognitivized input blocks the write', async (t) => {
-  const root = workspace(t);
-  put(root, 'traNNsformations/Summary.md', '# Transformation: Summary\n');
-  put(root, 'sources/import/notes.md', '# Notes\n');
-  await core.cognitivize(root, 'sources/import/notes.md');
-  fs.appendFileSync(path.join(root, 'sources/import/notes.md'), 'edited after cognitivize\n');
-  await assert.rejects(() => transformer.applyTransformation(root, 'Summary.md'), /HASH_MISMATCH/);
-  assert.equal(fs.existsSync(path.join(root, 'artifacts')), false);
 });
 
 test('curated CSV: a write-once artifact whose sidecar declares the raw file as upstream', async (t) => {

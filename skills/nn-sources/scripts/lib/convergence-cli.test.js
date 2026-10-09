@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * convergence-cli.test.js — end-to-end tests for `nn-trannsform --converge`.
+ * convergence-cli.test.js — end-to-end tests for `nn-sources --converge`.
  *
  * Spawns the real CLI against a disposable workspace and asserts the read-only
  * proposal contract, key validation, idempotence, and the no-source-writes

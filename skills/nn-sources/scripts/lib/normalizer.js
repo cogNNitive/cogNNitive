@@ -1,5 +1,5 @@
 /**
- * normalizer.js: the converter adapter nn-trannsform injects into innfo-core's
+ * normalizer.js: the converter adapter nn-sources injects into innfo-core's
  * `cognitivize`. Core never imports a converter; this module turns a raw file
  * into the `{ body, normalizedBy, metadata }` shape the sidecar writer expects.
  *

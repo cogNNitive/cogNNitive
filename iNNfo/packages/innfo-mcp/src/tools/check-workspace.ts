@@ -374,7 +374,7 @@ export function checkLineageGate(rootDir: string): LineageGateReport {
       record: record.path,
       diagnostics: result.diffs.map((d) => ({
         path: record.path,
-        message: `Lineage record drift in ${d.section}: ${d.firstDiff}. Run nn-trannsform --lineage to regenerate the record.`,
+        message: `Lineage record drift in ${d.section}: ${d.firstDiff}. Run nn-sources --lineage to regenerate the record.`,
         severity: 'error' as const,
         code: 'LINEAGE_DRIFT',
       })),

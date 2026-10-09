@@ -236,7 +236,7 @@ function checkDocsFactsDriftAtRef(repoRoot, ref, deps = {}) {
  * by filename means a new suite is gated the moment it exists.
  *
  * Suites that do NOT match the pattern stay wired explicitly below
- * (`nn-trannsform/test/run.js`, `specs/scripts/test-vocabulary.js`), as do the
+ * (`nn-sources/test/run.js`, `specs/scripts/test-vocabulary.js`), as do the
  * `--check` drift guards, whose ordering is load-bearing.
  *
  * @param {string} dir - Absolute directory to walk.
@@ -246,7 +246,7 @@ function checkDocsFactsDriftAtRef(repoRoot, ref, deps = {}) {
 function collectTestSuites(dir, found = []) {
   if (!fs.existsSync(dir)) return found;
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    // skills/nn-trannsform ships its own dependency tree; never walk into it.
+    // skills/nn-sources ships its own dependency tree; never walk into it.
     if (entry.name === 'node_modules') continue;
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) collectTestSuites(full, found);
@@ -317,7 +317,7 @@ function buildSteps(repoRoot, _options = {}) {
   }
 
   // 0c. Suites whose filenames do not match the `*.test.*` shape. Keep explicit.
-  steps.push(node('test-nn-trannsform', 'Test nn-trannsform Skill Suite', 'skills/nn-trannsform/test/run.js'));
+  steps.push(node('test-nn-sources', 'Test nn-sources Skill Suite', 'skills/nn-sources/test/run.js'));
   steps.push(node('test-vocabulary', 'Test Canonical Vocabulary Guard', 'iNNfo/specs/scripts/test-vocabulary.js'));
   steps.push(node('vocabulary-doc', 'Check Canonical Vocabulary Doc Fresh', 'scripts/generate-vocabulary-doc.mjs', '--check'));
 
@@ -367,8 +367,8 @@ function buildSteps(repoRoot, _options = {}) {
         'scripts/manifest/validate-manifest.js',
         'scripts/skills-manager.js',
         'scripts/release/run-release.js',
-        'skills/nn-trannsform/scripts/scanner.js',
-        'skills/nn-trannsform/scripts/provenance.js',
+        'skills/nn-sources/scripts/scanner.js',
+        'skills/nn-sources/scripts/provenance.js',
       ];
       const MAX_LINES = 200;
       const lines = [];
@@ -411,7 +411,7 @@ function buildSteps(repoRoot, _options = {}) {
   });
   // 7. Blueprint Catalog Drift Guard.
   steps.push(node('blueprint-catalog', 'Check Blueprint Catalog Fresh', 'scripts/blueprint-catalog.mjs', '--check'));
-  // 7b. nn-trannsform core mirror drift guard (render of innfo-core trannsform primitives).
+  // 7b. nn-sources core mirror drift guard (render of innfo-core trannsform primitives).
   steps.push(node('core-mirror', 'Check Trannsform Core Mirror Fresh', 'scripts/build-trannsform-core-mirror.mjs', '--check'));
   // 7b-bis. Console payload mirror drift guard.
   steps.push(node('console-payload', 'Check Console Payload Mirror Fresh', 'scripts/build-console-payload.mjs', '--check'));

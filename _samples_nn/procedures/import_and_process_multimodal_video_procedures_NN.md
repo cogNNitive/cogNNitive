@@ -101,9 +101,9 @@ condition:: Multimodal document staged
 input:: [[Staged Multimodal Import Files]]
 output:: [[Normalized Markdown Sources]]
 output_status:: verified
-tool:: [[nn-trannsform Scanner]]
+tool:: [[nn-sources Scanner]]
 scope:: internal
-Run nn-trannsform scanner to produce sources/nn/ Markdown with media_file companion linking and provenance frontmatter.
+Run nn-sources scanner to produce sources/nn/ Markdown with media_file companion linking and provenance frontmatter.
 
 ## NN Work: Bind Video Source to Target Entity
 parent:: [[Import and Process Multimodal Video]]
@@ -147,7 +147,7 @@ External ffmpeg utility for demuxing audio and extracting keyframes.
 scope:: external
 Speech-to-text (Whisper) and OCR / Vision tools for extracting transcripts and slide text.
 
-## NN Tools: nn-trannsform Scanner
+## NN Tools: nn-sources Scanner
 scope:: internal
 Scanner script converting staged text to normalized Markdown with media linking.
 
@@ -232,7 +232,7 @@ Human maintainer reviewing synthesized video summaries and approving model updat
 
 # NN matrices: work-tools matrix
 
-| Work \ Tools | AI Agent | Command Line Interface | Media Processing Tool | Multimodal Extraction Engine | nn-trannsform Scanner | File Editor | innfo-mcp |
+| Work \ Tools | AI Agent | Command Line Interface | Media Processing Tool | Multimodal Extraction Engine | nn-sources Scanner | File Editor | innfo-mcp |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 | Import and Process Multimodal Video | Uses | - | - | - | - | - | - |
 | Discover Raw Video Files | - | Uses | - | - | - | - | - |

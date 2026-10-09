@@ -14,7 +14,6 @@ const WORKSPACE_DIRS = [
   'artifacts',
   'kNNowledge',
   'procedures',
-  'traNNsformations',
 ];
 
 /** Text policy: no EOL conversion, so raw-byte hashes survive a checkout on any platform. */

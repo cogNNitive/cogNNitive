@@ -22,7 +22,7 @@ const { validateFeedback } = InnfoConsole
 const scannerConvertersPath = join(
   rootDir,
   'skills',
-  'nn-trannsform',
+  'nn-sources',
   'scripts',
   'lib',
   'scanner-converters.js',
@@ -60,24 +60,24 @@ describe('Feedback Validators Parity', () => {
 
   describe('valid fixtures', () => {
     for (const file of validFiles) {
-      it(`validates ${file} cleanly across ajv, bundle, and nn-trannsform`, () => {
+      it(`validates ${file} cleanly across ajv, bundle, and nn-sources`, () => {
         const content = JSON.parse(readFileSync(join(validDir, file), 'utf8'))
         const results = runValidators(content)
         assert.equal(results.ajv.ok, true, `Ajv failed on ${file}: ${JSON.stringify(results.ajv.errors)}`)
         assert.equal(results.bundle.ok, true, `Bundle validateFeedback failed on ${file}: ${JSON.stringify(results.bundle.errors)}`)
-        assert.equal(results.trannsform.ok, true, `nn-trannsform failed on ${file}: ${results.trannsform.error}`)
+        assert.equal(results.trannsform.ok, true, `nn-sources failed on ${file}: ${results.trannsform.error}`)
       })
     }
   })
 
   describe('invalid fixtures', () => {
     for (const file of invalidFiles) {
-      it(`rejects ${file} across ajv, bundle, and nn-trannsform`, () => {
+      it(`rejects ${file} across ajv, bundle, and nn-sources`, () => {
         const content = JSON.parse(readFileSync(join(invalidDir, file), 'utf8'))
         const results = runValidators(content)
         assert.equal(results.ajv.ok, false, `Ajv should reject ${file}`)
         assert.equal(results.bundle.ok, false, `Bundle should reject ${file}`)
-        assert.equal(results.trannsform.ok, false, `nn-trannsform should reject ${file}`)
+        assert.equal(results.trannsform.ok, false, `nn-sources should reject ${file}`)
       })
     }
   })
@@ -89,7 +89,7 @@ describe('Feedback Validators Parity', () => {
         const results = runValidators(content)
         assert.equal(results.ajv.ok, true, `Ajv failed on ${file}: ${JSON.stringify(results.ajv.errors)}`)
         assert.equal(results.bundle.ok, true, `Bundle validateFeedback failed on ${file}: ${JSON.stringify(results.bundle.errors)}`)
-        assert.equal(results.trannsform.ok, true, `nn-trannsform failed on ${file}: ${results.trannsform.error}`)
+        assert.equal(results.trannsform.ok, true, `nn-sources failed on ${file}: ${results.trannsform.error}`)
       })
     }
   })

@@ -7,12 +7,12 @@ skills:
     path: skills/nn
     ref_key: skills
     description: Primary Front Controller, ecosystem entry point, job loop menu ([s] Sources, [m] Models, [r] Review/Artifacts, [p] Procedures, [h] Help, [x] Cancel), system governance, and preflight readiness gate. Triggers: /nn, NN, nn, cognnitive, cognitive, start, router.
-  - name: nn-trannsform
+  - name: nn-sources
     repo: cogNNitive/cogNNitive-web
-    path: skills/nn-trannsform
+    path: skills/nn-sources
     ref_key: skills
     requires: [nn-innfo, nn-preflight]
-    description: Ingest documents (PDF, DOCX, XLSX), transform using blueprints, and execute multi-step procedures.
+    description: Ingest documents (PDF, DOCX, XLSX), normalize them into citable sources with mandatory sidecar provenance, and keep source lineage in sync.
   - name: nn-innfo
     repo: cogNNitive/cogNNitive-web
     path: skills/nn-innfo
@@ -176,4 +176,4 @@ workflows:
   - id: transform
     label: Transform a document
     description: Normalize a PDF/DOCX/XLSX into clean Markdown, or export to HTML.
-    skill: nn-trannsform
+    skill: nn-sources

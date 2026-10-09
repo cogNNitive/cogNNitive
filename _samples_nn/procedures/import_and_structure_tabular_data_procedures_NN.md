@@ -89,7 +89,7 @@ condition:: Mapping plan approved
 input:: [[Model Entity Mapping Plan]]
 output:: [[Normalized Markdown Sources]]
 output_status:: verified
-tool:: [[nn-trannsform Scanner]]
+tool:: [[nn-sources Scanner]]
 scope:: internal
 Convert raw tabular files into structured Markdown tables under sources/nn/ with scanner provenance frontmatter.
 
@@ -131,7 +131,7 @@ Terminal environment for directory inspection and hash calculations.
 scope:: external
 Parser tool (e.g. csv/xlsx parser, python script) reading tabular structures.
 
-## NN Tools: nn-trannsform Scanner
+## NN Tools: nn-sources Scanner
 scope:: internal
 Scanner converting tabular sources into normalized Markdown with provenance.
 
@@ -210,7 +210,7 @@ Human maintainer confirming column mappings and approving model changes.
 
 # NN matrices: work-tools matrix
 
-| Work \ Tools | AI Agent | Command Line Interface | Tabular Data Parser | nn-trannsform Scanner | File Editor | innfo-mcp |
+| Work \ Tools | AI Agent | Command Line Interface | Tabular Data Parser | nn-sources Scanner | File Editor | innfo-mcp |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
 | Import and Structure Tabular Data | Uses | - | - | - | - | - |
 | Discover Raw Tabular Files | - | Uses | - | - | - | - |

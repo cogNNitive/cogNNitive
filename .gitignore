@@ -74,7 +74,7 @@ temp/
 # Local AI runtime state
 .atl/
 
-# nn-trannsform test byproduct: test/unit/test-config.js writes it into the skill dir
-skills/nn-trannsform/config.json
+# nn-sources test byproduct: test/unit/test-config.js writes it into the skill dir
+skills/nn-sources/config.json
 # verify.js per-step logs
 .verify-logs/

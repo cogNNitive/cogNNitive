@@ -89,9 +89,9 @@ condition:: Visual description staged
 input:: [[Staged Visual Import Files]]
 output:: [[Normalized Markdown Sources]]
 output_status:: verified
-tool:: [[nn-trannsform Scanner]]
+tool:: [[nn-sources Scanner]]
 scope:: internal
-Run nn-trannsform scanner to produce sources/nn/ Markdown with media_file companion frontmatter pointing to the image asset.
+Run nn-sources scanner to produce sources/nn/ Markdown with media_file companion frontmatter pointing to the image asset.
 
 ## NN Work: Bind Visual Source to Target Entity
 parent:: [[Import and Analyze Visual Sources]]
@@ -131,7 +131,7 @@ Terminal environment for directory inspection and hash verification.
 scope:: external
 External multimodal Vision LLM or OCR engine generating textual descriptions from images.
 
-## NN Tools: nn-trannsform Scanner
+## NN Tools: nn-sources Scanner
 scope:: internal
 Deterministic scanner creating normalized Markdown files with origin metadata.
 
@@ -210,7 +210,7 @@ Human maintainer reviewing extracted descriptions and approving domain model cha
 
 # NN matrices: work-tools matrix
 
-| Work \ Tools | AI Agent | Command Line Interface | Vision Analysis Engine | nn-trannsform Scanner | File Editor | innfo-mcp |
+| Work \ Tools | AI Agent | Command Line Interface | Vision Analysis Engine | nn-sources Scanner | File Editor | innfo-mcp |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
 | Import and Analyze Visual Sources | Uses | - | - | - | - | - |
 | Discover Raw Visual Files | - | Uses | - | - | - | - |

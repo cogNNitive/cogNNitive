@@ -1,13 +1,13 @@
 # Sample ActioNN: Meeting Notes to Executive Summary
 
-Use the **nn-trannsform** skill to turn a YouTube video transcript into a stakeholder-ready executive summary.
+Use the **nn-sources** skill to turn a YouTube video transcript into a stakeholder-ready executive summary.
 
 The sample uses the transcript of the **"Better Off Ted — Let's Do It"** scene ([YouTube](https://www.youtube.com/watch?v=NeFafCEqeh0)).
 
 ## How to run
 
 1. The sample transcript is at `traNNsform/input/better-off-ted-lets-do-it_source_NN.md`
-2. Activate the nn-trannsform skill
+2. Activate the nn-sources skill
 3. Say:
 
 > Run the sample workflow meeting-to-summary on `traNNsform/input/better-off-ted-lets-do-it_source_NN.md`. Read the transcript, extract decisions, action items, and blockers, and produce an executive summary in `traNNsform/output/`. Name the file `BetterOffTed_executive_summary.md`.

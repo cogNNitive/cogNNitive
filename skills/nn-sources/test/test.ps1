@@ -1,5 +1,5 @@
 <# 
-  nn-trannsform â€” Test Script
+  nn-sources â€” Test Script
   ===============================
   Run: pwsh -ExecutionPolicy Bypass -File test.ps1
   Requires: Node.js 18+
@@ -7,7 +7,7 @@
 
 $ErrorActionPreference = "Stop"
 $SKILL_DIR = Resolve-Path "$PSScriptRoot\.."
-$TEST_DIR = "$env:TEMP\nn-trannsform-test-$(Get-Random)"
+$TEST_DIR = "$env:TEMP\nn-sources-test-$(Get-Random)"
 $PASS = 0
 $FAIL = 0
 
@@ -36,7 +36,7 @@ function Assert-True {
 }
 
 Write-Host "+------------------------------------------+" -ForegroundColor Cyan
-Write-Host "|  nn-trannsform - Integration Test    |" -ForegroundColor Cyan
+Write-Host "|  nn-sources - Integration Test    |" -ForegroundColor Cyan
 Write-Host "+------------------------------------------+" -ForegroundColor Cyan
 Write-Host "Skill dir: $SKILL_DIR"
 Write-Host "Test dir:  $TEST_DIR"
@@ -48,7 +48,6 @@ Assert-True (Test-Path "$SKILL_DIR\SKILL.md") "SKILL.md exists"
 Assert-True (Test-Path "$SKILL_DIR\package.json") "package.json exists"
 Assert-True (Test-Path "$SKILL_DIR\scripts\index.js") "scripts/index.js exists"
 Assert-True (Test-Path "$SKILL_DIR\scripts\scanner.js") "scripts/scanner.js exists"
-Assert-True (Test-Path "$SKILL_DIR\scripts\transformer.js") "scripts/transformer.js exists"
 Assert-True (Test-Path "$SKILL_DIR\scripts\config.js") "scripts/config.js exists"
 Write-Host ""
 
@@ -76,7 +75,7 @@ Write-Host ""
 # â”€â”€â”€ Step 3: SKILL.md frontmatter â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 Write-Host "â”€â”€ Step 3: SKILL.md frontmatter â”€â”€" -ForegroundColor Yellow
 $skillContent = Get-Content "$SKILL_DIR\SKILL.md" -Raw
-Assert-True ($skillContent -match '^---\nname: nn-trannsform') "SKILL.md name matches directory"
+Assert-True ($skillContent -match '^---\nname: nn-sources') "SKILL.md name matches directory"
 Assert-True ($skillContent -match 'license: MIT') "SKILL.md has MIT license"
 Write-Host ""
 
@@ -113,7 +112,6 @@ try {
   Assert-True (Test-Path "$TEST_DIR\test-project\sources\import") "sources/import/ directory created"
   Assert-True (-not (Test-Path "$TEST_DIR\test-project\sources\nn")) "retired mirror folder NOT created"
   Assert-True (-not (Test-Path "$TEST_DIR\test-project\sources\raw")) "sources/raw/ directory NOT created"
-  Assert-True (Test-Path "$TEST_DIR\test-project\traNNsformations") "traNNsformations/ directory created"
   Assert-True (Test-Path "$TEST_DIR\test-project\kNNowledge") "kNNowledge/ directory created"
   Assert-True (Test-Path "$TEST_DIR\test-project\procedures") "procedures/ directory created"
   Assert-True (Test-Path "$TEST_DIR\test-project\artifacts") "artifacts/ directory created"

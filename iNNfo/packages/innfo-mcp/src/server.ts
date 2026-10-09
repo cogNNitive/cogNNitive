@@ -579,7 +579,7 @@ const TOOL_REGISTRY: ReadonlyArray<ToolEntry> = [
     definition: {
       name: 'cognitivize',
       description:
-        'Create or refresh the sidecar (`<file>_sidecar_NN.md`) of one raw markdown, CSV, or JSON file in place, so it can be cited. Binary formats (pdf, docx, images, ...) are never converted here: the result has status `requires-cli` and nothing is written (use the nn-trannsform CLI). Paths outside the workspace, sidecars, and NN documents are rejected.',
+        'Create or refresh the sidecar (`<file>_sidecar_NN.md`) of one raw markdown, CSV, or JSON file in place, so it can be cited. Binary formats (pdf, docx, images, ...) are never converted here: the result has status `requires-cli` and nothing is written (use the nn-sources CLI). Paths outside the workspace, sidecars, and NN documents are rejected.',
       inputSchema: {
         type: 'object',
         properties: {

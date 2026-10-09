@@ -11,7 +11,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-const MANIFEST_ALLOWLIST = ['skills/nn-trannsform', 'iNNfo/specs/bluepriNNts/console'];
+const MANIFEST_ALLOWLIST = ['skills/nn-sources', 'iNNfo/specs/bluepriNNts/console'];
 
 const ROOT_FORBIDDEN = new Set([
   'src',

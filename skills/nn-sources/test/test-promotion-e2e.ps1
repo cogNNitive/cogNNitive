@@ -1,5 +1,5 @@
 <#
-  nn-trannsform — Conversation Promotion E2E
+  nn-sources — Conversation Promotion E2E
   =========================================
   Run: pwsh -ExecutionPolicy Bypass -File test-promotion-e2e.ps1
   Requires: Node.js 18+
@@ -12,7 +12,7 @@
 
 $ErrorActionPreference = "Stop"
 $SKILL_DIR = Resolve-Path "$PSScriptRoot\.."
-$TEST_DIR = "$env:TEMP\nn-trannsform-promo-e2e-$(Get-Random)"
+$TEST_DIR = "$env:TEMP\nn-sources-promo-e2e-$(Get-Random)"
 $PASS = 0
 $FAIL = 0
 
@@ -27,7 +27,7 @@ function Assert-True {
   }
 }
 
-Write-Host "nn-trannsform - Promotion E2E" -ForegroundColor Cyan
+Write-Host "nn-sources - Promotion E2E" -ForegroundColor Cyan
 Write-Host "Test dir: $TEST_DIR"
 
 try {

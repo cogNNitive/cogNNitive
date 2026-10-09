@@ -96,7 +96,7 @@ async function run() {
     
     // Inject custom section and procedure into content
     let customContent = content1 + handAuthoredSection;
-    customContent = customContent.replace('# NN Procedures\n\n<!-- Append-only. One entry per pipeline run (--scan, --import-url, --apply). Never regenerated. -->\n', '# NN Procedures\n' + journalEntry);
+    customContent = customContent.replace('# NN Procedures\n\n<!-- Append-only. One entry per pipeline run (--scan, --import-url). Never regenerated. -->\n', '# NN Procedures\n' + journalEntry);
     fs.writeFileSync(r1.modelPath, customContent, 'utf8');
 
     const r2 = provenance.buildProvenanceKnowledge(proj, { projectName: 'TestProj' });

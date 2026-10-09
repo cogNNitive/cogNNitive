@@ -5,13 +5,13 @@
  *
  * Bundles the core primitives from `@cognnitive/innfo-core`
  * (`src/trannsformPrimitives.ts`) into a committed, zero-dependency CommonJS
- * artifact the DISTRIBUTED `nn-trannsform` skill can `require()`. The skill is
+ * artifact the DISTRIBUTED `nn-sources` skill can `require()`. The skill is
  * installed at `~/.agents/skills/` where `@cognnitive/innfo-core` does not exist,
  * and innfo-core is ESM-only, so a runtime import is impossible — this bundle IS
  * the single shared implementation.
  *
  *   input : iNNfo/packages/innfo-core/src/trannsformPrimitives.ts
- *   output: skills/nn-trannsform/scripts/lib/innfo-core.generated.cjs
+ *   output: skills/nn-sources/scripts/lib/innfo-core.generated.cjs
  *
  * Usage:
  *   node scripts/build-trannsform-core-mirror.mjs [--check] [--out <file>]
@@ -36,7 +36,7 @@ const ENTRY = path.join(REPO_ROOT, 'iNNfo', 'packages', 'innfo-core', 'src', 'tr
 const DEFAULT_OUT = path.join(
   REPO_ROOT,
   'skills',
-  'nn-trannsform',
+  'nn-sources',
   'scripts',
   'lib',
   'innfo-core.generated.cjs',

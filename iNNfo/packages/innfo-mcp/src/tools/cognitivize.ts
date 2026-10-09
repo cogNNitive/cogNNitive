@@ -26,7 +26,7 @@ export async function cognitivizeTool(
     return {
       status: 'requires-cli',
       path: result.path,
-      message: `"${result.path}" is a binary format; use the nn-trannsform CLI (--cognitivize ${result.path}) to convert it. The MCP server writes nothing for binaries.`,
+      message: `"${result.path}" is a binary format; use the nn-sources CLI (--cognitivize ${result.path}) to convert it. The MCP server writes nothing for binaries.`,
     }
   }
   return result

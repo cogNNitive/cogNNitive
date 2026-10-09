@@ -7,7 +7,6 @@ const prompts = require('prompts');
 
 const config = require('./config');
 const scanner = require('./scanner');
-const transformer = require('./transformer');
 const provenance = require('./provenance');
 const webImport = require('./webImport');
 const { bootstrapProject } = require('./lib/bootstrap');
@@ -33,7 +32,6 @@ async function main() {
     argv.external ||
     argv['watch-digest'] ||
     argv['digest-decide'] ||
-    argv.apply ||
     argv.provenance ||
     argv.lineage ||
     argv.check ||
@@ -578,25 +576,6 @@ async function handleCliMode(argv) {
     );
   }
 
-  if (argv.apply) {
-    const templateName = argv.apply;
-    console.log(`Applying transformation "${templateName}" in "${projectDir}"...`);
-    try {
-      const result = await transformer.applyTransformation(projectDir, templateName);
-      console.log(`Transformation applied successfully!`);
-      console.log(`Output saved to: ${result.outputPath}`);
-      provenance.buildProvenanceKnowledge(projectDir);
-      provenance.appendProcedureRun(projectDir, {
-        command: `apply ${templateName}`,
-        inputs: ['sources/', 'kNNowledge/'],
-        outputs: [result.outputPath.replace(projectDir, '').replace(/^[\\/]/, '')],
-      });
-    } catch (err) {
-      console.error(`Error applying transformation: ${err.message}`);
-      process.exit(1);
-    }
-  }
-
   if (argv['promote-conv'] || argv['promote-conversation']) {
     const sessionTarget = argv['promote-conv'] || argv['promote-conversation'];
     const sessionFile = path.isAbsolute(sessionTarget) ? sessionTarget : path.join(projectDir, sessionTarget);
@@ -809,7 +788,7 @@ async function runBootstrapperFlow() {
       type: 'text',
       name: 'name',
       message: 'Enter the project name:',
-      initial: (prev, values) => values.useSrcAsDest ? 'traNNsform' : 'MyTransformProject',
+      initial: (prev, values) => values.useSrcAsDest ? 'sources-project' : 'MyProject',
       validate: value => value.trim().length > 0 ? true : 'Project name cannot be empty'
     },
   ];
@@ -847,19 +826,12 @@ async function runProjectMenu(projectDir) {
     choices: [
       { title: 'Scan and process source files in sources/import (and active source trees)', value: 'scan' },
       { title: 'Promote conversation transcript to sources/conversations', value: 'promote_conv' },
-      { title: 'Apply template transformation', value: 'transform' },
-      { title: 'Create new transformation template', value: 'create_template' },
       { title: 'Back to main menu', value: 'back' }
     ]
   });
 
   if (response.action === 'back' || !response.action) {
     return handleInteractiveMode();
-  }
-
-  if (response.action === 'create_template') {
-    await runCreateBlueprintFlow(projectDir);
-    return runProjectMenu(projectDir);
   }
 
   if (response.action === 'promote_conv') {
@@ -885,36 +857,6 @@ async function runProjectMenu(projectDir) {
       inputs: ['sources/import/', 'sources/conversations/'],
       outputs: ['sources/import/*_sidecar_NN.md', 'sources/conversations/*_sidecar_NN.md'],
     });
-
-    return runProjectMenu(projectDir);
-  }
-
-  if (response.action === 'transform') {
-    const templates = transformer.listBlueprints(projectDir);
-    if (templates.length === 0) {
-      console.log('No transformation templates found in traNNsformations/ directory.');
-      return runProjectMenu(projectDir);
-    }
-
-    const templateResponse = await prompts({
-      type: 'select',
-      name: 'templateName',
-      message: 'Choose a transformation template to apply:',
-      choices: templates.map(t => ({ title: t, value: t }))
-    });
-
-    if (!templateResponse.templateName) {
-      return runProjectMenu(projectDir);
-    }
-
-    try {
-      console.log('\nApplying transformation...');
-      const result = await transformer.applyTransformation(projectDir, templateResponse.templateName);
-      console.log(`\nTransformation successful!`);
-      console.log(`Output saved to: ${result.outputPath}`);
-    } catch (err) {
-      console.error(`Error: ${err.message}`);
-    }
 
     return runProjectMenu(projectDir);
   }
@@ -958,68 +900,6 @@ async function runPromoteConversationFlow(projectDir) {
     format: promoResp.format,
   });
   console.log(`\nPromoted ${result.promotedFiles.length} file(s) into sources/conversations/ and cognitivized in place.`);
-}
-
-async function runCreateBlueprintFlow(projectDir) {
-  console.log('\n=== Create New Transformation Template ===\n');
-
-  const answers = await prompts([
-    {
-      type: 'text',
-      name: 'name',
-      message: 'Enter template name (e.g., Summary Report):',
-      validate: value => value.trim().length > 0 ? true : 'Template name cannot be empty'
-    },
-    {
-      type: 'text',
-      name: 'purpose',
-      message: 'Enter the purpose of this transformation:',
-      validate: value => value.trim().length > 0 ? true : 'Purpose cannot be empty'
-    },
-    {
-      type: 'text',
-      name: 'instructions',
-      message: 'Enter transformation instructions/criteria:',
-      validate: value => value.trim().length > 0 ? true : 'Instructions cannot be empty'
-    },
-    {
-      type: 'text',
-      name: 'structure',
-      message: 'Enter template markdown structure (optional):',
-      initial: '### [Title]\n**Field:** [Value]'
-    }
-  ]);
-
-  if (!answers.name || !answers.purpose || !answers.instructions) {
-    console.log('Template creation cancelled.');
-    return;
-  }
-
-  const transDir = path.join(projectDir, 'traNNsformations');
-  if (!fs.existsSync(transDir)) {
-    fs.mkdirSync(transDir, { recursive: true });
-  }
-
-  let fileName = answers.name.trim();
-  if (!fileName.endsWith('.md')) {
-    fileName += '.md';
-  }
-
-  const templatePath = path.join(transDir, fileName);
-  const content = `# Transformation: ${answers.name}
-
-## Purpose
-${answers.purpose}
-
-## Instructions
-${answers.instructions}
-
-## Template
-${answers.structure || ''}
-`;
-
-  fs.writeFileSync(templatePath, content, 'utf8');
-  console.log(`\nTemplate successfully created at: ${templatePath}`);
 }
 
 function getActiveProjectDir() {

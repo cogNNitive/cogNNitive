@@ -1,13 +1,13 @@
 # Sample ActioNN: Paper to YouTube Script
 
-Use the **nn-trannsform** skill to turn a scientific paper into a YouTube video script.
+Use the **nn-sources** skill to turn a scientific paper into a YouTube video script.
 
 The sample uses **"When Zombies Attack!: Mathematical Modelling of an Outbreak of Zombie Infection"** by Munz et al. (2009) — a paper that applies SIR epidemiological models to zombie outbreaks.
 
 ## How to run
 
 1. Place the PDF in `traNNsform/input/`
-2. Activate the nn-trannsform skill
+2. Activate the nn-sources skill
 3. Say:
 
 > Run the sample workflow paper-to-youtube on `traNNsform/input/munz2009a.pdf`. Read the paper, extract its core narrative, and produce a YouTube video script in `traNNsform/output/`. Include: hook, model breakdown for a general audience, key findings with analogies, limitations, and a call to action. Name the file `munz2009a_youtube_script.md`.

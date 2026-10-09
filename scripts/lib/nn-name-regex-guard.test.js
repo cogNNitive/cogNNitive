@@ -41,15 +41,15 @@ function main() {
   {
     assert.strictEqual(run({ 'scripts/a.mjs': `const re = ${NN_REGEX_STRING}\n` }).ok, false);
     assert.strictEqual(run({ 'iNNfo/apps/innfo-editor/src/a.vue': `if (n.endsWith(${NN_LITERAL})) {}\n` }).ok, false);
-    assert.strictEqual(run({ 'skills/nn-trannsform/scripts/a.js': `name.endsWith(${NN_LITERAL})\n` }).ok, false);
+    assert.strictEqual(run({ 'skills/nn-sources/scripts/a.js': `name.endsWith(${NN_LITERAL})\n` }).ok, false);
   }
   console.log('✔ RegExp strings and standalone _NN.md literals fail');
 
   // 3. An 8-digit stamp builder and a local-time stamp builder fail.
   {
-    const r1 = run({ 'skills/nn-trannsform/scripts/lib/x.js': `const m = name.match(${STAMP_REGEX})\n` });
+    const r1 = run({ 'skills/nn-sources/scripts/lib/x.js': `const m = name.match(${STAMP_REGEX})\n` });
     assert.strictEqual(r1.ok, false);
-    const r2 = run({ 'skills/nn-trannsform/scripts/x.js': 'const h = String(now.getHours()).padStart(2)\n' });
+    const r2 = run({ 'skills/nn-sources/scripts/x.js': 'const h = String(now.getHours()).padStart(2)\n' });
     assert.strictEqual(r2.ok, false);
   }
   console.log('✔ stamp builders (8-digit pattern, local-time) fail');
@@ -70,7 +70,7 @@ function main() {
       'scripts/a.test.js': body,
       'iNNfo/packages/innfo-core/tests/a.test.ts': body,
       'iNNfo/packages/innfo-mcp/src/tools/a.spec.ts': body,
-      'skills/nn-trannsform/scripts/lib/innfo-core.generated.cjs': body,
+      'skills/nn-sources/scripts/lib/innfo-core.generated.cjs': body,
       'iNNfo/packages/innfo-core/src/legacy/layout/detect.ts': body,
       'docs/x.md': body,
       'openspec/x.md': body,

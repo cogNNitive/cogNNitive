@@ -54,13 +54,13 @@ const ALLOWLIST = [
   { pattern: 'scripts/migrate-spec-urls.mjs', reason: 'historical one-time codemod (cogNNitive/iNNfo -> monorepo) that must match the pre-migration paths' },
   { pattern: 'iNNfo/packages/innfo-core/src/validator/content.ts', reason: 'V_0-3-0 gate: detects and rejects retired frontmatter keys / the retired `type:: model` keyword with an explicit migration message' },
   { pattern: 'iNNfo/packages/innfo-core/src/schema/canonical-registry.ts', reason: 'offline fallback registry: embeds canonical spec copies + the permanent lowercase legacy URL/alias maps' },
-  { pattern: 'skills/nn-trannsform/scripts/provenance.js', reason: 'detects the legacy `_workspace_NN.md` lineage record by name for one-time in-place migration to `_cogNNitive_NN.md`' },
-  { pattern: 'skills/nn-trannsform/scripts/lib/provenance-knowledge.js', reason: 'legacy `_workspace_NN.md` lineage-record suffix documented for one-time migration' },
+  { pattern: 'skills/nn-sources/scripts/provenance.js', reason: 'detects the legacy `_workspace_NN.md` lineage record by name for one-time in-place migration to `_cogNNitive_NN.md`' },
+  { pattern: 'skills/nn-sources/scripts/lib/provenance-knowledge.js', reason: 'legacy `_workspace_NN.md` lineage-record suffix documented for one-time migration' },
   { pattern: 'scripts/lib/legacy-write-guard.js', reason: 'this guard carries the token table itself' },
   { pattern: 'scripts/guard-template-immutability.js', reason: 'reads the retired `template_version` key only as a fallback to recognize the composition-root templates (base/cogNNitive/workspace) whose frontmatter still uses it' },
   { pattern: 'iNNfo/packages/innfo-core/src/console/feedback-ledger.ts', reason: 'reads the retired `source_model_version` key as a backward-compatible fallback for legacy feedback docs (schema now forbids it)' },
   { pattern: 'iNNfo/packages/innfo-core/src/console/payload-builder.ts', reason: 'reads the retired `target_template` key as a backward-compatible fallback for pre-rename domains' },
-  { pattern: 'skills/nn-trannsform/scripts/lib/scanner-converters.js', reason: 'names the retired `source_model_version` key to REJECT it during feedback validation (same as validator/content.ts)' },
+  { pattern: 'skills/nn-sources/scripts/lib/scanner-converters.js', reason: 'names the retired `source_model_version` key to REJECT it during feedback validation (same as validator/content.ts)' },
   { pattern: 'skills/nn-upgrade/scripts/migrate-domain.js', reason: 'the migrator that transforms specs/templates -> specs/bluepriNNts must name the pre-migration path' },
 ];
 

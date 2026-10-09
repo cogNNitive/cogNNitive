@@ -124,7 +124,7 @@ role:: Conversational Architecture Coach and Model Authoring
 target_agents:: \Antigravity Claude Code OpenCode\
 
 ## NN Skills: Document Ingestion Pipeline
-path:: ../skills/nn-trannsform/SKILL.md
+path:: ../skills/nn-sources/SKILL.md
 role:: Document Ingestion, Scanning, and Markdown Normalization
 target_agents:: \Antigravity Claude Code OpenCode\
 

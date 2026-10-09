@@ -1,13 +1,13 @@
 ---
-name: nn-trannsform
-description: "Bootstrap projects, scan raw documents, normalize them to Markdown with mandatory Source frontmatter, apply template-based transformations, and execute multi-step transformation procedures compliant with iNNfo/specs/bluepriNNts/procedures/spec_NN.md. Includes document ingestion, format conversion (txt, md, csv, json, docx, pdf, xlsx), procedure orchestration, and export generation. Triggers: trannsform, transform, workflow, pipeline, procedure, normalize, scan documents, document ingestion, document transformation, document processing, markdown conversion, project bootstrap"
-version: "V_3-4-3"
-last_updated: 2026-09-30
+name: nn-sources
+description: "Bootstrap projects, scan raw documents, normalize them into citable sources with mandatory sidecar provenance, and keep the domaiNN lineage record in sync. Includes document ingestion, format conversion (txt, md, csv, json, docx, pdf, xlsx), source convergence and impact checks. Procedure execution is owned by the canonical protocol in nn-innfo; this skill links to it instead of restating it. Triggers: sources, scan documents, document ingestion, normalize, sidecar, provenance, lineage, markdown conversion, project bootstrap"
+version: "V_3-5-0"
+last_updated: 2026-10-09
 empty_sections_mode: "ask-per-section"
 license: MIT
 metadata:
   source_type: "integrated"
-  source: "https://github.com/cogNNitive/cogNNitive/tree/main/skills/nn-trannsform"
+  source: "https://github.com/cogNNitive/cogNNitive/tree/main/skills/nn-sources"
   installed_at: "2026-08-02"
   depends_on:
     skills: ["nn-innfo"]
@@ -16,7 +16,7 @@ metadata:
 bundled_blueprints: []
 ---
 
-# Skill: nn-trannsform
+# Skill: nn-sources
 
 ## 0. Activation Gate
 Execute the canonical activation gate defined in `nn-preflight` (session greeting + deterministic preflight integrity check). If already executed by `nn` in the current session, skip duplicate preflight execution.
@@ -126,7 +126,6 @@ Every project workspace MUST adhere to the following structure:
 │                         # (image/file/video/audio fields). Not a copy of sources/.
 ├── kNNowledge/               # Structured semantic iNNfo Level 3 models (*_NN.md)
 ├── procedures/           # Reusable transformation procedure specs (*_procedures_NN.md)
-├── traNNsformations/     # Transformation templates applied to sources
 └── index.md              # Semantic workspace index (# NN index)
 ```
 
@@ -404,7 +403,7 @@ The cogNNitive **lineage record** (a `*_cogNNitive_NN.md` document; a new one is
 
 All three use **idempotent replace**: re-running regenerates them from the current filesystem state, no duplicate entries, and removed files drop out.
 
-- **`# NN Procedures`** is an **append-only run log**. Each pipeline run (`--scan`, `--import-url`, `--apply`) appends one `## NN Procedures:` entry (`command`, `flags`, `run_at`, `inputs`, `outputs`). A section refresh never removes existing procedure entries. The agent should still add `## NN Procedures:` entries by hand for **non-scripted** research/analysis steps it performs itself. This is distinct from the `procedures/` directory (§6), which holds saved, user-authored orchestration specs.
+- **`# NN Procedures`** is an **append-only run log**. Each scripted pipeline run (`--scan`, `--import-url`) appends one `## NN Procedures:` entry (`command`, `flags`, `run_at`, `inputs`, `outputs`). A section refresh never removes existing procedure entries. The agent should still add `## NN Procedures:` entries by hand for **non-scripted** research/analysis steps it performs itself. This is distinct from the `procedures/` directory, which holds saved, user-authored orchestration specs.
 
 Run `node scripts/index.js --lineage --check` (or `--check`) to report drift between the lineage record and the filesystem. It flags:
 1. A missing record, or any model citation that fails validation (dangling `sources::` references, missing anchors);
@@ -417,14 +416,14 @@ It exits non-zero when any error is found.
 
 #### 2e. Binary / Batch Sources Not Covered by Auto-Sync
 
-The filesystem sync (§2d) covers files that went through the standard `nn-trannsform` scan pipeline (`# NN Sources`) or that exist as real files under `kNNowledge/` / `artifacts/`. Two cases still need EXPLICIT manual registration by the agent:
+The filesystem sync (§2d) covers files that went through the standard `nn-sources` scan pipeline (`# NN Sources`) or that exist as real files under `kNNowledge/` / `artifacts/`. Two cases still need EXPLICIT manual registration by the agent:
 
 1. **Formats routed to "skip" in the capability matrix** (§2g, e.g. legacy `.doc`): before skipping, ask the user whether to register a minimal `## NN Sources:` entry anyway (file name, format, and a note that content wasn't extracted) so the file isn't silently untraceable. Do not skip in silence.
 2. **Large binary batches processed by a custom procedure outside the standard scan** (e.g. a photo-import workflow using Jimp/LLM Vision instead of `--scan`): once the procedure completes, the agent MUST register the batch in the Lineage record — either as one aggregate `## NN Sources:` entry (folder path, file count, date range, e.g. "79 photos in `sources/import/photos/`, imported 2026-08-12") when per-file entries would be unwieldy, or as individual entries when the batch is small (roughly under 10 files). This registration is the agent's responsibility, NOT automatic — a custom procedure is by definition not covered by the standard scan pipeline in §2d.
 
 #### 2f. Conversation Transcripts & Knowledge Promotion Protocol
 
-Interaction dialogues are first-class source streams. The transcript lifecycle — silent reservation, close triggers, the 3-title prompt, rename, and promotion — is defined in the generated **Conversation Lifecycle** block above (do not restate it). The nn-trannsform-specific mechanics are:
+Interaction dialogues are first-class source streams. The transcript lifecycle — silent reservation, close triggers, the 3-title prompt, rename, and promotion — is defined in the generated **Conversation Lifecycle** block above (do not restate it). The nn-sources-specific mechanics are:
 
 1. **Author Naming (before promoting on the `[full]` path)**: Before writing the promoted transcript, present an author-naming step for the transcript's participants — human first, agent second. Suggest the human name from `git config user.name` and/or the OS user (`$env:USERNAME`), offer a manual entry and a skip, then confirm the agent's own tool id (e.g. `OpenCode`, `Antigravity`, `ClaudeCode`). The user may confirm or edit each suggestion before the promoted file is written:
 
@@ -520,19 +519,7 @@ node skills/nn-upgrade/scripts/migrate-domain.js --domain-dir "<domain>" --apply
 
 ### 3. Transformation & Level 3 Modeling (V_0-1-0 Unified Syntax)
 
-#### 3a. Template Type: Markdown vs iNNfo V_0-1-0
-
-When creating a new transformation, ask the user:
-
-**"What kind of template do you want to create?"**
-
-- **[a] (Recommended)** iNNfo template — structured model with typed concepts, fields, markers, and matrices
-- **[b]** Generic Markdown template — free-form document with narrative sections
-- **[x]** Cancel
-
-*(Notice: You can select one option or a combination (e.g. A and B))*
-
-#### 3b. Mandatory Citations in Level 3 Models (Bloque 2)
+#### 3a. Mandatory Citations in Level 3 Models (Bloque 2)
 
 When transforming cognitivized sources into an iNNfo Level 3 Model:
 - Frontmatter MUST use lightweight V_0-1-0 format (`level: 3`, `spec_version: "V_0-1-0"`, `parent_spec: { name, url }`).
@@ -549,7 +536,7 @@ relationship_model:: B2B Long-term
 
 A single value may be written without brackets: `sources:: sources/import/interview_transcript.md@## Key Clients`. There is no `src-NNN`/`source_id` system anywhere in this pipeline, and line ranges (`#L1-L10`) are strictly prohibited in favor of stable human-readable heading anchors (`@## Heading Text`), CSV row keys (`@RowID&col`) or JSON Pointers (`data.json@/items/0/name`).
 
-#### 3c. Citation Format Selection
+#### 3b. Citation Format Selection
 
 Before generating the document, prompt the user:
 
@@ -570,7 +557,7 @@ Select the citation and export format for the deliverable:
 
 ---
 
-#### 3d. Scored Source-to-Element Matching + Review Queue
+#### 3c. Scored Source-to-Element Matching + Review Queue
 
 When normalized sources must be mapped to Level 3 model elements (`sources::`), score deterministically first and spend LLM attention on doubtful pairs only:
 
@@ -590,7 +577,7 @@ When normalized sources must be mapped to Level 3 model elements (`sources::`), 
 ### 4. Citation & Lineage Protocol
 
 Derived deliverables are generated in a single pass directly to `artifacts/[Deliverable_Name]_<YYYYMMDDTHHmmssZ>.md` (a new write-once family member: an existing file is never overwritten) without intermediate `_draft.md` files or non-standard `<!-- cite: ... -->` HTML comments:
-1. **Direct Formatting**: Apply the citation format selected in §3c directly during generation per rules in `citations.md`.
+1. **Direct Formatting**: Apply the citation format selected in §3b directly during generation per rules in `citations.md`.
 2. **Source Traceability**: When citations are included (formats `[a]`–`[h]`), resolve claims directly from the Level 3 model's `sources::` pointers (domaiNN-relative paths such as `sources/import/<path>.md@## Heading`, or a binary's sidecar).
 3. **Clean Presentation**: Format `[i]` (No sources) produces presentation-ready deliverables omitting all citation markers and reference lists.
 
@@ -606,33 +593,16 @@ Derived deliverables are generated in a single pass directly to `artifacts/[Deli
 | **Validation Report** | `artifacts/` | `artifacts/Impact_Audit_report_20261001T101500Z.md` | Written by `--check-impact --report`; identical findings write nothing new |
 | **Curated CSV** | `artifacts/curated/` | `artifacts/curated/prices_20261001T101500Z.csv` | Citation-ready CSV from `--curate-csv` |
 | **Procedure Spec** | `procedures/` | `procedures/Document_Ingest_V_1-0-0_procedures_NN.md` | Procedure spec compliant with `iNNfo/specs/bluepriNNts/procedures/spec_NN.md` |
-| **Transformation Template** | `traNNsformations/` | `traNNsformations/Summary.md` | Single-shot template applied with `--apply <name>` |
-
-> **Templates vs Procedures (backlog 30, decided 2026-10-07: keep both).**
-> `traNNsformations/` holds single-shot transformation templates (one input → one
-> output, `--apply`). `procedures/` holds multi-step orchestrated SOPs (FSM over
-> `Work` steps with `next::`). Rule of thumb: if it fits in one pass with no
-> branching, it is a template; if it has steps, conditions, or tools, it is a
-> procedure. Do not merge them and do not rename `traNNsformations/` — the CLI
-> vocabulary (`--apply`) depends on it.
 
 ---
 
-### 6. Execution of Saved Procedures (Orchestration)
+### 6. Procedure Execution (owned elsewhere)
 
-When the user selects to execute a saved procedure from the `procedures/` directory:
-1. **Load Procedure Spec**: Read the selected `*_procedures_NN.md` file.
-2. **Build Execution Flow (FSM)**:
-   - Scan all `Work` elements in the file.
-   - Find the start step (a `Work` element that is not targeted by any other step's `next::` field).
-   - Trace the sequence by following the `next::` pointers to build the ordered task list.
-3. **Iterative Step Execution**:
-   - For each step, present the step name, the required tool, input/output artifacts, and description.
-   - **Autocompletion check**: Verify if the target output artifact already exists. If it does, inform the user and offer to mark the step as completed automatically.
-   - Prompt the user to proceed with executing the task.
-   - Upon completion, transition to the next step declared in `next::`.
-   - Provide options to pause, override status, or restart the flow.
-   - **Procedure adaptation**: If during execution the user changes tools, order, input/output artifacts, or adds/modifies tasks, the agent MUST capture these deviations as potential improvements to the procedure spec.
+This skill does not execute procedures. Procedure execution follows the canonical
+**Procedure Execution Protocol** in `nn-innfo` (§Procedure Execution Protocol);
+do not restate it here. `nn-sources` only provides the ingestion and lineage tools
+a procedure step may delegate to (e.g. `--scan`, `--cognitivize`, `--import-url`,
+`--check-impact`, `--lineage`).
 
 ---
 
@@ -652,7 +622,7 @@ At the end of transformation:
 1. **Mandatory Scanner Origin Metadata**: Every cognitivized raw file MUST have a co-located `<file>.<ext>_sidecar_NN.md` whose frontmatter records `source_file`, `sha256`, `size_bytes`, `source_format` and `normalized_at` (plus `normalized_by` when a converter ran, and optional `canonical` and `cited_works`). Only `cognitivize` writes sidecars; never handcraft one. No `source_id`/`src-NNN`.
 2. **Mandatory Model Citations**: Level 3 elements MUST include `sources:: sources/import/<path.md>@## Heading` (or a list `sources:: [sources/import/a.md@## H1, sources/import/b.pdf_sidecar_NN.md@## H2]`) with a domaiNN-relative path and no implicit prefix; binaries are cited through their sidecar — no `src-NNN` IDs, no line-number ranges.
 3. **V_0-1-0 Compliance**: Target iNNfo V_0-1-0 meta-template specification and unified NN syntax (`# NN`, `## NN`, `key:: value`).
-4. **Saved Procedure Proactive Check**: When starting `nn-trannsform` or `nn`, check for existing procedures in `procedures/` and offer them as runnable options to the user before starting standard ingestion.
-4a. **Lineage Record Sync**: `# NN Sources`, `# NN ModelRecords` and `# NN Artifacts` re-sync from the filesystem (sidecars, `kNNowledge/`, `artifacts/`) on every `--scan`/`--cognitivize`/`--import-url`/`--lineage` run — idempotent replace, removed files drop out. `# NN Procedures` is an append-only log: scripted runs (`--scan`, `--cognitivize`, `--import-url`, `--apply`) append their own entry; the agent still adds `## NN Procedures:` entries by hand for non-scripted research/analysis steps (see §2d). `node scripts/index.js --lineage --check` reports drift, including hand-edited managed sections.
+4. **Saved Procedure Proactive Check**: When starting `nn-sources` or `nn`, check for existing procedures in `procedures/` and offer them as runnable options to the user before starting standard ingestion.
+4a. **Lineage Record Sync**: `# NN Sources`, `# NN ModelRecords` and `# NN Artifacts` re-sync from the filesystem (sidecars, `kNNowledge/`, `artifacts/`) on every `--scan`/`--cognitivize`/`--import-url`/`--lineage` run — idempotent replace, removed files drop out. `# NN Procedures` is an append-only log: scripted runs (`--scan`, `--cognitivize`, `--import-url`) append their own entry; the agent still adds `## NN Procedures:` entries by hand for non-scripted research/analysis steps (see §2d). `node scripts/index.js --lineage --check` reports drift, including hand-edited managed sections.
 5. **Prose Description in Level 3 Models**: The description of an element in a Level 3 model must NEVER be formatted as a `description::` property field. It must always be written as free-form Markdown prose below the `key:: value` fields list, separated from them by a blank line.
 6. **Scored Matching, Never Silent Exclusion**: normalized sources map to model elements through `scorePairs` (`scripts/lib/score-matcher.js`, threshold 0.7); below-threshold pairs enter the review queue with a recorded decision, and undecided pairs stay queued across sessions.

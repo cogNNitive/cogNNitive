@@ -94,8 +94,8 @@ function main() {
   {
     const sections = realSections()
     assert.strictEqual(
-      renderSharedRules(SKILL_SECTION_MAP['nn-trannsform'], sections),
-      renderSharedRules(SKILL_SECTION_MAP['nn-trannsform'], sections),
+      renderSharedRules(SKILL_SECTION_MAP['nn-sources'], sections),
+      renderSharedRules(SKILL_SECTION_MAP['nn-sources'], sections),
     )
   }
 

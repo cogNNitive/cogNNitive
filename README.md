@@ -34,7 +34,7 @@ cogNNitive/
 │   ├── apps/         # innfo-editor (Vue/Vite web application)
 │   ├── packages/     # innfo-core (pure TS semantic engine) & innfo-mcp (MCP server)
 │   └── specs/        # Canonical iNNfo specifications, bluepriNNts, and samples
-├── skills/           # Agent skills (nn-innfo, nn-trannsform, nn-preflight, etc.)
+├── skills/           # Agent skills (nn-innfo, nn-sources, nn-preflight, etc.)
 ├── openspec/         # Cross-system architecture RFCs and formal specifications
 └── scripts/          # Workspace maintenance and verification scripts
 ```
