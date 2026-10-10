@@ -1895,6 +1895,31 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return allHashed
   }
 
+  // The payload groups resolved citations by field (`{ field: [citation] }`), but
+  // UI.EditModal renders a flat list of `{ origin, source, quote }`. Flatten and
+  // map here so the modal's "Source Provenance & Citations" section renders.
+  function flattenCitations(citations) {
+    if (Array.isArray(citations)) return citations
+    if (!isObject(citations)) return []
+    var out = []
+    Object.keys(citations).forEach(function (field) {
+      var list = citations[field]
+      if (!Array.isArray(list)) return
+      list.forEach(function (c) {
+        if (!isObject(c)) return
+        out.push({
+          field: field,
+          origin: c.error ? 'error' : c.origin,
+          source: c.anchor ? String(c.path || '') + ' \u2192 ' + c.anchor : String(c.path || c.source || ''),
+          quote: c.excerpt,
+          exists: c.exists,
+          error: c.error,
+        })
+      })
+    })
+    return out
+  }
+
   function draftToItem(draft) {
     var d = isObject(draft) ? draft : {}
     var target = {
@@ -1993,7 +2018,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       var el = elementsById[anchorData.elementId]
       if (!el || typeof UI.EditModal !== 'function') return null
       var base = {
-        citations: Array.isArray(el.citations) ? el.citations : [],
+        citations: flattenCitations(el.citations),
         history: Array.isArray(el.history) ? el.history : [],
       }
       if (anchorData.relRetarget) {
@@ -2750,6 +2775,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     verdictsByElement: verdictsByElement,
     changedIds: changedIds,
     canReview: canReview,
+    flattenCitations: flattenCitations,
     draftToItem: draftToItem,
   }
 })
