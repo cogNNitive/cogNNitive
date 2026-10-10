@@ -87,23 +87,28 @@ function skillTreeDigest(rootDir): string
 - `distribution: vendored` MUST use a redistributable `license`; `referenced` MAY be any SPDX id but MUST NOT be empty.
 - `embedded` skills are exempt (covered by the immutability guard).
 
-## Testing Strategy (new behavior only, strict TDD)
+## Testing Strategy (agile: only load-bearing checks)
 
-| Suite | Test |
-|---|---|
-| `innfo-core/src/types/index.spec.ts` | frontmatter with a full external entry normalizes and round-trips all new fields |
-| `innfo-mcp/src/tools/spec.spec.ts` | `list_blueprint_skills` returns `commit`/`sha256`/`license` for an external entry; embedded still wins by name |
-| `scripts/lib/skill-tree-digest.test.js` | digest is stable across file order, CRLF vs LF bytes differ, `node_modules`/dotfiles excluded, binary file handled |
-| `scripts/lib/skills-commands.test.js` | `--with-external` installs at the pin and rejects a digest mismatch with nothing written; without the flag nothing third-party installs |
-| `scripts/manifest/lib/external-skill-policy.test.js` | missing pin/license fails; missing `sha256` warns; unknown license + `vendored` fails; `referenced` + missing license fails |
+Deliberate deviation from `strict_tdd` at the maintainer's request. Only the checks
+that *are* the safety contract get a test; mechanical field pass-through, docs and
+ports get none (existing suites + typecheck prove them).
+
+| Suite | Test | Load-bearing because |
+|---|---|---|
+| `scripts/lib/skill-tree-digest.test.js` | digest stable across order; `node_modules`/dotfiles excluded; binary by bytes | non-canonical digest = silent pin/install drift |
+| `scripts/lib/skills-commands.test.js` | `--with-external` installs at the pin; digest mismatch throws, nothing written; no flag = no third-party install | this IS the security boundary |
+| `scripts/manifest/lib/external-skill-policy.test.js` | missing pin/license fails; missing `sha256` warns; `vendored`+non-permissive fails; embedded exempt | the guard that keeps a bad entry out |
+
+No new tests for: `TemplateSkill` fields, discovery pass-through, `--with-external`
+plumbing, docs, vocabulary.
 
 ## Migration / Rollout
 
-Slices 1-2 (schema + discovery) ship first and are inert until a blueprint uses
-them. Slice 3 (install) is opt-in by flag, so no existing install behavior changes.
-No manifest re-pin is required: external skills never enter `manifest/source.yaml`
-(they are not distributed artifacts; `assemble-manifest.js` reads `source.skills`
-only). Docs and `vocabulary.json` land with slice 3.
+Slice 1 (declare + validate) ships inert until a blueprint uses it. Slice 2
+(install) is opt-in by flag, so no existing install behavior changes. No manifest
+re-pin is required: external skills never enter `manifest/source.yaml` (they are not
+distributed artifacts; `assemble-manifest.js` reads `source.skills` only). Docs and
+`vocabulary.json` land with slice 2.
 
 ## Open Questions
 
