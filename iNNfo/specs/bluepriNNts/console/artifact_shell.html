@@ -145,7 +145,7 @@
       .innfo-bp-card .bp-meta { display: flex; gap: 10px; font-size: 0.72rem; color: var(--muted); border-top: 1px dashed var(--border); padding-top: 5px; margin-top: 5px; }
       .innfo-bp-card .bp-changes { font-size: 0.66rem; font-weight: 700; color: var(--warning); background: color-mix(in srgb, var(--warning) 16%, var(--surface)); border: 1px solid color-mix(in srgb, var(--warning) 35%, var(--surface)); padding: 1px 6px; border-radius: 999px; }
 
-      main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+      main { flex: 1; min-width: 0; padding: 0 30px 90px; }
       .innfo-action-bar {
         min-height: 38px;
         padding: 6px 18px;
@@ -222,18 +222,15 @@
 
       <main>
         <div class="innfo-action-bar">
-          <div id="innfo-banner"></div>
           <nav id="innfo-view-tabs" class="innfo-view-tabs" style="display: none;"></nav>
         </div>
-        <div class="innfo-content-scroll">
-          <div id="innfo-stats-bar" class="innfo-stats-grid"></div>
-          <div id="innfo-tab-explorer" class="innfo-tab-panel active">
-            <div id="innfo-doc"></div>
-            <div id="innfo-content"></div>
-            <div id="innfo-matrices"></div>
-          </div>
-          <div id="innfo-tab-review" class="innfo-tab-panel"></div>
+        <div id="innfo-stats-bar" class="innfo-stats-grid"></div>
+        <div id="innfo-tab-explorer" class="innfo-tab-panel active">
+          <div id="innfo-doc"></div>
+          <div id="innfo-content"></div>
+          <div id="innfo-matrices"></div>
         </div>
+        <div id="innfo-tab-review" class="innfo-tab-panel"></div>
       </main>
     </div>
 
