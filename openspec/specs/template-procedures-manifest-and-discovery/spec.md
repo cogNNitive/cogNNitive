@@ -19,9 +19,9 @@
 - THEN it returns id `generate-video-script` with path `procedures/generate_video_script_procedures_NN.md`
 
 #### Scenario: Frozen procedure name
-- GIVEN the frozen `workspace` package with `iNNfo/specs/bluepriNNts/workspace/procedures/compile_workspace_hub_NN.md`
+- GIVEN the frozen `workspace` package with `iNNfo/specs/bluepriNNts/workspace/procedures/compile_model_console_NN.md`
 - WHEN `list_template_procedures` runs
-- THEN it returns id `compile-workspace-hub`
+- THEN it returns id `compile-model-console`
 
 #### Scenario: `procedure_model::` paths match files
 - GIVEN every one of the 15 non-frozen bluepriNNt procedure files
@@ -29,7 +29,7 @@
 - THEN each resolves to an existing file name
 
 #### Scenario: Frozen folder is not renamed
-- GIVEN the 9 files under `iNNfo/specs/bluepriNNts/workspace/procedures/`
+- GIVEN every file under `iNNfo/specs/bluepriNNts/workspace/procedures/` (8 files once `compile_workspace_hub_NN.md` is retired)
 - WHEN the invariant check and the rename rewriter run
 - THEN none is reported as a violation and none is renamed
 

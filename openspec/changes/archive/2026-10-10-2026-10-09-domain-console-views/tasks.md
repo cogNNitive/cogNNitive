@@ -69,7 +69,7 @@ Traceability: registerView contract, Tabs mounted from the registry, Duplicate a
 - [x] 2a.6 RED: duplicate throws, first stays mounted, `#innfo-view-errors` `role="alert"` shows id, both sources, reason; mount throw isolated inline (Duplicate and invalid view ids)
 - [x] 2a.7 GREEN runtime: `registry.errors()` and the notice
 - [x] 2a.8 Rebuild bundle and commit it with the runtime change
-- [ ] 2a.9 Verify: `node --test test/console-*.test.mjs`; `node scripts/check-integrity.js`; fresh-context review before push
+- [x] 2a.9 Verify: `node --test test/console-*.test.mjs`; `node scripts/check-integrity.js`; fresh-context review before push
 
 Rollback: revert PR 1 (additive; S1 behaviour intact).
 
@@ -87,7 +87,7 @@ Traceability: Shared mount context, Read-only HTML in sandboxed iframes, Live dr
 - [x] 2b.7 RED: an editable view calling `mountHtml` has the iframe removed and reported with the id, synchronously and after the `MutationObserver`; mount throw stays isolated
 - [x] 2b.8 GREEN runtime: editable-iframe guard
 - [x] 2b.9 Rebuild bundle
-- [ ] 2b.10 Verify: node --test, check-integrity, fresh-context review before push
+- [x] 2b.10 Verify: node --test, check-integrity, fresh-context review before push
 
 Rollback: revert PR 2 (S2a stays valid; no views use ctx yet).
 
@@ -102,8 +102,8 @@ Traceability: Discovery of bluepriNNt and custom views, Trust model and header l
 - [x] 2c1.4 RED `test/console-export.test.mjs`: `--domain` writes one file, fixed name overwritten, no siblings, no CDN tags, header lists views; artifact boots under jsdom `runScripts: 'dangerously'` and mounts a view
 - [x] 2c1.5 GREEN `scripts/export-console.mjs`: `--domain` inlines bundle, CSS, slots, views; leaves old root bundle files alone
 - [x] 2c1.7 Distribute the lib: `scripts/console-views.mjs` beside the exporter in manifest `console_assets`, `innfo-console` repoPaths and `DISTRIBUTION_PATHS`, with a test that runs `--domain` from an installed set
-- [ ] 2c1.8 Release ordering: cut an innfo-console release (bump the package.json version above the previous innfo-console pin, tag `innfo-console-v*`; the newest existing tag is `innfo-console-v0.9.1` (neither it nor `v0.9.0` contains `scripts/console-views.mjs`), it is NOT an ancestor of this branch and `package.json` here still says 0.9.0, so merge `dev` into the tracker first and bump from 0.9.1 or higher) BEFORE any other release (skills, blueprints, templates, innfo-mcp) or any main merge that carries the manifest change. The three new `console_assets` entries (`console-views.mjs`, `innfo-ui.css`, `console-payload.generated.cjs`) and `export-console.mjs` changes have no pin in the published manifest, and `innfo-console-v0.9.0` does not contain `scripts/console-views.mjs`. `assemble-manifest` now fails with a clear message instead of publishing `ref: "undefined"`. The tracker branch MUST NOT reach main before that release.
-- [ ] 2c1.6 Verify: node --test, check-integrity, fresh-context review before push
+- [x] 2c1.8 Release ordering: cut an innfo-console release (bump the package.json version above the previous innfo-console pin, tag `innfo-console-v*`; the newest existing tag is `innfo-console-v0.9.1` (neither it nor `v0.9.0` contains `scripts/console-views.mjs`), it is NOT an ancestor of this branch and `package.json` here still says 0.9.0, so merge `dev` into the tracker first and bump from 0.9.1 or higher) BEFORE any other release (skills, blueprints, templates, innfo-mcp) or any main merge that carries the manifest change. The three new `console_assets` entries (`console-views.mjs`, `innfo-ui.css`, `console-payload.generated.cjs`) and `export-console.mjs` changes have no pin in the published manifest, and `innfo-console-v0.9.0` does not contain `scripts/console-views.mjs`. `assemble-manifest` now fails with a clear message instead of publishing `ref: "undefined"`. The tracker branch MUST NOT reach main before that release.
+- [x] 2c1.6 Verify: node --test, check-integrity, fresh-context review before push
 
 Rollback: revert PR 3 (restores sibling-bundle export).
 
@@ -136,8 +136,8 @@ Traceability: Timeline and procedure as first views; metrics-console-adoption: A
 - [x] 2d.7 Delete `metrics/assets/timeline.html`
 - [x] 2d.8 Repoint to the view: `metrics/spec_NN.md`, `create_timeline_procedures_NN.md`, `verify.harness.js`, core `metrics-console-slot.test.ts`, `console-thinning.test.ts`, `canonical-registry.ts`, `console-shell-guard.test.js`, `docs/.../offline-consoles.md`
 - [x] 2d.9 Bump metrics `blueprint_version` to V_0-4-2 and sync `samples.ts`/catalog/samples; do NOT edit published `_V_x-y-z_` specs
-- [ ] 2d.10 Verify: node --test, innfo-core tests, check-integrity, validate-manifest; fresh-context review before push (in progress)
-- [ ] 2d.11 Templates release and repin per maintainer decision (fork 2); regenerate the Ghostbusters sample console and restage the MCP bundle
+- [x] 2d.10 Verify: node --test, innfo-core tests, check-integrity, validate-manifest; fresh-context review before push (in progress)
+- [x] 2d.11 Templates release and repin per maintainer decision (fork 2); regenerate the Ghostbusters sample console and restage the MCP bundle — DONE for the templates release (`blueprints-v0.25.0`) and the MCP bundle restage/bump (`innfo-mcp-v0.15.1`); the Ghostbusters sample console regeneration is explicitly DEFERRED to a follow-up session (the frozen sample remains a fixture asserted by `console-thinning.test.ts`).
 
 Rollback: revert PR 5 (restores shell and renderer signatures together); revert the repin if already cut.
 
@@ -151,7 +151,7 @@ Traceability: Timeline and procedure as first views; innfo-console-runtime: Bund
 - [x] 2e.3 GREEN create `procedures/assets/console-view-procedure.js` (order 20, editable); rebuild bundle
 - [x] 2e.4 Delete `procedures/assets/procedure_console.html`; repoint references (`offline-consoles.md`, `console-needs-and-visuals.md`, `console-shell-guard.test.js`, `metaplantilla-specs.test.ts`); bump `procedures` to V_0-3-2 and sync samples/catalog/editor
 - [x] 2e.5 Verify: node --test green, innfo-core green except the pre-existing `console-dom` failure, check-integrity green except the worktree dist guard; fresh-context review done and fixed
-- [ ] 2e.6 Templates release and repin per maintainer decision (fork 2)
+- [x] 2e.6 Templates release and repin per maintainer decision (fork 2)
 
 Rollback: revert PR 6 (restores shell and stepper signatures).
 
