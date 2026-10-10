@@ -978,27 +978,20 @@ console as its own artifact. Full session reconnaissance is in Engram
 
 ### Blockers discovered before building (2026-10-10)
 
-- **B1 — dependency not on `dev`.** The whole `video-script` model
-  (`iNNfo/specs/bluepriNNts/video-script/`), the `villabotijos-today` series (blueprint +
-  Template L3 doc), the relocated `nn-video-script` skill, and the
-  `el-cocodrilo-de-singapur` sample live ONLY on the unmerged branch
-  `session/video-script-innfo-model` (**16 commits ahead of `dev`**, worktree
-  `cogNNitive-video-script-innfo-model`, ahead 2 of its own origin). A console session,
-  cut from `dev` per the session guard, has no blueprint to consume. **Sequence first:**
-  land that branch on `dev` (its own PR), or explicitly base the console session on it.
+- **B1 — RESOLVED (2026-10-10).** The `video-script` model
+  (`iNNfo/specs/bluepriNNts/video-script/`) and the relocated `nn-video-script` skill are
+  now on `dev` (CI green). A console session cut from `dev` has the blueprint to consume.
+  (Series/episode content is user-workspace data, never shipped in the repo.)
 - **B2 — capability 4 ("live preview") cannot be "reused" — it does not exist.**
   `previewVideo()` (`video-engine-cli.mjs:654`) is a stub: it `console.log`s a URL and
   returns `{ previewUrl, port }`; it never bundles or starts Remotion Studio.
   `finalize-video.mjs` and `render-vertical.mjs` contain no `bundle` / `createServer` /
   `studio` either. `@remotion/renderer` and `@remotion/bundler` are NOT installed
   (consent-gated, ~120 MB via `ensure-engine.mjs`).
-- **B3 — the sample has no media.** `el-cocodrilo-de-singapur` references
-  `../../shared/avatar|brand|music/**` and `media/techspot_snapshot.png`, none of which
-  exist (the sample folder holds only the `.md`). `resolveMediaLayers`
-  (`video-engine-cli.mjs:529`) throws `VideoRenderError` on any missing asset, so even a
-  compile-to-manifest on the sample fails today. The original DoD ("demonstrate a live
-  render preview on `el-cocodrilo-de-singapur`") is unreachable without fabricated assets
-  and an installed Remotion.
+- **B3 — the repo ships no episode content.** A generic sample has no media, and a real
+  script's assets live in the user workspace. `resolveMediaLayers`
+  (`video-engine-cli.mjs`) throws `VideoRenderError` on any missing asset, so a
+  compile-to-manifest needs resolvable assets (from the user workspace, or none).
 
 ### What is feasible by reuse (capabilities 1–3)
 

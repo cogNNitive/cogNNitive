@@ -80,21 +80,21 @@ Conditional contract: `presenter`→`asset`|`prompt`; `background`→`asset`|`pr
 
 ## L3 Document Shapes
 
-**(a) Cocodrilo guion** (`el-cocodrilo-de-singapur_V_..._video-script_NN.md`),
+**(a) Clip guion** (`example-clip_V_..._video-script_NN.md`),
 `parent_spec` → `video-script`:
 
 ```markdown
 # NN index
-* [[El cocodrilo de Singapur]]
+* [[Example Clip]]
   * [[Hook]]
     * [[Narrator]]
   * [[Twist]]
     * [[Lower third]]
 
 # NN Video
-## NN Video: El cocodrilo de Singapur
-slug:: el-cocodrilo-de-singapur
-title:: El cocodrilo de Singapur
+## NN Video: Example Clip
+slug:: example-clip
+title:: Example Clip
 
 # NN Scene
 ## NN Scene: Hook
@@ -163,7 +163,7 @@ A guion may qualify cross-document refs: `[[Series :: narrator-en]]`.
 ## Sequencing / Rollout
 
 1. Author the L2 `video-script` blueprint.
-2. Author the Series blueprint + L3 Template doc; author the cocodrilo L3 guion.
+2. Author the Series blueprint + L3 Template doc; author the clip L3 guion.
 3. Re-point the engine; validate the guion as L3; compile + render from iNNfo only.
 4. **Then** big-bang VUS teardown. Rollback = revert session branch (worktree-isolated).
 
@@ -187,7 +187,7 @@ A guion may qualify cross-document refs: `[[Series :: narrator-en]]`.
 |------|--------|
 | `iNNfo/specs/bluepriNNts/video/spec_NN.md` | Modify → native `video-script` blueprint |
 | `iNNfo/specs/bluepriNNts/<series>/` blueprint + L3 Template doc | Create |
-| cocodrilo L3 guion (`..._video-script_NN.md`) | Create |
+| clip L3 guion (`..._video-script_NN.md`) | Create |
 | `.../nn-video-script/scripts/remotion-scene-compiler.mjs` | Modify (read_knowledge adapter) |
 | `.../scripts/video-engine-cli.mjs`, `asset-synthesizer.mjs`, `tts-generator.mjs` | Modify (template-resolved TTS) |
 | `.../nn-video-script/SKILL.md` | Modify (drop `vus_spec`, VUS prose) |
@@ -198,11 +198,11 @@ A guion may qualify cross-document refs: `[[Series :: narrator-en]]`.
 
 | Layer | What | How |
 |-------|------|-----|
-| Unit | Blueprint↔guion conformance; `type::` conditional rules; unknown `type::` rejected | `validate_knowledge` on cocodrilo; focused asserts on the conditional contract |
+| Unit | Blueprint↔guion conformance; `type::` conditional rules; unknown `type::` rejected | `validate_knowledge` on clip; focused asserts on the conditional contract |
 | Integration | Engine compiles manifest from iNNfo only; one TTS per narrated Scene; template voice/model honored | `RemotionSceneCompiler.compile()` on `read_knowledge` output; assert no `parseVus` symbol |
-| E2E | Cocodrilo validates → compiles → renders; manifest has one track per Scene in list order | `node scripts/verify.js` + `node scripts/check-integrity.js`; grep asserts VUS symbols gone |
+| E2E | Clip validates → compiles → renders; manifest has one track per Scene in list order | `node scripts/verify.js` + `node scripts/check-integrity.js`; grep asserts VUS symbols gone |
 
-Deterministic proofs: cocodrilo validates as L3; engine compiles/renders from iNNfo
+Deterministic proofs: clip validates as L3; engine compiles/renders from iNNfo
 only; VUS package, scripts, and mirror removed and no longer referenced.
 
 ## Open Questions

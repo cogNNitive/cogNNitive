@@ -217,18 +217,6 @@
         }
       ]
     },
-    "villabotijos-today": {
-      "name": "villabotijos-today",
-      "adopted": "V_0-1-0",
-      "versions": [
-        {
-          "blueprint_version": "V_0-1-0",
-          "spec_version": "V_0-4-0",
-          "title": "Villabotijos Today Series",
-          "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/bluepriNNts/villabotijos-today/spec_NN.md"
-        }
-      ]
-    },
     "visual-catalog": {
       "name": "visual-catalog",
       "adopted": "V_0-1-1",

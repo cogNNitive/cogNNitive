@@ -20,7 +20,7 @@ Chain strategy: pending
 
 | Unit | Goal | Likely PR | Notes |
 |------|------|-----------|-------|
-| 1 | L2 blueprint + Series + cocodrilo L3 proof | PR 1 | base main; validates standalone |
+| 1 | L2 blueprint + Series + clip L3 proof | PR 1 | base main; validates standalone |
 | 2 | Engine re-point to iNNfo model | PR 2 | base PR 1; compile/render proof |
 | 3 | VUS big-bang teardown + docs | PR 3 | base PR 2; only after compile proof |
 
@@ -33,14 +33,14 @@ Chain strategy: pending
 
 ## Phase 2: Series blueprint + L3 Template data
 
-- [x] 2.1 Create Series blueprint `iNNfo/specs/bluepriNNts/villabotijos-today/spec_NN.md` with `includes: [video-script]` + tone fields (`tone`, `sound_tags` on the `Series` Concept) [capability:series-script-templates:Series Is a Blueprint Plus L3 Template Data]
-- [x] 2.2 Create Series L3 Template doc (`templates_V_0-1-0_villabotijos-today_NN.md`) declaring `Template` instances (tool/voice/model) [capability:video-script-model:Template Concept and `template::` Reference]
-- [x] 2.3 Test: a script's `template::` ref resolves to its Template instance (domain-scope validation passes; `[[Villabotijos Today :: Celedonio Full]]` resolves) [capability:series-script-templates:Series Is a Blueprint Plus L3 Template Data]
+- [x] 2.1 Create Series blueprint `iNNfo/specs/bluepriNNts/example-series/spec_NN.md` with `includes: [video-script]` + tone fields (`tone`, `sound_tags` on the `Series` Concept) [capability:series-script-templates:Series Is a Blueprint Plus L3 Template Data]
+- [x] 2.2 Create Series L3 Template doc (`templates_V_0-1-0_example-series_NN.md`) declaring `Template` instances (tool/voice/model) [capability:video-script-model:Template Concept and `template::` Reference]
+- [x] 2.3 Test: a script's `template::` ref resolves to its Template instance (domain-scope validation passes; `[[Example Series :: Presenter Full]]` resolves) [capability:series-script-templates:Series Is a Blueprint Plus L3 Template Data]
 
-## Phase 3: cocodrilo L3 guion proof
+## Phase 3: clip L3 guion proof
 
-- [x] 3.1 Create `iNNfo/specs/bluepriNNts/video-script/samples/el-cocodrilo-de-singapur_V_0-1-0_video-script_NN.md` (`parent_spec: video-script`; one Video, Scenes with prose body + Layers) [capability:video-script-model:Script Is an iNNfo Level-3 Document] — the `# NN index` carries Concepts (Video→Scene→Layer), NOT element instances: the current validator rejects element entries (`format.index-no-elements`); element order/ownership is expressed by document order within the concept sections (DEV-1)
-- [x] 3.2 Test: `validate_knowledge` cocodrilo passes (valid=true, warnings only) [capability:video-script-model:No Declared Duration or Timing] — second-Video and declared-duration are NOT enforced by innfo-core (unknown props ignored, no single-root primitive); they are engine-guard responsibilities (Phase 4/5)
+- [x] 3.1 Create `iNNfo/specs/bluepriNNts/video-script/samples/example-clip_V_0-1-0_video-script_NN.md` (`parent_spec: video-script`; one Video, Scenes with prose body + Layers) [capability:video-script-model:Script Is an iNNfo Level-3 Document] — the `# NN index` carries Concepts (Video→Scene→Layer), NOT element instances: the current validator rejects element entries (`format.index-no-elements`); element order/ownership is expressed by document order within the concept sections (DEV-1)
+- [x] 3.2 Test: `validate_knowledge` clip passes (valid=true, warnings only) [capability:video-script-model:No Declared Duration or Timing] — second-Video and declared-duration are NOT enforced by innfo-core (unknown props ignored, no single-root primitive); they are engine-guard responsibilities (Phase 4/5)
 
 ## Phase 4: Engine re-point to structured iNNfo
 
@@ -52,7 +52,7 @@ Chain strategy: pending
 
 ## Phase 5: Pipeline verification
 
-- [x] 5.1 Compile + render cocodrilo from iNNfo only; assert one track per Scene in list order [capability:video-script-model:Video-Scene-Layer Concept Hierarchy]
+- [x] 5.1 Compile + render clip from iNNfo only; assert one track per Scene in list order [capability:video-script-model:Video-Scene-Layer Concept Hierarchy]
 - [x] 5.2 Test: invalid L3 stops compilation with a named non-zero error before any manifest [capability:cognnitive-video-engine:Programmatic Remotion Scene Compilation]
 
 ## Phase 6: VUS big-bang teardown
@@ -64,7 +64,7 @@ Chain strategy: pending
 - [x] 6.5 Remove old `video` blueprint `V_0-9-0` (`iNNfo/specs/bluepriNNts/video/spec_NN.md`) + VUS samples/series-kit [capability:video-blueprint:Native L2 Video-Script Blueprint] — the `video` package was retired wholesale; the embedded skill MOVED to `video-script/skills/nn-video-script/` (see apply-progress reconciliation)
 - [x] 6.6 Remove `legacy-ledger.yaml` `html-comment-overlays` entry + matching marker in compiler [capability:ephemeral-overlays:Overlays Are Layer `type::` Kinds] — removed in Phase 4; ledger guard passes (13 entries / 25 markers, no dangling VUS markers)
 - [x] 6.7 Remove SKILL.md `vus_spec:` frontmatter + VUS prose; point authoring at L3/blueprint [capability:video-script-skill:No-Prose-Copy of Syntax Facts]
-- [x] 6.8 Remove `manifest/source.yaml` vus pin/registration [capability:video-skill-dependency-bundling:Consent-Gated On-Demand Engine Install] — no vus pin existed; `video` blueprint entry replaced by `video-script` + `villabotijos-today`
+- [x] 6.8 Remove `manifest/source.yaml` vus pin/registration [capability:video-skill-dependency-bundling:Consent-Gated On-Demand Engine Install] — no vus pin existed; `video` blueprint entry replaced by `video-script` + `example-series`
 - [x] 6.9 Test (grep asserts): no VUS symbol/path/`vus_spec` remains anywhere [capability:video-script-skill:No VUS parser artifact present] — `test/no-vus-artifacts.test.mjs`
 
 ## Phase 7: Documentation

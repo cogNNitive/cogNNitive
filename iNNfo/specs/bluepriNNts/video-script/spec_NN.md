@@ -81,7 +81,7 @@ description:: Human title of the video. The engine derives the manifest composit
 concept:: Scene
 type:: reference
 target_concepts:: [Template]
-description:: Reference to a Template instance (tool, voice, model) shipped by the Series' L3 Template-data document, e.g. [[Villabotijos Today :: Celedonio Full]]. Optional.
+description:: Reference to a Template instance (tool, voice, model) shipped by the Series' L3 Template-data document, e.g. [[My Series :: Presenter Full]]. Optional.
 
 ## NN Field Definition: music
 concept:: Scene

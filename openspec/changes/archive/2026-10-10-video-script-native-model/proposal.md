@@ -8,7 +8,7 @@ The video script is still a bespoke VUS artifact: `- key: value` syntax, a custo
 
 ### In Scope
 - A `video-script` L2 blueprint: Concepts/Fields for `Video` → `Scene` → `Layer`, plus `Template`.
-- A Series blueprint + L3 Template-data doc; the "El cocodrilo de Singapur" guion as an L3 proof.
+- A Series blueprint + L3 Template-data doc; the "Example Clip" guion as an L3 proof.
 - Engine re-pointed to structured iNNfo; big-bang VUS teardown only after the new pipeline compiles.
 
 ### Out of Scope
@@ -30,7 +30,7 @@ The video script is still a bespoke VUS artifact: `- key: value` syntax, a custo
 
 ## Approach
 
-Author the L2 blueprint, then the cocodrilo guion as L3, then re-point the engine to `read_knowledge`, then delete VUS artifacts. 1 Video : 1 script; nesting via `# NN index` list order; duration/timing derived, never declared.
+Author the L2 blueprint, then the clip guion as L3, then re-point the engine to `read_knowledge`, then delete VUS artifacts. 1 Video : 1 script; nesting via `# NN index` list order; duration/timing derived, never declared.
 
 ## Affected Areas
 
@@ -38,7 +38,7 @@ Author the L2 blueprint, then the cocodrilo guion as L3, then re-point the engin
 |------|--------|-------------|
 | `video-script` L2 blueprint | New | Video/Scene/Layer/Template Concepts + Fields |
 | Series blueprint + L3 Template doc | New | Specialization + tool/voice/model data |
-| cocodrilo guion L3 | New | Proof document that compiles |
+| clip guion L3 | New | Proof document that compiles |
 | `nn-video-script` engine | Modified | Consumes iNNfo model |
 | `iNNfo/packages/innfo-video-parser` | Removed | Grammar, spec, parser |
 | skill parser mirror, `scripts/vus-*.mjs`, `check-script.mjs` | Removed | Vendored parse path |
@@ -62,6 +62,6 @@ Revert the session branch; isolated to a git worktree, no production data migrat
 
 ## Success Criteria
 
-- [ ] The cocodrilo guion validates as an L3 document against the blueprint.
+- [ ] The clip guion validates as an L3 document against the blueprint.
 - [ ] The engine compiles and renders it from the iNNfo model only.
 - [ ] VUS parser package, scripts, and vendored mirror are gone.

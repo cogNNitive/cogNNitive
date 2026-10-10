@@ -26,15 +26,15 @@ No unchecked implementation task remained. Unchecked-task rule: **not triggered*
 | `node scripts/verify.js` | **1** | 33 of 144 steps fail | **PRE-EXISTING ENVIRONMENT** (see breakdown) |
 | `node scripts/check-integrity.js` | **1** | Groups 1c/2b/2d/2e/2f/2g green; Group 3+ inherits the 33 verify failures | PRE-EXISTING ENVIRONMENT |
 | `node scripts/lib/legacy-ledger-guard.js` | **0** | 13 entries / 25 code markers validated | PASS |
-| skill `knowledge-model-compile.test.mjs` | **0** | cocodrilo compiles; sequential overlays; guard; no VUS import | PASS |
+| skill `knowledge-model-compile.test.mjs` | **0** | clip compiles; sequential overlays; guard; no VUS import | PASS |
 | skill `scene-compiler.test.mjs` | **0** | 6 model-based unit tests | PASS |
 | skill `no-vus-artifacts.test.mjs` | **0** | no VUS artifact/reference in skill | PASS |
 | skill `video-engine-cli.test.mjs` | **0** | compile/render/preview headless (mock) | PASS |
 | skill suites (14/15) | **0** | all pass except `render-thumbnail` | PASS |
 | skill `render-thumbnail.test.mjs` | **1** | `Cannot find package 'sharp'` | PRE-EXISTING ENVIRONMENT |
-| CLI compile cocodrilo → manifest | **0** | `compositionId: el-cocodrilo-de-singapur`; scenes `scene_gancho,scene_intro,scene_noticia`; overlays `kineticTitle,lowerThird,kineticTitle,broll`; `scene0.template = {voice:dcrR2vs2jKo, model:replicate/minimax/speech-2.8-hd}` | PASS |
+| CLI compile clip → manifest | **0** | `compositionId: example-clip`; scenes `scene_gancho,scene_intro,scene_noticia`; overlays `kineticTitle,lowerThird,kineticTitle,broll`; `scene0.template = {voice:voiceId01, model:replicate/minimax/speech-2.8-hd}` | PASS |
 | `validate_blueprint` video-script | 0 | valid=true, 0 errors | PASS |
-| `validate_knowledge` cocodrilo | 0 | valid=true, 0 errors, 2 warnings | PASS |
+| `validate_knowledge` clip | 0 | valid=true, 0 errors, 2 warnings | PASS |
 | `validate_knowledge` templates doc | 0 | valid=true, 0 errors, 2 warnings | PASS |
 | inline negative (`type:: telepathy`) | 0 | valid=false, 1 error `Invalid value "telepathy"` | PASS |
 | inline negative (second Video + missing conditional) | 0 | **valid=true** (not rejected by validator) | GAP (see DEV-1/DEV-2) |
@@ -47,7 +47,7 @@ No unchecked implementation task remained. Unchecked-task rule: **not triggered*
 
 | # | Criterion | Verdict | Evidence |
 |---|---|---|---|
-| a | The cocodrilo guion validates as an L3 document against the blueprint | **PASS** | `validate_knowledge` → valid=true, 0 errors (2 warnings: `l3-index-ignored`, `NN_NAME_INVARIANT`) |
+| a | The clip guion validates as an L3 document against the blueprint | **PASS** | `validate_knowledge` → valid=true, 0 errors (2 warnings: `l3-index-ignored`, `NN_NAME_INVARIANT`) |
 | b | The engine compiles (and renders) it from the iNNfo model only | **PASS WITH CAVEAT** | CLI compile exit 0; `knowledge-model-compile` proves #1/#4; no `parseVus`/`innfo-video-parser` import in engine modules. Caveat = DEV-5 |
 | c | VUS parser package, scripts, and vendored mirror are gone | **PASS WITH CAVEAT** | `iNNfo/packages/innfo-video-parser`, `video/skills/.../innfo-video-parser.generated.mjs`, `scripts/build-video-parser-mirror.mjs`, skill `vus-*.mjs` all absent. Residual textual references remain (issues) |
 
@@ -59,7 +59,7 @@ Statuses: COMPLIANT = covering test/command passed at runtime; PARTIAL = impleme
 
 | Requirement / Scenario | Status | Covering evidence |
 |---|---|---|
-| Script Is an L3 Document — validates against blueprint | COMPLIANT | `validate_knowledge` cocodrilo valid=true |
+| Script Is an L3 Document — validates against blueprint | COMPLIANT | `validate_knowledge` clip valid=true |
 | Script Is an L3 Document — engine consumes structured model; no markdown parsing | **PARTIAL** | `compile()` rejects a markdown string (`markdown-not-accepted`, tested). But `lib/knowledge-model.mjs` regex-parses markdown in the default CLI path (DEV-5) |
 | Video-Scene-Layer Hierarchy — Scene owns its layers; no Layer at Video level | **PARTIAL** | `knowledge-model-compile` groups layers under scenes, but ownership is inferred from slug substrings (`assignLayersToScenes`), not the hierarchy (DEV-1/DEV-4) |
 | One Video Per Script — second Video rejected | PARTIAL | Validator accepts it (inline test valid=true). Rejected only by engine guard `one-video-per-document` (test passes) |
@@ -68,7 +68,7 @@ Statuses: COMPLIANT = covering test/command passed at runtime; PARTIAL = impleme
 | Layer `type::` — conditional fields enforced | PARTIAL | Validator accepts missing `text`; engine guard `missing-conditional-field` rejects (test passes) |
 | Music Is a Scene Field — no music Layer | COMPLIANT | `scene-compiler` test 6: `bgmusic_*` audio track, no music layer |
 | Tool-Agnostic Script — no voice/model/resolution in script | COMPLIANT | guion declares none; values live on `Template` instances |
-| Template Concept / `template::` — Scene resolves its template | COMPLIANT | CLI compile resolves `[[Villabotijos Today :: Celedonio Full]]` → voice/model; asserted in `knowledge-model-compile` |
+| Template Concept / `template::` — Scene resolves its template | COMPLIANT | CLI compile resolves `[[Example Series :: Presenter Full]]` → voice/model; asserted in `knowledge-model-compile` |
 | Native Hierarchy and List Order — order equals index list | **PARTIAL** | L3 `# NN index` carries **Concepts**, not element instances; scene order is document order in `# NN Scene` (validator emits `l3-index-ignored`) (DEV-1) |
 | No Declared Duration or Timing — declared duration rejected | **UNTESTED** | Inline `duration:: 12` → valid=true. Not enforced by validator (unknown props ignored) nor by `checkScript` (which only checks one-video + conditional fields) |
 
@@ -84,14 +84,14 @@ Statuses: COMPLIANT = covering test/command passed at runtime; PARTIAL = impleme
 | … overlay text from Layer `text::`, never layer name | COMPLIANT | `knowledge-model-compile` asserts titles from `text::` |
 | … template references reach manifest | COMPLIANT | `resolvedTemplate` in scene track |
 | Deterministic Media & TTS — cache hit / new asset hashed | COMPLIANT | `synthesizer-guard`, `asset-synthesizer` |
-| … one synthesis per narrated Scene | PARTIAL | Compile emits one track per scene; no explicit per-scene TTS-count assertion for the cocodrilo fixture |
+| … one synthesis per narrated Scene | PARTIAL | Compile emits one track per scene; no explicit per-scene TTS-count assertion for the clip fixture |
 | … template-resolved voice/model honored | COMPLIANT | `lib/tts-options.mjs` reads `resolvedTemplate`; asserted |
 | … audio duration without FFmpeg | COMPLIANT | `asset-synthesizer` test (injectable `parseMedia`) |
 | ephemeral-overlays — overlay is a Layer kind / compiles to track | COMPLIANT | blueprint `type::` + `knowledge-model-compile` |
 | … sequential collision-free scheduling | COMPLIANT | `knowledge-model-compile` test 2 |
 | … configured enter/exit animations reach track | COMPLIANT | overlay tests carry `enterAnimation`/`exitAnimation` |
 | ephemeral-overlays REMOVED (`>` blockquote, inline overlay) | COMPLIANT | syntax gone from compiler/blueprint |
-| series-script-templates — Series blueprint + L3 Template doc | COMPLIANT | `villabotijos-today/spec_NN.md` + `templates_V_0-1-0_...md` |
+| series-script-templates — Series blueprint + L3 Template doc | COMPLIANT | `example-series/spec_NN.md` + `templates_V_0-1-0_...md` |
 | … script references series template | COMPLIANT | `template::` resolves (compile) |
 | … tone rule lives once | COMPLIANT | `tone`/`sound_tags` on `Series` concept; not restated per element |
 | series-script-templates REMOVED (`{{slot}}`, inline fill-in, placeholder gate) | COMPLIANT | convention absent from new docs/blueprint |
@@ -147,7 +147,7 @@ Statuses: COMPLIANT = covering test/command passed at runtime; PARTIAL = impleme
 
 **PASS WITH WARNINGS**
 
-Reasons: all three binding success criteria from `proposal.md` are met on the happy path (L3 validates; the cocodrilo guion compiles to a manifest from the structured model with template resolution and one track per Scene in order; VUS package/mirror/scripts are deleted). Every runnable deterministic gate that this change touches is green, the legacy-ledger guard passes, and all 14 remaining embedded skill suites pass. The 33 `verify.js` failures and the one skill failure are pre-existing environment (missing `esbuild`/`jsdom`/`ajv`/`typescript`/`sharp`/`minimist`, unbuilt `innfo-core`/`innfo-mcp` `dist`), not caused by this change.
+Reasons: all three binding success criteria from `proposal.md` are met on the happy path (L3 validates; the clip guion compiles to a manifest from the structured model with template resolution and one track per Scene in order; VUS package/mirror/scripts are deleted). Every runnable deterministic gate that this change touches is green, the legacy-ledger guard passes, and all 14 remaining embedded skill suites pass. The 33 `verify.js` failures and the one skill failure are pre-existing environment (missing `esbuild`/`jsdom`/`ajv`/`typescript`/`sharp`/`minimist`, unbuilt `innfo-core`/`innfo-mcp` `dist`), not caused by this change.
 
 The verdict is not a clean PASS because: (1) a required scenario (`Declared duration is rejected`) is unimplemented and untested; (2) this change left a stale, now-invalid test in `innfo-mcp/src/tools/spec.spec.ts` that still asserts the deleted `vus-spec.mjs` and the retired `video` blueprint; (3) the hierarchy requirement is satisfied by a heuristic rather than the modeled `# NN index`; and (4) the "no markdown re-parse" requirement holds for the compiler but not for the shipped default loader. Issues 1 and 2 are archive blockers and should be resolved before the archive phase; issues 3–4 are documented deviations (DEV-1/DEV-5) that should be accepted explicitly or fixed.
 
@@ -172,8 +172,8 @@ The two archive blockers were resolved and re-checked:
 | WARNING 5 — residue | stale lockfile entry removed; dead brand-purge exclusions + test pruned; published `video-script-skill/spec.md` synced (no VUS) | `brand-purge-guard.test.js` pass; `legacy-ledger-guard.js` 13/25 pass |
 
 Independent re-checks:
-- Success criterion (a): cocodrilo L3 validates (`validate_knowledge` valid=true) — unchanged.
-- Success criterion (b): `remotion-scene-compiler.mjs <cocodrilo> --out …` → `compositionId: el-cocodrilo-de-singapur`, scenes `scene_gancho, scene_intro, scene_noticia` (list order), overlays `kineticTitle, lowerThird, kineticTitle, broll`. No `parseVus`/`innfo-video-parser` import.
+- Success criterion (a): clip L3 validates (`validate_knowledge` valid=true) — unchanged.
+- Success criterion (b): `remotion-scene-compiler.mjs <clip> --out …` → `compositionId: example-clip`, scenes `scene_gancho, scene_intro, scene_noticia` (list order), overlays `kineticTitle, lowerThird, kineticTitle, broll`. No `parseVus`/`innfo-video-parser` import.
 - Success criterion (c): `iNNfo/packages/innfo-video-parser` absent; VUS scripts/mirror deleted (only the grep-assert tests name the forbidden strings).
 
 ### Final verdict: **PASS**
