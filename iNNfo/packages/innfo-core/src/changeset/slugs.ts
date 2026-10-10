@@ -1,23 +1,12 @@
 import { slugify } from '../parser/slug.js'
 import type { ChangeItem } from './types.js'
 import type { ParsedKnowledge } from '../types/index.js'
+import { escapeRegex, extractModelSlug } from './utils.js'
 
 export interface SlugResolutionResult {
   changes: ChangeItem[]
   assignedSlugs: Map<string, string> // proposed -> resolved
   conflictedChanges: Map<string, string> // change.id -> reason
-}
-
-function escapeRegex(str: string): string {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-}
-
-function extractModelSlug(target: string): string {
-  const atIdx = target.indexOf('@')
-  if (atIdx !== -1) {
-    return target.slice(0, atIdx).trim()
-  }
-  return target.trim()
 }
 
 function getClaimedSlugsForModel(

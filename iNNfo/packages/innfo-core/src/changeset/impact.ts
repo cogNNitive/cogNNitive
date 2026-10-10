@@ -1,6 +1,7 @@
 import { slugify } from '../parser/slug.js'
 import type { ChangeItem } from './types.js'
 import type { ParsedKnowledge } from '../types/index.js'
+import { escapeRegex, extractModelSlug } from './utils.js'
 
 export interface CascadedMatrixCell {
   matrixName: string
@@ -19,18 +20,6 @@ export interface IncomingReferenceHit {
 export interface DeleteImpact {
   cascadedCells: CascadedMatrixCell[]
   unresolvedReferences: IncomingReferenceHit[]
-}
-
-function escapeRegex(str: string): string {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-}
-
-function extractModelSlug(target: string): string {
-  const atIdx = target.indexOf('@')
-  if (atIdx !== -1) {
-    return target.slice(0, atIdx).trim()
-  }
-  return target.trim()
 }
 
 /**
