@@ -631,7 +631,13 @@ export async function executeChangesetApply(
 
     const csDoc = parseChangeset(rawChangeset)
 
-    // 3. Verify proposal_sha (tamper detection)
+    // 3. Verify proposal_sha (tamper detection). A draft that arrives WITHOUT a
+    // seal (e.g. the console review export) is stamped at intake: the engine
+    // owns the canonical hash, so producers never duplicate it. A seal that IS
+    // present but does not match the body is a tampered proposal and is rejected.
+    if (!csDoc.frontmatter.proposal_sha) {
+      csDoc.frontmatter.proposal_sha = computeProposalSha(csDoc.changes)
+    }
     if (!verifyProposalSha(csDoc)) {
       return {
         success: false,
@@ -1015,7 +1021,11 @@ export async function executeChangesetApply(
     // Phase 2: Atomic Persistence & Archival (touched models ONLY)
     const stamp = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z'
     const archiveDir = join(rootDir, 'kNNowledge', 'archive')
-    await mkdir(archiveDir, { recursive: true })
+    // No touched model means no snapshot to archive: a mutation-free changeset
+    // (e.g. comment-only) must not leave an empty archive directory behind.
+    if (Array.from(loadedModels.values()).some((entry) => entry.mutated)) {
+      await mkdir(archiveDir, { recursive: true })
+    }
 
     const modelsTransitionMap: Record<string, ModelVersionTransition> = {}
 

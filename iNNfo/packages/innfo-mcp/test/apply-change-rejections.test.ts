@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import { rm, mkdir, writeFile, readFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { applyChange } from '../src/tools/apply-change.js'
-import { computeProposalSha, serializeChangeset } from '@cognnitive/innfo-core'
+import { computeProposalSha, serializeChangeset, parseChangeset, verifyProposalSha } from '@cognnitive/innfo-core'
 import type { ChangesetDocument, ChangeItem } from '@cognnitive/innfo-core'
 
 // Linux-safe rejection paths of the two-phase changeset engine: none of these
@@ -95,6 +95,34 @@ describe('Two-Phase Changeset Rejection Paths (cross-platform)', () => {
     expect(res.success).toBe(false)
     expect(res.status).toBe('rejected')
     expect(res.errors?.some((e) => /Model not found: ghost/.test(e.message))).toBe(true)
+    expect(existsSync(join(knowledgeDir, 'archive'))).toBe(false)
+  })
+
+  it('Unsealed Proposed Changeset: sealed at intake, applies with zero archive footprint', async () => {
+    const csFile = join(changesDir, 'ws_reviewer_unsealed_changes_NN.md')
+    const csDoc = makeChangeset({
+      changes: [
+        {
+          id: 'fb-001',
+          op: 'comment',
+          target: 'strategy@Vision&statement',
+          notes: 'reviewer-note-without-a-seal',
+        },
+      ],
+    })
+    // A producer (e.g. the console review export) that never stamped the draft.
+    csDoc.frontmatter.proposal_sha = ''
+    await writeFile(csFile, serializeChangeset(csDoc), 'utf-8')
+
+    const res = await applyChange(csRoot, 'changes/ws_reviewer_unsealed_changes_NN.md')
+    expect(res.success).toBe(true)
+    expect(res.appliedCount).toBe(0)
+
+    // The seal is written back and validates against the canonical proposal hash.
+    const sealed = await readFile(csFile, 'utf-8')
+    expect(verifyProposalSha(parseChangeset(sealed))).toBe(true)
+
+    // Nothing was mutated, so no archive directory is created.
     expect(existsSync(join(knowledgeDir, 'archive'))).toBe(false)
   })
 

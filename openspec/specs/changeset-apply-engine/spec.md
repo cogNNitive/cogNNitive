@@ -40,7 +40,7 @@ All apply operations MUST acquire a single-writer filesystem lock at `<rootDir>/
 The apply engine MUST execute mutations using a strict two-phase transactional lifecycle:
 
 1. **Phase 1: In-Memory Compute and Validate**:
-   - The engine MUST verify `proposal_sha` via `verifyProposalSha`. Tampered proposals MUST be rejected with `PROPOSAL_TAMPERED`.
+   - The engine MUST seal a changeset whose frontmatter omits `proposal_sha` at intake (compute `computeProposalSha` over the parsed changes and write it back) before verification; a `proposal_sha` that is present but does not match MUST be rejected with `PROPOSAL_TAMPERED`.
    - The engine MUST check preconditions (`from` values). If a target field's current value does not match `from`, the engine MUST reject the change with a `PRECONDITION_FAILED` or `CONFLICT` error.
    - Mutations MUST be applied to in-memory ASTs of target models.
    - For every touched field, the engine MUST rewrite citations to cite the applied change (per `field-citation-provenance` / D20).
@@ -79,6 +79,19 @@ The apply engine MUST execute mutations using a strict two-phase transactional l
 - WHEN `apply_change` evaluates preconditions in Phase 1
 - THEN the transaction aborts with precondition conflict
 - AND no changes are written to disk
+
+#### Scenario: An unsealed proposal is sealed at intake instead of rejected
+- GIVEN a changeset produced by the console review export whose frontmatter has no `proposal_sha`
+- WHEN `apply_change` executes
+- THEN the engine stamps `proposal_sha` with `computeProposalSha` over the parsed changes
+- AND the changeset applies (or fails on its own merits), never with `PROPOSAL_TAMPERED`
+- AND the written-back changeset carries a seal that `verifyProposalSha` accepts
+
+#### Scenario: A mutation-free changeset leaves no archive footprint
+- GIVEN a `comment`-only changeset that touches no model
+- WHEN `apply_change` completes Phase 2
+- THEN the changeset is annotated `status: applied`
+- AND no `kNNowledge/archive/` directory is created (there is no snapshot to archive)
 
 ---
 
