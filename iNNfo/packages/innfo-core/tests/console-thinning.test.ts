@@ -123,7 +123,6 @@ describe('frozen vendored console bundles (not migrated, not guarded)', () => {
   // inlined CSS and must never be swept into the token migration nor scanned
   // by the console-shell guard (which skips /samples/ and /export/).
   const frozen = [
-    join(templatesDir, 'metrics', 'samples', 'Ghostbusters_V_0-1-0_console.html'),
     join(
       templatesDir,
       'procedures',

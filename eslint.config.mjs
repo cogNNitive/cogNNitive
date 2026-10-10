@@ -106,8 +106,8 @@ export default tseslint.config(
   },
 
   {
-    // Node-context config and script files (including template harness
-    // scripts under specs/, e.g. metrics verify.harness.js).
+    // Node-context config and script files (including template-owned
+    // Node scripts under specs/).
     files: ['**/*.config.{js,ts,mjs}', 'scripts/**/*.{js,mjs,ts}', 'iNNfo/specs/**/scripts/**/*.js', '**/*.mjs'],
     languageOptions: {
       globals: {
