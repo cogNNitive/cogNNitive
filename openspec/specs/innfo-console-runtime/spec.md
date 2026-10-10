@@ -45,14 +45,20 @@ The system MUST ship a single versioned `innfo-runtime.js` as a UMD/IIFE global 
 
 ### Requirement: No Duplicated Inline Runtime
 
-The reference assets (`business/assets/model_viewer.html`, `workspace/assets/model_console.html`, `metrics/assets/timeline.html`) MUST thin onto the shell. No console artifact SHALL ship duplicated inline runtime. `workspace/assets/model_console.html` MUST render the origin-typed citation icons and the citation detail dialog defined by the `console-field-citations` capability. `business/assets/model_viewer.html` MUST remain unchanged and reachable from `main` for one release cycle after `workspace/assets/model_console.html` ships, because installed procedures fetch it by that path.
-(Previously: only two reference assets existed — `business/assets/model_viewer.html` and `metrics/assets/timeline.html` — with no citation rendering and no relocation constraint.)
+The reference assets (`business/assets/model_viewer.html`, `workspace/assets/model_console.html`) MUST thin onto the shell. The `timeline` and `procedure` consoles are registered views (see `console-view-registry`), not reference assets: `metrics/assets/timeline.html` and `procedures/assets/procedure_console.html` no longer exist. No console artifact SHALL ship duplicated inline runtime; the bundle appears once per artifact. `workspace/assets/model_console.html` MUST render the origin-typed citation icons and the citation detail dialog defined by the `console-field-citations` capability. `business/assets/model_viewer.html` MUST remain unchanged and reachable from `main` for one release cycle after `workspace/assets/model_console.html` ships, because installed procedures fetch it by that path.
+(Previously: the reference assets were `business/assets/model_viewer.html`, `workspace/assets/model_console.html` and `metrics/assets/timeline.html`, all required to thin onto the shell.)
 
 #### Scenario: Reference assets thinned
 
-- GIVEN the three reference assets after this change
+- GIVEN the two reference assets after this change
 - WHEN scanned for inline runtime markers
 - THEN no duplicated runtime block is found
+
+#### Scenario: Timeline and procedure shells are gone
+
+- GIVEN the bluepriNNt assets after this change
+- WHEN `metrics/assets/` and `procedures/assets/` are listed
+- THEN neither `timeline.html` nor `procedure_console.html` exists
 
 #### Scenario: New workspace-level asset renders citations
 
@@ -65,29 +71,6 @@ The reference assets (`business/assets/model_viewer.html`, `workspace/assets/mod
 - GIVEN an installed procedure referencing `business/assets/model_viewer.html` by its pre-existing path
 - WHEN that procedure runs during the one-cycle transition window
 - THEN the fetch succeeds because the file has not been removed or moved
-
-### Requirement: Exclude Internal Specs and Workspace Root from Model Console Tabs
-
-`ConsoleHubView` MUST filter `modelStore.rootIds` so that only level-3 domain models appear as switchable model console tabs. It MUST NOT render tabs for internal schema/spec nodes (`spec:*`, `template:*`) or the workspace manifest root node (whose console is accessed via the dedicated "Workspace Hub" tab).
-
-#### Scenario: Internal spec node excluded from console tabs
-
-- GIVEN a workspace containing resolved spec roots such as `spec:workspace` or `spec:business`
-- WHEN `ConsoleHubView` evaluates `discoveredModels`
-- THEN no tab is rendered for `spec:workspace` or `spec:business`
-
-#### Scenario: Workspace manifest root excluded from model console tabs
-
-- GIVEN a workspace containing a root node with `type: 'workspace'`, template `workspace`, or source `workspace_NN.md`
-- WHEN `ConsoleHubView` evaluates `discoveredModels`
-- THEN no separate model tab is rendered for the workspace root manifest
-- AND the "Workspace Hub" tab provides the single canonical entrypoint for workspace aggregation deliverables
-
-#### Scenario: Domain model tabs rendered correctly
-
-- GIVEN a workspace containing domain model roots (e.g. `business`, `metrics`, `innovation`)
-- WHEN `ConsoleHubView` evaluates `discoveredModels`
-- THEN a tab is rendered for each concrete domain model allowing the user to view its compiled console
 
 ### Requirement: Console compile procedure relocated to workspace level
 
@@ -108,7 +91,8 @@ The compile procedure file MUST move from `business/procedures/compile_model_vie
 
 ### Requirement: Bundle-Injected Feedback UI
 
-When `needs[]` declares `feedback-export`, `InnfoConsole` MUST inject the banner, export button and modal itself through an idempotent routine, creating one `[data-innfo-feedback-root]` with `#innfo-feedback-banner`, `#innfo-feedback-open` and `#innfo-feedback-modal`. It MUST read `needs[]` from the DOM so boot order does not matter. Shells MUST NOT need feedback markup; the old `#innfo-banner`, `#innfo-export-open` and `#innfo-export-modal` markup and CSS MUST be removed from `artifact_shell.html` and `metrics/assets/timeline.html`. Injection MUST happen once even if the bundle boots more than once, MUST work offline via `file://`, and MUST NOT use `fetch` or `type=module`. The new ids MUST NOT clash with the procedure stepper's `#innfo-export-modal`. Styling MUST be minimal CSS classes.
+When `needs[]` declares `feedback-export`, `InnfoConsole` MUST inject the banner, export button and modal itself through an idempotent routine, creating one `[data-innfo-feedback-root]` with `#innfo-feedback-banner`, `#innfo-feedback-open` and `#innfo-feedback-modal`. It MUST read `needs[]` from the DOM so boot order does not matter. Shells MUST NOT need feedback markup; the old `#innfo-banner`, `#innfo-export-open` and `#innfo-export-modal` markup and CSS MUST be removed from `artifact_shell.html` (the timeline shell no longer exists). Injection MUST happen once even if the bundle boots more than once, MUST work offline via `file://`, and MUST NOT use `fetch` or `type=module`. The new ids MUST NOT clash with any other dialog in the page: the procedure view's step-log dialog MUST be scoped to its own container and MUST NOT use `#innfo-export-modal`. Styling MUST be minimal CSS classes.
+(Previously: the markup was removed from `artifact_shell.html` and `metrics/assets/timeline.html`, and the ids were required not to clash with the procedure stepper's own `#innfo-export-modal`.)
 
 #### Scenario: Canonical console gains feedback unchanged
 
@@ -122,11 +106,12 @@ When `needs[]` declares `feedback-export`, `InnfoConsole` MUST inject the banner
 - WHEN the page loads
 - THEN exactly one feedback root, one banner and one export button exist
 
-#### Scenario: No clash with the stepper
+#### Scenario: No clash with the procedure view
 
-- GIVEN a procedure console that has its own `#innfo-export-modal`
+- GIVEN a domaiNN console whose `procedure` view has a step-log dialog
 - WHEN the feedback UI is injected
-- THEN both dialogs coexist with distinct ids
+- THEN both dialogs coexist with distinct ids and no id appears twice in the document
+- AND the log dialog does not use `#innfo-export-modal`
 
 ### Requirement: Needs Registry Without Feedback Anchors
 
