@@ -127,8 +127,8 @@ Rejected: Option A (extend the blueprint to re-admit `Sources`/`Procedures`/
 `Artifacts`/`Skills`/`Tools`) — it reverses the deliberate 10→3 simplification
 and carries a larger, distributed blast radius.
 
-### Remaining open question
+### Folder name
 
-- **Folder name.** `cogNNitive_NN/` (maintainer) collides cognitively with the
-  frozen blueprint name; alternatives `ecosystem_NN/` or keep `workspace_NN/`.
-  Orthogonal to the schema decision; settle at rename time.
+Resolved: **`ecosystem_NN/`**. It matches the domaiNN's declared identity
+(`name:: cogNNitive Ecosystem`) and avoids naming the container after a frozen
+blueprint (`cogNNitive`).

@@ -32,7 +32,7 @@ container schema. No `cogNNitive` model is added. See `exploration.md` F1.
 
 | Slice | Deliverable |
 |---|---|
-| S1 Rename | `git mv workspace_NN/ cogNNitive_NN/`; update `eslint.config.mjs:29` and documentary references. Zero behavioural change. |
+| S1 Rename | `git mv workspace_NN/ ecosystem_NN/`; update `eslint.config.mjs:29` and documentary references. Zero behavioural change. |
 | S2 Blueprint | Add the `bluepriNNts` concept to `iNNfo/specs/bluepriNNts/domaiNN/spec_NN.md`; bump its version; regenerate `catalog.json`; update affected tests. |
 | S3 Root canonicalization | Migrate the roots that declare `domaiNN` (the dogfooding root + the four docs use-cases) onto the canonical concepts: apply the `language-map` mapping (`Workspace→domaiNN`, `Models→kNNowledge`, `Templates→bluepriNNts`), re-home the `sources`/`procedures`/`artifacts` catalog pointers as `# NN kNNowledge` entries, and drop `Specs`/`Skills`/`Tools` (their content lives in `Capabilities_Catalog`, `UseCases_Catalog`, and the repository model). Drive every `CONCEPT_DRIFT_WARNING` to zero. |
 
@@ -75,8 +75,8 @@ through design. The four use-cases are logically identical to the dogfooding roo
 
 | Area | Impact |
 |---|---|
-| `workspace_NN/` → `cogNNitive_NN/` | Renamed |
-| `cogNNitive_NN/domaiNN_NN.md` | Re-authored to canonical concepts |
+| `workspace_NN/` → `ecosystem_NN/` | Renamed |
+| `ecosystem_NN/domaiNN_NN.md` | Re-authored to canonical concepts |
 | `docs/cognitive_nn/use-cases/{consulting-sales,freelance-designer,startup-founder,youtube-creator}/domaiNN_NN.md` | Re-authored to canonical concepts |
 | `iNNfo/specs/bluepriNNts/domaiNN/spec_NN.md` | New `bluepriNNts` concept + version bump |
 | `iNNfo/specs/bluepriNNts/catalog.json` | Regenerated |
@@ -109,7 +109,4 @@ previous `domaiNN_NN.md` files. No runtime behaviour changes.
 2. **`Skills`/`Tools`.** Dropped from the root; inventory lives in the ecosystem's kNNowledge models.
 3. **`bluepriNNts`.** Added as a `domaiNN` concept (the migrator already emits it).
 4. **Scope.** The change spans the blueprint + all five `domaiNN`-declaring roots; frozen-`workspace` roots are a follow-up.
-
-## Open question (design)
-
-- Folder name: `cogNNitive_NN/` (maintainer) vs `ecosystem_NN/` vs keep `workspace_NN/`.
+5. **Folder name.** `ecosystem_NN/` — matches the domaiNN's declared identity (`name:: cogNNitive Ecosystem`), follows the `<noun>_NN` convention, and avoids the cognitive collision with the frozen `cogNNitive` blueprint and the redundant `cogNNitive/cogNNitive_NN/` path.
