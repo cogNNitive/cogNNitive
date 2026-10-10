@@ -158,7 +158,7 @@ describe('innfo-console — export gate', () => {
 
     const openBtn = (document.getElementById('innfo-feedback-open') || document.getElementById('innfo-export-open'))!
     openBtn.dispatchEvent(new Event('click', { bubbles: true }))
-    const download = (document.querySelector('#innfo-feedback-modal [data-innfo="download"]') || document.querySelector('#innfo-export-modal [data-innfo="download"]'))!
+    const download = (document.querySelector('#innfo-feedback-modal [data-innfo="download-changeset"]') || document.querySelector('#innfo-export-modal [data-innfo="download-changeset"]'))!
 
     download.dispatchEvent(new Event('click', { bubbles: true }))
     expect(downloads).toEqual([])
@@ -194,7 +194,7 @@ describe('innfo-console — export gate', () => {
     const openBtn = (document.getElementById('innfo-feedback-open') || document.getElementById('innfo-export-open'))!
     openBtn.dispatchEvent(new Event('click', { bubbles: true }))
     typeInto('#innfo-feedback-modal [data-innfo="identifier"], #innfo-export-modal [data-innfo="identifier"]', 'Reviewer, primera revisión')
-    const download = (document.querySelector('#innfo-feedback-modal [data-innfo="download"]') || document.querySelector('#innfo-export-modal [data-innfo="download"]'))!
+    const download = (document.querySelector('#innfo-feedback-modal [data-innfo="download-changeset"]') || document.querySelector('#innfo-export-modal [data-innfo="download-changeset"]'))!
     download.dispatchEvent(new Event('click', { bubbles: true }))
 
     expect(downloads).toHaveLength(1)

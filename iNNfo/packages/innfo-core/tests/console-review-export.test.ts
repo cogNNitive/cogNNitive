@@ -112,16 +112,16 @@ describe('console-review-export (preview + clipboard)', () => {
     boot()
     openModal()
     const download = env.document.querySelector(
-      '#innfo-feedback-modal [data-innfo="download"]',
+      '#innfo-feedback-modal [data-innfo="download-changeset"]',
     ) as HTMLButtonElement
     const copy = env.document.querySelector(
-      '#innfo-feedback-modal [data-innfo="copy"]',
+      '#innfo-feedback-modal [data-innfo="copy-changeset-prompt"]',
     ) as HTMLButtonElement
     expect(download.disabled).toBe(true)
     expect(copy.disabled).toBe(true)
   })
 
-  it('clipboard writeText receives exactly the export JSON', () => {
+  it('clipboard writeText receives the changeset prompt', () => {
     seedDraft()
     boot()
     const writeText = vi.fn().mockResolvedValue(undefined)
@@ -135,14 +135,14 @@ describe('console-review-export (preview + clipboard)', () => {
     idInput.dispatchEvent(new env.window.Event('input', { bubbles: true }))
 
     const copy = env.document.querySelector(
-      '#innfo-feedback-modal [data-innfo="copy"]',
+      '#innfo-feedback-modal [data-innfo="copy-changeset-prompt"]',
     ) as HTMLButtonElement
     copy.dispatchEvent(new env.window.Event('click', { bubbles: true }))
 
     expect(writeText).toHaveBeenCalledTimes(1)
     const text = writeText.mock.calls[0][0]
-    expect(text).toContain('"base_hash"')
-    expect(text).not.toContain('"status"')
+    expect(text).toContain('## NN Change: fb-001')
+    expect(text).not.toContain('"base_hash"')
     const status = env.document.querySelector('#innfo-feedback-modal [data-innfo="copy-status"]')!
     expect(status.getAttribute('role')).toBe('status')
   })
@@ -162,7 +162,7 @@ describe('console-review-export (preview + clipboard)', () => {
     idInput.dispatchEvent(new env.window.Event('input', { bubbles: true }))
 
     const copy = env.document.querySelector(
-      '#innfo-feedback-modal [data-innfo="copy"]',
+      '#innfo-feedback-modal [data-innfo="copy-changeset-prompt"]',
     ) as HTMLButtonElement
     expect(() => copy.dispatchEvent(new env.window.Event('click', { bubbles: true }))).not.toThrow()
     expect(execCommand).toHaveBeenCalled()
@@ -182,9 +182,8 @@ describe('console-review-export (preview + clipboard)', () => {
     idInput.dispatchEvent(new env.window.Event('input', { bubbles: true }))
 
     const textarea = env.document.querySelector(
-      '#innfo-feedback-modal [data-innfo="export-json"]',
+      '#innfo-feedback-modal [data-innfo="changeset-preview"]',
     ) as HTMLTextAreaElement
-    expect(textarea.getAttribute('data-innfo-changeset')).toBe('true')
     expect(textarea.value).toContain('parent_spec: "changes"')
     expect(textarea.value).toContain('## NN Change: fb-001')
     expect(textarea.value).toContain('op:: update_field')
@@ -194,25 +193,4 @@ describe('console-review-export (preview + clipboard)', () => {
     expect(() => JSON.parse(textarea.value)).toThrow()
   })
 
-  it('the legacy JSON export (hidden actions) still carries base_hash and no status', () => {
-    seedDraft()
-    boot()
-    const writeText = vi.fn().mockResolvedValue(undefined)
-    vi.stubGlobal('navigator', { clipboard: { writeText } })
-    openModal()
-    const idInput = env.document.querySelector(
-      '#innfo-feedback-modal [data-innfo="identifier"]',
-    ) as HTMLInputElement
-    idInput.value = 'Egon Spengler'
-    idInput.dispatchEvent(new env.window.Event('input', { bubbles: true }))
-
-    const copy = env.document.querySelector(
-      '#innfo-feedback-modal [data-innfo="copy"]',
-    ) as HTMLButtonElement
-    copy.dispatchEvent(new env.window.Event('click', { bubbles: true }))
-
-    const doc = JSON.parse(writeText.mock.calls[0][0])
-    expect(doc.items[0].base_hash).toBe('abcdef0123456789')
-    expect('status' in doc.items[0]).toBe(false)
-  })
 })
