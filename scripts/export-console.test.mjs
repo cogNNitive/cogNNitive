@@ -158,6 +158,52 @@ level: 3
       assert.equal(element.fields.tagline, "They REJECTED $1M. Today They're Bankrupt")
     })
 
+    it('embeds changeset lineage (element.history) from changes/*_changes_NN.md', async () => {
+      await mkdir(join(tempDir, 'changes'), { recursive: true })
+      await writeFile(
+        join(tempDir, 'changes', 'business_reviewer_20260101T000000Z_changes_NN.md'),
+        `---
+spec_version: "V_0-4-0"
+parent_spec: "changes"
+blueprint_version: "0.1.0"
+status: applied
+title: "Review"
+author: "reviewer"
+applied_at: "2026-01-01T00:00:00.000Z"
+---
+
+# NN index
+
+* [[Change]]
+
+# NN Change
+
+## NN Change: fb-001
+op:: comment
+target:: Business Model@Enterprise Customer&tagline
+notes:: "Please review the tagline"
+`,
+        'utf-8',
+      )
+
+      const res = await runCli([tempDir, 'business'])
+      assert.equal(res.code, 0)
+      const htmlContent = await readFile(consoleHtml(tempDir, 'business_V_0-2-5'), 'utf-8')
+      const jsonMatch = htmlContent.match(
+        /<script type="application\/json" id="innfo-model">([\s\S]*?)<\/script>/,
+      )
+      assert.ok(jsonMatch, 'innfo-model slot exists')
+      const modelJson = JSON.parse(jsonMatch[1])
+      const element = modelJson.elements.find((e) => e.name === 'Enterprise Customer')
+      assert.ok(element, 'fixture element exists')
+      assert.ok(Array.isArray(element.history) && element.history.length === 1, 'history attached')
+      assert.equal(element.history[0].id, 'fb-001')
+      assert.equal(element.history[0].op, 'comment')
+      assert.equal(element.history[0].author, 'reviewer')
+      assert.equal(element.history[0].notes, 'Please review the tagline')
+      assert.equal(element.history[0].timestamp, '2026-01-01T00:00:00.000Z')
+    })
+
     it('reports status tags correctly with --status in read-only mode', async () => {
       // Initially all are uncompiled
       let res = await runCli([tempDir, '--status'])

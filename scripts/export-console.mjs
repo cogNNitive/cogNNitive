@@ -570,6 +570,12 @@ async function main() {
     }
   }
 
+  // Changeset lineage: read changes/*_changes_NN.md so each element can carry its
+  // `history` in the model slot (the console is static/offline and never reads it).
+  const changesets = payloadHelper.loadChangesetRecords
+    ? await payloadHelper.loadChangesetRecords(root)
+    : []
+
   const resolver = payloadHelper.createFsSourceResolver
     ? payloadHelper.createFsSourceResolver(root)
     : undefined
@@ -615,6 +621,7 @@ async function main() {
         path: relPath,
         resolver,
         ledgerEntries,
+        changesets,
       })
       if (payload && payload.model) {
         const mTitle = (payload.model.meta && (payload.model.meta.title || payload.model.meta.model)) || modelStem
@@ -726,6 +733,7 @@ async function main() {
         schema,
         resolver,
         ledgerEntries,
+        changesets,
         generated,
       })
 

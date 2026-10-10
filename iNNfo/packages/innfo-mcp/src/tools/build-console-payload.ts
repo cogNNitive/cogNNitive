@@ -14,6 +14,7 @@ import {
   parseFeedbackLedger,
   FEEDBACK_LEDGER_FILENAME,
   resolveConsoleSchema,
+  loadChangesetRecords,
 } from '@cognnitive/innfo-core'
 import type { BlueprintSchema, FeedbackVerdictEntry } from '@cognnitive/innfo-core'
 import { findKnowledgeFile } from './spec.js'
@@ -94,12 +95,16 @@ export async function buildConsolePayloadTool(
   // Resolve Citations
   const resolver = createFsSourceResolver(rootDir)
 
+  // Changeset lineage, shared with the CLI exporter so both emit identical slots.
+  const changesets = await loadChangesetRecords(rootDir)
+
   const payload = buildConsolePayload({
     content,
     path: relPath,
     schema,
     resolver,
     ledgerEntries,
+    changesets,
   })
 
   const schemaSlot = serializeConsoleSlot(payload.schema)

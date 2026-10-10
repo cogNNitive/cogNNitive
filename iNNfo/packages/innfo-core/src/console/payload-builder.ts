@@ -21,6 +21,8 @@ import { feedbackStateFor } from './feedback-ledger.js'
 import type { FeedbackVerdictEntry, FeedbackStateItem } from './feedback-ledger.js'
 import { buildConsoleSchemaSlot } from './slot.js'
 import type { ConsoleSchemaSlot } from './slot.js'
+import { attachChangesetHistory } from './element-history.js'
+import type { ChangesetRecord, ElementHistoryItem } from './element-history.js'
 
 export { computeSha256 }
 
@@ -81,6 +83,7 @@ export interface ConsolePayloadElement {
   hash: string
   relations?: ConsolePayloadElementRelation[]
   citations?: Record<string, Omit<ResolvedCitation, 'field'>[]>
+  history?: ElementHistoryItem[]
 }
 
 export interface ConsolePayloadMatrix {
@@ -122,6 +125,7 @@ export interface BuildConsolePayloadOptions {
   schema?: any
   resolver?: SourceResolver
   ledgerEntries?: FeedbackVerdictEntry[]
+  changesets?: ChangesetRecord[]
   generated?: string
 }
 
@@ -159,7 +163,7 @@ export function normalizeModelId(filePath?: string, fallbackTitle?: string): str
  * Builds the canonical 2-slot console payload (schema + model).
  */
 export function buildConsolePayload(options: BuildConsolePayloadOptions): ConsolePayload {
-  const { content, path: modelPath, schema: inputSchema, resolver, ledgerEntries, generated } = options
+  const { content, path: modelPath, schema: inputSchema, resolver, ledgerEntries, changesets, generated } = options
   const rawSha256 = computeSha256(content)
   const parsed = parseKnowledge(content)
   const fm = (parsed.frontmatter || parseFrontmatter(content) || {}) as Record<string, any>
@@ -299,6 +303,9 @@ export function buildConsolePayload(options: BuildConsolePayloadOptions): Consol
   }
 
   const schemaSlot = buildConsoleSchemaSlot(inputSchema, elements)
+  // Attach changeset lineage AFTER the schema slot so the schema is unaffected by
+  // history (only the model slot carries it).
+  attachChangesetHistory(elements, changesets)
   const genTime = generated || new Date().toISOString()
 
   const normalizedSource = modelPath
