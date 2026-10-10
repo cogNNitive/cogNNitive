@@ -13,8 +13,7 @@
     "skipLibCheck": true
   },
   "include": [
-    "scripts/**/*",
-    "skills/**/*"
+    "scripts/**/*"
   ],
   "exclude": [
     "node_modules",
