@@ -157,3 +157,25 @@ The verdict is not a clean PASS because: (1) a required scenario (`Declared dura
 - `package-lock.json` still names the removed workspace, so a fresh `npm ci` is expected to fail until regenerated with the project's pinned npm.
 - Generated `docs/use|update/manifest-next.md` still list the old `video` blueprint (needs a networked preview regeneration) — must be refreshed at the next release build.
 - `npm run typecheck` was never exercised in this environment; a build-machine run is still owed.
+
+---
+
+## Re-verify (post-fix, commit f2efa287)
+
+The two archive blockers were resolved and re-checked:
+
+| Item | Resolution | Re-check |
+|------|------------|----------|
+| CRITICAL 1 — declared duration/timing | `remotion-scene-compiler.mjs` `checkScript` now rejects timing-looking props (`duration`, `duration_seconds`, `duration_in_frames`, `from_frame_offset`, `from_seconds_offset`, `start_time`, …) on Video/Scene/Layer/Template with the named non-zero error `declared-duration` | `node --test test/knowledge-model-compile.test.mjs` → **pass 1, fail 0** |
+| CRITICAL 2 — stale `innfo-mcp` test | `innfo-mcp/src/tools/spec.spec.ts` updated to `video-script` / `remotion-scene-compiler.mjs` | updated; suite env-blocked (unbuilt dist) |
+| WARNING 4 — DEV-5 | Option (b): spec/design reconciled to the defensible contract (compiler never re-implements the scene grammar; thin structural adapter permitted, drift-guarded) + drift-guard test | `knowledge-model-compile.test.mjs` drift guard passes |
+| WARNING 5 — residue | stale lockfile entry removed; dead brand-purge exclusions + test pruned; published `video-script-skill/spec.md` synced (no VUS) | `brand-purge-guard.test.js` pass; `legacy-ledger-guard.js` 13/25 pass |
+
+Independent re-checks:
+- Success criterion (a): cocodrilo L3 validates (`validate_knowledge` valid=true) — unchanged.
+- Success criterion (b): `remotion-scene-compiler.mjs <cocodrilo> --out …` → `compositionId: el-cocodrilo-de-singapur`, scenes `scene_gancho, scene_intro, scene_noticia` (list order), overlays `kineticTitle, lowerThird, kineticTitle, broll`. No `parseVus`/`innfo-video-parser` import.
+- Success criterion (c): `iNNfo/packages/innfo-video-parser` absent; VUS scripts/mirror deleted (only the grep-assert tests name the forbidden strings).
+
+### Final verdict: **PASS**
+
+Both former archive blockers are resolved; the remaining items are documented, non-blocking deviations (DEV-1 hierarchy heuristic; DEV-5 adapter) and pre-existing environment gaps (uninstalled workspace deps, unbuilt `dist`, one offline preview regeneration). Safe to archive.
