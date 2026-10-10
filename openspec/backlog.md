@@ -569,13 +569,13 @@ and whether it best fits **Projects** (built on the SDK) vs **Agents**/**Plugins
 
 ## `chore/trannsform-xlsx-vulnerability` — `xlsx` (SheetJS) ships two highs with no patched version on npm
 
-**Type:** security / chore · **Size:** small-medium · **Status:** open
+**Type:** security / chore · **Size:** small-medium · **Status:** resolved (2026-10-10, option b)
 
 **Why:** `skills/nn-trannsform/package.json` depends on `xlsx@^0.18.5`, which carries two open **high** advisories with **no fixed version on the npm registry**: CVE-2023-30533 (prototype pollution) and CVE-2024-22363 (ReDoS). SheetJS distributes current releases from its own CDN, not npm, so `npm audit fix` and any version bump inside the registry **cannot** clear them. `nn-trannsform` reads user-supplied `.xlsx` sources, so untrusted input reaches this code — it is a **production** dependency, not dev tooling.
 
 **Audit context (2026-10-01):** Dependabot flagged 29 alerts on `main`; the other 27 were dev/test tooling (`vitest`, `happy-dom`, `vite`, `esbuild`, `dompurify`, `@xmldom/xmldom`) and were addressed that day (criticals 3→0; `@xmldom` override in `nn-trannsform`; `dompurify` floor raised). Two residuals remain, both **dev-only**: `@vitest/mocker` path traversal (GHSA-82fw-gwwq-j7x9) needs `vitest@5` (major); and the hoisted `vite`/`esbuild` highs/moderates are non-breaking-fixable via `npm audit fix`. `xlsx` is the only one that needs a **product decision**.
 
-**Approach (open):** pick one — (a) migrate to the maintained fork (`@e965/xlsx`); (b) install the official SheetJS tarball from `cdn.sheetjs.com` (drops the npm-registry dependency source); (c) keep `xlsx` and mitigate at the trust boundary (row/size caps + parse in a worker/sandbox). Decide before the next `nn-trannsform` release.
+**Resolved (2026-10-10, option b):** the migration landed together with the `nn-trannsform` -> `nn-sources` rename. `skills/nn-sources/package.json` now pins `"xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"` (official SheetJS tarball, 0.20.3) and the lockfile resolves the same URL. 0.20.3 is past both advisories (CVE-2023-30533 fixed in 0.19.3; CVE-2024-22363 fixed in 0.20.2), so neither applies. The stale `skills/nn-trannsform/` directory (0 tracked files, only *gitignored* `node_modules`) was removed.
 
 **Suggested trigger:** `/sdd-explore trannsform-xlsx-vulnerability`.
 
@@ -918,3 +918,26 @@ confirm the last warning clears.
 and the root already coexisted with nine such warnings before the change. The only
 interim effect is that consumers resolving the remote blueprint do not recognize
 the `# NN bluepriNNts` section.
+
+
+---
+
+## 33. `fix/skills-scripts-typecheck` — restore typechecking of `skills/**` scripts (dead `actioNN` include)
+
+**Type:** fix / chore · **Size:** medium · **Added:** 2026-10-10
+
+**Why:** `tsconfig.scripts.json` (run by `verify.js` → `typecheck-scripts`) still
+included `actioNN/scripts/**` and `actioNN/skills/nn-trannsform/scripts/**` after the
+`actioNN` → `skills` rename, so those globs matched nothing and the skills JS stopped
+being typechecked silently. (The dead includes were removed on 2026-10-10 in PR #150;
+restoring the scope is the remaining work.) Repointing the include to `skills/**/*`
+surfaces **45** `tsc` errors: `skills/nn-sources/**` (e.g.
+`scripts/lib/watch-digest-store.js`, several `test/unit/*`) and `skills/nn-upgrade/**`
+(`scripts/batch-update.js`, plus the imported generated
+`scripts/lib/legacy-migrate.generated.cjs`).
+
+**Behaviour:** restore the include scope (`skills/**/*`) and drive the 45 errors to
+zero — fix the real ones and handle the generated bundle with `// @ts-nocheck` or a
+working exclude; confirm `verify` stays green. Keep `scripts/**/*` checked throughout.
+
+**Suggested trigger:** `/sdd-new skills-scripts-typecheck`.
