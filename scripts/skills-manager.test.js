@@ -680,6 +680,81 @@ agent-bootstrap:
   }
 }
 
+// 11. Referenced external skill install: verify the sha256 tree digest before the
+//     atomic swap. A mismatch must throw and write nothing. Mocks as in block 10.
+{
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'actioNN-test-external-'));
+  const githubClientPath = require.resolve('./lib/github-client.js');
+  const commandsPath = require.resolve('./lib/skills-commands.js');
+  const atomicFsPath = require.resolve('./lib/atomic-fs.js');
+  const realDownload = require(githubClientPath).downloadFile;
+  const realExtract = require(atomicFsPath).extractTarball;
+  const realCommands = require.cache[commandsPath];
+  const { skillTreeDigest } = require('./lib/skill-tree-digest.js');
+
+  const buildRepo = (variant) => {
+    const repoRoot = path.join(tmpDir, `ext-${variant}`);
+    const skill = path.join(repoRoot, 'repo-abc', 'skills', 'ext');
+    fs.mkdirSync(path.join(skill, 'scripts'), { recursive: true });
+    fs.writeFileSync(path.join(skill, 'SKILL.md'), `---\nname: ext\n---\n# ext ${variant}\n`, 'utf-8');
+    fs.writeFileSync(path.join(skill, 'scripts', 'run.mjs'), `// ${variant}\n`, 'utf-8');
+    return { repoRoot, skillDir: skill };
+  };
+
+  let currentFixture = null;
+  require(githubClientPath).downloadFile = async (url, dest) => { fs.writeFileSync(dest, 'fake', 'utf-8'); };
+  require(atomicFsPath).extractTarball = (tarFile, destDir) => { fs.cpSync(currentFixture, destDir, { recursive: true }); };
+  delete require.cache[commandsPath];
+  const { installSkillAtCommit } = require('./lib/skills-commands.js');
+  const newState = () => ({ skills: {} });
+
+  try {
+    // 11.1 a matching digest installs
+    {
+      const { repoRoot, skillDir } = buildRepo('good');
+      currentFixture = repoRoot;
+      const digest = skillTreeDigest(skillDir);
+      const skillsDir = path.join(tmpDir, 'g', 'skills');
+      const state = newState();
+      await installSkillAtCommit({ name: 'ext', repo: 'o/r', path: 'skills/ext', commit: 'a'.repeat(40), sha256: digest }, skillsDir, state);
+      assert.ok(fs.existsSync(path.join(skillsDir, 'ext', 'SKILL.md')), 'matching digest must install');
+      console.log('✔ external skill installs when the digest matches');
+    }
+
+    // 11.2 a mismatched digest throws and writes nothing
+    {
+      const { repoRoot } = buildRepo('bad');
+      currentFixture = repoRoot;
+      const skillsDir = path.join(tmpDir, 'b', 'skills');
+      const state = newState();
+      let caught = null;
+      try {
+        await installSkillAtCommit({ name: 'ext', repo: 'o/r', path: 'skills/ext', commit: 'a'.repeat(40), sha256: 'f'.repeat(64) }, skillsDir, state);
+      } catch (err) { caught = err; }
+      assert.ok(caught && /integrity mismatch/.test(caught.message), 'a digest mismatch must throw');
+      assert.strictEqual(fs.existsSync(path.join(skillsDir, 'ext')), false, 'nothing must be written on mismatch');
+      console.log('✔ digest mismatch writes nothing');
+    }
+
+    // 11.3 no sha256 → commit-only install
+    {
+      const { repoRoot } = buildRepo('nosha');
+      currentFixture = repoRoot;
+      const skillsDir = path.join(tmpDir, 'n', 'skills');
+      const state = newState();
+      await installSkillAtCommit({ name: 'ext', repo: 'o/r', path: 'skills/ext', commit: 'a'.repeat(40) }, skillsDir, state);
+      assert.ok(fs.existsSync(path.join(skillsDir, 'ext', 'SKILL.md')), 'commit-only install must work');
+      console.log('✔ commit-only install works without sha256');
+    }
+  } finally {
+    require(githubClientPath).downloadFile = realDownload;
+    require(atomicFsPath).extractTarball = realExtract;
+    delete require.cache[commandsPath];
+    if (realCommands) require.cache[commandsPath] = realCommands;
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+}
+
 // ADR / Monorepo release manifest fallback URL agreement test
 {
   const { FALLBACK_MANIFEST_URL: smFallback } = require('./lib/skills-commands.js');

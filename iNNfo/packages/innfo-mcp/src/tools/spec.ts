@@ -841,6 +841,11 @@ export async function discoverTransitiveAssets(
             repo: String(s.repo ?? ''),
             path: String(s.path ?? ''),
             source_template: s.source_template ? String(s.source_template) : item.docName,
+            ...(s.commit ? { commit: String(s.commit) } : {}),
+            ...(s.ref ? { ref: String(s.ref) } : {}),
+            ...(s.sha256 ? { sha256: String(s.sha256) } : {}),
+            ...(s.license ? { license: String(s.license) } : {}),
+            ...(s.distribution ? { distribution: s.distribution as 'referenced' | 'vendored' } : {}),
           })
         }
       }

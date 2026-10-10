@@ -139,6 +139,18 @@ if (!consoleBundleResult.ok) {
 }
 console.log('  ✅ Console bundle is fresh and matches sources.');
 
+// Step 2g: Blueprint External-Skill Policy Guard
+console.log('\n[Group 2g] Blueprint External-Skill Policy Guard:');
+const { collectExternalSkillViolations } = require('./manifest/lib/external-skill-policy.js');
+const externalSkillResult = collectExternalSkillViolations(repoRoot);
+externalSkillResult.warnings.forEach(w => console.log(`  ⚠️ ${w}`));
+if (externalSkillResult.errors.length) {
+  console.error('❌ Blueprint external-skill policy failed:');
+  externalSkillResult.errors.forEach(err => console.error(`  - ${err}`));
+  process.exit(1);
+}
+console.log(`  ✅ Referenced external skills satisfy the pin/license policy (${externalSkillResult.checked} checked).`);
+
 // Step 3: Full Deterministic Workspace Verification (verify.js)
 console.log('\n[Groups 3, 4, 7+] Workspace Verification Suite:');
 if (!runVerification({ release: isRelease })) {

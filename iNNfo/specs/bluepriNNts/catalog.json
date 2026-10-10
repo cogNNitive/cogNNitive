@@ -99,10 +99,10 @@
     },
     "domaiNN": {
       "name": "domaiNN",
-      "adopted": "V_0-2-0",
+      "adopted": "V_0-3-0",
       "versions": [
         {
-          "blueprint_version": "V_0-2-0",
+          "blueprint_version": "V_0-3-0",
           "spec_version": "V_0-3-0",
           "title": "DomaiNN Blueprint",
           "url": "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/domaiNN/spec_NN.md"

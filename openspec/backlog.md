@@ -1344,3 +1344,29 @@ merge commit `827ed67f`). Both producers now share one `innfo-core` resolution p
 `resolveBlueprintPackage` + unversioned L2 Tier-1); `listBlueprintProcedures`/`visual-catalog`
 green; golden-parity passes (non-derived guard). Specs synced; change archived under
 `openspec/changes/archive/2026-10-09-console-schema-parity/`.
+
+---
+
+## 32. `chore/domaiNN-blueprint-publish` — publish the `domaiNN` blueprint (with `bluepriNNts`) so the dogfooding root validates drift-free
+
+**Type:** chore · **Size:** small · **Status:** open · **Refs:** `2026-10-10-domaiNN-root-canonicalization` (commit `103ee795`)
+
+**Why:** the `domaiNN` root-canonicalization change (direction B) added a
+`bluepriNNts` concept to `iNNfo/specs/bluepriNNts/domaiNN/spec_NN.md` (bumped
+`blueprint_version` V_0-2-0 → V_0-3-0) and migrated the five `domaiNN`-declaring
+roots onto the canonical concepts. The four `docs/cognitive_nn/use-cases/*` roots
+now validate with zero `CONCEPT_DRIFT_WARNING`. The dogfooding root
+(`ecosystem_NN/domaiNN_NN.md`) keeps exactly one: `bluepriNNts` is "not defined in
+template", because every root resolves `parent_spec.url` against `cogNNitive-web`,
+whose published `domaiNN` blueprint still lacks the concept.
+
+**Action:** ship the edited blueprint via a **`blueprints-v*`** release
+(`release.yml` syncs `iNNfo/specs/bluepriNNts/*/spec_NN.md` to `cogNNitive-web`).
+A release of any other family (`innfo-mcp-v*`, `skills-v*`, …) does NOT publish
+the specs. After the release, re-run `validate_knowledge` on `ecosystem_NN/` and
+confirm the last warning clears.
+
+**Note:** non-blocking — the warning is `severity: "warning"` with `valid: true`,
+and the root already coexisted with nine such warnings before the change. The only
+interim effect is that consumers resolving the remote blueprint do not recognize
+the `# NN bluepriNNts` section.
