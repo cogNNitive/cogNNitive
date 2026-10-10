@@ -398,10 +398,9 @@ have held anyway: it read its "before" baseline from `git show HEAD:<the same fi
 from the commit after it landed it compared the file against itself and could never fail.
 Rebuild the bar instead of restoring it — capture the baseline from a ref that is actually
 older than the change (a tag, or the merge-base), never from `HEAD` of the file under test.
-The working harnesses to build on are `innfo-core/tests/console-dom.test.ts` (boots the
-runtime under happy-dom, no browser) and `metrics-console-harness.test.ts` (real
-Chromium `file://` render via `specs/templates/metrics/scripts/verify.harness.js`;
-Windows-only Chrome discovery, so it skips on CI).
+The working harness to build on is `innfo-core/tests/console-dom.test.ts` (boots the
+runtime under happy-dom, no browser). A real Chromium `file://` render could be added
+later with Windows-only Chrome discovery that skips on CI.
 
 **Suggested trigger:** `/sdd-explore console-domain-renderers`.
 

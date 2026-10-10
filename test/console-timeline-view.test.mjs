@@ -53,17 +53,25 @@ describe('metrics timeline view (bluepriNNt)', () => {
     assert.equal(typeof def.mount, 'function')
   })
 
-  it('renders the projection of the model into a host and opens the shared modal on a row edit', () => {
+  it('derives the timeline projection from the payload elements and opens the shared modal on a row edit', () => {
     const def = loadView()
     const ctx = {
       container,
-      payload: { models: [{ title: 'Metrics', projection: { rows: [{ id: 'metrics-revenue' }], months: 36 } }] },
+      payload: {
+        model: {
+          elements: [
+            { id: 'scenario-1', concept: 'Scenario', name: 'Year 1', fields: { scenarioMonths: '36' }, modelId: 'm1', modelTitle: 'Metrics' },
+            { id: 'metrics-revenue', concept: 'Metrics', name: 'Revenue', fields: { metricValue: '100', metricType: 'revenue', metricUnit: 'USD' }, relations: [], modelId: 'm1', modelTitle: 'Metrics' },
+          ],
+        },
+      },
       modal: { edit: (anchor) => edits.push(anchor) },
     }
     def.mount(ctx)
 
     assert.equal(gridCalls.length, 1)
-    assert.deepEqual(gridCalls[0].model, { rows: [{ id: 'metrics-revenue' }] })
+    assert.equal(gridCalls[0].model.rows.length, 1)
+    assert.equal(gridCalls[0].model.rows[0].id, 'metrics-revenue')
     assert.deepEqual(gridCalls[0].meta, { months: 36 })
     container.querySelector('.innfo-edit-btn').click()
     assert.deepEqual(edits, [{ elementId: 'metrics-revenue' }])
@@ -71,7 +79,11 @@ describe('metrics timeline view (bluepriNNt)', () => {
 
   it('shows an empty state when no model carries a projection, without calling the renderer', () => {
     const def = loadView()
-    const ctx = { container, payload: { models: [{ title: 'Business' }] }, modal: { edit() {} } }
+    const ctx = {
+      container,
+      payload: { model: { elements: [{ id: 'x', concept: 'Stakeholders', name: 'Bob', fields: {} }] } },
+      modal: { edit() {} },
+    }
     def.mount(ctx)
     assert.equal(gridCalls.length, 0)
     assert.match(container.textContent, /No timeline projection/)
