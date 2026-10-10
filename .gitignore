@@ -82,3 +82,7 @@ temp/
 skills/nn-sources/config.json
 # verify.js per-step logs
 .verify-logs/
+
+# Generated console artifacts inside the sample domain (regenerate with scripts/export-console.mjs)
+_samples_nn/domaiNN_console.html
+_samples_nn/artifacts/*_console/
