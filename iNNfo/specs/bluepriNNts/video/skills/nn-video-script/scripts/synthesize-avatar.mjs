@@ -30,7 +30,8 @@ import { fileURLToPath } from 'node:url';
 import { AssetSynthesizer, BillingFailureError, probeAudioDurationDetailed } from './asset-synthesizer.mjs';
 import { CacheManager } from './cache-manager.mjs';
 import { DEFAULT_MODELS, estimateCallUsd, resolveModelId } from './asset-cost-estimator.mjs';
-import { RemotionSceneCompiler } from './remotion-scene-compiler.mjs';
+import { RemotionSceneCompiler, ScriptValidationError } from './remotion-scene-compiler.mjs';
+import { loadKnowledgeModel, loadTemplateModels } from './lib/knowledge-model.mjs';
 import { APPROVAL_FILENAME, checkApproval } from './lib/plan-approval.mjs';
 import { LOCKS_RELATIVE_DIR, SpendGuard, loadGuard, resolveDefaultCacheDir } from './lib/video-guard.mjs';
 import { assertAudioFresh, collectAvatarJobs } from './lib/avatar-jobs.mjs';
@@ -121,7 +122,11 @@ export async function synthesizeAvatars(o) {
   const makeGuard = (dryRun) =>
     new SpendGuard({ config: loaded.config, root: loaded.root, allowModels, dryRun, approval: checkNow, avatarStaleMs });
 
-  const parsed = new RemotionSceneCompiler({}).parseScript(scriptContent);
+  const compiler = new RemotionSceneCompiler({});
+  const model = o.model || loadKnowledgeModel(scriptPath, { model: o.model, modelPath: o.modelPath });
+  const scriptGuard = compiler.checkScript(model, o);
+  if (!scriptGuard.ok) throw new ScriptValidationError(scriptGuard.errors);
+  const parsed = compiler.lowerKnowledgeModel(model, { templates: o.templates || loadTemplateModels(scriptDir) });
   const sceneFilter = o.scenes?.length ? [...new Set(o.scenes)] : undefined;
   if (sceneFilter) {
     const unknown = sceneFilter.filter((id) => !parsed.scenes.some((s) => s.id === id));

@@ -35,30 +35,39 @@ function makeTempDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'video-engine-cli-test-'));
 }
 
-const sampleScript = `
-//ANYDEO_SPEC: V_0-3-3
-# Video
-- video_title: Neural Network Demo
-- video_fps: 30
+const sampleScript = `---
+spec_version: "V_0-4-0"
+level: 3
+parent_spec:
+  name: "video-script_V_0-1-0"
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/bluepriNNts/video-script/spec_NN.md"
+title: "Neural Network Demo"
+---
 
-# Scenes
+# NN index
 
-## Scene 1: Overview
-@base Intro
-Learn how artificial neural networks process multidimensional vectors.
-- scene_type: chapter_title
-- scene_duration: 3.0
+* [[Video]]
+  * [[Scene]]
+    * [[Layer]]
 
-@@ Title
-- layer_type: text
-- layer_level: 50
-- layer_text_content: "NEURAL NETWORKS"
+# NN Video
 
-## Scene 2: Deep Dive
-@base Architecture
-Layers of interconnected weights extract high-level feature representations.
-- scene_type: image_motion
-- scene_duration: 4.0
+## NN Video: Neural Network Demo
+slug:: neural-network-demo
+title:: Neural Network Demo
+
+# NN Scene
+
+## NN Scene: Overview
+slug:: overview
+transition:: none
+
+Learn how neural networks process multidimensional input vectors today
+
+## NN Scene: Deep Dive
+slug:: deep-dive
+
+Interconnected weight layers extract high level feature representations
 `;
 
 async function runTests() {
@@ -75,6 +84,7 @@ async function runTests() {
       scriptPath,
       outputPath: manifestPath,
       cacheDir: path.join(tmpDir, 'cache'),
+      synthesizeAssets: false,
     });
 
     assert.ok(fs.existsSync(manifestPath));
@@ -82,7 +92,8 @@ async function runTests() {
     assert.strictEqual(saved.version, '1.0.0');
     assert.strictEqual(saved.compositionId, 'neural-network-demo');
     assert.strictEqual(saved.tracks.scenes.length, 2);
-    assert.strictEqual(saved.totalDurationInFrames, 210); // (3.0 + 4.0) * 30 = 210 frames
+    // No declared duration: derived from narration (9 and 8 words @ 2.5 wps).
+    assert.strictEqual(saved.totalDurationInFrames, 204);
     console.log('✔ Programmatic compilation generates valid manifest and synthesizes audio tracks');
   }
 
@@ -97,14 +108,15 @@ async function runTests() {
       scriptPath,
       outputVideoPath: videoPath,
       cacheDir: path.join(tmpDir, 'cache'),
+      synthesizeAssets: false,
       loadModule: async () => null,
       allowMock: true,
     });
 
     assert.ok(fs.existsSync(videoPath));
     assert.strictEqual(result.outputVideoPath, videoPath);
-    assert.strictEqual(result.totalFrames, 210);
-    assert.strictEqual(result.totalDurationSeconds, 7.0);
+    assert.strictEqual(result.totalFrames, 204);
+    assert.strictEqual(result.totalDurationSeconds, 6.8);
     assert.ok(result.renderTimeMs >= 0);
     console.log('✔ Programmatic render produces master video and summary metrics');
   }

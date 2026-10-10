@@ -44,16 +44,16 @@ Chain strategy: pending
 
 ## Phase 4: Engine re-point to structured iNNfo
 
-- [ ] 4.1 `.../nn-video-script/scripts/remotion-scene-compiler.mjs`: delete `parseVus`/`parseScript`/`parseBlueprintTemplates`/`OVERLAY_EVENT_SPECS`/`extractNarrationAndOverlays`/regex consts; add `read_knowledge`→`{title,fps,width,height,scenes[]}` adapter [capability:cognnitive-video-engine:Programmatic Remotion Scene Compilation]
-- [ ] 4.2 Map `type::`→renderer/manifest kind (design table); one `RemotionSceneTrack` per Scene in list order; overlay text from Layer `text::`, never layer name [capability:cognnitive-video-engine:Programmatic Remotion Scene Compilation]
-- [ ] 4.3 `asset-synthesizer.mjs`/`tts-generator.mjs`: narration←Scene body; voice/model←resolved `template::`; one TTS per narrated Scene; duration from audio w/o FFmpeg [capability:cognnitive-video-engine:Deterministic Media & TTS Asset Synthesis]
-- [ ] 4.4 Schedule `quote`/`lower-third`/`b-roll` Layers by list order with `enter_animation`/`exit_animation` [capability:ephemeral-overlays:Sequential Collision-Free Overlay Scheduling]
-- [ ] 4.5 Test: compile from iNNfo only; grep-assert no `parseVus`/VUS symbol; manifest scenarios pass [capability:cognnitive-video-engine:Programmatic Remotion Scene Compilation]
+- [x] 4.1 `.../nn-video-script/scripts/remotion-scene-compiler.mjs`: delete `parseVus`/`parseScript`/`parseBlueprintTemplates`/`OVERLAY_EVENT_SPECS`/`extractNarrationAndOverlays`/regex consts; add `read_knowledge`→`{title,fps,width,height,scenes[]}` adapter [capability:cognnitive-video-engine:Programmatic Remotion Scene Compilation]
+- [x] 4.2 Map `type::`→renderer/manifest kind (design table); one `RemotionSceneTrack` per Scene in list order; overlay text from Layer `text::`, never layer name [capability:cognnitive-video-engine:Programmatic Remotion Scene Compilation]
+- [x] 4.3 `asset-synthesizer.mjs`/`tts-generator.mjs`: narration←Scene body; voice/model←resolved `template::`; one TTS per narrated Scene; duration from audio w/o FFmpeg [capability:cognnitive-video-engine:Deterministic Media & TTS Asset Synthesis]
+- [x] 4.4 Schedule `quote`/`lower-third`/`b-roll` Layers by list order with `enter_animation`/`exit_animation` [capability:ephemeral-overlays:Sequential Collision-Free Overlay Scheduling]
+- [x] 4.5 Test: compile from iNNfo only; grep-assert no `parseVus`/VUS symbol; manifest scenarios pass [capability:cognnitive-video-engine:Programmatic Remotion Scene Compilation]
 
 ## Phase 5: Pipeline verification
 
-- [ ] 5.1 Compile + render cocodrilo from iNNfo only; assert one track per Scene in list order [capability:video-script-model:Video-Scene-Layer Concept Hierarchy]
-- [ ] 5.2 Test: invalid L3 stops compilation with a named non-zero error before any manifest [capability:cognnitive-video-engine:Programmatic Remotion Scene Compilation]
+- [x] 5.1 Compile + render cocodrilo from iNNfo only; assert one track per Scene in list order [capability:video-script-model:Video-Scene-Layer Concept Hierarchy]
+- [x] 5.2 Test: invalid L3 stops compilation with a named non-zero error before any manifest [capability:cognnitive-video-engine:Programmatic Remotion Scene Compilation]
 
 ## Phase 6: VUS big-bang teardown
 

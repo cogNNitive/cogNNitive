@@ -10,19 +10,18 @@
  */
 
 /**
- * @param {{ properties?: Record<string, any> }} sc Parsed scene
+ * @param {{ properties?: Record<string, any>, resolvedTemplate?: { tool?: string, voice?: string, model?: string } }} sc Lowered scene
  * @param {{ tts?: string }} [models] Explicitly chosen models (a chosen TTS model changes the output, so it joins the key)
  * @returns {Record<string, unknown>}
  */
 export function buildTtsVoiceOptions(sc, models = {}) {
-  const model = sc.properties?.scene_tts_model || 'elevenlabs';
+  // Voice/model come from the resolved `template::` instance, never from a
+  // script-declared field (a script declares no voice or model).
+  const tmpl = sc.resolvedTemplate || (sc.template && typeof sc.template === 'object' ? sc.template : null);
+  const model = tmpl?.model || tmpl?.tool || sc.properties?.scene_tts_model || 'elevenlabs';
   const voiceOptions = {
     model,
-    voice: sc.properties?.[`${model}/voice_id`] || sc.properties?.scene_voice || 'default',
-    speed: sc.properties?.[`${model}/speed`],
-    emotion: sc.properties?.[`${model}/emotion`],
-    pitch: sc.properties?.[`${model}/pitch`],
-    intensity: sc.properties?.[`${model}/intensity`],
+    voice: tmpl?.voice || sc.properties?.scene_voice || 'default',
   };
   for (const k of Object.keys(voiceOptions)) {
     if (voiceOptions[k] === undefined) delete voiceOptions[k];

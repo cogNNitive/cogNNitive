@@ -12,7 +12,8 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { RemotionSceneCompiler } from './remotion-scene-compiler.mjs';
+import { RemotionSceneCompiler, ScriptValidationError } from './remotion-scene-compiler.mjs';
+import { loadKnowledgeModel, loadTemplateModels, parseKnowledgeDocument } from './lib/knowledge-model.mjs';
 import { fileURLToPath } from 'node:url';
 import { computePlanHash, formatStamp } from './lib/plan-approval.mjs';
 import { normalizeModelId } from './lib/video-guard.mjs';
@@ -260,13 +261,18 @@ export function estimateCallUsd(kind, model, units = {}) {
  * @returns {Object} Cost estimation report
  */
 export function estimateScriptCost(scriptContentOrPath, options = {}) {
+  const isPath = fs.existsSync(scriptContentOrPath);
   let scriptContent = scriptContentOrPath;
-  if (fs.existsSync(scriptContentOrPath)) {
+  if (isPath) {
     scriptContent = fs.readFileSync(scriptContentOrPath, 'utf8');
   }
 
   const compiler = new RemotionSceneCompiler(options);
-  const parsed = compiler.parseScript(scriptContent);
+  const model = isPath ? loadKnowledgeModel(scriptContentOrPath) : parseKnowledgeDocument(String(scriptContent));
+  const guard = compiler.checkScript(model, options);
+  if (!guard.ok) throw new ScriptValidationError(guard.errors);
+  const templates = isPath ? loadTemplateModels(path.dirname(scriptContentOrPath)) : {};
+  const parsed = compiler.lowerKnowledgeModel(model, { templates });
   const defaultImageModel = options.defaultImageModel || DEFAULT_MODELS.image;
   const defaultTtsModel = options.defaultTtsModel || DEFAULT_MODELS.tts;
   const defaultAvatarModel = options.defaultAvatarModel || DEFAULT_MODELS.avatar;

@@ -20,7 +20,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import { RemotionSceneCompiler } from './remotion-scene-compiler.mjs';
+import { RemotionSceneCompiler, ScriptValidationError } from './remotion-scene-compiler.mjs';
+import { loadKnowledgeModel, loadTemplateModels } from './lib/knowledge-model.mjs';
 import { CacheManager } from './cache-manager.mjs';
 import { AssetSynthesizer } from './asset-synthesizer.mjs';
 import { SpendGuard, loadGuard, resolveDefaultCacheDir } from './lib/video-guard.mjs';
@@ -398,7 +399,14 @@ export async function compileVideo(options) {
     height: options.height,
   });
 
-  const parsed = compiler.parseScript(scriptContent);
+  // Structured iNNfo model (read_knowledge shape or the equivalent reader) —
+  // never a re-parse of the script markdown. The pre-compile guard runs before
+  // any synthesis so an invalid document never spends a cent.
+  const model = options.model || loadKnowledgeModel(scriptPath, { model: options.model, modelPath: options.modelPath });
+  const guard = compiler.checkScript(model, options);
+  if (!guard.ok) throw new ScriptValidationError(guard.errors);
+  const templates = options.templates || loadTemplateModels(scriptDir);
+  const parsed = compiler.lowerKnowledgeModel(model, { templates, fps: options.fps, width: options.width, height: options.height });
   let audioAssets = {};
   let cachedAssetsUsed = 0;
   let newAssetsSynthesized = 0;
@@ -551,6 +559,10 @@ export async function renderVideo(options) {
       width: options.width,
       height: options.height,
       cacheDir: options.cacheDir,
+      synthesizeAssets: options.synthesizeAssets,
+      model: options.model,
+      modelPath: options.modelPath,
+      templates: options.templates,
       allowModels: options.allowModels,
       approvalPath: options.approvalPath,
       models: options.models,

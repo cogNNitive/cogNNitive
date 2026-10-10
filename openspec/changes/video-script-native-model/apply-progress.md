@@ -90,3 +90,93 @@ blueprint for resolution to work from a clean machine.
 ### Status
 
 10/10 tasks complete for Phases 1–3. Ready for verify (scoped to Phases 1–3).
+
+---
+
+# Apply Progress: video-script-native-model
+
+## Batch: Phases 4–5 (engine re-point + pipeline proof)
+
+**Mode**: Standard.
+**Scope**: Re-point the nn-video-script engine to consume the structured iNNfo model
+instead of the VUS parser; prove the cocodrilo sample compiles to a Remotion
+composition manifest from the model only. VUS big-bang teardown (Phase 6), docs
+(Phase 7), and deterministic gates (Phase 8) are NOT touched in this batch.
+
+### Completed Tasks
+
+- [x] 4.1 `remotion-scene-compiler.mjs`: removed `parseVus` import, `parseScript`, `parseBlueprintTemplates`, `OVERLAY_EVENT_SPECS`, `extractNarrationAndOverlays`, `BLUEPRINT_TEMPLATE_RE`, `DOMAIN_BLUEPRINT_SPEC`, `resolveBlueprintTemplates`; added `lowerKnowledgeModel()` (structured model → `{title,fps,width,height,scenes[]}`).
+- [x] 4.2 `TYPE_RENDERERS` map (`type::` → renderer/manifest kind) per design table; one `RemotionSceneTrack` per Scene in list order; overlay text from Layer `text::`, never the layer name. `assignLayersToScenes()` derives Layer→Scene ownership from the stable `slug` (DEV-1 reconciliation).
+- [x] 4.3 `lib/tts-options.mjs` reads voice/model from the resolved `template::` instance (never a script field); narration = Scene body prose; cost estimator + synthesize-avatar load the structured model; one TTS per narrated Scene; duration still measured without FFmpeg-from-PATH.
+- [x] 4.4 `quote`/`lower-third`/`b-roll` overlays scheduled into equal, non-overlapping slots by list order, carrying `enter_animation`/`exit_animation`.
+- [x] 4.5 `test/knowledge-model-compile.test.mjs`: compiles cocodrilo from the iNNfo model only; grep-asserts the engine imports no VUS parser/mirror.
+- [x] 5.1 Compiler + CLI compile cocodrilo from the iNNfo model; one track per Scene in list order (asserted).
+- [x] 5.2 `ScriptValidationError` (named, non-zero) stops compilation before any manifest: one-video-per-document, unknown-`type::`, missing-conditional-field, and markdown-not-accepted.
+
+### Files Created / Modified
+
+| File | Action | What |
+|------|--------|------|
+| `.../nn-video-script/scripts/lib/knowledge-model.mjs` | Created | Structural iNNfo L3 reader + `loadKnowledgeModel()` / `loadTemplateModels()` |
+| `.../nn-video-script/scripts/remotion-scene-compiler.mjs` | Modified | VUS parser removed; model adapter, `TYPE_RENDERERS`, `checkScript` guard, sequential overlay scheduling |
+| `.../nn-video-script/scripts/video-engine-cli.mjs` | Modified | Loads the structured model, runs the guard before synthesis; forwards model/templates/synthesizeAssets |
+| `.../nn-video-script/scripts/asset-cost-estimator.mjs` | Modified | Reads the structured model instead of `parseScript` |
+| `.../nn-video-script/scripts/synthesize-avatar.mjs` | Modified | Reads the structured model instead of `parseScript` |
+| `.../nn-video-script/scripts/lib/tts-options.mjs` | Modified | Voice/model resolved from `template::` |
+| `.../nn-video-script/test/scene-compiler.test.mjs` | Rewritten | Model-based unit tests |
+| `.../nn-video-script/test/knowledge-model-compile.test.mjs` | Created | Cocodrilo compile-from-model proof + guard + grep-assert |
+| `.../nn-video-script/test/video-engine-cli.test.mjs` | Modified | L3 fixture; model-based compile/render assertions |
+| `legacy-ledger.yaml` | Modified | Removed the `html-comment-overlays` entry (code + marker deleted) |
+
+### Validation Evidence
+
+| Check | Command | Result |
+|-------|---------|--------|
+| Compiler unit tests | `node test/scene-compiler.test.mjs` | ✅ pass |
+| Model compile proof | `node test/knowledge-model-compile.test.mjs` | ✅ pass (3 scenes in list order; overlays; template voices; sequential no-collision; guard; grep) |
+| CLI integration | `node test/video-engine-cli.test.mjs` | ✅ pass |
+| Cocodrilo → manifest | `node scripts/remotion-scene-compiler.mjs <sample> --out …` | ✅ `compositionId: el-cocodrilo-de-singapur`, scenes `scene_gancho/scene_intro/scene_noticia`, templates resolved |
+| Cost estimator from model | `node scripts/asset-cost-estimator.mjs <sample>` | ✅ plan produced (template TTS model resolved) |
+| Grep VUS symbols | `git grep parseVus\|innfo-video-parser -- <engine modules>` | ✅ no matches (exit 1) |
+| Legacy ledger guard | `node scripts/lib/legacy-ledger-guard.js` | ✅ 13 entries / 25 markers validated |
+
+### Deviations from Design
+
+- **DEV-4 (Layer→Scene ownership)**: the `read_knowledge` `elements` map is grouped by
+  concept with no parent linkage (DEV-1 confirmed). `assignLayersToScenes()` therefore
+  assigns each Layer to the Scene whose `slug` names it (falling back to the
+  document-order preceding Scene). Revisit if the L3 index gains element nesting.
+- **DEV-5 (model source at runtime)**: the skill ships zero-dependency, so the CLI
+  cannot import `@cognnitive/innfo-core`. `lib/knowledge-model.mjs` is a thin
+  structural reader producing the SAME `read_knowledge` shape; it is used only when no
+  canonical `<script>.json` (or `--model`) is supplied. The compiler never parses
+  markdown — it consumes the structured object.
+- **DEV-6 (conditional contract)**: `checkScript` carries a built-in default map
+  mirroring the blueprint's `validation.conditional_fields`; callers may pass the
+  blueprint map to keep the blueprint authoritative when reachable.
+- **Skill location (not moved)**: the authoritative `video-script-skill` spec still
+  pins the skill at `iNNfo/specs/bluepriNNts/video/skills/nn-video-script/`; Phase 6
+  teardown item 6.5 removes the old `video` blueprint `spec_NN.md` and VUS samples,
+  not the skill folder. The skill was therefore NOT relocated.
+
+### Issues Found
+
+- VUS-fixture test suites still fail because their inputs are VUS markdown with no
+  iNNfo `Video` (the guard now rejects them): `compile-gate`, `cost-estimator`,
+  `plan-approval`, `avatar-hardening`, `synthesize-avatar`, `scene-media-types`,
+  `background-music`, `narration-clean`, `overlay-events`, `overlay-render`,
+  `kinetic-title-big`, `probe-duration`. Plus the retired VUS suites
+  (`parser-mirror`, `vus-parse`, `vus-spec-pin`). These are Phase 6 teardown /
+  migration targets — see the teardown inventory in `design.md`.
+- `render-thumbnail.test.mjs` fails on a missing `sharp` package (environmental;
+  workspace deps not installed in this worktree).
+
+### Remaining Tasks (this change)
+
+- [ ] Phase 6: VUS big-bang teardown (delete parser package, mirror, VUS scripts, VUS tests; deregister)
+- [ ] Phase 7: documentation
+- [ ] Phase 8: deterministic gates (`node scripts/verify.js` green after regenerating catalog / manifest / versions)
+
+### Status
+
+6/6 tasks complete for Phases 4–5. Ready for verify (scoped to Phases 4–5).

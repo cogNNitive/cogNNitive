@@ -3,9 +3,13 @@
 /**
  * nn-video-script/scripts/remotion-scene-compiler.mjs
  *
- * Transforms parsed VUS / Markdown video scripts into typed Remotion Composition Manifests.
- * Computes frame-accurate timings, sequence tracks, audio bindings, transitions, and
- * visual overlay tracks (lowerThird, kineticTitle, conceptCallout).
+ * Lowers the structured iNNfo video-script model into a typed Remotion
+ * Composition Manifest. The model comes from innfo-core `read_knowledge` (or the
+ * equivalent structural reader in `lib/knowledge-model.mjs`); this module NEVER
+ * parses script markdown and NEVER invokes the retired VUS parser.
+ *
+ * Computes frame-accurate timings, sequence tracks, audio bindings, transitions,
+ * and visual overlay tracks (lowerThird, kineticTitle, captions, quote, broll).
  *
  * Zero external dependencies. ESM module.
  */
@@ -14,245 +18,124 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import { parse as parseVus } from './lib/innfo-video-parser.generated.mjs';
-
-/**
- * @typedef {Object} StyleTokens Resolved style tokens: style.json < video frontmatter < scene props.
- * @property {string} [fontFamily]
- * @property {string} [captionStyle] "none" | "tiktok" | "karaoke"
- * @property {number} [captionSize]
- * @property {string} [captionHighlight]
- * @property {string} [transition] Default scene transition.
- */
-
-/**
- * @typedef {Object} CaptionsProps
- * @property {string} [style] "tiktok" | "karaoke" | "none"
- * @property {number} [size]
- * @property {string} [highlight]
- * @property {string} [fontFamily]
- */
+import { isKnowledgeModel, slugify } from './lib/knowledge-model.mjs';
 
 /**
  * @typedef {Object} LowerThirdProps
  * @property {string} title
  * @property {string} [subtitle]
- * @property {string} [speakerTag]
- * @property {string} [accentColor]
- * @property {string} [fontFamily]
- * @property {number} [fontSize]
- * @property {string} [textStroke]
- * @property {"bottom-left" | "bottom-right" | "bottom-center"} [position]
- */
-
-/**
- * @typedef {Object} KineticTitleProps
- * @property {string} heading
- * @property {string} [subheading]
- * @property {"dark" | "light" | "accent"} [theme]
- * @property {string} [fontFamily]
- * @property {number} [fontSize]
- * @property {number} [fontWeight]
- * @property {string} [textStroke]
- * @property {"pop" | "typewriter" | "spring-up"} [animationStyle]
- * @property {number} [headingSize] Heading px size (default 88). Setting it enables "big" mode (shadow + wrapping cap).
- * @property {number} [subheadingSize] Subheading px size (default 40).
- * @property {"top" | "center" | "bottom"} [anchor] Vertical placement (default center).
- */
-
-/**
- * @typedef {Object} ConceptCalloutProps
- * @property {string} label
- * @property {string} description
- * @property {string} [icon]
- * @property {string} [highlightColor]
- * @property {string} [fontFamily]
- * @property {number} [fontSize]
+ * @property {string} [position]
  */
 
 /**
  * @typedef {Object} VisualOverlayConfig
  * @property {string} id
- * @property {"lowerThird" | "kineticTitle" | "conceptCallout" | "captions"} type
+ * @property {"lowerThird" | "kineticTitle" | "captions" | "quote" | "broll"} type
  * @property {number} fromFrame
  * @property {number} durationInFrames
- * @property {LowerThirdProps | KineticTitleProps | ConceptCalloutProps} config
+ * @property {string} [enterAnimation]
+ * @property {string} [exitAnimation]
+ * @property {Record<string, unknown>} config
  */
 
-/**
- * @typedef {Object} RemotionLayerProps A layer entry inside `RemotionSceneTrack.props.layers`.
- * @property {string} layer_type "image" | "video" | "talking_avatar" | "text" | ...
- * @property {string} layer_asset_source Bundle-relative media name after staging.
- * @property {number} [layer_level] Paint order (lower first).
- * @property {boolean | "true" | "false"} [layer_muted] Video layers only: mute the clip's own audio. Set to true by compile
- *   for cached avatar clips (narration is a separate Audio track); undefined for every other layer.
- */
-
-/**
- * @typedef {Object} RemotionSceneTrack
- * @property {string} id
- * @property {"chapter_title" | "image_motion" | "kinetic_text" | "concept_diagram" | "split_screen"} sceneType
- * @property {number} fromFrame
- * @property {number} durationInFrames
- * @property {Record<string, unknown>} props
- * @property {{ type: "fade" | "slide-left" | "slide-right" | "wipe" | "none", durationInFrames: number }} [transition]
- */
-
-/**
- * @typedef {Object} AudioTrackBinding
- * @property {string} id
- * @property {string} sceneId
- * @property {string} assetPath
- * @property {number} fromFrame
- * @property {number} durationInFrames
- * @property {number} volume
- * @property {string} sha256
- * @property {"music"} [kind] Set on per-scene background music tracks only.
- * @property {boolean} [loop] Music tracks: loop the file for the scene's duration.
- */
-
-/**
- * @typedef {Object} RemotionCompositionManifest
- * @property {"1.0.0"} version
- * @property {string} compositionId
- * @property {number} fps
- * @property {number} width
- * @property {number} height
- * @property {number} totalDurationInFrames
- * @property {number} totalDurationInSeconds
- * @property {{ scenes: RemotionSceneTrack[], audio: AudioTrackBinding[], overlays: VisualOverlayConfig[] }} tracks
- * @property {{ generator: string, generatedAt: string, scriptSource: string }} metadata
- */
-
-/** Background music volume when a scene declares music but no `scene_background_audio_volume`. */
+/** Background music volume when a scene declares `music::`. */
 export const DEFAULT_BG_MUSIC_VOLUME = 0.2;
 
 /**
- * System default contract for each markdown-native (`>`) overlay kind. A resolved
- * blueprint `@template` / `@broll_template` overrides every field per series.
+ * `type::` → renderer binding (design table). `kind` says whether the Layer is a
+ * drawable scene layer or an ephemeral overlay; `manifest` is the emitted kind.
  */
-const OVERLAY_EVENT_SPECS = {
-  quote: { type: 'quote', template: 'template', defaultSeconds: 3, enter: 'fade-in', exit: 'fade-out' },
-  'lower-third': { type: 'lowerThird', template: 'template', defaultSeconds: 4, enter: 'slide-in-left', exit: 'slide-out-left' },
-  broll: { type: 'broll', template: 'broll_template', defaultSeconds: 4, enter: 'fade-in', exit: 'fade-out' },
+export const TYPE_RENDERERS = {
+  presenter: { kind: 'layer', renderer: 'AvatarFrame', manifest: 'talking_avatar' },
+  background: { kind: 'layer', renderer: 'layer-primitive', manifest: 'background' },
+  'b-roll': { kind: 'overlay', renderer: 'Broll', manifest: 'broll' },
+  title: { kind: 'overlay', renderer: 'KineticTitle', manifest: 'kineticTitle' },
+  'lower-third': { kind: 'overlay', renderer: 'LowerThird', manifest: 'lowerThird' },
+  caption: { kind: 'overlay', renderer: 'Captions', manifest: 'captions' },
+  brand: { kind: 'layer', renderer: 'layer-primitive', manifest: 'image' },
+  quote: { kind: 'overlay', renderer: 'Quote', manifest: 'quote' },
 };
 
-const BLUEPRINT_TEMPLATE_RE = /^#{0,3}\s*@(caption_template|broll_template|template)\b/;
-
-/** Shipped domain video blueprint spec, used as the default template tier. */
-const DOMAIN_BLUEPRINT_SPEC = path.resolve(
-  path.dirname(fileURLToPath(import.meta.url)),
-  '..',
-  '..',
-  '..',
-  'spec_NN.md',
-);
-
 /**
- * Parses `@template` / `@caption_template` / `@broll_template` VUS blocks (and their
- * `- key: value` properties) from blueprint markdown.
- * @param {string} text
- * @returns {Record<string, Record<string, string>>}
+ * Default `type::` → required Fields contract. Mirrors the `video-script`
+ * blueprint's `validation.conditional_fields`; a caller may pass the blueprint's
+ * map through `checkScript(model, { conditionalFields })` so the blueprint stays
+ * the single source of truth when it is reachable.
  */
-export function parseBlueprintTemplates(text) {
-  const templates = {};
-  let current = null;
-  for (const raw of String(text).split(/\r?\n/)) {
-    const line = raw.trim();
-    const head = BLUEPRINT_TEMPLATE_RE.exec(line);
-    if (head) {
-      current = head[1];
-      templates[current] = templates[current] || {};
-      continue;
-    }
-    if (!current) continue;
-    const prop = /^-\s*([a-zA-Z0-9_]+):\s*(.*)$/.exec(line);
-    if (prop) templates[current][prop[1]] = prop[2].trim().replace(/^"|"$/g, '');
-    // A new markdown heading ends the block; prose/blank lines inside it are ignored
-    // so the blueprint's descriptive sentence before the property list is tolerated.
-    else if (/^#/.test(line)) current = null;
+export const DEFAULT_CONDITIONAL_FIELDS = {
+  presenter: ['asset', 'prompt'],
+  background: ['asset', 'prompt'],
+  'b-roll': ['asset', 'prompt'],
+  title: ['text'],
+  'lower-third': ['text'],
+  quote: ['text'],
+  caption: ['text'],
+  brand: ['asset'],
+};
+
+/** Named, non-zero error raised when an L3 document fails the pre-compile guard. */
+export class ScriptValidationError extends Error {
+  /**
+   * @param {Array<{ code: string, message: string }>} errors
+   */
+  constructor(errors) {
+    const list = Array.isArray(errors) ? errors : [{ code: 'invalid', message: String(errors) }];
+    super(`Invalid iNNfo video-script: ${list.map((e) => `${e.code} (${e.message})`).join('; ')}`);
+    this.name = 'ScriptValidationError';
+    this.errors = list;
   }
-  return templates;
 }
 
-/** Field-level merge so a higher-precedence blueprint only overrides declared fields. */
-function mergeBlueprintTemplates(target, source) {
-  for (const [name, fields] of Object.entries(source || {})) {
-    target[name] = { ...(target[name] || {}), ...(fields || {}) };
-  }
-  return target;
+/** Overlay layers sequenced into non-overlapping slots, and their default seconds. */
+const SEQUENTIAL_OVERLAY_TYPES = { quote: 3, 'lower-third': 4, 'b-roll': 4 };
+
+/** Extracts the instance name from a `[[Doc :: Name]]` template reference. */
+function templateRefName(ref) {
+  const m = /\[\[(.*?)\]\]/.exec(String(ref || ''));
+  if (!m) return null;
+  const parts = m[1].split('::');
+  return parts[parts.length - 1].trim() || null;
 }
 
-/** Duration in seconds from `6`, `6s`, or a blueprint default. */
-function eventDurationSeconds(options, spec, blueprint) {
-  const raw = options?.duration ?? blueprint?.duration;
-  if (raw === undefined) return spec.defaultSeconds;
-  const seconds = Number(String(raw).replace(/s$/i, ''));
-  return Number.isFinite(seconds) && seconds > 0 ? seconds : spec.defaultSeconds;
+/** Video vs still by extension (background layers). */
+function isVideoAsset(asset) {
+  return /\.(mp4|webm|mov|mkv|m4v)$/i.test(String(asset || ''));
 }
 
-/** Builds the presentational config for one overlay event kind. */
-function overlayEventConfig(kind, event, blueprint) {
-  const options = event.options || {};
-  const withSource = options.source ? { source: options.source } : {};
-  if (kind === 'lower-third') {
-    return optionalKeys({
-      title: event.payload,
-      subtitle: options.subtitle,
-      position: options.position,
-      ...withSource,
-    });
+/** Internal `layer_type` consumed by the renderer machinery. */
+function internalLayerType(declared, asset) {
+  switch (declared) {
+    case 'presenter':
+      return 'talking_avatar';
+    case 'background':
+      return isVideoAsset(asset) ? 'video' : 'image';
+    case 'brand':
+      return 'image';
+    default:
+      return declared;
   }
-  if (kind === 'broll') {
-    return optionalKeys({
-      assetPath: event.payload,
-      fit: options.fit || blueprint?.fit || 'cover',
-      position: options.position || blueprint?.position || 'bottom',
-      ...withSource,
-    });
-  }
-  return optionalKeys({ text: event.payload, ...withSource });
-}
-
-/** Drops keys whose value is undefined/null/empty-string so optional config never leaks defaults. */
-function optionalKeys(obj) {
-  return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined && v !== null && v !== ''));
 }
 
 /**
- * Splits raw scene prose into spoken narration and overlay hints.
- *  - every `<!-- ... -->` comment (single or multi-line, anywhere) is removed from the narration;
- *  - a comment of the form `overlay: <type> { json }` is returned as an overlay (malformed JSON is dropped);
- *  - the remaining prose is one space-joined line, like the line scanner always produced (so the TTS
- *    cache key does not depend on how the paragraph was wrapped).
- * \param {string} content
- * \returns {{ narration: string, overlays: { type: string, data: Record<string, unknown> }[], legacy: boolean }}
+ * Assigns Layers to Scenes. The L3 `# NN index` cannot carry element nesting
+ * (the validator rejects element entries), so ownership is derived from the
+ * stable `slug`: a Layer belongs to the Scene whose slug names it; an unmatched
+ * Layer falls back to the document-order Scene before it (DEV-1 reconciliation).
  */
-// legacy:video-overlay/html-comment-overlays
-// Quarantined compatibility path for inline HTML overlay directives. Prefer the
-// markdown-native `>` blockquote events parsed by the VUS grammar. Remove once
-// every series script has migrated (see legacy-ledger.yaml).
-export function extractNarrationAndOverlays(content) {
-  const overlays = [];
-  let legacy = false;
-  const stripped = String(content).replace(/<!--([\s\S]*?)-->/g, (_all, inner) => {
-    const m = /^\s*overlay:\s*([A-Za-z0-9_-]+)\s*(\{[\S\s]*\})\s*$/.exec(inner);
-    if (m) {
-      legacy = true;
-      try {
-        overlays.push({ type: m[1], data: JSON.parse(m[2]) });
-      } catch {
-        // malformed hint: dropped, never spoken
-      }
+export function assignLayersToScenes(sceneElements, layerElements) {
+  const sceneSlugs = sceneElements.map((s) => (s.slug || slugify(s.name)).toLowerCase());
+  const buckets = sceneElements.map(() => []);
+  let last = 0;
+  for (const layer of layerElements) {
+    const lslug = (layer.slug || slugify(layer.name)).toLowerCase();
+    let idx = sceneSlugs.findIndex((s) => s && lslug.includes(s));
+    if (idx === -1) idx = sceneSlugs.length > 0 ? last : -1;
+    if (idx >= 0) {
+      last = idx;
+      buckets[idx].push(layer);
     }
-    return ' ';
-  });
-  const narration = stripped
-    .split(/\r?\n/)
-    .map((l) => l.replace(/[ \t]{2,}/g, ' ').trim())
-    .filter(Boolean)
-    .join(' ');
-  return { narration, overlays, legacy };
+  }
+  return buckets;
 }
 
 export class RemotionSceneCompiler {
@@ -270,7 +153,7 @@ export class RemotionSceneCompiler {
     this.height = options.height || 1080;
     this.wordsPerSecond = options.wordsPerSecond || 2.5;
     this.defaultSceneDuration = options.defaultSceneDuration || 5;
-    /** Non-fatal compiler warnings (missing blueprint, deprecated syntax). */
+    /** Non-fatal compiler warnings. */
     this.warnings = [];
   }
 
@@ -281,519 +164,247 @@ export class RemotionSceneCompiler {
   }
 
   /**
-   * Resolves blueprint templates with the documented precedence: the nearest
-   * series `series_blueprint.md` overrides the referenced `video_blueprint`, which
-   * overrides the shipped domain `spec_NN.md`, which overrides the system defaults
-   * baked into OVERLAY_EVENT_SPECS.
-   * @param {string} scriptSource
-   * @param {string} [videoBlueprint] relative path declared via `- video_blueprint:`
-   * @returns {Record<string, Record<string, string>>}
+   * Pre-compile guard: enforces exactly one Video per document and the
+   * `type::` → required-Fields conditional contract. Runs before any lowering,
+   * manifest, or synthesis so an invalid document never spends a cent.
+   * @param {object} model Structured iNNfo model
+   * @param {{ conditionalFields?: Record<string,string[]> }} [options]
+   * @returns {{ ok: boolean, errors: Array<{ code: string, message: string }> }}
    */
-  resolveBlueprintTemplates(scriptSource, videoBlueprint) {
-    const templates = {};
-    const dir = path.dirname(path.resolve(scriptSource || '.'));
-
-    // Domain default tier: the shipped video blueprint (`spec_NN.md`). Applied
-    // first so any referenced or series blueprint overrides it.
-    if (fs.existsSync(DOMAIN_BLUEPRINT_SPEC)) {
-      mergeBlueprintTemplates(templates, parseBlueprintTemplates(fs.readFileSync(DOMAIN_BLUEPRINT_SPEC, 'utf8')));
+  checkScript(model, options = {}) {
+    const errors = [];
+    const elements = model?.elements || {};
+    const videos = elements.Video || [];
+    if (videos.length !== 1) {
+      errors.push({ code: 'one-video-per-document', message: `expected exactly one Video, found ${videos.length}` });
     }
-
-    if (videoBlueprint) {
-      const bpPath = path.isAbsolute(videoBlueprint)
-        ? videoBlueprint
-        : path.resolve(dir, videoBlueprint);
-      if (fs.existsSync(bpPath)) {
-        mergeBlueprintTemplates(templates, parseBlueprintTemplates(fs.readFileSync(bpPath, 'utf8')));
-      } else {
-        this.warn(`video_blueprint "${videoBlueprint}" not found; applying system defaults`);
+    const conditional = options.conditionalFields || DEFAULT_CONDITIONAL_FIELDS;
+    for (const layer of elements.Layer || []) {
+      const type = layer.fields?.type;
+      if (!type) {
+        errors.push({ code: 'layer-type-required', message: `Layer "${layer.name}" has no type::` });
+        continue;
+      }
+      const required = conditional[type];
+      if (!required) {
+        errors.push({ code: 'unknown-layer-type', message: `Layer "${layer.name}" has type:: "${type}"` });
+        continue;
+      }
+      // caption defaults to the owning Scene body: `text` is not strictly required.
+      if (type === 'caption') continue;
+      const hasAny = required.some((field) => {
+        const value = layer.fields?.[field];
+        return value !== undefined && String(value).trim() !== '';
+      });
+      if (!hasAny) {
+        errors.push({
+          code: 'missing-conditional-field',
+          message: `Layer "${layer.name}" (type:: ${type}) requires one of: ${required.join(', ')}`,
+        });
       }
     }
-    const seriesBlueprint = path.join(dir, 'series_blueprint.md');
-    if (fs.existsSync(seriesBlueprint)) {
-      mergeBlueprintTemplates(templates, parseBlueprintTemplates(fs.readFileSync(seriesBlueprint, 'utf8')));
-    }
-    return templates;
+    return { ok: errors.length === 0, errors };
   }
 
   /**
-   * Creates a lowerThird overlay descriptor
-   * @param {Object} params
-   * @param {string} params.id
-   * @param {number} params.fromFrame
-   * @param {number} params.durationInFrames
-   * @param {LowerThirdProps} params.props
-   * @returns {VisualOverlayConfig}
+   * Lowers a structured iNNfo model into the internal
+   * `{ title, fps, width, height, scenes[] }` shape.
+   * @param {object} model read_knowledge-shaped model
+   * @param {{ templates?: Record<string, { tool?: string, voice?: string, model?: string }>, fps?: number, width?: number, height?: number }} [options]
    */
-  createLowerThirdOverlay({ id, fromFrame, durationInFrames, props }) {
+  lowerKnowledgeModel(model, options = {}) {
+    const elements = model?.elements || {};
+    const videos = elements.Video || [];
+    const sceneElements = elements.Scene || [];
+    const layerElements = elements.Layer || [];
+    const templates = options.templates || {};
+    const buckets = assignLayersToScenes(sceneElements, layerElements);
+
+    const scenes = sceneElements.map((sc, i) => {
+      const slug = sc.slug || slugify(sc.name);
+      const sceneId = `scene_${slug}`;
+      const fields = sc.fields || {};
+      const refName = templateRefName(fields.template);
+      const resolvedTemplate = refName && templates[refName] ? { name: refName, ...templates[refName] } : null;
+      const properties = {};
+      if (fields.music) properties.scene_background_audio = fields.music;
+      // Carry the resolved template's model/voice so downstream pricing + TTS
+      // agree without reading any script-declared voice/model field.
+      if (resolvedTemplate) {
+        if (resolvedTemplate.model || resolvedTemplate.tool) properties.scene_tts_model = resolvedTemplate.model || resolvedTemplate.tool;
+        if (resolvedTemplate.voice) properties.scene_voice = resolvedTemplate.voice;
+      }
+
+      const layers = buckets[i].map((layer, j) => this.lowerLayer(layer, sceneId, j));
+      return {
+        id: sceneId,
+        name: sc.name,
+        slug,
+        narration: String(sc.description || '').trim(),
+        template: fields.template || null,
+        resolvedTemplate,
+        transition: fields.transition || null,
+        music: fields.music || null,
+        properties,
+        layers,
+      };
+    });
+
+    const videoEl = videos[0] || {};
+    return {
+      title: videoEl.fields?.title || videoEl.name || model?.frontmatter?.title || 'video',
+      fps: options.fps || this.fps,
+      width: options.width || this.width,
+      height: options.height || this.height,
+      videoProps: {},
+      scenes,
+    };
+  }
+
+  /** Lowers one Layer element into the internal layer shape. */
+  lowerLayer(layer, sceneId, index) {
+    const fields = layer.fields || {};
+    const declared = fields.type;
+    const binding = TYPE_RENDERERS[declared] || { kind: 'layer', manifest: declared };
+    const properties = {
+      layer_type: internalLayerType(declared, fields.asset),
+      layer_asset_source: fields.asset,
+      layer_prompt: fields.prompt,
+      layer_text_content: fields.text,
+      layer_level: fields.level !== undefined ? Number(fields.level) : undefined,
+      layer_position: fields.position,
+    };
+    for (const key of Object.keys(properties)) {
+      if (properties[key] === undefined) delete properties[key];
+    }
+    return {
+      id: `layer_${layer.slug || slugify(layer.name)}`,
+      name: layer.name,
+      slug: layer.slug || slugify(layer.name),
+      type: declared,
+      kind: binding.kind,
+      manifestKind: binding.manifest,
+      text: fields.text,
+      position: fields.position,
+      enterAnimation: fields.enter_animation,
+      exitAnimation: fields.exit_animation,
+      properties,
+      effects: [],
+    };
+  }
+
+  createLowerThirdOverlay({ id, fromFrame, durationInFrames, props, enterAnimation, exitAnimation }) {
     return {
       id,
       type: 'lowerThird',
       fromFrame,
       durationInFrames,
+      enterAnimation,
+      exitAnimation,
       config: {
-        title: props.title || props.layer_title || props.layer_text_content || props.heading || '',
-        subtitle: props.subtitle || props.layer_subtitle || '',
-        speakerTag: props.speakerTag || props.speaker_tag || props.layer_speaker_tag || '',
-        accentColor: props.accentColor || props.accent_color || props.layer_accent_color || '#3b82f6',
-        fontFamily: props.fontFamily || props.font_family || props.layer_text_font || undefined,
-        fontSize: props.fontSize ?? props.font_size ?? props.layer_text_size ?? undefined,
-        textStroke: props.textStroke || props.text_stroke || undefined,
-        position: props.position || props.layer_position || 'bottom-left',
+        title: props.title || '',
+        subtitle: props.subtitle || '',
+        position: props.position || 'bottom-left',
       },
     };
   }
 
-  /**
-   * Creates a kineticTitle overlay descriptor
-   * @param {Object} params
-   * @param {string} params.id
-   * @param {number} params.fromFrame
-   * @param {number} params.durationInFrames
-   * @param {KineticTitleProps} params.props
-   * @returns {VisualOverlayConfig}
-   */
-  createKineticTitleOverlay({ id, fromFrame, durationInFrames, props }) {
+  createKineticTitleOverlay({ id, fromFrame, durationInFrames, props, enterAnimation, exitAnimation }) {
     return {
       id,
       type: 'kineticTitle',
       fromFrame,
       durationInFrames,
+      enterAnimation,
+      exitAnimation,
       config: {
-        heading: props.heading || props.layer_heading || props.title || props.layer_title || props.layer_text_content || '',
-        subheading: props.subheading || props.layer_subheading || props.subtitle || props.layer_subtitle || '',
-        theme: props.theme || props.layer_theme || 'dark',
-        fontFamily: props.fontFamily || props.font_family || props.layer_text_font || undefined,
-        fontSize: props.fontSize ?? props.font_size ?? props.layer_text_size ?? undefined,
-        fontWeight: props.fontWeight ?? props.font_weight ?? undefined,
-        textStroke: props.textStroke || props.text_stroke || undefined,
-        animationStyle: props.animationStyle || props.animation_style || props.layer_animation_style || 'spring-up',
-        // Optional big-text controls: only present when set, so existing manifests stay byte-identical.
-        ...optionalKeys({
-          headingSize: props.headingSize ?? props.heading_size ?? props.layer_heading_size,
-          subheadingSize: props.subheadingSize ?? props.subheading_size ?? props.layer_subheading_size,
-          anchor: props.anchor ?? props.layer_anchor,
-        }),
+        heading: props.heading || '',
+        subheading: props.subheading || '',
+        theme: 'dark',
+        anchor: props.position || 'center',
       },
     };
   }
 
-  /**
-   * Creates a conceptCallout overlay descriptor
-   * @param {Object} params
-   * @param {string} params.id
-   * @param {number} params.fromFrame
-   * @param {number} params.durationInFrames
-   * @param {ConceptCalloutProps} params.props
-   * @returns {VisualOverlayConfig}
-   */
-  createConceptCalloutOverlay({ id, fromFrame, durationInFrames, props }) {
-    return {
-      id,
-      type: 'conceptCallout',
-      fromFrame,
-      durationInFrames,
-      config: {
-        label: props.label || props.layer_label || props.title || props.layer_title || props.layer_text_content || '',
-        description: props.description || props.layer_description || '',
-        icon: props.icon || props.layer_icon || 'info',
-        highlightColor: props.highlightColor || props.highlight_color || props.layer_highlight_color || '#eab308',
-        fontFamily: props.fontFamily || props.font_family || props.layer_text_font || undefined,
-        fontSize: props.fontSize ?? props.font_size ?? props.layer_text_size ?? undefined,
-      },
-    };
-  }
-
-  /**
-   * Creates a word-level captions overlay descriptor (TikTok-style).
-   * The renderer highlights the active token; narration text is the source.
-   * Styling falls back to the blueprint `@caption_template` before hardcoded defaults.
-   * @param {{ id: string, fromFrame: number, durationInFrames: number, props: Object, narration: string, blueprint?: Record<string, string> }} params
-   */
-  createCaptionsOverlay({ id, fromFrame, durationInFrames, props, narration, blueprint = {} }) {
+  createCaptionsOverlay({ id, fromFrame, durationInFrames, props, narration, enterAnimation, exitAnimation }) {
     return {
       id,
       type: 'captions',
       fromFrame,
       durationInFrames,
-      enterAnimation: blueprint.enter_animation,
-      exitAnimation: blueprint.exit_animation,
+      enterAnimation,
+      exitAnimation,
       config: {
         text: props.text || narration || '',
-        style: props.style || props.caption_style || blueprint.caption_style || 'tiktok',
-        size: props.size ?? props.caption_size
-          ?? (blueprint.caption_size !== undefined ? Number(blueprint.caption_size) : undefined)
-          ?? 80,
-        highlight: props.highlight || props.caption_highlight || blueprint.caption_highlight || '#39E508',
-        fontFamily: props.fontFamily || props.font_family || blueprint.font_family || undefined,
+        style: 'tiktok',
+        size: 80,
+        highlight: '#39E508',
       },
     };
   }
 
-  /**
-   * Parses markdown/VUS text into intermediate scene and layer structures.
-   * @param {string} scriptText
-   * @returns {Object}
-   */
-  parseScript(scriptText) {
-    this.warnings = [];
-    try {
-      const origLog = console.log;
-      let parseResult;
-      try {
-        console.log = () => {};
-        parseResult = parseVus(scriptText);
-      } finally {
-        console.log = origLog;
-      }
-
-      const proj = parseResult?.project;
-      const sections = proj?.sections || [];
-      const allScenes = [];
-      for (const sec of sections) {
-        for (const sc of (sec.scenes || [])) {
-          allScenes.push({ sec, sc });
-        }
-      }
-
-      if (allScenes.length > 0) {
-        const cfg = proj.config || {};
-        const result = {
-          title: cfg.video_title || cfg.video_name || 'video',
-          fps: Number(cfg.video_fps) || this.fps,
-          width: Number(cfg.video_width) || this.width,
-          height: Number(cfg.video_height) || this.height,
-          // First-class style tokens (A): carried through for compile-time resolution.
-          // Precedence: options.style < video props < scene props.
-          videoProps: {
-            video_aspect: cfg.video_aspect,
-            video_font: cfg.video_font || cfg.video_font_family,
-            video_caption_style: cfg.video_caption_style || cfg.caption_style,
-            video_caption_size: cfg.video_caption_size !== undefined ? Number(cfg.video_caption_size) : undefined,
-            video_caption_highlight: cfg.video_caption_highlight || cfg.caption_highlight,
-            video_transition: cfg.video_transition,
-            video_transition_easing: cfg.video_transition_easing,
-            video_blueprint: cfg.video_blueprint,
-          },
-          scenes: [],
-        };
-
-        let legacyWarned = false;
-        for (let i = 0; i < allScenes.length; i++) {
-          const { sec, sc } = allScenes[i];
-          const secHeading = (sec.title || sec.name || '').trim();
-          const hasSceneSection = secHeading && /^(scene\b|@scene\b)/i.test(secHeading);
-          const rawName = hasSceneSection ? secHeading : (sc.scene_name || `Scene ${i + 1}`);
-          const slug = rawName.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
-          const sceneId = `scene_${i + 1}_${slug}`;
-
-          const props = {
-            ...(sc.inheritedProperties || {}),
-            ...(sc.properties || {}),
-            ...(sc.finalProperties || {}),
-          };
-
-          const sceneLayers = [];
-          const rawLayers = sc.layers || [];
-
-          for (let lIdx = 0; lIdx < rawLayers.length; lIdx++) {
-            const layer = rawLayers[lIdx];
-            const layerName = layer.layer_name || `Layer ${lIdx + 1}`;
-            const layerId = `${sceneId}_layer_${lIdx + 1}`;
-            const layerProps = {
-              layer_type: layer.layer_type,
-              layer_asset_source: layer.layer_asset_source,
-              layer_level: layer.layer_level,
-              ...(layer.properties || {}),
-              ...(layer.finalProperties || {}),
-            };
-
-            sceneLayers.push({
-              id: layerId,
-              name: layerName,
-              properties: layerProps,
-              effects: layer.effects || [],
-            });
-          }
-
-          // The vendored parser hands back the raw scene prose, HTML comments included. Overlay
-          // hints (<!-- overlay: type { json } -->) become overlay layers, and NO comment may ever be
-          // spoken: the narration is what goes to the paid TTS and into its cache key.
-          const { narration, overlays, legacy } = extractNarrationAndOverlays(sc.scene_content || '');
-          if (legacy && !legacyWarned) {
-            legacyWarned = true;
-            this.warn(
-              'deprecated inline HTML overlay syntax (<!-- overlay: ... -->); migrate to the markdown-native ">" blockquote syntax',
-            );
-          }
-          for (const ov of overlays) {
-            sceneLayers.push({
-              id: `${sceneId}_overlay_${sceneLayers.length + 1}`,
-              name: ov.type,
-              properties: { layer_type: ov.type, ...ov.data },
-              effects: [],
-            });
-          }
-
-          result.scenes.push({
-            id: sceneId,
-            name: rawName,
-            template: (sc.scene_templates && sc.scene_templates[0]) || null,
-            properties: props,
-            narration,
-            overlayEvents: sc.overlay_events || [],
-            layers: sceneLayers,
-          });
-        }
-
-        return result;
-      }
-    } catch {
-      // Fall back to line scanner below
-    }
-
-    const lines = scriptText.split(/\r?\n/);
-    const result = {
-      title: 'video',
-      fps: this.fps,
-      width: this.width,
-      height: this.height,
-      videoProps: {},
-      scenes: [],
+  createQuoteOverlay({ id, fromFrame, durationInFrames, props, enterAnimation, exitAnimation }) {
+    return {
+      id,
+      type: 'quote',
+      fromFrame,
+      durationInFrames,
+      enterAnimation,
+      exitAnimation,
+      config: { text: props.text || '' },
     };
+  }
 
-    let currentScene = null;
-    let currentLayer = null;
-    let inScenesBlock = false;
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
-
-      if (!line) continue;
-
-      // Video title / settings
-      if (line.startsWith('# Video') || line.startsWith('# video')) {
-        inScenesBlock = false;
-        continue;
-      }
-      if (line.startsWith('- video_title:')) {
-        result.title = line.replace(/^- video_title:\s*/, '').replace(/<!--.*-->$/, '').trim();
-        continue;
-      }
-      if (line.startsWith('- video_fps:')) {
-        const val = parseInt(line.replace(/^- video_fps:\s*/, ''), 10);
-        if (!isNaN(val)) result.fps = val;
-        continue;
-      }
-      // First-class video style tokens (A): aspect / font / caption defaults / transition.
-      // Kept flat in videoProps so compile() can resolve style.json < video < scene.
-      if (/^- video_(aspect|font|font_family|caption_style|caption_size|caption_highlight|transition|transition_easing):/.test(line)) {
-        const m = line.match(/^- (video_[a-z_]+):\s*(.*)$/);
-        if (m) {
-          const v = m[2].replace(/<!--.*-->$/, '').trim().replace(/^"|"$/g, '');
-          result.videoProps[m[1]] = /^\d+$/.test(v) ? Number(v) : v;
-        }
-        continue;
-      }
-
-      if (line.startsWith('# Scenes') || line.startsWith('# scenes') || line.startsWith('# Section') || line.startsWith('# section')) {
-        inScenesBlock = true;
-        continue;
-      }
-
-      if (line.startsWith('# Video') || line.startsWith('# video') || line.startsWith('# Sets') || line.startsWith('# sets') || line.startsWith('# Sources') || line.startsWith('# sources') || line.startsWith('## Set') || line.startsWith('## set')) {
-        inScenesBlock = false;
-        continue;
-      }
-
-      // Scene header: ## Scene Name, ## Scene 1: Name, or ## @scene Name
-      if (line.startsWith('## @scene') || line.startsWith('## Scene') || line.startsWith('## scene') || (line.startsWith('## ') && inScenesBlock)) {
-        inScenesBlock = true;
-        currentLayer = null;
-        const rawName = line.replace(/^##\s*(@scene\s*)?/, '').trim();
-        const sceneId = `scene_${result.scenes.length + 1}_${rawName.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '')}`;
-        currentScene = {
-          id: sceneId,
-          name: rawName,
-          template: null,
-          properties: {},
-          narration: '',
-          layers: [],
-        };
-        result.scenes.push(currentScene);
-        continue;
-      }
-
-      if (!currentScene) {
-        continue;
-      }
-
-      // Template call: @base Scene Title
-      if (line.startsWith('@') && !line.startsWith('@@')) {
-        currentScene.template = line.substring(1).trim();
-        continue;
-      }
-
-      // Layer header: @@ Layer Name or * Layer: Name
-      if (line.startsWith('@@') || line.startsWith('* Layer:') || line.startsWith('* Layer')) {
-        const layerName = line.replace(/^(@@|\*\s*Layer:?)\s*/i, '').trim();
-        const layerId = `${currentScene.id}_layer_${currentScene.layers.length + 1}`;
-        currentLayer = {
-          id: layerId,
-          name: layerName,
-          properties: {},
-          effects: [],
-        };
-        currentScene.layers.push(currentLayer);
-        continue;
-      }
-
-      // Markdown image asset: ![alt](path)
-      const mdImgMatch = line.match(/^!\[(.*?)\]\((.*?)\)/);
-      if (mdImgMatch) {
-        if (!currentLayer) {
-          currentLayer = {
-            id: `${currentScene.id}_layer_${currentScene.layers.length + 1}`,
-            name: mdImgMatch[1] || 'Asset',
-            properties: {
-              layer_type: 'image',
-              layer_asset_source: mdImgMatch[2],
-            },
-            effects: [],
-          };
-          currentScene.layers.push(currentLayer);
-        } else {
-          currentLayer.properties.layer_asset_source = mdImgMatch[2];
-        }
-        continue;
-      }
-
-      // Bracket property: [key=value] or [key="value"]
-      const bracketMatch = line.match(/^\[([a-zA-Z0-9_-]+)\s*=\s*(.*)\]$/);
-      if (bracketMatch) {
-        const key = bracketMatch[1].trim();
-        let rawVal = bracketMatch[2].trim();
-        let parsedVal = rawVal;
-        if ((rawVal.startsWith('"') && rawVal.endsWith('"')) || (rawVal.startsWith("'") && rawVal.endsWith("'"))) {
-          parsedVal = rawVal.slice(1, -1);
-        } else if (!isNaN(Number(rawVal)) && rawVal !== '') {
-          parsedVal = Number(rawVal);
-        }
-
-        if (currentLayer) {
-          currentLayer.properties[key] = parsedVal;
-        } else {
-          currentScene.properties[key] = parsedVal;
-        }
-        continue;
-      }
-
-      // Properties: - key: value
-      if (line.startsWith('- ')) {
-        const propMatch = line.match(/^- ([a-zA-Z0-9_-]+):\s*(.*)$/);
-        if (propMatch) {
-          const key = propMatch[1].trim();
-          let rawVal = propMatch[2].replace(/<!--.*-->$/, '').trim();
-          let parsedVal = rawVal;
-          if (rawVal.startsWith('"') && rawVal.endsWith('"')) {
-            parsedVal = rawVal.slice(1, -1);
-          } else if (rawVal.startsWith('[') && rawVal.endsWith(']')) {
-            try {
-              parsedVal = JSON.parse(rawVal);
-            } catch {
-              parsedVal = rawVal.slice(1, -1).split(',').map((s) => s.trim().replace(/^"|"$/g, ''));
-            }
-          } else if (!isNaN(Number(rawVal)) && rawVal !== '') {
-            parsedVal = Number(rawVal);
-          }
-
-          if (currentLayer) {
-            currentLayer.properties[key] = parsedVal;
-          } else {
-            currentScene.properties[key] = parsedVal;
-          }
-          continue;
-        }
-      }
-
-      // Comments / Overlay hints: <!-- overlay: type { json } -->
-      const overlayMatch = line.match(/<!--\s*overlay:\s*([a-zA-Z0-9_-]+)\s*(\{.*\})\s*-->/);
-      if (overlayMatch) {
-        try {
-          const overlayType = overlayMatch[1];
-          const overlayData = JSON.parse(overlayMatch[2]);
-          currentScene.layers.push({
-            id: `${currentScene.id}_overlay_${currentScene.layers.length + 1}`,
-            name: overlayType,
-            properties: {
-              layer_type: overlayType,
-              ...overlayData,
-            },
-            effects: [],
-          });
-          continue;
-        } catch {
-          // ignore malformed comment
-        }
-      }
-
-      // Narration prose (regular text lines not matching headers, tags or properties)
-      if (!line.startsWith('*') && !line.startsWith('@@') && !line.startsWith('[') && !line.startsWith('-') && !line.startsWith('@') && !line.startsWith('!') && !line.startsWith('#') && !line.startsWith('<!--')) {
-        const cleanProse = line.replace(/<!--.*?-->/g, '').trim();
-        if (cleanProse) {
-          currentScene.narration = currentScene.narration
-            ? `${currentScene.narration} ${cleanProse}`
-            : cleanProse;
-        }
-      }
-    }
-
-    return result;
+  createBrollOverlay({ id, fromFrame, durationInFrames, props, enterAnimation, exitAnimation }) {
+    return {
+      id,
+      type: 'broll',
+      fromFrame,
+      durationInFrames,
+      enterAnimation,
+      exitAnimation,
+      config: { assetPath: props.assetPath || '', fit: 'cover', position: props.position || 'center' },
+    };
   }
 
   /**
-   * Compiles parsed script data or raw markdown into a RemotionCompositionManifest.
-   * @param {string | Object} scriptInput
+   * Compiles a structured iNNfo model (or an already-lowered `{ scenes[] }`
+   * object) into a RemotionCompositionManifest. A raw markdown string is
+   * rejected: the compiler never re-parses script markdown.
+   * @param {object | string} input Structured model or lowered object
    * @param {Object} [options]
    * @param {Record<string, number>} [options.audioDurations] Map of sceneId -> duration in seconds
    * @param {Record<string, { assetPath: string, sha256?: string, durationSeconds?: number }>} [options.audioAssets]
-   * @param {string} [options.scriptSource="script.md"]
-   * @returns {RemotionCompositionManifest}
+   * @param {Record<string, number>} [options.mediaDurations] Map of sceneId -> media duration in seconds
+   * @param {Record<string, { tool?: string, voice?: string, model?: string }>} [options.templates] Resolved Template instances
+   * @param {string} [options.scriptSource="script.model"]
+   * @returns {object} RemotionCompositionManifest
    */
-  compile(scriptInput, options = {}) {
-    let parsed;
-    let scriptSource = options.scriptSource || 'script.md';
+  compile(input, options = {}) {
+    const scriptSource = options.scriptSource || 'script.model';
     this.warnings = [];
 
-    if (typeof scriptInput === 'string') {
-      parsed = this.parseScript(scriptInput);
-    } else if (typeof scriptInput === 'object' && scriptInput !== null) {
-      if (scriptInput.scenes && Array.isArray(scriptInput.scenes)) {
-        parsed = scriptInput;
-      } else {
-        throw new Error('Invalid script input object: must contain a "scenes" array');
-      }
+    let parsed;
+    if (isKnowledgeModel(input)) {
+      const guard = this.checkScript(input, options);
+      if (!guard.ok) throw new ScriptValidationError(guard.errors);
+      parsed = this.lowerKnowledgeModel(input, options);
+    } else if (input && typeof input === 'object' && Array.isArray(input.scenes)) {
+      parsed = input;
+    } else if (typeof input === 'string') {
+      throw new ScriptValidationError([
+        { code: 'markdown-not-accepted', message: 'compile() accepts a structured iNNfo model, not script markdown; load it with lib/knowledge-model.mjs' },
+      ]);
     } else {
-      throw new Error('Invalid script input: expected string or parsed object');
+      throw new Error('Invalid script input: expected a structured iNNfo model or { scenes: [] }');
     }
-
-    // Resolve reusable template definitions once per compile (series > referenced
-    // blueprint > system default). Never fatal: a missing blueprint warns only.
-    const blueprintTemplates = this.resolveBlueprintTemplates(
-      scriptSource,
-      parsed.videoProps?.video_blueprint || parsed.videoProps?.videoBlueprint,
-    );
-    // Resolved `@caption_template` contract: applied as defaults to every caption
-    // overlay, below explicit script/scene caption props and above code defaults.
-    const captionTemplate = blueprintTemplates.caption_template || {};
 
     const fps = options.fps || parsed.fps || this.fps;
     const width = options.width || parsed.width || this.width;
     const height = options.height || parsed.height || this.height;
     const audioDurations = options.audioDurations || {};
     const audioAssets = options.audioAssets || {};
-    // Style precedence: style.json (options.style) < video props < scene props (applied per scene below).
-    const videoStyle = { ...(options.style || {}), ...(parsed.videoProps || {}) };
+    const mediaDurations = options.mediaDurations || {};
 
     const compositionId = (parsed.title || 'composition')
       .toLowerCase()
@@ -803,88 +414,47 @@ export class RemotionSceneCompiler {
     const sceneTracks = [];
     const audioTracks = [];
     const overlayTracks = [];
-
     let currentFrame = 0;
 
     for (let i = 0; i < parsed.scenes.length; i++) {
       const sc = parsed.scenes[i];
       const sceneId = sc.id || `scene_${i + 1}`;
 
-      // 1. Determine Scene Duration
+      // 1. Duration: measured audio/media only — never declared.
       let durationInSeconds = this.defaultSceneDuration;
-
       if (audioDurations[sceneId] !== undefined) {
         durationInSeconds = audioDurations[sceneId];
-      } else if (sc.properties?.scene_duration !== undefined) {
-        durationInSeconds = Number(sc.properties.scene_duration);
       } else if (audioAssets[sceneId]?.durationSeconds !== undefined) {
         durationInSeconds = audioAssets[sceneId].durationSeconds;
+      } else if (mediaDurations[sceneId] !== undefined) {
+        durationInSeconds = mediaDurations[sceneId];
       } else if (sc.narration && sc.narration.trim().length > 0) {
         const words = sc.narration.trim().split(/\s+/).length;
         durationInSeconds = Math.max(3, words / this.wordsPerSecond);
       }
-
-      // Exact frame count math
       const durationInFrames = Math.max(1, Math.ceil(durationInSeconds * fps));
       const fromFrame = currentFrame;
 
-      // 2. Classify Scene Type
+      // 2. Scene type from declared layer kinds (no invented scene_type field).
       let sceneType = 'image_motion';
-      const declaredType = sc.properties?.scene_type || sc.properties?.sceneType;
-      const validTypes = ['chapter_title', 'image_motion', 'kinetic_text', 'concept_diagram', 'split_screen'];
+      if (sc.layers.some((l) => l.type === 'title')) sceneType = 'kinetic_text';
 
-      if (declaredType && validTypes.includes(declaredType)) {
-        sceneType = declaredType;
-      } else if (sc.name && /intro|hook|title|welcome/i.test(sc.name) && sc.layers.some((l) => l.properties?.layer_type === 'text' && (l.properties?.layer_level || 0) >= 50)) {
-        sceneType = 'chapter_title';
-      } else if (sc.layers.some((l) => l.properties?.layer_type === 'diagram' || l.properties?.layer_type === 'concept_diagram')) {
-        sceneType = 'concept_diagram';
-      } else if (sc.layers.some((l) => l.properties?.layer_type === 'split_screen')) {
-        sceneType = 'split_screen';
-      } else if (sc.layers.some((l) => l.properties?.layer_type === 'kinetic_text')) {
-        sceneType = 'kinetic_text';
+      // 3. Transition from `transition::` (fade | slide-left | slide-right | wipe | none).
+      let transition;
+      if (sc.transition && sc.transition !== 'none') {
+        transition = { type: sc.transition, durationInFrames: Math.round(fps * 0.5), easing: 'bezier(0.16,1,0.3,1)' };
       }
 
-      // 3. Transition Configuration (A: default from video/style + easing passthrough)
-      let transition = undefined;
-      const transIn = sc.properties?.transition_in;
-      const transOut = sc.properties?.transition_out;
-      const rawTransition = sc.properties?.scene_transition || sc.properties?.transition
-        || videoStyle.video_transition;
-      if (transIn || transOut || rawTransition) {
-        const transType = transIn || transOut || (typeof rawTransition === 'string' ? rawTransition : rawTransition.type || 'fade');
-        const transDuration = typeof rawTransition === 'object' && rawTransition.durationInFrames
-          ? rawTransition.durationInFrames
-          : sc.properties?.scene_transition_duration !== undefined
-            ? Number(sc.properties.scene_transition_duration)
-            : Math.round(fps * 0.5);
-        const easing = (typeof rawTransition === 'object' && rawTransition.easing)
-          || sc.properties?.scene_transition_easing
-          || videoStyle.video_transition_easing
-          || 'bezier(0.16,1,0.3,1)';
-        transition = {
-          type: transType,
-          durationInFrames: transDuration,
-          easing,
-          ...(transIn ? { in: transIn } : {}),
-          ...(transOut ? { out: transOut } : {}),
-        };
-      }
+      // 4. Drawable layers (scene background / avatar / brand).
+      const drawable = sc.layers
+        .filter((l) => l.kind === 'layer')
+        .map((l) => ({ name: l.name, ...l.properties, effects: l.effects || [] }));
 
-      // Collect scene props (style tokens resolved here so the renderer stays presentational)
       const sceneProps = {
         title: sc.name || `Scene ${i + 1}`,
         narration: sc.narration || '',
-        ...sc.properties,
-        fontFamily: sc.properties?.font_family || sc.properties?.fontFamily
-          || videoStyle.video_font || videoStyle.fontFamily,
-        captionStyle: sc.properties?.caption_style || sc.properties?.captionStyle
-          || videoStyle.video_caption_style || videoStyle.captionStyle || 'none',
-        layers: sc.layers.map((l) => ({
-          name: l.name,
-          ...l.properties,
-          effects: l.effects || [],
-        })),
+        ...(sc.resolvedTemplate ? { template: sc.resolvedTemplate } : {}),
+        layers: drawable,
       };
 
       sceneTracks.push({
@@ -896,185 +466,91 @@ export class RemotionSceneCompiler {
         ...(transition ? { transition } : {}),
       });
 
-      // 4. Audio Track Binding
+      // 5. Narration audio binding.
       const boundAudio = audioAssets[sceneId];
-      if (boundAudio || sc.properties?.audio_asset_source || sc.properties?.voiceover) {
-        const assetPath = boundAudio?.assetPath || sc.properties?.audio_asset_source || sc.properties?.voiceover || `audio/${sceneId}.mp3`;
-        const sha256 = boundAudio?.sha256 || crypto.createHash('sha256').update(sc.narration || sceneId).digest('hex');
+      if (boundAudio) {
         audioTracks.push({
           id: `audio_${sceneId}`,
           sceneId,
-          assetPath,
+          assetPath: boundAudio.assetPath,
           fromFrame,
           durationInFrames,
-          volume: sc.properties?.audio_volume !== undefined ? Number(sc.properties.audio_volume) : 1.0,
-          sha256,
+          volume: 1.0,
+          sha256: boundAudio.sha256 || crypto.createHash('sha256').update(sc.narration || sceneId).digest('hex'),
         });
       }
 
-      // 4b. Background music (per-scene `scene_background_audio`): plays for ITS scene only,
-      // looping if the file is shorter. Volume: explicit `scene_background_audio_volume` wins
-      // (0 included), otherwise DEFAULT_BG_MUSIC_VOLUME (the parser spec's default).
-      const bgMusic = sc.properties?.scene_background_audio;
-      if (bgMusic && typeof bgMusic === 'string') {
-        if (path.isAbsolute(bgMusic) || /^[A-Za-z]:[\\/]/.test(bgMusic) || /^[a-z]+:\/\//i.test(bgMusic)) {
-          throw new Error(`Invalid background audio "${bgMusic}" in scene "${sceneId}": use a path relative to the script, inside the series tree.`);
+      // 5b. Scene background music (music::), looping for the scene.
+      if (sc.music) {
+        if (path.isAbsolute(sc.music) || /^[A-Za-z]:[\\/]/.test(sc.music) || /^[a-z]+:\/\//i.test(sc.music)) {
+          throw new Error(`Invalid music "${sc.music}" in scene "${sceneId}": use a path relative to the script, inside the series tree.`);
         }
-        const rawVolume = sc.properties?.scene_background_audio_volume;
-        const bgVolume = rawVolume !== undefined && Number.isFinite(Number(rawVolume)) ? Number(rawVolume) : DEFAULT_BG_MUSIC_VOLUME;
         audioTracks.push({
           id: `bgmusic_${sceneId}`,
           sceneId,
           kind: 'music',
-          assetPath: bgMusic,
+          assetPath: sc.music,
           fromFrame,
           durationInFrames,
-          volume: bgVolume,
+          volume: DEFAULT_BG_MUSIC_VOLUME,
           loop: true,
-          sha256: crypto.createHash('sha256').update(`bgmusic:${bgMusic}`).digest('hex'),
+          sha256: crypto.createHash('sha256').update(`bgmusic:${sc.music}`).digest('hex'),
         });
       }
 
-      // 5. Visual Overlays
-      for (let j = 0; j < sc.layers.length; j++) {
-        const layer = sc.layers[j];
-        const lType = (layer.properties?.layer_type || layer.properties?.type || '').toLowerCase();
-        const layerName = (layer.name || '').toLowerCase();
-        const layerProps = layer.properties || {};
+      // 6. Overlays from Layer `type::`, in list order.
+      const sceneEnd = fromFrame + durationInFrames;
+      const overlayLayers = sc.layers.filter((l) => l.kind === 'overlay');
+      const sequentialLayers = overlayLayers.filter((l) => SEQUENTIAL_OVERLAY_TYPES[l.type]);
+      // One equal, non-overlapping slot per sequential overlay, capped at the
+      // type's default seconds so two overlays never collide within a scene.
+      const seqSlotFrames = sequentialLayers.length > 0
+        ? Math.max(1, Math.min(
+            Math.max(1, Math.round(Math.max(...sequentialLayers.map((l) => SEQUENTIAL_OVERLAY_TYPES[l.type])) * fps)),
+            Math.floor(durationInFrames / sequentialLayers.length),
+          ))
+        : 0;
 
-        const overlayStartOffset = layerProps.from_frame_offset !== undefined
-          ? Number(layerProps.from_frame_offset)
-          : layerProps.from_seconds_offset !== undefined
-            ? Math.round(Number(layerProps.from_seconds_offset) * fps)
-            : 0;
-
-        const overlayFromFrame = fromFrame + overlayStartOffset;
-        const overlayDuration = layerProps.duration_in_frames !== undefined
-          ? Number(layerProps.duration_in_frames)
-          : layerProps.duration_seconds !== undefined
-            ? Math.round(Number(layerProps.duration_seconds) * fps)
-            : Math.max(1, durationInFrames - overlayStartOffset);
-
-        if (lType === 'lowerthird' || lType === 'lower_third' || layerName.includes('lower third') || layerName.includes('lowerthird') || layerProps.lower_third_name) {
-          overlayTracks.push(
-            this.createLowerThirdOverlay({
-              id: `overlay_${sceneId}_${j + 1}`,
-              fromFrame: overlayFromFrame,
-              durationInFrames: overlayDuration,
-              props: {
-                ...layerProps,
-                title: layerProps.lower_third_name || layerProps.title || layerProps.layer_title || layerProps.layer_text_content || layer.name,
-                subtitle: layerProps.lower_third_role || layerProps.subtitle || layerProps.layer_subtitle,
-                speakerTag: layerProps.lower_third_badge || layerProps.speaker_tag || layerProps.speakerTag || layerProps.layer_speaker_tag,
-                accentColor: layerProps.lower_third_color || layerProps.accent_color || layerProps.accentColor || layerProps.layer_accent_color,
-                position: layerProps.position || layerProps.layer_position,
-              },
-            })
-          );
-        } else if (lType === 'kinetictitle' || lType === 'kinetic_title' || lType === 'kinetic_text' || layerName.includes('kinetic') || layerProps.kinetic_title_text) {
-          overlayTracks.push(
-            this.createKineticTitleOverlay({
-              id: `overlay_${sceneId}_${j + 1}`,
-              fromFrame: overlayFromFrame,
-              durationInFrames: overlayDuration,
-              props: {
-                ...layerProps,
-                heading: layerProps.kinetic_title_text || layerProps.heading || layerProps.layer_heading || layerProps.title || layerProps.layer_title || layerProps.layer_text_content || layer.name,
-                subheading: layerProps.kinetic_title_subtitle || layerProps.subheading || layerProps.layer_subheading || layerProps.subtitle || layerProps.layer_subtitle,
-                theme: layerProps.theme || layerProps.layer_theme,
-                animationStyle: layerProps.animation_style || layerProps.animationStyle || layerProps.layer_animation_style,
-              },
-            })
-          );
-        } else if (lType === 'conceptcallout' || lType === 'concept_callout' || lType === 'callout' || layerName.includes('concept') || layerProps.concept_main) {
-          overlayTracks.push(
-            this.createConceptCalloutOverlay({
-              id: `overlay_${sceneId}_${j + 1}`,
-              fromFrame: overlayFromFrame,
-              durationInFrames: overlayDuration,
-              props: {
-                ...layerProps,
-                label: layerProps.concept_main || layerProps.label || layerProps.layer_label || layerProps.title || layerProps.layer_title || layerProps.layer_text_content || layer.name,
-                description: layerProps.concept_sub || layerProps.description || layerProps.layer_description || '',
-                icon: layerProps.icon || layerProps.layer_icon,
-                highlightColor: layerProps.highlight_color || layerProps.highlightColor || layerProps.layer_highlight_color,
-              },
-            })
-          );
-        } else if (lType === 'captions' || lType === 'caption' || lType === 'subtitles' || layerName.includes('caption') || layerName.includes('subtitle')) {
-          overlayTracks.push(
-            this.createCaptionsOverlay({
-              id: `overlay_${sceneId}_${j + 1}`,
-              fromFrame: overlayFromFrame,
-              durationInFrames: overlayDuration,
-              props: {
-                ...layerProps,
-                style: layerProps.style || layerProps.caption_style || sceneProps.captionStyle,
-                size: layerProps.size ?? layerProps.caption_size ?? videoStyle.video_caption_size,
-                highlight: layerProps.highlight || layerProps.caption_highlight || videoStyle.video_caption_highlight,
-                fontFamily: layerProps.fontFamily || layerProps.font_family || sceneProps.fontFamily,
-              },
-              narration: sc.narration,
-              blueprint: captionTemplate,
-            })
-          );
-        }
-      }
-
-      // Scene-level caption default: no captions layer authored, but caption_style != none.
-      const sceneCaptionStyle = sc.properties?.caption_style || sceneProps.captionStyle;
-      const hasCaptionsLayer = overlayTracks.some((o) => o.id.startsWith(`overlay_${sceneId}_`) && o.type === 'captions');
-      if (!hasCaptionsLayer && sceneCaptionStyle && sceneCaptionStyle !== 'none' && sc.narration) {
-        overlayTracks.push(
-          this.createCaptionsOverlay({
-            id: `overlay_${sceneId}_captions`,
-            fromFrame,
-            durationInFrames,
-            props: {
-              style: sceneCaptionStyle,
-              size: sc.properties?.caption_size ?? videoStyle.video_caption_size,
-              highlight: sc.properties?.caption_highlight || videoStyle.video_caption_highlight,
-              fontFamily: sceneProps.fontFamily,
-            },
-            narration: sc.narration,
-            blueprint: captionTemplate,
-          })
-        );
-      }
-
-      // 5b. Markdown-native blockquote overlay events: one track per `>` event,
-      // scheduled sequentially from the scene start so timelines never collide.
-      const eventSource = sc.overlayEvents || [];
-      if (eventSource.length > 0) {
-        const sceneEnd = fromFrame + durationInFrames;
-        let eventCursor = fromFrame;
-        for (let k = 0; k < eventSource.length; k++) {
-          const event = eventSource[k];
-          const kind = event.kind || 'quote';
-          const spec = OVERLAY_EVENT_SPECS[kind] || OVERLAY_EVENT_SPECS.quote;
-          const blueprint = blueprintTemplates[spec.template] || {};
-          const seconds = eventDurationSeconds(event.options, spec, blueprint);
-          let eventFrames = Math.max(1, Math.round(seconds * fps));
-          // ponytail: clamp to the remaining scene time; upgrade to per-event
-          // timeline scaling if scripts routinely overflow a scene.
-          const remaining = sceneEnd - eventCursor;
-          if (remaining <= 0) {
-            eventFrames = 1;
-            eventCursor = Math.max(fromFrame, sceneEnd - 1);
+      for (let j = 0; j < overlayLayers.length; j++) {
+        const layer = overlayLayers[j];
+        const ovId = `overlay_${sceneId}_${j + 1}`;
+        const text = layer.text || '';
+        if (layer.type === 'lower-third') {
+          overlayTracks.push(this.createLowerThirdOverlay({
+            id: ovId, fromFrame, durationInFrames,
+            props: { title: text, position: layer.position },
+            enterAnimation: layer.enterAnimation, exitAnimation: layer.exitAnimation,
+          }));
+        } else if (layer.type === 'title') {
+          overlayTracks.push(this.createKineticTitleOverlay({
+            id: ovId, fromFrame, durationInFrames,
+            props: { heading: text, position: layer.position },
+            enterAnimation: layer.enterAnimation, exitAnimation: layer.exitAnimation,
+          }));
+        } else if (layer.type === 'caption') {
+          overlayTracks.push(this.createCaptionsOverlay({
+            id: ovId, fromFrame, durationInFrames,
+            props: { text: text || sc.narration }, narration: sc.narration,
+            enterAnimation: layer.enterAnimation, exitAnimation: layer.exitAnimation,
+          }));
+        } else if (layer.type === 'quote' || layer.type === 'b-roll') {
+          const slotIndex = sequentialLayers.indexOf(layer);
+          const frames = Math.min(seqSlotFrames, sceneEnd - (fromFrame + slotIndex * seqSlotFrames));
+          const ovFrom = fromFrame + slotIndex * seqSlotFrames;
+          if (frames <= 0) continue;
+          if (layer.type === 'quote') {
+            overlayTracks.push(this.createQuoteOverlay({
+              id: ovId, fromFrame: ovFrom, durationInFrames: frames,
+              props: { text },
+              enterAnimation: layer.enterAnimation, exitAnimation: layer.exitAnimation,
+            }));
           } else {
-            eventFrames = Math.min(eventFrames, remaining);
+            overlayTracks.push(this.createBrollOverlay({
+              id: ovId, fromFrame: ovFrom, durationInFrames: frames,
+              props: { assetPath: layer.properties.layer_asset_source || '', position: layer.position },
+              enterAnimation: layer.enterAnimation, exitAnimation: layer.exitAnimation,
+            }));
           }
-          overlayTracks.push({
-            id: `overlay_${sceneId}_event_${k + 1}`,
-            type: spec.type,
-            fromFrame: eventCursor,
-            durationInFrames: eventFrames,
-            enterAnimation:
-              event.options?.enter_animation || blueprint.enter_animation || spec.enter,
-            exitAnimation: event.options?.exit_animation || blueprint.exit_animation || spec.exit,
-            config: overlayEventConfig(kind, event, blueprint),
-          });
-          eventCursor += eventFrames;
         }
       }
 
@@ -1084,8 +560,7 @@ export class RemotionSceneCompiler {
     const totalDurationInFrames = currentFrame;
     const totalDurationInSeconds = totalDurationInFrames / fps;
 
-    /** @type {RemotionCompositionManifest} */
-    const manifest = {
+    return {
       version: '1.0.0',
       compositionId,
       fps,
@@ -1093,38 +568,33 @@ export class RemotionSceneCompiler {
       height,
       totalDurationInFrames,
       totalDurationInSeconds,
-      tracks: {
-        scenes: sceneTracks,
-        audio: audioTracks,
-        overlays: overlayTracks,
-      },
+      tracks: { scenes: sceneTracks, audio: audioTracks, overlays: overlayTracks },
       metadata: {
         generator: 'cogNNitive Video Engine',
         generatedAt: new Date().toISOString(),
         scriptSource,
       },
     };
-
-    return manifest;
   }
 }
 
-// CLI runner helper if invoked directly
-function main() {
-  const scriptPath = process.argv[2];
-  if (!scriptPath) {
-    console.error('Usage: node remotion-scene-compiler.mjs <script.md> [--out <manifest.json>]');
+// CLI runner: accept a structured model JSON or an L3 iNNfo document.
+async function main() {
+  const target = process.argv[2];
+  if (!target) {
+    console.error('Usage: node remotion-scene-compiler.mjs <model.json|script_NN.md> [--out <manifest.json>]');
     process.exit(1);
   }
-
   const outIdx = process.argv.indexOf('--out');
   const outPath = outIdx !== -1 ? process.argv[outIdx + 1] : null;
 
   try {
-    const content = fs.readFileSync(path.resolve(scriptPath), 'utf8');
+    const { loadKnowledgeModel, loadTemplateModels } = await import('./lib/knowledge-model.mjs');
+    const resolved = path.resolve(target);
+    const model = loadKnowledgeModel(resolved);
+    const templates = loadTemplateModels(path.dirname(resolved));
     const compiler = new RemotionSceneCompiler();
-    const manifest = compiler.compile(content, { scriptSource: scriptPath });
-
+    const manifest = compiler.compile(model, { templates, scriptSource: target });
     const jsonStr = JSON.stringify(manifest, null, 2);
     if (outPath) {
       fs.writeFileSync(path.resolve(outPath), jsonStr, 'utf8');
