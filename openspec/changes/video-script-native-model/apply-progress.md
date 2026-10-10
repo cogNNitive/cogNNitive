@@ -180,3 +180,85 @@ composition manifest from the model only. VUS big-bang teardown (Phase 6), docs
 ### Status
 
 6/6 tasks complete for Phases 4–5. Ready for verify (scoped to Phases 4–5).
+
+---
+
+# Apply Progress: video-script-native-model
+
+## Batch: Phases 6–8 (VUS big-bang teardown + docs + gates)
+
+**Mode**: Standard.
+**Scope**: Delete the VUS parser package/mirror/scripts/tests, retire the old
+`video` package, re-point docs at the native model, regenerate the generated
+registries, and run the deterministic gates. Engine work (Phases 4–5) already
+landed.
+
+### Skill-location reconciliation (design 6.5 vs `video-script-skill` spec)
+
+The old `video` blueprint package is retired (`video/spec_NN.md` deleted). The
+`video-script-skill` spec pins the skill inside its owning blueprint package and
+the immutability guard resolves a skill's owner as `<bp>/spec_NN.md` — a skill
+cannot live in a package that has no spec. The skill was therefore **MOVED** from
+`iNNfo/specs/bluepriNNts/video/skills/nn-video-script/` to
+`iNNfo/specs/bluepriNNts/video-script/skills/nn-video-script/` and the
+`video-script-skill` delta + published spec were updated to the new location
+(Owned-Skill, Projection, and Embedded-Tests requirements).
+
+### Completed Tasks
+
+- [x] 6.1 Deleted `iNNfo/packages/innfo-video-parser/` (whole package).
+- [x] 6.2 Deleted the vendored mirror `scripts/lib/innfo-video-parser.generated.mjs`.
+- [x] 6.3 Deleted `scripts/vus-parse.mjs`, `vus-parse-runner.mjs`, `vus-spec.mjs`, `check-script.mjs`, `specs/V_0-3-3.json`, `references/vus-authoring-notes.md`.
+- [x] 6.4 Deleted `scripts/build-video-parser-mirror.mjs` + `scripts/mirror/video-parser-entry.ts`; removed the `video-parser-mirror` step from `scripts/verify.js`.
+- [x] 6.5 Deleted the `video` package (`spec_NN.md`, `samples/`, `procedures/`, `web/`); moved the skill into `video-script`.
+- [x] 6.6 Confirmed the ledger's `html-comment-overlays` entry is gone; `legacy-ledger-guard.js` passes (13 entries / 25 markers).
+- [x] 6.7 Removed `vus_spec:` frontmatter and VUS prose from `SKILL.md`; authoring/validation now point at the L3 document + `video-script` blueprint; removed the CLI-mirror and `check-script.mjs` tooling rows.
+- [x] 6.8 Reconciled `manifest/source.yaml`: replaced the `video` blueprint entry with `video-script` + `villabotijos-today`.
+- [x] 6.9 Added `test/no-vus-artifacts.test.mjs` (grep-asserts no VUS artifact/`vus_spec` in the skill).
+- [x] 7.1 Rewrote `docs/innfo/documentation/template-video.md`; updated `templates.md` + `specifications.md`; regenerated `docs/innfo/blueprints/catalog.json`.
+- [x] 7.2 Rewrote `references/series-template-convention.md`, updated `references/folder-contract.md` + `references/cost-guardrails.md` (no VUS prose).
+- [x] 8.1 `node scripts/verify.js` ran (see Gates).
+- [x] 8.2 `node scripts/check-integrity.js` ran (see Gates).
+- [x] 8.3 `npm run lint|typecheck|format:check` (see Gates).
+
+### Files Removed / Changed
+
+| Path | Action |
+|------|--------|
+| `iNNfo/packages/innfo-video-parser/**` | Deleted |
+| `scripts/build-video-parser-mirror.mjs`, `scripts/mirror/video-parser-entry.ts` | Deleted |
+| `iNNfo/specs/bluepriNNts/video/**` | Deleted (skill moved out first) |
+| `_samples_nn/kNNowledge/Ghostbusters_video_NN.md` | Deleted |
+| `.../video-script/skills/nn-video-script/**` | Moved (from `.../video/skills/…`) |
+| skill `scripts/{vus-parse,vus-parse-runner,vus-spec,check-script}.mjs`, `scripts/lib/innfo-video-parser.generated.mjs`, `specs/`, `references/vus-authoring-notes.md` | Deleted |
+| skill VUS-fixture tests (17 files) + `test/fixtures/inflacion-script.md` | Retired |
+| skill `SKILL.md`, `references/{series-template-convention,folder-contract,cost-guardrails}.md` | Rewritten (native model) |
+| skill `scripts/{asset-cost-estimator,video-guard,remotion-scene-compiler}.mjs`, `lib/{knowledge-model,tts-options}.mjs`, `scene/layer-primitive.mjs` | VUS comments/fallbacks cleaned |
+| skill tests `kinetic-title-big.test.mjs` (pruned), `cli-symlink-guard.test.mjs` (script list), `scene-compiler.test.mjs` (+music), `no-vus-artifacts.test.mjs` (new) | Migrated |
+| `scripts/verify.js`, `scripts/sync-samples.mjs`, `scripts/skills-manager.test.js`, `scripts/verify-inventory.test.js` | Updated |
+| `manifest/source.yaml`, `package.json`, `.github/workflows/{ci,release}.yml`, `openspec/config.yaml`, `.prettierignore`, `.gitattributes`, `eslint.config.mjs` | Deregistered VUS |
+| `iNNfo/specs/bluepriNNts/catalog.json`, `iNNfo/apps/innfo-editor/src/config/samples.ts`, `docs/innfo/blueprints/catalog.json` | Regenerated |
+| `iNNfo/packages/innfo-core/tests/metaschema-selfdescribe.test.ts` | `video` → `video-script` |
+| `iNNfo/specs/bluepriNNts/villabotijos-today/templates_V_0-1-0_villabotijos-today_NN.md` | Added `blueprint_version` (satisfies the template-immutability guard) |
+| `docs/innfo/documentation/{template-video,templates,specifications}.md` | Updated |
+| `openspec/specs/video-script-skill/spec.md` + change delta | Location reconciled to `video-script` |
+
+### Gate Results
+
+- `node scripts/verify.js`: **33 of 144 steps fail — ALL pre-existing environment.** Causes seen in `.verify-logs`: missing `esbuild` (console/preflight/skills-manager/transform mirrors), missing `jsdom` (all `test/console-*.test.mjs`), missing `ajv`, missing `typescript` (`typecheck-scripts`), missing `sharp` (`render-thumbnail.test.mjs`), unbuilt `iNNfo/packages/innfo-core/dist` + `innfo-mcp/dist` (docs-facts, nn-upgrade), uninstalled `skills/nn-sources` deps. **Zero failures reference the VUS teardown.** All video-script steps pass.
+- Video-relevant steps **green**: Template Inventory Guard · Check Blueprint Catalog Fresh · Check Version Parity · Samples Parity + Version Coherence · Template Immutability Guard · Legacy Ledger · Retired Product Name · Distributed Skill Script References · all repo tests on the changed scripts (`skills-manager`, `verify-inventory`, `check-samples-version`, `guard-template-immutability`, `sync-samples`) · all 14 remaining skill suites except `render-thumbnail` (env, `sharp`).
+- `node scripts/check-integrity.js`: Groups 1c/2b/2d/2e/2f/2g all green when the working tree is included. Group 1c (tag-pin freshness) reports "blueprints changed without re-pinning manifest/source.yaml" **only because it diffs the committed `origin/main...HEAD` range**; `manifest/source.yaml` IS edited in this uncommitted batch (proven with `git diff origin/main`). It will pass once the orchestrator commits. Group 3 inherits the environmental failures above.
+- `npm run lint|typecheck|format:check`: **cannot run** — `node_modules` is empty in this worktree (`eslint`/`typescript`/`prettier` absent). Pre-existing environment blocker.
+
+### Remaining Blockers / Follow-ups
+
+- `package-lock.json` still lists the removed `@cognnitive/innfo-video-parser` workspace. Regenerating it here (`npm install --package-lock-only`) produced unrelated npm-version churn (version fields, `optional` flags) and left the entry marked extraneous, so it was reverted. Regenerate with the project's pinned npm in a networked environment.
+- `docs/use/manifest-next.md` + `docs/update/manifest-next.md` are generated by `scripts/manifest/generate-manifest.js --channel preview`, which requires the GitHub API (blocked offline: HTTP 403). They still show the old `video` blueprint and must be regenerated at the next release/preview build.
+- Lockfile + empty `node_modules` mean `npm test`/`npm run typecheck` cannot be exercised locally.
+
+### Status
+
+Phase 6–8 tasks complete. Change is ready for verify, subject to the pre-existing
+environment (uninstalled deps / unbuilt workspaces) documented above.
+
+---

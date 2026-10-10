@@ -13,8 +13,3 @@ archive/**
 **/*.golden
 docs/app/**
 packages/innfo-mcp/bin/**
-
-# Vendored, hash-pinned VUS spec and Peggy-generated parser: byte-exact, never reformatted.
-iNNfo/packages/innfo-video-parser/specs/
-iNNfo/specs/bluepriNNts/video/skills/nn-video-script/specs/
-iNNfo/packages/innfo-video-parser/src/parser/vus_parser.js

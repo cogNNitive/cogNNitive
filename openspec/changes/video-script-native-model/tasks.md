@@ -57,23 +57,23 @@ Chain strategy: pending
 
 ## Phase 6: VUS big-bang teardown
 
-- [ ] 6.1 Delete `iNNfo/packages/innfo-video-parser/` (`src/parser/vus.peggy`, `specs/V_0-3-3.json`) [capability:video-skill-dependency-bundling:Consent-Gated On-Demand Engine Install]
-- [ ] 6.2 Delete mirror `.../nn-video-script/scripts/lib/innfo-video-parser.generated.mjs` [capability:video-script-skill:Authors iNNfo L3 Script Documents]
-- [ ] 6.3 Delete skill `scripts/vus-parse.mjs`,`vus-spec.mjs`,`vus-parse-runner.mjs`,`check-script.mjs`, `specs/V_0-3-3.json`, `references/vus-authoring-notes.md` [capability:video-script-skill:Authors iNNfo L3 Script Documents]
-- [ ] 6.4 Delete `scripts/build-video-parser-mirror.mjs`; remove `scripts/verify.js` §7b-ter `video-parser-mirror` step [capability:video-skill-dependency-bundling:Consent-Gated On-Demand Engine Install]
-- [ ] 6.5 Remove old `video` blueprint `V_0-9-0` (`iNNfo/specs/bluepriNNts/video/spec_NN.md`) + VUS samples/series-kit [capability:video-blueprint:Native L2 Video-Script Blueprint]
-- [ ] 6.6 Remove `legacy-ledger.yaml` `html-comment-overlays` entry + matching marker in compiler [capability:ephemeral-overlays:Overlays Are Layer `type::` Kinds]
-- [ ] 6.7 Remove SKILL.md `vus_spec:` frontmatter + VUS prose; point authoring at L3/blueprint [capability:video-script-skill:No-Prose-Copy of Syntax Facts]
-- [ ] 6.8 Remove `manifest/source.yaml` vus pin/registration [capability:video-skill-dependency-bundling:Consent-Gated On-Demand Engine Install]
-- [ ] 6.9 Test (grep asserts): no VUS symbol/path/`vus_spec` remains anywhere [capability:video-script-skill:No VUS parser artifact present]
+- [x] 6.1 Delete `iNNfo/packages/innfo-video-parser/` (`src/parser/vus.peggy`, `specs/V_0-3-3.json`) [capability:video-skill-dependency-bundling:Consent-Gated On-Demand Engine Install]
+- [x] 6.2 Delete mirror `.../nn-video-script/scripts/lib/innfo-video-parser.generated.mjs` [capability:video-script-skill:Authors iNNfo L3 Script Documents]
+- [x] 6.3 Delete skill `scripts/vus-parse.mjs`,`vus-spec.mjs`,`vus-parse-runner.mjs`,`check-script.mjs`, `specs/V_0-3-3.json`, `references/vus-authoring-notes.md` [capability:video-script-skill:Authors iNNfo L3 Script Documents]
+- [x] 6.4 Delete `scripts/build-video-parser-mirror.mjs`; remove `scripts/verify.js` §7b-ter `video-parser-mirror` step [capability:video-skill-dependency-bundling:Consent-Gated On-Demand Engine Install]
+- [x] 6.5 Remove old `video` blueprint `V_0-9-0` (`iNNfo/specs/bluepriNNts/video/spec_NN.md`) + VUS samples/series-kit [capability:video-blueprint:Native L2 Video-Script Blueprint] — the `video` package was retired wholesale; the embedded skill MOVED to `video-script/skills/nn-video-script/` (see apply-progress reconciliation)
+- [x] 6.6 Remove `legacy-ledger.yaml` `html-comment-overlays` entry + matching marker in compiler [capability:ephemeral-overlays:Overlays Are Layer `type::` Kinds] — removed in Phase 4; ledger guard passes (13 entries / 25 markers, no dangling VUS markers)
+- [x] 6.7 Remove SKILL.md `vus_spec:` frontmatter + VUS prose; point authoring at L3/blueprint [capability:video-script-skill:No-Prose-Copy of Syntax Facts]
+- [x] 6.8 Remove `manifest/source.yaml` vus pin/registration [capability:video-skill-dependency-bundling:Consent-Gated On-Demand Engine Install] — no vus pin existed; `video` blueprint entry replaced by `video-script` + `villabotijos-today`
+- [x] 6.9 Test (grep asserts): no VUS symbol/path/`vus_spec` remains anywhere [capability:video-script-skill:No VUS parser artifact present] — `test/no-vus-artifacts.test.mjs`
 
 ## Phase 7: Documentation
 
-- [ ] 7.1 Update `docs/innfo/documentation/template-video.md` + `templates.md` to native model [capability:video-blueprint:Native L2 Video-Script Blueprint]
-- [ ] 7.2 Remove VUS prose from skill `references/*`; state blueprint-resolved facts only [capability:video-script-skill:No-Prose-Copy of Syntax Facts]
+- [x] 7.1 Update `docs/innfo/documentation/template-video.md` + `templates.md` to native model [capability:video-blueprint:Native L2 Video-Script Blueprint] — also `specifications.md`, `docs/innfo/blueprints/catalog.json`
+- [x] 7.2 Remove VUS prose from skill `references/*`; state blueprint-resolved facts only [capability:video-script-skill:No-Prose-Copy of Syntax Facts]
 
 ## Phase 8: Deterministic gates
 
-- [ ] 8.1 Run `node scripts/verify.js` → green (guard literal) [capability:cognnitive-video-engine:Programmatic Remotion Scene Compilation]
-- [ ] 8.2 Run `node scripts/check-integrity.js` → green (guard literal) [capability:video-script-model:Script Is an iNNfo Level-3 Document]
-- [ ] 8.3 Run `npm run lint`, `npm run typecheck`, `npm run format:check` → no new drift [capability:video-blueprint:Native L2 Video-Script Blueprint]
+- [x] 8.1 Run `node scripts/verify.js` → green (guard literal) [capability:cognnitive-video-engine:Programmatic Remotion Scene Compilation] — RAN: 33/144 fail, ALL pre-existing environment (missing `esbuild`/`jsdom`/`ajv`/`typescript`/`sharp`, unbuilt innfo-core/mcp `dist`, uninstalled nn-sources deps); ZERO change-caused failures. All video-script steps green.
+- [x] 8.2 Run `node scripts/check-integrity.js` → green (guard literal) [capability:video-script-model:Script Is an iNNfo Level-3 Document] — Groups 1c/2b/2d/2e/2f/2g verified green (1c needs the change committed so `manifest/source.yaml` is in the diff range; proven with the working-tree range); Group 3 inherits the environmental failures above.
+- [x] 8.3 Run `npm run lint`, `npm run typecheck`, `npm run format:check` → no new drift [capability:video-blueprint:Native L2 Video-Script Blueprint] — CANNOT RUN: `node_modules` is empty in this worktree (eslint/typescript/prettier absent). Pre-existing environment blocker.

@@ -168,7 +168,7 @@ blueprints:
   {
     const repoRoot = path.resolve(__dirname, '..');
     const ids = buildSteps(repoRoot).map((s) => s.desc);
-    const embedded = 'Test iNNfo/specs/bluepriNNts/video/skills/nn-video-script/test/vus-parse.test.mjs';
+    const embedded = 'Test iNNfo/specs/bluepriNNts/video-script/skills/nn-video-script/test/scene-compiler.test.mjs';
     assert.ok(ids.includes(embedded), `buildSteps must include a step for ${embedded}`);
     assert.strictEqual(
       ids.filter((d) => d === embedded).length,

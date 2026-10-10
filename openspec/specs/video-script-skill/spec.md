@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Defines the cogNNitive-owned skill that authors VUS video scripts inside an iNNfo workspace. The skill, its VUS parser and its VUS specification all live inside this monorepo; the spec is vendored and pinned mechanically to a single in-repo file, with no dependency on any external repository.
+Defines the cogNNitive-owned skill that authors native iNNfo Level-3 video-script documents inside an iNNfo workspace. The skill is embedded in the `video-script` blueprint package; script validity is enforced by the `video-script` blueprint, with no external repository dependency.
 ## Requirements
 ### Requirement: Owned Skill With No External Dependency
 

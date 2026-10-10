@@ -24,8 +24,8 @@ The skill MUST author video scripts as iNNfo Level-3 kNNowledge documents that a
 
 ### Requirement: Owned Skill With No External Dependency
 
-The system MUST provide a cogNNitive-owned video-script skill embedded in the `video` bluepriNNt package at `iNNfo/specs/bluepriNNts/video/skills/nn-video-script/` that authors iNNfo Level-3 video-script documents and understands iNNfo workspace structure (Series/Video registration). The skill MUST NOT depend on, fork from at run time, or reference any repository outside the monorepo.
-(Previously: it authored VUS scripts using a vendored parser and VUS specification.)
+The system MUST provide a cogNNitive-owned video-script skill embedded in the `video-script` bluepriNNt package at `iNNfo/specs/bluepriNNts/video-script/skills/nn-video-script/` that authors iNNfo Level-3 video-script documents and understands iNNfo workspace structure (Series/Video registration). The skill MUST NOT depend on, fork from at run time, or reference any repository outside the monorepo.
+(Previously: it authored VUS scripts using a vendored parser and VUS specification, embedded in the `video` bluepriNNt package.)
 
 #### Scenario: Skill authors a document with no external repository
 
@@ -62,6 +62,27 @@ The skill's own documentation and prompts MUST NOT restate blueprint Field names
 - GIVEN a skill document containing a literal Layer `type::` list not sourced from the blueprint
 - WHEN skill content is reviewed against this requirement
 - THEN it is flagged as a no-prose-copy violation
+
+### Requirement: Skill Is Installed By Projection From The video bluepriNNt
+
+The skill MUST be made available to agents at `~/.agents/skills/nn-video-script/` solely by installing the `video-script` bluepriNNt (see R-TPD-05). It MUST NOT have a standalone distribution entry, alias, redirect or dual path. Its `version` MUST remain `V_0-4-0` as skill frontmatter, and any change under `video-script/skills/**` MUST bump the `video-script` `blueprint_version`.
+(Previously: projected from the `video` bluepriNNt, which is retired by this change.)
+
+#### Scenario: Installing video-script yields a working skill
+
+- GIVEN a clean `~/.agents/`
+- WHEN the `video-script` bluepriNNt is installed
+- THEN `~/.agents/skills/nn-video-script/SKILL.md` exists and its scripts run
+
+### Requirement: Embedded Skill Tests Run In Verify
+
+Test suites that live inside the embedded skill MUST be discovered and executed by `node scripts/verify.js`, without double-running suites already collected from `iNNfo/packages`. Moving the suites MUST NOT reduce the number of executed suites.
+
+#### Scenario: Moved suites still run
+
+- GIVEN the skill's suites under `iNNfo/specs/bluepriNNts/video-script/skills/nn-video-script/test/`
+- WHEN `node scripts/verify.js` collects suites
+- THEN each remaining suite is in the executed set
 
 ## REMOVED Requirements
 
