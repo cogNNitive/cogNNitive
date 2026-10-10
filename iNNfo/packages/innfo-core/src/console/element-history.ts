@@ -10,6 +10,7 @@
 import { readdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { parseChangeset } from '../changeset/parser.js'
+import { isNNName, isSidecarName, parseName } from '../naming/contract.js'
 
 /** One lineage entry as the console modal renders it (author • timestamp, notes). */
 export interface ElementHistoryItem {
@@ -46,7 +47,12 @@ interface HistoryBearingElement {
   history?: ElementHistoryItem[]
 }
 
-const CHANGESET_FILE_RE = /_changes_NN\.md$/i
+/** A `changes/` document: an `_NN.md` file (not a sidecar) whose stem ends in `_changes`. */
+function isChangesetFile(name: string): boolean {
+  if (!isNNName(name) || isSidecarName(name)) return false
+  const parsed = parseName(name)
+  return parsed.kind === 'nn' && parsed.stem.endsWith('_changes')
+}
 
 /** Splits a canonical D5 address `model@element&field` into its model and element parts. */
 export function parseChangesetTarget(target: string): { modelPart: string; elementPart: string } {
@@ -86,7 +92,7 @@ export async function loadChangesetRecords(rootDir: string): Promise<ChangesetRe
     return []
   }
   const records: ChangesetRecord[] = []
-  for (const name of names.filter((n) => CHANGESET_FILE_RE.test(n)).sort()) {
+  for (const name of names.filter(isChangesetFile).sort()) {
     let raw: string
     try {
       raw = await readFile(join(dir, name), 'utf-8')

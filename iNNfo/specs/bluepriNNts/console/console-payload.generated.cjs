@@ -10511,7 +10511,11 @@ function citationFieldsFor(conceptName, fields, schema) {
 // iNNfo/packages/innfo-core/src/console/element-history.ts
 var import_promises = require("node:fs/promises");
 var import_node_path = require("node:path");
-var CHANGESET_FILE_RE = /_changes_NN\.md$/i;
+function isChangesetFile(name) {
+  if (!isNNName(name) || isSidecarName(name)) return false;
+  const parsed = parseName(name);
+  return parsed.kind === "nn" && parsed.stem.endsWith("_changes");
+}
 function parseChangesetTarget(target) {
   const at = String(target || "").indexOf("@");
   if (at === -1) return { modelPart: "", elementPart: "" };
@@ -10539,7 +10543,7 @@ async function loadChangesetRecords(rootDir) {
     return [];
   }
   const records = [];
-  for (const name of names.filter((n) => CHANGESET_FILE_RE.test(n)).sort()) {
+  for (const name of names.filter(isChangesetFile).sort()) {
     let raw;
     try {
       raw = await (0, import_promises.readFile)((0, import_node_path.join)(dir, name), "utf-8");
