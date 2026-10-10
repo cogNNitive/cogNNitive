@@ -87,9 +87,9 @@ describe('S1c: boot maps meta.model_slug to state.modelSlug', () => {
       const identifier = document.querySelector('#innfo-feedback-modal [data-innfo="identifier"]')
       identifier.value = 'jane'
       identifier.dispatchEvent(new dom.window.Event('input'))
-      document.querySelector('#innfo-feedback-modal [data-innfo="download"]').click()
+      document.querySelector('#innfo-feedback-modal [data-innfo="download-changeset"]').click()
       assert.equal(downloads.length, 1, 'one file downloaded')
-      assert.match(downloads[0], /^ghost-busters-slug_V_1-0-0_jane_feedback_/)
+      assert.match(downloads[0], /^ghost-busters-slug_jane_[0-9-]+_changes_NN\.md$/)
     } finally {
       MODEL.meta = saved
     }

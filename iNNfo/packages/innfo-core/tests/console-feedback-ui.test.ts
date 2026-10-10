@@ -241,7 +241,7 @@ describe('console-feedback-ui (bundle-injected feedback UI contract)', () => {
     const idInput = document.querySelector('#innfo-feedback-modal [data-innfo="identifier"]') as HTMLInputElement
     idInput.value = 'Reviewer-1'
 
-    const downloadBtn = document.querySelector('#innfo-feedback-modal [data-innfo="download"]')!
+    const downloadBtn = document.querySelector('#innfo-feedback-modal [data-innfo="download-changeset"]')!
     downloadBtn.dispatchEvent(new Event('click', { bubbles: true }))
 
     expect(createObjectURLSpy).not.toHaveBeenCalled()
