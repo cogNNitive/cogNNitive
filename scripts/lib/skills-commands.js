@@ -29,6 +29,8 @@ const {
   hashTree,
 } = require('../../skills/nn-preflight/scripts/lib/projection.js');
 
+const { skillTreeDigest } = require('./skill-tree-digest.js');
+
 const {
   fetchString,
   fetchJson,
@@ -284,6 +286,17 @@ async function installSkillAtCommit(skill, skillsDir, state) {
     const src = path.join(repoRoot, skill.path);
     if (!fs.existsSync(src)) {
       throw new Error(`path ${skill.path} not found in ${skill.repo} at ${skill.commit}`);
+    }
+
+    // Integrity: a referenced external skill pins a canonical tree digest. Verify
+    // the fetched tree BEFORE the atomic swap so a mismatch writes nothing.
+    if (skill.sha256) {
+      const actual = skillTreeDigest(src);
+      if (actual !== String(skill.sha256)) {
+        throw new Error(
+          `integrity mismatch for ${skill.name}: expected sha256 ${skill.sha256}, got ${actual}`,
+        );
+      }
     }
 
     const dest = path.join(skillsDir, skill.name);
@@ -791,12 +804,57 @@ async function cmdInstall(args) {
 }
 
 /**
+ * Installs a single *referenced* external skill (declared in a bluepriNNt
+ * frontmatter `skills:` array) from its upstream repo at its pinned commit,
+ * verifying the declared sha256 tree digest when present. Consent-gated: the
+ * skill is third-party and NOT curated by cogNNitive.
+ * @param {{ skillsDir: string, stateFile: string, name: string, repo: string, path: string, commit: string, sha256?: string, yes?: boolean, agent?: string, scope?: string }} args
+ * @returns {Promise<void>}
+ */
+async function cmdInstallExternal(args) {
+  const { name, repo, commit } = args;
+  const skillPath = args.path;
+  if (!name || !repo || !skillPath || !commit) {
+    throw new Error('install-external requires --name, --repo, --path and --commit');
+  }
+  if (!/^[0-9a-f]{40}$/i.test(String(commit))) {
+    throw new Error(`--commit '${commit}' is not a 40-char hex sha`);
+  }
+
+  const skillsDir = args.skillsDir || DEFAULT_SKILLS_DIR;
+  const state = loadState(args.stateFile);
+
+  const integrity = args.sha256 ? 'verified via sha256' : 'NOT pinned (commit only)';
+  const menu =
+    `Referenced external skill (third-party, NOT curated by cogNNitive):\n` +
+    `  - ${name}  ${repo}/${skillPath} @ ${String(commit).slice(0, 7)}\n` +
+    `  integrity: ${integrity}\n` +
+    `\n[a] Install\n[b] Skip\n`;
+  const proceed = await consentOrAbort(`install external skill ${name}`, [`external-skill:${name}`], menu, args.yes);
+  if (!proceed) return;
+
+  await installSkillAtCommit(
+    { name, repo, path: skillPath, commit, sha256: args.sha256 },
+    skillsDir,
+    state,
+  );
+  projectSkillsToAgents({
+    canonicalSkillsDir: skillsDir,
+    targetAgent: args.agent || 'auto',
+    scope: args.scope || 'global',
+    state,
+    skillNames: [name],
+  });
+  saveState(args.stateFile, state);
+  console.log(`installed referenced external skill ${name} @ ${String(commit).slice(0, 7)}`);
+}
+
+/**
  * Executes update command updating outdated skills and templates with consent.
  * @param {{ skillsDir: string, blueprintsDir: string, consoleDir?: string, stateFile: string, positional: string[], yes: boolean, agent?: string, scope?: string }} args
  * @returns {Promise<void>}
  */
-async function cmdUpdate(args) {
-  const manifestRaw = await fetchManifestString();
+async function cmdUpdate(args) {  const manifestRaw = await fetchManifestString();
   const { skills, blueprints, consoleAssets } = parseManifest(manifestRaw);
   const state = loadState(args.stateFile);
   const consoleDir = args.consoleDir || DEFAULT_CONSOLE_DIR;
@@ -1384,6 +1442,7 @@ module.exports = {
   consentOrAbort,
   cmdStatus,
   cmdInstall,
+  cmdInstallExternal,
   cmdUpdate,
   cmdSync,
   cmdBootstrap,

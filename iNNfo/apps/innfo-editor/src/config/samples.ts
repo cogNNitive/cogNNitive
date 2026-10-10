@@ -42,7 +42,7 @@ export const SHIPPED_BLUEPRINT_VERSIONS: Record<string, string> = {
   changes: 'V_0-1-0',
   'design-presets': 'V_0-3-1',
   documentation: 'V_0-3-2',
-  domaiNN: 'V_0-2-0',
+  domaiNN: 'V_0-3-0',
   innovation: 'V_0-3-2',
   metrics: 'V_0-4-3',
   organization: 'V_0-3-2',

@@ -16,7 +16,7 @@ const commands = require('./lib/skills-commands.js');
 /**
  * Parses CLI command line arguments into structured SkillManagerArgs.
  * @param {string[]} argv
- * @returns {{ positional: string[], skillsDir: string | null, blueprintsDir: string | null, mcpDir: string | null, consoleDir: string | null, state: string | null, stateFile: string | null, yes: boolean, direction: string, agent: string, scope: string }}
+ * @returns {{ positional: string[], skillsDir: string | null, blueprintsDir: string | null, mcpDir: string | null, consoleDir: string | null, state: string | null, stateFile: string | null, yes: boolean, direction: string, agent: string, scope: string, name: string | null, repo: string | null, path: string | null, commit: string | null, sha256: string | null }}
  */
 function parseArgs(argv) {
   const args = {
@@ -31,6 +31,12 @@ function parseArgs(argv) {
     direction: 'local-to-global',
     agent: 'auto',
     scope: 'global',
+    // install-external flags
+    name: null,
+    repo: null,
+    path: null,
+    commit: null,
+    sha256: null,
   };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
@@ -57,7 +63,7 @@ function parseArgs(argv) {
       }
       args.scope = value;
       i++;
-    } else if (arg === '--skills-dir' || arg === '--templates-dir' || arg === '--mcp-dir' || arg === '--console-dir' || arg === '--state') {
+    } else if (arg === '--skills-dir' || arg === '--templates-dir' || arg === '--mcp-dir' || arg === '--console-dir' || arg === '--state' || arg === '--name' || arg === '--repo' || arg === '--path' || arg === '--commit' || arg === '--sha256') {
       const value = argv[i + 1];
       if (value === undefined || value.startsWith('--')) {
         throw new Error(`Option ${arg} requires a value`);
@@ -66,7 +72,12 @@ function parseArgs(argv) {
       else if (arg === '--templates-dir') args.blueprintsDir = value;
       else if (arg === '--mcp-dir') args.mcpDir = value;
       else if (arg === '--console-dir') args.consoleDir = value;
-      else args.state = value;
+      else if (arg === '--state') args.state = value;
+      else if (arg === '--name') args.name = value;
+      else if (arg === '--repo') args.repo = value;
+      else if (arg === '--path') args.path = value;
+      else if (arg === '--commit') args.commit = value;
+      else args.sha256 = value;
       i++;
     } else if (arg.startsWith('--')) {
       throw new Error(`Unknown option: ${arg}`);
@@ -86,6 +97,7 @@ function usage() {
   node scripts/skills-manager.js bootstrap [--scope <global|workspace>] [--agent <auto|opencode|claude|antigravity>] [--yes]
   node scripts/skills-manager.js status    [--skills-dir <dir>] [--templates-dir <dir>] [--state <file>]
   node scripts/skills-manager.js install   [--skills-dir <dir>] [--templates-dir <dir>] [--state <file>] [--yes]
+  node scripts/skills-manager.js install-external --name <n> --repo <owner/repo> --path <skills/x> --commit <40-hex> [--sha256 <64-hex>] [--skills-dir <dir>] [--state <file>] [--yes]
   node scripts/skills-manager.js update    [item ...] [--skills-dir <dir>] [--templates-dir <dir>] [--state <file>] [--yes]
   node scripts/skills-manager.js sync      [--skills-dir <dir>] [--templates-dir <dir>] [--direction <local-to-global|global-to-local>] [--yes]
 
@@ -93,6 +105,7 @@ Commands:
   bootstrap Full zero-touch ecosystem setup: skills, templates, MCP bundles, and agent registration.
   status    Compare installed commits (state file) against manifest pins.
   install   Install missing skills and templates at their pinned commit.
+  install-external  Install a single referenced external skill (third-party) from its upstream repo at a pinned commit, verifying its sha256 tree digest when given.
   update    Update outdated skills and templates at their pinned commit.
   sync      Synchronize skill and template files between local repository and global agent directory.
 
@@ -125,7 +138,7 @@ async function main() {
   }
 
   const command = args.positional.shift();
-  if (!command || !['bootstrap', 'status', 'install', 'update', 'sync'].includes(command)) {
+  if (!command || !['bootstrap', 'status', 'install', 'install-external', 'update', 'sync'].includes(command)) {
     usage();
     process.exit(1);
   }
@@ -148,12 +161,18 @@ async function main() {
     direction: args.direction,
     agent: args.agent,
     scope: args.scope,
+    name: args.name,
+    repo: args.repo,
+    path: args.path,
+    commit: args.commit,
+    sha256: args.sha256,
   };
 
   try {
     if (command === 'bootstrap') await commands.cmdBootstrap(resolvedArgs);
     else if (command === 'status') await commands.cmdStatus(resolvedArgs);
     else if (command === 'install') await commands.cmdInstall(resolvedArgs);
+    else if (command === 'install-external') await commands.cmdInstallExternal(resolvedArgs);
     else if (command === 'update') await commands.cmdUpdate(resolvedArgs);
     else await commands.cmdSync(resolvedArgs);
   } catch (err) {
