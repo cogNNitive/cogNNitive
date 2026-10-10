@@ -1131,34 +1131,56 @@
       ? state.meta.models
       : null
 
-    // 1. Domain blueprint cards (mockup-2 layout): one card per model with its
-    //    blueprint tag, version, element/concept counts and a pending-changes badge.
-    //    Clicking a card sets the `model:` facet, filtering the unified console.
+    // Hierarchical rail (design: domain-console-hierarchy-and-omnibar §3): a
+    // DaisyUI `menu` tree — one collapsible folder per model, each holding its
+    // concepts with counts. A model click sets `model:<id>`; a concept click sets
+    // `model:<id> concept:<c>` (the omnibar facets).
     if (models) {
+      var menu = el('ul', 'menu menu-xs bg-base-100 p-2 w-full')
       models.forEach(function (m) {
-        var card = (doc.createElement ? doc.createElement('div') : el('div'))
-        if (!card) return
-        card.className = 'innfo-bp-card'
-        card.setAttribute('data-model', String(m.id || m.filePath))
-        var tagText = m.blueprint || m.tag || ''
-        var titleText = m.title || m.filePath || 'Model'
-        var versionText = m.version || m.modelVersion || ''
-        var conceptCount = Array.isArray(m.conceptNames) ? m.conceptNames.length : (m.conceptCount || 0)
-        var changeCount = m.changeCount || m.draftCount || 0
-        card.innerHTML =
-          '<div class="bp-top"><span class="bp-tag">' + tagText + '</span><span class="bp-version">' + versionText + '</span></div>' +
-          '<div class="bp-title">' + titleText + '</div>' +
-          (changeCount > 0 ? '<span class="bp-changes">' + changeCount + ' pending</span>' : '') +
-          '<div class="bp-meta"><span><strong>' + (m.elementCount || 0) + '</strong> elements</span><span><strong>' + conceptCount + '</strong> concepts</span></div>'
-
-        card.addEventListener('click', function () {
-          if (typeof onSelect === 'function') onSelect('model:' + (m.id || m.filePath))
+        var modelKey = String(m.id || m.filePath)
+        var li = el('li')
+        var det = doc.createElement('details')
+        det.className = 'collapse collapse-arrow'
+        det.open = true
+        var sum = doc.createElement('summary')
+        sum.className = 'collapse-title min-h-0 py-2 pr-6'
+        sum.setAttribute('data-model', modelKey)
+        var fileIcon = typeof InnfoIcons !== 'undefined' ? InnfoIcons.getSvg('file-text', { size: 13 }) : ''
+        sum.innerHTML =
+          '<span class="flex items-center gap-2 min-w-0">' + fileIcon +
+          '<span class="truncate font-semibold">' + (m.title || m.filePath || modelKey) + '</span></span>' +
+          '<span class="badge badge-ghost badge-xs">' + (m.elementCount || 0) + '</span>'
+        sum.addEventListener('click', function () {
+          if (typeof onSelect === 'function') onSelect('model:' + modelKey)
         })
-        rail.appendChild(card)
+        det.appendChild(sum)
+        var inner = el('ul')
+        ;(Array.isArray(m.conceptNames) ? m.conceptNames : []).forEach(function (c) {
+          var cli = el('li')
+          var link = doc.createElement('a')
+          if (link) {
+            link.setAttribute('data-concept', String(c))
+            link.innerHTML =
+              '<span class="truncate">' + String(c) + '</span>' +
+              '<span class="badge badge-ghost badge-xs">' + ((counts && counts[c]) || 0) + '</span>'
+            link.addEventListener('click', function (e) {
+              if (e && e.preventDefault) e.preventDefault()
+              if (typeof onSelect === 'function') onSelect('model:' + modelKey + ' concept:' + String(c))
+            })
+          }
+          cli.appendChild(link)
+          inner.appendChild(cli)
+        })
+        det.appendChild(inner)
+        li.appendChild(det)
+        menu.appendChild(li)
       })
+      rail.appendChild(menu)
+      return
     }
 
-    // 2. Concepts list (clean, flat, and responsive)
+    // Fallback: single-model consoles keep the flat concept rail.
     var cHdr = el('div', 'innfo-rail-header')
     cHdr.innerHTML = '<span>Concepts (' + (concepts ? concepts.length : 0) + ')</span>'
     rail.appendChild(cHdr)

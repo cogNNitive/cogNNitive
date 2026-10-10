@@ -84,8 +84,8 @@ describe('Domain Console Hierarchy & Faceted Omnibar Contract', () => {
     const state = {
       meta: {
         models: [
-          { id: 'business-model', title: 'Business Model', filePath: 'business_model.md', elementCount: 1 },
-          { id: 'analysis', title: 'Analysis', filePath: 'analysis.md', elementCount: 1 },
+          { id: 'business-model', title: 'Business Model', filePath: 'business_model.md', elementCount: 1, conceptNames: ['Stakeholders'] },
+          { id: 'analysis', title: 'Analysis', filePath: 'analysis.md', elementCount: 1, conceptNames: ['Risks'] },
         ],
       },
       elements: [
@@ -141,8 +141,8 @@ describe('Domain Console Hierarchy & Faceted Omnibar Contract', () => {
     const state = {
       meta: {
         models: [
-          { id: 'business-model', title: 'Business Model', filePath: 'business_model.md', elementCount: 1 },
-          { id: 'analysis', title: 'Analysis', filePath: 'analysis.md', elementCount: 1 },
+          { id: 'business-model', title: 'Business Model', filePath: 'business_model.md', elementCount: 1, conceptNames: ['Stakeholders'] },
+          { id: 'analysis', title: 'Analysis', filePath: 'analysis.md', elementCount: 1, conceptNames: ['Risks'] },
         ],
       },
       elements: [
@@ -174,6 +174,6 @@ describe('Domain Console Hierarchy & Faceted Omnibar Contract', () => {
     assert.equal(conceptItems.length, 2, 'renders 2 concept rail items')
 
     conceptItems[1].click()
-    assert.equal(selectedFilter, 'concept:Risks')
+    assert.equal(selectedFilter, 'model:analysis concept:Risks')
   })
 })
