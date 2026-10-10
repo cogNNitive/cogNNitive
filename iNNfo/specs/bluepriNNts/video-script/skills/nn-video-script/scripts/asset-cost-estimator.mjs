@@ -297,8 +297,7 @@ export function estimateScriptCost(scriptContentOrPath, options = {}) {
     const narration = (scene.narration || '').trim();
     const wordCount = narration ? narration.split(/\s+/).filter(Boolean).length : 0;
     const charCount = narration.length;
-    const explicitDuration = scene.properties?.scene_duration || scene.properties?.duration || scene.duration;
-    const estimatedDurationSec = explicitDuration ? Number(explicitDuration) : Math.max(3, Math.round((wordCount / 2.5) * 10) / 10);
+    const estimatedDurationSec = Math.max(3, Math.round((wordCount / 2.5) * 10) / 10);
 
     // Layer breakdown
     const imageLayers = (scene.layers || []).filter(l => l.type === 'image' || l.properties?.layer_type === 'image');
@@ -312,7 +311,7 @@ export function estimateScriptCost(scriptContentOrPath, options = {}) {
 
     // 1. Image: one billable call per image layer, priced with the SAME model resolution the compile step uses.
     const imageModels = imageLayers.length > 0
-      ? imageLayers.map((l) => resolveModelId(l.properties?.layer_generation_model, defaultImageModel))
+      ? imageLayers.map(() => normalizeModelId(defaultImageModel))
       : (noLayers ? [defaultImageModel] : []);
     let sceneImageCost = 0;
     for (const m of imageModels) {
@@ -332,7 +331,7 @@ export function estimateScriptCost(scriptContentOrPath, options = {}) {
     let sceneAvatarCost = 0;
     let avatarModelKey = defaultAvatarModel;
     avatarLayers.forEach((l, idx) => {
-      const m = resolveModelId(l.properties?.layer_avatar_model, defaultAvatarModel);
+      const m = normalizeModelId(defaultAvatarModel);
       if (idx === 0) avatarModelKey = m;
       sceneAvatarCost += estimateCallUsd('avatar', m, { seconds: estimatedDurationSec });
       noteModel(m);
