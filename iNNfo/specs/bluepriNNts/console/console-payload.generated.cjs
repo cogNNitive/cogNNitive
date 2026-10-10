@@ -10138,6 +10138,22 @@ async function writeOnce(root, t, bytes, o = {}) {
   }
 }
 
+// iNNfo/packages/innfo-core/src/changeset/types.ts
+function isChangeStatus(val) {
+  return typeof val === "string" && ["proposed", "applied", "partially_applied", "rejected", "conflict"].includes(val);
+}
+function isChangeOp(val) {
+  return typeof val === "string" && [
+    "update_field",
+    "add_element",
+    "remove_element",
+    "rename_element",
+    "rename_concept",
+    "update_matrix_cell",
+    "comment"
+  ].includes(val);
+}
+
 // iNNfo/packages/innfo-core/src/changeset/parser.ts
 var import_yaml8 = __toESM(require_dist(), 1);
 function stripQuotes(str2) {
@@ -10211,6 +10227,9 @@ function parseChangeset(rawContent) {
     const rawVal = propMatch[2].trim();
     switch (key) {
       case "op":
+        if (!isChangeOp(rawVal)) {
+          throw new Error(`Invalid changeset op: "${rawVal}"`);
+        }
         currentChange.op = rawVal;
         break;
       case "target":
@@ -10245,6 +10264,9 @@ function parseChangeset(rawContent) {
         currentChange.notes = rawVal;
         break;
       case "status":
+        if (!isChangeStatus(rawVal)) {
+          throw new Error(`Invalid changeset status: "${rawVal}"`);
+        }
         currentChange.status = rawVal;
         break;
       case "resolution":
