@@ -33,7 +33,7 @@ above wins, otherwise the nearest `.git`, otherwise the script directory. A stra
     "wavespeed-ai/minimax-h3/image-edit"
   ],
   "blockedModels": ["wavespeed-ai/infinitetalk"],
-  "allowDelegatedApproval": false,
+  "allowDelegatedApproval": true,
   "systemVoices": ["Friendly_Person", "Wise_Woman", "Deep_Voice_Man", "English_*", "..."],
   "voices": { "<Name>": { "voice_id": "<id>", "series": "<slug>" } }
 }
@@ -55,8 +55,9 @@ fallback): budgets and `dailyCapUsd` must be finite numbers >= 0,
 - `maxAvatarSeconds`: longest avatar audio that may be billed (finite number > 0, default 300).
 - `maxAvatarConcurrency`: simultaneous avatar jobs, enforced in-process and across
   processes with lock files under `.cognnitive/locks/` (stale locks are broken).
-- `allowDelegatedApproval`: when `true`, compile/synthesize-avatar honor
-  agent-relayed (`--delegated`) plan approvals (section 2b). Default `false`.
+- `allowDelegatedApproval`: when `true` (default), compile/synthesize-avatar honor
+  in-chat (`--delegated`) plan approvals (section 2b). Set it to `false` to require
+  the interactive TTY route of section 2.
 
 ## 2. Plan approval is an artifact (a human act)
 
@@ -65,10 +66,13 @@ fallback): budgets and `dailyCapUsd` must be finite numbers >= 0,
    script text, NFC and newline-insensitive, plus the explicitly chosen
    `--image-model/--tts-model/--avatar-model`), `total_usd` and the model set.
    Only that first-line stamp is ever read back.
-2. A **human** runs `node scripts/approve-plan.mjs assets/<slug>/asset_plan.md
-   [--allow-model <name>]...`. It needs an interactive terminal and a typed
-   confirmation, and has no `--yes` flag. It writes `asset_plan.approved.json`
-   (`plan_hash`, `totalUsd`, `approvedAt`, `allowedModels`, `allowModels`).
+2. A **human** approves it — normally **in chat** (section 2b): the user replies
+   with `approve the plan <plan-hash-8>` and the agent relays it. A workspace may
+   instead require an interactive TTY: `node scripts/approve-plan.mjs
+   assets/<slug>/asset_plan.md [--allow-model <name>]...` (typed confirmation, no
+   `--yes` flag). Either way it writes `asset_plan.approved.json`
+   (`plan_hash`, `totalUsd`, `approvedAt`, `allowedModels`, `allowModels`, and for
+   the chat route `delegated`/`delegatedPhrase`).
 3. `compile` plans first and refuses the whole run before the first charge unless
    the approval exists next to `script.md` (or via `--approval`), matches the
    script and models, covers every model used, and the plan fits
@@ -78,32 +82,38 @@ fallback): budgets and `dailyCapUsd` must be finite numbers >= 0,
 Pass the same `--image-model/--tts-model/--avatar-model` to `compile` as to the
 estimator: those flags select the models actually called, and are part of the hash.
 
-**Residual risk.** The approval is a file, not a signature. Interactivity and a
-typed confirmation stop `approve-plan.mjs` from being run casually by an agent, but
-anything with file-write access to the workspace can still hand-write
+**Residual risk.** The approval is a file, not a signature. Requiring the human's
+phrase to contain the plan hash (both routes: typed in chat or at the TTY prompt)
+stops `approve-plan.mjs` from being run casually by an agent, but anything with
+file-write access to the workspace can still hand-write
 `asset_plan.approved.json`. Add a workspace permission rule that denies agent
 writes to `**/asset_plan.approved.json` and `video-guard.json`.
 
-### 2b. Delegated approval (opt-in, default off)
+### 2b. In-chat approval (the standard flow)
 
-Workspaces that prefer chat-based approval can set
-`"allowDelegatedApproval": true` in `video-guard.json`. The flow is then:
+Approval happens in the conversation — no external terminal. It is still a human,
+deliberate, auditable act because the phrase carries the plan hash:
 
-1. The human writes an explicit approval phrase in the chat (naming episode and
-   total, e.g. `apruebo el plan de huelga-general, $1.60`).
-2. The agent runs `node scripts/approve-plan.mjs <asset_plan.md> --delegated "<exact phrase>"`.
-   No TTY is needed; the phrase is recorded verbatim (`delegated: true`,
-   `delegatedPhrase`) in `asset_plan.approved.json` for audit.
-3. `compile` / `synthesize-avatar` honor that approval only when the workspace
-   opted in; otherwise they refuse it (`delegated-not-allowed`) and require the
-   interactive approval from section 2.
+1. The agent asks the human to reply, in chat, with the exact phrase
+   `approve the plan <plan-hash-8>` (the first 8 chars of the plan stamp).
+2. The human sends that phrase. The agent relays it:
+   `node scripts/approve-plan.mjs <asset_plan.md> --delegated "<exact phrase>"`.
+   The script refuses any phrase that does not contain the plan hash, so a human
+   had to read the hash off the plan and repeat it. The phrase is recorded verbatim
+   (`delegated: true`, `delegatedPhrase`) in `asset_plan.approved.json` for audit.
+3. `compile` / `synthesize-avatar` honor it by default. A workspace that wants the
+   stronger TTY route sets `"allowDelegatedApproval": false`; then they refuse a
+   delegated approval (`delegated-not-allowed`) and require section 2.
+
+The agent MUST NOT invent or self-author the phrase: it only relays the human's
+actual chat reply. If the human has not replied yet, the agent asks and waits.
 
 Trade-off: a chat phrase is weaker than a TTY — a malicious document in the
-workspace could in principle contain an approval-looking phrase (prompt
-injection) that an incautious agent relays. Only opt in if the human reviews
-every plan total before uttering the phrase, and never enable it together with
-fully autonomous agent loops. The plan-hash match, model coverage, 1.25x cap,
-per-run budget and 24h cap all still apply to delegated approvals.
+workspace could in principle contain an approval-looking phrase (prompt injection)
+that an incautious agent relays. Because the phrase MUST include the plan hash, a
+blind relay still fails unless the document also carried the current hash. The
+plan-hash match, model coverage, 1.25x cap, per-run budget and 24h cap all still
+apply to in-chat approvals.
 
 ## 3. Dry run
 

@@ -3,9 +3,11 @@
  *
  * Plan approval as an artifact. The cost estimator stamps `plan_hash` (sha256 of
  * the normalized script text + explicitly chosen models), the estimated total and
- * the model set on the first line of asset_plan.md. A HUMAN runs approve-plan.mjs
- * to write `asset_plan.approved.json`; compile refuses billable work unless that
- * file's hash matches the current script, and caps spend by it.
+ * the model set on the first line of asset_plan.md. Approval is a human act done
+ * via approve-plan.mjs — normally in chat: the human replies with the phrase
+ * `approve the plan <plan-hash-8>`, which the agent relays with `--delegated`.
+ * compile refuses billable work unless the approval hash matches the current
+ * script.
  *
  * Residual risk: this is a file, not a cryptographic signature. Anything with
  * write access to the workspace can still hand-write the JSON; guard the file with
@@ -91,17 +93,30 @@ export function writeApproval(approvalPath, { planHash, totalUsd, allowedModels,
 const isStrings = (v) => Array.isArray(v) && v.every((x) => typeof x === 'string');
 
 /**
+ * A delegated approval phrase is valid only when it carries the plan hash (its
+ * first 8 hex chars, case-insensitive). This is what keeps a chat approval a
+ * deliberate, human act: the human had to read the hash off the plan and repeat it.
+ * @param {string} phrase
+ * @param {string} planHash
+ * @returns {boolean}
+ */
+export function delegatedPhraseIsValid(phrase, planHash) {
+  if (typeof phrase !== 'string' || typeof planHash !== 'string' || planHash.length < 8) return false;
+  return phrase.toLowerCase().includes(planHash.slice(0, 8).toLowerCase());
+}
+
+/**
  * Checks that an approval artifact exists, is well-formed, matches the current
  * script + models, and covers every `--allow-model` of this run.
- * A delegated approval (agent-relayed human phrase, no TTY) is accepted only
- * when `allowDelegated` is true (workspace opt-in via
- * `video-guard.json: allowDelegatedApproval`); otherwise it is refused.
+ * A delegated approval (agent-relayed human chat phrase carrying the plan hash,
+ * no TTY) is accepted when `allowDelegated` is true (the default). A workspace may
+ * disable it (`video-guard.json: allowDelegatedApproval: false`) to require a TTY.
  * @param {{ scriptContent: string, models?: Record<string, string | null | undefined>, approvalPath: string, allowModels?: string[], allowDelegated?: boolean }} input
  * @returns {{ ok: true, approval: { planHash: string, totalUsd: number, allowedModels: string[], allowModels: string[], approvedAt?: string, delegated?: boolean, delegatedPhrase?: string } }
  *   | { ok: false, reason: 'missing' | 'invalid' | 'mismatch' | 'unapproved-model' | 'delegated-not-allowed', message: string }}
  */
 export function checkApproval({ scriptContent, models = {}, approvalPath, allowModels = [], allowDelegated = false }) {
-  const hint = 'Review the plan, then a human runs: node scripts/approve-plan.mjs <asset_plan.md>.';
+  const hint = 'Review the plan, then have a human approve it: reply in chat with "approve the plan <hash>" and run: node scripts/approve-plan.mjs <asset_plan.md> --delegated "<that phrase>".';
   if (!fs.existsSync(approvalPath)) {
     return { ok: false, reason: 'missing', message: 'No approved plan found at ' + approvalPath + '. ' + hint };
   }
@@ -122,8 +137,8 @@ export function checkApproval({ scriptContent, models = {}, approvalPath, allowM
       ok: false,
       reason: 'delegated-not-allowed',
       message:
-        'Approval file ' + approvalPath + ' is a delegated (agent-relayed) approval, but this workspace does not ' +
-        'opt in (video-guard.json: allowDelegatedApproval). Either approve interactively with approve-plan.mjs ' +
+        'Approval file ' + approvalPath + ' is a delegated (agent-relayed) approval, but this workspace disabled ' +
+        'delegation (video-guard.json: allowDelegatedApproval=false). Either approve interactively with a TTY, ' +
         'or set "allowDelegatedApproval": true in video-guard.json. ' + hint,
     };
   }

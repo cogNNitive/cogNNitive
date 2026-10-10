@@ -7,13 +7,18 @@
  *
  * Writes `asset_plan.approved.json` next to the plan, recording the plan hash,
  * the estimated total, the approved model set and any `--allow-model` overrides.
- * This is a HUMAN act: it needs an interactive terminal and a typed confirmation,
- * and there is deliberately no `--yes` flag. Agents must never run it for the user
- * — EXCEPT with `--delegated "<exact human phrase>"`, which records an
- * agent-relayed approval (the human's explicit chat phrase, stored verbatim in
- * the approval file for audit). Delegated approvals are honored by compile /
- * synthesize-avatar ONLY in workspaces that opt in with
- * `video-guard.json: { "allowDelegatedApproval": true }` (default false).
+ *
+ * Approval is a HUMAN act, confirmed by the plan hash. Two equivalent routes:
+ *   1. In-chat delegation (the standard cognNNitive flow): the agent asks the human
+ *      to reply with the exact phrase `approve the plan <plan-hash-8>`; the human
+ *      sends it in the conversation; the agent runs this script with
+ *      `--delegated "<that exact phrase>"`. The phrase MUST contain the plan hash,
+ *      and is stored verbatim in the approval file for audit. No external terminal.
+ *   2. Interactive TTY: no `--delegated` — the human types the hash prefix at the
+ *      prompt (there is deliberately no `--yes` flag).
+ * Delegated approvals are honored by compile / synthesize-avatar when
+ * `video-guard.json: { "allowDelegatedApproval": true }` (default true). A workspace
+ * may set it to false to require the TTY route.
  * (A process with file-write access can still hand-write the JSON; see
  * references/cost-guardrails.md for the residual risk.)
  *
@@ -24,7 +29,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import readline from 'node:readline';
 import { fileURLToPath } from 'node:url';
-import { APPROVAL_FILENAME, parsePlanMarkdown, writeApproval } from './lib/plan-approval.mjs';
+import { APPROVAL_FILENAME, parsePlanMarkdown, writeApproval, delegatedPhraseIsValid } from './lib/plan-approval.mjs';
 import { parseArgs, CliUsageError } from './lib/cli-args.mjs';
 
 /**
@@ -88,10 +93,21 @@ async function main() {
   }
   const delegatedPhrase = typeof parsed.flags['delegated'] === 'string' ? parsed.flags['delegated'].trim() : '';
   if (delegatedPhrase) {
-    // Delegated (agent-relayed) approval: no TTY. The human's explicit phrase is
-    // recorded verbatim for audit; enforcement happens at compile time, which only
-    // honors delegated approvals in opted-in workspaces.
+    // Delegated (agent-relayed) approval: no TTY. The human's explicit chat phrase
+    // is recorded verbatim for audit. It MUST carry the plan hash, so relaying it
+    // still required the human to read and repeat the hash deliberately.
     try {
+      const resolved = path.resolve(planPath);
+      if (!fs.existsSync(resolved)) throw new Error('Plan file not found: ' + resolved);
+      const stamp = parsePlanMarkdown(fs.readFileSync(resolved, 'utf8'));
+      if (!stamp.planHash) throw new Error(resolved + ' has no valid plan stamp on its first line.');
+      const expected = stamp.planHash.slice(0, 8);
+      if (!delegatedPhraseIsValid(delegatedPhrase, stamp.planHash)) {
+        throw new Error(
+          'Delegated approval must contain the plan hash "' + expected + '". ' +
+            'Ask the human to reply in chat with exactly: approve the plan ' + expected,
+        );
+      }
       const res = approvePlan(planPath, { allowModels: parsed.flags['allow-model'] || [], delegatedPhrase });
       console.log('Approved plan by delegation (est. $' + res.totalUsd.toFixed(4) + ' USD) -> ' + res.approvalPath);
       console.log('  recorded phrase: "' + delegatedPhrase + '"');

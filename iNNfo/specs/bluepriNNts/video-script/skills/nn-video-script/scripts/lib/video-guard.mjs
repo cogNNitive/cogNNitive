@@ -37,9 +37,13 @@ export const DEFAULT_GUARD = Object.freeze({
   blockedModels: ['wavespeed-ai/infinitetalk'],
   voices: {},
   // When true, compile/synthesize-avatar accept delegated (agent-relayed) plan
-  // approvals. Default false: delegation is opt-in per workspace because a chat
-  // phrase is weaker than a TTY (prompt-injection surface). See cost-guardrails.md.
-  allowDelegatedApproval: false,
+  // approvals — the standard cognNNitive flow: the agent asks the human to reply
+  // IN CHAT with the exact phrase `approve the plan <plan-hash-8>`, then relays it
+  // via `approve-plan.mjs --delegated "<phrase>"`. Default true. The phrase MUST
+  // carry the plan hash, so approval stays a deliberate, auditable human act with
+  // no external terminal. A workspace may set it to false to require a TTY.
+  // See cost-guardrails.md.
+  allowDelegatedApproval: true,
   // Provider-native voices that need no registration or cloning; a trailing * is a prefix glob.
   systemVoices: [
     'Friendly_Person', 'Wise_Woman', 'Deep_Voice_Man', 'Inspirational_girl', 'Calm_Woman', 'Casual_Guy', 'Lively_Girl', 'Patient_Man', 'Young_Knight', 'Determined_Man', 'Lovely_Girl', 'Decent_Boy', 'Imposing_Manner', 'Elegant_Man', 'Abbess', 'Sweet_Girl_2', 'Exuberant_Girl', 'English_*',
