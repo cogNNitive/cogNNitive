@@ -2,57 +2,23 @@
 
 ## Purpose
 
-The Level 2 video blueprint is the canonical home for reusable video template definitions (`@template`, `@caption_template`, `@broll_template`), supporting domain-level defaults plus series-level overrides. A VUS script may reference an external blueprint that the scene compiler resolves and composes into scene styling, with non-fatal fallback to system defaults when a template or blueprint is missing.
+The Level 2 `video-script` blueprint is the canonical schema for native video scripts. It defines the `Video`, `Scene`, `Layer`, and `Template` Concepts and Fields using iNNfo `::` syntax and is the schema an L3 script document adopts via `parent_spec`. The retired `video` blueprint and its `@template` definitions no longer exist.
 
 ## Requirements
 
-### Requirement: Level 2 Video Blueprint Template Schema
+### Requirement: Native L2 Video-Script Blueprint
 
-The system MUST define reusable template definitions inside the Level 2 video blueprint (`iNNfo/specs/bluepriNNts/video/spec_NN.md`): `@template` (scene), `@caption_template`, and `@broll_template`. Each template MUST declare its style, animation, and positioning contract. The blueprint MUST be the canonical home for these reusable definitions, so they are shared across every video series that inherits from it.
+The Level 2 blueprint `video-script` MUST define the Concepts and Fields for a native video script (`Video`, `Scene`, `Layer`, `Template`) using iNNfo `::` field syntax, and MUST be the schema an L3 script document adopts via `parent_spec`. The blueprint MUST NOT define VUS `scene_*` or `layer_*` fields.
 
-#### Scenario: Template kinds are declared in the blueprint
+#### Scenario: Blueprint defines the native concepts
 
-- GIVEN the Level 2 video blueprint
+- GIVEN the Level 2 `video-script` blueprint
 - WHEN it is inspected
-- THEN it declares `@template`, `@caption_template`, and `@broll_template` definitions
-- AND each definition exposes a style, animation, and positioning contract
+- THEN it defines `Video`, `Scene`, `Layer`, and `Template` Concepts with `::` Fields
+- AND it defines no `scene_*` or `layer_*` fields
 
-#### Scenario: Caption overlay resolves its contract from the blueprint
+#### Scenario: An L3 script adopts the blueprint
 
-- GIVEN a `@caption_template` declaring typography and enter/exit animation
-- WHEN a caption overlay is compiled
-- THEN its styling and animation are sourced from that declaration
-
-### Requirement: Blueprint Inheritance and Override
-
-The system MUST support a domain-level shared blueprint plus series-level overrides. A series-level override MUST take precedence over the domain default. When a referenced template or blueprint is missing, the system MUST fall back to sensible system defaults and MUST NOT fail rendering.
-
-#### Scenario: Series override wins over the domain default
-
-- GIVEN a domain default and a series-level override for the same template name
-- WHEN the series' video is compiled
-- THEN the series-level definition is applied
-
-#### Scenario: Missing template falls back without failing
-
-- GIVEN a script that references an undefined template
-- WHEN the script is compiled
-- THEN system default styling and animation are applied
-- AND compilation succeeds with no crash
-
-### Requirement: Script-to-Blueprint Reference Resolution
-
-A VUS script MUST be able to reference an external video blueprint. The scene compiler MUST resolve template definitions from the referenced blueprint and compose them into the scene styling, with no manual JSON authored in the script.
-
-#### Scenario: External blueprint is resolved and composed
-
-- GIVEN a VUS script referencing an external video blueprint
-- WHEN the scene compiler processes it
-- THEN the referenced templates are resolved and applied to the compiled scenes
-
-#### Scenario: Missing blueprint reference is non-fatal
-
-- GIVEN a VUS script referencing a blueprint that does not exist
-- WHEN the scene compiler processes it
-- THEN it applies system defaults and emits a warning
-- AND it does not abort compilation
+- GIVEN an L3 script document whose `parent_spec` is the `video-script` blueprint
+- WHEN the document is validated
+- THEN its Concepts and Fields are checked against the blueprint
