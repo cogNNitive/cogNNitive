@@ -65,18 +65,6 @@ export interface ChangesetDocument {
   rawContent?: string
 }
 
-export interface ChangesetApplyResult {
-  success: boolean
-  changesetPath: string
-  changeset?: string
-  status: ChangeStatus
-  models: Record<string, ModelVersionTransition>
-  appliedCount: number
-  conflictedCount?: number
-  errors?: Array<{ path: string; message: string; code?: string }>
-  warnings?: Array<{ path: string; message: string }>
-}
-
 export function isChangeStatus(val: unknown): val is ChangeStatus {
   return (
     typeof val === 'string' &&
@@ -97,32 +85,6 @@ export function isChangeOp(val: unknown): val is ChangeOp {
       'comment',
     ].includes(val)
   )
-}
-
-export function isPartiallyApplied(statusOrResult: ChangeStatus | { status?: ChangeStatus | string }): boolean {
-  if (typeof statusOrResult === 'string') {
-    return statusOrResult === 'partially_applied'
-  }
-  return statusOrResult?.status === 'partially_applied'
-}
-
-export function isApplied(statusOrResult: ChangeStatus | { status?: ChangeStatus | string }): boolean {
-  if (typeof statusOrResult === 'string') {
-    return statusOrResult === 'applied'
-  }
-  return statusOrResult?.status === 'applied'
-}
-
-export function hasConflicts(result: { status?: ChangeStatus | string; conflictedCount?: number }): boolean {
-  return result?.status === 'conflict' || (result?.conflictedCount !== undefined && result.conflictedCount > 0)
-}
-
-export interface SnapshotRecord {
-  modelStem: string
-  baseVersion: string
-  timestamp: string
-  changesetStem: string
-  archivePath: string
 }
 
 export interface LockPayload {
