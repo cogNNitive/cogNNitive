@@ -8,20 +8,23 @@ Maintain reference consistency across all workspace models when performing versi
 
 ### Requirement: Cross-Model Reference Cascading on Version Bump
 
-When `bump_version` renames and increments the version of a model, the mutation handler MUST scan all other models and workspace manifest/index files within the workspace for references to the bumped model. Any fields referencing the old model filename or version identifier (such as `derived_from_inputs::`, `business_model::`, `models/...` in `sources::`, and `index.md`) MUST be updated to reference the new versioned filename, or reported as validation diagnostics if automated cascade is disabled.
+When `bump_version` renames and increments the version of a model, the mutation handler MUST scan all other models and workspace manifest/index files within the workspace for references to the bumped model. Any fields referencing the old versioned filename (such as `derived_from_inputs::`, `business_model::`, file-based paths in `sources::`, and `index.md`) MUST be updated to reference the new versioned filename. However, cross-model references that address the model via its immutable `model_slug` (e.g. `model_slug@element-slug`) MUST remain unchanged, as model slug identities are stable and invariant across version bumps.
 
-#### Scenario: Cascading update to dependent model's derived_from_inputs
-- GIVEN a model `models/strategy_V_0-1-0_NN.md`
-- AND another model `models/execution_V_0-1-0_NN.md` containing `derived_from_inputs:: [strategy_V_0-1-0_NN.md]`
-- WHEN `bump_version` is applied to `strategy` with `bump: "minor"`
+(Previously: All cross-model references and source citations were bound to versioned filenames like `models/strategy_V_0-1-0_NN.md@## Vision`, requiring cascading edits across all dependent workspace models whenever any model version was bumped.)
+
+#### Scenario: Slug-based cross-model reference remains invariant on bump
+- GIVEN a model with `model_slug: strategy` and filename `models/strategy_V_0-1-0_NN.md`
+- AND another model `models/marketing_V_0-1-0_NN.md` containing `sources:: [strategy@vision]`
+- WHEN `bump_version` bumps `strategy` to `models/strategy_V_0-2-0_NN.md`
 - THEN `strategy` is renamed to `models/strategy_V_0-2-0_NN.md`
-- AND `execution_V_0-1-0_NN.md` is updated so that `derived_from_inputs` references `strategy_V_0-2-0_NN.md`
+- AND the reference `strategy@vision` in `marketing_V_0-1-0_NN.md` remains unchanged
 
-#### Scenario: Cascading update to cross-model source citation
+#### Scenario: File-based cross-model reference cascades on bump
 - GIVEN a model `models/marketing_V_0-1-0_NN.md` containing `sources:: [models/strategy_V_0-1-0_NN.md@## Vision]`
-- WHEN `bump_version` is applied to `strategy` with `bump: "patch"`
-- THEN `strategy` is renamed to `models/strategy_V_0-1-1_NN.md`
-- AND the citation in `marketing_V_0-1-0_NN.md` is updated to `models/strategy_V_0-1-1_NN.md@## Vision`
+- WHEN `bump_version` bumps `strategy` to `models/strategy_V_0-2-0_NN.md`
+- THEN the reference in `marketing_V_0-1-0_NN.md` is updated to `models/strategy_V_0-2-0_NN.md@## Vision`
+
+---
 
 ### Requirement: Pre-Mutation Workspace Reference Validation
 
@@ -32,3 +35,54 @@ Before applying and persisting version bump changes across referencing models, `
 - WHEN `bump_version` is executed on the target model
 - THEN the validation check detects the error prior to writing
 - AND the operation returns failure without altering files on disk
+
+### Requirement: Slug-First Structural and Wikilink Reference Resolution
+
+Structural references (such as schema reference fields, matrix row headers, matrix column headers, and cross-model element links) MUST be written using immutable element and concept slugs. When resolving wikilinks (`[[target]]`) and reference fields against elements in the model graph, the validator and reference resolver (`references.ts`) MUST apply the following precedence order:
+
+1. **Exact Slug Match**: Target matches `element.slug`.
+2. **Exact Name Match**: Target matches `element.name` (legacy fallback).
+3. **Normalized Name Match**: Target matches normalized `element.name` with separator tolerance (legacy fallback).
+
+When an exact slug match exists, the resolver MUST bind to that element immediately. If a target does not match any slug but matches an element display name, it MUST bind to that element using name fallback. If a display name matches multiple elements defined under distinct concepts within the same model, the resolver MUST emit an `AMBIGUOUS_ELEMENT_NAME` diagnostic and MUST NOT arbitrarily bind to one element.
+
+#### Scenario: Wikilink resolves directly to element slug
+- GIVEN an element with display name `Operating Margin` and `slug:: op-margin`
+- AND prose containing `[[op-margin]]`
+- WHEN references are resolved
+- THEN the wikilink resolves directly to the element via slug match
+- AND no legacy fallback is engaged
+
+#### Scenario: Wikilink resolves via legacy name fallback
+- GIVEN an element with display name `Customer Acquisition Cost` and `slug:: cac`
+- AND prose containing `[[Customer Acquisition Cost]]`
+- WHEN references are resolved
+- THEN the wikilink resolves to the element via exact name match fallback
+
+#### Scenario: Ambiguous display name emits diagnostic
+- GIVEN two elements in different concepts sharing display name `Priority`
+- AND prose containing `[[Priority]]`
+- WHEN references are resolved
+- THEN the resolver emits an `AMBIGUOUS_ELEMENT_NAME` diagnostic
+- AND the link is flagged as ambiguous
+
+#### Scenario: Matrix headers reference element slugs
+- GIVEN a matrix definition in a model
+- WHEN matrix row and column headers are specified
+- THEN the headers use element slugs for row and column identities
+
+---
+
+### Requirement: Legacy Name-Based Reference Fallback Ledger
+
+Whenever a reference or wikilink resolves through display name fallback rather than an immutable slug, the reference resolver MUST record the legacy marker `legacy:lineage-reference-name-fallback`. Furthermore, the reference resolution tooling MUST register the occurrence in `legacy-ledger.yaml`, recording the referencing file, target name, and resolved element slug to facilitate future automated migrations to explicit slug addressing.
+
+#### Scenario: Name fallback records legacy marker
+- GIVEN a reference that resolves via display name fallback
+- WHEN reference resolution executes
+- THEN the evaluation metadata includes the marker `legacy:lineage-reference-name-fallback`
+
+#### Scenario: Name fallback registered in legacy-ledger.yaml
+- GIVEN a workspace validation or audit pass
+- WHEN references resolving via name fallback are detected
+- THEN entries are appended or updated in `legacy-ledger.yaml` specifying the file and resolved slug

@@ -35,3 +35,20 @@ In `domaiNN_console.html`, all domain models are currently flattened during expo
 5. **Strict Backward Compatibility**:
    - Single-model consoles (`<Model>_console.html`) continue to render cleanly; if only one model is present or `model.meta.models` is omitted, the rail falls back smoothly to single-model mode.
    - Zero-build, `file://` offline contract strictly preserved.
+
+## Status Note (2026-10-10)
+
+**Partial delivery — not archivable as complete.** A code review against `dev`
+(`e7c371fe`) found the hierarchical rail was NOT implemented as specified: `renderRail`
+(`innfo-runtime.js:1125-1183`) renders a flat model button list followed by a flat
+concept button list. There is no `<details>` accordion and no `<ul class="menu">`
+nesting (grep for `createElement('details')` / `class=menu` returns 0 matches).
+
+Everything else landed: `modelId`/`modelFile`/`canonicalUnit` enrichments
+(`export-console.mjs:626-634`), the `model.meta.models` catalog (`:681`), the faceted
+omnibar (`model:`/`concept:`/`tag:` + free text), bidirectional URL-hash sync, and the
+click-to-copy canonical KU locator on cards.
+
+**Remaining work (own slice):** implement the multi-level rail (models -> concepts as
+`<ul class="menu">` / `<details>` with count badges) and rebuild the console bundle.
+Do not archive this change until then.
