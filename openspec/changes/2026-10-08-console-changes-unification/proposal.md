@@ -19,3 +19,18 @@ Furthermore, UI terminology is fragmented across "feedback", "review", and "chan
    - Provide direct action buttons ("Export changes" / "Download _changes_NN.md") directly inside the Changes tab (`#innfo-tab-review`) so users don't have to seek out the header button when reviewing their draft list.
 4. **Preserve Compatibility**:
    - Retain existing DOM IDs (`#innfo-feedback-modal`, `#innfo-feedback-open`, `#innfo-tab-review`) and config need (`feedback-export`) to avoid breaking existing templates, harnesses, and test queries.
+
+## Status Note (2026-10-10)
+
+**Partial delivery — not archivable as complete.** A code review against `dev`
+(`e7c371fe`) found that the legacy JSON review export was *hidden*, not removed as
+this change specifies: `data-innfo="export-json"` textarea (`innfo-runtime.js:3304`)
+and the `download`/`copy` JSON buttons (`:3308-3309`, `display:none`) remain in the
+DOM with their handlers (`composeExport`, `downloadFeedbackExport`, `copyExport`) live.
+
+Everything else landed: terminology ("Export changes" / "Changes" tab / "Export
+proposed changes"), the changeset Markdown preview + download/copy, the in-tab
+action button, and the preserved DOM ids / `feedback-export` need.
+
+**Remaining work (own slice):** remove the JSON textarea, buttons and handlers, and
+rebuild the console bundle. Do not archive this change until then.
