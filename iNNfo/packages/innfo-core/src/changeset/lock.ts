@@ -50,33 +50,15 @@ export async function acquireLock(
     }
   }
 
-  // Lock exists, check staleness
+  // Lock exists: read it to decide whether it is stale or corrupt.
+  let existing: LockPayload | null = null
+  let corrupt = false
   try {
     const raw = await readFile(lockPath, 'utf8')
-    const existing: LockPayload = JSON.parse(raw)
-    const age = Date.now() - existing.timestamp
-
-    if (age > timeoutMs) {
-      console.warn(
-        `[ChangesetLock] Breaking stale lock at ${lockPath} held by pid ${existing.pid} for changeset ${existing.changeset} (age: ${age}ms > ${timeoutMs}ms)`,
-      )
-      try {
-        await unlink(lockPath)
-      } catch {
-        // ignore if race-unlinked
-      }
-      if (await tryCreate()) {
-        return {
-          lockPath,
-          payload,
-          release: async () => {
-            await unlink(lockPath).catch(() => undefined)
-          },
-        }
-      }
-    }
+    existing = JSON.parse(raw) as LockPayload
   } catch (readErr: unknown) {
     if ((readErr as { code?: string })?.code === 'ENOENT') {
+      // Lock vanished between `tryCreate` and `readFile`: attempt to acquire.
       if (await tryCreate()) {
         return {
           lockPath,
@@ -85,6 +67,34 @@ export async function acquireLock(
             await unlink(lockPath).catch(() => undefined)
           },
         }
+      }
+      // Another writer re-created it: fall through to the busy error below.
+    } else {
+      // A torn/corrupt `.lock` (e.g. a writer crashed mid-write) is unusable as a
+      // concurrency gate; treat it as breakable rather than a permanent block.
+      corrupt = true
+    }
+  }
+
+  const age = existing ? Date.now() - existing.timestamp : 0
+  if (corrupt || age > timeoutMs) {
+    console.warn(
+      corrupt
+        ? `[ChangesetLock] Breaking corrupt lock at ${lockPath} (unreadable payload)`
+        : `[ChangesetLock] Breaking stale lock at ${lockPath} held by pid ${existing!.pid} for changeset ${existing!.changeset} (age: ${age}ms > ${timeoutMs}ms)`,
+    )
+    try {
+      await unlink(lockPath)
+    } catch {
+      // ignore if race-unlinked
+    }
+    if (await tryCreate()) {
+      return {
+        lockPath,
+        payload,
+        release: async () => {
+          await unlink(lockPath).catch(() => undefined)
+        },
       }
     }
   }

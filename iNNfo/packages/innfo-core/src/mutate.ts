@@ -869,7 +869,7 @@ function renameElement(
         for (const [fKey, fVal] of Object.entries(el.fields)) {
           const isRefField = conceptRefs?.has(fKey.toLowerCase()) ?? false
           const rewrite = (s: string): string =>
-            isRefField ? updateReferenceString(s, elementName, newName) : updateWikiLinks(s, elementName, newName)
+            isRefField ? updateReferenceString(s, oldDisplayName, newName) : updateWikiLinks(s, oldDisplayName, newName)
           if (typeof fVal === 'string') {
             el.fields[fKey] = rewrite(fVal)
           } else if (Array.isArray(fVal)) {
@@ -882,7 +882,7 @@ function renameElement(
 
       // 2. Description
       if (el.description && typeof el.description === 'string') {
-        el.description = updateWikiLinks(el.description, elementName, newName)
+        el.description = updateWikiLinks(el.description, oldDisplayName, newName)
       }
 
       // 3. Relationships array (if present)
@@ -900,7 +900,7 @@ function renameElement(
   if (model.rawSections) {
     for (const [sKey, sVal] of Object.entries(model.rawSections)) {
       if (typeof sVal === 'string') {
-        model.rawSections[sKey] = updateWikiLinks(sVal, elementName, newName)
+        model.rawSections[sKey] = updateWikiLinks(sVal, oldDisplayName, newName)
       }
     }
   }

@@ -112,7 +112,7 @@ export class ScriptValidationError extends Error {
 }
 
 /** Overlay layers sequenced into non-overlapping slots, and their default seconds. */
-const SEQUENTIAL_OVERLAY_TYPES = { quote: 3, 'lower-third': 4, 'b-roll': 4 };
+const SEQUENTIAL_OVERLAY_TYPES = { quote: 3, 'b-roll': 4 };
 
 /** Extracts the instance name from a `[[Doc :: Name]]` template reference. */
 function templateRefName(ref) {
