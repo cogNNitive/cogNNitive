@@ -412,7 +412,7 @@ level: 3
       assert.ok(html.includes('data-innfo-view="timeline"'))
     })
 
-    it('projects the timeline data of a metrics model into meta.models[]', async () => {
+    it('lists the metrics model in meta.models[] without a projection (view-derived)', async () => {
       const metricsModel = `---
 title: "M"
 level: 3
@@ -447,14 +447,9 @@ scenarioMonths:: 12
       assert.equal((await runCli([tempDir, '--domain'])).code, 0)
       const html = await readFile(domainFile(), 'utf-8')
       const slot = JSON.parse(html.match(/<script type="application\/json" id="innfo-model">([\s\S]*?)<\/script>/)[1])
-      const summary = slot.meta.models.find((s) => s.projection)
-      assert.equal(summary.blueprint, 'metrics', JSON.stringify(summary))
-      assert.equal(summary.projection.months, 12)
-      const byLabel = Object.fromEntries(summary.projection.rows.map((r) => [r.label, r]))
-      assert.equal(byLabel.Revenue.formula, 'incidents x fee')
-      assert.deepEqual(byLabel.Revenue.growth, { mode: 'compound', factor: 5 })
-      assert.equal(byLabel.Incidents.variable, true)
-      assert.equal(byLabel.Incidents.base, 20)
+      const summary = slot.meta.models.find((s) => s.blueprint === 'metrics')
+      assert.ok(summary, JSON.stringify(slot.meta.models))
+      assert.equal(summary.projection, undefined, 'projection is view-derived, not exporter-derived')
     })
 
     it('mounts the discovered timeline view as a tab, with no canonical/studio tabs and no global ids', async () => {

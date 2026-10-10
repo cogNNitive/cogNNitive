@@ -21,7 +21,6 @@ import {
   assertInlinable,
   CONSOLE_SIZE_BUDGET,
   evaluateSizeBudget,
-  deriveProjection,
 } from '../scripts/console-views.mjs'
 import { JSDOM } from 'jsdom'
 import { InnfoConsole, consoleDir } from './helpers/console-boot.mjs'
@@ -617,64 +616,5 @@ describe('size budget', () => {
     assert.equal(evaluateSizeBudget(parts(5_000_001)).status, 'warn')
     assert.equal(evaluateSizeBudget(parts(15_000_000)).status, 'warn')
     assert.equal(evaluateSizeBudget(parts(15_000_001)).status, 'fail')
-  })
-})
-
-describe('deriveProjection', () => {
-  const mk = (concept, name, fields = {}, relations = []) => ({
-    id: `${concept.toLowerCase()}-${name.toLowerCase().replace(/\s+/g, '-')}`,
-    concept,
-    name,
-    fields,
-    relations,
-  })
-  const evolution = mk('Evolution', 'Compound', { evolutionType: 'compound', evolutionFactor: '5' })
-  const scenario = mk('Scenario', 'Year 1', { scenarioMonths: '12' })
-  const wider = mk('Scenario', 'Expansion', { scenarioMonths: '36' })
-  const variable = mk('Variables', 'Monthly Incidents', { variableValue: '20', variableType: 'count', variableUnit: 'incidents' })
-  const revenue = mk(
-    'Metrics',
-    'Revenue',
-    { metricValue: '<calculated>', metricFormula: 'incidents x fee', metricType: 'revenue', metricUnit: 'USD' },
-    [{ field: 'evolution', target: evolution.id, targetLabel: 'Compound' }],
-  )
-  const payroll = mk('Metrics', 'Payroll', { metricValue: '35000', metricFormula: '<fixed>', metricType: 'expense', metricUnit: 'USD' }, [
-    { field: 'evolution', target: evolution.id, targetLabel: 'Compound' },
-  ])
-
-  it('returns null when the model has no Scenario horizon', () => {
-    assert.equal(deriveProjection([variable, revenue]), null)
-    assert.equal(deriveProjection([]), null)
-    assert.equal(deriveProjection(undefined), null)
-  })
-
-  it('uses the widest Scenario as months and keeps element ids for the edit modal', () => {
-    const p = deriveProjection([evolution, scenario, wider, variable, revenue])
-    assert.equal(p.months, 36)
-    assert.equal(p.rows.length, 2)
-    const rev = p.rows.find((r) => r.label === 'Revenue')
-    assert.equal(rev.id, revenue.id)
-    assert.equal(rev.metricUnit, 'USD')
-    assert.equal(rev.metricType, 'revenue')
-  })
-
-  it('marks a formula row with its formula + growth and a value row as a variable', () => {
-    const p = deriveProjection([evolution, scenario, variable, revenue, payroll])
-    const rev = p.rows.find((r) => r.label === 'Revenue')
-    assert.equal(rev.formula, 'incidents x fee')
-    assert.equal(rev.variable, undefined)
-    assert.deepEqual(rev.growth, { mode: 'compound', factor: 5 })
-    const pay = p.rows.find((r) => r.label === 'Payroll')
-    assert.equal(pay.formula, undefined, 'a <...> placeholder is not a usable formula')
-    assert.equal(pay.variable, true)
-    assert.equal(pay.base, 35000)
-  })
-
-  it('turns a Variables element into a variable row with its unit and base', () => {
-    const p = deriveProjection([scenario, variable])
-    assert.deepEqual(
-      p.rows.map((r) => ({ label: r.label, variable: r.variable, base: r.base, metricUnit: r.metricUnit, grp: r.grp })),
-      [{ label: 'Monthly Incidents', variable: true, base: 20, metricUnit: 'incidents', grp: 'Variables' }],
-    )
   })
 })
