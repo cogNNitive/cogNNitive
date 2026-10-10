@@ -1127,43 +1127,14 @@
     if (!rail) return
     rail.innerHTML = ''
 
-    var models = state && state.meta && Array.isArray(state.meta.models) && state.meta.models.length > 1
-      ? state.meta.models
-      : null
-
-    // 1. If Domain has multiple models, show a clean, compact list of models at the top
-    if (models) {
-      var mHdr = el('div', 'innfo-rail-header')
-      mHdr.innerHTML = '<span>Models (' + models.length + ')</span>'
-      rail.appendChild(mHdr)
-
-      models.forEach(function (m) {
-        var mBtn = (doc.createElement ? doc.createElement('button') : el('button'))
-        mBtn.className = 'innfo-rail-item text-xs py-1.5'
-        mBtn.setAttribute('data-model', String(m.id || m.filePath))
-        var iconHtml = typeof InnfoIcons !== 'undefined' ? InnfoIcons.getSvg('file-text', { size: 13, class: 'text-primary shrink-0 mr-1.5' }) : '📄 '
-        var titleText = m.title || m.filePath || 'Model'
-        mBtn.innerHTML = '<span class="flex items-center truncate flex-1" title="' + (m.filePath || titleText) + '">' + iconHtml + '<span class="truncate">' + titleText + '</span></span>' +
-          '<span class="badge badge-xs badge-ghost font-mono text-[10px] ml-1">' + (m.elementCount || 0) + '</span>'
-
-        mBtn.addEventListener('click', function () {
-          if (typeof onSelect === 'function') onSelect('model:' + (m.id || m.filePath))
-        })
-        rail.appendChild(mBtn)
-      })
+    function mk(tag) {
+      return doc.createElement ? doc.createElement(tag) : el(tag)
     }
-
-    // 2. Concepts list (clean, flat, and responsive)
-    var cHdr = el('div', 'innfo-rail-header')
-    cHdr.innerHTML = '<span>Concepts (' + (concepts ? concepts.length : 0) + ')</span>'
-    rail.appendChild(cHdr)
-
-    ;(Array.isArray(concepts) ? concepts : []).forEach(function (concept, index) {
-      var name = typeof concept === 'string' ? concept : concept.name
+    function conceptButton(name, index) {
       var count = counts[name] || 0
       var draftCount = draftCountsByConcept ? draftCountsByConcept[name] || 0 : 0
-      var btn = (doc.createElement ? doc.createElement('button') : el('button'))
-      if (!btn) return
+      var btn = mk('button')
+      if (!btn) return null
       btn.className = 'innfo-rail-item'
       btn.setAttribute('data-concept', String(name))
       var pill = UI.ConceptPill({ id: name, label: name, index: index, count: count }, { document: doc })
@@ -1178,7 +1149,100 @@
       btn.addEventListener('click', function () {
         if (typeof onSelect === 'function') onSelect('concept:' + String(name))
       })
-      rail.appendChild(btn)
+      return btn
+    }
+    function conceptNamesForModel(m) {
+      var mid = String(m.id || m.filePath)
+      var seen = {}
+      var out = []
+      ;(state && Array.isArray(state.elements) ? state.elements : []).forEach(function (e) {
+        if (!e) return
+        if (String(e.modelId || e.modelFile || '') !== mid) return
+        if (e.concept && !seen[e.concept]) {
+          seen[e.concept] = true
+          out.push(e.concept)
+        }
+      })
+      if (!out.length && Array.isArray(m.conceptNames)) {
+        m.conceptNames.forEach(function (c) {
+          if (c && !seen[c]) {
+            seen[c] = true
+            out.push(c)
+          }
+        })
+      }
+      return out
+    }
+
+    var models = state && state.meta && Array.isArray(state.meta.models) && state.meta.models.length > 1
+      ? state.meta.models
+      : null
+
+    // Hierarchical rail: Level 1 = one <details> per model, Level 2 = its concepts
+    // nested inside. Clicking a model sets the `model:` facet; clicking a concept
+    // sets the `concept:` facet. Falls back to the flat concept list for single-model
+    // consoles (models absent or length <= 1).
+    if (models) {
+      var list = mk('ul')
+      if (list) list.className = 'menu innfo-rail-menu'
+      var globalIndex = 0
+      var globalConcepts = Array.isArray(concepts) ? concepts : []
+      models.forEach(function (m) {
+        var mid = String(m.id || m.filePath)
+        var li = mk('li')
+        var details = mk('details')
+        details.className = 'innfo-rail-model'
+        details.open = true
+        var summary = mk('summary')
+        summary.className = 'innfo-rail-item innfo-rail-model-summary'
+        summary.setAttribute('data-model', mid)
+        summary.innerHTML =
+          '<span class="innfo-rail-model-title">' + (m.title || m.filePath || 'Model') + '</span>' +
+          '<span class="innfo-rail-count badge badge-sm">' + (m.elementCount || 0) + '</span>'
+        summary.addEventListener('click', function () {
+          if (typeof onSelect === 'function') onSelect('model:' + mid)
+        })
+        details.appendChild(summary)
+
+        var sub = mk('ul')
+        var names = conceptNamesForModel(m)
+        var modelSet = {}
+        names.forEach(function (n) {
+          modelSet[n] = true
+        })
+        if (!names.length) {
+          globalConcepts.forEach(function (c) {
+            var nm = typeof c === 'string' ? c : c.name
+            if (nm && !modelSet[nm]) {
+              modelSet[nm] = true
+              names.push(nm)
+            }
+          })
+        }
+        names.forEach(function (name) {
+          var cli = mk('li')
+          var btn = conceptButton(name, globalIndex)
+          globalIndex += 1
+          if (btn) cli.appendChild(btn)
+          sub.appendChild(cli)
+        })
+        details.appendChild(sub)
+
+        li.appendChild(details)
+        list.appendChild(li)
+      })
+      rail.appendChild(list)
+      return
+    }
+
+    // Flat fallback (single-model console).
+    var cHdr = el('div', 'innfo-rail-header')
+    cHdr.innerHTML = '<span>Concepts (' + (concepts ? concepts.length : 0) + ')</span>'
+    rail.appendChild(cHdr)
+    ;(Array.isArray(concepts) ? concepts : []).forEach(function (concept, index) {
+      var name = typeof concept === 'string' ? concept : concept.name
+      var btn = conceptButton(name, index)
+      if (btn) rail.appendChild(btn)
     })
   }
 
@@ -1252,10 +1316,16 @@
           conceptId: element.concept,
           description: element.description,
           fields: fields,
+          qud: { id: element.id, concept: element.concept, hash: element.hash, path: element.canonicalUnit || element.modelFile || element.modelTitle || null },
+          path: element.canonicalUnit || element.modelFile || element.modelTitle || null,
+          tags: Array.isArray(element.tags) ? element.tags.map(String) : null,
+          relations:
+            Array.isArray(element.relations) && element.relations.length ? element.relations : null,
         },
         {
           domId: String(element.id || ''),
           collapsible: false,
+          byId: refs,
           onRef: function (refId) {
             var target = refs && isObject(refs[String(refId)]) ? refs[String(refId)] : null
             if (target) renderRefDialog(doc, target)
@@ -3223,11 +3293,11 @@
         '#innfo-feedback-modal input{width:100%;padding:8px 12px;margin:8px 0;border:1px solid var(--border,#e5e7eb);border-radius:var(--radius-sm,4px);box-sizing:border-box;}' +
         '#innfo-feedback-modal pre{background:var(--surface-2,#f3f4f6);border:1px solid var(--border,#e5e7eb);border-radius:6px;padding:12px;white-space:pre-wrap;font-size:0.8rem;}' +
         '[data-innfo="errors"]{color:#dc2626;font-size:0.85rem;margin:8px 0;padding:8px 12px;background:#fef2f2;border:1px solid #fecaca;border-radius:4px;}' +
-        '#innfo-feedback-modal button[data-innfo="download"]{appearance:none;border:1px solid var(--primary,#2563eb);background:var(--primary,#2563eb);color:#ffffff;font:inherit;font-size:0.85rem;font-weight:600;padding:8px 16px;border-radius:var(--radius-sm,4px);cursor:pointer;}' +
-        '#innfo-feedback-modal button[data-innfo="download"]:hover{background:var(--primary-hover,#1d4ed8);}' +
-        '#innfo-feedback-modal [data-innfo="export-json"]{width:100%;min-height:140px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:0.78rem;border:1px solid var(--border,#e5e7eb);border-radius:6px;padding:10px;box-sizing:border-box;}' +
+        '#innfo-feedback-modal button[data-innfo="download-changeset"]{appearance:none;border:1px solid var(--primary,#2563eb);background:var(--primary,#2563eb);color:#ffffff;font:inherit;font-size:0.85rem;font-weight:600;padding:8px 16px;border-radius:var(--radius-sm,4px);cursor:pointer;}' +
+        '#innfo-feedback-modal button[data-innfo="download-changeset"]:hover{background:var(--primary-hover,#1d4ed8);}' +
+        '#innfo-feedback-modal [data-innfo="changeset-preview"]{width:100%;min-height:140px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:0.78rem;border:1px solid var(--border,#e5e7eb);border-radius:6px;padding:10px;box-sizing:border-box;}' +
         '#innfo-feedback-modal .innfo-feedback-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:8px 0;}' +
-        '#innfo-feedback-modal button[data-innfo="copy"]{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--surface,#ffffff);color:var(--text,#111827);font:inherit;font-size:0.85rem;font-weight:600;padding:8px 16px;border-radius:var(--radius-sm,4px);cursor:pointer;}' +
+        '#innfo-feedback-modal button[data-innfo="copy-changeset-prompt"]{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--surface,#ffffff);color:var(--text,#111827);font:inherit;font-size:0.85rem;font-weight:600;padding:8px 16px;border-radius:var(--radius-sm,4px);cursor:pointer;}' +
         '#innfo-feedback-modal button:disabled{opacity:0.5;cursor:not-allowed;}' +
         '#innfo-feedback-modal [data-innfo="copy-status"]{font-size:0.8rem;color:var(--muted,#6b7280);}'
       root.appendChild(style)
@@ -3301,12 +3371,10 @@
       '</label>' +
       '<div data-innfo="errors" style="display: none;"></div>' +
       '<h3>Proposed Changeset (_changes_NN.md)</h3>' +
-      '<textarea data-innfo="export-json" data-innfo-changeset="true" readonly></textarea>' +
+      '<textarea data-innfo="changeset-preview" readonly></textarea>' +
       '<div class="innfo-feedback-actions">' +
       '<button data-innfo="download-changeset" type="button">Download _changes_NN.md</button>' +
       '<button data-innfo="copy-changeset-prompt" type="button">Copy Changeset Prompt</button>' +
-      '<button data-innfo="download" type="button" style="display: none;">Download feedback JSON</button>' +
-      '<button data-innfo="copy" type="button" style="display: none;">Copy to clipboard</button>' +
       '<span data-innfo="copy-status" role="status" aria-live="polite"></span>' +
       '</div>' +
       '<h3>Instructions</h3>' +
@@ -3527,7 +3595,7 @@
   function copyChangesetPrompt(doc, state) {
     var modal = doc.getElementById('innfo-feedback-modal')
     var status = modal && modal.querySelector('[data-innfo="copy-status"]')
-    var textarea = modal && modal.querySelector('[data-innfo="export-json"]')
+    var textarea = modal && modal.querySelector('[data-innfo="changeset-preview"]')
     function announce(msg) {
       if (status) status.textContent = msg
     }
@@ -3565,29 +3633,6 @@
     return composed
   }
 
-  function downloadFeedbackExport(doc, state) {
-    var identifierInput = doc.querySelector('#innfo-feedback-modal [data-innfo="identifier"]')
-    var identifier = identifierInput && identifierInput.value ? String(identifierInput.value).trim() : ''
-    var composed = composeExport(state, identifier)
-    if (!composed.ok) {
-      renderErrors(doc, composed.errors)
-      return composed
-    }
-    renderErrors(doc, [])
-    var blob = new Blob([composed.text], { type: 'application/json' })
-    var url = URL.createObjectURL(blob)
-    var anchor = doc.createElement('a')
-    anchor.href = url
-    anchor.download = composed.filename
-    doc.body.appendChild(anchor)
-    anchor.click()
-    anchor.remove()
-    setTimeout(function () {
-      URL.revokeObjectURL(url)
-    }, 1000)
-    return { ok: true, filename: composed.filename, items: composed.items }
-  }
-
   function updateExportPreview(doc, state) {
     var modal = doc.getElementById('innfo-feedback-modal')
     if (!modal) return { ok: false }
@@ -3606,62 +3651,20 @@
     }
 
     var composed = composeExport(state, identifier)
-    var downloadBtn = modal.querySelector('[data-innfo="download"]')
     var downloadCsBtn = modal.querySelector('[data-innfo="download-changeset"]')
-    var copyBtn = modal.querySelector('[data-innfo="copy"]')
     var copyCsBtn = modal.querySelector('[data-innfo="copy-changeset-prompt"]')
-    var textarea = modal.querySelector('[data-innfo="export-json"]')
+    var textarea = modal.querySelector('[data-innfo="changeset-preview"]')
 
     if (composed.ok) {
       renderErrors(doc, [])
-      if (textarea) textarea.value = composed.changesetText || composed.text
-      if (downloadBtn) downloadBtn.disabled = false
+      if (textarea) textarea.value = composed.changesetText
       if (downloadCsBtn) downloadCsBtn.disabled = false
-      if (copyBtn) copyBtn.disabled = false
       if (copyCsBtn) copyCsBtn.disabled = false
     } else {
       renderErrors(doc, composed.errors)
       if (textarea) textarea.value = ''
-      if (downloadBtn) downloadBtn.disabled = true
       if (downloadCsBtn) downloadCsBtn.disabled = true
-      if (copyBtn) copyBtn.disabled = true
       if (copyCsBtn) copyCsBtn.disabled = true
-    }
-    return composed
-  }
-
-  function copyExport(doc, state) {
-    var modal = doc.getElementById('innfo-feedback-modal')
-    var status = modal && modal.querySelector('[data-innfo="copy-status"]')
-    var textarea = modal && modal.querySelector('[data-innfo="export-json"]')
-    function announce(msg) {
-      if (status) status.textContent = msg
-    }
-    var composed = composeExport(state, _readIdentifier(modal))
-    if (!composed.ok) {
-      announce('Cannot copy: fix the validation errors first.')
-      return composed
-    }
-    var text = composed.text
-    try {
-      if (
-        typeof navigator !== 'undefined' &&
-        navigator.clipboard &&
-        typeof navigator.clipboard.writeText === 'function'
-      ) {
-        navigator.clipboard.writeText(text).then(
-          function () {
-            announce('Copied feedback JSON to clipboard.')
-          },
-          function () {
-            announce(fallbackCopy(doc, textarea, text))
-          },
-        )
-        return composed
-      }
-      announce(fallbackCopy(doc, textarea, text))
-    } catch {
-      announce('Copy failed. Press Ctrl+C with the JSON selected.')
     }
     return composed
   }
@@ -3678,17 +3681,17 @@
         if (typeof textarea.select === 'function') textarea.select()
       }
       var ok = typeof doc.execCommand === 'function' ? doc.execCommand('copy') : false
-      if (ok) return 'Copied feedback JSON to clipboard.'
-      return 'Select the JSON and press Ctrl+C to copy.'
+      if (ok) return 'Copied changeset to clipboard.'
+      return 'Select the changeset and press Ctrl+C to copy.'
     } catch {
-      return 'Copy failed. Select the JSON and press Ctrl+C.'
+      return 'Copy failed. Select the changeset and press Ctrl+C.'
     }
   }
 
   function openExportModal(doc, state) {
     var modal = doc.getElementById('innfo-feedback-modal') || doc.getElementById('innfo-export-modal')
     if (!modal) {
-      downloadFeedbackExport(doc, state)
+      downloadChangesetExport(doc, state)
       return
     }
     var identifierInput = modal.querySelector('[data-innfo="identifier"]')
@@ -3708,11 +3711,11 @@
       instructions.textContent =
         'Review ' +
         drafts.length +
-        ' pending draft(s), then download or copy the feedback JSON or Changeset.'
+        ' pending draft(s), then download or copy the changeset.'
     }
     if (agentPrompt) {
       agentPrompt.textContent =
-        'Apply the attached feedback JSON or Changeset to ' +
+        'Apply the attached changeset to ' +
         (state ? state.modelTitle : 'Model') +
         ' (' +
         (state ? state.modelVersion : '') +
@@ -3734,21 +3737,6 @@
       })
     }
 
-    var downloadBtn = modal.querySelector('[data-innfo="download"]')
-    if (downloadBtn && !downloadBtn.getAttribute('data-innfo-bound')) {
-      downloadBtn.setAttribute('data-innfo-bound', '1')
-      downloadBtn.addEventListener('click', function () {
-        var identifier = identifierInput && identifierInput.value ? String(identifierInput.value).trim() : ''
-        if (!identifier || identifier === DEFAULT_REVIEWER_NAME) return
-        setReviewerName(identifier)
-        var res = downloadFeedbackExport(doc, state)
-        if (res && res.ok) {
-          if (typeof modal.close === 'function') modal.close()
-          else modal.removeAttribute('open')
-        }
-      })
-    }
-
     var downloadCsBtn = modal.querySelector('[data-innfo="download-changeset"]')
     if (downloadCsBtn && !downloadCsBtn.getAttribute('data-innfo-bound')) {
       downloadCsBtn.setAttribute('data-innfo-bound', '1')
@@ -3764,16 +3752,6 @@
       })
     }
 
-    var copyBtn = modal.querySelector('[data-innfo="copy"]')
-    if (copyBtn && !copyBtn.getAttribute('data-innfo-bound')) {
-      copyBtn.setAttribute('data-innfo-bound', '1')
-      copyBtn.addEventListener('click', function () {
-        var identifier = identifierInput && identifierInput.value ? String(identifierInput.value).trim() : ''
-        if (identifier && identifier !== DEFAULT_REVIEWER_NAME) setReviewerName(identifier)
-        copyExport(doc, state)
-      })
-    }
-
     var copyCsBtn = modal.querySelector('[data-innfo="copy-changeset-prompt"]')
     if (copyCsBtn && !copyCsBtn.getAttribute('data-innfo-bound')) {
       copyCsBtn.setAttribute('data-innfo-bound', '1')
@@ -3783,13 +3761,6 @@
         copyChangesetPrompt(doc, state)
       })
     }
-  }
-
-  function downloadExport(doc, state, identifier) {
-    if (identifier && String(identifier).trim()) {
-      setReviewerName(String(identifier).trim())
-    }
-    return downloadFeedbackExport(doc, state)
   }
 
   // Listeners a boot adds to the document/window, removed when the same
@@ -4200,13 +4171,11 @@
     focusElementCard: focusElementCard,
     ensureFeedbackUi: ensureFeedbackUi,
     draftToItem: draftToItem,
-    downloadFeedbackExport: downloadFeedbackExport,
     composeExport: composeExport,
     composeChangesetExport: composeChangesetExport,
     downloadChangesetExport: downloadChangesetExport,
     copyChangesetPrompt: copyChangesetPrompt,
     serializeFeedback: serializeFeedback,
-    downloadExport: downloadExport,
     buildExportDoc: buildExportDoc,
     boot: boot,
   }

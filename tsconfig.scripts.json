@@ -13,12 +13,9 @@
     "skipLibCheck": true
   },
   "include": [
-    "scripts/**/*",
-    "actioNN/scripts/**/*",
-    "actioNN/skills/nn-trannsform/scripts/**/*"
+    "scripts/**/*"
   ],
   "exclude": [
-    "actioNN/scripts/bin/*.bundle.js",
     "node_modules",
     "**/*.test.js",
     "**/test-*.js",

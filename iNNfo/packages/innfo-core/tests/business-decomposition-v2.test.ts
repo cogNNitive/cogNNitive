@@ -126,7 +126,7 @@ describe('analysis_V_0-1-0 â€” standalone strategic-review template', () =>
 describe('analysis_V_0-2-0 â€” sample model validates', () => {
   it('the Ghostbusters analysis sample has no "not defined in template" errors', () => {
     const modelContent = readSpec(
-      'bluepriNNts/analysis/samples/Ghostbusters_V_0-3-2_analysis_NN.md',
+      'bluepriNNts/analysis/samples/Ghostbusters_V_0-3-3_analysis_NN.md',
     )
     const model = parseKnowledge(modelContent)
     const template = {

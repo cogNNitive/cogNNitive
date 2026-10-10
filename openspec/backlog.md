@@ -15,13 +15,19 @@ confirmed. `refactor/identifier-migration` was reconciled against
 `2026-09-29-nn-level-nomenclature-rename`. Items 1, 2, 12, 13, 14, 15, 19, 20 and the
 someday-maybe/deferred entries remain open.
 
+Consolidated 2026-10-10 (verified against `dev`): retired the items already
+shipped / fixed / resolved — 3, 4, 5, 6, 7, 8, 9, 10, 15, 16, 17, 18, 21, 22,
+27, 30, 31 (their full text remains in git history and the matching archived
+changes). Merged item 19 into item 1 (both are source ingestion) and item 25 into
+item 24 (both are de-duplication). The remaining numbered gaps are intentional.
+
 ---
 
-## 1. `feature/source-import-guards` — import-time guards: conversation history + duplicate detection
+## 1. `feature/source-import-guards` — import-time guards, duplicate detection + in-app editor import
 
 **Type:** functional · **Size:** medium
 
-**Merged from:** `feature/import-source-history-check` + `feature/duplicate-source-detection`.
+**Merged from:** `feature/import-source-history-check` + `feature/duplicate-source-detection` + `feature/in-app-source-import` (item 19).
 
 **Why:** importing a file from `sources/import/` is blind. It neither consults past
 conversation history (the same document may already have been handled, with decisions
@@ -54,6 +60,12 @@ share matching logic.
 
 **Also consider:** tie into the lineage record (`# NN Sources` / `# NN Procedures`)
 to establish the "what have we done before" baseline without a parallel store.
+
+**Editor affordance (absorbed item 19, `feature/in-app-source-import`):** the editor
+(`innfo-editor`) has no drag-and-drop or file-picker to import a primary source into
+`sources/nn/`; ingestion lives only in the agent/CLI procedures (FINDINGS F-18). The
+in-app import flow MUST share this item's matching/guard layer rather than ship a
+second, divergent import path. Design both together.
 
 **Suggested trigger:** `/sdd-explore source-import-guards`.
 
@@ -92,222 +104,6 @@ remains here is the RACI review workflow and the per-actor reports, rendered ove
 instead of a new store. Re-scope before starting.
 
 **Suggested trigger:** `/sdd-explore kb-change-governance`.
-
----
-
-## 3. `feat/vocabulary-simplification` — canonical term dictionary + mass rename (`template` → `app`)
-
-**Type:** feat · **Size:** large (split) · **Status:** shipped (superseded)
-
-**Merged from:** `feat/term-dictionary` + `feat/massive-renaming-app`.
-
-**Closed 2026-09-30:** executed by `2026-09-29-nn-level-nomenclature-rename` — the user-facing vocabulary
-pass landed as `template → bluepriNNt` / `model → kNNowledge`, not `template → app`. The mechanical
-identifier migration is tracked separately (see `refactor/identifier-migration`).
-
-**Why:** the application's vocabulary has drifted from its actual structure, and the
-Level 2 concept currently called **template** (the `_spec_NN.md` schemas that Level 3
-models pin via `parent_spec`) is cognitively heavier than it needs to be. The rename
-target vocabulary must be pinned before renaming.
-
-**Behaviour (as requested):**
-
-1. **Term dictionary** — produce a glossary mapping canonical terms to current
-   elements, with deprecated and alias terms (e.g. clarify *domain*, *model*,
-   *knowledge unit*, *template/app*).
-2. **Rename `template` → `app`** across user-facing and conceptual vocabulary —
-   catalog/manifest distribution, editor labels and navigation, docs, skill copy
-   (`nn-innfo`, `nn-trannsform`, `nn-template-audit`) — keeping identifiers / canonical
-   file names stable where renaming would break resolution.
-3. **Audit the remaining element vocabulary** and propose a simpler, more consistent
-   surface.
-
-**Approach (open):** precedent exists (`2026-09-06_workspace-models-rename.md`,
-`Models` → `ModelRecords`, with composition-collision and provenance guards). Split into
-a **low-risk user-facing vocabulary pass** and a **high-risk mechanical identifier
-migration** (`_spec_NN.md`, `parent_spec.url`, `scripts/template-catalog.mjs`,
-`manifest/source.yaml`) that likely needs an alias/migration layer or a coordinated
-version bump — never a blind find-and-replace. Decide whether the dictionary lives as a
-doc (`UBIQUITOUS_LANGUAGE.md`-style), a machine-readable map driving UI/skill copy, or
-both.
-
-**Suggested trigger:** `/sdd-explore vocabulary-simplification`.
-
----
-
-## 4. `refactor/core-structure` — split `types.ts` barrel + shared decomposed test fixtures
-
-**Type:** refactor · **Size:** medium · **Status:** fixed
-
-**Merged from:** `refactor/split-types` + `refactor/shared-decomposed-fixtures`.
-
-**Why:** `innfo-core/src/types.ts` is 548 lines and mixes parser/model types with the
-editor's graph-node model, so every consumer pulls the whole surface. Separately, four
-core test files hardcode their own include-resolver maps; attaching `metrics` to
-`business` broke five tests because one map was missed — the failure mode is always
-"N maps, N-1 updated".
-
-**Approach:**
-
-1. Make `types.ts` a barrel exporting `types/{parser,validation,io,graph}.ts`; keep all
-   internal `from './types'` / `from '../types'` imports and the `export *` in
-   `index.ts` / `browser.ts` working unchanged. Cross-module references (`ModelNode` →
-   `FieldValue` / `ValidationError` / `TaxonomyEdge`) become explicit imports.
-2. Extract one shared helper (`tests/fixtures/decomposed.ts`) exporting
-   `decomposedTemplates()` consumed by all four test files; the `metaplantilla`
-   includes-list expectation derives from the same source.
-
-Behaviour-preserving, no change.
-
-**Also consider:** the `SpecFrontmatter` `[key: string]: unknown` index signature
-weakens every property access — decide whether it is still needed for pass-through
-frontmatter.
-
-**Suggested trigger:** `/sdd-new core-structure`.
-
----
-
-## 5. `chore/mcp-hygiene` — declarative tool registry + enforced coverage gates
-
-**Type:** refactor / chore · **Size:** medium · **Status:** fixed
-
-**Merged from:** `refactor/mcp-tool-registry` + `chore/mcp-coverage-debt`.
-
-**Why:** adding an MCP tool touches three places per tool (`toolDefinitions`, dispatch
-`switch`, handler) plus a brittle tool-count assertion in `server.spec.ts`. And although
-`innfo-mcp` configures coverage gates (90 lines / 95 functions / 85 branches), CI runs
-plain `vitest run` and never `test:coverage`, so the debt is unenforced. Lowest files:
-`apply-change.ts` (~71%), `reachability.ts` (~80%), `spec.ts` (~81%), `init-model.ts`
-(~82%), `resolver-node.ts` (~89%).
-
-**Approach:**
-
-1. Drive definitions, dispatch, and count from a single table of
-   `{ name, definition, handler }` — mechanical, no behaviour change (Done).
-2. Run coverage in CI and backfill per file, lowest-first; keep new-code coverage at
-   100%.
-
-**Suggested trigger:** `/sdd-new mcp-hygiene`.
-
----
-
-## 6. `refactor/trannsform-slug-codegen` — generate the `nn-trannsform` slug mirror from core
-
-**Type:** refactor · **Size:** small-medium · **Status:** fixed
-
-**Why:** `nn-trannsform`'s `markdown-utils.js` mirrors core's slug functions by hand
-with only a parity test (`test-slug-parity.js`, hardcoded expected table) as guard; it
-will drift again on the next slug change (verified 2026-09-08: runtime import is NOT
-viable — CJS zero-dep portable skill vs ESM-only core with sync consumers).
-
-**Approach:** build-time codegen — emit the JS mirror from the TS source during the
-release build; the parity test asserts the checked-in file matches generated output.
-Runtime stays dependency-free.
-
-**Suggested trigger:** `/sdd-new trannsform-slug-codegen`.
-
----
-
-## 7. `fix/silent-fallbacks-sweep` — classify the remaining `catch` sites
-
-**Type:** fix · **Size:** medium · **Status:** fixed
-
-**Why:** the README states "Fail-Fast: No silent fallbacks", yet ~20 bare/empty catch
-sites remain across `innfo-core` and `innfo-mcp` (down from ~35 — `parseYaml` and the
-`bump_version` backup swallow were fixed), concentrated in the split
-`innfo-mcp/src/tools/` modules. They are not classified and carry only ad-hoc prose
-comments.
-
-**Approach:** classify each into one of three buckets and make it explicit —
-(1) **propagate** (parse errors, backup/IO failures that must abort),
-(2) **log + continue** (`console.warn` with the path + error — genuinely optional side
-operations), (3) **swallow deliberately** — only "file may legitimately not exist"
-reads, guarded with `err.code === 'ENOENT'` and a comment saying so.
-
-**Risks:** medium — touches behaviour; one reviewer pass, do not batch with a refactor.
-
-**Suggested trigger:** `/sdd-new silent-fallbacks-sweep`.
-
----
-
-## 8. `chore/editor-tech-debt` — drive down `any` + extract `workspaceStore.readText`
-
-**Type:** chore / refactor · **Size:** medium · **Status:** fixed
-
-**Merged from:** `chore/editor-any-ratchet` + `refactor/editor-readtext-helper`.
-
-**Why:** `innfo-editor` carries ~106 `as any` + ~91 `: any` in non-test source with
-only a `warn` lint rule and no guard that fails a PR raising the count;
-`useGraphRenderer.ts` alone has ~30 `: any` (d3). Separately, file-handle traversal is
-duplicated across `FilePreviewModal` (`loadFileContent`, `openOriginalFile`) and
-`WorkspaceExplorer`.
-
-**Approach:**
-
-1. Extract a single async `readText(path)` helper on the workspace store; the modal and
-   explorer call it. No behaviour change (Done).
-2. Remove gratuitous casts incrementally (gratuitous `(fm as any)` where
-   `parseFrontmatter` is already typed; d3 typing pass with `@types/d3` generics).
-3. Add a lint/CI guard that fails a PR which **raises** the `any` count.
-
-**Suggested trigger:** `/sdd-new editor-tech-debt`.
-
----
-
-## 9. `ci/build-hygiene` — stop `deploy-pages` rebuilding + automate the CDN square check
-
-**Type:** ci · **Size:** small · **Status:** fixed
-
-**Merged from:** `ci/investigate-deploy-pages` + `chore/cdn-bundle-ci`.
-
-**Why:** `deploy-pages` runs `npm ci` + `npm run build:docs` itself (rebuilding what
-`verify` already built), regularly exceeds 12 minutes, and self-cancels on merge bursts
-while holding the `pages` concurrency group. Separately, `build-docs.mjs` already builds
-the CDN bundle + rewrites `manifest.json` in CI, but the 6-way version-square check
-(`scripts/lib/version-square.js` via `check:integrity`) is **not** wired into CI, and the
-fragile inline `deploy:cdn` script still exists.
-
-**Approach:** reuse the `verify` artifact (or move Pages deploy to its own `main`-only
-workflow) so `deploy-pages` stops rebuilding; wire the version-square check into
-`verify`/CI and retire the inline `deploy:cdn` script.
-
-**Suggested trigger:** `/sdd-new build-hygiene`.
-
----
-
-## 10. `feat/new-templates` — repository template + video-generator template
-
-**Type:** feat · **Size:** medium · **Status:** shipped
-
-**Merged from:** `feat/repository-template` + `feat/video-generator-template`.
-
-**Closed 2026-09-30:** `repository` and `video-generator` templates registered in `dbb8c463`; the
-video side was then replaced by a minimal `video` template (`c38ee2a2`) and the full cogNNitive video
-engine suite (`cognnitive-video-engine`, `video-template`, `video-asset-pipeline`, remotion scenes).
-The `videoscript` commit question resolved: dropped (`50fc3cb7`), subsumed into the video template.
-
-**Why:** there is no Level 2 template for managing a GitHub repository lifecycle, nor a
-dedicated template driving a video generation pipeline.
-
-**Behaviour (as requested):**
-
-1. **`repositorio`** — a standalone Level 2 template modelling a GitHub repository's
-   **state**, **releases**, and **changes**, with a canonical Ghostbusters Inc. sample
-   and catalog/manifest registration.
-2. **Video generator** — a template modelling the pipeline that turns a source (paper,
-   transcript, footage) into a video (script, storyboard, video script, final asset),
-   reusing existing video/transcript/script primitives.
-
-**Approach (open):** each follows the standalone structure of
-`projects`/`procedures`/`analysis` plus the `nn-template-audit` 7 criteria and 100%
-English rule. Decide per template whether it is standalone or a workflow specialization.
-**Pending decision:** a `videoscript` template was committed (`419d9f0`, standalone VUS
-export) and then deleted in the working tree without ever being catalog/manifest
-registered — decide whether it is discarded, revived, or subsumed into the
-video-generator template. Also confirm whether the canonical name stays Spanish
-(`repositorio`) or is anglicised for the artifact layer.
-
-**Suggested trigger:** `/sdd-explore new-templates`.
 
 ---
 
@@ -406,117 +202,6 @@ later with Windows-only Chrome discovery that skips on CI.
 
 ---
 
-## 15. `chore/pending-tree-closeout` — commit/archive work already sitting in the working tree
-
-**Type:** chore · **Size:** small · **Status:** done
-
-**Merged from:** `chore/innfo-console-remainder` + `robustness-coda`.
-
-**Closed 2026-09-30 (verified):** `robustness-coda` was archived (`33452cce`); the console
-remainder landed via the `b67a9e86` dev reconciliation (89 commits). Working tree is clean.
-
-**Why:** two batches of work are essentially done but not closed:
-
-1. **innfo-console remainder** — the feedback-loop chain landed (`b4cbe77`, `01406a7`,
-   `d2fac2e`, `b65f968`), but a newer console workstream is uncommitted in the tree
-   (`artifact_blueprint.html`, `innfo-runtime.js`, `needs-registry.json`, plus untracked
-   `render-procedure-stepper.js`, `visuals.js`, `procedures/assets/`).
-2. **robustness-coda** — all five leftover pins are present in the tree (empty
-   `procedures:` block key + test, F2 info→warning demotion, stable misuse-class codes,
-   core barrel export replacing the `validate.ts` baseline mirror, queue confirm-path
-   test), but the change is not archived and the `score-matcher.js` edits are
-   uncommitted.
-
-**Approach:** owner re-verifies each path is theirs (a sibling session has touched these
-files), then one batch commit of **own** paths only — never `git add -A`; complete the
-robustness-coda verify + archive; then the batched merge path
-(`nn-dev-check-integrity` → `nn-dev-release`) for `dev → main`. Maintainer decision in
-chat, not an SDD cycle.
-
-**Suggested trigger:** maintainer decision in chat.
-
----
-
-## 18. `feature/primitive-url-field` — primitive url field support in iNNfo engine and UI
-
-**Type:** functional · **Size:** medium · **Status:** shipped
-
-**Why:** iNNfo models have no primitive field type for URLs, so links are stored as plain text strings without validation or interactive rendering in cards and tables.
-
-**Behaviour:** support a new primitive field type `url` in the iNNfo engine and UI. Validate valid URL formats, render them directly as interactive hyperlinks in cards and tables, and enable direct navigation by opening the link in a new browser tab (`target="_blank" rel="noopener noreferrer"`).
-
-**Approach:** extend engine field types and validation logic in `innfo-core`, update card and table UI renderers in `innfo-console` to render interactive hyperlinks, and add test coverage.
-
-**Closed 2026-09-30:** `url` field type added to spec/parser (`2d1e32a7`) with metaschema validation (`4555aae2`);
-`innfo-editor` ships `UrlWidget.vue` rendering clickable hyperlinks with `target="_blank"`, validation, and
-`'url'` registration in the widget registry.
-
-**Suggested trigger:** `/sdd-explore primitive-url-field`.
-
----
-
-## 16. `fix/skills-manager-test-workspace-template-name` — preexisting skills-manager sync test failure
-
-**Type:** bug · **Size:** small · **Status:** fixed
-
-**Closed 2026-09-30 (verified):** the `workspace_*_spec_NN.md` bundled template and the
-`actioNN/scripts/skills-manager.test.js` local-sync test it referenced no longer exist —
-both were migrated by the `2026-09-29-nn-level-nomenclature-rename` (workspace → domaiNN)
-and the skills-manager work (`2026-09-27-skills-manager-node-modules-preservation`,
-`6d53d065`). The failing assertion is moot; safe to delete the entry.
-
----
-
-## 17. `fix/dev-gate-release-coupling` — release-time manifest check runs inside the dev pre-push gate
-
-**Type:** chore / design · **Size:** medium · **Status:** fixed
-
-**Closed 2026-09-30 (confirmed):** the split dev vs release gates landed via
-`2026-09-24-release-single-source-versioning`; the dev pre-push tag/pin gate is shipped
-(`918e43ab ci(gate): run coverage and spec-url checks in the local pre-push gate`). Do not re-propose.
-
-**Why:** `scripts/verify.js` step 8 (`validate-manifest --channel stable`) validates pins
-live against GitHub and requires a tag that only exists *after* a release, while step 9
-asserts `docs/use/manifest.md` is a generated artifact in sync with `manifest/source.yaml`.
-The dev pre-push preset (`nn-dev-check-integrity` `[p] = d + 5`, SKILL.md:76) runs group 5
-(`:204`), which invokes `verify.js` — so any release-shaped change on `dev` (a version bump
-or a manifest pin) blocks the gate until the tag is cut. `nn-dev-development §4e` prescribes
-"check-integrity → release", making the ordering circular for exactly those changes. The
-failure is also misleading: step 8 (tag 404) fires before step 9 (generated-file drift), so a
-hand-edit to a generated manifest reports "tag not found" instead of "you edited a generated
-file". This recurred on the `skills-v1.5.0` release (merge → tag → pin) and again on the
-`innfo-console` bundle (2026-09-10).
-
-**Approach:** split dev vs release gates. Keep lint / typecheck / tests / parity / doc-drift
-in the dev pre-push gate; move the tag-dependent checks (`validate-manifest --channel stable`
-plus stable-manifest-doc freshness) into the release path (post-tag) or behind a dedicated
-`--release` flag. Run the generated-manifest drift check before the live validation so a
-hand-edited `docs/use/manifest.md` fails fast with the correct message.
-
-**Suggested trigger:** `/sdd-new fix/dev-gate-release-coupling`.
-
----
-
-## 19. `feature/in-app-source-import` — in-app source import affordance for the editor
-
-**Type:** functional · **Size:** medium · **Status:** non-goal of `2026-09-13-document-fidelity-and-provenance-integrity`
-
-**Why:** FINDINGS F-18 (see `simulacro/FINDINGS.md`) identified that source ingestion
-lives only in the agent/CLI procedures — the editor has no drag-and-drop or file-picker
-affordance to import a primary source directly into `sources/nn/`. This is a real gap
-in the product's onboarding flow but is a **feature**, not a repair, and was explicitly
-scoped out of the document-fidelity-and-provenance-integrity change to keep that change
-to a defect-repair surface.
-
-**Approach (open):** design an editor-side import flow (drag-and-drop or file picker)
-that normalizes the incoming file into `sources/nn/`, ideally sharing matching/guard
-logic with item 1 (`feature/source-import-guards`) rather than shipping a second,
-divergent import path.
-
-**Suggested trigger:** `/sdd-explore in-app-source-import`.
-
----
-
 ## 20. `refactor/generate-canonical-registry` — generate `canonical-registry.ts` from template specs
 
 **Type:** refactor · **Size:** medium-large · **Status:** non-goal of `2026-09-13-document-fidelity-and-provenance-integrity`
@@ -542,58 +227,6 @@ from AD-8 extends cleanly to full concept/field/matrix content, and how drift de
 
 ---
 
-## 21. `feature/prune-orphaned-specs-mcp-tool` — decide the fate of `reachability.ts`'s `pruneOrphanedSpecs`
-
-**Type:** functional / chore · **Size:** small-medium · **Status:** resolved (retired)
-
-**Why:** `iNNfo/packages/innfo-mcp/src/tools/reachability.ts` exports a complete,
-already-safety-gated (`dry_run` default `true`, optional zip backup via
-`createSpecsBackupZip` before any deletion) spec-pruning engine
-(`calculateSpecReachability` + `pruneOrphanedSpecs`), re-exported from `mutate.ts`'s
-barrel. It is exercised only by `mutate.spec.ts` unit tests — it is never registered in
-`server.ts`'s `TOOL_REGISTRY` and never called from any other production code path. It
-is reachable by nothing except its own test suite, which is itself an instance of the
-orphan-detection problem it was built to solve.
-
-**Investigation done (2026-09-13, as part of
-`2026-09-13-document-fidelity-and-provenance-integrity` work unit 9):** this file is
-concurrently owned by `2026-09-13-mcp-coverage-debt`, whose proposal states its scope
-as "add test coverage for `pruneOrphanedSpecs` and transitive asset reachability" —
-i.e. that change backfills tests for the existing code, it does **not** intend to wire
-the function into `TOOL_REGISTRY` either. So after both changes land, the function will
-remain fully tested but still unreachable from any MCP client.
-
-**Recommendation:** this reads as unshipped-but-finished work, not dead code to delete —
-deleting a backup-gated, dry-run-first pruning engine would throw away real, safety-
-conscious engineering for no benefit. Register it as a new `prune_orphaned_specs` MCP
-tool (`dry_run: true` default preserved as the safety gate) in its own small change,
-once `2026-09-13-mcp-coverage-debt` has landed its coverage backfill on the same file.
-
-**Closed 2026-09-30:** resolved differently — `27997f66 feat(innfo-mcp): full-package hydration; retire
-prune_orphaned_specs` retired the function in favour of full-package hydration instead of wiring it as an
-MCP tool. Superseded, not shipped.
-
-**Suggested trigger:** `/sdd-new prune-orphaned-specs-mcp-tool` (after
-`2026-09-13-mcp-coverage-debt` merges).
-
----
-
-## 22. `fix/skills-version-skew-release` - corrective skills release: tag `6f905b1e` + re-pin stable
-
-**Type:** release / fix · **Size:** small · **Status:** shipped (2026-10-02 via skills-v2.11.0 tag-driven release)
-
-**Why:** `skills-v2.8.1` still reads `models/`; `6f905b1e` (the `models/` → `kNNowledge/`
-cutover) is in `main` but in NO tag (`git tag --contains 6f905b1e` is empty; `merge-base
---is-ancestor 6f905b1e skills-v2.8.1` is false). Stable users get 0 models / 0 citations
-(`--check-impact` blind). Only entangled with the console batch through
-`manifest/source.yaml`, which is clean post-checkpoint.
-
-**Behaviour (as requested):** cut a new `skills-v*` tag containing `6f905b1e` and re-pin
-`manifest/source.yaml` `refs.skills` in the SAME batch; run `check-integrity` + CI green.
-
-**Blocked by:** item 27 — `main` CI is red, so `publish-web` (which serves the stable
-manifest) is down and the tag cannot ship until `main` is repaired.
-
 ## 23. `fix/migrate-domain-esm-cjs` - run the migrator under a workspace with `"type": "module"`
 
 **Type:** fix · **Size:** small
@@ -606,30 +239,29 @@ real for users. Reported by a migrating user alongside the version-skew.
 **Behaviour:** ship the migrator as `.cjs` (or isolate the invocation directory); add a
 regression test for the `"type": "module"` case.
 
-## 24. `refactor/derived-artifact-consolidation` - one regen command, fewer committed outputs
+## 24. `refactor/derived-artifact-consolidation` — one core implementation, fewer committed derived outputs
 
 **Type:** refactor · **Size:** large
 
-**Why:** ~12 committed derived artifacts (generated bundles, mirrors, registries, docs
-renders) each guarded by one of ~25 guard/drift/parity/freshness scripts. Each derived
-file is a second source of truth; every change reddens several gates in a chain (the
-2026-10-01 session hit five in a row). `verify.js` and CI keep them in lock-step by hand.
+**Merged from:** `refactor/derived-artifact-consolidation` (item 24) + `refactor/contract-deduplication` (item 25).
+
+**Why (fewer derived artifacts):** ~12 committed derived artifacts (generated bundles,
+mirrors, registries, docs renders) each guarded by one of ~25 guard/drift/parity/freshness
+scripts. Each derived file is a second source of truth; every change reddens several gates
+in a chain. `verify.js` and CI keep them in lock-step by hand.
+
+**Why (one implementation):** ~6 parity/golden/mirror suites exist because the CLI, MCP
+tool, and console bundle reimplement shared logic; design docs note "bitten once by two
+copies of the same parser drifting apart". The console-schema-parity resolver
+fragmentation (issue #122 / change `console-schema-parity`) was one instance. The test
+sprawl compensates for duplication instead of removing it.
 
 **Behaviour:** one `build:all` / regen entry point; CI regenerates and fails on drift;
-stop committing outputs that can be regenerated, except CDN-distributed bundles. Needs
-`sdd-explore` first.
+stop committing outputs that can be regenerated (except CDN-distributed bundles). A
+single core implementation in `innfo-core`; the CLI/MCP/console become thin adapters;
+parity suites collapse. Needs `sdd-explore` first; land in small reversible slices.
 
-## 25. `refactor/contract-deduplication` - one core implementation + thin adapters
-
-**Type:** refactor · **Size:** large
-
-**Why:** ~6 parity/golden/mirror suites exist because the CLI, MCP tool, and console
-bundle reimplement shared logic; design docs already note "bitten once by two copies of
-the same parser drifting apart". The test sprawl compensates for duplication instead of
-removing it.
-
-**Behaviour:** single source of truth in `innfo-core`; adapters wrap it; parity suites
-collapse. Needs `sdd-explore` first.
+---
 
 ## 26. `chore/console-feedback-vocabulary-alignment` - finish the `knowledge_*` sweep
 
@@ -645,23 +277,6 @@ samples) is deferred. Originally scheduled to land before the format shipped (ch
 
 **Behaviour:** sweep the ledger + procedure + samples to `knowledge_*`; drop the
 allowlist entries added in `dd801c0a` once clean.
-
-## 27. `fix/repair-main-red-ci` - undo the premature console merge and restore `main` green
-
-**Type:** fix / chore · **Size:** medium · **Status:** fixed (2026-10-02 via tag-driven release architecture and green main CI)
-
-**Why:** `6f905b1e` (console unified review pipeline + the `models/` → `kNNowledge/` fix)
-merged to `main` in an incomplete state and broke it. `main` (fc925f8a) CI is red: `verify`
-fails (console mirror/docs-facts/manifest/legacy-write, plus a CI-only `publish-web` test)
-and `quality` fails (lint ~50 console-WIP errors). `publish-web` requires both
-(`needs: [verify, quality, spec-integrity]`), so the release pipeline is down — which is
-why item 22 cannot ship. Root cause is the premature merge, not a missing tag.
-
-**Behaviour (recommended):** revert the console half of `6f905b1e` on `main` (keep the
-`models/` → `kNNowledge/` fix as its own minimal commit), restore `main` green, then ship
-item 22. The console work (changes A/B/C) continues on `dev` under session isolation and
-merges cleanly later. The CI-only publish-web test bug is already fixed on `dev`
-(`48792c2c`).
 
 ## 28. `chore/cognitivize-in-place-followups` - residuals left when `2026-10-02-cognitivize-in-place` closed
 
@@ -954,13 +569,13 @@ and whether it best fits **Projects** (built on the SDK) vs **Agents**/**Plugins
 
 ## `chore/trannsform-xlsx-vulnerability` — `xlsx` (SheetJS) ships two highs with no patched version on npm
 
-**Type:** security / chore · **Size:** small-medium · **Status:** open
+**Type:** security / chore · **Size:** small-medium · **Status:** resolved (2026-10-10, option b)
 
 **Why:** `skills/nn-trannsform/package.json` depends on `xlsx@^0.18.5`, which carries two open **high** advisories with **no fixed version on the npm registry**: CVE-2023-30533 (prototype pollution) and CVE-2024-22363 (ReDoS). SheetJS distributes current releases from its own CDN, not npm, so `npm audit fix` and any version bump inside the registry **cannot** clear them. `nn-trannsform` reads user-supplied `.xlsx` sources, so untrusted input reaches this code — it is a **production** dependency, not dev tooling.
 
 **Audit context (2026-10-01):** Dependabot flagged 29 alerts on `main`; the other 27 were dev/test tooling (`vitest`, `happy-dom`, `vite`, `esbuild`, `dompurify`, `@xmldom/xmldom`) and were addressed that day (criticals 3→0; `@xmldom` override in `nn-trannsform`; `dompurify` floor raised). Two residuals remain, both **dev-only**: `@vitest/mocker` path traversal (GHSA-82fw-gwwq-j7x9) needs `vitest@5` (major); and the hoisted `vite`/`esbuild` highs/moderates are non-breaking-fixable via `npm audit fix`. `xlsx` is the only one that needs a **product decision**.
 
-**Approach (open):** pick one — (a) migrate to the maintained fork (`@e965/xlsx`); (b) install the official SheetJS tarball from `cdn.sheetjs.com` (drops the npm-registry dependency source); (c) keep `xlsx` and mitigate at the trust boundary (row/size caps + parse in a worker/sandbox). Decide before the next `nn-trannsform` release.
+**Resolved (2026-10-10, option b):** the migration landed together with the `nn-trannsform` -> `nn-sources` rename. `skills/nn-sources/package.json` now pins `"xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"` (official SheetJS tarball, 0.20.3) and the lockfile resolves the same URL. 0.20.3 is past both advisories (CVE-2023-30533 fixed in 0.19.3; CVE-2024-22363 fixed in 0.20.2), so neither applies. The stale `skills/nn-trannsform/` directory (0 tracked files, only *gitignored* `node_modules`) was removed.
 
 **Suggested trigger:** `/sdd-explore trannsform-xlsx-vulnerability`.
 
@@ -1280,72 +895,6 @@ and the change-log half of `feature/kb-change-governance`.
 **Suggested trigger:** `/sdd-new stable-element-identity` (S1).
 ---
 
-## 30. `chore/trannsformations-vigencia` — evaluate whether `traNNsformations/` is still vigente
-
-**Type:** chore / decision · **Size:** small · **Status:** decided (2026-10-07, keep + document)
-
-**Decision:** KEEP. `traNNsformations/` is live code (single-shot `--apply` templates via `transformer.js`), a different concept from multi-step `procedures/` SOPs. Documented the templates-vs-procedures rule in `skills/nn-trannsform/SKILL.md` (section 5 table + note). No merge, no rename — the CLI vocabulary depends on it.
-
-**Situation today (verified):** `traNNsformations/` is NOT dead, but it is
-near-vestigial. It holds single-shot transformation templates applied with
-`--apply <name>` (`skills/nn-trannsform/scripts/transformer.js`,
-`scripts/index.js:998`; created by `scripts/lib/bootstrap.js`). It is a
-*different concept* from `procedures/` (multi-step SOPs compliant with
-`procedures_V_0-1-0_NN.md`) — deliberately excluded from the vocabulary rename
-(`iNNfo/specs/vocabulary.json`). Real usage has drifted to `procedures/`;
-`traNNsformations/` ships as an empty dir per bootstrap at zero cost.
-
-**Decision to make:** keep (and document when to use template vs procedure),
-merge into `procedures/`, or retire (stop scaffolding + migrate the `--apply`
-path). Do NOT touch the `template` identifier blindly — the CLI vocabulary
-depends on it (precedent: `2026-09-12-vocabulary-simplification`).
-
-**Suggested trigger:** `/sdd-explore trannsformations-vigencia`.
-
----
-
-## 31. `fix/console-schema-parity` — the CLI and MCP must resolve the same blueprint schema
-
-**Type:** fix / refactor · **Size:** medium · **Status:** shipped (2026-10-09, PR #137) · **Refs:** #122
-
-**Why:** `console-golden-parity` (`iNNfo/packages/innfo-mcp/test/console-golden-parity.test.ts`)
-is red on `dev`. **Correction (2026-10-09):** the suite is in `WINDOWS_ONLY_SUITES`
-(`vitest.config.ts`), so it does **not** run on Linux CI and is **not** a CI/release blocker — it is a
-local defect (dev on Windows). Issue #122
-was closed `COMPLETED` but still reproduces on 2026-10-09 in the **primary checkout** (real deps,
-not a junctioned worktree), so the close was premature. Root cause is blueprint-resolution
-fragmentation, not a one-liner:
-
-- `scripts/export-console.mjs` never resolves a schema: the `if (fm.parent_spec?.name)` branch
-  (≈ lines 485-496) is a **no-op**, so the CLI always passes `schema: undefined` and
-  `buildConsoleSchemaSlot` derives a minimal schema from the model's own elements.
-- The MCP `build_console_payload` resolves through `resolveBlueprintWithCache` →
-  `resolveParentChainNode`. When the model's `parent_spec.url` is unresolvable and the workspace
-  blueprint lives at `specs/bluepriNNts/<name>/spec_NN.md` (the canonical **unversioned L2
-  package** layout), the 4-tier `resolveBlueprintPackage` misses it (Tier 1 accepts only version
-  subdirs; Tier 2 scans `specs/`), so it falls through to the **canonical fallback registry** and
-  loads a different blueprint.
-- Three resolvers are in play — core `resolveBlueprintPath` (flat files only), MCP
-  `resolveBlueprintPackage`, MCP `resolveParentChainNode` — the duplication item 25 targets.
-
-**Behaviour:** one resolution path shared by both producers. The domain-local blueprint
-(preferring `specs/bluepriNNts/<name>/spec_NN.md` and `specs/bluepriNNts/<name>/<version>/`) MUST
-win over the canonical fallback registry, and CLI and MCP MUST emit byte-identical `schema` slots
-for the same model. Must not regress `listBlueprintProcedures` (the resolved package must still
-expose `procedures/` and `samples/`).
-
-**Note:** a prior attempt unified both producers and got the local suite green but stayed red in
-CI (environment divergence: global `~/.agents` cache, built `dist`). Verify in a CI-equivalent
-checkout; this is not a rider — it needs its own verified change.
-
-**Shipped:** 2026-10-09 via the SDD change `console-schema-parity` (PR #137, merged to `dev`,
-merge commit `827ed67f`). Both producers now share one `innfo-core` resolution path (relocated
-`resolveBlueprintPackage` + unversioned L2 Tier-1); `listBlueprintProcedures`/`visual-catalog`
-green; golden-parity passes (non-derived guard). Specs synced; change archived under
-`openspec/changes/archive/2026-10-09-console-schema-parity/`.
-
----
-
 ## 32. `chore/domaiNN-blueprint-publish` — publish the `domaiNN` blueprint (with `bluepriNNts`) so the dogfooding root validates drift-free
 
 **Type:** chore · **Size:** small · **Status:** open · **Refs:** `2026-10-10-domaiNN-root-canonicalization` (commit `103ee795`)
@@ -1369,3 +918,26 @@ confirm the last warning clears.
 and the root already coexisted with nine such warnings before the change. The only
 interim effect is that consumers resolving the remote blueprint do not recognize
 the `# NN bluepriNNts` section.
+
+
+---
+
+## 33. `fix/skills-scripts-typecheck` — restore typechecking of `skills/**` scripts (dead `actioNN` include)
+
+**Type:** fix / chore · **Size:** medium · **Added:** 2026-10-10
+
+**Why:** `tsconfig.scripts.json` (run by `verify.js` → `typecheck-scripts`) still
+included `actioNN/scripts/**` and `actioNN/skills/nn-trannsform/scripts/**` after the
+`actioNN` → `skills` rename, so those globs matched nothing and the skills JS stopped
+being typechecked silently. (The dead includes were removed on 2026-10-10 in PR #150;
+restoring the scope is the remaining work.) Repointing the include to `skills/**/*`
+surfaces **45** `tsc` errors: `skills/nn-sources/**` (e.g.
+`scripts/lib/watch-digest-store.js`, several `test/unit/*`) and `skills/nn-upgrade/**`
+(`scripts/batch-update.js`, plus the imported generated
+`scripts/lib/legacy-migrate.generated.cjs`).
+
+**Behaviour:** restore the include scope (`skills/**/*`) and drive the 45 errors to
+zero — fix the real ones and handle the generated bundle with `// @ts-nocheck` or a
+working exclude; confirm `verify` stays green. Keep `scripts/**/*` checked throughout.
+
+**Suggested trigger:** `/sdd-new skills-scripts-typecheck`.
