@@ -597,8 +597,12 @@ function findElementInModel(
 }
 
 /**
- * Execute a two-phase transactional apply of a changeset file.
- * Guaranteed mutual exclusion via changes/.lock.
+ * Execute a two-phase apply of a changeset file: an in-memory compute/validate
+ * phase (no writes) followed by a persist phase that archives each model's prior
+ * snapshot before rewriting it. Mutual exclusion is guaranteed via changes/.lock.
+ * Persistence is not atomic across models — a mid-phase failure leaves earlier
+ * models updated and later ones untouched; the archive snapshots make that
+ * recoverable but not auto-rolled-back.
  */
 export async function executeChangesetApply(
   rootDir: string,
