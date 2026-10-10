@@ -161,6 +161,12 @@ export function resolveMediaLayers(manifest, opts) {
     stageField(track, 'assetPath');
   }
 
+  // Overlay tracks (b-roll, quote, lower-third, captions, kinetic titles) carry their media in
+  // `config.assetPath`; stage it too, or a b-roll image 404s at render time.
+  for (const track of manifest?.tracks?.overlays || []) {
+    if (track?.config) stageField(track.config, 'assetPath');
+  }
+
   return { staged, missing, escaped };
 }
 
