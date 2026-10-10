@@ -108,12 +108,27 @@ store.` A root `_NN/` for domaiNNs would collide with that declared module.
   (`bluepriNNts`, and whatever the catalog roots need). Touches a shipped,
   distributed blueprint and its version; larger blast radius.
 
-## Open questions
+## Decision (maintainer, 2026-10-10)
 
-1. **Scope.** The defect spans all five roots. Should this change migrate only
-   the dogfooding domaiNN, or reconcile the `domaiNN` blueprint + all repo roots
-   (including the published docs use-cases) in one migration?
-2. **`Skills`/`Tools`.** Drop them from the root, or keep a modeled root view
-   (which forces B2)?
-3. **Folder name.** `cogNNitive_NN/` (maintainer) collides cognitively with the
-   frozen blueprint name; alternatives `ecosystem_NN/` or keep `workspace_NN/`.
+**Direction B — simplify the roots.** The `domaiNN` blueprint keeps its three
+concepts; roots are migrated onto them. The "lost" content is re-homed, not
+promoted to new concepts:
+
+- `Sources` / `Procedures` / `Artifacts` catalog pointers become `# NN kNNowledge`
+  entries (`path::` + `blueprint::`) — they are Level-3 models already.
+- `Specs` / `Skills` / `Tools` leave the root; their inventory lives in the
+  ecosystem's own kNNowledge models (`Capabilities_Catalog`, `UseCases_Catalog`,
+  and the repository model).
+- One correction is folded in: the `domaiNN` blueprint gains a `bluepriNNts`
+  concept, because the migrator (`language-map.ts:81`) and the rename intent table
+  both emit `# NN bluepriNNts` while no spec defines it (F4).
+
+Rejected: Option A (extend the blueprint to re-admit `Sources`/`Procedures`/
+`Artifacts`/`Skills`/`Tools`) — it reverses the deliberate 10→3 simplification
+and carries a larger, distributed blast radius.
+
+### Remaining open question
+
+- **Folder name.** `cogNNitive_NN/` (maintainer) collides cognitively with the
+  frozen blueprint name; alternatives `ecosystem_NN/` or keep `workspace_NN/`.
+  Orthogonal to the schema decision; settle at rename time.
