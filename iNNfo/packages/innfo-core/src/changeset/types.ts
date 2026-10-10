@@ -84,6 +84,21 @@ export function isChangeStatus(val: unknown): val is ChangeStatus {
   )
 }
 
+export function isChangeOp(val: unknown): val is ChangeOp {
+  return (
+    typeof val === 'string' &&
+    [
+      'update_field',
+      'add_element',
+      'remove_element',
+      'rename_element',
+      'rename_concept',
+      'update_matrix_cell',
+      'comment',
+    ].includes(val)
+  )
+}
+
 export function isPartiallyApplied(statusOrResult: ChangeStatus | { status?: ChangeStatus | string }): boolean {
   if (typeof statusOrResult === 'string') {
     return statusOrResult === 'partially_applied'

@@ -1,10 +1,9 @@
 import { parse as parseYaml } from 'yaml'
+import { isChangeOp, isChangeStatus } from './types.js'
 import type {
   ChangesetDocument,
   ChangesetFrontmatter,
   ChangeItem,
-  ChangeOp,
-  ChangeStatus,
 } from './types.js'
 
 function stripQuotes(str: string): string {
@@ -99,7 +98,10 @@ export function parseChangeset(rawContent: string): ChangesetDocument {
 
     switch (key) {
       case 'op':
-        currentChange.op = rawVal as ChangeOp
+        if (!isChangeOp(rawVal)) {
+          throw new Error(`Invalid changeset op: "${rawVal}"`)
+        }
+        currentChange.op = rawVal
         break
       case 'target':
         currentChange.target = rawVal
@@ -133,7 +135,10 @@ export function parseChangeset(rawContent: string): ChangesetDocument {
         currentChange.notes = rawVal
         break
       case 'status':
-        currentChange.status = rawVal as ChangeStatus
+        if (!isChangeStatus(rawVal)) {
+          throw new Error(`Invalid changeset status: "${rawVal}"`)
+        }
+        currentChange.status = rawVal
         break
       case 'resolution':
         currentChange.resolution = rawVal

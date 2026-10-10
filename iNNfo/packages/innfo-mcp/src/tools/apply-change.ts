@@ -30,6 +30,7 @@ import type {
 } from '@cognnitive/innfo-core'
 import { findKnowledgeFile } from './spec.js'
 import { isLocalPath, toLocalFilePath, saveSpecOnce } from './resolver-node.js'
+import { isInsideRoot, isSafeRelativeId } from './path-guard.js'
 import { createSpecsBackupZip } from './spec-backup.js'
 import { loadKnowledge, saveKnowledge, resolveBlueprintForKnowledge } from './knowledge-io.js'
 import { DEFAULT_WORKSPACE_IGNORE } from './validate.js'
@@ -607,6 +608,20 @@ export async function executeChangesetApply(
     ? changesetPathInput
     : join(rootDir, changesetPathInput)
 
+  // `changesetPathInput` is untrusted (LLM-composed). `isAbsolute`/`join` alone do
+  // not prove containment — `join(root, '../..')` and absolute paths outside the
+  // workspace must never reach `readFile`/`writeFile` below.
+  if (!isInsideRoot(rootDir, resolvedChangesetPath)) {
+    return {
+      success: false,
+      changesetPath: changesetPathInput,
+      status: 'rejected',
+      models: {},
+      appliedCount: 0,
+      errors: [{ path: changesetPathInput, message: 'Changeset path must resolve inside the workspace root' }],
+    }
+  }
+
   const changesetStem = displayStem(basename(resolvedChangesetPath))
   const relChangesetPath = relative(rootDir, resolvedChangesetPath).replace(/\\/g, '/')
 
@@ -629,7 +644,19 @@ export async function executeChangesetApply(
       }
     }
 
-    const csDoc = parseChangeset(rawChangeset)
+    let csDoc: ChangesetDocument
+    try {
+      csDoc = parseChangeset(rawChangeset)
+    } catch (err) {
+      return {
+        success: false,
+        changesetPath: relChangesetPath,
+        status: 'rejected',
+        models: {},
+        appliedCount: 0,
+        errors: [{ path: relChangesetPath, message: `Invalid changeset: ${err}` }],
+      }
+    }
 
     // 3. Verify proposal_sha (tamper detection)
     if (!verifyProposalSha(csDoc)) {
@@ -1101,6 +1128,14 @@ async function synthesizeAndExecuteChangeset(
   op: string,
   opArgs: Record<string, unknown>,
 ): Promise<ApplyChangeResult> {
+  // `id` is interpolated into a filename below; it must be a safe workspace-relative
+  // identifier (no `..`, no absolute/drive-qualified path) or it escapes `changes/`.
+  if (!isSafeRelativeId(id)) {
+    return {
+      success: false,
+      errors: [{ path: id, message: 'Invalid knowledge id: must be a safe workspace-relative path' }],
+    }
+  }
   const stamp = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z'
   const changesDir = join(rootDir, 'changes')
   await mkdir(changesDir, { recursive: true })
