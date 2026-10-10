@@ -68,20 +68,21 @@ policy validator exist and are wired into the manifest gate. Out of scope: insta
 
 ## Slice 2: Consent-gated install + docs
 
-Start: nothing fetches an external skill. End: `--with-external` installs at the pin
+Start: nothing fetches an external skill. End: `install-external` installs at the pin
 and verifies the digest; docs state the two tiers.
 
-- [ ] 2.1 **RED → GREEN**: `scripts/lib/skills-commands.test.js` — with
-      `--with-external`, a referenced skill installs at its pinned commit and a digest
-      mismatch throws with nothing written; without the flag, nothing third-party
-      installs. Then in `scripts/lib/skills-commands.js`: resolve from blueprint
-      frontmatter, reuse `installSkillAtCommit` at `commit`, verify
-      `skillTreeDigest(extracted) === sha256` before the atomic swap (D9), gate on
-      `args.withExternal`.
+- [ ] 2.1 **RED → GREEN**: `scripts/lib/skills-manager.test.js` (mocking `downloadFile`
+      / `extractTarball`): `installSkillAtCommit` with a matching `sha256` installs; a
+      mismatched `sha256` throws with nothing written; no `sha256` installs commit-only.
+      Then in `scripts/lib/skills-commands.js`: add the digest check inside
+      `installSkillAtCommit` (before the atomic swap, D9) and a `cmdInstallExternal`
+      that validates `--name/--repo/--path/--commit`, consent-gates, installs and
+      projects.
       `[blueprint-external-skills:Referenced Skill Installs At Its Pin]`
-- [ ] 2.2 **GREEN (no test)**: thread `--with-external` through `skills-manager.js`;
-      regenerate the bundle (`node scripts/build-skills-manager-bundle.mjs`); confirm
-      the diff is source-only.
+- [ ] 2.2 **GREEN (no test)**: add the `install-external` subcommand + `--name --repo
+      --path --commit --sha256` flags to `scripts/skills-manager.js`; regenerate the
+      bundle (`node scripts/build-skills-manager-bundle.mjs`); confirm the diff is
+      source-only.
 - [ ] 2.3 **GREEN (no test)**: docs — state the two guarantee tiers (embedded =
       curated; referenced = bounded) in `docs/innfo/template-package-spec.md` and the
       `list_blueprint_skills` description; add `external skill` / `referenced skill`

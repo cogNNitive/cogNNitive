@@ -68,7 +68,7 @@ existing embedded-skill projection (R-TPD-05).
 | Digest canonicalization drift between pin time and install | Med | One shared `skill-tree-digest.js`; test a fixture with CRLF/binary files |
 | Upstream deletes the repo or the commit (availability) | Med | Pin by commit; document the breakage; a missing commit fails loud, never silent-skipped |
 | Wrong license recorded | Low | `license` is SPDX; unknown/missing fails the gate |
-| Consent bypass installs third-party code silently | Low | External install requires explicit `--with-external`; default only reports |
+| Consent bypass installs third-party code silently | Low | External install requires the explicit `install-external` subcommand; default `install` only reports |
 
 ## Rollback Plan
 
@@ -80,7 +80,7 @@ generated `skills-manager.js` bundle reverts with its source in the same commit.
 
 - [ ] A frontmatter `skills:` entry with `commit` + `license` validates; one
       without a pin or license fails with a named violation.
-- [ ] Installing with `--with-external` fetches the skill at the pinned commit and
+- [ ] Running `install-external` fetches the skill at the pinned commit and
       fails if the digest mismatches; without the flag nothing third-party installs.
 - [ ] `list_blueprint_skills` returns `commit`/`sha256`/`license` for external entries.
 - [ ] Docs state the two guarantee tiers without over-claiming external safety.

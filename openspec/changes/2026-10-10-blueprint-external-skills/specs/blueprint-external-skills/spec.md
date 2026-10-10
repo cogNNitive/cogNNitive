@@ -77,17 +77,17 @@ listing order.
 
 ### Requirement: Referenced Skill Installs At Its Pin
 
-Installing a bluepriNNt with referenced external skills MUST fetch a skill only when
-the caller opts in (e.g. `--with-external`); without the opt-in the skills MUST only
-be reported. An opted-in install MUST fetch the skill at its pinned `commit`, compute
-the digest of the fetched tree and compare it to the declared `sha256` BEFORE
-installing, and install atomically into `~/.agents/skills/<name>/`. On a digest
-mismatch or a missing commit the install MUST fail without writing the skill. A
-referenced skill MUST never be fetched at agent runtime.
+Installing a referenced external skill MUST be an explicit, consent-gated action (the
+`install-external` subcommand); discovery and the default `install` MUST NOT fetch or
+install a referenced skill. An opted-in install MUST fetch the skill at its pinned
+`commit`, compute the digest of the fetched tree and compare it to the declared
+`sha256` BEFORE installing, and install atomically into `~/.agents/skills/<name>/`. On
+a digest mismatch or a missing commit the install MUST fail without writing the skill.
+A referenced skill MUST never be fetched at agent runtime.
 
-#### Scenario: Opt-in install fetches at the pin
+#### Scenario: install-external fetches at the pin
 - GIVEN a blueprint with a referenced skill at `commit` C and `sha256` H
-- WHEN install runs with the opt-in
+- WHEN `install-external` runs with the pinned values
 - THEN the skill is fetched at C and installed only after the digest equals H
 
 #### Scenario: Digest mismatch writes nothing
@@ -97,8 +97,8 @@ referenced skill MUST never be fetched at agent runtime.
 
 #### Scenario: Default install reports only
 - GIVEN a blueprint with a referenced skill
-- WHEN install runs without the opt-in
-- THEN the referenced skill is reported and not fetched
+- WHEN the default `install` runs
+- THEN the referenced skill is not fetched or installed
 
 ## MODIFIED Requirements
 
