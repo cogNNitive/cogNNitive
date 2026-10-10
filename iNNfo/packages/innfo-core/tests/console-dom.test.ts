@@ -199,7 +199,7 @@ describe('innfo-console — export gate', () => {
 
     expect(downloads).toHaveLength(1)
     expect(downloads[0]).toMatch(
-      /^acme_V_0-1-0_reviewer-primera-revision_feedback_\d{8}-\d{6}\.json$/,
+      /^acme_reviewer-primera-revision_[0-9-]+_changes_NN\.md$/,
     )
   })
 
