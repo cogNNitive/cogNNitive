@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>iNNfo Console</title>
+    <!--
+    artifact_shell.html — thin console shell for innfo-console artifacts.
+
+    Layout: a top navbar, a left blueprint rail whose slate filter zone holds the
+    search + facets (Tags / Changes) and the blueprint cards (`#innfo-rail`), and
+    a main area with a discreet 38px action bar above the runtime-rendered content.
+
+    Generating agents MUST only:
+      1. Declare capabilities in the innfo-config needs[] list below.
+      2. Paste the Schema JSON Contract into #innfo-schema.
+      3. Paste the Model JSON Contract into #innfo-model.
+    The shared runtime (innfo-runtime.js, window.InnfoConsole) renders the rail
+    cards, search, facets, KPI stats, cards, matrices, drafts and export modal.
+    Do NOT inline runtime code here.
+  -->
+    <link rel="stylesheet" href="./innfo-ui.css" />
+    <style>
+      :root {
+        --bg: var(--innfo-bg);
+        --surface: var(--innfo-surface);
+        --surface-2: var(--innfo-surface-2);
+        --surface-3: var(--innfo-border);
+        --text: var(--innfo-text);
+        --muted: var(--innfo-muted);
+        --faint: var(--innfo-muted);
+        --border: var(--innfo-border);
+        --primary: var(--innfo-accent);
+        --link: var(--innfo-link);
+        --radius-sm: var(--innfo-radius-sm);
+        --radius: var(--innfo-radius);
+        --radius-lg: var(--innfo-radius-lg);
+        --shadow-card: var(--innfo-shadow);
+        --font: var(--innfo-font);
+        --mono: var(--innfo-mono);
+        --filter-zone-bg: var(--innfo-surface-2);
+        --filter-box-border: var(--innfo-border);
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--font);
+        line-height: 1.55;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        -webkit-font-smoothing: antialiased;
+      }
+      code { font-family: var(--mono); font-size: 0.85em; }
+
+      /* Top navbar */
+      .innfo-navbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 10px 20px;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        position: sticky;
+        top: 0;
+        z-index: 30;
+      }
+      .innfo-brand { display: flex; align-items: center; gap: 10px; }
+      .innfo-badge-domain {
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        color: var(--primary);
+        background: color-mix(in srgb, var(--primary) 10%, transparent);
+        border: 1px solid color-mix(in srgb, var(--primary) 25%, transparent);
+        padding: 3px 8px;
+        border-radius: var(--radius-sm);
+      }
+      .innfo-domain-title { margin: 0; font-size: 1.1rem; font-weight: 800; }
+      .innfo-mode { font-size: 0.76rem; color: var(--muted); }
+      .innfo-mode strong { color: var(--text); }
+
+      #innfo-layout { display: flex; flex: 1 1 auto; align-items: stretch; min-height: 0; }
+
+      /* Left blueprint rail */
+      aside.innfo-rail {
+        width: 360px;
+        min-width: 360px;
+        max-width: 380px;
+        border-right: 1px solid var(--border);
+        background: var(--surface);
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 57px);
+        position: sticky;
+        top: 57px;
+        overflow: hidden;
+      }
+      @media (max-width: 820px) {
+        #innfo-layout { flex-direction: column; }
+        aside.innfo-rail { width: 100%; min-width: 100%; max-width: 100%; height: auto; position: static; border-right: none; border-bottom: 1px solid var(--border); }
+      }
+      .innfo-filter-zone {
+        background: var(--filter-zone-bg);
+        border-bottom: 1px solid var(--filter-box-border);
+        padding: 12px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        flex-shrink: 0;
+      }
+      #innfo-search-wrap { position: relative; }
+      #innfo-search-wrap .search-icon { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--muted); display: flex; }
+      #innfo-search {
+        width: 100%;
+        padding: 7px 12px 7px 34px;
+        font: inherit;
+        font-size: 0.85rem;
+        background: var(--surface);
+        border: 1px solid var(--filter-box-border);
+        border-radius: var(--radius-sm);
+      }
+      #innfo-search:focus-visible { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 15%, transparent); }
+      #innfo-rail { flex: 1; overflow-y: auto; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+
+      /* Blueprint card (runtime renders one per model) */
+      .innfo-bp-card {
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--surface);
+        padding: 10px 12px;
+        cursor: pointer;
+        box-shadow: var(--shadow-card);
+        transition: transform 0.12s ease, border-color 0.12s ease;
+      }
+      .innfo-bp-card:hover { transform: translateY(-1px); border-color: var(--muted); }
+      .innfo-bp-card.active { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 6%, var(--surface)); }
+      .innfo-bp-card .bp-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+      .innfo-bp-card .bp-version { color: var(--muted); font-family: var(--mono); font-weight: 500; text-transform: none; }
+      .innfo-bp-card .bp-title { font-size: 0.9rem; font-weight: 700; margin: 4px 0 3px; line-height: 1.3; }
+      .innfo-bp-card .bp-meta { display: flex; gap: 10px; font-size: 0.72rem; color: var(--muted); border-top: 1px dashed var(--border); padding-top: 5px; margin-top: 5px; }
+      .innfo-bp-card .bp-changes { font-size: 0.66rem; font-weight: 700; color: var(--warning); background: color-mix(in srgb, var(--warning) 16%, var(--surface)); border: 1px solid color-mix(in srgb, var(--warning) 35%, var(--surface)); padding: 1px 6px; border-radius: 999px; }
+
+      main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+      .innfo-action-bar {
+        min-height: 38px;
+        padding: 6px 18px;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        position: sticky;
+        top: 57px;
+        z-index: 20;
+      }
+      .innfo-content-scroll { flex: 1; overflow-y: auto; padding: 22px 30px 90px; max-width: 1200px; width: 100%; box-sizing: border-box; }
+
+      /* Runtime regions (kept identical to the previous shell) */
+      .innfo-stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; margin-bottom: 22px; }
+      .innfo-stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 16px; }
+      .innfo-stat-icon { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+      .innfo-stat-label { font-size: 0.78rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+      .innfo-stat-value { font-size: 1.6rem; font-weight: 800; line-height: 1.1; }
+      .innfo-facet-dropdown { position: relative; display: inline-block; }
+      .innfo-facet-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; font-size: 0.8rem; font-weight: 600; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; }
+      .innfo-facet-btn.active { border-color: var(--primary); color: var(--primary); }
+      .innfo-facet-menu { position: absolute; top: calc(100% + 4px); left: 0; z-index: 50; min-width: 220px; max-height: 340px; overflow-y: auto; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.15); padding: 6px; display: none; }
+      .innfo-facet-menu.open { display: block; }
+      .innfo-facet-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: var(--radius-sm); font-size: 0.82rem; cursor: pointer; }
+      .innfo-facet-item:hover { background: var(--surface-2); }
+      .innfo-view-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+      .innfo-view-tab { appearance: none; border: 1px solid transparent; background: transparent; color: var(--muted); font: inherit; font-size: 0.83rem; font-weight: 600; padding: 6px 12px; border-radius: var(--radius-sm); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+      .innfo-view-tab:hover { color: var(--text); background: var(--surface-2); }
+      .innfo-view-tab.active { color: var(--primary); border-color: var(--primary); background: color-mix(in srgb, var(--primary) 8%, var(--surface)); }
+      .innfo-tab-panel { display: none; }
+      .innfo-tab-panel.active { display: block; }
+      .innfo-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; margin-bottom: 14px; box-shadow: var(--shadow-card); }
+      .innfo-card h3 { margin: 0 0 4px; font-size: 1.05rem; font-weight: 700; }
+      .innfo-card-fields { display: grid; grid-template-columns: 170px 1fr; gap: 4px 12px; font-size: 0.84rem; margin: 10px 0 0; }
+      .innfo-card-fields dt { color: var(--muted); font-weight: 600; }
+      .innfo-matrix table { border-collapse: collapse; font-size: 0.82rem; width: 100%; }
+      .innfo-matrix th, .innfo-matrix td { border: 1px solid var(--border); padding: 6px 10px; text-align: left; }
+      .empty-state { color: var(--muted); font-size: 0.9rem; padding: 40px 0; }
+      .innfo-reviewer-chip { display: inline-flex; align-items: center; gap: 8px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 4px 12px; font-size: 0.8rem; cursor: pointer; }
+      .innfo-rail-badge, .innfo-card-badge { display: inline-flex; align-items: center; justify-content: center; background: var(--danger); color: #fff; font-size: 0.7rem; font-weight: 700; border-radius: 999px; padding: 1px 6px; min-width: 16px; height: 16px; }
+      .innfo-highlight { animation: innfo-pulse-glow 2.5s ease-out; }
+      @keyframes innfo-pulse-glow { 0% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 50%, transparent); } 100% { box-shadow: var(--shadow-card); } }
+      #innfo-ref-dialog { border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 0; max-width: 480px; width: 100%; background: var(--surface); color: var(--text); }
+      #innfo-ref-dialog::backdrop { background: rgba(0, 0, 0, 0.35); }
+    </style>
+  </head>
+  <body>
+    <header class="innfo-navbar">
+      <div class="innfo-brand">
+        <span class="innfo-badge-domain">DomaiNN</span>
+        <h1 class="innfo-domain-title" id="innfo-domain-title">Domain Console</h1>
+      </div>
+      <div class="innfo-mode" id="innfo-navbar-extra"></div>
+    </header>
+
+    <div id="innfo-layout">
+      <aside class="innfo-rail" aria-label="Blueprint rail">
+        <div class="innfo-filter-zone">
+          <div id="innfo-search-wrap">
+            <span class="search-icon" aria-hidden="true">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            </span>
+            <input id="innfo-search" type="search" placeholder="Search elements…" aria-label="Search elements" />
+          </div>
+          <div id="innfo-filter-facets"></div>
+          <div id="innfo-active-filters"></div>
+        </div>
+        <nav id="innfo-rail"></nav>
+      </aside>
+
+      <main>
+        <div class="innfo-action-bar">
+          <div id="innfo-banner"></div>
+          <nav id="innfo-view-tabs" class="innfo-view-tabs" style="display: none;"></nav>
+        </div>
+        <div class="innfo-content-scroll">
+          <div id="innfo-stats-bar" class="innfo-stats-grid"></div>
+          <div id="innfo-tab-explorer" class="innfo-tab-panel active">
+            <div id="innfo-doc"></div>
+            <div id="innfo-content"></div>
+            <div id="innfo-matrices"></div>
+          </div>
+          <div id="innfo-tab-review" class="innfo-tab-panel"></div>
+        </div>
+      </main>
+    </div>
+
+    <dialog id="innfo-ref-dialog" aria-label="Referenced element details"></dialog>
+
+    <script type="application/json" id="innfo-config">
+{
+  "needs": [
+    "concept-rail",
+    "fulltext-search",
+    "matrix-grids",
+    "hash-routing",
+    "reference-popup",
+    "document-view",
+    "feedback-export"
+  ],
+  "runtime": {
+    "cdn": "https://cdn.jsdelivr.net/gh/cogNNitive/cogNNitive@innfo-console-v0.9.2/iNNfo/specs/bluepriNNts/console/innfo-console.bundle.js",
+    "fallback": "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/console/innfo-console.bundle.js"
+  }
+}
+</script>
+    <script type="application/json" id="innfo-schema">
+{
+  "concepts": [
+    {
+      "name": "DesignPreset"
+    }
+  ],
+  "fields": [],
+  "markers": [],
+  "matrices": []
+}
+</script>
+    <script type="application/json" id="innfo-model">
+{
+  "meta": {
+    "modelId": "kNNowledge/Ghostbusters_design-presets",
+    "title": "Ghostbusters Inc. Visual Design Presets",
+    "modelVersion": "V_0-3-1",
+    "sha256": "6d967b14397409dcdbf5a1b2dba05ee0752f1a5e5b067910cf22bfe98059bf00",
+    "sources": [
+      "kNNowledge/Ghostbusters_design-presets_NN.md"
+    ],
+    "generated": "2026-10-10T11:34:13.742Z",
+    "feedbackState": []
+  },
+  "elements": [
+    {
+      "id": "designpreset-ghostbusters-tech-noir",
+      "concept": "DesignPreset",
+      "name": "Ghostbusters Tech Noir",
+      "description": "High-contrast nocturnal aesthetic with proton-beam amber and ectoplasm cyan accents.",
+      "fields": {
+        "category": "unified",
+        "palette": "primary: #0F172A, secondary: #1E293B, accent: #F59E0B, surface: #334155, background: #020617",
+        "typography_ui": "Outfit, Inter, sans-serif",
+        "typography_video_title": "Montserrat Bold, uppercase, tracking-wide",
+        "typography_video_subtitle": "Inter Medium, color: #F8FAFC",
+        "illustration_prompt_anchor": "80s sci-fi tech noir, cinematic lighting, moody volumetric haze, anamorphic lens flares, detailed technical gear, proton streams",
+        "illustration_negative_prompt": "cartoonish, bright pastel colors, low contrast, oversaturated, blurry, 3d render",
+        "sample_preview": "assets/ghostbusters-tech-noir.png"
+      },
+      "markers": {},
+      "hash": "7aa2dd6cfd6abae4"
+    },
+    {
+      "id": "designpreset-retro-spengler-comic",
+      "concept": "DesignPreset",
+      "name": "Retro Spengler Comic",
+      "description": "Vintage hand-drawn comic book art style with halftones, bold ink lines, and vibrant retro colors.",
+      "fields": {
+        "category": "unified",
+        "palette": "primary: #DC2626, secondary: #FBBF24, accent: #2563EB, surface: #FEF3C7, background: #FFFBEB",
+        "typography_ui": "Bangers, Comic Neue, cursive",
+        "typography_video_title": "Bangers Regular, letter-spacing: 2px",
+        "typography_video_subtitle": "Comic Neue Bold, color: #1E293B",
+        "illustration_prompt_anchor": "vintage comic book illustration, 1980s print halftone pattern, bold dynamic ink outlines, Ben-Day dots, expressive retro character art",
+        "illustration_negative_prompt": "realistic photograph, 3d cgi, soft gradients, clean vector, minimalist",
+        "sample_preview": "assets/retro-spengler-comic.png"
+      },
+      "markers": {},
+      "hash": "4c77616526d11b7b"
+    },
+    {
+      "id": "designpreset-ecto-neon-glow",
+      "concept": "DesignPreset",
+      "name": "Ecto Neon Glow",
+      "description": "Vibrant glowing neon style on deep black backgrounds, inspired by paranormal entity signatures.",
+      "fields": {
+        "category": "video",
+        "palette": "primary: #10B981, secondary: #06B6D4, accent: #A855F7, surface: #064E3B, background: #000000",
+        "typography_ui": "JetBrains Mono, monospace",
+        "typography_video_title": "Orbitron Bold, neon text-shadow: #10B981",
+        "typography_video_subtitle": "JetBrains Mono Regular, color: #6EE7B7",
+        "illustration_prompt_anchor": "glowing neon aesthetic, bioluminescent ectoplasmic slime, dark cyberpunk environment, vivid phosphorescent green and cyan highlights",
+        "illustration_negative_prompt": "daytime, muted washed-out colors, daylight, sketch, watercolor",
+        "sample_preview": "assets/ecto-neon-glow.png"
+      },
+      "markers": {},
+      "hash": "71f54b1cc170004e"
+    }
+  ],
+  "matrices": []
+}
+</script>
+
+    <script src="./innfo-console.bundle_20261010T113413Z.js"></script>
+<!-- nn:console-shell:start -->
+<script src="https://cdn.jsdelivr.net/gh/cogNNitive/cogNNitive@innfo-console-v0.9.2/iNNfo/specs/bluepriNNts/console/innfo-console.bundle.js"></script>
+    <script src="https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/console/innfo-console.bundle.js"></script>
+<!-- nn:console-shell:end -->
+  </body>
+</html>

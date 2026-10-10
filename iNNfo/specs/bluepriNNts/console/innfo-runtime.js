@@ -1144,7 +1144,7 @@
         var titleText = m.title || m.filePath || 'Model'
         var versionText = m.version || m.modelVersion || ''
         var conceptCount = Array.isArray(m.conceptNames) ? m.conceptNames.length : (m.conceptCount || 0)
-        var changeCount = m.draftCount || 0
+        var changeCount = m.changeCount || m.draftCount || 0
         card.innerHTML =
           '<div class="bp-top"><span class="bp-tag">' + tagText + '</span><span class="bp-version">' + versionText + '</span></div>' +
           '<div class="bp-title">' + titleText + '</div>' +

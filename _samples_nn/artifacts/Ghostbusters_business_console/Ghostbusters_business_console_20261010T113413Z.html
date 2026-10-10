@@ -1,0 +1,3964 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>iNNfo Console</title>
+    <!--
+    artifact_shell.html — thin console shell for innfo-console artifacts.
+
+    Layout: a top navbar, a left blueprint rail whose slate filter zone holds the
+    search + facets (Tags / Changes) and the blueprint cards (`#innfo-rail`), and
+    a main area with a discreet 38px action bar above the runtime-rendered content.
+
+    Generating agents MUST only:
+      1. Declare capabilities in the innfo-config needs[] list below.
+      2. Paste the Schema JSON Contract into #innfo-schema.
+      3. Paste the Model JSON Contract into #innfo-model.
+    The shared runtime (innfo-runtime.js, window.InnfoConsole) renders the rail
+    cards, search, facets, KPI stats, cards, matrices, drafts and export modal.
+    Do NOT inline runtime code here.
+  -->
+    <link rel="stylesheet" href="./innfo-ui.css" />
+    <style>
+      :root {
+        --bg: var(--innfo-bg);
+        --surface: var(--innfo-surface);
+        --surface-2: var(--innfo-surface-2);
+        --surface-3: var(--innfo-border);
+        --text: var(--innfo-text);
+        --muted: var(--innfo-muted);
+        --faint: var(--innfo-muted);
+        --border: var(--innfo-border);
+        --primary: var(--innfo-accent);
+        --link: var(--innfo-link);
+        --radius-sm: var(--innfo-radius-sm);
+        --radius: var(--innfo-radius);
+        --radius-lg: var(--innfo-radius-lg);
+        --shadow-card: var(--innfo-shadow);
+        --font: var(--innfo-font);
+        --mono: var(--innfo-mono);
+        --filter-zone-bg: var(--innfo-surface-2);
+        --filter-box-border: var(--innfo-border);
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--font);
+        line-height: 1.55;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        -webkit-font-smoothing: antialiased;
+      }
+      code { font-family: var(--mono); font-size: 0.85em; }
+
+      /* Top navbar */
+      .innfo-navbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 10px 20px;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        position: sticky;
+        top: 0;
+        z-index: 30;
+      }
+      .innfo-brand { display: flex; align-items: center; gap: 10px; }
+      .innfo-badge-domain {
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        color: var(--primary);
+        background: color-mix(in srgb, var(--primary) 10%, transparent);
+        border: 1px solid color-mix(in srgb, var(--primary) 25%, transparent);
+        padding: 3px 8px;
+        border-radius: var(--radius-sm);
+      }
+      .innfo-domain-title { margin: 0; font-size: 1.1rem; font-weight: 800; }
+      .innfo-mode { font-size: 0.76rem; color: var(--muted); }
+      .innfo-mode strong { color: var(--text); }
+
+      #innfo-layout { display: flex; flex: 1 1 auto; align-items: stretch; min-height: 0; }
+
+      /* Left blueprint rail */
+      aside.innfo-rail {
+        width: 360px;
+        min-width: 360px;
+        max-width: 380px;
+        border-right: 1px solid var(--border);
+        background: var(--surface);
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 57px);
+        position: sticky;
+        top: 57px;
+        overflow: hidden;
+      }
+      @media (max-width: 820px) {
+        #innfo-layout { flex-direction: column; }
+        aside.innfo-rail { width: 100%; min-width: 100%; max-width: 100%; height: auto; position: static; border-right: none; border-bottom: 1px solid var(--border); }
+      }
+      .innfo-filter-zone {
+        background: var(--filter-zone-bg);
+        border-bottom: 1px solid var(--filter-box-border);
+        padding: 12px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        flex-shrink: 0;
+      }
+      #innfo-search-wrap { position: relative; }
+      #innfo-search-wrap .search-icon { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--muted); display: flex; }
+      #innfo-search {
+        width: 100%;
+        padding: 7px 12px 7px 34px;
+        font: inherit;
+        font-size: 0.85rem;
+        background: var(--surface);
+        border: 1px solid var(--filter-box-border);
+        border-radius: var(--radius-sm);
+      }
+      #innfo-search:focus-visible { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 15%, transparent); }
+      #innfo-rail { flex: 1; overflow-y: auto; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+
+      /* Blueprint card (runtime renders one per model) */
+      .innfo-bp-card {
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--surface);
+        padding: 10px 12px;
+        cursor: pointer;
+        box-shadow: var(--shadow-card);
+        transition: transform 0.12s ease, border-color 0.12s ease;
+      }
+      .innfo-bp-card:hover { transform: translateY(-1px); border-color: var(--muted); }
+      .innfo-bp-card.active { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 6%, var(--surface)); }
+      .innfo-bp-card .bp-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+      .innfo-bp-card .bp-version { color: var(--muted); font-family: var(--mono); font-weight: 500; text-transform: none; }
+      .innfo-bp-card .bp-title { font-size: 0.9rem; font-weight: 700; margin: 4px 0 3px; line-height: 1.3; }
+      .innfo-bp-card .bp-meta { display: flex; gap: 10px; font-size: 0.72rem; color: var(--muted); border-top: 1px dashed var(--border); padding-top: 5px; margin-top: 5px; }
+      .innfo-bp-card .bp-changes { font-size: 0.66rem; font-weight: 700; color: var(--warning); background: color-mix(in srgb, var(--warning) 16%, var(--surface)); border: 1px solid color-mix(in srgb, var(--warning) 35%, var(--surface)); padding: 1px 6px; border-radius: 999px; }
+
+      main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+      .innfo-action-bar {
+        min-height: 38px;
+        padding: 6px 18px;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        position: sticky;
+        top: 57px;
+        z-index: 20;
+      }
+      .innfo-content-scroll { flex: 1; overflow-y: auto; padding: 22px 30px 90px; max-width: 1200px; width: 100%; box-sizing: border-box; }
+
+      /* Runtime regions (kept identical to the previous shell) */
+      .innfo-stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; margin-bottom: 22px; }
+      .innfo-stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 16px; }
+      .innfo-stat-icon { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+      .innfo-stat-label { font-size: 0.78rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+      .innfo-stat-value { font-size: 1.6rem; font-weight: 800; line-height: 1.1; }
+      .innfo-facet-dropdown { position: relative; display: inline-block; }
+      .innfo-facet-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; font-size: 0.8rem; font-weight: 600; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; }
+      .innfo-facet-btn.active { border-color: var(--primary); color: var(--primary); }
+      .innfo-facet-menu { position: absolute; top: calc(100% + 4px); left: 0; z-index: 50; min-width: 220px; max-height: 340px; overflow-y: auto; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.15); padding: 6px; display: none; }
+      .innfo-facet-menu.open { display: block; }
+      .innfo-facet-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: var(--radius-sm); font-size: 0.82rem; cursor: pointer; }
+      .innfo-facet-item:hover { background: var(--surface-2); }
+      .innfo-view-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+      .innfo-view-tab { appearance: none; border: 1px solid transparent; background: transparent; color: var(--muted); font: inherit; font-size: 0.83rem; font-weight: 600; padding: 6px 12px; border-radius: var(--radius-sm); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+      .innfo-view-tab:hover { color: var(--text); background: var(--surface-2); }
+      .innfo-view-tab.active { color: var(--primary); border-color: var(--primary); background: color-mix(in srgb, var(--primary) 8%, var(--surface)); }
+      .innfo-tab-panel { display: none; }
+      .innfo-tab-panel.active { display: block; }
+      .innfo-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; margin-bottom: 14px; box-shadow: var(--shadow-card); }
+      .innfo-card h3 { margin: 0 0 4px; font-size: 1.05rem; font-weight: 700; }
+      .innfo-card-fields { display: grid; grid-template-columns: 170px 1fr; gap: 4px 12px; font-size: 0.84rem; margin: 10px 0 0; }
+      .innfo-card-fields dt { color: var(--muted); font-weight: 600; }
+      .innfo-matrix table { border-collapse: collapse; font-size: 0.82rem; width: 100%; }
+      .innfo-matrix th, .innfo-matrix td { border: 1px solid var(--border); padding: 6px 10px; text-align: left; }
+      .empty-state { color: var(--muted); font-size: 0.9rem; padding: 40px 0; }
+      .innfo-reviewer-chip { display: inline-flex; align-items: center; gap: 8px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 4px 12px; font-size: 0.8rem; cursor: pointer; }
+      .innfo-rail-badge, .innfo-card-badge { display: inline-flex; align-items: center; justify-content: center; background: var(--danger); color: #fff; font-size: 0.7rem; font-weight: 700; border-radius: 999px; padding: 1px 6px; min-width: 16px; height: 16px; }
+      .innfo-highlight { animation: innfo-pulse-glow 2.5s ease-out; }
+      @keyframes innfo-pulse-glow { 0% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 50%, transparent); } 100% { box-shadow: var(--shadow-card); } }
+      #innfo-ref-dialog { border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 0; max-width: 480px; width: 100%; background: var(--surface); color: var(--text); }
+      #innfo-ref-dialog::backdrop { background: rgba(0, 0, 0, 0.35); }
+    </style>
+  </head>
+  <body>
+    <header class="innfo-navbar">
+      <div class="innfo-brand">
+        <span class="innfo-badge-domain">DomaiNN</span>
+        <h1 class="innfo-domain-title" id="innfo-domain-title">Domain Console</h1>
+      </div>
+      <div class="innfo-mode" id="innfo-navbar-extra"></div>
+    </header>
+
+    <div id="innfo-layout">
+      <aside class="innfo-rail" aria-label="Blueprint rail">
+        <div class="innfo-filter-zone">
+          <div id="innfo-search-wrap">
+            <span class="search-icon" aria-hidden="true">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            </span>
+            <input id="innfo-search" type="search" placeholder="Search elements…" aria-label="Search elements" />
+          </div>
+          <div id="innfo-filter-facets"></div>
+          <div id="innfo-active-filters"></div>
+        </div>
+        <nav id="innfo-rail"></nav>
+      </aside>
+
+      <main>
+        <div class="innfo-action-bar">
+          <div id="innfo-banner"></div>
+          <nav id="innfo-view-tabs" class="innfo-view-tabs" style="display: none;"></nav>
+        </div>
+        <div class="innfo-content-scroll">
+          <div id="innfo-stats-bar" class="innfo-stats-grid"></div>
+          <div id="innfo-tab-explorer" class="innfo-tab-panel active">
+            <div id="innfo-doc"></div>
+            <div id="innfo-content"></div>
+            <div id="innfo-matrices"></div>
+          </div>
+          <div id="innfo-tab-review" class="innfo-tab-panel"></div>
+        </div>
+      </main>
+    </div>
+
+    <dialog id="innfo-ref-dialog" aria-label="Referenced element details"></dialog>
+
+    <script type="application/json" id="innfo-config">
+{
+  "needs": [
+    "concept-rail",
+    "fulltext-search",
+    "matrix-grids",
+    "hash-routing",
+    "reference-popup",
+    "document-view",
+    "feedback-export"
+  ],
+  "runtime": {
+    "cdn": "https://cdn.jsdelivr.net/gh/cogNNitive/cogNNitive@innfo-console-v0.9.2/iNNfo/specs/bluepriNNts/console/innfo-console.bundle.js",
+    "fallback": "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/console/innfo-console.bundle.js"
+  }
+}
+</script>
+    <script type="application/json" id="innfo-schema">
+{
+  "concepts": [
+    {
+      "name": "Business summary",
+      "type": "text",
+      "icon": "file-text",
+      "color": "blue",
+      "weight": 90,
+      "fields": [
+        {
+          "name": "status",
+          "type": "select",
+          "options": [
+            "Ideation",
+            "MVP",
+            "Validation",
+            "Early Revenue",
+            "Scaling"
+          ]
+        },
+        {
+          "name": "inspiration",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "Market",
+      "type": "category",
+      "icon": "store",
+      "color": "blue",
+      "weight": 90
+    },
+    {
+      "name": "Stakeholders",
+      "type": "weight",
+      "icon": "users",
+      "color": "blue",
+      "weight": 80,
+      "fields": [
+        {
+          "name": "relationship_model",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "Stakeholder roles",
+      "type": "weight",
+      "icon": "user-cog",
+      "color": "blue",
+      "weight": 30
+    },
+    {
+      "name": "Segments",
+      "type": "weight",
+      "icon": "pie-chart",
+      "color": "blue",
+      "weight": 70
+    },
+    {
+      "name": "Profiles",
+      "type": "weight",
+      "icon": "user",
+      "color": "blue",
+      "weight": 80,
+      "fields": [
+        {
+          "name": "persona_notes",
+          "type": "markdown_inline"
+        },
+        {
+          "name": "relationship_type",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "Persona",
+      "type": "weight",
+      "icon": "user-round",
+      "color": "blue",
+      "weight": 50
+    },
+    {
+      "name": "Segmentation",
+      "type": "weight",
+      "icon": "split",
+      "color": "blue",
+      "weight": 60
+    },
+    {
+      "name": "Market trends",
+      "type": "weight",
+      "icon": "trending-up",
+      "color": "blue",
+      "weight": 20
+    },
+    {
+      "name": "Market size",
+      "type": "text",
+      "icon": "ruler",
+      "color": "blue",
+      "weight": 50
+    },
+    {
+      "name": "Competition",
+      "type": "weight",
+      "icon": "swords",
+      "color": "blue",
+      "weight": 40
+    },
+    {
+      "name": "Problems",
+      "type": "weight",
+      "icon": "circle-alert",
+      "color": "blue",
+      "weight": 85
+    },
+    {
+      "name": "Value propositions",
+      "type": "weight",
+      "icon": "gem",
+      "color": "blue",
+      "weight": 70
+    },
+    {
+      "name": "Messages",
+      "type": "weight",
+      "icon": "message-square",
+      "color": "blue",
+      "weight": 40
+    },
+    {
+      "name": "Channels",
+      "type": "weight",
+      "icon": "share-2",
+      "color": "blue",
+      "weight": 70
+    },
+    {
+      "name": "Perceptions",
+      "type": "weight",
+      "icon": "eye",
+      "color": "blue",
+      "weight": 40
+    },
+    {
+      "name": "Emotions",
+      "type": "weight",
+      "icon": "heart",
+      "color": "blue",
+      "weight": 40
+    },
+    {
+      "name": "Behaviors",
+      "type": "weight",
+      "icon": "activity",
+      "color": "blue",
+      "weight": 40
+    },
+    {
+      "name": "Journey",
+      "type": "steps",
+      "icon": "route",
+      "color": "blue",
+      "weight": 40
+    },
+    {
+      "name": "Solutions",
+      "type": "category",
+      "icon": "lightbulb",
+      "color": "blue",
+      "weight": 90
+    },
+    {
+      "name": "Offerings",
+      "type": "weight",
+      "icon": "shopping-bag",
+      "color": "blue",
+      "weight": 80,
+      "fields": [
+        {
+          "name": "pricing_model",
+          "type": "string"
+        },
+        {
+          "name": "brochure_file",
+          "type": "file"
+        },
+        {
+          "name": "components_list",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "Products and services",
+      "type": "category",
+      "icon": "package",
+      "color": "blue",
+      "weight": 95
+    },
+    {
+      "name": "Features",
+      "type": "weight",
+      "icon": "sparkles",
+      "color": "blue",
+      "weight": 40
+    },
+    {
+      "name": "Components",
+      "type": "weight",
+      "icon": "boxes",
+      "color": "blue",
+      "weight": 75
+    },
+    {
+      "name": "Roadmap",
+      "type": "steps",
+      "icon": "map",
+      "color": "blue",
+      "weight": 20
+    },
+    {
+      "name": "Marketing",
+      "type": "category",
+      "icon": "megaphone",
+      "color": "blue",
+      "weight": 60
+    },
+    {
+      "name": "Branding",
+      "type": "text",
+      "icon": "palette",
+      "color": "blue",
+      "weight": 40,
+      "fields": [
+        {
+          "name": "brand_name",
+          "type": "string"
+        },
+        {
+          "name": "logo_asset",
+          "type": "image"
+        },
+        {
+          "name": "style_guide",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "Media plan",
+      "type": "text",
+      "icon": "newspaper",
+      "color": "blue",
+      "weight": 10
+    },
+    {
+      "name": "Communication",
+      "type": "category",
+      "icon": "message-circle",
+      "color": "blue",
+      "weight": 50
+    },
+    {
+      "name": "Pitch",
+      "type": "text",
+      "icon": "presentation",
+      "color": "blue",
+      "weight": 40
+    },
+    {
+      "name": "Web",
+      "type": "text",
+      "icon": "globe",
+      "color": "blue",
+      "weight": 40
+    },
+    {
+      "name": "Storytelling",
+      "type": "text",
+      "icon": "feather",
+      "color": "blue",
+      "weight": 20
+    },
+    {
+      "name": "Presentations",
+      "type": "text",
+      "icon": "monitor-play",
+      "color": "blue",
+      "weight": 35
+    },
+    {
+      "name": "Team",
+      "type": "text",
+      "icon": "users-round",
+      "color": "blue",
+      "weight": 70
+    },
+    {
+      "name": "Contributions",
+      "type": "weight",
+      "icon": "gift",
+      "color": "amber",
+      "weight": 35
+    },
+    {
+      "name": "Compensations",
+      "type": "weight",
+      "icon": "coins",
+      "color": "emerald",
+      "weight": 25
+    },
+    {
+      "name": "Business idea",
+      "type": "category",
+      "icon": "lightbulb",
+      "color": "blue",
+      "weight": 60
+    },
+    {
+      "name": "Inspiration",
+      "type": "weight",
+      "icon": "sparkles",
+      "color": "blue",
+      "weight": 50
+    },
+    {
+      "name": "Opportunity",
+      "type": "weight",
+      "icon": "door-open",
+      "color": "blue",
+      "weight": 40
+    },
+    {
+      "name": "Business objectives",
+      "type": "category",
+      "icon": "target",
+      "color": "blue",
+      "weight": 70
+    },
+    {
+      "name": "Mission",
+      "type": "text",
+      "icon": "target",
+      "color": "blue",
+      "weight": 50
+    },
+    {
+      "name": "Vision",
+      "type": "text",
+      "icon": "telescope",
+      "color": "blue",
+      "weight": 40
+    },
+    {
+      "name": "Organizational values",
+      "type": "weight",
+      "icon": "compass",
+      "color": "blue",
+      "weight": 35
+    },
+    {
+      "name": "Organizational goals",
+      "type": "weight",
+      "icon": "flag",
+      "color": "blue",
+      "weight": 60
+    },
+    {
+      "name": "Operations",
+      "type": "category",
+      "icon": "settings",
+      "color": "blue",
+      "weight": 50
+    },
+    {
+      "name": "Activities",
+      "type": "weight",
+      "icon": "list-checks",
+      "color": "blue",
+      "weight": 40
+    },
+    {
+      "name": "Resources",
+      "type": "weight",
+      "icon": "boxes",
+      "color": "blue",
+      "weight": 30
+    },
+    {
+      "name": "Goals",
+      "type": "weight",
+      "icon": "goal",
+      "color": "blue",
+      "weight": 30
+    },
+    {
+      "name": "Finance",
+      "type": "category",
+      "icon": "banknote",
+      "color": "blue",
+      "weight": 70
+    },
+    {
+      "name": "Revenue",
+      "type": "weight",
+      "icon": "coins",
+      "color": "blue",
+      "weight": 65
+    },
+    {
+      "name": "Costs",
+      "type": "weight",
+      "icon": "receipt",
+      "color": "blue",
+      "weight": 50
+    },
+    {
+      "name": "Unit economics",
+      "type": "text",
+      "icon": "calculator",
+      "color": "blue",
+      "weight": 25,
+      "fields": [
+        {
+          "name": "cac",
+          "type": "string"
+        },
+        {
+          "name": "ltv",
+          "type": "string"
+        },
+        {
+          "name": "payback_months",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "Funding sources",
+      "type": "weight",
+      "icon": "landmark",
+      "color": "blue",
+      "weight": 25
+    },
+    {
+      "name": "Shareholders",
+      "type": "weight",
+      "icon": "pie-chart",
+      "color": "blue",
+      "weight": 20
+    },
+    {
+      "name": "Projections",
+      "type": "weight",
+      "icon": "line-chart",
+      "color": "blue",
+      "weight": 20
+    },
+    {
+      "name": "Legal",
+      "type": "category",
+      "icon": "scale",
+      "color": "blue",
+      "weight": 40
+    },
+    {
+      "name": "Legal issues",
+      "type": "weight",
+      "icon": "gavel",
+      "color": "blue",
+      "weight": 40
+    },
+    {
+      "name": "Contracts",
+      "type": "weight",
+      "icon": "scroll-text",
+      "color": "blue",
+      "weight": 10
+    },
+    {
+      "name": "Challenges",
+      "type": "weight",
+      "icon": "mountain",
+      "color": "red",
+      "weight": 70
+    },
+    {
+      "name": "Unfair advantage",
+      "type": "text",
+      "icon": "zap",
+      "color": "blue",
+      "weight": 30
+    },
+    {
+      "name": "Misc",
+      "type": "text",
+      "icon": "ellipsis",
+      "color": "grey",
+      "weight": 10
+    },
+    {
+      "name": "Procedure",
+      "type": "text",
+      "icon": "refresh-cw",
+      "color": "orange",
+      "weight": 10,
+      "fields": [
+        {
+          "name": "target_artifact",
+          "type": "string"
+        },
+        {
+          "name": "trigger_command",
+          "type": "string"
+        },
+        {
+          "name": "instructions",
+          "type": "markdown_inline"
+        }
+      ]
+    },
+    {
+      "name": "Analysis",
+      "type": "category",
+      "icon": "microscope",
+      "color": "red",
+      "weight": 80
+    },
+    {
+      "name": "Assumptions",
+      "type": "weight",
+      "icon": "circle-help",
+      "color": "red",
+      "weight": 50
+    },
+    {
+      "name": "Risks",
+      "type": "weight",
+      "icon": "shield-alert",
+      "color": "red",
+      "weight": 90
+    },
+    {
+      "name": "Suggestions",
+      "type": "weight",
+      "icon": "messages-square",
+      "color": "red",
+      "weight": 30
+    },
+    {
+      "name": "Keys",
+      "type": "weight",
+      "icon": "key-round",
+      "color": "red",
+      "weight": 50
+    },
+    {
+      "name": "Validation",
+      "type": "category",
+      "icon": "clipboard-check",
+      "color": "green",
+      "weight": 90
+    },
+    {
+      "name": "Coherence",
+      "type": "weight",
+      "icon": "link",
+      "color": "green",
+      "weight": 25
+    },
+    {
+      "name": "Experiments",
+      "type": "weight",
+      "icon": "flask-conical",
+      "color": "green",
+      "weight": 40
+    },
+    {
+      "name": "Organization",
+      "type": "text",
+      "icon": "building-2",
+      "color": "blue",
+      "weight": 100
+    },
+    {
+      "name": "Roles",
+      "type": "list",
+      "icon": "user-check",
+      "color": "green",
+      "weight": 60,
+      "fields": [
+        {
+          "name": "scope",
+          "type": "select",
+          "options": [
+            "internal",
+            "external"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Functions",
+      "type": "list",
+      "icon": "workflow",
+      "color": "purple",
+      "weight": 55
+    },
+    {
+      "name": "Position",
+      "type": "list",
+      "icon": "contact",
+      "color": "teal",
+      "weight": 50
+    },
+    {
+      "name": "Person",
+      "type": "list",
+      "icon": "user",
+      "color": "cyan",
+      "weight": 40,
+      "fields": [
+        {
+          "name": "position_ref",
+          "type": "reference",
+          "target_concepts": [
+            "Position"
+          ]
+        },
+        {
+          "name": "compensation",
+          "type": "string"
+        },
+        {
+          "name": "contributions",
+          "type": "string"
+        },
+        {
+          "name": "image",
+          "type": "image"
+        }
+      ]
+    },
+    {
+      "name": "Skills",
+      "type": "list",
+      "icon": "award",
+      "color": "indigo",
+      "weight": 30
+    },
+    {
+      "name": "Project",
+      "type": "text",
+      "icon": "folder-kanban",
+      "color": "blue",
+      "weight": 100
+    },
+    {
+      "name": "Milestone",
+      "type": "list",
+      "icon": "flag",
+      "color": "purple",
+      "weight": 90,
+      "fields": [
+        {
+          "name": "target_date",
+          "type": "string"
+        },
+        {
+          "name": "milestone_status",
+          "type": "select",
+          "options": [
+            "planned",
+            "in_progress",
+            "achieved",
+            "delayed"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Phases",
+      "type": "sequence",
+      "icon": "layers",
+      "color": "purple",
+      "weight": 85,
+      "fields": [
+        {
+          "name": "phase_status",
+          "type": "select",
+          "options": [
+            "not_started",
+            "in_progress",
+            "completed"
+          ]
+        },
+        {
+          "name": "start_date",
+          "type": "string"
+        },
+        {
+          "name": "end_date",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "Deliverable",
+      "type": "list",
+      "icon": "package",
+      "color": "orange",
+      "weight": 80
+    },
+    {
+      "name": "Task",
+      "type": "list",
+      "icon": "check-square",
+      "color": "blue",
+      "weight": 70,
+      "fields": [
+        {
+          "name": "status",
+          "type": "select",
+          "options": [
+            "backlog",
+            "in_progress",
+            "blocked",
+            "done"
+          ]
+        },
+        {
+          "name": "priority",
+          "type": "select",
+          "options": [
+            "critical",
+            "high",
+            "medium",
+            "low"
+          ]
+        },
+        {
+          "name": "depends_on",
+          "type": "reference",
+          "target_concepts": [
+            "Task",
+            "Milestone"
+          ]
+        },
+        {
+          "name": "duration",
+          "type": "string"
+        },
+        {
+          "name": "start_date",
+          "type": "string"
+        },
+        {
+          "name": "due_date",
+          "type": "string"
+        },
+        {
+          "name": "milestone",
+          "type": "reference",
+          "target_concepts": [
+            "Milestone"
+          ]
+        },
+        {
+          "name": "deliverable",
+          "type": "reference",
+          "target_concepts": [
+            "Deliverable"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Risk",
+      "type": "list",
+      "icon": "alert-triangle",
+      "color": "red",
+      "weight": 60,
+      "fields": [
+        {
+          "name": "impact",
+          "type": "select",
+          "options": [
+            "high",
+            "medium",
+            "low"
+          ]
+        },
+        {
+          "name": "probability",
+          "type": "select",
+          "options": [
+            "high",
+            "medium",
+            "low"
+          ]
+        },
+        {
+          "name": "mitigation",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "Project roles",
+      "type": "list",
+      "icon": "users",
+      "color": "green",
+      "weight": 50,
+      "fields": [
+        {
+          "name": "scope",
+          "type": "select",
+          "options": [
+            "internal",
+            "external"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Metrics",
+      "type": "list",
+      "icon": "bar-chart-3",
+      "color": "blue",
+      "weight": 100,
+      "fields": [
+        {
+          "name": "metricValue",
+          "type": "string"
+        },
+        {
+          "name": "metricFormula",
+          "type": "string"
+        },
+        {
+          "name": "dependsOn",
+          "type": "reference",
+          "target_concepts": [
+            "Metrics",
+            "Variables"
+          ]
+        },
+        {
+          "name": "metricType",
+          "type": "select",
+          "options": [
+            "result",
+            "revenue",
+            "expense",
+            "tax",
+            "investment"
+          ]
+        },
+        {
+          "name": "metricUnit",
+          "type": "string"
+        },
+        {
+          "name": "evolution",
+          "type": "reference",
+          "target_concepts": [
+            "Evolution"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Variables",
+      "type": "list",
+      "icon": "settings-2",
+      "color": "green",
+      "weight": 80,
+      "fields": [
+        {
+          "name": "variableValue",
+          "type": "string"
+        },
+        {
+          "name": "variableType",
+          "type": "select",
+          "options": [
+            "rate",
+            "occupancy",
+            "fee",
+            "growth",
+            "cost",
+            "days",
+            "months",
+            "count"
+          ]
+        },
+        {
+          "name": "variableUnit",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "Evolution",
+      "type": "list",
+      "icon": "trending-up",
+      "color": "orange",
+      "weight": 60,
+      "fields": [
+        {
+          "name": "evolutionType",
+          "type": "select",
+          "options": [
+            "fixed",
+            "compound",
+            "additive"
+          ]
+        },
+        {
+          "name": "evolutionFactor",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "Scenario",
+      "type": "list",
+      "icon": "layers",
+      "color": "purple",
+      "weight": 70,
+      "fields": [
+        {
+          "name": "scenarioMonths",
+          "type": "string"
+        },
+        {
+          "name": "scenarioType",
+          "type": "select",
+          "options": [
+            "historical",
+            "projection"
+          ]
+        },
+        {
+          "name": "scenarioNotes",
+          "type": "string"
+        }
+      ]
+    }
+  ],
+  "fields": [],
+  "markers": [
+    {
+      "name": "importance",
+      "symbol": "*",
+      "icon": "plus",
+      "color": "blue",
+      "applies_to": [
+        "Element"
+      ]
+    },
+    {
+      "name": "completion",
+      "symbol": ">",
+      "icon": "check",
+      "color": "blue",
+      "applies_to": [
+        "Element"
+      ]
+    },
+    {
+      "name": "certainty",
+      "symbol": "?",
+      "icon": "help-circle",
+      "color": "green",
+      "applies_to": [
+        "Element",
+        "Concept"
+      ]
+    },
+    {
+      "name": "priority",
+      "symbol": "!",
+      "icon": "flag",
+      "color": "red",
+      "applies_to": [
+        "Element"
+      ]
+    },
+    {
+      "name": "rating",
+      "symbol": "+",
+      "icon": "star",
+      "color": "green",
+      "applies_to": [
+        "Element"
+      ]
+    },
+    {
+      "name": "complexity",
+      "icon": "gauge",
+      "color": "green",
+      "weight": 50,
+      "applies_to": [
+        "Element",
+        "Concept"
+      ]
+    },
+    {
+      "name": "health",
+      "icon": "activity",
+      "color": "green",
+      "weight": 50,
+      "applies_to": [
+        "Element",
+        "Concept"
+      ]
+    },
+    {
+      "name": "is_variable",
+      "symbol": "*",
+      "icon": "edit",
+      "color": "blue",
+      "applies_to": [
+        "Element"
+      ]
+    },
+    {
+      "name": "is_formula",
+      "symbol": "=",
+      "icon": "calculator",
+      "color": "green",
+      "applies_to": [
+        "Element"
+      ]
+    },
+    {
+      "name": "is_derived",
+      "symbol": "~",
+      "icon": "sparkles",
+      "color": "purple",
+      "applies_to": [
+        "Element"
+      ]
+    }
+  ],
+  "matrices": [
+    {
+      "name": "Journey map",
+      "source": "Journey",
+      "target": "Emotions",
+      "params": "",
+      "values": [
+        "Max",
+        "Very High",
+        "High",
+        "Slightly High",
+        "Neutral",
+        "Slightly Low",
+        "Low",
+        "Very Low",
+        "Min"
+      ],
+      "widgetType": "set",
+      "description": "Cross-tabulates Journey steps (rows) against Emotions (columns) to score the emotional intensity of each touchpoint."
+    },
+    {
+      "name": "Segmentation-Profiles Matrix",
+      "source": "Segmentation",
+      "target": "Profiles",
+      "params": "",
+      "values": [
+        "Max",
+        "Very High",
+        "High",
+        "Slightly High",
+        "Neutral",
+        "Slightly Low",
+        "Low",
+        "Very Low",
+        "Min"
+      ],
+      "widgetType": "set",
+      "description": "Maps each segmentation criterion against the customer profiles it helps define."
+    },
+    {
+      "name": "Problems-Value propositions Matrix",
+      "source": "Problems",
+      "target": "Value propositions",
+      "params": "",
+      "values": [
+        "Max",
+        "Very High",
+        "High",
+        "Slightly High",
+        "Neutral",
+        "Slightly Low",
+        "Low",
+        "Very Low",
+        "Min"
+      ],
+      "widgetType": "set",
+      "description": "Scores how strongly each Value proposition addresses each Problem (solution fit)."
+    },
+    {
+      "name": "Value propositions-Messages Matrix",
+      "source": "Value propositions",
+      "target": "Messages",
+      "params": "",
+      "values": [
+        "Max",
+        "Very High",
+        "High",
+        "Slightly High",
+        "Neutral",
+        "Slightly Low",
+        "Low",
+        "Very Low",
+        "Min"
+      ],
+      "widgetType": "set",
+      "description": "Scores how well each Message conveys each Value proposition (message alignment)."
+    },
+    {
+      "name": "Messages-Channels Matrix",
+      "source": "Messages",
+      "target": "Channels",
+      "params": "",
+      "values": [
+        "Max",
+        "Very High",
+        "High",
+        "Slightly High",
+        "Neutral",
+        "Slightly Low",
+        "Low",
+        "Very Low",
+        "Min"
+      ],
+      "widgetType": "set",
+      "description": "Scores how effective each Channel is at delivering each Message (channel strategy)."
+    },
+    {
+      "name": "Organizational values-Organizational goals Matrix",
+      "source": "Organizational values",
+      "target": "Organizational goals",
+      "params": "",
+      "values": [
+        "Max",
+        "Very High",
+        "High",
+        "Slightly High",
+        "Neutral",
+        "Slightly Low",
+        "Low",
+        "Very Low",
+        "Min"
+      ],
+      "widgetType": "set",
+      "description": "Scores how strongly each Organizational value drives each Organizational goal."
+    },
+    {
+      "name": "Activities-Resources Matrix",
+      "source": "Activities",
+      "target": "Resources",
+      "params": "",
+      "values": [
+        "Max",
+        "Very High",
+        "High",
+        "Slightly High",
+        "Neutral",
+        "Slightly Low",
+        "Low",
+        "Very Low",
+        "Min"
+      ],
+      "widgetType": "set",
+      "description": "Scores how much each Activity depends on or consumes each Resource."
+    },
+    {
+      "name": "Problems-Competition Matrix",
+      "source": "Problems",
+      "target": "Competition",
+      "params": "",
+      "values": [
+        "Max",
+        "Very High",
+        "High",
+        "Slightly High",
+        "Neutral",
+        "Slightly Low",
+        "Low",
+        "Very Low",
+        "Min"
+      ],
+      "widgetType": "set",
+      "description": "Scores how well each Competitor exploits each Problem (competitive gap analysis)."
+    },
+    {
+      "name": "Assumptions-Risks Matrix",
+      "source": "Assumptions",
+      "target": "Risks",
+      "params": "",
+      "values": [
+        "Max",
+        "Very High",
+        "High",
+        "Slightly High",
+        "Neutral",
+        "Slightly Low",
+        "Low",
+        "Very Low",
+        "Min"
+      ],
+      "widgetType": "set",
+      "description": "Scores how strongly each Risk threatens each Assumption (risk assessment)."
+    },
+    {
+      "name": "Experiments-Assumptions Matrix",
+      "source": "Experiments",
+      "target": "Assumptions",
+      "params": "",
+      "values": [
+        "Max",
+        "Very High",
+        "High",
+        "Slightly High",
+        "Neutral",
+        "Slightly Low",
+        "Low",
+        "Very Low",
+        "Min"
+      ],
+      "widgetType": "set",
+      "description": "Scores how much each Experiment validates each Assumption."
+    },
+    {
+      "name": "positions-roles matrix",
+      "source": "Position",
+      "target": "Roles",
+      "params": "",
+      "values": [
+        "Assumes"
+      ],
+      "widgetType": "boolean"
+    },
+    {
+      "name": "persons-positions matrix",
+      "source": "Person",
+      "target": "Position",
+      "params": "",
+      "values": [
+        "Occupies"
+      ],
+      "widgetType": "boolean"
+    },
+    {
+      "name": "Functions-Positions Matrix",
+      "source": "Functions",
+      "target": "Position",
+      "params": "",
+      "values": [
+        "Assumes"
+      ],
+      "widgetType": "boolean",
+      "description": "Boolean assignment of which Position assumes responsibility for each Function."
+    },
+    {
+      "name": "task-roles matrix",
+      "source": "Task",
+      "target": "Project roles",
+      "params": "",
+      "values": [
+        "Responsible",
+        "Accountable",
+        "Consulted",
+        "Informed"
+      ]
+    },
+    {
+      "name": "task-deliverables matrix",
+      "source": "Task",
+      "target": "Deliverable",
+      "params": "",
+      "values": [
+        "Creates",
+        "Modifies",
+        "Validates"
+      ]
+    },
+    {
+      "name": "risks-milestones matrix",
+      "source": "Risk",
+      "target": "Milestone",
+      "params": "",
+      "values": [
+        "Impacts",
+        "MitigatedIn"
+      ]
+    },
+    {
+      "name": "metrics-dependencies matrix",
+      "source": "Metrics",
+      "target": "Metrics",
+      "params": "",
+      "values": [
+        "DependsOn"
+      ]
+    },
+    {
+      "name": "metric-variables matrix",
+      "source": "Metrics",
+      "target": "Variables",
+      "params": "",
+      "values": [
+        "Uses"
+      ]
+    },
+    {
+      "name": "scenario-metrics matrix",
+      "source": "Scenario",
+      "target": "Metrics",
+      "params": "",
+      "values": [
+        "Includes"
+      ]
+    },
+    {
+      "name": "Metrics-Organizational goals Matrix",
+      "source": "Metrics",
+      "target": "Organizational goals",
+      "params": "",
+      "values": [
+        "Max",
+        "Very High",
+        "High",
+        "Slightly High",
+        "Neutral",
+        "Slightly Low",
+        "Low",
+        "Very Low",
+        "Min"
+      ],
+      "widgetType": "set",
+      "description": "Scores how directly each Metric tracks each Organizational goal."
+    }
+  ]
+}
+</script>
+    <script type="application/json" id="innfo-model">
+{
+  "meta": {
+    "modelId": "kNNowledge/Ghostbusters_business",
+    "title": "Ghostbusters",
+    "modelVersion": "V_0-4-0",
+    "sha256": "a369f034f21d0438709e090e14e2be8df59676d454c77fc71467d74c7dcc4a3f",
+    "sources": [
+      "kNNowledge/Ghostbusters_business_NN.md"
+    ],
+    "generated": "2026-10-10T11:34:13.576Z",
+    "feedbackState": []
+  },
+  "elements": [
+    {
+      "id": "stakeholders-ghostbusters-founders-venkman-stantz-spengler",
+      "concept": "Stakeholders",
+      "name": "Ghostbusters Founders (Venkman, Stantz, Spengler)",
+      "description": "Co-founders and principal operators. They hold equal equity, bring complementary expertise (leadership, engineering, theoretical physics), and are the public face of the brand.",
+      "fields": {
+        "relationship_model": "Co-founders & Equity Partners"
+      },
+      "markers": {},
+      "hash": "9078d8bd02f18c7d"
+    },
+    {
+      "id": "stakeholders-winston-zeddemore-field-operator",
+      "concept": "Stakeholders",
+      "name": "Winston Zeddemore (Field Operator)",
+      "description": "Fourth team member, hired as field operator. Brings military experience and a pragmatic perspective. Salaried employee with equity participation.",
+      "fields": {
+        "relationship_model": "Salaried Field Operator"
+      },
+      "markers": {},
+      "hash": "65af5ec909e472ae"
+    },
+    {
+      "id": "stakeholders-janine-melnitz-office-manager",
+      "concept": "Stakeholders",
+      "name": "Janine Melnitz (Office Manager)",
+      "description": "Office manager and first point of contact. Handles scheduling, billing, and client intake.",
+      "fields": {
+        "relationship_model": "Office Manager & Dispatcher"
+      },
+      "markers": {},
+      "hash": "1dcdcd4484116d86"
+    },
+    {
+      "id": "stakeholders-dana-barrett",
+      "concept": "Stakeholders",
+      "name": "Dana Barrett",
+      "description": "High-profile client. Her apartment haunting at 550 Central Park West was the catalyst that validated the business model.",
+      "fields": {
+        "relationship_model": "Anchor Commercial Client"
+      },
+      "markers": {},
+      "hash": "e3c991a92b2018de"
+    },
+    {
+      "id": "stakeholders-mayor-of-new-york-city",
+      "concept": "Stakeholders",
+      "name": "Mayor of New York City",
+      "description": "Government stakeholder who initially suppresses the Ghostbusters but later relies on them during the Gozer crisis.",
+      "fields": {
+        "relationship_model": "Municipal Sponsor & Civic Authority"
+      },
+      "markers": {},
+      "hash": "176b25240c83121d"
+    },
+    {
+      "id": "stakeholders-epa-walter-peck",
+      "concept": "Stakeholders",
+      "name": "EPA (Walter Peck)",
+      "description": "Regulatory antagonist. Represents the risk of government interference with untested technology.",
+      "fields": {
+        "relationship_model": "Regulatory Oversight & Adversary"
+      },
+      "markers": {},
+      "hash": "f2c7d8b9fc38a955"
+    },
+    {
+      "id": "stakeholders-gozer-the-gozerian",
+      "concept": "Stakeholders",
+      "name": "Gozer the Gozerian",
+      "description": "Existential threat — the entity whose invasion validated the Ghostbusters' technology at the highest possible stakes.",
+      "fields": {
+        "relationship_model": "Extradimensional Threat"
+      },
+      "markers": {},
+      "hash": "f562d78297c7053b"
+    },
+    {
+      "id": "segments-residential-hauntings",
+      "concept": "Segments",
+      "name": "Residential Hauntings",
+      "description": "Homeowners and apartment dwellers experiencing paranormal activity. High emotional distress, willing to pay premium for rapid response.",
+      "fields": {},
+      "markers": {},
+      "hash": "12e80d3c7cdf3ae8"
+    },
+    {
+      "id": "segments-commercial-properties",
+      "concept": "Segments",
+      "name": "Commercial Properties",
+      "description": "Businesses with supernatural disturbances threatening operations. Larger contracts, ongoing maintenance relationships possible.",
+      "fields": {},
+      "markers": {},
+      "hash": "86bf6080e9ba5b4b"
+    },
+    {
+      "id": "segments-government-institutional",
+      "concept": "Segments",
+      "name": "Government & Institutional",
+      "description": "City, state, or federal agencies dealing with paranormal threats. High-value contracts, bureaucratic procurement.",
+      "fields": {},
+      "markers": {},
+      "hash": "2350fd295cd22999"
+    },
+    {
+      "id": "segments-emergency-crisis-response",
+      "concept": "Segments",
+      "name": "Emergency / Crisis Response",
+      "description": "Immediate, high-stakes situations involving mass hauntings or interdimensional events. Premium pricing.",
+      "fields": {},
+      "markers": {},
+      "hash": "cd11f060677ab35a"
+    },
+    {
+      "id": "profiles-distressed-homeowner",
+      "concept": "Profiles",
+      "name": "Distressed Homeowner",
+      "description": "Middle-class NYC resident experiencing unexplained phenomena. Panicked, skeptical, desperate. Needs reassurance and fast action.",
+      "fields": {
+        "relationship_type": "Dedicated Personal Support",
+        "persona_notes": "Terrified urban resident seeking immediate paranormal relief, reassurance, and rapid bedroom/hallway clearance."
+      },
+      "markers": {},
+      "hash": "bfcedffd6ae8f056"
+    },
+    {
+      "id": "profiles-property-manager",
+      "concept": "Profiles",
+      "name": "Property Manager",
+      "description": "Pragmatic, cost-conscious, concerned about tenant complaints and property value.",
+      "fields": {
+        "relationship_type": "Commercial Contract Management",
+        "persona_notes": "Pragmatic facility executive prioritizing tenant retention, asset protection, and zero public panic."
+      },
+      "markers": {},
+      "hash": "b168e81361da25a2"
+    },
+    {
+      "id": "profiles-city-official",
+      "concept": "Profiles",
+      "name": "City Official",
+      "description": "Bureaucratic, image-conscious, needs political cover before engaging unconventional services.",
+      "fields": {
+        "relationship_type": "Bureaucratic Liaison",
+        "persona_notes": "Risk-averse municipal bureaucrat needing official safety sign-offs, containment guarantees, and political cover."
+      },
+      "markers": {},
+      "hash": "7c3484ff44d72ea6"
+    },
+    {
+      "id": "persona-nancy-the-homeowner",
+      "concept": "Persona",
+      "name": "Nancy the Homeowner",
+      "description": "34-year-old teacher from Queens. Lives alone in a pre-war walk-up. Recently divorced, already on edge. Noticed objects moving at night, cold spots in the hallway. Found old newspaper clippings about the previous tenant who \"went mad.\" Googled \"paranormal investigator NYC\" at 2 AM. Budget is tight but she cannot sleep another night.",
+      "fields": {},
+      "markers": {},
+      "hash": "d75c40ff50bb879f"
+    },
+    {
+      "id": "persona-carl-the-property-manager",
+      "concept": "Persona",
+      "name": "Carl the Property Manager",
+      "description": "52-year-old managing a Midtown commercial building. Tenants are complaining about flickering lights, slamming doors, and a foul smell on the 7th floor. His boss wants it fixed yesterday. Carl does not believe in ghosts but he believes in lease renewals. Needs a discreet, professional solution with minimal media attention.",
+      "fields": {},
+      "markers": {},
+      "hash": "5f49eaa030f5450b"
+    },
+    {
+      "id": "segmentation-geography",
+      "concept": "Segmentation",
+      "name": "Geography",
+      "description": "Primary: NYC five boroughs. Secondary: Tri-state area (within 2-hour response radius). Future: national expansion via franchise model.",
+      "fields": {},
+      "markers": {},
+      "hash": "f30d4a0b007e12a9"
+    },
+    {
+      "id": "segmentation-urgency-level",
+      "concept": "Segmentation",
+      "name": "Urgency Level",
+      "description": "Critical (active threat — response within 15 min), High (disturbance reported — within 1 hr), Standard (investigation only — scheduled within 72 hrs).",
+      "fields": {},
+      "markers": {},
+      "hash": "0ff1230b8d16b727"
+    },
+    {
+      "id": "segmentation-entity-class",
+      "concept": "Segmentation",
+      "name": "Entity Class",
+      "description": "Class I (residual energy, minor poltergeist), Class II (full apparition, interactive entity), Class III (ancient/demonic, reality-warping), Class IV (god-like entity, interdimensional).",
+      "fields": {},
+      "markers": {},
+      "hash": "6c9d0516587f292c"
+    },
+    {
+      "id": "market-trends-rising-supernatural-reports",
+      "concept": "Market trends",
+      "name": "Rising Supernatural Reports",
+      "description": "Year-over-year increase in paranormal claims across the Northeast correlates with heightened public awareness and media coverage.",
+      "fields": {},
+      "markers": {},
+      "hash": "8fa5eec0675d6b92"
+    },
+    {
+      "id": "market-trends-skeptic-to-believer-shift",
+      "concept": "Market trends",
+      "name": "Skeptic-to-Believer Shift",
+      "description": "Cultural shift as traditional institutions (church, police) fail to address paranormal phenomena, driving demand for alternative services.",
+      "fields": {},
+      "markers": {},
+      "hash": "7b7b142e648e39ba"
+    },
+    {
+      "id": "market-trends-insurance-industry-adaptation",
+      "concept": "Market trends",
+      "name": "Insurance Industry Adaptation",
+      "description": "Major insurers beginning to offer paranormal damage riders, legitimizing the market and reducing out-of-pocket costs for clients.",
+      "fields": {},
+      "markers": {},
+      "hash": "03ee57050f5b88da"
+    },
+    {
+      "id": "competition-traditional-exterminators",
+      "concept": "Competition",
+      "name": "Traditional Exterminators",
+      "description": "Limited effectiveness. Cannot handle spectral entities. Low price but irrelevant solution.",
+      "fields": {},
+      "markers": {},
+      "hash": "05872d2513d8873b"
+    },
+    {
+      "id": "competition-religious-institutions",
+      "concept": "Competition",
+      "name": "Religious Institutions",
+      "description": "Exorcisms and blessings. Mixed effectiveness, limited availability, no containment technology.",
+      "fields": {},
+      "markers": {},
+      "hash": "e9f5b36e0ba5fba1"
+    },
+    {
+      "id": "competition-paranormal-investigators",
+      "concept": "Competition",
+      "name": "Paranormal Investigators",
+      "description": "Amateur groups. Investigate but do not solve. No revenue model beyond content creation.",
+      "fields": {},
+      "markers": {},
+      "hash": "06222324c6b9a75f"
+    },
+    {
+      "id": "competition-government-agencies",
+      "concept": "Competition",
+      "name": "Government Agencies",
+      "description": "Potential future competitors if the government develops its own paranormal response capability.",
+      "fields": {},
+      "markers": {},
+      "hash": "b024c392a5b791c8"
+    },
+    {
+      "id": "roles-field-operator",
+      "concept": "Roles",
+      "name": "Field Operator",
+      "description": "Front-line ghost capture and containment. Requires Proton Pack certification and at least 50 logged captures.",
+      "fields": {
+        "scope": "internal"
+      },
+      "markers": {},
+      "hash": "989b3af63dfca7be"
+    },
+    {
+      "id": "roles-research-scientist",
+      "concept": "Roles",
+      "name": "Research Scientist",
+      "description": "Analysis of entity types, PKE readings, and containment protocols. Develops new trapping methodologies.",
+      "fields": {
+        "scope": "internal"
+      },
+      "markers": {},
+      "hash": "0404daa0fab8dc08"
+    },
+    {
+      "id": "roles-dispatch-coordinator",
+      "concept": "Roles",
+      "name": "Dispatch Coordinator",
+      "description": "Manages incoming calls, prioritizes responses, routes teams based on entity classification and location.",
+      "fields": {
+        "scope": "internal"
+      },
+      "markers": {},
+      "hash": "4a70cdce3ad8ba02"
+    },
+    {
+      "id": "problems-paranormal-infestation",
+      "concept": "Problems",
+      "name": "Paranormal Infestation",
+      "description": "Unwanted spectral presence causing property damage, emotional distress, and business disruption.",
+      "fields": {},
+      "markers": {},
+      "hash": "153d5ba35587368c"
+    },
+    {
+      "id": "problems-fear-and-emotional-trauma",
+      "concept": "Problems",
+      "name": "Fear and Emotional Trauma",
+      "description": "Inhabitants experience anxiety, sleep disruption, and psychological distress from supernatural encounters.",
+      "fields": {},
+      "markers": {},
+      "hash": "0a7236e0f93b112d"
+    },
+    {
+      "id": "problems-property-value-impact",
+      "concept": "Problems",
+      "name": "Property Value Impact",
+      "description": "Properties with known paranormal activity lose market value and become uninsurable.",
+      "fields": {},
+      "markers": {},
+      "hash": "36db8f37db5b5dda"
+    },
+    {
+      "id": "problems-lack-of-alternatives",
+      "concept": "Problems",
+      "name": "Lack of Alternatives",
+      "description": "Traditional services (police, clergy, exterminators) cannot handle paranormal threats effectively.",
+      "fields": {},
+      "markers": {},
+      "hash": "d59e98dfb05c7063"
+    },
+    {
+      "id": "value-propositions-guaranteed-entity-removal",
+      "concept": "Value propositions",
+      "name": "Guaranteed Entity Removal",
+      "description": "We solve the problem. If we can't contain it, you don't pay.",
+      "fields": {},
+      "markers": {},
+      "hash": "3f93da3c08db722d"
+    },
+    {
+      "id": "value-propositions-rapid-response",
+      "concept": "Value propositions",
+      "name": "Rapid Response",
+      "description": "Average arrival time under 30 minutes in the NYC metro area.",
+      "fields": {},
+      "markers": {},
+      "hash": "ec89e785a097d9bf"
+    },
+    {
+      "id": "value-propositions-proprietary-technology",
+      "concept": "Value propositions",
+      "name": "Proprietary Technology",
+      "description": "Nuclear-powered containment systems (Proton Pack, Ghost Trap, Containment Unit) that no competitor possesses.",
+      "fields": {},
+      "markers": {},
+      "hash": "63dfa08c9ae265d0"
+    },
+    {
+      "id": "value-propositions-insurance-documentation",
+      "concept": "Value propositions",
+      "name": "Insurance Documentation",
+      "description": "Detailed incident reports accepted by major insurance providers for property claims.",
+      "fields": {},
+      "markers": {},
+      "hash": "2775ee112d03a91b"
+    },
+    {
+      "id": "messages-were-ready-to-believe-you",
+      "concept": "Messages",
+      "name": "\"We're ready to believe you.\"",
+      "description": "Acknowledges the client's experience without judgment. Lowers resistance to calling for help.",
+      "fields": {},
+      "markers": {},
+      "hash": "0c1ef8f29f434e65"
+    },
+    {
+      "id": "messages-we-have-the-tools-we-have-the-talent",
+      "concept": "Messages",
+      "name": "\"We have the tools. We have the talent.\"",
+      "description": "Confidence-building message emphasizing proprietary technology and trained personnel.",
+      "fields": {},
+      "markers": {},
+      "hash": "b946e11d31485b2b"
+    },
+    {
+      "id": "messages-dont-be-afraid-of-the-dark-call-us",
+      "concept": "Messages",
+      "name": "\"Don't be afraid of the dark. Call us.\"",
+      "description": "Memorable, slightly humorous tagline that makes the brand approachable.",
+      "fields": {},
+      "markers": {},
+      "hash": "af8db248e6e64b8b"
+    },
+    {
+      "id": "channels-phone-hotline",
+      "concept": "Channels",
+      "name": "Phone Hotline",
+      "description": "24/7 dispatch line. Primary intake channel for emergency calls.",
+      "fields": {},
+      "markers": {},
+      "hash": "b726a2fc900c9c1b"
+    },
+    {
+      "id": "channels-word-of-mouth",
+      "concept": "Channels",
+      "name": "Word of Mouth",
+      "description": "Referrals from past clients. Most effective channel for residential segment.",
+      "fields": {},
+      "markers": {},
+      "hash": "24c854b6e1623a4d"
+    },
+    {
+      "id": "channels-media-coverage",
+      "concept": "Channels",
+      "name": "Media Coverage",
+      "description": "News reports of high-profile captures drive massive awareness spikes.",
+      "fields": {},
+      "markers": {},
+      "hash": "814b3d52d7d87809"
+    },
+    {
+      "id": "channels-website",
+      "concept": "Channels",
+      "name": "Website",
+      "description": "Information, service booking, and testimonial showcase.",
+      "fields": {},
+      "markers": {},
+      "hash": "6c6bfe75ab1d376d"
+    },
+    {
+      "id": "perceptions-eccentric-but-effective",
+      "concept": "Perceptions",
+      "name": "Eccentric but Effective",
+      "description": "The public sees Ghostbusters as unconventional outsiders — but they get results where nobody else can.",
+      "fields": {},
+      "markers": {},
+      "hash": "53ba20b00d9266cc"
+    },
+    {
+      "id": "perceptions-nuisance-public-threat",
+      "concept": "Perceptions",
+      "name": "Nuisance / Public Threat",
+      "description": "Regulators and skeptics view unlicensed nuclear accelerators as a public safety hazard.",
+      "fields": {},
+      "markers": {},
+      "hash": "397766b56ee515a6"
+    },
+    {
+      "id": "perceptions-pop-culture-heroes",
+      "concept": "Perceptions",
+      "name": "Pop Culture Heroes",
+      "description": "Media coverage positions the team as underdog celebrities, which drives demand but also scrutiny.",
+      "fields": {},
+      "markers": {},
+      "hash": "7ef4d6cfc4487b40"
+    },
+    {
+      "id": "emotions-relief",
+      "concept": "Emotions",
+      "name": "Relief",
+      "description": "Clients describe overwhelming relief when the team arrives and the entity is contained.",
+      "fields": {},
+      "markers": {},
+      "hash": "fbecad65520beb10"
+    },
+    {
+      "id": "emotions-fear",
+      "concept": "Emotions",
+      "name": "Fear",
+      "description": "Pre-service anxiety — clients are terrified of the unknown and uncertain about the outcome.",
+      "fields": {},
+      "markers": {},
+      "hash": "805c9693194febc8"
+    },
+    {
+      "id": "emotions-gratitude",
+      "concept": "Emotions",
+      "name": "Gratitude",
+      "description": "Post-service thankfulness often leads to referrals and repeat business for commercial clients.",
+      "fields": {},
+      "markers": {},
+      "hash": "4fcd9ee7cab8e42f"
+    },
+    {
+      "id": "behaviors-late-night-crisis-calls",
+      "concept": "Behaviors",
+      "name": "Late-Night Crisis Calls",
+      "description": "60% of residential calls come between 10 PM and 4 AM — peak paranormal activity hours.",
+      "fields": {},
+      "markers": {},
+      "hash": "f8558433e1a30675"
+    },
+    {
+      "id": "behaviors-research-before-calling",
+      "concept": "Behaviors",
+      "name": "Research Before Calling",
+      "description": "Clients typically spend 2-3 days researching symptoms online before making the first call.",
+      "fields": {},
+      "markers": {},
+      "hash": "73d2ecf93596fce4"
+    },
+    {
+      "id": "behaviors-referral-driven-hiring",
+      "concept": "Behaviors",
+      "name": "Referral-Driven Hiring",
+      "description": "40% of new clients come through word-of-mouth from previous clients.",
+      "fields": {},
+      "markers": {},
+      "hash": "fcbdaf94b1dcf3dc"
+    },
+    {
+      "id": "journey-1-paranormal-incident",
+      "concept": "Journey",
+      "name": "1. Paranormal Incident",
+      "description": "Client experiences unexplained phenomena. Fear and confusion set in.",
+      "fields": {},
+      "markers": {},
+      "hash": "f85a8bfed3b6d688"
+    },
+    {
+      "id": "journey-2-research-denial",
+      "concept": "Journey",
+      "name": "2. Research & Denial",
+      "description": "Client searches online, asks friends, tries to rationalize. Average 3 days.",
+      "fields": {},
+      "markers": {},
+      "hash": "9475d1e8dba072a3"
+    },
+    {
+      "id": "journey-3-first-contact",
+      "concept": "Journey",
+      "name": "3. First Contact",
+      "description": "Client calls Ghostbusters hotline. Dispatch triages the situation and assigns team.",
+      "fields": {},
+      "markers": {},
+      "hash": "3ede31236dbe0c04"
+    },
+    {
+      "id": "journey-4-on-site-investigation",
+      "concept": "Journey",
+      "name": "4. On-Site Investigation",
+      "description": "Team arrives, scans with PKE meter, classifies entity, briefs the client.",
+      "fields": {},
+      "markers": {},
+      "hash": "6d6aceb37344cdde"
+    },
+    {
+      "id": "journey-5-containment-operation",
+      "concept": "Journey",
+      "name": "5. Containment Operation",
+      "description": "Active ghost capture using Proton Pack and Ghost Trap. Client watches from safe distance.",
+      "fields": {},
+      "markers": {},
+      "hash": "69dc90fb7608d669"
+    },
+    {
+      "id": "journey-6-post-service-follow-up",
+      "concept": "Journey",
+      "name": "6. Post-Service Follow-up",
+      "description": "Incident report delivered. Insurance docs provided. Satisfaction survey sent within 24 hours.",
+      "fields": {},
+      "markers": {},
+      "hash": "b3ae0155013c7153"
+    },
+    {
+      "id": "solutions-paranormal-abatement",
+      "concept": "Solutions",
+      "name": "Paranormal Abatement",
+      "description": "Complete service from investigation through containment and long-term monitoring.",
+      "fields": {},
+      "markers": {},
+      "hash": "85f0ae0d39759eba"
+    },
+    {
+      "id": "solutions-preventative-assessment",
+      "concept": "Solutions",
+      "name": "Preventative Assessment",
+      "description": "proactive scanning of properties with no active disturbance to identify potential weak points.",
+      "fields": {},
+      "markers": {},
+      "hash": "201fee3e3f4e36eb"
+    },
+    {
+      "id": "solutions-emergency-response",
+      "concept": "Solutions",
+      "name": "Emergency Response",
+      "description": "Rapid deployment for active crisis situations including mass hauntings and interdimensional breaches.",
+      "fields": {},
+      "markers": {},
+      "hash": "22622505b6ecb86a"
+    },
+    {
+      "id": "products-and-services-paranormal-investigation",
+      "concept": "Products and services",
+      "name": "Paranormal Investigation",
+      "description": "Initial site assessment using PKE meters and other detection equipment.",
+      "fields": {},
+      "markers": {},
+      "hash": "f4dcec5f4cd0fec0"
+    },
+    {
+      "id": "products-and-services-entity-containment",
+      "concept": "Products and services",
+      "name": "Entity Containment",
+      "description": "Active ghost capture using Proton Pack and Ghost Trap. Core revenue service.",
+      "fields": {},
+      "markers": {},
+      "hash": "74b0ddc8e2ca3362"
+    },
+    {
+      "id": "products-and-services-containment-unit-maintenance",
+      "concept": "Products and services",
+      "name": "Containment Unit Maintenance",
+      "description": "Long-term storage and monitoring of captured entities at the firehouse facility.",
+      "fields": {},
+      "markers": {},
+      "hash": "465b4722114b04ca"
+    },
+    {
+      "id": "products-and-services-consultation-training",
+      "concept": "Products and services",
+      "name": "Consultation & Training",
+      "description": "Advising businesses and government on paranormal preparedness and safety protocols.",
+      "fields": {},
+      "markers": {},
+      "hash": "511debcbbf453f60"
+    },
+    {
+      "id": "components-proton-pack",
+      "concept": "Components",
+      "name": "Proton Pack",
+      "description": "Nuclear-powered particle accelerator worn as backpack. Fires a proton stream to destabilize entities.",
+      "fields": {},
+      "markers": {},
+      "hash": "58626db600f0342d"
+    },
+    {
+      "id": "components-ghost-trap",
+      "concept": "Components",
+      "name": "Ghost Trap",
+      "description": "Portable containment device. Activated remotely, triggered under the entity during capture.",
+      "fields": {},
+      "markers": {},
+      "hash": "63c92b442f2adc8c"
+    },
+    {
+      "id": "components-pke-meter",
+      "concept": "Components",
+      "name": "PKE Meter",
+      "description": "Psychokinetic energy meter. Detects and measures paranormal energy signatures.",
+      "fields": {},
+      "markers": {},
+      "hash": "07b60b8e9173680c"
+    },
+    {
+      "id": "components-containment-unit",
+      "concept": "Components",
+      "name": "Containment Unit",
+      "description": "Basement-level storage facility for captured entities. Grid-powered with emergency backup.",
+      "fields": {},
+      "markers": {},
+      "hash": "a64b4c2ae863b1db"
+    },
+    {
+      "id": "features-cross-trap-stabilization",
+      "concept": "Features",
+      "name": "Cross-trap Stabilization",
+      "description": "Multiple traps can be linked for simultaneous capture of multiple entities.",
+      "fields": {},
+      "markers": {},
+      "hash": "614c53f714e6c5e8"
+    },
+    {
+      "id": "features-entity-classification-database",
+      "concept": "Features",
+      "name": "Entity Classification Database",
+      "description": "Growing library of entity types, behaviors, and optimal capture protocols.",
+      "fields": {},
+      "markers": {},
+      "hash": "1ae35170db5bdaaa"
+    },
+    {
+      "id": "features-remote-pke-monitoring",
+      "concept": "Features",
+      "name": "Remote PKE Monitoring",
+      "description": "Installed sensors in commercial properties provide 24/7 paranormal activity monitoring.",
+      "fields": {},
+      "markers": {},
+      "hash": "d0df64637f951b0f"
+    },
+    {
+      "id": "roadmap-phase-1-nyc-metro-dominance",
+      "concept": "Roadmap",
+      "name": "Phase 1 — NYC Metro Dominance",
+      "description": "Establish coverage across all five boroughs and major commuter rail corridors.",
+      "fields": {},
+      "markers": {},
+      "hash": "4068a7722d0423c5"
+    },
+    {
+      "id": "roadmap-phase-2-regional-expansion",
+      "concept": "Roadmap",
+      "name": "Phase 2 — Regional Expansion",
+      "description": "Open satellite operations in Boston, Philadelphia, and Washington DC.",
+      "fields": {},
+      "markers": {},
+      "hash": "d121ae0fe90c6f0c"
+    },
+    {
+      "id": "roadmap-phase-3-national-franchise",
+      "concept": "Roadmap",
+      "name": "Phase 3 — National Franchise",
+      "description": "License the Ghostbusters brand and technology to trained operators in major US cities.",
+      "fields": {},
+      "markers": {},
+      "hash": "d22e4ca17772550a"
+    },
+    {
+      "id": "roadmap-phase-4-international",
+      "concept": "Roadmap",
+      "name": "Phase 4 — International",
+      "description": "Partner with European and Asian paranormal response agencies for cross-border containment.",
+      "fields": {},
+      "markers": {},
+      "hash": "b919675f95849c16"
+    },
+    {
+      "id": "offerings-ghostbusters-the-video-game",
+      "concept": "Offerings",
+      "name": "Ghostbusters: The Video Game",
+      "description": "Official video game tie-in that generates licensing revenue and brand awareness.",
+      "fields": {
+        "pricing_model": "Licensing Royalty (15% net sales)",
+        "components_list": "Game Engine Integration, Voice Acting, Story Campaign, Spectral Physics Simulator"
+      },
+      "markers": {},
+      "hash": "90e482706a80ceae"
+    },
+    {
+      "id": "offerings-merchandise-line",
+      "concept": "Offerings",
+      "name": "Merchandise Line",
+      "description": "T-shirts, Proton Pack replicas, and ghost figures sold through the website and at events.",
+      "fields": {
+        "pricing_model": "Unit Retail Margin (60%)",
+        "components_list": "T-shirts, Proton Pack Replicas, Ghost Traps, Ecto-1 Diecast Models, Ectoplasm Slime"
+      },
+      "markers": {},
+      "hash": "67276c5258a92c15"
+    },
+    {
+      "id": "offerings-training-workshops",
+      "concept": "Offerings",
+      "name": "Training Workshops",
+      "description": "2-day certification course for aspiring paranormal technicians ($2,500/person).",
+      "fields": {
+        "pricing_model": "Fixed Per Seat ($2,500/seat)",
+        "components_list": "2-Day Theory, PKE Calibration, Live Capture Drill, Certified Elimination Operator Diploma"
+      },
+      "markers": {},
+      "hash": "ad2d97619eeb0331"
+    },
+    {
+      "id": "marketing-guerilla-marketing",
+      "concept": "Marketing",
+      "name": "Guerilla Marketing",
+      "description": "Appearing at high-visibility paranormal events and offering free consultations generates media coverage.",
+      "fields": {},
+      "markers": {},
+      "hash": "9ddb6b8b62a69084"
+    },
+    {
+      "id": "marketing-referral-program",
+      "concept": "Marketing",
+      "name": "Referral Program",
+      "description": "15% discount for clients who refer a new customer.",
+      "fields": {},
+      "markers": {},
+      "hash": "354508dd1d739cac"
+    },
+    {
+      "id": "media-plan-local-news-coverage",
+      "concept": "Media plan",
+      "name": "Local News Coverage",
+      "description": "Pitch stories to NYC news stations after each major containment operation. Zero media spend, high credibility.",
+      "fields": {},
+      "markers": {},
+      "hash": "1947b918cf5e803d"
+    },
+    {
+      "id": "media-plan-social-media",
+      "concept": "Media plan",
+      "name": "Social Media",
+      "description": "Active Twitter account sharing capture stories and safety tips. Moderate engagement, strong brand voice.",
+      "fields": {},
+      "markers": {},
+      "hash": "39eed264c742a34b"
+    },
+    {
+      "id": "media-plan-yellow-pages",
+      "concept": "Media plan",
+      "name": "Yellow Pages",
+      "description": "Traditional listing still drives 15% of first-time residential calls.",
+      "fields": {},
+      "markers": {},
+      "hash": "c844eee9f335f472"
+    },
+    {
+      "id": "communication-press-relations",
+      "concept": "Communication",
+      "name": "Press Relations",
+      "description": "Managed through selective media appearances and press releases after significant events.",
+      "fields": {},
+      "markers": {},
+      "hash": "fa28929537693065"
+    },
+    {
+      "id": "inspiration-parapsychology-research-at-columbia",
+      "concept": "Inspiration",
+      "name": "Parapsychology Research at Columbia",
+      "description": "Dr. Venkman's ESP experiments, while controversial, revealed measurable psychokinetic energy patterns that could be detected and influenced.",
+      "fields": {},
+      "markers": {},
+      "hash": "9e094eeb71311fbb"
+    },
+    {
+      "id": "inspiration-particle-physics-breakthrough",
+      "concept": "Inspiration",
+      "name": "Particle Physics Breakthrough",
+      "description": "Dr. Spengler's theoretical work on proton streams demonstrated that focused particle beams could destabilize spectral entities.",
+      "fields": {},
+      "markers": {},
+      "hash": "7813965263731362"
+    },
+    {
+      "id": "challenges-regulatory-risk",
+      "concept": "Challenges",
+      "name": "Regulatory Risk",
+      "description": "Operating unlicensed nuclear accelerators without clear regulatory framework. The EPA shutdown remains an existential threat.",
+      "fields": {},
+      "markers": {},
+      "hash": "cdb751ea5f8cf18a"
+    },
+    {
+      "id": "challenges-talent-pipeline",
+      "concept": "Challenges",
+      "name": "Talent Pipeline",
+      "description": "There is no university program for paranormal containment. Every operator must be trained in-house over 6 months.",
+      "fields": {},
+      "markers": {},
+      "hash": "ea3588ecfc201236"
+    },
+    {
+      "id": "challenges-public-perception",
+      "concept": "Challenges",
+      "name": "Public Perception",
+      "description": "Balancing the need for media coverage against the risk of being perceived as a novelty act.",
+      "fields": {},
+      "markers": {},
+      "hash": "38439ea81155691d"
+    },
+    {
+      "id": "business-objectives-market-leadership",
+      "concept": "Business objectives",
+      "name": "Market Leadership",
+      "description": "Establish Ghostbusters as the default professional paranormal response service in the Northeast.",
+      "fields": {},
+      "markers": {},
+      "hash": "9f81958cf05fafa5"
+    },
+    {
+      "id": "organizational-values-science-over-superstition",
+      "concept": "Organizational values",
+      "name": "Science Over Superstition",
+      "description": "Every claim is tested, measured, and documented. We believe in what we can prove.",
+      "fields": {},
+      "markers": {},
+      "hash": "99b4209ef968c4a1"
+    },
+    {
+      "id": "organizational-values-no-entity-left-behind",
+      "concept": "Organizational values",
+      "name": "No Entity Left Behind",
+      "description": "Every call is answered. No situation is too small or too strange.",
+      "fields": {},
+      "markers": {},
+      "hash": "7109b4765fb3162f"
+    },
+    {
+      "id": "organizational-values-courage-with-caution",
+      "concept": "Organizational values",
+      "name": "Courage with Caution",
+      "description": "We run toward danger — but we do it with safety protocols, redundant systems, and a containment plan.",
+      "fields": {},
+      "markers": {},
+      "hash": "0c2c7958e44dcaf9"
+    },
+    {
+      "id": "organizational-goals-100-containment-rate",
+      "concept": "Organizational goals",
+      "name": "100% Containment Rate",
+      "description": "Every entity engagement results in successful capture. Zero escapes on record.",
+      "fields": {},
+      "markers": {},
+      "hash": "deaa14e3c2f3c4c4"
+    },
+    {
+      "id": "organizational-goals-sub-20-minute-response",
+      "concept": "Organizational goals",
+      "name": "Sub-20 Minute Response",
+      "description": "Reduce average dispatch-to-arrival time to under 20 minutes across NYC.",
+      "fields": {},
+      "markers": {},
+      "hash": "0a751b030501afb9"
+    },
+    {
+      "id": "organizational-goals-expand-to-3-new-markets",
+      "concept": "Organizational goals",
+      "name": "Expand to 3 New Markets",
+      "description": "Open satellite operations in Boston, Philadelphia, and Washington DC within 24 months.",
+      "fields": {},
+      "markers": {},
+      "hash": "58276055df328073"
+    },
+    {
+      "id": "operations-dispatch-routing",
+      "concept": "Operations",
+      "name": "Dispatch & Routing",
+      "description": "Real-time fleet management optimized for shortest response time based on entity classification.",
+      "fields": {},
+      "markers": {},
+      "hash": "78a644335139ea48"
+    },
+    {
+      "id": "activities-247-dispatch-management",
+      "concept": "Activities",
+      "name": "24/7 Dispatch Management",
+      "description": "Monitoring calls, triaging entity classifications, routing nearest available team.",
+      "fields": {},
+      "markers": {},
+      "hash": "985d2d84e550b0c5"
+    },
+    {
+      "id": "activities-equipment-maintenance",
+      "concept": "Activities",
+      "name": "Equipment Maintenance",
+      "description": "Daily inspection and calibration of Proton Packs, Ghost Traps, and PKE meters.",
+      "fields": {},
+      "markers": {},
+      "hash": "1b547e2ffbdda6cc"
+    },
+    {
+      "id": "activities-entity-research",
+      "concept": "Activities",
+      "name": "Entity Research",
+      "description": "Documenting and classifying captured entities. Developing new containment protocols.",
+      "fields": {},
+      "markers": {},
+      "hash": "ff529eda9f691251"
+    },
+    {
+      "id": "activities-public-relations",
+      "concept": "Activities",
+      "name": "Public Relations",
+      "description": "Managing media inquiries, publishing capture reports, maintaining brand reputation.",
+      "fields": {},
+      "markers": {},
+      "hash": "edc71085c0da52a2"
+    },
+    {
+      "id": "functions-field-operations",
+      "concept": "Functions",
+      "name": "Field Operations",
+      "description": "On-site investigation, containment, and post-service documentation.",
+      "fields": {},
+      "markers": {},
+      "hash": "e18c07591acb57cb"
+    },
+    {
+      "id": "functions-research-development",
+      "concept": "Functions",
+      "name": "Research & Development",
+      "description": "Improving capture technology, developing new containment methods, analyzing entity data.",
+      "fields": {},
+      "markers": {},
+      "hash": "f3c5a9eec54cd2c6"
+    },
+    {
+      "id": "functions-administration",
+      "concept": "Functions",
+      "name": "Administration",
+      "description": "Billing, scheduling, regulatory compliance, insurance coordination.",
+      "fields": {},
+      "markers": {},
+      "hash": "2a2d34b910a651a5"
+    },
+    {
+      "id": "functions-marketing-communications",
+      "concept": "Functions",
+      "name": "Marketing & Communications",
+      "description": "Brand management, media relations, referral program administration.",
+      "fields": {},
+      "markers": {},
+      "hash": "1443f5cb06259d25"
+    },
+    {
+      "id": "resources-ecto-1",
+      "concept": "Resources",
+      "name": "Ecto-1",
+      "description": "Modified 1959 Cadillac Miller-Meteor ambulance. Primary response vehicle with equipment storage.",
+      "fields": {},
+      "markers": {},
+      "hash": "e4eedb2bd3b18ac8"
+    },
+    {
+      "id": "resources-firehouse-hq",
+      "concept": "Resources",
+      "name": "Firehouse HQ",
+      "description": "Converted Tribeca firehouse serving as headquarters, equipment lab, and containment facility.",
+      "fields": {},
+      "markers": {},
+      "hash": "8f02a6ce0be4f294"
+    },
+    {
+      "id": "resources-containment-grid",
+      "concept": "Resources",
+      "name": "Containment Grid",
+      "description": "Basement-level entity storage with redundant power and emergency venting.",
+      "fields": {},
+      "markers": {},
+      "hash": "95515683ccf192e0"
+    },
+    {
+      "id": "resources-intellectual-property",
+      "concept": "Resources",
+      "name": "Intellectual Property",
+      "description": "Proprietary designs for all capture technology. Trade secrets for containment protocols.",
+      "fields": {},
+      "markers": {},
+      "hash": "bce8173a653cdeac"
+    },
+    {
+      "id": "contributions-pke-meter-calibration-algorithm",
+      "concept": "Contributions",
+      "name": "PKE Meter Calibration Algorithm",
+      "description": "Dr. Spengler's logarithmic scaling model improved detection range by 300%.",
+      "fields": {},
+      "markers": {},
+      "hash": "3831a52982cc5b67"
+    },
+    {
+      "id": "contributions-split-stream-capture-maneuver",
+      "concept": "Contributions",
+      "name": "Split-Stream Capture Maneuver",
+      "description": "Venkman's tactical formation for cornering Class III entities. Adopted as standard protocol.",
+      "fields": {},
+      "markers": {},
+      "hash": "66a833901223ca44"
+    },
+    {
+      "id": "compensations-field-operator-base-salary",
+      "concept": "Compensations",
+      "name": "Field Operator Base Salary",
+      "description": "$85,000/year with performance bonus per successful capture ($500/entity).",
+      "fields": {},
+      "markers": {},
+      "hash": "696dda9b4f7bd9ab"
+    },
+    {
+      "id": "compensations-equity-participation",
+      "concept": "Compensations",
+      "name": "Equity Participation",
+      "description": "All founding team members hold equal shares. New partner-track operators eligible after 2 years.",
+      "fields": {},
+      "markers": {},
+      "hash": "5b1b7f04c04ba005"
+    },
+    {
+      "id": "compensations-hazard-pay",
+      "concept": "Compensations",
+      "name": "Hazard Pay",
+      "description": "1.5x base rate for Class IV entity engagements.",
+      "fields": {},
+      "markers": {},
+      "hash": "bb29cd9e418df550"
+    },
+    {
+      "id": "goals-capture-certification-for-all-staff",
+      "concept": "Goals",
+      "name": "Capture Certification for All Staff",
+      "description": "Every field operator must achieve 50 successful captures before leading a team.",
+      "fields": {},
+      "markers": {},
+      "hash": "792532374480f60a"
+    },
+    {
+      "id": "goals-zero-safety-incidents",
+      "concept": "Goals",
+      "name": "Zero Safety Incidents",
+      "description": "No proton pack malfunctions, no containment breaches, no operator injuries.",
+      "fields": {},
+      "markers": {},
+      "hash": "e9b0840d0d8e19e3"
+    },
+    {
+      "id": "skills-proton-pack-operation",
+      "concept": "Skills",
+      "name": "Proton Pack Operation",
+      "description": "Proficiency in aiming, firing, and managing energy output of the particle accelerator.",
+      "fields": {},
+      "markers": {},
+      "hash": "f75cf24562cd91d0"
+    },
+    {
+      "id": "skills-entity-classification",
+      "concept": "Skills",
+      "name": "Entity Classification",
+      "description": "Ability to identify entity type, threat level, and optimal capture protocol within 30 seconds of PKE scan.",
+      "fields": {},
+      "markers": {},
+      "hash": "3c1da28e12308518"
+    },
+    {
+      "id": "skills-crisis-communication",
+      "concept": "Skills",
+      "name": "Crisis Communication",
+      "description": "De-escalation techniques for panicked clients. Clear reporting under high-stress conditions.",
+      "fields": {},
+      "markers": {},
+      "hash": "17553baf0a3d3521"
+    },
+    {
+      "id": "position-lead-field-operator",
+      "concept": "Position",
+      "name": "Lead Field Operator",
+      "description": "Senior operator responsible for team coordination and capture authorization.",
+      "fields": {},
+      "markers": {},
+      "hash": "6ff8169e244cb898"
+    },
+    {
+      "id": "position-staff-scientist",
+      "concept": "Position",
+      "name": "Staff Scientist",
+      "description": "Conducts entity analysis, develops capture protocols, maintains equipment.",
+      "fields": {},
+      "markers": {},
+      "hash": "77bfa384db02e6a7"
+    },
+    {
+      "id": "position-dispatch-manager",
+      "concept": "Position",
+      "name": "Dispatch Manager",
+      "description": "Oversees call intake, team routing, and incident tracking.",
+      "fields": {},
+      "markers": {},
+      "hash": "1ad9dae7f5031294"
+    },
+    {
+      "id": "person-dr-egon-spengler",
+      "concept": "Person",
+      "name": "Dr. Egon Spengler",
+      "description": "Dr. Egon Spengler is the chief intellectual architect of Ghostbusters Inc., specializing in quantum ecto-physics and high-energy particle containment.",
+      "fields": {
+        "position_ref": "[[Staff Scientist]]",
+        "compensation": "Equal partner equity share (25%), $75,000 base salary, full laboratory access.",
+        "contributions": "Invented the Proton Pack, PKE Meter, and Containment Grid; leads theoretical ecto-physics research.",
+        "image": "assets/people/egon_spengler.png"
+      },
+      "markers": {},
+      "hash": "064058824bc16fa5",
+      "relations": [
+        {
+          "field": "position_ref",
+          "target": "position-staff-scientist",
+          "targetLabel": "Staff Scientist"
+        }
+      ]
+    },
+    {
+      "id": "person-dr-peter-venkman",
+      "concept": "Person",
+      "name": "Dr. Peter Venkman",
+      "description": "Dr. Peter Venkman brings psychological insight, commercial charisma, and public leadership to the firm's business operations.",
+      "fields": {
+        "position_ref": "[[Lead Field Operator]]",
+        "compensation": "Equal partner equity share (25%), $75,000 base salary, commercial bonus commissions.",
+        "contributions": "Leads client negotiations, marketing, press relations, and operational decision-making.",
+        "image": "assets/people/peter_venkman.png"
+      },
+      "markers": {},
+      "hash": "d7ae179acf6f0219",
+      "relations": [
+        {
+          "field": "position_ref",
+          "target": "position-lead-field-operator",
+          "targetLabel": "Lead Field Operator"
+        }
+      ]
+    },
+    {
+      "id": "person-dr-raymond-stantz",
+      "concept": "Person",
+      "name": "Dr. Raymond Stantz",
+      "description": "Dr. Ray Stantz combines deep enthusiasm for occult history with practical mechanical and engineering expertise.",
+      "fields": {
+        "position_ref": "[[Staff Scientist]]",
+        "compensation": "Equal partner equity share (25%), $75,000 base salary, equipment trade access.",
+        "contributions": "Co-developed the Proton Pack, maintains Ecto-1, and conducts field entrapment operations.",
+        "image": "assets/people/raymond_stantz.png"
+      },
+      "markers": {},
+      "hash": "c5a5244858bc508c",
+      "relations": [
+        {
+          "field": "position_ref",
+          "target": "position-staff-scientist",
+          "targetLabel": "Staff Scientist"
+        }
+      ]
+    },
+    {
+      "id": "person-winston-zeddemore",
+      "concept": "Person",
+      "name": "Winston Zeddemore",
+      "description": "Winston Zeddemore joined the team during peak NYC spectral activity, providing steady discipline and reliable execution under pressure.",
+      "fields": {
+        "position_ref": "[[Lead Field Operator]]",
+        "compensation": "$60,000 base salary, overtime hazard pay ($500 per captured class-V entity), healthcare benefits.",
+        "contributions": "Operates heavy field hardware, manages Ecto-1 driving duties, and executes frontline captures.",
+        "image": "assets/people/winston_zeddemore.png"
+      },
+      "markers": {},
+      "hash": "3037a1659e73cb69",
+      "relations": [
+        {
+          "field": "position_ref",
+          "target": "position-lead-field-operator",
+          "targetLabel": "Lead Field Operator"
+        }
+      ]
+    },
+    {
+      "id": "person-janine-melnitz",
+      "concept": "Person",
+      "name": "Janine Melnitz",
+      "description": "Janine Melnitz commands headquarters administration, maintaining operational focus during high-stress outbreak spikes.",
+      "fields": {
+        "position_ref": "[[Dispatch Manager]]",
+        "compensation": "$48,000 base salary, full health insurance, overtime dispatch bonuses.",
+        "contributions": "Handles emergency intake calls, manages billing and legal notices, and monitors the containment grid warning alarms.",
+        "image": "assets/people/janine_melnitz.png"
+      },
+      "markers": {},
+      "hash": "2c336130023d9974",
+      "relations": [
+        {
+          "field": "position_ref",
+          "target": "position-dispatch-manager",
+          "targetLabel": "Dispatch Manager"
+        }
+      ]
+    },
+    {
+      "id": "project-nyc-coverage-expansion",
+      "concept": "Project",
+      "name": "NYC Coverage Expansion",
+      "description": "Extend guaranteed sub-30-minute response radius from Manhattan to all boroughs.",
+      "fields": {},
+      "markers": {},
+      "hash": "79b7f7aa7893e5bd"
+    },
+    {
+      "id": "phases-phase-1-brooklyn-coverage",
+      "concept": "Phases",
+      "name": "Phase 1 — Brooklyn Coverage",
+      "description": "Establish satellite dispatch in Brooklyn. Hire and train 2 new teams. Target: Q2.",
+      "fields": {
+        "phase_status": "completed",
+        "start_date": "2026-04-01",
+        "end_date": "2026-06-30"
+      },
+      "markers": {},
+      "hash": "5346c0d24bf9f106"
+    },
+    {
+      "id": "phases-phase-2-queens-bronx",
+      "concept": "Phases",
+      "name": "Phase 2 — Queens & Bronx",
+      "description": "Mirror Brooklyn model. Target: Q3.",
+      "fields": {
+        "phase_status": "in_progress",
+        "start_date": "2026-07-01",
+        "end_date": "2026-09-30"
+      },
+      "markers": {},
+      "hash": "3347f34dfbe10a61"
+    },
+    {
+      "id": "phases-phase-3-staten-island-long-island",
+      "concept": "Phases",
+      "name": "Phase 3 — Staten Island & Long Island",
+      "description": "Lower-density coverage with on-call teams. Target: Q4.",
+      "fields": {
+        "phase_status": "not_started",
+        "start_date": "2026-10-01",
+        "end_date": "2026-12-31"
+      },
+      "markers": {},
+      "hash": "f0aea062521b7fb3"
+    },
+    {
+      "id": "milestone-brooklyn-dispatch-active",
+      "concept": "Milestone",
+      "name": "Brooklyn Dispatch Active",
+      "description": "Satellite office opened. 2 teams operational. 15-minute response time achieved.",
+      "fields": {
+        "target_date": "2026-06-30",
+        "milestone_status": "achieved"
+      },
+      "markers": {},
+      "hash": "0afbb7feced83546"
+    },
+    {
+      "id": "milestone-1000th-entity-contained",
+      "concept": "Milestone",
+      "name": "1,000th Entity Contained",
+      "description": "Statistical significance for insurance data. Enables better premium negotiation with partners.",
+      "fields": {
+        "target_date": "2026-09-15",
+        "milestone_status": "in_progress"
+      },
+      "markers": {},
+      "hash": "c0dd9df4b9b1f79e"
+    },
+    {
+      "id": "milestone-first-regional-replication",
+      "concept": "Milestone",
+      "name": "First Regional Replication",
+      "description": "Boston or Philadelphia satellite launched. Validates the expansion playbook.",
+      "fields": {
+        "target_date": "2026-12-15",
+        "milestone_status": "planned"
+      },
+      "markers": {},
+      "hash": "3a352cae5e43fe2f"
+    },
+    {
+      "id": "metrics-response-time",
+      "concept": "Metrics",
+      "name": "Response Time",
+      "description": "Average minutes from call to arrival. Target: \u003c30 min. Current: 27 min.",
+      "fields": {},
+      "markers": {},
+      "hash": "48f6e41d18bf908a"
+    },
+    {
+      "id": "metrics-containment-success-rate",
+      "concept": "Metrics",
+      "name": "Containment Success Rate",
+      "description": "Percentage of engagements resulting in successful capture. Target: 100%. Current: 97%.",
+      "fields": {},
+      "markers": {},
+      "hash": "9d55e34e6a3e3410"
+    },
+    {
+      "id": "metrics-client-satisfaction-csat",
+      "concept": "Metrics",
+      "name": "Client Satisfaction (CSAT)",
+      "description": "Post-service survey score. Target: 4.5/5. Current: 4.7/5.",
+      "fields": {},
+      "markers": {},
+      "hash": "78b83109ef499825"
+    },
+    {
+      "id": "metrics-recurring-revenue-share",
+      "concept": "Metrics",
+      "name": "Recurring Revenue Share",
+      "description": "Percentage of revenue from commercial contracts. Target: 40%. Current: 25%.",
+      "fields": {},
+      "markers": {},
+      "hash": "3ab709862e9565b1"
+    },
+    {
+      "id": "finance-revenue-cost-structure",
+      "concept": "Finance",
+      "name": "Revenue & Cost Structure",
+      "description": "Detailed financial model available in the Revenue, Costs, and Projections sections below.",
+      "fields": {},
+      "markers": {},
+      "hash": "4f8d91f748d23f1a"
+    },
+    {
+      "id": "revenue-residential-call-out-fees",
+      "concept": "Revenue",
+      "name": "Residential Call-Out Fees",
+      "description": "$5,000 per incident average. 60% of total revenue.",
+      "fields": {},
+      "markers": {},
+      "hash": "89e124d17d55d6b5"
+    },
+    {
+      "id": "revenue-commercial-contracts",
+      "concept": "Revenue",
+      "name": "Commercial Contracts",
+      "description": "$50,000/year average for quarterly inspection + priority dispatch. 25% of total revenue.",
+      "fields": {},
+      "markers": {},
+      "hash": "61bed1b9051bad14"
+    },
+    {
+      "id": "revenue-government-consulting",
+      "concept": "Revenue",
+      "name": "Government Consulting",
+      "description": "Retainer agreements with NYC and NY State. 10% of total revenue.",
+      "fields": {},
+      "markers": {},
+      "hash": "e5bc07bb3aa7c139"
+    },
+    {
+      "id": "revenue-merchandise-licensing",
+      "concept": "Revenue",
+      "name": "Merchandise & Licensing",
+      "description": "Branded merchandise and video game royalties. 5% of total revenue.",
+      "fields": {},
+      "markers": {},
+      "hash": "1377e9cd56ef27a0"
+    },
+    {
+      "id": "costs-payroll-benefits",
+      "concept": "Costs",
+      "name": "Payroll & Benefits",
+      "description": "4 full-time operators + 1 office manager. $420,000/year total.",
+      "fields": {},
+      "markers": {},
+      "hash": "af317d6b399e5726"
+    },
+    {
+      "id": "costs-equipment-maintenance-spend",
+      "concept": "Costs",
+      "name": "Equipment Maintenance Spend",
+      "description": "Proton Pack calibration, trap refurbishment, PKE meter replacement. $85,000/year.",
+      "fields": {},
+      "markers": {},
+      "hash": "d5d718bf4ce359cb"
+    },
+    {
+      "id": "costs-facility-operations",
+      "concept": "Costs",
+      "name": "Facility Operations",
+      "description": "Firehouse lease, utilities, containment grid power. $120,000/year.",
+      "fields": {},
+      "markers": {},
+      "hash": "285ac48a8315b4d9"
+    },
+    {
+      "id": "costs-insurance-legal",
+      "concept": "Costs",
+      "name": "Insurance & Legal",
+      "description": "Liability insurance, legal retainers, regulatory compliance. $95,000/year.",
+      "fields": {},
+      "markers": {},
+      "hash": "c78fa39f9856ede6"
+    },
+    {
+      "id": "costs-vehicle-operations",
+      "concept": "Costs",
+      "name": "Vehicle Operations",
+      "description": "Ecto-1 fuel, maintenance, insurance. $25,000/year.",
+      "fields": {},
+      "markers": {},
+      "hash": "d71b12c536ab6db1"
+    },
+    {
+      "id": "funding-sources-founder-capital",
+      "concept": "Funding sources",
+      "name": "Founder Capital",
+      "description": "$30,000 pooled from personal savings to acquire initial equipment and lease deposit.",
+      "fields": {},
+      "markers": {},
+      "hash": "7b98ce542318fd04"
+    },
+    {
+      "id": "funding-sources-revenue-reinvestment",
+      "concept": "Funding sources",
+      "name": "Revenue Reinvestment",
+      "description": "100% of operating profits reinvested in expansion. No external funding to date.",
+      "fields": {},
+      "markers": {},
+      "hash": "7fdab40ad361f383"
+    },
+    {
+      "id": "shareholders-venkman-equity-stake",
+      "concept": "Shareholders",
+      "name": "Venkman Equity Stake",
+      "description": "25% equity. Parapsychology lead. Public-facing partner.",
+      "fields": {},
+      "markers": {},
+      "hash": "531399dbb53e4c5e"
+    },
+    {
+      "id": "shareholders-stantz-equity-stake",
+      "concept": "Shareholders",
+      "name": "Stantz Equity Stake",
+      "description": "25% equity. Engineering lead. Equipment design and maintenance.",
+      "fields": {},
+      "markers": {},
+      "hash": "cc55fc9183afdbf4"
+    },
+    {
+      "id": "shareholders-spengler-equity-stake",
+      "concept": "Shareholders",
+      "name": "Spengler Equity Stake",
+      "description": "25% equity. R&D lead. Theoretical foundation and containment design.",
+      "fields": {},
+      "markers": {},
+      "hash": "f59aa368c07aacd2"
+    },
+    {
+      "id": "shareholders-zeddemore-equity-stake",
+      "concept": "Shareholders",
+      "name": "Zeddemore Equity Stake",
+      "description": "15% equity. Field operations lead. Joined as employee, promoted to partner.",
+      "fields": {},
+      "markers": {},
+      "hash": "fa594d770a3883c4"
+    },
+    {
+      "id": "shareholders-reserve-pool",
+      "concept": "Shareholders",
+      "name": "Reserve Pool",
+      "description": "10% equity reserved for future key hires and partner-track operators.",
+      "fields": {},
+      "markers": {},
+      "hash": "a8b0713b2b3b4551"
+    },
+    {
+      "id": "projections-year-1-revenue",
+      "concept": "Projections",
+      "name": "Year 1 Revenue",
+      "description": "$1.2M (actual). 240 incidents resolved.",
+      "fields": {},
+      "markers": {},
+      "hash": "237b730968a9304f"
+    },
+    {
+      "id": "projections-year-2-revenue",
+      "concept": "Projections",
+      "name": "Year 2 Revenue",
+      "description": "$2.8M (projected). NYC coverage expansion driving volume growth.",
+      "fields": {},
+      "markers": {},
+      "hash": "a8e622df4b759e21"
+    },
+    {
+      "id": "projections-year-3-revenue",
+      "concept": "Projections",
+      "name": "Year 3 Revenue",
+      "description": "$5.5M (projected). Regional expansion to 3 cities.",
+      "fields": {},
+      "markers": {},
+      "hash": "695eede6d064ae60"
+    },
+    {
+      "id": "legal-regulatory-framework",
+      "concept": "Legal",
+      "name": "Regulatory Framework",
+      "description": "Operating under a novel legal classification — no existing statutes cover paranormal containment services.",
+      "fields": {},
+      "markers": {},
+      "hash": "a9c66c93957ea4be"
+    },
+    {
+      "id": "legal-issues-unlicensed-nuclear-operation",
+      "concept": "Legal issues",
+      "name": "Unlicensed Nuclear Operation",
+      "description": "Proton Packs do not comply with standard nuclear regulatory frameworks. Legal workaround required.",
+      "fields": {},
+      "markers": {},
+      "hash": "ebfa94ed5ff3ec95"
+    },
+    {
+      "id": "legal-issues-liability-for-property-damage",
+      "concept": "Legal issues",
+      "name": "Liability for Property Damage",
+      "description": "Containment operations occasionally cause collateral damage. Insurance covers most but not all scenarios.",
+      "fields": {},
+      "markers": {},
+      "hash": "1ad6aae2f3b7d70b"
+    },
+    {
+      "id": "legal-issues-entity-rights-status",
+      "concept": "Legal issues",
+      "name": "Entity Rights Status",
+      "description": "Legal question: are contained entities \"property\"? Can they be held indefinitely? No legal precedent exists.",
+      "fields": {},
+      "markers": {},
+      "hash": "f8fefc1a32c733a3"
+    },
+    {
+      "id": "contracts-standard-service-agreement",
+      "concept": "Contracts",
+      "name": "Standard Service Agreement",
+      "description": "One-page contract: scope of work, fee schedule, liability waiver, confidentiality clause.",
+      "fields": {},
+      "markers": {},
+      "hash": "fcec8b34626a8f2a"
+    },
+    {
+      "id": "contracts-commercial-maintenance-contract",
+      "concept": "Contracts",
+      "name": "Commercial Maintenance Contract",
+      "description": "Annual agreement with quarterly inspection schedule, priority dispatch, and volume pricing.",
+      "fields": {},
+      "markers": {},
+      "hash": "761a8b7a3e654cc5"
+    },
+    {
+      "id": "contracts-government-retainer",
+      "concept": "Contracts",
+      "name": "Government Retainer",
+      "description": "Multi-year agreement with defined SLAs, reporting requirements, and escalation procedures.",
+      "fields": {},
+      "markers": {},
+      "hash": "b9382345cd849072"
+    },
+    {
+      "id": "analysis-strategic-assessment",
+      "concept": "Analysis",
+      "name": "Strategic Assessment",
+      "description": "Ghostbusters operates in a unique market with no direct competition but significant regulatory and operational risks.",
+      "fields": {},
+      "markers": {},
+      "hash": "d2166d8e76566459"
+    },
+    {
+      "id": "assumptions-paranormal-threats-are-real-and-measurable",
+      "concept": "Assumptions",
+      "name": "Paranormal threats are real and measurable",
+      "description": "PKE activity can be quantified, categorized, and contained using electromagnetic particle beams.",
+      "fields": {},
+      "markers": {},
+      "hash": "80e0e8d94af709cf"
+    },
+    {
+      "id": "assumptions-clients-will-pay-premium-prices-for-containment-services",
+      "concept": "Assumptions",
+      "name": "Clients will pay premium prices for containment services",
+      "description": "Severe emotional distress and asset depreciation incentivize clients to accept premium incident fees.",
+      "fields": {},
+      "markers": {},
+      "hash": "32976c5fea15920f"
+    },
+    {
+      "id": "assumptions-municipal-governments-will-tolerate-unlicensed-paranormal-operations",
+      "concept": "Assumptions",
+      "name": "Municipal governments will tolerate unlicensed paranormal operations",
+      "description": "Civic necessity during crisis events supersedes strict statutory compliance in the short term.",
+      "fields": {},
+      "markers": {},
+      "hash": "8aa033d4a5de8b7a"
+    },
+    {
+      "id": "assumptions-the-containment-unit-will-not-reach-critical-mass",
+      "concept": "Assumptions",
+      "name": "The containment unit will not reach critical mass",
+      "description": "Subterranean vault grid storage capacity can accommodate entity intake through controlled ionization cycles.",
+      "fields": {},
+      "markers": {},
+      "hash": "df82c9f542846948"
+    },
+    {
+      "id": "risks-technology-failure",
+      "concept": "Risks",
+      "name": "Technology Failure",
+      "description": "Proton pack malfunction or containment unit breach could cause catastrophic damage.",
+      "fields": {
+        "impact": "critical",
+        "probability": "low",
+        "mitigation": "Triple-redundant containment barriers, fail-safe magnetic seals, and routine accelerator cycle checks."
+      },
+      "markers": {},
+      "hash": "a38dc38f76fcae5d"
+    },
+    {
+      "id": "risks-regulatory-shutdown",
+      "concept": "Risks",
+      "name": "Regulatory Shutdown",
+      "description": "EPA or city government could revoke operating permits due to safety concerns.",
+      "fields": {
+        "impact": "high",
+        "probability": "medium",
+        "mitigation": "Proactive municipal liaison, third-party radiation safety certifications, and emergency service MOU with City Hall."
+      },
+      "markers": {},
+      "hash": "524f16c8f2cb803e"
+    },
+    {
+      "id": "risks-reputation-crisis",
+      "concept": "Risks",
+      "name": "Reputation Crisis",
+      "description": "A single high-profile failure could destroy the brand's credibility.",
+      "fields": {
+        "impact": "high",
+        "probability": "low",
+        "mitigation": "Comprehensive incident reports, public relations disclosure protocols, and satisfaction guarantees."
+      },
+      "markers": {},
+      "hash": "bac6e6b23989a2e9"
+    },
+    {
+      "id": "risks-liability-exposure",
+      "concept": "Risks",
+      "name": "Liability Exposure",
+      "description": "Property damage or personal injury during operations could result in lawsuits beyond insurance coverage.",
+      "fields": {
+        "impact": "high",
+        "probability": "medium",
+        "mitigation": "$10M umbrella commercial liability coverage and signed pre-service client damage waivers."
+      },
+      "markers": {},
+      "hash": "92e52bf463311cd5"
+    },
+    {
+      "id": "suggestions-pursue-regulatory-framework",
+      "concept": "Suggestions",
+      "name": "Pursue Regulatory Framework",
+      "description": "Proactively work with NYC government to establish a paranormal services licensing category.",
+      "fields": {},
+      "markers": {},
+      "hash": "4f4aa00e5f7a49e8"
+    },
+    {
+      "id": "suggestions-diversify-revenue-streams",
+      "concept": "Suggestions",
+      "name": "Diversify Revenue Streams",
+      "description": "Reduce reliance on incident fees by growing commercial contract and consulting revenue.",
+      "fields": {},
+      "markers": {},
+      "hash": "2be649e168d66ec0"
+    },
+    {
+      "id": "suggestions-build-talent-pipeline",
+      "concept": "Suggestions",
+      "name": "Build Talent Pipeline",
+      "description": "Create an internal certification program with a clear career ladder from trainee to lead operator.",
+      "fields": {},
+      "markers": {},
+      "hash": "17c2470d7697dc32"
+    },
+    {
+      "id": "keys-technology-moats",
+      "concept": "Keys",
+      "name": "Technology Moats",
+      "description": "Protect intellectual property. File patents on capture mechanisms and containment protocols.",
+      "fields": {},
+      "markers": {},
+      "hash": "2563193c76dd277c"
+    },
+    {
+      "id": "keys-regulatory-strategy",
+      "concept": "Keys",
+      "name": "Regulatory Strategy",
+      "description": "Shift from defensive compliance to proactive framework creation. Shape the rules before they are written for us.",
+      "fields": {},
+      "markers": {},
+      "hash": "d99a28c65aea6cf1"
+    },
+    {
+      "id": "keys-talent-density",
+      "concept": "Keys",
+      "name": "Talent Density",
+      "description": "Hire slow, train deep. Every operator must be capable of independent decision-making under extreme conditions.",
+      "fields": {},
+      "markers": {},
+      "hash": "3f0d50df10d09576"
+    },
+    {
+      "id": "validation-gozer-case-study",
+      "concept": "Validation",
+      "name": "Gozer Case Study",
+      "description": "The 1984 Gozer incident validated the core business hypothesis under maximum-stakes conditions.",
+      "fields": {},
+      "markers": {},
+      "hash": "47b0ab325f514f93"
+    },
+    {
+      "id": "coherence-problems-value-propositions",
+      "concept": "Coherence",
+      "name": "Problems ↔ Value Propositions",
+      "description": "Direct mapping between all identified problems and our service value props. No orphaned problems.",
+      "fields": {},
+      "markers": {},
+      "hash": "7de7abba9ddbb217"
+    },
+    {
+      "id": "coherence-segments-channels",
+      "concept": "Coherence",
+      "name": "Segments ↔ Channels",
+      "description": "Residential segment reached via phone/digital. Commercial via direct sales. Government via RFP response.",
+      "fields": {},
+      "markers": {},
+      "hash": "4014ed054322e5e8"
+    },
+    {
+      "id": "coherence-revenue-cost-structure",
+      "concept": "Coherence",
+      "name": "Revenue ↔ Cost Structure",
+      "description": "High-margin incident revenue supports fixed cost base. Commercial contracts provide cash flow stability.",
+      "fields": {},
+      "markers": {},
+      "hash": "d5835c582c832381"
+    },
+    {
+      "id": "experiments-satellite-dispatch-feasibility",
+      "concept": "Experiments",
+      "name": "Satellite Dispatch Feasibility",
+      "description": "Pilot a 3-month Brooklyn dispatch trial to validate response time, volume, and unit economics before committing to full expansion.",
+      "fields": {},
+      "markers": {},
+      "hash": "8fbd64ab2693afef"
+    },
+    {
+      "id": "experiments-franchise-interest-survey",
+      "concept": "Experiments",
+      "name": "Franchise Interest Survey",
+      "description": "Survey 50 paranormal enthusiast groups to gauge interest in a licensed operator model.",
+      "fields": {},
+      "markers": {},
+      "hash": "232631cf2de48b91"
+    }
+  ],
+  "matrices": [
+    {
+      "name": "journey map",
+      "source": "Journey",
+      "target": "Emotions",
+      "rows": [
+        "Paranormal Incident",
+        "Research & Denial",
+        "First Contact",
+        "On-Site Investigation",
+        "Containment Operation",
+        "Post-Service Follow-up"
+      ],
+      "cols": [
+        "Relief",
+        "Fear",
+        "Gratitude"
+      ],
+      "cells": {
+        "Paranormal Incident": {
+          "Relief": "Low",
+          "Fear": "Max",
+          "Gratitude": "Neutral"
+        },
+        "Research & Denial": {
+          "Relief": "Very Low",
+          "Fear": "Very High",
+          "Gratitude": "Neutral"
+        },
+        "First Contact": {
+          "Relief": "Slightly High",
+          "Fear": "High",
+          "Gratitude": "Slightly Low"
+        },
+        "On-Site Investigation": {
+          "Relief": "High",
+          "Fear": "Slightly High",
+          "Gratitude": "Slightly Low"
+        },
+        "Containment Operation": {
+          "Relief": "Very High",
+          "Fear": "Low",
+          "Gratitude": "High"
+        },
+        "Post-Service Follow-up": {
+          "Relief": "Max",
+          "Fear": "Very Low",
+          "Gratitude": "Max"
+        }
+      }
+    },
+    {
+      "name": "segmentation-profiles matrix",
+      "source": "Segmentation",
+      "target": "Profiles",
+      "rows": [
+        "Geography",
+        "Urgency Level",
+        "Entity Class"
+      ],
+      "cols": [
+        "Distressed Homeowner",
+        "Property Manager",
+        "City Official"
+      ],
+      "cells": {
+        "Geography": {
+          "Distressed Homeowner": "Neutral",
+          "Property Manager": "Neutral",
+          "City Official": "Max"
+        },
+        "Urgency Level": {
+          "Distressed Homeowner": "Max",
+          "Property Manager": "High",
+          "City Official": "Very High"
+        },
+        "Entity Class": {
+          "Distressed Homeowner": "Neutral",
+          "Property Manager": "Slightly High",
+          "City Official": "Very High"
+        }
+      }
+    },
+    {
+      "name": "problems-value propositions matrix",
+      "source": "Problems",
+      "target": "Value propositions",
+      "rows": [
+        "Paranormal Infestation",
+        "Fear and Emotional Trauma",
+        "Property Value Impact",
+        "Lack of Alternatives"
+      ],
+      "cols": [
+        "Guaranteed Entity Removal",
+        "Rapid Response",
+        "Proprietary Technology",
+        "Insurance Documentation"
+      ],
+      "cells": {
+        "Paranormal Infestation": {
+          "Guaranteed Entity Removal": "Max",
+          "Rapid Response": "High",
+          "Proprietary Technology": "Max",
+          "Insurance Documentation": "High"
+        },
+        "Fear and Emotional Trauma": {
+          "Guaranteed Entity Removal": "Very High",
+          "Rapid Response": "High",
+          "Proprietary Technology": "Neutral",
+          "Insurance Documentation": "Slightly High"
+        },
+        "Property Value Impact": {
+          "Guaranteed Entity Removal": "High",
+          "Rapid Response": "Slightly Low",
+          "Proprietary Technology": "Low",
+          "Insurance Documentation": "Max"
+        },
+        "Lack of Alternatives": {
+          "Guaranteed Entity Removal": "Max",
+          "Rapid Response": "High",
+          "Proprietary Technology": "Max",
+          "Insurance Documentation": "Neutral"
+        }
+      }
+    },
+    {
+      "name": "value propositions-messages matrix",
+      "source": "Value propositions",
+      "target": "Messages",
+      "rows": [
+        "Guaranteed Entity Removal",
+        "Rapid Response",
+        "Proprietary Technology",
+        "Insurance Documentation"
+      ],
+      "cols": [
+        "\"We're ready to believe you.\"",
+        "\"We have the tools.\"",
+        "\"Don't fear the dark.\""
+      ],
+      "cells": {
+        "Guaranteed Entity Removal": {
+          "\"We're ready to believe you.\"": "Neutral",
+          "\"We have the tools.\"": "Max",
+          "\"Don't fear the dark.\"": "High"
+        },
+        "Rapid Response": {
+          "\"We're ready to believe you.\"": "High",
+          "\"We have the tools.\"": "High",
+          "\"Don't fear the dark.\"": "Max"
+        },
+        "Proprietary Technology": {
+          "\"We're ready to believe you.\"": "Neutral",
+          "\"We have the tools.\"": "Max",
+          "\"Don't fear the dark.\"": "Slightly High"
+        },
+        "Insurance Documentation": {
+          "\"We're ready to believe you.\"": "Slightly High",
+          "\"We have the tools.\"": "Low",
+          "\"Don't fear the dark.\"": "Neutral"
+        }
+      }
+    },
+    {
+      "name": "messages-channels matrix",
+      "source": "Messages",
+      "target": "Channels",
+      "rows": [
+        "\"We're ready to believe you.\"",
+        "\"We have the tools.\"",
+        "\"Don't fear the dark.\""
+      ],
+      "cols": [
+        "Phone Hotline",
+        "Word of Mouth",
+        "Media Coverage",
+        "Website"
+      ],
+      "cells": {
+        "\"We're ready to believe you.\"": {
+          "Phone Hotline": "Max",
+          "Word of Mouth": "High",
+          "Media Coverage": "Slightly High",
+          "Website": "High"
+        },
+        "\"We have the tools.\"": {
+          "Phone Hotline": "Slightly High",
+          "Word of Mouth": "High",
+          "Media Coverage": "Max",
+          "Website": "Max"
+        },
+        "\"Don't fear the dark.\"": {
+          "Phone Hotline": "High",
+          "Word of Mouth": "Max",
+          "Media Coverage": "Very High",
+          "Website": "High"
+        }
+      }
+    },
+    {
+      "name": "assumptions-risks matrix",
+      "source": "Assumptions",
+      "target": "Risks",
+      "rows": [
+        "Paranormal threats are real",
+        "Clients pay premium prices",
+        "Municipal tolerance",
+        "Containment unit stable"
+      ],
+      "cols": [
+        "Technology Failure",
+        "Regulatory Shutdown",
+        "Reputation Crisis",
+        "Liability Exposure"
+      ],
+      "cells": {
+        "Paranormal threats are real": {
+          "Technology Failure": "Neutral",
+          "Regulatory Shutdown": "Neutral",
+          "Reputation Crisis": "Slightly High",
+          "Liability Exposure": "Neutral"
+        },
+        "Clients pay premium prices": {
+          "Technology Failure": "Neutral",
+          "Regulatory Shutdown": "High",
+          "Reputation Crisis": "Very High",
+          "Liability Exposure": "Slightly High"
+        },
+        "Municipal tolerance": {
+          "Technology Failure": "Neutral",
+          "Regulatory Shutdown": "Max",
+          "Reputation Crisis": "High",
+          "Liability Exposure": "Slightly High"
+        },
+        "Containment unit stable": {
+          "Technology Failure": "Max",
+          "Regulatory Shutdown": "High",
+          "Reputation Crisis": "Max",
+          "Liability Exposure": "Max"
+        }
+      }
+    },
+    {
+      "name": "experiments-assumptions matrix",
+      "source": "Experiments",
+      "target": "Assumptions",
+      "rows": [
+        "Satellite Dispatch Pilot",
+        "Franchise Interest Survey"
+      ],
+      "cols": [
+        "Threats are real",
+        "Pay premium",
+        "Municipal tolerance",
+        "Containment stable"
+      ],
+      "cells": {
+        "Satellite Dispatch Pilot": {
+          "Threats are real": "Neutral",
+          "Pay premium": "High",
+          "Municipal tolerance": "High",
+          "Containment stable": "Slightly Low"
+        },
+        "Franchise Interest Survey": {
+          "Threats are real": "Neutral",
+          "Pay premium": "Slightly High",
+          "Municipal tolerance": "Slightly Low",
+          "Containment stable": "Neutral"
+        }
+      }
+    },
+    {
+      "name": "metrics-organizational goals matrix",
+      "source": "Metrics",
+      "target": "Organizational goals",
+      "rows": [
+        "Response Time",
+        "Containment Success Rate",
+        "Client Satisfaction (CSAT)",
+        "Recurring Revenue Share"
+      ],
+      "cols": [
+        "100% Containment Rate",
+        "Sub-20min Response",
+        "3 New Markets"
+      ],
+      "cells": {
+        "Response Time": {
+          "100% Containment Rate": "Neutral",
+          "Sub-20min Response": "Max",
+          "3 New Markets": "High"
+        },
+        "Containment Success Rate": {
+          "100% Containment Rate": "Max",
+          "Sub-20min Response": "Neutral",
+          "3 New Markets": "Slightly Low"
+        },
+        "Client Satisfaction (CSAT)": {
+          "100% Containment Rate": "Slightly High",
+          "Sub-20min Response": "Slightly High",
+          "3 New Markets": "Slightly Low"
+        },
+        "Recurring Revenue Share": {
+          "100% Containment Rate": "Slightly Low",
+          "Sub-20min Response": "Neutral",
+          "3 New Markets": "Max"
+        }
+      }
+    },
+    {
+      "name": "features-milestone matrix",
+      "source": "Features",
+      "target": "Milestones",
+      "rows": [
+        "Cross-trap Stabilization",
+        "Entity Classification DB",
+        "Remote PKE Monitoring"
+      ],
+      "cols": [
+        "Brooklyn Dispatch",
+        "1,000th Entity",
+        "First Regional"
+      ],
+      "cells": {
+        "Cross-trap Stabilization": {
+          "Brooklyn Dispatch": "Slightly Low",
+          "1,000th Entity": "Max",
+          "First Regional": "High"
+        },
+        "Entity Classification DB": {
+          "Brooklyn Dispatch": "Slightly Low",
+          "1,000th Entity": "Max",
+          "First Regional": "Very High"
+        },
+        "Remote PKE Monitoring": {
+          "Brooklyn Dispatch": "High",
+          "1,000th Entity": "Slightly Low",
+          "First Regional": "Max"
+        }
+      }
+    },
+    {
+      "name": "organizational values-organizational goals matrix",
+      "source": "Organizational values",
+      "target": "Organizational goals",
+      "rows": [
+        "Science Over Superstition",
+        "No Entity Left Behind",
+        "Courage with Caution"
+      ],
+      "cols": [
+        "100% Containment Rate",
+        "Sub-20min Response",
+        "3 New Markets"
+      ],
+      "cells": {
+        "Science Over Superstition": {
+          "100% Containment Rate": "Max",
+          "Sub-20min Response": "Slightly High",
+          "3 New Markets": "Slightly Low"
+        },
+        "No Entity Left Behind": {
+          "100% Containment Rate": "Very High",
+          "Sub-20min Response": "Max",
+          "3 New Markets": "Max"
+        },
+        "Courage with Caution": {
+          "100% Containment Rate": "Max",
+          "Sub-20min Response": "High",
+          "3 New Markets": "Slightly High"
+        }
+      }
+    },
+    {
+      "name": "functions-positions matrix",
+      "source": "Functions",
+      "target": "Positions",
+      "rows": [
+        "Field Operations",
+        "Research & Development",
+        "Administration",
+        "Marketing & Communications"
+      ],
+      "cols": [
+        "Lead Field Operator",
+        "Staff Scientist",
+        "Dispatch Manager"
+      ],
+      "cells": {
+        "Field Operations": {
+          "Lead Field Operator": "Assumes",
+          "Staff Scientist": "-",
+          "Dispatch Manager": "-"
+        },
+        "Research & Development": {
+          "Lead Field Operator": "-",
+          "Staff Scientist": "Assumes",
+          "Dispatch Manager": "-"
+        },
+        "Administration": {
+          "Lead Field Operator": "-",
+          "Staff Scientist": "-",
+          "Dispatch Manager": "Assumes"
+        },
+        "Marketing & Communications": {
+          "Lead Field Operator": "-",
+          "Staff Scientist": "-",
+          "Dispatch Manager": "-"
+        }
+      }
+    },
+    {
+      "name": "activities-resources matrix",
+      "source": "Activities",
+      "target": "Resources",
+      "rows": [
+        "24/7 Dispatch Management",
+        "Equipment Maintenance",
+        "Entity Research",
+        "Public Relations"
+      ],
+      "cols": [
+        "Ecto-1",
+        "Firehouse HQ",
+        "Containment Grid",
+        "IP"
+      ],
+      "cells": {
+        "24/7 Dispatch Management": {
+          "Ecto-1": "Max",
+          "Firehouse HQ": "Max",
+          "Containment Grid": "Slightly High",
+          "IP": "Neutral"
+        },
+        "Equipment Maintenance": {
+          "Ecto-1": "Slightly Low",
+          "Firehouse HQ": "High",
+          "Containment Grid": "High",
+          "IP": "High"
+        },
+        "Entity Research": {
+          "Ecto-1": "Neutral",
+          "Firehouse HQ": "Max",
+          "Containment Grid": "Max",
+          "IP": "Very High"
+        },
+        "Public Relations": {
+          "Ecto-1": "Neutral",
+          "Firehouse HQ": "Slightly High",
+          "Containment Grid": "Neutral",
+          "IP": "Slightly Low"
+        }
+      }
+    },
+    {
+      "name": "problems-competition matrix",
+      "source": "Problems",
+      "target": "Competition",
+      "rows": [
+        "Paranormal Infestation",
+        "Fear and Emotional Trauma",
+        "Property Value Impact",
+        "Lack of Alternatives"
+      ],
+      "cols": [
+        "Traditional Exterminators",
+        "Religious Institutions",
+        "Paranormal Investigators",
+        "Government Agencies"
+      ],
+      "cells": {
+        "Paranormal Infestation": {
+          "Traditional Exterminators": "Low",
+          "Religious Institutions": "Slightly Low",
+          "Paranormal Investigators": "Very Low",
+          "Government Agencies": "Slightly High"
+        },
+        "Fear and Emotional Trauma": {
+          "Traditional Exterminators": "Low",
+          "Religious Institutions": "High",
+          "Paranormal Investigators": "Slightly High",
+          "Government Agencies": "Very Low"
+        },
+        "Property Value Impact": {
+          "Traditional Exterminators": "Very Low",
+          "Religious Institutions": "Very Low",
+          "Paranormal Investigators": "Very Low",
+          "Government Agencies": "Slightly High"
+        },
+        "Lack of Alternatives": {
+          "Traditional Exterminators": "Slightly Low",
+          "Religious Institutions": "Slightly Low",
+          "Paranormal Investigators": "Slightly Low",
+          "Government Agencies": "Very Low"
+        }
+      }
+    }
+  ]
+}
+</script>
+
+    <script src="./innfo-console.bundle_20261010T113413Z.js"></script>
+<!-- nn:console-shell:start -->
+<script src="https://cdn.jsdelivr.net/gh/cogNNitive/cogNNitive@innfo-console-v0.9.2/iNNfo/specs/bluepriNNts/console/innfo-console.bundle.js"></script>
+    <script src="https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/console/innfo-console.bundle.js"></script>
+<!-- nn:console-shell:end -->
+  </body>
+</html>
