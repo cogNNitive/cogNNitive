@@ -168,4 +168,52 @@ parent_cost:: [[Cost]]
     expect(cost?.fields['category']).toBe('cost')
     expect(cost?.fields['parent_cost']).toBe('[[Expense]]')
   })
+
+  it('rename targeted by SLUG rewrites references via the display name (D1 slug-targeting)', () => {
+    const modelMarkdown = `---
+specification_version: "V_0-3-0"
+level: 3
+knowledge_version: "V_1-0-0"
+title: "Slug Rename Model"
+---
+
+# NN Task
+
+## NN Task: Task Two
+slug:: task-two-slug
+description:: Second task
+
+## NN Task: Task One
+description:: References [[Task Two]] here
+`
+
+    const taskSchema: BlueprintSchema = {
+      concepts: [
+        {
+          name: 'Task',
+          type: 'text',
+          fields: [
+            { name: 'description', type: 'markdown_inline' },
+          ],
+        },
+      ],
+      markers: [],
+      matrices: [],
+      taxonomy: [],
+    }
+
+    const model = parseKnowledge(modelMarkdown)
+    const result = applyMutation(model, 'rename_element', {
+      conceptName: 'Task',
+      elementName: 'task-two-slug',
+      newName: 'Renamed Task Two',
+    }, taskSchema)
+
+    expect(result.success).toBe(true)
+    const renamed = model.elements.get('Task')?.find((e) => e.name === 'Renamed Task Two')
+    expect(renamed).toBeDefined()
+    expect(renamed?.slug).toBe('task-two-slug')
+    const taskOne = model.elements.get('Task')?.find((e) => e.name === 'Task One')
+    expect(taskOne?.fields['description']).toBe('References [[Renamed Task Two]] here')
+  })
 })

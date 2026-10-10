@@ -1,5 +1,6 @@
 import { slugify } from '../parser/slug.js'
 import { checkStaleTarget } from './history.js'
+import { extractModelSlug } from './utils.js'
 import type { ChangeItem } from './types.js'
 import type { ParsedKnowledge } from '../types/index.js'
 
@@ -7,14 +8,6 @@ export interface PartitionResult {
   cleanSubset: ChangeItem[]
   conflictedSubset: ChangeItem[]
   conflictDiagnostics: Map<string, { code: string; message: string }>
-}
-
-function extractModelSlug(target: string): string {
-  const atIdx = target.indexOf('@')
-  if (atIdx !== -1) {
-    return target.slice(0, atIdx).trim()
-  }
-  return target.trim()
 }
 
 /**

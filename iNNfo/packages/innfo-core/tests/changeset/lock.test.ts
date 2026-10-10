@@ -81,4 +81,17 @@ describe('Single-Writer Lock Manager', () => {
 
     await expect(readFile(lockPath, 'utf8')).rejects.toThrow()
   })
+
+  it('recovers from a corrupt (torn) lock file instead of blocking forever', async () => {
+    const lockPath = join(testDir, 'changes', '.lock')
+    await writeFile(lockPath, '{ "pid": 123, "timestamp": ', 'utf8') // truncated JSON
+
+    const handle = await acquireLock(testDir, 'new-changeset', 60000)
+    expect(handle.payload.changeset).toBe('new-changeset')
+
+    const content = await readFile(lockPath, 'utf8')
+    expect(JSON.parse(content).changeset).toBe('new-changeset')
+
+    await handle.release()
+  })
 })

@@ -288,4 +288,21 @@ describe('Two-Phase Changeset Rejection Paths (cross-platform)', () => {
     expect(res.success).toBe(false)
     expect(res.errors?.some((e) => /Failed to read changeset file/.test(e.message))).toBe(true)
   })
+
+  it('Path Traversal: changeset path escaping the workspace root is rejected before any read/write', async () => {
+    const res = await applyChange(csRoot, '../outside_changes_NN.md')
+    expect(res.success).toBe(false)
+    expect(res.status).toBe('rejected')
+    expect(res.errors?.some((e) => /must resolve inside the workspace root/.test(e.message))).toBe(true)
+  })
+
+  it('Unsafe id: bare op with a traversal id is rejected before filename interpolation', async () => {
+    const res = await applyChange(csRoot, '../../../escape', 'update_field', {
+      elementName: 'Vision',
+      fieldName: 'statement',
+      value: 'x',
+    })
+    expect(res.success).toBe(false)
+    expect(res.errors?.some((e) => /safe workspace-relative path/.test(e.message))).toBe(true)
+  })
 })

@@ -57,10 +57,10 @@ export const TYPE_RENDERERS = {
 };
 
 /**
- * Default `type::` → required Fields contract. Mirrors the `video-script`
- * blueprint's `validation.conditional_fields`; a caller may pass the blueprint's
- * map through `checkScript(model, { conditionalFields })` so the blueprint stays
- * the single source of truth when it is reachable.
+ * Default `type::` → required Fields contract. This is the effective contract the
+ * pre-compile guard enforces and MUST stay in sync with the `video-script`
+ * blueprint's `validation.conditional_fields` frontmatter; they are currently
+ * identical. The engine does not read the blueprint map at compile time.
  */
 export const DEFAULT_CONDITIONAL_FIELDS = {
   presenter: ['asset', 'prompt'],
@@ -112,7 +112,7 @@ export class ScriptValidationError extends Error {
 }
 
 /** Overlay layers sequenced into non-overlapping slots, and their default seconds. */
-const SEQUENTIAL_OVERLAY_TYPES = { quote: 3, 'lower-third': 4, 'b-roll': 4 };
+const SEQUENTIAL_OVERLAY_TYPES = { quote: 3, 'b-roll': 4 };
 
 /** Extracts the instance name from a `[[Doc :: Name]]` template reference. */
 function templateRefName(ref) {

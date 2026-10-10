@@ -10,7 +10,6 @@
 export const OVERLAY_RENDERERS = {
   lowerThird: 'LowerThird',
   kineticTitle: 'KineticTitle',
-  conceptCallout: 'ConceptCallout',
   captions: 'Captions',
   quote: 'Quote',
   broll: 'Broll',

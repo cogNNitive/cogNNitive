@@ -3,19 +3,12 @@ import { join } from 'node:path'
 import { parseChangeset } from './parser.js'
 import { compareVersions } from '../workspace/integrity/versionStatus.js'
 import { slugify } from '../parser/slug.js'
+import { extractModelSlug } from './utils.js'
 
 export interface StalenessCheckResult {
   stale: boolean
   code?: 'STALE_TARGET_DELETED'
   message?: string
-}
-
-function extractModelSlug(target: string): string {
-  const atIdx = target.indexOf('@')
-  if (atIdx !== -1) {
-    return target.slice(0, atIdx).trim()
-  }
-  return target.trim()
 }
 
 function matchesElement(

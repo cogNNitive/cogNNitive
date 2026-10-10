@@ -687,7 +687,7 @@ async function main() {
           model: basename(root),
           modelId: basename(root),
           modelVersion: 'V_1-0-0',
-          generated: new Date().toISOString(),
+          generated: undefined,
           models: modelSummaries,
         },
         elements: allElements,
@@ -696,10 +696,15 @@ async function main() {
     }
 
     if (args.view) domainPayload.model.meta.consoleScope = { view: args.view }
-    let domainHtml = viewsLib.inlineConsoleAssets(renderConsole(resolvedShell, null, config, domainPayload), preparedAssets)
-    if (!domainHtml.includes('data-theme=')) {
-      domainHtml = domainHtml.replace('<html lang="en">', '<html lang="en" data-theme="light">')
+    const buildDomainHtml = (generated) => {
+      domainPayload.model.meta.generated = generated
+      let html = viewsLib.inlineConsoleAssets(renderConsole(resolvedShell, null, config, domainPayload), preparedAssets)
+      if (!html.includes('data-theme=')) {
+        html = html.replace('<html lang="en">', '<html lang="en" data-theme="light">')
+      }
+      return html
     }
+    const domainHtml = buildDomainHtml(new Date().toISOString())
     // Final size gate, before the first write of this run.
     const bytes = (text) => Buffer.byteLength(text, 'utf8')
     const budget = viewsLib.evaluateSizeBudget({
@@ -715,7 +720,7 @@ async function main() {
     if (budget.status === 'warn') process.stderr.write(`WARNING: [export-console] ${budget.message}
 `)
     console.log(budget.breakdown)
-    standalone = { html: domainHtml, elements: allElements.length }
+    standalone = { html: domainHtml, elements: allElements.length, buildDomainHtml }
   }
 
   let written = 0
@@ -791,10 +796,24 @@ async function main() {
 
   if (args.domain) {
     const domainHtmlPath = join(root, 'domaiNN_console.html')
-    await writeFile(domainHtmlPath, standalone.html, 'utf-8')
-    console.log(
-      `✔ domaiNN_console.html → ./domaiNN_console.html (${candidateModels.length} models, ${standalone.elements} elements, ${domainViews.length} views)`,
-    )
+    // Re-render with the previous `generated` stamp: identical bytes mean nothing changed.
+    let domainUnchanged = false
+    if (existsSync(domainHtmlPath)) {
+      const previous = await readFile(domainHtmlPath, 'utf-8')
+      const previousGenerated = extractModelMetaFromHtml(previous)?.generated
+      if (previousGenerated && standalone.buildDomainHtml(previousGenerated) === previous) {
+        domainUnchanged = true
+      }
+    }
+    if (domainUnchanged) {
+      unchanged++
+      console.log(`= domaiNN_console.html unchanged`)
+    } else {
+      await writeFile(domainHtmlPath, standalone.html, 'utf-8')
+      console.log(
+        `✔ domaiNN_console.html → ./domaiNN_console.html (${candidateModels.length} models, ${standalone.elements} elements, ${domainViews.length} views)`,
+      )
+    }
     // Earlier exports wrote these beside the page; it inlines both now. Nothing is deleted.
     const leftovers = ['innfo-console.bundle.js', 'innfo-ui.css'].filter((name) => existsSync(join(root, name)))
     if (leftovers.length > 0) {
@@ -806,18 +825,36 @@ async function main() {
 
   if (args.view) {
     // Write-once family per view; the bundle is inlined, so no sibling file exists.
-    const result = await payloadHelper.writeOnce(
-      root,
-      { dir: `artifacts/${args.view}_view`, key: `${args.view}_view`, ext: 'html' },
-      standalone.html,
-      { inputs: candidateModels.map((m) => relative(root, m.filePath).replace(/\\/g, '/')) },
-    )
-    if (result.status === 'deduplicated') {
+    const viewDir = `artifacts/${args.view}_view`
+    const viewKey = `${args.view}_view`
+    const members = await familyMembers(root, viewDir, viewKey, 'html')
+    const latestView = payloadHelper.latestOfFamily(members)
+    // Re-render with the previous `generated` stamp: identical bytes mean nothing changed.
+    let viewUnchanged = false
+    if (latestView) {
+      const previous = await readFile(join(root, latestView.path), 'utf-8')
+      const previousGenerated = extractModelMetaFromHtml(previous)?.generated
+      if (previousGenerated && standalone.buildDomainHtml(previousGenerated) === previous) {
+        viewUnchanged = true
+      }
+    }
+    if (viewUnchanged) {
       unchanged++
-      console.log(`= ${basename(result.path)} unchanged`)
+      console.log(`= ${basename(latestView.path)} unchanged`)
     } else {
-      written++
-      console.log(`✔ ${basename(result.path)} → ./${result.path} (view ${args.view}, ${standalone.elements} elements)`)
+      const result = await payloadHelper.writeOnce(
+        root,
+        { dir: viewDir, key: viewKey, ext: 'html' },
+        standalone.html,
+        { inputs: candidateModels.map((m) => relative(root, m.filePath).replace(/\\/g, '/')) },
+      )
+      if (result.status === 'deduplicated') {
+        unchanged++
+        console.log(`= ${basename(result.path)} unchanged`)
+      } else {
+        written++
+        console.log(`✔ ${basename(result.path)} → ./${result.path} (view ${args.view}, ${standalone.elements} elements)`)
+      }
     }
   }
 

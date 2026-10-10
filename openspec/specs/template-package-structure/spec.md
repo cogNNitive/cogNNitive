@@ -22,7 +22,7 @@ Template packages in the source repository MUST use canonical unversioned filena
 - AND no `_V_x-y-z_` token appears in the path
 
 #### Scenario: Package embeds a full skill
-- GIVEN the `video` package containing `skills/nn-video-script/SKILL.md` plus its `scripts/` and `test/` folders
+- GIVEN the `video-script` package containing `skills/nn-video-script/SKILL.md` plus its `scripts/` and `test/` folders
 - WHEN the package layout is inspected
 - THEN the skill folder is treated as package content with no versioned path segment
 
@@ -126,9 +126,9 @@ The template immutability guard MUST treat any added, modified or removed file u
 Remote hydration of a package MUST fetch `skills/` recursively (all nested files and directories) alongside `procedures/`, `samples/` and `assets/`, and the hydrated package payload MUST expose them. Hydration MUST remain atomic and write-once.
 
 #### Scenario: Nested skill files are hydrated
-- GIVEN a remote `video` package whose `skills/nn-video-script/` contains nested folders (`scripts/lib/`, `test/fixtures/`)
+- GIVEN a remote `video-script` package whose `skills/nn-video-script/` contains nested folders (`scripts/lib/`, `test/fixtures/`)
 - WHEN `innfo-mcp` hydrates the package
-- THEN every nested file is present under `specs/bluepriNNts/video/<version>/skills/nn-video-script/`
+- THEN every nested file is present under `specs/bluepriNNts/video-script/<version>/skills/nn-video-script/`
 - AND the directory appears only after the full fetch completes
 
 ### Requirement: Flat Installed bluepriNNt Resolves By Name
@@ -136,7 +136,7 @@ Remote hydration of a package MUST fetch `skills/` recursively (all nested files
 A bluepriNNt installed flat at `~/.agents/bluepriNNts/<name>/` (no version directory) MUST resolve by name through the template resolver, including its `procedures/` and `skills/` folders.
 
 #### Scenario: Flat install resolves
-- GIVEN `video` installed flat at `~/.agents/bluepriNNts/video/` and absent from workspace and cache tiers
-- WHEN the resolver resolves `video`
+- GIVEN `video-script` installed flat at `~/.agents/bluepriNNts/video-script/` and absent from workspace and cache tiers
+- WHEN the resolver resolves `video-script`
 - THEN it returns the flat install directory
 - AND `skills/nn-video-script/` is reachable beneath it
