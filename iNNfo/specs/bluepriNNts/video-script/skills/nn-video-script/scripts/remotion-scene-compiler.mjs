@@ -73,6 +73,31 @@ export const DEFAULT_CONDITIONAL_FIELDS = {
   brand: ['asset'],
 };
 
+/**
+ * Field names that declare duration or timing. The `video-script` blueprint
+ * defines no such field: duration and schedule are derived by the engine from
+ * measured/synthesized media (spec "No Declared Duration or Timing"). The
+ * validator ignores undeclared properties, so this pre-compile guard is where
+ * the rule is enforced — any timing-looking property on any Concept is rejected.
+ */
+export const TIMING_FIELD_NAMES = new Set([
+  'duration',
+  'duration_seconds',
+  'duration_in_seconds',
+  'duration_frames',
+  'duration_in_frames',
+  'from_frame',
+  'to_frame',
+  'from_frame_offset',
+  'to_frame_offset',
+  'from_seconds_offset',
+  'to_seconds_offset',
+  'start_frame',
+  'end_frame',
+  'start_time',
+  'end_time',
+]);
+
 /** Named, non-zero error raised when an L3 document fails the pre-compile guard. */
 export class ScriptValidationError extends Error {
   /**
@@ -177,6 +202,20 @@ export class RemotionSceneCompiler {
     const videos = elements.Video || [];
     if (videos.length !== 1) {
       errors.push({ code: 'one-video-per-document', message: `expected exactly one Video, found ${videos.length}` });
+    }
+    // No declared duration or timing on any Concept (spec "No Declared Duration
+    // or Timing"). The blueprint defines no such field; duration is derived.
+    for (const [concept, list] of Object.entries(elements)) {
+      for (const el of list || []) {
+        for (const key of Object.keys(el?.fields || {})) {
+          if (TIMING_FIELD_NAMES.has(key.toLowerCase())) {
+            errors.push({
+              code: 'declared-duration',
+              message: `${concept} "${el.name}" declares forbidden timing field "${key}"; duration/timing is derived by the engine, never declared`,
+            });
+          }
+        }
+      }
     }
     const conditional = options.conditionalFields || DEFAULT_CONDITIONAL_FIELDS;
     for (const layer of elements.Layer || []) {

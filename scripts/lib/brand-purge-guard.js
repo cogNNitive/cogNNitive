@@ -25,18 +25,6 @@ const FORBIDDEN = new RegExp(['vid' + 'genn', 'any' + 'deo'].join('|'), 'i');
 /** Files and trees the gate never scans. Every entry needs a one-line reason. */
 const PATH_EXCLUSIONS = [
   {
-    prefix: 'iNNfo/packages/innfo-video-parser/specs/V_0-3-3.json',
-    reason: 'Vendored VUS spec pinned by sha256; the upstream text cannot be edited.',
-  },
-  {
-    prefix: 'iNNfo/specs/bluepriNNts/video/skills/nn-video-script/specs/V_0-3-3.json',
-    reason: 'Byte-identical vendored copy of the excluded VUS spec, hash-pinned by the skill; cannot be edited.',
-  },
-  {
-    prefix: 'iNNfo/specs/bluepriNNts/video/skills/nn-video-script/scripts/lib/innfo-video-parser.generated.mjs',
-    reason: 'Generated bundle of the excluded vendored spec; regenerate, never hand-edit.',
-  },
-  {
     prefix: 'openspec/changes/',
     reason: 'Planning artifacts and archived changes are permanent history of the retired names.',
   },

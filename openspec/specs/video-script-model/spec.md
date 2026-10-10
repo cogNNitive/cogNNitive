@@ -2,13 +2,13 @@
 
 ## Purpose
 
-Defines the native iNNfo modeling of video scripts. A video script IS a Level-3 kNNowledge document governed by the Level-2 `video-script` blueprint; the engine consumes that structured model directly and never re-parses markdown. The model is tool-agnostic and declares no timing.
+Defines the native iNNfo modeling of video scripts. A video script IS a Level-3 kNNowledge document governed by the Level-2 `video-script` blueprint; the engine consumes that structured model directly and never re-implements or re-parses the script's markdown grammar. The model is tool-agnostic and declares no timing.
 
 ## Requirements
 
 ### Requirement: Script Is an iNNfo Level-3 Document
 
-The video script MUST be an iNNfo Level-3 kNNowledge document whose `parent_spec` is the Level-2 `video-script` blueprint. The blueprint MUST define every Concept and Field the script may use. The engine MUST consume the structured model (via innfo-core) and MUST NOT re-parse the script's markdown.
+The video script MUST be an iNNfo Level-3 kNNowledge document whose `parent_spec` is the Level-2 `video-script` blueprint. The blueprint MUST define every Concept and Field the script may use. The engine's scene compiler MUST consume a structured iNNfo model and MUST NOT re-parse the script's markdown. The canonical source of that model is innfo-core `read_knowledge`; when an installed, zero-dependency skill cannot reach innfo-core, a thin structural adapter MAY emit the same `read_knowledge` shape — it MUST NOT re-implement the scene grammar and MUST be drift-guarded against innfo-core's model shape.
 
 #### Scenario: Script validates against its blueprint
 
@@ -20,8 +20,8 @@ The video script MUST be an iNNfo Level-3 kNNowledge document whose `parent_spec
 
 - GIVEN a valid L3 script document
 - WHEN the engine reads it
-- THEN it receives Concepts, Fields, and element order from the structured model
-- AND it performs no markdown grammar parsing
+- THEN it receives Concepts, Fields, and element order from a structured `read_knowledge`-shaped model
+- AND the scene compiler performs no script markdown grammar parsing
 
 ### Requirement: Video-Scene-Layer Concept Hierarchy
 

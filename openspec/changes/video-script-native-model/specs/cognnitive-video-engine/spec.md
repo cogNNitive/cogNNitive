@@ -6,9 +6,11 @@
 
 The system MUST provide a scene compiler that transforms the structured iNNfo
 video-script model into a valid Remotion Composition Manifest. The compiler MUST
-obtain its scene model by reading the L3 document through innfo-core
-(`read_knowledge`) and lowering that structured model into the manifest; it MUST
-NOT re-parse the script's markdown and MUST NOT invoke the vendored VUS parser.
+obtain its scene model as a structured `read_knowledge`-shaped object (canonically
+from innfo-core `read_knowledge`; a thin, drift-guarded structural adapter is the
+permitted fallback for the zero-dependency installed skill) and lower that
+structured model into the manifest; it MUST NOT re-implement or re-parse the
+script's markdown grammar and MUST NOT invoke the vendored VUS parser.
 The compiler MUST resolve `template::` references from the Series' L3 Template
 document. It MUST derive timing from measured TTS/media duration and MUST derive
 layer sequencing and order from the model's list order. Each `Scene` MUST map to
@@ -36,8 +38,8 @@ layer name.
 
 - GIVEN a valid L3 document
 - WHEN the scene compiler obtains its scene model
-- THEN the model comes from innfo-core structured input
-- AND the compiler performs no markdown grammar parsing
+- THEN the model is a structured `read_knowledge`-shaped object (from innfo-core or the drift-guarded adapter)
+- AND the scene compiler performs no script markdown grammar parsing
 
 #### Scenario: Invalid L3 document stops compilation
 

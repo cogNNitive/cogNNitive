@@ -110,7 +110,29 @@ async function runTests() {
       () => compiler.compile('# Scene\nsome prose'),
       (e) => e instanceof ScriptValidationError && e.errors.some((x) => x.code === 'markdown-not-accepted'),
     );
-    console.log('✔ invalid L3 stops compilation with a named non-zero error; markdown is rejected');
+    // No declared duration or timing on any Concept.
+    for (const [concept, fields] of [
+      ['Video', { title: 'a', duration: '12' }],
+      ['Scene', { duration_seconds: '12' }],
+      ['Layer', { type: 'quote', text: 'x', from_frame_offset: '30' }],
+      ['Layer', { type: 'b-roll', asset: 'x.png', from_seconds_offset: '2' }],
+    ]) {
+      const doc = {
+        elements: {
+          Video: [{ name: 'a', fields: { title: 'a' } }],
+          Scene: [{ name: 'S', fields: {} }],
+          Layer: [{ name: 'L', fields: { type: 'quote', text: 'x' } }],
+        },
+      };
+      const target = concept === 'Video' ? doc.elements.Video[0] : concept === 'Scene' ? doc.elements.Scene[0] : doc.elements.Layer[0];
+      target.fields = fields;
+      assert.throws(
+        () => compiler.compile(doc),
+        (e) => e instanceof ScriptValidationError && e.errors.some((x) => x.code === 'declared-duration'),
+        `declared duration on ${concept} must be rejected`,
+      );
+    }
+    console.log('✔ invalid L3 stops compilation with a named non-zero error; markdown and declared duration are rejected');
   }
 
   // 4. The engine no longer imports the VUS parser/mirror. (The retired VUS
@@ -125,6 +147,34 @@ async function runTests() {
     }
     assert.deepStrictEqual(offenders, [], `no VUS parser import allowed; found in: ${offenders.join(', ')}`);
     console.log('✔ engine imports no VUS parser/mirror');
+  }
+
+  // 5. Drift guard: the zero-dependency structural adapter
+  //    (`lib/knowledge-model.mjs`) must emit the same read_knowledge shape the
+  //    scene compiler consumes. This is the seam that keeps the installed
+  //    skill's markdown adapter aligned with innfo-core `read_knowledge`; if
+  //    innfo-core's output shape changes, this contract must change with it.
+  {
+    const { parseKnowledgeDocument } = await import('../scripts/lib/knowledge-model.mjs');
+    const rawSample = fs.readFileSync(SAMPLE, 'utf8');
+    const adapted = parseKnowledgeDocument(rawSample);
+    for (const key of ['frontmatter', 'taxonomy', 'elements', 'rawContent']) {
+      assert.ok(key in adapted, `adapter output must expose read_knowledge key "${key}"`);
+    }
+    assert.strictEqual(typeof adapted.elements, 'object');
+    for (const [concept, list] of Object.entries(adapted.elements)) {
+      assert.ok(Array.isArray(list), `elements.${concept} must be an array`);
+      for (const el of list) {
+        assert.strictEqual(el.type, concept, `element.type must equal its concept (${concept})`);
+        assert.strictEqual(typeof el.name, 'string');
+        assert.strictEqual(typeof el.fields, 'object');
+      }
+    }
+    // The compiler accepts exactly this shape and rejects raw markdown.
+    const compiler = new RemotionSceneCompiler();
+    assert.ok(compiler.compile(adapted).tracks.scenes.length > 0);
+    assert.throws(() => compiler.compile(rawSample), (e) => e instanceof ScriptValidationError);
+    console.log('✔ structural adapter stays contract-aligned with read_knowledge (drift guard)');
   }
 
   console.log('\nAll iNNfo model compile tests passed! ✨');

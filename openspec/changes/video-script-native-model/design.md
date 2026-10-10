@@ -17,7 +17,7 @@ thumbnail/finalize are untouched; only their **input shape** changes.
 
 | # | Decision | Options | Choice | Rationale |
 |---|----------|---------|--------|-----------|
-| D1 | Scene model source | keep VUS AST vs innfo-core `read_knowledge` | `read_knowledge` | Spec requires the engine "MUST NOT re-parse markdown"; one structured contract |
+| D1 | Scene model source | keep VUS AST vs innfo-core `read_knowledge` | `read_knowledge` (canonical) + drift-guarded structural adapter fallback | Spec requires the engine "MUST NOT re-parse markdown"; the compiler consumes one structured contract. The zero-dependency installed skill cannot reach innfo-core, so `lib/knowledge-model.mjs` emits the same `read_knowledge` shape and is drift-guarded (DEV-5 reconciled). |
 | D2 | Series specialization | fork blueprint vs `includes:` | `includes: [video-script]` | L1 `includes` is additive composition; one canonical base schema |
 | D3 | Narration | `narration::` field vs Scene body prose | Scene **body prose** | Spec: "Narration MUST be the free-form prose BODY"; no field, no Concept |
 | D4 | Ordering | `order::`/`index::` fields vs index block | `# NN index` list order | Spec: order equals list order, no declared ordering fields |

@@ -262,3 +262,54 @@ Phase 6–8 tasks complete. Change is ready for verify, subject to the pre-exist
 environment (uninstalled deps / unbuilt workspaces) documented above.
 
 ---
+
+# Apply Progress: video-script-native-model
+
+## Batch: Verification-fix apply (sdd-apply executor)
+
+**Mode**: Standard.
+**Scope**: Resolve the CRITICAL/WARNING findings from `verify-report.md`. No commit,
+no archive (per instruction). All fixes are English.
+
+### Fixes
+
+| # | Finding | Resolution | Files |
+|---|---------|------------|-------|
+| CRITICAL 1 | Declared duration/timing unimplemented & untested | Added `TIMING_FIELD_NAMES` + a guard loop in `checkScript` that rejects any timing-looking property (`duration`, `duration_seconds`, `duration_in_frames`, `from_frame_offset`, `from_seconds_offset`, `start_time`, …) on any Concept with the named non-zero error `declared-duration`. The validator ignores undeclared props, so this pre-compile guard is where the rule is enforced. Added tests for Video/Scene/Layer timing fields. | `.../scripts/remotion-scene-compiler.mjs`, `.../test/knowledge-model-compile.test.mjs` |
+| CRITICAL 2 | Stale `spec.spec.ts` asserting deleted `video` blueprint + `vus-spec.mjs` | Updated to `blueprint_name: 'video-script'`, `source_blueprint === 'video-script'`, and `scripts/remotion-scene-compiler.mjs` existence (the real skill script). Describe title updated. | `iNNfo/packages/innfo-mcp/src/tools/spec.spec.ts` |
+| WARNING 4 (DEV-5) | Engine "MUST NOT re-parse markdown" vs. the regex loader | **Chose option (b): align the spec/design to the defensible contract.** The zero-dependency installed skill cannot reach innfo-core at runtime, so the compiler consumes a structured `read_knowledge`-shaped model and a thin structural adapter is permitted — it MUST NOT re-implement the scene grammar and is drift-guarded. Reworded the purpose + "Script Is an iNNfo Level-3 Document" requirement/scenario (full spec), the "Programmatic Remotion Scene Compilation" requirement + "Compiler never re-parses markdown" scenario (engine delta), and design D1. Added a drift-guard test that asserts the adapter emits the `read_knowledge` shape and the compiler accepts exactly that shape while rejecting raw markdown. | `openspec/specs/video-script-model/spec.md`, `openspec/changes/video-script-native-model/specs/cognnitive-video-engine/spec.md`, `openspec/changes/video-script-native-model/design.md`, `.../test/knowledge-model-compile.test.mjs` |
+| WARNING 5a | `package-lock.json` still declared the removed `@cognnitive/innfo-video-parser` workspace | Removed the two minimal lockfile entries (the `iNNfo/packages/innfo-video-parser` workspace block and the `node_modules/@cognnitive/innfo-video-parser` link). Deliberately did NOT run `npm install` (would introduce unrelated version churn); the edit is surgical and the file remains valid JSON. | `package-lock.json` |
+| WARNING 5b | `brand-purge-guard.js` dead VUS PATH_EXCLUSIONS | Dropped the three dead VUS path exclusions (parser spec ×2 + generated mirror); kept the `openspec/changes/` exclusion. Updated the unit test to assert the retired paths are now scanned (a reintroduced occurrence is flagged). | `scripts/lib/brand-purge-guard.js`, `scripts/lib/brand-purge-guard.test.js` |
+| WARNING 5c | Published `video-script-skill/spec.md` still held VUS requirements / heading mismatch | Synced the published spec to the delta: added "Authors iNNfo L3 Script Documents", updated Owned-Skill / Projection / Embedded-Tests to the `video-script` package, renamed the heading to "No-Prose-Copy of Syntax Facts", and removed the VUS "Self-Hosted Spec Pin" and "Internal Parser Resolution" requirements. | `openspec/specs/video-script-skill/spec.md` |
+
+### Fix verification
+
+| Check | Result |
+|-------|--------|
+| `node test/knowledge-model-compile.test.mjs` | ✅ pass (incl. declared-duration rejection on Video/Scene/Layer + adapter drift guard) |
+| All 14 runnable `nn-video-script` skill suites | ✅ pass (only `render-thumbnail` excluded — pre-existing missing `sharp`) |
+| `node scripts/lib/brand-purge-guard.test.js` | ✅ pass |
+| `node scripts/lib/legacy-ledger-guard.js` | ✅ 13 entries / 25 markers |
+| `node scripts/verify.js` | 33/144 fail — **same pre-existing environment set as the verify report; zero change-caused** |
+| `node scripts/check-integrity.js` | Groups 1c/2b/2d/2e/2f/2g ✅ green; Group 3 inherits the 33 env failures |
+
+### Deviations from Design
+
+- **DEV-5 reconciled as option (b)** (spec/design wording aligned to the actual contract),
+  not option (a) (structured-JSON-only canonical input). Rationale: the embedded skill is
+  zero-dependency by contract and cannot invoke innfo-core at runtime, so the CLI must keep a
+  supported markdown-input path; the compiler already consumes only the structured model and now
+  has an explicit drift guard. This is stated in the spec and design.
+
+### Remaining Blockers
+
+- `npm ci` / `npm run typecheck` / `eslint` / `prettier` still cannot run here (`node_modules`
+  uninstalled in this worktree) — pre-existing environment, unchanged by these fixes.
+- `docs/use|update/manifest-next.md` still list the retired `video` blueprint until a networked
+  preview regeneration at the next release build.
+
+### Status
+
+Verification findings CRITICAL 1, CRITICAL 2, WARNING 4, and WARNING 5 (a/b/c) resolved.
+All previously-ticked tasks re-verified; no task needed re-opening. Ready for re-verify.
+
