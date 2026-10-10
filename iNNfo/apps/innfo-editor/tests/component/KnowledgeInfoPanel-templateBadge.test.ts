@@ -30,8 +30,8 @@ function makeNode(id: string, overrides: Partial<KnowledgeNode> = {}): Knowledge
 const rootContent = `---
 spec_version: "V_0-3-0"
 parent_spec:
-  name: "analysis_V_0-3-2"
-  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/analysis/analysis_V_0-3-2_NN.md"
+  name: "analysis_V_0-3-3"
+  url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/analysis/analysis_V_0-3-3_NN.md"
 knowledge_version: "V_1-0-0"
 title: "StartupValidation"
 ---
@@ -89,7 +89,7 @@ describe('KnowledgeInfoPanel.vue — Template Version Badge (D3)', () => {
 
     const badge = wrapper.find('[data-testid="template-version-badge"]')
     expect(badge.exists()).toBe(true)
-    expect(badge.text()).toContain('V_0-3-2')
+    expect(badge.text()).toContain('V_0-3-3')
     expect(badge.text()).toContain('V_0-2-1')
 
     const copyButton = wrapper.find('[data-testid="template-version-copy-prompt"]')
@@ -118,7 +118,7 @@ describe('KnowledgeInfoPanel.vue — Template Version Badge (D3)', () => {
       specs: {
         bluepriNNts: {
           analysis: {
-            'analysis_V_0-3-2_NN.md': '---\nlevel: 2\n---\n',
+            'analysis_V_0-3-3_NN.md': '---\nlevel: 2\n---\n',
           },
         },
       },
