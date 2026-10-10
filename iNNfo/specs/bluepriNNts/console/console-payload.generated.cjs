@@ -7878,21 +7878,21 @@ function baseOf(path2) {
   const i = Math.max(path2.lastIndexOf("/"), path2.lastIndexOf("\\"));
   return i < 0 ? path2 : path2.slice(i + 1);
 }
-function parseName(basename6) {
-  if (NN_SUFFIX_RE.test(basename6)) {
-    const stem2 = basename6.replace(NN_SUFFIX_RE, "");
-    const sidecar = SIDECAR_PATH_RE.exec(basename6);
-    return sidecar ? { kind: "nn", basename: basename6, stem: stem2, sidecarOf: sidecar[1] } : { kind: "nn", basename: basename6, stem: stem2 };
+function parseName(basename5) {
+  if (NN_SUFFIX_RE.test(basename5)) {
+    const stem2 = basename5.replace(NN_SUFFIX_RE, "");
+    const sidecar = SIDECAR_PATH_RE.exec(basename5);
+    return sidecar ? { kind: "nn", basename: basename5, stem: stem2, sidecarOf: sidecar[1] } : { kind: "nn", basename: basename5, stem: stem2 };
   }
-  const dot = basename6.lastIndexOf(".");
+  const dot = basename5.lastIndexOf(".");
   const hasExt = dot > 0;
-  const stem = hasExt ? basename6.slice(0, dot) : basename6;
-  const ext = hasExt ? basename6.slice(dot + 1) : "";
+  const stem = hasExt ? basename5.slice(0, dot) : basename5;
+  const ext = hasExt ? basename5.slice(dot + 1) : "";
   const m = STAMP_SUFFIX_RE.exec(stem);
-  if (!m) return { kind: "file", basename: basename6, key: stem, ext };
+  if (!m) return { kind: "file", basename: basename5, key: stem, ext };
   return {
     kind: "file",
-    basename: basename6,
+    basename: basename5,
     key: m[1],
     ext,
     stamp: { stamp: m[2], seq: m[3] ? Number(m[3]) : 1 }
@@ -7905,9 +7905,9 @@ function formatMemberName(key, ext, stamp) {
 function sidecarPathOf(rawPath) {
   return `${rawPath}_sidecar_NN.md`;
 }
-function displayStem(basename6) {
-  if (NN_SUFFIX_RE.test(basename6)) return basename6.replace(NN_SUFFIX_RE, "");
-  return basename6.replace(/\.md$/i, "");
+function displayStem(basename5) {
+  if (NN_SUFFIX_RE.test(basename5)) return basename5.replace(NN_SUFFIX_RE, "");
+  return basename5.replace(/\.md$/i, "");
 }
 var IGNORED_DIRECTORIES = /* @__PURE__ */ new Set(["backups", "archive", "specs"]);
 var NON_KNOWLEDGE_BLUEPRINT_RE = /^(cognnitive|workspace|procedures|sources|artifacts|sidecar|changes)(?:_|$)/i;
@@ -9243,9 +9243,6 @@ function findCanonicalBlueprint(identifier) {
 }
 
 // iNNfo/packages/innfo-core/src/resolver.ts
-var import_promises = require("node:fs/promises");
-var import_node_path = require("node:path");
-var import_node_os = require("node:os");
 var PACKAGE_NON_VERSION_DIRS = /* @__PURE__ */ new Set([
   "procedures",
   "samples",
@@ -9276,11 +9273,13 @@ function parseSpecName(name) {
   return { base, version };
 }
 async function getMarkdownFiles(dir) {
+  const { readdir } = await import("node:fs/promises");
+  const { join: join3 } = await import("node:path");
   const files = [];
   try {
-    const entries = await (0, import_promises.readdir)(dir, { withFileTypes: true });
+    const entries = await readdir(dir, { withFileTypes: true });
     for (const entry of entries) {
-      const fullPath = (0, import_node_path.join)(dir, entry.name);
+      const fullPath = join3(dir, entry.name);
       if (entry.isDirectory()) {
         if (entry.name === "node_modules" || entry.name.startsWith(".")) continue;
         files.push(...await getMarkdownFiles(fullPath));
@@ -9316,12 +9315,14 @@ function compareVersions(a, b) {
   return 0;
 }
 async function matchSpecPath(reqParsed, filePath) {
-  const fileParsed = parseSpecName((0, import_node_path.basename)(filePath));
+  const { readFile: readFile2 } = await import("node:fs/promises");
+  const { basename: basename5 } = await import("node:path");
+  const fileParsed = parseSpecName(basename5(filePath));
   if (fileParsed.base !== reqParsed.base) return false;
   if (!reqParsed.version) return true;
   if (fileParsed.version) return fileParsed.version === reqParsed.version;
   try {
-    const content = await (0, import_promises.readFile)(filePath, "utf-8");
+    const content = await readFile2(filePath, "utf-8");
     const fmVersion = versionFromFrontmatter(content);
     return fmVersion !== void 0 && fmVersion === reqParsed.version;
   } catch (err) {
@@ -9333,11 +9334,13 @@ async function matchSpecPath(reqParsed, filePath) {
 }
 async function preferHighestVersion(matches) {
   if (matches.length === 0) return null;
+  const { readFile: readFile2 } = await import("node:fs/promises");
+  const { basename: basename5 } = await import("node:path");
   let best = matches[0];
   let bestVersion;
   for (const m of matches) {
-    const nameVersion = parseSpecName((0, import_node_path.basename)(m)).version;
-    const v = nameVersion ?? versionFromFrontmatter(await (0, import_promises.readFile)(m, "utf-8").catch(() => ""));
+    const nameVersion = parseSpecName(basename5(m)).version;
+    const v = nameVersion ?? versionFromFrontmatter(await readFile2(m, "utf-8").catch(() => ""));
     if (!bestVersion && v) {
       best = m;
       bestVersion = v;
@@ -9360,21 +9363,23 @@ async function findLocalSpec(specsDir, reqName) {
   return preferHighestVersion(matches);
 }
 async function findSpecInPackageDir(dir, base) {
+  const { readdir } = await import("node:fs/promises");
+  const { join: join3 } = await import("node:path");
   try {
-    const entries = await (0, import_promises.readdir)(dir, { withFileTypes: true });
+    const entries = await readdir(dir, { withFileTypes: true });
     const files = entries.filter((e) => e.isFile() && /\.(md|markdown)$/i.test(e.name)).map((e) => e.name);
     if (files.length === 0) return null;
     const specNN = files.find((f) => f.toLowerCase() === "spec_nn.md");
-    if (specNN) return (0, import_node_path.join)(dir, specNN);
+    if (specNN) return join3(dir, specNN);
     const baseV = files.find((f) => f.toLowerCase().startsWith(`${base.toLowerCase()}_v_`));
-    if (baseV) return (0, import_node_path.join)(dir, baseV);
+    if (baseV) return join3(dir, baseV);
     const baseNN = files.find((f) => f.toLowerCase() === `${base.toLowerCase()}_nn.md`);
-    if (baseNN) return (0, import_node_path.join)(dir, baseNN);
+    if (baseNN) return join3(dir, baseNN);
     const specMd = files.find((f) => f.toLowerCase() === "spec.md");
-    if (specMd) return (0, import_node_path.join)(dir, specMd);
+    if (specMd) return join3(dir, specMd);
     const baseMd = files.find((f) => f.toLowerCase() === `${base.toLowerCase()}.md`);
-    if (baseMd) return (0, import_node_path.join)(dir, baseMd);
-    return (0, import_node_path.join)(dir, files[0]);
+    if (baseMd) return join3(dir, baseMd);
+    return join3(dir, files[0]);
   } catch (err) {
     if (err?.code !== "ENOENT") {
       console.warn(`[resolver] Failed to scan package dir ${dir}: ${err}`);
@@ -9383,19 +9388,22 @@ async function findSpecInPackageDir(dir, base) {
   }
 }
 function isDirectSpecEntryName(filePath, base) {
-  const entry = (0, import_node_path.basename)(filePath).toLowerCase();
+  const entry = (filePath.split(/[\\/]/).pop() ?? filePath).toLowerCase();
   return entry === "spec_nn.md" || entry === `${base.toLowerCase()}_nn.md` || entry.startsWith(`${base.toLowerCase()}_v_`);
 }
 async function resolveBlueprintPackage(rootDir, reqName, reqVersion, options) {
-  const globalDir = options?.globalDir ?? process.env.INNFO_GLOBAL_DIR ?? (0, import_node_path.join)((0, import_node_os.homedir)(), ".agents", "bluepriNNts");
-  const skillsDir = options?.skillsDir ?? process.env.INNFO_SKILLS_DIR ?? (0, import_node_path.join)((0, import_node_os.homedir)(), ".agents", "skills");
+  const { readdir, readFile: readFile2 } = await import("node:fs/promises");
+  const { join: join3 } = await import("node:path");
+  const { homedir } = await import("node:os");
+  const globalDir = options?.globalDir ?? process.env.INNFO_GLOBAL_DIR ?? join3(homedir(), ".agents", "bluepriNNts");
+  const skillsDir = options?.skillsDir ?? process.env.INNFO_SKILLS_DIR ?? join3(homedir(), ".agents", "skills");
   const parsed = parseSpecName(reqName);
   const base = parsed.base;
   const targetVersion = reqVersion ? normalizeVersion(reqVersion) : parsed.version;
-  const wsPackageBaseDir = (0, import_node_path.join)(rootDir, "specs", "bluepriNNts", base);
+  const wsPackageBaseDir = join3(rootDir, "specs", "bluepriNNts", base);
   const unversionedSpecFile = await findSpecInPackageDir(wsPackageBaseDir, base);
   if (unversionedSpecFile && isDirectSpecEntryName(unversionedSpecFile, base)) {
-    const content = await (0, import_promises.readFile)(unversionedSpecFile, "utf-8").catch(() => "");
+    const content = await readFile2(unversionedSpecFile, "utf-8").catch(() => "");
     const fmVersion = versionFromFrontmatter(content);
     const bpVersion = blueprintVersionFromFrontmatter(content);
     return {
@@ -9408,14 +9416,14 @@ async function resolveBlueprintPackage(rootDir, reqName, reqVersion, options) {
     };
   }
   try {
-    const entries = await (0, import_promises.readdir)(wsPackageBaseDir, { withFileTypes: true });
+    const entries = await readdir(wsPackageBaseDir, { withFileTypes: true });
     const verDirs = entries.filter((e) => e.isDirectory() && isVersionDirName(e.name));
     let matchDir = null;
     let matchVer;
     if (targetVersion) {
       for (const d of verDirs) {
         if (normalizeVersion(d.name) === targetVersion) {
-          matchDir = (0, import_node_path.join)(wsPackageBaseDir, d.name);
+          matchDir = join3(wsPackageBaseDir, d.name);
           matchVer = targetVersion;
           break;
         }
@@ -9426,7 +9434,7 @@ async function resolveBlueprintPackage(rootDir, reqName, reqVersion, options) {
         const v = normalizeVersion(d.name);
         if (!bestVer || compareVersions(v, bestVer) > 0) {
           bestVer = v;
-          matchDir = (0, import_node_path.join)(wsPackageBaseDir, d.name);
+          matchDir = join3(wsPackageBaseDir, d.name);
           matchVer = v;
         }
       }
@@ -9449,11 +9457,11 @@ async function resolveBlueprintPackage(rootDir, reqName, reqVersion, options) {
       console.warn(`[resolver] Failed to scan package tier dir: ${err}`);
     }
   }
-  const flatSearchDirs = [(0, import_node_path.join)(rootDir, "specs")];
+  const flatSearchDirs = [join3(rootDir, "specs")];
   for (const dir of flatSearchDirs) {
     const matchFile = await findLocalSpec(dir, reqName);
     if (matchFile) {
-      const content = await (0, import_promises.readFile)(matchFile, "utf-8").catch(() => "");
+      const content = await readFile2(matchFile, "utf-8").catch(() => "");
       const v = targetVersion || versionFromFrontmatter(content) || "0.1.0";
       return {
         name: base,
@@ -9465,16 +9473,16 @@ async function resolveBlueprintPackage(rootDir, reqName, reqVersion, options) {
       };
     }
   }
-  const globalBaseDir = (0, import_node_path.join)(globalDir, base);
+  const globalBaseDir = join3(globalDir, base);
   try {
-    const entries = await (0, import_promises.readdir)(globalBaseDir, { withFileTypes: true });
+    const entries = await readdir(globalBaseDir, { withFileTypes: true });
     const verDirs = entries.filter((e) => e.isDirectory() && isVersionDirName(e.name));
     let matchDir = null;
     let matchVer;
     if (targetVersion) {
       for (const d of verDirs) {
         if (normalizeVersion(d.name) === targetVersion) {
-          matchDir = (0, import_node_path.join)(globalBaseDir, d.name);
+          matchDir = join3(globalBaseDir, d.name);
           matchVer = targetVersion;
           break;
         }
@@ -9485,7 +9493,7 @@ async function resolveBlueprintPackage(rootDir, reqName, reqVersion, options) {
         const v = normalizeVersion(d.name);
         if (!bestVer || compareVersions(v, bestVer) > 0) {
           bestVer = v;
-          matchDir = (0, import_node_path.join)(globalBaseDir, d.name);
+          matchDir = join3(globalBaseDir, d.name);
           matchVer = v;
         }
       }
@@ -9505,7 +9513,7 @@ async function resolveBlueprintPackage(rootDir, reqName, reqVersion, options) {
     } else if (verDirs.length === 0) {
       const specFile = await findSpecInPackageDir(globalBaseDir, base);
       if (specFile) {
-        const specContent = await (0, import_promises.readFile)(specFile, "utf-8").catch(() => "");
+        const specContent = await readFile2(specFile, "utf-8").catch(() => "");
         const fmVersion = versionFromFrontmatter(specContent);
         const bpVersion = blueprintVersionFromFrontmatter(specContent);
         if (!targetVersion || fmVersion === targetVersion || bpVersion === targetVersion) {
@@ -9523,7 +9531,7 @@ async function resolveBlueprintPackage(rootDir, reqName, reqVersion, options) {
   } catch {
     const matchFile = await findLocalSpec(globalDir, reqName);
     if (matchFile) {
-      const content = await (0, import_promises.readFile)(matchFile, "utf-8").catch(() => "");
+      const content = await readFile2(matchFile, "utf-8").catch(() => "");
       const v = targetVersion || versionFromFrontmatter(content) || "0.1.0";
       return {
         name: base,
@@ -9536,19 +9544,19 @@ async function resolveBlueprintPackage(rootDir, reqName, reqVersion, options) {
     }
   }
   try {
-    const skillEntries = await (0, import_promises.readdir)(skillsDir, { withFileTypes: true });
+    const skillEntries = await readdir(skillsDir, { withFileTypes: true });
     const skillDirs = skillEntries.filter((e) => e.isDirectory()).map((e) => e.name);
     for (const skillName of skillDirs) {
-      const skillPkgBase = (0, import_node_path.join)(skillsDir, skillName, "bluepriNNts", base);
+      const skillPkgBase = join3(skillsDir, skillName, "bluepriNNts", base);
       try {
-        const entries = await (0, import_promises.readdir)(skillPkgBase, { withFileTypes: true });
+        const entries = await readdir(skillPkgBase, { withFileTypes: true });
         const verDirs = entries.filter((e) => e.isDirectory() && isVersionDirName(e.name));
         let matchDir = null;
         let matchVer;
         if (targetVersion) {
           for (const d of verDirs) {
             if (normalizeVersion(d.name) === targetVersion) {
-              matchDir = (0, import_node_path.join)(skillPkgBase, d.name);
+              matchDir = join3(skillPkgBase, d.name);
               matchVer = targetVersion;
               break;
             }
@@ -9559,7 +9567,7 @@ async function resolveBlueprintPackage(rootDir, reqName, reqVersion, options) {
             const v = normalizeVersion(d.name);
             if (!bestVer || compareVersions(v, bestVer) > 0) {
               bestVer = v;
-              matchDir = (0, import_node_path.join)(skillPkgBase, d.name);
+              matchDir = join3(skillPkgBase, d.name);
               matchVer = v;
             }
           }
@@ -9578,9 +9586,9 @@ async function resolveBlueprintPackage(rootDir, reqName, reqVersion, options) {
           }
         }
       } catch {
-        const matchFile = await findLocalSpec((0, import_node_path.join)(skillsDir, skillName, "bluepriNNts"), reqName) || await findLocalSpec((0, import_node_path.join)(skillsDir, skillName), reqName);
+        const matchFile = await findLocalSpec(join3(skillsDir, skillName, "bluepriNNts"), reqName) || await findLocalSpec(join3(skillsDir, skillName), reqName);
         if (matchFile) {
-          const content = await (0, import_promises.readFile)(matchFile, "utf-8").catch(() => "");
+          const content = await readFile2(matchFile, "utf-8").catch(() => "");
           const v = targetVersion || versionFromFrontmatter(content) || "0.1.0";
           return {
             name: base,
@@ -10528,36 +10536,36 @@ function evaluateFeedbackItems(options) {
 
 // iNNfo/packages/innfo-core/src/console/fs-source-resolver.ts
 var import_node_fs2 = require("node:fs");
-var import_node_path2 = require("node:path");
+var import_node_path = require("node:path");
 function createFsSourceResolver(rootDir) {
-  const rootResolved = (0, import_node_path2.resolve)(rootDir);
+  const rootResolved = (0, import_node_path.resolve)(rootDir);
   return (refPath, referringPath) => {
     const candidateDirs = [];
     if (referringPath) {
-      const absReferring = (0, import_node_path2.isAbsolute)(referringPath) ? referringPath : (0, import_node_path2.resolve)(rootDir, referringPath);
-      let cur = (0, import_node_path2.dirname)(absReferring);
+      const absReferring = (0, import_node_path.isAbsolute)(referringPath) ? referringPath : (0, import_node_path.resolve)(rootDir, referringPath);
+      let cur = (0, import_node_path.dirname)(absReferring);
       while (true) {
-        const sourcesDir = (0, import_node_path2.join)(cur, "sources");
+        const sourcesDir = (0, import_node_path.join)(cur, "sources");
         if ((0, import_node_fs2.existsSync)(sourcesDir)) {
           candidateDirs.push(cur);
         }
-        if (cur === rootResolved || (0, import_node_path2.dirname)(cur) === cur) {
+        if (cur === rootResolved || (0, import_node_path.dirname)(cur) === cur) {
           break;
         }
-        const relToRoot = (0, import_node_path2.relative)(rootResolved, cur);
+        const relToRoot = (0, import_node_path.relative)(rootResolved, cur);
         if (relToRoot.startsWith("..")) {
           break;
         }
-        cur = (0, import_node_path2.dirname)(cur);
+        cur = (0, import_node_path.dirname)(cur);
       }
     }
     if (!candidateDirs.includes(rootResolved)) {
       candidateDirs.push(rootResolved);
     }
     for (const dir of candidateDirs) {
-      const abs = (0, import_node_path2.resolve)(dir, refPath);
-      const rel = (0, import_node_path2.relative)(dir, abs);
-      if (rel === "" || rel.startsWith("..") || (0, import_node_path2.isAbsolute)(rel)) {
+      const abs = (0, import_node_path.resolve)(dir, refPath);
+      const rel = (0, import_node_path.relative)(dir, abs);
+      if (rel === "" || rel.startsWith("..") || (0, import_node_path.isAbsolute)(rel)) {
         continue;
       }
       if ((0, import_node_fs2.existsSync)(abs)) {
@@ -10574,8 +10582,8 @@ function createFsSourceResolver(rootDir) {
       }
     }
     const primaryDir = candidateDirs[0] ?? rootResolved;
-    const targetAbs = (0, import_node_path2.resolve)(primaryDir, refPath);
-    const targetParent = (0, import_node_path2.dirname)(targetAbs);
+    const targetAbs = (0, import_node_path.resolve)(primaryDir, refPath);
+    const targetParent = (0, import_node_path.dirname)(targetAbs);
     const parentExists = (0, import_node_fs2.existsSync)(targetParent);
     if (!parentExists) {
       return { exists: false, parentExists: false };
@@ -10583,7 +10591,7 @@ function createFsSourceResolver(rootDir) {
     let suggestions;
     try {
       const entries = (0, import_node_fs2.readdirSync)(targetParent, { withFileTypes: true });
-      const targetBase = (0, import_node_path2.basename)(refPath);
+      const targetBase = (0, import_node_path.basename)(refPath);
       const targetStem = targetBase.replace(/\.[^.]+$/, "");
       const files = entries.filter((e) => e.isFile()).map((e) => e.name);
       const maxAllowed = Math.max(1, Math.min(3, Math.floor(targetStem.length / 3)));
@@ -10833,13 +10841,13 @@ function buildConsolePayload(options) {
 }
 
 // iNNfo/packages/innfo-core/src/console/schema-resolution.ts
-var import_node_path3 = require("node:path");
-var import_promises2 = require("node:fs/promises");
+var import_node_path2 = require("node:path");
+var import_promises = require("node:fs/promises");
 async function resolveBlueprintContent(rootDir, name, url, globalDir, skillsDir) {
-  const version = url ? parseSpecName((0, import_node_path3.basename)(url)).version : void 0;
+  const version = url ? parseSpecName((0, import_node_path2.basename)(url)).version : void 0;
   const pkg = await resolveBlueprintPackage(rootDir, name, version, { globalDir, skillsDir });
   if (pkg) {
-    const content = await (0, import_promises2.readFile)(pkg.specFilePath, "utf-8").catch(() => null);
+    const content = await (0, import_promises.readFile)(pkg.specFilePath, "utf-8").catch(() => null);
     if (content !== null) return content;
   }
   const canonical = findCanonicalBlueprint(name) || (url ? findCanonicalBlueprint(url) : null);

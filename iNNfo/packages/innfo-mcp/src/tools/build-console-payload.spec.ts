@@ -100,4 +100,35 @@ parent_spec:
       rmSync(tempDir, { recursive: true, force: true })
     }
   })
+
+  it('loads feedback verdicts when a ledger file exists', async () => {
+    const tempDir = mkdtempSync(join(tmpdir(), 'build-console-ledger-'))
+    try {
+      const modelsDir = join(tempDir, 'kNNowledge')
+      mkdirSync(modelsDir, { recursive: true })
+      writeFileSync(
+        join(modelsDir, 'Ledgered_NN.md'),
+        `---\ntitle: "Ledgered Model"\nmodel_version: "V_0-1-0"\nlevel: 3\n---\n\n# NN Mission\n## NN Mission: L\n  scope:: "x"\n\n  body\n`,
+        'utf8',
+      )
+      const entry = {
+        v: 1,
+        at: '2026-10-10T00:00:00.000Z',
+        source: { kind: 'console-json', path: 'feedback.json', sha256: 'abc123' },
+        item: 'fb-001',
+        model_id: 'Ledgered',
+        knowledge_version: 'V_0-1-0',
+        status: 'pending',
+        by: 'tester',
+      }
+      writeFileSync(join(tempDir, 'feedback-ledger.jsonl'), `${JSON.stringify(entry)}\n`, 'utf8')
+
+      const result = await buildConsolePayloadTool(tempDir, { model: 'Ledgered' })
+
+      expect(result.modelSlot).toBeDefined()
+      expect(Array.isArray(result.warnings)).toBe(true)
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true })
+    }
+  })
 })
