@@ -1,6 +1,3 @@
-import { readdir, readFile } from 'node:fs/promises'
-import { join, basename } from 'node:path'
-import { homedir } from 'node:os'
 import { parseFrontmatter } from './parser/index.js'
 import {
   SpecCache,
@@ -253,6 +250,8 @@ export function parseSpecName(name: string) {
 }
 
 async function getMarkdownFiles(dir: string): Promise<string[]> {
+  const { readdir } = await import('node:fs/promises')
+  const { join } = await import('node:path')
   const files: string[] = []
   try {
     const entries = await readdir(dir, { withFileTypes: true })
@@ -307,6 +306,8 @@ async function matchSpecPath(
   reqParsed: { base: string; version?: string },
   filePath: string,
 ): Promise<boolean> {
+  const { readFile } = await import('node:fs/promises')
+  const { basename } = await import('node:path')
   const fileParsed = parseSpecName(basename(filePath))
   if (fileParsed.base !== reqParsed.base) return false
   if (!reqParsed.version) return true
@@ -330,6 +331,8 @@ async function matchSpecPath(
 /** For unversioned requests, prefer the highest version among the matches. */
 async function preferHighestVersion(matches: string[]): Promise<string | null> {
   if (matches.length === 0) return null
+  const { readFile } = await import('node:fs/promises')
+  const { basename } = await import('node:path')
   let best = matches[0]
   let bestVersion: string | undefined
   for (const m of matches) {
@@ -368,6 +371,8 @@ export async function findLocalSpec(specsDir: string, reqName: string): Promise<
  * Helper to find a canonical spec markdown file inside a package directory.
  */
 export async function findSpecInPackageDir(dir: string, base: string): Promise<string | null> {
+  const { readdir } = await import('node:fs/promises')
+  const { join } = await import('node:path')
   try {
     const entries = await readdir(dir, { withFileTypes: true })
     const files = entries
@@ -408,7 +413,7 @@ export async function findSpecInPackageDir(dir: string, base: string): Promise<s
  * `README.md` (or any other markdown) does not promote a directory to a package.
  */
 function isDirectSpecEntryName(filePath: string, base: string): boolean {
-  const entry = basename(filePath).toLowerCase()
+  const entry = (filePath.split(/[\\/]/).pop() ?? filePath).toLowerCase()
   return (
     entry === 'spec_nn.md' ||
     entry === `${base.toLowerCase()}_nn.md` ||
@@ -435,6 +440,9 @@ export async function resolveBlueprintPackage(
   reqVersion?: string,
   options?: { globalDir?: string; skillsDir?: string },
 ): Promise<ResolvedBlueprintPackage | null> {
+  const { readdir, readFile } = await import('node:fs/promises')
+  const { join } = await import('node:path')
+  const { homedir } = await import('node:os')
   const globalDir =
     options?.globalDir ?? process.env.INNFO_GLOBAL_DIR ?? join(homedir(), '.agents', 'bluepriNNts')
   const skillsDir =

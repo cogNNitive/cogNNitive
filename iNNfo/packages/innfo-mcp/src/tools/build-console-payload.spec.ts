@@ -61,4 +61,43 @@ level: 3
       rmSync(tempDir, { recursive: true, force: true })
     }
   })
+
+  it('throws when no model identifier is supplied', async () => {
+    await expect(buildConsolePayloadTool(process.cwd(), {})).rejects.toThrow(
+      /Missing required argument/i,
+    )
+  })
+
+  it('resolves a blueprint schema when the model declares a parent_spec', async () => {
+    const tempDir = mkdtempSync(join(tmpdir(), 'build-console-parent-'))
+    try {
+      const modelsDir = join(tempDir, 'kNNowledge')
+      mkdirSync(modelsDir, { recursive: true })
+
+      const modelContent = `---
+title: "Parented Model"
+model_version: "V_0-1-0"
+level: 3
+parent_spec:
+  name: business
+  url: "https://example.com/business_V_0-1-0_NN.md"
+---
+
+# NN Mission
+## NN Mission: Parented
+  scope:: "Everywhere"
+
+  Body text.
+`
+      writeFileSync(join(modelsDir, 'Parented_NN.md'), modelContent, 'utf8')
+
+      const result = await buildConsolePayloadTool(tempDir, { model: 'Parented' })
+
+      expect(result.schemaSlot).toBeDefined()
+      expect(['blueprint', 'derived']).toContain(result.schemaSource)
+      expect(Array.isArray(result.warnings)).toBe(true)
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true })
+    }
+  })
 })
