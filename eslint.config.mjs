@@ -26,7 +26,7 @@ export default tseslint.config(
       'temp/**',
       '_samples_nn/**',
       'simulation/**',
-      'workspace_NN/**',
+      'ecosystem_NN/**',
       'skills/**',
       '.agents/**',
       '.atl/**',
