@@ -14,6 +14,7 @@ const repoRoot = resolve(here, '..')
 const ALLOWLIST = [
   'openspec/changes/archive/',
   'openspec/changes/2026-10-09-domain-console-views/',
+  'openspec/changes/2026-10-09-nn-procedure-executor/',
   'openspec/specs/',
   'iNNfo/packages/innfo-core/tests/legacy/',
   'iNNfo/packages/innfo-core/tests/fixtures/simulacro-refactorizacion/',

@@ -1,7 +1,7 @@
 """Playwright UI smoke test for the TestLab coverage domain.
 
-Opens the latest generated model console and workspace hub via file:// and
-asserts they render the expected content without JS errors. Runs locally with:
+Opens the latest generated model console via file:// and
+asserts it renders the expected content without JS errors. Runs locally with:
 
   npm run test:ui
 
@@ -32,7 +32,6 @@ def main():
     args = ap.parse_args()
 
     console = latest(os.path.join(args.lab_root, 'artifacts', 'TestLab_coverage_TestLab_console', 'TestLab_coverage_TestLab_console_*.html'))
-    hub = latest(os.path.join(args.lab_root, 'artifacts', 'workspace_hub_*.html'))
     os.makedirs(args.out_dir, exist_ok=True)
     failures = []
 
@@ -71,29 +70,6 @@ def main():
         allowed_hosts = ('cdn.tailwindcss.com', 'fonts.googleapis.com', 'cdn.jsdelivr.net', 'raw.githubusercontent.com')
         env_only = [u for u in bad_requests if not any(h in u for h in allowed_hosts)]
         check('console has no non-CDN failed requests', len(env_only) == 0, repr(env_only[:3]))
-
-        # ---- Workspace hub ----
-        page2 = browser.new_page()
-        page2.on('pageerror', lambda e: page_errors.append('hub: ' + str(e)))
-        page2.goto(f'file://{hub}')
-        page2.wait_for_selector('#models-grid', timeout=15000)
-        check('hub title', (page2.text_content('#workspace-title') or '').strip() == 'TestLab Coverage Workspace')
-        check('hub active count is 1', (page2.text_content('#active-count') or '').strip() == '1')
-        check('hub card present', page2.locator('#models-grid', has_text='TestLab Coverage Model').count() == 1)
-        check('hub card console-ready', 'Console Ready' in (page2.text_content('#models-grid') or ''))
-        page2.fill('#search-input', 'xyz-nomatch')
-        page2.wait_for_timeout(300)
-        check('hub search filters to empty', 'No models or consoles matching' in (page2.text_content('#models-grid') or ''))
-        page2.fill('#search-input', '')
-        page2.wait_for_timeout(300)
-        page2.click('.launch-btn')
-        page2.wait_for_selector('#preview-panel:not(.hidden)', timeout=10000)
-        frame = page2.frame_locator('#preview-frame')
-        frame.locator('body').wait_for(timeout=15000)
-        frame_text = frame.locator('body').text_content() or ''
-        check('hub preview iframe loads console', 'Element 1A' in frame_text)
-        page2.screenshot(path=os.path.join(args.out_dir, 'hub.png'), full_page=True)
-        check('hub has no JS page errors', not [e for e in page_errors if e.startswith('hub:')])
 
         browser.close()
 
