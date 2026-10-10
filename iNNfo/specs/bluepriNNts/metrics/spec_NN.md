@@ -5,7 +5,7 @@ level: 2
 parent_spec:
   name: "iNNfo_V_0-3-0"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/iNNfo_V_0-3-0_NN.md"
-blueprint_version: "V_0-4-2"
+blueprint_version: "V_0-4-3"
 title: "Metrics App"
 relationship_types:
   hierarchy:
@@ -21,13 +21,6 @@ procedures:
   - id: "create-timeline"
     name: "Create Timeline"
     path: "procedures/create_timeline_procedures_NN.md"
-assets:
-  - id: "model-data-template"
-    name: "MODEL_DATA JSON Template"
-    path: "assets/MODEL_DATA.template.json"
-  - id: "verify-harness"
-    name: "Timeline Verify Harness"
-    path: "scripts/verify.harness.js"
 ---
 
 > [!NOTE]
