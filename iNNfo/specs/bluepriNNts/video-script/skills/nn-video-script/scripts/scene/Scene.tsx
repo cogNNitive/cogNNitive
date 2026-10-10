@@ -10,7 +10,6 @@ import React from 'react';
 import { AbsoluteFill, Audio, Img, OffthreadVideo, Sequence, staticFile, useVideoConfig } from 'remotion';
 import { LowerThird } from './overlays/LowerThird';
 import { KineticTitle } from './overlays/KineticTitle';
-import { ConceptCallout } from './overlays/ConceptCallout';
 import { Captions } from './overlays/Captions';
 import { Quote } from './overlays/Quote';
 import { Broll } from './overlays/Broll';
@@ -20,7 +19,7 @@ import { rendererForOverlay } from './overlay-registry.mjs';
 
 type Overlay = {
   id: string;
-  type: 'lowerThird' | 'kineticTitle' | 'conceptCallout' | 'captions' | 'quote' | 'broll';
+  type: 'lowerThird' | 'kineticTitle' | 'captions' | 'quote' | 'broll';
   fromFrame: number;
   durationInFrames: number;
   config: Record<string, unknown>;
@@ -157,12 +156,6 @@ function renderOverlay(overlay: Overlay, localFrom: number, fps: number): React.
       return (
         <Sequence key={overlay.id} from={localFrom} {...common}>
           <KineticTitle config={overlay.config} fps={fps} {...animation} />
-        </Sequence>
-      );
-    case 'ConceptCallout':
-      return (
-        <Sequence key={overlay.id} from={localFrom} {...common}>
-          <ConceptCallout config={overlay.config} {...animation} />
         </Sequence>
       );
     case 'Captions':
