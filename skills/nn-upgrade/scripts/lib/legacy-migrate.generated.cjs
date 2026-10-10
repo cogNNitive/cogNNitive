@@ -5,6 +5,7 @@
  * Drift-guarded by scripts/verify.js (build-preflight-primitives --check).
  */
 // legacy:nn-rename/quarantine
+// @ts-nocheck
 "use strict";
 var __create = Object.create;
 var __defProp = Object.defineProperty;

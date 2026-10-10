@@ -245,12 +245,14 @@ function renderTable(report) {
  * @param {string|null} [opts.planPath] Plan output (scan) or input (apply).
  * @param {string|null} [opts.journalPath] Aggregate journal input (rollback).
  * @param {boolean} [opts.consent] `--yes` consent token for apply/rollback.
+ * @param {boolean} [opts.force] `--force` override token.
  * @param {Function} [opts.spawn] Injectable child-process spawn (default spawnSync).
+ * @param {Function} [opts.openLock] Injectable lock opener (default `fs.openSync(path, 'wx')`).
  * @param {Function} [opts.now] Injectable clock.
  * @param {object|Function} [opts.out] Output sink.
  * @param {boolean} [opts.json] Machine-readable output.
  *
- * @returns {Promise<{exitCode:number, command:string, parents:Array, selected:string[]}>}
+ * @returns {Promise<{exitCode:number, command:string, parents:Array, selected:string[], messages?:string[]}>}
  */
 async function runBatch(opts = {}) {
   const {
@@ -699,7 +701,7 @@ async function runRollback({ journalPath, consent, force, spawn, openLock, now, 
 function parseArgs(argv) {
   const opts = {
     parents: [],
-    command: 'scan',
+    command: /** @type {'scan'|'apply'|'rollback'} */ ('scan'),
     json: false,
     only: [],
     exclude: [],
