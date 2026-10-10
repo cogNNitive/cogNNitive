@@ -19,19 +19,11 @@ assert.strictEqual(hits([['docs/a.md', 'cogNNitive-video only']]).length, 0);
 assert.strictEqual(hits([[`procedures/generate_${A.toLowerCase()}_script_NN.md`, 'clean']]).length, 1);
 
 // 3. Excluded paths are never scanned.
-assert.strictEqual(hits([['iNNfo/packages/innfo-video-parser/specs/V_0-3-3.json', A]]).length, 0);
-assert.strictEqual(
-  hits([['iNNfo/specs/bluepriNNts/video/skills/nn-video-script/specs/V_0-3-3.json', A]]).length,
-  0,
-  'the skill-vendored copy of the pinned spec is byte-identical to the excluded source',
-);
-assert.strictEqual(
-  hits([['iNNfo/specs/bluepriNNts/video/skills/nn-video-script/specs/notes.md', A]]).length,
-  1,
-  'only the exact vendored spec file is exempt, not the whole specs/ dir of the skill',
-);
 assert.strictEqual(hits([['openspec/changes/archive/x/tasks.md', V]]).length, 0);
 assert.strictEqual(hits([['openspec/specs/x/spec.md', V]]).length, 1);
+// The retired VUS files are deleted; their old paths are no longer exempt, so a
+// reintroduced occurrence at one of them would now be flagged.
+assert.strictEqual(hits([['iNNfo/packages/innfo-video-parser/specs/V_0-3-3.json', A]]).length, 1);
 
 // 4. VUS syntax literals pass, but a second mention on the same line still fails.
 const header = `//${A.toUpperCase()}_SPEC: V_0-3-3`;

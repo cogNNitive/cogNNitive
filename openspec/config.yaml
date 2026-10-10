@@ -5,7 +5,7 @@ context: |
   Project: cogNNitive
   Type: Multi-module ecosystem containing agent skills, documentation, and the iNNfo monorepo.
   Modules:
-    - iNNfo: Monorepo with npm workspaces (innfo-core, innfo-mcp, innfo-editor, innfo-video-parser). Stack: Vue 3, Vite, Tailwind CSS, TypeScript, ESM.
+    - iNNfo: Monorepo with npm workspaces (innfo-core, innfo-mcp, innfo-editor). Stack: Vue 3, Vite, Tailwind CSS, TypeScript, ESM.
     - actioNN: Agent skill ecosystem (Markdown + YAML frontmatter, Node.js scripts for nn-sources).
     - eNNvironment: Ecosystem setup, manifest governance, and validation scripts.
     - _NN: Artifacts and commercial web content store.
@@ -21,7 +21,6 @@ testing:
       innfo-core: 'npm --workspace=@cognnitive/innfo-core test'
       innfo-mcp: 'npm --workspace=@cognnitive/innfo-mcp test'
       innfo-editor: 'npm --workspace=@cognnitive/innfo-editor test'
-      innfo-video-parser: 'npm --workspace=@cognnitive/innfo-video-parser test'
       scripts_and_skills: 'node scripts/verify.js (discovers every *.test.js/*.test.mjs under scripts/, skills/, test/ via collectTestSuites)'
       nn-sources: 'npm --prefix skills/nn-sources test (own package.json; CI needs npm ci --prefix)'
   layers:

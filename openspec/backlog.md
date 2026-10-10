@@ -941,3 +941,101 @@ zero — fix the real ones and handle the generated bundle with `// @ts-nocheck`
 working exclude; confirm `verify` stays green. Keep `scripts/**/*` checked throughout.
 
 **Suggested trigger:** `/sdd-new skills-scripts-typecheck`.
+
+---
+
+## 34. `feature/video-script-review-console` — review a video script while it is authored (structure tree, overlay/animation inspector, validation, preview) *(deferred)*
+
+**Type:** functional · **Size:** large (multi-session) · **Status:** deferred (blocked) · **Added:** 2026-10-10
+
+**Why:** a video script is now a native iNNfo Level-3 document governed by the L2
+blueprint `video-script` (Concepts `Video → Scene → Layer`, plus `Template`), and the
+Remotion-based engine (`video-engine-cli.mjs`) derives timing and lowers it to a
+manifest. But there is no UI to REVIEW a script while it is being authored: the author
+cannot see the Video/Scenes/Layers structure, inspect the compiled overlays and their
+enter/exit animations, read validation results, or preview the composition without
+running CLI commands and reading JSON by hand. The idea is to capture that review
+console as its own artifact. Full session reconnaissance is in Engram
+(project `cognnitive`, topic `discovery/video-script-review-console-pre-build-findings-2-blockers`).
+
+**Required capabilities (as requested):**
+1. Structure tree: Video → Scenes → Layers, with each Scene's narration prose and each
+   Layer's `type::` + fields.
+2. Overlay & animation inspector: per Scene, the compiled manifest's
+   `tracks.overlays[]` with `enterAnimation` / `exitAnimation` / `fromFrame` /
+   `durationInFrames`.
+3. Validation panel: the blueprint validator (innfo-mcp `validate_knowledge`) AND the
+   engine's pre-compile guard (unknown `type::`, missing conditional fields,
+   one-video-per-document, declared-timing rejection).
+4. Live preview: reuse `video-engine-cli.mjs preview <script.md|manifest.json> [--port]`.
+5. Multi-script: pick among a Series' videos.
+
+**Constraint:** consume the STRUCTURED iNNfo model (via innfo-core / innfo-mcp
+`read_knowledge`); never re-parse markdown in the console. Reuse the existing engine
+(`compile` / `preview`); do not reimplement rendering.
+
+---
+
+### Blockers discovered before building (2026-10-10)
+
+- **B1 — dependency not on `dev`.** The whole `video-script` model
+  (`iNNfo/specs/bluepriNNts/video-script/`), the `villabotijos-today` series (blueprint +
+  Template L3 doc), the relocated `nn-video-script` skill, and the
+  `el-cocodrilo-de-singapur` sample live ONLY on the unmerged branch
+  `session/video-script-innfo-model` (**16 commits ahead of `dev`**, worktree
+  `cogNNitive-video-script-innfo-model`, ahead 2 of its own origin). A console session,
+  cut from `dev` per the session guard, has no blueprint to consume. **Sequence first:**
+  land that branch on `dev` (its own PR), or explicitly base the console session on it.
+- **B2 — capability 4 ("live preview") cannot be "reused" — it does not exist.**
+  `previewVideo()` (`video-engine-cli.mjs:654`) is a stub: it `console.log`s a URL and
+  returns `{ previewUrl, port }`; it never bundles or starts Remotion Studio.
+  `finalize-video.mjs` and `render-vertical.mjs` contain no `bundle` / `createServer` /
+  `studio` either. `@remotion/renderer` and `@remotion/bundler` are NOT installed
+  (consent-gated, ~120 MB via `ensure-engine.mjs`).
+- **B3 — the sample has no media.** `el-cocodrilo-de-singapur` references
+  `../../shared/avatar|brand|music/**` and `media/techspot_snapshot.png`, none of which
+  exist (the sample folder holds only the `.md`). `resolveMediaLayers`
+  (`video-engine-cli.mjs:529`) throws `VideoRenderError` on any missing asset, so even a
+  compile-to-manifest on the sample fails today. The original DoD ("demonstrate a live
+  render preview on `el-cocodrilo-de-singapur`") is unreachable without fabricated assets
+  and an installed Remotion.
+
+### What is feasible by reuse (capabilities 1–3)
+
+- Structured model: innfo-mcp `readKnowledge(rootDir, id)` (`tools/list-read.ts`) or
+  innfo-core `parseKnowledge` — the source of truth, never a markdown re-parse. Note
+  `readKnowledge` returns `elements` as an `ElementsMap` (a `Map`), whereas the engine's
+  `lib/knowledge-model.mjs` reader returns a plain `elements` object; the engine consumes
+  the plain-object shape.
+- Layer→Scene ownership is DERIVED, not nested: `assignLayersToScenes`
+  (`remotion-scene-compiler.mjs:150`) matches on slug (`layer.slug.includes(scene.slug)`)
+  with a document-order fallback. Reuse it; do not invent an association rule.
+- Pre-compile guard: `RemotionSceneCompiler.checkScript(model)` (`:199`) — one Video per
+  document, unknown `type::`, missing conditional field, declared-timing rejection.
+- Manifest WITHOUT synthesis or spend: `new RemotionSceneCompiler().compile(model,
+  { templates })` emits `tracks.overlays[]` with enter/exit animation + `fromFrame` /
+  `durationInFrames`; timing is derived from narration word count (`wordsPerSecond` 2.5)
+  when no audio is bound, so no assets are needed for capabilities 1–3.
+- Blueprint validation: innfo-mcp `validate_knowledge`.
+
+### Shape decision (justify before building)
+
+**Standalone console app + thin Node BFF**, NOT a panel inside `innfo-editor`. The editor
+is a pure browser SPA (`innfo-core/browser.ts`, IndexedDB, fetch); capabilities 2–4 need
+Node-side execution (import the engine `.mjs`, read files from disk, call `readKnowledge`).
+Bolting a filesystem+engine backend onto the browser editor grows its trust surface and
+its scope well beyond a one-blueprint review tool. Recommended shape: a new
+`iNNfo/apps/innfo-video-console` (Vue 3 + Vite + TS + Tailwind, mirroring `innfo-editor`,
+per `docs/innfo/documentation/console-ui-kit.md` / `console-needs-and-visuals.md` and the
+`nn-design-presets` skill) backed by a small Vite dev-server Node middleware acting as the
+engine/model adapter. Do not couple the editor to the still-unmerged video-script engine.
+
+### Suggested scope for capability 4 (until B2/B3 clear)
+
+In-app "derived-manifest overlay timeline" (from the compile output) plus a
+consent-gated "Open Remotion Studio" action that runs `ensure-engine.mjs` then a real
+preview — with the actual live render explicitly OUT of scope until Remotion is installed
+and sample media exists.
+
+**Suggested trigger:** `/sdd-explore video-script-review-console` — after B1 is resolved
+(the video-script model is on `dev`).

@@ -415,8 +415,6 @@ function buildSteps(repoRoot, _options = {}) {
   steps.push(node('core-mirror', 'Check Trannsform Core Mirror Fresh', 'scripts/build-trannsform-core-mirror.mjs', '--check'));
   // 7b-bis. Console payload mirror drift guard.
   steps.push(node('console-payload', 'Check Console Payload Mirror Fresh', 'scripts/build-console-payload.mjs', '--check'));
-  // 7b-ter. nn-video-script parser mirror drift guard (render of innfo-video-parser).
-  steps.push(node('video-parser-mirror', 'Check Video Parser Mirror Fresh', 'scripts/build-video-parser-mirror.mjs', '--check'));
   // 7c. Samples SSOT Drift Guard.
   steps.push(node('samples-parity', 'Check Samples Parity with _samples_nn', 'scripts/sync-samples.mjs', '--check'));
   // 7c-bis. Samples version coherence: every sample tracks a current shipped blueprint_version.

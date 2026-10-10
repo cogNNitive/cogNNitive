@@ -243,7 +243,7 @@ describe('iNNfo_V_0-2-1 — metaschema still self-consistent (task G)', () => {
       'bluepriNNts/business/spec_NN.md',
       'bluepriNNts/organization/spec_NN.md',
       'bluepriNNts/projects/spec_NN.md',
-      'bluepriNNts/video/spec_NN.md',
+      'bluepriNNts/video-script/spec_NN.md',
     ]) {
       const errors = validateBlueprintAgainstMetaschema(readSpec(rel), iNNfoV21).filter(
         (d) => d.severity === 'error',

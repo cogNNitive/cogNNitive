@@ -1127,70 +1127,14 @@
     if (!rail) return
     rail.innerHTML = ''
 
-    var models = state && state.meta && Array.isArray(state.meta.models) && state.meta.models.length > 1
-      ? state.meta.models
-      : null
-
-    // Hierarchical rail (design: domain-console-hierarchy-and-omnibar §3): a
-    // DaisyUI `menu` tree — one collapsible folder per model, each holding its
-    // concepts with counts. A model click sets `model:<id>`; a concept click sets
-    // `model:<id> concept:<c>` (the omnibar facets).
-    if (models) {
-      var menu = el('ul', 'menu menu-xs bg-base-100 p-2 w-full')
-      models.forEach(function (m) {
-        var modelKey = String(m.id || m.filePath)
-        var li = el('li')
-        var det = doc.createElement('details')
-        det.className = 'collapse collapse-arrow'
-        det.open = true
-        var sum = doc.createElement('summary')
-        sum.className = 'collapse-title min-h-0 py-2 pr-6'
-        sum.setAttribute('data-model', modelKey)
-        var fileIcon = typeof InnfoIcons !== 'undefined' ? InnfoIcons.getSvg('file-text', { size: 13 }) : ''
-        sum.innerHTML =
-          '<span class="flex items-center gap-2 min-w-0">' + fileIcon +
-          '<span class="truncate font-semibold">' + (m.title || m.filePath || modelKey) + '</span></span>' +
-          '<span class="badge badge-ghost badge-xs">' + (m.elementCount || 0) + '</span>'
-        sum.addEventListener('click', function () {
-          if (typeof onSelect === 'function') onSelect('model:' + modelKey)
-        })
-        det.appendChild(sum)
-        var inner = el('ul')
-        ;(Array.isArray(m.conceptNames) ? m.conceptNames : []).forEach(function (c) {
-          var cli = el('li')
-          var link = doc.createElement('a')
-          if (link) {
-            link.setAttribute('data-concept', String(c))
-            link.innerHTML =
-              '<span class="truncate">' + String(c) + '</span>' +
-              '<span class="badge badge-ghost badge-xs">' + ((counts && counts[c]) || 0) + '</span>'
-            link.addEventListener('click', function (e) {
-              if (e && e.preventDefault) e.preventDefault()
-              if (typeof onSelect === 'function') onSelect('model:' + modelKey + ' concept:' + String(c))
-            })
-          }
-          cli.appendChild(link)
-          inner.appendChild(cli)
-        })
-        det.appendChild(inner)
-        li.appendChild(det)
-        menu.appendChild(li)
-      })
-      rail.appendChild(menu)
-      return
+    function mk(tag) {
+      return doc.createElement ? doc.createElement(tag) : el(tag)
     }
-
-    // Fallback: single-model consoles keep the flat concept rail.
-    var cHdr = el('div', 'innfo-rail-header')
-    cHdr.innerHTML = '<span>Concepts (' + (concepts ? concepts.length : 0) + ')</span>'
-    rail.appendChild(cHdr)
-
-    ;(Array.isArray(concepts) ? concepts : []).forEach(function (concept, index) {
-      var name = typeof concept === 'string' ? concept : concept.name
+    function conceptButton(name, index) {
       var count = counts[name] || 0
       var draftCount = draftCountsByConcept ? draftCountsByConcept[name] || 0 : 0
-      var btn = (doc.createElement ? doc.createElement('button') : el('button'))
-      if (!btn) return
+      var btn = mk('button')
+      if (!btn) return null
       btn.className = 'innfo-rail-item'
       btn.setAttribute('data-concept', String(name))
       var pill = UI.ConceptPill({ id: name, label: name, index: index, count: count }, { document: doc })
@@ -1205,7 +1149,100 @@
       btn.addEventListener('click', function () {
         if (typeof onSelect === 'function') onSelect('concept:' + String(name))
       })
-      rail.appendChild(btn)
+      return btn
+    }
+    function conceptNamesForModel(m) {
+      var mid = String(m.id || m.filePath)
+      var seen = {}
+      var out = []
+      ;(state && Array.isArray(state.elements) ? state.elements : []).forEach(function (e) {
+        if (!e) return
+        if (String(e.modelId || e.modelFile || '') !== mid) return
+        if (e.concept && !seen[e.concept]) {
+          seen[e.concept] = true
+          out.push(e.concept)
+        }
+      })
+      if (!out.length && Array.isArray(m.conceptNames)) {
+        m.conceptNames.forEach(function (c) {
+          if (c && !seen[c]) {
+            seen[c] = true
+            out.push(c)
+          }
+        })
+      }
+      return out
+    }
+
+    var models = state && state.meta && Array.isArray(state.meta.models) && state.meta.models.length > 1
+      ? state.meta.models
+      : null
+
+    // Hierarchical rail: Level 1 = one <details> per model, Level 2 = its concepts
+    // nested inside. Clicking a model sets the `model:` facet; clicking a concept
+    // sets the `concept:` facet. Falls back to the flat concept list for single-model
+    // consoles (models absent or length <= 1).
+    if (models) {
+      var list = mk('ul')
+      if (list) list.className = 'menu innfo-rail-menu'
+      var globalIndex = 0
+      var globalConcepts = Array.isArray(concepts) ? concepts : []
+      models.forEach(function (m) {
+        var mid = String(m.id || m.filePath)
+        var li = mk('li')
+        var details = mk('details')
+        details.className = 'innfo-rail-model'
+        details.open = true
+        var summary = mk('summary')
+        summary.className = 'innfo-rail-item innfo-rail-model-summary'
+        summary.setAttribute('data-model', mid)
+        summary.innerHTML =
+          '<span class="innfo-rail-model-title">' + (m.title || m.filePath || 'Model') + '</span>' +
+          '<span class="innfo-rail-count badge badge-sm">' + (m.elementCount || 0) + '</span>'
+        summary.addEventListener('click', function () {
+          if (typeof onSelect === 'function') onSelect('model:' + mid)
+        })
+        details.appendChild(summary)
+
+        var sub = mk('ul')
+        var names = conceptNamesForModel(m)
+        var modelSet = {}
+        names.forEach(function (n) {
+          modelSet[n] = true
+        })
+        if (!names.length) {
+          globalConcepts.forEach(function (c) {
+            var nm = typeof c === 'string' ? c : c.name
+            if (nm && !modelSet[nm]) {
+              modelSet[nm] = true
+              names.push(nm)
+            }
+          })
+        }
+        names.forEach(function (name) {
+          var cli = mk('li')
+          var btn = conceptButton(name, globalIndex)
+          globalIndex += 1
+          if (btn) cli.appendChild(btn)
+          sub.appendChild(cli)
+        })
+        details.appendChild(sub)
+
+        li.appendChild(details)
+        list.appendChild(li)
+      })
+      rail.appendChild(list)
+      return
+    }
+
+    // Flat fallback (single-model console).
+    var cHdr = el('div', 'innfo-rail-header')
+    cHdr.innerHTML = '<span>Concepts (' + (concepts ? concepts.length : 0) + ')</span>'
+    rail.appendChild(cHdr)
+    ;(Array.isArray(concepts) ? concepts : []).forEach(function (concept, index) {
+      var name = typeof concept === 'string' ? concept : concept.name
+      var btn = conceptButton(name, index)
+      if (btn) rail.appendChild(btn)
     })
   }
 

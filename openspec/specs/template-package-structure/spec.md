@@ -111,13 +111,13 @@ When a requested template package is not available locally, `innfo-mcp` MUST dow
 The template immutability guard MUST treat any added, modified or removed file under a package's `skills/**` as a change to that package. Such a change MUST require a bump of the package `blueprint_version`, exactly as a change to `spec_NN.md` does.
 
 #### Scenario: Skill edit without version bump is rejected
-- GIVEN a change that edits `iNNfo/specs/bluepriNNts/video/skills/nn-video-script/SKILL.md`
-- AND leaves the `video` `blueprint_version` unchanged
+- GIVEN a change that edits `iNNfo/specs/bluepriNNts/video-script/skills/nn-video-script/SKILL.md`
+- AND leaves the `video-script` `blueprint_version` unchanged
 - WHEN the immutability guard runs
 - THEN it fails, naming the package and the skill file
 
 #### Scenario: Skill edit with version bump passes
-- GIVEN the same edit together with a `video` `blueprint_version` bump
+- GIVEN the same edit together with a `video-script` `blueprint_version` bump
 - WHEN the immutability guard runs
 - THEN it passes
 

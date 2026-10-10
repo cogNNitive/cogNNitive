@@ -609,16 +609,16 @@ describe('visual-catalog blueprint procedure discovery (real package)', () => {
   })
 })
 
-describe('video blueprint embedded skill discovery (real package)', () => {
+describe('video-script blueprint embedded skill discovery (real package)', () => {
   it('listBlueprintSkills reports nn-video-script with a path that holds the real skill', async () => {
-    const { skills } = await listBlueprintSkills(iNNfoRootDir, { blueprint_name: 'video' })
+    const { skills } = await listBlueprintSkills(iNNfoRootDir, { blueprint_name: 'video-script' })
     const skill = skills.find((s) => s.name === 'nn-video-script')
     expect(skill).toBeDefined()
     if (!skill || !('embedded' in skill)) throw new Error('nn-video-script must be an embedded skill')
     expect(skill.embedded).toBe(true)
-    expect(skill.source_blueprint).toBe('video')
+    expect(skill.source_blueprint).toBe('video-script')
     expect(existsSync(join(skill.path, 'SKILL.md'))).toBe(true)
-    expect(existsSync(join(skill.path, 'scripts', 'vus-spec.mjs'))).toBe(true)
+    expect(existsSync(join(skill.path, 'scripts', 'remotion-scene-compiler.mjs'))).toBe(true)
     expect(skill.version).toMatch(/^V_\d+-\d+-\d+$/)
     expect(skill.description).toBeTruthy()
   })

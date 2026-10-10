@@ -102,9 +102,13 @@ blueprints:
     repo: cogNNitive/cogNNitive-web
     path: iNNfo/specs/bluepriNNts/repository/spec_NN.md
     ref_key: blueprints
-  - name: video
+  - name: video-script
     repo: cogNNitive/cogNNitive-web
-    path: iNNfo/specs/bluepriNNts/video/spec_NN.md
+    path: iNNfo/specs/bluepriNNts/video-script/spec_NN.md
+    ref_key: blueprints
+  - name: villabotijos-today
+    repo: cogNNitive/cogNNitive-web
+    path: iNNfo/specs/bluepriNNts/villabotijos-today/spec_NN.md
     ref_key: blueprints
   - name: sources
     repo: cogNNitive/cogNNitive-web
