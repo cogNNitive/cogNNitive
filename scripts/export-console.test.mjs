@@ -1,7 +1,7 @@
 import { describe, it, beforeEach, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdtemp, rm, mkdir, writeFile, readFile, copyFile, readdir } from 'node:fs/promises'
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve, dirname, basename, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -417,6 +417,157 @@ level: 3
         existsSync(consoleHtml(tempDir, 'business_V_0-2-5')),
         true,
       )
+    })
+  })
+
+  describe('distributed exporter set', () => {
+    // The installer places every manifest console_assets file flat, by basename, in one
+    // folder (skills-commands installConsoleAssetAtCommit). Rebuild exactly that.
+    const manifestConsoleFiles = () => {
+      const yaml = readFileSync(resolve(here, '..', 'manifest', 'source.yaml'), 'utf-8')
+      const block = yaml.split('\nconsole_assets:\n')[1].split(/\n\S/)[0]
+      return [...block.matchAll(/^\s+file:\s*(\S+)\s*$/gm)].map((m) => m[1])
+    }
+    const install = async (dir, { skip = [] } = {}) => {
+      await mkdir(dir, { recursive: true })
+      for (const rel of manifestConsoleFiles()) {
+        if (skip.includes(basename(rel))) continue
+        await copyFile(resolve(here, '..', rel), join(dir, basename(rel)))
+      }
+    }
+    const runInstalled = (dir, args, env = {}) =>
+      execFileAsync(process.execPath, [join(dir, 'export-console.mjs'), tempDir, ...args], {
+        cwd: tempDir,
+        env: { ...process.env, INNFO_CONSOLE_DIR: dir, ...env },
+      })
+    const VIEW = (title) =>
+      `registerView({ title: '${title}', icon: 'layout', order: 1, kind: 'readonly', mount() {} })\n`
+    const METRICS_MODEL =
+      '---\ntitle: "M"\nlevel: 3\nparent_spec:\n  name: "metrics_V_0-4-1"\n---\n\n# NN Item\n## NN Item: A\n  name:: "A"\n'
+    const putView = async (dir, slug, title) => {
+      await mkdir(dir, { recursive: true })
+      await writeFile(join(dir, slug + '.js'), VIEW(title), 'utf-8')
+    }
+    const viewsOf = (packagesRoot) => join(packagesRoot, 'metrics', 'assets')
+    const setUpViews = async (packagesRoot) => {
+      await writeFile(join(tempDir, 'models', 'm_V_1-0-0_NN.md'), METRICS_MODEL, 'utf-8')
+      await putView(join(tempDir, 'consoles', 'views'), 'pipeline', 'Pipeline')
+      if (packagesRoot) await putView(viewsOf(packagesRoot), 'console-view-timeline', 'Timeline')
+    }
+    const domainHtml = () => readFile(join(tempDir, 'domaiNN_console.html'), 'utf-8')
+    const assertWholeConsole = async (html) => {
+      const bundle = await readFile(
+        resolve(here, '..', 'iNNfo', 'specs', 'bluepriNNts', 'console', 'innfo-console.bundle.js'),
+        'utf-8',
+      )
+      const banner = bundle.match(/innfo-console\.bundle\.js — single-file console runtime/)[0]
+      assert.equal(html.split(banner).length - 1, 1, 'bundle inlined once')
+      assert.match(html, /<style>[\s\S]*--innfo-bg[\s\S]*<\/style>/, 'css inlined')
+      assert.ok(
+        html.includes('data-innfo-view="pipeline" data-innfo-view-source="domaiNN:consoles/views/pipeline.js"'),
+        'domain view present',
+      )
+    }
+    const failure = async (promise) => {
+      try {
+        await promise
+      } catch (err) {
+        return err
+      }
+      assert.fail('expected the exporter to exit non-zero')
+    }
+
+    it('lists the exporter, its view lib and the assets --domain reads in the manifest', () => {
+      const names = manifestConsoleFiles().map((f) => basename(f))
+      for (const need of [
+        'export-console.mjs',
+        'console-views.mjs',
+        'innfo-ui.css',
+        'console-payload.generated.cjs',
+        'innfo-console.bundle.js',
+        'artifact_shell.html',
+      ]) {
+        assert.ok(names.includes(need), need + ' must be a console_assets entry')
+      }
+    })
+
+    it('runs --domain from an installed set alone, with no repo tree around it', async () => {
+      const dir = join(tempDir, 'installed')
+      await install(dir)
+      const { stdout } = await runInstalled(dir, ['--domain'])
+      assert.match(stdout, /domaiNN_console\.html/)
+      const html = await readFile(join(tempDir, 'domaiNN_console.html'), 'utf-8')
+      assert.equal(/<script[^>]*\ssrc=/.test(html), false, 'self-contained')
+    })
+
+    it('inlines the bundle, the CSS and a domain-local view from an installed set', async () => {
+      const dir = join(tempDir, 'installed')
+      await install(dir)
+      await setUpViews(null)
+      await runInstalled(dir, ['--domain'], { INNFO_BLUEPRINTS_DIR: join(tempDir, 'no-packages') })
+      await assertWholeConsole(await domainHtml())
+    })
+
+    it('resolves bluepriNNt views from INNFO_BLUEPRINTS_DIR for an installed set', async () => {
+      const dir = join(tempDir, 'installed')
+      const packages = join(tempDir, 'packages')
+      await install(dir)
+      await setUpViews(packages)
+      const { stderr } = await runInstalled(dir, ['--domain'], { INNFO_BLUEPRINTS_DIR: packages })
+      const html = await domainHtml()
+      await assertWholeConsole(html)
+      assert.ok(
+        html.includes(
+          'data-innfo-view="timeline" data-innfo-view-source="bluepriNNt:metrics/assets/console-view-timeline.js"',
+        ),
+      )
+      assert.doesNotMatch(stderr, /no bluepriNNt package/)
+    })
+
+    it('looks for installed bluepriNNt packages in ~/.agents/bluepriNNts by default', async () => {
+      const dir = join(tempDir, 'installed')
+      const home = join(tempDir, 'home')
+      await install(dir)
+      await setUpViews(join(home, '.agents', 'bluepriNNts'))
+      await runInstalled(dir, ['--domain'], { HOME: home, USERPROFILE: home, INNFO_BLUEPRINTS_DIR: '' })
+      assert.ok((await domainHtml()).includes('data-innfo-view="timeline"'))
+    })
+
+    it('warns on stderr, and still exports, when the bluepriNNt package cannot be found', async () => {
+      const dir = join(tempDir, 'installed')
+      await install(dir)
+      await setUpViews(null)
+      const packages = join(tempDir, 'empty-packages')
+      const { stderr } = await runInstalled(dir, ['--domain'], { INNFO_BLUEPRINTS_DIR: packages })
+      assert.match(stderr, /WARNING: \[export-console\] no bluepriNNt package for "metrics_V_0-4-1"/)
+      assert.ok(stderr.includes(join(packages, 'metrics')))
+      await assertWholeConsole(await domainHtml())
+    })
+
+    it('fails with a clear message when the view lib is not next to the exporter', async () => {
+      const dir = join(tempDir, 'installed')
+      await install(dir, { skip: ['console-views.mjs'] })
+      const err = await failure(runInstalled(dir, ['--domain']))
+      assert.notEqual(err.code, 0)
+      assert.match(err.stderr, /--domain needs console-views\.mjs next to this script/)
+      assert.equal(existsSync(join(tempDir, 'domaiNN_console.html')), false)
+    })
+
+    it('does not turn a missing module inside the lib into the "lib absent" message', async () => {
+      const dir = join(tempDir, 'installed')
+      await install(dir)
+      const lib = join(dir, 'console-views.mjs')
+      await writeFile(lib, "import './not-there.mjs'\n" + (await readFile(lib, 'utf-8')), 'utf-8')
+      const err = await failure(runInstalled(dir, ['--domain']))
+      assert.match(err.stderr, /not-there\.mjs/)
+      assert.doesNotMatch(err.stderr, /next to this script/)
+    })
+
+    it('still exports a single model without the view lib', async () => {
+      const dir = join(tempDir, 'installed')
+      await install(dir, { skip: ['console-views.mjs'] })
+      await runInstalled(dir, ['business'])
+      assert.equal(existsSync(consoleHtml(tempDir, 'business_V_0-2-5')), true)
     })
   })
 

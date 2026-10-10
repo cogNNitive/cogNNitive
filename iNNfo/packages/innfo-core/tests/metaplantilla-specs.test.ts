@@ -230,7 +230,7 @@ Reviews the pull request.
     for (const p of [
       'bluepriNNts/business/samples/Ghostbusters_V_0-1-0_business_NN.md',
       'bluepriNNts/organization/samples/Ghostbusters_V_0-3-2_organization_NN.md',
-      'bluepriNNts/procedures/samples/Ghostbusters_V_0-3-1_procedures_NN.md',
+      'bluepriNNts/procedures/samples/Ghostbusters_V_0-3-2_procedures_NN.md',
       'bluepriNNts/projects/samples/Ghostbusters_V_0-3-2_projects_NN.md',
     ]) {
       const content = readSpec(p)
@@ -254,7 +254,7 @@ Reviews the pull request.
   })
 
   it('parses the Ghostbusters procedures sample with key:: value properties', () => {
-    const content = readSpec('bluepriNNts/procedures/samples/Ghostbusters_V_0-3-1_procedures_NN.md')
+    const content = readSpec('bluepriNNts/procedures/samples/Ghostbusters_V_0-3-2_procedures_NN.md')
     const parsed = parseKnowledge(content)
     const work = parsed.elements.get('Work')!
     const triage = work.find((e) => e.name === 'Emergency Call Triage')!

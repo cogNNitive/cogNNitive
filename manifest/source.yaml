@@ -166,6 +166,18 @@ console_assets:
     repo: cogNNitive/cogNNitive-web
     file: scripts/export-console.mjs
     ref_key: innfo-console
+  - name: innfo-console-export-views
+    repo: cogNNitive/cogNNitive-web
+    file: scripts/console-views.mjs
+    ref_key: innfo-console
+  - name: innfo-console-ui-css
+    repo: cogNNitive/cogNNitive-web
+    file: iNNfo/specs/bluepriNNts/console/innfo-ui.css
+    ref_key: innfo-console
+  - name: innfo-console-payload-mirror
+    repo: cogNNitive/cogNNitive-web
+    file: iNNfo/specs/bluepriNNts/console/console-payload.generated.cjs
+    ref_key: innfo-console
 
 workflows:
   - id: model

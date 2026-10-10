@@ -814,11 +814,17 @@ async function cmdUpdate(args) {
     return pathPresent && (!entry || entry.commit !== template.commit);
   };
 
+  // The console assets are one set (exporter, view lib, CSS, bundle, payload mirror).
+  // Once any member is installed, update also installs the members a newer release added.
+  const consoleSetInstalled = (consoleAssets || []).some(asset =>
+    fs.existsSync(path.join(consoleDir, path.basename(asset.file || asset.url))));
+
   const isOutdatedConsole = (asset) => {
     const fileName = path.basename(asset.file || asset.url);
     const pathPresent = fs.existsSync(path.join(consoleDir, fileName));
+    if (!pathPresent) return consoleSetInstalled;
     const entry = state.console ? state.console[fileName] : null;
-    return pathPresent && (!entry || entry.commit !== asset.commit);
+    return !entry || entry.commit !== asset.commit;
   };
 
   let selectedSkills = skills.filter(isOutdatedSkill);

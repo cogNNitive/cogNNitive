@@ -32,6 +32,7 @@ test('RELEASE_TABLE defines copied paths for every key', () => {
   assert.deepEqual(RELEASE_TABLE['innfo-console'].repoPaths, [
     'iNNfo/specs/bluepriNNts/console',
     'scripts/export-console.mjs',
+    'scripts/console-views.mjs',
   ]);
 });
 
@@ -41,6 +42,7 @@ test('DISTRIBUTION_PATHS is derived from RELEASE_TABLE', () => {
   assert.ok(DISTRIBUTION_PATHS.includes('iNNfo/specs'));
   assert.ok(DISTRIBUTION_PATHS.includes('iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js'));
   assert.ok(DISTRIBUTION_PATHS.includes('scripts/export-console.mjs'));
+  assert.ok(DISTRIBUTION_PATHS.includes('scripts/console-views.mjs'));
 });
 
 test('RELEASE_OWNED_SITE_PATHS includes all release-owned paths relative to docs', () => {

@@ -32,7 +32,7 @@ describe('LeftSidebar — Dedicated Content Tree Navigation (specs/editor-naviga
     setActivePinia(createPinia())
   })
 
-  it('does NOT render view switcher tabs (editor, graph, consoles, explorer)', () => {
+  it('does NOT render view switcher tabs (editor, graph, explorer)', () => {
     const knowledgeStore = useKnowledgeStore()
     knowledgeStore.setGraph(
       {
@@ -46,7 +46,6 @@ describe('LeftSidebar — Dedicated Content Tree Navigation (specs/editor-naviga
     // Verify view switcher buttons do NOT exist in LeftSidebar
     expect(wrapper.find('[data-testid="view-switcher-editor"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="view-switcher-graph"]').exists()).toBe(false)
-    expect(wrapper.find('[data-testid="view-switcher-consoles"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="view-switcher-explorer"]').exists()).toBe(false)
   })
 
@@ -83,10 +82,6 @@ describe('LeftSidebar — Dedicated Content Tree Navigation (specs/editor-naviga
 
     // Tree remains rendered in graph view
     uiStore.setActiveView('graph')
-    expect(wrapper.find('[data-testid="model-header"]').exists()).toBe(true)
-
-    // Tree remains rendered in consoles view
-    uiStore.setActiveView('consoles')
     expect(wrapper.find('[data-testid="model-header"]').exists()).toBe(true)
   })
 })

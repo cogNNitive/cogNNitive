@@ -328,7 +328,7 @@ describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
 
       const res = InnfoConsole.composeChangesetExport(state, 'author_jane')
       assert.equal(res.ok, true)
-      assert.match(res.filename, /^BusinessModel_[a-zA-Z0-9_-]+_\d+-\d+_changes_NN\.md$/)
+      assert.match(res.filename, /^businessmodel_[a-zA-Z0-9_-]+_\d+-\d+_changes_NN\.md$/)
       assert.match(res.text, /blueprint_version: "0.1.0"/)
       assert.match(res.text, /status: proposed/)
       assert.match(res.text, /## NN Change: c-01/)

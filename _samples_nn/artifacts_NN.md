@@ -16,20 +16,11 @@ title: "Artifacts Catalog"
 
 # NN Artifact
 
-## NN Artifact: Workspace Hub Interactive Dashboard
-format:: html
-summary:: Unified interactive HTML application providing cross-model visualization, metrics dashboards, and live execution consoles.
-status:: verified
-produced_by:: Compile Workspace Hub
-sources:: [kNNowledge/Ghostbusters_business-model_NN.md]
-file_path:: artifacts/workspace_hub.html
-tags:: [dashboard, runtime, console]
-
 ## NN Artifact: Executive Remediation Report 1984
 format:: model
 summary:: Structured synthesis of 1984 NYC paranormal elimination operations, client billing totals, and municipal indemnity compliance.
 status:: verified
-produced_by:: Compile Workspace Hub
+produced_by:: Reconcile Artifact Feedback
 sources:: [sources/import/nyc-paranormal-activity-report-1984.md]
 artifact_model:: artifacts/models/executive_remediation_report_business_NN.md
 tags:: [report, executive, compliance]

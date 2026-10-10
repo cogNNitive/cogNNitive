@@ -21,7 +21,11 @@ const RELEASE_TABLE = Object.freeze({
     sitePaths: Object.freeze(['docs/innfo/cdn/manifest.json']),
   }),
   'innfo-console': Object.freeze({
-    repoPaths: Object.freeze(['iNNfo/specs/bluepriNNts/console', 'scripts/export-console.mjs']),
+    repoPaths: Object.freeze([
+      'iNNfo/specs/bluepriNNts/console',
+      'scripts/export-console.mjs',
+      'scripts/console-views.mjs',
+    ]),
     sitePaths: Object.freeze([]),
   }),
 });
@@ -36,6 +40,7 @@ const DISTRIBUTION_PATHS = Object.freeze([
   'iNNfo/specs',
   'iNNfo/packages/innfo-mcp/bin/innfo-mcp.bundle.js',
   'scripts/export-console.mjs',
+  'scripts/console-views.mjs',
 ]);
 
 /**

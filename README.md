@@ -53,7 +53,9 @@ repository, which owns the GitHub Pages deployment for `cognnitive.com`.
   `https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/`.
 - **Publishing.** `npm run build:docs` builds the site and artifacts; the
   `publish-web` CI job copies the site (`docs/`) plus the distribution surface
-  (`skills/**`, `iNNfo/specs/**`, the MCP bundle, `scripts/export-console.mjs`)
+  (`skills/**`, `iNNfo/specs/**`, the MCP bundle, `scripts/export-console.mjs`,
+  `scripts/console-views.mjs`; the console asset set also includes
+  `innfo-ui.css` and `console-payload.generated.cjs` under `iNNfo/specs/`)
   to the public repo. Set `WEB_PUBLISH_TOKEN` (Contents:write on
   `cogNNitive-web`) for a manual publish.
 

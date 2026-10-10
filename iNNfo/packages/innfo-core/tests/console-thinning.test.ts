@@ -10,9 +10,9 @@ const repoRoot = join(here, '..', '..', '..', '..')
 
 const assets = {
   shell: join(templatesDir, 'console', 'artifact_shell.html'),
-  timeline: join(templatesDir, 'metrics', 'assets', 'timeline.html'),
   console: join(templatesDir, 'workspace', 'assets', 'model_console.html'),
 }
+const timelineView = join(templatesDir, 'metrics', 'assets', 'console-view-timeline.js')
 const consoleUiKit = join(templatesDir, 'console', 'ui-kit.js')
 
 // Markers that would indicate a duplicated inline copy of the shared runtime.
@@ -30,7 +30,6 @@ function readAsset(path: string): string {
 
 describe.each([
   ['shell', assets.shell],
-  ['timeline', assets.timeline],
   ['console', assets.console],
 ])('%s console asset', (_name, path) => {
   it('declares an innfo-config block with a needs[] capability list', () => {
@@ -104,34 +103,17 @@ describe('console (workspace) slot payloads', () => {
   })
 })
 
-// The timeline asset is a template blue-print shell: it declares the shared
-// console bundle (innfo-console.bundle.js), NOT the legacy innfo-runtime.js,
-// and carries the two shell JSON slots. Inline dashboard engine markers
-// (MODEL_DATA/FORMULAS/DEPS/SERIES/SEASON as code) must not survive.
-describe('timeline slot payloads', () => {
-  it('boots the shared console bundle (not the legacy innfo-runtime.js)', () => {
-    const html = readAsset(assets.timeline)
-    expect(html).toContain('innfo-console.bundle.js')
-    expect(html).not.toContain('innfo-runtime.js')
-  })
-
-  it('keeps the innfo-schema and innfo-model shell slots', () => {
-    const html = readAsset(assets.timeline)
-    expect(html).toContain('id="innfo-schema"')
-    expect(html).toContain('id="innfo-model"')
-  })
-
-  it('ships no inline dashboard engine blocks', () => {
-    const html = readAsset(assets.timeline)
-    for (const marker of [
-      'const MODEL_DATA',
-      'const FORMULAS',
-      'const DEPS',
-      'const SERIES',
-      'const SEASON',
-      'new uPlot',
-    ]) {
-      expect(html).not.toContain(marker)
+// The metrics timeline is a registered VIEW now, not a shell: a classic script
+// with no bundle tag and no inline dashboard engine.
+describe('timeline view asset', () => {
+  it('is a classic registered view with no bundle tag or inline engine', () => {
+    const code = readAsset(timelineView)
+    expect(code).toContain('registerView(')
+    expect(code).toContain('renderTimelineGrid')
+    expect(code).not.toContain('innfo-console.bundle.js')
+    expect(code).not.toMatch(/^\s*(import|export)\b/m)
+    for (const marker of ['const MODEL_DATA', 'const FORMULAS', 'const DEPS', 'const SERIES', 'new uPlot']) {
+      expect(code).not.toContain(marker)
     }
   })
 })
