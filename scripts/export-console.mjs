@@ -653,6 +653,7 @@ async function main() {
           title: mTitle,
           filePath: fileName,
           blueprint: blueprintName ? viewsLib.parseSpecName(blueprintName).base : null,
+          version: (m.fm && m.fm.knowledge_version) || null,
           conceptNames: Array.from(modelConcepts),
           elementCount: Array.isArray(payload.model.elements) ? payload.model.elements.length : 0,
         })
