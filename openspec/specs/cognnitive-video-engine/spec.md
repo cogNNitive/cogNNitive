@@ -18,10 +18,10 @@ document. It MUST derive timing from measured TTS/media duration and MUST derive
 layer sequencing and order from the model's list order. Each `Scene` MUST map to
 exactly one `RemotionSceneTrack`, preserving scene order, names, layers, and
 resolved properties. The compiler MUST generate frame-accurate sequence tracks,
-transitions, lower-thirds, kinetic typography titles, and concept callouts.
+transitions, lower-thirds, and kinetic typography titles.
 Overlay text MUST be sourced from the Layer's declared text field, never from the
 layer name.
-(Previously: the compiler lowered the vendored VUS parser AST into the manifest and emitted one overlay track per blockquote.)
+(Previously: the compiler emitted concept callouts (`conceptCallout`) and lowered the vendored VUS parser AST into the manifest, emitting one overlay track per blockquote.)
 
 #### Scenario: Compile multi-scene script into Remotion composition manifest
 
@@ -52,7 +52,7 @@ layer name.
 
 #### Scenario: Visual overlay components compiled with precise frame timings
 
-- GIVEN a document specifying lower thirds, kinetic titles, and concept callouts
+- GIVEN a document specifying lower thirds and kinetic titles
 - WHEN the scene compiler compiles it into the manifest
 - THEN every visual overlay element contains a calculated start frame, duration in frames, and component configuration matching the document definitions
 

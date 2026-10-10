@@ -60,7 +60,7 @@ Bootstrap MUST ensure the domaiNN root `.gitattributes` contains the line `* -te
 
 ### Requirement: Series and Video Folder Layout
 
-The workspace directory conventions MUST recognize a `series/` tree for video production: `series/{series-slug}/` holds a Series' `video`-template model file (carrying its `series:` frontmatter block), its script template, and shared series assets. The standard `{modelDir}/assets/{video-slug}/` rule (unchanged from the `video` bluepriNNt's V_0-2-1 prose) then places each Video's own files at `series/{series-slug}/assets/{video-slug}/`, because the Series model file is that Video Element's `{modelDir}`.
+The workspace directory conventions MUST recognize a `series/` tree for video production: `series/{series-slug}/` holds a Series' `video-script`-template model file (carrying its `series:` frontmatter block), its script template, and shared series assets. The standard `{modelDir}/assets/{video-slug}/` rule (unchanged from the `video-script` bluepriNNt prose) then places each Video's own files at `series/{series-slug}/assets/{video-slug}/`, because the Series model file is that Video Element's `{modelDir}`.
 
 #### Scenario: Series tree present in a video-producing workspace
 - GIVEN a workspace using the video/Series hierarchy

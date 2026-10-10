@@ -34,7 +34,7 @@ Execute the canonical activation gate defined in `nn-preflight` (session greetin
 ## 1. Engine Architecture & Remotion Compilation
 
 The video engine operates headlessly through programmatic modules:
-- **Scene Compiler (`scripts/remotion-scene-compiler.mjs`)**: Compiles the structured iNNfo video-script model (a Level-3 kNNowledge document adopting the `video-script` blueprint) into frame-accurate Remotion Composition Manifests with sequence tracks, transitions, lower-thirds (`lowerThird`), kinetic titles (`kineticTitle`), and concept callouts (`conceptCallout`). It reads the model structurally and never re-parses markdown.
+- **Scene Compiler (`scripts/remotion-scene-compiler.mjs`)**: Compiles the structured iNNfo video-script model (a Level-3 kNNowledge document adopting the `video-script` blueprint) into frame-accurate Remotion Composition Manifests with sequence tracks, transitions, lower-thirds (`lowerThird`), and kinetic titles (`kineticTitle`). It reads the model structurally and never re-parses markdown.
   - `kineticTitle` optional big-text controls (defaults unchanged when absent): `heading_size` / `subheading_size` (px; setting either adds a text shadow and wraps long titles) and `anchor` (`top` | `center` | `bottom`).
 - **Deterministic Asset Cache (`scripts/cache-manager.mjs`)**: Content-addressed SHA-256 cache under `.cognnitive/cache/video/` with isolated subdirectories (`tts/`, `images/`, `temp/`).
 - **Asset Synthesizer (`scripts/asset-synthesizer.mjs` / `scripts/tts-generator.mjs`)**: Synthesizes TTS voiceover tracks and image/motion assets, measuring audio durations via `@remotion/media-parser` (no FFmpeg-from-PATH).
