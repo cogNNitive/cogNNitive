@@ -129,7 +129,11 @@ function normalizeProcedures(fm: MutableFrontmatter): void {
   if (out !== undefined) fm.procedures = out
 }
 
-/** `skills:` — `{ name, repo, path, source_template? }`, dropped when `name` is empty. */
+/**
+ * `skills:` — `{ name, repo, path, commit?, ref?, sha256?, license?, distribution?,
+ * source_template? }`, dropped when `name` is empty. The pin/integrity/license
+ * fields are the external-skill governance contract (see external-skill-policy).
+ */
 function normalizeSkills(fm: MutableFrontmatter): void {
   const out = coerceList(fm.skills, (s) => {
     const obj = asRecord(s)
@@ -140,6 +144,11 @@ function normalizeSkills(fm: MutableFrontmatter): void {
       name,
       repo: str(obj.repo),
       path: str(obj.path),
+      ...(obj.commit ? { commit: str(obj.commit) } : {}),
+      ...(obj.ref ? { ref: str(obj.ref) } : {}),
+      ...(obj.sha256 ? { sha256: str(obj.sha256) } : {}),
+      ...(obj.license ? { license: str(obj.license) } : {}),
+      ...(obj.distribution ? { distribution: str(obj.distribution) } : {}),
       ...(obj.source_template ? { source_template: str(obj.source_template) } : {}),
     }
   })
