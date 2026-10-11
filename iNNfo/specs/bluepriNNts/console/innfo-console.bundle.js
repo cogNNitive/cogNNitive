@@ -2227,31 +2227,42 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
   }
 
-  function createDraftStore(storage, modelId) {
+  function createDraftStore(storage, modelId, modelVersion) {
     var resolved = resolveStorage(storage)
     var backing = resolved.storage
     var persistent = resolved.persistent
     var key = STORE_PREFIX + String(modelId == null ? '' : modelId)
+    var liveVersion = modelVersion == null ? '' : String(modelVersion)
+
+    function emptyState() {
+      return {
+        v: STORE_VERSION,
+        modelId: modelId,
+        modelVersion: liveVersion,
+        drafts: [],
+        reviewed: {},
+      }
+    }
 
     function read() {
       var raw
       try {
         raw = backing.getItem(key)
       } catch {
-        return { v: STORE_VERSION, modelId: modelId, drafts: [], reviewed: {} }
+        return emptyState()
       }
-      if (!raw) return { v: STORE_VERSION, modelId: modelId, drafts: [], reviewed: {} }
+      if (!raw) return emptyState()
       var parsed
       try {
         parsed = JSON.parse(raw)
       } catch {
-        return { v: STORE_VERSION, modelId: modelId, drafts: [], reviewed: {} }
+        return emptyState()
       }
       if (!isObject(parsed) || parsed.v !== STORE_VERSION) {
-        return { v: STORE_VERSION, modelId: modelId, drafts: [], reviewed: {} }
+        return emptyState()
       }
       if (String(parsed.modelId) !== String(modelId)) {
-        return { v: STORE_VERSION, modelId: modelId, drafts: [], reviewed: {} }
+        return emptyState()
       }
       var drafts = Array.isArray(parsed.drafts)
         ? parsed.drafts.map(function (d) {
@@ -2264,7 +2275,17 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           reviewed[id] = String(parsed.reviewed[id])
         })
       }
-      return { v: STORE_VERSION, modelId: modelId, drafts: drafts, reviewed: reviewed }
+      // The version the drafts were authored against is sticky while drafts
+      // exist; a fully exported (empty) store rebases to the live version.
+      var recorded =
+        drafts.length > 0 && parsed.modelVersion != null ? String(parsed.modelVersion) : liveVersion
+      return {
+        v: STORE_VERSION,
+        modelId: modelId,
+        modelVersion: recorded,
+        drafts: drafts,
+        reviewed: reviewed,
+      }
     }
 
     function write(state) {
@@ -2280,6 +2301,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return {
       persistent: persistent,
       key: key,
+      modelVersion: function () {
+        return state.modelVersion
+      },
       drafts: function () {
         return deepCopy(state.drafts)
       },
@@ -4181,6 +4205,18 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return node
   }
 
+  // The console header (`.innfo-navbar`) carries an empty extra slot
+  // (`#innfo-navbar-extra`); this stamps the artifact's last-generated moment so
+  // a reader can see how fresh the console is without opening the model header.
+  function renderNavbarMeta(doc, meta) {
+    var host = doc.getElementById('innfo-navbar-extra')
+    if (!host) return
+    var generated = meta && meta.generated
+    if (!generated) return
+    var stamp = String(generated).replace('T', ' ').replace(/\..*/, '').replace(/Z$/, '').trim()
+    host.textContent = 'Last updated ' + stamp + ' UTC'
+  }
+
   function renderBanner(doc, meta, needs, draftCount, onReviewerChange, state) {
     var banner = doc.getElementById('innfo-feedback-banner') || doc.getElementById('innfo-banner')
     if (!banner) return
@@ -4213,6 +4249,23 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     banner.appendChild(version)
     banner.appendChild(needsBadge)
     banner.appendChild(draftsBadge)
+
+    // Staleness signal: the reviewer's drafts were authored against a model
+    // version that has since moved on. Only meaningful while drafts exist.
+    var staleInfo =
+      state && state.store && typeof state.store.modelVersion === 'function'
+        ? checkStaleness(
+            state.store.modelVersion(),
+            String((state && state.modelVersion) || meta.modelVersion || meta.knowledge_version || ''),
+          )
+        : { stale: false }
+    if (staleInfo.stale && draftCount > 0) {
+      var staleBadge = el('span', 'innfo-banner-stale', '\u26a0 ' + staleInfo.report)
+      if (staleBadge) {
+        staleBadge.setAttribute('data-innfo', 'stale-feedback')
+        banner.appendChild(staleBadge)
+      }
+    }
 
     // Reviewer Profile Chip (Requirement: Reviewer Identity Profile Chip)
     var reviewerName = getReviewerName()
@@ -7408,6 +7461,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         '#innfo-feedback-banner{padding:12px 24px;background:var(--surface,#ffffff);border-bottom:1px solid var(--border,#e5e7eb);display:flex;gap:12px;align-items:center;flex-wrap:wrap;box-shadow:0 1px 2px rgba(0,0,0,0.03);}' +
         '#innfo-feedback-banner strong{font-size:1.05rem;font-weight:700;letter-spacing:-0.01em;}' +
         '#innfo-feedback-banner .innfo-banner-version,#innfo-feedback-banner .innfo-banner-needs,#innfo-feedback-banner .innfo-banner-drafts{color:var(--muted,#6b7280);font-size:0.8rem;}' +
+        '#innfo-feedback-banner .innfo-banner-stale{color:#b45309;background:#fffbeb;border:1px solid #fcd34d;border-radius:4px;font-size:0.78rem;font-weight:600;padding:2px 8px;}' +
         '#innfo-feedback-open{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--surface,#ffffff);color:var(--text,#111827);font:inherit;font-size:0.82rem;font-weight:600;padding:6px 14px;border-radius:var(--radius-sm,4px);cursor:pointer;margin-left:auto;}' +
         '#innfo-feedback-open:hover{background:var(--surface-2,#f3f4f6);}' +
         '#innfo-feedback-modal{border:1px solid var(--border,#e5e7eb);border-radius:var(--radius-lg,8px);padding:20px;max-width:560px;width:100%;background:var(--surface,#ffffff);color:var(--text,#111827);}' +
@@ -7949,10 +8003,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
     var baseTitle = String(meta.title || meta.model || 'Model')
     var baseId = String(meta.modelId || meta.model || meta.title || 'model')
+    var liveModelVersion = String(meta.modelVersion || meta.knowledge_version || 'V_0-0-0')
 
     var state = {
       modelTitle: scopedView ? baseTitle + ' - ' + (scopedDef ? scopedDef.title : scopedView) : baseTitle,
-      modelVersion: String(meta.modelVersion || meta.knowledge_version || 'V_0-0-0'),
+      modelVersion: liveModelVersion,
       artifactName: String(meta.title || 'console') + '_console.html',
       modelId: meta.modelId || meta.model || meta.title || 'model',
       modelSlug: scopedView
@@ -7965,6 +8020,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       store: Review.createDraftStore(
         typeof localStorage !== 'undefined' ? localStorage : null,
         baseId + (scopedView ? '::view:' + scopedView : ''),
+        liveModelVersion,
       ),
     }
 
@@ -8181,6 +8237,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     })
 
     if (tabs) cleanups.push(tabs.destroy)
+    renderNavbarMeta(active, meta)
     refresh(initialQuery, !!(tabs && tabs.hashTab()))
 
     // C3: the controller builds the toggle into the (now rendered) banner and
@@ -8294,6 +8351,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     renderRefDialog: renderRefDialog,
     renderCitationDialog: renderCitationDialog,
     renderBanner: renderBanner,
+    renderNavbarMeta: renderNavbarMeta,
     renderFilterBar: renderFilterBar,
     renderRail: renderRail,
     mountElementTable: mountElementTable,

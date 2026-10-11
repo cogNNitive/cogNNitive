@@ -77,31 +77,42 @@
     }
   }
 
-  function createDraftStore(storage, modelId) {
+  function createDraftStore(storage, modelId, modelVersion) {
     var resolved = resolveStorage(storage)
     var backing = resolved.storage
     var persistent = resolved.persistent
     var key = STORE_PREFIX + String(modelId == null ? '' : modelId)
+    var liveVersion = modelVersion == null ? '' : String(modelVersion)
+
+    function emptyState() {
+      return {
+        v: STORE_VERSION,
+        modelId: modelId,
+        modelVersion: liveVersion,
+        drafts: [],
+        reviewed: {},
+      }
+    }
 
     function read() {
       var raw
       try {
         raw = backing.getItem(key)
       } catch {
-        return { v: STORE_VERSION, modelId: modelId, drafts: [], reviewed: {} }
+        return emptyState()
       }
-      if (!raw) return { v: STORE_VERSION, modelId: modelId, drafts: [], reviewed: {} }
+      if (!raw) return emptyState()
       var parsed
       try {
         parsed = JSON.parse(raw)
       } catch {
-        return { v: STORE_VERSION, modelId: modelId, drafts: [], reviewed: {} }
+        return emptyState()
       }
       if (!isObject(parsed) || parsed.v !== STORE_VERSION) {
-        return { v: STORE_VERSION, modelId: modelId, drafts: [], reviewed: {} }
+        return emptyState()
       }
       if (String(parsed.modelId) !== String(modelId)) {
-        return { v: STORE_VERSION, modelId: modelId, drafts: [], reviewed: {} }
+        return emptyState()
       }
       var drafts = Array.isArray(parsed.drafts)
         ? parsed.drafts.map(function (d) {
@@ -114,7 +125,17 @@
           reviewed[id] = String(parsed.reviewed[id])
         })
       }
-      return { v: STORE_VERSION, modelId: modelId, drafts: drafts, reviewed: reviewed }
+      // The version the drafts were authored against is sticky while drafts
+      // exist; a fully exported (empty) store rebases to the live version.
+      var recorded =
+        drafts.length > 0 && parsed.modelVersion != null ? String(parsed.modelVersion) : liveVersion
+      return {
+        v: STORE_VERSION,
+        modelId: modelId,
+        modelVersion: recorded,
+        drafts: drafts,
+        reviewed: reviewed,
+      }
     }
 
     function write(state) {
@@ -130,6 +151,9 @@
     return {
       persistent: persistent,
       key: key,
+      modelVersion: function () {
+        return state.modelVersion
+      },
       drafts: function () {
         return deepCopy(state.drafts)
       },

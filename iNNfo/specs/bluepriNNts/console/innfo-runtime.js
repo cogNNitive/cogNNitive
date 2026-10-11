@@ -777,6 +777,18 @@
     return node
   }
 
+  // The console header (`.innfo-navbar`) carries an empty extra slot
+  // (`#innfo-navbar-extra`); this stamps the artifact's last-generated moment so
+  // a reader can see how fresh the console is without opening the model header.
+  function renderNavbarMeta(doc, meta) {
+    var host = doc.getElementById('innfo-navbar-extra')
+    if (!host) return
+    var generated = meta && meta.generated
+    if (!generated) return
+    var stamp = String(generated).replace('T', ' ').replace(/\..*/, '').replace(/Z$/, '').trim()
+    host.textContent = 'Last updated ' + stamp + ' UTC'
+  }
+
   function renderBanner(doc, meta, needs, draftCount, onReviewerChange, state) {
     var banner = doc.getElementById('innfo-feedback-banner') || doc.getElementById('innfo-banner')
     if (!banner) return
@@ -809,6 +821,23 @@
     banner.appendChild(version)
     banner.appendChild(needsBadge)
     banner.appendChild(draftsBadge)
+
+    // Staleness signal: the reviewer's drafts were authored against a model
+    // version that has since moved on. Only meaningful while drafts exist.
+    var staleInfo =
+      state && state.store && typeof state.store.modelVersion === 'function'
+        ? checkStaleness(
+            state.store.modelVersion(),
+            String((state && state.modelVersion) || meta.modelVersion || meta.knowledge_version || ''),
+          )
+        : { stale: false }
+    if (staleInfo.stale && draftCount > 0) {
+      var staleBadge = el('span', 'innfo-banner-stale', '\u26a0 ' + staleInfo.report)
+      if (staleBadge) {
+        staleBadge.setAttribute('data-innfo', 'stale-feedback')
+        banner.appendChild(staleBadge)
+      }
+    }
 
     // Reviewer Profile Chip (Requirement: Reviewer Identity Profile Chip)
     var reviewerName = getReviewerName()
@@ -4004,6 +4033,7 @@
         '#innfo-feedback-banner{padding:12px 24px;background:var(--surface,#ffffff);border-bottom:1px solid var(--border,#e5e7eb);display:flex;gap:12px;align-items:center;flex-wrap:wrap;box-shadow:0 1px 2px rgba(0,0,0,0.03);}' +
         '#innfo-feedback-banner strong{font-size:1.05rem;font-weight:700;letter-spacing:-0.01em;}' +
         '#innfo-feedback-banner .innfo-banner-version,#innfo-feedback-banner .innfo-banner-needs,#innfo-feedback-banner .innfo-banner-drafts{color:var(--muted,#6b7280);font-size:0.8rem;}' +
+        '#innfo-feedback-banner .innfo-banner-stale{color:#b45309;background:#fffbeb;border:1px solid #fcd34d;border-radius:4px;font-size:0.78rem;font-weight:600;padding:2px 8px;}' +
         '#innfo-feedback-open{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--surface,#ffffff);color:var(--text,#111827);font:inherit;font-size:0.82rem;font-weight:600;padding:6px 14px;border-radius:var(--radius-sm,4px);cursor:pointer;margin-left:auto;}' +
         '#innfo-feedback-open:hover{background:var(--surface-2,#f3f4f6);}' +
         '#innfo-feedback-modal{border:1px solid var(--border,#e5e7eb);border-radius:var(--radius-lg,8px);padding:20px;max-width:560px;width:100%;background:var(--surface,#ffffff);color:var(--text,#111827);}' +
@@ -4545,10 +4575,11 @@
     }
     var baseTitle = String(meta.title || meta.model || 'Model')
     var baseId = String(meta.modelId || meta.model || meta.title || 'model')
+    var liveModelVersion = String(meta.modelVersion || meta.knowledge_version || 'V_0-0-0')
 
     var state = {
       modelTitle: scopedView ? baseTitle + ' - ' + (scopedDef ? scopedDef.title : scopedView) : baseTitle,
-      modelVersion: String(meta.modelVersion || meta.knowledge_version || 'V_0-0-0'),
+      modelVersion: liveModelVersion,
       artifactName: String(meta.title || 'console') + '_console.html',
       modelId: meta.modelId || meta.model || meta.title || 'model',
       modelSlug: scopedView
@@ -4561,6 +4592,7 @@
       store: Review.createDraftStore(
         typeof localStorage !== 'undefined' ? localStorage : null,
         baseId + (scopedView ? '::view:' + scopedView : ''),
+        liveModelVersion,
       ),
     }
 
@@ -4777,6 +4809,7 @@
     })
 
     if (tabs) cleanups.push(tabs.destroy)
+    renderNavbarMeta(active, meta)
     refresh(initialQuery, !!(tabs && tabs.hashTab()))
 
     // C3: the controller builds the toggle into the (now rendered) banner and
@@ -4890,6 +4923,7 @@
     renderRefDialog: renderRefDialog,
     renderCitationDialog: renderCitationDialog,
     renderBanner: renderBanner,
+    renderNavbarMeta: renderNavbarMeta,
     renderFilterBar: renderFilterBar,
     renderRail: renderRail,
     mountElementTable: mountElementTable,

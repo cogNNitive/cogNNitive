@@ -21,6 +21,7 @@ const modelConsolePath = join(
 type ConsoleApi = {
   boot: (doc: Document) => any
   ensureFeedbackUi: (doc: Document, state?: any) => HTMLElement | null
+  renderNavbarMeta: (doc: Document, meta: any) => void
   draftToItem: (draft: any, element?: any) => any
   buildExportDoc: (args: any) => any
   validateFeedback: (doc: any) => { ok: boolean; errors: string[] }
@@ -275,6 +276,75 @@ describe('console-feedback-ui (bundle-injected feedback UI contract)', () => {
     expect(document.getElementById('innfo-export-modal')).toBe(stepperModal)
     expect(document.getElementById('innfo-feedback-modal')).not.toBeNull()
     expect(document.getElementById('innfo-feedback-modal')).not.toBe(stepperModal)
+  })
+
+  it('flags stale drafts when the model version moved past the drafts', () => {
+    renderModelConsole({ needs: ['feedback-export'] })
+    const storeKey = 'innfo-console:v2:ghostbusters-model'
+    localStorage.setItem(
+      storeKey,
+      JSON.stringify({
+        v: 2,
+        modelId: 'ghostbusters-model',
+        modelVersion: 'V_0-2-0',
+        drafts: [
+          {
+            id: 'fb-001',
+            element_id: 'threat-slimer',
+            concept: 'ParanormalThreat',
+            element: 'Slimer',
+            base_hash: 'abcdef0123456789',
+            kind: 'comment',
+            comment: 'stale rewrite',
+          },
+        ],
+        reviewed: {},
+      }),
+    )
+    const api = loadRuntime()
+    api.boot(document)
+    const stale = document.querySelector('#innfo-feedback-banner .innfo-banner-stale')
+    expect(stale).not.toBeNull()
+    expect(stale!.textContent).toContain('V_0-2-0')
+    expect(stale!.textContent).toContain('V_0-2-1')
+  })
+
+  it('does not flag staleness when the model version matches the drafts', () => {
+    renderModelConsole()
+    const storeKey = 'innfo-console:v2:ghostbusters-model'
+    localStorage.setItem(
+      storeKey,
+      JSON.stringify({
+        v: 2,
+        modelId: 'ghostbusters-model',
+        modelVersion: 'V_0-2-1',
+        drafts: [
+          {
+            id: 'fb-001',
+            element_id: 'threat-slimer',
+            concept: 'ParanormalThreat',
+            element: 'Slimer',
+            base_hash: 'abcdef0123456789',
+            kind: 'comment',
+            comment: 'fresh rewrite',
+          },
+        ],
+        reviewed: {},
+      }),
+    )
+    const api = loadRuntime()
+    api.boot(document)
+    expect(document.querySelector('#innfo-feedback-banner .innfo-banner-stale')).toBeNull()
+  })
+
+  it('stamps the console header with the last-generated timestamp', () => {
+    renderModelConsole()
+    const host = document.createElement('div')
+    host.id = 'innfo-navbar-extra'
+    document.body.appendChild(host)
+    const api = loadRuntime()
+    api.renderNavbarMeta(document, { generated: '2026-10-11T16:56:22.123Z' })
+    expect(host.textContent).toBe('Last updated 2026-10-11 16:56:22 UTC')
   })
 
   it('viewer renders citation icon from builder output', () => {
