@@ -727,11 +727,58 @@
     return btn
   }
 
+  // Type-aware read rendering for a field value. Returns null when the value
+  // should fall back to the plain KuBadge text (string/number/select/etc.), so
+  // existing output is unchanged for the common case.
+  function FieldValue(data, opts) {
+    var doc = resolveDoc(opts)
+    var d = data && typeof data === 'object' ? data : {}
+    var value = d.value
+    var type = String(d.type || '').toLowerCase()
+    if (type === 'boolean' || typeof value === 'boolean') {
+      var b = makeEl(doc, 'span', 'innfo-field-bool', value ? 'Yes' : 'No')
+      b.setAttribute('data-value', value ? 'true' : 'false')
+      return b
+    }
+    if (Array.isArray(value)) {
+      return makeEl(doc, 'span', 'innfo-ku-value innfo-field-list', value.map(String).join(', '))
+    }
+    if (typeof value === 'string' && /^https?:\/\//i.test(value)) {
+      var a = makeEl(doc, 'a', 'innfo-field-url', value)
+      a.setAttribute('href', value)
+      a.setAttribute('target', '_blank')
+      a.setAttribute('rel', 'noopener noreferrer')
+      return a
+    }
+    if (type === 'code') {
+      return makeEl(doc, 'code', 'innfo-field-code', value == null ? '' : String(value))
+    }
+    if (type === 'markdown' || type === 'markdown_inline') {
+      return makeEl(doc, 'span', 'innfo-field-markdown', value == null ? '' : String(value))
+    }
+    if (type === 'image' || type === 'image_url' || type === 'asset' || type === 'video' || type === 'audio') {
+      if (typeof value === 'string' && looksLikeImageValue(value)) {
+        var img = makeEl(doc, 'img', 'innfo-field-image')
+        img.setAttribute('src', value)
+        img.setAttribute('alt', String(d.name || ''))
+        img.setAttribute('loading', 'lazy')
+        return img
+      }
+    }
+    return null
+  }
+
   function FieldRow(data, opts) {
     if (!data || typeof data !== 'object') throw new TypeError('InnfoUI.FieldRow: data required')
     var doc = resolveDoc(opts)
     var hasRef = !!(data.ref && data.ref.id)
-    var badge = KuBadge({ kind: 'field', name: data.name, value: hasRef ? null : data.value })
+    var valueNode = hasRef ? null : FieldValue(data, opts)
+    var badge = KuBadge({
+      kind: 'field',
+      name: data.name,
+      value: hasRef ? null : data.value,
+      valueNode: valueNode,
+    })
     if (hasRef) {
       badge.appendChild(
         ElementPill({ id: data.ref.id, label: data.ref.label || data.ref.id }, {
@@ -932,6 +979,15 @@
     var relations = Array.isArray(data.relations) ? data.relations : null
     if (relations) {
       body.appendChild(RelList({ relations: relations, byId: (opts && opts.byId) || {} }))
+    }
+    var incoming = Array.isArray(data.incomingRelations) ? data.incomingRelations : null
+    if (incoming && incoming.length) {
+      var incWrap = makeEl(doc, 'div', 'innfo-card-incoming')
+      incWrap.appendChild(
+        makeEl(doc, 'span', 'innfo-card-incoming-label', 'Referenced by (' + incoming.length + ')'),
+      )
+      incWrap.appendChild(RelList({ relations: incoming, byId: (opts && opts.byId) || {} }))
+      body.appendChild(incWrap)
     }
     card.appendChild(body)
     if (data.path) card.appendChild(makeEl(doc, 'footer', 'innfo-card-path', data.path))
@@ -1602,7 +1658,8 @@
 
     if (kind === 'field') {
       if (data.name != null) badge.appendChild(makeEl(doc, 'span', 'innfo-ku-label', data.name + ':'))
-      badge.appendChild(makeEl(doc, 'span', 'innfo-ku-value', data.value == null ? '' : String(data.value)))
+      if (data.valueNode) badge.appendChild(data.valueNode)
+      else badge.appendChild(makeEl(doc, 'span', 'innfo-ku-value', data.value == null ? '' : String(data.value)))
     } else if (kind === 'cell') {
       badge.appendChild(makeEl(doc, 'span', 'innfo-ku-value', data.value == null ? '' : String(data.value)))
     } else if (kind === 'marker') {
@@ -1706,6 +1763,7 @@
     StatusBadge: StatusBadge,
     CitationIcon: CitationIcon,
     FieldRow: FieldRow,
+    FieldValue: FieldValue,
     ElementCard: ElementCard,
     CITATION_ORIGIN_LABELS: CITATION_ORIGIN_LABELS,
     DraftList: DraftList,

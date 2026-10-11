@@ -1423,9 +1423,35 @@
     return projectedElements
   }
 
+  // Resolves a field's declared type from the schema, for type-aware read
+  // rendering (FieldValue). Falls back to '' (plain text).
+  function fieldTypeOf(schema, name) {
+    var fields = schema && Array.isArray(schema.fields) ? schema.fields : []
+    for (var i = 0; i < fields.length; i++) {
+      if (fields[i] && fields[i].name === name) return fields[i].type || fields[i].widget || ''
+    }
+    return ''
+  }
+
+  // Map of element id -> incoming relations (every other element that points at
+  // it). RelList links to the target, so an incoming entry targets the *source*
+  // element of the relation.
+  function incomingRelationsMap(elements) {
+    var map = {}
+    ;(Array.isArray(elements) ? elements : []).forEach(function (other) {
+      if (!other || !Array.isArray(other.relations)) return
+      other.relations.forEach(function (r) {
+        if (!r || !r.target) return
+        if (!map[r.target]) map[r.target] = []
+        map[r.target].push({ field: r.field, target: other.id, targetLabel: other.name || other.id })
+      })
+    })
+    return map
+  }
+
   // Cards project live drafts: active draft edits and notes are visually badged,
   // new draft elements are projected, and deleted elements are styled.
-  function mountElementCards(doc, elements, drafts, refs, concepts) {
+  function mountElementCards(doc, elements, drafts, refs, concepts, schema, incomingById) {
     var content = doc.getElementById('innfo-content')
     if (!content) return
     content.innerHTML = ''
@@ -1443,6 +1469,7 @@
           fields.push({
             name: k,
             value: val,
+            type: fieldTypeOf(schema, k),
             ref: target ? { id: target.id || String(val), label: String(val) } : undefined,
           })
         })
@@ -1460,6 +1487,10 @@
           tags: Array.isArray(element.tags) ? element.tags.map(String) : null,
           relations:
             Array.isArray(element.relations) && element.relations.length ? element.relations : null,
+          incomingRelations:
+            incomingById && incomingById[element.id] && incomingById[element.id].length
+              ? incomingById[element.id]
+              : null,
         },
         {
           domId: String(element.id || ''),
@@ -1649,7 +1680,7 @@
   // Read-only table of the filtered elements: one row per element, one column
   // per field key, sortable by clicking a header. Mirrors the editor's
   // ConceptTableView (table view + header sort) inside the domain console.
-  function mountElementTable(doc, elements, drafts, concepts, sortState, onSort) {
+  function mountElementTable(doc, elements, drafts, concepts, sortState, schema, onSort) {
     var content = doc.getElementById('innfo-content')
     if (!content) return
     content.innerHTML = ''
@@ -1742,6 +1773,14 @@
         var val = displayCellText(element.fields ? element.fields[k] : '')
         var td = el('td', 'innfo-element-table-cell', val)
         if (val) td.setAttribute('title', val)
+        td.addEventListener('dblclick', function () {
+          renderFieldDetailDialog(doc, {
+            name: k,
+            value: element.fields ? element.fields[k] : '',
+            type: fieldTypeOf(schema, k),
+            elementName: element.name || element.id || '',
+          })
+        })
         tr.appendChild(td)
       })
 
@@ -2966,10 +3005,13 @@
   }
 
   // Built-in tabs, registered per boot (they are not in the registry).
-  function builtinViews(doc, config, model, meta, shell) {
+  function builtinViews(doc, config, model, meta, shell, schema) {
     var views = []
     // A standalone --view artifact mounts that view alone.
     if (consoleScopeOf(meta)) return views
+    if (schema && Array.isArray(schema.concepts) && schema.concepts.length) {
+      views.push({ id: 'metamodel', title: 'Model Map', icon: 'metamodel', order: 90, panelId: 'innfo-tab-metamodel' })
+    }
     if ((Array.isArray(model && model.elements) && model.elements.length > 0) || shell.explorer) {
       views.push({ id: 'explorer', title: 'Model Explorer', icon: 'explorer', order: 100, panelId: 'innfo-tab-explorer' })
     }
@@ -3025,7 +3067,7 @@
     return parts.length ? '#' + parts.join('&') : ''
   }
 
-  var TAB_ICONS = { chart: 'bar-chart-2', matrices: 'table', explorer: 'boxes', review: 'edit' }
+  var TAB_ICONS = { chart: 'bar-chart-2', matrices: 'table', explorer: 'boxes', review: 'edit', metamodel: 'boxes' }
 
   // Builds the tabs once from built-ins plus registered views. Panels are
   // created here; a registered view's mount runs on first activation only.
@@ -3034,7 +3076,7 @@
     var shell = ensureTabShell(doc, opts.model)
     if (!shell) return null
     var nav = shell.nav
-    var tabs = builtinViews(doc, opts.config, opts.model, opts.meta, shell)
+    var tabs = builtinViews(doc, opts.config, opts.model, opts.meta, shell, opts.schema)
     // Problems found while mounting belong to this boot; the registry only
     // keeps registration errors, so booting again never duplicates notices.
     var bootErrors = []
@@ -3065,12 +3107,12 @@
     tabs.push({ id: 'review', title: 'Changes', icon: 'review', panelId: 'innfo-tab-review' })
 
     tabs.forEach(function (t) {
-      if (t.external && !doc.getElementById(t.panelId) && shell.main) {
-        var panel = el('div', 'innfo-tab-panel')
-        panel.id = t.panelId
-        panel.setAttribute('data-innfo-view', t.id)
-        shell.main.insertBefore(panel, shell.review)
-      }
+      if (t.id === 'explorer' || t.id === 'review') return
+      if (doc.getElementById(t.panelId) || !shell.main) return
+      var panel = el('div', 'innfo-tab-panel')
+      panel.id = t.panelId
+      if (t.external) panel.setAttribute('data-innfo-view', t.id)
+      shell.main.insertBefore(panel, shell.review)
     })
 
     nav.innerHTML = ''
@@ -3653,6 +3695,136 @@
     } catch {
       dialog.setAttribute('open', 'open')
     }
+  }
+
+  // Read-only field-detail dialog, opened by double-clicking a table cell
+  // (parity with the editor's FieldDetailModal). Renders the full value with the
+  // type-aware FieldValue renderer.
+  function renderFieldDetailDialog(doc, field) {
+    if (!doc || !field) return
+    var dialog = doc.getElementById('innfo-field-dialog')
+    if (!dialog) {
+      dialog = doc.createElement('dialog')
+      dialog.id = 'innfo-field-dialog'
+      dialog.setAttribute('aria-label', 'Field detail')
+      if (doc.body) doc.body.appendChild(dialog)
+    }
+    dialog.innerHTML = ''
+    var head = el('div', 'innfo-ref-head')
+    var h = el('h2', null, String(field.name || 'Field'))
+    var close = el('button', 'innfo-ref-close', '×')
+    if (close) {
+      close.setAttribute('type', 'button')
+      close.setAttribute('aria-label', 'Close')
+      close.addEventListener('click', function () {
+        if (typeof dialog.close === 'function') dialog.close()
+      })
+    }
+    if (head && h) head.appendChild(h)
+    if (head && close) head.appendChild(close)
+    var body = el('div', 'innfo-field-detail-body')
+    if (field.elementName) body.appendChild(el('p', 'innfo-field-detail-meta', String(field.elementName)))
+    var valueNode =
+      UI && typeof UI.FieldValue === 'function'
+        ? UI.FieldValue({ value: field.value, type: field.type, name: field.name }, { doc: doc })
+        : null
+    if (valueNode) body.appendChild(valueNode)
+    else body.appendChild(el('pre', 'innfo-field-detail-value', displayCellText(field.value)))
+    dialog.appendChild(head)
+    dialog.appendChild(body)
+    try {
+      if (typeof dialog.showModal === 'function') dialog.showModal()
+      else dialog.setAttribute('open', 'open')
+    } catch {
+      dialog.setAttribute('open', 'open')
+    }
+  }
+
+  // Lightweight metamodel map: concepts as circular nodes, matrices as edges.
+  // Hand-built SVG (no Mermaid dependency) so it ships inside the single-file,
+  // offline console bundle.
+  function metamodelConceptNames(schema, elements) {
+    if (schema && Array.isArray(schema.concepts) && schema.concepts.length) {
+      return schema.concepts
+        .map(function (c) {
+          return typeof c === 'string' ? c : c && c.name
+        })
+        .filter(Boolean)
+    }
+    var seen = {}
+    var out = []
+    ;(Array.isArray(elements) ? elements : []).forEach(function (e) {
+      if (e && e.concept && !seen[e.concept]) {
+        seen[e.concept] = true
+        out.push(e.concept)
+      }
+    })
+    return out
+  }
+
+  function renderMetamodelView(doc, schema, matrices, elements) {
+    var host = doc.getElementById('innfo-tab-metamodel')
+    if (!host) return
+    host.innerHTML = ''
+    var nodes = metamodelConceptNames(schema, elements)
+    if (!nodes.length) {
+      host.appendChild(el('p', 'empty-state', 'No concepts to map.'))
+      return
+    }
+    var NS = 'http://www.w3.org/2000/svg'
+    var size = 560
+    var mid = size / 2
+    var r = nodes.length > 1 ? 210 : 0
+    var pos = {}
+    nodes.forEach(function (name, i) {
+      var a = -Math.PI / 2 + (i * 2 * Math.PI) / nodes.length
+      pos[name] = { x: mid + r * Math.cos(a), y: mid + r * Math.sin(a) }
+    })
+    var svg = doc.createElementNS(NS, 'svg')
+    svg.setAttribute('viewBox', '0 0 ' + size + ' ' + size)
+    svg.setAttribute('class', 'innfo-metamodel-svg')
+    svg.setAttribute('role', 'img')
+    svg.setAttribute('aria-label', 'Model metamodel map')
+
+    ;(Array.isArray(matrices) ? matrices : []).forEach(function (m) {
+      if (!m || !m.source || !m.target || !pos[m.source] || !pos[m.target]) return
+      var line = doc.createElementNS(NS, 'line')
+      line.setAttribute('x1', pos[m.source].x)
+      line.setAttribute('y1', pos[m.source].y)
+      line.setAttribute('x2', pos[m.target].x)
+      line.setAttribute('y2', pos[m.target].y)
+      line.setAttribute('class', 'innfo-metamodel-edge')
+      svg.appendChild(line)
+      if (m.name) {
+        var lt = doc.createElementNS(NS, 'text')
+        lt.setAttribute('x', (pos[m.source].x + pos[m.target].x) / 2)
+        lt.setAttribute('y', (pos[m.source].y + pos[m.target].y) / 2)
+        lt.setAttribute('text-anchor', 'middle')
+        lt.setAttribute('class', 'innfo-metamodel-edge-label')
+        lt.textContent = String(m.name)
+        svg.appendChild(lt)
+      }
+    })
+
+    nodes.forEach(function (name) {
+      var c = doc.createElementNS(NS, 'circle')
+      c.setAttribute('cx', pos[name].x)
+      c.setAttribute('cy', pos[name].y)
+      c.setAttribute('r', '30')
+      c.setAttribute('class', 'innfo-metamodel-node')
+      svg.appendChild(c)
+      var t = doc.createElementNS(NS, 'text')
+      t.setAttribute('x', pos[name].x)
+      t.setAttribute('y', pos[name].y + 4)
+      t.setAttribute('text-anchor', 'middle')
+      t.setAttribute('class', 'innfo-metamodel-label')
+      t.textContent = name.length > 12 ? name.slice(0, 11) + '\u2026' : name
+      svg.appendChild(t)
+    })
+
+    var wrap = el('div', 'innfo-metamodel')
+    wrap.appendChild(svg)
+    host.appendChild(wrap)
   }
 
   // Citation detail dialog (Console Citation Icons / Tanda C). Reuses the
@@ -4509,8 +4681,9 @@
           refresh(activeSearchQuery)
         })
       }
+      var incomingById = incomingRelationsMap(elements)
       if (explorerView === 'table') {
-        mountElementTable(active, filteredElements, currentDrafts, concepts, sortState, function (key) {
+        mountElementTable(active, filteredElements, currentDrafts, concepts, sortState, schema, function (key) {
           if (sortState.key === key) sortState.dir = sortState.dir === 'asc' ? 'desc' : 'asc'
           else {
             sortState.key = key
@@ -4519,7 +4692,7 @@
           refresh(activeSearchQuery)
         })
       } else {
-        mountElementCards(active, filteredElements, currentDrafts, refs, concepts)
+        mountElementCards(active, filteredElements, currentDrafts, refs, concepts, schema, incomingById)
       }
       renderFilterBar(active, state, function (nextQuery) {
         var sBox = active.getElementById('innfo-search')
@@ -4626,6 +4799,7 @@
       renderDocumentView(active, elements, concepts)
     }
     renderMatrices(active, matrices, concepts)
+    renderMetamodelView(active, schema, matrices, elements)
 
     var searchBox = active.getElementById('innfo-search')
     if (searchBox) {
@@ -4721,6 +4895,10 @@
     mountElementTable: mountElementTable,
     renderExplorerToolbar: renderExplorerToolbar,
     sortTableElements: sortTableElements,
+    renderMediaDialog: renderMediaDialog,
+    renderFieldDetailDialog: renderFieldDetailDialog,
+    renderMetamodelView: renderMetamodelView,
+    incomingRelationsMap: incomingRelationsMap,
     renderDocument: renderDocument,
     renderDocumentView: renderDocumentView,
     buildTree: buildTree,

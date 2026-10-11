@@ -236,6 +236,35 @@
       .innfo-media-count { font-size: 0.8rem; color: var(--muted); font-family: var(--mono); }
       .innfo-media-download { margin-left: auto; font-size: 0.8rem; color: var(--link); }
       .innfo-card-thumb--zoom { cursor: zoom-in; }
+
+      /* Type-aware field values */
+      .innfo-field-bool { font-weight: 600; }
+      .innfo-field-bool[data-value="true"] { color: var(--primary); }
+      .innfo-field-bool[data-value="false"] { color: var(--muted); }
+      .innfo-field-url { color: var(--link); text-decoration: underline; text-underline-offset: 2px; }
+      .innfo-field-code { font-family: var(--mono); font-size: 0.82em; background: var(--surface-2); border-radius: var(--radius-sm); padding: 0 4px; }
+      .innfo-field-markdown { white-space: pre-wrap; }
+      .innfo-field-image { max-height: 90px; border-radius: var(--radius-sm); display: block; margin-top: 2px; }
+      .innfo-field-list { color: var(--text); }
+
+      /* Incoming relations on cards */
+      .innfo-card-incoming { margin-top: 8px; }
+      .innfo-card-incoming-label { display: block; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin-bottom: 4px; }
+
+      /* Field detail dialog */
+      #innfo-field-dialog { border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 0; max-width: min(720px, 92vw); width: 100%; background: var(--surface); color: var(--text); }
+      #innfo-field-dialog::backdrop { background: rgba(0, 0, 0, 0.45); }
+      .innfo-field-detail-body { padding: 0 16px 16px; }
+      .innfo-field-detail-meta { font-size: 0.8rem; color: var(--muted); margin: 0 0 8px; }
+      .innfo-field-detail-value { white-space: pre-wrap; word-break: break-word; font-family: var(--mono); font-size: 0.82rem; background: var(--surface-2); border-radius: var(--radius-sm); padding: 10px 12px; }
+
+      /* Metamodel map */
+      .innfo-metamodel { display: flex; justify-content: center; padding: 12px 0; }
+      .innfo-metamodel-svg { width: 100%; max-width: 620px; height: auto; }
+      .innfo-metamodel-node { fill: color-mix(in srgb, var(--primary) 12%, var(--surface)); stroke: var(--primary); stroke-width: 1.4; }
+      .innfo-metamodel-label { font-size: 12px; fill: var(--text); font-weight: 600; }
+      .innfo-metamodel-edge { stroke: color-mix(in srgb, var(--primary) 40%, var(--border)); stroke-width: 1.5; }
+      .innfo-metamodel-edge-label { font-size: 10px; fill: var(--muted); font-family: var(--mono); }
       .innfo-reviewer-chip { display: inline-flex; align-items: center; gap: 8px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 4px 12px; font-size: 0.8rem; cursor: pointer; }
       .innfo-rail-badge, .innfo-card-badge { display: inline-flex; align-items: center; justify-content: center; background: var(--danger); color: #fff; font-size: 0.7rem; font-weight: 700; border-radius: 999px; padding: 1px 6px; min-width: 16px; height: 16px; }
       .innfo-highlight { animation: innfo-pulse-glow 2.5s ease-out; }
