@@ -4439,13 +4439,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return { index: 0 }
   }
 
-  // Cards project live drafts: active draft edits and notes are visually badged,
-  // new draft elements are projected, and deleted elements are styled.
-  function mountElementCards(doc, elements, drafts, refs, concepts) {
-    var content = doc.getElementById('innfo-content')
-    if (!content) return
-    content.innerHTML = ''
-
+  // Projects live drafts over the element list: a correction draft patches its
+  // field value and a new draft becomes a projected element. Shared by the card
+  // and table explorer views so both show the same pending state.
+  function projectElements(elements, drafts) {
     var draftsByElementId = {}
     var newDrafts = []
     ;(Array.isArray(drafts) ? drafts : []).forEach(function (d) {
@@ -4485,6 +4482,18 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         _draft: nd,
       })
     })
+
+    return projectedElements
+  }
+
+  // Cards project live drafts: active draft edits and notes are visually badged,
+  // new draft elements are projected, and deleted elements are styled.
+  function mountElementCards(doc, elements, drafts, refs, concepts) {
+    var content = doc.getElementById('innfo-content')
+    if (!content) return
+    content.innerHTML = ''
+
+    var projectedElements = projectElements(elements, drafts)
 
     var visuals = typeof self !== 'undefined' && self.InnfoVisuals ? self.InnfoVisuals : null
 
@@ -4598,6 +4607,226 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
       content.appendChild(card)
     })
+  }
+
+  // ---- Explorer element table (table view + header sort) -------------------
+
+  // Union of field keys across the projected elements, alphabetical.
+  function elementFieldColumns(projected) {
+    var seen = {}
+    ;(Array.isArray(projected) ? projected : []).forEach(function (e) {
+      if (e && isObject(e.fields)) {
+        Object.keys(e.fields).forEach(function (k) {
+          seen[k] = true
+        })
+      }
+    })
+    return Object.keys(seen).sort(function (a, b) {
+      return a.localeCompare(b)
+    })
+  }
+
+  // Numeric-aware compare: pure-numeric strings sort as numbers, else locale.
+  function compareElementValues(a, b) {
+    var sa = a == null ? '' : String(a)
+    var sb = b == null ? '' : String(b)
+    if (/^\s*-?\d+(\.\d+)?\s*$/.test(sa) && /^\s*-?\d+(\.\d+)?\s*$/.test(sb)) {
+      return parseFloat(sa) - parseFloat(sb)
+    }
+    return sa.localeCompare(sb)
+  }
+
+  function tableValueOf(element, key) {
+    if (key === 'name') return element.name
+    if (key === 'concept') return element.concept
+    if (key === 'tags') return Array.isArray(element.tags) ? element.tags.join(', ') : ''
+    return element.fields ? element.fields[key] : ''
+  }
+
+  function sortTableElements(projected, sortState) {
+    if (!sortState || !sortState.key) return projected
+    var key = sortState.key
+    var dir = sortState.dir === 'desc' ? -1 : 1
+    return projected.slice().sort(function (a, b) {
+      var c = compareElementValues(tableValueOf(a, key), tableValueOf(b, key))
+      if (c === 0) c = compareElementValues(a.name, b.name)
+      return c * dir
+    })
+  }
+
+  function displayCellText(value) {
+    if (value == null) return ''
+    if (Array.isArray(value)) return value.join(', ')
+    if (isObject(value)) {
+      try {
+        return JSON.stringify(value)
+      } catch {
+        return String(value)
+      }
+    }
+    return String(value)
+  }
+
+  function draftBadgeClass(kind) {
+    return kind === 'correction'
+      ? 'badge-warning'
+      : kind === 'new'
+        ? 'badge-info'
+        : kind === 'delete'
+          ? 'badge-error'
+          : 'badge-neutral'
+  }
+
+  function draftBadgeText(kind) {
+    return kind === 'correction'
+      ? 'Draft Edit'
+      : kind === 'new'
+        ? 'New Draft'
+        : kind === 'delete'
+          ? 'Delete Proposed'
+          : 'Comment'
+  }
+
+  // Read-only table of the filtered elements: one row per element, one column
+  // per field key, sortable by clicking a header. Mirrors the editor's
+  // ConceptTableView (table view + header sort) inside the domain console.
+  function mountElementTable(doc, elements, drafts, concepts, sortState, onSort) {
+    var content = doc.getElementById('innfo-content')
+    if (!content) return
+    content.innerHTML = ''
+    var projected = projectElements(elements, drafts)
+    var table = el('table', 'innfo-element-table')
+    if (!table) return
+
+    var visuals = typeof self !== 'undefined' && self.InnfoVisuals ? self.InnfoVisuals : null
+    var conceptList = Array.isArray(concepts) ? concepts : []
+    function conceptColor(name) {
+      var cDef = conceptList.filter(function (c) {
+        return c && (typeof c === 'string' ? c : c.name) === name
+      })[0]
+      var c = (cDef && cDef.color) || '#3b82f6'
+      return visuals && typeof visuals.getHexColor === 'function' ? visuals.getHexColor(c) : c
+    }
+
+    var fieldCols = elementFieldColumns(projected)
+    var columns = [{ key: 'name', label: 'Name' }, { key: 'concept', label: 'Concept' }]
+    fieldCols.forEach(function (k) {
+      columns.push({ key: k, label: k })
+    })
+    columns.push({ key: 'tags', label: 'Tags' })
+
+    var thead = el('thead')
+    var headTr = el('tr')
+    columns.forEach(function (col) {
+      var th = el('th', 'innfo-element-table-th')
+      th.setAttribute('data-sort-key', col.key)
+      th.setAttribute('scope', 'col')
+      th.setAttribute('role', 'button')
+      th.setAttribute('tabindex', '0')
+      th.appendChild(el('span', 'innfo-element-table-th-label', col.label))
+      if (sortState && sortState.key === col.key) {
+        th.classList.add('sorted')
+        th.setAttribute('aria-sort', sortState.dir === 'desc' ? 'descending' : 'ascending')
+        th.appendChild(el('span', 'innfo-element-table-sort', sortState.dir === 'desc' ? '▼' : '▲'))
+      }
+      function trigger() {
+        if (typeof onSort === 'function') onSort(col.key)
+      }
+      th.addEventListener('click', trigger)
+      th.addEventListener('keydown', function (e) {
+        if (e && (e.key === 'Enter' || e.key === ' ')) {
+          if (e.preventDefault) e.preventDefault()
+          trigger()
+        }
+      })
+      headTr.appendChild(th)
+    })
+    thead.appendChild(headTr)
+    table.appendChild(thead)
+
+    var tbody = el('tbody')
+    var sorted = sortTableElements(projected, sortState)
+    if (!sorted.length) {
+      var emptyTr = el('tr')
+      var emptyTd = el('td', 'innfo-element-table-empty', 'No elements match the current filter.')
+      emptyTd.setAttribute('colspan', String(columns.length))
+      emptyTr.appendChild(emptyTd)
+      tbody.appendChild(emptyTr)
+    }
+    sorted.forEach(function (element) {
+      var tr = el('tr')
+      tr.setAttribute('data-element-id', String(element.id || ''))
+      if (element._draft) tr.classList.add('innfo-element-table-draft')
+
+      var nameTd = el('td', 'innfo-element-table-name')
+      nameTd.appendChild(el('span', null, element.name || element.id || ''))
+      if (element._draft) {
+        nameTd.appendChild(
+          el(
+            'span',
+            'badge badge-sm ' + draftBadgeClass(element._draft.kind) + ' ml-2',
+            draftBadgeText(element._draft.kind),
+          ),
+        )
+      }
+      tr.appendChild(nameTd)
+
+      var conceptTd = el('td')
+      var cBadge = el('span', 'badge badge-outline badge-xs', element.concept || '')
+      var hex = conceptColor(element.concept)
+      cBadge.style.borderColor = hex
+      cBadge.style.color = hex
+      conceptTd.appendChild(cBadge)
+      tr.appendChild(conceptTd)
+
+      fieldCols.forEach(function (k) {
+        var val = displayCellText(element.fields ? element.fields[k] : '')
+        var td = el('td', 'innfo-element-table-cell', val)
+        if (val) td.setAttribute('title', val)
+        tr.appendChild(td)
+      })
+
+      var tags = Array.isArray(element.tags) ? element.tags.join(', ') : ''
+      var tagsTd = el('td', 'innfo-element-table-cell', tags)
+      if (tags) tagsTd.setAttribute('title', tags)
+      tr.appendChild(tagsTd)
+
+      tbody.appendChild(tr)
+    })
+    table.appendChild(tbody)
+
+    var wrap = el('div', 'innfo-element-table-wrap')
+    wrap.appendChild(table)
+    content.appendChild(wrap)
+  }
+
+  // Cards/Table toggle for the Model Explorer. Created once inside the explorer
+  // panel and re-rendered on refresh; the active mode lives in the boot state.
+  function renderExplorerToolbar(doc, mode, onChange) {
+    var content = doc.getElementById('innfo-content')
+    if (!content || !content.parentNode) return
+    var host = doc.getElementById('innfo-explorer-toolbar')
+    if (!host) {
+      host = el('div', 'innfo-explorer-toolbar')
+      host.id = 'innfo-explorer-toolbar'
+      content.parentNode.insertBefore(host, content)
+    }
+    host.innerHTML = ''
+    var group = el('div', 'innfo-viewmode')
+    group.setAttribute('role', 'group')
+    group.setAttribute('aria-label', 'Element view mode')
+    ;[['cards', 'Cards'], ['table', 'Table']].forEach(function (pair) {
+      var b = el('button', 'innfo-viewmode-btn', pair[1])
+      b.setAttribute('type', 'button')
+      b.setAttribute('data-mode', pair[0])
+      b.setAttribute('aria-pressed', pair[0] === mode ? 'true' : 'false')
+      if (pair[0] === mode) b.classList.add('active')
+      b.addEventListener('click', function () {
+        if (pair[0] !== mode && typeof onChange === 'function') onChange(pair[0])
+      })
+      group.appendChild(b)
+    })
+    host.appendChild(group)
   }
 
   function renderMatrices(doc, matrices, concepts) {
@@ -7088,6 +7317,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     var refs = hasNeed(config, 'reference-popup') ? buildRefsByName(elements) : null
     var activeSearchQuery = ''
+    // Model Explorer view mode ('cards' | 'table') and the table sort state.
+    var explorerView = 'cards'
+    var sortState = { key: '', dir: 'asc' }
 
     function draftCountsOf(currentDrafts) {
       var byConcept = {}
@@ -7187,7 +7419,26 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         reviewed: state.store && typeof state.store.reviewed === 'function' ? state.store.reviewed() : {},
       }
 
-      mountElementCards(active, filterElements(elements, activeSearchQuery || '', filterCtx), currentDrafts, refs, concepts)
+      var filteredElements = filterElements(elements, activeSearchQuery || '', filterCtx)
+      if (!scopedView && elements.length) {
+        renderExplorerToolbar(active, explorerView, function (mode) {
+          if (mode === explorerView) return
+          explorerView = mode
+          refresh(activeSearchQuery)
+        })
+      }
+      if (explorerView === 'table') {
+        mountElementTable(active, filteredElements, currentDrafts, concepts, sortState, function (key) {
+          if (sortState.key === key) sortState.dir = sortState.dir === 'asc' ? 'desc' : 'asc'
+          else {
+            sortState.key = key
+            sortState.dir = 'asc'
+          }
+          refresh(activeSearchQuery)
+        })
+      } else {
+        mountElementCards(active, filteredElements, currentDrafts, refs, concepts)
+      }
       renderFilterBar(active, state, function (nextQuery) {
         var sBox = active.getElementById('innfo-search')
         if (sBox) sBox.value = nextQuery
@@ -7382,6 +7633,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     renderBanner: renderBanner,
     renderFilterBar: renderFilterBar,
     renderRail: renderRail,
+    mountElementTable: mountElementTable,
+    renderExplorerToolbar: renderExplorerToolbar,
+    sortTableElements: sortTableElements,
     renderDocument: renderDocument,
     renderDocumentView: renderDocumentView,
     buildTree: buildTree,
