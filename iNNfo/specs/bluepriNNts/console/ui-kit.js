@@ -175,7 +175,7 @@
     'html[data-innfo-filter=changed] [data-innfo-component=element-card]:not([data-innfo-changed]){display:none}',
     '.innfo-popover-comment,.innfo-popover-proposed{display:block;width:100%;font:inherit;box-sizing:border-box}',
     '@media (max-width:640px){.innfo-annotation-popover{width:100%}.innfo-review-toggle,.innfo-changed-filter{width:100%}}',
-    '.innfo-edit-modal{border:1px solid var(--innfo-border);border-radius:var(--innfo-radius-lg);padding:0;max-width:540px;width:100%;background:var(--innfo-surface);color:var(--innfo-text);box-shadow:0 12px 40px rgba(0,0,0,.15)}',
+    '.innfo-edit-modal{border:1px solid var(--innfo-border);border-radius:var(--innfo-radius-lg);padding:0;max-width:760px;width:100%;max-height:86vh;overflow:auto;background:var(--innfo-surface);color:var(--innfo-text);box-shadow:0 12px 40px rgba(0,0,0,.15)}',
     '.innfo-edit-modal::backdrop{background:rgba(0,0,0,.35)}',
     '.innfo-edit-modal-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--innfo-border)}',
     '.innfo-edit-modal-head h2{margin:0;font-size:1.05rem;font-weight:700}',
@@ -1129,6 +1129,14 @@
       panelHistory.style.display = 'block'
     })
 
+    var startTab = data.startTab === 'history' ? 'history' : 'edit'
+    if (startTab === 'history') {
+      tabBtnHistory.className = 'innfo-modal-tab-btn active'
+      tabBtnEdit.className = 'innfo-modal-tab-btn'
+      panelEdit.style.display = 'none'
+      panelHistory.style.display = 'block'
+    }
+
     var actions = makeEl(doc, 'div', 'innfo-edit-modal-actions')
     var saveBtn = makeEl(doc, 'button', 'innfo-edit-btn innfo-edit-btn-save', 'Save draft')
     saveBtn.setAttribute('type', 'button')
@@ -1328,7 +1336,9 @@
 
     if (kind === 'document' || kind === 'concept') {
       if (data.id != null) badge.setAttribute('data-concept-id', String(data.id))
-      badge.setAttribute('data-concept-slot', String(conceptSlot(data)))
+      if (kind === 'concept' || data.index != null || data.color) {
+        badge.setAttribute('data-concept-slot', String(conceptSlot(data)))
+      }
     } else if (kind === 'element' || kind === 'reference') {
       if (data.id != null) badge.setAttribute('data-element-id', String(data.id))
       if (data.index != null || data.color) badge.setAttribute('data-concept-slot', String(conceptSlot(data)))

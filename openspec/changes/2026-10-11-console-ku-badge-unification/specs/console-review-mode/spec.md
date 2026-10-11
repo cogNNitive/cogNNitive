@@ -4,14 +4,15 @@
 
 ### Requirement: Unit Info And Edit Entry Points
 
-Every knowledge-unit badge MUST expose an **info** action (`[data-ku-action="info"]`,
-always present) and, only in review mode, an **edit** action
-(`[data-ku-action="edit"]`, a pencil). Both MUST open ONE shared modal: info opens
-it on the **Info** tab (slug, location, lineage, provenance, changes); edit opens it
-on the **Edit** tab. The modal is a single component with mode-gated tabs, not two
-modals. With review mode off, no edit action exists anywhere in the DOM, and the
-info action MUST still exist. Actions MUST live outside the badge root in the
-`ku-actions` cluster, so they are never nested inside a navigable badge.
+Every knowledge-unit badge MUST expose an **info** action
+(`[data-ku-action="info"]`, rendered in a `ku-actions` cluster OUTSIDE the badge,
+always present) and, only in review mode, an **edit** affordance. Both MUST open
+ONE shared modal: info opens it on the **Info** tab (slug, location, lineage,
+provenance, changes); edit opens it on the **Edit** tab. The modal is a single
+component with mode-gated tabs, not two modals. With review mode off, no edit
+control exists anywhere in the DOM, and the info action MUST still exist. Actions
+SHOULD live outside the badge root so they are never nested inside a navigable
+badge.
 
 The modal MUST be larger than the pre-change edit modal (a wider dialog with the
 tab bar and scrollable body), and MUST retain the existing Edit and
@@ -20,13 +21,13 @@ History & Provenance panels.
 #### Scenario: Info outside review mode
 - GIVEN review mode off
 - WHEN a unit badge renders
-- THEN it has a `[data-ku-action=info]` and no `[data-ku-action=edit]`
+- THEN it has a `[data-ku-action=info]` in a sibling `ku-actions` cluster and no edit control
 - AND activating info opens the modal on the Info tab
 
 #### Scenario: Edit appears in review mode
 - GIVEN review mode on
 - WHEN a unit badge renders
-- THEN it has both actions, and activating edit opens the modal on the Edit tab
+- THEN an edit affordance opens the modal on the Edit tab
 
 #### Scenario: One modal
 - GIVEN the console sources
