@@ -612,6 +612,8 @@ async function main() {
     const allMatrices = []
     const allConcepts = []
     const seenConcepts = new Set()
+    const allProcedures = []
+    const seenProcedureIds = new Set()
     const modelSummaries = []
 
     for (const m of candidateModels) {
@@ -679,10 +681,19 @@ async function main() {
           }
         }
       }
+      // Aggregate the blueprint procedure catalog (parent + includes) across the
+      // domain, deduplicated by id; the stepper reads `usage` first.
+      const modelSchemaResolution = await resolveModelSchema(m.content)
+      for (const p of modelSchemaResolution.procedures) {
+        if (p && p.id && !seenProcedureIds.has(p.id)) {
+          seenProcedureIds.add(p.id)
+          allProcedures.push(p)
+        }
+      }
     }
 
     const domainPayload = {
-      schema: { concepts: allConcepts },
+      schema: { concepts: allConcepts, procedures: allProcedures },
       model: {
         meta: {
           title: basename(root) + ' Domain',
