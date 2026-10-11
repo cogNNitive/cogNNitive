@@ -453,15 +453,29 @@
     return { nodes: nodes, roots: roots }
   }
 
+  function cleanRefValue(raw) {
+    var s = String(raw == null ? '' : raw).trim()
+    if (s.slice(0, 2) === '[[' && s.slice(-2) === ']]') s = s.slice(2, -2).trim()
+    var pipe = s.indexOf('|')
+    if (pipe !== -1) s = s.slice(0, pipe).trim()
+    var colon = s.lastIndexOf(':')
+    if (colon !== -1) s = s.slice(colon + 1).trim()
+    return s
+  }
+
   function resolveParentId(node, nodes) {
-    if (!node) return null
+    if (!node || !nodes) return null
     var field = node.fields && node.fields.parent
     if (field && field !== '-' && field !== '') {
-      // field may hold the parent NAME; find a node by element name
+      var cleaned = cleanRefValue(field)
+      if (nodes[field]) return field
+      if (cleaned && nodes[cleaned]) return cleaned
       for (var id in nodes) {
-        if (nodes[id].el && nodes[id].el.name === field) return id
+        if (nodes[id] && nodes[id].el) {
+          var nm = nodes[id].el.name
+          if (nm === field || (cleaned && nm === cleaned)) return id
+        }
       }
-      return null
     }
     var rels = node.relations || []
     for (var i = 0; i < rels.length; i++) {
@@ -492,7 +506,7 @@
   }
 
   function nextStep(node, nodes) {
-    if (!node) return null
+    if (!node || !nodes) return null
     var rel = (node.relations || []).filter(function (r) {
       return r.field === 'next' && r.target && nodes[r.target]
     })
@@ -502,9 +516,14 @@
     }
     var label = node.fields && node.fields.next
     if (label && label !== '-' && label !== '') {
+      var cleaned = cleanRefValue(label)
+      if (nodes[label] && nodes[label].parentId === node.parentId) return nodes[label]
+      if (cleaned && nodes[cleaned] && nodes[cleaned].parentId === node.parentId) return nodes[cleaned]
       for (var id in nodes) {
         var n = nodes[id]
-        if (n.el && n.el.name === label && n.parentId === node.parentId) return n
+        if (n && n.el && (n.el.name === label || (cleaned && n.el.name === cleaned)) && n.parentId === node.parentId) {
+          return n
+        }
       }
     }
     return null
@@ -1076,7 +1095,7 @@
         removeBtn.addEventListener('click', function (e) {
           e.stopPropagation()
           var nextTokens = parsed.textTokens.filter(function (t) { return t !== token })
-          var nextQuery = nextTokens.concat(parsed.operators.map(function (o) { return o.raw || (o.key + ':' + o.val) })).join(' ')
+          var nextQuery = nextTokens.concat(parsed.operators.map(function (o) { return o.raw || formatFacetToken(o.key, o.val) })).join(' ')
           if (typeof onQueryChange === 'function') onQueryChange(nextQuery)
         })
         pill.appendChild(removeBtn)
@@ -1095,10 +1114,26 @@
     }
   }
 
-  function renderRail(doc, concepts, counts, draftCountsByConcept, onSelect, state) {
+  function formatFacetToken(key, val) {
+    var s = String(val == null ? '' : val)
+    return key + ':' + (s.indexOf(' ') !== -1 ? '"' + s + '"' : s)
+  }
+
+  function renderRail(doc, concepts, counts, draftCountsByConcept, onSelect, state, activeQuery) {
     var rail = doc.getElementById('innfo-rail')
     if (!rail) return
     rail.innerHTML = ''
+
+    var queryStr = activeQuery !== undefined
+      ? activeQuery
+      : (doc.getElementById('innfo-search') && doc.getElementById('innfo-search').value) || ''
+    var parsedRailQuery = parseFilterQuery(queryStr)
+    var activeModels = []
+    var activeConcepts = []
+    parsedRailQuery.operators.forEach(function (op) {
+      if (op.key === 'model' || op.key === 'file') activeModels.push(String(op.val).toLowerCase())
+      else if (op.key === 'concept') activeConcepts.push(String(op.val).toLowerCase())
+    })
 
     function mk(tag) {
       return doc.createElement ? doc.createElement(tag) : el(tag)
@@ -1108,7 +1143,8 @@
       var draftCount = draftCountsByConcept ? draftCountsByConcept[name] || 0 : 0
       var btn = mk('button')
       if (!btn) return null
-      btn.className = 'innfo-rail-item'
+      var isActive = activeConcepts.indexOf(String(name).toLowerCase()) !== -1
+      btn.className = 'innfo-rail-item' + (isActive ? ' active' : '')
       btn.setAttribute('data-concept', String(name))
       var pill = UI.ConceptPill({ id: name, label: name, index: index, count: count }, { document: doc })
       if (pill) btn.appendChild(pill)
@@ -1120,7 +1156,7 @@
         }
       }
       btn.addEventListener('click', function () {
-        if (typeof onSelect === 'function') onSelect('concept:' + String(name))
+        if (typeof onSelect === 'function') onSelect(formatFacetToken('concept', name))
       })
       return btn
     }
@@ -1156,6 +1192,7 @@
     // sets the `concept:` facet. Falls back to the flat concept list for single-model
     // consoles (models absent or length <= 1).
     if (models) {
+      if (state && !state._collapsedModels) state._collapsedModels = {}
       var list = mk('ul')
       if (list) list.className = 'menu menu-xs bg-base-100 p-2 w-full'
       var globalIndex = 0
@@ -1171,17 +1208,31 @@
         var li = mk('li')
         var details = mk('details')
         details.className = 'collapse collapse-arrow'
-        details.open = true
+        details.open = !(state && state._collapsedModels && state._collapsedModels[mid])
         var summary = mk('summary')
-        summary.className = 'collapse-title min-h-0 py-2 pr-6'
+        var isModelActive = activeModels.indexOf(mid.toLowerCase()) !== -1
+        summary.className = 'collapse-title min-h-0 py-2 pr-8' + (isModelActive ? ' active' : '')
         summary.setAttribute('data-model', mid)
         var fileIcon = typeof InnfoIcons !== 'undefined' ? InnfoIcons.getSvg('file-text', { size: 14 }) : ''
         summary.innerHTML =
           '<span class="flex items-center gap-2 min-w-0">' + fileIcon +
           '<span class="truncate font-semibold">' + (m.title || m.filePath || 'Model') + '</span></span>' +
           '<span class="badge badge-ghost badge-xs">' + (m.elementCount || 0) + '</span>'
-        summary.addEventListener('click', function () {
-          if (typeof onSelect === 'function') onSelect('model:' + mid)
+        summary.addEventListener('click', function (e) {
+          // Clicking the chevron zone on the right edge toggles accordion open/close
+          // without clobbering the active search filter.
+          var w = summary.clientWidth || 0
+          var x = e && typeof e.offsetX === 'number' ? e.offsetX : 0
+          if (w > 0 && x > w - 30) {
+            if (state && state._collapsedModels) {
+              setTimeout(function () {
+                state._collapsedModels[mid] = !details.open
+              }, 0)
+            }
+            return
+          }
+          if (e && typeof e.preventDefault === 'function') e.preventDefault()
+          if (typeof onSelect === 'function') onSelect(formatFacetToken('model', mid))
         })
         details.appendChild(summary)
 
@@ -1205,6 +1256,9 @@
           var a = mk('a')
           if (a) {
             a.setAttribute('data-concept', String(name))
+            if (activeConcepts.indexOf(String(name).toLowerCase()) !== -1) {
+              a.className = 'active'
+            }
             var CONCEPT_PALETTE = ['#2563eb', '#dc2626', '#16a34a', '#f59e0b', '#7c3aed', '#0891b2']
             var color = conceptColor(name) || CONCEPT_PALETTE[globalIndex % CONCEPT_PALETTE.length]
             globalIndex += 1
@@ -1212,11 +1266,11 @@
               ? '<span class="innfo-concept-dot" style="background:' + color + ';flex:none;"></span>'
               : ''
             a.innerHTML =
-              dot + '<span class="truncate">' + String(name) + '</span>' +
+              '<span class="flex items-center gap-2 min-w-0">' + dot + '<span class="truncate">' + String(name) + '</span></span>' +
               '<span class="badge badge-ghost badge-xs">' + ((counts && counts[name]) || 0) + '</span>'
             a.addEventListener('click', function (e) {
               if (e && e.preventDefault) e.preventDefault()
-              if (typeof onSelect === 'function') onSelect('concept:' + String(name))
+              if (typeof onSelect === 'function') onSelect(formatFacetToken('concept', name))
             })
           }
           cli.appendChild(a)
@@ -1794,13 +1848,21 @@
       tr.appendChild(conceptTd)
 
       fieldCols.forEach(function (k) {
-        var val = displayCellText(element.fields ? element.fields[k] : '')
+        var rawVal = element.fields && element.fields[k] !== undefined ? element.fields[k] : ''
+        if ((rawVal === '' || rawVal == null) && Array.isArray(element.relations)) {
+          var relMatches = element.relations
+            .filter(function (r) { return r && r.field === k })
+            .map(function (r) { return r.targetLabel || r.target || '' })
+            .filter(Boolean)
+          if (relMatches.length) rawVal = relMatches.join(', ')
+        }
+        var val = displayCellText(rawVal)
         var td = el('td', 'innfo-element-table-cell', val)
         if (val) td.setAttribute('title', val)
         td.addEventListener('dblclick', function () {
           renderFieldDetailDialog(doc, {
             name: k,
-            value: element.fields ? element.fields[k] : '',
+            value: rawVal,
             type: fieldTypeOf(schema, k),
             elementName: element.name || element.id || '',
           })
@@ -1930,7 +1992,8 @@
         tr.appendChild(rowTh)
         cols.forEach(function (c) {
           var value = rowCells[c] != null ? String(rowCells[c]) : ''
-          var td = el('td', null, null)
+          var isEmpty = value === '' || value === '-'
+          var td = el('td', isEmpty ? 'innfo-matrix-cell-empty' : null, null)
           if (td) td.appendChild(UI.KuBadge({ kind: 'cell', value: value }))
           tr.appendChild(td)
         })
@@ -3388,6 +3451,12 @@
         btn.classList.toggle('tab-active', t.id === tabId)
         if (panel) panel.classList.toggle('active', t.id === tabId)
       })
+      if (!scopedView && doc.querySelector) {
+        var railAside = doc.querySelector('aside.innfo-rail')
+        if (railAside) {
+          railAside.style.display = tabId === 'explorer' ? '' : 'none'
+        }
+      }
       if (prev) hook(prev, 'onHide')
       if (tabId === 'review' && opts.state) renderReviewTab(doc, opts.state, opts.config, opts.onRefresh)
       if (next.external) {
@@ -3675,6 +3744,14 @@
       img.setAttribute('src', item.value)
       img.setAttribute('alt', item.name || '')
       img.className = 'innfo-media-image'
+      img.addEventListener('error', function () {
+        var cur = img.getAttribute('src') || ''
+        var relMatch = !img.getAttribute('data-retried') && cur.match(/^.+?(\bsources\/.+)$/)
+        if (relMatch) {
+          img.setAttribute('data-retried', '1')
+          img.setAttribute('src', relMatch[1])
+        }
+      })
       if (body) body.appendChild(img)
 
       var bar = el('div', 'innfo-media-bar')
@@ -3769,8 +3846,12 @@
       UI && typeof UI.FieldValue === 'function'
         ? UI.FieldValue({ value: field.value, type: field.type, name: field.name }, { doc: doc })
         : null
-    if (valueNode) body.appendChild(valueNode)
-    else body.appendChild(el('pre', 'innfo-field-detail-value', displayCellText(field.value)))
+    if (valueNode) {
+      body.appendChild(valueNode)
+    } else {
+      var textVal = displayCellText(field.value)
+      body.appendChild(el('pre', 'innfo-field-detail-value', textVal !== '' ? textVal : '(empty)'))
+    }
     dialog.appendChild(head)
     dialog.appendChild(body)
     try {
@@ -3815,7 +3896,8 @@
     var NS = 'http://www.w3.org/2000/svg'
     var size = 560
     var mid = size / 2
-    var r = nodes.length > 1 ? 210 : 0
+    var r = nodes.length > 1 ? 190 : 0
+    var nodeR = 34
     var pos = {}
     nodes.forEach(function (name, i) {
       var a = -Math.PI / 2 + (i * 2 * Math.PI) / nodes.length
@@ -3827,19 +3909,47 @@
     svg.setAttribute('role', 'img')
     svg.setAttribute('aria-label', 'Model metamodel map')
 
+    var defs = doc.createElementNS(NS, 'defs')
+    var marker = doc.createElementNS(NS, 'marker')
+    marker.setAttribute('id', 'innfo-metamodel-arrow')
+    marker.setAttribute('viewBox', '0 0 10 10')
+    marker.setAttribute('refX', '9')
+    marker.setAttribute('refY', '5')
+    marker.setAttribute('markerWidth', '6')
+    marker.setAttribute('markerHeight', '6')
+    marker.setAttribute('orient', 'auto-start-reverse')
+    var arrowPath = doc.createElementNS(NS, 'path')
+    arrowPath.setAttribute('d', 'M 0 1 L 10 5 L 0 9 z')
+    arrowPath.setAttribute('fill', 'var(--primary, #2563eb)')
+    marker.appendChild(arrowPath)
+    defs.appendChild(marker)
+    svg.appendChild(defs)
+
     ;(Array.isArray(matrices) ? matrices : []).forEach(function (m) {
       if (!m || !m.source || !m.target || !pos[m.source] || !pos[m.target]) return
+      var sx = pos[m.source].x
+      var sy = pos[m.source].y
+      var tx = pos[m.target].x
+      var ty = pos[m.target].y
+      var dx = tx - sx
+      var dy = ty - sy
+      var dist = Math.sqrt(dx * dx + dy * dy) || 1
+      var x1 = dist > nodeR * 2 ? sx + (dx / dist) * nodeR : sx
+      var y1 = dist > nodeR * 2 ? sy + (dy / dist) * nodeR : sy
+      var x2 = dist > nodeR * 2 ? tx - (dx / dist) * (nodeR + 4) : tx
+      var y2 = dist > nodeR * 2 ? ty - (dy / dist) * (nodeR + 4) : ty
       var line = doc.createElementNS(NS, 'line')
-      line.setAttribute('x1', pos[m.source].x)
-      line.setAttribute('y1', pos[m.source].y)
-      line.setAttribute('x2', pos[m.target].x)
-      line.setAttribute('y2', pos[m.target].y)
+      line.setAttribute('x1', x1)
+      line.setAttribute('y1', y1)
+      line.setAttribute('x2', x2)
+      line.setAttribute('y2', y2)
       line.setAttribute('class', 'innfo-metamodel-edge')
+      line.setAttribute('marker-end', 'url(#innfo-metamodel-arrow)')
       svg.appendChild(line)
       if (m.name) {
         var lt = doc.createElementNS(NS, 'text')
-        lt.setAttribute('x', (pos[m.source].x + pos[m.target].x) / 2)
-        lt.setAttribute('y', (pos[m.source].y + pos[m.target].y) / 2)
+        lt.setAttribute('x', (sx + tx) / 2)
+        lt.setAttribute('y', (sy + ty) / 2 - 6)
         lt.setAttribute('text-anchor', 'middle')
         lt.setAttribute('class', 'innfo-metamodel-edge-label')
         lt.textContent = String(m.name)
@@ -3851,15 +3961,31 @@
       var c = doc.createElementNS(NS, 'circle')
       c.setAttribute('cx', pos[name].x)
       c.setAttribute('cy', pos[name].y)
-      c.setAttribute('r', '30')
+      c.setAttribute('r', String(nodeR))
       c.setAttribute('class', 'innfo-metamodel-node')
+      c.style.cursor = 'pointer'
+      var title = doc.createElementNS(NS, 'title')
+      title.textContent = String(name)
+      c.appendChild(title)
+      c.addEventListener('click', function () {
+        var search = doc.getElementById('innfo-search')
+        if (search) {
+          search.value = formatFacetToken('concept', name)
+          if (typeof CustomEvent === 'function') {
+            search.dispatchEvent(new CustomEvent('input', { bubbles: true }))
+          }
+        }
+        var expBtn = doc.querySelector('.innfo-view-tab[data-tab="explorer"]')
+        if (expBtn && typeof expBtn.click === 'function') expBtn.click()
+      })
       svg.appendChild(c)
       var t = doc.createElementNS(NS, 'text')
       t.setAttribute('x', pos[name].x)
       t.setAttribute('y', pos[name].y + 4)
       t.setAttribute('text-anchor', 'middle')
       t.setAttribute('class', 'innfo-metamodel-label')
-      t.textContent = name.length > 12 ? name.slice(0, 11) + '\u2026' : name
+      t.style.pointerEvents = 'none'
+      t.textContent = name.length > 18 ? name.slice(0, 17) + '\u2026' : name
       svg.appendChild(t)
     })
 
@@ -4041,12 +4167,14 @@
       var style = active.createElement('style')
       style.setAttribute('data-innfo-feedback', '')
       style.textContent =
-        '[data-innfo-feedback-root]{display:block;position:sticky;top:0;z-index:40;background:var(--surface,#ffffff);}' +
-        '#innfo-feedback-banner{padding:12px 24px;background:var(--surface,#ffffff);border-bottom:1px solid var(--border,#e5e7eb);display:flex;gap:12px;align-items:center;flex-wrap:wrap;box-shadow:0 1px 2px rgba(0,0,0,0.03);}' +
+        '[data-innfo-feedback-root]{display:block;position:relative;z-index:40;background:var(--surface,#ffffff);}' +
+        '#innfo-feedback-banner{padding:8px 20px;background:var(--surface,#ffffff);border-bottom:1px solid var(--border,#e5e7eb);display:flex;gap:12px;align-items:center;flex-wrap:wrap;box-shadow:0 1px 2px rgba(0,0,0,0.03);}' +
         '#innfo-feedback-banner strong{font-size:1.05rem;font-weight:700;letter-spacing:-0.01em;}' +
         '#innfo-feedback-banner .innfo-banner-version,#innfo-feedback-banner .innfo-banner-needs,#innfo-feedback-banner .innfo-banner-drafts{color:var(--muted,#6b7280);font-size:0.8rem;}' +
         '#innfo-feedback-banner .innfo-banner-stale{color:#b45309;background:#fffbeb;border:1px solid #fcd34d;border-radius:4px;font-size:0.78rem;font-weight:600;padding:2px 8px;}' +
+        '#innfo-feedback-banner .innfo-reviewer-chip{margin-left:auto;}' +
         '#innfo-feedback-open{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--surface,#ffffff);color:var(--text,#111827);font:inherit;font-size:0.82rem;font-weight:600;padding:6px 14px;border-radius:var(--radius-sm,4px);cursor:pointer;margin-left:auto;}' +
+        '#innfo-feedback-banner .innfo-reviewer-chip~#innfo-feedback-open{margin-left:0;}' +
         '#innfo-feedback-open:hover{background:var(--surface-2,#f3f4f6);}' +
         '#innfo-feedback-modal{border:1px solid var(--border,#e5e7eb);border-radius:var(--radius-lg,8px);padding:20px;max-width:560px;width:100%;background:var(--surface,#ffffff);color:var(--text,#111827);}' +
         '#innfo-feedback-modal::backdrop{background:rgba(0,0,0,0.35);}' +

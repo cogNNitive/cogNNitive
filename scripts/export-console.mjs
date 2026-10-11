@@ -609,6 +609,7 @@ async function main() {
     const allMatrices = []
     const allConcepts = []
     const seenConcepts = new Set()
+    const allFields = {}
     const allProcedures = []
     const seenProcedureIds = new Set()
     const modelSummaries = []
@@ -617,12 +618,15 @@ async function main() {
       const relPath = relative(root, m.filePath).replace(/\\/g, '/')
       const fileName = basename(relPath)
       const modelStem = fileName.replace(/\.[^/.]+$/, '')
+      const modelSchemaResolution = await resolveModelSchema(m.content)
       const payload = payloadHelper.buildConsolePayload({
         content: m.content,
         path: relPath,
         resolver,
         ledgerEntries,
         changesets,
+        schema: modelSchemaResolution.schema,
+        procedures: modelSchemaResolution.procedures,
       })
       if (payload && payload.model) {
         const mTitle = (payload.model.meta && (payload.model.meta.title || payload.model.meta.model)) || modelStem
@@ -670,17 +674,23 @@ async function main() {
           elementCount: Array.isArray(payload.model.elements) ? payload.model.elements.length : 0,
         })
       }
-      if (payload && payload.schema && Array.isArray(payload.schema.concepts)) {
-        for (const c of payload.schema.concepts) {
-          if (c && c.name && !seenConcepts.has(c.name)) {
-            seenConcepts.add(c.name)
-            allConcepts.push(c)
+      if (payload && payload.schema) {
+        if (Array.isArray(payload.schema.concepts)) {
+          for (const c of payload.schema.concepts) {
+            if (c && c.name && !seenConcepts.has(c.name)) {
+              seenConcepts.add(c.name)
+              allConcepts.push(c)
+            }
+          }
+        }
+        if (payload.schema.fields && typeof payload.schema.fields === 'object') {
+          for (const [k, v] of Object.entries(payload.schema.fields)) {
+            if (k && v && !allFields[k]) allFields[k] = v
           }
         }
       }
       // Aggregate the blueprint procedure catalog (parent + includes) across the
       // domain, deduplicated by id; the stepper reads `usage` first.
-      const modelSchemaResolution = await resolveModelSchema(m.content)
       for (const p of modelSchemaResolution.procedures) {
         if (p && p.id && !seenProcedureIds.has(p.id)) {
           seenProcedureIds.add(p.id)
@@ -690,7 +700,7 @@ async function main() {
     }
 
     const domainPayload = {
-      schema: { concepts: allConcepts, procedures: allProcedures },
+      schema: { concepts: allConcepts, fields: allFields, procedures: allProcedures },
       model: {
         meta: {
           title: basename(root) + ' Domain',

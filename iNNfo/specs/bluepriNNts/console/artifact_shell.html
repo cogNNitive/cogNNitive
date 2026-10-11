@@ -21,7 +21,8 @@
   -->
     <link rel="stylesheet" href="./innfo-ui.css" />
     <style>
-      :root {
+      :root,
+      [data-theme] {
         --bg: var(--innfo-bg);
         --surface: var(--innfo-surface);
         --surface-2: var(--innfo-surface-2);
@@ -102,17 +103,21 @@
         overflow: hidden;
       }
       @media (max-width: 1024px) {
+        .innfo-navbar { position: static; padding: 8px 12px; gap: 8px; }
+        .innfo-action-bar { position: static; padding: 6px 12px; }
         #innfo-layout { flex-direction: column; }
         aside.innfo-rail {
           width: 100%;
           min-width: 0;
           max-width: 100%;
           height: auto;
-          max-height: 42vh;
+          max-height: 210px;
           position: static;
           border-right: none;
           border-bottom: 1px solid var(--border);
         }
+        .innfo-filter-zone { padding: 8px 10px; gap: 6px; }
+        #innfo-rail { padding: 6px 8px; }
       }
       .innfo-filter-zone {
         background: var(--filter-zone-bg);
@@ -157,8 +162,8 @@
 
       main { flex: 1; min-width: 0; padding: 0 30px 90px; }
       @media (max-width: 640px) {
-        main { padding: 0 14px 64px; }
-        .innfo-content-scroll { padding: 16px 14px 64px; }
+        main { padding: 0 12px 64px; }
+        .innfo-content-scroll { padding: 12px 10px 64px; }
       }
       .innfo-action-bar {
         min-height: 38px;
@@ -173,6 +178,9 @@
         position: sticky;
         top: 57px;
         z-index: 20;
+      }
+      @media (max-width: 1024px) {
+        .innfo-action-bar { position: static; top: auto; }
       }
       .innfo-content-scroll { flex: 1; overflow-y: auto; padding: 22px 30px 90px; max-width: 1200px; width: 100%; box-sizing: border-box; }
 
@@ -192,10 +200,10 @@
       .innfo-tab-panel.active { display: block; }
       .innfo-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; margin-bottom: 14px; box-shadow: var(--shadow-card); }
       .innfo-card h3 { margin: 0 0 4px; font-size: 1.05rem; font-weight: 700; }
-      .innfo-card-fields { display: grid; grid-template-columns: 170px 1fr; gap: 4px 12px; font-size: 0.84rem; margin: 10px 0 0; }
       .innfo-card-fields dt { color: var(--muted); font-weight: 600; }
       .innfo-matrix table { border-collapse: collapse; font-size: 0.82rem; width: 100%; }
       .innfo-matrix th, .innfo-matrix td { border: 1px solid var(--border); padding: 6px 10px; text-align: left; }
+      .innfo-matrix td.innfo-matrix-cell-empty .innfo-ku-badge { opacity: 0.38; border-style: dotted; }
       .empty-state { color: var(--muted); font-size: 0.9rem; padding: 40px 0; }
 
       /* Model Explorer cards/table toggle + element table */

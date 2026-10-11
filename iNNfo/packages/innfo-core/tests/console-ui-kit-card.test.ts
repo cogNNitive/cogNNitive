@@ -66,12 +66,13 @@ describe('InnfoUI.ElementCard', () => {
     expect(card.getAttribute('data-open')).toBe('false')
   })
 
-  it('renders the dense bar: image chip, two facts and a field count', () => {
+  it('renders the dense bar: image chip and field count without duplicating headline field in body', () => {
     const card = UI.ElementCard({
       id: 'ecto-1',
       name: 'Ecto-1',
       fields: [
         field('photo', 'sources/ecto-1.png'),
+        field('name', 'Ecto-1'),
         field('status', 'draft'),
         field('owner', 'Egon'),
         field('notes', 'x'),
@@ -80,9 +81,12 @@ describe('InnfoUI.ElementCard', () => {
     const img = card.querySelector('.innfo-card-head img.innfo-card-thumb') as HTMLImageElement
     expect(img).toBeTruthy()
     expect(img.getAttribute('src')).toBe('sources/ecto-1.png')
-    const facts = [...card.querySelectorAll('.innfo-card-fact')].map((n) => n.textContent)
-    expect(facts).toEqual(['status draft', 'owner Egon'])
-    expect(card.querySelector('.innfo-card-count')!.textContent).toBe('4 fields')
+    expect(card.querySelector('.innfo-card-facts')).toBeNull()
+    expect(card.querySelector('.innfo-card-count')!.textContent).toBe('5 fields')
+    const bodyFieldNames = [...card.querySelectorAll('.innfo-card-body [data-ku-kind="field"]')].map((n) =>
+      n.getAttribute('data-field'),
+    )
+    expect(bodyFieldNames).toEqual(['photo', 'status', 'owner', 'notes'])
   })
 
   it('falls back to a dashed placeholder when no field value looks like an image', () => {
