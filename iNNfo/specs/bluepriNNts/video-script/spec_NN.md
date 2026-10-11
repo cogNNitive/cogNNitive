@@ -137,6 +137,11 @@ concept:: Layer
 type:: string
 description:: Paint order of the Layer as a numeric string (higher renders on top). Optional.
 
+## NN Field Definition: model
+concept:: Layer
+type:: string
+description:: Optional provider model override for a `presenter` Layer (the avatar/lip-sync model id, e.g. `wavespeed-ai/infinitetalk`). Other Layer types ignore it.
+
 ## NN Field Definition: tool
 concept:: Template
 type:: select

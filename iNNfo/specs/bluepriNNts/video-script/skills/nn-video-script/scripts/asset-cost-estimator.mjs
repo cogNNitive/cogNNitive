@@ -331,7 +331,7 @@ export function estimateScriptCost(scriptContentOrPath, options = {}) {
     let sceneAvatarCost = 0;
     let avatarModelKey = defaultAvatarModel;
     avatarLayers.forEach((l, idx) => {
-      const m = normalizeModelId(defaultAvatarModel);
+      const m = resolveModelId(l.properties?.layer_avatar_model, defaultAvatarModel);
       if (idx === 0) avatarModelKey = m;
       sceneAvatarCost += estimateCallUsd('avatar', m, { seconds: estimatedDurationSec });
       noteModel(m);
