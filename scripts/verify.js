@@ -421,6 +421,8 @@ function buildSteps(repoRoot, _options = {}) {
   steps.push(node('samples-version', 'Check Samples Version Coherence', 'scripts/check-samples-version.mjs'));
   // 7c-ter. Procedures version coherence: every procedure tracks the current `procedures` blueprint_version.
   steps.push(node('procedures-version', 'Check Procedures Version Coherence', 'scripts/check-procedures-version.mjs'));
+  // 7c-quater. Usage procedure convention: every procedure-bearing blueprint declares a `usage` procedure.
+  steps.push(node('usage-procedure', 'Check Usage Procedure Convention', 'scripts/check-usage-procedure.mjs'));
   // 7d. Version SSOT Drift Guard (SHIPPED_BLUEPRINT_VERSIONS, manifest/source.yaml vs specs and SKILL.md).
   steps.push(node('version-parity', 'Check Version Parity with Specs and Skills', 'scripts/sync-versions.mjs', '--check'));
 
