@@ -168,4 +168,16 @@ notes:: Looks good, pending executive review
     expect(computeProposalSha(reparsed.changes)).toBe(computeProposalSha(doc.changes))
     expect(reparsed.changes).toEqual(doc.changes)
   })
+
+  it('round-trips free-form notes/resolution with newlines, quotes and ::', () => {
+    const doc = parseChangeset(sampleMarkdown)
+    doc.changes[0].notes = 'Line one\nLine two with "quotes" and :: colons'
+    doc.changes[0].resolution = 'resolved "value" with :: marker'
+
+    const serialized = serializeChangeset(doc)
+    const reparsed = parseChangeset(serialized)
+
+    expect(reparsed.changes[0].notes).toBe('Line one\nLine two with "quotes" and :: colons')
+    expect(reparsed.changes[0].resolution).toBe('resolved "value" with :: marker')
+  })
 })
