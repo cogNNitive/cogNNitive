@@ -583,7 +583,7 @@ async function main() {
   // tool calls the same helper, so both producers emit byte-identical slots.
   const resolveModelSchema = async (content) => {
     const fm = frontmatterOf(content)
-    if (!fm?.parent_spec?.name) return undefined
+    if (!fm?.parent_spec?.name) return { schema: undefined, procedures: [] }
     try {
       const resolution = await payloadHelper.resolveConsoleSchema({
         rootDir: root,
@@ -593,12 +593,12 @@ async function main() {
       for (const warning of resolution.warnings) {
         process.stderr.write(`WARNING: [export-console] ${warning}\n`)
       }
-      return resolution.schema
+      return { schema: resolution.schema, procedures: resolution.procedures }
     } catch (err) {
       process.stderr.write(
         `WARNING: [export-console] Schema resolution failed: ${err?.message ?? err}\n`,
       )
-      return undefined
+      return { schema: undefined, procedures: [] }
     }
   }
 
@@ -609,6 +609,8 @@ async function main() {
     const allMatrices = []
     const allConcepts = []
     const seenConcepts = new Set()
+    const allProcedures = []
+    const seenProcedureIds = new Set()
     const modelSummaries = []
 
     for (const m of candidateModels) {
@@ -676,10 +678,19 @@ async function main() {
           }
         }
       }
+      // Aggregate the blueprint procedure catalog (parent + includes) across the
+      // domain, deduplicated by id; the stepper reads `usage` first.
+      const modelSchemaResolution = await resolveModelSchema(m.content)
+      for (const p of modelSchemaResolution.procedures) {
+        if (p && p.id && !seenProcedureIds.has(p.id)) {
+          seenProcedureIds.add(p.id)
+          allProcedures.push(p)
+        }
+      }
     }
 
     const domainPayload = {
-      schema: { concepts: allConcepts },
+      schema: { concepts: allConcepts, procedures: allProcedures },
       model: {
         meta: {
           title: basename(root) + ' Domain',
@@ -728,13 +739,14 @@ async function main() {
     const stem = m.name
     const relPath = relative(root, m.filePath).replace(/\\/g, '/')
 
-    const schema = await resolveModelSchema(m.content)
+    const schemaResolution = await resolveModelSchema(m.content)
 
     const build = (generated) =>
       payloadHelper.buildConsolePayload({
         content: m.content,
         path: relPath,
-        schema,
+        schema: schemaResolution.schema,
+        procedures: schemaResolution.procedures,
         resolver,
         ledgerEntries,
         changesets,

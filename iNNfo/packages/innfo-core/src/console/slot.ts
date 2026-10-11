@@ -18,6 +18,14 @@ export interface ConsoleSchemaSlot {
   fields: any[]
   markers: any[]
   matrices: any[]
+  /** Blueprint procedure catalog (parent + includes); `usage` reads first. */
+  procedures: ConsoleProcedureSlot[]
+}
+
+export interface ConsoleProcedureSlot {
+  id: string
+  name: string
+  path: string
 }
 
 /**
@@ -34,7 +42,9 @@ export function serializeConsoleSlot(value: unknown): string {
 export function buildConsoleSchemaSlot(
   schema?: BlueprintSchema | any,
   elements?: ConsolePayloadElement[],
+  procedures?: ConsoleProcedureSlot[],
 ): ConsoleSchemaSlot {
+  const procList = Array.isArray(procedures) ? procedures : []
   if (schema) {
     const concepts = Array.isArray(schema.concepts)
       ? schema.concepts
@@ -65,6 +75,7 @@ export function buildConsoleSchemaSlot(
       fields,
       markers,
       matrices,
+      procedures: procList,
     }
   }
 
@@ -83,5 +94,6 @@ export function buildConsoleSchemaSlot(
     fields: [],
     markers: [],
     matrices: [],
+    procedures: procList,
   }
 }
