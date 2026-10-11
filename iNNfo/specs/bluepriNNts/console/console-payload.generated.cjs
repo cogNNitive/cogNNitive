@@ -7387,6 +7387,7 @@ __export(index_exports, {
   feedbackStateFor: () => feedbackStateFor,
   findEnclosingAgentModification: () => findEnclosingAgentModification,
   groupCitationsByField: () => groupCitationsByField,
+  isConsoleModel: () => isConsoleModel,
   isExcludedPath: () => isExcludedPath,
   isNNName: () => isNNName,
   isSidecarName: () => isSidecarName,
@@ -7990,6 +7991,12 @@ function parentSpecNameOf(frontmatter) {
     return typeof name === "string" ? name : void 0;
   }
   return void 0;
+}
+function isConsoleModel(f) {
+  if (isExcludedPath(f.path)) return false;
+  const role = roleOf({ path: f.path, parentSpecName: parentSpecNameOf(f.frontmatter) });
+  if (role === "knowledge") return true;
+  return role === "procedure" && !segmentsOf(f.path).includes("procedures");
 }
 function isNNName(nameOrPath) {
   return NN_SUFFIX_RE.test(baseOf(nameOrPath));
@@ -11208,6 +11215,7 @@ async function resolveConsoleSchema(opts) {
   feedbackStateFor,
   findEnclosingAgentModification,
   groupCitationsByField,
+  isConsoleModel,
   isExcludedPath,
   isNNName,
   isSidecarName,

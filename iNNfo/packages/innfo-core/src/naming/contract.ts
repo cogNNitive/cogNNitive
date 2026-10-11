@@ -235,6 +235,21 @@ export function isModelCandidate(f: { path: string; frontmatter: Record<string, 
   return roleOf({ path: f.path, parentSpecName: parentSpecNameOf(f.frontmatter) }) === 'knowledge'
 }
 
+/**
+ * The console's model notion: a `knowledge` model, OR a `procedures` model — a
+ * Level-3 procedures catalog/stepper in the workspace that feeds the procedures
+ * blueprint's Procedure view. The `procedures/` submodels (execution steppers
+ * linked through `procedure_model`) are NOT console models: they are excluded by
+ * their `procedures` directory segment. `list_knowledge`, discovery and the
+ * lineage projection keep using `isModelCandidate` (knowledge only).
+ */
+export function isConsoleModel(f: { path: string; frontmatter: Record<string, unknown> }): boolean {
+  if (isExcludedPath(f.path)) return false
+  const role = roleOf({ path: f.path, parentSpecName: parentSpecNameOf(f.frontmatter) })
+  if (role === 'knowledge') return true
+  return role === 'procedure' && !segmentsOf(f.path).includes('procedures')
+}
+
 /** A published-spec style version token inside a stem: `_V_<major>-<minor>-<patch>`. */
 const VERSION_TOKEN_RE = /_V_\d+-\d+-\d+/i
 /** Stems of the Level 0 / Level 1 specifications, exempt from the invariant (optionally versioned). */
