@@ -711,6 +711,13 @@ statement:: Execute plan
       const live = await readFile(join(knowledgeDir, 'strategy_NN.md'), 'utf-8')
       expect(live).toContain('slug:: vision-1')
       expect(live).toContain('Suffixed vision statement')
+
+      // The slug-resolution rewrite changed upd-1.target; the persisted seal must be
+      // recomputed over the resolved changes so it stays re-verifiable.
+      const persisted = await readFile(csFile, 'utf-8')
+      const reparse = parseChangeset(persisted)
+      expect(reparse.frontmatter.proposal_sha).toBe(computeProposalSha(reparse.changes))
+      expect(reparse.frontmatter.proposal_sha).not.toBe(csDoc.frontmatter.proposal_sha)
     })
 
     it('remove_element cascades matrix cells and records count in resolution', async () => {

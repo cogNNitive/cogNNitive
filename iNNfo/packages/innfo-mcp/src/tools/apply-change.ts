@@ -816,6 +816,10 @@ export async function executeChangesetApply(
     }
     const slugResolution = resolveBatchSlugs(csDoc.changes, loadedModelAsts)
     csDoc.changes = slugResolution.changes
+    // D11 rewrites target/to/name/slug on slug collisions, so the seal computed at
+    // verification time no longer matches. Re-seal here so the persisted changeset
+    // stays self-consistent and re-verifiable (the seal covers the resolved changes).
+    csDoc.frontmatter.proposal_sha = computeProposalSha(csDoc.changes)
 
     // D12: Delete Impact Pre-Computation & Reference Scanning
     const { matrixCascades, referenceConflicts } = evaluateBatchDeleteImpact(
