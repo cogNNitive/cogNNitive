@@ -101,7 +101,7 @@ describe('innfo-console — rendered DOM', () => {
     expect(rail.join(' ')).toContain('Goal')
     expect(rail.join(' ')).toContain('Metric')
 
-    const titles = [...document.querySelectorAll('.innfo-card h3')].map((n) => n.textContent)
+    const titles = [...document.querySelectorAll('.innfo-card .innfo-card-head [data-ku-kind=element]')].map((n) => n.textContent)
     expect(titles).toEqual(['Grow', 'Churn'])
   })
 
@@ -109,13 +109,13 @@ describe('innfo-console — rendered DOM', () => {
     bootConsole()
 
     typeInto('#innfo-search', 'grow')
-    expect([...document.querySelectorAll('.innfo-card h3')].map((n) => n.textContent)).toEqual([
+    expect([...document.querySelectorAll('.innfo-card .innfo-card-head [data-ku-kind=element]')].map((n) => n.textContent)).toEqual([
       'Grow',
     ])
 
     // Matching runs over description text too, not just the element name.
     typeInto('#innfo-search', 'monthly logo')
-    expect([...document.querySelectorAll('.innfo-card h3')].map((n) => n.textContent)).toEqual([
+    expect([...document.querySelectorAll('.innfo-card .innfo-card-head [data-ku-kind=element]')].map((n) => n.textContent)).toEqual([
       'Churn',
     ])
 

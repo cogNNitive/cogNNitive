@@ -86,12 +86,22 @@ export interface ConsolePayloadElement {
   history?: ElementHistoryItem[]
 }
 
+export interface ConsoleMatrixHeadEntry {
+  label?: string
+  concept?: string
+  kind?: 'element' | 'marker'
+}
+
 export interface ConsolePayloadMatrix {
   name: string
   source: string
   target: string
   rows: string[]
   cols: string[]
+  head?: {
+    rows: Record<string, ConsoleMatrixHeadEntry>
+    cols: Record<string, ConsoleMatrixHeadEntry>
+  }
   values?: string[]
   cells: Record<string, Record<string, unknown>>
   widget?: string
@@ -291,12 +301,27 @@ export function buildConsolePayload(options: BuildConsolePayloadOptions): Consol
           cellsObj[cell.row][cell.col] = cell.value
         }
       }
+      const isItemMarkers =
+        mat.name === 'item-markers matrix' || (mat.target || '').toLowerCase() === 'markers'
+      const headRows: Record<string, ConsoleMatrixHeadEntry> = {}
+      const headCols: Record<string, ConsoleMatrixHeadEntry> = {}
+      for (const r of rows) {
+        headRows[r] = { label: r, concept: mat.source || undefined, kind: 'element' }
+      }
+      for (const c of cols) {
+        headCols[c] = {
+          label: c,
+          concept: mat.target || undefined,
+          kind: isItemMarkers ? 'marker' : 'element',
+        }
+      }
       matrices.push({
         name: mat.name,
         source: mat.source || '',
         target: mat.target || '',
         rows,
         cols,
+        head: { rows: headRows, cols: headCols },
         cells: cellsObj,
       })
     }

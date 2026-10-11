@@ -9312,7 +9312,7 @@ function blueprintVersionFromFrontmatter(content) {
   const v = parseFrontmatter(content)?.blueprint_version;
   return v ? normalizeVersion(String(v)) : void 0;
 }
-function compareVersions(a, b) {
+function compareDottedVersions(a, b) {
   const pa = a.split(".").map(Number);
   const pb = b.split(".").map(Number);
   const len = Math.max(pa.length, pb.length);
@@ -9355,7 +9355,7 @@ async function preferHighestVersion(matches) {
       bestVersion = v;
       continue;
     }
-    if (bestVersion && v && compareVersions(v, bestVersion) > 0) {
+    if (bestVersion && v && compareDottedVersions(v, bestVersion) > 0) {
       best = m;
       bestVersion = v;
     }
@@ -9441,7 +9441,7 @@ async function resolveBlueprintPackage(rootDir, reqName, reqVersion, options) {
       let bestVer = "";
       for (const d of verDirs) {
         const v = normalizeVersion(d.name);
-        if (!bestVer || compareVersions(v, bestVer) > 0) {
+        if (!bestVer || compareDottedVersions(v, bestVer) > 0) {
           bestVer = v;
           matchDir = join4(wsPackageBaseDir, d.name);
           matchVer = v;
@@ -9500,7 +9500,7 @@ async function resolveBlueprintPackage(rootDir, reqName, reqVersion, options) {
       let bestVer = "";
       for (const d of verDirs) {
         const v = normalizeVersion(d.name);
-        if (!bestVer || compareVersions(v, bestVer) > 0) {
+        if (!bestVer || compareDottedVersions(v, bestVer) > 0) {
           bestVer = v;
           matchDir = join4(globalBaseDir, d.name);
           matchVer = v;
@@ -9574,7 +9574,7 @@ async function resolveBlueprintPackage(rootDir, reqName, reqVersion, options) {
           let bestVer = "";
           for (const d of verDirs) {
             const v = normalizeVersion(d.name);
-            if (!bestVer || compareVersions(v, bestVer) > 0) {
+            if (!bestVer || compareDottedVersions(v, bestVer) > 0) {
               bestVer = v;
               matchDir = join4(skillPkgBase, d.name);
               matchVer = v;
@@ -10158,7 +10158,15 @@ function isChangeOp(val) {
 var import_yaml8 = __toESM(require_dist(), 1);
 function stripQuotes(str2) {
   const trimmed = str2.trim();
-  if (trimmed.startsWith('"') && trimmed.endsWith('"') || trimmed.startsWith("'") && trimmed.endsWith("'")) {
+  if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (typeof parsed === "string") return parsed;
+    } catch {
+    }
+    return trimmed.slice(1, -1);
+  }
+  if (trimmed.startsWith("'") && trimmed.endsWith("'")) {
     return trimmed.slice(1, -1);
   }
   return trimmed;
@@ -10261,7 +10269,7 @@ function parseChangeset(rawContent) {
         currentChange.author = stripQuotes(rawVal);
         break;
       case "notes":
-        currentChange.notes = rawVal;
+        currentChange.notes = stripQuotes(rawVal);
         break;
       case "status":
         if (!isChangeStatus(rawVal)) {
@@ -10270,7 +10278,7 @@ function parseChangeset(rawContent) {
         currentChange.status = rawVal;
         break;
       case "resolution":
-        currentChange.resolution = rawVal;
+        currentChange.resolution = stripQuotes(rawVal);
         break;
       case "resolved_slug":
         currentChange.resolved_slug = rawVal;
@@ -11048,12 +11056,26 @@ function buildConsolePayload(options) {
           cellsObj[cell.row][cell.col] = cell.value;
         }
       }
+      const isItemMarkers = mat.name === "item-markers matrix" || (mat.target || "").toLowerCase() === "markers";
+      const headRows = {};
+      const headCols = {};
+      for (const r of rows) {
+        headRows[r] = { label: r, concept: mat.source || void 0, kind: "element" };
+      }
+      for (const c of cols) {
+        headCols[c] = {
+          label: c,
+          concept: mat.target || void 0,
+          kind: isItemMarkers ? "marker" : "element"
+        };
+      }
       matrices.push({
         name: mat.name,
         source: mat.source || "",
         target: mat.target || "",
         rows,
         cols,
+        head: { rows: headRows, cols: headCols },
         cells: cellsObj
       });
     }
