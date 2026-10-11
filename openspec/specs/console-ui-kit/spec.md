@@ -398,6 +398,41 @@ affordance to the unit's changes and MUST call `opts.onChanges` when given.
 - GIVEN `data.changes` absent
 - THEN no `[data-innfo-component=ku-change-pip]` exists
 
+### Requirement: Type-Aware Field Value Rendering
+
+`FieldRow` MUST render a field's read value through `FieldValue`, a type-aware
+renderer that dispatches on the field's declared type: `boolean` as Yes/No
+(`data-value="true|false"`), `http(s)` urls as links with
+`rel="noopener noreferrer"`, `code` as a `<code>`, `markdown`/`markdown_inline`
+as preformatted text, and array values joined by `, `. `FieldValue` MUST return
+`null` for plain types (string, number, select, multiselect, …) so the existing
+plain `KuBadge` text output is preserved unchanged. `KuBadge` (kind `field`)
+MUST accept a `valueNode` and append it in place of the text value span.
+
+#### Scenario: Boolean rendered as Yes/No
+- GIVEN `FieldValue({ value: true, type: 'boolean' })`
+- THEN the node text is `Yes` with `data-value="true"`
+
+#### Scenario: Plain string unchanged
+- GIVEN `FieldRow({ name: 'f', value: 'v' })`
+- THEN the badge text is `f:v` and no typed value node exists
+
+### Requirement: Modal Connections Sankey
+
+`SankeyFlow` MUST render a three-column relation flow — incoming nodes, a centre
+node, outgoing nodes — as inline SVG with no external dependency, and MUST
+render an empty state when there are no relations. The knowledge-unit
+`EditModal` MUST expose a `Connections` tab that mounts the flow from
+`data.connections` (`{ center, incoming[], outgoing[] }`).
+
+#### Scenario: Flow renders
+- GIVEN `SankeyFlow({ center, incoming: [...], outgoing: [...] })`
+- THEN one node per entry plus the centre render, with a link per relation
+
+#### Scenario: Empty flow
+- GIVEN `SankeyFlow({ incoming: [], outgoing: [] })`
+- THEN only the empty state renders
+
 ## Deferred Items
 
 - Persisting a reviewer theme choice; deriving tokens from `design-presets`; a component extension registry (YAGNI).
