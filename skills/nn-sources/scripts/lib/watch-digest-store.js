@@ -46,7 +46,7 @@ function statePath(projectDir) {
 /**
  * Reads the digest state. A missing or unreadable file yields empty state.
  * @param {string} projectDir
- * @returns {{ version: number, items: Record<string, { status: string, decidedAt: string, note: string }> }}
+ * @returns {{ version: number, items: Record<string, { status: string, decidedAt: string, note: string }>, convergence: Record<string, unknown> }}
  */
 function loadState(projectDir) {
   try {
@@ -65,7 +65,7 @@ function loadState(projectDir) {
 
 /**
  * Serializes state deterministically: items sorted by key, stable formatting.
- * @param {{ items: Record<string, unknown> }} state
+ * @param {{ items: Record<string, unknown>, convergence?: Record<string, unknown> }} state
  * @returns {string}
  */
 function serializeState(state) {
