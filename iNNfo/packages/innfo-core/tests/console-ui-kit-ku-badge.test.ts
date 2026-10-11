@@ -35,6 +35,16 @@ describe('InnfoUI.KuBadge', () => {
     expect(badge.textContent).toContain('Slimer')
   })
 
+  it('renders field badge values unclipped (wrap instead of ellipsis)', () => {
+    const fieldRule = UI.generateTokenCss()
+      .split('\n')
+      .find((l: string) => l.includes('[data-ku-kind=field] .innfo-ku-value'))
+    expect(fieldRule).toBeTruthy()
+    expect(fieldRule).toContain('white-space:normal')
+    expect(fieldRule).toContain('text-overflow:clip')
+    expect(fieldRule).not.toContain('ellipsis')
+  })
+
   it('carries a concept slot and a tint token for concept/document badges', () => {
     const badge = UI.KuBadge({ kind: 'concept', id: 'c1', label: 'Revenue', index: 2 })
     expect(badge.getAttribute('data-concept-slot')).toBe('3')

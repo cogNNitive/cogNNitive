@@ -609,6 +609,13 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     '.innfo-ku-badge .innfo-ku-label{color:var(--innfo-muted)}',
     '.innfo-ku-badge .innfo-ku-value{color:var(--innfo-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
     '.innfo-ku-badge .innfo-ku-icon{display:inline-flex;color:var(--innfo-muted);flex:0 0 auto}',
+    // Field badges carry free text, so they read as full-width rows: the value
+    // wraps and is never clipped, and the badge grows to fill the line while the
+    // action cluster stays pinned beside it.
+    '.innfo-ku-badge[data-ku-kind=field]{flex:1 1 16em;min-width:0;align-items:flex-start;font-size:.92rem;line-height:1.5;padding:.4em .6em;gap:.45em}',
+    '.innfo-ku-badge[data-ku-kind=field] .innfo-ku-label{flex:0 0 auto;white-space:nowrap;font-weight:600}',
+    '.innfo-ku-badge[data-ku-kind=field] .innfo-ku-value{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;word-break:break-word;text-align:left}',
+    '.innfo-ku-badge[data-ku-kind=field] .innfo-ku-icon{margin-top:.18em}',
     '.innfo-ku-badge[data-ku-changes]{border-style:dashed}',
     '.innfo-ku-change-pip{position:absolute;top:-.5em;right:-.5em;min-width:1.2em;height:1.2em;padding:0 .25em;display:inline-flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:700;line-height:1;border-radius:999px;background:var(--innfo-status-pending-bg);color:var(--innfo-status-pending);border:1px solid var(--innfo-status-pending);cursor:pointer}',
     '.innfo-ku-actions{display:inline-flex;align-items:center;gap:.1em;flex:0 0 auto}',
@@ -617,7 +624,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     '.innfo-ku-action:hover{color:var(--innfo-text);border-color:var(--innfo-border);background:var(--innfo-surface)}',
     '.innfo-ku-action[data-ku-action=edit]:hover{color:var(--innfo-link)}',
     '.innfo-ku-action:focus-visible{outline:2px solid var(--innfo-focus);outline-offset:1px}',
-    '.innfo-card-fields{display:flex;flex-wrap:wrap;gap:.4em;align-items:center;margin:.6em 0 0}',
+    '.innfo-card-fields{display:flex;flex-wrap:wrap;gap:.4em;align-items:flex-start;margin:.6em 0 0}',
     '.innfo-card-desc-actions{margin-left:.4em}',
   ]
   for (var slot = 1; slot <= 12; slot++) {
