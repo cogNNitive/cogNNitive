@@ -109,6 +109,22 @@ describe('tabs from the registry', () => {
     assert.deepEqual(ids, ['first', 'alpha', 'zeta', 'metamodel', 'explorer', 'matrices', 'review'])
   })
 
+  it('opens on the model explorer by default, not the lowest-order view', () => {
+    const registry = InnfoConsole.createViewRegistry()
+    registry.register(def({ id: 'pipe', order: 1 }))
+    const { document } = bootConsole({ registry })
+    const active = document.querySelector('.innfo-view-tab.active')
+    assert.equal(active.dataset.tab, 'explorer')
+  })
+
+  it('honors config.defaultView when it names a real tab', () => {
+    const registry = InnfoConsole.createViewRegistry()
+    registry.register(def({ id: 'pipe', order: 1 }))
+    const { document } = bootConsole({ registry, config: { needs: [], defaultView: 'pipe' } })
+    const active = document.querySelector('.innfo-view-tab.active')
+    assert.equal(active.dataset.tab, 'pipe')
+  })
+
   it('mounts lazily, once, and keeps view state across tab switches', () => {
     const registry = InnfoConsole.createViewRegistry()
     const log = []
@@ -123,7 +139,11 @@ describe('tabs from the registry', () => {
     )
     const { document } = bootConsole({ registry })
     const tab = (id) => document.querySelector(`.innfo-view-tab[data-tab="${id}"]`)
-    // default tab is the lowest order: the pipeline view (order 20 < explorer 100)
+    // The default tab is the model explorer (the domain console's primary
+    // content), not the lowest-order custom view, so the custom view is not
+    // mounted until its tab is activated.
+    assert.deepEqual(log, [])
+    tab('pipeline').click()
     assert.deepEqual(log, ['mount'])
     document.getElementById('v-input').value = 'typed'
     tab('explorer').click()
@@ -173,7 +193,7 @@ describe('tabs from the registry', () => {
         }),
       }),
     )
-    const { document } = bootConsole({ registry })
+    const { document } = bootConsole({ registry, config: { needs: [], defaultView: 'pipeline' } })
     const tab = (id) => document.querySelector(`.innfo-view-tab[data-tab="${id}"]`)
     assert.doesNotThrow(() => {
       tab('explorer').click()
@@ -268,7 +288,7 @@ describe('duplicate and invalid view ids', () => {
         },
       }),
     )
-    const { document } = bootConsole({ registry })
+    const { document } = bootConsole({ registry, config: { needs: [], defaultView: 'pipeline' } })
     const panel = document.getElementById('innfo-tab-pipeline')
     assert.match(panel.textContent, /boom/)
     assert.match(document.getElementById('innfo-view-errors').textContent, /pipeline.*boom/)
@@ -330,6 +350,7 @@ describe('shell without <main>', () => {
     assert.doesNotThrow(() => {
       booted = bootConsole({
         registry,
+        config: { needs: [], defaultView: 'pipeline' },
         before(doc) {
           const nav = doc.createElement('nav')
           nav.id = 'innfo-view-tabs'
@@ -361,7 +382,7 @@ describe('booting twice on one document', () => {
     const registry = InnfoConsole.createViewRegistry()
     registry.register(failing())
     const model = { ...MODEL, rows: [{}], meta: { ...MODEL.meta, months: 3 } }
-    const { document } = bootConsole({ registry, model })
+    const { document } = bootConsole({ registry, model, config: { needs: [], defaultView: 'pipeline' } })
     const before = document.querySelectorAll('#innfo-view-errors p').length
     assert.equal(before, 1)
     InnfoConsole.boot(document, { registry })

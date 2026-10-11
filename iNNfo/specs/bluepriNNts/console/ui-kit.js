@@ -17,15 +17,18 @@
   // contrast table; the contrast suite recomputes these independently.
   var TOKEN_VALUES = {
     light: {
-      '--innfo-bg': '#f9fafb',
+      // morado-nazareno brand: purple #4D0E4E primary on a flat light canvas,
+      // soft lavender-grey borders, ink #111112 / muted #636366. Concept colors
+      // stay app-driven data; only brand + neutrals live here.
+      '--innfo-bg': '#faf9fc',
       '--innfo-surface': '#ffffff',
-      '--innfo-surface-2': '#f3f4f6',
-      '--innfo-text': '#111827',
-      '--innfo-muted': '#6b7280',
-      '--innfo-border': '#e5e7eb',
-      '--innfo-accent': '#1f2937',
-      '--innfo-link': '#2563eb',
-      '--innfo-focus': '#2563eb',
+      '--innfo-surface-2': '#f5f3f8',
+      '--innfo-text': '#191724',
+      '--innfo-muted': '#6b6879',
+      '--innfo-border': '#eceaf2',
+      '--innfo-accent': '#4d0e4e',
+      '--innfo-link': '#5c1560',
+      '--innfo-focus': '#7a2c86',
       '--innfo-concept-1': '#3b82f6',
       '--innfo-concept-2': '#8b5cf6',
       '--innfo-concept-3': '#14b8a6',
@@ -66,9 +69,14 @@
       '--innfo-radius-sm': '6px',
       '--innfo-radius': '8px',
       '--innfo-radius-lg': '10px',
+      '--innfo-fs-hero': '1.5rem',
+      '--innfo-fs-title': '1.25rem',
+      '--innfo-fs-body': '0.9375rem',
+      '--innfo-fs-caption': '0.8125rem',
+      '--innfo-fs-min': '0.75rem',
       '--innfo-font':
-        "Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-      '--innfo-mono': "ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace",
+        "Plus Jakarta Sans, Geist Sans, Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+      '--innfo-mono': "Geist Mono, 'JetBrains Mono', ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace",
       '--innfo-shadow': '0 1px 2px rgba(0, 0, 0, .06)',
     },
     dark: {
@@ -121,9 +129,14 @@
       '--innfo-radius-sm': '6px',
       '--innfo-radius': '8px',
       '--innfo-radius-lg': '10px',
+      '--innfo-fs-hero': '1.5rem',
+      '--innfo-fs-title': '1.25rem',
+      '--innfo-fs-body': '0.9375rem',
+      '--innfo-fs-caption': '0.8125rem',
+      '--innfo-fs-min': '0.75rem',
       '--innfo-font':
-        "Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-      '--innfo-mono': "ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace",
+        "Plus Jakarta Sans, Geist Sans, Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+      '--innfo-mono': "Geist Mono, 'JetBrains Mono', ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace",
       '--innfo-shadow': '0 1px 2px rgba(0, 0, 0, .4)',
     },
   }
@@ -168,7 +181,7 @@
     '.innfo-review-anchor:hover{opacity:1;background:var(--innfo-surface);border-color:var(--innfo-focus)}',
     '[data-innfo-component=element-card]:hover .innfo-review-anchor,[data-innfo-component=field-row]:hover .innfo-review-anchor{opacity:.85}',
     '.innfo-review-anchor:focus-visible{outline:2px solid var(--innfo-focus);outline-offset:1px;opacity:1}',
-    '.innfo-reviewed-toggle{appearance:none;border:1px solid var(--innfo-border);background:var(--innfo-surface-2);color:var(--innfo-text);font:inherit;font-size:.72rem;padding:.1em .5em;border-radius:var(--innfo-radius-sm);cursor:pointer;margin-left:.4em}',
+    '.innfo-reviewed-toggle{appearance:none;border:1px solid var(--innfo-border);background:var(--innfo-surface-2);color:var(--innfo-text);font:inherit;font-size:.75rem;padding:.1em .5em;border-radius:var(--innfo-radius-sm);cursor:pointer;margin-left:.4em}',
     '.innfo-reviewed-toggle[data-state=reviewed]{color:var(--innfo-status-applied);background:var(--innfo-status-applied-bg)}',
     '.innfo-reviewed-toggle[data-state=changed]{color:var(--innfo-status-stale);background:var(--innfo-status-stale-bg)}',
     '.innfo-review-badges{display:inline-flex;gap:.3em;align-items:center;margin-left:.4em}',
@@ -214,8 +227,12 @@
     '.innfo-edit-toggle:hover{color:var(--innfo-text);border-color:var(--innfo-focus)}',
     '[data-innfo-component=element-card][data-editing] .innfo-edit-toggle{color:var(--innfo-link);border-color:var(--innfo-link);background:var(--innfo-surface)}',
     '.innfo-edit-toggle:focus-visible{outline:2px solid var(--innfo-focus);outline-offset:1px}',
-    '.innfo-qud{display:inline-flex;align-items:center;gap:.35em;font-family:var(--innfo-mono);font-size:.75rem;color:var(--innfo-muted);background:var(--innfo-surface-2);border:1px solid var(--innfo-border);border-radius:var(--innfo-radius-sm);padding:.15em .3em .15em .6em;max-width:100%}',
-    '.innfo-qud-id{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+    '.innfo-qud{display:inline-flex;align-items:center;gap:.35em;font-family:var(--innfo-mono);font-size:.75rem;color:var(--innfo-muted);background:var(--innfo-surface-2);border:1px solid var(--innfo-border);border-radius:var(--innfo-radius-sm);padding:.15em .3em .15em .6em;max-width:100%;min-width:0}',
+    // The KU-detail chip holds a long mono id; the wrapper must be able to
+    // shrink below its content so a long id never widens the page on narrow
+    // viewports (only .innfo-qud-id itself truncates with an ellipsis).
+    '.innfo-qud-wrap{display:inline-flex;min-width:0;max-width:100%}',
+    '.innfo-qud-id{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}',
     '.innfo-qud-btn{appearance:none;border:1px solid transparent;background:transparent;color:var(--innfo-muted);font:inherit;padding:.1em .35em;border-radius:var(--innfo-radius-sm);cursor:pointer;display:inline-flex;align-items:center;justify-content:center}',
     '.innfo-qud-btn:hover{color:var(--innfo-text);border-color:var(--innfo-border);background:var(--innfo-surface)}',
     '.innfo-qud-detail{display:none;font-family:var(--innfo-mono);font-size:.75rem;color:var(--innfo-muted);background:var(--innfo-surface-2);border:1px solid var(--innfo-border);border-radius:var(--innfo-radius-sm);padding:.5em .7em;margin:.5em 0 0;word-break:break-all}',
@@ -236,11 +253,15 @@
     '.innfo-rel-act.danger:hover{color:var(--innfo-status-rejected)}',
     '.innfo-rel-add{appearance:none;border:1px dashed var(--innfo-border);background:none;color:var(--innfo-muted);font:inherit;font-size:.78rem;border-radius:var(--innfo-radius-sm);padding:.1em .55em;cursor:pointer;align-self:flex-start}',
     '.innfo-rel-add:hover{color:var(--innfo-link);border-color:var(--innfo-link)}',
-    '@media (max-width:640px){.innfo-edit-anchor,.innfo-edit-toggle,.innfo-qud-btn,.innfo-rel-act{min-width:32px;min-height:32px}.innfo-qud{font-size:.7rem}}',
+    '@media (max-width:640px){.innfo-edit-anchor,.innfo-edit-toggle,.innfo-qud-btn,.innfo-rel-act{min-width:32px;min-height:32px}.innfo-qud{font-size:.75rem}}',
     // Knowledge-unit badge family (KuBadge) + action cluster + change pip.
     '.innfo-ku-unit{display:inline-flex;align-items:center;gap:.25em;max-width:100%}',
     '.innfo-ku-badge{position:relative;display:inline-flex;align-items:center;gap:.35em;font:inherit;font-size:.82rem;line-height:1.2;border:1px solid var(--innfo-border);border-radius:var(--innfo-radius-sm);padding:.1em .5em;background:var(--innfo-surface);color:var(--innfo-text);max-width:100%}',
     '.innfo-ku-badge[data-ku-kind=field],.innfo-ku-badge[data-ku-kind=cell]{background:var(--innfo-surface-2)}',
+    // Element + concept/document badges read as card titles: slightly larger and
+    // semibold so they anchor the hierarchy above their muted field rows.
+    '.innfo-ku-badge[data-ku-kind=element],.innfo-ku-badge[data-ku-kind=concept],.innfo-ku-badge[data-ku-kind=document]{font-weight:600}',
+    '.innfo-ku-badge[data-ku-kind=element]{font-size:.9rem}',
     '.innfo-ku-badge .innfo-ku-label{color:var(--innfo-muted)}',
     '.innfo-ku-badge .innfo-ku-value{color:var(--innfo-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
     '.innfo-ku-badge .innfo-ku-icon{display:inline-flex;color:var(--innfo-muted);flex:0 0 auto}',
@@ -264,13 +285,13 @@
     // Element-card Dense Row (V01): a one-line bar (image chip, name, concept,
     // markers, two facts, field count, actions, chevron) over a collapsible body.
     // Scoped to the element-card so it wins over any shell-level card styles.
-    '[data-innfo-component=element-card] .innfo-card-head{display:flex;align-items:center;gap:.5em;flex-wrap:wrap;cursor:pointer}',
+    '[data-innfo-component=element-card] .innfo-card-head{display:flex;align-items:center;gap:.5em;flex-wrap:wrap;cursor:pointer;min-width:0}',
     '[data-innfo-component=element-card] .innfo-card-thumb{width:34px;height:34px;border-radius:7px;object-fit:cover;border:1px solid var(--innfo-border);background:var(--innfo-surface-2);flex:0 0 auto;display:block}',
     '[data-innfo-component=element-card] .innfo-card-thumb--empty{display:inline-flex;align-items:center;justify-content:center;color:var(--innfo-muted);border-style:dashed}',
     '[data-innfo-component=element-card] .innfo-card-facts{display:flex;gap:.9em;min-width:0;flex:1 1 auto;font-size:.8rem;color:var(--innfo-muted)}',
     '[data-innfo-component=element-card] .innfo-card-fact{max-width:22ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
     '[data-innfo-component=element-card] .innfo-card-fact b{color:var(--innfo-text);font-weight:600}',
-    '[data-innfo-component=element-card] .innfo-card-count{font-size:.68rem;font-weight:600;color:var(--innfo-muted);background:var(--innfo-surface-2);border:1px solid var(--innfo-border);border-radius:999px;padding:1px 8px;white-space:nowrap;flex:0 0 auto}',
+    '[data-innfo-component=element-card] .innfo-card-count{font-size:.75rem;font-weight:600;color:var(--innfo-muted);background:var(--innfo-surface-2);border:1px solid var(--innfo-border);border-radius:999px;padding:1px 8px;white-space:nowrap;flex:0 0 auto}',
     '[data-innfo-component=element-card] .innfo-card-toggle{appearance:none;border:1px solid transparent;background:transparent;color:var(--innfo-muted);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:.15em;border-radius:var(--innfo-radius-sm);flex:0 0 auto}',
     '[data-innfo-component=element-card] .innfo-card-toggle:hover{color:var(--innfo-text);border-color:var(--innfo-border);background:var(--innfo-surface)}',
     '[data-innfo-component=element-card] .innfo-card-toggle .innfo-icon{transition:transform .15s ease}',
@@ -1666,7 +1687,10 @@
       badge.appendChild(makeEl(doc, 'span', 'innfo-ku-value', String(data.label == null ? '' : data.label)))
       if (data.value != null) badge.appendChild(makeEl(doc, 'b', null, data.value))
     } else {
-      badge.appendChild(makeEl(doc, 'span', 'innfo-ku-value', String(data.label == null ? '' : data.label)))
+      var labelText = String(data.label == null ? '' : data.label)
+      var labelEl = makeEl(doc, 'span', 'innfo-ku-value', labelText)
+      if (labelText) labelEl.setAttribute('title', labelText)
+      badge.appendChild(labelEl)
     }
 
     var changes = Number(data.changes) || 0

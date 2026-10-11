@@ -241,9 +241,11 @@ describe('export-console size budget and --view (S2c2)', () => {
       assert.ok(composed.changesetText.includes(`title: "${basename(root)} Domain - Beta"`), composed.changesetText)
       assert.match(composed.changesetText, /scoped note/)
 
-      // The domain console of the same workspace keeps the unscoped key.
+      // The domain console of the same workspace keeps the unscoped key. It
+      // opens on the model explorer, so activate the view tab to mount it.
       const domain = await boot(await readFile(domainFile(), 'utf-8'))
       assert.equal(modelOf(domain).meta.consoleScope, undefined)
+      domain.window.document.querySelector('#innfo-view-tabs [data-tab="beta"]').click()
       domain.window.__ctx.store.propose({ kind: 'comment', elementId: modelOf(domain).elements[0].id, comment: 'domain note' })
       const domainKeys = Object.keys(domain.window.localStorage)
       assert.equal(domainKeys.length, 1)

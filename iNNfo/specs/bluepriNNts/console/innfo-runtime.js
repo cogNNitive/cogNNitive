@@ -178,7 +178,8 @@
           })
         : []
       var runtime = isObject(parsed.runtime) ? parsed.runtime : {}
-      return { needs: needs, runtime: runtime }
+      var defaultView = typeof parsed.defaultView === 'string' ? parsed.defaultView : ''
+      return { needs: needs, runtime: runtime, defaultView: defaultView }
     } catch {
       return fallback
     }
@@ -809,17 +810,11 @@
       'innfo-banner-version',
       ' ' + String(meta.modelVersion || meta.knowledge_version || ''),
     )
-    var needsBadge = el(
-      'span',
-      'innfo-banner-needs',
-      ' needs: ' + (needs && needs.length ? needs.join(', ') : 'none'),
-    )
     var draftsBadge = el('span', 'innfo-banner-drafts', ' drafts: ' + (draftCount || 0))
     draftsBadge.setAttribute('data-innfo', 'draft-count')
 
     banner.appendChild(title)
     banner.appendChild(version)
-    banner.appendChild(needsBadge)
     banner.appendChild(draftsBadge)
 
     // Staleness signal: the reviewer's drafts were authored against a model
@@ -3418,6 +3413,23 @@
         : ''
     }
 
+    // First tab shown on a fresh load: the model explorer is the domain
+    // console's primary content, so it wins over the registry order (a
+    // blueprint's `procedure` view otherwise lands first and becomes the
+    // default). A `config.defaultView` from #innfo-config overrides it.
+    function defaultTabId() {
+      var has = function (id) {
+        return tabs.some(function (t) {
+          return t.id === id
+        })
+      }
+      if (scopedView && has(scopedView)) return scopedView
+      var preferred = opts.config && opts.config.defaultView
+      if (preferred && has(preferred)) return preferred
+      if (has('explorer')) return 'explorer'
+      return tabs[0].id
+    }
+
     var onHashChange = function () {
       var id = tabFromHash()
       if (id) select(id, true)
@@ -3442,7 +3454,7 @@
       // initial search) is kept and the default view is not mounted for
       // nothing, and after the review controller exists (ctx.modal needs it).
       activateInitial: function () {
-        if (!current) select(tabFromHash() || tabs[0].id, true)
+        if (!current) select(tabFromHash() || defaultTabId(), true)
       },
     }
   }
@@ -4064,11 +4076,6 @@
     version.className = 'innfo-banner-version'
     version.textContent = ' ' + (state ? state.modelVersion : '')
     banner.appendChild(version)
-
-    var needsBadge = active.createElement('span')
-    needsBadge.className = 'innfo-banner-needs'
-    needsBadge.textContent = ' needs: ' + (config.needs && config.needs.length ? config.needs.join(', ') : 'none')
-    banner.appendChild(needsBadge)
 
     var draftsBadge = active.createElement('span')
     draftsBadge.className = 'innfo-banner-drafts'
