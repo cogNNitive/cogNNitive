@@ -252,7 +252,7 @@ describe('export-console size budget and --view (S2c2)', () => {
   })
 
   describe('scoped runtime hides explorer-only UI', () => {
-    const EXPLORER_ONLY = ['#innfo-rail', '.innfo-toolbar', '#innfo-search', '#innfo-stats-bar']
+    const EXPLORER_ONLY = ['#innfo-rail', '.innfo-toolbar', '#innfo-search']
 
     it('renders no toolbar, rail or stats bar, and search-related entry points are inert', async () => {
       await addView('beta', editableView('Beta'))

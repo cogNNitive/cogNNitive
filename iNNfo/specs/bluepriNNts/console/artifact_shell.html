@@ -16,7 +16,7 @@
       2. Paste the Schema JSON Contract into #innfo-schema.
       3. Paste the Model JSON Contract into #innfo-model.
     The shared runtime (innfo-runtime.js, window.InnfoConsole) renders the rail
-    cards, search, facets, KPI stats, cards, matrices, drafts and export modal.
+    cards, search, facets, cards, matrices, drafts and export modal.
     Do NOT inline runtime code here.
   -->
     <link rel="stylesheet" href="./innfo-ui.css" />
@@ -163,11 +163,6 @@
       .innfo-content-scroll { flex: 1; overflow-y: auto; padding: 22px 30px 90px; max-width: 1200px; width: 100%; box-sizing: border-box; }
 
       /* Runtime regions (kept identical to the previous shell) */
-      .innfo-stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; margin-bottom: 22px; }
-      .innfo-stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; box-shadow: var(--shadow-card); display: flex; align-items: center; gap: 16px; }
-      .innfo-stat-icon { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-      .innfo-stat-label { font-size: 0.78rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
-      .innfo-stat-value { font-size: 1.6rem; font-weight: 800; line-height: 1.1; }
       .innfo-facet-dropdown { position: relative; display: inline-block; }
       .innfo-facet-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; font-size: 0.8rem; font-weight: 600; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; }
       .innfo-facet-btn.active { border-color: var(--primary); color: var(--primary); }
@@ -224,7 +219,6 @@
         <div class="innfo-action-bar">
           <nav id="innfo-view-tabs" class="innfo-view-tabs" style="display: none;"></nav>
         </div>
-        <div id="innfo-stats-bar" class="innfo-stats-grid"></div>
         <div id="innfo-tab-explorer" class="innfo-tab-panel active">
           <div id="innfo-doc"></div>
           <div id="innfo-content"></div>
