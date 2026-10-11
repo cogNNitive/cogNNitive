@@ -109,3 +109,24 @@ The sample video below demonstrates the audio clarity and facial lip-sync synchr
   <source src="assets/video_benchmark_sample.mp4" type="video/mp4">
   Your browser does not support the video tag.
 </video>
+
+---
+
+## 8. Rendering Engine, Assembly & Licensing
+
+The engine compiles a Level-3 script into a composition manifest and renders it headlessly to MP4. Audio duration is measured with `@remotion/media-parser`; synthesized assets are content-addressed (SHA-256) and cached.
+
+### 8.1 Rendering engine
+
+The renderer is **Remotion**, a third-party, source-available product.
+
+- The user installs it on **their own account** via `scripts/ensure-engine.mjs` (an idempotent, consent-gated `npm install`). cogNNitive does **not** bundle, distribute, or host Remotion.
+- **Licensing follows the user of Remotion**, not cogNNitive. Remotion is **free for individuals and organizations of up to 3 people — automation included**. Larger organizations building automations need a Company License.
+- Review the terms before commercial use: <https://www.remotion.dev/docs/license>.
+
+### 8.2 Final clip assembly
+
+When some segments are produced outside Remotion (pass-through or externally rendered clips), `scripts/assemble-video.mjs` joins an ordered list of clips into one master with the FFmpeg concat demuxer in **stream-copy** mode (`-f concat -c copy`, `+faststart`).
+
+- This is **assembly only**: no re-encode and **no scene effects**. FFmpeg scene effects (e.g. `zoompan`, burned-in `.ass` captions) are out of scope — they produce glitching and are not used.
+- Clips must already share video codec, resolution, and frame rate. An `ffprobe` precheck refuses a mismatched set with a named error before ffmpeg runs.
