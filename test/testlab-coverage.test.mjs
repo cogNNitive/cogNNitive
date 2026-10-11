@@ -14,6 +14,9 @@ describe('TestLab coverage domain fixtures', () => {
       'domaiNN_NN.md',
       'specs/TestLab_V_0-1-0_spec_NN.md',
       'kNNowledge/TestLab_coverage_TestLab_NN.md',
+      'kNNowledge/TestLab_procedures_TestLab_procedures_NN.md',
+      'changes/testlab_reviewer_20261010T120000Z_changes_NN.md',
+      'domaiNN_console.html',
       'sources/import/field-notes.md',
       'sources/import/dataset.csv',
       'sources/import/dataset.json',
@@ -105,5 +108,18 @@ describe('TestLab coverage domain fixtures', () => {
     const model = read('kNNowledge/TestLab_coverage_TestLab_NN.md')
     assert.match(model, /NN matrices: Concept 1-Concept 2 Matrix/)
     assert.match(model, /\| Element 1A \| relevant \|/)
+  })
+
+  it('ships a domain console with both models, the Procedure view, and Element 1B lineage', () => {
+    const console = read('domaiNN_console.html')
+    // Both models are aggregated, including the procedures model.
+    assert.match(console, /TestLab_coverage_TestLab_NN\.md/)
+    assert.match(console, /TestLab_procedures_TestLab_procedures_NN\.md/)
+    // The procedures blueprint's Procedure view is inlined and fed the guided steps.
+    assert.match(console, /data-innfo-view="procedure"/)
+    assert.match(console, /TestLab Guided Verification/)
+    // The seeded changeset is embedded as Element 1B's changeset lineage.
+    assert.match(console, /concept-1-element-1b/)
+    assert.match(console, /fb-001/)
   })
 })

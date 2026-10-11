@@ -1,0 +1,24 @@
+---
+spec_version: V_0-4-0
+parent_spec: changes
+blueprint_version: 0.1.0
+status: applied
+proposal_sha: ba6bddba1d6a9295d6d178f1dca74f09dfcdc8d3610bfaf13d803deb31fb3e52
+title: TestLab review
+author: reviewer
+applied_at: 2026-10-10T12:00:00.000Z
+---
+
+> [!NOTE]
+> This is an **iNNfo document** — a plain-text Markdown file. Open it with any text editor or view and edit it with [cogNNitive](https://cognnitive.com/innfo/app/).
+
+# NN index
+
+* [[Change]]
+
+# NN Change
+
+## NN Change: fb-001
+op:: comment
+target:: TestLab Coverage Model@concept-1-element-1b&photo
+notes:: "Review note: verify the changeset lineage for Element 1B."
