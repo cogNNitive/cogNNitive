@@ -314,6 +314,7 @@ export class RemotionSceneCompiler {
       layer_text_content: fields.text,
       layer_level: fields.level !== undefined ? Number(fields.level) : undefined,
       layer_position: fields.position,
+      layer_avatar_model: fields.model,
     };
     for (const key of Object.keys(properties)) {
       if (properties[key] === undefined) delete properties[key];
