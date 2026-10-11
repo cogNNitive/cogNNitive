@@ -66,6 +66,41 @@ describe('InnfoUI.ElementCard', () => {
     expect(card.getAttribute('data-open')).toBe('false')
   })
 
+  it('renders the dense bar: image chip, two facts and a field count', () => {
+    const card = UI.ElementCard({
+      id: 'ecto-1',
+      name: 'Ecto-1',
+      fields: [
+        field('photo', 'sources/ecto-1.png'),
+        field('status', 'draft'),
+        field('owner', 'Egon'),
+        field('notes', 'x'),
+      ],
+    })
+    const img = card.querySelector('.innfo-card-head img.innfo-card-thumb') as HTMLImageElement
+    expect(img).toBeTruthy()
+    expect(img.getAttribute('src')).toBe('sources/ecto-1.png')
+    const facts = [...card.querySelectorAll('.innfo-card-fact')].map((n) => n.textContent)
+    expect(facts).toEqual(['status draft', 'owner Egon'])
+    expect(card.querySelector('.innfo-card-count')!.textContent).toBe('4 fields')
+  })
+
+  it('falls back to a dashed placeholder when no field value looks like an image', () => {
+    const card = UI.ElementCard({ id: 'x', name: 'X', fields: [field('status', 'draft')] })
+    expect(card.querySelector('.innfo-card-head img.innfo-card-thumb')).toBeNull()
+    expect(card.querySelector('.innfo-card-thumb--empty')).toBeTruthy()
+  })
+
+  it('renders collapsed with open:false and opens from the toggle', () => {
+    const card = UI.ElementCard({ id: 'x', name: 'X', fields: [field('a', 'b')] }, { open: false })
+    expect(card.getAttribute('data-open')).toBe('false')
+    const toggle = card.querySelector('button.innfo-card-toggle') as HTMLButtonElement
+    expect(toggle.getAttribute('aria-expanded')).toBe('false')
+    toggle.click()
+    expect(card.getAttribute('data-open')).toBe('true')
+    expect(toggle.getAttribute('aria-expanded')).toBe('true')
+  })
+
   it('throws TypeError naming the component on invalid data', () => {
     expect(() => UI.ElementCard(null)).toThrow(TypeError)
     expect(() => UI.ElementCard(null)).toThrow(/ElementCard/)

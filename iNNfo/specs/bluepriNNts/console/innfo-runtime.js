@@ -1307,7 +1307,8 @@
         },
         {
           domId: String(element.id || ''),
-          collapsible: false,
+          collapsible: true,
+          open: false,
           byId: refs,
           concept: conceptMetaOf(concepts, element.concept),
           onRef: function (refId) {
@@ -1358,8 +1359,9 @@
           })
           metaWrap.appendChild(copyBtn)
         }
-        var insertBeforeNode = head.children && head.children.length > 1 ? head.children[1] : null
-        head.insertBefore(metaWrap, insertBeforeNode)
+        var elementBadge = head.querySelector('[data-ku-kind="element"]')
+        if (elementBadge && elementBadge.nextSibling) head.insertBefore(metaWrap, elementBadge.nextSibling)
+        else head.appendChild(metaWrap)
       }
 
       if (element._draft) {

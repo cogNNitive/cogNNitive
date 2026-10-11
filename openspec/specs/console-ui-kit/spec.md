@@ -134,16 +134,24 @@ through `data-*` attributes, and MUST render user text via text nodes (no
 
 `InnfoUI.ElementCard({ id, name, conceptId?, description?, fields, markers? },
 { domId?, collapsible?, open?, head?, body?, onRef?, onCite?, actions? })` MUST
-return `data-innfo-component="element-card"` with `data-element-id`, a head
-(`.innfo-card-head`) containing the name rendered as a `ku-badge` of kind
-`element`, and one `marker-chip` per entry of `markers`. Each field MUST render as
-a `ku-badge` of kind `field` (`name: value`), laid out in ONE wrapped row
-(`.innfo-card-fields`), and MUST NOT render as a `<dt>/<dd>` pair. `description`
-renders as a facet paragraph (`.innfo-card-desc`) when present. `opts.head` and
-`opts.body` are arrays of nodes appended to the head and body containers
-(`.innfo-card-head`, `.innfo-card-body`). When `collapsible` is true the card
-exposes `data-open` and a toggle button with `aria-expanded`. An empty `fields`
-array MUST render no field badges.
+return `data-innfo-component="element-card"` with `data-element-id`. The head
+(`.innfo-card-head`) is a one-line Dense Row: an image chip
+(`.innfo-card-thumb`), the name as a `ku-badge` of kind `element`, one
+`marker-chip` per `markers` entry, up to two facts (`.innfo-card-fact`, the name
+in `<b>` followed by the value), a field count when there are fields
+(`.innfo-card-count`, `"N field"`/`"N fields"`), and a chevron toggle
+(`button.innfo-card-toggle`). The image chip is an `<img>` sourced from the first
+field whose value looks like an image (a `data:image/`/`blob:` URL, or a path
+ending in an image extension); with no such field it is a dashed placeholder
+(`.innfo-card-thumb--empty`). The facts skip the image field and empty values.
+Each field MUST render as a `ku-badge` of kind `field` (`name: value`) inside a
+wrapped `.innfo-card-fields` row, and MUST NOT render as a `<dt>/<dd>` pair.
+`description` renders as a facet paragraph (`.innfo-card-desc`) in the body.
+`opts.head` and `opts.body` are arrays of nodes appended to the head and body
+containers (`.innfo-card-head`, `.innfo-card-body`). The card exposes `data-open`;
+when `collapsible` is not `false` (the default) a toggle button with
+`aria-expanded` and a click on the bar both flip it. An empty `fields` array MUST
+render no field badges and no count.
 
 #### Scenario: Card with fields
 - GIVEN three fields
@@ -152,11 +160,21 @@ array MUST render no field badges.
 
 #### Scenario: Card without fields
 - GIVEN `fields: []`
-- THEN the card has a head and no field badges
+- THEN the card has a head, no field badges and no `.innfo-card-count`
 
 #### Scenario: Name is an element badge
 - GIVEN a card with `name: "Slimer"` and `conceptId: "paranormal-threat"`
 - THEN `.innfo-card-head` contains a `ku-badge[data-ku-kind=element]` whose text is `Slimer`
+
+#### Scenario: Dense bar image chip
+- GIVEN a field whose value ends in `.png`
+- THEN `.innfo-card-head img.innfo-card-thumb` has that value as its `src`
+- AND a card with no image-looking field renders `.innfo-card-thumb--empty`
+
+#### Scenario: Collapsed by default
+- GIVEN `{ open: false }`
+- THEN `data-open="false"` and the toggle reports `aria-expanded="false"`
+- AND activating the toggle sets `data-open="true"`
 
 ### Requirement: MarkerChip
 

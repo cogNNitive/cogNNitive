@@ -626,6 +626,24 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     '.innfo-ku-action:focus-visible{outline:2px solid var(--innfo-focus);outline-offset:1px}',
     '.innfo-card-fields{display:flex;flex-wrap:wrap;gap:.4em;align-items:flex-start;margin:.6em 0 0}',
     '.innfo-card-desc-actions{margin-left:.4em}',
+    // Element-card Dense Row (V01): a one-line bar (image chip, name, concept,
+    // markers, two facts, field count, actions, chevron) over a collapsible body.
+    // Scoped to the element-card so it wins over any shell-level card styles.
+    '[data-innfo-component=element-card] .innfo-card-head{display:flex;align-items:center;gap:.5em;flex-wrap:wrap;cursor:pointer}',
+    '[data-innfo-component=element-card] .innfo-card-thumb{width:34px;height:34px;border-radius:7px;object-fit:cover;border:1px solid var(--innfo-border);background:var(--innfo-surface-2);flex:0 0 auto;display:block}',
+    '[data-innfo-component=element-card] .innfo-card-thumb--empty{display:inline-flex;align-items:center;justify-content:center;color:var(--innfo-muted);border-style:dashed}',
+    '[data-innfo-component=element-card] .innfo-card-facts{display:flex;gap:.9em;min-width:0;flex:1 1 auto;font-size:.8rem;color:var(--innfo-muted)}',
+    '[data-innfo-component=element-card] .innfo-card-fact{max-width:22ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+    '[data-innfo-component=element-card] .innfo-card-fact b{color:var(--innfo-text);font-weight:600}',
+    '[data-innfo-component=element-card] .innfo-card-count{font-size:.68rem;font-weight:600;color:var(--innfo-muted);background:var(--innfo-surface-2);border:1px solid var(--innfo-border);border-radius:999px;padding:1px 8px;white-space:nowrap;flex:0 0 auto}',
+    '[data-innfo-component=element-card] .innfo-card-toggle{appearance:none;border:1px solid transparent;background:transparent;color:var(--innfo-muted);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:.15em;border-radius:var(--innfo-radius-sm);flex:0 0 auto}',
+    '[data-innfo-component=element-card] .innfo-card-toggle:hover{color:var(--innfo-text);border-color:var(--innfo-border);background:var(--innfo-surface)}',
+    '[data-innfo-component=element-card] .innfo-card-toggle .innfo-icon{transition:transform .15s ease}',
+    '[data-innfo-component=element-card][data-open=true] .innfo-card-toggle .innfo-icon{transform:rotate(180deg)}',
+    '[data-innfo-component=element-card][data-open=false] .innfo-card-body{display:none}',
+    '[data-innfo-component=element-card][data-open=false] .innfo-card-path{display:none}',
+    '[data-innfo-component=element-card] .innfo-card-fields{display:flex;flex-wrap:wrap;gap:.4em;align-items:flex-start;margin:.6em 0 0}',
+    '@media (max-width:640px){[data-innfo-component=element-card] .innfo-card-facts{display:none}}',
   ]
   for (var slot = 1; slot <= 12; slot++) {
     COMPONENT_CSS.push(
@@ -771,6 +789,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     'cite-reviewer': ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path><path d="m9 10 2 2 4-4"></path>',
     'cite-document': ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="8" y1="13" x2="16" y2="13"></line><line x1="8" y1="17" x2="16" y2="17"></line>',
     'cite-error': ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line>',
+    chevron: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline>',
+    image: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="9" cy="9" r="2"></circle><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path>',
   }
 
   function icon(name, size, cls) {
@@ -1101,6 +1121,41 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return badge
   }
 
+  // ---- Element-card Dense Row (V01) ----
+  //
+  // The bar is always one line: image chip, name, concept, markers, up to two
+  // at-a-glance facts, a field count, the actions and a chevron. The body
+  // (description, field badges, tags, relations) opens on demand. Values never
+  // clip: the bar truncates with a title tooltip and the field badges show the
+  // full value on expand. The image chip is the first field whose value looks
+  // like an image; with no such field a dashed placeholder keeps rows aligned.
+
+  var IMAGE_VALUE_RE = /\.(png|jpe?g|gif|webp|svg|avif|bmp)(?:[?#]|$)/i
+
+  function looksLikeImageValue(v) {
+    if (typeof v !== 'string') return false
+    var s = v.trim().toLowerCase()
+    if (!s) return false
+    if (s.indexOf('data:image/') === 0 || s.indexOf('blob:') === 0) return true
+    return IMAGE_VALUE_RE.test(s)
+  }
+
+  function imageFieldOf(fields) {
+    var list = Array.isArray(fields) ? fields : []
+    for (var i = 0; i < list.length; i++) {
+      if (list[i] && looksLikeImageValue(list[i].value)) return list[i]
+    }
+    return null
+  }
+
+  function factValueOf(f) {
+    if (!f) return ''
+    if (f.ref && f.ref.label) return String(f.ref.label)
+    if (f.value == null || f.value === '') return ''
+    if (typeof f.value === 'boolean') return f.value ? 'Yes' : 'No'
+    return String(f.value)
+  }
+
   function ElementCard(data, opts) {
     if (!data || typeof data !== 'object') throw new TypeError('InnfoUI.ElementCard: data required')
     var doc = resolveDoc(opts)
@@ -1112,7 +1167,31 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     card.setAttribute('data-open', open ? 'true' : 'false')
     if (opts && opts.domId) card.setAttribute('id', String(opts.domId))
 
+    var fields = Array.isArray(data.fields) ? data.fields : []
+    var imageField = imageFieldOf(fields)
+    var collapsible = !(opts && opts.collapsible === false)
+
     var head = makeEl(doc, 'header', 'innfo-card-head')
+
+    // Image chip: a real thumbnail when a field value looks like an image, a
+    // dashed placeholder otherwise (keeps every row aligned).
+    var thumb
+    if (imageField) {
+      thumb = makeEl(doc, 'img', 'innfo-card-thumb')
+      thumb.setAttribute('alt', '')
+      thumb.setAttribute('loading', 'lazy')
+      thumb.setAttribute('src', String(imageField.value))
+      thumb.addEventListener('error', function () {
+        var ph = makeEl(doc, 'span', 'innfo-card-thumb innfo-card-thumb--empty')
+        ph.innerHTML = icon('image', 16)
+        if (thumb.parentNode) thumb.parentNode.replaceChild(ph, thumb)
+      })
+    } else {
+      thumb = makeEl(doc, 'span', 'innfo-card-thumb innfo-card-thumb--empty')
+      thumb.innerHTML = icon('image', 16)
+    }
+    head.appendChild(thumb)
+
     var conceptOpts = (opts && opts.concept) || {}
     head.appendChild(
       KuBadge({
@@ -1139,26 +1218,72 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         if (n) head.appendChild(n)
       })
     }
-    if (opts && opts.collapsible) {
+
+    // Up to two at-a-glance facts (skips the image field and empty values).
+    var facts = makeEl(doc, 'span', 'innfo-card-facts')
+    var shown = 0
+    for (var i = 0; i < fields.length && shown < 2; i++) {
+      var f = fields[i]
+      if (!f || f === imageField) continue
+      var val = factValueOf(f)
+      if (val === '') continue
+      var name = String(f.name == null ? '' : f.name)
+      var fact = makeEl(doc, 'span', 'innfo-card-fact')
+      fact.appendChild(makeEl(doc, 'b', null, name))
+      fact.appendChild(doc.createTextNode(' ' + val))
+      fact.setAttribute('title', name + ': ' + val)
+      facts.appendChild(fact)
+      shown++
+    }
+    head.appendChild(facts)
+
+    if (fields.length) {
+      head.appendChild(
+        makeEl(
+          doc,
+          'span',
+          'innfo-card-count',
+          fields.length + ' ' + (fields.length === 1 ? 'field' : 'fields'),
+        ),
+      )
+    }
+
+    function setOpen(next) {
+      open = next
+      card.setAttribute('data-open', open ? 'true' : 'false')
+      var tg = head.querySelector('.innfo-card-toggle')
+      if (tg) tg.setAttribute('aria-expanded', open ? 'true' : 'false')
+    }
+
+    if (collapsible) {
       var toggle = makeEl(doc, 'button', 'innfo-card-toggle')
       toggle.setAttribute('type', 'button')
+      toggle.setAttribute('aria-label', 'Toggle details')
       toggle.setAttribute('aria-expanded', open ? 'true' : 'false')
-      toggle.addEventListener('click', function () {
-        open = !open
-        toggle.setAttribute('aria-expanded', open ? 'true' : 'false')
-        card.setAttribute('data-open', open ? 'true' : 'false')
+      toggle.innerHTML = icon('chevron', 16)
+      toggle.addEventListener('click', function (ev) {
+        if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation()
+        setOpen(!open)
       })
       head.appendChild(toggle)
+
+      // Clicking the bar (but not an interactive child) toggles too.
+      head.addEventListener('click', function (ev) {
+        var t = ev && ev.target
+        if (t && typeof t.closest === 'function' && t.closest('button, a, input, select, textarea')) {
+          return
+        }
+        setOpen(!open)
+      })
     }
     card.appendChild(head)
 
     var body = makeEl(doc, 'section', 'innfo-card-body')
     if (data.description) body.appendChild(makeEl(doc, 'p', 'innfo-card-desc', data.description))
-    var fields = Array.isArray(data.fields) ? data.fields : []
     if (fields.length) {
       var fieldRow = makeEl(doc, 'div', 'innfo-card-fields')
-      fields.forEach(function (f) {
-        if (f) fieldRow.appendChild(FieldRow(f, { onRef: opts && opts.onRef, onCite: opts && opts.onCite }))
+      fields.forEach(function (fr) {
+        if (fr) fieldRow.appendChild(FieldRow(fr, { onRef: opts && opts.onRef, onCite: opts && opts.onCite }))
       })
       body.appendChild(fieldRow)
     }
@@ -4392,7 +4517,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         },
         {
           domId: String(element.id || ''),
-          collapsible: false,
+          collapsible: true,
+          open: false,
           byId: refs,
           concept: conceptMetaOf(concepts, element.concept),
           onRef: function (refId) {
@@ -4443,8 +4569,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           })
           metaWrap.appendChild(copyBtn)
         }
-        var insertBeforeNode = head.children && head.children.length > 1 ? head.children[1] : null
-        head.insertBefore(metaWrap, insertBeforeNode)
+        var elementBadge = head.querySelector('[data-ku-kind="element"]')
+        if (elementBadge && elementBadge.nextSibling) head.insertBefore(metaWrap, elementBadge.nextSibling)
+        else head.appendChild(metaWrap)
       }
 
       if (element._draft) {
@@ -7660,6 +7787,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         {
           domId: 'el-' + (el.id || UI.slug(el.name || 'x')),
           collapsible: true,
+          open: false,
           head: headerCite,
           byId: byId,
           concept: {
