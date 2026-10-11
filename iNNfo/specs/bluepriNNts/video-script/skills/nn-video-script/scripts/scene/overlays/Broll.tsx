@@ -2,8 +2,9 @@
  * nn-video-script/scripts/scene/overlays/Broll.tsx
  *
  * B-roll overlay: draws the media path carried in the manifest, honoring `fit`
- * and `position`. Images get a subtle Ken-Burns zoom-in over the overlay's life
- * for dynamism; with `fit: contain` the whole asset is shown with a margin.
+ * and `position`. Images get a subtle Ken-Burns zoom-in over the overlay's life.
+ * With `fit: contain` the whole asset is shown with a margin, presented as a
+ * modern "card" (rounded corners + drop shadow) so it floats over the scene.
  * The manifest already holds a staged, bundle-relative name, so `staticFile()` is
  * the only path work here — the component stays presentational.
  */
@@ -42,20 +43,32 @@ export const Broll: React.FC<{
   const progress = durationInFrames > 0 ? Math.min(1, frame / durationInFrames) : 0;
   const zoom = zoomIn ? 1 + 0.08 * progress : 1;
 
+  const card: React.CSSProperties = isContain
+    ? {
+        borderRadius: 28 * s,
+        overflow: 'hidden',
+        boxShadow: '0 30px 70px rgba(0,0,0,0.55), 0 8px 24px rgba(0,0,0,0.45)',
+        border: `${Math.max(2, 3 * s)}px solid rgba(255,255,255,0.14)`,
+        background: 'rgba(255,255,255,0.04)',
+      }
+    : {};
+
   return (
     <AbsoluteFill style={{ opacity: motion.opacity, transform: motion.transform }}>
       <AbsoluteFill
-        style={{ ...(POSITION[position] || POSITION.bottom), padding: isContain ? 60 * s : 0 }}
+        style={{ ...(POSITION[position] || POSITION.bottom), padding: isContain ? 64 * s : 0 }}
       >
-        <Img
-          src={staticFile(assetPath)}
-          style={{
-            width: '100%',
-            height: '100%',
-            objectFit: fit as 'cover' | 'contain',
-            transform: `scale(${zoom})`,
-          }}
-        />
+        <div style={{ width: '100%', height: '100%', ...card }}>
+          <Img
+            src={staticFile(assetPath)}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: fit as 'cover' | 'contain',
+              transform: `scale(${zoom})`,
+            }}
+          />
+        </div>
       </AbsoluteFill>
       {source ? (
         <AbsoluteFill style={{ justifyContent: 'flex-end', alignItems: 'flex-end', padding: 32 * s }}>
