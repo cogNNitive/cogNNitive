@@ -8,6 +8,7 @@ const consoleDir = join(import.meta.dirname!, '..', '..', '..', 'specs', 'bluepr
 
 type DraftStore = {
   persistent: boolean
+  modelVersion: () => string
   drafts: () => any[]
   reviewed: () => Record<string, string>
   addDraft: (input: any) => any
@@ -80,6 +81,47 @@ describe('console-review-store (draft store v2)', () => {
     const s2 = Review.createDraftStore(storage, 'm1') as DraftStore
     expect(s2.drafts()).toHaveLength(1)
     expect(s2.drafts()[0].element_id).toBe('e1')
+  })
+
+  it('records the live model version on a fresh store', () => {
+    const Review = loadReview()
+    const store = Review.createDraftStore(memoryStorage(), 'm1', 'V_0-1-0') as DraftStore
+    expect(store.modelVersion()).toBe('V_0-1-0')
+    store.addDraft({
+      element_id: 'e1',
+      concept: 'C',
+      element: 'E1',
+      base_hash: 'abcdef0123456789',
+      kind: 'comment',
+      comment: 'hi',
+    })
+    expect(store.modelVersion()).toBe('V_0-1-0')
+  })
+
+  it('keeps the recorded version when drafts survive a model version bump', () => {
+    const Review = loadReview()
+    const storage = memoryStorage()
+    const s1 = Review.createDraftStore(storage, 'm1', 'V_0-1-0') as DraftStore
+    s1.addDraft({
+      element_id: 'e1',
+      concept: 'C',
+      element: 'E1',
+      base_hash: 'abcdef0123456789',
+      kind: 'comment',
+      comment: 'hi',
+    })
+    const s2 = Review.createDraftStore(storage, 'm1', 'V_0-2-0') as DraftStore
+    expect(s2.drafts()).toHaveLength(1)
+    expect(s2.modelVersion()).toBe('V_0-1-0')
+  })
+
+  it('rebases to the live version when the store has no drafts left', () => {
+    const Review = loadReview()
+    const storage = memoryStorage()
+    const s1 = Review.createDraftStore(storage, 'm1', 'V_0-1-0') as DraftStore
+    s1.markReviewed('e1', 'abcdef0123456789')
+    const s2 = Review.createDraftStore(storage, 'm1', 'V_0-2-0') as DraftStore
+    expect(s2.modelVersion()).toBe('V_0-2-0')
   })
 
   it('never reads, modifies or deletes old innfo-console:drafts:* keys', () => {
@@ -207,8 +249,7 @@ describe('console-review-store (draft store v2)', () => {
     expect(store.drafts()).toHaveLength(1)
   })
 
-  it('markReviewed and unmarkReviewed persist atomically', () => {
-    const Review = loadReview()
+  it('markReviewed and unmarkReviewed persist atomically', () => {    const Review = loadReview()
     const storage = memoryStorage()
     const store = Review.createDraftStore(storage, 'm1') as DraftStore
     store.markReviewed('e1', 'abcdef0123456789')
