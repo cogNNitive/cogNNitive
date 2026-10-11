@@ -54,6 +54,7 @@ export const TYPE_RENDERERS = {
   caption: { kind: 'overlay', renderer: 'Captions', manifest: 'captions' },
   brand: { kind: 'layer', renderer: 'layer-primitive', manifest: 'image' },
   quote: { kind: 'overlay', renderer: 'Quote', manifest: 'quote' },
+  watermark: { kind: 'overlay', renderer: 'Watermark', manifest: 'watermark' },
 };
 
 /**
@@ -71,6 +72,7 @@ export const DEFAULT_CONDITIONAL_FIELDS = {
   quote: ['text'],
   caption: ['text'],
   brand: ['asset'],
+  watermark: ['text'],
 };
 
 /**
@@ -348,6 +350,21 @@ export class RemotionSceneCompiler {
     };
   }
 
+  createWatermarkOverlay({ id, fromFrame, durationInFrames, props, enterAnimation, exitAnimation }) {
+    return {
+      id,
+      type: 'watermark',
+      fromFrame,
+      durationInFrames,
+      enterAnimation,
+      exitAnimation,
+      config: {
+        text: props.text || '',
+        position: props.position || 'bottom',
+      },
+    };
+  }
+
   createKineticTitleOverlay({ id, fromFrame, durationInFrames, props, enterAnimation, exitAnimation }) {
     return {
       id,
@@ -554,6 +571,12 @@ export class RemotionSceneCompiler {
           overlayTracks.push(this.createLowerThirdOverlay({
             id: ovId, fromFrame, durationInFrames,
             props: { title: text, position: layer.position },
+            enterAnimation: layer.enterAnimation, exitAnimation: layer.exitAnimation,
+          }));
+        } else if (layer.type === 'watermark') {
+          overlayTracks.push(this.createWatermarkOverlay({
+            id: ovId, fromFrame, durationInFrames,
+            props: { text, position: layer.position },
             enterAnimation: layer.enterAnimation, exitAnimation: layer.exitAnimation,
           }));
         } else if (layer.type === 'title') {

@@ -13,13 +13,14 @@ import { KineticTitle } from './overlays/KineticTitle';
 import { Captions } from './overlays/Captions';
 import { Quote } from './overlays/Quote';
 import { Broll } from './overlays/Broll';
+import { Watermark } from './overlays/Watermark';
 import { AvatarFrame } from './AvatarFrame';
 import { pickLayerPrimitive, layerSource } from './layer-primitive.mjs';
 import { rendererForOverlay } from './overlay-registry.mjs';
 
 type Overlay = {
   id: string;
-  type: 'lowerThird' | 'kineticTitle' | 'captions' | 'quote' | 'broll';
+  type: 'lowerThird' | 'kineticTitle' | 'captions' | 'quote' | 'broll' | 'watermark';
   fromFrame: number;
   durationInFrames: number;
   config: Record<string, unknown>;
@@ -174,6 +175,12 @@ function renderOverlay(overlay: Overlay, localFrom: number, fps: number): React.
       return (
         <Sequence key={overlay.id} from={localFrom} {...common}>
           <Broll config={overlay.config} {...animation} />
+        </Sequence>
+      );
+    case 'Watermark':
+      return (
+        <Sequence key={overlay.id} from={localFrom} {...common}>
+          <Watermark config={overlay.config} {...animation} />
         </Sequence>
       );
     default:
