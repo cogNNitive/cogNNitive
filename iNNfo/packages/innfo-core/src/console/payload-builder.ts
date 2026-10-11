@@ -20,7 +20,7 @@ import type { ResolvedCitation } from './citations.js'
 import { feedbackStateFor } from './feedback-ledger.js'
 import type { FeedbackVerdictEntry, FeedbackStateItem } from './feedback-ledger.js'
 import { buildConsoleSchemaSlot } from './slot.js'
-import type { ConsoleSchemaSlot } from './slot.js'
+import type { ConsoleSchemaSlot, ConsoleProcedureSlot } from './slot.js'
 import { attachChangesetHistory } from './element-history.js'
 import type { ChangesetRecord, ElementHistoryItem } from './element-history.js'
 
@@ -127,6 +127,8 @@ export interface BuildConsolePayloadOptions {
   ledgerEntries?: FeedbackVerdictEntry[]
   changesets?: ChangesetRecord[]
   generated?: string
+  /** Blueprint procedure catalog to attach to the schema slot (parent + includes). */
+  procedures?: ConsoleProcedureSlot[]
 }
 
 const WIKILINK_TARGET_RE = /\[\[([^\]|#]+)(?:#[^\]|]+)?(?:\|([^\]]+))?\]\]/g
@@ -302,7 +304,7 @@ export function buildConsolePayload(options: BuildConsolePayloadOptions): Consol
     }
   }
 
-  const schemaSlot = buildConsoleSchemaSlot(inputSchema, elements)
+  const schemaSlot = buildConsoleSchemaSlot(inputSchema, elements, options.procedures)
   // Attach changeset lineage AFTER the schema slot so the schema is unaffected by
   // history (only the model slot carries it).
   attachChangesetHistory(elements, changesets)

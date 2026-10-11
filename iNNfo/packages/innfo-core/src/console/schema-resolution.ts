@@ -11,9 +11,15 @@
  * `resolveBlueprintSchema`, pre-collecting every transitive `include` through the
  * same chain. A blueprint that resolves nowhere degrades to the derived slot —
  * it never aborts the export or the build.
+ *
+ * It also collects the blueprint's `procedures` catalog: the parent's frontmatter
+ * `procedures` array, a synthesized `usage` entry when `procedures/usage_procedures_NN.md`
+ * ships beside the resolved spec, and the same for every transitive include. The
+ * `usage` entry is surfaced first by the console ("Getting started").
  */
 
-import { basename } from 'node:path'
+import { basename, dirname, join } from 'node:path'
+import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { parseFrontmatter } from '../parser/index.js'
 import { resolveBlueprintPackage, parseSpecName } from '../resolver.js'
@@ -31,11 +37,26 @@ export interface ResolveConsoleSchemaOptions {
   skillsDir?: string
 }
 
+/** One entry of a blueprint's console procedure catalog. */
+export interface ConsoleProcedure {
+  id: string
+  name: string
+  path: string
+}
+
 export interface ConsoleSchemaResolution {
   /** The blueprint-derived schema, or `undefined` for the derived fallback. */
   schema: BlueprintSchema | undefined
+  /** The resolved blueprint `procedures` catalog (parent + transitive includes). */
+  procedures: ConsoleProcedure[]
   schemaSource: 'blueprint' | 'derived'
   warnings: string[]
+}
+
+/** A resolved blueprint: its raw content and, when known, its on-disk directory. */
+interface ResolvedBlueprint {
+  content: string
+  dir: string | null
 }
 
 /** Resolve one blueprint (or include) to raw content through the shared chain. */
@@ -45,33 +66,53 @@ async function resolveBlueprintContent(
   url: string | undefined,
   globalDir: string | undefined,
   skillsDir: string | undefined,
-): Promise<string | null> {
+): Promise<ResolvedBlueprint | null> {
   const version = url ? parseSpecName(basename(url)).version : undefined
   const pkg = await resolveBlueprintPackage(rootDir, name, version, { globalDir, skillsDir })
   if (pkg) {
     const content = await readFile(pkg.specFilePath, 'utf-8').catch(() => null)
-    if (content !== null) return content
+    if (content !== null) return { content, dir: dirname(pkg.specFilePath) }
   }
   const canonical = findCanonicalBlueprint(name) || (url ? findCanonicalBlueprint(url) : null)
-  return canonical ? canonical.specContent : null
+  return canonical ? { content: canonical.specContent, dir: null } : null
 }
 
 /**
- * Pre-collect the transitive `includes` closure into a `name → raw content` map,
- * resolving every entry through the same tier chain as the parent. Keys are
- * stored in both original and lowercase form so `resolveBlueprintSchema`'s
- * case-insensitive include lookups hit.
+ * The blueprint's `procedures` catalog: the frontmatter array plus a synthesized
+ * `usage` entry (its `usage_procedures_NN.md`), which always reads first.
+ */
+function proceduresOf(res: ResolvedBlueprint): ConsoleProcedure[] {
+  const fm = parseFrontmatter(res.content)
+  const list: ConsoleProcedure[] = Array.isArray(fm?.procedures)
+    ? fm.procedures
+        .filter((p: any) => p && p.id && p.path)
+        .map((p: any) => ({ id: String(p.id), name: String(p.name ?? p.id), path: String(p.path) }))
+    : []
+
+  if (res.dir && existsSync(join(res.dir, 'procedures', 'usage_procedures_NN.md'))) {
+    if (!list.some((p) => p.id === 'usage')) {
+      list.unshift({ id: 'usage', name: 'Getting started', path: 'procedures/usage_procedures_NN.md' })
+    }
+  }
+  return list
+}
+
+/**
+ * Pre-collect the transitive `includes` closure. `byRef` maps each include name
+ * (original and lowercase) to its resolved content/dir for `resolveBlueprintSchema`;
+ * `all` is the deduplicated list, in discovery order, for procedure collection.
  */
 async function collectIncludes(
-  parentContent: string,
+  parent: ResolvedBlueprint,
   rootDir: string,
   globalDir: string | undefined,
   skillsDir: string | undefined,
   warnings: string[],
-): Promise<Map<string, string>> {
-  const out = new Map<string, string>()
+): Promise<{ byRef: Map<string, ResolvedBlueprint>; all: ResolvedBlueprint[] }> {
+  const byRef = new Map<string, ResolvedBlueprint>()
+  const all: ResolvedBlueprint[] = []
   const seen = new Set<string>()
-  const parentFm = parseFrontmatter(parentContent)
+  const parentFm = parseFrontmatter(parent.content)
   const queue: Array<{ name: string; url: string }> = (parentFm?.includes ?? []).map((ref) => ({
     name: ref.name,
     url: ref.url ?? '',
@@ -83,62 +124,69 @@ async function collectIncludes(
     if (seen.has(key)) continue
     seen.add(key)
 
-    const content = await resolveBlueprintContent(rootDir, ref.name, ref.url, globalDir, skillsDir)
-    if (content === null) {
+    const resolved = await resolveBlueprintContent(rootDir, ref.name, ref.url, globalDir, skillsDir)
+    if (resolved === null) {
       warnings.push(`Included template '${ref.name}' could not be resolved.`)
       continue
     }
-    out.set(ref.name, content)
-    out.set(key, content)
+    byRef.set(ref.name, resolved)
+    byRef.set(key, resolved)
+    all.push(resolved)
 
-    const fm = parseFrontmatter(content)
+    const fm = parseFrontmatter(resolved.content)
     for (const nested of fm?.includes ?? []) {
       queue.push({ name: nested.name, url: nested.url ?? '' })
     }
   }
 
-  return out
+  return { byRef, all }
 }
 
 /**
- * Resolve a model's parent blueprint and derive the console `schema` slot.
- * Never throws: any failure degrades to `{ schema: undefined, schemaSource: 'derived' }`.
+ * Resolve a model's parent blueprint and derive the console `schema` slot plus
+ * its `procedures` catalog. Never throws: any failure degrades to the derived slot.
  */
 export async function resolveConsoleSchema(
   opts: ResolveConsoleSchemaOptions,
 ): Promise<ConsoleSchemaResolution> {
   const warnings: string[] = []
   try {
-    const parentContent = await resolveBlueprintContent(
+    const parent = await resolveBlueprintContent(
       opts.rootDir,
       opts.parentName,
       opts.parentUrl,
       opts.globalDir,
       opts.skillsDir,
     )
-    if (parentContent === null) {
+    if (parent === null) {
       warnings.push(
         `Schema resolution for parent_spec '${opts.parentName}' not found; derived schema used.`,
       )
-      return { schema: undefined, schemaSource: 'derived', warnings }
+      return { schema: undefined, procedures: [], schemaSource: 'derived', warnings }
     }
 
     const includes = await collectIncludes(
-      parentContent,
+      parent,
       opts.rootDir,
       opts.globalDir,
       opts.skillsDir,
       warnings,
     )
 
-    const { schema, errors } = resolveBlueprintSchema(parentContent, (ref) => {
-      return includes.get(ref.name) ?? includes.get(ref.name.toLowerCase()) ?? null
+    const { schema, errors } = resolveBlueprintSchema(parent.content, (ref) => {
+      const hit = includes.byRef.get(ref.name) ?? includes.byRef.get(ref.name.toLowerCase())
+      return hit ? hit.content : null
     })
     for (const e of errors) warnings.push(`[compose] ${e.message}`)
 
-    return { schema, schemaSource: 'blueprint', warnings }
+    const procedures: ConsoleProcedure[] = [
+      ...proceduresOf(parent),
+      ...includes.all.flatMap((inc) => proceduresOf(inc)),
+    ]
+
+    return { schema, procedures, schemaSource: 'blueprint', warnings }
   } catch (err) {
     warnings.push(`Schema resolution warning: ${err instanceof Error ? err.message : String(err)}`)
-    return { schema: undefined, schemaSource: 'derived', warnings }
+    return { schema: undefined, procedures: [], schemaSource: 'derived', warnings }
   }
 }

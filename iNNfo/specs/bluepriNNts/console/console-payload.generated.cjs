@@ -9283,12 +9283,12 @@ function parseSpecName(name) {
 }
 async function getMarkdownFiles(dir) {
   const { readdir: readdir2 } = await import("node:fs/promises");
-  const { join: join4 } = await import("node:path");
+  const { join: join5 } = await import("node:path");
   const files = [];
   try {
     const entries = await readdir2(dir, { withFileTypes: true });
     for (const entry of entries) {
-      const fullPath = join4(dir, entry.name);
+      const fullPath = join5(dir, entry.name);
       if (entry.isDirectory()) {
         if (entry.name === "node_modules" || entry.name.startsWith(".")) continue;
         files.push(...await getMarkdownFiles(fullPath));
@@ -9312,7 +9312,7 @@ function blueprintVersionFromFrontmatter(content) {
   const v = parseFrontmatter(content)?.blueprint_version;
   return v ? normalizeVersion(String(v)) : void 0;
 }
-function compareVersions(a, b) {
+function compareDottedVersions(a, b) {
   const pa = a.split(".").map(Number);
   const pb = b.split(".").map(Number);
   const len = Math.max(pa.length, pb.length);
@@ -9355,7 +9355,7 @@ async function preferHighestVersion(matches) {
       bestVersion = v;
       continue;
     }
-    if (bestVersion && v && compareVersions(v, bestVersion) > 0) {
+    if (bestVersion && v && compareDottedVersions(v, bestVersion) > 0) {
       best = m;
       bestVersion = v;
     }
@@ -9373,22 +9373,22 @@ async function findLocalSpec(specsDir, reqName) {
 }
 async function findSpecInPackageDir(dir, base) {
   const { readdir: readdir2 } = await import("node:fs/promises");
-  const { join: join4 } = await import("node:path");
+  const { join: join5 } = await import("node:path");
   try {
     const entries = await readdir2(dir, { withFileTypes: true });
     const files = entries.filter((e) => e.isFile() && /\.(md|markdown)$/i.test(e.name)).map((e) => e.name);
     if (files.length === 0) return null;
     const specNN = files.find((f) => f.toLowerCase() === "spec_nn.md");
-    if (specNN) return join4(dir, specNN);
+    if (specNN) return join5(dir, specNN);
     const baseV = files.find((f) => f.toLowerCase().startsWith(`${base.toLowerCase()}_v_`));
-    if (baseV) return join4(dir, baseV);
+    if (baseV) return join5(dir, baseV);
     const baseNN = files.find((f) => f.toLowerCase() === `${base.toLowerCase()}_nn.md`);
-    if (baseNN) return join4(dir, baseNN);
+    if (baseNN) return join5(dir, baseNN);
     const specMd = files.find((f) => f.toLowerCase() === "spec.md");
-    if (specMd) return join4(dir, specMd);
+    if (specMd) return join5(dir, specMd);
     const baseMd = files.find((f) => f.toLowerCase() === `${base.toLowerCase()}.md`);
-    if (baseMd) return join4(dir, baseMd);
-    return join4(dir, files[0]);
+    if (baseMd) return join5(dir, baseMd);
+    return join5(dir, files[0]);
   } catch (err) {
     if (err?.code !== "ENOENT") {
       console.warn(`[resolver] Failed to scan package dir ${dir}: ${err}`);
@@ -9402,14 +9402,14 @@ function isDirectSpecEntryName(filePath, base) {
 }
 async function resolveBlueprintPackage(rootDir, reqName, reqVersion, options) {
   const { readdir: readdir2, readFile: readFile3 } = await import("node:fs/promises");
-  const { join: join4 } = await import("node:path");
+  const { join: join5 } = await import("node:path");
   const { homedir } = await import("node:os");
-  const globalDir = options?.globalDir ?? process.env.INNFO_GLOBAL_DIR ?? join4(homedir(), ".agents", "bluepriNNts");
-  const skillsDir = options?.skillsDir ?? process.env.INNFO_SKILLS_DIR ?? join4(homedir(), ".agents", "skills");
+  const globalDir = options?.globalDir ?? process.env.INNFO_GLOBAL_DIR ?? join5(homedir(), ".agents", "bluepriNNts");
+  const skillsDir = options?.skillsDir ?? process.env.INNFO_SKILLS_DIR ?? join5(homedir(), ".agents", "skills");
   const parsed = parseSpecName(reqName);
   const base = parsed.base;
   const targetVersion = reqVersion ? normalizeVersion(reqVersion) : parsed.version;
-  const wsPackageBaseDir = join4(rootDir, "specs", "bluepriNNts", base);
+  const wsPackageBaseDir = join5(rootDir, "specs", "bluepriNNts", base);
   const unversionedSpecFile = await findSpecInPackageDir(wsPackageBaseDir, base);
   if (unversionedSpecFile && isDirectSpecEntryName(unversionedSpecFile, base)) {
     const content = await readFile3(unversionedSpecFile, "utf-8").catch(() => "");
@@ -9432,7 +9432,7 @@ async function resolveBlueprintPackage(rootDir, reqName, reqVersion, options) {
     if (targetVersion) {
       for (const d of verDirs) {
         if (normalizeVersion(d.name) === targetVersion) {
-          matchDir = join4(wsPackageBaseDir, d.name);
+          matchDir = join5(wsPackageBaseDir, d.name);
           matchVer = targetVersion;
           break;
         }
@@ -9441,9 +9441,9 @@ async function resolveBlueprintPackage(rootDir, reqName, reqVersion, options) {
       let bestVer = "";
       for (const d of verDirs) {
         const v = normalizeVersion(d.name);
-        if (!bestVer || compareVersions(v, bestVer) > 0) {
+        if (!bestVer || compareDottedVersions(v, bestVer) > 0) {
           bestVer = v;
-          matchDir = join4(wsPackageBaseDir, d.name);
+          matchDir = join5(wsPackageBaseDir, d.name);
           matchVer = v;
         }
       }
@@ -9466,7 +9466,7 @@ async function resolveBlueprintPackage(rootDir, reqName, reqVersion, options) {
       console.warn(`[resolver] Failed to scan package tier dir: ${err}`);
     }
   }
-  const flatSearchDirs = [join4(rootDir, "specs")];
+  const flatSearchDirs = [join5(rootDir, "specs")];
   for (const dir of flatSearchDirs) {
     const matchFile = await findLocalSpec(dir, reqName);
     if (matchFile) {
@@ -9482,7 +9482,7 @@ async function resolveBlueprintPackage(rootDir, reqName, reqVersion, options) {
       };
     }
   }
-  const globalBaseDir = join4(globalDir, base);
+  const globalBaseDir = join5(globalDir, base);
   try {
     const entries = await readdir2(globalBaseDir, { withFileTypes: true });
     const verDirs = entries.filter((e) => e.isDirectory() && isVersionDirName(e.name));
@@ -9491,7 +9491,7 @@ async function resolveBlueprintPackage(rootDir, reqName, reqVersion, options) {
     if (targetVersion) {
       for (const d of verDirs) {
         if (normalizeVersion(d.name) === targetVersion) {
-          matchDir = join4(globalBaseDir, d.name);
+          matchDir = join5(globalBaseDir, d.name);
           matchVer = targetVersion;
           break;
         }
@@ -9500,9 +9500,9 @@ async function resolveBlueprintPackage(rootDir, reqName, reqVersion, options) {
       let bestVer = "";
       for (const d of verDirs) {
         const v = normalizeVersion(d.name);
-        if (!bestVer || compareVersions(v, bestVer) > 0) {
+        if (!bestVer || compareDottedVersions(v, bestVer) > 0) {
           bestVer = v;
-          matchDir = join4(globalBaseDir, d.name);
+          matchDir = join5(globalBaseDir, d.name);
           matchVer = v;
         }
       }
@@ -9556,7 +9556,7 @@ async function resolveBlueprintPackage(rootDir, reqName, reqVersion, options) {
     const skillEntries = await readdir2(skillsDir, { withFileTypes: true });
     const skillDirs = skillEntries.filter((e) => e.isDirectory()).map((e) => e.name);
     for (const skillName of skillDirs) {
-      const skillPkgBase = join4(skillsDir, skillName, "bluepriNNts", base);
+      const skillPkgBase = join5(skillsDir, skillName, "bluepriNNts", base);
       try {
         const entries = await readdir2(skillPkgBase, { withFileTypes: true });
         const verDirs = entries.filter((e) => e.isDirectory() && isVersionDirName(e.name));
@@ -9565,7 +9565,7 @@ async function resolveBlueprintPackage(rootDir, reqName, reqVersion, options) {
         if (targetVersion) {
           for (const d of verDirs) {
             if (normalizeVersion(d.name) === targetVersion) {
-              matchDir = join4(skillPkgBase, d.name);
+              matchDir = join5(skillPkgBase, d.name);
               matchVer = targetVersion;
               break;
             }
@@ -9574,9 +9574,9 @@ async function resolveBlueprintPackage(rootDir, reqName, reqVersion, options) {
           let bestVer = "";
           for (const d of verDirs) {
             const v = normalizeVersion(d.name);
-            if (!bestVer || compareVersions(v, bestVer) > 0) {
+            if (!bestVer || compareDottedVersions(v, bestVer) > 0) {
               bestVer = v;
-              matchDir = join4(skillPkgBase, d.name);
+              matchDir = join5(skillPkgBase, d.name);
               matchVer = v;
             }
           }
@@ -9595,7 +9595,7 @@ async function resolveBlueprintPackage(rootDir, reqName, reqVersion, options) {
           }
         }
       } catch {
-        const matchFile = await findLocalSpec(join4(skillsDir, skillName, "bluepriNNts"), reqName) || await findLocalSpec(join4(skillsDir, skillName), reqName);
+        const matchFile = await findLocalSpec(join5(skillsDir, skillName, "bluepriNNts"), reqName) || await findLocalSpec(join5(skillsDir, skillName), reqName);
         if (matchFile) {
           const content = await readFile3(matchFile, "utf-8").catch(() => "");
           const v = targetVersion || versionFromFrontmatter(content) || "0.1.0";
@@ -10158,7 +10158,15 @@ function isChangeOp(val) {
 var import_yaml8 = __toESM(require_dist(), 1);
 function stripQuotes(str2) {
   const trimmed = str2.trim();
-  if (trimmed.startsWith('"') && trimmed.endsWith('"') || trimmed.startsWith("'") && trimmed.endsWith("'")) {
+  if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (typeof parsed === "string") return parsed;
+    } catch {
+    }
+    return trimmed.slice(1, -1);
+  }
+  if (trimmed.startsWith("'") && trimmed.endsWith("'")) {
     return trimmed.slice(1, -1);
   }
   return trimmed;
@@ -10261,7 +10269,7 @@ function parseChangeset(rawContent) {
         currentChange.author = stripQuotes(rawVal);
         break;
       case "notes":
-        currentChange.notes = rawVal;
+        currentChange.notes = stripQuotes(rawVal);
         break;
       case "status":
         if (!isChangeStatus(rawVal)) {
@@ -10270,7 +10278,7 @@ function parseChangeset(rawContent) {
         currentChange.status = rawVal;
         break;
       case "resolution":
-        currentChange.resolution = rawVal;
+        currentChange.resolution = stripQuotes(rawVal);
         break;
       case "resolved_slug":
         currentChange.resolved_slug = rawVal;
@@ -10863,7 +10871,8 @@ function createFsSourceResolver(rootDir) {
 function serializeConsoleSlot(value) {
   return JSON.stringify(value, null, 2).replace(/</g, "\\u003c");
 }
-function buildConsoleSchemaSlot(schema, elements) {
+function buildConsoleSchemaSlot(schema, elements, procedures) {
+  const procList = Array.isArray(procedures) ? procedures : [];
   if (schema) {
     const concepts = Array.isArray(schema.concepts) ? schema.concepts : typeof schema.concepts === "object" && schema.concepts !== null ? Object.values(schema.concepts) : [];
     const fields = Array.isArray(schema.fields) ? schema.fields : typeof schema.fields === "object" && schema.fields !== null ? Object.values(schema.fields) : [];
@@ -10873,7 +10882,8 @@ function buildConsoleSchemaSlot(schema, elements) {
       concepts,
       fields,
       markers,
-      matrices
+      matrices,
+      procedures: procList
     };
   }
   const conceptNames = /* @__PURE__ */ new Set();
@@ -10888,7 +10898,8 @@ function buildConsoleSchemaSlot(schema, elements) {
     concepts: Array.from(conceptNames).map((name) => ({ name })),
     fields: [],
     markers: [],
-    matrices: []
+    matrices: [],
+    procedures: procList
   };
 }
 
@@ -11058,7 +11069,7 @@ function buildConsolePayload(options) {
       });
     }
   }
-  const schemaSlot = buildConsoleSchemaSlot(inputSchema, elements);
+  const schemaSlot = buildConsoleSchemaSlot(inputSchema, elements, options.procedures);
   attachChangesetHistory(elements, changesets);
   const genTime = generated || (/* @__PURE__ */ new Date()).toISOString();
   const normalizedSource = modelPath ? modelPath.split("\\").join("/").replace(/^models\//i, "kNNowledge/").replace(/^.*?\/(kNNowledge\/)/i, "$1") : fm.title ? `kNNowledge/${slugify(fm.title)}_NN.md` : "kNNowledge/Model_NN.md";
@@ -11090,21 +11101,33 @@ function buildConsolePayload(options) {
 
 // iNNfo/packages/innfo-core/src/console/schema-resolution.ts
 var import_node_path3 = require("node:path");
+var import_node_fs3 = require("node:fs");
 var import_promises2 = require("node:fs/promises");
 async function resolveBlueprintContent(rootDir, name, url, globalDir, skillsDir) {
   const version = url ? parseSpecName((0, import_node_path3.basename)(url)).version : void 0;
   const pkg = await resolveBlueprintPackage(rootDir, name, version, { globalDir, skillsDir });
   if (pkg) {
     const content = await (0, import_promises2.readFile)(pkg.specFilePath, "utf-8").catch(() => null);
-    if (content !== null) return content;
+    if (content !== null) return { content, dir: (0, import_node_path3.dirname)(pkg.specFilePath) };
   }
   const canonical = findCanonicalBlueprint(name) || (url ? findCanonicalBlueprint(url) : null);
-  return canonical ? canonical.specContent : null;
+  return canonical ? { content: canonical.specContent, dir: null } : null;
 }
-async function collectIncludes(parentContent, rootDir, globalDir, skillsDir, warnings) {
-  const out = /* @__PURE__ */ new Map();
+function proceduresOf(res) {
+  const fm = parseFrontmatter(res.content);
+  const list = Array.isArray(fm?.procedures) ? fm.procedures.filter((p) => p && p.id && p.path).map((p) => ({ id: String(p.id), name: String(p.name ?? p.id), path: String(p.path) })) : [];
+  if (res.dir && (0, import_node_fs3.existsSync)((0, import_node_path3.join)(res.dir, "procedures", "usage_procedures_NN.md"))) {
+    if (!list.some((p) => p.id === "usage")) {
+      list.unshift({ id: "usage", name: "Getting started", path: "procedures/usage_procedures_NN.md" });
+    }
+  }
+  return list;
+}
+async function collectIncludes(parent, rootDir, globalDir, skillsDir, warnings) {
+  const byRef = /* @__PURE__ */ new Map();
+  const all = [];
   const seen = /* @__PURE__ */ new Set();
-  const parentFm = parseFrontmatter(parentContent);
+  const parentFm = parseFrontmatter(parent.content);
   const queue = (parentFm?.includes ?? []).map((ref) => ({
     name: ref.name,
     url: ref.url ?? ""
@@ -11114,51 +11137,57 @@ async function collectIncludes(parentContent, rootDir, globalDir, skillsDir, war
     const key = ref.name.toLowerCase();
     if (seen.has(key)) continue;
     seen.add(key);
-    const content = await resolveBlueprintContent(rootDir, ref.name, ref.url, globalDir, skillsDir);
-    if (content === null) {
+    const resolved = await resolveBlueprintContent(rootDir, ref.name, ref.url, globalDir, skillsDir);
+    if (resolved === null) {
       warnings.push(`Included template '${ref.name}' could not be resolved.`);
       continue;
     }
-    out.set(ref.name, content);
-    out.set(key, content);
-    const fm = parseFrontmatter(content);
+    byRef.set(ref.name, resolved);
+    byRef.set(key, resolved);
+    all.push(resolved);
+    const fm = parseFrontmatter(resolved.content);
     for (const nested of fm?.includes ?? []) {
       queue.push({ name: nested.name, url: nested.url ?? "" });
     }
   }
-  return out;
+  return { byRef, all };
 }
 async function resolveConsoleSchema(opts) {
   const warnings = [];
   try {
-    const parentContent = await resolveBlueprintContent(
+    const parent = await resolveBlueprintContent(
       opts.rootDir,
       opts.parentName,
       opts.parentUrl,
       opts.globalDir,
       opts.skillsDir
     );
-    if (parentContent === null) {
+    if (parent === null) {
       warnings.push(
         `Schema resolution for parent_spec '${opts.parentName}' not found; derived schema used.`
       );
-      return { schema: void 0, schemaSource: "derived", warnings };
+      return { schema: void 0, procedures: [], schemaSource: "derived", warnings };
     }
     const includes = await collectIncludes(
-      parentContent,
+      parent,
       opts.rootDir,
       opts.globalDir,
       opts.skillsDir,
       warnings
     );
-    const { schema, errors } = resolveBlueprintSchema(parentContent, (ref) => {
-      return includes.get(ref.name) ?? includes.get(ref.name.toLowerCase()) ?? null;
+    const { schema, errors } = resolveBlueprintSchema(parent.content, (ref) => {
+      const hit = includes.byRef.get(ref.name) ?? includes.byRef.get(ref.name.toLowerCase());
+      return hit ? hit.content : null;
     });
     for (const e of errors) warnings.push(`[compose] ${e.message}`);
-    return { schema, schemaSource: "blueprint", warnings };
+    const procedures = [
+      ...proceduresOf(parent),
+      ...includes.all.flatMap((inc) => proceduresOf(inc))
+    ];
+    return { schema, procedures, schemaSource: "blueprint", warnings };
   } catch (err) {
     warnings.push(`Schema resolution warning: ${err instanceof Error ? err.message : String(err)}`);
-    return { schema: void 0, schemaSource: "derived", warnings };
+    return { schema: void 0, procedures: [], schemaSource: "derived", warnings };
   }
 }
 // Annotate the CommonJS export names for ESM import in node:

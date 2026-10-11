@@ -16,7 +16,7 @@ import {
   resolveConsoleSchema,
   loadChangesetRecords,
 } from '@cognnitive/innfo-core'
-import type { BlueprintSchema, FeedbackVerdictEntry } from '@cognnitive/innfo-core'
+import type { BlueprintSchema, ConsoleProcedureSlot, FeedbackVerdictEntry } from '@cognnitive/innfo-core'
 import { findKnowledgeFile } from './spec.js'
 import { readKnowledge } from './list-read.js'
 import { getFeedbackLedgerPath } from './feedback-verdict.js'
@@ -65,6 +65,7 @@ export async function buildConsolePayloadTool(
   // Resolve the `innfo-schema` slot through the single shared core path so the
   // CLI (`scripts/export-console.mjs`) and this tool emit byte-identical slots.
   let schema: BlueprintSchema | undefined
+  let procedures: ConsoleProcedureSlot[] = []
   let schemaSource: 'blueprint' | 'derived' = 'derived'
 
   const parent = parsed.frontmatter?.parent_spec
@@ -75,6 +76,7 @@ export async function buildConsolePayloadTool(
       parentUrl: parent.url,
     })
     schema = resolution.schema
+    procedures = resolution.procedures
     schemaSource = resolution.schemaSource
     warnings.push(...resolution.warnings)
   }
@@ -102,6 +104,7 @@ export async function buildConsolePayloadTool(
     content,
     path: relPath,
     schema,
+    procedures,
     resolver,
     ledgerEntries,
     changesets,

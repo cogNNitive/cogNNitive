@@ -96,4 +96,33 @@ describe('procedure view (bluepriNNt)', () => {
     handle.unmount()
     assert.equal(container.innerHTML, '')
   })
+
+  it('lists the blueprint procedures with usage first as "Getting started"', () => {
+    const stepper = createRequire(import.meta.url)(stepperPath)
+    const p = payload()
+    p.schema.procedures = [
+      {
+        id: 'generate-docsify-suite',
+        name: 'Generate Docsify Suite',
+        path: 'procedures/generate_docsify_suite_procedures_NN.md',
+      },
+      { id: 'usage', name: 'Getting started', path: 'procedures/usage_procedures_NN.md' },
+    ]
+    const handle = stepper.mount(container, p)
+    const list = container.querySelector('[data-innfo-procedures="blueprint"]')
+    assert.ok(list, 'blueprint procedures list rendered')
+    const items = [...list.querySelectorAll('.proc-blueprint-item')]
+    assert.equal(items.length, 2)
+    assert.equal(items[0].getAttribute('data-procedure-id'), 'usage', 'usage reads first')
+    assert.equal(items[0].textContent, 'Getting started')
+    assert.equal(items[1].getAttribute('data-procedure-id'), 'generate-docsify-suite')
+    handle.unmount()
+  })
+
+  it('renders no blueprint list when the schema carries no procedures', () => {
+    const stepper = createRequire(import.meta.url)(stepperPath)
+    const handle = stepper.mount(container, payload())
+    assert.equal(container.querySelector('[data-innfo-procedures="blueprint"]'), null)
+    handle.unmount()
+  })
 })
