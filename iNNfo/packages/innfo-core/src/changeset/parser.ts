@@ -8,10 +8,16 @@ import type {
 
 function stripQuotes(str: string): string {
   const trimmed = str.trim()
-  if (
-    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
-    (trimmed.startsWith("'") && trimmed.endsWith("'"))
-  ) {
+  if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
+    try {
+      const parsed = JSON.parse(trimmed)
+      if (typeof parsed === 'string') return parsed
+    } catch {
+      // not valid JSON; fall through to strip the wrapping quotes
+    }
+    return trimmed.slice(1, -1)
+  }
+  if (trimmed.startsWith("'") && trimmed.endsWith("'")) {
     return trimmed.slice(1, -1)
   }
   return trimmed
@@ -132,7 +138,7 @@ export function parseChangeset(rawContent: string): ChangesetDocument {
         currentChange.author = stripQuotes(rawVal)
         break
       case 'notes':
-        currentChange.notes = rawVal
+        currentChange.notes = stripQuotes(rawVal)
         break
       case 'status':
         if (!isChangeStatus(rawVal)) {
@@ -141,7 +147,7 @@ export function parseChangeset(rawContent: string): ChangesetDocument {
         currentChange.status = rawVal
         break
       case 'resolution':
-        currentChange.resolution = rawVal
+        currentChange.resolution = stripQuotes(rawVal)
         break
       case 'resolved_slug':
         currentChange.resolved_slug = rawVal

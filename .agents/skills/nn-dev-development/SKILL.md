@@ -129,7 +129,10 @@ in Section 4.
 - **Work on `session/<id>`** inside the session worktree. It is cut from `dev`; `dev` is
   the integration branch, never a place to edit directly. No other per-feature branches.
 - **Commit early and often** on the session branch. A `wip:<session-id>: <reason>` commit is
-  the durability mechanism, not a first-write gate.
+  the durability mechanism, not a first-write gate. `wip:` commits are session-branch
+  checkpoints, **not integration content**: squash or drop them before landing on `dev`
+  (squash-merge the PR, or `git reset --soft` back to the last real commit and re-commit).
+  A `wip:` commit must never reach `dev`.
 - **A commit that exists only locally is not durable.** Push the session branch
   (`git push origin session/<id>`) as soon as it holds anything you would mind losing.
 - **Landing on `dev`:** push the session branch and merge it into `dev` (a PR on GitHub is

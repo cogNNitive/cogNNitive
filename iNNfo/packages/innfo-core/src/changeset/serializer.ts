@@ -2,7 +2,9 @@ import { stringify as stringifyYaml } from 'yaml'
 import type { ChangesetDocument, ChangeItem } from './types.js'
 
 function formatPropertyValue(val: string): string {
-  if (val.includes('"') || val.includes('\n') || val.includes(':') || val.includes(' ')) {
+  // Only quote when a value would otherwise break the `key:: value` line grammar:
+  // a newline ends the line, and a leading/trailing quote would be misparsed.
+  if (val.includes('"') || val.includes('\n')) {
     return JSON.stringify(val)
   }
   return val
@@ -36,7 +38,7 @@ function formatChangeItem(item: ChangeItem): string {
     lines.push(`author:: ${item.author}`)
   }
   if (item.notes !== undefined) {
-    lines.push(`notes:: ${item.notes}`)
+    lines.push(`notes:: ${formatPropertyValue(item.notes)}`)
   }
 
   // Execution annotations
@@ -44,7 +46,7 @@ function formatChangeItem(item: ChangeItem): string {
     lines.push(`status:: ${item.status}`)
   }
   if (item.resolution !== undefined) {
-    lines.push(`resolution:: ${item.resolution}`)
+    lines.push(`resolution:: ${formatPropertyValue(item.resolution)}`)
   }
   if (item.resolved_slug !== undefined) {
     lines.push(`resolved_slug:: ${item.resolved_slug}`)
