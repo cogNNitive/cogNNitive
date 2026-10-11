@@ -109,7 +109,7 @@ level: 3
       assert.equal(existsSync(join(tempDir, 'artifacts')), false)
     })
 
-    it('lists a procedures-role model (parent_spec procedures) alongside knowledge models', async () => {
+    it('lists a procedures model but not a procedures/ submodel', async () => {
       await writeFile(
         join(tempDir, 'models', 'Workflows_procedures_NN.md'),
         `---
@@ -129,9 +129,30 @@ Do the thing.
 `,
         'utf-8',
       )
+      await mkdir(join(tempDir, 'procedures'), { recursive: true })
+      await writeFile(
+        join(tempDir, 'procedures', 'import_audio_procedures_NN.md'),
+        `---
+level: 3
+parent_spec:
+  name: "procedures_V_0-2-0"
+  url: "iNNfo/specs/bluepriNNts/procedures/procedures_V_0-2-0_NN.md"
+knowledge_version: "V_0-1-0"
+title: "Audio import"
+---
+
+# NN Work
+
+## NN Work: Transcribe
+step_type:: task
+Transcribe it.
+`,
+        'utf-8',
+      )
       const res = await runCli([tempDir, '--list'])
       assert.equal(res.code, 0)
       assert.match(res.stdout, /Workflows_procedures_NN\.md/)
+      assert.doesNotMatch(res.stdout, /import_audio_procedures_NN\.md/)
       assert.match(res.stdout, /\(4 models\)/)
     })
 

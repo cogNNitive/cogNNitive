@@ -13,6 +13,7 @@ export { parseFrontmatter, parseYaml } from '../parser/index.js'
 // Naming-contract predicates for scripts that load only the console payload mirror.
 export {
   displayStem,
+  isConsoleModel,
   isExcludedPath,
   isNNName,
   isSidecarName,
