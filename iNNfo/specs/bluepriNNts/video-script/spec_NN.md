@@ -6,7 +6,7 @@ parent_spec:
   name: "iNNfo_V_0-4-0"
   url: "https://raw.githubusercontent.com/cogNNitive/cogNNitive/main/iNNfo/specs/iNNfo_V_0-4-0_NN.md"
 blueprint_name: "video-script"
-blueprint_version: "V_0-1-2"
+blueprint_version: "V_0-1-3"
 title: "Video Script App"
 relationship_types:
   hierarchy:
