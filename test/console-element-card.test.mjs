@@ -120,7 +120,7 @@ describe('Element Card Redesign Contract', () => {
       assert.equal(card.querySelector('.innfo-card-path'), null)
       assert.equal(card.querySelector('[data-innfo-component="tag-row"]'), null)
       assert.equal(card.querySelector('[data-innfo-component="rel-list"]'), null)
-      assert.equal(card.querySelector('[data-innfo-component="field-row"]').textContent, 'fv')
+      assert.equal(card.querySelector('[data-ku-kind="field"]').textContent, 'f:v')
     })
   })
 
@@ -166,7 +166,7 @@ describe('Element Card Redesign Contract', () => {
       const { card } = decorated()
       assert.ok(card.querySelector('[data-innfo-ctl="edit-toggle"]'), 'edit toggle')
       assert.ok(
-        card.querySelector('.innfo-card-name [data-innfo-ctl="name-anchor"]'),
+        card.querySelector('.innfo-card-head [data-ku-kind="element"] [data-innfo-ctl="name-anchor"]'),
         'name pencil',
       )
       assert.ok(

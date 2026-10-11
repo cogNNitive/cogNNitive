@@ -18,7 +18,9 @@ const IMPLEMENTED = [
   'marker-chip',
   'status-badge',
   'element-card',
-  'field-row',
+  'ku-badge',
+  'ku-actions',
+  'ku-change-pip',
   'citation-icon',
   'draft-list',
   'annotation-popover',
@@ -56,6 +58,8 @@ describe('console ui-kit kitchen sink', () => {
       root.appendChild(UI.ConceptPill({ id: 'c', label: 'C', index: 0, count: 1 }))
       root.appendChild(UI.ElementPill({ id: 'e', label: 'E', origin: 'agent' }))
       root.appendChild(UI.MarkerChip({ id: 'm', label: 'M', kind: 'field', value: 'v' }))
+      root.appendChild(UI.KuBadge({ kind: 'field', name: 'f', value: 'v', changes: 1 }))
+      root.appendChild(UI.KuActions({}, { onInfo: () => {} }))
       root.appendChild(UI.StatusBadge({ status: 'pending', count: 2 }))
       root.appendChild(
         UI.ElementCard({

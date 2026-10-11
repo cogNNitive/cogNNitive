@@ -77,4 +77,16 @@ describe('console ui-kit contrast', () => {
       }
     }
   })
+
+  it('concept tint tokens make badge text meet >= 4.5 in both themes', () => {
+    for (const theme of ['light', 'dark'] as const) {
+      const v = UI.TOKEN_VALUES[theme]
+      for (let slot = 1; slot <= 12; slot++) {
+        const tint = v[`--innfo-concept-${slot}-bg`]
+        expect(tint, `--innfo-concept-${slot}-bg in "${theme}" must exist`).toBeTruthy()
+        const r = ratio(v['--innfo-text'], tint)
+        expect(r, `text on concept-${slot}-bg in "${theme}" is ${r.toFixed(2)}:1`).toBeGreaterThanOrEqual(4.5)
+      }
+    }
+  })
 })
