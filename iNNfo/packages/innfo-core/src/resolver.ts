@@ -290,7 +290,12 @@ export function blueprintVersionFromFrontmatter(content: string): string | undef
   return v ? normalizeVersion(String(v)) : undefined
 }
 
-export function compareVersions(a: string, b: string): number {
+/**
+ * Compares two already-normalized dotted versions (`normalizeVersion` output, e.g.
+ * `0.2.0`). Distinct from `versionStatus.compareVersions`, which compares the
+ * `V_x-y-z` template form — the two parse different formats on purpose.
+ */
+export function compareDottedVersions(a: string, b: string): number {
   const pa = a.split('.').map(Number)
   const pb = b.split('.').map(Number)
   const len = Math.max(pa.length, pb.length)
@@ -343,7 +348,7 @@ async function preferHighestVersion(matches: string[]): Promise<string | null> {
       bestVersion = v
       continue
     }
-    if (bestVersion && v && compareVersions(v, bestVersion) > 0) {
+    if (bestVersion && v && compareDottedVersions(v, bestVersion) > 0) {
       best = m
       bestVersion = v
     }
@@ -488,7 +493,7 @@ export async function resolveBlueprintPackage(
       let bestVer = ''
       for (const d of verDirs) {
         const v = normalizeVersion(d.name)
-        if (!bestVer || compareVersions(v, bestVer) > 0) {
+        if (!bestVer || compareDottedVersions(v, bestVer) > 0) {
           bestVer = v
           matchDir = join(wsPackageBaseDir, d.name)
           matchVer = v
@@ -557,7 +562,7 @@ export async function resolveBlueprintPackage(
       let bestVer = ''
       for (const d of verDirs) {
         const v = normalizeVersion(d.name)
-        if (!bestVer || compareVersions(v, bestVer) > 0) {
+        if (!bestVer || compareDottedVersions(v, bestVer) > 0) {
           bestVer = v
           matchDir = join(globalBaseDir, d.name)
           matchVer = v
@@ -644,7 +649,7 @@ export async function resolveBlueprintPackage(
           let bestVer = ''
           for (const d of verDirs) {
             const v = normalizeVersion(d.name)
-            if (!bestVer || compareVersions(v, bestVer) > 0) {
+            if (!bestVer || compareDottedVersions(v, bestVer) > 0) {
               bestVer = v
               matchDir = join(skillPkgBase, d.name)
               matchVer = v

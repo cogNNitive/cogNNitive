@@ -18,6 +18,8 @@ import {
   resolveBatchSlugs,
   evaluateBatchDeleteImpact,
   partitionChangeset,
+  formatUtcStamp,
+  escapeRegex,
 } from '@cognnitive/innfo-core'
 import type {
   SpecDocument,
@@ -128,10 +130,6 @@ async function findAllWorkspaceModelFiles(
     }
   }
   return results
-}
-
-function escapeRegex(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
 function cascadeModelReferences(
@@ -1050,7 +1048,7 @@ export async function executeChangesetApply(
     }
 
     // Phase 2: Atomic Persistence & Archival (touched models ONLY)
-    const stamp = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z'
+    const stamp = formatUtcStamp(new Date())
     const archiveDir = join(rootDir, 'kNNowledge', 'archive')
     // No touched model means no snapshot to archive: a mutation-free changeset
     // (e.g. comment-only) must not leave an empty archive directory behind.
@@ -1150,8 +1148,8 @@ async function synthesizeAndExecuteChangeset(
       errors: [{ path: id, message: 'Invalid knowledge id: must be a safe workspace-relative path' }],
     }
   }
-  const stamp = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z'
-  const changesDir = join(rootDir, 'changes')
+    const stamp = formatUtcStamp(new Date())
+    const changesDir = join(rootDir, 'changes')
   await mkdir(changesDir, { recursive: true })
 
   const csFileName = `${id}_agent_${stamp}_changes_NN.md`
