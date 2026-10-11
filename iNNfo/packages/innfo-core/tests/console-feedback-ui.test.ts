@@ -337,6 +337,16 @@ describe('console-feedback-ui (bundle-injected feedback UI contract)', () => {
     expect(document.querySelector('#innfo-feedback-banner .innfo-banner-stale')).toBeNull()
   })
 
+  it('does not leak the config needs[] list into the review banner', () => {
+    renderModelConsole()
+    const api = loadRuntime()
+    api.boot(document)
+    const banner = document.getElementById('innfo-feedback-banner')
+    expect(banner).not.toBeNull()
+    expect(banner!.querySelector('.innfo-banner-needs')).toBeNull()
+    expect(banner!.textContent).not.toContain('needs:')
+  })
+
   it('stamps the console header with the last-generated timestamp', () => {
     renderModelConsole()
     const host = document.createElement('div')

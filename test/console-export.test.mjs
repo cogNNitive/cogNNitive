@@ -506,12 +506,13 @@ scenarioMonths:: 12
       assert.equal(tabs.includes('canonical'), false)
       assert.equal(tabs.includes('studio'), false)
       assert.ok(tabs.indexOf('timeline') < tabs.indexOf('review'), 'timeline precedes Changes')
+      doc.querySelector('#innfo-view-tabs [data-tab="timeline"]').click()
       const panel = doc.getElementById('innfo-tab-timeline')
       assert.ok(panel.querySelector('.innfo-timeline-table'), 'timeline grid rendered into its own panel')
       assert.equal(doc.getElementById('innfo-timeline-grid'), null, 'no global timeline host id')
     })
 
-    it('boots under jsdom, registers each view with id == slug and mounts the first tab', async () => {
+    it('boots under jsdom, registers each view with id == slug and opens the model explorer', async () => {
       await addView('pipeline')
       await addView('other', PIPELINE.replace('order: 1', 'order: 2').replace('Pipeline', 'Other'))
       assert.equal((await runCli([tempDir, '--domain'])).code, 0)
@@ -534,6 +535,8 @@ scenarioMonths:: 12
       const tabs = [...doc.querySelectorAll('#innfo-view-tabs [data-tab]')].map((b) => b.dataset.tab)
       assert.deepEqual(tabs.slice(0, 2), ['pipeline', 'other'], 'tabs come from the registry, ordered')
       assert.equal(doc.getElementById('innfo-view-errors'), null, 'no registration errors')
+      assert.equal(doc.querySelector('#innfo-view-tabs .innfo-view-tab.active').dataset.tab, 'explorer')
+      doc.querySelector('#innfo-view-tabs [data-tab="pipeline"]').click()
       assert.match(doc.getElementById('innfo-tab-pipeline').textContent, /pipeline mounted with 2 elements/)
     })
 

@@ -48,8 +48,8 @@ describe('tab and search query share the hash', () => {
 
   it('keeps the tab when searching after a tab click', () => {
     const t = boot('http://localhost')
-    t.tab('explorer').click()
-    assert.equal(t.hash(), '#explorer')
+    // The model explorer is the default tab; searching keeps it (a new query
+    // jumps to Explorer) and the tab and query share the hash.
     t.search('ecto')
     assert.equal(t.hash(), '#explorer&q=ecto')
     t.search('')
@@ -82,7 +82,6 @@ describe('tab and search query share the hash', () => {
 
   it('selects tab and query on back and forward', async () => {
     const t = boot('http://localhost')
-    t.tab('explorer').click()
     t.search('ecto')
     t.tab('matrices').click()
     assert.equal(t.hash(), '#matrices&q=ecto')
@@ -90,12 +89,8 @@ describe('tab and search query share the hash', () => {
     await until(() => t.hash() === '#explorer&q=ecto' && t.active('explorer'))
     assert.ok(t.active('explorer'))
     assert.equal(t.query(), 'ecto')
-    t.dom.window.history.back()
-    await until(() => t.hash() === '#explorer' && t.query() === '')
-    assert.equal(t.query(), '')
     t.dom.window.history.forward()
-    await until(() => t.hash() === '#explorer&q=ecto' && t.query() === 'ecto')
-    assert.equal(t.query(), 'ecto')
-    assert.ok(t.active('explorer'))
+    await until(() => t.hash() === '#matrices&q=ecto' && t.active('matrices'))
+    assert.ok(t.active('matrices'))
   })
 })
