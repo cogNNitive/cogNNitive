@@ -1,8 +1,9 @@
 /**
  * nn-video-script/scripts/scene/overlays/Broll.tsx
  *
- * Blockquote (`> broll: <path> [source="..."]`) overlay: draws the media path
- * carried in the event payload, honoring `fit` and `position` from the manifest.
+ * B-roll overlay: draws the media path carried in the manifest, honoring `fit`
+ * and `position`. Images get a subtle Ken-Burns zoom-in over the overlay's life
+ * for dynamism; with `fit: contain` the whole asset is shown with a margin.
  * The manifest already holds a staged, bundle-relative name, so `staticFile()` is
  * the only path work here — the component stays presentational.
  */
@@ -24,21 +25,37 @@ export const Broll: React.FC<{
   exitAnimation?: string;
 }> = ({ config, durationInFrames = 0, enterAnimation, exitAnimation }) => {
   const frame = useCurrentFrame();
-  const { width, height } = useVideoConfig();
+  const { width } = useVideoConfig();
   const s = width / 1920;
   const assetPath = (config.assetPath as string) || '';
   const fit = (config.fit as string) || 'cover';
   const position = (config.position as string) || 'bottom';
   const source = (config.source as string) || '';
+  const zoomIn = config.zoomIn === undefined ? true : config.zoomIn !== false;
 
   const motion = resolveOverlayAnimation({ frame, durationInFrames, enterAnimation, exitAnimation });
 
   if (!assetPath) return null;
 
+  const isContain = fit === 'contain';
+  // Subtle Ken-Burns zoom-in across the overlay's life (disabled with `zoomIn: false`).
+  const progress = durationInFrames > 0 ? Math.min(1, frame / durationInFrames) : 0;
+  const zoom = zoomIn ? 1 + 0.08 * progress : 1;
+
   return (
     <AbsoluteFill style={{ opacity: motion.opacity, transform: motion.transform }}>
-      <AbsoluteFill style={POSITION[position] || POSITION.bottom}>
-        <Img src={staticFile(assetPath)} style={{ width: '100%', height: '100%', objectFit: fit as 'cover' | 'contain' }} />
+      <AbsoluteFill
+        style={{ ...(POSITION[position] || POSITION.bottom), padding: isContain ? 60 * s : 0 }}
+      >
+        <Img
+          src={staticFile(assetPath)}
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: fit as 'cover' | 'contain',
+            transform: `scale(${zoom})`,
+          }}
+        />
       </AbsoluteFill>
       {source ? (
         <AbsoluteFill style={{ justifyContent: 'flex-end', alignItems: 'flex-end', padding: 32 * s }}>

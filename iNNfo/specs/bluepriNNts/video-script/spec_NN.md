@@ -147,6 +147,12 @@ concept:: Layer
 type:: string
 description:: Optional provider model override for a `presenter` Layer (the avatar/lip-sync model id, e.g. `wavespeed-ai/infinitetalk`). Other Layer types ignore it.
 
+## NN Field Definition: fit
+concept:: Layer
+type:: select
+options:: [cover, contain]
+description:: How a media Layer (background, b-roll) fits its box. `cover` fills and crops; `contain` shows the whole asset with margins. Optional; defaults to `cover`.
+
 ## NN Field Definition: tool
 concept:: Template
 type:: select
