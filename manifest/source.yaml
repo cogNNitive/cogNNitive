@@ -105,6 +105,7 @@ blueprints:
   - name: video-script
     repo: cogNNitive/cogNNitive-web
     path: iNNfo/specs/bluepriNNts/video-script/spec_NN.md
+    version: "V_0-1-2"
     ref_key: blueprints
   - name: sources
     repo: cogNNitive/cogNNitive-web
