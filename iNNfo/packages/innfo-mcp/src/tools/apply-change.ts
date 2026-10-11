@@ -20,6 +20,7 @@ import {
   partitionChangeset,
   formatUtcStamp,
   escapeRegex,
+  isChangeOp,
 } from '@cognnitive/innfo-core'
 import type {
   SpecDocument,
@@ -1263,6 +1264,24 @@ export async function applyChange(
     } catch (err) {
       console.warn(`[apply-change] Index template resolution failed; using model taxonomy: ${err}`)
     }
+    const mutRes = coreApplyMutation(model, op, opArgs)
+    if (!mutRes.success) return mutRes
+    await saveKnowledge(filePath, model)
+    return { success: true, model, newPath: filePath }
+  }
+
+  // Ops outside the changeset document schema (template-authoring primitives
+  // like add_concept/add_field/set_marker, freeze_slugs, or an unknown op) are
+  // not valid ChangeOp values, so the changeset parser would reject the
+  // synthesized draft before the engine ever sees it. Run them straight against
+  // the engine: unknown ops surface "Unknown operation", level-gated ops
+  // surface their level-2 error, and no junk changeset file is minted.
+  if (!isChangeOp(op)) {
+    const filePath = await findKnowledgeFile(rootDir, id)
+    if (!filePath) {
+      return { success: false, errors: [{ path: '', message: `Model not found: ${id}` }] }
+    }
+    const model = await loadKnowledge(filePath)
     const mutRes = coreApplyMutation(model, op, opArgs)
     if (!mutRes.success) return mutRes
     await saveKnowledge(filePath, model)
