@@ -89,6 +89,11 @@ concept:: Scene
 type:: file
 description:: Scene-level background music file. Music is a Scene field and MUST NOT be modeled as a Layer.
 
+## NN Field Definition: music_volume
+concept:: Scene
+type:: string
+description:: Optional background-music volume for the Scene's `music::` track (a number 0–1, e.g. `0.1`). Defaults to the engine value when absent.
+
 ## NN Field Definition: transition
 concept:: Scene
 type:: select

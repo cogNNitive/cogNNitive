@@ -269,6 +269,10 @@ export class RemotionSceneCompiler {
       const resolvedTemplate = refName && templates[refName] ? { name: refName, ...templates[refName] } : null;
       const properties = {};
       if (fields.music) properties.scene_background_audio = fields.music;
+      if (fields.music_volume !== undefined && String(fields.music_volume).trim() !== '') {
+        const mv = Number(fields.music_volume);
+        if (Number.isFinite(mv)) properties.scene_music_volume = mv;
+      }
       // Carry the resolved template's model/voice so downstream pricing + TTS
       // agree without reading any script-declared voice/model field.
       if (resolvedTemplate) {
@@ -545,7 +549,7 @@ export class RemotionSceneCompiler {
           assetPath: sc.music,
           fromFrame,
           durationInFrames,
-          volume: DEFAULT_BG_MUSIC_VOLUME,
+          volume: Number.isFinite(sc.properties?.scene_music_volume) ? sc.properties.scene_music_volume : DEFAULT_BG_MUSIC_VOLUME,
           loop: true,
           sha256: crypto.createHash('sha256').update(`bgmusic:${sc.music}`).digest('hex'),
         });
