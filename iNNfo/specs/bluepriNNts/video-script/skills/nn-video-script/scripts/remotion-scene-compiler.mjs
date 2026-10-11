@@ -412,10 +412,9 @@ export class RemotionSceneCompiler {
    * rejected: the compiler never re-parses script markdown.
    * @param {object | string} input Structured model or lowered object
    * @param {Object} [options]
-   * @param {Record<string, number>} [options.audioDurations] Map of sceneId -> duration in seconds
-   * @param {Record<string, { assetPath: string, sha256?: string, durationSeconds?: number }>} [options.audioAssets]
-   * @param {Record<string, number>} [options.mediaDurations] Map of sceneId -> media duration in seconds
-   * @param {Record<string, { tool?: string, voice?: string, model?: string }>} [options.templates] Resolved Template instances
+    * @param {Record<string, number>} [options.audioDurations] Map of sceneId -> duration in seconds
+    * @param {Record<string, { assetPath: string, sha256?: string, durationSeconds?: number }>} [options.audioAssets]
+    * @param {Record<string, { tool?: string, voice?: string, model?: string }>} [options.templates] Resolved Template instances
    * @param {string} [options.scriptSource="script.model"]
    * @returns {object} RemotionCompositionManifest
    */
@@ -443,7 +442,6 @@ export class RemotionSceneCompiler {
     const height = options.height || parsed.height || this.height;
     const audioDurations = options.audioDurations || {};
     const audioAssets = options.audioAssets || {};
-    const mediaDurations = options.mediaDurations || {};
 
     const compositionId = (parsed.title || 'composition')
       .toLowerCase()
@@ -465,8 +463,6 @@ export class RemotionSceneCompiler {
         durationInSeconds = audioDurations[sceneId];
       } else if (audioAssets[sceneId]?.durationSeconds !== undefined) {
         durationInSeconds = audioAssets[sceneId].durationSeconds;
-      } else if (mediaDurations[sceneId] !== undefined) {
-        durationInSeconds = mediaDurations[sceneId];
       } else if (sc.narration && sc.narration.trim().length > 0) {
         const words = sc.narration.trim().split(/\s+/).length;
         durationInSeconds = Math.max(3, words / this.wordsPerSecond);

@@ -398,7 +398,7 @@ async function main() {
       })
     }
   }
-  models.sort((a, b) => a.filePath.localeCompare(b.filePath))
+  models.sort((a, b) => (a.filePath < b.filePath ? -1 : a.filePath > b.filePath ? 1 : 0))
 
   if (args.status) {
     console.log(`Status (${models.length} model(s)):`)
