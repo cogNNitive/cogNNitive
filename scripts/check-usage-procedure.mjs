@@ -23,6 +23,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+const { isNNName } = require('../skills/nn-preflight/scripts/lib/naming-contract.generated.cjs');
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(SCRIPT_DIR, '..');
@@ -70,7 +74,7 @@ export function procedureFiles(bpDir) {
     for (const e of entries) {
       const full = path.join(dir, e.name);
       if (e.isDirectory()) walk(full);
-      else if (e.isFile() && e.name.endsWith('_NN.md')) out.push(full);
+      else if (e.isFile() && isNNName(e.name)) out.push(full);
     }
   };
   walk(path.join(bpDir, 'procedures'));

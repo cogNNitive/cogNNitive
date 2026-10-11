@@ -25,6 +25,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+const { isNNName } = require('../skills/nn-preflight/scripts/lib/naming-contract.generated.cjs');
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(SCRIPT_DIR, '..');
@@ -93,7 +97,7 @@ export function discoverProcedureFiles(blueprintsRoot = BLUEPRINTS_ROOT) {
       if (entry.isDirectory()) walk(full);
       else if (
         entry.isFile() &&
-        entry.name.endsWith('_NN.md') &&
+        isNNName(entry.name) &&
         entry.name !== 'spec_NN.md' &&
         path.basename(dir) === 'procedures'
       ) {
