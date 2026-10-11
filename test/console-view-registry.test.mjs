@@ -106,7 +106,7 @@ describe('tabs from the registry', () => {
     registry.register(def({ id: 'first', title: 'First', order: 10 }))
     const { document } = bootConsole({ registry })
     const ids = [...document.querySelectorAll('.innfo-view-tab')].map((b) => b.dataset.tab)
-    assert.deepEqual(ids, ['first', 'alpha', 'zeta', 'explorer', 'matrices', 'review'])
+    assert.deepEqual(ids, ['first', 'alpha', 'zeta', 'metamodel', 'explorer', 'matrices', 'review'])
   })
 
   it('mounts lazily, once, and keeps view state across tab switches', () => {

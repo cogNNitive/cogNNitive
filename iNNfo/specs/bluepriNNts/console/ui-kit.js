@@ -727,11 +727,58 @@
     return btn
   }
 
+  // Type-aware read rendering for a field value. Returns null when the value
+  // should fall back to the plain KuBadge text (string/number/select/etc.), so
+  // existing output is unchanged for the common case.
+  function FieldValue(data, opts) {
+    var doc = resolveDoc(opts)
+    var d = data && typeof data === 'object' ? data : {}
+    var value = d.value
+    var type = String(d.type || '').toLowerCase()
+    if (type === 'boolean' || typeof value === 'boolean') {
+      var b = makeEl(doc, 'span', 'innfo-field-bool', value ? 'Yes' : 'No')
+      b.setAttribute('data-value', value ? 'true' : 'false')
+      return b
+    }
+    if (Array.isArray(value)) {
+      return makeEl(doc, 'span', 'innfo-ku-value innfo-field-list', value.map(String).join(', '))
+    }
+    if (typeof value === 'string' && /^https?:\/\//i.test(value)) {
+      var a = makeEl(doc, 'a', 'innfo-field-url', value)
+      a.setAttribute('href', value)
+      a.setAttribute('target', '_blank')
+      a.setAttribute('rel', 'noopener noreferrer')
+      return a
+    }
+    if (type === 'code') {
+      return makeEl(doc, 'code', 'innfo-field-code', value == null ? '' : String(value))
+    }
+    if (type === 'markdown' || type === 'markdown_inline') {
+      return makeEl(doc, 'span', 'innfo-field-markdown', value == null ? '' : String(value))
+    }
+    if (type === 'image' || type === 'image_url' || type === 'asset' || type === 'video' || type === 'audio') {
+      if (typeof value === 'string' && looksLikeImageValue(value)) {
+        var img = makeEl(doc, 'img', 'innfo-field-image')
+        img.setAttribute('src', value)
+        img.setAttribute('alt', String(d.name || ''))
+        img.setAttribute('loading', 'lazy')
+        return img
+      }
+    }
+    return null
+  }
+
   function FieldRow(data, opts) {
     if (!data || typeof data !== 'object') throw new TypeError('InnfoUI.FieldRow: data required')
     var doc = resolveDoc(opts)
     var hasRef = !!(data.ref && data.ref.id)
-    var badge = KuBadge({ kind: 'field', name: data.name, value: hasRef ? null : data.value })
+    var valueNode = hasRef ? null : FieldValue(data, opts)
+    var badge = KuBadge({
+      kind: 'field',
+      name: data.name,
+      value: hasRef ? null : data.value,
+      valueNode: valueNode,
+    })
     if (hasRef) {
       badge.appendChild(
         ElementPill({ id: data.ref.id, label: data.ref.label || data.ref.id }, {
@@ -933,6 +980,15 @@
     if (relations) {
       body.appendChild(RelList({ relations: relations, byId: (opts && opts.byId) || {} }))
     }
+    var incoming = Array.isArray(data.incomingRelations) ? data.incomingRelations : null
+    if (incoming && incoming.length) {
+      var incWrap = makeEl(doc, 'div', 'innfo-card-incoming')
+      incWrap.appendChild(
+        makeEl(doc, 'span', 'innfo-card-incoming-label', 'Referenced by (' + incoming.length + ')'),
+      )
+      incWrap.appendChild(RelList({ relations: incoming, byId: (opts && opts.byId) || {} }))
+      body.appendChild(incWrap)
+    }
     card.appendChild(body)
     if (data.path) card.appendChild(makeEl(doc, 'footer', 'innfo-card-path', data.path))
     return card
@@ -1129,8 +1185,11 @@
     tabBtnEdit.setAttribute('type', 'button')
     var tabBtnHistory = makeEl(doc, 'button', 'innfo-modal-tab-btn', 'History & Provenance')
     tabBtnHistory.setAttribute('type', 'button')
+    var tabBtnConnections = makeEl(doc, 'button', 'innfo-modal-tab-btn', 'Connections')
+    tabBtnConnections.setAttribute('type', 'button')
     navTabs.appendChild(tabBtnEdit)
     navTabs.appendChild(tabBtnHistory)
+    navTabs.appendChild(tabBtnConnections)
     modal.appendChild(navTabs)
 
     // Panel 1: Edit Form
@@ -1247,27 +1306,34 @@
     panelHistory.appendChild(citeSection)
     modal.appendChild(panelHistory)
 
+    // Panel 3: Connections (Sankey-style relation flow)
+    var panelConnections = makeEl(doc, 'div', 'innfo-modal-tab-panel innfo-connections-modal-body')
+    panelConnections.setAttribute('data-tab', 'connections')
+    panelConnections.style.display = 'none'
+    panelConnections.appendChild(SankeyFlow(data.connections || {}, { doc: doc }))
+    modal.appendChild(panelConnections)
+
     // Tab switcher events
+    var tabButtons = { edit: tabBtnEdit, history: tabBtnHistory, connections: tabBtnConnections }
+    var tabPanels = { edit: panelEdit, history: panelHistory, connections: panelConnections }
+    function showTab(name) {
+      Object.keys(tabButtons).forEach(function (k) {
+        tabButtons[k].className = 'innfo-modal-tab-btn' + (k === name ? ' active' : '')
+        tabPanels[k].style.display = k === name ? 'block' : 'none'
+      })
+    }
     tabBtnEdit.addEventListener('click', function () {
-      tabBtnEdit.className = 'innfo-modal-tab-btn active'
-      tabBtnHistory.className = 'innfo-modal-tab-btn'
-      panelEdit.style.display = 'block'
-      panelHistory.style.display = 'none'
+      showTab('edit')
     })
     tabBtnHistory.addEventListener('click', function () {
-      tabBtnHistory.className = 'innfo-modal-tab-btn active'
-      tabBtnEdit.className = 'innfo-modal-tab-btn'
-      panelEdit.style.display = 'none'
-      panelHistory.style.display = 'block'
+      showTab('history')
+    })
+    tabBtnConnections.addEventListener('click', function () {
+      showTab('connections')
     })
 
-    var startTab = data.startTab === 'history' ? 'history' : 'edit'
-    if (startTab === 'history') {
-      tabBtnHistory.className = 'innfo-modal-tab-btn active'
-      tabBtnEdit.className = 'innfo-modal-tab-btn'
-      panelEdit.style.display = 'none'
-      panelHistory.style.display = 'block'
-    }
+    var startTab = data.startTab === 'history' ? 'history' : data.startTab === 'connections' ? 'connections' : 'edit'
+    if (startTab !== 'edit') showTab(startTab)
 
     var actions = makeEl(doc, 'div', 'innfo-edit-modal-actions')
     var saveBtn = makeEl(doc, 'button', 'innfo-edit-btn innfo-edit-btn-save', 'Save draft')
@@ -1385,6 +1451,106 @@
   }
 
 
+  // A compact 3-column Sankey-style flow for a knowledge unit: incoming
+  // relations flow into the centre node, outgoing relations flow out. Pure SVG,
+  // no layout library. Data: { center, incoming: [{label, field}], outgoing: [...] }.
+  function SankeyFlow(data, opts) {
+    var doc = resolveDoc(opts)
+    var d = data && typeof data === 'object' ? data : {}
+    var incoming = Array.isArray(d.incoming) ? d.incoming : []
+    var outgoing = Array.isArray(d.outgoing) ? d.outgoing : []
+    var wrap = makeEl(doc, 'div', 'innfo-sankey')
+    wrap.setAttribute('data-innfo-component', 'sankey')
+    if (!incoming.length && !outgoing.length) {
+      wrap.appendChild(makeEl(doc, 'p', 'innfo-sankey-empty', 'No relations recorded for this knowledge unit.'))
+      return wrap
+    }
+    var NS = 'http://www.w3.org/2000/svg'
+    var rowH = 34
+    var gap = 12
+    var pad = 18
+    var width = 680
+    var colW = 210
+    var rows = Math.max(incoming.length, outgoing.length, 1)
+    var height = pad * 2 + rows * rowH + (rows - 1) * gap
+    var svg = doc.createElementNS(NS, 'svg')
+    svg.setAttribute('viewBox', '0 0 ' + width + ' ' + height)
+    svg.setAttribute('class', 'innfo-sankey-svg')
+    svg.setAttribute('role', 'img')
+    svg.setAttribute('aria-label', 'Knowledge unit relation flow')
+    svg.setAttribute('preserveAspectRatio', 'xMidYMin meet')
+
+    function nodeY(i) {
+      return pad + i * (rowH + gap)
+    }
+    function rect(x, y, cls) {
+      var r = doc.createElementNS(NS, 'rect')
+      r.setAttribute('x', x)
+      r.setAttribute('y', y)
+      r.setAttribute('width', colW)
+      r.setAttribute('height', rowH)
+      r.setAttribute('rx', '6')
+      r.setAttribute('class', cls)
+      return r
+    }
+    function label(x, y, text, cls, anchor) {
+      var t = doc.createElementNS(NS, 'text')
+      t.setAttribute('x', x)
+      t.setAttribute('y', y)
+      t.setAttribute('class', cls)
+      if (anchor) t.setAttribute('text-anchor', anchor)
+      t.textContent = String(text == null ? '' : text)
+      return t
+    }
+    function truncate(s, n) {
+      s = String(s == null ? '' : s)
+      return s.length > n ? s.slice(0, n - 1) + '\u2026' : s
+    }
+    function flow(x1, y1, x2, y2) {
+      var p = doc.createElementNS(NS, 'path')
+      var mx = (x1 + x2) / 2
+      p.setAttribute('d', 'M' + x1 + ' ' + y1 + ' C' + mx + ' ' + y1 + ' ' + mx + ' ' + y2 + ' ' + x2 + ' ' + y2)
+      p.setAttribute('class', 'innfo-sankey-link')
+      return p
+    }
+
+    var leftX = 0
+    var centerX = (width - colW) / 2
+    var rightX = width - colW
+    var centerRows = Math.max(incoming.length, outgoing.length, 1)
+    var centerY = nodeY(Math.floor((centerRows - 1) / 2))
+    var centerMidY = centerY + rowH / 2
+
+    incoming.forEach(function (link, i) {
+      svg.appendChild(flow(leftX + colW, nodeY(i) + rowH / 2, centerX, centerMidY))
+    })
+    outgoing.forEach(function (link, i) {
+      svg.appendChild(flow(centerX + colW, centerMidY, rightX, nodeY(i) + rowH / 2))
+    })
+
+    function node(link, x, i) {
+      svg.appendChild(rect(x, nodeY(i), 'innfo-sankey-node'))
+      svg.appendChild(label(x + 10, nodeY(i) + 21, truncate(link && link.label, 24), 'innfo-sankey-label'))
+      if (link && link.field) {
+        svg.appendChild(label(x + colW - 8, nodeY(i) + 21, truncate(link.field, 12), 'innfo-sankey-field', 'end'))
+      }
+    }
+    incoming.forEach(function (link, i) {
+      node(link, leftX, i)
+    })
+    outgoing.forEach(function (link, i) {
+      node(link, rightX, i)
+    })
+
+    svg.appendChild(rect(centerX, centerY, 'innfo-sankey-node innfo-sankey-center'))
+    svg.appendChild(
+      label(centerX + colW / 2, centerY + 22, truncate(d.center || 'This unit', 26), 'innfo-sankey-center-label', 'middle'),
+    )
+
+    wrap.appendChild(svg)
+    return wrap
+  }
+
   var REVIEW_STATES = ['none', 'reviewed', 'changed']
 
   function ReviewedToggle(data) {
@@ -1492,7 +1658,8 @@
 
     if (kind === 'field') {
       if (data.name != null) badge.appendChild(makeEl(doc, 'span', 'innfo-ku-label', data.name + ':'))
-      badge.appendChild(makeEl(doc, 'span', 'innfo-ku-value', data.value == null ? '' : String(data.value)))
+      if (data.valueNode) badge.appendChild(data.valueNode)
+      else badge.appendChild(makeEl(doc, 'span', 'innfo-ku-value', data.value == null ? '' : String(data.value)))
     } else if (kind === 'cell') {
       badge.appendChild(makeEl(doc, 'span', 'innfo-ku-value', data.value == null ? '' : String(data.value)))
     } else if (kind === 'marker') {
@@ -1596,6 +1763,7 @@
     StatusBadge: StatusBadge,
     CitationIcon: CitationIcon,
     FieldRow: FieldRow,
+    FieldValue: FieldValue,
     ElementCard: ElementCard,
     CITATION_ORIGIN_LABELS: CITATION_ORIGIN_LABELS,
     DraftList: DraftList,
@@ -1603,6 +1771,7 @@
     ReviewedToggle: ReviewedToggle,
     RailProgress: RailProgress,
     EditModal: EditModal,
+    SankeyFlow: SankeyFlow,
     FieldStringWidget: FieldStringWidget,
     FieldNumberWidget: FieldNumberWidget,
     FieldBooleanWidget: FieldBooleanWidget,

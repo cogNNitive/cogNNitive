@@ -176,3 +176,60 @@ A changed bundle MUST ship under a new `innfo-console-v*` tag and a new CDN file
 - GIVEN the five vendored bundle copies
 - WHEN the bundle is rebuilt
 - THEN each is regenerated or declared frozen
+
+### Requirement: Element Media Lightbox
+
+The runtime MUST provide `renderMediaDialog(doc, items, start)`: a native
+`<dialog>` showing an element's image fields with prev/next navigation, a
+position counter and an open/download link, navigable with the arrow keys. The
+element card's image thumbnail MUST open it when the element has image fields.
+
+#### Scenario: Open from the thumbnail
+- GIVEN a card whose element has two image fields
+- WHEN the thumbnail is clicked
+- THEN `#innfo-media-dialog` shows the first image and a `1 / 2` counter
+
+#### Scenario: Advance
+- GIVEN the open lightbox
+- WHEN next is clicked
+- THEN the second image shows and the counter reads `2 / 2`
+
+### Requirement: Field Detail Dialog
+
+The runtime MUST provide `renderFieldDetailDialog(doc, field)` opening a
+read-only `<dialog>` that renders one field's full value through `InnfoUI.FieldValue`.
+In Table mode, double-clicking a field cell MUST open it for that cell.
+
+#### Scenario: Double-click a cell
+- GIVEN Table mode
+- WHEN a field cell is double-clicked
+- THEN `#innfo-field-dialog` opens with the field name and its typed value
+
+### Requirement: Incoming Relations On Cards
+
+Every element card MUST show its incoming relations (elements whose relations
+target it) in a `Referenced by (n)` section, in addition to its outgoing
+relations. Incoming relations are derived by scanning every element's
+`relations` for a target equal to the card's id.
+
+#### Scenario: Referenced element
+- GIVEN element B whose relation targets element A
+- WHEN A's card renders
+- THEN it contains `.innfo-card-incoming` labelled `Referenced by (1)` linking to B
+
+### Requirement: Concept Guidance Panel
+
+The runtime MUST provide a right-hand concept guide (`#innfo-concept-guide`) that
+appears when a single concept is in focus (a `concept:` filter) and shows the
+concept's description, field schema, markers, associated matrices and element
+count; it MUST be removed when no single concept is in focus.
+
+#### Scenario: Concept in focus
+- GIVEN a `concept:Fleet` filter and a Fleet concept with a description
+- WHEN the explorer refreshes
+- THEN `#innfo-concept-guide` renders the description, fields, matrices and element count
+
+#### Scenario: Focus cleared
+- GIVEN the guide is shown
+- WHEN the concept filter is cleared
+- THEN `#innfo-concept-guide` is removed

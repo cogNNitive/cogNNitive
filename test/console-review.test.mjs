@@ -342,7 +342,7 @@ describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
       assert.match(res.text, /target:: BusinessModel@legacy_tier/)
     })
 
-    it('renders tab headers for "Edit" and "History & Provenance" in unified modal', () => {
+    it('renders tab headers for "Edit", "History & Provenance" and "Connections" in unified modal', () => {
       let saved = null
       const modal = UI.EditModal(
         {
@@ -362,9 +362,10 @@ describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
       document.body.appendChild(modal)
 
       const tabs = modal.querySelectorAll('.innfo-modal-tab-btn')
-      assert.equal(tabs.length, 2, 'Renders exactly 2 tabs')
+      assert.equal(tabs.length, 3, 'Renders exactly 3 tabs')
       assert.equal(tabs[0].textContent, 'Edit')
       assert.equal(tabs[1].textContent, 'History & Provenance')
+      assert.equal(tabs[2].textContent, 'Connections')
 
       const tabEdit = modal.querySelector('.innfo-modal-tab-panel[data-tab="edit"]')
       const tabHistory = modal.querySelector('.innfo-modal-tab-panel[data-tab="history"]')

@@ -52,6 +52,27 @@ In the `Timeline & Projections` view the content SHALL contain the Timeline & P&
 - Each metric row SHALL include a pin/freeze action button (📌). Clicking it toggles the row in a sticky/pinned section (`#innfo-pinned-rows` or top of table), ensuring key metrics stay in view.
 - Each metric row SHALL include an inline chart action button (📈). Clicking it expands an inline monthly visual chart row directly beneath the metric row, mapping values across the month columns.
 
+#### R7: Element Table View
+The `Model Explorer` SHALL offer a Cards/Table toggle. In Table mode it SHALL render one row per filtered element with a column per field key, sortable by clicking a header (toggling ascending/descending and setting `aria-sort`), and SHALL preserve the active filter.
+
+##### Scenario: Toggle to table
+- GIVEN a model with elements
+- WHEN Table mode is selected
+- THEN `#innfo-content` contains `.innfo-element-table` with one row per element and one column per field key
+
+##### Scenario: Sort by header
+- GIVEN Table mode
+- WHEN a column header is clicked
+- THEN the rows reorder and the header carries `aria-sort` (`ascending` then `descending`)
+
+#### R8: Model Map View
+A built-in `Model Map` tab SHALL be registered when the schema declares concepts. It SHALL render concepts as circular nodes and matrices as labelled edges, as inline SVG with no external dependency, and its panel (`#innfo-tab-metamodel`) SHALL be created by the tab shell like the other built-ins.
+
+##### Scenario: Model Map tab
+- GIVEN a schema with concepts
+- WHEN the console boots
+- THEN a `.innfo-view-tab[data-tab="metamodel"]` exists and `#innfo-tab-metamodel` contains an SVG with one node per concept
+
 ### 2. Scenario Verification
 - **Scenario 1**: Metrics console load defaults to the `Timeline & Projections` tab with zero generic element clutter.
 - **Scenario 2**: Clicking `Model Explorer` reveals the concept rail, search input, and element cards.
