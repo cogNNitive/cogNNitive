@@ -117,8 +117,7 @@ const BUNDLE_TARGETS = [
       ' */\n' +
       '// ' +
       'legacy:' +
-      'nn-rename/quarantine' +
-      '\n// @ts-nocheck\n',
+      'nn-rename/quarantine',
   },
   {
     name: 'naming-contract',

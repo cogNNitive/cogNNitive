@@ -13,11 +13,9 @@
     "skipLibCheck": true
   },
   "include": [
-    "scripts/**/*",
-    "skills/**/*"
+    "scripts/**/*"
   ],
   "exclude": [
-    "skills/**/test/**",
     "node_modules",
     "**/*.test.js",
     "**/test-*.js",
