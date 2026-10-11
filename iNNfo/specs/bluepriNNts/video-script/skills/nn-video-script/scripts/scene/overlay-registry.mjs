@@ -13,6 +13,7 @@ export const OVERLAY_RENDERERS = {
   captions: 'Captions',
   quote: 'Quote',
   broll: 'Broll',
+  watermark: 'Watermark',
 };
 
 /**

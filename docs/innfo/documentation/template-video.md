@@ -43,6 +43,7 @@ Overlays are native Layer kinds, discriminated by `type::`. Text overlays carry 
 | `caption` | captions |
 | `brand` | brand image layer |
 | `quote` | quote overlay |
+| `watermark` | persistent text notice (e.g. AI disclosure) |
 
 Ephemeral overlays (`quote`, `lower-third`, `b-roll`) are scheduled sequentially in list order, with configurable `enter_animation` / `exit_animation`.
 

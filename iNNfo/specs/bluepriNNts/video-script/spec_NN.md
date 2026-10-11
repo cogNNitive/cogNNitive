@@ -28,6 +28,7 @@ validation:
     quote: [text]
     caption: [text]
     brand: [asset]
+    watermark: [text]
 ---
 
 > [!NOTE]
@@ -97,8 +98,8 @@ description:: Transition into the Scene. Optional.
 ## NN Field Definition: type
 concept:: Layer
 type:: select
-options:: [presenter, background, b-roll, title, lower-third, caption, brand, quote]
-description:: Required Layer discriminator. Allowed fields are conditional on this value.
+options:: [presenter, background, b-roll, title, lower-third, caption, brand, quote, watermark]
+description:: Required Layer discriminator. Allowed fields are conditional on this value. `watermark` renders a small persistent text notice (e.g. an AI-disclosure line).
 
 ## NN Field Definition: asset
 concept:: Layer
@@ -196,6 +197,7 @@ value → the required Field names) and enforced by the engine's pre-compile gua
 | `quote` | `text` |
 | `caption` | `text` |
 | `brand` | `asset` |
+| `watermark` | `text` |
 
 `caption` defaults to the owning Scene's body prose when `text` is omitted at the
 guard's discretion.
