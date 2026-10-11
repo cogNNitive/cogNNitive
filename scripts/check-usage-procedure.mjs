@@ -26,7 +26,10 @@ import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const { isNNName } = require('../skills/nn-preflight/scripts/lib/naming-contract.generated.cjs');
+const namingContract = /** @type {{ isNNName: (name: string) => boolean }} */ (
+  require('../skills/nn-preflight/scripts/lib/naming-contract.generated.cjs')
+);
+const { isNNName } = namingContract;
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(SCRIPT_DIR, '..');
