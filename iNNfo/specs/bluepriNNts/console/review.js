@@ -724,7 +724,7 @@
         var focused = idx >= 0 ? visible[idx] : visible[0]
         var fieldRow = focused.querySelector('[data-innfo-ctl="field-anchor"]')
         var anchor = focused.querySelector('[data-innfo-ctl="card-anchor"]')
-        if (fieldRow && document.activeElement && document.activeElement.closest && document.activeElement.closest('[data-innfo-component="field-row"]')) {
+        if (fieldRow && document.activeElement && document.activeElement.closest &&         document.activeElement.closest('[data-ku-kind="field"]')) {
           fieldRow.dispatchEvent(new Event('click', { bubbles: true }))
         } else if (anchor) {
           anchor.dispatchEvent(new Event('click', { bubbles: true }))
@@ -746,7 +746,7 @@
       if (!card.querySelector('[data-innfo-ctl="edit-toggle"]')) {
         head.appendChild(editToggleControl(card))
       }
-      var nameEl = card.querySelector('.innfo-card-name')
+      var nameEl = card.querySelector('.innfo-card-head [data-ku-kind="element"]')
       if (nameEl && !nameEl.querySelector('[data-innfo-ctl="name-anchor"]')) {
         nameEl.appendChild(
           kuEditControl({ elementId: elId, field: '__name', ctl: 'name-anchor' }, 'Edit element name'),
@@ -988,7 +988,7 @@
         decorateCard,
       )
       Array.prototype.forEach.call(
-        host.querySelectorAll('[data-innfo-component="field-row"][data-field]'),
+        host.querySelectorAll('[data-ku-kind="field"][data-field]'),
         decorateFieldRow,
       )
     }

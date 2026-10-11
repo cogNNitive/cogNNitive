@@ -179,9 +179,9 @@ describe('render-model-viewer.js — citation icons (origin-typed)', () => {
     stubRuntime()
     bootViewer()
 
-    const precioRow = document.querySelector('[data-innfo-component=field-row][data-field=precio]')
+    const precioRow = document.querySelector('[data-ku-kind=field][data-field=precio]')
     const precioSourceRow = document.querySelector(
-      '[data-innfo-component=field-row][data-field=precio_source]',
+      '[data-ku-kind=field][data-field=precio_source]',
     )
 
     expect(precioRow!.querySelectorAll('[data-innfo-component=citation-icon]')).toHaveLength(0)

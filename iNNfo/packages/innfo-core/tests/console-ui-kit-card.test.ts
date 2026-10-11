@@ -26,14 +26,14 @@ describe('InnfoUI.ElementCard', () => {
     expect(comp(card)).toBe('element-card')
     expect(card.getAttribute('data-element-id')).toBe('slimer')
     expect(card.getAttribute('data-concept-id')).toBe('paranormal-threat')
-    expect(card.querySelector('h3.innfo-card-name')!.textContent).toBe('Slimer')
-    expect(card.querySelectorAll('[data-innfo-component=field-row]').length).toBe(3)
+    expect(card.querySelector('.innfo-card-head [data-ku-kind=element]')!.textContent).toBe('Slimer')
+    expect(card.querySelectorAll('[data-ku-kind=field]').length).toBe(3)
     expect(card.querySelector('.innfo-card-desc')!.textContent).toBe('A gluttonous ghost')
   })
 
   it('renders an empty fields list without throwing', () => {
     const card = UI.ElementCard({ id: 'x', name: 'X', fields: [] })
-    expect(card.querySelectorAll('[data-innfo-component=field-row]').length).toBe(0)
+    expect(card.querySelectorAll('[data-ku-kind=field]').length).toBe(0)
   })
 
   it('renders markers as marker-chip', () => {
@@ -101,9 +101,10 @@ describe('InnfoUI.FieldRow', () => {
         { origin: 'human', field: 'owner' },
       ],
     })
-    expect(comp(row)).toBe('field-row')
+    expect(comp(row)).toBe('ku-badge')
+    expect(row.getAttribute('data-ku-kind')).toBe('field')
     expect(row.getAttribute('data-field')).toBe('owner')
-    expect(row.querySelector('dt')!.textContent).toBe('owner')
+    expect(row.querySelector('.innfo-ku-label')!.textContent).toContain('owner')
     const icons = [...row.querySelectorAll('[data-innfo-component=citation-icon]')]
     expect(icons.map((i) => (i as HTMLElement).getAttribute('data-origin'))).toEqual(['agent', 'human'])
   })
