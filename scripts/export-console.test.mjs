@@ -109,6 +109,32 @@ level: 3
       assert.equal(existsSync(join(tempDir, 'artifacts')), false)
     })
 
+    it('lists a procedures-role model (parent_spec procedures) alongside knowledge models', async () => {
+      await writeFile(
+        join(tempDir, 'models', 'Workflows_procedures_NN.md'),
+        `---
+level: 3
+parent_spec:
+  name: "procedures_V_0-3-2"
+  url: "iNNfo/specs/bluepriNNts/procedures/spec_NN.md"
+knowledge_version: "V_0-1-0"
+title: "Workflows"
+---
+
+# NN Work
+
+## NN Work: Step One
+step_type:: task
+Do the thing.
+`,
+        'utf-8',
+      )
+      const res = await runCli([tempDir, '--list'])
+      assert.equal(res.code, 0)
+      assert.match(res.stdout, /Workflows_procedures_NN\.md/)
+      assert.match(res.stdout, /\(4 models\)/)
+    })
+
     it('exits with code 1 when no models match filter and not in read-only mode', async () => {
       const res = await runCli([tempDir, 'nonexistent_pattern'])
       assert.equal(res.code, 1)

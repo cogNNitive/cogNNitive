@@ -195,11 +195,13 @@ function frontmatterOf(content) {
   return out
 }
 
-/** A model is an `_NN.md` document of role `knowledge` outside every excluded path. */
+/** A console model is an `_NN.md` document of role `knowledge`, plus `procedure` (so a
+ * procedures model feeds the procedures blueprint's Procedure view), outside every excluded path. */
 function isModelDocument(relPath, content) {
   if (payloadHelper.isExcludedPath(relPath)) return false
   const parentSpecName = payloadHelper.parentSpecNameOf(frontmatterOf(content))
-  return payloadHelper.roleOf({ path: relPath, parentSpecName }) === 'knowledge'
+  const role = payloadHelper.roleOf({ path: relPath, parentSpecName })
+  return role === 'knowledge' || role === 'procedure'
 }
 
 function isLevel3(content) {

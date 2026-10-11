@@ -17,7 +17,7 @@ name:: TestLab Coverage Workspace
 environment:: development
 models_dir:: kNNowledge/
 sources_dir:: sources/
-Synthetic coverage workspace for automated tests and documentation examples. It holds one model exercising every field type, matrix, marker, and traceability path.
+Synthetic coverage workspace for automated tests and documentation examples. It holds two models: a coverage model exercising every field type, matrix, marker, and traceability path, and a procedures model that guides lineage and citation checks in the generated domain console.
 
 # NN Models
 
@@ -27,3 +27,10 @@ template:: testlab
 status:: active
 author:: TestLab crew
 Synthetic coverage model: Concept 1 elements 1A/1B/1C, Concept 2 elements 2A/2B, and literal edge-case probes for image, multi-node, review, video, audio, PDF, very-long-description, file, artifact-as-source, broken-reference, and sourceless cases.
+
+## NN Models: TestLab Verification Procedures
+path:: kNNowledge/TestLab_procedures_TestLab_procedures_NN.md
+template:: procedures
+status:: active
+author:: TestLab crew
+Guided verification procedures: walk through the generated domain console to confirm that Element 1B of the coverage model shows its changeset lineage and its resolved source citations.
