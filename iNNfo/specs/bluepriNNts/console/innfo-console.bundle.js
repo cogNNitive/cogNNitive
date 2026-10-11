@@ -1494,8 +1494,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     tabBtnEdit.setAttribute('type', 'button')
     var tabBtnHistory = makeEl(doc, 'button', 'innfo-modal-tab-btn', 'History & Provenance')
     tabBtnHistory.setAttribute('type', 'button')
+    var tabBtnConnections = makeEl(doc, 'button', 'innfo-modal-tab-btn', 'Connections')
+    tabBtnConnections.setAttribute('type', 'button')
     navTabs.appendChild(tabBtnEdit)
     navTabs.appendChild(tabBtnHistory)
+    navTabs.appendChild(tabBtnConnections)
     modal.appendChild(navTabs)
 
     // Panel 1: Edit Form
@@ -1612,27 +1615,34 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     panelHistory.appendChild(citeSection)
     modal.appendChild(panelHistory)
 
+    // Panel 3: Connections (Sankey-style relation flow)
+    var panelConnections = makeEl(doc, 'div', 'innfo-modal-tab-panel innfo-connections-modal-body')
+    panelConnections.setAttribute('data-tab', 'connections')
+    panelConnections.style.display = 'none'
+    panelConnections.appendChild(SankeyFlow(data.connections || {}, { doc: doc }))
+    modal.appendChild(panelConnections)
+
     // Tab switcher events
+    var tabButtons = { edit: tabBtnEdit, history: tabBtnHistory, connections: tabBtnConnections }
+    var tabPanels = { edit: panelEdit, history: panelHistory, connections: panelConnections }
+    function showTab(name) {
+      Object.keys(tabButtons).forEach(function (k) {
+        tabButtons[k].className = 'innfo-modal-tab-btn' + (k === name ? ' active' : '')
+        tabPanels[k].style.display = k === name ? 'block' : 'none'
+      })
+    }
     tabBtnEdit.addEventListener('click', function () {
-      tabBtnEdit.className = 'innfo-modal-tab-btn active'
-      tabBtnHistory.className = 'innfo-modal-tab-btn'
-      panelEdit.style.display = 'block'
-      panelHistory.style.display = 'none'
+      showTab('edit')
     })
     tabBtnHistory.addEventListener('click', function () {
-      tabBtnHistory.className = 'innfo-modal-tab-btn active'
-      tabBtnEdit.className = 'innfo-modal-tab-btn'
-      panelEdit.style.display = 'none'
-      panelHistory.style.display = 'block'
+      showTab('history')
+    })
+    tabBtnConnections.addEventListener('click', function () {
+      showTab('connections')
     })
 
-    var startTab = data.startTab === 'history' ? 'history' : 'edit'
-    if (startTab === 'history') {
-      tabBtnHistory.className = 'innfo-modal-tab-btn active'
-      tabBtnEdit.className = 'innfo-modal-tab-btn'
-      panelEdit.style.display = 'none'
-      panelHistory.style.display = 'block'
-    }
+    var startTab = data.startTab === 'history' ? 'history' : data.startTab === 'connections' ? 'connections' : 'edit'
+    if (startTab !== 'edit') showTab(startTab)
 
     var actions = makeEl(doc, 'div', 'innfo-edit-modal-actions')
     var saveBtn = makeEl(doc, 'button', 'innfo-edit-btn innfo-edit-btn-save', 'Save draft')
@@ -1749,6 +1759,106 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return pop
   }
 
+
+  // A compact 3-column Sankey-style flow for a knowledge unit: incoming
+  // relations flow into the centre node, outgoing relations flow out. Pure SVG,
+  // no layout library. Data: { center, incoming: [{label, field}], outgoing: [...] }.
+  function SankeyFlow(data, opts) {
+    var doc = resolveDoc(opts)
+    var d = data && typeof data === 'object' ? data : {}
+    var incoming = Array.isArray(d.incoming) ? d.incoming : []
+    var outgoing = Array.isArray(d.outgoing) ? d.outgoing : []
+    var wrap = makeEl(doc, 'div', 'innfo-sankey')
+    wrap.setAttribute('data-innfo-component', 'sankey')
+    if (!incoming.length && !outgoing.length) {
+      wrap.appendChild(makeEl(doc, 'p', 'innfo-sankey-empty', 'No relations recorded for this knowledge unit.'))
+      return wrap
+    }
+    var NS = 'http://www.w3.org/2000/svg'
+    var rowH = 34
+    var gap = 12
+    var pad = 18
+    var width = 680
+    var colW = 210
+    var rows = Math.max(incoming.length, outgoing.length, 1)
+    var height = pad * 2 + rows * rowH + (rows - 1) * gap
+    var svg = doc.createElementNS(NS, 'svg')
+    svg.setAttribute('viewBox', '0 0 ' + width + ' ' + height)
+    svg.setAttribute('class', 'innfo-sankey-svg')
+    svg.setAttribute('role', 'img')
+    svg.setAttribute('aria-label', 'Knowledge unit relation flow')
+    svg.setAttribute('preserveAspectRatio', 'xMidYMin meet')
+
+    function nodeY(i) {
+      return pad + i * (rowH + gap)
+    }
+    function rect(x, y, cls) {
+      var r = doc.createElementNS(NS, 'rect')
+      r.setAttribute('x', x)
+      r.setAttribute('y', y)
+      r.setAttribute('width', colW)
+      r.setAttribute('height', rowH)
+      r.setAttribute('rx', '6')
+      r.setAttribute('class', cls)
+      return r
+    }
+    function label(x, y, text, cls, anchor) {
+      var t = doc.createElementNS(NS, 'text')
+      t.setAttribute('x', x)
+      t.setAttribute('y', y)
+      t.setAttribute('class', cls)
+      if (anchor) t.setAttribute('text-anchor', anchor)
+      t.textContent = String(text == null ? '' : text)
+      return t
+    }
+    function truncate(s, n) {
+      s = String(s == null ? '' : s)
+      return s.length > n ? s.slice(0, n - 1) + '\u2026' : s
+    }
+    function flow(x1, y1, x2, y2) {
+      var p = doc.createElementNS(NS, 'path')
+      var mx = (x1 + x2) / 2
+      p.setAttribute('d', 'M' + x1 + ' ' + y1 + ' C' + mx + ' ' + y1 + ' ' + mx + ' ' + y2 + ' ' + x2 + ' ' + y2)
+      p.setAttribute('class', 'innfo-sankey-link')
+      return p
+    }
+
+    var leftX = 0
+    var centerX = (width - colW) / 2
+    var rightX = width - colW
+    var centerRows = Math.max(incoming.length, outgoing.length, 1)
+    var centerY = nodeY(Math.floor((centerRows - 1) / 2))
+    var centerMidY = centerY + rowH / 2
+
+    incoming.forEach(function (link, i) {
+      svg.appendChild(flow(leftX + colW, nodeY(i) + rowH / 2, centerX, centerMidY))
+    })
+    outgoing.forEach(function (link, i) {
+      svg.appendChild(flow(centerX + colW, centerMidY, rightX, nodeY(i) + rowH / 2))
+    })
+
+    function node(link, x, i) {
+      svg.appendChild(rect(x, nodeY(i), 'innfo-sankey-node'))
+      svg.appendChild(label(x + 10, nodeY(i) + 21, truncate(link && link.label, 24), 'innfo-sankey-label'))
+      if (link && link.field) {
+        svg.appendChild(label(x + colW - 8, nodeY(i) + 21, truncate(link.field, 12), 'innfo-sankey-field', 'end'))
+      }
+    }
+    incoming.forEach(function (link, i) {
+      node(link, leftX, i)
+    })
+    outgoing.forEach(function (link, i) {
+      node(link, rightX, i)
+    })
+
+    svg.appendChild(rect(centerX, centerY, 'innfo-sankey-node innfo-sankey-center'))
+    svg.appendChild(
+      label(centerX + colW / 2, centerY + 22, truncate(d.center || 'This unit', 26), 'innfo-sankey-center-label', 'middle'),
+    )
+
+    wrap.appendChild(svg)
+    return wrap
+  }
 
   var REVIEW_STATES = ['none', 'reviewed', 'changed']
 
@@ -1968,6 +2078,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     ReviewedToggle: ReviewedToggle,
     RailProgress: RailProgress,
     EditModal: EditModal,
+    SankeyFlow: SankeyFlow,
     FieldStringWidget: FieldStringWidget,
     FieldNumberWidget: FieldNumberWidget,
     FieldBooleanWidget: FieldBooleanWidget,
@@ -2434,6 +2545,30 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       }
     }
 
+    // Incoming/outgoing relations for an element, for the modal's Connections
+    // Sankey. Outgoing come from the element's own relations; incoming are the
+    // relations of every other element that target it.
+    function connectionsFor(el) {
+      if (!el) return { center: '', incoming: [], outgoing: [] }
+      var outgoing = []
+      ;(Array.isArray(el.relations) ? el.relations : []).forEach(function (r) {
+        if (!r) return
+        var t = elementsById[r.target]
+        outgoing.push({ id: r.target, label: r.targetLabel || (t && t.name) || r.target, field: r.field })
+      })
+      var incoming = []
+      Object.keys(elementsById).forEach(function (id) {
+        var other = elementsById[id]
+        if (!other || id === el.id) return
+        ;(Array.isArray(other.relations) ? other.relations : []).forEach(function (r) {
+          if (r && r.target === el.id) {
+            incoming.push({ id: other.id, label: other.name || other.id, field: r.field })
+          }
+        })
+      })
+      return { center: el.name || el.id || '', incoming: incoming, outgoing: outgoing }
+    }
+
     function openModalFor(anchorData, target) {
       var modal = UI.EditModal(
         {
@@ -2447,6 +2582,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           history: target.history,
           isComment: !!target.isComment,
           commentOnly: !!target.commentOnly,
+          connections: connectionsFor(elementsById[anchorData.elementId]),
           startTab: anchorData.info ? 'history' : 'edit',
         },
         {
@@ -4428,6 +4564,153 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     })
   }
 
+  // ---- Concept guidance panel ----------------------------------------------
+  // Parity with the editor's RightGuidanceSidebar: when a single concept is in
+  // focus (selected through the rail, i.e. a `concept:` filter), show its
+  // description, field schema, markers and matrices in a right sidebar.
+
+  function conceptByName(concepts, name) {
+    var target = String(name || '').toLowerCase()
+    if (!target) return null
+    var list = Array.isArray(concepts) ? concepts : []
+    var i
+    for (i = 0; i < list.length; i++) {
+      var c = list[i]
+      var cname = typeof c === 'string' ? c : c && c.name
+      if (String(cname || '').toLowerCase() === target) return typeof c === 'string' ? { name: c } : c
+    }
+    for (i = 0; i < list.length; i++) {
+      var c2 = list[i]
+      var n2 = String((typeof c2 === 'string' ? c2 : c2 && c2.name) || '').toLowerCase()
+      if (n2 && (n2.indexOf(target) !== -1 || target.indexOf(n2) !== -1)) {
+        return typeof c2 === 'string' ? { name: c2 } : c2
+      }
+    }
+    return null
+  }
+
+  function activeGuideConcept(query, concepts) {
+    var parsed = parseFilterQuery(query)
+    var op = null
+    for (var i = 0; i < parsed.operators.length; i++) {
+      var o = parsed.operators[i]
+      if ((o.key === 'concept' || o.key === '!concept') && !op) op = o
+    }
+    if (!op) return null
+    return conceptByName(concepts, op.val)
+  }
+
+  function guideFieldsFor(concept, schema) {
+    if (Array.isArray(concept.fields) && concept.fields.length) return concept.fields
+    var all = schema && Array.isArray(schema.fields) ? schema.fields : []
+    var cname = String(concept.name).toLowerCase()
+    return all.filter(function (f) {
+      return f && f.concept && String(f.concept).toLowerCase() === cname
+    })
+  }
+
+  function guideMarkersFor(concept, schema) {
+    if (Array.isArray(concept.markers) && concept.markers.length) return concept.markers
+    var all = schema && Array.isArray(schema.markers) ? schema.markers : []
+    var cname = String(concept.name).toLowerCase()
+    return all.filter(function (m) {
+      return m && m.concept && String(m.concept).toLowerCase() === cname
+    })
+  }
+
+  function guideMatricesFor(concept, matrices, schema) {
+    var cname = String(concept.name).toLowerCase()
+    var list =
+      Array.isArray(matrices) && matrices.length
+        ? matrices
+        : schema && Array.isArray(schema.matrices)
+          ? schema.matrices
+          : []
+    return list.filter(function (m) {
+      if (!m) return false
+      return (
+        String(m.source || '').toLowerCase() === cname || String(m.target || '').toLowerCase() === cname
+      )
+    })
+  }
+
+  function renderConceptGuide(doc, concept, schema, matrices, counts) {
+    var layout = doc.getElementById('innfo-layout')
+    if (!layout) return
+    var host = doc.getElementById('innfo-concept-guide')
+    if (!concept) {
+      if (host && host.parentNode) host.parentNode.removeChild(host)
+      return
+    }
+    if (!host) {
+      host = el('aside', 'innfo-guide')
+      host.id = 'innfo-concept-guide'
+      host.setAttribute('aria-label', 'Concept guidance')
+      layout.appendChild(host)
+    }
+    host.innerHTML = ''
+
+    var name = concept.name || 'Concept'
+    var head = el('div', 'innfo-guide-head')
+    var badge = el('span', 'badge badge-outline badge-sm', name)
+    if (concept.color) {
+      badge.style.borderColor = concept.color
+      badge.style.color = concept.color
+    }
+    head.appendChild(badge)
+    host.appendChild(head)
+
+    var description = concept.description || concept.summary || ''
+    if (description) host.appendChild(el('p', 'innfo-guide-desc', String(description)))
+
+    var fields = guideFieldsFor(concept, schema)
+    if (fields.length) {
+      var fs = el('section', 'innfo-guide-section')
+      fs.appendChild(el('h4', 'innfo-guide-title', 'Fields (' + fields.length + ')'))
+      var fdl = el('dl', 'innfo-guide-list')
+      fields.forEach(function (f) {
+        if (!f) return
+        var label = f.label || f.name
+        if (label == null) return
+        fdl.appendChild(el('dt', null, String(label)))
+        fdl.appendChild(el('dd', null, String(f.type || f.widget || '')))
+      })
+      fs.appendChild(fdl)
+      host.appendChild(fs)
+    }
+
+    var markers = guideMarkersFor(concept, schema)
+    if (markers.length) {
+      var ms = el('section', 'innfo-guide-section')
+      ms.appendChild(el('h4', 'innfo-guide-title', 'Markers (' + markers.length + ')'))
+      var mul = el('ul', 'innfo-guide-list')
+      markers.forEach(function (m) {
+        if (!m) return
+        mul.appendChild(el('li', null, String(m.label || m.name || '')))
+      })
+      ms.appendChild(mul)
+      host.appendChild(ms)
+    }
+
+    var matrixList = guideMatricesFor(concept, matrices, schema)
+    if (matrixList.length) {
+      var mts = el('section', 'innfo-guide-section')
+      mts.appendChild(el('h4', 'innfo-guide-title', 'Matrices (' + matrixList.length + ')'))
+      var mtl = el('ul', 'innfo-guide-list')
+      matrixList.forEach(function (m) {
+        if (!m) return
+        mtl.appendChild(el('li', null, String(m.name || m.source + ' \u2192 ' + m.target)))
+      })
+      mts.appendChild(mtl)
+      host.appendChild(mts)
+    }
+
+    var count = counts && counts[name] != null ? counts[name] : null
+    if (count != null) {
+      host.appendChild(el('div', 'innfo-guide-meta', count + ' ' + (count === 1 ? 'element' : 'elements')))
+    }
+  }
+
   function conceptMetaOf(concepts, name) {
     var list = Array.isArray(concepts) ? concepts : []
     for (var i = 0; i < list.length; i++) {
@@ -4603,6 +4886,28 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         } else if (d.kind === 'new') {
           card.classList.add('border-l-4', 'border-info')
         }
+      }
+
+      // Wire the image thumbnail to the media lightbox when the element has
+      // image fields (parity with the editor's NodeMedia gallery).
+      var mediaItems = collectMediaItems(element)
+      var thumbEl = card.querySelector('.innfo-card-thumb')
+      if (mediaItems.length && thumbEl && thumbEl.tagName === 'IMG') {
+        thumbEl.classList.add('innfo-card-thumb--zoom')
+        thumbEl.setAttribute('role', 'button')
+        thumbEl.setAttribute('tabindex', '0')
+        thumbEl.setAttribute('title', 'View media preview')
+        thumbEl.setAttribute('aria-label', 'View media preview')
+        thumbEl.addEventListener('click', function (ev) {
+          if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation()
+          renderMediaDialog(doc, mediaItems, 0)
+        })
+        thumbEl.addEventListener('keydown', function (ev) {
+          if (ev && (ev.key === 'Enter' || ev.key === ' ')) {
+            if (ev.preventDefault) ev.preventDefault()
+            renderMediaDialog(doc, mediaItems, 0)
+          }
+        })
       }
 
       content.appendChild(card)
@@ -6573,6 +6878,129 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     dialog.showModal()
   }
 
+  // ---- Media preview (lightbox) --------------------------------------------
+  // The editor has a NodeMedia gallery with a lightbox; the console only showed
+  // an inline thumbnail. Collect the image fields of an element and open them in
+  // one dialog with prev/next, using the native <dialog> element.
+
+  var IMAGE_REF_RE = /\.(png|jpe?g|gif|webp|svg|avif|bmp)(?:[?#]|$)/i
+
+  function isImageRefValue(v) {
+    if (typeof v !== 'string') return false
+    var s = v.trim().toLowerCase()
+    if (!s) return false
+    if (s.indexOf('data:image/') === 0 || s.indexOf('blob:') === 0) return true
+    return IMAGE_REF_RE.test(s)
+  }
+
+  function collectMediaItems(element) {
+    var items = []
+    var fields = element && isObject(element.fields) ? element.fields : {}
+    Object.keys(fields).forEach(function (name) {
+      var val = fields[name]
+      var list = Array.isArray(val) ? val : [val]
+      list.forEach(function (v) {
+        if (isImageRefValue(v)) items.push({ name: name, value: String(v) })
+      })
+    })
+    return items
+  }
+
+  function renderMediaDialog(doc, items, start) {
+    if (!doc || !Array.isArray(items) || !items.length) return
+    var dialog = doc.getElementById('innfo-media-dialog')
+    if (!dialog) {
+      dialog = doc.createElement('dialog')
+      dialog.id = 'innfo-media-dialog'
+      dialog.setAttribute('aria-label', 'Media preview')
+      if (doc.body) doc.body.appendChild(dialog)
+    }
+    var index = typeof start === 'number' && start >= 0 && start < items.length ? start : 0
+
+    function render() {
+      dialog.innerHTML = ''
+      var item = items[index] || { name: '', value: '' }
+      var head = el('div', 'innfo-ref-head')
+      var h = el('h2', null, item.name || 'Media')
+      var close = el('button', 'innfo-ref-close', '×')
+      if (close) {
+        close.setAttribute('type', 'button')
+        close.setAttribute('aria-label', 'Close')
+        close.addEventListener('click', function () {
+          if (typeof dialog.close === 'function') dialog.close()
+        })
+      }
+      if (head && h) head.appendChild(h)
+      if (head && close) head.appendChild(close)
+
+      var body = el('div', 'innfo-media-body')
+      var img = doc.createElement('img')
+      img.setAttribute('src', item.value)
+      img.setAttribute('alt', item.name || '')
+      img.className = 'innfo-media-image'
+      if (body) body.appendChild(img)
+
+      var bar = el('div', 'innfo-media-bar')
+      if (items.length > 1 && bar) {
+        var prev = el('button', 'innfo-media-nav', '‹')
+        prev.setAttribute('type', 'button')
+        prev.setAttribute('aria-label', 'Previous media')
+        if (index === 0) prev.setAttribute('disabled', 'disabled')
+        prev.addEventListener('click', function () {
+          if (index > 0) {
+            index -= 1
+            render()
+          }
+        })
+        var counter = el('span', 'innfo-media-count', index + 1 + ' / ' + items.length)
+        var next = el('button', 'innfo-media-nav', '›')
+        next.setAttribute('type', 'button')
+        next.setAttribute('aria-label', 'Next media')
+        if (index === items.length - 1) next.setAttribute('disabled', 'disabled')
+        next.addEventListener('click', function () {
+          if (index < items.length - 1) {
+            index += 1
+            render()
+          }
+        })
+        bar.appendChild(prev)
+        bar.appendChild(counter)
+        bar.appendChild(next)
+      }
+      var dl = doc.createElement('a')
+      dl.className = 'innfo-media-download'
+      dl.setAttribute('href', item.value)
+      dl.setAttribute('download', '')
+      dl.textContent = 'Open / download'
+      if (bar) bar.appendChild(dl)
+      if (body) body.appendChild(bar)
+
+      dialog.appendChild(head)
+      dialog.appendChild(body)
+    }
+
+    if (!dialog.__innfoMediaKeys) {
+      dialog.__innfoMediaKeys = true
+      dialog.addEventListener('keydown', function (e) {
+        if (!e) return
+        if (e.key === 'ArrowLeft' && index > 0) {
+          index -= 1
+          render()
+        } else if (e.key === 'ArrowRight' && index < items.length - 1) {
+          index += 1
+          render()
+        }
+      })
+    }
+    render()
+    try {
+      if (typeof dialog.showModal === 'function') dialog.showModal()
+      else dialog.setAttribute('open', 'open')
+    } catch {
+      dialog.setAttribute('open', 'open')
+    }
+  }
+
   // Citation detail dialog (Console Citation Icons / Tanda C). Reuses the
   // innfo-ref-dialog markup/classes so no second stylesheet is needed. Unlike
   // renderRefDialog, it creates #innfo-citation-dialog and appends it to
@@ -7448,6 +7876,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         refresh(activeSearchQuery)
       }, state)
       renderRail(active, concepts, counts, draftCountsByConcept, selectRailToken, state)
+      if (!scopedView) {
+        renderConceptGuide(active, activeGuideConcept(activeSearchQuery, concepts), schema, matrices, counts)
+      }
 
       // Hide documentation overview tree when filtering elements so filtered cards are immediately visible
       var docHost = active.getElementById('innfo-doc')

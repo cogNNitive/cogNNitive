@@ -453,6 +453,30 @@
       }
     }
 
+    // Incoming/outgoing relations for an element, for the modal's Connections
+    // Sankey. Outgoing come from the element's own relations; incoming are the
+    // relations of every other element that target it.
+    function connectionsFor(el) {
+      if (!el) return { center: '', incoming: [], outgoing: [] }
+      var outgoing = []
+      ;(Array.isArray(el.relations) ? el.relations : []).forEach(function (r) {
+        if (!r) return
+        var t = elementsById[r.target]
+        outgoing.push({ id: r.target, label: r.targetLabel || (t && t.name) || r.target, field: r.field })
+      })
+      var incoming = []
+      Object.keys(elementsById).forEach(function (id) {
+        var other = elementsById[id]
+        if (!other || id === el.id) return
+        ;(Array.isArray(other.relations) ? other.relations : []).forEach(function (r) {
+          if (r && r.target === el.id) {
+            incoming.push({ id: other.id, label: other.name || other.id, field: r.field })
+          }
+        })
+      })
+      return { center: el.name || el.id || '', incoming: incoming, outgoing: outgoing }
+    }
+
     function openModalFor(anchorData, target) {
       var modal = UI.EditModal(
         {
@@ -466,6 +490,7 @@
           history: target.history,
           isComment: !!target.isComment,
           commentOnly: !!target.commentOnly,
+          connections: connectionsFor(elementsById[anchorData.elementId]),
           startTab: anchorData.info ? 'history' : 'edit',
         },
         {

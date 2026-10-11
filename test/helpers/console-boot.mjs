@@ -35,7 +35,8 @@ export const MODEL = {
   ],
 }
 
-export function bootConsole({ registry, model = MODEL, url = 'http://localhost', before, runScripts } = {}) {
+export function bootConsole({ registry, model = MODEL, schema, url = 'http://localhost', before, runScripts } = {}) {
+  const schemaSlot = schema || { concepts: [{ name: 'Fleet' }] }
   const dom = new JSDOM(
     `<!doctype html><html><head></head><body>
       <div id="innfo-layout">
@@ -49,7 +50,7 @@ export function bootConsole({ registry, model = MODEL, url = 'http://localhost',
         </main>
       </div>
       <script type="application/json" id="innfo-config">{"needs":["feedback-export"]}</script>
-      <script type="application/json" id="innfo-schema">{"concepts":[{"name":"Fleet"}]}</script>
+      <script type="application/json" id="innfo-schema">${JSON.stringify(schemaSlot)}</script>
       <script type="application/json" id="innfo-model">${JSON.stringify(model)}</script>
     </body></html>`,
     runScripts ? { url, runScripts } : { url },
