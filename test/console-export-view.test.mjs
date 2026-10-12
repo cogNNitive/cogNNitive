@@ -233,7 +233,8 @@ describe('export-console size budget and --view (S2c2)', () => {
       ctx.store.propose({ kind: 'comment', elementId: modelOf(scoped).elements[0].id, comment: 'scoped note' })
       const scopedKeys = Object.keys(scoped.window.localStorage)
       assert.equal(scopedKeys.length, 1)
-      assert.ok(scopedKeys[0].endsWith(`${basename(root)}::view:beta`), scopedKeys[0])
+      // The store key is the stable domain id (root name + short root-path hash) plus the scope.
+      assert.match(scopedKeys[0], new RegExp(`:${basename(root)}-[0-9a-f]{8}::view:beta$`), scopedKeys[0])
 
       const composed = ctx.changeset.compose('tester')
       assert.equal(composed.ok, true, String(composed.errors))

@@ -1027,7 +1027,11 @@
     drafts.forEach(function (d) {
       if (!d || typeof d !== 'object') return
       var el = byId[String(d.element_id)]
-      var changed = !el || el.hash !== d.base_hash
+      // The host passes the review module's staleness rule; the kit has no dependency on it.
+      var changed =
+        opts && typeof opts.isTargetChanged === 'function'
+          ? opts.isTargetChanged(d, byId)
+          : !el || el.hash !== d.base_hash
       var li = makeEl(doc, 'li', 'innfo-draft-row card bg-base-100 border border-base-200 shadow-xs')
       li.setAttribute('data-draft-id', String(d.id))
       if (changed) li.setAttribute('data-target-changed', 'true')

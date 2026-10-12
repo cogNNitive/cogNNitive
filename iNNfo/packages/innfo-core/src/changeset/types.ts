@@ -26,6 +26,12 @@ export interface ChangeItem {
   target: string
   from?: string
   to?: string
+  /**
+   * Content hash of the target element when the change was written (the console's
+   * element `hash`). A different current hash is a precondition failure. Optional:
+   * absent means the change is not guarded by element content.
+   */
+  base_hash?: string
   concept?: string
   name?: string
   slug?: string

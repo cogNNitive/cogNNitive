@@ -308,4 +308,22 @@ level: 3
     const afterHash = sha256(readFileSync(feedbackPath))
     expect(afterHash).toBe(beforeHash)
   })
+
+  it('rejects a source_path that escapes the domain root', async () => {
+    const outside = join(tempDir, '..', 'outside-feedback.json')
+    writeFileSync(outside, initialFeedbackContent, 'utf8')
+    try {
+      await expect(
+        recordFeedbackVerdictTool(tempDir, {
+          source_path: '../outside-feedback.json',
+          item: 'fb-001',
+          status: 'pending',
+          by: 'Peter',
+        }),
+      ).rejects.toThrow(/escapes the domain root/)
+      expect(existsSync(getFeedbackLedgerPath(tempDir))).toBe(false)
+    } finally {
+      rmSync(outside, { force: true })
+    }
+  })
 })

@@ -49,6 +49,8 @@ function seedDraft(overrides: any = {}) {
     element_id: 'threat-slimer',
     concept: 'ParanormalThreat',
     element: 'Slimer',
+    model_id: 'kNNowledge/ghostbusters',
+    element_slug: 'slimer',
     base_hash: 'abcdef0123456789',
     kind: 'correction',
     field: 'owner',
@@ -187,7 +189,8 @@ describe('console-review-export (preview + clipboard)', () => {
     expect(textarea.value).toContain('parent_spec: "changes"')
     expect(textarea.value).toContain('## NN Change: fb-001')
     expect(textarea.value).toContain('op:: update_field')
-    expect(textarea.value).toContain('target:: GhostbustersModel@threat-slimer&owner')
+    // Addressed by the engine's model id and element slug, never by display title / console id.
+    expect(textarea.value).toContain('target:: kNNowledge/ghostbusters@slimer&owner')
     expect(textarea.value).toContain('from:: A')
     expect(textarea.value).toContain('to:: B')
     expect(() => JSON.parse(textarea.value)).toThrow()

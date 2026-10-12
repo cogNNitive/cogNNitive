@@ -21,6 +21,7 @@ import type {
   FeedbackItemEvaluation,
 } from '@cognnitive/innfo-core'
 import { findKnowledgeFile } from './spec.js'
+import { isInsideRoot } from './path-guard.js'
 import { readKnowledge } from './list-read.js'
 
 export function getFeedbackLedgerPath(rootDir: string): string {
@@ -79,6 +80,9 @@ async function loadFeedbackAndModel(
   rootDir: string,
   sourcePath: string,
 ) {
+  if (!isInsideRoot(rootDir, sourcePath)) {
+    throw new Error(`source_path escapes the domain root: ${sourcePath}`)
+  }
   const fullSourcePath = join(rootDir, sourcePath)
   if (!existsSync(fullSourcePath)) {
     throw new Error(`Feedback file not found: ${sourcePath}`)

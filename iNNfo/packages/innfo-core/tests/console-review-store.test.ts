@@ -263,4 +263,105 @@ describe('console-review-store (draft store v2)', () => {
     const cleared = Review.createDraftStore(storage, 'm1') as DraftStore
     expect(cleared.reviewed()).toEqual({})
   })
+
+  const draftInput = (id: string) => ({
+    element_id: id,
+    concept: 'C',
+    element: id,
+    base_hash: 'abcdef0123456789',
+    kind: 'comment',
+    comment: 'hi',
+  })
+
+  it('merges drafts written by another tab instead of overwriting them', () => {
+    const Review = loadReview()
+    const storage = memoryStorage()
+    const tabA = Review.createDraftStore(storage, 'm1') as DraftStore
+    const tabB = Review.createDraftStore(storage, 'm1') as DraftStore
+
+    const a = tabA.addDraft(draftInput('e1'))
+    const b = tabB.addDraft(draftInput('e2'))
+    tabA.addDraft(draftInput('e3'))
+
+    const ids = JSON.parse(storage.getItem('innfo-console:v2:m1') as string).drafts.map(
+      (d: any) => d.element_id,
+    )
+    expect(ids).toEqual(['e1', 'e2', 'e3'])
+    // Ids are allocated after the re-read, so two tabs never mint the same one.
+    expect(a.id).not.toBe(b.id)
+  })
+
+  it('removing a draft in one tab keeps the other tab drafts', () => {
+    const Review = loadReview()
+    const storage = memoryStorage()
+    const tabA = Review.createDraftStore(storage, 'm1') as DraftStore
+    const tabB = Review.createDraftStore(storage, 'm1') as DraftStore
+    const a = tabA.addDraft(draftInput('e1'))
+    tabB.addDraft(draftInput('e2'))
+
+    tabA.removeDraft(a.id)
+    expect(tabA.drafts().map((d) => d.element_id)).toEqual(['e2'])
+  })
+
+  it('refreshes in-memory state and notifies on a storage event from another tab', () => {
+    const Review = loadReview()
+    const storage = memoryStorage()
+    let notified = 0
+    const tabA = Review.createDraftStore(storage, 'm1', 'V', {
+      onRemoteChange: () => void notified++,
+    }) as DraftStore & { destroy: () => void }
+    const tabB = Review.createDraftStore(storage, 'm1') as DraftStore
+    tabB.addDraft(draftInput('e9'))
+
+    expect(tabA.drafts()).toHaveLength(0)
+    window.dispatchEvent(new StorageEvent('storage', { key: 'innfo-console:v2:m1' }))
+    expect(tabA.drafts().map((d) => d.element_id)).toEqual(['e9'])
+    expect(notified).toBe(1)
+
+    // Other keys are ignored, and a destroyed store stops listening.
+    window.dispatchEvent(new StorageEvent('storage', { key: 'unrelated' }))
+    expect(notified).toBe(1)
+    tabA.destroy()
+    window.dispatchEvent(new StorageEvent('storage', { key: 'innfo-console:v2:m1' }))
+    expect(notified).toBe(1)
+  })
+
+  it('reports a failed write through onError and keeps the draft in memory', () => {
+    const Review = loadReview()
+    const quota = Object.assign(new Error('full'), { name: 'QuotaExceededError' })
+    const storage = {
+      ...memoryStorage(),
+      setItem: () => {
+        throw quota
+      },
+    }
+    const errors: unknown[] = []
+    const store = Review.createDraftStore(storage, 'm1', 'V', {
+      onError: (err: unknown) => void errors.push(err),
+    }) as DraftStore
+
+    store.addDraft(draftInput('e1'))
+    expect(errors).toEqual([quota])
+    expect(store.drafts().map((d) => d.element_id)).toEqual(['e1'])
+    // A later mutation builds on memory, not on a re-read that would drop the unsaved draft.
+    store.addDraft(draftInput('e2'))
+    expect(store.drafts().map((d) => d.element_id)).toEqual(['e1', 'e2'])
+  })
+
+  it('clearDrafts removes only the given ids, or everything without arguments', () => {
+    const Review = loadReview()
+    const storage = memoryStorage()
+    const store = Review.createDraftStore(storage, 'm1') as DraftStore & {
+      clearDrafts: (ids?: string[]) => void
+    }
+    const a = store.addDraft(draftInput('e1'))
+    store.addDraft(draftInput('e2'))
+    store.addDraft(draftInput('e3'))
+
+    store.clearDrafts([a.id])
+    expect(store.drafts().map((d) => d.element_id)).toEqual(['e2', 'e3'])
+    store.clearDrafts()
+    expect(store.drafts()).toEqual([])
+    expect(JSON.parse(storage.getItem('innfo-console:v2:m1') as string).drafts).toEqual([])
+  })
 })

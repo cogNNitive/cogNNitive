@@ -789,6 +789,45 @@
   /* Browser console: banner, rail, search, cards, matrices, drafts, export modal.
      Runs only where document/localStorage exist; pure helpers above stay DOM-free. */
 
+  // Escape untrusted text before it is concatenated into an innerHTML string.
+  function escapeHtml(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;')
+  }
+
+  // Transient message for failures the reviewer must see (e.g. drafts not saved).
+  // Replaces any previous toast instead of stacking them.
+  function showToast(doc, message) {
+    if (!doc || !doc.body || typeof doc.createElement !== 'function') return null
+    var old = doc.querySelector('[data-innfo="toast"]')
+    if (old && old.parentNode) old.parentNode.removeChild(old)
+    var toast = doc.createElement('div')
+    toast.setAttribute('data-innfo', 'toast')
+    toast.setAttribute('role', 'alert')
+    toast.className = 'innfo-toast'
+    toast.style.cssText =
+      'position:fixed;right:16px;bottom:16px;z-index:10000;max-width:360px;padding:10px 14px;' +
+      'border-radius:6px;background:#7f1d1d;color:#fff;font-size:13px;box-shadow:0 4px 12px rgba(0,0,0,.25);'
+    toast.textContent = String(message)
+    doc.body.appendChild(toast)
+    setTimeout(function () {
+      if (toast.parentNode) toast.parentNode.removeChild(toast)
+    }, 8000)
+    return toast
+  }
+
+  function notifyStoreError(doc, err) {
+    showToast(
+      doc,
+      'Your draft could not be saved (browser storage is full or blocked). It stays in this tab only: export your changes now.' +
+        (err && err.name ? ' [' + err.name + ']' : ''),
+    )
+  }
+
   function el(tag, cls, text) {
     var node = typeof document !== 'undefined' ? document.createElement(tag) : null
     if (!node) return null
@@ -1076,7 +1115,7 @@
       parsed.operators.forEach(function (op) {
         var pill = el('span', 'badge badge-sm badge-outline gap-1 font-mono text-[11px] py-2 px-2.5 bg-base-100')
         var labelText = op.key + ':' + op.val
-        pill.innerHTML = '<span>' + labelText + '</span>'
+        pill.innerHTML = '<span>' + escapeHtml(labelText) + '</span>'
         var removeBtn = el('button', 'ml-1 hover:text-error cursor-pointer font-bold', '×')
         removeBtn.setAttribute('type', 'button')
         removeBtn.addEventListener('click', function (e) {
@@ -1089,7 +1128,7 @@
 
       parsed.textTokens.forEach(function (token) {
         var pill = el('span', 'badge badge-sm badge-outline gap-1 font-mono text-[11px] py-2 px-2.5 bg-base-100')
-        pill.innerHTML = '<span>"' + token + '"</span>'
+        pill.innerHTML = '<span>"' + escapeHtml(token) + '"</span>'
         var removeBtn = el('button', 'ml-1 hover:text-error cursor-pointer font-bold', '×')
         removeBtn.setAttribute('type', 'button')
         removeBtn.addEventListener('click', function (e) {
@@ -1216,8 +1255,8 @@
         var fileIcon = typeof InnfoIcons !== 'undefined' ? InnfoIcons.getSvg('file-text', { size: 14 }) : ''
         summary.innerHTML =
           '<span class="flex items-center gap-2 min-w-0">' + fileIcon +
-          '<span class="truncate font-semibold">' + (m.title || m.filePath || 'Model') + '</span></span>' +
-          '<span class="badge badge-ghost badge-xs">' + (m.elementCount || 0) + '</span>'
+          '<span class="truncate font-semibold">' + escapeHtml(m.title || m.filePath || 'Model') + '</span></span>' +
+          '<span class="badge badge-ghost badge-xs">' + (Number(m.elementCount) || 0) + '</span>'
         summary.addEventListener('click', function (e) {
           // Clicking the chevron zone on the right edge toggles accordion open/close
           // without clobbering the active search filter.
@@ -1260,14 +1299,16 @@
               a.className = 'active'
             }
             var CONCEPT_PALETTE = ['#2563eb', '#dc2626', '#16a34a', '#f59e0b', '#7c3aed', '#0891b2']
-            var color = conceptColor(name) || CONCEPT_PALETTE[globalIndex % CONCEPT_PALETTE.length]
+            var rawColor = String(conceptColor(name) || '').trim()
+            var SAFE_CSS_COLOR = /^(#[0-9a-fA-F]{3,8}|(rgb|hsl)a?\([0-9a-zA-Z.,%\s\/]*\)|[a-zA-Z]+)$/
+            var color = SAFE_CSS_COLOR.test(rawColor) ? rawColor : CONCEPT_PALETTE[globalIndex % CONCEPT_PALETTE.length]
             globalIndex += 1
             var dot = color
-              ? '<span class="innfo-concept-dot" style="background:' + color + ';flex:none;"></span>'
+              ? '<span class="innfo-concept-dot" style="background:' + escapeHtml(color) + ';flex:none;"></span>'
               : ''
             a.innerHTML =
-              '<span class="flex items-center gap-2 min-w-0">' + dot + '<span class="truncate">' + String(name) + '</span></span>' +
-              '<span class="badge badge-ghost badge-xs">' + ((counts && counts[name]) || 0) + '</span>'
+              '<span class="flex items-center gap-2 min-w-0">' + dot + '<span class="truncate">' + escapeHtml(name) + '</span></span>' +
+              '<span class="badge badge-ghost badge-xs">' + (Number(counts && counts[name]) || 0) + '</span>'
             a.addEventListener('click', function (e) {
               if (e && e.preventDefault) e.preventDefault()
               if (typeof onSelect === 'function') onSelect(formatFacetToken('concept', name))
@@ -2653,7 +2694,7 @@
         if (focusedRow) {
           var filterBanner = el('div', 'innfo-timeline-filter-banner')
           var bannerText = el('span', 'innfo-filter-banner-text')
-          bannerText.innerHTML = UI.icon('target', 14) + ' <span>Showing dependency tree for: <strong>' + (focusedRow.label || focusedRow.id) + '</strong> (' + Object.keys(activeDepSet).length + ' items)</span>'
+          bannerText.innerHTML = UI.icon('target', 14) + ' <span>Showing dependency tree for: <strong>' + escapeHtml(focusedRow.label || focusedRow.id) + '</strong> (' + Object.keys(activeDepSet).length + ' items)</span>'
           var clearBtn = el('button', 'innfo-filter-banner-clear')
           clearBtn.setAttribute('type', 'button')
           clearBtn.innerHTML = UI.icon('close', 12) + ' <span>Clear Filter</span>'
@@ -2832,7 +2873,7 @@
           var trChart = el('tr', 'innfo-timeline-chart-row')
           var tdChartSticky = el('td', 'td-sticky')
           var chartLabel = el('span', 'innfo-chart-row-label')
-          chartLabel.innerHTML = UI.icon('chart', 12) + ' <span>Monthly: ' + (r.label || r.id) + '</span>'
+          chartLabel.innerHTML = UI.icon('chart', 12) + ' <span>Monthly: ' + escapeHtml(r.label || r.id) + '</span>'
           tdChartSticky.appendChild(chartLabel)
           trChart.appendChild(tdChartSticky)
 
@@ -3537,6 +3578,14 @@
     if (n > 0) btn.appendChild(el('span', 'innfo-rail-badge badge badge-sm badge-neutral', String(n)))
   }
 
+  function elementsByIdOf(state) {
+    var byId = {}
+    ;(state && state.elements ? state.elements : []).forEach(function (e) {
+      if (e && e.id) byId[e.id] = e
+    })
+    return byId
+  }
+
   // C11: the review tab renders through the kit DraftList from the v2 store.
   function renderReviewTab(doc, state, config, onRefresh) {
     var host = doc && typeof doc.getElementById === 'function' ? doc.getElementById('innfo-tab-review') : null
@@ -3557,7 +3606,41 @@
         drafts.length + (drafts.length === 1 ? ' pending change' : ' pending changes'),
       )
       if (count) titleWrap.appendChild(count)
+      var staleCount = drafts.filter(function (d) {
+        return Review.isTargetChanged(d, elementsByIdOf(state))
+      }).length
+      if (staleCount > 0) {
+        var staleNote = el(
+          'p',
+          'innfo-review-stale text-sm mt-1',
+          staleCount + (staleCount === 1 ? ' draft targets' : ' drafts target') +
+            ' an element that changed since it was written: review before exporting.',
+        )
+        if (staleNote) {
+          staleNote.setAttribute('data-innfo', 'stale-drafts')
+          staleNote.style.color = '#b45309'
+          titleWrap.appendChild(staleNote)
+        }
+      }
       head.appendChild(titleWrap)
+
+      var exportedIds = state && Array.isArray(state.exportedDraftIds) ? state.exportedDraftIds : []
+      var exportedPending = drafts.filter(function (d) {
+        return exportedIds.indexOf(d.id) !== -1
+      })
+      if (exportedPending.length > 0 && state.store && typeof state.store.clearDrafts === 'function') {
+        var clearBtn = el('button', 'innfo-btn innfo-clear-exported btn btn-ghost btn-sm', 'Clear exported drafts (' + exportedPending.length + ')')
+        if (clearBtn) {
+          clearBtn.setAttribute('type', 'button')
+          clearBtn.setAttribute('data-innfo', 'clear-exported')
+          clearBtn.addEventListener('click', function () {
+            state.store.clearDrafts(exportedPending.map(function (d) { return d.id }))
+            state.exportedDraftIds = []
+            if (typeof onRefresh === 'function') onRefresh()
+          })
+          head.appendChild(clearBtn)
+        }
+      }
 
       if (drafts.length > 0) {
         var exportBtn = el('button', 'innfo-btn innfo-tab-export-btn btn btn-primary btn-sm flex items-center gap-2 shadow-sm', 'Export changes')
@@ -3586,13 +3669,10 @@
         }
         listSection.appendChild(empty)
       } else {
-        var byId = {}
-        ;(state && state.elements ? state.elements : []).forEach(function (e) {
-          if (e && e.id) byId[e.id] = e
-        })
         listSection.appendChild(
-          UI.DraftList({ drafts: drafts, byId: byId }, {
+          UI.DraftList({ drafts: drafts, byId: elementsByIdOf(state) }, {
             doc: doc,
+            isTargetChanged: Review.isTargetChanged,
             onDelete: function (id) {
               if (state && state.store) state.store.removeDraft(id)
               if (typeof onRefresh === 'function') onRefresh()
@@ -4290,17 +4370,34 @@
     return str
   }
 
-  function draftToChange(draft, index, modelTitle) {
+  // Builds one `## NN Change` block addressed the way `apply_change` resolves it:
+  // `<file stem>@<element slug>[&field]`. The draft carries `model_id` (the model's
+  // file stem) and `element_slug`; `fallbackModel` only covers drafts saved before
+  // those fields existed.
+  function oneLine(v) {
+    return String(v).replace(new RegExp('[\\r\\n\\u2028\\u2029]+', 'g'), ' ').trim()
+  }
+
+  function draftToChange(draft, index, fallbackModel) {
     var d = isObject(draft) ? draft : {}
-    var id = d.id || 'c-' + String(index + 1).padStart(2, '0')
-    var model = modelTitle || 'model'
-    var elementTarget = d.element_id || d.element || 'elem'
-    var target = d.field ? model + '@' + elementTarget + '&' + d.field : model + '@' + elementTarget
+    var id = oneLine(d.id || 'c-' + String(index + 1).padStart(2, '0'))
+    var model = oneLine(d.model_id || fallbackModel || 'model')
+    var elementTarget = oneLine(d.element_slug || d.element || d.element_id || 'elem')
+    var canUpdate = !!d.field && d.proposed !== undefined
     var op = 'update_field'
+    var target = model + '@' + elementTarget + (d.field ? '&' + oneLine(d.field) : '')
     if (d.kind === 'delete') {
       op = 'remove_element'
       target = model + '@' + elementTarget
-    } else if (d.kind === 'comment' || (!d.proposed && !d.field)) {
+    } else if (d.kind === 'new') {
+      if (d.concept && d.element) {
+        // A new element is addressed by its concept; the engine reads name/fields below.
+        op = 'add_element'
+        target = model + '@' + oneLine(d.concept)
+      } else {
+        op = 'comment'
+      }
+    } else if (d.kind === 'comment' || !canUpdate) {
       op = 'comment'
     }
 
@@ -4308,9 +4405,17 @@
     lines.push('## NN Change: ' + id)
     lines.push('op:: ' + op)
     lines.push('target:: ' + target)
+    // The engine rejects the change if the element's content hash moved on since the draft.
+    if ((op === 'update_field' || op === 'remove_element') && d.base_hash) {
+      lines.push('base_hash:: ' + oneLine(d.base_hash))
+    }
     if (op === 'update_field') {
       if (d.original !== undefined) lines.push('from:: ' + formatChangesetValue(d.original))
-      if (d.proposed !== undefined) lines.push('to:: ' + formatChangesetValue(d.proposed))
+      lines.push('to:: ' + formatChangesetValue(d.proposed))
+    } else if (op === 'add_element') {
+      lines.push('concept:: ' + oneLine(d.concept))
+      lines.push('name:: ' + formatChangesetValue(d.element))
+      if (isObject(d.proposed)) lines.push('fields:: ' + JSON.stringify(d.proposed))
     }
     if (d.comment) {
       lines.push('notes:: ' + formatChangesetValue(d.comment))
@@ -4318,7 +4423,7 @@
     return lines.join('\n')
   }
 
-  function serializeChangesetMarkdown(meta, drafts) {
+  function serializeChangesetMarkdown(meta, drafts, fallbackModel) {
     var title = meta.title || meta.source_knowledge || 'Proposed Changes'
     var author = meta.author || 'reviewer'
     var lines = [
@@ -4341,7 +4446,7 @@
       '# NN Change',
       '',
     ]
-    var modelName = meta.source_knowledge || 'model'
+    var modelName = fallbackModel || meta.source_knowledge || 'model'
     var blocks = drafts.map(function (d, i) {
       return draftToChange(d, i, modelName)
     })
@@ -4368,7 +4473,7 @@
       return { ok: false, errors: ['Reviewer identifier is required.'] }
     }
 
-    var text = serializeChangesetMarkdown(exportMeta, drafts)
+    var text = serializeChangesetMarkdown(exportMeta, drafts, state && state.modelId)
     var filename = modelSlugOf(state) + '_' + reviewerSlug + '_' + stamp + '_changes_NN.md'
     return {
       ok: true,
@@ -4420,7 +4525,7 @@
     if (!check.ok) return { ok: false, errors: check.errors }
 
     var stamp = stampFromDate(state && state.exportedAt ? new Date(state.exportedAt) : new Date())
-    var changesetMd = serializeChangesetMarkdown(exportMeta, drafts)
+    var changesetMd = serializeChangesetMarkdown(exportMeta, drafts, state && state.modelId)
     var modelSlug = modelSlugOf(state)
     var changesetFilename = modelSlug + '_' + reviewerSlug + '_' + stamp + '_changes_NN.md'
 
@@ -4446,7 +4551,7 @@
     errorContainer.innerHTML =
       '<strong>Validation errors:</strong><ul>' +
       errors.map(function (e) {
-        return '<li>' + e + '</li>'
+        return '<li>' + escapeHtml(e) + '</li>'
       }).join('') +
       '</ul>'
     errorContainer.style.display = 'block'
@@ -4472,7 +4577,18 @@
     setTimeout(function () {
       URL.revokeObjectURL(url)
     }, 1000)
+    markDraftsExported(state)
     return { ok: true, filename: composed.changesetFilename, items: composed.items }
+  }
+
+  // Remembers which drafts just left in an export so the Review tab can offer to
+  // clear them; drafts are never removed automatically (the file may be lost).
+  function markDraftsExported(state) {
+    if (!state || !state.store) return
+    state.exportedDraftIds = state.store.drafts().map(function (d) {
+      return d.id
+    })
+    if (typeof state.refreshUi === 'function') state.refreshUi()
   }
 
   function copyChangesetPrompt(doc, state) {
@@ -4502,6 +4618,7 @@
         navigator.clipboard.writeText(promptText).then(
           function () {
             announce('Copied changeset prompt to clipboard.')
+            markDraftsExported(state)
           },
           function () {
             announce(fallbackCopy(doc, textarea, promptText))
@@ -4526,11 +4643,9 @@
     var preview = modal.querySelector('[data-innfo="preview"]')
     if (preview) {
       preview.innerHTML = ''
-      var byId = {}
-      ;(state && state.elements ? state.elements : []).forEach(function (e) {
-        if (e && e.id) byId[e.id] = e
-      })
-      preview.appendChild(UI.DraftList({ drafts: drafts, byId: byId }, { doc: doc }))
+      preview.appendChild(
+        UI.DraftList({ drafts: drafts, byId: elementsByIdOf(state) }, { doc: doc, isTargetChanged: Review.isTargetChanged }),
+      )
     }
 
     var composed = composeExport(state, identifier)
@@ -4726,9 +4841,29 @@
       elements: elements,
       store: Review.createDraftStore(
         typeof localStorage !== 'undefined' ? localStorage : null,
-        baseId + (scopedView ? '::view:' + scopedView : ''),
+        // A domain console keys its drafts by the stable domain id, never by content.
+        String(meta.domainId || baseId) + (scopedView ? '::view:' + scopedView : ''),
         liveModelVersion,
+        {
+          onError: function (err) {
+            notifyStoreError(active, err)
+          },
+          // Another tab changed the drafts: repaint from the merged store.
+          onRemoteChange: function () {
+            state.refreshUi()
+          },
+        },
       ),
+    }
+    state.refreshUi = function () {
+      refresh(activeSearchQuery)
+      refreshDraftCounts()
+    }
+    cleanups.push(function () {
+      if (state.store && typeof state.store.destroy === 'function') state.store.destroy()
+    })
+    if (state.store && state.store.persistent === false) {
+      showToast(active, 'Browser storage is unavailable: drafts are kept in memory and will be lost on reload. Export your changes before leaving.')
     }
 
     var counts = {}
@@ -5061,6 +5196,7 @@
     renderNavbarMeta: renderNavbarMeta,
     renderFilterBar: renderFilterBar,
     renderRail: renderRail,
+    renderErrors: renderErrors,
     mountElementTable: mountElementTable,
     renderExplorerToolbar: renderExplorerToolbar,
     sortTableElements: sortTableElements,

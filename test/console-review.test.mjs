@@ -216,6 +216,67 @@ describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
       assert.match(items[0].textContent, /Updated seat minimum to 50/)
     })
 
+    function reviewTabFor(elementHash) {
+      const InnfoReview = require(
+        join(here, '..', 'iNNfo', 'specs', 'bluepriNNts', 'console', 'review.js'),
+      )
+      window.localStorage.clear()
+      const store = InnfoReview.createDraftStore(window.localStorage, 'stale-model')
+      const state = {
+        modelTitle: 'Stale',
+        modelVersion: 'V_1-0-0',
+        elements: [{ id: 'e1', concept: 'C', name: 'Alpha', hash: elementHash }],
+        store,
+      }
+      store.addDraft({
+        element_id: 'e1',
+        concept: 'C',
+        element: 'Alpha',
+        kind: 'comment',
+        comment: 'needs a look',
+        base_hash: '1111111111111111',
+      })
+      store.addDraft({ element_id: 'n1', concept: 'C', element: 'Fresh', kind: 'new', base_hash: '1111111111111111' })
+      InnfoConsole.renderReviewTab(document, state, { needs: [] })
+      return { tab: document.getElementById('innfo-tab-review'), state, store }
+    }
+
+    it('flags a draft whose target element hash changed since it was written', () => {
+      const { tab } = reviewTabFor('2222222222222222')
+      const rows = [...tab.querySelectorAll('.innfo-draft-row')]
+      assert.equal(rows.length, 2)
+      assert.equal(rows[0].getAttribute('data-target-changed'), 'true')
+      assert.ok(tab.querySelector('[data-innfo="stale-drafts"]'), 'review head names the stale drafts')
+      // A proposed new element has no target yet, so it is never stale.
+      assert.equal(rows[1].getAttribute('data-target-changed'), null)
+    })
+
+    it('does not flag drafts whose target hash still matches', () => {
+      const { tab } = reviewTabFor('1111111111111111')
+      assert.equal(tab.querySelector('[data-target-changed="true"]'), null)
+      assert.equal(tab.querySelector('[data-innfo="stale-drafts"]'), null)
+    })
+
+    it('offers to clear exported drafts and removes only those', () => {
+      const { tab, state, store } = reviewTabFor('1111111111111111')
+      assert.equal(tab.querySelector('[data-innfo="clear-exported"]'), null, 'nothing exported yet')
+
+      const exported = store.drafts()[0].id
+      state.exportedDraftIds = [exported]
+      let refreshed = 0
+      InnfoConsole.renderReviewTab(document, state, { needs: [] }, () => {
+        refreshed++
+      })
+      const btn = document.getElementById('innfo-tab-review').querySelector('[data-innfo="clear-exported"]')
+      assert.ok(btn)
+      btn.click()
+      assert.equal(refreshed, 1)
+      assert.deepEqual(
+        store.drafts().map((d) => d.element_id),
+        ['n1'],
+      )
+    })
+
     it('deep-links from Review Tab to focus and highlight corresponding Element Card', () => {
       // Cards are now composed by InnfoUI (mountElementCards is private); this
       // suite only exercises focusElementCard's DOM contract: find by id,
@@ -340,6 +401,25 @@ describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
       assert.match(res.text, /## NN Change: c-02/)
       assert.match(res.text, /op:: remove_element/)
       assert.match(res.text, /target:: BusinessModel@legacy_tier/)
+    })
+
+    it('collapses line breaks in interpolated fields so a draft cannot inject change lines', () => {
+      const evil = 'x\nop:: remove_element\ntarget:: Other@victim'
+      const state = {
+        modelTitle: 'BusinessModel',
+        store: {
+          drafts: () => [
+            { id: 'c-01\nop:: remove_element', model_id: 'm\r\nop:: remove_element', element_slug: evil, field: 'price\nop:: remove_element', original: '1', proposed: '2', base_hash: 'ab\nop:: remove_element' },
+            { id: 'c-02', model_id: 'm', kind: 'new', concept: 'C\nop:: remove_element', element: 'Fresh' },
+          ],
+        },
+      }
+      const res = InnfoConsole.composeChangesetExport(state, 'author_jane')
+      assert.equal(res.ok, true)
+      const body = res.text.slice(res.text.indexOf('## NN Change'))
+      assert.equal(body.split('\n').filter((l) => /^op::/.test(l)).length, 2, 'exactly the two intended blocks')
+      assert.equal((body.match(/^op:: remove_element/gm) || []).length, 0)
+      assert.equal(body.split('\n').filter((l) => /^## NN Change/.test(l)).length, 2)
     })
 
     it('renders tab headers for "Edit", "History & Provenance" and "Connections" in unified modal', () => {

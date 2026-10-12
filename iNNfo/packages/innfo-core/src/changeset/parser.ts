@@ -118,6 +118,9 @@ export function parseChangeset(rawContent: string): ChangesetDocument {
       case 'to':
         currentChange.to = stripQuotes(rawVal)
         break
+      case 'base_hash':
+        currentChange.base_hash = stripQuotes(rawVal)
+        break
       case 'concept':
         currentChange.concept = rawVal
         break

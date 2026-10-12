@@ -22,6 +22,9 @@ function formatChangeItem(item: ChangeItem): string {
   if (item.to !== undefined) {
     lines.push(`to:: ${formatPropertyValue(item.to)}`)
   }
+  if (item.base_hash !== undefined) {
+    lines.push(`base_hash:: ${item.base_hash}`)
+  }
   if (item.concept !== undefined) {
     lines.push(`concept:: ${item.concept}`)
   }

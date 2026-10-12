@@ -18,6 +18,7 @@ import {
   wrapView,
   viewsHeader,
   inlineConsoleAssets,
+  allowInlineScripts,
   assertInlinable,
   CONSOLE_SIZE_BUDGET,
   evaluateSizeBudget,
@@ -582,6 +583,47 @@ describe('console-views lib', () => {
       const a = inlineConsoleAssets(shell, { bundle: 'b', css: 'c', views: [] })
       assert.equal(a, inlineConsoleAssets(shell, { bundle: 'b', css: 'c', views: [] }))
     })
+  })
+})
+
+describe('allowInlineScripts', () => {
+  const sha = (text) => `'sha256-${createHash('sha256').update(text, 'utf8').digest('base64')}'`
+  const page = (body) =>
+    `<html><head><meta\n http-equiv="Content-Security-Policy"\n content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net; object-src 'none'"\n/></head><body>${body}</body></html>`
+  const policyOf = (html) => /Content-Security-Policy"\s+content="([^"]*)"/.exec(html)[1]
+
+  it('hashes executable inline scripts and leaves JSON islands, external scripts and comments out', () => {
+    const html = page(
+      '<!-- <script>commented()</script> -->' +
+        '<script type="application/json" id="d">{"a":1}</script>' +
+        '<script src="https://cdn.jsdelivr.net/x.js"></script>' +
+        '<script>\nrun()\n</script>' +
+        '<script data-innfo-view="v">view()</script>',
+    )
+    const policy = policyOf(allowInlineScripts(html))
+    assert.ok(policy.includes(sha('\nrun()\n')))
+    assert.ok(policy.includes(sha('view()')))
+    assert.ok(!policy.includes(sha('commented()')))
+    assert.ok(!policy.includes(sha('{"a":1}')))
+    assert.equal((policy.match(/sha256-/g) ?? []).length, 2)
+    assert.match(policy, /script-src 'self' https:\/\/cdn\.jsdelivr\.net 'sha256-[^;]*; object-src 'none'$/)
+  })
+
+  it('hashes with CRLF normalized to LF, as the HTML parser does', () => {
+    assert.ok(policyOf(allowInlineScripts(page('<script>a()\r\nb()</script>'))).includes(sha('a()\nb()')))
+  })
+
+  it('is a no-op without a CSP meta or without inline scripts', () => {
+    const bare = '<html><body><script>x()</script></body></html>'
+    assert.equal(allowInlineScripts(bare), bare)
+    const none = page('<script type="application/json">{}</script>')
+    assert.equal(allowInlineScripts(none), none)
+  })
+
+  it('inlineConsoleAssets authorizes the inlined bundle and views', () => {
+    const shell = readFileSync(join(consoleDir, 'artifact_shell.html'), 'utf8')
+    const out = inlineConsoleAssets(shell, { bundle: 'window.InnfoConsole = {}', css: 'a{}', views: [] })
+    assert.ok(policyOf(out).includes(sha('\nwindow.InnfoConsole = {}\n')))
   })
 })
 

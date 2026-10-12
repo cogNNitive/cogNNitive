@@ -25,3 +25,4 @@ export {
 // Write-once producer primitives for scripts that load only the console payload mirror.
 export { latestOfFamily } from '../writeOnce/plan.js'
 export { writeOnce } from '../writeOnce/fs.js'
+export { hashParsedElement } from './element-hash.js'

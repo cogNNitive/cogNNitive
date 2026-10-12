@@ -1,4 +1,4 @@
-import { readFile, writeFile, rm, stat, rename, readdir, mkdir } from 'node:fs/promises'
+import { readFile, writeFile, rm, stat, rename, readdir, mkdir, copyFile } from 'node:fs/promises'
 import { basename, dirname, join, relative, resolve, isAbsolute } from 'node:path'
 import {
   parseKnowledge,
@@ -543,13 +543,23 @@ async function bumpVersion(
   }
 }
 
-async function safeMoveFile(src: string, dest: string): Promise<void> {
+/**
+ * Replaces `livePath` with the already-written `stagingPath`, archiving the prior
+ * snapshot first. The live file is never moved away: it is copied to the archive and
+ * then overwritten by an atomic rename, so at every instant (and after a crash between
+ * the two steps) the live path holds a complete model — the old one or the new one.
+ */
+async function persistWithArchive(
+  stagingPath: string,
+  livePath: string,
+  archivePath: string,
+): Promise<void> {
   try {
-    await rename(src, dest)
-  } catch {
-    const data = await readFile(src)
-    await writeFile(dest, data)
-    await rm(src, { force: true })
+    await copyFile(livePath, archivePath)
+    await rename(stagingPath, livePath)
+  } catch (err) {
+    await rm(stagingPath, { force: true })
+    throw err
   }
 }
 
@@ -1081,8 +1091,7 @@ export async function executeChangesetApply(
 
       const serialized = serializeKnowledge(entry.model)
       await writeFile(stagingPath, serialized, 'utf-8')
-      await safeMoveFile(modelFile, archivePath)
-      await safeMoveFile(stagingPath, modelFile)
+      await persistWithArchive(stagingPath, modelFile, archivePath)
 
       if (
         csDoc.changes.some(

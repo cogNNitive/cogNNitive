@@ -3,6 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Inline executable scripts are allowed only by sha256 hash: scripts/console-views.mjs
+         appends the hashes to script-src when it inlines the bundle and views. -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
+    />
     <title>iNNfo Console</title>
     <!--
     artifact_shell.html — thin console shell for innfo-console artifacts.
