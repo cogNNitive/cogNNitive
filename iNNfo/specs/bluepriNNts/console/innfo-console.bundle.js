@@ -444,66 +444,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       '--innfo-mono': "Geist Mono, 'JetBrains Mono', ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace",
       '--innfo-shadow': '0 1px 2px rgba(0, 0, 0, .06)',
     },
-    dark: {
-      '--innfo-bg': '#0f172a',
-      '--innfo-surface': '#1e293b',
-      '--innfo-surface-2': '#263549',
-      '--innfo-text': '#e2e8f0',
-      '--innfo-muted': '#94a3b8',
-      '--innfo-border': '#334155',
-      '--innfo-accent': '#cbd5e1',
-      '--innfo-link': '#60a5fa',
-      '--innfo-focus': '#60a5fa',
-      '--innfo-concept-1': '#60a5fa',
-      '--innfo-concept-2': '#a78bfa',
-      '--innfo-concept-3': '#2dd4bf',
-      '--innfo-concept-4': '#fbbf24',
-      '--innfo-concept-5': '#f472b6',
-      '--innfo-concept-6': '#4ade80',
-      '--innfo-concept-7': '#fb923c',
-      '--innfo-concept-8': '#818cf8',
-      '--innfo-concept-9': '#f87171',
-      '--innfo-concept-10': '#facc15',
-      '--innfo-concept-11': '#c084fc',
-      '--innfo-concept-12': '#9ca3af',
-      '--innfo-concept-1-bg': '#172554',
-      '--innfo-concept-2-bg': '#2e1065',
-      '--innfo-concept-3-bg': '#042f2e',
-      '--innfo-concept-4-bg': '#451a03',
-      '--innfo-concept-5-bg': '#500724',
-      '--innfo-concept-6-bg': '#052e16',
-      '--innfo-concept-7-bg': '#431407',
-      '--innfo-concept-8-bg': '#1e1b4b',
-      '--innfo-concept-9-bg': '#450a0a',
-      '--innfo-concept-10-bg': '#422006',
-      '--innfo-concept-11-bg': '#3b0764',
-      '--innfo-concept-12-bg': '#111827',
-      '--innfo-status-pending': '#fbbf24',
-      '--innfo-status-applied': '#4ade80',
-      '--innfo-status-rejected': '#f87171',
-      '--innfo-status-stale': '#94a3b8',
-      '--innfo-status-pending-bg': '#451a03',
-      '--innfo-status-applied-bg': '#052e16',
-      '--innfo-status-rejected-bg': '#450a0a',
-      '--innfo-status-stale-bg': '#1e293b',
-      '--innfo-origin-agent': '#a78bfa',
-      '--innfo-origin-human': '#60a5fa',
-      '--innfo-origin-reviewer': '#fbbf24',
-      '--innfo-origin-document': '#9ca3af',
-      '--innfo-origin-error': '#f87171',
-      '--innfo-radius-sm': '6px',
-      '--innfo-radius': '8px',
-      '--innfo-radius-lg': '10px',
-      '--innfo-fs-hero': '1.5rem',
-      '--innfo-fs-title': '1.25rem',
-      '--innfo-fs-body': '0.9375rem',
-      '--innfo-fs-caption': '0.8125rem',
-      '--innfo-fs-min': '0.75rem',
-      '--innfo-font':
-        "Plus Jakarta Sans, Geist Sans, Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-      '--innfo-mono': "Geist Mono, 'JetBrains Mono', ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace",
-      '--innfo-shadow': '0 1px 2px rgba(0, 0, 0, .4)',
-    },
   }
 
   var TOKENS = Object.keys(TOKEN_VALUES.light)
@@ -704,26 +644,14 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   }
   var COMPONENT_CSS_TEXT = COMPONENT_CSS.join('\n')
 
-  // D2: light is the default; an OS dark preference applies unless the author
-  // pinned light; an explicit [data-theme=dark] always wins.
+  // Light-only theme: pins color-scheme: light and never switches on OS dark mode.
   function generateTokenCss(values) {
     var v = values || TOKEN_VALUES
+    var light = v.light || v
     return (
       ':root, [data-theme=light] {\n' +
-      declBlock(v.light) +
-      '\n}\n' +
-      '@media (prefers-color-scheme: dark) {\n' +
-      '  :root:not([data-theme=light]) {\n' +
-      declBlock(v.dark)
-        .split('\n')
-        .map(function (l) {
-          return '  ' + l
-        })
-        .join('\n') +
-      '\n  }\n' +
-      '}\n' +
-      '[data-theme=dark] {\n' +
-      declBlock(v.dark) +
+      '  color-scheme: light;\n' +
+      declBlock(light) +
       '\n}\n' +
       COMPONENT_CSS_TEXT +
       '\n'
@@ -735,6 +663,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   function ensureTokens(doc) {
     var d = doc || (typeof document !== 'undefined' ? document : null)
     if (!d || !d.head) throw new Error('InnfoUI.ensureTokens: no document')
+    if (d.documentElement && !d.documentElement.getAttribute('data-theme')) {
+      d.documentElement.setAttribute('data-theme', 'light')
+    }
     var existing = d.querySelector('style[' + TOKENS_ATTR + ']')
     if (existing && existing.getAttribute(TOKENS_ATTR) === UI_VERSION) return existing
     var css = generateTokenCss()
@@ -754,11 +685,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   function setTheme(doc, theme) {
     var d = doc || (typeof document !== 'undefined' ? document : null)
     if (!d || !d.documentElement) throw new Error('InnfoUI.setTheme: no document')
-    if (theme !== 'light' && theme !== 'dark' && theme !== null) {
-      throw new TypeError('InnfoUI.setTheme: expected light|dark|null')
+    if (theme !== 'light' && theme !== null) {
+      throw new TypeError('InnfoUI.setTheme: expected light|null')
     }
     if (theme === null) d.documentElement.removeAttribute('data-theme')
-    else d.documentElement.setAttribute('data-theme', theme)
+    else d.documentElement.setAttribute('data-theme', 'light')
   }
 
   // ---- Shared helpers ----
@@ -2477,7 +2408,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   if (typeof window !== 'undefined' && window.addEventListener) {
     window.addEventListener('message', function (e) {
       if (e && e.data && e.data.type === 'innfo:theme-change') {
-        setTheme(document, e.data.theme === 'dark' ? 'dark' : 'light')
+        setTheme(document, 'light')
       }
     })
   }

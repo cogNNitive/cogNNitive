@@ -49,7 +49,7 @@ const TEXT_PAIRS: Array<[string, string]> = [
 
 describe('console ui-kit contrast', () => {
   it('status fg meets >= 4.5 against its own -bg in both themes', () => {
-    for (const theme of ['light', 'dark'] as const) {
+    for (const theme of ['light'] as const) {
       const v = UI.TOKEN_VALUES[theme]
       for (const s of STATUSES) {
         const r = ratio(v[`--innfo-status-${s}`], v[`--innfo-status-${s}-bg`])
@@ -59,7 +59,7 @@ describe('console ui-kit contrast', () => {
   })
 
   it('allowed text pairs meet >= 4.5 in both themes', () => {
-    for (const theme of ['light', 'dark'] as const) {
+    for (const theme of ['light'] as const) {
       const v = UI.TOKEN_VALUES[theme]
       for (const [fg, bg] of TEXT_PAIRS) {
         const r = ratio(v[fg], v[bg])
@@ -69,7 +69,7 @@ describe('console ui-kit contrast', () => {
   })
 
   it('origin icons (UI graphics) meet >= 3 against --innfo-surface in both themes', () => {
-    for (const theme of ['light', 'dark'] as const) {
+    for (const theme of ['light'] as const) {
       const v = UI.TOKEN_VALUES[theme]
       for (const o of ORIGINS) {
         const r = ratio(v[`--innfo-origin-${o}`], v['--innfo-surface'])
@@ -79,7 +79,7 @@ describe('console ui-kit contrast', () => {
   })
 
   it('concept tint tokens make badge text meet >= 4.5 in both themes', () => {
-    for (const theme of ['light', 'dark'] as const) {
+    for (const theme of ['light'] as const) {
       const v = UI.TOKEN_VALUES[theme]
       for (let slot = 1; slot <= 12; slot++) {
         const tint = v[`--innfo-concept-${slot}-bg`]

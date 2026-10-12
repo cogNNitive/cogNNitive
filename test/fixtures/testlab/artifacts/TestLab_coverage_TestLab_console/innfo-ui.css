@@ -4,19 +4,20 @@
  */
 
 :root, [data-theme] {
+  color-scheme: light;
   --b1: var(--innfo-surface, #ffffff);
-  --b2: var(--innfo-surface-2, #f3f4f6);
-  --b3: var(--innfo-border, #e5e7eb);
-  --bc: var(--innfo-text, #111827);
-  --p: var(--innfo-accent, #1f2937);
+  --b2: var(--innfo-surface-2, #f4f4f5);
+  --b3: var(--innfo-border, #e5e5e5);
+  --bc: var(--innfo-text, #0a0a0a);
+  --p: var(--innfo-accent, #171717);
   --pc: #ffffff;
   --s: var(--innfo-concept-2, #8b5cf6);
   --sc: #ffffff;
-  --a: var(--innfo-link, #2563eb);
+  --a: var(--innfo-link, #171717);
   --ac: #ffffff;
-  --n: var(--innfo-accent, #1f2937);
+  --n: var(--innfo-accent, #171717);
   --nc: #ffffff;
-  --in: var(--innfo-link, #2563eb);
+  --in: var(--innfo-link, #171717);
   --inc: #ffffff;
   --su: var(--innfo-status-applied, #166534);
   --suc: #ffffff;
@@ -25,18 +26,18 @@
   --er: var(--innfo-status-rejected, #b91c1c);
   --erc: #ffffff;
   --fallback-b1: var(--innfo-surface, #ffffff);
-  --fallback-b2: var(--innfo-surface-2, #f3f4f6);
-  --fallback-b3: var(--innfo-border, #e5e7eb);
-  --fallback-bc: var(--innfo-text, #111827);
-  --fallback-p: var(--innfo-link, #2563eb);
+  --fallback-b2: var(--innfo-surface-2, #f4f4f5);
+  --fallback-b3: var(--innfo-border, #e5e5e5);
+  --fallback-bc: var(--innfo-text, #0a0a0a);
+  --fallback-p: var(--innfo-link, #171717);
   --fallback-pc: #ffffff;
   --fallback-s: var(--innfo-concept-2, #8b5cf6);
   --fallback-sc: #ffffff;
-  --fallback-a: var(--innfo-link, #2563eb);
+  --fallback-a: var(--innfo-link, #171717);
   --fallback-ac: #ffffff;
-  --fallback-n: var(--innfo-accent, #1f2937);
+  --fallback-n: var(--innfo-accent, #171717);
   --fallback-nc: var(--innfo-bg, #ffffff);
-  --fallback-in: var(--innfo-link, #2563eb);
+  --fallback-in: var(--innfo-link, #171717);
   --fallback-inc: #ffffff;
   --fallback-su: var(--innfo-status-applied, #166534);
   --fallback-suc: #ffffff;
@@ -54,8 +55,8 @@
   --tab-border: 1px;
   --tab-radius: var(--innfo-radius-sm, 6px);
 }
-.bg-base-100 { background-color: var(--innfo-surface, #ffffff); color: var(--innfo-text, #111827); }
-.bg-base-200 { background-color: var(--innfo-surface-2, #f3f4f6); color: var(--innfo-text, #111827); }
+.bg-base-100 { background-color: var(--innfo-surface, #ffffff); color: var(--innfo-text, #0a0a0a); }
+.bg-base-200 { background-color: var(--innfo-surface-2, #f4f4f5); color: var(--innfo-text, #0a0a0a); }
 
 .alert {
     display: grid;
@@ -2674,8 +2675,8 @@ details.collapse summary {
 #innfo-rail .menu a.active,
 #innfo-rail .collapse-title.active,
 #innfo-rail .innfo-rail-item.active {
-  background-color: color-mix(in srgb, var(--innfo-link, #2563eb) 12%, var(--innfo-surface, #ffffff));
-  color: var(--innfo-link, #2563eb);
+  background-color: color-mix(in srgb, var(--innfo-link, #171717) 12%, var(--innfo-surface, #ffffff));
+  color: var(--innfo-link, #171717);
   font-weight: 600;
 }
 .collapse-plus > .collapse-title:after {
