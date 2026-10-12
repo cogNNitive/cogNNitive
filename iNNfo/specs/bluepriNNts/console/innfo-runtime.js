@@ -1023,11 +1023,14 @@
           toggleFacet('model', m.id || m.filePath, cb.checked)
         })
 
+        var mItemIco = el('span', 'innfo-facet-item-icon')
+        if (mItemIco) mItemIco.innerHTML = mIcon
         var nameSpan = el('span', 'flex-1 truncate font-medium text-slate-700', m.title || m.filePath)
         nameSpan.title = m.filePath || m.title || ''
         var cntBadge = el('span', 'badge badge-xs badge-ghost font-mono', String(m.elementCount || 0))
 
         item.appendChild(cb)
+        if (mItemIco) item.appendChild(mItemIco)
         item.appendChild(nameSpan)
         item.appendChild(cntBadge)
         mMenu.appendChild(item)
@@ -1079,10 +1082,21 @@
           toggleFacet('concept', c.name, cb.checked)
         })
 
+        var cMetaFacet = conceptMetaOf((state && state.schema && state.schema.concepts) || (state && state.concepts), c.name)
+        var cDotFacet = el('span', 'innfo-concept-dot')
+        if (cDotFacet && cMetaFacet.hexColor) cDotFacet.style.backgroundColor = cMetaFacet.hexColor
+        var cIcoFacet = el('span', 'innfo-facet-item-icon')
+        if (cIcoFacet && UI && typeof UI.icon === 'function' && typeof UI.resolveConceptIconName === 'function') {
+          cIcoFacet.style.color = cMetaFacet.hexColor
+          cIcoFacet.innerHTML = UI.icon(UI.resolveConceptIconName(c.name, cMetaFacet), 12)
+        }
         var nameSpan = el('span', 'flex-1 truncate font-medium text-slate-700', c.name)
+        if (cMetaFacet.hexColor) nameSpan.style.color = cMetaFacet.hexColor
         var cntBadge = el('span', 'badge badge-xs badge-ghost font-mono', String(c.count))
 
         item.appendChild(cb)
+        if (cDotFacet) item.appendChild(cDotFacet)
+        if (cIcoFacet) item.appendChild(cIcoFacet)
         item.appendChild(nameSpan)
         item.appendChild(cntBadge)
         cMenu.appendChild(item)
@@ -1110,14 +1124,52 @@
       host.appendChild(clearBtn)
     }
 
-    // 4. Render Active Filter Pills below the bar
+    // 4. Render Active Filter Pills below the bar as Semantic KU Pills
     if (activeHost && (parsed.operators.length > 0 || parsed.textTokens.length > 0)) {
+      var schemaConcepts = (state && state.concepts && state.concepts.length ? state.concepts : (state && state.schema && state.schema.concepts)) || allConcepts.map(function (c) { return c.name })
       parsed.operators.forEach(function (op) {
-        var pill = el('span', 'badge badge-sm badge-outline gap-1 font-mono text-[11px] py-2 px-2.5 bg-base-100')
-        var labelText = op.key + ':' + op.val
-        pill.innerHTML = '<span>' + escapeHtml(labelText) + '</span>'
-        var removeBtn = el('button', 'ml-1 hover:text-error cursor-pointer font-bold', '×')
+        var pill = el('span', 'innfo-active-filter-pill badge badge-sm badge-outline gap-1.5 text-[11px] py-2 px-2.5 bg-base-100')
+        pill.setAttribute('data-filter-key', String(op.key))
+        if (op.key === 'concept' || op.key === '!concept') {
+          var cMeta = conceptMetaOf(schemaConcepts, op.val)
+          pill.classList.add('innfo-active-filter-pill--concept')
+          pill.setAttribute('data-concept-slot', String(cMeta.slot))
+          if (cMeta.hexColor) {
+            pill.style.setProperty('--pill-concept-color', cMeta.hexColor)
+            pill.style.borderColor = cMeta.hexColor
+            pill.style.color = cMeta.hexColor
+            pill.style.backgroundColor = 'color-mix(in srgb, ' + cMeta.hexColor + ' 10%, #ffffff)'
+          }
+          if (UI && typeof UI.icon === 'function' && typeof UI.resolveConceptIconName === 'function') {
+            var cIco = el('span', 'innfo-filter-pill-icon')
+            cIco.setAttribute('aria-hidden', 'true')
+            cIco.innerHTML = UI.icon(UI.resolveConceptIconName(op.val, cMeta), 12)
+            pill.appendChild(cIco)
+          }
+          var matchedConcept = conceptByName(schemaConcepts, op.val)
+          var cDisplay = (matchedConcept && matchedConcept.name) || op.val
+          pill.appendChild(el('span', 'font-semibold', (op.key === '!concept' ? '!Concept: ' : 'Concept: ') + cDisplay))
+        } else if (op.key === 'model' || op.key === 'file') {
+          pill.classList.add('innfo-active-filter-pill--model')
+          if (typeof InnfoIcons !== 'undefined' && typeof InnfoIcons.getSvg === 'function') {
+            var mIco = el('span', 'innfo-filter-pill-icon')
+            mIco.setAttribute('aria-hidden', 'true')
+            mIco.innerHTML = InnfoIcons.getSvg('file-text', { size: 12 })
+            pill.appendChild(mIco)
+          }
+          var matchedModel = models.filter(function (m) {
+            var mid = String(m.id || m.filePath || '').toLowerCase()
+            return mid === String(op.val).toLowerCase()
+          })[0]
+          var mDisplay = (matchedModel && (matchedModel.title || matchedModel.id)) || op.val
+          pill.appendChild(el('span', 'font-semibold', 'Model: ' + mDisplay))
+        } else {
+          var labelText = op.key + ':' + op.val
+          pill.appendChild(el('span', 'font-mono', labelText))
+        }
+        var removeBtn = el('button', 'innfo-filter-pill-remove ml-1 hover:text-error cursor-pointer font-bold', '×')
         removeBtn.setAttribute('type', 'button')
+        removeBtn.setAttribute('aria-label', 'Remove filter ' + op.key)
         removeBtn.addEventListener('click', function (e) {
           e.stopPropagation()
           toggleFacet(op.key, op.val, false)
@@ -1127,9 +1179,9 @@
       })
 
       parsed.textTokens.forEach(function (token) {
-        var pill = el('span', 'badge badge-sm badge-outline gap-1 font-mono text-[11px] py-2 px-2.5 bg-base-100')
-        pill.innerHTML = '<span>"' + escapeHtml(token) + '"</span>'
-        var removeBtn = el('button', 'ml-1 hover:text-error cursor-pointer font-bold', '×')
+        var pill = el('span', 'innfo-active-filter-pill badge badge-sm badge-outline gap-1 font-mono text-[11px] py-2 px-2.5 bg-base-100')
+        pill.appendChild(el('span', null, '"' + token + '"'))
+        var removeBtn = el('button', 'innfo-filter-pill-remove ml-1 hover:text-error cursor-pointer font-bold', '×')
         removeBtn.setAttribute('type', 'button')
         removeBtn.addEventListener('click', function (e) {
           e.stopPropagation()
@@ -1254,9 +1306,9 @@
         summary.setAttribute('data-model', mid)
         var fileIcon = typeof InnfoIcons !== 'undefined' ? InnfoIcons.getSvg('file-text', { size: 14 }) : ''
         summary.innerHTML =
-          '<span class="flex items-center gap-2 min-w-0">' + fileIcon +
+          '<span class="innfo-rail-model-pill flex items-center gap-2 min-w-0" data-ku-kind="document">' + fileIcon +
           '<span class="truncate font-semibold">' + escapeHtml(m.title || m.filePath || 'Model') + '</span></span>' +
-          '<span class="badge badge-ghost badge-xs">' + (Number(m.elementCount) || 0) + '</span>'
+          '<span class="innfo-rail-count badge badge-ghost badge-xs">' + (Number(m.elementCount) || 0) + '</span>'
         summary.addEventListener('click', function (e) {
           // Clicking the chevron zone on the right edge toggles accordion open/close
           // without clobbering the active search filter.
@@ -1301,12 +1353,16 @@
             var cMeta = conceptMetaOf(globalConcepts, name)
             var color = cMeta.hexColor
             a.setAttribute('data-concept-slot', String(cMeta.slot))
+            if (color) a.style.setProperty('--rail-concept-color', color)
             var dot = color
               ? '<span class="innfo-concept-dot" style="background:' + escapeHtml(color) + ';flex:none;"></span>'
               : ''
+            var cSvg = UI && typeof UI.icon === 'function' && typeof UI.resolveConceptIconName === 'function'
+              ? '<span class="innfo-rail-concept-icon" aria-hidden="true">' + UI.icon(UI.resolveConceptIconName(name, cMeta), 13) + '</span>'
+              : ''
             a.innerHTML =
-              '<span class="flex items-center gap-2 min-w-0">' + dot + '<span class="truncate">' + escapeHtml(name) + '</span></span>' +
-              '<span class="badge badge-ghost badge-xs">' + (Number(counts && counts[name]) || 0) + '</span>'
+              '<span class="innfo-rail-concept-pill flex items-center gap-1.5 min-w-0" data-ku-kind="concept">' + dot + cSvg + '<span class="truncate">' + escapeHtml(name) + '</span></span>' +
+              '<span class="innfo-rail-count badge badge-ghost badge-xs">' + (Number(counts && counts[name]) || 0) + '</span>'
             a.addEventListener('click', function (e) {
               if (e && e.preventDefault) e.preventDefault()
               if (typeof onSelect === 'function') onSelect(formatFacetToken('concept', name))
@@ -1422,14 +1478,27 @@
     host.innerHTML = ''
 
     var name = concept.name || 'Concept'
-    var head = el('div', 'innfo-guide-head')
-    var badge = el('span', 'innfo-card-concept-badge badge badge-outline badge-sm', name)
     var gMeta = conceptMetaOf(schema && schema.concepts, name)
+    var head = el('div', 'innfo-guide-head')
+    var badge = el('span', 'innfo-card-concept-badge badge badge-outline badge-sm')
     if (gMeta && gMeta.hexColor) {
+      badge.style.setProperty('--card-concept-color', gMeta.hexColor)
       badge.style.borderColor = gMeta.hexColor
       badge.style.color = gMeta.hexColor
     }
+    if (UI && typeof UI.icon === 'function' && typeof UI.resolveConceptIconName === 'function') {
+      var gIco = el('span', 'innfo-concept-pill-icon')
+      gIco.setAttribute('aria-hidden', 'true')
+      gIco.innerHTML = UI.icon(UI.resolveConceptIconName(name, gMeta), 13)
+      badge.appendChild(gIco)
+    }
+    badge.appendChild(doc.createTextNode(name))
     head.appendChild(badge)
+
+    var count = counts && counts[name] != null ? counts[name] : null
+    if (count != null) {
+      head.appendChild(el('span', 'innfo-guide-meta', count + ' ' + (count === 1 ? 'element' : 'elements')))
+    }
     host.appendChild(head)
 
     var description = concept.description || concept.summary || ''
@@ -1439,13 +1508,27 @@
     if (fields.length) {
       var fs = el('section', 'innfo-guide-section')
       fs.appendChild(el('h4', 'innfo-guide-title', 'Fields (' + fields.length + ')'))
-      var fdl = el('dl', 'innfo-guide-list')
+      var fdl = el('dl', 'innfo-guide-list innfo-guide-field-list')
       fields.forEach(function (f) {
         if (!f) return
         var label = f.label || f.name
         if (label == null) return
-        fdl.appendChild(el('dt', null, String(label)))
-        fdl.appendChild(el('dd', null, String(f.type || f.widget || '')))
+        var dt = el('dt', 'innfo-guide-field-dt')
+        var fChip = el('span', 'innfo-ku-field-chip', '~ ' + String(label))
+        fChip.setAttribute('data-ku-kind', 'field')
+        dt.appendChild(fChip)
+        var dd = el('dd', 'innfo-guide-field-dd')
+        var fTypeStr = String(f.type || f.widget || 'string')
+        var tBadge = el('span', 'innfo-ku-field-type', fTypeStr)
+        dd.appendChild(tBadge)
+        var targetC = f.target || f.targetConcept || null
+        if (targetC) {
+          var tcMeta = conceptMetaOf(schema && schema.concepts, targetC)
+          var tcPill = UI.ConceptPill({ id: targetC, label: targetC, index: tcMeta.index, color: tcMeta.color }, { doc: doc })
+          dd.appendChild(tcPill)
+        }
+        fdl.appendChild(dt)
+        fdl.appendChild(dd)
       })
       fs.appendChild(fdl)
       host.appendChild(fs)
@@ -1455,10 +1538,12 @@
     if (markers.length) {
       var ms = el('section', 'innfo-guide-section')
       ms.appendChild(el('h4', 'innfo-guide-title', 'Markers (' + markers.length + ')'))
-      var mul = el('ul', 'innfo-guide-list')
+      var mul = el('div', 'innfo-guide-marker-row')
       markers.forEach(function (m) {
         if (!m) return
-        mul.appendChild(el('li', null, String(m.label || m.name || '')))
+        var mLabel = String(m.label || m.name || '')
+        if (!mLabel) return
+        mul.appendChild(UI.MarkerChip({ id: mLabel, label: '! ' + mLabel, kind: 'marker' }))
       })
       ms.appendChild(mul)
       host.appendChild(ms)
@@ -1468,18 +1553,25 @@
     if (matrixList.length) {
       var mts = el('section', 'innfo-guide-section')
       mts.appendChild(el('h4', 'innfo-guide-title', 'Matrices (' + matrixList.length + ')'))
-      var mtl = el('ul', 'innfo-guide-list')
+      var mtl = el('ul', 'innfo-guide-list innfo-guide-matrix-list')
       matrixList.forEach(function (m) {
         if (!m) return
-        mtl.appendChild(el('li', null, String(m.name || m.source + ' \u2192 ' + m.target)))
+        var mli = el('li', 'innfo-guide-matrix-item')
+        var mTitle = el('span', 'innfo-guide-matrix-name', String(m.name || (m.source + ' \u2192 ' + m.target)))
+        mli.appendChild(mTitle)
+        if (m.source && m.target) {
+          var pairWrap = el('div', 'innfo-guide-matrix-pair')
+          var sMeta = conceptMetaOf(schema && schema.concepts, m.source)
+          var tMeta = conceptMetaOf(schema && schema.concepts, m.target)
+          pairWrap.appendChild(UI.ConceptPill({ id: m.source, label: m.source, index: sMeta.index, color: sMeta.color }, { doc: doc }))
+          pairWrap.appendChild(el('span', 'innfo-guide-matrix-arrow', '⇄'))
+          pairWrap.appendChild(UI.ConceptPill({ id: m.target, label: m.target, index: tMeta.index, color: tMeta.color }, { doc: doc }))
+          mli.appendChild(pairWrap)
+        }
+        mtl.appendChild(mli)
       })
       mts.appendChild(mtl)
       host.appendChild(mts)
-    }
-
-    var count = counts && counts[name] != null ? counts[name] : null
-    if (count != null) {
-      host.appendChild(el('div', 'innfo-guide-meta', count + ' ' + (count === 1 ? 'element' : 'elements')))
     }
   }
 
@@ -1615,6 +1707,18 @@
     var projectedElements = projectElements(elements, drafts)
 
     var visuals = typeof self !== 'undefined' && self.InnfoVisuals ? self.InnfoVisuals : null
+    if (refs && isObject(refs)) {
+      Object.keys(refs).forEach(function (rk) {
+        var rEl = refs[rk]
+        if (rEl && isObject(rEl) && rEl.concept) {
+          var rMeta = conceptMetaOf(concepts, rEl.concept)
+          rEl._conceptHexColor = rMeta.hexColor
+          rEl._conceptSlot = rMeta.slot
+          rEl._conceptColor = rMeta.color
+          rEl._conceptIndex = rMeta.index
+        }
+      })
+    }
 
     projectedElements.forEach(function (element) {
       var fields = []
@@ -1641,11 +1745,22 @@
             }
           }
           var fieldCites = Array.isArray(elCitations[k]) && elCitations[k].length ? elCitations[k] : undefined
+          var targetCMeta = target && target.concept ? conceptMetaOf(concepts, target.concept) : null
           fields.push({
             name: k,
             value: val,
             type: fieldTypeOf(schema, k),
-            ref: target ? { id: target.id || String(val), label: target.name || cleanKey || String(val) } : undefined,
+            ref: target
+              ? {
+                  id: target.id || String(val),
+                  label: target.name || cleanKey || String(val),
+                  concept: target.concept,
+                  color: targetCMeta && targetCMeta.color,
+                  hexColor: targetCMeta && targetCMeta.hexColor,
+                  slot: targetCMeta && targetCMeta.slot,
+                  index: targetCMeta && targetCMeta.index,
+                }
+              : undefined,
             citations: fieldCites,
           })
         })
@@ -1707,7 +1822,7 @@
       var cMeta = conceptMetaOf(concepts, element.concept)
       var hexColor = cMeta.hexColor
       card.style.setProperty('--card-concept-color', hexColor)
-      card.style.borderColor = 'color-mix(in srgb, ' + hexColor + ' 35%, var(--innfo-border, #e5e0ec))'
+      card.style.borderColor = 'color-mix(in srgb, ' + hexColor + ' 35%, var(--innfo-border, #e5e5e5))'
       card.style.borderLeft = '4px solid ' + hexColor
 
       var head = card.querySelector('.innfo-card-head, header')
@@ -1720,6 +1835,12 @@
         var cDot = el('span', 'innfo-concept-dot')
         cDot.style.backgroundColor = hexColor
         cBadge.appendChild(cDot)
+        if (UI && typeof UI.icon === 'function' && typeof UI.resolveConceptIconName === 'function') {
+          var cIcoSpan = el('span', 'innfo-concept-pill-icon')
+          cIcoSpan.setAttribute('aria-hidden', 'true')
+          cIcoSpan.innerHTML = UI.icon(UI.resolveConceptIconName(element.concept, cMeta), 12)
+          cBadge.appendChild(cIcoSpan)
+        }
         cBadge.appendChild(doc.createTextNode(element.concept))
         var elementBadge = head.querySelector('[data-ku-kind="element"]')
         if (elementBadge) head.insertBefore(cBadge, elementBadge)
@@ -1754,7 +1875,7 @@
       var thumbEl = card.querySelector('.innfo-card-thumb')
       if (thumbEl && thumbEl.classList && thumbEl.classList.contains('innfo-card-thumb--concept')) {
         thumbEl.style.color = hexColor
-        thumbEl.style.borderColor = 'color-mix(in srgb, ' + hexColor + ' 38%, var(--innfo-border, #e5e0ec))'
+        thumbEl.style.borderColor = 'color-mix(in srgb, ' + hexColor + ' 38%, var(--innfo-border, #e5e5e5))'
         thumbEl.style.backgroundColor = 'color-mix(in srgb, ' + hexColor + ' 12%, #ffffff)'
       }
       if (mediaItems.length && thumbEl && thumbEl.tagName === 'IMG') {
@@ -1935,8 +2056,21 @@
       tr.setAttribute('data-element-id', String(element.id || ''))
       if (element._draft) tr.classList.add('innfo-element-table-draft')
 
+      var rowCMeta = conceptMetaOf(conceptList, element.concept)
       var nameTd = el('td', 'innfo-element-table-name')
-      nameTd.appendChild(el('span', null, element.name || element.id || ''))
+      var elPill = UI.ElementPill(
+        {
+          id: element.id,
+          label: element.name || element.id || '',
+          concept: element.concept,
+          color: rowCMeta.color,
+          hexColor: rowCMeta.hexColor,
+          slot: rowCMeta.slot,
+          index: rowCMeta.index,
+        },
+        { doc: doc },
+      )
+      nameTd.appendChild(elPill)
       if (element._draft) {
         nameTd.appendChild(
           el(
@@ -1949,10 +2083,15 @@
       tr.appendChild(nameTd)
 
       var conceptTd = el('td')
-      var cBadge = el('span', 'badge badge-outline badge-xs', element.concept || '')
-      var hex = conceptColor(element.concept)
-      cBadge.style.borderColor = hex
-      cBadge.style.color = hex
+      var cBadge = UI.ConceptPill(
+        {
+          id: element.concept || '',
+          label: element.concept || '',
+          index: rowCMeta.index,
+          color: rowCMeta.color,
+        },
+        { doc: doc },
+      )
       conceptTd.appendChild(cBadge)
       tr.appendChild(conceptTd)
 
@@ -2040,13 +2179,15 @@
         return UI.KuBadge({ kind: 'marker', id: key, label: e.label || key, markerKind: 'field' })
       }
       var cm = conceptMeta(e.concept)
+      var cMetaFull = conceptMetaOf(conceptList, e.concept)
+      var resolvedIcon = (cm.meta && cm.meta.icon) || (UI && typeof UI.resolveConceptIconName === 'function' ? UI.resolveConceptIconName(e.concept, cMetaFull) : undefined)
       return UI.KuBadge({
         kind: 'element',
         id: key,
         label: e.label || key,
-        index: cm.index,
-        color: cm.meta && cm.meta.color,
-        icon: cm.meta && cm.meta.icon,
+        index: cMetaFull.index,
+        color: cMetaFull.color,
+        icon: resolvedIcon,
       })
     }
     ;(Array.isArray(matrices) ? matrices : []).forEach(function (matrix) {
@@ -2082,7 +2223,19 @@
 
       var headTr = el('tr', null, null)
       if (headTr) {
-        headTr.appendChild(el('th', null, ''))
+        var cornerTh = el('th', 'innfo-matrix-corner', null)
+        var srcConcept = matrix.source || (rows.length && headRows[isStructured ? (rows[0].sourceId || rows[0].sourceLabel) : rows[0]] && headRows[isStructured ? (rows[0].sourceId || rows[0].sourceLabel) : rows[0]].concept) || null
+        var tgtConcept = matrix.target || (cols.length && headCols[cols[0]] && headCols[cols[0]].concept) || null
+        if (cornerTh && srcConcept && tgtConcept) {
+          var sMetaM = conceptMetaOf(conceptList, srcConcept)
+          var tMetaM = conceptMetaOf(conceptList, tgtConcept)
+          var cornerWrap = el('div', 'innfo-matrix-corner-pills')
+          cornerWrap.appendChild(UI.ConceptPill({ id: srcConcept, label: srcConcept + ' ↓', index: sMetaM.index, color: sMetaM.color }, { doc: doc }))
+          cornerWrap.appendChild(el('span', 'innfo-matrix-corner-sep', '×'))
+          cornerWrap.appendChild(UI.ConceptPill({ id: tgtConcept, label: tgtConcept + ' →', index: tMetaM.index, color: tMetaM.color }, { doc: doc }))
+          cornerTh.appendChild(cornerWrap)
+        }
+        headTr.appendChild(cornerTh)
         cols.forEach(function (c) {
           var th = el('th', null, null)
           if (th) th.appendChild(headerBadge(headCols[c], String(c)))
@@ -2102,8 +2255,12 @@
         cols.forEach(function (c) {
           var value = rowCells[c] != null ? String(rowCells[c]) : ''
           var isEmpty = value === '' || value === '-'
-          var td = el('td', isEmpty ? 'innfo-matrix-cell-empty' : null, null)
-          if (td) td.appendChild(UI.KuBadge({ kind: 'cell', value: isEmpty ? '—' : value }))
+          var td = el('td', isEmpty ? 'innfo-matrix-cell-empty' : 'innfo-matrix-cell-filled', null)
+          if (td) {
+            var cellBadge = UI.KuBadge({ kind: 'cell', value: isEmpty ? '—' : value })
+            if (!isEmpty) cellBadge.setAttribute('data-cell-value', value.toLowerCase())
+            td.appendChild(cellBadge)
+          }
           tr.appendChild(td)
         })
         table.appendChild(tr)
@@ -3648,8 +3805,18 @@
 
   function elementsByIdOf(state) {
     var byId = {}
+    var concepts = (state && state.schema && state.schema.concepts) || (state && state.concepts) || []
     ;(state && state.elements ? state.elements : []).forEach(function (e) {
-      if (e && e.id) byId[e.id] = e
+      if (e && e.id) {
+        if (e.concept && !e._conceptHexColor) {
+          var cm = conceptMetaOf(concepts, e.concept)
+          e._conceptHexColor = cm.hexColor
+          e._conceptSlot = cm.slot
+          e._conceptColor = cm.color
+          e._conceptIndex = cm.index
+        }
+        byId[e.id] = e
+      }
     })
     return byId
   }
@@ -3812,7 +3979,10 @@
     if (head && h) head.appendChild(h)
     if (head && close) head.appendChild(close)
     var body = el('div', 'innfo-ref-body')
-    var tag = el('span', 'innfo-ref-tag', String(element.concept || 'Element'))
+    var tag = UI && typeof UI.ConceptPill === 'function'
+      ? UI.ConceptPill({ id: element.concept || 'Element', label: String(element.concept || 'Element') }, { doc: doc })
+      : el('span', 'innfo-ref-tag', String(element.concept || 'Element'))
+    if (tag) tag.classList.add('innfo-ref-tag')
     if (body && tag) body.appendChild(tag)
     if (body && element.description) {
       var p = el('p', 'innfo-ref-desc', element.description)
@@ -4143,8 +4313,9 @@
       if (m.name) {
         var rawName = String(m.name)
         var shortName = rawName.length > 20 ? rawName.replace(/\s+Matrix$/i, '') : rawName
-        var lx = (x1 + x2) * 0.5
-        var ly = (y1 + y2) * 0.5
+        var tFrac = 0.5
+        var lx = x1 + (x2 - x1) * tFrac
+        var ly = y1 + (y2 - y1) * tFrac
         pendingEdgeLabels.push({ x: lx, y: ly, text: shortName, fullText: rawName, kind: m.kind })
       }
     })
@@ -4155,10 +4326,11 @@
       c.setAttribute('cy', pos[name].y)
       c.setAttribute('r', String(nodeR))
       c.setAttribute('class', 'innfo-metamodel-node')
-      var nodeMeta = conceptMetaOf(schema && schema.concepts, name)
+      var nodeMeta = conceptMetaOf((schema && schema.concepts && schema.concepts.length ? schema.concepts : nodes), name)
       if (nodeMeta && nodeMeta.hexColor) {
         c.style.stroke = nodeMeta.hexColor
         c.style.strokeWidth = '2.5px'
+        c.style.fill = 'color-mix(in srgb, ' + nodeMeta.hexColor + ' 10%, #ffffff)'
       }
       c.style.cursor = 'pointer'
       var title = doc.createElementNS(NS, 'title')
@@ -4355,7 +4527,7 @@
       if (colorName && visuals && typeof visuals.getHexColor === 'function') {
         return visuals.getHexColor(colorName)
       }
-      return '#4d0e4e'
+      return '#171717'
     }
     function iconOf(iconName) {
       if (iconName && visuals && typeof visuals.iconSvg === 'function') {
@@ -5041,6 +5213,8 @@
       // The changeset title comes from meta.title; a scoped export names its view there.
       meta: scopedView ? Object.assign({}, meta, { title: baseTitle + ' - ' + (scopedDef ? scopedDef.title : scopedView) }) : meta,
       elements: elements,
+      schema: schema,
+      concepts: concepts,
       store: Review.createDraftStore(
         typeof localStorage !== 'undefined' ? localStorage : null,
         // A domain console keys its drafts by the stable domain id, never by content.

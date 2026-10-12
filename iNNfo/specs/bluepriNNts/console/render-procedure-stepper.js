@@ -272,6 +272,38 @@
       if (typeof dialog.showModal === 'function') dialog.showModal()
     }
 
+    function appendWithKuPills(hostEl, rawText) {
+      var text = String(rawText == null ? '' : rawText)
+      var names = Object.keys(byName).filter(function (n) { return n && n.length >= 3 }).sort(function (a, b) { return b.length - a.length })
+      var escapedNames = names.map(function (n) { return n.replace(/[.*+?^${}()|[\]\\]/g, '\\    function refButton(label, name) {') })
+      var patternParts = ['\\bfb-\\d+\\b']
+      if (escapedNames.length) patternParts.push(escapedNames.join('|'))
+      var re = new RegExp('(' + patternParts.join('|') + ')', 'g')
+      var lastIdx = 0
+      var match
+      while ((match = re.exec(text)) !== null) {
+        if (match.index > lastIdx) {
+          hostEl.appendChild(document.createTextNode(text.slice(lastIdx, match.index)))
+        }
+        var token = match[0]
+        if (/^fb-\d+$/.test(token)) {
+          var chg = document.createElement('span')
+          chg.className = 'innfo-ku-field-chip'
+          chg.textContent = token
+          hostEl.appendChild(chg)
+        } else if (byName[token]) {
+          var rb = refButton(token, token)
+          hostEl.appendChild(rb.node)
+        } else {
+          hostEl.appendChild(document.createTextNode(token))
+        }
+        lastIdx = re.lastIndex
+      }
+      if (lastIdx < text.length) {
+        hostEl.appendChild(document.createTextNode(text.slice(lastIdx)))
+      }
+    }
+
     function refButton(label, name) {
       var target = byName[name]
       if (!target) {
@@ -352,7 +384,7 @@
         var h = document.createElement(isRoot ? 'h2' : 'h3')
         var iconName = step.fields.step_type || 'task'
         var svg = vIcon(iconName, 16)
-        h.style.color = 'var(--innfo-accent, #4d0e4e)'
+        h.style.color = 'var(--innfo-accent, #171717)'
         h.innerHTML =
           '<span class="step-type-icon">' +
           (svg || STEP_TYPE_ICONS[step.fields.step_type] || '•') +
@@ -747,7 +779,7 @@
       if (cur.el.description) {
         var pDesc = document.createElement('p')
         pDesc.className = 'exec-step-desc'
-        pDesc.textContent = cur.el.description
+        appendWithKuPills(pDesc, cur.el.description)
         card.appendChild(pDesc)
       }
 

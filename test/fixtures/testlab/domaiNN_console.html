@@ -7,9 +7,7 @@
 procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha256:c0e0d6d63b0c
 -->
     <!-- Inline executable scripts are allowed only by sha256 hash: scripts/console-views.mjs
-         appends the hashes to script-src when it inlines the bundle and views. -->
-    <meta
-      http-equiv="Content-Security-Policy"
+         appends the hashes to script-src 'self' https://cdn.jsdelivr.net 'sha256-gHzkeEemORsxXuEybd7ZceIVfMwzZo6Djk8vpBbHhxk=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='"Content-Security-Policy"
       content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-TQ44jQJ507fUgWETwba9/fJEqQX1qymkHMe2oxtkX4s=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
     />
     <title>iNNfo Console</title>
@@ -28,7 +26,8 @@ procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha2
     cards, search, facets, cards, matrices, drafts and export modal.
     Do NOT inline runtime code here.
   -->
-    <style>/*!
+    <style>
+/*!
  * innfo-ui.css — DaisyUI component styles mapped to iNNfo semantic design tokens.
  * Offline-first, standalone component classes: .table, .card, .modal, .tabs, .drawer, .badge, .steps, .stats
  */
@@ -6234,17 +6233,17 @@ details.collapse summary {
     .innfo-ref-fields dd { margin: 0; }
 
 /* ===== Hybrid V1+V4 ElementCard & Domain Console Polish ===== */
-/* P0.2: High-contrast Morado Nazareno primary buttons & empty review state */
+/* P0.2: High-contrast nn-shad-cn monochrome primary buttons & empty review state */
 .btn-primary,
 button.btn-primary {
-  background-color: var(--innfo-accent, #4d0e4e) !important;
-  border-color: var(--innfo-accent, #4d0e4e) !important;
+  background-color: var(--innfo-accent, #171717) !important;
+  border-color: var(--innfo-accent, #171717) !important;
   color: #ffffff !important;
 }
 .btn-primary:hover:not(:disabled),
 button.btn-primary:hover:not(:disabled) {
-  background-color: #3a0a3b !important;
-  border-color: #3a0a3b !important;
+  background-color: #0a0a0a !important;
+  border-color: #0a0a0a !important;
   color: #ffffff !important;
 }
 .innfo-review-empty {
@@ -6252,13 +6251,13 @@ button.btn-primary:hover:not(:disabled) {
   align-items: center;
   gap: 10px;
   padding: 14px 16px;
-  background: var(--innfo-surface-2, #f6eff7);
-  border: 1px solid var(--innfo-border, #dfd8e6);
-  color: var(--innfo-text, #191724);
+  background: var(--innfo-surface-2, #f4f4f5);
+  border: 1px solid var(--innfo-border, #e5e5e5);
+  color: var(--innfo-text, #0a0a0a);
   border-radius: var(--innfo-radius, 8px);
 }
 .innfo-review-empty svg {
-  color: var(--innfo-accent, #4d0e4e);
+  color: var(--innfo-accent, #171717);
   flex-shrink: 0;
 }
 
@@ -6268,14 +6267,14 @@ button.btn-primary:hover:not(:disabled) {
 #innfo-rail .menu li > *:not(ul):not(.menu-title):not(details).active,
 #innfo-rail summary.collapse-title:focus,
 #innfo-rail summary.collapse-title:active {
-  background-color: rgba(77, 14, 78, 0.09) !important;
-  color: var(--innfo-text, #191724) !important;
+  background-color: rgba(23, 23, 23, 0.06) !important;
+  color: var(--innfo-text, #0a0a0a) !important;
   outline: none;
 }
 #innfo-rail .menu li > a.active {
-  border-left: 3px solid var(--innfo-accent, #4d0e4e);
+  border-left: 3px solid var(--innfo-accent, #171717);
   font-weight: 600;
-  color: var(--innfo-accent, #4d0e4e) !important;
+  color: var(--innfo-accent, #171717) !important;
 }
 #innfo-rail details.collapse > summary.collapse-title {
   padding: 8px 30px 8px 10px !important;
@@ -6289,7 +6288,7 @@ button.btn-primary:hover:not(:disabled) {
   top: 50% !important;
   right: 10px !important;
   transform: translateY(-50%) rotate(45deg) !important;
-  box-shadow: 1.5px 1.5px 0 0 var(--innfo-muted, #605c70) !important;
+  box-shadow: 1.5px 1.5px 0 0 var(--innfo-muted, #666666) !important;
 }
 #innfo-rail details.collapse[open] > .collapse-title:after {
   transform: translateY(-50%) rotate(225deg) !important;
@@ -6298,7 +6297,7 @@ button.btn-primary:hover:not(:disabled) {
 /* P1.5: Document view heading brand color */
 #innfo-doc h2,
 #innfo-doc h3 {
-  color: var(--innfo-accent, #4d0e4e);
+  color: var(--innfo-accent, #171717);
 }
 
 /* Selected Hybrid (V1 + V4) Element Card Styling */
@@ -6306,22 +6305,22 @@ button.btn-primary:hover:not(:disabled) {
   padding: 12px 16px;
   border-radius: 10px;
   background: var(--innfo-surface, #ffffff);
-  border: 1px solid color-mix(in srgb, var(--card-concept-color, var(--innfo-border, #e5e0ec)) 35%, var(--innfo-border, #e5e0ec));
-  border-left: 4px solid var(--card-concept-color, var(--innfo-accent, #4d0e4e));
+  border: 1px solid color-mix(in srgb, var(--card-concept-color, var(--innfo-border, #e5e5e5)) 35%, var(--innfo-border, #e5e5e5));
+  border-left: 4px solid var(--card-concept-color, var(--innfo-accent, #171717));
   box-shadow: 0 1px 3px rgba(25, 23, 36, 0.05);
   transition: box-shadow 0.16s ease, border-color 0.16s ease;
 }
 [data-innfo-component="element-card"].innfo-card:hover {
-  border-color: color-mix(in srgb, var(--card-concept-color, var(--innfo-accent, #4d0e4e)) 55%, var(--innfo-border, #e5e0ec));
-  border-left-color: var(--card-concept-color, var(--innfo-accent, #4d0e4e));
-  box-shadow: 0 4px 12px rgba(77, 14, 78, 0.08);
+  border-color: color-mix(in srgb, var(--card-concept-color, var(--innfo-accent, #171717)) 55%, var(--innfo-border, #e5e5e5));
+  border-left-color: var(--card-concept-color, var(--innfo-accent, #171717));
+  box-shadow: 0 4px 12px rgba(23, 23, 23, 0.07);
 }
 .innfo-concept-dot {
   display: inline-block;
   width: 8px;
   height: 8px;
   border-radius: 999px;
-  background: var(--card-concept-color, var(--innfo-muted, #605c70));
+  background: var(--card-concept-color, var(--innfo-muted, #666666));
   flex: 0 0 auto;
 }
 .innfo-card-concept-badge {
@@ -6330,24 +6329,24 @@ button.btn-primary:hover:not(:disabled) {
   gap: 5px;
   padding: 2px 9px;
   border-radius: 999px;
-  border: 1px solid var(--card-concept-color, var(--innfo-accent, #4d0e4e));
-  background: color-mix(in srgb, var(--card-concept-color, var(--innfo-accent, #4d0e4e)) 10%, #ffffff);
-  color: var(--card-concept-color, var(--innfo-accent, #4d0e4e));
+  border: 1px solid var(--card-concept-color, var(--innfo-accent, #171717));
+  background: color-mix(in srgb, var(--card-concept-color, var(--innfo-accent, #171717)) 10%, #ffffff);
+  color: var(--card-concept-color, var(--innfo-accent, #171717));
   font-size: 0.73rem;
   font-weight: 700;
   line-height: 1.3;
   white-space: nowrap;
 }
 [data-innfo-component="element-card"] .innfo-card-head > .innfo-ku-badge[data-ku-kind="element"] {
-  border-color: color-mix(in srgb, var(--card-concept-color, var(--innfo-border, #e5e0ec)) 45%, var(--innfo-border, #e5e0ec));
+  border-color: color-mix(in srgb, var(--card-concept-color, var(--innfo-border, #e5e5e5)) 45%, var(--innfo-border, #e5e5e5));
 }
 [data-innfo-component="element-card"] .innfo-card-thumb {
   width: 40px;
   height: 40px;
   border-radius: 8px;
   object-fit: cover;
-  border: 1.5px solid color-mix(in srgb, var(--card-concept-color, var(--innfo-border, #e5e0ec)) 45%, var(--innfo-border, #e5e0ec));
-  background: var(--innfo-surface-2, #f6eff7);
+  border: 1.5px solid color-mix(in srgb, var(--card-concept-color, var(--innfo-border, #e5e5e5)) 45%, var(--innfo-border, #e5e5e5));
+  background: var(--innfo-surface-2, #f4f4f5);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
   flex: 0 0 auto;
   display: block;
@@ -6356,9 +6355,9 @@ button.btn-primary:hover:not(:disabled) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--card-concept-color, var(--innfo-accent, #4d0e4e));
-  background: color-mix(in srgb, var(--card-concept-color, var(--innfo-accent, #4d0e4e)) 12%, #ffffff);
-  border: 1.5px solid color-mix(in srgb, var(--card-concept-color, var(--innfo-accent, #4d0e4e)) 38%, var(--innfo-border, #e5e0ec));
+  color: var(--card-concept-color, var(--innfo-accent, #171717));
+  background: color-mix(in srgb, var(--card-concept-color, var(--innfo-accent, #171717)) 12%, #ffffff);
+  border: 1.5px solid color-mix(in srgb, var(--card-concept-color, var(--innfo-accent, #171717)) 38%, var(--innfo-border, #e5e5e5));
 }
 [data-innfo-component="element-card"] .innfo-card-thumb--zoom {
   cursor: zoom-in;
@@ -6380,7 +6379,7 @@ button.btn-primary:hover:not(:disabled) {
   width: auto;
   max-width: 160px;
   border-radius: 6px;
-  border: 1px solid var(--innfo-border, #e5e0ec);
+  border: 1px solid var(--innfo-border, #e5e5e5);
   object-fit: cover;
   display: block;
   cursor: zoom-in;
@@ -6411,20 +6410,20 @@ button.btn-primary:hover:not(:disabled) {
 [data-innfo-component="element-card"] .innfo-card-body {
   margin-top: 10px;
   padding-top: 10px;
-  border-top: 1px solid var(--innfo-border, #e5e0ec);
+  border-top: 1px solid var(--innfo-border, #e5e5e5);
 }
 [data-innfo-component="element-card"] .innfo-card-desc {
   margin: 8px 0 10px;
   padding: 10px 14px;
-  background: var(--innfo-surface-2, #f6eff7);
-  border-left: 3px solid var(--card-concept-color, var(--innfo-accent, #4d0e4e));
+  background: var(--innfo-surface-2, #f4f4f5);
+  border-left: 3px solid var(--card-concept-color, var(--innfo-accent, #171717));
   border-radius: 0 6px 6px 0;
-  color: var(--innfo-text, #191724);
+  color: var(--innfo-text, #0a0a0a);
   font-size: 0.88rem;
   line-height: 1.55;
 }
 [data-innfo-component="element-card"] .innfo-card-fields {
-  border: 1px solid var(--innfo-border, #e5e0ec);
+  border: 1px solid var(--innfo-border, #e5e5e5);
   border-radius: 8px;
   overflow: hidden;
   background: var(--innfo-surface, #ffffff);
@@ -6437,7 +6436,7 @@ button.btn-primary:hover:not(:disabled) {
   width: 100%;
   flex: 0 0 auto;
   border: none;
-  border-bottom: 1px solid var(--innfo-border, #e5e0ec);
+  border-bottom: 1px solid var(--innfo-border, #e5e5e5);
   border-radius: 0;
   padding: 9px 14px;
   background: var(--innfo-surface, #ffffff);
@@ -6456,7 +6455,7 @@ button.btn-primary:hover:not(:disabled) {
   font-family: var(--innfo-mono);
   font-size: 0.76rem;
   font-weight: 600;
-  color: var(--innfo-muted, #605c70);
+  color: var(--innfo-muted, #666666);
 }
 [data-innfo-component="element-card"] .innfo-card-fields > .innfo-ku-badge[data-ku-kind="field"] > .innfo-ku-value,
 [data-innfo-component="element-card"] .innfo-card-fields > .innfo-ku-badge[data-ku-kind="field"] > .innfo-field-bool,
@@ -6473,7 +6472,7 @@ button.btn-primary:hover:not(:disabled) {
   max-width: 160px;
   max-height: 76px;
   border-radius: 6px;
-  border: 1px solid var(--innfo-border, #e5e0ec);
+  border: 1px solid var(--innfo-border, #e5e5e5);
   object-fit: cover;
   display: block;
 }
@@ -6481,8 +6480,8 @@ button.btn-primary:hover:not(:disabled) {
 [data-innfo-component="element-card"] .innfo-card-incoming {
   margin-top: 8px;
   padding: 8px 12px;
-  background: var(--innfo-surface-2, #f6eff7);
-  border: 1px solid var(--innfo-border, #e5e0ec);
+  background: var(--innfo-surface-2, #f4f4f5);
+  border: 1px solid var(--innfo-border, #e5e5e5);
   border-radius: 6px;
 }
 [data-innfo-component="element-card"] .innfo-card-incoming {
@@ -6496,7 +6495,7 @@ button.btn-primary:hover:not(:disabled) {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--innfo-muted, #605c70);
+  color: var(--innfo-muted, #666666);
 }
 [data-innfo-component="element-card"] .innfo-card-incoming .innfo-rel-list {
   margin: 0;
@@ -6512,7 +6511,7 @@ button.btn-primary:hover:not(:disabled) {
   align-items: center;
   gap: 12px;
   background: var(--innfo-surface, #ffffff);
-  border: 1px solid var(--innfo-border, #e5e0ec);
+  border: 1px solid var(--innfo-border, #e5e5e5);
   border-radius: 10px;
   padding: 20px;
   box-shadow: var(--innfo-shadow);
@@ -6524,37 +6523,37 @@ button.btn-primary:hover:not(:disabled) {
   display: block;
 }
 .innfo-metamodel-node {
-  fill: #f6eff7;
-  stroke: var(--innfo-accent, #4d0e4e);
+  fill: #f4f4f5;
+  stroke: var(--innfo-accent, #171717);
   stroke-width: 2px;
   transition: fill 0.15s ease;
 }
 .innfo-metamodel-node:hover {
-  fill: #eadcf0;
+  fill: #e4e4e7;
 }
 .innfo-metamodel-label {
   font-family: var(--innfo-font);
   font-size: 12px;
   font-weight: 700;
-  fill: var(--innfo-text, #191724);
+  fill: var(--innfo-text, #0a0a0a);
 }
 .innfo-metamodel-edge {
-  stroke: var(--innfo-accent, #4d0e4e);
+  stroke: var(--innfo-accent, #171717);
   stroke-width: 1.75px;
 }
 .innfo-metamodel-edge[data-edge-kind="relation"] {
-  stroke: #7b4b7c;
+  stroke: #52525b;
 }
 .innfo-metamodel-edge-bg {
   fill: #ffffff;
-  stroke: var(--innfo-border, #dfd8e6);
+  stroke: var(--innfo-border, #e5e5e5);
   stroke-width: 1px;
 }
 .innfo-metamodel-edge-label {
   font-family: var(--innfo-mono);
   font-size: 11px;
   font-weight: 600;
-  fill: var(--innfo-accent, #4d0e4e);
+  fill: var(--innfo-accent, #171717);
 }
 .innfo-metamodel-legend {
   display: flex;
@@ -6563,8 +6562,8 @@ button.btn-primary:hover:not(:disabled) {
   gap: 18px;
   flex-wrap: wrap;
   font-size: 0.78rem;
-  color: var(--innfo-muted, #605c70);
-  border-top: 1px solid var(--innfo-border, #e5e0ec);
+  color: var(--innfo-muted, #666666);
+  border-top: 1px solid var(--innfo-border, #e5e5e5);
   padding-top: 10px;
   width: 100%;
 }
@@ -6573,23 +6572,23 @@ button.btn-primary:hover:not(:disabled) {
   align-items: center;
   gap: 6px;
   font-weight: 600;
-  color: var(--innfo-text, #191724);
+  color: var(--innfo-text, #0a0a0a);
 }
 .innfo-mm-line {
   width: 22px;
   height: 0;
-  border-top: 2px solid var(--innfo-accent, #4d0e4e);
+  border-top: 2px solid var(--innfo-accent, #171717);
   display: inline-block;
 }
 .innfo-mm-line--relation {
   border-top-style: dashed;
-  border-top-color: #7b4b7c;
+  border-top-color: #52525b;
 }
 
 /* P2.10: Matrix table proportions & cell polish */
 .innfo-matrix {
   background: var(--innfo-surface, #ffffff);
-  border: 1px solid var(--innfo-border, #e5e0ec);
+  border: 1px solid var(--innfo-border, #e5e5e5);
   border-radius: 10px;
   padding: 16px 20px;
   box-shadow: var(--innfo-shadow);
@@ -6608,11 +6607,11 @@ button.btn-primary:hover:not(:disabled) {
 .innfo-matrix th,
 .innfo-matrix td {
   padding: 8px 14px;
-  border: 1px solid var(--innfo-border, #e5e0ec);
+  border: 1px solid var(--innfo-border, #e5e5e5);
 }
 .innfo-matrix thead th,
 .innfo-matrix tbody th {
-  background: var(--innfo-surface-2, #f6eff7);
+  background: var(--innfo-surface-2, #f4f4f5);
 }
 .innfo-matrix td .innfo-ku-badge[data-ku-kind="cell"] .innfo-ku-icon {
   display: none;
@@ -6623,7 +6622,7 @@ button.btn-primary:hover:not(:disabled) {
 .innfo-proc-host .proc-view-header {
   padding: 10px 16px;
   margin-bottom: 14px;
-  background: var(--innfo-surface-2, #f6eff7);
+  background: var(--innfo-surface-2, #f4f4f5);
 }
 .innfo-procedure-view .proc-view-header .proc-title,
 .innfo-proc-host .proc-view-header .proc-title {
@@ -6646,9 +6645,9 @@ button.btn-primary:hover:not(:disabled) {
   font-weight: 600;
   padding: 2px 9px;
   border-radius: 999px;
-  background: var(--innfo-surface-2, #f6eff7);
-  color: var(--innfo-accent, #4d0e4e);
-  border: 1px solid var(--innfo-border, #e5e0ec);
+  background: var(--innfo-surface-2, #f4f4f5);
+  color: var(--innfo-accent, #171717);
+  border: 1px solid var(--innfo-border, #e5e5e5);
   margin-right: auto;
 }
 .exec-step-head {
@@ -6674,9 +6673,9 @@ button.btn-primary:hover:not(:disabled) {
   font-weight: 600;
   padding: 2px 9px;
   border-radius: 999px;
-  background: var(--innfo-surface-2, #f6eff7);
-  color: var(--innfo-text, #191724);
-  border: 1px solid var(--innfo-border, #e5e0ec);
+  background: var(--innfo-surface-2, #f4f4f5);
+  color: var(--innfo-text, #0a0a0a);
+  border: 1px solid var(--innfo-border, #e5e5e5);
 }
 .innfo-procedure-view .chip.warning,
 .innfo-proc-host .chip.warning {
@@ -6705,9 +6704,313 @@ button.btn-primary:hover:not(:disabled) {
   font-size: 0.76rem;
   padding: 3px 10px;
   border-radius: 6px;
-  background: var(--innfo-surface-2, #f6eff7);
-  border: 1px solid var(--innfo-border, #e5e0ec);
+  background: var(--innfo-surface-2, #f4f4f5);
+  border: 1px solid var(--innfo-border, #e5e5e5);
 }
+
+
+/* ===== Unified Knowledge Unit (KU) Pill System (G1-G9, nn-shad-cn) ===== */
+/* ConceptPill & ElementPill concept icon & slot color styling */
+.innfo-concept-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  line-height: 1.35;
+  border: 1px solid color-mix(in srgb, var(--concept-slot-fg, #3b82f6) 45%, #e5e5e5);
+  background: color-mix(in srgb, var(--concept-slot-fg, #3b82f6) 10%, #ffffff);
+  color: var(--concept-slot-fg, #171717);
+  white-space: nowrap;
+}
+[data-concept-slot="1"] { --concept-slot-fg: var(--innfo-concept-1, #3b82f6); }
+[data-concept-slot="2"] { --concept-slot-fg: var(--innfo-concept-2, #8b5cf6); }
+[data-concept-slot="3"] { --concept-slot-fg: var(--innfo-concept-3, #14b8a6); }
+[data-concept-slot="4"] { --concept-slot-fg: var(--innfo-concept-4, #f59e0b); }
+[data-concept-slot="5"] { --concept-slot-fg: var(--innfo-concept-5, #ec4899); }
+[data-concept-slot="6"] { --concept-slot-fg: var(--innfo-concept-6, #22c55e); }
+[data-concept-slot="7"] { --concept-slot-fg: var(--innfo-concept-7, #f97316); }
+[data-concept-slot="8"] { --concept-slot-fg: var(--innfo-concept-8, #6366f1); }
+[data-concept-slot="9"] { --concept-slot-fg: var(--innfo-concept-9, #ef4444); }
+[data-concept-slot="10"] { --concept-slot-fg: var(--innfo-concept-10, #eab308); }
+[data-concept-slot="11"] { --concept-slot-fg: var(--innfo-concept-11, #a855f7); }
+[data-concept-slot="12"] { --concept-slot-fg: var(--innfo-concept-12, #6b7280); }
+
+.innfo-concept-pill-icon,
+.innfo-element-concept-icon,
+.innfo-rail-concept-icon,
+.innfo-filter-pill-icon,
+.innfo-facet-item-icon,
+.innfo-strip-rel-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.innfo-concept-pill > .innfo-concept-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--concept-slot-fg, currentColor);
+}
+.innfo-element-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.35;
+  background: #ffffff;
+  color: #0a0a0a;
+  border: 1.5px solid color-mix(in srgb, var(--pill-concept-color, var(--concept-slot-fg, #a1a1aa)) 50%, #e5e5e5);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.innfo-element-pill:hover {
+  background: color-mix(in srgb, var(--pill-concept-color, var(--concept-slot-fg, #171717)) 8%, #ffffff);
+  border-color: var(--pill-concept-color, var(--concept-slot-fg, #171717));
+}
+.innfo-element-pill .innfo-element-concept-icon {
+  color: var(--pill-concept-color, var(--concept-slot-fg, #52525b));
+}
+
+/* G1: Left Rail Model & Concept KU Pills */
+#innfo-rail details.collapse > summary.collapse-title {
+  background: #f4f4f5;
+  border: 1px solid #e5e5e5;
+  margin-bottom: 4px;
+}
+#innfo-rail details.collapse > summary.collapse-title.active {
+  background: #171717 !important;
+  color: #ffffff !important;
+  border-color: #171717 !important;
+}
+#innfo-rail details.collapse > summary.collapse-title.active .innfo-rail-count {
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+}
+#innfo-rail .menu ul {
+  padding-left: 10px;
+  margin-left: 8px;
+  border-left: 1.5px solid #e5e5e5;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+#innfo-rail .menu li > a[data-concept] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 8px;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+#innfo-rail .menu li > a[data-concept] .innfo-rail-concept-pill {
+  color: var(--rail-concept-color, var(--concept-slot-fg, #0a0a0a));
+  font-weight: 700;
+  font-size: 0.78rem;
+  background: color-mix(in srgb, var(--rail-concept-color, var(--concept-slot-fg, #3b82f6)) 10%, #ffffff);
+  border: 1px solid color-mix(in srgb, var(--rail-concept-color, var(--concept-slot-fg, #3b82f6)) 36%, #e5e5e5);
+  padding: 2px 9px;
+  border-radius: 999px;
+}
+#innfo-rail .menu li > a[data-concept].active {
+  background: color-mix(in srgb, var(--rail-concept-color, var(--concept-slot-fg, #171717)) 12%, #ffffff) !important;
+  border: 1px solid color-mix(in srgb, var(--rail-concept-color, var(--concept-slot-fg, #171717)) 45%, #e5e5e5) !important;
+  border-left: 3px solid var(--rail-concept-color, var(--concept-slot-fg, #171717)) !important;
+}
+
+/* G2: Active Filter Chips & Facet Dropdowns */
+.innfo-active-filter-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 0.74rem;
+  border: 1px solid #d4d4d8;
+  background: #ffffff;
+  color: #0a0a0a;
+}
+.innfo-active-filter-pill--model {
+  border-radius: 6px;
+  background: #f4f4f5;
+  border-color: #d4d4d8;
+  color: #0a0a0a;
+}
+.innfo-filter-pill-remove {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: currentColor;
+  opacity: 0.65;
+  cursor: pointer;
+  padding: 0 2px;
+  font-size: 0.85rem;
+  line-height: 1;
+}
+.innfo-filter-pill-remove:hover {
+  opacity: 1;
+  color: #dc2626;
+}
+
+/* G3: Field KU Chips & Cross-Concept Relation Pills */
+.innfo-ku-field-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--innfo-mono);
+  font-size: 0.73rem;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 5px;
+  background: #f4f4f5;
+  border: 1px solid #e4e4e7;
+  color: #27272a;
+  white-space: nowrap;
+}
+.innfo-ku-field-type {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--innfo-mono);
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #ffffff;
+  border: 1px solid #e4e4e7;
+  color: #71717a;
+}
+.innfo-strip-rel-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.innfo-strip-rel {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  background: color-mix(in srgb, var(--pill-concept-color, var(--concept-slot-fg, #52525b)) 10%, #ffffff) !important;
+  border: 1.5px solid color-mix(in srgb, var(--pill-concept-color, var(--concept-slot-fg, #52525b)) 42%, #e5e5e5) !important;
+  color: #0a0a0a !important;
+  text-decoration: none;
+}
+.innfo-strip-rel .innfo-strip-rel-icon {
+  color: var(--pill-concept-color, var(--concept-slot-fg, #52525b));
+}
+
+/* G4: Concept Guidance Right Sidebar */
+.innfo-guide-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.innfo-guide-meta {
+  font-family: var(--innfo-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #f4f4f5;
+  border: 1px solid #e5e5e5;
+  color: #52525b;
+}
+.innfo-guide-field-list {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 8px;
+  align-items: center;
+  margin: 0;
+}
+.innfo-guide-field-dt,
+.innfo-guide-field-dd {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.innfo-guide-marker-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.innfo-guide-matrix-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.innfo-guide-matrix-item {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 7px 9px;
+  background: #f4f4f5;
+  border: 1px solid #e5e5e5;
+  border-radius: 7px;
+}
+.innfo-guide-matrix-name {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #0a0a0a;
+}
+.innfo-guide-matrix-pair {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.innfo-guide-matrix-arrow {
+  font-weight: 700;
+  color: #71717a;
+  font-size: 0.8rem;
+}
+
+/* G5: Matrices (0,0) Corner Dual-Concept Header & Semantic Cell Pills */
+.innfo-matrix-corner {
+  background: #f4f4f5 !important;
+  vertical-align: middle;
+}
+.innfo-matrix-corner-pills {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.innfo-matrix-corner-sep {
+  font-weight: 700;
+  color: #71717a;
+  font-size: 0.78rem;
+}
+.innfo-matrix td .innfo-ku-badge[data-ku-kind="cell"][data-cell-value="relevant"] {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #86efac;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 2px 10px;
+}
+.innfo-matrix td .innfo-ku-badge[data-ku-kind="cell"][data-cell-value="archived"] {
+  background: #f4f4f5;
+  color: #52525b;
+  border: 1px solid #d4d4d8;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 2px 10px;
+}
+
 </style>
     <style>
       :root,
@@ -8536,18 +8839,18 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   // contrast table; the contrast suite recomputes these independently.
   var TOKEN_VALUES = {
     light: {
-      // morado-nazareno brand: purple #4D0E4E primary on a flat light canvas,
-      // soft lavender-grey borders, ink #111112 / muted #636366. Concept colors
-      // stay app-driven data; only brand + neutrals live here.
-      '--innfo-bg': '#faf9fc',
+      // nn-shad-cn monochrome neutral preset: near-black #171717 primary on a
+      // crisp white/zinc canvas, neutral #e5e5e5 borders, ink #0a0a0a / muted #666666.
+      // Concept colors stay app-driven data; only brand + neutrals live here.
+      '--innfo-bg': '#fafafa',
       '--innfo-surface': '#ffffff',
-      '--innfo-surface-2': '#f5f3f8',
-      '--innfo-text': '#191724',
-      '--innfo-muted': '#6b6879',
-      '--innfo-border': '#eceaf2',
-      '--innfo-accent': '#4d0e4e',
-      '--innfo-link': '#5c1560',
-      '--innfo-focus': '#7a2c86',
+      '--innfo-surface-2': '#f4f4f5',
+      '--innfo-text': '#0a0a0a',
+      '--innfo-muted': '#666666',
+      '--innfo-border': '#e5e5e5',
+      '--innfo-accent': '#171717',
+      '--innfo-link': '#171717',
+      '--innfo-focus': '#52525b',
       '--innfo-concept-1': '#3b82f6',
       '--innfo-concept-2': '#8b5cf6',
       '--innfo-concept-3': '#14b8a6',
@@ -9039,10 +9342,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     if (!data || typeof data !== 'object') throw new TypeError('InnfoUI.ConceptPill: data required')
     var doc = resolveDoc(opts)
     var interactive = !!(opts && opts.onSelect)
+    var slot = conceptSlot(data)
     var pill = makeEl(doc, interactive ? 'button' : 'span', 'innfo-concept-pill')
     pill.setAttribute('data-innfo-component', 'concept-pill')
     pill.setAttribute('data-concept-id', String(data.id == null ? '' : data.id))
-    pill.setAttribute('data-concept-slot', String(conceptSlot(data)))
+    pill.setAttribute('data-concept-slot', String(slot))
     if (interactive) {
       pill.setAttribute('type', 'button')
       pill.addEventListener('click', function () {
@@ -9051,6 +9355,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
     var dot = makeEl(doc, 'i', 'innfo-concept-dot')
     pill.appendChild(dot)
+    var cIcon = makeEl(doc, 'span', 'innfo-concept-pill-icon')
+    cIcon.setAttribute('aria-hidden', 'true')
+    cIcon.innerHTML = icon(resolveConceptIconName(data.label || data.id, { index: slot - 1, color: data.color, icon: data.icon }), 12)
+    pill.appendChild(cIcon)
     pill.appendChild(doc.createTextNode(String(data.label == null ? '' : data.label)))
     if (data.count != null) pill.appendChild(makeEl(doc, 'span', 'innfo-concept-count', ' (' + data.count + ')'))
     return pill
@@ -9069,6 +9377,17 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       pill.addEventListener('click', function () {
         if (opts && opts.onSelect) opts.onSelect(data)
       })
+    }
+    var hasConceptMeta = !!(data.concept || data.color || data.index != null || data.slot != null || data.hexColor)
+    if (hasConceptMeta) {
+      var eSlot = Number(data.slot) || conceptSlot({ index: data.index, color: data.color })
+      pill.setAttribute('data-concept-slot', String(eSlot))
+      pill.classList.add('innfo-element-pill--concept')
+      if (data.hexColor) pill.style.setProperty('--pill-concept-color', String(data.hexColor))
+      var eIcon = makeEl(doc, 'span', 'innfo-element-concept-icon')
+      eIcon.setAttribute('aria-hidden', 'true')
+      eIcon.innerHTML = icon(resolveConceptIconName(data.concept, { index: eSlot - 1, color: data.color, icon: data.icon }), 12)
+      pill.appendChild(eIcon)
     }
     if (data.origin) {
       var wrap = makeEl(doc, 'span', 'innfo-element-origin')
@@ -9212,11 +9531,24 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       var li = makeEl(doc, 'li', 'innfo-rel-row')
       if (r.field) li.setAttribute('data-rel-field', String(r.field))
       if (r.target) li.setAttribute('data-rel-target', String(r.target))
-      li.appendChild(makeEl(doc, 'span', 'innfo-rel-field', (r.field || 'related') + ' \u2192'))
-      var label = r.targetLabel || (byId[r.target] && byId[r.target].name) || r.target || '?'
+      var relFieldChip = makeEl(doc, 'span', 'innfo-rel-field innfo-ku-field-chip', (r.field || 'related') + ' \u2192')
+      li.appendChild(relFieldChip)
+      var targetRec = r.target && byId[r.target] ? byId[r.target] : null
+      var label = r.targetLabel || (targetRec && targetRec.name) || r.target || '?'
       if (r.target) {
         li.appendChild(
-          ElementPill({ id: r.target, label: label }, { href: '#el-' + r.target }),
+          ElementPill(
+            {
+              id: r.target,
+              label: label,
+              concept: r.targetConcept || (targetRec && targetRec.concept),
+              color: r.targetColor || (targetRec && targetRec._conceptColor),
+              hexColor: r.targetHexColor || (targetRec && targetRec._conceptHexColor),
+              slot: r.targetSlot || (targetRec && targetRec._conceptSlot),
+              index: targetRec && targetRec._conceptIndex,
+            },
+            { href: '#el-' + r.target, doc: doc },
+          ),
         )
       } else {
         li.appendChild(doc.createTextNode(String(label)))
@@ -9414,9 +9746,21 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
     if (hasRef) {
       badge.appendChild(
-        ElementPill({ id: data.ref.id, label: data.ref.label || data.ref.id }, {
-          onSelect: opts && opts.onRef ? function () { opts.onRef(data.ref.id) } : undefined,
-        }),
+        ElementPill(
+          {
+            id: data.ref.id,
+            label: data.ref.label || data.ref.id,
+            concept: data.ref.concept,
+            color: data.ref.color,
+            hexColor: data.ref.hexColor,
+            slot: data.ref.slot,
+            index: data.ref.index,
+          },
+          {
+            doc: doc,
+            onSelect: opts && opts.onRef ? function () { opts.onRef(data.ref.id) } : undefined,
+          },
+        ),
       )
     }
     if (Array.isArray(data.citations) && data.citations.length) {
@@ -9475,6 +9819,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     fallback()
   }
 
+  function targetRecHex(rec) {
+    return rec && rec._conceptHexColor ? rec._conceptHexColor : null
+  }
+
   function imageFieldOf(fields) {
     var list = Array.isArray(fields) ? fields : []
     for (var i = 0; i < list.length; i++) {
@@ -9523,7 +9871,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var conceptIconName = resolveConceptIconName(data.conceptId, conceptOpts)
 
     function makeConceptThumb() {
-      var ph = makeEl(doc, 'span', 'innfo-card-thumb innfo-card-thumb--concept')
+      var ph = makeEl(doc, 'span', 'innfo-card-thumb innfo-card-thumb--concept innfo-card-thumb--empty')
       ph.setAttribute('data-concept-icon', conceptIconName)
       ph.setAttribute('title', String(data.conceptId || 'Element'))
       ph.setAttribute('aria-hidden', 'true')
@@ -9700,15 +10048,33 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         })
       }
 
-      // 3. Outgoing relations rendered as compact wikilink pills on the right
+      // 3. Outgoing relations rendered as Field KU chip + target-concept-colored Element KU pill
       if (relations && relations.length) {
         relations.slice(0, 3).forEach(function (r) {
           if (!r || typeof r !== 'object') return
-          var rLabel = r.targetLabel || (r.target && byId[r.target] && byId[r.target].name) || r.target || '?'
+          var tRec = r.target && byId[r.target] ? byId[r.target] : null
+          var rLabel = r.targetLabel || (tRec && tRec.name) || r.target || '?'
+          var relGroup = makeEl(doc, 'span', 'innfo-strip-rel-group')
+          if (r.field) {
+            var fChip = makeEl(doc, 'span', 'innfo-ku-field-chip innfo-strip-rel-field', '~ ' + r.field)
+            relGroup.appendChild(fChip)
+          }
           var pill = makeEl(doc, 'a', 'innfo-strip-rel')
           if (r.target) pill.setAttribute('href', '#el-' + r.target)
-          pill.textContent = (r.field ? r.field + ': ' : '') + rLabel + ' ↗'
-          stripRight.appendChild(pill)
+          var tConcept = r.targetConcept || (tRec && tRec.concept)
+          var tSlot = r.targetSlot || (tRec && tRec._conceptSlot)
+          var tHex = r.targetHexColor || (tRec && targetRecHex(tRec))
+          if (tSlot) pill.setAttribute('data-concept-slot', String(tSlot))
+          if (tHex) pill.style.setProperty('--pill-concept-color', String(tHex))
+          if (tConcept || tSlot) {
+            var tIco = makeEl(doc, 'span', 'innfo-strip-rel-icon')
+            tIco.setAttribute('aria-hidden', 'true')
+            tIco.innerHTML = icon(resolveConceptIconName(tConcept, { index: (Number(tSlot) || 1) - 1 }), 11)
+            pill.appendChild(tIco)
+          }
+          pill.appendChild(doc.createTextNode((!r.field ? '' : '') + rLabel + ' ↗'))
+          relGroup.appendChild(pill)
+          stripRight.appendChild(relGroup)
         })
       }
 
@@ -9806,12 +10172,41 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       left.appendChild(kindBadge)
 
       var targetLabel = el ? el.name || d.element_id : d.element || d.element_id
-      var targetSpan = makeEl(
-        doc,
-        'span',
-        'innfo-draft-target font-semibold text-sm',
-        targetLabel + (d.field ? '.' + d.field : '')
+      var targetConcept = d.concept || (el && el.concept) || null
+      var targetSpan = makeEl(doc, 'span', 'innfo-draft-target inline-flex items-center gap-1.5 font-semibold text-sm')
+      if (targetConcept) {
+        var cPill = ConceptPill(
+          {
+            id: targetConcept,
+            label: targetConcept,
+            index: el && el._conceptIndex != null ? el._conceptIndex : 0,
+            color: el && el._conceptColor,
+          },
+          { doc: doc },
+        )
+        targetSpan.appendChild(cPill)
+      }
+      var ePill = ElementPill(
+        {
+          id: d.element_id || targetLabel,
+          label: targetLabel,
+          concept: targetConcept,
+          color: el && el._conceptColor,
+          hexColor: el && el._conceptHexColor,
+          slot: el && el._conceptSlot,
+          index: el && el._conceptIndex,
+        },
+        { doc: doc, href: d.element_id ? '#el-' + d.element_id : undefined },
       )
+      targetSpan.appendChild(ePill)
+      if (d.field) {
+        var arrowSpan = makeEl(doc, 'span', 'innfo-draft-arrow text-xs opacity-60', '→')
+        arrowSpan.setAttribute('aria-hidden', 'true')
+        targetSpan.appendChild(arrowSpan)
+        var fBadge = makeEl(doc, 'span', 'innfo-ku-field-chip', '~ ' + d.field)
+        fBadge.setAttribute('data-ku-kind', 'field')
+        targetSpan.appendChild(fBadge)
+      }
       left.appendChild(targetSpan)
 
       var text = d.comment != null ? d.comment : d.proposed != null ? d.proposed : ''
@@ -12987,11 +13382,14 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           toggleFacet('model', m.id || m.filePath, cb.checked)
         })
 
+        var mItemIco = el('span', 'innfo-facet-item-icon')
+        if (mItemIco) mItemIco.innerHTML = mIcon
         var nameSpan = el('span', 'flex-1 truncate font-medium text-slate-700', m.title || m.filePath)
         nameSpan.title = m.filePath || m.title || ''
         var cntBadge = el('span', 'badge badge-xs badge-ghost font-mono', String(m.elementCount || 0))
 
         item.appendChild(cb)
+        if (mItemIco) item.appendChild(mItemIco)
         item.appendChild(nameSpan)
         item.appendChild(cntBadge)
         mMenu.appendChild(item)
@@ -13043,10 +13441,21 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           toggleFacet('concept', c.name, cb.checked)
         })
 
+        var cMetaFacet = conceptMetaOf((state && state.schema && state.schema.concepts) || (state && state.concepts), c.name)
+        var cDotFacet = el('span', 'innfo-concept-dot')
+        if (cDotFacet && cMetaFacet.hexColor) cDotFacet.style.backgroundColor = cMetaFacet.hexColor
+        var cIcoFacet = el('span', 'innfo-facet-item-icon')
+        if (cIcoFacet && UI && typeof UI.icon === 'function' && typeof UI.resolveConceptIconName === 'function') {
+          cIcoFacet.style.color = cMetaFacet.hexColor
+          cIcoFacet.innerHTML = UI.icon(UI.resolveConceptIconName(c.name, cMetaFacet), 12)
+        }
         var nameSpan = el('span', 'flex-1 truncate font-medium text-slate-700', c.name)
+        if (cMetaFacet.hexColor) nameSpan.style.color = cMetaFacet.hexColor
         var cntBadge = el('span', 'badge badge-xs badge-ghost font-mono', String(c.count))
 
         item.appendChild(cb)
+        if (cDotFacet) item.appendChild(cDotFacet)
+        if (cIcoFacet) item.appendChild(cIcoFacet)
         item.appendChild(nameSpan)
         item.appendChild(cntBadge)
         cMenu.appendChild(item)
@@ -13074,14 +13483,52 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       host.appendChild(clearBtn)
     }
 
-    // 4. Render Active Filter Pills below the bar
+    // 4. Render Active Filter Pills below the bar as Semantic KU Pills
     if (activeHost && (parsed.operators.length > 0 || parsed.textTokens.length > 0)) {
+      var schemaConcepts = (state && state.concepts && state.concepts.length ? state.concepts : (state && state.schema && state.schema.concepts)) || allConcepts.map(function (c) { return c.name })
       parsed.operators.forEach(function (op) {
-        var pill = el('span', 'badge badge-sm badge-outline gap-1 font-mono text-[11px] py-2 px-2.5 bg-base-100')
-        var labelText = op.key + ':' + op.val
-        pill.innerHTML = '<span>' + escapeHtml(labelText) + '</span>'
-        var removeBtn = el('button', 'ml-1 hover:text-error cursor-pointer font-bold', '×')
+        var pill = el('span', 'innfo-active-filter-pill badge badge-sm badge-outline gap-1.5 text-[11px] py-2 px-2.5 bg-base-100')
+        pill.setAttribute('data-filter-key', String(op.key))
+        if (op.key === 'concept' || op.key === '!concept') {
+          var cMeta = conceptMetaOf(schemaConcepts, op.val)
+          pill.classList.add('innfo-active-filter-pill--concept')
+          pill.setAttribute('data-concept-slot', String(cMeta.slot))
+          if (cMeta.hexColor) {
+            pill.style.setProperty('--pill-concept-color', cMeta.hexColor)
+            pill.style.borderColor = cMeta.hexColor
+            pill.style.color = cMeta.hexColor
+            pill.style.backgroundColor = 'color-mix(in srgb, ' + cMeta.hexColor + ' 10%, #ffffff)'
+          }
+          if (UI && typeof UI.icon === 'function' && typeof UI.resolveConceptIconName === 'function') {
+            var cIco = el('span', 'innfo-filter-pill-icon')
+            cIco.setAttribute('aria-hidden', 'true')
+            cIco.innerHTML = UI.icon(UI.resolveConceptIconName(op.val, cMeta), 12)
+            pill.appendChild(cIco)
+          }
+          var matchedConcept = conceptByName(schemaConcepts, op.val)
+          var cDisplay = (matchedConcept && matchedConcept.name) || op.val
+          pill.appendChild(el('span', 'font-semibold', (op.key === '!concept' ? '!Concept: ' : 'Concept: ') + cDisplay))
+        } else if (op.key === 'model' || op.key === 'file') {
+          pill.classList.add('innfo-active-filter-pill--model')
+          if (typeof InnfoIcons !== 'undefined' && typeof InnfoIcons.getSvg === 'function') {
+            var mIco = el('span', 'innfo-filter-pill-icon')
+            mIco.setAttribute('aria-hidden', 'true')
+            mIco.innerHTML = InnfoIcons.getSvg('file-text', { size: 12 })
+            pill.appendChild(mIco)
+          }
+          var matchedModel = models.filter(function (m) {
+            var mid = String(m.id || m.filePath || '').toLowerCase()
+            return mid === String(op.val).toLowerCase()
+          })[0]
+          var mDisplay = (matchedModel && (matchedModel.title || matchedModel.id)) || op.val
+          pill.appendChild(el('span', 'font-semibold', 'Model: ' + mDisplay))
+        } else {
+          var labelText = op.key + ':' + op.val
+          pill.appendChild(el('span', 'font-mono', labelText))
+        }
+        var removeBtn = el('button', 'innfo-filter-pill-remove ml-1 hover:text-error cursor-pointer font-bold', '×')
         removeBtn.setAttribute('type', 'button')
+        removeBtn.setAttribute('aria-label', 'Remove filter ' + op.key)
         removeBtn.addEventListener('click', function (e) {
           e.stopPropagation()
           toggleFacet(op.key, op.val, false)
@@ -13091,9 +13538,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       })
 
       parsed.textTokens.forEach(function (token) {
-        var pill = el('span', 'badge badge-sm badge-outline gap-1 font-mono text-[11px] py-2 px-2.5 bg-base-100')
-        pill.innerHTML = '<span>"' + escapeHtml(token) + '"</span>'
-        var removeBtn = el('button', 'ml-1 hover:text-error cursor-pointer font-bold', '×')
+        var pill = el('span', 'innfo-active-filter-pill badge badge-sm badge-outline gap-1 font-mono text-[11px] py-2 px-2.5 bg-base-100')
+        pill.appendChild(el('span', null, '"' + token + '"'))
+        var removeBtn = el('button', 'innfo-filter-pill-remove ml-1 hover:text-error cursor-pointer font-bold', '×')
         removeBtn.setAttribute('type', 'button')
         removeBtn.addEventListener('click', function (e) {
           e.stopPropagation()
@@ -13218,9 +13665,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         summary.setAttribute('data-model', mid)
         var fileIcon = typeof InnfoIcons !== 'undefined' ? InnfoIcons.getSvg('file-text', { size: 14 }) : ''
         summary.innerHTML =
-          '<span class="flex items-center gap-2 min-w-0">' + fileIcon +
+          '<span class="innfo-rail-model-pill flex items-center gap-2 min-w-0" data-ku-kind="document">' + fileIcon +
           '<span class="truncate font-semibold">' + escapeHtml(m.title || m.filePath || 'Model') + '</span></span>' +
-          '<span class="badge badge-ghost badge-xs">' + (Number(m.elementCount) || 0) + '</span>'
+          '<span class="innfo-rail-count badge badge-ghost badge-xs">' + (Number(m.elementCount) || 0) + '</span>'
         summary.addEventListener('click', function (e) {
           // Clicking the chevron zone on the right edge toggles accordion open/close
           // without clobbering the active search filter.
@@ -13265,12 +13712,16 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
             var cMeta = conceptMetaOf(globalConcepts, name)
             var color = cMeta.hexColor
             a.setAttribute('data-concept-slot', String(cMeta.slot))
+            if (color) a.style.setProperty('--rail-concept-color', color)
             var dot = color
               ? '<span class="innfo-concept-dot" style="background:' + escapeHtml(color) + ';flex:none;"></span>'
               : ''
+            var cSvg = UI && typeof UI.icon === 'function' && typeof UI.resolveConceptIconName === 'function'
+              ? '<span class="innfo-rail-concept-icon" aria-hidden="true">' + UI.icon(UI.resolveConceptIconName(name, cMeta), 13) + '</span>'
+              : ''
             a.innerHTML =
-              '<span class="flex items-center gap-2 min-w-0">' + dot + '<span class="truncate">' + escapeHtml(name) + '</span></span>' +
-              '<span class="badge badge-ghost badge-xs">' + (Number(counts && counts[name]) || 0) + '</span>'
+              '<span class="innfo-rail-concept-pill flex items-center gap-1.5 min-w-0" data-ku-kind="concept">' + dot + cSvg + '<span class="truncate">' + escapeHtml(name) + '</span></span>' +
+              '<span class="innfo-rail-count badge badge-ghost badge-xs">' + (Number(counts && counts[name]) || 0) + '</span>'
             a.addEventListener('click', function (e) {
               if (e && e.preventDefault) e.preventDefault()
               if (typeof onSelect === 'function') onSelect(formatFacetToken('concept', name))
@@ -13386,14 +13837,27 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     host.innerHTML = ''
 
     var name = concept.name || 'Concept'
-    var head = el('div', 'innfo-guide-head')
-    var badge = el('span', 'innfo-card-concept-badge badge badge-outline badge-sm', name)
     var gMeta = conceptMetaOf(schema && schema.concepts, name)
+    var head = el('div', 'innfo-guide-head')
+    var badge = el('span', 'innfo-card-concept-badge badge badge-outline badge-sm')
     if (gMeta && gMeta.hexColor) {
+      badge.style.setProperty('--card-concept-color', gMeta.hexColor)
       badge.style.borderColor = gMeta.hexColor
       badge.style.color = gMeta.hexColor
     }
+    if (UI && typeof UI.icon === 'function' && typeof UI.resolveConceptIconName === 'function') {
+      var gIco = el('span', 'innfo-concept-pill-icon')
+      gIco.setAttribute('aria-hidden', 'true')
+      gIco.innerHTML = UI.icon(UI.resolveConceptIconName(name, gMeta), 13)
+      badge.appendChild(gIco)
+    }
+    badge.appendChild(doc.createTextNode(name))
     head.appendChild(badge)
+
+    var count = counts && counts[name] != null ? counts[name] : null
+    if (count != null) {
+      head.appendChild(el('span', 'innfo-guide-meta', count + ' ' + (count === 1 ? 'element' : 'elements')))
+    }
     host.appendChild(head)
 
     var description = concept.description || concept.summary || ''
@@ -13403,13 +13867,27 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     if (fields.length) {
       var fs = el('section', 'innfo-guide-section')
       fs.appendChild(el('h4', 'innfo-guide-title', 'Fields (' + fields.length + ')'))
-      var fdl = el('dl', 'innfo-guide-list')
+      var fdl = el('dl', 'innfo-guide-list innfo-guide-field-list')
       fields.forEach(function (f) {
         if (!f) return
         var label = f.label || f.name
         if (label == null) return
-        fdl.appendChild(el('dt', null, String(label)))
-        fdl.appendChild(el('dd', null, String(f.type || f.widget || '')))
+        var dt = el('dt', 'innfo-guide-field-dt')
+        var fChip = el('span', 'innfo-ku-field-chip', '~ ' + String(label))
+        fChip.setAttribute('data-ku-kind', 'field')
+        dt.appendChild(fChip)
+        var dd = el('dd', 'innfo-guide-field-dd')
+        var fTypeStr = String(f.type || f.widget || 'string')
+        var tBadge = el('span', 'innfo-ku-field-type', fTypeStr)
+        dd.appendChild(tBadge)
+        var targetC = f.target || f.targetConcept || null
+        if (targetC) {
+          var tcMeta = conceptMetaOf(schema && schema.concepts, targetC)
+          var tcPill = UI.ConceptPill({ id: targetC, label: targetC, index: tcMeta.index, color: tcMeta.color }, { doc: doc })
+          dd.appendChild(tcPill)
+        }
+        fdl.appendChild(dt)
+        fdl.appendChild(dd)
       })
       fs.appendChild(fdl)
       host.appendChild(fs)
@@ -13419,10 +13897,12 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     if (markers.length) {
       var ms = el('section', 'innfo-guide-section')
       ms.appendChild(el('h4', 'innfo-guide-title', 'Markers (' + markers.length + ')'))
-      var mul = el('ul', 'innfo-guide-list')
+      var mul = el('div', 'innfo-guide-marker-row')
       markers.forEach(function (m) {
         if (!m) return
-        mul.appendChild(el('li', null, String(m.label || m.name || '')))
+        var mLabel = String(m.label || m.name || '')
+        if (!mLabel) return
+        mul.appendChild(UI.MarkerChip({ id: mLabel, label: '! ' + mLabel, kind: 'marker' }))
       })
       ms.appendChild(mul)
       host.appendChild(ms)
@@ -13432,18 +13912,25 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     if (matrixList.length) {
       var mts = el('section', 'innfo-guide-section')
       mts.appendChild(el('h4', 'innfo-guide-title', 'Matrices (' + matrixList.length + ')'))
-      var mtl = el('ul', 'innfo-guide-list')
+      var mtl = el('ul', 'innfo-guide-list innfo-guide-matrix-list')
       matrixList.forEach(function (m) {
         if (!m) return
-        mtl.appendChild(el('li', null, String(m.name || m.source + ' \u2192 ' + m.target)))
+        var mli = el('li', 'innfo-guide-matrix-item')
+        var mTitle = el('span', 'innfo-guide-matrix-name', String(m.name || (m.source + ' \u2192 ' + m.target)))
+        mli.appendChild(mTitle)
+        if (m.source && m.target) {
+          var pairWrap = el('div', 'innfo-guide-matrix-pair')
+          var sMeta = conceptMetaOf(schema && schema.concepts, m.source)
+          var tMeta = conceptMetaOf(schema && schema.concepts, m.target)
+          pairWrap.appendChild(UI.ConceptPill({ id: m.source, label: m.source, index: sMeta.index, color: sMeta.color }, { doc: doc }))
+          pairWrap.appendChild(el('span', 'innfo-guide-matrix-arrow', '⇄'))
+          pairWrap.appendChild(UI.ConceptPill({ id: m.target, label: m.target, index: tMeta.index, color: tMeta.color }, { doc: doc }))
+          mli.appendChild(pairWrap)
+        }
+        mtl.appendChild(mli)
       })
       mts.appendChild(mtl)
       host.appendChild(mts)
-    }
-
-    var count = counts && counts[name] != null ? counts[name] : null
-    if (count != null) {
-      host.appendChild(el('div', 'innfo-guide-meta', count + ' ' + (count === 1 ? 'element' : 'elements')))
     }
   }
 
@@ -13482,15 +13969,15 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       idx = target ? h % 12 : 0
     }
     var rawColor = found && found.color ? String(found.color).trim() : undefined
-    var slot = UI && typeof UI.conceptSlot === 'function' ? UI.conceptSlot({ index: idx, color: rawColor }) : (idx % 12) + 1
-    var visuals = typeof self !== 'undefined' && self.InnfoVisuals ? self.InnfoVisuals : null
-    var hexColor = rawColor
-      ? (visuals && typeof visuals.getHexColor === 'function' ? visuals.getHexColor(rawColor) : rawColor)
+    var safeRaw = rawColor && /^(#[0-9a-fA-F]{3,8}|[a-zA-Z]{2,20})$/.test(rawColor) ? rawColor : undefined
+    var slot = UI && typeof UI.conceptSlot === 'function' ? UI.conceptSlot({ index: idx, color: safeRaw }) : (idx % 12) + 1
+    var hexColor = safeRaw && safeRaw.charAt(0) === '#'
+      ? safeRaw
       : SLOT_HEX_PALETTE[(slot - 1) % SLOT_HEX_PALETTE.length]
     return {
       index: idx,
       slot: slot,
-      color: rawColor || hexColor,
+      color: safeRaw || hexColor,
       hexColor: hexColor,
       icon: found && found.icon,
     }
@@ -13579,6 +14066,18 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var projectedElements = projectElements(elements, drafts)
 
     var visuals = typeof self !== 'undefined' && self.InnfoVisuals ? self.InnfoVisuals : null
+    if (refs && isObject(refs)) {
+      Object.keys(refs).forEach(function (rk) {
+        var rEl = refs[rk]
+        if (rEl && isObject(rEl) && rEl.concept) {
+          var rMeta = conceptMetaOf(concepts, rEl.concept)
+          rEl._conceptHexColor = rMeta.hexColor
+          rEl._conceptSlot = rMeta.slot
+          rEl._conceptColor = rMeta.color
+          rEl._conceptIndex = rMeta.index
+        }
+      })
+    }
 
     projectedElements.forEach(function (element) {
       var fields = []
@@ -13605,11 +14104,22 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
             }
           }
           var fieldCites = Array.isArray(elCitations[k]) && elCitations[k].length ? elCitations[k] : undefined
+          var targetCMeta = target && target.concept ? conceptMetaOf(concepts, target.concept) : null
           fields.push({
             name: k,
             value: val,
             type: fieldTypeOf(schema, k),
-            ref: target ? { id: target.id || String(val), label: target.name || cleanKey || String(val) } : undefined,
+            ref: target
+              ? {
+                  id: target.id || String(val),
+                  label: target.name || cleanKey || String(val),
+                  concept: target.concept,
+                  color: targetCMeta && targetCMeta.color,
+                  hexColor: targetCMeta && targetCMeta.hexColor,
+                  slot: targetCMeta && targetCMeta.slot,
+                  index: targetCMeta && targetCMeta.index,
+                }
+              : undefined,
             citations: fieldCites,
           })
         })
@@ -13671,7 +14181,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       var cMeta = conceptMetaOf(concepts, element.concept)
       var hexColor = cMeta.hexColor
       card.style.setProperty('--card-concept-color', hexColor)
-      card.style.borderColor = 'color-mix(in srgb, ' + hexColor + ' 35%, var(--innfo-border, #e5e0ec))'
+      card.style.borderColor = 'color-mix(in srgb, ' + hexColor + ' 35%, var(--innfo-border, #e5e5e5))'
       card.style.borderLeft = '4px solid ' + hexColor
 
       var head = card.querySelector('.innfo-card-head, header')
@@ -13684,6 +14194,12 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         var cDot = el('span', 'innfo-concept-dot')
         cDot.style.backgroundColor = hexColor
         cBadge.appendChild(cDot)
+        if (UI && typeof UI.icon === 'function' && typeof UI.resolveConceptIconName === 'function') {
+          var cIcoSpan = el('span', 'innfo-concept-pill-icon')
+          cIcoSpan.setAttribute('aria-hidden', 'true')
+          cIcoSpan.innerHTML = UI.icon(UI.resolveConceptIconName(element.concept, cMeta), 12)
+          cBadge.appendChild(cIcoSpan)
+        }
         cBadge.appendChild(doc.createTextNode(element.concept))
         var elementBadge = head.querySelector('[data-ku-kind="element"]')
         if (elementBadge) head.insertBefore(cBadge, elementBadge)
@@ -13718,7 +14234,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       var thumbEl = card.querySelector('.innfo-card-thumb')
       if (thumbEl && thumbEl.classList && thumbEl.classList.contains('innfo-card-thumb--concept')) {
         thumbEl.style.color = hexColor
-        thumbEl.style.borderColor = 'color-mix(in srgb, ' + hexColor + ' 38%, var(--innfo-border, #e5e0ec))'
+        thumbEl.style.borderColor = 'color-mix(in srgb, ' + hexColor + ' 38%, var(--innfo-border, #e5e5e5))'
         thumbEl.style.backgroundColor = 'color-mix(in srgb, ' + hexColor + ' 12%, #ffffff)'
       }
       if (mediaItems.length && thumbEl && thumbEl.tagName === 'IMG') {
@@ -13899,8 +14415,21 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       tr.setAttribute('data-element-id', String(element.id || ''))
       if (element._draft) tr.classList.add('innfo-element-table-draft')
 
+      var rowCMeta = conceptMetaOf(conceptList, element.concept)
       var nameTd = el('td', 'innfo-element-table-name')
-      nameTd.appendChild(el('span', null, element.name || element.id || ''))
+      var elPill = UI.ElementPill(
+        {
+          id: element.id,
+          label: element.name || element.id || '',
+          concept: element.concept,
+          color: rowCMeta.color,
+          hexColor: rowCMeta.hexColor,
+          slot: rowCMeta.slot,
+          index: rowCMeta.index,
+        },
+        { doc: doc },
+      )
+      nameTd.appendChild(elPill)
       if (element._draft) {
         nameTd.appendChild(
           el(
@@ -13913,10 +14442,15 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       tr.appendChild(nameTd)
 
       var conceptTd = el('td')
-      var cBadge = el('span', 'badge badge-outline badge-xs', element.concept || '')
-      var hex = conceptColor(element.concept)
-      cBadge.style.borderColor = hex
-      cBadge.style.color = hex
+      var cBadge = UI.ConceptPill(
+        {
+          id: element.concept || '',
+          label: element.concept || '',
+          index: rowCMeta.index,
+          color: rowCMeta.color,
+        },
+        { doc: doc },
+      )
       conceptTd.appendChild(cBadge)
       tr.appendChild(conceptTd)
 
@@ -14004,13 +14538,15 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         return UI.KuBadge({ kind: 'marker', id: key, label: e.label || key, markerKind: 'field' })
       }
       var cm = conceptMeta(e.concept)
+      var cMetaFull = conceptMetaOf(conceptList, e.concept)
+      var resolvedIcon = (cm.meta && cm.meta.icon) || (UI && typeof UI.resolveConceptIconName === 'function' ? UI.resolveConceptIconName(e.concept, cMetaFull) : undefined)
       return UI.KuBadge({
         kind: 'element',
         id: key,
         label: e.label || key,
-        index: cm.index,
-        color: cm.meta && cm.meta.color,
-        icon: cm.meta && cm.meta.icon,
+        index: cMetaFull.index,
+        color: cMetaFull.color,
+        icon: resolvedIcon,
       })
     }
     ;(Array.isArray(matrices) ? matrices : []).forEach(function (matrix) {
@@ -14046,7 +14582,19 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
       var headTr = el('tr', null, null)
       if (headTr) {
-        headTr.appendChild(el('th', null, ''))
+        var cornerTh = el('th', 'innfo-matrix-corner', null)
+        var srcConcept = matrix.source || (rows.length && headRows[isStructured ? (rows[0].sourceId || rows[0].sourceLabel) : rows[0]] && headRows[isStructured ? (rows[0].sourceId || rows[0].sourceLabel) : rows[0]].concept) || null
+        var tgtConcept = matrix.target || (cols.length && headCols[cols[0]] && headCols[cols[0]].concept) || null
+        if (cornerTh && srcConcept && tgtConcept) {
+          var sMetaM = conceptMetaOf(conceptList, srcConcept)
+          var tMetaM = conceptMetaOf(conceptList, tgtConcept)
+          var cornerWrap = el('div', 'innfo-matrix-corner-pills')
+          cornerWrap.appendChild(UI.ConceptPill({ id: srcConcept, label: srcConcept + ' ↓', index: sMetaM.index, color: sMetaM.color }, { doc: doc }))
+          cornerWrap.appendChild(el('span', 'innfo-matrix-corner-sep', '×'))
+          cornerWrap.appendChild(UI.ConceptPill({ id: tgtConcept, label: tgtConcept + ' →', index: tMetaM.index, color: tMetaM.color }, { doc: doc }))
+          cornerTh.appendChild(cornerWrap)
+        }
+        headTr.appendChild(cornerTh)
         cols.forEach(function (c) {
           var th = el('th', null, null)
           if (th) th.appendChild(headerBadge(headCols[c], String(c)))
@@ -14066,8 +14614,12 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         cols.forEach(function (c) {
           var value = rowCells[c] != null ? String(rowCells[c]) : ''
           var isEmpty = value === '' || value === '-'
-          var td = el('td', isEmpty ? 'innfo-matrix-cell-empty' : null, null)
-          if (td) td.appendChild(UI.KuBadge({ kind: 'cell', value: isEmpty ? '—' : value }))
+          var td = el('td', isEmpty ? 'innfo-matrix-cell-empty' : 'innfo-matrix-cell-filled', null)
+          if (td) {
+            var cellBadge = UI.KuBadge({ kind: 'cell', value: isEmpty ? '—' : value })
+            if (!isEmpty) cellBadge.setAttribute('data-cell-value', value.toLowerCase())
+            td.appendChild(cellBadge)
+          }
           tr.appendChild(td)
         })
         table.appendChild(tr)
@@ -15014,7 +15566,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   /* View registry. A view is a classic script that calls the registerView
      bound by viewRegistrar(id, source); the id is the file slug. A rejected
      registration throws AND is recorded in registry.errors(), which boot
-     renders as the #innfo-view-errors notice (a throw inside a \x3Cscript> is
+     renders as the #innfo-view-errors notice (a throw inside a <script> is
      otherwise visible only in devtools). */
   var VIEW_ID_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/
   var RESERVED_VIEW_IDS = ['explorer', 'matrices', 'review']
@@ -15612,8 +16164,18 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
   function elementsByIdOf(state) {
     var byId = {}
+    var concepts = (state && state.schema && state.schema.concepts) || (state && state.concepts) || []
     ;(state && state.elements ? state.elements : []).forEach(function (e) {
-      if (e && e.id) byId[e.id] = e
+      if (e && e.id) {
+        if (e.concept && !e._conceptHexColor) {
+          var cm = conceptMetaOf(concepts, e.concept)
+          e._conceptHexColor = cm.hexColor
+          e._conceptSlot = cm.slot
+          e._conceptColor = cm.color
+          e._conceptIndex = cm.index
+        }
+        byId[e.id] = e
+      }
     })
     return byId
   }
@@ -15776,7 +16338,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     if (head && h) head.appendChild(h)
     if (head && close) head.appendChild(close)
     var body = el('div', 'innfo-ref-body')
-    var tag = el('span', 'innfo-ref-tag', String(element.concept || 'Element'))
+    var tag = UI && typeof UI.ConceptPill === 'function'
+      ? UI.ConceptPill({ id: element.concept || 'Element', label: String(element.concept || 'Element') }, { doc: doc })
+      : el('span', 'innfo-ref-tag', String(element.concept || 'Element'))
+    if (tag) tag.classList.add('innfo-ref-tag')
     if (body && tag) body.appendChild(tag)
     if (body && element.description) {
       var p = el('p', 'innfo-ref-desc', element.description)
@@ -16107,8 +16672,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       if (m.name) {
         var rawName = String(m.name)
         var shortName = rawName.length > 20 ? rawName.replace(/\s+Matrix$/i, '') : rawName
-        var lx = (x1 + x2) * 0.5
-        var ly = (y1 + y2) * 0.5
+        var tFrac = 0.5
+        var lx = x1 + (x2 - x1) * tFrac
+        var ly = y1 + (y2 - y1) * tFrac
         pendingEdgeLabels.push({ x: lx, y: ly, text: shortName, fullText: rawName, kind: m.kind })
       }
     })
@@ -16119,10 +16685,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       c.setAttribute('cy', pos[name].y)
       c.setAttribute('r', String(nodeR))
       c.setAttribute('class', 'innfo-metamodel-node')
-      var nodeMeta = conceptMetaOf(schema && schema.concepts, name)
+      var nodeMeta = conceptMetaOf((schema && schema.concepts && schema.concepts.length ? schema.concepts : nodes), name)
       if (nodeMeta && nodeMeta.hexColor) {
         c.style.stroke = nodeMeta.hexColor
         c.style.strokeWidth = '2.5px'
+        c.style.fill = 'color-mix(in srgb, ' + nodeMeta.hexColor + ' 10%, #ffffff)'
       }
       c.style.cursor = 'pointer'
       var title = doc.createElementNS(NS, 'title')
@@ -16319,7 +16886,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       if (colorName && visuals && typeof visuals.getHexColor === 'function') {
         return visuals.getHexColor(colorName)
       }
-      return '#4d0e4e'
+      return '#171717'
     }
     function iconOf(iconName) {
       if (iconName && visuals && typeof visuals.iconSvg === 'function') {
@@ -17005,6 +17572,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       // The changeset title comes from meta.title; a scoped export names its view there.
       meta: scopedView ? Object.assign({}, meta, { title: baseTitle + ' - ' + (scopedDef ? scopedDef.title : scopedView) }) : meta,
       elements: elements,
+      schema: schema,
+      concepts: concepts,
       store: Review.createDraftStore(
         typeof localStorage !== 'undefined' ? localStorage : null,
         // A domain console keys its drafts by the stable domain id, never by content.
@@ -18187,6 +18756,38 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       if (typeof dialog.showModal === 'function') dialog.showModal()
     }
 
+    function appendWithKuPills(hostEl, rawText) {
+      var text = String(rawText == null ? '' : rawText)
+      var names = Object.keys(byName).filter(function (n) { return n && n.length >= 3 }).sort(function (a, b) { return b.length - a.length })
+      var escapedNames = names.map(function (n) { return n.replace(/[.*+?^${}()|[\]\\]/g, '\\    function refButton(label, name) {') })
+      var patternParts = ['\\bfb-\\d+\\b']
+      if (escapedNames.length) patternParts.push(escapedNames.join('|'))
+      var re = new RegExp('(' + patternParts.join('|') + ')', 'g')
+      var lastIdx = 0
+      var match
+      while ((match = re.exec(text)) !== null) {
+        if (match.index > lastIdx) {
+          hostEl.appendChild(document.createTextNode(text.slice(lastIdx, match.index)))
+        }
+        var token = match[0]
+        if (/^fb-\d+$/.test(token)) {
+          var chg = document.createElement('span')
+          chg.className = 'innfo-ku-field-chip'
+          chg.textContent = token
+          hostEl.appendChild(chg)
+        } else if (byName[token]) {
+          var rb = refButton(token, token)
+          hostEl.appendChild(rb.node)
+        } else {
+          hostEl.appendChild(document.createTextNode(token))
+        }
+        lastIdx = re.lastIndex
+      }
+      if (lastIdx < text.length) {
+        hostEl.appendChild(document.createTextNode(text.slice(lastIdx)))
+      }
+    }
+
     function refButton(label, name) {
       var target = byName[name]
       if (!target) {
@@ -18267,7 +18868,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         var h = document.createElement(isRoot ? 'h2' : 'h3')
         var iconName = step.fields.step_type || 'task'
         var svg = vIcon(iconName, 16)
-        h.style.color = 'var(--innfo-accent, #4d0e4e)'
+        h.style.color = 'var(--innfo-accent, #171717)'
         h.innerHTML =
           '<span class="step-type-icon">' +
           (svg || STEP_TYPE_ICONS[step.fields.step_type] || '•') +
@@ -18662,7 +19263,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       if (cur.el.description) {
         var pDesc = document.createElement('p')
         pDesc.className = 'exec-step-desc'
-        pDesc.textContent = cur.el.description
+        appendWithKuPills(pDesc, cur.el.description)
         card.appendChild(pDesc)
       }
 

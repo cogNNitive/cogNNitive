@@ -17,18 +17,18 @@
   // contrast table; the contrast suite recomputes these independently.
   var TOKEN_VALUES = {
     light: {
-      // morado-nazareno brand: purple #4D0E4E primary on a flat light canvas,
-      // soft lavender-grey borders, ink #111112 / muted #636366. Concept colors
-      // stay app-driven data; only brand + neutrals live here.
-      '--innfo-bg': '#faf9fc',
+      // nn-shad-cn monochrome neutral preset: near-black #171717 primary on a
+      // crisp white/zinc canvas, neutral #e5e5e5 borders, ink #0a0a0a / muted #666666.
+      // Concept colors stay app-driven data; only brand + neutrals live here.
+      '--innfo-bg': '#fafafa',
       '--innfo-surface': '#ffffff',
-      '--innfo-surface-2': '#f5f3f8',
-      '--innfo-text': '#191724',
-      '--innfo-muted': '#6b6879',
-      '--innfo-border': '#eceaf2',
-      '--innfo-accent': '#4d0e4e',
-      '--innfo-link': '#5c1560',
-      '--innfo-focus': '#7a2c86',
+      '--innfo-surface-2': '#f4f4f5',
+      '--innfo-text': '#0a0a0a',
+      '--innfo-muted': '#666666',
+      '--innfo-border': '#e5e5e5',
+      '--innfo-accent': '#171717',
+      '--innfo-link': '#171717',
+      '--innfo-focus': '#52525b',
       '--innfo-concept-1': '#3b82f6',
       '--innfo-concept-2': '#8b5cf6',
       '--innfo-concept-3': '#14b8a6',
@@ -520,10 +520,11 @@
     if (!data || typeof data !== 'object') throw new TypeError('InnfoUI.ConceptPill: data required')
     var doc = resolveDoc(opts)
     var interactive = !!(opts && opts.onSelect)
+    var slot = conceptSlot(data)
     var pill = makeEl(doc, interactive ? 'button' : 'span', 'innfo-concept-pill')
     pill.setAttribute('data-innfo-component', 'concept-pill')
     pill.setAttribute('data-concept-id', String(data.id == null ? '' : data.id))
-    pill.setAttribute('data-concept-slot', String(conceptSlot(data)))
+    pill.setAttribute('data-concept-slot', String(slot))
     if (interactive) {
       pill.setAttribute('type', 'button')
       pill.addEventListener('click', function () {
@@ -532,6 +533,10 @@
     }
     var dot = makeEl(doc, 'i', 'innfo-concept-dot')
     pill.appendChild(dot)
+    var cIcon = makeEl(doc, 'span', 'innfo-concept-pill-icon')
+    cIcon.setAttribute('aria-hidden', 'true')
+    cIcon.innerHTML = icon(resolveConceptIconName(data.label || data.id, { index: slot - 1, color: data.color, icon: data.icon }), 12)
+    pill.appendChild(cIcon)
     pill.appendChild(doc.createTextNode(String(data.label == null ? '' : data.label)))
     if (data.count != null) pill.appendChild(makeEl(doc, 'span', 'innfo-concept-count', ' (' + data.count + ')'))
     return pill
@@ -550,6 +555,17 @@
       pill.addEventListener('click', function () {
         if (opts && opts.onSelect) opts.onSelect(data)
       })
+    }
+    var hasConceptMeta = !!(data.concept || data.color || data.index != null || data.slot != null || data.hexColor)
+    if (hasConceptMeta) {
+      var eSlot = Number(data.slot) || conceptSlot({ index: data.index, color: data.color })
+      pill.setAttribute('data-concept-slot', String(eSlot))
+      pill.classList.add('innfo-element-pill--concept')
+      if (data.hexColor) pill.style.setProperty('--pill-concept-color', String(data.hexColor))
+      var eIcon = makeEl(doc, 'span', 'innfo-element-concept-icon')
+      eIcon.setAttribute('aria-hidden', 'true')
+      eIcon.innerHTML = icon(resolveConceptIconName(data.concept, { index: eSlot - 1, color: data.color, icon: data.icon }), 12)
+      pill.appendChild(eIcon)
     }
     if (data.origin) {
       var wrap = makeEl(doc, 'span', 'innfo-element-origin')
@@ -693,11 +709,24 @@
       var li = makeEl(doc, 'li', 'innfo-rel-row')
       if (r.field) li.setAttribute('data-rel-field', String(r.field))
       if (r.target) li.setAttribute('data-rel-target', String(r.target))
-      li.appendChild(makeEl(doc, 'span', 'innfo-rel-field', (r.field || 'related') + ' \u2192'))
-      var label = r.targetLabel || (byId[r.target] && byId[r.target].name) || r.target || '?'
+      var relFieldChip = makeEl(doc, 'span', 'innfo-rel-field innfo-ku-field-chip', (r.field || 'related') + ' \u2192')
+      li.appendChild(relFieldChip)
+      var targetRec = r.target && byId[r.target] ? byId[r.target] : null
+      var label = r.targetLabel || (targetRec && targetRec.name) || r.target || '?'
       if (r.target) {
         li.appendChild(
-          ElementPill({ id: r.target, label: label }, { href: '#el-' + r.target }),
+          ElementPill(
+            {
+              id: r.target,
+              label: label,
+              concept: r.targetConcept || (targetRec && targetRec.concept),
+              color: r.targetColor || (targetRec && targetRec._conceptColor),
+              hexColor: r.targetHexColor || (targetRec && targetRec._conceptHexColor),
+              slot: r.targetSlot || (targetRec && targetRec._conceptSlot),
+              index: targetRec && targetRec._conceptIndex,
+            },
+            { href: '#el-' + r.target, doc: doc },
+          ),
         )
       } else {
         li.appendChild(doc.createTextNode(String(label)))
@@ -895,9 +924,21 @@
     }
     if (hasRef) {
       badge.appendChild(
-        ElementPill({ id: data.ref.id, label: data.ref.label || data.ref.id }, {
-          onSelect: opts && opts.onRef ? function () { opts.onRef(data.ref.id) } : undefined,
-        }),
+        ElementPill(
+          {
+            id: data.ref.id,
+            label: data.ref.label || data.ref.id,
+            concept: data.ref.concept,
+            color: data.ref.color,
+            hexColor: data.ref.hexColor,
+            slot: data.ref.slot,
+            index: data.ref.index,
+          },
+          {
+            doc: doc,
+            onSelect: opts && opts.onRef ? function () { opts.onRef(data.ref.id) } : undefined,
+          },
+        ),
       )
     }
     if (Array.isArray(data.citations) && data.citations.length) {
@@ -956,6 +997,10 @@
     fallback()
   }
 
+  function targetRecHex(rec) {
+    return rec && rec._conceptHexColor ? rec._conceptHexColor : null
+  }
+
   function imageFieldOf(fields) {
     var list = Array.isArray(fields) ? fields : []
     for (var i = 0; i < list.length; i++) {
@@ -1004,7 +1049,7 @@
     var conceptIconName = resolveConceptIconName(data.conceptId, conceptOpts)
 
     function makeConceptThumb() {
-      var ph = makeEl(doc, 'span', 'innfo-card-thumb innfo-card-thumb--concept')
+      var ph = makeEl(doc, 'span', 'innfo-card-thumb innfo-card-thumb--concept innfo-card-thumb--empty')
       ph.setAttribute('data-concept-icon', conceptIconName)
       ph.setAttribute('title', String(data.conceptId || 'Element'))
       ph.setAttribute('aria-hidden', 'true')
@@ -1181,15 +1226,33 @@
         })
       }
 
-      // 3. Outgoing relations rendered as compact wikilink pills on the right
+      // 3. Outgoing relations rendered as Field KU chip + target-concept-colored Element KU pill
       if (relations && relations.length) {
         relations.slice(0, 3).forEach(function (r) {
           if (!r || typeof r !== 'object') return
-          var rLabel = r.targetLabel || (r.target && byId[r.target] && byId[r.target].name) || r.target || '?'
+          var tRec = r.target && byId[r.target] ? byId[r.target] : null
+          var rLabel = r.targetLabel || (tRec && tRec.name) || r.target || '?'
+          var relGroup = makeEl(doc, 'span', 'innfo-strip-rel-group')
+          if (r.field) {
+            var fChip = makeEl(doc, 'span', 'innfo-ku-field-chip innfo-strip-rel-field', '~ ' + r.field)
+            relGroup.appendChild(fChip)
+          }
           var pill = makeEl(doc, 'a', 'innfo-strip-rel')
           if (r.target) pill.setAttribute('href', '#el-' + r.target)
-          pill.textContent = (r.field ? r.field + ': ' : '') + rLabel + ' ↗'
-          stripRight.appendChild(pill)
+          var tConcept = r.targetConcept || (tRec && tRec.concept)
+          var tSlot = r.targetSlot || (tRec && tRec._conceptSlot)
+          var tHex = r.targetHexColor || (tRec && targetRecHex(tRec))
+          if (tSlot) pill.setAttribute('data-concept-slot', String(tSlot))
+          if (tHex) pill.style.setProperty('--pill-concept-color', String(tHex))
+          if (tConcept || tSlot) {
+            var tIco = makeEl(doc, 'span', 'innfo-strip-rel-icon')
+            tIco.setAttribute('aria-hidden', 'true')
+            tIco.innerHTML = icon(resolveConceptIconName(tConcept, { index: (Number(tSlot) || 1) - 1 }), 11)
+            pill.appendChild(tIco)
+          }
+          pill.appendChild(doc.createTextNode((!r.field ? '' : '') + rLabel + ' ↗'))
+          relGroup.appendChild(pill)
+          stripRight.appendChild(relGroup)
         })
       }
 
@@ -1287,12 +1350,41 @@
       left.appendChild(kindBadge)
 
       var targetLabel = el ? el.name || d.element_id : d.element || d.element_id
-      var targetSpan = makeEl(
-        doc,
-        'span',
-        'innfo-draft-target font-semibold text-sm',
-        targetLabel + (d.field ? '.' + d.field : '')
+      var targetConcept = d.concept || (el && el.concept) || null
+      var targetSpan = makeEl(doc, 'span', 'innfo-draft-target inline-flex items-center gap-1.5 font-semibold text-sm')
+      if (targetConcept) {
+        var cPill = ConceptPill(
+          {
+            id: targetConcept,
+            label: targetConcept,
+            index: el && el._conceptIndex != null ? el._conceptIndex : 0,
+            color: el && el._conceptColor,
+          },
+          { doc: doc },
+        )
+        targetSpan.appendChild(cPill)
+      }
+      var ePill = ElementPill(
+        {
+          id: d.element_id || targetLabel,
+          label: targetLabel,
+          concept: targetConcept,
+          color: el && el._conceptColor,
+          hexColor: el && el._conceptHexColor,
+          slot: el && el._conceptSlot,
+          index: el && el._conceptIndex,
+        },
+        { doc: doc, href: d.element_id ? '#el-' + d.element_id : undefined },
       )
+      targetSpan.appendChild(ePill)
+      if (d.field) {
+        var arrowSpan = makeEl(doc, 'span', 'innfo-draft-arrow text-xs opacity-60', '→')
+        arrowSpan.setAttribute('aria-hidden', 'true')
+        targetSpan.appendChild(arrowSpan)
+        var fBadge = makeEl(doc, 'span', 'innfo-ku-field-chip', '~ ' + d.field)
+        fBadge.setAttribute('data-ku-kind', 'field')
+        targetSpan.appendChild(fBadge)
+      }
       left.appendChild(targetSpan)
 
       var text = d.comment != null ? d.comment : d.proposed != null ? d.proposed : ''
