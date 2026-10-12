@@ -45,6 +45,10 @@
       kind: ITEM_KINDS.indexOf(d.kind) !== -1 ? d.kind : 'comment',
       created_at: d.created_at != null ? String(d.created_at) : null,
     }
+    // Engine address of the target (file stem + element slug), captured with the draft
+    // so a changeset export does not have to guess it from display titles.
+    if (d.model_id != null && d.model_id !== '') draft.model_id = String(d.model_id)
+    if (d.element_slug != null && d.element_slug !== '') draft.element_slug = String(d.element_slug)
     if (d.field !== undefined && d.field !== null) draft.field = String(d.field)
     if (d.original !== undefined) draft.original = d.original
     if (d.proposed !== undefined) draft.proposed = d.proposed
@@ -353,6 +357,8 @@
         element: el.name || el.id,
         base_hash: el.hash,
         kind: payload.kind,
+        model_id: el.modelId || meta.modelId,
+        element_slug: el.slug,
       }
       if (payload.field !== undefined || anchorData.field) {
         draft.field = payload.field !== undefined ? payload.field : anchorData.field

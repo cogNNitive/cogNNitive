@@ -4300,17 +4300,30 @@
     return str
   }
 
-  function draftToChange(draft, index, modelTitle) {
+  // Builds one `## NN Change` block addressed the way `apply_change` resolves it:
+  // `<file stem>@<element slug>[&field]`. The draft carries `model_id` (the model's
+  // file stem) and `element_slug`; `fallbackModel` only covers drafts saved before
+  // those fields existed.
+  function draftToChange(draft, index, fallbackModel) {
     var d = isObject(draft) ? draft : {}
     var id = d.id || 'c-' + String(index + 1).padStart(2, '0')
-    var model = modelTitle || 'model'
-    var elementTarget = d.element_id || d.element || 'elem'
-    var target = d.field ? model + '@' + elementTarget + '&' + d.field : model + '@' + elementTarget
+    var model = d.model_id || fallbackModel || 'model'
+    var elementTarget = d.element_slug || d.element || d.element_id || 'elem'
+    var canUpdate = !!d.field && d.proposed !== undefined
     var op = 'update_field'
+    var target = model + '@' + elementTarget + (d.field ? '&' + d.field : '')
     if (d.kind === 'delete') {
       op = 'remove_element'
       target = model + '@' + elementTarget
-    } else if (d.kind === 'comment' || (!d.proposed && !d.field)) {
+    } else if (d.kind === 'new') {
+      if (d.concept && d.element) {
+        // A new element is addressed by its concept; the engine reads name/fields below.
+        op = 'add_element'
+        target = model + '@' + d.concept
+      } else {
+        op = 'comment'
+      }
+    } else if (d.kind === 'comment' || !canUpdate) {
       op = 'comment'
     }
 
@@ -4320,7 +4333,11 @@
     lines.push('target:: ' + target)
     if (op === 'update_field') {
       if (d.original !== undefined) lines.push('from:: ' + formatChangesetValue(d.original))
-      if (d.proposed !== undefined) lines.push('to:: ' + formatChangesetValue(d.proposed))
+      lines.push('to:: ' + formatChangesetValue(d.proposed))
+    } else if (op === 'add_element') {
+      lines.push('concept:: ' + d.concept)
+      lines.push('name:: ' + formatChangesetValue(d.element))
+      if (isObject(d.proposed)) lines.push('fields:: ' + JSON.stringify(d.proposed))
     }
     if (d.comment) {
       lines.push('notes:: ' + formatChangesetValue(d.comment))
@@ -4328,7 +4345,7 @@
     return lines.join('\n')
   }
 
-  function serializeChangesetMarkdown(meta, drafts) {
+  function serializeChangesetMarkdown(meta, drafts, fallbackModel) {
     var title = meta.title || meta.source_knowledge || 'Proposed Changes'
     var author = meta.author || 'reviewer'
     var lines = [
@@ -4351,7 +4368,7 @@
       '# NN Change',
       '',
     ]
-    var modelName = meta.source_knowledge || 'model'
+    var modelName = fallbackModel || meta.source_knowledge || 'model'
     var blocks = drafts.map(function (d, i) {
       return draftToChange(d, i, modelName)
     })
@@ -4378,7 +4395,7 @@
       return { ok: false, errors: ['Reviewer identifier is required.'] }
     }
 
-    var text = serializeChangesetMarkdown(exportMeta, drafts)
+    var text = serializeChangesetMarkdown(exportMeta, drafts, state && state.modelId)
     var filename = modelSlugOf(state) + '_' + reviewerSlug + '_' + stamp + '_changes_NN.md'
     return {
       ok: true,
@@ -4430,7 +4447,7 @@
     if (!check.ok) return { ok: false, errors: check.errors }
 
     var stamp = stampFromDate(state && state.exportedAt ? new Date(state.exportedAt) : new Date())
-    var changesetMd = serializeChangesetMarkdown(exportMeta, drafts)
+    var changesetMd = serializeChangesetMarkdown(exportMeta, drafts, state && state.modelId)
     var modelSlug = modelSlugOf(state)
     var changesetFilename = modelSlug + '_' + reviewerSlug + '_' + stamp + '_changes_NN.md'
 

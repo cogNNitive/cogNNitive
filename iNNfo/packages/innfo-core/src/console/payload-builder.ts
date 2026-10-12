@@ -75,6 +75,8 @@ export interface ConsolePayloadElementRelation {
 
 export interface ConsolePayloadElement {
   id: string
+  /** Element slug as the engine resolves it (`apply_change` target element part). */
+  slug?: string
   concept: string
   name: string
   description?: string
@@ -229,6 +231,9 @@ export function buildConsolePayload(options: BuildConsolePayloadOptions): Consol
         markers,
         hash,
       }
+      // The parsed element slug is what `apply_change` resolves; the payload `id` is
+      // a console-only key (concept + name) that the engine does not know.
+      if (node.slug) elem.slug = node.slug
 
       rawElements.push({ elem, rawFields: { ...fields } })
       if (!elementsByName.has(name.toLowerCase())) {

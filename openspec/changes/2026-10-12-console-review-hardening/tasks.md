@@ -13,10 +13,10 @@ write the tests with each slice, run everything once in slice 5.
 
 ## Slice 2 — Console -> apply contract (item 1)
 
-- [ ] 2.1 Payload exposes model file stem + element slug; `draftToChange` uses D1 address.
-- [ ] 2.2 `new` -> `add_element` (D2).
-- [ ] 2.3 Round-trip test: console export -> `parseChangeset` -> `applyChange` on a fixture domain.
-- [ ] 2.4 Rebuild bundle + shells; commit `fix(console): export changesets resolvable by apply_change`.
+- [x] 2.1 Payload exposes model file stem + element slug; `draftToChange` uses D1 address.
+- [x] 2.2 `new` -> `add_element` (D2).
+- [x] 2.3 Round-trip test: console export -> `parseChangeset` -> `applyChange` on a fixture domain.
+- [x] 2.4 Rebuild bundle + shells; commit `fix(console): export changesets resolvable by apply_change`.
 
 ## Slice 3 — Identity, drafts, staleness (items 4, 5, 6)
 

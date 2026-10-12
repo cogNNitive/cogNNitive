@@ -11005,6 +11005,7 @@ function buildConsolePayload(options) {
         markers,
         hash
       };
+      if (node.slug) elem.slug = node.slug;
       rawElements.push({ elem, rawFields: { ...fields } });
       if (!elementsByName.has(name.toLowerCase())) {
         elementsByName.set(name.toLowerCase(), elem);
