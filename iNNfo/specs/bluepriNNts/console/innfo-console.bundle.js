@@ -1292,10 +1292,13 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         if (m) head.appendChild(MarkerChip(m))
       })
     }
+    // QUD slug lives in the collapsible body, not the head: the collapsed bar
+    // stays a single identity line, the locator copies stay one click away.
+    var qudNode = null
     if (data.qud && (data.qud.id || data.qud === true)) {
       var qudData = data.qud === true ? { id: data.id } : data.qud
       if (qudData && qudData.id == null) qudData.id = data.id
-      head.appendChild(QudChip(qudData || { id: data.id }))
+      qudNode = QudChip(qudData || { id: data.id })
     }
     if (Array.isArray(opts && opts.head)) {
       ;(opts.head || []).forEach(function (n) {
@@ -1345,6 +1348,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     card.appendChild(head)
 
     var body = makeEl(doc, 'section', 'innfo-card-body')
+    if (qudNode) body.appendChild(qudNode)
     if (data.description) body.appendChild(makeEl(doc, 'p', 'innfo-card-desc', data.description))
     var headline = String(data.name || data.id || '')
     var bodyFields = fields.filter(function (fr) {
@@ -5163,7 +5167,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
       var head = card.querySelector('.innfo-card-head, header')
       if (head) {
-        var metaWrap = el('div', 'flex items-center gap-1.5 flex-wrap ml-auto mr-2')
+        var metaWrap = el('div', 'innfo-card-meta')
+        // Tailwind utilities are no-ops in the console shell; pin the cluster
+        // right with real CSS so the name stays tight to the thumbnail.
+        metaWrap.style.cssText = 'display:inline-flex;align-items:center;gap:6px;margin-left:auto;margin-right:8px;flex-wrap:wrap;'
         if (element.concept) {
           var cBadge = el('span', 'badge badge-outline badge-xs text-xs font-semibold')
           cBadge.style.borderColor = hexColor
@@ -5172,10 +5179,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           metaWrap.appendChild(cBadge)
         }
         if (element.modelFile) {
-          var mBadge = el('span', 'badge badge-ghost badge-xs text-xs font-mono', element.modelFile)
-          mBadge.setAttribute('title', 'Knowledge Unit: ' + (element.canonicalUnit || element.unitSlug || element.modelFile))
-          metaWrap.appendChild(mBadge)
-
+          // Model filename badge dropped: the expanded footer (innfo-card-path)
+          // already carries the full Knowledge Unit locator. The copy button stays.
           var kuText = element.canonicalUnit || element.unitSlug || (element.modelFile + '@' + element.id)
           var copyBtn = el('button', 'btn btn-ghost btn-xs p-0.5 text-slate-400 hover:text-primary transition-colors cursor-pointer')
           copyBtn.setAttribute('type', 'button')

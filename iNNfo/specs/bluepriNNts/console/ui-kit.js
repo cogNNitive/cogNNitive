@@ -927,10 +927,13 @@
         if (m) head.appendChild(MarkerChip(m))
       })
     }
+    // QUD slug lives in the collapsible body, not the head: the collapsed bar
+    // stays a single identity line, the locator copies stay one click away.
+    var qudNode = null
     if (data.qud && (data.qud.id || data.qud === true)) {
       var qudData = data.qud === true ? { id: data.id } : data.qud
       if (qudData && qudData.id == null) qudData.id = data.id
-      head.appendChild(QudChip(qudData || { id: data.id }))
+      qudNode = QudChip(qudData || { id: data.id })
     }
     if (Array.isArray(opts && opts.head)) {
       ;(opts.head || []).forEach(function (n) {
@@ -980,6 +983,7 @@
     card.appendChild(head)
 
     var body = makeEl(doc, 'section', 'innfo-card-body')
+    if (qudNode) body.appendChild(qudNode)
     if (data.description) body.appendChild(makeEl(doc, 'p', 'innfo-card-desc', data.description))
     var headline = String(data.name || data.id || '')
     var bodyFields = fields.filter(function (fr) {

@@ -1634,7 +1634,10 @@
 
       var head = card.querySelector('.innfo-card-head, header')
       if (head) {
-        var metaWrap = el('div', 'flex items-center gap-1.5 flex-wrap ml-auto mr-2')
+        var metaWrap = el('div', 'innfo-card-meta')
+        // Tailwind utilities are no-ops in the console shell; pin the cluster
+        // right with real CSS so the name stays tight to the thumbnail.
+        metaWrap.style.cssText = 'display:inline-flex;align-items:center;gap:6px;margin-left:auto;margin-right:8px;flex-wrap:wrap;'
         if (element.concept) {
           var cBadge = el('span', 'badge badge-outline badge-xs text-xs font-semibold')
           cBadge.style.borderColor = hexColor
@@ -1643,10 +1646,8 @@
           metaWrap.appendChild(cBadge)
         }
         if (element.modelFile) {
-          var mBadge = el('span', 'badge badge-ghost badge-xs text-xs font-mono', element.modelFile)
-          mBadge.setAttribute('title', 'Knowledge Unit: ' + (element.canonicalUnit || element.unitSlug || element.modelFile))
-          metaWrap.appendChild(mBadge)
-
+          // Model filename badge dropped: the expanded footer (innfo-card-path)
+          // already carries the full Knowledge Unit locator. The copy button stays.
           var kuText = element.canonicalUnit || element.unitSlug || (element.modelFile + '@' + element.id)
           var copyBtn = el('button', 'btn btn-ghost btn-xs p-0.5 text-slate-400 hover:text-primary transition-colors cursor-pointer')
           copyBtn.setAttribute('type', 'button')
