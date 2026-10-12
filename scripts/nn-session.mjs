@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { execFileSync } from 'node:child_process'
-import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, rmdirSync, symlinkSync, unlinkSync } from 'node:fs'
+import { existsSync, lstatSync, readdirSync, rmdirSync, unlinkSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import os from 'node:os'
@@ -38,112 +38,24 @@ function tryGit(args, root) {
   }
 }
 
-function readJson(p) {
-  try {
-    return JSON.parse(readFileSync(p, 'utf8'))
-  } catch {
-    return null
-  }
-}
-
-function parseSemver(value) {
-  const m = String(value).match(/(\d+)\.(\d+)\.(\d+)/)
-  return m ? { major: Number(m[1]), minor: Number(m[2]) } : null
-}
-
-function installedDepVersion(root, relDir, name) {
-  const parts = relDir ? relDir.split('/') : []
-  for (let i = parts.length; i >= 0; i--) {
-    const pkg = readJson(join(root, ...parts.slice(0, i), 'node_modules', name, 'package.json'))
-    if (pkg && pkg.version) return pkg.version
-  }
-  return null
-}
-
-function workspaceManifests(root) {
-  const rels = []
-  const push = (rel) => {
-    if (existsSync(join(root, rel, 'package.json'))) rels.push(rel)
-  }
-  push('')
-  push('iNNfo')
-  for (const group of ['packages', 'apps']) {
-    const dir = join(root, 'iNNfo', group)
-    if (!existsSync(dir)) continue
-    for (const entry of readdirSync(dir, { withFileTypes: true })) {
-      if (entry.isDirectory()) push(join('iNNfo', group, entry.name))
-    }
-  }
-  return rels
-}
+// Each entry is an independent npm project: skills/nn-sources ships its own deps
+// outside the root workspaces, so the root `npm ci` does not cover it.
+const INSTALL_DIRS = ['', join('skills', 'nn-sources')]
 
 /**
- * A session worktree inherits the primary's installed tree through junctions.
- * If the primary install is stale (installed version below the declared range),
- * every test/gate run in the worktree is a silent false baseline — the exact
- * trap of issue #122 / observation #2009. Compare declared vs installed so the
- * trap is loud instead of silent.
- * ponytail: major/minor floor only, not full semver — enough for the known trap.
+ * A real install makes @cognnitive/* resolve to THIS worktree's source, so tests
+ * and gates exercise the session's own edits. (#1624/#2009)
  */
-function checkDependencyFreshness(root) {
-  const stale = []
-  for (const rel of workspaceManifests(root)) {
-    const pkg = readJson(join(root, rel, 'package.json'))
-    if (!pkg) continue
-    for (const field of [pkg.dependencies, pkg.devDependencies]) {
-      if (!field) continue
-      for (const [name, range] of Object.entries(field)) {
-        const floor = parseSemver(range)
-        const installed = installedDepVersion(root, rel, name)
-        const iv = installed && parseSemver(installed)
-        if (!floor || !iv) continue
-        if (iv.major < floor.major || (iv.major === floor.major && iv.minor < floor.minor)) {
-          stale.push({ pkg: rel || '(root)', name, declared: range, installed })
-        }
-      }
-    }
-  }
-  return stale
-}
-
-function reportFreshness(stale, root) {
-  if (!stale.length) return
-  const common = tryGit(['rev-parse', '--path-format=absolute', '--git-common-dir'], root).out
-  const primary = common && common.includes('.git') ? dirname(common) : root
-  console.error('')
-  console.error('⚠ STALE DEPENDENCIES — this worktree is NOT a valid test baseline')
-  for (const s of stale) console.error(`  - ${s.name}: installed ${s.installed}, declared ${s.declared}  (${s.pkg})`)
-  console.error(`  Fix: run "npm install" in ${primary} (the primary checkout), then re-enter.`)
-  console.error('')
-}
-
-/**
- * Every node_modules a session worktree needs, as repo-relative paths: the root
- * one, the `iNNfo/` aggregate, and each npm workspace (`iNNfo/packages/*`,
- * `iNNfo/apps/*`) plus each skill that ships its own deps (`skills/*`).
- */
-function candidateNodeModules(root) {
-  const rels = ['node_modules', join('iNNfo', 'node_modules')]
-  for (const group of [join('iNNfo', 'packages'), join('iNNfo', 'apps'), 'skills']) {
-    const groupDir = join(root, group)
-    if (!existsSync(groupDir)) continue
-    for (const entry of readdirSync(groupDir, { withFileTypes: true })) {
-      if (entry.isDirectory()) rels.push(join(group, entry.name, 'node_modules'))
-    }
-  }
-  return rels
-}
-
-function junctionNodeModules(root, target) {
-  for (const rel of candidateNodeModules(root)) {
-    const src = join(root, rel)
-    const dst = join(target, rel)
-    if (existsSync(dst) || !existsSync(src)) continue
+function installDependencies(target) {
+  for (const rel of INSTALL_DIRS) {
+    const dir = join(target, rel)
+    if (!existsSync(join(dir, 'package.json'))) continue
+    console.error(`nn-session: npm ci in ${dir}…`)
     try {
-      mkdirSync(dirname(dst), { recursive: true })
-      symlinkSync(src, dst, 'junction')
+      execFileSync('npm', ['ci'], { cwd: dir, stdio: ['ignore', 2, 2], shell: process.platform === 'win32' })
     } catch {
-      console.error(`WARNING: could not junction ${src}; run "npm install" in ${target}`)
+      console.error(`WARNING: npm ci failed in ${dir}; fix and re-run it there, or start with --no-install`)
+      process.exitCode = 1
     }
   }
 }
@@ -162,8 +74,8 @@ function removeLink(p) {
 }
 
 /**
- * Remove every junctioned node_modules inside a session worktree BEFORE git
- * deletes it. `git worktree remove` recurses through those junctions into the
+ * Legacy cleanup for worktrees created before real installs: remove every
+ * junctioned node_modules inside a session worktree BEFORE git deletes it. `git worktree remove` recurses through those junctions into the
  * primary checkout and, following the npm workspace symlinks it finds there,
  * deletes the primary's package sources. Symlinks are removed link-only and
  * never traversed, so the primary is never touched.
@@ -196,24 +108,10 @@ function start(argv) {
   const root = repoRoot(argv)
   const id = sessionId(argv)
   const target = worktreePath(root, id)
-  const fresh = argv.includes('--fresh')
   if (!existsSync(target)) {
     git(['worktree', 'add', '-b', `session/${id}`, target, 'dev'], root)
-    if (fresh) {
-      // A real install makes @cognnitive/* resolve to THIS worktree's source,
-      // so tests and gates exercise the session's own edits. Junctions resolve
-      // them to the primary instead — a silent stale-source baseline. (#1624/#2009)
-      console.error(`nn-session: installing a real dependency tree in ${target} (npm ci)…`)
-      execFileSync('npm', ['ci'], { cwd: target, stdio: 'inherit', shell: process.platform === 'win32' })
-    } else {
-      junctionNodeModules(root, target)
-    }
-  } else if (fresh) {
-    console.error(`nn-session: --fresh ignores an existing worktree; use a new id or remove ${target} first.`)
+    if (!argv.includes('--no-install')) installDependencies(target)
   }
-  // Junctions inherit the primary's install; a stale primary poisons every test
-  // and gate here. Warn loudly, never silently. (§1a/#2009)
-  if (!fresh) reportFreshness(checkDependencyFreshness(target), root)
   console.log(target)
 }
 
@@ -261,7 +159,6 @@ function status(argv) {
   const main = (tryGit(['rev-list', '--left-right', '--count', 'origin/main...origin/dev'], root).out || '? ?').split(/\s+/)
   const worktrees = tryGit(['worktree', 'list'], root).out
   const stash = tryGit(['reflog', 'show', 'refs/stash'], root).out
-  const stale = checkDependencyFreshness(root)
 
   console.log('🌿 nn-session status')
   console.log(`- primary: ${branch} @ ${head} · ${dirtyCount === 0 ? 'clean' : `${dirtyCount} dirty`}`)
@@ -270,8 +167,6 @@ function status(argv) {
   console.log('- worktrees:')
   for (const line of (worktrees || '').split(/\r?\n/).filter(Boolean)) console.log(`    ${line}`)
   console.log(`- stash: ${stash ? `${stash.split(/\r?\n/).filter(Boolean).length} entry(ies)` : 'none'}`)
-  console.log(`- deps: ${stale.length === 0 ? 'fresh' : `${stale.length} stale (NOT a valid test baseline)`}`)
-  reportFreshness(stale, root)
 }
 
 function stop(argv) {
@@ -337,6 +232,6 @@ else if (cmd === 'list') list(process.argv.slice(2))
 else if (cmd === 'status') status(process.argv.slice(2))
 else if (cmd === 'stop') stop(process.argv.slice(2))
 else {
-  console.error('usage: nn-session.mjs start|list|status|stop [--id <id>] [--fresh] [--root <path>]')
+  console.error('usage: nn-session.mjs start|list|status|stop [--id <id>] [--no-install] [--root <path>]')
   process.exit(2)
 }
