@@ -204,8 +204,11 @@
       .innfo-view-tab { appearance: none; border: 1px solid transparent; background: transparent; color: var(--muted); font: inherit; font-size: 0.83rem; font-weight: 600; padding: 6px 12px; border-radius: var(--radius-sm); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
       .innfo-view-tab:hover { color: var(--text); background: var(--surface-2); }
       .innfo-view-tab.active { color: var(--primary); border-color: var(--primary); background: color-mix(in srgb, var(--primary) 8%, var(--surface)); }
-      .innfo-tab-panel { display: none; }
+      .innfo-tab-panel { display: none; padding: 22px 30px 90px; }
       .innfo-tab-panel.active { display: block; }
+      @media (max-width: 640px) {
+        .innfo-tab-panel { padding: 12px 12px 64px; }
+      }
       .innfo-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; margin-bottom: 14px; box-shadow: var(--shadow-card); }
       .innfo-card h3 { margin: 0 0 4px; font-size: 1.05rem; font-weight: 700; }
       .innfo-card-fields dt { color: var(--muted); font-weight: 600; }
@@ -295,7 +298,8 @@
       .innfo-metamodel-label { font-size: 12px; fill: var(--text); font-weight: 600; }
       .innfo-metamodel-edge { stroke: color-mix(in srgb, var(--primary) 40%, var(--border)); stroke-width: 1.5; }
       .innfo-metamodel-edge-label { font-size: 10px; fill: var(--muted); font-family: var(--mono); }
-      .innfo-reviewer-chip { display: inline-flex; align-items: center; gap: 8px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 4px 12px; font-size: 0.8rem; cursor: pointer; }
+      .innfo-reviewer-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--muted); }
+      .innfo-reviewer-name { width: 9rem; padding: 4px 8px; font: inherit; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius-sm); }
       .innfo-rail-badge, .innfo-card-badge { display: inline-flex; align-items: center; justify-content: center; background: var(--danger); color: #fff; font-size: 0.7rem; font-weight: 700; border-radius: 999px; padding: 1px 6px; min-width: 16px; height: 16px; }
       .innfo-highlight { animation: innfo-pulse-glow 2.5s ease-out; }
       @keyframes innfo-pulse-glow { 0% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 50%, transparent); } 100% { box-shadow: var(--shadow-card); } }

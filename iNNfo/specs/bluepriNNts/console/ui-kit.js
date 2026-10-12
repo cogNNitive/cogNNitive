@@ -462,8 +462,6 @@
         opts.onSelect(data)
       })
     }
-    var dot = makeEl(doc, 'i', 'innfo-concept-dot')
-    pill.appendChild(dot)
     var cIcon = makeEl(doc, 'span', 'innfo-concept-pill-icon')
     cIcon.setAttribute('aria-hidden', 'true')
     cIcon.innerHTML = icon(resolveConceptIconName(data.label || data.id, { index: slot - 1, color: data.color, icon: data.icon }), 12)

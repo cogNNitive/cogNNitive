@@ -239,9 +239,9 @@ describe('Hostile text renders as text, never as markup', () => {
     const rail = document.getElementById('innfo-rail')
     assert.equal(rail.querySelector('img'), null)
     assert.equal(rail.querySelector('[onerror]'), null)
-    const dot = rail.querySelector('.innfo-concept-dot')
-    assert.ok(dot, 'dot still rendered with a fallback color')
-    assert.ok(!dot.getAttribute('style').includes('onerror'))
+    const icon = rail.querySelector('.innfo-rail-concept-icon')
+    assert.ok(icon, 'concept icon still rendered')
+    assert.ok(!rail.innerHTML.includes('onerror'))
   })
 
   test('search token and operator value in the filter pills are inert', () => {

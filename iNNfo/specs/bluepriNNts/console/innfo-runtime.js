@@ -684,7 +684,7 @@
       if (!d.id) {
         item.id = draftId
       }
-      if (!item.base_hash) {
+      if (!item.base_hash && !(d && d.matrix)) {
         throw new Error('innfo-console: draft "' + draftId + '" is missing required base_hash')
       }
       return item
@@ -848,6 +848,30 @@
     host.textContent = 'Last updated ' + stamp + ' UTC'
   }
 
+  // Inline reviewer identity field for the header: a labelled text input whose
+  // editability is self-evident (no pencil emoji). Persists to localStorage.
+  function buildReviewerChip(doc) {
+    var chip = doc.createElement('label')
+    chip.className = 'innfo-reviewer-chip'
+    var label = doc.createElement('span')
+    label.className = 'innfo-reviewer-label'
+    label.textContent = 'Reviewer'
+    var input = doc.createElement('input')
+    input.className = 'innfo-reviewer-name'
+    input.type = 'text'
+    input.setAttribute('aria-label', 'Reviewer name')
+    var current = getReviewerName()
+    input.value = current === DEFAULT_REVIEWER_NAME ? '' : current
+    input.placeholder = DEFAULT_REVIEWER_NAME
+    input.addEventListener('change', function () {
+      setReviewerName(input.value)
+      input.value = getReviewerName() === DEFAULT_REVIEWER_NAME ? '' : getReviewerName()
+    })
+    chip.appendChild(label)
+    chip.appendChild(input)
+    return chip
+  }
+
   function renderBanner(doc, meta, needs, draftCount, onReviewerChange, state) {
     var banner = doc.getElementById('innfo-feedback-banner') || doc.getElementById('innfo-banner')
     if (!banner) return
@@ -892,41 +916,9 @@
       }
     }
 
-    // Reviewer Profile Chip (Requirement: Reviewer Identity Profile Chip)
-    var reviewerName = getReviewerName()
-    var chip = el('div', 'innfo-reviewer-chip')
-    if (chip) {
-      var chipLabel = el('span', 'innfo-reviewer-label', 'Reviewer: ')
-      var chipName = el('span', 'innfo-reviewer-name', reviewerName)
-      var editBtn = el('button', 'innfo-reviewer-edit', '✏️')
-      if (editBtn) {
-        editBtn.setAttribute('type', 'button')
-        editBtn.setAttribute('title', 'Edit reviewer identity')
-        editBtn.setAttribute('aria-label', 'Edit reviewer identity')
-      }
-      function handleEdit() {
-        // C5: the reviewer identifier is edited in the feedback modal's
-        // identifier field, not a window.prompt.
-        var modal = doc.getElementById('innfo-feedback-modal')
-        if (!modal) return
-        if (typeof modal.showModal === 'function' && !modal.open) {
-          modal.showModal()
-        } else {
-          modal.setAttribute('open', 'open')
-        }
-        var input = modal.querySelector('[data-innfo="identifier"]')
-        if (input && typeof input.focus === 'function') input.focus()
-      }
-      chip.addEventListener('click', function (e) {
-        if (e.target === editBtn || editBtn.contains(e.target) || e.target === chipName) {
-          handleEdit()
-        }
-      })
-      if (chipLabel) chip.appendChild(chipLabel)
-      if (chipName) chip.appendChild(chipName)
-      if (editBtn) chip.appendChild(editBtn)
-      banner.appendChild(chip)
-    }
+    // Reviewer identity: an inline editable field in the header (no emoji, no
+    // separate modal — the input itself signals editability).
+    banner.appendChild(buildReviewerChip(doc))
 
     if (existingOpen) {
       banner.appendChild(existingOpen)
@@ -1083,8 +1075,6 @@
         })
 
         var cMetaFacet = conceptMetaOf((state && state.schema && state.schema.concepts) || (state && state.concepts), c.name)
-        var cDotFacet = el('span', 'innfo-concept-dot')
-        if (cDotFacet && cMetaFacet.hexColor) cDotFacet.style.backgroundColor = cMetaFacet.hexColor
         var cIcoFacet = el('span', 'innfo-facet-item-icon')
         if (cIcoFacet && UI && typeof UI.icon === 'function' && typeof UI.resolveConceptIconName === 'function') {
           cIcoFacet.style.color = cMetaFacet.hexColor
@@ -1095,7 +1085,6 @@
         var cntBadge = el('span', 'badge badge-xs badge-ghost font-mono', String(c.count))
 
         item.appendChild(cb)
-        if (cDotFacet) item.appendChild(cDotFacet)
         if (cIcoFacet) item.appendChild(cIcoFacet)
         item.appendChild(nameSpan)
         item.appendChild(cntBadge)
@@ -1354,14 +1343,11 @@
             var color = cMeta.hexColor
             a.setAttribute('data-concept-slot', String(cMeta.slot))
             if (color) a.style.setProperty('--rail-concept-color', color)
-            var dot = color
-              ? '<span class="innfo-concept-dot" style="background:' + escapeHtml(color) + ';flex:none;"></span>'
-              : ''
             var cSvg = UI && typeof UI.icon === 'function' && typeof UI.resolveConceptIconName === 'function'
               ? '<span class="innfo-rail-concept-icon" aria-hidden="true">' + UI.icon(UI.resolveConceptIconName(name, cMeta), 13) + '</span>'
               : ''
             a.innerHTML =
-              '<span class="innfo-rail-concept-pill flex items-center gap-1.5 min-w-0" data-ku-kind="concept">' + dot + cSvg + '<span class="truncate">' + escapeHtml(name) + '</span></span>' +
+              '<span class="innfo-rail-concept-pill flex items-center gap-1.5 min-w-0" data-ku-kind="concept">' + cSvg + '<span class="truncate">' + escapeHtml(name) + '</span></span>' +
               '<span class="innfo-rail-count badge badge-ghost badge-xs">' + (Number(counts && counts[name]) || 0) + '</span>'
             a.addEventListener('click', function (e) {
               if (e && e.preventDefault) e.preventDefault()
@@ -1832,9 +1818,6 @@
         cBadge.style.borderColor = hexColor
         cBadge.style.color = hexColor
         cBadge.style.backgroundColor = 'color-mix(in srgb, ' + hexColor + ' 10%, #ffffff)'
-        var cDot = el('span', 'innfo-concept-dot')
-        cDot.style.backgroundColor = hexColor
-        cBadge.appendChild(cDot)
         if (UI && typeof UI.icon === 'function' && typeof UI.resolveConceptIconName === 'function') {
           var cIcoSpan = el('span', 'innfo-concept-pill-icon')
           cIcoSpan.setAttribute('aria-hidden', 'true')
@@ -2257,6 +2240,10 @@
           var isEmpty = value === '' || value === '-'
           var td = el('td', isEmpty ? 'innfo-matrix-cell-empty' : 'innfo-matrix-cell-filled', null)
           if (td) {
+            td.setAttribute('data-matrix', String(matrix.name || 'matrix'))
+            td.setAttribute('data-row', String(rowLabel))
+            td.setAttribute('data-col', String(c))
+            td.setAttribute('data-cell-raw', isEmpty ? '' : value)
             var cellBadge = UI.KuBadge({ kind: 'cell', value: isEmpty ? '—' : value })
             if (!isEmpty) cellBadge.setAttribute('data-cell-value', value.toLowerCase())
             td.appendChild(cellBadge)
@@ -4569,14 +4556,14 @@
       var style = active.createElement('style')
       style.setAttribute('data-innfo-feedback', '')
       style.textContent =
-        '[data-innfo-feedback-root]{display:block;position:relative;z-index:40;background:var(--surface,#ffffff);}' +
-        '#innfo-feedback-banner{padding:8px 20px;background:var(--surface,#ffffff);border-bottom:1px solid var(--border,#e5e7eb);display:flex;gap:12px;align-items:center;flex-wrap:wrap;box-shadow:0 1px 2px rgba(0,0,0,0.03);}' +
-        '#innfo-feedback-banner strong{font-size:1.05rem;font-weight:700;letter-spacing:-0.01em;}' +
+        '[data-innfo-feedback-root]{display:flex;align-items:center;gap:12px;margin-left:auto;position:relative;z-index:40;}' +
+        '#innfo-feedback-banner{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:transparent;border:none;box-shadow:none;padding:0;}' +
+        '#innfo-feedback-banner strong{font-size:0.95rem;font-weight:700;letter-spacing:-0.01em;}' +
         '#innfo-feedback-banner .innfo-banner-version,#innfo-feedback-banner .innfo-banner-needs,#innfo-feedback-banner .innfo-banner-drafts{color:var(--muted,#6b7280);font-size:0.8rem;}' +
         '#innfo-feedback-banner .innfo-banner-stale{color:#b45309;background:#fffbeb;border:1px solid #fcd34d;border-radius:4px;font-size:0.78rem;font-weight:600;padding:2px 8px;}' +
-        '#innfo-feedback-banner .innfo-reviewer-chip{margin-left:auto;}' +
-        '#innfo-feedback-open{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--surface,#ffffff);color:var(--text,#111827);font:inherit;font-size:0.82rem;font-weight:600;padding:6px 14px;border-radius:var(--radius-sm,4px);cursor:pointer;margin-left:auto;}' +
-        '#innfo-feedback-banner .innfo-reviewer-chip~#innfo-feedback-open{margin-left:0;}' +
+        '#innfo-feedback-banner .innfo-reviewer-chip{display:inline-flex;align-items:center;gap:6px;font-size:0.8rem;color:var(--muted,#6b7280);}' +
+        '#innfo-feedback-banner .innfo-reviewer-name{width:9rem;padding:4px 8px;border:1px solid var(--border,#e5e7eb);border-radius:var(--radius-sm,4px);background:var(--surface,#ffffff);color:var(--text,#111827);font:inherit;font-size:0.8rem;}' +
+        '#innfo-feedback-open{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--surface,#ffffff);color:var(--text,#111827);font:inherit;font-size:0.82rem;font-weight:600;padding:6px 14px;border-radius:var(--radius-sm,4px);cursor:pointer;}' +
         '#innfo-feedback-open:hover{background:var(--surface-2,#f3f4f6);}' +
         '#innfo-feedback-modal{border:1px solid var(--border,#e5e7eb);border-radius:var(--radius-lg,8px);padding:20px;max-width:560px;width:100%;background:var(--surface,#ffffff);color:var(--text,#111827);}' +
         '#innfo-feedback-modal::backdrop{background:rgba(0,0,0,0.35);}' +
@@ -4617,33 +4604,15 @@
     draftsBadge.textContent = ' drafts: 0'
     banner.appendChild(draftsBadge)
 
-    // Reviewer chip
-    var reviewerName = getReviewerName()
-    var chip = active.createElement('div')
-    chip.className = 'innfo-reviewer-chip'
-    var chipLabel = active.createElement('span')
-    chipLabel.className = 'innfo-reviewer-label'
-    chipLabel.textContent = 'Reviewer: '
-    var chipName = active.createElement('span')
-    chipName.className = 'innfo-reviewer-name'
-    chipName.textContent = reviewerName
-    var editBtn = active.createElement('button')
-    editBtn.className = 'innfo-reviewer-edit'
-    editBtn.setAttribute('type', 'button')
-    editBtn.setAttribute('title', 'Edit reviewer identity')
-    editBtn.setAttribute('aria-label', 'Edit reviewer identity')
-    editBtn.textContent = '✏️'
-    chip.appendChild(chipLabel)
-    chip.appendChild(chipName)
-    chip.appendChild(editBtn)
-    banner.appendChild(chip)
+    // Reviewer identity: inline editable field.
+    banner.appendChild(buildReviewerChip(active))
 
     // Open button
     var openBtn = active.createElement('button')
     openBtn.id = 'innfo-feedback-open'
     openBtn.setAttribute('type', 'button')
     openBtn.className = 'innfo-feedback-open'
-    openBtn.textContent = 'Export feedback'
+    openBtn.textContent = 'Export changes'
     banner.appendChild(openBtn)
 
     root.appendChild(banner)
@@ -4675,7 +4644,13 @@
 
     root.appendChild(modal)
 
-    if (active.body) {
+    // Single-header layout: the feedback controls live inside the top navbar
+    // (no second application header). Fall back to the body top for shells
+    // that ship no navbar.
+    var navbar = active.querySelector ? active.querySelector('.innfo-navbar') : null
+    if (navbar) {
+      navbar.appendChild(root)
+    } else if (active.body) {
       active.body.insertBefore(root, active.body.firstChild)
     }
 
@@ -4711,10 +4686,14 @@
     var id = oneLine(d.id || 'c-' + String(index + 1).padStart(2, '0'))
     var model = oneLine(d.model_id || fallbackModel || 'model')
     var elementTarget = oneLine(d.element_slug || d.element || d.element_id || 'elem')
-    var canUpdate = !!d.field && d.proposed !== undefined
-    var isRename = canUpdate && String(d.field).toLowerCase() === 'name'
-    var op = 'update_field'
-    var target = model + '@' + elementTarget + (d.field ? '&' + oneLine(d.field) : '')
+    var matrixName = d.matrix != null && d.matrix !== '' ? oneLine(d.matrix) : ''
+    var isMatrix = !!matrixName
+    var canUpdate = (!!d.field && d.proposed !== undefined) || (isMatrix && d.proposed !== undefined)
+    var isRename = !isMatrix && canUpdate && String(d.field).toLowerCase() === 'name'
+    var op = isMatrix ? 'update_matrix_cell' : 'update_field'
+    var target = isMatrix
+      ? model + '@' + matrixName + '&' + oneLine(d.row) + '&' + oneLine(d.col)
+      : model + '@' + elementTarget + (d.field ? '&' + oneLine(d.field) : '')
     if (isRename) {
       // Element display name is identity, not a field — the engine rejects
       // update_field on &name (PRECONDITION_FAILED). Emit rename_element.
@@ -4748,6 +4727,9 @@
       lines.push('name:: ' + formatChangesetValue(d.proposed))
     } else if (op === 'update_field') {
       if (d.original !== undefined) lines.push('from:: ' + formatChangesetValue(d.original))
+      lines.push('to:: ' + formatChangesetValue(d.proposed))
+    } else if (op === 'update_matrix_cell') {
+      if (d.original !== undefined && d.original !== '') lines.push('from:: ' + formatChangesetValue(d.original))
       lines.push('to:: ' + formatChangesetValue(d.proposed))
     } else if (op === 'add_element') {
       lines.push('concept:: ' + oneLine(d.concept))
@@ -5264,12 +5246,42 @@
       return byConcept
     }
 
+    // Rail selections accumulate (OR), matching the facet checkboxes: clicking a
+    // concept/model toggles it in the query instead of replacing the whole filter,
+    // so activating more than one concept unions the results.
     function selectRailToken(token) {
       var search = active.getElementById('innfo-search')
-      if (search) {
-        search.value = token
-        refresh(token)
+      var current = activeSearchQuery !== undefined ? activeSearchQuery : search ? search.value : ''
+      var m = /^([!]?[a-z]+):(.*)$/.exec(String(token || ''))
+      if (!m) {
+        if (search) {
+          search.value = token
+          refresh(token)
+        }
+        return
       }
+      var key = m[1]
+      var val = m[2].replace(/^["']|["']$/g, '')
+      var parsed = parseFilterQuery(current)
+      var ops = parsed.operators.slice()
+      var at = -1
+      for (var i = 0; i < ops.length; i++) {
+        if (ops[i].key === key && String(ops[i].val).toLowerCase() === val.toLowerCase()) {
+          at = i
+          break
+        }
+      }
+      if (at !== -1) ops.splice(at, 1)
+      else ops.push({ key: key, val: val })
+      var queryParts = parsed.textTokens.map(function (t) {
+        return t.indexOf(' ') !== -1 ? '"' + t + '"' : t
+      })
+      ops.forEach(function (op) {
+        queryParts.push(op.raw || formatFacetToken(op.key, op.val))
+      })
+      var next = queryParts.join(' ')
+      if (search) search.value = next
+      refresh(next)
     }
 
     // Lightweight update after a draft is saved: refreshes only the draft-count
