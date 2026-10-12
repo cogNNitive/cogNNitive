@@ -17,6 +17,7 @@ const sampleModel = {
   elements: [
     {
       id: 'threat-slimer',
+      slug: 'slimer',
       concept: 'ParanormalThreat',
       name: 'Slimer',
       description: 'Green potato ghost',
@@ -136,6 +137,9 @@ describe('console-review-popover (annotation)', () => {
     expect(d.original).toBe('A')
     expect(d.proposed).toBe('B')
     expect(d.base_hash).toBe('abcdef0123456789')
+    // The engine address travels with the draft so the changeset export can resolve it.
+    expect(d.model_id).toBe('ghostbusters-model')
+    expect(d.element_slug).toBe('slimer')
   })
 
   it('card comment saves without a field', () => {

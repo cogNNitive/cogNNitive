@@ -17,6 +17,7 @@ const PROPOSAL_KEYS = [
   'fields',
   'author',
   'notes',
+  'base_hash',
 ] as const
 
 /**

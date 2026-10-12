@@ -93,6 +93,17 @@ The `record_feedback_verdict` tool MUST refuse an `applied` entry while the item
 - WHEN `evaluate_feedback_items` runs again
 - THEN no new line is appended
 
+### Requirement: sourcePath containment
+
+`record_feedback_verdict` MUST reject any `sourcePath` that resolves outside the domain
+root, using the same `isInsideRoot` guard as `apply_change`, before any read or write.
+
+#### Scenario: Traversal attempt
+
+- GIVEN `sourcePath` is `../../outside.md`
+- WHEN `record_feedback_verdict` is called
+- THEN it returns an error and touches no file
+
 ### Requirement: Feedback Sources Stay Immutable
 
 Reconcile MUST write only `<domaiNN root>/feedback-ledger.jsonl` for verdicts and MUST NOT modify any feedback source file.

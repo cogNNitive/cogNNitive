@@ -180,4 +180,16 @@ notes:: Looks good, pending executive review
     expect(reparsed.changes[0].notes).toBe('Line one\nLine two with "quotes" and :: colons')
     expect(reparsed.changes[0].resolution).toBe('resolved "value" with :: marker')
   })
+
+  it('round-trips an optional base_hash and seals it into proposal_sha', () => {
+    const doc = parseChangeset(sampleMarkdown)
+    expect(doc.changes[0].base_hash).toBeUndefined()
+    const before = computeProposalSha(doc.changes)
+
+    doc.changes[0].base_hash = '0123456789abcdef'
+    const reparsed = parseChangeset(serializeChangeset(doc))
+    expect(reparsed.changes[0].base_hash).toBe('0123456789abcdef')
+    // Tampering with the precondition must break the seal; its absence leaves old seals valid.
+    expect(computeProposalSha(doc.changes)).not.toBe(before)
+  })
 })

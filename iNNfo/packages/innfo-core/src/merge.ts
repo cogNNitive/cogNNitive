@@ -63,6 +63,10 @@ export function mergeKnowledge(disk: ParsedKnowledge, memory: ParsedKnowledge): 
           rawFields: Object.keys(mergedRawFields).length > 0 ? mergedRawFields : undefined,
           trailingBlankLine: memEl.trailingBlankLine ?? diskEl.trailingBlankLine,
           descriptionBlankLine: memEl.descriptionBlankLine ?? diskEl.descriptionBlankLine,
+          headingDepth: memEl.headingDepth ?? diskEl.headingDepth,
+          parentElement: memEl.parentElement ?? diskEl.parentElement,
+          parentSlug: memEl.parentSlug ?? diskEl.parentSlug,
+          sectionConcept: memEl.sectionConcept ?? diskEl.sectionConcept,
         })
       } else {
         // Disk element not in memory (e.g. added by agent)

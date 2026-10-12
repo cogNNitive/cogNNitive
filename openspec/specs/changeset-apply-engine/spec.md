@@ -50,8 +50,9 @@ The apply engine MUST execute mutations using a strict two-phase transactional l
 2. **Phase 2: Atomic Persistence and Archival**:
    - For each touched model:
      - Mutated model content MUST be written to `<rootDir>/kNNowledge/<model_stem>.tmp`.
-     - The previous active model file MUST be moved to `<rootDir>/kNNowledge/archive/<model_stem>_<base_version>_<stamp>_<changeset_stem>_NN.md`.
-     - `<rootDir>/kNNowledge/<model_stem>.tmp` MUST be renamed to `<rootDir>/kNNowledge/<model_stem>_NN.md`.
+     - The previous active model file MUST be copied to `<rootDir>/kNNowledge/archive/<model_stem>_<base_version>_<stamp>_<changeset_stem>_NN.md` (the live file is never removed first; see "Crash-safe persist").
+     - `<rootDir>/kNNowledge/<model_stem>.tmp` MUST be renamed over `<rootDir>/kNNowledge/<model_stem>_NN.md`.
+(Previously: the previous active model file was moved to the archive before the rename.)
    - The changeset document on disk MUST be updated with:
      - Frontmatter `status: applied`, `applied_at: <ISO-timestamp>`, and `models: { [slug]: { base_version, result_version } }`.
      - Each change element annotated with `status:: applied`, `resolution:: Applied successfully`, and `resolved_slug:: <assigned_slug>`.
@@ -92,6 +93,40 @@ The apply engine MUST execute mutations using a strict two-phase transactional l
 - WHEN `apply_change` completes Phase 2
 - THEN the changeset is annotated `status: applied`
 - AND no `kNNowledge/archive/` directory is created (there is no snapshot to archive)
+
+---
+
+### Requirement: base_hash precondition
+
+A change MAY carry `base_hash`. When present and it differs from the current hash of the
+target element, `apply_change` MUST reject that change as a precondition failure using
+the existing partial-apply path, leaving the model untouched for that change. When
+absent, behavior is unchanged.
+
+#### Scenario: Stale base_hash
+
+- GIVEN an `update_field` change with `base_hash:: H1` and the element's current hash is H2
+- WHEN the changeset is applied
+- THEN that change is reported as a precondition failure and the field is not written
+
+#### Scenario: Matching base_hash
+
+- GIVEN `base_hash` equals the element's current hash
+- WHEN the changeset is applied
+- THEN the change applies normally
+
+---
+
+### Requirement: Crash-safe persist
+
+Persisting a model MUST never leave the live file absent: the live file MUST be copied
+to the archive, and the staged file then renamed over the live path.
+
+#### Scenario: Failure after archiving
+
+- GIVEN the archive copy succeeded
+- WHEN the final rename fails
+- THEN the original live model file still exists unchanged
 
 ---
 

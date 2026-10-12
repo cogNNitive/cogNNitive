@@ -9,8 +9,8 @@ import { parseMarkdownTable, parseTableRow, normalizeSource } from './markdown.j
  *   Property line:    `key:: value`                 (immediately after the H2)
  */
 
-/** Unified element heading: `## NN Concept: Element`. */
-const UNIFIED_ELEMENT_RE = /^\s*##\s+NN\s+([^:\n]+?):\s+(.*)$/
+/** Unified element heading: `#{2,6} NN Concept: Element`. */
+const UNIFIED_ELEMENT_RE = /^\s*(#{2,6})\s+NN\s+([^:\n]+?):\s+(.*)$/
 
 /** Property line: `key:: value`. */
 const PROPERTY_RE = /^\s*([A-Za-z_][A-Za-z0-9_-]*)\s*::\s*(.*)$/
@@ -36,11 +36,27 @@ export function sectionTitle(rawTitle: string): string {
   return rawTitle
 }
 
-/** Unified element heading parser: `## NN <Concept>: <Element>`. */
+/** Unified element heading parser: `#{2,6} NN <Concept>: <Element>`. */
 export function parseElementHeading(line: string): string | null {
   const match = line.match(UNIFIED_ELEMENT_RE)
-  if (match) return match[2].trim()
+  if (match) return match[3].trim()
   return null
+}
+
+export interface ParsedElementHeading {
+  depth: number
+  concept: string
+  name: string
+}
+
+export function parseElementHeadingFull(line: string): ParsedElementHeading | null {
+  const match = line.match(UNIFIED_ELEMENT_RE)
+  if (!match) return null
+  return {
+    depth: match[1].length,
+    concept: match[2].trim(),
+    name: match[3].trim(),
+  }
 }
 
 /** Unified property line parser: `key:: value`. Returns `[key, value]`. */
@@ -123,13 +139,14 @@ export function parseConceptSection(conceptName: string, content: string): Parse
   let descriptionLines: string[] = []
   const leadingLines: string[] = []
   let seenElement = false
+  const headingStack: Array<{ depth: number; concept: string; name: string; slug?: string }> = []
 
   // Closes out an element: `description` is trimmed, so the blank lines that
   // surrounded it in the source would be lost. Both separations are recorded
   // instead, because the shipped corpus is NOT uniform about either and
   // `serializeKnowledge` replays whatever this element actually had.
   const finishElement = (node: ElementNode) => {
-    // Blank line between this element and the next `## NN` heading.
+    // Blank line between this element and the next element heading.
     node.trailingBlankLine =
       descriptionLines.length > 0 && descriptionLines[descriptionLines.length - 1] === ''
     // Blank line between the element's last `key:: value` and its prose.
@@ -139,11 +156,44 @@ export function parseConceptSection(conceptName: string, content: string): Parse
     nodes.push(node)
   }
 
-  const startElement = (name: string): ElementNode => {
+  const startElement = (heading: ParsedElementHeading): ElementNode => {
     if (current) {
       finishElement(current)
     }
-    const node: ElementNode = { type: conceptName, name, description: '', fields: {}, markers: {} }
+
+    // Maintain heading stack: pop entries with depth >= current heading depth
+    while (headingStack.length > 0 && headingStack[headingStack.length - 1].depth >= heading.depth) {
+      headingStack.pop()
+    }
+
+    const parent = headingStack.length > 0 ? headingStack[headingStack.length - 1] : undefined
+
+    const node: ElementNode = {
+      type: heading.concept,
+      name: heading.name,
+      description: '',
+      fields: {},
+      markers: {},
+      headingDepth: heading.depth,
+      sectionConcept: conceptName,
+      ...(parent
+        ? {
+            parentElement: {
+              concept: parent.concept,
+              name: parent.name,
+              ...(parent.slug ? { slug: parent.slug } : {}),
+            },
+          }
+        : {}),
+    }
+
+    headingStack.push({
+      depth: heading.depth,
+      concept: heading.concept,
+      name: heading.name,
+      slug: node.slug,
+    })
+
     descriptionLines = []
     seenElement = true
     return node
@@ -153,10 +203,10 @@ export function parseConceptSection(conceptName: string, content: string): Parse
   let rawConceptTags: string | undefined
 
   for (const line of lines) {
-    // Unified element heading: `## NN Concept: Element`
-    const headingName = parseElementHeading(line)
-    if (headingName !== null) {
-      current = startElement(headingName)
+    // Unified element heading: `#{2,6} NN Concept: Element`
+    const heading = parseElementHeadingFull(line)
+    if (heading !== null) {
+      current = startElement(heading)
       continue
     }
 
@@ -167,6 +217,9 @@ export function parseConceptSection(conceptName: string, content: string): Parse
         if (prop[0] === 'slug') {
           current.slug = String(prop[1])
           current.slugExplicit = true
+          if (headingStack.length > 0 && headingStack[headingStack.length - 1].name === current.name) {
+            headingStack[headingStack.length - 1].slug = current.slug
+          }
         } else if (prop[0] === 'tags') {
           current.tags = parseTagList(String(prop[1]))
           current.rawTags = String(prop[1])

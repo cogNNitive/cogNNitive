@@ -1,4 +1,4 @@
-import { ParsedKnowledge, MatrixData, SpecFrontmatter } from '../types/index.js'
+import { ParsedKnowledge, ElementNode, MatrixData, SpecFrontmatter } from '../types/index.js'
 import { parseFrontmatter } from './yaml.js'
 import { stringify as yamlStringify } from 'yaml'
 import { printTaxonomyNode } from './taxonomy.js'
@@ -329,14 +329,77 @@ export function serializeKnowledge(model: ParsedKnowledge): string {
   }
 
   const emittedConcepts = new Set<string>()
+  const emittedElements = new Set<ElementNode>()
+  const allElements: ElementNode[] = []
+  for (const [, list] of model.elements.entries()) {
+    allElements.push(...list)
+  }
+
+  const emitElement = (node: ElementNode, depth: number, isLast: boolean) => {
+    emittedElements.add(node)
+    const hDepth = node.headingDepth || depth
+    const hashes = '#'.repeat(hDepth)
+    lines.push(`${hashes} NN ${node.type}: ${node.name}`)
+    // An authored `slug::` is an identity declaration and leads the
+    // element. A derived slug is not written: see `slugExplicit`.
+    if (node.slugExplicit && node.slug) lines.push(`slug:: ${node.slug}`)
+    for (const [k, v] of Object.entries(node.fields)) {
+      // A citation field with a repeated pointer is rewritten (dropping
+      // its raw text, deliberately); anything else keeps the author's
+      // exact source text.
+      const value = SOURCE_FIELD_NAMES.has(k.toLowerCase()) ? dedupeCitationList(v) : v
+      const raw = value === v ? node.rawFields?.[k] : undefined
+      lines.push(`${k}:: ${serializePropertyValue(value, raw)}`)
+    }
+    if (node.tags && node.tags.length > 0) {
+      lines.push(`tags:: ${serializeTagsValue(node.tags, node.rawTags)}`)
+    }
+    if (node.description) {
+      if (node.descriptionBlankLine) lines.push('')
+      for (const descLine of node.description.split('\n')) {
+        lines.push(descLine)
+      }
+    }
+
+    // Emit nested child elements immediately after parent body
+    const children = allElements.filter(
+      (ch) =>
+        !emittedElements.has(ch) &&
+        ((ch.parentSlug && node.slug && ch.parentSlug.toLowerCase() === node.slug.toLowerCase()) ||
+          (ch.parentElement &&
+            ch.parentElement.concept.toLowerCase() === node.type.toLowerCase() &&
+            (ch.parentElement.name.toLowerCase() === node.name.toLowerCase() ||
+              (ch.parentElement.slug &&
+                node.slug &&
+                ch.parentElement.slug.toLowerCase() === node.slug.toLowerCase())))),
+    )
+
+    if (children.length > 0) {
+      if (lines.length > 0 && lines[lines.length - 1] !== '') {
+        lines.push('')
+      }
+      children.forEach((child, cIdx) => {
+        const isChildLast = cIdx === children.length - 1
+        emitElement(child, hDepth + 1, isChildLast)
+      })
+    }
+
+    if (isLast || node.trailingBlankLine !== false) {
+      if (lines.length > 0 && lines[lines.length - 1] !== '') {
+        lines.push('')
+      }
+    }
+  }
+
   const emitConceptSection = (conceptName: string) => {
     const key = conceptName.toLowerCase()
     if (emittedConcepts.has(key)) return
     emittedConcepts.add(key)
     const elementNodes = model.elements.get(conceptName)
     const rawBody = model.rawSections?.[conceptName]
-    const hasElements = elementNodes !== undefined && elementNodes.length > 0
-    if (!hasElements && (!rawBody || !rawBody.trim())) return
+    const unEmitted = elementNodes?.filter((n) => !emittedElements.has(n)) ?? []
+    const hasUnEmitted = unEmitted.length > 0
+    if (!hasUnEmitted && (!rawBody || !rawBody.trim())) return
 
     lines.push(`# NN ${conceptName}`)
     if (model.conceptTags?.[conceptName] && model.conceptTags[conceptName].length > 0) {
@@ -345,37 +408,10 @@ export function serializeKnowledge(model: ParsedKnowledge): string {
       )
     }
     if (headingBlankLine(conceptName, true)) lines.push('')
-    if (hasElements) {
-      // A blank line always follows the LAST element (it doubles as the
-      // separator before whatever section comes next). Interior elements
-      // replay whatever separation they actually had in the source
-      // (`trailingBlankLine`, defaulting to `true` when unset — see AD-1's
-      // documented example, which is the right default for elements built
-      // programmatically after parsing).
-      elementNodes!.forEach((node, idx) => {
-        lines.push(`## NN ${conceptName}: ${node.name}`)
-        // An authored `slug::` is an identity declaration and leads the
-        // element. A derived slug is not written: see `slugExplicit`.
-        if (node.slugExplicit && node.slug) lines.push(`slug:: ${node.slug}`)
-        for (const [k, v] of Object.entries(node.fields)) {
-          // A citation field with a repeated pointer is rewritten (dropping
-          // its raw text, deliberately); anything else keeps the author's
-          // exact source text.
-          const value = SOURCE_FIELD_NAMES.has(k.toLowerCase()) ? dedupeCitationList(v) : v
-          const raw = value === v ? node.rawFields?.[k] : undefined
-          lines.push(`${k}:: ${serializePropertyValue(value, raw)}`)
-        }
-        if (node.tags && node.tags.length > 0) {
-          lines.push(`tags:: ${serializeTagsValue(node.tags, node.rawTags)}`)
-        }
-        if (node.description) {
-          if (node.descriptionBlankLine) lines.push('')
-          for (const descLine of node.description.split('\n')) {
-            lines.push(descLine)
-          }
-        }
-        const isLast = idx === elementNodes!.length - 1
-        if (isLast || node.trailingBlankLine !== false) lines.push('')
+    if (hasUnEmitted) {
+      unEmitted.forEach((node, idx) => {
+        const isLast = idx === unEmitted.length - 1
+        emitElement(node, 2, isLast)
       })
     } else if (rawBody) {
       lines.push(rawBody)

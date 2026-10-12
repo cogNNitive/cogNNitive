@@ -33,3 +33,13 @@ A Series MUST hold its series-wide rules (tone, sound tags) in the Series bluepr
 - GIVEN a Series declaring its tone rule in the Series blueprint
 - WHEN a new video is authored in that series
 - THEN the tone rule is read from the Series blueprint, not restated per element
+
+### Requirement: Script Templates Mandate Nested Layer Syntax
+
+Series script templates and authoring procedures MUST declare `Layer` elements as nested `### NN Layer:` headings inside enclosing `## NN Scene:` sections.
+
+#### Scenario: Script template uses nested headings
+
+- GIVEN a series script template or procedure
+- WHEN authoring video scripts
+- THEN Scene sections contain nested `### NN Layer:` headings instead of flat `## NN Layer:` sections

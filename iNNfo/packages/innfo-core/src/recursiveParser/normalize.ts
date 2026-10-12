@@ -152,9 +152,59 @@ export function normalizeElementsIntoGraph(
   // (i.e. top-level relative to this document) get created first, so their
   // qualifiedId is available for children referencing them via taxonomy.
   const byName = new Map<string, ElementNode>()
-  for (const el of allElements) byName.set(el.name, el)
+  const bySlug = new Map<string, ElementNode>()
+  for (const el of allElements) {
+    byName.set(el.name, el)
+    if (el.slug) bySlug.set(el.slug, el)
+  }
+
+  function resolveExplicitParentNode(el: ElementNode): ElementNode | undefined {
+    if (el.parentSlug && bySlug.has(el.parentSlug)) {
+      return bySlug.get(el.parentSlug)
+    }
+    if (el.parentElement) {
+      if (el.parentElement.slug && bySlug.has(el.parentElement.slug)) {
+        return bySlug.get(el.parentElement.slug)
+      }
+      if (byName.has(el.parentElement.name)) {
+        const found = byName.get(el.parentElement.name)
+        if (found && (!el.parentElement.concept || found.type.toLowerCase() === el.parentElement.concept.toLowerCase())) {
+          return found
+        }
+      }
+    }
+    return undefined
+  }
+
+  function resolveExplicitParentQualifiedId(el: ElementNode): string | undefined {
+    if (el.parentSlug && qualifiedIdByElementName.has(el.parentSlug)) {
+      return qualifiedIdByElementName.get(el.parentSlug)
+    }
+    if (el.parentElement) {
+      if (el.parentElement.slug && qualifiedIdByElementName.has(el.parentElement.slug)) {
+        return qualifiedIdByElementName.get(el.parentElement.slug)
+      }
+      const conceptNameKey = `${el.parentElement.concept}/${el.parentElement.name}`
+      if (qualifiedIdByElementName.has(conceptNameKey)) {
+        return qualifiedIdByElementName.get(conceptNameKey)
+      }
+      if (qualifiedIdByElementName.has(el.parentElement.name)) {
+        return qualifiedIdByElementName.get(el.parentElement.name)
+      }
+    }
+    return undefined
+  }
 
   function resolveParentQualifiedId(el: ElementNode, seen: Set<string>): string {
+    const explicitId = resolveExplicitParentQualifiedId(el)
+    if (explicitId) return explicitId
+
+    const parentNode = resolveExplicitParentNode(el)
+    if (parentNode && !seen.has(el.name)) {
+      seen.add(el.name)
+      return resolveParentQualifiedId(parentNode, seen)
+    }
+
     const taxonomyParentName = parentOfTaxonomy.get(el.name)
     if (taxonomyParentName && !seen.has(el.name)) {
       if (qualifiedIdByElementName.has(taxonomyParentName)) {
@@ -169,6 +219,15 @@ export function normalizeElementsIntoGraph(
   }
 
   function resolveActualParentId(el: ElementNode, seen: Set<string>): string | null {
+    const explicitId = resolveExplicitParentQualifiedId(el)
+    if (explicitId) return explicitId
+
+    const parentNode = resolveExplicitParentNode(el)
+    if (parentNode && !seen.has(el.name)) {
+      seen.add(el.name)
+      return resolveActualParentId(parentNode, seen)
+    }
+
     const taxonomyParentName = parentOfTaxonomy.get(el.name)
     if (taxonomyParentName && !seen.has(el.name)) {
       if (qualifiedIdByElementName.has(taxonomyParentName)) {

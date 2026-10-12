@@ -1,6 +1,7 @@
 import {
   ParsedKnowledge,
   ElementsMap,
+  ElementNode,
   MatrixData,
   SpecFrontmatter,
   TaxonomyEdge,
@@ -47,6 +48,39 @@ export function deriveElementSlugs(
         }
       } else {
         usedSlugs.set(el.slug!, { name: el.name, concept: conceptName })
+      }
+    }
+  }
+
+  // Resolve parentSlug for elements that have parentElement
+  for (const [, elementNodes] of elements.entries()) {
+    for (const el of elementNodes) {
+      if (el.parentElement) {
+        if (!el.parentElement.slug) {
+          let parentNode: ElementNode | undefined
+          const parentConceptNodes = elements.get(el.parentElement.concept)
+          if (parentConceptNodes) {
+            parentNode = parentConceptNodes.find(
+              (p) => p.name.toLowerCase() === el.parentElement!.name.toLowerCase(),
+            )
+          }
+          if (!parentNode) {
+            for (const [, nodes] of elements.entries()) {
+              parentNode = nodes.find(
+                (p) =>
+                  p.name.toLowerCase() === el.parentElement!.name.toLowerCase() &&
+                  p.type.toLowerCase() === el.parentElement!.concept.toLowerCase(),
+              )
+              if (parentNode) break
+            }
+          }
+          if (parentNode?.slug) {
+            el.parentElement.slug = parentNode.slug
+          }
+        }
+        if (el.parentElement.slug && !el.parentSlug) {
+          el.parentSlug = el.parentElement.slug
+        }
       }
     }
   }
@@ -154,11 +188,14 @@ export function parseKnowledge(content: string): ParsedKnowledge {
     } else if (type === 'concept') {
       const parsed = parseConceptSection(name, bodyContent)
       if (parsed.elements.length > 0) {
-        const existing = elements.get(name)
-        if (existing) {
-          existing.push(...parsed.elements)
-        } else {
-          elements.set(name, parsed.elements)
+        for (const el of parsed.elements) {
+          const targetConcept = el.type || name
+          const existing = elements.get(targetConcept)
+          if (existing) {
+            existing.push(el)
+          } else {
+            elements.set(targetConcept, [el])
+          }
         }
       }
       if (parsed.tags) {

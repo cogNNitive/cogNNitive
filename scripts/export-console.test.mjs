@@ -728,6 +728,56 @@ notes:: "Please review the tagline"
     })
   })
 
+  describe('Phase 7: domain identity', () => {
+    const LINKED = (extra = '') => `---
+title: "Linked"
+knowledge_version: "V_0-1-0"
+level: 3
+---
+
+# NN Item
+## NN Item: Alpha
+  related:: [[Beta]]${extra}
+
+## NN Item: Beta
+  note:: "b"
+`
+    const exportDomain = async () => {
+      const res = await runCli([tempDir, '--domain'])
+      assert.equal(res.code, 0, res.stderr)
+      const html = await readFile(join(tempDir, 'domaiNN_console.html'), 'utf-8')
+      return JSON.parse(html.match(/id="innfo-model">([\s\S]*?)<\/script>/)[1])
+    }
+
+    it('qualifies element ids with the model id and remaps relations to them', async () => {
+      await writeFile(join(tempDir, 'models', 'linked_V_0-1-0_NN.md'), LINKED(), 'utf-8')
+      const model = await exportDomain()
+      const ids = model.elements.map((e) => e.id)
+      assert.equal(new Set(ids).size, ids.length, 'ids are unique across the domain')
+      for (const e of model.elements) assert.ok(e.id.startsWith(`${e.modelId}/`), e.id)
+
+      const alpha = model.elements.find((e) => e.name === 'Alpha')
+      const beta = model.elements.find((e) => e.name === 'Beta')
+      assert.ok(alpha.slug && beta.slug, 'elements carry the engine slug')
+      assert.equal(alpha.relations[0].target, beta.id)
+    })
+
+    it('keeps the draft store key stable while the version follows the content', async () => {
+      const file = join(tempDir, 'models', 'linked_V_0-1-0_NN.md')
+      await writeFile(file, LINKED(), 'utf-8')
+      const first = (await exportDomain()).meta
+      const again = (await exportDomain()).meta
+      assert.equal(again.modelVersion, first.modelVersion, 'same content, same version')
+
+      await writeFile(file, LINKED('\n  extra:: "changed"'), 'utf-8')
+      const edited = (await exportDomain()).meta
+      assert.equal(edited.domainId, first.domainId, 'drafts must survive an edit')
+      assert.notEqual(edited.modelVersion, first.modelVersion, 'an edit moves the version')
+      assert.match(edited.modelVersion, /^V_\d+-\d+-\d+$/)
+      assert.match(edited.domainId, /-[0-9a-f]{8}$/)
+    })
+  })
+
   describe('Phase 5: Matrix serialization', () => {
     // Two ordinary `# NN matrices:` tables plus one special `item-markers matrix`
     // (which the parser folds into model-level markers, not a matrix).

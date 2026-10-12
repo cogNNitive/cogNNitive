@@ -287,20 +287,20 @@ A child of a Scene, discriminated by a required `type::` select.
 
 ### Description
 
-One `## NN Layer: <name>` element models one visual or audio layer inside its Scene. The
-required `type::` selects one of `presenter`, `background`, `b-roll`, `title`, `lower-third`,
-`caption`, `brand`, or `quote`; any other value is rejected. The fields a Layer accepts are
-conditional on `type::` per the Conditional Fields contract.
+In Level-3 video script documents, each `Layer` element is authored as a nested `### NN Layer: <name>` heading directly inside its enclosing `## NN Scene:` element. The nested heading establishes syntactic ownership, automatically setting `parentSlug` to the parent Scene slug. Separate top-level `# NN Layer` sections are deprecated for new scripts (flat H2 sections remain supported for legacy backward compatibility).
+
+The required `type::` selects one of `presenter`, `background`, `b-roll`, `title`, `lower-third`, `caption`, `brand`, or `quote`; any other value is rejected. The fields a Layer accepts are conditional on `type::` per the Conditional Fields contract.
 
 ### Methodologies
 
-- Nest each Layer under its Scene in the `# NN index`; never place a Layer at Video level.
+- Author each Layer as a nested `### NN Layer: <name>` heading immediately after the parent Scene prose body.
+- Never place a Layer at Video level.
 - Provide `asset` or `prompt` for media Layers, and `text` for text Layers.
 - Keep paint order in `level` when it matters.
 
 ### Prompts
 
-- "Add a `Layer` of `type:: lower-third` with `text:: <caption>`."
+- "Add a nested `### NN Layer:` of `type:: lower-third` with `text:: <caption>` inside the Scene."
 
 ## Template
 
