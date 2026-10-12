@@ -35,8 +35,20 @@ write the tests with each slice, run everything once in slice 5.
 ## 5. Final verification (once)
 
 - [x] 5.1 Rebuild innfo-core dist; run innfo-core, innfo-mcp and console suites; `node scripts/verify.js`.
+  - Note: the full `scripts/verify.js` did not finish locally; CI `verify` is green on PR #169.
 - [x] 5.2 Open one regenerated shell in a browser: no CSP violations, views and iframes load.
 - [x] 5.3 Fix any red, amend into the owning slice's follow-up commit.
+
+## Outcome
+
+- Delivered in PR #169 (against `dev`, branch `session/console-hardening-plan`).
+- Review-driven extra fixes beyond the planned slices: `575570d3` (harden remaining attribute and href sinks) and `1e5ecedb` (exercise the hierarchical rail in the hostile color test).
+- Known deferrals (not part of this change):
+  - Cross-model apply rollback.
+  - False `STALE_BASE_HASH` when a model has duplicate element names.
+  - Draft-key migration for existing stored drafts.
+  - Runtime god-file split.
+  - `guard-primary-tree` checks the cwd, not the target path.
 
 ## Review Workload Forecast
 
