@@ -104,3 +104,19 @@ Test suites that live inside the embedded skill MUST be discovered and executed 
 - GIVEN the skill's suites under `iNNfo/specs/bluepriNNts/video-script/skills/nn-video-script/test/`
 - WHEN `node scripts/verify.js` collects suites
 - THEN each remaining suite is in the executed set
+
+### Requirement: Compiler Resolves Layers via Explicit Parentage
+
+The video script compiler MUST bind `Layer` elements to their parent `Scene` using explicit `parentSlug` values before falling back to slug prefix matching. Flat legacy scripts lacking `parentSlug` MUST continue resolving via slug prefix fallback.
+
+#### Scenario: Nested layers bind by parent slug
+
+- GIVEN a script with nested Layer elements specifying `parentSlug`
+- WHEN the compiler builds the scene manifest
+- THEN each Layer binds to its parent Scene via `parentSlug`
+
+#### Scenario: Flat legacy layers fall back to slug prefix
+
+- GIVEN a legacy script lacking `parentSlug`
+- WHEN the compiler builds the scene manifest
+- THEN each Layer binds to its Scene via slug prefix

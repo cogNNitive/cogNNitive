@@ -24,6 +24,39 @@ export function validateTaxonomyHierarchy(
   const effectiveTaxonomy =
     templateTaxonomy && templateTaxonomy.length > 0 ? templateTaxonomy : model.taxonomy
 
+  // 1. Validate nested element parentage against blueprint taxonomy
+  const directEdges = new Set(
+    effectiveTaxonomy.map((e) => `${e.parent.toLowerCase()}->${e.child.toLowerCase()}`),
+  )
+
+  for (const [, elements] of model.elements.entries()) {
+    for (const el of elements) {
+      if (el.parentElement) {
+        const edgeKey = `${el.parentElement.concept.toLowerCase()}->${el.type.toLowerCase()}`
+        if (!directEdges.has(edgeKey)) {
+          diagnostics.push({
+            code: 'INVALID_NESTED_CONCEPT',
+            severity: 'error',
+            path: `elements.${el.type}.${el.name}`,
+            message: `Element "${el.name}" of concept "${el.type}" cannot be nested under "${el.parentElement.name}" of concept "${el.parentElement.concept}" per blueprint taxonomy.`,
+          })
+        }
+      }
+
+      // 2. Enforce depth-2 section conformance (## NN matches # NN <SectionConcept>)
+      if ((el.headingDepth === 2 || el.headingDepth === undefined) && el.sectionConcept) {
+        if (el.type.toLowerCase() !== el.sectionConcept.toLowerCase()) {
+          diagnostics.push({
+            code: 'SECTION_CONCEPT_MISMATCH',
+            severity: 'error',
+            path: `elements.${el.type}.${el.name}`,
+            message: `Element "${el.name}" of concept "${el.type}" cannot be declared as a top-level heading in section "# NN ${el.sectionConcept}" (expected concept "${el.sectionConcept}").`,
+          })
+        }
+      }
+    }
+  }
+
   // child concept (lowercased) -> parent concept name, from index nesting.
   const parentOfConcept = new Map<string, string>()
   for (const edge of effectiveTaxonomy) {

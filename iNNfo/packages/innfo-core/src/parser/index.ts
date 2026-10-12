@@ -15,6 +15,7 @@ export {
   sectionName,
   sectionTitle,
   parseElementHeading,
+  parseElementHeadingFull,
   parsePropertyLine,
   parsePropertyValue,
   parseConceptSection,

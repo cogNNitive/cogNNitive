@@ -174,7 +174,7 @@ export function validateKnowledge(
   // references above are the hard errors. See hierarchy.ts / references.ts.
   for (const diag of validateReferences(model)) d.addAsWarning(diag)
   for (const diag of validateTaxonomyHierarchy(model, templateConcepts, composed.schema.taxonomy)) {
-    d.addAsWarning(diag)
+    d.add(diag)
   }
 
   // Template freshness diagnostic (governance)

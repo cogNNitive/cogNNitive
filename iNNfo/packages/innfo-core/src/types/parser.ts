@@ -257,6 +257,14 @@ export interface ElementNode {
    * canonical serialization.
    */
   rawFields?: Record<string, string>
+  /** Heading depth (2 for `##`, 3 for `###`, etc.). */
+  headingDepth?: number
+  /** Enclosing parent element reference tracked during hierarchical heading parsing. */
+  parentElement?: { concept: string; name: string; slug?: string }
+  /** Resolved slug of the parent element. */
+  parentSlug?: string
+  /** Concept of the top-level section this element was parsed in. */
+  sectionConcept?: string
 }
 
 export interface MatrixCell {

@@ -370,8 +370,8 @@ export function validateFormatContent(
     }
   }
 
-  // 10. Element marker syntax (unified `## NN Concept: Element` headings)
-  const headingMarkerRe = /^\s*##\s+NN\s+([^:\n]+?):\s+(.+)$/gm
+  // 10. Element marker syntax (unified `#{2,6} NN Concept: Element` headings)
+  const headingMarkerRe = /^\s*#{2,6}\s+NN\s+([^:\n]+?):\s+(.+)$/gm
   const headingMarkers = [...body.matchAll(headingMarkerRe)]
   const totalMarkers = headingMarkers.length
 
