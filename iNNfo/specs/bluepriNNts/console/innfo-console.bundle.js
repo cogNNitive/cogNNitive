@@ -4252,6 +4252,16 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   /* Browser console: banner, rail, search, cards, matrices, drafts, export modal.
      Runs only where document/localStorage exist; pure helpers above stay DOM-free. */
 
+  // Escape untrusted text before it is concatenated into an innerHTML string.
+  function escapeHtml(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;')
+  }
+
   function el(tag, cls, text) {
     var node = typeof document !== 'undefined' ? document.createElement(tag) : null
     if (!node) return null
@@ -4539,7 +4549,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       parsed.operators.forEach(function (op) {
         var pill = el('span', 'badge badge-sm badge-outline gap-1 font-mono text-[11px] py-2 px-2.5 bg-base-100')
         var labelText = op.key + ':' + op.val
-        pill.innerHTML = '<span>' + labelText + '</span>'
+        pill.innerHTML = '<span>' + escapeHtml(labelText) + '</span>'
         var removeBtn = el('button', 'ml-1 hover:text-error cursor-pointer font-bold', '×')
         removeBtn.setAttribute('type', 'button')
         removeBtn.addEventListener('click', function (e) {
@@ -4552,7 +4562,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
       parsed.textTokens.forEach(function (token) {
         var pill = el('span', 'badge badge-sm badge-outline gap-1 font-mono text-[11px] py-2 px-2.5 bg-base-100')
-        pill.innerHTML = '<span>"' + token + '"</span>'
+        pill.innerHTML = '<span>"' + escapeHtml(token) + '"</span>'
         var removeBtn = el('button', 'ml-1 hover:text-error cursor-pointer font-bold', '×')
         removeBtn.setAttribute('type', 'button')
         removeBtn.addEventListener('click', function (e) {
@@ -4679,7 +4689,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         var fileIcon = typeof InnfoIcons !== 'undefined' ? InnfoIcons.getSvg('file-text', { size: 14 }) : ''
         summary.innerHTML =
           '<span class="flex items-center gap-2 min-w-0">' + fileIcon +
-          '<span class="truncate font-semibold">' + (m.title || m.filePath || 'Model') + '</span></span>' +
+          '<span class="truncate font-semibold">' + escapeHtml(m.title || m.filePath || 'Model') + '</span></span>' +
           '<span class="badge badge-ghost badge-xs">' + (m.elementCount || 0) + '</span>'
         summary.addEventListener('click', function (e) {
           // Clicking the chevron zone on the right edge toggles accordion open/close
@@ -4729,7 +4739,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
               ? '<span class="innfo-concept-dot" style="background:' + color + ';flex:none;"></span>'
               : ''
             a.innerHTML =
-              '<span class="flex items-center gap-2 min-w-0">' + dot + '<span class="truncate">' + String(name) + '</span></span>' +
+              '<span class="flex items-center gap-2 min-w-0">' + dot + '<span class="truncate">' + escapeHtml(name) + '</span></span>' +
               '<span class="badge badge-ghost badge-xs">' + ((counts && counts[name]) || 0) + '</span>'
             a.addEventListener('click', function (e) {
               if (e && e.preventDefault) e.preventDefault()
@@ -6116,7 +6126,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         if (focusedRow) {
           var filterBanner = el('div', 'innfo-timeline-filter-banner')
           var bannerText = el('span', 'innfo-filter-banner-text')
-          bannerText.innerHTML = UI.icon('target', 14) + ' <span>Showing dependency tree for: <strong>' + (focusedRow.label || focusedRow.id) + '</strong> (' + Object.keys(activeDepSet).length + ' items)</span>'
+          bannerText.innerHTML = UI.icon('target', 14) + ' <span>Showing dependency tree for: <strong>' + escapeHtml(focusedRow.label || focusedRow.id) + '</strong> (' + Object.keys(activeDepSet).length + ' items)</span>'
           var clearBtn = el('button', 'innfo-filter-banner-clear')
           clearBtn.setAttribute('type', 'button')
           clearBtn.innerHTML = UI.icon('close', 12) + ' <span>Clear Filter</span>'
@@ -6295,7 +6305,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           var trChart = el('tr', 'innfo-timeline-chart-row')
           var tdChartSticky = el('td', 'td-sticky')
           var chartLabel = el('span', 'innfo-chart-row-label')
-          chartLabel.innerHTML = UI.icon('chart', 12) + ' <span>Monthly: ' + (r.label || r.id) + '</span>'
+          chartLabel.innerHTML = UI.icon('chart', 12) + ' <span>Monthly: ' + escapeHtml(r.label || r.id) + '</span>'
           tdChartSticky.appendChild(chartLabel)
           trChart.appendChild(tdChartSticky)
 
@@ -7909,7 +7919,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     errorContainer.innerHTML =
       '<strong>Validation errors:</strong><ul>' +
       errors.map(function (e) {
-        return '<li>' + e + '</li>'
+        return '<li>' + escapeHtml(e) + '</li>'
       }).join('') +
       '</ul>'
     errorContainer.style.display = 'block'
@@ -8524,6 +8534,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     renderNavbarMeta: renderNavbarMeta,
     renderFilterBar: renderFilterBar,
     renderRail: renderRail,
+    renderErrors: renderErrors,
     mountElementTable: mountElementTable,
     renderExplorerToolbar: renderExplorerToolbar,
     sortTableElements: sortTableElements,

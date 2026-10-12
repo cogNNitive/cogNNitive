@@ -5,11 +5,11 @@ write the tests with each slice, run everything once in slice 5.
 
 ## Slice 1 — Security quick wins (items 3, 2)
 
-- [ ] 1.1 `feedback-verdict.ts`: `isInsideRoot` guard on `sourcePath` (D5) + traversal test in `feedback-verdict.spec.ts`.
-- [ ] 1.2 `innfo-runtime.js`: `escapeHtml`/`textContent` at all sinks listed in D3.
-- [ ] 1.3 `artifact_shell.html`: CSP meta (D4); `export-console.mjs` injects inline-script `sha256-` hashes.
-- [ ] 1.4 Hostile-content tests: title, concept name, hash token, error string.
-- [ ] 1.5 Rebuild bundle + shells; commit `fix(console): escape untrusted text, add CSP, guard verdict sourcePath`.
+- [x] 1.1 `feedback-verdict.ts`: `isInsideRoot` guard on `sourcePath` (D5) + traversal test in `feedback-verdict.spec.ts`.
+- [x] 1.2 `innfo-runtime.js`: `escapeHtml`/`textContent` at all sinks listed in D3.
+- [x] 1.3 `artifact_shell.html`: CSP meta (D4); `export-console.mjs` injects inline-script `sha256-` hashes.
+- [x] 1.4 Hostile-content tests: title, concept name, hash token, error string.
+- [x] 1.5 Rebuild bundle + shells; commit `fix(console): escape untrusted text, add CSP, guard verdict sourcePath`.
 
 ## Slice 2 — Console -> apply contract (item 1)
 

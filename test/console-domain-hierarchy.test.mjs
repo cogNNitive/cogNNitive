@@ -177,3 +177,51 @@ describe('Domain Console Hierarchy & Faceted Omnibar Contract', () => {
     assert.equal(selectedFilter, 'concept:Risks')
   })
 })
+
+describe('Hostile text renders as text, never as markup', () => {
+  const HOSTILE_IMG = '<img src=x onerror=alert(1)>'
+  const HOSTILE_SVG = '<svg onload=alert(1)>'
+
+  function boot(body) {
+    const dom = new JSDOM(`<!doctype html><html><body>${body}</body></html>`)
+    global.window = dom.window
+    global.document = dom.window.document
+    return dom.window.document
+  }
+
+  test('model title and concept name in the rail are inert', () => {
+    const document = boot('<nav id="innfo-rail"></nav>')
+    const hostileConcept = '<script>x()</script>'
+    const state = {
+      meta: { models: [{ id: 'm1', title: HOSTILE_IMG, filePath: 'm1.md', elementCount: 1 }, { id: 'm2', title: 'Two', filePath: 'm2.md', elementCount: 1 }] },
+      elements: [{ id: 'e1', concept: hostileConcept, modelId: 'm1' }],
+    }
+    InnfoConsole.renderRail(document, [{ name: hostileConcept }], { [hostileConcept]: 1 }, {}, () => {}, state)
+
+    const rail = document.getElementById('innfo-rail')
+    assert.equal(rail.querySelector('img'), null)
+    assert.equal(rail.querySelector('script'), null)
+    assert.ok(rail.textContent.includes(HOSTILE_IMG), 'model title appears literally')
+    assert.ok(rail.textContent.includes(hostileConcept), 'concept name appears literally')
+  })
+
+  test('search token and operator value in the filter pills are inert', () => {
+    const document = boot('<input id="innfo-search" /><div id="innfo-filter-facets"></div><div id="innfo-active-filters"></div>')
+    InnfoConsole.renderFilterBar(document, { meta: { models: [] }, elements: [] }, () => {}, `"${HOSTILE_SVG}" tag:<b>x</b>`)
+
+    const pills = document.getElementById('innfo-active-filters')
+    assert.ok(pills.children.length > 0, 'pills rendered')
+    assert.equal(pills.querySelector('svg'), null)
+    assert.equal(pills.querySelector('b'), null)
+    assert.ok(pills.textContent.includes(HOSTILE_SVG))
+  })
+
+  test('validation error strings are inert', () => {
+    const document = boot('<dialog id="innfo-feedback-modal"><div data-innfo="errors"></div></dialog>')
+    InnfoConsole.renderErrors(document, [HOSTILE_IMG])
+
+    const box = document.querySelector('[data-innfo="errors"]')
+    assert.equal(box.querySelector('img'), null)
+    assert.ok(box.textContent.includes(HOSTILE_IMG))
+  })
+})
