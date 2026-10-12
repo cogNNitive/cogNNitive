@@ -49,67 +49,18 @@ Session-scoped: once per conversation.
 
 ## 1. Session Start: isolate, then scan
 
-### 1a. Enter a session worktree
-
-Before the first write, create (or reuse) this session's worktree and work there:
-
-```powershell
-node scripts/nn-session.mjs start --id <session-id>
-# prints the absolute worktree path; the session works there from now on
-```
-
-`start` reuses an existing worktree for the same id, junctions the primary tree's
-`node_modules`, and creates the branch `session/<id>` off `dev`. Never write to the
-primary checkout; the primary-tree guard blocks it.
-
-**Testing in a worktree.** A junctioned worktree resolves `@cognnitive/*` to the
-**primary's** source, so a test or gate there exercises the wrong tree. When the session
-needs a trustworthy local test run, start a fresh one with `--fresh` (one-time `npm ci`
-inside the worktree, ~60s): `node scripts/nn-session.mjs start --id <id> --fresh`. Otherwise
-run tests/gates in the primary, or rely on CI. `--fresh` only applies to a new worktree —
-it prints a note and does nothing if the worktree already exists.
-
-⚠️ It junctions the root `node_modules`, `iNNfo/node_modules`, and every workspace
-(`iNNfo/packages/*`, `iNNfo/apps/*`) and skill `node_modules` that exists in the primary.
-A dependency missing from the **local install** (a partial / `--omit=dev` install — e.g.
-`vitest` present in neither the root nor the workspace) is an environment gap, not a code error. `start` now
-detects a stale install (declared range vs installed version) and prints a `STALE DEPENDENCIES`
-warning naming the fix — do not trust the worktree as a test baseline until that warning is gone. The `pre-push` hook detects a session
-worktree (its `git-dir` differs from the shared `git-common-dir`) and **skips the local
-typecheck with a clear message**, because the workspace symlinks resolve `@cognnitive/*` to the
-primary checkout and a local typecheck would check the wrong tree. CI runs the real typecheck
-on the pushed ref; watch the run. No `--no-verify` and no per-session `npm install` needed.
-
-⚠️ The same junction problem makes a session worktree a **poor baseline for test
-diagnosis**. `node_modules/@cognnitive/*` resolves to the **primary**, so a test run
-"at main" in a junctioned worktree is not really main — it may fail (or pass) for the
-wrong reason. When you need a trustworthy baseline to decide whether a failure is
-pre-existing:
-- Do NOT `git worktree add --detach <tmp> <sha>` + junction — that is contaminated.
-- Prefer the **primary checkout** if it has real `npm ci` deps and a built
-  `innfo-core/dist`; run the test there with the workspace's own `vitest`.
-- The `innfo-mcp` suite is also **slow** in a worktree (junctions + Windows fs):
-  several cascade tests take ~5-7s and cross vitest's default 5s timeout, which
-  surfaces as misleading `expected false to be true` assertion errors, not "timed out".
-  When a fast-looking assertion error appears on a test known to be slow, re-run it
-  alone with `--testTimeout=30000` before believing it.
-
 ### 1b. Primary-tree health check
 
 Isolation makes write collisions impossible, so there is no process scan. What *does*
 drift is the primary checkout itself: it must stay on `dev`, clean, and in sync with
 `origin/dev` (it is the base every session worktree is cut from). One command reports it
-all — branch, dirtiness, `origin/dev` sync, pending batch, worktrees, stash, and stale deps:
+all — branch, dirtiness, `origin/dev` sync, pending batch, worktrees, and stash:
 
 ```powershell
 node scripts/nn-session.mjs status
 ```
 
 `status` fetches (best-effort, offline-safe) and prints one block; it always exits 0.
-It also flags **stale dependencies** — an installed version below the declared range —
-because a session worktree inherits the primary's install through junctions, so a stale
-primary silently poisons every test and gate run in the worktree (the false-baseline trap
-of issue #122). `start` prints the same warning. The fix is `npm install` in the **primary**.
 
 If the primary is not on `dev`, is dirty, or is behind, **say so first** — do not write
 into it. A clean-but-behind primary may be fast-forwarded (`git switch dev` then
@@ -196,7 +147,7 @@ fix in place, or fold a small finding into the change already open for that area
   whole tree. On 2026-10-06 a whole-tree revert silently undid another session's
   uncommitted edits; they were recoverable only because the patch had been saved first.
 - Known noise: `skills/nn-upgrade/scripts/lib/legacy-migrate.generated.cjs` shows as modified
-  in worktrees (esbuild writes `../<repo>/node_modules/...` paths through the junction).
+  in worktrees (esbuild writes `../<repo>/node_modules/...`) paths.
   Never commit it from a worktree; revert it before `stop`.
 
 ---
@@ -261,7 +212,7 @@ When the maintainer says the accumulated `dev` work is ready:
    (maintainer-approved `MERGE-GATE EXCEPTION`).
    - **Confirm pre-existing red before attributing it.** A red job on `dev` is not proof
      the batch caused it. Before fixing: run the failing test/guard against the batch
-     base (`origin/main`) in a trustworthy checkout (see §1a - not a junctioned worktree),
+     base (`origin/main`) in a trustworthy checkout,
      or compare against a CI run of the batch base. Only a failure that reproduces on the
      base is pre-existing. On 2026-10-04 a red `console-golden-parity` (mcp suite) looked
      batch-caused and cost hours of guessing; it reproduced on `main` and was a
