@@ -647,7 +647,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     '.innfo-ku-action:hover{color:var(--innfo-text);border-color:var(--innfo-border);background:var(--innfo-surface)}',
     '.innfo-ku-action[data-ku-action=edit]:hover{color:var(--innfo-link)}',
     '.innfo-ku-action:focus-visible{outline:2px solid var(--innfo-focus);outline-offset:1px}',
-    '.innfo-card-fields{display:flex;flex-wrap:wrap;gap:.4em;align-items:flex-start;margin:.6em 0 0}',
+    '.innfo-card-fields{display:flex;flex-direction:column;gap:.45em;align-items:stretch;margin:.6em 0 0}',
     '.innfo-card-desc-actions{margin-left:.4em}',
     // Element-card Dense Row (V01): a one-line bar (image chip, name, concept,
     // markers, field count, actions, chevron) over a collapsible body.
@@ -662,7 +662,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     '[data-innfo-component=element-card][data-open=true] .innfo-card-toggle .innfo-icon{transform:rotate(180deg)}',
     '[data-innfo-component=element-card][data-open=false] .innfo-card-body{display:none}',
     '[data-innfo-component=element-card][data-open=false] .innfo-card-path{display:none}',
-    '[data-innfo-component=element-card] .innfo-card-fields{display:flex;flex-wrap:wrap;gap:.4em;align-items:flex-start;margin:.6em 0 0}',
+    '[data-innfo-component=element-card] .innfo-card-fields{display:flex;flex-direction:column;gap:.45em;align-items:stretch;margin:.6em 0 0}',
   ]
   for (var slot = 1; slot <= 12; slot++) {
     COMPONENT_CSS.push(
@@ -1148,7 +1148,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         img.setAttribute('loading', 'lazy')
         img.addEventListener('error', function () {
           var cur = img.getAttribute('src') || ''
-          var relMatch = !img.getAttribute('data-retried') && cur.match(/^.+?(\bsources\/.+)$/)
+          var relMatch = !img.getAttribute('data-retried') && cur.match(/^.+?\b((?:sources|kNNowledge|assets|evidence)\/.+)$/)
           if (relMatch) {
             img.setAttribute('data-retried', '1')
             img.setAttribute('src', relMatch[1])
@@ -1225,6 +1225,31 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return IMAGE_VALUE_RE.test(s)
   }
 
+  // ponytail: naive prefix retry (kNNowledge/sources/assets) — proper fix is
+  // absolute asset URLs in the payload; upgrade when domains grow.
+  function retryImageSrc(img, fallback) {
+    var cur = img.getAttribute('src') || ''
+    if (/^(data:|blob:|https?:|file:)/i.test(cur)) {
+      fallback()
+      return
+    }
+    var tried = (img.getAttribute('data-retried') || '').split('|')
+    var tail = cur.replace(/\\/g, '/')
+    var m = tail.match(/(sources\/.+|kNNowledge\/.+|assets\/.+|evidence\/.+)$/)
+    var candidates = []
+    if (m) candidates.push(m[1])
+    candidates.push('kNNowledge/' + tail.replace(/^.*\//, ''))
+    candidates.push('sources/' + tail.replace(/^.*\//, ''))
+    for (var i = 0; i < candidates.length; i++) {
+      if (tried.indexOf(candidates[i]) === -1 && candidates[i] !== cur) {
+        img.setAttribute('data-retried', (img.getAttribute('data-retried') || '') + '|' + candidates[i])
+        img.setAttribute('src', candidates[i])
+        return
+      }
+    }
+    fallback()
+  }
+
   function imageFieldOf(fields) {
     var list = Array.isArray(fields) ? fields : []
     for (var i = 0; i < list.length; i++) {
@@ -1259,16 +1284,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       thumb.setAttribute('loading', 'lazy')
       thumb.setAttribute('src', String(imageField.value))
       thumb.addEventListener('error', function () {
-        var cur = thumb.getAttribute('src') || ''
-        var relMatch = !thumb.getAttribute('data-retried') && cur.match(/^.+?(\bsources\/.+)$/)
-        if (relMatch) {
-          thumb.setAttribute('data-retried', '1')
-          thumb.setAttribute('src', relMatch[1])
-          return
-        }
-        var ph = makeEl(doc, 'span', 'innfo-card-thumb innfo-card-thumb--empty')
-        ph.innerHTML = icon('image', 16)
-        if (thumb.parentNode) thumb.parentNode.replaceChild(ph, thumb)
+        retryImageSrc(thumb, function () {
+          var ph = makeEl(doc, 'span', 'innfo-card-thumb innfo-card-thumb--empty')
+          ph.innerHTML = icon('image', 16)
+          if (thumb.parentNode) thumb.parentNode.replaceChild(ph, thumb)
+        })
       })
     } else {
       thumb = makeEl(doc, 'span', 'innfo-card-thumb innfo-card-thumb--empty')
@@ -1957,6 +1977,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   }
 
   var REVIEW_STATES = ['none', 'reviewed', 'changed']
+  var REVIEW_LABELS = { none: 'Mark reviewed', reviewed: 'Reviewed', changed: 'Changed' }
 
   function ReviewedToggle(data) {
     if (!data || typeof data !== 'object') {
@@ -1964,7 +1985,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
     var state = REVIEW_STATES.indexOf(data.state) !== -1 ? data.state : 'none'
     var doc = resolveDoc(null)
-    var b = makeEl(doc, 'button', 'innfo-reviewed-toggle', state)
+    var b = makeEl(doc, 'button', 'innfo-reviewed-toggle', REVIEW_LABELS[state])
     b.setAttribute('data-innfo-component', 'reviewed-toggle')
     b.setAttribute('type', 'button')
     b.setAttribute('data-state', String(state))
@@ -7539,7 +7560,33 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     defs.appendChild(marker)
     svg.appendChild(defs)
 
+    // Edges: matrices (explicit) + element field refs (implicit). The old map
+    // only drew matrices, so domains without matrices looked disconnected.
+    var edges = []
+    var seenEdge = {}
+    function pushEdge(source, target, name) {
+      if (!source || !target || !pos[source] || !pos[target]) return
+      var key = source + '>' + target + '>' + (name || '')
+      if (seenEdge[key]) return
+      seenEdge[key] = true
+      edges.push({ source: source, target: target, name: name })
+    }
     ;(Array.isArray(matrices) ? matrices : []).forEach(function (m) {
+      if (m) pushEdge(m.source, m.target, m.name)
+    })
+    var byConcept = {}
+    ;(Array.isArray(elements) ? elements : []).forEach(function (e) {
+      if (e && e.concept) byConcept[e.id] = e.concept
+    })
+    ;(Array.isArray(elements) ? elements : []).forEach(function (e) {
+      if (!e || !e.concept || !Array.isArray(e.relations)) return
+      e.relations.forEach(function (r) {
+        if (!r || !r.target) return
+        var tc = byConcept[r.target]
+        if (tc && tc !== e.concept) pushEdge(e.concept, tc, r.field || '')
+      })
+    })
+    ;edges.forEach(function (m) {
       if (!m || !m.source || !m.target || !pos[m.source] || !pos[m.target]) return
       var sx = pos[m.source].x
       var sy = pos[m.source].y
@@ -7801,7 +7848,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         '#innfo-feedback-modal .innfo-feedback-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:8px 0;}' +
         '#innfo-feedback-modal button[data-innfo="copy-changeset-prompt"]{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--surface,#ffffff);color:var(--text,#111827);font:inherit;font-size:0.85rem;font-weight:600;padding:8px 16px;border-radius:var(--radius-sm,4px);cursor:pointer;}' +
         '#innfo-feedback-modal button:disabled{opacity:0.5;cursor:not-allowed;}' +
-        '#innfo-feedback-modal [data-innfo="copy-status"]{font-size:0.8rem;color:var(--muted,#6b7280);}'
+        '#innfo-feedback-modal [data-innfo="copy-status"]{font-size:0.8rem;color:var(--muted,#6b7280);}' +
+        '#innfo-feedback-modal .innfo-feedback-head{display:flex;align-items:center;gap:12px;}' +
+        '#innfo-feedback-modal .innfo-feedback-head h2{margin:0;flex:1;}' +
+        '#innfo-feedback-modal button[data-innfo="close"]{appearance:none;border:1px solid var(--border,#e5e7eb);background:transparent;font-size:1.2rem;line-height:1;padding:2px 10px;border-radius:6px;cursor:pointer;}' +
+        '#innfo-feedback-modal .innfo-feedback-seal{font-size:0.8rem;color:var(--muted,#6b7280);margin:8px 0;}'
       root.appendChild(style)
     }
 
@@ -7861,7 +7912,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     modal.id = 'innfo-feedback-modal'
     modal.setAttribute('aria-label', 'Export proposed changes')
     modal.innerHTML =
-      '<h2>Export proposed changes</h2>' +
+      '<div class="innfo-feedback-head"><h2>Export proposed changes</h2>' +
+      '<button data-innfo="close" type="button" aria-label="Close">×</button></div>' +
+      '<p class="innfo-feedback-seal">Sealed proposal: do not edit the file after download — any edit invalidates proposal_sha (PROPOSAL_TAMPERED). To retry, export a new file.</p>' +
       '<div data-innfo="preview"></div>' +
       '<label>Author / Reviewer identifier (required)' +
       '<input data-innfo="identifier" type="text" placeholder="e.g. round-2" />' +
@@ -7918,9 +7971,15 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var model = oneLine(d.model_id || fallbackModel || 'model')
     var elementTarget = oneLine(d.element_slug || d.element || d.element_id || 'elem')
     var canUpdate = !!d.field && d.proposed !== undefined
+    var isRename = canUpdate && String(d.field).toLowerCase() === 'name'
     var op = 'update_field'
     var target = model + '@' + elementTarget + (d.field ? '&' + oneLine(d.field) : '')
-    if (d.kind === 'delete') {
+    if (isRename) {
+      // Element display name is identity, not a field — the engine rejects
+      // update_field on &name (PRECONDITION_FAILED). Emit rename_element.
+      op = 'rename_element'
+      target = model + '@' + elementTarget
+    } else if (d.kind === 'delete') {
       op = 'remove_element'
       target = model + '@' + elementTarget
     } else if (d.kind === 'new') {
@@ -7940,10 +7999,13 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     lines.push('op:: ' + op)
     lines.push('target:: ' + target)
     // The engine rejects the change if the element's content hash moved on since the draft.
-    if ((op === 'update_field' || op === 'remove_element') && d.base_hash) {
+    if ((op === 'update_field' || op === 'remove_element' || op === 'rename_element') && d.base_hash) {
       lines.push('base_hash:: ' + oneLine(d.base_hash))
     }
-    if (op === 'update_field') {
+    if (op === 'rename_element') {
+      if (d.original !== undefined) lines.push('from:: ' + formatChangesetValue(d.original))
+      lines.push('name:: ' + formatChangesetValue(d.proposed))
+    } else if (op === 'update_field') {
       if (d.original !== undefined) lines.push('from:: ' + formatChangesetValue(d.original))
       lines.push('to:: ' + formatChangesetValue(d.proposed))
     } else if (op === 'add_element') {
@@ -8256,10 +8318,40 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     updateExportPreview(doc, state)
 
+    function closeModal() {
+      if (typeof modal.close === 'function') {
+        try {
+          if (modal.open) modal.close()
+          else modal.removeAttribute('open')
+        } catch {
+          modal.removeAttribute('open')
+        }
+      } else modal.removeAttribute('open')
+    }
+
     if (typeof modal.showModal === 'function') {
       if (!modal.open) modal.showModal()
     } else {
       modal.setAttribute('open', 'open')
+    }
+
+    var closeBtn = modal.querySelector('[data-innfo="close"]')
+    if (closeBtn && !closeBtn.getAttribute('data-innfo-bound')) {
+      closeBtn.setAttribute('data-innfo-bound', '1')
+      closeBtn.addEventListener('click', function (ev) {
+        if (ev && ev.stopPropagation) ev.stopPropagation()
+        closeModal()
+      })
+    }
+    if (!modal.getAttribute('data-innfo-dismiss-bound')) {
+      modal.setAttribute('data-innfo-dismiss-bound', '1')
+      modal.addEventListener('click', function (ev) {
+        if (ev && ev.target === modal) closeModal()
+      })
+      modal.addEventListener('cancel', function (ev) {
+        if (ev && ev.preventDefault) ev.preventDefault()
+        closeModal()
+      })
     }
 
     if (identifierInput && !identifierInput.getAttribute('data-innfo-bound')) {
