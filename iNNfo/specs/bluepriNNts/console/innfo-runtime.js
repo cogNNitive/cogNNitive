@@ -3607,8 +3607,9 @@
         drafts.length + (drafts.length === 1 ? ' pending change' : ' pending changes'),
       )
       if (count) titleWrap.appendChild(count)
+      var byIdForStale = elementsByIdOf(state)
       var staleCount = drafts.filter(function (d) {
-        return Review.isTargetChanged(d, elementsByIdOf(state))
+        return Review.isTargetChanged(d, byIdForStale) && !Review.isAlreadyApplied(d, byIdForStale)
       }).length
       if (staleCount > 0) {
         var staleNote = el(
@@ -3674,6 +3675,7 @@
           UI.DraftList({ drafts: drafts, byId: elementsByIdOf(state) }, {
             doc: doc,
             isTargetChanged: Review.isTargetChanged,
+            isAlreadyApplied: Review.isAlreadyApplied,
             onDelete: function (id) {
               if (state && state.store) state.store.removeDraft(id)
               if (typeof onRefresh === 'function') onRefresh()
@@ -4528,6 +4530,12 @@
   function composeExport(state, identifier) {
     var reviewer = identifier && String(identifier).trim() ? String(identifier).trim() : getReviewerName()
     var drafts = state && state.store ? state.store.drafts() : []
+    // Already-applied drafts (stale hash, proposed == current value) carry no
+    // change: exclude them from the export instead of shipping redundancies.
+    var byId = elementsByIdOf(state)
+    drafts = drafts.filter(function (d) {
+      return !Review.isAlreadyApplied(d, byId)
+    })
     var model = state && state.modelTitle ? state.modelTitle : 'Model'
     var version = state && state.modelVersion ? state.modelVersion : '1-0-0'
 
@@ -4686,7 +4694,7 @@
     if (preview) {
       preview.innerHTML = ''
       preview.appendChild(
-        UI.DraftList({ drafts: drafts, byId: elementsByIdOf(state) }, { doc: doc, isTargetChanged: Review.isTargetChanged }),
+        UI.DraftList({ drafts: drafts, byId: elementsByIdOf(state) }, { doc: doc, isTargetChanged: Review.isTargetChanged, isAlreadyApplied: Review.isAlreadyApplied }),
       )
     }
 

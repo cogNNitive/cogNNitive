@@ -1056,9 +1056,16 @@
         opts && typeof opts.isTargetChanged === 'function'
           ? opts.isTargetChanged(d, byId)
           : !el || el.hash !== d.base_hash
+      // A stale draft whose proposed value already equals the current value was
+      // applied out-of-band: 'already applied', not 'target changed'.
+      var applied =
+        changed && opts && typeof opts.isAlreadyApplied === 'function'
+          ? opts.isAlreadyApplied(d, byId)
+          : false
       var li = makeEl(doc, 'li', 'innfo-draft-row card bg-base-100 border border-base-200 shadow-xs')
       li.setAttribute('data-draft-id', String(d.id))
-      if (changed) li.setAttribute('data-target-changed', 'true')
+      if (changed && !applied) li.setAttribute('data-target-changed', 'true')
+      if (applied) li.setAttribute('data-already-applied', 'true')
 
       var cardBody = makeEl(doc, 'div', 'card-body p-4 flex flex-row items-center justify-between gap-4')
 
@@ -1082,7 +1089,10 @@
       cardBody.appendChild(left)
 
       var right = makeEl(doc, 'div', 'flex items-center gap-2 shrink-0')
-      if (changed) {
+      if (applied) {
+        var appliedBadge = makeEl(doc, 'span', 'innfo-draft-already-applied badge badge-neutral badge-sm', 'already applied')
+        right.appendChild(appliedBadge)
+      } else if (changed) {
         var warnBadge = makeEl(doc, 'span', 'innfo-draft-target-changed badge badge-error badge-sm', 'target changed')
         right.appendChild(warnBadge)
       }

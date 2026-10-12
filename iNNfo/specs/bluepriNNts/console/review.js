@@ -263,6 +263,31 @@
     return el.hash !== d.base_hash
   }
 
+  function currentFieldValue(el, field) {
+    if (!isObject(el) || field === undefined || field === null) return undefined
+    var key = String(field)
+    if (el.fields && isObject(el.fields) && el.fields[key] !== undefined) return el.fields[key]
+    if (key === 'name') return el.name
+    if (key === 'description') return el.description
+    return el[key]
+  }
+
+  // A stale draft whose proposed value already equals the element's current
+  // value has nothing to review: the change was applied out-of-band (e.g. an
+  // engine-side changeset). It reads 'already applied' and is excluded from
+  // export, instead of the misleading 'target changed'.
+  function isAlreadyApplied(draft, elementsById) {
+    var d = isObject(draft) ? draft : {}
+    if (d.proposed === undefined || d.proposed === null) return false
+    var byId = isObject(elementsById) ? elementsById : {}
+    var el = byId[d.element_id]
+    if (!el) return false
+    if (!isTargetChanged(d, byId)) return false
+    var current = currentFieldValue(el, d.field)
+    if (current === undefined || current === null) return false
+    return String(current) === String(d.proposed)
+  }
+
   function progressByConcept(elements, drafts, reviewed) {
     var list = Array.isArray(elements) ? elements : []
     var draftList = Array.isArray(drafts) ? drafts : []
@@ -1328,6 +1353,7 @@
     createReviewController: createReviewController,
     reviewState: reviewState,
     isTargetChanged: isTargetChanged,
+    isAlreadyApplied: isAlreadyApplied,
     progressByConcept: progressByConcept,
     verdictsByElement: verdictsByElement,
     changedIds: changedIds,
