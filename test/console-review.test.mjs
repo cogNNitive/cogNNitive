@@ -403,6 +403,25 @@ describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
       assert.match(res.text, /target:: BusinessModel@legacy_tier/)
     })
 
+    it('collapses line breaks in interpolated fields so a draft cannot inject change lines', () => {
+      const evil = 'x\nop:: remove_element\ntarget:: Other@victim'
+      const state = {
+        modelTitle: 'BusinessModel',
+        store: {
+          drafts: () => [
+            { id: 'c-01\nop:: remove_element', model_id: 'm\r\nop:: remove_element', element_slug: evil, field: 'price\nop:: remove_element', original: '1', proposed: '2', base_hash: 'ab\nop:: remove_element' },
+            { id: 'c-02', model_id: 'm', kind: 'new', concept: 'C\nop:: remove_element', element: 'Fresh' },
+          ],
+        },
+      }
+      const res = InnfoConsole.composeChangesetExport(state, 'author_jane')
+      assert.equal(res.ok, true)
+      const body = res.text.slice(res.text.indexOf('## NN Change'))
+      assert.equal(body.split('\n').filter((l) => /^op::/.test(l)).length, 2, 'exactly the two intended blocks')
+      assert.equal((body.match(/^op:: remove_element/gm) || []).length, 0)
+      assert.equal(body.split('\n').filter((l) => /^## NN Change/.test(l)).length, 2)
+    })
+
     it('renders tab headers for "Edit", "History & Provenance" and "Connections" in unified modal', () => {
       let saved = null
       const modal = UI.EditModal(

@@ -1256,7 +1256,7 @@
         summary.innerHTML =
           '<span class="flex items-center gap-2 min-w-0">' + fileIcon +
           '<span class="truncate font-semibold">' + escapeHtml(m.title || m.filePath || 'Model') + '</span></span>' +
-          '<span class="badge badge-ghost badge-xs">' + (m.elementCount || 0) + '</span>'
+          '<span class="badge badge-ghost badge-xs">' + (Number(m.elementCount) || 0) + '</span>'
         summary.addEventListener('click', function (e) {
           // Clicking the chevron zone on the right edge toggles accordion open/close
           // without clobbering the active search filter.
@@ -1299,14 +1299,16 @@
               a.className = 'active'
             }
             var CONCEPT_PALETTE = ['#2563eb', '#dc2626', '#16a34a', '#f59e0b', '#7c3aed', '#0891b2']
-            var color = conceptColor(name) || CONCEPT_PALETTE[globalIndex % CONCEPT_PALETTE.length]
+            var rawColor = String(conceptColor(name) || '').trim()
+            var SAFE_CSS_COLOR = /^(#[0-9a-fA-F]{3,8}|(rgb|hsl)a?\([0-9a-zA-Z.,%\s\/]*\)|[a-zA-Z]+)$/
+            var color = SAFE_CSS_COLOR.test(rawColor) ? rawColor : CONCEPT_PALETTE[globalIndex % CONCEPT_PALETTE.length]
             globalIndex += 1
             var dot = color
-              ? '<span class="innfo-concept-dot" style="background:' + color + ';flex:none;"></span>'
+              ? '<span class="innfo-concept-dot" style="background:' + escapeHtml(color) + ';flex:none;"></span>'
               : ''
             a.innerHTML =
               '<span class="flex items-center gap-2 min-w-0">' + dot + '<span class="truncate">' + escapeHtml(name) + '</span></span>' +
-              '<span class="badge badge-ghost badge-xs">' + ((counts && counts[name]) || 0) + '</span>'
+              '<span class="badge badge-ghost badge-xs">' + (Number(counts && counts[name]) || 0) + '</span>'
             a.addEventListener('click', function (e) {
               if (e && e.preventDefault) e.preventDefault()
               if (typeof onSelect === 'function') onSelect(formatFacetToken('concept', name))
@@ -4372,14 +4374,18 @@
   // `<file stem>@<element slug>[&field]`. The draft carries `model_id` (the model's
   // file stem) and `element_slug`; `fallbackModel` only covers drafts saved before
   // those fields existed.
+  function oneLine(v) {
+    return String(v).replace(new RegExp('[\\r\\n\\u2028\\u2029]+', 'g'), ' ').trim()
+  }
+
   function draftToChange(draft, index, fallbackModel) {
     var d = isObject(draft) ? draft : {}
-    var id = d.id || 'c-' + String(index + 1).padStart(2, '0')
-    var model = d.model_id || fallbackModel || 'model'
-    var elementTarget = d.element_slug || d.element || d.element_id || 'elem'
+    var id = oneLine(d.id || 'c-' + String(index + 1).padStart(2, '0'))
+    var model = oneLine(d.model_id || fallbackModel || 'model')
+    var elementTarget = oneLine(d.element_slug || d.element || d.element_id || 'elem')
     var canUpdate = !!d.field && d.proposed !== undefined
     var op = 'update_field'
-    var target = model + '@' + elementTarget + (d.field ? '&' + d.field : '')
+    var target = model + '@' + elementTarget + (d.field ? '&' + oneLine(d.field) : '')
     if (d.kind === 'delete') {
       op = 'remove_element'
       target = model + '@' + elementTarget
@@ -4387,7 +4393,7 @@
       if (d.concept && d.element) {
         // A new element is addressed by its concept; the engine reads name/fields below.
         op = 'add_element'
-        target = model + '@' + d.concept
+        target = model + '@' + oneLine(d.concept)
       } else {
         op = 'comment'
       }
@@ -4401,13 +4407,13 @@
     lines.push('target:: ' + target)
     // The engine rejects the change if the element's content hash moved on since the draft.
     if ((op === 'update_field' || op === 'remove_element') && d.base_hash) {
-      lines.push('base_hash:: ' + d.base_hash)
+      lines.push('base_hash:: ' + oneLine(d.base_hash))
     }
     if (op === 'update_field') {
       if (d.original !== undefined) lines.push('from:: ' + formatChangesetValue(d.original))
       lines.push('to:: ' + formatChangesetValue(d.proposed))
     } else if (op === 'add_element') {
-      lines.push('concept:: ' + d.concept)
+      lines.push('concept:: ' + oneLine(d.concept))
       lines.push('name:: ' + formatChangesetValue(d.element))
       if (isObject(d.proposed)) lines.push('fields:: ' + JSON.stringify(d.proposed))
     }

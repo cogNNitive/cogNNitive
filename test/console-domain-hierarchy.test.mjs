@@ -205,6 +205,23 @@ describe('Hostile text renders as text, never as markup', () => {
     assert.ok(rail.textContent.includes(hostileConcept), 'concept name appears literally')
   })
 
+  test('hostile concept color and element count cannot break out of the style attribute', () => {
+    const document = boot('<nav id="innfo-rail"></nav>')
+    const state = {
+      meta: { models: [{ id: 'm1', title: 'One', filePath: 'm1.md', elementCount: '1</span><img src=x onerror=1>' }] },
+      elements: [{ id: 'e1', concept: 'Risks', modelId: 'm1' }],
+    }
+    const color = 'red"><img src=x onerror=1>'
+    InnfoConsole.renderRail(document, [{ name: 'Risks', color }], { Risks: 1 }, {}, () => {}, state)
+
+    const rail = document.getElementById('innfo-rail')
+    assert.equal(rail.querySelector('img'), null)
+    assert.equal(rail.querySelector('[onerror]'), null)
+    const dot = rail.querySelector('.innfo-concept-dot')
+    assert.ok(dot, 'dot still rendered with a fallback color')
+    assert.ok(!dot.getAttribute('style').includes('onerror'))
+  })
+
   test('search token and operator value in the filter pills are inert', () => {
     const document = boot('<input id="innfo-search" /><div id="innfo-filter-facets"></div><div id="innfo-active-filters"></div>')
     InnfoConsole.renderFilterBar(document, { meta: { models: [] }, elements: [] }, () => {}, `"${HOSTILE_SVG}" tag:<b>x</b>`)
