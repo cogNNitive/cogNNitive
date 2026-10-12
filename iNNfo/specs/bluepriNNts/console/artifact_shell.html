@@ -96,16 +96,16 @@
 
       /* Left blueprint rail */
       aside.innfo-rail {
-        width: 360px;
-        min-width: 360px;
-        max-width: 380px;
+        width: 340px;
+        min-width: 320px;
+        max-width: 360px;
         border-right: 1px solid var(--border);
         background: var(--surface);
         display: flex;
         flex-direction: column;
-        height: calc(100vh - 57px);
+        height: calc(100vh - 46px);
         position: sticky;
-        top: 57px;
+        top: 46px;
         overflow: hidden;
       }
       @media (max-width: 1024px) {
@@ -117,13 +117,13 @@
           min-width: 0;
           max-width: 100%;
           height: auto;
-          max-height: 210px;
+          max-height: 340px;
           position: static;
           border-right: none;
           border-bottom: 1px solid var(--border);
         }
         .innfo-filter-zone { padding: 8px 10px; gap: 6px; }
-        #innfo-rail { padding: 6px 8px; }
+        #innfo-rail { padding: 6px 8px; min-height: 150px; }
       }
       .innfo-filter-zone {
         background: var(--filter-zone-bg);
@@ -166,14 +166,14 @@
       .innfo-bp-card .bp-meta { display: flex; gap: 10px; font-size: 0.72rem; color: var(--muted); border-top: 1px dashed var(--border); padding-top: 5px; margin-top: 5px; }
       .innfo-bp-card .bp-changes { font-size: 0.66rem; font-weight: 700; color: var(--warning); background: color-mix(in srgb, var(--warning) 16%, var(--surface)); border: 1px solid color-mix(in srgb, var(--warning) 35%, var(--surface)); padding: 1px 6px; border-radius: 999px; }
 
-      main { flex: 1; min-width: 0; padding: 0 30px 90px; }
+      main { flex: 1; min-width: 0; padding: 0; display: flex; flex-direction: column; }
       @media (max-width: 640px) {
-        main { padding: 0 12px 64px; }
-        .innfo-content-scroll { padding: 12px 10px 64px; }
+        main { padding: 0; }
+        .innfo-content-scroll { padding: 12px 12px 64px; }
       }
       .innfo-action-bar {
-        min-height: 38px;
-        padding: 6px 18px;
+        min-height: 40px;
+        padding: 6px 30px;
         background: var(--surface);
         border-bottom: 1px solid var(--border);
         display: flex;
@@ -182,8 +182,9 @@
         gap: 12px;
         flex-wrap: wrap;
         position: sticky;
-        top: 57px;
-        z-index: 20;
+        top: 45px;
+        z-index: 25;
+        box-shadow: 0 1px 2px rgba(25, 23, 36, 0.03);
       }
       @media (max-width: 1024px) {
         .innfo-action-bar { position: static; top: auto; }

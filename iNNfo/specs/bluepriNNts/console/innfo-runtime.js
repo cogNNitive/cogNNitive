@@ -264,7 +264,7 @@
       var colonIdx = unquoted.indexOf(':')
       if (colonIdx > 0) {
         var key = unquoted.slice(0, colonIdx).toLowerCase()
-        var val = unquoted.slice(colonIdx + 1).toLowerCase()
+        var val = unquoted.slice(colonIdx + 1).replace(/^["']|["']$/g, '').toLowerCase()
         operators.push({ key: key, val: val, raw: unquoted })
       } else {
         textTokens.push(unquoted.toLowerCase())
@@ -1581,17 +1581,52 @@
 
     projectedElements.forEach(function (element) {
       var fields = []
+      var elCitations = element && isObject(element.citations) ? element.citations : {}
       if (isObject(element.fields)) {
         Object.keys(element.fields).forEach(function (k) {
           var val = element.fields[k]
-          var target = refs && isObject(refs[String(val)]) ? refs[String(val)] : null
+          var cleanKey = typeof val === 'string' ? val.replace(/^\[\[|\]\]$/g, '').trim() : String(val)
+          var target =
+            refs && isObject(refs[String(val)])
+              ? refs[String(val)]
+              : refs && isObject(refs[cleanKey])
+                ? refs[cleanKey]
+                : null
+          if (!target && Array.isArray(element.relations)) {
+            var relMatch = element.relations.find(function (r) {
+              return r && r.field === k && r.target
+            })
+            if (relMatch) {
+              target =
+                refs && isObject(refs[relMatch.target])
+                  ? refs[relMatch.target]
+                  : { id: relMatch.target, name: relMatch.targetLabel || cleanKey || relMatch.target }
+            }
+          }
+          var fieldCites = Array.isArray(elCitations[k]) && elCitations[k].length ? elCitations[k] : undefined
           fields.push({
             name: k,
             value: val,
             type: fieldTypeOf(schema, k),
-            ref: target ? { id: target.id || String(val), label: String(val) } : undefined,
+            ref: target ? { id: target.id || String(val), label: target.name || cleanKey || String(val) } : undefined,
+            citations: fieldCites,
           })
         })
+      }
+
+      var markerList = []
+      if (isObject(element.markers)) {
+        Object.keys(element.markers).forEach(function (mkKey) {
+          var mkVal = element.markers[mkKey]
+          markerList.push({
+            id: mkKey,
+            label: mkKey,
+            kind: 'marker',
+            value: Array.isArray(mkVal) ? mkVal.join(', ') : mkVal,
+          })
+        })
+      } else if (Array.isArray(element.markers)) {
+        markerList = element.markers
       }
 
       var card = UI.ElementCard(
@@ -1601,6 +1636,8 @@
           conceptId: element.concept,
           description: element.description,
           fields: fields,
+          markers: markerList.length ? markerList : undefined,
+          history: Array.isArray(element.history) && element.history.length ? element.history : undefined,
           qud: { id: element.id, concept: element.concept, hash: element.hash, path: element.canonicalUnit || element.modelFile || element.modelTitle || null },
           path: element.canonicalUnit || element.modelFile || element.modelTitle || null,
           tags: Array.isArray(element.tags) ? element.tags.map(String) : null,
@@ -1621,6 +1658,11 @@
             var target = refs && isObject(refs[String(refId)]) ? refs[String(refId)] : null
             if (target) renderRefDialog(doc, target)
           },
+          onCite: function (citeData) {
+            var fName = citeData && citeData.field
+            var list = fName && Array.isArray(elCitations[fName]) ? elCitations[fName] : []
+            renderCitationDialog(doc, fName || element.name || element.id, list)
+          },
         },
       )
 
@@ -1628,47 +1670,19 @@
       var cDef = (Array.isArray(concepts) ? concepts : []).find(function (c) {
         return c && (typeof c === 'string' ? c : c.name) === element.concept
       })
-      var cColor = (cDef && cDef.color) || '#3b82f6'
+      var cColor = (cDef && cDef.color) || '#4d0e4e'
       var hexColor = visuals && typeof visuals.getHexColor === 'function' ? visuals.getHexColor(cColor) : cColor
       card.style.borderLeft = '3px solid ' + hexColor
 
       var head = card.querySelector('.innfo-card-head, header')
-      if (head) {
-        var metaWrap = el('div', 'innfo-card-meta')
-        // Tailwind utilities are no-ops in the console shell; pin the cluster
-        // right with real CSS so the name stays tight to the thumbnail.
-        metaWrap.style.cssText = 'display:inline-flex;align-items:center;gap:6px;margin-left:auto;margin-right:8px;flex-wrap:wrap;'
-        if (element.concept) {
-          var cBadge = el('span', 'badge badge-outline badge-xs text-xs font-semibold')
-          cBadge.style.borderColor = hexColor
-          cBadge.style.color = hexColor
-          cBadge.textContent = element.concept
-          metaWrap.appendChild(cBadge)
-        }
-        if (element.modelFile) {
-          // Model filename badge dropped: the expanded footer (innfo-card-path)
-          // already carries the full Knowledge Unit locator. The copy button stays.
-          var kuText = element.canonicalUnit || element.unitSlug || (element.modelFile + '@' + element.id)
-          var copyBtn = el('button', 'btn btn-ghost btn-xs p-0.5 text-slate-400 hover:text-primary transition-colors cursor-pointer')
-          copyBtn.setAttribute('type', 'button')
-          copyBtn.setAttribute('title', 'Copy Knowledge Unit locator: ' + kuText)
-          copyBtn.setAttribute('aria-label', 'Copy Knowledge Unit locator')
-          copyBtn.innerHTML = typeof InnfoIcons !== 'undefined' ? InnfoIcons.getSvg('copy', { size: 12 }) : '📋'
-          copyBtn.addEventListener('click', function (ev) {
-            ev.stopPropagation()
-            if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
-              navigator.clipboard.writeText(kuText)
-              copyBtn.innerHTML = typeof InnfoIcons !== 'undefined' ? InnfoIcons.getSvg('check', { size: 12, class: 'text-success' }) : '✓'
-              setTimeout(function () {
-                copyBtn.innerHTML = typeof InnfoIcons !== 'undefined' ? InnfoIcons.getSvg('copy', { size: 12 }) : '📋'
-              }, 2000)
-            }
-          })
-          metaWrap.appendChild(copyBtn)
-        }
+      if (head && element.concept) {
+        var cBadge = el('span', 'innfo-card-concept-badge badge badge-outline badge-xs text-xs font-semibold')
+        cBadge.style.borderColor = hexColor
+        cBadge.style.color = hexColor
+        cBadge.textContent = element.concept
         var elementBadge = head.querySelector('[data-ku-kind="element"]')
-        if (elementBadge && elementBadge.nextSibling) head.insertBefore(metaWrap, elementBadge.nextSibling)
-        else head.appendChild(metaWrap)
+        if (elementBadge) head.insertBefore(cBadge, elementBadge)
+        else head.appendChild(cBadge)
       }
 
       if (element._draft) {
@@ -2036,7 +2050,7 @@
           var value = rowCells[c] != null ? String(rowCells[c]) : ''
           var isEmpty = value === '' || value === '-'
           var td = el('td', isEmpty ? 'innfo-matrix-cell-empty' : null, null)
-          if (td) td.appendChild(UI.KuBadge({ kind: 'cell', value: value }))
+          if (td) td.appendChild(UI.KuBadge({ kind: 'cell', value: isEmpty ? '—' : value }))
           tr.appendChild(td)
         })
         table.appendChild(tr)
@@ -3663,7 +3677,7 @@
     var listSection = el('section', 'innfo-review-list-section')
     if (listSection) {
       if (drafts.length === 0) {
-        var empty = el('div', 'empty-state alert alert-info bg-base-100 border border-base-200 text-sm p-4 rounded-lg flex items-center gap-3')
+        var empty = el('div', 'empty-state innfo-review-empty text-sm p-4 rounded-lg flex items-center gap-3')
         if (typeof InnfoIcons !== 'undefined' && typeof InnfoIcons.getSvg === 'function') {
           empty.innerHTML = InnfoIcons.getSvg('info', { size: 18 }) + '<span>No proposed changes yet. Annotate an element in review mode.</span>'
         } else {
@@ -3824,7 +3838,9 @@
 
       var body = el('div', 'innfo-media-body')
       var img = doc.createElement('img')
-      img.setAttribute('src', item.value)
+      var rawSrc = String(item.value || '')
+      var normMatch = rawSrc.replace(/\\/g, '/').match(/^.+?\/((?:sources|kNNowledge|assets|evidence)\/.+)$/)
+      img.setAttribute('src', normMatch ? normMatch[1] : rawSrc)
       img.setAttribute('alt', item.name || '')
       img.className = 'innfo-media-image'
       img.addEventListener('error', function () {
@@ -3977,10 +3993,10 @@
       return
     }
     var NS = 'http://www.w3.org/2000/svg'
-    var size = 560
+    var size = 680
     var mid = size / 2
-    var r = nodes.length > 1 ? 190 : 0
-    var nodeR = 34
+    var r = nodes.length > 1 ? 235 : 0
+    var nodeR = 36
     var pos = {}
     nodes.forEach(function (name, i) {
       var a = -Math.PI / 2 + (i * 2 * Math.PI) / nodes.length
@@ -4008,19 +4024,22 @@
     defs.appendChild(marker)
     svg.appendChild(defs)
 
-    // Edges: matrices (explicit) + element field refs (implicit). The old map
-    // only drew matrices, so domains without matrices looked disconnected.
+    // Edges: matrices (explicit) + element field refs (implicit).
     var edges = []
     var seenEdge = {}
-    function pushEdge(source, target, name) {
+    var pairCounts = {}
+    function pushEdge(source, target, name, kind) {
       if (!source || !target || !pos[source] || !pos[target]) return
       var key = source + '>' + target + '>' + (name || '')
       if (seenEdge[key]) return
       seenEdge[key] = true
-      edges.push({ source: source, target: target, name: name })
+      var pairKey = source < target ? source + '|' + target : target + '|' + source
+      var slot = pairCounts[pairKey] || 0
+      pairCounts[pairKey] = slot + 1
+      edges.push({ source: source, target: target, name: name, kind: kind || 'matrix', pairKey: pairKey, slot: slot })
     }
     ;(Array.isArray(matrices) ? matrices : []).forEach(function (m) {
-      if (m) pushEdge(m.source, m.target, m.name)
+      if (m) pushEdge(m.source, m.target, m.name, 'matrix')
     })
     var byConcept = {}
     ;(Array.isArray(elements) ? elements : []).forEach(function (e) {
@@ -4031,10 +4050,11 @@
       e.relations.forEach(function (r) {
         if (!r || !r.target) return
         var tc = byConcept[r.target]
-        if (tc && tc !== e.concept) pushEdge(e.concept, tc, r.field || '')
+        if (tc && tc !== e.concept) pushEdge(e.concept, tc, r.field || '', 'relation')
       })
     })
-    ;edges.forEach(function (m) {
+    var pendingEdgeLabels = []
+    edges.forEach(function (m) {
       if (!m || !m.source || !m.target || !pos[m.source] || !pos[m.target]) return
       var sx = pos[m.source].x
       var sy = pos[m.source].y
@@ -4043,26 +4063,36 @@
       var dx = tx - sx
       var dy = ty - sy
       var dist = Math.sqrt(dx * dx + dy * dy) || 1
-      var x1 = dist > nodeR * 2 ? sx + (dx / dist) * nodeR : sx
-      var y1 = dist > nodeR * 2 ? sy + (dy / dist) * nodeR : sy
-      var x2 = dist > nodeR * 2 ? tx - (dx / dist) * (nodeR + 4) : tx
-      var y2 = dist > nodeR * 2 ? ty - (dy / dist) * (nodeR + 4) : ty
+      var totalForPair = pairCounts[m.pairKey] || 1
+      // Canonical normal vector so parallel edges between the same pair separate cleanly
+      var canonDx = m.source < m.target ? dx : -dx
+      var canonDy = m.source < m.target ? dy : -dy
+      var nx = -canonDy / dist
+      var ny = canonDx / dist
+      var offsetIndex = m.slot - (totalForPair - 1) / 2
+      var perpShift = offsetIndex * 24
+      var x1 = (dist > nodeR * 2 ? sx + (dx / dist) * nodeR : sx) + nx * perpShift
+      var y1 = (dist > nodeR * 2 ? sy + (dy / dist) * nodeR : sy) + ny * perpShift
+      var x2 = (dist > nodeR * 2 ? tx - (dx / dist) * (nodeR + 4) : tx) + nx * perpShift
+      var y2 = (dist > nodeR * 2 ? ty - (dy / dist) * (nodeR + 4) : ty) + ny * perpShift
       var line = doc.createElementNS(NS, 'line')
       line.setAttribute('x1', x1)
       line.setAttribute('y1', y1)
       line.setAttribute('x2', x2)
       line.setAttribute('y2', y2)
       line.setAttribute('class', 'innfo-metamodel-edge')
+      line.setAttribute('data-edge-kind', m.kind || 'matrix')
+      if (m.kind === 'relation') {
+        line.setAttribute('stroke-dasharray', '5,4')
+      }
       line.setAttribute('marker-end', 'url(#innfo-metamodel-arrow)')
       svg.appendChild(line)
       if (m.name) {
-        var lt = doc.createElementNS(NS, 'text')
-        lt.setAttribute('x', (sx + tx) / 2)
-        lt.setAttribute('y', (sy + ty) / 2 - 6)
-        lt.setAttribute('text-anchor', 'middle')
-        lt.setAttribute('class', 'innfo-metamodel-edge-label')
-        lt.textContent = String(m.name)
-        svg.appendChild(lt)
+        var rawName = String(m.name)
+        var shortName = rawName.length > 20 ? rawName.replace(/\s+Matrix$/i, '') : rawName
+        var lx = (x1 + x2) * 0.5
+        var ly = (y1 + y2) * 0.5
+        pendingEdgeLabels.push({ x: lx, y: ly, text: shortName, fullText: rawName, kind: m.kind })
       }
     })
 
@@ -4098,8 +4128,41 @@
       svg.appendChild(t)
     })
 
+    pendingEdgeLabels.forEach(function (lbl) {
+      var padX = 7
+      var boxW = Math.max(38, lbl.text.length * 6.8 + padX * 2)
+      var boxH = 18
+      var bg = doc.createElementNS(NS, 'rect')
+      bg.setAttribute('x', lbl.x - boxW / 2)
+      bg.setAttribute('y', lbl.y - boxH / 2 - 2)
+      bg.setAttribute('width', boxW)
+      bg.setAttribute('height', boxH)
+      bg.setAttribute('rx', '9')
+      bg.setAttribute('class', 'innfo-metamodel-edge-bg')
+      svg.appendChild(bg)
+
+      var lt = doc.createElementNS(NS, 'text')
+      lt.setAttribute('x', lbl.x)
+      lt.setAttribute('y', lbl.y + 2)
+      lt.setAttribute('text-anchor', 'middle')
+      lt.setAttribute('class', 'innfo-metamodel-edge-label')
+      lt.textContent = lbl.text
+      if (lbl.fullText && lbl.fullText !== lbl.text) {
+        var lTitle = doc.createElementNS(NS, 'title')
+        lTitle.textContent = lbl.fullText
+        lt.appendChild(lTitle)
+      }
+      svg.appendChild(lt)
+    })
+
     var wrap = el('div', 'innfo-metamodel')
     wrap.appendChild(svg)
+    var legend = el('div', 'innfo-metamodel-legend')
+    legend.innerHTML =
+      '<span class="innfo-mm-legend-item"><span class="innfo-mm-line innfo-mm-line--matrix"></span> Matrix relationship</span>' +
+      '<span class="innfo-mm-legend-item"><span class="innfo-mm-line innfo-mm-line--relation"></span> Element reference (relation)</span>' +
+      '<span class="innfo-mm-legend-hint">Click any concept node to filter in Model Explorer</span>'
+    wrap.appendChild(legend)
     host.appendChild(wrap)
   }
 
@@ -4234,7 +4297,7 @@
       if (colorName && visuals && typeof visuals.getHexColor === 'function') {
         return visuals.getHexColor(colorName)
       }
-      return '#171717'
+      return '#4d0e4e'
     }
     function iconOf(iconName) {
       if (iconName && visuals && typeof visuals.iconSvg === 'function') {
@@ -5179,7 +5242,21 @@
     if (tabs) tabs.activateInitial()
 
     if (hasNeed(config, 'document-view')) {
-      renderDocumentView(active, elements, concepts)
+      var hasProcTab = !!(
+        tabs &&
+        Array.isArray(tabs.tabs) &&
+        tabs.tabs.some(function (t) {
+          return t && t.id === 'procedure'
+        })
+      )
+      var docElements = hasProcTab
+        ? (Array.isArray(elements)
+            ? elements.filter(function (e) {
+                return !e || e.concept !== 'Work'
+              })
+            : [])
+        : elements
+      renderDocumentView(active, docElements, concepts)
     }
     renderMatrices(active, matrices, concepts)
     renderMetamodelView(active, schema, matrices, elements)

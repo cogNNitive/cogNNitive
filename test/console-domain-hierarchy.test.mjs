@@ -62,6 +62,27 @@ describe('Domain Console Hierarchy & Faceted Omnibar Contract', () => {
     // Non-matching facet
     const noMatch = InnfoConsole.filterElements(elements, 'model:analysis tag:executive')
     assert.equal(noMatch.length, 0)
+
+    // Quoted facet value with spaces after colon (e.g. concept:"Concept 1" or model:"Business Model")
+    const withSpaces = [
+      ...elements,
+      {
+        id: 'el-3',
+        name: 'Element 1A',
+        concept: 'Concept 1',
+        modelId: 'testlab',
+        modelFile: 'TestLab_coverage_TestLab_NN.md',
+        modelTitle: 'TestLab Coverage Model',
+        tags: [],
+      },
+    ]
+    const byQuotedConcept = InnfoConsole.filterElements(withSpaces, 'concept:"Concept 1"')
+    assert.equal(byQuotedConcept.length, 1)
+    assert.equal(byQuotedConcept[0].id, 'el-3')
+
+    const byQuotedModel = InnfoConsole.filterElements(withSpaces, 'model:"Business Model"')
+    assert.equal(byQuotedModel.length, 1)
+    assert.equal(byQuotedModel[0].id, 'el-1')
   })
 
   test('renderFilterBar renders facet dropdowns and toggles checkboxes', () => {

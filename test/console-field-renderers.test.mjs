@@ -47,6 +47,19 @@ describe('FieldValue (type-aware read rendering)', () => {
     assert.equal(UI.FieldValue({ value: 'plain', type: 'string' }), null)
   })
 
+  it('renders plain objects as structured key-value chips instead of [object Object]', () => {
+    const document = dom()
+    const node = UI.FieldValue({
+      name: 'photo_metadata',
+      value: { title: 'Three-tray workbench', author: 'TestLab crew' },
+    })
+    document.body.appendChild(node)
+    assert.ok(node.classList.contains('innfo-obj-chips'))
+    assert.equal(node.querySelectorAll('.innfo-obj-chip').length, 2)
+    assert.doesNotMatch(node.textContent, /\[object Object\]/)
+    assert.match(node.textContent, /Three-tray workbench/)
+  })
+
   it('FieldRow keeps the plain field badge for strings but types a boolean', () => {
     const document = dom()
     const plain = UI.FieldRow({ name: 'f', value: 'v' })

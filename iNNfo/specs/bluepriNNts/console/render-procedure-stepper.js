@@ -352,8 +352,7 @@
         var h = document.createElement(isRoot ? 'h2' : 'h3')
         var iconName = step.fields.step_type || 'task'
         var svg = vIcon(iconName, 16)
-        var stepColor = conceptColor('Work')
-        h.style.color = stepColor
+        h.style.color = 'var(--innfo-accent, #4d0e4e)'
         h.innerHTML =
           '<span class="step-type-icon">' +
           (svg || STEP_TYPE_ICONS[step.fields.step_type] || '•') +
@@ -366,17 +365,20 @@
           p.textContent = step.el.description
           block.appendChild(p)
         }
+        var chipsWrap = document.createElement('div')
+        chipsWrap.className = 'chips'
+        if (step.fields.scope) chipsWrap.appendChild(chip('Scope: ' + step.fields.scope, 'active'))
         if (!isRoot) {
-          var chipsWrap = document.createElement('div')
-          chipsWrap.className = 'chips'
-          if (step.fields.condition) chipsWrap.appendChild(chip('IF ' + step.fields.condition, 'warning'))
+          if (step.fields.condition) chipsWrap.appendChild(chip('IF: ' + step.fields.condition, 'warning'))
           if (step.fields.step_type) chipsWrap.appendChild(chip(step.fields.step_type, 'active'))
           if (step.fields.output_status) chipsWrap.appendChild(chip(step.fields.output_status, 'done'))
           if (step.fields.tool) {
             var toolRef = refButton(step.fields.tool, step.fields.tool)
             chipsWrap.appendChild(chipWithNode(toolRef.node, 'active'))
           }
-          if (chipsWrap.children.length) block.appendChild(chipsWrap)
+        }
+        if (chipsWrap.children.length) block.appendChild(chipsWrap)
+        if (!isRoot) {
           var io = document.createElement('div')
           io.className = 'io'
           if (step.fields.input) io.appendChild(ioPill('Input', step.fields.input, 'in'))
@@ -721,6 +723,18 @@
       statusPill.textContent = state === 'done' ? 'Completed' : state === 'active' ? 'In Progress' : 'Pending'
 
       headerRow.appendChild(typePill)
+      if (cur.fields.condition) {
+        var condPill = document.createElement('span')
+        condPill.className = 'step-cond-pill'
+        condPill.textContent = 'IF: ' + cur.fields.condition
+        headerRow.appendChild(condPill)
+      }
+      if (cur.fields.scope) {
+        var scopePill = document.createElement('span')
+        scopePill.className = 'step-scope-pill'
+        scopePill.textContent = 'Scope: ' + cur.fields.scope
+        headerRow.appendChild(scopePill)
+      }
       headerRow.appendChild(statusPill)
       card.appendChild(headerRow)
 

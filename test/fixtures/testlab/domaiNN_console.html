@@ -6,6 +6,12 @@
 <!-- innfo-views (trusted code, full page access)
 procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha256:c0e0d6d63b0c
 -->
+    <!-- Inline executable scripts are allowed only by sha256 hash: scripts/console-views.mjs
+         appends the hashes to script-src when it inlines the bundle and views. -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-V2CF/h5Jv8UTrgQhvKdBJfg9L5o4rkZKW5UkmUtseK8=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
+    />
     <title>iNNfo Console</title>
     <!--
     artifact_shell.html — thin console shell for innfo-console artifacts.
@@ -6226,6 +6232,410 @@ details.collapse summary {
     .innfo-ref-fields { display: grid; grid-template-columns: 170px 1fr; gap: 3px 14px; margin: 0; font-size: 0.8rem; }
     .innfo-ref-fields dt { color: var(--innfo-muted, var(--muted)); font-weight: 600; }
     .innfo-ref-fields dd { margin: 0; }
+
+/* ===== Hybrid V1+V4 ElementCard & Domain Console Polish ===== */
+/* P0.2: High-contrast Morado Nazareno primary buttons & empty review state */
+.btn-primary,
+button.btn-primary {
+  background-color: var(--innfo-accent, #4d0e4e) !important;
+  border-color: var(--innfo-accent, #4d0e4e) !important;
+  color: #ffffff !important;
+}
+.btn-primary:hover:not(:disabled),
+button.btn-primary:hover:not(:disabled) {
+  background-color: #3a0a3b !important;
+  border-color: #3a0a3b !important;
+  color: #ffffff !important;
+}
+.innfo-review-empty {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  background: var(--innfo-surface-2, #f6eff7);
+  border: 1px solid var(--innfo-border, #dfd8e6);
+  color: var(--innfo-text, #191724);
+  border-radius: var(--innfo-radius, 8px);
+}
+.innfo-review-empty svg {
+  color: var(--innfo-accent, #4d0e4e);
+  flex-shrink: 0;
+}
+
+/* P0.3: Left rail focus/active contrast & accordion chevron alignment */
+#innfo-rail .menu li > *:not(ul):not(.menu-title):not(details):active,
+#innfo-rail .menu li > *:not(ul):not(.menu-title):not(details):focus,
+#innfo-rail .menu li > *:not(ul):not(.menu-title):not(details).active,
+#innfo-rail summary.collapse-title:focus,
+#innfo-rail summary.collapse-title:active {
+  background-color: rgba(77, 14, 78, 0.09) !important;
+  color: var(--innfo-text, #191724) !important;
+  outline: none;
+}
+#innfo-rail .menu li > a.active {
+  border-left: 3px solid var(--innfo-accent, #4d0e4e);
+  font-weight: 600;
+  color: var(--innfo-accent, #4d0e4e) !important;
+}
+#innfo-rail details.collapse > summary.collapse-title {
+  padding: 8px 30px 8px 10px !important;
+  min-height: 2.25rem !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  border-radius: 6px;
+}
+#innfo-rail .collapse-arrow > .collapse-title:after {
+  top: 50% !important;
+  right: 10px !important;
+  transform: translateY(-50%) rotate(45deg) !important;
+  box-shadow: 1.5px 1.5px 0 0 var(--innfo-muted, #605c70) !important;
+}
+#innfo-rail details.collapse[open] > .collapse-title:after {
+  transform: translateY(-50%) rotate(225deg) !important;
+}
+
+/* P1.5: Document view heading brand color */
+#innfo-doc h2,
+#innfo-doc h3 {
+  color: var(--innfo-accent, #4d0e4e);
+}
+
+/* Selected Hybrid (V1 + V4) Element Card Styling */
+[data-innfo-component="element-card"].innfo-card {
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: var(--innfo-surface, #ffffff);
+  border: 1px solid var(--innfo-border, #e5e0ec);
+  box-shadow: 0 1px 3px rgba(25, 23, 36, 0.05);
+  transition: box-shadow 0.16s ease, border-color 0.16s ease;
+}
+[data-innfo-component="element-card"].innfo-card:hover {
+  box-shadow: 0 4px 12px rgba(77, 14, 78, 0.07);
+}
+[data-innfo-component="element-card"] .innfo-card-head {
+  gap: 8px;
+}
+[data-innfo-component="element-card"] .innfo-card-head > .innfo-reviewed-toggle,
+[data-innfo-component="element-card"] .innfo-card-head > [data-innfo-ctl="card-anchor"],
+[data-innfo-component="element-card"] .innfo-card-head > .innfo-card-count,
+[data-innfo-component="element-card"] .innfo-card-head > .innfo-card-toggle {
+  margin-left: auto;
+}
+[data-innfo-component="element-card"] .innfo-card-head > .innfo-reviewed-toggle ~ [data-innfo-ctl="card-anchor"],
+[data-innfo-component="element-card"] .innfo-card-head > .innfo-reviewed-toggle ~ .innfo-edit-toggle,
+[data-innfo-component="element-card"] .innfo-card-head > .innfo-reviewed-toggle ~ .innfo-card-count,
+[data-innfo-component="element-card"] .innfo-card-head > .innfo-reviewed-toggle ~ .innfo-card-toggle,
+[data-innfo-component="element-card"] .innfo-card-head > [data-innfo-ctl="card-anchor"] ~ .innfo-edit-toggle,
+[data-innfo-component="element-card"] .innfo-card-head > [data-innfo-ctl="card-anchor"] ~ .innfo-card-count,
+[data-innfo-component="element-card"] .innfo-card-head > [data-innfo-ctl="card-anchor"] ~ .innfo-card-toggle,
+[data-innfo-component="element-card"] .innfo-card-head > .innfo-card-count ~ .innfo-card-toggle {
+  margin-left: 4px;
+}
+[data-innfo-component="element-card"] .innfo-card-collapsed-strip {
+  margin: 10px -16px -12px -16px;
+  padding: 8px 16px;
+}
+[data-innfo-component="element-card"] .innfo-card-body {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--innfo-border, #e5e0ec);
+}
+[data-innfo-component="element-card"] .innfo-card-desc {
+  margin: 8px 0 10px;
+  padding: 10px 14px;
+  background: var(--innfo-surface-2, #f6eff7);
+  border-left: 3px solid var(--innfo-accent, #4d0e4e);
+  border-radius: 0 6px 6px 0;
+  color: var(--innfo-text, #191724);
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+[data-innfo-component="element-card"] .innfo-card-fields {
+  border: 1px solid var(--innfo-border, #e5e0ec);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--innfo-surface, #ffffff);
+  gap: 0;
+}
+[data-innfo-component="element-card"] .innfo-card-fields > .innfo-ku-badge[data-ku-kind="field"] {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  flex: 0 0 auto;
+  border: none;
+  border-bottom: 1px solid var(--innfo-border, #e5e0ec);
+  border-radius: 0;
+  padding: 9px 14px;
+  background: var(--innfo-surface, #ffffff);
+  font-size: 0.86rem;
+}
+[data-innfo-component="element-card"] .innfo-card-fields > .innfo-ku-badge[data-ku-kind="field"]:last-child {
+  border-bottom: none;
+}
+[data-innfo-component="element-card"] .innfo-card-fields > .innfo-ku-badge[data-ku-kind="field"] > .innfo-ku-icon,
+[data-innfo-component="element-card"] .innfo-card-fields > .innfo-ku-badge[data-ku-kind="field"] > .innfo-ku-value:empty {
+  display: none;
+}
+[data-innfo-component="element-card"] .innfo-card-fields > .innfo-ku-badge[data-ku-kind="field"] > .innfo-ku-label {
+  flex: 0 0 140px;
+  width: 140px;
+  font-family: var(--innfo-mono);
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--innfo-muted, #605c70);
+}
+[data-innfo-component="element-card"] .innfo-card-fields > .innfo-ku-badge[data-ku-kind="field"] > .innfo-ku-value,
+[data-innfo-component="element-card"] .innfo-card-fields > .innfo-ku-badge[data-ku-kind="field"] > .innfo-field-bool,
+[data-innfo-component="element-card"] .innfo-card-fields > .innfo-ku-badge[data-ku-kind="field"] > .innfo-field-code,
+[data-innfo-component="element-card"] .innfo-card-fields > .innfo-ku-badge[data-ku-kind="field"] > .innfo-field-markdown,
+[data-innfo-component="element-card"] .innfo-card-fields > .innfo-ku-badge[data-ku-kind="field"] > .innfo-field-url,
+[data-innfo-component="element-card"] .innfo-card-fields > .innfo-ku-badge[data-ku-kind="field"] > .innfo-field-image,
+[data-innfo-component="element-card"] .innfo-card-fields > .innfo-ku-badge[data-ku-kind="field"] > [data-ku-kind="reference"],
+[data-innfo-component="element-card"] .innfo-card-fields > .innfo-ku-badge[data-ku-kind="field"] > [data-ku-kind="element"],
+[data-innfo-component="element-card"] .innfo-card-fields > .innfo-ku-badge[data-ku-kind="field"] > .innfo-element-pill {
+  margin-right: auto;
+}
+[data-innfo-component="element-card"] .innfo-card-fields > .innfo-ku-badge[data-ku-kind="field"] > .innfo-field-image {
+  max-width: 160px;
+  max-height: 76px;
+  border-radius: 6px;
+  border: 1px solid var(--innfo-border, #e5e0ec);
+  object-fit: cover;
+  display: block;
+}
+[data-innfo-component="element-card"] .innfo-card-body > .innfo-rel-list,
+[data-innfo-component="element-card"] .innfo-card-incoming {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: var(--innfo-surface-2, #f6eff7);
+  border: 1px solid var(--innfo-border, #e5e0ec);
+  border-radius: 6px;
+}
+[data-innfo-component="element-card"] .innfo-card-incoming {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+[data-innfo-component="element-card"] .innfo-card-incoming-label {
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--innfo-muted, #605c70);
+}
+[data-innfo-component="element-card"] .innfo-card-incoming .innfo-rel-list {
+  margin: 0;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* P2.9: Metamodel graph & legend */
+.innfo-metamodel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  background: var(--innfo-surface, #ffffff);
+  border: 1px solid var(--innfo-border, #e5e0ec);
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: var(--innfo-shadow);
+}
+.innfo-metamodel-svg {
+  max-width: 640px;
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.innfo-metamodel-node {
+  fill: #f6eff7;
+  stroke: var(--innfo-accent, #4d0e4e);
+  stroke-width: 2px;
+  transition: fill 0.15s ease;
+}
+.innfo-metamodel-node:hover {
+  fill: #eadcf0;
+}
+.innfo-metamodel-label {
+  font-family: var(--innfo-font);
+  font-size: 12px;
+  font-weight: 700;
+  fill: var(--innfo-text, #191724);
+}
+.innfo-metamodel-edge {
+  stroke: var(--innfo-accent, #4d0e4e);
+  stroke-width: 1.75px;
+}
+.innfo-metamodel-edge[data-edge-kind="relation"] {
+  stroke: #7b4b7c;
+}
+.innfo-metamodel-edge-bg {
+  fill: #ffffff;
+  stroke: var(--innfo-border, #dfd8e6);
+  stroke-width: 1px;
+}
+.innfo-metamodel-edge-label {
+  font-family: var(--innfo-mono);
+  font-size: 11px;
+  font-weight: 600;
+  fill: var(--innfo-accent, #4d0e4e);
+}
+.innfo-metamodel-legend {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  font-size: 0.78rem;
+  color: var(--innfo-muted, #605c70);
+  border-top: 1px solid var(--innfo-border, #e5e0ec);
+  padding-top: 10px;
+  width: 100%;
+}
+.innfo-mm-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--innfo-text, #191724);
+}
+.innfo-mm-line {
+  width: 22px;
+  height: 0;
+  border-top: 2px solid var(--innfo-accent, #4d0e4e);
+  display: inline-block;
+}
+.innfo-mm-line--relation {
+  border-top-style: dashed;
+  border-top-color: #7b4b7c;
+}
+
+/* P2.10: Matrix table proportions & cell polish */
+.innfo-matrix {
+  background: var(--innfo-surface, #ffffff);
+  border: 1px solid var(--innfo-border, #e5e0ec);
+  border-radius: 10px;
+  padding: 16px 20px;
+  box-shadow: var(--innfo-shadow);
+  margin-bottom: 16px;
+  overflow-x: auto;
+}
+.innfo-matrix h3 {
+  margin: 0 0 12px;
+}
+.innfo-matrix table {
+  width: auto !important;
+  min-width: 460px;
+  max-width: 100%;
+  border-collapse: collapse;
+}
+.innfo-matrix th,
+.innfo-matrix td {
+  padding: 8px 14px;
+  border: 1px solid var(--innfo-border, #e5e0ec);
+}
+.innfo-matrix thead th,
+.innfo-matrix tbody th {
+  background: var(--innfo-surface-2, #f6eff7);
+}
+.innfo-matrix td .innfo-ku-badge[data-ku-kind="cell"] .innfo-ku-icon {
+  display: none;
+}
+
+/* P1.6 & P2.11: Procedure header compacting & condition/scope pills */
+.innfo-procedure-view .proc-view-header,
+.innfo-proc-host .proc-view-header {
+  padding: 10px 16px;
+  margin-bottom: 14px;
+  background: var(--innfo-surface-2, #f6eff7);
+}
+.innfo-procedure-view .proc-view-header .proc-title,
+.innfo-proc-host .proc-view-header .proc-title {
+  font-size: 1rem;
+  display: inline-block;
+  margin: 0 10px 0 6px;
+}
+.step-cond-pill {
+  font-family: var(--innfo-mono);
+  font-size: 0.73rem;
+  font-weight: 600;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--innfo-status-pending-bg, #fef3c7);
+  color: var(--innfo-status-pending, #b45309);
+  border: 1px solid rgba(180, 83, 9, 0.25);
+}
+.step-scope-pill {
+  font-size: 0.73rem;
+  font-weight: 600;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--innfo-surface-2, #f6eff7);
+  color: var(--innfo-accent, #4d0e4e);
+  border: 1px solid var(--innfo-border, #e5e0ec);
+  margin-right: auto;
+}
+.exec-step-head {
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.exec-step-head .step-state-badge {
+  margin-left: auto;
+}
+.innfo-procedure-view .chips,
+.innfo-proc-host .chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0;
+}
+.innfo-procedure-view .chip,
+.innfo-proc-host .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--innfo-surface-2, #f6eff7);
+  color: var(--innfo-text, #191724);
+  border: 1px solid var(--innfo-border, #e5e0ec);
+}
+.innfo-procedure-view .chip.warning,
+.innfo-proc-host .chip.warning {
+  background: var(--innfo-status-pending-bg, #fef3c7);
+  color: var(--innfo-status-pending, #b45309);
+  border-color: rgba(180, 83, 9, 0.25);
+  font-family: var(--innfo-mono);
+}
+.innfo-procedure-view .chip.done,
+.innfo-proc-host .chip.done {
+  background: var(--innfo-status-applied-bg, #dcfce7);
+  color: var(--innfo-status-applied, #166534);
+}
+.innfo-procedure-view .io,
+.innfo-proc-host .io {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.innfo-procedure-view .io-pill,
+.innfo-proc-host .io-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.76rem;
+  padding: 3px 10px;
+  border-radius: 6px;
+  background: var(--innfo-surface-2, #f6eff7);
+  border: 1px solid var(--innfo-border, #e5e0ec);
+}
 </style>
     <style>
       :root,
@@ -6297,16 +6707,16 @@ details.collapse summary {
 
       /* Left blueprint rail */
       aside.innfo-rail {
-        width: 360px;
-        min-width: 360px;
-        max-width: 380px;
+        width: 340px;
+        min-width: 320px;
+        max-width: 360px;
         border-right: 1px solid var(--border);
         background: var(--surface);
         display: flex;
         flex-direction: column;
-        height: calc(100vh - 57px);
+        height: calc(100vh - 46px);
         position: sticky;
-        top: 57px;
+        top: 46px;
         overflow: hidden;
       }
       @media (max-width: 1024px) {
@@ -6318,13 +6728,13 @@ details.collapse summary {
           min-width: 0;
           max-width: 100%;
           height: auto;
-          max-height: 210px;
+          max-height: 340px;
           position: static;
           border-right: none;
           border-bottom: 1px solid var(--border);
         }
         .innfo-filter-zone { padding: 8px 10px; gap: 6px; }
-        #innfo-rail { padding: 6px 8px; }
+        #innfo-rail { padding: 6px 8px; min-height: 150px; }
       }
       .innfo-filter-zone {
         background: var(--filter-zone-bg);
@@ -6367,14 +6777,14 @@ details.collapse summary {
       .innfo-bp-card .bp-meta { display: flex; gap: 10px; font-size: 0.72rem; color: var(--muted); border-top: 1px dashed var(--border); padding-top: 5px; margin-top: 5px; }
       .innfo-bp-card .bp-changes { font-size: 0.66rem; font-weight: 700; color: var(--warning); background: color-mix(in srgb, var(--warning) 16%, var(--surface)); border: 1px solid color-mix(in srgb, var(--warning) 35%, var(--surface)); padding: 1px 6px; border-radius: 999px; }
 
-      main { flex: 1; min-width: 0; padding: 0 30px 90px; }
+      main { flex: 1; min-width: 0; padding: 0; display: flex; flex-direction: column; }
       @media (max-width: 640px) {
-        main { padding: 0 12px 64px; }
-        .innfo-content-scroll { padding: 12px 10px 64px; }
+        main { padding: 0; }
+        .innfo-content-scroll { padding: 12px 12px 64px; }
       }
       .innfo-action-bar {
-        min-height: 38px;
-        padding: 6px 18px;
+        min-height: 40px;
+        padding: 6px 30px;
         background: var(--surface);
         border-bottom: 1px solid var(--border);
         display: flex;
@@ -6383,8 +6793,9 @@ details.collapse summary {
         gap: 12px;
         flex-wrap: wrap;
         position: sticky;
-        top: 57px;
-        z-index: 20;
+        top: 45px;
+        z-index: 25;
+        box-shadow: 0 1px 2px rgba(25, 23, 36, 0.03);
       }
       @media (max-width: 1024px) {
         .innfo-action-bar { position: static; top: auto; }
@@ -6553,7 +6964,7 @@ details.collapse summary {
     "feedback-export"
   ],
   "runtime": {
-    "cdn": "https://cdn.jsdelivr.net/gh/cogNNitive/cogNNitive@innfo-console-v0.9.7/iNNfo/specs/bluepriNNts/console/innfo-console.bundle.js",
+    "cdn": "https://cdn.jsdelivr.net/gh/cogNNitive/cogNNitive@innfo-console-v0.9.9/iNNfo/specs/bluepriNNts/console/innfo-console.bundle.js",
     "fallback": "https://raw.githubusercontent.com/cogNNitive/cogNNitive-web/main/iNNfo/specs/bluepriNNts/console/innfo-console.bundle.js"
   }
 }
@@ -6719,8 +7130,9 @@ details.collapse summary {
     "title": "testlab Domain",
     "model": "testlab",
     "modelId": "testlab",
-    "modelVersion": "V_1-0-0",
-    "generated": "2026-10-11T20:48:49.922Z",
+    "domainId": "testlab-71ce7969",
+    "modelVersion": "V_1-0-246356889",
+    "generated": "2026-10-12T17:20:27.020Z",
     "models": [
       {
         "id": "kNNowledge/TestLab_coverage_TestLab",
@@ -6753,7 +7165,7 @@ details.collapse summary {
   },
   "elements": [
     {
-      "id": "concept-1-element-1a",
+      "id": "kNNowledge/TestLab_coverage_TestLab/concept-1-element-1a",
       "concept": "Concept 1",
       "name": "Element 1A",
       "description": "Element 1A is the intake baseline. It is cited by the weekly report and referenced back from Concept 2.",
@@ -6769,10 +7181,11 @@ details.collapse summary {
       },
       "markers": {},
       "hash": "2e167cda4bf3e770",
+      "slug": "element-1a",
       "relations": [
         {
           "field": "sibling",
-          "target": "concept-2-element-2a",
+          "target": "kNNowledge/TestLab_coverage_TestLab/concept-2-element-2a",
           "targetLabel": "Element 2A"
         }
       ],
@@ -6794,7 +7207,7 @@ details.collapse summary {
       "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Concept 1: Element 1A"
     },
     {
-      "id": "concept-1-element-1b",
+      "id": "kNNowledge/TestLab_coverage_TestLab/concept-1-element-1b",
       "concept": "Concept 1",
       "name": "Element 1B",
       "description": "Element 1B is the review target. See the console feedback item fb-001 in artifacts/testlab-review.json.",
@@ -6817,10 +7230,11 @@ details.collapse summary {
       },
       "markers": {},
       "hash": "c9d63b0a7681953c",
+      "slug": "element-1b",
       "relations": [
         {
           "field": "sibling",
-          "target": "concept-2-element-2a",
+          "target": "kNNowledge/TestLab_coverage_TestLab/concept-2-element-2a",
           "targetLabel": "Element 2A"
         }
       ],
@@ -6859,7 +7273,7 @@ details.collapse summary {
       "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Concept 1: Element 1B"
     },
     {
-      "id": "concept-1-element-1c",
+      "id": "kNNowledge/TestLab_coverage_TestLab/concept-1-element-1c",
       "concept": "Concept 1",
       "name": "Element 1C",
       "description": "Element 1C closes the Concept 1 triangle.",
@@ -6874,10 +7288,11 @@ details.collapse summary {
       },
       "markers": {},
       "hash": "5689a82b61da6d62",
+      "slug": "element-1c",
       "relations": [
         {
           "field": "sibling",
-          "target": "concept-2-element-2b",
+          "target": "kNNowledge/TestLab_coverage_TestLab/concept-2-element-2b",
           "targetLabel": "Element 2B"
         }
       ],
@@ -6899,7 +7314,7 @@ details.collapse summary {
       "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Concept 1: Element 1C"
     },
     {
-      "id": "concept-2-element-2a",
+      "id": "kNNowledge/TestLab_coverage_TestLab/concept-2-element-2a",
       "concept": "Concept 2",
       "name": "Element 2A",
       "description": "Element 2A owns the intake baseline and is the first crossing of the Concept 1-Concept 2 matrix.",
@@ -6913,10 +7328,11 @@ details.collapse summary {
       },
       "markers": {},
       "hash": "a9bdd341055b3943",
+      "slug": "element-2a",
       "relations": [
         {
           "field": "owner",
-          "target": "concept-1-element-1a",
+          "target": "kNNowledge/TestLab_coverage_TestLab/concept-1-element-1a",
           "targetLabel": "Element 1A"
         }
       ],
@@ -6938,7 +7354,7 @@ details.collapse summary {
       "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Concept 2: Element 2A"
     },
     {
-      "id": "concept-2-element-2b",
+      "id": "kNNowledge/TestLab_coverage_TestLab/concept-2-element-2b",
       "concept": "Concept 2",
       "name": "Element 2B",
       "description": "Element 2B owns the multi-node element and is the second crossing of the Concept 1-Concept 2 matrix.",
@@ -6952,10 +7368,11 @@ details.collapse summary {
       },
       "markers": {},
       "hash": "01cbfa4ad3d0f540",
+      "slug": "element-2b",
       "relations": [
         {
           "field": "owner",
-          "target": "concept-1-element-1c",
+          "target": "kNNowledge/TestLab_coverage_TestLab/concept-1-element-1c",
           "targetLabel": "Element 1C"
         }
       ],
@@ -6977,7 +7394,7 @@ details.collapse summary {
       "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Concept 2: Element 2B"
     },
     {
-      "id": "edge-cases-image-traceability-probe",
+      "id": "kNNowledge/TestLab_coverage_TestLab/edge-cases-image-traceability-probe",
       "concept": "Edge Cases",
       "name": "Image traceability probe",
       "description": "Image traceability passes only via the sidecar path.",
@@ -6997,6 +7414,7 @@ details.collapse summary {
       },
       "markers": {},
       "hash": "35ccda5bf585eb0a",
+      "slug": "image-traceability-probe",
       "citations": {
         "sources": [
           {
@@ -7015,7 +7433,7 @@ details.collapse summary {
       "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Edge Cases: Image traceability probe"
     },
     {
-      "id": "edge-cases-multi-node-traceability-probe",
+      "id": "kNNowledge/TestLab_coverage_TestLab/edge-cases-multi-node-traceability-probe",
       "concept": "Edge Cases",
       "name": "Multi-node traceability probe",
       "description": "Multi-node traceability converges here.",
@@ -7030,6 +7448,7 @@ details.collapse summary {
       },
       "markers": {},
       "hash": "196715b29e15a475",
+      "slug": "multi-node-traceability-probe",
       "citations": {
         "sources": [
           {
@@ -7062,7 +7481,7 @@ details.collapse summary {
       "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Edge Cases: Multi-node traceability probe"
     },
     {
-      "id": "edge-cases-review-traceability-probe",
+      "id": "kNNowledge/TestLab_coverage_TestLab/edge-cases-review-traceability-probe",
       "concept": "Edge Cases",
       "name": "Review traceability probe",
       "description": "Review traceability closes the artifact loop.",
@@ -7075,6 +7494,7 @@ details.collapse summary {
       },
       "markers": {},
       "hash": "caf44b0a83bb952c",
+      "slug": "review-traceability-probe",
       "citations": {
         "sources": [
           {
@@ -7093,7 +7513,7 @@ details.collapse summary {
       "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Edge Cases: Review traceability probe"
     },
     {
-      "id": "edge-cases-downloaded-video-probe",
+      "id": "kNNowledge/TestLab_coverage_TestLab/edge-cases-downloaded-video-probe",
       "concept": "Edge Cases",
       "name": "Downloaded video probe",
       "description": "Video probe covers the video field path end to end.",
@@ -7106,6 +7526,7 @@ details.collapse summary {
       },
       "markers": {},
       "hash": "bb9885cab9e9dd34",
+      "slug": "downloaded-video-probe",
       "citations": {
         "sources": [
           {
@@ -7124,7 +7545,7 @@ details.collapse summary {
       "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Edge Cases: Downloaded video probe"
     },
     {
-      "id": "edge-cases-transcribed-audio-probe",
+      "id": "kNNowledge/TestLab_coverage_TestLab/edge-cases-transcribed-audio-probe",
       "concept": "Edge Cases",
       "name": "Transcribed audio probe",
       "description": "Audio probe covers the audio field path end to end.",
@@ -7137,6 +7558,7 @@ details.collapse summary {
       },
       "markers": {},
       "hash": "f13128ae2f2e30c9",
+      "slug": "transcribed-audio-probe",
       "citations": {
         "sources": [
           {
@@ -7155,7 +7577,7 @@ details.collapse summary {
       "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Edge Cases: Transcribed audio probe"
     },
     {
-      "id": "edge-cases-transcribed-pdf-probe",
+      "id": "kNNowledge/TestLab_coverage_TestLab/edge-cases-transcribed-pdf-probe",
       "concept": "Edge Cases",
       "name": "Transcribed PDF probe",
       "description": "PDF probe covers the binary-to-sidecar rule.",
@@ -7168,6 +7590,7 @@ details.collapse summary {
       },
       "markers": {},
       "hash": "3bfe1390dd33dd3d",
+      "slug": "transcribed-pdf-probe",
       "citations": {
         "sources": [
           {
@@ -7186,7 +7609,7 @@ details.collapse summary {
       "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Edge Cases: Transcribed PDF probe"
     },
     {
-      "id": "edge-cases-very-long-description-probe",
+      "id": "kNNowledge/TestLab_coverage_TestLab/edge-cases-very-long-description-probe",
       "concept": "Edge Cases",
       "name": "Very long description probe",
       "description": "Length is the feature being tested here.",
@@ -7201,6 +7624,7 @@ details.collapse summary {
       },
       "markers": {},
       "hash": "bf368406030a5fd9",
+      "slug": "very-long-description-probe",
       "citations": {
         "sources": [
           {
@@ -7219,7 +7643,7 @@ details.collapse summary {
       "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Edge Cases: Very long description probe"
     },
     {
-      "id": "edge-cases-file-field-probe",
+      "id": "kNNowledge/TestLab_coverage_TestLab/edge-cases-file-field-probe",
       "concept": "Edge Cases",
       "name": "File field probe",
       "description": "File field probe stays deliberately plain.",
@@ -7233,6 +7657,7 @@ details.collapse summary {
       },
       "markers": {},
       "hash": "d252f224724d06ce",
+      "slug": "file-field-probe",
       "citations": {
         "sources": [
           {
@@ -7251,7 +7676,7 @@ details.collapse summary {
       "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Edge Cases: File field probe"
     },
     {
-      "id": "edge-cases-artifact-as-source-probe",
+      "id": "kNNowledge/TestLab_coverage_TestLab/edge-cases-artifact-as-source-probe",
       "concept": "Edge Cases",
       "name": "Artifact as source probe",
       "description": "The artifact is a source, not just an output.",
@@ -7264,6 +7689,7 @@ details.collapse summary {
       },
       "markers": {},
       "hash": "4567d69813bb172a",
+      "slug": "artifact-as-source-probe",
       "citations": {
         "sources": [
           {
@@ -7282,7 +7708,7 @@ details.collapse summary {
       "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Edge Cases: Artifact as source probe"
     },
     {
-      "id": "edge-cases-broken-reference-probe",
+      "id": "kNNowledge/TestLab_coverage_TestLab/edge-cases-broken-reference-probe",
       "concept": "Edge Cases",
       "name": "Broken reference probe",
       "description": "Broken by design, quarantined by name.",
@@ -7295,6 +7721,7 @@ details.collapse summary {
       },
       "markers": {},
       "hash": "16b452becf1e8e63",
+      "slug": "broken-reference-probe",
       "citations": {
         "sources": [
           {
@@ -7313,7 +7740,7 @@ details.collapse summary {
       "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Edge Cases: Broken reference probe"
     },
     {
-      "id": "edge-cases-sourceless-probe",
+      "id": "kNNowledge/TestLab_coverage_TestLab/edge-cases-sourceless-probe",
       "concept": "Edge Cases",
       "name": "Sourceless probe",
       "description": "Absence of sources is valid.",
@@ -7323,6 +7750,7 @@ details.collapse summary {
       },
       "markers": {},
       "hash": "81caf92482543aa5",
+      "slug": "sourceless-probe",
       "modelId": "kNNowledge/TestLab_coverage_TestLab",
       "modelTitle": "TestLab Coverage Model",
       "modelFile": "TestLab_coverage_TestLab_NN.md",
@@ -7330,7 +7758,7 @@ details.collapse summary {
       "canonicalUnit": "TestLab_coverage_TestLab_NN.md@## Edge Cases: Sourceless probe"
     },
     {
-      "id": "procedure-verify-changeset-lineage",
+      "id": "kNNowledge/TestLab_procedures_TestLab_procedures/procedure-verify-changeset-lineage",
       "concept": "Procedure",
       "name": "Verify Changeset Lineage",
       "description": "",
@@ -7344,6 +7772,7 @@ details.collapse summary {
       },
       "markers": {},
       "hash": "307bb9c421bd2fff",
+      "slug": "verify-changeset-lineage",
       "modelId": "kNNowledge/TestLab_procedures_TestLab_procedures",
       "modelTitle": "TestLab Verification Procedures",
       "modelFile": "TestLab_procedures_TestLab_procedures_NN.md",
@@ -7351,7 +7780,7 @@ details.collapse summary {
       "canonicalUnit": "TestLab_procedures_TestLab_procedures_NN.md@## Procedure: Verify Changeset Lineage"
     },
     {
-      "id": "procedure-propose-a-review-change",
+      "id": "kNNowledge/TestLab_procedures_TestLab_procedures/procedure-propose-a-review-change",
       "concept": "Procedure",
       "name": "Propose a Review Change",
       "description": "",
@@ -7365,6 +7794,7 @@ details.collapse summary {
       },
       "markers": {},
       "hash": "2f7c892f3524a79d",
+      "slug": "propose-a-review-change",
       "modelId": "kNNowledge/TestLab_procedures_TestLab_procedures",
       "modelTitle": "TestLab Verification Procedures",
       "modelFile": "TestLab_procedures_TestLab_procedures_NN.md",
@@ -7372,7 +7802,7 @@ details.collapse summary {
       "canonicalUnit": "TestLab_procedures_TestLab_procedures_NN.md@## Procedure: Propose a Review Change"
     },
     {
-      "id": "work-testlab-guided-verification",
+      "id": "kNNowledge/TestLab_procedures_TestLab_procedures/work-testlab-guided-verification",
       "concept": "Work",
       "name": "TestLab Guided Verification",
       "description": "End-to-end walkthrough that proves the changeset lineage pipeline: open the generated domain console, enable Review mode, open Element 1B of the TestLab Coverage Model, and confirm that it shows the applied review change fb-001. It then shows how a reviewer proposes a new change.",
@@ -7382,6 +7812,7 @@ details.collapse summary {
       },
       "markers": {},
       "hash": "2a601eb39adfbabe",
+      "slug": "testlab-guided-verification",
       "modelId": "kNNowledge/TestLab_procedures_TestLab_procedures",
       "modelTitle": "TestLab Verification Procedures",
       "modelFile": "TestLab_procedures_TestLab_procedures_NN.md",
@@ -7389,7 +7820,7 @@ details.collapse summary {
       "canonicalUnit": "TestLab_procedures_TestLab_procedures_NN.md@## Work: TestLab Guided Verification"
     },
     {
-      "id": "work-open-the-domain-console",
+      "id": "kNNowledge/TestLab_procedures_TestLab_procedures/work-open-the-domain-console",
       "concept": "Work",
       "name": "Open the Domain Console",
       "description": "Open domaiNN_console.html at the domain root. It is a single self-contained file: double-click it and it runs offline in any browser.",
@@ -7402,15 +7833,16 @@ details.collapse summary {
       },
       "markers": {},
       "hash": "e286efa4894c31b5",
+      "slug": "open-the-domain-console",
       "relations": [
         {
           "field": "parent",
-          "target": "work-testlab-guided-verification",
+          "target": "kNNowledge/TestLab_procedures_TestLab_procedures/work-testlab-guided-verification",
           "targetLabel": "TestLab Guided Verification"
         },
         {
           "field": "next",
-          "target": "work-enable-review-mode",
+          "target": "kNNowledge/TestLab_procedures_TestLab_procedures/work-enable-review-mode",
           "targetLabel": "Enable Review Mode"
         }
       ],
@@ -7421,7 +7853,7 @@ details.collapse summary {
       "canonicalUnit": "TestLab_procedures_TestLab_procedures_NN.md@## Work: Open the Domain Console"
     },
     {
-      "id": "work-enable-review-mode",
+      "id": "kNNowledge/TestLab_procedures_TestLab_procedures/work-enable-review-mode",
       "concept": "Work",
       "name": "Enable Review Mode",
       "description": "Click \"Review mode\" in the top banner. Until this is on, element field anchors are not clickable and the review modal cannot be opened.",
@@ -7434,15 +7866,16 @@ details.collapse summary {
       },
       "markers": {},
       "hash": "d0cfa184a55a0111",
+      "slug": "enable-review-mode",
       "relations": [
         {
           "field": "parent",
-          "target": "work-testlab-guided-verification",
+          "target": "kNNowledge/TestLab_procedures_TestLab_procedures/work-testlab-guided-verification",
           "targetLabel": "TestLab Guided Verification"
         },
         {
           "field": "next",
-          "target": "work-open-element-1b",
+          "target": "kNNowledge/TestLab_procedures_TestLab_procedures/work-open-element-1b",
           "targetLabel": "Open Element 1B"
         }
       ],
@@ -7453,7 +7886,7 @@ details.collapse summary {
       "canonicalUnit": "TestLab_procedures_TestLab_procedures_NN.md@## Work: Enable Review Mode"
     },
     {
-      "id": "work-open-element-1b",
+      "id": "kNNowledge/TestLab_procedures_TestLab_procedures/work-open-element-1b",
       "concept": "Work",
       "name": "Open Element 1B",
       "description": "Open the TestLab Coverage Model and click a field row of Element 1B (for example the \"photo\" row). The element modal opens with two tabs: Edit and History & Provenance.",
@@ -7466,15 +7899,16 @@ details.collapse summary {
       },
       "markers": {},
       "hash": "9b63b1cb010b3029",
+      "slug": "open-element-1b",
       "relations": [
         {
           "field": "parent",
-          "target": "work-testlab-guided-verification",
+          "target": "kNNowledge/TestLab_procedures_TestLab_procedures/work-testlab-guided-verification",
           "targetLabel": "TestLab Guided Verification"
         },
         {
           "field": "next",
-          "target": "work-read-the-changeset-lineage",
+          "target": "kNNowledge/TestLab_procedures_TestLab_procedures/work-read-the-changeset-lineage",
           "targetLabel": "Read the Changeset Lineage"
         }
       ],
@@ -7485,7 +7919,7 @@ details.collapse summary {
       "canonicalUnit": "TestLab_procedures_TestLab_procedures_NN.md@## Work: Open Element 1B"
     },
     {
-      "id": "work-read-the-changeset-lineage",
+      "id": "kNNowledge/TestLab_procedures_TestLab_procedures/work-read-the-changeset-lineage",
       "concept": "Work",
       "name": "Read the Changeset Lineage",
       "description": "Switch to the \"History & Provenance\" tab. Under \"Changeset Lineage & Revision History\" you must see the applied review change fb-001: author \"reviewer\", the UTC timestamp 2026-10-10T12:00:00.000Z, and its note. If the section reads \"No recorded prior changesets\", the change did not reach the console and the lineage pipeline is broken.",
@@ -7498,15 +7932,16 @@ details.collapse summary {
       },
       "markers": {},
       "hash": "3979d02fa7205228",
+      "slug": "read-the-changeset-lineage",
       "relations": [
         {
           "field": "parent",
-          "target": "work-testlab-guided-verification",
+          "target": "kNNowledge/TestLab_procedures_TestLab_procedures/work-testlab-guided-verification",
           "targetLabel": "TestLab Guided Verification"
         },
         {
           "field": "next",
-          "target": "work-propose-a-change-in-the-console",
+          "target": "kNNowledge/TestLab_procedures_TestLab_procedures/work-propose-a-change-in-the-console",
           "targetLabel": "Propose a Change in the Console"
         }
       ],
@@ -7517,7 +7952,7 @@ details.collapse summary {
       "canonicalUnit": "TestLab_procedures_TestLab_procedures_NN.md@## Work: Read the Changeset Lineage"
     },
     {
-      "id": "work-propose-a-change-in-the-console",
+      "id": "kNNowledge/TestLab_procedures_TestLab_procedures/work-propose-a-change-in-the-console",
       "concept": "Work",
       "name": "Propose a Change in the Console",
       "description": "Change a field value or leave a comment in the element modal to record a draft. This is how a reviewer proposes a change without editing the model by hand.",
@@ -7530,15 +7965,16 @@ details.collapse summary {
       },
       "markers": {},
       "hash": "6961094558c435a7",
+      "slug": "propose-a-change-in-the-console",
       "relations": [
         {
           "field": "parent",
-          "target": "work-testlab-guided-verification",
+          "target": "kNNowledge/TestLab_procedures_TestLab_procedures/work-testlab-guided-verification",
           "targetLabel": "TestLab Guided Verification"
         },
         {
           "field": "next",
-          "target": "work-copy-the-changeset-prompt",
+          "target": "kNNowledge/TestLab_procedures_TestLab_procedures/work-copy-the-changeset-prompt",
           "targetLabel": "Copy the Changeset Prompt"
         }
       ],
@@ -7549,7 +7985,7 @@ details.collapse summary {
       "canonicalUnit": "TestLab_procedures_TestLab_procedures_NN.md@## Work: Propose a Change in the Console"
     },
     {
-      "id": "work-copy-the-changeset-prompt",
+      "id": "kNNowledge/TestLab_procedures_TestLab_procedures/work-copy-the-changeset-prompt",
       "concept": "Work",
       "name": "Copy the Changeset Prompt",
       "description": "Click \"Export changes\", then \"Copy Changeset Prompt\", and paste the result to the agent. The agent writes the changeset into changes/ and applies it; the engine seals the proposal and rewrites the touched field's citation, so the lineage grows with the next regeneration.",
@@ -7561,10 +7997,11 @@ details.collapse summary {
       },
       "markers": {},
       "hash": "e728a6209fcc93d2",
+      "slug": "copy-the-changeset-prompt",
       "relations": [
         {
           "field": "parent",
-          "target": "work-testlab-guided-verification",
+          "target": "kNNowledge/TestLab_procedures_TestLab_procedures/work-testlab-guided-verification",
           "targetLabel": "TestLab Guided Verification"
         }
       ],
@@ -7646,7 +8083,7 @@ details.collapse summary {
 /*!
  * innfo-console.bundle.js — single-file console runtime + renderers.
  * Generated by scripts/build-console-bundle.mjs — DO NOT EDIT BY HAND.
- * Version 0.9.7. Regenerate on every console release.
+ * Version 0.9.9. Regenerate on every console release.
  * Composed (in dependency order): innfo-slug.generated.js, vendor/preact.umd.js, vendor/htm.umd.js, innfo-preact-init.js, uplot.iife.min.js, visuals.js, innfo-icons.js, ui-kit.js, review.js, innfo-runtime.js, render-model-viewer.js, render-procedure-stepper.js.
  */
 
@@ -8292,7 +8729,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     '.innfo-ku-action:hover{color:var(--innfo-text);border-color:var(--innfo-border);background:var(--innfo-surface)}',
     '.innfo-ku-action[data-ku-action=edit]:hover{color:var(--innfo-link)}',
     '.innfo-ku-action:focus-visible{outline:2px solid var(--innfo-focus);outline-offset:1px}',
-    '.innfo-card-fields{display:flex;flex-wrap:wrap;gap:.4em;align-items:flex-start;margin:.6em 0 0}',
+    '.innfo-card-fields{display:flex;flex-direction:column;gap:.45em;align-items:stretch;margin:.6em 0 0}',
     '.innfo-card-desc-actions{margin-left:.4em}',
     // Element-card Dense Row (V01): a one-line bar (image chip, name, concept,
     // markers, field count, actions, chevron) over a collapsible body.
@@ -8307,7 +8744,28 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     '[data-innfo-component=element-card][data-open=true] .innfo-card-toggle .innfo-icon{transform:rotate(180deg)}',
     '[data-innfo-component=element-card][data-open=false] .innfo-card-body{display:none}',
     '[data-innfo-component=element-card][data-open=false] .innfo-card-path{display:none}',
-    '[data-innfo-component=element-card] .innfo-card-fields{display:flex;flex-wrap:wrap;gap:.4em;align-items:flex-start;margin:.6em 0 0}',
+    '[data-innfo-component=element-card][data-open=true] .innfo-card-collapsed-strip{display:none!important}',
+    '[data-innfo-component=element-card][data-open=true] .innfo-card-summary-preview{display:none}',
+    '[data-innfo-component=element-card] .innfo-card-summary-preview{font-size:.82rem;color:var(--innfo-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:34ch;margin-left:.25em}',
+    '[data-innfo-component=element-card] .innfo-card-status-pill{display:inline-flex;align-items:center;gap:.28em;font-size:.72rem;font-weight:600;padding:1px 8px;border-radius:999px;background:var(--innfo-status-applied-bg);color:var(--innfo-status-applied);border:1px solid rgba(22,101,52,.22);white-space:nowrap}',
+    '[data-innfo-component=element-card] .innfo-card-status-pill[data-status=draft],[data-innfo-component=element-card] .innfo-card-status-pill[data-status=pending]{background:var(--innfo-status-pending-bg);color:var(--innfo-status-pending);border-color:rgba(180,83,9,.22)}',
+    '[data-innfo-component=element-card] .innfo-card-collapsed-strip{display:flex;align-items:center;justify-content:space-between;gap:.65em;padding:7px 12px;margin:8px -12px -10px -12px;background:var(--innfo-surface-2);border-top:1px solid var(--innfo-border);border-radius:0 0 var(--innfo-radius) var(--innfo-radius);flex-wrap:wrap}',
+    '.innfo-collapsed-strip-left,.innfo-collapsed-strip-right{display:inline-flex;align-items:center;gap:.4em;flex-wrap:wrap;min-width:0}',
+    '.innfo-strip-group{display:inline-flex;align-items:center;gap:.35em;flex-wrap:wrap}',
+    '.innfo-strip-key{font-family:var(--innfo-mono);font-size:.73rem;font-weight:600;color:var(--innfo-muted);margin-right:.15em}',
+    '.innfo-obj-chips{display:inline-flex;align-items:center;gap:.35em;flex-wrap:wrap}',
+    '.innfo-obj-chip{display:inline-flex;align-items:center;border:1px solid var(--innfo-border);border-radius:5px;overflow:hidden;font-family:var(--innfo-mono);font-size:.73rem;line-height:1.25;background:var(--innfo-surface)}',
+    '.innfo-obj-chip-k{padding:2px 6px;background:var(--innfo-surface-2);color:var(--innfo-muted);border-right:1px solid var(--innfo-border);font-weight:500}',
+    '.innfo-obj-chip-v{padding:2px 6px;color:var(--innfo-text);font-weight:600}',
+    '.innfo-obj-chip-v[data-bool=true]{color:var(--innfo-status-applied)}',
+    '.innfo-strip-rel{display:inline-flex;align-items:center;gap:.25em;font-size:.75rem;font-weight:600;color:var(--innfo-accent);background:var(--innfo-surface);border:1px solid var(--innfo-border);border-radius:6px;padding:2px 8px;text-decoration:none;white-space:nowrap}',
+    '.innfo-strip-rel:hover{border-color:var(--innfo-accent);background:var(--innfo-surface-2)}',
+    '.innfo-file-pill{display:inline-flex;align-items:center;gap:.35em;background:var(--innfo-surface-2);border:1px solid var(--innfo-border);border-radius:6px;padding:2px 8px;font-family:var(--innfo-mono);font-size:.76rem;color:var(--innfo-text)}',
+    '.innfo-file-pill-icon{display:inline-flex;color:var(--innfo-accent)}',
+    '.innfo-file-pill-path{font-family:inherit;font-size:inherit;background:transparent;padding:0;border:none}',
+    '.innfo-card-meta-strip{display:flex;align-items:center;justify-content:space-between;gap:.5em;flex-wrap:wrap;padding:6px 10px;margin:.55em 0;background:var(--innfo-surface-2);border:1px solid var(--innfo-border);border-radius:6px}',
+    '.innfo-lineage-pill{display:inline-flex;align-items:center;gap:.3em;font-family:var(--innfo-mono);font-size:.73rem;color:var(--innfo-muted);background:var(--innfo-surface);border:1px solid var(--innfo-border);border-radius:5px;padding:2px 7px}',
+    '[data-innfo-component=element-card] .innfo-card-fields{display:flex;flex-direction:column;gap:0;align-items:stretch;margin:.6em 0 0;border:1px solid var(--innfo-border);border-radius:var(--innfo-radius-sm);overflow:hidden;background:var(--innfo-surface)}',
   ]
   for (var slot = 1; slot <= 12; slot++) {
     COMPONENT_CSS.push(
@@ -8455,6 +8913,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     'cite-error': ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line>',
     chevron: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline>',
     image: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="9" cy="9" r="2"></circle><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path>',
+    sliders: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line>',
+    'message-square': ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>',
+    'git-commit': ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><line x1="1.05" y1="12" x2="7" y2="12"></line><line x1="17.01" y1="12" x2="22.96" y2="12"></line>',
+    check: ' fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline>',
+    'arrow-up-right': ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline>',
   }
 
   function icon(name, size, cls) {
@@ -8689,7 +9152,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     btn.setAttribute('aria-pressed', 'false')
     btn.setAttribute('aria-label', 'Toggle edit controls on this card')
     btn.setAttribute('title', 'Toggle edit controls on this card')
-    btn.innerHTML = icon('pencil', 14)
+    btn.innerHTML = icon('sliders', 14)
     return btn
   }
 
@@ -8699,9 +9162,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     btn.setAttribute('data-innfo-component', 'edit-anchor')
     btn.setAttribute('type', 'button')
     var label = (data && data.label) || 'Edit'
+    var iconName = (data && data.icon) || 'pencil'
     btn.setAttribute('aria-label', label)
     btn.setAttribute('title', label)
-    btn.innerHTML = icon('pencil', 13)
+    btn.innerHTML = icon(iconName, 13)
     return btn
   }
 
@@ -8756,6 +9220,14 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return btn
   }
 
+  function normalizeAssetPath(v) {
+    if (typeof v !== 'string') return ''
+    var s = v.replace(/\\/g, '/')
+    if (/^(data:|blob:|https?:|file:)/i.test(s)) return v
+    var m = s.match(/^.+?\/((?:sources|kNNowledge|assets|evidence)\/.+)$/)
+    return m ? m[1] : v
+  }
+
   // Type-aware read rendering for a field value. Returns null when the value
   // should fall back to the plain KuBadge text (string/number/select/etc.), so
   // existing output is unchanged for the common case.
@@ -8772,6 +9244,20 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     if (Array.isArray(value)) {
       return makeEl(doc, 'span', 'innfo-ku-value innfo-field-list', value.map(String).join(', '))
     }
+    if (value !== null && typeof value === 'object') {
+      var chipWrap = makeEl(doc, 'span', 'innfo-ku-value innfo-obj-chips')
+      Object.keys(value).forEach(function (k) {
+        var chip = makeEl(doc, 'span', 'innfo-obj-chip')
+        chip.appendChild(makeEl(doc, 'span', 'innfo-obj-chip-k', k))
+        var rawV = value[k]
+        var vNode = makeEl(doc, 'span', 'innfo-obj-chip-v', rawV == null ? '' : String(rawV))
+        if (rawV === true || rawV === 'true') vNode.setAttribute('data-bool', 'true')
+        else if (rawV === false || rawV === 'false') vNode.setAttribute('data-bool', 'false')
+        chip.appendChild(vNode)
+        chipWrap.appendChild(chip)
+      })
+      return chipWrap
+    }
     if (typeof value === 'string' && /^https?:\/\//i.test(value)) {
       var a = makeEl(doc, 'a', 'innfo-field-url', value)
       a.setAttribute('href', value)
@@ -8785,25 +9271,39 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     if (type === 'markdown' || type === 'markdown_inline') {
       return makeEl(doc, 'span', 'innfo-field-markdown', value == null ? '' : String(value))
     }
-    if (type === 'image' || type === 'image_url' || type === 'asset' || type === 'video' || type === 'audio') {
+    if (type === 'image' || type === 'image_url' || type === 'asset' || type === 'video' || type === 'audio' || (typeof value === 'string' && looksLikeImageValue(value) && /^.+?\b(?:sources|kNNowledge|assets|evidence)\//i.test(value))) {
       if (typeof value === 'string' && looksLikeImageValue(value)) {
         var img = makeEl(doc, 'img', 'innfo-field-image')
-        img.setAttribute('src', value)
+        img.setAttribute('src', normalizeAssetPath(value))
         img.setAttribute('alt', String(d.name || ''))
         img.setAttribute('loading', 'lazy')
         img.addEventListener('error', function () {
           var cur = img.getAttribute('src') || ''
-          var relMatch = !img.getAttribute('data-retried') && cur.match(/^.+?(\bsources\/.+)$/)
+          var relMatch = !img.getAttribute('data-retried') && cur.match(/^.+?\b((?:sources|kNNowledge|assets|evidence)\/.+)$/)
           if (relMatch) {
             img.setAttribute('data-retried', '1')
             img.setAttribute('src', relMatch[1])
             return
           }
-          var fb = makeEl(doc, 'code', 'innfo-field-code', String(value))
+          var fb = makeEl(doc, 'code', 'innfo-field-code', normalizeAssetPath(String(value)))
           if (img.parentNode) img.parentNode.replaceChild(fb, img)
         })
         return img
       }
+    }
+    if (
+      type === 'file' ||
+      (typeof value === 'string' &&
+        !looksLikeImageValue(value) &&
+        /^(?:.+?\/)?(?:sources|kNNowledge|assets|evidence)\/[^\s]+\.[a-z0-9]{2,5}$/i.test(value.replace(/\\/g, '/')))
+    ) {
+      var cleanPath = normalizeAssetPath(String(value == null ? '' : value))
+      var filePill = makeEl(doc, 'span', 'innfo-ku-value innfo-file-pill')
+      var fileIcon = makeEl(doc, 'span', 'innfo-file-pill-icon')
+      fileIcon.innerHTML = icon('cite-document', 12)
+      filePill.appendChild(fileIcon)
+      filePill.appendChild(makeEl(doc, 'code', 'innfo-file-pill-path', cleanPath))
+      return filePill
     }
     return null
   }
@@ -8851,14 +9351,13 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return badge
   }
 
-  // ---- Element-card Dense Row (V01) ----
+  // ---- Element-card Selected Hybrid (V1 + V4) ----
   //
-  // The bar is always one line: image chip, name, concept, markers, a field
-  // count, the actions and a chevron. The body (description, field badges,
-  // tags, relations) opens on demand. Values never clip: the bar truncates with
-  // a title tooltip and the field badges show the full value on expand. The
-  // image chip is the first field whose value looks like an image; with no such
-  // field a dashed placeholder keeps rows aligned.
+  // Collapsed state: V1 header bar (thumbnail, name, status/markers, 1-line summary,
+  // count & chevron) + Variant 4 bottom inline pill strip (structured object chips
+  // such as photo_metadata and compact outgoing relation wikilink pills).
+  // Expanded state: Full Variant 1 editorial layout (lineage/QUD meta bar, narrative
+  // lead, 3-column structured property rows, and outgoing/incoming relations footer).
 
   var IMAGE_VALUE_RE = /\.(png|jpe?g|gif|webp|svg|avif|bmp)(?:[?#]|$)/i
 
@@ -8868,6 +9367,27 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     if (!s) return false
     if (s.indexOf('data:image/') === 0 || s.indexOf('blob:') === 0) return true
     return IMAGE_VALUE_RE.test(s)
+  }
+
+  function retryImageSrc(img, fallback) {
+    var cur = img.getAttribute('src') || ''
+    if (/^(data:|blob:|https?:|file:)/i.test(cur)) {
+      fallback()
+      return
+    }
+    var tried = (img.getAttribute('data-retried') || '').split('|')
+    var tail = cur.replace(/\\/g, '/')
+    var m = tail.match(/^.+?\/(sources\/.+|kNNowledge\/.+|assets\/.+|evidence\/.+)$/)
+    var candidates = []
+    if (m) candidates.push(m[1])
+    for (var i = 0; i < candidates.length; i++) {
+      if (tried.indexOf(candidates[i]) === -1 && candidates[i] !== cur) {
+        img.setAttribute('data-retried', (img.getAttribute('data-retried') || '') + '|' + candidates[i])
+        img.setAttribute('src', candidates[i])
+        return
+      }
+    }
+    fallback()
   }
 
   function imageFieldOf(fields) {
@@ -8892,28 +9412,22 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var fields = Array.isArray(data.fields) ? data.fields : []
     var imageField = imageFieldOf(fields)
     var collapsible = !(opts && opts.collapsible === false)
+    var byId = (opts && opts.byId) || {}
 
     var head = makeEl(doc, 'header', 'innfo-card-head')
 
-    // Image chip: a real thumbnail when a field value looks like an image, a
-    // dashed placeholder otherwise (keeps every row aligned).
     var thumb
     if (imageField) {
       thumb = makeEl(doc, 'img', 'innfo-card-thumb')
       thumb.setAttribute('alt', '')
       thumb.setAttribute('loading', 'lazy')
-      thumb.setAttribute('src', String(imageField.value))
+      thumb.setAttribute('src', normalizeAssetPath(String(imageField.value)))
       thumb.addEventListener('error', function () {
-        var cur = thumb.getAttribute('src') || ''
-        var relMatch = !thumb.getAttribute('data-retried') && cur.match(/^.+?(\bsources\/.+)$/)
-        if (relMatch) {
-          thumb.setAttribute('data-retried', '1')
-          thumb.setAttribute('src', relMatch[1])
-          return
-        }
-        var ph = makeEl(doc, 'span', 'innfo-card-thumb innfo-card-thumb--empty')
-        ph.innerHTML = icon('image', 16)
-        if (thumb.parentNode) thumb.parentNode.replaceChild(ph, thumb)
+        retryImageSrc(thumb, function () {
+          var ph = makeEl(doc, 'span', 'innfo-card-thumb innfo-card-thumb--empty')
+          ph.innerHTML = icon('image', 16)
+          if (thumb.parentNode) thumb.parentNode.replaceChild(ph, thumb)
+        })
       })
     } else {
       thumb = makeEl(doc, 'span', 'innfo-card-thumb innfo-card-thumb--empty')
@@ -8932,15 +9446,49 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         icon: conceptOpts.icon,
       }),
     )
+
+    // Surface semantic status pill in header if element has a status field
+    var statusField = null
+    var summaryField = null
+    for (var fi = 0; fi < fields.length; fi++) {
+      var fItem = fields[fi]
+      if (!fItem) continue
+      if (fItem.name === 'status' && typeof fItem.value === 'string' && fItem.value.trim()) {
+        statusField = fItem.value.trim()
+      } else if (fItem.name === 'summary' && typeof fItem.value === 'string' && fItem.value.trim()) {
+        summaryField = fItem.value.trim()
+      }
+    }
+    if (statusField) {
+      var stPill = makeEl(doc, 'span', 'innfo-card-status-pill')
+      var stNorm = statusField.toLowerCase()
+      stPill.setAttribute('data-status', stNorm)
+      if (stNorm === 'reviewed' || stNorm === 'applied' || stNorm === 'completed' || stNorm === 'verified') {
+        var chk = makeEl(doc, 'span', 'innfo-status-pill-icon')
+        chk.innerHTML = icon('check', 11)
+        stPill.appendChild(chk)
+      }
+      stPill.appendChild(doc.createTextNode(statusField))
+      head.appendChild(stPill)
+    }
+
     if (Array.isArray(data.markers)) {
       data.markers.forEach(function (m) {
         if (m) head.appendChild(MarkerChip(m))
       })
     }
+
+    if (summaryField) {
+      var sumPrev = makeEl(doc, 'span', 'innfo-card-summary-preview', summaryField)
+      sumPrev.setAttribute('title', summaryField)
+      head.appendChild(sumPrev)
+    }
+
+    var qudNode = null
     if (data.qud && (data.qud.id || data.qud === true)) {
       var qudData = data.qud === true ? { id: data.id } : data.qud
       if (qudData && qudData.id == null) qudData.id = data.id
-      head.appendChild(QudChip(qudData || { id: data.id }))
+      qudNode = QudChip(qudData || { id: data.id })
     }
     if (Array.isArray(opts && opts.head)) {
       ;(opts.head || []).forEach(function (n) {
@@ -8978,7 +9526,6 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       })
       head.appendChild(toggle)
 
-      // Clicking the bar (but not an interactive child) toggles too.
       head.addEventListener('click', function (ev) {
         var t = ev && ev.target
         if (t && typeof t.closest === 'function' && t.closest('button, a, input, select, textarea')) {
@@ -8989,12 +9536,101 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
     card.appendChild(head)
 
-    var body = makeEl(doc, 'section', 'innfo-card-body')
-    if (data.description) body.appendChild(makeEl(doc, 'p', 'innfo-card-desc', data.description))
     var headline = String(data.name || data.id || '')
     var bodyFields = fields.filter(function (fr) {
       return fr && String(fr.value == null ? '' : fr.value) !== headline
     })
+    var relations = Array.isArray(data.relations) ? data.relations : null
+
+    // Variant 4 Bottom Inline Pill Strip for Collapsed State
+    if (collapsible) {
+      var stripLeft = makeEl(doc, 'div', 'innfo-collapsed-strip-left')
+      var stripRight = makeEl(doc, 'div', 'innfo-collapsed-strip-right')
+
+      // 1. Object fields (e.g., photo_metadata) rendered as inline key-value chip groups
+      var objFields = bodyFields.filter(function (fr) {
+        return fr && fr.value !== null && typeof fr.value === 'object' && !Array.isArray(fr.value)
+      })
+      objFields.forEach(function (fr) {
+        var grp = makeEl(doc, 'span', 'innfo-strip-group')
+        grp.appendChild(makeEl(doc, 'span', 'innfo-strip-key', fr.name + ':'))
+        Object.keys(fr.value).forEach(function (k) {
+          var chip = makeEl(doc, 'span', 'innfo-obj-chip')
+          chip.appendChild(makeEl(doc, 'span', 'innfo-obj-chip-k', k))
+          var rawV = fr.value[k]
+          var vNode = makeEl(doc, 'span', 'innfo-obj-chip-v', rawV == null ? '' : String(rawV))
+          if (rawV === true || rawV === 'true') vNode.setAttribute('data-bool', 'true')
+          chip.appendChild(vNode)
+          grp.appendChild(chip)
+        })
+        stripLeft.appendChild(grp)
+      })
+
+      // 2. If no object fields, surface up to 3 compact scalar fields when card has multiple fields
+      var relFieldSet = {}
+      if (relations) {
+        relations.forEach(function (r) {
+          if (r && r.field) relFieldSet[r.field] = true
+        })
+      }
+      if (!objFields.length && bodyFields.length > 1) {
+        var compactScalars = bodyFields.filter(function (fr) {
+          if (!fr || fr.ref || fr.value == null || relFieldSet[fr.name]) return false
+          if (fr.name === 'summary' || fr.name === 'long_description' || fr.name === 'description' || fr.name === 'status' || fr.name === 'sources') return false
+          if (typeof fr.value === 'object') return false
+          var sv = normalizeAssetPath(String(fr.value))
+          if (!sv || sv.length > 36 || looksLikeImageValue(sv) || /^\[\[.*\]\]$/.test(sv)) return false
+          return true
+        }).slice(0, 3)
+        compactScalars.forEach(function (fr) {
+          var chip = makeEl(doc, 'span', 'innfo-obj-chip')
+          chip.appendChild(makeEl(doc, 'span', 'innfo-obj-chip-k', fr.name))
+          chip.appendChild(makeEl(doc, 'span', 'innfo-obj-chip-v', normalizeAssetPath(String(fr.value))))
+          stripLeft.appendChild(chip)
+        })
+      }
+
+      // 3. Outgoing relations rendered as compact wikilink pills on the right
+      if (relations && relations.length) {
+        relations.slice(0, 3).forEach(function (r) {
+          if (!r || typeof r !== 'object') return
+          var rLabel = r.targetLabel || (r.target && byId[r.target] && byId[r.target].name) || r.target || '?'
+          var pill = makeEl(doc, 'a', 'innfo-strip-rel')
+          if (r.target) pill.setAttribute('href', '#el-' + r.target)
+          pill.textContent = (r.field ? r.field + ': ' : '') + rLabel + ' ↗'
+          stripRight.appendChild(pill)
+        })
+      }
+
+      if (stripLeft.children.length || stripRight.children.length) {
+        var collapsedStrip = makeEl(doc, 'div', 'innfo-card-collapsed-strip')
+        collapsedStrip.appendChild(stripLeft)
+        collapsedStrip.appendChild(stripRight)
+        card.appendChild(collapsedStrip)
+      }
+    }
+
+    var body = makeEl(doc, 'section', 'innfo-card-body')
+    var hasHistory = Array.isArray(data.history) && data.history.length > 0
+    if (qudNode || hasHistory) {
+      var metaStrip = makeEl(doc, 'div', 'innfo-card-meta-strip')
+      if (qudNode) metaStrip.appendChild(qudNode)
+      if (hasHistory) {
+        var firstHist = data.history[0] || {}
+        var histText = data.history.length + (data.history.length === 1 ? ' applied change' : ' applied changes')
+        if (firstHist.id || firstHist.author) {
+          histText += ' (' + [firstHist.id, firstHist.author ? 'by ' + firstHist.author : null].filter(Boolean).join(' ') + ')'
+        }
+        var linPill = makeEl(doc, 'span', 'innfo-lineage-pill')
+        var linIco = makeEl(doc, 'span', 'innfo-lineage-icon')
+        linIco.innerHTML = icon('git-commit', 12)
+        linPill.appendChild(linIco)
+        linPill.appendChild(doc.createTextNode(histText))
+        metaStrip.appendChild(linPill)
+      }
+      body.appendChild(metaStrip)
+    }
+    if (data.description) body.appendChild(makeEl(doc, 'p', 'innfo-card-desc', data.description))
     if (bodyFields.length) {
       var fieldRow = makeEl(doc, 'div', 'innfo-card-fields')
       bodyFields.forEach(function (fr) {
@@ -9009,9 +9645,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
     var tags = Array.isArray(data.tags) ? data.tags : null
     if (tags) body.appendChild(TagRow({ tags: tags }))
-    var relations = Array.isArray(data.relations) ? data.relations : null
     if (relations) {
-      body.appendChild(RelList({ relations: relations, byId: (opts && opts.byId) || {} }))
+      body.appendChild(RelList({ relations: relations, byId: byId }))
     }
     var incoming = Array.isArray(data.incomingRelations) ? data.incomingRelations : null
     if (incoming && incoming.length) {
@@ -9019,7 +9654,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       incWrap.appendChild(
         makeEl(doc, 'span', 'innfo-card-incoming-label', 'Referenced by (' + incoming.length + ')'),
       )
-      incWrap.appendChild(RelList({ relations: incoming, byId: (opts && opts.byId) || {} }))
+      incWrap.appendChild(RelList({ relations: incoming, byId: byId }))
       body.appendChild(incWrap)
     }
     card.appendChild(body)
@@ -9037,10 +9672,21 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     drafts.forEach(function (d) {
       if (!d || typeof d !== 'object') return
       var el = byId[String(d.element_id)]
-      var changed = !el || el.hash !== d.base_hash
+      // The host passes the review module's staleness rule; the kit has no dependency on it.
+      var changed =
+        opts && typeof opts.isTargetChanged === 'function'
+          ? opts.isTargetChanged(d, byId)
+          : !el || el.hash !== d.base_hash
+      // A stale draft whose proposed value already equals the current value was
+      // applied out-of-band: 'already applied', not 'target changed'.
+      var applied =
+        changed && opts && typeof opts.isAlreadyApplied === 'function'
+          ? opts.isAlreadyApplied(d, byId)
+          : false
       var li = makeEl(doc, 'li', 'innfo-draft-row card bg-base-100 border border-base-200 shadow-xs')
       li.setAttribute('data-draft-id', String(d.id))
-      if (changed) li.setAttribute('data-target-changed', 'true')
+      if (changed && !applied) li.setAttribute('data-target-changed', 'true')
+      if (applied) li.setAttribute('data-already-applied', 'true')
 
       var cardBody = makeEl(doc, 'div', 'card-body p-4 flex flex-row items-center justify-between gap-4')
 
@@ -9064,7 +9710,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       cardBody.appendChild(left)
 
       var right = makeEl(doc, 'div', 'flex items-center gap-2 shrink-0')
-      if (changed) {
+      if (applied) {
+        var appliedBadge = makeEl(doc, 'span', 'innfo-draft-already-applied badge badge-neutral badge-sm', 'already applied')
+        right.appendChild(appliedBadge)
+      } else if (changed) {
         var warnBadge = makeEl(doc, 'span', 'innfo-draft-target-changed badge badge-error badge-sm', 'target changed')
         right.appendChild(warnBadge)
       }
@@ -9594,6 +10243,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   }
 
   var REVIEW_STATES = ['none', 'reviewed', 'changed']
+  var REVIEW_LABELS = { none: 'Mark reviewed', reviewed: 'Reviewed', changed: 'Changed' }
 
   function ReviewedToggle(data) {
     if (!data || typeof data !== 'object') {
@@ -9601,7 +10251,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
     var state = REVIEW_STATES.indexOf(data.state) !== -1 ? data.state : 'none'
     var doc = resolveDoc(null)
-    var b = makeEl(doc, 'button', 'innfo-reviewed-toggle', state)
+    var b = makeEl(doc, 'button', 'innfo-reviewed-toggle', REVIEW_LABELS[state])
     b.setAttribute('data-innfo-component', 'reviewed-toggle')
     b.setAttribute('type', 'button')
     b.setAttribute('data-state', String(state))
@@ -9875,6 +10525,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       kind: ITEM_KINDS.indexOf(d.kind) !== -1 ? d.kind : 'comment',
       created_at: d.created_at != null ? String(d.created_at) : null,
     }
+    // Engine address of the target (file stem + element slug), captured with the draft
+    // so a changeset export does not have to guess it from display titles.
+    if (d.model_id != null && d.model_id !== '') draft.model_id = String(d.model_id)
+    if (d.element_slug != null && d.element_slug !== '') draft.element_slug = String(d.element_slug)
     if (d.field !== undefined && d.field !== null) draft.field = String(d.field)
     if (d.original !== undefined) draft.original = d.original
     if (d.proposed !== undefined) draft.proposed = d.proposed
@@ -9907,7 +10561,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
   }
 
-  function createDraftStore(storage, modelId, modelVersion) {
+  // Options: `onError(err)` is called when a write fails (the draft stays in memory
+  // only); `onRemoteChange()` is called after another tab changed this store.
+  function createDraftStore(storage, modelId, modelVersion, options) {
+    var opts = isObject(options) ? options : {}
     var resolved = resolveStorage(storage)
     var backing = resolved.storage
     var persistent = resolved.persistent
@@ -9968,15 +10625,43 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       }
     }
 
-    function write(state) {
+    // A failed write is reported, and the in-memory state then runs ahead of storage:
+    // until a write succeeds again, mutations build on memory rather than on a re-read
+    // that would silently drop the unsaved drafts.
+    var memoryAhead = false
+
+    function write(next) {
       try {
-        backing.setItem(key, JSON.stringify(state))
-      } catch {
-        /* storage full or unavailable; keep the in-memory view */
+        backing.setItem(key, JSON.stringify(next))
+        memoryAhead = false
+      } catch (err) {
+        memoryAhead = true
+        if (typeof opts.onError === 'function') opts.onError(err)
       }
     }
 
     var state = read()
+
+    // Read-merge-write: every mutation starts from what storage holds now, so a draft
+    // saved in another tab since our last read is kept instead of overwritten.
+    function mutate(change) {
+      if (!memoryAhead) state = read()
+      var result = change(state)
+      write(state)
+      return result
+    }
+
+    var onStorage = null
+    var listenTarget = typeof window !== 'undefined' && window && window.addEventListener ? window : null
+    if (listenTarget && persistent) {
+      onStorage = function (event) {
+        if (event && event.key !== null && event.key !== undefined && event.key !== key) return
+        if (memoryAhead) return
+        state = read()
+        if (typeof opts.onRemoteChange === 'function') opts.onRemoteChange()
+      }
+      listenTarget.addEventListener('storage', onStorage)
+    }
 
     return {
       persistent: persistent,
@@ -9995,25 +10680,48 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         if (!raw.element_id || !raw.base_hash) {
           throw new TypeError('InnfoReview.createDraftStore: element_id and base_hash required')
         }
-        var draft = normalizeDraft(raw, raw.id || nextDraftId(state.drafts))
-        state.drafts.push(draft)
-        write(state)
-        return deepCopy(draft)
+        return deepCopy(
+          mutate(function (s) {
+            var draft = normalizeDraft(raw, raw.id || nextDraftId(s.drafts))
+            s.drafts.push(draft)
+            return draft
+          }),
+        )
       },
       removeDraft: function (id) {
-        state.drafts = state.drafts.filter(function (d) {
-          return d && d.id !== id
+        return deepCopy(
+          mutate(function (s) {
+            s.drafts = s.drafts.filter(function (d) {
+              return d && d.id !== id
+            })
+            return s.drafts
+          }),
+        )
+      },
+      // Removes the given drafts (all of them without arguments), e.g. once exported.
+      clearDrafts: function (ids) {
+        var drop = Array.isArray(ids) ? ids : null
+        mutate(function (s) {
+          s.drafts = drop
+            ? s.drafts.filter(function (d) {
+                return d && drop.indexOf(d.id) === -1
+              })
+            : []
         })
-        write(state)
-        return deepCopy(state.drafts)
       },
       markReviewed: function (id, hash) {
-        state.reviewed[String(id)] = String(hash)
-        write(state)
+        mutate(function (s) {
+          s.reviewed[String(id)] = String(hash)
+        })
       },
       unmarkReviewed: function (id) {
-        delete state.reviewed[String(id)]
-        write(state)
+        mutate(function (s) {
+          delete s.reviewed[String(id)]
+        })
+      },
+      destroy: function () {
+        if (listenTarget && onStorage) listenTarget.removeEventListener('storage', onStorage)
+        onStorage = null
       },
     }
   }
@@ -10028,9 +10736,36 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   function isTargetChanged(draft, elementsById) {
     var d = isObject(draft) ? draft : {}
     var byId = isObject(elementsById) ? elementsById : {}
+    // A proposed new element has no target in the model yet, so it cannot be stale.
+    if (d.kind === 'new') return false
     var el = byId[d.element_id]
     if (!el) return true
     return el.hash !== d.base_hash
+  }
+
+  function currentFieldValue(el, field) {
+    if (!isObject(el) || field === undefined || field === null) return undefined
+    var key = String(field)
+    if (el.fields && isObject(el.fields) && el.fields[key] !== undefined) return el.fields[key]
+    if (key === 'name') return el.name
+    if (key === 'description') return el.description
+    return el[key]
+  }
+
+  // A stale draft whose proposed value already equals the element's current
+  // value has nothing to review: the change was applied out-of-band (e.g. an
+  // engine-side changeset). It reads 'already applied' and is excluded from
+  // export, instead of the misleading 'target changed'.
+  function isAlreadyApplied(draft, elementsById) {
+    var d = isObject(draft) ? draft : {}
+    if (d.proposed === undefined || d.proposed === null) return false
+    var byId = isObject(elementsById) ? elementsById : {}
+    var el = byId[d.element_id]
+    if (!el) return false
+    if (!isTargetChanged(d, byId)) return false
+    var current = currentFieldValue(el, d.field)
+    if (current === undefined || current === null) return false
+    return String(current) === String(d.proposed)
   }
 
   function progressByConcept(elements, drafts, reviewed) {
@@ -10108,7 +10843,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         if (!isObject(c)) return
         out.push({
           field: field,
-          origin: c.error ? 'error' : c.origin,
+          origin: c.error ? 'error' : (c.origin || 'document'),
           source: c.anchor ? String(c.path || '') + ' \u2192 ' + c.anchor : String(c.path || c.source || ''),
           quote: c.excerpt,
           exists: c.exists,
@@ -10183,6 +10918,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         element: el.name || el.id,
         base_hash: el.hash,
         kind: payload.kind,
+        model_id: el.modelId || meta.modelId,
+        element_slug: el.slug,
       }
       if (payload.field !== undefined || anchorData.field) {
         draft.field = payload.field !== undefined ? payload.field : anchorData.field
@@ -10517,7 +11254,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     function annotateControl(anchorData, label) {
       var b =
         typeof UI.EditAnchor === 'function'
-          ? UI.EditAnchor({ label: label || 'Annotate' })
+          ? UI.EditAnchor({ label: label || 'Annotate', icon: anchorData.field ? 'pencil' : 'message-square' })
           : makeEl(doc, 'button', 'innfo-review-anchor', label || '+')
       b.setAttribute('data-innfo-review-ctl', '1')
       b.setAttribute('data-innfo-ctl', anchorData.field ? 'field-anchor' : 'card-anchor')
@@ -10625,11 +11362,29 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       ensureCardFocusable(card)
       var elId = card.getAttribute('data-element-id')
       var head = card.querySelector('.innfo-card-head') || card
+      var headRightRef =
+        head.querySelector('.innfo-card-count') || head.querySelector('.innfo-card-toggle') || null
+      if (!head.querySelector('[data-innfo-component="reviewed-toggle"]') && store) {
+        var elForRev = elementsById[elId]
+        var stateForRev = elForRev ? reviewState(elForRev, store.reviewed()) : 'none'
+        var rt = UI.ReviewedToggle({ state: stateForRev })
+        rt.setAttribute('data-innfo-review-ctl', '1')
+        rt.addEventListener('click', function () {
+          var current = store.reviewed()
+          if (Object.prototype.hasOwnProperty.call(current, elId)) {
+            store.unmarkReviewed(elId)
+          } else if (elForRev) {
+            store.markReviewed(elId, elForRev.hash)
+          }
+          applyDecorations()
+        })
+        head.insertBefore(rt, headRightRef)
+      }
       if (!card.querySelector('[data-innfo-ctl="card-anchor"]')) {
-        head.appendChild(annotateControl({ elementId: elId }, 'Annotate element'))
+        head.insertBefore(annotateControl({ elementId: elId }, 'Annotate element'), headRightRef)
       }
       if (!card.querySelector('[data-innfo-ctl="edit-toggle"]')) {
-        head.appendChild(editToggleControl(card))
+        head.insertBefore(editToggleControl(card), headRightRef)
       }
       var nameEl = card.querySelector('.innfo-card-head [data-ku-kind="element"]')
       if (nameEl && !nameEl.querySelector('[data-innfo-ctl="name-anchor"]')) {
@@ -10661,22 +11416,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       )
       decorateTagRow(card, elId)
       decorateRelList(card, elId)
-      if (!head.querySelector('[data-innfo-component="reviewed-toggle"]') && store) {
-        var el = elementsById[elId]
-        var state = el ? reviewState(el, store.reviewed()) : 'none'
-        var rt = UI.ReviewedToggle({ state: state })
-        rt.setAttribute('data-innfo-review-ctl', '1')
-        rt.addEventListener('click', function () {
-          var current = store.reviewed()
-          if (Object.prototype.hasOwnProperty.call(current, elId)) {
-            store.unmarkReviewed(elId)
-          } else if (el) {
-            store.markReviewed(elId, el.hash)
-          }
-          applyDecorations()
-        })
-        head.appendChild(rt)
-      }
+
     }
 
     // Tags are not KUs (no sub-ID, no modal): membership is proposed with
@@ -10780,7 +11520,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           },
         )
         actions.setAttribute('data-innfo-ctl', 'ku-info-actions')
-        if (badge.parentNode) badge.parentNode.insertBefore(actions, badge.nextSibling)
+        if (badge.getAttribute('data-ku-kind') === 'field') {
+          badge.appendChild(actions)
+        } else if (badge.parentNode) {
+          badge.parentNode.insertBefore(actions, badge.nextSibling)
+        }
       }
       Array.prototype.forEach.call(
         host.querySelectorAll('[data-innfo-component="element-card"][data-element-id]'),
@@ -11096,6 +11840,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     createReviewController: createReviewController,
     reviewState: reviewState,
     isTargetChanged: isTargetChanged,
+    isAlreadyApplied: isAlreadyApplied,
     progressByConcept: progressByConcept,
     verdictsByElement: verdictsByElement,
     changedIds: changedIds,
@@ -11372,7 +12117,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       var colonIdx = unquoted.indexOf(':')
       if (colonIdx > 0) {
         var key = unquoted.slice(0, colonIdx).toLowerCase()
-        var val = unquoted.slice(colonIdx + 1).toLowerCase()
+        var val = unquoted.slice(colonIdx + 1).replace(/^["']|["']$/g, '').toLowerCase()
         operators.push({ key: key, val: val, raw: unquoted })
       } else {
         textTokens.push(unquoted.toLowerCase())
@@ -11897,6 +12642,45 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   /* Browser console: banner, rail, search, cards, matrices, drafts, export modal.
      Runs only where document/localStorage exist; pure helpers above stay DOM-free. */
 
+  // Escape untrusted text before it is concatenated into an innerHTML string.
+  function escapeHtml(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;')
+  }
+
+  // Transient message for failures the reviewer must see (e.g. drafts not saved).
+  // Replaces any previous toast instead of stacking them.
+  function showToast(doc, message) {
+    if (!doc || !doc.body || typeof doc.createElement !== 'function') return null
+    var old = doc.querySelector('[data-innfo="toast"]')
+    if (old && old.parentNode) old.parentNode.removeChild(old)
+    var toast = doc.createElement('div')
+    toast.setAttribute('data-innfo', 'toast')
+    toast.setAttribute('role', 'alert')
+    toast.className = 'innfo-toast'
+    toast.style.cssText =
+      'position:fixed;right:16px;bottom:16px;z-index:10000;max-width:360px;padding:10px 14px;' +
+      'border-radius:6px;background:#7f1d1d;color:#fff;font-size:13px;box-shadow:0 4px 12px rgba(0,0,0,.25);'
+    toast.textContent = String(message)
+    doc.body.appendChild(toast)
+    setTimeout(function () {
+      if (toast.parentNode) toast.parentNode.removeChild(toast)
+    }, 8000)
+    return toast
+  }
+
+  function notifyStoreError(doc, err) {
+    showToast(
+      doc,
+      'Your draft could not be saved (browser storage is full or blocked). It stays in this tab only: export your changes now.' +
+        (err && err.name ? ' [' + err.name + ']' : ''),
+    )
+  }
+
   function el(tag, cls, text) {
     var node = typeof document !== 'undefined' ? document.createElement(tag) : null
     if (!node) return null
@@ -12184,7 +12968,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       parsed.operators.forEach(function (op) {
         var pill = el('span', 'badge badge-sm badge-outline gap-1 font-mono text-[11px] py-2 px-2.5 bg-base-100')
         var labelText = op.key + ':' + op.val
-        pill.innerHTML = '<span>' + labelText + '</span>'
+        pill.innerHTML = '<span>' + escapeHtml(labelText) + '</span>'
         var removeBtn = el('button', 'ml-1 hover:text-error cursor-pointer font-bold', '×')
         removeBtn.setAttribute('type', 'button')
         removeBtn.addEventListener('click', function (e) {
@@ -12197,7 +12981,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
       parsed.textTokens.forEach(function (token) {
         var pill = el('span', 'badge badge-sm badge-outline gap-1 font-mono text-[11px] py-2 px-2.5 bg-base-100')
-        pill.innerHTML = '<span>"' + token + '"</span>'
+        pill.innerHTML = '<span>"' + escapeHtml(token) + '"</span>'
         var removeBtn = el('button', 'ml-1 hover:text-error cursor-pointer font-bold', '×')
         removeBtn.setAttribute('type', 'button')
         removeBtn.addEventListener('click', function (e) {
@@ -12324,8 +13108,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         var fileIcon = typeof InnfoIcons !== 'undefined' ? InnfoIcons.getSvg('file-text', { size: 14 }) : ''
         summary.innerHTML =
           '<span class="flex items-center gap-2 min-w-0">' + fileIcon +
-          '<span class="truncate font-semibold">' + (m.title || m.filePath || 'Model') + '</span></span>' +
-          '<span class="badge badge-ghost badge-xs">' + (m.elementCount || 0) + '</span>'
+          '<span class="truncate font-semibold">' + escapeHtml(m.title || m.filePath || 'Model') + '</span></span>' +
+          '<span class="badge badge-ghost badge-xs">' + (Number(m.elementCount) || 0) + '</span>'
         summary.addEventListener('click', function (e) {
           // Clicking the chevron zone on the right edge toggles accordion open/close
           // without clobbering the active search filter.
@@ -12368,14 +13152,16 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
               a.className = 'active'
             }
             var CONCEPT_PALETTE = ['#2563eb', '#dc2626', '#16a34a', '#f59e0b', '#7c3aed', '#0891b2']
-            var color = conceptColor(name) || CONCEPT_PALETTE[globalIndex % CONCEPT_PALETTE.length]
+            var rawColor = String(conceptColor(name) || '').trim()
+            var SAFE_CSS_COLOR = /^(#[0-9a-fA-F]{3,8}|(rgb|hsl)a?\([0-9a-zA-Z.,%\s\/]*\)|[a-zA-Z]+)$/
+            var color = SAFE_CSS_COLOR.test(rawColor) ? rawColor : CONCEPT_PALETTE[globalIndex % CONCEPT_PALETTE.length]
             globalIndex += 1
             var dot = color
-              ? '<span class="innfo-concept-dot" style="background:' + color + ';flex:none;"></span>'
+              ? '<span class="innfo-concept-dot" style="background:' + escapeHtml(color) + ';flex:none;"></span>'
               : ''
             a.innerHTML =
-              '<span class="flex items-center gap-2 min-w-0">' + dot + '<span class="truncate">' + String(name) + '</span></span>' +
-              '<span class="badge badge-ghost badge-xs">' + ((counts && counts[name]) || 0) + '</span>'
+              '<span class="flex items-center gap-2 min-w-0">' + dot + '<span class="truncate">' + escapeHtml(name) + '</span></span>' +
+              '<span class="badge badge-ghost badge-xs">' + (Number(counts && counts[name]) || 0) + '</span>'
             a.addEventListener('click', function (e) {
               if (e && e.preventDefault) e.preventDefault()
               if (typeof onSelect === 'function') onSelect(formatFacetToken('concept', name))
@@ -12648,17 +13434,52 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     projectedElements.forEach(function (element) {
       var fields = []
+      var elCitations = element && isObject(element.citations) ? element.citations : {}
       if (isObject(element.fields)) {
         Object.keys(element.fields).forEach(function (k) {
           var val = element.fields[k]
-          var target = refs && isObject(refs[String(val)]) ? refs[String(val)] : null
+          var cleanKey = typeof val === 'string' ? val.replace(/^\[\[|\]\]$/g, '').trim() : String(val)
+          var target =
+            refs && isObject(refs[String(val)])
+              ? refs[String(val)]
+              : refs && isObject(refs[cleanKey])
+                ? refs[cleanKey]
+                : null
+          if (!target && Array.isArray(element.relations)) {
+            var relMatch = element.relations.find(function (r) {
+              return r && r.field === k && r.target
+            })
+            if (relMatch) {
+              target =
+                refs && isObject(refs[relMatch.target])
+                  ? refs[relMatch.target]
+                  : { id: relMatch.target, name: relMatch.targetLabel || cleanKey || relMatch.target }
+            }
+          }
+          var fieldCites = Array.isArray(elCitations[k]) && elCitations[k].length ? elCitations[k] : undefined
           fields.push({
             name: k,
             value: val,
             type: fieldTypeOf(schema, k),
-            ref: target ? { id: target.id || String(val), label: String(val) } : undefined,
+            ref: target ? { id: target.id || String(val), label: target.name || cleanKey || String(val) } : undefined,
+            citations: fieldCites,
           })
         })
+      }
+
+      var markerList = []
+      if (isObject(element.markers)) {
+        Object.keys(element.markers).forEach(function (mkKey) {
+          var mkVal = element.markers[mkKey]
+          markerList.push({
+            id: mkKey,
+            label: mkKey,
+            kind: 'marker',
+            value: Array.isArray(mkVal) ? mkVal.join(', ') : mkVal,
+          })
+        })
+      } else if (Array.isArray(element.markers)) {
+        markerList = element.markers
       }
 
       var card = UI.ElementCard(
@@ -12668,6 +13489,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           conceptId: element.concept,
           description: element.description,
           fields: fields,
+          markers: markerList.length ? markerList : undefined,
+          history: Array.isArray(element.history) && element.history.length ? element.history : undefined,
           qud: { id: element.id, concept: element.concept, hash: element.hash, path: element.canonicalUnit || element.modelFile || element.modelTitle || null },
           path: element.canonicalUnit || element.modelFile || element.modelTitle || null,
           tags: Array.isArray(element.tags) ? element.tags.map(String) : null,
@@ -12688,6 +13511,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
             var target = refs && isObject(refs[String(refId)]) ? refs[String(refId)] : null
             if (target) renderRefDialog(doc, target)
           },
+          onCite: function (citeData) {
+            var fName = citeData && citeData.field
+            var list = fName && Array.isArray(elCitations[fName]) ? elCitations[fName] : []
+            renderCitationDialog(doc, fName || element.name || element.id, list)
+          },
         },
       )
 
@@ -12695,46 +13523,19 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       var cDef = (Array.isArray(concepts) ? concepts : []).find(function (c) {
         return c && (typeof c === 'string' ? c : c.name) === element.concept
       })
-      var cColor = (cDef && cDef.color) || '#3b82f6'
+      var cColor = (cDef && cDef.color) || '#4d0e4e'
       var hexColor = visuals && typeof visuals.getHexColor === 'function' ? visuals.getHexColor(cColor) : cColor
       card.style.borderLeft = '3px solid ' + hexColor
 
       var head = card.querySelector('.innfo-card-head, header')
-      if (head) {
-        var metaWrap = el('div', 'flex items-center gap-1.5 flex-wrap ml-auto mr-2')
-        if (element.concept) {
-          var cBadge = el('span', 'badge badge-outline badge-xs text-xs font-semibold')
-          cBadge.style.borderColor = hexColor
-          cBadge.style.color = hexColor
-          cBadge.textContent = element.concept
-          metaWrap.appendChild(cBadge)
-        }
-        if (element.modelFile) {
-          var mBadge = el('span', 'badge badge-ghost badge-xs text-xs font-mono', element.modelFile)
-          mBadge.setAttribute('title', 'Knowledge Unit: ' + (element.canonicalUnit || element.unitSlug || element.modelFile))
-          metaWrap.appendChild(mBadge)
-
-          var kuText = element.canonicalUnit || element.unitSlug || (element.modelFile + '@' + element.id)
-          var copyBtn = el('button', 'btn btn-ghost btn-xs p-0.5 text-slate-400 hover:text-primary transition-colors cursor-pointer')
-          copyBtn.setAttribute('type', 'button')
-          copyBtn.setAttribute('title', 'Copy Knowledge Unit locator: ' + kuText)
-          copyBtn.setAttribute('aria-label', 'Copy Knowledge Unit locator')
-          copyBtn.innerHTML = typeof InnfoIcons !== 'undefined' ? InnfoIcons.getSvg('copy', { size: 12 }) : '📋'
-          copyBtn.addEventListener('click', function (ev) {
-            ev.stopPropagation()
-            if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
-              navigator.clipboard.writeText(kuText)
-              copyBtn.innerHTML = typeof InnfoIcons !== 'undefined' ? InnfoIcons.getSvg('check', { size: 12, class: 'text-success' }) : '✓'
-              setTimeout(function () {
-                copyBtn.innerHTML = typeof InnfoIcons !== 'undefined' ? InnfoIcons.getSvg('copy', { size: 12 }) : '📋'
-              }, 2000)
-            }
-          })
-          metaWrap.appendChild(copyBtn)
-        }
+      if (head && element.concept) {
+        var cBadge = el('span', 'innfo-card-concept-badge badge badge-outline badge-xs text-xs font-semibold')
+        cBadge.style.borderColor = hexColor
+        cBadge.style.color = hexColor
+        cBadge.textContent = element.concept
         var elementBadge = head.querySelector('[data-ku-kind="element"]')
-        if (elementBadge && elementBadge.nextSibling) head.insertBefore(metaWrap, elementBadge.nextSibling)
-        else head.appendChild(metaWrap)
+        if (elementBadge) head.insertBefore(cBadge, elementBadge)
+        else head.appendChild(cBadge)
       }
 
       if (element._draft) {
@@ -13102,7 +13903,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           var value = rowCells[c] != null ? String(rowCells[c]) : ''
           var isEmpty = value === '' || value === '-'
           var td = el('td', isEmpty ? 'innfo-matrix-cell-empty' : null, null)
-          if (td) td.appendChild(UI.KuBadge({ kind: 'cell', value: value }))
+          if (td) td.appendChild(UI.KuBadge({ kind: 'cell', value: isEmpty ? '—' : value }))
           tr.appendChild(td)
         })
         table.appendChild(tr)
@@ -13761,7 +14562,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         if (focusedRow) {
           var filterBanner = el('div', 'innfo-timeline-filter-banner')
           var bannerText = el('span', 'innfo-filter-banner-text')
-          bannerText.innerHTML = UI.icon('target', 14) + ' <span>Showing dependency tree for: <strong>' + (focusedRow.label || focusedRow.id) + '</strong> (' + Object.keys(activeDepSet).length + ' items)</span>'
+          bannerText.innerHTML = UI.icon('target', 14) + ' <span>Showing dependency tree for: <strong>' + escapeHtml(focusedRow.label || focusedRow.id) + '</strong> (' + Object.keys(activeDepSet).length + ' items)</span>'
           var clearBtn = el('button', 'innfo-filter-banner-clear')
           clearBtn.setAttribute('type', 'button')
           clearBtn.innerHTML = UI.icon('close', 12) + ' <span>Clear Filter</span>'
@@ -13940,7 +14741,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           var trChart = el('tr', 'innfo-timeline-chart-row')
           var tdChartSticky = el('td', 'td-sticky')
           var chartLabel = el('span', 'innfo-chart-row-label')
-          chartLabel.innerHTML = UI.icon('chart', 12) + ' <span>Monthly: ' + (r.label || r.id) + '</span>'
+          chartLabel.innerHTML = UI.icon('chart', 12) + ' <span>Monthly: ' + escapeHtml(r.label || r.id) + '</span>'
           tdChartSticky.appendChild(chartLabel)
           trChart.appendChild(tdChartSticky)
 
@@ -14645,6 +15446,14 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     if (n > 0) btn.appendChild(el('span', 'innfo-rail-badge badge badge-sm badge-neutral', String(n)))
   }
 
+  function elementsByIdOf(state) {
+    var byId = {}
+    ;(state && state.elements ? state.elements : []).forEach(function (e) {
+      if (e && e.id) byId[e.id] = e
+    })
+    return byId
+  }
+
   // C11: the review tab renders through the kit DraftList from the v2 store.
   function renderReviewTab(doc, state, config, onRefresh) {
     var host = doc && typeof doc.getElementById === 'function' ? doc.getElementById('innfo-tab-review') : null
@@ -14665,7 +15474,42 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         drafts.length + (drafts.length === 1 ? ' pending change' : ' pending changes'),
       )
       if (count) titleWrap.appendChild(count)
+      var byIdForStale = elementsByIdOf(state)
+      var staleCount = drafts.filter(function (d) {
+        return Review.isTargetChanged(d, byIdForStale) && !Review.isAlreadyApplied(d, byIdForStale)
+      }).length
+      if (staleCount > 0) {
+        var staleNote = el(
+          'p',
+          'innfo-review-stale text-sm mt-1',
+          staleCount + (staleCount === 1 ? ' draft targets' : ' drafts target') +
+            ' an element that changed since it was written: review before exporting.',
+        )
+        if (staleNote) {
+          staleNote.setAttribute('data-innfo', 'stale-drafts')
+          staleNote.style.color = '#b45309'
+          titleWrap.appendChild(staleNote)
+        }
+      }
       head.appendChild(titleWrap)
+
+      var exportedIds = state && Array.isArray(state.exportedDraftIds) ? state.exportedDraftIds : []
+      var exportedPending = drafts.filter(function (d) {
+        return exportedIds.indexOf(d.id) !== -1
+      })
+      if (exportedPending.length > 0 && state.store && typeof state.store.clearDrafts === 'function') {
+        var clearBtn = el('button', 'innfo-btn innfo-clear-exported btn btn-ghost btn-sm', 'Clear exported drafts (' + exportedPending.length + ')')
+        if (clearBtn) {
+          clearBtn.setAttribute('type', 'button')
+          clearBtn.setAttribute('data-innfo', 'clear-exported')
+          clearBtn.addEventListener('click', function () {
+            state.store.clearDrafts(exportedPending.map(function (d) { return d.id }))
+            state.exportedDraftIds = []
+            if (typeof onRefresh === 'function') onRefresh()
+          })
+          head.appendChild(clearBtn)
+        }
+      }
 
       if (drafts.length > 0) {
         var exportBtn = el('button', 'innfo-btn innfo-tab-export-btn btn btn-primary btn-sm flex items-center gap-2 shadow-sm', 'Export changes')
@@ -14686,7 +15530,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var listSection = el('section', 'innfo-review-list-section')
     if (listSection) {
       if (drafts.length === 0) {
-        var empty = el('div', 'empty-state alert alert-info bg-base-100 border border-base-200 text-sm p-4 rounded-lg flex items-center gap-3')
+        var empty = el('div', 'empty-state innfo-review-empty text-sm p-4 rounded-lg flex items-center gap-3')
         if (typeof InnfoIcons !== 'undefined' && typeof InnfoIcons.getSvg === 'function') {
           empty.innerHTML = InnfoIcons.getSvg('info', { size: 18 }) + '<span>No proposed changes yet. Annotate an element in review mode.</span>'
         } else {
@@ -14694,13 +15538,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         }
         listSection.appendChild(empty)
       } else {
-        var byId = {}
-        ;(state && state.elements ? state.elements : []).forEach(function (e) {
-          if (e && e.id) byId[e.id] = e
-        })
         listSection.appendChild(
-          UI.DraftList({ drafts: drafts, byId: byId }, {
+          UI.DraftList({ drafts: drafts, byId: elementsByIdOf(state) }, {
             doc: doc,
+            isTargetChanged: Review.isTargetChanged,
+            isAlreadyApplied: Review.isAlreadyApplied,
             onDelete: function (id) {
               if (state && state.store) state.store.removeDraft(id)
               if (typeof onRefresh === 'function') onRefresh()
@@ -14849,7 +15691,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
       var body = el('div', 'innfo-media-body')
       var img = doc.createElement('img')
-      img.setAttribute('src', item.value)
+      var rawSrc = String(item.value || '')
+      var normMatch = rawSrc.replace(/\\/g, '/').match(/^.+?\/((?:sources|kNNowledge|assets|evidence)\/.+)$/)
+      img.setAttribute('src', normMatch ? normMatch[1] : rawSrc)
       img.setAttribute('alt', item.name || '')
       img.className = 'innfo-media-image'
       img.addEventListener('error', function () {
@@ -15002,10 +15846,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       return
     }
     var NS = 'http://www.w3.org/2000/svg'
-    var size = 560
+    var size = 680
     var mid = size / 2
-    var r = nodes.length > 1 ? 190 : 0
-    var nodeR = 34
+    var r = nodes.length > 1 ? 235 : 0
+    var nodeR = 36
     var pos = {}
     nodes.forEach(function (name, i) {
       var a = -Math.PI / 2 + (i * 2 * Math.PI) / nodes.length
@@ -15033,7 +15877,37 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     defs.appendChild(marker)
     svg.appendChild(defs)
 
+    // Edges: matrices (explicit) + element field refs (implicit).
+    var edges = []
+    var seenEdge = {}
+    var pairCounts = {}
+    function pushEdge(source, target, name, kind) {
+      if (!source || !target || !pos[source] || !pos[target]) return
+      var key = source + '>' + target + '>' + (name || '')
+      if (seenEdge[key]) return
+      seenEdge[key] = true
+      var pairKey = source < target ? source + '|' + target : target + '|' + source
+      var slot = pairCounts[pairKey] || 0
+      pairCounts[pairKey] = slot + 1
+      edges.push({ source: source, target: target, name: name, kind: kind || 'matrix', pairKey: pairKey, slot: slot })
+    }
     ;(Array.isArray(matrices) ? matrices : []).forEach(function (m) {
+      if (m) pushEdge(m.source, m.target, m.name, 'matrix')
+    })
+    var byConcept = {}
+    ;(Array.isArray(elements) ? elements : []).forEach(function (e) {
+      if (e && e.concept) byConcept[e.id] = e.concept
+    })
+    ;(Array.isArray(elements) ? elements : []).forEach(function (e) {
+      if (!e || !e.concept || !Array.isArray(e.relations)) return
+      e.relations.forEach(function (r) {
+        if (!r || !r.target) return
+        var tc = byConcept[r.target]
+        if (tc && tc !== e.concept) pushEdge(e.concept, tc, r.field || '', 'relation')
+      })
+    })
+    var pendingEdgeLabels = []
+    edges.forEach(function (m) {
       if (!m || !m.source || !m.target || !pos[m.source] || !pos[m.target]) return
       var sx = pos[m.source].x
       var sy = pos[m.source].y
@@ -15042,26 +15916,36 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       var dx = tx - sx
       var dy = ty - sy
       var dist = Math.sqrt(dx * dx + dy * dy) || 1
-      var x1 = dist > nodeR * 2 ? sx + (dx / dist) * nodeR : sx
-      var y1 = dist > nodeR * 2 ? sy + (dy / dist) * nodeR : sy
-      var x2 = dist > nodeR * 2 ? tx - (dx / dist) * (nodeR + 4) : tx
-      var y2 = dist > nodeR * 2 ? ty - (dy / dist) * (nodeR + 4) : ty
+      var totalForPair = pairCounts[m.pairKey] || 1
+      // Canonical normal vector so parallel edges between the same pair separate cleanly
+      var canonDx = m.source < m.target ? dx : -dx
+      var canonDy = m.source < m.target ? dy : -dy
+      var nx = -canonDy / dist
+      var ny = canonDx / dist
+      var offsetIndex = m.slot - (totalForPair - 1) / 2
+      var perpShift = offsetIndex * 24
+      var x1 = (dist > nodeR * 2 ? sx + (dx / dist) * nodeR : sx) + nx * perpShift
+      var y1 = (dist > nodeR * 2 ? sy + (dy / dist) * nodeR : sy) + ny * perpShift
+      var x2 = (dist > nodeR * 2 ? tx - (dx / dist) * (nodeR + 4) : tx) + nx * perpShift
+      var y2 = (dist > nodeR * 2 ? ty - (dy / dist) * (nodeR + 4) : ty) + ny * perpShift
       var line = doc.createElementNS(NS, 'line')
       line.setAttribute('x1', x1)
       line.setAttribute('y1', y1)
       line.setAttribute('x2', x2)
       line.setAttribute('y2', y2)
       line.setAttribute('class', 'innfo-metamodel-edge')
+      line.setAttribute('data-edge-kind', m.kind || 'matrix')
+      if (m.kind === 'relation') {
+        line.setAttribute('stroke-dasharray', '5,4')
+      }
       line.setAttribute('marker-end', 'url(#innfo-metamodel-arrow)')
       svg.appendChild(line)
       if (m.name) {
-        var lt = doc.createElementNS(NS, 'text')
-        lt.setAttribute('x', (sx + tx) / 2)
-        lt.setAttribute('y', (sy + ty) / 2 - 6)
-        lt.setAttribute('text-anchor', 'middle')
-        lt.setAttribute('class', 'innfo-metamodel-edge-label')
-        lt.textContent = String(m.name)
-        svg.appendChild(lt)
+        var rawName = String(m.name)
+        var shortName = rawName.length > 20 ? rawName.replace(/\s+Matrix$/i, '') : rawName
+        var lx = (x1 + x2) * 0.5
+        var ly = (y1 + y2) * 0.5
+        pendingEdgeLabels.push({ x: lx, y: ly, text: shortName, fullText: rawName, kind: m.kind })
       }
     })
 
@@ -15097,8 +15981,41 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       svg.appendChild(t)
     })
 
+    pendingEdgeLabels.forEach(function (lbl) {
+      var padX = 7
+      var boxW = Math.max(38, lbl.text.length * 6.8 + padX * 2)
+      var boxH = 18
+      var bg = doc.createElementNS(NS, 'rect')
+      bg.setAttribute('x', lbl.x - boxW / 2)
+      bg.setAttribute('y', lbl.y - boxH / 2 - 2)
+      bg.setAttribute('width', boxW)
+      bg.setAttribute('height', boxH)
+      bg.setAttribute('rx', '9')
+      bg.setAttribute('class', 'innfo-metamodel-edge-bg')
+      svg.appendChild(bg)
+
+      var lt = doc.createElementNS(NS, 'text')
+      lt.setAttribute('x', lbl.x)
+      lt.setAttribute('y', lbl.y + 2)
+      lt.setAttribute('text-anchor', 'middle')
+      lt.setAttribute('class', 'innfo-metamodel-edge-label')
+      lt.textContent = lbl.text
+      if (lbl.fullText && lbl.fullText !== lbl.text) {
+        var lTitle = doc.createElementNS(NS, 'title')
+        lTitle.textContent = lbl.fullText
+        lt.appendChild(lTitle)
+      }
+      svg.appendChild(lt)
+    })
+
     var wrap = el('div', 'innfo-metamodel')
     wrap.appendChild(svg)
+    var legend = el('div', 'innfo-metamodel-legend')
+    legend.innerHTML =
+      '<span class="innfo-mm-legend-item"><span class="innfo-mm-line innfo-mm-line--matrix"></span> Matrix relationship</span>' +
+      '<span class="innfo-mm-legend-item"><span class="innfo-mm-line innfo-mm-line--relation"></span> Element reference (relation)</span>' +
+      '<span class="innfo-mm-legend-hint">Click any concept node to filter in Model Explorer</span>'
+    wrap.appendChild(legend)
     host.appendChild(wrap)
   }
 
@@ -15233,7 +16150,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       if (colorName && visuals && typeof visuals.getHexColor === 'function') {
         return visuals.getHexColor(colorName)
       }
-      return '#171717'
+      return '#4d0e4e'
     }
     function iconOf(iconName) {
       if (iconName && visuals && typeof visuals.iconSvg === 'function') {
@@ -15295,7 +16212,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         '#innfo-feedback-modal .innfo-feedback-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:8px 0;}' +
         '#innfo-feedback-modal button[data-innfo="copy-changeset-prompt"]{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--surface,#ffffff);color:var(--text,#111827);font:inherit;font-size:0.85rem;font-weight:600;padding:8px 16px;border-radius:var(--radius-sm,4px);cursor:pointer;}' +
         '#innfo-feedback-modal button:disabled{opacity:0.5;cursor:not-allowed;}' +
-        '#innfo-feedback-modal [data-innfo="copy-status"]{font-size:0.8rem;color:var(--muted,#6b7280);}'
+        '#innfo-feedback-modal [data-innfo="copy-status"]{font-size:0.8rem;color:var(--muted,#6b7280);}' +
+        '#innfo-feedback-modal .innfo-feedback-head{display:flex;align-items:center;gap:12px;}' +
+        '#innfo-feedback-modal .innfo-feedback-head h2{margin:0;flex:1;}' +
+        '#innfo-feedback-modal button[data-innfo="close"]{appearance:none;border:1px solid var(--border,#e5e7eb);background:transparent;font-size:1.2rem;line-height:1;padding:2px 10px;border-radius:6px;cursor:pointer;}' +
+        '#innfo-feedback-modal .innfo-feedback-seal{font-size:0.8rem;color:var(--muted,#6b7280);margin:8px 0;}'
       root.appendChild(style)
     }
 
@@ -15355,7 +16276,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     modal.id = 'innfo-feedback-modal'
     modal.setAttribute('aria-label', 'Export proposed changes')
     modal.innerHTML =
-      '<h2>Export proposed changes</h2>' +
+      '<div class="innfo-feedback-head"><h2>Export proposed changes</h2>' +
+      '<button data-innfo="close" type="button" aria-label="Close">×</button></div>' +
+      '<p class="innfo-feedback-seal">Sealed proposal: do not edit the file after download — any edit invalidates proposal_sha (PROPOSAL_TAMPERED). To retry, export a new file.</p>' +
       '<div data-innfo="preview"></div>' +
       '<label>Author / Reviewer identifier (required)' +
       '<input data-innfo="identifier" type="text" placeholder="e.g. round-2" />' +
@@ -15398,17 +16321,40 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return str
   }
 
-  function draftToChange(draft, index, modelTitle) {
+  // Builds one `## NN Change` block addressed the way `apply_change` resolves it:
+  // `<file stem>@<element slug>[&field]`. The draft carries `model_id` (the model's
+  // file stem) and `element_slug`; `fallbackModel` only covers drafts saved before
+  // those fields existed.
+  function oneLine(v) {
+    return String(v).replace(new RegExp('[\\r\\n\\u2028\\u2029]+', 'g'), ' ').trim()
+  }
+
+  function draftToChange(draft, index, fallbackModel) {
     var d = isObject(draft) ? draft : {}
-    var id = d.id || 'c-' + String(index + 1).padStart(2, '0')
-    var model = modelTitle || 'model'
-    var elementTarget = d.element_id || d.element || 'elem'
-    var target = d.field ? model + '@' + elementTarget + '&' + d.field : model + '@' + elementTarget
+    var id = oneLine(d.id || 'c-' + String(index + 1).padStart(2, '0'))
+    var model = oneLine(d.model_id || fallbackModel || 'model')
+    var elementTarget = oneLine(d.element_slug || d.element || d.element_id || 'elem')
+    var canUpdate = !!d.field && d.proposed !== undefined
+    var isRename = canUpdate && String(d.field).toLowerCase() === 'name'
     var op = 'update_field'
-    if (d.kind === 'delete') {
+    var target = model + '@' + elementTarget + (d.field ? '&' + oneLine(d.field) : '')
+    if (isRename) {
+      // Element display name is identity, not a field — the engine rejects
+      // update_field on &name (PRECONDITION_FAILED). Emit rename_element.
+      op = 'rename_element'
+      target = model + '@' + elementTarget
+    } else if (d.kind === 'delete') {
       op = 'remove_element'
       target = model + '@' + elementTarget
-    } else if (d.kind === 'comment' || (!d.proposed && !d.field)) {
+    } else if (d.kind === 'new') {
+      if (d.concept && d.element) {
+        // A new element is addressed by its concept; the engine reads name/fields below.
+        op = 'add_element'
+        target = model + '@' + oneLine(d.concept)
+      } else {
+        op = 'comment'
+      }
+    } else if (d.kind === 'comment' || !canUpdate) {
       op = 'comment'
     }
 
@@ -15416,9 +16362,20 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     lines.push('## NN Change: ' + id)
     lines.push('op:: ' + op)
     lines.push('target:: ' + target)
-    if (op === 'update_field') {
+    // The engine rejects the change if the element's content hash moved on since the draft.
+    if ((op === 'update_field' || op === 'remove_element' || op === 'rename_element') && d.base_hash) {
+      lines.push('base_hash:: ' + oneLine(d.base_hash))
+    }
+    if (op === 'rename_element') {
       if (d.original !== undefined) lines.push('from:: ' + formatChangesetValue(d.original))
-      if (d.proposed !== undefined) lines.push('to:: ' + formatChangesetValue(d.proposed))
+      lines.push('name:: ' + formatChangesetValue(d.proposed))
+    } else if (op === 'update_field') {
+      if (d.original !== undefined) lines.push('from:: ' + formatChangesetValue(d.original))
+      lines.push('to:: ' + formatChangesetValue(d.proposed))
+    } else if (op === 'add_element') {
+      lines.push('concept:: ' + oneLine(d.concept))
+      lines.push('name:: ' + formatChangesetValue(d.element))
+      if (isObject(d.proposed)) lines.push('fields:: ' + JSON.stringify(d.proposed))
     }
     if (d.comment) {
       lines.push('notes:: ' + formatChangesetValue(d.comment))
@@ -15426,7 +16383,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return lines.join('\n')
   }
 
-  function serializeChangesetMarkdown(meta, drafts) {
+  function serializeChangesetMarkdown(meta, drafts, fallbackModel) {
     var title = meta.title || meta.source_knowledge || 'Proposed Changes'
     var author = meta.author || 'reviewer'
     var lines = [
@@ -15449,7 +16406,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       '# NN Change',
       '',
     ]
-    var modelName = meta.source_knowledge || 'model'
+    var modelName = fallbackModel || meta.source_knowledge || 'model'
     var blocks = drafts.map(function (d, i) {
       return draftToChange(d, i, modelName)
     })
@@ -15476,7 +16433,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       return { ok: false, errors: ['Reviewer identifier is required.'] }
     }
 
-    var text = serializeChangesetMarkdown(exportMeta, drafts)
+    var text = serializeChangesetMarkdown(exportMeta, drafts, state && state.modelId)
     var filename = modelSlugOf(state) + '_' + reviewerSlug + '_' + stamp + '_changes_NN.md'
     return {
       ok: true,
@@ -15489,6 +16446,12 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   function composeExport(state, identifier) {
     var reviewer = identifier && String(identifier).trim() ? String(identifier).trim() : getReviewerName()
     var drafts = state && state.store ? state.store.drafts() : []
+    // Already-applied drafts (stale hash, proposed == current value) carry no
+    // change: exclude them from the export instead of shipping redundancies.
+    var byId = elementsByIdOf(state)
+    drafts = drafts.filter(function (d) {
+      return !Review.isAlreadyApplied(d, byId)
+    })
     var model = state && state.modelTitle ? state.modelTitle : 'Model'
     var version = state && state.modelVersion ? state.modelVersion : '1-0-0'
 
@@ -15528,7 +16491,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     if (!check.ok) return { ok: false, errors: check.errors }
 
     var stamp = stampFromDate(state && state.exportedAt ? new Date(state.exportedAt) : new Date())
-    var changesetMd = serializeChangesetMarkdown(exportMeta, drafts)
+    var changesetMd = serializeChangesetMarkdown(exportMeta, drafts, state && state.modelId)
     var modelSlug = modelSlugOf(state)
     var changesetFilename = modelSlug + '_' + reviewerSlug + '_' + stamp + '_changes_NN.md'
 
@@ -15554,7 +16517,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     errorContainer.innerHTML =
       '<strong>Validation errors:</strong><ul>' +
       errors.map(function (e) {
-        return '<li>' + e + '</li>'
+        return '<li>' + escapeHtml(e) + '</li>'
       }).join('') +
       '</ul>'
     errorContainer.style.display = 'block'
@@ -15580,7 +16543,18 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     setTimeout(function () {
       URL.revokeObjectURL(url)
     }, 1000)
+    markDraftsExported(state)
     return { ok: true, filename: composed.changesetFilename, items: composed.items }
+  }
+
+  // Remembers which drafts just left in an export so the Review tab can offer to
+  // clear them; drafts are never removed automatically (the file may be lost).
+  function markDraftsExported(state) {
+    if (!state || !state.store) return
+    state.exportedDraftIds = state.store.drafts().map(function (d) {
+      return d.id
+    })
+    if (typeof state.refreshUi === 'function') state.refreshUi()
   }
 
   function copyChangesetPrompt(doc, state) {
@@ -15610,6 +16584,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         navigator.clipboard.writeText(promptText).then(
           function () {
             announce('Copied changeset prompt to clipboard.')
+            markDraftsExported(state)
           },
           function () {
             announce(fallbackCopy(doc, textarea, promptText))
@@ -15634,11 +16609,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var preview = modal.querySelector('[data-innfo="preview"]')
     if (preview) {
       preview.innerHTML = ''
-      var byId = {}
-      ;(state && state.elements ? state.elements : []).forEach(function (e) {
-        if (e && e.id) byId[e.id] = e
-      })
-      preview.appendChild(UI.DraftList({ drafts: drafts, byId: byId }, { doc: doc }))
+      preview.appendChild(
+        UI.DraftList({ drafts: drafts, byId: elementsByIdOf(state) }, { doc: doc, isTargetChanged: Review.isTargetChanged, isAlreadyApplied: Review.isAlreadyApplied }),
+      )
     }
 
     var composed = composeExport(state, identifier)
@@ -15715,10 +16688,40 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     updateExportPreview(doc, state)
 
+    function closeModal() {
+      if (typeof modal.close === 'function') {
+        try {
+          if (modal.open) modal.close()
+          else modal.removeAttribute('open')
+        } catch {
+          modal.removeAttribute('open')
+        }
+      } else modal.removeAttribute('open')
+    }
+
     if (typeof modal.showModal === 'function') {
       if (!modal.open) modal.showModal()
     } else {
       modal.setAttribute('open', 'open')
+    }
+
+    var closeBtn = modal.querySelector('[data-innfo="close"]')
+    if (closeBtn && !closeBtn.getAttribute('data-innfo-bound')) {
+      closeBtn.setAttribute('data-innfo-bound', '1')
+      closeBtn.addEventListener('click', function (ev) {
+        if (ev && ev.stopPropagation) ev.stopPropagation()
+        closeModal()
+      })
+    }
+    if (!modal.getAttribute('data-innfo-dismiss-bound')) {
+      modal.setAttribute('data-innfo-dismiss-bound', '1')
+      modal.addEventListener('click', function (ev) {
+        if (ev && ev.target === modal) closeModal()
+      })
+      modal.addEventListener('cancel', function (ev) {
+        if (ev && ev.preventDefault) ev.preventDefault()
+        closeModal()
+      })
     }
 
     if (identifierInput && !identifierInput.getAttribute('data-innfo-bound')) {
@@ -15834,9 +16837,29 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       elements: elements,
       store: Review.createDraftStore(
         typeof localStorage !== 'undefined' ? localStorage : null,
-        baseId + (scopedView ? '::view:' + scopedView : ''),
+        // A domain console keys its drafts by the stable domain id, never by content.
+        String(meta.domainId || baseId) + (scopedView ? '::view:' + scopedView : ''),
         liveModelVersion,
+        {
+          onError: function (err) {
+            notifyStoreError(active, err)
+          },
+          // Another tab changed the drafts: repaint from the merged store.
+          onRemoteChange: function () {
+            state.refreshUi()
+          },
+        },
       ),
+    }
+    state.refreshUi = function () {
+      refresh(activeSearchQuery)
+      refreshDraftCounts()
+    }
+    cleanups.push(function () {
+      if (state.store && typeof state.store.destroy === 'function') state.store.destroy()
+    })
+    if (state.store && state.store.persistent === false) {
+      showToast(active, 'Browser storage is unavailable: drafts are kept in memory and will be lost on reload. Export your changes before leaving.')
     }
 
     var counts = {}
@@ -16072,7 +17095,21 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     if (tabs) tabs.activateInitial()
 
     if (hasNeed(config, 'document-view')) {
-      renderDocumentView(active, elements, concepts)
+      var hasProcTab = !!(
+        tabs &&
+        Array.isArray(tabs.tabs) &&
+        tabs.tabs.some(function (t) {
+          return t && t.id === 'procedure'
+        })
+      )
+      var docElements = hasProcTab
+        ? (Array.isArray(elements)
+            ? elements.filter(function (e) {
+                return !e || e.concept !== 'Work'
+              })
+            : [])
+        : elements
+      renderDocumentView(active, docElements, concepts)
     }
     renderMatrices(active, matrices, concepts)
     renderMetamodelView(active, schema, matrices, elements)
@@ -16169,6 +17206,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     renderNavbarMeta: renderNavbarMeta,
     renderFilterBar: renderFilterBar,
     renderRail: renderRail,
+    renderErrors: renderErrors,
     mountElementTable: mountElementTable,
     renderExplorerToolbar: renderExplorerToolbar,
     sortTableElements: sortTableElements,
@@ -16328,10 +17366,18 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           esc(String(meta.generated).replace('T', ' ').replace(/\..*/, '')) +
           '</span>',
       )
-    if (meta.sourceUrl)
+    if (meta.sourceUrl) {
+      var srcUrl = String(meta.sourceUrl).trim()
+      // Only http(s), same-document and relative hrefs become links; anything with
+      // another scheme (javascript:, data:, ...) is shown as plain text.
+      var hasScheme = /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(srcUrl)
+      var safeHref = hasScheme ? /^https?:/i.test(srcUrl) : !/^[\s\\]|^\/\/\s*$/.test(srcUrl)
       metaBits.push(
-        '<span><a href="' + esc(meta.sourceUrl) + '" target="_blank" rel="noopener">source</a></span>',
+        safeHref
+          ? '<span><a href="' + esc(srcUrl) + '" target="_blank" rel="noopener">source</a></span>'
+          : '<span>' + esc(srcUrl) + '</span>',
       )
+    }
     document.getElementById('doc-meta').innerHTML = metaBits.join('')
 
     var content = document.getElementById('content')
@@ -17051,8 +18097,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         var h = document.createElement(isRoot ? 'h2' : 'h3')
         var iconName = step.fields.step_type || 'task'
         var svg = vIcon(iconName, 16)
-        var stepColor = conceptColor('Work')
-        h.style.color = stepColor
+        h.style.color = 'var(--innfo-accent, #4d0e4e)'
         h.innerHTML =
           '<span class="step-type-icon">' +
           (svg || STEP_TYPE_ICONS[step.fields.step_type] || '•') +
@@ -17065,17 +18110,20 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           p.textContent = step.el.description
           block.appendChild(p)
         }
+        var chipsWrap = document.createElement('div')
+        chipsWrap.className = 'chips'
+        if (step.fields.scope) chipsWrap.appendChild(chip('Scope: ' + step.fields.scope, 'active'))
         if (!isRoot) {
-          var chipsWrap = document.createElement('div')
-          chipsWrap.className = 'chips'
-          if (step.fields.condition) chipsWrap.appendChild(chip('IF ' + step.fields.condition, 'warning'))
+          if (step.fields.condition) chipsWrap.appendChild(chip('IF: ' + step.fields.condition, 'warning'))
           if (step.fields.step_type) chipsWrap.appendChild(chip(step.fields.step_type, 'active'))
           if (step.fields.output_status) chipsWrap.appendChild(chip(step.fields.output_status, 'done'))
           if (step.fields.tool) {
             var toolRef = refButton(step.fields.tool, step.fields.tool)
             chipsWrap.appendChild(chipWithNode(toolRef.node, 'active'))
           }
-          if (chipsWrap.children.length) block.appendChild(chipsWrap)
+        }
+        if (chipsWrap.children.length) block.appendChild(chipsWrap)
+        if (!isRoot) {
           var io = document.createElement('div')
           io.className = 'io'
           if (step.fields.input) io.appendChild(ioPill('Input', step.fields.input, 'in'))
@@ -17420,6 +18468,18 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       statusPill.textContent = state === 'done' ? 'Completed' : state === 'active' ? 'In Progress' : 'Pending'
 
       headerRow.appendChild(typePill)
+      if (cur.fields.condition) {
+        var condPill = document.createElement('span')
+        condPill.className = 'step-cond-pill'
+        condPill.textContent = 'IF: ' + cur.fields.condition
+        headerRow.appendChild(condPill)
+      }
+      if (cur.fields.scope) {
+        var scopePill = document.createElement('span')
+        scopePill.className = 'step-scope-pill'
+        scopePill.textContent = 'Scope: ' + cur.fields.scope
+        headerRow.appendChild(scopePill)
+      }
       headerRow.appendChild(statusPill)
       card.appendChild(headerRow)
 

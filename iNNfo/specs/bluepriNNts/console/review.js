@@ -363,7 +363,7 @@
         if (!isObject(c)) return
         out.push({
           field: field,
-          origin: c.error ? 'error' : c.origin,
+          origin: c.error ? 'error' : (c.origin || 'document'),
           source: c.anchor ? String(c.path || '') + ' \u2192 ' + c.anchor : String(c.path || c.source || ''),
           quote: c.excerpt,
           exists: c.exists,
@@ -774,7 +774,7 @@
     function annotateControl(anchorData, label) {
       var b =
         typeof UI.EditAnchor === 'function'
-          ? UI.EditAnchor({ label: label || 'Annotate' })
+          ? UI.EditAnchor({ label: label || 'Annotate', icon: anchorData.field ? 'pencil' : 'message-square' })
           : makeEl(doc, 'button', 'innfo-review-anchor', label || '+')
       b.setAttribute('data-innfo-review-ctl', '1')
       b.setAttribute('data-innfo-ctl', anchorData.field ? 'field-anchor' : 'card-anchor')
@@ -882,11 +882,29 @@
       ensureCardFocusable(card)
       var elId = card.getAttribute('data-element-id')
       var head = card.querySelector('.innfo-card-head') || card
+      var headRightRef =
+        head.querySelector('.innfo-card-count') || head.querySelector('.innfo-card-toggle') || null
+      if (!head.querySelector('[data-innfo-component="reviewed-toggle"]') && store) {
+        var elForRev = elementsById[elId]
+        var stateForRev = elForRev ? reviewState(elForRev, store.reviewed()) : 'none'
+        var rt = UI.ReviewedToggle({ state: stateForRev })
+        rt.setAttribute('data-innfo-review-ctl', '1')
+        rt.addEventListener('click', function () {
+          var current = store.reviewed()
+          if (Object.prototype.hasOwnProperty.call(current, elId)) {
+            store.unmarkReviewed(elId)
+          } else if (elForRev) {
+            store.markReviewed(elId, elForRev.hash)
+          }
+          applyDecorations()
+        })
+        head.insertBefore(rt, headRightRef)
+      }
       if (!card.querySelector('[data-innfo-ctl="card-anchor"]')) {
-        head.appendChild(annotateControl({ elementId: elId }, 'Annotate element'))
+        head.insertBefore(annotateControl({ elementId: elId }, 'Annotate element'), headRightRef)
       }
       if (!card.querySelector('[data-innfo-ctl="edit-toggle"]')) {
-        head.appendChild(editToggleControl(card))
+        head.insertBefore(editToggleControl(card), headRightRef)
       }
       var nameEl = card.querySelector('.innfo-card-head [data-ku-kind="element"]')
       if (nameEl && !nameEl.querySelector('[data-innfo-ctl="name-anchor"]')) {
@@ -918,22 +936,7 @@
       )
       decorateTagRow(card, elId)
       decorateRelList(card, elId)
-      if (!head.querySelector('[data-innfo-component="reviewed-toggle"]') && store) {
-        var el = elementsById[elId]
-        var state = el ? reviewState(el, store.reviewed()) : 'none'
-        var rt = UI.ReviewedToggle({ state: state })
-        rt.setAttribute('data-innfo-review-ctl', '1')
-        rt.addEventListener('click', function () {
-          var current = store.reviewed()
-          if (Object.prototype.hasOwnProperty.call(current, elId)) {
-            store.unmarkReviewed(elId)
-          } else if (el) {
-            store.markReviewed(elId, el.hash)
-          }
-          applyDecorations()
-        })
-        head.appendChild(rt)
-      }
+
     }
 
     // Tags are not KUs (no sub-ID, no modal): membership is proposed with
@@ -1037,7 +1040,11 @@
           },
         )
         actions.setAttribute('data-innfo-ctl', 'ku-info-actions')
-        if (badge.parentNode) badge.parentNode.insertBefore(actions, badge.nextSibling)
+        if (badge.getAttribute('data-ku-kind') === 'field') {
+          badge.appendChild(actions)
+        } else if (badge.parentNode) {
+          badge.parentNode.insertBefore(actions, badge.nextSibling)
+        }
       }
       Array.prototype.forEach.call(
         host.querySelectorAll('[data-innfo-component="element-card"][data-element-id]'),
