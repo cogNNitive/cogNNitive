@@ -288,7 +288,8 @@
     // markers, field count, actions, chevron) over a collapsible body.
     // Scoped to the element-card so it wins over any shell-level card styles.
     '[data-innfo-component=element-card] .innfo-card-head{display:flex;align-items:center;gap:.5em;flex-wrap:wrap;cursor:pointer;min-width:0}',
-    '[data-innfo-component=element-card] .innfo-card-thumb{width:34px;height:34px;border-radius:7px;object-fit:cover;border:1px solid var(--innfo-border);background:var(--innfo-surface-2);flex:0 0 auto;display:block}',
+    '[data-innfo-component=element-card] .innfo-card-thumb{width:40px;height:40px;border-radius:7px;object-fit:cover;border:1.5px solid var(--innfo-border);background:var(--innfo-surface-2);flex:0 0 auto;display:block}',
+    '.innfo-field-image-wrap{display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap}',
     '[data-innfo-component=element-card] .innfo-card-thumb--empty{display:inline-flex;align-items:center;justify-content:center;color:var(--innfo-muted);border-style:dashed}',
     '[data-innfo-component=element-card] .innfo-card-count{font-size:.75rem;font-weight:600;color:var(--innfo-muted);background:var(--innfo-surface-2);border:1px solid var(--innfo-border);border-radius:999px;padding:1px 8px;white-space:nowrap;flex:0 0 auto}',
     '[data-innfo-component=element-card] .innfo-card-toggle{appearance:none;border:1px solid transparent;background:transparent;color:var(--innfo-muted);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:.15em;border-radius:var(--innfo-radius-sm);flex:0 0 auto}',
@@ -327,6 +328,7 @@
   }
   for (var kslot = 1; kslot <= 12; kslot++) {
     COMPONENT_CSS.push(
+      '[data-innfo-component=element-card][data-concept-slot="' + kslot + '"]{--card-concept-color:var(--innfo-concept-' + kslot + ');--card-concept-bg:var(--innfo-concept-' + kslot + '-bg);border-left:4px solid var(--innfo-concept-' + kslot + ')}',
       '[data-innfo-component=ku-badge][data-concept-slot="' + kslot + '"][data-ku-kind=element]{border-color:var(--innfo-concept-' + kslot + ')}',
       '[data-innfo-component=ku-badge][data-concept-slot="' + kslot + '"][data-ku-kind=element] .innfo-ku-icon{color:var(--innfo-concept-' + kslot + ')}',
       '[data-innfo-component=ku-badge][data-concept-slot="' + kslot + '"][data-ku-kind=reference]{border-color:var(--innfo-concept-' + kslot + ')}',
@@ -824,10 +826,12 @@
     if (type === 'markdown' || type === 'markdown_inline') {
       return makeEl(doc, 'span', 'innfo-field-markdown', value == null ? '' : String(value))
     }
-    if (type === 'image' || type === 'image_url' || type === 'asset' || type === 'video' || type === 'audio' || (typeof value === 'string' && looksLikeImageValue(value) && /^.+?\b(?:sources|kNNowledge|assets|evidence)\//i.test(value))) {
+    if (type === 'image' || type === 'image_url' || type === 'asset' || type === 'video' || type === 'audio' || (typeof value === 'string' && d.name !== 'sources' && looksLikeImageValue(value))) {
       if (typeof value === 'string' && looksLikeImageValue(value)) {
+        var normImgPath = normalizeAssetPath(value)
+        var imgWrap = makeEl(doc, 'span', 'innfo-ku-value innfo-field-image-wrap')
         var img = makeEl(doc, 'img', 'innfo-field-image')
-        img.setAttribute('src', normalizeAssetPath(value))
+        img.setAttribute('src', normImgPath)
         img.setAttribute('alt', String(d.name || ''))
         img.setAttribute('loading', 'lazy')
         img.addEventListener('error', function () {
@@ -838,10 +842,11 @@
             img.setAttribute('src', relMatch[1])
             return
           }
-          var fb = makeEl(doc, 'code', 'innfo-field-code', normalizeAssetPath(String(value)))
-          if (img.parentNode) img.parentNode.replaceChild(fb, img)
+          if (img.parentNode) img.parentNode.removeChild(img)
         })
-        return img
+        imgWrap.appendChild(img)
+        imgWrap.appendChild(makeEl(doc, 'code', 'innfo-file-pill-path', normImgPath))
+        return imgWrap
       }
     }
     if (
@@ -969,10 +974,14 @@
 
     var head = makeEl(doc, 'header', 'innfo-card-head')
 
-    var thumb
+    var conceptOpts = (opts && opts.concept) || {}
+    if (data.conceptId || conceptOpts.index != null || conceptOpts.color) {
+      card.setAttribute('data-concept-slot', String(conceptSlot(conceptOpts)))
+    }
+
     if (imageField) {
-      thumb = makeEl(doc, 'img', 'innfo-card-thumb')
-      thumb.setAttribute('alt', '')
+      var thumb = makeEl(doc, 'img', 'innfo-card-thumb')
+      thumb.setAttribute('alt', String(data.name || data.id || ''))
       thumb.setAttribute('loading', 'lazy')
       thumb.setAttribute('src', normalizeAssetPath(String(imageField.value)))
       thumb.addEventListener('error', function () {
@@ -982,13 +991,8 @@
           if (thumb.parentNode) thumb.parentNode.replaceChild(ph, thumb)
         })
       })
-    } else {
-      thumb = makeEl(doc, 'span', 'innfo-card-thumb innfo-card-thumb--empty')
-      thumb.innerHTML = icon('image', 16)
+      head.appendChild(thumb)
     }
-    head.appendChild(thumb)
-
-    var conceptOpts = (opts && opts.concept) || {}
     head.appendChild(
       KuBadge({
         kind: 'element',

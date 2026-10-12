@@ -653,7 +653,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     // markers, field count, actions, chevron) over a collapsible body.
     // Scoped to the element-card so it wins over any shell-level card styles.
     '[data-innfo-component=element-card] .innfo-card-head{display:flex;align-items:center;gap:.5em;flex-wrap:wrap;cursor:pointer;min-width:0}',
-    '[data-innfo-component=element-card] .innfo-card-thumb{width:34px;height:34px;border-radius:7px;object-fit:cover;border:1px solid var(--innfo-border);background:var(--innfo-surface-2);flex:0 0 auto;display:block}',
+    '[data-innfo-component=element-card] .innfo-card-thumb{width:40px;height:40px;border-radius:7px;object-fit:cover;border:1.5px solid var(--innfo-border);background:var(--innfo-surface-2);flex:0 0 auto;display:block}',
+    '.innfo-field-image-wrap{display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap}',
     '[data-innfo-component=element-card] .innfo-card-thumb--empty{display:inline-flex;align-items:center;justify-content:center;color:var(--innfo-muted);border-style:dashed}',
     '[data-innfo-component=element-card] .innfo-card-count{font-size:.75rem;font-weight:600;color:var(--innfo-muted);background:var(--innfo-surface-2);border:1px solid var(--innfo-border);border-radius:999px;padding:1px 8px;white-space:nowrap;flex:0 0 auto}',
     '[data-innfo-component=element-card] .innfo-card-toggle{appearance:none;border:1px solid transparent;background:transparent;color:var(--innfo-muted);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:.15em;border-radius:var(--innfo-radius-sm);flex:0 0 auto}',
@@ -692,6 +693,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
   }
   for (var kslot = 1; kslot <= 12; kslot++) {
     COMPONENT_CSS.push(
+      '[data-innfo-component=element-card][data-concept-slot="' + kslot + '"]{--card-concept-color:var(--innfo-concept-' + kslot + ');--card-concept-bg:var(--innfo-concept-' + kslot + '-bg);border-left:4px solid var(--innfo-concept-' + kslot + ')}',
       '[data-innfo-component=ku-badge][data-concept-slot="' + kslot + '"][data-ku-kind=element]{border-color:var(--innfo-concept-' + kslot + ')}',
       '[data-innfo-component=ku-badge][data-concept-slot="' + kslot + '"][data-ku-kind=element] .innfo-ku-icon{color:var(--innfo-concept-' + kslot + ')}',
       '[data-innfo-component=ku-badge][data-concept-slot="' + kslot + '"][data-ku-kind=reference]{border-color:var(--innfo-concept-' + kslot + ')}',
@@ -1189,10 +1191,12 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     if (type === 'markdown' || type === 'markdown_inline') {
       return makeEl(doc, 'span', 'innfo-field-markdown', value == null ? '' : String(value))
     }
-    if (type === 'image' || type === 'image_url' || type === 'asset' || type === 'video' || type === 'audio' || (typeof value === 'string' && looksLikeImageValue(value) && /^.+?\b(?:sources|kNNowledge|assets|evidence)\//i.test(value))) {
+    if (type === 'image' || type === 'image_url' || type === 'asset' || type === 'video' || type === 'audio' || (typeof value === 'string' && d.name !== 'sources' && looksLikeImageValue(value))) {
       if (typeof value === 'string' && looksLikeImageValue(value)) {
+        var normImgPath = normalizeAssetPath(value)
+        var imgWrap = makeEl(doc, 'span', 'innfo-ku-value innfo-field-image-wrap')
         var img = makeEl(doc, 'img', 'innfo-field-image')
-        img.setAttribute('src', normalizeAssetPath(value))
+        img.setAttribute('src', normImgPath)
         img.setAttribute('alt', String(d.name || ''))
         img.setAttribute('loading', 'lazy')
         img.addEventListener('error', function () {
@@ -1203,10 +1207,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
             img.setAttribute('src', relMatch[1])
             return
           }
-          var fb = makeEl(doc, 'code', 'innfo-field-code', normalizeAssetPath(String(value)))
-          if (img.parentNode) img.parentNode.replaceChild(fb, img)
+          if (img.parentNode) img.parentNode.removeChild(img)
         })
-        return img
+        imgWrap.appendChild(img)
+        imgWrap.appendChild(makeEl(doc, 'code', 'innfo-file-pill-path', normImgPath))
+        return imgWrap
       }
     }
     if (
@@ -1334,10 +1339,14 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     var head = makeEl(doc, 'header', 'innfo-card-head')
 
-    var thumb
+    var conceptOpts = (opts && opts.concept) || {}
+    if (data.conceptId || conceptOpts.index != null || conceptOpts.color) {
+      card.setAttribute('data-concept-slot', String(conceptSlot(conceptOpts)))
+    }
+
     if (imageField) {
-      thumb = makeEl(doc, 'img', 'innfo-card-thumb')
-      thumb.setAttribute('alt', '')
+      var thumb = makeEl(doc, 'img', 'innfo-card-thumb')
+      thumb.setAttribute('alt', String(data.name || data.id || ''))
       thumb.setAttribute('loading', 'lazy')
       thumb.setAttribute('src', normalizeAssetPath(String(imageField.value)))
       thumb.addEventListener('error', function () {
@@ -1347,13 +1356,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           if (thumb.parentNode) thumb.parentNode.replaceChild(ph, thumb)
         })
       })
-    } else {
-      thumb = makeEl(doc, 'span', 'innfo-card-thumb innfo-card-thumb--empty')
-      thumb.innerHTML = icon('image', 16)
+      head.appendChild(thumb)
     }
-    head.appendChild(thumb)
-
-    var conceptOpts = (opts && opts.concept) || {}
     head.appendChild(
       KuBadge({
         kind: 'element',
@@ -5069,11 +5073,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
             if (activeConcepts.indexOf(String(name).toLowerCase()) !== -1) {
               a.className = 'active'
             }
-            var CONCEPT_PALETTE = ['#2563eb', '#dc2626', '#16a34a', '#f59e0b', '#7c3aed', '#0891b2']
-            var rawColor = String(conceptColor(name) || '').trim()
-            var SAFE_CSS_COLOR = /^(#[0-9a-fA-F]{3,8}|(rgb|hsl)a?\([0-9a-zA-Z.,%\s\/]*\)|[a-zA-Z]+)$/
-            var color = SAFE_CSS_COLOR.test(rawColor) ? rawColor : CONCEPT_PALETTE[globalIndex % CONCEPT_PALETTE.length]
-            globalIndex += 1
+            var cMeta = conceptMetaOf(globalConcepts, name)
+            var color = cMeta.hexColor
+            a.setAttribute('data-concept-slot', String(cMeta.slot))
             var dot = color
               ? '<span class="innfo-concept-dot" style="background:' + escapeHtml(color) + ';flex:none;"></span>'
               : ''
@@ -5196,10 +5198,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     var name = concept.name || 'Concept'
     var head = el('div', 'innfo-guide-head')
-    var badge = el('span', 'badge badge-outline badge-sm', name)
-    if (concept.color) {
-      badge.style.borderColor = concept.color
-      badge.style.color = concept.color
+    var badge = el('span', 'innfo-card-concept-badge badge badge-outline badge-sm', name)
+    var gMeta = conceptMetaOf(schema && schema.concepts, name)
+    if (gMeta && gMeta.hexColor) {
+      badge.style.borderColor = gMeta.hexColor
+      badge.style.color = gMeta.hexColor
     }
     head.appendChild(badge)
     host.appendChild(head)
@@ -5255,15 +5258,53 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
   }
 
+  var SLOT_HEX_PALETTE = [
+    '#3b82f6', // 1: blue
+    '#8b5cf6', // 2: violet
+    '#14b8a6', // 3: teal
+    '#f59e0b', // 4: amber
+    '#ec4899', // 5: pink
+    '#22c55e', // 6: green
+    '#f97316', // 7: orange
+    '#6366f1', // 8: indigo
+    '#ef4444', // 9: red
+    '#eab308', // 10: yellow
+    '#a855f7', // 11: purple
+    '#6b7280', // 12: grey
+  ]
+
   function conceptMetaOf(concepts, name) {
     var list = Array.isArray(concepts) ? concepts : []
+    var idx = -1
+    var found = null
+    var target = String(name || '').toLowerCase()
     for (var i = 0; i < list.length; i++) {
       var c = list[i]
-      if ((typeof c === 'string' ? c : c.name) === name) {
-        return { index: i, color: c && c.color, icon: c && c.icon }
+      var cName = typeof c === 'string' ? c : c && c.name
+      if (cName === name || (target && String(cName || '').toLowerCase() === target)) {
+        idx = i
+        found = typeof c === 'object' ? c : null
+        break
       }
     }
-    return { index: 0 }
+    if (idx === -1) {
+      var h = 0
+      for (var j = 0; j < target.length; j++) h = (h * 31 + target.charCodeAt(j)) >>> 0
+      idx = target ? h % 12 : 0
+    }
+    var rawColor = found && found.color ? String(found.color).trim() : undefined
+    var slot = UI && typeof UI.conceptSlot === 'function' ? UI.conceptSlot({ index: idx, color: rawColor }) : (idx % 12) + 1
+    var visuals = typeof self !== 'undefined' && self.InnfoVisuals ? self.InnfoVisuals : null
+    var hexColor = rawColor
+      ? (visuals && typeof visuals.getHexColor === 'function' ? visuals.getHexColor(rawColor) : rawColor)
+      : SLOT_HEX_PALETTE[(slot - 1) % SLOT_HEX_PALETTE.length]
+    return {
+      index: idx,
+      slot: slot,
+      color: rawColor || hexColor,
+      hexColor: hexColor,
+      icon: found && found.icon,
+    }
   }
 
   // Projects live drafts over the element list: a correction draft patches its
@@ -5437,20 +5478,24 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         },
       )
 
-      // Discrete concept color left border & badge affordance
-      var cDef = (Array.isArray(concepts) ? concepts : []).find(function (c) {
-        return c && (typeof c === 'string' ? c : c.name) === element.concept
-      })
-      var cColor = (cDef && cDef.color) || '#4d0e4e'
-      var hexColor = visuals && typeof visuals.getHexColor === 'function' ? visuals.getHexColor(cColor) : cColor
-      card.style.borderLeft = '3px solid ' + hexColor
+      // Discrete concept color left border, perimeter tint & badge affordance
+      var cMeta = conceptMetaOf(concepts, element.concept)
+      var hexColor = cMeta.hexColor
+      card.style.setProperty('--card-concept-color', hexColor)
+      card.style.borderColor = 'color-mix(in srgb, ' + hexColor + ' 35%, var(--innfo-border, #e5e0ec))'
+      card.style.borderLeft = '4px solid ' + hexColor
 
       var head = card.querySelector('.innfo-card-head, header')
       if (head && element.concept) {
         var cBadge = el('span', 'innfo-card-concept-badge badge badge-outline badge-xs text-xs font-semibold')
+        cBadge.setAttribute('data-concept-slot', String(cMeta.slot))
         cBadge.style.borderColor = hexColor
         cBadge.style.color = hexColor
-        cBadge.textContent = element.concept
+        cBadge.style.backgroundColor = 'color-mix(in srgb, ' + hexColor + ' 10%, #ffffff)'
+        var cDot = el('span', 'innfo-concept-dot')
+        cDot.style.backgroundColor = hexColor
+        cBadge.appendChild(cDot)
+        cBadge.appendChild(doc.createTextNode(element.concept))
         var elementBadge = head.querySelector('[data-ku-kind="element"]')
         if (elementBadge) head.insertBefore(cBadge, elementBadge)
         else head.appendChild(cBadge)
@@ -5498,6 +5543,17 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
             renderMediaDialog(doc, mediaItems, 0)
           }
         })
+      }
+      if (mediaItems.length) {
+        var fieldImgs = card.querySelectorAll('.innfo-field-image')
+        for (var fii = 0; fii < fieldImgs.length; fii++) {
+          ;(function (fImg) {
+            fImg.addEventListener('click', function (ev) {
+              if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation()
+              renderMediaDialog(doc, mediaItems, 0)
+            })
+          })(fieldImgs[fii])
+        }
       }
 
       content.appendChild(card)
@@ -5596,11 +5652,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var visuals = typeof self !== 'undefined' && self.InnfoVisuals ? self.InnfoVisuals : null
     var conceptList = Array.isArray(concepts) ? concepts : []
     function conceptColor(name) {
-      var cDef = conceptList.filter(function (c) {
-        return c && (typeof c === 'string' ? c : c.name) === name
-      })[0]
-      var c = (cDef && cDef.color) || '#3b82f6'
-      return visuals && typeof visuals.getHexColor === 'function' ? visuals.getHexColor(c) : c
+      return conceptMetaOf(conceptList, name).hexColor
     }
 
     var fieldCols = elementFieldColumns(projected)
@@ -7873,6 +7925,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       c.setAttribute('cy', pos[name].y)
       c.setAttribute('r', String(nodeR))
       c.setAttribute('class', 'innfo-metamodel-node')
+      var nodeMeta = conceptMetaOf(schema && schema.concepts, name)
+      if (nodeMeta && nodeMeta.hexColor) {
+        c.style.stroke = nodeMeta.hexColor
+        c.style.strokeWidth = '2.5px'
+      }
       c.style.cursor = 'pointer'
       var title = doc.createElementNS(NS, 'title')
       title.textContent = String(name)
@@ -8707,18 +8764,19 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     var meta = isObject(model.meta) ? model.meta : {}
     var elements = Array.isArray(model.elements) ? model.elements : []
     var matrices = Array.isArray(model.matrices) ? model.matrices : []
-    var concepts = Array.isArray(schema.concepts) && schema.concepts.length > 0
-      ? schema.concepts
-      : elements
-          .map(function (e) {
-            return e && e.concept
-          })
-          .filter(function (c, i, arr) {
-            return typeof c === 'string' && arr.indexOf(c) === i
-          })
-          .map(function (c) {
-            return { name: c }
-          })
+    var concepts = (Array.isArray(schema.concepts) ? schema.concepts.slice() : []).map(function (c) {
+      return typeof c === 'string' ? { name: c } : c
+    })
+    var seenBootConceptNames = {}
+    concepts.forEach(function (c) {
+      if (c && c.name) seenBootConceptNames[c.name] = true
+    })
+    elements.forEach(function (e) {
+      if (e && typeof e.concept === 'string' && e.concept && !seenBootConceptNames[e.concept]) {
+        seenBootConceptNames[e.concept] = true
+        concepts.push({ name: e.concept })
+      }
+    })
 
     var scopedView = consoleScopeOf(meta)
     var scopedDef = scopedView
