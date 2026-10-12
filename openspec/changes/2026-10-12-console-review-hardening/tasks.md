@@ -34,9 +34,9 @@ write the tests with each slice, run everything once in slice 5.
 
 ## 5. Final verification (once)
 
-- [ ] 5.1 Rebuild innfo-core dist; run innfo-core, innfo-mcp and console suites; `node scripts/verify.js`.
-- [ ] 5.2 Open one regenerated shell in a browser: no CSP violations, views and iframes load.
-- [ ] 5.3 Fix any red, amend into the owning slice's follow-up commit.
+- [x] 5.1 Rebuild innfo-core dist; run innfo-core, innfo-mcp and console suites; `node scripts/verify.js`.
+- [x] 5.2 Open one regenerated shell in a browser: no CSP violations, views and iframes load.
+- [x] 5.3 Fix any red, amend into the owning slice's follow-up commit.
 
 ## Review Workload Forecast
 

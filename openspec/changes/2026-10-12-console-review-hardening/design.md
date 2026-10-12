@@ -17,6 +17,39 @@ Decisions only. File:line refs were re-checked on `dev` @ 9103e5b5.
 | D9 | `base_hash` | Parser/serializer accept optional `base_hash`; drafts already carry it (`review.js:44`), export forwards it; `apply_change` compares against the element hash (same hash as `feedback-ledger.ts`) and reports a mismatch through the existing partial-apply/precondition path | Reuses existing machinery; absent = unchanged behavior |
 | D10 | Persist | `copyFile(live, archive)` -> `rename(tmp, live)` (replace `safeMoveFile(live, archive)` at apply-change.ts ~1083) | Live path always holds a complete file |
 
+## Decisions resolved during apply
+
+- **CSP vs inline view iframes (D4).** `mountHtml` builds `srcdoc` iframes that carry their
+  own stricter CSP (`default-src 'none'; img-src data: blob:; style-src 'unsafe-inline'`).
+  A `srcdoc` document inherits the parent policy and the two are intersected; the parent
+  allows everything the frame asks for (`style-src 'unsafe-inline'`, `img-src data: blob:`,
+  `frame-src ... about:`), so nothing is lost. Verified in real Chrome (headless, via the
+  repo's `playwright-core`) against a regenerated `domaiNN_console.html` with a domain view
+  that calls `ctx.mountHtml`: zero `securitypolicyviolation` events, no console errors, cards
+  render and the frame content loads. Inline script hashes are appended by
+  `allowInlineScripts` in `scripts/console-views.mjs` (called from `inlineConsoleAssets`),
+  hashing the text after CRLF -> LF normalization; HTML comments are skipped when scanning.
+- **Stable domain id (D6).** The domaiNN document id (`workspace_id`) is not exposed by
+  any payload slot and `export-console` never loads that document, so the fallback is used:
+  `meta.domainId = <root folder name>-<8 hex of sha256(resolved root path, lowercased)>`.
+  The runtime keys the draft store by `meta.domainId` when present (else `meta.modelId`).
+  `meta.modelVersion` stays a valid `V_x-y-z` (export file names and feedback meta validate
+  it): `V_1-0-<decimal of the first 7 hex of a sha256 over sorted (relPath, content-hash)>`.
+- **Model address and element ids (D1, D7).** The engine address uses the payload's
+  `modelId` (domain-relative path minus extension, e.g. `kNNowledge/strategy`, which
+  `findKnowledgeFile` resolves) rather than the bare basename, so models in sub-folders
+  resolve too. Drafts persist `model_id` and `element_slug` (`slug` is a new optional field
+  on payload elements). Domain element ids are qualified as `<modelId>/<console-id>`, using
+  the console id (concept + name, de-duplicated) instead of the slug because slugs are only
+  unique per model *name*, not per concept, and collide; relation targets are remapped.
+- **`base_hash` (D9).** It is a sealed proposal property (part of `proposal_sha`), checked in
+  `partitionChangeset` against `hashParsedElement` (the same algorithm as the payload
+  `hash`, now in `console/element-hash.ts` so `changeset/` can use it without an import
+  cycle). Only existing elements are checked; elements created by an earlier `add_element`
+  in the batch are not. The console emits it for `update_field` and `remove_element`.
+- **Clear exported drafts (D8).** Exported draft ids are remembered in `state.exportedDraftIds`
+  and the Review tab offers "Clear exported drafts (n)"; nothing is removed automatically.
+
 ## Build / conventions notes
 
 - After runtime/review/shell edits, rebuild `innfo-console.bundle.js` with
