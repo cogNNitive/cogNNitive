@@ -632,9 +632,21 @@ async function main() {
         const mTitle = (payload.model.meta && (payload.model.meta.title || payload.model.meta.model)) || modelStem
         const mId = (payload.model.meta && payload.model.meta.modelId) || modelStem
         const modelConcepts = new Set()
+        // Element ids are only unique inside one model; the domain console keys drafts,
+        // review marks and relations by id, so qualify them with the model's file stem.
+        const qualifiedIds = new Map()
         if (Array.isArray(payload.model.elements)) {
           for (const el of payload.model.elements) {
+            if (el) qualifiedIds.set(el.id, `${mId}/${el.id}`)
+          }
+          for (const el of payload.model.elements) {
             if (el) {
+              el.id = qualifiedIds.get(el.id)
+              if (Array.isArray(el.relations)) {
+                for (const rel of el.relations) {
+                  if (rel && qualifiedIds.has(rel.target)) rel.target = qualifiedIds.get(rel.target)
+                }
+              }
               el.modelId = mId
               el.modelTitle = mTitle
               el.modelFile = fileName
@@ -699,6 +711,20 @@ async function main() {
       }
     }
 
+    // The domain version follows the content of every model, so the console's stale-draft
+    // banner fires when any model changed. It must stay a valid V_x-y-z (export file names
+    // and feedback meta validate that), hence a decimal derived from the content hash.
+    // The draft store key (`domainId`) is deliberately NOT content-derived, or drafts would
+    // vanish on every edit: no payload slot exposes the domaiNN document id, so it is the
+    // root folder name plus a short hash of the resolved root path.
+    const contentHash = createHash('sha256')
+    for (const m of candidateModels) {
+      const relPath = relative(root, m.filePath).replace(/\\/g, '/')
+      contentHash.update(`${relPath}\0${createHash('sha256').update(m.content, 'utf8').digest('hex')}\n`)
+    }
+    const domainVersion = `V_1-0-${parseInt(contentHash.digest('hex').slice(0, 7), 16)}`
+    const domainId = `${basename(root)}-${createHash('sha256').update(resolve(root).toLowerCase(), 'utf8').digest('hex').slice(0, 8)}`
+
     const domainPayload = {
       schema: { concepts: allConcepts, fields: allFields, procedures: allProcedures },
       model: {
@@ -706,7 +732,8 @@ async function main() {
           title: basename(root) + ' Domain',
           model: basename(root),
           modelId: basename(root),
-          modelVersion: 'V_1-0-0',
+          domainId,
+          modelVersion: domainVersion,
           generated: undefined,
           models: modelSummaries,
         },

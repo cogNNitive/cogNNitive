@@ -7387,6 +7387,7 @@ __export(index_exports, {
   feedbackStateFor: () => feedbackStateFor,
   findEnclosingAgentModification: () => findEnclosingAgentModification,
   groupCitationsByField: () => groupCitationsByField,
+  hashParsedElement: () => hashParsedElement,
   isConsoleModel: () => isConsoleModel,
   isExcludedPath: () => isExcludedPath,
   isNNName: () => isNNName,
@@ -10256,6 +10257,9 @@ function parseChangeset(rawContent) {
       case "to":
         currentChange.to = stripQuotes(rawVal);
         break;
+      case "base_hash":
+        currentChange.base_hash = stripQuotes(rawVal);
+        break;
       case "concept":
         currentChange.concept = rawVal;
         break;
@@ -10306,6 +10310,49 @@ function parseChangeset(rawContent) {
 
 // iNNfo/packages/innfo-core/src/changeset/serializer.ts
 var import_yaml9 = __toESM(require_dist(), 1);
+
+// iNNfo/packages/innfo-core/src/console/element-hash.ts
+function canonicalJsonStringify(value) {
+  if (value === null || typeof value !== "object") {
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) {
+    return "[" + value.map(canonicalJsonStringify).join(",") + "]";
+  }
+  const obj = value;
+  const sortedKeys = Object.keys(obj).sort();
+  const pairs = [];
+  for (const k of sortedKeys) {
+    if (obj[k] !== void 0) {
+      pairs.push(JSON.stringify(k) + ":" + canonicalJsonStringify(obj[k]));
+    }
+  }
+  return "{" + pairs.join(",") + "}";
+}
+function computeElementHash(element) {
+  const canonical = canonicalJsonStringify({
+    concept: element.concept,
+    description: element.description ?? "",
+    fields: element.fields ?? {},
+    markers: element.markers ?? {},
+    name: element.name
+  });
+  return computeSha256(canonical).slice(0, 16);
+}
+function hashParsedElement(concept, node) {
+  const fields = { ...node.fields || {} };
+  delete fields.concept;
+  delete fields.name;
+  const description = node.description || fields.description || "";
+  if (fields.description) delete fields.description;
+  return computeElementHash({
+    concept,
+    name: node.name || "Element",
+    description,
+    fields,
+    markers: { ...node.markers || {} }
+  });
+}
 
 // iNNfo/packages/innfo-core/src/console/citations.ts
 var EXCERPT_CHAR_CAP = 500;
@@ -10911,33 +10958,6 @@ function buildConsoleSchemaSlot(schema, elements, procedures) {
 }
 
 // iNNfo/packages/innfo-core/src/console/payload-builder.ts
-function canonicalJsonStringify(value) {
-  if (value === null || typeof value !== "object") {
-    return JSON.stringify(value);
-  }
-  if (Array.isArray(value)) {
-    return "[" + value.map(canonicalJsonStringify).join(",") + "]";
-  }
-  const obj = value;
-  const sortedKeys = Object.keys(obj).sort();
-  const pairs = [];
-  for (const k of sortedKeys) {
-    if (obj[k] !== void 0) {
-      pairs.push(JSON.stringify(k) + ":" + canonicalJsonStringify(obj[k]));
-    }
-  }
-  return "{" + pairs.join(",") + "}";
-}
-function computeElementHash(element) {
-  const canonical = canonicalJsonStringify({
-    concept: element.concept,
-    description: element.description ?? "",
-    fields: element.fields ?? {},
-    markers: element.markers ?? {},
-    name: element.name
-  });
-  return computeSha256(canonical).slice(0, 16);
-}
 var WIKILINK_TARGET_RE = /\[\[([^\]|#]+)(?:#[^\]|]+)?(?:\|([^\]]+))?\]\]/g;
 function extractWikilinksFromValue(val) {
   if (typeof val === "string") {
@@ -11237,6 +11257,7 @@ async function resolveConsoleSchema(opts) {
   feedbackStateFor,
   findEnclosingAgentModification,
   groupCitationsByField,
+  hashParsedElement,
   isConsoleModel,
   isExcludedPath,
   isNNName,

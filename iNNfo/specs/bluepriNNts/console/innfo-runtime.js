@@ -799,6 +799,35 @@
       .replace(/'/g, '&#39;')
   }
 
+  // Transient message for failures the reviewer must see (e.g. drafts not saved).
+  // Replaces any previous toast instead of stacking them.
+  function showToast(doc, message) {
+    if (!doc || !doc.body || typeof doc.createElement !== 'function') return null
+    var old = doc.querySelector('[data-innfo="toast"]')
+    if (old && old.parentNode) old.parentNode.removeChild(old)
+    var toast = doc.createElement('div')
+    toast.setAttribute('data-innfo', 'toast')
+    toast.setAttribute('role', 'alert')
+    toast.className = 'innfo-toast'
+    toast.style.cssText =
+      'position:fixed;right:16px;bottom:16px;z-index:10000;max-width:360px;padding:10px 14px;' +
+      'border-radius:6px;background:#7f1d1d;color:#fff;font-size:13px;box-shadow:0 4px 12px rgba(0,0,0,.25);'
+    toast.textContent = String(message)
+    doc.body.appendChild(toast)
+    setTimeout(function () {
+      if (toast.parentNode) toast.parentNode.removeChild(toast)
+    }, 8000)
+    return toast
+  }
+
+  function notifyStoreError(doc, err) {
+    showToast(
+      doc,
+      'Your draft could not be saved (browser storage is full or blocked). It stays in this tab only: export your changes now.' +
+        (err && err.name ? ' [' + err.name + ']' : ''),
+    )
+  }
+
   function el(tag, cls, text) {
     var node = typeof document !== 'undefined' ? document.createElement(tag) : null
     if (!node) return null
@@ -3547,6 +3576,14 @@
     if (n > 0) btn.appendChild(el('span', 'innfo-rail-badge badge badge-sm badge-neutral', String(n)))
   }
 
+  function elementsByIdOf(state) {
+    var byId = {}
+    ;(state && state.elements ? state.elements : []).forEach(function (e) {
+      if (e && e.id) byId[e.id] = e
+    })
+    return byId
+  }
+
   // C11: the review tab renders through the kit DraftList from the v2 store.
   function renderReviewTab(doc, state, config, onRefresh) {
     var host = doc && typeof doc.getElementById === 'function' ? doc.getElementById('innfo-tab-review') : null
@@ -3567,7 +3604,41 @@
         drafts.length + (drafts.length === 1 ? ' pending change' : ' pending changes'),
       )
       if (count) titleWrap.appendChild(count)
+      var staleCount = drafts.filter(function (d) {
+        return Review.isTargetChanged(d, elementsByIdOf(state))
+      }).length
+      if (staleCount > 0) {
+        var staleNote = el(
+          'p',
+          'innfo-review-stale text-sm mt-1',
+          staleCount + (staleCount === 1 ? ' draft targets' : ' drafts target') +
+            ' an element that changed since it was written: review before exporting.',
+        )
+        if (staleNote) {
+          staleNote.setAttribute('data-innfo', 'stale-drafts')
+          staleNote.style.color = '#b45309'
+          titleWrap.appendChild(staleNote)
+        }
+      }
       head.appendChild(titleWrap)
+
+      var exportedIds = state && Array.isArray(state.exportedDraftIds) ? state.exportedDraftIds : []
+      var exportedPending = drafts.filter(function (d) {
+        return exportedIds.indexOf(d.id) !== -1
+      })
+      if (exportedPending.length > 0 && state.store && typeof state.store.clearDrafts === 'function') {
+        var clearBtn = el('button', 'innfo-btn innfo-clear-exported btn btn-ghost btn-sm', 'Clear exported drafts (' + exportedPending.length + ')')
+        if (clearBtn) {
+          clearBtn.setAttribute('type', 'button')
+          clearBtn.setAttribute('data-innfo', 'clear-exported')
+          clearBtn.addEventListener('click', function () {
+            state.store.clearDrafts(exportedPending.map(function (d) { return d.id }))
+            state.exportedDraftIds = []
+            if (typeof onRefresh === 'function') onRefresh()
+          })
+          head.appendChild(clearBtn)
+        }
+      }
 
       if (drafts.length > 0) {
         var exportBtn = el('button', 'innfo-btn innfo-tab-export-btn btn btn-primary btn-sm flex items-center gap-2 shadow-sm', 'Export changes')
@@ -3596,13 +3667,10 @@
         }
         listSection.appendChild(empty)
       } else {
-        var byId = {}
-        ;(state && state.elements ? state.elements : []).forEach(function (e) {
-          if (e && e.id) byId[e.id] = e
-        })
         listSection.appendChild(
-          UI.DraftList({ drafts: drafts, byId: byId }, {
+          UI.DraftList({ drafts: drafts, byId: elementsByIdOf(state) }, {
             doc: doc,
+            isTargetChanged: Review.isTargetChanged,
             onDelete: function (id) {
               if (state && state.store) state.store.removeDraft(id)
               if (typeof onRefresh === 'function') onRefresh()
@@ -4331,6 +4399,10 @@
     lines.push('## NN Change: ' + id)
     lines.push('op:: ' + op)
     lines.push('target:: ' + target)
+    // The engine rejects the change if the element's content hash moved on since the draft.
+    if ((op === 'update_field' || op === 'remove_element') && d.base_hash) {
+      lines.push('base_hash:: ' + d.base_hash)
+    }
     if (op === 'update_field') {
       if (d.original !== undefined) lines.push('from:: ' + formatChangesetValue(d.original))
       lines.push('to:: ' + formatChangesetValue(d.proposed))
@@ -4499,7 +4571,18 @@
     setTimeout(function () {
       URL.revokeObjectURL(url)
     }, 1000)
+    markDraftsExported(state)
     return { ok: true, filename: composed.changesetFilename, items: composed.items }
+  }
+
+  // Remembers which drafts just left in an export so the Review tab can offer to
+  // clear them; drafts are never removed automatically (the file may be lost).
+  function markDraftsExported(state) {
+    if (!state || !state.store) return
+    state.exportedDraftIds = state.store.drafts().map(function (d) {
+      return d.id
+    })
+    if (typeof state.refreshUi === 'function') state.refreshUi()
   }
 
   function copyChangesetPrompt(doc, state) {
@@ -4529,6 +4612,7 @@
         navigator.clipboard.writeText(promptText).then(
           function () {
             announce('Copied changeset prompt to clipboard.')
+            markDraftsExported(state)
           },
           function () {
             announce(fallbackCopy(doc, textarea, promptText))
@@ -4553,11 +4637,9 @@
     var preview = modal.querySelector('[data-innfo="preview"]')
     if (preview) {
       preview.innerHTML = ''
-      var byId = {}
-      ;(state && state.elements ? state.elements : []).forEach(function (e) {
-        if (e && e.id) byId[e.id] = e
-      })
-      preview.appendChild(UI.DraftList({ drafts: drafts, byId: byId }, { doc: doc }))
+      preview.appendChild(
+        UI.DraftList({ drafts: drafts, byId: elementsByIdOf(state) }, { doc: doc, isTargetChanged: Review.isTargetChanged }),
+      )
     }
 
     var composed = composeExport(state, identifier)
@@ -4753,9 +4835,29 @@
       elements: elements,
       store: Review.createDraftStore(
         typeof localStorage !== 'undefined' ? localStorage : null,
-        baseId + (scopedView ? '::view:' + scopedView : ''),
+        // A domain console keys its drafts by the stable domain id, never by content.
+        String(meta.domainId || baseId) + (scopedView ? '::view:' + scopedView : ''),
         liveModelVersion,
+        {
+          onError: function (err) {
+            notifyStoreError(active, err)
+          },
+          // Another tab changed the drafts: repaint from the merged store.
+          onRemoteChange: function () {
+            state.refreshUi()
+          },
+        },
       ),
+    }
+    state.refreshUi = function () {
+      refresh(activeSearchQuery)
+      refreshDraftCounts()
+    }
+    cleanups.push(function () {
+      if (state.store && typeof state.store.destroy === 'function') state.store.destroy()
+    })
+    if (state.store && state.store.persistent === false) {
+      showToast(active, 'Browser storage is unavailable: drafts are kept in memory and will be lost on reload. Export your changes before leaving.')
     }
 
     var counts = {}

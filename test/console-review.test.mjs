@@ -216,6 +216,67 @@ describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
       assert.match(items[0].textContent, /Updated seat minimum to 50/)
     })
 
+    function reviewTabFor(elementHash) {
+      const InnfoReview = require(
+        join(here, '..', 'iNNfo', 'specs', 'bluepriNNts', 'console', 'review.js'),
+      )
+      window.localStorage.clear()
+      const store = InnfoReview.createDraftStore(window.localStorage, 'stale-model')
+      const state = {
+        modelTitle: 'Stale',
+        modelVersion: 'V_1-0-0',
+        elements: [{ id: 'e1', concept: 'C', name: 'Alpha', hash: elementHash }],
+        store,
+      }
+      store.addDraft({
+        element_id: 'e1',
+        concept: 'C',
+        element: 'Alpha',
+        kind: 'comment',
+        comment: 'needs a look',
+        base_hash: '1111111111111111',
+      })
+      store.addDraft({ element_id: 'n1', concept: 'C', element: 'Fresh', kind: 'new', base_hash: '1111111111111111' })
+      InnfoConsole.renderReviewTab(document, state, { needs: [] })
+      return { tab: document.getElementById('innfo-tab-review'), state, store }
+    }
+
+    it('flags a draft whose target element hash changed since it was written', () => {
+      const { tab } = reviewTabFor('2222222222222222')
+      const rows = [...tab.querySelectorAll('.innfo-draft-row')]
+      assert.equal(rows.length, 2)
+      assert.equal(rows[0].getAttribute('data-target-changed'), 'true')
+      assert.ok(tab.querySelector('[data-innfo="stale-drafts"]'), 'review head names the stale drafts')
+      // A proposed new element has no target yet, so it is never stale.
+      assert.equal(rows[1].getAttribute('data-target-changed'), null)
+    })
+
+    it('does not flag drafts whose target hash still matches', () => {
+      const { tab } = reviewTabFor('1111111111111111')
+      assert.equal(tab.querySelector('[data-target-changed="true"]'), null)
+      assert.equal(tab.querySelector('[data-innfo="stale-drafts"]'), null)
+    })
+
+    it('offers to clear exported drafts and removes only those', () => {
+      const { tab, state, store } = reviewTabFor('1111111111111111')
+      assert.equal(tab.querySelector('[data-innfo="clear-exported"]'), null, 'nothing exported yet')
+
+      const exported = store.drafts()[0].id
+      state.exportedDraftIds = [exported]
+      let refreshed = 0
+      InnfoConsole.renderReviewTab(document, state, { needs: [] }, () => {
+        refreshed++
+      })
+      const btn = document.getElementById('innfo-tab-review').querySelector('[data-innfo="clear-exported"]')
+      assert.ok(btn)
+      btn.click()
+      assert.equal(refreshed, 1)
+      assert.deepEqual(
+        store.drafts().map((d) => d.element_id),
+        ['n1'],
+      )
+    })
+
     it('deep-links from Review Tab to focus and highlight corresponding Element Card', () => {
       // Cards are now composed by InnfoUI (mountElementCards is private); this
       // suite only exercises focusElementCard's DOM contract: find by id,

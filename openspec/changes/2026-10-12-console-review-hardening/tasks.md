@@ -20,12 +20,12 @@ write the tests with each slice, run everything once in slice 5.
 
 ## Slice 3 — Identity, drafts, staleness (items 4, 5, 6)
 
-- [ ] 3.1 `export-console.mjs`: content-derived `modelVersion` and store key (D6); model-qualified ids (D7) incl. `review.js` `elementsById`.
-- [ ] 3.2 `review.js` `createDraftStore`: read-merge-write + `storage` listener, `onError`, clear-after-export (D8); runtime toast + clear prompt.
-- [ ] 3.3 Wire `isTargetChanged` into the review UI (stale draft flag).
-- [ ] 3.4 `base_hash` in changeset parser/serializer, export, and `apply_change` precondition (D9).
-- [ ] 3.5 Tests: two-tab merge, write failure surfaced, stale banner fires, `base_hash` mismatch rejected.
-- [ ] 3.6 Rebuild bundle + shells; commit `feat(console): domain identity, multi-tab drafts, base_hash precondition`.
+- [x] 3.1 `export-console.mjs`: content-derived `modelVersion` and store key (D6); model-qualified ids (D7) incl. `review.js` `elementsById`.
+- [x] 3.2 `review.js` `createDraftStore`: read-merge-write + `storage` listener, `onError`, clear-after-export (D8); runtime toast + clear prompt.
+- [x] 3.3 Wire `isTargetChanged` into the review UI (stale draft flag).
+- [x] 3.4 `base_hash` in changeset parser/serializer, export, and `apply_change` precondition (D9).
+- [x] 3.5 Tests: two-tab merge, write failure surfaced, stale banner fires, `base_hash` mismatch rejected.
+- [x] 3.6 Rebuild bundle + shells; commit `feat(console): domain identity, multi-tab drafts, base_hash precondition`.
 
 ## Slice 4 — Crash-safe persist (item 7)
 

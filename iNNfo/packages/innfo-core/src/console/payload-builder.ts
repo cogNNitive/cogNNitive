@@ -17,6 +17,7 @@ import {
   citationFieldsFor,
 } from './citations.js'
 import type { ResolvedCitation } from './citations.js'
+import { canonicalJsonStringify, computeElementHash } from './element-hash.js'
 import { feedbackStateFor } from './feedback-ledger.js'
 import type { FeedbackVerdictEntry, FeedbackStateItem } from './feedback-ledger.js'
 import { buildConsoleSchemaSlot } from './slot.js'
@@ -26,46 +27,7 @@ import type { ChangesetRecord, ElementHistoryItem } from './element-history.js'
 
 export { computeSha256 }
 
-/**
- * Computes canonical JSON string with sorted keys recursively.
- */
-export function canonicalJsonStringify(value: unknown): string {
-  if (value === null || typeof value !== 'object') {
-    return JSON.stringify(value)
-  }
-  if (Array.isArray(value)) {
-    return '[' + value.map(canonicalJsonStringify).join(',') + ']'
-  }
-  const obj = value as Record<string, unknown>
-  const sortedKeys = Object.keys(obj).sort()
-  const pairs: string[] = []
-  for (const k of sortedKeys) {
-    if (obj[k] !== undefined) {
-      pairs.push(JSON.stringify(k) + ':' + canonicalJsonStringify(obj[k]))
-    }
-  }
-  return '{' + pairs.join(',') + '}'
-}
-
-/**
- * Computes 16-hex-character element content hash.
- */
-export function computeElementHash(element: {
-  concept: string
-  name: string
-  description?: string
-  fields?: Record<string, unknown>
-  markers?: Record<string, unknown>
-}): string {
-  const canonical = canonicalJsonStringify({
-    concept: element.concept,
-    description: element.description ?? '',
-    fields: element.fields ?? {},
-    markers: element.markers ?? {},
-    name: element.name,
-  })
-  return computeSha256(canonical).slice(0, 16)
-}
+export { canonicalJsonStringify, computeElementHash }
 
 export interface ConsolePayloadElementRelation {
   field: string

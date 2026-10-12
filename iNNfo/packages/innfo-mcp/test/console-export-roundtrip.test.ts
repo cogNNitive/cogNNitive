@@ -104,6 +104,22 @@ describe('console export round trip', () => {
     return composed.text
   }
 
+  function visionCorrection(vision: { id: string; slug?: string; concept: string; name: string }, baseHash: string): Draft {
+    return {
+      id: 'fb-001',
+      kind: 'correction',
+      element_id: vision.id,
+      element_slug: vision.slug,
+      model_id: 'kNNowledge/strategy',
+      concept: vision.concept,
+      element: vision.name,
+      base_hash: baseHash,
+      field: 'statement',
+      original: 'Accelerate green energy',
+      proposed: 'Accelerate clean energy',
+    }
+  }
+
   it('applies correction, delete and new drafts exported from a payload', async () => {
     const payload = buildConsolePayload({
       content: MODEL_FILE,
@@ -167,6 +183,33 @@ describe('console export round trip', () => {
     expect(live).not.toContain('Legacy Plan')
     expect(live).toContain('Mission')
     expect(live).toContain('Serve everyone')
+  })
+
+  it('carries base_hash and the engine accepts it when the element is unchanged', async () => {
+    const payload = buildConsolePayload({ content: MODEL_FILE, path: 'kNNowledge/strategy_NN.md' })
+    const vision = payload.model.elements.find((e) => e.name === 'Vision')!
+    const text = exportChangeset([visionCorrection(vision, vision.hash)], 'kNNowledge/strategy')
+    const change = parseChangeset(text).changes[0]
+    expect(change.base_hash).toBe(vision.hash)
+
+    await writeFile(join(changesDir, 'ok_changes_NN.md'), text, 'utf-8')
+    const result = await applyChange(root, 'changes/ok_changes_NN.md')
+    expect(result.success).toBe(true)
+    expect(result.appliedCount).toBe(1)
+  })
+
+  it('rejects a change whose base_hash no longer matches and leaves the model untouched', async () => {
+    const payload = buildConsolePayload({ content: MODEL_FILE, path: 'kNNowledge/strategy_NN.md' })
+    const vision = payload.model.elements.find((e) => e.name === 'Vision')!
+    const text = exportChangeset([visionCorrection(vision, 'deadbeefdeadbeef')], 'kNNowledge/strategy')
+    await writeFile(join(changesDir, 'stale_changes_NN.md'), text, 'utf-8')
+
+    const result = await applyChange(root, 'changes/stale_changes_NN.md')
+    expect(result.success).toBe(false)
+    expect(result.status).toBe('conflict')
+    expect(result.appliedCount).toBe(0)
+    expect(JSON.stringify(result.errors)).toMatch(/base_hash/)
+    expect(await readFile(join(knowledgeDir, 'strategy_NN.md'), 'utf-8')).toBe(MODEL_FILE)
   })
 
   it('exports a new draft without concept or name as a comment', () => {

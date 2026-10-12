@@ -1,4 +1,5 @@
 import { slugify } from '../parser/slug.js'
+import { hashParsedElement } from '../console/element-hash.js'
 import { checkStaleTarget } from './history.js'
 import { extractModelSlug } from './utils.js'
 import type { ChangeItem } from './types.js'
@@ -103,8 +104,11 @@ export async function partitionChangeset(
     // 4. Element existence check
     if (change.op === 'update_field' || change.op === 'remove_element' || change.op === 'rename_element') {
       let foundElement: { name: string; slug?: string; fields: Record<string, unknown>; description?: string } | null = null
+      // Set only for an element that exists in the model (not one an earlier add creates).
+      let foundConcept = ''
+      let foundIsLive = false
       if (model.elements) {
-        for (const [, elements] of model.elements.entries()) {
+        for (const [conceptName, elements] of model.elements.entries()) {
           const el = elements.find(
             (e) =>
               e.name.toLowerCase() === elementIdent.toLowerCase() ||
@@ -113,6 +117,8 @@ export async function partitionChangeset(
           )
           if (el) {
             foundElement = el
+            foundConcept = conceptName
+            foundIsLive = true
             break
           }
         }
@@ -144,6 +150,19 @@ export async function partitionChangeset(
         change.resolution = msg
         conflictedSubset.push(change)
         continue
+      }
+
+      // 4b. base_hash precondition: the element changed since the change was written.
+      if (change.base_hash && foundIsLive) {
+        const currentHash = hashParsedElement(foundConcept, foundElement as Parameters<typeof hashParsedElement>[1])
+        if (currentHash !== change.base_hash.trim().toLowerCase()) {
+          const msg = `PRECONDITION_FAILED: Target element "${elementIdent}" changed since the change was written (base_hash ${change.base_hash} does not match current ${currentHash})`
+          conflictDiagnostics.set(change.id, { code: 'STALE_BASE_HASH', message: msg })
+          change.status = 'conflict'
+          change.resolution = msg
+          conflictedSubset.push(change)
+          continue
+        }
       }
 
       // 5. from precondition check for update_field
