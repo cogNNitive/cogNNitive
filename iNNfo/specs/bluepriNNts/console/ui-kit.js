@@ -282,7 +282,7 @@
     '.innfo-ku-action:hover{color:var(--innfo-text);border-color:var(--innfo-border);background:var(--innfo-surface)}',
     '.innfo-ku-action[data-ku-action=edit]:hover{color:var(--innfo-link)}',
     '.innfo-ku-action:focus-visible{outline:2px solid var(--innfo-focus);outline-offset:1px}',
-    '.innfo-card-fields{display:flex;flex-wrap:wrap;gap:.4em;align-items:flex-start;margin:.6em 0 0}',
+    '.innfo-card-fields{display:flex;flex-direction:column;gap:.45em;align-items:stretch;margin:.6em 0 0}',
     '.innfo-card-desc-actions{margin-left:.4em}',
     // Element-card Dense Row (V01): a one-line bar (image chip, name, concept,
     // markers, field count, actions, chevron) over a collapsible body.
@@ -297,7 +297,7 @@
     '[data-innfo-component=element-card][data-open=true] .innfo-card-toggle .innfo-icon{transform:rotate(180deg)}',
     '[data-innfo-component=element-card][data-open=false] .innfo-card-body{display:none}',
     '[data-innfo-component=element-card][data-open=false] .innfo-card-path{display:none}',
-    '[data-innfo-component=element-card] .innfo-card-fields{display:flex;flex-wrap:wrap;gap:.4em;align-items:flex-start;margin:.6em 0 0}',
+    '[data-innfo-component=element-card] .innfo-card-fields{display:flex;flex-direction:column;gap:.45em;align-items:stretch;margin:.6em 0 0}',
   ]
   for (var slot = 1; slot <= 12; slot++) {
     COMPONENT_CSS.push(
@@ -783,7 +783,7 @@
         img.setAttribute('loading', 'lazy')
         img.addEventListener('error', function () {
           var cur = img.getAttribute('src') || ''
-          var relMatch = !img.getAttribute('data-retried') && cur.match(/^.+?(\bsources\/.+)$/)
+          var relMatch = !img.getAttribute('data-retried') && cur.match(/^.+?\b((?:sources|kNNowledge|assets|evidence)\/.+)$/)
           if (relMatch) {
             img.setAttribute('data-retried', '1')
             img.setAttribute('src', relMatch[1])
@@ -860,6 +860,31 @@
     return IMAGE_VALUE_RE.test(s)
   }
 
+  // ponytail: naive prefix retry (kNNowledge/sources/assets) — proper fix is
+  // absolute asset URLs in the payload; upgrade when domains grow.
+  function retryImageSrc(img, fallback) {
+    var cur = img.getAttribute('src') || ''
+    if (/^(data:|blob:|https?:|file:)/i.test(cur)) {
+      fallback()
+      return
+    }
+    var tried = (img.getAttribute('data-retried') || '').split('|')
+    var tail = cur.replace(/\\/g, '/')
+    var m = tail.match(/(sources\/.+|kNNowledge\/.+|assets\/.+|evidence\/.+)$/)
+    var candidates = []
+    if (m) candidates.push(m[1])
+    candidates.push('kNNowledge/' + tail.replace(/^.*\//, ''))
+    candidates.push('sources/' + tail.replace(/^.*\//, ''))
+    for (var i = 0; i < candidates.length; i++) {
+      if (tried.indexOf(candidates[i]) === -1 && candidates[i] !== cur) {
+        img.setAttribute('data-retried', (img.getAttribute('data-retried') || '') + '|' + candidates[i])
+        img.setAttribute('src', candidates[i])
+        return
+      }
+    }
+    fallback()
+  }
+
   function imageFieldOf(fields) {
     var list = Array.isArray(fields) ? fields : []
     for (var i = 0; i < list.length; i++) {
@@ -894,16 +919,11 @@
       thumb.setAttribute('loading', 'lazy')
       thumb.setAttribute('src', String(imageField.value))
       thumb.addEventListener('error', function () {
-        var cur = thumb.getAttribute('src') || ''
-        var relMatch = !thumb.getAttribute('data-retried') && cur.match(/^.+?(\bsources\/.+)$/)
-        if (relMatch) {
-          thumb.setAttribute('data-retried', '1')
-          thumb.setAttribute('src', relMatch[1])
-          return
-        }
-        var ph = makeEl(doc, 'span', 'innfo-card-thumb innfo-card-thumb--empty')
-        ph.innerHTML = icon('image', 16)
-        if (thumb.parentNode) thumb.parentNode.replaceChild(ph, thumb)
+        retryImageSrc(thumb, function () {
+          var ph = makeEl(doc, 'span', 'innfo-card-thumb innfo-card-thumb--empty')
+          ph.innerHTML = icon('image', 16)
+          if (thumb.parentNode) thumb.parentNode.replaceChild(ph, thumb)
+        })
       })
     } else {
       thumb = makeEl(doc, 'span', 'innfo-card-thumb innfo-card-thumb--empty')
@@ -1036,9 +1056,16 @@
         opts && typeof opts.isTargetChanged === 'function'
           ? opts.isTargetChanged(d, byId)
           : !el || el.hash !== d.base_hash
+      // A stale draft whose proposed value already equals the current value was
+      // applied out-of-band: 'already applied', not 'target changed'.
+      var applied =
+        changed && opts && typeof opts.isAlreadyApplied === 'function'
+          ? opts.isAlreadyApplied(d, byId)
+          : false
       var li = makeEl(doc, 'li', 'innfo-draft-row card bg-base-100 border border-base-200 shadow-xs')
       li.setAttribute('data-draft-id', String(d.id))
-      if (changed) li.setAttribute('data-target-changed', 'true')
+      if (changed && !applied) li.setAttribute('data-target-changed', 'true')
+      if (applied) li.setAttribute('data-already-applied', 'true')
 
       var cardBody = makeEl(doc, 'div', 'card-body p-4 flex flex-row items-center justify-between gap-4')
 
@@ -1062,7 +1089,10 @@
       cardBody.appendChild(left)
 
       var right = makeEl(doc, 'div', 'flex items-center gap-2 shrink-0')
-      if (changed) {
+      if (applied) {
+        var appliedBadge = makeEl(doc, 'span', 'innfo-draft-already-applied badge badge-neutral badge-sm', 'already applied')
+        right.appendChild(appliedBadge)
+      } else if (changed) {
         var warnBadge = makeEl(doc, 'span', 'innfo-draft-target-changed badge badge-error badge-sm', 'target changed')
         right.appendChild(warnBadge)
       }
@@ -1592,6 +1622,7 @@
   }
 
   var REVIEW_STATES = ['none', 'reviewed', 'changed']
+  var REVIEW_LABELS = { none: 'Mark reviewed', reviewed: 'Reviewed', changed: 'Changed' }
 
   function ReviewedToggle(data) {
     if (!data || typeof data !== 'object') {
@@ -1599,7 +1630,7 @@
     }
     var state = REVIEW_STATES.indexOf(data.state) !== -1 ? data.state : 'none'
     var doc = resolveDoc(null)
-    var b = makeEl(doc, 'button', 'innfo-reviewed-toggle', state)
+    var b = makeEl(doc, 'button', 'innfo-reviewed-toggle', REVIEW_LABELS[state])
     b.setAttribute('data-innfo-component', 'reviewed-toggle')
     b.setAttribute('type', 'button')
     b.setAttribute('data-state', String(state))

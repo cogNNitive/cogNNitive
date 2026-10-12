@@ -65,6 +65,29 @@ describe('2D: Conflict Partitioning Coordinator (partitionChangeset)', () => {
     expect(result.conflictDiagnostics.get('c2')?.message).toContain('Precondition failed')
   })
 
+  it('partitionChangeset hints rename_element when update_field targets &name', async () => {
+    const model = createMockModel('strategy', {
+      Vision: { statement: 'Accelerate clean energy' },
+    })
+    const loadedModels = new Map<string, ParsedKnowledge>([['strategy', model]])
+
+    const changes: ChangeItem[] = [
+      {
+        id: 'c1',
+        op: 'update_field',
+        target: 'strategy@Vision&name',
+        from: 'Vision',
+        to: 'Mission',
+      },
+    ]
+
+    const result = await partitionChangeset(changes, loadedModels)
+    expect(result.cleanSubset).toHaveLength(0)
+    expect(result.conflictedSubset).toHaveLength(1)
+    expect(result.conflictDiagnostics.get('c1')?.code).toBe('PRECONDITION_FAILED')
+    expect(result.conflictDiagnostics.get('c1')?.message).toContain('rename_element')
+  })
+
   it('partitionChangeset flags missing target element as conflict', async () => {
     const model = createMockModel('strategy', {
       Vision: { statement: 'Accelerate clean energy' },
