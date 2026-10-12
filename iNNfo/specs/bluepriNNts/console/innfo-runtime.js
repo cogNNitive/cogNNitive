@@ -1518,15 +1518,15 @@
       idx = target ? h % 12 : 0
     }
     var rawColor = found && found.color ? String(found.color).trim() : undefined
-    var slot = UI && typeof UI.conceptSlot === 'function' ? UI.conceptSlot({ index: idx, color: rawColor }) : (idx % 12) + 1
-    var visuals = typeof self !== 'undefined' && self.InnfoVisuals ? self.InnfoVisuals : null
-    var hexColor = rawColor
-      ? (visuals && typeof visuals.getHexColor === 'function' ? visuals.getHexColor(rawColor) : rawColor)
+    var safeRaw = rawColor && /^(#[0-9a-fA-F]{3,8}|[a-zA-Z]{2,20})$/.test(rawColor) ? rawColor : undefined
+    var slot = UI && typeof UI.conceptSlot === 'function' ? UI.conceptSlot({ index: idx, color: safeRaw }) : (idx % 12) + 1
+    var hexColor = safeRaw && safeRaw.charAt(0) === '#'
+      ? safeRaw
       : SLOT_HEX_PALETTE[(slot - 1) % SLOT_HEX_PALETTE.length]
     return {
       index: idx,
       slot: slot,
-      color: rawColor || hexColor,
+      color: safeRaw || hexColor,
       hexColor: hexColor,
       icon: found && found.icon,
     }
@@ -1752,6 +1752,11 @@
       // image fields (parity with the editor's NodeMedia gallery).
       var mediaItems = collectMediaItems(element)
       var thumbEl = card.querySelector('.innfo-card-thumb')
+      if (thumbEl && thumbEl.classList && thumbEl.classList.contains('innfo-card-thumb--concept')) {
+        thumbEl.style.color = hexColor
+        thumbEl.style.borderColor = 'color-mix(in srgb, ' + hexColor + ' 38%, var(--innfo-border, #e5e0ec))'
+        thumbEl.style.backgroundColor = 'color-mix(in srgb, ' + hexColor + ' 12%, #ffffff)'
+      }
       if (mediaItems.length && thumbEl && thumbEl.tagName === 'IMG') {
         thumbEl.classList.add('innfo-card-thumb--zoom')
         thumbEl.setAttribute('role', 'button')

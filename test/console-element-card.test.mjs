@@ -122,6 +122,25 @@ describe('Element Card Redesign Contract', () => {
       assert.equal(card.querySelector('[data-innfo-component="rel-list"]'), null)
       assert.equal(card.querySelector('[data-ku-kind="field"]').textContent, 'f:v')
     })
+
+    it('renders a concept icon thumbnail fallback when no image field is present', () => {
+      const card1 = UI.ElementCard(
+        { id: 'e1a', name: 'Element 1A', conceptId: 'Concept 1', concept: { index: 0, slot: 1 } },
+        { doc: document },
+      )
+      const thumb1 = card1.querySelector('.innfo-card-thumb.innfo-card-thumb--concept')
+      assert.ok(thumb1, 'concept icon thumb rendered for Concept 1')
+      assert.equal(thumb1.getAttribute('data-concept-icon'), 'box')
+      assert.ok(thumb1.querySelector('svg'), 'SVG icon rendered inside concept thumb')
+
+      const cardEdge = UI.ElementCard(
+        { id: 'probe', name: 'Probe', conceptId: 'Edge Cases', concept: { index: 2, slot: 3 } },
+        { doc: document },
+      )
+      const thumbEdge = cardEdge.querySelector('.innfo-card-thumb.innfo-card-thumb--concept')
+      assert.ok(thumbEdge, 'concept icon thumb rendered for Edge Cases')
+      assert.equal(thumbEdge.getAttribute('data-concept-icon'), 'flask-conical')
+    })
   })
 
   describe('EditToggle & EditAnchor', () => {

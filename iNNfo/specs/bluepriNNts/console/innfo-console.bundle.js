@@ -655,7 +655,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     '[data-innfo-component=element-card] .innfo-card-head{display:flex;align-items:center;gap:.5em;flex-wrap:wrap;cursor:pointer;min-width:0}',
     '[data-innfo-component=element-card] .innfo-card-thumb{width:40px;height:40px;border-radius:7px;object-fit:cover;border:1.5px solid var(--innfo-border);background:var(--innfo-surface-2);flex:0 0 auto;display:block}',
     '.innfo-field-image-wrap{display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap}',
-    '[data-innfo-component=element-card] .innfo-card-thumb--empty{display:inline-flex;align-items:center;justify-content:center;color:var(--innfo-muted);border-style:dashed}',
+    '[data-innfo-component=element-card] .innfo-card-thumb--empty,[data-innfo-component=element-card] .innfo-card-thumb--concept{display:inline-flex;align-items:center;justify-content:center;color:var(--card-concept-color,var(--innfo-accent));background:var(--card-concept-bg,var(--innfo-surface-2));border:1.5px solid var(--card-concept-color,var(--innfo-border))}',
     '[data-innfo-component=element-card] .innfo-card-count{font-size:.75rem;font-weight:600;color:var(--innfo-muted);background:var(--innfo-surface-2);border:1px solid var(--innfo-border);border-radius:999px;padding:1px 8px;white-space:nowrap;flex:0 0 auto}',
     '[data-innfo-component=element-card] .innfo-card-toggle{appearance:none;border:1px solid transparent;background:transparent;color:var(--innfo-muted);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:.15em;border-radius:var(--innfo-radius-sm);flex:0 0 auto}',
     '[data-innfo-component=element-card] .innfo-card-toggle:hover{color:var(--innfo-text);border-color:var(--innfo-border);background:var(--innfo-surface)}',
@@ -838,6 +838,14 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     'git-commit': ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><line x1="1.05" y1="12" x2="7" y2="12"></line><line x1="17.01" y1="12" x2="22.96" y2="12"></line>',
     check: ' fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline>',
     'arrow-up-right': ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline>',
+    box: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><path d="m3.3 7 8.7 5 8.7-5"></path><path d="M12 22V12"></path>',
+    boxes: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.97 12.92A2 2 0 0 0 2 14.63v3.24a2 2 0 0 0 .97 1.71l3 1.8a2 2 0 0 0 2.06 0L12 19v-5.5l-5-3-4.03 2.42Z"></path><path d="m7 16.5-4.74-2.85"></path><path d="m7 16.5 5-3"></path><path d="M7 16.5v5.17"></path><path d="M12 13.5V19l3.97 2.38a2 2 0 0 0 2.06 0l3-1.8a2 2 0 0 0 .97-1.71v-3.24a2 2 0 0 0-.97-1.71L17 10.5l-5 3Z"></path><path d="m17 16.5-5-3"></path><path d="m17 16.5 4.74-2.85"></path><path d="M17 16.5v5.17"></path><path d="M7.97 4.42A2 2 0 0 0 7 6.13v4.37l5 3 5-3V6.13a2 2 0 0 0-.97-1.71l-3-1.8a2 2 0 0 0-2.06 0l-3 1.8Z"></path><path d="M12 8 7.26 5.15"></path><path d="m12 8 4.74-2.85"></path><path d="M12 13.5V8"></path>',
+    layers: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"></path><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"></path><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"></path>',
+    'flask-conical': ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2"></path><path d="M8.5 2h7"></path><path d="M7 16h10"></path>',
+    cpu: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="16" x="4" y="4" rx="2"></rect><rect width="6" height="6" x="9" y="9" rx="1"></rect><path d="M15 2v2"></path><path d="M15 20v2"></path><path d="M2 15h2"></path><path d="M2 9h2"></path><path d="M20 15h2"></path><path d="M20 9h2"></path><path d="M9 2v2"></path><path d="M9 20v2"></path>',
+    shield: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path>',
+    wrench: ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>',
+    'git-branch': ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" x2="6" y1="3" y2="15"></line><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M18 9a9 9 0 0 1-9 9"></path>',
   }
 
   function icon(name, size, cls) {
@@ -1321,6 +1329,21 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return null
   }
 
+  var CONCEPT_SLOT_ICONS = ['box', 'boxes', 'flask-conical', 'git-branch', 'wrench', 'layers', 'cpu', 'shield', 'target', 'cite-document', 'cite-human', 'explorer']
+
+  function resolveConceptIconName(conceptName, conceptOpts) {
+    if (conceptOpts && conceptOpts.icon) return String(conceptOpts.icon)
+    var s = String(conceptName || '').toLowerCase()
+    if (/edge|probe|test|flask|case/i.test(s)) return 'flask-conical'
+    if (/proc|workflow|flow|pipeline/i.test(s)) return 'git-branch'
+    if (/work|task|step|action|tool/i.test(s)) return 'wrench'
+    if (/doc|artifact|report|file/i.test(s)) return 'cite-document'
+    if (/role|user|human|actor|team/i.test(s)) return 'cite-human'
+    if (/agent|ai|model|bot/i.test(s)) return 'cite-agent'
+    var slot = conceptSlot(conceptOpts)
+    return CONCEPT_SLOT_ICONS[(slot - 1) % CONCEPT_SLOT_ICONS.length] || 'layers'
+  }
+
   function ElementCard(data, opts) {
     if (!data || typeof data !== 'object') throw new TypeError('InnfoUI.ElementCard: data required')
     var doc = resolveDoc(opts)
@@ -1343,6 +1366,16 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     if (data.conceptId || conceptOpts.index != null || conceptOpts.color) {
       card.setAttribute('data-concept-slot', String(conceptSlot(conceptOpts)))
     }
+    var conceptIconName = resolveConceptIconName(data.conceptId, conceptOpts)
+
+    function makeConceptThumb() {
+      var ph = makeEl(doc, 'span', 'innfo-card-thumb innfo-card-thumb--concept')
+      ph.setAttribute('data-concept-icon', conceptIconName)
+      ph.setAttribute('title', String(data.conceptId || 'Element'))
+      ph.setAttribute('aria-hidden', 'true')
+      ph.innerHTML = icon(conceptIconName, 18)
+      return ph
+    }
 
     if (imageField) {
       var thumb = makeEl(doc, 'img', 'innfo-card-thumb')
@@ -1351,12 +1384,13 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       thumb.setAttribute('src', normalizeAssetPath(String(imageField.value)))
       thumb.addEventListener('error', function () {
         retryImageSrc(thumb, function () {
-          var ph = makeEl(doc, 'span', 'innfo-card-thumb innfo-card-thumb--empty')
-          ph.innerHTML = icon('image', 16)
+          var ph = makeConceptThumb()
           if (thumb.parentNode) thumb.parentNode.replaceChild(ph, thumb)
         })
       })
       head.appendChild(thumb)
+    } else {
+      head.appendChild(makeConceptThumb())
     }
     head.appendChild(
       KuBadge({
@@ -2366,6 +2400,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     icon: icon,
     slug: slug,
     conceptSlot: conceptSlot,
+    resolveConceptIconName: resolveConceptIconName,
     ORIGIN_VARIANTS: ['error', 'agent', 'human', 'reviewer', 'document'],
     ConceptPill: ConceptPill,
     ElementPill: ElementPill,
@@ -5293,15 +5328,15 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       idx = target ? h % 12 : 0
     }
     var rawColor = found && found.color ? String(found.color).trim() : undefined
-    var slot = UI && typeof UI.conceptSlot === 'function' ? UI.conceptSlot({ index: idx, color: rawColor }) : (idx % 12) + 1
-    var visuals = typeof self !== 'undefined' && self.InnfoVisuals ? self.InnfoVisuals : null
-    var hexColor = rawColor
-      ? (visuals && typeof visuals.getHexColor === 'function' ? visuals.getHexColor(rawColor) : rawColor)
+    var safeRaw = rawColor && /^(#[0-9a-fA-F]{3,8}|[a-zA-Z]{2,20})$/.test(rawColor) ? rawColor : undefined
+    var slot = UI && typeof UI.conceptSlot === 'function' ? UI.conceptSlot({ index: idx, color: safeRaw }) : (idx % 12) + 1
+    var hexColor = safeRaw && safeRaw.charAt(0) === '#'
+      ? safeRaw
       : SLOT_HEX_PALETTE[(slot - 1) % SLOT_HEX_PALETTE.length]
     return {
       index: idx,
       slot: slot,
-      color: rawColor || hexColor,
+      color: safeRaw || hexColor,
       hexColor: hexColor,
       icon: found && found.icon,
     }
@@ -5527,6 +5562,11 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       // image fields (parity with the editor's NodeMedia gallery).
       var mediaItems = collectMediaItems(element)
       var thumbEl = card.querySelector('.innfo-card-thumb')
+      if (thumbEl && thumbEl.classList && thumbEl.classList.contains('innfo-card-thumb--concept')) {
+        thumbEl.style.color = hexColor
+        thumbEl.style.borderColor = 'color-mix(in srgb, ' + hexColor + ' 38%, var(--innfo-border, #e5e0ec))'
+        thumbEl.style.backgroundColor = 'color-mix(in srgb, ' + hexColor + ' 12%, #ffffff)'
+      }
       if (mediaItems.length && thumbEl && thumbEl.tagName === 'IMG') {
         thumbEl.classList.add('innfo-card-thumb--zoom')
         thumbEl.setAttribute('role', 'button')
