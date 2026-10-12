@@ -176,7 +176,11 @@ export async function partitionChangeset(
               : undefined
 
         if (currentVal !== change.from) {
-          const msg = `PRECONDITION_FAILED: Precondition failed: current value "${currentVal ?? ''}" does not match from "${change.from}"`
+          const hint =
+            fieldName.toLowerCase() === 'name'
+              ? ' Hint: name is the element identity, not a field — to rename an element use rename_element on the bare unit target, not update_field on &name.'
+              : ''
+          const msg = `PRECONDITION_FAILED: Precondition failed: current value "${currentVal ?? ''}" does not match from "${change.from}".${hint}`
           conflictDiagnostics.set(change.id, { code: 'PRECONDITION_FAILED', message: msg })
           change.status = 'conflict'
           change.resolution = msg
