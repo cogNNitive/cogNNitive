@@ -3607,8 +3607,9 @@
         drafts.length + (drafts.length === 1 ? ' pending change' : ' pending changes'),
       )
       if (count) titleWrap.appendChild(count)
+      var byIdForStale = elementsByIdOf(state)
       var staleCount = drafts.filter(function (d) {
-        return Review.isTargetChanged(d, elementsByIdOf(state))
+        return Review.isTargetChanged(d, byIdForStale) && !Review.isAlreadyApplied(d, byIdForStale)
       }).length
       if (staleCount > 0) {
         var staleNote = el(
@@ -3674,6 +3675,7 @@
           UI.DraftList({ drafts: drafts, byId: elementsByIdOf(state) }, {
             doc: doc,
             isTargetChanged: Review.isTargetChanged,
+            isAlreadyApplied: Review.isAlreadyApplied,
             onDelete: function (id) {
               if (state && state.store) state.store.removeDraft(id)
               if (typeof onRefresh === 'function') onRefresh()
@@ -4006,7 +4008,33 @@
     defs.appendChild(marker)
     svg.appendChild(defs)
 
+    // Edges: matrices (explicit) + element field refs (implicit). The old map
+    // only drew matrices, so domains without matrices looked disconnected.
+    var edges = []
+    var seenEdge = {}
+    function pushEdge(source, target, name) {
+      if (!source || !target || !pos[source] || !pos[target]) return
+      var key = source + '>' + target + '>' + (name || '')
+      if (seenEdge[key]) return
+      seenEdge[key] = true
+      edges.push({ source: source, target: target, name: name })
+    }
     ;(Array.isArray(matrices) ? matrices : []).forEach(function (m) {
+      if (m) pushEdge(m.source, m.target, m.name)
+    })
+    var byConcept = {}
+    ;(Array.isArray(elements) ? elements : []).forEach(function (e) {
+      if (e && e.concept) byConcept[e.id] = e.concept
+    })
+    ;(Array.isArray(elements) ? elements : []).forEach(function (e) {
+      if (!e || !e.concept || !Array.isArray(e.relations)) return
+      e.relations.forEach(function (r) {
+        if (!r || !r.target) return
+        var tc = byConcept[r.target]
+        if (tc && tc !== e.concept) pushEdge(e.concept, tc, r.field || '')
+      })
+    })
+    ;edges.forEach(function (m) {
       if (!m || !m.source || !m.target || !pos[m.source] || !pos[m.target]) return
       var sx = pos[m.source].x
       var sy = pos[m.source].y
@@ -4268,7 +4296,11 @@
         '#innfo-feedback-modal .innfo-feedback-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:8px 0;}' +
         '#innfo-feedback-modal button[data-innfo="copy-changeset-prompt"]{appearance:none;border:1px solid var(--border,#e5e7eb);background:var(--surface,#ffffff);color:var(--text,#111827);font:inherit;font-size:0.85rem;font-weight:600;padding:8px 16px;border-radius:var(--radius-sm,4px);cursor:pointer;}' +
         '#innfo-feedback-modal button:disabled{opacity:0.5;cursor:not-allowed;}' +
-        '#innfo-feedback-modal [data-innfo="copy-status"]{font-size:0.8rem;color:var(--muted,#6b7280);}'
+        '#innfo-feedback-modal [data-innfo="copy-status"]{font-size:0.8rem;color:var(--muted,#6b7280);}' +
+        '#innfo-feedback-modal .innfo-feedback-head{display:flex;align-items:center;gap:12px;}' +
+        '#innfo-feedback-modal .innfo-feedback-head h2{margin:0;flex:1;}' +
+        '#innfo-feedback-modal button[data-innfo="close"]{appearance:none;border:1px solid var(--border,#e5e7eb);background:transparent;font-size:1.2rem;line-height:1;padding:2px 10px;border-radius:6px;cursor:pointer;}' +
+        '#innfo-feedback-modal .innfo-feedback-seal{font-size:0.8rem;color:var(--muted,#6b7280);margin:8px 0;}'
       root.appendChild(style)
     }
 
@@ -4328,7 +4360,9 @@
     modal.id = 'innfo-feedback-modal'
     modal.setAttribute('aria-label', 'Export proposed changes')
     modal.innerHTML =
-      '<h2>Export proposed changes</h2>' +
+      '<div class="innfo-feedback-head"><h2>Export proposed changes</h2>' +
+      '<button data-innfo="close" type="button" aria-label="Close">×</button></div>' +
+      '<p class="innfo-feedback-seal">Sealed proposal: do not edit the file after download — any edit invalidates proposal_sha (PROPOSAL_TAMPERED). To retry, export a new file.</p>' +
       '<div data-innfo="preview"></div>' +
       '<label>Author / Reviewer identifier (required)' +
       '<input data-innfo="identifier" type="text" placeholder="e.g. round-2" />' +
@@ -4385,9 +4419,15 @@
     var model = oneLine(d.model_id || fallbackModel || 'model')
     var elementTarget = oneLine(d.element_slug || d.element || d.element_id || 'elem')
     var canUpdate = !!d.field && d.proposed !== undefined
+    var isRename = canUpdate && String(d.field).toLowerCase() === 'name'
     var op = 'update_field'
     var target = model + '@' + elementTarget + (d.field ? '&' + oneLine(d.field) : '')
-    if (d.kind === 'delete') {
+    if (isRename) {
+      // Element display name is identity, not a field — the engine rejects
+      // update_field on &name (PRECONDITION_FAILED). Emit rename_element.
+      op = 'rename_element'
+      target = model + '@' + elementTarget
+    } else if (d.kind === 'delete') {
       op = 'remove_element'
       target = model + '@' + elementTarget
     } else if (d.kind === 'new') {
@@ -4407,10 +4447,13 @@
     lines.push('op:: ' + op)
     lines.push('target:: ' + target)
     // The engine rejects the change if the element's content hash moved on since the draft.
-    if ((op === 'update_field' || op === 'remove_element') && d.base_hash) {
+    if ((op === 'update_field' || op === 'remove_element' || op === 'rename_element') && d.base_hash) {
       lines.push('base_hash:: ' + oneLine(d.base_hash))
     }
-    if (op === 'update_field') {
+    if (op === 'rename_element') {
+      if (d.original !== undefined) lines.push('from:: ' + formatChangesetValue(d.original))
+      lines.push('name:: ' + formatChangesetValue(d.proposed))
+    } else if (op === 'update_field') {
       if (d.original !== undefined) lines.push('from:: ' + formatChangesetValue(d.original))
       lines.push('to:: ' + formatChangesetValue(d.proposed))
     } else if (op === 'add_element') {
@@ -4487,6 +4530,12 @@
   function composeExport(state, identifier) {
     var reviewer = identifier && String(identifier).trim() ? String(identifier).trim() : getReviewerName()
     var drafts = state && state.store ? state.store.drafts() : []
+    // Already-applied drafts (stale hash, proposed == current value) carry no
+    // change: exclude them from the export instead of shipping redundancies.
+    var byId = elementsByIdOf(state)
+    drafts = drafts.filter(function (d) {
+      return !Review.isAlreadyApplied(d, byId)
+    })
     var model = state && state.modelTitle ? state.modelTitle : 'Model'
     var version = state && state.modelVersion ? state.modelVersion : '1-0-0'
 
@@ -4645,7 +4694,7 @@
     if (preview) {
       preview.innerHTML = ''
       preview.appendChild(
-        UI.DraftList({ drafts: drafts, byId: elementsByIdOf(state) }, { doc: doc, isTargetChanged: Review.isTargetChanged }),
+        UI.DraftList({ drafts: drafts, byId: elementsByIdOf(state) }, { doc: doc, isTargetChanged: Review.isTargetChanged, isAlreadyApplied: Review.isAlreadyApplied }),
       )
     }
 
@@ -4723,10 +4772,40 @@
 
     updateExportPreview(doc, state)
 
+    function closeModal() {
+      if (typeof modal.close === 'function') {
+        try {
+          if (modal.open) modal.close()
+          else modal.removeAttribute('open')
+        } catch {
+          modal.removeAttribute('open')
+        }
+      } else modal.removeAttribute('open')
+    }
+
     if (typeof modal.showModal === 'function') {
       if (!modal.open) modal.showModal()
     } else {
       modal.setAttribute('open', 'open')
+    }
+
+    var closeBtn = modal.querySelector('[data-innfo="close"]')
+    if (closeBtn && !closeBtn.getAttribute('data-innfo-bound')) {
+      closeBtn.setAttribute('data-innfo-bound', '1')
+      closeBtn.addEventListener('click', function (ev) {
+        if (ev && ev.stopPropagation) ev.stopPropagation()
+        closeModal()
+      })
+    }
+    if (!modal.getAttribute('data-innfo-dismiss-bound')) {
+      modal.setAttribute('data-innfo-dismiss-bound', '1')
+      modal.addEventListener('click', function (ev) {
+        if (ev && ev.target === modal) closeModal()
+      })
+      modal.addEventListener('cancel', function (ev) {
+        if (ev && ev.preventDefault) ev.preventDefault()
+        closeModal()
+      })
     }
 
     if (identifierInput && !identifierInput.getAttribute('data-innfo-bound')) {

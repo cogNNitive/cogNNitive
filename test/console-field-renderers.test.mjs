@@ -134,7 +134,9 @@ describe('Console type-aware rendering + field detail + incoming + metamodel', (
     const svg = panel.querySelector('.innfo-metamodel-svg')
     assert.ok(svg, 'svg rendered')
     assert.equal(panel.querySelectorAll('.innfo-metamodel-node').length, 2)
-    assert.equal(panel.querySelectorAll('.innfo-metamodel-edge').length, 1)
+    // 2 edges since 35d4300b: matrix Duty (Fleet→Ghost) + implicit element
+    // relation haunts (Ghost→Fleet). Previously matrices only (1).
+    assert.equal(panel.querySelectorAll('.innfo-metamodel-edge').length, 2)
     assert.match(panel.textContent, /Fleet/)
   })
 })

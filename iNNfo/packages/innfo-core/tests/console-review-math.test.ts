@@ -53,6 +53,22 @@ describe('console-review-math', () => {
     expect(Review.isTargetChanged({ element_id: 'zz', base_hash: 'aaaaaaaaaaaaaaaa' }, byId)).toBe(true)
   })
 
+  it('isAlreadyApplied is true only for stale drafts whose proposed equals current', () => {
+    const Review = loadReview()
+    const byId = {
+      a: { id: 'a', hash: 'aaaaaaaaaaaaaaaa', fields: { statement: 'New value' } },
+    }
+    const staleApplied = { element_id: 'a', field: 'statement', proposed: 'New value', base_hash: 'stale____________' }
+    const staleDiverged = { element_id: 'a', field: 'statement', proposed: 'Other value', base_hash: 'stale____________' }
+    const fresh = { element_id: 'a', field: 'statement', proposed: 'New value', base_hash: 'aaaaaaaaaaaaaaaa' }
+    const noProposed = { element_id: 'a', field: 'statement', base_hash: 'stale____________' }
+    expect(Review.isAlreadyApplied(staleApplied, byId)).toBe(true)
+    expect(Review.isAlreadyApplied(staleDiverged, byId)).toBe(false)
+    expect(Review.isAlreadyApplied(fresh, byId)).toBe(false)
+    expect(Review.isAlreadyApplied(noProposed, byId)).toBe(false)
+    expect(Review.isAlreadyApplied(staleApplied, {})).toBe(false)
+  })
+
   it('verdictsByElement maps {status: count} per element and skips orphans', () => {
     const Review = loadReview()
     const byId = { a: { id: 'a' }, b: { id: 'b' } }
