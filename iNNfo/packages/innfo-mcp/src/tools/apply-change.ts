@@ -674,24 +674,34 @@ export async function executeChangesetApply(
     // 3. Verify proposal_sha (tamper detection). A draft that arrives WITHOUT a
     // seal (e.g. the console review export) is stamped at intake: the engine
     // owns the canonical hash, so producers never duplicate it. A seal that IS
-    // present but does not match the body is a tampered proposal and is rejected.
+    // present but does not match the body is a tampered proposal and is rejected —
+    // EXCEPT when the doc is already in `conflict` status: that is the documented
+    // fix-and-retry loop (a previous run annotated status/conflict + resolution
+    // and the author then edited the ops), so the edit re-proposes and is re-sealed.
     if (!csDoc.frontmatter.proposal_sha) {
       csDoc.frontmatter.proposal_sha = computeProposalSha(csDoc.changes)
     }
     if (!verifyProposalSha(csDoc)) {
-      return {
-        success: false,
-        changesetPath: relChangesetPath,
-        status: 'conflict',
-        models: {},
-        appliedCount: 0,
-        errors: [
-          {
-            path: 'frontmatter.proposal_sha',
-            message: 'PROPOSAL_TAMPERED: proposal_sha does not match canonical proposed changes',
-            code: 'PROPOSAL_TAMPERED',
-          },
-        ],
+      if (csDoc.frontmatter.status === 'conflict') {
+        csDoc.frontmatter.proposal_sha = computeProposalSha(csDoc.changes)
+      } else {
+        return {
+          success: false,
+          changesetPath: relChangesetPath,
+          status: 'conflict',
+          models: {},
+          appliedCount: 0,
+          errors: [
+            {
+              path: 'frontmatter.proposal_sha',
+              message:
+                'PROPOSAL_TAMPERED: proposal_sha does not match canonical proposed changes. ' +
+                'The changeset was edited after validation — review the annotated resolutions and ' +
+                're-submit as a new proposal (or clear frontmatter.proposal_sha so it is re-sealed at intake).',
+              code: 'PROPOSAL_TAMPERED',
+            },
+          ],
+        }
       }
     }
 
