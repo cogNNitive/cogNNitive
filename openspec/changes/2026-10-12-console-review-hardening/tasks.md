@@ -29,8 +29,8 @@ write the tests with each slice, run everything once in slice 5.
 
 ## Slice 4 — Crash-safe persist (item 7)
 
-- [ ] 4.1 `apply-change.ts`: copy-to-archive then rename tmp over live (D10) + failure-injection test.
-- [ ] 4.2 Commit `fix(mcp): crash-safe apply persist`.
+- [x] 4.1 `apply-change.ts`: copy-to-archive then rename tmp over live (D10) + failure-injection test.
+- [x] 4.2 Commit `fix(mcp): crash-safe apply persist`.
 
 ## 5. Final verification (once)
 
