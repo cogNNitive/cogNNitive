@@ -152,6 +152,34 @@ describe('Two-Phase Changeset Rejection Paths (cross-platform)', () => {
     expect(existsSync(join(knowledgeDir, 'archive'))).toBe(false)
   })
 
+  it('Re-proposal Loop: conflict-status doc edited after validation is re-sealed, not PROPOSAL_TAMPERED', async () => {
+    const csFile = join(changesDir, 'reproposed_changes_NN.md')
+    const csDoc = makeChangeset({
+      changes: [
+        {
+          id: 'fb-001',
+          op: 'comment',
+          target: 'strategy@Vision&statement',
+          notes: 'reviewer-note-original',
+        },
+      ],
+    })
+    // Simulate the fix-and-retry loop: a previous run annotated the doc as
+    // conflict, then the author edited the ops without touching the seal.
+    csDoc.frontmatter.status = 'conflict' as ChangesetDocument['frontmatter']['status']
+    csDoc.changes[0].notes = 'reviewer-note-fixed-after-conflict'
+    await writeFile(csFile, serializeChangeset(csDoc), 'utf-8')
+
+    const res = await applyChange(csRoot, 'changes/reproposed_changes_NN.md')
+    expect((res.errors ?? []).some((e) => e.code === 'PROPOSAL_TAMPERED')).toBe(false)
+    expect(res.success).toBe(true)
+
+    // The edit re-proposed: the seal was recomputed and validates.
+    const resealed = await readFile(csFile, 'utf-8')
+    expect(verifyProposalSha(parseChangeset(resealed))).toBe(true)
+    expect(existsSync(join(knowledgeDir, 'archive'))).toBe(false)
+  })
+
   it('Idempotent Replay Mismatch: applied changeset whose live version drifted reports no-op without mutating', async () => {
     const csFile = join(changesDir, 'ws_agent_drift_changes_NN.md')
     const csDoc = makeChangeset({
