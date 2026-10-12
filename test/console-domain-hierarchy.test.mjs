@@ -208,8 +208,9 @@ describe('Hostile text renders as text, never as markup', () => {
   test('hostile concept color and element count cannot break out of the style attribute', () => {
     const document = boot('<nav id="innfo-rail"></nav>')
     const state = {
-      meta: { models: [{ id: 'm1', title: 'One', filePath: 'm1.md', elementCount: '1</span><img src=x onerror=1>' }] },
-      elements: [{ id: 'e1', concept: 'Risks', modelId: 'm1' }],
+      // Two models: the hierarchical rail (the one that paints inline dot colors) only renders from 2 models up.
+      meta: { models: [{ id: 'm1', title: 'One', filePath: 'm1.md', elementCount: '1</span><img src=x onerror=1>' }, { id: 'm2', title: 'Two', filePath: 'm2.md', elementCount: 1 }] },
+      elements: [{ id: 'e1', concept: 'Risks', modelId: 'm1' }, { id: 'e2', concept: 'Risks', modelId: 'm2' }],
     }
     const color = 'red"><img src=x onerror=1>'
     InnfoConsole.renderRail(document, [{ name: 'Risks', color }], { Risks: 1 }, {}, () => {}, state)
