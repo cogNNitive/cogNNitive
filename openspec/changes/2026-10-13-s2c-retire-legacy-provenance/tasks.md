@@ -34,11 +34,11 @@ names the requirement it serves as `[capability: Requirement]`. Pre-condition: #
 
 ## 2. Retire the console feedback JSON export (S2c-1)
 
-- [ ] 2.1 TEST (`test/console-export.test.mjs:182-217`, `console-feedback-ui.test.ts`): the
+- [x] 2.1 TEST (`test/console-export.test.mjs:182-217`, `console-feedback-ui.test.ts`): the
       export modal offers only the changeset preview, download and copy; download and copy
       bytes are identical; the offline copy fallback works. [innfo-console-feedback: Export
       Modal] [review-workflow: Standardized Review JSON Export (REMOVED)]
-- [ ] 2.2 Delete the feedback branch of `composeExport`, `serializeFeedback`,
+- [x] 2.2 Delete the feedback branch of `composeExport`, `serializeFeedback`,
       `buildFeedbackFilename`, `validateFeedback`, `iNNfo/specs/bluepriNNts/console/feedback.schema.json`,
       `test/feedback-validators-parity.test.mjs`, `test/fixtures/feedback/**`,
       `iNNfo/packages/innfo-core/tests/console-feedback.test.ts`; rebuild the bundle.

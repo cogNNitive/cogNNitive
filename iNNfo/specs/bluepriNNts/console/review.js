@@ -429,34 +429,6 @@
     return out
   }
 
-  function draftToItem(draft) {
-    var d = isObject(draft) ? draft : {}
-    var isMatrix = d.matrix != null && d.matrix !== ''
-    var target = isMatrix
-      ? {
-          matrix: String(d.matrix),
-          row: String(d.row || ''),
-          col: String(d.col || ''),
-          element: String(d.element || ''),
-        }
-      : {
-          element_id: String(d.element_id || ''),
-          concept: String(d.concept || ''),
-          element: String(d.element || ''),
-        }
-    if (!isMatrix && d.field !== undefined && d.field !== null) target.field = String(d.field)
-    var item = {
-      id: typeof d.id === 'string' && d.id ? d.id : 'fb-001',
-      kind: ITEM_KINDS.indexOf(d.kind) !== -1 ? d.kind : 'comment',
-      target: target,
-    }
-    if (d.original !== undefined) item.original = d.original
-    if (d.proposed !== undefined) item.proposed = d.proposed
-    if (d.comment !== undefined && d.comment !== null) item.comment = String(d.comment)
-    if (!isMatrix) item.base_hash = String(d.base_hash || '')
-    return item
-  }
-
   // ---- Review controller (Slice 2) ----
 
   function makeEl(doc, tag, cls, text) {
@@ -1487,6 +1459,5 @@
     changedIds: changedIds,
     canReview: canReview,
     flattenCitations: flattenCitations,
-    draftToItem: draftToItem,
   }
 })

@@ -91,48 +91,6 @@ describe('console-review-math', () => {
     expect(Review.changedIds(elements, reviewed)).toEqual(['b'])
   })
 
-  it('draftToItem converts a Draft to a schema feedback item with target.field', () => {
-    const Review = loadReview()
-    const draft = {
-      id: 'fb-001',
-      element_id: 'e1',
-      concept: 'C1',
-      element: 'E1',
-      base_hash: 'abcdef0123456789',
-      kind: 'correction',
-      field: 'owner',
-      original: 'A',
-      proposed: 'B',
-      comment: 'change it',
-      created_at: '2026-01-01T00:00:00Z',
-    }
-    const item = Review.draftToItem(draft)
-    expect(item.id).toBe('fb-001')
-    expect(item.kind).toBe('correction')
-    expect(item.target.element_id).toBe('e1')
-    expect(item.target.concept).toBe('C1')
-    expect(item.target.element).toBe('E1')
-    expect(item.target.field).toBe('owner')
-    expect(item.original).toBe('A')
-    expect(item.proposed).toBe('B')
-    expect(item.base_hash).toBe('abcdef0123456789')
-    expect((item as any).status).toBeUndefined()
-  })
-
-  it('draftToItem omits target.field for a card comment', () => {
-    const Review = loadReview()
-    const item = Review.draftToItem({
-      id: 'fb-001',
-      element_id: 'e1',
-      concept: 'C1',
-      element: 'E1',
-      base_hash: 'abcdef0123456789',
-      kind: 'comment',
-      comment: 'hi',
-    })
-    expect(item.target.field).toBeUndefined()
-  })
-
   it('STORE_PREFIX is innfo-console:v3:', () => {
     const Review = loadReview()
     expect(Review.STORE_PREFIX).toBe('innfo-console:v3:')

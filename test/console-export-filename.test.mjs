@@ -24,8 +24,8 @@ describe('S1c: export filename uses the model slug', () => {
     }
     const res = InnfoConsole.composeExport(state, 'jane')
     assert.equal(res.ok, true, JSON.stringify(res.errors))
-    assert.match(res.filename, /^ghost-busters-model_V_1-0-0_jane_feedback_/)
     assert.match(res.changesetFilename, /^ghost-busters-model_jane_/)
+    assert.equal(res.filename, undefined, 'no feedback JSON filename exists')
   })
 
   it('prefers an explicit model_slug over the title', () => {
@@ -37,7 +37,7 @@ describe('S1c: export filename uses the model slug', () => {
     }
     const res = InnfoConsole.composeExport(state, 'jane')
     assert.equal(res.ok, true, JSON.stringify(res.errors))
-    assert.match(res.filename, /^ghost-busters_V_1-0-0_/)
+    assert.match(res.changesetFilename, /^ghost-busters_jane_/)
   })
 
   const stateFor = (title) => ({
@@ -46,7 +46,7 @@ describe('S1c: export filename uses the model slug', () => {
     modelVersion: 'V_1-0-0',
     store: { drafts: () => [] },
   })
-  const modelPart = (res) => res.filename.split('_V_')[0]
+  const modelPart = (res) => res.changesetFilename.split('_')[0]
 
   it('gives different non-Latin titles different valid filenames', () => {
     const a = InnfoConsole.composeExport(stateFor('幕府モデル'), 'jane')
