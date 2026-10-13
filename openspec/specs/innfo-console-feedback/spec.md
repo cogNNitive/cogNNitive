@@ -3,9 +3,7 @@
 ## Purpose
 
 Reviewer-to-model loop: console reviewers export structured feedback JSON; an agent-reviewed Reconcile Feedback procedure carries accepted items back into the source model with staleness protection and patch-bump versioning.
-
 ## Requirements
-
 ### Requirement: Feedback JSON Schema
 
 Export files MUST validate against the feedback schema. `meta` MUST carry `source_knowledge`, `source_knowledge_version` (`V_x-y-z`), `artifact`, `artifact_version`, `exported_at` (ISO-8601 with seconds), `author`, `feedback_slug` and `viewer`, and MAY carry `source_sha256`. Each `items[]` entry MUST carry `id` (`fb-NNN`), `kind` (`correction`|`comment`|`new`|`delete`) and `target` (`element_id`/`concept`/`element`/`field`/`matrix`; `field` MUST be under `target`, never top-level), with `original`/`proposed`/`comment` as applicable. Items MUST NOT carry `status`, `layer` or `severity`. Console-exported items MUST carry `base_hash` (the element `hash` the draft was made against); an item anchored to a field row MUST carry `target.field`, and one anchored to a card MUST omit it. The names `knowledge`, `knowledge_version`, `session_label` and `source_model*` MUST NOT appear. Filenames MUST match `{PrimaryModel}_V_{version}_{slug}_feedback_{YYYYMMDD-HHMMSS}.json`, where `{PrimaryModel}` is the model slug: `meta.model_slug` when present, else the slugified model identifier, else the slugified title. When the slug would contain no Latin alphanumerics, it MUST be `model-<8 hex>` derived deterministically from the title. `{PrimaryModel}` MUST match `^[A-Za-z0-9-]+$` and MUST NOT be the human title.
@@ -149,3 +147,18 @@ The draft count MUST be shown consistently in the pending banner, the Review tab
 - GIVEN a rendered element card
 - WHEN a draft is saved
 - THEN the same card node is still in the DOM and keeps focus on its control
+
+### Requirement: Feedback export reads per-model state from meta.models
+
+The feedback export `meta.source_sha256` MUST be the `sha256` of the `meta.models` entry for the model named by `source_knowledge`, in whole-domaiNN and scoped consoles alike. When no such entry exists, `source_sha256` MUST be omitted rather than invented.
+
+#### Scenario: Scoped export carries the model hash
+- GIVEN a console scoped to model A whose `meta.models[0].sha256` is `H`
+- WHEN a feedback export is built
+- THEN `meta.source_sha256` equals `H`
+
+#### Scenario: No matching entry
+- GIVEN a `source_knowledge` that matches no `meta.models` entry
+- WHEN a feedback export is built
+- THEN `meta.source_sha256` is absent and the file still validates
+

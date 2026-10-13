@@ -2,19 +2,20 @@
 
 ## Purpose
 
-Human review flow inside generated consoles, rendered by BOTH `InnfoConsole` and `InnfoModelViewer`: explicit review mode, inline annotation, reviewed progress, verdict badges, change awareness, keyboard access. Consumes the kit (`InnfoUI`: `AnnotationPopover`, `ReviewedToggle`, `RailProgress`, `DraftList`, `StatusBadge`, `ElementCard`, `FieldRow`, `TOKEN_VALUES`; change `2026-10-01-console-ui-kit`) and the payload fields `meta.modelId`, per-element `hash`, `meta.feedbackState` (change `2026-10-01-console-feedback-roundtrip-completion`). Controller: `console/review.js` (`InnfoReview`).
+Human review flow inside generated consoles, rendered by `InnfoConsole`: explicit review mode, inline annotation, reviewed progress, verdict badges, change awareness, keyboard access. Consumes the kit (`InnfoUI`: `AnnotationPopover`, `ReviewedToggle`, `RailProgress`, `DraftList`, `StatusBadge`, `ElementCard`, `FieldRow`, `TOKEN_VALUES`; change `2026-10-01-console-ui-kit`) and the payload fields `meta.modelId`, per-element `hash`, `meta.feedbackState` (change `2026-10-01-console-feedback-roundtrip-completion`). Controller: `console/review.js` (`InnfoReview`).
 ## Requirements
 ### Requirement: Review Mode Toggle
 
 The console MUST provide an explicit review mode toggle, off by default and not
-persisted across loads. The toggle MUST be offered only when `feedback-export` is
+persisted across loads. The toggle MUST be offered only when `changeset-export` is
 declared, `meta.modelId` is present, and EVERY element carries a `hash`; otherwise
 it MUST NOT render (no fallback). With review mode off, no edit, annotation, or
 reviewed control exists in the DOM (the info action and verdict badges remain).
 With review mode on, every unit badge exposes the edit action. The toggle MUST
-expose its state via `aria-pressed`. Each renderer MUST dispatch `innfo:rendered`
+expose its state via `aria-pressed`. The renderer MUST dispatch `innfo:rendered`
 on the document (detail `{ root }`) once per card commit; `InnfoReview` decorates
 in response and MUST be idempotent across re-renders.
+(Previously: "Each renderer" dispatched the event, and a scenario compared `InnfoConsole` with `InnfoModelViewer`.)
 
 #### Scenario: Off by default
 - GIVEN a freshly loaded console with `modelId` and all hashes
@@ -42,8 +43,8 @@ in response and MUST be idempotent across re-renders.
 - WHEN `innfo:rendered` fires
 - THEN every visible card is decorated exactly once
 
-#### Scenario: Both renderers
-- GIVEN one payload rendered by `InnfoConsole` and by `InnfoModelViewer`
+#### Scenario: Scoped console reviews like the domain console
+- GIVEN one model rendered in a whole-domaiNN console and in a console scoped to it
 - WHEN review mode is on
 - THEN both produce the same `data-innfo-component` review decorations per element
 
@@ -73,7 +74,8 @@ Annotating MUST open the kit `AnnotationPopover` anchored to the card or field r
 
 ### Requirement: Reviewed Marks and Rail Progress
 
-Each element MUST have a reviewed toggle (`ReviewedToggle`) persisted in the draft store with the element hash recorded at marking. A mark counts as reviewed only while the recorded hash equals the current `hash`; otherwise it shows `changed` and does not count. The rail MUST show `reviewed/total` and the pending-draft count per concept via `RailProgress`, in BOTH renderers; totals come from the payload, independent of filters. Reviewed controls are shown only in review mode.
+Each element MUST have a reviewed toggle (`ReviewedToggle`) persisted in the draft store with the element hash recorded at marking. A mark counts as reviewed only while the recorded hash equals the current `hash`; otherwise it shows `changed` and does not count. The rail MUST show `reviewed/total` and the pending-draft count per concept via `RailProgress`; totals come from the payload (the scoped payload for a scoped console), independent of filters. Reviewed controls are shown only in review mode.
+(Previously: "in BOTH renderers".)
 
 #### Scenario: Progress updates
 - GIVEN a concept with 4 elements, 1 reviewed, 2 drafts

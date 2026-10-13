@@ -132,8 +132,7 @@ through `data-*` attributes, and MUST render user text via text nodes (no
 
 ### Requirement: ElementCard
 
-`InnfoUI.ElementCard({ id, name, conceptId?, description?, fields, markers? },
-{ domId?, collapsible?, open?, head?, body?, onRef?, onCite?, actions? })` MUST
+`InnfoUI.ElementCard({ id, name, conceptId?, description?, fields, markers? }, { domId?, collapsible?, open?, head?, body?, onRef?, onCite?, actions? })` MUST
 return `data-innfo-component="element-card"` with `data-element-id`. The head
 (`.innfo-card-head`) is a one-line Dense Row: an image chip
 (`.innfo-card-thumb`), the name as a `ku-badge` of kind `element`, one
@@ -202,9 +201,7 @@ render no field badges and no count.
 
 ### Requirement: CitationIcon and FieldRow
 
-`InnfoUI.CitationIcon({ variant, field }, { onOpen })` (a `button` with
-`data-origin=<variant>`, `data-field` and `aria-label "<Label>: <field>"`; click
-stops propagation) MUST keep its contract. `InnfoUI.FieldRow({ name, value,
+`InnfoUI.CitationIcon({ variant, field }, { onOpen })` (a `button` with `data-origin=<variant>`, `data-field` and `aria-label "<Label>: <field>"`; click stops propagation) MUST keep its contract. `InnfoUI.FieldRow({ name, value,
 citations?, ref? }, { onRef?, onCite? })` MUST return a `ku-badge` of kind `field`
 (with `data-ku-kind="field"` and `data-field=<name>`), and MUST preserve the
 origin-typed behavior of `console-field-citations`: one `CitationIcon` per distinct
@@ -275,7 +272,8 @@ The kit MUST provide presentational review components. They MUST hold no review 
 
 ### Requirement: Renderers Consume the Kit
 
-`InnfoConsole` and `InnfoModelViewer` MUST build concept pills, element pills, element cards, marker chips, and icons exclusively through `InnfoUI`. `renderConceptPill`, `renderElementPill`, `renderCards`, `svgIcon`, and the `.chip` / `.el-head` / `.el-name` builders MUST be deleted with no aliases or shims.
+`InnfoConsole` MUST build concept pills, element pills, element cards, marker chips, and icons exclusively through `InnfoUI`. `renderConceptPill`, `renderElementPill`, `renderCards`, `svgIcon`, and the `.chip` / `.el-head` / `.el-name` builders MUST be deleted with no aliases or shims.
+(Previously: the requirement also covered `InnfoModelViewer`, a second renderer that no longer exists.)
 
 #### Scenario: No duplicate builders
 - GIVEN the `console/*.js` sources and bundle
@@ -283,7 +281,7 @@ The kit MUST provide presentational review components. They MUST hold no review 
 - THEN no occurrence exists outside `ui-kit.js`
 
 #### Scenario: Same concept, same markup
-- GIVEN one concept rendered by `InnfoConsole` and by `InnfoModelViewer`
+- GIVEN one concept rendered by `InnfoConsole` in a whole-domaiNN console and in a console scoped to that concept's model
 - THEN `data-innfo-component` and `data-concept-id` are identical
 
 ### Requirement: Offline Invariant

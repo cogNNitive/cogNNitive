@@ -2,23 +2,20 @@
 
 ## Purpose
 
-Define the single shared core path that resolves a model's Level 2 blueprint and derives the console `schema` slot, so the export CLI and the MCP `build_console_payload` tool emit byte-identical `schema` slots for the same model.
-
+Define the single shared core path that resolves a model's Level 2 blueprint and derives the console `schema` slot, so every console producer emits byte-identical `schema` slots for the same model.
 ## Requirements
-
 ### Requirement: Shared Schema Resolution Path
 
-The CLI (`scripts/export-console.mjs`) and the MCP `build_console_payload` tool MUST resolve the model's blueprint schema through ONE shared implementation in `innfo-core`. For a given model, both producers MUST emit byte-identical `schema` slots. The `schema` slot carries no timestamp; `generated` and `citationsResolvedAt` live in `meta` and are NOT part of the `schema` comparison.
+The CLI (`scripts/export-console.mjs`) MUST resolve the model's blueprint schema through ONE implementation in `innfo-core`. For a given model and workspace state, the emitted `schema` slot MUST be byte-identical across runs. The `schema` slot carries no timestamp; `generated` and `citationsResolvedAt` live in `meta` and are NOT part of the `schema` comparison.
+(Previously: the CLI and the MCP `build_console_payload` tool both resolved through the shared path and had to emit byte-identical slots.)
 
-#### Scenario: Byte-identical slots
-
+#### Scenario: Deterministic slot
 - GIVEN one model resolvable through the shared path
-- WHEN the CLI and the MCP tool each produce the payload
+- WHEN the CLI exports it twice, whole and scoped to that model
 - THEN the two `schema` slots are byte-identical
 - AND no timestamp appears in either `schema` slot
 
 #### Scenario: Single implementation
-
 - GIVEN the repository after this change
 - WHEN the schema resolution+derivation definition is counted
 - THEN exactly one such path exists, in `innfo-core`
@@ -67,21 +64,12 @@ An unversioned package directory MUST be recognized only when a spec file exists
 
 ### Requirement: Graceful Degradation
 
-When no blueprint resolves, resolution MUST degrade to the derived schema exactly as today and MUST NOT abort the export or the build.
+When no blueprint resolves, resolution MUST degrade to the derived schema exactly as today and MUST NOT abort the export.
+(Previously: also named the MCP tool build.)
 
 #### Scenario: Unresolvable blueprint
-
 - GIVEN a model whose blueprint resolves nowhere
-- WHEN the CLI exports or the MCP tool builds
+- WHEN the CLI exports
 - THEN a derived `schema` slot is emitted
 - AND no error aborts the operation
 
-### Requirement: Deterministic Golden Fixture
-
-The golden-parity fixture MUST isolate `INNFO_GLOBAL_DIR` and `INNFO_SKILLS_DIR` in-process and in the CLI subprocess, so resolution is deterministic and exercises the fixture blueprint.
-
-#### Scenario: Fixture isolation
-
-- GIVEN the golden-parity fixture
-- WHEN the suite runs on a machine with a real global install
-- THEN resolution uses only the isolated fixture directories

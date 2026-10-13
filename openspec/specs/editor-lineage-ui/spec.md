@@ -3,9 +3,7 @@
 ## Purpose
 
 TBD - created by archiving change 2026-10-01-lineage-single-edge. Update Purpose after archive.
-
 ## Requirements
-
 ### Requirement: Pills and modal use the core parser and resolver
 
 `iNNfo/apps/innfo-editor/src/utils/sourceRef.ts` MUST NOT define `parseForPill`; pill rendering MUST use innfo-core `parseCitation`. `knowledgeStore.ts` `getSourceCitations` MUST resolve citations through the core resolver, not a case-insensitive basename-suffix match. The stale header comment at `sourceRef.ts:8-13` MUST be corrected.
@@ -29,12 +27,17 @@ TBD - created by archiving change 2026-10-01-lineage-single-edge. Update Purpose
 ### Requirement: Explorer classifies files by contract role
 
 The editor explorer (`explorerClassify.ts`) MUST classify files through the `nn-naming-contract` role function, not by folder name or locally defined patterns. Sidecars MUST NOT be offered as models, MUST NOT count toward workspace detection, and MUST NOT appear in the home view's model list.
-(Previously: the requirement also said "The `ConsoleHubView` MUST locate console artifacts as members of the `<stem>_console` family under `artifacts/`, resolved by latest-of-family". `ConsoleHubView` is deleted in S3. The `<stem>_console` family and latest-of-family resolution remain governed by `console-export-cli`.)
+(Previously: the note said the `<stem>_console` family and latest-of-family resolution remain governed by `console-export-cli`. Console artifacts are now the whole-domaiNN `domaiNN_console.html` and scoped `<scope>_console` family members under `artifacts/`, governed by `console-export-cli`; the editor MUST NOT assume a per-model console family.)
 
 #### Scenario: Artifact classified by name
 - GIVEN `artifacts/report_20261002T101500Z.md` without a sidecar
 - WHEN the explorer classifies it
 - THEN it is an artifact
+
+#### Scenario: Scoped console classified as an artifact
+- GIVEN `artifacts/a_console/a_console_20261002T101500Z.html`
+- WHEN the explorer classifies it
+- THEN it is an artifact and not a model
 
 #### Scenario: Sidecar hidden from models
 - GIVEN `sources/import/report.pdf_sidecar_NN.md` in a loaded workspace
@@ -106,3 +109,4 @@ The editor UI MUST render a persistent read-only indicator (badge or banner) in 
 - GIVEN an active document in the editor with `level: 1` (normative spec)
 - WHEN `saveActiveFile` is executed
 - THEN the file is saved to disk without read-only obstruction
+

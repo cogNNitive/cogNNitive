@@ -5,9 +5,7 @@
 One module in innfo-core owns what a `*_NN.md` filename means, what role a file plays, how write-once families are keyed and ordered, and how UTC timestamps are spelled. Every consumer (core, MCP, editor, scripts, preflight) calls it. Folders are write destinations only; they never decide a role.
 
 Terms: the `stem` of a `*_NN.md` file is its filename without the trailing `_NN.md`. `<bp>` is the name of the bluepriNNt the document conforms to, as declared by its `parent_spec`.
-
 ## Requirements
-
 ### Requirement: One contract module owns `_NN.md` filename identity
 
 innfo-core MUST provide a single naming-contract module that is the only place in the repository where the `_NN.md` filename pattern is defined. Every other consumer MUST import its predicates. An automated check (`scripts/lib/nn-name-regex-guard.js`, a `scripts/verify.js` step) MUST fail when a `_NN\.md` filename regex, or a `\d{8}`-stamp builder, is defined in any `.ts`, `.js`, `.vue`, or `.mjs` file outside the contract module, excluding generated files, tests, `legacy/**`, and a per-file allowlist that states a reason for each entry (published-spec URL tooling, which identifies the published L0-L2 specs and not workspace files).
@@ -131,8 +129,8 @@ The contract MUST expose the single predicate (`isModelCandidate`) deciding whet
 
 ### Requirement: Procedure file names
 
-A procedure document MUST be named `<verb>_<noun>_procedures_NN.md` and carry `parent_spec` naming `procedures`. This applies to the 15 non-frozen bluepriNNt procedure files. The procedure id (`procedureIdOf`) MUST be the stem with a trailing `_procedures` removed, underscores converted to hyphens. The procedures in the frozen `iNNfo/specs/bluepriNNts/workspace/procedures/` keep their existing names under the carve-out (8 files once `compile_workspace_hub_NN.md` is retired); their ids MUST follow the same rule (a stem without `_procedures` yields its own stem as id). `procedure_model::` paths MUST point at the actual file name.
-(Previously: "The 9 procedures in the frozen `iNNfo/specs/bluepriNNts/workspace/procedures/`", including `compile_workspace_hub_NN.md`, which is deleted by the hub retirement.)
+A procedure document MUST be named `<verb>_<noun>_procedures_NN.md` and carry `parent_spec` naming `procedures`. This applies to the 15 non-frozen bluepriNNt procedure files. The procedure id (`procedureIdOf`) MUST be the stem with a trailing `_procedures` removed, underscores converted to hyphens. The procedures in the frozen `iNNfo/specs/bluepriNNts/workspace/procedures/` keep their existing names under the carve-out (7 files once `compile_model_console_NN.md` is deleted); their ids MUST follow the same rule (a stem without `_procedures` yields its own stem as id). `procedure_model::` paths MUST point at the actual file name.
+(Previously: the frozen folder count was 8 and the frozen-name example was `compile_model_console_NN.md`, which is deleted.)
 
 #### Scenario: New procedure name and id
 - GIVEN `procedures/generate_video_script_procedures_NN.md`
@@ -140,9 +138,9 @@ A procedure document MUST be named `<verb>_<noun>_procedures_NN.md` and carry `p
 - THEN the id is `generate-video-script`
 
 #### Scenario: Frozen procedure keeps its name
-- GIVEN `iNNfo/specs/bluepriNNts/workspace/procedures/compile_model_console_NN.md` in a frozen bluepriNNt
+- GIVEN `iNNfo/specs/bluepriNNts/workspace/procedures/reconcile_feedback_NN.md` in a frozen bluepriNNt
 - WHEN its id is derived
-- THEN the id is `compile-model-console` and the file is not reported as a violation
+- THEN the id is `reconcile-feedback` and the file is not reported as a violation
 
 ### Requirement: kNNowledge names carry no version
 
@@ -225,3 +223,4 @@ Before any write the contract (`checkPathBudget`) MUST compute the resulting abs
 - GIVEN a domaiNN-relative path of 220 characters on a non-Windows platform
 - WHEN a write is planned
 - THEN a warning is reported and the write is allowed
+

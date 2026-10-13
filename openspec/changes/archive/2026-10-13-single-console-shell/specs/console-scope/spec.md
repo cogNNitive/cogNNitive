@@ -1,5 +1,9 @@
 # Delta for console-scope
 
+## Purpose
+
+Defines the domain-console scope descriptor (`meta.consoleScope`): how a console is narrowed to a view, a model, or a subset of models while remaining the single domain console.
+
 New capability. All requirements are ADDED.
 
 ## ADDED Requirements

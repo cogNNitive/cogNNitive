@@ -1,9 +1,9 @@
-# Delta for console-view-registry
+# Console View Registry Specification
 
-New capability. All requirements are ADDED.
+## Purpose
 
-## ADDED Requirements
-
+Defines the console view registry: registration, discovery of blueprint and custom views, tab mounting, the sandboxed-iframe trust model, standalone single-view export, and the size budget.
+## Requirements
 ### Requirement: registerView contract
 
 The console runtime MUST expose `registerView(def)` where `def` carries `id` (slug: lowercase alphanumerics and hyphens), `title`, `icon`, `order` (number), `kind` (`editable` | `readonly`) and `mount(ctx)`. A definition missing any field, or with a `kind` outside the two values, MUST be rejected with an error naming the field and the view id.
@@ -90,13 +90,20 @@ A view with `kind: readonly` MAY mount static HTML through `ctx.mountHtml(html)`
 
 ### Requirement: Standalone view export
 
-`export-console.mjs --view <id>` MUST produce an artifact containing the bundle plus only that view, with a changeset scoped to it. An unknown id MUST fail with an error listing the available ids.
+`export-console.mjs --view <id>` MUST produce an artifact containing the bundle plus only that view, with a changeset scoped to it. The artifact MUST declare its scope through the shared descriptor `meta.consoleScope = { view, label }` (see `console-scope`), with `models` added when the export also selects a model subset. An unknown id MUST fail with an error listing the available ids.
+(Previously: the scope was implicit in the exporter and not described by a shared descriptor.)
 
 #### Scenario: Scoped export
 - GIVEN a domaiNN with views `timeline` and `procedure`
 - WHEN run with `--view timeline`
 - THEN the artifact mounts only `timeline`
 - AND drafts from it export in a changeset scoped to that view
+- AND `meta.consoleScope.view` is `timeline`
+
+#### Scenario: View over a model subset
+- GIVEN models A and B
+- WHEN run with `--view timeline` and model A selected
+- THEN `meta.consoleScope` carries `view: "timeline"` and `models: [A]`
 
 #### Scenario: Unknown view id
 - GIVEN no view with id `nope`
@@ -148,3 +155,4 @@ The `timeline` and `procedure` consoles MUST be registered views mounted as tabs
 - GIVEN the sample domaiNN exported
 - WHEN the sample view proposes a change
 - THEN the exported changeset contains that change and the header lists the view
+

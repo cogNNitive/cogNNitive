@@ -2,27 +2,18 @@
 
 ## Purpose
 
-Bake resolved citations into the generic model console at compile time, and let a reviewer holding an offline HTML console tell whether a value came from a document, a human, an AI agent, or reviewer feedback — without an MCP session.
-
+Bake resolved citations into the console at export time, and let a reviewer holding an offline HTML console tell whether a value came from a document, a human, an AI agent, or reviewer feedback — without an MCP session.
 ## Requirements
-
 ### Requirement: Compile-time citation payload
 
-Citations MUST be resolved once per element at build time by the single shared builder (`buildConsolePayload`), through an injected resolver, for both the procedure path (via the `build_console_payload` MCP tool) and the CLI. The result MUST be embedded as `el.citations: { "<citationFieldName>": ResolvedCitation[] }` plus document-level `meta.citationsResolvedAt`; this per-field map is the only shape emitted. No citation resolution MUST happen at console runtime; the shipped HTML MUST render only from the embedded payload.
-(Previously: only the compile procedure produced citations, by calling `resolve_sources` itself.)
+Citations MUST be resolved once per element at build time by the single shared builder (`buildConsolePayload`), through an injected resolver, by the CLI. The result MUST be embedded as `el.citations: { "<citationFieldName>": ResolvedCitation[] }` plus document-level `meta.citationsResolvedAt` (and `citationsResolvedAt` per entry of `meta.models`); this per-field map is the only shape emitted. No citation resolution MUST happen at console runtime; the shipped HTML MUST render only from the embedded payload.
+(Previously: also covered the procedure path via the `build_console_payload` MCP tool, with a scenario comparing both producers.)
 
 #### Scenario: Citations embedded per element
 
 - GIVEN a model with an element carrying a populated `sources` field and a `precio_source` field
-- WHEN either the procedure or the CLI builds the console
+- WHEN the CLI builds the console
 - THEN the element has `el.citations.sources` and `el.citations.precio_source`, each an array of `ResolvedCitation`
-
-#### Scenario: Both producers equal
-
-- GIVEN one fixture domaiNN
-- WHEN the CLI and the procedure tool build it
-- THEN `el.citations` in the `innfo-model` slot text is equal across both outputs, after normalizing `meta.citationsResolvedAt`
-- AND when the CLI cannot read a blueprint carrying the schema-typed field (gate 0.3 fallback), the CLI prints a `WARNING` naming `parent_spec` and the `precio_source` scenario applies only to the tool path
 
 #### Scenario: Document-level resolution timestamp
 
@@ -48,7 +39,7 @@ An element compiled without a `citations` payload MUST render exactly as it did 
 
 ### Requirement: Origin-typed citation icons
 
-`renderElement()` MUST place one icon per citation-typed field with resolved citations, as follows:
+The runtime card renderer (`InnfoUI.ElementCard`, driven by `InnfoConsole`) MUST place one icon per citation-typed field with resolved citations, as follows:
 
 - For `sources`-family fields, the icon MUST be placed on the element header.
 - For any other citation-typed field, the icon MUST be placed on that field's row.
@@ -56,10 +47,13 @@ An element compiled without a `citations` payload MUST render exactly as it did 
 - Icons MUST be inline SVG/CSS with no new runtime dependency.
 - A plain field (e.g. `precio`) MUST NOT receive an icon derived from a citation-typed sibling field (e.g. `precio_source`); only the citation-typed field itself is icon-eligible.
 
+The header-level placement MUST hold in a runtime-rendered card even when the `sources` field is not otherwise shown as a field row, and MUST be verified in jsdom.
+(Previously: the placement was defined for `renderElement()` of the model viewer; the runtime only attached icons to existing field rows.)
+
 #### Scenario: Header icon for a sources-family field
 
 - GIVEN an element whose `el.citations.sources` has one resolved entry with `origin: "document"`
-- WHEN the element renders
+- WHEN the runtime renders the element in jsdom
 - THEN the document-origin icon appears on the element header
 
 #### Scenario: Row icon for a non-sources citation field
@@ -110,7 +104,8 @@ Clicking a citation icon MUST open a native `<dialog id="innfo-citation-dialog">
 
 ### Requirement: Consoles emit `innfo-model.meta.sources`
 
-The console payload builder (single source of `innfo-model.meta`, inherited by `export-console` and MCP `build_console_payload`) MUST set `innfo-model.meta.sources` to a single FILE-LEVEL citation of the kNNowledge document the console was compiled from, e.g. `["kNNowledge/Client_NN.md"]` (bare path, no anchor). It MUST NOT copy or union that document's element-level citations; the kNNowledge-to-Source edges are already written once in the kNNowledge body. The file-level hop is staleness-checked by `meta.sha256`. The `export-meta` convention MUST be deleted: nothing MAY emit or read it. The contract example MUST show an `@` citation.
+The console payload builder (single source of `innfo-model.meta`, inherited by `export-console`) MUST set `innfo-model.meta.sources` to a single FILE-LEVEL citation of the kNNowledge document the console was compiled from, e.g. `["kNNowledge/Client_NN.md"]` (bare path, no anchor). It MUST NOT copy or union that document's element-level citations; the kNNowledge-to-Source edges are already written once in the kNNowledge body. The file-level hop is staleness-checked by `meta.sha256`. The `export-meta` convention MUST be deleted: nothing MAY emit or read it. The contract example MUST show an `@` citation.
+(Previously: also named the MCP `build_console_payload` tool as an inheritor, and carried a scenario for a pre-export console lacking `meta.sources`; greenfield, no compatibility scenario is kept.)
 
 #### Scenario: Compiled console cites its kNNowledge document
 - GIVEN a kNNowledge document `kNNowledge/Client_NN.md` whose elements cite `sources/nn/interview.md@## Clients`
@@ -128,11 +123,6 @@ The console payload builder (single source of `innfo-model.meta`, inherited by `
 - GIVEN a console citing `kNNowledge/Client_NN.md`
 - WHEN lineage is traced from the console
 - THEN it reaches the Sources through the kNNowledge document's own `sources::`, not through copied edges
-
-#### Scenario: Pre-existing console without meta.sources
-- GIVEN a console exported before this change and not re-exported
-- WHEN the lineage projection runs
-- THEN it shows no upstream for that console and reports no error
 
 #### Scenario: `export-meta` absent
 - GIVEN the repository after this change
@@ -152,3 +142,4 @@ The console runtime `slugify` in `iNNfo/specs/bluepriNNts/console/innfo-runtime.
 - GIVEN the repository
 - WHEN searched for slugify implementations outside innfo-core and its generated mirror
 - THEN none is found
+

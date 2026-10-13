@@ -4,7 +4,7 @@ Scope note: this delta touches only R-TPD-02. It does not touch R-TPD-04, which 
 
 ## MODIFIED Requirements
 
-### R-TPD-02: Transitive Procedure Discovery from Disk and Frontmatter
+### Requirement: Transitive Procedure Discovery from Disk and Frontmatter
 
 `listTemplateProcedures` and `discoverTransitiveAssets` MUST discover procedures declared in bluepriNNt frontmatter AND procedure markdown files in the package's `procedures/` directory, deduplicating by procedure `id`. The `id` MUST be the file stem with a trailing `_procedures` removed and underscores converted to hyphens (per `nn-naming-contract`). Discovery MUST NOT depend on the `_procedures` suffix being present, because frozen bluepriNNts retain their original names.
 (Previously: the frozen-name scenario used `compile_model_console_NN.md`, which is deleted, and the frozen-folder count read "8 files".)
