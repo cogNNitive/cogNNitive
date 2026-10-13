@@ -84,24 +84,24 @@ Pre-condition: #1A and #1B are applied on `dev`.
 
 ## 6. Releases for #1A to #1C (#1C-3, after the `dev → main` batch)
 
-- [ ] 6.1 Pre-release checklist of `.agents/skills/nn-dev-release/SKILL.md` §2 Step 1 on
+- [x] 6.1 Pre-release checklist of `.agents/skills/nn-dev-release/SKILL.md` §2 Step 1 on
       `origin/main` (green `verify.js --release`, tags strictly greater, release enabled).
       [all requirements]
-- [ ] 6.2 Tag `blueprints-v<next>` (the `changes` template package) with the catalog repin
+- [x] 6.2 Tag `blueprints-v<next>` (the `changes` template package) with the catalog repin
       and stable-ref bump of the release procedure; watch the release workflow.
       [console-view-registry: Changes view]
-- [ ] 6.3 Bump `iNNfo/specs/bluepriNNts/console/package.json`, run
+- [x] 6.3 Bump `iNNfo/specs/bluepriNNts/console/package.json`, run
       `node scripts/build-console-bundle.mjs` and `node scripts/build-console-shells.mjs`,
       commit, then tag `innfo-console-v<next>`. [console-review-mode: Multi-tab-safe,
       durable draft store]
-- [ ] 6.4 Bump `iNNfo/packages/innfo-mcp/package.json`, run `npm run sync:versions`,
+- [x] 6.4 Bump `iNNfo/packages/innfo-mcp/package.json`, run `npm run sync:versions`,
       `build` and `build:bundle`, commit, then tag `innfo-mcp-v<next>`.
       [console-payload-builder: Element Ids and Hashes]
-- [ ] 6.5 Bump `skills/nn-innfo/SKILL.md`, then tag `skills-v<next>`.
+- [x] 6.5 Bump `skills/nn-innfo/SKILL.md`, then tag `skills-v<next>`.
       [provenance-vocabulary: Documentation uses only Source / Citation / Lineage]
 
 ## 7. Verification
 
-- [ ] 7.1 `npm run typecheck`; `npm test` for `innfo-core` and `innfo-mcp`;
+- [x] 7.1 `npm run typecheck`; `npm test` for `innfo-core` and `innfo-mcp`;
       `node scripts/verify.js`; re-export the TestLab domain console and check the Changes
       and Lineage tabs by hand. [all requirements]
