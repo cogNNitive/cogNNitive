@@ -24,9 +24,12 @@ const req = createRequire(import.meta.url)
 const iNNfoDir = join(import.meta.dirname!, '..', '..', '..', '..')
 export const consoleDir = join(iNNfoDir, 'specs', 'bluepriNNts', 'console')
 export const blueprintsDir = join(iNNfoDir, 'specs', 'bluepriNNts')
-export const modelConsolePath = join(blueprintsDir, 'workspace', 'assets', 'model_console.html')
+// SCS: one shell, no model viewer. Every suite boots `artifact_shell.html`
+// through `InnfoConsole.boot`; the retired `model_console.html` /
+// `render-model-viewer.js` are gone.
+export const shellPath = join(consoleDir, 'artifact_shell.html')
 
-const CONSOLE_SOURCES = ['ui-kit.js', 'review.js', 'innfo-runtime.js', 'render-model-viewer.js']
+const CONSOLE_SOURCES = ['ui-kit.js', 'review.js', 'innfo-runtime.js']
 
 type Env = {
   dom: JSDOM
@@ -52,7 +55,7 @@ export function createConsoleEnv() {
     const html =
       shellHtml !== undefined
         ? shellHtml
-        : readFileSync(modelConsolePath, 'utf8')
+        : readFileSync(shellPath, 'utf8')
     const dom = new JSDOM(html, { url: 'http://localhost/', runScripts: 'outside-only' })
     const g = globalThis as any
     g.window = dom.window
@@ -84,27 +87,23 @@ export function createConsoleEnv() {
     delete g.InnfoUI
     delete g.InnfoReview
     delete g.InnfoConsole
-    delete g.InnfoModelViewer
     env = null
   }
 
-  /** Require the four console sources against the current document. */
+  /** Require the three console sources against the current document. */
   function loadConsole() {
     const g = globalThis as any
     delete g.InnfoUI
     delete g.InnfoReview
     delete g.InnfoConsole
-    delete g.InnfoModelViewer
     clearCache()
     g.InnfoUI = req(join(consoleDir, 'ui-kit.js'))
     g.InnfoReview = req(join(consoleDir, 'review.js'))
     g.InnfoConsole = req(join(consoleDir, 'innfo-runtime.js'))
-    g.InnfoModelViewer = req(join(consoleDir, 'render-model-viewer.js'))
     return {
       UI: g.InnfoUI,
       Review: g.InnfoReview,
       Console: g.InnfoConsole,
-      Viewer: g.InnfoModelViewer,
     }
   }
 

@@ -2,7 +2,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
-import { createConsoleEnv, consoleDir, modelConsolePath } from './helpers/console-review-env'
+import { createConsoleEnv, consoleDir, shellPath } from './helpers/console-review-env'
 
 const env = createConsoleEnv()
 
@@ -29,7 +29,7 @@ const sampleModel = {
 }
 
 function renderModelConsole(): void {
-  const html = readFileSync(modelConsolePath, 'utf8')
+  const html = readFileSync(shellPath, 'utf8')
     .replace(
       /(<script type="application\/json" id="innfo-schema">)[\s\S]*?(<\/script>)/,
       `$1${JSON.stringify(sampleSchema)}$2`,
@@ -54,7 +54,6 @@ function enableReview() {
   if (res && res.controller) controllers.push(res.controller)
   const toggle = env.document.querySelector('[data-innfo="review-toggle"]') as HTMLElement
   toggle.dispatchEvent(new env.window.Event('click', { bubbles: true }))
-  mods.Viewer.boot()
   return mods
 }
 

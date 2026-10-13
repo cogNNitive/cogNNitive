@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { createConsoleEnv, modelConsolePath } from './helpers/console-review-env'
+import { createConsoleEnv, shellPath } from './helpers/console-review-env'
 
 const env = createConsoleEnv()
 
@@ -30,7 +30,7 @@ function buildModel(feedbackState?: any[]) {
 }
 
 function renderModelConsole(model = buildModel()): void {
-  const html = readFileSync(modelConsolePath, 'utf8')
+  const html = readFileSync(shellPath, 'utf8')
     .replace(
       /(<script type="application\/json" id="innfo-schema">)[\s\S]*?(<\/script>)/,
       `$1${JSON.stringify(sampleSchema)}$2`,
@@ -58,14 +58,13 @@ function boot(withReview: boolean) {
       new env.window.Event('click', { bubbles: true }),
     )
   }
-  mods.Viewer.boot()
   return mods
 }
 
 describe('console-review-badges (verdict badges from feedbackState)', () => {
   beforeEach(() => {
     controllers = []
-    env.setup(readFileSync(modelConsolePath, 'utf8'))
+    env.setup(readFileSync(shellPath, 'utf8'))
     env.localStorage.clear()
   })
 

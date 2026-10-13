@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { createConsoleEnv, modelConsolePath } from './helpers/console-review-env'
+import { createConsoleEnv, shellPath } from './helpers/console-review-env'
 
 const env = createConsoleEnv()
 
@@ -29,7 +29,7 @@ const model = {
 let controllers: any[] = []
 
 function boot(withReview: boolean) {
-  const html = readFileSync(modelConsolePath, 'utf8')
+  const html = readFileSync(shellPath, 'utf8')
     .replace(
       /(<script type="application\/json" id="innfo-schema">)[\s\S]*?(<\/script>)/,
       `$1${JSON.stringify(sampleSchema)}$2`,
@@ -52,7 +52,6 @@ function boot(withReview: boolean) {
       new env.window.Event('click', { bubbles: true }),
     )
   }
-  mods.Viewer.boot()
   return mods
 }
 
