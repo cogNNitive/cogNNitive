@@ -7,7 +7,7 @@ The domain path in `scripts/export-console.mjs` (`--domain`/`--view`: aggregate 
 Verified against code. Four corrections to the exploration and proposal:
 - **(a)** The runtime already shows `sources` citations, but at field level (`innfo-runtime.js:1733`). It does not put them in the card head. Parity is about where the icons go, not whether they appear.
 - **(b)** `scripts/lib/channel-refs.js` does not exist. Releases are tag-driven (`scripts/release/run-release.js`, `release-keys.js`: keys `skills|blueprints|innfo-mcp|innfo-console`). `sync-versions.mjs` generates the editor `samples.ts`, and `SHIPPED_TEMPLATE_VERSIONS` is gone.
-- **(c)** Ledger `feedbackState[].element_id` is unqualified, but domain element ids are `mId/elId`. `review.js` must qualify them.
+- **(c)** The verdict-ledger parity item was dropped in the 2026-10-13 reconciliation: verdict badges are owned by `2026-10-13-s2c-retire-legacy-provenance` (changeset-derived). This change keeps only per-model `sha256`/`citationsResolvedAt`.
 - **(d)** Nothing produces `meta.sourceUrl` (`payload-builder.ts` never sets it).
 
 ## Architecture Decisions
@@ -18,7 +18,7 @@ Verified against code. Four corrections to the exploration and proposal:
 | D2 | Identity: `renderNavbarIdentity(doc, meta)` replaces `renderNavbarMeta`. The h1 `#innfo-domain-title` gets `textContent`: the single model's title when `meta.models.length === 1`, else `meta.title`. Optional `span.innfo-scope-label` (label). `#innfo-navbar-extra` holds a meta line: Template (`models[0].blueprint`), Version (`models[0].version`), Generated. Missing parts are omitted. The shell h1 default text becomes the neutral `iNNfo Console`. | The exporter writing the title into the shell HTML | One source of truth (the payload). Text-only rendering makes it XSS-inert. |
 | D3 | `sourceUrl`: port the viewer predicate verbatim as `safeSourceHref(url)` in the runtime: a scheme must match `^https?:`; schemeless values are rejected if they start with whitespace or `\`, or are a bare `//`. The link is built with DOM APIs (`a.href`, `textContent`), never `innerHTML`. The tests from `test/console-element-card.test.mjs:292-326` move to a runtime suite. | Drop `sourceUrl` | Proposal assumption 4. Note that no producer exists today, so the exporter does not emit it. See Open Questions. |
 | D4 | Deep links: the card `domId` becomes `'el-' + element.id` (`:1790`), which matches the kit hrefs (`ui-kit.js:657,1255,1391`). `onHash` branches first on `^#el-`: it decodes the id and looks it up in `elements`. No match: no-op. Match: (1) set `focusId`; (2) if the element fails the current filter, the query becomes `concept:<C>`; (3) `tabs.select('explorer', true)` so `fromHash` is not rewritten; (4) `refresh(query, true)`; (5) `mountElementCards` passes `open: el.id === focusId`; (6) `scrollIntoView`. A view-scoped console has no explorer, so it does a no-op. | A kit API to open a card | `setOpen` is closure-private (`ui-kit.js:1160`). Render-driven open needs no kit change. Ids containing `/` are valid for `getElementById`. |
-| D5 | Each `meta.models[i]` gains `sha256`, `feedbackState` and `citationsResolvedAt`, copied from the core builder's per-model `payload.model.meta`. `review.js` `decorateBadges` builds the union of `models[].feedbackState`, mapping `element_id` to `${model.id}/${element_id}`. `state.sourceSha256` = `models[0].sha256` only when `models.length === 1` (a boot-time convenience). The feedback export resolves `meta.source_sha256` from the `meta.models` entry for the model named by `source_knowledge` (see `innfo-console-feedback`), falling back to `state.sourceSha256`/`meta.sha256` only when no entry matches, so a multi-model console gets the right hash. `composeExport` drops `feedbackState` from the copied `models` entries. | A top-level union | The ids must be qualified. One boot-time `source_sha256` cannot represent N models; the export resolves it per exported model. |
+| D5 | Each `meta.models[i]` gains `sha256` and `citationsResolvedAt`, copied from the core builder's per-model `payload.model.meta`. `state.sourceSha256` = `models[0].sha256` only when `models.length === 1` (a boot-time convenience). The feedback export resolves `meta.source_sha256` from the `meta.models` entry for the model named by `source_knowledge` (see `innfo-console-feedback`), falling back to `state.sourceSha256`/`meta.sha256` only when no entry matches, so a multi-model console gets the right hash. (`feedbackState` and its badge union were dropped in the 2026-10-13 reconciliation: verdict badges are owned by `2026-10-13-s2c-retire-legacy-provenance` and derive from the changesets.) | A top-level union | One boot-time `source_sha256` cannot represent N models; the export resolves it per exported model. |
 | D6 | CLI: see "Export modes" below. | A per-model fan-out for `--all` | Matches the `console-export-cli` delta (set semantics). |
 | D7 | MCP removal: delete `tools/build-console-payload.ts` and its `.spec.ts`, plus `server.ts` `:51`, `:635-637` and `:1016-1019`, the `server.spec.ts:151` entry, and `test/console-golden-parity.test.ts`. Checked: the tool is a thin wrapper over core exports (`buildConsolePayload`, `resolveConsoleSchema`, `loadChangesetRecords`, `createFsSourceResolver`, `serializeConsoleSlot`, `parseFeedbackLedger`). All of these stay in use through `console-payload.generated.cjs` (`export-console.mjs:334,632,666`). Nothing moves. | Keep the tool | Its only consumer is the procedure being deleted. |
 | D8 | Bundle: remove `['render-model-viewer.js','InnfoModelViewer']` from `SOURCES` (`console-bundle.js:24`). The shell guard discovers shells by shape (`*.html` with `innfo-config` or the bundle, under `bluepriNNts/`, skipping `/tests/`, `/samples/` and `/procedures/export/`), so deleting `model_console.html` removes it automatically. Only `console-shell-guard.test.js:108-124,168` (>=2 shells, named literal) needs rewriting: assert that `artifact_shell.html` is discovered and that the guard source has no shell-name branch. | — | The guard code is unchanged. |
@@ -42,11 +42,11 @@ Verified against code. Four corrections to the exploration and proposal:
 
     models ─► candidateModels (selection) ─► core buildConsolePayload ×N
           ─► aggregate: qualify ids, meta.models[{id,title,filePath,blueprint,version,
-             sha256,feedbackState,citationsResolvedAt,...}], consoleScope, domainId(+scope)
+             sha256,citationsResolvedAt,...}], consoleScope, domainId(+scope)
           ─► artifact_shell + inline bundle/css/views ─► writeOnce artifacts/<key>_console/
                                                       └► (--domain only) domaiNN_console.html
     browser: Console.boot ─► navbar identity/label/sourceUrl ─► explorer (unless view scope)
-          ─► review.js badges from models[].feedbackState ─► export source_sha256 (1 model)
+          ─► export source_sha256 from models[].sha256 (badges: see S2c)
     --status: read meta.models from every console ─► newest per model ─► sha256 compare
 
 ## File Changes (per slice)
@@ -55,7 +55,7 @@ Verified against code. Four corrections to the exploration and proposal:
 |---|---|---|
 | S1 | `console/innfo-runtime.js` | Modify: `renderNavbarIdentity`, `safeSourceHref`, deep-link `onHash`, `domId`, `focusId` open, header sources via `opts.head`, `sourceSha256` from `models` |
 | S1 | `console/ui-kit.js` | Modify: export a `CitationIcons(field, entries, {onOpen})` helper (ported from the viewer's `citationIcons`) |
-| S1 | `console/review.js` | Modify: `decorateBadges` reads qualified `models[].feedbackState` |
+| S1 | `console/review.js` | Modify: export resolves `source_sha256` from `models[].sha256` (badges are S2c's) |
 | S1 | `console/artifact_shell.html` | Modify: h1 default text, `.innfo-scope-label` CSS (tokens only) |
 | S1 | `innfo-core/tests/console-identity-header.test.ts`, `console-deep-link.test.ts`, `console-source-url.test.ts` | Create |
 | S2 | `scripts/export-console.mjs` | Modify: delete the per-model loop, `latestConsole` and `consoleDirRel`; add scope key/label/`domainId`, `meta.models` state, status scan, arg checks, `outDirAbs` |
@@ -72,7 +72,7 @@ Verified against code. Four corrections to the exploration and proposal:
 ```js
 meta.consoleScope = { view?: string, models?: string[], label: string }
 meta.models[i] = { id, title, filePath, blueprint, version, changeCount, conceptNames,
-  elementCount, sha256, feedbackState: FeedbackStateItem[], citationsResolvedAt? }
+  elementCount, sha256, citationsResolvedAt? }
 ```
 
 ## Testing Strategy (Strict TDD, red first)
@@ -83,7 +83,7 @@ meta.models[i] = { id, title, filePath, blueprint, version, changeCount, concept
 | deep link | revert `domId` to `element.id`; remove the `concept:` switch; drop `open: focusId` |
 | sourceUrl | relax the scheme check to `/^[a-z]+:/i` |
 | header sources | stop passing `opts.head` (icon count in `.innfo-card-head` must be 1 or more) |
-| badges / export | read `meta.feedbackState` instead of `models`; skip id qualification |
+| export hash | read `meta.sha256` instead of `models[].sha256` |
 | scoped export | write scoped output to `domaiNN_console.html`; drop the `::scope:` suffix; compare status against the oldest console |
 | re-pointed suites | every suite asserts a non-empty card count first; the mutation check for each is recorded in apply-progress |
 | bundle drift | flip 1 byte (existing scenario) |

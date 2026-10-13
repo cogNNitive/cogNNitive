@@ -71,38 +71,10 @@ Each element MUST have a reviewed toggle (`ReviewedToggle`) persisted in the dra
 - WHEN the rail renders
 - THEN the total is still 4
 
-### Requirement: Verdict Badges
+## Dropped from this delta (reconciled 2026-10-13)
 
-Elements with entries in the per-model `meta.models[].feedbackState` MUST show a kit `StatusBadge` per status (`pending`, `applied`, `rejected`, `stale`, with count), in whole-domaiNN and scoped consoles alike. Badges MUST derive only from `meta.models[].feedbackState`, never from local drafts, and MUST be visible with review mode off. Entries whose element no longer exists MUST NOT render. Verdicts MUST NOT be settable from the console.
-(Previously: badges derived from the model-level `meta.feedbackState`.)
-
-#### Scenario: Applied badge
-- GIVEN a `meta.models` entry whose `feedbackState` has `{id:"fb-001", status:"applied"}` targeting an element
-- WHEN rendered
-- THEN that element shows an `applied` StatusBadge
-
-#### Scenario: Badge in a scoped console
-- GIVEN a console scoped to one model whose entry carries an `applied` item
-- WHEN rendered
-- THEN the element shows the `applied` StatusBadge
-
-#### Scenario: Stale badge
-- GIVEN an entry with status `stale`
-- WHEN rendered
-- THEN the element shows a `stale` StatusBadge
-
-#### Scenario: Draft is not a verdict
-- GIVEN a local draft and no `feedbackState` entry
-- WHEN rendered
-- THEN no verdict badge appears
-
-#### Scenario: Orphan entry
-- GIVEN an entry targeting a missing element
-- WHEN rendered
-- THEN nothing is rendered for it and no error is thrown
-
-#### Scenario: Unqualified element id is qualified by its model
-- GIVEN a `meta.models` entry for model `mId` whose `feedbackState` item targets the unqualified `element_id: elId`
-- WHEN badges render
-- THEN the badge attaches only to element `mId/elId`
-- AND an item with the same unqualified `elId` under a different model does not attach to `mId/elId`
+The `MODIFIED: Verdict Badges` requirement was dropped. The console spine must not carry
+review verdicts in `meta`, and the badge source (changesets, not the retired verdict ledger)
+is owned by `2026-10-13-s2c-retire-legacy-provenance`. Keeping a `feedbackState` rewrite here
+would build a mechanism that change removes immediately. Scoped-console badge behaviour
+(whole-domaiNN and scoped consoles alike) is preserved in that change's delta.

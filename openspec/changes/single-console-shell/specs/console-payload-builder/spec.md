@@ -4,13 +4,13 @@
 
 ### Requirement: Per-model state in meta.models
 
-For a domain payload (assembled by `scripts/export-console.mjs`), each entry of `meta.models` MUST carry that model's `modelId`, `title`, `modelVersion`, `sha256` (portable sha256 of the raw source content), `feedbackState` (`[{id, source, element_id, status, version}]` from effective ledger statuses; empty when the ledger is absent) and `citationsResolvedAt` (set when at least one citation was resolved for that model). These values come from the core builder's per-model `payload.model.meta` and MUST NOT be discarded during assembly. The same entries MUST appear for a scoped payload, restricted to the scoped models.
+For a domain payload (assembled by `scripts/export-console.mjs`), each entry of `meta.models` MUST carry that model's `modelId`, `title`, `modelVersion`, `sha256` (portable sha256 of the raw source content) and `citationsResolvedAt` (set when at least one citation was resolved for that model). These values come from the core builder's per-model `payload.model.meta` and MUST NOT be discarded during assembly. The same entries MUST appear for a scoped payload, restricted to the scoped models. Review verdicts are NOT carried here; review state derives from the changesets (`console-review-mode` "Verdict Badges").
 
-#### Scenario: Entries carry hash and verdicts
-- GIVEN a domaiNN with models A and B and a ledger entry `applied` for an element of A
+#### Scenario: Entries carry the hash
+- GIVEN a domaiNN with models A and B
 - WHEN the domain payload is built
-- THEN `meta.models` has an entry for A with its `sha256` and an `applied` item in `feedbackState`
-- AND B's entry has its own `sha256` and an empty `feedbackState`
+- THEN `meta.models` has an entry for A with its `sha256`
+- AND B's entry has its own `sha256`
 
 #### Scenario: Scoped payload keeps only scoped entries
 - GIVEN the same domaiNN scoped to model A
@@ -60,23 +60,18 @@ The system MUST NOT expose a `build_console_payload` MCP tool, MUST NOT ship a `
 
 ### Requirement: Payload Meta
 
-`meta` MUST carry `modelId`, `title`, `modelVersion`, `sha256`, `generated` and `feedbackState`. `modelId` MUST be the domaiNN-relative POSIX path minus the `_NN.md`/`.md` suffix and MUST survive a version bump. `sha256` MUST be the portable sha256 of the raw source content. `feedbackState` MUST be `[{id, source, element_id, status, version}]` derived from effective ledger statuses, and MUST be read from `<domaiNN root>/feedback-ledger.jsonl` (empty when absent). A domain payload MUST additionally carry the per-model entries defined by "Per-model state in meta.models".
+`meta` MUST carry `modelId`, `title`, `modelVersion`, `sha256` and `generated`. `modelId` MUST be the domaiNN-relative POSIX path minus the `_NN.md`/`.md` suffix and MUST survive a version bump. `sha256` MUST be the portable sha256 of the raw source content. `meta` MUST NOT carry review verdicts: review state is derived from the changesets (`console-review-mode` "Verdict Badges"). A domain payload MUST additionally carry the per-model entries defined by "Per-model state in meta.models".
 (Previously: also required the procedure path to emit `modelId`, `sha256` and `feedbackState`.)
 
 #### Scenario: Full meta
 - GIVEN a console built by the CLI
 - WHEN its `meta` is read
-- THEN it carries `modelId`, `sha256` and `feedbackState`
+- THEN it carries `modelId` and `sha256`
 
 #### Scenario: Id survives version bump
 - GIVEN a model built at `V_1-0-0` and again at `V_1-0-1`
 - WHEN both payloads are built
 - THEN `meta.modelId` is identical
-
-#### Scenario: Verdict reaches the console
-- GIVEN a ledger whose latest entry for an item is `applied`
-- WHEN the console is built
-- THEN `meta.feedbackState` lists that item as `applied`
 
 ### Requirement: Single Citation Shape
 

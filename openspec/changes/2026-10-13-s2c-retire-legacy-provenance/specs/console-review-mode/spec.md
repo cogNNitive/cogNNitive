@@ -25,3 +25,8 @@ Elements targeted by changeset changes MUST show a kit `StatusBadge` per change 
 - GIVEN a change targeting a missing element
 - WHEN rendered
 - THEN nothing is rendered for it and no error is thrown
+
+#### Scenario: Badges in a scoped console
+- GIVEN an applied change targeting an element, rendered in a whole-domaiNN console and in a console scoped to its model
+- WHEN badges render
+- THEN both consoles show the same `applied` StatusBadge for that element

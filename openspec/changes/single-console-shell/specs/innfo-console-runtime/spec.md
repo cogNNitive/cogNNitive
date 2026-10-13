@@ -69,25 +69,14 @@ When `meta.sourceUrl` is present the navbar MUST show it. It MUST render as a li
 - WHEN the navbar renders
 - THEN no `a` and no `b` element exists and the value is shown as text
 
-### Requirement: Per-model verdict and hash state read from meta.models
+### Requirement: Per-model hash state read from meta.models
 
-Verdict badges and the feedback export `source_sha256` MUST be derived from the per-model entries of `meta.models` (`feedbackState`, `sha256`), including in domain and scoped consoles. The runtime MUST NOT depend on a model-level `meta.feedbackState` or `meta.sha256` being present on a multi-model payload.
-
-#### Scenario: Badge in a scoped console
-- GIVEN a scoped console whose `meta.models[0].feedbackState` has an `applied` item targeting an element
-- WHEN the element renders
-- THEN it shows an `applied` StatusBadge
+The feedback export `source_sha256` MUST be derived from the per-model entries of `meta.models` (`sha256`), including in domain and scoped consoles. The runtime MUST NOT depend on a model-level `meta.sha256` being present on a multi-model payload. Verdict badges are NOT read from `meta.models`: they derive from the changesets (`console-review-mode` "Verdict Badges").
 
 #### Scenario: source_sha256 from meta.models
 - GIVEN a scoped console for one model whose `meta.models[0].sha256` is `H`
 - WHEN a feedback export is built
 - THEN `meta.source_sha256` equals `H`
-
-#### Scenario: Unqualified element id is qualified by its model
-- GIVEN a `meta.models` entry for model `mId` whose `feedbackState` item targets the unqualified `element_id: elId`
-- WHEN badges render
-- THEN the badge attaches only to element `mId/elId`
-- AND an item with the same unqualified `elId` under a different model does not attach to `mId/elId`
 
 ### Requirement: Scoped draft identity
 

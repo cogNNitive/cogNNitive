@@ -24,7 +24,7 @@ console. No backwards-compat, no fallbacks, no legacy ledger entries.
   - `meta.sourceUrl` link with a safe-scheme allowlist;
   - header-level "sources" citation icons, verified in jsdom.
 - Payload/meta fixes:
-  - per-model `sha256`, `feedbackState` and `citationsResolvedAt` in `meta.models`, read there by `review.js` (verdict badges, `source_sha256`);
+  - per-model `sha256` and `citationsResolvedAt` in `meta.models`, read there for staleness and `source_sha256` (verdict badges derive from the changesets);
   - a scope suffix in the draft-store `domainId`.
 - Scope descriptor `meta.consoleScope = { view?, models?, label }`. The model/subset scope stays separate from the view scope, which strips the explorer.
 - `export-console` scoped mode:
@@ -62,10 +62,10 @@ console. No backwards-compat, no fallbacks, no legacy ledger entries.
 - `console-architecture`: one shell; the L3 "Model Custom Consoles" requirement is removed in favor of scoped domain consoles.
 - `innfo-console-runtime`: identity header, deep links, `sourceUrl`, header-level sources icons, `consoleScope.models`/`label`, scoped draft identity.
 - `console-export-cli`: the per-model family is replaced by the scoped mode; `--status`/`--stale` redefined; `--view` may be combined with a model subset.
-- `console-payload-builder`: the MCP tool and procedure parts are removed; `meta.models` carries `sha256`/`feedbackState`/`citationsResolvedAt`.
+- `console-payload-builder`: the MCP tool and procedure parts are removed; `meta.models` carries `sha256`/`citationsResolvedAt`.
 - `console-schema-resolution`: CLI-only.
 - `console-view-registry`: the `--view` scope descriptor shares `consoleScope`.
-- `console-review-mode`, `innfo-console-feedback`: verdict badges read per-model state from `meta.models`.
+- `console-review-mode`, `innfo-console-feedback`: review state derives from the changesets; per-model `sha256` feeds `source_sha256`.
 - `console-ui-kit`, `console-field-citations`: viewer references are dropped; header-level sources go through the runtime.
 - `template-procedures-manifest-and-discovery`: the `compile-model-console` scenario and the stale file count are removed.
 - `nn-naming-contract`: the frozen-procedure example is replaced.
@@ -137,7 +137,7 @@ in [`openspec/changes/2026-10-13-DEPENDENCIES.md`](../2026-10-13-DEPENDENCIES.md
 
 - [ ] `rg "model_console|render-model-viewer|build_console_payload|compile_model_console"` over source, specs and docs finds only archived/permanent history.
 - [ ] A single-model scoped console shows the model title, template, version and generated date. `#el-<id>` opens the card and switches concept.
-- [ ] Verdict badges and `source_sha256` work in a scoped console.
+- [ ] `source_sha256` works in a scoped console.
 - [ ] Scoped export writes under `artifacts/<scope>_console/`, `domaiNN_console.html` is unchanged, and drafts are isolated per scope.
 - [ ] `--status`/`--stale` report correctly from `meta.models` sha256.
 - [ ] Every re-pointed suite fails when its target behavior is broken. `verify.js` and `check-integrity` are green after S5.
