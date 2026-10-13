@@ -67,8 +67,11 @@ block, then specs and docs. Generated mirrors and bundles are rebuilt in the sam
 
 ## Dependencies
 
-After #1C (`changes` collection, slug ids; both slices modify `console-payload-builder`
-and `console-export-cli`, on different requirements). Before S3 and S6. S6 also modifies
+After the console spine (`single-console-shell`: it ADDs `console-payload-builder` "Per-model
+state in meta.models" and drops its `Payload Meta`, `Verdict Badges` and `Reconcile Feedback
+Procedure` deltas to this change) and #1C (`changes` collection, slug ids; #1C and this change
+both modify `console-payload-builder` and `console-export-cli`, on different requirements).
+Before S3 and S6. S6 also modifies
 `console-review-mode` (ADDED `New element draft`) and `console-export-cli` (status, tree,
 selective compilation, write-once) — no requirement is modified by both.
 

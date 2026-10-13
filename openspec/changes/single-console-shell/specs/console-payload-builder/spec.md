@@ -4,7 +4,7 @@
 
 ### Requirement: Per-model state in meta.models
 
-For a domain payload (assembled by `scripts/export-console.mjs`), each entry of `meta.models` MUST carry that model's `modelId`, `title`, `modelVersion`, `sha256` (portable sha256 of the raw source content) and `citationsResolvedAt` (set when at least one citation was resolved for that model). These values come from the core builder's per-model `payload.model.meta` and MUST NOT be discarded during assembly. The same entries MUST appear for a scoped payload, restricted to the scoped models. Review verdicts are NOT carried here; review state derives from the changesets (`console-review-mode` "Verdict Badges").
+For a domain payload (assembled by `scripts/export-console.mjs`), each entry of `meta.models` MUST carry that model's `modelId`, `title`, `modelVersion`, `sha256` (portable sha256 of the raw source content) and `citationsResolvedAt` (set when at least one citation was resolved for that model). These values come from the core builder's per-model `payload.model.meta` and MUST NOT be discarded during assembly. The same entries MUST appear for a scoped payload, restricted to the scoped models.
 
 #### Scenario: Entries carry the hash
 - GIVEN a domaiNN with models A and B
@@ -58,20 +58,10 @@ The system MUST NOT expose a `build_console_payload` MCP tool, MUST NOT ship a `
 - WHEN the slots are serialized
 - THEN the slot text contains no literal `<`
 
-### Requirement: Payload Meta
-
-`meta` MUST carry `modelId`, `title`, `modelVersion`, `sha256` and `generated`. `modelId` MUST be the domaiNN-relative POSIX path minus the `_NN.md`/`.md` suffix and MUST survive a version bump. `sha256` MUST be the portable sha256 of the raw source content. `meta` MUST NOT carry review verdicts: review state is derived from the changesets (`console-review-mode` "Verdict Badges"). A domain payload MUST additionally carry the per-model entries defined by "Per-model state in meta.models".
-(Previously: also required the procedure path to emit `modelId`, `sha256` and `feedbackState`.)
-
-#### Scenario: Full meta
-- GIVEN a console built by the CLI
-- WHEN its `meta` is read
-- THEN it carries `modelId` and `sha256`
-
-#### Scenario: Id survives version bump
-- GIVEN a model built at `V_1-0-0` and again at `V_1-0-1`
-- WHEN both payloads are built
-- THEN `meta.modelId` is identical
+(Removed 2026-10-13: the `MODIFIED: Payload Meta` requirement was dropped. Removing
+`meta.feedbackState` (the verdict-ledger read) is owned by
+`2026-10-13-s2c-retire-legacy-provenance`. The spine contributes only the ADDED per-model
+`sha256`/`citationsResolvedAt` state below.)
 
 ### Requirement: Single Citation Shape
 

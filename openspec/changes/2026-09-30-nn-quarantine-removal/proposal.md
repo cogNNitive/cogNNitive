@@ -30,7 +30,7 @@ as an unchecked tail inside a shipped change.
 - **Close the migration window**, then delete the entire legacy quarantine:
   `iNNfo/packages/innfo-core/src/legacy/`, the two generated bundles
   (`legacy-detect.generated.cjs`, `legacy-migrate.generated.cjs`) and their build
-  entries, `innfo-mcp/src/tools/legacy-hint.ts`, the editor `useLegacyDomain.ts`, the
+  entries, `innfo-mcp/src/tools/legacy-hint.ts`, the
   `./legacy` subpath export, the frozen legacy fixture (`tests/legacy/fixtures/`, with
   `LEGACY.md`) and the `legacy-ledger.yaml` entries and code markers.
 - **Keep the guards.** The empty ledger, the ledger/marker guard and the legacy-write
@@ -52,8 +52,8 @@ as an unchecked tail inside a shipped change.
 ### Affected areas
 - `iNNfo/packages/innfo-core` — delete `src/legacy/`, the `./legacy` export and the
   build entries.
-- `iNNfo/packages/innfo-mcp` (`tools/legacy-hint.ts`), `iNNfo/apps/innfo-editor`
-  (`useLegacyDomain.ts` + its bundle references).
+- `iNNfo/packages/innfo-mcp` (`tools/legacy-hint.ts`). The editor `iNNfo/apps/innfo-editor`
+  (and its `useLegacyDomain.ts`) is already removed by the editor-retirement change (S5).
 - `skills/nn-preflight` / `skills/nn-upgrade` — drop the generated bundles and their
   wiring in `scripts/build-preflight-primitives.mjs` and `verify.js`.
 - `legacy-ledger.yaml` — remove every entry; the file and both guards stay.
@@ -61,7 +61,7 @@ as an unchecked tail inside a shipped change.
 
 ### Verification
 - `rg "legacy:nn-rename/"` (excluding `openspec/**`) returns nothing.
-- Core, MCP, editor and preflight suites pass; `verify.js` and `check-integrity.js`
+- Core, MCP and preflight suites pass; `verify.js` and `check-integrity.js`
   pass with an empty ledger and both guards green.
 - `nn-upgrade --import-as-source` still runs when invoked explicitly.
 
@@ -75,6 +75,10 @@ in a workspace's persisted format changed.
   proceed.
 - Supersedes the deferred S11 tail of `2026-09-29-nn-level-nomenclature-rename`
   (archived).
+- **Reconciliation (2026-10-13):** the editor is deleted by the editor-retirement change
+  (S5), so this change no longer targets it; and the migration half of the quarantine is
+  deleted earlier by S4 (`retire-legacy-migration-flows`), so this change removes only the
+  detection half plus the remaining `legacy-ledger.yaml` entries.
 
 ### Risks
 

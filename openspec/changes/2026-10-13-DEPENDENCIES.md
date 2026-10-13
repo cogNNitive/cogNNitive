@@ -67,12 +67,12 @@ those.
 | Capability / requirement | Spine action | Lineage delta | Resolution |
 |--------------------------|--------------|---------------|------------|
 | `console-architecture` / Level 3 Model Custom Consoles | REMOVED | S3 MODIFIED (duplicate of SCS's ADDED "One Console Shell, Scoped Domain Consoles") | **Drop S3's delta** — it modifies a requirement SCS deletes. |
-| `console-payload-builder` / Payload Meta | MODIFIED (`feedbackState` from the verdict ledger) | S2c MODIFIED (no verdicts; state from `changes`) | **Hard contradiction** — verdict source (question 11). |
-| `console-review-mode` / Verdict Badges | MODIFIED (`meta.models[].feedbackState`) | S2c MODIFIED (`element.history` + `changes`) | **Hard contradiction** — same resolution. |
+| `console-payload-builder` / Payload Meta | (dropped) | S2c MODIFIED (no verdicts) | **Resolved**: the spine drops its delta; S2c owns removing `meta.feedbackState`. |
+| `console-review-mode` / Verdict Badges | (dropped) | S2c MODIFIED (`element.history` + `changes`) | **Resolved**: spine drops its delta; S2c owns badges (scoped-console scenario added). |
 | `console-export-cli` / Status Reporting and Staleness Detection | MODIFIED (newest member of the write-once family) | S6 MODIFIED (stable `artifacts/<stem>_console/<stem>_console.html`) | Re-cut SCS's write-once text to the maintainer's "stable filename" decision. |
 | `console-export-cli` / Selective Compilation and Filtering | MODIFIED (`writeOnce`) | S6 MODIFIED (`writeConsole`, stable path) | Same as above. |
 | `console-export-cli` / Console exports are write-once | MODIFIED | S6 REMOVED | Drop SCS's rewrite if SCS adopts the stable file (question 11); otherwise sequential. |
-| `innfo-console-feedback` / Reconcile Feedback Procedure | MODIFIED (keeps `record_feedback_verdict` + ledger) | S2c REMOVED (ledger retired; apply via `apply_change`) | **Hard contradiction** — same resolution. |
+| `innfo-console-feedback` / Reconcile Feedback Procedure | (dropped) | S2c REMOVED | **Resolved**: spine drops its delta; S2c removes the procedure. |
 | `editor-lineage-ui` / Explorer classifies files by contract role | MODIFIED | S5 REMOVED (editor retired) | Sequential (SCS modifies, S5 removes); SCS's edit is transient, harmless. |
 | `innfo-console-runtime` / `build_console_payload` references | REMOVED (tool + procedure) | S6 references it | **Dangling reference** — S6 must name the surviving mechanism. |
 

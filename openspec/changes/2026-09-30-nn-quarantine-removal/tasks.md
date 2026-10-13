@@ -30,8 +30,8 @@ Decision needed before apply: Yes - the maintainer sign-off in 1.1 gates the who
 
 ## 2. Cleanup (TDD first)
 
-- [ ] 2.1 **RED**: update tests to expect no `./legacy` export, no `detectLegacy`, no hint anywhere (core, MCP, editor, preflight); `legacy-ledger.yaml` with zero entries plus both guards green; `--import-as-source` still works when invoked explicitly. `[legacy-quarantine:Requirement:The cleanup removes the quarantine after sign-off]`
-- [ ] 2.2 **GREEN**: delete `innfo-core/src/legacy/`, the two `*.generated.cjs` bundles and their build entries, `legacy-hint.ts`, `useLegacyDomain.ts`, the migrator fixtures (including `LEGACY.md`) and the frozen legacy domain; remove the ledger entries and markers; remove the `./legacy` export. `[legacy-quarantine:Requirement:The cleanup removes the quarantine after sign-off]`
+- [ ] 2.1 **RED**: update tests to expect no `./legacy` export, no `detectLegacy`, no hint anywhere (core, MCP, preflight; the editor is already gone); `legacy-ledger.yaml` with zero entries plus both guards green; `--import-as-source` still works when invoked explicitly. `[legacy-quarantine:Requirement:The cleanup removes the quarantine after sign-off]`
+- [ ] 2.2 **GREEN**: delete `innfo-core/src/legacy/`, the two `*.generated.cjs` bundles and their build entries, `legacy-hint.ts`, the migrator fixtures (including `LEGACY.md`) and the frozen legacy domain; remove the ledger entries and markers; remove the `./legacy` export. `[legacy-quarantine:Requirement:The cleanup removes the quarantine after sign-off]`
 - [ ] 2.3 Verify `rg "legacy:nn-rename/" -g '!openspec/**'` returns nothing; run Gate G. `[legacy-quarantine:Requirement:The cleanup removes the quarantine after sign-off]`
 
 ## 3. Docs & release
