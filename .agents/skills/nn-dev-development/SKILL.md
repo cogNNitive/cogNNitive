@@ -197,6 +197,27 @@ When the maintainer says the accumulated `dev` work is ready:
 1. **Pre-push integrity gate**: `node scripts/check-integrity.js` and
    `npm run check:versions`. Resolve drift before pushing. Ensure the tree is
    clean and `git push origin dev` succeeds.
+   - **`check-integrity.js` is long and can HANG — run it with a bounded timeout,
+     never an open-ended wait.** Observed 2026-10-13: it stalls with no output after
+     the video-script suite (`synthesizer-guard` → `video-engine-cli`) and never
+     finishes; the isolated `video-engine-cli.test.mjs` runs fine in ~21s, so the
+     hang is environmental, not a batch failure. A stuck gate must never block the
+     merge path. Watch the log mtime — unchanged output for a few minutes means
+     hung, not slow:
+     ```powershell
+     $log = "$env:TEMP\check-integrity.log"
+     $p = Start-Process node -ArgumentList 'scripts/check-integrity.js' -RedirectStandardOutput $log -PassThru
+     $last = (Get-Item $log -ErrorAction SilentlyContinue).Length
+     for ($i = 0; $i -lt 12; $i++) {                 # ~12 min budget
+       Start-Sleep 60
+       if ((Get-Item $log).Length -ne $last) { $last = (Get-Item $log).Length; $i = 0; continue }
+       if ($i -ge 3) { Stop-Process -Id $p.Id -Force; break }   # 3 min flat = hung
+     }
+     ```
+   - **On hang, fall back to `node scripts/verify.js` (157 deterministic steps) as the
+     gate, and say so explicitly** — do not leave the hang silent. `verify.js` covers
+     the batch; `check-integrity.js` is a superset whose extra reach is not worth an
+     unbounded wait. Record the hang as its own issue, not as a batch blocker.
 2. **Server-side fast-forward (`dev → main`)** — never checks out `main`, leaves the tree
    untouched:
    ```powershell
