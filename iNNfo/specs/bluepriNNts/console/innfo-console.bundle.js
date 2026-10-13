@@ -1118,85 +1118,163 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return m ? m[1] : v
   }
 
-  // Type-aware read rendering for a field value. Returns null when the value
-  // should fall back to the plain KuBadge text (string/number/select/etc.), so
-  // existing output is unchanged for the common case.
+  // Type-aware read rendering for a field value. Returns a DOM node, or null
+  // when the value should fall back to the plain KuBadge text (string, empty
+  // select, etc.), so existing output is unchanged for the common case.
+  //
+  // FIELD_RENDERERS is keyed by the declared field type — the L1 set
+  // (iNNfo_V_0-4-0 §Field Definition: string, select, reference, markdown_inline,
+  // markdown_file, image, file, video, audio, url, knowledge, citation) plus the
+  // legacy aliases older payloads still emit. reference/citation have no entry:
+  // FieldRow resolves them to ElementPill / CitationIcon from data.ref and
+  // data.citations. Value-shape renderers (boolean / list / object / url) and
+  // shape heuristics (image / asset path) run regardless of the declared type,
+  // matching the console's runtime-detected payloads.
+  var FIELD_RENDERERS = {
+    boolean: renderFieldBoolean,
+    select: renderFieldSelect,
+    markdown: renderFieldMarkdown,
+    markdown_inline: renderFieldMarkdown,
+    markdown_file: renderFieldFile,
+    image: renderFieldImage,
+    image_url: renderFieldImage,
+    asset: renderFieldImage,
+    file: renderFieldFile,
+    video: renderFieldMedia,
+    audio: renderFieldMedia,
+    url: renderFieldUrl,
+    code: renderFieldCode,
+    knowledge: renderFieldFile,
+  }
+
+  function renderFieldBoolean(d, doc) {
+    var b = makeEl(doc, 'span', 'innfo-field-bool', d.value ? 'Yes' : 'No')
+    b.setAttribute('data-value', d.value ? 'true' : 'false')
+    return b
+  }
+
+  function renderFieldSelect(d, doc) {
+    var v = d.value == null ? '' : String(d.value)
+    if (!v.trim()) return null
+    var pill = makeEl(doc, 'span', 'innfo-field-select', v)
+    pill.setAttribute('data-value', v)
+    return pill
+  }
+
+  function renderFieldUrl(d, doc) {
+    var a = makeEl(doc, 'a', 'innfo-field-url', d.value)
+    a.setAttribute('href', d.value)
+    a.setAttribute('target', '_blank')
+    a.setAttribute('rel', 'noopener noreferrer')
+    return a
+  }
+
+  function renderFieldCode(d, doc) {
+    return makeEl(doc, 'code', 'innfo-field-code', d.value == null ? '' : String(d.value))
+  }
+
+  function renderFieldMarkdown(d, doc) {
+    return makeEl(doc, 'span', 'innfo-field-markdown', d.value == null ? '' : String(d.value))
+  }
+
+  function renderFieldList(d, doc) {
+    return makeEl(doc, 'span', 'innfo-ku-value innfo-field-list', d.value.map(String).join(', '))
+  }
+
+  function renderFieldObject(d, doc) {
+    var chipWrap = makeEl(doc, 'span', 'innfo-ku-value innfo-obj-chips')
+    Object.keys(d.value).forEach(function (k) {
+      var chip = makeEl(doc, 'span', 'innfo-obj-chip')
+      chip.appendChild(makeEl(doc, 'span', 'innfo-obj-chip-k', k))
+      var rawV = d.value[k]
+      var vNode = makeEl(doc, 'span', 'innfo-obj-chip-v', rawV == null ? '' : String(rawV))
+      if (rawV === true || rawV === 'true') vNode.setAttribute('data-bool', 'true')
+      else if (rawV === false || rawV === 'false') vNode.setAttribute('data-bool', 'false')
+      chip.appendChild(vNode)
+      chipWrap.appendChild(chip)
+    })
+    return chipWrap
+  }
+
+  function renderFieldImage(d, doc) {
+    if (d.name === 'sources') return null
+    if (typeof d.value !== 'string' || !looksLikeImageValue(d.value)) return null
+    var normImgPath = normalizeAssetPath(d.value)
+    var imgWrap = makeEl(doc, 'span', 'innfo-ku-value innfo-field-image-wrap')
+    var img = makeEl(doc, 'img', 'innfo-field-image')
+    img.setAttribute('src', normImgPath)
+    img.setAttribute('alt', String(d.name || ''))
+    img.setAttribute('loading', 'lazy')
+    img.addEventListener('error', function () {
+      var cur = img.getAttribute('src') || ''
+      var relMatch = !img.getAttribute('data-retried') && cur.match(/^.+?\b((?:sources|kNNowledge|assets|evidence)\/.+)$/)
+      if (relMatch) {
+        img.setAttribute('data-retried', '1')
+        img.setAttribute('src', relMatch[1])
+        return
+      }
+      if (img.parentNode) img.parentNode.removeChild(img)
+    })
+    imgWrap.appendChild(img)
+    imgWrap.appendChild(makeEl(doc, 'code', 'innfo-file-pill-path', normImgPath))
+    return imgWrap
+  }
+
+  function renderFieldFile(d, doc) {
+    var raw = String(d.value == null ? '' : d.value)
+      .replace(/^\[\[\s*/, '')
+      .replace(/\s*\]\]$/, '')
+    var cleanPath = normalizeAssetPath(raw)
+    var filePill = makeEl(doc, 'span', 'innfo-ku-value innfo-file-pill')
+    var fileIcon = makeEl(doc, 'span', 'innfo-file-pill-icon')
+    fileIcon.innerHTML = icon('cite-document', 12)
+    filePill.appendChild(fileIcon)
+    filePill.appendChild(makeEl(doc, 'code', 'innfo-file-pill-path', cleanPath))
+    return filePill
+  }
+
+  function renderFieldMedia(d, doc) {
+    if (typeof d.value !== 'string' || !d.value.trim()) return null
+    var src = normalizeAssetPath(d.value)
+    var tag = String(d.type || '').toLowerCase() === 'audio' ? 'audio' : 'video'
+    var media = makeEl(doc, tag, 'innfo-field-media')
+    media.setAttribute('controls', 'controls')
+    media.setAttribute('src', src)
+    media.setAttribute('preload', 'metadata')
+    var wrap = makeEl(doc, 'span', 'innfo-ku-value innfo-field-media-wrap')
+    wrap.appendChild(media)
+    wrap.appendChild(makeEl(doc, 'code', 'innfo-file-pill-path', src))
+    return wrap
+  }
+
+  function isAssetPath(value) {
+    if (typeof value !== 'string') return false
+    return /^(?:.+?\/)?(?:sources|kNNowledge|assets|evidence)\/[^\s]+\.[a-z0-9]{2,5}$/i.test(value.replace(/\\/g, '/'))
+  }
+
   function FieldValue(data, opts) {
     var doc = resolveDoc(opts)
     var d = data && typeof data === 'object' ? data : {}
     var value = d.value
     var type = String(d.type || '').toLowerCase()
-    if (type === 'boolean' || typeof value === 'boolean') {
-      var b = makeEl(doc, 'span', 'innfo-field-bool', value ? 'Yes' : 'No')
-      b.setAttribute('data-value', value ? 'true' : 'false')
-      return b
+
+    // 1. Value-shape renderers, independent of the declared type.
+    if (type === 'boolean' || typeof value === 'boolean') return renderFieldBoolean(d, doc)
+    if (Array.isArray(value)) return renderFieldList(d, doc)
+    if (value !== null && typeof value === 'object') return renderFieldObject(d, doc)
+    if (typeof value === 'string' && /^https?:\/\//i.test(value)) return renderFieldUrl(d, doc)
+
+    // 2. Declared-type renderer.
+    var byType = FIELD_RENDERERS[type]
+    if (byType) {
+      var typed = byType(d, doc)
+      if (typed) return typed
     }
-    if (Array.isArray(value)) {
-      return makeEl(doc, 'span', 'innfo-ku-value innfo-field-list', value.map(String).join(', '))
-    }
-    if (value !== null && typeof value === 'object') {
-      var chipWrap = makeEl(doc, 'span', 'innfo-ku-value innfo-obj-chips')
-      Object.keys(value).forEach(function (k) {
-        var chip = makeEl(doc, 'span', 'innfo-obj-chip')
-        chip.appendChild(makeEl(doc, 'span', 'innfo-obj-chip-k', k))
-        var rawV = value[k]
-        var vNode = makeEl(doc, 'span', 'innfo-obj-chip-v', rawV == null ? '' : String(rawV))
-        if (rawV === true || rawV === 'true') vNode.setAttribute('data-bool', 'true')
-        else if (rawV === false || rawV === 'false') vNode.setAttribute('data-bool', 'false')
-        chip.appendChild(vNode)
-        chipWrap.appendChild(chip)
-      })
-      return chipWrap
-    }
-    if (typeof value === 'string' && /^https?:\/\//i.test(value)) {
-      var a = makeEl(doc, 'a', 'innfo-field-url', value)
-      a.setAttribute('href', value)
-      a.setAttribute('target', '_blank')
-      a.setAttribute('rel', 'noopener noreferrer')
-      return a
-    }
-    if (type === 'code') {
-      return makeEl(doc, 'code', 'innfo-field-code', value == null ? '' : String(value))
-    }
-    if (type === 'markdown' || type === 'markdown_inline') {
-      return makeEl(doc, 'span', 'innfo-field-markdown', value == null ? '' : String(value))
-    }
-    if (type === 'image' || type === 'image_url' || type === 'asset' || type === 'video' || type === 'audio' || (typeof value === 'string' && d.name !== 'sources' && looksLikeImageValue(value))) {
-      if (typeof value === 'string' && looksLikeImageValue(value)) {
-        var normImgPath = normalizeAssetPath(value)
-        var imgWrap = makeEl(doc, 'span', 'innfo-ku-value innfo-field-image-wrap')
-        var img = makeEl(doc, 'img', 'innfo-field-image')
-        img.setAttribute('src', normImgPath)
-        img.setAttribute('alt', String(d.name || ''))
-        img.setAttribute('loading', 'lazy')
-        img.addEventListener('error', function () {
-          var cur = img.getAttribute('src') || ''
-          var relMatch = !img.getAttribute('data-retried') && cur.match(/^.+?\b((?:sources|kNNowledge|assets|evidence)\/.+)$/)
-          if (relMatch) {
-            img.setAttribute('data-retried', '1')
-            img.setAttribute('src', relMatch[1])
-            return
-          }
-          if (img.parentNode) img.parentNode.removeChild(img)
-        })
-        imgWrap.appendChild(img)
-        imgWrap.appendChild(makeEl(doc, 'code', 'innfo-file-pill-path', normImgPath))
-        return imgWrap
-      }
-    }
-    if (
-      type === 'file' ||
-      (typeof value === 'string' &&
-        !looksLikeImageValue(value) &&
-        /^(?:.+?\/)?(?:sources|kNNowledge|assets|evidence)\/[^\s]+\.[a-z0-9]{2,5}$/i.test(value.replace(/\\/g, '/')))
-    ) {
-      var cleanPath = normalizeAssetPath(String(value == null ? '' : value))
-      var filePill = makeEl(doc, 'span', 'innfo-ku-value innfo-file-pill')
-      var fileIcon = makeEl(doc, 'span', 'innfo-file-pill-icon')
-      fileIcon.innerHTML = icon('cite-document', 12)
-      filePill.appendChild(fileIcon)
-      filePill.appendChild(makeEl(doc, 'code', 'innfo-file-pill-path', cleanPath))
-      return filePill
+
+    // 3. Shape heuristics for values with no declared (or recognized) type.
+    if (typeof value === 'string') {
+      if (d.name !== 'sources' && looksLikeImageValue(value)) return renderFieldImage(d, doc)
+      if (isAssetPath(value)) return renderFieldFile(d, doc)
     }
     return null
   }
