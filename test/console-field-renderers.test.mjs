@@ -74,6 +74,39 @@ describe('FieldValue (type-aware read rendering)', () => {
     assert.match(node.textContent, /sources\/import\/photo\.png/)
   })
 
+  it('renders select fields as a value pill and empty select as null', () => {
+    const document = dom()
+    const node = UI.FieldValue({ name: 'status', value: 'MVP', type: 'select' })
+    document.body.appendChild(node)
+    assert.ok(node.classList.contains('innfo-field-select'))
+    assert.equal(node.textContent, 'MVP')
+    assert.equal(UI.FieldValue({ name: 'status', value: '', type: 'select' }), null)
+  })
+
+  it('renders video and audio fields as native media players', () => {
+    const document = dom()
+    const video = UI.FieldValue({ name: 'clip', value: 'sources/import/demo.mp4', type: 'video' })
+    const audio = UI.FieldValue({ name: 'interview', value: 'sources/import/interview.mp3', type: 'audio' })
+    document.body.appendChild(video)
+    document.body.appendChild(audio)
+    const v = video.querySelector('video.innfo-field-media')
+    const a = audio.querySelector('audio.innfo-field-media')
+    assert.ok(v, 'video player rendered')
+    assert.equal(v.getAttribute('src'), 'sources/import/demo.mp4')
+    assert.ok(v.hasAttribute('controls'))
+    assert.ok(a, 'audio player rendered')
+    assert.equal(a.getAttribute('src'), 'sources/import/interview.mp3')
+  })
+
+  it('renders knowledge fields as a document pill, stripping wikilink brackets', () => {
+    const document = dom()
+    const node = UI.FieldValue({ name: 'system', value: '[[kNNowledge/billing_NN.md]]', type: 'knowledge' })
+    document.body.appendChild(node)
+    assert.ok(node.classList.contains('innfo-file-pill'))
+    assert.match(node.textContent, /kNNowledge\/billing_NN\.md/)
+    assert.doesNotMatch(node.textContent, /\[\[|\]\]/)
+  })
+
   it('FieldRow keeps the plain field badge for strings but types a boolean', () => {
     const document = dom()
     const plain = UI.FieldRow({ name: 'f', value: 'v' })

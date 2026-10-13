@@ -6434,6 +6434,8 @@ button.btn-primary:hover:not(:disabled) {
 [data-innfo-component="element-card"] .innfo-card-fields > .innfo-ku-badge[data-ku-kind="field"] > .innfo-field-code,
 [data-innfo-component="element-card"] .innfo-card-fields > .innfo-ku-badge[data-ku-kind="field"] > .innfo-field-markdown,
 [data-innfo-component="element-card"] .innfo-card-fields > .innfo-ku-badge[data-ku-kind="field"] > .innfo-field-url,
+[data-innfo-component="element-card"] .innfo-card-fields > .innfo-ku-badge[data-ku-kind="field"] > .innfo-field-select,
+[data-innfo-component="element-card"] .innfo-card-fields > .innfo-ku-badge[data-ku-kind="field"] > .innfo-field-media-wrap,
 [data-innfo-component="element-card"] .innfo-card-fields > .innfo-ku-badge[data-ku-kind="field"] > .innfo-field-image,
 [data-innfo-component="element-card"] .innfo-card-fields > .innfo-ku-badge[data-ku-kind="field"] > [data-ku-kind="reference"],
 [data-innfo-component="element-card"] .innfo-card-fields > .innfo-ku-badge[data-ku-kind="field"] > [data-ku-kind="element"],
@@ -6446,6 +6448,29 @@ button.btn-primary:hover:not(:disabled) {
   border-radius: 6px;
   border: 1px solid var(--innfo-border, #e5e5e5);
   object-fit: cover;
+  display: block;
+}
+.innfo-field-select {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15em 0.55em;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  background: var(--innfo-surface-2, #f1f5f9);
+  color: var(--innfo-text, #0f172a);
+  border: 1px solid var(--innfo-border, #e5e5e5);
+}
+.innfo-field-media-wrap {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+}
+.innfo-field-media {
+  max-width: 260px;
+  border-radius: 6px;
+  border: 1px solid var(--innfo-border, #e5e5e5);
   display: block;
 }
 [data-innfo-component="element-card"] .innfo-card-body > .innfo-rel-list,
