@@ -35,12 +35,12 @@ Conventions:
 
 ## Phase S2: Scoped export (single path)
 
-- [ ] S2.1 RED `scripts/export-console.test.mjs`: selection writes `artifacts/<key>_console/` write-once, never `domaiNN_console.html`; keys `<stem>` / `<firstStem>-plus<N-1>-<hash6>`; `meta.consoleScope={models,label}`; `domainId` has `::scope:<hash8>`, order-independent. Mutations: write to `domaiNN_console.html`; drop suffix. Deps: S1.
-- [ ] S2.2 GREEN `scripts/export-console.mjs`: delete per-model loop (:817-887), `latestConsole`, `consoleDirRel`; add scope key/label/`domainId`. Deps: S2.1.
-- [ ] S2.3 RED+GREEN `meta.models[]` gains `sha256` and `citationsResolvedAt` from core per-model `payload.model.meta`; `composeExport` copies them without a verdict field. Test in `export-console.test.mjs`. Deps: S2.2.
-- [ ] S2.4 RED+GREEN arg checks: `--domain` + selection exits 2; `--view` alone keeps `artifacts/<view>_view/`; `--view` + selection writes `artifacts/<view>-<key>_view/`; `:415` check becomes `view && domain`; no selection exits non-zero; `buildDomainHtml` receives `outDirAbs` (image rebasing test). Deps: S2.2, T0.5.
-- [ ] S2.5 RED+GREEN `--status`/`--stale`/`--tree`: `inspectModelStatus` scans `domaiNN_console.html` + newest of each `artifacts/*_console/`; newest `meta.generated` listing the model by `filePath`; sha256/version compare; old consoles without `meta.models` read `uncompiled`; `--stale` = one scoped console over non-fresh models. Mutation: compare against oldest console. Deps: S2.3.
-- [ ] S2.6 Update `test/console-export*.test.mjs`, `test/helpers/console-artifacts.mjs`, `test/testlab-coverage.test.mjs`; regenerate testlab fixtures. Verify: `NODE test/console-export*.test.mjs scripts/export-console.test.mjs test/testlab-coverage.test.mjs`. Deps: S2.5.
+- [x] S2.1 RED `scripts/export-console.test.mjs`: selection writes `artifacts/<key>_console/` write-once, never `domaiNN_console.html`; keys `<stem>` / `<firstStem>-plus<N-1>-<hash6>`; `meta.consoleScope={models,label}`; `domainId` has `::scope:<hash8>`, order-independent. Mutations: write to `domaiNN_console.html`; drop suffix. Deps: S1.
+- [x] S2.2 GREEN `scripts/export-console.mjs`: delete per-model loop (:817-887), `latestConsole`, `consoleDirRel`; add scope key/label/`domainId`. Deps: S2.1.
+- [x] S2.3 RED+GREEN `meta.models[]` gains `sha256` and `citationsResolvedAt` from core per-model `payload.model.meta`; `composeExport` copies them without a verdict field. Test in `export-console.test.mjs`. Deps: S2.2.
+- [x] S2.4 RED+GREEN arg checks: `--domain` + selection exits 2; `--view` alone keeps `artifacts/<view>_view/`; `--view` + selection writes `artifacts/<view>-<key>_view/`; `:415` check becomes `view && domain`; no selection exits non-zero; `buildDomainHtml` receives `outDirAbs` (image rebasing test). Deps: S2.2, T0.5.
+- [x] S2.5 RED+GREEN `--status`/`--stale`/`--tree`: `inspectModelStatus` scans `domaiNN_console.html` + newest of each `artifacts/*_console/`; newest `meta.generated` listing the model by `filePath`; sha256/version compare; old consoles without `meta.models` read `uncompiled`; `--stale` = one scoped console over non-fresh models. Mutation: compare against oldest console. Deps: S2.3.
+- [x] S2.6 Update `test/console-export*.test.mjs`, `test/helpers/console-artifacts.mjs`, `test/testlab-coverage.test.mjs`; regenerate testlab fixtures. Verify: `NODE test/console-export*.test.mjs scripts/export-console.test.mjs test/testlab-coverage.test.mjs` (run with `--test-concurrency=1`; parallel file runs crash in this environment). Deps: S2.5.
 
 ## Phase S3: Re-point suites (split S3a helper+review, S3b rest)
 

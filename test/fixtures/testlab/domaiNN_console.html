@@ -10,7 +10,7 @@ procedure bluepriNNt bluepriNNt:procedures/assets/console-view-procedure.js sha2
          appends the hashes to script-src when it inlines the bundle and views. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-v5FI9ixVWruIlmEzyVBMORHpQCBsq+9jMyKqn9S9UzQ=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
+      content="default-src 'none'; script-src 'self' https://cdn.jsdelivr.net 'sha256-KM/z5YHcaky2/2Iky54PI6PNGip2bCynKbeeE9/24Q0=' 'sha256-4NlEAVPk23F2/SBzfm7pw21hHsmTYbWUk9CUCFzsHtU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; frame-src 'self' blob: data: about:; connect-src 'self'; object-src 'none'; base-uri 'none'"
     />
     <title>iNNfo Console</title>
     <!--
@@ -6464,6 +6464,8 @@ button.btn-primary:hover:not(:disabled) {
 [data-innfo-component="element-card"] .innfo-card-fields > .innfo-ku-badge[data-ku-kind="field"] > .innfo-field-code,
 [data-innfo-component="element-card"] .innfo-card-fields > .innfo-ku-badge[data-ku-kind="field"] > .innfo-field-markdown,
 [data-innfo-component="element-card"] .innfo-card-fields > .innfo-ku-badge[data-ku-kind="field"] > .innfo-field-url,
+[data-innfo-component="element-card"] .innfo-card-fields > .innfo-ku-badge[data-ku-kind="field"] > .innfo-field-select,
+[data-innfo-component="element-card"] .innfo-card-fields > .innfo-ku-badge[data-ku-kind="field"] > .innfo-field-media-wrap,
 [data-innfo-component="element-card"] .innfo-card-fields > .innfo-ku-badge[data-ku-kind="field"] > .innfo-field-image,
 [data-innfo-component="element-card"] .innfo-card-fields > .innfo-ku-badge[data-ku-kind="field"] > [data-ku-kind="reference"],
 [data-innfo-component="element-card"] .innfo-card-fields > .innfo-ku-badge[data-ku-kind="field"] > [data-ku-kind="element"],
@@ -6476,6 +6478,29 @@ button.btn-primary:hover:not(:disabled) {
   border-radius: 6px;
   border: 1px solid var(--innfo-border, #e5e5e5);
   object-fit: cover;
+  display: block;
+}
+.innfo-field-select {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15em 0.55em;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  background: var(--innfo-surface-2, #f1f5f9);
+  color: var(--innfo-text, #0f172a);
+  border: 1px solid var(--innfo-border, #e5e5e5);
+}
+.innfo-field-media-wrap {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+}
+.innfo-field-media {
+  max-width: 260px;
+  border-radius: 6px;
+  border: 1px solid var(--innfo-border, #e5e5e5);
   display: block;
 }
 [data-innfo-component="element-card"] .innfo-card-body > .innfo-rel-list,
@@ -7077,6 +7102,7 @@ button.btn-primary:hover:not(:disabled) {
         border-radius: var(--radius-sm);
       }
       .innfo-domain-title { margin: 0; font-size: var(--innfo-fs-title, 1.25rem); font-weight: 800; letter-spacing: -0.02em; }
+    .innfo-scope-label { font-size: 0.8rem; color: var(--muted); font-weight: 500; }
       .innfo-mode { font-size: 0.8rem; color: var(--muted); }
       .innfo-mode strong { color: var(--text); }
 
@@ -7298,7 +7324,7 @@ button.btn-primary:hover:not(:disabled) {
     <header class="innfo-navbar">
       <div class="innfo-brand">
         <span class="innfo-badge-domain">DomaiNN</span>
-        <h1 class="innfo-domain-title" id="innfo-domain-title">Domain Console</h1>
+        <h1 class="innfo-domain-title" id="innfo-domain-title">iNNfo Console</h1>
       </div>
       <div class="innfo-mode" id="innfo-navbar-extra"></div>
     </header>
@@ -7511,9 +7537,9 @@ button.btn-primary:hover:not(:disabled) {
     "title": "testlab Domain",
     "model": "testlab",
     "modelId": "testlab",
-    "domainId": "testlab-781d2fa1",
+    "domainId": "testlab-7d653277",
     "modelVersion": "V_1-0-187773049",
-    "generated": "2026-10-13T04:53:36.790Z",
+    "generated": "2026-10-13T15:33:59.977Z",
     "models": [
       {
         "id": "kNNowledge/TestLab_coverage_TestLab",
@@ -7521,6 +7547,11 @@ button.btn-primary:hover:not(:disabled) {
         "filePath": "TestLab_coverage_TestLab_NN.md",
         "blueprint": "TestLab",
         "version": "V_0-1-1",
+        "sha256": "5d46e7480313fb5189330ada0c354d610360c19bbbee67c2e8758b11fcac173f",
+        "citationsResolvedAt": "2026-10-13T15:33:59.962Z",
+        "sources": [
+          "kNNowledge/TestLab_coverage_TestLab_NN.md"
+        ],
         "changeCount": 0,
         "conceptNames": [
           "Concept 1",
@@ -7535,6 +7566,11 @@ button.btn-primary:hover:not(:disabled) {
         "filePath": "TestLab_procedures_TestLab_procedures_NN.md",
         "blueprint": "procedures",
         "version": "V_0-1-0",
+        "sha256": "514759823f31ac709d33b37308d1e4512cff31729af6cf44a4131a3559c2b251",
+        "citationsResolvedAt": null,
+        "sources": [
+          "kNNowledge/TestLab_procedures_TestLab_procedures_NN.md"
+        ],
         "changeCount": 0,
         "conceptNames": [
           "Procedure",
@@ -9569,6 +9605,32 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return btn
   }
 
+  // Header-level citation icons: one CitationIcon per distinct origin/error
+  // variant, in canonical order. Returns an array of nodes (empty when nothing to
+  // show), so `ElementCard` can append it to `.innfo-card-head` via `opts.head`.
+  function CitationIcons(fieldName, entries, opts) {
+    var list = Array.isArray(entries) ? entries : []
+    if (!list.length) return []
+    var doc = resolveDoc(opts)
+    var present = {}
+    list.forEach(function (entry) {
+      var raw = entry && entry.error ? 'error' : entry && entry.origin
+      present[CITATION_ORIGIN_LABELS[raw] ? raw : 'document'] = true
+    })
+    var wrap = makeEl(doc, 'span', 'cite-icons')
+    var order = ['error', 'agent', 'human', 'reviewer', 'document']
+    order.forEach(function (variant) {
+      if (!present[variant]) return
+      wrap.appendChild(
+        CitationIcon(
+          { variant: variant, field: fieldName },
+          { doc: doc, onOpen: opts && typeof opts.onOpen === 'function' ? opts.onOpen : undefined },
+        ),
+      )
+    })
+    return wrap.children.length ? [wrap] : []
+  }
+
   function normalizeAssetPath(v) {
     if (typeof v !== 'string') return ''
     var s = v.replace(/\\/g, '/')
@@ -9581,85 +9643,163 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return m ? m[1] : v
   }
 
-  // Type-aware read rendering for a field value. Returns null when the value
-  // should fall back to the plain KuBadge text (string/number/select/etc.), so
-  // existing output is unchanged for the common case.
+  // Type-aware read rendering for a field value. Returns a DOM node, or null
+  // when the value should fall back to the plain KuBadge text (string, empty
+  // select, etc.), so existing output is unchanged for the common case.
+  //
+  // FIELD_RENDERERS is keyed by the declared field type — the L1 set
+  // (iNNfo_V_0-4-0 §Field Definition: string, select, reference, markdown_inline,
+  // markdown_file, image, file, video, audio, url, knowledge, citation) plus the
+  // legacy aliases older payloads still emit. reference/citation have no entry:
+  // FieldRow resolves them to ElementPill / CitationIcon from data.ref and
+  // data.citations. Value-shape renderers (boolean / list / object / url) and
+  // shape heuristics (image / asset path) run regardless of the declared type,
+  // matching the console's runtime-detected payloads.
+  var FIELD_RENDERERS = {
+    boolean: renderFieldBoolean,
+    select: renderFieldSelect,
+    markdown: renderFieldMarkdown,
+    markdown_inline: renderFieldMarkdown,
+    markdown_file: renderFieldFile,
+    image: renderFieldImage,
+    image_url: renderFieldImage,
+    asset: renderFieldImage,
+    file: renderFieldFile,
+    video: renderFieldMedia,
+    audio: renderFieldMedia,
+    url: renderFieldUrl,
+    code: renderFieldCode,
+    knowledge: renderFieldFile,
+  }
+
+  function renderFieldBoolean(d, doc) {
+    var b = makeEl(doc, 'span', 'innfo-field-bool', d.value ? 'Yes' : 'No')
+    b.setAttribute('data-value', d.value ? 'true' : 'false')
+    return b
+  }
+
+  function renderFieldSelect(d, doc) {
+    var v = d.value == null ? '' : String(d.value)
+    if (!v.trim()) return null
+    var pill = makeEl(doc, 'span', 'innfo-field-select', v)
+    pill.setAttribute('data-value', v)
+    return pill
+  }
+
+  function renderFieldUrl(d, doc) {
+    var a = makeEl(doc, 'a', 'innfo-field-url', d.value)
+    a.setAttribute('href', d.value)
+    a.setAttribute('target', '_blank')
+    a.setAttribute('rel', 'noopener noreferrer')
+    return a
+  }
+
+  function renderFieldCode(d, doc) {
+    return makeEl(doc, 'code', 'innfo-field-code', d.value == null ? '' : String(d.value))
+  }
+
+  function renderFieldMarkdown(d, doc) {
+    return makeEl(doc, 'span', 'innfo-field-markdown', d.value == null ? '' : String(d.value))
+  }
+
+  function renderFieldList(d, doc) {
+    return makeEl(doc, 'span', 'innfo-ku-value innfo-field-list', d.value.map(String).join(', '))
+  }
+
+  function renderFieldObject(d, doc) {
+    var chipWrap = makeEl(doc, 'span', 'innfo-ku-value innfo-obj-chips')
+    Object.keys(d.value).forEach(function (k) {
+      var chip = makeEl(doc, 'span', 'innfo-obj-chip')
+      chip.appendChild(makeEl(doc, 'span', 'innfo-obj-chip-k', k))
+      var rawV = d.value[k]
+      var vNode = makeEl(doc, 'span', 'innfo-obj-chip-v', rawV == null ? '' : String(rawV))
+      if (rawV === true || rawV === 'true') vNode.setAttribute('data-bool', 'true')
+      else if (rawV === false || rawV === 'false') vNode.setAttribute('data-bool', 'false')
+      chip.appendChild(vNode)
+      chipWrap.appendChild(chip)
+    })
+    return chipWrap
+  }
+
+  function renderFieldImage(d, doc) {
+    if (d.name === 'sources') return null
+    if (typeof d.value !== 'string' || !looksLikeImageValue(d.value)) return null
+    var normImgPath = normalizeAssetPath(d.value)
+    var imgWrap = makeEl(doc, 'span', 'innfo-ku-value innfo-field-image-wrap')
+    var img = makeEl(doc, 'img', 'innfo-field-image')
+    img.setAttribute('src', normImgPath)
+    img.setAttribute('alt', String(d.name || ''))
+    img.setAttribute('loading', 'lazy')
+    img.addEventListener('error', function () {
+      var cur = img.getAttribute('src') || ''
+      var relMatch = !img.getAttribute('data-retried') && cur.match(/^.+?\b((?:sources|kNNowledge|assets|evidence)\/.+)$/)
+      if (relMatch) {
+        img.setAttribute('data-retried', '1')
+        img.setAttribute('src', relMatch[1])
+        return
+      }
+      if (img.parentNode) img.parentNode.removeChild(img)
+    })
+    imgWrap.appendChild(img)
+    imgWrap.appendChild(makeEl(doc, 'code', 'innfo-file-pill-path', normImgPath))
+    return imgWrap
+  }
+
+  function renderFieldFile(d, doc) {
+    var raw = String(d.value == null ? '' : d.value)
+      .replace(/^\[\[\s*/, '')
+      .replace(/\s*\]\]$/, '')
+    var cleanPath = normalizeAssetPath(raw)
+    var filePill = makeEl(doc, 'span', 'innfo-ku-value innfo-file-pill')
+    var fileIcon = makeEl(doc, 'span', 'innfo-file-pill-icon')
+    fileIcon.innerHTML = icon('cite-document', 12)
+    filePill.appendChild(fileIcon)
+    filePill.appendChild(makeEl(doc, 'code', 'innfo-file-pill-path', cleanPath))
+    return filePill
+  }
+
+  function renderFieldMedia(d, doc) {
+    if (typeof d.value !== 'string' || !d.value.trim()) return null
+    var src = normalizeAssetPath(d.value)
+    var tag = String(d.type || '').toLowerCase() === 'audio' ? 'audio' : 'video'
+    var media = makeEl(doc, tag, 'innfo-field-media')
+    media.setAttribute('controls', 'controls')
+    media.setAttribute('src', src)
+    media.setAttribute('preload', 'metadata')
+    var wrap = makeEl(doc, 'span', 'innfo-ku-value innfo-field-media-wrap')
+    wrap.appendChild(media)
+    wrap.appendChild(makeEl(doc, 'code', 'innfo-file-pill-path', src))
+    return wrap
+  }
+
+  function isAssetPath(value) {
+    if (typeof value !== 'string') return false
+    return /^(?:.+?\/)?(?:sources|kNNowledge|assets|evidence)\/[^\s]+\.[a-z0-9]{2,5}$/i.test(value.replace(/\\/g, '/'))
+  }
+
   function FieldValue(data, opts) {
     var doc = resolveDoc(opts)
     var d = data && typeof data === 'object' ? data : {}
     var value = d.value
     var type = String(d.type || '').toLowerCase()
-    if (type === 'boolean' || typeof value === 'boolean') {
-      var b = makeEl(doc, 'span', 'innfo-field-bool', value ? 'Yes' : 'No')
-      b.setAttribute('data-value', value ? 'true' : 'false')
-      return b
+
+    // 1. Value-shape renderers, independent of the declared type.
+    if (type === 'boolean' || typeof value === 'boolean') return renderFieldBoolean(d, doc)
+    if (Array.isArray(value)) return renderFieldList(d, doc)
+    if (value !== null && typeof value === 'object') return renderFieldObject(d, doc)
+    if (typeof value === 'string' && /^https?:\/\//i.test(value)) return renderFieldUrl(d, doc)
+
+    // 2. Declared-type renderer.
+    var byType = FIELD_RENDERERS[type]
+    if (byType) {
+      var typed = byType(d, doc)
+      if (typed) return typed
     }
-    if (Array.isArray(value)) {
-      return makeEl(doc, 'span', 'innfo-ku-value innfo-field-list', value.map(String).join(', '))
-    }
-    if (value !== null && typeof value === 'object') {
-      var chipWrap = makeEl(doc, 'span', 'innfo-ku-value innfo-obj-chips')
-      Object.keys(value).forEach(function (k) {
-        var chip = makeEl(doc, 'span', 'innfo-obj-chip')
-        chip.appendChild(makeEl(doc, 'span', 'innfo-obj-chip-k', k))
-        var rawV = value[k]
-        var vNode = makeEl(doc, 'span', 'innfo-obj-chip-v', rawV == null ? '' : String(rawV))
-        if (rawV === true || rawV === 'true') vNode.setAttribute('data-bool', 'true')
-        else if (rawV === false || rawV === 'false') vNode.setAttribute('data-bool', 'false')
-        chip.appendChild(vNode)
-        chipWrap.appendChild(chip)
-      })
-      return chipWrap
-    }
-    if (typeof value === 'string' && /^https?:\/\//i.test(value)) {
-      var a = makeEl(doc, 'a', 'innfo-field-url', value)
-      a.setAttribute('href', value)
-      a.setAttribute('target', '_blank')
-      a.setAttribute('rel', 'noopener noreferrer')
-      return a
-    }
-    if (type === 'code') {
-      return makeEl(doc, 'code', 'innfo-field-code', value == null ? '' : String(value))
-    }
-    if (type === 'markdown' || type === 'markdown_inline') {
-      return makeEl(doc, 'span', 'innfo-field-markdown', value == null ? '' : String(value))
-    }
-    if (type === 'image' || type === 'image_url' || type === 'asset' || type === 'video' || type === 'audio' || (typeof value === 'string' && d.name !== 'sources' && looksLikeImageValue(value))) {
-      if (typeof value === 'string' && looksLikeImageValue(value)) {
-        var normImgPath = normalizeAssetPath(value)
-        var imgWrap = makeEl(doc, 'span', 'innfo-ku-value innfo-field-image-wrap')
-        var img = makeEl(doc, 'img', 'innfo-field-image')
-        img.setAttribute('src', normImgPath)
-        img.setAttribute('alt', String(d.name || ''))
-        img.setAttribute('loading', 'lazy')
-        img.addEventListener('error', function () {
-          var cur = img.getAttribute('src') || ''
-          var relMatch = !img.getAttribute('data-retried') && cur.match(/^.+?\b((?:sources|kNNowledge|assets|evidence)\/.+)$/)
-          if (relMatch) {
-            img.setAttribute('data-retried', '1')
-            img.setAttribute('src', relMatch[1])
-            return
-          }
-          if (img.parentNode) img.parentNode.removeChild(img)
-        })
-        imgWrap.appendChild(img)
-        imgWrap.appendChild(makeEl(doc, 'code', 'innfo-file-pill-path', normImgPath))
-        return imgWrap
-      }
-    }
-    if (
-      type === 'file' ||
-      (typeof value === 'string' &&
-        !looksLikeImageValue(value) &&
-        /^(?:.+?\/)?(?:sources|kNNowledge|assets|evidence)\/[^\s]+\.[a-z0-9]{2,5}$/i.test(value.replace(/\\/g, '/')))
-    ) {
-      var cleanPath = normalizeAssetPath(String(value == null ? '' : value))
-      var filePill = makeEl(doc, 'span', 'innfo-ku-value innfo-file-pill')
-      var fileIcon = makeEl(doc, 'span', 'innfo-file-pill-icon')
-      fileIcon.innerHTML = icon('cite-document', 12)
-      filePill.appendChild(fileIcon)
-      filePill.appendChild(makeEl(doc, 'code', 'innfo-file-pill-path', cleanPath))
-      return filePill
+
+    // 3. Shape heuristics for values with no declared (or recognized) type.
+    if (typeof value === 'string') {
+      if (d.name !== 'sources' && looksLikeImageValue(value)) return renderFieldImage(d, doc)
+      if (isAssetPath(value)) return renderFieldFile(d, doc)
     }
     return null
   }
@@ -10905,6 +11045,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     EditAnchor: EditAnchor,
     StatusBadge: StatusBadge,
     CitationIcon: CitationIcon,
+    CitationIcons: CitationIcons,
     FieldRow: FieldRow,
     FieldValue: FieldValue,
     ElementCard: ElementCard,
@@ -13209,16 +13350,86 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return node
   }
 
-  // The console header (`.innfo-navbar`) carries an empty extra slot
-  // (`#innfo-navbar-extra`); this stamps the artifact's last-generated moment so
-  // a reader can see how fresh the console is without opening the model header.
-  function renderNavbarMeta(doc, meta) {
+  // Only http(s) and relative source URLs become links; any other scheme
+  // (javascript:, data:, ...) is rejected. Returns '' when unsafe. Verbatim port
+  // of the retired model viewer's predicate (render-model-viewer.js).
+  function safeSourceHref(url) {
+    var raw = String(url == null ? '' : url).trim()
+    if (!raw) return ''
+    var hasScheme = /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(raw)
+    var safe = hasScheme ? /^https?:/i.test(raw) : !/^[\s\\]|^\/\/\s*$/.test(raw)
+    return safe ? raw : ''
+  }
+
+  // The console header (`.innfo-navbar`) carries the model identity: the title in
+  // `#innfo-domain-title` (the single model's title when scoped, else `meta.title`),
+  // an optional `.innfo-scope-label`, and an extra meta line in `#innfo-navbar-extra`
+  // (Template, Version, Generated). Every value is rendered as text, so a hostile
+  // title stays inert; a field absent from `meta` is omitted, never a placeholder.
+  function renderNavbarIdentity(doc, meta) {
+    meta = meta || {}
+    var models = Array.isArray(meta.models) ? meta.models : []
+    var titleEl = doc.getElementById('innfo-domain-title')
+    if (titleEl) {
+      var title =
+        models.length === 1 && models[0] && models[0].title
+          ? models[0].title
+          : meta.title || meta.model || 'iNNfo Console'
+      titleEl.textContent = String(title)
+    }
+
+    var label = meta.consoleScope && meta.consoleScope.label
+    var labelEl = doc.querySelector('.innfo-scope-label')
+    if (label) {
+      if (!labelEl) {
+        labelEl = doc.createElement('span')
+        labelEl.className = 'innfo-scope-label'
+        if (titleEl && titleEl.parentNode) {
+          titleEl.parentNode.insertBefore(labelEl, titleEl.nextSibling)
+        } else if (titleEl) {
+          titleEl.appendChild(labelEl)
+        }
+      }
+      labelEl.textContent = String(label)
+    } else if (labelEl && labelEl.parentNode) {
+      labelEl.parentNode.removeChild(labelEl)
+    }
+
     var host = doc.getElementById('innfo-navbar-extra')
-    if (!host) return
-    var generated = meta && meta.generated
-    if (!generated) return
-    var stamp = String(generated).replace('T', ' ').replace(/\..*/, '').replace(/Z$/, '').trim()
-    host.textContent = 'Last updated ' + stamp + ' UTC'
+    if (host) {
+      var first = models[0] || null
+      var parts = []
+      var template = (first && first.blueprint) || meta.template
+      var version = (first && first.version) || meta.modelVersion
+      if (template) parts.push('Template ' + String(template))
+      if (version) parts.push('Version ' + String(version))
+      if (meta.generated) {
+        var stamp = String(meta.generated)
+          .replace('T', ' ')
+          .replace(/\..*/, '')
+          .replace(/Z$/, '')
+          .trim()
+        parts.push('Generated ' + stamp + ' UTC')
+      }
+      host.textContent = ''
+      if (parts.length) host.appendChild(doc.createTextNode(parts.join(' \u00b7 ')))
+      if (meta.sourceUrl) {
+        if (parts.length) host.appendChild(doc.createTextNode(' \u00b7 '))
+        var href = safeSourceHref(meta.sourceUrl)
+        if (href) {
+          var link = doc.createElement('a')
+          link.className = 'innfo-source-link'
+          link.setAttribute('href', href)
+          link.setAttribute('target', '_blank')
+          link.setAttribute('rel', 'noopener')
+          link.textContent = 'source'
+          host.appendChild(link)
+        } else {
+          // Unsafe or absent scheme: shown as plain text, never a link.
+          host.appendChild(doc.createTextNode(String(meta.sourceUrl).trim()))
+        }
+      }
+    }
   }
 
   // Inline reviewer identity field for the header: a labelled text input whose
@@ -14058,7 +14269,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
   // Cards project live drafts: active draft edits and notes are visually badged,
   // new draft elements are projected, and deleted elements are styled.
-  function mountElementCards(doc, elements, drafts, refs, concepts, schema, incomingById) {
+  function mountElementCards(doc, elements, drafts, refs, concepts, schema, incomingById, focusId) {
     var content = doc.getElementById('innfo-content')
     if (!content) return
     content.innerHTML = ''
@@ -14082,6 +14293,12 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     projectedElements.forEach(function (element) {
       var fields = []
       var elCitations = element && isObject(element.citations) ? element.citations : {}
+      var sourcesEntries = []
+      Object.keys(elCitations).forEach(function (k) {
+        if ((k === 'sources' || k === 'source') && Array.isArray(elCitations[k])) {
+          sourcesEntries = sourcesEntries.concat(elCitations[k])
+        }
+      })
       if (isObject(element.fields)) {
         Object.keys(element.fields).forEach(function (k) {
           var val = element.fields[k]
@@ -14160,9 +14377,17 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
               : null,
         },
         {
-          domId: String(element.id || ''),
+          domId: 'el-' + String(element.id || ''),
           collapsible: true,
-          open: false,
+          open: focusId != null && String(element.id || '') === String(focusId),
+          head:
+            UI && typeof UI.CitationIcons === 'function'
+              ? UI.CitationIcons('sources', sourcesEntries, {
+                  onOpen: function () {
+                    renderCitationDialog(doc, 'sources', sourcesEntries)
+                  },
+                })
+              : undefined,
           byId: refs,
           concept: conceptMetaOf(concepts, element.concept),
           onRef: function (refId) {
@@ -16298,8 +16523,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         if (firstTab && typeof firstTab.click === 'function') firstTab.click()
       }
     }
-    // 2. Find card by id
-    var card = doc.getElementById(String(elementId))
+    // 2. Find card by id (cards carry the `el-` prefixed domId, matching `#el-` hrefs)
+    var card = doc.getElementById('el-' + String(elementId))
     if (card) {
       if (typeof card.scrollIntoView === 'function') {
         card.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -17564,7 +17789,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       modelSlug: scopedView
         ? modelSlugOf({ modelSlug: meta.model_slug || meta.modelSlug, modelId: baseId, modelTitle: baseTitle }) + '-' + scopedView
         : meta.model_slug || meta.modelSlug || undefined,
-      sourceSha256: meta.sha256 || meta.source_sha256,
+      sourceSha256:
+      (Array.isArray(meta.models) && meta.models.length === 1 && meta.models[0] && meta.models[0].sha256) ||
+      meta.sha256 ||
+      meta.source_sha256,
       // The changeset title comes from meta.title; a scoped export names its view there.
       meta: scopedView ? Object.assign({}, meta, { title: baseTitle + ' - ' + (scopedDef ? scopedDef.title : scopedView) }) : meta,
       elements: elements,
@@ -17604,6 +17832,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     var refs = hasNeed(config, 'reference-popup') ? buildRefsByName(elements) : null
     var activeSearchQuery = ''
+    // Deep-link focus: the element id a `#el-<id>` hash asked to open, consumed
+    // once by the next card render and then cleared.
+    var focusId = null
     // Model Explorer view mode ('cards' | 'table') and the table sort state.
     var explorerView = 'cards'
     var sortState = { key: '', dir: 'asc' }
@@ -17755,7 +17986,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           refresh(activeSearchQuery)
         })
       } else {
-        mountElementCards(active, filteredElements, currentDrafts, refs, concepts, schema, incomingById)
+        mountElementCards(active, filteredElements, currentDrafts, refs, concepts, schema, incomingById, focusId)
+        focusId = null
       }
       renderFilterBar(active, state, function (nextQuery) {
         var sBox = active.getElementById('innfo-search')
@@ -17840,7 +18072,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     })
 
     if (tabs) cleanups.push(tabs.destroy)
-    renderNavbarMeta(active, meta)
+    renderNavbarIdentity(active, meta)
     refresh(initialQuery, !!(tabs && tabs.hashTab()))
 
     // C3: the controller builds the toggle into the (now rendered) banner and
@@ -17897,6 +18129,38 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
 
     function onHash() {
+      var raw = String(active.location ? active.location.hash || '' : '').replace(/^#/, '')
+      // Deep link: #el-<model-qualified element id> opens that element's card.
+      if (raw.indexOf('el-') === 0) {
+        if (scopedView) return
+        var elemId = raw.slice(3)
+        try {
+          elemId = decodeURIComponent(elemId)
+        } catch {
+          /* keep the raw id */
+        }
+        var targetEl = null
+        for (var ei = 0; ei < elements.length; ei++) {
+          if (elements[ei] && String(elements[ei].id || '') === elemId) {
+            targetEl = elements[ei]
+            break
+          }
+        }
+        if (!targetEl) return
+        focusId = elemId
+        var query = activeSearchQuery
+        var visible = filterElements([targetEl], activeSearchQuery, { draftsById: {}, reviewed: {} })
+        if (!visible.length) {
+          query = 'concept:' + String(targetEl.concept || '')
+          var searchInput = active.getElementById('innfo-search')
+          if (searchInput) searchInput.value = query
+        }
+        if (tabs) tabs.select('explorer', true)
+        refresh(query, true)
+        var card = active.getElementById('el-' + elemId)
+        if (card && typeof card.scrollIntoView === 'function') card.scrollIntoView()
+        return
+      }
       var parsed = parseViewHash(active.location ? active.location.hash : '')
       if (!scopedView && parsed.q !== activeSearchQuery) {
         // Back/forward to an entry with a different query: follow it.
@@ -17904,9 +18168,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         if (box) box.value = parsed.q
         refresh(parsed.q, true)
       }
-      var id = String(active.location ? active.location.hash || '' : '').replace(/^#/, '')
-      if (!id) return
-      var target = active.getElementById(id)
+      if (!raw) return
+      var target = active.getElementById(raw)
       if (target && typeof target.scrollIntoView === 'function') target.scrollIntoView()
     }
     if (typeof active.defaultView !== 'undefined' && active.defaultView) {
@@ -17968,7 +18231,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     renderRefDialog: renderRefDialog,
     renderCitationDialog: renderCitationDialog,
     renderBanner: renderBanner,
-    renderNavbarMeta: renderNavbarMeta,
+    renderNavbarIdentity: renderNavbarIdentity,
+    safeSourceHref: safeSourceHref,
     renderFilterBar: renderFilterBar,
     renderRail: renderRail,
     renderErrors: renderErrors,
