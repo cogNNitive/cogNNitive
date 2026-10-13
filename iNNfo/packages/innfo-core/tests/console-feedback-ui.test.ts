@@ -21,7 +21,7 @@ const modelConsolePath = join(
 type ConsoleApi = {
   boot: (doc: Document) => any
   ensureFeedbackUi: (doc: Document, state?: any) => HTMLElement | null
-  renderNavbarMeta: (doc: Document, meta: any) => void
+  renderNavbarIdentity: (doc: Document, meta: any) => void
   draftToItem: (draft: any, element?: any) => any
   buildExportDoc: (args: any) => any
   validateFeedback: (doc: any) => { ok: boolean; errors: string[] }
@@ -347,14 +347,14 @@ describe('console-feedback-ui (bundle-injected feedback UI contract)', () => {
     expect(banner!.textContent).not.toContain('needs:')
   })
 
-  it('stamps the console header with the last-generated timestamp', () => {
+  it('stamps the console header with the generated timestamp', () => {
     renderModelConsole()
     const host = document.createElement('div')
     host.id = 'innfo-navbar-extra'
     document.body.appendChild(host)
     const api = loadRuntime()
-    api.renderNavbarMeta(document, { generated: '2026-10-11T16:56:22.123Z' })
-    expect(host.textContent).toBe('Last updated 2026-10-11 16:56:22 UTC')
+    api.renderNavbarIdentity(document, { generated: '2026-10-11T16:56:22.123Z' })
+    expect(host.textContent).toBe('Generated 2026-10-11 16:56:22 UTC')
   })
 
   it('viewer renders citation icon from builder output', () => {

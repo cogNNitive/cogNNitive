@@ -4824,16 +4824,58 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return node
   }
 
-  // The console header (`.innfo-navbar`) carries an empty extra slot
-  // (`#innfo-navbar-extra`); this stamps the artifact's last-generated moment so
-  // a reader can see how fresh the console is without opening the model header.
-  function renderNavbarMeta(doc, meta) {
+  // The console header (`.innfo-navbar`) carries the model identity: the title in
+  // `#innfo-domain-title` (the single model's title when scoped, else `meta.title`),
+  // an optional `.innfo-scope-label`, and an extra meta line in `#innfo-navbar-extra`
+  // (Template, Version, Generated). Every value is rendered as text, so a hostile
+  // title stays inert; a field absent from `meta` is omitted, never a placeholder.
+  function renderNavbarIdentity(doc, meta) {
+    meta = meta || {}
+    var models = Array.isArray(meta.models) ? meta.models : []
+    var titleEl = doc.getElementById('innfo-domain-title')
+    if (titleEl) {
+      var title =
+        models.length === 1 && models[0] && models[0].title
+          ? models[0].title
+          : meta.title || meta.model || 'iNNfo Console'
+      titleEl.textContent = String(title)
+    }
+
+    var label = meta.consoleScope && meta.consoleScope.label
+    var labelEl = doc.querySelector('.innfo-scope-label')
+    if (label) {
+      if (!labelEl) {
+        labelEl = doc.createElement('span')
+        labelEl.className = 'innfo-scope-label'
+        if (titleEl && titleEl.parentNode) {
+          titleEl.parentNode.insertBefore(labelEl, titleEl.nextSibling)
+        } else if (titleEl) {
+          titleEl.appendChild(labelEl)
+        }
+      }
+      labelEl.textContent = String(label)
+    } else if (labelEl && labelEl.parentNode) {
+      labelEl.parentNode.removeChild(labelEl)
+    }
+
     var host = doc.getElementById('innfo-navbar-extra')
-    if (!host) return
-    var generated = meta && meta.generated
-    if (!generated) return
-    var stamp = String(generated).replace('T', ' ').replace(/\..*/, '').replace(/Z$/, '').trim()
-    host.textContent = 'Last updated ' + stamp + ' UTC'
+    if (host) {
+      var first = models[0] || null
+      var parts = []
+      var template = (first && first.blueprint) || meta.template
+      var version = (first && first.version) || meta.modelVersion
+      if (template) parts.push('Template ' + String(template))
+      if (version) parts.push('Version ' + String(version))
+      if (meta.generated) {
+        var stamp = String(meta.generated)
+          .replace('T', ' ')
+          .replace(/\..*/, '')
+          .replace(/Z$/, '')
+          .trim()
+        parts.push('Generated ' + stamp + ' UTC')
+      }
+      host.textContent = parts.join(' \u00b7 ')
+    }
   }
 
   // Inline reviewer identity field for the header: a labelled text input whose
@@ -9455,7 +9497,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     })
 
     if (tabs) cleanups.push(tabs.destroy)
-    renderNavbarMeta(active, meta)
+    renderNavbarIdentity(active, meta)
     refresh(initialQuery, !!(tabs && tabs.hashTab()))
 
     // C3: the controller builds the toggle into the (now rendered) banner and
@@ -9583,7 +9625,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     renderRefDialog: renderRefDialog,
     renderCitationDialog: renderCitationDialog,
     renderBanner: renderBanner,
-    renderNavbarMeta: renderNavbarMeta,
+    renderNavbarIdentity: renderNavbarIdentity,
     renderFilterBar: renderFilterBar,
     renderRail: renderRail,
     renderErrors: renderErrors,
