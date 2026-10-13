@@ -593,11 +593,24 @@ async function main() {
     process.exit(1)
   }
   const uiCss = await readFile(uiCssPath, 'utf-8')
+
+  // Changeset lineage: read changes/*_changes_NN.md so each element can carry its
+  // `history` in the model slot, and the domain payload carries the `changes`
+  // collection (the console is static/offline and never reads the files).
+  const changesets = payloadHelper.loadChangesetRecords
+    ? await payloadHelper.loadChangesetRecords(root)
+    : []
+
   let domainViews
   try {
     domainViews = await viewsLib.discoverViews({
       domainRoot: root,
-      specNames: payloadModels.map((m) => payloadHelper.parentSpecNameOf(m.fm)).filter(Boolean),
+      // The domain's changesets are not payload models, but the `changes` blueprint
+      // ships the read-only Changes view: include its spec name when a domain has any.
+      specNames: [
+        ...payloadModels.map((m) => payloadHelper.parentSpecNameOf(m.fm)),
+        ...(Array.isArray(changesets) && changesets.length > 0 ? ['changes'] : []),
+      ].filter(Boolean),
       packagesDir,
       onWarning: (message) => process.stderr.write(`WARNING: [export-console] ${message}\n`),
     })
@@ -653,12 +666,6 @@ async function main() {
       // ignore parse error
     }
   }
-
-  // Changeset lineage: read changes/*_changes_NN.md so each element can carry its
-  // `history` in the model slot (the console is static/offline and never reads it).
-  const changesets = payloadHelper.loadChangesetRecords
-    ? await payloadHelper.loadChangesetRecords(root)
-    : []
 
   const resolver = payloadHelper.createFsSourceResolver
     ? payloadHelper.createFsSourceResolver(root)
@@ -825,6 +832,11 @@ async function main() {
       },
       elements: allElements,
       matrices: allMatrices,
+      // D2: the domain's changesets, newest first by file stamp. Read-only, never
+      // written into a model.
+      changes: (Array.isArray(changesets) ? changesets.slice() : []).sort((a, b) =>
+        String(b.path).localeCompare(String(a.path)),
+      ),
     },
   }
 

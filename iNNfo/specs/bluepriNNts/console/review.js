@@ -358,7 +358,7 @@
 
   // The payload groups resolved citations by field (`{ field: [citation] }`), but
   // UI.EditModal renders a flat list of `{ origin, source, quote }`. Flatten and
-  // map here so the modal's "Source Provenance & Citations" section renders.
+  // map here so the modal's "Citations" section renders.
   function flattenCitations(citations) {
     if (Array.isArray(citations)) return citations
     if (!isObject(citations)) return []
@@ -715,7 +715,7 @@
       return true
     }
 
-    // Info entry point: the same single modal, opened on the History/Provenance
+    // Info entry point: the same single modal, opened on the Lineage
     // tab. Available in both review modes (it is not a review control).
     function openInfo(anchorData) {
       return openEdit(Object.assign({}, anchorData, { info: true }))

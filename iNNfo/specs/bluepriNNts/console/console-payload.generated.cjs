@@ -10717,6 +10717,7 @@ async function loadChangesetRecords(rootDir) {
     const fm = doc.frontmatter;
     records.push({
       path: `changes/${name}`,
+      title: fm.title,
       status: fm.status,
       author: fm.author,
       appliedAt: fm.applied_at,

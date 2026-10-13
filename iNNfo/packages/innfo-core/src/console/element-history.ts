@@ -40,6 +40,7 @@ interface ChangesetChangeRecord {
 /** A parsed changeset reduced to what element history needs. */
 export interface ChangesetRecord {
   path: string
+  title?: string
   status?: string
   author?: string
   appliedAt?: string
@@ -114,6 +115,7 @@ export async function loadChangesetRecords(rootDir: string): Promise<ChangesetRe
     const fm = doc.frontmatter as Record<string, unknown>
     records.push({
       path: `changes/${name}`,
+      title: fm.title as string | undefined,
       status: fm.status as string | undefined,
       author: fm.author as string | undefined,
       appliedAt: fm.applied_at as string | undefined,
