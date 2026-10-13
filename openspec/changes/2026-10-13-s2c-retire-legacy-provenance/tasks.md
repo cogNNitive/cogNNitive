@@ -117,10 +117,16 @@ names the requirement it serves as `[capability: Requirement]`. Pre-condition: #
       proposal's Success Criteria appear nowhere outside write-once `_V_x-y-z_` files,
       `openspec/changes/archive/` and this change's spec deltas.
       [changeset-document-model: Changesets are the only change record]
+- [x] 7.5 Delta specs for the two living capabilities whose examples named the deleted
+      `reconcile_feedback_NN.md` (`nn-naming-contract`, `template-procedures-manifest-and-discovery`):
+      re-point the frozen-procedure example to `reconcile_artifact_feedback_NN.md` and the
+      frozen-folder count to 6. [nn-naming-contract: Procedure file names]
+      [template-procedures-manifest-and-discovery: Transitive Procedure Discovery from Disk
+      and Frontmatter]
 
 ## 8. Release and verification (S2c-3)
 
-- [ ] 8.1 `npm run typecheck`; `npm test` for `innfo-core` and `innfo-mcp`;
+- [x] 8.1 `npm run typecheck`; `npm test` for `innfo-core` and `innfo-mcp`;
       `npm --prefix skills/nn-sources test`; `node scripts/verify.js`. [all requirements]
 - [ ] 8.2 After the `dev → main` batch, following `.agents/skills/nn-dev-release/SKILL.md`:
       tag `innfo-mcp-v<next>` (tools removed), `innfo-console-v<next>` (bundle and shells),
