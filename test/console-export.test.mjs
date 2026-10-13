@@ -450,6 +450,7 @@ scenarioMonths:: 12
       const summary = slot.meta.models.find((s) => s.blueprint === 'metrics')
       assert.ok(summary, JSON.stringify(slot.meta.models))
       assert.equal(summary.projection, undefined, 'projection is view-derived, not exporter-derived')
+      assert.match(summary.sha256, /^[0-9a-f]{64}$/, 'meta.models entry carries the model sha256')
     })
 
     it('mounts the discovered timeline view as a tab, with no canonical/studio tabs and no global ids', async () => {

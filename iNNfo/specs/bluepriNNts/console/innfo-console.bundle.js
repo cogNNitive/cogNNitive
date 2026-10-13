@@ -1106,6 +1106,32 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     return btn
   }
 
+  // Header-level citation icons: one CitationIcon per distinct origin/error
+  // variant, in canonical order. Returns an array of nodes (empty when nothing to
+  // show), so `ElementCard` can append it to `.innfo-card-head` via `opts.head`.
+  function CitationIcons(fieldName, entries, opts) {
+    var list = Array.isArray(entries) ? entries : []
+    if (!list.length) return []
+    var doc = resolveDoc(opts)
+    var present = {}
+    list.forEach(function (entry) {
+      var raw = entry && entry.error ? 'error' : entry && entry.origin
+      present[CITATION_ORIGIN_LABELS[raw] ? raw : 'document'] = true
+    })
+    var wrap = makeEl(doc, 'span', 'cite-icons')
+    var order = ['error', 'agent', 'human', 'reviewer', 'document']
+    order.forEach(function (variant) {
+      if (!present[variant]) return
+      wrap.appendChild(
+        CitationIcon(
+          { variant: variant, field: fieldName },
+          { doc: doc, onOpen: opts && typeof opts.onOpen === 'function' ? opts.onOpen : undefined },
+        ),
+      )
+    })
+    return wrap.children.length ? [wrap] : []
+  }
+
   function normalizeAssetPath(v) {
     if (typeof v !== 'string') return ''
     var s = v.replace(/\\/g, '/')
@@ -2520,6 +2546,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     EditAnchor: EditAnchor,
     StatusBadge: StatusBadge,
     CitationIcon: CitationIcon,
+    CitationIcons: CitationIcons,
     FieldRow: FieldRow,
     FieldValue: FieldValue,
     ElementCard: ElementCard,
@@ -5767,6 +5794,12 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     projectedElements.forEach(function (element) {
       var fields = []
       var elCitations = element && isObject(element.citations) ? element.citations : {}
+      var sourcesEntries = []
+      Object.keys(elCitations).forEach(function (k) {
+        if ((k === 'sources' || k === 'source') && Array.isArray(elCitations[k])) {
+          sourcesEntries = sourcesEntries.concat(elCitations[k])
+        }
+      })
       if (isObject(element.fields)) {
         Object.keys(element.fields).forEach(function (k) {
           var val = element.fields[k]
@@ -5848,6 +5881,14 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           domId: 'el-' + String(element.id || ''),
           collapsible: true,
           open: focusId != null && String(element.id || '') === String(focusId),
+          head:
+            UI && typeof UI.CitationIcons === 'function'
+              ? UI.CitationIcons('sources', sourcesEntries, {
+                  onOpen: function () {
+                    renderCitationDialog(doc, 'sources', sourcesEntries)
+                  },
+                })
+              : undefined,
           byId: refs,
           concept: conceptMetaOf(concepts, element.concept),
           onRef: function (refId) {
@@ -9249,7 +9290,10 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
       modelSlug: scopedView
         ? modelSlugOf({ modelSlug: meta.model_slug || meta.modelSlug, modelId: baseId, modelTitle: baseTitle }) + '-' + scopedView
         : meta.model_slug || meta.modelSlug || undefined,
-      sourceSha256: meta.sha256 || meta.source_sha256,
+      sourceSha256:
+      (Array.isArray(meta.models) && meta.models.length === 1 && meta.models[0] && meta.models[0].sha256) ||
+      meta.sha256 ||
+      meta.source_sha256,
       // The changeset title comes from meta.title; a scoped export names its view there.
       meta: scopedView ? Object.assign({}, meta, { title: baseTitle + ' - ' + (scopedDef ? scopedDef.title : scopedView) }) : meta,
       elements: elements,

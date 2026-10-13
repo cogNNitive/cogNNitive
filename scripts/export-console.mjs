@@ -725,6 +725,9 @@ async function main() {
           filePath: fileName,
           blueprint: blueprintName ? viewsLib.parseSpecName(blueprintName).base : null,
           version: (m.fm && m.fm.knowledge_version) || null,
+          sha256: (payload.model.meta && payload.model.meta.sha256) || computeSha256(m.content),
+          citationsResolvedAt:
+            (payload.model.meta && payload.model.meta.citationsResolvedAt) || null,
           changeCount: changeCount,
           conceptNames: Array.from(modelConcepts),
           elementCount: Array.isArray(payload.model.elements) ? payload.model.elements.length : 0,

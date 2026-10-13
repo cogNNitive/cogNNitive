@@ -1779,6 +1779,12 @@
     projectedElements.forEach(function (element) {
       var fields = []
       var elCitations = element && isObject(element.citations) ? element.citations : {}
+      var sourcesEntries = []
+      Object.keys(elCitations).forEach(function (k) {
+        if ((k === 'sources' || k === 'source') && Array.isArray(elCitations[k])) {
+          sourcesEntries = sourcesEntries.concat(elCitations[k])
+        }
+      })
       if (isObject(element.fields)) {
         Object.keys(element.fields).forEach(function (k) {
           var val = element.fields[k]
@@ -1860,6 +1866,14 @@
           domId: 'el-' + String(element.id || ''),
           collapsible: true,
           open: focusId != null && String(element.id || '') === String(focusId),
+          head:
+            UI && typeof UI.CitationIcons === 'function'
+              ? UI.CitationIcons('sources', sourcesEntries, {
+                  onOpen: function () {
+                    renderCitationDialog(doc, 'sources', sourcesEntries)
+                  },
+                })
+              : undefined,
           byId: refs,
           concept: conceptMetaOf(concepts, element.concept),
           onRef: function (refId) {
@@ -5261,7 +5275,10 @@
       modelSlug: scopedView
         ? modelSlugOf({ modelSlug: meta.model_slug || meta.modelSlug, modelId: baseId, modelTitle: baseTitle }) + '-' + scopedView
         : meta.model_slug || meta.modelSlug || undefined,
-      sourceSha256: meta.sha256 || meta.source_sha256,
+      sourceSha256:
+      (Array.isArray(meta.models) && meta.models.length === 1 && meta.models[0] && meta.models[0].sha256) ||
+      meta.sha256 ||
+      meta.source_sha256,
       // The changeset title comes from meta.title; a scoped export names its view there.
       meta: scopedView ? Object.assign({}, meta, { title: baseTitle + ' - ' + (scopedDef ? scopedDef.title : scopedView) }) : meta,
       elements: elements,
