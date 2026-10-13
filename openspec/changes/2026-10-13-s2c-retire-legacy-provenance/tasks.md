@@ -15,20 +15,20 @@ names the requirement it serves as `[capability: Requirement]`. Pre-condition: #
 
 ## 1. Re-point consumers (S2c-1)
 
-- [ ] 1.1 TEST (`iNNfo/packages/innfo-core/tests/console-review*.test.ts`): an element whose
+- [x] 1.1 TEST (`iNNfo/packages/innfo-core/tests/console-review*.test.ts`): an element whose
       `history` has an applied change shows an `applied` badge; a conflicted change shows
       `conflict`; a proposed changeset in `changes` targeting it shows `proposed`; a local
       draft shows no badge; no ledger exists. [console-review-mode: Verdict Badges]
-- [ ] 1.2 `review.js`: replace `verdictsByElement(feedbackState)` (`:318-319`,
+- [x] 1.2 `review.js`: replace `verdictsByElement(feedbackState)` (`:318-319`,
       `:1191-1193`) with badges from `element.history` and `payload.changes`; rebuild the
       console bundle. [console-review-mode: Verdict Badges]
-- [ ] 1.3 TEST (`iNNfo/packages/innfo-mcp/src/tools/resolve-sources.spec.ts`,
+- [x] 1.3 TEST (`iNNfo/packages/innfo-mcp/src/tools/resolve-sources.spec.ts`,
       `iNNfo/packages/innfo-core/tests/console-citations*.test.ts`): a citation of
       `changes/<f>@## NN Change: c-01` with `author:: ClaudeCode` has `origin: "agent"`;
       with `author:: Maria Lopez` `origin: "human"`; a plain heading `origin: "document"`;
       no result ever has `origin: "reviewer"`. [citation-source-resolution: Citation origin
       classification] [source-sidecar: `is_synthetic` is not stored]
-- [ ] 1.4 `console/citations.ts` and `resolve-sources.ts` (`:14`, `:30`): classify origin
+- [x] 1.4 `console/citations.ts` and `resolve-sources.ts` (`:14`, `:30`): classify origin
       from the cited change block's `author`; remove `AGENT_MODIFICATION_CONCEPT` and the
       feedback-source branch. [citation-source-resolution: Citation origin classification]
 
