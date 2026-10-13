@@ -5715,7 +5715,7 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
   // Cards project live drafts: active draft edits and notes are visually badged,
   // new draft elements are projected, and deleted elements are styled.
-  function mountElementCards(doc, elements, drafts, refs, concepts, schema, incomingById) {
+  function mountElementCards(doc, elements, drafts, refs, concepts, schema, incomingById, focusId) {
     var content = doc.getElementById('innfo-content')
     if (!content) return
     content.innerHTML = ''
@@ -5817,9 +5817,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
               : null,
         },
         {
-          domId: String(element.id || ''),
+          domId: 'el-' + String(element.id || ''),
           collapsible: true,
-          open: false,
+          open: focusId != null && String(element.id || '') === String(focusId),
           byId: refs,
           concept: conceptMetaOf(concepts, element.concept),
           onRef: function (refId) {
@@ -7955,8 +7955,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         if (firstTab && typeof firstTab.click === 'function') firstTab.click()
       }
     }
-    // 2. Find card by id
-    var card = doc.getElementById(String(elementId))
+    // 2. Find card by id (cards carry the `el-` prefixed domId, matching `#el-` hrefs)
+    var card = doc.getElementById('el-' + String(elementId))
     if (card) {
       if (typeof card.scrollIntoView === 'function') {
         card.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -9261,6 +9261,9 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
 
     var refs = hasNeed(config, 'reference-popup') ? buildRefsByName(elements) : null
     var activeSearchQuery = ''
+    // Deep-link focus: the element id a `#el-<id>` hash asked to open, consumed
+    // once by the next card render and then cleared.
+    var focusId = null
     // Model Explorer view mode ('cards' | 'table') and the table sort state.
     var explorerView = 'cards'
     var sortState = { key: '', dir: 'asc' }
@@ -9412,7 +9415,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
           refresh(activeSearchQuery)
         })
       } else {
-        mountElementCards(active, filteredElements, currentDrafts, refs, concepts, schema, incomingById)
+        mountElementCards(active, filteredElements, currentDrafts, refs, concepts, schema, incomingById, focusId)
+        focusId = null
       }
       renderFilterBar(active, state, function (nextQuery) {
         var sBox = active.getElementById('innfo-search')
@@ -9554,6 +9558,38 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
     }
 
     function onHash() {
+      var raw = String(active.location ? active.location.hash || '' : '').replace(/^#/, '')
+      // Deep link: #el-<model-qualified element id> opens that element's card.
+      if (raw.indexOf('el-') === 0) {
+        if (scopedView) return
+        var elemId = raw.slice(3)
+        try {
+          elemId = decodeURIComponent(elemId)
+        } catch {
+          /* keep the raw id */
+        }
+        var targetEl = null
+        for (var ei = 0; ei < elements.length; ei++) {
+          if (elements[ei] && String(elements[ei].id || '') === elemId) {
+            targetEl = elements[ei]
+            break
+          }
+        }
+        if (!targetEl) return
+        focusId = elemId
+        var query = activeSearchQuery
+        var visible = filterElements([targetEl], activeSearchQuery, { draftsById: {}, reviewed: {} })
+        if (!visible.length) {
+          query = 'concept:' + String(targetEl.concept || '')
+          var searchInput = active.getElementById('innfo-search')
+          if (searchInput) searchInput.value = query
+        }
+        if (tabs) tabs.select('explorer', true)
+        refresh(query, true)
+        var card = active.getElementById('el-' + elemId)
+        if (card && typeof card.scrollIntoView === 'function') card.scrollIntoView()
+        return
+      }
       var parsed = parseViewHash(active.location ? active.location.hash : '')
       if (!scopedView && parsed.q !== activeSearchQuery) {
         // Back/forward to an entry with a different query: follow it.
@@ -9561,9 +9597,8 @@ var uPlot=function(){"use strict";const e="u-off",l="u-label",t="width",n="heigh
         if (box) box.value = parsed.q
         refresh(parsed.q, true)
       }
-      var id = String(active.location ? active.location.hash || '' : '').replace(/^#/, '')
-      if (!id) return
-      var target = active.getElementById(id)
+      if (!raw) return
+      var target = active.getElementById(raw)
       if (target && typeof target.scrollIntoView === 'function') target.scrollIntoView()
     }
     if (typeof active.defaultView !== 'undefined' && active.defaultView) {

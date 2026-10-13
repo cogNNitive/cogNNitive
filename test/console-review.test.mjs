@@ -284,7 +284,9 @@ describe('Console Review Workflow & Feedback Roundtrip Contract', () => {
       // suite only exercises focusElementCard's DOM contract: find by id,
       // scroll, highlight.
       const card = document.createElement('article')
-      card.id = 'ent-tier'
+      // Cards carry the `el-` prefixed domId (matching `#el-` hrefs); focusElementCard
+      // takes the raw element id and resolves the prefixed node.
+      card.id = 'el-ent-tier'
       document.getElementById('innfo-content').appendChild(card)
       let scrolled = false
       card.scrollIntoView = () => {
