@@ -88,7 +88,7 @@ console. No backwards-compat, no fallbacks, no legacy ledger entries.
 
 - `2026-10-10-blueprint-external-skills` also deltas `template-procedures-manifest-and-discovery` (R-TPD-04, not the `compile-model-console` scenario). Archive it before this change's delta lands, or rebase onto it.
 - That change's `specs/template-package-structure/spec.md:10` has a stale example, `assets/model_viewer.html`. Fix it there.
-- `2026-09-30-nn-quarantine-removal`, `2026-10-01-nn-domain-git-workflow`, `2026-10-07-nn-upgrade-contract-docs` and `2026-10-11-video-script-contract-additions` are unchecked, but only `nn-quarantine-removal` couples (it names the editor `useLegacyDomain.ts`, retired by the lineage change S5; it is BLOCKED).
+- The other pre-existing active changes do not couple by spec: `2026-10-01-nn-domain-git-workflow` and `2026-10-11-video-script-contract-additions` are clean; `2026-09-30-nn-quarantine-removal` couples only because it names the editor `useLegacyDomain.ts` (retired by the lineage change S5) and it is BLOCKED; `2026-10-07-nn-upgrade-contract-docs` was folded into the lineage change S4.
 
 ### Reconcile with the lineage change set (2026-10-13)
 

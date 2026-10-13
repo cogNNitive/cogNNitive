@@ -122,7 +122,7 @@ Missing:
 ## 4. Active OpenSpec changes audit
 
 Searched case-insensitively for console, shell, consoleScope, model_console, compile_model, build_console_payload, InnfoModelViewer, model-viewer, artifact_shell.
-- `2026-09-30-nn-quarantine-removal`, `2026-10-01-nn-domain-git-workflow`, `2026-10-07-nn-upgrade-contract-docs`, `2026-10-11-video-script-contract-additions`: no matches, no contradiction.
+- `2026-09-30-nn-quarantine-removal`, `2026-10-01-nn-domain-git-workflow`, `2026-10-11-video-script-contract-additions`: no matches, no contradiction. (`2026-10-07-nn-upgrade-contract-docs` was later folded into the lineage change S4 and removed as a live change.)
 - `2026-10-10-blueprint-external-skills`: its delta for `template-procedures-manifest-and-discovery` modifies R-TPD-04 and does not touch the `compile-model-console` scenario (living spec lines 22-24). `specs/template-package-structure/spec.md:10` has a stale example `assets/model_viewer.html`. `tasks.md:100` and `proposal.md:40` are traceability only. Action: archive/merge it before this change's delta to the same living spec lands, or rebase; fix the stale example.
 
 ## 5. Tests

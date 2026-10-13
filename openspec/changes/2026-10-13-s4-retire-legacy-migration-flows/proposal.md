@@ -53,6 +53,10 @@ carried into the archive and the ledger owners.
   `legacy:` markers and the `lineage-reference-name-fallback` ledger entry.
 - Fix repo content that relied on the fuzzy step (non-write-once only).
 - Rewrite `skills/nn-upgrade/SKILL.md` to Flow B plus the new-domain migration pointer.
+- Absorb the still-relevant intent of the retired `2026-10-07-nn-upgrade-contract-docs`
+  (skill owns the final-state contract, no retired-path literals; glossary for dry run /
+  planHash / rehydration / backup). Its Flow A/C content is dropped with the flows. See
+  `design.md` D6.
 
 ### Out of Scope
 - The detection half of the quarantine (legacy layout detector, MCP legacy hint, preflight

@@ -83,6 +83,29 @@ No report artifact remains: Flow A's detector and rewriter reports are deleted w
 and Flow B prints its before/after report to stdout. `--import-as-source` writes only the
 new domain. Nothing writes a new file on each dry run.
 
+## D6 — Absorbed: the `nn-upgrade` contract split and glossary (`2026-10-07-nn-upgrade-contract-docs`)
+
+This change absorbs the still-relevant intent of the retired proposal
+`2026-10-07-nn-upgrade-contract-docs` (proposal-only, never applied). What survives:
+
+- **The skill owns the final-state contract.** `skills/nn-upgrade/SKILL.md` MUST contain no
+  retired-path literal (`models/`, `specs/templates/`, `sources/nn/`, `sources/original/`,
+  `workspace_NN.md`); the versioned legacy detail lives in
+  `workspace/procedures/upgrade_and_migrate_legacy_workspace_NN.md`. With Flow A/C retired,
+  that procedure carries only the Flow B step tables plus the legacy detector and the
+  `--import-as-source` recipe (S6c).
+- **Glossary (skill docs):** define each term in one line —
+  - **dry run:** read-only plan report + deterministic `planHash`, zero writes (Flow B scan);
+  - **planHash:** SHA over the normalized plan; the apply phase revalidates it and aborts
+    that domain on mismatch (no partial writes);
+  - **rehydration (Flow B):** materialize the adopted bluepriNNt locally, repoint
+    `parent_spec`, bump version, re-validate; restore on failure;
+  - **backup:** timestamped full-tree copy outside the workspace + SHA-256 manifest, before
+    the first write.
+
+The Flow A/C portions of that proposal (per-layout detect/plan tables, the `import-as-source`
+exit inside Flow A, "Flow C unchanged") are dropped with the flows themselves.
+
 ## Cross-cutting
 
 `strict_tdd: true` where behaviour changes. `verify.js` (ledger guard, suite discovery)

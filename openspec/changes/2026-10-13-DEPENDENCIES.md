@@ -88,7 +88,7 @@ by apply_change" and `lineage-single-edge` "Node role derives from the naming co
 | `2026-10-10-blueprint-external-skills` | Shares `template-procedures-manifest-and-discovery` with SCS | **Archive first.** Its stale `assets/model_viewer.html` example is already fixed (SCS T0.6, commit `37a78215`). |
 | `2026-09-30-nn-quarantine-removal` | BLOCKED. Names the editor `useLegacyDomain.ts` (deleted by S5) and the quarantine half S4 shrinks | Whichever runs second updates the target list. No spec-delta collision (`legacy-quarantine` untouched), but its scope shrinks. |
 | `2026-10-01-nn-domain-git-workflow` | none | — |
-| `2026-10-07-nn-upgrade-contract-docs` | **Collides with S4** on `workspace-template-upgrade` and Flow A/C: the proposal keeps "Flow C unchanged" plus the per-layout Flow A tables and `lib/legacy-migrate.generated.cjs`, all retired by S4. Proposal-only (no tasks/specs/design). | Re-scope to Flow B + the import-as-source pointer, or fold into S4. See question 12. |
+| `2026-10-07-nn-upgrade-contract-docs` | **Folded into S4** (maintainer, 2026-10-13): proposal-only, never applied, and S4 rewrites the same skill/procedure. Its glossary + skill-owns-final-state intent moved to S4 `design.md` D6; the change directory was removed. | Done. |
 | `2026-10-11-video-script-contract-additions` | none | — |
 
 ## Releases
@@ -145,7 +145,6 @@ Releases are tag-driven (`scripts/release/release-keys.js`: `skills|blueprints|i
     exports are write-once" then become either no-ops or trivial. Flagged here for
     traceability; no maintainer action required.
 
-12. **`nn-upgrade-contract-docs` re-scope.** See the affected-changes table. The proposal
-    predates the "no in-place migration" decision and still preserves Flow A/C. Default:
-    re-scope to Flow B + the new-domain/import-as-source pointer, or fold into S4. Confirm
-    before S4 applies.
+12. **`nn-upgrade-contract-docs` — RESOLVED (folded into S4).** The maintainer confirmed the
+    fold. Its proposal-only change was removed; its surviving intent lives in S4 `design.md`
+    D6 and `proposal.md`. No further action.
