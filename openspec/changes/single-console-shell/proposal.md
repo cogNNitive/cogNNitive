@@ -37,7 +37,7 @@ console. No backwards-compat, no fallbacks, no legacy ledger entries.
   - `build_console_payload` (tool, spec, server wiring) and `console-golden-parity.test.ts`;
   - the two procedures consoles (`document_sop_console`, `Ghostbusters_V_0-2-0_procedures_console`).
 - Update docs, living specs and the `nn-innfo` tool table. Supersede backlog decision D17.
-- Releases: `innfo-console-v*`, `blueprints-v*` + repin, `innfo-mcp-v*` (breaking), `templates-v*` + `SHIPPED_TEMPLATE_VERSIONS` if the `business` spec is edited, skills bump.
+- Releases (tag-driven, keys from `scripts/release/release-keys.js`: `skills|blueprints|innfo-mcp|innfo-console`): `innfo-console-v*`, `blueprints-v*` + repin, `innfo-mcp-v*` (breaking), skills bump. Pins are never hand-edited.
 
 ### Out of Scope (greenfield, not ported)
 - Per-concept section headings with counts, schema-weight sorting, and an "All concepts" rail entry. Active-filter pills already cover the reset case.
@@ -56,7 +56,7 @@ console. No backwards-compat, no fallbacks, no legacy ledger entries.
 ## Capabilities
 
 ### New Capabilities
-- None. Scope is a requirement of existing capabilities.
+- `console-scope`: a scope descriptor (`meta.consoleScope = { view?, models?, label }`) that turns any console into a scoped domain console (whole domaiNN, one model, a subset of models, or one view).
 
 ### Modified Capabilities
 - `console-architecture`: one shell; the L3 "Model Custom Consoles" requirement is removed in favor of scoped domain consoles.
@@ -82,7 +82,7 @@ console. No backwards-compat, no fallbacks, no legacy ledger entries.
 | S2 | `export-console` scoped mode, write-once `artifacts/<scope>_console/`, `--status`/`--stale` on `meta.models[].sha256`, relax the `--view` + subset check (`export-console.mjs:415`). |
 | S3 | Re-point `console-review-env.ts` and the suites listed in the exploration (§1, §5) to `artifact_shell.html`. Rewrite the viewer-only suites through the runtime. Mutation-check that each one can go red. |
 | S4 | Delete the shell, viewer, procedure, MCP tool and parity test, and the old consoles. Update `console-bundle.js` SOURCES, guards, docs and living spec deltas. Mark D17 as superseded. |
-| S5 | Releases: regenerate bundles; refs come from `channel-refs.js`/`sync-versions.mjs`, never hand-edited. |
+| S5 | Releases: regenerate bundles; tag-driven release keys (`skills|blueprints|innfo-mcp|innfo-console`) via `scripts/release/release-keys.js`, never hand-edited. |
 
 ## Active OpenSpec changes coherence
 
@@ -100,7 +100,7 @@ console. No backwards-compat, no fallbacks, no legacy ledger entries.
 | `iNNfo/packages/innfo-mcp/src/tools/build-console-payload*`, `server.ts`, `test/console-golden-parity.test.ts` | Removed/Modified |
 | `procedures/.../document_sop_console/`, `samples/.../Ghostbusters_V_0-2-0_procedures_console/` | Removed |
 | `iNNfo/packages/innfo-core/tests/console-*`, `test/console-element-card.test.mjs` | Modified |
-| `business/spec_NN.md`, `canonical-registry.ts:42`, `skills/nn-innfo/SKILL.md`, `docs/innfo/documentation/*`, `openspec/backlog.md` | Modified |
+| `skills/nn-innfo/SKILL.md`, `docs/innfo/documentation/*`, `openspec/backlog.md` | Modified |
 
 ## Risks
 
@@ -110,7 +110,7 @@ console. No backwards-compat, no fallbacks, no legacy ledger entries.
 | `--stale` / lineage staleness regress | Med | Redefine and test in S2 against `meta.models[].sha256` |
 | Re-pointed suites pass vacuously | High | Prove each suite can go red in S3 |
 | Scoped export clobbers `domaiNN_console.html`, or drafts collide | Med | Write-once path plus a scope suffix in `domainId`, both tested |
-| Frozen `workspace` byte-check / `template_version` registration gap | High | Repin `blueprints-v*`; bump `SHIPPED_TEMPLATE_VERSIONS` in the same commit |
+| Frozen `workspace` byte-check | Med | Repin `blueprints-v*` (`workspace/` deletions only; `workspace_spec_NN.md` is untouched, so no version bump) |
 | Delta collision with the external-skills change | Med | Sequence the archive first (see coherence) |
 | MCP clients calling `build_console_payload` | Low | Breaking `innfo-mcp` minor; sole user |
 
@@ -118,7 +118,7 @@ console. No backwards-compat, no fallbacks, no legacy ledger entries.
 
 - Each slice is its own PR. S1–S3 are additive or test-only and can be reverted per commit.
 - S4 is a pure deletion: revert the commit to restore the files.
-- S5: published tags stay immutable. Roll back by repinning the previous `blueprints-v*`, `innfo-console-v*` and `innfo-mcp-v*` refs via `channel-refs.js`/`sync-versions.mjs`.
+- S5: published tags stay immutable. Roll back by repinning the previous `blueprints-v*`, `innfo-console-v*` and `innfo-mcp-v*` tags.
 
 ## Success Criteria
 
@@ -139,6 +139,6 @@ console. No backwards-compat, no fallbacks, no legacy ledger entries.
 | S4 | ~350 hand edits + large generated/deleted files |
 | S5 | ~80 hand edits + regenerated bundles |
 
-- Chained PRs recommended: **Yes** (5 slices; S4 is gated on S1–S3).
-- 400-line budget risk: **High** (S1 and S3 exceed the budget; S3 may split by suite family).
-- Decision needed before apply: **Yes**. Chain strategy, and whether the external-skills change is archived before S4's spec deltas.
+- Delivery (maintainer, 2026-10-13): **one session branch, one final integration, slice-per-commit** — no chained PRs. S4 stays gated on S1–S3.
+- 400-line budget risk: **High**, accepted (mitigated by slice commits for revert, not by PR splitting).
+- Archive ordering: `2026-10-10-blueprint-external-skills` is archived before this change's spec deltas land.

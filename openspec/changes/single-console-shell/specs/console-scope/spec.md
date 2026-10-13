@@ -63,7 +63,7 @@ A scoped console MUST display `meta.consoleScope.label` in the navbar next to th
 
 ### Requirement: Scoped draft identity
 
-The draft-store identity (`domainId`) of a model or subset scoped console MUST include a suffix derived deterministically from the scope (the sorted scoped model identities, plus the view id when present). Two consoles with different scopes, or one scoped and one whole-domaiNN console, MUST NOT read or write the same draft store. Re-exporting the same scope MUST yield the same identity, so drafts survive a re-export.
+The draft-store identity (`domainId`) of a model or subset scoped console MUST include a suffix derived deterministically from the **sorted scoped model identities only** (`::scope:<hash8>`). The view id is appended by the runtime as `::view:<id>` (see `innfo-console-runtime`), never carried in the exporter suffix. Two consoles with different scopes, or one scoped and one whole-domaiNN console, MUST NOT read or write the same draft store. Re-exporting the same scope MUST yield the same identity, so drafts survive a re-export.
 
 #### Scenario: Scoped and full consoles do not share drafts
 - GIVEN a draft saved in the whole-domaiNN console

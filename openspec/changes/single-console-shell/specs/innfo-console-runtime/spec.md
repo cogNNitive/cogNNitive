@@ -83,6 +83,12 @@ Verdict badges and the feedback export `source_sha256` MUST be derived from the 
 - WHEN a feedback export is built
 - THEN `meta.source_sha256` equals `H`
 
+#### Scenario: Unqualified element id is qualified by its model
+- GIVEN a `meta.models` entry for model `mId` whose `feedbackState` item targets the unqualified `element_id: elId`
+- WHEN badges render
+- THEN the badge attaches only to element `mId/elId`
+- AND an item with the same unqualified `elId` under a different model does not attach to `mId/elId`
+
 ### Requirement: Scoped draft identity
 
 The runtime MUST derive the draft-store key from the payload `meta.domainId`, which already carries the scope suffix defined in `console-scope`, and MUST append `::view:<id>` for a view scope. Consoles with different scopes MUST NOT share a draft store.

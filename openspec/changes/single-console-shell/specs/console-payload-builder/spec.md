@@ -4,7 +4,7 @@
 
 ### Requirement: Per-model state in meta.models
 
-For a domain payload, each entry of `meta.models` MUST carry that model's `modelId`, `title`, `modelVersion`, `sha256` (portable sha256 of the raw source content), `feedbackState` (`[{id, source, element_id, status, version}]` from effective ledger statuses; empty when the ledger is absent) and `citationsResolvedAt` (set when at least one citation was resolved for that model). These per-model values MUST NOT be discarded when the domain payload is assembled. The same entries MUST appear for a scoped payload, restricted to the scoped models.
+For a domain payload (assembled by `scripts/export-console.mjs`), each entry of `meta.models` MUST carry that model's `modelId`, `title`, `modelVersion`, `sha256` (portable sha256 of the raw source content), `feedbackState` (`[{id, source, element_id, status, version}]` from effective ledger statuses; empty when the ledger is absent) and `citationsResolvedAt` (set when at least one citation was resolved for that model). These values come from the core builder's per-model `payload.model.meta` and MUST NOT be discarded during assembly. The same entries MUST appear for a scoped payload, restricted to the scoped models.
 
 #### Scenario: Entries carry hash and verdicts
 - GIVEN a domaiNN with models A and B and a ledger entry `applied` for an element of A

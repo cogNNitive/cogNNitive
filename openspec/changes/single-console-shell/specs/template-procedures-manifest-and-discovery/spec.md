@@ -1,6 +1,6 @@
 # Template Procedures Manifest and Discovery Specification (delta)
 
-Scope note: this delta touches only R-TPD-02. It does not touch R-TPD-04, which is modified by the active change `2026-10-10-blueprint-external-skills`; the two deltas are independent and may archive in either order.
+Scope note: this delta touches only R-TPD-02. It does not touch R-TPD-04, which is modified by the active change `2026-10-10-blueprint-external-skills`; the two deltas are independent. Archive `2026-10-10-blueprint-external-skills` first so this delta lands on the updated living spec.
 
 ## MODIFIED Requirements
 

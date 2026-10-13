@@ -100,3 +100,9 @@ Elements with entries in the per-model `meta.models[].feedbackState` MUST show a
 - GIVEN an entry targeting a missing element
 - WHEN rendered
 - THEN nothing is rendered for it and no error is thrown
+
+#### Scenario: Unqualified element id is qualified by its model
+- GIVEN a `meta.models` entry for model `mId` whose `feedbackState` item targets the unqualified `element_id: elId`
+- WHEN badges render
+- THEN the badge attaches only to element `mId/elId`
+- AND an item with the same unqualified `elId` under a different model does not attach to `mId/elId`

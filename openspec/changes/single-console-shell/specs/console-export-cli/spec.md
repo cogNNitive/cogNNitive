@@ -4,7 +4,7 @@
 
 ### Requirement: Scoped console mode
 
-`<ModelName>` positional arguments, `--filter <pattern>` and `--all` MUST NOT produce per-model console files. Each MUST select a set of models and produce one domain console scoped to that set (`meta.consoleScope.models`, see `console-scope`), built from the single shell. The scope label and the `<scope>` family key MUST be derived deterministically from the selected set. Selecting no model MUST exit non-zero and write nothing. Scope MUST be chosen only through these CLI options.
+`<ModelName>` positional arguments, `--filter <pattern>` and `--all` MUST NOT produce per-model console files. Each MUST select a set of models and produce one domain console scoped to that set (`meta.consoleScope.models`, see `console-scope`), built from the single shell. The scope label and the `<scope>` family key MUST be derived deterministically from the selected set. An explicit selection (`<ModelName>` or `--filter`) matching no model MUST exit non-zero and write nothing (`--stale` with nothing stale writes nothing and exits 0). Scope MUST be chosen only through these CLI options.
 
 #### Scenario: One model name
 - GIVEN a domaiNN with models A and B
@@ -20,6 +20,11 @@
 - GIVEN a filter matching no model
 - WHEN the export runs
 - THEN it exits non-zero naming the filter and writes no file
+
+#### Scenario: `--domain` cannot select models
+- GIVEN models A and B
+- WHEN `--domain` runs together with `A`, `--filter`, `--all` or `--stale`
+- THEN the CLI exits with code 2 and writes no file
 
 ### Requirement: Scoped export never touches the domain console
 
