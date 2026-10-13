@@ -17,6 +17,7 @@ title: "Artifacts Catalog"
 # NN Artifact
 
 ## NN Artifact: Executive Remediation Report 1984
+slug:: executive-remediation-report-1984
 format:: model
 summary:: Structured synthesis of 1984 NYC paranormal elimination operations, client billing totals, and municipal indemnity compliance.
 status:: verified

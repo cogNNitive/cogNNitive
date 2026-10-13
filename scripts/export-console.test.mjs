@@ -51,6 +51,7 @@ level: 3
 
 # NN Market
 ## NN Stakeholders: Enterprise Customer
+  slug:: enterprise-customer
   budget:: "$50k"
   tagline:: "They REJECTED $1M. Today They're Bankrupt"
 
@@ -64,6 +65,7 @@ level: 3
 
 # NN Procedures
 ## NN Procedure: Onboarding
+  slug:: onboarding
   duration:: "2 weeks"
 
   Standard customer onboarding procedure.
@@ -76,6 +78,7 @@ level: 3
 
 # NN Metrics
 ## NN Metric: ARR
+  slug:: arr
   target:: "1M"
 
   Annual recurring revenue target.
@@ -280,7 +283,7 @@ notes:: "Please review the tagline"
       const currentContent = await readFile(join(tempDir, 'models', 'business_V_0-2-5_NN.md'), 'utf-8')
       await writeFile(
         join(tempDir, 'models', 'business_V_0-2-5_NN.md'),
-        currentContent + '\n## NN Stakeholders: Partner\n  budget:: "$10k"\n',
+        currentContent + '\n## NN Stakeholders: Partner\n  slug:: partner\n  budget:: "$10k"\n',
         'utf-8',
       )
 
@@ -341,7 +344,7 @@ notes:: "Please review the tagline"
       // Modify procedures model
       const procFile = join(tempDir, 'models', 'procedures_V_0-1-0_NN.md')
       const content = await readFile(procFile, 'utf-8')
-      await writeFile(procFile, content + '\n## NN Procedure: Offboarding\n', 'utf-8')
+      await writeFile(procFile, content + '\n## NN Procedure: Offboarding\n  slug:: offboarding\n', 'utf-8')
 
       // Now --stale should compile only procedures
       res = await runCli([tempDir, '--stale'])
@@ -551,7 +554,7 @@ notes:: "Please review the tagline"
     const VIEW = (title) =>
       `registerView({ title: '${title}', icon: 'layout', order: 1, kind: 'readonly', mount() {} })\n`
     const METRICS_MODEL =
-      '---\ntitle: "M"\nlevel: 3\nparent_spec:\n  name: "metrics_V_0-4-1"\n---\n\n# NN Item\n## NN Item: A\n  name:: "A"\n'
+      '---\ntitle: "M"\nlevel: 3\nparent_spec:\n  name: "metrics_V_0-4-1"\n---\n\n# NN Item\n## NN Item: A\n  slug:: a\n  name:: "A"\n'
     const putView = async (dir, slug, title) => {
       await mkdir(dir, { recursive: true })
       await writeFile(join(dir, slug + '.js'), VIEW(title), 'utf-8')
@@ -716,7 +719,7 @@ notes:: "Please review the tagline"
       const before = await sha(original)
 
       const file = join(tempDir, 'models', 'business_V_0-2-5_NN.md')
-      await writeFile(file, (await readFile(file, 'utf-8')) + '\n## NN Stakeholders: Partner\n  budget:: "$10k"\n', 'utf-8')
+      await writeFile(file, (await readFile(file, 'utf-8')) + '\n## NN Stakeholders: Partner\n  slug:: partner\n  budget:: "$10k"\n', 'utf-8')
       const res = await runCli([tempDir, '--stale'])
       assert.equal(res.code, 0)
 
@@ -759,9 +762,11 @@ level: 3
 
 # NN Item
 ## NN Item: Alpha
+  slug:: alpha
   related:: [[Beta]]${extra}
 
 ## NN Item: Beta
+  slug:: beta
   note:: "b"
 `
     const exportDomain = async () => {
@@ -776,7 +781,7 @@ level: 3
       const model = await exportDomain()
       const ids = model.elements.map((e) => e.id)
       assert.equal(new Set(ids).size, ids.length, 'ids are unique across the domain')
-      for (const e of model.elements) assert.ok(e.id.startsWith(`${e.modelId}/`), e.id)
+      for (const e of model.elements) assert.ok(e.id.startsWith(`${e.modelId}@`), e.id)
 
       const alpha = model.elements.find((e) => e.name === 'Alpha')
       const beta = model.elements.find((e) => e.name === 'Beta')
@@ -784,18 +789,20 @@ level: 3
       assert.equal(alpha.relations[0].target, beta.id)
     })
 
-    it('keeps the draft store key stable while the version follows the content', async () => {
+    it('emits no fake domain version and keeps the draft store key stable', async () => {
       const file = join(tempDir, 'models', 'linked_V_0-1-0_NN.md')
       await writeFile(file, LINKED(), 'utf-8')
       const first = (await exportDomain()).meta
-      const again = (await exportDomain()).meta
-      assert.equal(again.modelVersion, first.modelVersion, 'same content, same version')
+      assert.equal(first.modelVersion, undefined, 'no fabricated domain version')
+      assert.ok(Array.isArray(first.models), 'models[] carries the real per-model meta')
+      const linked = first.models.find((m) => m.filePath === 'linked_V_0-1-0_NN.md')
+      assert.ok(linked, 'models[] carries the exported model')
+      assert.equal(linked.version, 'V_0-1-0')
+      assert.match(linked.sha256, /^[0-9a-f]{64}$/)
 
       await writeFile(file, LINKED('\n  extra:: "changed"'), 'utf-8')
       const edited = (await exportDomain()).meta
       assert.equal(edited.domainId, first.domainId, 'drafts must survive an edit')
-      assert.notEqual(edited.modelVersion, first.modelVersion, 'an edit moves the version')
-      assert.match(edited.modelVersion, /^V_\d+-\d+-\d+$/)
       assert.match(edited.domainId, /-[0-9a-f]{8}$/)
     })
   })
@@ -811,6 +818,7 @@ level: 3
 
 # NN Metrics
 ## NN Metrics: Payback capex
+slug:: payback-capex
 metricValue:: 56
 
 # NN matrices: metrics-dependencies matrix

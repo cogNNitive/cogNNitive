@@ -150,7 +150,6 @@ export function buildConsolePayload(options: BuildConsolePayloadOptions): Consol
   const modelId = normalizeModelId(modelPath, title)
 
   // Elements (Pass 1: instantiate elements and compute hashes)
-  const seenIds = new Map<string, number>()
   const rawElements: {
     elem: ConsolePayloadElement
     rawFields: Record<string, unknown>
@@ -158,15 +157,19 @@ export function buildConsolePayload(options: BuildConsolePayloadOptions): Consol
 
   const elementsByName = new Map<string, ConsolePayloadElement>()
   const elementsById = new Map<string, ConsolePayloadElement>()
+  const unfrozen: string[] = []
 
   for (const [conceptName, nodes] of parsed.elements.entries()) {
     for (const node of nodes) {
       const concept = conceptName
       const name = node.name || 'Element'
-      const baseId = slugify(`${concept} ${name}`)
-      const occurrence = seenIds.get(baseId) ?? 0
-      seenIds.set(baseId, occurrence + 1)
-      const id = occurrence === 0 ? baseId : `${baseId}-${occurrence}`
+      // D1: an element id IS its frozen (explicit) slug. A derived slug is not frozen;
+      // no id is ever invented from a display name.
+      if (!node.slug || !node.slugExplicit) {
+        unfrozen.push(`${concept}: ${name}`)
+        continue
+      }
+      const id = node.slug
 
       const fields: Record<string, unknown> = { ...(node.fields || {}) }
       delete fields.concept
@@ -186,6 +189,7 @@ export function buildConsolePayload(options: BuildConsolePayloadOptions): Consol
 
       const elem: ConsolePayloadElement = {
         id,
+        slug: node.slug,
         concept,
         name,
         description,
@@ -193,9 +197,6 @@ export function buildConsolePayload(options: BuildConsolePayloadOptions): Consol
         markers,
         hash,
       }
-      // The parsed element slug is what `apply_change` resolves; the payload `id` is
-      // a console-only key (concept + name) that the engine does not know.
-      if (node.slug) elem.slug = node.slug
 
       rawElements.push({ elem, rawFields: { ...fields } })
       if (!elementsByName.has(name.toLowerCase())) {
@@ -205,6 +206,18 @@ export function buildConsolePayload(options: BuildConsolePayloadOptions): Consol
         elementsById.set(id.toLowerCase(), elem)
       }
     }
+  }
+
+  // D1: a model whose elements are not all frozen cannot produce a console. Reject it
+  // with an actionable message rather than inventing ids.
+  if (unfrozen.length > 0) {
+    const shown = unfrozen.slice(0, 3).join('; ')
+    throw new Error(
+      `UNFROZEN_MODEL: model "${modelId}" has ${unfrozen.length} element(s) without a frozen slug ` +
+        `(${shown}${unfrozen.length > 3 ? '; …' : ''}). ` +
+        `Freeze the model's slugs first (freeze_slugs, or ` +
+        `node skills/nn-upgrade/scripts/migrate-domain.js --domain-dir <dir> --freeze-slugs).`,
+    )
   }
 
   // Pass 2: resolve intra-model relations and citations

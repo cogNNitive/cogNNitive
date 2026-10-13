@@ -11091,18 +11091,19 @@ function buildConsolePayload(options) {
   const template = fm.target_blueprint || fm.target_template || fm.blueprint || fm.template || void 0;
   const modelVersion = fm.knowledge_version || fm.version || "V_0-1-0";
   const modelId = normalizeModelId(modelPath, title);
-  const seenIds = /* @__PURE__ */ new Map();
   const rawElements = [];
   const elementsByName = /* @__PURE__ */ new Map();
   const elementsById = /* @__PURE__ */ new Map();
+  const unfrozen = [];
   for (const [conceptName, nodes] of parsed.elements.entries()) {
     for (const node of nodes) {
       const concept = conceptName;
       const name = node.name || "Element";
-      const baseId = slugify(`${concept} ${name}`);
-      const occurrence = seenIds.get(baseId) ?? 0;
-      seenIds.set(baseId, occurrence + 1);
-      const id = occurrence === 0 ? baseId : `${baseId}-${occurrence}`;
+      if (!node.slug || !node.slugExplicit) {
+        unfrozen.push(`${concept}: ${name}`);
+        continue;
+      }
+      const id = node.slug;
       const fields = { ...node.fields || {} };
       delete fields.concept;
       delete fields.name;
@@ -11118,6 +11119,7 @@ function buildConsolePayload(options) {
       });
       const elem = {
         id,
+        slug: node.slug,
         concept,
         name,
         description,
@@ -11125,7 +11127,6 @@ function buildConsolePayload(options) {
         markers,
         hash
       };
-      if (node.slug) elem.slug = node.slug;
       rawElements.push({ elem, rawFields: { ...fields } });
       if (!elementsByName.has(name.toLowerCase())) {
         elementsByName.set(name.toLowerCase(), elem);
@@ -11134,6 +11135,12 @@ function buildConsolePayload(options) {
         elementsById.set(id.toLowerCase(), elem);
       }
     }
+  }
+  if (unfrozen.length > 0) {
+    const shown = unfrozen.slice(0, 3).join("; ");
+    throw new Error(
+      `UNFROZEN_MODEL: model "${modelId}" has ${unfrozen.length} element(s) without a frozen slug (${shown}${unfrozen.length > 3 ? "; \u2026" : ""}). Freeze the model's slugs first (freeze_slugs, or node skills/nn-upgrade/scripts/migrate-domain.js --domain-dir <dir> --freeze-slugs).`
+    );
   }
   let citationsResolved = false;
   const elements = [];

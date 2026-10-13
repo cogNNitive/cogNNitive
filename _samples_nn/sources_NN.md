@@ -17,6 +17,7 @@ title: "Sources Catalog"
 # NN Source
 
 ## NN Source: NYC Paranormal Activity Report 1984
+slug:: nyc-paranormal-activity-report-1984
 type:: local_file
 origin_uri:: sources/import/nyc-paranormal-activity-report-1984.pdf
 format:: md
@@ -27,6 +28,7 @@ source_model:: sources/import/nyc-paranormal-activity-report-1984.md
 tags:: [market, municipal, operations]
 
 ## NN Source: Containment Incidents 1984
+slug:: containment-incidents-1984
 type:: local_file
 origin_uri:: sources/import/containment-incidents-1984.xlsx
 format:: csv

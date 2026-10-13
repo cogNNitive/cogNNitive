@@ -20,10 +20,12 @@ parent_spec:
 
 # NN Concept 1
 ## NN Concept 1: Element 1A
+slug:: element-1a
 summary:: Intake baseline.
 
 # NN Concept 2
 ## NN Concept 2: Element 2A
+slug:: element-2a
 summary:: Other.
 `
 
@@ -124,7 +126,7 @@ describe('console element history (changeset lineage)', () => {
             {
               id: 'fb-001',
               op: 'comment',
-              target: 'Domain@concept-1-element-1a&__description',
+              target: 'Domain@element-1a&__description',
               notes: 'nota',
             },
           ],

@@ -101,6 +101,7 @@ knowledge_version: "V_1-0-0"
 
 # NN Services
 ## NN Services: Ghost Capture
+slug:: ghost-capture
 sources:: sources/import/brief.md#intro
 precio_source:: sources/import/pricing.md#rates
 `

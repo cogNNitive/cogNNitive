@@ -45,6 +45,7 @@ level: 3
 
 # NN Stakeholders
 ## NN Stakeholders: Enterprise
+  slug:: enterprise
   budget:: "$100k"
   tagline:: "Mission critical"
 
@@ -52,6 +53,7 @@ level: 3
 
 # NN RevenueStream
 ## NN RevenueStream: Subscription
+  slug:: subscription
   pricing:: "$50k/yr"
 
   Annual recurring subscription stream.
@@ -158,6 +160,7 @@ level: 3
 
 # NN Note
 ## NN Note: Security
+  slug:: security
   note:: "</script><script>alert('xss')</script>"
 
   Dangerous note with <div>HTML content</div>.
@@ -232,6 +235,7 @@ level: 3
 
 # NN Concept
 ## NN Concept: Enterprise Plan
+  slug:: enterprise-plan
   sources:: "sources/brief.md#overview"
 
   Enterprise plan details.
@@ -318,6 +322,7 @@ level: 3
 
 # NN Item
 ## NN Item: Example
+  slug:: example
   name:: "Example"
 `
     await writeFile(join(tempDir, 'models', 'parent_test_V_1-0-0_NN.md'), modelWithParentSpec, 'utf-8')
@@ -345,7 +350,7 @@ level: 3
 })
 `
     const METRICS_MODEL =
-      '---\ntitle: "M"\nlevel: 3\nparent_spec:\n  name: "metrics_V_0-4-1"\n---\n\n# NN Item\n## NN Item: A\n  name:: "A"\n'
+      '---\ntitle: "M"\nlevel: 3\nparent_spec:\n  name: "metrics_V_0-4-1"\n---\n\n# NN Item\n## NN Item: A\n  slug:: a\n  name:: "A"\n'
     const domainFile = () => join(tempDir, 'domaiNN_console.html')
     const addView = async (slug, code = PIPELINE, dir = join(tempDir, 'consoles', 'views')) => {
       await mkdir(dir, { recursive: true })
@@ -424,6 +429,7 @@ parent_spec:
 
 # NN Metrics
 ## NN Metrics: Revenue
+slug:: revenue
 metricValue:: <calculated>
 metricFormula:: incidents x fee
 metricType:: revenue
@@ -432,17 +438,20 @@ evolution:: [[Compound]]
 
 # NN Variables
 ## NN Variables: Incidents
+slug:: incidents
 variableValue:: 20
 variableType:: count
 variableUnit:: incidents
 
 # NN Evolution
 ## NN Evolution: Compound
+slug:: compound
 evolutionType:: compound
 evolutionFactor:: 5
 
 # NN Scenario
 ## NN Scenario: Year 1
+slug:: year-1
 scenarioMonths:: 12
 `
       await writeFile(join(tempDir, 'models', 'm_V_1-0-0_NN.md'), metricsModel, 'utf-8')
@@ -465,6 +474,7 @@ parent_spec:
 
 # NN Metrics
 ## NN Metrics: Revenue
+slug:: revenue
 metricValue:: <calculated>
 metricFormula:: incidents x fee
 metricType:: revenue
@@ -473,17 +483,20 @@ evolution:: [[Compound]]
 
 # NN Variables
 ## NN Variables: Incidents
+slug:: incidents
 variableValue:: 20
 variableType:: count
 variableUnit:: incidents
 
 # NN Evolution
 ## NN Evolution: Compound
+slug:: compound
 evolutionType:: compound
 evolutionFactor:: 5
 
 # NN Scenario
 ## NN Scenario: Year 1
+slug:: year-1
 scenarioMonths:: 12
 `
       await writeFile(join(tempDir, 'models', 'm_V_1-0-0_NN.md'), metricsModel, 'utf-8')

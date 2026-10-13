@@ -116,8 +116,8 @@ describe('sample custom view (_samples_nn/consoles/views/missing-descriptions.js
     const [{ text, filename }] = downloads
     assert.match(filename, new RegExp(`-${VIEW_ID}_tester_.+_changes_NN\.md$`))
     assert.match(text, new RegExp(`title: "[^"]+ - Missing descriptions"`))
-    // The target is the model address (the console id is `<model id>/<element>`), not the console id.
-    const modelAddress = id.slice(0, id.lastIndexOf('/'))
+    // The target is the model address (the console id is `<model id>@<element slug>`), not the console id.
+    const modelAddress = id.slice(0, id.lastIndexOf('@'))
     assert.ok(text.includes(`target:: ${modelAddress}@`), 'the change targets the element in its model')
     assert.equal(text.match(/A proposed description./g).length, 1, 'one proposal')
   })

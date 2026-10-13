@@ -33,6 +33,7 @@ level: 3
 
 # NN Stakeholders
 ## NN Stakeholders: Enterprise
+  slug:: enterprise
   budget:: "$100k"
 
   Leading enterprise tier offering.

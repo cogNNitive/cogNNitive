@@ -17,6 +17,7 @@ title: "Procedures Catalog"
 # NN Procedure
 
 ## NN Procedure: Import and Structure Tabular Data
+slug:: import-and-structure-tabular-data
 category:: ingestion
 summary:: Ingestion workflow to normalize Excel/CSV incident reports into structured tabular knowledge units.
 inputs_required:: Containment Incidents 1984
@@ -25,6 +26,7 @@ executed_by:: Janine Melnitz
 procedure_model:: procedures/import_and_structure_tabular_data_procedures_NN.md
 
 ## NN Procedure: Reconcile Artifact Feedback
+slug:: reconcile-artifact-feedback
 category:: transformation
 summary:: Dual-emission deliverable compiler, forensic Word/Markdown annotation extractor, 4-layer discrepancy triage engine, and upstream iNNfo domain model reconciler.
 inputs_required:: Reviewed Deliverable Document

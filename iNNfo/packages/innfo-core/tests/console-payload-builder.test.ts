@@ -22,11 +22,13 @@ parent_spec:
 
 # NN Mission
 ## NN Mission: Ghostbusters Mission
+slug:: ghostbusters-mission
 description:: Rid New York City of supernatural threats.
 sources:: sources/import/initial-brief.md#mission
 
 # NN Service
 ## NN Service: Ghost Capture
+slug:: ghost-capture
 description:: Professional containment of spectral entities.
 price:: 5000
 `
@@ -48,7 +50,7 @@ price:: 5000
     expect(payload.model.elements.length).toBe(2)
 
     const mission = payload.model.elements[0]
-    expect(mission.id).toBe('mission-ghostbusters-mission')
+    expect(mission.id).toBe('ghostbusters-mission')
     expect(mission.concept).toBe('Mission')
     expect(mission.name).toBe('Ghostbusters Mission')
     expect(mission.hash).toHaveLength(16)
@@ -117,7 +119,7 @@ price:: 5000
       item: 'fb-001',
       model_id: 'kNNowledge/biz/Ghostbusters',
       knowledge_version: 'V_1-0-0',
-      element_id: 'mission-ghostbusters-mission',
+      element_id: 'ghostbusters-mission',
       status: 'rejected',
       by: 'lead-reviewer',
     }
@@ -129,7 +131,7 @@ price:: 5000
       item: 'fb-001',
       model_id: 'kNNowledge/biz/Ghostbusters',
       knowledge_version: 'V_1-0-0',
-      element_id: 'mission-ghostbusters-mission',
+      element_id: 'ghostbusters-mission',
       status: 'applied',
       by: 'lead-reviewer',
     }
@@ -146,6 +148,6 @@ price:: 5000
     const state = feedbackStateFor(entries, 'kNNowledge/biz/Ghostbusters')
     expect(state).toHaveLength(1)
     expect(state[0].status).toBe('applied')
-    expect(state[0].element_id).toBe('mission-ghostbusters-mission')
+    expect(state[0].element_id).toBe('ghostbusters-mission')
   })
 })

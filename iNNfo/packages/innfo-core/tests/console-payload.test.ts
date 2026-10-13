@@ -13,17 +13,20 @@ knowledge_version: "V_1-0-0"
 
 # NN Problems
 ## NN Problems: Paranormal Infestation
+slug:: paranormal-infestation
 severity:: high
 description:: Uncontrolled supernatural events in NYC.
 sources:: sources/import/brief.md#intro
 next:: [[Paranormal Infestation]]
 
 ## NN Problems: Paranormal Infestation
+slug:: paranormal-infestation-critical
 severity:: critical
-description:: Duplicate problem element for testing duplicate id suffixes.
+description:: Second same-named element; distinct slug keeps the ids unambiguous.
 
 ## NN Services
 ## NN Services: Ghost Capture
+slug:: ghost-capture
 target_problem:: [[Paranormal Infestation]]
 lead:: [[NonExistentElement]]
 
@@ -33,7 +36,7 @@ lead:: [[NonExistentElement]]
 | Paranormal Infestation | High |
 `
 
-  it('builds canonical console payload with element ids and duplicate suffix', () => {
+  it('builds canonical console payload with frozen slug element ids', () => {
     const payload = buildConsolePayload({
       content: modelWithRelationsAndMatrices,
       path: 'kNNowledge/business/Ghostbusters_V_1-0-0_NN.md',
@@ -49,12 +52,12 @@ lead:: [[NonExistentElement]]
     const elements = payload.model.elements
     expect(elements).toHaveLength(3)
 
-    expect(elements[0].id).toBe('problems-paranormal-infestation')
+    expect(elements[0].id).toBe('paranormal-infestation')
     expect(elements[0].concept).toBe('Problems')
     expect(elements[0].name).toBe('Paranormal Infestation')
 
-    // Duplicate element has -1 suffix
-    expect(elements[1].id).toBe('problems-paranormal-infestation-1')
+    // Two same-named elements get distinct ids from their frozen slugs.
+    expect(elements[1].id).toBe('paranormal-infestation-critical')
     expect(elements[1].name).toBe('Paranormal Infestation')
   })
 
@@ -72,7 +75,7 @@ lead:: [[NonExistentElement]]
     expect(ghostCapture.relations).toEqual([
       {
         field: 'target_problem',
-        target: 'problems-paranormal-infestation',
+        target: 'paranormal-infestation',
         targetLabel: 'Paranormal Infestation',
       },
     ])
