@@ -6727,7 +6727,7 @@ details.collapse summary {
     "modelId": "testlab",
     "domainId": "testlab-781d2fa1",
     "modelVersion": "V_1-0-246356889",
-    "generated": "2026-10-12T19:28:27.864Z",
+    "generated": "2026-10-12T20:51:49.129Z",
     "models": [
       {
         "id": "kNNowledge/TestLab_coverage_TestLab",
@@ -6813,7 +6813,7 @@ details.collapse summary {
         ],
         "summary": "Photo log element with image and file fields.",
         "long_description": "Element 1B carries the image and file stress fields. The photo is the most trusted record on the bench and the handover note decides the next shift, so this element is the one the review pass targets first.",
-        "photo": "test/fixtures/testlab/sources/import/photo.png",
+        "photo": "./sources/import/photo.png",
         "photo_metadata": {
           "title": "Three-tray workbench",
           "author": "TestLab crew",
@@ -6999,7 +6999,7 @@ details.collapse summary {
         ],
         "summary": "Probe that image traceability resolves through the sidecar.",
         "long_description": "This probe cites the photo sidecar caption, never the binary. A resolver that accepts a direct photo.png citation without the sidecar is wrong.",
-        "photo": "test/fixtures/testlab/sources/import/photo.png",
+        "photo": "./sources/import/photo.png",
         "photo_metadata": {
           "title": "Three-tray workbench",
           "author": "TestLab crew",
@@ -7214,7 +7214,7 @@ details.collapse summary {
         ],
         "summary": "Probe with a very long inline description field.",
         "long_description": "The handover note is the only text that matters on this bench, and this paragraph exists to prove that a very long inline description renders, validates, exports to console, and round-trips without truncation or line-joining damage. Intake starts the flow: the form is filled before any equipment is touched, because an undocumented item effectively does not exist once the shift gets busy. The active phase lives in tray two, where exactly one photo per step is taken with no exceptions, since the photo log is the most trusted record and the only evidence the next shift will actually believe. Handover closes the loop in tray three: the note names what is done, what is blocked, and what the next hands must touch first, and the wall clock minute is written down so lateness is visible instead of arguable. Volume can grow fivefold in a quarter and quality still holds as long as these three habits hold with it, because rework disappears when the trays, the photos, and the note agree with each other. That is the whole workflow, repeated here deliberately at length so renderers, validators, exporters, and tests all meet a description field that cannot be skimmed in one glance.",
-        "photo": "test/fixtures/testlab/sources/import/photo.png",
+        "photo": "./sources/import/photo.png",
         "attachment": "test/fixtures/testlab/sources/import/manual.txt"
       },
       "markers": {},
