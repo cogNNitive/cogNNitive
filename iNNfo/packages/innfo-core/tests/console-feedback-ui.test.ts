@@ -153,8 +153,8 @@ describe('console-feedback-ui (bundle-injected feedback UI contract)', () => {
     const api = loadRuntime()
     api.boot(document)
 
-    const storeKey = 'innfo-console:v2:ghostbusters-model'
-    const existing = JSON.parse(localStorage.getItem(storeKey) || '{"v":2,"modelId":"ghostbusters-model","drafts":[],"reviewed":{}}')
+    const storeKey = 'innfo-console:v3:ghostbusters-model'
+    const existing = JSON.parse(localStorage.getItem(storeKey) || '{"v":3,"modelId":"ghostbusters-model","drafts":[],"reviewed":{}}')
     existing.drafts.push({
       id: 'fb-001',
       element_id: 'threat-slimer',
@@ -209,8 +209,8 @@ describe('console-feedback-ui (bundle-injected feedback UI contract)', () => {
     const api = loadRuntime()
     api.boot(document)
 
-    const storeKey = 'innfo-console:v2:ghostbusters-model'
-    const existing = JSON.parse(localStorage.getItem(storeKey) || '{"v":2,"modelId":"ghostbusters-model","drafts":[],"reviewed":{}}')
+    const storeKey = 'innfo-console:v3:ghostbusters-model'
+    const existing = JSON.parse(localStorage.getItem(storeKey) || '{"v":3,"modelId":"ghostbusters-model","drafts":[],"reviewed":{}}')
     existing.drafts.push({
       id: 'fb-001',
       element_id: 'threat-slimer',
@@ -268,22 +268,23 @@ describe('console-feedback-ui (bundle-injected feedback UI contract)', () => {
     expect(document.getElementById('innfo-feedback-modal')).not.toBe(stepperModal)
   })
 
-  it('flags stale drafts when the model version moved past the drafts', () => {
+  it('never shows a store-level staleness banner, whatever the persisted store holds', () => {
     renderModelConsole({ needs: ['feedback-export'] })
-    const storeKey = 'innfo-console:v2:ghostbusters-model'
+    // A store persisted under the current version, carrying drafts whose element
+    // hash has since moved: staleness is per draft, surfaced in the review tab,
+    // never by the banner.
     localStorage.setItem(
-      storeKey,
+      'innfo-console:v3:ghostbusters-model',
       JSON.stringify({
-        v: 2,
+        v: 3,
         modelId: 'ghostbusters-model',
-        modelVersion: 'V_0-2-0',
         drafts: [
           {
             id: 'fb-001',
             element_id: 'threat-slimer',
             concept: 'ParanormalThreat',
             element: 'Slimer',
-            base_hash: 'abcdef0123456789',
+            base_hash: 'stale____________',
             kind: 'comment',
             comment: 'stale rewrite',
           },
@@ -293,38 +294,8 @@ describe('console-feedback-ui (bundle-injected feedback UI contract)', () => {
     )
     const api = loadRuntime()
     api.boot(document)
-    const stale = document.querySelector('#innfo-feedback-banner .innfo-banner-stale')
-    expect(stale).not.toBeNull()
-    expect(stale!.textContent).toContain('V_0-2-0')
-    expect(stale!.textContent).toContain('V_0-2-1')
-  })
-
-  it('does not flag staleness when the model version matches the drafts', () => {
-    renderModelConsole()
-    const storeKey = 'innfo-console:v2:ghostbusters-model'
-    localStorage.setItem(
-      storeKey,
-      JSON.stringify({
-        v: 2,
-        modelId: 'ghostbusters-model',
-        modelVersion: 'V_0-2-1',
-        drafts: [
-          {
-            id: 'fb-001',
-            element_id: 'threat-slimer',
-            concept: 'ParanormalThreat',
-            element: 'Slimer',
-            base_hash: 'abcdef0123456789',
-            kind: 'comment',
-            comment: 'fresh rewrite',
-          },
-        ],
-        reviewed: {},
-      }),
-    )
-    const api = loadRuntime()
-    api.boot(document)
     expect(document.querySelector('#innfo-feedback-banner .innfo-banner-stale')).toBeNull()
+    expect(document.querySelector('[data-innfo="stale-feedback"]')).toBeNull()
   })
 
   it('does not leak the config needs[] list into the review banner', () => {

@@ -33,7 +33,11 @@ type ConsoleApi = {
 
 const schemaFixture = { concepts: [{ name: 'Goal' }, { name: 'Metric' }] }
 const modelFixture = {
-  meta: { title: 'Acme', modelVersion: 'V_0-1-0' },
+  meta: {
+    title: 'Acme',
+    modelId: 'acme',
+    models: [{ id: 'acme', title: 'Acme', version: 'V_0-1-0', sha256: 'aa'.repeat(32) }],
+  },
   elements: [
     {
       id: 'goal-grow',
@@ -171,10 +175,10 @@ describe('innfo-console — export gate', () => {
 
   it('emits a file named by the feedback contract once an identifier is entered', () => {
     localStorage.setItem(
-      'innfo-console:v2:Acme',
+      'innfo-console:v3:acme',
       JSON.stringify({
-        v: 2,
-        modelId: 'Acme',
+        v: 3,
+        modelId: 'acme',
         drafts: [
           {
             id: 'fb-001',
@@ -205,10 +209,10 @@ describe('innfo-console — export gate', () => {
 
   it('reports the pending draft count in the modal instructions', () => {
     localStorage.setItem(
-      'innfo-console:v2:Acme',
+      'innfo-console:v3:acme',
       JSON.stringify({
-        v: 2,
-        modelId: 'Acme',
+        v: 3,
+        modelId: 'acme',
         drafts: [
           { id: 'fb-001', element_id: 'goal-grow', concept: 'Goal', element: 'Grow', kind: 'comment', base_hash: '0123456789abcdef' },
           { id: 'fb-002', element_id: 'metric-churn', concept: 'Metric', element: 'Churn', kind: 'comment', base_hash: '0123456789abcdef' },

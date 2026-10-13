@@ -67,9 +67,9 @@ describe('console-review-changed-filter', () => {
 
   it('enabling the changed filter sets html[data-innfo-filter=changed]', () => {
     env.localStorage.setItem(
-      'innfo-console:v2:ghostbusters-model',
+      'innfo-console:v3:ghostbusters-model',
       JSON.stringify({
-        v: 2,
+        v: 3,
         modelId: 'ghostbusters-model',
         drafts: [],
         reviewed: { x: 'stale____________', y: 'bbbbbbbbbbbbbbbb' },
@@ -84,9 +84,9 @@ describe('console-review-changed-filter', () => {
 
   it('marks changed cards with data-innfo-changed', () => {
     env.localStorage.setItem(
-      'innfo-console:v2:ghostbusters-model',
+      'innfo-console:v3:ghostbusters-model',
       JSON.stringify({
-        v: 2,
+        v: 3,
         modelId: 'ghostbusters-model',
         drafts: [],
         reviewed: { x: 'stale____________', y: 'bbbbbbbbbbbbbbbb' },
@@ -104,9 +104,9 @@ describe('console-review-changed-filter', () => {
 
   it('never-reviewed elements are not marked changed', () => {
     env.localStorage.setItem(
-      'innfo-console:v2:ghostbusters-model',
+      'innfo-console:v3:ghostbusters-model',
       JSON.stringify({
-        v: 2,
+        v: 3,
         modelId: 'ghostbusters-model',
         drafts: [],
         reviewed: { x: 'stale____________' },

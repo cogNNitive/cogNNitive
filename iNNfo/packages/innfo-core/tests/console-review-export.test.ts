@@ -60,8 +60,8 @@ function seedDraft(overrides: any = {}) {
     ...overrides,
   }
   env.localStorage.setItem(
-    'innfo-console:v2:ghostbusters-model',
-    JSON.stringify({ v: 2, modelId: 'ghostbusters-model', drafts: [draft], reviewed: {} }),
+    'innfo-console:v3:ghostbusters-model',
+    JSON.stringify({ v: 3, modelId: 'ghostbusters-model', drafts: [draft], reviewed: {} }),
   )
 }
 

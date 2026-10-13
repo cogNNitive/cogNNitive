@@ -128,7 +128,7 @@ describe('console-review-popover (annotation)', () => {
       new env.window.Event('click', { bubbles: true }),
     )
 
-    const raw = JSON.parse(env.localStorage.getItem('innfo-console:v2:ghostbusters-model') || '{}')
+    const raw = JSON.parse(env.localStorage.getItem('innfo-console:v3:ghostbusters-model') || '{}')
     expect(raw.drafts).toHaveLength(1)
     const d = raw.drafts[0]
     expect(d.element_id).toBe('threat-slimer')
@@ -157,7 +157,7 @@ describe('console-review-popover (annotation)', () => {
       new env.window.Event('click', { bubbles: true }),
     )
 
-    const raw = JSON.parse(env.localStorage.getItem('innfo-console:v2:ghostbusters-model') || '{}')
+    const raw = JSON.parse(env.localStorage.getItem('innfo-console:v3:ghostbusters-model') || '{}')
     expect(raw.drafts).toHaveLength(1)
     expect(raw.drafts[0].field).toBeUndefined()
     expect(raw.drafts[0].comment).toBe('looks fine')
@@ -174,7 +174,7 @@ describe('console-review-popover (annotation)', () => {
 
     expect(env.document.querySelector('[data-innfo-component="annotation-popover"]')).toBeNull()
     expect(env.document.activeElement).toBe(anchor)
-    const raw = JSON.parse(env.localStorage.getItem('innfo-console:v2:ghostbusters-model') || '{}')
+    const raw = JSON.parse(env.localStorage.getItem('innfo-console:v3:ghostbusters-model') || '{}')
     expect(raw.drafts || []).toHaveLength(0)
   })
 

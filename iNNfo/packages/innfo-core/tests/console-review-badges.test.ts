@@ -105,9 +105,9 @@ describe('console-review-badges (verdict badges from feedbackState)', () => {
   it('a local draft alone produces no verdict badge', () => {
     renderModelConsole(buildModel())
     env.localStorage.setItem(
-      'innfo-console:v2:ghostbusters-model',
+      'innfo-console:v3:ghostbusters-model',
       JSON.stringify({
-        v: 2,
+        v: 3,
         modelId: 'ghostbusters-model',
         drafts: [
           {

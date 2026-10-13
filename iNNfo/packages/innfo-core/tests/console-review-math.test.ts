@@ -132,8 +132,8 @@ describe('console-review-math', () => {
     expect(item.target.field).toBeUndefined()
   })
 
-  it('STORE_PREFIX is innfo-console:v2:', () => {
+  it('STORE_PREFIX is innfo-console:v3:', () => {
     const Review = loadReview()
-    expect(Review.STORE_PREFIX).toBe('innfo-console:v2:')
+    expect(Review.STORE_PREFIX).toBe('innfo-console:v3:')
   })
 })

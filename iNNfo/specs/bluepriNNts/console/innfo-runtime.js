@@ -847,6 +847,15 @@
     return safe ? raw : ''
   }
 
+  // The version a console displays comes from the domain meta `models[]` (D4): the
+  // real per-model `knowledge_version`. There is no `meta.modelVersion` fallback — a
+  // domain with zero or several models has no single version to show. Staleness is
+  // per draft (`base_hash`), never a store-level version.
+  function domainModelVersion(meta) {
+    var models = Array.isArray(meta && meta.models) ? meta.models : []
+    return models.length === 1 && models[0] ? String(models[0].version || '') : ''
+  }
+
   // The console header (`.innfo-navbar`) carries the model identity: the title in
   // `#innfo-domain-title` (the single model's title when scoped, else `meta.title`),
   // an optional `.innfo-scope-label`, and an extra meta line in `#innfo-navbar-extra`
@@ -886,7 +895,7 @@
       var first = models[0] || null
       var parts = []
       var template = (first && first.blueprint) || meta.template
-      var version = (first && first.version) || meta.modelVersion
+      var version = first && first.version
       if (template) parts.push('Template ' + String(template))
       if (version) parts.push('Version ' + String(version))
       if (meta.generated) {
@@ -957,11 +966,7 @@
         }),
       )
     }
-    var version = el(
-      'span',
-      'innfo-banner-version',
-      ' ' + String(meta.modelVersion || meta.knowledge_version || ''),
-    )
+    var version = el('span', 'innfo-banner-version', ' ' + domainModelVersion(meta))
     var draftsBadge = el('span', 'innfo-banner-drafts', ' drafts: ' + (draftCount || 0))
     draftsBadge.setAttribute('data-innfo', 'draft-count')
 
@@ -969,22 +974,8 @@
     banner.appendChild(version)
     banner.appendChild(draftsBadge)
 
-    // Staleness signal: the reviewer's drafts were authored against a model
-    // version that has since moved on. Only meaningful while drafts exist.
-    var staleInfo =
-      state && state.store && typeof state.store.modelVersion === 'function'
-        ? checkStaleness(
-            state.store.modelVersion(),
-            String((state && state.modelVersion) || meta.modelVersion || meta.knowledge_version || ''),
-          )
-        : { stale: false }
-    if (staleInfo.stale && draftCount > 0) {
-      var staleBadge = el('span', 'innfo-banner-stale', '\u26a0 ' + staleInfo.report)
-      if (staleBadge) {
-        staleBadge.setAttribute('data-innfo', 'stale-feedback')
-        banner.appendChild(staleBadge)
-      }
-    }
+    // No store-level staleness: staleness is per draft (`base_hash`), surfaced by
+    // the review tab, never by the banner.
 
     // Reviewer identity: an inline editable field in the header (no emoji, no
     // separate modal — the input itself signals editability).
@@ -2552,7 +2543,7 @@
     var lines = []
     lines.push('# Timeline & P&L Projection Export')
     lines.push('# Model: ' + (meta.model || ''))
-    lines.push('# Version: ' + (meta.knowledge_version || meta.modelVersion || ''))
+    lines.push('# Version: ' + domainModelVersion(meta))
     lines.push('# Generated: ' + (meta.generated_at || meta.generated || ''))
     lines.push('')
     var header = ['Group', 'Metric', 'Type', 'Unit', 'Growth Rule']
@@ -4868,7 +4859,6 @@
     var reviewer = identifier && String(identifier).trim() ? String(identifier).trim() : getReviewerName()
     var drafts = state && state.store ? state.store.drafts() : []
     var model = state && state.modelTitle ? state.modelTitle : 'Model'
-    var version = state && state.modelVersion ? state.modelVersion : '1-0-0'
     var reviewerSlug = slugify(reviewer) || 'reviewer'
     var stamp = stampFromDate(new Date())
 
@@ -5271,7 +5261,8 @@
     }
     var baseTitle = String(meta.title || meta.model || 'Model')
     var baseId = String(meta.modelId || meta.model || meta.title || 'model')
-    var liveModelVersion = String(meta.modelVersion || meta.knowledge_version || 'V_0-0-0')
+    // The displayed version comes from the domain meta `models[]` (D4), with no fallback.
+    var liveModelVersion = domainModelVersion(meta)
 
     var state = {
       modelTitle: scopedView ? baseTitle + ' - ' + (scopedDef ? scopedDef.title : scopedView) : baseTitle,
@@ -5294,7 +5285,6 @@
         typeof localStorage !== 'undefined' ? localStorage : null,
         // A domain console keys its drafts by the stable domain id, never by content.
         String(meta.domainId || baseId) + (scopedView ? '::view:' + scopedView : ''),
-        liveModelVersion,
         {
           onError: function (err) {
             notifyStoreError(active, err)

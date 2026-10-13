@@ -8,7 +8,6 @@ const consoleDir = join(import.meta.dirname!, '..', '..', '..', 'specs', 'bluepr
 
 type DraftStore = {
   persistent: boolean
-  modelVersion: () => string
   drafts: () => any[]
   reviewed: () => Record<string, string>
   addDraft: (input: any) => any
@@ -35,7 +34,7 @@ function memoryStorage(seed?: Record<string, string>) {
   }
 }
 
-describe('console-review-store (draft store v2)', () => {
+describe('console-review-store (draft store v3)', () => {
   beforeEach(() => {
     ;(globalThis as any).InnfoUI = undefined
   })
@@ -44,7 +43,7 @@ describe('console-review-store (draft store v2)', () => {
     delete (globalThis as any).InnfoReview
   })
 
-  it('keys drafts on innfo-console:v2:<modelId>', () => {
+  it('keys drafts on innfo-console:v3:<modelId>, the stable store key only', () => {
     const Review = loadReview()
     const storage = memoryStorage()
     const store = Review.createDraftStore(storage, 'ghostbusters-model') as DraftStore
@@ -58,14 +57,31 @@ describe('console-review-store (draft store v2)', () => {
       comment: 'hi',
     })
 
-    expect(storage._map.has('innfo-console:v2:ghostbusters-model')).toBe(true)
-    const raw = JSON.parse(storage.getItem('innfo-console:v2:ghostbusters-model') as string)
-    expect(raw.v).toBe(2)
+    expect(storage._map.has('innfo-console:v3:ghostbusters-model')).toBe(true)
+    const raw = JSON.parse(storage.getItem('innfo-console:v3:ghostbusters-model') as string)
+    expect(raw.v).toBe(3)
     expect(raw.modelId).toBe('ghostbusters-model')
     expect(raw.drafts).toHaveLength(1)
   })
 
-  it('preserves drafts across sessions with an identical modelId (rebump)', () => {
+  it('records no store-level version (neither field nor API)', () => {
+    const Review = loadReview()
+    const storage = memoryStorage()
+    const store = Review.createDraftStore(storage, 'm1') as DraftStore
+    expect('modelVersion' in store).toBe(false)
+    store.addDraft({
+      element_id: 'e1',
+      concept: 'C',
+      element: 'E1',
+      base_hash: 'abcdef0123456789',
+      kind: 'comment',
+      comment: 'hi',
+    })
+    const raw = JSON.parse(storage.getItem('innfo-console:v3:m1') as string)
+    expect('modelVersion' in raw).toBe(false)
+  })
+
+  it('preserves drafts across sessions with an identical modelId', () => {
     const Review = loadReview()
     const storage = memoryStorage()
     const s1 = Review.createDraftStore(storage, 'm1') as DraftStore
@@ -83,80 +99,49 @@ describe('console-review-store (draft store v2)', () => {
     expect(s2.drafts()[0].element_id).toBe('e1')
   })
 
-  it('records the live model version on a fresh store', () => {
+  it('reads as empty a store persisted with the previous STORE_VERSION', () => {
     const Review = loadReview()
-    const store = Review.createDraftStore(memoryStorage(), 'm1', 'V_0-1-0') as DraftStore
-    expect(store.modelVersion()).toBe('V_0-1-0')
-    store.addDraft({
-      element_id: 'e1',
-      concept: 'C',
-      element: 'E1',
-      base_hash: 'abcdef0123456789',
-      kind: 'comment',
-      comment: 'hi',
+    const storage = memoryStorage({
+      'innfo-console:v3:m1': JSON.stringify({
+        v: 2,
+        modelId: 'm1',
+        modelVersion: 'V_0-1-0',
+        drafts: [{ id: 'fb-001', element_id: 'e1' }],
+      }),
     })
-    expect(store.modelVersion()).toBe('V_0-1-0')
-  })
-
-  it('keeps the recorded version when drafts survive a model version bump', () => {
-    const Review = loadReview()
-    const storage = memoryStorage()
-    const s1 = Review.createDraftStore(storage, 'm1', 'V_0-1-0') as DraftStore
-    s1.addDraft({
-      element_id: 'e1',
-      concept: 'C',
-      element: 'E1',
-      base_hash: 'abcdef0123456789',
-      kind: 'comment',
-      comment: 'hi',
-    })
-    const s2 = Review.createDraftStore(storage, 'm1', 'V_0-2-0') as DraftStore
-    expect(s2.drafts()).toHaveLength(1)
-    expect(s2.modelVersion()).toBe('V_0-1-0')
-  })
-
-  it('rebases to the live version when the store has no drafts left', () => {
-    const Review = loadReview()
-    const storage = memoryStorage()
-    const s1 = Review.createDraftStore(storage, 'm1', 'V_0-1-0') as DraftStore
-    s1.markReviewed('e1', 'abcdef0123456789')
-    const s2 = Review.createDraftStore(storage, 'm1', 'V_0-2-0') as DraftStore
-    expect(s2.modelVersion()).toBe('V_0-2-0')
-  })
-
-  it('never reads, modifies or deletes old innfo-console:drafts:* keys', () => {
-    const Review = loadReview()
-    const legacyKey = 'innfo-console:drafts:ghostbusters:V_0-2-1'
-    const legacyValue = '[{"id":"fb-001","elementId":"e1"}]'
-    const storage = memoryStorage({ [legacyKey]: legacyValue })
-
-    const store = Review.createDraftStore(storage, 'm1') as DraftStore
-    store.addDraft({
-      element_id: 'e1',
-      concept: 'C',
-      element: 'E1',
-      base_hash: 'abcdef0123456789',
-      kind: 'comment',
-      comment: 'hi',
-    })
-
-    expect(storage.getItem(legacyKey)).toBe(legacyValue)
-    expect(store.drafts()).toHaveLength(1)
-  })
-
-  it('returns empty drafts and reviewed for corrupted JSON', () => {
-    const Review = loadReview()
-    const storage = memoryStorage({ 'innfo-console:v2:m1': '{not json' })
     const store = Review.createDraftStore(storage, 'm1') as DraftStore
     expect(store.drafts()).toEqual([])
     expect(store.reviewed()).toEqual({})
   })
 
-  it('returns empty drafts and reviewed when v !== 2', () => {
+  it('never reads the previous-version key namespace innfo-console:v2:*', () => {
     const Review = loadReview()
-    const storage = memoryStorage({
-      'innfo-console:v2:m1': JSON.stringify({ v: 1, modelId: 'm1', drafts: [{ id: 'fb-001' }] }),
+    const old = JSON.stringify({
+      v: 2,
+      modelId: 'm1',
+      modelVersion: 'V_0-1-0',
+      drafts: [{ id: 'fb-001', element_id: 'e1', concept: 'C', element: 'E1', base_hash: 'abcdef0123456789' }],
     })
+    const storage = memoryStorage({ 'innfo-console:v2:m1': old })
+
+    const store = Review.createDraftStore(storage, 'm1') as DraftStore
+    store.addDraft({
+      element_id: 'e2',
+      concept: 'C',
+      element: 'E2',
+      base_hash: 'abcdef0123456789',
+      kind: 'comment',
+      comment: 'hi',
+    })
+
+    // The old store is untouched (not migrated, not cleared) and never read.
+    expect(storage.getItem('innfo-console:v2:m1')).toBe(old)
+    expect(store.drafts().map((d) => d.element_id)).toEqual(['e2'])
+  })
+
+  it('returns empty drafts and reviewed for corrupted JSON', () => {
+    const Review = loadReview()
+    const storage = memoryStorage({ 'innfo-console:v3:m1': '{not json' })
     const store = Review.createDraftStore(storage, 'm1') as DraftStore
     expect(store.drafts()).toEqual([])
     expect(store.reviewed()).toEqual({})
@@ -165,7 +150,7 @@ describe('console-review-store (draft store v2)', () => {
   it('returns empty when the stored modelId does not match', () => {
     const Review = loadReview()
     const storage = memoryStorage({
-      'innfo-console:v2:m1': JSON.stringify({ v: 2, modelId: 'other', drafts: [{ id: 'fb-001' }] }),
+      'innfo-console:v3:m1': JSON.stringify({ v: 3, modelId: 'other', drafts: [{ id: 'fb-001' }] }),
     })
     const store = Review.createDraftStore(storage, 'm1') as DraftStore
     expect(store.drafts()).toEqual([])
@@ -174,8 +159,8 @@ describe('console-review-store (draft store v2)', () => {
   it('drops unknown fields on read', () => {
     const Review = loadReview()
     const storage = memoryStorage({
-      'innfo-console:v2:m1': JSON.stringify({
-        v: 2,
+      'innfo-console:v3:m1': JSON.stringify({
+        v: 3,
         modelId: 'm1',
         drafts: [
           {
@@ -249,7 +234,8 @@ describe('console-review-store (draft store v2)', () => {
     expect(store.drafts()).toHaveLength(1)
   })
 
-  it('markReviewed and unmarkReviewed persist atomically', () => {    const Review = loadReview()
+  it('markReviewed and unmarkReviewed persist atomically', () => {
+    const Review = loadReview()
     const storage = memoryStorage()
     const store = Review.createDraftStore(storage, 'm1') as DraftStore
     store.markReviewed('e1', 'abcdef0123456789')
@@ -283,7 +269,7 @@ describe('console-review-store (draft store v2)', () => {
     const b = tabB.addDraft(draftInput('e2'))
     tabA.addDraft(draftInput('e3'))
 
-    const ids = JSON.parse(storage.getItem('innfo-console:v2:m1') as string).drafts.map(
+    const ids = JSON.parse(storage.getItem('innfo-console:v3:m1') as string).drafts.map(
       (d: any) => d.element_id,
     )
     expect(ids).toEqual(['e1', 'e2', 'e3'])
@@ -307,14 +293,14 @@ describe('console-review-store (draft store v2)', () => {
     const Review = loadReview()
     const storage = memoryStorage()
     let notified = 0
-    const tabA = Review.createDraftStore(storage, 'm1', 'V', {
+    const tabA = Review.createDraftStore(storage, 'm1', {
       onRemoteChange: () => void notified++,
     }) as DraftStore & { destroy: () => void }
     const tabB = Review.createDraftStore(storage, 'm1') as DraftStore
     tabB.addDraft(draftInput('e9'))
 
     expect(tabA.drafts()).toHaveLength(0)
-    window.dispatchEvent(new StorageEvent('storage', { key: 'innfo-console:v2:m1' }))
+    window.dispatchEvent(new StorageEvent('storage', { key: 'innfo-console:v3:m1' }))
     expect(tabA.drafts().map((d) => d.element_id)).toEqual(['e9'])
     expect(notified).toBe(1)
 
@@ -322,7 +308,7 @@ describe('console-review-store (draft store v2)', () => {
     window.dispatchEvent(new StorageEvent('storage', { key: 'unrelated' }))
     expect(notified).toBe(1)
     tabA.destroy()
-    window.dispatchEvent(new StorageEvent('storage', { key: 'innfo-console:v2:m1' }))
+    window.dispatchEvent(new StorageEvent('storage', { key: 'innfo-console:v3:m1' }))
     expect(notified).toBe(1)
   })
 
@@ -336,7 +322,7 @@ describe('console-review-store (draft store v2)', () => {
       },
     }
     const errors: unknown[] = []
-    const store = Review.createDraftStore(storage, 'm1', 'V', {
+    const store = Review.createDraftStore(storage, 'm1', {
       onError: (err: unknown) => void errors.push(err),
     }) as DraftStore
 
@@ -362,6 +348,6 @@ describe('console-review-store (draft store v2)', () => {
     expect(store.drafts().map((d) => d.element_id)).toEqual(['e2', 'e3'])
     store.clearDrafts()
     expect(store.drafts()).toEqual([])
-    expect(JSON.parse(storage.getItem('innfo-console:v2:m1') as string).drafts).toEqual([])
+    expect(JSON.parse(storage.getItem('innfo-console:v3:m1') as string).drafts).toEqual([])
   })
 })

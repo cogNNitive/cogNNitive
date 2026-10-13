@@ -93,7 +93,7 @@ describe('console-review-progress (reviewed marks + rail progress)', () => {
     toggle.dispatchEvent(new env.window.Event('click', { bubbles: true }))
 
     const raw = JSON.parse(
-      env.localStorage.getItem('innfo-console:v2:ghostbusters-model') || '{}',
+      env.localStorage.getItem('innfo-console:v3:ghostbusters-model') || '{}',
     )
     expect(raw.reviewed).toEqual({ 'threat-slimer': 'abcdef0123456789' })
   })
@@ -111,9 +111,9 @@ describe('console-review-progress (reviewed marks + rail progress)', () => {
 
   it('hash drift un-counts a reviewed mark and marks it changed', () => {
     env.localStorage.setItem(
-      'innfo-console:v2:ghostbusters-model',
+      'innfo-console:v3:ghostbusters-model',
       JSON.stringify({
-        v: 2,
+        v: 3,
         modelId: 'ghostbusters-model',
         drafts: [],
         reviewed: { 'threat-slimer': 'stale____________' },
@@ -131,13 +131,13 @@ describe('console-review-progress (reviewed marks + rail progress)', () => {
     ;(card.querySelector('[data-innfo-component="reviewed-toggle"]') as HTMLElement).dispatchEvent(
       new env.window.Event('click', { bubbles: true }),
     )
-    const persisted = env.localStorage.getItem('innfo-console:v2:ghostbusters-model')
+    const persisted = env.localStorage.getItem('innfo-console:v3:ghostbusters-model')
 
     // Re-boot fresh with the same persisted store.
     controllers.forEach((c) => c.destroy && c.destroy())
     controllers = []
     renderModelConsole()
-    env.localStorage.setItem('innfo-console:v2:ghostbusters-model', persisted as string)
+    env.localStorage.setItem('innfo-console:v3:ghostbusters-model', persisted as string)
     enableReview()
     const card2 = env.document.querySelector('[data-element-id="equip-trap"]') as HTMLElement
     const toggle2 = card2.querySelector('[data-innfo-component="reviewed-toggle"]') as HTMLElement
